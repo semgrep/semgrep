@@ -736,6 +736,9 @@ and other_expr_operator =
   (* Ruby *)
   (* Rust *)
   | OE_MacroInvocation
+  (* C# *)
+  | OE_Checked
+  | OE_Unchecked
   (* Other *)
   | OE_StmtExpr (* OCaml/Ruby have just expressions, no statements *)
   | OE_Todo
@@ -928,6 +931,8 @@ and other_stmt_with_stmt_operator =
   (* Rust *)
   | OSWS_UnsafeBlock | OSWS_AsyncBlock | OSWS_ConstBlock
   | OSWS_ForeignBlock | OSWS_ImplBlock
+  (* C# *)
+  | OSWS_CheckedBlock | OSWS_UncheckedBlock
   (*e: type [[AST_generic.other_stmt_with_stmt_operator]] *)
 
 (*s: type [[AST_generic.other_stmt_operator]] *)
