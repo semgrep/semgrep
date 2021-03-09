@@ -114,21 +114,22 @@ let regression_tests_for_lang ~with_caching files lang =
        (Filename.concat data_path "basic_equivalences.yml")
      else []
     in
-    Semgrep_generic.check
-      ~hook:(fun _env matched_tokens ->
-      (* there are a few fake tokens in the generic ASTs now (e.g., 
-       * for DotAccess generated outside the grammar) *)
-        let xs = Lazy.force matched_tokens in
-        let toks = xs |> List.filter Parse_info.is_origintok in
-        let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
-        Error_code.error minii (Error_code.SemgrepMatchFound ("",""))
-      )
-      ~with_caching
-      [rule] equiv file lang ast |> ignore;
-
-    let actual = !Error_code.g_errors in
-    let expected = Error_code.expected_error_lines_of_files [file] in
-      Error_code.compare_actual_to_expected actual expected; 
+    Common.save_excursion Flag_semgrep.with_opt_cache with_caching (fun() ->
+     Semgrep_generic.check
+       ~hook:(fun _env matched_tokens ->
+       (* there are a few fake tokens in the generic ASTs now (e.g., 
+        * for DotAccess generated outside the grammar) *)
+         let xs = Lazy.force matched_tokens in
+         let toks = xs |> List.filter Parse_info.is_origintok in
+         let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
+         Error_code.error minii (Error_code.SemgrepMatchFound ("",""))
+       )
+       [rule] equiv file lang ast |> ignore;
+  
+     let actual = !Error_code.g_errors in
+     let expected = Error_code.expected_error_lines_of_files [file] in
+       Error_code.compare_actual_to_expected actual expected; 
+    )     
    )
  )
 (*e: function [[Test.regression_tests_for_lang]] *)
@@ -316,9 +317,10 @@ let lint_regression_tests ~with_caching =
     E.try_with_exn_to_error file (fun () ->
     let { Parse_target. ast; _} = 
         Parse_target.just_parse_with_lang lang file in
-    Semgrep_generic.check ~hook:(fun _ _ -> ()) ~with_caching
-      rules equivs file lang ast
+    Common.save_excursion Flag_semgrep.with_opt_cache with_caching (fun() ->
+      Semgrep_generic.check ~hook:(fun _ _ -> ()) rules equivs file lang ast
       |> List.iter JSON_report.match_to_error;
+    )
   ));
 
   (* compare *)

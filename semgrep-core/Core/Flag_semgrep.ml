@@ -26,8 +26,6 @@ let go_deeper_stmt = ref true
 let go_really_deeper_stmt = ref true
 (*e: constant [[Flag_semgrep.go_really_deeper_stmt]] *)
 
-(* Improves performance on some patterns, degrades performance on others. *)
-let max_cache = ref false
 
 (* look if identifiers in pattern intersect with file using simple regexps *)
 let filter_irrelevant_patterns = ref false
@@ -38,6 +36,11 @@ let filter_irrelevant_rules = ref false
 
 (* check for identifiers before attempting to match a stmt or stmt list *)
 let use_bloom_filter = ref false
+
+(* opt = optimization *)
+let with_opt_cache = ref true
+(* Improves performance on some patterns, degrades performance on others. *)
+let max_cache = ref false
 
 (* we usually try first with the pfff parser and then with the tree-sitter
  * parser if pfff fails. Here you can force to only use tree-sitter.
