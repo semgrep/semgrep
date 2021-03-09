@@ -71,6 +71,9 @@ val envf :
   (Metavariable.mvar AST_generic.wrap, Metavariable.mvalue) matcher
 (*e: signature [[Matching_generic.envf]] *)
 
+val if_config:
+  (Config_semgrep.t -> bool) -> (tin -> tout) -> tin -> tout
+
 (*s: signature [[Matching_generic.check_and_add_metavar_binding]] *)
 val check_and_add_metavar_binding :
   Metavariable.mvar * Metavariable.mvalue ->

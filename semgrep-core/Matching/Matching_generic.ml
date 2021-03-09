@@ -199,6 +199,11 @@ let or_list m a bs =
   in
   aux bs
 
+let if_config f m = fun tin ->
+  if f tin.config
+  then m tin
+  else fail tin
+
 (* Since OCaml 4.08 you can define your own let operators!
  * alt: use ppx_let, but you need to write it as let%bind (uglier)
  * You can use the ppx future_syntax to support older version of OCaml, but

@@ -30,6 +30,7 @@ module B = AST_generic
 module MV = Metavariable
 module AST = AST_generic
 module Flag = Flag_semgrep
+module Config = Config_semgrep
 module H = AST_generic_helpers
 
 (* optimisations *)
@@ -598,11 +599,11 @@ and m_expr a b =
    * const a = "foo"; ... a == "foo" would be catched by $X == $X.
   *)
   | A.L(a1), b1 ->
-      (match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
-       | Some b1 ->
-           m_literal_constness a1 b1
-       | None -> fail ()
-      )
+      if_config (fun x -> x.Config.constant_propagation)
+        (match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
+         | Some b1 -> m_literal_constness a1 b1
+         | None -> fail ()
+        )
   (*e: [[Generic_vs_generic.m_expr()]] propagated constant case *)
 
   (*s: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
