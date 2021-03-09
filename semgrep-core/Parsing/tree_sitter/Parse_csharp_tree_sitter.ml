@@ -1752,15 +1752,14 @@ and interpolated_string_expression (env : env) (x : CST.interpolated_string_expr
         in
         let v3 = token env v3 (* "\"" *) in
         v1, v2, v3
+    | `ATDOLLARDQUOT_rep_inte_verb_str_content_DQUOT (v1, v2, v3)
     | `DOLLARATDQUOT_rep_inte_verb_str_content_DQUOT (v1, v2, v3) ->
-        let v1 = token env v1 (* "$@\"" *) in
+        let v1 = token env v1 (* "$@\"" or "@$\"" *) in
         let v2 =
           List.map (interpolated_verbatim_string_content env) v2
         in
         let v3 = token env v3 (* "\"" *) in
         v1, v2, v3
-    | `ATDOLLARDQUOT_rep_inte_verb_str_content_DQUOT (v1, v2, v3) ->
-        todo env (v1, v2, v3)
   ) in
   let v1, v2, v3 = x in
   let args = fake_bracket (List.map(fun e -> Arg e) v2) in
