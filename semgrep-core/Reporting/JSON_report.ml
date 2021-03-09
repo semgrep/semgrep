@@ -164,6 +164,86 @@ let match_to_json x =
 [@@profiling]
 (*e: function [[JSON_report.match_to_json]] *)
 
+
+
+let json_time_of_match_times match_times =
+  [
+    "time", J.Object [
+      "targets", J.Array (
+        List.map (fun (target, match_time) ->
+          J.Object [
+            "path", J.String target;
+            "match_time", J.Float match_time;
+          ]
+        ) match_times
+      )
+    ]
+  ]
+
+let json_fields_of_matches_and_errors files matches errs opt_match_times =
+  let (matches, new_errs) =
+    Common.partition_either match_to_json matches in
+  let errs = new_errs @ errs in
+  let count_errors = (List.length errs) in
+  let count_ok = (List.length files) - count_errors in
+  let time_field =
+    match opt_match_times with
+    | None -> []
+    | Some x -> json_time_of_match_times x
+  in
+  [ "matches", J.Array (matches);
+    "errors", J.Array (errs |> List.map R2c.error_to_json);
+    "stats", J.Object [
+      "okfiles", J.Int count_ok;
+      "errorfiles", J.Int count_errors;
+    ];
+  ] @ time_field
+[@@profiling]
+
+let json_of_profile_info profile_start =
+  let now = Unix.gettimeofday () in
+  (* total time, but excluding J.string_of_json time that comes after *)
+  (* partial copy paste of Common.adjust_profile_entry *)
+  Hashtbl.add !Common._profile_table "TOTAL"
+    (ref (now -. profile_start), ref 1);
+
+  (* partial copy paste of Common.profile_diagnostic *)
+  let xs =
+    Hashtbl.fold (fun k v acc -> (k,v)::acc) !Common._profile_table []
+    |> List.sort (fun (_k1, (t1,_n1)) (_k2, (t2,_n2)) -> compare t2 t1)
+  in
+  xs |> List.map (fun (k, (t, cnt)) ->
+    k, J.Object [
+      "time", J.Float !t;
+      "count", J.Int !cnt;
+    ]
+  ) |> (fun xs -> J.Object xs)
+
+let json_of_exn e =
+  (* if (ouptut_as_json) then *)
+  match e with
+  | Parse_mini_rule.InvalidRuleException (pattern_id, msg)     ->
+      J.Object [ "pattern_id", J.String pattern_id;
+                 "error", J.String "invalid rule";
+                 "message", J.String msg; ]
+  | Parse_mini_rule.InvalidLanguageException (pattern_id, language) ->
+      J.Object [ "pattern_id", J.String pattern_id;
+                 "error", J.String "invalid language";
+                 "language", J.String language; ]
+  | Parse_mini_rule.InvalidPatternException (pattern_id, pattern, lang, message) ->
+      J.Object [ "pattern_id", J.String pattern_id;
+                 "error", J.String "invalid pattern";
+                 "pattern", J.String pattern;
+                 "language", J.String lang;
+                 "message", J.String message; ]
+  | Parse_mini_rule.UnparsableYamlException msg ->
+      J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
+  | Parse_mini_rule.InvalidYamlException msg ->
+      J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
+  | exn ->
+      J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
+
+
 (*****************************************************************************)
 (* Error *)
 (*****************************************************************************)
