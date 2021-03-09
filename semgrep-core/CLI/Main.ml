@@ -82,6 +82,9 @@ let test = ref false
 let debug = ref false
 (*e: constant [[Main_semgrep_core.debug]] *)
 let profile = ref false
+
+let report_time = ref false
+
 (*s: constant [[Main_semgrep_core.error_recovery]] *)
 (* try to continue processing files, even if one has a parse error with -e/f.
  * note that -rules_file does its own error recovery.
@@ -144,8 +147,6 @@ type output_format = Text | Json
 (*s: constant [[Main_semgrep_core.output_format_json]] *)
 let output_format = ref Text
 (*e: constant [[Main_semgrep_core.output_format_json]] *)
-
-let report_time = ref false
 
 (*s: constant [[Main_semgrep_core.match_format]] *)
 let match_format = ref Matching_report.Normal
@@ -613,15 +614,6 @@ let get_final_files xs =
 [@@profiling]
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
-(* Report the time a function takes.
-   TODO: use a library function instead. Do we have one already?
-*)
-let with_time f =
-  let t1 = Unix.gettimeofday () in
-  let res = f () in
-  let t2 = Unix.gettimeofday () in
-  (res, t2 -. t1)
-
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
   let lang = lang_of_string !lang in
@@ -695,90 +687,9 @@ let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors f files =
   matches, errors, times
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
-(*****************************************************************************)
-(* JSON Output (used by the semgrep Python wrapper) *)
-(*****************************************************************************)
-(* todo? move this code in JSON_report.ml? *)
-
-let json_time_of_match_times match_times =
-  [
-    "time", J.Object [
-      "targets", J.Array (
-        List.map (fun (target, match_time) ->
-          J.Object [
-            "path", J.String target;
-            "match_time", J.Float match_time;
-          ]
-        ) match_times
-      )
-    ]
-  ]
-
-let json_fields_of_matches_and_errors files matches errs opt_match_times =
-  let (matches, new_errs) =
-    Common.partition_either JSON_report.match_to_json matches in
-  let errs = new_errs @ errs in
-  let count_errors = (List.length errs) in
-  let count_ok = (List.length files) - count_errors in
-  let time_field =
-    match opt_match_times with
-    | None -> []
-    | Some x -> json_time_of_match_times x
-  in
-  [ "matches", J.Array (matches);
-    "errors", J.Array (errs |> List.map R2c.error_to_json);
-    "stats", J.Object [
-      "okfiles", J.Int count_ok;
-      "errorfiles", J.Int count_errors;
-    ];
-  ] @ time_field
-[@@profiling]
 (*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
 (*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
-
-let json_of_profile_info () =
-  let now = Unix.gettimeofday () in
-  (* total time, but excluding J.string_of_json time that comes after *)
-  (* partial copy paste of Common.adjust_profile_entry *)
-  Hashtbl.add !Common._profile_table "TOTAL"
-    (ref (now -. !profile_start), ref 1);
-
-  (* partial copy paste of Common.profile_diagnostic *)
-  let xs =
-    Hashtbl.fold (fun k v acc -> (k,v)::acc) !Common._profile_table []
-    |> List.sort (fun (_k1, (t1,_n1)) (_k2, (t2,_n2)) -> compare t2 t1)
-  in
-  xs |> List.map (fun (k, (t, cnt)) ->
-    k, J.Object [
-      "time", J.Float !t;
-      "count", J.Int !cnt;
-    ]
-  ) |> (fun xs -> J.Object xs)
-
 (*s: function [[Main_semgrep_core.format_output_exception]] *)
-let json_of_exn e =
-  (* if (ouptut_as_json) then *)
-  match e with
-  | Parse_mini_rule.InvalidRuleException (pattern_id, msg)     ->
-      J.Object [ "pattern_id", J.String pattern_id;
-                 "error", J.String "invalid rule";
-                 "message", J.String msg; ]
-  | Parse_mini_rule.InvalidLanguageException (pattern_id, language) ->
-      J.Object [ "pattern_id", J.String pattern_id;
-                 "error", J.String "invalid language";
-                 "language", J.String language; ]
-  | Parse_mini_rule.InvalidPatternException (pattern_id, pattern, lang, message) ->
-      J.Object [ "pattern_id", J.String pattern_id;
-                 "error", J.String "invalid pattern";
-                 "pattern", J.String pattern;
-                 "language", J.String lang;
-                 "message", J.String message; ]
-  | Parse_mini_rule.UnparsableYamlException msg ->
-      J.Object [  "error", J.String "unparsable yaml"; "message", J.String msg; ]
-  | Parse_mini_rule.InvalidYamlException msg ->
-      J.Object [  "error", J.String "invalid yaml"; "message", J.String msg; ]
-  | exn ->
-      J.Object [  "error", J.String "unknown exception"; "message", J.String (Common.exn_to_s exn); ]
 (*e: function [[Main_semgrep_core.format_output_exception]] *)
 
 (*****************************************************************************)
@@ -794,7 +705,7 @@ let semgrep_with_rules ~with_opt_cache ~report_time rules files =
       (fun file lang lazy_ast_and_errors ->
          let (ast, errors) = Lazy.force lazy_ast_and_errors in
          let (matches, errors), match_time =
-           with_time (fun () ->
+           Common.with_time (fun () ->
              let rules =
                rules |> List.filter (fun r -> List.mem lang r.MR.languages) in
              Semgrep_generic.check
@@ -822,11 +733,12 @@ let semgrep_with_rules ~with_opt_cache ~report_time rules files =
    * Common2.write_value matches "/tmp/debug_matches";
   *)
   let flds =
-    json_fields_of_matches_and_errors files matches errs match_times in
+    JSON_report.json_fields_of_matches_and_errors
+      files matches errs match_times in
   let flds =
     if !profile
     then begin
-      let json = json_of_profile_info () in
+      let json = JSON_report.json_of_profile_info !profile_start in
       (* so we don't get also the profile output of Common.main_boilerplate*)
       Common.profile := Common.ProfNone;
       flds @ ["profiling", json]
@@ -857,7 +769,7 @@ let semgrep_with_rules_file ~with_opt_cache ~report_time rules_file files =
   with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     (* if !Flag.debug then save_rules_file_in_tmp (); *)
-    let json = json_of_exn exn in
+    let json = JSON_report.json_of_exn exn in
     let s = J.string_of_json json in
     pr s;
     exit 2
@@ -909,11 +821,12 @@ let semgrep_with_real_rules ~with_opt_cache ~report_time rules files =
   match !output_format with
   | Json ->
       let flds =
-        json_fields_of_matches_and_errors files matches errs match_times in
+        JSON_report.json_fields_of_matches_and_errors
+          files matches errs match_times in
       let flds =
         if !profile
         then begin
-          let json = json_of_profile_info () in
+          let json = JSON_report.json_of_profile_info !profile_start in
           (* so we don't get also the profile output of Common.main_boilerplate*)
           Common.profile := Common.ProfNone;
           flds @ ["profiling", json]
@@ -936,7 +849,7 @@ let semgrep_with_real_rules_file
     semgrep_with_real_rules ~with_opt_cache ~report_time rules files
   with exn when !output_format = Json ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
-    let json = json_of_exn exn in
+    let json = JSON_report.json_of_exn exn in
     let s = J.string_of_json json in
     pr s;
     exit 2
@@ -1062,11 +975,12 @@ let tainting_with_rules rules_file xs =
            (file, 0.0) (* TODO? *)
         )
     in
-    let flds = json_fields_of_matches_and_errors files matches errs None in
+    let flds = JSON_report.json_fields_of_matches_and_errors
+        files matches errs None in
     let s = J.string_of_json (J.Object flds) in
     pr s
   with exn ->
-    let json = json_of_exn exn in
+    let json = JSON_report.json_of_exn exn in
     let s = J.string_of_json json in
     pr s;
     exit 2

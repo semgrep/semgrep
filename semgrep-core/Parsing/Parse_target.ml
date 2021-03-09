@@ -201,23 +201,22 @@ let just_parse_with_lang lang file =
       ]
         Ruby_to_generic.program
   | Lang.Java ->
-      (* let's start with a pfff one; it's quite good and currently faster
-       * than the tree-sitter one because we need to wrap that one inside
-       * an invoke because of a segfault/memory-leak.
-      *)
       run file [
+        (* we used to start with the pfff one; it was quite good and faster
+         * than tree-sitter (because we need to wrap tree-sitter inside
+         * an invoke because of a segfault/memory-leak), but when both parsers
+         * fail, it's better to give the tree-sitter parsing error now.
+        *)
         Pfff (throw_tokens Parse_java.parse);
+        (* TODO: putting tree-sitter first lead to many regressions, why? *)
         TreeSitter Parse_java_tree_sitter.parse;
       ]
         Java_to_generic.program
   | Lang.Go ->
       run file [
-        Pfff (throw_tokens Parse_go.parse);
         TreeSitter Parse_go_tree_sitter.parse;
+        Pfff (throw_tokens Parse_go.parse);
       ]
-        (* old: Resolve_go.resolve ast;
-         * switched to call Naming_AST.ml in sgrep to correct def and use tagger
-        *)
         Go_to_generic.program
 
   | Lang.Javascript ->
@@ -237,19 +236,18 @@ let just_parse_with_lang lang file =
       ]
         Js_to_generic.program
 
+  (* there is no pfff parsers for C#/Kotlin/... so let's go directly to
+   *  tree-sitter, and there's no ast_xxx.ml either so we directly generate
+   * a generic AST (no xxx_to_generic here)
+  *)
   | Lang.Csharp ->
-      (* there is no pfff parser for C# so let's go directly to tree-sitter,
-       * and there's no ast_csharp.ml either so we directly generate
-       * a generic AST (no csharp_to_generic here)
-      *)
       run file [TreeSitter Parse_csharp_tree_sitter.parse] (fun x -> x)
-
   | Lang.Kotlin ->
-      (* there is no pfff parser for Kotlin so let's go directly to tree-sitter,
-       * and there's no ast_kotlin.ml either so we directly generate
-       * a generic AST (no kotlin_to_generic here)
-      *)
       run file [TreeSitter Parse_kotlin_tree_sitter.parse] (fun x -> x)
+  | Lang.Lua ->
+      run file [TreeSitter Parse_lua_tree_sitter.parse] (fun x -> x)
+  | Lang.Rust ->
+      run file [TreeSitter Parse_rust_tree_sitter.parse] (fun x -> x)
 
   | Lang.C ->
       run file [
@@ -258,20 +256,6 @@ let just_parse_with_lang lang file =
         TreeSitter Parse_c_tree_sitter.parse;
       ]
         C_to_generic.program
-
-  | Lang.Lua ->
-      (* there is no pfff parser for Lua so let's go directly to tree-sitter,
-       * and there's no ast_lua.ml either so we directly generate
-       * a generic AST (no lua_to_generic here)
-      *)
-      run file [TreeSitter Parse_lua_tree_sitter.parse] (fun x -> x)
-
-  | Lang.Rust ->
-      (* there is no pfff parser for Rust so let's go directly to tree-sitter,
-       * and there's no ast_rust.ml either so we directly generate
-       * a generic AST (no rust_to_generic here)
-      *)
-      run file [TreeSitter Parse_rust_tree_sitter.parse] (fun x -> x)
 
   (* use pfff *)
   | Lang.Python | Lang.Python2 | Lang.Python3 ->
