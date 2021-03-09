@@ -10,7 +10,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "            print(\"blah\")",
-        "message": "'print(\"blah\")' detected in method 'B' in class 'A'",
+        "message": "'print(\"blah\")' detected in method 'C' in class 'A'",
         "metadata": {},
         "metavars": {
           "$MSG": {
@@ -86,7 +86,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "            print(\"asdf\")",
-        "message": "'print(\"asdf\")' detected in method 'D' in class 'A'",
+        "message": "'print(\"asdf\")' detected in method 'E' in class 'A'",
         "metadata": {},
         "metavars": {
           "$MSG": {

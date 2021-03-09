@@ -118,6 +118,7 @@ class Range(NamedTuple):
     start: int
     end: int
     metavariables: Mapping[str, Any]
+    propagated_metavariables: Dict[str, Any] = {}
 
     def is_enclosing_or_eq(self, rhs: "Range") -> bool:
         return self.is_range_enclosing_or_eq(rhs) and self.metavariables_match(rhs)
@@ -143,7 +144,13 @@ class Range(NamedTuple):
         )
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} start={self.start} end={self.end} metavariables={self.metavariables}>"
+        return (
+            f"<{self.__class__.__name__} "
+            f"start={self.start} "
+            f"end={self.end} "
+            f"metavariables={self.metavariables} "
+            f"propagated={self.propagated_metavariables}>"
+        )
 
     def __hash__(self) -> int:
         return hash((self.start, self.end))

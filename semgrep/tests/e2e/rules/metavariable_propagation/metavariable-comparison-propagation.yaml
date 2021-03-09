@@ -1,0 +1,15 @@
+rules:
+- id: my_pattern_id
+  patterns:
+  - pattern-inside: |
+      a = $INT
+      ...
+      return a
+  - pattern: b = 10
+  - metavariable-comparison:
+      metavariable: '$INT'
+      comparison: '$INT > 1'
+  message: |
+    Semgrep found a match $INT
+  severity: WARNING
+  languages: [python]
