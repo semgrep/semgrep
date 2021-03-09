@@ -1,0 +1,14 @@
+rules:
+- id: my_pattern_id
+  patterns:
+  - pattern-inside: |
+        def $FUNC(...):
+            ...
+  - pattern: return ...
+  - metavariable-regex:
+      metavariable: '$FUNC'
+      regex: '(foo|bar)'
+  message: |
+    Semgrep found a match $FUNC
+  severity: WARNING
+  languages: [python]
