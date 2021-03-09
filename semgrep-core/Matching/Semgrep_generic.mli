@@ -2,14 +2,10 @@
 
 (*s: signature [[Semgrep_generic.check]] *)
 val check:
-  hook:(Metavariable.bindings -> Parse_info.t list Lazy.t -> unit)
-  ->
-  with_caching:bool ->
+  hook:(Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
   Mini_rule.rules ->
   Equivalence.equivalences ->
-  Common.filename ->
-  Lang.t ->
-  Target.t ->
+  Common.filename -> Lang.t -> Target.t ->
   Pattern_match.t list
 (*e: signature [[Semgrep_generic.check]] *)
 

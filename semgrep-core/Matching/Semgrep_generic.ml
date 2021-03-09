@@ -213,7 +213,7 @@ let must_analyze_statement_bloom_opti_failed pattern_strs (st : AST_generic.stmt
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.check2]] *)
-let check2 ~hook ~with_caching rules equivs file lang ast =
+let check2 ~hook rules equivs file lang ast =
   logger#info "checking %s with %d mini rules" file (List.length rules);
 
   let rules =
@@ -258,10 +258,7 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
       let any = Apply_equivalences.apply equivs any in
       (*e: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
       let cache =
-        if with_caching then
-          Some (Caching.Cache.create ())
-        else
-          None
+        if !Flag.with_opt_cache then Some (Caching.Cache.create ()) else None
       in
       (* Annotate exp, stmt, stmts patterns with the rule strings *)
       let push_with_annotation any pattern rules =
@@ -431,8 +428,8 @@ let check2 ~hook ~with_caching rules equivs file lang ast =
 (*e: function [[Semgrep_generic.check2]] *)
 
 (* TODO: cant use [@@profile] because it does not handle yet label params *)
-let check ~hook ~with_caching a b c d e =
+let check ~hook a b c d e =
   Common.profile_code "Semgrep.check"
-    (fun () -> check2 ~hook ~with_caching a b c d e)
+    (fun () -> check2 ~hook a b c d e)
 
 (*e: semgrep/matching/Semgrep_generic.ml *)
