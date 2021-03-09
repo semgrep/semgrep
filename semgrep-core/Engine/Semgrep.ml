@@ -324,12 +324,6 @@ let debug_semgrep mini_rules equivalences with_caching file lang ast =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let with_time f =
-  let t1 = Unix.gettimeofday () in
-  let res = f () in
-  let t2 = Unix.gettimeofday () in
-  (res, t2 -. t1)
-
 let matches_of_xpatterns with_caching orig_rule
     (file, xlang, lazy_ast_and_errors, lazy_content)
     xpatterns
@@ -346,7 +340,7 @@ let matches_of_xpatterns with_caching orig_rule
     match xlang with
     | R.L (lang, _) ->
         let (ast, errors) = Lazy.force lazy_ast_and_errors in
-        with_time (fun () ->
+        Common.with_time (fun () ->
           let mini_rules =
             patterns |> List.map (mini_rule_of_pattern orig_rule) in
           let equivalences =
@@ -376,7 +370,7 @@ let matches_of_xpatterns with_caching orig_rule
       let src = Spacegrep.Src_file.of_file file in
       let doc = Spacegrep.Parse_doc.of_src src in
       (* pr (Spacegrep.Doc_AST.show doc); *)
-      with_time (fun () ->
+      Common.with_time (fun () ->
         spacegreps |> List.map (fun (pat, id, pstr) ->
           let matches =
             Spacegrep.Match.search ~case_sensitive:true src pat doc
@@ -412,7 +406,7 @@ let matches_of_xpatterns with_caching orig_rule
     then [], 0.0
     else begin
       let big_str = Lazy.force lazy_content in
-      with_time (fun () ->
+      Common.with_time (fun () ->
         regexps |> List.map (fun ((s, re), id, _pstr) ->
           let subs =
             try

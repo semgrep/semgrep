@@ -9,6 +9,7 @@
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
 
    semgrep_core
+   semgrep_parsing ; just for Parse_mini_rule exn
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )

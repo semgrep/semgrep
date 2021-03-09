@@ -7,6 +7,17 @@
 val match_to_json: Pattern_match.t -> (JSON.t, Error_code.error) Common.either
 (*e: signature [[JSON_report.match_to_json]] *)
 
+(* takes the starting time of the program *)
+val json_of_profile_info: float -> JSON.t
+
+val json_of_exn: exn -> JSON.t
+
+val json_fields_of_matches_and_errors:
+  Common.filename list ->
+  Pattern_match.t list -> Error_code.error list ->
+  (string * float) list option ->
+  (string * JSON.t) list
+
 (*s: signature [[JSON_report.match_to_error]] *)
 (* internal *)
 val match_to_error: Pattern_match.t -> unit
