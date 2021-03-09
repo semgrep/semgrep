@@ -1623,7 +1623,7 @@ and partial =
   (* partial defs. The fbody or cbody in definition will be empty. *)
   | PartialDef of definition
   (* partial stmts *)
-  | PartialIf of tok * expr
+  | PartialIf of tok * expr (* todo? bracket *)
   | PartialTry of tok * stmt
   | PartialCatch of catch
   | PartialFinally of tok * stmt
