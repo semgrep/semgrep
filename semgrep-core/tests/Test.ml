@@ -124,7 +124,9 @@ let regression_tests_for_lang ~with_caching files lang =
          let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
          Error_code.error minii (Error_code.SemgrepMatchFound ("",""))
        )
-       [rule] equiv file lang ast |> ignore;
+       Config_semgrep.default_config
+       [rule] equiv (file, lang, ast) 
+     |> ignore;
   
      let actual = !Error_code.g_errors in
      let expected = Error_code.expected_error_lines_of_files [file] in
@@ -318,7 +320,10 @@ let lint_regression_tests ~with_caching =
     let { Parse_target. ast; _} = 
         Parse_target.just_parse_with_lang lang file in
     Common.save_excursion Flag_semgrep.with_opt_cache with_caching (fun() ->
-      Semgrep_generic.check ~hook:(fun _ _ -> ()) rules equivs file lang ast
+      Semgrep_generic.check ~hook:(fun _ _ -> ())
+         Config_semgrep.default_config
+         rules equivs 
+         (file, lang, ast)
       |> List.iter JSON_report.match_to_error;
     )
   ));

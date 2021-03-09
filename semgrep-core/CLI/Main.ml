@@ -707,10 +707,10 @@ let semgrep_with_rules rules files =
            Common.with_time (fun () ->
              let rules =
                rules |> List.filter (fun r -> List.mem lang r.MR.languages) in
-             Semgrep_generic.check
-               ~hook:(fun _ _ -> ())
+             Semgrep_generic.check ~hook:(fun _ _ -> ())
+               Config_semgrep.default_config
                rules (parse_equivalences ())
-               file lang ast,
+               (file, lang, ast),
              errors
            )
          in
@@ -794,7 +794,8 @@ let semgrep_with_real_rules rules files =
          in
          let xlang = R.L (lang, []) in
          let matches, errors, match_time =
-           Semgrep.check hook rules (file, xlang, lazy_ast_and_errors)
+           Semgrep.check hook Config_semgrep.default_config
+             rules (file, xlang, lazy_ast_and_errors)
          in
          matches, errors, (file, match_time)
       )
@@ -913,8 +914,10 @@ let semgrep_with_one_pattern xs =
                   let xs = Lazy.force matched_tokens in
                   print_match !mvars env Metavariable.ii_of_mval xs
                 )
+                Config_semgrep.default_config
                 [rule] (parse_equivalences ())
-                file lang ast |> ignore
+                (file, lang, ast)
+              |> ignore
             )
           in
 

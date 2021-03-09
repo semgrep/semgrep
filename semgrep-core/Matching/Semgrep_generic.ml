@@ -213,7 +213,7 @@ let must_analyze_statement_bloom_opti_failed pattern_strs (st : AST_generic.stmt
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.check2]] *)
-let check2 ~hook rules equivs file lang ast =
+let check2 ~hook _config rules equivs (file, lang, ast) =
   logger#info "checking %s with %d mini rules" file (List.length rules);
 
   let rules =
@@ -428,8 +428,8 @@ let check2 ~hook rules equivs file lang ast =
 (*e: function [[Semgrep_generic.check2]] *)
 
 (* TODO: cant use [@@profile] because it does not handle yet label params *)
-let check ~hook a b c d e =
+let check ~hook config a b c =
   Common.profile_code "Semgrep.check"
-    (fun () -> check2 ~hook a b c d e)
+    (fun () -> check2 ~hook config a b c)
 
 (*e: semgrep/matching/Semgrep_generic.ml *)
