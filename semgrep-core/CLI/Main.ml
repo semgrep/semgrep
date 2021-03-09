@@ -82,6 +82,9 @@ let test = ref false
 let debug = ref false
 (*e: constant [[Main_semgrep_core.debug]] *)
 let profile = ref false
+
+let report_time = ref false
+
 (*s: constant [[Main_semgrep_core.error_recovery]] *)
 (* try to continue processing files, even if one has a parse error with -e/f.
  * note that -rules_file does its own error recovery.
@@ -144,8 +147,6 @@ type output_format = Text | Json
 (*s: constant [[Main_semgrep_core.output_format_json]] *)
 let output_format = ref Text
 (*e: constant [[Main_semgrep_core.output_format_json]] *)
-
-let report_time = ref false
 
 (*s: constant [[Main_semgrep_core.match_format]] *)
 let match_format = ref Matching_report.Normal
