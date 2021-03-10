@@ -37,3 +37,8 @@ let synthesize_patterns s file =
   let s = J.string_of_json json_opts in
   pr s
 [@@action]
+
+let generate_pattern_choices s =
+  let options = Synthesizer.generate_pattern_choices s in
+  List.iter (fun s -> pr s) options
+[@@action]
