@@ -472,7 +472,8 @@ and basic_type_extra env = function
       TClass x
 
 and name_of_id env tok =
-  Name ([[], str env tok])
+  (*Name ([[], str env tok]) *)
+  NameId (str env tok)
 
 (* TODO: use a special at some point *)
 and super env tok =
@@ -510,7 +511,7 @@ and primary (env : env) (x : CST.primary) =
          (match v1 with
           | `Choice_id x ->
               let id = id_extra env x in
-              Name [[], id]
+              NameId id
           | `Choice_prim_DOT_opt_super_DOT_opt_type_args_choice_id (v1, v2, v3, v4, v5) ->
               let v1 =
                 (match v1 with
