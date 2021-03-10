@@ -21,7 +21,12 @@ exception UnsupportedTargetType
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* The main target intersection algorithm.
+(* This module is used to generate a pattern from multiple pieces of code.
+ * Note that this is different from Pattern_from_Code, which synthesizes
+ * multiple pattern suggestions given one code snippet.
+ *
+ * See the mli for a detailed description of the algorithm
+ *
  * Helper functions are very similar to Pattern_from_Code --- refactor?
  *
  * related work:
@@ -32,9 +37,23 @@ exception UnsupportedTargetType
 (* Types *)
 (*****************************************************************************)
 
-type stage = DONE | ANY of any | LN of any
+(* An intermediate type that allows us to give our own progression of pattern *
+ * specificity. For example, "abc" goes from $X to "..." to "abc". This can   *
+ * also be achieved by adding checks, but having a type makes it easier to    *
+ * separate the cases
+*)
+type stage = DONE | ANY of any | LN (* literal name *) of any
 type env = { prev : any; count : int; mapping : (expr * expr) list; }
-type pattern_instrs = (env * any * ((stage * ((any -> any) -> any -> any)) list)) list
+
+(* Each target comes with a list of patterns : pattern_instrs *)
+(* A pattern needs to keep track of its environment (env), the pattern (any), *
+ * and a list of instructions for how to make the pattern more specific.      *
+ * The replacement information gives the piece that was removed from the hole *
+ * as well as instructions for where to put it back                           *
+*)
+type replacement_info = stage * ((any -> any) -> any -> any)
+type pattern_instr = (env * any * (replacement_info list))
+type pattern_instrs = pattern_instr list
 
 let global_lang = ref Lang.OCaml
 

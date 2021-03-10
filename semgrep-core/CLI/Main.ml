@@ -1213,7 +1213,7 @@ let all_actions () = [
   Common.mk_action_2_arg Test_synthesizing.expr_at_range;
   "-synthesize_patterns", " <l:c-l:c> <file>",
   Common.mk_action_2_arg Test_synthesizing.synthesize_patterns;
-  "-generate_patterns", " <file>",
+  "-generate_patterns", " <l:c-l:c>+ <file>",
   Common.mk_action_n_arg Test_synthesizing.generate_pattern_choices;
 
   "-stat_matches", " <marshalled file>",
