@@ -83,6 +83,8 @@ type tin = {
   mv : Metavariable_capture.t;
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
+  (* TODO: this does not have to be in tout; maybe split tin in 2? *)
+  config: Config_semgrep.t;
 }
 (*e: type [[Matching_generic.tin]] *)
 (*s: type [[Matching_generic.tout]] *)
@@ -196,6 +198,11 @@ let or_list m a bs =
     | b::bs -> m a b >||> aux bs
   in
   aux bs
+
+let if_config f m = fun tin ->
+  if f tin.config
+  then m tin
+  else fail tin
 
 (* Since OCaml 4.08 you can define your own let operators!
  * alt: use ppx_let, but you need to write it as let%bind (uglier)
@@ -338,12 +345,8 @@ let (envf: (MV.mvar AST.wrap, MV.mvalue) matcher) =
 (*e: function [[Matching_generic.envf]] *)
 
 (*s: function [[Matching_generic.empty_environment]] *)
-let empty_environment opt_cache =
-  {
-    mv = Env.empty;
-    stmts_match_span = Empty;
-    cache = opt_cache;
-  }
+let empty_environment opt_cache config =
+  { mv = Env.empty; stmts_match_span = Empty; cache = opt_cache; config; }
 (*e: function [[Matching_generic.empty_environment]] *)
 
 (*****************************************************************************)

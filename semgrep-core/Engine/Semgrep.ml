@@ -298,13 +298,13 @@ let filter_ranges xs cond =
 (* Debugging semgrep *)
 (*****************************************************************************)
 
-let debug_semgrep mini_rules equivalences file lang ast =
+let debug_semgrep config mini_rules equivalences file lang ast =
   (* process one mini rule at a time *)
   mini_rules |> List.map (fun mr ->
     logger#debug "Checking mini rule with pattern %s" (mr.MR.pattern_string);
     let res =
-      Semgrep_generic.check ~hook:(fun _ _ -> ())
-        [mr] equivalences file lang ast
+      Semgrep_generic.check ~hook:(fun _ _ -> ()) config
+        [mr] equivalences (file, lang, ast)
     in
     if !debug_matches
     then begin
@@ -324,7 +324,7 @@ let debug_semgrep mini_rules equivalences file lang ast =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns orig_rule
+let matches_of_xpatterns config orig_rule
     (file, xlang, lazy_ast_and_errors, lazy_content)
     xpatterns
   =
@@ -350,10 +350,11 @@ let matches_of_xpatterns orig_rule
           (* debugging path *)
           if !debug_timeout || !debug_matches
           then
-            (debug_semgrep mini_rules equivalences file lang ast, errors)
+            (debug_semgrep config mini_rules equivalences file lang ast,
+             errors)
             (* regular path *)
-          else Semgrep_generic.check ~hook:(fun _ _ -> ())
-              mini_rules equivalences file lang ast,
+          else Semgrep_generic.check ~hook:(fun _ _ -> ()) config
+              mini_rules equivalences (file, lang, ast),
                errors
         )
     | _ -> ([], []), 0.0
@@ -471,7 +472,7 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
 (* Main entry point *)
 (*****************************************************************************)
 
-let check hook rules (file, xlang, lazy_ast_and_errors) =
+let check hook config rules (file, xlang, lazy_ast_and_errors) =
   logger#info "checking %s with %d rules" file (List.length rules);
   let lazy_content = lazy (Common.read_file file) in
   rules |> List.map (fun r ->
@@ -496,7 +497,8 @@ let check hook rules (file, xlang, lazy_ast_and_errors) =
       let xpatterns =
         xpatterns_in_formula formula in
       let matches, errors, match_time =
-        matches_of_xpatterns r (file, xlang, lazy_ast_and_errors, lazy_content)
+        matches_of_xpatterns config
+          r (file, xlang, lazy_ast_and_errors, lazy_content)
           xpatterns
       in
       logger#info "found %d matches" (List.length matches);
