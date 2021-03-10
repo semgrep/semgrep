@@ -484,20 +484,20 @@ and m_id_info a b =
 (* experimental! *)
 (*s: function [[Generic_vs_generic.m_expr_deep]] *)
 and m_expr_deep a b =
-  if not !Flag.go_deeper_expr
-  then m_expr a b
-  else
-    m_expr a b >!> (fun () ->
-      let subs = SubAST_generic.subexprs_of_expr b in
-      (* less: could use a fold *)
-      let rec aux xs =
-        match xs with
-        | [] -> fail ()
-        | x::xs ->
-            m_expr_deep a x >||> aux xs
-      in
-      aux subs
-    )
+  if_config (fun x -> not x.go_deeper_expr)
+    ~then_:(m_expr a b)
+    ~else_:(
+      m_expr a b >!> (fun () ->
+        let subs = SubAST_generic.subexprs_of_expr b in
+        (* less: could use a fold *)
+        let rec aux xs =
+          match xs with
+          | [] -> fail ()
+          | x::xs ->
+              m_expr_deep a x >||> aux xs
+        in
+        aux subs
+      ))
 (*e: function [[Generic_vs_generic.m_expr_deep]] *)
 
 
@@ -600,10 +600,11 @@ and m_expr a b =
   *)
   | A.L(a1), b1 ->
       if_config (fun x -> x.Config.constant_propagation)
-        (match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
-         | Some b1 -> m_literal_constness a1 b1
-         | None -> fail ()
+        ~then_:(match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
+          | Some b1 -> m_literal_constness a1 b1
+          | None -> fail ()
         )
+        ~else_:(fail ())
   (*e: [[Generic_vs_generic.m_expr()]] propagated constant case *)
 
   (*s: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
@@ -1614,16 +1615,16 @@ and m_stmts_deep_uncached ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
       (* let's first try without going deep *)
       m_list__m_stmt ~list_kind:CK.Original xsa xsb
       >!> (fun () ->
-        if !Flag.go_deeper_stmt
-        then
-          (match SubAST_generic.flatten_substmts_of_stmts xsb with
-           | None -> fail () (* was already flat *)
-           | Some (xsb, last_stmt) ->
-               m_list__m_stmt
-                 ~list_kind:(CK.Flattened_until last_stmt.s_id)
-                 xsa xsb
-          )
-        else fail ()
+        if_config (fun x -> x.go_deeper_stmt)
+          ~then_:
+            (match SubAST_generic.flatten_substmts_of_stmts xsb with
+             | None -> fail () (* was already flat *)
+             | Some (xsb, last_stmt) ->
+                 m_list__m_stmt
+                   ~list_kind:(CK.Flattened_until last_stmt.s_id)
+                   xsa xsb
+            )
+          ~else_:(fail ())
       )
 
   (* the general case *)

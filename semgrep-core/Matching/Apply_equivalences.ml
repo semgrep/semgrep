@@ -32,13 +32,14 @@ module Env = Metavariable_capture
 (*s: function [[Apply_equivalences.match_e_e_for_equivalences]] *)
 let match_e_e_for_equivalences _ruleid a b =
   Common.save_excursion Flag.equivalence_mode true (fun () ->
-    Common.save_excursion Flag.go_deeper_expr false (fun () ->
-      Common.save_excursion Flag.go_deeper_stmt false (fun () ->
-        let cache = None in
-        let config = Config_semgrep.default_config in
-        let env = Matching_generic.empty_environment cache config in
-        Generic_vs_generic.m_expr a b env
-      )))
+    let config = { Config_semgrep.default_config with
+                   go_deeper_expr = false;
+                   go_deeper_stmt = false;
+                 } in
+    let cache = None in
+    let env = Matching_generic.empty_environment cache config in
+    Generic_vs_generic.m_expr a b env
+  )
 (*e: function [[Apply_equivalences.match_e_e_for_equivalences]] *)
 
 (*****************************************************************************)

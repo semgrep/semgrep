@@ -178,6 +178,11 @@ let (>!>) m1 else_cont = fun tin ->
   | xs -> xs
 (*e: function [[Matching_generic.monadic_if_fail]] *)
 
+let if_config f ~then_ ~else_ = fun tin ->
+  if f tin.config
+  then then_ tin
+  else else_ tin
+
 (*s: function [[Matching_generic.return]] *)
 (* The classical monad combinators *)
 let (return : tin -> tout) = fun tin ->
@@ -198,11 +203,6 @@ let or_list m a bs =
     | b::bs -> m a b >||> aux bs
   in
   aux bs
-
-let if_config f m = fun tin ->
-  if f tin.config
-  then m tin
-  else fail tin
 
 (* Since OCaml 4.08 you can define your own let operators!
  * alt: use ppx_let, but you need to write it as let%bind (uglier)

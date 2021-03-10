@@ -2,6 +2,8 @@
 (*s: constant [[Flag_semgrep.verbose]] *)
 (*e: constant [[Flag_semgrep.verbose]] *)
 
+(* debugging flags *)
+
 (*s: constant [[Flag_semgrep.debug]] *)
 (* note that this will stop at the first fail(), but if you restrict
  * enough your pattern, this can help you debug your problem.*)
@@ -11,19 +13,19 @@ let debug_matching = ref false
 let debug_with_full_position = ref false
 (*e: constant [[Flag_semgrep.debug_with_full_position]] *)
 
-(* !experimental: a bit hacky, and may introduce big perf regressions! *)
+(* we usually try first with the pfff parser and then with the tree-sitter
+ * parser if pfff fails. Here you can force to only use tree-sitter.
+*)
+let tree_sitter_only = ref false
+let pfff_only = ref false
+
+(* optimization flags *)
 
 (*s: constant [[Flag_semgrep.go_deeper_expr]] *)
-(* should be used with DeepEllipsis; do it implicitely has issues *)
-let go_deeper_expr = ref true
 (*e: constant [[Flag_semgrep.go_deeper_expr]] *)
 (*s: constant [[Flag_semgrep.go_deeper_stmt]] *)
-(* this ultimately should go away once '...' works on the CFG *)
-let go_deeper_stmt = ref true
 (*e: constant [[Flag_semgrep.go_deeper_stmt]] *)
 (*s: constant [[Flag_semgrep.go_really_deeper_stmt]] *)
-(* not sure we want that ... *)
-let go_really_deeper_stmt = ref true
 (*e: constant [[Flag_semgrep.go_really_deeper_stmt]] *)
 
 
@@ -41,12 +43,6 @@ let use_bloom_filter = ref false
 let with_opt_cache = ref true
 (* Improves performance on some patterns, degrades performance on others. *)
 let max_cache = ref false
-
-(* we usually try first with the pfff parser and then with the tree-sitter
- * parser if pfff fails. Here you can force to only use tree-sitter.
-*)
-let tree_sitter_only = ref false
-let pfff_only = ref false
 
 (*s: constant [[Flag_semgrep.equivalence_mode]] *)
 (* special mode to set before using generic_vs_generic to match
