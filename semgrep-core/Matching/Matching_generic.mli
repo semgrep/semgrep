@@ -72,7 +72,10 @@ val envf :
 (*e: signature [[Matching_generic.envf]] *)
 
 val if_config:
-  (Config_semgrep.t -> bool) -> (tin -> tout) -> tin -> tout
+  (Config_semgrep.t -> bool) ->
+  then_:(tin -> tout) ->
+  else_: (tin -> tout) ->
+  tin -> tout
 
 (*s: signature [[Matching_generic.check_and_add_metavar_binding]] *)
 val check_and_add_metavar_binding :
