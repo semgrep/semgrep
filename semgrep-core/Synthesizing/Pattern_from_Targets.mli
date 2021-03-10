@@ -58,13 +58,6 @@
  * its individual state, such as how many metavariables have already been used.
  *)
 
-(* ex:
- *  ["exact match", <metrics.send('my-report-id')>;
- *   "one argument", <metrics.send($X)>;
- *   "zero or more arguments", <metrics.send(...)>;
- *  ]
-*)
-
 (* limited to expressions for now *)
 val generate_patterns:
   AST_generic.any list -> Lang.t -> Pattern.t list
