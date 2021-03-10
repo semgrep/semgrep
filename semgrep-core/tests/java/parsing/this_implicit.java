@@ -5,7 +5,8 @@ class Foo {
   }
 
   void bar(int a) {
-    // implicit this.foo() added
+    // we used to implicit convert this in this.foo()
+    // but we don't anymore, as we were not doing it in tree-sitter
     foo(a);
   }
 }

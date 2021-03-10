@@ -111,30 +111,30 @@ let python_tests = [
 
 let java_tests = [
   "typed_funcs.java", "6:8-6:14",
-  ["exact match", "this.foo(a);";
-   "dots", "this.foo(...);";
-   "metavars", "this.foo($X, ...);";
-   "exact metavars", "this.foo($X);";
-   "typed metavars", "this.foo((int $X));"
+  ["exact match", "foo(a);";
+   "dots", "foo(...);";
+   "metavars", "foo($X, ...);";
+   "exact metavars", "foo($X);";
+   "typed metavars", "foo((int $X));"
   ];
 
   "typed_funcs.java", "7:8-7:42",
-  ["exact match", "this.foo(this.bar(this.car(a)), b, this.foo(b, c), d);";
-   "dots", "this.foo(...);";
-   "metavars", "this.foo($X, $Y, $Z, $A, ...);";
-   "exact metavars", "this.foo($X, $Y, $Z, $A);";
+  ["exact match", "foo(bar(car(a)), b, foo(b, c), d);";
+   "dots", "foo(...);";
+   "metavars", "foo($X, $Y, $Z, $A, ...);";
+   "exact metavars", "foo($X, $Y, $Z, $A);";
    "typed metavars",
-   "this.foo(this.bar(this.car((int $X))), (String $Y), this.foo((String $Y), (bool $Z)), $A);";
-   "deep metavars", "this.foo(this.bar(this.car($X)), $Y, this.foo($Y, $Z), $A);"
+   "foo(bar(car((int $X))), (String $Y), foo((String $Y), (bool $Z)), $A);";
+   "deep metavars", "foo(bar(car($X)), $Y, foo($Y, $Z), $A);"
   ];
 
   "typed_funcs.java", "8:8-8:26",
-  ["exact match", "this.foo(this.foo(a, b), c);";
-   "dots", "this.foo(...);";
-   "metavars", "this.foo($X, $Y, ...);";
-   "exact metavars", "this.foo($X, $Y);";
-   "typed metavars", "this.foo(this.foo((int $X), (String $Y)), (bool $Z));";
-   "deep metavars", "this.foo(this.foo($X, $Y), $Z);"
+  ["exact match", "foo(foo(a, b), c);";
+   "dots", "foo(...);";
+   "metavars", "foo($X, $Y, ...);";
+   "exact metavars", "foo($X, $Y);";
+   "typed metavars", "foo(foo((int $X), (String $Y)), (bool $Z));";
+   "deep metavars", "foo(foo($X, $Y), $Z);"
   ];
 
   "typed_funcs.java", "6:12-6:14",
@@ -154,17 +154,17 @@ let java_tests = [
   ["exact match", "new Scanner(new File(), 1)"];
 
   "typed_funcs.java", "12:10-12:38",
-  ["exact match", "this.foo(this.bar(a)) == this.foo(this.bar(a))";
+  ["exact match", "foo(bar(a)) == foo(bar(a))";
    "exact metavars", "$X == $X";
-   "typed metavars", "this.foo(this.bar((int $X))) == this.foo(this.bar((int $X)))";
-   "deep metavars", "this.foo(this.bar($X)) == this.foo(this.bar($X))";
+   "typed metavars", "foo(bar((int $X))) == foo(bar((int $X)))";
+   "deep metavars", "foo(bar($X)) == foo(bar($X))";
   ];
 
   (* "exact_match.java", "4:15-4:42",
-     ["exact match", "this.foo(this.bar(a)) == this.foo(this.bar(a))";
+     ["exact match", "foo(bar(a)) == foo(bar(a))";
      "exact metavars", "$X == $X";
-     "typed metavars", "this.foo(this.bar((int $X))) == this.foo(this.bar((int $X)))";
-     "deep metavars", "this.foo(this.bar($X)) == this.foo(this.bar($X))";
+     "typed metavars", "foo(bar((int $X))) == foo(bar((int $X)))";
+     "deep metavars", "foo(bar($X)) == foo(bar($X))";
      ]; *)
 ]
 
