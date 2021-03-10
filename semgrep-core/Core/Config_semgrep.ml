@@ -37,7 +37,12 @@
 (*****************************************************************************)
 type t = {
   constant_propagation: bool;
-  (* TODO: move deep_expr_stmt features in Flag_semgrpe.ml here *)
+
+  (* !experimental: a bit hacky, and may introduce big perf regressions! *)
+  (* should be used with DeepEllipsis; do it implicitely has issues *)
+  go_deeper_expr: bool;
+  (* this ultimately should go away once '...' works on the CFG *)
+  go_deeper_stmt: bool;
 }
 
 (*****************************************************************************)
@@ -46,6 +51,9 @@ type t = {
 
 let default_config = {
   constant_propagation = true;
+
+  go_deeper_expr = true;
+  go_deeper_stmt = true;
 }
 
 (*e: semgrep/core/Config_semgrep.ml *)
