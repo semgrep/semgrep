@@ -62,9 +62,11 @@ let match_pat_instr pat =
                       message = ""; severity = R2.Error;
                       languages = []; } in
 
-         let cache = None in (* would it make sense to use caching? *)
+         let env = Matching_generic.empty_environment None
+             Config_semgrep.default_config
+         in
          let matches_with_env =
-           Semgrep_generic.match_e_e rule cache pat eorig in
+           Semgrep_generic.match_e_e rule pat eorig env in
          matches_with_env <> []
       )
 (*e: function [[Tainting_generic.match_pat_instr]] *)
