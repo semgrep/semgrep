@@ -33,6 +33,7 @@ module A = AST_generic
 (*****************************************************************************)
 
 exception ParseError of string
+exception ImpossibleDots
 
 (* right now we just pass down the filename in the environment, but
  * we could need to pass more information later.
@@ -45,6 +46,9 @@ type env = {
 (*****************************************************************************)
 (* Helper functions *)
 (*****************************************************************************)
+
+let sgrep_ellipses_inline = "__sgrep_ellipses__"
+let sgrep_ellipses = "__sgrep_ellipses__: __sgrep_ellipses__"
 
 let p_token = function
   | E.Stream_start _ -> "stream start"
@@ -172,15 +176,87 @@ let parse env parser : A.expr =
   in
   read_stream ()
 
+(* Preprocess the file to replace ellipses with a standin value *)
+
+let substring str first last =
+  let str' =
+    String.sub str first (last - first) in
+  str'
+
+let split_whitespace line =
+  let line_len = String.length line in
+  let rec read_string i =
+    if i = line_len then line, ""
+    else begin
+      match line.[i] with
+      | ' ' | '\t' | '-' -> read_string (i + 1)
+      | _ -> substring line 0 i, substring line i line_len
+    end
+  in
+  read_string 0
+
+let preprocess_yaml str =
+  let lines = String.split_on_char '\n' str in
+  let split_on_ellipses line =
+    let rec split line i ellipses_start num_dots =
+      let line_length = String.length line in
+      if i = line_length then [line] else
+        begin
+          match line.[i] with
+          | '.' -> begin
+              match num_dots with
+              | 0 -> split line (i + 1) i 1
+              | 1 -> split line (i + 1) ellipses_start 2
+              | 2 -> (substring line 0 ellipses_start)::(split (substring line (i + 1) line_length) 0 0 0)
+              | _ -> raise ImpossibleDots
+            end
+          | _ -> split line (i + 1) 0 0
+        end
+    in
+    let pieces = split line 0 0 0 in
+    List.iter (fun x -> Common.pr2 x) pieces;
+    pieces
+  in
+  let last_same_whitespace whitespace context =
+    let target_len = String.length whitespace in
+    let rec find_last_whitespace context =
+      match context with
+      | [] -> raise ImpossibleDots (* TODO not impossible *)
+      | (ws_len, ws)::xs ->
+          if ws_len = target_len then ws
+          else find_last_whitespace xs
+    in
+    find_last_whitespace context
+  in
+  let rec process_lines lines context =
+    match lines with
+    | [] -> []
+    | line::rest -> begin
+        let whitespace, _str = split_whitespace line in
+        match String.trim line with (* This uses line to check for "..." vs "- ..." *)
+        | "..." -> begin
+            (last_same_whitespace whitespace context ^ sgrep_ellipses)::(process_lines rest context)
+          end
+        | _ -> begin
+            let context' = (String.length whitespace, whitespace)::context in (* TODO: optimize this by popping *)
+            (String.concat sgrep_ellipses_inline (split_on_ellipses line))::(process_lines rest context')
+          end
+      end
+  in
+  String.concat "\n" (process_lines lines [])
+
+
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
 let program file =
-  let str = Common.read_file file in
+  let str = preprocess_yaml (Common.read_file file) in
   let env = { file } in
   [A.exprstmt (get_res (S.parser str) |> parse env)]
 
 let any str =
   let env = { file = "<pattern_file>" } in
+  let str = preprocess_yaml str in
+  Common.pr2 str;
   A.E (get_res (S.parser str) |> parse env)
