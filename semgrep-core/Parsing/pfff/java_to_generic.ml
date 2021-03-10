@@ -175,6 +175,9 @@ and annotation_pair =
 
 (* id_or_name_of_qualified_ident *)
 and name v =
+  let v = ident v in
+  G.Id (v, G.empty_id_info())
+(*
   let res = list1
       (fun (v1, v2) ->
          let _v1TODO = list type_argument v1
@@ -191,6 +194,7 @@ and name v =
                        } in
        G.IdQualified ((name, name_info), G.empty_id_info())
   )
+*)
 
 
 and literal = function
@@ -209,7 +213,7 @@ and expr e =
       G.DotAccessEllipsis (v1, v2)
   | Ellipsis v1 -> let v1 = tok v1 in G.Ellipsis v1
   | DeepEllipsis v1 -> let v1 = bracket expr v1 in G.DeepEllipsis v1
-  | Name v1 -> G.N (name v1)
+  | NameId v1 -> G.N (name v1)
   | NameOrClassType _v1 ->
       let ii = Lib_parsing_java.ii_of_any (AExpr e) in
       error (List.hd ii)
