@@ -38,6 +38,9 @@ class Corpus:
 
 
 CORPUSES = [
+    # this contains a private repo, so this can't run in CI, but you can
+    # uncomment the corpus to test locally
+    # Corpus("dogfood", "input/semgrep.yml", "input/"),
     # Run Ajin's nodejsscan rules on some repo containing javascript files.
     # This takes something like 4 hours or more. Maybe we could run it
     # on fewer targets.

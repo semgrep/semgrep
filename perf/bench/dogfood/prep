@@ -1,0 +1,44 @@
+#! /bin/sh
+#
+# Fetch rules and targets prior for the "dogfood" benchmark.
+#
+# Uses sh because bash is not installed within the semgrep docker container.
+#
+set -eu
+
+mkdir -p input
+
+# curl https://semgrep.dev/c/r/all > semgrep_r_all.yml
+gunzip -c semgrep_r_all.yml.gz > input/semgrep.yml
+
+cd input
+
+# Obtain a shallow clone of a git repo for a specific commit
+shallow_clone() {
+  if [ -d "$name" ]; then
+    echo "Reusing repo '$name'"
+  else
+    echo "Obtaining a shallow clone of git repo '$name', commit $commit"
+    mkdir -p "$name"
+    (
+      cd "$name"
+      git init
+      git remote add origin "$url"
+      git fetch --depth 1 origin "$commit"
+      git checkout FETCH_HEAD -b tmp
+    )
+  fi
+}
+
+# Obtain semgrep rules and targets
+name="semgrep-app"
+# the other repo are using https: but this repo is private
+url="git@github.com:returntocorp/semgrep-app.git"
+commit="a660afb6bdb397862cab5b54221540a58698f55b"
+shallow_clone
+
+name="semgrep"
+# the other repo are using https: but this repo is private
+url="git@github.com:returntocorp/semgrep-app.git"
+commit="a660afb6bdb397862cab5b54221540a58698f55b"
+shallow_clone
