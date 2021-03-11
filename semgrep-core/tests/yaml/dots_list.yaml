@@ -1,5 +1,10 @@
 limits: 
-  lang: 
-    - python
+  #ERROR: match
+  id: sgrep_test
+  lang: [python, ocaml, java] 
+other:
+  #ERROR: match
+  lang:
+    - sql
+    - scala
     - ocaml
-    - java
