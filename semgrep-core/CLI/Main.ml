@@ -882,6 +882,9 @@ let semgrep_with_one_pattern xs =
         let s = Common.read_file file in
         parse_pattern lang s, s
     (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] pattern file case *)
+    (* this is for Emma, who often confuses -e with -f :) *)
+    | _, s when s =~ ".*\\.sgrep$" ->
+        failwith "you probably want -f with a .sgrep file, not -e"
     | _, s when s <> ""->
         parse_pattern lang s, s
     | _ -> raise Impossible
