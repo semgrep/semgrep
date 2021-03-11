@@ -1,0 +1,8 @@
+    {
+      "Effect": "Allow",
+      "Principal": "*",
+      "Resource": [
+        ..., "=~/arn:aws:s3.*/", ...
+      ],
+      ...
+    }
