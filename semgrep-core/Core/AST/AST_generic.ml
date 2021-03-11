@@ -511,6 +511,7 @@ and container_operator =
   (* Tuple was lifted up *)
   | Array (* todo? designator? use ArrayAccess for designator? *)
   | List | Set
+  (* TODO? merge with Record *)
   | Dict (* a.k.a Hash or Map (combine with Tuple to get Key/value pair) *)
 (*e: type [[AST_generic.container_operator]] *)
 
@@ -1236,7 +1237,7 @@ and definition_kind =
    * Note that FieldDefColon where vinit is a Lambda instead be converted
    * in a FuncDef!
   *)
-  | FieldDefColon  of variable_definition
+  | FieldDefColon  of (* todo: tok (*':'*) * *) variable_definition
 
   | ClassDef  of class_definition
   (*s: [[AST_generic.definition_kind]] other cases *)
@@ -1387,7 +1388,7 @@ and variable_definition = {
   (* todo? should remove vinit and transform a VarDef with init with a VarDef
    * followed by an Assign (possibly to Null). See vardef_to_assign().
   *)
-  vinit: expr option;
+  vinit: expr option; (* less: (tok * expr) option? *)
   vtype: type_ option;
 }
 (*e: type [[AST_generic.variable_definition]] *)
@@ -1627,6 +1628,10 @@ and partial =
   | PartialTry of tok * stmt
   | PartialCatch of catch
   | PartialFinally of tok * stmt
+  (* partial objects (just used in JSON and YAML patterns for now)
+   * alt: todo? could be considered a full thing and use Fld?
+  *)
+  | PartialSingleField of string wrap (* id or str *) * tok (*:*) * expr
 
 (*****************************************************************************)
 (* Any *)

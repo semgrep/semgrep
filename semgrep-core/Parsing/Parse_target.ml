@@ -208,7 +208,7 @@ let just_parse_with_lang lang file =
          * fail, it's better to give the tree-sitter parsing error now.
         *)
         Pfff (throw_tokens Parse_java.parse);
-        (* TODO: putting tree-sitter first lead to many regressions, why? *)
+        (* TODO: move before, but need fix tree-sitter-java first *)
         TreeSitter Parse_java_tree_sitter.parse;
       ]
         Java_to_generic.program
