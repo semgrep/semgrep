@@ -1,0 +1,8 @@
+// Note that this file is not really a valid JSON file because
+// it is using comments, but our JSON parser accepts that (because
+// we actually (ab)use the Javascript parser)
+{
+    //ERROR: match
+    "foo": 1,
+    "var": ["a", "b"]
+}
