@@ -1,0 +1,31 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        //ERROR: ruleid:public-s3-policy-statement
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::example.com/*"
+            ]
+        },
+        // ok:public-s3-policy-statement
+        {
+            "Sid": "CloudFront Origin Access Identity",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ECLOUDFRONTOAI"
+            },
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::example.com/*"
+            ]
+        }
+    ]
+}

@@ -32,11 +32,15 @@ let expr x =
             | G.FieldStmt
                 ({s = G.DefStmt ({G.name = G.EN (G.Id (id, _)); _},
                                  FieldDefColon ({vinit = Some e; _})); _}) ->
-                id, e
-            | _ -> failwith (spf "not a JSON field: %s" (G.show_expr e))
+                Left (id, e)
+            | G.FieldStmt ({s = ExprStmt ((Ellipsis t), _); _}) ->
+                Right t
+            | x -> failwith (spf "not a JSON field: %s" (G.show_field x))
           ) in
-          let zs = ys |> List.map (fun (id, e) ->
-            G.Tuple (G.fake_bracket [G.L (G.String id); e])) in
+          let zs = ys |> List.map (function
+            | Left (id, e) -> G.Tuple (G.fake_bracket [G.L (G.String id); e])
+            | Right t -> G.Ellipsis t
+          ) in
           G.Container (G.Dict, (lp, zs, rp))
       | x -> x
     );
