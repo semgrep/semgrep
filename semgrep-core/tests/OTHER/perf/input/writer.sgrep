@@ -1,3 +1,0 @@
-$WRITER = $RESP.getWriter(...);
-...
-$WRITER.write(..., $VAR, ...);
