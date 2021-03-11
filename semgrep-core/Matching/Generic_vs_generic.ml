@@ -30,6 +30,7 @@ module B = AST_generic
 module MV = Metavariable
 module AST = AST_generic
 module Flag = Flag_semgrep
+module Config = Config_semgrep
 module H = AST_generic_helpers
 
 (* optimisations *)
@@ -483,20 +484,20 @@ and m_id_info a b =
 (* experimental! *)
 (*s: function [[Generic_vs_generic.m_expr_deep]] *)
 and m_expr_deep a b =
-  if not !Flag.go_deeper_expr
-  then m_expr a b
-  else
-    m_expr a b >!> (fun () ->
-      let subs = SubAST_generic.subexprs_of_expr b in
-      (* less: could use a fold *)
-      let rec aux xs =
-        match xs with
-        | [] -> fail ()
-        | x::xs ->
-            m_expr_deep a x >||> aux xs
-      in
-      aux subs
-    )
+  if_config (fun x -> not x.go_deeper_expr)
+    ~then_:(m_expr a b)
+    ~else_:(
+      m_expr a b >!> (fun () ->
+        let subs = SubAST_generic.subexprs_of_expr b in
+        (* less: could use a fold *)
+        let rec aux xs =
+          match xs with
+          | [] -> fail ()
+          | x::xs ->
+              m_expr_deep a x >||> aux xs
+        in
+        aux subs
+      ))
 (*e: function [[Generic_vs_generic.m_expr_deep]] *)
 
 
@@ -598,11 +599,12 @@ and m_expr a b =
    * const a = "foo"; ... a == "foo" would be catched by $X == $X.
   *)
   | A.L(a1), b1 ->
-      (match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
-       | Some b1 ->
-           m_literal_constness a1 b1
-       | None -> fail ()
-      )
+      if_config (fun x -> x.Config.constant_propagation)
+        ~then_:(match Normalize_generic.constant_propagation_and_evaluate_literal b1 with
+          | Some b1 -> m_literal_constness a1 b1
+          | None -> fail ()
+        )
+        ~else_:(fail ())
   (*e: [[Generic_vs_generic.m_expr()]] propagated constant case *)
 
   (*s: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
@@ -1613,16 +1615,16 @@ and m_stmts_deep_uncached ~less_is_ok (xsa: A.stmt list) (xsb: A.stmt list) =
       (* let's first try without going deep *)
       m_list__m_stmt ~list_kind:CK.Original xsa xsb
       >!> (fun () ->
-        if !Flag.go_deeper_stmt
-        then
-          (match SubAST_generic.flatten_substmts_of_stmts xsb with
-           | None -> fail () (* was already flat *)
-           | Some (xsb, last_stmt) ->
-               m_list__m_stmt
-                 ~list_kind:(CK.Flattened_until last_stmt.s_id)
-                 xsa xsb
-          )
-        else fail ()
+        if_config (fun x -> x.go_deeper_stmt)
+          ~then_:
+            (match SubAST_generic.flatten_substmts_of_stmts xsb with
+             | None -> fail () (* was already flat *)
+             | Some (xsb, last_stmt) ->
+                 m_list__m_stmt
+                   ~list_kind:(CK.Flattened_until last_stmt.s_id)
+                   xsa xsb
+            )
+          ~else_:(fail ())
       )
 
   (* the general case *)
@@ -2720,9 +2722,14 @@ and m_partial a b =
       m_stmt a2 b2
   | A.PartialCatch (a1), B.PartialCatch (b1) ->
       m_catch a1 b1
+  | A.PartialSingleField (a1, a2, a3), B.PartialSingleField (b1, b2, b3) ->
+      let* () = m_wrap m_string a1 b1 in
+      let* () = m_tok a2 b2 in
+      m_expr a3 b3
   | A.PartialDef _, _
   | A.PartialIf _, _
   | A.PartialTry _, _ | A.PartialCatch _, _ | A.PartialFinally _, _
+  | A.PartialSingleField _, _
     -> fail ()
 
 (*s: function [[Generic_vs_generic.m_any]] *)

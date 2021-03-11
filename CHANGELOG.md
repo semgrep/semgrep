@@ -2,6 +2,24 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.42.0](https://github.com/returntocorp/semgrep/releases/tag/v0.42.0) - 2021-03-09
+
+### Added
+
+- Added propagation of metavariables to clauses nested under `patterns:`. Fixes (#2548)[https://github.com/returntocorp/semgrep/issues/2548].
+- `--json-time` flag which reports runtimes for (rule, target file)
+- `--vim` flag for Syntastic
+- PHP - Support for partial if statements
+- CSharp - Many improvements to parsing
+
+### Fixed
+
+- Rust can be invoked with `rs` or `rust` as a language
+
+### Changed
+
+- The timeout for downloading config files from a URL was extended from 10s to 20s.
+
 ## [0.41.1](https://github.com/returntocorp/semgrep/releases/tag/v0.41.1) - 2021-02-24
 
 ### Fixed

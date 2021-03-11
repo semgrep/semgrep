@@ -26,6 +26,8 @@ module V = Visitor_AST
  *
 *)
 
+let go_really_deeper_stmt = ref true
+
 (*****************************************************************************)
 (* Expressions *)
 (*****************************************************************************)
@@ -182,7 +184,7 @@ let substmts_of_stmt st =
 
   (* this may slow down things quite a bit *)
   | DefStmt (_ent, def) ->
-      if not !Flag_semgrep.go_really_deeper_stmt
+      if not !go_really_deeper_stmt
       then []
       else
         (match def with
@@ -264,7 +266,7 @@ let flatten_substmts_of_stmts xs =
      * a zillion times on big files (see tests/PERF/) if we do the
      * matching naively in m_stmts_deep.
     *)
-    if !Flag_semgrep.go_really_deeper_stmt
+    if !go_really_deeper_stmt
     then begin
       let es = subexprs_of_stmt x in
       (* getting deeply nested lambdas stmts *)

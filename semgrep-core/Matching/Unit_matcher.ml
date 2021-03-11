@@ -149,8 +149,10 @@ let unittest ~any_gen_of_string =
         let pattern = any_gen_of_string spattern in
         let code    = any_gen_of_string scode in
         let cache = None in
+        let config = Config_semgrep.default_config in
+        let env = Matching_generic.empty_environment cache config in
         let matches_with_env =
-          Semgrep_generic.match_any_any cache pattern code in
+          Semgrep_generic.match_any_any pattern code env in
         if should_match
         then
           assert_bool (spf "pattern:|%s| should match |%s" spattern scode)

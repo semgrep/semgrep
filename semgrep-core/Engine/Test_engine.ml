@@ -99,9 +99,10 @@ let test_rules xs =
     in
     E.g_errors := [];
     Flag_semgrep.with_opt_cache := false;
+    let config = Config_semgrep.default_config in
     let matches, errors, match_time =
       try
-        Semgrep.check (fun _ _ _ -> ()) rules
+        Semgrep.check (fun _ _ _ -> ()) config rules
           (target, xlang, lazy_ast_and_errors)
       with exn ->
         failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))

@@ -15,11 +15,15 @@ TREESITTER_LIBDIR ?= $(shell pkg-config --libs-only-L tree-sitter \
 export TREESITTER_LIBDIR
 
 all:
+	rm -f bin
 	./scripts/make-version > ./CLI/version.ml
 	dune build
 	dune build ./_build/default/tests/test.bc
+	# make executables easily accessible for manual testing:
+	test -e bin || ln -s ../_build/install/default/bin .
 clean:
 	dune clean
+	rm -f bin
 # I put all as a dependency because sometimes you modify a test file
 # and dune runtest -f does not see this new file, probably because
 # the cached file under _build/.../tests/ is still the old one.

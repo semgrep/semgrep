@@ -634,6 +634,11 @@ and partial = function
   | PartialCatch (v1) ->
       let v1 = catch_block v1 in
       G.PartialCatch (v1)
+  | PartialSingleField (v1, v2, v3) ->
+      let v1 = wrap string v1 in
+      let v2 = info v2 in
+      let v3 = expr v3 in
+      G.PartialSingleField (v1, v2, v3)
 
 and any =
   function

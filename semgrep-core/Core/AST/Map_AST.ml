@@ -918,6 +918,11 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     | PartialCatch (v1) ->
         let v1 = map_catch v1 in
         PartialCatch (v1)
+    | PartialSingleField (v1, v2, v3) ->
+        let v1 = map_wrap map_of_string v1 in
+        let v2 = map_tok v2 in
+        let v3 = map_expr v3 in
+        PartialSingleField (v1, v2, v3)
 
   and map_any =
     function

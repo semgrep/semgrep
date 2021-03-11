@@ -118,6 +118,16 @@ let int_literal env tok =
   let (s, t) = str env tok in
   int_of_string_opt s, t
 
+let string_literal env tok =
+  let (s, t) = str env tok in
+  (* remove enclosing quotes *)
+  let s =
+    if s =~ "^\"\\(.*\\)\"$"
+    then Common.matched1 s
+    else failwith (spf "not a Java string: %s" s)
+  in
+  s, t
+
 let float_literal env tok =
   let (s, t) = str env tok in
   float_of_string_opt s, t
@@ -139,7 +149,7 @@ let literal (env : env) (x : CST.literal) =
    | `True tok -> Bool (true, token env tok) (* "true" *)
    | `False tok -> Bool (false, token env tok) (* "false" *)
    | `Char_lit tok -> Char (str env tok) (* character_literal *)
-   | `Str_lit tok -> String (str env tok) (* string_literal *)
+   | `Str_lit tok -> String (string_literal env tok) (* string_literal *)
    | `Null_lit tok -> Null (token env tok) (* "null" *)
   )
 
@@ -472,7 +482,8 @@ and basic_type_extra env = function
       TClass x
 
 and name_of_id env tok =
-  Name ([[], str env tok])
+  (*Name ([[], str env tok]) *)
+  NameId (str env tok)
 
 (* TODO: use a special at some point *)
 and super env tok =
@@ -510,7 +521,7 @@ and primary (env : env) (x : CST.primary) =
          (match v1 with
           | `Choice_id x ->
               let id = id_extra env x in
-              Name [[], id]
+              NameId id
           | `Choice_prim_DOT_opt_super_DOT_opt_type_args_choice_id (v1, v2, v3, v4, v5) ->
               let v1 =
                 (match v1 with

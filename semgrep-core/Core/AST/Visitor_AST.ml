@@ -698,6 +698,9 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | PartialFinally (v1, v2) ->
           if recurse
           then begin v_tok v1; v_stmt v2; end
+      | PartialSingleField (v1, v2, v3) ->
+          if recurse
+          then begin v_wrap v_string v1; v_tok v2; v_expr v3; end
     in
     vin.kpartial (k, all_functions) x
 
@@ -804,7 +807,15 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | FieldSpread (t, v1) ->
           let t = v_tok t in
           let v1 = v_expr v1 in ()
-      | FieldStmt v1 -> let v1 = v_stmt v1 in ()
+      | FieldStmt v1 ->
+          (match v1.s with
+           | DefStmt ({ name = EN (Id (id, _));_},
+                      FieldDefColon ({ vinit = Some e; _})) ->
+               let t = Parse_info.fake_info ":" in
+               v_partial ~recurse:false (PartialSingleField (id, t, e));
+           | _ -> ()
+          );
+          let v1 = v_stmt v1 in ()
     in
     vin.kfield (k, all_functions) x
 

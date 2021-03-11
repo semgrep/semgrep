@@ -1213,6 +1213,11 @@ and vof_partial =
   | PartialCatch (v1) ->
       let v1 = vof_catch v1 in
       OCaml.VSum ("PartialCatch", [ v1 ])
+  | PartialSingleField (v1, v2, v3) ->
+      let v1 = vof_wrap OCaml.vof_string v1 in
+      let v2 = vof_tok v2 in
+      let v3 = vof_expr v3 in
+      OCaml.VSum ("PartialSingleField", [ v1; v2; v3 ])
 
 and vof_any =
   function

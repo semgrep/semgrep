@@ -48,10 +48,10 @@ let lookup env e =
   in
   look mapping
 
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
 let fk = Parse_info.fake_info "fake"
 let fk_stmt = ExprStmt (Ellipsis fk, fk) |> G.s
 let body_ellipsis t1 t2 = Block(t1, [fk_stmt], t2) |> G.s

@@ -7,6 +7,7 @@ type tin = {
   mv : Metavariable_capture.t;
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
+  config: Config_semgrep.t;
 }
 (*e: type [[Matching_generic.tin]] *)
 (*s: type [[Matching_generic.tout]] *)
@@ -51,7 +52,8 @@ val or_list: ('a, 'b) matcher -> 'a -> 'b list -> (tin -> tout)
 val (let*) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
 
 (*s: signature [[Matching_generic.empty_environment]] *)
-val empty_environment : tout Caching.Cache.t option -> tin
+val empty_environment :
+  tout Caching.Cache.t option -> Config_semgrep.t -> tin
 (*e: signature [[Matching_generic.empty_environment]] *)
 
 val add_mv_capture :
@@ -68,6 +70,12 @@ val extend_stmts_match_span : AST_generic.stmt -> tin -> tin
 val envf :
   (Metavariable.mvar AST_generic.wrap, Metavariable.mvalue) matcher
 (*e: signature [[Matching_generic.envf]] *)
+
+val if_config:
+  (Config_semgrep.t -> bool) ->
+  then_:(tin -> tout) ->
+  else_: (tin -> tout) ->
+  tin -> tout
 
 (*s: signature [[Matching_generic.check_and_add_metavar_binding]] *)
 val check_and_add_metavar_binding :

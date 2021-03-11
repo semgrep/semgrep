@@ -83,6 +83,8 @@ type tin = {
   mv : Metavariable_capture.t;
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
+  (* TODO: this does not have to be in tout; maybe split tin in 2? *)
+  config: Config_semgrep.t;
 }
 (*e: type [[Matching_generic.tin]] *)
 (*s: type [[Matching_generic.tout]] *)
@@ -175,6 +177,11 @@ let (>!>) m1 else_cont = fun tin ->
   | [] -> (else_cont ()) tin
   | xs -> xs
 (*e: function [[Matching_generic.monadic_if_fail]] *)
+
+let if_config f ~then_ ~else_ = fun tin ->
+  if f tin.config
+  then then_ tin
+  else else_ tin
 
 (*s: function [[Matching_generic.return]] *)
 (* The classical monad combinators *)
@@ -338,12 +345,8 @@ let (envf: (MV.mvar AST.wrap, MV.mvalue) matcher) =
 (*e: function [[Matching_generic.envf]] *)
 
 (*s: function [[Matching_generic.empty_environment]] *)
-let empty_environment opt_cache =
-  {
-    mv = Env.empty;
-    stmts_match_span = Empty;
-    cache = opt_cache;
-  }
+let empty_environment opt_cache config =
+  { mv = Env.empty; stmts_match_span = Empty; cache = opt_cache; config; }
 (*e: function [[Matching_generic.empty_environment]] *)
 
 (*****************************************************************************)
