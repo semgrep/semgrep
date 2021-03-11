@@ -36,30 +36,31 @@ let fb = AST_generic.fake_bracket
 (*****************************************************************************)
 
 let normalize2 any lang =
-  let visitor = Map_AST.mk_visitor { Map_AST.default_visitor with Map_AST.
-                                                               kexpr = (fun (k, _) e ->
-                                                                 (* apply on children *)
-                                                                 let e = k e in
-                                                                 match e with
-                                                                 | Call (IdSpecial (Op op, tok), (lp,[a; b],rp))
-                                                                   when lang <> Lang.Python ->
-                                                                     (* != can be a method call in Python *)
-                                                                     let rewrite_opt =
-                                                                       match op with
-                                                                       | NotEq -> Some (Not, Eq)
-                                                                       | _ -> None
-                                                                     in
-                                                                     (match rewrite_opt with
-                                                                      | None -> e
-                                                                      | Some (not_op, other_op) ->
-                                                                          Call (IdSpecial (Op not_op, tok),
-                                                                                (lp,
-                                                                                 [Arg (Call (IdSpecial (Op other_op, tok), fb [a;b]))],
-                                                                                 rp))
-                                                                     )
-                                                                 | _ -> e
-                                                               )
-                                   } in
+  let visitor = Map_AST.mk_visitor {
+    Map_AST.default_visitor with Map_AST.
+                              kexpr = (fun (k, _) e ->
+                                (* apply on children *)
+                                let e = k e in
+                                match e with
+                                | Call (IdSpecial (Op op, tok), (lp,[a; b],rp))
+                                  when lang <> Lang.Python ->
+                                    (* != can be a method call in Python *)
+                                    let rewrite_opt =
+                                      match op with
+                                      | NotEq -> Some (Not, Eq)
+                                      | _ -> None
+                                    in
+                                    (match rewrite_opt with
+                                     | None -> e
+                                     | Some (not_op, other_op) ->
+                                         Call (IdSpecial (Op not_op, tok),
+                                               (lp,
+                                                [Arg (Call (IdSpecial (Op other_op, tok), fb [a;b]))],
+                                                rp))
+                                    )
+                                | _ -> e
+                              )
+  } in
   visitor.Map_AST.vany any
 
 let normalize a lang =

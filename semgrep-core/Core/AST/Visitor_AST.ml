@@ -230,6 +230,16 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | Ellipsis v1 -> let v1 = v_tok v1 in ()
       | DeepEllipsis v1 -> let v1 = v_bracket v_expr v1 in ()
       | Container (v1, v2) ->
+          (match v1 with
+           | Dict ->
+               v2 |> unbracket |> List.iter (function
+                 | Tuple (_, [L (String id); e], _) ->
+                     let t = Parse_info.fake_info ":" in
+                     v_partial ~recurse:false (PartialSingleField (id, t, e));
+                 | _ -> ()
+               )
+           | _ -> ()
+          );
           let v1 = v_container_operator v1 and v2 = v_bracket (v_list v_expr) v2
           in ()
       | Tuple v1 -> let v1 = v_bracket (v_list v_expr) v1 in ()
