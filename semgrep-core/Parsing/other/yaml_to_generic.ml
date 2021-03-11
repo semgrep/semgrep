@@ -176,74 +176,117 @@ let parse env parser : A.expr =
   in
   read_stream ()
 
+(*****************************************************************************)
 (* Preprocess the file to replace ellipses with a standin value *)
+(*****************************************************************************)
 
 let substring str first last =
   let str' =
     String.sub str first (last - first) in
   str'
 
+(* Match ellipses to previous line with same indentation *)
+let last_same_whitespace whitespace context =
+  let target_len = String.length whitespace in
+  let rec find_last_whitespace context =
+    match context with
+    | [] -> None
+    | (ws_len, ws)::xs ->
+        if ws_len = target_len then Some ws
+        else find_last_whitespace xs
+  in
+  find_last_whitespace context
+
+(* The above function will fail in the case              *
+  * ...                                                   *
+  * - foo                                                 *
+  * so check for whether such an ellipses can be resolved *)
+let convert_leftover_ellipses (prev_space_len, prev_space) ellipses =
+  let rec convert_ellipses ellipses =
+    match ellipses with
+    | [] -> [], ellipses
+    | (ellipses_space_len, ellipses_space)::rest -> begin
+        let converted_ellipses, _ = convert_ellipses rest in
+        if ellipses_space_len = prev_space_len then (
+          (prev_space ^ sgrep_ellipses)::converted_ellipses, rest )
+        else if ellipses_space_len > prev_space_len then (
+          (ellipses_space ^ sgrep_ellipses)::converted_ellipses, rest )
+        else [], ellipses
+      end
+  in
+  convert_ellipses ellipses
+
 let split_whitespace line =
   let line_len = String.length line in
   let rec read_string i =
-    if i = line_len then line, ""
+    if i = line_len then line
     else begin
       match line.[i] with
       | ' ' | '\t' | '-' -> read_string (i + 1)
-      | _ -> substring line 0 i, substring line i line_len
+      | _ -> substring line 0 i
     end
   in
-  read_string 0
+  let whitespace = read_string 0 in
+  if String.contains whitespace '-' then
+    String.index whitespace '-', whitespace else
+    String.length whitespace, whitespace
+
+(* Split a line by the ellipses *)
+let split_on_ellipses line =
+  let rec split line i ellipses_start num_dots =
+    let line_length = String.length line in
+    if i = line_length then [line] else
+      begin
+        match line.[i] with
+        | '.' -> begin
+            match num_dots with
+            | 0 -> split line (i + 1) i 1
+            | 1 -> split line (i + 1) ellipses_start 2
+            | 2 -> (substring line 0 ellipses_start)::(split (substring line (i + 1) line_length) 0 0 0)
+            | _ -> raise ImpossibleDots
+          end
+        | _ -> split line (i + 1) 0 0
+      end
+  in
+  let pieces = split line 0 0 0 in
+  pieces
+
+let rec exit_context whitespace_len context =
+  match context with
+  | [] -> []
+  | (prev_len, _)::rest -> begin
+      if prev_len > whitespace_len then exit_context whitespace_len rest
+      else context
+    end
+
+
+(***** Preprocess the yaml *****)
 
 let preprocess_yaml str =
   let lines = String.split_on_char '\n' str in
-  let split_on_ellipses line =
-    let rec split line i ellipses_start num_dots =
-      let line_length = String.length line in
-      if i = line_length then [line] else
-        begin
-          match line.[i] with
-          | '.' -> begin
-              match num_dots with
-              | 0 -> split line (i + 1) i 1
-              | 1 -> split line (i + 1) ellipses_start 2
-              | 2 -> (substring line 0 ellipses_start)::(split (substring line (i + 1) line_length) 0 0 0)
-              | _ -> raise ImpossibleDots
-            end
-          | _ -> split line (i + 1) 0 0
-        end
-    in
-    let pieces = split line 0 0 0 in
-    List.iter (fun x -> Common.pr2 x) pieces;
-    pieces
-  in
-  let last_same_whitespace whitespace context =
-    let target_len = String.length whitespace in
-    let rec find_last_whitespace context =
-      match context with
-      | [] -> raise ImpossibleDots (* TODO not impossible *)
-      | (ws_len, ws)::xs ->
-          if ws_len = target_len then ws
-          else find_last_whitespace xs
-    in
-    find_last_whitespace context
-  in
-  let rec process_lines lines context =
+  (* Main processing function *)
+  let rec process_lines lines context ellipses =
     match lines with
     | [] -> []
     | line::rest -> begin
-        let whitespace, _str = split_whitespace line in
-        match String.trim line with (* This uses line to check for "..." vs "- ..." *)
-        | "..." -> begin
-            (last_same_whitespace whitespace context ^ sgrep_ellipses)::(process_lines rest context)
-          end
-        | _ -> begin
-            let context' = (String.length whitespace, whitespace)::context in (* TODO: optimize this by popping *)
-            (String.concat sgrep_ellipses_inline (split_on_ellipses line))::(process_lines rest context')
-          end
+        let whitespace_len, whitespace = split_whitespace line in
+        let context', line', ellipses' =
+          match String.trim line with (* This uses line to check for "..." vs "- ..." *)
+          | "..." -> begin
+              match last_same_whitespace whitespace context with
+              | Some ws -> context, [ws ^ sgrep_ellipses], ellipses
+              | None -> context, [], (whitespace_len, whitespace)::ellipses
+            end
+          | _ ->
+              let converted_ellipses, ellipses' = convert_leftover_ellipses (whitespace_len, whitespace) ellipses in
+              (whitespace_len, whitespace)::(exit_context whitespace_len context),
+              converted_ellipses @ [String.concat sgrep_ellipses_inline (split_on_ellipses line)],
+              ellipses'
+        in
+        line'@(process_lines rest context' ellipses')
       end
   in
-  String.concat "\n" (process_lines lines [])
+  String.concat "\n" (process_lines lines [] [])
 
 
 (*****************************************************************************)
@@ -258,5 +301,5 @@ let program file =
 let any str =
   let env = { file = "<pattern_file>" } in
   let str = preprocess_yaml str in
-  Common.pr2 str;
+  (* Common.pr2 str; *)
   A.E (get_res (S.parser str) |> parse env)
