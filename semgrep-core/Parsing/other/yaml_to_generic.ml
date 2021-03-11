@@ -176,6 +176,11 @@ let parse env parser : A.expr =
   in
   read_stream ()
 
+let make_pattern_expr e =
+  match e with
+  | A.Container(A.Dict, (_lp, [x], _rp)) -> A.E x
+  | _ -> A.E e
+
 (*****************************************************************************)
 (* Preprocess the file to replace ellipses with a standin value *)
 (*****************************************************************************)
@@ -302,4 +307,4 @@ let any str =
   let env = { file = "<pattern_file>" } in
   let str = preprocess_yaml str in
   (* Common.pr2 str; *)
-  A.E (get_res (S.parser str) |> parse env)
+  get_res (S.parser str) |> parse env |> make_pattern_expr
