@@ -33,12 +33,12 @@ module H = Parse_mini_rule
  * See also the JSON schema in rule_schema.yaml
  *
  * TODO:
- *  - use the streaming API of Yaml.mli to get position information for
- *    precise error location? At the same time in a the long term we want
+ *  - use the new position-aware YAML parser to get position information (for
+ *    precise error location) by using an AST_generic expression instead of
+ *    JSON.t (at the same time, in the long term we want
  *    to use JSON and jsonnet, so we might get anyway a line location
  *    in a generated file, so maybe better to give error location by
- *    describing the line and what is wrong wit it.
- *  - support JSON in addition to Yaml, convert yaml to JSON (or reverse)
+ *    describing the line and what is wrong with it?).
  *  - Move the H.xxx here and get rid of Parse_mini_rule.ml
 *)
 
