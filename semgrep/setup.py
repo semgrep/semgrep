@@ -36,7 +36,7 @@ if WHEEL_CMD in sys.argv:
 
         def get_tag(self):
             _, _, plat = bdist_wheel.get_tag(self)
-            python = "cp36.cp37.cp38.py36.py37.py38"
+            python = "cp36.cp37.cp38.cp39.py36.py37.py38.py39"
             abi = "none"
             plat = "macosx_10_14_x86_64" if "macosx" in plat else "any"
             return python, abi, plat
@@ -127,6 +127,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Topic :: Security",
         "Topic :: Software Development :: Quality Assurance",
     ],
