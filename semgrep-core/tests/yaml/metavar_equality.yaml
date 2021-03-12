@@ -1,0 +1,25 @@
+- patterns:
+  #ERROR: match
+  - pattern: |
+      <$EL href=... />
+  - pattern-not: |
+      <$EL href=... />
+- patterns:
+  - pattern: |
+      <Link to=... />
+  - pattern-not: |
+      <Link to="..." />
+- patterns:
+  - pattern: |
+      React.createElement($EL, {href: ...})
+  - pattern-not: |
+      React.createElement($EL, {href: "..."})
+- patterns:
+  #ERROR: match
+  - pattern: |
+      $PARAMS = {href: ...};
+  - pattern-not: |
+      $PARAMS = {href: ...};
+  - pattern-inside: |
+      ...
+      React.createElement($EL, $PARAMS);
