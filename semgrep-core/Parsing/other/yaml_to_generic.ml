@@ -225,18 +225,24 @@ let last_same_whitespace whitespace context =
   in
   find_last_whitespace context
 
-(* The above function will fail in the case              *
+(* The above function will fail in the case               *
   * ...                                                   *
   * - foo                                                 *
   * so check for whether such an ellipses can be resolved *)
-let convert_leftover_ellipses (prev_space_len, prev_space) ellipses =
+let convert_leftover_ellipses (prev_space_len, prev_space) ~is_line:is_line ellipses =
   let rec convert_ellipses ellipses =
     match ellipses with
     | [] -> [], ellipses
     | (ellipses_space_len, ellipses_space)::rest -> begin
         let converted_ellipses, _ = convert_ellipses rest in
-        if ellipses_space_len = prev_space_len then (
+        (* Don't convert when you see *
+         *    ...                     *
+         *    ...                     *)
+        if is_line && ellipses_space_len = prev_space_len then (
           (prev_space ^ sgrep_ellipses)::converted_ellipses, rest )
+        (* Do convert when you see *
+         *    ...                     *
+         *  ...                     *)
         else if ellipses_space_len > prev_space_len then (
           (ellipses_space ^ sgrep_ellipses)::converted_ellipses, rest )
         else [], ellipses
@@ -244,6 +250,13 @@ let convert_leftover_ellipses (prev_space_len, prev_space) ellipses =
   in
   convert_ellipses ellipses
 
+(* Given "  - foo", return 2, "  - ", so that if you have    *
+ *   ...                                                     *
+ *   - foo                                                   *
+ * This converts to                                          *
+ *   - __sgrep_ellipses__                                    *
+ *   - foo                                                   *
+ * recognizing the ... as aligned with - foo but using its - *)
 let split_whitespace line =
   let line_len = String.length line in
   let rec read_string i =
@@ -279,6 +292,7 @@ let split_on_ellipses line =
   let pieces = split line 0 0 0 in
   pieces
 
+(* Pop child lines when the patern exits *)
 let rec exit_context whitespace_len context =
   match context with
   | [] -> []
@@ -297,18 +311,19 @@ let preprocess_yaml str =
     match lines with
     | [] -> []
     | line::rest -> begin
-        let whitespace_len, whitespace = split_whitespace line in
+        let ws_len, ws = split_whitespace line in
         let context', line', ellipses' =
           match String.trim line with (* This uses line to check for "..." vs "- ..." *)
           | "..." -> begin
-              match last_same_whitespace whitespace context with
-              | Some ws -> context, [ws ^ sgrep_ellipses], ellipses
-              | None -> context, [], (whitespace_len, whitespace)::ellipses
+              let conv, ellipses' = convert_leftover_ellipses (ws_len, ws) ~is_line:false ellipses in
+              match last_same_whitespace ws context with
+              | Some ws -> context, conv @ [ws ^ sgrep_ellipses], ellipses'
+              | None -> context, conv, (ws_len, ws)::ellipses'
             end
           | _ ->
-              let converted_ellipses, ellipses' = convert_leftover_ellipses (whitespace_len, whitespace) ellipses in
-              (whitespace_len, whitespace)::(exit_context whitespace_len context),
-              converted_ellipses @ [String.concat sgrep_ellipses_inline (split_on_ellipses line)],
+              let conv, ellipses' = convert_leftover_ellipses (ws_len, ws) ~is_line:true ellipses in
+              (ws_len, ws)::(exit_context ws_len context),
+              conv @ [String.concat sgrep_ellipses_inline (split_on_ellipses line)],
               ellipses'
         in
         line'@(process_lines rest context' ellipses')
