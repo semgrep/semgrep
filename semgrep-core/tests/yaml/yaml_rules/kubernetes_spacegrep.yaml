@@ -8,7 +8,7 @@ rules:
       cpu: $CPU_LIMIT
   - metavariable-regex:
       metavariable: $CPU_LIMIT
-      regex: \d{,3}m
+      regex: \d{0,3}m
   fix: 'cpu: 1000m'
   message: |
     When you set a fractional CPU limit on a container,
