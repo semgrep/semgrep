@@ -1264,6 +1264,9 @@ let options () =
       Flag.max_cache := true),
     " cache matches more aggressively; implies -opt_cache (experimental)";
 
+    "-no_gc_tuning", Arg.Clear Flag.gc_tuning,
+    " use OCaml's default garbage collector settings";
+
     (*s: [[Main_semgrep_core.options]] report match mode cases *)
     "-emacs", Arg.Unit (fun () -> match_format := Matching_report.Emacs ),
     " print matches on the same line than the match position";
@@ -1383,7 +1386,6 @@ let options () =
 (*s: function [[Main_semgrep_core.main]] *)
 let main () =
   profile_start := Unix.gettimeofday ();
-  set_gc ();
 
   let usage_msg =
     spf "Usage: %s [options] <pattern> <files_or_dirs> \nOptions:"
@@ -1405,6 +1407,7 @@ let main () =
 
   (* does side effect on many global flags *)
   let args = Common.parse_options (options()) usage_msg (Array.of_list argv) in
+  if !Flag.gc_tuning then set_gc ();
   let args = if !target_file = "" then args else Common.cat !target_file in
 
   if Sys.file_exists !log_config_file

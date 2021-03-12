@@ -44,6 +44,9 @@ let with_opt_cache = ref true
 (* Improves performance on some patterns, degrades performance on others. *)
 let max_cache = ref false
 
+(* Disabling this lets us measure the effectiveness of our GC tuning. *)
+let gc_tuning = ref true
+
 (*s: constant [[Flag_semgrep.equivalence_mode]] *)
 (* special mode to set before using generic_vs_generic to match
  * code equivalences.
