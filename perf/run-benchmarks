@@ -75,6 +75,7 @@ SEMGREP_VARIANTS = [
     SemgrepVariant("no-cache", "-bloom_filter -no_opt_cache"),
     SemgrepVariant("max-cache", "-bloom_filter -opt_max_cache"),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
+    SemgrepVariant("no-gc-tuning", "-bloom_filter -no_gc_tuning"),
 ]
 
 # Add support for: with chdir(DIR): ...
