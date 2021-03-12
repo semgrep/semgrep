@@ -1,0 +1,16 @@
+group1:
+    #ERROR: match
+    key: foo
+    var:
+      - a
+      - b
+
+group2:
+    key: foo
+    var: 
+      a: b
+
+group3:
+    #ERROR: match
+    key: foo
+    var: [a, b]

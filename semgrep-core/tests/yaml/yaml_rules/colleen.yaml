@@ -1,0 +1,15 @@
+rules:
+- id: flask-path-traversal
+  patterns:
+    - pattern-either: 
+      - pattern: |
+          component: $VAR
+    - pattern-inside: |
+        ...
+        kind: ConfigMap
+        ...
+  message: |
+    Detected path traversal with $FILENAME
+  severity: ERROR
+  languages: 
+    - yaml
