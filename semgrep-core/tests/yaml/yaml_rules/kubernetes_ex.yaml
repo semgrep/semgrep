@@ -1,0 +1,215 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: mumbledj
+  namespace: mumble
+  labels:
+    app: mumbledj
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mumbledj
+  template:
+    metadata:
+      labels:
+        app: mumbledj
+    spec:
+      containers:
+        - name: app
+          command: ["/bin/mumbledj", "--config", "/etc/mumbledj/mumbledj.yaml"]
+          image: underyx/mumbledj
+          volumeMounts:
+            - name: mumbledj-cache
+              mountPath: /root/.cache
+            - name: mumbledj-config
+              mountPath: /etc/mumbledj
+              readOnly: true
+          resources:
+            limits:
+              # ruleid: kubernetes.best-practice.no-fractional-cpu-limits
+              cpu: 100m
+              memory: 64Mi
+            requests:
+              # ok
+              cpu: 20m
+              memory: 32Mi
+      volumes:
+        - name: mumbledj-cache
+          emptyDir: {}
+        - name: mumbledj-config
+          secret:
+            secretName: mumbledj-config
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: images-sftp
+  namespace: public
+  labels:
+    app: images-sftp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: images-sftp
+  template:
+    metadata:
+      labels:
+        app: images-sftp
+    spec:
+      initContainers:
+        - name: set-up-authorized-keys
+          image: busybox:1
+          command: ["/bin/sh"]
+          args: ["-c", "cp /tmp/authorized-keys-source/* /tmp/authorized-keys"]
+          volumeMounts:
+            - name: authorized-keys-source
+              mountPath: /tmp/authorized-keys-source
+              readOnly: yes
+            - name: authorized-keys
+              mountPath: /tmp/authorized-keys
+      containers:
+        - name: app
+          image: panubo/sshd:1.1.0
+          env:
+            - name: SSH_USERS
+              value: monosnap:667:667,sharex:749:749 # keypad codes for MNS, SHX
+            - name: SFTP_MODE
+              value: "true"
+          ports:
+            - containerPort: 22
+          volumeMounts:
+            - name: images
+              mountPath: /data/i.underyx.me
+            - name: config
+              mountPath: /etc/ssh
+            - name: authorized-keys
+              mountPath: /etc/authorized_keys
+          lifecycle:
+            postStart:
+              exec:
+                command: ["chmod", "0777", "/data/i.underyx.me"]
+          livenessProbe:
+            tcpSocket:
+              port: 22
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            limits:
+              # ok
+              cpu: 1000m
+              memory: 512Mi
+            requests:
+              cpu: 10m
+              memory: 8Mi
+      volumes:
+        - name: images
+          persistentVolumeClaim:
+            claimName: images-pvc
+        - name: config
+          persistentVolumeClaim:
+            claimName: images-sftp-config-pvc
+        - name: authorized-keys-source
+          configMap:
+            name: images-sftp-authorized-keys
+        - name: authorized-keys
+          emptyDir: {}
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: plex
+  namespace: media
+  labels:
+    app: plex
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: plex
+  template:
+    metadata:
+      labels:
+        app: plex
+    spec:
+      containers:
+        - name: app
+          image: plexinc/pms-docker:public
+          ports:
+            - containerPort: 3005
+              hostPort: 3005
+            - containerPort: 8324
+              hostPort: 8324
+            - containerPort: 32400
+              hostPort: 32400
+            - containerPort: 32469
+              hostPort: 32469
+            - containerPort: 1900
+              hostPort: 1900
+              protocol: UDP
+            - containerPort: 32410
+              hostPort: 32410
+              protocol: UDP
+            - containerPort: 32412
+              hostPort: 32412
+              protocol: UDP
+            - containerPort: 32413
+              hostPort: 32413
+              protocol: UDP
+            - containerPort: 32414
+              hostPort: 32414
+              protocol: UDP
+          env:
+            - name: TZ
+              value: Europe/Prague
+            - name: PLEX_UID
+              value: "797"
+            - name: PLEX_GID
+              value: "797"
+            - name: PLEX_CLAIM
+              valueFrom:
+                secretKeyRef:
+                  name: plex-env
+                  key: PLEX_CLAIM
+            - name: ADVERTISE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+          volumeMounts:
+            - name: plex-config
+              mountPath: /config
+            - name: plex-media
+              mountPath: /media
+            - name: plex-transcode
+              mountPath: /transcode
+          livenessProbe:
+            tcpSocket:
+              port: 32400
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            limits:
+              # ok
+              cpu: 4000m
+              memory: 2Gi
+            requests:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: plex-config
+          persistentVolumeClaim:
+            claimName: plex-data-pvc
+        - name: plex-config
+          emptyDir: {}
+        - name: plex-media
+          persistentVolumeClaim:
+            claimName: media-pvc
+      securityContext:
+        fsGroup: 797

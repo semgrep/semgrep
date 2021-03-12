@@ -286,6 +286,12 @@ let lang_regression_tests ~with_caching =
     let lang = Lang.Rust in
     regression_tests_for_lang files lang
   );
+  "semgrep Yaml" >::: (
+    let dir = Filename.concat tests_path "yaml" in
+    let files = Common2.glob (spf "%s/*.yaml" dir) in
+    let lang = Lang.Yaml in
+    regression_tests_for_lang files lang
+  );
  ]
 (*e: constant [[Test.lang_regression_tests]] *)
 
