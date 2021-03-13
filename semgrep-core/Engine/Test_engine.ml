@@ -39,6 +39,10 @@ let (lang_of_rules: Rule.t list -> Lang.t) = fun rs ->
 
 let (xlangs_of_rules: Rule.t list -> Rule.xlang list) = fun rs ->
   rs |> List.map (fun r -> r.R.languages) |> List.sort_uniq (compare)
+let first_xlang_of_rules = fun rs ->
+  match rs with
+  | [] -> failwith "no rules"
+  | {R.languages = x; _}::_ -> x
 
 (*****************************************************************************)
 (* Entry point *)
@@ -67,12 +71,17 @@ let test_rules xs =
       match xlangs with
       | [] -> failwith (spf "no language found in %s" file)
       | [x] -> x
-      | _::_::_ -> failwith (spf "too many languages found in %s"file)
+      | _::_::_ ->
+          let fst = first_xlang_of_rules rules in
+          pr2 (spf "too many languages found in %s, picking the first one: %s"
+                 file (Rule.show_xlang fst));
+          fst
     in
     let target =
       try
         let (d,b,ext) = Common2.dbe_of_filename file in
-        Common2.readdir_to_file_list d |> Common.find_some (fun file2 ->
+        (Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d)
+        |> Common.find_some (fun file2 ->
           let (_,b2, ext2) = Common2.dbe_of_filename_noext_ok file2 in
           if b = b2 && ext <> ext2
           then Some (Filename.concat d file2)
@@ -81,6 +90,16 @@ let test_rules xs =
       with Not_found -> failwith (spf "could not find a target for %s" file)
     in
     logger#info "processing target %s" target;
+    (* this is just for tests/OTHER/rules/inception2.yaml, to use JSON
+     * to parse the pattern but YAML to parse the target *)
+    let xlang =
+      match xlang, Lang.langs_of_filename target with
+      | R.L (l, [l2]), xs when not (List.mem l xs) ->
+          pr2 (spf "switching to another language: %s" (Lang.show l2));
+          R.L (l2, [])
+      | _ -> xlang
+    in
+
 
     (* expected *)
     let expected_error_lines = E.expected_error_lines_of_files [target] in

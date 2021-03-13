@@ -1,0 +1,20 @@
+rules:
+#ERROR: match
+- id: double-id
+  message: |
+    you use multiple times the same id
+  severity: ERROR
+  languages: [yaml]
+  pattern: foo
+      
+- id: double-id
+  message: inception
+  severity: ERROR
+  languages: [yaml]
+  pattern: bar
+
+- id: another-id
+  message: inception
+  severity: ERROR
+  languages: [yaml]
+  pattern: foobar

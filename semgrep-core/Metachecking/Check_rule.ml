@@ -30,13 +30,20 @@ let logger = Logging.get_logger [__MODULE__]
 (* Checking the checker (metachecking).
  *
  * The goal of this module is to detect bugs, performance issues, or
- * feature suggestions in semgrep rules.
+ * to suggest the use of certain features in semgrep rules.
  *
- * TODO:
- *  - classic boolean checks for satisfaisability? A & !A => not good
- *  - use spacegrep or semgrep/yaml itself? but need sometimes to express
- *    rules on the yaml structure and sometimes on the pattern itself
- *    (a bit like in templating languages)
+ * See also semgrep-rules/meta/ for semgrep meta rules expressed in
+ * semgrep itself!
+ *
+ * When to use semgrep/yaml (or spacegrep) to express meta rules and
+ * when to use OCaml (this file)?
+ * When you need to express meta rules on the yaml structure,
+ * then semgrep/yaml is fine, but sometimes you need to express
+ * meta-rules by inspecting the pattern content, in which case
+ * you have to use OCaml (a bit like in templating languages).
+ *
+ * TODO: use our new position-aware yaml parser to parse a rule,
+ * so we can give error messages on patterns with the right location.
 *)
 
 (*****************************************************************************)
@@ -48,6 +55,7 @@ type env = Rule.t
 (* Helpers *)
 (*****************************************************************************)
 
+(* TODO: use a Parse_info.t when we switch to YAML with position info *)
 let error (env: env) s =
   let loc = Parse_info.first_loc_of_file (env.file) in
   let s = spf "%s (in ruleid: %s)" s env.id in
@@ -68,11 +76,14 @@ let equal_formula x y =
   AST_utils.with_structural_equal R.equal_formula x y
 
 let check_formula env lang f =
+
   (* check duplicated patterns, essentially:
    *  $K: $PAT
    *  ...
    *  $K2: $PAT
    * but at the same level!
+   *
+   * See also now semgrep-rules/meta/identical_pattern.sgrep :)
   *)
   let rec find_dupe f =
     match f with
