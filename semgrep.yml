@@ -20,7 +20,7 @@ rules:
     severity: ERROR
     paths:
       exclude:
-       - CLI/*.ml
+       - cli/*.ml
        - scripts/*
        - Test.ml
        - Matching_report.ml
