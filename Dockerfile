@@ -32,7 +32,7 @@ RUN git submodule update --init --recursive --depth 1
 
 RUN eval "$(opam env)" && ./scripts/install-ocaml-tree-sitter
 RUN eval "$(opam env)" && opam install --deps-only -y spacegrep/
-RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/pfff/
+RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/src/pfff/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/
 RUN eval "$(opam env)" && DUNE_PROFILE=static make -C spacegrep/
 RUN eval "$(opam env)" && DUNE_PROFILE=static make -C spacegrep/ install
