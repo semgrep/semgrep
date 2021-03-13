@@ -158,6 +158,7 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
 
 def run_benchmarks(docker: str, dummy: bool, upload: bool) -> None:
     corpuses = CORPUSES
+    results = []
     if dummy:
         corpuses = DUMMY_CORPUSES
     for corpus in corpuses:
@@ -168,9 +169,13 @@ def run_benchmarks(docker: str, dummy: bool, upload: bool) -> None:
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
                 duration = run_semgrep(docker, corpus, variant)
-                print(f"{metric_name} = {duration:.3f} s")
+                msg = f"{metric_name} = {duration:.3f} s"
+                print(msg)
+                results.append(msg)
                 if upload:
                     upload_result(metric_name, duration)
+    for msg in results:
+        print(msg)
 
 
 def main() -> None:
