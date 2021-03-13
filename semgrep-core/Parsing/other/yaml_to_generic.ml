@@ -325,7 +325,7 @@ let preprocess_yaml str =
     match lines with
     | [] -> []
 
-    | line::rest -> begin
+    | line::rest ->
         let ws_len, ws = split_whitespace line in
         let context', line', ellipses' =
           match String.trim line with
