@@ -37,8 +37,5 @@ name="big-js"
 #TODO: the other repo are using https: but this repo is currently private
 # so I use ssh
 url="git@github.com:returntocorp/big-js.git"
-commit="f4986489b41b26ce4d7115a62d49ff080e5767c4"
+commit="08ba212ac7961768fcde386f70eea7a901ddb8f5"
 shallow_clone
-
-cd big-js
-yarn install
