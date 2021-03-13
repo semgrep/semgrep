@@ -22,7 +22,9 @@ module A = AST_generic
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Parser for YAML. The tree-sitter grammar for YAML is somewhat complicated,
+(* YAML "AST" to AST_generic.
+ *
+ * The tree-sitter grammar for YAML is somewhat complicated,
  * since YAML is whitespace sensitive. Instead, we use the OCaml Yaml module,
  * which we also use to parse YAML for semgrep. To get positions, we use the
  * low-level Stream API, which we parse into a generic AST
@@ -79,7 +81,8 @@ let tok (index, line, column) str env =
    Parse_info.transfo = NoTransfo}
 
 let mk_tok {E.start_mark = {M.index; M.line; M.column}; _} str env =
-  (* their tokens are 0 indexed for line and column, AST_generic's are 1 indexed for line, 0 for column *)
+  (* their tokens are 0 indexed for line and column, AST_generic's are 1
+   * indexed for line, 0 for column *)
   tok (index, line, column) str env
 
 let mk_bracket ({E.start_mark = {M.index = s_index; M.line = s_line; M.column = s_column}; _},
@@ -94,7 +97,8 @@ let mk_bracket ({E.start_mark = {M.index = s_index; M.line = s_line; M.column = 
   tok (s_index, s_line, s_column) "(" env, v, tok (e_index, e_line, e_column) ")" env
 
 let mk_err err v ({E.start_mark = {M.line; M.column; _}; _} as pos) env =
-  A.error (mk_tok pos (p_token v) env) (Printf.sprintf "%s %s at line %d column %d" err (p_token v) line column)
+  A.error (mk_tok pos (p_token v) env)
+    (Printf.sprintf "%s %s at line %d column %d" err (p_token v) line column)
 
 let mk_id str pos env =
   A.Id ((str, (mk_tok pos "" env)), A.empty_id_info ())
@@ -155,20 +159,27 @@ let parse env parser : A.expr =
     | v, pos -> mk_err "Expected start of string, got" v pos env
   and read_documents acc : A.expr list * E.pos =
     match get_res (S.do_parse parser) with
+
     | E.Document_start _, _pos -> let docs, _ = read_document () in
         let rest, end_pos = read_documents acc in
         docs :: rest, end_pos
     | E.Stream_end, pos -> acc, pos
-    | v, pos -> mk_err "Expected start of document or end of stream, got" v pos env
+    | v, pos ->
+        mk_err "Expected start of document or end of stream, got" v pos env
   and read_document () : A.expr * E.pos =
     let node_ast, _ = read_node () in
     match get_res (S.do_parse parser) with
     | E.Document_end _, pos -> node_ast, pos
     | v, pos -> mk_err "Expected end of document, got" v pos env
   and read_node ?node_val:(res = None) () : A.expr * E.pos =
-    let res = match res with None -> get_res (S.do_parse parser) | Some r -> r in
+    let res =
+      match res with
+      | None -> get_res (S.do_parse parser)
+      | Some r -> r
+    in
     match res with
     | E.Alias { anchor }, pos -> A.N (make_alias anchor pos env), pos
+
     | E.Scalar { anchor; tag; value; _ }, pos -> make_scalar anchor tag pos value env, pos
     | E.Sequence_start { anchor; tag; _ }, pos -> make_sequence anchor tag pos (read_sequence []) env
     | E.Mapping_start { anchor; tag; _ }, pos -> make_mappings anchor tag pos (read_mappings []) env
@@ -188,7 +199,8 @@ let parse env parser : A.expr =
   and read_mapping first_node : A.expr =
     let key, pos1 =
       match first_node with
-      | E.Scalar { anchor; tag; value; _ }, pos -> make_scalar anchor tag pos value env, pos
+      | E.Scalar { anchor; tag; value; _ }, pos ->
+          make_scalar anchor tag pos value env, pos
       | v, pos -> mk_err "Expected a valid scalar, got" v pos env
     in
     let value, pos2 = read_node () in
@@ -209,9 +221,8 @@ let make_pattern_expr e =
 (*****************************************************************************)
 
 let substring str first last =
-  let str' =
-    String.sub str first (last - first) in
-  str'
+  String.sub str first (last - first)
+
 
 (* Match ellipses to previous line with same indentation *)
 let last_same_whitespace whitespace context =
@@ -220,7 +231,8 @@ let last_same_whitespace whitespace context =
     match context with
     | [] -> None
     | (ws_len, ws)::xs ->
-        if ws_len = target_len then Some ws
+        if ws_len = target_len
+        then Some ws
         else find_last_whitespace xs
   in
   find_last_whitespace context
@@ -260,7 +272,8 @@ let convert_leftover_ellipses (prev_space_len, prev_space) ~is_line:is_line elli
 let split_whitespace line =
   let line_len = String.length line in
   let rec read_string i =
-    if i = line_len then line
+    if i = line_len
+    then line
     else begin
       match line.[i] with
       | ' ' | '\t' | '-' -> read_string (i + 1)
@@ -268,15 +281,17 @@ let split_whitespace line =
     end
   in
   let whitespace = read_string 0 in
-  if String.contains whitespace '-' then
-    String.index whitespace '-', whitespace else
-    String.length whitespace, whitespace
+  if String.contains whitespace '-'
+  then String.index whitespace '-', whitespace
+  else String.length whitespace, whitespace
 
 (* Split a line by the ellipses *)
 let split_on_ellipses line =
   let rec split line i ellipses_start num_dots =
     let line_length = String.length line in
-    if i = line_length then [line] else
+    if i = line_length
+    then [line]
+    else
       begin
         match line.[i] with
         | '.' -> begin
@@ -296,11 +311,10 @@ let split_on_ellipses line =
 let rec exit_context whitespace_len context =
   match context with
   | [] -> []
-  | (prev_len, _)::rest -> begin
-      if prev_len > whitespace_len then exit_context whitespace_len rest
+  | (prev_len, _)::rest ->
+      if prev_len > whitespace_len
+      then exit_context whitespace_len rest
       else context
-    end
-
 
 (***** Preprocess the yaml *****)
 
@@ -310,10 +324,12 @@ let preprocess_yaml str =
   let rec process_lines lines context ellipses =
     match lines with
     | [] -> []
-    | line::rest -> begin
+
+    | line::rest ->
         let ws_len, ws = split_whitespace line in
         let context', line', ellipses' =
-          match String.trim line with (* This uses line to check for "..." vs "- ..." *)
+          match String.trim line with
+          (* This uses line to check for "..." vs "- ..." *)
           | "..." -> begin
               let conv, ellipses' = convert_leftover_ellipses (ws_len, ws) ~is_line:false ellipses in
               match last_same_whitespace ws context with
@@ -321,22 +337,24 @@ let preprocess_yaml str =
               | None -> context, conv, (ws_len, ws)::ellipses'
             end
           | _ ->
+
               let conv, ellipses' = convert_leftover_ellipses (ws_len, ws) ~is_line:true ellipses in
               (ws_len, ws)::(exit_context ws_len context),
               conv @ [String.concat sgrep_ellipses_inline (split_on_ellipses line)],
               ellipses'
         in
         line'@(process_lines rest context' ellipses')
-      end
   in
   String.concat "\n" (process_lines lines [] [])
-
 
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
 let program file =
+  (* we do not preprocess the yaml here; ellipsis should be transformed
+   * only in the pattern *)
+
   let str = Common.read_file file in
   let charpos_to_pos = Some (Parse_info.full_charpos_to_pos_large file) in
   let env = { file; charpos_to_pos } in
