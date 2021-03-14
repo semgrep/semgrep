@@ -50,7 +50,7 @@ echo "Install spacegrep"
 
 echo "Install pfff dependencies"
 (
-  cd semgrep-core/pfff
+  cd semgrep-core/src/pfff
   opam install --deps-only -y .
 )
 
