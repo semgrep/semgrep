@@ -1,2 +1,2 @@
-let myfile = open_file "file" in
-    close myfile
+let $A = open_file "file" in
+close $A

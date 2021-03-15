@@ -7,6 +7,7 @@ type tin = {
   mv : Metavariable_capture.t;
   stmts_match_span : Stmts_match_span.t;
   cache : tout Caching.Cache.t option;
+  (* TODO: this does not have to be in tout; maybe split tin in 2? *)
   config: Config_semgrep.t;
 }
 (*e: type [[Matching_generic.tin]] *)
