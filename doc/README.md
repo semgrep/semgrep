@@ -252,7 +252,7 @@ run `pipenv shell` to enter pipenv virtual environment.
 
 You can use Visual Studio Code \(vscode\) to edit the code of Semgrep. The [reason-vscode](https://marketplace.visualstudio.com/items?itemName=jaredly.reason-vscode) Marketplace extension adds support for OCaml/Reason.
 
-The OCaml and Reason IDE extension by David Morrison is another valid extension, but it seems not as actively maintained as reason-vscode.
+The [OCaml and Reason IDE extension](https://github.com/reasonml-editor/vscode-reasonml) by @freebroccolo is another valid extension, but it seems not as actively maintained as reason-vscode.
 
 The source of Semgrep contains also a .vscode/ directory at its root containing a task file to automatically build Semgrep from vscode.
 
@@ -389,3 +389,4 @@ These guides go over the integration work in more details:
 
 * [How to add support for a new language](https://github.com/returntocorp/ocaml-tree-sitter/blob/master/doc/adding-a-language.md)
 * [How to upgrade the grammar for a language](How to upgrade the grammar for a language)
+* [Tips for converting CST to generic AST](cst-to-ast-tips.md)
