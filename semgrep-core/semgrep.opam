@@ -20,7 +20,7 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 depends: [
   "dune" {>= "2.7.0" }
   "bisect_ppx" {>= "2.5.0"}
-  "easy_logging_yojson"
+  "easy_logging_yojson" { dev }
   "ocamlgraph"
   "bloomf"
   "yojson"
@@ -35,6 +35,9 @@ depends: [
   "pcre"
   "parmap"
   "lsp" {= "1.1.0"}
+]
+pin-depends: [
+  ["easy_logging_yojson.git" "git@github.com:aryx/easy_logging.git"]
 ]
 
 build: [make]
