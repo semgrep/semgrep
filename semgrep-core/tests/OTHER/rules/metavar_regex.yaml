@@ -1,0 +1,12 @@
+rules:
+- id: rule_template_id
+  languages:
+  - python
+  match:
+    and:
+    - foo($ARG)
+    - metavariable_regex:
+      - $ARG
+      - .*bar.*
+  message: rule_template_message
+  severity: ERROR
