@@ -121,7 +121,7 @@ and anon_choice_type_id (env : env) (x : CST.anon_choice_id_b8f8ced) : ident lis
 
 let number (env : env) (tok : CST.number) =
   let (s, t) = str env tok (* number *) in
-  (match int_of_string_opt s with
+  (match H.int_of_string_c_octal_opt s with
    | Some i -> Some (float_of_int i)
    | None ->
        float_of_string_opt s

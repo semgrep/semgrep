@@ -195,6 +195,9 @@ let additive_operator (env : env) (x : CST.additive_operator) =
    | `DASH tok -> Minus, token env tok (* "-" *)
   )
 
+(* note that there's no octal literal in Kotlin so no need for
+ * H.int_of_string_c_octal_opt
+*)
 let integer_literal (env : env) (tok : CST.integer_literal) =
   let (s, t) = str env tok (* integer_literal *) in
   (int_of_string_opt s, t)

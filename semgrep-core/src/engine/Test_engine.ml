@@ -48,7 +48,7 @@ let first_xlang_of_rules = fun rs ->
 (* Entry point *)
 (*****************************************************************************)
 
-let test_rules xs =
+let test_rules ?(ounit_context=false) xs =
   let fullxs =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -142,7 +142,7 @@ let test_rules xs =
     try
       E.compare_actual_to_expected actual_errors expected_error_lines;
       Hashtbl.add newscore file (Common2.Ok)
-    with (OUnitTest.OUnit_failure s) ->
+    with (OUnitTest.OUnit_failure s) when not ounit_context ->
       pr2 s;
       Hashtbl.add newscore file (Common2.Pb s);
       (* coupling: ugly: with Error_code.compare_actual_to_expected *)
@@ -152,6 +152,8 @@ let test_rules xs =
         total_mismatch := !total_mismatch + n
       else failwith (spf "wrong unit failure format: %s" s)
   );
-  Parse_info.print_regression_information ~ext xs newscore;
-  pr2 (spf "total mismatch: %d" !total_mismatch);
+  if not ounit_context then begin
+    Parse_info.print_regression_information ~ext xs newscore;
+    pr2 (spf "total mismatch: %d" !total_mismatch);
+  end;
   ()

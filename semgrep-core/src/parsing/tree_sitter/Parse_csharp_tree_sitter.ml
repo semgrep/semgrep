@@ -334,6 +334,9 @@ let attribute_target_specifier (env : env) ((v1, v2) : CST.attribute_target_spec
   let v2 = token env v2 (* ":" *) in
   todo env (v1, v2)
 
+(* note that there's no octal literal in C# so no need for
+ * H.int_of_string_c_octal_opt
+*)
 let integer_literal (env : env) (tok : CST.integer_literal) =
   let (s, t) = str env tok in (* integer_literal *)
   AST.Int (int_of_string_opt s, t)
