@@ -1,0 +1,10 @@
+rules:
+- id: rule_template_id
+  languages:
+  - python
+  match:
+    and:
+    - foo("...")
+    - regex: \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}
+  message: rule_template_message
+  severity: ERROR

@@ -1,0 +1,10 @@
+rules:
+- id: rule_template_id
+  languages:
+  - go
+  match:
+    and:
+    - os.Mkdir($NAME, $PERM)
+    - where: $PERM > 0o600
+  message: rule_template_message
+  severity: ERROR

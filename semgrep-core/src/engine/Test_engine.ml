@@ -52,7 +52,9 @@ let test_rules ?(ounit_context=false) xs =
   let fullxs =
     xs
     |> File_type.files_of_dirs_or_files (function
-      | FT.Config (FT.Yaml (* | FT.Json*) | FT.Jsonnet) -> true | _ -> false)
+      | FT.Config (FT.Yaml) ->  true
+      | FT.Config ((* | FT.Json*) FT.Jsonnet) when not ounit_context -> true
+      | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
 
@@ -83,14 +85,16 @@ let test_rules ?(ounit_context=false) xs =
         (Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d)
         |> Common.find_some (fun file2 ->
           let (_,b2, ext2) = Common2.dbe_of_filename_noext_ok file2 in
-          if b = b2 && ext <> ext2
+          (* ugly: jsonnet exclusion below because of some .jsonnet and .yaml
+           * ambiguities in tests/OTHER/rules *)
+          if b = b2 && ext <> ext2 && ext2 <> "jsonnet"
           then Some (Filename.concat d file2)
           else None
         )
       with Not_found -> failwith (spf "could not find a target for %s" file)
     in
     logger#info "processing target %s" target;
-    (* this is just for tests/OTHER/rules/inception2.yaml, to use JSON
+    (* ugly: this is just for tests/OTHER/rules/inception2.yaml, to use JSON
      * to parse the pattern but YAML to parse the target *)
     let xlang =
       match xlang, Lang.langs_of_filename target with
