@@ -37,7 +37,7 @@ depends: [
   "lsp" {= "1.1.0"}
 ]
 pin-depends: [
-  ["easy_logging_yojson.git" "git@github.com:aryx/easy_logging.git"]
+  ["easy_logging_yojson.git" "git+https://github.com/aryx/easy_logging.git"]
 ]
 
 build: [make]
