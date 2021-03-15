@@ -82,7 +82,7 @@ let float_literal (env : env) (tok : CST.float_literal) =
 
 let int_literal (env : env) (tok : CST.int_literal) =
   let (s, t) = str env tok (* int_literal *) in
-  int_of_string_opt s, t
+  H.int_of_string_c_octal_opt s, t
 
 let rune_literal (env : env) (tok : CST.rune_literal) =
   str env tok (* rune_literal *)

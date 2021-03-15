@@ -137,7 +137,7 @@ let regression_tests_for_lang ~with_caching files lang =
 (*e: function [[Test.regression_tests_for_lang]] *)
 
 (*****************************************************************************)
-(* More tests *)
+(* Tests *)
 (*****************************************************************************)
 
 (* This differs from pfff/tests/<lang>/parsing because here we also use
@@ -295,6 +295,12 @@ let lang_regression_tests ~with_caching =
  ]
 (*e: constant [[Test.lang_regression_tests]] *)
 
+let full_rule_regression_tests =
+  "full rule" >:: (fun () ->
+      let path = Filename.concat tests_path "OTHER/rules" in
+      Test_engine.test_rules ~ounit_context:true [path]
+  )
+
 (*s: constant [[Test.lint_regression_tests]] *)
 (* mostly a copy paste of pfff/linter/unit_linter.ml *)
 let lint_regression_tests ~with_caching =
@@ -384,6 +390,7 @@ let test regexp =
       lint_regression_tests ~with_caching:false;
       lint_regression_tests ~with_caching:true;
       eval_regression_tests;
+      full_rule_regression_tests;
     ]
   in
   let suite =
