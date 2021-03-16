@@ -16,13 +16,17 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 
 # These are build dependencies.
 # Development-only dependencies are in 'dev/dev.opam'.
-# A big dependency is pfff, but it's now a submodule so it's not listed here
+#
 depends: [
   "dune" {>= "2.7.0" }
   "bisect_ppx" {>= "2.5.0"}
+  "easy_logging_yojson"
+  "ocamlgraph"
   "bloomf"
   "yojson"
   "yaml"
+  "menhir"
+  "grain_dypgen"
   "ppx_deriving"
   "ppx_hash"
   "uucp"
@@ -31,12 +35,6 @@ depends: [
   "pcre"
   "parmap"
   "lsp" {= "1.1.0"}
-  "easy_logging" { dev & >= "0.8.0" }
-  "easy_logging_yojson" { dev & >= "0.8.0" }
-]
-pin-depends: [
-  ["easy_logging.git" "git+https://github.com/aryx/easy_logging.git"]
-  ["easy_logging_yojson.git" "git+https://github.com/aryx/easy_logging.git"]
 ]
 
 build: [make]
