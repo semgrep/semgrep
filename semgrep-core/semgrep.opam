@@ -30,7 +30,7 @@ depends: [
   "re"
   "pcre"
   "parmap"
-  "lsp" {= "1.4.0"}
+  "lsp" {>= "1.2.0"}
   "easy_logging" { dev & >= "0.8.0" }
   "easy_logging_yojson" { dev & >= "0.8.0" }
 ]
