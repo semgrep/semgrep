@@ -16,16 +16,13 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 
 # These are build dependencies.
 # Development-only dependencies are in 'dev/dev.opam'.
-#
+# A big dependency is pfff, but it's now a submodule so it's not listed here
 depends: [
   "dune" {>= "2.7.0" }
   "bisect_ppx" {>= "2.5.0"}
-  "ocamlgraph"
   "bloomf"
   "yojson"
   "yaml"
-  "menhir"
-  "grain_dypgen"
   "ppx_deriving"
   "ppx_hash"
   "uucp"
