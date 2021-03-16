@@ -16,17 +16,14 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 
 # These are build dependencies.
 # Development-only dependencies are in 'dev/dev.opam'.
-#
+# A big dependency is pfff, but it's now a submodule so it's not listed here
+#TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
+
 depends: [
   "dune" {>= "2.7.0" }
-  "bisect_ppx" {>= "2.5.0"}
-  "easy_logging_yojson"
-  "ocamlgraph"
   "bloomf"
   "yojson"
   "yaml"
-  "menhir"
-  "grain_dypgen"
   "ppx_deriving"
   "ppx_hash"
   "uucp"
@@ -34,6 +31,7 @@ depends: [
   "re"
   "pcre"
   "parmap"
+  "ppxlib" {= "0.15.0" }
   "lsp" {= "1.1.0"}
 ]
 
