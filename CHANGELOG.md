@@ -12,7 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 
-= Parsing enum class patterns (#2715) 
+- Parsing enum class patterns (#2715) 
 - Ocaml test metavar_equality_var (#2755)
 
 ### Changed
