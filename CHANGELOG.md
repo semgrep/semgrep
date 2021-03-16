@@ -2,11 +2,23 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.43.0](https://github.com/returntocorp/semgrep/releases/tag/v0.43.0) - 2021-03-16
 
 ### Added
 
 - Official Python 3.9 support
+- Support for generating patterns that will match multiple given code targets
+- Gitignore for compiled binaries
+
+### Fixed
+
+= Parsing enum class patterns (#2715) 
+- Ocaml test metavar_equality_var (#2755)
+
+### Changed
+
+- Pfff java parser and tree-sitter-java parser are now more similar
+- Octal numbers parsed correctly in tree-sitter parsers
 
 ## [0.42.0](https://github.com/returntocorp/semgrep/releases/tag/v0.42.0) - 2021-03-09
 
