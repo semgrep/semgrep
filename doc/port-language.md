@@ -36,7 +36,7 @@ Now that you have added you new language 'X' to pfff, do the following:
 7. Write a basic test case for your language in `tests/X/hello-world.X`. This can
    just be a hello-world function.
 8. Test that the command
-   `semgrep-core/_build/default/bin/Main.exe -dump_tree_sitter_cst test/X/hello-world` 
+   `semgrep-core/bin/semgrep-core -dump_tree_sitter_cst test/X/hello-world`
    prints out a CST for your language.
 
 
