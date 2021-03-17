@@ -5,13 +5,14 @@
 # rule_dir: input/django.yml
 # target_dir: input/libcloud
 #
+# See ../r2c-rules for centralized copy of the rule
 # Uses sh because bash is not installed within the semgrep docker container.
 #
 set -eu
 
 mkdir -p input
 
-cp django.yml input
+cp ../r2c-rules/django.yml input
 cd input
 
 # Obtain a shallow clone of a git repo for a specific commit

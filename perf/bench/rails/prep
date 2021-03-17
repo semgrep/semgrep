@@ -5,13 +5,14 @@
 # rule_dir: input/ruby.yaml
 # target_dir: input/rails
 #
+# See ../r2c-rules for centralized copy of the rule
 # Uses sh because bash is not installed within the semgrep docker container.
 #
 set -eu
 
 mkdir -p input
 
-cp ruby.yml input/
+cp ../r2c-rules/ruby.yml input/
 cd input
 
 # Obtain a shallow clone of a git repo for a specific commit

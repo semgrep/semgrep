@@ -2,16 +2,17 @@
 #
 # Fetch rules and targets prior for the "r2c" benchmark.
 #
-# rule_dir: input/semgrep-rules/??
-# target_dir: input/r2c-ci.yml
+# rule_dir: input/flask.yml
+# target_dir: input/pytest-flakefinder
 #
+# See ../r2c-rules for centralized copy of the rule
 # Uses sh because bash is not installed within the semgrep docker container.
 #
 set -eu
 
 mkdir -p input
 
-cp flask.yml input
+cp ../r2c-rules/flask.yml input
 cd input
 
 # Obtain a shallow clone of a git repo for a specific commit
