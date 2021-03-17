@@ -89,7 +89,7 @@ let check_formula env lang f =
     match f with
     | Leaf (P _) -> ()
     | Leaf (MetavarCond _) -> ()
-    | Not f -> find_dupe f
+    | Not (f, _) -> find_dupe f
     | Or xs | And xs ->
         let rec aux xs =
           match xs with
@@ -100,7 +100,7 @@ let check_formula env lang f =
               *)
               if xs |> List.exists (equal_formula x)
               then error env (spf "Duplicate pattern %s" (show_formula x));
-              if xs |> List.exists (equal_formula (Not x))
+              if xs |> List.exists (equal_formula (Not (x, None)))
               then error env (spf "Unsatisfiable patterns %s" (show_formula x));
               aux xs
         in
