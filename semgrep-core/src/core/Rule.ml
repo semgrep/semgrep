@@ -86,10 +86,16 @@ type formula =
 
   | And of formula list
   | Or of formula list
-  (* there are restrictions on where a Not can appear in a formula. It
-   * should always be inside an And to be intersected with "positive" formula
+  (* There are restrictions on where a Not can appear in a formula. It
+   * should always be inside an And to be intersected with "positive" formula.
+   *
+   * Note that pattern-not and pattern-not-inside are different. We
+   * unfortunately need to keep the information around
+   * (see tests/OTHER/rules/negation_exact.yaml)
   *)
-  | Not of formula
+  | Not of formula * inside option
+
+and inside = Inside
 
 and leaf =
   | P of xpattern (* a leaf pattern *)
@@ -208,7 +214,7 @@ let rec visit_new_formula f formula =
   match formula with
   | Leaf (P p) -> f p
   | Leaf (MetavarCond _) -> ()
-  | Not x -> visit_new_formula f x
+  | Not (x, _) -> visit_new_formula f x
   | Or xs | And xs -> xs |> List.iter (visit_new_formula f)
 
 (*****************************************************************************)
@@ -240,7 +246,8 @@ let (convert_formula_old: formula_old -> formula) = fun e ->
   let rec aux e =
     match e with
     | Pat x | PatInside x -> Leaf (P x)
-    | PatNot x | PatNotInside x -> Not (Leaf (P x))
+    | PatNot x -> Not (Leaf (P x), None)
+    | PatNotInside x -> Not (Leaf (P x), Some Inside)
     | PatEither xs ->
         let xs = List.map aux xs in
         Or xs
