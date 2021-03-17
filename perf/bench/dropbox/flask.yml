@@ -1,0 +1,664 @@
+rules:
+- id: python.flask.best-practice.use-jsonify.use-jsonify
+  patterns:
+  - pattern-inside: |
+      @app.route(...)
+      def $X():
+        ...
+  - pattern-either:
+    - pattern: return json.dumps(...)
+    - pattern: |
+        $DATA = json.dumps(...)
+        ...
+        return <... $DATA ...>
+  fix-regex:
+    regex: (json\.){0,1}dumps
+    replacement: flask.jsonify
+    count: 1
+  message: flask.jsonify() is a Flask helper method which handles the correct settings
+    for returning JSON from Flask routes
+  languages:
+  - python
+  severity: ERROR
+- id: python.flask.security.unsanitized-input.response-contains-unsanitized-input
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $X = flask.request.args.get(...)
+        ...
+        flask.make_response("...".format($X))
+    - pattern: |
+        $X = flask.request.args.get(...)
+        ...
+        flask.make_response(f"...{$X}...")
+    - pattern: |
+        $X = flask.request.args.get(...)
+        ...
+        flask.make_response(f"...{$X}")
+    - pattern: |
+        $X = flask.request.args.get(...)
+        ...
+        flask.make_response(f"{$X}...")
+  message: |
+    Flask response reflects unsanitized user input. This could lead to a
+    cross-site scripting vulnerability (https://owasp.org/www-community/attacks/xss/)
+    in which an attacker causes arbitrary code to be executed in the user's browser.
+    To prevent, please sanitize the user input, e.g. by rendering the response
+    in a Jinja2 template (see considerations in https://flask.palletsprojects.com/en/1.0.x/security/).
+  metadata:
+    cwe: 'CWE-79: Improper Neutralization of Input During Web Page Generation (''Cross-site
+      Scripting'')'
+    owasp: 'A7: Cross-Site Scripting (XSS)'
+    references:
+    - https://flask.palletsprojects.com/en/1.0.x/security/
+    - https://owasp.org/www-community/attacks/xss/
+  languages:
+  - python
+  severity: WARNING
+- id: python.flask.security.unescaped-template-extension.unescaped-template-extension
+  message: |
+    Flask does not automatically escape Jinja templates unless they have
+    .html, .htm, .xml, or .xhtml extensions. This could lead to XSS attacks.
+    Use .html, .htm, .xml, or .xhtml for your template extensions.
+    See https://flask.palletsprojects.com/en/1.1.x/templating/#jinja-setup
+    for more information.
+  metadata:
+    cwe: 'CWE-79: Improper Neutralization of Input During Web Page Generation (''Cross-site
+      Scripting'')'
+    owasp: 'A7: Cross-Site Scripting (XSS)'
+    source-rule-url: https://pypi.org/project/flake8-flask/
+    references:
+    - https://flask.palletsprojects.com/en/1.1.x/templating/#jinja-setup
+    - https://blog.r2c.dev/2020/bento-check-unescaped-template-extensions-in-flask/
+    - https://bento.dev/checks/flask/unescaped-file-extension/
+  patterns:
+  - pattern-not: flask.render_template("=~/.+\.html$/", ...)
+  - pattern-not: flask.render_template("=~/.+\.xml$/", ...)
+  - pattern-not: flask.render_template("=~/.+\.htm$/", ...)
+  - pattern-not: flask.render_template("=~/.+\.xhtml$/", ...)
+  - pattern-not: flask.render_template($X + "=~/\.html$/", ...)
+  - pattern-not: flask.render_template($X + "=~/\.xml$/", ...)
+  - pattern-not: flask.render_template($X + "=~/\.htm$/", ...)
+  - pattern-not: flask.render_template($X + "=~/\.xhtml$/", ...)
+  - pattern-not: flask.render_template("=~/.+\.html$/" % $X, ...)
+  - pattern-not: flask.render_template("=~/.+\.xml$/" % $X, ...)
+  - pattern-not: flask.render_template("=~/.+\.htm$/" % $X, ...)
+  - pattern-not: flask.render_template("=~/.+\.xhtml$/" % $X, ...)
+  - pattern-not: flask.render_template("=~/.+\.html$/".format(...), ...)
+  - pattern-not: flask.render_template("=~/.+\.xml$/".format(...), ...)
+  - pattern-not: flask.render_template("=~/.+\.htm$/".format(...), ...)
+  - pattern-not: flask.render_template("=~/.+\.xhtml$/".format(...), ...)
+  - pattern-not: flask.render_template($TEMPLATE)
+  - pattern-either:
+    - pattern: flask.render_template("...", ...)
+    - pattern: flask.render_template($X + "...", ...)
+    - pattern: flask.render_template("..." % $Y, ...)
+    - pattern: flask.render_template("...".format(...), ...)
+  languages:
+  - python
+  severity: WARNING
+- id: python.flask.security.secure-static-file-serve.avoid_send_file_without_path_sanitization
+  patterns:
+  - pattern-inside: |
+      @app.route(...)
+      def $X(filename):
+        ...
+  - pattern-either:
+    - pattern: flask.send_file(filename, ...)
+  message: Looks like `filename` could flow to `flask.send_file()` function. Make
+    sure to properly sanitize filename or use `flask.send_from_directory`
+  metadata:
+    cwe: 'CWE-73: External Control of File Name or Path'
+    owasp: 'A1: Injection'
+  languages:
+  - python
+  severity: WARNING
+- id: python.flask.security.open-redirect.open-redirect
+  patterns:
+  - pattern-inside: |
+      @$APP.route(...)
+      def $X():
+        ...
+  - pattern-not-inside: |
+      ...
+      if <... werkzeug.urls.url_parse($V) ...>:
+        ...
+  - pattern-either:
+    - pattern: flask.redirect(<... flask.request.$W.get(...) ...>, ...)
+    - pattern: flask.redirect(<... flask.request.$W[...] ...>, ...)
+    - pattern: flask.redirect(<... flask.request.$W(...) ...>, ...)
+    - pattern: flask.redirect(<... flask.request.$W ...>, ...)
+    - pattern: |
+        $V = flask.request.$W.get(...)
+        ...
+        flask.redirect(<... $V ...>, ...)
+    - pattern: |
+        $V = flask.request.$W[...]
+        ...
+        flask.redirect(<... $V ...>, ...)
+    - pattern: |
+        $V = flask.request.$W(...)
+        ...
+        flask.redirect(<... $V ...>, ...)
+    - pattern: |
+        $V = flask.request.$W
+        ...
+        flask.redirect(<... $V ...>, ...)
+  message: |
+    Data from request is passed to redirect().
+    This is an open redirect and could be exploited.
+    Consider using 'url_for()' to generate links to known locations.
+    If you must use a URL to unknown pages, consider using 'urlparse()'
+    or similar and checking if the 'netloc' property is the same as
+    your site's host name. See the references for more information.
+  metadata:
+    cwe: 'CWE-601: URL Redirection to Untrusted Site (''Open Redirect'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://flask-login.readthedocs.io/en/latest/#login-example
+    - https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html#dangerous-url-redirect-example-1
+    - https://docs.python.org/3/library/urllib.parse.html#url-parsing
+  languages:
+  - python
+  severity: ERROR
+- id: python.flask.security.insecure-deserialization.insecure-deserialization
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+    references:
+    - https://docs.python.org/3/library/pickle.html
+  message: |
+    Detected the use of an insecure deserizliation library in a Flask route. These libraries
+    are prone to code execution vulnerabilities. Ensure user data does not enter this function.
+    To fix this, try to avoid serializing whole objects. Consider instead using a serializer
+    such as JSON.
+  languages:
+  - python
+  severity: ERROR
+  patterns:
+  - pattern-inside: |
+      @app.route(...)
+      def $X(...):
+        ...
+  - pattern-not: $MODULE.$FUNC("...")
+  - pattern-not: $MODULE.$FUNC(open("...", ...))
+  - pattern-either:
+    - pattern: pickle.$FUNC(...)
+    - pattern: _pickle.$FUNC(...)
+    - pattern: cPickle.$FUNC(...)
+    - pattern: dill.$FUNC(...)
+    - pattern: shelve.$FUNC(...)
+    - pattern: yaml.load(...)
+- id: python.flask.security.dangerous-template-string.dangerous-template-string
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $V = "...".format(...)
+        ...
+        flask.render_template_string($V, ...)
+    - pattern: |
+        $V = "...".format(...)
+        ...
+        return flask.render_template_string($V, ...), $MORE
+    - pattern: |
+        $V = "..." % $S
+        ...
+        flask.render_template_string($V, ...)
+    - pattern: |
+        $V = "..." % $S
+        ...
+        return flask.render_template_string($V, ...), $MORE
+    - pattern: |
+        $V = "..."
+        ...
+        $V += $O
+        ...
+        flask.render_template_string($V, ...)
+    - pattern: |
+        $V = "..."
+        ...
+        $V += $O
+        ...
+        return flask.render_template_string($V, ...), $MORE
+    - pattern: |
+        $V = f"...{$X}..."
+        ...
+        flask.render_template_string($V, ...)
+    - pattern: |
+        $V = f"...{$X}..."
+        ...
+        return flask.render_template_string($V, ...), $CODE
+  message: |
+    Found a template created with string formatting.
+    This is susceptible to server-side template injection
+    and cross-site scripting attacks.
+  metadata:
+    cwe: 'CWE-96: Improper Neutralization of Directives in Statically Saved Code (''Static
+      Code Injection'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://nvisium.com/blog/2016/03/09/exploring-ssti-in-flask-jinja2.html
+    - https://pequalsnp-team.github.io/cheatsheet/flask-jinja2-ssti
+  languages:
+  - python
+  severity: ERROR
+- id: python.flask.security.injection.os-system-injection.os-system-injection
+  languages:
+  - python
+  severity: ERROR
+  message: User data detected in os.system. This could be vulnerable to a command
+    injection and should be avoided. If this must be done, use the 'subprocess' module
+    instead and pass the arguments as a list.
+  metadata:
+    cwe: 'CWE-78: Improper Neutralization of Special Elements used in an OS Command
+      (''OS Command Injection'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://owasp.org/www-community/attacks/Command_Injection
+  patterns:
+  - pattern-either:
+    - patterns:
+      - pattern-inside: |
+          @$APP.route($ROUTE, ...)
+          def $FUNC(..., $ROUTEVAR, ...):
+            ...
+      - pattern-either:
+        - pattern: os.system(..., <... $ROUTEVAR ...>, ...)
+        - pattern: |
+            $INTERM = <... $ROUTEVAR ...>
+            ...
+            os.system(..., <... $INTERM ...>, ...)
+    - patterns:
+      - pattern-either:
+        - pattern: os.system(..., <... flask.request.$W.get(...) ...>, ...)
+        - pattern: os.system(..., <... flask.request.$W[...] ...>, ...)
+        - pattern: os.system(..., <... flask.request.$W(...) ...>, ...)
+        - pattern: os.system(..., <... flask.request.$W ...>, ...)
+    - patterns:
+      - pattern-either:
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W.get(...) ...>
+              ...
+              os.system(<... $INTERM ...>)
+          - pattern: os.system(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W[...] ...>
+              ...
+              os.system(<... $INTERM ...>)
+          - pattern: os.system(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W(...) ...>
+              ...
+              os.system(<... $INTERM ...>)
+          - pattern: os.system(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W ...>
+              ...
+              os.system(<... $INTERM ...>)
+          - pattern: os.system(...)
+- id: python.flask.security.injection.path-traversal-open.path-traversal-open
+  languages:
+  - python
+  severity: ERROR
+  message: Found request data in a call to 'open'. Ensure the request data is validated
+    or sanitized, otherwise it could result in path traversal attacks.
+  metadata:
+    cwe: 'CWE-22: Improper Limitation of a Pathname to a Restricted Directory (''Path
+      Traversal'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://owasp.org/www-community/attacks/Path_Traversal
+  patterns:
+  - pattern-either:
+    - patterns:
+      - pattern-inside: |
+          @$APP.route($ROUTE, ...)
+          def $FUNC(..., $ROUTEVAR, ...):
+            ...
+      - pattern-either:
+        - pattern: open(..., <... $ROUTEVAR ...>, ...)
+        - pattern: |
+            $INTERM = <... $ROUTEVAR ...>
+            ...
+            open(..., <... $INTERM ...>, ...)
+    - patterns:
+      - pattern-either:
+        - pattern: open(..., <... flask.request.$W.get(...) ...>, ...)
+        - pattern: open(..., <... flask.request.$W[...] ...>, ...)
+        - pattern: open(..., <... flask.request.$W(...) ...>, ...)
+        - pattern: open(..., <... flask.request.$W ...>, ...)
+    - patterns:
+      - pattern-either:
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W.get(...) ...>
+              ...
+              open(<... $INTERM ...>, ...)
+          - pattern: open(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W[...] ...>
+              ...
+              open(<... $INTERM ...>, ...)
+          - pattern: open(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W(...) ...>
+              ...
+              open(<... $INTERM ...>, ...)
+          - pattern: open(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W ...>
+              ...
+              open(<... $INTERM ...>, ...)
+          - pattern: open(...)
+    - patterns:
+      - pattern-either:
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W.get(...) ...>
+              ...
+              with open(<... $INTERM ...>, ...) as $F:
+                ...
+          - pattern: open(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W[...] ...>
+              ...
+              with open(<... $INTERM ...>, ...) as $F:
+                ...
+          - pattern: open(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W(...) ...>
+              ...
+              with open(<... $INTERM ...>, ...) as $F:
+                ...
+          - pattern: open(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W ...>
+              ...
+              with open(<... $INTERM ...>, ...) as $F:
+                ...
+          - pattern: open(...)
+- id: python.flask.security.injection.ssrf-requests.ssrf-requests
+  languages:
+  - python
+  severity: ERROR
+  message: Data from request object is passed to a new server-side request. This could
+    lead to a server-side request forgery (SSRF). To mitigate, ensure that schemes
+    and hosts are validated against an allowlist, do not forward the response to the
+    user, and ensure proper authentication and transport-layer security in the proxied
+    request.
+  metadata:
+    cwe: 'CWE-918: Server-Side Request Forgery (SSRF)'
+    owasp: 'A1: Injection'
+    references:
+    - https://owasp.org/www-community/attacks/Server_Side_Request_Forgery
+  patterns:
+  - pattern-either:
+    - patterns:
+      - pattern-inside: |
+          @$APP.route($ROUTE, ...)
+          def $ROUTE_FUNC(..., $ROUTEVAR, ...):
+            ...
+      - pattern-either:
+        - pattern: requests.$FUNC(..., <... $ROUTEVAR ...>, ...)
+        - pattern: |
+            $INTERM = <... $ROUTEVAR ...>
+            ...
+            requests.$FUNC(..., <... $INTERM ...>, ...)
+    - patterns:
+      - pattern-either:
+        - pattern: requests.$FUNC(..., <... flask.request.$W.get(...) ...>, ...)
+        - pattern: requests.$FUNC(..., <... flask.request.$W[...] ...>, ...)
+        - pattern: requests.$FUNC(..., <... flask.request.$W(...) ...>, ...)
+        - pattern: requests.$FUNC(..., <... flask.request.$W ...>, ...)
+    - patterns:
+      - pattern-either:
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W.get(...) ...>
+              ...
+              requests.$FUNC(<... $INTERM ...>, ...)
+          - pattern: requests.$FUNC(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W[...] ...>
+              ...
+              requests.$FUNC(<... $INTERM ...>, ...)
+          - pattern: requests.$FUNC(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W(...) ...>
+              ...
+              requests.$FUNC(<... $INTERM ...>, ...)
+          - pattern: requests.$FUNC(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W ...>
+              ...
+              requests.$FUNC(<... $INTERM ...>, ...)
+          - pattern: requests.$FUNC(...)
+- id: python.flask.security.injection.user-eval.eval-injection
+  languages:
+  - python
+  severity: ERROR
+  message: Detected user data flowing into eval. This is code injection and should
+    be avoided.
+  metadata:
+    cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code
+      (''Eval Injection'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html
+  patterns:
+  - pattern-either:
+    - patterns:
+      - pattern-inside: |
+          @$APP.route($ROUTE, ...)
+          def $FUNC(..., $ROUTEVAR, ...):
+            ...
+      - pattern-either:
+        - pattern: eval(..., <... $ROUTEVAR ...>, ...)
+        - pattern: |
+            $INTERM = <... $ROUTEVAR ...>
+            ...
+            eval(..., <... $INTERM ...>, ...)
+    - patterns:
+      - pattern-either:
+        - pattern: eval(..., <... flask.request.$W.get(...) ...>, ...)
+        - pattern: eval(..., <... flask.request.$W[...] ...>, ...)
+        - pattern: eval(..., <... flask.request.$W(...) ...>, ...)
+        - pattern: eval(..., <... flask.request.$W ...>, ...)
+    - patterns:
+      - pattern-either:
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W.get(...) ...>
+              ...
+              eval(..., <... $INTERM ...>, ...)
+          - pattern: eval(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W[...] ...>
+              ...
+              eval(..., <... $INTERM ...>, ...)
+          - pattern: eval(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W(...) ...>
+              ...
+              eval(..., <... $INTERM ...>, ...)
+          - pattern: eval(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W ...>
+              ...
+              eval(..., <... $INTERM ...>, ...)
+          - pattern: eval(...)
+- id: python.flask.security.injection.user-exec.exec-injection
+  languages:
+  - python
+  severity: ERROR
+  message: Detected user data flowing into exec. This is code injection and should
+    be avoided.
+  metadata:
+    cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code
+      (''Eval Injection'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://nedbatchelder.com/blog/201206/exec_really_is_dangerous.html
+  patterns:
+  - pattern-either:
+    - patterns:
+      - pattern-inside: |
+          @$APP.route($ROUTE, ...)
+          def $FUNC(..., $ROUTEVAR, ...):
+            ...
+      - pattern-either:
+        - pattern: exec(..., <... $ROUTEVAR ...>, ...)
+        - pattern: |
+            $INTERM = <... $ROUTEVAR ...>
+            ...
+            exec(..., <... $INTERM ...>, ...)
+    - patterns:
+      - pattern-either:
+        - pattern: exec(..., <... flask.request.$W.get(...) ...>, ...)
+        - pattern: exec(..., <... flask.request.$W[...] ...>, ...)
+        - pattern: exec(..., <... flask.request.$W(...) ...>, ...)
+        - pattern: exec(..., <... flask.request.$W ...>, ...)
+    - patterns:
+      - pattern-either:
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W.get(...) ...>
+              ...
+              exec(..., <... $INTERM ...>, ...)
+          - pattern: exec(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W[...] ...>
+              ...
+              exec(..., <... $INTERM ...>, ...)
+          - pattern: exec(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W(...) ...>
+              ...
+              exec(..., <... $INTERM ...>, ...)
+          - pattern: exec(...)
+        - patterns:
+          - pattern-inside: |
+              $INTERM = <... flask.request.$W ...>
+              ...
+              exec(..., <... $INTERM ...>, ...)
+          - pattern: exec(...)
+- id: python.flask.security.audit.app-run-param-config.avoid_app_run_with_bad_host
+  patterns:
+  - pattern-either:
+    - pattern: app.run(..., host="0.0.0.0", ...)
+    - pattern: app.run(..., "0.0.0.0", ...)
+  message: Running flask app with host 0.0.0.0 could expose the server publicly.
+  metadata:
+    cwe: 'CWE-668: Exposure of Resource to Wrong Sphere'
+    owasp: 'A6: Security Misconfiguration'
+  languages:
+  - python
+  severity: WARNING
+- id: python.flask.security.audit.app-run-security-config.avoid_using_app_run_directly
+  patterns:
+  - pattern-not-inside: |
+      if __name__ == '__main__':
+        ...
+  - pattern-not-inside: |
+      def $X(...):
+        ...
+  - pattern: app.run(...)
+  message: top-level app.run(...) is ignored by flask. Consider putting app.run(...)
+    behind a guard, like inside a function
+  metadata:
+    cwe: 'CWE-668: Exposure of Resource to Wrong Sphere'
+    owasp: 'A6: Security Misconfiguration'
+  languages:
+  - python
+  severity: WARNING
+- id: python.flask.security.audit.render-template-string.render-template-string
+  pattern: flask.render_template_string(...)
+  metadata:
+    cwe: 'CWE-96: Improper Neutralization of Directives in Statically Saved Code (''Static
+      Code Injection'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://nvisium.com/blog/2016/03/09/exploring-ssti-in-flask-jinja2.html
+  message: Found a template created with string formatting. This is susceptible to
+    server-side template injection and cross-site scripting attacks.
+  languages:
+  - python
+  severity: WARNING
+- id: python.flask.security.audit.secure-set-cookie.secure-set-cookie
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $RESP = flask.make_response(...)
+        ...
+    - pattern-inside: |
+        $RESP = flask.Response(...)
+        ...
+  - pattern-not: $RESPONSE.set_cookie(..., secure=$A, httponly=$B, samesite=$C, ...)
+  - pattern-not: $RESPONSE.set_cookie(..., **$A)
+  - pattern: $RESPONSE.set_cookie(...)
+  message: |
+    Flask cookies should be handled securely by setting secure=True, httponly=True, and samesite='Lax' in
+    response.set_cookie(...). If your situation calls for different settings, explicitly disable the setting.
+    If you want to send the cookie over http, set secure=False.  If you want to let client-side JavaScript
+    read the cookie, set httponly=False. If you want to attach cookies to requests for external sites,
+    set samesite=None.
+  metadata:
+    cwe: 'CWE-614: Sensitive Cookie in HTTPS Session Without ''Secure'' Attribute'
+    owasp: 'A3: Sensitive Data Exposure'
+    references:
+    - https://blog.r2c.dev/2020/bento-check-keeping-cookies-safe-in-flask/
+    - https://bento.dev/checks/flask/secure-set-cookie/
+    - https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options
+  languages:
+  - python
+  severity: WARNING
+- id: python.flask.security.audit.wtf-csrf-disabled.flask-wtf-csrf-disabled
+  patterns:
+  - pattern: |
+      $APP.config['WTF_CSRF_ENABLED'] = False
+  message: |
+    `$APP.config['WTF_CSRF_ENABLED'] = False` is probably not what you want in production because it disables https://flask-wtf.readthedocs.io/en/stable/csrf.html CSRF protection
+  metadata:
+    cwe: 'CWE-352: Cross-Site Request Forgery (CSRF)'
+    owasp: 'A6: Security Misconfiguration'
+    references:
+    - https://flask-wtf.readthedocs.io/en/stable/csrf.html
+  severity: WARNING
+  languages:
+  - python
+- id: python.flask.correctness.access-request-in-wrong-handler.avoid-accessing-request-in-wrong-handler
+  patterns:
+  - pattern-inside: |
+      @app.route(..., method="GET")
+      def $X(...):
+        ...
+  - pattern-either:
+    - pattern: |
+        $Y = flask.request.json
+    - pattern: |
+        $Y = flask.request.form
+    - pattern: |
+        $Y = flask.request.data
+  message: Accessing request object inside a route handle for HTTP GET command will
+    throw due to missing request body.
+  languages:
+  - python
+  severity: WARNING

@@ -1,0 +1,535 @@
+rules:
+- id: python.django.best-practice.json_response.use-json-response
+  patterns:
+  - pattern-inside: |
+      def $X(...):
+        ...
+  - pattern-either:
+    - pattern: |
+        $Y = json.dumps(...)
+        ...
+        django.http.HttpResponse($Y, ...)
+  message: Use JsonResponse instead
+  languages:
+  - python
+  severity: ERROR
+- id: python.django.best-practice.upsell_django_environ.use-django-environ
+  patterns:
+  - pattern-not: |
+      ...
+      import environ
+      ...
+  - pattern-either:
+    - pattern: |
+        import django
+        ...
+        import os
+        ...
+        $FOO = $M.environ[...]
+    - pattern: |
+        import os
+        ...
+        import django
+        ...
+        $FOO = $M.environ[...]
+  message: You are using environment variables inside django app. Use `django-environ`
+    as it a better alternative for deployment.
+  languages:
+  - python
+  severity: ERROR
+- id: python.django.best-practice.use-onetoonefield.use-onetoonefield
+  patterns:
+  - pattern-inside: |
+      class $M(...):
+        ...
+  - pattern: $F = django.db.models.ForeignKey(..., unique=True, ...)
+  message: |
+    Use 'django.db.models.OneToOneField' instead of 'ForeignKey' with unique=True.
+    'OneToOneField' is used to create one-to-one relationships.
+  languages:
+  - python
+  severity: WARNING
+- id: python.django.correctness.nontext-field-must-set-null-true.nontext-field-must-set-null-true
+  patterns:
+  - pattern-inside: |
+      class $M(...):
+        ...
+  - pattern-not: $F = django.db.models.CharField(...)
+  - pattern-not: $F = django.db.models.TextField(...)
+  - pattern-not: $F = django.db.models.SlugField(...)
+  - pattern-not: $F = django.db.models.EmailField(...)
+  - pattern-not: $F = django.db.models.FileField(...)
+  - pattern-not: $F = django.db.models.ImageField(...)
+  - pattern-not: $F = django.db.models.URLField(...)
+  - pattern-not: $F = django.db.models.UUIDField(...)
+  - pattern-not: $F = django.db.models.ManyToManyField(...)
+  - pattern-not: $F = django.db.models.NullBooleanField(...)
+  - pattern-not: $F = $X(..., null=True, blank=True, ...)
+  - pattern: $F = $X(..., blank=True, ...)
+  message: null=True should be set if blank=True is set on non-text fields.
+  languages:
+  - python
+  severity: ERROR
+- id: python.django.correctness.string-field-null-checks.no-null-string-field
+  patterns:
+  - pattern-inside: |
+      class $M(...):
+        ...
+  - pattern-not: $F = django.db.models.CharField(..., null=True, unique=True, blank=True,
+      ...)
+  - pattern-not: $F = django.db.models.TextField(..., null=True, unique=True, blank=True,
+      ...)
+  - pattern-either:
+    - pattern: $F = django.db.models.CharField(..., null=True, ...)
+    - pattern: $F = django.db.models.TextField(..., null=True, ...)
+  message: |
+    Avoid using null on string-based fields such as CharField and TextField. If a string-based field
+    has null=True, that means it has two possible values for "no data": NULL, and the empty string. In
+    most cases, it's redundant to have two possible values for "no data;" the Django convention is to
+    use the empty string, not NULL.
+  languages:
+  - python
+  severity: WARNING
+- id: python.django.correctness.string-field-null-checks.string-field-must-set-null-true
+  patterns:
+  - pattern-inside: |
+      class $M(...):
+        ...
+  - pattern-not: $F = django.db.models.CharField(..., unique=True, blank=True, null=True,
+      ...)
+  - pattern-not: $F = django.db.models.TextField(..., unique=True, blank=True, null=True,
+      ...)
+  - pattern-either:
+    - pattern: $F = django.db.models.CharField(..., unique=True, blank=True, ...)
+    - pattern: $F = django.db.models.TextField(..., unique=True, blank=True, ...)
+  message: If a text field declares unique=True and blank=True, null=True must also
+    be set to avoid unique constraint violations when saving multiple objects with
+    blank values.
+  languages:
+  - python
+  severity: ERROR
+- id: python.django.performance.upsell-count.use-count-method
+  patterns:
+  - pattern-either:
+    - pattern: $X.objects.$FUNC(...).len()
+    - pattern: $X.objects.$FUNC(...).$FILTER().len()
+    - pattern: $X.objects.$FUNC(...).$FILTER().$UPDATE(...).len()
+  message: Looks like you need to determine the number of records. Django provides
+    the count() method which is more efficient than .len(). See https://docs.djangoproject.com/en/3.0/ref/models/querysets/
+  languages:
+  - python
+  severity: ERROR
+- id: python.django.performance.upsell_earliest_latest.use-earliest-or-latest
+  patterns:
+  - pattern-either:
+    - pattern: $X.objects.order_by(...)[0]
+    - pattern: $X.objects.$FUNC(...).order_by(...)[0]
+    - pattern: $X.objects.$FUNC(...).$FILTER(...).order_by(...)[0]
+  message: Looks like you are only accessing first element of an ordered QuerySet.
+    Use `latest()` or `earliest()` instead. See https://docs.djangoproject.com/en/3.0/ref/models/querysets/#django.db.models.query.QuerySet.latest
+  languages:
+  - python
+  severity: ERROR
+- id: python.django.security.audit.avoid-insecure-deserialization.avoid-insecure-deserialization
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+    references: https://docs.python.org/3/library/pickle.html
+  message: Avoid using insecure deserialization library, backed by `pickle`, `_pickle`,
+    `cpickle`, `dill`, `shelve`, or `yaml`, which are known to lead to remote code
+    execution vulnerabilities.
+  languages:
+  - python
+  severity: ERROR
+  patterns:
+  - pattern-inside: |
+      def $X(..., request, ...):
+        ...
+  - pattern-either:
+    - pattern: |
+        $VAR = <... request.$Y.get(...) ...>
+        ...
+        pickle.$FUNC(<... $VAR ...>)
+    - pattern: pickle.$FUNC(<... request.$Y.get(...) ...>)
+    - pattern: |
+        $VAR = <... request.$Y.get(...) ...>
+        ...
+        _pickle.$FUNC(<... $VAR ...>)
+    - pattern: _pickle.$FUNC(<... request.$Y.get(...) ...>)
+    - pattern: |
+        $VAR = <... request.$Y.get(...) ...>
+        ...
+        cPickle.$FUNC(<... $VAR ...>)
+    - pattern: cPickle.$FUNC(<... request.$Y.get(...) ...>)
+    - pattern: |
+        $VAR = <... request.$Y.get(...) ...>
+        ...
+        dill.$FUNC(<... $VAR ...>)
+    - pattern: dill.$FUNC(<... request.$Y.get(...) ...>)
+    - pattern: |
+        $VAR = <... request.$Y.get(...) ...>
+        ...
+        shelve.$FUNC(<... $VAR ...>)
+    - pattern: shelve.$FUNC(<... request.$Y.get(...) ...>)
+    - pattern: |
+        $VAR = <... request.$Y.get(...) ...>
+        ...
+        yaml.$FUNC(<... $VAR ...>)
+    - pattern: yaml.$FUNC(<... request.$Y.get(...) ...>)
+- id: python.django.security.audit.csrf-exempt.no-csrf-exempt
+  pattern: |
+    @django.views.decorators.csrf.csrf_exempt
+    def $R(...):
+      ...
+  message: There is rarely a good reason to use @csrf_exempt as is used for `$R`.
+  metadata:
+    cwe: 'CWE-352: Cross-Site Request Forgery (CSRF)'
+    owasp: 'A6: Security Misconfiguration'
+  languages:
+  - python
+  severity: WARNING
+- id: python.django.security.audit.custom-expression-as-sql.custom-expression-as-sql
+  languages:
+  - python
+  message: Detected a Custom Expression ''$EXPRESSION'' calling ''as_sql(...).'' Ensure
+    no user input enters this function because it is susceptible to SQL injection.
+    See https://docs.djangoproject.com/en/3.0/ref/models/expressions/#django.db.models.Func.as_sql
+    for more information.
+  metadata:
+    cwe: 'CWE-89: Improper Neutralization of Special Elements used in an SQL Command
+      (''SQL Injection'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://docs.djangoproject.com/en/3.0/ref/models/expressions/#django.db.models.Func.as_sql
+    - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+  pattern: $EXPRESSION.as_sql(...)
+  severity: WARNING
+- id: python.django.security.audit.extends-custom-expression.extends-custom-expression
+  languages:
+  - python
+  message: |
+    Found extension of custom expression: $CLASS. Extending expressions
+    in this way could inadvertently expose a SQL injection vulnerability.
+    See https://docs.djangoproject.com/en/3.0/ref/models/expressions/#avoiding-sql-injection
+    for more information.
+  metadata:
+    cwe: 'CWE-89: Improper Neutralization of Special Elements used in an SQL Command
+      (''SQL Injection'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://docs.djangoproject.com/en/3.0/ref/models/expressions/#avoiding-sql-injection
+    - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+  patterns:
+  - pattern-either:
+    - pattern: |
+        class $CLASS(..., django.db.models.Func, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Func, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.Expression, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Expression, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.Value, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Value, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.DurationValue, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.DurationValue, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.RawSQL, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.RawSQL, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.Star, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Star, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.Random, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Random, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.Col, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Col, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.Ref, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Ref, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.ExpressionList, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.ExpressionList, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.ExpressionWrapper, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.ExpressionWrapper, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.When, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.When, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.Case, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Case, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.Subquery, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Subquery, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.Exists, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Exists, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.Window, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.Window, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.WindowFrame, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.WindowFrame, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.RowRange, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.RowRange, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.ValueRange, ...):
+            ...
+    - pattern: |
+        class $CLASS(..., django.db.models.expressions.ValueRange, ...):
+            ...
+  severity: WARNING
+- id: python.django.security.audit.query-set-extra.avoid-query-set-extra
+  patterns:
+  - pattern-either:
+    - pattern: $X.objects.$FUNC(...).extra(...)
+    - pattern: $X.objects.$FUNC(...).$FILTER(...).extra(...)
+    - pattern: $X.objects.$FUNC(...).$FILTER(...).$UPDATE(...).extra(...)
+  message: This is a last resort. You should be careful when using QuerySet.extra
+    due to SQLi https://docs.djangoproject.com/en/3.0/ref/models/querysets/#django.db.models.query.QuerySet.extra
+  metadata:
+    cwe: 'CWE-89: Improper Neutralization of Special Elements used in an SQL Command
+      (''SQL Injection'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://docs.djangoproject.com/en/3.0/ref/models/querysets/#django.db.models.query.QuerySet.extra
+    - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+  languages:
+  - python
+  severity: ERROR
+- id: python.django.security.audit.raw-query.avoid-raw-sql
+  patterns:
+  - pattern-either:
+    - pattern: $MODEL.objects.raw($QUERY, ...)
+    - pattern: django.db.models.expressions.RawSQL(...)
+  message: You should be very careful whenever you write raw SQL. Consider using Django
+    ORM before raw SQL. See https://docs.djangoproject.com/en/3.0/topics/db/sql/#passing-parameters-into-raw
+  metadata:
+    cwe: 'CWE-89: Improper Neutralization of Special Elements used in an SQL Command
+      (''SQL Injection'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://docs.djangoproject.com/en/3.0/ref/models/expressions/#raw-sql-expressions
+    - https://blog.r2c.dev/2020/preventing-sql-injection-a-django-authors-perspective/
+  languages:
+  - python
+  severity: ERROR
+- id: python.django.security.audit.secure-cookies.django-secure-set-cookie
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        import django.http.HttpResponse
+        ...
+    - pattern-inside: |
+        import django.shortcuts.render
+        ...
+  - pattern-not-inside: |
+      LANGUAGE_QUERY_PARAMETER = 'language'
+      ...
+      def set_language(request):
+          ...
+      # Exclude vendored contrib/messages/storage/cookie.py
+  - pattern-not-inside: |
+      class CookieStorage(django.contrib.messages.storage.base.BaseStorage):
+          ...
+      # Exclude cookies handled by vendored middleware
+  - pattern-not: response.set_cookie(django.conf.settings.SESSION_COOKIE_NAME, ...)
+  - pattern-not: response.set_cookie(django.conf.settings.CSRF_COOKIE_NAME, ...)
+  - pattern-not: response.set_cookie(django.conf.settings.LANGUAGE_COOKIE_NAME, ...)
+  - pattern-not: response.set_cookie(rest_framework_jwt.settings.api_settings.JWT_AUTH_COOKIE,
+      ...)
+  - pattern-not: response.set_cookie(..., secure=$A, httponly=$B, samesite=$C, ...)
+  - pattern-not: response.set_cookie(..., **$A)
+  - pattern: response.set_cookie(...)
+  message: |
+    Django cookies should be handled securely by setting secure=True, httponly=True, and samesite='Lax' in
+    response.set_cookie(...). If your situation calls for different settings, explicitly disable the setting.
+    If you want to send the cookie over http, set secure=False.  If you want to let client-side JavaScript
+    read the cookie, set httponly=False. If you want to attach cookies to requests for external sites,
+    set samesite=None.
+  metadata:
+    cwe: 'CWE-614: Sensitive Cookie in HTTPS Session Without ''Secure'' Attribute'
+    owasp: 'A3: Sensitive Data Exposure'
+    references:
+    - https://docs.djangoproject.com/en/3.0/ref/request-response/#django.http.HttpResponse.set_cookie
+    - https://blog.r2c.dev/2020/bento-check-keeping-cookies-safe-in-flask/
+    - https://bento.dev/checks/flask/secure-set-cookie/
+  languages:
+  - python
+  severity: WARNING
+- id: python.django.security.injection.code.user-eval.user-eval
+  message: |
+    Found user data in a call to 'eval'. This is extremely dangerous because
+    it can enable an attacker to execute remote code. See
+    https://owasp.org/www-community/attacks/Code_Injection for more information
+  metadata:
+    cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code
+      (''Eval Injection'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html
+  patterns:
+  - pattern-inside: |
+      def $F(...):
+        ...
+  - pattern-either:
+    - pattern: eval(..., request.$W.get(...), ...)
+    - pattern: |
+        $V = request.$W.get(...)
+        ...
+        eval(..., $V, ...)
+    - pattern: eval(..., request.$W(...), ...)
+    - pattern: |
+        $V = request.$W(...)
+        ...
+        eval(..., $V, ...)
+    - pattern: eval(..., request.$W[...], ...)
+    - pattern: |
+        $V = request.$W[...]
+        ...
+        eval(..., $V, ...)
+  languages:
+  - python
+  severity: WARNING
+- id: python.django.security.injection.code.user-exec.user-exec
+  message: |
+    Found user data in a call to 'exec'. This is extremely dangerous because
+    it can enable an attacker to execute remote code. See
+    https://owasp.org/www-community/attacks/Code_Injection for more information.
+  metadata:
+    cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code
+      (''Eval Injection'')'
+    owasp: 'A1: Injection'
+  patterns:
+  - pattern-inside: |
+      def $F(...):
+        ...
+  - pattern-either:
+    - pattern: exec(..., request.$W.get(...), ...)
+    - pattern: |
+        $V = request.$W.get(...)
+        ...
+        exec(..., $V, ...)
+    - pattern: exec(..., request.$W(...), ...)
+    - pattern: |
+        $V = request.$W(...)
+        ...
+        exec(..., $V, ...)
+    - pattern: exec(..., request.$W[...], ...)
+    - pattern: |
+        $V = request.$W[...]
+        ...
+        exec(..., $V, ...)
+  languages:
+  - python
+  severity: WARNING
+- id: python.django.security.injection.mass-assignment.mass-assignment
+  languages:
+  - python
+  severity: WARNING
+  message: |
+    Mass assignment detected. This can result in assignment to
+    model fields that are unintended and can be exploited by
+    an attacker. Instead of using '**request.$W', assign each field you
+    want to edit individually to prevent mass assignment. You can read
+    more about mass assignment at
+    https://cheatsheetseries.owasp.org/cheatsheets/Mass_Assignment_Cheat_Sheet.html.
+  metadata:
+    cwe: 'CWE-915: Improperly Controlled Modification of Dynamically-Determined Object
+      Attributes'
+    owasp: 'A1: Injection'
+    owaspapi: 'API6: Mass Assignment'
+    references:
+    - https://cheatsheetseries.owasp.org/cheatsheets/Mass_Assignment_Cheat_Sheet.html
+  patterns:
+  - pattern-either:
+    - pattern: $MODEL.objects.create(**request.$W)
+    - pattern: |
+        $OBJ.update(**request.$W)
+        ...
+        $OBJ.save()
+- id: python.django.security.passwords.use-none-for-password-default.use-none-for-password-default
+  message: |
+    '$VAR' is using the empty string as its default and is being used to set
+    the password on '$MODEL'. If you meant to set an unusable password, set
+    the default value to 'None' or call 'set_unusable_password()'.
+  metadata:
+    cwe: 'CWE-521: Weak Password Requirements'
+    owasp: 'A2: Broken Authentication'
+    references:
+    - https://docs.djangoproject.com/en/3.0/ref/contrib/auth/#django.contrib.auth.models.User.set_password
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $VAR = request.$W.get($X, "")
+        ...
+        $MODEL.set_password($VAR)
+        ...
+        $MODEL.save(...)
+    - pattern: |
+        def $F(..., $VAR="", ...):
+          ...
+          $MODEL.set_password($VAR)
+  fix-regex:
+    regex: (def.*|request.*)(""|'')
+    replacement: \1None
+  languages:
+  - python
+  severity: ERROR

@@ -1,0 +1,674 @@
+rules:
+- id: javascript.jsonwebtoken.security.jwt-none-alg.jwt-none-alg
+  message: |
+    Detected use of the 'none' algorithm in a JWT token.
+    The 'none' algorithm assumes the integrity of the token has already
+    been verified. This would allow a malicious actor to forge a JWT token
+    that will automatically be verified. Do not explicitly use the 'none'
+    algorithm. Instead, use an algorithm such as 'HS256'.
+  metadata:
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    owasp: 'A2: Broken Authentication'
+    source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+  languages:
+  - javascript
+  severity: ERROR
+  patterns:
+  - pattern-either:
+    - pattern: |
+        var $JWT = require("jsonwebtoken");
+        ...
+        var $T = $JWT.verify($P, $X, {algorithms:[...,'none',...]},...);
+    - pattern: |
+        var $JWT = require("jsonwebtoken");
+        ...
+        $T = $JWT.verify($P, $X, {algorithms:[...,'none',...]},...);
+    - pattern: |-
+        var $JWT = require("jsonwebtoken");
+        ...
+        $JWT.verify($P, $X, {algorithms:[...,'none',...]},...);
+- id: javascript.jsonwebtoken.security.jwt-hardcode.hardcoded-jwt-secret
+  message: |
+    Hardcoded JWT secret or private key is used.
+    This is a Insufficiently Protected Credentials weakness: https://cwe.mitre.org/data/definitions/522.html
+    Consider using an appropriate security mechanism to protect the credentials (e.g. keeping secrets in environment variables: process.env.SECRET)
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+    source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+  patterns:
+  - pattern-either:
+    - pattern: |
+        var $JWT = require("jsonwebtoken");
+        ...
+        var $T = $JWT.sign($P, "...", ...);
+    - pattern: |
+        var $JWT = require("jsonwebtoken");
+        ...
+        var $T = $JWT.verify($P, "...", ...);
+    - pattern: |
+        var $JWT = require("jsonwebtoken");
+        ...
+        $JWT.sign($P, "...", ...);
+    - pattern: |
+        var $JWT = require("jsonwebtoken");
+        ...
+        $JWT.verify($P, "...", ...);
+    - pattern: |
+        var $JWT = require("jsonwebtoken");
+        ...
+        var $SECRET = "...";
+        ...
+        var $T = $JWT.sign($P, $SECRET, ...);
+    - pattern: |
+        var $JWT = require("jsonwebtoken");
+        ...
+        var $SECRET = "...";
+        ...
+        var $T = $JWT.verify($P, $SECRET, ...);
+    - pattern: |
+        var $JWT = require("jsonwebtoken");
+        ...
+        var $SECRET = "...";
+        ...
+        $JWT.sign($P, $SECRET, ...);
+    - pattern: |
+        var $JWT = require("jsonwebtoken");
+        ...
+        var $SECRET = "...";
+        ...
+        $JWT.verify($P, $SECRET, ...);
+  languages:
+  - javascript
+  severity: ERROR
+- id: javascript.jsonwebtoken.security.audit.jwt-decode-without-verify.jwt-decode-without-verify
+  message: |
+    Detected the decoding of a JWT token without a verify step.
+    JWT tokens must be verified before use, otherwise the token's
+    integrity is unknown. This means a malicious actor could forge
+    a JWT token with any claims. Call '.verify()' before using the token.
+  metadata:
+    cwe: 'CWE-345: Insufficient Verification of Data Authenticity'
+    owasp: 'A2: Broken Authentication'
+    source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+  languages:
+  - javascript
+  severity: WARNING
+  patterns:
+  - pattern-either:
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        $JWT.decode(...);
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        return $JWT.decode(...);
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        if(<... $JWT.decode(...) ...>) {
+            ...
+        }
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        return {$P: $JWT.decode(...)};
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        $X = {$P: $JWT.decode(...)};
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        $FUNC({$P: $JWT.decode(...)});
+    - pattern: |
+        var $JWT = require('jsonwebtoken');
+        ...
+        return $FUNC({$P: $JWT.decode(...)});
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      $JWT.verify(...);
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      return $JWT.verify(...);
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      if(<... $JWT.verify(...) ...>) {
+          ...
+      }
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      return {$P: $JWT.verify(...)};
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      $X = {$P: $JWT.verify(...)};
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      $FUNC({$P: $JWT.verify(...)});
+  - pattern-not-inside: |
+      var $JWT = require('jsonwebtoken');
+      ...
+      return $FUNC({$P: $JWT.verify(...)});
+- id: javascript.jose.security.jwt-exposed-credentials.jwt-exposed-credentials
+  languages:
+  - javascript
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+    source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+    references:
+    - https://cwe.mitre.org/data/definitions/522.html
+  message: |
+    Password is exposed through JWT token payload. This is not encrypted and
+    the password could be compromised. Do not store passwords in JWT tokens.
+  patterns:
+  - pattern-either:
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $T = JWT.sign({password:...},...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $T = JWT.sign({password:...},...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $P = {password:...};
+        ...
+        var $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $P = {password:...};
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = {password:...};
+        ...
+        var $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = {password:...};
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P.password = ...;
+        ...
+        var $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P.password = ...;
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $P = Object.assign(...,{password:...},...);
+        ...
+        var $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $P = Object.assign(...,{password:...},...);
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = Object.assign(...,{password:...},...);
+        ...
+        var $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = Object.assign(...,{password:...},...);
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $T = JWT.sign(Object.assign(...,{password:...},...),...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $T = JWT.sign(Object.assign(...,{password:...},...),...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $T = JWT.sign({$U:{password:...}},...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $T = JWT.sign({$U:{password:...}},...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $P = {$U:{password:...}};
+        ...
+        var $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $P = {$U:{password:...}};
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = {$U:{password:...}};
+        ...
+        var $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = {$U:{password:...}};
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P.$U.password = ...;
+        ...
+        var $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P.$U.password = ...;
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $P = Object.assign(...,{$U:{password:...}},...);
+        ...
+        var $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $P = Object.assign(...,{$U:{password:...}},...);
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = Object.assign(...,{$U:{password:...}},...);
+        ...
+        var $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $P = Object.assign(...,{$U:{password:...}},...);
+        ...
+        $T = JWT.sign($P,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $T = JWT.sign(Object.assign(...,{$U:{password:...}},...),...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        $T = JWT.sign(Object.assign(...,{$U:{password:...}},...),...);
+  severity: ERROR
+- id: javascript.jose.security.jwt-none-alg.jwt-none-alg
+  message: |
+    Detected use of the 'none' algorithm in a JWT token.
+    The 'none' algorithm assumes the integrity of the token has already
+    been verified. This would allow a malicious actor to forge a JWT token
+    that will automatically be verified. Do not explicitly use the 'none'
+    algorithm. Instead, use an algorithm such as 'HS256'.
+  metadata:
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    owasp: 'A2: Broken Authentication'
+    source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+  languages:
+  - javascript
+  severity: ERROR
+  patterns:
+  - pattern-either:
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $T = JWT.verify($P, JWK.None,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        $T = JWT.verify($P, JWK.None,...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        JWT.verify($P, JWK.None,...);
+- id: javascript.jose.security.jwt-hardcode.hardcoded-jwt-secret
+  message: |
+    Hardcoded JWT secret or private key is used.
+    This is a Insufficiently Protected Credentials weakness: https://cwe.mitre.org/data/definitions/522.html
+    Consider using an appropriate security mechanism to protect the credentials (e.g. keeping secrets in environment variables: process.env.SECRET)
+  metadata:
+    cwe: 'CWE-522: Insufficiently Protected Credentials'
+    owasp: 'A2: Broken Authentication'
+    source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+  patterns:
+  - pattern-either:
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        JWT.verify($P, "...", ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $T = JWT.sign($P, "...", ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $T = JWT.verify($P, "...", ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        JWT.verify($P, JWK.asKey("..."), ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $KEY = JWK.asKey("...");
+        ...
+        JWT.verify($P, $KEY, ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $T = JWT.sign($P, JWK.asKey("..."), ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $T = JWT.verify($P, JWK.asKey("..."), ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $KEY = JWK.asKey("...");
+        ...
+        var $T = JWT.sign($P, $KEY, ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $KEY = JWK.asKey("...");
+        ...
+        var $T = JWT.verify($P, $KEY, ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $SECRET = "...";
+        ...
+        JWT.verify($P, $SECRET, ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $SECRET = "...";
+        ...
+        var $T = JWT.sign($P, $SECRET, ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWT } = $JOSE;
+        ...
+        var $SECRET = "...";
+        ...
+        var $T = JWT.verify($P, $SECRET, ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $SECRET = "...";
+        ...
+        JWT.verify($P, JWK.asKey($SECRET), ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $SECRET = "...";
+        ...
+        var $KEY = JWK.asKey($SECRET);
+        ...
+        JWT.verify($P, $KEY, ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $SECRET = "...";
+        ...
+        var $T = JWT.sign($P, JWK.asKey($SECRET), ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $SECRET = "...";
+        ...
+        var $KEY = JWK.asKey($SECRET);
+        ...
+        var $T = JWT.sign($P, $KEY, ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $SECRET = "...";
+        ...
+        var $T = JWT.verify($P, JWK.asKey($SECRET), ...);
+    - pattern: |
+        var $JOSE = require("jose");
+        ...
+        var { JWK, JWT } = $JOSE;
+        ...
+        var $SECRET = "...";
+        ...
+        var $KEY = JWK.asKey($SECRET);
+        ...
+        var $T = JWT.verify($P, $KEY, ...);
+  languages:
+  - javascript
+  severity: ERROR
+- id: javascript.lang.security.spawn-git-clone.spawn-git-clone
+  message: |
+    Git allows shell commands to be specified in ext URLs for remote repositories.
+    For example, git clone 'ext::sh -c whoami% >&2' will execute the whoami command to try to connect to a remote repository.
+    Make sure that the URL is not controlled by external input.
+  metadata:
+    cwe: 'CWE-78: Improper Neutralization of Special Elements used in an OS Command
+      (''OS Command Injection'')'
+    owasp: 'A1: Injection'
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+  patterns:
+  - pattern-either:
+    - pattern: spawn('git', ['clone',...,$F])
+    - pattern: $X.spawn('git', ['clone',...,$F])
+    - pattern: spawn('git', ['clone',...,$P,$F])
+    - pattern: $X.spawn('git', ['clone',...,$P,$F])
+  - pattern-not: spawn('git', ['clone',...,"..."])
+  - pattern-not: $X.spawn('git', ['clone',...,"..."])
+  - pattern-not: spawn('git', ['clone',...,"...","..."])
+  - pattern-not: $X.spawn('git', ['clone',...,"...","..."])
+- id: javascript.lang.correctness.useless-eqeq.eqeq-is-bad
+  patterns:
+  - pattern-not-inside: assert(...)
+  - pattern-either:
+    - pattern: $X == $X
+    - pattern: $X != $X
+  - pattern-not: 1 == 1
+  message: |
+    Detected a useless comparison operation `$X == $X` or `$X != $X`. This
+    operation is always true.
+    If testing for floating point NaN, use `math.isnan`, or
+    `cmath.isnan` if the number is complex.
+  languages:
+  - javascript
+  - typescript
+  severity: ERROR
+- id: javascript.node-expat.security.audit.expat-xxe.expat-xxe
+  message: |
+    If unverified user data can reach the XML Parser it can result in XML External or
+    Internal Entity (XXE) Processing vulnerabilities
+  metadata:
+    owasp: 'A4: XML External Entities (XXE)'
+    cwe: 'CWE-611: Improper Restriction of XML External Entity Reference'
+  severity: WARNING
+  languages:
+  - javascript
+  patterns:
+  - pattern-either:
+    - pattern: |
+        var $EXPAT = require('node-expat');
+        ...
+        new $EXPAT.Parser(...);
+        ...
+        $PARSER.parse(...);
+    - pattern: |
+        var $EXPAT = require('node-expat');
+        ...
+        new $EXPAT.Parser(...);
+        ...
+        $PARSER.write(...);
+    - pattern: |
+        require('node-expat');
+        ...
+        new Parser(...);
+        ...
+        $PARSER.parse(...);
+    - pattern: |
+        require('node-expat');
+        ...
+        new Parser(...);
+        ...
+        $PARSER.write(...);
+  - pattern-not: |
+      var $EXPAT = require('node-expat');
+      ...
+      new $EXPAT.Parser(...);
+      ...
+      $PARSER.parse("...");
+  - pattern-not: |
+      var $EXPAT = require('node-expat');
+      ...
+      new $EXPAT.Parser(...);
+      ...
+      $PARSER.write("...");
+  - pattern-not: |
+      require('node-expat');
+      ...
+      new Parser(...);
+      ...
+      $PARSER.parse("...");
+  - pattern-not: |
+      require('node-expat');
+      ...
+      new Parser(...);
+      ...
+      $PARSER.write("...");
+  - pattern-not: |
+      $X = "...";
+      ...
+      $PARSER.parse($X);
+  - pattern-not: |-
+      $X = "...";
+      ...
+      $PARSER.write($X);
