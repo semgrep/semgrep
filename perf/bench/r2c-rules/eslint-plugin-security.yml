@@ -1,0 +1,107 @@
+rules:
+- id: javascript.lang.security.detect-buffer-noassert.detect-buffer-noassert
+  metadata:
+    cwe: 'CWE-119: Improper Restriction of Operations within the Bounds of a Memory
+      Buffer'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-buffer-noassert.js
+  message: |
+    Detected usage of noassert in Buffer API, which allows the offset the be beyond the
+    end of the buffer. This could result in writing or reading beyond the end of the buffer.
+  patterns:
+  - pattern: $OBJ.$API(..., true)
+  - metavariable-regex:
+      metavariable: $API
+      regex: (read|write)(U?Int8|(U?Int(16|32)|Float|Double)(LE|BE))
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+- id: javascript.lang.security.detect-child-process.detect-child-process
+  metadata:
+    cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code
+      (''Eval Injection'')'
+    owasp: 'A1: Injection'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-child-process.js
+  message: |
+    Detected non-literal calls to child_process.exec(). This could lead to a command
+    injection vulnerability.
+  patterns:
+  - pattern: child_process.exec(...)
+  - pattern-not: child_process.exec('...')
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+- id: javascript.lang.security.detect-disable-mustache-escape.detect-disable-mustache-escape
+  metadata:
+    cwe: 'CWE-116: Improper Encoding or Escaping of Output'
+    owasp: 'A7: Cross-Site Scripting XSS'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-disable-mustache-escape.js
+  message: |
+    Markup escaping disabled. This can be used with some template engines to escape
+    disabling of HTML entities, which can lead to XSS attacks.
+  pattern: $OBJ.escapeMarkup = false
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+- id: javascript.lang.security.detect-eval-with-expression.detect-eval-with-expression
+  metadata:
+    cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code
+      (''Eval Injection'')'
+    owasp: 'A1: Injection'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-eval-with-expression.js
+  message: |
+    Detected eval(variable), which could allow a malicious actor to run arbitrary code.
+  patterns:
+  - pattern: eval($OBJ)
+  - pattern-not: eval("...")
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+- id: javascript.lang.security.detect-no-csrf-before-method-override.detect-no-csrf-before-method-override
+  metadata:
+    cwe: 'CWE-352: Cross-Site Request Forgery (CSRF)'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-no-csrf-before-method-override.js
+    references:
+    - https://github.com/nodesecurity/eslint-plugin-security/blob/master/docs/bypass-connect-csrf-protection-by-abusing.md
+  message: |
+    Detected use of express.csrf() middleware before express.methodOverride(). This can
+    allow GET requests (which are not checked by csrf) to turn into POST requests later.
+  pattern: |
+    express.csrf();
+    ...
+    express.methodOverride();
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+- id: javascript.lang.security.detect-non-literal-require.detect-non-literal-require
+  metadata:
+    cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code
+      (''Eval Injection'')'
+    owasp: 'A1: Injection'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-non-literal-require.js
+  message: |
+    Detected the use of require(variable). Calling require with a non-literal argument might
+    allow an attacker to load an run arbitrary code, or access arbitrary files.
+  patterns:
+  - pattern: require($OBJ)
+  - pattern-not: require('...')
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+- id: javascript.lang.security.detect-pseudorandombytes.detect-pseudoRandomBytes
+  metadata:
+    cwe: 'CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator (PRNG)'
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-pseudoRandomBytes.js
+  message: |
+    Detected usage of crypto.pseudoRandomBytes, which does not produce secure random numbers.
+  pattern: crypto.pseudoRandomBytes
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
