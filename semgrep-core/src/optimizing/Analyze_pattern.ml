@@ -34,12 +34,11 @@ module V = Visitor_AST
  *  - Mini_rules_filter and Semgrep_generic, to skip certain mini-rules
  *    (but not entire files)
  *  - the bloom filter pattern extractor of Nathan and Emma
- *  - TODO: the Semgrep.ml engine to skip entire files!
+ *  - the Semgrep.ml engine to skip entire files!
  *
  * TODO:
  *  - extract identifiers, and basic strings
  *  - TODO extract filenames in import
- *  - TODO extract metavariables for Analyze_rule.ml
 *)
 
 (*****************************************************************************)
