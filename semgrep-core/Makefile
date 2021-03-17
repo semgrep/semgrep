@@ -64,6 +64,8 @@ index:
 
 visual:
 	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
+visual2:
+	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null src
 
 .PHONY: check index visual
 
