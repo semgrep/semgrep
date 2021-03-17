@@ -196,7 +196,6 @@ def run_benchmarks(docker: str, dummy: bool, internal: bool, upload: bool) -> No
                 msg = f"{metric_name} = {duration:.3f} s"
                 print(msg)
                 results.append(msg)
-                print(f"{metric_name} = {duration:.3f} s")
                 if upload:
                     upload_result(metric_name, duration)
     for msg in results:
