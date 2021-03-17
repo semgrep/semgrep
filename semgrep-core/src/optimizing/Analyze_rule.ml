@@ -72,10 +72,13 @@ let logger = Logging.get_logger [__MODULE__]
  * todo? the evaluation engine prefers to work on DNF where negation
  * must be inside a And, so maybe better to work also on DNF here?
  * and skip correctly the negations?
+ * update: I now use run_cnf_step2 to eval a cnf, so I could do it
+ * on a dnf too because I don't anymore reduce everything to a single regexp
+ * (it's fast enough to run many regexps on a file).
  *
 *)
 type 'a cnf = And of 'a disj list
-(* no need for negation, they are filtered for *)
+(* no need for negation, they are filtered *)
 and 'a disj = Or of 'a list
 [@@deriving show]
 
@@ -85,11 +88,53 @@ exception EmptyAnd
 exception EmptyOr
 
 (*****************************************************************************)
-(* Step0: a complex formula *)
+(* Step0: a complex formula to a CNF *)
 (*****************************************************************************)
-type step0 =
-  | Not of Rule.leaf
-  | Pos of Rule.leaf
+(* Transforming a complex formula to a simple CNF formula.
+ *
+ * old: I used to do the CNF transformation while still having negations in the
+ * formula, and later in step1 remove the Not. However, this does not work!
+ * Indeed, in:
+ *    (foo/\not xxx) \/ (bar/\not yyy),
+ * we should analyze a file if 'foo' *or* 'bar' are in the file. However,
+ * the CNF transformation would distribute the \/ with:
+ *    (foo\/bar) /\ (foo\/not yyy) /\ (not xxx\/bar) /\ (not xxx\/not yyy)
+ * but then in step1 if we remove the not, we get:
+ *    (foo\/bar) /\ foo /\ bar
+ * and suddently we strongly require 'foo' *and* 'bar' to be in the file.
+ * Thus, we must filter the Not before doing the CNF conversion!
+*)
+
+(* less: move the Not to leaves, applying DeMorgan, and then filter them? *)
+let rec (remove_not: Rule.formula -> Rule.formula option) = fun f ->
+  match f with
+  | R.And xs ->
+      let ys = Common.map_filter remove_not xs in
+      if null ys
+      then failwith "null And after remove_not"
+      else Some (R.And ys)
+  | R.Or xs ->
+      let ys = Common.map_filter remove_not xs in
+      if null ys
+      then failwith "null Or after remove_not"
+      else Some (R.Or ys)
+  | R.Not f ->
+      (match f with
+       | R.Leaf _ -> None
+       (* double negation *)
+       | R.Not f -> remove_not f
+       (* todo? apply De Morgan's law? *)
+       | R.Or _xs -> failwith "Not Or"
+       | R.And _xs -> failwith "Not And"
+      )
+  | R.Leaf x -> Some (R.Leaf x)
+let remove_not_final f =
+  match remove_not f with
+  | Some f -> f
+  | None -> failwith "no formula"
+
+type step0 = L of Rule.leaf
+(*old: does not work: | Not of Rule.leaf | Pos of Rule.leaf *)
 [@@deriving show]
 
 type cnf_step0 = step0 cnf
@@ -98,16 +143,20 @@ type cnf_step0 = step0 cnf
 (* reference? https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html *)
 let rec (cnf: Rule.formula -> cnf_step0) = fun f ->
   match f with
-  | R.Leaf x -> And [Or [Pos x]]
-  | R.Not f ->
-      (match f with
-       | R.Leaf x -> And [Or [Not x]]
-       (* double negation *)
-       | R.Not f -> cnf f
-       (* de Morgan's laws *)
-       | R.Or _xs -> failwith "Not Or"
-       | R.And _xs -> failwith "Not And"
-      )
+  | R.Leaf x -> And [Or [L x]]
+  | R.Not _f ->
+      (* should be filtered by remove_not *)
+      failwith "call remove_not before cnf"
+  (* old:
+   * (match f with
+   * | R.Leaf x -> And [Or [Not x]]
+   * (* double negation *)
+   * | R.Not f -> cnf f
+   * (* de Morgan's laws *)
+   * | R.Or _xs -> failwith "Not Or"
+   * | R.And _xs -> failwith "Not And"
+   * )
+  *)
   | R.And xs ->
       let ys = List.map cnf xs in
       And (ys |> List.map (function (And ors) -> ors) |> List.flatten)
@@ -173,7 +222,6 @@ and leaf_step1 f =
   | R.Leaf (R.P pat) -> xpat_step1 pat
   | R.Leaf (R.MetavarCond x) ->
       metavarcond_step1 x
-
 *)
 
 let rec (and_step1: cnf_step0 -> cnf_step1) = fun cnf ->
@@ -188,11 +236,10 @@ and or_step1 cnf =
       else (Some (Or ys))
 and leaf_step1 f =
   match f with
-  (* we can filter that *)
-  | Not _ -> None
-  | Pos (R.P pat) -> xpat_step1 pat
-  | Pos (R.MetavarCond x) ->
-      metavarcond_step1 x
+  (* old: we can't filter now; too late, see comment above on step0 *)
+  (*  | Not _ -> None *)
+  | L (R.P pat) -> xpat_step1 pat
+  | L (R.MetavarCond x) -> metavarcond_step1 x
 
 and xpat_step1 pat =
   match pat.R.pat with
@@ -209,7 +256,18 @@ and xpat_step1 pat =
 and metavarcond_step1 x =
   match x with
   | R.CondGeneric _ -> None
-  | R.CondRegexp (mvar, re) -> Some (MvarRegexp (mvar, re))
+  | R.CondRegexp (mvar, re) ->
+      (* bugfix: if the metavariable-regexp is "^(foo|bar)$" we
+       * don't want to keep it because it can't be used on the whole file.
+       * TODO: remove the anchor so it's usable?
+      *)
+      if regexp_contain_anchor re
+      then None
+      else Some (MvarRegexp (mvar, re))
+
+(* todo: check for other special chars? *)
+and regexp_contain_anchor (s,_re) =
+  s =~ ".*[^$]"
 
 (*****************************************************************************)
 (* Step2: no more metavariables *)
@@ -231,6 +289,7 @@ let and_step1bis_filter_general (And xs) =
       else Right (Or xs)
     )
   in
+  (* TODO: regression on vertx-sqli.yaml   *)
   let filtered =
     has_empty_idents |> Common.map_filter (fun (Or xs) ->
       let xs' =
@@ -362,19 +421,21 @@ let run_cnf_step2 cnf big_str =
   )
 [@@profiling]
 
-
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
 
 let compute_final_cnf f =
+  let f = remove_not_final f in
   let cnf = cnf f in
   logger#ldebug (lazy (spf "cnf0 = %s" (show_cnf_step0 cnf)));
   (* let cnf = and_step1 f in *)
   let cnf = and_step1 cnf in
   logger#ldebug (lazy (spf "cnf1 = %s" (show_cnf_step1 cnf)));
-  let cnf = and_step1bis_filter_general cnf in
-  logger#ldebug (lazy (spf "cnf1bis = %s" (show_cnf_step1 cnf)));
+  (* TODO: regression on vertx-sqli.yaml
+     let cnf = and_step1bis_filter_general cnf in
+     logger#ldebug (lazy (spf "cnf1bis = %s" (show_cnf_step1 cnf)));
+  *)
   let cnf = and_step2 cnf in
   logger#ldebug (lazy (spf "cnf2 = %s" (show_cnf_step2 cnf)));
   cnf
