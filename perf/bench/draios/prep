@@ -1,0 +1,41 @@
+#! /bin/sh
+#
+# Fetch rules and targets prior for the "r2c" benchmark.
+#
+# rule_dir: input/rules
+# target_dir: input/sysdig-inspect
+#
+# See ../r2c-rules for centralized copy of the rule
+# Uses sh because bash is not installed within the semgrep docker container.
+#
+set -eu
+
+mkdir -p input
+mkdir -p input/rules
+
+cp ../r2c-rules/r2c-ci.yml input/rules
+cp ../r2c-rules/r2c-security-audit.yml input/rules
+cd input
+
+# Obtain a shallow clone of a git repo for a specific commit
+shallow_clone() {
+  if [ -d "$name" ]; then
+    echo "Reusing repo '$name'"
+  else
+    echo "Obtaining a shallow clone of git repo '$name', commit $commit"
+    mkdir -p "$name"
+    (
+      cd "$name"
+      git init
+      git remote add origin "$url"
+      git fetch --depth 1 origin "$commit"
+      git checkout FETCH_HEAD -b tmp
+    )
+  fi
+}
+
+# Targets using other repos we run in CI
+name="sysdig-inspect"
+url="https://github.com/draios/sysdig-inspect"
+commit="ba2912a2a55e59196c0d1da6a3060531f5cd4f7a"
+shallow_clone

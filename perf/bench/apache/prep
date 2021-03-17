@@ -1,0 +1,39 @@
+#! /bin/sh
+#
+# Fetch rules and targets prior for the "r2c" benchmark.
+#
+# rule_dir: input/django.yml
+# target_dir: input/libcloud
+#
+# See ../r2c-rules for centralized copy of the rule
+# Uses sh because bash is not installed within the semgrep docker container.
+#
+set -eu
+
+mkdir -p input
+
+cp ../r2c-rules/django.yml input
+cd input
+
+# Obtain a shallow clone of a git repo for a specific commit
+shallow_clone() {
+  if [ -d "$name" ]; then
+    echo "Reusing repo '$name'"
+  else
+    echo "Obtaining a shallow clone of git repo '$name', commit $commit"
+    mkdir -p "$name"
+    (
+      cd "$name"
+      git init
+      git remote add origin "$url"
+      git fetch --depth 1 origin "$commit"
+      git checkout FETCH_HEAD -b tmp
+    )
+  fi
+}
+
+# Targets using other repos we run in CI
+name="libcloud"
+url="https://github.com/apache/libcloud"
+commit="cc5987b5f79d4bca9c9139f24878686224b75425"
+shallow_clone

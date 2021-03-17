@@ -38,9 +38,6 @@ class Corpus:
 
 
 CORPUSES = [
-    # this contains a private repo, so this can't run in CI, but you can
-    # uncomment the corpus to test locally
-    # Corpus("dogfood", "input/semgrep.yml", "input/"),
     # Run Ajin's nodejsscan rules on some repo containing javascript files.
     # This takes something like 4 hours or more. Maybe we could run it
     # on fewer targets.
@@ -50,9 +47,34 @@ CORPUSES = [
         "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
     ),
     Corpus("zulip", "input/semgrep.yml", "input/zulip"),
+    # The tests below all run r2c rulepacks (in r2c-rules) on public repos
+    # For command Corpus("$X", ..., "input/$Y"), you can find the repo by
+    # going to github.com/$X/$Y
+    #
+    # Run our django rulepack on a large python repo
+    Corpus("apache", "input/django.yml", "input/libcloud"),
+    # Run our flask rulepack on a python repo
+    Corpus("dropbox", "input/flask.yml", "input/pytest-flakefinder"),
+    # Run our r2c-ci and r2c-security-audit packs on a go/ruby repo
+    Corpus("coinbase", "input/rules", "input/bifrost"),
+    # Run our r2c-ci and r2c-security audit packs on a python/JS repo
+    Corpus("netflix", "input/rules", "input/lemur"),
+    # Run our r2c-ci and r2c-security audit packs on a JS/other repo
+    Corpus("draios", "input/rules", "input/sysdig-inspect"),
+    # Run our golang rulepack on a go/html repo
+    Corpus("0c34", "input/golang.yml", "input/govwa"),
+    # Run our ruby rulepack on a large ruby repo
+    Corpus("rails", "input/ruby.yml", "input/rails"),
+    # Run our javascript and eslint-plugin-security packs on a large JS repo
+    Corpus("lodash", "input/rules", "input/lodash"),
 ]
 
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
+
+# For corpuses that cannot be run in CI because they use private repos
+INTERNAL_CORPUSES = [
+    Corpus("dogfood", "input/semgrep.yml", "input/"),
+]
 
 
 class SemgrepVariant:
@@ -156,11 +178,13 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
     return t2 - t1
 
 
-def run_benchmarks(docker: str, dummy: bool, upload: bool) -> None:
-    corpuses = CORPUSES
+def run_benchmarks(docker: str, dummy: bool, internal: bool, upload: bool) -> None:
     results = []
+    corpuses = CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
+    if internal:
+        corpuses = INTERNAL_CORPUSES
     for corpus in corpuses:
         with chdir(corpus.name):
             corpus.prep()
@@ -192,11 +216,16 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--internal",
+        help="run internal benchmarks for development purposes",
+        action="store_true",
+    )
+    parser.add_argument(
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     args = parser.parse_args()
     with chdir("bench"):
-        run_benchmarks(args.docker, args.dummy, args.upload)
+        run_benchmarks(args.docker, args.dummy, args.internal, args.upload)
 
 
 if __name__ == "__main__":
