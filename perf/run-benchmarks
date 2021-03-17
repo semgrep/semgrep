@@ -50,6 +50,7 @@ CORPUSES = [
     # The tests below all run r2c rulepacks (in r2c-rules) on public repos
     # For command Corpus("$X", ..., "input/$Y"), you can find the repo by
     # going to github.com/$X/$Y
+    #
     # Run our django rulepack on a large python repo
     Corpus("apache", "input/django.yml", "input/libcloud"),
     # Run our flask rulepack on a python repo
@@ -96,6 +97,7 @@ SEMGREP_VARIANTS = [
     SemgrepVariant("no-cache", "-bloom_filter -no_opt_cache"),
     SemgrepVariant("max-cache", "-bloom_filter -opt_max_cache"),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
+    SemgrepVariant("no-gc-tuning", "-bloom_filter -no_gc_tuning"),
 ]
 
 # Add support for: with chdir(DIR): ...
@@ -177,6 +179,7 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
 
 
 def run_benchmarks(docker: str, dummy: bool, internal: bool, upload: bool) -> None:
+    results = []
     corpuses = CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
@@ -190,9 +193,14 @@ def run_benchmarks(docker: str, dummy: bool, internal: bool, upload: bool) -> No
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
                 duration = run_semgrep(docker, corpus, variant)
+                msg = f"{metric_name} = {duration:.3f} s"
+                print(msg)
+                results.append(msg)
                 print(f"{metric_name} = {duration:.3f} s")
                 if upload:
                     upload_result(metric_name, duration)
+    for msg in results:
+        print(msg)
 
 
 def main() -> None:
