@@ -59,6 +59,7 @@ CORPUSES = [
 
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
 
+# For corpuses that cannot be run in CI because they use private repos
 INTERNAL_CORPUSES = [
     Corpus("dogfood", "input/semgrep.yml", "input/"),
 ]
