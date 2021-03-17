@@ -41,7 +41,7 @@ CORPUSES = [
     # Run Ajin's nodejsscan rules on some repo containing javascript files.
     # This takes something like 4 hours or more. Maybe we could run it
     # on fewer targets.
-    Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
+    # Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
     Corpus("big-js", "input/semgrep.yml", "input/big-js"),
     Corpus(
         "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
