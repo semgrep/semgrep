@@ -5,7 +5,7 @@ rules:
   match:
     and:
     - os.environ
-    - not:
+    - not_inside:
         or:
         - os.environ.get(...)
         - os.environ[...]

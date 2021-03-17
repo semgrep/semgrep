@@ -163,11 +163,14 @@ let (match_result_to_range: Pattern_match.t -> range_with_mvars) =
 
 (* return list of "positive" x list of Not x list of Conds *)
 let (split_and:
-       R.formula list -> R.formula list * R.formula list * R.metavar_cond list) =
+       R.formula list ->
+     R.formula list *
+     (R.formula * R.inside option) list *
+     R.metavar_cond list) =
   fun xs ->
   xs |> Common.partition_either3 (fun e ->
     match e with
-    | R.Not f -> Middle3 f
+    | R.Not (f,inside) -> Middle3 (f, inside)
     | R.Leaf (R.MetavarCond c) -> Right3 c
     | _ -> Left3 e
   )
@@ -255,9 +258,13 @@ let intersect_ranges xs ys =
 let difference_ranges pos neg =
   let surviving_pos =
     pos |> List.filter (fun x ->
-      not (neg |> List.exists (fun y ->
-        (* todo? or also filter if x overlaps with y? *)
-        x $<=$ y
+      not (neg |> List.exists (fun (y, inside_opt) ->
+        (* pattern-not vs pattern-not-inside, the difference matters *)
+        match inside_opt with
+        (* pattern-not-inside: *)
+        | Some R.Inside -> x $<=$ y
+        (* pattern-not: we require the ranges to be equal *)
+        | None -> x $<=$ y && y $<=$ x
       ))
     )
   in
@@ -455,8 +462,9 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
            let res = pos |> List.fold_left (fun acc x ->
              intersect_ranges acc (evaluate_formula env x)
            ) res in
-           let res = neg |> List.fold_left (fun acc x ->
-             difference_ranges acc (evaluate_formula env x)
+           let res = neg |> List.fold_left (fun acc (x, inside) ->
+             difference_ranges acc
+               (evaluate_formula env x |> List.map (fun r -> r, inside))
            ) res in
            let res = conds |> List.fold_left (fun acc cond ->
              filter_ranges acc cond

@@ -266,7 +266,10 @@ let rec parse_formula_new env (x: J.t) : R.formula =
            R.Or xs
        | ["not", v] ->
            let f = parse_formula_new env v in
-           R.Not f
+           R.Not (f, None)
+       | ["not_inside", v] ->
+           let f = parse_formula_new env v in
+           R.Not (f, Some Inside)
 
        | ["regex", J.String s] ->
            let xpat = R.mk_xpat (R.Regexp (parse_regexp s)) s in
