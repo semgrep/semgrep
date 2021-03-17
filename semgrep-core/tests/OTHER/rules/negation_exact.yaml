@@ -1,0 +1,14 @@
+rules:
+- id: new-function-detected
+  patterns:
+  - pattern-not: |
+      $FUNC = new Function('...');
+      ...
+      $FUNC();
+  - pattern: |
+      $FUNC = new Function(...);
+      ...
+      $FUNC();
+  message: xxx
+  languages: [javascript]
+  severity: WARNING
