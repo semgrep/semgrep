@@ -20,7 +20,7 @@ all:
 	dune build
 	dune build ./_build/default/tests/test.bc
 	# make executables easily accessible for manual testing:
-	test -e bin || ln -s ../_build/install/default/bin .
+	test -e bin || ln -s _build/install/default/bin .
 clean:
 	dune clean
 	rm -f bin
@@ -64,6 +64,8 @@ index:
 
 visual:
 	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null .
+visual2:
+	codemap -screen_size 3 -filter pfff -efuns_client efuns_client -emacs_client /dev/null src
 
 .PHONY: check index visual
 

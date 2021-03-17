@@ -431,10 +431,20 @@ let timeout_function file = fun f ->
          logger#info "raised Timeout in timeout_function for %s" file;
          raise Timeout)
 
-(* from https://discuss.ocaml.org/t/todays-trick-memory-limits-with-gc-alarms/4431 *)
+(*
+   Fail gracefully if memory becomes insufficient.
+
+   It raises Out_of_memory if we're over the memory limit at the end of a
+   major GC cycle.
+
+   See https://discuss.ocaml.org/t/todays-trick-memory-limits-with-gc-alarms/4431
+   for detailed explanations.
+*)
 let run_with_memory_limit limit_mb f =
-  if limit_mb = 0
-  then  f ()
+  if limit_mb = 0 then
+    f ()
+  else if limit_mb < 0 then
+    invalid_arg (spf "run_with_memory_limit: negative argument %i" limit_mb)
   else
     let limit = limit_mb * 1024 * 1024 in
     let limit_memory () =
@@ -1327,7 +1337,10 @@ let options () =
     "-timeout", Arg.Set_float timeout,
     " <float> time limit to process one input program (in seconds); 0 disables timeouts (default is 0)";
     "-max_memory", Arg.Set_int max_memory,
-    " <int> maximum memory to use (in MB)";
+    " <int> maximum memory available (in MB); allows for clean termination \
+     when running out of memory. This value should be less than the actual \
+     memory available because the limit will be exceeded before it gets \
+     detected. Try 5% less or 15000 if you have 16 GB.";
     "-max_match_per_file", Arg.Set_int max_match_per_file,
     " <int> maximum numbers of match per file";
 
