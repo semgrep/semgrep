@@ -13,8 +13,8 @@ JSONNET_TESTS=\
 
 all: $(JSONNET_TESTS:.jsonnet=.yaml)
 
-%.json: %.jsonnet
-	jsonnet $^ > $@
+%.json: %.jsonnet lib_semgrep.jsonnet
+	jsonnet $< > $@
 
 # this requires json-yaml of https://github.com/sjmulder/json-yaml
 # (available in arch-linux at https://aur.archlinux.org/packages/json-yaml/)

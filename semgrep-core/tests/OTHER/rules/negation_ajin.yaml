@@ -5,9 +5,9 @@ rules:
   match:
     and:
     - os.environ
-    - not_inside:
+    - not:
         or:
-        - os.environ.get(...)
-        - os.environ[...]
+        - inside: os.environ.get(...)
+        - inside: os.environ[...]
   message: rule_template_message
   severity: ERROR

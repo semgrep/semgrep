@@ -316,7 +316,7 @@ let lint_regression_tests ~with_caching =
   let lang = Lang.Python in
 
   let test_files = [
-   p "OTHER/rules/stupid.py";
+   p "OTHER/mini_rules/stupid.py";
   ] in
 
   (* expected *)

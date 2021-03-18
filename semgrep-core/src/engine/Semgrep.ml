@@ -98,6 +98,14 @@ type pattern_id = R.pattern_id
 type range_with_mvars = {
   r: Range.t;
   mvars: Metavariable.bindings;
+  (* subtle but the pattern:/pattern-inside: and
+   * pattern-not:/pattern-not-inside: are actually different, so we need
+   * to keep the information around during the evaluation.
+   * Note that this useful only for few tests in semgrep-rules/ so we
+   * probably want to simplify things later and remove the difference between
+   * xxx and xxx-inside.
+  *)
+  inside: R.inside option;
 
   origin: Pattern_match.t;
 }
@@ -159,18 +167,15 @@ let (match_result_to_range: Pattern_match.t -> range_with_mvars) =
   fun m ->
   let { Pattern_match.location = (start_loc, end_loc); env = mvars; _} = m in
   let r = Range.range_of_token_locations start_loc end_loc in
-  { r; mvars; origin = m; }
+  { r; mvars; origin = m; inside = None }
 
 (* return list of "positive" x list of Not x list of Conds *)
 let (split_and:
-       R.formula list ->
-     R.formula list *
-     (R.formula * R.inside option) list *
-     R.metavar_cond list) =
+       R.formula list -> R.formula list * R.formula list * R.metavar_cond list) =
   fun xs ->
   xs |> Common.partition_either3 (fun e ->
     match e with
-    | R.Not (f,inside) -> Middle3 (f, inside)
+    | R.Not (f) -> Middle3 (f)
     | R.Leaf (R.MetavarCond c) -> Right3 c
     | _ -> Left3 e
   )
@@ -258,9 +263,11 @@ let intersect_ranges xs ys =
 let difference_ranges pos neg =
   let surviving_pos =
     pos |> List.filter (fun x ->
-      not (neg |> List.exists (fun (y, inside_opt) ->
-        (* pattern-not vs pattern-not-inside, the difference matters *)
-        match inside_opt with
+      not (neg |> List.exists (fun y ->
+        (* pattern-not vs pattern-not-inside, the difference matters.
+         * This fixed 10 mismatches in semgrep-rules.
+        *)
+        match y.inside with
         (* pattern-not-inside: *)
         | Some R.Inside -> x $<=$ y
         (* pattern-not: we require the ranges to be equal *)
@@ -445,27 +452,55 @@ let matches_of_xpatterns config orig_rule
 let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
   fun env e ->
   match e with
-  | R.Leaf (R.P xpat) ->
+  | R.Leaf (R.P (xpat, inside)) ->
       let id = xpat.R.pid in
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with Not_found -> []
       in
-      match_results |> List.map match_result_to_range
+      match_results
+      |> List.map match_result_to_range
+      |> List.map (fun r -> { r with inside })
   | R.Or xs ->
       xs |> List.map (evaluate_formula env) |> List.flatten
   | R.And xs ->
       let pos, neg, conds = split_and xs in
-      (match pos with
-       | [] -> failwith "empty And; no positive terms in And"
-       | start::pos ->
-           let res = evaluate_formula env start in
-           let res = pos |> List.fold_left (fun acc x ->
-             intersect_ranges acc (evaluate_formula env x)
+      (* we now treat pattern: and pattern-inside: differently. We first
+       * process the pattern: and then the pattern-inside.
+       * This fixed only one mismatch in semgrep-rules.
+       * old:
+       *  (match pos with
+       *  | [] -> failwith "empty And; no positive terms in And"
+       *  | start::pos ->
+       *     let res = evaluate_formula env start in
+       *    let res = pos |> List.fold_left (fun acc x ->
+       *      intersect_ranges acc (evaluate_formula env x)
+       * ...
+      *)
+
+      (* let's start with the positive ranges *)
+      let posrs = List.map (evaluate_formula env) pos in
+      (* subtle: we need to process and intersect the pattern-inside after
+       * (see tests/OTHER/rules/inside.yaml) *)
+      let posrs, posrs_inside = posrs |> Common.partition_either (fun xs ->
+        match xs with
+        (* todo? should we double check they are all inside? *)
+        | {inside = Some R.Inside; _}::_ -> Right xs
+        | _ -> Left xs
+      )
+      in
+      (match posrs @ posrs_inside with
+       | [] -> failwith "empty And; no positive terms in And";
+       | posr::posrs ->
+           let res = posr in
+           let res = posrs |> List.fold_left (fun acc r ->
+             intersect_ranges acc r
            ) res in
-           let res = neg |> List.fold_left (fun acc (x, inside) ->
-             difference_ranges acc
-               (evaluate_formula env x |> List.map (fun r -> r, inside))
+
+           (* let's remove the negative ranges *)
+           let res = neg |> List.fold_left (fun acc x ->
+             difference_ranges acc (evaluate_formula env x)
            ) res in
+           (* let's apply additional filters *)
            let res = conds |> List.fold_left (fun acc cond ->
              filter_ranges acc cond
            ) res in
