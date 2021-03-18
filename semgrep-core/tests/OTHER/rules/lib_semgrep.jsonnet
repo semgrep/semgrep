@@ -6,7 +6,7 @@
    And: function(x1, x2, x3=null, x4=null) { and: std.prune([x1,x2,x3,x4]) },
    Or: function(x1, x2, x3=null, x4=null) { or: std.prune([x1,x2,x3,x4]) },
    Not: function(x) { not: x },
-   NotInside: function(x) { not_inside: x },
+   Inside: function(x) { inside: x },
    Regex: function(x) { regex: x },
    Where: function(x) { where: x },
    MetavarRegex: function(x, y) { metavariable_regex: [x, y] },

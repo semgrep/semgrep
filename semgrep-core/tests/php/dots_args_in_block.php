@@ -1,7 +1,7 @@
 <?php
 
 if (isset($_GET['q'])) {
-  // ruleid:issue
+  // ERROR: match
   do_something($_GET['q']);
 } else {
   $a = 'a';
@@ -9,14 +9,14 @@ if (isset($_GET['q'])) {
 
 if (isset($_GET['p'])) {
   $a = 2;
-  // ruleid:issue
+  // ERROR: match
   do_something($_GET['p']);
 } else {
   $a = 'a';
 }
 
 if (isset($_GET['p'])) {
-  // ruleid:issue
+  // ERROR: match
   do_something($_GET['p']);
 } else {
   // nothing

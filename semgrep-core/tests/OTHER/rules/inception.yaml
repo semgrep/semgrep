@@ -1,5 +1,5 @@
 rules:
-#ERROR:
+#ruleid:
 - id: double-id
   message: |
     you use multiple times the same id
