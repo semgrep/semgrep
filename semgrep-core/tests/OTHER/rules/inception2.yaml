@@ -1,5 +1,5 @@
 rules:
-#ERROR: double-id!
+#ruleid: double-id!
 - id: double-id
   message: |
     you use multiple times the same id
@@ -10,7 +10,7 @@ rules:
        [{id: $X, ...}, ..., {id: $X, ...}, ...]
     - pattern: |
        id: $X
-#ERROR: double-id!
+#ruleid: double-id!
 - id: double-id
   message: inception
   severity: ERROR

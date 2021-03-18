@@ -1,5 +1,5 @@
 def test():
-    #ERROR:
+    #ruleid:
     foo("128.0.0.1")
 
     foo("this is not an IP")

@@ -255,7 +255,7 @@ let rec parse_formula_old env (x: string * J.t) : R.formula_old =
 
 let rec parse_formula_new env (x: J.t) : R.formula =
   match x with
-  | J.String s -> R.Leaf (R.P (parse_pattern env s))
+  | J.String s -> R.Leaf (R.P (parse_pattern env s, None))
   | J.Object xs ->
       (match xs with
        | ["and", J.Array xs] ->
@@ -266,14 +266,14 @@ let rec parse_formula_new env (x: J.t) : R.formula =
            R.Or xs
        | ["not", v] ->
            let f = parse_formula_new env v in
-           R.Not (f, None)
-       | ["not_inside", v] ->
-           let f = parse_formula_new env v in
-           R.Not (f, Some Inside)
+           R.Not f
+
+       | ["inside", J.String s] ->
+           R.Leaf (R.P (parse_pattern env s, Some Inside))
 
        | ["regex", J.String s] ->
            let xpat = R.mk_xpat (R.Regexp (parse_regexp s)) s in
-           R.Leaf (R.P xpat)
+           R.Leaf (R.P (xpat, None))
 
        | ["where", J.String s] ->
            R.Leaf (R.MetavarCond (R.CondGeneric (parse_metavar_cond s)))

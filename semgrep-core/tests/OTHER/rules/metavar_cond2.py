@@ -1,5 +1,5 @@
 def test():
-    #ERROR:
+    #ruleid:
     foo(11)
 
     foo(3)

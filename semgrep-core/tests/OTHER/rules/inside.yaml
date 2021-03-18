@@ -1,0 +1,12 @@
+rules:
+- id: var-in-script-src
+  message: xxx
+  languages:
+  - generic
+  severity: WARNING
+  patterns:
+  - pattern-inside: <script ...>
+  - pattern-either:
+    - pattern-inside: src = '...'
+    - pattern-inside: src = "..."
+  - pattern: <% ... >

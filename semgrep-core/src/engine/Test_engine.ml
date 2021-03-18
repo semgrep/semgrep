@@ -53,7 +53,10 @@ let test_rules ?(ounit_context=false) xs =
     xs
     |> File_type.files_of_dirs_or_files (function
       | FT.Config (FT.Yaml) ->  true
-      | FT.Config ((* | FT.Json*) FT.Jsonnet) when not ounit_context -> true
+      (* old: we were allowing Jsonnet before, but better to skip
+       * them for now to avoid adding a jsonnet dependency in our docker/CI
+       * FT.Config ((* | FT.Json*) FT.Jsonnet) when not ounit_context -> true
+      *)
       | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
@@ -106,7 +109,10 @@ let test_rules ?(ounit_context=false) xs =
 
 
     (* expected *)
-    let expected_error_lines = E.expected_error_lines_of_files [target] in
+    (* not tororuleid! not ok:! *)
+    let regexp = ".*\\b\\(ruleid\\|todook\\):.*" in
+    let expected_error_lines =
+      E.expected_error_lines_of_files ~regexp [target] in
 
     (* actual *)
     let lazy_ast_and_errors = lazy (

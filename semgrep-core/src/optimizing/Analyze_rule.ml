@@ -118,11 +118,11 @@ let rec (remove_not: Rule.formula -> Rule.formula option) = fun f ->
       if null ys
       then failwith "null Or after remove_not"
       else Some (R.Or ys)
-  | R.Not (f, _inside) ->
+  | R.Not f ->
       (match f with
        | R.Leaf _ -> None
        (* double negation *)
-       | R.Not (f, _inside2) -> remove_not f
+       | R.Not f -> remove_not f
        (* todo? apply De Morgan's law? *)
        | R.Or _xs -> failwith "Not Or"
        | R.And _xs -> failwith "Not And"
@@ -144,7 +144,7 @@ type cnf_step0 = step0 cnf
 let rec (cnf: Rule.formula -> cnf_step0) = fun f ->
   match f with
   | R.Leaf x -> And [Or [L x]]
-  | R.Not (_f, _) ->
+  | R.Not _f ->
       (* should be filtered by remove_not *)
       failwith "call remove_not before cnf"
   (* old:
@@ -238,7 +238,7 @@ and leaf_step1 f =
   match f with
   (* old: we can't filter now; too late, see comment above on step0 *)
   (*  | Not _ -> None *)
-  | L (R.P pat) -> xpat_step1 pat
+  | L (R.P (pat, _inside)) -> xpat_step1 pat
   | L (R.MetavarCond x) -> metavarcond_step1 x
 
 and xpat_step1 pat =
