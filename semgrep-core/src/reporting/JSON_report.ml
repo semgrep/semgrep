@@ -20,7 +20,7 @@ open AST_generic
 module V = Visitor_AST
 
 module PI = Parse_info
-module R = Mini_rule
+module R = Mini_rule (* TODO: use MR instead *)
 module E = Error_code
 module J = JSON
 module MV = Metavariable
@@ -140,15 +140,15 @@ let json_metavar startp (s, mval) =
 (* similar to pfff/h_program-lang/R2c.ml *)
 let match_to_json x =
   try
-    let min_loc, max_loc = x.location in
+    let min_loc, max_loc = x.range_loc in
     let startp, endp = json_range min_loc max_loc in
     Left (J.Object [
-      "check_id", J.String x.rule.R.id;
+      "check_id", J.String x.rule_id.id;
       "path", J.String x.file;
       "start", startp;
       "end", endp;
       "extra", J.Object [
-        "message", J.String x.rule.R.message;
+        "message", J.String x.rule_id.message;
         "metavars", J.Object (x.env |> List.map (json_metavar startp));
       ]
     ])
@@ -158,7 +158,7 @@ let match_to_json x =
   with Parse_info.NoTokenLocation s ->
     let loc = Parse_info.first_loc_of_file x.file in
     let s = spf "NoTokenLocation with pattern %s, %s"
-        x.rule.R.pattern_string s in
+        x.rule_id.pattern_string s in
     let err = E.mk_error_loc loc (E.MatchingError s) in
     Right err
 [@@profiling]
@@ -251,19 +251,13 @@ let json_of_exn e =
 (* this is used only in the testing code, to reuse the
  * Error_code.compare_actual_to_expected
 *)
-let error loc rule =
-  match rule.R.severity with
-  | R.Error ->
-      E.error_loc loc (E.SemgrepMatchFound (rule.R.id, rule.R.message))
-  | R.Warning ->
-      E.warning_loc loc (E.SemgrepMatchFound (rule.R.id, rule.R.message))
-  | R.Info ->
-      E.info_loc loc (E.SemgrepMatchFound (rule.R.id, rule.R.message))
+let error loc (rule: Pattern_match.rule_id) =
+  E.error_loc loc (E.SemgrepMatchFound (rule.id, rule.message))
 (*e: function [[JSON_report.error]] *)
 
 (*s: function [[JSON_report.match_to_error]] *)
 let match_to_error x =
-  let min_loc, _max_loc = x.location in
-  error min_loc x.rule
+  let min_loc, _max_loc = x.range_loc in
+  error min_loc x.rule_id
 (*e: function [[JSON_report.match_to_error]] *)
 (*e: semgrep/reporting/JSON_report.ml *)

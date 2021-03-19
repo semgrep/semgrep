@@ -18,14 +18,15 @@
 (* Prelude *)
 (*****************************************************************************)
 (* The goal of this module is to make it easy to add lint rules by using
- * sgrep patterns. You just have to store in a special file the patterns
- * and the corresponding warning you want the linter to raise.
+ * semgrep patterns. You just have to store the patterns in a special file
+ * and add the corresponding warnings you want the linter to raise.
  *
  * update: if you need advanced patterns with boolean logic (which used
  * to be partially provided by the hacky OK error keyword), use
- * instead the sgrep python wrapper! It also uses a yaml file but it
+ * instead the semgrep python wrapper! It also uses a yaml file but it
  * has more features, e.g. some pattern-either fields, pattern-inside,
  * where-eval, etc.
+ * update: actually you can now use Rule.ml instead of the python wrapper :)
 *)
 
 (*****************************************************************************)
@@ -33,15 +34,14 @@
 (*****************************************************************************)
 
 (*s: type [[Rule.pattern]] *)
-(* right now only Expr, Stmt, and Stmts are supported *)
-type pattern = Pattern.t
-[@@deriving show]
 (*e: type [[Rule.pattern]] *)
+type mini_rule_id = string
+[@@deriving show, eq]
 
 (*s: type [[Rule.rule]] *)
 type rule = {
-  id: string;
-  pattern: pattern;
+  id: mini_rule_id;
+  pattern: Pattern.t;
   message: string;
   severity: severity;
   languages: Lang.t list; (* at least one element *)
@@ -65,7 +65,7 @@ and rules = rule list
 and severity = Error | Warning | Info
 (*e: type [[Rule.severity]] *)
 
-[@@deriving show]
+[@@deriving eq, show]
 
 (*s: type [[Rule.t]] *)
 (* alias *)

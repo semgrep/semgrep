@@ -63,16 +63,12 @@ type t = rule
 
 
 (*s: function [[Tainting_rule.rule_of_tainting_rule]] *)
-(* for Match_result.t.rule compatibility *)
+(* for Pattern_match.t.rule compatibility *)
 
-let rule_of_tainting_rule tr =
-  { R.
+let rule_id_of_tainting_rule tr =
+  { Pattern_match.
     id = tr.id;
     message = tr.message;
-    severity = tr.severity;
-    languages = tr.languages;
-    (* arbitrary *)
-    pattern = List.hd (tr.sink);
     pattern_string = "TODO: no pattern_string";
   }
 (*e: function [[Tainting_rule.rule_of_tainting_rule]] *)

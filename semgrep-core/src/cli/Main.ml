@@ -495,8 +495,8 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
         let matches = List.assoc file per_files in
         matches
         |> List.map (fun m ->
-          let rule = m.Pattern_match.rule in
-          (rule.Mini_rule.id, rule.Mini_rule.pattern_string), m)
+          let rule_id = m.Pattern_match.rule_id in
+          (rule_id.Pattern_match.id, rule_id.Pattern_match.pattern_string), m)
         |> Common.group_assoc_bykey_eff
         |> List.map (fun (k, xs) -> k, List.length xs)
         |> Common.sort_by_val_highfirst
