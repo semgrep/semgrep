@@ -155,17 +155,27 @@ let (group_matches_per_pattern_id: Pattern_match.t list ->id_to_match_results)=
   fun xs ->
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun m ->
-    let id = int_of_string (m.Pattern_match.rule.MR.id) in
+    let id = int_of_string m.Pattern_match.rule_id.id in
     Hashtbl.add h id m
   );
   h
 
-let (range_to_match_result: range_with_mvars -> Pattern_match.t) =
-  fun range -> range.origin
+let (range_to_pattern_match_adjusted:
+       Rule.t -> range_with_mvars -> Pattern_match.t) =
+  fun r range ->
+  let m = range.origin in
+  let rule_id = m.rule_id in
+  (* adjust the rule id *)
+  let rule_id = { rule_id with Pattern_match.
+                            id =  r.R.id;
+                            message = r.R.message;
+                            (* keep pattern_str which can be useful to debug *)
+                } in
+  { m with rule_id }
 
 let (match_result_to_range: Pattern_match.t -> range_with_mvars) =
   fun m ->
-  let { Pattern_match.location = (start_loc, end_loc); env = mvars; _} = m in
+  let { Pattern_match.range_loc = (start_loc, end_loc); env = mvars; _} = m in
   let r = Range.range_of_token_locations start_loc end_loc in
   { r; mvars; origin = m; inside = None }
 
@@ -202,17 +212,10 @@ let (mini_rule_of_pattern: R.t -> (Pattern.t * Rule.pattern_id * string) -> MR.t
     pattern_string = pstr;
   }
 
-(* todo: change Pattern_match type so we don't need this gymnastic.
- * A pattern_match should just need the id from the mini_rule
-*)
-let (mini_rule_of_string: (R.pattern_id * string) -> MR.t) =
-  fun (id, s) ->
-  { MR.
-    id = string_of_int id;
-    pattern = G.E (G.L (G.Null (PI.fake_info "")));
-    message = ""; severity = MR.Error; languages = [];
-    pattern_string = s;
-  }
+(* this will be adjusted later in range_to_pattern_match_adjusted *)
+let fake_rule_id (id, str) =
+  {PM. id = string_of_int id; pattern_string = str;  message = "";  }
+
 
 (* todo: same, we should not need that *)
 let hmemo = Hashtbl.create 101
@@ -402,8 +405,9 @@ let matches_of_xpatterns config orig_rule
             in
 
             let loc = lexing_pos_to_loc file pos1 str in
-            let mini_rule = mini_rule_of_string (id, pstr) in
-            {PM. rule = mini_rule; file; location = loc, loc; env;
+            (* this will be adjusted later *)
+            let rule_id = fake_rule_id (id, pstr) in
+            {PM. rule_id; file; range_loc = loc, loc; env;
              tokens = lazy [info_of_token_location loc];
             }
           )
@@ -431,8 +435,9 @@ let matches_of_xpatterns config orig_rule
 
             let (line, column) = line_col_of_charpos file charpos in
             let loc = {PI. str; charpos; file; line; column } in
-            let mini_rule = mini_rule_of_string (id, s) in
-            {PM. rule = mini_rule; file; location = loc, loc;
+            (* this will be re-adjusted later *)
+            let rule_id = fake_rule_id (id, s) in
+            {PM. rule_id; file; range_loc = loc, loc;
              tokens = lazy [info_of_token_location loc]; env = [] }
           )
         ) |> List.flatten
@@ -558,7 +563,7 @@ let check hook config rules (file, xlang, lazy_ast_and_errors) =
         evaluate_formula env formula in
       logger#info "found %d final ranges" (List.length final_ranges);
 
-      (final_ranges |> List.map (range_to_match_result)
+      (final_ranges |> List.map (range_to_pattern_match_adjusted r)
        |> before_return (fun v -> v |> List.iter (fun (m : Pattern_match.t) ->
          let str = spf "with rule %s" r.R.id in
          hook str m.env m.tokens

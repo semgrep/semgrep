@@ -3,6 +3,7 @@ $schema: http://json-schema.org/draft-07/schema#
 definitions:
   patterns-content:
     type: array
+    title: "Return finding where all of the nested conditions are true"
     items:
       anyOf:
       - $ref: '#/definitions/patterns'
@@ -71,6 +72,7 @@ definitions:
     type: object
     properties:
       pattern:
+        title: Return finding where Semgrep pattern matches exactly
         type: string
     required:
     - pattern
@@ -79,6 +81,7 @@ definitions:
     type: object
     properties:
       pattern-regex:
+        title: Return finding where regular expression matches
         type: string
     required:
     - pattern-regex
@@ -87,6 +90,7 @@ definitions:
     type: object
     properties:
       pattern-not-regex:
+        title: Do not return finding where regular expression matches
         type: string
     required:
     - pattern-not-regex
@@ -95,6 +99,7 @@ definitions:
     type: object
     properties:
       patterns:
+        title: Return finding where all of the nested conditions are true
         $ref: '#/definitions/patterns-content'
     required:
     - patterns
@@ -103,6 +108,7 @@ definitions:
     type: object
     properties:
       pattern-either:
+        title: Return finding where any of the nested conditions are true
         $ref: '#/definitions/pattern-either-content'
     required:
     - pattern-either
@@ -111,6 +117,7 @@ definitions:
     type: object
     properties:
       pattern-inside:
+        title: Return findings only from within snippets Semgrep pattern matches
         type: string
     required:
     - pattern-inside
@@ -119,6 +126,7 @@ definitions:
     type: object
     properties:
       pattern-not-inside:
+        title: Do not return findings from within snippets Semgrep pattern matches
         type: string
     required:
     - pattern-not-inside
@@ -127,6 +135,7 @@ definitions:
     type: object
     properties:
       pattern-not:
+        title: Do not return finding where Semgrep pattern matches exactly
         type: string
     required:
     - pattern-not
@@ -135,6 +144,7 @@ definitions:
     type: object
     properties:
       pattern-where-python:
+        title: Return finding where Python expression returns true
         type: string
     required:
       - pattern-where-python
@@ -158,18 +168,22 @@ properties:
               equivalence:
                 type: string
         id:
+          title: Rule ID to attach to findings
           type: string
         message:
+          title: Description to attach to findings
           type: string
         mode:
           enum:
           - search
           - taint
         languages:
+          title: Languages this pattern should run on
           type: array
           items:
             type: string
         paths:
+          title: Path globs this pattern should run on
           type: object
           properties:
             include:
@@ -178,6 +192,7 @@ properties:
               $ref: '#/definitions/path-array'
           additionalProperties: false
         severity:
+          title: Severity to report alongside this finding
           enum:
           - ERROR
           - WARNING
@@ -189,25 +204,33 @@ properties:
         pattern-sanitizers:
           $ref: '#/definitions/taint-content'
         fix:
+          title: Replacement text to fix matched code. Can use matched metavariables.
           type: string
         fix-regex:
           type: object
+          title: Replacement regex to fix matched code.
           properties:
             count:
+              title: Replace up to this many regex matches
               type: integer
             regex:
+              title: Regular expression to find in matched code
               type: string
             replacement:
+              title: Code to replace the regular expression match with. Can use capture groups.
               type: string
           required:
             - regex
             - replacement
           additionalProperties: false
         metadata:
+          title: Arbitrary structured data for your own reference
           type: object
         pattern:
+          title: Return finding where Semgrep pattern matches exactly
           type: string
         pattern-regex:
+          title: Return finding where regular expression matches exactly
           type: string
         patterns:
           $ref: '#/definitions/patterns-content'
@@ -216,7 +239,7 @@ properties:
 
       additionalProperties: false
 
-      anyOf:
+      oneOf:
         - properties:
             mode:
               const: taint
@@ -247,7 +270,7 @@ properties:
             - message
             - languages
             - severity
-          anyOf:
+          oneOf:
             - required:
                 - pattern
               not:

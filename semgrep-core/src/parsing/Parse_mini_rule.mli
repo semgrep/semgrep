@@ -29,7 +29,7 @@ val parse_languages: id:string -> Yaml.value list -> Lang.t list * Lang.t
 val parse_severity: id:string -> string -> Mini_rule.severity
 (*e: signature [[Parse_rules.parse_severity]] *)
 (*s: signature [[Parse_rules.parse_pattern]] *)
-val parse_pattern: id:string -> lang:Lang.t -> string -> Mini_rule.pattern
+val parse_pattern: id:string -> lang:Lang.t -> string -> Pattern.t
 (*e: signature [[Parse_rules.parse_pattern]] *)
 
 (*e: semgrep/parsing/Parse_mini_rule.mli *)
