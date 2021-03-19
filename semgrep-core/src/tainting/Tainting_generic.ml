@@ -20,6 +20,7 @@ module V = Visitor_AST
 module R = Tainting_rule
 module R2 = Mini_rule
 module Flag = Flag_semgrep
+module PM = Pattern_match
 
 (*****************************************************************************)
 (* Prelude *)
@@ -100,17 +101,12 @@ let check rules file ast =
       rules |> List.iter (fun rule ->
         let found_tainted_sink = (fun instr _env ->
           let code = AST.E instr.IL.iorig in
-          let location = V.range_of_any code in
+          let range_loc = V.range_of_any code in
           let tokens = lazy (V.ii_of_any code) in
-          Common.push {
-            Pattern_match.
-            rule = Tainting_rule.rule_of_tainting_rule rule;
-            file;
-            location;
-            tokens;
-            (* todo: use env from sink matching func?  *)
-            env = [];
-          } matches;
+          let rule_id = Tainting_rule.rule_id_of_tainting_rule rule in
+          (* todo: use env from sink matching func?  *)
+          Common.push { PM. rule_id; file; range_loc; tokens; env = []; }
+            matches;
         ) in
         let config = config_of_rule found_tainted_sink rule in
         let mapping = Dataflow_tainting.fixpoint config flow in
