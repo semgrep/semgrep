@@ -1,0 +1,15 @@
+rules:
+  - id: last-user-is-root
+    patterns:
+      - pattern: USER $ROOT
+      - pattern-not-inside: |
+          USER $ROOT
+          ...
+          ...
+          USER $OTHER
+      - metavariable-regex:
+          metavariable: "$ROOT"
+          regex: "root"
+    message: xxx
+    severity: ERROR
+    languages: [generic]
