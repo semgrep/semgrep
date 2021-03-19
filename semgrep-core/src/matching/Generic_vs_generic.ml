@@ -758,12 +758,10 @@ and m_expr a b =
         m_expr a2 b2
       )
 
-  | A.SliceAccess(a1, a2, a3, a4), B.SliceAccess(b1, b2, b3, b4) ->
+  | A.SliceAccess(a1, a2), B.SliceAccess(b1, b2) ->
+      let f = m_option m_expr in
       m_expr a1 b1 >>= (fun () ->
-        m_option m_expr a2 b2 >>= (fun () ->
-          m_option m_expr a3 b3 >>= (fun () ->
-            m_option m_expr a4 b4
-          )))
+        m_bracket (m_tuple3 f f f) a2 b2)
   | A.Conditional(a1, a2, a3), B.Conditional(b1, b2, b3) ->
       m_expr a1 b1 >>= (fun () ->
         m_expr a2 b2 >>= (fun () ->

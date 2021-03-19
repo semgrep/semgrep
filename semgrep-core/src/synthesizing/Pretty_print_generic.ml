@@ -374,7 +374,7 @@ and expr env =
       F.sprintf "%s[%s]" (expr env e1) (expr env e2)
   | Assign (e1, tok, e2) -> F.sprintf "%s %s %s" (expr env e1) (token "=" tok) (expr env e2)
   | AssignOp (e1, op, e2) -> F.sprintf "%s %s= %s" (expr env e1) (arithop env op) (expr env e2)
-  | SliceAccess (e, o1, o2, o3) -> slice_access env e (o1, o2) o3
+  | SliceAccess (e, (_, (o1, o2, o3), _)) -> slice_access env e (o1, o2) o3
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
   | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)

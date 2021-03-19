@@ -238,14 +238,14 @@ let top_func () =
         let v1 = type_ v1 and (_t1, v2, _t2) = bracket (list init_for_composite_lit) v2 in
         G.Call (G.IdSpecial (G.New, fake "new"),
                 fb((G.ArgType v1)::(v2)))
-    | Slice (v1, v2) ->
+    | Slice (v1, (t1, v2, t2)) ->
         let e = expr v1 in
         let (v1, v2, v3) = v2 in
         let v1 = option expr v1
         and v2 = option expr v2
         and v3 = option expr v3
         in
-        G.SliceAccess (e, v1, v2, v3)
+        G.SliceAccess (e, (t1, (v1, v2, v3), t2))
     | TypeAssert (v1, (lp, v2, rp)) -> let v1 = expr v1 and v2 = type_ v2 in
         G.Call (G.IdSpecial (G.Instanceof, fake "instanceof"),
                 (lp, [G.Arg v1; G.ArgType v2], rp))

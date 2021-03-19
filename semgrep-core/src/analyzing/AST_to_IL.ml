@@ -449,7 +449,7 @@ and expr_aux env eorig =
 
 
 
-  | G.SliceAccess (_, _, _, _)
+  | G.SliceAccess (_, _)
     -> todo (G.E eorig)
 
   (* e1 ? e2 : e3 ==>

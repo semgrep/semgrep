@@ -126,7 +126,7 @@ let rec visit_expr hook lhs expr =
   | ArrayAccess(e, (_, e1, _)) ->
       recr e1;
       recr e;
-  | SliceAccess (e, e1, e2, e3) ->
+  | SliceAccess (e, (_, (e1, e2, e3), _)) ->
       [e1;e2;e3] |> List.iter (Common.do_option recr);
       recr e
 

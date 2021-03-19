@@ -564,9 +564,9 @@ and expression (env : env) (x : CST.expression) : expr =
        Index (v1, (v2, v3, v4))
    | `Slice_exp (v1, v2, v3, v4) ->
        let v1top = expression env v1 in
-       let _v2 = token env v2 (* "[" *) in
+       let t1 = token env v2 (* "[" *) in
 
-       let _v4 = token env v4 (* "]" *) in
+       let t2 = token env v4 (* "]" *) in
 
        (match v3 with
         | `Opt_exp_COLON_opt_exp (v1, v2, v3) ->
@@ -581,7 +581,7 @@ and expression (env : env) (x : CST.expression) : expr =
                | Some x -> Some (expression env x)
                | None -> None)
             in
-            Slice (v1top, (v1, v3, None))
+            Slice (v1top, (t1, (v1, v3, None), t2))
         | `Opt_exp_COLON_exp_COLON_exp (v1, v2, v3, v4, v5) ->
             let v1 =
               (match v1 with
@@ -592,7 +592,7 @@ and expression (env : env) (x : CST.expression) : expr =
             let v3 = expression env v3 in
             let _v4 = token env v4 (* ":" *) in
             let v5 = expression env v5 in
-            Slice (v1top, (v1, Some v3, Some v5))
+            Slice (v1top, (t1, (v1, Some v3, Some v5), t2))
        )
 
    | `Call_exp x -> call_expression env x
