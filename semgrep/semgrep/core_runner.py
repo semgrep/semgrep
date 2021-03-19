@@ -393,6 +393,7 @@ class CoreRunner:
                     rule,
                     "-tainting_rules_file",
                     cache_dir,
+                    report_time=self._report_time,
                 )
             else:
                 # semgrep-core doesn't know about OPERATORS.REGEX - this is

@@ -1,0 +1,16 @@
+rules:
+  - id: classic
+    mode: taint
+    pattern-sources:
+      - source(...)
+      - source1(...)
+    pattern-sinks:
+      - sink(...)
+      - sink1(...)
+      - eval(...)
+    pattern-sanitizers:
+      - sanitize(...)
+      - sanitize1(...)
+    message: A user input source() went into a dangerous sink()
+    languages: [python, javascript]
+    severity: WARNING
