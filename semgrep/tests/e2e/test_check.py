@@ -440,3 +440,13 @@ def test_metavariable_propagation_comparison(run_semgrep_in_tmp, snapshot):
         ),
         "results.json",
     )
+
+
+def test_taint_mode(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/taint.yaml",
+            target_name="taint/taint.py",
+        ),
+        "results.json",
+    )
