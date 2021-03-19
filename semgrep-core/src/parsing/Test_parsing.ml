@@ -116,11 +116,6 @@ let dump_tree_sitter_cst file =
   | _::_::_ -> failwith (spf "too many languages detected for %s" file)
 
 let test_parse_tree_sitter lang xs =
-  let lang =
-    match Lang.lang_of_string_opt lang with
-    | Some l -> l
-    | None -> failwith "no language or unsupported language; use correct -lang"
-  in
   let xs = List.map Common.fullpath xs in
   let fullxs = Lang.files_of_dirs_or_files lang xs
                |> Skip_code.filter_files_if_skip_list ~root:xs
@@ -182,9 +177,9 @@ let test_parse_tree_sitter lang xs =
 (* Pfff and tree-sitter parsing *)
 (*****************************************************************************)
 
-let parsing_common ?(verbose=true) lang get_final_files xs =
+let parsing_common ?(verbose=true) lang xs =
   let xs = List.map Common.fullpath xs in
-  let fullxs = get_final_files xs
+  let fullxs = Lang.files_of_dirs_or_files lang xs
                |> Skip_code.filter_files_if_skip_list ~root:xs
   in
 
@@ -208,8 +203,8 @@ let parsing_common ?(verbose=true) lang get_final_files xs =
   !stat_list
 
 
-let parsing_stats lang json get_final_files files =
-  let stat_list = parsing_common lang get_final_files files in
+let parsing_stats lang json files_or_dirs =
+  let stat_list = parsing_common lang files_or_dirs in
   if json
   then
     let (total, bad) = Parse_info.aggregate_stats stat_list in
@@ -224,8 +219,8 @@ let parsing_stats lang json get_final_files files =
   else
     Parse_info.print_parsing_stat_list stat_list
 
-let parsing_regressions  lang get_final_files files =
-  let _stat_list = parsing_common lang get_final_files files in
+let parsing_regressions  lang files_or_dirs =
+  let _stat_list = parsing_common lang files_or_dirs in
   raise Todo
 
 
