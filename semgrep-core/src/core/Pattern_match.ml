@@ -60,30 +60,26 @@ type t = {
  * We could derive information in the other fields from the id, but that
  * would require to pass around the list of rules to get back the
  * information. Instead by embedding the information in the pattern match,
- * some functions are simpler.
+ * some functions are simpler (we use the same trick with Parse_info.t
+ * where for example we embed the filename in it, not just a position).
  * alt: reuse Mini_rule.t
 *)
 and rule_id = {
-  (* this id is usually a string like 'check-double-equal', but
-   * when we use a full rule, it temporarily stores a Rule.pattern_id *)
-  id: Mini_rule.mini_rule_id;
+  (* This id is usually a string like 'check-double-equal'.
+   * It can be the id of a rule or mini rule.
+   *
+   * Note that when we process a full rule, this id can temporarily
+   * contain a Rule.pattern_id.
+  *)
+  id: string;
 
-  (* other parts of Mini_rule.t used in JSON_report.ml *)
+  (* other parts of a rule (or mini_rule) used in JSON_report.ml *)
   message: string;
-  (* used for debugging (could be removed) *)
+  (* used for debugging (could be removed at some point) *)
   pattern_string: string;
 }
 
 [@@deriving show, eq]
 (*e: type [[Match_result.t]] *)
 
-(*****************************************************************************)
-(* Helpers *)
-(*****************************************************************************)
-
-let (rule_id_of_mini_rule: Mini_rule.t -> rule_id) = fun mr ->
-  { id = mr.Mini_rule.id;
-    message = mr.Mini_rule.message;
-    pattern_string = mr.Mini_rule.pattern_string;
-  }
 (*e: semgrep/core/Pattern_match.ml *)

@@ -18,15 +18,14 @@
 (* Prelude *)
 (*****************************************************************************)
 (* The goal of this module is to make it easy to add lint rules by using
- * semgrep patterns. You just have to store the patterns in a special file
- * and add the corresponding warnings you want the linter to raise.
+ * semgrep patterns. You just have to store the patterns in a special
+ * YAML file and add the corresponding warnings you want the linter to raise.
  *
  * update: if you need advanced patterns with boolean logic (which used
  * to be partially provided by the hacky OK error keyword), use
- * instead the semgrep python wrapper! It also uses a yaml file but it
- * has more features, e.g. some pattern-either fields, pattern-inside,
- * where-eval, etc.
- * update: actually you can now use Rule.ml instead of the python wrapper :)
+ * instead Rule.ml (or the semgrep python wrapper). Rule.ml also uses a YAML
+ * file but it has more features, e.g. some pattern-either fields,
+ * pattern-inside, metavariable-comparison, etc.
 *)
 
 (*****************************************************************************)
@@ -35,12 +34,10 @@
 
 (*s: type [[Rule.pattern]] *)
 (*e: type [[Rule.pattern]] *)
-type mini_rule_id = string
-[@@deriving show, eq]
 
 (*s: type [[Rule.rule]] *)
 type rule = {
-  id: mini_rule_id;
+  id: string;
   pattern: Pattern.t;
   message: string;
   severity: severity;

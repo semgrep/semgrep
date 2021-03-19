@@ -156,6 +156,12 @@ let match_fld_fld rule a b env =
 (* Helpers *)
 (*****************************************************************************)
 
+let (rule_id_of_mini_rule: Mini_rule.t -> Pattern_match.rule_id) = fun mr ->
+  { PM.id = mr.Mini_rule.id;
+    message = mr.Mini_rule.message;
+    pattern_string = mr.Mini_rule.pattern_string;
+  }
+
 let match_rules_and_recurse config (file,hook,matches) rules matcher k any x =
   rules |> List.iter (fun (pattern, rule, cache) ->
     let env = MG.empty_environment cache config in
@@ -166,7 +172,7 @@ let match_rules_and_recurse config (file,hook,matches) rules matcher k any x =
         let env = env.mv.full_env in
         let range_loc = V.range_of_any (any x) in
         let tokens = lazy (V.ii_of_any (any x)) in
-        let rule_id = PM.rule_id_of_mini_rule rule in
+        let rule_id = rule_id_of_mini_rule rule in
         Common.push { PM. rule_id; file; env; range_loc; tokens }
           matches;
         hook env tokens
@@ -277,7 +283,7 @@ let check2 ~hook config rules equivs (file, lang, ast) =
                 let env = env.mv.full_env in
                 let range_loc = V.range_of_any (E x) in
                 let tokens = lazy (V.ii_of_any (E x)) in
-                let rule_id = PM.rule_id_of_mini_rule rule in
+                let rule_id = rule_id_of_mini_rule rule in
                 Common.push {PM. rule_id; file; env; range_loc; tokens}
                   matches;
                 hook env tokens
@@ -306,7 +312,7 @@ let check2 ~hook config rules equivs (file, lang, ast) =
                   let env = env.mv.full_env in
                   let range_loc = V.range_of_any (S x) in
                   let tokens = lazy (V.ii_of_any (S x)) in
-                  let rule_id = PM.rule_id_of_mini_rule rule in
+                  let rule_id = rule_id_of_mini_rule rule in
                   Common.push {PM. rule_id; file; env; range_loc; tokens }
                     matches;
                   hook env tokens
@@ -362,7 +368,7 @@ let check2 ~hook config rules equivs (file, lang, ast) =
                     let env = env.mv.full_env in
                     let tokens =
                       lazy (Stmts_match_span.list_original_tokens span) in
-                    let rule_id = PM.rule_id_of_mini_rule rule in
+                    let rule_id = rule_id_of_mini_rule rule in
                     Common.push {PM. rule_id; file; env; range_loc; tokens}
                       matches;
                     hook env tokens
