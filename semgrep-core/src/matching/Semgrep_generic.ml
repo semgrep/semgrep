@@ -20,7 +20,7 @@ module V = Visitor_AST
 module AST = AST_generic
 module Err = Error_code
 module PI = Parse_info
-module R = Mini_rule
+module R = Mini_rule (* TODO: rename to MR *)
 module Eq = Equivalence
 module PM = Pattern_match
 module GG = Generic_vs_generic
@@ -156,6 +156,12 @@ let match_fld_fld rule a b env =
 (* Helpers *)
 (*****************************************************************************)
 
+let (rule_id_of_mini_rule: Mini_rule.t -> Pattern_match.rule_id) = fun mr ->
+  { PM.id = mr.Mini_rule.id;
+    message = mr.Mini_rule.message;
+    pattern_string = mr.Mini_rule.pattern_string;
+  }
+
 let match_rules_and_recurse config (file,hook,matches) rules matcher k any x =
   rules |> List.iter (fun (pattern, rule, cache) ->
     let env = MG.empty_environment cache config in
@@ -164,9 +170,11 @@ let match_rules_and_recurse config (file,hook,matches) rules matcher k any x =
     then (* Found a match *)
       matches_with_env |> List.iter (fun (env : MG.tin) ->
         let env = env.mv.full_env in
-        let location = V.range_of_any (any x) in
+        let range_loc = V.range_of_any (any x) in
         let tokens = lazy (V.ii_of_any (any x)) in
-        Common.push { PM. rule; file; env; location; tokens } matches;
+        let rule_id = rule_id_of_mini_rule rule in
+        Common.push { PM. rule_id; file; env; range_loc; tokens }
+          matches;
         hook env tokens
       )
   );
@@ -273,9 +281,11 @@ let check2 ~hook config rules equivs (file, lang, ast) =
             then (* Found a match *)
               matches_with_env |> List.iter (fun (env : MG.tin) ->
                 let env = env.mv.full_env in
-                let location = V.range_of_any (E x) in
+                let range_loc = V.range_of_any (E x) in
                 let tokens = lazy (V.ii_of_any (E x)) in
-                Common.push { PM. rule; file; env; location; tokens } matches;
+                let rule_id = rule_id_of_mini_rule rule in
+                Common.push {PM. rule_id; file; env; range_loc; tokens}
+                  matches;
                 hook env tokens
               )
           );
@@ -300,10 +310,11 @@ let check2 ~hook config rules equivs (file, lang, ast) =
               then (* Found a match *)
                 matches_with_env |> List.iter (fun (env : MG.tin) ->
                   let env = env.mv.full_env in
-                  let location = V.range_of_any (S x) in
+                  let range_loc = V.range_of_any (S x) in
                   let tokens = lazy (V.ii_of_any (S x)) in
-                  Common.push
-                    { PM. rule; file; env; location; tokens } matches;
+                  let rule_id = rule_id_of_mini_rule rule in
+                  Common.push {PM. rule_id; file; env; range_loc; tokens }
+                    matches;
                   hook env tokens
                 )
             );
@@ -353,12 +364,13 @@ let check2 ~hook config rules equivs (file, lang, ast) =
                 let span = env.stmts_match_span in
                 match Stmts_match_span.location span with
                 | None -> () (* empty sequence or bug *)
-                | Some location ->
+                | Some range_loc ->
                     let env = env.mv.full_env in
                     let tokens =
                       lazy (Stmts_match_span.list_original_tokens span) in
-                    Common.push
-                      { PM. rule; file; env; location; tokens } matches;
+                    let rule_id = rule_id_of_mini_rule rule in
+                    Common.push {PM. rule_id; file; env; range_loc; tokens}
+                      matches;
                     hook env tokens
               )
           );
