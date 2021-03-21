@@ -535,6 +535,29 @@ let resolve2 lang prog =
       V.kexpr = (fun (k, vout) x ->
         let recurse = ref true in
         (match x with
+
+         (* Go: This is `x := E`, a single-variable short variable declaration.
+          * When this declaration is legal, and that is when the same variable
+          * has not yet been declared in the same scope, it *always* introduces
+          * a new variable. (Quoting Go' spec, "redeclaration can only appear
+          * in a multi-variable short declaration".)
+          * See: https://golang.org/ref/spec#Short_variable_declarations *)
+         | AssignOp(N (Id (id, id_info)), (Eq, tok), e2)
+           when lang = Lang.Go && Parse_info.str_of_info tok = ":="
+                && is_local_or_global_ctx env lang ->
+             (* Need to visit expressions first so that type is populated *)
+             (* If we do var a = 3, then var b = a, we want to propagate the type of a *)
+             k x;
+             (* name resolution *)
+             let sid = H.gensym () in
+             let resolved_type = Typing.get_resolved_type lang (Some e2, None) in
+             let resolved =
+               { entname = resolved_name_kind env lang, sid;
+                 enttype = resolved_type } in
+             add_ident_current_scope id resolved env.names;
+             set_resolved env id_info resolved;
+             recurse := false
+
          (* todo: see lrvalue.ml
           * alternative? extra id_info tag?
          *)
