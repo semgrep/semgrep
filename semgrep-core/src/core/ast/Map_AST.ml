@@ -215,12 +215,11 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | ArrayAccess (v1, v2) ->
           let v1 = map_expr v1 and v2 = map_bracket map_expr v2 in
           ArrayAccess (v1, v2)
-      | SliceAccess (v1, v2, v3, v4) ->
+      | SliceAccess (v1, v2) ->
+          let f = map_of_option map_expr in
           let v1 = map_expr v1
-          and v2 = map_of_option map_expr v2
-          and v3 = map_of_option map_expr v3
-          and v4 = map_of_option map_expr v4
-          in SliceAccess (v1, v2, v3, v4)
+          and v2 = map_bracket (OCaml.map_of_all3 f f f) v2 in
+          SliceAccess (v1, v2)
       | Conditional (v1, v2, v3) ->
           let v1 = map_expr v1
           and v2 = map_expr v2

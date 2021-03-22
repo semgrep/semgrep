@@ -436,7 +436,7 @@ and expr =
   (*x: [[AST_generic.expr]] array access cases *)
   (* could also use ArrayAccess with a Tuple rhs, or use a special *)
   | SliceAccess of expr *
-                   expr option (* lower *) * expr option (* upper *) * expr option (* step*)
+                   (expr option (* lower *) * expr option (* upper *) * expr option (* step *)) bracket
   (*e: [[AST_generic.expr]] array access cases *)
   (*s: [[AST_generic.expr]] anonymous entity cases *)
   (* very special value *)

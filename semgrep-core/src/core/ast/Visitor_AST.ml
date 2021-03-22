@@ -263,11 +263,12 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | DotAccess (v1, t, v2) ->
           let v1 = v_expr v1 and t = v_tok t and v2 = v_name_or_dynamic v2 in ()
       | ArrayAccess (v1, v2) -> let v1 = v_expr v1 and v2 = v_bracket v_expr v2 in ()
-      | SliceAccess (v1, v2, v3, v4) ->
+      | SliceAccess (v1, v2) ->
           let v1 = v_expr v1
-          and v2 = v_option v_expr v2
-          and v3 = v_option v_expr v3
-          and v4 = v_option v_expr v4
+          and v2 = v_bracket (fun (v1, v2, v3) ->
+            v_option v_expr v1;
+            v_option v_expr v2;
+            v_option v_expr v3) v2
           in
           ()
       | Conditional (v1, v2, v3) ->

@@ -415,7 +415,7 @@ and slice1 e1 (t1, e2, t2) =
       and v2 = option expr v2
       and v3 = option expr v3
       in
-      G.SliceAccess (e1, v1, v2, v3)
+      G.SliceAccess (e1, (t1, (v1, v2, v3), t2))
 
 and slice e =
   function
@@ -425,7 +425,7 @@ and slice e =
       and v2 = option expr v2
       and v3 = option expr v3
       in
-      G.SliceAccess (e, v1, v2, v3)
+      G.SliceAccess (e, fb (v1, v2, v3))
 (*e: function [[Python_to_generic.slice]] *)
 
 and param_pattern = function
