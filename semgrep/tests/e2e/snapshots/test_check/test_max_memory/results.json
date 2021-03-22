@@ -2,6 +2,7 @@
   "errors": [
     {
       "code": 10,
+      "level": "warn",
       "path": "targets/equivalence/open_redirect.py",
       "rule_id": "rules.forcetimeout",
       "type": "OutOfMemoryError"

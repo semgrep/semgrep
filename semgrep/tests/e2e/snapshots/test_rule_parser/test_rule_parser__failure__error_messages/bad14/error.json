@@ -25,6 +25,7 @@
     },
     {
       "code": 7,
+      "level": "error",
       "message": "run with --strict and there were 1 errors loading configs",
       "type": "SemgrepError"
     }

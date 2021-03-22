@@ -57,6 +57,7 @@ class SemgrepError(Exception):
         return {
             "type": self.__class__.__name__,
             "code": self.code,
+            "level": self.level.name.lower(),
             **self.to_dict_base(),
         }
 

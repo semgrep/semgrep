@@ -256,7 +256,34 @@ def _sarif_tool_info() -> Dict[str, Any]:
     return {"name": "semgrep", "semanticVersion": __VERSION__}
 
 
-def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> str:
+def _sarif_notification_from_error(error: SemgrepError) -> Dict[str, Any]:
+    error_dict = error.to_dict()
+    descriptor = error_dict["type"]
+
+    error_to_sarif_level = {
+        Level.ERROR.name.lower(): "error",
+        Level.WARN.name.lower(): "warning",
+    }
+    level = error_to_sarif_level[error_dict["level"]]
+
+    message = error_dict.get("message")
+    if message is None:
+        message = error_dict.get("long_msg")
+    if message is None:
+        message = error_dict.get("short_msg", "")
+
+    return {
+        "descriptor": {"id": descriptor},
+        "message": {"text": message},
+        "level": level,
+    }
+
+
+def build_sarif_output(
+    rule_matches: List[RuleMatch],
+    rules: FrozenSet[Rule],
+    semgrep_structured_errors: List[SemgrepError],
+) -> str:
     """
     Format matches in SARIF v2.1.0 formatted JSON.
 
@@ -264,6 +291,7 @@ def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) ->
     - which links to this schema https://github.com/oasis-tcs/sarif-spec/blob/master/Schemata/sarif-schema-2.1.0.json
     - full spec is at https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html
     """
+
     output_dict = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
         "version": "2.1.0",
@@ -276,6 +304,13 @@ def build_sarif_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) ->
                     }
                 },
                 "results": [match.to_sarif() for match in rule_matches],
+            }
+        ],
+        "invocations": [
+            {
+                "toolExecutionNotifications": [
+                    _sarif_notification_from_error(e) for e in semgrep_structured_errors
+                ],
             }
         ],
     }
@@ -581,7 +616,9 @@ class OutputHandler:
         elif output_format == OutputFormat.JUNIT_XML:
             return build_junit_xml_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.SARIF:
-            return build_sarif_output(self.rule_matches, self.rules)
+            return build_sarif_output(
+                self.rule_matches, self.rules, self.semgrep_structured_errors
+            )
         elif output_format == OutputFormat.EMACS:
             return build_emacs_output(self.rule_matches, self.rules)
         elif output_format == OutputFormat.VIM:
