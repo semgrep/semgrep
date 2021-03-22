@@ -202,12 +202,11 @@ and vof_expr =
       let v1 = vof_expr v1
       and v2 = vof_bracket vof_expr v2
       in OCaml.VSum ("ArrayAccess", [ v1; v2 ])
-  | SliceAccess (v1, v2, v3, v4) ->
+  | SliceAccess (v1, v2) ->
+      let f = OCaml.vof_option vof_expr in
       let v1 = vof_expr v1
-      and v2 = OCaml.vof_option vof_expr v2
-      and v3 = OCaml.vof_option vof_expr v3
-      and v4 = OCaml.vof_option vof_expr v4
-      in OCaml.VSum ("SliceAccess", [ v1; v2; v3; v4 ])
+      and v2 = vof_bracket (OCaml.vof_all3 f f f) v2
+      in OCaml.VSum ("SliceAccess", [ v1; v2; ])
   | Conditional (v1, v2, v3) ->
       let v1 = vof_expr v1
       and v2 = vof_expr v2

@@ -167,6 +167,9 @@ val m_wrap : ('a -> 'b -> tin -> tout) -> 'a * 'c -> 'b * 'd -> tin -> tout
 val m_bracket :
   ('a -> 'b -> tin -> tout) -> 'c * 'a * 'd -> 'e * 'b * 'f -> tin -> tout
 (*e: signature [[Matching_generic.m_bracket]] *)
+val m_tuple3 :
+  ('a -> 'b -> tin -> tout) -> ('c -> 'd -> tin -> tout) -> ('e -> 'f -> tin -> tout) ->
+  'a * 'c * 'e -> 'b * 'd * 'f -> tin -> tout
 
 (*s: signature [[Matching_generic.m_other_xxx]] *)
 val m_other_xxx : 'a -> 'a -> tin -> tout
