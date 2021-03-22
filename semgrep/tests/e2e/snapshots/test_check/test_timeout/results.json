@@ -2,6 +2,7 @@
   "errors": [
     {
       "code": 9,
+      "level": "warn",
       "path": "targets/equivalence/open_redirect.py",
       "rule_id": "rules.forcetimeout",
       "type": "MatchTimeoutError"
