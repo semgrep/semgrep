@@ -20,9 +20,6 @@ from typing import Sequence
 from typing import Set
 from typing import Tuple
 
-from semgrep.target_manager_extensions import all_supported_languages
-
-logger = logging.getLogger(__name__)
 from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
@@ -33,25 +30,29 @@ from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
-from semgrep.profile_manager import ProfileManager
 from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
 from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
+from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
+from semgrep.semgrep_types import GENERIC_LANGUAGE
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import REGEX_ONLY_LANGUAGE_KEYS, GENERIC_LANGUAGE
 from semgrep.semgrep_types import OPERATORS
+from semgrep.semgrep_types import REGEX_ONLY_LANGUAGE_KEYS
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.spacegrep import run_spacegrep
 from semgrep.target_manager import TargetManager
+from semgrep.target_manager_extensions import all_supported_languages
 from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
 from semgrep.util import progress_bar
 from semgrep.util import sub_run
+
+logger = logging.getLogger(__name__)
 
 
 def _offset_to_line_no(offset: int, buff: str) -> int:
