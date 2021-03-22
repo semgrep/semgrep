@@ -60,7 +60,3 @@ def count_lines_by_path_extension(paths: Set[Path]) -> Dict[FileExtension, int]:
     for p, count in all_counts.items():
         by_extension[cast(FileExtension, p.suffix)] += count
     return dict(by_extension)
-
-
-def make_runtime_per_stats(rule_matches: Any) -> Dict[str, Any]:
-    pass
