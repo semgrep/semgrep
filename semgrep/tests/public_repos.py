@@ -267,7 +267,6 @@ PASSING_REPOS = [
     },
     {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
-    {"repo": "https://github.com/rails/rails", "languages": ["ruby"]},
     # Excluding cause of https://github.com/returntocorp/semgrep/issues/2613
     {
         "repo": "https://github.com/zulip/zulip",
@@ -285,6 +284,10 @@ FAILING_REPOS = [
     #        },
     #        reason="MatchTimeout error but happens only in CI",
     #    ),
+    xfail_repo(
+        {"repo": "https://github.com/rails/rails", "languages": ["ruby"]},
+        reason="https://github.com/tree-sitter/tree-sitter-ruby/issues/167",
+    ),
     xfail_repo(
         {
             "repo": "https://github.com/highcharts/highcharts",
