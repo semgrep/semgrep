@@ -1,1 +1,1 @@
-{"results": [], "errors": [{"type": "SemgrepError", "code": 2, "message": "found 'nosem' comment with id 'rules.test-nosem-invalid', but no corresponding rule trying 'rules.test-nosem'"}]}
+{"results": [], "errors": [{"type": "SemgrepError", "code": 2, "level": "error", "message": "found 'nosem' comment with id 'rules.test-nosem-invalid', but no corresponding rule trying 'rules.test-nosem'"}]}
