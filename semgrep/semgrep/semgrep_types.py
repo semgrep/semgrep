@@ -89,27 +89,6 @@ def pattern_names_for_operators(operators: List[Operator]) -> List[str]:
     return sum((pattern_names_for_operator(op) for op in operators), [])
 
 
-class RuleGlobs(NamedTuple):
-    include: Set[str]
-    exclude: Set[str]
-
-    @staticmethod
-    def globs_match_path(globs: Set[str], path: Path) -> bool:
-        """Return true if at least one of ``globs`` match for given path."""
-        subpaths = [path, *path.parents]
-        return any(path.match(glob) for path in subpaths for glob in globs)
-
-    def match_path(self, path: Path) -> bool:
-        """Whether the rule should result in findings on the given path."""
-        if self.globs_match_path(self.exclude, path):
-            return False  # path is excluded
-
-        if self.include and not self.globs_match_path(self.include, path):
-            return False  # there are includes and this isn't one of them
-
-        return True
-
-
 ALLOWED_GLOB_TYPES = ("include", "exclude")
 
 

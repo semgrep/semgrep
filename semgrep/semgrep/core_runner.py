@@ -100,33 +100,6 @@ def get_re_matches(
     ]
 
 
-def get_target_files(
-    targets: List[Path], exclude: List[str], include: List[str]
-) -> List[Path]:
-    if not include:
-        # Default to all files
-        include = ["*"]
-
-    filepaths = [
-        target
-        for target in targets
-        if target.is_file()
-        and any(target.match(i) for i in include)
-        and not any(target.match(e) for e in exclude)
-    ]
-    filepaths.extend(
-        path
-        for target in targets
-        if target.is_dir()
-        for path in target.rglob("*")
-        if path.is_file()
-        and any(path.match(i) for i in include)
-        and not any(path.match(e) for e in exclude)
-    )
-
-    return filepaths
-
-
 class CoreRunner:
     """
     Handles interactions between semgrep and semgrep-core
@@ -221,23 +194,6 @@ class CoreRunner:
             raise SemgrepError(
                 f"an internal error occured while invoking semgrep-core while running rule '{rule.id}'. Consider skipping this rule and reporting this issue.\n\t{error_type}: {error_json.get('message', 'no message')}\n{PLEASE_FILE_ISSUE_TEXT}"
             )
-
-    def _flatten_all_equivalences(self, rules: List[Rule]) -> List[Equivalence]:
-        """
-        Convert all the equivalences defined in the rules into a single rule file
-        """
-
-        equivalences = []
-
-        for rule in rules:
-            try:
-                equivalences.extend(rule.equivalences)
-            except Exception as e:
-                raise SemgrepError(
-                    f"could not get equivalences for rule {rule.id}: {e}"
-                )
-
-        return equivalences
 
     def _write_equivalences_file(self, fp: IO, equivalences: List[Equivalence]) -> None:
         # I don't even know why this is a thing.
