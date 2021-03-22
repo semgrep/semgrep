@@ -317,12 +317,6 @@ class YamlMap:
         return self._internal.keys()
 
 
-def parse_yaml(contents: str) -> Dict[str, Any]:
-    # this uses the `RoundTripConstructor` which inherits from `SafeConstructor`
-    yaml = YAML(typ="rt")
-    return yaml.load(StringIO(contents))  # type: ignore
-
-
 def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTree:
     """
     parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
