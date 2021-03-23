@@ -27,7 +27,17 @@ module A = AST_generic
  * The tree-sitter grammar for YAML is somewhat complicated,
  * since YAML is whitespace sensitive. Instead, we use the OCaml Yaml module,
  * which we also use to parse YAML for semgrep. To get positions, we use the
- * low-level Stream API, which we parse into a generic AST
+ * low-level Stream API, which we parse into our generic AST
+ *
+ * Before we parse a YAML file, we first need to replace ellipses with valid
+ * YAML. All ellipses are replaced with
+                 __sgrep_ellipses__ : __sgrep_ellipses__
+ * This means - ... becomes - __sgrep_ellipses__ : __sgrep_ellipses__, which
+ * is a little awkward, since this looks like a dictionary. However, we will
+ * recognize this as a single ellipsis in parse
+ *
+ * It is unfortunately impossible to simply replace every ellipsis with that
+ * because we need to add dashes to match other list items
 *)
 
 (*****************************************************************************)
@@ -35,7 +45,6 @@ module A = AST_generic
 (*****************************************************************************)
 
 exception ParseError of string
-exception ImpossibleDots
 
 (* right now we just pass down the filename in the environment, but
  * we could need to pass more information later.
@@ -51,7 +60,7 @@ type env = {
 (* Helper functions *)
 (*****************************************************************************)
 
-let sgrep_ellipses_inline = "__sgrep_ellipses__"
+let _sgrep_ellipses_inline = "__sgrep_ellipses__"
 let sgrep_ellipses = "__sgrep_ellipses__: __sgrep_ellipses__"
 
 let p_token = function
@@ -223,7 +232,6 @@ let make_pattern_expr e =
 let substring str first last =
   String.sub str first (last - first)
 
-
 (* Match ellipses to previous line with same indentation *)
 let last_same_whitespace whitespace context =
   let target_len = String.length whitespace in
@@ -237,10 +245,27 @@ let last_same_whitespace whitespace context =
   in
   find_last_whitespace context
 
-(* The above function will fail in the case               *
-  * ...                                                   *
-  * - foo                                                 *
-  * so check for whether such an ellipses can be resolved *)
+(* Used for '- ...' when the '...' is being replaced by     *
+ * '- __sgrep_ellipses__' and we want to keep both dashes.  *
+ * We expect that |e_sp| <= |w_sp| because we match ' ...'  *
+ * with ' - foo', but in that case would take ' ' as e_sp   *
+   ' and ' - ' as w_sp                                        *)
+let union_whitespace e_sp w_sp =
+  let esp_len = String.length e_sp in
+  let check_esp i c =
+    if i < esp_len then
+      match String.get e_sp i with
+      | ' ' -> c
+      | c1 -> c1
+    else c
+  in
+  String.mapi check_esp w_sp
+
+(* Ellipses will not be immediately replaced in the case of  *
+  * ...                                                      *
+  * - foo                                                    *
+  * so when '- foo' has been read we check for whether there *
+  * is an ellipsis that can now be resolved                  *)
 let convert_leftover_ellipses (prev_space_len, prev_space) ~is_line:is_line ellipses =
   let rec convert_ellipses ellipses =
     match ellipses with
@@ -251,7 +276,7 @@ let convert_leftover_ellipses (prev_space_len, prev_space) ~is_line:is_line elli
          *    ...                     *
          *    ...                     *)
         if is_line && ellipses_space_len = prev_space_len then (
-          (prev_space ^ sgrep_ellipses)::converted_ellipses, rest )
+          ((union_whitespace ellipses_space prev_space) ^ sgrep_ellipses)::converted_ellipses, rest )
         (* Do convert when you see *
          *    ...                     *
          *  ...                     *)
@@ -273,39 +298,17 @@ let split_whitespace line =
   let line_len = String.length line in
   let rec read_string i =
     if i = line_len
-    then line
+    then line, ""
     else begin
       match line.[i] with
       | ' ' | '\t' | '-' -> read_string (i + 1)
-      | _ -> substring line 0 i
+      | _ -> substring line 0 i, substring line i line_len
     end
   in
-  let whitespace = read_string 0 in
+  let whitespace, line = read_string 0 in
   if String.contains whitespace '-'
-  then String.index whitespace '-', whitespace
-  else String.length whitespace, whitespace
-
-(* Split a line by the ellipses *)
-let split_on_ellipses line =
-  let rec split line i ellipses_start num_dots =
-    let line_length = String.length line in
-    if i = line_length
-    then [line]
-    else
-      begin
-        match line.[i] with
-        | '.' -> begin
-            match num_dots with
-            | 0 -> split line (i + 1) i 1
-            | 1 -> split line (i + 1) ellipses_start 2
-            | 2 -> (substring line 0 ellipses_start)::(split (substring line (i + 1) line_length) 0 0 0)
-            | _ -> raise ImpossibleDots
-          end
-        | _ -> split line (i + 1) 0 0
-      end
-  in
-  let pieces = split line 0 0 0 in
-  pieces
+  then String.index whitespace '-', whitespace, line
+  else String.length whitespace, whitespace, line
 
 (* Pop child lines when the patern exits *)
 let rec exit_context whitespace_len context =
@@ -326,21 +329,20 @@ let preprocess_yaml str =
     | [] -> []
 
     | line::rest ->
-        let ws_len, ws = split_whitespace line in
+        let hyphen_loc, ws, str = split_whitespace line in
         let context', line', ellipses' =
-          match String.trim line with
-          (* This uses line to check for "..." vs "- ..." *)
+          match String.trim str with
           | "..." -> begin
+              let ws_len = String.length ws in
               let conv, ellipses' = convert_leftover_ellipses (ws_len, ws) ~is_line:false ellipses in
               match last_same_whitespace ws context with
               | Some ws -> context, conv @ [ws ^ sgrep_ellipses], ellipses'
               | None -> context, conv, (ws_len, ws)::ellipses'
             end
           | _ ->
-
-              let conv, ellipses' = convert_leftover_ellipses (ws_len, ws) ~is_line:true ellipses in
-              (ws_len, ws)::(exit_context ws_len context),
-              conv @ [String.concat sgrep_ellipses_inline (split_on_ellipses line)],
+              let conv, ellipses' = convert_leftover_ellipses (hyphen_loc, ws) ~is_line:true ellipses in
+              (hyphen_loc, ws)::(exit_context hyphen_loc context),
+              conv @ [line],
               ellipses'
         in
         line'@(process_lines rest context' ellipses')
