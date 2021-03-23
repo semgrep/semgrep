@@ -74,7 +74,7 @@ type metavar_value = {
      The pattern '$X' would match the first 'foo' and the second 'foo'.
      In semgrep, these two 'foo's are identified as different variables,
      and this is done by setting the metavariable capture's unique ID to
-     something like 'X-1' and 'X-2'. Even though their contents look
+     something like foo-1' and 'foo-2'. Even though their contents look
      identical, they're not the same thing.
 
      Spacegrep doesn't make this analysis, so these two captures will

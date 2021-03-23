@@ -17,9 +17,9 @@ let semgrep_pos (x : Lexing.position) : Semgrep_t.position =
     offset = x.pos_cnum;
   }
 
-let unique_id_of_metavar_capture metavar_name : unique_id =
+let unique_id_of_capture ~captured_string : unique_id =
   let md5sum =
-    metavar_name
+    captured_string
     |> Digest.string
     |> Digest.to_hex
   in
@@ -35,7 +35,7 @@ let convert_capture (name, x) =
     start = semgrep_pos pos1;
     end_ = semgrep_pos pos2;
     abstract_content = x.value;
-    unique_id = unique_id_of_metavar_capture name;
+    unique_id = unique_id_of_capture ~captured_string:x.value;
   }
 
 let make_target_time (src, match_time) : Semgrep_t.target_time =
