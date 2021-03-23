@@ -11,6 +11,7 @@ import pytest
         ("rules/spacegrep/html.yaml", "spacegrep/html.mustache"),
         ("rules/spacegrep/markdown.yaml", "spacegrep/markdown.md"),
         ("rules/spacegrep/httpresponse.yaml", "spacegrep/httpresponse.txt"),
+        ("rules/spacegrep/dockerfile.yaml", "spacegrep/root.Dockerfile"),
     ],
 )
 def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):

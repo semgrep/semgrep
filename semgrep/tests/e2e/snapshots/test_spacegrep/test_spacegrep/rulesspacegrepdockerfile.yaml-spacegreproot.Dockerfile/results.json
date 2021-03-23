@@ -1,0 +1,81 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.spacegrep.double-root",
+      "end": {
+        "col": 10,
+        "line": 3
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "USER root",
+        "message": "'USER' is specified twice\n",
+        "metadata": {},
+        "metavars": {
+          "$ROOT": {
+            "abstract_content": "root",
+            "end": {
+              "col": 10,
+              "line": 3,
+              "offset": 43
+            },
+            "start": {
+              "col": 6,
+              "line": 3,
+              "offset": 39
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/spacegrep/root.Dockerfile",
+      "start": {
+        "col": 1,
+        "line": 3
+      }
+    },
+    {
+      "check_id": "rules.spacegrep.double-root",
+      "end": {
+        "col": 10,
+        "line": 7
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "USER root",
+        "message": "'USER' is specified twice\n",
+        "metadata": {},
+        "metavars": {
+          "$ROOT": {
+            "abstract_content": "root",
+            "end": {
+              "col": 10,
+              "line": 7,
+              "offset": 111
+            },
+            "start": {
+              "col": 6,
+              "line": 7,
+              "offset": 107
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/spacegrep/root.Dockerfile",
+      "start": {
+        "col": 1,
+        "line": 7
+      }
+    }
+  ]
+}
