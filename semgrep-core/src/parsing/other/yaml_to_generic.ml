@@ -45,6 +45,7 @@ module A = AST_generic
 (*****************************************************************************)
 
 exception ParseError of string
+exception ImpossibleDots
 
 (* right now we just pass down the filename in the environment, but
  * we could need to pass more information later.
@@ -60,7 +61,7 @@ type env = {
 (* Helper functions *)
 (*****************************************************************************)
 
-let _sgrep_ellipses_inline = "__sgrep_ellipses__"
+let sgrep_ellipses_inline = "__sgrep_ellipses__"
 let sgrep_ellipses = "__sgrep_ellipses__: __sgrep_ellipses__"
 
 let p_token = function
@@ -310,7 +311,29 @@ let split_whitespace line =
   then String.index whitespace '-', whitespace, line
   else String.length whitespace, whitespace, line
 
-(* Pop child lines when the patern exits *)
+(* Split a line by the ellipses *)
+let split_on_ellipses line =
+  let rec split line i ellipses_start num_dots =
+    let line_length = String.length line in
+    if i = line_length
+    then [line]
+    else
+      begin
+        match line.[i] with
+        | '.' -> begin
+            match num_dots with
+            | 0 -> split line (i + 1) i 1
+            | 1 -> split line (i + 1) ellipses_start 2
+            | 2 -> (substring line 0 ellipses_start)::(split (substring line (i + 1) line_length) 0 0 0)
+            | _ -> raise ImpossibleDots
+          end
+        | _ -> split line (i + 1) 0 0
+      end
+  in
+  let pieces = split line 0 0 0 in
+  pieces
+
+(* Pop child lines when the pattern exits *)
 let rec exit_context whitespace_len context =
   match context with
   | [] -> []
@@ -342,7 +365,7 @@ let preprocess_yaml str =
           | _ ->
               let conv, ellipses' = convert_leftover_ellipses (hyphen_loc, ws) ~is_line:true ellipses in
               (hyphen_loc, ws)::(exit_context hyphen_loc context),
-              conv @ [line],
+              conv @ [String.concat sgrep_ellipses_inline (split_on_ellipses line)],
               ellipses'
         in
         line'@(process_lines rest context' ellipses')
