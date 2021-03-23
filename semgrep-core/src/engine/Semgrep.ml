@@ -52,6 +52,7 @@ let debug_matches = ref true
  *    but could do much more: deep static analysis using Datalog?
  *
  * TODO
+ *  - associate the metavariable-regexp to the appropriate pattern
  *  - pattern-where-python? use pycaml? works for dlint rule?
  *    right now only 4 rules are using pattern-where-python
  *
@@ -104,6 +105,10 @@ type range_with_mvars = {
    * Note that this useful only for few tests in semgrep-rules/ so we
    * probably want to simplify things later and remove the difference between
    * xxx and xxx-inside.
+   * TODO: in fact, if we do a proper intersection of ranges, where we
+   * propery intersect (not just filter one or the other), and also merge
+   * metavariables, this will clean lots of things, and remove the need
+   * to keep around the Inside. AND will be commutative again!
   *)
   inside: R.inside option;
 
@@ -485,7 +490,10 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
       (* let's start with the positive ranges *)
       let posrs = List.map (evaluate_formula env) pos in
       (* subtle: we need to process and intersect the pattern-inside after
-       * (see tests/OTHER/rules/inside.yaml) *)
+       * (see tests/OTHER/rules/inside.yaml).
+       * TODO: this is ugly; AND should be commutative, so we should just
+       * merge ranges, not just filter one or the other.
+      *)
       let posrs, posrs_inside = posrs |> Common.partition_either (fun xs ->
         match xs with
         (* todo? should we double check they are all inside? *)
@@ -505,7 +513,21 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
            let res = neg |> List.fold_left (fun acc x ->
              difference_ranges acc (evaluate_formula env x)
            ) res in
-           (* let's apply additional filters *)
+           (* let's apply additional filters.
+            * TODO: Note that some metavariable-regexp may be part of an
+            * AND where not all patterns define the metavar, e.g.,
+            *   pattern-inside: def $FUNC() ...
+            *   pattern: return $X
+            *   metavariable-regexp: $FUNC regex: (foo|bar)
+            * in which case the order in which we do the operation matters
+            * (at this point intersect_range will have filtered the
+            *  range of the pattern_inside).
+            * alternative solutions?
+            *  - bind closer metavariable-regexp with the relevant pattern
+            *  - propagate metavariables when intersecting ranges
+            *  - distribute filter_range in intersect_range?
+            * See https://github.com/returntocorp/semgrep/issues/2664
+           *)
            let res = conds |> List.fold_left (fun acc cond ->
              filter_ranges acc cond
            ) res in

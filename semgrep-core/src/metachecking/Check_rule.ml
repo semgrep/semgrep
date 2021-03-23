@@ -42,8 +42,14 @@ let logger = Logging.get_logger [__MODULE__]
  * meta-rules by inspecting the pattern content, in which case
  * you have to use OCaml (a bit like in templating languages).
  *
- * TODO: use our new position-aware yaml parser to parse a rule,
- * so we can give error messages on patterns with the right location.
+ * TODO infra:
+ *  - use our new position-aware yaml parser to parse a rule,
+ *    so we can give error messages on patterns with the right location.
+ * TODO rules:
+ *  - detect if scope of metavariable-regexp is wrong and should be put
+ *    in a AND with the relevant pattern. If used with an AND of OR,
+ *    make sure all ORs define the metavar.
+ *    see https://github.com/returntocorp/semgrep/issues/2664
 *)
 
 (*****************************************************************************)
