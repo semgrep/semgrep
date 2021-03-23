@@ -48,6 +48,11 @@ let string_of_resolved = function
  * the callers of sgrep (sgrep-lint) can check if multiple metavariables
  * reference the same entity, or reference exactly the same code.
  * See pfff/.../Naming_AST.ml for more information.
+ *
+ * TODO: provide a typed interface for the json object because it's really
+ *       hard to see how to produce correct output. 'Semgrep.atd' in
+ *       spacegrep already has definitions for about every type except this
+ *       one.
 *)
 let unique_id any =
   match any with
