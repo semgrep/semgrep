@@ -19,19 +19,22 @@ jobs:
       - name: Check the semgrep Docker image
         run: ./scripts/validate-docker-build.sh returntocorp/semgrep
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Login to DockerHub
+        run: |
+          docker login \
+            -u ${{ secrets.DOCKER_USERNAME }} \
+            -p ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Push develop image if on develop branch
+      - name: Pull previous image for caching purposes
+        run: |
+          docker pull returntocorp/semgrep:develop || :
+
+      - name: Build and push semgrep image if on develop branch
         if: ${{ github.event_name == 'push'}}
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          tags: returntocorp/semgrep:develop
+        run: |
+          docker build -t returntocorp/semgrep:develop .
+          docker push returntocorp/semgrep:develop
+
       - name: Push commit hash if PR
         # Don't run when PR is from a fork
         # For security, we do not autopush to docker when from PRs
@@ -39,11 +42,11 @@ jobs:
         # nicer to not have a "failing" CI job in the PR so don't even
         # try if we can detect is coming from a fork
         if: ${{ github.event_name == 'pull_request' }} && ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          tags: returntocorp/semgrep:${{ github.sha }}
+        run: |
+          tag=returntocorp/semgrep:${{ github.sha }}
+          docker build -t "$tag" .
+          docker push "$tag"
+
       - name: update dev.semgrep.dev
         run: curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
       - name: update staging.semgrep.dev
@@ -56,9 +59,6 @@ jobs:
       # such as benchmarks.
       - name: Build and push semgrep-dev image if on develop branch
         if: ${{ github.event_name == 'push'}}
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: dockerfiles/semgrep-dev.Dockerfile
-          push: true
-          tags: returntocorp/semgrep-dev:develop
+        run: |
+          docker build -t returntocorp/semgrep-dev:develop .
+          docker push returntocorp/semgrep-dev:develop
