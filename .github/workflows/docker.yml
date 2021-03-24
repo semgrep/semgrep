@@ -14,18 +14,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Build the semgrep Docker image
+      - name: Build the semgrep Docker image with default Dockerfile
         run: docker build -t returntocorp/semgrep .
       - name: Check the semgrep Docker image
         run: ./scripts/validate-docker-build.sh returntocorp/semgrep
-      - name: Push develop image if on develop branch
-        if: ${{ github.event_name == 'push'}}
-        uses: docker/build-push-action@v1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: returntocorp/semgrep
-          tags: develop
+
+      - name: Push develop image if on develop branch
+        if: ${{ github.event_name == 'push'}}
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: returntocorp/semgrep:develop
       - name: Push commit hash if PR
         # Don't run when PR is from a fork
         # For security, we do not autopush to docker when from PRs
@@ -33,12 +39,11 @@ jobs:
         # nicer to not have a "failing" CI job in the PR so don't even
         # try if we can detect is coming from a fork
         if: ${{ github.event_name == 'pull_request' }} && ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: returntocorp/semgrep
-          tags: ${{ github.event.pull_request.head.sha }}
+          context: .
+          push: true
+          tags: returntocorp/semgrep:${{ github.event.pull_request.head.sha }}
       - name: update dev.semgrep.dev
         run: curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
       - name: update staging.semgrep.dev
@@ -49,16 +54,11 @@ jobs:
       # Extend the semgrep image, changing the entry point to bash and
       # adding some utilities. This image is meant for internal uses
       # such as benchmarks.
-      - name: Build the extended semgrep-dev Docker image
-        run: |
-          docker build \
-            -f dockerfiles/semgrep-dev.Dockerfile \
-            -t returntocorp/semgrep-dev .
-      - name: Push develop image if on develop branch
+      - name: Build and push semgrep-dev image if on develop branch
         if: ${{ github.event_name == 'push'}}
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: returntocorp/semgrep-dev
-          tags: develop
+          context: .
+          file: dockerfiles/semgrep-dev.Dockerfile
+          push: true
+          tags: returntocorp/semgrep-dev:develop
