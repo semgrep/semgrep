@@ -596,14 +596,22 @@ let top_func () =
     | PartialDecl x ->
         let x = top_decl x in
         (match x.G.s with
-         | G.DefStmt def -> G.PartialDef def
+         | G.DefStmt def -> G.Partial (G.PartialDef def)
          | _ -> failwith "partial supported only for definitions"
         )
+    | PartialSingleField (v1, v2, v3) ->
+        let v1 = ident v1 in
+        let v3 = init v3 in
+        G.Partial (G.PartialSingleField (v1, v2, v3))
+    | PartialInitBraces v1 ->
+        let v1 = bracket (list init) v1 in
+        let e = G.Container (G.List, v1) in
+        G.E e
 
   and any x =
     let res =
       match x with
-      | Partial v1 -> let v1 = partial v1 in G.Partial v1
+      | Partial v1 -> let v1 = partial v1 in v1
       | E v1 -> let v1 = expr v1 in G.E v1
       | S v1 -> let v1 = stmt v1 in G.S v1
       | T v1 -> let v1 = type_ v1 in G.T v1
