@@ -60,6 +60,26 @@ type metavar_value = {
   start: position;
   end_ <json name="end">: position;
   abstract_content: string; (* value? *)
+
+  (* The unique ID of a metavariable indicates the kind object that was
+     captured for equality purposes. In the simplest case, this is only
+     the name of the metavariable. In semgrep, it can additionally include
+     a disambiguator. For example, consider this target code:
+
+       let foo = 1;
+       {
+         let foo = 2;
+       }
+
+     The pattern '$X' would match the first 'foo' and the second 'foo'.
+     In semgrep, these two 'foo's are identified as different variables,
+     and this is done by setting the metavariable capture's unique ID to
+     something like foo-1' and 'foo-2'. Even though their contents look
+     identical, they're not the same thing.
+
+     Spacegrep doesn't make this analysis, so these two captures will
+     be considered identical, which is not as good.
+  *)
   unique_id: unique_id;
 }
 
