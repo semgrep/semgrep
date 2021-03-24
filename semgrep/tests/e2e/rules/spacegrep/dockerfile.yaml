@@ -1,0 +1,16 @@
+rules:
+- id: double-root
+  languages:
+    - generic
+  patterns:
+    - pattern-either:
+      - pattern: |
+          USER $ROOT
+    - pattern-inside: |
+        USER $ROOT
+        ...
+        ...
+        USER $ROOT
+  message: |
+    'USER' is specified twice
+  severity: ERROR
