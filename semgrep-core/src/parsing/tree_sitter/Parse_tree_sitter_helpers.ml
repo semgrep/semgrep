@@ -88,7 +88,7 @@ let str env (tok : Tree_sitter_run.Token.t) =
   let (_, s) = tok in
   s, token env tok
 
-let combine_tokens env xs =
+let combine_tokens_DEPRECATED env xs =
   match xs with
   | [] -> failwith "combine_tokens: empty list"
   | x::_xsTODO ->

@@ -43,6 +43,9 @@ let error = AST_generic.error
 (* Entry point *)
 (*****************************************************************************)
 
+(* todo: you should not use that, just pass the token as-is,
+ * they are the same in ast_js.ml and AST_generic.ml
+*)
 let info x = x
 
 let wrap = fun _of_a (v1, v2) ->
@@ -143,22 +146,32 @@ let rec property_name =
 and xhp =
   function
   | XmlText v1 -> let v1 = string v1 in G.XmlText v1
-  | XmlExpr v1 -> let v1 = expr v1 in G.XmlExpr v1
+  | XmlExpr v1 -> let v1 = bracket (option expr) v1 in G.XmlExpr v1
   | XmlXml v1 -> let v1 = xml v1 in G.XmlXml v1
 
 and xml_attribute = function
-  | XmlAttr (v1, v2) ->
-      let v1 = ident v1 and v2 = xhp_attr v2 in G.XmlAttr (v1, v2)
+  | XmlAttr (v1, t, v2) ->
+      let v1 = ident v1 and v2 = xhp_attr v2 in G.XmlAttr (v1, t, v2)
   | XmlAttrExpr v ->
       let v = bracket expr v in
       G.XmlAttrExpr v
   | XmlEllipsis v1 -> G.XmlEllipsis v1
 
-and xml { xml_tag = xml_tag; xml_attrs = xml_attrs; xml_body = xml_body } =
-  let tag = ident xml_tag in
+and xml { xml_kind = xml_tag; xml_attrs = xml_attrs; xml_body = xml_body } =
+  let tag = xml_kind xml_tag in
   let attrs =list xml_attribute xml_attrs in
   let body = list xhp xml_body in
-  { G.xml_tag = tag; xml_attrs = attrs; xml_body = body }
+  { G.xml_kind = tag; xml_attrs = attrs; xml_body = body }
+
+and xml_kind = function
+  | XmlClassic (v0, v1, v2, v3) ->
+      let v1 = ident v1 in
+      G.XmlClassic (v0, v1, v2, v3)
+  | XmlSingleton (v0, v1, v2) ->
+      let v1 = ident v1 in
+      XmlSingleton (v0, v1, v2)
+  | XmlFragment (v1, v2) ->
+      XmlFragment (v1, v2)
 
 and xhp_attr v          = expr v
 
