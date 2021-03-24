@@ -53,7 +53,8 @@ let is_special_string_literal str =
 let is_js lang =
   match lang with
   | Some (Lang.Javascript | Lang.Typescript) -> true
-  | _ -> false
+  | Some _ -> false
+  | None -> true
 
 let is_special_identifier ?lang str =
   Metavariable.is_metavar_name str ||

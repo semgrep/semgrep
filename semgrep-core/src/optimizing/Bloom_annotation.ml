@@ -86,6 +86,8 @@ let rec statement_strings stmt =
        *)
        | L (String (str, _tok)) ->
            Common.push str res
+       | IdSpecial (_, tok) ->
+           Common.push (Parse_info.str_of_info tok) res
        | _ -> k x
       )
     );
