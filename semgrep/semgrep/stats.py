@@ -4,7 +4,6 @@ from typing import Any
 from typing import cast
 from typing import Dict
 from typing import Set
-from typing import Tuple
 
 from semgrep.target_manager_extensions import ext_to_langs
 from semgrep.target_manager_extensions import FileExtension
