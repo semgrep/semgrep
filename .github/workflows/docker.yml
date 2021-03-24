@@ -43,7 +43,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: returntocorp/semgrep:${{ github.event.pull_request.head.sha }}
+          tags: returntocorp/semgrep:${{ github.sha }}
       - name: update dev.semgrep.dev
         run: curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
       - name: update staging.semgrep.dev
