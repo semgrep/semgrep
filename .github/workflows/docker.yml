@@ -32,7 +32,7 @@ jobs:
       - name: Build and push semgrep image if on develop branch
         if: ${{ github.event_name == 'push'}}
         run: |
-          docker build -t returntocorp/semgrep:develop .
+          #docker build -t returntocorp/semgrep:develop .
           docker push returntocorp/semgrep:develop
 
       - name: Push commit hash if PR
@@ -43,9 +43,9 @@ jobs:
         # try if we can detect is coming from a fork
         if: ${{ github.event_name == 'pull_request' }} && ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
-          tag=returntocorp/semgrep:${{ github.sha }}
-          docker build -t "$tag" .
-          docker push "$tag"
+          #tag=returntocorp/semgrep:${{ github.sha }}
+          #docker build -t "$tag" .
+          #docker push "$tag"
 
       - name: update dev.semgrep.dev
         run: curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
@@ -60,5 +60,5 @@ jobs:
       - name: Build and push semgrep-dev image if on develop branch
         if: ${{ github.event_name == 'push'}}
         run: |
-          docker build -t returntocorp/semgrep-dev:develop .
+          #docker build -t returntocorp/semgrep-dev:develop .
           docker push returntocorp/semgrep-dev:develop
