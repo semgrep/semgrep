@@ -657,9 +657,8 @@ and xml = {
 }
 (*e: type [[AST_generic.xml]] *)
 and xml_kind =
-  (* The tok in the ident contains also the leading '<' *)
-  | XmlClassic   of ident * tok (* '>' *) * tok (* '</foo>' *)
-  | XmlSingleton of ident * tok (* '/>', with xml_body = [] *)
+  | XmlClassic   of tok (*'<'*) * ident * tok (*'>'*) * tok (*'</foo>'*)
+  | XmlSingleton of tok (*'<'*) * ident * tok (* '/>', with xml_body = [] *)
   (* React/JS specific *)
   | XmlFragment of tok (* '<>' *) * tok (* '</>', with xml_attrs = [] *)
 (*s: type [[AST_generic.xml_attribute]] *)

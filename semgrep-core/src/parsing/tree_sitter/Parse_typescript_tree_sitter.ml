@@ -332,7 +332,7 @@ let rec parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_e
 
 and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element) =
   let v1 = JS.token env v1 (* "<" *) in
-  let (s, v2) =
+  let v2 =
     (match v2 with
      | `Choice_choice_jsx_id x -> JS.jsx_attribute_name env x
      | `Choice_id_opt_type_args (v1, v2) ->
@@ -348,12 +348,11 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
   in
   let v3 = List.map (jsx_attribute_ env) v3 in
   let v4 = JS.token env v4 (* ">" *) in
-  let t1 = PI.combine_infos v1 [v2] in
-  (s, t1), v3, v4
+  v1, v2, v3, v4
 
 and jsx_self_clos_elem (env : env) ((v1, v2, v3, v4, v5) : CST.jsx_self_closing_element) =
   let v1 = JS.token env v1 (* "<" *) in
-  let (s, v2) =
+  let v2 =
     (match v2 with
      | `Choice_choice_jsx_id x -> JS.jsx_attribute_name env x
      | `Choice_id_opt_type_args (v1, v2) ->
@@ -370,9 +369,8 @@ and jsx_self_clos_elem (env : env) ((v1, v2, v3, v4, v5) : CST.jsx_self_closing_
   let v3 = List.map (jsx_attribute_ env) v3 in
   let v4 = JS.token env v4 (* "/" *) in
   let v5 = JS.token env v5 (* ">" *) in
-  let t1 = PI.combine_infos v1 [v2] in
   let t2 = PI.combine_infos v4 [v5] in
-  (s, t1), v3, t2
+  v1, v2, v3, t2
 
 and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment)
   : xml =
@@ -471,14 +469,14 @@ and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
 and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
   (match x with
    | `Jsx_elem (v1, v2, v3) ->
-       let (tag, attrs, closing) = jsx_opening_element env v1 in
+       let (t0, tag, attrs, closing) = jsx_opening_element env v1 in
        let v2 = List.map (jsx_child env) v2 in
        let v3 = JS.jsx_closing_element env v3 in
-       { xml_kind = XmlClassic (tag, closing, snd v3);
+       { xml_kind = XmlClassic (t0, tag, closing, snd v3);
          xml_attrs = attrs; xml_body = v2 }
    | `Jsx_self_clos_elem x ->
-       let (tag, attrs, closing) = jsx_self_clos_elem env x in
-       { xml_kind = XmlSingleton (tag, closing); xml_attrs = attrs;
+       let (t0, tag, attrs, closing) = jsx_self_clos_elem env x in
+       { xml_kind = XmlSingleton (t0, tag, closing); xml_attrs = attrs;
          xml_body = [] }
   )
 

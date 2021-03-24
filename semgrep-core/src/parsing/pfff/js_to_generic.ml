@@ -43,6 +43,9 @@ let error = AST_generic.error
 (* Entry point *)
 (*****************************************************************************)
 
+(* todo: you should not use that, just pass the token as-is,
+ * they are the same in ast_js.ml and AST_generic.ml
+*)
 let info x = x
 
 let wrap = fun _of_a (v1, v2) ->
@@ -161,12 +164,12 @@ and xml { xml_kind = xml_tag; xml_attrs = xml_attrs; xml_body = xml_body } =
   { G.xml_kind = tag; xml_attrs = attrs; xml_body = body }
 
 and xml_kind = function
-  | XmlClassic (v1, v2, v3) ->
+  | XmlClassic (v0, v1, v2, v3) ->
       let v1 = ident v1 in
-      G.XmlClassic (v1, v2, v3)
-  | XmlSingleton (v1, v2) ->
+      G.XmlClassic (v0, v1, v2, v3)
+  | XmlSingleton (v0, v1, v2) ->
       let v1 = ident v1 in
-      XmlSingleton (v1, v2)
+      XmlSingleton (v0, v1, v2)
   | XmlFragment (v1, v2) ->
       XmlFragment (v1, v2)
 

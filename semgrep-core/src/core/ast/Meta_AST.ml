@@ -113,15 +113,17 @@ and
   OCaml.VDict bnds
 
 and vof_xmlkind = function
-  | XmlClassic (v1, v2, v3) ->
+  | XmlClassic (v0, v1, v2, v3) ->
+      let v0 = vof_tok v0 in
       let v1 = vof_ident v1 in
       let v2 = vof_tok v2 in
       let v3 = vof_tok v3 in
-      OCaml.VSum ("XmlClassic", [v1; v2; v3])
-  | XmlSingleton (v1, v2) ->
+      OCaml.VSum ("XmlClassic", [v0; v1; v2; v3])
+  | XmlSingleton (v0, v1, v2) ->
+      let v0 = vof_tok v0 in
       let v1 = vof_ident v1 in
       let v2 = vof_tok v2 in
-      OCaml.VSum ("XmlSingleton", [v1; v2])
+      OCaml.VSum ("XmlSingleton", [v0; v1; v2])
   | XmlFragment (v1, v2) ->
       let v1 = vof_tok v1 in
       let v2 = vof_tok v2 in

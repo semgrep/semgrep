@@ -148,15 +148,17 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     { xml_kind = v_xml_tag; xml_attrs = v_xml_attrs; xml_body = v_xml_body }
 
   and map_xml_kind = function
-    | XmlClassic (v1, v2, v3) ->
+    | XmlClassic (v0, v1, v2, v3) ->
+        let v0 = map_tok v0 in
         let v1 = map_ident v1 in
         let v2 = map_tok v2 in
         let v3 = map_tok v3 in
-        XmlClassic (v1, v2, v3)
-    | XmlSingleton (v1, v2) ->
+        XmlClassic (v0, v1, v2, v3)
+    | XmlSingleton (v0, v1, v2) ->
+        let v0 = map_tok v0 in
         let v1 = map_ident v1 in
         let v2 = map_tok v2 in
-        XmlSingleton (v1, v2)
+        XmlSingleton (v0, v1, v2)
     | XmlFragment (v1, v2) ->
         let v1 = map_tok v1 in
         let v2 = map_tok v2 in

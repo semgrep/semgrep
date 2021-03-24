@@ -1120,19 +1120,22 @@ and m_xml a b =
 and m_xml_kind a b =
   match a, b with
   (* iso: allow a Classic to match a Singleton, and vice versa *)
-  | A.XmlClassic (a1, a2, _), B.XmlSingleton (b1, b2)
-  | A.XmlSingleton (a1, a2), B.XmlClassic (b1, b2, _)
+  | A.XmlClassic (a0, a1, a2, _), B.XmlSingleton (b0, b1, b2)
+  | A.XmlSingleton (a0, a1, a2), B.XmlClassic (b0, b1, b2, _)
     ->
+      let* () = m_tok a0 b0 in
       let* () = m_ident a1 b1 in
       let* () = m_tok a2 b2 in
       return ()
 
-  | A.XmlClassic (a1, a2, a3), B.XmlClassic (b1, b2, b3) ->
+  | A.XmlClassic (a0, a1, a2, a3), B.XmlClassic (b0, b1, b2, b3) ->
+      let* () = m_tok a0 b0 in
       let* () = m_ident a1 b1 in
       let* () = m_tok a2 b2 in
       let* () = m_tok a3 b3 in
       return ()
-  | A.XmlSingleton (a1, a2), B.XmlSingleton (b1, b2) ->
+  | A.XmlSingleton (a0, a1, a2), B.XmlSingleton (b0, b1, b2) ->
+      let* () = m_tok a0 b0 in
       let* () = m_ident a1 b1 in
       let* () = m_tok a2 b2 in
       return ()

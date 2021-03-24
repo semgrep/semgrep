@@ -368,11 +368,10 @@ let rec parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_e
 
 and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element) =
   let v1 = token env v1 (* "<" *) in
-  let (s, v2) = jsx_element_name env v2 in
+  let v2 = jsx_element_name env v2 in
   let v3 = List.map (jsx_attribute_ env) v3 in
   let v4 = token env v4 (* ">" *) in
-  let t = PI.combine_infos v1 [v2] in
-  (s, t), v3, v4
+  v1, v2, v3, v4
 
 and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment)
   : xml =
@@ -469,20 +468,19 @@ and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
 and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
   (match x with
    | `Jsx_elem (v1, v2, v3) ->
-       let (tag, attrs, closing) = jsx_opening_element env v1 in
+       let (t0, tag, attrs, closing) = jsx_opening_element env v1 in
        let v2 = List.map (jsx_child env) v2 in
        let v3 = jsx_closing_element env v3 in
-       { xml_kind = XmlClassic (tag, closing, snd v3);
+       { xml_kind = XmlClassic (t0, tag, closing, snd v3);
          xml_attrs = attrs; xml_body = v2 }
    | `Jsx_self_clos_elem (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "<" *) in
-       let (s, v2) = jsx_element_name env v2 in
+       let v2 = jsx_element_name env v2 in
        let v3 = List.map (jsx_attribute_ env) v3 in
        let v4 = token env v4 (* "/" *) in
        let v5 = token env v5 (* ">" *) in
-       let t1 = PI.combine_infos v1 [v2] in
        let t2 = PI.combine_infos v4 [v5] in
-       { xml_kind = XmlSingleton ((s,t1), t2); xml_attrs = v3; xml_body = [] }
+       { xml_kind = XmlSingleton (v1, v2, t2); xml_attrs = v3; xml_body=[]}
   )
 
 

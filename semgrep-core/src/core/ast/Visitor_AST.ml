@@ -209,8 +209,8 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
     ()
   and v_xml_attr v = v_expr v
   and v_xml_kind = function
-    | XmlClassic (v1, v2, v3) -> v_ident v1; v_tok v2; v_tok v3
-    | XmlSingleton (v1, v2) -> v_ident v1; v_tok v2
+    | XmlClassic (v0, v1, v2, v3) -> v_tok v0; v_ident v1; v_tok v2; v_tok v3
+    | XmlSingleton (v0, v1, v2) -> v_tok v0; v_ident v1; v_tok v2
     | XmlFragment (v1, v2) -> v_tok v1; v_tok v2
 
   and v_xml_body =
