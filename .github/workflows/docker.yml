@@ -30,6 +30,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
+          push: true
           tags: returntocorp/semgrep:develop
       - name: Push commit hash if PR
         # Don't run when PR is from a fork
@@ -41,6 +42,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
+          push: true
           tags: returntocorp/semgrep:${{ github.event.pull_request.head.sha }}
       - name: update dev.semgrep.dev
         run: curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
@@ -58,4 +60,5 @@ jobs:
         with:
           context: .
           file: dockerfiles/semgrep-dev.Dockerfile
+          push: true
           tags: returntocorp/semgrep-dev:develop
