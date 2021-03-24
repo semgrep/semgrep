@@ -1,5 +1,3 @@
-Dockerfile
-dockerfiles
 semgrep/build
 semgrep/dist
 

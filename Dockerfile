@@ -71,6 +71,9 @@ RUN chmod 777 /src
 RUN mkdir -p /tmp/.cache
 RUN chmod 777 /tmp/.cache
 
+# Let the user know how their container was built
+COPY dockerfiles/semgrep.Dockerfile /Dockerfile
+
 RUN adduser -D -u 1000 semgrep
 USER 1000
 ENV SEMGREP_IN_DOCKER=1
