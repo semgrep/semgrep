@@ -244,9 +244,18 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
                      v_partial ~recurse:false (PartialSingleField (id, t, e));
                  | _ -> ()
                )
+           (* for Go where we use List for composite literals *)
+           | List ->
+               v2 |> unbracket |> List.iter (function
+                 | Tuple (_, [N (Id (id, _)); e], _) ->
+                     let t = Parse_info.fake_info ":" in
+                     v_partial ~recurse:false (PartialSingleField (id, t, e));
+                 | _ -> ()
+               )
            | _ -> ()
           );
-          let v1 = v_container_operator v1 and v2 = v_bracket (v_list v_expr) v2
+          let v1 = v_container_operator v1
+          and v2 = v_bracket (v_list v_expr) v2
           in ()
       | Tuple v1 -> let v1 = v_bracket (v_list v_expr) v1 in ()
       | Record v1 -> let v1 = v_bracket (v_list v_field) v1 in ()
