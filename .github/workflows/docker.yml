@@ -29,6 +29,7 @@ jobs:
         if: ${{ github.event_name == 'push'}}
         uses: docker/build-push-action@v2
         with:
+          context: .
           tags: returntocorp/semgrep:develop
       - name: Push commit hash if PR
         # Don't run when PR is from a fork
@@ -39,6 +40,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }} && ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         uses: docker/build-push-action@v2
         with:
+          context: .
           tags: returntocorp/semgrep:${{ github.event.pull_request.head.sha }}
       - name: update dev.semgrep.dev
         run: curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
@@ -51,8 +53,9 @@ jobs:
       # adding some utilities. This image is meant for internal uses
       # such as benchmarks.
       - name: Build and push semgrep-dev image if on develop branch
-#        if: ${{ github.event_name == 'push'}}
+        if: ${{ github.event_name == 'push'}}
         uses: docker/build-push-action@v2
         with:
+          context: .
           file: dockerfiles/semgrep-dev.Dockerfile
           tags: returntocorp/semgrep-dev:develop
