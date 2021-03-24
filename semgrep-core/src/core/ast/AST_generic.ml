@@ -649,27 +649,36 @@ and action = pattern * expr
  * reused in ast_js.ml, ast_php.ml
 *)
 (*s: type [[AST_generic.xml]] *)
-(* this is for JSX/TSX in javascript land, and XHP in PHP land *)
+(* this is for JSX/TSX in javascript land (old: and XHP in PHP land) *)
 and xml = {
-  xml_tag: ident;
+  xml_kind: xml_kind;
   xml_attrs: xml_attribute list;
   xml_body: xml_body list;
 }
 (*e: type [[AST_generic.xml]] *)
+and xml_kind =
+  (* The tok in the ident contains also the leading '<' *)
+  | XmlClassic   of ident * tok (* '>' *) * tok (* '</foo>' *)
+  | XmlSingleton of ident * tok (* '/>', with xml_body = [] *)
+  (* React/JS specific *)
+  | XmlFragment of tok (* '<>' *) * tok (* '</>', with xml_attrs = [] *)
 (*s: type [[AST_generic.xml_attribute]] *)
 and xml_attribute =
-  | XmlAttr of ident * expr (* less: bracket *)
+  | XmlAttr of ident * tok (* = *) * xml_attr_value
   (* less: XmlAttrNoValue of ident. <foo a /> <=> <foo a=true /> *)
   (* jsx: usually a Spread operation, e.g., <foo {...bar} /> *)
   | XmlAttrExpr of expr bracket
   (* sgrep: *)
   | XmlEllipsis of tok
   (*e: type [[AST_generic.xml_attribute]] *)
+(* either a String or a bracketed expr, but right now we just use expr *)
+and xml_attr_value = expr
 (*s: type [[AST_generic.xml_body]] *)
 and xml_body =
+  (* sgrep-ext: can contain "..." *)
   | XmlText of string wrap
-  (* this can be Null when people abuse {} to put comments in it *)
-  | XmlExpr of expr (* less: option bracket *)
+  (* this can be None when people abuse {} to put comments in it *)
+  | XmlExpr of expr option bracket
   | XmlXml of xml
   (*e: type [[AST_generic.xml_body]] *)
 

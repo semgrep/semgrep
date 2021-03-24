@@ -195,22 +195,28 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
 
   and v_xml_attribute v =
     match v with
-    | XmlAttr (v1, v2) -> let v1 = v_ident v1 and v2 = v_xml_attr v2 in ()
+    | XmlAttr (v1, t, v2) ->
+        v_ident v1; v_tok t; v_xml_attr v2
     | XmlAttrExpr v -> v_bracket v_expr v
     | XmlEllipsis v -> v_tok v
 
   and
-    v_xml { xml_tag = v_xml_tag; xml_attrs = v_xml_attrs; xml_body = vv_xml_body
+    v_xml { xml_kind = v_xml_tag; xml_attrs = v_xml_attrs; xml_body = vv_xml_body
           } =
-    let v_xml_tag = v_ident v_xml_tag in
+    let v_xml_tag = v_xml_kind v_xml_tag in
     let v_xml_attrs = v_list v_xml_attribute v_xml_attrs in
     let vv_xml_body = v_list v_xml_body vv_xml_body in
     ()
   and v_xml_attr v = v_expr v
+  and v_xml_kind = function
+    | XmlClassic (v1, v2, v3) -> v_ident v1; v_tok v2; v_tok v3
+    | XmlSingleton (v1, v2) -> v_ident v1; v_tok v2
+    | XmlFragment (v1, v2) -> v_tok v1; v_tok v2
+
   and v_xml_body =
     function
     | XmlText v1 -> let v1 = v_wrap v_string v1 in ()
-    | XmlExpr v1 -> let v1 = v_expr v1 in ()
+    | XmlExpr v1 -> let v1 = v_bracket (v_option v_expr) v1 in ()
     | XmlXml v1 ->
         (* subtle: old: let v1 = v_xml v1 in ()
          * We want a simple Expr (Xml ...) pattern to also be matched

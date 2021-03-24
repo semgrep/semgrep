@@ -138,19 +138,33 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
 
 
   and map_xml {
-    xml_tag = v_xml_tag;
+    xml_kind = v_xml_tag;
     xml_attrs = v_xml_attrs;
     xml_body = v_xml_body
   } =
     let v_xml_body = map_of_list map_xml_body v_xml_body in
     let v_xml_attrs = map_of_list map_xml_attribute v_xml_attrs in
-    let v_xml_tag = map_ident v_xml_tag in
-    { xml_tag = v_xml_tag; xml_attrs = v_xml_attrs; xml_body = v_xml_body }
+    let v_xml_tag = map_xml_kind v_xml_tag in
+    { xml_kind = v_xml_tag; xml_attrs = v_xml_attrs; xml_body = v_xml_body }
 
+  and map_xml_kind = function
+    | XmlClassic (v1, v2, v3) ->
+        let v1 = map_ident v1 in
+        let v2 = map_tok v2 in
+        let v3 = map_tok v3 in
+        XmlClassic (v1, v2, v3)
+    | XmlSingleton (v1, v2) ->
+        let v1 = map_ident v1 in
+        let v2 = map_tok v2 in
+        XmlSingleton (v1, v2)
+    | XmlFragment (v1, v2) ->
+        let v1 = map_tok v1 in
+        let v2 = map_tok v2 in
+        XmlFragment (v1, v2)
   and map_xml_attribute = function
-    | XmlAttr (v1, v2) ->
-        let v1 = map_ident v1 and v2 = map_xml_attr v2 in
-        XmlAttr (v1, v2)
+    | XmlAttr (v1, t, v2) ->
+        let v1 = map_ident v1 and t = map_tok t and v2 = map_xml_attr v2 in
+        XmlAttr (v1, t, v2)
     | XmlAttrExpr v ->
         let v = map_bracket map_expr v in
         XmlAttrExpr v
@@ -160,7 +174,8 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   and map_xml_body =
     function
     | XmlText v1 -> let v1 = map_wrap map_of_string v1 in XmlText v1
-    | XmlExpr v1 -> let v1 = map_expr v1 in XmlExpr v1
+    | XmlExpr v1 -> let v1 = map_bracket (map_of_option map_expr) v1 in
+        XmlExpr v1
     | XmlXml v1 -> let v1 = map_xml v1 in XmlXml v1
 
   and map_name = function

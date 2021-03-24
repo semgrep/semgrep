@@ -96,7 +96,7 @@ and vof_id_info { id_resolved = v_id_resolved; id_type = v_id_type;
 
 and
   vof_xml {
-    xml_tag = v_xml_tag;
+    xml_kind = v_xml_tag;
     xml_attrs = v_xml_attrs;
     xml_body = v_xml_body
   } =
@@ -108,15 +108,31 @@ and
     OCaml.vof_list vof_xml_attribute v_xml_attrs in
   let bnd = ("xml_attrs", arg) in
   let bnds = bnd :: bnds in
-  let arg = vof_ident v_xml_tag in
+  let arg = vof_xmlkind v_xml_tag in
   let bnd = ("xml_tag", arg) in let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
+and vof_xmlkind = function
+  | XmlClassic (v1, v2, v3) ->
+      let v1 = vof_ident v1 in
+      let v2 = vof_tok v2 in
+      let v3 = vof_tok v3 in
+      OCaml.VSum ("XmlClassic", [v1; v2; v3])
+  | XmlSingleton (v1, v2) ->
+      let v1 = vof_ident v1 in
+      let v2 = vof_tok v2 in
+      OCaml.VSum ("XmlSingleton", [v1; v2])
+  | XmlFragment (v1, v2) ->
+      let v1 = vof_tok v1 in
+      let v2 = vof_tok v2 in
+      OCaml.VSum ("XmlFragment", [v1; v2])
+
 and vof_xml_attribute = function
-  | XmlAttr (v1, v2) ->
+  | XmlAttr (v1, t, v2) ->
       let v1 = vof_ident v1
+      and t = vof_tok t
       and v2 = vof_xml_attr v2
-      in OCaml.VSum ("XmlAttr", [ v1; v2 ])
+      in OCaml.VSum ("XmlAttr", [ v1; t; v2 ])
   | XmlAttrExpr v1 ->
       let v1 = vof_bracket vof_expr v1 in
       OCaml.VSum ("XmlAttrExpr", [ v1 ])
@@ -131,7 +147,9 @@ and vof_xml_body =
   | XmlText v1 ->
       let v1 = vof_wrap OCaml.vof_string v1
       in OCaml.VSum ("XmlText", [ v1 ])
-  | XmlExpr v1 -> let v1 = vof_expr v1 in OCaml.VSum ("XmlExpr", [ v1 ])
+  | XmlExpr v1 ->
+      let v1 = vof_bracket (OCaml.vof_option vof_expr) v1 in
+      OCaml.VSum ("XmlExpr", [ v1 ])
   | XmlXml v1 -> let v1 = vof_xml v1 in OCaml.VSum ("XmlXml", [ v1 ])
 
 and vof_name = function

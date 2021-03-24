@@ -331,8 +331,8 @@ let rec parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_e
   v2
 
 and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element) =
-  let _v1 = JS.token env v1 (* "<" *) in
-  let v2 : ident =
+  let v1 = JS.token env v1 (* "<" *) in
+  let (s, v2) =
     (match v2 with
      | `Choice_choice_jsx_id x -> JS.jsx_attribute_name env x
      | `Choice_id_opt_type_args (v1, v2) ->
@@ -347,12 +347,13 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
     )
   in
   let v3 = List.map (jsx_attribute_ env) v3 in
-  let _v4 = JS.token env v4 (* ">" *) in
-  v2, v3
+  let v4 = JS.token env v4 (* ">" *) in
+  let t1 = PI.combine_infos v1 [v2] in
+  (s, t1), v3, v4
 
 and jsx_self_clos_elem (env : env) ((v1, v2, v3, v4, v5) : CST.jsx_self_closing_element) =
-  let _v1 = JS.token env v1 (* "<" *) in
-  let v2 : ident =
+  let v1 = JS.token env v1 (* "<" *) in
+  let (s, v2) =
     (match v2 with
      | `Choice_choice_jsx_id x -> JS.jsx_attribute_name env x
      | `Choice_id_opt_type_args (v1, v2) ->
@@ -367,35 +368,41 @@ and jsx_self_clos_elem (env : env) ((v1, v2, v3, v4, v5) : CST.jsx_self_closing_
     )
   in
   let v3 = List.map (jsx_attribute_ env) v3 in
-  let _v4 = JS.token env v4 (* "/" *) in
-  let _v5 = JS.token env v5 (* ">" *) in
-  v2, v3
+  let v4 = JS.token env v4 (* "/" *) in
+  let v5 = JS.token env v5 (* ">" *) in
+  let t1 = PI.combine_infos v1 [v2] in
+  let t2 = PI.combine_infos v4 [v5] in
+  (s, t1), v3, t2
 
 and jsx_fragment (env : env) ((v1, v2, v3, v4, v5, v6) : CST.jsx_fragment)
   : xml =
   let v1 = JS.token env v1 (* "<" *) in
-  let _v2 = JS.token env v2 (* ">" *) in
+  let v2 = JS.token env v2 (* ">" *) in
   let v3 = List.map (jsx_child env) v3 in
-  let _v4 = JS.token env v4 (* "<" *) in
-  let _v5 = JS.token env v5 (* "/" *) in
-  let _v6 = JS.token env v6 (* ">" *) in
-  { xml_tag = "", v1; xml_attrs = []; xml_body = v3 }
+  let v4 = JS.token env v4 (* "<" *) in
+  let v5 = JS.token env v5 (* "/" *) in
+  let v6 = JS.token env v6 (* ">" *) in
+  let t1 = PI.combine_infos v1 [v2] in
+  let t2 = PI.combine_infos v4 [v5;v6] in
+  { xml_kind = XmlFragment (t1, t2); xml_attrs = []; xml_body = v3 }
 
-and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) : expr bracket =
+
+and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression)
+  : expr option bracket =
   let v1 = JS.token env v1 (* "{" *) in
   let v2 =
     (match v2 with
      | Some x ->
-         (match x with
-          | `Exp x -> expression env x
-          | `Seq_exp x -> sequence_expression env x
-          | `Spread_elem x ->
-              let (t, e) = spread_element env x in
-              Apply (IdSpecial (Spread, t), fb [e])
+         Some (match x with
+           | `Exp x -> expression env x
+           | `Seq_exp x -> sequence_expression env x
+           | `Spread_elem x ->
+               let (t, e) = spread_element env x in
+               Apply (IdSpecial (Spread, t), fb [e])
          )
      (* abusing { } in XML to just add comments, e.g. { /* lint-ignore */ } *)
      | None ->
-         IdSpecial (Null, v1)
+         None
     )
   in
   let v3 = JS.token env v3 (* "}" *) in
@@ -405,21 +412,28 @@ and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
   (match x with
    | `Jsx_attr (v1, v2) ->
        let v1 = JS.jsx_attribute_name env v1 in
-       let v2 =
+       let teq, v2 =
          match v2 with
          | Some (v1, v2) ->
-             let _v1bis = JS.token env v1 (* "=" *) in
+             let v1bis = JS.token env v1 (* "=" *) in
              let v2 = jsx_attribute_value env v2 in
-             v2
+             v1bis, v2
          (* see https://www.reactenlightenment.com/react-jsx/5.7.html *)
-         | None -> L (Bool (true, snd v1))
+         | None -> snd v1, L (Bool (true, snd v1))
        in
-       XmlAttr (v1, v2)
+       XmlAttr (v1, teq, v2)
    (* less: we could enforce that it's only a Spread operation *)
    | `Jsx_exp x ->
-       let e = jsx_expression env x in
-       XmlAttrExpr e
+       let x = jsx_expression_some env x in
+       XmlAttrExpr x
   )
+
+and jsx_expression_some env x =
+  let (t1, eopt, t2) = jsx_expression env x in
+  match eopt with
+  | None ->
+      JS.todo_any "jsx_expression_some got a None expr" t1 (Program [])
+  | Some e -> (t1, e, t2)
 
 and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
   (match x with
@@ -427,7 +441,7 @@ and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
        let s = JS.string_ env x in
        L (String s)
    | `Jsx_exp x ->
-       let (_, e, _) = jsx_expression env x in
+       let (_, e, _) = jsx_expression_some env x in
        e
    (* an attribute value can be a jsx element? *)
    | `Choice_jsx_elem x ->
@@ -447,8 +461,8 @@ and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
        let xml = jsx_element_ env x in
        XmlXml xml
    | `Jsx_exp x ->
-       let (_, e, _) = jsx_expression env x in
-       XmlExpr e
+       let x = jsx_expression env x in
+       XmlExpr x
    | `Jsx_frag x ->
        let xml = jsx_fragment env x in
        XmlXml xml
@@ -457,14 +471,14 @@ and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
 and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
   (match x with
    | `Jsx_elem (v1, v2, v3) ->
-       let v1 = jsx_opening_element env v1 in
+       let (tag, attrs, closing) = jsx_opening_element env v1 in
        let v2 = List.map (jsx_child env) v2 in
-       let _v3 = JS.jsx_closing_element env v3 in
-       { xml_tag = fst v1; xml_attrs = snd v1;
-         xml_body = v2 }
+       let v3 = JS.jsx_closing_element env v3 in
+       { xml_kind = XmlClassic (tag, closing, snd v3);
+         xml_attrs = attrs; xml_body = v2 }
    | `Jsx_self_clos_elem x ->
-       let v1 = jsx_self_clos_elem env x in
-       { xml_tag = fst v1; xml_attrs = snd v1;
+       let (tag, attrs, closing) = jsx_self_clos_elem env x in
+       { xml_kind = XmlSingleton (tag, closing); xml_attrs = attrs;
          xml_body = [] }
   )
 
