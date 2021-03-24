@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Build the semgrep Docker image
+      - name: Build the semgrep Docker image with default Dockerfile
         run: docker build -t returntocorp/semgrep .
       - name: Check the semgrep Docker image
         run: ./scripts/validate-docker-build.sh returntocorp/semgrep
       - name: Push develop image if on develop branch
         if: ${{ github.event_name == 'push'}}
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -33,7 +33,7 @@ jobs:
         # nicer to not have a "failing" CI job in the PR so don't even
         # try if we can detect is coming from a fork
         if: ${{ github.event_name == 'pull_request' }} && ${{ github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: docker/build-push-action@v1
+        uses: docker/build-push-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -49,15 +49,11 @@ jobs:
       # Extend the semgrep image, changing the entry point to bash and
       # adding some utilities. This image is meant for internal uses
       # such as benchmarks.
-      - name: Build the extended semgrep-dev Docker image
-        run: |
-          docker build \
-            -f dockerfiles/semgrep-dev.Dockerfile \
-            -t returntocorp/semgrep-dev .
-      - name: Push develop image if on develop branch
-        if: ${{ github.event_name == 'push'}}
-        uses: docker/build-push-action@v1
+      - name: Build and push semgrep-dev image if on develop branch
+#        if: ${{ github.event_name == 'push'}}
+        uses: docker/build-push-action@v2
         with:
+          file: dockerfiles/semgrep-dev.Dockerfile
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: returntocorp/semgrep-dev
