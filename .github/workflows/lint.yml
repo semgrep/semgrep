@@ -37,6 +37,7 @@ jobs:
         id: semgrep
         uses: returntocorp/semgrep-action@v1
         with:
+          auditOn: pull_request
           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
           publishDeployment: "1"
 
