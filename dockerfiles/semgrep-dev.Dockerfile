@@ -22,5 +22,8 @@ RUN apk add --no-cache \
   bash \
   curl
 
+# Let the user know how their container was built
+COPY dockerfiles/semgrep-dev.Dockerfile /Dockerfile
+
 USER semgrep
 ENTRYPOINT ["/bin/bash"]
