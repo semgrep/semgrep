@@ -48,7 +48,7 @@ repos:
         args: ["--select=B,E9,F63,F7,F82"]
 
   - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.31.1'
+    rev: 'v0.43.0'
     hooks:
       - id: semgrep
         name: Semgrep Python
@@ -60,12 +60,6 @@ repos:
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
-      - id: semgrep
-        name: Semgrep Local
-        types: [python]
-        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        # Managed at https://semgrep.dev/mschwager:semgrep-local
-        args: ['--config', 'https://semgrep.dev/mschwager:semgrep-local', '--error']
 
   - repo: local
     hooks:
@@ -88,7 +82,7 @@ repos:
   # Run develop semgrep. Only used in CI
   # To run locally use `pre-commit run --hook-stage manual semgrep-docker-develop`
   - repo: https://github.com/returntocorp/semgrep
-    rev: 'v0.32.0'
+    rev: 'v0.43.0'
     hooks:
       - id: semgrep-docker-develop
         name: Semgrep Develop Python
@@ -101,13 +95,6 @@ repos:
         types: [python]
         exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
         args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
-        stages: [manual]
-      - id: semgrep-docker-develop
-        name: Semgrep Develop Local
-        types: [python]
-        exclude: "^semgrep/tests/.+$|^scripts/.+$|^semgrep/setup.py$"
-        # Managed at https://semgrep.dev/mschwager:semgrep-local
-        args: ['--config', 'https://semgrep.dev/mschwager:semgrep-local', '--error']
         stages: [manual]
 
   # Re-indent OCaml code (ml, mli) with ocp-indent if ocp-indent is
