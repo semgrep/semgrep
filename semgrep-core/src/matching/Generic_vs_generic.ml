@@ -1069,34 +1069,6 @@ and m_container_ordered_elements a b =
 and m_other_expr_operator = m_other_xxx
 (*e: function [[Generic_vs_generic.m_other_expr_operator]] *)
 
-(*---------------------------------------------------------------------------*)
-(* XML *)
-(*---------------------------------------------------------------------------*)
-
-(*s: function [[Generic_vs_generic.m_xml]] *)
-and m_xml a b =
-  match a, b with
-  | { A.xml_tag = a1; xml_attrs = a2; xml_body = a3 },
-    { B.xml_tag = b1; xml_attrs = b2; xml_body = b3 } ->
-      m_ident a1 b1 >>= (fun () ->
-        m_attrs a2 b2 >>= (fun () ->
-          m_bodies a3 b3
-        ))
-(*e: function [[Generic_vs_generic.m_xml]] *)
-
-(*s: function [[Generic_vs_generic.m_attrs]] *)
-and m_attrs a b =
-  let _has_ellipsis, a = has_xml_ellipsis_and_filter_ellipsis a in
-  (* always implicit ... *)
-  m_list_in_any_order ~less_is_ok:true m_xml_attr a b
-(*e: function [[Generic_vs_generic.m_attrs]] *)
-
-(*s: function [[Generic_vs_generic.m_bodies]] *)
-and m_bodies a b =
-  m_list__m_body a b
-(*e: function [[Generic_vs_generic.m_bodies]] *)
-
-
 and m_compatible_type typed_mvar t e =
   match t, e with
   (* for Python literal checking *)
@@ -1131,6 +1103,61 @@ and m_compatible_type typed_mvar t e =
       (fun () -> envf typed_mvar (MV.E e))
   | _ -> fail ()
 
+(*---------------------------------------------------------------------------*)
+(* XML *)
+(*---------------------------------------------------------------------------*)
+
+(*s: function [[Generic_vs_generic.m_xml]] *)
+and m_xml a b =
+  match a, b with
+  | { A.xml_kind = a1; xml_attrs = a2; xml_body = a3 },
+    { B.xml_kind = b1; xml_attrs = b2; xml_body = b3 } ->
+      m_xml_kind a1 b1 >>= (fun () ->
+        m_attrs a2 b2 >>= (fun () ->
+          m_bodies a3 b3
+        ))
+(*e: function [[Generic_vs_generic.m_xml]] *)
+and m_xml_kind a b =
+  match a, b with
+  (* iso: allow a Classic to match a Singleton, and vice versa *)
+  | A.XmlClassic (a0, a1, a2, _), B.XmlSingleton (b0, b1, b2)
+  | A.XmlSingleton (a0, a1, a2), B.XmlClassic (b0, b1, b2, _)
+    ->
+      let* () = m_tok a0 b0 in
+      let* () = m_ident a1 b1 in
+      let* () = m_tok a2 b2 in
+      return ()
+
+  | A.XmlClassic (a0, a1, a2, a3), B.XmlClassic (b0, b1, b2, b3) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_ident a1 b1 in
+      let* () = m_tok a2 b2 in
+      let* () = m_tok a3 b3 in
+      return ()
+  | A.XmlSingleton (a0, a1, a2), B.XmlSingleton (b0, b1, b2) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_ident a1 b1 in
+      let* () = m_tok a2 b2 in
+      return ()
+  | A.XmlFragment (a1, a2), B.XmlFragment (b1, b2) ->
+      let* () = m_tok a1 b1 in
+      let* () = m_tok a2 b2 in
+      return ()
+  | A.XmlClassic _, _ | A.XmlSingleton _, _ | A.XmlFragment _, _ ->
+      fail ()
+
+(*s: function [[Generic_vs_generic.m_attrs]] *)
+and m_attrs a b =
+  let _has_ellipsis, a = has_xml_ellipsis_and_filter_ellipsis a in
+  (* always implicit ... *)
+  m_list_in_any_order ~less_is_ok:true m_xml_attr a b
+(*e: function [[Generic_vs_generic.m_attrs]] *)
+
+(*s: function [[Generic_vs_generic.m_bodies]] *)
+and m_bodies a b =
+  m_list__m_body a b
+(*e: function [[Generic_vs_generic.m_bodies]] *)
+
 (*s: function [[Generic_vs_generic.m_list__m_body]] *)
 and m_list__m_body a b =
   match a with
@@ -1143,10 +1170,10 @@ and m_list__m_body a b =
 (*s: function [[Generic_vs_generic.m_xml_attr]] *)
 and m_xml_attr a b =
   match a, b with
-  | A.XmlAttr (a1, a2), B.XmlAttr (b1, b2) ->
-      m_ident a1 b1 >>= (fun () ->
-        m_xml_attr_value a2 b2
-      )
+  | A.XmlAttr (a1, at, a2), B.XmlAttr (b1, bt, b2) ->
+      let* () = m_ident a1 b1 in
+      let* () = m_tok at bt in
+      m_xml_attr_value a2 b2
   | A.XmlAttrExpr a1, B.XmlAttrExpr b1 ->
       m_bracket m_expr a1 b1
   | A.XmlEllipsis(a1), B.XmlEllipsis(b1) ->
@@ -1171,7 +1198,8 @@ and m_body a b =
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_body]] boilerplate cases *)
   | A.XmlExpr a1, B.XmlExpr b1 ->
-      m_expr a1 b1
+      (* less: could allow ... to match also a None *)
+      m_bracket (m_option m_expr) a1 b1
   | A.XmlXml a1, B.XmlXml b1 ->
       m_xml a1 b1
   | A.XmlText _, _
