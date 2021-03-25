@@ -1,13 +1,19 @@
 #! /usr/bin/env python3
 #
 # Run semgrep-core on a series of pairs (rules, repo) with different options
-# and report the time it takes. This is separate from run-benchmarks because
-# semgrep-core needs to pass in the language along with the target files.
+# and report the time it takes.
 #
-# We implement that by adding the main language of the rules being run with
+# This is separate from run-benchmarks because semgrep-core needs to pass in
+# the language along with the target files.
+#
+# We implement that by adding the main language of the rules being run to
 # each corpus. However, this limits the set of languages we can use. We are
 # additionally limited by what semgrep-core is able to parse, as noted by
 # some commented out tests
+#
+# The end goal is for semgrep-core to replace semgrep in analyzing rules
+# and to unify the two files. This file is for local convenience and should
+# not be used in CI
 #
 # Requires semgrep-core (make install in the semgrep-core folder)
 #
