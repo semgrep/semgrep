@@ -14,8 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
+      - name: Pull previous image for caching purposes
+        run: |
+          docker pull returntocorp/semgrep:develop || :
+
       - name: Build the semgrep Docker image with default Dockerfile
         run: docker build -t returntocorp/semgrep .
+
       - name: Check the semgrep Docker image
         run: ./scripts/validate-docker-build.sh returntocorp/semgrep
 
@@ -24,10 +30,6 @@ jobs:
           docker login \
             -u ${{ secrets.DOCKER_USERNAME }} \
             -p ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Pull previous image for caching purposes
-        run: |
-          docker pull returntocorp/semgrep:develop || :
 
       - name: Build and push semgrep image if on develop branch
         if: ${{ github.event_name == 'push'}}
