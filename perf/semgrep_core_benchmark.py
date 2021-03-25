@@ -1,31 +1,36 @@
 #! /usr/bin/env python3
 #
+# Main function is in run-benchmarks. Can be called via
+#               ./run-benchmarks --semgrep_core
+#
 # Run semgrep-core on a series of pairs (rules, repo) with different options
 # and report the time it takes.
 #
-# This is separate from run-benchmarks because semgrep-core needs to pass in
-# the language along with the target files.
-#
+# semgrep-core needs the user to pass in the language to analyze in.
 # We implement that by adding the main language of the rules being run to
-# each corpus. However, this limits the set of languages we can use. We are
-# additionally limited by what semgrep-core is able to parse, as noted by
-# some commented out tests
+# each corpus. However, this limits the set of corpuses we can use.
+#
+# Right now, the corpus is labelled with a language because we chose to only
+# use corpuses that are primarily one language, which makes their runtime
+# comparable to the runs using semgrep. We could also have chosen to
+# label the rules, or change the pair to (rules, repo, lang), but ultimately
+# we would like semgrep-core to be able to infer the language
+#
+# We are additionally limited by what semgrep-core is able to parse, as
+# noted by some commented out tests
 #
 # The end goal is for semgrep-core to replace semgrep in analyzing rules
-# and to unify the two files. This file is for local convenience and should
-# not be used in CI
+# and to unify the two files. The --semgrep_core option is currently meant
+# for local convenience, not use in CI
 #
 # Requires semgrep-core (make install in the semgrep-core folder)
 #
-import argparse
 import os
 import subprocess
 import time
 import urllib.request
 from contextlib import contextmanager
-from pathlib import Path
 from typing import Iterator
-from typing import List
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
 
@@ -97,10 +102,12 @@ class SemgrepVariant:
 # Semgrep-core variants are separate for now because semgrep-core with
 # -config is not official. Still uses the class SemgrepVariant
 SEMGREP_CORE_VARIANTS = [
-    SemgrepVariant("std", "-bloom_filter"),
+    SemgrepVariant("std", ""),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
-    SemgrepVariant("filter-files", "-fast -bloom_filter"),
-    SemgrepVariant("filter-files_no-bloom", "-fast -no_bloom_filter"),
+    SemgrepVariant("filter-irrelevant-rules", "-filter_irrelevant_rules"),
+    SemgrepVariant(
+        "filter-rules_no-bloom", "-filter_irrelevant_rules -no_bloom_filter"
+    ),
 ]
 
 # Add support for: with chdir(DIR): ...
@@ -140,7 +147,8 @@ def run_semgrep_core(corpus: Corpus, variant: SemgrepVariant) -> float:
         os.path.abspath(corpus.target_dir),
     ]
     args.extend(common_args)
-    args.extend(variant.semgrep_core_extra.split(" "))
+    if variant.semgrep_core_extra != "":
+        args.extend(variant.semgrep_core_extra.split(" "))
 
     print(f"current directory: {os.getcwd()}")
     print("semgrep-core command: {}".format(" ".join(args)))
@@ -181,22 +189,3 @@ def run_benchmarks(dummy: bool, upload: bool) -> None:
                     upload_result(metric_name, duration)
     for msg in results:
         print(msg)
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--dummy",
-        help="run quick, fake benchmarks for development purposes",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--upload", help="upload results to semgrep dashboard", action="store_true"
-    )
-    args = parser.parse_args()
-    with chdir("bench"):
-        run_benchmarks(args.dummy, args.upload)
-
-
-if __name__ == "__main__":
-    main()
