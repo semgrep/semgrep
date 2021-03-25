@@ -189,6 +189,12 @@ let lang_parsing_tests =
       let lang = Lang.Ruby in
       parsing_tests_for_lang files lang
     );
+    "Javascript" >::: (
+      let dir = Filename.concat tests_path "js/parsing" in
+      let files = Common2.glob (spf "%s/*.js" dir) in
+      let lang = Lang.Javascript in
+      parsing_tests_for_lang files lang
+    );
   ]
 
 (*s: constant [[Test.lang_regression_tests]] *)
