@@ -4,10 +4,8 @@ from io import StringIO
 from pathlib import Path
 from re import sub
 from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 
 import attr
@@ -19,16 +17,12 @@ from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import OutputFormat
-from semgrep.constants import RULES_KEY
 from semgrep.core_runner import CoreRunner
-from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.rule import Rule
-from semgrep.rule_lang import YamlMap
-from semgrep.rule_lang import YamlTree
 from semgrep.rule_match import RuleMatch
 from semgrep.target_manager import TargetManager
 

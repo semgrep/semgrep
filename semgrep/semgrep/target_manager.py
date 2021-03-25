@@ -8,7 +8,6 @@ from typing import Collection
 from typing import Dict
 from typing import Iterator
 from typing import List
-from typing import NewType
 from typing import Set
 
 import attr
@@ -16,9 +15,7 @@ import attr
 from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
-from semgrep.semgrep_types import GENERIC_LANGUAGE
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import REGEX_ONLY_LANGUAGE_KEYS
 from semgrep.target_manager_extensions import ALL_EXTENSIONS
 from semgrep.target_manager_extensions import FileExtension
 from semgrep.target_manager_extensions import lang_to_exts
