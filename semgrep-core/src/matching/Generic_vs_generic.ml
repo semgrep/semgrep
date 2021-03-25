@@ -1317,7 +1317,9 @@ and m_arguments_concat a b =
   (*e: [[Generic_vs_generic.m_arguments_concat()]] ellipsis cases *)
   (* the general case *)
   | xa::aas, xb::bbs -> (
-      (* specific case: for concat strings, don't have e*)
+      (* exception: for concat strings, don't have ellipsis match   *)
+      (* string literals since string literals are implicitly not   *)
+      (* interpolated, and ellipsis implicitly is                   *)
       match xa, xb with
       | A.Arg (A.Ellipsis _), A.Arg (A.L _) ->
           fail ()
