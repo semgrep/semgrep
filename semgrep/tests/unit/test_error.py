@@ -7,11 +7,8 @@ import pytest
 from ruamel.yaml import YAML
 
 from semgrep.core_runner import CoreRunner
-from semgrep.error import InvalidPatternError
 from semgrep.error import SemgrepError
 from semgrep.error import SourceParseError
-from semgrep.evaluation import BooleanRuleExpression
-from semgrep.evaluation import OPERATORS
 from semgrep.pattern import Pattern
 from semgrep.rule import Rule
 
