@@ -26,10 +26,10 @@ jobs:
         run: ./scripts/validate-docker-build.sh returntocorp/semgrep:develop
 
       - name: Login to DockerHub
-        run: |
-          docker login \
-            -u ${{ secrets.DOCKER_USERNAME }} \
-            -p ${{ secrets.DOCKER_PASSWORD }}
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKER_USERNAME }}
+          DOCKERHUB_PASS: ${{ secrets.DOCKER_PASSWORD }}
+        run: ./github/docker-login
 
       - name: Push semgrep image if on develop branch
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
