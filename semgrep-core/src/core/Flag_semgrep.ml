@@ -37,7 +37,7 @@ let filter_irrelevant_patterns = ref false
 let filter_irrelevant_rules = ref false
 
 (* check for identifiers before attempting to match a stmt or stmt list *)
-let use_bloom_filter = ref false
+let use_bloom_filter = ref true
 
 (* opt = optimization *)
 let with_opt_cache = ref true
