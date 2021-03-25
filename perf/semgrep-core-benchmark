@@ -1,12 +1,15 @@
 #! /usr/bin/env python3
 #
-# Run semgrep on a series of pairs (rules, repo) with different options,
-# and report the time it takes. Optionally upload the results to the semgrep
-# dashboard.
+# Run semgrep-core on a series of pairs (rules, repo) with different options
+# and report the time it takes. This is separate from run-benchmarks because
+# semgrep-core needs to pass in the language along with the target files.
 #
-# With the -semgrep-core flag, run semgrep-core with different options and
-# report the time it takes. Requires semgrep-core (make install in the
-# semgrep-core folder)
+# We implement that by adding the main language of the rules being run with
+# each corpus. However, this limits the set of languages we can use. We are
+# additionally limited by what semgrep-core is able to parse, as noted by
+# some commented out tests
+#
+# Requires semgrep-core (make install in the semgrep-core folder)
 #
 import argparse
 import os
@@ -90,8 +93,8 @@ class SemgrepVariant:
 SEMGREP_CORE_VARIANTS = [
     SemgrepVariant("std", "-bloom_filter"),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
-    SemgrepVariant("fast", "-fast -bloom_filter"),
-    SemgrepVariant("fast-no-bloom", "-fast -no_bloom_filter"),
+    SemgrepVariant("filter-files", "-fast -bloom_filter"),
+    SemgrepVariant("filter-files_no-bloom", "-fast -no_bloom_filter"),
 ]
 
 # Add support for: with chdir(DIR): ...
