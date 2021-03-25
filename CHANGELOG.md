@@ -2,6 +2,40 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.44.0](https://github.com/returntocorp/semgrep/releases/tag/v0.44.0) - 2021-03-25
+
+### Added
+
+- Support for YAML! You can now write YAML patterns in rules
+  to match over YAML target files (including semgrep YAML rules, inception!)
+- A new Bloomfilter-based optimisation to speedup matching (#2816)
+- Many benchmarks to cover semgrep advertised packs (#2772)
+- A new semgrep-dev docker container useful for benchmarking semgrep (#2800)
+- Titles to rule schema definitions, which can be leveraged in
+  the Semgrep playground (#2703)
+
+### Fixed
+
+- Fixed taint mode and added basic test (#2786)
+- Included formatted errors in SARIF output (#2748)
+- Go: handle correctly the scope of Go's short assignment variables (#2452)
+- Go: fixed the range of matched slices (#2763)
+- PHP: correctly match the PHP superglobal `$_COOKIE` (#2820)
+- PHP: allow ellipsis inside array ranges (#2819)
+- JSX/TSX: fixed the range of matched JSX elements (#2685)
+- Javascript: allow ellipsis in arrow body (#2802)
+- Generic: correctly match the same metavariable when used in different
+  generic patterns
+
+#### Fixed in `semgrep-core` only
+
+These features are not yet available via the `semgrep` CLI,
+but have been fixed to the internal `semgrep-core` binary.
+
+- Fixed all regressions on semgrep-rules when using -fast
+- Handle pattern-not: and pattern-not-inside: as in semgrep
+- Handle pattern: and pattern-inside: as in semgrep (#2777)
+
 ## [0.43.0](https://github.com/returntocorp/semgrep/releases/tag/v0.43.0) - 2021-03-16
 
 ### Added
