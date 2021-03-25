@@ -29,7 +29,7 @@ jobs:
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKER_USERNAME }}
           DOCKERHUB_PASS: ${{ secrets.DOCKER_PASSWORD }}
-        run: ./github/docker-login
+        run: ./.github/docker-login
 
       - name: Push semgrep image if on develop branch
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
