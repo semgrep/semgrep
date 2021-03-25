@@ -4,6 +4,13 @@
 # and report the time it takes. Optionally upload the results to the semgrep
 # dashboard.
 #
+# With the --semgrep_core option, instead run semgrep-core on a series of
+# pairs (rules, repo) with options chosen to test semgrep-core performance.
+# Note that semgrep-core can currently be run for one language only, so
+# these benchmarks only include corpuses that are primarily one language.
+# This allows them to be compared to the semgrep runtimes. Can also upload
+# the results to the dashboard, and use a dummy set instead
+#
 import argparse
 import os
 import subprocess
@@ -13,8 +20,6 @@ from contextlib import contextmanager
 from typing import Iterator
 
 import semgrep_core_benchmark
-
-# With the --semgrep-core option, run semgrep-core on a series of pairs
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
 
