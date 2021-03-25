@@ -146,7 +146,7 @@ let is_metavar_name s =
    * ref: https://www.php.net/manual/en/language.variables.superglobals.php
   *)
   | "$_SERVER" | "$_GET" | "$_POST" | "$_FILES"
-  | "$_COOKIES" | "$_REQUEST" | "$_ENV"
+  | "$_COOKIE" | "$_SESSION" | "$_REQUEST" | "$_ENV"
 
     (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
     ->
