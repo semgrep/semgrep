@@ -14,8 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
       - name: Build the semgrep Docker image with default Dockerfile
-        run: docker build -t returntocorp/semgrep .
+        run: |
+          #docker build -t returntocorp/semgrep .
+
       - name: Check the semgrep Docker image
         run: ./scripts/validate-docker-build.sh returntocorp/semgrep
 
