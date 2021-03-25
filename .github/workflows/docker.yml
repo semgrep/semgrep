@@ -62,5 +62,7 @@ jobs:
       - name: Build and push semgrep-dev image if on develop branch
         if: ${{ github.event_name == 'push'}}
         run: |
-          docker build -t returntocorp/semgrep-dev:develop .
+          docker build \
+            -f dockerfiles/semgrep-dev.Dockerfile \
+            -t returntocorp/semgrep-dev:develop .
           docker push returntocorp/semgrep-dev:develop
