@@ -1316,10 +1316,15 @@ and m_arguments_concat a b =
 
   (*e: [[Generic_vs_generic.m_arguments_concat()]] ellipsis cases *)
   (* the general case *)
-  | xa::aas, xb::bbs ->
-      m_argument xa xb >>= (fun () ->
-        m_arguments_concat aas bbs
-      )
+  | xa::aas, xb::bbs -> (
+      (* specific case: for concat strings, don't have e*)
+      match xa, xb with
+      | A.Arg (A.Ellipsis _), A.Arg (A.L _) ->
+          fail ()
+      | _ ->
+          m_argument xa xb >>= (fun () ->
+            m_arguments_concat aas bbs
+          ))
   | [], _
   | _::_, _ ->
       fail ()
