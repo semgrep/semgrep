@@ -4,15 +4,22 @@
 # and report the time it takes. Optionally upload the results to the semgrep
 # dashboard.
 #
+# With the --semgrep_core option, instead run semgrep-core on a series of
+# pairs (rules, repo) with options chosen to test semgrep-core performance.
+# Note that semgrep-core can currently be run for one language only, so
+# these benchmarks only include corpuses that are primarily one language.
+# This allows them to be compared to the semgrep runtimes. Can also upload
+# the results to the dashboard, and use a dummy set instead
+#
 import argparse
 import os
 import subprocess
 import time
 import urllib.request
 from contextlib import contextmanager
-from pathlib import Path
 from typing import Iterator
-from typing import List
+
+import semgrep_core_benchmark
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
 
@@ -93,11 +100,11 @@ class SemgrepVariant:
 #
 SEMGREP_VARIANTS = [
     # default settings
-    SemgrepVariant("std", "-bloom_filter"),
-    SemgrepVariant("no-cache", "-bloom_filter -no_opt_cache"),
-    SemgrepVariant("max-cache", "-bloom_filter -opt_max_cache"),
+    SemgrepVariant("std", ""),
+    SemgrepVariant("no-cache", "-no_opt_cache"),
+    SemgrepVariant("max-cache", "-opt_max_cache"),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
-    SemgrepVariant("no-gc-tuning", "-bloom_filter -no_gc_tuning"),
+    SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
 ]
 
 # Add support for: with chdir(DIR): ...
@@ -223,9 +230,15 @@ def main() -> None:
     parser.add_argument(
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
+    parser.add_argument(
+        "--semgrep_core", help="run semgrep-core benchmarks", action="store_true"
+    )
     args = parser.parse_args()
     with chdir("bench"):
-        run_benchmarks(args.docker, args.dummy, args.internal, args.upload)
+        if args.semgrep_core:
+            semgrep_core_benchmark.run_benchmarks(args.dummy, args.upload)
+        else:
+            run_benchmarks(args.docker, args.dummy, args.internal, args.upload)
 
 
 if __name__ == "__main__":
