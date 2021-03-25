@@ -44,7 +44,7 @@ module V = Visitor_AST
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let error s =
+let _error s =
   failwith s
 
 (*****************************************************************************)
@@ -83,7 +83,11 @@ let extract_strings_and_mvars ?lang any =
        | TypedMetavar _ ->
            ()
 
-       | DisjExpr _ -> error "DisjExpr, call to ApplyEquivalence too early"
+       (* for bloom_filters: do not recurse here (for ApplyEquivalence,
+        * this would be an error) *)
+       | DisjExpr _ ->
+           ()
+
        | _ -> k x
       );
     );
