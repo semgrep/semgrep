@@ -535,10 +535,91 @@ class CoreRunner:
             match_time_matrix,
         )
 
+    def _run_rules_direct_to_semgrep_core(
+        self,
+        rules: List[Rule],
+        target_manager: TargetManager,
+        profiler: ProfileManager,
+    ):
+        from itertools import chain
+        from collections import defaultdict
+
+        outputs: Dict[Rule, List[RuleMatch]] = defaultdict(list)
+        errors: List[SemgrepError] = []
+        for rule, language in tuple(
+            chain(
+                *([(rule, language) for language in rule.languages] for rule in rules)
+            )
+        ):
+            with tempfile.NamedTemporaryFile(
+                "w", suffix=".yaml"
+            ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
+                targets = self.get_files_for_language(language, rule, target_manager)
+                target_file.write("\n".join(map(lambda p: str(p), targets)))
+                target_file.flush()
+                yaml = YAML()
+                yaml.dump({"rules": [rule._raw]}, rule_file)
+                rule_file.flush()
+
+                cmd = [SEMGREP_PATH] + [
+                    "-lang",
+                    language,
+                    "-fast",
+                    "-json",
+                    "-config",
+                    rule_file.name,
+                    "-j",
+                    str(self._jobs),
+                    "-target_file",
+                    target_file.name,
+                    "-timeout",
+                    str(self._timeout),
+                    "-max_memory",
+                    str(self._max_memory),
+                ]
+
+                r = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                out_bytes, err_bytes, returncode = r.stdout, r.stderr, r.returncode
+                output_json = self._parse_core_output(out_bytes, err_bytes, returncode)
+
+                if returncode != 0:
+                    if "error" in output_json:
+                        self._raise_semgrep_error_from_json(output_json, [], rule)
+                    else:
+                        raise SemgrepError(
+                            f"unexpected json output while invoking semgrep-core with rule '{rule.id}':\n{PLEASE_FILE_ISSUE_TEXT}"
+                        )
+
+            # end with tempfile.NamedTemporaryFile(...) ...
+            outputs[rule].extend(
+                [
+                    RuleMatch.from_pattern_match(
+                        rule.id,
+                        PatternMatch(pattern_match),
+                        message=rule.message,
+                        metadata=rule.metadata,
+                        severity=rule.severity,
+                        fix=rule.fix,
+                        fix_regex=rule.fix_regex,
+                    )
+                    for pattern_match in output_json["matches"]
+                ]
+            )
+            errors.extend(
+                CoreException.from_json(e, language, rule.id).into_semgrep_error()
+                for e in output_json["errors"]
+            )
+        # end for rule, language ...
+
+        return outputs, [], errors, target_manager.targets, {}
+
+    # end _run_rules_direct_to_semgrep_core
+
     def invoke_semgrep(
         self,
         target_manager: TargetManager,
         rules: List[Rule],
+        experimental: bool = True,
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
@@ -553,13 +634,16 @@ class CoreRunner:
         start = datetime.now()
         profiler = ProfileManager()
 
+        runner_fxn = (
+            self._run_rules_direct_to_semgrep_core if experimental else self._run_rules
+        )
         (
             findings_by_rule,
             debug_steps_by_rule,
             errors,
             all_targets,
             match_time_matrix,
-        ) = self._run_rules(rules, target_manager, profiler)
+        ) = runner_fxn(rules, target_manager, profiler)
 
         logger.debug(
             f"semgrep ran in {datetime.now() - start} on {len(all_targets)} files"
