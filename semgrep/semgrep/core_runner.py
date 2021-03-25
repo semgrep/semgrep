@@ -540,7 +540,13 @@ class CoreRunner:
         rules: List[Rule],
         target_manager: TargetManager,
         profiler: ProfileManager,
-    ):
+    ) -> Tuple[
+        Dict[Rule, List[RuleMatch]],
+        Dict[Rule, List[Any]],
+        List[SemgrepError],
+        Set[Path],
+        Dict[Any, Any],
+    ]:
         from itertools import chain
         from collections import defaultdict
 
@@ -611,7 +617,7 @@ class CoreRunner:
             )
         # end for rule, language ...
 
-        return outputs, [], errors, target_manager.targets, {}
+        return outputs, {}, errors, set(Path(p) for p in target_manager.targets), {}
 
     # end _run_rules_direct_to_semgrep_core
 
@@ -619,7 +625,7 @@ class CoreRunner:
         self,
         target_manager: TargetManager,
         rules: List[Rule],
-        experimental: bool = True,
+        experimental: bool = False,
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
