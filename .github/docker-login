@@ -1,0 +1,16 @@
+#! /usr/bin/env bash
+#
+# Read docker registry credentials from environment variables, hoping
+# they don't end up in logs or bash history.
+#
+set -eu
+
+error() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+[[ -v DOCKERHUB_USER ]] || error "Cannot log in: DOCKERHUB_USER is unset."
+[[ -v DOCKERHUB_PASS ]] || error "Cannot log in: DOCKERHUB_PASS is unset."
+
+docker login -u "$DOCKERHUB_USER" -p "$DOCKERHUB_PASS"
