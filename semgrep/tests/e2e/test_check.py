@@ -14,6 +14,7 @@ GITHUB_TEST_GIST_URL = (
 )
 
 
+# https://stackoverflow.com/a/10077069
 def etree_to_dict(t):
     d: Dict[str, Dict] = {t.tag: {}}
     children = list(t)
