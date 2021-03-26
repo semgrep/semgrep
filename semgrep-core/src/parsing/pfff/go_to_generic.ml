@@ -422,32 +422,11 @@ let top_func () =
     | Select (v1, v2) ->
         let v1 = tok v1 and v2 = list comm_clause v2 in
         [G.Switch (v1, None, v2) |> G.s]
-    | For (t, (v1, v2, v3), v4) ->
-        let v1 = option simple v1
-        and v2 = option expr v2
-        and v3 = option simple v3
-        and v4 = stmt v4
-        in
-        (* TODO: some of v1 are really ForInitVar *)
-        let init = match v1 with None -> [] | Some e -> [G.ForInitExpr e] in
-        [G.For (t, G.ForClassic (init, v2, v3), v4) |> G.s]
+    | For (t, vx , v4) ->
+        let vx = for_header vx in
+        let v4 = stmt v4 in
+        [G.For (t, vx, v4) |> G.s]
 
-    | Range (t, v1, v2, v3, v4) ->
-        let opt =  option
-            (fun (v1, v2) -> let v1 = list expr v1 and v2 = tok v2 in
-              v1, v2) v1
-        and v2 = tok v2
-        and v3 = expr v3
-        and v4 = stmt v4
-        in
-        (match opt with
-         | None ->
-             let pattern = G.PatUnderscore (fake "_") in
-             [G.For (t, G.ForEach (pattern, v2, v3), v4) |> G.s]
-         | Some (xs, _tokEqOrColonEqTODO) ->
-             let pattern = G.PatTuple (xs |> List.map H.expr_to_pattern |> G.fake_bracket) in
-             [G.For (t, G.ForEach (pattern, v2, v3), v4) |> G.s]
-        )
     | Return (v1, v2) ->
         let v1 = tok v1 and v2 = option (list expr) v2 in
         [G.Return (v1, v2 |> Common.map_opt (list_to_tuple_or_expr), G.sc) |> G.s]
@@ -472,6 +451,32 @@ let top_func () =
     | Defer (v1, v2) ->
         let _v1 = tok v1 and (e, args) = call_expr v2 in
         [G.OtherStmt (G.OS_Defer, [G.E (G.Call (e, args))]) |> G.s]
+
+  and for_header = function
+    | ForEllipsis t -> G.ForEllipsis t
+    | ForClassic (v1, v2, v3) ->
+        let v1 = option simple v1 in
+        let v2 = option expr v2 in
+        let v3 = option simple v3 in
+        (* TODO: some of v1 are really ForInitVar *)
+        let init = match v1 with None -> [] | Some e -> [G.ForInitExpr e] in
+        G.ForClassic (init, v2, v3)
+
+    | ForRange (v1, v2, v3) ->
+        let opt =  option
+            (fun (v1, v2) -> let v1 = list expr v1 and v2 = tok v2 in
+              v1, v2) v1
+        and v2 = tok v2
+        and v3 = expr v3
+        in
+        (match opt with
+         | None ->
+             let pattern = G.PatUnderscore (fake "_") in
+             G.ForEach (pattern, v2, v3)
+         | Some (xs, _tokEqOrColonEqTODO) ->
+             let pattern = G.PatTuple (xs |> List.map H.expr_to_pattern |> G.fake_bracket) in
+             G.ForEach (pattern, v2, v3)
+        )
 
   and case_clause = function
     | CaseClause (v1, v2) ->

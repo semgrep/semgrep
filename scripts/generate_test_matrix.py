@@ -7,7 +7,6 @@ import json
 import multiprocessing
 import os
 import subprocess
-import sys
 import tempfile
 from typing import Any
 from typing import Dict
@@ -72,6 +71,7 @@ LANGUAGE_EXCEPTIONS = {
 
 EXCLUDE = ["TODO", "POLYGLOT", "e2e", "OTHER"]
 
+# TODO: add dots_for, implemented in JS and Go now
 CHEATSHEET_ENTRIES = {
     "concrete": ["syntax"],
     "dots": [
