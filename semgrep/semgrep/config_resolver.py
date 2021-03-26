@@ -478,7 +478,7 @@ def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None
     if pattern:
         config["rules"][0]["pattern"] = pattern
 
-    yaml = YAML(typ="rt")
+    yaml = YAML()
 
     try:
         yaml.dump(config, fd)

@@ -7,7 +7,6 @@ import json
 import multiprocessing
 import os
 import subprocess
-import sys
 import tempfile
 from typing import Any
 from typing import Dict
@@ -17,7 +16,7 @@ from typing import Tuple
 
 from ruamel.yaml import YAML
 
-yaml = YAML(typ="rt")
+yaml = YAML()
 
 
 FEATURES = ["dots", "equivalence", "metavar", "misc"]

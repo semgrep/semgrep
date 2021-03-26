@@ -17,7 +17,6 @@ from typing import Union
 
 import attr
 import jsonschema.exceptions
-import ruamel.yaml
 from jsonschema.validators import Draft7Validator
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
@@ -40,9 +39,10 @@ class RuleSchema:
         Not thread safe.
         """
         if not cls._schema:
+            yaml = YAML()
             schema_path = Path(__file__).parent / "rule_schema.yaml"
             with schema_path.open() as fd:
-                cls._schema = ruamel.yaml.safe_load(fd)
+                cls._schema = yaml.load(fd)
         return cls._schema
 
 
@@ -391,16 +391,15 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
     any_of_invalid_keys = set()
     required = set()
     banned = set()
+    yaml = YAML()
     for m in (c.message for c in contexts):
         if RuleValidation.BAD_TYPE_SENTINEL in m:
             bad_type.add(m)
         if RuleValidation.INVALID_SENTINEL in m:
             ix = m.find(RuleValidation.INVALID_SENTINEL)
             try:
-                preamble = ruamel.yaml.safe_load(m[:ix]).get("anyOf")
-                postscript = ruamel.yaml.safe_load(
-                    m[ix + len(RuleValidation.INVALID_SENTINEL) :]
-                )
+                preamble = yaml.load(m[:ix]).get("anyOf")
+                postscript = yaml.load(m[ix + len(RuleValidation.INVALID_SENTINEL) :])
                 for r in (p.get("required", [None])[0] for p in preamble):
                     if r and r in postscript.keys():
                         any_of_invalid_keys.add(r)
