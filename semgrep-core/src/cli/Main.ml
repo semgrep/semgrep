@@ -1239,6 +1239,8 @@ let all_actions () = [
   Common.mk_action_2_arg Datalog_experiment.gen_facts;
   "-postmortem", " <log file",
   Common.mk_action_1_arg Statistics_report.stat;
+  "-test_comby", " <pattern> <file>",
+  Common.mk_action_2_arg Test_comby.test_comby;
 
   "-eval", " <JSON file>",
   Common.mk_action_1_arg Eval_generic.eval_json_file;
