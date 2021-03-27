@@ -272,6 +272,7 @@ def generate_file_pairs(
     unsafe: bool,
     json_output: bool,
     save_test_output_tar: bool = True,
+    experimental: bool = False,
 ) -> None:
     configs = list(config.rglob("*"))
     targets = list(target.rglob("*"))
@@ -303,6 +304,7 @@ def generate_file_pairs(
         no_rewrite_rule_ids=True,
         strict=strict,
         dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
+        experimental=experimental,
     )
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         results = pool.starmap(invoke_semgrep_fn, config_with_tests)
@@ -435,4 +437,5 @@ def test_main(args: argparse.Namespace) -> None:
         args.dangerously_allow_arbitrary_code_execution_from_rules,
         args.json,
         args.save_test_output_tar,
+        experimental=args.experimental,
     )

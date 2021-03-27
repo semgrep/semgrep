@@ -399,7 +399,7 @@ and for_clause (env : env) ((v1, v2, v3, v4, v5) : CST.for_clause) =
      | Some x -> Some (simple_statement env x)
      | None -> None)
   in
-  v1, v3, v5
+  ForClassic (v1, v3, v5)
 
 and anon_choice_param_decl_18823e5 (env : env) (x : CST.anon_choice_param_decl_18823e5) =
   (match x with
@@ -744,14 +744,14 @@ and statement (env : env) (x : CST.statement) : stmt =
         | Some x ->
             (match x with
              | `Exp x ->
-                 For (v1, (None, Some (expression env x), None), v3)
+                 For (v1, ForClassic (None, Some (expression env x), None), v3)
              | `For_clause x ->
                  For (v1, for_clause env x, v3)
              | `Range_clause x ->
                  let (a, b, c) = range_clause env x in
-                 Range (v1, a, b, c, v3)
+                 For (v1, ForRange (a, b, c), v3)
             )
-        | None -> For (v1, (None, None, None), v3)
+        | None -> For (v1, ForClassic (None, None, None), v3)
        )
 
    | `Exp_switch_stmt (v1, v2, v3, v4, v5, v6) ->
