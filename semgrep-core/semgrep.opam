@@ -19,6 +19,14 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 # A big dependency is pfff, but it's now a submodule so it's not listed here
 #TODO: restore  "bisect_ppx" {>= "2.5.0"} once can use ppxlib 0.22.0
 
+# For semgrep CI to be fast, we try to pre-install these packages as part of
+# of the base docker image. When you add a new package or change a version
+# here, please also update the list of packages there:
+#
+#   https://github.com/returntocorp/ocaml-layer/blob/master/common-config.sh
+#
+# or ask Martin to do so.
+#
 depends: [
   "dune" {>= "2.7.0" }
   "bloomf"
