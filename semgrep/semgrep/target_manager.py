@@ -11,6 +11,7 @@ from typing import List
 from typing import Set
 
 import attr
+import pathspec
 
 from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
@@ -187,14 +188,6 @@ class TargetManager:
         return expanded
 
     @staticmethod
-    def match_glob(path: Path, globs: List[str]) -> bool:
-        """
-        Return true if path or any parent of path matches any glob in globs
-        """
-        subpaths = [path, *path.parents]
-        return any(p.match(glob) for p in subpaths for glob in globs)
-
-    @staticmethod
     def filter_includes(arr: Set[Path], includes: List[str]) -> Set[Path]:
         """
         Returns all elements in arr that match any includes pattern
@@ -204,14 +197,25 @@ class TargetManager:
         if not includes:
             return arr
 
-        return set(elem for elem in arr if TargetManager.match_glob(elem, includes))
+        spec = pathspec.PathSpec.from_lines(
+            pathspec.patterns.GitWildMatchPattern, includes
+        )
+        return set(spec.match_files(arr))
 
     @staticmethod
     def filter_excludes(arr: Set[Path], excludes: List[str]) -> Set[Path]:
         """
         Returns all elements in arr that do not match any excludes excludes
+
+        If excludes is empty, returns arr unchanged
         """
-        return set(elem for elem in arr if not TargetManager.match_glob(elem, excludes))
+        if not excludes:
+            return arr
+
+        spec = pathspec.PathSpec.from_lines(
+            pathspec.patterns.GitWildMatchPattern, excludes
+        )
+        return arr - set(spec.match_files(arr))
 
     def filtered_files(self, lang: Language) -> Set[Path]:
         """

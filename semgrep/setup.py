@@ -106,6 +106,7 @@ setuptools.setup(
         "ruamel.yaml==0.16.10",
         "tqdm>=4.46.1",
         "packaging>=20.4",
+        "pathspec>=0.8.0",
         "jsonschema~=3.2.0",
         # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
         # overly prescriptive and pin the version for two reasons: 1) because
