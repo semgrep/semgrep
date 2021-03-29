@@ -391,23 +391,24 @@ def _validation_error_message(error: jsonschema.exceptions.ValidationError) -> s
     any_of_invalid_keys = set()
     required = set()
     banned = set()
-    yaml = YAML()
-    for m in (c.message for c in contexts):
-        if RuleValidation.BAD_TYPE_SENTINEL in m:
-            bad_type.add(m)
-        if RuleValidation.INVALID_SENTINEL in m:
-            ix = m.find(RuleValidation.INVALID_SENTINEL)
+    for context in contexts:
+        if RuleValidation.BAD_TYPE_SENTINEL in context.message:
+            bad_type.add(context.message)
+        if RuleValidation.INVALID_SENTINEL in context.message:
             try:
-                preamble = yaml.load(m[:ix]).get("anyOf")
-                postscript = yaml.load(m[ix + len(RuleValidation.INVALID_SENTINEL) :])
-                for r in (p.get("required", [None])[0] for p in preamble):
-                    if r and r in postscript.keys():
+                required_keys = [
+                    k["required"][0]
+                    for k in context.validator_value.get("anyOf", [])
+                    if "required" in k and k["required"]
+                ]
+                for r in required_keys:
+                    if r and r in context.instance.keys():
                         any_of_invalid_keys.add(r)
-            except (json.JSONDecodeError, AttributeError) as ex:
-                invalid_keys.add(m)
-        if m.startswith(RuleValidation.BANNED_SENTINEL):
-            banned.add(m)
-        require_matches = RuleValidation.REQUIRE_REGEX.match(m)
+            except (json.JSONDecodeError, AttributeError):
+                invalid_keys.add(context.message)
+        if context.message.startswith(RuleValidation.BANNED_SENTINEL):
+            banned.add(context.message)
+        require_matches = RuleValidation.REQUIRE_REGEX.match(context.message)
         if require_matches:
             required.add(require_matches[1])
 
