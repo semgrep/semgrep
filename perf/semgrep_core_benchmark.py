@@ -104,6 +104,7 @@ class SemgrepVariant:
 SEMGREP_CORE_VARIANTS = [
     SemgrepVariant("std", ""),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
+    SemgrepVariant("use-sets", "-set_filter"),
     SemgrepVariant("filter-irrelevant-rules", "-filter_irrelevant_rules"),
     SemgrepVariant(
         "filter-rules_no-bloom", "-filter_irrelevant_rules -no_bloom_filter"
