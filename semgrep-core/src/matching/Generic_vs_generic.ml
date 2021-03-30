@@ -1321,7 +1321,7 @@ and m_arguments_concat a b =
       (* string literals since string literals are implicitly not   *)
       (* interpolated, and ellipsis implicitly is                   *)
       match xa, xb with
-      | A.Arg (A.Ellipsis _), A.Arg (A.L _) ->
+      | A.Arg (A.Ellipsis _), A.Arg (A.L (A.String _)) ->
           fail ()
       | _ ->
           m_argument xa xb >>= (fun () ->
