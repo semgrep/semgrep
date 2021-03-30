@@ -20,7 +20,7 @@ def getRulefilesFromPath(path):
 
 
 def mergeRules(rulefilelist, outputfile):
-    yaml = YAML(typ="rt")
+    yaml = YAML()
     rulefile = {"rules": []}
     for file in rulefilelist:
         rulefileyaml = yaml.load(open(file))
