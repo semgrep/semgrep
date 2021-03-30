@@ -19,7 +19,7 @@ import urllib.request
 from contextlib import contextmanager
 from typing import Iterator
 
-import semgrep_core_benchmark
+import semgrep_core_benchmark  # type: ignore
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
 
@@ -85,13 +85,17 @@ INTERNAL_CORPUSES = [
 
 
 class SemgrepVariant:
-    def __init__(self, name: str, semgrep_core_extra: str):
+    def __init__(self, name: str, semgrep_core_extra: str, semgrep_extra: str = ""):
         # name for the input corpus (rules and targets)
         self.name = name
 
+        # space-separated extra arguments to pass to semgrep-core
+        # command via SEMGREP_CORE_EXTRA environment variable
+        self.semgrep_core_extra = semgrep_core_extra
+
         # space-separated extra arguments to pass to the default semgrep
         # command
-        self.semgrep_core_extra = semgrep_core_extra
+        self.semgrep_extra = semgrep_extra
 
 
 # Feel free to create new variants. The idea is to use the default set
@@ -105,6 +109,7 @@ SEMGREP_VARIANTS = [
     SemgrepVariant("max-cache", "-opt_max_cache"),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
     SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
+    SemgrepVariant("experimental", "-fast", "--experimental"),
 ]
 
 # Add support for: with chdir(DIR): ...
@@ -163,6 +168,8 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
             os.path.abspath(corpus.target_dir),
         ]
     args.extend(common_args)
+    if variant.semgrep_extra != "":
+        args.extend(variant.semgrep_extra)
 
     print(f"current directory: {os.getcwd()}")
     print("semgrep command: {}".format(" ".join(args)))
