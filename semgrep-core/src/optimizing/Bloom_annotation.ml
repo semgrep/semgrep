@@ -14,6 +14,7 @@
 *)
 module B = Bloom_filter
 module V = Visitor_AST
+module Set = Set_
 open AST_generic
 
 (*****************************************************************************)
@@ -52,11 +53,11 @@ open AST_generic
  * necessary if we used a linked list
 *)
 
-let push_list vs (l : 'a list ref) =
-  l := vs @ (!l)
+let push_list s' s =
+  s := Set.union s' !s
 
-let add_all_to_bloom ids bf =
-  List.iter (fun id -> B.add id bf) ids
+let push v s =
+  s := Set.add v !s
 
 (*****************************************************************************)
 (* Traversal methods *)
@@ -72,12 +73,12 @@ let add_all_to_bloom ids bf =
 *)
 
 let rec statement_strings stmt =
-  let res = ref [] in
+  let res = ref Set.empty in
   let top_level = ref true in
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kident = (fun (_k, _) (str, _tok) ->
-      Common.push str res
+      push str res
     );
     V.kexpr = (fun (k, _) x ->
       (match x with
@@ -85,9 +86,9 @@ let rec statement_strings stmt =
         * atoms, chars, even int?
        *)
        | L (String (str, _tok)) ->
-           Common.push str res
+           push str res
        | IdSpecial (_, tok) ->
-           Common.push (Parse_info.str_of_info tok) res
+           push (Parse_info.str_of_info tok) res
        | _ -> k x
       )
     );
@@ -95,7 +96,7 @@ let rec statement_strings stmt =
       (match x with
        | Lit (String (str, _tok)) ->
            if not (Pattern.is_special_string_literal str)
-           then Common.push str res
+           then push str res
        | _ -> k x
       )
     );
@@ -109,8 +110,7 @@ let rec statement_strings stmt =
         (* For any other statement, recurse to add the filter *)
         begin
           let strs = statement_strings x in
-          let bf = B.create !Flag_semgrep.set_instead_of_bloom_filter in
-          add_all_to_bloom strs bf;
+          let bf = B.make_bloom_from_set !Flag_semgrep.set_instead_of_bloom_filter strs in
           push_list strs res;
           x.s_bf <- Some (bf)
         end
@@ -134,9 +134,8 @@ let annotate_program ast =
   let visitor = V.mk_visitor {
     V.default_visitor with
     V.kstmt = (fun (_k, _) x ->
-      let bf = B.create () in
       let ids = statement_strings x in
-      add_all_to_bloom ids bf;
+      let bf = B.make_bloom_from_set !Flag_semgrep.set_instead_of_bloom_filter ids in
       x.s_bf <- Some (bf);
     );
   } in
