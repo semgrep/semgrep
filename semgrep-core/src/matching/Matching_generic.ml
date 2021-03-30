@@ -378,6 +378,7 @@ let _ = Common2.example
 let all_elem_and_rest_of_list xs =
   let xs = Common.index_list xs |> List.map (fun (x, i) -> (i, x)) in
   xs |> List.map (fun (i, x) -> x, List.remove_assq i xs |> List.map snd)
+[@@profiling]
 (*e: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 
 (*s: toplevel [[Matching_generic._1]] *)
