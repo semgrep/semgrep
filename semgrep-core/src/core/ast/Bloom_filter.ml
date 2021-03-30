@@ -1,4 +1,5 @@
 module B = Bloomf
+module Set = Set_
 
 (*****************************************************************************)
 (* Prelude *)
@@ -18,9 +19,11 @@ module B = Bloomf
 (* TODO *)
 type elt = string
 
+type filter = Bloom of elt B.t | Set of elt Set.t
+
 type t = {
   mutable added: bool;
-  filter: elt B.t;
+  filter: filter;
 }
 
 type bbool = No | Maybe
@@ -34,9 +37,11 @@ let pp _formatter _bf = ()
 (* This gives a bloom filter with an expected false positive rate of 0.01
  * when 2500 elements are added. The numbers are chosen by experimentation on
  * a file with 10000 lines of javascript *)
-let create () =
+let create set_or_bloom =
   { added = false;
-    filter = B.create ~error_rate:0.01 2500 }
+    filter = if set_or_bloom then Bloom (B.create ~error_rate:0.01 2500)
+      else Set Set.empty
+  }
 
 let is_empty bf = not bf.added
 

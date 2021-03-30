@@ -109,7 +109,7 @@ let rec statement_strings stmt =
         (* For any other statement, recurse to add the filter *)
         begin
           let strs = statement_strings x in
-          let bf = B.create () in
+          let bf = B.create !Flag_semgrep.set_instead_of_bloom_filter in
           add_all_to_bloom strs bf;
           push_list strs res;
           x.s_bf <- Some (bf)
