@@ -1,5 +1,8 @@
+import io
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
+
+from ruamel.yaml import YAML
 
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import parse_config_string
@@ -83,3 +86,19 @@ def test_multiple_configs():
         rules = config.get_rules(True)
         assert len(rules) == 3
         assert {"rule1", "rule2", "rule3"} == set([rule.id for rule in rules])
+
+
+def test_default_yaml_type_safe():
+    s = '!!python/object/apply:os.system ["echo Hello world"]'
+
+    # Safe, returns the object
+    default_yaml = YAML()
+    assert default_yaml.load(io.StringIO(s)) == ["echo Hello world"]
+
+    # Safe, returns the object
+    rt_yaml = YAML(typ="rt")
+    assert rt_yaml.load(io.StringIO(s)) == ["echo Hello world"]
+
+    # Unsafe, executes the system call
+    unsafe_yaml = YAML(typ="unsafe")
+    assert unsafe_yaml.load(io.StringIO(s)) == 0
