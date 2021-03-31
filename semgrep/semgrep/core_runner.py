@@ -552,69 +552,80 @@ class CoreRunner:
 
         outputs: Dict[Rule, List[RuleMatch]] = defaultdict(list)
         errors: List[SemgrepError] = []
-        for rule, language in tuple(
-            chain(
-                *([(rule, language) for language in rule.languages] for rule in rules)
-            )
-        ):
-            with tempfile.NamedTemporaryFile(
-                "w", suffix=".yaml"
-            ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
-                targets = self.get_files_for_language(language, rule, target_manager)
-                target_file.write("\n".join(map(lambda p: str(p), targets)))
-                target_file.flush()
-                yaml = YAML()
-                yaml.dump({"rules": [rule._raw]}, rule_file)
-                rule_file.flush()
-
-                cmd = [SEMGREP_PATH] + [
-                    "-lang",
-                    language,
-                    "-fast",
-                    "-json",
-                    "-config",
-                    rule_file.name,
-                    "-j",
-                    str(self._jobs),
-                    "-target_file",
-                    target_file.name,
-                    "-timeout",
-                    str(self._timeout),
-                    "-max_memory",
-                    str(self._max_memory),
-                ]
-
-                r = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                out_bytes, err_bytes, returncode = r.stdout, r.stderr, r.returncode
-                output_json = self._parse_core_output(out_bytes, err_bytes, returncode)
-
-                if returncode != 0:
-                    if "error" in output_json:
-                        self._raise_semgrep_error_from_json(output_json, [], rule)
-                    else:
-                        raise SemgrepError(
-                            f"unexpected json output while invoking semgrep-core with rule '{rule.id}':\n{PLEASE_FILE_ISSUE_TEXT}"
-                        )
-
-            # end with tempfile.NamedTemporaryFile(...) ...
-            outputs[rule].extend(
-                [
-                    RuleMatch.from_pattern_match(
-                        rule.id,
-                        PatternMatch(pattern_match),
-                        message=rule.message,
-                        metadata=rule.metadata,
-                        severity=rule.severity,
-                        fix=rule.fix,
-                        fix_regex=rule.fix_regex,
+        # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
+        with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
+            for rule, language in tuple(
+                chain(
+                    *(
+                        [(rule, language) for language in rule.languages]
+                        for rule in rules
                     )
-                    for pattern_match in output_json["matches"]
-                ]
-            )
-            errors.extend(
-                CoreException.from_json(e, language, rule.id).into_semgrep_error()
-                for e in output_json["errors"]
-            )
+                )
+            ):
+                with tempfile.NamedTemporaryFile(
+                    "w", suffix=".yaml"
+                ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
+                    targets = self.get_files_for_language(
+                        language, rule, target_manager
+                    )
+                    target_file.write("\n".join(map(lambda p: str(p), targets)))
+                    target_file.flush()
+                    yaml = YAML()
+                    yaml.dump({"rules": [rule._raw]}, rule_file)
+                    rule_file.flush()
+
+                    cmd = [SEMGREP_PATH] + [
+                        "-lang",
+                        language,
+                        "-fast",
+                        "-json",
+                        "-config",
+                        rule_file.name,
+                        "-j",
+                        str(self._jobs),
+                        "-target_file",
+                        target_file.name,
+                        "-use_parsing_cache",
+                        semgrep_core_ast_cache_dir,
+                        "-timeout",
+                        str(self._timeout),
+                        "-max_memory",
+                        str(self._max_memory),
+                    ]
+
+                    r = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    out_bytes, err_bytes, returncode = r.stdout, r.stderr, r.returncode
+                    output_json = self._parse_core_output(
+                        out_bytes, err_bytes, returncode
+                    )
+
+                    if returncode != 0:
+                        if "error" in output_json:
+                            self._raise_semgrep_error_from_json(output_json, [], rule)
+                        else:
+                            raise SemgrepError(
+                                f"unexpected json output while invoking semgrep-core with rule '{rule.id}':\n{PLEASE_FILE_ISSUE_TEXT}"
+                            )
+
+                # end with tempfile.NamedTemporaryFile(...) ...
+                outputs[rule].extend(
+                    [
+                        RuleMatch.from_pattern_match(
+                            rule.id,
+                            PatternMatch(pattern_match),
+                            message=rule.message,
+                            metadata=rule.metadata,
+                            severity=rule.severity,
+                            fix=rule.fix,
+                            fix_regex=rule.fix_regex,
+                        )
+                        for pattern_match in output_json["matches"]
+                    ]
+                )
+                errors.extend(
+                    CoreException.from_json(e, language, rule.id).into_semgrep_error()
+                    for e in output_json["errors"]
+                )
         # end for rule, language ...
 
         return outputs, {}, errors, set(Path(p) for p in target_manager.targets), {}
