@@ -356,6 +356,26 @@ let save_rules_file_in_tmp () =
   Common.write_file ~file:tmp (Common.read_file !rules_file)
 
 (*****************************************************************************)
+(* xLang *)
+(*****************************************************************************)
+
+(* coupling: Parse_mini_rule.parse_languages *)
+let xlang_of_string s =
+  match s with
+  | "none" | "regex" -> R.LNone
+  | "generic" -> R.LGeneric
+  | _ ->
+      let lang = lang_of_string s in
+      R.L (lang, [])
+
+let xlang_files_of_dirs_or_files xlang files_or_dirs =
+  match xlang with
+  | R.LNone | R.LGeneric ->
+      (* TODO: assert is_file ? spacegrep filter files? *)
+      files_or_dirs
+  | R.L (lang, _) -> Lang.files_of_dirs_or_files lang files_or_dirs
+
+(*****************************************************************************)
 (* Caching *)
 (*****************************************************************************)
 
@@ -544,11 +564,13 @@ let parse_generic lang file =
          try
            logger#info "parsing %s" file;
            (* finally calling the actual function *)
-           let ast = Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+           let {Parse_target. ast; errors; _} =
+             Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
+               lang file
            in
            (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
            (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
-           Left ast
+           Left (ast, errors)
          (* This is a bit subtle, but we now store in the cache whether we had
           * an exception on this file, especially Timeout. Indeed, semgrep now calls
           * semgrep-core per rule, and if one file timeout during parsing, it would
@@ -564,7 +586,7 @@ let parse_generic lang file =
       )
   in
   match v with
-  | Left ast -> ast
+  | Left x -> x
   | Right exn -> raise exn
 [@@profiling]
 (*e: function [[Main_semgrep_core.parse_generic]] *)
@@ -629,20 +651,14 @@ let get_final_files lang xs =
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
-let iter_generic_ast_of_files_and_get_matches_and_exn_to_errors lang f files =
+let iter_files_and_get_matches_and_exn_to_errors f files =
   let matches_and_errors_and_times =
     files |> map (fun file ->
       logger#info "Analyzing %s" file;
       try
         run_with_memory_limit !max_memory (fun () ->
           timeout_function file (fun () ->
-            let lazy_ast_and_errors = lazy (
-              let {Parse_target. ast; errors; _} = parse_generic lang file in
-              ast, errors
-            )
-            in
-            (* calling the hook *)
-            (f file lang lazy_ast_and_errors)
+            (f file)
             |> (fun v ->
               (* This is just to test -max_memory, to give a chance
                * to Gc.create_alarm to run even if the program does
@@ -718,22 +734,21 @@ let semgrep_with_rules lang rules files_or_dirs =
   let files = get_final_files lang files_or_dirs in
   logger#info "processing %d files" (List.length files);
   let matches, errs, match_times =
-    files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors lang
-      (fun file lang lazy_ast_and_errors ->
-         let (ast, errors) = Lazy.force lazy_ast_and_errors in
-         let (matches, errors), match_time =
-           Common.with_time (fun () ->
-             let rules =
-               rules |> List.filter (fun r -> List.mem lang r.MR.languages) in
-             Semgrep_generic.check ~hook:(fun _ _ -> ())
-               Config_semgrep.default_config
-               rules (parse_equivalences ())
-               (file, lang, ast),
-             errors
-           )
-         in
-         (matches, errors, (file, match_time))
-      )
+    files |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
+      let (ast, errors) = parse_generic lang file in
+      let (matches, errors), match_time =
+        Common.with_time (fun () ->
+          let rules =
+            rules |> List.filter (fun r -> List.mem lang r.MR.languages) in
+          Semgrep_generic.check ~hook:(fun _ _ -> ())
+            Config_semgrep.default_config
+            rules (parse_equivalences ())
+            (file, lang, ast),
+          errors
+        )
+      in
+      (matches, errors, (file, match_time))
+    )
   in
   let match_times = if !report_time then Some match_times else None in
   logger#info "found %d matches and %d errors"
@@ -796,33 +811,39 @@ let semgrep_with_real_rules rules files_or_dirs =
    * apply different rules with different languages and different files
    * automatically, like the semgrep python wrapper.
   *)
-  let lang = lang_of_string !lang in
-  let files = Lang.files_of_dirs_or_files lang files_or_dirs in
+  let xlang = xlang_of_string !lang in
+  let files = xlang_files_of_dirs_or_files xlang files_or_dirs in
   logger#info "processing %d files" (List.length files);
 
   let matches, errs, match_times =
-    files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors lang
-      (fun file lang lazy_ast_and_errors ->
-         let rules =
-           rules |> List.filter (fun r ->
-             match r.R.languages with
-             | R.L (x, xs) -> List.mem lang (x::xs)
-             | R.LNone | R.LGeneric -> true
-           )
-         in
-         let hook = fun str env matched_tokens ->
-           if !output_format = Text then begin
-             let xs = Lazy.force matched_tokens in
-             print_match ~str !mvars env Metavariable.ii_of_mval xs
-           end
-         in
-         let xlang = R.L (lang, []) in
-         let matches, errors, match_time =
-           Semgrep.check hook Config_semgrep.default_config
-             rules (file, xlang, lazy_ast_and_errors)
-         in
-         matches, errors, (file, match_time)
-      )
+    files |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
+      let rules =
+        rules |> List.filter (fun r ->
+          match r.R.languages, xlang with
+          | R.L (x, xs), R.L (lang, _) -> List.mem lang (x::xs)
+          | R.LNone, R.LNone
+          | R.LGeneric, R.LGeneric -> true
+          | _ -> false
+        )
+      in
+      let hook = fun str env matched_tokens ->
+        if !output_format = Text then begin
+          let xs = Lazy.force matched_tokens in
+          print_match ~str !mvars env Metavariable.ii_of_mval xs
+        end
+      in
+      let lazy_ast_and_errors = lazy (
+        match xlang with
+        | R.L (lang, _) -> parse_generic lang file
+        | R.LNone | R.LGeneric ->
+            failwith "requesting generic AST for LNone|LGeneric"
+      ) in
+      let matches, errors, match_time =
+        Semgrep.check hook Config_semgrep.default_config
+          rules (file, xlang, lazy_ast_and_errors)
+      in
+      matches, errors, (file, match_time)
+    )
   in
   let match_times = if !report_time then Some match_times else None in
   logger#info "found %d matches and %d errors"
@@ -932,7 +953,7 @@ let semgrep_with_one_pattern lang xs =
           (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
           let process file =
             timeout_function file (fun () ->
-              let {Parse_target.ast; errors; _} = parse_generic lang file in
+              let (ast, errors) = parse_generic lang file in
               if errors <> []
               then pr2 (spf "WARNING: fail to fully parse %s" file);
               Semgrep_generic.check
@@ -980,15 +1001,14 @@ let tainting_with_rules lang rules_file files_or_dirs =
 
     let files = get_final_files lang files_or_dirs in
     let matches, errs, _match_times =
-      files |> iter_generic_ast_of_files_and_get_matches_and_exn_to_errors lang
-        (fun file lang lazy_ast_and_errors ->
-           let (ast, errors) = Lazy.force lazy_ast_and_errors in
-           let rules =
-             rules |> List.filter (fun r -> List.mem lang r.TR.languages) in
-           Tainting_generic.check rules file ast,
-           errors,
-           (file, 0.0) (* TODO? *)
-        )
+      files |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
+        let (ast, errors) = parse_generic lang file in
+        let rules =
+          rules |> List.filter (fun r -> List.mem lang r.TR.languages) in
+        Tainting_generic.check rules file ast,
+        errors,
+        (file, 0.0) (* TODO? *)
+      )
     in
     let flds = JSON_report.json_fields_of_matches_and_errors
         files matches errs None in
@@ -1497,6 +1517,11 @@ let main () =
      (* --------------------------------------------------------- *)
      (* empty entry *)
      (* --------------------------------------------------------- *)
+     (* TODO: should not need that, semgrep should not call us when there
+      * are no files to process. *)
+     | [] when !target_file <> "" && !config_file <> "" ->
+         semgrep_with_real_rules_file !config_file []
+
      | [] ->
          Common.usage usage_msg (options())
     )
