@@ -343,6 +343,89 @@ let debug_semgrep config mini_rules equivalences file lang ast =
   ) |> List.flatten
 
 (*****************************************************************************)
+(* Evaluating spacegrep *)
+(*****************************************************************************)
+let matches_of_spacegrep spacegreps file =
+  (* coupling: mostly copypaste of Spacegrep_main.run_all *)
+  (*
+     We inspect the first 4096 bytes to guess whether the file type.
+     This saves time on large files, by reading typically just one
+     block from the file system.
+   *)
+  let peek_length = 4096 in
+  let partial_doc_src =
+    Spacegrep.Src_file.of_file ~max_len:peek_length file in
+  let doc_type = Spacegrep.File_type.classify partial_doc_src in
+  match doc_type with
+  | (Minified | Binary) ->
+      logger#info "ignoring gibberish file: %s\n%!" file;
+      [], 0.0
+  | _ ->
+      let src =
+        if Spacegrep.Src_file.length partial_doc_src < peek_length
+        (* it's actually complete, no need to re-input the file *)
+        then partial_doc_src
+        else Spacegrep.Src_file.of_file file
+      in
+      let doc = Spacegrep.Parse_doc.of_src src in
+      (* pr (Spacegrep.Doc_AST.show doc); *)
+      Common.with_time (fun () ->
+        spacegreps |> List.map (fun (pat, id, pstr) ->
+          let matches =
+            Spacegrep.Match.search ~case_sensitive:true src pat doc
+          in
+          matches |> List.map (fun m ->
+            let ((pos1,_),(_pos2,_)) = m.Spacegrep.Match.region in
+            let {Spacegrep.Match.value = str; _} = m.Spacegrep.Match.capture in
+            let env =
+              m.Spacegrep.Match.named_captures |> List.map (fun (s, capture) ->
+                let mvar = "$" ^ s in
+                let {Spacegrep.Match.value = str; loc = (pos, _)} = capture in
+                let loc = lexing_pos_to_loc file pos str in
+                let t = info_of_token_location loc in
+                let mval = mval_of_spacegrep_string str t in
+                mvar, mval
+              )
+            in
+
+            let loc = lexing_pos_to_loc file pos1 str in
+            (* this will be adjusted later *)
+            let rule_id = fake_rule_id (id, pstr) in
+            {PM. rule_id; file; range_loc = loc, loc; env;
+             tokens = lazy [info_of_token_location loc];
+            }
+          )
+        ) |> List.flatten
+      )
+
+(*****************************************************************************)
+(* Evaluating regexps *)
+(*****************************************************************************)
+
+let matches_of_regexs regexps lazy_content file =
+  let big_str = Lazy.force lazy_content in
+  Common.with_time (fun () ->
+    regexps |> List.map (fun ((s, re), id, _pstr) ->
+      let subs =
+        try
+          Pcre.exec_all ~rex:re big_str
+        with Not_found -> [||]
+      in
+      subs |> Array.to_list |> List.map (fun sub ->
+        let (charpos, _) = Pcre.get_substring_ofs sub 0 in
+        let str = Pcre.get_substring sub 0 in
+
+        let (line, column) = line_col_of_charpos file charpos in
+        let loc = {PI. str; charpos; file; line; column } in
+        (* this will be re-adjusted later *)
+        let rule_id = fake_rule_id (id, s) in
+        {PM. rule_id; file; range_loc = loc, loc;
+         tokens = lazy [info_of_token_location loc]; env = [] }
+      )
+    ) |> List.flatten
+  )
+
+(*****************************************************************************)
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
@@ -386,68 +469,14 @@ let matches_of_xpatterns config orig_rule
   let spacegrep_matches, spacegrep_match_time =
     if spacegreps = []
     then [], 0.0
-    else begin
-      let src = Spacegrep.Src_file.of_file file in
-      let doc = Spacegrep.Parse_doc.of_src src in
-      (* pr (Spacegrep.Doc_AST.show doc); *)
-      Common.with_time (fun () ->
-        spacegreps |> List.map (fun (pat, id, pstr) ->
-          let matches =
-            Spacegrep.Match.search ~case_sensitive:true src pat doc
-          in
-          matches |> List.map (fun m ->
-            let ((pos1,_),(_pos2,_)) = m.Spacegrep.Match.region in
-            let {Spacegrep.Match.value = str; _} = m.Spacegrep.Match.capture in
-            let env =
-              m.Spacegrep.Match.named_captures |> List.map (fun (s, capture) ->
-                let mvar = "$" ^ s in
-                let {Spacegrep.Match.value = str; loc = (pos, _)} = capture in
-                let loc = lexing_pos_to_loc file pos str in
-                let t = info_of_token_location loc in
-                let mval = mval_of_spacegrep_string str t in
-                mvar, mval
-              )
-            in
-
-            let loc = lexing_pos_to_loc file pos1 str in
-            (* this will be adjusted later *)
-            let rule_id = fake_rule_id (id, pstr) in
-            {PM. rule_id; file; range_loc = loc, loc; env;
-             tokens = lazy [info_of_token_location loc];
-            }
-          )
-        ) |> List.flatten
-      )
-    end
+    else matches_of_spacegrep spacegreps file
   in
 
   (* regexps *)
   let regexp_matches, regexp_match_time =
     if regexps = []
     then [], 0.0
-    else begin
-      let big_str = Lazy.force lazy_content in
-      Common.with_time (fun () ->
-        regexps |> List.map (fun ((s, re), id, _pstr) ->
-          let subs =
-            try
-              Pcre.exec_all ~rex:re big_str
-            with Not_found -> [||]
-          in
-          subs |> Array.to_list |> List.map (fun sub ->
-            let (charpos, _) = Pcre.get_substring_ofs sub 0 in
-            let str = Pcre.get_substring sub 0 in
-
-            let (line, column) = line_col_of_charpos file charpos in
-            let loc = {PI. str; charpos; file; line; column } in
-            (* this will be re-adjusted later *)
-            let rule_id = fake_rule_id (id, s) in
-            {PM. rule_id; file; range_loc = loc, loc;
-             tokens = lazy [info_of_token_location loc]; env = [] }
-          )
-        ) |> List.flatten
-      )
-    end
+    else matches_of_regexs regexps lazy_content file
   in
 
   (* final result *)
