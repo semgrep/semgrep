@@ -29,66 +29,7 @@ module V = Visitor_AST
 let go_really_deeper_stmt = ref true
 
 (*****************************************************************************)
-(* Expressions *)
-(*****************************************************************************)
-
-(*s: function [[SubAST_generic.subexprs_of_expr]] *)
-(* used for deep expression matching *)
-let subexprs_of_expr e =
-  match e with
-  | L _
-  | N _  | IdSpecial _
-  | Ellipsis _ | TypedMetavar _
-    -> []
-
-  | DotAccess (e, _, _) | Await (_, e) | Cast (_, e)
-  | Ref (_, e) | DeRef (_, e) | DeepEllipsis (_, e, _)
-  | DotAccessEllipsis (e, _)
-    -> [e]
-  | Assign (e1, _, e2) | AssignOp (e1, _, e2)
-  | ArrayAccess (e1, (_, e2, _))
-    (* not sure we always want to return 'e1' here *)
-    -> [e1;e2]
-  | Conditional (e1, e2, e3)
-    -> [e1;e2;e3]
-  | Tuple (_, xs, _) | Seq xs
-    -> xs
-  | Container (_, xs)
-    -> unbracket xs
-
-
-  | Call (e, args) ->
-      (* not sure we want to return 'e' here *)
-      e::
-      (args |> unbracket |> Common.map_filter (function
-         | Arg e | ArgKwd (_, e) -> Some e
-         | ArgType _ | ArgOther _ -> None
-       ))
-  | SliceAccess (e1, e2) ->
-      e1::(e2 |> unbracket |> (fun (a, b, c) -> [a; b; c])
-           |> List.map Common.opt_to_list |> List.flatten)
-  | Yield (_, eopt, _) -> Common.opt_to_list eopt
-  | OtherExpr (_, anys) ->
-      (* in theory we should go deeper in any *)
-      anys |> Common.map_filter (function
-        | E e -> Some e
-        | _ -> None
-      )
-
-  (* currently skipped over but could recurse *)
-  | Record _
-  | Constructor _
-  | Lambda _
-  | AnonClass _
-  | Xml _
-  | LetPattern _ | MatchPattern _
-    -> []
-  | DisjExpr _ -> raise Common.Impossible
-[@@profiling]
-(*e: function [[SubAST_generic.subexprs_of_expr]] *)
-
-(*****************************************************************************)
-(* Statements *)
+(* Sub-expressions and sub-statements *)
 (*****************************************************************************)
 
 (*s: function [[SubAST_generic.subexprs_of_stmt]] *)
@@ -141,6 +82,64 @@ let subexprs_of_stmt st =
   | OtherStmt _
     -> []
 (*e: function [[SubAST_generic.subexprs_of_stmt]] *)
+
+(*s: function [[SubAST_generic.subexprs_of_expr]] *)
+(* used for deep expression matching *)
+let subexprs_of_expr e =
+  match e with
+  | L _
+  | N _  | IdSpecial _
+  | Ellipsis _ | TypedMetavar _
+    -> []
+
+  | DotAccess (e, _, _) | Await (_, e) | Cast (_, e)
+  | Ref (_, e) | DeRef (_, e) | DeepEllipsis (_, e, _)
+  | DotAccessEllipsis (e, _)
+    -> [e]
+  | Assign (e1, _, e2) | AssignOp (e1, _, e2)
+  | ArrayAccess (e1, (_, e2, _))
+    (* not sure we always want to return 'e1' here *)
+    -> [e1;e2]
+  | Conditional (e1, e2, e3)
+    -> [e1;e2;e3]
+  | Tuple (_, xs, _) | Seq xs
+    -> xs
+  | Record (_, flds, _) ->
+      flds |> Common2.map_flatten (function
+        | FieldStmt st       -> subexprs_of_stmt st
+        | FieldSpread (_, e) -> [e])
+  | Container (_, xs)
+    -> unbracket xs
+
+
+  | Call (e, args) ->
+      (* not sure we want to return 'e' here *)
+      e::
+      (args |> unbracket |> Common.map_filter (function
+         | Arg e | ArgKwd (_, e) -> Some e
+         | ArgType _ | ArgOther _ -> None
+       ))
+  | SliceAccess (e1, e2) ->
+      e1::(e2 |> unbracket |> (fun (a, b, c) -> [a; b; c])
+           |> List.map Common.opt_to_list |> List.flatten)
+  | Yield (_, eopt, _) -> Common.opt_to_list eopt
+  | OtherExpr (_, anys) ->
+      (* in theory we should go deeper in any *)
+      anys |> Common.map_filter (function
+        | E e -> Some e
+        | _ -> None
+      )
+
+  (* currently skipped over but could recurse *)
+  | Constructor _
+  | Lambda _
+  | AnonClass _
+  | Xml _
+  | LetPattern _ | MatchPattern _
+    -> []
+  | DisjExpr _ -> raise Common.Impossible
+[@@profiling]
+(*e: function [[SubAST_generic.subexprs_of_expr]] *)
 
 (*s: function [[SubAST_generic.substmts_of_stmt]] *)
 (* used for deep statement matching *)
