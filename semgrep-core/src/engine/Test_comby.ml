@@ -14,6 +14,8 @@
 open Common
 open Comby
 
+module MS = Matchers.Metasyntax
+
 let _logger = Logging.get_logger [__MODULE__]
 
 (*****************************************************************************)
@@ -28,11 +30,22 @@ let _logger = Logging.get_logger [__MODULE__]
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let test_comby _pat file =
+let test_comby pat file =
   let (_d,_b,e) = Common2.dbe_of_filename file in
-  let _m =
-    match Matchers.Alpha.select_with_extension ("." ^ e) with
+
+  let metasyntax =
+    { MS.syntax = [ MS.Hole (Everything, MS.Delimited (Some "$", None)) ]
+    ; identifier = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    }
+  in
+  let (module M: Matchers.Matcher.S) =
+    match Matchers.Alpha.select_with_extension ~metasyntax ("." ^ e) with
     | None -> failwith (spf "no Alpha Comby module for extension %s" e)
     | Some x -> x
   in
+  let source = Common.read_file file in
+  (* calling comby matching engine! *)
+  let matches = M.all ~template:pat ~source () in
+  (* print matches in JSON *)
+  Format.printf "%a@." Match.pp_json_lines (None, matches);
   ()
