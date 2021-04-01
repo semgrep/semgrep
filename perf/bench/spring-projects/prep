@@ -1,0 +1,39 @@
+#! /bin/sh
+#
+# Fetch rules and targets prior for the "r2c" benchmark.
+#
+# rule_dir: input/java.yml
+# target_dir: input/spring
+#
+# See ../r2c-rules for centralized copy of the rule
+# Uses sh because bash is not installed within the semgrep docker container.
+#
+set -eu
+
+mkdir -p input
+
+cp ../r2c-rules/java.yml input/
+cd input
+
+# Obtain a shallow clone of a git repo for a specific commit
+shallow_clone() {
+  if [ -d "$name" ]; then
+    echo "Reusing repo '$name'"
+  else
+    echo "Obtaining a shallow clone of git repo '$name', commit $commit"
+    mkdir -p "$name"
+    (
+      cd "$name"
+      git init
+      git remote add origin "$url"
+      git fetch --depth 1 origin "$commit"
+      git checkout FETCH_HEAD -b tmp
+    )
+  fi
+}
+
+# Targets using other repos we run in CI
+name="spring"
+url="https://github.com/spring-projects/spring-framework"
+commit="58e40d1aa2c23f6d9c41d4289f5b5debc10868f6"
+shallow_clone

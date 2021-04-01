@@ -1,0 +1,39 @@
+#! /bin/sh
+#
+# Fetch rules and targets prior for the "r2c" benchmark.
+#
+# rule_dir: input/javascript.yml
+# target_dir: input/socket.io
+#
+# See ../r2c-rules for centralized copy of the rule
+# Uses sh because bash is not installed within the semgrep docker container.
+#
+set -eu
+
+mkdir -p input
+
+cp ../r2c-rules/javascript.yml input/
+cd input
+
+# Obtain a shallow clone of a git repo for a specific commit
+shallow_clone() {
+  if [ -d "$name" ]; then
+    echo "Reusing repo '$name'"
+  else
+    echo "Obtaining a shallow clone of git repo '$name', commit $commit"
+    mkdir -p "$name"
+    (
+      cd "$name"
+      git init
+      git remote add origin "$url"
+      git fetch --depth 1 origin "$commit"
+      git checkout FETCH_HEAD -b tmp
+    )
+  fi
+}
+
+# Targets using other repos we run in CI
+name="socket"
+url="https://github.com/socketio/socket.io"
+commit="1faa7e3aea1414ec814aa935021356e8ed2b054c"
+shallow_clone
