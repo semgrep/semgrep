@@ -12,7 +12,7 @@ from semgrep.error import SourceParseError
 from semgrep.pattern import Pattern
 from semgrep.rule import Rule
 
-yaml = YAML(typ="rt")
+yaml = YAML()
 
 
 def test_different_hash():

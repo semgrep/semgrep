@@ -16,7 +16,7 @@ from typing import Tuple
 
 from ruamel.yaml import YAML
 
-yaml = YAML(typ="rt")
+yaml = YAML()
 
 
 FEATURES = ["dots", "equivalence", "metavar", "misc"]

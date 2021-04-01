@@ -2,6 +2,26 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Coming up next
+
+### Added
+
+### Fixed
+
+### Changed
+
+## [0.45.0](https://github.com/returntocorp/semgrep/releases/tag/v0.45.0) - 2021-03-30
+
+### Added
+
+- New `--experimental` flag for passing rules directly to semgrep-core (#2836)
+
+### Fixed
+
+- Ellipses in template strings don't match string literals (#2780)
+- Go: correctly parse select/switch clauses like in tree-sitter (#2847)
+- Go: parse correctly 'for ...' header in Go patterns (#2838)
+
 ## [0.44.0](https://github.com/returntocorp/semgrep/releases/tag/v0.44.0) - 2021-03-25
 
 ### Added

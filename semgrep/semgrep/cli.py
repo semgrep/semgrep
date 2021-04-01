@@ -324,6 +324,11 @@ def cli() -> None:
             "containing a 'nosem' comment at the end."
         ),
     )
+    output.add_argument(
+        "--experimental",
+        action="store_true",
+        help="Pass rules directly to Semgrep core. This will use the logic evaluation available in Semgrep core.",
+    )
 
     output.add_argument(
         MAX_LINES_FLAG_NAME,
@@ -476,4 +481,5 @@ def cli() -> None:
                 skip_unknown_extensions=args.skip_unknown_extensions,
                 severity=args.severity,
                 report_time=args.json_time,
+                experimental=args.experimental,
             )
