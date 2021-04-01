@@ -6,11 +6,31 @@ module Set = Set_
 (*****************************************************************************)
 (* Simple wrapper over a third-party Bloom filter library.
  *
- * TODO: fill in the blank and choose one OCaml Bloom filter library:
+ * Some OCaml Bloom filter library options:
  *  - https://github.com/mirage/bloomf/ available in OPAM, seems pretty good
  *  - https://github.com/sergezloto/ocaml-bloom-filter
  *  - Martin has one?
-*)
+ * We choose Bloomf because it was available in OPAM, so far no problems,
+ * though it would be nice if it had a bloom filter intersection function
+ *
+ * As a second option, we can also use a set instead of a bloom filter. The
+ * two possible filter types is a temporary state. Eventually, based on our
+ * benchmarking results, we will settle on one.
+ *
+ * In theory, sets ought to be less efficient than bloom filters, since bloom
+ * filters use bits and are constant size. However, in practice, the
+ * implementation of sets and strings are designed to reuse memory as much as
+ * possible. Since every string in the set is already in the AST, and a child
+ * node's set is a subset of its parent, there is a great deal of opportunity
+ * for reusing. Sets will also have no probability of failing, which should
+ * lead to a speedup.
+ *
+ * Other than memory, the main drawback is that bloom filter comparison may be
+ * slightly faster than set comparison (especially if bloom filters are
+ * implemented as bitsets that can be intersected). However, it does not appear
+ * to be a significant factor, and the set comparison can be improved over the
+ * POC implementation.
+ **)
 
 (*****************************************************************************)
 (* Types *)
@@ -19,6 +39,10 @@ module Set = Set_
 (* TODO *)
 type elt = string
 
+(* Since Bloomf.t is imperative, the API for Bloom_filter is as well.
+ * Set.t is immutable, so we use a ref to integrate it with the current
+ * API. If we switch to using Set instead of Bloom, we should change
+ * the API *)
 type filter = Bloom of elt B.t | Set of elt Set.t ref
 
 type t = {
@@ -27,8 +51,6 @@ type t = {
 }
 
 type bbool = No | Maybe
-
-exception Impossible
 
 (*****************************************************************************)
 (* API entry points *)
@@ -78,6 +100,6 @@ let make_bloom_from_set set_instead_of_bloom ids =
     let () =
       match bf.filter with
       | Bloom _ -> Set.iter (fun id -> add id bf) ids
-      | Set _ -> raise Impossible
+      | Set _ -> raise Common.Impossible
     in
     bf
