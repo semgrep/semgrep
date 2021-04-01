@@ -30,6 +30,9 @@ from semgrep.constants import YML_EXTENSIONS
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import partition
 
+YML_TEST_SUFFIXES = [[".test", ".yml"], [".test", ".yaml"]]
+YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
+
 SAVE_TEST_OUTPUT_JSON = "semgrep_runs_output.json"
 SAVE_TEST_OUTPUT_TAR = "semgrep_runs_output.tar.gz"
 
@@ -259,9 +262,47 @@ def invoke_semgrep_multi(
 
 
 def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> bool:
-    rel1 = child1.relative_to(parent1).with_suffix("")
-    rel2 = child2.relative_to(parent2).with_suffix("")
+    def remove_all_suffixes(p: Path) -> Path:
+        result = p.with_suffix("")
+        while result != result.with_suffix(""):
+            result = result.with_suffix("")
+        return result
+
+    rel1 = remove_all_suffixes(child1.relative_to(parent1))
+    rel2 = remove_all_suffixes(child2.relative_to(parent2))
     return rel1 == rel2
+
+
+def get_config_filenames(original_config: Path) -> List[Path]:
+    configs = list(original_config.rglob("*"))
+    return [
+        config
+        for config in configs
+        if config.suffixes in YML_SUFFIXES
+        and not config.name.startswith(".")
+        and not config.parent.name.startswith(".")
+    ]
+
+
+def get_config_test_filenames(
+    original_config: Path, configs: List[Path], original_target: Path
+) -> Dict[Path, List[Path]]:
+    targets = list(original_target.rglob("*"))
+
+    def target_matches_config(target: Path, config: Path) -> bool:
+        correct_suffix = (
+            target.suffixes in YML_TEST_SUFFIXES or target.suffixes not in YML_SUFFIXES
+        )
+        return (
+            relatively_eq(original_target, target, original_config, config)
+            and target.is_file()
+            and correct_suffix
+        )
+
+    return {
+        config: [target for target in targets if target_matches_config(target, config)]
+        for config in configs
+    }
 
 
 def generate_file_pairs(
@@ -274,25 +315,8 @@ def generate_file_pairs(
     save_test_output_tar: bool = True,
     experimental: bool = False,
 ) -> None:
-    configs = list(config.rglob("*"))
-    targets = list(target.rglob("*"))
-    config_filenames = [
-        config_filename
-        for config_filename in configs
-        if config_filename.suffix in YML_EXTENSIONS
-        and not config_filename.name.startswith(".")
-        and not config_filename.parent.name.startswith(".")
-    ]
-    config_test_filenames = {
-        config_filename: [
-            target_filename
-            for target_filename in targets
-            if relatively_eq(target, target_filename, config, config_filename)
-            and target_filename.is_file()
-            and target_filename.suffix not in YML_EXTENSIONS
-        ]
-        for config_filename in config_filenames
-    }
+    config_filenames = get_config_filenames(config)
+    config_test_filenames = get_config_test_filenames(config, config_filenames, target)
     config_with_tests, config_without_tests = partition(
         lambda c: c[1], config_test_filenames.items()
     )
