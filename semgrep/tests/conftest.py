@@ -19,6 +19,7 @@ TESTS_PATH = Path(__file__).parent
 MASKED_KEYS = [
     "tool.driver.semanticVersion",
     "results.extra.metavars.*.unique_id.md5sum",
+    "results.*.checks.*.matches",
 ]
 
 
@@ -42,7 +43,8 @@ def _mark_masked(obj, path_items):
         else:
             next_objs = next_obj
         for o in next_objs:
-            _mark_masked(o, path_items[1:])
+            if isinstance(o, dict):
+                _mark_masked(o, path_items[1:])
 
 
 def _clean_output_json(output_json: str) -> str:

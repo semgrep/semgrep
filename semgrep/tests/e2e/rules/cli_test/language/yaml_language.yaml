@@ -1,0 +1,8 @@
+rules:
+- id: yaml-language
+  pattern: |
+    rules:
+        ...
+  message: YAML language test
+  severity: ERROR
+  languages: [yaml]
