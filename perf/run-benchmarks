@@ -129,7 +129,7 @@ SEMGREP_VARIANTS = [
     SemgrepVariant("max-cache", "-opt_max_cache"),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
     SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
-    # SemgrepVariant("experimental", "-fast", "--experimental"),
+    SemgrepVariant("experimental", "-fast", "--experimental"),
 ]
 
 # Add support for: with chdir(DIR): ...
