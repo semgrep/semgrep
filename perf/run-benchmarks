@@ -80,7 +80,7 @@ DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
 
 # Projects GitLab is using to benchmark us on perf
 GITLAB_CORPUSES = [
-    # (Gitlab large) Run our r2c-ci and r2c-secuirty audit packs on a js/ruby repo
+    # (Gitlab large) Run our javascript and r2c-secuirty audit packs on a js/ruby repo
     Corpus("gitlab", "input/rules", "input/gitlab"),
     # (Gitlab large) Run our security-audit pack on a c repo
     Corpus("smacker", "input/r2c-security-audit.yml", "input/gotree"),
