@@ -1,0 +1,64 @@
+rules:
+- id: python.django.security.injection.path-traversal.path-traversal-file-name.path-traversal-file-name
+  message: |
+    Data from request is passed to a file name `$FILE`.
+    This is a path traversal vulnerability: https://owasp.org/www-community/attacks/Path_Traversal
+    To mitigate, consider using os.path.abspath or os.path.realpath or Path library.
+  metadata:
+    cwe: 'CWE-22: Improper Limitation of a Pathname to a Restricted Directory (''Path
+      Traversal'')'
+    owasp: 'A1: Injection'
+    references:
+    - https://owasp.org/www-community/attacks/Path_Traversal
+  patterns:
+  - pattern-inside: |
+      def $F(...):
+        ...
+  - pattern-not: |
+      ...
+      os.path.realpath(...)
+      ...
+  - pattern-not: |
+      ...
+      os.path.abspath(...)
+      ...
+  - pattern-either:
+    - pattern: |
+        $V = request.$W.get($X)
+        ...
+        $FILE % ($V)
+    - pattern: |
+        $V = request.$W[$X]
+        ...
+        $FILE % ($V)
+    - pattern: |
+        $V = request.$W($X)
+        ...
+        $FILE % ($V)
+    - pattern: |
+        $V = request.$W
+        ...
+        $FILE % ($V)
+        # match format use cases
+    - pattern: |
+        $V = request.$W.get($X)
+        ...
+        $FILE.format(..., $V, ...)
+    - pattern: |
+        $V = request.$W[$X]
+        ...
+        $FILE.format(..., $V, ...)
+    - pattern: |
+        $V = request.$W($X)
+        ...
+        $FILE.format(..., $V, ...)
+    - pattern: |
+        $V = request.$W
+        ...
+        $FILE.format(..., $V, ...)
+  - metavariable-regex:
+      metavariable: $FILE
+      regex: .*\.(log|zip|txt|csv|xml|html).*
+  languages:
+  - python
+  severity: WARNING

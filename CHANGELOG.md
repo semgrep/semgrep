@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Coming up next
 
 ### Added
+- YAML language support to --test
 
 ### Fixed
 
