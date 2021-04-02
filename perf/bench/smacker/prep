@@ -1,0 +1,39 @@
+#! /bin/sh
+#
+# Fetch rules and targets prior for the "smacker" benchmark.
+#
+# rule_dir: input/r2c-security-audit.yml
+# target_dir: input/gotree
+#
+# See ../r2c-rules for centralized copy of the rule
+# Uses sh because bash is not installed within the semgrep docker container.
+#
+set -eu
+
+mkdir -p input
+
+cp ../r2c-rules/r2c-security-audit.yml input/
+cd input
+
+# Obtain a shallow clone of a git repo for a specific commit
+shallow_clone() {
+  if [ -d "$name" ]; then
+    echo "Reusing repo '$name'"
+  else
+    echo "Obtaining a shallow clone of git repo '$name', commit $commit"
+    mkdir -p "$name"
+    (
+      cd "$name"
+      git init
+      git remote add origin "$url"
+      git fetch --depth 1 origin "$commit"
+      git checkout FETCH_HEAD -b tmp
+    )
+  fi
+}
+
+# Targets using other repos we run in CI
+name="gotree"
+url="https://github.com/smacker/go-tree-sitter"
+commit="4a66a1484ecdc0b980f6317d8235e1f611529ab3"
+shallow_clone
