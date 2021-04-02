@@ -26,12 +26,10 @@ from typing import Set
 from typing import Tuple
 
 from semgrep.constants import BREAK_LINE
-from semgrep.constants import YML_EXTENSIONS
+from semgrep.constants import YML_SUFFIXES
+from semgrep.constants import YML_TEST_SUFFIXES
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import partition
-
-YML_TEST_SUFFIXES = [[".test", ".yml"], [".test", ".yaml"]]
-YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
 
 SAVE_TEST_OUTPUT_JSON = "semgrep_runs_output.json"
 SAVE_TEST_OUTPUT_TAR = "semgrep_runs_output.tar.gz"
