@@ -1,0 +1,21 @@
+rules:
+- id: 0..1
+  pattern: |
+    class $CLASS {
+      ...
+      Logger $LOG = ...;
+      ...
+      $X $METHOD(...) {
+        HttpServletRequest $REQ = ...;
+        ...
+        String $VAL = $REQ.getParameter(...);
+        ...
+        $LOG.$LEVEL(<... $VAL ...>);
+        ...
+      }
+      ...
+    }
+  severity: WARNING
+  languages:
+  - java
+  message: <internalonly>
