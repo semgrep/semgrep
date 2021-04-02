@@ -1,0 +1,904 @@
+rules:
+- id: java.lang.security.httpservlet-path-traversal.httpservlet-path-traversal
+  metadata:
+    cwe: 'CWE-22: Improper Limitation of a Pathname to a Restricted Directory (''Path
+      Traversal'')'
+    owasp: 'A1: Injection'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#PATH_TRAVERSAL_IN
+    references:
+    - https://www.owasp.org/index.php/Path_Traversal
+  message: |
+    Detected a potential path traversal. A malicious actor
+    could control the location of this file, to include going backwards
+    in the directory with '../'. To address this, ensure that user-controlled
+    variables in file paths are sanitized. You may aslso consider using a utility
+    method such as org.apache.commons.io.FilenameUtils.getName(...) to only
+    retrieve the file name from the path.
+  patterns:
+  - pattern-inside: |
+      $RETURNTYPE $FUNC (..., HttpServletRequest $REQ, ...) {
+        ...
+      }
+  - pattern-either:
+    - pattern: |
+        $VAR = ($TYPE)$REQ.getParameter(...);
+        ...
+        new File(..., $VAR, ...);
+    - pattern: |
+        $VAR = $REQ.getParameter(...);
+        ...
+        new File(..., $VAR, ...);
+  severity: ERROR
+  languages:
+  - java
+- id: java.lang.security.servletresponse-writer-xss.servletresponse-writer-xss
+  message: |
+    Cross-site scripting detected in HttpServletResponse writer with variable '$VAR'. User
+    input was detected going directly from the HttpServletRequest into output. Ensure your
+    data is properly encoded using org.owasp.encoder.Encode.forHtml: 'Encode.forHtml($VAR)'.
+  metadata:
+    cwe: 'CWE-79: Improper Neutralization of Input During Web Page Generation (''Cross-site
+      Scripting'')'
+    owasp: 'A7: Cross-Site Scripting (''XSS'')'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#XSS_SERVLET
+  severity: ERROR
+  patterns:
+  - pattern-inside: $TYPE $FUNC(..., HttpServletResponse $RESP, ...) { ... }
+  - pattern-inside: $VAR = $REQ.getParameter(...); ...
+  - pattern-either:
+    - pattern: $RESP.getWriter(...).write(..., $VAR, ...);
+    - pattern: |
+        $WRITER = $RESP.getWriter(...);
+        ...
+        $WRITER.write(..., $VAR, ...);
+  languages:
+  - java
+- id: java.lang.security.audit.anonymous-ldap-bind.anonymous-ldap-bind
+  metadata:
+    cwe: 'CWE-287: Improper Authentication'
+    owasp: 'A2: Broken Authentication'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#LDAP_ANONYMOUS
+  message: |
+    Detected anonymous LDAP bind.
+    This permits anonymous users to execute LDAP statements. Consider enforcing
+    authentication for LDAP. See https://docs.oracle.com/javase/tutorial/jndi/ldap/auth_mechs.html
+    for more information.
+  severity: WARNING
+  pattern: |
+    $ENV.put($CTX.SECURITY_AUTHENTICATION, "none");
+    ...
+    $DCTX = new InitialDirContext($ENV, ...);
+  languages:
+  - java
+- id: java.lang.security.audit.bad-hexa-conversion.bad-hexa-conversion
+  metadata:
+    cwe: 'CWE-704: Incorrect Type Conversion or Cast'
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#BAD_HEXA_CONVERSION
+  message: |
+    'Integer.toHexString()' strips leading zeroes from each byte if read byte-by-byte.
+    This mistake weakens the hash value computed since it introduces more collisions.
+    Use 'String.format("%02X", ...)' instead.
+  severity: WARNING
+  languages:
+  - java
+  pattern: |-
+    $X $METHOD(...) {
+      ...
+      MessageDigest $MD = ...;
+      ...
+      $MD.digest(...);
+      ...
+      Integer.toHexString(...);
+    }
+- id: java.lang.security.audit.cbc-padding-oracle.cbc-padding-oracle
+  message: |
+    Using CBC with PKCS5Padding is susceptible to padding orcale attacks. A malicious actor
+    could discern the difference between plaintext with valid or invalid padding. Further,
+    CBC mode does not include any integrity checks. See https://find-sec-bugs.github.io/bugs.htm#CIPHER_INTEGRITY.
+    Use 'AES/GCM/NoPadding' instead.
+  metadata:
+    cwe: 'CWE-696: Incorrect Behavior Order'
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#PADDING_ORACLE
+    references:
+    - https://capec.mitre.org/data/definitions/463.html
+  severity: WARNING
+  patterns:
+  - pattern: $CIPHER.getInstance("=~/.*\/CBC\/PKCS5Padding/");
+  fix: $CIPHER.getInstance("AES/GCM/NoPadding");
+  languages:
+  - java
+- id: java.lang.security.audit.command-injection-formatted-runtime-call.command-injection-formatted-runtime-call
+  patterns:
+  - pattern-either:
+    - pattern: $RUNTIME.exec($X + $Y);
+    - pattern: $RUNTIME.exec(String.format(...));
+    - pattern: $RUNTIME.loadLibrary($X + $Y);
+    - pattern: $RUNTIME.loadLibrary(String.format(...));
+    - patterns:
+      - pattern-either:
+        - pattern: |
+            $RUNTIME.exec("=~/(sh|bash|ksh|csh|tcsh|zsh)/","-c",$ARG,...)
+        - pattern: |
+            $RUNTIME.exec(Arrays.asList("=~/(sh|bash|ksh|csh|tcsh|zsh)/","-c",$ARG,...),...)
+        - pattern: |
+            $RUNTIME.exec(new String[]{"=~/(sh|bash|ksh|csh|tcsh|zsh)/","-c",$ARG,...},...)
+        - patterns:
+          - pattern-either:
+            - pattern: |
+                $RUNTIME.exec($CMD,"-c",$ARG,...)
+            - pattern: |
+                $RUNTIME.exec(Arrays.asList($CMD,"-c",$ARG,...),...)
+            - pattern: |
+                $RUNTIME.exec(new String[]{$CMD,"-c",$ARG,...},...)
+          - pattern-inside: |
+              $CMD = "=~/(sh|bash|ksh|csh|tcsh|zsh)/";
+              ...
+      - pattern-not-inside: |
+          $ARG = "...";
+          ...
+      - pattern-not: |
+          $RUNTIME.exec("...","...","...",...)
+      - pattern-not: |
+          $RUNTIME.exec(new String[]{"...","...","...",...},...)
+      - pattern-not: |
+          $RUNTIME.exec(Arrays.asList("...","...","...",...),...)
+  - pattern-inside: |
+      $TYPE $RUNTIME = Runtime.getRuntime(...);
+      ...
+  message: |
+    A formatted or concatenated string was detected as input to a java.lang.Runtime call.
+    This is dangerous if a variable is controlled by user input and could result in a
+    command injection. Ensure your variables are not controlled by users or sufficiently sanitized.
+  metadata:
+    cwe: 'CWE-78: Improper Neutralization of Special Elements used in an OS Command
+      (''OS Command Injection'')'
+    owasp: 'A1: Injection'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#COMMAND_INJECTION.
+  severity: WARNING
+  languages:
+  - java
+- id: java.lang.security.audit.formatted-sql-string.formatted-sql-string
+  metadata:
+    cwe: 'CWE-89: Improper Neutralization of Special Elements used in an SQL Command
+      (''SQL Injection'')'
+    owasp: 'A1: Injection'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#SQL_INJECTION
+    references:
+    - https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
+    - https://docs.oracle.com/javase/tutorial/jdbc/basics/prepared.html#create_ps
+    - https://software-security.sans.org/developer-how-to/fix-sql-injection-in-java-using-prepared-callable-statement
+  message: |
+    Detected a formatted string in a SQL statement. This could lead to SQL
+    injection if variables in the SQL statement are not properly sanitized.
+    Use a prepared statements (java.sql.PreparedStatement) instead. You
+    can obtain a PreparedStatement using 'connection.prepareStatement'.
+  patterns:
+  - pattern-not: $W.execute(<... "=~/.*TABLE *$/" ...>);
+  - pattern-not: $W.execute(<... "=~/.*TABLE %s$/" ...>);
+  - pattern-either:
+    - pattern: $W.execute($X + $Y, ...);
+    - pattern: |
+        String $SQL = $X + $Y;
+        ...
+        $W.execute($SQL, ...);
+    - pattern: |
+        String $SQL = $X;
+        ...
+        $SQL += $Y;
+        ...
+        $W.execute($SQL, ...);
+    - pattern: $W.execute(String.format($X, ...), ...);
+    - pattern: |
+        String $SQL = String.format($X, ...);
+        ...
+        $W.execute($SQL, ...);
+    - pattern: |
+        String $SQL = $X;
+        ...
+        $SQL += String.format(...);
+        ...
+        $W.execute($SQL, ...);
+    - pattern: $W.executeQuery($X + $Y, ...);
+    - pattern: |
+        String $SQL = $X + $Y;
+        ...
+        $W.executeQuery($SQL, ...);
+    - pattern: |
+        String $SQL = $X;
+        ...
+        $SQL += $Y;
+        ...
+        $W.executeQuery($SQL, ...);
+    - pattern: $W.executeQuery(String.format($X, ...), ...);
+    - pattern: |
+        String $SQL = String.format($X, ...);
+        ...
+        $W.executeQuery($SQL, ...);
+    - pattern: |
+        String $SQL = $X;
+        ...
+        $SQL += String.format(...);
+        ...
+        $W.executeQuery($SQL, ...);
+    - pattern: $W.createQuery($X + $Y, ...);
+    - pattern: |
+        String $SQL = $X + $Y;
+        ...
+        $W.createQuery($SQL, ...);
+    - pattern: |
+        String $SQL = $X;
+        ...
+        $SQL += $Y;
+        ...
+        $W.createQuery($SQL, ...);
+    - pattern: $W.createQuery(String.format($X, ...), ...);
+    - pattern: |
+        String $SQL = String.format($X, ...);
+        ...
+        $W.createQuery($SQL, ...);
+    - pattern: |
+        String $SQL = $X;
+        ...
+        $SQL += String.format(...);
+        ...
+        $W.createQuery($SQL, ...);
+    - pattern: $W.query($X + $Y, ...);
+    - pattern: |
+        String $SQL = $X + $Y;
+        ...
+        $W.query($SQL, ...);
+    - pattern: |
+        String $SQL = $X;
+        ...
+        $SQL += $Y;
+        ...
+        $W.query($SQL, ...);
+    - pattern: $W.query(String.format($X, ...), ...);
+    - pattern: |
+        String $SQL = String.format($X, ...);
+        ...
+        $W.query($SQL, ...);
+    - pattern: |
+        String $SQL = $X;
+        ...
+        $SQL += String.format(...);
+        ...
+        $W.query($SQL, ...);
+  severity: WARNING
+  languages:
+  - java
+- id: java.lang.security.audit.http-response-splitting.http-response-splitting
+  metadata:
+    cwe: 'CWE-113: Improper Neutralization of CRLF Sequences in HTTP Headers (''HTTP
+      Response Splitting'')'
+    owasp: 'A1: Injection'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#HTTP_RESPONSE_SPLITTING
+    references:
+    - https://www.owasp.org/index.php/HTTP_Response_Splitting
+  message: |
+    Older Java application servers are vulnreable to HTTP response splitting, which may occur if an HTTP
+    request can be injected with CRLF characters. This finding is reported for completeness; it is recommended
+    to ensure your environment is not affected by testing this yourself.
+  severity: INFO
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $VAR = $REQ.getParameter(...);
+        ...
+        $COOKIE = new Cookie(..., $VAR, ...);
+        ...
+        $RESP.addCookie($COOKIE, ...);
+    - patterns:
+      - pattern-inside: |
+          $RETTYPE $FUNC(...,@PathVariable $TYPE $VAR, ...) {
+            ...
+          }
+      - pattern: |
+          $COOKIE = new Cookie(..., $VAR, ...);
+          ...
+          $RESP.addCookie($COOKIE, ...);
+  languages:
+  - java
+- id: java.lang.security.audit.ldap-injection.ldap-injection
+  message: |
+    Detected non-constant data passed into an LDAP query. If this data can be
+    controlled by an external user, this is an LDAP injection.
+    Ensure data passed to an LDAP query is not controllable; or properly sanitize
+    the data.
+  metadata:
+    cwe: 'CWE-90: Improper Neutralization of Special Elements used in an LDAP Query
+      (''LDAP Injection'')'
+    owasp: 'A1: Injection'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#LDAP_INJECTION
+  severity: WARNING
+  languages:
+  - java
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        $X $METHOD(...) {
+          ...
+          InitialDirContext $CTX = ...;
+          ...
+        }
+    - pattern-inside: |
+        $X $METHOD(...) {
+          ...
+          DirContext $CTX = ...;
+          ...
+        }
+    - pattern-inside: |
+        $X $METHOD(...) {
+          ...
+          InitialLdapContext $CTX = ...;
+          ...
+        }
+    - pattern-inside: |
+        $X $METHOD(...) {
+          ...
+          LdapContext $CTX = ...;
+          ...
+        }
+    - pattern-inside: |
+        $X $METHOD(...) {
+          ...
+          LdapCtx $CTX = ...;
+          ...
+        }
+    - pattern-inside: |
+        $X $METHOD(...) {
+          ...
+          EventDirContext $CTX = ...;
+          ...
+        }
+  - pattern: |
+      $X $METHOD(...) {
+        ...
+        $CTX.search($Y,$INPUT,...);
+        ...
+      }
+  - pattern-not: |
+      $X $METHOD(...) {
+        ...
+        $CTX.search($Y,"...",...);
+        ...
+      }
+- id: java.lang.security.audit.object-deserialization.object-deserialization
+  metadata:
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+    owasp: 'A8: Insecure Deserialization'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#OBJECT_DESERIALIZATION
+    references:
+    - https://www.owasp.org/index.php/Deserialization_of_untrusted_data
+  message: |
+    Found object deserialization using ObjectInputStream. Deserializing entire
+    Java objects is dangerous because malicious actors can create Java object
+    streams with unintended consequences. Ensure that the objects being deserialized
+    are not user-controlled. If this must be done, consider using HMACs to sign
+    the data stream to make sure it is not tampered with, or consider only
+    transmitting object fields and populating a new object.
+  patterns:
+  - pattern: new ObjectInputStream(...);
+  severity: WARNING
+  languages:
+  - java
+- id: java.lang.security.audit.script-engine-injection.script-engine-injection
+  message: |
+    Detected potential code injection using ScriptEngine. Ensure
+    user-controlled data cannot enter '.eval()', otherwise, this is
+    a code injection vulnerability.
+  metadata:
+    cwe: 'CWE-94: Improper Control of Generation of Code (''Code Injection'')'
+    owasp: 'A1: Injection'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#SCRIPT_ENGINE_INJECTION
+  severity: WARNING
+  languages:
+  - java
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        class $CLASS {
+          ...
+          ScriptEngine $SE;
+          ...
+        }
+    - pattern-inside: |
+        class $CLASS {
+          ...
+          ScriptEngine $SE = ...;
+          ...
+        }
+    - pattern-inside: |
+        $X $METHOD(...) {
+          ...
+          ScriptEngine $SE = ...;
+          ...
+        }
+  - pattern: |
+      $X $METHOD(...) {
+        ...
+        $SE.eval(...);
+        ...
+      }
+  - pattern-not: |
+      $X $METHOD(...) {
+        ...
+        $SE.eval("...");
+        ...
+      }
+  - pattern-not: |
+      $X $METHOD(...) {
+        ...
+        String $S = "...";
+        ...
+        $SE.eval($S);
+        ...
+      }
+- id: java.lang.security.audit.unvalidated-redirect.unvalidated-redirect
+  message: |
+    Application redirects to a destination URL specified by a user-supplied
+    parameter that is not validated. This could direct users to malicious locations.
+    Consider using an allowlist to validate URLs.
+  metadata:
+    cwe: 'CWE-601: URL Redirection to Untrusted Site (''Open Redirect'')'
+    owasp: 'A1: Injection'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#UNVALIDATED_REDIRECT
+  severity: WARNING
+  languages:
+  - java
+  pattern-either:
+  - pattern: |
+      $X $METHOD(...,HttpServletResponse $RES,...,String $URL,...) {
+        ...
+        $RES.sendRedirect($URL);
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,String $URL,...,HttpServletResponse $RES,...) {
+        ...
+        $RES.sendRedirect($URL);
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,HttpServletRequest $REQ,...,HttpServletResponse $RES,...) {
+        ...
+        String $URL = $REQ.getParameter(...);
+        ...
+        $RES.sendRedirect($URL);
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,HttpServletResponse $RES,...,HttpServletRequest $REQ,...) {
+        ...
+        String $URL = $REQ.getParameter(...);
+        ...
+        $RES.sendRedirect($URL);
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,String $URL,...) {
+        ...
+        HttpServletResponse $RES = ...;
+        ...
+        $RES.sendRedirect($URL);
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,HttpServletRequest $REQ,...,HttpServletResponse $RES,...) {
+        ...
+        $RES.sendRedirect($REQ.getParameter(...));
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,HttpServletResponse $RES,...,HttpServletRequest $REQ,...) {
+        ...
+        $RES.sendRedirect($REQ.getParameter(...));
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,HttpServletResponse $RES,...,String $URL,...) {
+        ...
+        $RES.addHeader("Location",$URL);
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,String $URL,...,HttpServletResponse $RES,...) {
+        ...
+        $RES.addHeader("Location",$URL);
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,HttpServletRequest $REQ,...,HttpServletResponse $RES,...) {
+        ...
+        String $URL = $REQ.getParameter(...);
+        ...
+        $RES.addHeader("Location",$URL);
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,HttpServletResponse $RES,...,HttpServletRequest $REQ,...) {
+        ...
+        String $URL = $REQ.getParameter(...);
+        ...
+        $RES.addHeader("Location",$URL);
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,String $URL,...) {
+        ...
+        HttpServletResponse $RES = ...;
+        ...
+        $RES.addHeader("Location",$URL);
+        ...
+      }
+  - pattern: |
+      $X $METHOD(...,HttpServletRequest $REQ,...,HttpServletResponse $RES,...) {
+        ...
+        $RES.addHeader("Location",$REQ.getParameter(...));
+        ...
+      }
+  - pattern: |-
+      $X $METHOD(...,HttpServletResponse $RES,...,HttpServletRequest $REQ,...) {
+        ...
+        $RES.addHeader("Location",$REQ.getParameter(...));
+        ...
+      }
+- id: java.lang.security.audit.weak-ssl-context.weak-ssl-context
+  metadata:
+    cwe: 'CWE-326: Inadequate Encryption Strength'
+    owasp: 'A3: Sensitive Data Exposure'
+    source_rule_url: https://find-sec-bugs.github.io/bugs.htm#SSL_CONTEXT
+    references:
+    - https://tools.ietf.org/html/rfc7568
+    - https://tools.ietf.org/id/draft-ietf-tls-oldversions-deprecate-02.html
+  message: |
+    An insecure SSL context was detected. TLS versions 1.0, 1.1, and all SSL versions
+    are considered weak encryption and are deprecated.
+    Use SSLContext.getInstance("TLSv1.2") for the best security.
+  severity: WARNING
+  languages:
+  - java
+  patterns:
+  - pattern-not: SSLContext.getInstance("TLS1.3")
+  - pattern-not: SSLContext.getInstance("TLS1.2")
+  - pattern: SSLContext.getInstance("...")
+  fix-regex:
+    regex: (.*?)\.getInstance\(.*?\)
+    replacement: \1.getInstance("TLS1.2")
+- id: java.lang.security.audit.xml-decoder.xml-decoder
+  message: |
+    XMLDecoder should not be used to parse untrusted data.
+    Deserializing user input can lead to arbitrary code execution.
+    Use an alternative and explicitly disable external entities.
+    See https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
+    for alternatives and vulnerability prevention.
+  metadata:
+    cwe: 'CWE-611: Improper Restriction of XML External Entity Reference'
+    owasp: 'A4: XML External Entities (XXE)'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#XML_DECODER
+    references:
+    - https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
+  severity: WARNING
+  languages:
+  - java
+  patterns:
+  - pattern: |
+      $X $METHOD(...) {
+        ...
+        new XMLDecoder(...);
+        ...
+      }
+  - pattern-not: |
+      $X $METHOD(...) {
+        ...
+        new XMLDecoder("...");
+        ...
+      }
+  - pattern-not: |-
+      $X $METHOD(...) {
+        ...
+        String $STR = "...";
+        ...
+        new XMLDecoder($STR);
+        ...
+      }
+- id: java.lang.security.audit.xssrequestwrapper-is-insecure.xssrequestwrapper-is-insecure
+  metadata:
+    owasp: 'A7: Cross-Site Scripting (XSS)'
+    cwe: 'CWE-79: Improper Neutralization of Input During Web Page Generation (''Cross-site
+      Scripting'')'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#XSS_REQUEST_WRAPPER
+  message: |
+    It looks like you're using an implementation of XSSRequestWrapper from dzone.
+    (https://www.javacodegeeks.com/2012/07/anti-cross-site-scripting-xss-filter.html)
+    The XSS filtering in this code is not secure and can be bypassed by malicious actors.
+    It is recommended to use a stack that automatically escapes in your view or templates
+    instead of filtering yourself.
+  severity: WARNING
+  patterns:
+  - pattern-either:
+    - pattern: |
+        class XSSRequestWrapper extends HttpServletRequestWrapper {
+          ...
+        }
+    - pattern: |-
+        $P = $X.compile("</script>", $X.CASE_INSENSITIVE);
+        $V = $P.matcher(...).replaceAll("");
+  languages:
+  - java
+- id: java.lang.security.audit.cookie-missing-httponly.cookie-missing-httponly
+  metadata:
+    cwe: 'CWE-1004: Sensitive Cookie Without ''HttpOnly'' Flag'
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#HTTPONLY_COOKIE
+  message: |
+    A cookie was detected without setting the 'HttpOnly' flag. The 'HttpOnly' flag
+    for cookies instructs the browser to forbid client-side scripts from reading the
+    cookie. Set the 'HttpOnly' flag by calling 'cookie.setHttpOnly(true);'
+  severity: WARNING
+  languages:
+  - java
+  patterns:
+  - pattern-not-inside: $COOKIE.setValue(""); ...
+  - pattern-either:
+    - pattern: $COOKIE.setHttpOnly(false);
+    - patterns:
+      - pattern-not-inside: $COOKIE.setHttpOnly(...); ...
+      - pattern: $RESPONSE.addCookie($COOKIE);
+- id: java.lang.security.audit.cookie-missing-samesite.cookie-missing-samesite
+  metadata:
+    cwe: 'CWE-352: Cross-Site Request Forgery (CSRF)'
+    owasp: 'A6: Security Misconfiguration'
+    references:
+    - https://stackoverflow.com/questions/42717210/samesite-cookie-in-java-application
+  message: |
+    Detected cookie without the SameSite attribute.
+  severity: WARNING
+  languages:
+  - java
+  patterns:
+  - pattern-not-inside: |
+      $RETURNTYPE $METHOD(..., HttpServletResponse $RESP, ...) {
+        ...
+        $RESP.setHeader("Set-Cookie", "=~/.*SameSite=.*/");
+        ...
+      }
+  - pattern-either:
+    - pattern: $RESP.addCookie(...);
+    - pattern: $RESP.setHeader("Set-Cookie", ...);
+- id: java.lang.security.audit.cookie-missing-secure-flag.cookie-missing-secure-flag
+  metadata:
+    cwe: 'CWE-614: Sensitive Cookie in HTTPS Session Without ''Secure'' Attribute'
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#INSECURE_COOKIE
+  message: |
+    A cookie was detected without setting the 'secure' flag. The 'secure' flag
+    for cookies prevents the client from transmitting the cookie over insecure
+    channels such as HTTP. Set the 'secure' flag by calling '$COOKIE.setSecure(true);'
+  severity: WARNING
+  languages:
+  - java
+  patterns:
+  - pattern-not-inside: $COOKIE.setValue(""); ...
+  - pattern-either:
+    - pattern: $COOKIE.setSecure(false);
+    - patterns:
+      - pattern-not-inside: $COOKIE.setSecure(...); ...
+      - pattern: $RESPONSE.addCookie($COOKIE);
+- id: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+  metadata:
+    cwe: 'CWE-319: Cleartext Transmission of Sensitive Information'
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#UNENCRYPTED_SOCKET
+  message: |
+    This socket is not encrypted.
+    The traffic could be read by an attacker intercepting the network traffic.
+    Use an SSLSocket created by 'SSLSocketFactory' or 'SSLServerSocketFactory'
+    instead
+  severity: WARNING
+  languages:
+  - java
+  pattern-either:
+  - pattern: new ServerSocket(...)
+  - pattern: new Socket(...)
+- id: java.lang.security.audit.crypto.no-static-initialization-vector.no-static-initialization-vector
+  message: |
+    Initialization Vectors (IVs) for block ciphers should be randomly generated
+    each time they are used. Using a static IV means the same plaintext
+    encrypts to the same ciphertext every time, weakening the strength
+    of the encryption.
+  metadata:
+    cwe: 'CWE-329: Not Using a Random IV with CBC Mode'
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#STATIC_IV
+    references:
+    - https://cwe.mitre.org/data/definitions/329.html
+  severity: WARNING
+  languages:
+  - java
+  patterns:
+  - pattern-either:
+    - pattern: |
+        byte[] $IV = {
+            ...
+        };
+        ...
+        new IvParameterSpec($IV, ...);
+    - pattern: |
+        class $CLASS {
+            byte[] $IV = {
+                ...
+            };
+            ...
+            $METHOD(...) {
+                ...
+                new IvParameterSpec($IV, ...);
+                ...
+            }
+        }
+- id: java.lang.security.audit.crypto.weak-hash.use-of-sha1
+  message: |
+    Detected SHA1 hash algorithm which is considered insecure. SHA1 is not
+    collision resistant and is therefore not suitable as a cryptographic
+    signature. Use SHA256 or SHA3 instead.
+  languages:
+  - java
+  severity: WARNING
+  metadata:
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#WEAK_MESSAGE_DIGEST_SHA1
+  pattern-either:
+  - pattern: |
+      MessageDigest $VAR = $MD.getInstance("SHA1");
+  - pattern: |
+      $DU.getSha1Digest().digest(...)
+- id: java.lang.security.audit.crypto.weak-hash.use-of-md5
+  message: |
+    Detected MD5 hash algorithm which is considered insecure. MD5 is not
+    collision resistant and is therefore not suitable as a cryptographic
+    signature. Use SHA256 or SHA3 instead.
+  languages:
+  - java
+  severity: WARNING
+  metadata:
+    owasp: 'A9: Using Components with Known Vulnerabilities'
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#WEAK_MESSAGE_DIGEST_MD5
+  pattern-either:
+  - pattern: |
+      MessageDigest $VAR = $MD.getInstance("MD5");
+  - pattern: |
+      $DU.getMd5Digest().digest(...)
+- id: java.lang.security.audit.crypto.no-null-cipher.no-null-cipher
+  pattern: new NullCipher(...);
+  metadata:
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#NULL_CIPHER
+  message: |
+    NullCipher was detected. This will not encrypt anything;
+    the cipher text will be the same as the plain text. Use
+    a valid, secure cipher: Cipher.getInstance("AES/CBC/PKCS7PADDING").
+    See https://owasp.org/www-community/Using_the_Java_Cryptographic_Extensions
+    for more information.
+  severity: WARNING
+  languages:
+  - java
+- id: java.lang.security.audit.crypto.ssl.avoid-implementing-custom-digests.avoid-implementing-custom-digests
+  metadata:
+    cwe: 'CWE-327: Use of a Broken or Risky Cryptographic Algorithm'
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#CUSTOM_MESSAGE_DIGEST
+    references:
+    - https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html#custom-algorithms
+  message: |
+    Cryptographic algorithms are notoriously difficult to get right. By implementing
+    a custom message digest, you risk introducing security issues into your program.
+    Use one of the many sound message digests already available to you:
+    MessageDigest sha256Digest = MessageDigest.getInstance("SHA256");
+  severity: WARNING
+  languages:
+  - java
+  pattern: |-
+    class $CLASS extends MessageDigest {
+      ...
+    }
+- id: java.lang.security.audit.crypto.ssl.defaulthttpclient-is-deprecated.defaulthttpclient-is-deprecated
+  metadata:
+    cwe: 'CWE-326: Inadequate Encryption Strength'
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#DEFAULT_HTTP_CLIENT
+  message: |
+    DefaultHttpClient is deprecated. Further, it does not support connections
+    using TLS1.2, which makes using DefaultHttpClient a security hazard.
+    Use SystemDefaultHttpClient instead, which supports TLS1.2.
+  severity: WARNING
+  languages:
+  - java
+  pattern: new DefaultHttpClient(...);
+  fix-regex:
+    regex: DefaultHttpClient
+    replacement: SystemDefaultHttpClient
+- id: java.lang.security.audit.crypto.ssl.insecure-hostname-verifier.insecure-hostname-verifier
+  message: |
+    Insecure HostnameVerifier implementation detected. This will accept
+    any SSL certificate with any hostname, which creates the possibility
+    for man-in-the-middle attacks.
+  metadata:
+    cwe: 'CWE-295: Improper Certificate Validation'
+    owasp: 'A6: Security Misconfiguration'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#WEAK_HOSTNAME_VERIFIER
+  severity: WARNING
+  languages:
+  - java
+  patterns:
+  - pattern-either:
+    - pattern: |
+        class $CLASS implements HostnameVerifier {
+          ...
+          public boolean verify(...) { return true; }
+        }
+    - pattern: |-
+        new HostnameVerifier(...){
+          public boolean verify(...) {
+            return true;
+          }
+        }
+- id: java.lang.security.audit.crypto.ssl.insecure-trust-manager.insecure-trust-manager
+  metadata:
+    cwe: 'CWE-295: Improper Certificate Validation'
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#WEAK_TRUST_MANAGER
+    references:
+    - https://stackoverflow.com/questions/2642777/trusting-all-certificates-using-httpclient-over-https
+  message: |
+    Detected empty trust manager implementations. This is dangerous because it accepts any
+    certificate, enabling man-in-the-middle attacks. Consider using a KeyStore
+    and TrustManagerFactory isntead.
+    See https://stackoverflow.com/questions/2642777/trusting-all-certificates-using-httpclient-over-https
+    for more information.
+  severity: WARNING
+  languages:
+  - java
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        class $CLASS implements X509TrustManager {
+          ...
+        }
+    - pattern-inside: |
+        new X509TrustManager() {
+          ...
+        }
+    - pattern-inside: |
+        class $CLASS implements X509ExtendedTrustManager {
+          ...
+        }
+    - pattern-inside: |
+        new X509ExtendedTrustManager() {
+          ...
+        }
+  - pattern-not: public void checkClientTrusted(...) { $SOMETHING; }
+  - pattern-not: public void checkServerTrusted(...) { $SOMETHING; }
+  - pattern-either:
+    - pattern: public void checkClientTrusted(...) {}
+    - pattern: public void checkServerTrusted(...) {}
+    - pattern: public X509Certificate[] getAcceptedIssuers(...) { return null; }
+- id: java.lang.correctness.eqeq.eqeq
+  patterns:
+  - pattern-not-inside: assert $X;
+  - pattern-not-inside: |
+      assert $X : $Y;
+  - pattern-either:
+    - pattern: $X == $X
+    - pattern: $X != $X
+  - pattern-not: 1 == 1
+  message: |
+    `$X == $X` or `$X != $X` is always true. (Unless the value compared is a float or double).
+    To test if `$X` is not-a-number, use `Double.isNaN($X)`.
+  languages:
+  - java
+  severity: ERROR
