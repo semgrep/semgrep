@@ -16,6 +16,10 @@ GITHUB_TEST_GIST_URL = (
 
 # https://stackoverflow.com/a/10077069
 def etree_to_dict(t):
+    """
+    A simple and sufficient XML -> dict conversion function. This function is
+    used to perform basic XML test data comparisons.
+    """
     d: Dict[str, Dict] = {t.tag: {}}
     children = list(t)
     if children:
