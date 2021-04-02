@@ -356,23 +356,25 @@ let check2 ~hook config rules equivs (file, lang, ast) =
            * in matches_with_env here.
           *)
           !stmts_rules |> List.iter (fun (pattern,_pattern_strs,rule,cache) ->
-            let env = MG.empty_environment cache config in
-            let matches_with_env = match_sts_sts rule pattern x env in
-            if matches_with_env <> []
-            then (* Found a match *)
-              matches_with_env |> List.iter (fun (env : MG.tin) ->
-                let span = env.stmts_match_span in
-                match Stmts_match_span.location span with
-                | None -> () (* empty sequence or bug *)
-                | Some range_loc ->
-                    let env = env.mv.full_env in
-                    let tokens =
-                      lazy (Stmts_match_span.list_original_tokens span) in
-                    let rule_id = rule_id_of_mini_rule rule in
-                    Common.push {PM. rule_id; file; env; range_loc; tokens}
-                      matches;
-                    hook env tokens
-              )
+            Common.profile_code "Semgrep_generic.kstmts" (fun () ->
+              let env = MG.empty_environment cache config in
+              let matches_with_env = match_sts_sts rule pattern x env in
+              if matches_with_env <> []
+              then (* Found a match *)
+                matches_with_env |> List.iter (fun (env : MG.tin) ->
+                  let span = env.stmts_match_span in
+                  match Stmts_match_span.location span with
+                  | None -> () (* empty sequence or bug *)
+                  | Some range_loc ->
+                      let env = env.mv.full_env in
+                      let tokens =
+                        lazy (Stmts_match_span.list_original_tokens span) in
+                      let rule_id = rule_id_of_mini_rule rule in
+                      Common.push {PM. rule_id; file; env; range_loc; tokens}
+                        matches;
+                      hook env tokens
+                )
+            )
           );
           k x
         );
