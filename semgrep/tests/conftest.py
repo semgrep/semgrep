@@ -19,6 +19,7 @@ TESTS_PATH = Path(__file__).parent
 MASKED_KEYS = [
     "tool.driver.semanticVersion",
     "results.extra.metavars.*.unique_id.md5sum",
+    "results.*.checks.*.matches",
 ]
 
 
