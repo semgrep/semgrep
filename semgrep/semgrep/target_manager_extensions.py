@@ -30,7 +30,7 @@ LUA_EXTENSIONS = [FileExtension(".lua")]
 CSHARP_EXTENSIONS = [FileExtension(".cs")]
 RUST_EXTENSIONS = [FileExtension(".rs")]
 KOTLIN_EXTENSIONS = [FileExtension(".kt"), FileExtension(".kts"), FileExtension(".ktm")]
-YAML_EXTENSIONS = [FileExtension(".yaml")]
+YAML_EXTENSIONS = [FileExtension(".yaml"), FileExtension(".yml")]
 ML_EXTENSIONS = [
     FileExtension(".mli"),
     FileExtension(".ml"),
