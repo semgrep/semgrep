@@ -68,9 +68,10 @@
             ],
             "version": "==3.2.0"
         },
-        "junit-xml": {
+        "junit-xml-2": {
             "hashes": [
-                "sha256:ec5ca1a55aefdd76d28fcc0b135251d156c7106fa979686a4b48d62b761b4732"
+                "sha256:05093d75fe11120ccd51293884b5ee334ff3bc4b5106647c2bcc928486600588",
+                "sha256:3b8d9635c5215f754c7807104f6493e3ea3bc9481e2d33db294560da3a1b00f7"
             ],
             "version": "==1.9"
         },
