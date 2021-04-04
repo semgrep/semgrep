@@ -1,0 +1,16 @@
+rules:
+  - id: typescript.nestjs.security.test-taint-mode
+    languages:
+      - typescript
+    message: |
+      This confirms taint mode works.
+    pattern-sinks:
+      - React.createElement(...)
+    pattern-sources:
+      - location.href
+      - location.hash
+      - location.search
+      - location.pathname
+      - document.referrer
+    severity: ERROR
+
