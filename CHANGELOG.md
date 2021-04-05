@@ -10,6 +10,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 ### Changed
+- Deep expression matches (`<... foo ...>`) now match within the bodies of anonymous
+  functions (a.k.a. lambda-expressions) and arbitrary language-specific
+  statements (e.g. the Golang `go` statement)
 
 ## [0.45.0](https://github.com/returntocorp/semgrep/releases/tag/v0.45.0) - 2021-03-30
 

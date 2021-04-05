@@ -32,6 +32,11 @@ let go_really_deeper_stmt = ref true
 (* Sub-expressions and sub-statements *)
 (*****************************************************************************)
 
+let subexprs_of_any_list xs = xs |> List.fold_left (fun x -> (function
+  | E e -> e :: x
+  | _ -> x
+)) []
+
 (*s: function [[SubAST_generic.subexprs_of_stmt]] *)
 (* used for really deep statement matching *)
 let subexprs_of_stmt st =
@@ -67,6 +72,7 @@ let subexprs_of_stmt st =
   | Assert (_, e1, e2opt, _) ->
       e1::Common.opt_to_list e2opt
   | For (_, ForIn (_, es), _) -> es
+  | OtherStmt (_op, xs) -> subexprs_of_any_list xs
 
   (* 0 *)
   | DirectiveStmt _
@@ -78,8 +84,6 @@ let subexprs_of_stmt st =
   | DisjStmt _
   | DefStmt _
   | WithUsingResource _
-  (* could extract the expr in any? *)
-  | OtherStmt _
     -> []
 (*e: function [[SubAST_generic.subexprs_of_stmt]] *)
 
@@ -125,14 +129,11 @@ let subexprs_of_expr e =
   | Yield (_, eopt, _) -> Common.opt_to_list eopt
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
-      anys |> Common.map_filter (function
-        | E e -> Some e
-        | _ -> None
-      )
+      subexprs_of_any_list anys
+  | Lambda def -> subexprs_of_stmt def.fbody
 
   (* currently skipped over but could recurse *)
   | Constructor _
-  | Lambda _
   | AnonClass _
   | Xml _
   | LetPattern _ | MatchPattern _
