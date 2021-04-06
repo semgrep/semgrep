@@ -1,0 +1,22 @@
+(library
+  (name semgrep_api)
+  (libraries
+     atdgen-runtime
+  )
+  (preprocess
+   (pps
+     ppx_profiling
+     ppx_deriving.show
+     ppx_deriving.eq
+   ))
+)
+
+(rule
+ (targets AST_generic_v1_j.ml AST_generic_v1_j.mli)
+ (deps    AST_generic_v1.atd)
+ (action  (run atdgen -j -j-std %{deps})))
+
+(rule
+ (targets AST_generic_v1_t.ml AST_generic_v1_t.mli)
+ (deps    AST_generic_v1.atd)
+ (action  (run atdgen -t %{deps})))
