@@ -180,7 +180,7 @@ def chdir(dir: str) -> Iterator[None]:
         os.chdir(old_dir)
 
 
-def upload_results(metric_name: str, value: float) -> None:
+def upload_result(metric_name: str, value: float) -> None:
     url = f"{DASHBOARD_URL}/api/metric/{metric_name}"
     print(f"Uploading to {url}")
     r = urllib.request.urlopen(  # nosem
@@ -319,7 +319,7 @@ def run_benchmarks(
                 results[variant.name].append(duration)
 
                 if upload:
-                    upload_results(metric_name, duration)
+                    upload_result(metric_name, duration)
 
                 # Check correctness
                 findings = standardize_findings(json.loads(findings_bytes))
