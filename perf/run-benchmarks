@@ -104,8 +104,8 @@ GITLAB_CORPUSES = [
 
 # For corpuses that cannot be run in CI because they use private repos
 INTERNAL_CORPUSES = [
-    # Run our golang rulepack on a go/html repo
-    Corpus("0c34", "input/golang.yml", "input/govwa"),
+    # Run our javascript and eslint-plugin-security packs on a large JS repo
+    Corpus("lodash", "input/rules", "input/lodash"),
     # Corpus("dogfood", "input/semgrep.yml", "input/"),
 ]
 
@@ -131,13 +131,51 @@ class SemgrepVariant:
 SEMGREP_VARIANTS = [
     # default settings
     SemgrepVariant("std", ""),
-    SemgrepVariant("no-cache", "-no_opt_cache"),
-    SemgrepVariant("max-cache", "-opt_max_cache"),
-    SemgrepVariant("no-bloom", "-no_bloom_filter"),
-    SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
-    SemgrepVariant("set_filters", "-set_filter"),
+    # SemgrepVariant("no-cache", "-no_opt_cache"),
+    # SemgrepVariant("max-cache", "-opt_max_cache"),
+    # SemgrepVariant("no-bloom", "-no_bloom_filter"),
+    # SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
+    # SemgrepVariant("set_filters", "-set_filter"),
     SemgrepVariant("experimental", "-fast", "--experimental"),
 ]
+
+
+class SemgrepResult:
+    def __init__(self, dict: dict) -> None:
+        self.res = dict
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SemgrepResult):
+            raise NotImplementedError
+
+        def compare_locs(s_loc: dict, o_loc: dict) -> bool:
+            if s_loc is not None and o_loc is not None:
+                return bool(
+                    s_loc["line"] == o_loc["line"] and s_loc["col"] == o_loc["col"]
+                )
+            else:
+                return False
+
+        def compare_extras(other: SemgrepResult) -> bool:
+            if "extra" in self.res and "extra" in other.res:
+                return True
+                # return json.dumps(self.res["extra"]) == json.dumps(other["extra"])
+            else:
+                return "extra" not in self.res and "extra" not in other.res
+
+        output = (
+            self.res["check_id"] == other.res["check_id"]
+            and self.res["path"] == other.res["path"]
+            and compare_locs(self.res["start"], other.res["start"])
+            and compare_locs(self.res["end"], other.res["end"])
+            and compare_extras(other)
+        )
+        print("Result = ", output)
+        return output
+
+    def __hash__(self) -> int:
+        return hash(json.dumps(self.res))
+
 
 # Add support for: with chdir(DIR): ...
 @contextmanager
@@ -161,11 +199,34 @@ def upload_results(metric_name: str, value: float) -> None:
 
 
 def standardize_findings(findings: dict) -> dict:
-    findings["results"] = sorted(
-        findings["results"],
-        key=lambda i: (i["path"], i["start"]["line"], i["start"]["col"]),
-    )
-    return findings
+    if "errors" not in findings:
+        msg = json.dumps(findings, indent=4) + "\n\nDid not find expected key 'errors'"
+        raise Exception(msg)
+    if "results" not in findings:
+        msg = json.dumps(findings, indent=4) + "\n\nDid not find expected key 'results'"
+        raise Exception(msg)
+    return {
+        "errors": findings["errors"],
+        "results": {SemgrepResult(i) for i in findings["results"]},
+    }
+
+
+def output_differences(
+    findings: set, std_findings: set, variant: str
+) -> Tuple[int, int]:
+    def output_diff(diff: set) -> None:
+        for d in diff:
+            print(json.dumps(d, indent=4))
+
+    f_diff = findings.difference(std_findings)
+    s_diff = std_findings.difference(findings)
+    fd_len = len(f_diff)
+    sd_len = len(s_diff)
+    print("In", variant, "but not std", fd_len, "findings :")
+    output_diff(f_diff)
+    print("In std but not", variant, sd_len, "findings :")
+    output_diff(s_diff)
+    return fd_len, sd_len
 
 
 def run_semgrep(
@@ -258,26 +319,36 @@ def run_benchmarks(
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
                 duration, findings_bytes = run_semgrep(docker, corpus, variant)
+
+                # Report results
                 msg = f"{metric_name} = {duration:.3f} s"
                 print(msg)
                 results_msgs.append(msg)
                 results[variant.name].append(duration)
 
-                # Process results
                 if upload:
                     upload_results(metric_name, duration)
 
+                # Check correctness
                 findings = standardize_findings(json.loads(findings_bytes))
+
+                num_results = len(findings["results"])
+                num_errors = len(findings["errors"])
+                print(f"Result: {num_results} findings, {num_errors} parse errors")
+
+                print("Checking symmetric difference")
                 if variant.name == "std":
                     std_findings = findings
-                elif json.dumps(findings["results"]) != json.dumps(
-                    std_findings["results"]
-                ):
-                    results_msgs[-1] += " ERROR: result not same as std"
-                elif json.dumps(findings["errors"]) != json.dumps(
-                    std_findings["errors"]
-                ):
-                    results_msgs[-1] += " WARNING: errors not same as std"
+                elif findings["results"] ^ std_findings["results"] != set():
+                    print("found difference")
+                    fd_len, sd_len = output_differences(
+                        findings["results"], std_findings["results"], variant.name
+                    )
+                    results_msgs[
+                        -1
+                    ] += f" ERROR: {fd_len} extra findings, {sd_len} missing findings"
+                elif len(findings["errors"]) > len(std_findings["errors"]):
+                    results_msgs[-1] += " WARNING: more errors than std"
 
     # Show summary data
     for msg in results_msgs:
