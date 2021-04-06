@@ -18,7 +18,7 @@ from typing import Set
 from typing import Tuple
 
 import colorama
-from junit_xml import TestSuite
+from junit_xml_2 import TestSuite
 
 from semgrep import __VERSION__
 from semgrep import config_resolver
