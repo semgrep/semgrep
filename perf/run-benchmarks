@@ -12,13 +12,17 @@
 # the results to the dashboard, and use a dummy set instead
 #
 import argparse
+import json
 import os
 import subprocess
 import time
 import urllib.request
 from contextlib import contextmanager
 from typing import Iterator
+from typing import Tuple
 
+import matplotlib.pyplot as plt
+import pandas as pd
 import semgrep_core_benchmark  # type: ignore
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
@@ -81,11 +85,11 @@ DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
 # Projects GitLab is using to benchmark us on perf
 GITLAB_CORPUSES = [
     # (Gitlab large) Run our javascript and r2c-secuirty audit packs on a js/ruby repo
-    Corpus("gitlab", "input/rules", "input/gitlab"),
+    # Corpus("gitlab", "input/rules", "input/gitlab"),
     # (Gitlab large) Run our security-audit pack on a c repo
-    Corpus("smacker", "input/r2c-security-audit.yml", "input/gotree"),
+    # Corpus("smacker", "input/r2c-security-audit.yml", "input/gotree"),
     # (Gitlab large) Run our java pack on a java repo
-    Corpus("spring-projects", "input/java.yml", "input/spring"),
+    # Corpus("spring-projects", "input/java.yml", "input/spring"),
     # (Gitlab medium) Run our python and flask packs on a python repo
     Corpus("django", "input/rules", "input/django"),
     # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
@@ -100,7 +104,9 @@ GITLAB_CORPUSES = [
 
 # For corpuses that cannot be run in CI because they use private repos
 INTERNAL_CORPUSES = [
-    Corpus("dogfood", "input/semgrep.yml", "input/"),
+    # Run our golang rulepack on a go/html repo
+    Corpus("0c34", "input/golang.yml", "input/govwa"),
+    # Corpus("dogfood", "input/semgrep.yml", "input/"),
 ]
 
 
@@ -144,7 +150,7 @@ def chdir(dir: str) -> Iterator[None]:
         os.chdir(old_dir)
 
 
-def upload_result(metric_name: str, value: float) -> None:
+def upload_results(metric_name: str, value: float) -> None:
     url = f"{DASHBOARD_URL}/api/metric/{metric_name}"
     print(f"Uploading to {url}")
     r = urllib.request.urlopen(  # nosem
@@ -154,10 +160,21 @@ def upload_result(metric_name: str, value: float) -> None:
     print(r.read().decode())
 
 
-def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
+def standardize_findings(findings: dict) -> dict:
+    findings["results"] = sorted(
+        findings["results"],
+        key=lambda i: (i["path"], i["start"]["line"], i["start"]["col"]),
+    )
+    return findings
+
+
+def run_semgrep(
+    docker: str, corpus: Corpus, variant: SemgrepVariant
+) -> Tuple[float, bytes]:
     args = []
     common_args = [
         "--strict",
+        "--json",
         "--timeout",
         "0",
         "--verbose",
@@ -198,7 +215,7 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
     print(f"extra arguments for semgrep-core: '{variant.semgrep_core_extra}'")
 
     t1 = time.time()
-    res = subprocess.run(args)  # nosem
+    res = subprocess.run(args, capture_output=True)  # nosem
     t2 = time.time()
 
     status = res.returncode
@@ -210,13 +227,20 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
     else:
         res.check_returncode()
 
-    return t2 - t1
+    return t2 - t1, res.stdout
 
 
 def run_benchmarks(
-    docker: str, dummy: bool, gitlab: bool, internal: bool, upload: bool
+    docker: str,
+    dummy: bool,
+    gitlab: bool,
+    internal: bool,
+    plot_benchmarks: bool,
+    upload: bool,
 ) -> None:
-    results = []
+    results_msgs = []
+    results: dict = {variant.name: [] for variant in SEMGREP_VARIANTS}
+
     corpuses = CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
@@ -227,18 +251,42 @@ def run_benchmarks(
     for corpus in corpuses:
         with chdir(corpus.name):
             corpus.prep()
+            std_findings = {}
             for variant in SEMGREP_VARIANTS:
+                # Run variant
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
-                duration = run_semgrep(docker, corpus, variant)
+                duration, findings_bytes = run_semgrep(docker, corpus, variant)
                 msg = f"{metric_name} = {duration:.3f} s"
                 print(msg)
-                results.append(msg)
+                results_msgs.append(msg)
+                results[variant.name].append(duration)
+
+                # Process results
                 if upload:
-                    upload_result(metric_name, duration)
-    for msg in results:
+                    upload_results(metric_name, duration)
+
+                findings = standardize_findings(json.loads(findings_bytes))
+                if variant.name == "std":
+                    std_findings = findings
+                elif json.dumps(findings["results"]) != json.dumps(
+                    std_findings["results"]
+                ):
+                    results_msgs[-1] += " ERROR: result not same as std"
+                elif json.dumps(findings["errors"]) != json.dumps(
+                    std_findings["errors"]
+                ):
+                    results_msgs[-1] += " WARNING: errors not same as std"
+
+    # Show summary data
+    for msg in results_msgs:
         print(msg)
+    if plot_benchmarks:
+        indexes = [corpus.name for corpus in corpuses]
+        plotdata = pd.DataFrame(results, index=indexes)
+        plotdata.plot(kind="bar")
+        plt.show()
 
 
 def main() -> None:
@@ -268,6 +316,11 @@ def main() -> None:
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     parser.add_argument(
+        "--plot_benchmarks",
+        help="display a graph of the benchmark results",
+        action="store_true",
+    )
+    parser.add_argument(
         "--semgrep_core", help="run semgrep-core benchmarks", action="store_true"
     )
     args = parser.parse_args()
@@ -276,7 +329,12 @@ def main() -> None:
             semgrep_core_benchmark.run_benchmarks(args.dummy, args.upload)
         else:
             run_benchmarks(
-                args.docker, args.dummy, args.gitlab, args.internal, args.upload
+                args.docker,
+                args.dummy,
+                args.gitlab,
+                args.internal,
+                args.plot_benchmarks,
+                args.upload,
             )
 
 
