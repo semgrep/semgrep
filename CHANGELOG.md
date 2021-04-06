@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - YAML language support to --test
 
 ### Fixed
+- SARIF output now nests invocations inside runs.
 
 ### Changed
 - Deep expression matches (`<... foo ...>`) now match within the bodies of anonymous
