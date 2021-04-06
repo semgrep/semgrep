@@ -12,6 +12,7 @@
 # the results to the dashboard, and use a dummy set instead
 #
 import argparse
+import copy
 import json
 import os
 import subprocess
@@ -104,8 +105,8 @@ GITLAB_CORPUSES = [
 
 # For corpuses that cannot be run in CI because they use private repos
 INTERNAL_CORPUSES = [
-    # Run our javascript and eslint-plugin-security packs on a large JS repo
-    Corpus("lodash", "input/rules", "input/lodash"),
+    # Run our r2c-ci and r2c-security audit packs on a JS/other repo
+    Corpus("draios", "input/rules", "input/sysdig-inspect"),
     # Corpus("dogfood", "input/semgrep.yml", "input/"),
 ]
 
@@ -144,37 +145,28 @@ class SemgrepResult:
     def __init__(self, dict: dict) -> None:
         self.res = dict
 
+        # TODO: remove this if, and just always make the str the dump
+        if "extra" in dict and "message" in dict["extra"]:
+            dict2 = copy.deepcopy(dict)
+            dict2["extra"]["message"] = ""
+            self.str = json.dumps(dict2)
+        else:
+            self.str = json.dumps(dict)
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SemgrepResult):
             raise NotImplementedError
 
-        def compare_locs(s_loc: dict, o_loc: dict) -> bool:
-            if s_loc is not None and o_loc is not None:
-                return bool(
-                    s_loc["line"] == o_loc["line"] and s_loc["col"] == o_loc["col"]
-                )
-            else:
-                return False
+        return self.str == other.str
 
-        def compare_extras(other: SemgrepResult) -> bool:
-            if "extra" in self.res and "extra" in other.res:
-                return True
-                # return json.dumps(self.res["extra"]) == json.dumps(other["extra"])
-            else:
-                return "extra" not in self.res and "extra" not in other.res
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, SemgrepResult):
+            raise NotImplementedError
 
-        output = (
-            self.res["check_id"] == other.res["check_id"]
-            and self.res["path"] == other.res["path"]
-            and compare_locs(self.res["start"], other.res["start"])
-            and compare_locs(self.res["end"], other.res["end"])
-            and compare_extras(other)
-        )
-        print("Result = ", output)
-        return output
+        return self.str > other.str
 
     def __hash__(self) -> int:
-        return hash(json.dumps(self.res))
+        return hash(self.str)
 
 
 # Add support for: with chdir(DIR): ...
@@ -215,8 +207,8 @@ def output_differences(
     findings: set, std_findings: set, variant: str
 ) -> Tuple[int, int]:
     def output_diff(diff: set) -> None:
-        for d in diff:
-            print(json.dumps(d, indent=4))
+        for d in sorted(diff):
+            print(json.dumps(d.res, indent=4))
 
     f_diff = findings.difference(std_findings)
     s_diff = std_findings.difference(findings)
@@ -336,11 +328,9 @@ def run_benchmarks(
                 num_errors = len(findings["errors"])
                 print(f"Result: {num_results} findings, {num_errors} parse errors")
 
-                print("Checking symmetric difference")
                 if variant.name == "std":
                     std_findings = findings
                 elif findings["results"] ^ std_findings["results"] != set():
-                    print("found difference")
                     fd_len, sd_len = output_differences(
                         findings["results"], std_findings["results"], variant.name
                     )
