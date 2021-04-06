@@ -1131,6 +1131,20 @@ let dump_ast ?(naming=false) file =
       )
   | [] -> failwith (spf "unsupported language for %s" file)
 (*e: function [[Main_semgrep_core.dump_ast]] *)
+let dump_v1_json file =
+  match Lang.langs_of_filename file with
+  | lang::_ ->
+      E.try_with_print_exn_and_reraise file (fun () ->
+        let {Parse_target. ast; errors; _ } =
+          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+        in
+        let v1 = AST_generic_to_v1.program ast in
+        let s = AST_generic_v1_j.string_of_program v1 in
+        pr s;
+        if errors <> []
+        then pr2 (spf "WARNING: fail to fully parse %s" file);
+      )
+  | [] -> failwith (spf "unsupported language for %s" file)
 
 (*s: function [[Main_semgrep_core.dump_ext_of_lang]] *)
 let dump_ext_of_lang () =
@@ -1197,6 +1211,8 @@ let all_actions () = [
   Common.mk_action_1_arg (dump_ast ~naming:false);
   "-dump_named_ast", " <file>",
   Common.mk_action_1_arg (dump_ast ~naming:true);
+  "-dump_v1_json", " <file>",
+  Common.mk_action_1_arg dump_v1_json;
   (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
   "-dump_equivalences", " <file>",
   Common.mk_action_1_arg dump_equivalences;

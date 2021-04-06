@@ -5,6 +5,7 @@
      commons
      pfff-lang_GENERIC_base
   )
+  (wrapped false)
   (preprocess
    (pps
      ppx_profiling
