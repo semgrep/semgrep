@@ -105,7 +105,7 @@ setuptools.setup(
         # Pin exact version of 'ruamel.yaml' because of unstable API.
         # Ensure default type is still 'rt' (round-trip) and that RoundTrip
         # inherits from Safe when upgrading the version.
-        "ruamel.yaml==0.17.0",
+        "ruamel.yaml>=0.16.0,<0.18",
         "tqdm>=4.46.1",
         "packaging>=20.4",
         "jsonschema~=3.2.0",

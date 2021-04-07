@@ -1364,6 +1364,8 @@ let options () =
     " use a bloom filter to only attempt matches when strings in the pattern are in the target";
     "-no_bloom_filter", Arg.Clear Flag.use_bloom_filter,
     " do not use bloom filter";
+    "-set_filter", Arg.Set Flag.set_instead_of_bloom_filter,
+    "use a set instead of bloom filters";
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
     " only use tree-sitter-based parsers";
 

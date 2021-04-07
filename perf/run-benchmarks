@@ -78,6 +78,26 @@ CORPUSES = [
 
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
 
+# Projects GitLab is using to benchmark us on perf
+GITLAB_CORPUSES = [
+    # (Gitlab large) Run our javascript and r2c-secuirty audit packs on a js/ruby repo
+    Corpus("gitlab", "input/rules", "input/gitlab"),
+    # (Gitlab large) Run our security-audit pack on a c repo
+    Corpus("smacker", "input/r2c-security-audit.yml", "input/gotree"),
+    # (Gitlab large) Run our java pack on a java repo
+    Corpus("spring-projects", "input/java.yml", "input/spring"),
+    # (Gitlab medium) Run our python and flask packs on a python repo
+    Corpus("django", "input/rules", "input/django"),
+    # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
+    Corpus("pmd", "input/rules", "input/pmd"),
+    # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
+    Corpus("dropwizard", "input/rules", "input/dropwizard"),
+    # (Gitlab small) Run our python and flask rules on a python repo
+    Corpus("pallets", "input/rules", "input/flask"),
+    # (Gitlab small) Run our javascript rules on a JS repo
+    Corpus("socketio", "input/javascript.yml", "input/socket"),
+]
+
 # For corpuses that cannot be run in CI because they use private repos
 INTERNAL_CORPUSES = [
     Corpus("dogfood", "input/semgrep.yml", "input/"),
@@ -109,6 +129,7 @@ SEMGREP_VARIANTS = [
     SemgrepVariant("max-cache", "-opt_max_cache"),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
     SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
+    SemgrepVariant("set_filters", "-set_filter"),
     SemgrepVariant("experimental", "-fast", "--experimental"),
 ]
 
@@ -192,13 +213,17 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
     return t2 - t1
 
 
-def run_benchmarks(docker: str, dummy: bool, internal: bool, upload: bool) -> None:
+def run_benchmarks(
+    docker: str, dummy: bool, gitlab: bool, internal: bool, upload: bool
+) -> None:
     results = []
     corpuses = CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
     if internal:
         corpuses = INTERNAL_CORPUSES
+    if gitlab:
+        corpuses = GITLAB_CORPUSES
     for corpus in corpuses:
         with chdir(corpus.name):
             corpus.prep()
@@ -235,6 +260,11 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--gitlab",
+        help="run gitlab benchmarks for development purposes",
+        action="store_true",
+    )
+    parser.add_argument(
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     parser.add_argument(
@@ -245,7 +275,9 @@ def main() -> None:
         if args.semgrep_core:
             semgrep_core_benchmark.run_benchmarks(args.dummy, args.upload)
         else:
-            run_benchmarks(args.docker, args.dummy, args.internal, args.upload)
+            run_benchmarks(
+                args.docker, args.dummy, args.gitlab, args.internal, args.upload
+            )
 
 
 if __name__ == "__main__":

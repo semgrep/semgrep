@@ -5,10 +5,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Coming up next
 
 ### Added
+- YAML language support to --test
 
 ### Fixed
+- SARIF output now nests invocations inside runs.
 
 ### Changed
+- Deep expression matches (`<... foo ...>`) now match within the bodies of anonymous
+  functions (a.k.a. lambda-expressions) and arbitrary language-specific
+  statements (e.g. the Golang `go` statement)
 
 ## [0.45.0](https://github.com/returntocorp/semgrep/releases/tag/v0.45.0) - 2021-03-30
 

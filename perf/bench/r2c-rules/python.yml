@@ -1,0 +1,850 @@
+rules:
+- id: python.lang.security.deserialization.avoid-pyyaml-load.avoid-pyyaml-load
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+    references:
+    - https://github.com/yaml/pyyaml/wiki/PyYAML-yaml.load(input)-Deprecation
+    - https://nvd.nist.gov/vuln/detail/CVE-2017-18342
+  languages:
+  - python
+  message: |
+    Avoid using `load()`. `PyYAML.load` can create arbitrary Python
+    objects. A malicious actor could exploit this to run arbitrary
+    code. Use `safe_load()` instead.
+  fix-regex:
+    regex: load
+    replacement: safe_load
+    count: 1
+  severity: ERROR
+  patterns:
+  - pattern-inside: |
+      import yaml
+      ...
+  - pattern-not-inside: |
+      $YAML = ruamel.yaml.YAML(...)
+      ...
+      $YAML.load(...)
+  - pattern-not: yaml.load(..., Loader=yaml.CSafeLoader, ...)
+  - pattern-not: yaml.load(..., Loader=yaml.SafeLoader, ...)
+  - pattern: yaml.load(...)
+- id: python.lang.security.deserialization.pickle.avoid-shelve
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+    references:
+    - https://docs.python.org/3/library/pickle.html
+  languages:
+  - python
+  message: |
+    Avoid using `shelve`, which uses `pickle`, which is known to lead to code execution vulnerabilities.
+    When unpickling, the serialized data could be manipulated to run arbitrary code.
+    Instead, consider serializing the relevant data as JSON or a similar text-based
+    serialization format.
+  severity: WARNING
+  pattern-either:
+  - pattern: shelve.$FUNC(...)
+- id: python.lang.security.deserialization.pickle.avoid-pickle
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+    references:
+    - https://docs.python.org/3/library/pickle.html
+    - https://davidhamann.de/2020/04/05/exploiting-python-pickle/
+  languages:
+  - python
+  message: |
+    Avoid using `pickle`, which is known to lead to code execution vulnerabilities.
+    When unpickling, the serialized data could be manipulated to run arbitrary code.
+    Instead, consider serializing the relevant data as JSON or a similar text-based
+    serialization format.
+  severity: WARNING
+  pattern-either:
+  - pattern: pickle.$FUNC(...)
+  - pattern: _pickle.$FUNC(...)
+- id: python.lang.correctness.return-in-init.yield-in-init
+  patterns:
+  - pattern-inside: |
+      class $A(...):
+          ...
+  - pattern-inside: |
+      def __init__(...):
+          ...
+  - pattern-either:
+    - pattern: yield ...
+    - pattern: yield
+  message: '`yield` should never appear inside a class __init__ function. This will
+    cause a runtime error.'
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.correctness.unchecked-returns.unchecked-subprocess-call
+  patterns:
+  - pattern: subprocess.call(...)
+  - pattern-not-inside: $S = subprocess.call(...)
+  - pattern-not-inside: subprocess.call(...) == $X
+  - pattern-not-inside: return subprocess.call(...)
+  fix: subprocess.check_call(...)
+  message: This is not checking the return value of this subprocess call; if it fails
+    no exception will be raised. Consider subprocess.check_call() instead
+  languages:
+  - python
+  severity: WARNING
+- id: python.lang.correctness.dict-modify-iterating.dict-del-while-iterate
+  patterns:
+  - pattern-either:
+    - pattern: |
+        for $KEY, $VALUE in $DICT.items():
+            ...
+            del $DICT[$KEY]
+    - pattern: |
+        for $KEY in $DICT.keys():
+            ...
+            del $DICT[$KEY]
+  message: 'It appears that `$DICT[$KEY]` is a dict with items being deleted while
+    in a for loop. This is usually a bad idea and will likely lead to a RuntimeError:
+    dictionary changed size during iteration'
+  metadata:
+    references:
+    - https://docs.python.org/3/library/stdtypes.html#dictionary-view-objects
+  languages:
+  - python
+  severity: WARNING
+- id: python.requests.security.no-auth-over-http.no-auth-over-http
+  patterns:
+  - pattern-either:
+    - pattern: requests.$W("=~/http:\/\/.*/", ..., auth=$X, ...)
+    - pattern: |
+        $URL = "=~/http:\/\/.../"
+        ...
+        requests.$W($URL, ..., auth=$X, ...)
+  fix-regex:
+    regex: http:\/\/
+    replacement: https://
+    count: 1
+  message: |
+    Authentication detected over HTTP. HTTP does not provide any
+    encryption or protection for these authentication credentials.
+    This may expose these credentials to unauthhorized parties.
+    Use 'https://' instead.
+  metadata:
+    cwe: 'CWE-523: Unprotected Transport of Credentials'
+    owasp: 'A2: Broken Authentication'
+    source-rule-url: https://pypi.org/project/flake8-flask/
+    references:
+    - https://blog.r2c.dev/2020/bento-check-no-auth-over-http/
+    - https://bento.dev/checks/requests/no-auth-over-http/
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.security.audit.logging.listeneval.listen-eval
+  languages:
+  - python
+  message: |
+    Because portions of the logging configuration are passed through eval(),
+    use of this function may open its users to a security risk. While the
+    function only binds to a socket on localhost, and so does not accept
+    connections from remote machines, there are scenarios where untrusted
+    code could be run under the account of the process which calls listen().
+    See more details at https://docs.python.org/3/library/logging.config.html?highlight=security#logging.config.listen
+  metadata:
+    cwe: 'CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code
+      (''Eval Injection'')'
+    owasp: 'A6: Security Misconfiguration'
+    references:
+    - https://docs.python.org/3/library/logging.config.html?highlight=security#logging.config.listen
+  patterns:
+  - pattern: logging.config.listen(...)
+  severity: WARNING
+- id: python.lang.correctness.exceptions.exceptions.raise-not-base-exception
+  patterns:
+  - pattern-either:
+    - pattern: raise "..."
+    - pattern: |
+        $X: BaseException
+        raise $X(...)
+    - patterns:
+      - pattern: raise $EXCEPTION
+      - metavariable-regex:
+          metavariable: $EXCEPTION
+          regex: '[0-9]*\.?[0-9]+'
+  message: In Python3, a runtime `TypeError` will be thrown if you attempt to raise
+    an object or class which does not inherit from `BaseException`
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.correctness.list-modify-iterating.list-modify-while-iterate
+  patterns:
+  - pattern-either:
+    - pattern: |
+        for $ELEMENT in $LIST:
+          ...
+          $LIST.pop(...)
+    - pattern: |
+        for $ELEMENT in $LIST:
+          ...
+          $LIST.push(...)
+    - pattern: |
+        for $ELEMENT in $LIST:
+          ...
+          $LIST.append(...)
+    - pattern: |
+        for $ELEMENT in $LIST:
+          ...
+          $LIST.extend(...)
+  message: |
+    It appears that `$LIST` is a list that is being modified while in a for loop.
+    This will likely cause a runtime error or an infinite loop.
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.correctness.common-mistakes.is-comparison-string.string-is-comparison
+  patterns:
+  - pattern-not: $S is None
+  - pattern-not: type($X) is $T
+  - pattern-not: $S is True
+  - pattern-not: $S is False
+  - pattern-not: $S is ""
+  - pattern-either:
+    - pattern: $S is "..."
+    - pattern: '"..." is $S'
+  message: |
+    Found string comparison using 'is' operator. The 'is' operator
+    is for reference equality, not value equality, and therefore should
+    not be used to compare strings. For more information, see
+    https://github.com/satwikkansal/wtfpython#-how-not-to-use-is-operator"
+  languages:
+  - python
+  severity: ERROR
+- id: python.requests.security.disabled-cert-validation.disabled-cert-validation
+  patterns:
+  - pattern-either:
+    - pattern: requests.put(..., verify=False, ...)
+    - pattern: requests.patch(..., verify=False, ...)
+    - pattern: requests.delete(..., verify=False, ...)
+    - pattern: requests.head(..., verify=False, ...)
+    - pattern: requests.options(..., verify=False, ...)
+    - pattern: requests.request(..., verify=False, ...)
+    - pattern: requests.get(..., verify=False, ...)
+    - pattern: requests.post(..., verify=False, ...)
+  message: |
+    Certificate verification has been explicitly disabled. This
+    permits insecure connections to insecure servers. Re-enable
+    certification validation.
+  metadata:
+    cwe: 'CWE-295: Improper Certificate Validation'
+    owasp: 'A3: Sensitive Data Exposure'
+    references:
+    - https://stackoverflow.com/questions/41740361/is-it-safe-to-disable-ssl-certificate-verification-in-pythonss-requests-lib
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.security.audit.network.http-not-https-connection.http-not-https-connection
+  patterns:
+  - pattern-either:
+    - pattern: urllib3.HTTPConnectionPool(...)
+    - pattern: urllib3.connectionpool.HTTPConnectionPool(...)
+  message: |
+    Detected HTTPConnectionPool. This will transmit data in cleartext.
+    It is recommended to use HTTPSConnectionPool instead for to encrypt
+    communications.
+  metadata:
+    cwe: 'CWE-319: Cleartext Transmission of Sensitive Information'
+    owasp: 'A3: Sensitive Data Exposure'
+    references:
+    - https://urllib3.readthedocs.io/en/1.2.1/pools.html#urllib3.connectionpool.HTTPSConnectionPool
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.security.deserialization.pickle.avoid-cPickle
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+    references:
+    - https://docs.python.org/3/library/pickle.html
+  languages:
+  - python
+  message: |
+    Avoid using `cPickle`, which is known to lead to code execution vulnerabilities.
+    When unpickling, the serialized data could be manipulated to run arbitrary code.
+    Instead, consider serializing the relevant data as JSON or a similar text-based
+    serialization format.
+  severity: WARNING
+  pattern: cPickle.$FUNC(...)
+- id: python.lang.correctness.useless-eqeq.useless-eqeq
+  patterns:
+  - pattern-not-inside: |
+      def __eq__(...):
+          ...
+  - pattern-not-inside: |
+      def __cmp__(...):
+          ...
+  - pattern-not-inside: assert(...)
+  - pattern-not-inside: assert ...
+  - pattern-not-inside: assert ..., ...
+  - pattern-not-inside: assertTrue(...)
+  - pattern-not-inside: assertFalse(...)
+  - pattern-either:
+    - pattern: $X == $X
+    - pattern: $X != $X
+  - pattern-not: 1 == 1
+  message: 'This expression is always True: `$X == $X` or `$X != $X`. If testing for
+    floating point NaN, use `math.isnan($X)`, or `cmath.isnan($X)` if the number is
+    complex.'
+  languages:
+  - python
+  severity: ERROR
+- id: python.requests.best-practice.use-timeout.use-timeout
+  patterns:
+  - pattern-not: requests.$W(..., timeout=$N, ...)
+  - pattern-not: requests.$W(..., **$KWARGS)
+  - pattern-either:
+    - pattern: requests.request(...)
+    - pattern: requests.get(...)
+    - pattern: requests.post(...)
+    - pattern: requests.put(...)
+    - pattern: requests.delete(...)
+    - pattern: requests.head(...)
+    - pattern: requests.patch(...)
+  fix-regex:
+    regex: (.*)\)
+    replacement: \1, timeout=30)
+  message: |
+    By default, 'requests' calls wait until the connection is closed.
+    This means a 'requests' call without a timeout will hang the program
+    if a response is never received. Consider setting a timeout for all
+    'requests'.
+  languages:
+  - python
+  severity: WARNING
+- id: python.lang.correctness.common-mistakes.is-comparison-string.identical-is-comparison
+  pattern: $S is $S
+  message: Found identical comparison using is. Ensure this is what you intended.
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.correctness.exit.use-sys-exit
+  languages:
+  - python
+  message: Use `sys.exit` over the python shell `exit` built-in. `exit` is a helper
+    for the interactive shell and may not be available on all Python implementations.
+    https://stackoverflow.com/questions/6501121/difference-between-exit-and-sys-exit-in-python
+  patterns:
+  - pattern: exit(...)
+  - pattern-not: sys.exit(...)
+  severity: WARNING
+- id: python.lang.correctness.common-mistakes.default-mutable-list.default-mutable-list
+  patterns:
+  - pattern-either:
+    - patterns:
+      - pattern: |
+          def $F(..., $D=[], ...):
+            ...
+            $D.append(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = []
+            ...
+            $D.append(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = [...]
+            ...
+            $D.append(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = list(...)
+            ...
+            $D.append(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = copy.deepcopy($D)
+            ...
+            $D.append(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = copy.copy($D)
+            ...
+            $D.append(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = list.copy($D)
+            ...
+            $D.append(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = $D[:]
+            ...
+            $D.append(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = [... for ... in ...]
+            ...
+            $D.append(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = $D or []
+            ...
+            $D.append(...)
+      - pattern-not-inside: |
+          def $A(...):
+            ...
+            def $F(..., $D=[], ...):
+              ...
+              $D.append(...)
+    - patterns:
+      - pattern: |
+          def $F(..., $D=[], ...):
+            ...
+            $D.extend(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = []
+            ...
+            $D.extend(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = [...]
+            ...
+            $D.extend(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = list(...)
+            ...
+            $D.extend(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = copy.deepcopy($D)
+            ...
+            $D.extend(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = copy.copy($D)
+            ...
+            $D.extend(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = list.copy($D)
+            ...
+            $D.extend(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = $D[:]
+            ...
+            $D.extend(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = [... for ... in ...]
+            ...
+            $D.extend(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = $D or []
+            ...
+            $D.extend(...)
+      - pattern-not-inside: |
+          def $A(...):
+            ...
+            def $F(..., $D=[], ...):
+              ...
+              $D.extend(...)
+    - patterns:
+      - pattern: |
+          def $F(..., $D=[], ...):
+            ...
+            $D.insert(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = []
+            ...
+            $D.insert(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = [...]
+            ...
+            $D.insert(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = list(...)
+            ...
+            $D.insert(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = copy.deepcopy($D)
+            ...
+            $D.insert(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = copy.copy($D)
+            ...
+            $D.insert(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = list.copy($D)
+            ...
+            $D.insert(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = $D[:]
+            ...
+            $D.insert(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = [... for ... in ...]
+            ...
+            $D.insert(...)
+      - pattern-not: |
+          def $F(..., $D=[], ...):
+            ...
+            $D = $D or []
+            ...
+            $D.insert(...)
+      - pattern-not-inside: |
+          def $A(...):
+            ...
+            def $F(..., $D=[], ...):
+              ...
+              $D.insert(...)
+  message: 'Function $F mutates default list $D. Python only instantiates default
+    function arguments once and shares the instance across the function calls. If
+    the default function argument is mutated, that will modify the instance used by
+    all future function calls. This can cause unexpected results, or lead to security
+    vulnerabilities whereby one function consumer can view or modify the data of another
+    function consumer. Instead, use a default argument (like None) to indicate that
+    no argument was provided and instantiate a new list at that time. For example:
+    `if $D is None: $D = []`.'
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.security.audit.network.bind.avoid-bind-to-all-interfaces
+  patterns:
+  - pattern-either:
+    - pattern: |
+        $S = socket.socket(...)
+        ...
+        $S.bind(("0.0.0.0", ...))
+    - pattern: |
+        $S = socket.socket(...)
+        ...
+        $S.bind(("::", ...))
+    - pattern: |
+        $S = socket.socket(...)
+        ...
+        $S.bind(("", ...))
+  message: |
+    Running `socket.bind` to 0.0.0.0, ::, or empty string could unexpectedly
+    expose the server publicly as it binds to all available interfaces. Consider
+    instead getting correct address from an environment variable or
+    configuration file.
+  metadata:
+    cwe: 'CWE-200: Exposure of Sensitive Information to an Unauthorized Actor'
+    owasp: 'A6: Security Misconfiguration'
+  languages:
+  - python
+  severity: INFO
+- id: python.lang.correctness.return-in-init.return-in-init
+  patterns:
+  - pattern-inside: |
+      class $A(...):
+          ...
+  - pattern-inside: |
+      def __init__(...):
+          ...
+  - pattern-either:
+    - pattern: return ...
+    - pattern: return
+  message: '`return` should never appear inside a class __init__ function. This will
+    cause a runtime error.'
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.correctness.common-mistakes.string-concat-in-list.string-concat-in-list
+  patterns:
+  - pattern-either:
+    - pattern-inside: '[...]'
+    - pattern-inside: '{...}'
+  - pattern: '"..." "..."'
+  - pattern-not-inside: f"..."
+  - pattern-not-inside: '{..., $KEY: $VALUE, ...}'
+  message: |
+    Detected strings that are implicitly concatenated inside a list.
+    Python will implicitly concatenate strings when not explicitly delimited.
+    Was this supposed to be individual elements of the list?
+  severity: WARNING
+  languages:
+  - python
+- id: python.lang.security.deserialization.pickle.avoid-dill
+  metadata:
+    owasp: 'A8: Insecure Deserialization'
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+    references:
+    - https://docs.python.org/3/library/pickle.html
+  languages:
+  - python
+  message: |
+    Avoid using `dill`, which uses `pickle`, which is known to lead to code execution vulnerabilities.
+    When unpickling, the serialized data could be manipulated to run arbitrary code.
+    Instead, consider serializing the relevant data as JSON or a similar text-based
+    serialization format.
+  severity: WARNING
+  pattern-either:
+  - pattern: dill.$FUNC(...)
+- id: python.lang.correctness.useless-comparison.no-strings-as-booleans
+  patterns:
+  - pattern-either:
+    - pattern: |
+        if <... "..." and ... ...>:
+            ...
+    - pattern: |
+        if <... "..." or ... ...>:
+            ...
+    - patterns:
+      - pattern-not: |
+          if $X in "...":
+            ...
+      - pattern: |
+          if "...":
+              ...
+  message: |
+    Using strings as booleans in Python has unexpected results.
+    `"one" and "two"` will return "two".
+    `"one" or "two"` will return "one".
+     In Python, strings are truthy, and strings with a non-zero length evaluate to True.
+  languages:
+  - python
+  severity: ERROR
+- id: python.lang.security.audit.marshal.marshal-usage
+  languages:
+  - python
+  message: |
+    The marshal module is not intended to be secure against erroneous or maliciously constructed data.
+    Never unmarshal data received from an untrusted or unauthenticated source.
+    See more details: https://docs.python.org/3/library/marshal.html?highlight=security
+  metadata:
+    cwe: 'CWE-502: Deserialization of Untrusted Data'
+    owasp: 'A8: Insecure Deserialization'
+    references:
+    - https://docs.python.org/3/library/marshal.html?highlight=security
+  pattern-either:
+  - pattern: marshal.dump(...)
+  - pattern: marshal.dumps(...)
+  - pattern: marshal.load(...)
+  - pattern: marshal.loads(...)
+  severity: WARNING
+- id: python.lang.correctness.common-mistakes.default-mutable-dict.default-mutable-dict
+  patterns:
+  - pattern-either:
+    - patterns:
+      - pattern: |
+          def $F(..., $D={}, ...):
+            ...
+            $D[...] = ...
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = {}
+            ...
+            $D[...] = ...
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = dict(...)
+            ...
+            $D[...] = ...
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = $D.copy()
+            ...
+            $D[...] = ...
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = copy.deepcopy($D)
+            ...
+            $D[...] = ...
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = copy.copy($D)
+            ...
+            $D[...] = ...
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = dict.copy($D)
+            ...
+            $D[...] = ...
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = {... for ... in ...}
+            ...
+            $D[...] = ...
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = $D or {}
+            ...
+            $D[...] = ...
+      - pattern-not-inside: |
+          def $A(...):
+            ...
+            def $F(..., $D={}, ...):
+              ...
+              $D[...] = ...
+    - patterns:
+      - pattern: |
+          def $F(..., $D={}, ...):
+            ...
+            $D.update(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = {}
+            ...
+            $D.update(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = dict(...)
+            ...
+            $D.update(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = $D.copy()
+            ...
+            $D.update(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = copy.deepcopy($D)
+            ...
+            $D.update(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = copy.copy($D)
+            ...
+            $D.update(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = dict.copy($D)
+            ...
+            $D.update(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = {... for ... in ...}
+            ...
+            $D.update(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = $D or {}
+            ...
+            $D.update(...)
+      - pattern-not-inside: |
+          def $A(...):
+            ...
+            def $F(..., $D={}, ...):
+              ...
+              $D.update(...)
+    - patterns:
+      - pattern: |
+          def $F(..., $D={}, ...):
+            ...
+            $D.setdefault(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = {}
+            ...
+            $D.setdefault(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = dict(...)
+            ...
+            $D.setdefault(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = $D.copy()
+            ...
+            $D.setdefault(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = copy.deepcopy($D)
+            ...
+            $D.setdefault(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = copy.copy($D)
+            ...
+            $D.setdefault(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = dict.copy($D)
+            ...
+            $D.setdefault(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = {... for ... in ...}
+            ...
+            $D.setdefault(...)
+      - pattern-not: |
+          def $F(..., $D={}, ...):
+            ...
+            $D = $D or {}
+            ...
+            $D.setdefault(...)
+      - pattern-not-inside: |
+          def $A(...):
+            ...
+            def $F(..., $D={}, ...):
+              ...
+              $D.setdefault(...)
+  message: 'Function $F mutates default dict $D. Python only instantiates default
+    function arguments once and shares the instance across the function calls. If
+    the default function argument is mutated, that will modify the instance used by
+    all future function calls. This can cause unexpected results, or lead to security
+    vulnerabilities whereby one function consumer can view or modify the data of another
+    function consumer. Instead, use a default argument (like None) to indicate that
+    no argument was provided and instantiate a new dictionary at that time. For example:
+    `if $D is None: $D = {}`.'
+  languages:
+  - python
+  severity: ERROR
