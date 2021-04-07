@@ -139,6 +139,8 @@ SEMGREP_VARIANTS = [
 ]
 
 
+# This class allows us to put semgrep results in a set and compute set
+# differences while saving the original JSON dictionary
 class SemgrepResult:
     def __init__(self, dict: dict) -> None:
         self.res = dict
