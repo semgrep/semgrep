@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - SARIF output now nests invocations inside runs.
+- Go backslashed carets in regexes can be parsed 
 
 ### Changed
 - Deep expression matches (`<... foo ...>`) now match within the bodies of anonymous
