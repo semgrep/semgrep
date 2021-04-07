@@ -26,7 +26,7 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 #   https://github.com/returntocorp/ocaml-layer/blob/master/common-config.sh
 #
 # or ask Martin to do so.
-#
+# You may also need to update the ocaml:alpine-xxx image used in ../Dockerfile.
 depends: [
   "dune" {>= "2.7.0" }
   "bloomf"
