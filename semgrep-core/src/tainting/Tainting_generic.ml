@@ -44,8 +44,7 @@ module DataflowY = Dataflow.Make (struct
     let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
   end)
 
-(*s: function [[Tainting_generic.match_pat_instr]] *)
-let match_pat_instr pat =
+let match_pat_eorig pat =
   match pat with
   | [] -> (fun _ -> false)
   | xs ->
@@ -55,8 +54,7 @@ let match_pat_instr pat =
       )
       in
       let pat = Common2.foldl1 (fun x acc -> AST.DisjExpr (x, acc)) xs in
-      (fun instr ->
-         let eorig = instr.IL.iorig in
+      (fun eorig ->
          (* the rule is just used by match_e_e for profiling stats *)
          let rule = { R2.id = "<tainting>";
                       pattern = AST.E pat; pattern_string = "<tainting> pat";
@@ -70,6 +68,17 @@ let match_pat_instr pat =
            Semgrep_generic.match_e_e rule pat eorig env in
          matches_with_env <> []
       )
+
+let match_pat_exp pat =
+  fun exp ->
+  let eorig = exp.IL.eorig in
+  match_pat_eorig pat eorig
+
+(*s: function [[Tainting_generic.match_pat_instr]] *)
+let match_pat_instr pat =
+  fun instr ->
+  let eorig = instr.IL.iorig in
+  match_pat_eorig pat eorig
 (*e: function [[Tainting_generic.match_pat_instr]] *)
 
 
@@ -77,6 +86,7 @@ let match_pat_instr pat =
 let config_of_rule found_tainted_sink rule =
   { Dataflow_tainting.
     is_source = match_pat_instr rule.R.source;
+    is_source_exp = match_pat_exp rule.R.source;
     is_sanitizer = match_pat_instr rule.R.sanitizer;
     is_sink = match_pat_instr rule.R.sink;
 
