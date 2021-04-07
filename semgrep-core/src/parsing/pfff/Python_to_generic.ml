@@ -543,12 +543,25 @@ and stmt_aux x =
       [G.DefStmt (ent, G.ClassDef def) |> G.s]
 
 
-  (* TODO: should turn some of those in G.LocalDef (G.VarDef ! ) *)
   | Assign (v1, v2, v3) ->
       let v1 = list expr v1 and v2 = info v2 and v3 = expr v3 in
       (match v1 with
        | [] -> raise Impossible
-       | [a] -> [G.exprstmt (G.Assign (a, v2, v3))]
+       | [a] ->
+           (match a with
+            (* x: t = ... is definitely a VarDef *)
+            | G.Cast (t, G.N (G.Id (id, idinfo))) ->
+                let ent = { G.name = G.EN (G.Id (id, idinfo)); attrs = [];
+                            tparams = [] } in
+                let var = G.VarDef { G.vinit = Some v3; vtype = Some t } in
+                [G.DefStmt (ent, var) |> G.s]
+            (* TODO: We should turn more Assign in G.VarDef!
+             * Is it bad for semgrep to turn only the typed assign in VarDef?
+             * No because we have some magic equivalences to convert some
+             * Vardef back in Assign in Generic_vs_generic.
+            *)
+            | _ -> [G.exprstmt (G.Assign (a, v2, v3))]
+           )
        | xs -> [G.exprstmt (G.Assign (G.Tuple (G.fake_bracket xs), v2, v3))]
       )
   | AugAssign ((v1, (v2, tok), v3)) ->
