@@ -26,6 +26,7 @@
     semgrep_core
     semgrep_parsing
     semgrep_matching
+    semgrep_tainting
     semgrep_synthesizing
     semgrep_reporting
     semgrep_engine
