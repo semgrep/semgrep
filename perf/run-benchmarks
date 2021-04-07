@@ -86,11 +86,11 @@ DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
 # Projects GitLab is using to benchmark us on perf
 GITLAB_CORPUSES = [
     # (Gitlab large) Run our javascript and r2c-secuirty audit packs on a js/ruby repo
-    # Corpus("gitlab", "input/rules", "input/gitlab"),
+    Corpus("gitlab", "input/rules", "input/gitlab"),
     # (Gitlab large) Run our security-audit pack on a c repo
-    # Corpus("smacker", "input/r2c-security-audit.yml", "input/gotree"),
+    Corpus("smacker", "input/r2c-security-audit.yml", "input/gotree"),
     # (Gitlab large) Run our java pack on a java repo
-    # Corpus("spring-projects", "input/java.yml", "input/spring"),
+    Corpus("spring-projects", "input/java.yml", "input/spring"),
     # (Gitlab medium) Run our python and flask packs on a python repo
     Corpus("django", "input/rules", "input/django"),
     # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
@@ -105,9 +105,7 @@ GITLAB_CORPUSES = [
 
 # For corpuses that cannot be run in CI because they use private repos
 INTERNAL_CORPUSES = [
-    # Run our r2c-ci and r2c-security audit packs on a JS/other repo
-    Corpus("draios", "input/rules", "input/sysdig-inspect"),
-    # Corpus("dogfood", "input/semgrep.yml", "input/"),
+    Corpus("dogfood", "input/semgrep.yml", "input/"),
 ]
 
 
@@ -132,11 +130,11 @@ class SemgrepVariant:
 SEMGREP_VARIANTS = [
     # default settings
     SemgrepVariant("std", ""),
-    # SemgrepVariant("no-cache", "-no_opt_cache"),
-    # SemgrepVariant("max-cache", "-opt_max_cache"),
-    # SemgrepVariant("no-bloom", "-no_bloom_filter"),
-    # SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
-    # SemgrepVariant("set_filters", "-set_filter"),
+    SemgrepVariant("no-cache", "-no_opt_cache"),
+    SemgrepVariant("max-cache", "-opt_max_cache"),
+    SemgrepVariant("no-bloom", "-no_bloom_filter"),
+    SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
+    SemgrepVariant("set_filters", "-set_filter"),
     SemgrepVariant("experimental", "-fast", "--experimental"),
 ]
 
