@@ -56,7 +56,6 @@ Based on the understanding of what Jenkins can parse for JUnit XML files.
 class TestSuite:
     """
     Suite of test cases.
-    Can handle unicode strings or binary strings if their encoding is provided.
     """
 
     def __init__(
@@ -93,11 +92,9 @@ class TestSuite:
         self.stderr = stderr
         self.properties = properties
 
-    def build_xml_doc(self, encoding=None):
+    def build_xml_doc(self):
         """
         Builds the XML document for the JUnit test suite.
-        Produces clean unicode strings and decodes non-unicode with the help of encoding.
-        @param encoding: Used to decode encoded strings.
         @return: XML document with unicode string elements
         """
 
@@ -240,10 +237,9 @@ class TestSuite:
         return xml_element
 
 
-def to_xml_report_string(test_suites, prettyprint=True, encoding=None):
+def to_xml_report_string(test_suites, prettyprint=True):
     """
     Returns the string representation of the JUnit XML document.
-    @param encoding: The encoding of the input.
     @return: unicode string
     """
 
@@ -255,7 +251,7 @@ def to_xml_report_string(test_suites, prettyprint=True, encoding=None):
     xml_element = ET.Element("testsuites")
     attributes = collections.defaultdict(int)
     for ts in test_suites:
-        ts_xml = ts.build_xml_doc(encoding=encoding)
+        ts_xml = ts.build_xml_doc()
         for key in ["disabled", "errors", "failures", "tests"]:
             attributes[key] += int(ts_xml.get(key, 0))
         for key in ["time"]:
@@ -264,22 +260,15 @@ def to_xml_report_string(test_suites, prettyprint=True, encoding=None):
     for key, value in attributes.items():
         xml_element.set(key, str(value))
 
-    xml_string = ET.tostring(xml_element, encoding=encoding)
-    # is encoded now
-    xml_string = _clean_illegal_xml_chars(xml_string.decode(encoding or "utf-8"))
-    # is unicode now
+    xml_string = ET.tostring(xml_element)
+    xml_string = _clean_illegal_xml_chars(xml_string.decode("utf-8", errors="replace"))
 
     if prettyprint:
-        # parseString() works just on correctly encoded binary strings
-        xml_string = xml_string.encode(encoding or "utf-8")
+        xml_string = xml_string.encode("utf-8")
         # fmt: off
         xml_string = xml.dom.minidom.parseString(xml_string)  # nosem: contrib.dlint.dlint-equivalent.insecure-xml-use
         # fmt: on
-        # toprettyxml() produces unicode if no encoding is being passed or binary string with an encoding
-        xml_string = xml_string.toprettyxml(encoding=encoding)
-        if encoding:
-            xml_string = xml_string.decode(encoding)
-        # is unicode now
+        xml_string = xml_string.toprettyxml()
     return xml_string
 
 
