@@ -30,6 +30,7 @@ bug-reports: "https://github.com/returntocorp/semgrep/issues"
 depends: [
   "dune" {>= "2.7.0" }
   "bloomf"
+  "atdgen"
   "yojson"
   "yaml"
   "ppx_deriving"
