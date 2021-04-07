@@ -12,13 +12,18 @@
 # the results to the dashboard, and use a dummy set instead
 #
 import argparse
+import copy
+import json
 import os
 import subprocess
 import time
 import urllib.request
 from contextlib import contextmanager
 from typing import Iterator
+from typing import Tuple
 
+import matplotlib.pyplot as plt
+import pandas as pd
 import semgrep_core_benchmark  # type: ignore
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
@@ -133,6 +138,37 @@ SEMGREP_VARIANTS = [
     SemgrepVariant("experimental", "-fast", "--experimental"),
 ]
 
+
+# This class allows us to put semgrep results in a set and compute set
+# differences while saving the original JSON dictionary
+class SemgrepResult:
+    def __init__(self, dict: dict) -> None:
+        self.res = dict
+
+        # TODO: remove this if, and just always make the str the dump
+        if "extra" in dict and "message" in dict["extra"]:
+            dict2 = copy.deepcopy(dict)
+            dict2["extra"]["message"] = ""
+            self.str = json.dumps(dict2)
+        else:
+            self.str = json.dumps(dict)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, SemgrepResult):
+            raise NotImplementedError
+
+        return self.str == other.str
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, SemgrepResult):
+            raise NotImplementedError
+
+        return self.str > other.str
+
+    def __hash__(self) -> int:
+        return hash(self.str)
+
+
 # Add support for: with chdir(DIR): ...
 @contextmanager
 def chdir(dir: str) -> Iterator[None]:
@@ -154,10 +190,44 @@ def upload_result(metric_name: str, value: float) -> None:
     print(r.read().decode())
 
 
-def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
+def standardize_findings(findings: dict) -> dict:
+    if "errors" not in findings:
+        msg = json.dumps(findings, indent=4) + "\n\nDid not find expected key 'errors'"
+        raise Exception(msg)
+    if "results" not in findings:
+        msg = json.dumps(findings, indent=4) + "\n\nDid not find expected key 'results'"
+        raise Exception(msg)
+    return {
+        "errors": findings["errors"],
+        "results": {SemgrepResult(i) for i in findings["results"]},
+    }
+
+
+def output_differences(
+    findings: set, std_findings: set, variant: str
+) -> Tuple[int, int]:
+    def output_diff(diff: set) -> None:
+        for d in sorted(diff):
+            print(json.dumps(d.res, indent=4))
+
+    f_diff = findings.difference(std_findings)
+    s_diff = std_findings.difference(findings)
+    fd_len = len(f_diff)
+    sd_len = len(s_diff)
+    print("In", variant, "but not std", fd_len, "findings :")
+    output_diff(f_diff)
+    print("In std but not", variant, sd_len, "findings :")
+    output_diff(s_diff)
+    return fd_len, sd_len
+
+
+def run_semgrep(
+    docker: str, corpus: Corpus, variant: SemgrepVariant
+) -> Tuple[float, bytes]:
     args = []
     common_args = [
         "--strict",
+        "--json",
         "--timeout",
         "0",
         "--verbose",
@@ -198,7 +268,7 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
     print(f"extra arguments for semgrep-core: '{variant.semgrep_core_extra}'")
 
     t1 = time.time()
-    res = subprocess.run(args)  # nosem
+    res = subprocess.run(args, capture_output=True)  # nosem
     t2 = time.time()
 
     status = res.returncode
@@ -210,13 +280,20 @@ def run_semgrep(docker: str, corpus: Corpus, variant: SemgrepVariant) -> float:
     else:
         res.check_returncode()
 
-    return t2 - t1
+    return t2 - t1, res.stdout
 
 
 def run_benchmarks(
-    docker: str, dummy: bool, gitlab: bool, internal: bool, upload: bool
+    docker: str,
+    dummy: bool,
+    gitlab: bool,
+    internal: bool,
+    plot_benchmarks: bool,
+    upload: bool,
 ) -> None:
-    results = []
+    results_msgs = []
+    results: dict = {variant.name: [] for variant in SEMGREP_VARIANTS}
+
     corpuses = CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
@@ -227,18 +304,50 @@ def run_benchmarks(
     for corpus in corpuses:
         with chdir(corpus.name):
             corpus.prep()
+            std_findings = {}
             for variant in SEMGREP_VARIANTS:
+                # Run variant
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
-                duration = run_semgrep(docker, corpus, variant)
+                duration, findings_bytes = run_semgrep(docker, corpus, variant)
+
+                # Report results
                 msg = f"{metric_name} = {duration:.3f} s"
                 print(msg)
-                results.append(msg)
+                results_msgs.append(msg)
+                results[variant.name].append(duration)
+
                 if upload:
                     upload_result(metric_name, duration)
-    for msg in results:
+
+                # Check correctness
+                findings = standardize_findings(json.loads(findings_bytes))
+
+                num_results = len(findings["results"])
+                num_errors = len(findings["errors"])
+                print(f"Result: {num_results} findings, {num_errors} parse errors")
+
+                if variant.name == "std":
+                    std_findings = findings
+                elif findings["results"] ^ std_findings["results"] != set():
+                    fd_len, sd_len = output_differences(
+                        findings["results"], std_findings["results"], variant.name
+                    )
+                    results_msgs[
+                        -1
+                    ] += f" ERROR: {fd_len} extra findings, {sd_len} missing findings"
+                elif len(findings["errors"]) > len(std_findings["errors"]):
+                    results_msgs[-1] += " WARNING: more errors than std"
+
+    # Show summary data
+    for msg in results_msgs:
         print(msg)
+    if plot_benchmarks:
+        indexes = [corpus.name for corpus in corpuses]
+        plotdata = pd.DataFrame(results, index=indexes)
+        plotdata.plot(kind="bar")
+        plt.show()
 
 
 def main() -> None:
@@ -268,6 +377,11 @@ def main() -> None:
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     parser.add_argument(
+        "--plot_benchmarks",
+        help="display a graph of the benchmark results",
+        action="store_true",
+    )
+    parser.add_argument(
         "--semgrep_core", help="run semgrep-core benchmarks", action="store_true"
     )
     args = parser.parse_args()
@@ -276,7 +390,12 @@ def main() -> None:
             semgrep_core_benchmark.run_benchmarks(args.dummy, args.upload)
         else:
             run_benchmarks(
-                args.docker, args.dummy, args.gitlab, args.internal, args.upload
+                args.docker,
+                args.dummy,
+                args.gitlab,
+                args.internal,
+                args.plot_benchmarks,
+                args.upload,
             )
 
 

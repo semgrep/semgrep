@@ -9,6 +9,7 @@ type mapping = unit Dataflow.mapping
 (* this can use semgrep patterns under the hood *)
 type config = {
   is_source: IL.instr -> bool;
+  is_source_exp: IL.exp -> bool;
   is_sink: IL.instr -> bool;
   is_sanitizer: IL.instr -> bool;
 
