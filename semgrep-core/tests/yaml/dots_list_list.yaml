@@ -1,0 +1,10 @@
+#ERROR: match
+rules:
+- - my_pattern_id: id
+  - language: yaml 
+  - also_my_pattern: something
+message: |
+  Semgrep found a match
+language: yaml
+severity: WARNING
+
