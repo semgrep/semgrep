@@ -6,7 +6,6 @@
 import argparse
 import os
 import subprocess
-import sys
 import time
 import urllib.request
 from typing import List
@@ -15,7 +14,7 @@ HOST = "https://dashboard.semgrep.dev"
 
 
 class Test:
-    def __init__(self, name: str, lang: str, target: str):
+    def __init__(self, name: str, lang: str, target: str, is_config: bool = False):
         # Test name. Pattern file name is NAME.sgrep.
         self.name = name
 
@@ -24,6 +23,9 @@ class Test:
 
         # Target file name
         self.target = target
+
+        # Whether the file is a config
+        self.is_config = is_config
 
 
 TESTS = [
@@ -47,6 +49,11 @@ TESTS = [
     Test("stmts-double-ellipsis-aba", "js", "l1000.js"),
     # Double ellipsis on statements with backrefs: $A; ... $A; ... foo($A);
     Test("stmts-double-ellipsis-aaa", "js", "l1000.js"),
+    # Real world examples
+    # Multiple ellipsis inside a class and then a method
+    Test("crlf-injection-rule1", "java", "crlf-bad-class.java"),
+    # Multiple pattern-nots with multiple pattern-eithrs
+    Test("netflix-slow-python", "python", "netflix-conftest.py", True),
 ]
 
 
@@ -61,7 +68,13 @@ def run_tests(
 ) -> List[Result]:
     results = []
     for test in tests:
-        pattern_file = os.path.join(dirname, test.name + ".sgrep")
+        ext = ".sgrep"
+        flag = "-f"
+        if test.is_config:
+            ext = ".yml"
+            flag = "-config"
+
+        pattern_file = os.path.join(dirname, test.name + ext)
         target_file = os.path.join(dirname, test.target)
 
         t1 = time.time()
@@ -69,7 +82,7 @@ def run_tests(
             "semgrep-core",
             "-lang",
             test.lang,
-            "-f",
+            flag,
             pattern_file,
             target_file,
         ]
