@@ -50,15 +50,19 @@ class Corpus:
 
 
 CORPUSES = [
+    #
     # Run Ajin's nodejsscan rules on some repo containing javascript files.
     # This takes something like 4 hours or more. Maybe we could run it
     # on fewer targets.
+    #
     # Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
+    #
     Corpus("big-js", "input/semgrep.yml", "input/big-js"),
     Corpus(
         "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
     ),
     Corpus("zulip", "input/semgrep.yml", "input/zulip"),
+    #
     # The tests below all run r2c rulepacks (in r2c-rules) on public repos
     # For command Corpus("$X", ..., "input/$Y"), you can find the repo by
     # going to github.com/$X/$Y
@@ -79,13 +83,21 @@ CORPUSES = [
     Corpus("rails", "input/ruby.yml", "input/rails"),
     # Run our javascript and eslint-plugin-security packs on a large JS repo
     Corpus("lodash", "input/rules", "input/lodash"),
+    #
+    # Run our r2c-ci packs (but not r2c-security-audit) on vulnerable apps
+    # See https://owasp.org/www-project-vulnerable-web-applications-directory/
+    # for a full list of such apps
+    #
+    Corpus("Vulnerable-Flask-App", "input/rules", "input/Vulnerable-Flask-App"),
+    Corpus("DVWA", "input/rules", "input/DVWA"),
+    Corpus("juice-shop", "input/rules", "input/juice-shop"),
 ]
 
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
 
-# Projects GitLab is using to benchmark us on perf
+# Projects that GitLab is using to benchmark us on perf
 GITLAB_CORPUSES = [
-    # (Gitlab large) Run our javascript and r2c-secuirty audit packs on a js/ruby repo
+    # (Gitlab large) Run our javascript and r2c-security audit packs on a js/ruby repo
     Corpus("gitlab", "input/rules", "input/gitlab"),
     # (Gitlab large) Run our security-audit pack on a c repo
     Corpus("smacker", "input/r2c-security-audit.yml", "input/gotree"),
@@ -130,10 +142,12 @@ class SemgrepVariant:
 SEMGREP_VARIANTS = [
     # default settings
     SemgrepVariant("std", ""),
+    # removing optimisations
     SemgrepVariant("no-cache", "-no_opt_cache"),
     SemgrepVariant("max-cache", "-opt_max_cache"),
     SemgrepVariant("no-bloom", "-no_bloom_filter"),
     SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
+    # alternate optimisations
     SemgrepVariant("set_filters", "-set_filter"),
     SemgrepVariant("experimental", "-fast", "--experimental"),
 ]
