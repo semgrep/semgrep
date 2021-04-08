@@ -12,7 +12,7 @@
  * file license.txt for more details.
 *)
 open Common
-open Comby
+open Comby_kernel
 
 module MS = Matchers.Metasyntax
 

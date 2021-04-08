@@ -42,7 +42,7 @@ depends: [
   "parmap"
   "ppxlib" {= "0.15.0" }
   "lsp" {= "1.1.0"}
-  "comby" {= "1.4.0"}
+  "comby-kernel" {= "1.4.1"}
 ]
 
 build: [make]

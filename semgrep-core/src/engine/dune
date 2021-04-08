@@ -3,7 +3,7 @@
  (wrapped false)
  (libraries
    pcre
-   comby
+   comby-kernel
 
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
 
