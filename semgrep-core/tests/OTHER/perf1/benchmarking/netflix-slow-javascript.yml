@@ -1,0 +1,32 @@
+- id: typescript.react.security.audit.react-css-injection.react-css-injection
+  patterns:
+  - pattern-either:
+    - pattern-inside: |
+        import $STYLE from "...";
+        ...
+    - pattern-inside: |
+        $STYLE = $METHOD(...);
+        ...
+    - pattern-inside: |
+        function $FUNC(...,{$STYLE},...) {
+          ...
+        }
+    - pattern-inside: |
+        function $FUNC(...,$STYLE,...) {
+          ...
+        }
+  - pattern-inside: |
+      <$EL style={$STYLE} />
+  - pattern-not-inside: |
+      <$EL style={{$X:...}} />
+  - pattern: $STYLE
+  message: |
+    User controlled data in a `style` attribute is an anti-pattern than can lead to XSS vulnerabilities
+  metadata:
+    cwe: 'CWE-79: Improper Neutralization of Input During Web Page Generation (''Cross-site
+      Scripting'')'
+    owasp: 'A7: Cross-site Scripting (XSS)'
+  languages:
+  - typescript
+  - javascript
+  severity: WARNING

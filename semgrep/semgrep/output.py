@@ -18,7 +18,6 @@ from typing import Set
 from typing import Tuple
 
 import colorama
-from junit_xml import TestSuite
 
 from semgrep import __VERSION__
 from semgrep import config_resolver
@@ -32,6 +31,8 @@ from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
+from semgrep.external.junit_xml import TestSuite  # type: ignore[attr-defined]
+from semgrep.external.junit_xml import to_xml_report_string  # type: ignore[attr-defined]
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -249,7 +250,7 @@ def build_junit_xml_output(
     """
     test_cases = [match.to_junit_xml() for match in rule_matches]
     ts = TestSuite("semgrep results", test_cases)
-    return cast(str, TestSuite.to_xml_string([ts]))
+    return cast(str, to_xml_report_string([ts]))
 
 
 def _sarif_tool_info() -> Dict[str, Any]:
@@ -304,14 +305,15 @@ def build_sarif_output(
                     }
                 },
                 "results": [match.to_sarif() for match in rule_matches],
-            }
-        ],
-        "invocations": [
-            {
-                "toolExecutionNotifications": [
-                    _sarif_notification_from_error(e) for e in semgrep_structured_errors
+                "invocations": [
+                    {
+                        "toolExecutionNotifications": [
+                            _sarif_notification_from_error(e)
+                            for e in semgrep_structured_errors
+                        ],
+                    }
                 ],
-            }
+            },
         ],
     }
     return json.dumps(output_dict)

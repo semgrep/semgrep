@@ -2,7 +2,9 @@
 open Common
 open OUnit
 module E = Error_code
+module P = Pattern_match
 module R = Mini_rule
+module T = Tainting_rule
 
 (*****************************************************************************)
 (* Purpose *)
@@ -135,6 +137,53 @@ let regression_tests_for_lang ~with_caching files lang =
    )
  )
 (*e: function [[Test.regression_tests_for_lang]] *)
+
+let tainting_test lang rules_file file =
+  let rules =
+    try
+      Parse_tainting_rules.parse rules_file
+    with exn ->
+      failwith (spf "fail to parse tainting rules %s (exn = %s)"
+                rules_file
+                (Common.exn_to_s exn))
+  in
+  let ast = 
+      try 
+        let { Parse_target. ast; errors; _ } = 
+          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file 
+        in
+        if errors <> []
+        then pr2 (spf "WARNING: fail to fully parse %s" file);
+        ast
+      with exn ->
+        failwith (spf "fail to parse %s (exn = %s)" file 
+                  (Common.exn_to_s exn))
+  in
+  let rules =
+    rules |> List.filter (fun r -> List.mem lang r.T.languages) in
+  let matches = Tainting_generic.check rules file ast in
+  let actual =
+    matches |> List.map (fun m ->
+      { E.typ = SemgrepMatchFound(m.P.rule_id.id,m.P.rule_id.message);
+        loc   = fst m.range_loc;
+        sev   = Error; }
+      )
+  in
+  let expected = Error_code.expected_error_lines_of_files [file] in
+  Error_code.compare_actual_to_expected actual expected
+
+let tainting_tests_for_lang files lang =
+  files |> List.map (fun file ->
+   (Filename.basename file) >:: (fun () ->
+    let rules_file =
+      let (d,b,_e) = Common2.dbe_of_filename file in
+      let candidate1 = Common2.filename_of_dbe (d,b,"rules") in
+      if Sys.file_exists candidate1
+      then candidate1
+      else failwith (spf "could not find tainting rules file for %s" file)
+    in
+    tainting_test lang rules_file file
+  ))
 
 (*****************************************************************************)
 (* Tests *)
@@ -307,6 +356,23 @@ let full_rule_regression_tests =
       Test_engine.test_rules ~ounit_context:true [path]
   )
 
+let lang_tainting_tests =
+  let taint_tests_path = Filename.concat tests_path "tainting_rules" in
+  "lang tainting rules testing" >::: [
+    "tainting Python" >::: (
+      let dir = Filename.concat taint_tests_path "python" in
+      let files = Common2.glob (spf "%s/*.py" dir) in
+      let lang = Lang.Python in
+      tainting_tests_for_lang files lang
+    );
+    "tainting Typescript" >::: (
+      let dir = Filename.concat taint_tests_path "ts" in
+      let files = Common2.glob (spf "%s/*.ts" dir) in
+      let lang = Lang.Typescript in
+      tainting_tests_for_lang files lang
+    );
+  ]
+
 (*s: constant [[Test.lint_regression_tests]] *)
 (* mostly a copy paste of pfff/linter/unit_linter.ml *)
 let lint_regression_tests ~with_caching =
@@ -397,6 +463,7 @@ let test regexp =
       lint_regression_tests ~with_caching:true;
       eval_regression_tests;
       full_rule_regression_tests;
+      lang_tainting_tests;
     ]
   in
   let suite =

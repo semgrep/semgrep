@@ -100,12 +100,11 @@ setuptools.setup(
     install_requires=[
         "attrs>=19.3.0",
         "colorama>=0.4.3",
-        "junit_xml==1.9",
         "requests>=2.22.0",
         # Pin exact version of 'ruamel.yaml' because of unstable API.
         # Ensure default type is still 'rt' (round-trip) and that RoundTrip
         # inherits from Safe when upgrading the version.
-        "ruamel.yaml==0.17.0",
+        "ruamel.yaml>=0.16.0,<0.18",
         "tqdm>=4.46.1",
         "packaging>=20.4",
         "jsonschema~=3.2.0",

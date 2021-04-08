@@ -79,6 +79,7 @@ let location x =
       let min_loc, _ = Visitor_AST.range_of_any (AST_generic.Ss left_stmts) in
       let _, max_loc = Visitor_AST.range_of_any (AST_generic.Ss right_stmts) in
       Some (min_loc, max_loc)
+[@@profiling]
 
 let merge_and_deduplicate get_key a b =
   let tbl = Hashtbl.create 100 in
@@ -121,3 +122,4 @@ let list_original_tokens x =
       merge_and_deduplicate
         Parse_info.token_location_of_info
         left_tokens right_tokens
+[@@profiling]

@@ -7,8 +7,8 @@ from typing import List
 from typing import Optional
 
 import attr
-from junit_xml import TestCase
 
+from semgrep.external.junit_xml import TestCase  # type: ignore[attr-defined]
 from semgrep.pattern_match import PatternMatch
 
 

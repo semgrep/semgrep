@@ -158,7 +158,6 @@ let mvars = ref ([]: Metavariable.mvar list)
 (*e: constant [[Main_semgrep_core.mvars]] *)
 
 (*s: constant [[Main_semgrep_core.layer_file]] *)
-let layer_file = ref (None: filename option)
 (*e: constant [[Main_semgrep_core.layer_file]] *)
 
 (*s: constant [[Main_semgrep_core.keys]] *)
@@ -251,7 +250,7 @@ let map f xs =
 (*e: function [[Main_semgrep_core.map]] *)
 
 (*s: constant [[Main_semgrep_core._matching_tokens]] *)
-(* for -gen_layer *)
+(* for -gen_layer, see Experiments.ml *)
 let _matching_tokens = ref []
 (*e: constant [[Main_semgrep_core._matching_tokens]] *)
 
@@ -293,43 +292,7 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
   toks |> List.iter (fun x -> Common.push x _matching_tokens)
 (*e: [[Main_semgrep_core.print_match()]] hook *)
 (*e: function [[Main_semgrep_core.print_match]] *)
-
-
 (*s: function [[Main_semgrep_core.gen_layer]] *)
-(* a layer need readable path, hence the ~root argument *)
-let gen_layer ~root ~query file =
-  ignore(query);
-  pr2 ("generating layer in " ^ file);
-
-  let root = Common2.relative_to_absolute root in
-
-  let toks = !_matching_tokens in
-  let kinds = ["m" (* match *), "red"] in
-
-  (* todo: could now use Layer_code.simple_layer_of_parse_infos *)
-  let files_and_lines = toks |> List.map (fun tok ->
-    let file = PI.file_of_info tok in
-    let line = PI.line_of_info tok in
-    let file = Common2.relative_to_absolute file in
-    Common.readable root file, line
-  )
-  in
-  let group = Common.group_assoc_bykey_eff files_and_lines in
-  let layer = { Layer_code.
-                title = "Sgrep";
-                description = "output of sgrep";
-                kinds = kinds;
-                files = group |> List.map (fun (file, lines) ->
-                  let lines = Common2.uniq lines in
-                  (file, { Layer_code.
-                           micro_level = (lines |> List.map (fun l -> l, "m"));
-                           macro_level =  if null lines then [] else ["m", 1.];
-                         })
-                );
-              }
-  in
-  Layer_code.save_layer layer file;
-  ()
 (*e: function [[Main_semgrep_core.gen_layer]] *)
 
 (*s: function [[Main_semgrep_core.unsupported_language_message]] *)
@@ -978,12 +941,9 @@ let semgrep_with_one_pattern lang xs =
         if n > 0 then pr2 (spf "error count: %d" n);
         (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] display error count *)
         (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] optional layer generation *)
-        !layer_file |> Common.do_option (fun file ->
-          let root = Common2.common_prefix_of_files_or_dirs xs in
-          gen_layer ~root ~query:pattern_string  file
-        );
+        Experiments.gen_layer_maybe _matching_tokens pattern_string xs
         (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] optional layer generation *)
-        ()
+
       end
 (*e: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
 
@@ -1131,6 +1091,20 @@ let dump_ast ?(naming=false) file =
       )
   | [] -> failwith (spf "unsupported language for %s" file)
 (*e: function [[Main_semgrep_core.dump_ast]] *)
+let dump_v1_json file =
+  match Lang.langs_of_filename file with
+  | lang::_ ->
+      E.try_with_print_exn_and_reraise file (fun () ->
+        let {Parse_target. ast; errors; _ } =
+          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+        in
+        let v1 = AST_generic_to_v1.program ast in
+        let s = AST_generic_v1_j.string_of_program v1 in
+        pr s;
+        if errors <> []
+        then pr2 (spf "WARNING: fail to fully parse %s" file);
+      )
+  | [] -> failwith (spf "unsupported language for %s" file)
 
 (*s: function [[Main_semgrep_core.dump_ext_of_lang]] *)
 let dump_ext_of_lang () =
@@ -1162,23 +1136,7 @@ let dump_rule file =
 (*****************************************************************************)
 (* Experiments *)
 (*****************************************************************************)
-
-(* We now log the files who have too many matches, but this action below
- * can still be useful for deeper debugging.
-*)
-let stat_matches file =
-  let (matches: Pattern_match.t list) = Common2.get_value file in
-  pr2 (spf "matched: %d" (List.length matches));
-  let per_files =
-    matches |> List.map (fun m -> m.Pattern_match.file, m)
-    |> Common.group_assoc_bykey_eff
-    |> List.map (fun (file, xs) -> file, List.length xs)
-    |> Common.sort_by_val_highfirst
-    |> Common.take_safe 10
-  in
-  pr2 "biggest file offenders";
-  per_files |> List.iter (fun (file, n) -> pr2 (spf " %60s: %d" file n));
-  ()
+(* See Experiments.ml now *)
 
 (*****************************************************************************)
 (* The options *)
@@ -1197,6 +1155,8 @@ let all_actions () = [
   Common.mk_action_1_arg (dump_ast ~naming:false);
   "-dump_named_ast", " <file>",
   Common.mk_action_1_arg (dump_ast ~naming:true);
+  "-dump_v1_json", " <file>",
+  Common.mk_action_1_arg dump_v1_json;
   (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
   "-dump_equivalences", " <file>",
   Common.mk_action_1_arg dump_equivalences;
@@ -1231,7 +1191,9 @@ let all_actions () = [
   Common.mk_action_n_arg Test_synthesizing.generate_pattern_choices;
 
   "-stat_matches", " <marshalled file>",
-  Common.mk_action_1_arg stat_matches;
+  Common.mk_action_1_arg Experiments.stat_matches;
+  "-ebnf_to_menhir", " <ebnf file>",
+  Common.mk_action_1_arg Experiments.ebnf_to_menhir;
 
   "-parsing_stats", " <files or dirs> generate parsing statistics (use -json for JSON output)",
   Common.mk_action_n_arg (fun xs ->
@@ -1332,7 +1294,7 @@ let options () =
     "-pvar", Arg.String (fun s -> mvars := Common.split "," s),
     " <metavars> print the metavariables, not the matched code";
     (*x: [[Main_semgrep_core.options]] other cases *)
-    "-gen_layer", Arg.String (fun s -> layer_file := Some s),
+    "-gen_layer", Arg.String (fun s -> Experiments.layer_file := Some s),
     " <file> save result in a codemap layer file";
     (*x: [[Main_semgrep_core.options]] other cases *)
     "-tainting_rules_file", Arg.Set_string tainting_rules_file,
@@ -1366,6 +1328,8 @@ let options () =
     " use a bloom filter to only attempt matches when strings in the pattern are in the target";
     "-no_bloom_filter", Arg.Clear Flag.use_bloom_filter,
     " do not use bloom filter";
+    "-set_filter", Arg.Set Flag.set_instead_of_bloom_filter,
+    "use a set instead of bloom filters";
     "-tree_sitter_only", Arg.Set Flag.tree_sitter_only,
     " only use tree-sitter-based parsers";
 

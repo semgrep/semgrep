@@ -9,7 +9,7 @@ type elt = string
 (* from deriving eq *)
 val pp: Format.formatter -> t -> unit
 
-val create: unit -> t
+val create: bool -> t
 
 val is_empty: t -> bool
 
@@ -23,3 +23,5 @@ val mem: elt -> t -> bbool
 
 (* for all elements in bf1, are they (Maybe) present in bf2 *)
 val is_subset: elt list -> t -> bbool
+
+val make_bloom_from_set: bool -> elt Set_.t -> t
