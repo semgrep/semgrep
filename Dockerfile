@@ -6,7 +6,7 @@
 # of the 'semgrep' wrapping.
 #
 
-FROM returntocorp/ocaml:alpine-2021-04-07 as build-semgrep-core
+FROM returntocorp/ocaml:alpine-2021-04-08 as build-semgrep-core
 
 USER root
 # for ocaml-pcre now used in semgrep-core
