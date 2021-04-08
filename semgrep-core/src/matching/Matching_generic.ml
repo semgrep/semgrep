@@ -377,15 +377,21 @@ let _ = Common2.example
 (* todo? optimize, probably not the optimal version ... *)
 let all_elem_and_rest_of_list xs =
   let xs = Common.index_list xs |> List.map (fun (x, i) -> (i, x)) in
-  xs |> List.map (fun (i, x) -> x, List.remove_assq i xs |> List.map snd)
+  xs |> List.map (fun (i, x) -> x, lazy (List.remove_assq i xs |> List.map snd))
 [@@profiling]
 (*e: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 
 (*s: toplevel [[Matching_generic._1]] *)
-let _ = Common2.example
+(* let _ = Common2.example
     (all_elem_and_rest_of_list ['a';'b';'c'] =
-     [('a', ['b';'c']); ('b', ['a';'c']); ('c', ['a';'b'])])
+     [('a', ['b';'c']); ('b', ['a';'c']); ('c', ['a';'b'])]) *)
 (*e: toplevel [[Matching_generic._1]] *)
+
+(* Since all_elem_and_rest_of_list computes the rest of list lazily,
+ * we want to still keep track of how much time we're spending on
+  * computing the rest of the list *)
+let lazy_rest_of_list v =
+  Common.profile_code "Matching_generic.eval_rest_of_list" (fun () -> Lazy.force v)
 
 (*s: function [[Matching_generic.return_bis]] *)
 let return () = return
@@ -567,7 +573,7 @@ let rec m_list_in_any_order ~less_is_ok f xsa xsb =
         match xs with
         | [] -> fail ()
         | (b, xsb)::xs ->
-            (f a b >>= (fun () -> m_list_in_any_order ~less_is_ok f xsa xsb))
+            (f a b >>= (fun () -> m_list_in_any_order ~less_is_ok f xsa (lazy_rest_of_list xsb)))
             >||> aux xs
       in
       aux candidates
