@@ -1261,7 +1261,7 @@ and m_list__m_argument (xsa: A.argument list) (xsb: A.argument list) =
           match xs with
           | [] -> fail ()
           | (b, xsb)::xs ->
-              (m_argument a b >>= (fun () -> m_list__m_argument xsa xsb))
+              (m_argument a b >>= (fun () -> m_list__m_argument xsa (lazy_rest_of_list xsb)))
               >||> aux xs
         in
         aux candidates
@@ -2406,7 +2406,7 @@ and m_list__m_field (xsa: A.field list) (xsb: A.field list) =
           match xs with
           | [] -> fail ()
           | (b, xsb)::xs ->
-              (m_field a b >>= (fun () -> m_list__m_field xsa xsb))
+              (m_field a b >>= (fun () -> m_list__m_field xsa (lazy_rest_of_list xsb)))
               >||> aux xs
         in
         aux candidates
