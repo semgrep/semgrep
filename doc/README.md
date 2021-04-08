@@ -18,6 +18,7 @@ Contents:
   * [Running](#running)
   * [Development Environment](#development-environment)
   * [Profiling Code](#profiling-code)
+  * [Benchmarking Code](#benchmarking-code)
   * [Testing](#testing-1)
 * [Adding Support for a Language](#adding-support-for-a-language)
   * [Legacy Parsers](#legacy-parsers)
@@ -321,6 +322,19 @@ Semgrep.check                            :      0.791 sec          1 count
 Semgrep.match_sts_sts                    :      0.559 sec     185064 count
 ...
 ```
+
+### Benchmarking Code
+
+We have two sets of benchmarks, one on a suite of real repos against real rulesets (real benchmarks), another that highlights specific slow (rule, file) pairs (micro benchmarks).
+
+To run the micro benchmarks, go to `semgrep-core/perf`, and run `./run-perf-suite`.
+
+To run the real benchmarks, go to `perf`, and run `./run-benchmarks`. See the perf [readme](https://github.com/returntocorp/semgrep/blob/develop/perf/README.md) for more details on how these are set up.
+
+There are a number of flags (`./run-benchmarks --help` to see them) which may be helpful if you are using the benchmarks for local development. For example, `./run-benchmarks --plot_benchmarks` will output a graph of the benchmark results at the end.
+
+If you are concerned about performance, the recommended way to test is to hide your change behind a flag and add that flag to run-benchmarks. Add a flag in `semgrep-core/src/core/Flag_semgrep.ml`. These are ref cells, so you can check whether the flag is enabled or not via `!Flag_semgrep.your_flag`. In `semgrep-core/src/cli/Main.ml`, go to options, and add a flag that sets the appropriate `Flag_semgrep`. Then, in `perf/run-benchmarks`, go to the `SemgrepVariants` list, and add your variant.
+
 
 ### Testing
 
