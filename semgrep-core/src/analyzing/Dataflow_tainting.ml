@@ -85,12 +85,15 @@ let option_to_varmap = function
 let sanitized config instr =
   match instr.i with
   | Call (_, {e=Lvalue({base=Var(("sanitize",_),_);_}); _}, [])
-  | _ when config.is_sanitizer instr
     -> true
   | ___else___
-    -> false
+    -> config.is_sanitizer instr
 
 let rec tainted env config exp =
+  (* We call `tainted` recursively on each subexpression, so each subexpression
+   * is checked against `pattern-sources`. For example, if `location.href` were
+   * a source, this would infer that `"aa" + location.href + "bb"` is tainted.
+   * Also note that any arbitrary expression can be source! *)
   let go_into = function
     | Lvalue {base=Var var;_}
       -> VarMap.mem (str_of_name var) env
