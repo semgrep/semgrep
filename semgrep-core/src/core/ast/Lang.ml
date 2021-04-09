@@ -57,6 +57,9 @@ type t =
   (*e: type [[Lang.t]] *)
 [@@deriving show, eq]
 
+let is_js = function Javascript | Typescript -> true | _ -> false
+let is_python = function Python | Python2 | Python3 -> true | _ -> false
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)

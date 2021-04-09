@@ -484,15 +484,18 @@ let resolve2 lang prog =
              add_ident_imported_scope id resolved env.names;
 
          | ImportFrom (_, FileName (s, tok), id, None)
-           when fst id <> Ast_js.default_entity ->
-             (* for JS we consider import { x } from 'a/b/foo' as foo.x *)
+           when Lang.is_js lang && fst id <> Ast_js.default_entity ->
+             (* for JS we consider import { x } from 'a/b/foo' as foo.x.
+              * Note that we guard this code with is_js lang, because Python
+              * uses also Filename in 'from ...conf import x'.
+             *)
              let sid = H.gensym () in
              let (_,b,_) = Common2.dbe_of_filename_noext_ok s in
              let base = b, tok in
              let resolved = untyped_ent (ImportedEntity ([base;id]), sid) in
              add_ident_imported_scope id resolved env.names;
          | ImportFrom (_, FileName (s, tok), id, Some (alias, id_info))
-           when fst id <> Ast_js.default_entity ->
+           when Lang.is_js lang && fst id <> Ast_js.default_entity ->
              (* for JS *)
              let sid = H.gensym () in
              let (_,b,_) = Common2.dbe_of_filename_noext_ok s in
