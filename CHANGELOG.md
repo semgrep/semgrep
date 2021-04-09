@@ -32,14 +32,16 @@ will now match
 var { exec } = require("child_process");
 exec("dangerous");
 ```
+- Taint mode: Pattern-sources can now be arbitrary expressions
+- Taint mode: Basic cross-function analysis
 
 ### Fixed
 - SARIF output now nests invocations inside runs.
 - Go backslashed carets in regexes can be parsed 
 
 ### Changed
-- Deep expression matches (`<... foo ...>`) now match within the bodies of anonymous
-  functions (a.k.a. lambda-expressions) and arbitrary language-specific
+- Deep expression matches (`<... foo ...>`) now match within records, bodies of
+  anonymous functions (a.k.a. lambda-expressions), and arbitrary language-specific
   statements (e.g. the Golang `go` statement)
 
 ## [0.45.0](https://github.com/returntocorp/semgrep/releases/tag/v0.45.0) - 2021-03-30
