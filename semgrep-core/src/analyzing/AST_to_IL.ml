@@ -205,6 +205,13 @@ let bracket_keep f (t1, x, t2) =
   t1, f x, t2
 (*e: function [[AST_to_IL.bracket_keep]] *)
 
+let name_of_entity ent =
+  match AST_generic_helpers.name_of_entity ent with
+  | Some (i, pinfo) ->
+      let name = var_of_id_info i pinfo in
+      Some name
+  | _____else_____  -> None
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)

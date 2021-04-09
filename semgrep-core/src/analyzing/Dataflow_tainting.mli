@@ -5,6 +5,9 @@
 type mapping = unit Dataflow.mapping
 (*e: type [[Dataflow_tainting.mapping]] *)
 
+(* Tracks tainted functions. *)
+type fun_env = (Dataflow.var, unit) Hashtbl.t
+
 (*s: type [[Dataflow_tainting.config]] *)
 (* this can use semgrep patterns under the hood *)
 type config = {
@@ -19,6 +22,6 @@ type config = {
 
 (*s: signature [[Dataflow_tainting.fixpoint]] *)
 (* main entry point *)
-val fixpoint : config -> IL.cfg -> mapping
+val fixpoint : config -> fun_env -> IL.name option -> IL.cfg -> mapping
 (*e: signature [[Dataflow_tainting.fixpoint]] *)
 (*e: pfff/lang_GENERIC/analyze/Dataflow_tainting.mli *)

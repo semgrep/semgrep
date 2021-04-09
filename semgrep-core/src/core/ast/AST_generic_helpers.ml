@@ -38,6 +38,14 @@ module M = Map_AST
 let str_of_ident = fst
 (*e: constant [[AST_generic.str_of_ident]] *)
 
+let name_of_entity ent =
+  match ent.name with
+  | EN (Id (i, pinfo))
+  | EN (IdQualified ((i, _), pinfo))
+    -> Some (i, pinfo)
+  | ___else___
+    -> None
+
 (*s: constant [[AST_generic.gensym_counter]] *)
 (* You can use 0 for globals, even though this will work only on a single
  * file. Any global analysis will need to set a unique ID for globals too. *)
