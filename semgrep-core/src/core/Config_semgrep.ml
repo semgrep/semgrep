@@ -43,6 +43,11 @@ type t = {
   go_deeper_expr: bool;
   (* this ultimately should go away once '...' works on the CFG *)
   go_deeper_stmt: bool;
+
+  (* TODO: equivalences:
+   *   - const_let_to_var
+   *   - require_to_import (but need pass config to Js_to_generic)
+  *)
 }
 
 (*****************************************************************************)
