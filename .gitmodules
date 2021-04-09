@@ -36,7 +36,7 @@
 	url = https://github.com/returntocorp/semgrep-ruby
 [submodule "semgrep-core/tree-sitter-lang/semgrep-rust"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-rust
-	url = https://github.com/returntocorp/semgrep-rust
+	url = https://github.com/amietn/semgrep-rust
 [submodule "semgrep-core/tree-sitter-lang/semgrep-tsx"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-tsx
 	url = https://github.com/returntocorp/semgrep-tsx
