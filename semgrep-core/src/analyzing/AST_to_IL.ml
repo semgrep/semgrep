@@ -212,12 +212,14 @@ let rec lval env eorig =
   match eorig with
   | G.N n -> name env n
 
-  (* TODO: Handle this.x *)
+  | G.IdSpecial (G.This, tok) ->
+      { base = VarSpecial (This, tok); offset = NoOffset; constness = ref None; }
+
   | G.DotAccess (e1orig, tok, field) ->
       let base, base_constness = nested_lval env tok e1orig in
       (match field with
        | G.EN (G.Id (id, idinfo)) ->
-           { base; offset = Dot id; constness = idinfo.id_constness; }
+           { base; offset = Dot (var_of_id_info id idinfo); constness = idinfo.id_constness; }
        | G.EN (name) ->
            let attr = expr env (G.N name) in
            { base; offset = Index attr; constness = base_constness; }
