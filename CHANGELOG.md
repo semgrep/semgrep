@@ -5,6 +5,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Coming up next
 
 ### Added
+
+### Fixed
+
+### Changed
+
+## [0.46.0](https://github.com/returntocorp/semgrep/releases/tag/v0.46.0) - 2021-04-08
+
+### Added
 - YAML language support to --test
 
 ### Fixed
