@@ -152,6 +152,9 @@ SEMGREP_VARIANTS = [
     SemgrepVariant("experimental", "-fast", "--experimental"),
 ]
 
+# For when you just want to test a single change
+STD_VARIANTS = [SemgrepVariant("std", "")]
+
 
 # This class allows us to put semgrep results in a set and compute set
 # differences while saving the original JSON dictionary
@@ -304,9 +307,14 @@ def run_benchmarks(
     internal: bool,
     plot_benchmarks: bool,
     upload: bool,
+    std_only: bool,
 ) -> None:
+    variants = SEMGREP_VARIANTS
+    if std_only:
+        variants = STD_VARIANTS
+
     results_msgs = []
-    results: dict = {variant.name: [] for variant in SEMGREP_VARIANTS}
+    results: dict = {variant.name: [] for variant in variants}
 
     corpuses = CORPUSES
     if dummy:
@@ -319,7 +327,7 @@ def run_benchmarks(
         with chdir(corpus.name):
             corpus.prep()
             std_findings = {}
-            for variant in SEMGREP_VARIANTS:
+            for variant in variants:
                 # Run variant
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
@@ -391,6 +399,9 @@ def main() -> None:
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     parser.add_argument(
+        "--std_only", help="only run the default semgrep", action="store_true"
+    )
+    parser.add_argument(
         "--plot_benchmarks",
         help="display a graph of the benchmark results",
         action="store_true",
@@ -410,6 +421,7 @@ def main() -> None:
                 args.internal,
                 args.plot_benchmarks,
                 args.upload,
+                args.std_only,
             )
 
 
