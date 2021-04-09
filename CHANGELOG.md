@@ -6,6 +6,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - YAML language support to --test
+- Resolve alias in require/import in Javascript
+```
+child_process.exec(...)
+```
+will now match
+```javascript
+var { exec } = require("child_process");
+exec("dangerous");
+```
 
 ### Fixed
 - SARIF output now nests invocations inside runs.
