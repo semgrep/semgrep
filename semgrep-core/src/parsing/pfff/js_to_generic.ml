@@ -38,6 +38,8 @@ let string = id
 
 let error = AST_generic.error
 
+(* for the require -> import translation *)
+exception ComplicatedCase
 
 (*****************************************************************************)
 (* Entry point *)
@@ -271,7 +273,7 @@ and stmt x =
       G.OtherStmt (G.OS_Todo, (G.TodoK v1)::(v2)) |> G.s
   | M v1 -> let v1 = module_directive v1 in G.DirectiveStmt v1 |> G.s
   | DefStmt v1 -> let v1 = definition v1 in G.DefStmt v1 |> G.s
-  | Block v1 -> let v1 = bracket (list stmt) v1 in G.Block v1 |> G.s
+  | Block v1 -> let v1 = bracket (list_stmt) v1 in G.Block v1 |> G.s
   | ExprStmt (v1, t) -> let v1 = expr v1 in G.ExprStmt (v1, t) |> G.s
   | If (t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = stmt v2 and v3 = option stmt v3 in
@@ -602,8 +604,6 @@ and property x =
       G.FieldStmt (G.OtherStmt (G.OS_Todo, [G.TodoK v1; G.S v2]) |> G.s)
 
 
-and toplevel x = stmt x
-
 and alias v1 =
   let v1 = name v1 in
   v1, G.empty_id_info()
@@ -629,7 +629,59 @@ and module_directive x =
   | Export (t, v1) -> let v1 = name v1 in
       G.OtherDirective (G.OI_Export, [G.Tk t; G.I v1])
 
-and program v = list toplevel v
+
+and require_to_import_in_stmt_opt st =
+  match st with
+  (* ex: const { f1, f2 } = require("file"); *)
+  | DefStmt ({name = (x, _); attrs = []},
+             VarDef { v_kind = _; v_type = _;
+                      v_init = Some (Assign (pattern, _,
+                                             Apply (IdSpecial (Require, treq),
+                                                    (_, [(L (String file))], _))));
+                    }) when x =$= AST_generic_.special_multivardef_pattern ->
+      (try
+         (match pattern with
+          | Obj (_, xs, _) ->
+              let ys = xs |> List.map (function
+                | FieldColon { fld_name = (PN id1);
+                               fld_body = Some (Id id2);
+                               fld_attrs = []; fld_type = None; } ->
+                    let alias_opt =
+                      match id1, id2 with
+                      | (s1, _), (s2, _) when s1 =$= s2 -> None
+                      | _ -> Some (id2, G.empty_id_info())
+                    in
+                    G.DirectiveStmt (G.ImportFrom (treq, G.FileName file,
+                                                   id1, alias_opt))
+                    |> G.s
+                | _ -> raise ComplicatedCase
+              ) in
+              (* we also keep the require() call in the AST so people using
+               * semgrep patterns like 'require("foo")' still find those
+               * requires in the target. The ImportFrom conversion is mostly
+               * for Naming_AST to recognize those require and do the
+               * right aliasing for them too.
+               * alt: do the conversion in Naming_AST.ml instead?
+              *)
+              let orig = stmt st in
+              Some (ys @ [orig])
+          | _ -> raise ComplicatedCase
+         )
+       with ComplicatedCase -> None
+      )
+  | _ -> None
+
+and list_stmt xs =
+  (* converting require() in import, so they can benefit from the
+   * other goodies coming with import in semgrep (e.g., equivalence aliasing)
+  *)
+  xs |> List.map (fun st ->
+    match require_to_import_in_stmt_opt st with
+    | Some xs -> xs
+    | None -> [stmt st]
+  ) |> List.flatten
+
+and program v = list_stmt v
 
 and partial = function
   | PartialDef v1 ->
@@ -659,8 +711,12 @@ and any =
       let v1 = property v1 in
       G.Fld v1
   | Expr v1 -> let v1 = expr v1 in G.E v1
-  | Stmt v1 -> let v1 = stmt v1 in G.S v1
-  | Stmts v1 -> let v1 = List.map stmt v1 in G.Ss v1
+  | Stmt v1 ->
+      (match require_to_import_in_stmt_opt v1 with
+       | Some xs -> G.Ss xs
+       | None -> let v1 = stmt v1 in G.S v1
+      )
+  | Stmts v1 -> let v1 = list_stmt v1 in G.Ss v1
   | Program v1 -> let v1 = program v1 in G.Pr v1
   | Pattern v1 -> let v1 = pattern v1 in G.P v1
   | Type v1 -> let v1 = type_ v1 in G.T v1
