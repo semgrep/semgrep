@@ -35,13 +35,20 @@ SAVE_TEST_OUTPUT_JSON = "semgrep_runs_output.json"
 SAVE_TEST_OUTPUT_TAR = "semgrep_runs_output.tar.gz"
 
 
-def normalize_rule_id(line: str) -> str:
+def normalize_rule_ids(line: str) -> Set[str]:
     """
     given a line like `     # ruleid:foobar`
     or `      // ruleid:foobar`
     return `foobar`
     """
-    return line.strip().split(":")[1].strip().split(" ")[0].strip()
+    _, rules_text = line.strip().split(":")
+    rules_text = rules_text.strip()
+    rules = rules_text.split(",")
+    # strictly remove ending HTML comment
+    rules = [rule.strip().replace("-->", "") for rule in rules]
+    # strictly remove ending OCaml comment
+    rules = [rule.strip().replace("*)", "") for rule in rules]
+    return set(filter(None, [rule.strip() for rule in rules]))
 
 
 def compute_confusion_matrix(
@@ -109,6 +116,8 @@ def line_has_ok(line: str) -> bool:
         or "# ok:" in line
         or "//ok:" in line
         or "// ok:" in line
+        or "<!--ok:" in line
+        or "<!-- ok:" in line
         or "(*ok:" in line
         or "(* ok:" in line
     )
@@ -160,17 +169,19 @@ def score_output_json(
             num_todo += int(todo_rule_in_line) + int(todo_ok_in_line)
 
             if (not ignore_todo and todo_rule_in_line) or rule_in_line:
-                ruleid_lines[test_file_resolved][normalize_rule_id(line)].append(
-                    effective_line_num
-                )
+                rule_ids = normalize_rule_ids(line)
+                for rule_id in rule_ids:
+                    ruleid_lines[test_file_resolved][rule_id].append(effective_line_num)
             if (not ignore_todo and todo_rule_in_line) or ok_in_line:
-                ok_lines[test_file_resolved][normalize_rule_id(line)].append(
-                    effective_line_num
-                )
+                rule_ids = normalize_rule_ids(line)
+                for rule_id in rule_ids:
+                    ok_lines[test_file_resolved][rule_id].append(effective_line_num)
             if ignore_todo and todo_ok_in_line:
-                todo_ok_lines[test_file_resolved][normalize_rule_id(line)].append(
-                    effective_line_num
-                )
+                rule_ids = normalize_rule_ids(line)
+                for rule_id in rule_ids:
+                    todo_ok_lines[test_file_resolved][rule_id].append(
+                        effective_line_num
+                    )
 
     for result in json_out["results"]:
         reported_lines[str(Path(result["path"]).resolve())][result["check_id"]].append(
