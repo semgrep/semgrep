@@ -1,5 +1,6 @@
 #! /usr/bin/env bash
 set -e
+brew update # Needed to sidestep bintray brownout
 brew install opam pkg-config coreutils
 opam init --no-setup --bare;
 opam switch create 4.10.0;
