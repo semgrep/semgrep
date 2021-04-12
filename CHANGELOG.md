@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- Rust: Semgrep patterns now support top-level statements (#2910)
+
 ### Fixed
 
 ### Changed
