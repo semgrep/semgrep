@@ -717,7 +717,8 @@ and other_expr_operator =
   | OE_Define | OE_Arguments
   | OE_NewTarget
   | OE_Delete | OE_YieldStar
-  | OE_Require (* todo: lift to DirectiveStmt? transform in Import? *)
+  (* note: some of them are transformed in ImportFrom in js_to_generic.ml *)
+  | OE_Require
   | OE_UseStrict (* todo: lift up to program attribute/directive? *)
   (* Python *)
   | OE_Invert

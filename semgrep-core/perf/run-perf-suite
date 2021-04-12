@@ -31,6 +31,7 @@ class Test:
 TESTS = [
     # Control. No other test can be faster than this one.
     Test("empty", "js", "empty.js"),
+    #
     # Match on a simple statement, no ellipsis. Serves as the baseline
     # for the other tests on the same file.
     Test("stmts-simple", "js", "l10000.js"),
@@ -49,11 +50,18 @@ TESTS = [
     Test("stmts-double-ellipsis-aba", "js", "l1000.js"),
     # Double ellipsis on statements with backrefs: $A; ... $A; ... foo($A);
     Test("stmts-double-ellipsis-aaa", "js", "l1000.js"),
-    # Real world examples
-    # Multiple ellipsis inside a class and then a method
-    Test("crlf-injection-rule1", "java", "crlf-bad-class.java"),
+    #
+    # Real world examples (.sgrep or .yaml files when True last argument)
+    #
+    # Metavariable as a key in a class definition with ellipsis
+    Test("anyorder-metavar-key", "java", "l5000.java"),
     # Multiple pattern-nots with multiple pattern-eithrs
-    Test("netflix-slow-python", "python", "netflix-conftest.py", True),
+    Test("metavariable-regexp-dict", "generic", "l5000.json", True),
+    #
+    # TODO, not yet optimized
+    #
+    # Multiple pattern-nots with multiple pattern-eithrs
+    Test("range-stmts", "python", "l300.py", True),
 ]
 
 
@@ -71,7 +79,7 @@ def run_tests(
         ext = ".sgrep"
         flag = "-f"
         if test.is_config:
-            ext = ".yml"
+            ext = ".yaml"
             flag = "-config"
 
         pattern_file = os.path.join(dirname, test.name + ext)

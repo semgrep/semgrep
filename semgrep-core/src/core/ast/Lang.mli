@@ -29,6 +29,10 @@ val pp: Format.formatter -> t -> unit
 val show: t -> string
 val equal: t -> t -> bool
 
+(* accept any variants *)
+val is_js: t -> bool
+val is_python: t -> bool
+
 (*s: signature [[Lang.lang_of_string_map]] *)
 val lang_of_string_map: (string, t) Hashtbl.t
 (*e: signature [[Lang.lang_of_string_map]] *)

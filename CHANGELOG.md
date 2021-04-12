@@ -5,7 +5,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Coming up next
 
 ### Added
+
+### Fixed
+
+### Changed
+
+## [0.46.0](https://github.com/returntocorp/semgrep/releases/tag/v0.46.0) - 2021-04-08
+
+### Added
 - YAML language support to --test
+- Resolve alias in require/import in Javascript
+```
+child_process.exec(...)
+```
+will now match
+```javascript
+var { exec } = require("child_process");
+exec("dangerous");
+```
 
 ### Fixed
 - SARIF output now nests invocations inside runs.
