@@ -2756,7 +2756,7 @@ and m_partial a b =
   | A.PartialCatch (a1), B.PartialCatch (b1) ->
       m_catch a1 b1
   | A.PartialSingleField (a1, a2, a3), B.PartialSingleField (b1, b2, b3) ->
-      let* () = m_wrap m_string a1 b1 in
+      let* () = m_ident a1 b1 in
       let* () = m_tok a2 b2 in
       m_expr a3 b3
   | A.PartialDef _, _
