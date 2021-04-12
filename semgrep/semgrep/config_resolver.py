@@ -22,8 +22,6 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
-from semgrep.constants import YML_SUFFIXES
-from semgrep.constants import YML_TEST_SUFFIXES
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
@@ -32,6 +30,7 @@ from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.util import is_config_suffix
 from semgrep.util import is_url
 
 logger = logging.getLogger(__name__)
@@ -311,9 +310,7 @@ def parse_config_folder(loc: Path, relative: bool = False) -> Dict[str, YamlTree
     configs = {}
     for l in loc.rglob("*"):
         # Allow manually specified paths with ".", but don't auto-expand them
-        correct_suffix = (
-            l.suffixes in YML_SUFFIXES and l.suffixes not in YML_TEST_SUFFIXES
-        )
+        correct_suffix = is_config_suffix(l)
         if not _is_hidden_config(l.relative_to(loc)) and correct_suffix:
             if l.is_file():
                 configs.update(parse_config_at_path(l, loc if relative else None))

@@ -26,9 +26,9 @@ from typing import Set
 from typing import Tuple
 
 from semgrep.constants import BREAK_LINE
-from semgrep.constants import YML_SUFFIXES
-from semgrep.constants import YML_TEST_SUFFIXES
 from semgrep.semgrep_main import invoke_semgrep
+from semgrep.util import is_config_suffix
+from semgrep.util import is_config_test_suffix
 from semgrep.util import partition
 
 SAVE_TEST_OUTPUT_JSON = "semgrep_runs_output.json"
@@ -276,7 +276,7 @@ def get_config_filenames(original_config: Path) -> List[Path]:
     return [
         config
         for config in configs
-        if config.suffixes in YML_SUFFIXES
+        if is_config_suffix(config)
         and not config.name.startswith(".")
         and not config.parent.name.startswith(".")
     ]
@@ -288,9 +288,7 @@ def get_config_test_filenames(
     targets = list(original_target.rglob("*"))
 
     def target_matches_config(target: Path, config: Path) -> bool:
-        correct_suffix = (
-            target.suffixes in YML_TEST_SUFFIXES or target.suffixes not in YML_SUFFIXES
-        )
+        correct_suffix = is_config_test_suffix(target) or not is_config_suffix(target)
         return (
             relatively_eq(original_target, target, original_config, config)
             and target.is_file()
