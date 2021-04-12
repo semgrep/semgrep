@@ -401,6 +401,7 @@ and list_to_opt_seq = function
 
 and for_control tok =
   function
+  | ForEllipsis t -> G.ForEllipsis t
   | ForClassic (v1, v2, v3) ->
       let v1 = for_init v1
       and v2 = list expr v2

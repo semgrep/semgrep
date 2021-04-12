@@ -5,8 +5,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Coming up next
 
 ### Added
+- support `for(...)` for Java
 
 ### Fixed
+- fixed single field pattern in JSON, allow `$FLD: { ... }` pattern
 
 ### Changed
 
