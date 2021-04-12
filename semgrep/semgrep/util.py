@@ -181,7 +181,7 @@ def compute_spacegrep_path() -> str:
     return compute_executable_path("spacegrep")
 
 
-def liststartswith(l: List[Any], head: List[Any]) -> bool:
+def liststartswith(l: List[T], head: List[T]) -> bool:
     """
     E.g.
         - liststartswith([1, 2, 3, 4], [1, 2]) -> True
@@ -193,7 +193,7 @@ def liststartswith(l: List[Any], head: List[Any]) -> bool:
     return all(l[i] == head[i] for i in range(len(head)))
 
 
-def listendswith(l: List[Any], tail: List[Any]) -> bool:
+def listendswith(l: List[T], tail: List[T]) -> bool:
     """
     E.g.
         - listendswith([1, 2, 3, 4], [3, 4]) -> True
