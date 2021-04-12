@@ -2899,8 +2899,8 @@ let parse_expression_or_source_file str =
       match expr_res.errors with
       | [] -> expr_res
       | _ ->
-        let stmt_str = "__SEMGREP_STATEMENT " ^ str in
-        Tree_sitter_rust.Parse.string stmt_str
+          let stmt_str = "__SEMGREP_STATEMENT " ^ str in
+          Tree_sitter_rust.Parse.string stmt_str
 
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
