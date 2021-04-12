@@ -2866,6 +2866,10 @@ let map_source_file (env : env) (x : CST.source_file): G.any =
        let header = token env v1 (* "__SEMGREP_EXPRESSION" *) in
        let expr = map_expression env v2 in
        G.E expr
+   | `Semg_stmt (v1, v2) ->
+       let header = token env v1 (* "__SEMGREP_STATEMENT" *) in
+       let stmts = List.map (map_statement env) v2 |> List.flatten in
+       G.Ss stmts
   )
 
 
@@ -2891,7 +2895,12 @@ let parse_expression_or_source_file str =
   | [] -> res
   | _ ->
       let expr_str = "__SEMGREP_EXPRESSION " ^ str in
-      Tree_sitter_rust.Parse.string expr_str
+      let expr_res = Tree_sitter_rust.Parse.string expr_str in
+      match expr_res.errors with
+      | [] -> expr_res
+      | _ ->
+          let stmt_str = "__SEMGREP_STATEMENT " ^ str in
+          Tree_sitter_rust.Parse.string stmt_str
 
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =

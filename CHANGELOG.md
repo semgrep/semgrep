@@ -7,6 +7,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - support `for(...)` for Java
 
+- Rust: Semgrep patterns now support top-level statements (#2910)
+
 ### Fixed
 - fixed single field pattern in JSON, allow `$FLD: { ... }` pattern
 
