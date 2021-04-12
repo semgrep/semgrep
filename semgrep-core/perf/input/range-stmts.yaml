@@ -1,4 +1,11 @@
-# To profile this, run semgrep-core -profile -config netflix-slow-python.yml netflix-conftest.py -lang python
+# TODO This is currently very slow even on a small l300.py file
+# See -profile result for l300.py:
+#  Main total                               :     10.171 sec          1 count
+#  Semgrep_generic.kstmts                   :      6.503 sec        677 count
+#  Stmts_match_span.location                :      6.443 sec       6526 count
+# The main issue is the cost of computing ranges for many combination
+# of stmts range.
+
 
 rules:
 - id: python.django.security.injection.path-traversal.path-traversal-file-name.path-traversal-file-name
