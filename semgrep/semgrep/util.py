@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import IO
@@ -19,6 +20,10 @@ from colorama import Fore
 from tqdm import tqdm
 
 T = TypeVar("T")
+
+YML_EXTENSIONS = {".yml", ".yaml"}
+YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
+YML_TEST_SUFFIXES = [[".test", ext] for ext in YML_EXTENSIONS]
 
 global DEBUG
 global QUIET
@@ -174,3 +179,37 @@ def compute_semgrep_path() -> str:
 
 def compute_spacegrep_path() -> str:
     return compute_executable_path("spacegrep")
+
+
+def liststartswith(l: List[T], head: List[T]) -> bool:
+    """
+    E.g.
+        - liststartswith([1, 2, 3, 4], [1, 2]) -> True
+        - liststartswith([1, 2, 3, 4], [1, 4]) -> False
+    """
+    if len(head) > len(l):
+        return False
+
+    return all(l[i] == head[i] for i in range(len(head)))
+
+
+def listendswith(l: List[T], tail: List[T]) -> bool:
+    """
+    E.g.
+        - listendswith([1, 2, 3, 4], [3, 4]) -> True
+        - listendswith([1, 2, 3, 4], [1, 4]) -> False
+    """
+    if len(tail) > len(l):
+        return False
+
+    return all(l[len(l) - len(tail) + i] == tail[i] for i in range(len(tail)))
+
+
+def is_config_suffix(path: Path) -> bool:
+    return any(
+        listendswith(path.suffixes, suffixes) for suffixes in YML_SUFFIXES
+    ) and not is_config_test_suffix(path)
+
+
+def is_config_test_suffix(path: Path) -> bool:
+    return any(listendswith(path.suffixes, suffixes) for suffixes in YML_TEST_SUFFIXES)
