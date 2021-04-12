@@ -1,0 +1,21 @@
+// This file was called crlf-injection-rule1.java before.
+// This pattern used to be slow because of an inefficient elem_and_rest() in
+// Generic_vs_generic. We now use a lazy list in elem_and_rest(), which is
+// faster, instead of computing all the elem x rest combinations,
+// which on anyorder-metavar-key.java was taking a long time (>6s) because of
+// the long list of fields in the class.
+
+class $CLASS {
+  ...
+  Logger $LOG = ...;
+  ...
+  $X $METHOD(...) {
+    HttpServletRequest $REQ = ...;
+    ...
+    String $VAL = $REQ.getParameter(...);
+    ...
+    $LOG.$LEVEL(<... $VAL ...>);
+    ...
+  }
+  ...
+}
