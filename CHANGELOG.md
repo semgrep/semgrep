@@ -11,6 +11,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - fixed single field pattern in JSON, allow `$FLD: { ... }` pattern
+- Config detection in files with many suffix delimiters, like `this.that.check.yaml`.
+  More concretely: configs end with `.yaml`, YAML language tests end with `.test.yaml`,
+  and everything else is handled by its respective language extenion (e.g. `.py`).
 
 ### Changed
 
