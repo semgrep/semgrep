@@ -283,6 +283,39 @@ let map_extern_modifier (env : env) ((v1, v2) : CST.extern_modifier): G.attribut
 
   deoptionalize [Some extern_attr; quantifier]
 
+let rec map_simple_path (env : env) (x : CST.simple_path): G.dotted_ident =
+  (match x with
+   | `Self tok -> [ident env tok] (* "self" *)
+   | `Choice_u8 x -> [map_primitive_type_ident env x]
+   | `Meta tok -> [ident env tok] (* pattern \$[a-zA-Z_]\w* *)
+   | `Super tok -> [ident env tok] (* "super" *)
+   | `Crate tok -> [ident env tok] (* "crate" *)
+   | `Id tok -> [ident env tok] (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+   | `Simple_scoped_id x ->
+       let (dots, ident) = map_simple_scoped_identifier env x in
+       (ident::dots))
+
+and map_simple_path_ident (env : env) (x : CST.simple_path): G.dotted_ident * G.ident =
+  (match x with
+   | `Self tok -> ([], ident env tok) (* "self" *)
+   | `Choice_u8 x -> ([], map_primitive_type_ident env x)
+   | `Meta tok -> ([], ident env tok) (* pattern \$[a-zA-Z_]\w* *)
+   | `Super tok -> ([], ident env tok) (* "super" *)
+   | `Crate tok -> ([], ident env tok) (* "crate" *)
+   | `Id tok -> ([], ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+   | `Simple_scoped_id x -> map_simple_scoped_identifier env x)
+
+and map_simple_scoped_identifier (env : env) ((v1, v2, v3) : CST.simple_scoped_identifier): G.dotted_ident * G.ident =
+  let path = map_simple_path env v1 in
+  let colons = token env v2 (* "::" *) in
+  let ident = ident env v3 (* identifier *) in
+  (path, ident)
+
+and map_simple_scoped_identifier_name (env : env) ((v1, v2, v3) : CST.simple_scoped_identifier): (G.ident * G.name_info) =
+  let path = map_simple_path env v1 in
+  let colons = token env v2 (* "::" *) in
+  let ident = ident env v3 (* identifier *) in
+  (ident, { G.name_qualifier = Some (G.QDots path); G.name_typeargs = None })
 
 let map_foreign_item_type (env : env) ((v1, v2, v3) : CST.foreign_item_type): G.stmt =
   let type_ = token env v1 (* "type" *) in
@@ -452,7 +485,7 @@ and map_macro_rule (env : env) ((v1, v2, v3) : CST.macro_rule): rust_macro_rule 
   let body = map_token_tree env v3 in
   { rules; body }
 
-let rec map_abstract_type_trait_name (env : env) (x : CST.anon_choice_field_id_02b4436): G.type_ =
+let rec map_abstract_type_trait_name (env : env) (x : CST.anon_choice_type_id_02b4436): G.type_ =
   (match x with
    | `Id tok -> let ident = ident env tok in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
        G.TyN (G.Id (ident, G.empty_id_info ()))
@@ -463,7 +496,7 @@ let rec map_abstract_type_trait_name (env : env) (x : CST.anon_choice_field_id_0
   )
 
 (* TODO: return AST_generic.name *)
-and map_struct_name (env : env) (x : CST.anon_choice_field_id_2c46bcf):
+and map_struct_name (env : env) (x : CST.anon_choice_type_id_2c46bcf):
   (G.ident * G.name_info) =
   (match x with
    | `Id tok -> name_of_id (ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
@@ -471,7 +504,7 @@ and map_struct_name (env : env) (x : CST.anon_choice_field_id_2c46bcf):
   )
 
 (* TODO: return AST_generic.name *)
-and map_tuple_struct_name (env : env) (x : CST.anon_choice_field_id_f1f5a37)
+and map_tuple_struct_name (env : env) (x : CST.anon_choice_type_id_f1f5a37)
   : (G.ident * G.name_info) =
   (match x with
    | `Id tok -> name_of_id (ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
@@ -1666,8 +1699,8 @@ and map_last_match_arm (env : env) ((v1, v2, v3, v4, v5) : CST.last_match_arm): 
 and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation): G.expr =
   let name =
     (match v1 with
-     | `Scoped_id x -> map_scoped_identifier_name env x
-     | `Id tok -> name_of_id (ident env tok) (* identifier*)
+     | `Simple_scoped_id x -> map_simple_scoped_identifier_name env x
+     | `Id tok -> name_of_id (ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
     )
   in
   let bang = token env v2 (* "!" *) in
@@ -1740,7 +1773,7 @@ and map_meta_arguments (env : env) ((v1, v2, v3, v4) : CST.meta_arguments): rust
   args
 
 and map_meta_item (env : env) ((v1, v2) : CST.meta_item) =
-  let path = map_path env v1 in
+  let path = map_simple_path env v1 in
   let value = Option.map (fun x ->
     (match x with
      | `EQ_lit (v1, v2) ->
@@ -1749,9 +1782,7 @@ and map_meta_item (env : env) ((v1, v2) : CST.meta_item) =
          MetaItemLiteral lit
      | `Meta_args x -> MetaItemMetaArgs (map_meta_arguments env x))
   ) v2 in
-  match path with
-    | G.N (G.IdQualified ((dirname, tok), _)) -> ([dirname], value)
-    | _ -> ([], value)
+  (path, value)
 
 and map_mod_block (env : env) ((v1, v2, v3, v4) : CST.mod_block): G.stmt list G.bracket =
   let lbrace = token env v1 (* "{" *) in
@@ -2337,31 +2368,29 @@ and map_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters)
 and map_use_clause (env : env) (x : CST.use_clause) use: G.directive list =
   (match x with
    | `Choice_self x ->
-       let (dots, ident_) = map_path_name env x in
-       let modname = G.DottedName (dotted_ident_of_name_ (dots, ident_)) in
-       [G.ImportFrom (use, modname, dots, None)]
+       let (dots, ident) = map_simple_path_ident env x in
+       let modname = G.DottedName dots in
+       [G.ImportFrom (use, modname, ident, None)]
    | `Use_as_clause (v1, v2, v3) ->
-       let (dots, ident_) = map_path_name env v1 in
-       let modname = G.DottedName (dotted_ident_of_name_ (dots, ident_)) in
+       let (dots, ident_) = map_simple_path_ident env v1 in
+       let modname = G.DottedName dots in
        let as_ = token env v2 (* "as" *) in
        let alias = ident env v3 in (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-       [G.ImportFrom (use, modname, dots, Some (alias, G.empty_id_info ()))]
+       [G.ImportFrom (use, modname, ident_, Some (alias, G.empty_id_info ()))]
    | `Use_list x -> map_use_list env x use None
    | `Scoped_use_list (v1, v2, v3) ->
-       let scope = Option.map (fun x -> dotted_ident_of_name_ (map_path_name env x)) v1 in
+       let scope = Option.map (fun x -> map_simple_path env x) v1 in
        let colons = token env v2 (* "::" *) in
        map_use_list env v3 use scope
    | `Use_wild (v1, v2) ->
        let dots = (match v1 with
          | Some (v1, v2) ->
-             let path = map_path_name env v1 in
+             let path = map_simple_path env v1 in
              let colons = token env v2 (* "::" *) in
              path
-         | None ->
-             (("", sc), G.empty_name_info)
-       )
+         | None -> [])
        in
-       let modname = G.DottedName (dotted_ident_of_name_ dots) in
+       let modname = G.DottedName dots in
        let wildcard = token env v2 (* "*" *) in
        [G.ImportAll (use, modname, wildcard)]
   )
@@ -2425,9 +2454,8 @@ and map_visibility_quantifier (env: env) (v1, v2, v3): G.attribute =
      | `Crate tok -> G.KeywordAttr (G.Protected, token env tok) (* "crate" *)
      | `In_choice_self (v1, v2) ->
          let in_ = token env v1 (* "in" *) in
-         let path = map_path_name env v2 in
-         let (dirname, other_) = path in
-         G.OtherAttribute (G.OA_Expr, [G.Di [dirname]])
+         let path = map_simple_path env v2 in
+         G.OtherAttribute (G.OA_Expr, [G.Di path])
     )
   in
   let rparen = token env v3 (* ")" *) in
