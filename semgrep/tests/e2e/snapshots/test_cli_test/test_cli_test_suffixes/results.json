@@ -1,0 +1,19 @@
+{
+  "config_missing_tests": [],
+  "config_with_errors": [],
+  "results": {
+    "rules/cli_test/suffixes/this.that.check.yaml": {
+      "checks": {
+        "basic-test": {
+          "fn": 0,
+          "fp": 0,
+          "matches": "<masked in tests>",
+          "passed": true,
+          "tn": 0,
+          "tp": 1
+        }
+      },
+      "todo": 0
+    }
+  }
+}
