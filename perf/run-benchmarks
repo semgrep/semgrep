@@ -158,6 +158,15 @@ SEMGREP_VARIANTS = [
 # For when you just want to test a single change
 STD_VARIANTS = [SemgrepVariant("std", "")]
 
+# Pad's debugging config
+# CORPUSES=[Corpus("lodash", "input/rules", "input/lodash")]
+# CORPUSES=[Corpus("DVWA", "input/rules", "input/DVWA"),]
+# SEMGREP_VARIANTS = [
+#    SemgrepVariant("std", ""),
+#    SemgrepVariant("experimental", "-no_filter_irrelevant_rules", "--experimental"),
+#    SemgrepVariant("experimental_and_fast", "", "--experimental"),
+#    ]
+
 
 # This class allows us to put semgrep results in a set and compute set
 # differences while saving the original JSON dictionary

@@ -422,7 +422,7 @@ let check2 ~hook config rules equivs (file, lang, ast) =
 
 (* TODO: cant use [@@profile] because it does not handle yet label params *)
 let check ~hook config a b c =
-  Common.profile_code "Semgrep.check"
+  Common.profile_code "Semgrep_generic.check"
     (fun () -> check2 ~hook config a b c)
 
 (*e: semgrep/matching/Semgrep_generic.ml *)
