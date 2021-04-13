@@ -1,0 +1,11 @@
+projectPerms:
+- assignments:
+  - "authenticated"
+  name: "authenticated"
+  pattern: ".*" # All projects/jobs
+  permissions:
+  - "Job/Build"    # Start a new build and cancel a running build
+  # ERROR: match 
+  - "Job/Read"     # Read-only access to project configurations
+  - "Job/Cancel"   # Cancel a running build
+  - "Job/Discover" # Redirect anon users to a login form rather than presenting an error msg if they don't have perms to view jobs
