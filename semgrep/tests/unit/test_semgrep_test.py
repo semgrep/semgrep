@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from itertools import chain
-from itertools import combinations
 from itertools import product
 from typing import Iterator
 from typing import Set
@@ -17,12 +15,7 @@ from semgrep.test import RULEID
 from semgrep.test import SPACE_OR_NO_SPACE
 from semgrep.test import TODOOK
 from semgrep.test import TODORULEID
-
-# cf. https://docs.python.org/3/library/itertools.html#itertools-recipes
-def powerset(iterable):
-    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
-    s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
+from semgrep.util import powerset
 
 
 ANNOTATIONS = (TODOOK, TODORULEID, OK, RULEID)
