@@ -8,9 +8,15 @@ from typing import Tuple
 
 import pytest
 
+from semgrep.test import COMMENT_SYNTAXES
 from semgrep.test import line_has_ok
 from semgrep.test import line_has_rule
 from semgrep.test import normalize_rule_ids
+from semgrep.test import OK
+from semgrep.test import RULEID
+from semgrep.test import SPACE_OR_NO_SPACE
+from semgrep.test import TODOOK
+from semgrep.test import TODORULEID
 
 # cf. https://docs.python.org/3/library/itertools.html#itertools-recipes
 def powerset(iterable):
@@ -19,9 +25,7 @@ def powerset(iterable):
     return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 
-COMMENT_SYNTAXES = (("#", "\n"), ("//", "\n"), ("<!--", "-->"), ("(*", "*)"))
-ANNOTATIONS = ("ruleid", "ok")
-SPACE_OR_NO_SPACE = ("", " ")
+ANNOTATIONS = (TODOOK, TODORULEID, OK, RULEID)
 RULE_IDS = ("a", "b", "a.b", "a.b.c")
 
 
