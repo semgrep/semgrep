@@ -416,7 +416,7 @@ def generate_file_pairs(
 
     for filename, rr in passed_results_first.items():
         print(f"(TODO: {rr['todo']}) {filename}")
-        for check_id, check_results in rr["checks"].items():
+        for check_id, check_results in sorted(rr["checks"].items()):
             print(generate_check_output_line(check_id, check_results))
             if not check_results["passed"]:
                 print(generate_matches_line(check_results))
