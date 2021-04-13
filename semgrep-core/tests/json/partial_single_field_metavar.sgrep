@@ -1,0 +1,1 @@
+$SECRET_NAME: { ..., "config2": $X, ... }

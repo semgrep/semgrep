@@ -57,6 +57,7 @@ TESTS = [
     Test("anyorder-metavar-key", "java", "l5000.java"),
     # Multiple pattern-nots with multiple pattern-eithrs
     Test("metavariable-regexp-dict", "generic", "l5000.json", True),
+    Test("metavariable-regexp-dict2", "json", "l5000.json", True),
     #
     # TODO, not yet optimized
     #

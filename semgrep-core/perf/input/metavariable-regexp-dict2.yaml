@@ -1,0 +1,14 @@
+rules:
+- id: test
+  languages:
+    - json
+  message: test
+  patterns:
+    - pattern-inside: |
+        $SECRET_NAME: {
+            ...
+        }
+    - metavariable-regex:
+        metavariable: $SECRET_NAME
+        regex: .*key999
+  severity: INFO
