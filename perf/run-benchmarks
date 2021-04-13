@@ -228,7 +228,7 @@ def output_differences(
 ) -> Tuple[int, int]:
     def output_diff(diff: set) -> None:
         for d in sorted(diff):
-            print(json.dumps(d.res, indent=4))
+            print(json.dumps(d.res, sort_keys=True, indent=4))
 
     f_diff = findings.difference(std_findings)
     s_diff = std_findings.difference(findings)
