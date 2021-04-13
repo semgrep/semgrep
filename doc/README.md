@@ -59,8 +59,9 @@ you would expect. Pull requests require approval of at least one maintainer and
 ## `semgrep` Development
 
 The `semgrep` directory contains mostly Python code and is the interface
-between the user and `semgrep-core`. When running `semgrep` locally you
-will either need to [build and install `semgrep-core` locally](#semgrep-core-development)
+between the user and the OCaml binaries (`semgrep-core` and `spacegrep`).
+When running `semgrep` locally you will either need to
+[build and install the binaries locally](#semgrep-core-development)
 or install the most recently released binary. We will get into that more
 later.
 
@@ -83,8 +84,10 @@ $ python -m pip install pipenv
 Next we need to initialize the environment:
 
 ```
-$ python -m pipenv install --dev
+$ SEMGREP_SKIP_BIN=true python -m pipenv install --dev
 ```
+
+*`SEMGREP_SKIP_BIN` tells the installer that we will bring our own binaries.*
 
 From here, you can operate inside the virtual environment by running:
 
@@ -93,7 +96,7 @@ $ python -m pipenv shell
 ```
 
 At this point we can test our installation, but cannot run any analysis yet
-because we don't have an accompanying `semgrep-core`:
+because we don't have the accompanying OCaml binaries:
 
 ```
 $ python -m semgrep -h
@@ -103,23 +106,23 @@ Note that in the virtual environment `semgrep` was installed in "editable"
 mode. This means any changes you make to the Python code will immediately take
 effect when running `python -m semgrep`.
 
-As mentioned previously, we need `semgrep-core` installed locally to perform
-any kind of analysis. If you're also working on `semgrep-core` code you may
-wish to [build and install `semgrep-core` locally](#semgrep-core-development),
+As mentioned previously, we need `semgrep-core` and `spacegrep` installed
+locally to perform any kind of analysis. If you're also working on OCaml code
+you may wish to [build and install the binaries locally](#semgrep-core-development),
 otherwise we can simply grab the most recently released binary and use that. To
 do so visit the [releases page](https://github.com/returntocorp/semgrep/releases)
 and grab the latest zipfile or tarball for your platform. Extract this archive
-and inside should be a `semgrep-core` binary that you can run. You can confirm
-this by running:
+and inside should be the necessary binaries. You can confirm this by running:
 
 ```bash
-$ ./semgrep-core -version
+$ ./semgrep-core --help
+$ ./spacegrep --help
 ```
 
-Copy this file to somewhere in your `$PATH` so `semgrep` can find it. For
+Copy these files to somewhere in your `$PATH` so `semgrep` can find it. For
 example, you may create a `~/bin/` directory, [include it in your `$PATH`](https://unix.stackexchange.com/questions/26047/how-to-correctly-add-a-path-to-path)
 and run the binary from there. Another option is including it somewhere like
-`/usr/local/bin/`. Once `semgrep-core` is available we can check and make sure
+`/usr/local/bin/`. Once the binaries are available we can check and make sure
 `semgrep` is fully operational by running a simple analysis:
 
 ```
