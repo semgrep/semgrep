@@ -27,7 +27,7 @@ module MV = Metavariable
 let logger = Logging.get_logger [__MODULE__]
 
 let debug_timeout = ref false
-let debug_matches = ref true
+let debug_matches = ref false
 
 (*****************************************************************************)
 (* Prelude *)
@@ -195,6 +195,10 @@ let (split_and:
     | _ -> Left3 e
   )
 
+let lazy_force x =
+  Lazy.force x
+[@@profiling]
+
 (*****************************************************************************)
 (* Adapters *)
 (*****************************************************************************)
@@ -267,6 +271,7 @@ let intersect_ranges xs ys =
       ))
   in
   surviving_xs @ surviving_ys
+[@@profiling]
 
 let difference_ranges pos neg =
   let surviving_pos =
@@ -284,6 +289,7 @@ let difference_ranges pos neg =
     )
   in
   surviving_pos
+[@@profiling]
 
 let filter_ranges xs cond =
   xs |> List.filter (fun r ->
@@ -315,6 +321,7 @@ let filter_ranges xs cond =
         let env = Eval_generic.bindings_to_env_with_just_strings bindings in
         Eval_generic.eval_bool env e
   )
+[@@profiling]
 
 (*****************************************************************************)
 (* Debugging semgrep *)
@@ -322,6 +329,7 @@ let filter_ranges xs cond =
 
 let debug_semgrep config mini_rules equivalences file lang ast =
   (* process one mini rule at a time *)
+  logger#info "DEBUG SEMGREP MODE!";
   mini_rules |> List.map (fun mr ->
     logger#debug "Checking mini rule with pattern %s" (mr.MR.pattern_string);
     let res =
@@ -397,6 +405,7 @@ let matches_of_spacegrep spacegreps file =
           )
         ) |> List.flatten
       )
+[@@profiling]
 
 (*****************************************************************************)
 (* Evaluating regexps *)
@@ -424,6 +433,7 @@ let matches_of_regexs regexps lazy_content file =
       )
     ) |> List.flatten
   )
+[@@profiling]
 
 (*****************************************************************************)
 (* Evaluating xpatterns *)
@@ -444,7 +454,7 @@ let matches_of_xpatterns config orig_rule
   let (semgrep_matches, errors), semgrep_match_time =
     match xlang with
     | R.L (lang, _) ->
-        let (ast, errors) = Lazy.force lazy_ast_and_errors in
+        let (ast, errors) = lazy_force lazy_ast_and_errors in
         Common.with_time (fun () ->
           let mini_rules =
             patterns |> List.map (mini_rule_of_pattern orig_rule) in
@@ -483,6 +493,7 @@ let matches_of_xpatterns config orig_rule
   semgrep_matches @ regexp_matches @ spacegrep_matches,
   errors,
   semgrep_match_time +. regexp_match_time +. spacegrep_match_time
+[@@profiling]
 
 (*****************************************************************************)
 (* Formula evaluation *)
@@ -566,63 +577,69 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
       failwith "Invalid Not; you can only negate inside an And"
   | R.Leaf (R.MetavarCond _) ->
       failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
+[@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-let check hook config rules (file, xlang, lazy_ast_and_errors) =
+let check hook config rules file_and_more =
+  let (file, xlang, lazy_ast_and_errors) = file_and_more in
   logger#info "checking %s with %d rules" file (List.length rules);
+  if !Common.profile = Common.ProfAll then begin
+    logger#info "forcing eval of ast outside of rules, for better profile";
+    lazy_force lazy_ast_and_errors |> ignore;
+  end;
   let lazy_content = lazy (Common.read_file file) in
   rules |> List.map (fun r ->
-
-    let formula = Rule.formula_of_rule r in
-    let relevant_rule =
-      if !Flag_semgrep.filter_irrelevant_rules
-      then
-        match Analyze_rule.regexp_prefilter_of_rule r with
-        | None -> true
-        | Some (re, f) ->
-            let content = Lazy.force lazy_content in
-            logger#info "looking for %s in %s" re file;
-            (f content)
-      else true
-    in
-    if not relevant_rule
-    then begin
-      logger#info "skipping rule %s for %s" (r.R.id) file;
-      [], [], 0.0
-    end else begin
-      let xpatterns =
-        xpatterns_in_formula formula in
-      let matches, errors, match_time =
-        matches_of_xpatterns config
-          r (file, xlang, lazy_ast_and_errors, lazy_content)
-          xpatterns
+    Common.profile_code (spf "real_rule:%s" r.R.id) (fun () ->
+      let formula = Rule.formula_of_rule r in
+      let relevant_rule =
+        if !Flag_semgrep.filter_irrelevant_rules
+        then
+          match Analyze_rule.regexp_prefilter_of_rule r with
+          | None -> true
+          | Some (re, f) ->
+              let content = Lazy.force lazy_content in
+              logger#info "looking for %s in %s" re file;
+              (f content)
+        else true
       in
-      logger#info "found %d matches" (List.length matches);
-      (* match results per minirule id which is the same than pattern_id in
-       * the formula *)
-      let pattern_matches_per_id =
-        group_matches_per_pattern_id matches in
-      let env = {
-        pattern_matches = pattern_matches_per_id;
-        file;
-      } in
-      logger#info "evaluating the formula";
-      let final_ranges =
-        evaluate_formula env formula in
-      logger#info "found %d final ranges" (List.length final_ranges);
+      if not relevant_rule
+      then begin
+        logger#info "skipping rule %s for %s" (r.R.id) file;
+        [], [], 0.0
+      end else begin
+        let xpatterns =
+          xpatterns_in_formula formula in
+        let matches, errors, match_time =
+          matches_of_xpatterns config
+            r (file, xlang, lazy_ast_and_errors, lazy_content)
+            xpatterns
+        in
+        logger#info "found %d matches" (List.length matches);
+        (* match results per minirule id which is the same than pattern_id in
+         * the formula *)
+        let pattern_matches_per_id =
+          group_matches_per_pattern_id matches in
+        let env = {
+          pattern_matches = pattern_matches_per_id;
+          file;
+        } in
+        logger#info "evaluating the formula";
+        let final_ranges =
+          evaluate_formula env formula in
+        logger#info "found %d final ranges" (List.length final_ranges);
 
-      (final_ranges |> List.map (range_to_pattern_match_adjusted r)
-       |> before_return (fun v -> v |> List.iter (fun (m : Pattern_match.t) ->
-         let str = spf "with rule %s" r.R.id in
-         hook str m.env m.tokens
-       )),
-       errors,
-       match_time)
-    end
-  )
+        (final_ranges |> List.map (range_to_pattern_match_adjusted r)
+         |> before_return (fun v -> v |> List.iter (fun (m : Pattern_match.t) ->
+           let str = spf "with rule %s" r.R.id in
+           hook str m.env m.tokens
+         )),
+         errors,
+         match_time)
+      end
+    ))
   |> Common2.unzip3
   |> (fun (xxs, yys, match_times) ->
     (List.flatten xxs, List.flatten yys, Common2.sum_float  match_times)
