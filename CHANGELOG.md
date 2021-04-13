@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Config detection in files with many suffix delimiters, like `this.that.check.yaml`.
   More concretely: configs end with `.yaml`, YAML language tests end with `.test.yaml`,
   and everything else is handled by its respective language extension (e.g. `.py`).
+- Single array field in yaml in a pattern is parsed as a field, not a one element array
 
 ### Changed
 

@@ -224,6 +224,7 @@ let make_pattern_expr e =
   (* If the user creates a pattern with a single field, assume they just want *
    * to match the field, not the whole enclosing container                    *)
   | A.Container(A.Dict, (_lp, [x], _rp)) -> A.E x
+  | A.Container(A.Array, (_lp, [x], _rp)) -> A.E x
   | _ -> A.E e
 
 (*****************************************************************************)
