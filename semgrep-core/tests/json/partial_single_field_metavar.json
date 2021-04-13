@@ -1,0 +1,14 @@
+{
+  //ERROR: match
+  "key0": {
+    "config1": "value1",
+    "config2": "value2",
+    "config3": "value3"
+  },
+  //ERROR: match
+  "key1": {
+    "config1": "value1",
+    "config2": "value2",
+    "config3": "value3"
+  }
+}
