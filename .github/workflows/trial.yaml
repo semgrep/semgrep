@@ -8,10 +8,11 @@ jobs:
     name: Update on Homebrew-Core
     runs-on: macos-latest
     steps:
+      - run: git help
       - run: which git
       - run: cp /usr/local/bin/git /usr/local/bin/git2
       - run: echo "cat $@; git2 $@" > /usr/local/bin/git
-      - run: git version
+      - run: git help
       # - uses: dawidd6/action-homebrew-bump-formula@v3
       #   with:
       #     token: ${{ secrets.HOMEBREW_PR_TOKEN }}
