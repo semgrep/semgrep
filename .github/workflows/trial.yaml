@@ -11,7 +11,7 @@ jobs:
       - run: git help
       - run: which git
       - run: cp /usr/local/bin/git /usr/local/bin/git2
-      - run: echo "cat $@;" > /usr/local/bin/git
+      - run: echo "cat "Running this command:"; cat $@;" > /usr/local/bin/git
       - run: git help
       # - uses: dawidd6/action-homebrew-bump-formula@v3
       #   with:
