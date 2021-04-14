@@ -11,10 +11,11 @@ jobs:
       - run: git help
       - run: which git
       - run: cp /usr/local/bin/git /usr/local/bin/git2
-      - run: echo "echo \"Running git with args:\"; echo \$@; /usr/local/bin/git2 \$@" > /usr/local/bin/git
+      - run: echo "echo \"Running git with args:\" >> log.log; echo \$@ >> log.log; /usr/local/bin/git2 \$@" > /usr/local/bin/git
       - run: cat /usr/local/bin/git
       - run: git help
       - uses: dawidd6/action-homebrew-bump-formula@v3
         with:
           token: ${{ secrets.HOMEBREW_PR_TOKEN }}
           formula: semgrep
+      - run: cat log.log
