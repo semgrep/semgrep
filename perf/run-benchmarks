@@ -22,8 +22,6 @@ from contextlib import contextmanager
 from typing import Iterator
 from typing import Tuple
 
-import matplotlib.pyplot as plt
-import pandas as pd
 import semgrep_core_benchmark  # type: ignore
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
@@ -397,6 +395,9 @@ def run_benchmarks(
             summary_file.close()
 
     if plot_benchmarks:
+        import matplotlib.pyplot as plt
+        import pandas as pd
+
         indexes = [corpus.name for corpus in corpuses]
         plotdata = pd.DataFrame(results, index=indexes)
         plotdata.plot(kind="bar")
