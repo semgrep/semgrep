@@ -178,13 +178,17 @@ class SemgrepResult:
     def __init__(self, dict: dict) -> None:
         self.res = dict
 
-        # TODO: remove this if after we fix the discrepencies
-        if "extra" in dict and "message" in dict["extra"]:
+        # We use self.str to compare dicts, so change this
+        # to abstract away differences
+        if "extra" in dict:
             dict2 = copy.deepcopy(dict)
-            dict2["extra"]["message"] = ""
-            self.str = json.dumps(dict2)
+            if "message" in dict["extra"]:
+                dict2["extra"]["message"] = ""
+            if "lines" in dict["extra"]:
+                dict2["extra"]["lines"] = ""
+            self.str = json.dumps(dict2, sort_keys=True)
         else:
-            self.str = json.dumps(dict)
+            self.str = json.dumps(dict, sort_keys=True)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SemgrepResult):
