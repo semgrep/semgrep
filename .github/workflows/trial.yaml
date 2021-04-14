@@ -1,0 +1,15 @@
+name: Build Tests
+
+on:
+  pull_request:
+
+jobs:
+  homebrew-core-pr:
+    name: Update on Homebrew-Core
+    runs-on: macos-latest
+    steps:
+      - run: which git
+      # - uses: dawidd6/action-homebrew-bump-formula@v3
+      #   with:
+      #     token: ${{ secrets.HOMEBREW_PR_TOKEN }}
+      #     formula: semgrep
