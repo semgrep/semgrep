@@ -119,7 +119,7 @@ $ ./semgrep-core --help
 $ ./spacegrep --help
 ```
 
-Copy these files to somewhere in your `$PATH` so `semgrep` can find it. For
+Copy these files to somewhere in your `$PATH` so `semgrep` can find them. For
 example, you may create a `~/bin/` directory, [include it in your `$PATH`](https://unix.stackexchange.com/questions/26047/how-to-correctly-add-a-path-to-path)
 and run the binary from there. Another option is including it somewhere like
 `/usr/local/bin/`. Once the binaries are available we can check and make sure
