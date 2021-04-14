@@ -345,8 +345,7 @@ let error tok s =
 (* Other Helpers *)
 (*****************************************************************************)
 
-(*s: function [[Naming_AST.is_local_or_global_ctx]] *)
-let is_local_or_global_ctx env lang =
+let is_resolvable_name_ctx env lang =
   match top_context env with
   | AtToplevel | InFunction -> true
   | InClass -> (
@@ -358,7 +357,6 @@ let is_local_or_global_ctx env lang =
       | Lang.Typescript -> true
       | _ -> false
     )
-(*e: function [[Naming_AST.is_local_or_global_ctx]] *)
 
 (*s: function [[Naming_AST.resolved_name_kind]] *)
 let resolved_name_kind env lang =
@@ -438,7 +436,7 @@ let resolve2 lang prog =
           (* note that some languages such as Python do not have VarDef
            * construct
            * todo? should add those somewhere instead of in_lvalue detection? *)
-          VarDef ({ vinit; vtype }) when is_local_or_global_ctx env lang ->
+          VarDef ({ vinit; vtype }) when is_resolvable_name_ctx env lang ->
             (* Need to visit expressions first so that type is populated *)
             (* If we do var a = 3, then var b = a, we want to propagate the type of a *)
             k x;
@@ -453,7 +451,7 @@ let resolve2 lang prog =
             set_resolved env id_info resolved;
 
         | { name = EN (Id (id, id_info)); _},
-          FuncDef _ when is_local_or_global_ctx env lang ->
+          FuncDef _ when is_resolvable_name_ctx env lang ->
             (match lang with
              (* We restrict function-name resolution to JS/TS.
               *
@@ -570,7 +568,7 @@ let resolve2 lang prog =
       );
       V.kpattern = (fun (k, _vout) x ->
         match x with
-        | PatId (id, id_info) when is_local_or_global_ctx env lang ->
+        | PatId (id, id_info) when is_resolvable_name_ctx env lang ->
             (* todo: in Python it does not necessarily introduce
              * a newvar if the ID was already declared before.
              * Also inside a PatAs(PatId x,b), the 'x' is actually
@@ -582,7 +580,7 @@ let resolve2 lang prog =
             add_ident_current_scope id resolved env.names;
             set_resolved env id_info resolved;
             k x
-        | PatVar (_e, Some (id, id_info)) when is_local_or_global_ctx env lang ->
+        | PatVar (_e, Some (id, id_info)) when is_resolvable_name_ctx env lang ->
             (* mostly copy-paste of VarDef code *)
             let sid = H.gensym () in
             let resolved = untyped_ent (resolved_name_kind env lang, sid) in
@@ -611,7 +609,7 @@ let resolve2 lang prog =
           * See: https://golang.org/ref/spec#Short_variable_declarations *)
          | AssignOp(N (Id (id, id_info)), (Eq, tok), e2)
            when lang = Lang.Go && Parse_info.str_of_info tok = ":="
-                && is_local_or_global_ctx env lang ->
+                && is_resolvable_name_ctx env lang ->
              (* Need to visit expressions first so that type is populated *)
              (* If we do var a = 3, then var b = a, we want to propagate the type of a *)
              k x;
@@ -652,7 +650,7 @@ let resolve2 lang prog =
                    (* first use of a variable can be a VarDef in some languages *)
                    (* type propagation not necessary because this does not hold true for Java or Go *)
                    | true, (Lang.Python | Lang.Ruby) (* PHP? *)
-                     when is_local_or_global_ctx env lang ->
+                     when is_resolvable_name_ctx env lang ->
                        (* mostly copy-paste of VarDef code *)
                        let sid = H.gensym () in
                        let resolved = untyped_ent(resolved_name_kind env lang, sid) in

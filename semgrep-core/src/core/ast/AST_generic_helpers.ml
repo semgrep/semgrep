@@ -43,7 +43,7 @@ let name_of_entity ent =
   | EN (Id (i, pinfo))
   | EN (IdQualified ((i, _), pinfo))
     -> Some (i, pinfo)
-  | ___else___
+  | EDynamic _
     -> None
 
 (*s: constant [[AST_generic.gensym_counter]] *)
