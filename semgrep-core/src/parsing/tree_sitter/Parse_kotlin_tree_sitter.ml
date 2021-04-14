@@ -1063,6 +1063,11 @@ and expression (env : env) (x : CST.expression) : expr =
      | `Prim_exp x -> primary_expression env x
    )
    | `Ellips x -> Ellipsis (token env x)
+   | `Deep_ellips (x1, x2, x3) ->
+       let x1 = token env x1 in
+       let x2 = expression env x2 in
+       let x3 = token env x3 in
+       G.DeepEllipsis (x1, x2, x3)
   )
 
 and finally_block (env : env) ((v1, v2) : CST.finally_block) =
