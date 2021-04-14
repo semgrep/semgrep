@@ -1,71 +1,71 @@
-name: Lint
-on:
-  workflow_dispatch:
-  pull_request:
+# name: Lint
+# on:
+#   workflow_dispatch:
+#   pull_request:
 
-jobs:
-  pre-commit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v1
-      - uses: pre-commit/action@v2.0.0
-        with:
-          extra_args: --hook-stage manual
+# jobs:
+#   pre-commit:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v2
+#       - uses: actions/setup-python@v1
+#       - uses: pre-commit/action@v2.0.0
+#         with:
+#           extra_args: --hook-stage manual
 
-  pre-commit-ocaml:
-    runs-on: ubuntu-latest
-    # Custom image provides 'ocp-indent', needed to check ocaml code
-    container: returntocorp/ocaml:ubuntu
-    steps:
-      - name: Pre-checkout fixes
-        run: |
-          sudo chmod -R 777 /github
-          github_cache_dir="/__w"
-          sudo mkdir -p "$github_cache_dir"
-          sudo chmod -R 777 "$github_cache_dir"
-      - uses: actions/checkout@v2
-      - name: Check OCaml code
-        run: sudo -u user opam exec -- pre-commit run --all lint-ocaml
+#   pre-commit-ocaml:
+#     runs-on: ubuntu-latest
+#     # Custom image provides 'ocp-indent', needed to check ocaml code
+#     container: returntocorp/ocaml:ubuntu
+#     steps:
+#       - name: Pre-checkout fixes
+#         run: |
+#           sudo chmod -R 777 /github
+#           github_cache_dir="/__w"
+#           sudo mkdir -p "$github_cache_dir"
+#           sudo chmod -R 777 "$github_cache_dir"
+#       - uses: actions/checkout@v2
+#       - name: Check OCaml code
+#         run: sudo -u user opam exec -- pre-commit run --all lint-ocaml
 
-  semgrep-run-r2c-config:
-    name: semgrep with r2c registry
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Semgrep
-        id: semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: "1"
+#   semgrep-run-r2c-config:
+#     name: semgrep with r2c registry
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v1
+#       - name: Semgrep
+#         id: semgrep
+#         uses: returntocorp/semgrep-action@v1
+#         with:
+#           publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+#           publishDeployment: "1"
 
-  changelog-reminder:
-    name: Changelog Reminder
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+#   changelog-reminder:
+#     name: Changelog Reminder
+#     runs-on: ubuntu-latest
+#     if: github.event_name == 'pull_request'
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v2
 
-      - id: semgrep_diff
-        name: Get semgrep package diff
-        uses: technote-space/get-diff-action@v4.0.1
-        with:
-          PATTERNS: semgrep/semgrep/**
-      - id: changelog_diff
-        name: Get changelog diff
-        uses: technote-space/get-diff-action@v4.0.1
-        with:
-          FILES: CHANGELOG.md
+#       - id: semgrep_diff
+#         name: Get semgrep package diff
+#         uses: technote-space/get-diff-action@v4.0.1
+#         with:
+#           PATTERNS: semgrep/semgrep/**
+#       - id: changelog_diff
+#         name: Get changelog diff
+#         uses: technote-space/get-diff-action@v4.0.1
+#         with:
+#           FILES: CHANGELOG.md
 
-      - name: Send reminder
-        uses: unsplash/comment-on-pr@v1.2.0
-        if: >
-          steps.semgrep_diff.outputs.insertions > 20
-          && steps.changelog_diff.outputs.insertions == 0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          msg: You added quite a few lines in semgrep, but didn't update the changelog. Consider doing so!
-          check_for_duplicate_msg: yes
+#       - name: Send reminder
+#         uses: unsplash/comment-on-pr@v1.2.0
+#         if: >
+#           steps.semgrep_diff.outputs.insertions > 20
+#           && steps.changelog_diff.outputs.insertions == 0
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         with:
+#           msg: You added quite a few lines in semgrep, but didn't update the changelog. Consider doing so!
+#           check_for_duplicate_msg: yes
