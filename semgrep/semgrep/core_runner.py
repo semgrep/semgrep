@@ -562,12 +562,16 @@ class CoreRunner:
                     )
                 )
             ):
+                debug_tqdm_write(f"Running rule {rule._raw.get('id')}...")
                 with tempfile.NamedTemporaryFile(
                     "w", suffix=".yaml"
                 ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
                     targets = self.get_files_for_language(
                         language, rule, target_manager
                     )
+                    # opti: no need to call semgrep-core if no target files
+                    if not targets:
+                        continue
                     target_file.write("\n".join(map(lambda p: str(p), targets)))
                     target_file.flush()
                     yaml = YAML()
