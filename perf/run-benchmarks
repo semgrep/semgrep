@@ -22,8 +22,6 @@ from contextlib import contextmanager
 from typing import Iterator
 from typing import Tuple
 
-import matplotlib.pyplot as plt
-import pandas as pd
 import semgrep_core_benchmark  # type: ignore
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
@@ -49,71 +47,77 @@ class Corpus:
         cmd("./prep")
 
 
-CORPUSES = [
-    #
-    # Run Ajin's nodejsscan rules on some repo containing javascript files.
-    # This takes something like 4 hours or more. Maybe we could run it
-    # on fewer targets.
-    #
-    # Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
-    #
-    Corpus("big-js", "input/semgrep.yml", "input/big-js"),
-    Corpus(
-        "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
-    ),
+# Naming conventions:
+#
+# Save for a few repos (currently zulip, big-js, njsbox),
+# the tests below all run r2c rulepacks (in r2c-rules) on public repos
+# For command Corpus("$X", ..., "input/$Y"), you can find the repo by
+# going to github.com/$X/$Y
+#
+
+SMALL_CORPUSES = [
     Corpus("zulip", "input/semgrep.yml", "input/zulip"),
-    #
-    # The tests below all run r2c rulepacks (in r2c-rules) on public repos
-    # For command Corpus("$X", ..., "input/$Y"), you can find the repo by
-    # going to github.com/$X/$Y
-    #
-    # Run our django rulepack on a large python repo
-    Corpus("apache", "input/django.yml", "input/libcloud"),
     # Run our flask rulepack on a python repo
     Corpus("dropbox", "input/flask.yml", "input/pytest-flakefinder"),
     # Run our r2c-ci and r2c-security-audit packs on a go/ruby repo
     Corpus("coinbase", "input/rules", "input/bifrost"),
+    # Run our golang rulepack on a go/html repo
+    Corpus("0c34", "input/golang.yml", "input/govwa"),
+    # Run our javascript and eslint-plugin-security packs on a large JS repo
+    Corpus("lodash", "input/rules", "input/lodash"),
+    # Run our r2c-ci packs (but not r2c-security-audit) on a vulnerable app
+    Corpus("DVWA", "input/rules", "input/DVWA"),
+    # (Gitlab small) Run our python and flask rules on a python repo
+    Corpus("pallets", "input/rules", "input/flask"),
+    # (Gitlab so small it's not worth running) Run our javascript rules on a JS repo
+    # Corpus("socketio", "input/javascript.yml", "input/socket"),
+]
+
+MEDIUM_CORPUSES = [
+    Corpus("big-js", "input/semgrep.yml", "input/big-js"),
+    Corpus(
+        "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
+    ),
+    # Run our django rulepack on a large python repo
+    Corpus("apache", "input/django.yml", "input/libcloud"),
     # Run our r2c-ci and r2c-security audit packs on a python/JS repo
     Corpus("netflix", "input/rules", "input/lemur"),
     # Run our r2c-ci and r2c-security audit packs on a JS/other repo
     Corpus("draios", "input/rules", "input/sysdig-inspect"),
-    # Run our golang rulepack on a go/html repo
-    Corpus("0c34", "input/golang.yml", "input/govwa"),
     # Run our ruby rulepack on a large ruby repo
     Corpus("rails", "input/ruby.yml", "input/rails"),
-    # Run our javascript and eslint-plugin-security packs on a large JS repo
-    Corpus("lodash", "input/rules", "input/lodash"),
     #
     # Run our r2c-ci packs (but not r2c-security-audit) on vulnerable apps
     # See https://owasp.org/www-project-vulnerable-web-applications-directory/
     # for a full list of such apps
     #
     Corpus("Vulnerable-Flask-App", "input/rules", "input/Vulnerable-Flask-App"),
-    Corpus("DVWA", "input/rules", "input/DVWA"),
     Corpus("juice-shop", "input/rules", "input/juice-shop"),
+    # (Gitlab medium) Run our python and flask packs on a python repo
+    Corpus("django", "input/rules", "input/django"),
+    # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
+    Corpus("dropwizard", "input/rules", "input/dropwizard"),
 ]
 
-DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
-
-# Projects that GitLab is using to benchmark us on perf
-GITLAB_CORPUSES = [
+# By default, these will not run
+LARGE_CORPUSES = [
+    #
+    # Run Ajin's nodejsscan rules on some repo containing javascript files.
+    # This takes something like 4 hours or more. Maybe we could run it
+    # on fewer targets.
+    #
+    Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
     # (Gitlab large) Run our javascript and r2c-security audit packs on a js/ruby repo
     Corpus("gitlab", "input/rules", "input/gitlab"),
     # (Gitlab large) Run our security-audit pack on a c repo
     Corpus("smacker", "input/r2c-security-audit.yml", "input/gotree"),
     # (Gitlab large) Run our java pack on a java repo
     Corpus("spring-projects", "input/java.yml", "input/spring"),
-    # (Gitlab medium) Run our python and flask packs on a python repo
-    Corpus("django", "input/rules", "input/django"),
     # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
     Corpus("pmd", "input/rules", "input/pmd"),
-    # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
-    Corpus("dropwizard", "input/rules", "input/dropwizard"),
-    # (Gitlab small) Run our python and flask rules on a python repo
-    Corpus("pallets", "input/rules", "input/flask"),
-    # (Gitlab small) Run our javascript rules on a JS repo
-    Corpus("socketio", "input/javascript.yml", "input/socket"),
 ]
+
+DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets")]
 
 # For corpuses that cannot be run in CI because they use private repos
 INTERNAL_CORPUSES = [
@@ -319,26 +323,32 @@ def run_semgrep(
 def run_benchmarks(
     docker: str,
     dummy: bool,
-    gitlab: bool,
+    small_only: bool,
+    all: bool,
     internal: bool,
+    std_only: bool,
     plot_benchmarks: bool,
     upload: bool,
-    std_only: bool,
+    summary_file_path: str,
+    called_dir: str,
 ) -> None:
     variants = SEMGREP_VARIANTS
     if std_only:
         variants = STD_VARIANTS
 
     results_msgs = []
+    durations = ""
     results: dict = {variant.name: [] for variant in variants}
 
-    corpuses = CORPUSES
+    corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
     if internal:
         corpuses = INTERNAL_CORPUSES
-    if gitlab:
-        corpuses = GITLAB_CORPUSES
+    if small_only:
+        corpuses = SMALL_CORPUSES
+    if all:
+        corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES + LARGE_CORPUSES
     for corpus in corpuses:
         with chdir(corpus.name):
             corpus.prep()
@@ -354,6 +364,7 @@ def run_benchmarks(
                 msg = f"{metric_name} = {duration:.3f} s"
                 print(msg)
                 results_msgs.append(msg)
+                durations += f"{duration:.3f}\n"
                 results[variant.name].append(duration)
 
                 if upload:
@@ -379,9 +390,18 @@ def run_benchmarks(
                     results_msgs[-1] += " WARNING: more errors than std"
 
     # Show summary data
-    for msg in results_msgs:
-        print(msg)
+    print("\n".join(results_msgs))
+
+    if summary_file_path:
+        with chdir(called_dir):
+            summary_file = open(summary_file_path, "w+")
+            summary_file.write(durations)
+            summary_file.close()
+
     if plot_benchmarks:
+        import matplotlib.pyplot as plt
+        import pandas as pd
+
         indexes = [corpus.name for corpus in corpuses]
         plotdata = pd.DataFrame(results, index=indexes)
         plotdata.plot(kind="bar")
@@ -407,37 +427,54 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
-        "--gitlab",
-        help="run gitlab benchmarks for development purposes",
+        "--small-only",
+        help="only run small benchmarks (20s per run or less)",
         action="store_true",
+    )
+    parser.add_argument(
+        "--all",
+        help="run all benchmarks (takes >1 day)",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--std-only", help="only run the default semgrep", action="store_true"
     )
     parser.add_argument(
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     parser.add_argument(
-        "--std_only", help="only run the default semgrep", action="store_true"
+        "--save-to",
+        metavar="FILE_NAME",
+        type=str,
+        help="save timing summary to the file given by the argument",
     )
     parser.add_argument(
-        "--plot_benchmarks",
+        "--plot-benchmarks",
         help="display a graph of the benchmark results",
         action="store_true",
     )
     parser.add_argument(
-        "--semgrep_core", help="run semgrep-core benchmarks", action="store_true"
+        "--semgrep-core", help="run semgrep-core benchmarks", action="store_true"
     )
     args = parser.parse_args()
-    with chdir("bench"):
+
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    called_dir = os.getcwd()
+    with chdir(cur_dir + "/bench"):
         if args.semgrep_core:
             semgrep_core_benchmark.run_benchmarks(args.dummy, args.upload)
         else:
             run_benchmarks(
                 args.docker,
                 args.dummy,
-                args.gitlab,
+                args.small_only,
+                args.all,
                 args.internal,
+                args.std_only,
                 args.plot_benchmarks,
                 args.upload,
-                args.std_only,
+                args.save_to,
+                called_dir,
             )
 
 

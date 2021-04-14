@@ -1,0 +1,102 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  build-core:
+    name: Build and Test semgrep-core
+    runs-on: ubuntu-latest
+    container: returntocorp/ocaml:alpine
+    steps:
+      - name: Pre-checkout fixes
+        run: |
+          sudo chmod -R 777 /github
+          github_cache_dir="/__w"
+          sudo mkdir -p "$github_cache_dir"
+          sudo chmod -R 777 "$github_cache_dir"
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Post-checkout fixes
+        run: ./.github/post-checkout
+      - name: Build semgrep-core and spacegrep
+        run: ./scripts/install-alpine-semgrep-core
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: ocaml-build-artifacts
+          path: ocaml-build-artifacts.tgz
+      - name: Test spacegrep
+        run: opam exec -- make -C spacegrep test
+      - name: Test semgrep-core
+        run: |
+          eval $(opam env)
+          cd semgrep-core
+          START=`date +%s`
+          make test
+          make e2etest
+          END=`date +%s`
+          TEST_RUN_TIME=$((END-START))
+          curl --fail -L -X POST "https://dashboard.semgrep.dev/api/metric/semgrep.core.test-run-time-seconds.num" -d "$TEST_RUN_TIME"
+      - name: Report Number of Tests Stats
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          ./semgrep-core/tests/report_test_metrics.sh
+
+      # TODO: move this to a stable host for more reliable results.
+      #
+      # It's not clear how to push the stats only when "on the main
+      # branch". The GitHub Actions documentation is unhelpful. So we
+      # keep things simple and publish the results every time.
+      #
+      - name: Publish match performance
+        run: |
+          # This runs a short test suite to track the match performance
+          # of semgrep-core over time. The results are pushed to the
+          # dashboard at https://dashboard.semgrep.dev/
+          #
+          opam exec -- make -C semgrep-core report-perf
+
+  benchmark-test:
+    name: semgrep benchmark tests
+    runs-on: ubuntu-latest
+    needs: [build-core]
+    strategy:
+      matrix:
+        python: [3.7]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Download artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: ocaml-build-artifacts
+      - name: Install artifacts
+        run: |
+          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
+          sudo cp ocaml-build-artifacts/bin/* /usr/bin
+      - name: Install semgrep
+        run: |
+          cd semgrep
+          pip3 install pipenv
+          pipenv install --dev
+      - name: Upload benchmark timings
+        run: |
+          cd semgrep
+          pipenv run semgrep --version
+          pipenv run python -m semgrep --version
+          pipenv run semgrep-core -version
+          pipenv run python3 ../perf/run-benchmarks --upload
