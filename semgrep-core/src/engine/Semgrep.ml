@@ -238,11 +238,15 @@ let line_col_of_charpos file charpos =
 let info_of_token_location loc =
   { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
 
+(* for spacegrep *)
 let lexing_pos_to_loc  file x str =
-  (* like Spacegrep.Semgrep.semgrep_pos() *)
+  (* almost like Spacegrep.Semgrep.semgrep_pos() *)
   let line = x.Lexing.pos_lnum in
   let charpos = x.Lexing.pos_cnum in
-  let column = x.Lexing.pos_cnum - x.Lexing.pos_bol + 1 in
+  (* bugfix: not +1 here, Parse_info.column is 0-based.
+   * JSON_report.json_range does the adjust_column + 1.
+  *)
+  let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
   {PI. str; charpos; file; line; column }
 
 let mval_of_spacegrep_string str t =
