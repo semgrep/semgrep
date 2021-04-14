@@ -307,7 +307,7 @@ let rec expression (env : env) (x : CST.expression) =
        let v5 = expression env v5 in
        Conditional (v1, v3, v5)
    | `Update_exp x -> update_expression env x
-   | `Prim x -> primary env x
+   | `Prim_exp x -> primary_expression env x
    | `Un_exp x -> unary_expression env x
    | `Cast_exp (v1, v2, v3, v4, v5) ->
        let v1 = token env v1 (* "(" *) in
@@ -495,7 +495,7 @@ and new_id env tok =
 
 
 
-and primary (env : env) (x : CST.primary) =
+and primary_expression (env : env) (x : CST.primary_expression) =
   (match x with
    | `Lit x -> Literal (literal env x)
    | `Class_lit (v1, v2, v3) ->
@@ -522,10 +522,10 @@ and primary (env : env) (x : CST.primary) =
           | `Choice_id x ->
               let id = id_extra env x in
               NameId id
-          | `Choice_prim_DOT_opt_super_DOT_opt_type_args_choice_id (v1, v2, v3, v4, v5) ->
+          | `Choice_prim_exp_DOT_opt_super_DOT_opt_type_args_choice_id (v1, v2, v3, v4, v5) ->
               let v1 =
                 (match v1 with
-                 | `Prim x -> primary env x
+                 | `Prim_exp x -> primary_expression env x
                  | `Super tok -> super env tok (* "super" *)
                 )
               in
@@ -557,7 +557,7 @@ and primary (env : env) (x : CST.primary) =
          (match v1 with
           | `Type x -> let t = type_ env x in
               Right t
-          | `Prim x -> Left (primary env x)
+          | `Prim_exp x -> Left (primary_expression env x)
           | `Super tok -> Left (super env tok) (* "super" *)
          )
        in
@@ -627,8 +627,8 @@ and object_creation_expression (env : env) (x : CST.object_creation_expression) 
          unqualified_object_creation_expression env x in
        NewClass (tnew, typ, args, body_opt)
 
-   | `Prim_DOT_unqu_obj_crea_exp (v1, v2, v3) ->
-       let v1 = primary env v1 in
+   | `Prim_exp_DOT_unqu_obj_crea_exp (v1, v2, v3) ->
+       let v1 = primary_expression env v1 in
        let v2 = token env v2 (* "." *) in
        let v3 =
          unqualified_object_creation_expression env v3
@@ -658,7 +658,7 @@ and unqualified_object_creation_expression (env : env) ((v1, v2, v3, v4, v5) : C
 and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
   let v1 =
     (match v1 with
-     | `Prim x -> primary env x
+     | `Prim_exp x -> primary_expression env x
      | `Super tok -> super env tok (* "super" *)
     )
   in
@@ -687,7 +687,7 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
 
 
 and array_access (env : env) ((v1, v2, v3, v4) : CST.array_access) =
-  let v1 = primary env v1 in
+  let v1 = primary_expression env v1 in
   let v2 = token env v2 (* "[" *) in
   let v3 = expression env v3 in
   let v4 = token env v4 (* "]" *) in
@@ -1507,10 +1507,10 @@ and explicit_constructor_invocation (env : env) ((v1, v2, v3) : CST.explicit_con
            )
          in
          v2
-     | `Choice_prim_DOT_opt_type_args_super (v1, v2, v3, v4) ->
+     | `Choice_prim_exp_DOT_opt_type_args_super (v1, v2, v3, v4) ->
          let v1 =
            (match v1 with
-            | `Prim x -> primary env x
+            | `Prim_exp x -> primary_expression env x
            )
          in
          let v2 = token env v2 (* "." *) in

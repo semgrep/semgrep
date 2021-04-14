@@ -13,9 +13,11 @@ import argparse
 import collections
 import functools
 import json
+import logging
 import multiprocessing
 import sys
 import tarfile
+from itertools import product
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -31,17 +33,37 @@ from semgrep.util import is_config_suffix
 from semgrep.util import is_config_test_suffix
 from semgrep.util import partition
 
+logger = logging.getLogger(__name__)
+
 SAVE_TEST_OUTPUT_JSON = "semgrep_runs_output.json"
 SAVE_TEST_OUTPUT_TAR = "semgrep_runs_output.tar.gz"
 
+COMMENT_SYNTAXES = (("#", "\n"), ("//", "\n"), ("<!--", "-->"), ("(*", "*)"))
+SPACE_OR_NO_SPACE = ("", " ")
+TODORULEID = "todoruleid"
+RULEID = "ruleid"
+TODOOK = "todook"
+OK = "ok"
 
-def normalize_rule_id(line: str) -> str:
+
+def _remove_ending_comments(rule: str) -> str:
+    for _, end in COMMENT_SYNTAXES:
+        rule = rule.strip() if end == "\n" else rule.strip().replace(end, "")
+    return rule
+
+
+def normalize_rule_ids(line: str) -> Set[str]:
     """
     given a line like `     # ruleid:foobar`
     or `      // ruleid:foobar`
     return `foobar`
     """
-    return line.strip().split(":")[1].strip().split(" ")[0].strip()
+    _, rules_text = line.strip().split(":")
+    rules_text = rules_text.strip()
+    rules = rules_text.split(",")
+    # remove comment ends for non-newline comment syntaxes
+    rules_clean = map(lambda rule: _remove_ending_comments(rule), rules)
+    return set(filter(None, [rule.strip() for rule in rules_clean]))
 
 
 def compute_confusion_matrix(
@@ -79,50 +101,32 @@ def _test_compute_confusion_matrix() -> None:
     assert fn == 2
 
 
+def _annotations(annotation: str) -> Set[str]:
+    # returns something like: {"#ruleid:", "# ruleid:", "//ruleid:", ...}
+    return {
+        f"{comment_syntax[0]}{space}{annotation}"
+        for comment_syntax, space in product(COMMENT_SYNTAXES, SPACE_OR_NO_SPACE)
+    }
+
+
 def line_has_todo_rule(line: str) -> bool:
-    return (
-        "#todoruleid:" in line
-        or "# todoruleid:" in line
-        or "// todoruleid:" in line
-        or "//todoruleid:" in line
-        or "(*todoruleid:" in line
-        or "(* todoruleid:" in line
-    )
+    todo_rule_annotations = _annotations(TODORULEID)
+    return any(annotation in line for annotation in todo_rule_annotations)
 
 
 def line_has_rule(line: str) -> bool:
-    return (
-        "#ruleid:" in line
-        or "# ruleid:" in line
-        or "//ruleid:" in line
-        or "// ruleid:" in line
-        or "<!--ruleid:" in line
-        or "<!-- ruleid:" in line
-        or "(* ruleid:" in line
-        or "(*ruleid:" in line
-    )
+    rule_annotations = _annotations(RULEID)
+    return any(annotation in line for annotation in rule_annotations)
 
 
 def line_has_ok(line: str) -> bool:
-    return (
-        "#ok:" in line
-        or "# ok:" in line
-        or "//ok:" in line
-        or "// ok:" in line
-        or "(*ok:" in line
-        or "(* ok:" in line
-    )
+    rule_annotations = _annotations(OK)
+    return any(annotation in line for annotation in rule_annotations)
 
 
 def line_has_todo_ok(line: str) -> bool:
-    return (
-        "#todook:" in line
-        or "# todook:" in line
-        or "// todook:" in line
-        or "//todook:" in line
-        or "(*todook:" in line
-        or "(* todook:" in line
-    )
+    rule_annotations = _annotations(TODOOK)
+    return any(annotation in line for annotation in rule_annotations)
 
 
 def score_output_json(
@@ -159,18 +163,28 @@ def score_output_json(
             todo_ok_in_line = line_has_todo_ok(line)
             num_todo += int(todo_rule_in_line) + int(todo_ok_in_line)
 
-            if (not ignore_todo and todo_rule_in_line) or rule_in_line:
-                ruleid_lines[test_file_resolved][normalize_rule_id(line)].append(
-                    effective_line_num
+            try:
+                if (not ignore_todo and todo_rule_in_line) or rule_in_line:
+                    rule_ids = normalize_rule_ids(line)
+                    for rule_id in rule_ids:
+                        ruleid_lines[test_file_resolved][rule_id].append(
+                            effective_line_num
+                        )
+                if (not ignore_todo and todo_rule_in_line) or ok_in_line:
+                    rule_ids = normalize_rule_ids(line)
+                    for rule_id in rule_ids:
+                        ok_lines[test_file_resolved][rule_id].append(effective_line_num)
+                if ignore_todo and todo_ok_in_line:
+                    rule_ids = normalize_rule_ids(line)
+                    for rule_id in rule_ids:
+                        todo_ok_lines[test_file_resolved][rule_id].append(
+                            effective_line_num
+                        )
+            except ValueError:  # comment looked like a test annotation but couldn't parse
+                logger.warning(
+                    f"Could not parse {line} as a test annotation in file {test_file_resolved}. Skipping this line"
                 )
-            if (not ignore_todo and todo_rule_in_line) or ok_in_line:
-                ok_lines[test_file_resolved][normalize_rule_id(line)].append(
-                    effective_line_num
-                )
-            if ignore_todo and todo_ok_in_line:
-                todo_ok_lines[test_file_resolved][normalize_rule_id(line)].append(
-                    effective_line_num
-                )
+                continue
 
     for result in json_out["results"]:
         reported_lines[str(Path(result["path"]).resolve())][result["check_id"]].append(
@@ -210,10 +224,6 @@ def score_output_json(
                 "expected_lines": sorted(expected),
                 "reported_lines": sorted(reported),
             }
-            # TODO: -- re-enable this
-            # assert len(set(reported_lines[file_path][check_id])) == len(
-            #    reported_lines[file_path][check_id]
-            # ), f"for testing, please don't make rules that fire multiple times on the same line ({check_id} in {file_path} on lines {reported_lines[file_path][check_id]})"
             old_cm = score_by_checkid[check_id]
             score_by_checkid[check_id] = [
                 old_cm[i] + new_cm[i] for i in range(len(new_cm))
@@ -421,7 +431,7 @@ def generate_file_pairs(
 
     for filename, rr in passed_results_first.items():
         print(f"(TODO: {rr['todo']}) {filename}")
-        for check_id, check_results in rr["checks"].items():
+        for check_id, check_results in sorted(rr["checks"].items()):
             print(generate_check_output_line(check_id, check_results))
             if not check_results["passed"]:
                 print(generate_matches_line(check_results))
