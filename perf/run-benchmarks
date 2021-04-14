@@ -174,10 +174,14 @@ class SemgrepResult:
     def __init__(self, dict: dict) -> None:
         self.res = dict
 
-        # TODO: remove this if, and just always make the str the dump
-        if "extra" in dict and "message" in dict["extra"]:
+        # We use self.str to compare dicts, so change this
+        # to abstract away differences
+        if "extra" in dict:
             dict2 = copy.deepcopy(dict)
-            dict2["extra"]["message"] = ""
+            if "message" in dict["extra"]:
+                dict2["extra"]["message"] = ""
+            if "lines" in dict["extra"]:
+                dict2["extra"]["lines"] = ""
             self.str = json.dumps(dict2)
         else:
             self.str = json.dumps(dict)
