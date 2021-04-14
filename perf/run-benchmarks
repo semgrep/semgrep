@@ -453,6 +453,10 @@ def main() -> None:
         "--semgrep-core", help="run semgrep-core benchmarks", action="store_true"
     )
     args = parser.parse_args()
+
+    subprocess.run(["semgrep", "--version"])  # nosem
+    subprocess.run(["semgrep-core", "-version"])  # nosem
+
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     called_dir = os.getcwd()
     with chdir(cur_dir + "/bench"):
