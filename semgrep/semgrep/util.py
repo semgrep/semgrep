@@ -5,8 +5,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from itertools import chain
-from itertools import combinations
 from typing import Any
 from typing import Callable
 from typing import IO
@@ -104,7 +102,9 @@ def partition_set(pred: Callable, iterable: Iterable) -> Tuple[Set, Set]:
 def powerset(iterable: Iterable) -> Iterable[Tuple[Any, ...]]:
     """powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"""
     s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
+    return itertools.chain.from_iterable(
+        itertools.combinations(s, r) for r in range(len(s) + 1)
+    )
 
 
 def with_color(color: str, text: str, bold: bool = False) -> str:

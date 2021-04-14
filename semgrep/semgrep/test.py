@@ -13,6 +13,7 @@ import argparse
 import collections
 import functools
 import json
+import logging
 import multiprocessing
 import sys
 import tarfile
@@ -32,6 +33,8 @@ from semgrep.util import is_config_suffix
 from semgrep.util import is_config_test_suffix
 from semgrep.util import partition
 
+logger = logging.getLogger(__name__)
+
 SAVE_TEST_OUTPUT_JSON = "semgrep_runs_output.json"
 SAVE_TEST_OUTPUT_TAR = "semgrep_runs_output.tar.gz"
 
@@ -43,6 +46,12 @@ TODOOK = "todook"
 OK = "ok"
 
 
+def _remove_ending_comments(rule: str) -> str:
+    for _, end in COMMENT_SYNTAXES:
+        rule = rule.strip() if end == "\n" else rule.strip().replace(end, "")
+    return rule
+
+
 def normalize_rule_ids(line: str) -> Set[str]:
     """
     given a line like `     # ruleid:foobar`
@@ -52,11 +61,9 @@ def normalize_rule_ids(line: str) -> Set[str]:
     _, rules_text = line.strip().split(":")
     rules_text = rules_text.strip()
     rules = rules_text.split(",")
-    # strictly remove ending HTML comment
-    rules = [rule.strip().replace("-->", "") for rule in rules]
-    # strictly remove ending OCaml comment
-    rules = [rule.strip().replace("*)", "") for rule in rules]
-    return set(filter(None, [rule.strip() for rule in rules]))
+    # remove comment ends for non-newline comment syntaxes
+    rules_clean = map(lambda rule: _remove_ending_comments(rule), rules)
+    return set(filter(None, [rule.strip() for rule in rules_clean]))
 
 
 def compute_confusion_matrix(
@@ -174,6 +181,9 @@ def score_output_json(
                             effective_line_num
                         )
             except ValueError:  # comment looked like a test annotation but couldn't parse
+                logger.warning(
+                    f"Could not parse {line} as a test annotation in file {test_file_resolved}. Skipping this line"
+                )
                 continue
 
     for result in json_out["results"]:
