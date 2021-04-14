@@ -156,20 +156,25 @@ def score_output_json(
             todo_ok_in_line = line_has_todo_ok(line)
             num_todo += int(todo_rule_in_line) + int(todo_ok_in_line)
 
-            if (not ignore_todo and todo_rule_in_line) or rule_in_line:
-                rule_ids = normalize_rule_ids(line)
-                for rule_id in rule_ids:
-                    ruleid_lines[test_file_resolved][rule_id].append(effective_line_num)
-            if (not ignore_todo and todo_rule_in_line) or ok_in_line:
-                rule_ids = normalize_rule_ids(line)
-                for rule_id in rule_ids:
-                    ok_lines[test_file_resolved][rule_id].append(effective_line_num)
-            if ignore_todo and todo_ok_in_line:
-                rule_ids = normalize_rule_ids(line)
-                for rule_id in rule_ids:
-                    todo_ok_lines[test_file_resolved][rule_id].append(
-                        effective_line_num
-                    )
+            try:
+                if (not ignore_todo and todo_rule_in_line) or rule_in_line:
+                    rule_ids = normalize_rule_ids(line)
+                    for rule_id in rule_ids:
+                        ruleid_lines[test_file_resolved][rule_id].append(
+                            effective_line_num
+                        )
+                if (not ignore_todo and todo_rule_in_line) or ok_in_line:
+                    rule_ids = normalize_rule_ids(line)
+                    for rule_id in rule_ids:
+                        ok_lines[test_file_resolved][rule_id].append(effective_line_num)
+                if ignore_todo and todo_ok_in_line:
+                    rule_ids = normalize_rule_ids(line)
+                    for rule_id in rule_ids:
+                        todo_ok_lines[test_file_resolved][rule_id].append(
+                            effective_line_num
+                        )
+            except ValueError:  # comment looked like a test annotation but couldn't parse
+                continue
 
     for result in json_out["results"]:
         reported_lines[str(Path(result["path"]).resolve())][result["check_id"]].append(
