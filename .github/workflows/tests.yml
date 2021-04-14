@@ -230,7 +230,7 @@ jobs:
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
 
-          python3 perf/run-benchmarks.py --small_only --std_only > semgrep/baseline_timing.txt
+          python3 perf/run-benchmarks.py --small_only --std_only --save-to semgrep/baseline_timing.txt
           cat semgrep/baseline_timing.txt
           pip3 uninstall -y semgrep
       - name: Download artifacts
@@ -252,7 +252,7 @@ jobs:
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
-          pipenv run python3 perf/run-benchmarks.py --small_only --std_only > timing.txt
+          pipenv run python3 perf/run-benchmarks.py --small_only --std_only --save-to semgrep/timing.txt
           cat timing.txt
       - name: Compare timing infos
         run: |
