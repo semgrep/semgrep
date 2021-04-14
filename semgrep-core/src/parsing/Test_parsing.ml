@@ -99,6 +99,9 @@ let dump_tree_sitter_cst_lang lang file =
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
       |> dump_and_print_errors Tree_sitter_rust.CST.dump_tree
+  | Lang.OCaml ->
+      Tree_sitter_ocaml.Parse.file file
+      |> dump_and_print_errors Tree_sitter_ocaml.CST.dump_tree
 
   | Lang.C ->
       Tree_sitter_c.Parse.file file
@@ -151,6 +154,9 @@ let test_parse_tree_sitter lang xs =
               |> fail_on_error |> ignore
           | Lang.Rust ->
               Tree_sitter_rust.Parse.file file
+              |> fail_on_error |> ignore
+          | Lang.OCaml ->
+              Tree_sitter_ocaml.Parse.file file
               |> fail_on_error |> ignore
           | Lang.C ->
               Tree_sitter_c.Parse.file file
