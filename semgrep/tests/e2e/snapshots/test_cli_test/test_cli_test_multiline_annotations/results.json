@@ -1,0 +1,9 @@
+1 yaml files tested
+check id scoring:
+--------------------------------------------------------------------------------
+(TODO: 0) rules/cli_test/multiple_annotations/multiple-annotations.yaml
+	✔ basic-test                                                   TP: 1 TN: 0 FP: 0 FN: 0
+	✔ silly-test                                                   TP: 1 TN: 0 FP: 0 FN: 0
+--------------------------------------------------------------------------------
+final confusion matrix: TP: 2 TN: 0 FP: 0 FN: 0
+--------------------------------------------------------------------------------

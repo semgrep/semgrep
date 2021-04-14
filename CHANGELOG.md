@@ -22,6 +22,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - YAML language support to --test
+- Ability to list multiple, comma-separated rules on the same line when in --test mode
 - Resolve alias in require/import in Javascript
 ```
 child_process.exec(...)

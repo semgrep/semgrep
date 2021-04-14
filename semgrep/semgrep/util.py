@@ -98,6 +98,15 @@ def partition_set(pred: Callable, iterable: Iterable) -> Tuple[Set, Set]:
     return set(filter(pred, i1)), set(itertools.filterfalse(pred, i2))
 
 
+# cf. https://docs.python.org/3/library/itertools.html#itertools-recipes
+def powerset(iterable: Iterable) -> Iterable[Tuple[Any, ...]]:
+    """powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"""
+    s = list(iterable)
+    return itertools.chain.from_iterable(
+        itertools.combinations(s, r) for r in range(len(s) + 1)
+    )
+
+
 def with_color(color: str, text: str, bold: bool = False) -> str:
     """
     Wrap text in color & reset
