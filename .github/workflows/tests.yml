@@ -252,7 +252,7 @@ jobs:
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
-          pipenv run python3 perf/run-benchmarks.py --small_only --std_only --save-to semgrep/timing.txt
+          pipenv run python3 ../perf/run-benchmarks.py --small_only --std_only --save-to semgrep/timing.txt
           cat timing.txt
       - name: Compare timing infos
         run: |
