@@ -111,22 +111,22 @@ def _annotations(annotation: str) -> Set[str]:
 
 def line_has_todo_rule(line: str) -> bool:
     todo_rule_annotations = _annotations(TODORULEID)
-    return any([annotation in line for annotation in todo_rule_annotations])
+    return any(annotation in line for annotation in todo_rule_annotations)
 
 
 def line_has_rule(line: str) -> bool:
     rule_annotations = _annotations(RULEID)
-    return any([annotation in line for annotation in rule_annotations])
+    return any(annotation in line for annotation in rule_annotations)
 
 
 def line_has_ok(line: str) -> bool:
     rule_annotations = _annotations(OK)
-    return any([annotation in line for annotation in rule_annotations])
+    return any(annotation in line for annotation in rule_annotations)
 
 
 def line_has_todo_ok(line: str) -> bool:
     rule_annotations = _annotations(TODOOK)
-    return any([annotation in line for annotation in rule_annotations])
+    return any(annotation in line for annotation in rule_annotations)
 
 
 def score_output_json(
