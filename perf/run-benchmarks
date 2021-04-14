@@ -182,9 +182,9 @@ class SemgrepResult:
                 dict2["extra"]["message"] = ""
             if "lines" in dict["extra"]:
                 dict2["extra"]["lines"] = ""
-            self.str = json.dumps(dict2)
+            self.str = json.dumps(dict2, sort_keys=True)
         else:
-            self.str = json.dumps(dict)
+            self.str = json.dumps(dict, sort_keys=True)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SemgrepResult):
