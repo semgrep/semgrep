@@ -303,6 +303,9 @@ def run_semgrep(
     t1 = time.time()
     res = subprocess.run(args, capture_output=True)  # nosem
     t2 = time.time()
+    print(res.stderr)
+    print("-----------------")
+    print(res.stdout)
 
     status = res.returncode
     print(f"semgrep exit status: {status}")
