@@ -9,6 +9,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - run: which git
+      - run: cp /usr/local/bin/git /usr/local/bin/git2
+      - run: echo "cat $@; git2 $@" > /usr/local/bin/git
+      - run: git version
       # - uses: dawidd6/action-homebrew-bump-formula@v3
       #   with:
       #     token: ${{ secrets.HOMEBREW_PR_TOKEN }}
