@@ -1,8 +1,8 @@
-# ruleid: basic-test
-4 == 4
+#ruleid:
+4 == 3
 
 # ruleid: basic-test, silly-test
 5 == 5
 
-# ok: basic-test, silly-test
+# ok
 1 == 2
