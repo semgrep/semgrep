@@ -74,7 +74,7 @@ SMALL_CORPUSES = [
 ]
 
 MEDIUM_CORPUSES = [
-    # Corpus("big-js", "input/semgrep.yml", "input/big-js"),
+    Corpus("big-js", "input/semgrep.yml", "input/big-js"),
     Corpus(
         "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
     ),
@@ -97,11 +97,6 @@ MEDIUM_CORPUSES = [
     Corpus("django", "input/rules", "input/django"),
     # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
     Corpus("dropwizard", "input/rules", "input/dropwizard"),
-]
-
-SMALL_CORPUSES = []
-MEDIUM_CORPUSES = [
-    Corpus("big-js", "input/semgrep.yml", "input/big-js"),
 ]
 
 # By default, these will not run
