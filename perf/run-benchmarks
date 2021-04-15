@@ -340,7 +340,7 @@ def run_benchmarks(
     durations = ""
     results: dict = {variant.name: [] for variant in variants}
 
-    corpuses = MEDIUM_CORPUSES
+    corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
     if internal:
