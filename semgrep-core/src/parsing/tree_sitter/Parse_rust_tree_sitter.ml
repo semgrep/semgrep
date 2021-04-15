@@ -2652,9 +2652,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
        in
        let class_def = {
          G.ckind = (G.Class, struct_);
-         G.cextends = [];
-         G.cimplements = [];
-         G.cmixins = [];
+         G.cextends = []; G.cimplements = []; G.cmixins = []; G.cparams = [];
          G.cbody = fields;
        } in
        let ent = { G.name = G.EN (G.Id (ident, G.empty_id_info ())); attrs = []; tparams = type_params } in
@@ -2790,9 +2788,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
        let fields = map_trait_block env v7 in
        let class_def = {
          G.ckind = (G.Trait, trait);
-         G.cextends = [];
-         G.cimplements = [];
-         G.cmixins = [];
+         G.cextends = []; G.cimplements = []; G.cmixins = []; G.cparams = [];
          G.cbody = fields;
        } in
        let ent = {

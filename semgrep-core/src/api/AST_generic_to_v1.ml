@@ -923,8 +923,10 @@ and
                          cimplements = v_cimplements;
                          cbody = v_cbody;
                          cmixins = v_cmixins;
+                         cparams = v_cparams;
                        } =
   let v_cbody = map_bracket (map_of_list map_field) v_cbody in
+  let v_cparams = map_parameters v_cparams in
   let v_cmixins = map_of_list map_type_ v_cmixins in
   let v_cimplements = map_of_list map_type_ v_cimplements in
   let v_cextends = map_of_list map_type_ v_cextends in
@@ -935,6 +937,7 @@ and
     cimplements = v_cimplements;
     cbody = v_cbody;
     cmixins = v_cmixins;
+    cparams = v_cparams;
   }
 
 and map_class_kind = function
@@ -943,6 +946,7 @@ and map_class_kind = function
   | Trait -> `Trait
   | Object -> `Object
   | AtInterface -> `AtInterface
+  | RecordClass -> `RecordClass
 
 and map_directive =
   function

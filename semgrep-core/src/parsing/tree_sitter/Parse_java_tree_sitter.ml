@@ -1283,8 +1283,22 @@ and enum_body (env : env) ((v1, v2, v3, v4, v5) : CST.enum_body) =
   let _v5 = token env v5 (* "}" *) in
   v2, v4
 
+and record_declaration (env : env) ((v1, v2, v3, v4, v5) : CST.record_declaration) : class_decl =
+  let v1 =
+    (match v1 with
+     | Some x -> modifiers env x
+     | None -> [])
+  in
+  let v2 = token env v2 (* "record" *) in
+  let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
+  let v4 = formal_parameters env v4 in
+  let v5 = class_body env v5 in
+  { cl_name = v3; cl_kind = (Record, v2); cl_tparams = [];
+    cl_mods = v1; cl_extends = None; cl_impls = []; cl_formals = v4;
+    cl_body = v5 }
 
 and class_body_decl env = function
+  | `Record_decl x -> [Class (record_declaration env x)]
   | `Field_decl x -> field_declaration env x
   | `Meth_decl x -> [Method (method_declaration env x)]
   | `Class_decl x -> [Class (class_declaration env x)]
@@ -1349,7 +1363,7 @@ and class_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.class_decl
   in
   let v7 = class_body env v7 in
   { cl_name = v3; cl_kind = (ClassRegular, v2); cl_tparams = v4;
-    cl_mods = v1; cl_extends = v5; cl_impls = v6;
+    cl_mods = v1; cl_extends = v5; cl_impls = v6; cl_formals = [];
     cl_body = v7 }
 
 
@@ -1550,7 +1564,7 @@ and annotation_type_declaration (env : env) ((v1, v2, v3, v4) : CST.annotation_t
   let v3 = identifier env v3 (* pattern [a-zA-Z_]\w* *) in
   let v4 = annotation_type_body env v4 in
   { cl_mods = v1; cl_name = v3; cl_body = v4; cl_kind = (AtInterface, v2);
-    cl_tparams = []; cl_extends = None; cl_impls = [];
+    cl_tparams = []; cl_extends = None; cl_impls = []; cl_formals = [];
   }
 
 
@@ -1622,7 +1636,7 @@ and interface_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.interface_
   in
   let v6 = interface_body env v6 in
   { cl_name = v3; cl_kind = (Interface, v2); cl_tparams = v4;
-    cl_mods = v1; cl_extends = None; cl_impls = v5;
+    cl_mods = v1; cl_extends = None; cl_impls = v5; cl_formals = [];
     cl_body = v6 }
 
 

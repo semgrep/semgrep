@@ -549,7 +549,7 @@ and class_ { c_extends; c_implements; c_body; c_kind; c_attrs;  } =
   let attrs = list attribute c_attrs in
   let cimplements = list type_ c_implements in
   { G.ckind = H.conv_class_kind c_kind; cextends; cimplements;
-    cmixins = []; cbody = v2;}, attrs
+    cmixins = []; cparams = []; cbody = v2;}, attrs
 
 
 and field_classic {fld_name=v1; fld_attrs = v2; fld_type = vt; fld_body = v3} =

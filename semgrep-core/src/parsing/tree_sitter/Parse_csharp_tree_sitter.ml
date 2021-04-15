@@ -1079,7 +1079,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v5 = token env v5 (* "}" *) in
        AnonClass {
          ckind = (Class, v1);
-         cextends = []; cimplements = []; cmixins = [];
+         cextends = []; cimplements = []; cmixins = []; cparams = [];
          cbody = (v2, v3, v5);
        }
    | `Array_crea_exp (v1, v2, v3) ->
@@ -2496,8 +2496,7 @@ and class_interface_struct (env : env) class_kind (v1, v2, v3, v4, v5, v6, v7, v
   AST.DefStmt (ent, AST.ClassDef {
     ckind = (class_kind, v3);
     cextends = v6;
-    cimplements = [];
-    cmixins = [];
+    cimplements = []; cmixins = []; cparams = [];
     cbody = (open_bra, fields, close_bra);
   }) |> AST.s
 

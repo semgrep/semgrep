@@ -537,7 +537,7 @@ and stmt_aux x =
       in
       let ent = G.basic_entity v1 v4 in
       let def = { G.ckind = (G.Class, v0); cextends = v2;
-                  cimplements = []; cmixins = [];
+                  cimplements = []; cmixins = []; cparams = [];
                   cbody = fb (v3 |> List.map(fun x ->G.FieldStmt x);)
                 } in
       [G.DefStmt (ent, G.ClassDef def) |> G.s]
