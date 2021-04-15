@@ -74,7 +74,7 @@ SMALL_CORPUSES = [
 ]
 
 MEDIUM_CORPUSES = [
-    Corpus("big-js", "input/semgrep.yml", "input/big-js"),
+    # Corpus("big-js", "input/semgrep.yml", "input/big-js"),
     Corpus(
         "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
     ),
