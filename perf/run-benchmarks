@@ -174,10 +174,13 @@ class SemgrepResult:
         # to abstract away differences
         if "extra" in dict:
             dict2 = copy.deepcopy(dict)
-            if "message" in dict["extra"]:
+            # TODO: full-rule does not correctly update message with metavars
+            if "message" in dict2["extra"]:
                 dict2["extra"]["message"] = ""
-            if "lines" in dict["extra"]:
+            # TODO: spacegrep.py calls dedent
+            if "lines" in dict2["extra"]:
                 dict2["extra"]["lines"] = ""
+
             self.str = json.dumps(dict2, sort_keys=True)
         else:
             self.str = json.dumps(dict, sort_keys=True)
@@ -444,13 +447,13 @@ def main() -> None:
         "--filter-corpus",
         metavar="REGEXP",
         type=str,
-        help="run the corpus only if it satisfies the regexp",
+        help="run the corpus only if it satisfies the regexp (e.g., 'std|exp')",
     )
     parser.add_argument(
         "--filter-variant",
         metavar="REGEXP",
         type=str,
-        help="run the variant only if it satisfies the regexp",
+        help="run the variant only if it satisfies the regexp (e.g., 'dr.*') ",
     )
     parser.add_argument(
         "--upload", help="upload results to semgrep dashboard", action="store_true"
