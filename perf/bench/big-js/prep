@@ -36,6 +36,6 @@ shallow_clone() {
 name="big-js"
 #TODO: the other repo are using https: but this repo is currently private
 # so I use ssh
-url="git@github.com:returntocorp/big-js.git"
+url="https://github.com/returntocorp/big-js.git"
 commit="08ba212ac7961768fcde386f70eea7a901ddb8f5"
 shallow_clone

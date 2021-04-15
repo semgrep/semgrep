@@ -99,6 +99,11 @@ MEDIUM_CORPUSES = [
     Corpus("dropwizard", "input/rules", "input/dropwizard"),
 ]
 
+SMALL_CORPUSES = []
+MEDIUM_CORPUSES = [
+    Corpus("big-js", "input/semgrep.yml", "input/big-js"),
+]
+
 # By default, these will not run
 LARGE_CORPUSES = [
     #
