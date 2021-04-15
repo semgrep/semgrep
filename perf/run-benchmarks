@@ -15,6 +15,7 @@ import argparse
 import copy
 import json
 import os
+import re
 import subprocess
 import time
 import urllib.request
@@ -161,15 +162,6 @@ SEMGREP_VARIANTS = [
 
 # For when you just want to test a single change
 STD_VARIANTS = [SemgrepVariant("std", "")]
-
-# Pad's debugging config
-# CORPUSES=[Corpus("lodash", "input/rules", "input/lodash")]
-# CORPUSES=[Corpus("DVWA", "input/rules", "input/DVWA"),]
-# SEMGREP_VARIANTS = [
-#    SemgrepVariant("std", ""),
-#    SemgrepVariant("experimental", "-no_filter_irrelevant_rules", "--experimental"),
-#    SemgrepVariant("experimental_and_fast", "", "--experimental"),
-#    ]
 
 
 # This class allows us to put semgrep results in a set and compute set
@@ -327,14 +319,19 @@ def run_benchmarks(
     all: bool,
     internal: bool,
     std_only: bool,
+    filter_corpus: str,
+    filter_variant: str,
     plot_benchmarks: bool,
     upload: bool,
     summary_file_path: str,
     called_dir: str,
 ) -> None:
+
     variants = SEMGREP_VARIANTS
     if std_only:
         variants = STD_VARIANTS
+    if filter_variant:
+        variants = [x for x in variants if re.search(filter_variant, x.name) != None]
 
     results_msgs = []
     durations = ""
@@ -349,11 +346,15 @@ def run_benchmarks(
         corpuses = SMALL_CORPUSES
     if all:
         corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES + LARGE_CORPUSES
+    if filter_corpus:
+        corpuses = [x for x in corpuses if re.search(filter_corpus, x.name) != None]
+
     for corpus in corpuses:
         with chdir(corpus.name):
             corpus.prep()
             std_findings = {}
             for variant in variants:
+
                 # Run variant
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
@@ -440,6 +441,18 @@ def main() -> None:
         "--std-only", help="only run the default semgrep", action="store_true"
     )
     parser.add_argument(
+        "--filter-corpus",
+        metavar="REGEXP",
+        type=str,
+        help="run the corpus only if it satisfies the regexp",
+    )
+    parser.add_argument(
+        "--filter-variant",
+        metavar="REGEXP",
+        type=str,
+        help="run the variant only if it satisfies the regexp",
+    )
+    parser.add_argument(
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     parser.add_argument(
@@ -471,6 +484,8 @@ def main() -> None:
                 args.all,
                 args.internal,
                 args.std_only,
+                args.filter_corpus,
+                args.filter_variant,
                 args.plot_benchmarks,
                 args.upload,
                 args.save_to,
