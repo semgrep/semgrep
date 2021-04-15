@@ -98,7 +98,7 @@ jobs:
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
 
-          pipenv run python3 ../perf/run-benchmarks --upload
+          python3 ../perf/run-benchmarks --upload
           pip3 uninstall -y semgrep
       # - name: Install semgrep
       #   run: |
