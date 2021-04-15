@@ -642,7 +642,7 @@ and class_declaration (env : env) (x : CST.class_declaration) : entity * class_d
        let ent = G.basic_entity v3 v1 in
        let cdef = {
          ckind = v2;
-         cextends = []; cimplements = []; cmixins = [];
+         cextends = []; cimplements = []; cmixins = []; cparams = [];
          cbody = v8
        } in
        ent, cdef
@@ -686,7 +686,7 @@ and class_declaration (env : env) (x : CST.class_declaration) : entity * class_d
        let ent = G.basic_entity v4 v1 in
        let cdef = {
          ckind = v3;
-         cextends = []; cimplements = []; cmixins = [];
+         cextends = []; cimplements = []; cmixins = []; cparams = [];
          cbody = v9
        } in
        ent, cdef
@@ -726,7 +726,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration)
        let ent = G.basic_entity v4 v1 in
        let cdef = {
          ckind = Object, v3;
-         cextends = []; cimplements = []; cmixins = [];
+         cextends = []; cimplements = []; cmixins = []; cparams = [];
          cbody = v6
        } in
        FieldStmt (s (DefStmt (ent, ClassDef cdef)))
@@ -861,7 +861,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
        let ent = G.basic_entity v3 v1 in
        let cdef = {
          ckind = Object, v2;
-         cextends = []; cimplements = []; cmixins = [];
+         cextends = []; cimplements = []; cmixins = []; cparams = [];
          cbody = v5
        } in
        ent, ClassDef cdef
@@ -1532,7 +1532,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
        let v3 = class_body env v3 in
        AnonClass {
          ckind = (Object, v1);
-         cextends = []; cimplements = []; cmixins = [];
+         cextends = []; cimplements = []; cmixins = []; cparams = [];
          cbody = v3;
        }
    | `Coll_lit (v1, v2, v3, v4) ->

@@ -351,7 +351,7 @@ let map_non_special_token (env : env) (x : CST.non_special_token): PI.token_muta
    | `Super tok -> token env tok (* "super" *)
    | `Crate tok -> token env tok (* "crate" *)
    | `Choice_u8 x -> let (_, tok) = map_primitive_type_ident env x in tok
-   | `Pat_785a82e tok -> token env tok (*tok*)
+   | `Pat_e14e5d5 tok -> token env tok (*tok*)
    | `SQUOT tok -> token env tok (* "'" *)
    | `As tok -> token env tok (* "as" *)
    | `Async tok -> token env tok (* "async" *)
@@ -2652,9 +2652,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
        in
        let class_def = {
          G.ckind = (G.Class, struct_);
-         G.cextends = [];
-         G.cimplements = [];
-         G.cmixins = [];
+         G.cextends = []; G.cimplements = []; G.cmixins = []; G.cparams = [];
          G.cbody = fields;
        } in
        let ent = { G.name = G.EN (G.Id (ident, G.empty_id_info ())); attrs = []; tparams = type_params } in
@@ -2790,9 +2788,7 @@ and map_item_kind (env : env) outer_attrs visibility (x : CST.item_kind): G.stmt
        let fields = map_trait_block env v7 in
        let class_def = {
          G.ckind = (G.Trait, trait);
-         G.cextends = [];
-         G.cimplements = [];
-         G.cmixins = [];
+         G.cextends = []; G.cimplements = []; G.cmixins = []; G.cparams = [];
          G.cbody = fields;
        } in
        let ent = {

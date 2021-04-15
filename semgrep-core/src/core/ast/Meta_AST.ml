@@ -1139,10 +1139,14 @@ and
     cimplements = v_cimplements;
     cbody = v_cbody;
     cmixins = v_cmixins;
+    cparams;
   } =
   let bnds = [] in
   let arg = vof_bracket (OCaml.vof_list vof_field) v_cbody in
   let bnd = ("cbody", arg) in
+  let bnds = bnd :: bnds in
+  let arg = vof_parameters cparams in
+  let bnd = ("cparams", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_list vof_type_ v_cmixins in
   let bnd = ("cmixins", arg) in
@@ -1163,6 +1167,7 @@ and vof_class_kind_bis =
   | Trait -> OCaml.VSum ("Trait", [])
   | AtInterface -> OCaml.VSum ("AtInterface", [])
   | Object -> OCaml.VSum ("Object", [])
+  | RecordClass -> OCaml.VSum ("RecordClass", [])
 and vof_ident_and_id_info (v1, v2) =
   let v1 = vof_ident v1 in
   let v2 = vof_id_info v2 in

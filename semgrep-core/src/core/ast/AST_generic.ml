@@ -1500,6 +1500,8 @@ and class_definition = {
   (* class_kind in type_ is usually a Trait *)
   cmixins:      type_ list; (* PHP 'uses' *)
 
+  (* for Java Record or Scala Classes; we could transpile them into fields *)
+  cparams: parameters;
   (* newscope:
    * note: this can be an empty fake bracket when used in Partial.
    * TODO? use an option here?
@@ -1515,6 +1517,8 @@ and class_kind =
   | Trait
   (* Kotlin, Scala *)
   | Object
+  (* Java 'record', Scala 'case class' *)
+  | RecordClass
   (* java: *)
   | AtInterface (* @interface, a.k.a annotation type declaration *)
 (*e: type [[AST_generic.class_kind]] *)

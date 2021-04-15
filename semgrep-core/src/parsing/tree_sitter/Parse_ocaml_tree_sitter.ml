@@ -210,7 +210,7 @@ let map_anon_choice_PLUS_da42005 (env : env) (x : CST.anon_choice_PLUS_da42005) 
 
 let map_mult_operator (env : env) (x : CST.mult_operator) =
   (match x with
-   | `Tok_pat_9ed5fa7_rep_pat_2ed1ddf tok ->
+   | `Tok_pat_058c54c_rep_pat_525fbb4 tok ->
        token env tok (* tok_pat_058c54c_rep_pat_525fbb4 *)
    | `Mod tok -> token env tok (* "mod" *)
    | `Land tok -> token env tok (* "land" *)
@@ -232,7 +232,7 @@ let map_escape_sequence (env : env) (x : CST.escape_sequence) =
 
 let map_pow_operator (env : env) (x : CST.pow_operator) =
   (match x with
-   | `Tok_STARSTAR_rep_pat_2ed1ddf tok ->
+   | `Tok_STARSTAR_rep_pat_525fbb4 tok ->
        token env tok (* tok_STARSTAR_rep_pat_525fbb4 *)
    | `Lsl tok -> token env tok (* "lsl" *)
    | `Lsr tok -> token env tok (* "lsr" *)
