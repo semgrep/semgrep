@@ -544,6 +544,7 @@ and class_def {
               cextends = extends |> Common.opt_to_list;
               cimplements = implements;
               cmixins = uses;
+              cparams = [];
               cbody = t1,
                       fields |> List.map (fun def ->
                         G.FieldStmt (G.DefStmt def |> G.s)

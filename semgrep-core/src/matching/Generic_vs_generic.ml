@@ -2553,19 +2553,20 @@ and m_list__m_type_any_order (xsa: A.type_ list) (xsb: A.type_ list) =
 (*s: function [[Generic_vs_generic.m_class_definition]] *)
 and m_class_definition a b =
   match a, b with
-    { A. ckind = a1; cextends = a2; cimplements = a3; cbody = a4;
-      cmixins = a5;
+    { A. ckind = a1; cextends = a2; cimplements = a3; cmixins = a5;
+      cbody = a4; cparams = a6;
     },
-    { B. ckind = b1; cextends = b2; cimplements = b3; cbody = b4;
-      cmixins = b5;
+    { B. ckind = b1; cextends = b2; cimplements = b3; cmixins = b5;
+      cbody = b4; cparams = b6;
     } ->
       m_class_kind a1 b1 >>= (fun () ->
         (* TODO: use also m_list_in_any_order? regressions for python? *)
         (m_list__m_type_) a2 b2 >>= (fun () ->
           (m_list__m_type_any_order) a3 b3 >>= (fun () ->
             (m_list__m_type_any_order) a5 b5 >>= (fun () ->
-              m_bracket (m_fields) a4 b4
-            ))))
+              m_parameters a6 b6 >>= (fun () ->
+                m_bracket (m_fields) a4 b4
+              )))))
 (*e: function [[Generic_vs_generic.m_class_definition]] *)
 
 (*s: function [[Generic_vs_generic.m_class_kind]] *)
@@ -2577,9 +2578,10 @@ and m_class_kind_bis a b =
   | A.Trait, B.Trait
   | A.AtInterface, B.AtInterface
   | A.Object, B.Object
+  | A.RecordClass, B.RecordClass
     -> return ()
   | A.Class, _ | A.Interface, _ | A.Trait, _
-  | A.AtInterface, _ | A.Object, _
+  | A.AtInterface, _ | A.Object, _ | A.RecordClass, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_class_kind]] *)
 

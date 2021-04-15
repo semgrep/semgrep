@@ -523,7 +523,7 @@ and definition def =
            in
            let def = { G.ckind = (G.Class, t); cextends = extends;
                        (* TODO: this is done by special include/require builtins *)
-                       cimplements = []; cmixins = [];
+                       cimplements = []; cmixins = []; cparams = [];
                        cbody = fb ([G.FieldStmt body]);
                      } in
            G.DefStmt (ent, G.ClassDef def) |> G.s
