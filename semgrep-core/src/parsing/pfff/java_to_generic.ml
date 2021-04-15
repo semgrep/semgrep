@@ -229,12 +229,13 @@ and expr e =
       (match v3 with
        | None -> G.Call (G.IdSpecial (G.New, v0), (lp,(G.ArgType v1)::v2,rp))
        | Some decls ->
-           let anonclass = G.AnonClass { G.
-                                         ckind = (G.Class, v0);
-                                         cextends = [v1];
-                                         cimplements = []; cmixins = [];
-                                         cbody = decls |> bracket (List.map (fun x -> G.FieldStmt x))
-                                       }
+           let anonclass =
+             G.AnonClass { G.
+                           ckind = (G.Class, v0);
+                           cextends = [v1];
+                           cimplements = []; cmixins = []; cparams = [];
+                           cbody = decls |> bracket (List.map (fun x -> G.FieldStmt x))
+                         }
            in
            G.Call (G.IdSpecial (G.New, v0), (lp,(G.Arg anonclass)::v2,rp))
       )
@@ -315,7 +316,7 @@ and expr e =
       let v2 = typ v2 in
       G.TypedMetavar (v1, Parse_info.fake_info " ", v2)
   | Lambda (v1, t, v2) ->
-      let v1 = params v1 in
+      let v1 = parameters v1 in
       let v2 = stmt v2 in
       G.Lambda { G.fparams = v1; frettype = None; fbody = v2;
                  fkind = (G.Arrow, t); }
@@ -455,7 +456,7 @@ and init =
   | ArrayInit v1 -> let v1 = bracket (list init) v1 in
       G.Container (G.Array, v1)
 
-and params v = List.map parameter_binding v
+and parameters v = List.map parameter_binding v
 and parameter_binding = function
   | ParamClassic v | ParamReceiver v ->
       let (ent, t) = var v in
@@ -474,7 +475,7 @@ and
     m_body = m_body
   } =
   let ent, rett = var m_var in
-  let v2 = params m_formals in
+  let v2 = parameters m_formals in
   let v3 = list typ m_throws in
   let v4 = stmt m_body in
   let throws = v3 |> List.map (fun t ->
@@ -516,7 +517,8 @@ and class_decl {
   cl_mods = cl_mods;
   cl_extends = cl_extends;
   cl_impls = cl_impls;
-  cl_body = cl_body
+  cl_body = cl_body;
+  cl_formals;
 } =
   let v1 = ident cl_name in
   let v2 = class_kind cl_kind in
@@ -524,6 +526,7 @@ and class_decl {
   let v4 = modifiers cl_mods in
   let v5 = option typ cl_extends in
   let v6 = list ref_type cl_impls in
+  let cparams = parameters cl_formals in
   let v7 = class_body cl_body in
   let fields = v7 |> bracket (List.map (fun x -> G.FieldStmt x)) in
   let ent = { (G.basic_entity v1 v4) with
@@ -533,6 +536,7 @@ and class_decl {
                cextends = Common.opt_to_list v5;
                cimplements = v6;
                cmixins = [];
+               cparams;
                cbody = fields;
              } in
   ent, cdef
@@ -544,6 +548,7 @@ and class_kind (x, t) =
    | ClassRegular ->  G.Class
    | Interface -> G.Interface
    | AtInterface -> G.AtInterface
+   | Record -> G.RecordClass
   ), t
 
 and decl decl =

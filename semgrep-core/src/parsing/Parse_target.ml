@@ -207,9 +207,8 @@ let just_parse_with_lang lang file =
          * an invoke because of a segfault/memory-leak), but when both parsers
          * fail, it's better to give the tree-sitter parsing error now.
         *)
-        Pfff (throw_tokens Parse_java.parse);
-        (* TODO: move before, but need fix tree-sitter-java first *)
         TreeSitter Parse_java_tree_sitter.parse;
+        Pfff (throw_tokens Parse_java.parse);
       ]
         Java_to_generic.program
   | Lang.Go ->

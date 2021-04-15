@@ -880,11 +880,13 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       cimplements = v_cimplements;
       cmixins = v_mixins;
       cbody = v_cbody;
+      cparams;
     } =
       let arg = v_class_kind v_ckind in
       let arg = v_list v_type_ v_cextends in
       let arg = v_list v_type_ v_cimplements in
       let arg = v_list v_type_ v_mixins in
+      v_parameters cparams;
       let arg = v_bracket (v_list v_field) v_cbody in
       ()
     in
