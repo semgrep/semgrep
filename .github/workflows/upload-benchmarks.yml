@@ -95,7 +95,6 @@ jobs:
         run: |
           pip3 install semgrep==0.46.0
           semgrep --version
-          semgrep-core -version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
 
