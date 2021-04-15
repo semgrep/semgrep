@@ -70,7 +70,7 @@ jobs:
   upload-benchmarks:
     name: upload benchmarks to dashboard
     runs-on: ubuntu-latest
-    needs: [build-core]
+    #needs: [build-core]
     strategy:
       matrix:
         python: [3.7]
@@ -91,7 +91,7 @@ jobs:
         run: |
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      - name: Run 0.46.0 Timing Benchmark
+      - name: Run 0.46.0 uploads
         run: |
           pip3 install semgrep==0.46.0
           semgrep --version
@@ -101,15 +101,15 @@ jobs:
 
           pipenv run python3 ../perf/run-benchmarks --upload
           pip3 uninstall -y semgrep
-      - name: Install semgrep
-        run: |
-          cd semgrep
-          pip3 install pipenv
-          pipenv install --dev
-      - name: Upload benchmark timings
-        run: |
-          cd semgrep
-          pipenv run semgrep --version
-          pipenv run python -m semgrep --version
-          pipenv run semgrep-core -version
-          pipenv run python3 ../perf/run-benchmarks --upload
+      # - name: Install semgrep
+      #   run: |
+      #     cd semgrep
+      #     pip3 install pipenv
+      #     pipenv install --dev
+      # - name: Upload benchmark timings
+      #   run: |
+      #     cd semgrep
+      #     pipenv run semgrep --version
+      #     pipenv run python -m semgrep --version
+      #     pipenv run semgrep-core -version
+      #     pipenv run python3 ../perf/run-benchmarks --upload
