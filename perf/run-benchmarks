@@ -177,9 +177,14 @@ class SemgrepResult:
             # TODO: full-rule does not correctly update message with metavars
             if "message" in dict2["extra"]:
                 dict2["extra"]["message"] = ""
-            # TODO: spacegrep.py calls dedent
+            # TODO: spacegrep.py calls dedent() on lines (not sure why)
             if "lines" in dict2["extra"]:
                 dict2["extra"]["lines"] = ""
+            # TODO: spacegrep/../Semgrep.ml uses a different unique_id hashing
+            if "metavars" in dict2["extra"]:
+                for _, v in dict2["extra"]["metavars"].items():
+                    if "unique_id" in v:
+                        v["unique_id"] = ""
 
             self.str = json.dumps(dict2, sort_keys=True)
         else:
