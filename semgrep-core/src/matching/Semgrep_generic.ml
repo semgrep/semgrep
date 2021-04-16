@@ -413,10 +413,14 @@ let check2 ~hook config rules equivs (file, lang, ast) =
 
     !matches |> List.rev
     (* TODO: optimize uniq_by? Too slow? Use a hash?
-     * Note that this uniq_by was introducing regressions in semgrep!
+     * Note that this may not be enough for Semgrep.ml. Indeed, we can have
+     * different mini-rules matching the same code with the same metavar,
+     * but in Semgrep.ml they get agglomerated under the same rule id, in
+     * which case we want to dedup them.
+     * old: this uniq_by was introducing regressions in semgrep!
      * See tests/OTHER/rules/regression_uniq_or_ellipsis.go but it's fixed now.
-     * |> Common.uniq_by (AST_utils.with_structural_equal Pattern_match.equal)
     *)
+    |> Common.uniq_by (AST_utils.with_structural_equal Pattern_match.equal)
   end
 (*e: function [[Semgrep_generic.check2]] *)
 
