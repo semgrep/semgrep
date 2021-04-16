@@ -18,6 +18,10 @@ val funcdef_to_lambda:
   AST_generic.resolved_name option ->
   AST_generic.expr
 
+val name_of_entity:
+  AST_generic.entity ->
+  (AST_generic.ident * AST_generic.id_info) option
+
 val name_of_ids:
   ?name_typeargs:AST_generic.type_arguments option ->
   AST_generic.dotted_ident ->
