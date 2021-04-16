@@ -177,7 +177,7 @@ let tainting_tests_for_lang files lang =
    (Filename.basename file) >:: (fun () ->
     let rules_file =
       let (d,b,_e) = Common2.dbe_of_filename file in
-      let candidate1 = Common2.filename_of_dbe (d,b,"rules") in
+      let candidate1 = Common2.filename_of_dbe (d,b,"yaml") in
       if Sys.file_exists candidate1
       then candidate1
       else failwith (spf "could not find tainting rules file for %s" file)

@@ -8,7 +8,7 @@ let string_of_lval x =
   ) ^
   (match x.offset with
    | NoOffset -> ""
-   | Dot (s, _) -> "." ^ s
+   | Dot n -> "." ^ str_of_name n
    | Index _ -> "[...]"
   )
 

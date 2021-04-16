@@ -169,8 +169,13 @@ and offset =
    * Note that Dot is used to access many different kinds of entities:
    *  objects/records (fields), classes (static fields), but also
    *  packages, modules, namespaces depending on the type of 'var' above.
+   *
+   * old: Previously the field was an `ident` but in some cases we want a
+   *      proper (resolved) name here. For example, we want to resolve this.foo()
+   *      to the class method "foo"; this is useful for our poor's man
+   *      interprocedural analysis.
   *)
-  | Dot   of ident
+  | Dot   of name
   | Index of exp
   (*e: type [[IL.offset]] *)
 

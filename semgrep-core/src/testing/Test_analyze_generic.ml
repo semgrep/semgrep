@@ -132,10 +132,10 @@ let test_dfg_tainting file =
   let ast = Parse_target.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
-
+  let fun_env = Hashtbl.create 8 in
   ast |> List.iter (fun item ->
     (match item.s with
-     | DefStmt (_ent, FuncDef def) ->
+     | DefStmt (ent, FuncDef def) ->
          let xs = AST_to_IL.stmt def.fbody in
          let flow = CFG_build.cfg_of_stmts xs in
          pr2 "Tainting";
@@ -146,7 +146,8 @@ let test_dfg_tainting file =
                         is_sanitizer = (fun _ -> false);
                         found_tainted_sink = (fun _ _ -> ());
                       } in
-         let mapping = Dataflow_tainting.fixpoint config flow in
+         let opt_name = AST_to_IL.name_of_entity ent in
+         let mapping = Dataflow_tainting.fixpoint config fun_env opt_name flow in
          DataflowY.display_mapping flow mapping (fun () -> "()");
      | _ -> ()
     )
