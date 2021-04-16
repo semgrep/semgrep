@@ -612,20 +612,21 @@ class CoreRunner:
                             )
 
                 # end with tempfile.NamedTemporaryFile(...) ...
-                outputs[rule].extend(
-                    [
-                        RuleMatch.from_pattern_match(
-                            rule.id,
-                            PatternMatch(pattern_match),
-                            message=rule.message,
-                            metadata=rule.metadata,
-                            severity=rule.severity,
-                            fix=rule.fix,
-                            fix_regex=rule.fix_regex,
-                        )
-                        for pattern_match in output_json["matches"]
-                    ]
-                )
+                findings = [
+                    RuleMatch.from_pattern_match(
+                        rule.id,
+                        PatternMatch(pattern_match),
+                        message=rule.message,
+                        metadata=rule.metadata,
+                        severity=rule.severity,
+                        fix=rule.fix,
+                        fix_regex=rule.fix_regex,
+                    )
+                    for pattern_match in output_json["matches"]
+                ]
+                # TODO: we should do that in Semgrep_generic.ml instead
+                findings = dedup_output(findings)
+                outputs[rule].extend(findings)
                 errors.extend(
                     CoreException.from_json(e, language, rule.id).into_semgrep_error()
                     for e in output_json["errors"]
@@ -688,6 +689,11 @@ class CoreRunner:
         )
 
 
+# Note that this may remove matches that have the same range but different
+# metavariable bindings, and arbitrarily choose the first one in the list.
+# TODO: changes that? Do like in semgrep-core and return all the matches?
+# Also now Semgrep.ml Semgrep_generic.ml internally do some dedup, so we
+# may not need anymore to do it here.
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
     return list({uniq_id(r): r for r in outputs}.values())
 
