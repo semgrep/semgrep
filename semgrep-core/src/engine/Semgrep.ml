@@ -160,7 +160,7 @@ let (group_matches_per_pattern_id: Pattern_match.t list ->id_to_match_results)=
   fun xs ->
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun m ->
-    let id = int_of_string m.Pattern_match.rule_id.id in
+    let id = int_of_string m.PM.rule_id.id in
     Hashtbl.add h id m
   );
   h
@@ -635,11 +635,18 @@ let check hook config rules file_and_more =
           evaluate_formula env formula in
         logger#info "found %d final ranges" (List.length final_ranges);
 
-        (final_ranges |> List.map (range_to_pattern_match_adjusted r)
-         |> before_return (fun v -> v |> List.iter (fun (m : Pattern_match.t) ->
-           let str = spf "with rule %s" r.R.id in
-           hook str m.env m.tokens
-         )),
+        (final_ranges
+         |> List.map (range_to_pattern_match_adjusted r)
+         (* dedup similar findings (we do that also in Semgrep_generic.ml,
+          * but different mini-rules matches can now become the same match)
+         *)
+         |> Common.uniq_by (AST_utils.with_structural_equal PM.equal)
+         |> before_return (fun v ->
+           v |> List.iter (fun (m : Pattern_match.t) ->
+             let str = spf "with rule %s" r.R.id in
+             hook str m.env m.tokens
+           )
+         ),
          errors,
          match_time)
       end
