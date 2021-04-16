@@ -1,15 +1,9 @@
 name: Upload-benchmarks
 
 on:
-  workflow_dispatch:
-  pull_request:
-    paths-ignore:
-      - '**.md'
-  push:
-    branches:
-      - develop
-    paths-ignore:
-      - '**.md'
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '0 12 * * *'
 
 jobs:
   build-core:
