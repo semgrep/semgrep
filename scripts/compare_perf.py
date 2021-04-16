@@ -30,7 +30,8 @@ def main() -> None:
         print(f"Baseline: {baseline_time}, Latest: {latest_time}")
 
         # Assert latest time is not more than 6% slower than baseline
-        assert latest_time < baseline_time * 1.06
+        # or is within a fixed "probably environmental" range
+        assert latest_time < baseline_time * 1.06 or latest_time - baseline_time < 0.5
 
 
 if __name__ == "__main__":
