@@ -6,6 +6,7 @@ on:
     - cron:  '0 12 * * *'
 
 jobs:
+  # This is copied from tests.yml
   build-core:
     name: Build semgrep-core
     runs-on: ubuntu-latest
