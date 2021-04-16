@@ -6,8 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - support `for(...)` for Java
-
 - Rust: Semgrep patterns now support top-level statements (#2910)
+- Taint mode: Basic cross-function analysis (#2913)
 
 ### Fixed
 - fixed single field pattern in JSON, allow `$FLD: { ... }` pattern
@@ -32,8 +32,7 @@ will now match
 var { exec } = require("child_process");
 exec("dangerous");
 ```
-- Taint mode: Pattern-sources can now be arbitrary expressions
-- Taint mode: Basic cross-function analysis
+- Taint mode: Pattern-sources can now be arbitrary expressions (#2881)
 
 ### Fixed
 - SARIF output now nests invocations inside runs.
