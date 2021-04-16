@@ -62,12 +62,20 @@ SMALL_CORPUSES = [
     Corpus("dropbox", "input/flask.yml", "input/pytest-flakefinder"),
     # Run our r2c-ci and r2c-security-audit packs on a go/ruby repo
     Corpus("coinbase", "input/rules", "input/bifrost"),
+    # Run our django rulepack on a large python repo
+    Corpus("apache", "input/django.yml", "input/libcloud"),
     # Run our golang rulepack on a go/html repo
     Corpus("0c34", "input/golang.yml", "input/govwa"),
     # Run our javascript and eslint-plugin-security packs on a large JS repo
     Corpus("lodash", "input/rules", "input/lodash"),
-    # Run our r2c-ci packs (but not r2c-security-audit) on a vulnerable app
+    #
+    # Run our r2c-ci packs (but not r2c-security-audit) on vulnerable apps
+    # See https://owasp.org/www-project-vulnerable-web-applications-directory/
+    # for a full list of such apps
+    #
     Corpus("DVWA", "input/rules", "input/DVWA"),
+    Corpus("juice-shop", "input/rules", "input/juice-shop"),
+    Corpus("Vulnerable-Flask-App", "input/rules", "input/Vulnerable-Flask-App"),
     # (Gitlab small) Run our python and flask rules on a python repo
     Corpus("pallets", "input/rules", "input/flask"),
     # (Gitlab so small it's not worth running) Run our javascript rules on a JS repo
@@ -79,21 +87,12 @@ MEDIUM_CORPUSES = [
     Corpus(
         "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
     ),
-    # Run our django rulepack on a large python repo
-    Corpus("apache", "input/django.yml", "input/libcloud"),
     # Run our r2c-ci and r2c-security audit packs on a python/JS repo
     Corpus("netflix", "input/rules", "input/lemur"),
     # Run our r2c-ci and r2c-security audit packs on a JS/other repo
     Corpus("draios", "input/rules", "input/sysdig-inspect"),
     # Run our ruby rulepack on a large ruby repo
     Corpus("rails", "input/ruby.yml", "input/rails"),
-    #
-    # Run our r2c-ci packs (but not r2c-security-audit) on vulnerable apps
-    # See https://owasp.org/www-project-vulnerable-web-applications-directory/
-    # for a full list of such apps
-    #
-    Corpus("Vulnerable-Flask-App", "input/rules", "input/Vulnerable-Flask-App"),
-    Corpus("juice-shop", "input/rules", "input/juice-shop"),
     # (Gitlab medium) Run our python and flask packs on a python repo
     Corpus("django", "input/rules", "input/django"),
     # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
