@@ -12,6 +12,7 @@ type t = {
   start: charpos;
   end_: charpos;
 }
+val pp : Format.formatter -> t -> unit
 
 exception NotValidRange of string
 

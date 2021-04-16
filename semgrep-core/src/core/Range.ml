@@ -35,12 +35,14 @@ module PI = Parse_info
  * (unlike in Emacs where point starts at 1).
 *)
 type charpos = int
+[@@deriving show]
 
 (* the range is inclusive, {start = 0; end_ = 4} means [0..4] not [0..4[ *)
 type t = {
   start: charpos;
   end_: charpos;
 }
+[@@deriving show]
 
 (* related: Parse_info.NotTokenLocation *)
 exception NotValidRange of string
