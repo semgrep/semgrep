@@ -411,6 +411,7 @@ def test_explicit_path(tmp_path, monkeypatch):
         json_stats=False,
         json_time=False,
         output_per_finding_max_lines_limit=None,
+        output_per_line_max_chars_limit=None,
     )
     defaulthandler = OutputHandler(output_settings)
 

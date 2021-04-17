@@ -25,6 +25,8 @@ from semgrep.constants import BREAK_LINE
 from semgrep.constants import BREAK_LINE_CHAR
 from semgrep.constants import BREAK_LINE_WIDTH
 from semgrep.constants import CLI_RULE_ID
+from semgrep.constants import ELLIPSIS_STRING
+from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.error import FINDINGS_EXIT_CODE
@@ -71,6 +73,7 @@ def finding_to_line(
     rule_match: RuleMatch,
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
+    per_line_max_chars_limit: Optional[int],
     show_separator: bool,
 ) -> Iterator[str]:
     path = rule_match.path
@@ -79,6 +82,7 @@ def finding_to_line(
     start_col = rule_match.start.get("col")
     end_col = rule_match.end.get("col")
     trimmed = 0
+    stripped = False
     if path:
         lines = rule_match.extra.get("fixed_lines") or rule_match.lines
         if per_finding_max_lines_limit:
@@ -97,7 +101,27 @@ def finding_to_line(
                 else:
                     line_number = f"{start_line + i}"
 
+                if per_line_max_chars_limit and len(line) > per_line_max_chars_limit:
+                    stripped = True
+                    is_first_line = i == 0
+                    if is_first_line:
+                        line = (
+                            line[
+                                start_col - 1 : start_col - 1 + per_line_max_chars_limit  # type: ignore
+                            ]
+                            + ELLIPSIS_STRING
+                        )
+                        if start_col > 1:  # type: ignore
+                            line = ELLIPSIS_STRING + line
+                    else:
+                        line = line[:per_line_max_chars_limit] + ELLIPSIS_STRING
+                    # while stripping a string, the ANSI code for resetting color might also get stripped.
+                    line = line + colorama.Style.RESET_ALL
+
             yield f"{line_number}:{line}" if line_number else f"{line}"
+
+        if stripped:
+            yield f"[Shortened a long line from output, adjust with {MAX_CHARS_FLAG_NAME}]"
         trimmed_str = (
             f" [hid {trimmed} additional lines, adjust with {MAX_LINES_FLAG_NAME}] "
         )
@@ -112,6 +136,7 @@ def build_normal_output(
     rule_matches: List[RuleMatch],
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
+    per_line_max_chars_limit: Optional[int],
 ) -> Iterator[str]:
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
@@ -164,6 +189,7 @@ def build_normal_output(
             rule_match,
             color_output,
             per_finding_max_lines_limit,
+            per_line_max_chars_limit,
             is_same_file,
         )
 
@@ -371,6 +397,7 @@ class OutputSettings(NamedTuple):
     verbose_errors: bool
     strict: bool
     output_per_finding_max_lines_limit: Optional[int]
+    output_per_line_max_chars_limit: Optional[int]
     json_stats: bool
     json_time: bool
     timeout_threshold: int = 0
@@ -539,6 +566,7 @@ class OutputHandler:
             output = self.build_output(
                 self.settings.output_destination is None and self.stdout.isatty(),
                 self.settings.output_per_finding_max_lines_limit,
+                self.settings.output_per_line_max_chars_limit,
             )
             if output:
                 try:
@@ -597,7 +625,10 @@ class OutputHandler:
             raise SemgrepError(f"posting output to {output_url} timed out")
 
     def build_output(
-        self, color_output: bool, per_finding_max_lines_limit: Optional[int]
+        self,
+        color_output: bool,
+        per_finding_max_lines_limit: Optional[int],
+        per_line_max_chars_limit: Optional[int],
     ) -> str:
         output_format = self.settings.output_format
         debug_steps = None
@@ -629,7 +660,10 @@ class OutputHandler:
             return "\n".join(
                 list(
                     build_normal_output(
-                        self.rule_matches, color_output, per_finding_max_lines_limit
+                        self.rule_matches,
+                        color_output,
+                        per_finding_max_lines_limit,
+                        per_line_max_chars_limit,
                     )
                 )
             )
