@@ -239,7 +239,7 @@ and string_contents_list (t1, xs, t2) =
   let xs = list string_contents xs in
 
   G.Call (G.IdSpecial(G.ConcatString(G.InterpolatedConcat), PI.fake_info ""),
-              (t1, (xs |> List.map (fun e -> G.Arg e)), t2))
+          (t1, (xs |> List.map (fun e -> G.Arg e)), t2))
 
 and string_contents = function
   | StrChars s -> G.L (G.String s)
