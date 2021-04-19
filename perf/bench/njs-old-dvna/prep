@@ -1,0 +1,49 @@
+#! /bin/sh
+#
+# Fetch rules and targets prior for the "dvna" benchmark.
+#
+# rule_dir: input/njsscan/njsscan/rules/semantic_grep
+# target_dir: input/dvna
+#
+# Uses sh because bash is not installed within the semgrep docker container.
+#
+set -eu
+
+mkdir -p input
+cd input
+
+# Obtain a shallow clone of a git repo for a specific commit
+shallow_clone() {
+  if [ -d "$name" ]; then
+    echo "Reusing repo '$name'"
+  else
+    echo "Obtaining a shallow clone of git repo '$name', commit $commit"
+    mkdir -p "$name"
+    (
+      cd "$name"
+      git init
+      git remote add origin "$url"
+      git fetch --depth 1 origin "$commit"
+      git checkout FETCH_HEAD -b tmp
+    )
+  fi
+}
+
+# same values as in scripts/ci_calculate_perf.py
+
+# Obtain semgrep rules
+name="njsscan"
+url="https://github.com/ajinabraham/njsscan.git"
+commit="d1c5df41393ba512cbd362874a7a0bdc7dbf43fc"
+shallow_clone
+
+# Obtain targets
+name="dvna"
+url="https://github.com/appsecco/dvna"
+commit="c637437d6515bd4c732e91c58e62d38e88260d3c"
+shallow_clone
+
+# like in scripts/ci_calculate_perf.py we skip those files
+echo "Deleting a few minimized JS files"
+rm -f dvna/public/assets/jquery-3.2.1.min.js
+rm -f dvna/public/assets/showdown.min.js
