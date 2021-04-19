@@ -78,7 +78,7 @@ $ docker run -it returntocorp/semgrep-dev:develop  # starts bash in container
 
 If you want to test some of your local code inside the container, you
 would mount your folder using the `-v` option. The usage is
-`-v SRC:DST` where SRC is a path to your original folder and DST is
+`-v SRC:DST` where SRC is an absolute path to your original folder and DST is
 the absolute path you want it to have in the container. The home
 folder for this image is set to `/home/semgrep`. For example you'd do
 this:
@@ -86,7 +86,7 @@ this:
 ```
 $ ls
 my_stuff
-$ docker run -v my_stuff:/home/semgrep/my_stuff -it returntocorp/semgrep-dev:develop
+$ docker run -v "$(pwd)"/my_stuff:/home/semgrep/my_stuff -it returntocorp/semgrep-dev:develop
 bash-5.1$ whoami
 semgrep
 bash-5.1$ ls ~
