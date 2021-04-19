@@ -1680,6 +1680,7 @@ and any =
   | Ar of argument
   | Dk of definition_kind
   | Di of dotted_ident
+  | Lbli of label_ident
 
   | NoD of name_or_dynamic
 
