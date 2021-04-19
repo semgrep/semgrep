@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   the function keyword, (e.g., `function ...(...) { ... }`)
 - Rust: Semgrep patterns now support top-level statements (#2910)
 - Taint mode: Basic cross-function analysis (#2913)
+- Ruby: interpolated strings match correctly (#2967)
 
 ### Fixed
 - fixed single field pattern in JSON, allow `$FLD: { ... }` pattern
