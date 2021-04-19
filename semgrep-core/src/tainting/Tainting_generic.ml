@@ -102,30 +102,43 @@ let config_of_rule found_tainted_sink rule =
 let check rules file ast =
   let matches = ref [] in
 
+  let fun_env = Hashtbl.create 8 in
+
+  let check_fdef opt_name def =
+    let xs = AST_to_IL.stmt def.AST.fbody in
+    let flow = CFG_build.cfg_of_stmts xs in
+
+    rules |> List.iter (fun rule ->
+      let found_tainted_sink = (fun instr _env ->
+        let code = AST.E instr.IL.iorig in
+        let range_loc = V.range_of_any code in
+        let tokens = lazy (V.ii_of_any code) in
+        let rule_id = Tainting_rule.rule_id_of_tainting_rule rule in
+        (* todo: use env from sink matching func?  *)
+        Common.push { PM. rule_id; file; range_loc; tokens; env = []; }
+          matches;
+      ) in
+      let config = config_of_rule found_tainted_sink rule in
+      let mapping = Dataflow_tainting.fixpoint config fun_env opt_name flow in
+      ignore (mapping);
+      (* TODO
+         logger#sdebug (DataflowY.mapping_to_str flow
+          (fun () -> "()") mapping);
+      *)
+    )
+  in
+
   let v = V.mk_visitor {
     V.default_visitor with
+    V.kdef = (fun (k, _) ((ent, def_kind) as def) ->
+      match def_kind with
+      | AST.FuncDef fdef ->
+          let opt_name = AST_to_IL.name_of_entity ent in
+          check_fdef opt_name fdef
+      | __else__ -> k def
+    );
     V.kfunction_definition = (fun (_k, _) def ->
-      let xs = AST_to_IL.stmt def.AST.fbody in
-      let flow = CFG_build.cfg_of_stmts xs in
-
-      rules |> List.iter (fun rule ->
-        let found_tainted_sink = (fun instr _env ->
-          let code = AST.E instr.IL.iorig in
-          let range_loc = V.range_of_any code in
-          let tokens = lazy (V.ii_of_any code) in
-          let rule_id = Tainting_rule.rule_id_of_tainting_rule rule in
-          (* todo: use env from sink matching func?  *)
-          Common.push { PM. rule_id; file; range_loc; tokens; env = []; }
-            matches;
-        ) in
-        let config = config_of_rule found_tainted_sink rule in
-        let mapping = Dataflow_tainting.fixpoint config flow in
-        ignore (mapping);
-        (* TODO
-           logger#sdebug (DataflowY.mapping_to_str flow
-             (fun () -> "()") mapping);
-        *)
-      )
+      check_fdef None def
     );
   } in
   v (AST.Pr ast);

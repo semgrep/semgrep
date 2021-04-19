@@ -114,6 +114,10 @@ type range_with_mvars = {
 
   origin: Pattern_match.t;
 }
+[@@deriving show]
+
+type ranges = range_with_mvars list
+[@@deriving show]
 
 (* !This hash table uses the Hashtbl.find_all property! *)
 type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
@@ -160,7 +164,7 @@ let (group_matches_per_pattern_id: Pattern_match.t list ->id_to_match_results)=
   fun xs ->
   let h = Hashtbl.create 101 in
   xs |> List.iter (fun m ->
-    let id = int_of_string m.Pattern_match.rule_id.id in
+    let id = int_of_string m.PM.rule_id.id in
     Hashtbl.add h id m
   );
   h
@@ -262,16 +266,31 @@ let mval_of_spacegrep_string str t =
 (* Logic on ranges *)
 (*****************************************************************************)
 
+(* when we know x <= y, are the ranges also in the good Inside direction *)
+let inside_compatible x y =
+  match x.inside, y.inside with
+  | Some R.Inside, Some R.Inside -> true
+  | None, None -> true
+  | None, Some R.Inside -> true
+  (* if we do x=pattern-inside:[1-2] /\ y=pattern:[1-3]
+   * we don't want this x to survive.
+   * See tests/OTHER/rules/and_inside.yaml
+  *)
+  | Some R.Inside, None -> false
+
 let intersect_ranges xs ys =
+  if !debug_matches
+  then logger#info "intersect_range:\n\t%s\nvs\n\t%s"
+      (show_ranges xs) (show_ranges ys);
   let surviving_xs =
     xs |> List.filter (fun x ->
       ys |> List.exists (fun y ->
-        x $<=$ y
+        x $<=$ y && inside_compatible x y
       )) in
   let surviving_ys =
     ys |> List.filter (fun y ->
       xs |> List.exists (fun x ->
-        y $<=$ x
+        y $<=$ x && inside_compatible y x
       ))
   in
   surviving_xs @ surviving_ys
@@ -537,6 +556,8 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
        * (see tests/OTHER/rules/inside.yaml).
        * TODO: this is ugly; AND should be commutative, so we should just
        * merge ranges, not just filter one or the other.
+       * update: however we have some tests that rely on pattern-inside:
+       * being special, see tests/OTHER/rules/and_inside.yaml.
       *)
       let posrs, posrs_inside = posrs |> Common.partition_either (fun xs ->
         match xs with
@@ -635,11 +656,18 @@ let check hook config rules file_and_more =
           evaluate_formula env formula in
         logger#info "found %d final ranges" (List.length final_ranges);
 
-        (final_ranges |> List.map (range_to_pattern_match_adjusted r)
-         |> before_return (fun v -> v |> List.iter (fun (m : Pattern_match.t) ->
-           let str = spf "with rule %s" r.R.id in
-           hook str m.env m.tokens
-         )),
+        (final_ranges
+         |> List.map (range_to_pattern_match_adjusted r)
+         (* dedup similar findings (we do that also in Semgrep_generic.ml,
+          * but different mini-rules matches can now become the same match)
+         *)
+         |> Common.uniq_by (AST_utils.with_structural_equal PM.equal)
+         |> before_return (fun v ->
+           v |> List.iter (fun (m : Pattern_match.t) ->
+             let str = spf "with rule %s" r.R.id in
+             hook str m.env m.tokens
+           )
+         ),
          errors,
          match_time)
       end

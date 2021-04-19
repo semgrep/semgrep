@@ -44,9 +44,9 @@
 
 type token_location = {
   str: string; (* the content of the "token" *)
-  charpos: int; (* byte position *)
-  line: int;
-  column: int;
+  charpos: int; (* byte position, 0-based *)
+  line: int; (* 1-based *)
+  column: int; (* 0-based *)
   filename: string;
 }
 
@@ -144,9 +144,8 @@ type resolved_name_kind = [
 *)
 type name = [
   | Id of (ident * id_info)
-  | IdQualified of (name_ * id_info)
+  | IdQualified of ((ident * name_info) * id_info)
   ]
-type name_ = (ident * name_info)
 
 
 type name_info = {
@@ -845,7 +844,6 @@ type parameter_classic = {
   ptype:    type_ option;
   pdefault: expr  option;
 
-  (* this covers '...' variadic parameters, see the Variadic attribute *)
   pattrs: attribute list;
 
   (* naming *)

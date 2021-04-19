@@ -38,6 +38,14 @@ module M = Map_AST
 let str_of_ident = fst
 (*e: constant [[AST_generic.str_of_ident]] *)
 
+let name_of_entity ent =
+  match ent.name with
+  | EN (Id (i, pinfo))
+  | EN (IdQualified ((i, _), pinfo))
+    -> Some (i, pinfo)
+  | EDynamic _
+    -> None
+
 (*s: constant [[AST_generic.gensym_counter]] *)
 (* You can use 0 for globals, even though this will work only on a single
  * file. Any global analysis will need to set a unique ID for globals too. *)
@@ -297,6 +305,14 @@ let (conv_class_kind: AST_generic_.class_kind * Parse_info.t -> AST_generic.clas
    | G_.Class -> G.Class
    | G_.Interface -> G.Interface
    | G_.Trait -> G.Trait
+  ), t
+
+let (conv_function_kind: AST_generic_.function_kind * Parse_info.t -> AST_generic.function_kind * Parse_info.t) = fun (c, t) ->
+  (match c with
+   | G_.Function -> G.Function
+   | G_.Method -> G.Method
+   | G_.LambdaKind -> G.LambdaKind
+   | G_.Arrow -> G.Arrow
   ), t
 
 (*e: pfff/lang_GENERIC_base/AST_generic_helpers.ml *)

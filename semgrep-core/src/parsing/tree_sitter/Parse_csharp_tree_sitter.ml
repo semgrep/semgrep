@@ -38,7 +38,7 @@ let str = H.str
 let unhandled_keywordattr_to_namedattr env tok =
   AST.unhandled_keywordattr (str env tok)
 
-let ids_of_name (name : name_) : dotted_ident =
+let ids_of_name name : dotted_ident =
   let (ident, name_info) = name in
   (match name_info.name_qualifier with
    | Some(q) -> (match q with

@@ -15,6 +15,7 @@ import argparse
 import copy
 import json
 import os
+import re
 import subprocess
 import time
 import urllib.request
@@ -56,6 +57,7 @@ class Corpus:
 #
 
 SMALL_CORPUSES = [
+    # Run zulip custom Python rules on zulip itself
     Corpus("zulip", "input/semgrep.yml", "input/zulip"),
     # Run our flask rulepack on a python repo
     Corpus("dropbox", "input/flask.yml", "input/pytest-flakefinder"),
@@ -65,6 +67,8 @@ SMALL_CORPUSES = [
     Corpus("0c34", "input/golang.yml", "input/govwa"),
     # Run our javascript and eslint-plugin-security packs on a large JS repo
     Corpus("lodash", "input/rules", "input/lodash"),
+    # Run old nodejsscan rules on vulnerable app (was in calculate_ci_perf.py)
+    Corpus("njs-old-dvna", "input/njsscan/njsscan/rules/semantic_grep", "input/dvna"),
     # Run our r2c-ci packs (but not r2c-security-audit) on a vulnerable app
     Corpus("DVWA", "input/rules", "input/DVWA"),
     # (Gitlab small) Run our python and flask rules on a python repo
@@ -74,9 +78,15 @@ SMALL_CORPUSES = [
 ]
 
 MEDIUM_CORPUSES = [
+    # Single rule bench at the origin of the --filter-irrelevant-rules opti
     Corpus("big-js", "input/semgrep.yml", "input/big-js"),
+    # Some nodejsscan bench
     Corpus(
-        "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
+        "njs-box", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
+    ),
+    # Run old nodejsscan rules on vulnerable app (was in calculate_ci_perf.py)
+    Corpus(
+        "njs-old-juice", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"
     ),
     # Run our django rulepack on a large python repo
     Corpus("apache", "input/django.yml", "input/libcloud"),
@@ -89,8 +99,8 @@ MEDIUM_CORPUSES = [
     #
     # Run our r2c-ci packs (but not r2c-security-audit) on vulnerable apps
     # See https://owasp.org/www-project-vulnerable-web-applications-directory/
-    # for a full list of such apps
-    #
+    # for a full list of such apps.
+    # See also the dvna and DVWA in SMALL_CORPUSES
     Corpus("Vulnerable-Flask-App", "input/rules", "input/Vulnerable-Flask-App"),
     Corpus("juice-shop", "input/rules", "input/juice-shop"),
     # (Gitlab medium) Run our python and flask packs on a python repo
@@ -106,7 +116,9 @@ LARGE_CORPUSES = [
     # This takes something like 4 hours or more. Maybe we could run it
     # on fewer targets.
     #
-    Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
+    Corpus(
+        "njs-juice", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"
+    ),
     # (Gitlab large) Run our javascript and r2c-security audit packs on a js/ruby repo
     Corpus("gitlab", "input/rules", "input/gitlab"),
     # (Gitlab large) Run our security-audit pack on a c repo
@@ -162,15 +174,6 @@ SEMGREP_VARIANTS = [
 # For when you just want to test a single change
 STD_VARIANTS = [SemgrepVariant("std", "")]
 
-# Pad's debugging config
-# CORPUSES=[Corpus("lodash", "input/rules", "input/lodash")]
-# CORPUSES=[Corpus("DVWA", "input/rules", "input/DVWA"),]
-# SEMGREP_VARIANTS = [
-#    SemgrepVariant("std", ""),
-#    SemgrepVariant("experimental", "-no_filter_irrelevant_rules", "--experimental"),
-#    SemgrepVariant("experimental_and_fast", "", "--experimental"),
-#    ]
-
 
 # This class allows us to put semgrep results in a set and compute set
 # differences while saving the original JSON dictionary
@@ -182,10 +185,22 @@ class SemgrepResult:
         # to abstract away differences
         if "extra" in dict:
             dict2 = copy.deepcopy(dict)
-            if "message" in dict["extra"]:
+            # TODO: full-rule does not correctly update message with metavars
+            if "message" in dict2["extra"]:
                 dict2["extra"]["message"] = ""
-            if "lines" in dict["extra"]:
+            # TODO: spacegrep.py calls dedent() on lines (not sure why)
+            if "lines" in dict2["extra"]:
                 dict2["extra"]["lines"] = ""
+            if "metavars" in dict2["extra"]:
+                # TODO: spacegrep/../Semgrep.ml uses a different unique_id
+                for _, v in dict2["extra"]["metavars"].items():
+                    if "unique_id" in v:
+                        v["unique_id"] = ""
+                # TODO: core_runner.py dedup_output() depends on the order
+                # of the elements in the list to remove similar findings
+                # but with different metavars
+                dict2["extra"]["metavars"] = ""
+
             self.str = json.dumps(dict2, sort_keys=True)
         else:
             self.str = json.dumps(dict, sort_keys=True)
@@ -327,14 +342,19 @@ def run_benchmarks(
     all: bool,
     internal: bool,
     std_only: bool,
+    filter_corpus: str,
+    filter_variant: str,
     plot_benchmarks: bool,
     upload: bool,
     summary_file_path: str,
     called_dir: str,
 ) -> None:
+
     variants = SEMGREP_VARIANTS
     if std_only:
         variants = STD_VARIANTS
+    if filter_variant:
+        variants = [x for x in variants if re.search(filter_variant, x.name) != None]
 
     results_msgs = []
     durations = ""
@@ -349,11 +369,15 @@ def run_benchmarks(
         corpuses = SMALL_CORPUSES
     if all:
         corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES + LARGE_CORPUSES
+    if filter_corpus:
+        corpuses = [x for x in corpuses if re.search(filter_corpus, x.name) != None]
+
     for corpus in corpuses:
         with chdir(corpus.name):
             corpus.prep()
             std_findings = {}
             for variant in variants:
+
                 # Run variant
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
@@ -440,6 +464,18 @@ def main() -> None:
         "--std-only", help="only run the default semgrep", action="store_true"
     )
     parser.add_argument(
+        "--filter-corpus",
+        metavar="REGEXP",
+        type=str,
+        help="run the corpus only if it satisfies the regexp (e.g., 'std|exp')",
+    )
+    parser.add_argument(
+        "--filter-variant",
+        metavar="REGEXP",
+        type=str,
+        help="run the variant only if it satisfies the regexp (e.g., 'dr.*') ",
+    )
+    parser.add_argument(
         "--upload", help="upload results to semgrep dashboard", action="store_true"
     )
     parser.add_argument(
@@ -471,6 +507,8 @@ def main() -> None:
                 args.all,
                 args.internal,
                 args.std_only,
+                args.filter_corpus,
+                args.filter_variant,
                 args.plot_benchmarks,
                 args.upload,
                 args.save_to,
