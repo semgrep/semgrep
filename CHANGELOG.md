@@ -5,20 +5,29 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Coming up next
 
 ### Added
+- Taint mode: Basic cross-function analysis (#2913)
+
+### Fixed
+
+### Changed
+
+## [0.47.0](https://github.com/returntocorp/semgrep/releases/tag/v0.47.0) - 2021-04-15
+
+### Added
+
 - support `for(...)` for Java
 - Ability to match lambdas or functions in Javascript with ellipsis after
   the function keyword, (e.g., `function ...(...) { ... }`)
 - Rust: Semgrep patterns now support top-level statements (#2910)
-- Taint mode: Basic cross-function analysis (#2913)
+- support for utf-8 code with non-ascii chars (#2944)
 
 ### Fixed
+
 - fixed single field pattern in JSON, allow `$FLD: { ... }` pattern
 - Config detection in files with many suffix delimiters, like `this.that.check.yaml`.
   More concretely: configs end with `.yaml`, YAML language tests end with `.test.yaml`,
   and everything else is handled by its respective language extension (e.g. `.py`).
 - Single array field in yaml in a pattern is parsed as a field, not a one element array
-
-### Changed
 
 ## [0.46.0](https://github.com/returntocorp/semgrep/releases/tag/v0.46.0) - 2021-04-08
 
