@@ -307,4 +307,12 @@ let (conv_class_kind: AST_generic_.class_kind * Parse_info.t -> AST_generic.clas
    | G_.Trait -> G.Trait
   ), t
 
+let (conv_function_kind: AST_generic_.function_kind * Parse_info.t -> AST_generic.function_kind * Parse_info.t) = fun (c, t) ->
+  (match c with
+   | G_.Function -> G.Function
+   | G_.Method -> G.Method
+   | G_.LambdaKind -> G.LambdaKind
+   | G_.Arrow -> G.Arrow
+  ), t
+
 (*e: pfff/lang_GENERIC_base/AST_generic_helpers.ml *)
