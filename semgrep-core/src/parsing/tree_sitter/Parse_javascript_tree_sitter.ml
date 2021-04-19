@@ -513,7 +513,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
      | Some tok -> [attr (Async, token env tok)] (* "async" *)
      | None -> [])
   in
-  let _v2 = token env v2 (* "function" *) in
+  let v2 = token env v2 (* "function" *) in
   let v3 =
     (match v3 with
      | Some tok -> Some (identifier env tok) (* identifier *)
@@ -521,7 +521,8 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_)
   in
   let v4 = formal_parameters env v4 in
   let v5 = statement_block env v5 in
-  { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = None }, v3
+  let f_kind = G.LambdaKind, v2 in
+  { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = None; f_kind }, v3
 
 and binary_expression (env : env) (x : CST.binary_expression) : expr =
   (match x with
@@ -830,7 +831,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           | `Stmt_blk x -> statement_block env x
          )
        in
-       let f = { f_attrs = v1; f_params = v2; f_body = v4; f_rettype = None } in
+       let f_kind = G.Arrow, v3 in
+       let f = { f_attrs = v1; f_params = v2; f_body = v4;
+                 f_rettype = None; f_kind }
+       in
        Fun (f, None)
    | `Gene_func (v1, v2, v3, v4, v5, v6) ->
        let v1 =
@@ -838,7 +842,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           | Some tok -> [attr (Async, token env tok)] (* "async" *)
           | None -> [])
        in
-       let _v2 = token env v2 (* "function" *) in
+       let v2 = token env v2 (* "function" *) in
        let v3 = [attr (Generator, token env v3)] (* "*" *) in
        let v4 =
          (match v4 with
@@ -847,8 +851,9 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
        in
        let v5 = formal_parameters env v5 in
        let v6 = statement_block env v6 in
+       let f_kind = G.LambdaKind, v2 in
        let f = { f_attrs = v1@v3; f_params = v5; f_body = v6;
-                 f_rettype = None } in
+                 f_rettype = None; f_kind } in
        Fun (f, v4)
    | `Class (v1, v2, v3, v4, v5) ->
        let v1 = List.map (decorator env) v1 in
@@ -1377,8 +1382,9 @@ and method_definition (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.method_def
   let v5 = property_name env v5 in
   let v6 = formal_parameters env v6 in
   let v7 = statement_block env v7 in
+  let f_kind = G.Method, Parse_info.fake_info "(" in
   let f = { f_attrs = v3 @ v4; f_params = v6;
-            f_body = v7; f_rettype = None }
+            f_body = v7; f_rettype = None; f_kind }
   in
   let e = Fun (f, None) in
   Field {fld_name = v5; fld_attrs = v1 @ v2; fld_type = None;
@@ -1679,7 +1685,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
           | Some tok -> [attr (Async, token env tok)] (* "async" *)
           | None -> [])
        in
-       let _v2 = token env v2 (* "function" *) in
+       let v2 = token env v2 (* "function" *) in
        let v3 = identifier env v3 (* identifier *) in
        let v4 = formal_parameters env v4 in
        let v5 = statement_block env v5 in
@@ -1688,7 +1694,9 @@ and declaration (env : env) (x : CST.declaration) : definition list =
           | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
           | None -> None)
        in
-       let f = { f_attrs = v1; f_params = v4; f_body = v5; f_rettype = None } in
+       let f_kind = G.Function, v2 in
+       let f = { f_attrs = v1; f_params = v4; f_body = v5;
+                 f_rettype = None; f_kind } in
        [basic_entity v3, FuncDef f]
 
    | `Gene_func_decl (v1, v2, v3, v4, v5, v6, v7) ->
@@ -1697,7 +1705,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
           | Some tok -> [attr (Async, token env tok)] (* "async" *)
           | None -> [])
        in
-       let _v2 = token env v2 (* "function" *) in
+       let v2 = token env v2 (* "function" *) in
        let v3 = [attr (Generator, token env v3)] (* "*" *) in
        let v4 = identifier env v4 (* identifier *) in
        let v5 = formal_parameters env v5 in
@@ -1707,8 +1715,9 @@ and declaration (env : env) (x : CST.declaration) : definition list =
           | Some tok -> Some (automatic_semicolon env tok) (* automatic_semicolon *)
           | None -> None)
        in
+       let f_kind = G.Function, v2 in
        let f = { f_attrs = v1 @ v3; f_params = v5; f_body = v6;
-                 f_rettype = None } in
+                 f_rettype = None; f_kind } in
        [ basic_entity v4, FuncDef f ]
 
    | `Class_decl (v1, v2, v3, v4, v5, v6) ->
