@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - support `for(...)` for Java
+- Ability to match lambdas or functions in Javascript with ellipsis after
+  the function keyword, (e.g., `function ...(...) { ... }`)
 - Rust: Semgrep patterns now support top-level statements (#2910)
 - Taint mode: Basic cross-function analysis (#2913)
 
