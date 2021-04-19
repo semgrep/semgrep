@@ -302,9 +302,8 @@ and resolved_name_kind =
 *)
 type name =
   | Id of ident * id_info
-  | IdQualified of name_ * id_info
-and name_ = ident * name_info
-(*e: type [[AST_generic.name]] *)
+  | IdQualified of (ident * name_info) * id_info
+  (*e: type [[AST_generic.name]] *)
 (*s: type [[AST_generic.name_info]] *)
 and name_info = {
   name_qualifier: qualifier option;
@@ -1362,7 +1361,6 @@ and parameter_classic = {
   ptype:    type_ option;
   pdefault: expr  option;
   (*s: [[AST_generic.parameter_classic]] attribute field *)
-  (* this covers '...' variadic parameters, see the Variadic attribute *)
   pattrs: attribute list;
   (*e: [[AST_generic.parameter_classic]] attribute field *)
   (*s: [[AST_generic.parameter_classic]] id info field *)
@@ -1682,7 +1680,7 @@ and any =
   | Ar of argument
   | Dk of definition_kind
   | Di of dotted_ident
-  | Lbli of label_ident
+
   | NoD of name_or_dynamic
 
   | Tk of tok
