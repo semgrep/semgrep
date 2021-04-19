@@ -50,3 +50,6 @@ val conv_incdec:
 val  conv_class_kind:
   AST_generic_.class_kind * Parse_info.t ->
   AST_generic.class_kind * Parse_info.t
+val  conv_function_kind:
+  AST_generic_.function_kind * Parse_info.t ->
+  AST_generic.function_kind * Parse_info.t
