@@ -1,0 +1,10 @@
+# originally generic/html-templates/security/unquoted-attribute-var.yaml
+rules:
+- id: unquoted-attribute-var
+  message: bug
+  languages:
+  - generic
+  severity: WARNING
+  patterns:
+  - pattern-inside: <$TAG ...>
+  - pattern: '{{ ... }}'

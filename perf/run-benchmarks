@@ -57,6 +57,7 @@ class Corpus:
 #
 
 SMALL_CORPUSES = [
+    # Run zulip custom Python rules on zulip itself
     Corpus("zulip", "input/semgrep.yml", "input/zulip"),
     # Run our flask rulepack on a python repo
     Corpus("dropbox", "input/flask.yml", "input/pytest-flakefinder"),
@@ -68,6 +69,8 @@ SMALL_CORPUSES = [
     Corpus("0c34", "input/golang.yml", "input/govwa"),
     # Run our javascript and eslint-plugin-security packs on a large JS repo
     Corpus("lodash", "input/rules", "input/lodash"),
+    # Run old nodejsscan rules on vulnerable app (was in calculate_ci_perf.py)
+    Corpus("njs-old-dvna", "input/njsscan/njsscan/rules/semantic_grep", "input/dvna"),
     #
     # Run our r2c-ci packs (but not r2c-security-audit) on vulnerable apps
     # See https://owasp.org/www-project-vulnerable-web-applications-directory/
@@ -83,9 +86,15 @@ SMALL_CORPUSES = [
 ]
 
 MEDIUM_CORPUSES = [
+    # Single rule bench at the origin of the --filter-irrelevant-rules opti
     Corpus("big-js", "input/semgrep.yml", "input/big-js"),
+    # Some nodejsscan bench
     Corpus(
-        "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
+        "njs-box", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js"
+    ),
+    # Run old nodejsscan rules on vulnerable app (was in calculate_ci_perf.py)
+    Corpus(
+        "njs-old-juice", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"
     ),
     # Run our r2c-ci and r2c-security audit packs on a python/JS repo
     Corpus("netflix", "input/rules", "input/lemur"),
@@ -106,7 +115,9 @@ LARGE_CORPUSES = [
     # This takes something like 4 hours or more. Maybe we could run it
     # on fewer targets.
     #
-    Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
+    Corpus(
+        "njs-juice", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"
+    ),
     # (Gitlab large) Run our javascript and r2c-security audit packs on a js/ruby repo
     Corpus("gitlab", "input/rules", "input/gitlab"),
     # (Gitlab large) Run our security-audit pack on a c repo

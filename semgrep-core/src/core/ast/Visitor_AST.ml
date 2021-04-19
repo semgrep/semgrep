@@ -40,7 +40,6 @@ type visitor_in = {
 
   kparam: (parameter  -> unit) * visitor_out -> parameter  -> unit;
   kident: (ident -> unit)  * visitor_out -> ident  -> unit;
-  kname: (name_ -> unit)  * visitor_out -> name_  -> unit;
   kentity: (entity -> unit)  * visitor_out -> entity  -> unit;
 
   kfunction_definition: (function_definition -> unit) * visitor_out ->
@@ -69,7 +68,6 @@ let default_visitor =
     kattr   = (fun (k,_) x -> k x);
     kparam   = (fun (k,_) x -> k x);
     kident   = (fun (k,_) x -> k x);
-    kname   = (fun (k,_) x -> k x);
     kentity   = (fun (k,_) x -> k x);
     kstmts   = (fun (k,_) x -> k x);
 
@@ -165,13 +163,10 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
 
 
   and v_name_ x =
-    let k x =
-      let (v1, v2) = x in
-      let v1 = v_ident v1
-      and v2 = v_name_info v2 in
-      ()
-    in
-    vin.kname (k, all_functions) x
+    let (v1, v2) = x in
+    let v1 = v_ident v1
+    and v2 = v_name_info v2 in
+    ()
 
   and
     v_name_info {
