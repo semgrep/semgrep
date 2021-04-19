@@ -2761,10 +2761,12 @@ and m_partial a b =
       let* () = m_ident a1 b1 in
       let* () = m_tok a2 b2 in
       m_expr a3 b3
+  | A.PartialLambdaOrFuncDef a1, B.PartialLambdaOrFuncDef b1 ->
+      m_function_definition a1 b1
   | A.PartialDef _, _
   | A.PartialIf _, _
   | A.PartialTry _, _ | A.PartialCatch _, _ | A.PartialFinally _, _
-  | A.PartialSingleField _, _
+  | A.PartialSingleField _, _ | A.PartialLambdaOrFuncDef _, _
     -> fail ()
 
 (*s: function [[Generic_vs_generic.m_any]] *)

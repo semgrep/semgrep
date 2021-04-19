@@ -256,7 +256,8 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | Record v1 -> let v1 = v_bracket (v_list v_field) v1 in ()
       | Constructor (v1, v2) ->
           let v1 = v_dotted_ident v1 and v2 = v_list v_expr v2 in ()
-      | Lambda v1 -> let v1 = v_function_definition v1 in ()
+      | Lambda v1 ->
+          let v1 = v_function_definition v1 in ()
       | AnonClass v1 -> let v1 = v_class_definition v1 in ()
       | Xml v1 -> let v1 = v_xml v1 in ()
       | N v1 -> v_name v1
@@ -722,6 +723,9 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       | PartialSingleField (v1, v2, v3) ->
           if recurse
           then begin v_wrap v_string v1; v_tok v2; v_expr v3; end
+      | PartialLambdaOrFuncDef (v1) ->
+          if recurse
+          then begin v_function_definition v1 end
     in
     vin.kpartial (k, all_functions) x
 
@@ -767,6 +771,8 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
       frettype = v_frettype;
       fbody = v_fbody;
     } =
+      v_partial ~recurse:false (PartialLambdaOrFuncDef x);
+
       v_wrap v_function_kind fkind;
       let arg = v_parameters v_fparams in
       let arg = v_option v_type_ v_frettype in

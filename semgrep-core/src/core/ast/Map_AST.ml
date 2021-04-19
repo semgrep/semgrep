@@ -921,6 +921,9 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   and map_program v = map_of_list map_item v
 
   and map_partial = function
+    | PartialLambdaOrFuncDef (v1) ->
+        let v1 = map_function_definition v1 in
+        PartialLambdaOrFuncDef (v1)
     | PartialDef v1 -> let v1 = map_definition v1 in PartialDef v1
     | PartialIf (v1, v2) ->
         let v1 = map_tok v1 in
