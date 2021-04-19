@@ -1220,6 +1220,9 @@ and vof_item x = vof_stmt x
 and vof_program v = OCaml.vof_list vof_item v
 and vof_partial =
   function
+  | PartialLambdaOrFuncDef (v1) ->
+      let v1 = vof_function_definition v1 in
+      OCaml.VSum ("PartialLambdaOrFuncDef", [ v1 ])
   | PartialDef v1 ->
       let v1 = vof_definition v1 in OCaml.VSum ("PartialDef", [ v1 ])
   | PartialIf (v1, v2) ->

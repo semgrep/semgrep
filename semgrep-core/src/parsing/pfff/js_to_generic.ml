@@ -470,6 +470,11 @@ and var_kind (x, tok) =
   | Let -> G.attr G.Let tok
   | Const -> G.attr G.Const tok
 
+and function_definition x =
+  let (a, _attrs) = fun_ x in
+  (* ?? assert _attrs = []? *)
+  a
+
 and fun_ { f_kind; f_attrs = f_props; f_params = f_params;
            f_body = f_body; f_rettype } =
   let fkind = H.conv_function_kind f_kind in
@@ -684,6 +689,9 @@ and list_stmt xs =
 and program v = list_stmt v
 
 and partial = function
+  | PartialFunOrFuncDef (_v1, v2) ->
+      let v2 = function_definition v2 in
+      G.PartialLambdaOrFuncDef (v2)
   | PartialDef v1 ->
       let v1 = definition v1 in
       G.PartialDef v1
