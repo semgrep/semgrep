@@ -123,7 +123,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "<pre>{{ body }}</pre>",
+        "lines": "    <pre>{{ body }}</pre>",
         "message": "test regex message",
         "metadata": {},
         "metavars": {

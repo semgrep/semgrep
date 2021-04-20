@@ -1,0 +1,9 @@
+rules:
+- id: detected-aws-account-id
+  pattern-regex: |-
+    ("|')?(AWS|aws|Aws)?_?(ACCOUNT|account|Account)_?(ID|id|Id)?("|')?\s*(:|=>|=)\s*("|')?[0-9]{12}("|')?
+  languages: [regex]
+  message: AWS Account ID detected
+  severity: ERROR
+  metadata:
+    source-rule-url: https://github.com/grab/secret-scanner/blob/master/scanner/signatures/pattern.go

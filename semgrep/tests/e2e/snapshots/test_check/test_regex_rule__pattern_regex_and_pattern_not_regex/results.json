@@ -9,7 +9,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "<h4>",
+        "lines": "<h4>From: {{ from_email }}</h4>",
         "message": "test regex message",
         "metadata": {},
         "severity": "ERROR"
@@ -28,7 +28,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "</h4>",
+        "lines": "<h4>From: {{ from_email }}</h4>",
         "message": "test regex message",
         "metadata": {},
         "severity": "ERROR"
@@ -47,7 +47,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "<h4>",
+        "lines": "<h4>To:",
         "message": "test regex message",
         "metadata": {},
         "severity": "ERROR"
@@ -85,7 +85,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "<h4>",
+        "lines": "<h4>Subject: {{subject}}</h4>",
         "message": "test regex message",
         "metadata": {},
         "severity": "ERROR"
@@ -104,7 +104,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "</h4>",
+        "lines": "<h4>Subject: {{subject}}</h4>",
         "message": "test regex message",
         "metadata": {},
         "severity": "ERROR"
@@ -123,7 +123,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "<pre>",
+        "lines": "    <pre>{{ body }}</pre>",
         "message": "test regex message",
         "metadata": {},
         "severity": "ERROR"
@@ -142,7 +142,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "</pre>",
+        "lines": "    <pre>{{ body }}</pre>",
         "message": "test regex message",
         "metadata": {},
         "severity": "ERROR"
