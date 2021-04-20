@@ -31,6 +31,7 @@ class RuleMatch:
     _start: Dict[str, Any] = attr.ib(repr=str)
     _end: Dict[str, Any] = attr.ib(repr=str)
     _extra: Dict[str, Any] = attr.ib(repr=False)
+    _lines_cache: Dict[str, Dict[str, List[str]]] = attr.ib(repr=False)
 
     # optional attributes
     _is_ignored: Optional[bool] = attr.ib(default=None)
@@ -64,6 +65,7 @@ class RuleMatch:
             start,
             end,
             extra,
+            {},
         )
 
     @property
@@ -109,10 +111,20 @@ class RuleMatch:
 
         Assumes file exists.  Note that start/end line is one-indexed
         """
-        with self.path.open(
-            buffering=1, errors="replace"
-        ) as fin:  # buffering=1 turns on line-level reads
-            return list(itertools.islice(fin, self.start["line"] - 1, self.end["line"]))
+        start_line = self.start["line"] - 1
+        end_line = self.end["line"]
+
+        try:
+            return self._lines_cache[start_line][end_line]
+        except KeyError:
+            pass
+
+        # buffering=1 turns on line-level reads
+        with self.path.open(buffering=1, errors="replace") as fd:
+            result = list(itertools.islice(fd, start_line, end_line))
+
+        self._lines_cache.setdefault(start_line, {})[end_line] = result
+        return result
 
     @property
     def should_fail_run(self) -> bool:
