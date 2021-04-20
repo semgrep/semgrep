@@ -10,6 +10,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 ### Changed
+- The `extra` `lines` data is now consistent across scan types
+  (e.g. `semgrep-core`, `spacegrep`, `pattern-regex`)
 
 ## [0.47.0](https://github.com/returntocorp/semgrep/releases/tag/v0.47.0) - 2021-04-15
 

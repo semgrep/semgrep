@@ -5,6 +5,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 import attr
 
@@ -31,6 +32,7 @@ class RuleMatch:
     _start: Dict[str, Any] = attr.ib(repr=str)
     _end: Dict[str, Any] = attr.ib(repr=str)
     _extra: Dict[str, Any] = attr.ib(repr=False)
+    _lines_cache: Dict[Tuple[str, str], List[str]] = attr.ib(repr=False)
 
     # optional attributes
     _is_ignored: Optional[bool] = attr.ib(default=None)
@@ -64,6 +66,7 @@ class RuleMatch:
             start,
             end,
             extra,
+            {},
         )
 
     @property
@@ -107,15 +110,24 @@ class RuleMatch:
         """
         Return lines in file that this RuleMatch is referring to.
 
-        Assumes file exists.  Note that start/end line is one-indexed
+        Assumes file exists.
         """
-        if "lines" in self.extra:
-            return self.extra["lines"]
+        # Start and end line are one-indexed, but the subsequent slice call is
+        # inclusive for start and exclusive for end, so only subtract from start
+        start_line = self.start["line"] - 1
+        end_line = self.end["line"]
 
-        with self.path.open(
-            buffering=1, errors="replace"
-        ) as fin:  # buffering=1 turns on line-level reads
-            return list(itertools.islice(fin, self.start["line"] - 1, self.end["line"]))
+        try:
+            return self._lines_cache[(start_line, end_line)]
+        except KeyError:
+            pass
+
+        # buffering=1 turns on line-level reads
+        with self.path.open(buffering=1, errors="replace") as fd:
+            result = list(itertools.islice(fd, start_line, end_line))
+
+        self._lines_cache[(start_line, end_line)] = result
+        return result
 
     @property
     def should_fail_run(self) -> bool:
