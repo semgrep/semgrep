@@ -805,10 +805,10 @@ and m_expr a b =
   | A.N _, _ | A.IdSpecial _, _
   | A.Call _, _  | A.Xml _, _
   | A.Assign _, _  | A.AssignOp _, _  | A.LetPattern _, _  | A.DotAccess _, _
-  | A.ArrayAccess _, _  | A.Conditional _, _  | A.MatchPattern _, _
+  | A.ArrayAccess _, _ | A.SliceAccess _, _
+  | A.Conditional _, _  | A.MatchPattern _, _
   | A.Yield _, _  | A.Await _, _  | A.Cast _, _  | A.Seq _, _  | A.Ref _, _
   | A.DeRef _, _  | A.OtherExpr _, _
-  | A.SliceAccess _, _
   | A.TypedMetavar _, _ | A.DotAccessEllipsis _, _
     -> fail ()
 (*e: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
