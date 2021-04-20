@@ -2,7 +2,6 @@ import json
 import logging
 import subprocess
 from pathlib import Path
-from textwrap import dedent
 from typing import Any
 from typing import cast
 from typing import Dict
@@ -88,13 +87,6 @@ def run_spacegrep(
                     output_json["matches"] = _patch_id(
                         pattern, output_json.get("matches", [])
                     )
-                    # dedent lines
-                    for match in output_json["matches"]:
-                        match["extra"]["lines"] = dedent(
-                            "\n".join(
-                                filter(None, match.get("extra", {}).get("lines", []))
-                            )
-                        ).split("\n")
 
                     matches.extend(output_json["matches"])
                     errors.extend(output_json["errors"])

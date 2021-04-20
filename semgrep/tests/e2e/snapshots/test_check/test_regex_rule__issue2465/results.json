@@ -9,7 +9,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "Foo",
+        "lines": "Foo==1.1.1",
         "message": "Found $TAG",
         "metadata": {},
         "severity": "ERROR"
