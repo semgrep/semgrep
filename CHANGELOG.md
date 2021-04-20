@@ -4,10 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Coming up next
 
+## [0.48.0](https://github.com/returntocorp/semgrep/releases/tag/v0.48.0) - 2021-04-20
+
 ### Added
 - Taint mode: Basic cross-function analysis (#2913)
+- Support for the new Java Record extension and Java symbols with accented characters (#2704)
 
 ### Fixed
+- Capturing functions when used as both expressions and statements in JS (#1007)
+- Literal for ocaml tree sitter (#2885)
 
 ### Changed
 - The `extra` `lines` data is now consistent across scan types
