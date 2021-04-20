@@ -1015,43 +1015,6 @@ and switch_block (env : env) ((v1, v2, v3) : CST.switch_block) =
   let _v3 = token env v3 (* "}" *) in
   v2
 
-      (*
-
-      (List.flatten (
-      List.map (fun (cases, stmts) ->
-       (List.map (fun (`Switch_label x, _tok) -> Left (switch_label env x)) cases) @
-       (List.map (fun `Stmt x -> Right (statement env x) stmts))
-      ) stmt_blocks)
-      )
-    | `Rep_switch_rule rules -> fsdf
-
-    (*
-    List.map (fun x ->
-      (match x with
-       | `Switch_label x -> Left (switch_label env x)
-       | `Stmt x -> Right (statement env x)
-      )
-    ) v2
-    *)
-  in
-  let _v3 = token env v3 (* "}" *) in
-  let rec aux acc_cases acc_stmts xs =
-    match xs with
-    | [] -> [List.rev acc_cases, List.rev acc_stmts]
-    | Left (case)::xs ->
-        if acc_stmts <> []
-        then
-          let before = (List.rev acc_cases, List.rev acc_stmts) in
-          let after = aux [case] [] xs in
-          before::after
-        else
-          aux (case::acc_cases) acc_stmts xs
-    | Right (st)::xs ->
-        aux acc_cases (st::acc_stmts) xs
-  in
-  aux [] [] v2
-  *)
-
 
 and switch_label (env : env) (x : CST.switch_label) =
   (match x with
