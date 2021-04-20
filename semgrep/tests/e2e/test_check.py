@@ -214,6 +214,15 @@ def test_regex_rule__invalid_expression(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(excinfo.value.stdout, "error.json")
 
 
+def test_regex_rule__nosemgrep(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/regex-nosemgrep.yaml", target_name="basic/regex-nosemgrep.txt"
+        ),
+        "results.json",
+    )
+
+
 def test_nested_patterns_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/nested-patterns.yaml"), "results.json"

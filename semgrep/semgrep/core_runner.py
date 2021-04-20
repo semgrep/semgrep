@@ -93,7 +93,7 @@ def get_re_matches(
                     "line": _offset_to_line_no(match.end(), contents),
                     "col": _offset_to_col_no(match.end(), contents),
                 },
-                "extra": {"lines": [contents[match.start() : match.end()]]},
+                "extra": {},
             }
         )
         for pattern_id, pattern in patterns_re

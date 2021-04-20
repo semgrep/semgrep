@@ -9,7 +9,7 @@
       },
       "extra": {
         "is_ignored": false,
-        "lines": "123.123.123.123",
+        "lines": "boto3.client(host=\"123.123.123.123\")",
         "message": "test regex message",
         "metadata": {},
         "severity": "ERROR"
