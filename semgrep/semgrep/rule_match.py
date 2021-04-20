@@ -109,9 +109,6 @@ class RuleMatch:
 
         Assumes file exists.  Note that start/end line is one-indexed
         """
-        if "lines" in self.extra:
-            return self.extra["lines"]
-
         with self.path.open(
             buffering=1, errors="replace"
         ) as fin:  # buffering=1 turns on line-level reads
