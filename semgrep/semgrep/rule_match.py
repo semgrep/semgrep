@@ -5,6 +5,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 import attr
 
@@ -31,7 +32,7 @@ class RuleMatch:
     _start: Dict[str, Any] = attr.ib(repr=str)
     _end: Dict[str, Any] = attr.ib(repr=str)
     _extra: Dict[str, Any] = attr.ib(repr=False)
-    _lines_cache: Dict[str, Dict[str, List[str]]] = attr.ib(repr=False)
+    _lines_cache: Dict[Tuple[str, str], List[str]] = attr.ib(repr=False)
 
     # optional attributes
     _is_ignored: Optional[bool] = attr.ib(default=None)
@@ -109,13 +110,15 @@ class RuleMatch:
         """
         Return lines in file that this RuleMatch is referring to.
 
-        Assumes file exists.  Note that start/end line is one-indexed
+        Assumes file exists.
         """
+        # Start and end line are one-indexed, but the subsequent slice call is
+        # inclusive for start and exclusive for end, so only subtract from start
         start_line = self.start["line"] - 1
         end_line = self.end["line"]
 
         try:
-            return self._lines_cache[start_line][end_line]
+            return self._lines_cache[(start_line, end_line)]
         except KeyError:
             pass
 
@@ -123,7 +126,7 @@ class RuleMatch:
         with self.path.open(buffering=1, errors="replace") as fd:
             result = list(itertools.islice(fd, start_line, end_line))
 
-        self._lines_cache.setdefault(start_line, {})[end_line] = result
+        self._lines_cache[(start_line, end_line)] = result
         return result
 
     @property
