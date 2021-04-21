@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 - Capturing functions when used as both expressions and statements in JS (#1007)
 - Literal for ocaml tree sitter (#2885)
+- Ruby: interpolated strings match correctly (#2967)
 
 ### Changed
 - The `extra` `lines` data is now consistent across scan types
@@ -37,7 +38,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   More concretely: configs end with `.yaml`, YAML language tests end with `.test.yaml`,
   and everything else is handled by its respective language extension (e.g. `.py`).
 - Single array field in yaml in a pattern is parsed as a field, not a one element array
-- Ruby: interpolated strings match correctly (#2967)
 
 ## [0.46.0](https://github.com/returntocorp/semgrep/releases/tag/v0.46.0) - 2021-04-08
 
