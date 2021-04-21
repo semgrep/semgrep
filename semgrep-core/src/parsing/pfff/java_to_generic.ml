@@ -320,6 +320,17 @@ and expr e =
       let v2 = stmt v2 in
       G.Lambda { G.fparams = v1; frettype = None; fbody = v2;
                  fkind = (G.Arrow, t); }
+  | SwitchE (v0, v1, v2) ->
+      let v0 = info v0 in
+      let v1 = expr v1
+      and v2 =
+        list
+          (fun (v1, v2) -> let v1 = cases v1 and v2 = stmts v2 in
+            v1, G.stmt1 v2
+          ) v2
+        |> List.map (fun x -> G.CasesAndBody x)
+      in
+      G.OtherExpr(G.OE_StmtExpr, [G.S (G.Switch (v0, Some v1, v2) |> G.s)])
 
 and expr_or_type = function
   | Left e -> G.E (expr e)

@@ -322,6 +322,11 @@ let rec expression (env : env) (x : CST.expression) =
        let v4 = token env v4 (* ")" *) in
        let v5 = expression env v5 in
        Cast ((v1, v2::v3, v4), v5)
+   | `Switch_exp (v1, v2, v3) ->
+       let v1 = token env v1 (* "switch" *) in
+       let v2 = parenthesized_expression env v2 in
+       let v3 = switch_block env v3 in
+       SwitchE (v1, v2, v3)
   )
 
 
@@ -879,7 +884,7 @@ and statement_aux env x : Ast_java.stmt list =
        let t = token env tok (* ";" *) in [EmptyStmt t]
    | `Assert_stmt x ->
        [assert_statement env x]
-   | `Switch_stmt (v1, v2, v3) ->
+   | `Switch_exp (v1, v2, v3) ->
        let v1 = token env v1 (* "switch" *) in
        let v2 = parenthesized_expression env v2 in
        let v3 = switch_block env v3 in
@@ -916,6 +921,11 @@ and statement_aux env x : Ast_java.stmt list =
           | Some x -> Some (expression env x)
           | None -> None)
        in
+       let _v3 = token env v3 (* ";" *) in
+       [Return (v1, v2)]
+   | `Yield_stmt (v1, v2, v3) ->
+       let v1 = token env v1 (* "yield" *) in
+       let v2 = Some (expression env v2) in
        let _v3 = token env v3 (* ";" *) in
        [Return (v1, v2)]
    | `Sync_stmt (v1, v2, v3) ->
@@ -986,42 +996,40 @@ and assert_statement (env : env) (x : CST.assert_statement) =
 and switch_block (env : env) ((v1, v2, v3) : CST.switch_block) =
   let _v1 = token env v1 (* "{" *) in
   let v2 =
-    List.map (fun x ->
-      (match x with
-       | `Switch_label x -> Left (switch_label env x)
-       | `Stmt x -> Right (statement env x)
-      )
-    ) v2
+    match v2 with
+    | `Rep_switch_blk_stmt_group stmt_blocks ->
+        List.map (fun (cases, stmts) ->
+          (List.flatten (List.map (fun (x, _) -> switch_label env x) cases),
+           List.map (statement env) stmts)
+        ) stmt_blocks
+    | `Rep_switch_rule rules ->
+        List.map (fun (label, _tok, stmt) -> switch_label env label,
+                                             let s = match stmt with
+                                               | `Exp_stmt x -> `Exp_stmt x
+                                               | `Throw_stmt x -> `Throw_stmt x
+                                               | `Blk x -> `Blk x
+                                             in
+                                             [statement env s]
+                 ) rules
   in
   let _v3 = token env v3 (* "}" *) in
-  let rec aux acc_cases acc_stmts xs =
-    match xs with
-    | [] -> [List.rev acc_cases, List.rev acc_stmts]
-    | Left (case)::xs ->
-        if acc_stmts <> []
-        then
-          let before = (List.rev acc_cases, List.rev acc_stmts) in
-          let after = aux [case] [] xs in
-          before::after
-        else
-          aux (case::acc_cases) acc_stmts xs
-    | Right (st)::xs ->
-        aux acc_cases (st::acc_stmts) xs
-  in
-  aux [] [] v2
+  v2
 
 
 and switch_label (env : env) (x : CST.switch_label) =
   (match x with
-   | `Case_exp_COLON (v1, v2, v3) ->
+   | `Case_exp_rep_COMMA_exp  (v1, v2, v3) ->
        let v1 = token env v1 (* "case" *) in
        let v2 = expression env v2 in
-       let _v3 = token env v3 (* ":" *) in
-       Case (v1, v2)
-   | `Defa_COLON (v1, v2) ->
+       let v3 =
+         List.map (fun (tok (* "," *), e) ->
+           Case (token env tok, expression env e)
+         ) v3
+       in
+       (Case (v1, v2)) :: v3
+   | `Defa v1 ->
        let v1 = token env v1 (* "default" *) in
-       let _v2 = token env v2 (* ":" *) in
-       Default v1
+       [Default v1]
   )
 
 

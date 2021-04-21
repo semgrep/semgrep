@@ -161,9 +161,6 @@ let rec visit_expr hook lhs expr =
       recr e2;
       recr e;
 
-      (* TODO: we should also process the lambda and check for useless
-       * assignements in it
-      *)
   | Lambda def ->
       (* Is it enough to just call anyhook and return everything as in:
        *

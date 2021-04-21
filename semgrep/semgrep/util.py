@@ -19,11 +19,10 @@ import pkg_resources
 from colorama import Fore
 from tqdm import tqdm
 
-T = TypeVar("T")
+from semgrep.constants import YML_SUFFIXES
+from semgrep.constants import YML_TEST_SUFFIXES
 
-YML_EXTENSIONS = {".yml", ".yaml"}
-YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
-YML_TEST_SUFFIXES = [[".test", ext] for ext in YML_EXTENSIONS]
+T = TypeVar("T")
 
 global DEBUG
 global QUIET
@@ -188,6 +187,10 @@ def compute_semgrep_path() -> str:
 
 def compute_spacegrep_path() -> str:
     return compute_executable_path("spacegrep")
+
+
+SEMGREP_PATH = compute_semgrep_path()
+SPACEGREP_PATH = compute_spacegrep_path()
 
 
 def liststartswith(l: List[T], head: List[T]) -> bool:
