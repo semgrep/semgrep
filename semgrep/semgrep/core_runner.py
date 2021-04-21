@@ -23,7 +23,6 @@ from typing import Tuple
 from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.constants import SEMGREP_PATH
 from semgrep.core_exception import CoreException
 from semgrep.equivalences import Equivalence
 from semgrep.error import _UnknownLanguageError
@@ -50,6 +49,7 @@ from semgrep.target_manager_extensions import all_supported_languages
 from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
 from semgrep.util import progress_bar
+from semgrep.util import SEMGREP_PATH
 from semgrep.util import sub_run
 
 logger = logging.getLogger(__name__)
