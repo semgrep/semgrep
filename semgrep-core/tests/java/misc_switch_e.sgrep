@@ -1,0 +1,4 @@
+switch ($X) {
+    // TODO: implement CaseEllipsis and switch expressions in pfff
+    // so they can be used in java sgrep patterns
+}
