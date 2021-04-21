@@ -7,11 +7,11 @@ from typing import cast
 from typing import Dict
 from typing import List
 
-from semgrep.constants import SPACEGREP_PATH
 from semgrep.core_exception import CoreException
 from semgrep.error import SemgrepError
 from semgrep.pattern import Pattern
 from semgrep.rule_lang import Position
+from semgrep.util import SPACEGREP_PATH
 from semgrep.util import sub_run
 
 logger = logging.getLogger(__name__)
