@@ -64,6 +64,10 @@ for CI jobs which run more or less in a consistent environment.
 Troubleshooting CI with the semgrep-dev Docker image
 --
 
+_CI uses CircleCI or GitHub Actions, configured in the standard places
+(`.circleci`, `.github/workflows`). See those files to determine which
+jobs run and when._
+
 We maintain a Docker build that comes with `semgrep`
 pre-installed. It is meant for daily benchmarks and other
 jobs that use the development version of semgrep. The image URL is
