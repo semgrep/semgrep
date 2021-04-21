@@ -1648,7 +1648,7 @@ and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
          Some (StrChars x)
      | `Interp x ->
          (match interpolation env x with
-          | Some (_lb, e, _rb) -> Some (StrExpr e)
+          | Some (lb, e, rb) -> Some (StrExpr (lb, e, rb))
           | None -> None
          )
      | `Esc_seq tok ->

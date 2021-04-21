@@ -549,6 +549,7 @@ and special =
    * regular calls even though they do not have parenthesis
    * (not all calls have parenthesis anyway, as in OCaml or Ruby).
   *)
+  | InterpolatedElement
 
   (* "Inline" the content of a var containing a list (a.k.a a Splat in Ruby).
    * Used in a Container or Call argument context.

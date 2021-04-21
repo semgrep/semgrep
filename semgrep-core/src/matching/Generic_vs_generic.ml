@@ -988,6 +988,8 @@ and m_special a b =
       return ()
   | A.ConcatString a, B.ConcatString b ->
       m_concat_string_kind a b
+  | A.InterpolatedElement, B.InterpolatedElement ->
+      return ()
   | A.Spread, B.Spread ->
       return ()
   | A.HashSplat, B.HashSplat ->
@@ -1008,7 +1010,7 @@ and m_special a b =
   | A.Typeof, _  | A.Instanceof, _  | A.Sizeof, _  | A.New, _
   | A.ConcatString _, _  | A.Spread, _  | A.Op _, _  | A.IncrDecr _, _
   | A.EncodedString _, _ | A.HashSplat, _ | A.Defined, _ | A.ForOf, _
-  | A.NextArrayIndex, _
+  | A.NextArrayIndex, _ | InterpolatedElement, _
     -> fail ()
 (*e: function [[Generic_vs_generic.m_special]] *)
 

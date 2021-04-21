@@ -243,7 +243,9 @@ and string_contents_list (t1, xs, t2) =
 
 and string_contents = function
   | StrChars s -> G.L (G.String s)
-  | StrExpr e -> expr e
+  | StrExpr (l, e, r) ->
+      G.Call (G.IdSpecial(G.InterpolatedElement, PI.fake_info ""),
+              (l, [G.Arg (expr e)], r))
 
 and method_name_to_any mn =
   match method_name mn with

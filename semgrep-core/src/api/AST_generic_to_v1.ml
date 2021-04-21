@@ -18,6 +18,7 @@ open AST_generic
 module A = AST_generic
 module B = AST_generic_v1_t
 module PI = Parse_info
+exception NoInterpolatedElement
 
 (*****************************************************************************)
 (* Prelude *)
@@ -316,6 +317,7 @@ and map_special x =
       let v1 = map_of_incdec v1 and v2 = map_of_prepost v2 in `IncrDecr (v1, v2)
   | ConcatString v1 -> let v1 = map_of_interpolated_kind v1 in
       `ConcatString v1
+  | InterpolatedElement -> raise NoInterpolatedElement
 
 and map_of_interpolated_kind = function
   | InterpolatedConcat -> `InterpolatedConcat

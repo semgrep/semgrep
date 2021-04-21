@@ -318,7 +318,7 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
   and map_special x =
     match x with
     | ForOf | Defined | This | Super | Self | Parent | Eval | Typeof | Instanceof
-    | Sizeof | New | Spread | HashSplat | NextArrayIndex
+    | Sizeof | New | Spread | HashSplat | NextArrayIndex | InterpolatedElement
       -> x
     | Op v1 -> let v1 = map_arithmetic_operator v1 in Op v1
     | EncodedString v1 -> let v1 = map_of_string v1 in EncodedString v1
