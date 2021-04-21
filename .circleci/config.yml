@@ -14,16 +14,15 @@ jobs:
   # A. run semgrep container from existing container: requires mounting
   #    a volume, which is disabled by CircleCI (results in empty folder
   #    once mounted).
-  # B. run everything inside the semgrep container, which is very minimal
-  #    since it doesn't even have bash. At least it has a suitable
-  #    version of python.
+  # B. run everything inside the semgrep-dev container, which comes with
+  #    semgrep and whatever utilities we added.
   #
   # We use B out of necessity.
   #
   # Go through the same steps as the real benchmarks but quickly.
   dummy-benchmarks:
     docker:
-      - image: returntocorp/semgrep:develop
+      - image: returntocorp/semgrep-dev:develop
     steps:
       - checkout
       - run:
@@ -35,7 +34,7 @@ jobs:
   # Real benchmarks
   benchmarks:
     docker:
-      - image: returntocorp/semgrep:develop
+      - image: returntocorp/semgrep-dev:develop
     steps:
       - checkout
       - run:
@@ -68,14 +67,10 @@ workflows:
               only:
                 - develop
 
-  # This is for testing. Requires pushing to a branch named 'dummy-benchmarks'.
+  # This is to check whether we broke the benchmarks before merging a branch.
   dummy-benchmarks-on-commit:
     jobs:
-      - dummy-benchmarks:
-          filters:
-            branches:
-              only:
-                - dummy-benchmarks
+      - dummy-benchmarks
 
   # This is for testing. Requires pushing to a branch named 'force-benchmarks'.
   # It can take hours, use with care.
