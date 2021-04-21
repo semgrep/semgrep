@@ -21,7 +21,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ability to match lambdas or functions in Javascript with ellipsis after
   the function keyword, (e.g., `function ...(...) { ... }`)
 - Rust: Semgrep patterns now support top-level statements (#2910)
+- Taint mode: Basic cross-function analysis (#2913)
 - support for utf-8 code with non-ascii chars (#2944)
+- Java switch expressions
 
 ### Fixed
 
