@@ -5,13 +5,5 @@
 set -eu
 
 cd ocaml-tree-sitter
-
-# In homebrew, tree-sitter formula is used as dependency
-# instead of installing manually so skip installing tree-sitter-lib
-if [[ -z "${HOMEBREW_SYSTEM+x}" ]]; then
-	./scripts/install-runtime
-else
-	opam install -y .
-fi
-
+./scripts/install-runtime
 ./configure
