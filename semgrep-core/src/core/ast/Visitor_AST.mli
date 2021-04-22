@@ -19,6 +19,7 @@ type visitor_in = {
 
   kparam: (parameter  -> unit) * visitor_out -> parameter  -> unit;
   kident: (ident -> unit)  * visitor_out -> ident  -> unit;
+  kname: (name -> unit)  * visitor_out -> name  -> unit;
   kentity: (entity -> unit)  * visitor_out -> entity  -> unit;
 
   kfunction_definition: (function_definition -> unit) * visitor_out ->
