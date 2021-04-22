@@ -40,6 +40,7 @@ type visitor_in = {
 
   kparam: (parameter  -> unit) * visitor_out -> parameter  -> unit;
   kident: (ident -> unit)  * visitor_out -> ident  -> unit;
+  kname: (name -> unit)  * visitor_out -> name  -> unit;
   kentity: (entity -> unit)  * visitor_out -> entity  -> unit;
 
   kfunction_definition: (function_definition -> unit) * visitor_out ->
@@ -68,6 +69,7 @@ let default_visitor =
     kattr   = (fun (k,_) x -> k x);
     kparam   = (fun (k,_) x -> k x);
     kident   = (fun (k,_) x -> k x);
+    kname   = (fun (k,_) x -> k x);
     kentity   = (fun (k,_) x -> k x);
     kstmts   = (fun (k,_) x -> k x);
 
@@ -218,9 +220,14 @@ let (mk_visitor: visitor_in -> visitor_out) = fun vin ->
          * against nested XmlXml elements *)
         v_expr (Xml v1)
 
-  and v_name = function
-    | Id (v1, v2) -> let v1 = v_ident v1 and v2 = v_id_info v2 in ()
-    | IdQualified (v1, v2) -> let v1 = v_name_ v1 and v2 = v_id_info v2 in ()
+  and v_name x =
+    let k x =
+      match x with
+      | Id (v1, v2) -> let v1 = v_ident v1 and v2 = v_id_info v2 in ()
+      | IdQualified (v1, v2) -> let v1 = v_name_ v1 and v2 = v_id_info v2 in ()
+    in
+    vin.kname (k, all_functions) x
+
 
   and v_expr x =
     let k x =
