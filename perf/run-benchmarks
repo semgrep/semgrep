@@ -329,6 +329,10 @@ def run_semgrep(
     elif status == 3:
         print("warning: some files couldn't be parsed")
     else:
+        print("************* Semgrep stdout *************")
+        print(res.stdout)
+        print("************* Semgrep stderr *************")
+        print(res.stderr)
         res.check_returncode()
 
     return t2 - t1, res.stdout
