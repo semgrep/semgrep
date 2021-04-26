@@ -22,11 +22,7 @@ def _extract_matching_time(json: Dict[str, Any]) -> float:
 
     It is expected to have run a single pattern on a single target.
     """
-    if (
-        "time" in json
-        and "targets" in json["time"]
-        and len(json["time"]["targets"]) > 0
-    ):
+    if "time" in json:
         res = json["time"]["targets"][0]["match_time"]
         if isinstance(res, float) or isinstance(res, int):
             return res
