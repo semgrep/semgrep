@@ -333,6 +333,7 @@ and vof_special =
       let v1 = vof_interpolated_kind v1 in
       OCaml.VSum ("ConcatString", [v1])
   | Spread -> OCaml.VSum ("Spread", [])
+  | InterpolatedElement -> OCaml.VSum ("InterpolatedElement", [])
   | HashSplat -> OCaml.VSum ("HashSplat", [])
   | EncodedString v1 ->
       let v1 = OCaml.vof_string v1 in

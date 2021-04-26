@@ -559,6 +559,7 @@ and call_special _env (x, tok) =
    | G.HashSplat
    | G.ForOf
    | G.NextArrayIndex
+   | G.InterpolatedElement
      -> todo (G.E (G.IdSpecial (x, tok)))
   ), tok
 
