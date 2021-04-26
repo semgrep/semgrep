@@ -661,10 +661,10 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                     Error_code.OutOfMemory str_opt
                 | _ -> raise Impossible
                )],
-            (file, 0.0)
+            (file, 0, 0.0)
           )
       | exn when not !fail_fast ->
-          [], [Error_code.exn_to_error file exn], (file, 0.0)
+          [], [Error_code.exn_to_error file exn], (file, 0, 0.0)
     )
   in
   let matches =
@@ -710,7 +710,7 @@ let semgrep_with_rules lang rules files_or_dirs =
           errors
         )
       in
-      (matches, errors, (file, match_time))
+      (matches, errors, (file, 42 (* Common2.nblines file *), match_time))
     )
   in
   let match_times = if !report_time then Some match_times else None in
@@ -805,7 +805,7 @@ let semgrep_with_real_rules rules files_or_dirs =
         Semgrep.check hook Config_semgrep.default_config
           rules (file, xlang, lazy_ast_and_errors)
       in
-      matches, errors, (file, match_time)
+      matches, errors, (file, Common2.nblines file, match_time)
     )
   in
   let match_times = if !report_time then Some match_times else None in
@@ -967,7 +967,7 @@ let tainting_with_rules lang rules_file files_or_dirs =
           rules |> List.filter (fun r -> List.mem lang r.TR.languages) in
         Tainting_generic.check rules file ast,
         errors,
-        (file, 0.0) (* TODO? *)
+        (file, 0, 0.0) (* TODO? *)
       )
     in
     let flds = JSON_report.json_fields_of_matches_and_errors
