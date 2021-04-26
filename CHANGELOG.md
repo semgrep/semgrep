@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Capturing functions when used as both expressions and statements in JS (#1007)
 - Literal for ocaml tree sitter (#2885)
 - Ruby: interpolated strings match correctly (#2967)
+- SARIF output now contains the required runs.invocations.executionSuccessful property.
 
 ### Changed
 - The `extra` `lines` data is now consistent across scan types
