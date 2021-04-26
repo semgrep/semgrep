@@ -23,6 +23,7 @@ from semgrep.error import UnknownOperatorError
 from semgrep.metavariable_comparison import metavariable_comparison
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
+from semgrep.rule_lang import YamlMap
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import OPERATORS
@@ -364,26 +365,28 @@ def _evaluate_single_expression(
         )
 
     elif expression.operator == OPERATORS.METAVARIABLE_REGEX:
-        if not isinstance(expression.operand, dict):
+        if not isinstance(expression.operand, YamlMap):
             raise SemgrepError(
                 f"expected operator '{expression.operator}' to have mapping value guaranteed by schema"
             )
         output_ranges = get_re_range_matches(
-            expression.operand["metavariable"],
-            expression.operand["regex"],
+            expression.operand["metavariable"].value,
+            expression.operand["regex"].value,
             ranges_left,
             list(flatten(pattern_ids_to_pattern_matches.values())),
         )
     elif expression.operator == OPERATORS.METAVARIABLE_COMPARISON:
-        if not isinstance(expression.operand, dict):
+        if not isinstance(expression.operand, YamlMap):
             raise SemgrepError(
                 f"expected operator '{expression.operator}' to have mapping value guaranteed by schema"
             )
+        strip = expression.operand.get("strip")
+        base = expression.operand.get("base")
         output_ranges = get_comparison_range_matches(
-            expression.operand["metavariable"],
-            expression.operand["comparison"],
-            expression.operand.get("strip"),
-            expression.operand.get("base"),
+            expression.operand["metavariable"].value,
+            expression.operand["comparison"].value,
+            strip.value if strip is not None else None,
+            base.value if base is not None else None,
             ranges_left,
             list(flatten(pattern_ids_to_pattern_matches.values())),
         )
