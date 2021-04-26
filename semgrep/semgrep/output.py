@@ -307,6 +307,7 @@ def build_sarif_output(
                 "results": [match.to_sarif() for match in rule_matches],
                 "invocations": [
                     {
+                        "executionSuccessful": True,
                         "toolExecutionNotifications": [
                             _sarif_notification_from_error(e)
                             for e in semgrep_structured_errors
