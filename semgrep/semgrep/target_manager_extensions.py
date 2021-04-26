@@ -56,8 +56,8 @@ PYTHON_LANGUAGES = [
     Language("python3"),
     Language("py"),
 ]
-JAVASCRIPT_LANGUAGES = [Language("javascript"), Language("jsx"), Language("js")]
-TYPESCRIPT_LANGUAGES = [Language("typescript"), Language("tsx"), Language("ts")]
+JAVASCRIPT_LANGUAGES = [Language("javascript"), Language("js")]
+TYPESCRIPT_LANGUAGES = [Language("typescript"), Language("ts")]
 JAVA_LANGUAGES = [Language("java")]
 C_LANGUAGES = [Language("c")]
 GO_LANGUAGES = [Language("golang"), Language("go")]
