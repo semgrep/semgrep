@@ -23,6 +23,7 @@ from contextlib import contextmanager
 from typing import Iterator
 from typing import Tuple
 
+import psutil
 import semgrep_core_benchmark  # type: ignore
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
@@ -318,20 +319,41 @@ def run_semgrep(
     os.environ["SEMGREP_CORE_EXTRA"] = variant.semgrep_core_extra
     print(f"extra arguments for semgrep-core: '{variant.semgrep_core_extra}'")
 
+    max_rss = 0
+    max_vms = 0
+
     t1 = time.time()
-    res = subprocess.run(args, capture_output=True)  # nosem
+    # res = subprocess.run(args, capture_output=True)  # nosem
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # nosem
+    process = psutil.Process(p.pid)
+    while p.poll() is None:
+        info = process.memory_info()
+        if info.rss > max_rss:
+            max_rss = info.rss
+        if info.vms > max_vms:
+            max_vms = info.vms
+        time.sleep(1)
+    retcode = p.wait()
     t2 = time.time()
 
-    status = res.returncode
+    print(max_rss, max_vms)
+
+    status = p.returncode
+    # status = retcode
     print(f"semgrep exit status: {status}")
     if status == 0:
         print("success")
     elif status == 3:
         print("warning: some files couldn't be parsed")
     else:
-        res.check_returncode()
+        print("************* Semgrep stdout *************")
+        print(p.stdout.read())
+        print("************* Semgrep stderr *************")
+        print(p.stderr.read())
+        raise subprocess.CalledProcessError
+        # res.check_returncode()
 
-    return t2 - t1, res.stdout
+    return t2 - t1, p.stdout.read()
 
 
 def run_benchmarks(
