@@ -347,13 +347,12 @@ def run_semgrep(
         print("warning: some files couldn't be parsed")
     else:
         print("************* Semgrep stdout *************")
-        print(p.stdout.read())
+        print(res.stdout)
         print("************* Semgrep stderr *************")
-        print(p.stderr.read())
-        raise subprocess.CalledProcessError
-        # res.check_returncode()
+        print(res.stderr)
+        res.check_returncode()
 
-    return t2 - t1, p.stdout.read()
+    return t2 - t1, res.stdout
 
 
 def run_benchmarks(
