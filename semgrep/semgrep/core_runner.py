@@ -271,6 +271,8 @@ class CoreRunner:
                     )
 
             output_json = self._parse_core_output(out_bytes, err_bytes, returncode)
+            # if "time" in output_json:
+            #    output_json["time"]["id"] = rule.id
 
             return output_json
 
@@ -298,14 +300,21 @@ class CoreRunner:
     def _add_match_times(
         self,
         rule: Rule,
-        match_time_matrix: Dict[Tuple[str, str], float],
+        match_time_matrix: Dict[Tuple[str, Any, str], float],
         output_time_json: Dict[str, Any],
     ) -> None:
         """Collect the match times reported by semgrep-core (or spacegrep)."""
         if "targets" in output_time_json:
             for target in output_time_json["targets"]:
-                if "match_time" in target and "path" in target:
-                    match_time_matrix[(rule.id, target["path"])] = target["match_time"]
+                print(json.dumps(target))
+                if (
+                    "match_time" in target
+                    and "num_lines" in target
+                    and "path" in target
+                ):
+                    match_time_matrix[
+                        (rule.id, target["num_lines"], target["path"])
+                    ] = target["match_time"]
 
     def _run_rule(
         self,
