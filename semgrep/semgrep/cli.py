@@ -9,8 +9,10 @@ import semgrep.semgrep_main
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
@@ -339,6 +341,13 @@ def cli() -> None:
         ),
     )
 
+    output.add_argument(
+        MAX_CHARS_FLAG_NAME,
+        type=int,
+        default=DEFAULT_MAX_CHARS_PER_LINE,
+        help=("Maximum number of characters to show per line."),
+    )
+
     # logging options
     logging_ = parser.add_argument_group("logging")
 
@@ -418,6 +427,7 @@ def cli() -> None:
         json_stats=args.json_stats,
         json_time=args.json_time,
         output_per_finding_max_lines_limit=args.max_lines_per_finding,
+        output_per_line_max_chars_limit=args.max_chars_per_line,
     )
 
     if not args.disable_version_check:
