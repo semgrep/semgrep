@@ -203,7 +203,7 @@ def build_normal_output(
 def _build_time_target_json(
     rules: List[Rule],
     target: Path,
-    match_time_matrix: Dict[Tuple[str, str], float],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float]],
 ) -> Dict[str, Any]:
     target_json: Dict[str, Any] = {}
     path_str = str(target)
@@ -212,16 +212,18 @@ def _build_time_target_json(
 
     target_json["path"] = path_str
     target_json["num_lines"] = num_lines
-    target_json["match_times"] = [
-        match_time_matrix.get((rule.id, path_str), 0.0) for rule in rules
-    ]
+    timings = [match_time_matrix.get((rule.id, path_str), (0.0, 0.0)) for rule in rules]
+    target_json["parse_times"] = [timing[0] for timing in timings]
+    target_json["match_times"] = [timing[1] for timing in timings]
     return target_json
 
 
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
-    match_time_matrix: Dict[Tuple[str, str], float],  # (rule, target) -> duration
+    match_time_matrix: Dict[
+        Tuple[str, str], Tuple[float, float]
+    ],  # (rule, target) -> duration
 ) -> Dict[str, Any]:
     """Convert match times to a json-ready format.
 
@@ -248,7 +250,7 @@ def build_output_json(
     show_json_stats: bool,
     report_time: bool,
     filtered_rules: List[Rule],
-    match_time_matrix: Dict[Tuple[str, str], float],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float]],
     profiler: Optional[ProfileManager] = None,
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
@@ -457,7 +459,7 @@ class OutputHandler:
         self.has_output = False
         self.filtered_rules: List[Rule] = []
         self.match_time_matrix: Dict[
-            Tuple[str, str], float
+            Tuple[str, str], Tuple[float, float]
         ] = {}  # (rule, target) -> duration
 
         self.final_error: Optional[Exception] = None
@@ -519,7 +521,9 @@ class OutputHandler:
         all_targets: Set[Path],
         profiler: ProfileManager,
         filtered_rules: List[Rule],
-        match_time_matrix: Dict[Tuple[str, str], float],  # (rule, target) -> duration
+        match_time_matrix: Dict[
+            Tuple[str, str], Tuple[float, float]
+        ],  # (rule, target) -> duration
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
