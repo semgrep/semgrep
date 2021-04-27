@@ -129,7 +129,7 @@ let test_rules ?(ounit_context=false) xs =
     E.g_errors := [];
     Flag_semgrep.with_opt_cache := false;
     let config = Config_semgrep.default_config in
-    let matches, errors, match_time =
+    let matches, errors, parse_time, match_time =
       try
         Semgrep.check (fun _ _ _ -> ()) config rules
           (target, xlang, lazy_ast_and_errors)
@@ -140,6 +140,9 @@ let test_rules ?(ounit_context=false) xs =
       (* match_time could be 0.0 if the rule contains no pattern or if the
          rules are skipped. Otherwise it's positive. *)
       failwith (spf "invalid value for match time: %g" match_time);
+    if not (parse_time >= 0.) then
+      (* same for parse time *)
+      failwith (spf "invalid value for parse time: %g" parse_time);
 
     matches |> List.iter JSON_report.match_to_error;
     if not (errors = [])
