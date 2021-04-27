@@ -76,7 +76,9 @@ class Config:
 
     @classmethod
     def from_config_list(
-        cls, configs: List[str]
+        cls,
+        configs: List[str],
+        quiet: bool = False,
     ) -> Tuple["Config", List[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
@@ -96,7 +98,7 @@ class Config:
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
-                resolved_config = resolve_config(config)
+                resolved_config = resolve_config(config, quiet)
                 if not resolved_config:
                     logger.debug(f"Could not resolve config for {config}. Skipping.")
                     continue
@@ -117,6 +119,13 @@ class Config:
         valid, parse_errors = cls._validate(config_dict)
         errors.extend(parse_errors)
         return cls(valid), errors
+
+    def get_hash(self) -> str:
+        """
+        This hash must be based on the full content, not just the rule ids
+        """
+        rules_hash = str([str(_.to_json()) for _ in self.get_rules(True)])
+        return str(hash(rules_hash))
 
     def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
         """
@@ -383,15 +392,16 @@ def nice_semgrep_url(url: str) -> str:
     return url
 
 
-def download_config(config_url: str) -> Dict[str, YamlTree]:
+def download_config(config_url: str, quiet: bool) -> Dict[str, YamlTree]:
     import requests  # here for faster startup times
 
-    DOWNLOADING_MESSAGE = f"downloading config..."
-    logger.debug(f"trying to download from {config_url}")
-    logger.info(
-        f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.dev/registry to see all public rules."
-    )
-    logger.info(DOWNLOADING_MESSAGE)
+    if not quiet:
+        DOWNLOADING_MESSAGE = f"downloading config..."
+        logger.debug(f"trying to download from {config_url}")
+        logger.info(
+            f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.dev/registry to see all public rules."
+        )
+        logger.info(DOWNLOADING_MESSAGE)
     headers = {"User-Agent": SEMGREP_USER_AGENT}
 
     try:
@@ -453,17 +463,17 @@ def saved_snippet_to_url(snippet_id: str) -> str:
     return registry_id_to_url(f"s/{snippet_id}")
 
 
-def resolve_config(config_str: str) -> Dict[str, YamlTree]:
+def resolve_config(config_str: str, quiet: bool = False) -> Dict[str, YamlTree]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
     if config_str in RULES_REGISTRY:
-        config = download_config(RULES_REGISTRY[config_str])
+        config = download_config(RULES_REGISTRY[config_str], quiet=quiet)
     elif is_url(config_str):
-        config = download_config(config_str)
+        config = download_config(config_str, quiet=quiet)
     elif is_registry_id(config_str):
-        config = download_config(registry_id_to_url(config_str))
+        config = download_config(registry_id_to_url(config_str), quiet=quiet)
     elif is_saved_snippet(config_str):
-        config = download_config(saved_snippet_to_url(config_str))
+        config = download_config(saved_snippet_to_url(config_str), quiet=quiet)
     else:
         config = load_config_from_local_path(config_str)
     if config:

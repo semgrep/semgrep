@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from io import StringIO
 from pathlib import Path
 from re import sub
@@ -9,6 +10,7 @@ from typing import Optional
 from typing import Tuple
 
 import attr
+import colorama
 
 import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
@@ -30,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_config(
-    pattern: str, lang: str, config_strs: List[str]
+    pattern: str, lang: str, config_strs: List[str], quiet: bool = False
 ) -> Tuple[semgrep.config_resolver.Config, List[SemgrepError]]:
     # let's check for a pattern
     if pattern:
@@ -42,7 +44,9 @@ def get_config(
         config, errors = semgrep.config_resolver.Config.from_pattern_lang(pattern, lang)
     else:
         # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
-        config, errors = semgrep.config_resolver.Config.from_config_list(config_strs)
+        config, errors = semgrep.config_resolver.Config.from_config_list(
+            config_strs, quiet
+        )
 
     # if we can't find a config, use default r2c rules
     if not config:
@@ -161,6 +165,10 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
     return json.loads(io_capture.getvalue())
 
 
+def clear_command_line_output() -> None:
+    print(colorama.ansi.clear_screen())
+
+
 def main(
     output_handler: OutputHandler,
     target: List[str],
@@ -184,119 +192,145 @@ def main(
     severity: Optional[List[str]] = None,
     report_time: bool = False,
     experimental: bool = False,
+    watch: bool = False,
 ) -> None:
-    if include is None:
-        include = []
+    last_config_hash = None
+    while True:
 
-    if exclude is None:
-        exclude = []
+        if include is None:
+            include = []
 
-    configs_obj, errors = get_config(pattern, lang, configs)
-    all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
+        if exclude is None:
+            exclude = []
 
-    if severity is None or severity == []:
-        filtered_rules = all_rules
-    else:
-        filtered_rules = [rule for rule in all_rules if rule.severity in severity]
-
-    output_handler.handle_semgrep_errors(errors)
-
-    if errors and strict:
-        raise SemgrepError(
-            f"run with --strict and there were {len(errors)} errors loading configs",
-            code=MISSING_CONFIG_EXIT_CODE,
+        configs_obj, errors = get_config(
+            pattern, lang, configs, quiet=last_config_hash is not None
         )
 
-    if not pattern:
-        plural = "s" if len(configs_obj.valid) > 1 else ""
-        config_id_if_single = (
-            list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
-        )
-        invalid_msg = (
-            f"({len(errors)} config files were invalid)" if len(errors) else ""
-        )
-        logger.debug(
-            f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}"
-        )
-
-        if len(configs_obj.valid) == 0:
-            if len(errors) > 0:
-                raise SemgrepError(
-                    f"no valid configuration file found ({len(errors)} configs were invalid)",
-                    code=MISSING_CONFIG_EXIT_CODE,
-                )
+        if last_config_hash is not None:
+            if configs_obj.get_hash() != last_config_hash:
+                logger.info("updated config found, re-running")
+                clear_command_line_output()
             else:
-                raise SemgrepError(
-                    """You need to specify a config with --config=<semgrep.dev config name|localfile|localdirectory|url>.
-If you're looking for a config to start with, there are thousands at: https://semgrep.dev
-The two most popular are:
-    --config=p/ci # find logic bugs, and high-confidence security vulnerabilities; recommended for CI
-    --config=p/security-audit # find security audit points; noisy, not recommended for CI
-""",
-                    code=MISSING_CONFIG_EXIT_CODE,
-                )
+                print(".", end=None)
+                time.sleep(1)
+                continue
 
-        notify_user_of_work(filtered_rules, include, exclude)
+        last_config_hash = configs_obj.get_hash()
+        all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
 
-    respect_git_ignore = not no_git_ignore
-    target_manager = TargetManager(
-        includes=include,
-        excludes=exclude,
-        targets=target,
-        respect_git_ignore=respect_git_ignore,
-        output_handler=output_handler,
-        skip_unknown_extensions=skip_unknown_extensions,
-    )
+        if severity is None or severity == []:
+            filtered_rules = all_rules
+        else:
+            filtered_rules = [rule for rule in all_rules if rule.severity in severity]
 
-    # actually invoke semgrep
-    (
-        rule_matches_by_rule,
-        debug_steps_by_rule,
-        semgrep_errors,
-        all_targets,
-        profiler,
-        match_time_matrix,
-    ) = CoreRunner(
-        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
-        jobs=jobs,
-        timeout=timeout,
-        max_memory=max_memory,
-        timeout_threshold=timeout_threshold,
-        report_time=report_time,
-    ).invoke_semgrep(
-        target_manager, filtered_rules, experimental
-    )
+        output_handler.handle_semgrep_errors(errors)
 
-    output_handler.handle_semgrep_errors(semgrep_errors)
+        if errors and strict:
+            raise SemgrepError(
+                f"run with --strict and there were {len(errors)} errors loading configs",
+                code=MISSING_CONFIG_EXIT_CODE,
+            )
 
-    rule_matches_by_rule = {
-        rule: [
-            attr.evolve(rule_match, is_ignored=rule_match_nosem(rule_match, strict))
-            for rule_match in rule_matches
-        ]
-        for rule, rule_matches in rule_matches_by_rule.items()
-    }
+        if not pattern:
+            plural = "s" if len(configs_obj.valid) > 1 else ""
+            config_id_if_single = (
+                list(configs_obj.valid.keys())[0] if len(configs_obj.valid) == 1 else ""
+            )
+            invalid_msg = (
+                f"({len(errors)} config files were invalid)" if len(errors) else ""
+            )
+            logger.debug(
+                f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}"
+            )
 
-    if not disable_nosem:
+            if len(configs_obj.valid) == 0:
+                if len(errors) > 0:
+                    raise SemgrepError(
+                        f"no valid configuration file found ({len(errors)} configs were invalid)",
+                        code=MISSING_CONFIG_EXIT_CODE,
+                    )
+                else:
+                    raise SemgrepError(
+                        """You need to specify a config with --config=<semgrep.dev config name|localfile|localdirectory|url>.
+    If you're looking for a config to start with, there are thousands at: https://semgrep.dev
+    The two most popular are:
+        --config=p/ci # find logic bugs, and high-confidence security vulnerabilities; recommended for CI
+        --config=p/security-audit # find security audit points; noisy, not recommended for CI
+    """,
+                        code=MISSING_CONFIG_EXIT_CODE,
+                    )
+
+            notify_user_of_work(filtered_rules, include, exclude)
+
+        respect_git_ignore = not no_git_ignore
+        target_manager = TargetManager(
+            includes=include,
+            excludes=exclude,
+            targets=target,
+            respect_git_ignore=respect_git_ignore,
+            output_handler=output_handler,
+            skip_unknown_extensions=skip_unknown_extensions,
+        )
+
+        # actually invoke semgrep
+        (
+            rule_matches_by_rule,
+            debug_steps_by_rule,
+            semgrep_errors,
+            all_targets,
+            profiler,
+            match_time_matrix,
+        ) = CoreRunner(
+            allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+            jobs=jobs,
+            timeout=timeout,
+            max_memory=max_memory,
+            timeout_threshold=timeout_threshold,
+            report_time=report_time,
+        ).invoke_semgrep(
+            target_manager, filtered_rules, experimental
+        )
+
+        output_handler.handle_semgrep_errors(semgrep_errors)
+
         rule_matches_by_rule = {
             rule: [
-                rule_match for rule_match in rule_matches if not rule_match._is_ignored
+                attr.evolve(rule_match, is_ignored=rule_match_nosem(rule_match, strict))
+                for rule_match in rule_matches
             ]
             for rule, rule_matches in rule_matches_by_rule.items()
         }
 
-    num_findings = sum(len(v) for v in rule_matches_by_rule.values())
-    stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
+        if not disable_nosem:
+            rule_matches_by_rule = {
+                rule: [
+                    rule_match
+                    for rule_match in rule_matches
+                    if not rule_match._is_ignored
+                ]
+                for rule, rule_matches in rule_matches_by_rule.items()
+            }
 
-    output_handler.handle_semgrep_core_output(
-        rule_matches_by_rule,
-        debug_steps_by_rule,
-        stats_line,
-        all_targets,
-        profiler,
-        filtered_rules,
-        match_time_matrix,
-    )
+        num_findings = sum(len(v) for v in rule_matches_by_rule.values())
+        stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
+        output_handler.handle_semgrep_core_output(
+            rule_matches_by_rule,
+            debug_steps_by_rule,
+            stats_line,
+            all_targets,
+            profiler,
+            filtered_rules,
+            match_time_matrix,
+        )
+
+        if not watch:
+            break
+        else:
+            # watch mode enabled, do it all again
+            continue
+
+    # only things that never happen in watch mode go here
     if autofix:
         apply_fixes(rule_matches_by_rule, dryrun)
