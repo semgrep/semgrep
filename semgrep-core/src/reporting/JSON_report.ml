@@ -175,11 +175,12 @@ let json_time_of_match_times match_times =
   [
     "time", J.Object [
       "targets", J.Array (
-        List.map (fun (target, parse_time, match_time) ->
+        List.map (fun (target, parse_time, match_time, run_time) ->
           J.Object [
             "path", J.String target;
             "parse_time", J.Float parse_time;
             "match_time", J.Float match_time;
+            "run_time", J.Float run_time;
           ]
         ) match_times
       )

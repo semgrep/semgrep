@@ -111,19 +111,24 @@ def finding_to_line(
 def build_timing_summary(
     rules: List[Rule],
     targets: Set[Path],
-    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float]],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
 ) -> None:
+    all_total_time = 0.0
     for rule in rules:
         total_parsing_time = 0.0
         total_matching_time = 0.0
+        total_run_time = 0.0
         for target in targets:
             path_str = str(target)
-            (parsing_time, matching_time) = match_time_matrix.get(
-                (rule.id, path_str), (0.0, 0.0)
+            (parsing_time, matching_time, run_time) = match_time_matrix.get(
+                (rule.id, path_str), (0.0, 0.0, 0.0)
             )
             total_parsing_time += parsing_time
             total_matching_time += matching_time
-        print(rule.id, total_parsing_time, total_matching_time)
+            total_run_time += run_time
+            all_total_time += run_time
+        print(rule.id, total_parsing_time, total_matching_time, total_run_time)
+    print(all_total_time)
 
 
 # todo: use profiler for individual rule timings
@@ -134,7 +139,7 @@ def build_normal_output(
     all_targets: Set[Path],
     show_times: bool,
     filtered_rules: List[Rule],
-    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float]],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
 ) -> Iterator[str]:
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
@@ -202,7 +207,7 @@ def build_normal_output(
 def _build_time_target_json(
     rules: List[Rule],
     target: Path,
-    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float]],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
 ) -> Dict[str, Any]:
     target_json: Dict[str, Any] = {}
     path_str = str(target)
@@ -222,7 +227,7 @@ def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
     match_time_matrix: Dict[
-        Tuple[str, str], Tuple[float, float]
+        Tuple[str, str], Tuple[float, float, float]
     ],  # (rule, target) -> duration
 ) -> Dict[str, Any]:
     """Convert match times to a json-ready format.
@@ -250,7 +255,7 @@ def build_output_json(
     show_json_stats: bool,
     report_time: bool,
     filtered_rules: List[Rule],
-    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float]],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
     profiler: Optional[ProfileManager] = None,
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
@@ -458,7 +463,7 @@ class OutputHandler:
         self.has_output = False
         self.filtered_rules: List[Rule] = []
         self.match_time_matrix: Dict[
-            Tuple[str, str], Tuple[float, float]
+            Tuple[str, str], Tuple[float, float, float]
         ] = {}  # (rule, target) -> duration
 
         self.final_error: Optional[Exception] = None
@@ -521,7 +526,7 @@ class OutputHandler:
         profiler: ProfileManager,
         filtered_rules: List[Rule],
         match_time_matrix: Dict[
-            Tuple[str, str], Tuple[float, float]
+            Tuple[str, str], Tuple[float, float, float]
         ],  # (rule, target) -> duration
     ) -> None:
         self.has_output = True
