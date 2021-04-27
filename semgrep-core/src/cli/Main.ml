@@ -618,53 +618,58 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
   let matches_and_errors_and_times =
     files |> map (fun file ->
       logger#info "Analyzing %s" file;
-      try
-        run_with_memory_limit !max_memory (fun () ->
-          timeout_function file (fun () ->
-            (f file)
-            |> (fun v ->
-              (* This is just to test -max_memory, to give a chance
-               * to Gc.create_alarm to run even if the program does
-               * not even need to run the Gc. However, this has a slow
-               * perf penality on small programs, which is why it's
-               * better to keep guarded when you're
-               * not testing -max_memory.
-              *)
-              if !test then Gc.full_major();
-              logger#info "done with %s" file;
-              v)
-          ))
-      with
-      (* note that Error_code.exn_to_error already handles Timeout
-       * and would generate a TimeoutError code for it, but we intercept
-       * Timeout here to give a better diagnostic.
-      *)
-      | (Timeout | Out_of_memory) as exn ->
-          let str_opt =
-            match !Semgrep_generic.last_matched_rule with
-            | None -> None
-            | Some rule ->
-                logger#info "critical exn while matching ruleid %s" rule.MR.id;
-                logger#info "full pattern is: %s" rule.MR.pattern_string;
-                Some (spf " with ruleid %s" rule.MR.id)
-          in
-          let loc = Parse_info.first_loc_of_file file in
-          (
-            [],
-            [Error_code.mk_error_loc loc
-               (match exn with
-                | Timeout ->
-                    logger#info "Timeout on %s" file;
-                    Error_code.Timeout str_opt
-                | Out_of_memory ->
-                    logger#info "OutOfMemory on %s" file;
-                    Error_code.OutOfMemory str_opt
-                | _ -> raise Impossible
-               )],
-            (file, 0.0, 0.0)
-          )
-      | exn when not !fail_fast ->
-          [], [Error_code.exn_to_error file exn], (file, 0.0, 0.0)
+      let (matches, errors, (file, parse_time, match_time)), run_time =
+        Common.with_time (fun () ->
+          try
+            run_with_memory_limit !max_memory (fun () ->
+              timeout_function file (fun () ->
+                (f file)
+                |> (fun v ->
+                  (* This is just to test -max_memory, to give a chance
+                   * to Gc.create_alarm to run even if the program does
+                   * not even need to run the Gc. However, this has a slow
+                   * perf penality on small programs, which is why it's
+                   * better to keep guarded when you're
+                   * not testing -max_memory.
+                  *)
+                  if !test then Gc.full_major();
+                  logger#info "done with %s" file;
+                  v)
+              ))
+          with
+          (* note that Error_code.exn_to_error already handles Timeout
+           * and would generate a TimeoutError code for it, but we intercept
+           * Timeout here to give a better diagnostic.
+          *)
+          | (Timeout | Out_of_memory) as exn ->
+              let str_opt =
+                match !Semgrep_generic.last_matched_rule with
+                | None -> None
+                | Some rule ->
+                    logger#info "critical exn while matching ruleid %s" rule.MR.id;
+                    logger#info "full pattern is: %s" rule.MR.pattern_string;
+                    Some (spf " with ruleid %s" rule.MR.id)
+              in
+              let loc = Parse_info.first_loc_of_file file in
+              (
+                [],
+                [Error_code.mk_error_loc loc
+                   (match exn with
+                    | Timeout ->
+                        logger#info "Timeout on %s" file;
+                        Error_code.Timeout str_opt
+                    | Out_of_memory ->
+                        logger#info "OutOfMemory on %s" file;
+                        Error_code.OutOfMemory str_opt
+                    | _ -> raise Impossible
+                   )],
+                (file, 0.0, 0.0)
+              )
+          | exn when not !fail_fast ->
+              [], [Error_code.exn_to_error file exn], (file, 0.0, 0.0)
+        )
+      in
+      matches, errors, (file, parse_time, match_time, run_time)
     )
   in
   let matches =
