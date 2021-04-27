@@ -132,11 +132,34 @@ def finding_to_line(
                 yield BREAK_LINE
 
 
+def build_timing_summary(
+    rules: List[Rule],
+    targets: Set[Path],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float]],
+) -> None:
+    for rule in rules:
+        total_parsing_time = 0.0
+        total_matching_time = 0.0
+        for target in targets:
+            path_str = str(target)
+            (parsing_time, matching_time) = match_time_matrix.get(
+                (rule.id, path_str), (0.0, 0.0)
+            )
+            total_parsing_time += parsing_time
+            total_matching_time += matching_time
+        print(rule.id, total_parsing_time, total_matching_time)
+
+
+# todo: use profiler for individual rule timings
 def build_normal_output(
     rule_matches: List[RuleMatch],
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
+    all_targets: Set[Path],
+    show_times: bool,
+    filtered_rules: List[Rule],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float]],
 ) -> Iterator[str]:
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
@@ -198,6 +221,8 @@ def build_normal_output(
         elif rule_match.fix_regex:
             fix_regex = rule_match.fix_regex
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+    if show_times:
+        build_timing_summary(filtered_rules, all_targets, match_time_matrix)
 
 
 def _build_time_target_json(
@@ -207,6 +232,7 @@ def _build_time_target_json(
 ) -> Dict[str, Any]:
     target_json: Dict[str, Any] = {}
     path_str = str(target)
+    # TODO this is probably not the most efficient way to do this
     with open(path_str) as f:
         num_lines = len(f.readlines())
 
@@ -673,6 +699,10 @@ class OutputHandler:
                         color_output,
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
+                        self.all_targets,
+                        self.settings.json_time,
+                        self.filtered_rules,
+                        self.match_time_matrix,
                     )
                 )
             )
