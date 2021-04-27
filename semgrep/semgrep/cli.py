@@ -94,6 +94,13 @@ def cli() -> None:
         action="store_true",
         help="Only invoke semgrep if configuration files(s) are valid.",
     )
+    config.add_argument(
+        "--optimizations",
+        nargs="?",
+        const="all",
+        default="none",
+        help="Turn on/off optimizations. Default = 'none'. Use 'all' to turn all optimizations on.",
+    )
 
     parser.add_argument(
         "--exclude",
@@ -325,12 +332,6 @@ def cli() -> None:
         ),
     )
     output.add_argument(
-        "--experimental",
-        action="store_true",
-        help="Pass rules directly to Semgrep core. This will use the logic evaluation available in Semgrep core.",
-    )
-
-    output.add_argument(
         MAX_LINES_FLAG_NAME,
         type=int,
         default=DEFAULT_MAX_LINES_PER_FINDING,
@@ -481,5 +482,5 @@ def cli() -> None:
                 skip_unknown_extensions=args.skip_unknown_extensions,
                 severity=args.severity,
                 report_time=args.json_time,
-                experimental=args.experimental,
+                optimizations=args.optimizations,
             )
