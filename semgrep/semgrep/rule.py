@@ -8,6 +8,7 @@ from typing import Tuple
 
 from semgrep.equivalences import Equivalence
 from semgrep.error import InvalidRuleSchemaError
+from semgrep.error import SemgrepError
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
@@ -24,9 +25,11 @@ from semgrep.semgrep_types import OPERATORS_WITH_CHILDREN
 from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import PATTERN_NAMES_OPERATOR_MAP
 from semgrep.semgrep_types import PatternId
-from semgrep.semgrep_types import REGEX_ONLY_LANGUAGE_KEYS
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.semgrep_types import YAML_TAINT_MUST_HAVE_KEYS
+from semgrep.target_manager_extensions import JAVASCRIPT_LANGUAGES
+from semgrep.target_manager_extensions import REGEX_LANGUAGES
+from semgrep.target_manager_extensions import TYPESCRIPT_LANGUAGES
 
 
 class Rule:
@@ -58,14 +61,14 @@ class Rule:
         self._excludes = path_dict.get("exclude", [])
         self._languages = [Language(l) for l in self._raw["languages"]]
 
-        # add 'ts' to languages if the rule supports javascript.
-        if ("javascript" in self._languages) or ("js" in self._languages):
-            self._languages.append(Language("ts"))
+        # add typescript to languages if the rule supports javascript.
+        if any(language in self._languages for language in JAVASCRIPT_LANGUAGES):
+            self._languages.extend(TYPESCRIPT_LANGUAGES)
 
         # check taint/search mode
         self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
 
-        if any([lang in REGEX_ONLY_LANGUAGE_KEYS for lang in self._languages]):
+        if any(language in REGEX_LANGUAGES for language in self._languages):
             self._validate_none_language_rule()
 
     def __eq__(self, other: object) -> bool:
@@ -138,10 +141,9 @@ class Rule:
         Move through the expression from the YML, yielding tuples of (operator, unique-id-for-pattern, pattern)
         """
         for rule_index, pattern_tree in enumerate(rule_patterns.value):
-            pattern = pattern_tree.value
-            for boolean_operator_yaml, sub_pattern in pattern.items():
+            for boolean_operator_yaml, sub_pattern in pattern_tree.value.items():
                 operator = operator_for_pattern_name(boolean_operator_yaml)
-                if operator in set(OPERATORS_WITH_CHILDREN):
+                if operator in OPERATORS_WITH_CHILDREN:
                     sub_expression = self._parse_boolean_expression(
                         sub_pattern, 0, f"{prefix}.{rule_index}.{pattern_id_idx}"
                     )
@@ -152,25 +154,20 @@ class Rule:
                         operand=None,
                     )
                 else:
-                    pattern_text, pattern_span = sub_pattern.value, sub_pattern.span
-
-                    if isinstance(pattern_text, YamlMap):
-                        pattern_text = {
-                            k.value: v.value for k, v in pattern_text.items()
-                        }
-
-                    if isinstance(pattern_text, str) or isinstance(pattern_text, dict):
-                        pattern_id = PatternId(f"{prefix}.{pattern_id_idx}")
-                        self._pattern_spans[pattern_id] = pattern_span
-                        yield BooleanRuleExpression(
-                            operator=operator,
-                            pattern_id=pattern_id,
-                            children=None,
-                            operand=pattern_text,
+                    if not isinstance(sub_pattern.value, (str, YamlMap)):
+                        raise SemgrepError(
+                            f"expected operator '{operator}' to have string or map value guaranteed by schema"
                         )
-                        pattern_id_idx += 1
-                    else:
-                        raise Exception("Internal error: bad schema")
+
+                    pattern_id = PatternId(f"{prefix}.{pattern_id_idx}")
+                    self._pattern_spans[pattern_id] = sub_pattern.span
+                    yield BooleanRuleExpression(
+                        operator=operator,
+                        pattern_id=pattern_id,
+                        children=None,
+                        operand=sub_pattern.value,
+                    )
+                    pattern_id_idx += 1
 
     def _build_taint_expression(self, rule: YamlTree[YamlMap]) -> BooleanRuleExpression:
         """
@@ -178,11 +175,12 @@ class Rule:
         """
         rule_raw = rule.value
         _rule_id = cast(str, rule_raw["id"].unroll())
-
         rule_id = PatternId(_rule_id)
+
         for pattern_name in YAML_TAINT_MUST_HAVE_KEYS:
             pattern = rule_raw[pattern_name]
             self._pattern_spans[rule_id] = pattern.span
+
         return BooleanRuleExpression(
             OPERATORS.AND,
             rule_id,
@@ -199,6 +197,7 @@ class Rule:
         rule_raw = rule.value
         _rule_id = cast(str, rule_raw["id"].unroll())
         rule_id = PatternId(_rule_id)
+
         for pattern_name in pattern_names_for_operator(OPERATORS.AND):
             pattern = rule_raw.get(pattern_name)
             if pattern:
@@ -235,7 +234,7 @@ class Rule:
                     operand=None,
                 )
 
-        raise Exception("Internal error: bad schema")
+        raise SemgrepError(f"rule with id '{_rule_id}' is missing top-level operator")
 
     @property
     def includes(self) -> List[str]:

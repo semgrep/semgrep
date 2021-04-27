@@ -10,20 +10,20 @@ from typing import Union
 
 import attr
 
+from semgrep.rule_lang import YamlMap
+
 
 Language = NewType("Language", str)
 Mode = NewType("Mode", str)
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
+FileExtension = NewType("FileExtension", str)
 
 TAINT_MODE = Mode("taint")
 SEARCH_MODE = DEFAULT_MODE = Mode("search")
 SUPPORTED_MODES = {TAINT_MODE, SEARCH_MODE}
 
 YAML_TAINT_MUST_HAVE_KEYS = {"pattern-sinks", "pattern-sources"}
-
-REGEX_ONLY_LANGUAGE_KEYS = {Language("none"), Language("regex")}
-GENERIC_LANGUAGE = Language("generic")
 
 
 class OPERATORS:
@@ -71,7 +71,7 @@ class BooleanRuleExpression:
     operator: Operator
     pattern_id: Optional[PatternId] = None
     children: Optional[List["BooleanRuleExpression"]] = None
-    operand: Optional[Union[str, Dict[str, Any]]] = None
+    operand: Optional[Union[str, YamlMap]] = None
 
 
 def pattern_name_for_operator(operator: Operator) -> str:

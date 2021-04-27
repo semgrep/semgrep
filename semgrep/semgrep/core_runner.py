@@ -38,14 +38,14 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
-from semgrep.semgrep_types import GENERIC_LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import OPERATORS
-from semgrep.semgrep_types import REGEX_ONLY_LANGUAGE_KEYS
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.spacegrep import run_spacegrep
 from semgrep.target_manager import TargetManager
 from semgrep.target_manager_extensions import all_supported_languages
+from semgrep.target_manager_extensions import GENERIC_LANGUAGES
+from semgrep.target_manager_extensions import REGEX_LANGUAGES
 from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
 from semgrep.util import progress_bar
@@ -367,7 +367,7 @@ class CoreRunner:
 
                 # regex-only rules only support OPERATORS.REGEX.
                 # Skip passing this rule to semgrep-core.
-                if language in REGEX_ONLY_LANGUAGE_KEYS:
+                if language in REGEX_LANGUAGES:
                     continue
 
                 # semgrep-core doesn't know about the following operators -
@@ -386,7 +386,7 @@ class CoreRunner:
 
                 patterns_json = [p.to_json() for p in patterns]
 
-                if language == GENERIC_LANGUAGE:
+                if language in GENERIC_LANGUAGES:
                     output_json = profiler.track(
                         rule.id,
                         run_spacegrep,
