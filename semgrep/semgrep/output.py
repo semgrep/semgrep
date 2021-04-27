@@ -181,7 +181,11 @@ def _build_time_target_json(
 ) -> Dict[str, Any]:
     target_json: Dict[str, Any] = {}
     path_str = str(target)
+    with open(path_str) as f:
+        num_lines = len(f.readlines())
+
     target_json["path"] = path_str
+    target_json["num_lines"] = num_lines
     target_json["match_times"] = [
         match_time_matrix.get((rule.id, path_str), 0.0) for rule in rules
     ]
