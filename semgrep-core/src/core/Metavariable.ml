@@ -83,10 +83,6 @@ let mvalue_to_any = function
   | T x -> G.T x
   | P x -> G.P x
 
-(* update: you should use equal_mvalue (from deriving eq) now *)
-let _abstract_position_info_mval x =
-  x |> mvalue_to_any |> H.abstract_for_comparison_any
-
 let str_of_any any =
   if !Flag_semgrep.debug_with_full_position
   then Meta_parse_info._current_precision :=
@@ -155,6 +151,9 @@ let is_metavar_name s =
       s =~ metavar_regexp_string
 (*e: function [[Metavars_generic.is_metavar_name]] *)
 
+(* $...XXX multivariadic metavariables. Note that I initially chose
+ * $X... but this leads to parsing conflicts in Javascript.
+*)
 let metavar_ellipsis_regexp_string =
   "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
 let is_metavar_ellipsis s =
