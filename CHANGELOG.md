@@ -3,9 +3,14 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Coming up next
+### Added
+### Fixed
+### Changed
+
+## [0.49.0](https://github.com/returntocorp/semgrep/releases/tag/v0.49.0) - 2021-04-28
 
 ### Added
-- Support for matching multiple arguments with a metavariable.
+- Support for matching multiple arguments with a metavariable (#3009)
   This is done with a 'spread metavariable' operator that looks like
   `$...ARGS`. This used to be available only for JS/TS and is now available
   for the other languages (Python, Java, Go, C, Ruby, PHP, and OCaml).
@@ -15,16 +20,22 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   Just using `--optimizations` is equivalent to `--optimizations all`, and
   not using `--optimizations` is equivalent to `--optimizations none`.
 - JS/TS: Support '...' inside JSX text to match any text, as in
-  `<a href="foo">...</a>`
+  `<a href="foo">...</a>`  (#2963)
 - JS/TS: Support metavariables for JSX attribute values, as in
-  `<a href=$X>some text</a>`
+  `<a href=$X>some text</a>` (#2964)
 
 ### Fixed
 - Python: correctly parsing fstring with multiple colons
-- Ruby: better matching for interpolated strings
+- Ruby: better matching for interpolated strings (#2826 and #2949)
 - Ruby: correctly matching numbers
 
 ### Changed
+- Add required executionSuccessful attribute to SARIF output (#2983)
+  Thanks to Simon Engledew
+- Remove jsx and tsx from languages, just use javascript or typescript (#3000)
+- Add limit max characters in output line (#2958) and add
+  flag to control maxmium characters (defaults to 160).
+  Thanks to Ankush Menat
 
 ## [0.48.0](https://github.com/returntocorp/semgrep/releases/tag/v0.48.0) - 2021-04-20
 
@@ -50,7 +61,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ability to match lambdas or functions in Javascript with ellipsis after
   the function keyword, (e.g., `function ...(...) { ... }`)
 - Rust: Semgrep patterns now support top-level statements (#2910)
-- Taint mode: Basic cross-function analysis (#2913)
 - support for utf-8 code with non-ascii chars (#2944)
 - Java switch expressions
 
