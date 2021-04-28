@@ -4,6 +4,28 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Coming up next
 
+### Added
+- Support for matching multiple arguments with a metavariable.
+  This is done with a 'spread metavariable' operator that looks like
+  `$...ARGS`. This used to be available only for JS/TS and is now available
+  for the other languages (Python, Java, Go, C, Ruby, PHP, and OCaml).
+- A new `--optimizations [STR]` command-line flag to turn on/off some
+  optimizations. Use 'none' to turn off everything and 'all' to turn on
+  everything.
+  Just using `--optimizations` is equivalent to `--optimizations all`, and
+  not using `--optimizations` is equivalent to `--optimizations none`.
+- JS/TS: Support '...' inside JSX text to match any text, as in
+  `<a href="foo">...</a>`
+- JS/TS: Support metavariables for JSX attribute values, as in
+  `<a href=$X>some text</a>`
+
+### Fixed
+- Python: correctly parsing fstring with multiple colons
+- Ruby: better matching for interpolated strings
+- Ruby: correctly matching numbers
+
+### Changed
+
 ## [0.48.0](https://github.com/returntocorp/semgrep/releases/tag/v0.48.0) - 2021-04-20
 
 ### Added

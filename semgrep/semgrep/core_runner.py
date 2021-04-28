@@ -556,6 +556,8 @@ class CoreRunner:
         from itertools import chain
         from collections import defaultdict
 
+        logger.debug(f"Passing whole rules directly to semgrep_core")
+
         outputs: Dict[Rule, List[RuleMatch]] = defaultdict(list)
         errors: List[SemgrepError] = []
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
@@ -647,7 +649,7 @@ class CoreRunner:
         self,
         target_manager: TargetManager,
         rules: List[Rule],
-        experimental: bool = False,
+        optimizations: str,
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
@@ -662,6 +664,7 @@ class CoreRunner:
         start = datetime.now()
         profiler = ProfileManager()
 
+        experimental = optimizations == "all"
         runner_fxn = (
             self._run_rules_direct_to_semgrep_core if experimental else self._run_rules
         )

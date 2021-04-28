@@ -9,8 +9,10 @@ import semgrep.semgrep_main
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_TIMEOUT
+from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
@@ -93,6 +95,13 @@ def cli() -> None:
         "--strict",
         action="store_true",
         help="Only invoke semgrep if configuration files(s) are valid.",
+    )
+    config.add_argument(
+        "--optimizations",
+        nargs="?",
+        const="all",
+        default="none",
+        help="Turn on/off optimizations. Default = 'none'. Use 'all' to turn all optimizations on.",
     )
 
     parser.add_argument(
@@ -325,18 +334,19 @@ def cli() -> None:
         ),
     )
     output.add_argument(
-        "--experimental",
-        action="store_true",
-        help="Pass rules directly to Semgrep core. This will use the logic evaluation available in Semgrep core.",
-    )
-
-    output.add_argument(
         MAX_LINES_FLAG_NAME,
         type=int,
         default=DEFAULT_MAX_LINES_PER_FINDING,
         help=(
             "Maximum number of lines of code that will be shown for each match before trimming (set to 0 for unlimited)."
         ),
+    )
+
+    output.add_argument(
+        MAX_CHARS_FLAG_NAME,
+        type=int,
+        default=DEFAULT_MAX_CHARS_PER_LINE,
+        help=("Maximum number of characters to show per line."),
     )
 
     # logging options
@@ -418,6 +428,7 @@ def cli() -> None:
         json_stats=args.json_stats,
         json_time=args.json_time,
         output_per_finding_max_lines_limit=args.max_lines_per_finding,
+        output_per_line_max_chars_limit=args.max_chars_per_line,
     )
 
     if not args.disable_version_check:
@@ -481,5 +492,5 @@ def cli() -> None:
                 skip_unknown_extensions=args.skip_unknown_extensions,
                 severity=args.severity,
                 report_time=args.json_time,
-                experimental=args.experimental,
+                optimizations=args.optimizations,
             )
