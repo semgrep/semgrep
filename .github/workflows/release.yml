@@ -287,6 +287,7 @@ jobs:
 
   homebrew-core-pr:
     name: Update on Homebrew-Core
+    needs: [upload-wheels]  # Needs to run after pypi released so brew can update pypi dependency hashes
     runs-on: macos-latest
     steps:
       - name: Brew update
