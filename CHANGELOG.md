@@ -9,8 +9,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   use 'none' to turn off everything and 'all' to turn on everything.
   Just using `--optimizations` is equivalent to `--optimizations all`, and
   not using `--optimizations` is equivalent to `--optimizations none`.
+- Support '...' inside JSX text to match any text, as in
+  `<a href="foo">...</a>`
+- Support metavariables for JSX attribute values, as in
+  `<a href=$X>some text</a>`
 
 ### Fixed
+- Python: correctly parsing fstring with multiple colons
+- Ruby: better matching for interpolated strings
 
 ### Changed
 
