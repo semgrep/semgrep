@@ -21,7 +21,10 @@ let lang_has_no_dollar_ids = Lang.(function
 (*s: function [[Check_semgrep.check_pattern_metavars]] *)
 let check_pattern_metavars error lang ast =
   let kident_metavar (k, _out) ((str, _tok) as ident) =
-    if str.[0] = '$' && not (Metavariable.is_metavar_name str) then
+    if str.[0] = '$' &&
+       not (Metavariable.is_metavar_name str) &&
+       not (Metavariable.is_metavar_ellipsis str)
+    then
       error (Common.spf "`%s' is neither a valid identifier in %s nor a valid meta-variable"
                str (Lang.string_of_lang lang));
     k ident
