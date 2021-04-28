@@ -230,9 +230,6 @@ class TargetManager:
 
         files, directories = partition_set(lambda p: not p.is_dir(), targets)
 
-        # Filter out .git directories
-        directories = set(d for d in directories if d.resolve().name != ".git")
-
         # Error on non-existent files
         explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
         if nonexistent_files:
@@ -242,7 +239,7 @@ class TargetManager:
 
         targets = self.expand_targets(directories, lang, self.respect_git_ignore)
         targets = self.filter_includes(targets, self.includes)
-        targets = self.filter_excludes(targets, self.excludes)
+        targets = self.filter_excludes(targets, self.excludes + [".git"])
 
         # Remove explicit_files with known extensions.
         explicit_files_with_lang_extension = set(

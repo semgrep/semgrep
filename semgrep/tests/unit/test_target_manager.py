@@ -386,6 +386,33 @@ def test_skip_symlink(tmp_path, monkeypatch):
     )
 
 
+def test_ignore_git_dir(tmp_path, monkeypatch):
+    """
+    Ignores all files in .git directory when scanning generic
+    """
+    foo = tmp_path / ".git"
+    foo.mkdir()
+    (foo / "bar").touch()
+
+    monkeypatch.chdir(tmp_path)
+    language = Language("generic")
+    output_settings = OutputSettings(
+        output_format=OutputFormat.TEXT,
+        output_destination=None,
+        error_on_findings=False,
+        verbose_errors=False,
+        strict=False,
+        json_stats=False,
+        json_time=False,
+        output_per_finding_max_lines_limit=None,
+        output_per_line_max_chars_limit=None,
+    )
+    defaulthandler = OutputHandler(output_settings)
+    assert [] == TargetManager([], [], [foo], True, defaulthandler, False).get_files(
+        language, [], []
+    )
+
+
 def test_explicit_path(tmp_path, monkeypatch):
     foo = tmp_path / "foo"
     foo.mkdir()
