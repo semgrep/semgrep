@@ -4,6 +4,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Coming up next
 
+### Added
+- A new `--optimizations [STR]` command-line flag to turn on/off optimizations.
+  use 'none' to turn off everything and 'all' to turn on everything.
+  Just using `--optimizations` is equivalent to `--optimizations all`, and
+  not using `--optimizations` is equivalent to `--optimizations none`.
+
+### Fixed
+
+### Changed
+
 ## [0.48.0](https://github.com/returntocorp/semgrep/releases/tag/v0.48.0) - 2021-04-20
 
 ### Added

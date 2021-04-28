@@ -184,7 +184,7 @@ def main(
     skip_unknown_extensions: bool = False,
     severity: Optional[List[str]] = None,
     report_time: bool = False,
-    experimental: bool = False,
+    optimizations: str = "none",
 ) -> None:
     if include is None:
         include = []
@@ -265,7 +265,7 @@ The two most popular are:
         timeout_threshold=timeout_threshold,
         report_time=report_time,
     ).invoke_semgrep(
-        target_manager, filtered_rules, experimental
+        target_manager, filtered_rules, optimizations
     )
 
     output_handler.handle_semgrep_errors(semgrep_errors)
