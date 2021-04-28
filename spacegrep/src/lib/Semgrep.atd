@@ -105,6 +105,12 @@ type time = {
 type target_time = {
   path: string;
 
+  (* parse time for all rules *)
+  parse_time: float;
+
   (* match time for all rules *)
   match_time: float;
+
+  (* run time for all rules *)
+  run_time: float;
 }
