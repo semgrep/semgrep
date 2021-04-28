@@ -616,7 +616,7 @@ let m_string_prefix a b =
 (*e: function [[Matching_generic.m_string_prefix]] *)
 
 let m_string_ellipsis_or_regexp_or_default
-    ?(use_m_string_prefix_for_default=false) a b =
+    ?(m_string_for_default=m_string) a b =
   match a with
   (* dots: '...' on string *)
   | "..." -> return ()
@@ -626,9 +626,7 @@ let m_string_ellipsis_or_regexp_or_default
       then return ()
       else fail ()
   | _ ->
-      if use_m_string_prefix_for_default
-      then m_string_prefix a b
-      else m_string a b
+      m_string_for_default a b
 
 (* ---------------------------------------------------------------------- *)
 (* Token *)
