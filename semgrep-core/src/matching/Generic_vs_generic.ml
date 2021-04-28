@@ -268,7 +268,7 @@ let m_module_name_prefix a b =
       m_wrap
         (m_string_ellipsis_or_regexp_or_default
            (* TODO figure out what prefix support means here *)
-           ~use_m_string_prefix_for_default:true) a b
+           ~m_string_for_default:m_string_prefix) a b
 
   | A.DottedName(a1), B.DottedName(b1) ->
       m_dotted_name_prefix_ok a1 b1
@@ -1196,7 +1196,8 @@ and m_xml_attr_value a b =
 and m_body a b =
   match a, b with
   | A.XmlText a1, B.XmlText b1 ->
-      m_wrap m_string_xhp_text a1 b1
+      m_wrap (m_string_ellipsis_or_regexp_or_default
+                ~m_string_for_default:m_string_xhp_text) a1 b1
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_body]] boilerplate cases *)
   | A.XmlExpr a1, B.XmlExpr b1 ->
