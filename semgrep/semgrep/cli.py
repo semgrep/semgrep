@@ -94,7 +94,7 @@ def cli() -> None:
         action="store_true",
         help="Only invoke semgrep if configuration files(s) are valid.",
     )
-    config.add_argument(
+    parser.add_argument(
         "--optimizations",
         nargs="?",
         const="all",
