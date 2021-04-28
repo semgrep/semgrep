@@ -220,6 +220,8 @@ class TargetManager:
         match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
         If a file in TARGET has a known extension that is not for langugage LANG then
         it is also filtered out
+
+        Note also filters out any directory and decendants of `.git`
         """
         if lang in self._filtered_targets:
             return self._filtered_targets[lang]
@@ -227,6 +229,9 @@ class TargetManager:
         targets = self.resolve_targets(self.targets)
 
         files, directories = partition_set(lambda p: not p.is_dir(), targets)
+
+        # Filter out .git directories
+        directories = set(d for d in directories if d.resolve().name != ".git")
 
         # Error on non-existent files
         explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
