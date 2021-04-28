@@ -339,8 +339,12 @@ and literal x =
   match x with
   | Bool x -> G.L (G.Bool (wrap bool x))
   (* TODO: put real numbers here *)
-  | Num (_s, x) -> G.L (G.Int (None, tok x))
-  | Float (_s, x) -> G.L (G.Float (None, tok x))
+  | Num (s, x) ->
+      let i = int_of_string_opt s in
+      G.L (G.Int (i, tok x))
+  | Float (s, x) ->
+      let f = float_of_string_opt s in
+      G.L (G.Float (f, tok x))
   | Complex x -> G.L (G.Imag (wrap string x))
   | Rational ((s, t1), t2) ->
       let t = PI.combine_infos t1 [t2] in
