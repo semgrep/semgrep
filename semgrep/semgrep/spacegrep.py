@@ -111,17 +111,23 @@ def run_spacegrep(
                     f"Invalid JSON output was received from spacegrep: {e}"
                 )
 
-    time = {
-        "targets": [
-            {"path": str(path), "match_time": targets_time.get(str(path), 0.0)}
-            for path in targets
-        ]
-    }
-    return {
-        "matches": matches,
-        "errors": errors,
-        "time": time,
-    }
+    if report_time:
+        time = {
+            "targets": [
+                {"path": str(path), "match_time": targets_time.get(str(path), 0.0)}
+                for path in targets
+            ]
+        }
+        return {
+            "matches": matches,
+            "errors": errors,
+            "time": time,
+        }
+    else:
+        return {
+            "matches": matches,
+            "errors": errors,
+        }
 
 
 def _parse_spacegrep_output(raw_output: bytes) -> dict:
