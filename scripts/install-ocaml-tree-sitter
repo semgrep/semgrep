@@ -4,12 +4,30 @@
 #
 set -eu
 
+# Temporary block to help with transition (2021-04-29):
+# ocaml-tree-sitter used to be a submodule, and if it's still there,
+# we need to delete it and start fresh.
+#
+if [[ -d ocaml-tree-sitter ]]; then
+  # test if ocaml-tree-sitter is a submodule
+  if [[ -n "$(git -C ocaml-tree-sitter rev-parse --show-superproject-working-tree)" ]];
+  then
+    echo "Removing left-over submodule 'ocaml-tree-sitter'.".
+    rm -rf ocaml-tree-sitter
+
+    echo "Also, attempting to remove the opam-installed ocaml-tree-sitter."
+    opam remove tree-sitter
+  fi
+fi
+
 # We don't plug in this repo as a submodule because itself contains over
 # 600 MB of submodules (tree-sitter-* repos) which are not needed
 # to build semgrep-core.
 #
 if [[ ! -d ocaml-tree-sitter ]]; then
   git clone https://github.com/returntocorp/ocaml-tree-sitter.git
+else
+  echo "Found local copy of ocaml-tree-sitter."
 fi
 
 cd ocaml-tree-sitter
@@ -24,5 +42,6 @@ git fetch -p origin
 #
 git checkout 8f2515c
 
-./scripts/install-runtime
-./configure
+# Install the C library. OCaml sources are built as part of the semgrep-core
+# dune project. See the symlinks in semgrep-core/src/ocaml-tree-sitter.
+./scripts/install-tree-sitter-lib
