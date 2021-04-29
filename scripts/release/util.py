@@ -20,7 +20,7 @@ def abort(code: int, message: str) -> None:
 def debug_bake(f: Callable[..., str]) -> Callable[..., str]:
     def runner(*args: Any, **kwargs: Any) -> str:
         res = f(*args, **kwargs)
-        click.echo(res, err=True)
+        click.secho(res, err=True, fg="blue")
         return res
 
     return runner
