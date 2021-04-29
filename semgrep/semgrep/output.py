@@ -237,12 +237,11 @@ def _build_time_target_json(
 ) -> Dict[str, Any]:
     target_json: Dict[str, Any] = {}
     path_str = str(target)
-    # TODO this is probably not the most efficient way to do this
-    with open(path_str) as f:
-        num_lines = len(f.readlines())
+    path_info = Path(path_str)
+    num_bytes = path_info.resolve().stat().st_size  # file size in bytes
 
     target_json["path"] = path_str
-    target_json["num_lines"] = num_lines
+    target_json["num_bytes"] = num_bytes
     timings = [match_time_matrix.get((rule.id, path_str), (0.0, 0.0)) for rule in rules]
     target_json["parse_times"] = [timing[0] for timing in timings]
     target_json["match_times"] = [timing[1] for timing in timings]
