@@ -105,13 +105,16 @@ def run_spacegrep(
                     errors.extend(output_json["errors"])
                     # aggregate the match times obtained for the different patterns of the rule
                     path_s = str(target)
+
                     targets_time[path_s] = tuple(
-                        map(
-                            lambda i, j: i + j,
-                            targets_time.get(path_s, (0.0, 0.0, 0.0)),
-                            _extract_times(output_json),
-                        )
-                    )
+                        [
+                            i + j
+                            for i, j in zip(
+                                targets_time.get(path_s, (0.0, 0.0, 0.0)),
+                                _extract_times(output_json),
+                            )
+                        ]
+                    )  # type: ignore
 
             except subprocess.CalledProcessError as e:
                 raw_error = p.stderr
