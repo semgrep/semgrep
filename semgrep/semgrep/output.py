@@ -231,7 +231,7 @@ def _build_time_json(
     the target file will become negligible once we run many rules on the
     same AST.
     """
-    time_info = {}
+    time_info: Dict[str, Any] = {}
     # this list of all rules names is given here so they don't have to be
     # repeated for each target in the 'targets' field, saving space.
     time_info["rules"] = [{"id": rule.id} for rule in rules]
