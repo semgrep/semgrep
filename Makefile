@@ -63,7 +63,7 @@ rebuild:
 setup:
 	git submodule update --init
 	opam update -y
-	./scripts/install-ocaml-tree-sitter
+	./scripts/install-tree-sitter-runtime
 	opam install -y --deps-only ./semgrep-core/src/pfff
 	opam install -y --deps-only ./semgrep-core
 	opam install -y --deps-only ./spacegrep
