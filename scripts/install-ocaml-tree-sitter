@@ -1,9 +1,0 @@
-#! /usr/bin/env bash
-#
-# Install tree-sitter's and ocaml-tree-sitter's runtime libraries.
-#
-set -eu
-
-cd ocaml-tree-sitter
-./scripts/install-runtime
-./configure

@@ -23,9 +23,15 @@ from contextlib import contextmanager
 from typing import Iterator
 from typing import Tuple
 
+import requests
 import semgrep_core_benchmark  # type: ignore
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
+STATS_URL = "https://stats.semgrep.dev"
+BPS_ENDPOINT = "semgrep.perf.bps"
+LPS_ENDPOINT = "semgrep.perf.lps"
+
+STD = "std"
 
 # Run command and propagate errors
 def cmd(*args: str) -> None:
@@ -156,7 +162,7 @@ class SemgrepVariant:
 #
 SEMGREP_VARIANTS = [
     # default settings
-    SemgrepVariant("std", ""),
+    SemgrepVariant(STD, ""),
     # removing optimisations
     SemgrepVariant("no-cache", "-no_opt_cache"),
     SemgrepVariant("max-cache", "-opt_max_cache"),
@@ -171,7 +177,7 @@ SEMGREP_VARIANTS = [
 ]
 
 # For when you just want to test a single change
-STD_VARIANTS = [SemgrepVariant("std", "")]
+STD_VARIANTS = [SemgrepVariant(STD, "")]
 
 
 # This class allows us to put semgrep results in a set and compute set
@@ -231,27 +237,73 @@ def chdir(dir: str) -> Iterator[None]:
         os.chdir(old_dir)
 
 
-def upload_result(metric_name: str, value: float) -> None:
-    url = f"{DASHBOARD_URL}/api/metric/{metric_name}"
+def upload(url: str, value: str) -> None:
     print(f"Uploading to {url}")
     r = urllib.request.urlopen(  # nosem
         url=url,
-        data=str(value).encode("ascii"),
+        data=value.encode("ascii"),
     )
     print(r.read().decode())
 
 
-def standardize_findings(findings: dict) -> dict:
+def upload_result(
+    variant_name: str, metric_name: str, value: float, timings: dict
+) -> None:
+    # Upload overall runtime of the benchmark
+    metric_url = f"{DASHBOARD_URL}/api/metric/{metric_name}"
+    upload(metric_url, str(value))
+
+    if variant_name == STD and timings is not None:
+        # Compute bps from semgrep timing data
+        assert "rules" in timings
+        assert "total_time" in timings
+        assert "total_bytes" in timings
+        num_rules = len(timings["rules"])
+        bps = timings["total_bytes"] / (timings["total_time"] * num_rules)
+
+        bps_url = f"{DASHBOARD_URL}/api/metric/{BPS_ENDPOINT}"
+        upload(bps_url, str(bps))
+
+        # Similarly, compute lps
+        assert "targets" in timings
+        num_lines = 0
+        for target in timings["targets"]:
+            assert "path" in target
+            with open(target["path"]) as f:
+                try:
+                    num_lines += sum(1 for _ in f)
+                except UnicodeDecodeError:
+                    pass
+        lps = num_lines / (timings["total_time"] * num_rules)
+
+        lps_url = f"{DASHBOARD_URL}/api/metric/{LPS_ENDPOINT}"
+        upload(lps_url, str(lps))
+
+        # Upload timing data as a json
+        print(f"Uploading timing data to {STATS_URL}")
+        headers = {"content-type": "application/json"}
+        r = requests.post(
+            STATS_URL, data=json.dumps(timings), headers=headers, timeout=30
+        )
+        print(r.content)
+
+
+def standardize_findings(findings: dict, include_time: bool) -> Tuple[dict, dict]:
     if "errors" not in findings:
         msg = json.dumps(findings, indent=4) + "\n\nDid not find expected key 'errors'"
         raise Exception(msg)
     if "results" not in findings:
         msg = json.dumps(findings, indent=4) + "\n\nDid not find expected key 'results'"
         raise Exception(msg)
-    return {
+    if include_time and "time" not in findings:
+        msg = json.dumps(findings, indent=4) + "\n\nDid not find expected key 'time'"
+        raise Exception(msg)
+    results = {
         "errors": findings["errors"],
         "results": {SemgrepResult(i) for i in findings["results"]},
     }
+    timings = findings["time"] if include_time else None
+    return results, timings
 
 
 def output_differences(
@@ -273,7 +325,7 @@ def output_differences(
 
 
 def run_semgrep(
-    docker: str, corpus: Corpus, variant: SemgrepVariant
+    docker: str, corpus: Corpus, variant: SemgrepVariant, include_time: bool
 ) -> Tuple[float, bytes]:
     args = []
     common_args = [
@@ -312,6 +364,8 @@ def run_semgrep(
     args.extend(common_args)
     if variant.semgrep_extra != "":
         args.extend([variant.semgrep_extra])
+    if include_time:
+        args.extend(["--json-time"])
 
     print(f"current directory: {os.getcwd()}")
     print("semgrep command: {}".format(" ".join(args)))
@@ -349,6 +403,7 @@ def run_benchmarks(
     filter_variant: str,
     plot_benchmarks: bool,
     upload: bool,
+    include_time: bool,
     summary_file_path: str,
     called_dir: str,
 ) -> None:
@@ -385,7 +440,9 @@ def run_benchmarks(
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
-                duration, findings_bytes = run_semgrep(docker, corpus, variant)
+                duration, findings_bytes = run_semgrep(
+                    docker, corpus, variant, include_time
+                )
 
                 # Report results
                 msg = f"{metric_name} = {duration:.3f} s"
@@ -394,17 +451,19 @@ def run_benchmarks(
                 durations += f"{duration:.3f}\n"
                 results[variant.name].append(duration)
 
+                findings, timings = standardize_findings(
+                    json.loads(findings_bytes), include_time
+                )
+
                 if upload:
-                    upload_result(metric_name, duration)
+                    upload_result(variant.name, metric_name, duration, timings)
 
                 # Check correctness
-                findings = standardize_findings(json.loads(findings_bytes))
-
                 num_results = len(findings["results"])
                 num_errors = len(findings["errors"])
                 print(f"Result: {num_results} findings, {num_errors} parse errors")
 
-                if variant.name == "std":
+                if variant.name == STD:
                     std_findings = findings
                 elif findings["results"] ^ std_findings["results"] != set():
                     fd_len, sd_len = output_differences(
@@ -495,6 +554,7 @@ def main() -> None:
     parser.add_argument(
         "--semgrep-core", help="run semgrep-core benchmarks", action="store_true"
     )
+    parser.add_argument("--no-time", help="disable time-checking", action="store_true")
     args = parser.parse_args()
 
     cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -514,6 +574,7 @@ def main() -> None:
                 args.filter_variant,
                 args.plot_benchmarks,
                 args.upload,
+                not args.no_time,
                 args.save_to,
                 called_dir,
             )

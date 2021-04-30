@@ -233,18 +233,21 @@ def build_normal_output(
 def _build_time_target_json(
     rules: List[Rule],
     target: Path,
+    num_bytes: int,
     match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
 ) -> Dict[str, Any]:
     target_json: Dict[str, Any] = {}
     path_str = str(target)
-    path_info = Path(path_str)
-    num_bytes = path_info.resolve().stat().st_size  # file size in bytes
 
     target_json["path"] = path_str
     target_json["num_bytes"] = num_bytes
-    timings = [match_time_matrix.get((rule.id, path_str), (0.0, 0.0)) for rule in rules]
+    timings = [
+        match_time_matrix.get((rule.id, path_str), (0.0, 0.0, 0.0)) for rule in rules
+    ]
     target_json["parse_times"] = [timing[0] for timing in timings]
     target_json["match_times"] = [timing[1] for timing in timings]
+    target_json["run_times"] = [timing[2] for timing in timings]
+
     return target_json
 
 
@@ -254,6 +257,7 @@ def _build_time_json(
     match_time_matrix: Dict[
         Tuple[str, str], Tuple[float, float, float]
     ],  # (rule, target) -> duration
+    total_time: float,
 ) -> Dict[str, Any]:
     """Convert match times to a json-ready format.
 
@@ -263,14 +267,18 @@ def _build_time_json(
     the target file will become negligible once we run many rules on the
     same AST.
     """
-    time = {}
+    time_info: Dict[str, Any] = {}
     # this list of all rules names is given here so they don't have to be
     # repeated for each target in the 'targets' field, saving space.
-    time["rules"] = [{"id": rule.id} for rule in rules]
-    time["targets"] = [
-        _build_time_target_json(rules, target, match_time_matrix) for target in targets
+    time_info["rules"] = [{"id": rule.id} for rule in rules]
+    time_info["total_time"] = total_time
+    target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
+    time_info["targets"] = [
+        _build_time_target_json(rules, target, num_bytes, match_time_matrix)
+        for target, num_bytes in zip(targets, target_bytes)
     ]
-    return time
+    time_info["total_bytes"] = sum(n for n in target_bytes)
+    return time_info
 
 
 def build_output_json(
@@ -298,8 +306,9 @@ def build_output_json(
             "profiler": profiler.dump_stats() if profiler else None,
         }
     if report_time:
+        total_time = profiler.calls["total_time"][0] if profiler else -1.0
         output_json["time"] = _build_time_json(
-            filtered_rules, all_targets, match_time_matrix
+            filtered_rules, all_targets, match_time_matrix, total_time
         )
     return json.dumps(output_json)
 
