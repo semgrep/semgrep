@@ -30,6 +30,8 @@ DASHBOARD_URL = "https://dashboard.semgrep.dev"
 STATS_URL = "https://stats.semgrep.dev"
 BPS_ENDPOINT = "semgrep.perf.bps"
 
+STD = "std"
+
 # Run command and propagate errors
 def cmd(*args: str) -> None:
     subprocess.run(args, check=True)  # nosem
@@ -159,7 +161,7 @@ class SemgrepVariant:
 #
 SEMGREP_VARIANTS = [
     # default settings
-    SemgrepVariant("std", ""),
+    SemgrepVariant(STD, ""),
     # removing optimisations
     SemgrepVariant("no-cache", "-no_opt_cache"),
     SemgrepVariant("max-cache", "-opt_max_cache"),
@@ -174,7 +176,7 @@ SEMGREP_VARIANTS = [
 ]
 
 # For when you just want to test a single change
-STD_VARIANTS = [SemgrepVariant("std", "")]
+STD_VARIANTS = [SemgrepVariant(STD, "")]
 
 
 # This class allows us to put semgrep results in a set and compute set
@@ -243,25 +245,30 @@ def upload(url: str, value: str) -> None:
     print(r.read().decode())
 
 
-def upload_result(metric_name: str, value: float, timings: dict) -> None:
+def upload_result(
+    variant_name: str, metric_name: str, value: float, timings: dict
+) -> None:
     # Upload overall runtime of the benchmark
     metric_url = f"{DASHBOARD_URL}/api/metric/{metric_name}"
     upload(metric_url, str(value))
 
-    # Compute bps from semgrep timing data
-    assert "rules" in timings
-    assert "total_time" in timings
-    assert "total_bytes" in timings
-    bps = timings["total_bytes"] / (timings["total_time"] * len(timings["rules"]))
+    if variant_name == STD:
+        # Compute bps from semgrep timing data
+        assert "rules" in timings
+        assert "total_time" in timings
+        assert "total_bytes" in timings
+        bps = timings["total_bytes"] / (timings["total_time"] * len(timings["rules"]))
 
-    bps_url = f"{DASHBOARD_URL}/api/metric/{BPS_ENDPOINT}"
-    upload(bps_url, str(bps))
+        bps_url = f"{DASHBOARD_URL}/api/metric/{BPS_ENDPOINT}"
+        upload(bps_url, str(bps))
 
-    # Upload timing data as a json
-    print(f"Uploading timing data to {STATS_URL}")
-    headers = {"content-type": "application/json"}
-    r = requests.post(STATS_URL, data=json.dumps(timings), headers=headers, timeout=30)
-    print(r.content)
+        # Upload timing data as a json
+        print(f"Uploading timing data to {STATS_URL}")
+        headers = {"content-type": "application/json"}
+        r = requests.post(
+            STATS_URL, data=json.dumps(timings), headers=headers, timeout=30
+        )
+        print(r.content)
 
 
 def standardize_findings(findings: dict) -> Tuple[dict, dict]:
@@ -426,14 +433,14 @@ def run_benchmarks(
                 findings, timings = standardize_findings(json.loads(findings_bytes))
 
                 if upload:
-                    upload_result(metric_name, duration, timings)
+                    upload_result(variant.name, metric_name, duration, timings)
 
                 # Check correctness
                 num_results = len(findings["results"])
                 num_errors = len(findings["errors"])
                 print(f"Result: {num_results} findings, {num_errors} parse errors")
 
-                if variant.name == "std":
+                if variant.name == STD:
                     std_findings = findings
                 elif findings["results"] ^ std_findings["results"] != set():
                     fd_len, sd_len = output_differences(
