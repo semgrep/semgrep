@@ -1,0 +1,8 @@
+These are symlinks to only the runtime library of ocaml-tree-sitter, which is
+needed to build semgrep-core.
+
+The main issue is that the ocaml-tree-sitter repo comes with massive git
+submodules that we don't want to accidentally fetch. So we avoid having
+ocaml-tree-sitter as a submodule. We also avoid a global opam installation
+from a git URL since it also appears to fetch all the submodules (?) and is a
+bit easier to work with.
