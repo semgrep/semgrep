@@ -29,6 +29,7 @@ import semgrep_core_benchmark  # type: ignore
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
 STATS_URL = "https://stats.semgrep.dev"
 BPS_ENDPOINT = "semgrep.perf.bps"
+LPS_ENDPOINT = "semgrep.perf.lps"
 
 STD = "std"
 
@@ -257,10 +258,23 @@ def upload_result(
         assert "rules" in timings
         assert "total_time" in timings
         assert "total_bytes" in timings
-        bps = timings["total_bytes"] / (timings["total_time"] * len(timings["rules"]))
+        num_rules = len(timings["rules"])
+        bps = timings["total_bytes"] / (timings["total_time"] * num_rules)
 
         bps_url = f"{DASHBOARD_URL}/api/metric/{BPS_ENDPOINT}"
         upload(bps_url, str(bps))
+
+        # Similarly, compute lps
+        assert "targets" in timings
+        num_lines = 0
+        for target in timings["targets"]:
+            assert "path" in target
+            with open(target["path"]) as f:
+                num_lines += sum(1 for _ in f)
+        lps = num_lines / (timings["total_time"] * num_rules)
+
+        lps_url = f"{DASHBOARD_URL}/api/metric/{LPS_ENDPOINT}"
+        upload(lps_url, str(lps))
 
         # Upload timing data as a json
         print(f"Uploading timing data to {STATS_URL}")
