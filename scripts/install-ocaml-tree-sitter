@@ -32,23 +32,25 @@ else
   echo "Found local copy of ocaml-tree-sitter."
 fi
 
-cd ocaml-tree-sitter
-git fetch -p origin
+(
+  cd ocaml-tree-sitter
+  git fetch -p origin
 
-# The current version of ocaml-tree-sitter being used.
-#
-# In general, there's no need to change this when a tree-sitter parser is
-# updated or created. In theory, this needs only change when the scripts
-# below change or when the runtime library changes (src/run, src/bindings).
-# If unsure, just update to the latest commit on the main branch.
-#
-git checkout 2263f3f
+  # The current version of ocaml-tree-sitter being used.
+  #
+  # In general, there's no need to change this when a tree-sitter parser is
+  # updated or created. In theory, this needs only change when the scripts
+  # below change or when the runtime library changes (src/run, src/bindings).
+  # If unsure, just update to the latest commit on the main branch.
+  #
+  git checkout 2263f3f
 
-# Install the C library. OCaml sources are built as part of the semgrep-core
-# dune project. See the symlinks in semgrep-core/src/ocaml-tree-sitter.
-./scripts/install-tree-sitter-lib
+  # Install the C library. OCaml sources are built as part of the semgrep-core
+  # dune project. See the symlinks in semgrep-core/src/ocaml-tree-sitter.
+  ./scripts/install-tree-sitter-lib
+)
 
-# Plug into semgrep-core dune project
+# Plug OCaml sources into the semgrep-core dune project
 symlink=semgrep-core/src/ocaml-tree-sitter/src
 if [[ ! -e "$symlink" ]]; then
   ln -s ../../../ocaml-tree-sitter/src "$symlink"
