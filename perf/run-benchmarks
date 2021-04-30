@@ -270,7 +270,10 @@ def upload_result(
         for target in timings["targets"]:
             assert "path" in target
             with open(target["path"]) as f:
-                num_lines += sum(1 for _ in f)
+                try:
+                    num_lines += sum(1 for _ in f)
+                except UnicodeDecodeError:
+                    pass
         lps = num_lines / (timings["total_time"] * num_rules)
 
         lps_url = f"{DASHBOARD_URL}/api/metric/{LPS_ENDPOINT}"
