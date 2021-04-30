@@ -55,3 +55,8 @@ symlink=semgrep-core/src/ocaml-tree-sitter/src
 if [[ ! -e "$symlink" ]]; then
   ln -s ../../../ocaml-tree-sitter/src "$symlink"
 fi
+
+symlink=semgrep-core/tree-sitter.opam
+if [[ ! -e "$symlink" ]]; then
+  ln -s ../ocaml-tree-sitter/tree-sitter.opam "$symlink"
+fi
