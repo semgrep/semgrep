@@ -36,13 +36,8 @@ install:
 	python3 -m pip install semgrep
 
 .PHONY: build-core
-build-core: build-ocaml-tree-sitter
+build-core:
 	$(MAKE) -C semgrep-core
-
-.PHONY: build-ocaml-tree-sitter
-build-ocaml-tree-sitter:
-	$(MAKE) -C ocaml-tree-sitter
-	$(MAKE) -C ocaml-tree-sitter install
 
 .PHONY: build-spacegrep
 build-spacegrep:
