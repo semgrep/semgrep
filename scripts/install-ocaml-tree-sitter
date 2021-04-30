@@ -15,8 +15,10 @@ if [[ -d ocaml-tree-sitter ]]; then
     echo "Removing left-over submodule 'ocaml-tree-sitter'.".
     rm -rf ocaml-tree-sitter
 
-    echo "Also, attempting to remove the opam-installed ocaml-tree-sitter."
+    echo "Attempting to remove any opam-installed ocaml-tree-sitter."
     opam remove tree-sitter
+    echo "Attempting to remove any ocamlfind-installed ocaml-tree-sitter."
+    ocamlfind remove tree-sitter
   fi
 fi
 
@@ -40,7 +42,7 @@ git fetch -p origin
 # below change or when the runtime library changes (src/run, src/bindings).
 # If unsure, just update to the latest commit on the main branch.
 #
-git checkout 8f2515c
+git checkout 2263f3f
 
 # Install the C library. OCaml sources are built as part of the semgrep-core
 # dune project. See the symlinks in semgrep-core/src/ocaml-tree-sitter.
