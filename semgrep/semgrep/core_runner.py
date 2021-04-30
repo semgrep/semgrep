@@ -642,6 +642,7 @@ class CoreRunner:
     def invoke_semgrep(
         self,
         target_manager: TargetManager,
+        profiler: ProfileManager,
         rules: List[Rule],
         optimizations: str,
     ) -> Tuple[
@@ -649,14 +650,12 @@ class CoreRunner:
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
         Set[Path],
-        ProfileManager,
         Dict[Tuple[str, str], float],
     ]:
         """
         Takes in rules and targets and retuns object with findings
         """
         start = datetime.now()
-        profiler = ProfileManager()
 
         experimental = optimizations == "all"
         runner_fxn = (
@@ -687,7 +686,6 @@ class CoreRunner:
             debug_steps_by_rule,
             errors,
             all_targets,
-            profiler,
             match_time_matrix,
         )
 
