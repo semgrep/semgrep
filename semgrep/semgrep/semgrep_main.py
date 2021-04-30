@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from io import StringIO
 from pathlib import Path
 from re import sub
@@ -22,6 +23,7 @@ from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
+from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.target_manager import TargetManager
@@ -249,13 +251,15 @@ The two most popular are:
         skip_unknown_extensions=skip_unknown_extensions,
     )
 
+    profiler = ProfileManager()
+
+    start_time = time.time()
     # actually invoke semgrep
     (
         rule_matches_by_rule,
         debug_steps_by_rule,
         semgrep_errors,
         all_targets,
-        profiler,
         match_time_matrix,
     ) = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
@@ -265,8 +269,9 @@ The two most popular are:
         timeout_threshold=timeout_threshold,
         report_time=report_time,
     ).invoke_semgrep(
-        target_manager, filtered_rules, optimizations
+        target_manager, profiler, filtered_rules, optimizations
     )
+    profiler.save("total_time", start_time)
 
     output_handler.handle_semgrep_errors(semgrep_errors)
 

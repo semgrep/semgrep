@@ -18,5 +18,10 @@ class ProfileManager:
         self.calls[key].append(time.time() - start_time)
         return result
 
+    # This method is an even more rudimentary tool for profiling
+    # function calls
+    def save(self, key: str, start_time: float) -> Any:
+        self.calls[key].append(time.time() - start_time)
+
     def dump_stats(self) -> Dict[str, List[float]]:
         return dict(sorted(self.calls.items(), key=lambda x: x[1]))
