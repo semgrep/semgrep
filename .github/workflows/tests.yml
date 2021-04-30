@@ -178,9 +178,9 @@ jobs:
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
 
-          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing1.txt
+          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing1.txt --no-time
           cat semgrep/baseline_timing1.txt
-          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing2.txt
+          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing2.txt --no-time
           cat semgrep/baseline_timing2.txt
           pip3 uninstall -y semgrep
       - name: Download artifacts

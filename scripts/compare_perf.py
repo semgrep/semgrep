@@ -26,12 +26,19 @@ def main() -> None:
     )
     latest_times = [min(t1, t2) for t1, t2 in latest_times]
 
+    total_baseline = 0.0
+    total_latest = 0.0
     for baseline_time, latest_time in zip(baseline_times, latest_times):
         print(f"Baseline: {baseline_time}, Latest: {latest_time}")
 
-        # Assert latest time is not more than 6% slower than baseline
+        # Assert latest time is not more than 20% slower than baseline
         # or is within a fixed "probably environmental" range
-        assert latest_time < baseline_time * 1.06 or latest_time - baseline_time < 0.5
+        assert latest_time < baseline_time * 1.2 or latest_time - baseline_time < 1.0
+        total_baseline += baseline_time
+        total_latest += latest_time
+
+    # Assert the rules in aggregate are not more than 6% slower than baseline
+    assert total_latest < total_baseline * 1.06
 
 
 if __name__ == "__main__":
