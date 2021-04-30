@@ -30,7 +30,7 @@ RUN git submodule foreach --recursive git clean -dfX
 
 RUN git submodule update --init --recursive --depth 1
 
-RUN eval "$(opam env)" && ./scripts/install-ocaml-tree-sitter
+RUN eval "$(opam env)" && ./scripts/install-tree-sitter-runtime
 RUN eval "$(opam env)" && opam install --deps-only -y spacegrep/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/src/pfff/
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/

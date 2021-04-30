@@ -1,6 +1,7 @@
 #! /usr/bin/env bash
 #
-# Install tree-sitter's and ocaml-tree-sitter's runtime libraries.
+# Install tree-sitter's runtime library and inject ocaml-tree-sitter's
+# runtime code to be built with semgrep-core.
 #
 set -eu
 
