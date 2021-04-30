@@ -47,3 +47,9 @@ git checkout 2263f3f
 # Install the C library. OCaml sources are built as part of the semgrep-core
 # dune project. See the symlinks in semgrep-core/src/ocaml-tree-sitter.
 ./scripts/install-tree-sitter-lib
+
+# Plug into semgrep-core dune project
+symlink=semgrep-core/src/ocaml-tree-sitter/src
+if [[ ! -e "$symlink" ]]; then
+  ln -s ../../../ocaml-tree-sitter/src "$symlink"
+fi
