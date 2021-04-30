@@ -37,8 +37,8 @@ sudo apk add --no-cache m4 pcre-dev
 echo "Install submodules"
 git submodule update --init --recursive --depth 1
 
-echo "Install ocaml-tree-sitter"
-./scripts/install-ocaml-tree-sitter
+echo "Install tree-sitter runtime and prepare ocaml-tree-sitter source"
+./scripts/install-tree-sitter-runtime
 
 echo "Install spacegrep"
 (

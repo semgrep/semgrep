@@ -36,13 +36,8 @@ install:
 	python3 -m pip install semgrep
 
 .PHONY: build-core
-build-core: build-ocaml-tree-sitter
+build-core:
 	$(MAKE) -C semgrep-core
-
-.PHONY: build-ocaml-tree-sitter
-build-ocaml-tree-sitter:
-	$(MAKE) -C ocaml-tree-sitter
-	$(MAKE) -C ocaml-tree-sitter install
 
 .PHONY: build-spacegrep
 build-spacegrep:
@@ -68,7 +63,7 @@ rebuild:
 setup:
 	git submodule update --init
 	opam update -y
-	./scripts/install-ocaml-tree-sitter
+	./scripts/install-tree-sitter-runtime
 	opam install -y --deps-only ./semgrep-core/src/pfff
 	opam install -y --deps-only ./semgrep-core
 	opam install -y --deps-only ./spacegrep
