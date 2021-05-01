@@ -138,21 +138,28 @@ def build_timing_summary(
     match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
 ) -> None:
     all_total_time = 0.0
+    rule_timings = {}
+    file_timings: Dict[str, float] = {}
     for rule in rules:
-        total_parsing_time = 0.0
-        total_matching_time = 0.0
-        total_run_time = 0.0
+        rule_timings[rule] = (0.0, 0.0)
         for target in targets:
             path_str = str(target)
             (parsing_time, matching_time, run_time) = match_time_matrix.get(
                 (rule.id, path_str), (0.0, 0.0, 0.0)
             )
-            total_parsing_time += parsing_time
-            total_matching_time += matching_time
-            total_run_time += run_time
+            rule_timings[rule] = tuple(
+                x + y
+                for x, y in zip(
+                    rule_timings[rule], (run_time - parsing_time, matching_time)
+                )
+            )  # type: ignore
+            file_timings[path_str] = file_timings.get(path_str, 0.0) + parsing_time
             all_total_time += run_time
-        print(rule.id, total_parsing_time, total_matching_time, total_run_time)
-    print(all_total_time)
+    total_parsing_time = sum(i for i in file_timings.values())
+    total_matching_time = sum(i[1] for i in rule_timings.values())
+    print(
+        f"Total CPU time: { all_total_time }\tParse time: { total_parsing_time }\tMatch time: { total_matching_time }"
+    )
 
 
 # todo: use profiler for individual rule timings
