@@ -137,29 +137,47 @@ def build_timing_summary(
     targets: Set[Path],
     match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
 ) -> None:
+    items_to_show = 5
+
     all_total_time = 0.0
     rule_timings = {}
     file_timings: Dict[str, float] = {}
     for rule in rules:
-        rule_timings[rule] = (0.0, 0.0)
+        rule_timings[rule.id] = (0.0, 0.0)
         for target in targets:
             path_str = str(target)
             (parsing_time, matching_time, run_time) = match_time_matrix.get(
                 (rule.id, path_str), (0.0, 0.0, 0.0)
             )
-            rule_timings[rule] = tuple(
+            rule_timings[rule.id] = tuple(
                 x + y
                 for x, y in zip(
-                    rule_timings[rule], (run_time - parsing_time, matching_time)
+                    rule_timings[rule.id], (run_time - parsing_time, matching_time)
                 )
             )  # type: ignore
             file_timings[path_str] = file_timings.get(path_str, 0.0) + parsing_time
             all_total_time += run_time
     total_parsing_time = sum(i for i in file_timings.values())
     total_matching_time = sum(i[1] for i in rule_timings.values())
+
+    # Output information
     print(
-        f"Total CPU time: { all_total_time }\tParse time: { total_parsing_time }\tMatch time: { total_matching_time }"
+        f"Total CPU time: {all_total_time}\tParse time: {total_parsing_time}\tMatch time: {total_matching_time}"
     )
+
+    print(f"Slowest { items_to_show } files to parse")
+    slowest_file_times = sorted(file_timings.items(), key=lambda x: x[1], reverse=True)[
+        :items_to_show
+    ]
+    for file_name, parse_time in slowest_file_times:
+        print(f"{file_name}:\t{parse_time : .4f}")
+
+    print(f"Slowest { items_to_show } rules to run (excluding parse time)")
+    slowest_rule_times = sorted(
+        rule_timings.items(), key=lambda x: x[1][0], reverse=True
+    )[:items_to_show]
+    for rule_id, (total_time, match_time) in slowest_rule_times:
+        print(f"{rule_id}:\trun time {total_time : .4f}\tmatch time {match_time : .4f}")
 
 
 # todo: use profiler for individual rule timings
