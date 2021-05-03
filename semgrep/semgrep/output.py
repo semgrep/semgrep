@@ -132,12 +132,32 @@ def finding_to_line(
                 yield BREAK_LINE
 
 
+def format_bytes(num: float) -> str:
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+        if abs(num) < 1024.0:
+            return "%3d%sB" % (num, unit)
+        num /= 1024.0
+    return "%.1f%sB" % (num, "Y")
+
+
+def truncate(file_name: str, col_lim: int) -> str:
+    name_len = len(file_name)
+    if name_len > col_lim:
+        file_name = "..." + file_name[name_len - col_lim + 3 :]
+    return file_name
+
+
 def build_timing_summary(
     rules: List[Rule],
     targets: Set[Path],
     match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
+    color_output: bool,
 ) -> None:
     items_to_show = 5
+    col_lim = 80
+    RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
+    GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
+    YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
 
     all_total_time = 0.0
     rule_timings = {}
@@ -170,14 +190,21 @@ def build_timing_summary(
         :items_to_show
     ]
     for file_name, parse_time in slowest_file_times:
-        print(f"{file_name}:\t{parse_time : .4f}")
+        num_bytes = f"({format_bytes(Path(file_name).resolve().stat().st_size)}):"
+        file_name = truncate(file_name, col_lim)
+        print(
+            f"{GREEN_COLOR}{file_name:<80}{RESET_COLOR} {num_bytes:<9}{parse_time:.4f}"
+        )
 
     print(f"Slowest { items_to_show } rules to run (excluding parse time)")
     slowest_rule_times = sorted(
         rule_timings.items(), key=lambda x: x[1][0], reverse=True
     )[:items_to_show]
     for rule_id, (total_time, match_time) in slowest_rule_times:
-        print(f"{rule_id}:\trun time {total_time : .4f}\tmatch time {match_time : .4f}")
+        rule_id = truncate(rule_id, col_lim) + ":"
+        print(
+            f"{YELLOW_COLOR}{rule_id:<81}{RESET_COLOR} run time {total_time:.4f}  match time {match_time:.4f}"
+        )
 
 
 # todo: use profiler for individual rule timings
@@ -252,7 +279,9 @@ def build_normal_output(
             fix_regex = rule_match.fix_regex
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
     if show_times:
-        build_timing_summary(filtered_rules, all_targets, match_time_matrix)
+        build_timing_summary(
+            filtered_rules, all_targets, match_time_matrix, color_output
+        )
 
 
 def _build_time_target_json(
