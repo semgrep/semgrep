@@ -3,7 +3,10 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Coming up next
+
 ### Added
+- JS/TS: Infer global constants even if the `const` qualifier is missing (#2978)
+
 ### Fixed
 ### Changed
 
