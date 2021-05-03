@@ -453,7 +453,7 @@ def cli() -> None:
         elif args.synthesize_patterns:
             synthesize_patterns(args.lang, args.synthesize_patterns, target)
         elif args.validate:
-            configs, config_errors = semgrep.semgrep_main.get_config(
+            configs, config_errors = semgrep.config_resolver.get_config(
                 args.pattern, args.lang, args.config
             )
             valid_str = "invalid" if config_errors else "valid"

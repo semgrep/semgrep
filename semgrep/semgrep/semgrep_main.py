@@ -7,14 +7,12 @@ from re import sub
 from typing import Any
 from typing import List
 from typing import Optional
-from typing import Tuple
 
 import attr
 
-import semgrep.config_resolver
 from semgrep.autofix import apply_fixes
+from semgrep.config_resolver import get_config
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
-from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import OutputFormat
@@ -29,30 +27,6 @@ from semgrep.rule_match import RuleMatch
 from semgrep.target_manager import TargetManager
 
 logger = logging.getLogger(__name__)
-
-
-def get_config(
-    pattern: str, lang: str, config_strs: List[str]
-) -> Tuple[semgrep.config_resolver.Config, List[SemgrepError]]:
-    # let's check for a pattern
-    if pattern:
-        # and a language
-        if not lang:
-            raise SemgrepError("language must be specified when a pattern is passed")
-
-        # TODO for now we generate a manual config. Might want to just call semgrep -e ... -l ...
-        config, errors = semgrep.config_resolver.Config.from_pattern_lang(pattern, lang)
-    else:
-        # else let's get a config. A config is a dict from config_id -> config. Config Id is not well defined at this point.
-        config, errors = semgrep.config_resolver.Config.from_config_list(config_strs)
-
-    # if we can't find a config, use default r2c rules
-    if not config:
-        raise SemgrepError(
-            f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
-        )
-
-    return config, errors
 
 
 def notify_user_of_work(

@@ -486,3 +486,21 @@ def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None
         logger.info(f"Template config successfully written to {fd.name}")
     except Exception as e:
         raise SemgrepError(str(e))
+
+
+def get_config(
+    pattern: str, lang: str, config_strs: List[str]
+) -> Tuple[Config, List[SemgrepError]]:
+    if pattern:
+        if not lang:
+            raise SemgrepError("language must be specified when a pattern is passed")
+        config, errors = Config.from_pattern_lang(pattern, lang)
+    else:
+        config, errors = Config.from_config_list(config_strs)
+
+    if not config:
+        raise SemgrepError(
+            f"No config given and {DEFAULT_CONFIG_FILE} was not found. Try running with --help to debug or if you want to download a default config, try running with --config r2c"
+        )
+
+    return config, errors
