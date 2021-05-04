@@ -152,7 +152,7 @@ def build_timing_summary(
     targets: Set[Path],
     match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
     color_output: bool,
-) -> None:
+) -> Iterator[str]:
     items_to_show = 5
     col_lim = 80
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
@@ -175,36 +175,31 @@ def build_timing_summary(
                     rule_timings[rule.id], (run_time - parsing_time, matching_time)
                 )
             )  # type: ignore
-            file_timings[path_str] = file_timings.get(path_str, 0.0) + parsing_time
+            file_timings[path_str] = file_timings.get(path_str, 0.0) + run_time
             all_total_time += run_time
     total_parsing_time = sum(i for i in file_timings.values())
     total_matching_time = sum(i[1] for i in rule_timings.values())
 
     # Output information
-    print(
-        f"Total CPU time: {all_total_time}\tParse time: {total_parsing_time}\tMatch time: {total_matching_time}"
-    )
+    yield f"Timing summary:"
+    yield f"Total CPU time: {all_total_time}\tParse time: {total_parsing_time}\tMatch time: {total_matching_time}"
 
-    print(f"Slowest { items_to_show } files to parse")
+    yield f"Slowest { items_to_show } files"
     slowest_file_times = sorted(file_timings.items(), key=lambda x: x[1], reverse=True)[
         :items_to_show
     ]
     for file_name, parse_time in slowest_file_times:
         num_bytes = f"({format_bytes(Path(file_name).resolve().stat().st_size)}):"
         file_name = truncate(file_name, col_lim)
-        print(
-            f"{GREEN_COLOR}{file_name:<80}{RESET_COLOR} {num_bytes:<9}{parse_time:.4f}"
-        )
+        yield f"{GREEN_COLOR}{file_name:<80}{RESET_COLOR} {num_bytes:<9}{parse_time:.4f}"
 
-    print(f"Slowest { items_to_show } rules to run (excluding parse time)")
+    yield f"Slowest { items_to_show } rules to run (excluding parse time)"
     slowest_rule_times = sorted(
         rule_timings.items(), key=lambda x: x[1][0], reverse=True
     )[:items_to_show]
     for rule_id, (total_time, match_time) in slowest_rule_times:
         rule_id = truncate(rule_id, col_lim) + ":"
-        print(
-            f"{YELLOW_COLOR}{rule_id:<81}{RESET_COLOR} run time {total_time:.4f}  match time {match_time:.4f}"
-        )
+        yield f"{YELLOW_COLOR}{rule_id:<81}{RESET_COLOR} run time {total_time:.4f}  match time {match_time:.4f}"
 
 
 # todo: use profiler for individual rule timings
@@ -279,7 +274,7 @@ def build_normal_output(
             fix_regex = rule_match.fix_regex
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
     if show_times:
-        build_timing_summary(
+        yield from build_timing_summary(
             filtered_rules, all_targets, match_time_matrix, color_output
         )
 
@@ -499,7 +494,7 @@ class OutputSettings(NamedTuple):
     output_per_finding_max_lines_limit: Optional[int]
     output_per_line_max_chars_limit: Optional[int]
     json_stats: bool
-    json_time: bool
+    output_time: bool
     timeout_threshold: int = 0
 
 
@@ -742,7 +737,7 @@ class OutputHandler:
                 self.semgrep_structured_errors,
                 self.all_targets,
                 self.settings.json_stats,
-                self.settings.json_time,
+                self.settings.output_time,
                 self.filtered_rules,
                 self.match_time_matrix,
                 self.profiler,
@@ -767,7 +762,7 @@ class OutputHandler:
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
                         self.all_targets,
-                        self.settings.json_time,
+                        self.settings.output_time,
                         self.filtered_rules,
                         self.match_time_matrix,
                     )
