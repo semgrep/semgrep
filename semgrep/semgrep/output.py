@@ -181,10 +181,10 @@ def build_timing_summary(
     total_matching_time = sum(i[1] for i in rule_timings.values())
 
     # Output information
-    yield f"\nTiming summary:"
+    yield f"\nSemgrep-core timing summary:"
     yield f"Total CPU time: {all_total_time}\tParse time: {total_parsing_time}\tMatch time: {total_matching_time}"
 
-    yield f"Slowest { items_to_show } files"
+    yield f"Slowest {items_to_show}/{len(file_timings)} files"
     slowest_file_times = sorted(file_timings.items(), key=lambda x: x[1], reverse=True)[
         :items_to_show
     ]
@@ -193,7 +193,7 @@ def build_timing_summary(
         file_name = truncate(file_name, col_lim)
         yield f"{GREEN_COLOR}{file_name:<80}{RESET_COLOR} {num_bytes:<9}{parse_time:.4f}"
 
-    yield f"Slowest { items_to_show } rules to run (excluding parse time)"
+    yield f"Slowest {items_to_show} rules to run (excluding parse time)"
     slowest_rule_times = sorted(
         rule_timings.items(), key=lambda x: x[1][0], reverse=True
     )[:items_to_show]
