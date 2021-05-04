@@ -159,7 +159,7 @@ def build_timing_summary(
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
     YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
 
-    all_total_time = 0.0
+    total_parsing_time = 0.0
     rule_timings = {}
     file_timings: Dict[str, float] = {}
     for rule in rules:
@@ -176,12 +176,12 @@ def build_timing_summary(
                 )
             )  # type: ignore
             file_timings[path_str] = file_timings.get(path_str, 0.0) + run_time
-            all_total_time += run_time
-    total_parsing_time = sum(i for i in file_timings.values())
+            total_parsing_time += parsing_time
+    all_total_time = sum(i for i in file_timings.values())
     total_matching_time = sum(i[1] for i in rule_timings.values())
 
     # Output information
-    yield f"Timing summary:"
+    yield f"\nTiming summary:"
     yield f"Total CPU time: {all_total_time}\tParse time: {total_parsing_time}\tMatch time: {total_matching_time}"
 
     yield f"Slowest { items_to_show } files"

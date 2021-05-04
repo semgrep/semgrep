@@ -668,7 +668,7 @@ class CoreRunner:
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
         Set[Path],
-        Dict[Tuple[str, str], float],
+        Dict[Tuple[str, str], Tuple[float, float, float]],
     ]:
         """
         Takes in rules and targets and retuns object with findings
