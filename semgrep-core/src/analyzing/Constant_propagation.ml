@@ -116,15 +116,20 @@ let var_stats prog : var_stats =
 
   let hooks =
     { V.default_visitor with
-      V.kdef = (fun (k, _v) x ->
+      V.kdef = (fun (k, v) x ->
         match x with
         | { name = EN (Id (id,
                            { id_resolved = {contents = Some(_kind, sid)}; _})); _},
-          VarDef ({ vinit = Some _; _ }) ->
+          VarDef ({ vinit = Some e; _ }) ->
             let var = (H.str_of_ident id, sid) in
             let stat = get_stat_or_create var h in
             incr stat.lvalue;
-            k x
+            (* We can't do `k x` otherwise the variable-declaration itself is
+             * re-visited but now interpreted as an assignment (because of
+             * v_vardef_as_assign_expr in Visitor_AST), and we would be wrongly
+             * incrementing `stat.lvalue` a second time. Instead, we just need
+             * to visit the defining expression. *)
+            v (E e)
         | _ -> k x
       );
       V.kexpr = (fun (k, vout) x ->
@@ -280,13 +285,15 @@ let propagate_basic lang prog =
           (* note that some languages such as Python do not have VarDef.
            * todo? should add those somewhere instead of in_lvalue detection?*)
           VarDef ({ vinit = Some (L literal); _ }) ->
-            let _stats =
+            let stats =
               try Hashtbl.find stats (H.str_of_ident id, sid)
               with Not_found -> raise Impossible
             in
             if H.has_keyword_attr Const attrs ||
-               H.has_keyword_attr Final attrs
-               (* TODO later? (!(stats.rvalue) = 1) *)
+               H.has_keyword_attr Final attrs ||
+               (!(stats.lvalue) = 1 &&
+                (lang = Lang.Javascript ||
+                 lang = Lang.Typescript))
             then begin
               id_info.id_constness := Some (Lit literal);
               add_constant_env id (sid, literal) env;
