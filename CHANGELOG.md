@@ -23,6 +23,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `<a href="foo">...</a>`  (#2963)
 - JS/TS: Support metavariables for JSX attribute values, as in
   `<a href=$X>some text</a>` (#2964)
+- A `--time` flag instead of `--json-time` which shows a summary of the
+  timing information when invoked with normal output and adds a time field
+  to the json output when `--json` is also present
 
 ### Fixed
 - Python: correctly parsing fstring with multiple colons
