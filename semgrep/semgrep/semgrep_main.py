@@ -5,8 +5,10 @@ from io import StringIO
 from pathlib import Path
 from re import sub
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 import attr
 
@@ -105,27 +107,22 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
     return result
 
 
-def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
+def invoke_semgrep(
+    config: Path,
+    targets: List[Path],
+    output_settings: Optional[OutputSettings] = None,
+    **kwargs: Any,
+) -> Union[Dict[str, Any], str]:
     """
-    Call semgrep with config on targets and return result as a json object
+    Return Semgrep results of 'config' on 'targets' as a dict|str
 
-    Uses default arguments of MAIN unless overwritten with a kwarg
+    Uses default arguments of 'semgrep_main.main' unless overwritten with 'kwargs'
     """
+    if output_settings is None:
+        output_settings = OutputSettings(output_format=OutputFormat.JSON)
+
     io_capture = StringIO()
-    output_handler = OutputHandler(
-        OutputSettings(
-            output_format=OutputFormat.JSON,
-            output_destination=None,
-            error_on_findings=False,
-            verbose_errors=False,
-            strict=False,
-            json_stats=False,
-            output_time=False,
-            output_per_finding_max_lines_limit=None,
-            output_per_line_max_chars_limit=None,
-        ),
-        stdout=io_capture,
-    )
+    output_handler = OutputHandler(output_settings, stdout=io_capture)
     main(
         output_handler=output_handler,
         target=[str(t) for t in targets],
@@ -135,7 +132,14 @@ def invoke_semgrep(config: Path, targets: List[Path], **kwargs: Any) -> Any:
         **kwargs,
     )
     output_handler.close()
-    return json.loads(io_capture.getvalue())
+
+    result: Union[Dict[str, Any], str] = (
+        json.loads(io_capture.getvalue())
+        if output_settings.output_format.is_json()
+        else io_capture.getvalue()
+    )
+
+    return result
 
 
 def main(

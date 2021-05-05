@@ -12,6 +12,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - .git/ directories are ignored when scanning
+- External Python API (`semgrep_main.invoke_semgrep`) now takes an
+  optional `OutputSettings` argument for controlling output
+- `OutputSettings.json_time` has moved to `OutputSettings.output_time`,
+  this and many other `OutputSettings` arguments have been made optional
 
 ## [0.49.0](https://github.com/returntocorp/semgrep/releases/tag/v0.49.0) - 2021-04-28
 
