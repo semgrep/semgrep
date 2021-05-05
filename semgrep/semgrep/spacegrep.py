@@ -6,6 +6,7 @@ from typing import Any
 from typing import cast
 from typing import Dict
 from typing import List
+from typing import Tuple
 
 from semgrep.core_exception import CoreException
 from semgrep.error import SemgrepError
@@ -17,23 +18,31 @@ from semgrep.util import sub_run
 logger = logging.getLogger(__name__)
 
 
-def _extract_matching_time(json: Dict[str, Any]) -> float:
+def _extract_times(json: Dict[str, Any]) -> Tuple[float, float, float]:
+    def check_num(n: Any) -> float:
+        if isinstance(n, float) or isinstance(n, int):
+            return n
+        else:
+            return 0.0
+
     """Extract the matching time from the 'time' field of the spacegrep output.
 
-    It is expected to have run a single pattern on a single target.
+    It is expected to have run a single pattern on a single target, but it may have
+    skipped the target
     """
     if (
         "time" in json
         and "targets" in json["time"]
         and len(json["time"]["targets"]) > 0
     ):
-        res = json["time"]["targets"][0]["match_time"]
-        if isinstance(res, float) or isinstance(res, int):
-            return res
-        else:
-            return 0.0
+        target_times = json["time"]["targets"][0]
+        return (
+            check_num(target_times["parse_time"]),
+            check_num(target_times["match_time"]),
+            check_num(target_times["run_time"]),
+        )
     else:
-        return 0.0
+        return (0.0, 0.0, 0.0)
 
 
 def run_spacegrep(
@@ -45,7 +54,7 @@ def run_spacegrep(
 ) -> dict:
     matches: List[dict] = []
     errors: List[dict] = []
-    targets_time: Dict[str, float] = {}
+    targets_time: Dict[str, Tuple[float, float, float]] = {}
     for pattern in patterns:
         if not isinstance(pattern._pattern, str):
             raise NotImplementedError(
@@ -96,9 +105,16 @@ def run_spacegrep(
                     errors.extend(output_json["errors"])
                     # aggregate the match times obtained for the different patterns of the rule
                     path_s = str(target)
-                    targets_time[path_s] = targets_time.get(
-                        path_s, 0.0
-                    ) + _extract_matching_time(output_json)
+
+                    targets_time[path_s] = tuple(
+                        [
+                            i + j
+                            for i, j in zip(
+                                targets_time.get(path_s, (0.0, 0.0, 0.0)),
+                                _extract_times(output_json),
+                            )
+                        ]
+                    )  # type: ignore
 
             except subprocess.CalledProcessError as e:
                 raw_error = p.stderr
@@ -115,17 +131,29 @@ def run_spacegrep(
                     f"Invalid JSON output was received from spacegrep: {e}"
                 )
 
-    time = {
-        "targets": [
-            {"path": str(path), "match_time": targets_time.get(str(path), 0.0)}
-            for path in targets
-        ]
-    }
-    return {
-        "matches": matches,
-        "errors": errors,
-        "time": time,
-    }
+    if report_time:
+        target_list = []
+        for path in targets:
+            times = targets_time.get(str(path), (0.0, 0.0, 0.0))
+            target_list.append(
+                {
+                    "path": str(path),
+                    "parse_time": times[0],
+                    "match_time": times[1],
+                    "run_time": times[2],
+                }
+            )
+        time = {"targets": target_list}
+        return {
+            "matches": matches,
+            "errors": errors,
+            "time": time,
+        }
+    else:
+        return {
+            "matches": matches,
+            "errors": errors,
+        }
 
 
 def _parse_spacegrep_output(raw_output: bytes) -> dict:

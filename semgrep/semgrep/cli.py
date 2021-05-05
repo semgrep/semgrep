@@ -257,11 +257,11 @@ def cli() -> None:
         # help="Include statistical information about performance in JSON output (experimental).",
     )
     output.add_argument(
-        "--json-time",
+        "--time",
         action="store_true",
         help=(
-            "Include a 'time' field in the json output."
-            "This provides matching times for each pair (rule, target)."
+            "Include a timing summary with the results"
+            "If output format is json, provides times for each pair (rule, target)."
         ),
     )
     output.add_argument(
@@ -426,7 +426,7 @@ def cli() -> None:
         verbose_errors=args.verbose,
         timeout_threshold=args.timeout_threshold,
         json_stats=args.json_stats,
-        json_time=args.json_time,
+        output_time=args.time,
         output_per_finding_max_lines_limit=args.max_lines_per_finding,
         output_per_line_max_chars_limit=args.max_chars_per_line,
     )
@@ -491,6 +491,6 @@ def cli() -> None:
                 timeout_threshold=args.timeout_threshold,
                 skip_unknown_extensions=args.skip_unknown_extensions,
                 severity=args.severity,
-                report_time=args.json_time,
+                report_time=args.time,
                 optimizations=args.optimizations,
             )

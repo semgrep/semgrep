@@ -365,7 +365,7 @@ def run_semgrep(
     if variant.semgrep_extra != "":
         args.extend([variant.semgrep_extra])
     if include_time:
-        args.extend(["--json-time"])
+        args.extend(["--time"])
 
     print(f"current directory: {os.getcwd()}")
     print("semgrep command: {}".format(" ".join(args)))

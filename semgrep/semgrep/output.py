@@ -132,11 +132,86 @@ def finding_to_line(
                 yield BREAK_LINE
 
 
+def format_bytes(num: float) -> str:
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+        if abs(num) < 1024.0:
+            return "%3d%sB" % (num, unit)
+        num /= 1024.0
+    return "%.1f%sB" % (num, "Y")
+
+
+def truncate(file_name: str, col_lim: int) -> str:
+    name_len = len(file_name)
+    if name_len > col_lim:
+        file_name = "..." + file_name[name_len - col_lim + 3 :]
+    return file_name
+
+
+def build_timing_summary(
+    rules: List[Rule],
+    targets: Set[Path],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
+    color_output: bool,
+) -> Iterator[str]:
+    items_to_show = 5
+    col_lim = 80
+    RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
+    GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
+    YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
+
+    total_parsing_time = 0.0
+    rule_timings = {}
+    file_timings: Dict[str, float] = {}
+    for rule in rules:
+        rule_timings[rule.id] = (0.0, 0.0)
+        for target in targets:
+            path_str = str(target)
+            (parsing_time, matching_time, run_time) = match_time_matrix.get(
+                (rule.id, path_str), (0.0, 0.0, 0.0)
+            )
+            rule_timings[rule.id] = tuple(
+                x + y
+                for x, y in zip(
+                    rule_timings[rule.id], (run_time - parsing_time, matching_time)
+                )
+            )  # type: ignore
+            file_timings[path_str] = file_timings.get(path_str, 0.0) + run_time
+            total_parsing_time += parsing_time
+    all_total_time = sum(i for i in file_timings.values())
+    total_matching_time = sum(i[1] for i in rule_timings.values())
+
+    # Output information
+    yield f"\nSemgrep-core timing summary:"
+    yield f"Total CPU time: {all_total_time}\tParse time: {total_parsing_time}\tMatch time: {total_matching_time}"
+
+    yield f"Slowest {items_to_show}/{len(file_timings)} files"
+    slowest_file_times = sorted(file_timings.items(), key=lambda x: x[1], reverse=True)[
+        :items_to_show
+    ]
+    for file_name, parse_time in slowest_file_times:
+        num_bytes = f"({format_bytes(Path(file_name).resolve().stat().st_size)}):"
+        file_name = truncate(file_name, col_lim)
+        yield f"{GREEN_COLOR}{file_name:<80}{RESET_COLOR} {num_bytes:<9}{parse_time:.4f}"
+
+    yield f"Slowest {items_to_show} rules to run (excluding parse time)"
+    slowest_rule_times = sorted(
+        rule_timings.items(), key=lambda x: x[1][0], reverse=True
+    )[:items_to_show]
+    for rule_id, (total_time, match_time) in slowest_rule_times:
+        rule_id = truncate(rule_id, col_lim) + ":"
+        yield f"{YELLOW_COLOR}{rule_id:<81}{RESET_COLOR} run time {total_time:.4f}  match time {match_time:.4f}"
+
+
+# todo: use profiler for individual rule timings
 def build_normal_output(
     rule_matches: List[RuleMatch],
     color_output: bool,
     per_finding_max_lines_limit: Optional[int],
     per_line_max_chars_limit: Optional[int],
+    all_targets: Set[Path],
+    show_times: bool,
+    filtered_rules: List[Rule],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
 ) -> Iterator[str]:
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
@@ -198,29 +273,39 @@ def build_normal_output(
         elif rule_match.fix_regex:
             fix_regex = rule_match.fix_regex
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+    if show_times:
+        yield from build_timing_summary(
+            filtered_rules, all_targets, match_time_matrix, color_output
+        )
 
 
 def _build_time_target_json(
     rules: List[Rule],
     target: Path,
     num_bytes: int,
-    match_time_matrix: Dict[Tuple[str, str], float],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
 ) -> Dict[str, Any]:
     target_json: Dict[str, Any] = {}
     path_str = str(target)
 
     target_json["path"] = path_str
     target_json["num_bytes"] = num_bytes
-    target_json["match_times"] = [
-        match_time_matrix.get((rule.id, path_str), 0.0) for rule in rules
+    timings = [
+        match_time_matrix.get((rule.id, path_str), (0.0, 0.0, 0.0)) for rule in rules
     ]
+    target_json["parse_times"] = [timing[0] for timing in timings]
+    target_json["match_times"] = [timing[1] for timing in timings]
+    target_json["run_times"] = [timing[2] for timing in timings]
+
     return target_json
 
 
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
-    match_time_matrix: Dict[Tuple[str, str], float],  # (rule, target) -> duration
+    match_time_matrix: Dict[
+        Tuple[str, str], Tuple[float, float, float]
+    ],  # (rule, target) -> duration
     total_time: float,
 ) -> Dict[str, Any]:
     """Convert match times to a json-ready format.
@@ -252,7 +337,7 @@ def build_output_json(
     show_json_stats: bool,
     report_time: bool,
     filtered_rules: List[Rule],
-    match_time_matrix: Dict[Tuple[str, str], float],
+    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
     profiler: Optional[ProfileManager] = None,
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
@@ -409,7 +494,7 @@ class OutputSettings(NamedTuple):
     output_per_finding_max_lines_limit: Optional[int]
     output_per_line_max_chars_limit: Optional[int]
     json_stats: bool
-    json_time: bool
+    output_time: bool
     timeout_threshold: int = 0
 
 
@@ -462,7 +547,7 @@ class OutputHandler:
         self.has_output = False
         self.filtered_rules: List[Rule] = []
         self.match_time_matrix: Dict[
-            Tuple[str, str], float
+            Tuple[str, str], Tuple[float, float, float]
         ] = {}  # (rule, target) -> duration
 
         self.final_error: Optional[Exception] = None
@@ -524,7 +609,9 @@ class OutputHandler:
         all_targets: Set[Path],
         profiler: ProfileManager,
         filtered_rules: List[Rule],
-        match_time_matrix: Dict[Tuple[str, str], float],  # (rule, target) -> duration
+        match_time_matrix: Dict[
+            Tuple[str, str], Tuple[float, float, float]
+        ],  # (rule, target) -> duration
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -650,7 +737,7 @@ class OutputHandler:
                 self.semgrep_structured_errors,
                 self.all_targets,
                 self.settings.json_stats,
-                self.settings.json_time,
+                self.settings.output_time,
                 self.filtered_rules,
                 self.match_time_matrix,
                 self.profiler,
@@ -674,6 +761,10 @@ class OutputHandler:
                         color_output,
                         per_finding_max_lines_limit,
                         per_line_max_chars_limit,
+                        self.all_targets,
+                        self.settings.output_time,
+                        self.filtered_rules,
+                        self.match_time_matrix,
                     )
                 )
             )
