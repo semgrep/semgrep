@@ -390,7 +390,7 @@ let matches_of_spacegrep spacegreps file =
   match doc_type with
   | (Minified | Binary) ->
       logger#info "ignoring gibberish file: %s\n%!" file;
-      [], 0.0
+      [], 0.0, 0.0
   | _ ->
       let src =
         if Spacegrep.Src_file.length partial_doc_src < peek_length
@@ -398,36 +398,41 @@ let matches_of_spacegrep spacegreps file =
         then partial_doc_src
         else Spacegrep.Src_file.of_file file
       in
-      let doc = Spacegrep.Parse_doc.of_src src in
+      let doc, parse_time =
+        Common.with_time (fun () -> Spacegrep.Parse_doc.of_src src)
+      in
       (* pr (Spacegrep.Doc_AST.show doc); *)
-      Common.with_time (fun () ->
-        spacegreps |> List.map (fun (pat, id, pstr) ->
-          let matches =
-            Spacegrep.Match.search ~case_sensitive:true src pat doc
-          in
-          matches |> List.map (fun m ->
-            let ((pos1,_),(_pos2,_)) = m.Spacegrep.Match.region in
-            let {Spacegrep.Match.value = str; _} = m.Spacegrep.Match.capture in
-            let env =
-              m.Spacegrep.Match.named_captures |> List.map (fun (s, capture) ->
-                let mvar = "$" ^ s in
-                let {Spacegrep.Match.value = str; loc = (pos, _)} = capture in
-                let loc = lexing_pos_to_loc file pos str in
-                let t = info_of_token_location loc in
-                let mval = mval_of_spacegrep_string str t in
-                mvar, mval
-              )
+      let res, match_time =
+        Common.with_time (fun () ->
+          spacegreps |> List.map (fun (pat, id, pstr) ->
+            let matches =
+              Spacegrep.Match.search ~case_sensitive:true src pat doc
             in
+            matches |> List.map (fun m ->
+              let ((pos1,_),(_pos2,_)) = m.Spacegrep.Match.region in
+              let {Spacegrep.Match.value = str; _} = m.Spacegrep.Match.capture in
+              let env =
+                m.Spacegrep.Match.named_captures |> List.map (fun (s, capture) ->
+                  let mvar = "$" ^ s in
+                  let {Spacegrep.Match.value = str; loc = (pos, _)} = capture in
+                  let loc = lexing_pos_to_loc file pos str in
+                  let t = info_of_token_location loc in
+                  let mval = mval_of_spacegrep_string str t in
+                  mvar, mval
+                )
+              in
 
-            let loc = lexing_pos_to_loc file pos1 str in
-            (* this will be adjusted later *)
-            let rule_id = fake_rule_id (id, pstr) in
-            {PM. rule_id; file; range_loc = loc, loc; env;
-             tokens = lazy [info_of_token_location loc];
-            }
-          )
-        ) |> List.flatten
-      )
+              let loc = lexing_pos_to_loc file pos1 str in
+              (* this will be adjusted later *)
+              let rule_id = fake_rule_id (id, pstr) in
+              {PM. rule_id; file; range_loc = loc, loc; env;
+               tokens = lazy [info_of_token_location loc];
+              }
+            )
+          ) |> List.flatten
+        )
+      in
+      res, parse_time, match_time
 [@@profiling]
 
 (*****************************************************************************)
@@ -435,27 +440,32 @@ let matches_of_spacegrep spacegreps file =
 (*****************************************************************************)
 
 let matches_of_regexs regexps lazy_content file =
-  let big_str = Lazy.force lazy_content in
-  Common.with_time (fun () ->
-    regexps |> List.map (fun ((s, re), id, _pstr) ->
-      let subs =
-        try
-          Pcre.exec_all ~rex:re big_str
-        with Not_found -> [||]
-      in
-      subs |> Array.to_list |> List.map (fun sub ->
-        let (charpos, _) = Pcre.get_substring_ofs sub 0 in
-        let str = Pcre.get_substring sub 0 in
+  let big_str, parse_time =
+    Common.with_time (fun () -> Lazy.force lazy_content)
+  in
+  let res, match_time =
+    Common.with_time (fun () ->
+      regexps |> List.map (fun ((s, re), id, _pstr) ->
+        let subs =
+          try
+            Pcre.exec_all ~rex:re big_str
+          with Not_found -> [||]
+        in
+        subs |> Array.to_list |> List.map (fun sub ->
+          let (charpos, _) = Pcre.get_substring_ofs sub 0 in
+          let str = Pcre.get_substring sub 0 in
 
-        let (line, column) = line_col_of_charpos file charpos in
-        let loc = {PI. str; charpos; file; line; column } in
-        (* this will be re-adjusted later *)
-        let rule_id = fake_rule_id (id, s) in
-        {PM. rule_id; file; range_loc = loc, loc;
-         tokens = lazy [info_of_token_location loc]; env = [] }
-      )
-    ) |> List.flatten
-  )
+          let (line, column) = line_col_of_charpos file charpos in
+          let loc = {PI. str; charpos; file; line; column } in
+          (* this will be re-adjusted later *)
+          let rule_id = fake_rule_id (id, s) in
+          {PM. rule_id; file; range_loc = loc, loc;
+           tokens = lazy [info_of_token_location loc]; env = [] }
+        )
+      ) |> List.flatten
+    )
+  in
+  res, parse_time, match_time
 [@@profiling]
 
 (*****************************************************************************)
@@ -474,47 +484,53 @@ let matches_of_xpatterns config orig_rule
   let (patterns, spacegreps, regexps) = partition_xpatterns xpatterns in
 
   (* semgrep *)
-  let (semgrep_matches, errors), semgrep_match_time =
+  let (semgrep_matches, errors), semgrep_parse_time, semgrep_match_time =
     match xlang with
     | R.L (lang, _) ->
-        let (ast, errors) = lazy_force lazy_ast_and_errors in
-        Common.with_time (fun () ->
-          let mini_rules =
-            patterns |> List.map (mini_rule_of_pattern orig_rule) in
-          let equivalences =
-            (* TODO *)
-            []
-          in
-          (* debugging path *)
-          if !debug_timeout || !debug_matches
-          then
-            (debug_semgrep config mini_rules equivalences file lang ast,
-             errors)
-            (* regular path *)
-          else Semgrep_generic.check ~hook:(fun _ _ -> ()) config
-              mini_rules equivalences (file, lang, ast),
-               errors
-        )
-    | _ -> ([], []), 0.0
+        let (ast, errors), parse_time =
+          Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
+        in
+        let res, match_time =
+          Common.with_time (fun () ->
+            let mini_rules =
+              patterns |> List.map (mini_rule_of_pattern orig_rule) in
+            let equivalences =
+              (* TODO *)
+              []
+            in
+            (* debugging path *)
+            if !debug_timeout || !debug_matches
+            then
+              (debug_semgrep config mini_rules equivalences file lang ast,
+               errors)
+              (* regular path *)
+            else Semgrep_generic.check ~hook:(fun _ _ -> ()) config
+                mini_rules equivalences (file, lang, ast),
+                 errors
+          )
+        in
+        res, parse_time, match_time
+    | _ -> ([], []), 0.0, 0.0
   in
 
   (* spacegrep *)
-  let spacegrep_matches, spacegrep_match_time =
+  let spacegrep_matches, spacegrep_parse_time, spacegrep_match_time =
     if spacegreps = []
-    then [], 0.0
+    then [], 0.0, 0.0
     else matches_of_spacegrep spacegreps file
   in
 
   (* regexps *)
-  let regexp_matches, regexp_match_time =
+  let regexp_matches, regexp_parse_time, regexp_match_time =
     if regexps = []
-    then [], 0.0
+    then [], 0.0, 0.0
     else matches_of_regexs regexps lazy_content file
   in
 
   (* final result *)
   semgrep_matches @ regexp_matches @ spacegrep_matches,
   errors,
+  semgrep_parse_time +. regexp_parse_time +. spacegrep_parse_time,
   semgrep_match_time +. regexp_match_time +. spacegrep_match_time
 [@@profiling]
 
@@ -633,11 +649,11 @@ let check hook config rules file_and_more =
       if not relevant_rule
       then begin
         logger#info "skipping rule %s for %s" (r.R.id) file;
-        [], [], 0.0
+        [], [], 0.0, 0.0
       end else begin
         let xpatterns =
           xpatterns_in_formula formula in
-        let matches, errors, match_time =
+        let matches, errors, parse_time, match_time =
           matches_of_xpatterns config
             r (file, xlang, lazy_ast_and_errors, lazy_content)
             xpatterns
@@ -669,12 +685,13 @@ let check hook config rules file_and_more =
            )
          ),
          errors,
+         parse_time,
          match_time)
       end
     ))
-  |> Common2.unzip3
-  |> (fun (xxs, yys, match_times) ->
-    (List.flatten xxs, List.flatten yys, Common2.sum_float  match_times)
+  |> Common2.unzip4
+  |> (fun (xxs, yys, parse_times, match_times) ->
+    (List.flatten xxs, List.flatten yys, Common2.sum_float parse_times, Common2.sum_float  match_times)
   )
 [@@profiling]
 (*e: semgrep/engine/Semgrep.ml *)

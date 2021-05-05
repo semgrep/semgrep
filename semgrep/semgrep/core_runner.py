@@ -298,14 +298,18 @@ class CoreRunner:
     def _add_match_times(
         self,
         rule: Rule,
-        match_time_matrix: Dict[Tuple[str, str], float],
+        match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
         output_time_json: Dict[str, Any],
     ) -> None:
         """Collect the match times reported by semgrep-core (or spacegrep)."""
         if "targets" in output_time_json:
             for target in output_time_json["targets"]:
                 if "match_time" in target and "path" in target:
-                    match_time_matrix[(rule.id, target["path"])] = target["match_time"]
+                    match_time_matrix[(rule.id, target["path"])] = (
+                        target["parse_time"],
+                        target["match_time"],
+                        target["run_time"],
+                    )
 
     def _run_rule(
         self,
@@ -314,7 +318,7 @@ class CoreRunner:
         cache_dir: str,
         max_timeout_files: List[Path],
         profiler: ProfileManager,
-        match_time_matrix: Dict[Tuple[str, str], float],
+        match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[SemgrepError], Set[Path]]:
         """
         Run all rules on targets and return list of all places that match patterns, ... todo errors
@@ -489,7 +493,9 @@ class CoreRunner:
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
         Set[Path],  # targets
-        Dict[Tuple[str, str], float],  # match time for each (rule, target)
+        Dict[
+            Tuple[str, str], Tuple[float, float, float]
+        ],  # match time for each (rule, target)
     ]:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
@@ -497,7 +503,7 @@ class CoreRunner:
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
         max_timeout_files: List[Path] = []
         all_targets: Set[Path] = set()
-        match_time_matrix: Dict[Tuple[str, str], float] = {}
+        match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]] = {}
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
@@ -554,6 +560,8 @@ class CoreRunner:
 
         outputs: Dict[Rule, List[RuleMatch]] = defaultdict(list)
         errors: List[SemgrepError] = []
+        all_targets: Set[Path] = set()
+        match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]] = {}
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
             for rule, language in tuple(
@@ -574,6 +582,8 @@ class CoreRunner:
                     # opti: no need to call semgrep-core if no target files
                     if not targets:
                         continue
+                    all_targets = all_targets.union(targets)
+
                     target_file.write("\n".join(map(lambda p: str(p), targets)))
                     target_file.flush()
                     yaml = YAML()
@@ -599,11 +609,19 @@ class CoreRunner:
                         str(self._max_memory),
                     ]
 
+                    if self._report_time:
+                        cmd += ["-json_time"]
+
                     r = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                     out_bytes, err_bytes, returncode = r.stdout, r.stderr, r.returncode
                     output_json = self._parse_core_output(
                         out_bytes, err_bytes, returncode
                     )
+
+                    if "time" in output_json:
+                        self._add_match_times(
+                            rule, match_time_matrix, output_json["time"]
+                        )
 
                     if returncode != 0:
                         if "error" in output_json:
@@ -635,7 +653,7 @@ class CoreRunner:
                 )
         # end for rule, language ...
 
-        return outputs, {}, errors, set(Path(p) for p in target_manager.targets), {}
+        return outputs, {}, errors, all_targets, match_time_matrix
 
     # end _run_rules_direct_to_semgrep_core
 
@@ -650,7 +668,7 @@ class CoreRunner:
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
         Set[Path],
-        Dict[Tuple[str, str], float],
+        Dict[Tuple[str, str], Tuple[float, float, float]],
     ]:
         """
         Takes in rules and targets and retuns object with findings

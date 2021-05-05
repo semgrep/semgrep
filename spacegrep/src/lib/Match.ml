@@ -517,7 +517,7 @@ let print_nested_results
     ?highlight
     ?(print_optional_separator = make_separator_printer ())
     doc_matches =
-  List.iter (fun (src, pat_matches) ->
+  List.iter (fun (src, pat_matches, _parse_time, _run_time) ->
     List.iter (fun (_pat_id, matches, _match_time) ->
       print ?highlight ~print_optional_separator src matches
     ) pat_matches

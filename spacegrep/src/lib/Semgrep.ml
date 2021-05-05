@@ -38,10 +38,12 @@ let convert_capture (name, x) =
     unique_id = unique_id_of_capture ~captured_string:x.value;
   }
 
-let make_target_time (src, match_time) : Semgrep_t.target_time =
+let make_target_time (src, parse_time, match_time, run_time) : Semgrep_t.target_time =
   {
     path = Src_file.source_string src;
+    parse_time;
     match_time;
+    run_time;
   }
 
 (*
@@ -49,7 +51,7 @@ let make_target_time (src, match_time) : Semgrep_t.target_time =
 *)
 let make_semgrep_json ~with_time doc_matches : Semgrep_t.match_results =
   let matches, match_times =
-    List.map (fun (src, pat_matches) ->
+    List.map (fun (src, pat_matches, parse_time, run_time) ->
       let path = Src_file.source_string src in
       let matches, match_time =
         List.fold_right
@@ -80,7 +82,7 @@ let make_semgrep_json ~with_time doc_matches : Semgrep_t.match_results =
              (matches_out @ matches_acc, match_time +. match_time_acc)
           ) pat_matches ([], 0.0)
       in
-      (matches, (src, match_time))
+      (matches, (src, parse_time, match_time, run_time))
     ) doc_matches
     |> List.split
   in

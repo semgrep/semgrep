@@ -39,6 +39,9 @@ type match_ = {
   named_captures: (string * capture) list;
 }
 
+val timef :
+  (unit -> 'a) -> 'a * float
+
 (*
    Match a pattern against a document. Return the list of all
    non-overlapping matches found by scanning the document from left to right.
@@ -72,4 +75,4 @@ val print :
 val print_nested_results :
   ?highlight:bool ->
   ?print_optional_separator:(unit -> unit) ->
-  (Src_file.t * (pattern_id * match_ list * float) list) list -> unit
+  (Src_file.t * (pattern_id * match_ list * float) list * float * float) list -> unit
