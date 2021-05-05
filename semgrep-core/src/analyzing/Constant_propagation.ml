@@ -336,8 +336,8 @@ let propagate_basic lang prog =
                     with Not_found -> raise Impossible
                   in
                   if (!(stats.lvalue) = 1) &&
-                     (* restrict to Python/Ruby Globals for now *)
-                     (lang = Lang.Python || lang = Lang.Ruby) &&
+                     (* restrict to Python/Ruby/PHP Globals for now *)
+                     (lang = Lang.Python || lang = Lang.Ruby || lang = Lang.PHP) &&
                      kind = Global
                   then begin
                     id_info.id_constness := Some (Lit literal);

@@ -220,7 +220,7 @@ let rec lookup s xxs =
 (*e: function [[Naming_AST.lookup_scope_opt]] *)
 
 (*s: function [[Naming_AST.lookup_global_scope]] *)
-(* for Python, PHP? *)
+(* for Python, PHP *)
 let lookup_global_scope (s, _) scopes =
   lookup s [!(scopes.global)]
 (*e: function [[Naming_AST.lookup_global_scope]] *)
@@ -649,7 +649,7 @@ let resolve2 lang prog =
                   (match !(env.in_lvalue), lang with
                    (* first use of a variable can be a VarDef in some languages *)
                    (* type propagation not necessary because this does not hold true for Java or Go *)
-                   | true, (Lang.Python | Lang.Ruby) (* PHP? *)
+                   | true, (Lang.Python | Lang.Ruby | Lang.PHP)
                      when is_resolvable_name_ctx env lang ->
                        (* mostly copy-paste of VarDef code *)
                        let sid = H.gensym () in
