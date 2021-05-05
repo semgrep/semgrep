@@ -220,6 +220,8 @@ class TargetManager:
         match any pattern in EXCLUDES. Any file in TARGET bypasses excludes and includes.
         If a file in TARGET has a known extension that is not for langugage LANG then
         it is also filtered out
+
+        Note also filters out any directory and decendants of `.git`
         """
         if lang in self._filtered_targets:
             return self._filtered_targets[lang]
@@ -237,7 +239,7 @@ class TargetManager:
 
         targets = self.expand_targets(directories, lang, self.respect_git_ignore)
         targets = self.filter_includes(targets, self.includes)
-        targets = self.filter_excludes(targets, self.excludes)
+        targets = self.filter_excludes(targets, self.excludes + [".git"])
 
         # Remove explicit_files with known extensions.
         explicit_files_with_lang_extension = set(
