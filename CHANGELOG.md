@@ -8,7 +8,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JS/TS: Infer global constants even if the `const` qualifier is missing (#2978)
 
 ### Fixed
+
 ### Changed
+- .git/ directories are ignored when scanning
 
 ## [0.49.0](https://github.com/returntocorp/semgrep/releases/tag/v0.49.0) - 2021-04-28
 
