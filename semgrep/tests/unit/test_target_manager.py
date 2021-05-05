@@ -403,7 +403,7 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
         verbose_errors=False,
         strict=False,
         json_stats=False,
-        json_time=False,
+        output_time=False,
         output_per_finding_max_lines_limit=None,
         output_per_line_max_chars_limit=None,
     )
