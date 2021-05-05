@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JS/TS: Infer global constants even if the `const` qualifier is missing (#2978)
 
 ### Fixed
+- Empty yaml files do not crash
 
 ### Changed
 - .git/ directories are ignored when scanning
