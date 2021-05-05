@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Empty yaml files do not crash
+- Autofix does not insert newline characters for patterns from semgrep.live
 
 ### Changed
 - .git/ directories are ignored when scanning
