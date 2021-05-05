@@ -46,6 +46,7 @@ module A = AST_generic
 
 exception ParseError of string
 exception ImpossibleDots
+exception UnreachableList
 
 (* right now we just pass down the filename in the environment, but
  * we could need to pass more information later.
@@ -156,20 +157,20 @@ let make_mapping (pos1, pos2) ((key, value) : A.expr * A.expr) env =
   | A.Ellipsis _, A.Ellipsis _ -> A.Ellipsis (Parse_info.fake_info "..."), pos2
   | _ -> A.Tuple (mk_bracket (pos1, pos2) [key; value] env), pos2
 
-let make_doc start_pos (doc, end_pos) env =
+let make_doc start_pos (doc, end_pos) env : A.expr list =
   match doc with
-  | [x] -> x
-  | xs -> A.Container(A.Array, mk_bracket (start_pos, end_pos) xs env)
+  | [] -> []
+  | [x] -> [x]
+  | xs -> [A.Container(A.Array, mk_bracket (start_pos, end_pos) xs env)]
 
-let parse env parser : A.expr =
+let parse env parser : A.expr list =
   (* Parse states *)
-  let rec read_stream () : A.expr =
+  let rec read_stream () : A.expr list =
     match get_res (S.do_parse parser) with
     | E.Stream_start _, pos -> make_doc pos (read_documents []) env
     | v, pos -> mk_err "Expected start of string, got" v pos env
   and read_documents acc : A.expr list * E.pos =
     match get_res (S.do_parse parser) with
-
     | E.Document_start _, _pos -> let docs, _ = read_document () in
         let rest, end_pos = read_documents acc in
         docs :: rest, end_pos
@@ -223,9 +224,10 @@ let make_pattern_expr e =
   match e with
   (* If the user creates a pattern with a single field, assume they just want *
    * to match the field, not the whole enclosing container                    *)
-  | A.Container(A.Dict, (_lp, [x], _rp)) -> A.E x
-  | A.Container(A.Array, (_lp, [x], _rp)) -> A.E x
-  | _ -> A.E e
+  | [A.Container(A.Dict, (_lp, [x], _rp))] -> A.E x
+  | [A.Container(A.Array, (_lp, [x], _rp))] -> A.E x
+  | [x] -> A.E x
+  | _ -> raise UnreachableList
 
 (*****************************************************************************)
 (* Preprocess the file to replace ellipses with a standin value *)
@@ -384,7 +386,7 @@ let program file =
   let str = Common.read_file file in
   let charpos_to_pos = Some (Parse_info.full_charpos_to_pos_large file) in
   let env = { file; charpos_to_pos } in
-  [A.exprstmt (get_res (S.parser str) |> parse env)]
+  List.map A.exprstmt (get_res (S.parser str) |> parse env)
 
 let any str =
   let env = { file = "<pattern_file>"; charpos_to_pos = None } in
