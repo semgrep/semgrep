@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Empty yaml files do not crash
 
 ### Changed
+- .git/ directories are ignored when scanning
 
 ## [0.49.0](https://github.com/returntocorp/semgrep/releases/tag/v0.49.0) - 2021-04-28
 
