@@ -2,6 +2,8 @@ from subprocess import CalledProcessError
 
 import pytest
 
+from semgrep.constants import OutputFormat
+
 
 @pytest.mark.parametrize(
     "filename",
@@ -15,7 +17,7 @@ def test_rule_parser__failure__error_messages(run_semgrep_in_tmp, snapshot, file
             config="rules/eqeq-python.yaml",
             target_name=f"bad/{filename}",
             options=["--verbose"],
-            output_format="text",
+            output_format=OutputFormat.TEXT,
             stderr=True,
         )
     snapshot.assert_match(excinfo.value.output, "error.txt")
