@@ -6,7 +6,7 @@ def test_debugging_json(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp(
             "rules/eqeq.yaml",
             target_name="basic/stupid.py",
-            options=["--debug"],
+            options=["--debugging-json"],
             output_format=OutputFormat.JSON,
         ),
         "results.json",
