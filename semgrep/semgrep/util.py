@@ -41,7 +41,7 @@ def is_url(url: str) -> bool:
 
 
 def debug_tqdm_write(msg: str, file: IO = sys.stderr) -> None:
-    if DEBUG:
+    if DEBUG and not QUIET:
         tqdm.write(msg, file=file)
 
 
