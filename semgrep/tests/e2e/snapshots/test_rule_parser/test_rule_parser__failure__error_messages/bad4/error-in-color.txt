@@ -6,6 +6,6 @@
 [94m7 | [39m        pattern: $X = 1
 [94m8 | [39m    message: "$X is being reassigned"
 
-[31m{'pattern-inside': 'def foo($X):\n    ...\n', 'pattern': '$X = 1'} is not of type 'array'[39m
+[31m{'pattern-inside': 'def foo($X):\n    ...', 'pattern': '$X = 1'} is not of type 'array'[39m
 
 run with --strict and there were 1 errors loading configs

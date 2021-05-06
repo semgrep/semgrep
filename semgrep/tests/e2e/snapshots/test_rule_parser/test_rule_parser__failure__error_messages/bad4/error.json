@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "{'pattern-inside': 'def foo($X):\\n    ...\\n', 'pattern': '$X = 1'} is not of type 'array'",
+      "long_msg": "{'pattern-inside': 'def foo($X):\\n    ...', 'pattern': '$X = 1'} is not of type 'array'",
       "short_msg": "Invalid rule schema",
       "spans": [
         {

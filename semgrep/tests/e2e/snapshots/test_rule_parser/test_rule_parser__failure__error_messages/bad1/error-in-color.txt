@@ -10,6 +10,6 @@
 [94m11 | [39m          - pattern: self.$X == self.$X
 [94m12 | [39m      - pattern-not: 1 == 1
 
-[31m[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\n    ...\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'[39m
+[31m[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\n    ...'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'[39m
 
 run with --strict and there were 1 errors loading configs

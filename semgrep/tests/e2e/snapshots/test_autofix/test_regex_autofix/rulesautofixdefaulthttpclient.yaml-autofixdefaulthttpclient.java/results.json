@@ -14,7 +14,7 @@
         },
         "is_ignored": false,
         "lines": "\t\tHttpClient client = new DefaultHttpClient();",
-        "message": "DefaultHttpClient is deprecated. Further, it does not support connections\nusing TLS1.2, which makes using DefaultHttpClient a security hazard.\nUse SystemDefaultHttpClient instead, which supports TLS1.2.\n",
+        "message": "DefaultHttpClient is deprecated. Further, it does not support connections\nusing TLS1.2, which makes using DefaultHttpClient a security hazard.\nUse SystemDefaultHttpClient instead, which supports TLS1.2.",
         "metadata": {
           "cwe": "CWE-326: Inadequate Encryption Strength",
           "owasp": "A3: Sensitive Data Exposure",

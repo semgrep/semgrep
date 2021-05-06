@@ -10,7 +10,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "    return 1",
-        "message": "Semgrep found a match foo\n",
+        "message": "Semgrep found a match foo",
         "metadata": {},
         "metavars": {},
         "severity": "WARNING"
@@ -30,7 +30,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "    return 2",
-        "message": "Semgrep found a match bar\n",
+        "message": "Semgrep found a match bar",
         "metadata": {},
         "metavars": {},
         "severity": "WARNING"
