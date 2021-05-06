@@ -234,7 +234,7 @@ The two most popular are:
         debug_steps_by_rule,
         semgrep_errors,
         all_targets,
-        match_time_matrix,
+        profiling_data,
     ) = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
@@ -275,7 +275,7 @@ The two most popular are:
         all_targets,
         profiler,
         filtered_rules,
-        match_time_matrix,
+        profiling_data,
     )
 
     if autofix:

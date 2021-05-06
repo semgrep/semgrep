@@ -265,6 +265,11 @@ def cli() -> None:
         ),
     )
     output.add_argument(
+        "--json-time",
+        action="store_true",
+        help=("The same as --time, included for backwards compatibility"),
+    )
+    output.add_argument(
         "--debugging-json",
         action="store_true",
         help="Output JSON with extra debugging information (experimental).",
@@ -491,6 +496,6 @@ def cli() -> None:
                 timeout_threshold=args.timeout_threshold,
                 skip_unknown_extensions=args.skip_unknown_extensions,
                 severity=args.severity,
-                report_time=args.time,
+                report_time=args.time or args.json_time,
                 optimizations=args.optimizations,
             )

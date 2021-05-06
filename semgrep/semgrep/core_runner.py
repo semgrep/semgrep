@@ -35,6 +35,8 @@ from semgrep.evaluation import evaluate
 from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.profile_manager import ProfileManager
+from semgrep.profiling import ProfilingData
+from semgrep.profiling import Times
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
@@ -298,17 +300,21 @@ class CoreRunner:
     def _add_match_times(
         self,
         rule: Rule,
-        match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
+        profiling_data: ProfilingData,
         output_time_json: Dict[str, Any],
     ) -> None:
         """Collect the match times reported by semgrep-core (or spacegrep)."""
         if "targets" in output_time_json:
             for target in output_time_json["targets"]:
                 if "match_time" in target and "path" in target:
-                    match_time_matrix[(rule.id, target["path"])] = (
-                        target["parse_time"],
-                        target["match_time"],
-                        target["run_time"],
+                    profiling_data.set_times(
+                        rule.id,
+                        target["path"],
+                        Times(
+                            parse_time=target["parse_time"],
+                            match_time=target["match_time"],
+                            run_time=target["run_time"],
+                        ),
                     )
 
     def _run_rule(
@@ -318,7 +324,7 @@ class CoreRunner:
         cache_dir: str,
         max_timeout_files: List[Path],
         profiler: ProfileManager,
-        match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
+        profiling_data: ProfilingData,
     ) -> Tuple[List[RuleMatch], List[Dict[str, Any]], List[SemgrepError], Set[Path]]:
         """
         Run all rules on targets and return list of all places that match patterns, ... todo errors
@@ -420,7 +426,7 @@ class CoreRunner:
             )
             outputs.extend(PatternMatch(m) for m in output_json["matches"])
             if "time" in output_json:
-                self._add_match_times(rule, match_time_matrix, output_json["time"])
+                self._add_match_times(rule, profiling_data, output_json["time"])
 
         # group output; we want to see all of the same rule ids on the same file path
         by_rule_index: Dict[
@@ -493,9 +499,7 @@ class CoreRunner:
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
         Set[Path],  # targets
-        Dict[
-            Tuple[str, str], Tuple[float, float, float]
-        ],  # match time for each (rule, target)
+        ProfilingData,  # match time for each (rule, target)
     ]:
         findings_by_rule: Dict[Rule, List[RuleMatch]] = {}
         debugging_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
@@ -503,7 +507,7 @@ class CoreRunner:
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
         max_timeout_files: List[Path] = []
         all_targets: Set[Path] = set()
-        match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]] = {}
+        profiling_data: ProfilingData = ProfilingData()
 
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
@@ -517,7 +521,7 @@ class CoreRunner:
                     semgrep_core_ast_cache_dir,
                     max_timeout_files,
                     profiler,
-                    match_time_matrix,
+                    profiling_data,
                 )
                 all_targets = all_targets.union(rule_targets)
                 findings_by_rule[rule] = rule_matches
@@ -538,7 +542,7 @@ class CoreRunner:
             debugging_steps_by_rule,
             all_errors,
             all_targets,
-            match_time_matrix,
+            profiling_data,
         )
 
     def _run_rules_direct_to_semgrep_core(
@@ -551,7 +555,7 @@ class CoreRunner:
         Dict[Rule, List[Any]],
         List[SemgrepError],
         Set[Path],
-        Dict[Any, Any],
+        ProfilingData,
     ]:
         from itertools import chain
         from collections import defaultdict
@@ -561,7 +565,7 @@ class CoreRunner:
         outputs: Dict[Rule, List[RuleMatch]] = defaultdict(list)
         errors: List[SemgrepError] = []
         all_targets: Set[Path] = set()
-        match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]] = {}
+        profiling_data: ProfilingData = ProfilingData()
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
             for rule, language in tuple(
@@ -619,9 +623,7 @@ class CoreRunner:
                     )
 
                     if "time" in output_json:
-                        self._add_match_times(
-                            rule, match_time_matrix, output_json["time"]
-                        )
+                        self._add_match_times(rule, profiling_data, output_json["time"])
 
                     if returncode != 0:
                         if "error" in output_json:
@@ -653,7 +655,7 @@ class CoreRunner:
                 )
         # end for rule, language ...
 
-        return outputs, {}, errors, all_targets, match_time_matrix
+        return outputs, {}, errors, all_targets, profiling_data
 
     # end _run_rules_direct_to_semgrep_core
 
@@ -668,7 +670,7 @@ class CoreRunner:
         Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
         Set[Path],
-        Dict[Tuple[str, str], Tuple[float, float, float]],
+        ProfilingData,
     ]:
         """
         Takes in rules and targets and retuns object with findings
@@ -684,7 +686,7 @@ class CoreRunner:
             debug_steps_by_rule,
             errors,
             all_targets,
-            match_time_matrix,
+            profiling_data,
         ) = runner_fxn(rules, target_manager, profiler)
 
         logger.debug(
@@ -704,7 +706,7 @@ class CoreRunner:
             debug_steps_by_rule,
             errors,
             all_targets,
-            match_time_matrix,
+            profiling_data,
         )
 
 
