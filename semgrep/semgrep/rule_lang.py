@@ -244,7 +244,6 @@ class YamlTree(Generic[T]):
         elif isinstance(self.value, YamlTree):
             return self.value.unroll()
         elif isinstance(self.value, str):
-            # ruamel keeps a \n at the end of multi-line field, which we don't want
             return (self.value[:-1] if self.value[-1] == '\n' else self.value)
         elif isinstance(self.value, int):
             return self.value

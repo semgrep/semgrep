@@ -10,7 +10,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "console.log(x == x)",
-        "message": "Detected a useless comparison operation `x == x` or `x != x`. This\noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.",
+        "message": "Detected a useless comparison operation `x == x` or `x != x`. This\noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.\n",
         "metadata": {},
         "metavars": {
           "$X": {
