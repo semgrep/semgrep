@@ -491,6 +491,7 @@ class OutputSettings(NamedTuple):
     error_on_findings: bool = False
     verbose_errors: bool = False
     strict: bool = False
+    debug: bool = False
     json_stats: bool = False
     output_time: bool = False
     timeout_threshold: int = 0
@@ -724,10 +725,8 @@ class OutputHandler:
         per_line_max_chars_limit: Optional[int],
     ) -> str:
         output_format = self.settings.output_format
-        debug_steps = None
-        if output_format == OutputFormat.JSON_DEBUG:
-            debug_steps = self.debug_steps_by_rule
-        if output_format in [OutputFormat.JSON, OutputFormat.JSON_DEBUG]:
+        if output_format == OutputFormat.JSON:
+            debug_steps = self.debug_steps_by_rule if self.settings.debug else None
             return build_output_json(
                 self.rule_matches,
                 self.semgrep_structured_errors,

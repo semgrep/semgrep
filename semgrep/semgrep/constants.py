@@ -31,14 +31,13 @@ YML_TEST_SUFFIXES = [[".test", ext] for ext in YML_EXTENSIONS]
 class OutputFormat(Enum):
     TEXT = auto()
     JSON = auto()
-    JSON_DEBUG = auto()
     JUNIT_XML = auto()
     SARIF = auto()
     EMACS = auto()
     VIM = auto()
 
     def is_json(self) -> bool:
-        return self in [OutputFormat.JSON, OutputFormat.JSON_DEBUG, OutputFormat.SARIF]
+        return self in [OutputFormat.JSON, OutputFormat.SARIF]
 
 
 # Inline 'noqa' implementation modified from flake8:

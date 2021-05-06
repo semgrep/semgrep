@@ -19,6 +19,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `OutputSettings.json_time` has moved to `OutputSettings.output_time`,
   this and many other `OutputSettings` arguments have been made optional
 
+### Removed
+- `--debugging-json` flag in favor of `--json` + `--debug`
+- `--json-time` flag in favor of `--json` + `--time`
+
 ## [0.49.0](https://github.com/returntocorp/semgrep/releases/tag/v0.49.0) - 2021-04-28
 
 ### Added
