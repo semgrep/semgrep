@@ -38,7 +38,7 @@ class OutputFormat(Enum):
     VIM = auto()
 
     def is_json(self) -> bool:
-        return self == OutputFormat.JSON or self == OutputFormat.JSON_DEBUG
+        return self in [OutputFormat.JSON, OutputFormat.JSON_DEBUG, OutputFormat.SARIF]
 
 
 # Inline 'noqa' implementation modified from flake8:
