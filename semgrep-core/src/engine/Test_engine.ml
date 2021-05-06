@@ -16,6 +16,7 @@ open Common
 module FT = File_type
 module R = Rule
 module E = Error_code
+module RP = Reporting
 
 let logger = Logging.get_logger [__MODULE__]
 
@@ -129,23 +130,23 @@ let test_rules ?(ounit_context=false) xs =
     E.g_errors := [];
     Flag_semgrep.with_opt_cache := false;
     let config = Config_semgrep.default_config in
-    let matches, errors, parse_time, match_time =
+    let res =
       try
         Semgrep.check (fun _ _ _ -> ()) config rules
           (target, xlang, lazy_ast_and_errors)
       with exn ->
         failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
     in
-    if not (match_time >= 0.) then
+    if not (res.profiling.match_time >= 0.) then
       (* match_time could be 0.0 if the rule contains no pattern or if the
          rules are skipped. Otherwise it's positive. *)
-      failwith (spf "invalid value for match time: %g" match_time);
-    if not (parse_time >= 0.) then
+      failwith (spf "invalid value for match time: %g" res.profiling.match_time);
+    if not (res.profiling.parse_time >= 0.) then
       (* same for parse time *)
-      failwith (spf "invalid value for parse time: %g" parse_time);
+      failwith (spf "invalid value for parse time: %g" res.profiling.parse_time);
 
-    matches |> List.iter JSON_report.match_to_error;
-    if not (errors = [])
+    res.matches |> List.iter JSON_report.match_to_error;
+    if not (res.errors = [])
     then failwith (spf "parsing error on %s" file);
 
     let actual_errors = !E.g_errors in
