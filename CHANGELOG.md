@@ -10,7 +10,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Empty yaml files do not crash
+- Autofix printout is grouped with its own finding rather than the one below it (#3046)
 - Do not assign constant values to assigned variables (#2805)
+
 
 ### Changed
 - .git/ directories are ignored when scanning

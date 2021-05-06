@@ -256,6 +256,13 @@ def build_normal_output(
             if rule_index != len(sorted_rule_matches) - 1
             else None
         )
+
+        if fix:
+            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
+        elif rule_match.fix_regex:
+            fix_regex = rule_match.fix_regex
+            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+        
         is_same_file = (
             next_rule_match.path == rule_match.path if next_rule_match else False
         )
@@ -266,12 +273,6 @@ def build_normal_output(
             per_line_max_chars_limit,
             is_same_file,
         )
-
-        if fix:
-            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
-        elif rule_match.fix_regex:
-            fix_regex = rule_match.fix_regex
-            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
     if show_times:
         yield from build_timing_summary(
             filtered_rules, all_targets, profiling_data, color_output
