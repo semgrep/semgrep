@@ -10,10 +10,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Empty yaml files do not crash
-- Autofix does not insert newline characters for patterns from semgrep.live
+- Autofix does not insert newline characters for patterns from semgrep.live (#3045)
+- Autofix printout is grouped with its own finding rather than the one below it (#3046)
+- Do not assign constant values to assigned variables (#2805)
 
 ### Changed
 - .git/ directories are ignored when scanning
+- External Python API (`semgrep_main.invoke_semgrep`) now takes an
+  optional `OutputSettings` argument for controlling output
+- `OutputSettings.json_time` has moved to `OutputSettings.output_time`,
+  this and many other `OutputSettings` arguments have been made optional
+
+### Removed
+- `--debugging-json` flag in favor of `--json` + `--debug`
+- `--json-time` flag in favor of `--json` + `--time`
 
 ## [0.49.0](https://github.com/returntocorp/semgrep/releases/tag/v0.49.0) - 2021-04-28
 

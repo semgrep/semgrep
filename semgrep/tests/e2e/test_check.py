@@ -8,6 +8,7 @@ from xml.etree import cElementTree
 import pytest
 
 from semgrep import __VERSION__
+from semgrep.constants import OutputFormat
 
 GITHUB_TEST_GIST_URL = (
     "https://raw.githubusercontent.com/returntocorp/semgrep-rules/develop/template.yaml"
@@ -73,7 +74,8 @@ def test_basic_rule__absolute(run_semgrep_in_tmp, snapshot):
 
 def test_terminal_output(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq.yaml", output_format="normal"), "output.txt"
+        run_semgrep_in_tmp("rules/eqeq.yaml", output_format=OutputFormat.TEXT),
+        "output.txt",
     )
 
 
@@ -85,7 +87,7 @@ def test_multiline(run_semgrep_in_tmp, snapshot):
 
 
 def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
-    output = run_semgrep_in_tmp("rules/eqeq.yaml", output_format="junit-xml")
+    output = run_semgrep_in_tmp("rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML)
     result = etree_to_dict(cElementTree.XML(output))
 
     filename = snapshot.snapshot_dir / "results.xml"
@@ -96,7 +98,7 @@ def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
 
 def test_sarif_output(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
-        run_semgrep_in_tmp("rules/eqeq.yaml", output_format="sarif")
+        run_semgrep_in_tmp("rules/eqeq.yaml", output_format=OutputFormat.SARIF)
     )
 
     # rules are logically a set so the JSON list's order doesn't matter
@@ -142,7 +144,7 @@ def test_hidden_rule__implicit(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(excinfo.value.stdout, "error.json")
 
     with pytest.raises(CalledProcessError) as excinfo:
-        run_semgrep_in_tmp("rules/hidden", output_format="normal")
+        run_semgrep_in_tmp("rules/hidden", output_format=OutputFormat.TEXT)
     assert excinfo.value.returncode == 7
     snapshot.assert_match(excinfo.value.stderr, "error.txt")
 
@@ -353,7 +355,7 @@ def test_spacegrep_timeout(run_semgrep_in_tmp, snapshot):
                 "--timeout",
                 "1",
             ],
-            output_format="text",
+            output_format=OutputFormat.TEXT,
             stderr=True,
             strict=False,  # don't fail due to timeout
         ),
@@ -375,7 +377,7 @@ def test_max_memory(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/long.yaml",
-            output_format="normal",
+            output_format=OutputFormat.TEXT,
             options=["--verbose", "--max-memory", "1"],
             target_name="equivalence",
             strict=False,
@@ -399,7 +401,7 @@ def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/multiple-long.yaml",
-            output_format="normal",
+            output_format=OutputFormat.TEXT,
             options=["--verbose", "--timeout", "1", "--timeout-threshold", "1"],
             target_name="equivalence",
             strict=False,
@@ -411,7 +413,7 @@ def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/multiple-long.yaml",
-            output_format="normal",
+            output_format=OutputFormat.TEXT,
             options=["--verbose", "--timeout", "1", "--timeout-threshold", "2"],
             target_name="equivalence",
             strict=False,

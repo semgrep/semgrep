@@ -13,6 +13,7 @@ import appdirs
 import pytest
 
 from . import public_repos
+from semgrep.constants import OutputFormat
 
 TESTS_PATH = Path(__file__).parent
 
@@ -61,7 +62,7 @@ def _run_semgrep(
     *,
     target_name: str = "basic",
     options: Optional[List[Union[str, Path]]] = None,
-    output_format: str = "json",
+    output_format: OutputFormat = OutputFormat.JSON,
     stderr: bool = False,
     strict: bool = True,
 ) -> str:
@@ -70,7 +71,7 @@ def _run_semgrep(
     :param config: what to pass as --config's value
     :param target_name: which directory within ./e2e/targets/ to scan
     :param options: additional CLI flags to add
-    :param output_format: which format to use, valid options are normal, json, junit_xml and sarif
+    :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
     """
     if options is None:
@@ -88,13 +89,11 @@ def _run_semgrep(
         else:
             options.extend(["--config", config])
 
-    if output_format == "json":
+    if output_format == OutputFormat.JSON:
         options.append("--json")
-    elif output_format == "debugging-json":
-        options.append("--debugging-json")
-    elif output_format == "junit-xml":
+    elif output_format == OutputFormat.JUNIT_XML:
         options.append("--junit-xml")
-    elif output_format == "sarif":
+    elif output_format == OutputFormat.SARIF:
         options.append("--sarif")
 
     output = subprocess.check_output(
@@ -103,7 +102,7 @@ def _run_semgrep(
         stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
     )
 
-    if output_format in {"json", "debugging-json", "sarif"} and not stderr:
+    if output_format.is_json() and not stderr:
         output = _clean_output_json(output)
 
     return output

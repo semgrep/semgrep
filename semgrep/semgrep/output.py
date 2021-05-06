@@ -15,7 +15,6 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 from typing import Set
-from typing import Tuple
 
 import colorama
 
@@ -36,6 +35,7 @@ from semgrep.error import SemgrepError
 from semgrep.external.junit_xml import TestSuite  # type: ignore[attr-defined]
 from semgrep.external.junit_xml import to_xml_report_string  # type: ignore[attr-defined]
 from semgrep.profile_manager import ProfileManager
+from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.stats import make_loc_stats
@@ -150,7 +150,7 @@ def truncate(file_name: str, col_lim: int) -> str:
 def build_timing_summary(
     rules: List[Rule],
     targets: Set[Path],
-    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
+    profiling_data: ProfilingData,
     color_output: bool,
 ) -> Iterator[str]:
     items_to_show = 5
@@ -166,17 +166,16 @@ def build_timing_summary(
         rule_timings[rule.id] = (0.0, 0.0)
         for target in targets:
             path_str = str(target)
-            (parsing_time, matching_time, run_time) = match_time_matrix.get(
-                (rule.id, path_str), (0.0, 0.0, 0.0)
-            )
+            times = profiling_data.get_times(rule.id, path_str)
             rule_timings[rule.id] = tuple(
                 x + y
                 for x, y in zip(
-                    rule_timings[rule.id], (run_time - parsing_time, matching_time)
+                    rule_timings[rule.id],
+                    (times.run_time - times.parse_time, times.match_time),
                 )
             )  # type: ignore
-            file_timings[path_str] = file_timings.get(path_str, 0.0) + run_time
-            total_parsing_time += parsing_time
+            file_timings[path_str] = file_timings.get(path_str, 0.0) + times.run_time
+            total_parsing_time += times.parse_time
     all_total_time = sum(i for i in file_timings.values())
     total_matching_time = sum(i[1] for i in rule_timings.values())
 
@@ -211,7 +210,7 @@ def build_normal_output(
     all_targets: Set[Path],
     show_times: bool,
     filtered_rules: List[Rule],
-    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
+    profiling_data: ProfilingData,
 ) -> Iterator[str]:
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
@@ -257,6 +256,13 @@ def build_normal_output(
             if rule_index != len(sorted_rule_matches) - 1
             else None
         )
+
+        if fix:
+            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
+        elif rule_match.fix_regex:
+            fix_regex = rule_match.fix_regex
+            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+        
         is_same_file = (
             next_rule_match.path == rule_match.path if next_rule_match else False
         )
@@ -267,15 +273,9 @@ def build_normal_output(
             per_line_max_chars_limit,
             is_same_file,
         )
-
-        if fix:
-            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
-        elif rule_match.fix_regex:
-            fix_regex = rule_match.fix_regex
-            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
     if show_times:
         yield from build_timing_summary(
-            filtered_rules, all_targets, match_time_matrix, color_output
+            filtered_rules, all_targets, profiling_data, color_output
         )
 
 
@@ -283,19 +283,17 @@ def _build_time_target_json(
     rules: List[Rule],
     target: Path,
     num_bytes: int,
-    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
+    profiling_data: ProfilingData,
 ) -> Dict[str, Any]:
     target_json: Dict[str, Any] = {}
     path_str = str(target)
 
     target_json["path"] = path_str
     target_json["num_bytes"] = num_bytes
-    timings = [
-        match_time_matrix.get((rule.id, path_str), (0.0, 0.0, 0.0)) for rule in rules
-    ]
-    target_json["parse_times"] = [timing[0] for timing in timings]
-    target_json["match_times"] = [timing[1] for timing in timings]
-    target_json["run_times"] = [timing[2] for timing in timings]
+    timings = [profiling_data.get_times(rule.id, path_str) for rule in rules]
+    target_json["parse_times"] = [timing.parse_time for timing in timings]
+    target_json["match_times"] = [timing.match_time for timing in timings]
+    target_json["run_times"] = [timing.run_time for timing in timings]
 
     return target_json
 
@@ -303,9 +301,7 @@ def _build_time_target_json(
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
-    match_time_matrix: Dict[
-        Tuple[str, str], Tuple[float, float, float]
-    ],  # (rule, target) -> duration
+    profiling_data: ProfilingData,  # (rule, target) -> times
     total_time: float,
 ) -> Dict[str, Any]:
     """Convert match times to a json-ready format.
@@ -323,7 +319,7 @@ def _build_time_json(
     time_info["total_time"] = total_time
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
     time_info["targets"] = [
-        _build_time_target_json(rules, target, num_bytes, match_time_matrix)
+        _build_time_target_json(rules, target, num_bytes, profiling_data)
         for target, num_bytes in zip(targets, target_bytes)
     ]
     time_info["total_bytes"] = sum(n for n in target_bytes)
@@ -337,7 +333,7 @@ def build_output_json(
     show_json_stats: bool,
     report_time: bool,
     filtered_rules: List[Rule],
-    match_time_matrix: Dict[Tuple[str, str], Tuple[float, float, float]],
+    profiling_data: ProfilingData,
     profiler: Optional[ProfileManager] = None,
     debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
 ) -> str:
@@ -357,7 +353,7 @@ def build_output_json(
     if report_time:
         total_time = profiler.calls["total_time"][0] if profiler else -1.0
         output_json["time"] = _build_time_json(
-            filtered_rules, all_targets, match_time_matrix, total_time
+            filtered_rules, all_targets, profiling_data, total_time
         )
     return json.dumps(output_json)
 
@@ -485,16 +481,20 @@ def build_vim_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> s
     return "\n".join(":".join(_get_parts(rm)) for rm in rule_matches)
 
 
+# WARNING: this class is unofficially part of our external API. It can be passed
+# as an argument to our official API: 'semgrep_main.invoke_semgrep'. Try to minimize
+# changes to this API, and make them backwards compatible, if possible.
 class OutputSettings(NamedTuple):
     output_format: OutputFormat
-    output_destination: Optional[str]
-    error_on_findings: bool
-    verbose_errors: bool
-    strict: bool
-    output_per_finding_max_lines_limit: Optional[int]
-    output_per_line_max_chars_limit: Optional[int]
-    json_stats: bool
-    output_time: bool
+    output_destination: Optional[str] = None
+    output_per_finding_max_lines_limit: Optional[int] = None
+    output_per_line_max_chars_limit: Optional[int] = None
+    error_on_findings: bool = False
+    verbose_errors: bool = False
+    strict: bool = False
+    debug: bool = False
+    json_stats: bool = False
+    output_time: bool = False
     timeout_threshold: int = 0
 
 
@@ -546,9 +546,9 @@ class OutputHandler:
         self.error_set: Set[SemgrepError] = set()
         self.has_output = False
         self.filtered_rules: List[Rule] = []
-        self.match_time_matrix: Dict[
-            Tuple[str, str], Tuple[float, float, float]
-        ] = {}  # (rule, target) -> duration
+        self.profiling_data: ProfilingData = (
+            ProfilingData()
+        )  # (rule, target) -> duration
 
         self.final_error: Optional[Exception] = None
 
@@ -609,9 +609,7 @@ class OutputHandler:
         all_targets: Set[Path],
         profiler: ProfileManager,
         filtered_rules: List[Rule],
-        match_time_matrix: Dict[
-            Tuple[str, str], Tuple[float, float, float]
-        ],  # (rule, target) -> duration
+        profiling_data: ProfilingData,  # (rule, target) -> duration
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -625,7 +623,7 @@ class OutputHandler:
         self.stats_line = stats_line
         self.debug_steps_by_rule.update(debug_steps_by_rule)
         self.filtered_rules = filtered_rules
-        self.match_time_matrix = match_time_matrix
+        self.profiling_data = profiling_data
 
     def handle_unhandled_exception(self, ex: Exception) -> None:
         """
@@ -728,10 +726,8 @@ class OutputHandler:
         per_line_max_chars_limit: Optional[int],
     ) -> str:
         output_format = self.settings.output_format
-        debug_steps = None
-        if output_format == OutputFormat.JSON_DEBUG:
-            debug_steps = self.debug_steps_by_rule
-        if output_format.is_json():
+        if output_format == OutputFormat.JSON:
+            debug_steps = self.debug_steps_by_rule if self.settings.debug else None
             return build_output_json(
                 self.rule_matches,
                 self.semgrep_structured_errors,
@@ -739,7 +735,7 @@ class OutputHandler:
                 self.settings.json_stats,
                 self.settings.output_time,
                 self.filtered_rules,
-                self.match_time_matrix,
+                self.profiling_data,
                 self.profiler,
                 debug_steps,
             )
@@ -764,7 +760,7 @@ class OutputHandler:
                         self.all_targets,
                         self.settings.output_time,
                         self.filtered_rules,
-                        self.match_time_matrix,
+                        self.profiling_data,
                     )
                 )
             )

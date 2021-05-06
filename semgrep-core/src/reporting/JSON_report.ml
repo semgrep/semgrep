@@ -24,6 +24,7 @@ module R = Mini_rule (* TODO: use MR instead *)
 module E = Error_code
 module J = JSON
 module MV = Metavariable
+module RP = Reporting
 
 open Pattern_match
 
@@ -171,32 +172,32 @@ let match_to_json x =
 
 
 
-let json_time_of_match_times match_times =
+let json_time_of_profiling_data profiling_data =
   [
     "time", J.Object [
       "targets", J.Array (
-        List.map (fun (target, parse_time, match_time, run_time) ->
+        List.map (fun { RP.file = target; parse_time; match_time; run_time } ->
           J.Object [
             "path", J.String target;
             "parse_time", J.Float parse_time;
             "match_time", J.Float match_time;
             "run_time", J.Float run_time;
           ]
-        ) match_times
+        ) profiling_data
       )
     ]
   ]
 
-let json_fields_of_matches_and_errors files matches errs opt_match_times =
+let json_fields_of_matches_and_errors files matches errs opt_profiling_data =
   let (matches, new_errs) =
     Common.partition_either match_to_json matches in
   let errs = new_errs @ errs in
   let count_errors = (List.length errs) in
   let count_ok = (List.length files) - count_errors in
   let time_field =
-    match opt_match_times with
+    match opt_profiling_data with
     | None -> []
-    | Some x -> json_time_of_match_times x
+    | Some x -> json_time_of_profiling_data x
   in
   [ "matches", J.Array (matches);
     "errors", J.Array (errs |> List.map R2c.error_to_json);

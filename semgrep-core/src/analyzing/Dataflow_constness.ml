@@ -364,12 +364,6 @@ let update_constness (flow :F.cfg) mapping =
       | ___else___ -> ()
     );
 
-    (* Update LHS constness according to the output env. *)
-    match lval_of_node_opt node.n with
-    | None -> ()
-    | Some {base=Var var; offset=NoOffset; constness;} ->
-        (match D.VarMap.find_opt (str_of_name var) ni_info.D.out_env with
-         | None   -> ()
-         | Some c -> refine_constness_ref constness c)
-    | Some _ -> () (* TODO: Handle base=Mem _ and base=VarSpecial _ cases. *)
+    (* Should not update the LHS constness since in x = E, x is a "ref",
+     * and it should not be substituted for the value it holds. *)
   )

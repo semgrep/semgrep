@@ -23,6 +23,7 @@ module PM = Pattern_match
 module G = AST_generic
 module PI = Parse_info
 module MV = Metavariable
+module RP = Reporting
 
 let logger = Logging.get_logger [__MODULE__]
 
@@ -484,13 +485,13 @@ let matches_of_xpatterns config orig_rule
   let (patterns, spacegreps, regexps) = partition_xpatterns xpatterns in
 
   (* semgrep *)
-  let (semgrep_matches, errors), semgrep_parse_time, semgrep_match_time =
+  let semgrep_res =
     match xlang with
     | R.L (lang, _) ->
         let (ast, errors), parse_time =
           Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
         in
-        let res, match_time =
+        let (matches, errors), match_time =
           Common.with_time (fun () ->
             let mini_rules =
               patterns |> List.map (mini_rule_of_pattern orig_rule) in
@@ -509,8 +510,8 @@ let matches_of_xpatterns config orig_rule
                  errors
           )
         in
-        res, parse_time, match_time
-    | _ -> ([], []), 0.0, 0.0
+        { RP.matches; errors; profiling = { RP.parse_time; match_time } }
+    | _ -> RP.empty_semgrep_result
   in
 
   (* spacegrep *)
@@ -528,10 +529,13 @@ let matches_of_xpatterns config orig_rule
   in
 
   (* final result *)
-  semgrep_matches @ regexp_matches @ spacegrep_matches,
-  errors,
-  semgrep_parse_time +. regexp_parse_time +. spacegrep_parse_time,
-  semgrep_match_time +. regexp_match_time +. spacegrep_match_time
+  { RP.matches = semgrep_res.matches @ regexp_matches @ spacegrep_matches;
+    errors = semgrep_res.errors;
+    profiling = {
+      RP.parse_time = semgrep_res.profiling.parse_time +. regexp_parse_time +. spacegrep_parse_time;
+      match_time = semgrep_res.profiling.match_time +. regexp_match_time +. spacegrep_match_time
+    }
+  }
 [@@profiling]
 
 (*****************************************************************************)
@@ -649,20 +653,20 @@ let check hook config rules file_and_more =
       if not relevant_rule
       then begin
         logger#info "skipping rule %s for %s" (r.R.id) file;
-        [], [], 0.0, 0.0
+        RP.empty_semgrep_result
       end else begin
         let xpatterns =
           xpatterns_in_formula formula in
-        let matches, errors, parse_time, match_time =
+        let res =
           matches_of_xpatterns config
             r (file, xlang, lazy_ast_and_errors, lazy_content)
             xpatterns
         in
-        logger#info "found %d matches" (List.length matches);
+        logger#info "found %d matches" (List.length res.matches);
         (* match results per minirule id which is the same than pattern_id in
          * the formula *)
         let pattern_matches_per_id =
-          group_matches_per_pattern_id matches in
+          group_matches_per_pattern_id res.matches in
         let env = {
           pattern_matches = pattern_matches_per_id;
           file;
@@ -672,26 +676,23 @@ let check hook config rules file_and_more =
           evaluate_formula env formula in
         logger#info "found %d final ranges" (List.length final_ranges);
 
-        (final_ranges
-         |> List.map (range_to_pattern_match_adjusted r)
-         (* dedup similar findings (we do that also in Semgrep_generic.ml,
-          * but different mini-rules matches can now become the same match)
-         *)
-         |> Common.uniq_by (AST_utils.with_structural_equal PM.equal)
-         |> before_return (fun v ->
-           v |> List.iter (fun (m : Pattern_match.t) ->
-             let str = spf "with rule %s" r.R.id in
-             hook str m.env m.tokens
-           )
-         ),
-         errors,
-         parse_time,
-         match_time)
+        {matches = final_ranges
+                   |> List.map (range_to_pattern_match_adjusted r)
+                   (* dedup similar findings (we do that also in Semgrep_generic.ml,
+                    * but different mini-rules matches can now become the same match)
+                   *)
+                   |> Common.uniq_by (AST_utils.with_structural_equal PM.equal)
+                   |> before_return (fun v ->
+                     v |> List.iter (fun (m : Pattern_match.t) ->
+                       let str = spf "with rule %s" r.R.id in
+                       hook str m.env m.tokens
+                     )
+                   );
+         errors = res.errors;
+         profiling = res.profiling
+        }
       end
     ))
-  |> Common2.unzip4
-  |> (fun (xxs, yys, parse_times, match_times) ->
-    (List.flatten xxs, List.flatten yys, Common2.sum_float parse_times, Common2.sum_float  match_times)
-  )
+  |> RP.collate_semgrep_results
 [@@profiling]
 (*e: semgrep/engine/Semgrep.ml *)
