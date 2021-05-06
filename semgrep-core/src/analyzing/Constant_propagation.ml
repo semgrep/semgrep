@@ -51,6 +51,8 @@ let logger = Logging.get_logger [__MODULE__]
  * things will be slightly slower because we will visit the same file
  * twice.
  * - ver2: added second flow-sensitive constant propagation pass.
+ * - ver3: do not assign constant values to labels; in x = E, x is just a label
+ * (a "ref") and denotes a memory location rather than the value stored in it.
 *)
 
 (*****************************************************************************)
@@ -61,9 +63,13 @@ type var = string * AST_generic.sid
 type env = {
   (* basic constant propagation of literals for semgrep *)
   constants: (var, literal) assoc ref;
+  in_lvalue: bool ref;
 }
 
-let default_env () = { constants = ref []; }
+let default_env () = {
+  constants = ref [];
+  in_lvalue = ref false;
+}
 
 type lr_stats = {
   (* note that a VarDef defining the value will count as 1 *)
@@ -279,7 +285,7 @@ let propagate_basic lang prog =
       V.kdef = (fun (k, _v) x ->
         match x with
         | { name = EN (Id (id,
-                           ({ id_resolved = {contents = Some (_kind, sid)}; _} as id_info)));
+                           { id_resolved = {contents = Some (_kind, sid)}; _}));
             attrs = attrs;
             _},
           (* note that some languages such as Python do not have VarDef.
@@ -294,10 +300,7 @@ let propagate_basic lang prog =
                (!(stats.lvalue) = 1 &&
                 (lang = Lang.Javascript ||
                  lang = Lang.Typescript))
-            then begin
-              id_info.id_constness := Some (Lit literal);
-              add_constant_env id (sid, literal) env;
-            end;
+            then add_constant_env id (sid, literal) env;
             k x
 
         | _ -> k x
@@ -305,51 +308,57 @@ let propagate_basic lang prog =
 
       (* the uses (and also defs for Python Assign) *)
 
-      V.kexpr = (fun (k, _) x ->
+      V.kexpr = (fun (k, v) x ->
 
         (match x with
-         | N (Id (id, id_info)) ->
+         | N (Id (id, id_info)) when not !(env.in_lvalue) ->
              (match find_id env id id_info with
               | Some literal ->
                   id_info.id_constness := Some (Lit literal)
               | _ -> ()
-             );
+             )
 
-         | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info))) ->
+         | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info)))
+           when not !(env.in_lvalue) ->
              (match find_id env id id_info with
               | Some literal ->
                   id_info.id_constness := Some (Lit literal)
               | _ -> ()
-             );
+             )
 
+         | ArrayAccess (e1, (_, e2, _)) ->
+             v (E e1);
+             Common.save_excursion env.in_lvalue false (fun () ->
+               v (E e2);
+             );
 
              (* Assign that is really a hidden VarDef (e.g., in Python) *)
          | Assign (
-           N (Id (id, ({ id_resolved = {contents = Some (kind, sid)}; _ }
-                       as id_info))),
+           N (Id (id, { id_resolved = {contents = Some (kind, sid)}; _ })),
            _,
            rexp) ->
-             (match eval_expr env rexp with
-              | Some literal ->
-                  let stats =
-                    try Hashtbl.find stats (H.str_of_ident id, sid)
-                    with Not_found -> raise Impossible
-                  in
-                  if (!(stats.lvalue) = 1) &&
-                     (* restrict to Python/Ruby/PHP Globals for now *)
-                     (lang = Lang.Python || lang = Lang.Ruby || lang = Lang.PHP) &&
-                     kind = Global
-                  then begin
-                    id_info.id_constness := Some (Lit literal);
-                    add_constant_env id (sid, literal) env;
-                  end;
-                  k x
-              | None -> ()
-             )
+             eval_expr env rexp
+             |> do_option (fun literal ->
+               let stats =
+                 try Hashtbl.find stats (H.str_of_ident id, sid)
+                 with Not_found -> raise Impossible
+               in
+               if (!(stats.lvalue) = 1) &&
+                  (* restrict to Python/Ruby/PHP Globals for now *)
+                  (lang = Lang.Python || lang = Lang.Ruby || lang = Lang.PHP) &&
+                  kind = Global
+               then add_constant_env id (sid, literal) env;
+             );
+             v (E rexp)
 
-         | _ -> ()
+         | Assign (e1, _, e2) | AssignOp (e1, _, e2) ->
+             Common.save_excursion env.in_lvalue true (fun () ->
+               v (E e1);
+             );
+             v (E e2);
+
+         | _ -> k x
         );
-        k x
       );
     }
   in
