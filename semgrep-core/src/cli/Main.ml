@@ -17,6 +17,7 @@ module MR = Mini_rule
 module R = Rule
 module J = JSON
 module FT = File_type
+module RP = Reporting
 
 (*****************************************************************************)
 (* Purpose *)
@@ -669,18 +670,18 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
               [], [Error_code.exn_to_error file exn], (file, 0.0, 0.0)
         )
       in
-      matches, errors, (file, parse_time, match_time, run_time)
+      { RP.matches; errors; profiling = { file; times = { parse_time; match_time; run_time } } }
     )
   in
   let matches =
     matches_and_errors_and_times
-    |> List.map (fun (x, _, _) -> x) |> List.flatten in
+    |> List.map (fun x -> x.RP.matches) |> List.flatten in
   let errors =
     matches_and_errors_and_times
-    |> List.map (fun (_, x, _) -> x) |> List.flatten in
+    |> List.map (fun x -> x.RP.errors) |> List.flatten in
   let times =
     matches_and_errors_and_times
-    |> List.map (fun (_, _, x) -> x) in
+    |> List.map (fun x -> x.RP.profiling) in
   matches, errors, times
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
@@ -701,7 +702,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
 let semgrep_with_rules lang rules files_or_dirs =
   let files = get_final_files lang files_or_dirs in
   logger#info "processing %d files" (List.length files);
-  let matches, errs, match_times =
+  let matches, errs, profiling_data =
     files |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
       let (ast, errors), parse_time =
         Common.with_time (fun () -> parse_generic lang file)
@@ -720,7 +721,7 @@ let semgrep_with_rules lang rules files_or_dirs =
       (matches, errors, (file, parse_time, match_time))
     )
   in
-  let match_times = if !report_time then Some match_times else None in
+  let profiling_data = if !report_time then Some profiling_data else None in
   logger#info "found %d matches and %d errors"
     (List.length matches) (List.length errs);
   let (matches, new_errors) =
@@ -732,7 +733,7 @@ let semgrep_with_rules lang rules files_or_dirs =
   *)
   let flds =
     JSON_report.json_fields_of_matches_and_errors
-      files matches errs match_times in
+      files matches errs profiling_data in
   let flds =
     if !profile
     then begin
