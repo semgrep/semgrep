@@ -176,7 +176,7 @@ let json_time_of_profiling_data profiling_data =
   [
     "time", J.Object [
       "targets", J.Array (
-        List.map (fun { RP.file = target; times = {parse_time; match_time; run_time } } ->
+        List.map (fun { RP.file = target; parse_time; match_time; run_time } ->
           J.Object [
             "path", J.String target;
             "parse_time", J.Float parse_time;

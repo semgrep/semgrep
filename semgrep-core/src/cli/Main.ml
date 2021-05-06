@@ -619,7 +619,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
   let matches_and_errors_and_times =
     files |> map (fun file ->
       logger#info "Analyzing %s" file;
-      let (matches, errors, (file, parse_time, match_time)), run_time =
+      let res, run_time =
         Common.with_time (fun () ->
           try
             run_with_memory_limit !max_memory (fun () ->
@@ -652,25 +652,28 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                     Some (spf " with ruleid %s" rule.MR.id)
               in
               let loc = Parse_info.first_loc_of_file file in
-              (
-                [],
-                [Error_code.mk_error_loc loc
-                   (match exn with
-                    | Timeout ->
-                        logger#info "Timeout on %s" file;
-                        Error_code.Timeout str_opt
-                    | Out_of_memory ->
-                        logger#info "OutOfMemory on %s" file;
-                        Error_code.OutOfMemory str_opt
-                    | _ -> raise Impossible
-                   )],
-                (file, 0.0, 0.0)
-              )
+              {
+                RP.matches = [];
+                errors = [Error_code.mk_error_loc loc
+                            (match exn with
+                             | Timeout ->
+                                 logger#info "Timeout on %s" file;
+                                 Error_code.Timeout str_opt
+                             | Out_of_memory ->
+                                 logger#info "OutOfMemory on %s" file;
+                                 Error_code.OutOfMemory str_opt
+                             | _ -> raise Impossible
+                            )];
+                profiling = RP.empty_partial_profiling file
+              }
           | exn when not !fail_fast ->
-              [], [Error_code.exn_to_error file exn], (file, 0.0, 0.0)
+              { RP.matches = [];
+                errors = [Error_code.exn_to_error file exn];
+                profiling = RP.empty_partial_profiling file
+              }
         )
       in
-      { RP.matches; errors; profiling = { file; times = { parse_time; match_time; run_time } } }
+      RP.add_run_time run_time res
     )
   in
   let matches =
@@ -718,7 +721,7 @@ let semgrep_with_rules lang rules files_or_dirs =
           errors
         )
       in
-      (matches, errors, (file, parse_time, match_time))
+      { RP.matches; errors; profiling = {file; parse_time; match_time} }
     )
   in
   let profiling_data = if !report_time then Some profiling_data else None in
@@ -809,11 +812,11 @@ let semgrep_with_real_rules rules files_or_dirs =
         | R.LNone | R.LGeneric ->
             failwith "requesting generic AST for LNone|LGeneric"
       ) in
-      let matches, errors, parse_time, match_time =
+      let res =
         Semgrep.check hook Config_semgrep.default_config
           rules (file, xlang, lazy_ast_and_errors)
       in
-      matches, errors, (file, parse_time, match_time)
+      RP.add_file file res
     )
   in
   let match_times = if !report_time then Some match_times else None in
@@ -973,9 +976,10 @@ let tainting_with_rules lang rules_file files_or_dirs =
         let (ast, errors) = parse_generic lang file in
         let rules =
           rules |> List.filter (fun r -> List.mem lang r.TR.languages) in
-        Tainting_generic.check rules file ast,
-        errors,
-        (file, 0.0, 0.0) (* TODO? *)
+        { matches = Tainting_generic.check rules file ast;
+          errors;
+          profiling = RP.empty_partial_profiling file (* TODO? *)
+        }
       )
     in
     let flds = JSON_report.json_fields_of_matches_and_errors
