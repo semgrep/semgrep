@@ -60,10 +60,10 @@ def set_flags(debug_level: bool, quiet: bool, force_color: bool) -> None:
     handler.setFormatter(formatter)
 
     level = logging.INFO
-    if debug_level:
-        level = logging.DEBUG
-    elif quiet:
+    if quiet:
         level = logging.ERROR
+    elif debug_level:
+        level = logging.DEBUG
 
     handler.setLevel(level)
     logger.addHandler(handler)
