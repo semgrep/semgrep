@@ -39,4 +39,4 @@ type named_variants =
 
 (* limited to expressions for now *)
 val from_any:
-  AST_generic.any -> named_variants
+  Config_semgrep.t -> AST_generic.any -> named_variants

@@ -60,4 +60,4 @@
 
 (* limited to expressions for now *)
 val generate_patterns:
-  AST_generic.any list -> Lang.t -> Pattern.t list
+  Config_semgrep.t -> AST_generic.any list -> Lang.t -> Pattern.t list

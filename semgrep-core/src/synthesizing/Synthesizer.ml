@@ -16,14 +16,14 @@ let range_to_ast file lang s =
   | Some a -> a
   | None -> failwith (spf "could not find an expr at range %s in %s" s file)
 
-let synthesize_patterns s file =
+let synthesize_patterns config s file =
   let lang = Lang.langs_of_filename file |> List.hd in
   let a = range_to_ast file lang s in
-  let patterns = Pattern_from_Code.from_any a in
+  let patterns = Pattern_from_Code.from_any config a in
   List.map (fun (k, v) -> (k, Pretty_print_generic.pattern_to_string lang v)) patterns
 
 
-let generate_pattern_choices s =
+let generate_pattern_choices config s =
   let rec read_input xs =
     match xs with
     | [] -> raise WrongNumberOfArguments
@@ -35,4 +35,4 @@ let generate_pattern_choices s =
   let lang = Lang.langs_of_filename file |> List.hd in
   let targets = List.map (range_to_ast file lang) ranges in
   (List.map (fun target -> "target: " ^ (Pretty_print_generic.pattern_to_string lang target)) targets) @
-  List.map (Pretty_print_generic.pattern_to_string lang) (Pattern_from_Targets.generate_patterns targets lang)
+  List.map (Pretty_print_generic.pattern_to_string lang) (Pattern_from_Targets.generate_patterns config targets lang)

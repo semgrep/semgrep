@@ -102,7 +102,7 @@ val regexp_matcher_of_regexp_string: string -> (string -> bool)
 (*e: signature [[Matching_generic.regexp_of_regexp_string]] *)
 
 val equal_ast_binded_code :
-  Metavariable.mvalue -> Metavariable.mvalue -> bool
+  Config_semgrep.t -> Metavariable.mvalue -> Metavariable.mvalue -> bool
 
 (* generic matchers *)
 (*s: signature [[Matching_generic.m_option]] *)

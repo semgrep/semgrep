@@ -231,7 +231,8 @@ let extend_stmts_match_span rightmost_stmt (env : tin) =
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
 *)
-let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
+let rec equal_ast_binded_code (config: Config_semgrep.t)
+    (a: MV.mvalue) (b: MV.mvalue) : bool = (
   let res = (match a, b with
     (* if one of the two IDs is not resolved, then we allow
      * a match, so a pattern like 'self.$FOO = $FOO' matches
@@ -250,6 +251,18 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
     | MV.Id ((s1, _), _),
       MV.Id ((s2, _), Some {AST.id_resolved = {contents = None }; _})
       -> s1 = s2
+
+    (* A variable occurrence that is known to have a constant value is equal to
+     * that same constant value.
+     *
+     * THINK: We could also equal two different variable occurrences that happen
+     * to have the same constant value. *)
+    | MV.E (A.L a_lit),
+      MV.Id (_, Some {B.id_constness={contents=Some (B.Lit b_lit)}; _})
+    | MV.Id (_, Some {A.id_constness={contents=Some (A.Lit a_lit)}; _}),
+      MV.E (B.L b_lit)
+      when config.constant_propagation
+      -> A.equal_literal a_lit b_lit
 
     (* general case, equality modulo-position-and-constness.
      * TODO: in theory we should use user-defined equivalence to allow
@@ -293,7 +306,7 @@ let rec equal_ast_binded_code (a: MV.mvalue) (b: MV.mvalue) : bool = (
          * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
          * (this is useful in the Javascript transpilation context of complex pattern parameter).
         *)
-        equal_ast_binded_code a (MV.Id (b_id, Some b_id_info))
+        equal_ast_binded_code config a (MV.Id (b_id, Some b_id_info))
     | _, _ ->
         false
 
@@ -316,7 +329,7 @@ let check_and_add_metavar_binding ((mvar:MV.mvar), valu) =
        * Moreover here we know both valu and valu' are regular code,
        * not patterns, so we can just use the generic '=' of OCaml.
       *)
-      if equal_ast_binded_code valu valu'
+      if equal_ast_binded_code tin.config valu valu'
       then Some tin (* valu remains the metavar witness *)
       else None
   | None ->

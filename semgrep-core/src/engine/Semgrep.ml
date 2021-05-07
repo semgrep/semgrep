@@ -124,6 +124,7 @@ type ranges = range_with_mvars list
 type id_to_match_results = (pattern_id, Pattern_match.t) Hashtbl.t
 
 type env = {
+  config: Config_semgrep.t;
   pattern_matches: id_to_match_results;
   (* unused for now, but could be passed down for Range.content_at_range *)
   file: Common.filename
@@ -133,12 +134,12 @@ type env = {
 (* Range_with_mvars *)
 (*****************************************************************************)
 
-let ($<=$) rv1 rv2 =
+let included_in config rv1 rv2 =
   Range.($<=$) rv1.r rv2.r &&
   rv1.mvars |> List.for_all (fun (mvar, mval1) ->
     match List.assoc_opt mvar rv2.mvars with
     | None -> true
-    | Some mval2 -> Matching_generic.equal_ast_binded_code mval1 mval2
+    | Some mval2 -> Matching_generic.equal_ast_binded_code config mval1 mval2
   )
 
 (*****************************************************************************)
@@ -279,25 +280,25 @@ let inside_compatible x y =
   *)
   | Some R.Inside, None -> false
 
-let intersect_ranges xs ys =
+let intersect_ranges config xs ys =
   if !debug_matches
   then logger#info "intersect_range:\n\t%s\nvs\n\t%s"
       (show_ranges xs) (show_ranges ys);
   let surviving_xs =
     xs |> List.filter (fun x ->
       ys |> List.exists (fun y ->
-        x $<=$ y && inside_compatible x y
+        included_in config x y && inside_compatible x y
       )) in
   let surviving_ys =
     ys |> List.filter (fun y ->
       xs |> List.exists (fun x ->
-        y $<=$ x && inside_compatible y x
+        included_in config y x && inside_compatible y x
       ))
   in
   surviving_xs @ surviving_ys
 [@@profiling]
 
-let difference_ranges pos neg =
+let difference_ranges config pos neg =
   let surviving_pos =
     pos |> List.filter (fun x ->
       not (neg |> List.exists (fun y ->
@@ -306,9 +307,9 @@ let difference_ranges pos neg =
         *)
         match y.inside with
         (* pattern-not-inside: *)
-        | Some R.Inside -> x $<=$ y
+        | Some R.Inside -> included_in config x y
         (* pattern-not: we require the ranges to be equal *)
-        | None -> x $<=$ y && y $<=$ x
+        | None -> included_in config x y && included_in config y x
       ))
     )
   in
@@ -591,12 +592,12 @@ let rec (evaluate_formula: env -> R.formula -> range_with_mvars list) =
        | posr::posrs ->
            let res = posr in
            let res = posrs |> List.fold_left (fun acc r ->
-             intersect_ranges acc r
+             intersect_ranges env.config acc r
            ) res in
 
            (* let's remove the negative ranges *)
            let res = neg |> List.fold_left (fun acc x ->
-             difference_ranges acc (evaluate_formula env x)
+             difference_ranges env.config acc (evaluate_formula env x)
            ) res in
            (* let's apply additional filters.
             * TODO: Note that some metavariable-regexp may be part of an
@@ -668,6 +669,7 @@ let check hook config rules file_and_more =
         let pattern_matches_per_id =
           group_matches_per_pattern_id res.matches in
         let env = {
+          config;
           pattern_matches = pattern_matches_per_id;
           file;
         } in

@@ -43,6 +43,8 @@ $ARG = [$V];
 ### Added
 - JS/TS: Infer global constants even if the `const` qualifier is missing (#2978)
 - PHP: Resolve names and infer global constants in the same way as for Python
+- Let meta-variables match both a constant variable occurrence and that same
+  constant value
 
 ### Fixed
 - Empty yaml files do not crash
