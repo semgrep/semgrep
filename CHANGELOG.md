@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## [0.50.1](https://github.com/returntocorp/semgrep/releases/tag/v0.50.1) - 2021-05-06
 
+### Added
+- Keep track of and report rule parse time in addition to file parse time
+
 ### Changed
 - Reinstate `--debugging-json` to avoid stderr output of `--debug`
 
@@ -14,7 +17,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - JS/TS: Infer global constants even if the `const` qualifier is missing (#2978)
 - PHP: Resolve names and infer global constants in the same way as for Python
-- Keep track of and report rule parse time in addition to file parse time
 
 ### Fixed
 - Empty yaml files do not crash
