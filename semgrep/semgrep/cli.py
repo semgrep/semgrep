@@ -405,10 +405,9 @@ def cli() -> None:
         parser.error("--dump-ast and -l/--lang must both be specified")
 
     output_time = args.time or args.json_time
-    debug = args.debug or args.debugging_json
 
     # set the flags
-    semgrep.util.set_flags(debug, args.quiet, args.force_color)
+    semgrep.util.set_flags(args.debug, args.quiet, args.force_color)
 
     # change cwd if using docker
     try:
@@ -434,7 +433,7 @@ def cli() -> None:
         output_destination=args.output,
         error_on_findings=args.error,
         strict=args.strict,
-        debug=debug,
+        debug=args.debugging_json,
         verbose_errors=args.verbose,
         timeout_threshold=args.timeout_threshold,
         json_stats=args.json_stats,
