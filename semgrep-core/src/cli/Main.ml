@@ -69,6 +69,7 @@ module RP = Reporting
 *)
 let env_debug = "SEMGREP_CORE_DEBUG"
 let env_profile = "SEMGREP_CORE_PROFILE"
+let env_extra = "SEMGREP_CORE_EXTRA"
 
 let logger = Logging.get_logger [__MODULE__]
 let log_config_file = ref "log_config.json"
@@ -1421,9 +1422,9 @@ let main () =
   (* --------------------------------------------------------- *)
   let argv =
     (Array.to_list Sys.argv) @
-    (if Sys.getenv_opt "SEMGREP_CORE_DEBUG" <> None then ["-debug"] else[])@
-    (if Sys.getenv_opt "SEMGREP_CORE_PROFILE"<>None then ["-profile"] else[])@
-    (match Sys.getenv_opt "SEMGREP_CORE_EXTRA" with
+    (if Sys.getenv_opt env_debug <> None then ["-debug"] else[]) @
+    (if Sys.getenv_opt env_profile <> None then ["-profile"] else[]) @
+    (match Sys.getenv_opt env_extra with
      | Some s -> Common.split "[ \t]+" s
      | None -> []
     )
