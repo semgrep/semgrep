@@ -33,6 +33,7 @@ from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
+from semgrep.output import OutputSettings
 from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.profile_manager import ProfileManager
@@ -113,6 +114,7 @@ class CoreRunner:
 
     def __init__(
         self,
+        output_settings: OutputSettings,
         allow_exec: bool,
         jobs: int,
         timeout: int,
@@ -120,6 +122,7 @@ class CoreRunner:
         timeout_threshold: int,
         report_time: bool,
     ):
+        self._output_settings = output_settings
         self._allow_exec = allow_exec
         self._jobs = jobs
         self._timeout = timeout
@@ -216,7 +219,6 @@ class CoreRunner:
         rule: Rule,
         rules_file_flag: str,
         cache_dir: str,
-        report_time: bool,
     ) -> dict:
         with tempfile.NamedTemporaryFile(
             "w"
@@ -254,8 +256,11 @@ class CoreRunner:
                 self._write_equivalences_file(equiv_file, equivalences)
                 cmd += ["-equivalences", equiv_file.name]
 
-            if report_time:
+            if self._report_time:
                 cmd += ["-json_time"]
+
+            if self._output_settings.debug or self._output_settings.verbose_errors:
+                cmd += ["-debug"]
 
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output_json = self._extract_core_output(rule, patterns, core_run)
@@ -407,7 +412,6 @@ class CoreRunner:
                     rule,
                     "-tainting_rules_file",
                     cache_dir,
-                    report_time=self._report_time,
                 )
             else:
                 # semgrep-core doesn't know about OPERATORS.REGEX - this is
@@ -464,7 +468,6 @@ class CoreRunner:
                         rule,
                         "-rules_file",
                         cache_dir,
-                        report_time=self._report_time,
                     )
 
             errors.extend(
@@ -662,6 +665,12 @@ class CoreRunner:
 
                     if self._report_time:
                         cmd += ["-json_time"]
+
+                    if (
+                        self._output_settings.debug
+                        or self._output_settings.verbose_errors
+                    ):
+                        cmd += ["-debug"]
 
                     core_run = sub_run(
                         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE

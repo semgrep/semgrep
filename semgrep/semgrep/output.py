@@ -262,7 +262,7 @@ def build_normal_output(
         elif rule_match.fix_regex:
             fix_regex = rule_match.fix_regex
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
-        
+
         is_same_file = (
             next_rule_match.path == rule_match.path if next_rule_match else False
         )
@@ -490,7 +490,7 @@ class OutputSettings(NamedTuple):
     output_per_finding_max_lines_limit: Optional[int] = None
     output_per_line_max_chars_limit: Optional[int] = None
     error_on_findings: bool = False
-    verbose_errors: bool = False
+    verbose_errors: bool = False  # to do: rename to just 'verbose'
     strict: bool = False
     debug: bool = False
     json_stats: bool = False
