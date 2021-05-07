@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - JS/TS: Infer global constants even if the `const` qualifier is missing (#2978)
 - PHP: Resolve names and infer global constants in the same way as for Python
+- Keep track of and report rule parse time in addition to file parse time
 
 ### Fixed
 - Empty yaml files do not crash
