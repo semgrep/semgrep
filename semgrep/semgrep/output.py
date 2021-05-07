@@ -259,6 +259,13 @@ def build_normal_output(
             if rule_index != len(sorted_rule_matches) - 1
             else None
         )
+
+        if fix:
+            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
+        elif rule_match.fix_regex:
+            fix_regex = rule_match.fix_regex
+            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+        
         is_same_file = (
             next_rule_match.path == rule_match.path if next_rule_match else False
         )
@@ -269,12 +276,6 @@ def build_normal_output(
             per_line_max_chars_limit,
             is_same_file,
         )
-
-        if fix:
-            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
-        elif rule_match.fix_regex:
-            fix_regex = rule_match.fix_regex
-            yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
     if show_times:
         yield from build_timing_summary(
             filtered_rules, all_targets, profiling_data, color_output
@@ -486,16 +487,20 @@ def build_vim_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> s
     return "\n".join(":".join(_get_parts(rm)) for rm in rule_matches)
 
 
+# WARNING: this class is unofficially part of our external API. It can be passed
+# as an argument to our official API: 'semgrep_main.invoke_semgrep'. Try to minimize
+# changes to this API, and make them backwards compatible, if possible.
 class OutputSettings(NamedTuple):
     output_format: OutputFormat
-    output_destination: Optional[str]
-    error_on_findings: bool
-    verbose_errors: bool
-    strict: bool
-    output_per_finding_max_lines_limit: Optional[int]
-    output_per_line_max_chars_limit: Optional[int]
-    json_stats: bool
-    output_time: bool
+    output_destination: Optional[str] = None
+    output_per_finding_max_lines_limit: Optional[int] = None
+    output_per_line_max_chars_limit: Optional[int] = None
+    error_on_findings: bool = False
+    verbose_errors: bool = False
+    strict: bool = False
+    debug: bool = False
+    json_stats: bool = False
+    output_time: bool = False
     timeout_threshold: int = 0
 
 
@@ -727,10 +732,8 @@ class OutputHandler:
         per_line_max_chars_limit: Optional[int],
     ) -> str:
         output_format = self.settings.output_format
-        debug_steps = None
-        if output_format == OutputFormat.JSON_DEBUG:
-            debug_steps = self.debug_steps_by_rule
-        if output_format.is_json():
+        if output_format == OutputFormat.JSON:
+            debug_steps = self.debug_steps_by_rule if self.settings.debug else None
             return build_output_json(
                 self.rule_matches,
                 self.semgrep_structured_errors,

@@ -95,12 +95,12 @@ You can add any additional CLI flag you'd like like so:
 
 To call semgrep without the `--json` flag:
 
-```run_semgrep_in_tmp("r2c/python", output_format="normal")```
+```run_semgrep_in_tmp("r2c/python", output_format=OutputFormat.TEXT)```
 
-To call semgrep without the `--junit-xml` flag:
+To call semgrep with the `--junit-xml` flag:
 
-```run_semgrep_in_tmp("r2c/python", output_format="junit-xml")```
+```run_semgrep_in_tmp("r2c/python", output_format=OutputFormat.JUNIT_XML)```
 
-To call semgrep with `--sarif` instead of `--json`:
+To call semgrep with the `--sarif` flag instead of `--json`:
 
-```run_semgrep_in_tmp("r2c/python", output_format="sarif")```
+```run_semgrep_in_tmp("r2c/python", output_format=OutputFormat.SARIF)```

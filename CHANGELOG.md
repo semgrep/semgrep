@@ -2,7 +2,14 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Coming up next
+## Unreleased
+
+## [0.50.1](https://github.com/returntocorp/semgrep/releases/tag/v0.50.1) - 2021-05-06
+
+### Changed
+- Reinstate `--debugging-json` to avoid stderr output of `--debug`
+
+## [0.50.0](https://github.com/returntocorp/semgrep/releases/tag/v0.50.0) - 2021-05-06
 
 ### Added
 - JS/TS: Infer global constants even if the `const` qualifier is missing (#2978)
@@ -11,10 +18,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Empty yaml files do not crash
+- Autofix does not insert newline characters for patterns from semgrep.live (#3045)
+- Autofix printout is grouped with its own finding rather than the one below it (#3046)
 - Do not assign constant values to assigned variables (#2805)
+- A `--time` flag instead of `--json-time` which shows a summary of the
+  timing information when invoked with normal output and adds a time field
+  to the json output when `--json` is also present
 
 ### Changed
 - .git/ directories are ignored when scanning
+- External Python API (`semgrep_main.invoke_semgrep`) now takes an
+  optional `OutputSettings` argument for controlling output
+- `OutputSettings.json_time` has moved to `OutputSettings.output_time`,
+  this and many other `OutputSettings` arguments have been made optional
+
+### Removed
+- `--debugging-json` flag in favor of `--json` + `--debug`
+- `--json-time` flag in favor of `--json` + `--time`
 
 ## [0.49.0](https://github.com/returntocorp/semgrep/releases/tag/v0.49.0) - 2021-04-28
 
@@ -32,9 +52,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `<a href="foo">...</a>`  (#2963)
 - JS/TS: Support metavariables for JSX attribute values, as in
   `<a href=$X>some text</a>` (#2964)
-- A `--time` flag instead of `--json-time` which shows a summary of the
-  timing information when invoked with normal output and adds a time field
-  to the json output when `--json` is also present
 
 ### Fixed
 - Python: correctly parsing fstring with multiple colons

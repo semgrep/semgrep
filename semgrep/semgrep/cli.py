@@ -251,28 +251,12 @@ def cli() -> None:
         ),
     )
     output.add_argument(
-        "--json-stats",
-        action="store_true",
-        help=argparse.SUPPRESS,  # this flag is experimental and users should not yet rely on the output being stable
-        # help="Include statistical information about performance in JSON output (experimental).",
-    )
-    output.add_argument(
         "--time",
         action="store_true",
         help=(
             "Include a timing summary with the results"
             "If output format is json, provides times for each pair (rule, target)."
         ),
-    )
-    output.add_argument(
-        "--json-time",
-        action="store_true",
-        help=("The same as --time, included for backwards compatibility"),
-    )
-    output.add_argument(
-        "--debugging-json",
-        action="store_true",
-        help="Output JSON with extra debugging information (experimental).",
     )
     output.add_argument(
         "--junit-xml", action="store_true", help="Output results in JUnit XML format."
@@ -387,6 +371,27 @@ def cli() -> None:
         help="Disable checking for latest version.",
     )
 
+    # These flags are deprecated or experimental - users should not
+    # rely on their existence, or their output being stable
+    output.add_argument(
+        "--json-stats",
+        action="store_true",
+        help=argparse.SUPPRESS,
+        # help="Include statistical information about performance in JSON output (experimental).",
+    )
+    output.add_argument(
+        "--json-time",
+        action="store_true",
+        help=argparse.SUPPRESS,
+        # help="Deprecated alias for --json + --time",
+    )
+    output.add_argument(
+        "--debugging-json",
+        action="store_true",
+        help=argparse.SUPPRESS,
+        # help="Deprecated alias for --json + --debug",
+    )
+
     ### Parse and validate
     args = parser.parse_args()
     if args.version:
@@ -399,6 +404,8 @@ def cli() -> None:
     if args.dump_ast and not args.lang:
         parser.error("--dump-ast and -l/--lang must both be specified")
 
+    output_time = args.time or args.json_time
+
     # set the flags
     semgrep.util.set_flags(args.debug, args.quiet, args.force_color)
 
@@ -410,10 +417,8 @@ def cli() -> None:
         raise e
 
     output_format = OutputFormat.TEXT
-    if args.json:
+    if args.json or args.json_time or args.debugging_json:
         output_format = OutputFormat.JSON
-    elif args.debugging_json:
-        output_format = OutputFormat.JSON_DEBUG
     elif args.junit_xml:
         output_format = OutputFormat.JUNIT_XML
     elif args.sarif:
@@ -428,10 +433,11 @@ def cli() -> None:
         output_destination=args.output,
         error_on_findings=args.error,
         strict=args.strict,
+        debug=args.debugging_json,
         verbose_errors=args.verbose,
         timeout_threshold=args.timeout_threshold,
         json_stats=args.json_stats,
-        output_time=args.time,
+        output_time=output_time,
         output_per_finding_max_lines_limit=args.max_lines_per_finding,
         output_per_line_max_chars_limit=args.max_chars_per_line,
     )
@@ -496,6 +502,6 @@ def cli() -> None:
                 timeout_threshold=args.timeout_threshold,
                 skip_unknown_extensions=args.skip_unknown_extensions,
                 severity=args.severity,
-                report_time=args.time or args.json_time,
+                report_time=output_time,
                 optimizations=args.optimizations,
             )

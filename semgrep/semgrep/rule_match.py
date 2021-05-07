@@ -83,7 +83,9 @@ class RuleMatch:
 
     @property
     def fix(self) -> Optional[str]:
-        return self._fix
+        # We do this for consistency with semgrep-core, which ignores whitespace
+        # including newline chars at the end of multiline patterns
+        return self._fix.rstrip() if self._fix else self._fix
 
     @property
     def fix_regex(self) -> Optional[Dict[str, Any]]:
