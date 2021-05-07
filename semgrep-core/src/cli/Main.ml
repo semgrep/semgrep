@@ -17,7 +17,7 @@ module MR = Mini_rule
 module R = Rule
 module J = JSON
 module FT = File_type
-module RP = Reporting
+module RP = Report
 
 (*****************************************************************************)
 (* Purpose *)

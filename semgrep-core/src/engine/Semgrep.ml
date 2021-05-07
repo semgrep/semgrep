@@ -23,7 +23,7 @@ module PM = Pattern_match
 module G = AST_generic
 module PI = Parse_info
 module MV = Metavariable
-module RP = Reporting
+module RP = Report
 
 let logger = Logging.get_logger [__MODULE__]
 

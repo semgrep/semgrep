@@ -24,7 +24,7 @@ module R = Mini_rule (* TODO: use MR instead *)
 module E = Error_code
 module J = JSON
 module MV = Metavariable
-module RP = Reporting
+module RP = Report
 
 open Pattern_match
 
