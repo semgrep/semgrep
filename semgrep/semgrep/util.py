@@ -154,8 +154,8 @@ def sub_run(cmd: List[str], **kwargs: Any) -> Any:
 def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
     """A simple proxy function to minimize and centralize subprocess usage."""
     # fmt: off
-    if QUIET:
-        kwargs = {**kwargs, "stderr": subprocess.DEVNULL}
+    #if QUIET:
+    #    kwargs = {**kwargs, "stderr": subprocess.DEVNULL}
     result = subprocess.check_output(cmd, **kwargs)  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
     # fmt: on
     return result
