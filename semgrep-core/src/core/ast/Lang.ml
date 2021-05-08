@@ -89,6 +89,8 @@ let list_of_lang = [
   "ruby", Ruby;
   "rb", Ruby;
   "cs", Csharp;
+  "csharp", Csharp;
+  "c#", Csharp;
   "php", PHP;
   "kt", Kotlin;
   "lua", Lua;
