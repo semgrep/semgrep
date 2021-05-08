@@ -269,19 +269,21 @@ class CoreRunner:
     def _extract_core_output(
         self, rule: Rule, patterns: List[Pattern], core_run: subprocess.CompletedProcess
     ) -> Dict[str, Any]:
-        logger.debug(core_run.stderr.decode("utf-8", errors="replace"))
-
         semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
         semgrep_error_output = core_run.stderr.decode("utf-8", errors="replace")
 
-        # Always print semgrep-core's error output, which includes
-        # semgrep-core's logging if it was requested.
+        # By default, we print semgrep-core's error output, which includes
+        # semgrep-core's logging if it was requested via --verbose or --debug.
+        #
+        # If semgrep-core prints anything on stderr when running with default
+        # flags, it's a bug that should be fixed in semgrep-core.
+        #
         if semgrep_error_output != "":
             name = f"[process {os.getpid()}, rule '{rule.id}']"
-            print(
+            logger.info(
                 f"--- semgrep-core stderr {name} ---\n"
                 f"{semgrep_error_output}"
-                f"--- end semgrep-core stderr {name} ---\n"
+                f"--- end semgrep-core stderr {name} ---"
             )
 
         returncode = core_run.returncode
