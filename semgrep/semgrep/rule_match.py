@@ -1,5 +1,4 @@
 import itertools
-from copy import deepcopy
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -9,7 +8,6 @@ from typing import Tuple
 
 import attr
 
-from semgrep.external.junit_xml import TestCase  # type: ignore[attr-defined]
 from semgrep.pattern_match import PatternMatch
 
 
@@ -96,6 +94,10 @@ class RuleMatch:
         return self._message
 
     @property
+    def metadata(self) -> Dict[str, Any]:
+        return self._metadata
+
+    @property
     def severity(self) -> str:
         return self._severity
 
@@ -106,6 +108,10 @@ class RuleMatch:
     @property
     def end(self) -> Dict[str, Any]:
         return self._end
+
+    @property
+    def is_ignored(self) -> Optional[bool]:
+        return self._is_ignored
 
     @property
     def lines(self) -> List[str]:
@@ -134,56 +140,3 @@ class RuleMatch:
     @property
     def should_fail_run(self) -> bool:
         return self._severity in {"WARNING", "ERROR"}
-
-    def to_json(self) -> Dict[str, Any]:
-        json_obj = deepcopy(self._pattern_match._raw_json)
-        json_obj["check_id"] = self._id
-        json_obj["extra"]["message"] = self._message
-        json_obj["extra"]["metadata"] = self._metadata
-        json_obj["extra"]["severity"] = self._severity
-        if self._fix:
-            json_obj["extra"]["fix"] = self._fix
-        if self._fix_regex:
-            json_obj["extra"]["fix_regex"] = self._fix_regex
-        if self._is_ignored is not None:
-            json_obj["extra"]["is_ignored"] = self._is_ignored
-        json_obj["start"] = self._start
-        json_obj["end"] = self._end
-        # self.lines already contains \n at the end of each line
-        json_obj["extra"]["lines"] = "".join(self.lines).rstrip()
-
-        return json_obj
-
-    def to_junit_xml(self) -> Dict[str, Any]:
-        test_case = TestCase(
-            self.id,
-            file=str(self.path),
-            line=self.start["line"],
-            classname=str(self.path),
-        )
-        test_case.add_failure_info(
-            message=self.message, output=self.lines, failure_type=self.severity
-        )
-        return test_case
-
-    def to_sarif(self) -> Dict[str, Any]:
-        return {
-            "ruleId": self.id,
-            "message": {"text": self.message},
-            "locations": [
-                {
-                    "physicalLocation": {
-                        "artifactLocation": {
-                            "uri": str(self.path),
-                            "uriBaseId": "%SRCROOT%",
-                        },
-                        "region": {
-                            "startLine": self.start["line"],
-                            "startColumn": self.start["col"],
-                            "endLine": self.end["line"],
-                            "endColumn": self.end["col"],
-                        },
-                    }
-                }
-            ],
-        }
