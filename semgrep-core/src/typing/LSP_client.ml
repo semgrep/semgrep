@@ -111,7 +111,7 @@ end
 
 let send_request req io =
   incr counter;
-  let id = Stdune.Right !counter in
+  let id = `Int !counter in
   let json_rpc = Client_request2.to_jsonrpc_request req ~id in
   let json = Jsonrpc.Message.yojson_of_request json_rpc in
   let either = Jsonrpc.Message.either_of_yojson json in
