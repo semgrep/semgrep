@@ -16,7 +16,7 @@ open Common
 module FT = File_type
 module R = Rule
 module E = Error_code
-module RP = Reporting
+module RP = Report
 
 let logger = Logging.get_logger [__MODULE__]
 

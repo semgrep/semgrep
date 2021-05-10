@@ -17,7 +17,7 @@ module MR = Mini_rule
 module R = Rule
 module J = JSON
 module FT = File_type
-module RP = Reporting
+module RP = Report
 
 (*****************************************************************************)
 (* Purpose *)
@@ -616,76 +616,64 @@ let get_final_files lang xs =
 
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 let iter_files_and_get_matches_and_exn_to_errors f files =
-  let matches_and_errors_and_times =
-    files |> map (fun file ->
-      logger#info "Analyzing %s" file;
-      let res, run_time =
-        Common.with_time (fun () ->
-          try
-            run_with_memory_limit !max_memory (fun () ->
-              timeout_function file (fun () ->
-                (f file)
-                |> (fun v ->
-                  (* This is just to test -max_memory, to give a chance
-                   * to Gc.create_alarm to run even if the program does
-                   * not even need to run the Gc. However, this has a slow
-                   * perf penality on small programs, which is why it's
-                   * better to keep guarded when you're
-                   * not testing -max_memory.
-                  *)
-                  if !test then Gc.full_major();
-                  logger#info "done with %s" file;
-                  v)
-              ))
-          with
-          (* note that Error_code.exn_to_error already handles Timeout
-           * and would generate a TimeoutError code for it, but we intercept
-           * Timeout here to give a better diagnostic.
-          *)
-          | (Timeout | Out_of_memory) as exn ->
-              let str_opt =
-                match !Semgrep_generic.last_matched_rule with
-                | None -> None
-                | Some rule ->
-                    logger#info "critical exn while matching ruleid %s" rule.MR.id;
-                    logger#info "full pattern is: %s" rule.MR.pattern_string;
-                    Some (spf " with ruleid %s" rule.MR.id)
-              in
-              let loc = Parse_info.first_loc_of_file file in
-              {
-                RP.matches = [];
-                errors = [Error_code.mk_error_loc loc
-                            (match exn with
-                             | Timeout ->
-                                 logger#info "Timeout on %s" file;
-                                 Error_code.Timeout str_opt
-                             | Out_of_memory ->
-                                 logger#info "OutOfMemory on %s" file;
-                                 Error_code.OutOfMemory str_opt
-                             | _ -> raise Impossible
-                            )];
-                profiling = RP.empty_partial_profiling file
-              }
-          | exn when not !fail_fast ->
-              { RP.matches = [];
-                errors = [Error_code.exn_to_error file exn];
-                profiling = RP.empty_partial_profiling file
-              }
-        )
-      in
-      RP.add_run_time run_time res
-    )
-  in
-  let matches =
-    matches_and_errors_and_times
-    |> List.map (fun x -> x.RP.matches) |> List.flatten in
-  let errors =
-    matches_and_errors_and_times
-    |> List.map (fun x -> x.RP.errors) |> List.flatten in
-  let times =
-    matches_and_errors_and_times
-    |> List.map (fun x -> x.RP.profiling) in
-  matches, errors, times
+  files |> map (fun file ->
+    logger#info "Analyzing %s" file;
+    let res, run_time =
+      Common.with_time (fun () ->
+        try
+          run_with_memory_limit !max_memory (fun () ->
+            timeout_function file (fun () ->
+              (f file)
+              |> (fun v ->
+                (* This is just to test -max_memory, to give a chance
+                 * to Gc.create_alarm to run even if the program does
+                 * not even need to run the Gc. However, this has a slow
+                 * perf penality on small programs, which is why it's
+                 * better to keep guarded when you're
+                 * not testing -max_memory.
+                *)
+                if !test then Gc.full_major();
+                logger#info "done with %s" file;
+                v)
+            ))
+        with
+        (* note that Error_code.exn_to_error already handles Timeout
+         * and would generate a TimeoutError code for it, but we intercept
+         * Timeout here to give a better diagnostic.
+        *)
+        | (Timeout | Out_of_memory) as exn ->
+            let str_opt =
+              match !Semgrep_generic.last_matched_rule with
+              | None -> None
+              | Some rule ->
+                  logger#info "critical exn while matching ruleid %s" rule.MR.id;
+                  logger#info "full pattern is: %s" rule.MR.pattern_string;
+                  Some (spf " with ruleid %s" rule.MR.id)
+            in
+            let loc = Parse_info.first_loc_of_file file in
+            {
+              RP.matches = [];
+              errors = [Error_code.mk_error_loc loc
+                          (match exn with
+                           | Timeout ->
+                               logger#info "Timeout on %s" file;
+                               Error_code.Timeout str_opt
+                           | Out_of_memory ->
+                               logger#info "OutOfMemory on %s" file;
+                               Error_code.OutOfMemory str_opt
+                           | _ -> raise Impossible
+                          )];
+              profiling = RP.empty_partial_profiling file
+            }
+        | exn when not !fail_fast ->
+            { RP.matches = [];
+              errors = [Error_code.exn_to_error file exn];
+              profiling = RP.empty_partial_profiling file
+            }
+      )
+    in
+    RP.add_run_time run_time res
+  )
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
 (*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
@@ -702,10 +690,10 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
  * files or dirs.
 *)
 (*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
-let semgrep_with_rules lang rules files_or_dirs =
+let semgrep_with_rules lang (rules, rule_parse_time) files_or_dirs =
   let files = get_final_files lang files_or_dirs in
   logger#info "processing %d files" (List.length files);
-  let matches, errs, profiling_data =
+  let file_results =
     files |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
       let (ast, errors), parse_time =
         Common.with_time (fun () -> parse_generic lang file)
@@ -724,19 +712,20 @@ let semgrep_with_rules lang rules files_or_dirs =
       { RP.matches; errors; profiling = {file; parse_time; match_time} }
     )
   in
-  let profiling_data = if !report_time then Some profiling_data else None in
+  let res = RP.make_rule_result file_results !report_time rule_parse_time in
   logger#info "found %d matches and %d errors"
-    (List.length matches) (List.length errs);
+    (List.length res.RP.matches) (List.length res.RP.errors);
   let (matches, new_errors) =
-    filter_files_with_too_many_matches_and_transform_as_timeout matches in
-  let errs = new_errors @ errs in
+    filter_files_with_too_many_matches_and_transform_as_timeout res.RP.matches in
+  let errors = new_errors @ res.RP.errors in
+  let res = { RP.matches; errors; rule_profiling = res.RP.rule_profiling} in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
   *)
   let flds =
     JSON_report.json_fields_of_matches_and_errors
-      files matches errs profiling_data in
+      files res in
   let flds =
     if !profile
     then begin
@@ -764,8 +753,8 @@ let semgrep_with_rules_file lang rules_file files_or_dirs =
     (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     logger#info "Parsing %s" rules_file;
     (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
-    let rules = Parse_mini_rule.parse rules_file in
-    semgrep_with_rules lang rules files_or_dirs;
+    let timed_rules = Common.with_time (fun () -> Parse_mini_rule.parse rules_file) in
+    semgrep_with_rules lang timed_rules files_or_dirs;
     if !profile then save_rules_file_in_tmp ()
 
   with exn ->
@@ -780,7 +769,7 @@ let semgrep_with_rules_file lang rules_file files_or_dirs =
 (* Semgrep -config *)
 (*****************************************************************************)
 
-let semgrep_with_real_rules rules files_or_dirs =
+let semgrep_with_real_rules (rules, rule_parse_time) files_or_dirs =
   (* todo: at some point we should infer the lang from the rules and
    * apply different rules with different languages and different files
    * automatically, like the semgrep python wrapper.
@@ -789,7 +778,7 @@ let semgrep_with_real_rules rules files_or_dirs =
   let files = xlang_files_of_dirs_or_files xlang files_or_dirs in
   logger#info "processing %d files" (List.length files);
 
-  let matches, errs, match_times =
+  let file_results =
     files |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
       let rules =
         rules |> List.filter (fun r ->
@@ -819,12 +808,13 @@ let semgrep_with_real_rules rules files_or_dirs =
       RP.add_file file res
     )
   in
-  let match_times = if !report_time then Some match_times else None in
+  let res = RP.make_rule_result file_results !report_time rule_parse_time in
   logger#info "found %d matches and %d errors"
-    (List.length matches) (List.length errs);
+    (List.length res.matches) (List.length res.errors);
   let (matches, new_errors) =
-    filter_files_with_too_many_matches_and_transform_as_timeout matches in
-  let errs = new_errors @ errs in
+    filter_files_with_too_many_matches_and_transform_as_timeout res.matches in
+  let errors = new_errors @ res.errors in
+  let res = { RP.matches; errors; rule_profiling = res.RP.rule_profiling} in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -833,7 +823,7 @@ let semgrep_with_real_rules rules files_or_dirs =
   | Json ->
       let flds =
         JSON_report.json_fields_of_matches_and_errors
-          files matches errs match_times in
+          files res in
       let flds =
         if !profile
         then begin
@@ -850,13 +840,13 @@ let semgrep_with_real_rules rules files_or_dirs =
   | Text ->
       (* the match has already been printed above. We just print errors here *)
       (* pr (spf "number of errors: %d" (List.length errs)); *)
-      errs |> List.iter (fun err -> pr (E.string_of_error err))
+      errors |> List.iter (fun err -> pr (E.string_of_error err))
 
 let semgrep_with_real_rules_file rules_file files_or_dirs =
   try
     logger#info "Parsing %s" rules_file;
-    let rules = Parse_rule.parse rules_file in
-    semgrep_with_real_rules rules files_or_dirs
+    let timed_rules = Common.with_time (fun () -> Parse_rule.parse rules_file) in
+    semgrep_with_real_rules timed_rules files_or_dirs
   with exn when !output_format = Json ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     let json = JSON_report.json_of_exn exn in
@@ -907,12 +897,12 @@ let semgrep_with_one_pattern lang xs =
         parse_pattern lang s, s
     | _ -> raise Impossible
   in
-  let rule = rule_of_pattern lang pattern_string pattern in
+  let (rule, rule_parse_time) = Common.with_time (fun () -> [rule_of_pattern lang pattern_string pattern]) in
 
   match !output_format with
   | Json ->
       (* closer to -rules_file, but no incremental match output *)
-      semgrep_with_rules lang [rule] xs
+      semgrep_with_rules lang (rule, rule_parse_time) xs
   | Text ->
       (* simpler code path than in semgrep_with_rules *)
       begin
@@ -936,7 +926,7 @@ let semgrep_with_one_pattern lang xs =
                   print_match !mvars env Metavariable.ii_of_mval xs
                 )
                 Config_semgrep.default_config
-                [rule] (parse_equivalences ())
+                rule (parse_equivalences ())
                 (file, lang, ast)
               |> ignore
             )
@@ -971,7 +961,7 @@ let tainting_with_rules lang rules_file files_or_dirs =
     let rules = Parse_tainting_rules.parse rules_file in
 
     let files = get_final_files lang files_or_dirs in
-    let matches, errs, _match_times =
+    let file_results =
       files |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
         let (ast, errors) = parse_generic lang file in
         let rules =
@@ -982,8 +972,9 @@ let tainting_with_rules lang rules_file files_or_dirs =
         }
       )
     in
+    let res = RP.make_rule_result file_results ~report_time:false ~rule_parse_time:0.0 in
     let flds = JSON_report.json_fields_of_matches_and_errors
-        files matches errs None in
+        files res in
     let s = J.string_of_json (J.Object flds) in
     pr s
   with exn ->

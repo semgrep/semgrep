@@ -307,7 +307,7 @@ class CoreRunner:
         if "targets" in output_time_json:
             for target in output_time_json["targets"]:
                 if "match_time" in target and "path" in target:
-                    profiling_data.set_times(
+                    profiling_data.set_run_times(
                         rule.id,
                         target["path"],
                         Times(
@@ -316,6 +316,8 @@ class CoreRunner:
                             run_time=target["run_time"],
                         ),
                     )
+        if "rule_parse_time" in output_time_json:
+            profiling_data.set_parse_time(rule.id, output_time_json["rule_parse_time"])
 
     def _run_rule(
         self,

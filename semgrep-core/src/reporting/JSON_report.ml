@@ -24,7 +24,7 @@ module R = Mini_rule (* TODO: use MR instead *)
 module E = Error_code
 module J = JSON
 module MV = Metavariable
-module RP = Reporting
+module RP = Report
 
 open Pattern_match
 
@@ -183,19 +183,20 @@ let json_time_of_profiling_data profiling_data =
             "match_time", J.Float match_time;
             "run_time", J.Float run_time;
           ]
-        ) profiling_data
-      )
+        ) profiling_data.RP.file_times
+      );
+      "rule_parse_time", J.Float profiling_data.RP.rule_parse_time
     ]
   ]
 
-let json_fields_of_matches_and_errors files matches errs opt_profiling_data =
+let json_fields_of_matches_and_errors files res =
   let (matches, new_errs) =
-    Common.partition_either match_to_json matches in
-  let errs = new_errs @ errs in
+    Common.partition_either match_to_json res.RP.matches in
+  let errs = new_errs @ res.RP.errors in
   let count_errors = (List.length errs) in
   let count_ok = (List.length files) - count_errors in
   let time_field =
-    match opt_profiling_data with
+    match res.RP.rule_profiling with
     | None -> []
     | Some x -> json_time_of_profiling_data x
   in

@@ -159,14 +159,17 @@ def build_timing_summary(
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
     YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
 
-    total_parsing_time = 0.0
+    rule_parsing_time = 0.0
+    file_parsing_time = 0.0
     rule_timings = {}
     file_timings: Dict[str, float] = {}
     for rule in rules:
-        rule_timings[rule.id] = (0.0, 0.0)
+        parse_time = profiling_data.get_parse_time(rule.id)
+        rule_timings[rule.id] = (parse_time, 0.0)
+        rule_parsing_time += parse_time
         for target in targets:
             path_str = str(target)
-            times = profiling_data.get_times(rule.id, path_str)
+            times = profiling_data.get_run_times(rule.id, path_str)
             rule_timings[rule.id] = tuple(
                 x + y
                 for x, y in zip(
@@ -175,13 +178,13 @@ def build_timing_summary(
                 )
             )  # type: ignore
             file_timings[path_str] = file_timings.get(path_str, 0.0) + times.run_time
-            total_parsing_time += times.parse_time
-    all_total_time = sum(i for i in file_timings.values())
+            file_parsing_time += times.parse_time
+    all_total_time = sum(i for i in file_timings.values()) + rule_parsing_time
     total_matching_time = sum(i[1] for i in rule_timings.values())
 
     # Output information
     yield f"\nSemgrep-core timing summary:"
-    yield f"Total CPU time: {all_total_time}\tParse time: {total_parsing_time}\tMatch time: {total_matching_time}"
+    yield f"Total CPU time: {all_total_time:.4f}  File parse time: {file_parsing_time:.4f}" f"  Rule parse time: {rule_parsing_time:.4f}  Match time: {total_matching_time:.4f}"
 
     yield f"Slowest {items_to_show}/{len(file_timings)} files"
     slowest_file_times = sorted(file_timings.items(), key=lambda x: x[1], reverse=True)[
@@ -290,7 +293,7 @@ def _build_time_target_json(
 
     target_json["path"] = path_str
     target_json["num_bytes"] = num_bytes
-    timings = [profiling_data.get_times(rule.id, path_str) for rule in rules]
+    timings = [profiling_data.get_run_times(rule.id, path_str) for rule in rules]
     target_json["parse_times"] = [timing.parse_time for timing in timings]
     target_json["match_times"] = [timing.match_time for timing in timings]
     target_json["run_times"] = [timing.run_time for timing in timings]
@@ -316,6 +319,9 @@ def _build_time_json(
     # this list of all rules names is given here so they don't have to be
     # repeated for each target in the 'targets' field, saving space.
     time_info["rules"] = [{"id": rule.id} for rule in rules]
+    time_info["rule_parse_info"] = [
+        profiling_data.get_parse_time(rule.id) for rule in rules
+    ]
     time_info["total_time"] = total_time
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
     time_info["targets"] = [
