@@ -332,7 +332,7 @@ let attribute_target_specifier (env : env) ((v1, v2) : CST.attribute_target_spec
     )
   in
   let v2 = token env v2 (* ":" *) in
-  todo env (v1, v2)
+  (v1, v2)
 
 (* note that there's no octal literal in C# so no need for
  * H.int_of_string_c_octal_opt
@@ -1916,22 +1916,22 @@ and switch_section (env : env) ((v1, v2) : CST.switch_section) : case_and_body =
   (* TODO: we convert list of statements to a block with fake brackets. Does this make sense? *)
   CasesAndBody (v1, stmt1 v2)
 
-and attribute_list (env : env) ((v1, v2, v3, v4, vtodo, v5) : CST.attribute_list) : attribute list =
-  let v1 = token env v1 (* "[" *) in
-  let v2 =
-    (match v2 with
-     | Some x -> Some (attribute_target_specifier env x)
-     | None -> None)
+and attribute_list (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_list) : attribute list =
+  (* TODO: Handle unused tokens. *)
+  let _v1 = token env v1 (* "[" *) in
+  let _v2 =
+    v2
+    |> map_opt (fun x -> attribute_target_specifier env x)
   in
   let v3 = attribute env v3 in
   let v4 =
-    List.map (fun (v1, v2) ->
-      let v1 = token env v1 (* "," *) in
-      let v2 = attribute env v2 in
-      v2
+    List.map (fun (x, y) ->
+      token env x (* "," *) |> ignore;
+      attribute env y
     ) v4
   in
-  let v5 = token env v5 (* "]" *) in
+  let _v5 = v5 |> map_opt (fun x -> token env x (* "," *)) in
+  let _v6 = token env v6 (* "]" *) in
   v3 :: v4
 
 and bracketed_argument_list (env : env) ((v1, v2, v3, v4) : CST.bracketed_argument_list) =
