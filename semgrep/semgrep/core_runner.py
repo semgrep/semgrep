@@ -2,7 +2,6 @@ import collections
 import functools
 import json
 import logging
-import os
 import re
 import subprocess
 import tempfile
@@ -279,7 +278,7 @@ class CoreRunner:
         # flags, it's a bug that should be fixed in semgrep-core.
         #
         if semgrep_error_output != "":
-            name = f"[process {os.getpid()}, rule '{rule.id}']"
+            name = f"[rule '{rule.id}']"
             logger.info(
                 f"--- semgrep-core stderr {name} ---\n"
                 f"{semgrep_error_output}"
@@ -289,7 +288,7 @@ class CoreRunner:
         returncode = core_run.returncode
         if returncode != 0:
             output_json = self._parse_core_output(
-                rule, semgrep_output, semgrep_error_output, returncode
+                rule, core_run, semgrep_output, semgrep_error_output, returncode
             )
 
             if "error" in output_json:
@@ -298,19 +297,21 @@ class CoreRunner:
                 self._fail(
                     'non-zero exit status with missing "error" field in json response',
                     rule,
+                    core_run.args,
                     returncode,
                     semgrep_output,
                     semgrep_error_output,
                 )
 
         output_json = self._parse_core_output(
-            rule, semgrep_output, semgrep_error_output, returncode
+            rule, core_run, semgrep_output, semgrep_error_output, returncode
         )
         return output_json
 
     def _parse_core_output(
         self,
         rule: Rule,
+        core_run: subprocess.CompletedProcess,
         semgrep_output: str,
         semgrep_error_output: str,
         returncode: int,
@@ -322,6 +323,7 @@ class CoreRunner:
             self._fail(
                 "unparseable json output",
                 rule,
+                core_run,
                 returncode,
                 semgrep_output,
                 semgrep_error_output,
@@ -332,15 +334,19 @@ class CoreRunner:
         self,
         reason: str,
         rule: Rule,
+        core_run: subprocess.CompletedProcess,
         returncode: int,
         semgrep_output: str,
         semgrep_error_output: str,
     ) -> None:
+        # Once we require python >= 3.8, switch to using shlex.join instead
+        # for proper quoting of the command line.
+        shell_command = " ".join(core_run.args)
         raise SemgrepError(
             f"semgrep-core failed: {reason}\n"
-            f"process ID: {os.getpid()}\n"
             f"rule ID: '{rule.id}'\n"
             f"semgrep-core exit code: {returncode}\n"
+            f"command: {shell_command}\n"
             f"unexpected non-json output while invoking semgrep-core:\n"
             "--- semgrep-core stdout ---\n"
             f"{semgrep_output}"
