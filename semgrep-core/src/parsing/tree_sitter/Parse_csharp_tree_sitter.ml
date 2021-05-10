@@ -922,7 +922,7 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
   (* TODO return Ast.ArgKwd if Some v1 *)
   AST.Arg v3
 
-and initializer_expression (env : env) ((v1, v2, v3, v4) : CST.initializer_expression) =
+and initializer_expression (env : env) ((v1, v2, v3, v4) : CST.initializer_expression) : tok * expr list * tok =
   let v1 = token env v1 (* "{" *) in
   let v2 =
     anon_opt_cst_pat_rep_interp_alig_clause_080fdff env v2
@@ -1086,12 +1086,13 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v1 = token env v1 (* "new" *) in
        let v2 = array_type env v2 in
        let v3 =
-         (match v3 with
-          | Some x -> unbracket (initializer_expression env x)
-          | None -> [])
+         match v3 with
+         | Some x -> initializer_expression env x
+         | None  -> fake_bracket []
        in
-       let args = ArgType v2 :: List.map (fun x -> Arg x) v3 in
-       Call (IdSpecial (New, v1), fake_bracket args)
+       let lb, _, rb = v3 in
+       let args = (lb, [ArgType v2; Arg (AST.Tuple v3)], rb) in
+       Call (IdSpecial (New, v1), args)
    | `As_exp (v1, v2, v3) ->
        let v1 = expression env v1 in
        let v2 = token env v2 (* "as" *) in
@@ -1171,12 +1172,13 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Impl_obj_crea_exp (v1, v2, v3) ->
        let v1 = token env v1 (* "new" *) in
        let v2 = argument_list env v2 in
-       let _v3 =
-         v3
-         |> map_opt (fun x -> initializer_expression env x)
+       let v3 =
+         match v3 with
+         | Some x -> initializer_expression env x
+         | None   -> fake_bracket []
        in
-       (* TODO handle v3 *)
-       let args = v2 in
+       let lp, v2', rp = v2 in
+       let args = (lp, v2'@[Arg (Tuple v3)], rp) in
        Call (IdSpecial (New, v1), args)
    | `Impl_stack_alloc_array_crea_exp (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "stackalloc" *) in
@@ -1266,13 +1268,12 @@ and expression (env : env) (x : CST.expression) : AST.expr =
           | None -> fake_bracket [])
        in
        let v4 =
-         (match v4 with
-          | Some x -> Some (initializer_expression env x)
-          | None -> None)
+         match v4 with
+         | Some x -> initializer_expression env x
+         | None   -> fake_bracket []
        in
-       (* TODO handle v4 *)
-       let lp, args, rp = v3 in
-       let args = (lp, ArgType v2 :: args, rp) in
+       let lp, v3', rp = v3 in
+       let args = (lp, ArgType v2 :: v3' @ [Arg (Tuple v4)], rp) in
        Call (IdSpecial (New, v1), args)
    | `Paren_exp (x) -> parenthesized_expression env x
    | `Post_un_exp x -> postfix_unary_expression env x
