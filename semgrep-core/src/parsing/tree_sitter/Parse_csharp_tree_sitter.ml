@@ -1,6 +1,6 @@
-(* PUT YOUR NAME HERE
+(* Sjoerd Langkemper
  *
- * Copyright (c) PUT YOUR COPYRIGHT HERE
+ * Copyright (c) 2021 R2C
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License (GPL)
