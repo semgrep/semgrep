@@ -1168,7 +1168,16 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v4 = token env v4 (* "]" *) in
        let v5 = initializer_expression env v5 in
        Container (Array, v5)
-   | `Impl_obj_crea_exp (v1, v2, v3) -> todo env (v1, v2, v3)
+   | `Impl_obj_crea_exp (v1, v2, v3) ->
+       let v1 = token env v1 (* "new" *) in
+       let v2 = argument_list env v2 in
+       let _v3 =
+         v3
+         |> map_opt (fun x -> initializer_expression env x)
+       in
+       (* TODO handle v3 *)
+       let args = v2 in
+       Call (IdSpecial (New, v1), args)
    | `Impl_stack_alloc_array_crea_exp (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "stackalloc" *) in
        let v2 = token env v2 (* "[" *) in
