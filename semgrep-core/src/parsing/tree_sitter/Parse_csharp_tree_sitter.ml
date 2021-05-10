@@ -2384,6 +2384,7 @@ and using_directive (env : env) ((v1, v2, v3, v4) : CST.using_directive) =
          (match x with
           | `Static tok -> (* "static" *)
               (* using static System.Math; *)
+              (* THINK: The generic AST is undistinguishable from that of `using Foo`. *)
               (AST.ImportAll (v1, AST.DottedName (ids_of_name v3), v4))
           | `Name_equals x ->
               (* using Foo = System.Text; *)
