@@ -1,6 +1,7 @@
 import contextlib
 import json
 import logging
+import pathlib
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -44,6 +45,15 @@ from semgrep.util import is_url
 from semgrep.util import with_color
 
 logger = logging.getLogger(__name__)
+
+
+def get_path_str(target: Path) -> str:
+    path_str = ""
+    try:
+        path_str = str(target.relative_to(pathlib.Path().absolute()))
+    except ValueError:
+        path_str = str(target)
+    return path_str
 
 
 def color_line(
@@ -154,7 +164,7 @@ def build_timing_summary(
     color_output: bool,
 ) -> Iterator[str]:
     items_to_show = 5
-    col_lim = 80
+    col_lim = 70
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
     YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
@@ -168,7 +178,7 @@ def build_timing_summary(
         rule_timings[rule.id] = (parse_time, 0.0)
         rule_parsing_time += parse_time
         for target in targets:
-            path_str = str(target)
+            path_str = get_path_str(target)
             times = profiling_data.get_run_times(rule.id, path_str)
             rule_timings[rule.id] = tuple(
                 x + y
@@ -193,7 +203,7 @@ def build_timing_summary(
     for file_name, parse_time in slowest_file_times:
         num_bytes = f"({format_bytes(Path(file_name).resolve().stat().st_size)}):"
         file_name = truncate(file_name, col_lim)
-        yield f"{GREEN_COLOR}{file_name:<80}{RESET_COLOR} {num_bytes:<9}{parse_time:.4f}"
+        yield f"{GREEN_COLOR}{file_name:<70}{RESET_COLOR} {num_bytes:<9}{parse_time:.4f}"
 
     yield f"Slowest {items_to_show} rules to run (excluding parse time)"
     slowest_rule_times = sorted(
@@ -201,7 +211,7 @@ def build_timing_summary(
     )[:items_to_show]
     for rule_id, (total_time, match_time) in slowest_rule_times:
         rule_id = truncate(rule_id, col_lim) + ":"
-        yield f"{YELLOW_COLOR}{rule_id:<81}{RESET_COLOR} run time {total_time:.4f}  match time {match_time:.4f}"
+        yield f"{YELLOW_COLOR}{rule_id:<71}{RESET_COLOR} run time {total_time:.4f}  match time {match_time:.4f}"
 
 
 # todo: use profiler for individual rule timings
@@ -265,7 +275,7 @@ def build_normal_output(
         elif rule_match.fix_regex:
             fix_regex = rule_match.fix_regex
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
-        
+
         is_same_file = (
             next_rule_match.path == rule_match.path if next_rule_match else False
         )
@@ -289,7 +299,7 @@ def _build_time_target_json(
     profiling_data: ProfilingData,
 ) -> Dict[str, Any]:
     target_json: Dict[str, Any] = {}
-    path_str = str(target)
+    path_str = get_path_str(target)
 
     target_json["path"] = path_str
     target_json["num_bytes"] = num_bytes
