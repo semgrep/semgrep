@@ -297,7 +297,7 @@ class CoreRunner:
                 self._fail(
                     'non-zero exit status with missing "error" field in json response',
                     rule,
-                    core_run.args,
+                    core_run,
                     returncode,
                     semgrep_output,
                     semgrep_error_output,
@@ -346,7 +346,7 @@ class CoreRunner:
             f"semgrep-core failed: {reason}\n"
             f"rule ID: '{rule.id}'\n"
             f"semgrep-core exit code: {returncode}\n"
-            f"command: {shell_command}\n"
+            f"semgrep-core command: {shell_command}\n"
             f"unexpected non-json output while invoking semgrep-core:\n"
             "--- semgrep-core stdout ---\n"
             f"{semgrep_output}"
