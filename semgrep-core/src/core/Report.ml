@@ -23,7 +23,20 @@ type times = {
   match_time: float
 }
 
-(* Substitute in the profiling type we have *)
+(* Result object for the entire rule *)
+
+type rule_profiling = {
+  rule_parse_time: float;
+  file_times: profiling list
+}
+
+type rule_result = {
+  matches: Pattern_match.t list;
+  errors: Error_code.error list;
+  rule_profiling: rule_profiling option;
+}
+
+(* For each file, substitute in the profiling type we have *)
 
 type 'a match_result = {
   matches: Pattern_match.t list;
@@ -59,3 +72,12 @@ let collate_semgrep_results results =
   in
   let matches, errors, parse_time, match_time = unzip_results results in
   { matches = List.flatten matches; errors = List.flatten errors; profiling = {parse_time; match_time}}
+
+let make_rule_result results ~report_time:report_time ~rule_parse_time:rule_parse_time =
+  let matches = results |>
+                List.map (fun x -> x.matches) |> List.flatten in
+  let errors = results |>
+               List.map (fun x -> x.errors) |> List.flatten in
+  let file_times = results |> List.map (fun x -> x.profiling) in
+  let rule_profiling = if report_time then Some ({rule_parse_time; file_times}) else None in
+  { matches; errors; rule_profiling }
