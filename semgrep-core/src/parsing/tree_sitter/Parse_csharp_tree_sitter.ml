@@ -2366,7 +2366,13 @@ and extern_alias_directive (env : env) ((v1, v2, v3, v4) : CST.extern_alias_dire
   let v2 = token env v2 (* "alias" *) in
   let v3 = identifier env v3 (* identifier *) in
   let v4 = token env v4 (* ";" *) in
-  todo env (v1, v2, v3, v4)
+  let extern =
+    AST.OtherDirective(
+      AST.OI_Extern,
+      [AST.Tk v1; AST.Tk v2; AST.I v3; AST.Tk v4]
+    ) in
+  AST.DirectiveStmt extern
+  |> AST.s
 
 and using_directive (env : env) ((v1, v2, v3, v4) : CST.using_directive) =
   let v1 = token env v1 (* "using" *) in
