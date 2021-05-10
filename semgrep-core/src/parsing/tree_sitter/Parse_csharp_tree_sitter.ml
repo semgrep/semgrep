@@ -2434,7 +2434,7 @@ and compilation_unit (env : env) (xs : CST.compilation_unit) : any =
       let v3 = v3 |> List.map (global_attribute_list env) in
       let v4 = v4 |> List.map (global_statement env) in
       let v5 = v5 |> List.map (namespace_member_declaration env) in
-      AST.Pr v5 (* TODO also use v1 - v4 *)
+      AST.Pr (List.concat [v1; v2; v3; v4; v5])
   | `Semg_exp (_v1, v2) ->
       let v2 = expression env v2 in
       AST.E v2
