@@ -262,17 +262,21 @@ The two most popular are:
         for rule, rule_matches in rule_matches_by_rule.items()
     }
 
+    num_findings_nosem = 0
     if not disable_nosem:
-        rule_matches_by_rule = {}
-        num_findings_nosem = 0
+        filtered_rule_matches_by_rule = {}
         for rule, rule_matches in rule_matches_by_rule.items():
             filtered_rule_matches = []
             for rule_match in rule_matches:
+                print(rule_match._is_ignored)
                 if rule_match._is_ignored:
+                    print("totally ignored you lol")
                     num_findings_nosem += 1
                 else:
+                    print("ok?")
                     filtered_rule_matches.append(rule_match)
-            rule_matches_by_rule[rule] = filtered_rule_matches
+            filtered_rule_matches_by_rule[rule] = filtered_rule_matches
+        rule_matches_by_rule = filtered_rule_matches_by_rule
 
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
