@@ -5,8 +5,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-import requests
-
 from semgrep.constants import SEMGREP_USER_AGENT
 
 METRICS_ENDPOINT = "https://stats.semgrep.dev"
@@ -78,6 +76,8 @@ class _MetricManager:
         Send metrics to the metrics server. Is a noop if SEMGREP_SEND_METRICS
         env var is not set
         """
+        import requests
+
         if os.environ.get("SEMGREP_SEND_METRICS"):
             metrics = self.as_dict()
             headers = {"User-Agent": SEMGREP_USER_AGENT}
