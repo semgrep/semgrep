@@ -277,7 +277,6 @@ The two most popular are:
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
-    # TODO gate behind gitlab
     metric_manager.set_num_rules(len(filtered_rules))
     metric_manager.set_num_targets(len(all_targets))
     metric_manager.set_num_findings(num_findings)
