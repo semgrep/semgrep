@@ -21,6 +21,7 @@ from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
+from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
@@ -262,15 +263,29 @@ The two most popular are:
     }
 
     if not disable_nosem:
-        rule_matches_by_rule = {
-            rule: [
-                rule_match for rule_match in rule_matches if not rule_match._is_ignored
-            ]
-            for rule, rule_matches in rule_matches_by_rule.items()
-        }
+        rule_matches_by_rule = {}
+        num_findings_nosem = 0
+        for rule, rule_matches in rule_matches_by_rule.items():
+            filtered_rule_matches = []
+            for rule_match in rule_matches:
+                if rule_match._is_ignored:
+                    num_findings_nosem += 1
+                else:
+                    filtered_rule_matches.append(rule_match)
+            rule_matches_by_rule[rule] = filtered_rule_matches
 
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
+
+    # TODO gate behind gitlab
+    metric_manager.set_num_rules(len(filtered_rules))
+    metric_manager.set_num_targets(len(all_targets))
+    metric_manager.set_num_findings(num_findings)
+    metric_manager.set_num_ignored(num_findings_nosem)
+    metric_manager.set_run_time(profiler.calls["total_time"][0])
+    total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
+    metric_manager.set_total_bytes_scanned(total_bytes_scanned)
+    metric_manager.set_errors(list(type(e).__name__ for e in semgrep_errors))
 
     output_handler.handle_semgrep_core_output(
         rule_matches_by_rule,
