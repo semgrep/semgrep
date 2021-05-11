@@ -268,8 +268,15 @@ end
 (* Disable warning against unused 'rec' *)
 [@@@warning "-39"]
 
-let todo (env : env) _ =
-  failwith "not implemented"
+let todo_expr _env _ = AST.OtherExpr (AST.OE_Todo, [])
+
+let todo_stmt _env _ = AST.s (AST.OtherStmt (AST.OS_Todo, []))
+
+let todo_pat _env _ = AST.OtherPat (AST.OP_Todo, [])
+
+let todo_attr _env _ = AST.OtherAttribute (AST.OA_Expr, [])
+
+let todo_type _env _ = AST.OtherType (AST.OT_Todo, [])
 
 let parameter_modifier (env : env) (x : CST.parameter_modifier) =
   (match x with
@@ -1185,7 +1192,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v2 = token env v2 (* "[" *) in
        let v3 = token env v3 (* "]" *) in
        let v4 = initializer_expression env v4 in
-       todo env (v1, v2, v3, v4)
+       todo_expr env (v1, v2, v3, v4)
    | `Init_exp x -> Tuple (initializer_expression env x)
    | `Inte_str_exp x ->
        interpolated_string_expression env x
@@ -1236,7 +1243,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v2 = token env v2 (* "(" *) in
        let v3 = expression env v3 in
        let v4 = token env v4 (* ")" *) in
-       todo env (v1, v2, v3, v4)
+       todo_expr env (v1, v2, v3, v4)
    | `Member_access_exp (v1, v2, v3) ->
        let v1 =
          (match v1 with
@@ -1299,13 +1306,13 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Ref_exp (v1, v2) ->
        let v1 = token env v1 (* "ref" *) in
        let v2 = expression env v2 in
-       todo env (v1, v2)
+       todo_expr env (v1, v2)
    | `Ref_type_exp (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "__reftype" *) in
        let v2 = token env v2 (* "(" *) in
        let v3 = expression env v3 in
        let v4 = token env v4 (* ")" *) in
-       todo env (v1, v2, v3, v4)
+       todo_expr env (v1, v2, v3, v4)
    | `Ref_value_exp (v1, v2, v3, v4, v5, v6) ->
        let v1 = token env v1 (* "__refvalue" *) in
        let v2 = token env v2 (* "(" *) in
@@ -1313,7 +1320,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v4 = token env v4 (* "," *) in
        let v5 = type_constraint env v5 in
        let v6 = token env v6 (* ")" *) in
-       todo env (v1, v2, v3, v4, v5, v6)
+       todo_expr env (v1, v2, v3, v4, v5, v6)
    | `Size_of_exp (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "sizeof" *) in
        let v2 = token env v2 (* "(" *) in
@@ -1326,9 +1333,9 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v3 =
          (match v3 with
           | Some x -> initializer_expression env x
-          | None -> todo env ())
+          | None -> fake_bracket [todo_expr env ()])
        in
-       todo env (v1, v2, v3)
+       todo_expr env (v1, v2, v3)
    | `Switch_exp (v1, v2, v3, v4, vtodo, v5) ->
        let v1 = expression env v1 in
        let v2 = token env v2 (* "switch" *) in
@@ -1364,7 +1371,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v3 = type_constraint env v3 in
        let v4 = token env v4 (* ")" *) in
        Call (IdSpecial (Typeof, v1), (v2, [ArgType v3], v4))
-   | `With_exp (v1, v2, v3, v4, v5) -> todo env (v1, v2, v3, v4, v5)
+   | `With_exp (v1, v2, v3, v4, v5) -> todo_expr env (v1, v2, v3, v4, v5)
    | `Simple_name x ->
        id_of_name_ (simple_name env x)
    | `Lit x ->
@@ -1517,7 +1524,7 @@ and statement (env : env) (x : CST.statement) =
        let v3 = variable_declaration env v3 in
        let v4 = token env v4 (* ")" *) in
        let v5 = statement env v5 in
-       todo env (v1, v2, v3, v4, v5)
+       todo_stmt env (v1, v2, v3, v4, v5)
    | `For_each_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
        let v1 =
          (match v1 with
@@ -1597,8 +1604,8 @@ and statement (env : env) (x : CST.statement) =
         | `Case_exp (v1, v2) ->
             let v1 = token env v1 (* "case" *) in
             let v2 = expression env v2 in
-            todo env (v1, v2)
-        | `Defa tok -> todo env tok (* "default" *)
+            todo_stmt env (v1, v2)
+        | `Defa tok -> todo_stmt env tok (* "default" *)
        )
    | `If_stmt (v1, v2, v3, v4, v5, v6) ->
        let v1 = token env v1 (* "if" *) in
@@ -1712,7 +1719,7 @@ and statement (env : env) (x : CST.statement) =
    | `Unsafe_stmt (v1, v2) ->
        let v1 = token env v1 (* "unsafe" *) in
        let v2 = block env v2 in
-       todo env (v1, v2)
+       todo_stmt env (v1, v2)
    | `Using_stmt (v1, v2, v3, v4, v5, v6) ->
        let v1 =
          (match v1 with
@@ -1971,11 +1978,11 @@ and pattern (env : env) (x : CST.pattern) : AST.pattern =
        let v1 = token env v1 (* "var" *) in
        let v2 = variable_designation env v2 in
        v2
-   | `Nega_pat (v1, v2) -> todo env (v1, v2)
-   | `Paren_pat (v1, v2, v3) -> todo env (v1, v2, v3)
-   | `Rela_pat x -> todo env x
-   | `Bin_pat x -> todo env x
-   | `Type_pat x -> todo env x
+   | `Nega_pat (v1, v2) -> todo_pat env (v1, v2)
+   | `Paren_pat (v1, v2, v3) -> todo_pat env (v1, v2, v3)
+   | `Rela_pat x -> todo_pat env x
+   | `Bin_pat x -> todo_pat env x
+   | `Type_pat x -> todo_pat env x
   )
 
 and recursive_pattern env (v1, v2, v3) =
@@ -1984,7 +1991,7 @@ and recursive_pattern env (v1, v2, v3) =
         let v1 = positional_pattern_clause env v1 in
         let v2 = (match v2 with
           | None -> None
-          | Some x -> todo env x) in
+          | Some x -> Some (todo_pat env x)) in
         v1
     | `Prop_pat_clause x -> property_pattern_clause env x
   ) in
@@ -1998,7 +2005,7 @@ and recursive_pattern env (v1, v2, v3) =
    | None -> pat
    | Some x ->
        let v = variable_designation env x in
-       todo env (pat, v)
+       todo_pat env (pat, v)
   )
 
 and positional_pattern_clause (env : env) ((v1, v2, v3) : CST.positional_pattern_clause) =
@@ -2028,11 +2035,11 @@ and property_pattern_clause (env : env) ((v1, v2, v3, v4) : CST.property_pattern
   let v1 = token env v1 (* "{" *) in
   let v2 =
     (match v2 with
-     | Some x -> todo env x
+     | Some x -> [todo_pat env x]
      | None -> [])
   in
   let v4 = token env v4 (* "}" *) in
-  todo env (v1, v2, v3, v4)
+  todo_pat env (v1, v2, v3, v4)
 
 and anonymous_object_member_declarator (env : env) (x : CST.anonymous_object_member_declarator) =
   (match x with
@@ -2144,7 +2151,7 @@ and type_ (env : env) (x : CST.type_) : AST.type_ =
        let v2 = token env v2 (* "*" *) in
        TyPointer (v2, v1)
    | `Func_poin_type (v1, v2, v3, v4, v5, v6, v7) ->
-       todo env (v1, v2, v3, v4, v5, v6, v7)
+       todo_type env (v1, v2, v3, v4, v5, v6, v7)
    | `Pred_type tok -> predefined_type env tok (* predefined_type *)
    | `Tuple_type (v1, v2, v3, v4, v5, v6) ->
        let v1 = token env v1 (* "(" *) in
@@ -2280,7 +2287,7 @@ let accessor_declaration (env : env) ((v1, v2, v3, v4) : CST.accessor_declaratio
      | `Add tok -> str env tok, unhandled_keywordattr_to_namedattr env tok (* "add" *)
      | `Remove tok -> str env tok, unhandled_keywordattr_to_namedattr env tok (* "remove" *)
      | `Init tok -> str env tok, unhandled_keywordattr_to_namedattr env tok (* "init" *)
-     | `Id tok -> todo env tok (* identifier *)
+     | `Id tok -> ("Todo", _fake "Todo"), todo_attr env tok (* identifier *)
     )
   in
   let v4 = function_body env v4 in
@@ -2571,7 +2578,7 @@ and delegate_declaration env (v1, v2, v3, v4, v5, v6, v7, v8, v9) =
   DefStmt (ent, TypeDef { tbody = NewType func }) |> AST.s
 
 and record_declaration env x =
-  todo env x
+  todo_stmt env x
 
 and declaration (env : env) (x : CST.declaration) : stmt =
   (match x with
@@ -2687,7 +2694,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
               ) in
               open_br, funcs, close_br
           | `SEMI tok -> (* ";" *)
-              todo env tok
+              fake_bracket [todo_stmt env tok]
          )
        in
        let ent = basic_entity v6 (v1 @ v1 @ [v3]) in
