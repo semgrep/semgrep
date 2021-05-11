@@ -268,12 +268,9 @@ The two most popular are:
         for rule, rule_matches in rule_matches_by_rule.items():
             filtered_rule_matches = []
             for rule_match in rule_matches:
-                print(rule_match._is_ignored)
                 if rule_match._is_ignored:
-                    print("totally ignored you lol")
                     num_findings_nosem += 1
                 else:
-                    print("ok?")
                     filtered_rule_matches.append(rule_match)
             filtered_rule_matches_by_rule[rule] = filtered_rule_matches
         rule_matches_by_rule = filtered_rule_matches_by_rule
