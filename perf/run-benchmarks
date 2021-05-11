@@ -145,21 +145,21 @@ GITLAB_CORPUSES = [
     # Semgrep-app
     Corpus("semgrep-app", "../gitlab-rules", "input/semgrep-app"),
     # Gitlab small
-    # Corpus("pallets", "../gitlab-rules", "input/flask"),
+    Corpus("pallets", "../gitlab-rules", "input/flask"),
     # Gitlab small
-    # Corpus("socketio", "../gitlab-rules", "input/socket"),
+    Corpus("socketio", "../gitlab-rules", "input/socket"),
     # (Gitlab medium) python repo
-    # Corpus("django", "../gitlab-rules", "input/django"),
+    Corpus("django", "../gitlab-rules", "input/django"),
     # (Gitlab medium) java repo
-    # Corpus("dropwizard", "../gitlab-rules", "input/dropwizard"),
+    Corpus("dropwizard", "../gitlab-rules", "input/dropwizard"),
     # (Gitlab large) js/ruby repo
-    # Corpus("gitlab", "../gitlab-rules", "input/gitlab"),
+    Corpus("gitlab", "../gitlab-rules", "input/gitlab"),
     # (Gitlab large) c repo
-    # Corpus("smacker", "../gitlab-rules", "input/gotree"),
+    Corpus("smacker", "../gitlab-rules", "input/gotree"),
     # (Gitlab large) java repo
-    # Corpus("spring-projects", "../gitlab-rules", "input/spring"),
+    Corpus("spring-projects", "../gitlab-rules", "input/spring"),
     # (Gitlab medium) java repo
-    # Corpus("pmd", "../gitlab-rules", "input/pmd"),
+    Corpus("pmd", "../gitlab-rules", "input/pmd"),
 ]
 
 
