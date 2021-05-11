@@ -8,6 +8,6 @@ val check:
   Config_semgrep.t ->
   Rule.rules ->
   (Common.filename * Rule.xlang * (Target.t * Error_code.error list) Lazy.t) ->
-  Reporting.times Reporting.match_result
+  Report.times Report.match_result
 
 (*e: semgrep/engine/Semgrep.mli *)

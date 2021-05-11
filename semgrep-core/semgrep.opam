@@ -41,7 +41,7 @@ depends: [
   "pcre"
   "parmap"
   "ppxlib" {= "0.15.0" }
-  "lsp" {= "1.1.0"}
+  "lsp" {= "1.3.0"}
   "comby-kernel" {= "1.4.1"}
 ]
 

@@ -14,8 +14,7 @@ val json_of_exn: exn -> JSON.t
 
 val json_fields_of_matches_and_errors:
   Common.filename list ->
-  Pattern_match.t list -> Error_code.error list ->
-  Reporting.profiling list option ->
+  Report.rule_result ->
   (string * JSON.t) list
 
 (*s: signature [[JSON_report.match_to_error]] *)

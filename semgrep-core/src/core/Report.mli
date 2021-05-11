@@ -31,6 +31,19 @@ type 'a match_result = {
   profiling: 'a;
 }
 
+(* Result object for the entire rule *)
+
+type rule_profiling = {
+  rule_parse_time: float;
+  file_times: profiling list
+}
+
+type rule_result = {
+  matches: Pattern_match.t list;
+  errors: Error_code.error list;
+  rule_profiling: rule_profiling option;
+}
+
 val empty_partial_profiling : Common.filename -> partial_profiling
 
 val empty_semgrep_result : times match_result
@@ -40,3 +53,5 @@ val add_run_time : float -> partial_profiling match_result -> profiling match_re
 val add_file : Common.filename -> times match_result -> partial_profiling match_result
 
 val collate_semgrep_results : times match_result list -> times match_result
+
+val make_rule_result : profiling match_result list -> report_time : bool -> rule_parse_time : float -> rule_result
