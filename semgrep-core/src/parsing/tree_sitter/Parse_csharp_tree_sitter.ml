@@ -764,6 +764,17 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
   let vardef = {vinit; vtype = None} in
   (ent, vardef)
 
+and with_initializer_expression (env : env) ((v1, v2) : CST.with_initializer_expression) : AST.field list =
+  let v1 = simple_assignment_expression env v1 in
+  let v2 =
+    List.map (fun (v1, v2) ->
+      let _v1 = token env v1 (* "," *) in
+      let v2 = simple_assignment_expression env v2 in
+      v2
+    ) v2
+  in
+  v2
+
 and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   (match x with
    | `BANG_exp (v1, v2) ->
@@ -1371,13 +1382,34 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        let v3 = type_constraint env v3 in
        let v4 = token env v4 (* ")" *) in
        Call (IdSpecial (Typeof, v1), (v2, [ArgType v3], v4))
-   | `With_exp (v1, v2, v3, v4, v5) -> todo_expr env (v1, v2, v3, v4, v5)
+   | `With_exp (v1, v2, v3, v4, v5) ->
+       let v1 = expression env v1 in
+       let v2 = token env v2 (* "with" *) in
+       let v3 = token env v3 (* "{" *) in
+       let v4 =
+         (match v4 with
+          | Some x -> with_initializer_expression env x
+          | None -> [])
+       in
+       let v5 = token env v5 (* "}" *) in
+       let with_fields = AST.Record((v3, v4, v5)) in
+       (* THINK:
+        * - with-expressions may deserve first-class support in Generic AST
+        * - record patterns perhaps should match with-expressions
+       *)
+       AST.OtherExpr(AST.OE_RecordWith, [AST.E v1; AST.E with_fields])
    | `Simple_name x ->
        id_of_name_ (simple_name env x)
    | `Lit x ->
        let x = literal env x in
        AST.L x
   )
+
+and simple_assignment_expression (env : env) ((v1, v2, v3) : CST.simple_assignment_expression) : AST.field =
+  let v1 = identifier env v1 in
+  let _v2 = token env v2 (* "=" *) in
+  let v3 = expression env v3 in
+  AST.basic_field v1 (Some v3) None
 
 (* TODO: return an AST.name *)
 and simple_name (env : env) (x : CST.simple_name) : (AST.ident * AST.name_info) =
