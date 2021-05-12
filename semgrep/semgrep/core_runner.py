@@ -258,7 +258,7 @@ class CoreRunner:
             if self._report_time:
                 cmd += ["-json_time"]
 
-            if self._output_settings.debug or self._output_settings.verbose_errors:
+            if self._output_settings.debug:
                 cmd += ["-debug"]
 
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -272,7 +272,7 @@ class CoreRunner:
         semgrep_error_output = core_run.stderr.decode("utf-8", errors="replace")
 
         # By default, we print semgrep-core's error output, which includes
-        # semgrep-core's logging if it was requested via --verbose or --debug.
+        # semgrep-core's logging if it was requested via --debug.
         #
         # If semgrep-core prints anything on stderr when running with default
         # flags, it's a bug that should be fixed in semgrep-core.
@@ -676,10 +676,7 @@ class CoreRunner:
                     if self._report_time:
                         cmd += ["-json_time"]
 
-                    if (
-                        self._output_settings.debug
-                        or self._output_settings.verbose_errors
-                    ):
+                    if self._output_settings.debug:
                         cmd += ["-debug"]
 
                     core_run = sub_run(
