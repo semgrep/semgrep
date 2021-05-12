@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Show log messages from semgrep-core when running semgrep with
-  `--verbose` or `--debug`.
+  `--debug`.
 
 ### Added
 - Keep track of and report rule parse time in addition to file parse time
