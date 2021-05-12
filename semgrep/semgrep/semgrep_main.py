@@ -240,6 +240,7 @@ The two most popular are:
         all_targets,
         profiling_data,
     ) = CoreRunner(
+        output_settings=output_handler.settings,
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
         timeout=timeout,

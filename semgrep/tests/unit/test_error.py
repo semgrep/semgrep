@@ -6,9 +6,11 @@ from typing import List
 import pytest
 from ruamel.yaml import YAML
 
+from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.error import SemgrepError
 from semgrep.error import SourceParseError
+from semgrep.output import OutputSettings
 from semgrep.pattern import Pattern
 from semgrep.rule import Rule
 
@@ -79,6 +81,7 @@ def test_raise_semgrep_error_from_json_unknown_error():
 
     core_runner = CoreRunner(
         allow_exec=False,
+        output_settings=OutputSettings(OutputFormat.TEXT),
         jobs=1,
         timeout=0,
         max_memory=0,
