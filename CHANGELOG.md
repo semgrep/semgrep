@@ -5,18 +5,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-
-### Fixed
-
-### Changed
-- Show log messages from semgrep-core when running semgrep with
-  `--debug`.
-
-### Added
 - Keep track of and report rule parse time in addition to file parse time
 
 ### Fixed
 - php arrays with dots inside parse
+
+### Changed
+- Show log messages from semgrep-core when running semgrep with
+  `--debug`.
+- By default, targets larger than 1 MB are now excluded from semgrep
+  scans. New option `--max-target-size 0` restores the old behavior.
 
 ## [0.50.1](https://github.com/returntocorp/semgrep/releases/tag/v0.50.1) - 2021-05-06
 
