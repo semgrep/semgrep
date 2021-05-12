@@ -11,6 +11,7 @@ from semgrep import __VERSION__
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
+from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
@@ -21,6 +22,7 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
 from semgrep.output import managed_output
 from semgrep.output import OutputSettings
+from semgrep.size import parse_size
 from semgrep.synthesize_patterns import synthesize_patterns
 from semgrep.target_manager import optional_stdin_target
 from semgrep.version import is_running_latest
@@ -187,6 +189,18 @@ def cli() -> None:
         default=0,
         help=(
             "Maximum memory to use running a rule on a single file in MB. If set to 0 will not have memory limit. Defaults to 0."
+        ),
+    )
+
+    config.add_argument(
+        "--max-target-size",
+        type=parse_size,
+        default=DEFAULT_MAX_TARGET_SIZE,
+        help=(
+            "Maximum size for a file to be scanned by semgrep, e.g '1.5MB'. "
+            "Any input program larger than this will be ignored. "
+            "A zero or negative value disables this filter. "
+            f"Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes."
         ),
     )
 
