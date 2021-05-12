@@ -8,6 +8,7 @@ import semgrep.config_resolver
 import semgrep.semgrep_main
 import semgrep.test
 from semgrep import __VERSION__
+from semgrep.bytesize import parse_size
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
@@ -22,7 +23,6 @@ from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
 from semgrep.output import managed_output
 from semgrep.output import OutputSettings
-from semgrep.size import parse_size
 from semgrep.synthesize_patterns import synthesize_patterns
 from semgrep.target_manager import optional_stdin_target
 from semgrep.version import is_running_latest

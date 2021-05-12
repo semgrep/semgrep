@@ -2,6 +2,10 @@
 # Parse command-line arguments representing a number of bytes, such as
 # '5 mb' or '3.2GiB'.
 #
+# Maybe we could use an external package for this, such as
+# https://pypi.org/project/datasize/ (documentation?)
+# or https://github.com/xolox/python-humanfriendly
+#
 import re
 
 UNITS = {
