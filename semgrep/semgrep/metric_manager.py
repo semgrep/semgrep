@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import Any
 from typing import Dict
 from typing import List
@@ -7,13 +6,20 @@ from typing import Optional
 
 from semgrep.constants import SEMGREP_USER_AGENT
 
-METRICS_ENDPOINT = "https://stats.semgrep.dev"
+METRICS_ENDPOINT = "https://metrics.semgrep.dev"
 
 logger = logging.getLogger(__name__)
 
 
 class _MetricManager:
     """
+    To prevent sending unintended metrics, be sure that any data
+    stored on this object is sanitized of anything that we don't
+    want sent.
+
+    All metrics stored should be calculated outside this class (i.e.
+    don't do sanitation in this class and don't populate fields under
+    the hood)
 
     Made explicit decision to be verbose in setting metrics instead
     of something more dynamic (and thus less boiler plate code) to
@@ -21,6 +27,7 @@ class _MetricManager:
     """
 
     def __init__(self) -> None:
+        self._project_hash: Optional[str] = None
         self._return_code: Optional[int] = None
         self._version: Optional[str] = None
         self._num_rules: Optional[int] = None
@@ -30,6 +37,11 @@ class _MetricManager:
         self._run_time: Optional[float] = None
         self._total_bytes_scanned: Optional[int] = None
         self._errors: List[str] = []
+
+        self._send_metrics = False
+
+    def set_project_hash(self, project_hash: str) -> None:
+        self._project_hash = project_hash
 
     def set_return_code(self, return_code: int) -> None:
         self._return_code = return_code
@@ -60,25 +72,41 @@ class _MetricManager:
 
     def as_dict(self) -> Dict[str, Any]:
         return {
-            "return_code": self._return_code,
-            "version": self._version,
-            "num_rules": self._num_rules,
-            "num_targets": self._num_targets,
-            "num_findings": self._num_findings,
-            "num_ignored": self._num_ignored,
-            "run_time": self._run_time,
-            "total_bytes_scanned": self._total_bytes_scanned,
-            "errors": self._errors,
+            "environment": {
+                "version": self._version,
+                "projectHash": self._project_hash,
+            },
+            "performance": {
+                "runTime": self._run_time,
+                "numRules": self._num_rules,
+                "numTargets": self._num_targets,
+                "totalBytesScanned": self._total_bytes_scanned,
+            },
+            "errors": {
+                "returnCode": self._return_code,
+                "errors": self._errors,
+            },
+            "value": {
+                "numFindings": self._num_findings,
+                "numIgnored": self._num_ignored,
+            },
         }
+
+    def disable(self) -> None:
+        self._send_metrics = False
+
+    def enable(self) -> None:
+        self._send_metrics = True
 
     def send(self) -> None:
         """
-        Send metrics to the metrics server. Is a noop if SEMGREP_SEND_METRICS
-        env var is not set
+        Send metrics to the metrics server.
+
+        Will if _send_metrics is True
         """
         import requests
 
-        if os.environ.get("SEMGREP_SEND_METRICS"):
+        if self._send_metrics:
             metrics = self.as_dict()
             headers = {"User-Agent": SEMGREP_USER_AGENT}
 
@@ -87,9 +115,9 @@ class _MetricManager:
                     METRICS_ENDPOINT, json=metrics, timeout=10, headers=headers
                 )
                 r.raise_for_status()
-                logger.info("Sent anonymized metrics.")
+                logger.debug("Sent anonymized metrics.")
             except Exception as e:
-                logger.info("Failed to send anonymized metrics.")
+                logger.debug("Failed to send anonymized metrics.")
 
 
 metric_manager = _MetricManager()

@@ -1,5 +1,7 @@
+import hashlib
 import json
 import logging
+import subprocess
 import time
 from io import StringIO
 from pathlib import Path
@@ -28,6 +30,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.target_manager import TargetManager
+from semgrep.util import sub_check_output
 
 logger = logging.getLogger(__name__)
 
@@ -278,6 +281,19 @@ The two most popular are:
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
+    project_hash = None
+    try:
+        project_url = sub_check_output(
+            ["git", "ls-remote", "--get-url"],
+            encoding="utf-8",
+            stderr=subprocess.DEVNULL,
+        )
+        project_hash = hashlib.sha256(project_url.encode()).hexdigest()
+    except Exception as e:
+        logger.debug(f"Failed to generate project hash: {e}")
+        raise e
+
+    metric_manager.set_project_hash(project_hash)
     metric_manager.set_num_rules(len(filtered_rules))
     metric_manager.set_num_targets(len(all_targets))
     metric_manager.set_num_findings(num_findings)
