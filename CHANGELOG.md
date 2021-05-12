@@ -8,6 +8,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Keep track of and report rule parse time in addition to file parse time
 
 ### Fixed
+
+- JS/TS: allow the deep expression operator <... ...> in expression
+statement position, for example:
+```
+$ARG = [$V];
+...
+<... $O[$ARG] ...>; // this works now
+
+```
+
 - php arrays with dots inside parse
 
 ### Changed

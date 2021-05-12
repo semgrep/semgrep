@@ -1,0 +1,772 @@
+rules:
+- id: eslint.detect-no-csrf-before-method-override
+  metadata:
+    cwe: 'CWE-352: Cross-Site Request Forgery (CSRF)'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-no-csrf-before-method-override.js
+    references:
+    - https://github.com/nodesecurity/eslint-plugin-security/blob/master/docs/bypass-connect-csrf-protection-by-abusing.md
+  message: |
+    Detected use of express.csrf() middleware before express.methodOverride(). This can
+    allow GET requests (which are not checked by csrf) to turn into POST requests later.
+  pattern: |
+    express.csrf();
+    ...
+    express.methodOverride();
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+
+- id: eslint.detect-eval-with-expression
+  metadata:
+    cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+    owasp: 'A1: Injection'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-eval-with-expression.js
+  message: |
+    Detected eval(variable), which could allow a malicious actor to run arbitrary code.
+  patterns:
+  - pattern: eval($OBJ)
+  - pattern-not: eval("...")
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+
+- id: eslint.detect-child-process
+  metadata:
+    cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+    owasp: 'A1: Injection'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-child-process.js
+  message: |
+    Detected non-literal calls to child_process.exec(). This could lead to a command
+    injection vulnerability.
+  patterns:
+  - pattern: child_process.exec(...)
+  - pattern-not: child_process.exec('...')
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+
+- id: eslint.detect-pseudoRandomBytes
+  metadata:
+    cwe: 'CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator (PRNG)'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-pseudoRandomBytes.js
+  message: |
+    Detected usage of crypto.pseudoRandomBytes, which does not produce secure random numbers.
+  pattern: crypto.pseudoRandomBytes
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+
+- id: eslint.detect-disable-mustache-escape
+  metadata:
+    cwe: 'CWE-79: Improper Neutralization of Input During Web Page Generation (XSS)'
+    owasp: 'A7: Cross-Site Scripting XSS'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-disable-mustache-escape.js
+  message: |
+    Markup escaping disabled. This can be used with some template engines to escape
+    disabling of HTML entities, which can lead to XSS attacks.
+  pattern: $OBJ.escapeMarkup = false
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+
+- id: eslint.detect-non-literal-require
+  metadata:
+    cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+    owasp: 'A1: Injection'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-non-literal-require.js
+  message: |
+    Detected the use of require(variable). Calling require with a non-literal argument might
+    allow an attacker to load an run arbitrary code, or access arbitrary files.
+  patterns:
+  - pattern: require($OBJ)
+  - pattern-not: require('...')
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+
+- id: eslint.detect-buffer-noassert
+  metadata:
+    cwe: 'CWE-119: Improper Restriction of Operations within the Bounds of a Memory Buffer'
+    source-rule-url: https://github.com/nodesecurity/eslint-plugin-security/blob/master/rules/detect-buffer-noassert.js
+  message: |
+    Detected usage of noassert in Buffer API, which allows the offset the be beyond the
+    end of the buffer. This could result in writing or reading beyond the end of the buffer.
+  pattern-either:
+  - pattern: $OBJ.readUInt8(..., true)
+  - pattern: $OBJ.readUInt16LE(..., true)
+  - pattern: $OBJ.readUInt16BE(..., true)
+  - pattern: $OBJ.readUInt32LE(..., true)
+  - pattern: $OBJ.readUInt32BE(..., true)
+  - pattern: $OBJ.readInt8(..., true)
+  - pattern: $OBJ.readInt16LE(..., true)
+  - pattern: $OBJ.readInt16BE(..., true)
+  - pattern: $OBJ.readInt32LE(..., true)
+  - pattern: $OBJ.readInt32BE(..., true)
+  - pattern: $OBJ.readFloatLE(..., true)
+  - pattern: $OBJ.readFloatBE(..., true)
+  - pattern: $OBJ.readDoubleLE(..., true)
+  - pattern: $OBJ.readDoubleBE(..., true)
+  - pattern: $OBJ.writeUInt8(..., true)
+  - pattern: $OBJ.writeUInt16LE(..., true)
+  - pattern: $OBJ.writeUInt16BE(..., true)
+  - pattern: $OBJ.writeUInt32LE(..., true)
+  - pattern: $OBJ.writeUInt32BE(..., true)
+  - pattern: $OBJ.writeInt8(..., true)
+  - pattern: $OBJ.writeInt16LE(..., true)
+  - pattern: $OBJ.writeInt16BE(..., true)
+  - pattern: $OBJ.writeInt32LE(..., true)
+  - pattern: $OBJ.writeInt32BE(..., true)
+  - pattern: $OBJ.writeFloatLE(..., true)
+  - pattern: $OBJ.writeFloatBE(..., true)
+  - pattern: $OBJ.writeDoubleLE(..., true)
+  - pattern: $OBJ.writeDoubleBE(..., true)
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+
+- id: eslint.detect-possible-timing-attacks
+  patterns:
+  - pattern-not: if ($Z == null) { ... };
+  - pattern-not: if ($Z === null) { ... };
+  - pattern-not: if ($Z != null) { ... };
+  - pattern-not: if ($Z !== null) { ... };
+  - pattern-not: if ($Q != undefined) { ... };
+  - pattern-not: if ($Q !== undefined) { ... };
+  - pattern-not: if ($Q == undefined) { ... };
+  - pattern-not: if ($Q === undefined) { ... };
+  - pattern-not: return $Y == null;
+  - pattern-not: return $Y === null;
+  - pattern-not: return $Y != null;
+  - pattern-not: return $Y !== null;
+  - pattern-not: return $Y == undefined;
+  - pattern-not: return $Y === undefined;
+  - pattern-not: return $Y != undefined;
+  - pattern-not: return $Y !== undefined;
+  - pattern-either:
+    - pattern: |
+        if (password == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == password) {
+            ...
+        }
+    - pattern: |
+        if (password === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === password) {
+            ...
+        }
+    - pattern: |
+        if (pass == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == pass) {
+            ...
+        }
+    - pattern: |
+        if (pass === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === pass) {
+            ...
+        }
+    - pattern: |
+        if (secret == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == secret) {
+            ...
+        }
+    - pattern: |
+        if (secret === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === secret) {
+            ...
+        }
+    - pattern: |
+        if (api == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == api) {
+            ...
+        }
+    - pattern: |
+        if (api === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === api) {
+            ...
+        }
+    - pattern: |
+        if (apiKey == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == apiKey) {
+            ...
+        }
+    - pattern: |
+        if (apiKey === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === apiKey) {
+            ...
+        }
+    - pattern: |
+        if (apiSecret == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == apiSecret) {
+            ...
+        }
+    - pattern: |
+        if (apiSecret === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === apiSecret) {
+            ...
+        }
+    - pattern: |
+        if (token == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == token) {
+            ...
+        }
+    - pattern: |
+        if (token === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === token) {
+            ...
+        }
+    - pattern: |
+        if (hash == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == hash) {
+            ...
+        }
+    - pattern: |
+        if (hash === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === hash) {
+            ...
+        }
+    - pattern: |
+        if (auth_token == $X) {
+            ...
+        }
+    - pattern: |
+        if ($X == auth_token) {
+            ...
+        }
+    - pattern: |
+        if (auth_token === $X) {
+            ...
+        }
+    - pattern: |
+        if ($X === auth_token) {
+            ...
+        }
+    - pattern: |
+        if (password != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != password) {
+            ...
+        }
+    - pattern: |
+        if (password !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== password) {
+            ...
+        }
+    - pattern: |
+        if (pass != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != pass) {
+            ...
+        }
+    - pattern: |
+        if (pass !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== pass) {
+            ...
+        }
+    - pattern: |
+        if (secret != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != secret) {
+            ...
+        }
+    - pattern: |
+        if (secret !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== secret) {
+            ...
+        }
+    - pattern: |
+        if (api != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != api) {
+            ...
+        }
+    - pattern: |
+        if (api !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== api) {
+            ...
+        }
+    - pattern: |
+        if (apiKey != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != apiKey) {
+            ...
+        }
+    - pattern: |
+        if (apiKey !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== apiKey) {
+            ...
+        }
+    - pattern: |
+        if (apiSecret != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != apiSecret) {
+            ...
+        }
+    - pattern: |
+        if (apiSecret !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== apiSecret) {
+            ...
+        }
+    - pattern: |
+        if (token != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != token) {
+            ...
+        }
+    - pattern: |
+        if (token !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== token) {
+            ...
+        }
+    - pattern: |
+        if (hash != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != hash) {
+            ...
+        }
+    - pattern: |
+        if (hash !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== hash) {
+            ...
+        }
+    - pattern: |
+        if (auth_token != $X) {
+            ...
+        }
+    - pattern: |
+        if ($X != auth_token) {
+            ...
+        }
+    - pattern: |
+        if (auth_token !== $X) {
+            ...
+        }
+    - pattern: |
+        if ($X !== auth_token) {
+            ...
+        }
+    - pattern: |
+        return $X === auth_token;
+    - pattern: |
+        return auth_token === $X;
+    - pattern: |
+        return $X === token;
+    - pattern: |
+        return token === $X;
+    - pattern: |
+        return $X === hash;
+    - pattern: |
+        return hash === $X;
+    - pattern: |
+        return $X === password;
+    - pattern: |
+        return password === $X;
+    - pattern: |
+        return $X === pass;
+    - pattern: |
+        return pass === $X;
+    - pattern: |
+        return $X === apiKey;
+    - pattern: |
+        return apiKey === $X;
+    - pattern: |
+        return $X === apiSecret;
+    - pattern: |
+        return apiSecret === $X;
+    - pattern: |
+        return $X === api_key;
+    - pattern: |
+        return api_key === $X;
+    - pattern: |
+        return $X === api_secret;
+    - pattern: |
+        return api_secret === $X;
+    - pattern: |
+        return $X === secret;
+    - pattern: |
+        return secret === $X;
+    - pattern: |
+        return $X === api;
+    - pattern: |
+        return api === $X;
+    - pattern: |
+        return $X == auth_token;
+    - pattern: |
+        return auth_token == $X;
+    - pattern: |
+        return $X == token;
+    - pattern: |
+        return token == $X;
+    - pattern: |
+        return $X == hash;
+    - pattern: |
+        return hash == $X;
+    - pattern: |
+        return $X == password;
+    - pattern: |
+        return password == $X;
+    - pattern: |
+        return $X == pass;
+    - pattern: |
+        return pass == $X;
+    - pattern: |
+        return $X == apiKey;
+    - pattern: |
+        return apiKey == $X;
+    - pattern: |
+        return $X == apiSecret;
+    - pattern: |
+        return apiSecret == $X;
+    - pattern: |
+        return $X == api_key;
+    - pattern: |
+        return api_key == $X;
+    - pattern: |
+        return $X == api_secret;
+    - pattern: |
+        return api_secret == $X;
+    - pattern: |
+        return $X == secret;
+    - pattern: |
+        return secret == $X;
+    - pattern: |
+        return $X == api;
+    - pattern: |
+        return api == $X;
+    - pattern: |
+        return $X !== auth_token;
+    - pattern: |
+        return auth_token !== $X;
+    - pattern: |
+        return $X !== token;
+    - pattern: |
+        return token !== $X;
+    - pattern: |
+        return $X !== hash;
+    - pattern: |
+        return hash !== $X;
+    - pattern: |
+        return $X !== password;
+    - pattern: |
+        return password !== $X;
+    - pattern: |
+        return $X !== pass;
+    - pattern: |
+        return pass !== $X;
+    - pattern: |
+        return $X !== apiKey;
+    - pattern: |
+        return apiKey !== $X;
+    - pattern: |
+        return $X !== apiSecret;
+    - pattern: |
+        return apiSecret !== $X;
+    - pattern: |
+        return $X !== api_key;
+    - pattern: |
+        return api_key !== $X;
+    - pattern: |
+        return $X !== api_secret;
+    - pattern: |
+        return api_secret !== $X;
+    - pattern: |
+        return $X !== secret;
+    - pattern: |
+        return secret !== $X;
+    - pattern: |
+        return $X !== api;
+    - pattern: |
+        return api !== $X;
+    - pattern: |
+        return $X != auth_token;
+    - pattern: |
+        return auth_token != $X;
+    - pattern: |
+        return $X != token;
+    - pattern: |
+        return token != $X;
+    - pattern: |
+        return $X != hash;
+    - pattern: |
+        return hash != $X;
+    - pattern: |
+        return $X != password;
+    - pattern: |
+        return password != $X;
+    - pattern: |
+        return $X != pass;
+    - pattern: |
+        return pass != $X;
+    - pattern: |
+        return $X != apiKey;
+    - pattern: |
+        return apiKey != $X;
+    - pattern: |
+        return $X != apiSecret;
+    - pattern: |
+        return apiSecret != $X;
+    - pattern: |
+        return $X != api_key;
+    - pattern: |
+        return api_key != $X;
+    - pattern: |
+        return $X != api_secret;
+    - pattern: |
+        return api_secret != $X;
+    - pattern: |
+        return $X != secret;
+    - pattern: |
+        return secret != $X;
+    - pattern: |
+        return $X != api;
+    - pattern: |
+        return api != $X;
+  message: >-
+    String comparisons using '===', '!==', '!=' and '==' is vulnerable to timing attacks.
+    More info: https://snyk.io/blog/node-js-timing-attack-ccc-ctf/
+  languages:
+  - javascript
+  severity: WARNING
+  metadata:
+    cwe: 'CWE-208: Observable Timing Discrepancy'
+
+- id: eslint.detect-non-literal-regexp
+  patterns:
+    - pattern: |
+        new RegExp(...)
+    - pattern-not: |
+        new RegExp("...", ...)
+  message: |
+    RegExp() called with a variable, this might allow an attacker to DOS your application with a long-running regular expression.
+  languages:
+  - javascript
+  - typescript
+  severity: WARNING
+  metadata:
+    cwe: 'CWE-185: Incorrect Regular Expression'
+
+- id: eslint.detect-non-literal-fs-filename
+  patterns:
+  - pattern-not: $MOD.appendFile("...", ...)
+  - pattern-not: $MOD.appendFileSync("...", ...)
+  - pattern-not: $MOD.chmod("...", ...)
+  - pattern-not: $MOD.chmodSync("...", ...)
+  - pattern-not: $MOD.chown("...", ...)
+  - pattern-not: $MOD.chownSync("...", ...)
+  - pattern-not: $MOD.createReadStream("...", ...)
+  - pattern-not: $MOD.createWriteStream("...", ...)
+  - pattern-not: $MOD.exists("...", ...)
+  - pattern-not: $MOD.existsSync("...", ...)
+  - pattern-not: $MOD.lchmod("...", ...)
+  - pattern-not: $MOD.lchmodSync("...", ...)
+  - pattern-not: $MOD.lchown("...", ...)
+  - pattern-not: $MOD.lchownSync("...", ...)
+  - pattern-not: $MOD.link("...", "...", ...)
+  - pattern-not: $MOD.linkSync("...", "...", ...)
+  - pattern-not: $MOD.lstat("...", ...)
+  - pattern-not: $MOD.lstatSync("...", ...)
+  - pattern-not: $MOD.mkdir("...", ...)
+  - pattern-not: $MOD.mkdirSync("...", ...)
+  - pattern-not: $MOD.open("...", ...)
+  - pattern-not: $MOD.openSync("...", ...)
+  - pattern-not: $MOD.readdir("...", ...)
+  - pattern-not: $MOD.readdirSync("...", ...)
+  - pattern-not: $MOD.readFile("...", ...)
+  - pattern-not: $MOD.readFileSync("...", ...)
+  - pattern-not: $MOD.readlink("...", ...)
+  - pattern-not: $MOD.readlinkSync("...", ...)
+  - pattern-not: $MOD.realpath("...", ...)
+  - pattern-not: $MOD.realpathSync("...", ...)
+  - pattern-not: $MOD.rename("...", "...", ...)
+  - pattern-not: $MOD.renameSync("...", "...", ...)
+  - pattern-not: $MOD.rmdir("...", ...)
+  - pattern-not: $MOD.rmdirSync("...", ...)
+  - pattern-not: $MOD.stat("...", ...)
+  - pattern-not: $MOD.statSync("...", ...)
+  - pattern-not: $MOD.symlink("...", "...", ...)
+  - pattern-not: $MOD.symlinkSync("...", "...", ...)
+  - pattern-not: $MOD.truncate("...", ...)
+  - pattern-not: $MOD.truncateSync("...", ...)
+  - pattern-not: $MOD.unlink("...", ...)
+  - pattern-not: $MOD.unlinkSync("...", ...)
+  - pattern-not: $MOD.unwatchFile("...", ...)
+  - pattern-not: $MOD.utimes("...", ...)
+  - pattern-not: $MOD.utimesSync("...", ...)
+  - pattern-not: $MOD.watch("...", ...)
+  - pattern-not: $MOD.watchFile("...", ...)
+  - pattern-not: $MOD.writeFile("...", ...)
+  - pattern-not: $MOD.writeFileSync("...", ...)
+  - pattern-either:
+    - pattern: $MOD.appendFile(...)
+    - pattern: $MOD.appendFileSync(...)
+    - pattern: $MOD.chmod(...)
+    - pattern: $MOD.chmodSync(...)
+    - pattern: $MOD.chown(...)
+    - pattern: $MOD.chownSync(...)
+    - pattern: $MOD.createReadStream(...)
+    - pattern: $MOD.createWriteStream(...)
+    - pattern: $MOD.exists(...)
+    - pattern: $MOD.existsSync(...)
+    - pattern: $MOD.lchmod(...)
+    - pattern: $MOD.lchmodSync(...)
+    - pattern: $MOD.lchown(...)
+    - pattern: $MOD.lchownSync(...)
+    - pattern: $MOD.link(...)
+    - pattern: $MOD.linkSync(...)
+    - pattern: $MOD.lstat(...)
+    - pattern: $MOD.lstatSync(...)
+    - pattern: $MOD.mkdir(...)
+    - pattern: $MOD.mkdirSync(...)
+    - pattern: $MOD.open(...)
+    - pattern: $MOD.openSync(...)
+    - pattern: $MOD.readdir(...)
+    - pattern: $MOD.readdirSync(...)
+    - pattern: $MOD.readFile(...)
+    - pattern: $MOD.readFileSync(...)
+    - pattern: $MOD.readlink(...)
+    - pattern: $MOD.readlinkSync(...)
+    - pattern: $MOD.realpath(...)
+    - pattern: $MOD.realpathSync(...)
+    - pattern: $MOD.rename(...)
+    - pattern: $MOD.renameSync(...)
+    - pattern: $MOD.rmdir(...)
+    - pattern: $MOD.rmdirSync(...)
+    - pattern: $MOD.stat(...)
+    - pattern: $MOD.statSync(...)
+    - pattern: $MOD.symlink(...)
+    - pattern: $MOD.symlinkSync(...)
+    - pattern: $MOD.truncate(...)
+    - pattern: $MOD.truncateSync(...)
+    - pattern: $MOD.unlink(...)
+    - pattern: $MOD.unlinkSync(...)
+    - pattern: $MOD.unwatchFile(...)
+    - pattern: $MOD.utimes(...)
+    - pattern: $MOD.utimesSync(...)
+    - pattern: $MOD.watch(...)
+    - pattern: $MOD.watchFile(...)
+    - pattern: $MOD.writeFile(...)
+    - pattern: $MOD.writeFileSync(...)
+  message: |
+    A variable is present in the filename argument of fs calls, this might allow an attacker to access anything on your system.
+  languages:
+  - typescript
+  - javascript
+  severity: WARNING
+  metadata:
+    cwe: "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
+
+- id: eslint.detect-object-injection
+  patterns:
+    - pattern: $O[$ARG]
+    - pattern-not: $O["..."]
+    - pattern-not-inside: |
+        $ARG = [$V];
+        ...
+    - pattern-not-inside: |
+        $ARG = $V;
+        ...
+    - metavariable-regex:
+        metavariable: "$V"
+        regex: "[0-9]+"
+        metavariable: "$ARG"
+        regex: "[^0-9]+"
+  message: "Bracket object notation with user input is present, this might allow an attacker to access all properties of the object and even it's prototype, leading to possible code execution."
+  languages:
+    - javascript
+    - typescript
+  severity: WARNING
+  metadata:
+    cwe: "CWE-94: Improper Control of Generation of Code ('Code Injection')"
