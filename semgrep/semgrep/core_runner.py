@@ -318,6 +318,10 @@ class CoreRunner:
                     )
         if "rule_parse_time" in output_time_json:
             profiling_data.set_parse_time(rule.id, output_time_json["rule_parse_time"])
+        if "rule_report_time" in output_time_json:
+            profiling_data.set_rule_report_time(
+                rule.id, output_time_json["rule_report_time"]
+            )
 
     def _run_rule(
         self,

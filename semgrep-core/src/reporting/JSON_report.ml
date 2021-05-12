@@ -172,7 +172,7 @@ let match_to_json x =
 
 
 
-let json_time_of_profiling_data profiling_data =
+let json_time_of_profiling_data profiling_data json_res_time =
   [
     "time", J.Object [
       "targets", J.Array (
@@ -185,28 +185,33 @@ let json_time_of_profiling_data profiling_data =
           ]
         ) profiling_data.RP.file_times
       );
-      "rule_parse_time", J.Float profiling_data.RP.rule_parse_time
+      "rule_parse_time", J.Float profiling_data.RP.rule_parse_time;
+      "rule_report_time", J.Float json_res_time
     ]
   ]
 
 let json_fields_of_matches_and_errors files res =
-  let (matches, new_errs) =
-    Common.partition_either match_to_json res.RP.matches in
-  let errs = new_errs @ res.RP.errors in
-  let count_errors = (List.length errs) in
-  let count_ok = (List.length files) - count_errors in
+  let res_json, res_json_time = Common.with_time (fun () ->
+    let (matches, new_errs) =
+      Common.partition_either match_to_json res.RP.matches in
+    let errs = new_errs @ res.RP.errors in
+    let count_errors = (List.length errs) in
+    let count_ok = (List.length files) - count_errors in
+    [ "matches", J.Array (matches);
+      "errors", J.Array (errs |> List.map R2c.error_to_json);
+      "stats", J.Object [
+        "okfiles", J.Int count_ok;
+        "errorfiles", J.Int count_errors;
+      ];
+    ]
+  )
+  in
   let time_field =
     match res.RP.rule_profiling with
     | None -> []
-    | Some x -> json_time_of_profiling_data x
+    | Some x -> json_time_of_profiling_data x res_json_time
   in
-  [ "matches", J.Array (matches);
-    "errors", J.Array (errs |> List.map R2c.error_to_json);
-    "stats", J.Object [
-      "okfiles", J.Int count_ok;
-      "errorfiles", J.Int count_errors;
-    ];
-  ] @ time_field
+  res_json @ time_field
 [@@profiling]
 
 let json_of_profile_info profile_start =

@@ -161,12 +161,17 @@ def build_timing_summary(
 
     rule_parsing_time = 0.0
     file_parsing_time = 0.0
+    rule_reporting_time = 0.0
     rule_timings = {}
     file_timings: Dict[str, float] = {}
     for rule in rules:
         parse_time = profiling_data.get_parse_time(rule.id)
-        rule_timings[rule.id] = (parse_time, 0.0)
         rule_parsing_time += parse_time
+
+        report_time = profiling_data.get_rule_report_time(rule.id)
+        rule_reporting_time += report_time
+
+        rule_timings[rule.id] = (parse_time + report_time, 0.0)
         for target in targets:
             path_str = str(target)
             times = profiling_data.get_run_times(rule.id, path_str)
@@ -179,12 +184,14 @@ def build_timing_summary(
             )  # type: ignore
             file_timings[path_str] = file_timings.get(path_str, 0.0) + times.run_time
             file_parsing_time += times.parse_time
-    all_total_time = sum(i for i in file_timings.values()) + rule_parsing_time
+    all_total_time = (
+        sum(i for i in file_timings.values()) + rule_parsing_time + rule_reporting_time
+    )
     total_matching_time = sum(i[1] for i in rule_timings.values())
 
     # Output information
     yield f"\nSemgrep-core timing summary:"
-    yield f"Total CPU time: {all_total_time:.4f}  File parse time: {file_parsing_time:.4f}" f"  Rule parse time: {rule_parsing_time:.4f}  Match time: {total_matching_time:.4f}"
+    yield f"Total CPU time: {all_total_time:.4f}  File parse time: {file_parsing_time:.4f}" f"  Rule parse time: {rule_parsing_time:.4f}  Match time: {total_matching_time:.4f} Other: {rule_reporting_time:.4f}"
 
     yield f"Slowest {items_to_show}/{len(file_timings)} files"
     slowest_file_times = sorted(file_timings.items(), key=lambda x: x[1], reverse=True)[
@@ -265,7 +272,7 @@ def build_normal_output(
         elif rule_match.fix_regex:
             fix_regex = rule_match.fix_regex
             yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
-        
+
         is_same_file = (
             next_rule_match.path == rule_match.path if next_rule_match else False
         )
@@ -321,6 +328,9 @@ def _build_time_json(
     time_info["rules"] = [{"id": rule.id} for rule in rules]
     time_info["rule_parse_info"] = [
         profiling_data.get_parse_time(rule.id) for rule in rules
+    ]
+    time_info["rule_report_times"] = [
+        profiling_data.get_rule_report_time(rule.id) for rule in rules
     ]
     time_info["total_time"] = total_time
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]

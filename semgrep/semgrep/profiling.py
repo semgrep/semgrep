@@ -12,6 +12,7 @@ class ProfilingData:
     def __init__(self) -> None:
         self._match_time_matrix: Dict[Semgrep_run, Times] = {}
         self._rule_parse_times: Dict[str, float] = {}
+        self._rule_report_times: Dict[str, float] = {}
 
     def get_run_times(self, rule: str, target: str) -> Times:
         return self._match_time_matrix.get(
@@ -27,3 +28,9 @@ class ProfilingData:
 
     def set_parse_time(self, rule: str, parse_time: float) -> None:
         self._rule_parse_times[rule] = parse_time
+
+    def get_rule_report_time(self, rule: str) -> float:
+        return self._rule_report_times.get(rule, 0.0)
+
+    def set_rule_report_time(self, rule: str, parse_time: float) -> None:
+        self._rule_report_times[rule] = parse_time
