@@ -1,0 +1,72 @@
+rules:
+- id: eslint.react-missing-noopener
+  pattern-either:
+  - patterns:
+    - pattern: |
+        <$X target="_blank" />
+    - pattern-not: |
+        <$X target="_blank" rel="..." />
+  - patterns:
+    - pattern-inside: |
+        <$X target="_blank" rel=... />
+    - pattern-regex: rel=["']((?!noopener).)*?["']
+  - patterns:
+    - pattern: |
+        React.createElement($A, {target: '_blank'},...)
+    - pattern-not: |
+        React.createElement($A, {rel: '...'},...)
+  - patterns:
+    - pattern: |
+        React.createElement($A, {target: '_blank', rel: $REL},...)
+    - metavariable-regex:
+        metavariable: $REL
+        regex: "[\"']((?!noopener).)*?['\"]"
+  - patterns:
+    - pattern: |
+        $P = {target: '_blank'};
+        ...
+        React.createElement($A, $P,...);
+    - pattern-not: |
+        $P = {rel: '...'};
+        ...
+        React.createElement($A, $P,...);
+  - patterns:
+    - pattern: |
+        $P = {target: '_blank', rel: $REL};
+        ...
+        React.createElement($A, $P,...);
+    - metavariable-regex:
+        metavariable: $REL
+        regex: "[\"']((?!noopener).)*?['\"]"
+  message: |
+    Missing 'noopener' on an anchor tag where target='_blank'. This could introduce
+    a reverse tabnabbing vulnerability. Include 'noopener' when using target='_blank'.
+  metadata:
+    cwe: 'CWE-200: Exposure of Sensitive Information to an Unauthorized Actor'
+    owasp: 'A3: Sensitive Data Exposure'
+    references:
+    - https://html.spec.whatwg.org/multipage/links.html#link-type-noreferrer
+    - https://web.dev/external-anchors-use-rel-noopener/
+    - https://owasp.org/www-community/attacks/Reverse_Tabnabbing
+  languages:
+  - typescript
+  - javascript
+  severity: WARNING
+
+- id: eslint.react-dangerouslysetinnerhtml
+  pattern-either:
+  - pattern: |
+      <$X dangerouslySetInnerHTML=... />
+  - pattern: |
+      {dangerouslySetInnerHTML: ...}
+  message: |
+    Setting HTML from code is risky because it’s easy to inadvertently expose your users to a cross-site scripting (XSS) attack.
+  metadata:
+    cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+    owasp: 'A7: Cross-site Scripting (XSS)'
+    references:
+    - https://reactjs.org/docs/dom-elements.html#dangerouslysetinnerhtml
+  languages:
+  - typescript
+  - javascript
+  severity: WARNING

@@ -100,6 +100,11 @@ Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for us
 Visit [Integrations](https://semgrep.dev/docs/integrations/) to learn about Semgrep editor, commit, and CI integrations. When integrated into CI and configured to scan pull requests, Semgrep will only report issues introduced by that pull request; this lets you start using Semgrep without fixing or ignoring pre-existing issues!
 
 
+### Documentation
+
+Browse the full Semgrep [documentation on the website](https://semgrep.dev/docs). If you’re new to Semgrep, check out [Getting started](https://semgrep.dev/docs/getting-started/) or the [interactive tutorial](https://semgrep.dev/learn).
+
+
 ### More
 
 * [Frequently asked questions (FAQs)](https://semgrep.dev/docs/faq/)
