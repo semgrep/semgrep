@@ -193,7 +193,7 @@ def cli() -> None:
     )
 
     config.add_argument(
-        "--max-target-size",
+        "--max-target-bytes",
         type=parse_size,
         default=DEFAULT_MAX_TARGET_SIZE,
         help=(
@@ -505,7 +505,7 @@ def cli() -> None:
                 jobs=args.jobs,
                 include=args.include,
                 exclude=args.exclude,
-                max_target_size=args.max_target_size,
+                max_target_bytes=args.max_target_bytes,
                 strict=args.strict,
                 autofix=args.autofix,
                 dryrun=args.dryrun,

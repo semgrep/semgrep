@@ -14,7 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Show log messages from semgrep-core when running semgrep with
   `--debug`.
 - By default, targets larger than 1 MB are now excluded from semgrep
-  scans. New option `--max-target-size 0` restores the old behavior.
+  scans. New option `--max-target-bytes 0` restores the old behavior.
 
 ## [0.50.1](https://github.com/returntocorp/semgrep/releases/tag/v0.50.1) - 2021-05-06
 
