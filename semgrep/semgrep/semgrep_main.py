@@ -291,7 +291,6 @@ The two most popular are:
         project_hash = hashlib.sha256(project_url.encode()).hexdigest()
     except Exception as e:
         logger.debug(f"Failed to generate project hash: {e}")
-        raise e
 
     metric_manager.set_project_hash(project_hash)
     metric_manager.set_num_rules(len(filtered_rules))

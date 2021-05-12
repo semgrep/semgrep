@@ -6,6 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Union
 
@@ -65,6 +66,7 @@ def _run_semgrep(
     output_format: OutputFormat = OutputFormat.JSON,
     stderr: bool = False,
     strict: bool = True,
+    env: Optional[Mapping[str, str]] = None,
 ) -> str:
     """Run the semgrep CLI.
 
@@ -100,6 +102,7 @@ def _run_semgrep(
         [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name],
         encoding="utf-8",
         stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
+        env=env,
     )
 
     if output_format.is_json() and not stderr:

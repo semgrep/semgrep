@@ -40,7 +40,7 @@ class _MetricManager:
 
         self._send_metrics = False
 
-    def set_project_hash(self, project_hash: str) -> None:
+    def set_project_hash(self, project_hash: Optional[str]) -> None:
         self._project_hash = project_hash
 
     def set_return_code(self, return_code: int) -> None:
@@ -115,9 +115,9 @@ class _MetricManager:
                     METRICS_ENDPOINT, json=metrics, timeout=10, headers=headers
                 )
                 r.raise_for_status()
-                logger.debug("Sent anonymized metrics.")
+                logger.debug("Sent non-identifiable metrics")
             except Exception as e:
-                logger.debug("Failed to send anonymized metrics.")
+                logger.debug(f"Failed to send non-identifiable metrics: {e}")
 
 
 metric_manager = _MetricManager()
