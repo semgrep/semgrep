@@ -32,6 +32,7 @@ from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
+from semgrep.output import OutputSettings
 from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.profile_manager import ProfileManager
@@ -112,6 +113,7 @@ class CoreRunner:
 
     def __init__(
         self,
+        output_settings: OutputSettings,
         allow_exec: bool,
         jobs: int,
         timeout: int,
@@ -119,6 +121,7 @@ class CoreRunner:
         timeout_threshold: int,
         report_time: bool,
     ):
+        self._output_settings = output_settings
         self._allow_exec = allow_exec
         self._jobs = jobs
         self._timeout = timeout
@@ -215,7 +218,6 @@ class CoreRunner:
         rule: Rule,
         rules_file_flag: str,
         cache_dir: str,
-        report_time: bool,
     ) -> dict:
         with tempfile.NamedTemporaryFile(
             "w"
@@ -253,49 +255,107 @@ class CoreRunner:
                 self._write_equivalences_file(equiv_file, equivalences)
                 cmd += ["-equivalences", equiv_file.name]
 
-            if report_time:
+            if self._report_time:
                 cmd += ["-json_time"]
 
+            if self._output_settings.debug:
+                cmd += ["-debug"]
+
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            logger.debug(core_run.stderr.decode("utf-8", errors="replace"))
-
-            out_bytes = core_run.stdout
-            err_bytes = core_run.stderr
-            returncode = core_run.returncode
-            if returncode != 0:
-                output_json = self._parse_core_output(out_bytes, err_bytes, returncode)
-
-                if "error" in output_json:
-                    self._raise_semgrep_error_from_json(output_json, patterns, rule)
-                else:
-                    raise SemgrepError(
-                        f"unexpected json output while invoking semgrep-core with rule '{rule.id}':\n{PLEASE_FILE_ISSUE_TEXT}"
-                    )
-
-            output_json = self._parse_core_output(out_bytes, err_bytes, returncode)
-
+            output_json = self._extract_core_output(rule, patterns, core_run)
             return output_json
 
-    def _parse_core_output(
-        self, out_bytes: bytes, err_bytes: bytes, returncode: int
+    def _extract_core_output(
+        self, rule: Rule, patterns: List[Pattern], core_run: subprocess.CompletedProcess
     ) -> Dict[str, Any]:
-        # see if semgrep output a JSON error that we can decode
-        semgrep_output = out_bytes.decode("utf-8", errors="replace")
+        semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
+        semgrep_error_output = core_run.stderr.decode("utf-8", errors="replace")
+
+        # By default, we print semgrep-core's error output, which includes
+        # semgrep-core's logging if it was requested via --debug.
+        #
+        # If semgrep-core prints anything on stderr when running with default
+        # flags, it's a bug that should be fixed in semgrep-core.
+        #
+        if semgrep_error_output != "":
+            name = f"[rule '{rule.id}']"
+            logger.info(
+                f"--- semgrep-core stderr {name} ---\n"
+                f"{semgrep_error_output}"
+                f"--- end semgrep-core stderr {name} ---"
+            )
+
+        returncode = core_run.returncode
+        if returncode != 0:
+            output_json = self._parse_core_output(
+                rule, core_run, semgrep_output, semgrep_error_output, returncode
+            )
+
+            if "error" in output_json:
+                self._raise_semgrep_error_from_json(output_json, patterns, rule)
+            else:
+                self._fail(
+                    'non-zero exit status with missing "error" field in json response',
+                    rule,
+                    core_run,
+                    returncode,
+                    semgrep_output,
+                    semgrep_error_output,
+                )
+
+        output_json = self._parse_core_output(
+            rule, core_run, semgrep_output, semgrep_error_output, returncode
+        )
+        return output_json
+
+    def _parse_core_output(
+        self,
+        rule: Rule,
+        core_run: subprocess.CompletedProcess,
+        semgrep_output: str,
+        semgrep_error_output: str,
+        returncode: int,
+    ) -> Dict[str, Any]:
+        # See if semgrep output contains a JSON error that we can decode.
         try:
             return cast(Dict[str, Any], json.loads(semgrep_output))
         except ValueError:
-            semgrep_error = err_bytes.decode("utf-8", errors="replace")
-            raise SemgrepError(
-                f"semgrep-core exit code: {returncode}\n"
-                f"unexpected non-json output while invoking semgrep-core:\n"
-                "--- semgrep-core stdout ---\n"
-                f"{semgrep_output}\n"
-                "--- end semgrep-core stdout ---\n"
-                "--- semgrep-core stderr ---\n"
-                f"{semgrep_error}\n"
-                "--- end semgrep-core stderr ---\n"
-                f"{PLEASE_FILE_ISSUE_TEXT}"
+            self._fail(
+                "unparseable json output",
+                rule,
+                core_run,
+                returncode,
+                semgrep_output,
+                semgrep_error_output,
             )
+            return {}  # never reached
+
+    def _fail(
+        self,
+        reason: str,
+        rule: Rule,
+        core_run: subprocess.CompletedProcess,
+        returncode: int,
+        semgrep_output: str,
+        semgrep_error_output: str,
+    ) -> None:
+        # Once we require python >= 3.8, switch to using shlex.join instead
+        # for proper quoting of the command line.
+        shell_command = " ".join(core_run.args)
+        raise SemgrepError(
+            f"semgrep-core failed: {reason}\n"
+            f"rule ID: '{rule.id}'\n"
+            f"semgrep-core exit code: {returncode}\n"
+            f"semgrep-core command: {shell_command}\n"
+            f"unexpected non-json output while invoking semgrep-core:\n"
+            "--- semgrep-core stdout ---\n"
+            f"{semgrep_output}"
+            "--- end semgrep-core stdout ---\n"
+            "--- semgrep-core stderr ---\n"
+            f"{semgrep_error_output}"
+            "--- end semgrep-core stderr ---\n"
+            f"{PLEASE_FILE_ISSUE_TEXT}"
+        )
 
     def _add_match_times(
         self,
@@ -362,7 +422,6 @@ class CoreRunner:
                     rule,
                     "-tainting_rules_file",
                     cache_dir,
-                    report_time=self._report_time,
                 )
             else:
                 # semgrep-core doesn't know about OPERATORS.REGEX - this is
@@ -419,7 +478,6 @@ class CoreRunner:
                         rule,
                         "-rules_file",
                         cache_dir,
-                        report_time=self._report_time,
                     )
 
             errors.extend(
@@ -618,22 +676,16 @@ class CoreRunner:
                     if self._report_time:
                         cmd += ["-json_time"]
 
-                    r = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    out_bytes, err_bytes, returncode = r.stdout, r.stderr, r.returncode
-                    output_json = self._parse_core_output(
-                        out_bytes, err_bytes, returncode
+                    if self._output_settings.debug:
+                        cmd += ["-debug"]
+
+                    core_run = sub_run(
+                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
                     )
+                    output_json = self._extract_core_output(rule, [], core_run)
 
                     if "time" in output_json:
                         self._add_match_times(rule, profiling_data, output_json["time"])
-
-                    if returncode != 0:
-                        if "error" in output_json:
-                            self._raise_semgrep_error_from_json(output_json, [], rule)
-                        else:
-                            raise SemgrepError(
-                                f"unexpected json output while invoking semgrep-core with rule '{rule.id}':\n{PLEASE_FILE_ISSUE_TEXT}"
-                            )
 
                 # end with tempfile.NamedTemporaryFile(...) ...
                 findings = [
