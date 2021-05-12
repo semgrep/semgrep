@@ -55,6 +55,8 @@ TESTS = [
     #
     # Metavariable as a key in a class definition with ellipsis
     Test("anyorder-metavar-key", "java", "l5000.java"),
+    # Two pattern-not-insides with ellipsis
+    Test("stmts-ellipsis-inside", "js", "l1000.js", True),
     # Multiple pattern-nots with multiple pattern-eithrs
     Test("metavariable-regexp-dict", "generic", "l5000.json", True),
     Test("metavariable-regexp-dict2", "json", "l5000.json", True),
