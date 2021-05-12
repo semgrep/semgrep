@@ -505,6 +505,7 @@ def cli() -> None:
                 jobs=args.jobs,
                 include=args.include,
                 exclude=args.exclude,
+                max_target_size=args.max_target_size,
                 strict=args.strict,
                 autofix=args.autofix,
                 dryrun=args.dryrun,
