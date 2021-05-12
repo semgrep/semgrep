@@ -205,14 +205,14 @@ class TargetManager:
         if not includes:
             return arr
 
-        return set(elem for elem in arr if TargetManager.match_glob(elem, includes))
+        return {elem for elem in arr if TargetManager.match_glob(elem, includes)}
 
     @staticmethod
     def filter_excludes(arr: Set[Path], excludes: List[str]) -> Set[Path]:
         """
         Returns all elements in arr that do not match any excludes pattern
         """
-        return set(elem for elem in arr if not TargetManager.match_glob(elem, excludes))
+        return {elem for elem in arr if not TargetManager.match_glob(elem, excludes)}
 
     @staticmethod
     def filter_by_size(arr: Set[Path], max_target_bytes: int) -> Set[Path]:
@@ -226,12 +226,12 @@ class TargetManager:
         if max_target_bytes <= 0:
             return arr
         else:
-            return set(
+            return {
                 path
                 for path in arr
                 if TargetManager._is_valid(path)
                 and os.path.getsize(path) <= max_target_bytes
-            )
+            }
 
     def filtered_files(self, lang: Language) -> Set[Path]:
         """
