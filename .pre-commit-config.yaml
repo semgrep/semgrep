@@ -97,15 +97,15 @@ repos:
         args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
         stages: [manual]
 
-  # Re-indent OCaml code (ml, mli) with ocp-indent if ocp-indent is
-  # present. If ocp-indent is missing, this step will succeed.
+  # Reformat OCaml code (ml, mli) with ocamlformat if ocamlformat is
+  # present. If ocamlformat is missing, this step will succeed.
   # This allows pure python users to run 'pre-commit run --all' without
-  # installing opam and ocp-indent.
+  # installing opam and ocamlformat.
   #
   - repo: local
     hooks:
       - id: lint-ocaml
-        name: Re-indent OCaml code
+        name: Reformat OCaml code
         entry: ./scripts/lint-ocaml
         language: script
         files: "\\.mli?$"
