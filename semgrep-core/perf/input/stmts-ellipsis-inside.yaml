@@ -1,0 +1,17 @@
+rules:
+- id: eslint.detect-object-injection
+  patterns:
+    - pattern: $O[$ARG]
+    - pattern-not-inside: |
+        $ARG = [$V];
+        ...
+    - pattern-not-inside: |
+        $ARG = $V;
+        ...
+  message: "Bracket object notation with user input is present, this might allow an attacker to access all properties of the object and even it's prototype, leading to possible code execution."
+  languages:
+    - javascript
+    - typescript
+  severity: WARNING
+  metadata:
+    cwe: "CWE-94: Improper Control of Generation of Code ('Code Injection')"
