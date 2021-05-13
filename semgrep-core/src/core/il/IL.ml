@@ -448,12 +448,25 @@ let rexps_of_instr x =
 (* opti: could use a set *)
 let rec lvals_of_exp e =
   match e.e with
-  | Lvalue lval -> [lval]
+  | Lvalue lval -> lval :: lvals_in_lval lval
   | Literal _ -> []
   | Cast (_, e) -> lvals_of_exp e
   | Composite (_, (_, xs, _)) | Operator (_, xs) -> lvals_of_exps xs
   | Record ys -> lvals_of_exps (ys |> List.map snd)
   | FixmeExp _ -> []
+
+and lvals_in_lval lval =
+  let base_lvals =
+    match lval.base with
+    | Mem e  -> lvals_of_exp e
+    | _else_ -> []
+  in
+  let offset_lvals =
+    match lval.offset with
+    | Index e -> lvals_of_exp e
+    | __else_ -> []
+  in
+  base_lvals @ offset_lvals
 
 and lvals_of_exps xs =
   xs |> List.map (lvals_of_exp) |> List.flatten
