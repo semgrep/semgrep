@@ -1,13 +1,15 @@
 import hashlib
 import logging
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Set
 
 from semgrep.constants import SEMGREP_USER_AGENT
+from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
-
 
 METRICS_ENDPOINT = "https://metrics.semgrep.dev"
 
@@ -38,6 +40,9 @@ class _MetricManager:
         self._run_time: Optional[float] = None
         self._total_bytes_scanned: Optional[int] = None
         self._errors: List[str] = []
+        self._rule_hashes: List[str] = []
+        self._rule_parse_times: List[float] = []
+        self._file_stats: List[Dict[str, Any]] = []
 
         self._send_metrics = False
 
@@ -88,6 +93,37 @@ class _MetricManager:
     def set_errors(self, error_types: List[str]) -> None:
         self._errors = error_types
 
+    def set_run_timings(
+        self, profiling_data: ProfilingData, targets: Set[Path], rules: List[Rule]
+    ) -> None:
+        """
+        Store rule hashes, rule parse times, and file-stats
+        """
+        self._rule_hashes = [r.full_hash for r in rules]
+        self._rule_parse_times = [profiling_data.get_parse_time(r.id) for r in rules]
+
+        file_stats = []
+        for target in targets:
+            parse_times = []
+            match_times = []
+            run_times = []
+            for rule in rules:
+                times = profiling_data.get_run_times(rule.id, str(target))
+                parse_times.append(times.parse_time)
+                match_times.append(times.match_time)
+                run_times.append(times.run_time)
+
+            file_stats.append(
+                {
+                    "size": target.stat().st_size,
+                    "parseTimes": parse_times,
+                    "matchTimes": match_times,
+                    "runTimes": run_times,
+                }
+            )
+
+        self._file_stats = file_stats
+
     def as_dict(self) -> Dict[str, Any]:
         return {
             "environment": {
@@ -97,6 +133,9 @@ class _MetricManager:
                 "rulesHash": self._rules_hash,
             },
             "performance": {
+                "fileStats": self._file_stats,
+                "ruleHashes": self._rule_hashes,
+                "ruleParseTimes": self._rule_parse_times,
                 "runTime": self._run_time,
                 "numRules": self._num_rules,
                 "numTargets": self._num_targets,
