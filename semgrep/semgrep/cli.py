@@ -21,11 +21,13 @@ from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SEMGREP_URL
 from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
+from semgrep.metric_manager import metric_manager
 from semgrep.output import managed_output
 from semgrep.output import OutputSettings
 from semgrep.synthesize_patterns import synthesize_patterns
 from semgrep.target_manager import optional_stdin_target
 from semgrep.version import is_running_latest
+
 
 logger = logging.getLogger(__name__)
 try:
@@ -374,6 +376,21 @@ def cli() -> None:
         "--version", action="store_true", help="Show the version and exit."
     )
 
+    metric_group = parser.add_argument_group("config")
+    metric_ex = metric_group.add_mutually_exclusive_group()
+    metric_ex.add_argument(
+        "--enable-metrics",
+        action="store_true",
+        help="Opt-in to metrics. Defaults to what SEMGREP_SEND_METRICS envvar is set to",
+        default=os.environ.get("SEMGREP_SEND_METRICS"),
+    )
+    metric_ex.add_argument(
+        "--disable-metrics",
+        action="store_false",
+        help="Opt-out of metrics.",
+        dest="enable_metrics",
+    )
+
     parser.add_argument(
         "--force-color",
         action="store_true",
@@ -408,9 +425,15 @@ def cli() -> None:
 
     ### Parse and validate
     args = parser.parse_args()
+
     if args.version:
         print(__VERSION__)
         return
+
+    if args.enable_metrics:
+        metric_manager.enable()
+    else:
+        metric_manager.disable()
 
     if args.pattern and not args.lang:
         parser.error("-e/--pattern and -l/--lang must both be specified")

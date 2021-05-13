@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Keep track of and report rule parse time in addition to file parse time
+- v0 of opt-in anonymous aggregate metrics
 
 ### Fixed
 
