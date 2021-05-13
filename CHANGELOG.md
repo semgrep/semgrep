@@ -5,7 +5,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-- Keep track of and report rule parse time in addition to file parse time
+- Keep track of and report rule parse time in addition to file parse time.
+- Improved cheatsheet for generic mode, now recommending indented
+  patterns (#2911, #3028).
 
 ### Fixed
 - JS/TS: allow the deep expression operator <... ...> in expression
