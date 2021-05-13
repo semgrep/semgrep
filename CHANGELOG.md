@@ -6,10 +6,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Keep track of and report rule parse time in addition to file parse time.
+- v0 of opt-in anonymous aggregate metrics.
 - Improved cheatsheet for generic mode, now recommending indented
   patterns (#2911, #3028).
 
 ### Fixed
+
 - JS/TS: allow the deep expression operator <... ...> in expression
 statement position, for example:
 ```
@@ -18,11 +20,15 @@ $ARG = [$V];
 <... $O[$ARG] ...>; // this works now
 
 ```
+
 - php arrays with dots inside parse
+- Propagate constants in nested lvalues such as `y` in `x[y]`
 
 ### Changed
 - Show log messages from semgrep-core when running semgrep with
   `--debug`.
+- By default, targets larger than 1 MB are now excluded from semgrep
+  scans. New option `--max-target-bytes 0` restores the old behavior.
 
 ## [0.50.1](https://github.com/returntocorp/semgrep/releases/tag/v0.50.1) - 2021-05-06
 

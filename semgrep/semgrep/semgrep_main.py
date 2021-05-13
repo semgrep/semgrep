@@ -1,5 +1,7 @@
+import hashlib
 import json
 import logging
+import subprocess
 import time
 from io import StringIO
 from pathlib import Path
@@ -21,12 +23,14 @@ from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
+from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.target_manager import TargetManager
+from semgrep.util import sub_check_output
 
 logger = logging.getLogger(__name__)
 
@@ -160,6 +164,7 @@ def main(
     no_git_ignore: bool = False,
     timeout: int = DEFAULT_TIMEOUT,
     max_memory: int = 0,
+    max_target_bytes: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
     severity: Optional[List[str]] = None,
@@ -223,6 +228,7 @@ The two most popular are:
     target_manager = TargetManager(
         includes=include,
         excludes=exclude,
+        max_target_bytes=max_target_bytes,
         targets=target,
         respect_git_ignore=respect_git_ignore,
         output_handler=output_handler,
@@ -262,16 +268,44 @@ The two most popular are:
         for rule, rule_matches in rule_matches_by_rule.items()
     }
 
+    num_findings_nosem = 0
     if not disable_nosem:
-        rule_matches_by_rule = {
-            rule: [
-                rule_match for rule_match in rule_matches if not rule_match._is_ignored
-            ]
-            for rule, rule_matches in rule_matches_by_rule.items()
-        }
+        filtered_rule_matches_by_rule = {}
+        for rule, rule_matches in rule_matches_by_rule.items():
+            filtered_rule_matches = []
+            for rule_match in rule_matches:
+                if rule_match._is_ignored:
+                    num_findings_nosem += 1
+                else:
+                    filtered_rule_matches.append(rule_match)
+            filtered_rule_matches_by_rule[rule] = filtered_rule_matches
+        rule_matches_by_rule = filtered_rule_matches_by_rule
 
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
+
+    project_hash = None
+    try:
+        project_url = sub_check_output(
+            ["git", "ls-remote", "--get-url"],
+            encoding="utf-8",
+            stderr=subprocess.DEVNULL,
+        )
+        project_hash = hashlib.sha256(project_url.encode()).hexdigest()
+    except Exception as e:
+        logger.debug(f"Failed to generate project hash: {e}")
+
+    metric_manager.set_project_hash(project_hash)
+    metric_manager.set_configs_hash(configs)
+    metric_manager.set_rules_hash(filtered_rules)
+    metric_manager.set_num_rules(len(filtered_rules))
+    metric_manager.set_num_targets(len(all_targets))
+    metric_manager.set_num_findings(num_findings)
+    metric_manager.set_num_ignored(num_findings_nosem)
+    metric_manager.set_run_time(profiler.calls["total_time"][0])
+    total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
+    metric_manager.set_total_bytes_scanned(total_bytes_scanned)
+    metric_manager.set_errors(list(type(e).__name__ for e in semgrep_errors))
 
     output_handler.handle_semgrep_core_output(
         rule_matches_by_rule,

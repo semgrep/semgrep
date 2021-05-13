@@ -55,6 +55,7 @@ class TargetManager:
 
     includes: List[str]
     excludes: List[str]
+    max_target_bytes: int
     targets: List[str]
     respect_git_ignore: bool
     output_handler: OutputHandler
@@ -204,14 +205,33 @@ class TargetManager:
         if not includes:
             return arr
 
-        return set(elem for elem in arr if TargetManager.match_glob(elem, includes))
+        return {elem for elem in arr if TargetManager.match_glob(elem, includes)}
 
     @staticmethod
     def filter_excludes(arr: Set[Path], excludes: List[str]) -> Set[Path]:
         """
-        Returns all elements in arr that do not match any excludes excludes
+        Returns all elements in arr that do not match any excludes pattern
         """
-        return set(elem for elem in arr if not TargetManager.match_glob(elem, excludes))
+        return {elem for elem in arr if not TargetManager.match_glob(elem, excludes)}
+
+    @staticmethod
+    def filter_by_size(arr: Set[Path], max_target_bytes: int) -> Set[Path]:
+        """
+        Return all the files whose size doesn't exceed the limit.
+
+        If max_target_bytes is zero or negative, all paths are returned.
+        If some paths are invalid, they may or may not be included in the
+        result.
+        """
+        if max_target_bytes <= 0:
+            return arr
+        else:
+            return {
+                path
+                for path in arr
+                if TargetManager._is_valid(path)
+                and os.path.getsize(path) <= max_target_bytes
+            }
 
     def filtered_files(self, lang: Language) -> Set[Path]:
         """
@@ -240,6 +260,7 @@ class TargetManager:
         targets = self.expand_targets(directories, lang, self.respect_git_ignore)
         targets = self.filter_includes(targets, self.includes)
         targets = self.filter_excludes(targets, self.excludes + [".git"])
+        targets = self.filter_by_size(targets, self.max_target_bytes)
 
         # Remove explicit_files with known extensions.
         explicit_files_with_lang_extension = set(
@@ -277,4 +298,5 @@ class TargetManager:
         targets = self.filtered_files(lang)
         targets = self.filter_includes(targets, includes)
         targets = self.filter_excludes(targets, excludes)
+        targets = self.filter_by_size(targets, self.max_target_bytes)
         return list(targets)
