@@ -1,12 +1,10 @@
 import contextlib
-import json
 import logging
 import pathlib
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
-from typing import cast
 from typing import Dict
 from typing import FrozenSet
 from typing import Generator
@@ -16,10 +14,10 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 from typing import Set
+from typing import Type
 
 import colorama
 
-from semgrep import __VERSION__
 from semgrep import config_resolver
 from semgrep.constants import BREAK_LINE
 from semgrep.constants import BREAK_LINE_CHAR
@@ -33,8 +31,12 @@ from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
-from semgrep.external.junit_xml import TestSuite  # type: ignore[attr-defined]
-from semgrep.external.junit_xml import to_xml_report_string  # type: ignore[attr-defined]
+from semgrep.formatter.base import BaseFormatter
+from semgrep.formatter.emacs import EmacsFormatter
+from semgrep.formatter.json import JsonFormatter
+from semgrep.formatter.junit_xml import JunitXmlFormatter
+from semgrep.formatter.sarif import SarifFormatter
+from semgrep.formatter.vim import VimFormatter
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
@@ -342,161 +344,6 @@ def _build_time_json(
     return time_info
 
 
-def build_output_json(
-    rule_matches: List[RuleMatch],
-    semgrep_structured_errors: List[SemgrepError],
-    all_targets: Set[Path],
-    show_json_stats: bool,
-    report_time: bool,
-    filtered_rules: List[Rule],
-    profiling_data: ProfilingData,
-    profiler: Optional[ProfileManager] = None,
-    debug_steps_by_rule: Optional[Dict[Rule, List[Dict[str, Any]]]] = None,
-) -> str:
-    output_json: Dict[str, Any] = {}
-    output_json["results"] = [rm.to_json() for rm in rule_matches]
-    if debug_steps_by_rule:
-        output_json["debug"] = [
-            {r.id: steps for r, steps in debug_steps_by_rule.items()}
-        ]
-    output_json["errors"] = [e.to_dict() for e in semgrep_structured_errors]
-    if show_json_stats:
-        output_json["stats"] = {
-            "targets": make_target_stats(all_targets),
-            "loc": make_loc_stats(all_targets),
-            "profiler": profiler.dump_stats() if profiler else None,
-        }
-    if report_time:
-        total_time = profiler.calls["total_time"][0] if profiler else -1.0
-        output_json["time"] = _build_time_json(
-            filtered_rules, all_targets, profiling_data, total_time
-        )
-    return json.dumps(output_json)
-
-
-def build_junit_xml_output(
-    rule_matches: List[RuleMatch], rules: FrozenSet[Rule]
-) -> str:
-    """
-    Format matches in JUnit XML format.
-    """
-    test_cases = [match.to_junit_xml() for match in rule_matches]
-    ts = TestSuite("semgrep results", test_cases)
-    return cast(str, to_xml_report_string([ts]))
-
-
-def _sarif_tool_info() -> Dict[str, Any]:
-    return {"name": "semgrep", "semanticVersion": __VERSION__}
-
-
-def _sarif_notification_from_error(error: SemgrepError) -> Dict[str, Any]:
-    error_dict = error.to_dict()
-    descriptor = error_dict["type"]
-
-    error_to_sarif_level = {
-        Level.ERROR.name.lower(): "error",
-        Level.WARN.name.lower(): "warning",
-    }
-    level = error_to_sarif_level[error_dict["level"]]
-
-    message = error_dict.get("message")
-    if message is None:
-        message = error_dict.get("long_msg")
-    if message is None:
-        message = error_dict.get("short_msg", "")
-
-    return {
-        "descriptor": {"id": descriptor},
-        "message": {"text": message},
-        "level": level,
-    }
-
-
-def build_sarif_output(
-    rule_matches: List[RuleMatch],
-    rules: FrozenSet[Rule],
-    semgrep_structured_errors: List[SemgrepError],
-) -> str:
-    """
-    Format matches in SARIF v2.1.0 formatted JSON.
-
-    - written based on https://help.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/about-sarif-support-for-code-scanning
-    - which links to this schema https://github.com/oasis-tcs/sarif-spec/blob/master/Schemata/sarif-schema-2.1.0.json
-    - full spec is at https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html
-    """
-
-    output_dict = {
-        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
-        "version": "2.1.0",
-        "runs": [
-            {
-                "tool": {
-                    "driver": {
-                        **_sarif_tool_info(),
-                        "rules": [rule.to_sarif() for rule in rules],
-                    }
-                },
-                "results": [match.to_sarif() for match in rule_matches],
-                "invocations": [
-                    {
-                        "executionSuccessful": True,
-                        "toolExecutionNotifications": [
-                            _sarif_notification_from_error(e)
-                            for e in semgrep_structured_errors
-                        ],
-                    }
-                ],
-            },
-        ],
-    }
-    return json.dumps(output_dict)
-
-
-def iter_emacs_output(
-    rule_matches: List[RuleMatch], rules: FrozenSet[Rule]
-) -> Iterator[str]:
-    last_file = None
-    last_message = None
-    sorted_rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.id))
-    for _, rule_match in enumerate(sorted_rule_matches):
-        current_file = rule_match.path
-        check_id = rule_match.id
-        message = rule_match.message
-        severity = rule_match.severity.lower()
-        start_line = rule_match.start.get("line")
-        start_col = rule_match.start.get("col")
-        line = rule_match.lines[0].rstrip()
-        info = ""
-        if check_id and check_id != CLI_RULE_ID:
-            check_id = check_id.split(".")[-1]
-            info = f"({check_id})"
-        yield f"{current_file}:{start_line}:{start_col}:{severity}{info}:{line}"
-
-
-def build_emacs_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> str:
-    return "\n".join(list(iter_emacs_output(rule_matches, rules)))
-
-
-def build_vim_output(rule_matches: List[RuleMatch], rules: FrozenSet[Rule]) -> str:
-    severity = {
-        "INFO": "I",
-        "WARNING": "W",
-        "ERROR": "E",
-    }
-
-    def _get_parts(rule_match: RuleMatch) -> List[str]:
-        return [
-            str(rule_match.path),
-            str(rule_match.start["line"]),
-            str(rule_match.start["col"]),
-            severity[rule_match.severity],
-            rule_match.id,
-            rule_match.message,
-        ]
-
-    return "\n".join(":".join(_get_parts(rm)) for rm in rule_matches)
-
-
 # WARNING: this class is unofficially part of our external API. It can be passed
 # as an argument to our official API: 'semgrep_main.invoke_semgrep'. Try to minimize
 # changes to this API, and make them backwards compatible, if possible.
@@ -742,29 +589,38 @@ class OutputHandler:
         per_line_max_chars_limit: Optional[int],
     ) -> str:
         output_format = self.settings.output_format
-        if output_format == OutputFormat.JSON:
-            debug_steps = self.debug_steps_by_rule if self.settings.debug else None
-            return build_output_json(
-                self.rule_matches,
-                self.semgrep_structured_errors,
-                self.all_targets,
-                self.settings.json_stats,
-                self.settings.output_time,
-                self.filtered_rules,
-                self.profiling_data,
-                self.profiler,
-                debug_steps,
+
+        extra: Dict[str, Any] = {}
+        if self.settings.debug:
+            extra["debug"] = [
+                {rule.id: steps for rule, steps in self.debug_steps_by_rule.items()}
+            ]
+        if self.settings.json_stats:
+            extra["stats"] = {
+                "targets": make_target_stats(self.all_targets),
+                "loc": make_loc_stats(self.all_targets),
+                "profiler": self.profiler.dump_stats() if self.profiler else None,
+            }
+        if self.settings.output_time:
+            total_time = self.profiler.calls["total_time"][0] if self.profiler else -1.0
+            extra["time"] = _build_time_json(
+                self.filtered_rules, self.all_targets, self.profiling_data, total_time
             )
-        elif output_format == OutputFormat.JUNIT_XML:
-            return build_junit_xml_output(self.rule_matches, self.rules)
-        elif output_format == OutputFormat.SARIF:
-            return build_sarif_output(
-                self.rule_matches, self.rules, self.semgrep_structured_errors
+
+        structured_formatters: Dict[OutputFormat, Type[BaseFormatter]] = {
+            OutputFormat.EMACS: EmacsFormatter,
+            OutputFormat.JSON: JsonFormatter,
+            OutputFormat.JUNIT_XML: JunitXmlFormatter,
+            OutputFormat.SARIF: SarifFormatter,
+            OutputFormat.VIM: VimFormatter,
+        }
+        formatter_type = structured_formatters.get(output_format)
+
+        if formatter_type is not None:
+            formatter = formatter_type(
+                self.rules, self.rule_matches, self.semgrep_structured_errors, extra
             )
-        elif output_format == OutputFormat.EMACS:
-            return build_emacs_output(self.rule_matches, self.rules)
-        elif output_format == OutputFormat.VIM:
-            return build_vim_output(self.rule_matches, self.rules)
+            return formatter.output()
         elif output_format == OutputFormat.TEXT:
             return "\n".join(
                 list(

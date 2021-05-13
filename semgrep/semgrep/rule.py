@@ -267,26 +267,6 @@ class Rule:
         return self._mode
 
     @property
-    def sarif_severity(self) -> str:
-        """
-        SARIF v2.1.0-compliant severity string.
-
-        See https://github.com/oasis-tcs/sarif-spec/blob/a6473580/Schemata/sarif-schema-2.1.0.json#L1566
-        """
-        mapping = {"INFO": "note", "ERROR": "error", "WARNING": "warning"}
-        return mapping[self.severity]
-
-    @property
-    def sarif_tags(self) -> Iterator[str]:
-        """
-        Tags to display on SARIF-compliant UIs, such as GitHub security scans.
-        """
-        if "cwe" in self.metadata:
-            yield self.metadata["cwe"]
-        if "owasp" in self.metadata:
-            yield f"OWASP-{self.metadata['owasp']}"
-
-    @property
     def languages(self) -> List[Language]:
         return self._languages
 
@@ -326,19 +306,6 @@ class Rule:
     @classmethod
     def from_yamltree(cls, rule_yaml: YamlTree[YamlMap]) -> "Rule":
         return cls(rule_yaml)
-
-    def to_json(self) -> Dict[str, Any]:
-        return self._raw
-
-    def to_sarif(self) -> Dict[str, Any]:
-        return {
-            "id": self.id,
-            "name": self.id,
-            "shortDescription": {"text": self.message},
-            "fullDescription": {"text": self.message},
-            "defaultConfiguration": {"level": self.sarif_severity},
-            "properties": {"precision": "very-high", "tags": list(self.sarif_tags)},
-        }
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id}>"
