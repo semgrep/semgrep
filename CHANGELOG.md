@@ -19,6 +19,7 @@ $ARG = [$V];
 ```
 
 - php arrays with dots inside parse
+- Propagate constants in nested lvalues such as `y` in `x[y]`
 
 ### Changed
 - Show log messages from semgrep-core when running semgrep with
