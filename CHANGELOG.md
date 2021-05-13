@@ -5,8 +5,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-- Keep track of and report rule parse time in addition to file parse time
-- v0 of opt-in anonymous aggregate metrics
+- Keep track of and report rule parse time in addition to file parse time.
+- v0 of opt-in anonymous aggregate metrics.
+- Improved cheatsheet for generic mode, now recommending indented
+  patterns (#2911, #3028).
 
 ### Fixed
 

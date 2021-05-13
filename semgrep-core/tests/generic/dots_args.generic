@@ -13,12 +13,36 @@ class Foo {
     foo(5, ")");  // quoted strings are not understood.
 
     //ERROR:
-    foo(5 5);
-
-    //ERROR:
     foo(5.5);  // '.' is generic punctuation.
 
     foo(55);  // '55' is a single word of the form [A-Za-z0-9_]+
+
+    /*
+       Matching nested parentheses requires an indented pattern:
+
+       Do:
+           foo(
+             ...
+           )
+
+       Don't:
+
+           foo(...)
+    */
+
+    //ERROR:
+    foo(bar(baz(5)));
+
+    //ERROR:
+    foo(
+      bar(
+        baz(5)
+      )
+    );
+
+    foo(
+      5
+      );  // strange indentation fails to match indentation in the pattern.
 
     // Dots ('...') can match at most 10 lines.
     // Use '... ...' to match up to 20 lines.
