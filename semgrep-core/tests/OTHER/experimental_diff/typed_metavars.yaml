@@ -1,0 +1,14 @@
+# Run this against semgrep-app/frontend/src/types with and without
+# --optimizations all to see the differences 
+rules:
+- id: eslint.detect-object-injection-lite
+  patterns:
+    - pattern: "($X : float)"
+  message: "Indexing with an argument that is not a float"
+  languages:
+    - javascript
+    - typescript
+  severity: WARNING
+  metadata:
+    cwe: "CWE-94: Improper Control of Generation of Code ('Code Injection')"
+
