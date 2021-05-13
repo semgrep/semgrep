@@ -293,6 +293,8 @@ The two most popular are:
         logger.debug(f"Failed to generate project hash: {e}")
 
     metric_manager.set_project_hash(project_hash)
+    metric_manager.set_configs_hash(configs)
+    metric_manager.set_rules_hash(filtered_rules)
     metric_manager.set_num_rules(len(filtered_rules))
     metric_manager.set_num_targets(len(all_targets))
     metric_manager.set_num_findings(num_findings)

@@ -1,3 +1,5 @@
+import hashlib
+import json
 from typing import Any
 from typing import cast
 from typing import Dict
@@ -353,6 +355,15 @@ class Rule:
     @property
     def pattern_spans(self) -> Dict[PatternId, Span]:
         return self._pattern_spans
+
+    @property
+    def full_hash(self) -> str:
+        """
+        sha256 hash of the whole rule object instead of just the id
+        """
+        return hashlib.sha256(
+            json.dumps(self._raw, sort_keys=True).encode()
+        ).hexdigest()
 
 
 def operator_for_pattern_name(pattern_name: YamlTree[str]) -> Operator:
