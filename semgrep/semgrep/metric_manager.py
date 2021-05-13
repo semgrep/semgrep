@@ -28,6 +28,8 @@ class _MetricManager:
 
     def __init__(self) -> None:
         self._project_hash: Optional[str] = None
+        self._configs_hash = ""
+        self._rules_hash = ""
         self._return_code: Optional[int] = None
         self._version: Optional[str] = None
         self._num_rules: Optional[int] = None
@@ -42,6 +44,12 @@ class _MetricManager:
 
     def set_project_hash(self, project_hash: Optional[str]) -> None:
         self._project_hash = project_hash
+
+    def set_configs_hash(self, configs_hash: str) -> None:
+        self._configs_hash = configs_hash
+
+    def set_rules_hash(self, rules_hash: str) -> None:
+        self._rules_hash = rules_hash
 
     def set_return_code(self, return_code: int) -> None:
         self._return_code = return_code
@@ -75,6 +83,8 @@ class _MetricManager:
             "environment": {
                 "version": self._version,
                 "projectHash": self._project_hash,
+                "configNamesHash": self._configs_hash,
+                "rulesHash": self._rules_hash,
             },
             "performance": {
                 "runTime": self._run_time,
@@ -112,7 +122,7 @@ class _MetricManager:
 
             try:
                 r = requests.post(
-                    METRICS_ENDPOINT, json=metrics, timeout=10, headers=headers
+                    METRICS_ENDPOINT, json=metrics, timeout=2, headers=headers
                 )
                 r.raise_for_status()
                 logger.debug("Sent non-identifiable metrics")
