@@ -81,7 +81,7 @@ def test_send() -> None:
     socket.socket = block_network  # type: ignore
 
     # test that network is blocked
-    with pytest.rasies(Exception):
+    with pytest.raises(Exception):
         r = requests.get(
             "https://semgrep.dev",
             timeout=2,
