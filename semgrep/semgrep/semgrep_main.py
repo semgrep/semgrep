@@ -174,7 +174,6 @@ def main(
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
     severity: Optional[List[str]] = None,
-    report_time: bool = False,
     optimizations: str = "none",
 ) -> None:
     if include is None:
@@ -258,7 +257,6 @@ The two most popular are:
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
-        report_time=report_time,
     ).invoke_semgrep(
         target_manager, profiler, filtered_rules, optimizations
     )
@@ -293,36 +291,37 @@ The two most popular are:
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
-    try:
-        project_url = sub_check_output(
-            ["git", "ls-remote", "--get-url"],
-            encoding="utf-8",
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception as e:
-        logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
+    if metric_manager.is_enabled:
         try:
-            # add \n to match urls from git ls-remote (backwards compatability)
-            project_url = manually_search_file(".git/config", ".com", "\n")
+            project_url = sub_check_output(
+                ["git", "ls-remote", "--get-url"],
+                encoding="utf-8",
+                stderr=subprocess.DEVNULL,
+            )
         except Exception as e:
-            logger.debug(f"Failed to get project url from .git/config: {e}")
+            logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
+            try:
+                # add \n to match urls from git ls-remote (backwards compatability)
+                project_url = manually_search_file(".git/config", ".com", "\n")
+            except Exception as e:
+                logger.debug(f"Failed to get project url from .git/config: {e}")
 
-    project_hash = (
-        hashlib.sha256(project_url.encode()).hexdigest() if project_url else None
-    )
+        project_hash = (
+            hashlib.sha256(project_url.encode()).hexdigest() if project_url else None
+        )
 
-    metric_manager.set_project_hash(project_hash)
-    metric_manager.set_configs_hash(configs)
-    metric_manager.set_rules_hash(filtered_rules)
-    metric_manager.set_num_rules(len(filtered_rules))
-    metric_manager.set_num_targets(len(all_targets))
-    metric_manager.set_num_findings(num_findings)
-    metric_manager.set_num_ignored(num_findings_nosem)
-    metric_manager.set_run_time(profiler.calls["total_time"][0])
-    total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
-    metric_manager.set_total_bytes_scanned(total_bytes_scanned)
-    metric_manager.set_errors(list(type(e).__name__ for e in semgrep_errors))
-    metric_manager.set_run_timings(profiling_data, all_targets, filtered_rules)
+        metric_manager.set_project_hash(project_hash)
+        metric_manager.set_configs_hash(configs)
+        metric_manager.set_rules_hash(filtered_rules)
+        metric_manager.set_num_rules(len(filtered_rules))
+        metric_manager.set_num_targets(len(all_targets))
+        metric_manager.set_num_findings(num_findings)
+        metric_manager.set_num_ignored(num_findings_nosem)
+        metric_manager.set_run_time(profiler.calls["total_time"][0])
+        total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
+        metric_manager.set_total_bytes_scanned(total_bytes_scanned)
+        metric_manager.set_errors(list(type(e).__name__ for e in semgrep_errors))
+        metric_manager.set_run_timings(profiling_data, all_targets, filtered_rules)
 
     output_handler.handle_semgrep_core_output(
         rule_matches_by_rule,

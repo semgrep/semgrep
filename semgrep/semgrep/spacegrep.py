@@ -50,7 +50,6 @@ def run_spacegrep(
     patterns: List[Pattern],
     targets: List[Path],
     timeout: int,
-    report_time: bool,
 ) -> dict:
     matches: List[dict] = []
     errors: List[dict] = []
@@ -71,9 +70,8 @@ def run_spacegrep(
                 pattern_str,
                 "--timeout",
                 str(timeout),
+                "--time",
             ]
-            if report_time:
-                cmd += ["--time"]
 
             try:
                 p = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -131,29 +129,23 @@ def run_spacegrep(
                     f"Invalid JSON output was received from spacegrep: {e}"
                 )
 
-    if report_time:
-        target_list = []
-        for path in targets:
-            times = targets_time.get(str(path), (0.0, 0.0, 0.0))
-            target_list.append(
-                {
-                    "path": str(path),
-                    "parse_time": times[0],
-                    "match_time": times[1],
-                    "run_time": times[2],
-                }
-            )
-        time = {"targets": target_list}
-        return {
-            "matches": matches,
-            "errors": errors,
-            "time": time,
-        }
-    else:
-        return {
-            "matches": matches,
-            "errors": errors,
-        }
+    target_list = []
+    for path in targets:
+        times = targets_time.get(str(path), (0.0, 0.0, 0.0))
+        target_list.append(
+            {
+                "path": str(path),
+                "parse_time": times[0],
+                "match_time": times[1],
+                "run_time": times[2],
+            }
+        )
+    time = {"targets": target_list}
+    return {
+        "matches": matches,
+        "errors": errors,
+        "time": time,
+    }
 
 
 def _parse_spacegrep_output(raw_output: bytes) -> dict:

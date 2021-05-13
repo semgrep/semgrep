@@ -157,6 +157,10 @@ class _MetricManager:
     def enable(self) -> None:
         self._send_metrics = True
 
+    @property
+    def is_enabled(self) -> bool:
+        return self._send_metrics
+
     def send(self) -> None:
         """
         Send metrics to the metrics server.
