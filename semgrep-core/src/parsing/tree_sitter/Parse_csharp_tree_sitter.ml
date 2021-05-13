@@ -1317,7 +1317,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
    | `Ref_exp (v1, v2) ->
        let v1 = token env v1 (* "ref" *) in
        let v2 = expression env v2 in
-       todo_expr env (v1, v2)
+       AST.Ref (v1, v2)
    | `Ref_type_exp (v1, v2, v3, v4) ->
        let v1 = token env v1 (* "__reftype" *) in
        let v2 = token env v2 (* "(" *) in
