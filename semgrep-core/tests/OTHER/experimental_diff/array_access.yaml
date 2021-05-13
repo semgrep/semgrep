@@ -1,0 +1,14 @@
+# Run this against semgmrep/perf/bench/semgrep-app/input/semgrep-app with
+# and without --optimizations all to see the difference
+rules:
+- id: array-access
+  patterns:
+    - pattern: $O[$ARG]
+  message: ""
+  languages:
+    - javascript
+    - typescript
+  severity: WARNING
+  metadata:
+    cwe: "CWE-94: Improper Control of Generation of Code ('Code Injection')"
+
