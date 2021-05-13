@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Set
 
 from semgrep.constants import OutputFormat
@@ -91,6 +92,23 @@ def test_filter_exclude():
 
     # Filter out go files with a direct ancestor named foo
     assert len(TargetManager.filter_excludes(all_files, ["foo/*.go"])) == 17
+
+
+def test_filter_by_size():
+    with NamedTemporaryFile() as fp:
+        fp.write(b"0123456789")
+        fp.flush()
+        path = Path(fp.name)
+        targets = [path]
+
+        # no max size
+        assert len(TargetManager.filter_by_size(targets, 0)) == 1
+
+        # file is under max size
+        assert len(TargetManager.filter_by_size(targets, 20)) == 1
+
+        # file is over max size
+        assert len(TargetManager.filter_by_size(targets, 5)) == 0
 
 
 def test_delete_git(tmp_path, monkeypatch):
@@ -408,7 +426,7 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
         output_per_line_max_chars_limit=None,
     )
     defaulthandler = OutputHandler(output_settings)
-    assert [] == TargetManager([], [], [foo], True, defaulthandler, False).get_files(
+    assert [] == TargetManager([], [], 0, [foo], True, defaulthandler, False).get_files(
         language, [], []
     )
 
@@ -445,23 +463,23 @@ def test_explicit_path(tmp_path, monkeypatch):
     python_language = Language("python")
 
     assert foo_a in TargetManager(
-        [], [], ["foo/a.py"], False, defaulthandler, False
+        [], [], 0, ["foo/a.py"], False, defaulthandler, False
     ).get_files(python_language, [], [])
     assert foo_a in TargetManager(
-        [], [], ["foo/a.py"], False, defaulthandler, True
+        [], [], 0, ["foo/a.py"], False, defaulthandler, True
     ).get_files(python_language, [], [])
 
     # Should include explicitly passed python file even if is in excludes
     assert foo_a not in TargetManager(
-        [], ["foo/a.py"], ["."], False, defaulthandler, False
+        [], ["foo/a.py"], 0, ["."], False, defaulthandler, False
     ).get_files(python_language, [], [])
     assert foo_a in TargetManager(
-        [], ["foo/a.py"], [".", "foo/a.py"], False, defaulthandler, False
+        [], ["foo/a.py"], 0, [".", "foo/a.py"], False, defaulthandler, False
     ).get_files(python_language, [], [])
 
     # Should ignore expliclty passed .go file when requesting python
     assert (
-        TargetManager([], [], ["foo/a.go"], False, defaulthandler, False).get_files(
+        TargetManager([], [], 0, ["foo/a.go"], False, defaulthandler, False).get_files(
             python_language, [], []
         )
         == []
@@ -471,7 +489,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     assert cmp_path_sets(
         set(
             TargetManager(
-                [], [], ["foo/noext"], False, defaulthandler, False
+                [], [], 0, ["foo/noext"], False, defaulthandler, False
             ).get_files(python_language, [], [])
         ),
         {foo_noext},
@@ -480,9 +498,9 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
     assert cmp_path_sets(
         set(
-            TargetManager([], [], ["foo/noext"], False, defaulthandler, True).get_files(
-                python_language, [], []
-            )
+            TargetManager(
+                [], [], 0, ["foo/noext"], False, defaulthandler, True
+            ).get_files(python_language, [], [])
         ),
         set(),
     )
@@ -491,7 +509,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     assert cmp_path_sets(
         set(
             TargetManager(
-                [], [], ["foo/noext", "foo/a.py"], False, defaulthandler, True
+                [], [], 0, ["foo/noext", "foo/a.py"], False, defaulthandler, True
             ).get_files(python_language, [], [])
         ),
         {foo_a},

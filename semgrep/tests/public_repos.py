@@ -267,6 +267,8 @@ PASSING_REPOS = [
     },
     {"repo": "https://github.com/OWASP/NodeGoat", "languages": ALL_LANGUAGES},
     {"repo": "https://github.com/dropbox/questions", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
+    {"repo": "https://github.com/DevSlop/Pixi", "languages": ALL_LANGUAGES},
     # Excluding cause of https://github.com/returntocorp/semgrep/issues/2613
     {
         "repo": "https://github.com/zulip/zulip",
@@ -294,14 +296,6 @@ FAILING_REPOS = [
             "languages": ALL_LANGUAGES,
         },
         reason="javascript parse error, probably due to '?.01' regression in minified file",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/coinbase/gtt-ui", "languages": ALL_LANGUAGES},
-        reason="javascript parse error, probably due to ?. regression",
-    ),
-    xfail_repo(
-        {"repo": "https://github.com/DevSlop/Pixi", "languages": ALL_LANGUAGES},
-        reason="javascript parse error, probably due to ?. regression",
     ),
     xfail_repo(
         {
