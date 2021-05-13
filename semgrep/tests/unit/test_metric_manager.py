@@ -1,6 +1,8 @@
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
 
+import pytest
+
 from semgrep.config_resolver import Config
 from semgrep.metric_manager import metric_manager
 
@@ -63,3 +65,27 @@ def test_rules_hash() -> None:
     assert old_hash_2 == metric_manager._rules_hash
 
     assert old_hash != old_hash_2
+
+
+def test_send() -> None:
+    """
+    Check that no network does not cause failures
+    """
+    import socket
+    import requests
+
+    class block_network(socket.socket):
+        def __init__(self, *args, **kwargs):
+            raise Exception("Network call blocked")
+
+    socket.socket = block_network  # type: ignore
+
+    # test that network is blocked
+    with pytest.rasies(Exception):
+        r = requests.get(
+            "https://semgrep.dev",
+            timeout=2,
+        )
+
+    metric_manager.enable()
+    metric_manager.send()
