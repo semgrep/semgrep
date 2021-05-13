@@ -1,10 +1,17 @@
+import json
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
+from unittest.mock import MagicMock
+from unittest.mock import patch
+from unittest.mock import PropertyMock
 
 import pytest
 
 from semgrep.config_resolver import Config
 from semgrep.metric_manager import metric_manager
+from semgrep.profiling import ProfilingData
+from semgrep.profiling import Times
 
 
 def test_configs_hash() -> None:
@@ -89,3 +96,67 @@ def test_send() -> None:
 
     metric_manager.enable()
     metric_manager.send()
+
+
+def test_timings(snapshot) -> None:
+    config1 = dedent(
+        """
+    rules:
+    - id: rule1
+      pattern: $X == $X
+      languages: [python]
+      severity: INFO
+      message: bad
+    - id: rule2
+      pattern: $X == $Y
+      languages: [python]
+      severity: INFO
+      message: good
+    - id: rule3
+      pattern: $X < $Y
+      languages: [c]
+      severity: INFO
+      message: doog
+    """
+    )
+    # Load rules
+    with NamedTemporaryFile() as tf1:
+        tf1.write(config1.encode("utf-8"))
+        tf1.flush()
+        config, errors = Config.from_config_list([tf1.name])
+        assert not errors
+        rules = config.get_rules(True)
+        assert len(rules) == 3
+        rule1, rule2, rule3 = rules
+
+    # Mock Path().stat().st_size
+    with patch.object(Path, "stat") as stat_mock:
+        m = MagicMock()
+        type(m).st_size = PropertyMock(side_effect=[1, 2])
+        stat_mock.return_value = m
+
+        targets = [Path("a"), Path("b")]
+
+        profiling_data = ProfilingData()
+        profiling_data.set_run_times(
+            rule1.id,
+            str(targets[0]),
+            Times(parse_time=0.1, match_time=0.2, run_time=0.4),
+        )
+        profiling_data.set_run_times(
+            rule2.id,
+            str(targets[1]),
+            Times(parse_time=1.1, match_time=1.2, run_time=1.4),
+        )
+        profiling_data.set_parse_time(rule1.id, 0.05)
+        profiling_data.set_parse_time(rule2.id, 0.04)
+
+        metric_manager.set_run_timings(profiling_data, targets, rules)
+
+    assert metric_manager._rule_hashes == [
+        "720c14cd416c021bc45d6db0689dd0eb54d1d062bf9f446f85dae0cb5d1438c0",
+        "a5360bb56a3b0a3c33c1bb2b6e7d6465e9a246ccb8940bc05710bc5b35a43e30",
+        "2cc5dbc0cae3a8b6af0d8792079251c4d861b5e16815c1b1cdba676d1c96c5a5",
+    ]
+    assert metric_manager._rule_parse_times == [0.05, 0.04, 0.0]
+    snapshot.assert_match(json.dumps(metric_manager._file_stats), "file_stats.out")
