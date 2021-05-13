@@ -160,6 +160,7 @@ def main(
     no_git_ignore: bool = False,
     timeout: int = DEFAULT_TIMEOUT,
     max_memory: int = 0,
+    max_target_bytes: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
     severity: Optional[List[str]] = None,
@@ -223,6 +224,7 @@ The two most popular are:
     target_manager = TargetManager(
         includes=include,
         excludes=exclude,
+        max_target_bytes=max_target_bytes,
         targets=target,
         respect_git_ignore=respect_git_ignore,
         output_handler=output_handler,
