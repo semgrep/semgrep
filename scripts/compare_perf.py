@@ -33,7 +33,7 @@ def main() -> None:
 
         # Assert latest time is not more than 20% slower than baseline
         # or is within a fixed "probably environmental" range
-        assert latest_time < baseline_time * 1.2 or latest_time - baseline_time < 1.0
+        assert latest_time < baseline_time * 1.2 or latest_time - baseline_time < 5.0
         total_baseline += baseline_time
         total_latest += latest_time
 
