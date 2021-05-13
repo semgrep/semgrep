@@ -292,13 +292,9 @@ The two most popular are:
     except Exception as e:
         logger.debug(f"Failed to generate project hash: {e}")
 
-    configs_hash = hashlib.sha256(json.dumps(configs).encode()).hexdigest()
-    rules_hashes = [r.full_hash for r in filtered_rules]
-    rules_hash = hashlib.sha256(json.dumps(rules_hashes).encode()).hexdigest()
-
     metric_manager.set_project_hash(project_hash)
-    metric_manager.set_configs_hash(configs_hash)
-    metric_manager.set_rules_hash(rules_hash)
+    metric_manager.set_configs_hash(configs)
+    metric_manager.set_rules_hash(filtered_rules)
     metric_manager.set_num_rules(len(filtered_rules))
     metric_manager.set_num_targets(len(all_targets))
     metric_manager.set_num_findings(num_findings)

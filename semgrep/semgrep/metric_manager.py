@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from typing import Any
 from typing import Dict
@@ -5,6 +6,8 @@ from typing import List
 from typing import Optional
 
 from semgrep.constants import SEMGREP_USER_AGENT
+from semgrep.rule import Rule
+
 
 METRICS_ENDPOINT = "https://metrics.semgrep.dev"
 
@@ -15,11 +18,7 @@ class _MetricManager:
     """
     To prevent sending unintended metrics, be sure that any data
     stored on this object is sanitized of anything that we don't
-    want sent.
-
-    All metrics stored should be calculated outside this class (i.e.
-    don't do sanitation in this class and don't populate fields under
-    the hood)
+    want sent (i.e. sanitize before saving not before sending)
 
     Made explicit decision to be verbose in setting metrics instead
     of something more dynamic (and thus less boiler plate code) to
@@ -45,11 +44,20 @@ class _MetricManager:
     def set_project_hash(self, project_hash: Optional[str]) -> None:
         self._project_hash = project_hash
 
-    def set_configs_hash(self, configs_hash: str) -> None:
-        self._configs_hash = configs_hash
+    def set_configs_hash(self, configs: List[str]) -> None:
+        """
+        Assumes configs is list of arguments passed to semgrep using --config
+        """
+        m = hashlib.sha256()
+        for c in configs:
+            m.update(c.encode())
+        self._configs_hash = m.hexdigest()
 
-    def set_rules_hash(self, rules_hash: str) -> None:
-        self._rules_hash = rules_hash
+    def set_rules_hash(self, rules: List[Rule]) -> None:
+        m = hashlib.sha256()
+        for r in rules:
+            m.update(r.full_hash.encode())
+        self._rules_hash = m.hexdigest()
 
     def set_return_code(self, return_code: int) -> None:
         self._return_code = return_code
