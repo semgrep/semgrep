@@ -26,7 +26,6 @@ from typing import Mapping
 from typing import Optional
 from typing import Set
 from typing import Tuple
-import ipdb
 
 from semgrep.constants import BREAK_LINE
 from semgrep.semgrep_main import invoke_semgrep
