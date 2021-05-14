@@ -61,7 +61,7 @@ class TargetManager:
     output_handler: OutputHandler
     skip_unknown_extensions: bool
 
-    _filtered_targets: Dict[str, Set[Path]] = attr.ib(factory=dict)
+    _filtered_targets: Dict[Language, Set[Path]] = attr.ib(factory=dict)
 
     @staticmethod
     def resolve_targets(targets: List[str]) -> Set[Path]:
@@ -168,7 +168,7 @@ class TargetManager:
 
     @staticmethod
     def expand_targets(
-        targets: Collection[Path], language: Language, respect_git_ignore: bool
+        targets: Collection[Path], lang: Language, respect_git_ignore: bool
     ) -> Set[Path]:
         """
         Explore all directories. Remove duplicates
@@ -180,7 +180,7 @@ class TargetManager:
 
             if target.is_dir():
                 expanded.update(
-                    TargetManager._expand_dir(target, language, respect_git_ignore)
+                    TargetManager._expand_dir(target, lang, respect_git_ignore)
                 )
             else:
                 expanded.add(target)
@@ -243,8 +243,8 @@ class TargetManager:
 
         Note also filters out any directory and decendants of `.git`
         """
-        if lang.value in self._filtered_targets:
-            return self._filtered_targets[lang.value]
+        if lang in self._filtered_targets:
+            return self._filtered_targets[lang]
 
         targets = self.resolve_targets(self.targets)
 
@@ -278,11 +278,11 @@ class TargetManager:
             )
             targets = targets.union(explicit_files_with_unknown_extensions)
 
-        self._filtered_targets[lang.value] = targets
-        return self._filtered_targets[lang.value]
+        self._filtered_targets[lang] = targets
+        return self._filtered_targets[lang]
 
     def get_files(
-        self, language: Language, includes: List[str], excludes: List[str]
+        self, lang: Language, includes: List[str], excludes: List[str]
     ) -> List[Path]:
         """
         Returns list of files that should be analyzed for a LANG
@@ -295,7 +295,7 @@ class TargetManager:
         in TARGET will bypass this global INCLUDE/EXCLUDE filter. The local INCLUDE/EXCLUDE
         filter is then applied.
         """
-        targets = self.filtered_files(language)
+        targets = self.filtered_files(lang)
         targets = self.filter_includes(targets, includes)
         targets = self.filter_excludes(targets, excludes)
         targets = self.filter_by_size(targets, self.max_target_bytes)

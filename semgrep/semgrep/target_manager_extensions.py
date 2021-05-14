@@ -5,7 +5,7 @@ from semgrep.error import _UnknownExtensionError
 from semgrep.error import _UnknownLanguageError
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import User_language as L
+from semgrep.semgrep_types import User_language
 
 
 # coupling: if you add a constant here, modify also ALL_EXTENSIONS below
@@ -77,7 +77,7 @@ def all_supported_languages() -> List[str]:
     """
     We want the list of languages to be deterministic, so sort it
     """
-    return sorted(L.canonical_languages.keys())
+    return sorted(User_language.canonical_languages.keys())
 
 
 # create a dictionary for fast lookup and reverse lookup

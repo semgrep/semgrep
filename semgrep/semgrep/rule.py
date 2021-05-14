@@ -60,7 +60,7 @@ class Rule:
             path_dict = paths_tree.unroll_dict()
         self._includes = path_dict.get("include", [])
         self._excludes = path_dict.get("exclude", [])
-        self._languages = {Language(l) for l in self._raw["languages"]}
+        self._languages = {User_language(l).lang for l in self._raw["languages"]}
 
         # add typescript to languages if the rule supports javascript.
         JAVASCRIPT_LANGUAGES = User_language.language_mappings[Language.JAVASCRIPT]
