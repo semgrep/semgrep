@@ -262,8 +262,8 @@ def generate_matches_line(check_results: Mapping[str, Any]) -> str:
 
 def invoke_semgrep_multi(
     config: Path, 
-    targets: List[Path], 
-    output_settings: OutputSettings, 
+    targets: List[Path],
+    output_settings: OutputSettings,
     **kwargs: Any
 ) -> Tuple[Path, Optional[Exception], Any]:
     try:
