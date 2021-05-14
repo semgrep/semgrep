@@ -6,7 +6,6 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 
 from semgrep.equivalences import Equivalence
@@ -60,11 +59,13 @@ class Rule:
             path_dict = paths_tree.unroll_dict()
         self._includes = path_dict.get("include", [])
         self._excludes = path_dict.get("exclude", [])
-        self._languages = {Language_util.resolve(l) for l in self._raw["languages"]}
+        rule_languages = {Language_util.resolve(l) for l in self._raw["languages"]}
 
         # add typescript to languages if the rule supports javascript.
-        if any(language == Language.JAVASCRIPT for language in self._languages):
-            self._languages.add(Language.TYPESCRIPT)
+        if any(language == Language.JAVASCRIPT for language in rule_languages):
+            rule_languages.add(Language.TYPESCRIPT)
+
+        self._languages = sorted(rule_languages, key=lambda lang: lang.value)  # type: ignore
 
         # check taint/search mode
         self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
@@ -286,7 +287,7 @@ class Rule:
             yield f"OWASP-{self.metadata['owasp']}"
 
     @property
-    def languages(self) -> Set[Language]:
+    def languages(self) -> List[Language]:
         return self._languages
 
     @property

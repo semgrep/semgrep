@@ -12,6 +12,7 @@ from typing import Union
 
 import attr
 
+from semgrep.error import UnknownLanguageError
 from semgrep.rule_lang import YamlMap
 
 Mode = NewType("Mode", str)
@@ -40,7 +41,7 @@ class Language(Enum):
     LUA: str = "lua"
     CSHARP: str = "csharp"
     RUST: str = "rust"
-    KOTLIN: str = "kotlin"
+    KOTLIN: str = "kt"
     YAML: str = "yaml"
     ML: str = "ml"
     JSON: str = "json"
@@ -49,7 +50,6 @@ class Language(Enum):
 
 
 class Language_util:
-
     language_to_strs: Dict[Language, List[str]] = {
         Language.PYTHON: [Language.PYTHON.value, "py"],
         Language.PYTHON2: [Language.PYTHON2.value],
@@ -64,7 +64,7 @@ class Language_util:
         Language.LUA: [Language.LUA.value],
         Language.CSHARP: [Language.CSHARP.value, "cs", "C#"],
         Language.RUST: [Language.RUST.value, "Rust", "rs"],
-        Language.KOTLIN: [Language.KOTLIN.value, "Kotlin", "kt"],
+        Language.KOTLIN: [Language.KOTLIN.value, "Kotlin", "kotlin"],
         Language.YAML: [Language.YAML.value, "YAML"],
         Language.ML: [Language.ML.value, "ocaml"],
         Language.JSON: [Language.JSON.value, "JSON", "Json"],
@@ -82,11 +82,11 @@ class Language_util:
         if lang_str in cls.str_to_language:
             return cls.str_to_language[lang_str]
         else:
-            return Language.GENERIC
-
-    @classmethod
-    def language_strs(cls, lang: Language) -> List[str]:
-        return cls.language_to_strs[lang]
+            raise UnknownLanguageError(
+                short_msg=f"invalid language: {str}",
+                long_msg=f"unsupported language: {str}. supported languages are: {', '.join(cls.all_language_strs())}",
+                spans=[],  # rule.languages_span.with_context(before=1, after=1)],
+            )
 
     @classmethod
     def all_language_strs(cls) -> KeysView[str]:
