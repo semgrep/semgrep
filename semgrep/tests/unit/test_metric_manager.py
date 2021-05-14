@@ -159,4 +159,7 @@ def test_timings(snapshot) -> None:
         "2cc5dbc0cae3a8b6af0d8792079251c4d861b5e16815c1b1cdba676d1c96c5a5",
     ]
     assert metric_manager._rule_parse_times == [0.05, 0.04, 0.0]
-    snapshot.assert_match(json.dumps(metric_manager._file_stats), "file_stats.out")
+    assert (
+        json.dumps(metric_manager._file_stats)
+        == """[{"size": 1, "parseTimes": [0.1, 0.0, 0.0], "matchTimes": [0.2, 0.0, 0.0], "runTimes": [0.4, 0.0, 0.0]}, {"size": 2, "parseTimes": [0.0, 1.1, 0.0], "matchTimes": [0.0, 1.2, 0.0], "runTimes": [0.0, 1.4, 0.0]}]"""
+    )
