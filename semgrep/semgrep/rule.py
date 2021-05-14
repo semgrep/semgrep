@@ -20,6 +20,7 @@ from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import DEFAULT_MODE
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import Language_util
 from semgrep.semgrep_types import Mode
 from semgrep.semgrep_types import Operator
 from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
@@ -29,7 +30,6 @@ from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import PATTERN_NAMES_OPERATOR_MAP
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import TAINT_MODE
-from semgrep.semgrep_types import User_language
 from semgrep.semgrep_types import YAML_TAINT_MUST_HAVE_KEYS
 
 
@@ -60,17 +60,17 @@ class Rule:
             path_dict = paths_tree.unroll_dict()
         self._includes = path_dict.get("include", [])
         self._excludes = path_dict.get("exclude", [])
-        self._languages = {User_language(l).lang for l in self._raw["languages"]}
+        self._languages = {Language_util.resolve(l) for l in self._raw["languages"]}
 
         # add typescript to languages if the rule supports javascript.
-        JAVASCRIPT_LANGUAGES = User_language.language_mappings[Language.JAVASCRIPT]
+        JAVASCRIPT_LANGUAGES = Language_util.language_strs(Language.JAVASCRIPT)
         if any(language in self._languages for language in JAVASCRIPT_LANGUAGES):
             self._languages.add(Language.TYPESCRIPT)
 
         # check taint/search mode
         self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
 
-        REGEX_LANGUAGES = User_language.language_mappings[Language.REGEX]
+        REGEX_LANGUAGES = Language_util.language_strs(Language.REGEX)
         if any(language in REGEX_LANGUAGES for language in self._languages):
             self._validate_none_language_rule()
 

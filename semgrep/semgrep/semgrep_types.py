@@ -2,6 +2,7 @@ import functools
 from enum import Enum
 from typing import Any
 from typing import Dict
+from typing import KeysView
 from typing import List
 from typing import Mapping
 from typing import NamedTuple
@@ -48,8 +49,9 @@ class Language(Enum):
     GENERIC: str = "generic"
 
 
-class User_language:
-    language_mappings: Dict[Language, List[str]] = {
+class Language_util:
+
+    language_to_strs: Dict[Language, List[str]] = {
         Language.PYTHON: [Language.PYTHON.value, "py"],
         Language.PYTHON2: [Language.PYTHON2.value],
         Language.PYTHON3: [Language.PYTHON3.value],
@@ -71,16 +73,25 @@ class User_language:
         Language.GENERIC: [Language.GENERIC.value],
     }
 
-    canonical_languages = {}
-    for canon_language in language_mappings.keys():
-        for language in language_mappings[canon_language]:
-            canonical_languages[language] = canon_language
+    str_to_language = {}
+    for language in language_to_strs.keys():
+        for lang_str in language_to_strs[language]:
+            str_to_language[lang_str] = language
 
-    def __init__(self, lang: str):
-        if lang in self.canonical_languages:
-            self.lang = self.canonical_languages[lang]
+    @classmethod
+    def resolve(cls, lang_str: str) -> Language:
+        if lang_str in cls.str_to_language:
+            return cls.str_to_language[lang_str]
         else:
-            self.lang = Language.GENERIC
+            return Language.GENERIC
+
+    @classmethod
+    def language_strs(cls, lang: Language) -> List[str]:
+        return cls.language_to_strs[lang]
+
+    @classmethod
+    def all_language_strs(cls) -> KeysView[str]:
+        return cls.str_to_language.keys()
 
 
 class OPERATORS:
