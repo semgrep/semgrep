@@ -26,12 +26,14 @@ from typing import Mapping
 from typing import Optional
 from typing import Set
 from typing import Tuple
+import ipdb
 
 from semgrep.constants import BREAK_LINE
 from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import is_config_suffix
 from semgrep.util import is_config_test_suffix
 from semgrep.util import partition
+from semgrep.output import OutputSettings
 
 logger = logging.getLogger(__name__)
 
@@ -130,11 +132,11 @@ def line_has_todo_ok(line: str) -> bool:
 
 
 def score_output_json(
-    json_out: Dict[str, Any], test_files: List[Path], ignore_todo: bool
-) -> Tuple[Dict[str, List[int]], Dict[str, Dict[str, Any]], int]:
+    json_out: Dict[str, Any], test_files: List[Path], ignore_todo: bool) -> Tuple[Dict[str, List[int]], Dict[str, Dict[str, Any]], int]:
     ruleid_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
+
     ok_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
@@ -259,10 +261,13 @@ def generate_matches_line(check_results: Mapping[str, Any]) -> str:
 
 
 def invoke_semgrep_multi(
-    config: Path, targets: List[Path], **kwargs: Any
+    config: Path, 
+    targets: List[Path], 
+    output_settings: OutputSettings, 
+    **kwargs: Any
 ) -> Tuple[Path, Optional[Exception], Any]:
     try:
-        output = invoke_semgrep(config, targets, **kwargs)
+        output = invoke_semgrep(config, targets, output_settings, **kwargs)
     except Exception as error:
         return (config, error, {})
     else:
@@ -318,6 +323,8 @@ def generate_file_pairs(
     strict: bool,
     unsafe: bool,
     json_output: bool,
+    time: bool,
+    output_settings: OutputSettings,
     save_test_output_tar: bool = True,
     optimizations: str = "none",
 ) -> None:
@@ -330,9 +337,11 @@ def generate_file_pairs(
 
     invoke_semgrep_fn = functools.partial(
         invoke_semgrep_multi,
+        output_settings=output_settings,
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
         strict=strict,
+        report_time=time,
         dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
         optimizations=optimizations,
     )
@@ -349,6 +358,11 @@ def generate_file_pairs(
         filename: score_output_json(
             output, config_test_filenames[filename], ignore_todo
         )
+        for filename, _, output in config_without_errors
+    }
+
+    timing_info = {
+        str(filename): output["time"] if "time" in output else {}
         for filename, _, output in config_without_errors
     }
 
@@ -374,6 +388,7 @@ def generate_file_pairs(
         "config_missing_tests": config_missing_tests_output,
         "config_with_errors": config_with_errors_output,
         "results": results_output,
+        "timing_info": timing_info,
     }
 
     strict_error = bool(config_with_errors_output) and strict
@@ -445,7 +460,7 @@ def generate_file_pairs(
     sys.exit(exit_code)
 
 
-def test_main(args: argparse.Namespace) -> None:
+def test_main(args: argparse.Namespace, output_settings: OutputSettings) -> None:
     _test_compute_confusion_matrix()
 
     if len(args.target) != 1:
@@ -466,6 +481,8 @@ def test_main(args: argparse.Namespace) -> None:
         args.strict,
         args.dangerously_allow_arbitrary_code_execution_from_rules,
         args.json,
+        args.time,
+        output_settings,
         args.save_test_output_tar,
         args.optimizations,
     )
