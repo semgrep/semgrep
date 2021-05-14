@@ -14,7 +14,6 @@ import attr
 
 from semgrep.rule_lang import YamlMap
 
-# Language = NewType("Language", str)
 Mode = NewType("Mode", str)
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
