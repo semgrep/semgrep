@@ -6,6 +6,7 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 from semgrep.equivalences import Equivalence
@@ -28,10 +29,8 @@ from semgrep.semgrep_types import pattern_names_for_operator
 from semgrep.semgrep_types import PATTERN_NAMES_OPERATOR_MAP
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import TAINT_MODE
+from semgrep.semgrep_types import User_language
 from semgrep.semgrep_types import YAML_TAINT_MUST_HAVE_KEYS
-from semgrep.target_manager_extensions import JAVASCRIPT_LANGUAGES
-from semgrep.target_manager_extensions import REGEX_LANGUAGES
-from semgrep.target_manager_extensions import TYPESCRIPT_LANGUAGES
 
 
 class Rule:
@@ -61,15 +60,17 @@ class Rule:
             path_dict = paths_tree.unroll_dict()
         self._includes = path_dict.get("include", [])
         self._excludes = path_dict.get("exclude", [])
-        self._languages = [Language(l) for l in self._raw["languages"]]
+        self._languages = {Language(l) for l in self._raw["languages"]}
 
         # add typescript to languages if the rule supports javascript.
+        JAVASCRIPT_LANGUAGES = User_language.language_mappings[Language.JAVASCRIPT]
         if any(language in self._languages for language in JAVASCRIPT_LANGUAGES):
-            self._languages.extend(TYPESCRIPT_LANGUAGES)
+            self._languages.add(Language.TYPESCRIPT)
 
         # check taint/search mode
         self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
 
+        REGEX_LANGUAGES = User_language.language_mappings[Language.REGEX]
         if any(language in REGEX_LANGUAGES for language in self._languages):
             self._validate_none_language_rule()
 
@@ -267,7 +268,27 @@ class Rule:
         return self._mode
 
     @property
-    def languages(self) -> List[Language]:
+    def sarif_severity(self) -> str:
+        """
+        SARIF v2.1.0-compliant severity string.
+
+        See https://github.com/oasis-tcs/sarif-spec/blob/a6473580/Schemata/sarif-schema-2.1.0.json#L1566
+        """
+        mapping = {"INFO": "note", "ERROR": "error", "WARNING": "warning"}
+        return mapping[self.severity]
+
+    @property
+    def sarif_tags(self) -> Iterator[str]:
+        """
+        Tags to display on SARIF-compliant UIs, such as GitHub security scans.
+        """
+        if "cwe" in self.metadata:
+            yield self.metadata["cwe"]
+        if "owasp" in self.metadata:
+            yield f"OWASP-{self.metadata['owasp']}"
+
+    @property
+    def languages(self) -> Set[Language]:
         return self._languages
 
     @property

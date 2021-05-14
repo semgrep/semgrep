@@ -1,11 +1,11 @@
 from typing import Dict
 from typing import List
-from typing import Tuple
 
 from semgrep.error import _UnknownExtensionError
 from semgrep.error import _UnknownLanguageError
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import User_language as L
 
 
 # coupling: if you add a constant here, modify also ALL_EXTENSIONS below
@@ -50,71 +50,48 @@ ALL_EXTENSIONS = (
 # files.
 GENERIC_EXTENSIONS = [FileExtension("")]
 
-PYTHON_LANGUAGES = [
-    Language("python"),
-    Language("python2"),
-    Language("python3"),
-    Language("py"),
-]
-JAVASCRIPT_LANGUAGES = [Language("javascript"), Language("js")]
-TYPESCRIPT_LANGUAGES = [Language("typescript"), Language("ts")]
-JAVA_LANGUAGES = [Language("java")]
-C_LANGUAGES = [Language("c")]
-GO_LANGUAGES = [Language("golang"), Language("go")]
-RUBY_LANGUAGES = [Language("ruby"), Language("rb")]
-PHP_LANGUAGES = [Language("php")]
-LUA_LANGUAGES = [Language("lua")]
-CSHARP_LANGUAGES = [Language("cs"), Language("csharp"), Language("C#")]
-RUST_LANGUAGES = [Language("rust"), Language("Rust"), Language("rs")]
-KOTLIN_LANGUAGES = [Language("kotlin"), Language("Kotlin"), Language("kt")]
-YAML_LANGUAGES = [Language("yaml"), Language("Yaml")]
-ML_LANGUAGES = [Language("ocaml"), Language("ml")]
-JSON_LANGUAGES = [Language("json"), Language("JSON"), Language("Json")]
-REGEX_LANGUAGES = [Language("none"), Language("regex")]
-GENERIC_LANGUAGES = [Language("generic")]
+_LANGS_TO_EXTS: Dict[Language, List[FileExtension]] = {
+    Language.PYTHON: PYTHON_EXTENSIONS,
+    Language.PYTHON2: PYTHON_EXTENSIONS,
+    Language.PYTHON3: PYTHON_EXTENSIONS,
+    Language.JAVASCRIPT: JAVASCRIPT_EXTENSIONS,
+    Language.TYPESCRIPT: TYPESCRIPT_EXTENSIONS,
+    Language.JAVA: JAVA_EXTENSIONS,
+    Language.C: C_EXTENSIONS,
+    Language.GO: GO_EXTENSIONS,
+    Language.ML: ML_EXTENSIONS,
+    Language.RUBY: RUBY_EXTENSIONS,
+    Language.PHP: PHP_EXTENSIONS,
+    Language.JSON: JSON_EXTENSIONS,
+    Language.LUA: LUA_EXTENSIONS,
+    Language.CSHARP: CSHARP_EXTENSIONS,
+    Language.RUST: RUST_EXTENSIONS,
+    Language.KOTLIN: KOTLIN_EXTENSIONS,
+    Language.YAML: YAML_EXTENSIONS,
+    Language.REGEX: GENERIC_EXTENSIONS,
+    Language.GENERIC: GENERIC_EXTENSIONS,
+}
 
 
-# don't use this directly because it won't be O(1) lookup
-# it's just for human readability, we process it below
-_LANGS_TO_EXTS_INTERNAL: List[Tuple[List[Language], List[FileExtension]]] = [
-    (PYTHON_LANGUAGES, PYTHON_EXTENSIONS),
-    (JAVASCRIPT_LANGUAGES, JAVASCRIPT_EXTENSIONS),
-    (TYPESCRIPT_LANGUAGES, TYPESCRIPT_EXTENSIONS),
-    (JAVA_LANGUAGES, JAVA_EXTENSIONS),
-    (C_LANGUAGES, C_EXTENSIONS),
-    (GO_LANGUAGES, GO_EXTENSIONS),
-    (ML_LANGUAGES, ML_EXTENSIONS),
-    (RUBY_LANGUAGES, RUBY_EXTENSIONS),
-    (PHP_LANGUAGES, PHP_EXTENSIONS),
-    (JSON_LANGUAGES, JSON_EXTENSIONS),
-    (LUA_LANGUAGES, LUA_EXTENSIONS),
-    (CSHARP_LANGUAGES, CSHARP_EXTENSIONS),
-    (RUST_LANGUAGES, RUST_EXTENSIONS),
-    (KOTLIN_LANGUAGES, KOTLIN_EXTENSIONS),
-    (YAML_LANGUAGES, YAML_EXTENSIONS),
-    (REGEX_LANGUAGES + GENERIC_LANGUAGES, GENERIC_EXTENSIONS),
-]
-
-
-def all_supported_languages() -> List[Language]:
+def all_supported_languages() -> List[str]:
     """
     We want the list of languages to be deterministic, so sort it
     """
-    return sorted(sum((languages for languages, _ in _LANGS_TO_EXTS_INTERNAL), []))
+    return sorted(L.canonical_languages.keys())
 
 
 # create a dictionary for fast lookup and reverse lookup
-_LANGS_TO_EXTS: Dict[Language, List[FileExtension]] = {}
-_EXTS_TO_LANGS: Dict[FileExtension, List[Language]] = {}
-for languages, extensions in _LANGS_TO_EXTS_INTERNAL:
-    for lang in languages:
-        _LANGS_TO_EXTS[lang] = extensions
-    for extension in extensions:
-        _EXTS_TO_LANGS[extension] = languages
+_EXTS_TO_LANG: Dict[FileExtension, Language] = {}
+for language in _LANGS_TO_EXTS.keys():
+    for extension in _LANGS_TO_EXTS[language]:
+        # When there are multiple languages for an extension,
+        # take the first one
+        if not extension in _EXTS_TO_LANG:
+            _EXTS_TO_LANG[extension] = language
 
 
-def ext_to_langs(ext: FileExtension) -> List[Language]:
-    langs = _EXTS_TO_LANGS.get(ext)
+def ext_to_langs(ext: FileExtension) -> Language:
+    langs = _EXTS_TO_LANG.get(ext)
     if langs is None:
         raise _UnknownExtensionError(f"Unsupported extension: {ext}")
     return langs

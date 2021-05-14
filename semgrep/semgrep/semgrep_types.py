@@ -1,4 +1,5 @@
 import functools
+from enum import Enum
 from typing import Any
 from typing import Dict
 from typing import List
@@ -12,8 +13,7 @@ import attr
 
 from semgrep.rule_lang import YamlMap
 
-
-Language = NewType("Language", str)
+# Language = NewType("Language", str)
 Mode = NewType("Mode", str)
 PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
@@ -24,6 +24,63 @@ SEARCH_MODE = DEFAULT_MODE = Mode("search")
 SUPPORTED_MODES = {TAINT_MODE, SEARCH_MODE}
 
 YAML_TAINT_MUST_HAVE_KEYS = {"pattern-sinks", "pattern-sources"}
+
+
+class Language(Enum):
+    PYTHON: str = "python"
+    PYTHON2: str = "python2"
+    PYTHON3: str = "python3"
+    JAVASCRIPT: str = "javascript"
+    TYPESCRIPT: str = "typescript"
+    JAVA: str = "java"
+    C: str = "c"
+    GO: str = "go"
+    RUBY: str = "ruby"
+    PHP: str = "php"
+    LUA: str = "lua"
+    CSHARP: str = "csharp"
+    RUST: str = "rust"
+    KOTLIN: str = "kotlin"
+    YAML: str = "yaml"
+    ML: str = "ml"
+    JSON: str = "json"
+    REGEX: str = "regex"
+    GENERIC: str = "generic"
+
+
+class User_language:
+    language_mappings: Dict[Language, List[str]] = {
+        Language.PYTHON: [Language.PYTHON.value, "py"],
+        Language.PYTHON2: [Language.PYTHON2.value],
+        Language.PYTHON3: [Language.PYTHON3.value],
+        Language.JAVASCRIPT: [Language.JAVASCRIPT.value, "js"],
+        Language.TYPESCRIPT: [Language.TYPESCRIPT.value, "ts"],
+        Language.JAVA: [Language.JAVA.value],
+        Language.C: [Language.C.value],
+        Language.GO: [Language.GO.value, "golang"],
+        Language.RUBY: [Language.RUBY.value, "rb"],
+        Language.PHP: [Language.PHP.value],
+        Language.LUA: [Language.LUA.value],
+        Language.CSHARP: [Language.CSHARP.value, "cs", "C#"],
+        Language.RUST: [Language.RUST.value, "Rust", "rs"],
+        Language.KOTLIN: [Language.KOTLIN.value, "Kotlin", "kt"],
+        Language.YAML: [Language.YAML.value, "YAML"],
+        Language.ML: [Language.ML.value, "ocaml"],
+        Language.JSON: [Language.JSON.value, "JSON", "Json"],
+        Language.REGEX: [Language.REGEX.value, "none"],
+        Language.GENERIC: [Language.GENERIC.value],
+    }
+
+    canonical_languages = {}
+    for canon_language in language_mappings.keys():
+        for language in language_mappings[canon_language]:
+            canonical_languages[language] = canon_language
+
+    def __init__(self, lang: str):
+        if lang in self.canonical_languages:
+            self.lang = self.canonical_languages[lang]
+        else:
+            self.lang = Language.GENERIC
 
 
 class OPERATORS:

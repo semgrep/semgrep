@@ -28,7 +28,7 @@ def make_target_stats(all_targets: Set[Path]) -> Dict[str, Any]:
         suffix: FileExtension = cast(FileExtension, path.suffix)
         extensions[suffix] += 1
         # an extension could map to multiple languages; just take the first one
-        lang = sorted(ext_to_langs(suffix))[0]
+        lang = ext_to_langs(suffix)
         languages[lang] += 1
 
     return {

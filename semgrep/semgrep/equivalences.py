@@ -1,6 +1,6 @@
 from typing import Any
 from typing import Dict
-from typing import List
+from typing import Set
 
 from semgrep.semgrep_types import Language
 
@@ -20,7 +20,7 @@ class Equivalence:
     '''
     """
 
-    def __init__(self, equiv_id: str, pattern: str, languages: List[Language]):
+    def __init__(self, equiv_id: str, pattern: str, languages: Set[Language]):
         self._id = equiv_id
         self._pattern = pattern
         self._languages = languages
@@ -30,4 +30,8 @@ class Equivalence:
         return self._pattern
 
     def to_json(self) -> Dict[str, Any]:
-        return {"id": self._id, "pattern": self._pattern, "languages": self._languages}
+        return {
+            "id": self._id,
+            "pattern": self._pattern,
+            "languages": list(self._languages),
+        }
