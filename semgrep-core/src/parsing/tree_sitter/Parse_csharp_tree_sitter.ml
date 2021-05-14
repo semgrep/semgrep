@@ -977,7 +977,7 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
   (* TODO return Ast.ArgKwd if Some v1 *)
   AST.Arg v3
 
-and initializer_expression (env : env) ((v1, v2, v3, v4) : CST.initializer_expression) : tok * expr list * tok =
+and initializer_expression (env : env) ((v1, v2, v3, v4) : CST.initializer_expression) : expr list AST.bracket =
   let v1 = token env v1 (* "{" *) in
   let v2 =
     anon_opt_cst_pat_rep_interp_alig_clause_080fdff env v2
