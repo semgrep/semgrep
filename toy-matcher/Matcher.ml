@@ -363,9 +363,11 @@ let trace_match_call ~trace stat ellipsis env pat input =
 module Cache_key = struct
   type t = ellipsis * env * pattern * input
 
+  let phys_eq = ( == )
+
   let equal (ellipsis1, env1, pat1, input1) (ellipsis2, env2, pat2, input2) =
     pat_equal pat1 pat2
-    && (==) input1 input2
+    && phys_eq input1 input2
     && ellipsis1 = ellipsis2
     && Bindings.equal (=) env1.min_env env2.min_env
 
