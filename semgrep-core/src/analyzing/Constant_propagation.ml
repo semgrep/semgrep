@@ -288,9 +288,10 @@ let propagate_basic lang prog =
                            { id_resolved = {contents = Some (_kind, sid)}; _}));
             attrs = attrs;
             _},
+          VarDef ({ vinit = Some (L literal); _ })
           (* note that some languages such as Python do not have VarDef.
            * todo? should add those somewhere instead of in_lvalue detection?*)
-          VarDef ({ vinit = Some (L literal); _ }) ->
+          ->
             let stats =
               try Hashtbl.find stats (H.str_of_ident id, sid)
               with Not_found -> raise Impossible
