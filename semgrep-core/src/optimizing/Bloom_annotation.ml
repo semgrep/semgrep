@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 module B = Bloom_filter
 module V = Visitor_AST
 module Set = Set_
@@ -41,7 +41,7 @@ open AST_generic
  * on the integer final value, not the string.
  *
  * See also semgrep-core/matching/Rules_filter.ml
-*)
+ *)
 
 (*****************************************************************************)
 (* List helpers *)
@@ -51,13 +51,11 @@ open AST_generic
  * O(kn) to add it to all the lists. Since it will also take O(kn) to add it
  * to all the bloom filters, this is acceptable, but it would not be
  * necessary if we used a linked list
-*)
+ *)
 
-let push_list s' s =
-  s := Set.union s' !s
+let push_list s' s = s := Set.union s' !s
 
-let push v s =
-  s := Set.add v !s
+let push v s = s := Set.add v !s
 
 (*****************************************************************************)
 (* Traversal methods *)
@@ -70,52 +68,52 @@ let push v s =
  *  - string like "=~/stuff/"
  *
  * See also Analyze_pattern.extract_specific_strings
-*)
+ *)
 
 let rec statement_strings stmt =
   let res = ref Set.empty in
   let top_level = ref true in
-  let visitor = V.mk_visitor {
-    V.default_visitor with
-    V.kident = (fun (_k, _) (str, _tok) ->
-      push str res
-    );
-    V.kexpr = (fun (k, _) x ->
-      (match x with
-       (* less: we could extract strings for the other literals too?
-        * atoms, chars, even int?
-       *)
-       | L (String (str, _tok)) ->
-           push str res
-       | IdSpecial (_, tok) ->
-           push (Parse_info.str_of_info tok) res
-       | _ -> k x
-      )
-    );
-    V.kconstness = (fun (k, _) x ->
-      (match x with
-       | Lit (String (str, _tok)) ->
-           if not (Pattern.is_special_string_literal str)
-           then push str res
-       | _ -> k x
-      )
-    );
-    (* The default behavior of kid_info is to not call the continutation *)
-    (* We want to recurse so that we can index processed information like constants *)
-    V.kid_info = (fun (k, _) x -> k x);
-    V.kstmt = (fun (k, _) x ->
-      (* First statement visited is the current statement *)
-      if !top_level then begin top_level := false; k x end
-      else
-        (* For any other statement, recurse to add the filter *)
-        begin
-          let strs = statement_strings x in
-          let bf = B.make_bloom_from_set !Flag_semgrep.set_instead_of_bloom_filter strs in
-          push_list strs res;
-          x.s_bf <- Some (bf)
-        end
-    );
-  } in
+  let visitor =
+    V.mk_visitor
+      {
+        V.default_visitor with
+        V.kident = (fun (_k, _) (str, _tok) -> push str res);
+        V.kexpr =
+          (fun (k, _) x ->
+            match x with
+            (* less: we could extract strings for the other literals too?
+             * atoms, chars, even int?
+             *)
+            | L (String (str, _tok)) -> push str res
+            | IdSpecial (_, tok) -> push (Parse_info.str_of_info tok) res
+            | _ -> k x);
+        V.kconstness =
+          (fun (k, _) x ->
+            match x with
+            | Lit (String (str, _tok)) ->
+                if not (Pattern.is_special_string_literal str) then push str res
+            | _ -> k x);
+        (* The default behavior of kid_info is to not call the continutation *)
+        (* We want to recurse so that we can index processed information like constants *)
+        V.kid_info = (fun (k, _) x -> k x);
+        V.kstmt =
+          (fun (k, _) x ->
+            (* First statement visited is the current statement *)
+            if !top_level then (
+              top_level := false;
+              k x )
+            else
+              (* For any other statement, recurse to add the filter *)
+              let strs = statement_strings x in
+              let bf =
+                B.make_bloom_from_set
+                  !Flag_semgrep.set_instead_of_bloom_filter
+                  strs
+              in
+              push_list strs res;
+              x.s_bf <- Some bf);
+      }
+  in
   visitor (S stmt);
   !res
 
@@ -131,13 +129,20 @@ let list_of_pattern_strings ?lang any =
 
 (* TODO: visit AST and set the s_bf field in statements *)
 let annotate_program ast =
-  let visitor = V.mk_visitor {
-    V.default_visitor with
-    V.kstmt = (fun (_k, _) x ->
-      let ids = statement_strings x in
-      let bf = B.make_bloom_from_set !Flag_semgrep.set_instead_of_bloom_filter ids in
-      x.s_bf <- Some (bf);
-    );
-  } in
-  visitor (Ss ast);
-[@@profiling]
+  let visitor =
+    V.mk_visitor
+      {
+        V.default_visitor with
+        V.kstmt =
+          (fun (_k, _) x ->
+            let ids = statement_strings x in
+            let bf =
+              B.make_bloom_from_set
+                !Flag_semgrep.set_instead_of_bloom_filter
+                ids
+            in
+            x.s_bf <- Some bf);
+      }
+  in
+  visitor (Ss ast)
+  [@@profiling]

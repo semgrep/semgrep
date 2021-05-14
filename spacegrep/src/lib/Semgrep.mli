@@ -8,5 +8,9 @@
 *)
 val print_semgrep_json :
   with_time:bool ->
-  (Src_file.t * (Match.pattern_id * Match.match_ list * float) list * float * float) list ->
+  ( Src_file.t
+  * (Match.pattern_id * Match.match_ list * float) list
+  * float
+  * float )
+  list ->
   unit
