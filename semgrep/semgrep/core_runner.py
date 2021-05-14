@@ -435,9 +435,8 @@ class CoreRunner:
                     self.handle_regex_patterns(outputs, patterns_regex, targets)
 
                 # regex-only rules only support OPERATORS.REGEX.
-                # generic-only rules should go through spacegrep
                 # Skip passing this rule to semgrep-core.
-                if language in [Language.REGEX, Language.GENERIC]:
+                if language == Language.REGEX:
                     continue
 
                 # semgrep-core doesn't know about the following operators -
