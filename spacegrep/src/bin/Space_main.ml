@@ -10,11 +10,13 @@
    on the spacegrep/default help page.
 *)
 
-
 let dispatch () =
-  Printexc.record_backtrace true;
+  Printexc.record_backtrace true ;
   match Filename.basename Sys.argv.(0) with
-  | "spacecat" | "space-cat" -> Spacecat_main.main ()
-  | _ -> Spacegrep_main.main ()
+  | "spacecat" | "space-cat" ->
+      Spacecat_main.main ()
+  | _ ->
+      Spacegrep_main.main ()
+
 
 let () = dispatch ()

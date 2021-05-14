@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
 
 (*****************************************************************************)
@@ -22,7 +22,7 @@ open Common
  *
  * This was started from pfff/h_program-lang/datalog_code.ml.
  * See Datalog.io.ml to read/write those facts on disk.
-*)
+ *)
 
 (*****************************************************************************)
 (* Types *)
@@ -30,11 +30,14 @@ open Common
 
 (* for locals, but also right now for fields, globals, constants, enum, ... *)
 type var = string
+
 type func = string
+
 type fld = string
 
 (* _cst_xxx, _str_line_xxx, _malloc_in_xxx_line, ... *)
 type heap = string
+
 (* _in_xxx_line_xxx_col_xxx *)
 type callsite = string
 
@@ -90,21 +93,16 @@ type callsite = string
 *)
 type fact =
   | PointTo of var * heap
-
   | Assign of var * var
   | AssignContent of var * var
   | AssignAddress of var * var
-
   | AssignDeref of var * var
-
   | AssignLoadField of var * var * fld
   | AssignStoreField of var * fld * var
   | AssignFieldAddress of var * var * fld
-
   | AssignArrayElt of var * var
   | AssignArrayDeref of var * var
   | AssignArrayElementAddress of var * var
-
   | Parameter of func * int * var
   | Return of func * var (* ret_xxx convention *)
   | Argument of callsite * int * var
@@ -114,6 +112,7 @@ type fact =
 
 (* alias *)
 type t = fact
+
 type facts = fact list
 
 (*****************************************************************************)
@@ -121,12 +120,7 @@ type facts = fact list
 (*****************************************************************************)
 
 (* see datalog_code.dl domain *)
-type value =
-  | V of var
-  | F of fld
-  | N of func
-  | I of callsite
-  | Z of int
+type value = V of var | F of fld | N of func | I of callsite | Z of int
 
 let string_of_value = function
   | V x | F x | N x | I x -> x
@@ -134,27 +128,27 @@ let string_of_value = function
 
 type _rule = string
 
-type _meta_fact =
-  string * value list
+type _meta_fact = string * value list
 
 let meta_fact = function
-  | PointTo (a, b) -> "point_to", [ V a; V b; ]
-  | Assign (a, b) -> "assign", [ V a; V b; ]
-  | AssignContent (a, b) -> "assign_content", [ V a; V b; ]
-  | AssignAddress (a, b) -> "assign_address", [ V a; V b; ]
-  | AssignDeref (a, b) -> "assign_deref", [ V a; V b; ]
-  | AssignLoadField (a, b, c) -> "assign_load_field", [ V a; V b; F c ]
-  | AssignStoreField (a, b, c) -> "assign_store_field", [ V a; F b; V c ]
-  | AssignFieldAddress (a, b, c) -> "assign_field_address", [ V a; V b; F c ]
-  | AssignArrayElt (a, b) -> "assign_array_elt", [ V a; V b; ]
-  | AssignArrayDeref (a, b) -> "assign_array_deref", [ V a; V b; ]
-  | AssignArrayElementAddress (a, b) -> "assign_array_element_address", [ V a; V b; ]
-  | Parameter (a, b, c) -> "parameter", [ N a; Z b; V c ]
-  | Return (a, b) -> "return", [ N a; V b; ]
-  | Argument (a, b, c) -> "argument", [ I a; Z b; V c ]
-  | ReturnValue (a, b) -> "call_ret", [ I a; V b; ]
-  | CallDirect (a, b) -> "call_direct", [ I a; N b; ]
-  | CallIndirect (a, b) -> "call_indirect", [ I a; V b; ]
+  | PointTo (a, b) -> ("point_to", [ V a; V b ])
+  | Assign (a, b) -> ("assign", [ V a; V b ])
+  | AssignContent (a, b) -> ("assign_content", [ V a; V b ])
+  | AssignAddress (a, b) -> ("assign_address", [ V a; V b ])
+  | AssignDeref (a, b) -> ("assign_deref", [ V a; V b ])
+  | AssignLoadField (a, b, c) -> ("assign_load_field", [ V a; V b; F c ])
+  | AssignStoreField (a, b, c) -> ("assign_store_field", [ V a; F b; V c ])
+  | AssignFieldAddress (a, b, c) -> ("assign_field_address", [ V a; V b; F c ])
+  | AssignArrayElt (a, b) -> ("assign_array_elt", [ V a; V b ])
+  | AssignArrayDeref (a, b) -> ("assign_array_deref", [ V a; V b ])
+  | AssignArrayElementAddress (a, b) ->
+      ("assign_array_element_address", [ V a; V b ])
+  | Parameter (a, b, c) -> ("parameter", [ N a; Z b; V c ])
+  | Return (a, b) -> ("return", [ N a; V b ])
+  | Argument (a, b, c) -> ("argument", [ I a; Z b; V c ])
+  | ReturnValue (a, b) -> ("call_ret", [ I a; V b ])
+  | CallDirect (a, b) -> ("call_direct", [ I a; N b ])
+  | CallIndirect (a, b) -> ("call_indirect", [ I a; V b ])
 
 (*****************************************************************************)
 (* Toy datalog *)
@@ -163,8 +157,8 @@ let meta_fact = function
 let string_of_fact fact =
   let str, xs = meta_fact fact in
   spf "%s(%s)" str
-    (xs |> List.map (function
-       | V x | F x | N x | I x -> spf "'%s'" x
-       | Z i -> spf "%d" i
-     ) |> Common.join ", "
-    )
+    ( xs
+    |> List.map (function
+         | V x | F x | N x | I x -> spf "'%s'" x
+         | Z i -> spf "%d" i)
+    |> Common.join ", " )
