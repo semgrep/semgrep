@@ -63,15 +63,13 @@ class Rule:
         self._languages = {Language_util.resolve(l) for l in self._raw["languages"]}
 
         # add typescript to languages if the rule supports javascript.
-        JAVASCRIPT_LANGUAGES = Language_util.language_strs(Language.JAVASCRIPT)
-        if any(language in self._languages for language in JAVASCRIPT_LANGUAGES):
+        if any(language == Language.JAVASCRIPT for language in self._languages):
             self._languages.add(Language.TYPESCRIPT)
 
         # check taint/search mode
         self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
 
-        REGEX_LANGUAGES = Language_util.language_strs(Language.REGEX)
-        if any(language in REGEX_LANGUAGES for language in self._languages):
+        if any(language == Language.REGEX for language in self._languages):
             self._validate_none_language_rule()
 
     def __eq__(self, other: object) -> bool:
