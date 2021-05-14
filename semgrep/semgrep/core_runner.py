@@ -42,7 +42,6 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import Language_util
 from semgrep.semgrep_types import OPERATORS
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.spacegrep import run_spacegrep
@@ -436,8 +435,9 @@ class CoreRunner:
                     self.handle_regex_patterns(outputs, patterns_regex, targets)
 
                 # regex-only rules only support OPERATORS.REGEX.
+                # generic-only rules should go through spacegrep
                 # Skip passing this rule to semgrep-core.
-                if language in Language_util.language_strs(Language.REGEX):
+                if language in [Language.REGEX, Language.GENERIC]:
                     continue
 
                 # semgrep-core doesn't know about the following operators -
@@ -456,7 +456,7 @@ class CoreRunner:
 
                 patterns_json = [p.to_json() for p in patterns]
 
-                if language in Language_util.language_strs(Language.GENERIC):
+                if language == Language.GENERIC:
                     output_json = profiler.track(
                         rule.id,
                         run_spacegrep,
