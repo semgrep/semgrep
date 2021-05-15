@@ -77,6 +77,14 @@ class Language_util:
         for lang_str in language_to_strs[language]:
             str_to_language[lang_str] = language
 
+    """ Convert an inputted string representing a language to a Language
+
+    Keyword arguments;
+    lang_str -- string representing a language (e.g. "C#")
+    span     -- span of language string in the original file (for error reporting),
+                None if resolve was called within semgrep
+    """
+
     @classmethod
     def resolve(cls, lang_str: str, span: Optional[Span] = None) -> Language:
         if lang_str in cls.str_to_language:
@@ -87,11 +95,12 @@ class Language_util:
                 long_msg=f"unsupported language: {lang_str}. supported languages are: {', '.join(cls.all_language_strs())}",
                 spans=[span.with_context(before=1, after=1)]
                 if span
-                else [],  # rule.languages_span.with_context(before=1, after=1)],
+                else [],  # not called from a config file
             )
 
     @classmethod
     def all_language_strs(cls) -> List[str]:
+        # sort to standardize because this is used in outputting methods
         return sorted(cls.str_to_language.keys())
 
 

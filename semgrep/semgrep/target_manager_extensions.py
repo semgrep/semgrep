@@ -90,7 +90,7 @@ for language in _LANGS_TO_EXTS.keys():
             _EXTS_TO_LANG[extension] = language
 
 
-def ext_to_langs(ext: FileExtension) -> Language:
+def ext_to_lang(ext: FileExtension) -> Language:
     langs = _EXTS_TO_LANG.get(ext)
     if langs is None:
         raise _UnknownExtensionError(f"Unsupported extension: {ext}")
