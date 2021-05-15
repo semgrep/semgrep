@@ -20,7 +20,10 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **What is the priority of the bug to you?**
-Is this a P0 (blocking your adoption of Semgrep or workflow), P1 (important to fix or quite annoying), P2 (regular bug that should get fixed)?
+
+- [ ] P0: blocking your adoption of Semgrep or workflow
+- [ ] P1: important to fix or quite annoying
+- [ ] P2: regular bug that should get fixed
 
 **Environment**
 If not using semgrep.dev: are you running off docker, an official binary, a local build?
