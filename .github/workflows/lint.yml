@@ -15,7 +15,7 @@ jobs:
 
   pre-commit-ocaml:
     runs-on: ubuntu-latest
-    # Custom image provides 'ocp-indent', needed to check ocaml code
+    # Custom image provides 'ocamlformat', needed to check ocaml code
     container: returntocorp/ocaml:ubuntu
     steps:
       - name: Pre-checkout fixes
