@@ -77,7 +77,7 @@ def all_supported_languages() -> List[str]:
     """
     We want the list of languages to be deterministic, so sort it
     """
-    return sorted(Language_util.all_language_strs())
+    return Language_util.all_language_strs()
 
 
 # create a dictionary for fast lookup and reverse lookup

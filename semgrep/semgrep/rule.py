@@ -59,7 +59,10 @@ class Rule:
             path_dict = paths_tree.unroll_dict()
         self._includes = path_dict.get("include", [])
         self._excludes = path_dict.get("exclude", [])
-        rule_languages = {Language_util.resolve(l) for l in self._raw["languages"]}
+        rule_languages = {
+            Language_util.resolve(l, self.languages_span)
+            for l in self._raw["languages"]
+        }
 
         # add typescript to languages if the rule supports javascript.
         if any(language == Language.JAVASCRIPT for language in rule_languages):

@@ -1,4 +1,3 @@
-running 1 rules...
 [31msemgrep error[39m: invalid language: intercal
   --> rules/syntax/badlanguage.yaml:7
 [94m6 | [39m    message: "$X is being assigned to one or two"

@@ -28,6 +28,12 @@ def test_rule_parser__failure(run_semgrep_in_tmp, snapshot, filename):
     snapshot.assert_match(str(excinfo.value.returncode), "returncode.txt")
 
 
+def test_regex_with_bad_language(run_semgrep_in_tmp, snapshot):
+    with pytest.raises(CalledProcessError) as excinfo:
+        run_semgrep_in_tmp("rules/badlanguage.yaml")
+    assert excinfo.value.returncode != 0
+
+
 def test_rule_parser__empty(run_semgrep_in_tmp, snapshot):
     with pytest.raises(CalledProcessError) as excinfo:
         run_semgrep_in_tmp(f"rules/syntax/empty.yaml")

@@ -2,7 +2,6 @@ import functools
 from enum import Enum
 from typing import Any
 from typing import Dict
-from typing import KeysView
 from typing import List
 from typing import Mapping
 from typing import NamedTuple
@@ -13,6 +12,7 @@ from typing import Union
 import attr
 
 from semgrep.error import UnknownLanguageError
+from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 
 Mode = NewType("Mode", str)
@@ -65,7 +65,7 @@ class Language_util:
         Language.CSHARP: [Language.CSHARP.value, "cs", "C#"],
         Language.RUST: [Language.RUST.value, "Rust", "rs"],
         Language.KOTLIN: [Language.KOTLIN.value, "Kotlin", "kotlin"],
-        Language.YAML: [Language.YAML.value, "YAML"],
+        Language.YAML: [Language.YAML.value, "Yaml"],
         Language.ML: [Language.ML.value, "ocaml"],
         Language.JSON: [Language.JSON.value, "JSON", "Json"],
         Language.REGEX: [Language.REGEX.value, "none"],
@@ -78,19 +78,21 @@ class Language_util:
             str_to_language[lang_str] = language
 
     @classmethod
-    def resolve(cls, lang_str: str) -> Language:
+    def resolve(cls, lang_str: str, span: Optional[Span] = None) -> Language:
         if lang_str in cls.str_to_language:
             return cls.str_to_language[lang_str]
         else:
             raise UnknownLanguageError(
-                short_msg=f"invalid language: {str}",
-                long_msg=f"unsupported language: {str}. supported languages are: {', '.join(cls.all_language_strs())}",
-                spans=[],  # rule.languages_span.with_context(before=1, after=1)],
+                short_msg=f"invalid language: {lang_str}",
+                long_msg=f"unsupported language: {lang_str}. supported languages are: {', '.join(cls.all_language_strs())}",
+                spans=[span.with_context(before=1, after=1)]
+                if span
+                else [],  # rule.languages_span.with_context(before=1, after=1)],
             )
 
     @classmethod
-    def all_language_strs(cls) -> KeysView[str]:
-        return cls.str_to_language.keys()
+    def all_language_strs(cls) -> List[str]:
+        return sorted(cls.str_to_language.keys())
 
 
 class OPERATORS:
