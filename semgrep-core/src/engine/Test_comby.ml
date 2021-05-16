@@ -10,13 +10,12 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
-*)
+ *)
 open Common
 open Comby_kernel
-
 module MS = Matchers.Metasyntax
 
-let _logger = Logging.get_logger [__MODULE__]
+let _logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -25,20 +24,21 @@ let _logger = Logging.get_logger [__MODULE__]
  *
  * This is the first step in integrating Comby in semgrep. We first
  * need to debug how to use the Comby API in comby.mli
-*)
+ *)
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 let test_comby pat file =
-  let (_d,_b,e) = Common2.dbe_of_filename file in
+  let _d, _b, e = Common2.dbe_of_filename file in
 
   let metasyntax =
-    { MS.syntax = [ MS.Hole (Everything, MS.Delimited (Some "$", None)) ]
-    ; identifier = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    {
+      MS.syntax = [ MS.Hole (Everything, MS.Delimited (Some "$", None)) ];
+      identifier = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     }
   in
-  let (module M: Matchers.Matcher.S) =
+  let (module M : Matchers.Matcher.S) =
     match Matchers.Alpha.select_with_extension ~metasyntax ("." ^ e) with
     | None -> failwith (spf "no Alpha Comby module for extension %s" e)
     | Some x -> x
