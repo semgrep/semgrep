@@ -2,6 +2,14 @@
    Iterate over a file tree.
 *)
 
+val fold :
+  ?excluded_paths:string list ->
+  ?accept_file_name:(string -> bool) ->
+  ?accept_dir_name:(string -> bool) ->
+  ('acc -> string -> 'acc) ->
+  'acc ->
+  string list ->
+  'acc
 (**
    [fold f acc roots] scans the files or directories [roots] and their
    children, applying [f] on each path corresponding to a regular file
@@ -16,24 +24,20 @@
                           name, not its full path. Only applies
                            to directories or symbolic links to directories.
 *)
-val fold :
-  ?excluded_paths:string list ->
-  ?accept_file_name:(string -> bool) ->
-  ?accept_dir_name:(string -> bool) ->
-  ('acc -> string -> 'acc) ->
-  'acc -> string list -> 'acc
 
-(** Simplified interface to [fold], operating by side effects. *)
 val iter :
   ?excluded_paths:string list ->
   ?accept_file_name:(string -> bool) ->
   ?accept_dir_name:(string -> bool) ->
   (string -> unit) ->
-  string list -> unit
+  string list ->
+  unit
+(** Simplified interface to [fold], operating by side effects. *)
 
-(** Simplified interface to [fold], which lists all the matching paths. *)
 val list :
   ?excluded_paths:string list ->
   ?accept_file_name:(string -> bool) ->
   ?accept_dir_name:(string -> bool) ->
-  string list -> string list
+  string list ->
+  string list
+(** Simplified interface to [fold], which lists all the matching paths. *)

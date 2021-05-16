@@ -5,11 +5,7 @@
 
 type t
 
-type source =
-  | File of string
-  | Stdin
-  | String
-  | Channel
+type source = File of string | Stdin | String | Channel
 
 (*
    Read data from various sources.
@@ -17,17 +13,23 @@ type source =
    of data.
 *)
 val of_string : ?source:source -> string -> t
+
 val of_channel : ?source:source -> ?max_len:int -> in_channel -> t
+
 val of_stdin : ?source:source -> unit -> t
+
 val of_file : ?source:source -> ?max_len:int -> string -> t
 
 val to_lexbuf : t -> Lexing.lexbuf
 
 val source : t -> source
+
 val show_source : source -> string
+
 val source_string : t -> string
 
 val contents : t -> string
+
 val length : t -> int
 
 (*
@@ -56,7 +58,10 @@ val lines_of_pos_range :
   ?force_trailing_newline:bool ->
   ?highlight:(string -> string) ->
   ?line_prefix:string ->
-  t -> Lexing.position -> Lexing.position -> string
+  t ->
+  Lexing.position ->
+  Lexing.position ->
+  string
 
 (*
    Extract the lines containing a pair of locations.
@@ -69,19 +74,28 @@ val lines_of_loc_range :
   ?force_trailing_newline:bool ->
   ?highlight:(string -> string) ->
   ?line_prefix:string ->
-  t -> Loc.t -> Loc.t -> string
+  t ->
+  Loc.t ->
+  Loc.t ->
+  string
 
 (* Same as 'lines_of_pos_range' but split the text into a list of lines. *)
 val list_lines_of_pos_range :
   ?highlight:(string -> string) ->
   ?line_prefix:string ->
-  t -> Lexing.position -> Lexing.position -> string list
+  t ->
+  Lexing.position ->
+  Lexing.position ->
+  string list
 
 (* Same as 'lines_of_loc_range' but split the text into a list of lines. *)
 val list_lines_of_loc_range :
   ?highlight:(string -> string) ->
   ?line_prefix:string ->
-  t -> Loc.t -> Loc.t -> string list
+  t ->
+  Loc.t ->
+  Loc.t ->
+  string list
 
 (* not for public use, only exposed to allow unit tests *)
 val insert_highlight : (string -> string) -> string -> int -> int -> string

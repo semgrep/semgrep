@@ -9,5 +9,5 @@ synopsis: "OCaml development dependencies"
 
 depends: [
   "merlin"      # used by the various text editors with ocaml support
-  "ocp-indent"  # required for indenting code, used by the pre-commit hook
+  "ocamlformat" # required for reformatting code, used by the pre-commit hook
 ]
