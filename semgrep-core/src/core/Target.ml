@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 (*e: pad/r2c copyright *)
 (*****************************************************************************)
 (* Prelude *)
@@ -23,7 +23,7 @@
  * See AST_generic.program for more information. This module just
  * defines an alias to have better naming convetion to differentiate
  * a target program from a pattern program.
-*)
+ *)
 
 (*****************************************************************************)
 (* Types *)
@@ -31,6 +31,7 @@
 
 (*s: type [[Target.t]] *)
 type t = AST_generic.program
+
 (*e: type [[Target.t]] *)
 
 (*e: semgrep/core/Target.ml *)
