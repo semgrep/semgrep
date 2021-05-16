@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 (*e: pad/r2c copyright *)
 open Common
 module G = AST_generic
@@ -34,10 +34,10 @@ let debug = false
 
 (* less: could want to remember the position in the pattern of the metavar
  * for error reporting on pattern itself? so use a 'string AST_generic.wrap'?
-*)
+ *)
 (*s: type [[Metavars_generic.mvar]] *)
-type mvar = string
-[@@deriving show, eq, hash]
+type mvar = string [@@deriving show, eq, hash]
+
 (*e: type [[Metavars_generic.mvar]] *)
 
 (* 'mvalue' below used to be just an alias to AST_generic.any, but it is more
@@ -52,7 +52,7 @@ type mvar = string
  * define our own Pattern.t with just the valid cases, but we don't
  * want code in pfff to depend on semgrep/core/Pattern.ml, hence the
  * use of AST_generic.any for patterns.
-*)
+ *)
 type mvalue =
   (* TODO: get rid of Id, N generalize it *)
   | Id of AST_generic.ident * AST_generic.id_info option
@@ -67,16 +67,16 @@ type mvalue =
 
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
-*)
+ *)
 let mvalue_to_any = function
   | E e -> G.E e
   | S s -> G.S s
   (* bugfix: do not return G.I id. We need the id_info because
    * it can be used to check if two metavars are equal and have the same
    * sid (single unique id).
-  *)
+   *)
   | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)))
-  | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info())))
+  | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info ())))
   | N x -> G.E (G.N x)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
@@ -84,18 +84,18 @@ let mvalue_to_any = function
   | P x -> G.P x
 
 let str_of_any any =
-  if !Flag_semgrep.debug_with_full_position
-  then Meta_parse_info._current_precision :=
-      { Meta_parse_info.default_dumper_precision with Meta_parse_info.
-                                                   full_info = true };
+  if !Flag_semgrep.debug_with_full_position then
+    Meta_parse_info._current_precision :=
+      {
+        Meta_parse_info.default_dumper_precision with
+        Meta_parse_info.full_info = true;
+      };
   let s = AST_generic.show_any any in
   s
 
-let ii_of_mval x =
-  x |> mvalue_to_any |> Visitor_AST.ii_of_any
-let str_of_mval x =
-  x |> mvalue_to_any |> str_of_any
+let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
 
+let str_of_mval x = x |> mvalue_to_any |> str_of_any
 
 (*s: type [[Metavars_generic.metavars_binding]] *)
 (* note that the mvalue acts as the value of the metavar and also
@@ -109,6 +109,7 @@ let str_of_mval x =
 *)
 type bindings = (mvar * mvalue) list (* = Common.assoc *)
 [@@deriving show, eq, hash]
+
 (*e: type [[Metavars_generic.metavars_binding]] *)
 
 (*s: constant [[Metavars_generic.metavar_regexp_string]] *)
@@ -123,9 +124,9 @@ type bindings = (mvar * mvalue) list (* = Common.assoc *)
  * However this conflicts with PHP superglobals, hence the special
  * cases below in is_metavar_name.
  * coupling: AST_generic.is_metavar_name
-*)
-let metavar_regexp_string =
-  "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
+ *)
+let metavar_regexp_string = "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
+
 (*e: constant [[Metavars_generic.metavar_regexp_string]] *)
 
 (*s: function [[Metavars_generic.is_metavar_name]] *)
@@ -140,35 +141,33 @@ let is_metavar_name s =
    * that would require to thread it through lots of functions, so for
    * now we have this special case for PHP superglobals.
    * ref: https://www.php.net/manual/en/language.variables.superglobals.php
-  *)
-  | "$_SERVER" | "$_GET" | "$_POST" | "$_FILES"
-  | "$_COOKIE" | "$_SESSION" | "$_REQUEST" | "$_ENV"
-
-    (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
+   *)
+  | "$_SERVER" | "$_GET" | "$_POST" | "$_FILES" | "$_COOKIE" | "$_SESSION"
+  | "$_REQUEST" | "$_ENV"
+  (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
     ->
       false
-  | _ ->
-      s =~ metavar_regexp_string
+  | _ -> s =~ metavar_regexp_string
+
 (*e: function [[Metavars_generic.is_metavar_name]] *)
 
 (* $...XXX multivariadic metavariables. Note that I initially chose
  * $X... but this leads to parsing conflicts in Javascript.
-*)
-let metavar_ellipsis_regexp_string =
-  "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
-let is_metavar_ellipsis s =
-  s =~ metavar_ellipsis_regexp_string
+ *)
+let metavar_ellipsis_regexp_string = "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
+
+let is_metavar_ellipsis s = s =~ metavar_ellipsis_regexp_string
 
 module Structural = struct
   let equal_mvalue = AST_utils.with_structural_equal equal_mvalue
-  let equal_bindings =
-    AST_utils.with_structural_equal equal_bindings
+
+  let equal_bindings = AST_utils.with_structural_equal equal_bindings
 end
 
 module Referential = struct
   let equal_mvalue = AST_utils.with_referential_equal equal_mvalue
-  let equal_bindings =
-    AST_utils.with_referential_equal equal_bindings
+
+  let equal_bindings = AST_utils.with_referential_equal equal_bindings
 
   let hash_bindings = hash_bindings
 end

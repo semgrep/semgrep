@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 (*e: pad/r2c copyright *)
 
 (*****************************************************************************)
@@ -30,35 +30,29 @@
  * Note that each feature in this file will change the matching results;
  * for non-functinal settings such as optimizations (e.g., using a
  * cache) use instead Flag_semgrep.ml
-*)
+ *)
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 type t = {
-  constant_propagation: bool;
-
+  constant_propagation : bool;
   (* !experimental: a bit hacky, and may introduce big perf regressions! *)
   (* should be used with DeepEllipsis; do it implicitely has issues *)
-  go_deeper_expr: bool;
+  go_deeper_expr : bool;
   (* this ultimately should go away once '...' works on the CFG *)
-  go_deeper_stmt: bool;
-
-  (* TODO: equivalences:
-   *   - const_let_to_var
-   *   - require_to_import (but need pass config to Js_to_generic)
-  *)
+  go_deeper_stmt : bool;
+      (* TODO: equivalences:
+       *   - const_let_to_var
+       *   - require_to_import (but need pass config to Js_to_generic)
+       *)
 }
 
 (*****************************************************************************)
 (* Default config *)
 (*****************************************************************************)
 
-let default_config = {
-  constant_propagation = true;
-
-  go_deeper_expr = true;
-  go_deeper_stmt = true;
-}
+let default_config =
+  { constant_propagation = true; go_deeper_expr = true; go_deeper_stmt = true }
 
 (*e: semgrep/core/Config_semgrep.ml *)

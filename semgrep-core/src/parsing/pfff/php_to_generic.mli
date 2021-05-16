@@ -1,4 +1,3 @@
+val program : Ast_php.program -> AST_generic.program
 
-val program: Ast_php.program -> AST_generic.program
-
-val any: Ast_php.any -> AST_generic.any
+val any : Ast_php.any -> AST_generic.any
