@@ -30,7 +30,7 @@ module Set = Set_
  * implemented as bitsets that can be intersected). However, it does not appear
  * to be a significant factor, and the set comparison can be improved over the
  * POC implementation.
- **)
+ * *)
 
 (*****************************************************************************)
 (* Types *)
@@ -45,10 +45,7 @@ type elt = string
  * the API *)
 type filter = Bloom of elt B.t | Set of elt Set.t ref
 
-type t = {
-  mutable added: bool;
-  filter: filter;
-}
+type t = { mutable added : bool; filter : filter }
 
 type bbool = No | Maybe
 
@@ -62,9 +59,11 @@ let pp _formatter _bf = ()
  * when 2500 elements are added. The numbers are chosen by experimentation on
  * a file with 10000 lines of javascript *)
 let create set_instead_of_bloom =
-  { added = false;
-    filter = if set_instead_of_bloom then Set (ref Set.empty)
-      else Bloom (B.create ~error_rate:0.01 2500)
+  {
+    added = false;
+    filter =
+      ( if set_instead_of_bloom then Set (ref Set.empty)
+      else Bloom (B.create ~error_rate:0.01 2500) );
   }
 
 let is_empty bf = not bf.added
@@ -81,20 +80,14 @@ let mem elt bf =
     | Bloom filter -> B.mem filter elt
     | Set s -> Set.mem elt !s
   in
-  if is_in then Maybe
-  else No
+  if is_in then Maybe else No
 
 let is_subset pattern_list bf =
-  let patterns_in_bf b x =
-    match b with
-    | No -> No
-    | Maybe -> mem x bf
-  in
+  let patterns_in_bf b x = match b with No -> No | Maybe -> mem x bf in
   List.fold_left patterns_in_bf Maybe pattern_list
 
 let make_bloom_from_set set_instead_of_bloom ids =
-  if set_instead_of_bloom then
-    { added = true; filter = Set (ref ids) }
+  if set_instead_of_bloom then { added = true; filter = Set (ref ids) }
   else
     let bf = create set_instead_of_bloom in
     let () =

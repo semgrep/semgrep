@@ -94,7 +94,6 @@
 module Flag = Flag_semgrep
 module MV = Metavariable
 module Env = Metavariable_capture
-
 open Printf
 open AST_generic
 
@@ -120,9 +119,7 @@ let add_one k name_counts =
   | Some n -> Name_counts.add k (n + 1) name_counts
 
 let get_count k name_counts =
-  match Name_counts.find_opt k name_counts with
-  | None -> 0
-  | Some n -> n
+  match Name_counts.find_opt k name_counts with None -> 0 | Some n -> n
 
 let diff_count k ~new_counts ~old_counts =
   let n = get_count k new_counts - get_count k old_counts in
@@ -131,23 +128,19 @@ let diff_count k ~new_counts ~old_counts =
 
 let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
   let not_backrefs_in_rest_of_pattern =
-    Set_.fold (fun k acc ->
-      let added_backref_count =
-        diff_count k
-          ~new_counts:new_backref_counts
-          ~old_counts:old_backref_counts
-      in
-      match added_backref_count with
-      | 0 -> Set_.add k acc
-      | _ -> acc
-    ) bound_metavars Set_.empty
+    Set_.fold
+      (fun k acc ->
+        let added_backref_count =
+          diff_count k ~new_counts:new_backref_counts
+            ~old_counts:old_backref_counts
+        in
+        match added_backref_count with 0 -> Set_.add k acc | _ -> acc)
+      bound_metavars Set_.empty
   in
   Set_.diff bound_metavars not_backrefs_in_rest_of_pattern
 
 let is_ellipsis_stmt (x : stmt) =
-  match x.s with
-  | ExprStmt (Ellipsis _, _) -> true
-  | _ -> false
+  match x.s with ExprStmt (Ellipsis _, _) -> true | _ -> false
 
 (*
    Decorate a pattern and target ASTs to make the suitable for memoization
@@ -193,81 +186,79 @@ let prepare_pattern any =
   let add_metavar name =
     if Set_.mem name !bound_metavars then
       backref_counts := add_one name !backref_counts
-    else
-      bound_metavars := Set_.add name !bound_metavars
+    else bound_metavars := Set_.add name !bound_metavars
   in
   (*
      This is the list of actions to run in reverse order of the original
      traversal of statements.
   *)
   let stack = ref [] in
-  let add_to_stack f = stack := f :: ! stack in
+  let add_to_stack f = stack := f :: !stack in
 
-  let visitor = Visitor_AST.mk_visitor {
-    Visitor_AST.default_visitor with
-    kident = (fun (_k, _) (id, _tok) ->
-      if debug then
-        printf "kident %s\n" id;
-      if Metavariable.is_metavar_name id then
-        add_metavar id
-    );
+  let visitor =
+    Visitor_AST.mk_visitor
+      {
+        Visitor_AST.default_visitor with
+        kident =
+          (fun (_k, _) (id, _tok) ->
+            if debug then printf "kident %s\n" id;
+            if Metavariable.is_metavar_name id then add_metavar id);
+        kstmt =
+          (fun (k, _) stmt ->
+            let stmt_id = (stmt.s_id :> int) in
+            if debug then printf "kstmt %i\n" stmt_id;
 
-    kstmt = (fun (k, _) stmt ->
-      let stmt_id = (stmt.s_id :> int) in
-      if debug then
-        printf "kstmt %i\n" stmt_id;
+            (* compare the number of backreferences encountered before and after
+               visiting the rest of the pattern, so as to determine the set
+               of metavariables occurring in the rest of the pattern. *)
+            let pre_bound_metavars = !bound_metavars in
+            let pre_backref_counts = !backref_counts in
+            add_to_stack (fun () ->
+                let post_backref_counts = !backref_counts in
+                let backrefs =
+                  diff_backrefs pre_bound_metavars
+                    ~new_backref_counts:post_backref_counts
+                    ~old_backref_counts:pre_backref_counts
+                in
 
-      (* compare the number of backreferences encountered before and after
-         visiting the rest of the pattern, so as to determine the set
-         of metavariables occurring in the rest of the pattern. *)
-      let pre_bound_metavars = !bound_metavars in
-      let pre_backref_counts = !backref_counts in
-      add_to_stack (fun () ->
-        let post_backref_counts = !backref_counts in
-        let backrefs =
-          diff_backrefs
-            pre_bound_metavars
-            ~new_backref_counts: post_backref_counts
-            ~old_backref_counts: pre_backref_counts
-        in
-        (*
+                (*
            It happens that the same stmt can be visited multiple times, to
            the following assertion doesn't hold:
 
              assert (stmt.s_backrefs = None);
         *)
-        stmt.s_backrefs <- Some backrefs;
+                stmt.s_backrefs <- Some backrefs;
 
-        (* Only consult the cache if it's economical, see details earlier. *)
-        if is_ellipsis_stmt stmt
-        && (Set_.is_empty backrefs || !Flag.max_cache) then
-          stmt.s_use_cache <- true;
+                (* Only consult the cache if it's economical, see details earlier. *)
+                if
+                  is_ellipsis_stmt stmt
+                  && (Set_.is_empty backrefs || !Flag.max_cache)
+                then stmt.s_use_cache <- true;
 
-        if debug then (
-          printf "stmt %i\n" stmt_id;
-          printf "$A backrefs before %i, after %i\n"
-            (get_count "$A" pre_backref_counts)
-            (get_count "$A" post_backref_counts);
-          printf "bound metavariables:\n%a" print_names pre_bound_metavars;
-          printf "pre backref counts:\n%a"
-            print_name_counts pre_backref_counts;
-          printf "post backref counts:\n%a"
-            print_name_counts post_backref_counts;
-          printf "backrefs:\n%a" print_names backrefs;
-          printf "\n"
-        )
-      );
-      (* continue scanning the current subtree. *)
-      k stmt
-    );
-  } in
+                if debug then (
+                  printf "stmt %i\n" stmt_id;
+                  printf "$A backrefs before %i, after %i\n"
+                    (get_count "$A" pre_backref_counts)
+                    (get_count "$A" post_backref_counts);
+                  printf "bound metavariables:\n%a" print_names
+                    pre_bound_metavars;
+                  printf "pre backref counts:\n%a" print_name_counts
+                    pre_backref_counts;
+                  printf "post backref counts:\n%a" print_name_counts
+                    post_backref_counts;
+                  printf "backrefs:\n%a" print_names backrefs;
+                  printf "\n" ));
+            (* continue scanning the current subtree. *)
+            k stmt);
+      }
+  in
   visitor any;
   List.iter (fun f -> f ()) !stack;
-  if debug then
-    printf "pattern AST:\n%s\n" (AST_generic.show_any any)
+  if debug then printf "pattern AST:\n%s\n" (AST_generic.show_any any)
 
 module Cache_key = struct
   type env = Metavariable.bindings [@@deriving show]
+
   type function_id = Match_deep | Match_list
 
   (*
@@ -277,34 +268,34 @@ module Cache_key = struct
     | Original
     (* The list of statements exists in the AST and is identified
        unambiguously by the ID of the first statement. *)
-
     | Flattened_until of AST_utils.Node_ID.t
-    (* The list of statements is the result of flattening the AST for
-       deep ellipsis matching. The node ID is the ID of the last statement
-       of the list. Together with the first ID of the list, they
-       identify the flattened list unambiguously.
 
-         1;
-         {
-           2;
-           3;
-         }
-         4;
+  (* The list of statements is the result of flattening the AST for
+     deep ellipsis matching. The node ID is the ID of the last statement
+     of the list. Together with the first ID of the list, they
+     identify the flattened list unambiguously.
 
-       When starting from '1;', the code above gets flattened into:
+       1;
+       {
+         2;
+         3;
+       }
+       4;
 
-         1; { 2; 3; } 2; 3; 4;
+     When starting from '1;', the code above gets flattened into:
 
-       of which '2; 3; 4;' is a tail.
+       1; { 2; 3; } 2; 3; 4;
 
-       But when starting from '2;', the flattened list ends earlier:
+     of which '2; 3; 4;' is a tail.
 
-         2; 3;
+     But when starting from '2;', the flattened list ends earlier:
 
-       which starts like '2; 3; 4;' but is not identical and should
-       not share a cache entry. This is why we use also the ID
-       of the last statement to distinguish them.
-    *)
+       2; 3;
+
+     which starts like '2; 3; 4;' but is not identical and should
+     not share a cache entry. This is why we use also the ID
+     of the last statement to distinguish them.
+  *)
 
   (*
      A cache key. It must unambiguously identify the computation being
@@ -314,37 +305,30 @@ module Cache_key = struct
   type t = {
     (* captured values referenced by metavariables in the rest of the
        pattern *)
-    min_env: env;
-
+    min_env : env;
     (* the name of the function being called.*)
-    function_id: function_id;
-
+    function_id : function_id;
     (* distinguish between stmt lists found in the AST from stmt lists
        resulting from flattening, since both can start with the same stmt
        whose ID is used to identify the list. *)
-    list_kind: list_kind;
-
+    list_kind : list_kind;
     (* a match option *)
-    less_is_ok: bool;
-
+    less_is_ok : bool;
     (* identifier of the list of stmts in the pattern AST, which is the
        ID of the first stmt of the list. *)
-    pattern_stmt_id: AST_utils.Node_ID.t;
-
+    pattern_stmt_id : AST_utils.Node_ID.t;
     (* identifier of the list of stmts in the target AST, which is the
        ID of the first stmt of the list. Disambiguated by 'list_kind'. *)
-    target_stmt_id: AST_utils.Node_ID.t;
+    target_stmt_id : AST_utils.Node_ID.t;
   }
 
   let show_compact k =
-    sprintf "%s %s %s %B %i %i"
-      (show_env k.min_env)
+    sprintf "%s %s %s %B %i %i" (show_env k.min_env)
       (match k.function_id with Match_deep -> "deep" | Match_list -> "list")
-      (match k.list_kind with
-       | Original -> "orig"
-       | Flattened_until last_id ->
-           sprintf "flat[%i-%i]" (k.target_stmt_id :> int) (last_id :> int)
-      )
+      ( match k.list_kind with
+      | Original -> "orig"
+      | Flattened_until last_id ->
+          sprintf "flat[%i-%i]" (k.target_stmt_id :> int) (last_id :> int) )
       k.less_is_ok
       (k.pattern_stmt_id :> int)
       (k.target_stmt_id :> int)
@@ -352,51 +336,52 @@ module Cache_key = struct
   (* debugging.
      More calls to 'equal' than to 'hash' indicate frequent collisions. *)
   let hash_calls = ref 0
+
   let equal_calls = ref 0
 
   let equal : t -> t -> bool =
-    fun a b ->
+   fun a b ->
     incr equal_calls;
     a.pattern_stmt_id = b.pattern_stmt_id
     && a.target_stmt_id = b.target_stmt_id
     && a.function_id = b.function_id
     && a.list_kind = b.list_kind
     && a.less_is_ok = b.less_is_ok
-    && Metavariable.Referential.equal_bindings
-      a.min_env b.min_env
+    && Metavariable.Referential.equal_bindings a.min_env b.min_env
 
   (* Combine two hashes into one. *)
-  let ( ++ ) a b =
-    a + 97 * b
+  let ( ++ ) a b = a + (97 * b)
 
   let hash (k : t) =
     incr hash_calls;
-    (k.pattern_stmt_id :> int) ++
-    (k.target_stmt_id :> int) ++
-    Hashtbl.hash k.function_id ++
-    Hashtbl.hash k.list_kind ++
-    Hashtbl.hash k.less_is_ok ++
-    (Metavariable.Referential.hash_bindings k.min_env)
+    (k.pattern_stmt_id :> int)
+    ++ (k.target_stmt_id :> int)
+    ++ Hashtbl.hash k.function_id ++ Hashtbl.hash k.list_kind
+    ++ Hashtbl.hash k.less_is_ok
+    ++ Metavariable.Referential.hash_bindings k.min_env
 end
 
 module Cache = struct
   module Tbl = Hashtbl.Make (Cache_key)
+
   type 'a t = 'a Tbl.t
 
   type pattern = AST_generic.stmt list
+
   type target = AST_generic.stmt list
 
   type 'a access = {
-    get_span_field: ('a -> Stmts_match_span.t);
-    set_span_field: ('a -> Stmts_match_span.t -> 'a);
-    get_mv_field: ('a -> Metavariable_capture.t);
-    set_mv_field: ('a -> Metavariable_capture.t -> 'a);
+    get_span_field : 'a -> Stmts_match_span.t;
+    set_span_field : 'a -> Stmts_match_span.t -> 'a;
+    get_mv_field : 'a -> Metavariable_capture.t;
+    set_mv_field : 'a -> Metavariable_capture.t -> 'a;
   }
 
   let create () = Tbl.create 1000
 
   (* debugging *)
   let cache_hits = ref 0
+
   let cache_misses = ref 0
 
   (*
@@ -425,38 +410,32 @@ module Cache = struct
      The value bound to $A must be set to the one before the call, not the
      one obtained from the cache.
   *)
-  let patch_result_from_cache
-      ~access
-      backrefs
-      current_stmt
-      orig_acc
-      cached_acc =
+  let patch_result_from_cache ~access backrefs current_stmt orig_acc cached_acc
+      =
     let orig_env : Env.t = access.get_mv_field orig_acc in
     let cached_env : Env.t = access.get_mv_field cached_acc in
     let orig_span : Stmts_match_span.t = access.get_span_field orig_acc in
     let cached_span : Stmts_match_span.t = access.get_span_field cached_acc in
 
     let patched_full_env =
-      List.map (fun ((k, _v) as cached_binding) ->
-        if Env.has_backref k backrefs (* = is in min_env *) then
-          cached_binding
-        else
-          match Env.get_capture k orig_env with
-          | None -> (* wasn't bound before the call *) cached_binding
-          | Some orig_v -> (* to be restored *) (k, orig_v)
-      ) cached_env.full_env
+      List.map
+        (fun ((k, _v) as cached_binding) ->
+          if Env.has_backref k backrefs (* = is in min_env *) then
+            cached_binding
+          else
+            match Env.get_capture k orig_env with
+            | None -> (* wasn't bound before the call *) cached_binding
+            | Some orig_v -> (* to be restored *) (k, orig_v))
+        cached_env.full_env
     in
-    let patched_env = {
-      cached_env with
-      full_env = patched_full_env
-    } in
+    let patched_env = { cached_env with full_env = patched_full_env } in
 
     let patched_span : Stmts_match_span.t =
-      match orig_span, cached_span with
+      match (orig_span, cached_span) with
       | Empty, Empty -> Empty
-      | Empty, Span x -> Span { x with left_stmts = [current_stmt] }
+      | Empty, Span x -> Span { x with left_stmts = [ current_stmt ] }
       | Span x, Empty -> Span x
-      | Span {left_stmts; _}, Span {right_stmts; _} ->
+      | Span { left_stmts; _ }, Span { right_stmts; _ } ->
           Span { left_stmts; right_stmts }
     in
     let acc = access.set_mv_field cached_acc patched_env in
@@ -467,64 +446,49 @@ module Cache = struct
       (match opt_res with None -> "*" | Some _ -> " ")
       (Cache_key.show_compact k)
 
-  let match_stmt_list
-      ~access
-      ~(cache : _ list t)
-      ~function_id
-      ~list_kind
-      ~less_is_ok
-      ~compute
-      ~(pattern : pattern)
-      ~(target : target)
-      acc =
-    match pattern, target with
-    | [], _
-    | _, [] ->
-        compute pattern target acc
-    | a :: _, b :: _ ->
+  let match_stmt_list ~access ~(cache : _ list t) ~function_id ~list_kind
+      ~less_is_ok ~compute ~(pattern : pattern) ~(target : target) acc =
+    match (pattern, target) with
+    | [], _ | _, [] -> compute pattern target acc
+    | a :: _, b :: _ -> (
         let mv : Env.t = access.get_mv_field acc in
-        let key : Cache_key.t = {
-          min_env = mv.min_env;
-          function_id;
-          list_kind;
-          less_is_ok;
-          pattern_stmt_id = a.s_id;
-          target_stmt_id = b.s_id;
-        } in
+        let key : Cache_key.t =
+          {
+            min_env = mv.min_env;
+            function_id;
+            list_kind;
+            less_is_ok;
+            pattern_stmt_id = a.s_id;
+            target_stmt_id = b.s_id;
+          }
+        in
         let lookup_res = Tbl.find_opt cache key in
-        if debug then
-          print_cache_access key lookup_res;
+        if debug then print_cache_access key lookup_res;
         match lookup_res with
-        | Some res ->
+        | Some res -> (
             incr cache_hits;
             let backrefs =
-              match a.s_backrefs with
-              | None -> assert false
-              | Some x -> x
+              match a.s_backrefs with None -> assert false | Some x -> x
             in
-            (match res with
-             | [] -> []
-             | res ->
-                 List.map (fun cached_acc ->
-                   patch_result_from_cache
-                     ~access
-                     backrefs a acc cached_acc
-                 ) res
-            )
+            match res with
+            | [] -> []
+            | res ->
+                List.map
+                  (fun cached_acc ->
+                    patch_result_from_cache ~access backrefs a acc cached_acc)
+                  res )
         | None ->
             incr cache_misses;
             let res = compute pattern target acc in
             Tbl.replace cache key res;
-            res
+            res )
 end
 
 let print_stats () =
   printf "cache performance:\n";
-  printf "- calls to 'hash': %i, calls to 'equal': %i\n"
-    !Cache_key.hash_calls !Cache_key.equal_calls;
-  printf "- cache hits: %i, cache misses: %i\n"
-    !Cache.cache_hits !Cache.cache_misses
+  printf "- calls to 'hash': %i, calls to 'equal': %i\n" !Cache_key.hash_calls
+    !Cache_key.equal_calls;
+  printf "- cache hits: %i, cache misses: %i\n" !Cache.cache_hits
+    !Cache.cache_misses
 
-let () =
-  if debug then
-    at_exit print_stats
+let () = if debug then at_exit print_stats

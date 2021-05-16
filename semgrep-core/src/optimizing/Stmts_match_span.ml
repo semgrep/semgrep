@@ -49,69 +49,58 @@
 *)
 
 type span = {
-  left_stmts: AST_generic.stmt list;
-  right_stmts: AST_generic.stmt list;
+  left_stmts : AST_generic.stmt list;
+  right_stmts : AST_generic.stmt list;
 }
 
-type t =
-  | Empty
-  | Span of span
+type t = Empty | Span of span
 
 (* Add a statement to the set of statements matched by the current pattern,
    for the sake of eventually determining the match location. *)
 let extend stmt span =
   match span with
-  | Empty ->
-      Span {
-        left_stmts = [stmt];
-        right_stmts = [stmt];
-      }
+  | Empty -> Span { left_stmts = [ stmt ]; right_stmts = [ stmt ] }
   | Span { left_stmts; right_stmts } ->
-      Span {
-        left_stmts = stmt :: left_stmts;
-        right_stmts = stmt :: right_stmts;
-      }
+      Span
+        { left_stmts = stmt :: left_stmts; right_stmts = stmt :: right_stmts }
 
 let location x =
   match x with
   | Empty -> None
-  | Span {left_stmts; right_stmts} ->
+  | Span { left_stmts; right_stmts } ->
       let min_loc, _ = Visitor_AST.range_of_any (AST_generic.Ss left_stmts) in
       let _, max_loc = Visitor_AST.range_of_any (AST_generic.Ss right_stmts) in
       Some (min_loc, max_loc)
-[@@profiling]
+  [@@profiling]
 
 let merge_and_deduplicate get_key a b =
   let tbl = Hashtbl.create 100 in
   let acc = ref [] in
   let add values =
-    List.iter (fun v ->
-      let k = get_key v in
-      if not (Hashtbl.mem tbl k) then (
-        Hashtbl.add tbl k ();
-        acc := v :: !acc
-      )
-    ) values
+    List.iter
+      (fun v ->
+        let k = get_key v in
+        if not (Hashtbl.mem tbl k) then (
+          Hashtbl.add tbl k ();
+          acc := v :: !acc ))
+      values
   in
   add a;
   add b;
   List.rev !acc
 
 let extract_tokens stmts =
-  Visitor_AST.ii_of_any (Ss stmts)
-  |> List.filter Parse_info.is_origintok
+  Visitor_AST.ii_of_any (Ss stmts) |> List.filter Parse_info.is_origintok
 
-let is_not_before ~min_loc tok =
-  Parse_info.compare_pos min_loc tok <= 0
+let is_not_before ~min_loc tok = Parse_info.compare_pos min_loc tok <= 0
 
-let is_not_after ~max_loc tok =
-  Parse_info.compare_pos tok max_loc <= 0
+let is_not_after ~max_loc tok = Parse_info.compare_pos tok max_loc <= 0
 
 (* Extract a deduplicated list of the original tokens *)
 let list_original_tokens x =
   match x with
   | Empty -> []
-  | Span {left_stmts; right_stmts} ->
+  | Span { left_stmts; right_stmts } ->
       let left_tokens = extract_tokens left_stmts in
       let right_tokens = extract_tokens right_stmts in
       let min_loc, _ = Visitor_AST.range_of_tokens left_tokens in
@@ -119,7 +108,6 @@ let list_original_tokens x =
       let left_tokens = List.filter (is_not_after ~max_loc) left_tokens in
       let right_tokens = List.filter (is_not_before ~min_loc) right_tokens in
       (* deduplicate tokens by location *)
-      merge_and_deduplicate
-        Parse_info.token_location_of_info
-        left_tokens right_tokens
-[@@profiling]
+      merge_and_deduplicate Parse_info.token_location_of_info left_tokens
+        right_tokens
+  [@@profiling]
