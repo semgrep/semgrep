@@ -47,8 +47,6 @@ from semgrep.semgrep_types import TAINT_MODE
 from semgrep.spacegrep import run_spacegrep
 from semgrep.target_manager import TargetManager
 from semgrep.target_manager_extensions import all_supported_languages
-from semgrep.target_manager_extensions import GENERIC_LANGUAGES
-from semgrep.target_manager_extensions import REGEX_LANGUAGES
 from semgrep.util import debug_tqdm_write
 from semgrep.util import partition
 from semgrep.util import progress_bar
@@ -234,7 +232,7 @@ class CoreRunner:
 
             cmd = [SEMGREP_PATH] + [
                 "-lang",
-                language,
+                language.value,
                 "-json",
                 rules_file_flag,
                 pattern_file.name,
@@ -438,7 +436,7 @@ class CoreRunner:
 
                 # regex-only rules only support OPERATORS.REGEX.
                 # Skip passing this rule to semgrep-core.
-                if language in REGEX_LANGUAGES:
+                if language == Language.REGEX:
                     continue
 
                 # semgrep-core doesn't know about the following operators -
@@ -457,7 +455,7 @@ class CoreRunner:
 
                 patterns_json = [p.to_json() for p in patterns]
 
-                if language in GENERIC_LANGUAGES:
+                if language == Language.GENERIC:
                     output_json = profiler.track(
                         rule.id,
                         run_spacegrep,
@@ -481,7 +479,7 @@ class CoreRunner:
                     )
 
             errors.extend(
-                CoreException.from_json(e, language, rule.id).into_semgrep_error()
+                CoreException.from_json(e, language.value, rule.id).into_semgrep_error()
                 for e in output_json["errors"]
             )
             outputs.extend(PatternMatch(m) for m in output_json["matches"])
@@ -656,7 +654,7 @@ class CoreRunner:
 
                     cmd = [SEMGREP_PATH] + [
                         "-lang",
-                        language,
+                        language.value,
                         "-fast",
                         "-json",
                         "-config",
@@ -704,7 +702,9 @@ class CoreRunner:
                 findings = dedup_output(findings)
                 outputs[rule].extend(findings)
                 errors.extend(
-                    CoreException.from_json(e, language, rule.id).into_semgrep_error()
+                    CoreException.from_json(
+                        e, language.value, rule.id
+                    ).into_semgrep_error()
                     for e in output_json["errors"]
                 )
         # end for rule, language ...

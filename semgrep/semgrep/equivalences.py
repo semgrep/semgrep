@@ -30,4 +30,8 @@ class Equivalence:
         return self._pattern
 
     def to_json(self) -> Dict[str, Any]:
-        return {"id": self._id, "pattern": self._pattern, "languages": self._languages}
+        return {
+            "id": self._id,
+            "pattern": self._pattern,
+            "languages": list(lang.value for lang in self._languages),
+        }

@@ -45,7 +45,7 @@ class Pattern:
             "id": self._id,
             "pattern": self._pattern,
             "severity": self._severity,
-            "languages": [self._language],
+            "languages": [self._language.value],
             "message": "<internalonly>",
         }
 
