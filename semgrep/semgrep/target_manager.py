@@ -61,7 +61,7 @@ class TargetManager:
     output_handler: OutputHandler
     skip_unknown_extensions: bool
 
-    _filtered_targets: Dict[str, Set[Path]] = attr.ib(factory=dict)
+    _filtered_targets: Dict[Language, Set[Path]] = attr.ib(factory=dict)
 
     @staticmethod
     def resolve_targets(targets: List[str]) -> Set[Path]:

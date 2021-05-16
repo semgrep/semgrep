@@ -19,6 +19,7 @@ from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import DEFAULT_MODE
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import Language_util
 from semgrep.semgrep_types import Mode
 from semgrep.semgrep_types import Operator
 from semgrep.semgrep_types import OPERATOR_PATTERN_NAMES_MAP
@@ -29,9 +30,6 @@ from semgrep.semgrep_types import PATTERN_NAMES_OPERATOR_MAP
 from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.semgrep_types import YAML_TAINT_MUST_HAVE_KEYS
-from semgrep.target_manager_extensions import JAVASCRIPT_LANGUAGES
-from semgrep.target_manager_extensions import REGEX_LANGUAGES
-from semgrep.target_manager_extensions import TYPESCRIPT_LANGUAGES
 
 
 class Rule:
@@ -61,16 +59,21 @@ class Rule:
             path_dict = paths_tree.unroll_dict()
         self._includes = path_dict.get("include", [])
         self._excludes = path_dict.get("exclude", [])
-        self._languages = [Language(l) for l in self._raw["languages"]]
+        rule_languages = {
+            Language_util.resolve(l, self.languages_span)
+            for l in self._raw["languages"]
+        }
 
         # add typescript to languages if the rule supports javascript.
-        if any(language in self._languages for language in JAVASCRIPT_LANGUAGES):
-            self._languages.extend(TYPESCRIPT_LANGUAGES)
+        if any(language == Language.JAVASCRIPT for language in rule_languages):
+            rule_languages.add(Language.TYPESCRIPT)
+
+        self._languages = sorted(rule_languages, key=lambda lang: lang.value)  # type: ignore
 
         # check taint/search mode
         self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
 
-        if any(language in REGEX_LANGUAGES for language in self._languages):
+        if any(language == Language.REGEX for language in self._languages):
             self._validate_none_language_rule()
 
     def __eq__(self, other: object) -> bool:
@@ -265,6 +268,26 @@ class Rule:
     @property
     def mode(self) -> str:
         return self._mode
+
+    @property
+    def sarif_severity(self) -> str:
+        """
+        SARIF v2.1.0-compliant severity string.
+
+        See https://github.com/oasis-tcs/sarif-spec/blob/a6473580/Schemata/sarif-schema-2.1.0.json#L1566
+        """
+        mapping = {"INFO": "note", "ERROR": "error", "WARNING": "warning"}
+        return mapping[self.severity]
+
+    @property
+    def sarif_tags(self) -> Iterator[str]:
+        """
+        Tags to display on SARIF-compliant UIs, such as GitHub security scans.
+        """
+        if "cwe" in self.metadata:
+            yield self.metadata["cwe"]
+        if "owasp" in self.metadata:
+            yield f"OWASP-{self.metadata['owasp']}"
 
     @property
     def languages(self) -> List[Language]:
