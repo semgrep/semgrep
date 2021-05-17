@@ -3036,15 +3036,22 @@ let parse file =
         pr2 s;
         raise exn)
 
-let parse_pattern str =
+let parse_pattern_aux str =
   (* ugly: coupling: see grammar.js of csharp.
-   * todo: will need to adjust position information in parsing errors!
-   *)
-  let str = "__SEMGREP_EXPRESSION " ^ str in
+   * todo: will need to adjust position information in parsing errors! *)
+  let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+  (* If possible, we always prefer to parse a pattern as an expression than
+   * as a program, since an expression is also a statement, but a statement
+   * is not an expression! E.g., `Foo()` as an statement will not match
+   * `if (null == Foo()) ...` whereas as an expression it does. *)
+  let res = Tree_sitter_c_sharp.Parse.string expr_str in
+  match res.errors with [] -> res | _ -> Tree_sitter_c_sharp.Parse.string str
+
+let parse_pattern str =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_c_sharp.Parse.string str ())
+      Parallel.invoke parse_pattern_aux str ())
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
