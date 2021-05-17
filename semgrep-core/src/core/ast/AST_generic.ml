@@ -1074,6 +1074,8 @@ and other_stmt_operator =
   (* Ruby *)
   | OS_Redo
   | OS_Retry
+  (* OCaml *)
+  | OS_ExprStmt2
   (* Other *)
   | OS_Todo
 

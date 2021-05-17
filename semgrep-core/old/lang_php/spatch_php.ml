@@ -143,7 +143,9 @@ let parse file =
   toks
   |> List.iter (fun tok ->
          let line = Parse_info.line_of_info tok in
-         let annot = Hashtbl.find hline_env line in
+         let annot =
+           try Hashtbl.find hline_env line with Not_found -> raise Not_found
+         in
          (* nosem *)
          match annot with
          | XContext -> ()
