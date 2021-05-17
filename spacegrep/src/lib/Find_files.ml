@@ -37,10 +37,7 @@ let stat = memoize Unix.stat
 *)
 let create_visit_tracker () =
   let tbl = Hashtbl.create 100 in
-  let get_id path =
-    try Some (stat path).st_ino
-    with _ -> None
-  in
+  let get_id path = try Some (stat path).st_ino with _ -> None in
   let was_visited path =
     match get_id path with
     | None -> true
@@ -53,24 +50,20 @@ let create_visit_tracker () =
   in
   { was_visited; mark_visited }
 
-let get_file_kind path =
-  try Some (stat path).st_kind
-  with _ -> None
+let get_file_kind path = try Some (stat path).st_kind with _ -> None
 
 let compare_filenames = String.compare
 
 (* Scan from a single root. *)
 let fold_one ~accept_file_name ~accept_dir_name visit_tracker f acc root =
   let rec fold acc path =
-    if visit_tracker.was_visited path then
-      acc
+    if visit_tracker.was_visited path then acc
     else (
       visit_tracker.mark_visited path;
       let name = Filename.basename path in
       match get_file_kind path with
       | Some Unix.S_DIR ->
-          if not (accept_dir_name name) then
-            acc
+          if not (accept_dir_name name) then acc
           else
             let children =
               let a = Sys.readdir path in
@@ -81,42 +74,30 @@ let fold_one ~accept_file_name ~accept_dir_name visit_tracker f acc root =
               |> List.map (fun name -> Filename.concat path name)
             in
             List.fold_left fold acc children
-      | Some Unix.S_REG ->
-          if accept_file_name name then
-            f acc path
-          else
-            acc
-      | None | Some _ ->
+      | Some Unix.S_REG -> if accept_file_name name then f acc path else acc
+      | None
+      | Some _ ->
           (* leave broken symlinks and special files alone *)
-          acc
-    )
+          acc )
   in
   fold acc root
 
-let fold
-    ?(excluded_paths = [])
-    ?(accept_file_name = fun _file -> true)
-    ?(accept_dir_name = fun _dir -> true)
-    f acc roots =
+let fold ?(excluded_paths = []) ?(accept_file_name = fun _file -> true)
+    ?(accept_dir_name = fun _dir -> true) f acc roots =
   let visit_tracker = create_visit_tracker () in
   List.iter visit_tracker.mark_visited excluded_paths;
-  List.fold_left (fun acc root ->
-    fold_one
-      ~accept_file_name
-      ~accept_dir_name
-      visit_tracker
-      f acc root
-  ) acc roots
+  List.fold_left
+    (fun acc root ->
+      fold_one ~accept_file_name ~accept_dir_name visit_tracker f acc root)
+    acc roots
 
 let iter ?excluded_paths ?accept_file_name ?accept_dir_name f roots =
   fold ?excluded_paths ?accept_file_name ?accept_dir_name
     (fun () file -> f file)
-    ()
-    roots
+    () roots
 
 let list ?excluded_paths ?accept_file_name ?accept_dir_name roots =
   fold ?excluded_paths ?accept_file_name ?accept_dir_name
     (fun acc file -> file :: acc)
-    []
-    roots
+    [] roots
   |> List.rev

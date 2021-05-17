@@ -35,5 +35,4 @@ let show_doc doc =
   | node :: _ -> show_doc_node node
 
 let print (pat : Pattern_AST.t) (doc : Doc_AST.t) =
-  printf "pat %s : doc %s\n"
-    (show_pat pat) (show_doc doc)
+  printf "pat %s : doc %s\n" (show_pat pat) (show_doc doc)

@@ -1,4 +1,3 @@
-
 (* map for each node/var whether a variable is "live" *)
 type mapping = unit Dataflow.mapping
 

@@ -29,11 +29,9 @@ let rec print_node buf indent node =
   | Dots _loc -> bprintf buf "%s...\n" indent
   | End -> ()
 
-and print_nodes buf indent nodes =
-  List.iter (print_node buf indent) nodes
+and print_nodes buf indent nodes = List.iter (print_node buf indent) nodes
 
-let print_root buf nodes =
-  print_nodes buf "" nodes
+let print_root buf nodes = print_nodes buf "" nodes
 
 let to_buffer buf nodes = print_root buf nodes
 
@@ -42,11 +40,9 @@ let to_string nodes =
   to_buffer buf nodes;
   Buffer.contents buf
 
-let to_channel oc nodes =
-  output_string oc (to_string nodes)
+let to_channel oc nodes = output_string oc (to_string nodes)
 
-let to_stdout nodes =
-  to_channel stdout nodes
+let to_stdout nodes = to_channel stdout nodes
 
 let to_file file nodes =
   let oc = open_out file in
@@ -59,8 +55,7 @@ module Debug = struct
   let show_loc = false
 
   let print_loc buf (start, _end_) =
-    if show_loc then
-      bprintf buf "%3i: " start.Lexing.pos_lnum
+    if show_loc then bprintf buf "%3i: " start.Lexing.pos_lnum
 
   let print_atom buf loc indent atom =
     print_loc buf loc;
@@ -80,11 +75,9 @@ module Debug = struct
     | Dots loc -> bprintf buf "%a%sDots\n" print_loc loc indent
     | End -> bprintf buf "%sEnd\n" indent
 
-  and print_nodes buf indent nodes =
-    List.iter (print_node buf indent) nodes
+  and print_nodes buf indent nodes = List.iter (print_node buf indent) nodes
 
-  let print_root buf nodes =
-    print_nodes buf "" nodes
+  let print_root buf nodes = print_nodes buf "" nodes
 
   let to_buffer buf nodes = print_root buf nodes
 
@@ -93,11 +86,9 @@ module Debug = struct
     to_buffer buf nodes;
     Buffer.contents buf
 
-  let to_channel oc nodes =
-    output_string oc (to_string nodes)
+  let to_channel oc nodes = output_string oc (to_string nodes)
 
-  let to_stdout nodes =
-    to_channel stdout nodes
+  let to_stdout nodes = to_channel stdout nodes
 
   let to_file file nodes =
     let oc = open_out file in

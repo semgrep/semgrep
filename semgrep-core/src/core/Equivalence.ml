@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 (*e: pad/r2c copyright *)
 
 (*****************************************************************************)
@@ -52,7 +52,7 @@
  *  - standard.iso in coccinelle
  *    https://github.com/coccinelle/coccinelle/blob/master/standard.iso
  *  - paper on semantic equivalences search recently at PLDI
-*)
+ *)
 
 (*****************************************************************************)
 (* Types *)
@@ -61,28 +61,39 @@
 (*s: type [[Equivalence.pattern]] *)
 (* right now only Expr is supported *)
 type pattern = Pattern.t
+
 (*e: type [[Equivalence.pattern]] *)
 
 (*s: type [[Equivalence.equivalence_kind]] *)
-type equivalence_kind = Equiv (* <==> *) | Imply (* ==> *)
+type equivalence_kind =
+  | Equiv
+  (* <==> *)
+  | Imply
+
+(* ==> *)
+
 (*e: type [[Equivalence.equivalence_kind]] *)
 
 (*s: type [[Equivalence.equivalence]] *)
 type equivalence = {
-  id: string; (* useful? to be able to disable some selectively by name? *)
-  left: pattern;
-  right: pattern;
-  op: equivalence_kind;
-  languages: Lang.t list; (* at least one element *)
+  id : string;
+  (* useful? to be able to disable some selectively by name? *)
+  left : pattern;
+  right : pattern;
+  op : equivalence_kind;
+  languages : Lang.t list; (* at least one element *)
 }
+
 (*e: type [[Equivalence.equivalence]] *)
 
 (*s: type [[Equivalence.equivalences]] *)
 and equivalences = equivalence list
+
 (*e: type [[Equivalence.equivalences]] *)
 
 (*s: type [[Equivalence.t]] *)
 (* alias *)
 type t = equivalence
+
 (*e: type [[Equivalence.t]] *)
 (*e: semgrep/core/Equivalence.ml *)

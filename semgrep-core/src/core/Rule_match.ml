@@ -13,10 +13,11 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 (*e: pad/r2c copyright *)
 
 (*s: type [[Rule_match.t]] *)
 type t = Pattern_match.t
+
 (*e: type [[Rule_match.t]] *)
 (*e: semgrep/core/Rule_match.ml *)
