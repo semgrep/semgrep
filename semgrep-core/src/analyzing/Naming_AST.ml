@@ -199,6 +199,9 @@ let add_ident_imported_scope (s, _) resolved scopes =
 
 (*e: function [[Naming_AST.add_ident_imported_scope]] *)
 
+let add_ident_global_scope (s, _) resolved scopes =
+  scopes.global := (s, resolved) :: !(scopes.global)
+
 (*s: function [[Naming_AST._add_ident_function_scope]] *)
 (* for JS 'var' *)
 let _add_ident_function_scope _id _resolved _scopes = raise Todo
@@ -433,16 +436,24 @@ let resolve2 lang prog =
            *)
           with_new_context InClass env (fun () -> k x));
       V.kdef =
-        (fun (k, _v) x ->
+        (fun (k, v) x ->
           match x with
-          | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
+          | ( ({ name = EN (Id (id, id_info)); _ } as ent),
+              VarDef { vinit; vtype } )
           (* note that some languages such as Python do not have VarDef
            * construct
            * todo? should add those somewhere instead of in_lvalue detection? *)
             when is_resolvable_name_ctx env lang ->
-              (* Need to visit expressions first so that type is populated *)
-              (* If we do var a = 3, then var b = a, we want to propagate the type of a *)
-              k x;
+              (* Need to visit expressions first so that type is populated, e.g.
+               * if we do var a = 3, then var b = a, we want to propagate the type of a. *)
+              (* Note that we are careful to visit each part of the declaration
+               * separately in order to avoid the v_vardef_as_assign_expr
+               * equivalence in Visitor_AST. This is a problem for JS/TS where
+               * there are both explicit and implicit variable declarations, and
+               * it will cause the same identifier to be resolved twice. *)
+              v (En ent);
+              vinit |> do_option (fun e -> v (E e));
+              vtype |> do_option (fun t -> v (T t));
 
               (* name resolution *)
               let sid = H.gensym () in
@@ -595,7 +606,15 @@ let resolve2 lang prog =
               add_ident_current_scope id resolved env.names;
               set_resolved env id_info resolved;
               k x
-          | OtherPat _ ->
+          | OtherPat _
+          (* This interacts badly with implicit JS/TS declarations. It causes
+           * `foo` in `function f({ foo }) { ... }` to be resolved as a global
+           * variable, which in turn affects semgrep-rule _react-props-in-state_.
+           * This when-clause achieves the previous behavior of leaving `foo`
+           * unresolved. *)
+          (* TODO: We should fix the AST of JS/TS so those `f({foo})` patterns do
+           * not show as regular variables. *)
+            when not (Lang.is_js lang) ->
               Common.save_excursion env.in_lvalue true (fun () -> k x)
           | _ -> k x);
       (* the uses *)
@@ -658,6 +677,15 @@ let resolve2 lang prog =
                         untyped_ent (resolved_name_kind env lang, sid)
                       in
                       add_ident_current_scope id resolved env.names;
+                      set_resolved env id_info resolved
+                  | true, (Lang.Javascript | Lang.Typescript)
+                    when is_resolvable_name_ctx env lang ->
+                      (* In JS/TS an assignment to a variable that has not been
+                       * previously declared will implicitly create a property on
+                       * the *global* object. *)
+                      let sid = H.gensym () in
+                      let resolved = untyped_ent (Global, sid) in
+                      add_ident_global_scope id resolved env.names;
                       set_resolved env id_info resolved
                       (* hopefully the lang-specific resolved may have resolved that *)
                   | _ ->

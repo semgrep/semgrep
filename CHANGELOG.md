@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - OCaml: fix useless-else false positives by generating appropriate AST for
   if without an else.
+- JS/TS: Propagate constant definitions without declaration
 
 ## [0.51.0](https://github.com/returntocorp/semgrep/releases/tag/v0.51.0) - 2021-05-13
 
