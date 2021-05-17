@@ -1,4 +1,3 @@
-
 (*
  * The pattern_from_targets feature allows users to highlight separate code
  * snipppets and autogenerate patterns that match all snippets
@@ -59,5 +58,5 @@
  *)
 
 (* limited to expressions for now *)
-val generate_patterns:
+val generate_patterns :
   Config_semgrep.t -> AST_generic.any list -> Lang.t -> Pattern.t list
