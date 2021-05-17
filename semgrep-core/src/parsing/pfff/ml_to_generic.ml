@@ -152,7 +152,7 @@ and stmt e : G.stmt =
         G.ForClassic ([ G.ForInitVar (ent, var) ], Some cond, Some next)
       in
       G.For (t, header, v5) |> G.s
-  | e ->
+  | e -> (
       let e = expr e in
       (* bugfix: I was using 'G.exprstmt e' before, but then a pattern
        * like useless-else as 'if $E then $E1 else ()' will actually
@@ -162,8 +162,13 @@ and stmt e : G.stmt =
        * will also match 'fail ()'. So better not use ExprStmt and
        * use a separate construct for now.
        * alt: disable ExprStmt magic for OCaml in Generic_vs_generic.
+       *
+       * update: there are cases though where we want to generate an
+       * ExprStmt for Ellipsis otherwise Generic_vs_generic will not work.
        *)
-      G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) |> G.s
+      match e with
+      | G.Ellipsis _ | G.DeepEllipsis _ -> G.exprstmt e
+      | _ -> G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) |> G.s )
 
 and expr e =
   match e with
