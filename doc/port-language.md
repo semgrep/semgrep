@@ -16,7 +16,7 @@ Now that you have added you new language 'X' to pfff, do the following:
    * break
    * continue
    * literal
-4. In `parsing/Test_parsing.ml`, add in kotlin to `dump_tree_sitter_cst_lang`. 
+4. In `parsing/Test_parsing.ml`, add in 'X' to `dump_tree_sitter_cst_lang`.
    You can look to the other languages as reference to what code to add.
 5. Create a file `parsing/Parse_X_tree_sitter.ml`. Add basic functionality to
    define the function `parse` and import module `Parse_tree_sitter_helpers`.
@@ -32,7 +32,7 @@ Now that you have added you new language 'X' to pfff, do the following:
             Parallel.invoke Tree_sitter_X.Parse.file file ()
         )
    ```
-6. in `parsing/dune`, add `tree-sitter-lang.X`.
+6. In `parsing/dune`, add `tree-sitter-lang.X`.
 7. Write a basic test case for your language in `tests/X/hello-world.X`. This can
    just be a hello-world function.
 8. Test that the command
