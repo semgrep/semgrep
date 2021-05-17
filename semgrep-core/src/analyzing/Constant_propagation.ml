@@ -324,9 +324,9 @@ let propagate_basic lang prog =
                      in
                      if
                        !(stats.lvalue) = 1
-                       (* restrict to Python/Ruby/PHP Globals for now *)
+                       (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
                        && ( lang = Lang.Python || lang = Lang.Ruby
-                          || lang = Lang.PHP )
+                          || lang = Lang.PHP || Lang.is_js lang )
                        && kind = Global
                      then add_constant_env id (sid, literal) env);
               v (E rexp)

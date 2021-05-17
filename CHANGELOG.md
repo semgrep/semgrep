@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+
+- JS/TS: Propagate constant definitions without declaration
+
 ## [0.51.0](https://github.com/returntocorp/semgrep/releases/tag/v0.51.0) - 2021-05-13
 
 ### Added
