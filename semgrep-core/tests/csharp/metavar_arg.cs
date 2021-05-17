@@ -14,12 +14,12 @@ public class MetaVar
             2);
 
         // ERROR:
-        Foo(1 + 1, 2);
+        Foo(Bar(1, 3), 2);
 
-        Foo(1, 2, 3);
-    }
+	// OK:
+        Foo(2, 1);
 
-    private static void Foo(int a, int b, int c = 3)
-    {
+	// OK:
+	Foo(1, 2, 3);
     }
 }
