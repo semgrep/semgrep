@@ -822,6 +822,7 @@ and vof_for_var_or_expr = function
       OCaml.VSum ("ForInitExpr", [ v1 ])
 
 and vof_other_stmt_operator = function
+  | OS_ExprStmt2 -> OCaml.VSum ("OS_ExprStmt2", [])
   | OS_Redo -> OCaml.VSum ("OS_Redo", [])
   | OS_Retry -> OCaml.VSum ("OS_Retry", [])
   | OS_Todo -> OCaml.VSum ("OS_Todo", [])

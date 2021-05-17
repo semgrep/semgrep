@@ -110,9 +110,68 @@ and type_ = function
       let v1 = list type_ v1 in
       G.OtherType (G.OT_Todo, G.TodoK t :: List.map (fun x -> G.T x) v1)
 
-(* TODO: we should try to transform in stmt while/... instead of those
- * OE_StmtExpr *)
-and expr = function
+and expr_body e : G.stmt = stmt e
+
+and stmt e : G.stmt =
+  match e with
+  (* alt: Could be a G.Conditional, but then forced to define
+   * an else branch which leads to some useless-else FP with ocamllint rules*)
+  | If (t, v1, v2, v3) ->
+      let v1 = expr v1
+      and v2 = stmt v2
+      and v3 = match v3 with None -> None | Some x -> Some (stmt x) in
+      G.If (t, v1, v2, v3) |> G.s
+  (* alt: could be a G.Seq expr *)
+  | Sequence v1 ->
+      let v1 = list stmt v1 in
+      G.Block (G.fake_bracket v1) |> G.s
+  | Try (t, v1, v2) ->
+      let v1 = stmt v1 and v2 = list match_case v2 in
+      let catches =
+        v2 |> List.map (fun (pat, e) -> (fake "catch", pat, G.exprstmt e))
+      in
+      G.Try (t, v1, catches, None) |> G.s
+  | While (t, v1, v2) ->
+      let v1 = expr v1 and v2 = stmt v2 in
+      G.While (t, v1, v2) |> G.s
+  | For (t, v1, v2, v3, v4, v5) ->
+      let v1 = ident v1
+      and v2 = expr v2
+      and tok, nextop, condop = for_direction v3
+      and v4 = expr v4
+      and v5 = stmt v5 in
+      let ent = G.basic_entity v1 [] in
+      let var = { G.vinit = Some v2; vtype = None } in
+      let n = G.N (G.Id (v1, G.empty_id_info ())) in
+      let next = G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1, tok))) in
+      let cond =
+        G.Call
+          (G.IdSpecial (G.Op condop, tok), G.fake_bracket [ G.Arg n; G.Arg v4 ])
+      in
+      let header =
+        G.ForClassic ([ G.ForInitVar (ent, var) ], Some cond, Some next)
+      in
+      G.For (t, header, v5) |> G.s
+  | e -> (
+      let e = expr e in
+      (* bugfix: I was using 'G.exprstmt e' before, but then a pattern
+       * like useless-else as 'if $E then $E1 else ()' will actually
+       * match code like 'if foo then 1 else fail ()' because of
+       * the special code in Generic_vs_generic around ExprStmt where
+       * we use m_expr_deep to look deep for (), which in this case
+       * will also match 'fail ()'. So better not use ExprStmt and
+       * use a separate construct for now.
+       * alt: disable ExprStmt magic for OCaml in Generic_vs_generic.
+       *
+       * update: there are cases though where we want to generate an
+       * ExprStmt for Ellipsis otherwise Generic_vs_generic will not work.
+       *)
+      match e with
+      | G.Ellipsis _ | G.DeepEllipsis _ -> G.exprstmt e
+      | _ -> G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) |> G.s )
+
+and expr e =
+  match e with
   | TypedExpr (v1, v2, v3) -> (
       let v1 = expr v1 in
       let v3 = type_ v3 in
@@ -147,9 +206,6 @@ and expr = function
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)
-  | Sequence v1 ->
-      let v1 = list expr v1 in
-      G.Seq v1
   | Prefix (v1, v2) ->
       let v1 = wrap string v1 and v2 = expr v2 in
       G.Call (G.N (G.Id (v1, G.empty_id_info ())), G.fake_bracket [ G.Arg v2 ])
@@ -215,8 +271,8 @@ and expr = function
       let defs =
         v2
         |> List.map (function
-             | Left (ent, params, tret, expr) ->
-                 G.DefStmt (ent, mk_var_or_func tlet params tret expr) |> G.s
+             | Left (ent, params, tret, body) ->
+                 G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
              | Right (pat, e) ->
                  let exp = G.LetPattern (pat, e) in
                  G.exprstmt exp)
@@ -247,50 +303,16 @@ and expr = function
           fkind = (G.Function, t);
           fbody = body_stmt;
         }
-  | If (_t, v1, v2, v3) ->
-      let v1 = expr v1
-      and v2 = expr v2
-      and v3 =
-        match v3 with None -> G.L (G.Unit (fake "null")) | Some x -> expr x
-      in
-      G.Conditional (v1, v2, v3)
   | Match (_t, v1, v2) ->
       let v1 = expr v1 and v2 = list match_case v2 in
       G.MatchPattern (v1, v2)
-  | Try (t, v1, v2) ->
-      let v1 = expr v1 and v2 = list match_case v2 in
-      let catches =
-        v2 |> List.map (fun (pat, e) -> (fake "catch", pat, G.exprstmt e))
-      in
-      let st = G.Try (t, G.exprstmt v1, catches, None) |> G.s in
-      G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
-  | While (t, v1, v2) ->
-      let v1 = expr v1 and v2 = expr v2 in
-      let st = G.While (t, v1, G.exprstmt v2) |> G.s in
-      G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
-  | For (t, v1, v2, v3, v4, v5) ->
-      let v1 = ident v1
-      and v2 = expr v2
-      and tok, nextop, condop = for_direction v3
-      and v4 = expr v4
-      and v5 = expr v5 in
-      let ent = G.basic_entity v1 [] in
-      let var = { G.vinit = Some v2; vtype = None } in
-      let n = G.N (G.Id (v1, G.empty_id_info ())) in
-      let next = G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1, tok))) in
-      let cond =
-        G.Call
-          (G.IdSpecial (G.Op condop, tok), G.fake_bracket [ G.Arg n; G.Arg v4 ])
-      in
-      let header =
-        G.ForClassic ([ G.ForInitVar (ent, var) ], Some cond, Some next)
-      in
-      let st = G.For (t, header, G.exprstmt v5) |> G.s in
-      G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
   | ExprTodo (t, xs) ->
       let t = todo_category t in
       let xs = list expr xs in
       G.OtherExpr (G.OE_Todo, G.TodoK t :: List.map (fun x -> G.E x) xs)
+  | If _ | Try _ | For _ | While _ | Sequence _ ->
+      let s = stmt e in
+      G.OtherExpr (G.OE_StmtExpr, [ G.S s ])
 
 and literal = function
   | Int v1 ->
@@ -413,14 +435,14 @@ and let_binding = function
                *)
               idinfo.G.id_type := Some ty
           | _ -> raise Impossible );
-          Left (ent, [], None, v2)
+          Left (ent, [], None, G.exprstmt v2)
       | _ -> Right (v1, v2) )
 
 and let_def { lname; lparams; lrettype; lbody } =
   let v1 = ident lname in
   let v2 = list parameter lparams in
   let v3 = option type_ lrettype in
-  let v4 = expr lbody in
+  let (v4 : G.stmt) = expr_body lbody in
   let ent = G.basic_entity v1 [] in
   (ent, v2, v3, v4)
 
@@ -547,9 +569,9 @@ and item { i; iattrs } =
       let _v1 = rec_opt v1 and v2 = list let_binding v2 in
       v2
       |> List.map (function
-           | Left (ent, params, tret, expr) ->
+           | Left (ent, params, tret, body) ->
                let ent = add_attrs ent attrs in
-               G.DefStmt (ent, mk_var_or_func tlet params tret expr) |> G.s
+               G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
            | Right (pat, e) ->
                (* TODO no attrs *)
                let exp = G.LetPattern (pat, e) in
@@ -570,25 +592,29 @@ and item { i; iattrs } =
         |> G.s;
       ]
 
-and mk_var_or_func tlet params tret expr =
-  match (params, expr) with
-  | [], G.Lambda def -> G.FuncDef def
-  | [], _ -> G.VarDef { G.vinit = Some expr; vtype = None }
+and mk_var_or_func tlet params tret body =
+  (* coupling: with stmt() and what is generated for simple expressions *)
+  match (params, body.G.s) with
+  | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E (G.Lambda def) ]) -> G.FuncDef def
+  | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) ->
+      G.VarDef { G.vinit = Some e; vtype = None }
   | _ ->
       G.FuncDef
         {
           G.fparams = params;
           frettype = tret;
           fkind = (G.Function, tlet);
-          fbody = G.exprstmt expr;
+          fbody = body;
         }
 
 and program xs = List.map item xs |> List.flatten
 
 and any = function
-  | E x ->
+  | E x -> (
       let x = expr x in
-      G.E x
+      match x with
+      | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.S s
+      | _ -> G.E x )
   | I x -> (
       match item x with
       | [] -> raise Impossible
