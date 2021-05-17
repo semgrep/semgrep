@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
 
 (*****************************************************************************)
@@ -55,10 +55,9 @@ open Common
  *
  * subtle: use 'b' for to report errors, 'a' is the sgrep pattern and it
  * has no file information usually.
-*)
+ *)
 module A = Cst_php
 module B = Cst_php
-
 module MV = Metavars_php
 
 (*****************************************************************************)
@@ -73,7 +72,7 @@ module MV = Metavars_php
  * Note that sgrep/spatch patterns can contain metavariables which are
  * in uppercase so we can't lowercase all idents at parsing time.
  * We have instead to do case insensitive string comparisons here.
-*)
+ *)
 let case_sensitive = ref false
 
 (*****************************************************************************)
@@ -82,9 +81,9 @@ let case_sensitive = ref false
 
 (* Relaxed matching of PHP's Boolean and Int types. Only integer 0 converts
  * to false, all other integers evaluate to true.
-*)
+ *)
 let is_bool_vs_int b i =
-  match b, i with
+  match (b, i) with
   | "false", "0" -> true
   | "true", n when n <> "0" -> true
   | _ -> false
@@ -92,19 +91,15 @@ let is_bool_vs_int b i =
 let rec is_concat_of_strings e =
   match e with
   | A.Sc (A.C (A.String _)) -> true
-  | A.Binary(e1, (A.BinaryConcat, _), e2) ->
+  | A.Binary (e1, (A.BinaryConcat, _), e2) ->
       is_concat_of_strings e1 && is_concat_of_strings e2
   | _ -> false
 
 let is_NoTransfo tok =
-  match tok.Parse_info.transfo with
-  | Parse_info.NoTransfo -> true
-  | _ -> false
+  match tok.Parse_info.transfo with Parse_info.NoTransfo -> true | _ -> false
 
 let is_Remove tok =
-  match tok.Parse_info.transfo with
-  | Parse_info.Remove -> true
-  | _ -> false
+  match tok.Parse_info.transfo with Parse_info.Remove -> true | _ -> false
 
 (*****************************************************************************)
 (* Functor parameter combinators *)
@@ -112,11 +107,11 @@ let is_Remove tok =
 
 (* This is the interface of the structure that will be passed to the
  * PHP_VS_PHP functor below.
-*)
-module type PARAM =
-sig
+ *)
+module type PARAM = sig
   (* tin is for 'type in' and tout for 'type out' *)
   type tin
+
   type 'x tout
 
   (* A matcher is something taking an element A and an element B
@@ -131,8 +126,8 @@ sig
    *   type ('a * 'b) tout = ('a * 'b) option
    * and if the toplevel matching returns a None, then you know
    * A didn't match B.
-  *)
-  type ('a, 'b) matcher = 'a -> 'b  -> tin -> ('a * 'b) tout
+   *)
+  type ('a, 'b) matcher = 'a -> 'b -> tin -> ('a * 'b) tout
 
   (* The >>= combinator below allow you to configure the matching process
    * anyway you want. Essentially this combinator takes a matcher,
@@ -146,29 +141,28 @@ sig
    *    | None -> None
    *    | Some (a,b) ->
    *        m2 (a, b) tin
-  *)
-  val (>>=):
-    (tin -> ('a * 'b) tout)  ->
-    ('a * 'b -> (tin -> ('c * 'd) tout)) ->
-    (tin -> ('c * 'd) tout)
-
+   *)
+  val ( >>= ) :
+    (tin -> ('a * 'b) tout) ->
+    ('a * 'b -> tin -> ('c * 'd) tout) ->
+    tin ->
+    ('c * 'd) tout
 
   (* the disjunctive combinator *)
-  val (>||>) :
-    (tin -> 'x tout) ->
-    (tin -> 'x tout) ->
-    (tin -> 'x tout)
-
+  val ( >||> ) : (tin -> 'x tout) -> (tin -> 'x tout) -> tin -> 'x tout
 
   (* The classical monad combinators *)
-  val return : ('a * 'b) -> tin -> ('a *'b) tout
+  val return : 'a * 'b -> tin -> ('a * 'b) tout
+
   val fail : tin -> ('a * 'b) tout
 
   val tokenf : (A.info, B.info) matcher
 
   val envf : (Metavars_php.mvar Cst_php.wrap, Cst_php.any) matcher
+
   (* ugly hack for the "A" string metavariables *)
-  val envf2 : (Metavars_php.mvar Cst_php.wrap, Cst_php.any * Cst_php.any) matcher
+  val envf2 :
+    (Metavars_php.mvar Cst_php.wrap, Cst_php.any * Cst_php.any) matcher
 end
 
 (*****************************************************************************)
@@ -176,130 +170,80 @@ end
 (*****************************************************************************)
 
 module PHP_VS_PHP =
-  functor (X : PARAM) ->
+functor
+  (X : PARAM)
+  ->
   struct
+    type ('a, 'b) matcher = 'a -> 'b -> X.tin -> ('a * 'b) X.tout
 
-    type ('a, 'b) matcher = 'a -> 'b  -> X.tin -> ('a * 'b) X.tout
+    let ( >>= ) = X.( >>= )
 
-    let (>>=) = X.(>>=)
-    let (>||>) = X.(>||>)
+    let ( >||> ) = X.( >||> )
 
-    let return =
-      X.return
-    let fail () =
-      X.fail
+    let return = X.return
+
+    let fail () = X.fail
 
     let fail2 s =
-      pr2 (spf "PHP_VS_PHP: TODO for %s" s); X.fail
+      pr2 (spf "PHP_VS_PHP: TODO for %s" s);
+      X.fail
 
     (* ---------------------------------------------------------------------- *)
     (* option, list, ref, either *)
     (* ---------------------------------------------------------------------- *)
-    let (m_option: ('a,'b) matcher -> ('a option,'b option) matcher) = fun f a b ->
-      match a, b with
+    let (m_option : ('a, 'b) matcher -> ('a option, 'b option) matcher) =
+     fun f a b ->
+      match (a, b) with
       | None, None -> return (None, None)
-      | Some xa, Some xb ->
-          f xa xb >>= (fun (xa, xb) ->
-            return (
-              Some xa,
-              Some xb
-            )
-          )
-      | None, _
-      | Some _, _
-        -> fail ()
+      | Some xa, Some xb -> f xa xb >>= fun (xa, xb) -> return (Some xa, Some xb)
+      | None, _ | Some _, _ -> fail ()
 
-    let (m_ref: ('a,'b) matcher -> ('a ref,'b ref) matcher) = fun f a b ->
-      match a, b with
-        { contents = xa}, { contents = xb} ->
-          f xa xb >>= (fun (xa, xb) ->
-            return (
-              {contents = xa},
-              {contents = xb}
-            )
-          )
+    let (m_ref : ('a, 'b) matcher -> ('a ref, 'b ref) matcher) =
+     fun f a b ->
+      match (a, b) with
+      | { contents = xa }, { contents = xb } ->
+          f xa xb >>= fun (xa, xb) ->
+          return ({ contents = xa }, { contents = xb })
 
     let rec m_list f a b =
-      match a, b with
-      | [], [] ->
-          return ([], [])
-      | xa::aas, xb::bbs ->
-          f xa xb >>= (fun (xa, xb) ->
-            m_list f aas bbs >>= (fun (aas, bbs) ->
-              return (
-                xa::aas,
-                xb::bbs
-              )
-            )
-          )
-      | [], _
-      | _::_, _ ->
-          fail ()
+      match (a, b) with
+      | [], [] -> return ([], [])
+      | xa :: aas, xb :: bbs ->
+          f xa xb >>= fun (xa, xb) ->
+          m_list f aas bbs >>= fun (aas, bbs) -> return (xa :: aas, xb :: bbs)
+      | [], _ | _ :: _, _ -> fail ()
 
     let m_either f g a b =
-      match a, b with
-      | Left a, Left b ->
-          f a b >>= (fun (a, b) ->
-            return (
-              Left a, Left b
-            ))
-      | Right a, Right b ->
-          g a b >>= (fun (a, b) ->
-            return (
-              Right a, Right b
-            ))
-      | Left _, Right _
-      | Right _, Left _ ->
-          fail ()
+      match (a, b) with
+      | Left a, Left b -> f a b >>= fun (a, b) -> return (Left a, Left b)
+      | Right a, Right b -> g a b >>= fun (a, b) -> return (Right a, Right b)
+      | Left _, Right _ | Right _, Left _ -> fail ()
 
-    let m_either3 f g h   a b =
-      match a, b with
-      | Left3 a, Left3 b ->
-          f a b >>= (fun (a, b) ->
-            return (
-              Left3 a, Left3 b
-            ))
-      | Right3 a, Right3 b ->
-          h a b >>= (fun (a, b) ->
-            return (
-              Right3 a, Right3 b
-            ))
+    let m_either3 f g h a b =
+      match (a, b) with
+      | Left3 a, Left3 b -> f a b >>= fun (a, b) -> return (Left3 a, Left3 b)
+      | Right3 a, Right3 b -> h a b >>= fun (a, b) -> return (Right3 a, Right3 b)
       | Middle3 a, Middle3 b ->
-          g a b >>= (fun (a, b) ->
-            return (
-              Middle3 a, Middle3 b
-            ))
-      | Left3 _, _
-      | Right3 _, _
-      | Middle3 _, _
-        ->
-          fail ()
+          g a b >>= fun (a, b) -> return (Middle3 a, Middle3 b)
+      | Left3 _, _ | Right3 _, _ | Middle3 _, _ -> fail ()
 
     let m_unit a b = return (a, b)
 
     (* ---------------------------------------------------------------------- *)
     (* m_string *)
     (* ---------------------------------------------------------------------- *)
-    let m_string a b =
-      if a =$= b then return (a, b) else fail ()
+    let m_string a b = if a =$= b then return (a, b) else fail ()
 
     (* iso on case sensitivity *)
     let m_string_case a b =
-      if !case_sensitive
-      then m_string a b
+      if !case_sensitive then m_string a b
       else m_string (String.lowercase_ascii a) (String.lowercase_ascii b)
 
     (* iso on different indentation *)
     let m_string_xhp_text (sa, ta) (sb, tb) =
-      let does_match =
-        sa =$= sb ||
-        (sa =~ "^[\n ]+$" && sb =~ "^[\n ]+$")
-      in
-      if does_match
-      then
-        X.tokenf ta tb >>= (fun (ta, tb) ->
-          return ((sa, ta), (sb, tb))
-        )
+      let does_match = sa =$= sb || (sa =~ "^[\n ]+$" && sb =~ "^[\n ]+$") in
+      if does_match then
+        X.tokenf ta tb >>= fun (ta, tb) -> return ((sa, ta), (sb, tb))
       else fail ()
 
     (* ---------------------------------------------------------------------- *)
@@ -315,183 +259,94 @@ module PHP_VS_PHP =
     (* we dont care about position, space/indent/comment isomorphism
      * so we could just do  'return (a, b)'
      * but we need to propagate transformation at least.
-    *)
-    let m_info a b =
-      X.tokenf a b
+     *)
+    let m_info a b = X.tokenf a b
 
-    let m_comma_list f a b =
-      m_list (m_either f m_info) a b
+    let m_comma_list f a b = m_list (m_either f m_info) a b
 
     let m_tok a b = m_info a b
 
     let m_wrap f a b =
-      match a, b with
-        ((xaa, ainfo), (xbb, binfo)) ->
-          f xaa xbb >>= (fun (xaa, xbb) ->
-            m_info ainfo binfo >>= (fun (ainfo, binfo) ->
-              return (
-                (xaa, ainfo),
-                (xbb, binfo)
-              )
-            )
-          )
+      match (a, b) with
+      | (xaa, ainfo), (xbb, binfo) ->
+          f xaa xbb >>= fun (xaa, xbb) ->
+          m_info ainfo binfo >>= fun (ainfo, binfo) ->
+          return ((xaa, ainfo), (xbb, binfo))
 
     let m_single_angle f a b =
-      match a, b with
+      match (a, b) with
       | (a1, a2, a3), (b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            f a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  (a1,a2,a3), (b1, b2, b3)
-                )
-              )))
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          f a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) -> return ((a1, a2, a3), (b1, b2, b3))
 
     let m_bracket f a b =
-      match a, b with
+      match (a, b) with
       | (a1, a2, a3), (b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            f a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  (a1, a2, a3), (b1, b2, b3)
-                )
-              )))
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          f a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) -> return ((a1, a2, a3), (b1, b2, b3))
 
     let m_brace f a b = m_bracket f a b
+
     let m_paren f a b = m_bracket f a b
 
     (* ---------------------------------------------------------------------- *)
     (* names *)
     (* ---------------------------------------------------------------------- *)
     let m_dname a b =
-      match a, b with
-      | A.DName(a1), B.DName(b1) ->
-          m_wrap m_string a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.DName(a1),
-              B.DName(b1)
-            )
-          )
+      match (a, b) with
+      | A.DName a1, B.DName b1 ->
+          m_wrap m_string a1 b1 >>= fun (a1, b1) ->
+          return (A.DName a1, B.DName b1)
 
     let m_ident a b =
-      match a, b with
-      | A.Name(a1), B.Name(b1) ->
-          (m_wrap m_string_case) a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Name(a1),
-              B.Name(b1)
-            )
-          )
-      | A.XhpName(a1), B.XhpName(b1) ->
-          (m_wrap (m_list m_string)) a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.XhpName(a1),
-              B.XhpName(b1)
-            )
-          )
-      | A.Name _, _
-      | A.XhpName _, _
-        -> fail ()
+      match (a, b) with
+      | A.Name a1, B.Name b1 ->
+          (m_wrap m_string_case) a1 b1 >>= fun (a1, b1) ->
+          return (A.Name a1, B.Name b1)
+      | A.XhpName a1, B.XhpName b1 ->
+          (m_wrap (m_list m_string)) a1 b1 >>= fun (a1, b1) ->
+          return (A.XhpName a1, B.XhpName b1)
+      | A.Name _, _ | A.XhpName _, _ -> fail ()
 
     let m_name_metavar_ok a b =
-      match a, b with
-
+      match (a, b) with
       (* iso on name *)
-      | A.Name(name, info_name), (B.Name _ | B.XhpName _)
-        when MV.is_metavar_name name ->
-
-          X.envf (name, info_name) (B.Ident2 b) >>= (function
-            | ((name, info_name), B.Ident2 (b))  ->
-                return (
-                  A.Name(name, info_name),
-                  b
-                )
-            | _ -> raise Impossible
-          )
-
-      | A.Name(a1), B.Name(b1) ->
-          (m_wrap m_string_case) a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Name(a1),
-              B.Name(b1)
-            )
-          )
-      | A.XhpName([name], info_name), B.XhpName(_b1)
-        when MV.is_metavar_name name ->
-
-          X.envf (name, info_name) (B.Ident2 b) >>= (function
-            | ((name, info_name), B.Ident2 (b))  ->
-                return (A.XhpName([name], info_name), b)
-            | _ -> raise Impossible
-          )
-
-      | A.XhpName(a1), B.XhpName(b1) ->
-          (m_wrap (m_list m_string)) a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.XhpName(a1),
-              B.XhpName(b1)
-            )
-          )
-      | A.Name _, _
-      | A.XhpName _, _
-        -> fail ()
+      | A.Name (name, info_name), (B.Name _ | B.XhpName _)
+        when MV.is_metavar_name name -> (
+          X.envf (name, info_name) (B.Ident2 b) >>= function
+          | (name, info_name), B.Ident2 b -> return (A.Name (name, info_name), b)
+          | _ -> raise Impossible )
+      | A.Name a1, B.Name b1 ->
+          (m_wrap m_string_case) a1 b1 >>= fun (a1, b1) ->
+          return (A.Name a1, B.Name b1)
+      | A.XhpName ([ name ], info_name), B.XhpName _b1
+        when MV.is_metavar_name name -> (
+          X.envf (name, info_name) (B.Ident2 b) >>= function
+          | (name, info_name), B.Ident2 b ->
+              return (A.XhpName ([ name ], info_name), b)
+          | _ -> raise Impossible )
+      | A.XhpName a1, B.XhpName b1 ->
+          (m_wrap (m_list m_string)) a1 b1 >>= fun (a1, b1) ->
+          return (A.XhpName a1, B.XhpName b1)
+      | A.Name _, _ | A.XhpName _, _ -> fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* operators *)
     (* ---------------------------------------------------------------------- *)
     let m_arithOp a b =
-      match a, b with
-      | A.Plus, B.Plus ->
-          return (
-            A.Plus,
-            B.Plus
-          )
-      | A.Minus, B.Minus ->
-          return (
-            A.Minus,
-            B.Minus
-          )
-      | A.Mul, B.Mul ->
-          return (
-            A.Mul,
-            B.Mul
-          )
-      | A.Div, B.Div ->
-          return (
-            A.Div,
-            B.Div
-          )
-      | A.Mod, B.Mod ->
-          return (
-            A.Mod,
-            B.Mod
-          )
-      | A.DecLeft, B.DecLeft ->
-          return (
-            A.DecLeft,
-            B.DecLeft
-          )
-      | A.DecRight, B.DecRight ->
-          return (
-            A.DecRight,
-            B.DecRight
-          )
-      | A.And, B.And ->
-          return (
-            A.And,
-            B.And
-          )
-      | A.Or, B.Or ->
-          return (
-            A.Or,
-            B.Or
-          )
-      | A.Xor, B.Xor ->
-          return (
-            A.Xor,
-            B.Xor
-          )
+      match (a, b) with
+      | A.Plus, B.Plus -> return (A.Plus, B.Plus)
+      | A.Minus, B.Minus -> return (A.Minus, B.Minus)
+      | A.Mul, B.Mul -> return (A.Mul, B.Mul)
+      | A.Div, B.Div -> return (A.Div, B.Div)
+      | A.Mod, B.Mod -> return (A.Mod, B.Mod)
+      | A.DecLeft, B.DecLeft -> return (A.DecLeft, B.DecLeft)
+      | A.DecRight, B.DecRight -> return (A.DecRight, B.DecRight)
+      | A.And, B.And -> return (A.And, B.And)
+      | A.Or, B.Or -> return (A.Or, B.Or)
+      | A.Xor, B.Xor -> return (A.Xor, B.Xor)
       | A.Plus, _
       | A.Minus, _
       | A.Mul, _
@@ -501,77 +356,24 @@ module PHP_VS_PHP =
       | A.DecRight, _
       | A.And, _
       | A.Or, _
-      | A.Xor, _
-        -> fail ()
+      | A.Xor, _ ->
+          fail ()
 
     let m_logicalOp a b =
-      match a, b with
-      | A.Inf, B.Inf ->
-          return (
-            A.Inf,
-            B.Inf
-          )
-      | A.Sup, B.Sup ->
-          return (
-            A.Sup,
-            B.Sup
-          )
-      | A.InfEq, B.InfEq ->
-          return (
-            A.InfEq,
-            B.InfEq
-          )
-      | A.SupEq, B.SupEq ->
-          return (
-            A.SupEq,
-            B.SupEq
-          )
-      | A.Eq, B.Eq ->
-          return (
-            A.Eq,
-            B.Eq
-          )
-      | A.NotEq, B.NotEq ->
-          return (
-            A.NotEq,
-            B.NotEq
-          )
-      | A.Identical, B.Identical ->
-          return (
-            A.Identical,
-            B.Identical
-          )
-      | A.NotIdentical, B.NotIdentical ->
-          return (
-            A.NotIdentical,
-            B.NotIdentical
-          )
-      | A.AndLog, B.AndLog ->
-          return (
-            A.AndLog,
-            B.AndLog
-          )
-      | A.OrLog, B.OrLog ->
-          return (
-            A.OrLog,
-            B.OrLog
-          )
-      | A.XorLog, B.XorLog ->
-          return (
-            A.XorLog,
-            B.XorLog
-          )
-      | A.AndBool, B.AndBool ->
-          return (
-            A.AndBool,
-            B.AndBool
-          )
-      | A.OrBool, B.OrBool ->
-          return (
-            A.OrBool,
-            B.OrBool
-          )
-
+      match (a, b) with
+      | A.Inf, B.Inf -> return (A.Inf, B.Inf)
+      | A.Sup, B.Sup -> return (A.Sup, B.Sup)
+      | A.InfEq, B.InfEq -> return (A.InfEq, B.InfEq)
+      | A.SupEq, B.SupEq -> return (A.SupEq, B.SupEq)
+      | A.Eq, B.Eq -> return (A.Eq, B.Eq)
+      | A.NotEq, B.NotEq -> return (A.NotEq, B.NotEq)
+      | A.Identical, B.Identical -> return (A.Identical, B.Identical)
+      | A.NotIdentical, B.NotIdentical -> return (A.NotIdentical, B.NotIdentical)
+      | A.AndLog, B.AndLog -> return (A.AndLog, B.AndLog)
+      | A.OrLog, B.OrLog -> return (A.OrLog, B.OrLog)
+      | A.XorLog, B.XorLog -> return (A.XorLog, B.XorLog)
+      | A.AndBool, B.AndBool -> return (A.AndBool, B.AndBool)
+      | A.OrBool, B.OrBool -> return (A.OrBool, B.OrBool)
       | A.Inf, _
       | A.Sup, _
       | A.InfEq, _
@@ -584,189 +386,78 @@ module PHP_VS_PHP =
       | A.OrLog, _
       | A.XorLog, _
       | A.AndBool, _
-      | A.OrBool, _
-        -> fail ()
-
+      | A.OrBool, _ ->
+          fail ()
 
     let m_unaryOp a b =
-      match a, b with
-      | A.UnPlus, B.UnPlus ->
-          return (
-            A.UnPlus,
-            B.UnPlus
-          )
-      | A.UnMinus, B.UnMinus ->
-          return (
-            A.UnMinus,
-            B.UnMinus
-          )
-      | A.UnBang, B.UnBang ->
-          return (
-            A.UnBang,
-            B.UnBang
-          )
-      | A.UnTilde, B.UnTilde ->
-          return (
-            A.UnTilde,
-            B.UnTilde
-          )
-      | A.UnPlus, _
-      | A.UnMinus, _
-      | A.UnBang, _
-      | A.UnTilde, _
-        -> fail ()
-
+      match (a, b) with
+      | A.UnPlus, B.UnPlus -> return (A.UnPlus, B.UnPlus)
+      | A.UnMinus, B.UnMinus -> return (A.UnMinus, B.UnMinus)
+      | A.UnBang, B.UnBang -> return (A.UnBang, B.UnBang)
+      | A.UnTilde, B.UnTilde -> return (A.UnTilde, B.UnTilde)
+      | A.UnPlus, _ | A.UnMinus, _ | A.UnBang, _ | A.UnTilde, _ -> fail ()
 
     let m_binaryOp a b =
-      match a, b with
-      | A.Arith(a1), B.Arith(b1) ->
-          m_arithOp a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Arith(a1),
-              B.Arith(b1)
-            )
-          )
-      | A.Logical(a1), B.Logical(b1) ->
-          m_logicalOp a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Logical(a1),
-              B.Logical(b1)
-            )
-          )
-      | A.BinaryConcat, B.BinaryConcat ->
-          return (
-            A.BinaryConcat,
-            B.BinaryConcat
-          )
-      | A.Pipe, B.Pipe ->
-          return (
-            A.Pipe,
-            B.Pipe
-          )
+      match (a, b) with
+      | A.Arith a1, B.Arith b1 ->
+          m_arithOp a1 b1 >>= fun (a1, b1) -> return (A.Arith a1, B.Arith b1)
+      | A.Logical a1, B.Logical b1 ->
+          m_logicalOp a1 b1 >>= fun (a1, b1) ->
+          return (A.Logical a1, B.Logical b1)
+      | A.BinaryConcat, B.BinaryConcat -> return (A.BinaryConcat, B.BinaryConcat)
+      | A.Pipe, B.Pipe -> return (A.Pipe, B.Pipe)
       | A.CombinedComparison, B.CombinedComparison ->
-          return (
-            A.CombinedComparison,
-            B.CombinedComparison
-          )
+          return (A.CombinedComparison, B.CombinedComparison)
       | A.Arith _, _
       | A.Logical _, _
       | A.BinaryConcat, _
       | A.Pipe, _
-      | A.CombinedComparison, _
-        -> fail ()
+      | A.CombinedComparison, _ ->
+          fail ()
 
     let m_assignOp a b =
-      match a, b with
-      | A.AssignOpArith(a1), B.AssignOpArith(b1) ->
-          m_arithOp a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.AssignOpArith(a1),
-              B.AssignOpArith(b1)
-            )
-          )
-      | A.AssignConcat, B.AssignConcat ->
-          return (
-            A.AssignConcat,
-            B.AssignConcat
-          )
-      | A.AssignOpArith _, _
-      | A.AssignConcat, _
-        -> fail ()
+      match (a, b) with
+      | A.AssignOpArith a1, B.AssignOpArith b1 ->
+          m_arithOp a1 b1 >>= fun (a1, b1) ->
+          return (A.AssignOpArith a1, B.AssignOpArith b1)
+      | A.AssignConcat, B.AssignConcat -> return (A.AssignConcat, B.AssignConcat)
+      | A.AssignOpArith _, _ | A.AssignConcat, _ -> fail ()
 
     let m_fixOp a b =
-      match a, b with
-      | _ when a =*= b -> return (a,b)
-      | _ -> fail ()
+      match (a, b) with _ when a =*= b -> return (a, b) | _ -> fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* cast, cpp directives  *)
     (* ---------------------------------------------------------------------- *)
 
     let m_ptype a b =
-      match a, b with
-      | A.BoolTy, B.BoolTy ->
-          return (
-            A.BoolTy,
-            B.BoolTy
-          )
-      | A.IntTy, B.IntTy ->
-          return (
-            A.IntTy,
-            B.IntTy
-          )
-      | A.DoubleTy, B.DoubleTy ->
-          return (
-            A.DoubleTy,
-            B.DoubleTy
-          )
-      | A.StringTy, B.StringTy ->
-          return (
-            A.StringTy,
-            B.StringTy
-          )
-      | A.ArrayTy, B.ArrayTy ->
-          return (
-            A.ArrayTy,
-            B.ArrayTy
-          )
-      | A.ObjectTy, B.ObjectTy ->
-          return (
-            A.ObjectTy,
-            B.ObjectTy
-          )
+      match (a, b) with
+      | A.BoolTy, B.BoolTy -> return (A.BoolTy, B.BoolTy)
+      | A.IntTy, B.IntTy -> return (A.IntTy, B.IntTy)
+      | A.DoubleTy, B.DoubleTy -> return (A.DoubleTy, B.DoubleTy)
+      | A.StringTy, B.StringTy -> return (A.StringTy, B.StringTy)
+      | A.ArrayTy, B.ArrayTy -> return (A.ArrayTy, B.ArrayTy)
+      | A.ObjectTy, B.ObjectTy -> return (A.ObjectTy, B.ObjectTy)
       | A.BoolTy, _
       | A.IntTy, _
       | A.DoubleTy, _
       | A.StringTy, _
       | A.ArrayTy, _
-      | A.ObjectTy, _
-        -> fail ()
-
+      | A.ObjectTy, _ ->
+          fail ()
 
     let m_castOp a b = m_ptype a b
 
     let m_cpp_directive a b =
-      match a, b with
-      | A.Line, B.Line ->
-          return (
-            A.Line,
-            B.Line
-          )
-      | A.File, B.File ->
-          return (
-            A.File,
-            B.File
-          )
-      | A.Dir, B.Dir ->
-          return (
-            A.Dir,
-            B.Dir
-          )
-      | A.ClassC, B.ClassC ->
-          return (
-            A.ClassC,
-            B.ClassC
-          )
-      | A.MethodC, B.MethodC ->
-          return (
-            A.MethodC,
-            B.MethodC
-          )
-      | A.FunctionC, B.FunctionC ->
-          return (
-            A.FunctionC,
-            B.FunctionC
-          )
-      | A.TraitC, B.TraitC ->
-          return (
-            A.TraitC,
-            B.TraitC
-          )
-      | A.NamespaceC, B.NamespaceC ->
-          return (
-            A.NamespaceC,
-            B.NamespaceC
-          )
+      match (a, b) with
+      | A.Line, B.Line -> return (A.Line, B.Line)
+      | A.File, B.File -> return (A.File, B.File)
+      | A.Dir, B.Dir -> return (A.Dir, B.Dir)
+      | A.ClassC, B.ClassC -> return (A.ClassC, B.ClassC)
+      | A.MethodC, B.MethodC -> return (A.MethodC, B.MethodC)
+      | A.FunctionC, B.FunctionC -> return (A.FunctionC, B.FunctionC)
+      | A.TraitC, B.TraitC -> return (A.TraitC, B.TraitC)
+      | A.NamespaceC, B.NamespaceC -> return (A.NamespaceC, B.NamespaceC)
       | A.Line, _
       | A.File, _
       | A.Dir, _
@@ -774,8 +465,8 @@ module PHP_VS_PHP =
       | A.MethodC, _
       | A.FunctionC, _
       | A.TraitC, _
-      | A.NamespaceC, _
-        -> fail ()
+      | A.NamespaceC, _ ->
+          fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* lvalue *)
@@ -784,606 +475,326 @@ module PHP_VS_PHP =
     let rec m_lvalue a b = m_expr a b
 
     and m_rw_variable a b = m_expr a b
+
     and m_w_variable a b = m_expr a b
 
-
     and m_name a b =
-      match a, b with
-      | A.XName(a1), B.XName(b1) ->
-          m_fully_qualified_class_name a1 b1 >>= (fun (a1, b1) ->
-            return (A.XName(a1),
-                    B.XName(b1)
-                   ))
-      | A.Self(a1), B.Self(b1) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Self(a1),
-              B.Self(b1)
-            )
-          )
-      | A.Parent(a1), B.Parent(b1) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Parent(a1),
-              B.Parent(b1)
-            )
-          )
-
-      | A.LateStatic(a1), B.LateStatic(b1) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.LateStatic(a1),
-              B.LateStatic(b1)
-            )
-          )
-
-      | A.XName _, _
-      | A.Self _, _
-      | A.Parent _, _
-      | A.LateStatic _, _
-        -> fail ()
+      match (a, b) with
+      | A.XName a1, B.XName b1 ->
+          m_fully_qualified_class_name a1 b1 >>= fun (a1, b1) ->
+          return (A.XName a1, B.XName b1)
+      | A.Self a1, B.Self b1 ->
+          m_tok a1 b1 >>= fun (a1, b1) -> return (A.Self a1, B.Self b1)
+      | A.Parent a1, B.Parent b1 ->
+          m_tok a1 b1 >>= fun (a1, b1) -> return (A.Parent a1, B.Parent b1)
+      | A.LateStatic a1, B.LateStatic b1 ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          return (A.LateStatic a1, B.LateStatic b1)
+      | A.XName _, _ | A.Self _, _ | A.Parent _, _ | A.LateStatic _, _ ->
+          fail ()
 
     and m_type_args a b =
-      (m_single_angle (m_comma_list m_hint_type)) a b
-      >>= (fun (a, b) -> return (a,b))
+      (m_single_angle (m_comma_list m_hint_type)) a b >>= fun (a, b) ->
+      return (a, b)
 
     and m_fully_qualified_class_name a b =
-      match a, b with
+      match (a, b) with
       | [], [] -> raise Impossible
-      | ([A.QI a], [B.QI b]) ->
+      | [ A.QI a ], [ B.QI b ] ->
           (* iso on class name *)
-          m_name_metavar_ok a b >>= (fun (a, b) ->
-            return ([A.QI a], [B.QI b])
-          )
-      | A.QITok a::xs, B.QITok b::ys ->
-          m_info a b >>= (fun (a, b) ->
-            m_fully_qualified_class_name xs ys >>= (fun (xs, ys) ->
-              return (
-                (A.QITok a)::xs,
-                (A.QITok b)::ys
-              )
-            ))
-
-      | A.QI a::xs, B.QI b::ys ->
-          m_name_metavar_ok a b >>= (fun (a, b) ->
-            m_fully_qualified_class_name xs ys >>= (fun (xs, ys) ->
-              return (
-                A.QI a::xs,
-                B.QI b::ys
-              )
-            ))
-      | A.QI _::_, _
-      | A.QITok _::_, _
-      | [], _
-        -> fail ()
+          m_name_metavar_ok a b >>= fun (a, b) -> return ([ A.QI a ], [ B.QI b ])
+      | A.QITok a :: xs, B.QITok b :: ys ->
+          m_info a b >>= fun (a, b) ->
+          m_fully_qualified_class_name xs ys >>= fun (xs, ys) ->
+          return (A.QITok a :: xs, A.QITok b :: ys)
+      | A.QI a :: xs, B.QI b :: ys ->
+          m_name_metavar_ok a b >>= fun (a, b) ->
+          m_fully_qualified_class_name xs ys >>= fun (xs, ys) ->
+          return (A.QI a :: xs, B.QI b :: ys)
+      | A.QI _ :: _, _ | A.QITok _ :: _, _ | [], _ -> fail ()
 
     (*---------------------------------------------------------------------------*)
     (* argument *)
     (*---------------------------------------------------------------------------*)
-
     and m_argument a b =
-      match a, b with
-      | A.Arg(a1), B.Arg(b1) ->
-          (match a1, b1 with
-           | A.Assign((A.IdVar(_aname, _ascope)), _atok, _aexpr),
-             B.Assign((B.IdVar(_bname, _bscope)), _btok, _bexpr) ->
-               m_expr a1 b1 >>= (fun (a1, b1) ->
-                 return (
-                   A.Arg(a1),
-                   B.Arg(b1)
-                 ))
-
-           (* iso on keyword argument, keyword is optional in pattern *)
-           | a1, B.Assign((B.IdVar(bname, bscope)), btok, bexpr) ->
-               (* todo: should allow this only in sgrep mode? what about spatch? *)
-               m_expr a1 bexpr >>= (fun (a1, bexpr) ->
-                 return (
-                   A.Arg(a1),
-                   B.Arg(B.Assign((B.IdVar(bname, bscope)), btok, bexpr))
-                 )
-               )
-           | a1, b1 ->
-               m_expr a1 b1 >>= (fun (a1, b1) ->
-                 return (
-                   A.Arg(a1),
-                   B.Arg(b1)
-                 ))
-          )
+      match (a, b) with
+      | A.Arg a1, B.Arg b1 -> (
+          match (a1, b1) with
+          | ( A.Assign (A.IdVar (_aname, _ascope), _atok, _aexpr),
+              B.Assign (B.IdVar (_bname, _bscope), _btok, _bexpr) ) ->
+              m_expr a1 b1 >>= fun (a1, b1) -> return (A.Arg a1, B.Arg b1)
+          (* iso on keyword argument, keyword is optional in pattern *)
+          | a1, B.Assign (B.IdVar (bname, bscope), btok, bexpr) ->
+              (* todo: should allow this only in sgrep mode? what about spatch? *)
+              m_expr a1 bexpr >>= fun (a1, bexpr) ->
+              return
+                ( A.Arg a1,
+                  B.Arg (B.Assign (B.IdVar (bname, bscope), btok, bexpr)) )
+          | a1, b1 ->
+              m_expr a1 b1 >>= fun (a1, b1) -> return (A.Arg a1, B.Arg b1) )
       (* an expression metavariable should also match a reference argument *)
-      | A.Arg (A.Id (A.XName [A.QI (A.Name (name,info_name))])),
-        B.ArgRef(_,_) when MV.is_metavar_name name ->
-
-          X.envf (name, info_name) (B.Argument (b)) >>= (function
-            | ((name, info_name), B.Argument (b))  ->
-                return (
-                  A.Arg (A.Id (A.XName [A.QI (A.Name (name,info_name))])),
-                  b
-                )
-            | _ -> raise Impossible
-          )
-
-      | A.ArgRef(a1, a2), B.ArgRef(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_w_variable a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.ArgRef(a1, a2),
-                B.ArgRef(b1, b2)
-              )
-            ))
-      | A.ArgUnpack(a1, a2), B.ArgUnpack(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_w_variable a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.ArgUnpack(a1, a2),
-                B.ArgUnpack(b1, b2)
-              )
-            ))
-      | A.Arg _, _
-      | A.ArgRef _, _
-      | A.ArgUnpack _, _
-        -> fail ()
+      | ( A.Arg (A.Id (A.XName [ A.QI (A.Name (name, info_name)) ])),
+          B.ArgRef (_, _) )
+        when MV.is_metavar_name name -> (
+          X.envf (name, info_name) (B.Argument b) >>= function
+          | (name, info_name), B.Argument b ->
+              return
+                (A.Arg (A.Id (A.XName [ A.QI (A.Name (name, info_name)) ])), b)
+          | _ -> raise Impossible )
+      | A.ArgRef (a1, a2), B.ArgRef (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_w_variable a2 b2 >>= fun (a2, b2) ->
+          return (A.ArgRef (a1, a2), B.ArgRef (b1, b2))
+      | A.ArgUnpack (a1, a2), B.ArgUnpack (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_w_variable a2 b2 >>= fun (a2, b2) ->
+          return (A.ArgUnpack (a1, a2), B.ArgUnpack (b1, b2))
+      | A.Arg _, _ | A.ArgRef _, _ | A.ArgUnpack _, _ -> fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* expr *)
     (* ---------------------------------------------------------------------- *)
-
     and m_expr a b =
-      match a, b with
+      match (a, b) with
       (* special case, metavars !! *)
-      | ((A.Id (A.XName [A.QI (A.Name (name,info_name))])),
-         e2) when MV.is_metavar_name name ->
-          X.envf (name, info_name) (B.Expr (e2)) >>= (function
-            | ((name, info_name), B.Expr (e2))  ->
-                return (
-                  (A.Id (A.XName [A.QI (A.Name (name,info_name))])),
-                  e2
-                )
-            | _ -> raise Impossible
-          )
-
+      | A.Id (A.XName [ A.QI (A.Name (name, info_name)) ]), e2
+        when MV.is_metavar_name name -> (
+          X.envf (name, info_name) (B.Expr e2) >>= function
+          | (name, info_name), B.Expr e2 ->
+              return (A.Id (A.XName [ A.QI (A.Name (name, info_name)) ]), e2)
+          | _ -> raise Impossible )
       (* pad *)
-      | A.SgrepExprDots _, _ ->
-          fail ()
+      | A.SgrepExprDots _, _ -> fail ()
       | _, B.SgrepExprDots _ ->
           pr2 "weird, have a ... in source; they are allowed only in patterns";
           fail ()
-
-
       (* iso on concatenation of strings *)
-      | A.Sc(A.C(A.String("...", info_string))), e when is_concat_of_strings e ->
+      | A.Sc (A.C (A.String ("...", info_string))), e
+        when is_concat_of_strings e ->
           (* todo: propagate the transformation of info_string to e for spatch *)
-          return (
-            A.Sc(A.C(A.String("...", info_string))),
-            e
-          )
-
+          return (A.Sc (A.C (A.String ("...", info_string))), e)
       (* MPS: iso when argument *isn't* a hard-coded string. *)
-      | A.Sc(A.C(A.String("!...", info_string))), e when not (is_concat_of_strings e)->
-          return (
-            A.Sc(A.C(A.String("!...", info_string))),
-            e
-          )
-
-
-      | A.Id(a1), B.Id(b1) ->
-          m_name a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Id(a1),
-              B.Id(b1)
-            )
-          )
-
+      | A.Sc (A.C (A.String ("!...", info_string))), e
+        when not (is_concat_of_strings e) ->
+          return (A.Sc (A.C (A.String ("!...", info_string))), e)
+      | A.Id a1, B.Id b1 ->
+          m_name a1 b1 >>= fun (a1, b1) -> return (A.Id a1, B.Id b1)
       (* pad, iso on variable name *)
-      | A.IdVar((A.DName (dname, info_dname)), a2),
-        B.IdVar(_b1, _b2) when MV.is_metavar_variable_name ("$" ^ dname) ->
+      | A.IdVar (A.DName (dname, info_dname), a2), B.IdVar (_b1, _b2)
+        when MV.is_metavar_variable_name ("$" ^ dname) -> (
           (* we don't want expr metavariable and variable metavariable
            * to collide, so X and $X are different keys in the environment
-          *)
-          X.envf ("$" ^ dname, info_dname) (B.Expr (b)) >>=
-          (function
-            | ((dname, info_dname), B.Expr (b))  ->
-                return (
-                  A.IdVar((A.DName (dname, info_dname)), a2),
-                  b
-                )
-            | _ -> raise Impossible
-          )
-
-      | A.IdVar(a1, a2), B.IdVar(b1, b2) ->
-          m_dname a1 b1 >>= (fun (a1, b1) ->
-            m_ref m_xxx_scope a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.IdVar(a1, a2),
-                B.IdVar(b1, b2)
-              )
-            ))
-
-      | A.This(a1), B.This(b1) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.This(a1),
-              B.This(b1)
-            )
-          )
-      | A.Call(a1, a2), B.Call(b1, b2) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            m_paren (m_list__m_argument) a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Call(a1, a2),
-                B.Call(b1, b2)
-              )
-            ))
-      | A.ObjGet(a1, a2, a3), B.ObjGet(b1, b2, b3) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_expr a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.ObjGet(a1, a2, a3),
-                  B.ObjGet(b1, b2, b3)
-                )
-              )))
-      | A.ClassGet(a1, a2, a3), B.ClassGet(b1, b2, b3) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_expr a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.ClassGet(a1, a2, a3),
-                  B.ClassGet(b1, b2, b3)
-                )
-              )))
-      | A.ArrayGet(a1, a2), B.ArrayGet(b1, b2) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            (m_bracket (m_option m_expr)) a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.ArrayGet(a1, a2),
-                B.ArrayGet(b1, b2)
-              )
-            ))
-      | A.HashGet(a1, a2), B.HashGet(b1, b2) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            m_brace m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.HashGet(a1, a2),
-                B.HashGet(b1, b2)
-              )
-            ))
-      | A.BraceIdent(a2), B.BraceIdent(b2) ->
-          m_brace m_expr a2 b2 >>= (fun (a2, b2) ->
-            return (
-              A.BraceIdent(a2),
-              B.BraceIdent(b2)
-            )
-          )
-      | A.Deref(a1, a2), B.Deref(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Deref(a1, a2),
-                B.Deref(b1, b2)
-              )
-            ))
-
-
-      | A.Sc(a1), B.Sc(b1) ->
-          m_scalar a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Sc(a1),
-              B.Sc(b1)
-            )
-          )
-      | A.Binary(a1, a2, a3), B.Binary(b1, b2, b3) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            m_wrap m_binaryOp a2 b2 >>= (fun (a2, b2) ->
-              m_expr a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Binary(a1, a2, a3),
-                  B.Binary(b1, b2, b3)
-                )
-              )))
-      | A.Unary(a1, a2), B.Unary(b1, b2) ->
-          m_wrap m_unaryOp a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Unary(a1, a2),
-                B.Unary(b1, b2)
-              )
-            ))
-      | A.Assign(a1, a2, a3), B.Assign(b1, b2, b3) ->
-          m_lvalue a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_expr a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Assign(a1, a2, a3),
-                  B.Assign(b1, b2, b3)
-                )
-              )))
-      | A.AssignOp(a1, a2, a3), B.AssignOp(b1, b2, b3) ->
-          m_lvalue a1 b1 >>= (fun (a1, b1) ->
-            m_wrap m_assignOp a2 b2 >>= (fun (a2, b2) ->
-              m_expr a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.AssignOp(a1, a2, a3),
-                  B.AssignOp(b1, b2, b3)
-                )
-              )))
-      | A.Postfix(a1, a2), B.Postfix(b1, b2) ->
-          m_rw_variable a1 b1 >>= (fun (a1, b1) ->
-            m_wrap m_fixOp a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Postfix(a1, a2),
-                B.Postfix(b1, b2)
-              )
-            ))
-      | A.Infix(a1, a2), B.Infix(b1, b2) ->
-          m_wrap m_fixOp a1 b1 >>= (fun (a1, b1) ->
-            m_rw_variable a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Infix(a1, a2),
-                B.Infix(b1, b2)
-              )
-            ))
-      | A.CondExpr(a1, a2, a3, a4, a5), B.CondExpr(b1, b2, b3, b4, b5) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_option m_expr a3 b3 >>= (fun (a3, b3) ->
-                m_tok a4 b4 >>= (fun (a4, b4) ->
-                  m_expr a5 b5 >>= (fun (a5, b5) ->
-                    return (
-                      A.CondExpr(a1, a2, a3, a4, a5),
-                      B.CondExpr(b1, b2, b3, b4, b5)
-                    )
-                  )))))
-      | A.AssignList(a1, a2, a3, a4), B.AssignList(b1, b2, b3, b4) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_paren (m_comma_list m_list_assign) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                m_expr a4 b4 >>= (fun (a4, b4) ->
-                  return (
-                    A.AssignList(a1, a2, a3, a4),
-                    B.AssignList(b1, b2, b3, b4)
-                  )
-                ))))
+           *)
+          X.envf ("$" ^ dname, info_dname) (B.Expr b)
+          >>= function
+          | (dname, info_dname), B.Expr b ->
+              return (A.IdVar (A.DName (dname, info_dname), a2), b)
+          | _ -> raise Impossible )
+      | A.IdVar (a1, a2), B.IdVar (b1, b2) ->
+          m_dname a1 b1 >>= fun (a1, b1) ->
+          m_ref m_xxx_scope a2 b2 >>= fun (a2, b2) ->
+          return (A.IdVar (a1, a2), B.IdVar (b1, b2))
+      | A.This a1, B.This b1 ->
+          m_tok a1 b1 >>= fun (a1, b1) -> return (A.This a1, B.This b1)
+      | A.Call (a1, a2), B.Call (b1, b2) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          m_paren m_list__m_argument a2 b2 >>= fun (a2, b2) ->
+          return (A.Call (a1, a2), B.Call (b1, b2))
+      | A.ObjGet (a1, a2, a3), B.ObjGet (b1, b2, b3) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_expr a3 b3 >>= fun (a3, b3) ->
+          return (A.ObjGet (a1, a2, a3), B.ObjGet (b1, b2, b3))
+      | A.ClassGet (a1, a2, a3), B.ClassGet (b1, b2, b3) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_expr a3 b3 >>= fun (a3, b3) ->
+          return (A.ClassGet (a1, a2, a3), B.ClassGet (b1, b2, b3))
+      | A.ArrayGet (a1, a2), B.ArrayGet (b1, b2) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          (m_bracket (m_option m_expr)) a2 b2 >>= fun (a2, b2) ->
+          return (A.ArrayGet (a1, a2), B.ArrayGet (b1, b2))
+      | A.HashGet (a1, a2), B.HashGet (b1, b2) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          m_brace m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.HashGet (a1, a2), B.HashGet (b1, b2))
+      | A.BraceIdent a2, B.BraceIdent b2 ->
+          m_brace m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.BraceIdent a2, B.BraceIdent b2)
+      | A.Deref (a1, a2), B.Deref (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.Deref (a1, a2), B.Deref (b1, b2))
+      | A.Sc a1, B.Sc b1 ->
+          m_scalar a1 b1 >>= fun (a1, b1) -> return (A.Sc a1, B.Sc b1)
+      | A.Binary (a1, a2, a3), B.Binary (b1, b2, b3) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          m_wrap m_binaryOp a2 b2 >>= fun (a2, b2) ->
+          m_expr a3 b3 >>= fun (a3, b3) ->
+          return (A.Binary (a1, a2, a3), B.Binary (b1, b2, b3))
+      | A.Unary (a1, a2), B.Unary (b1, b2) ->
+          m_wrap m_unaryOp a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.Unary (a1, a2), B.Unary (b1, b2))
+      | A.Assign (a1, a2, a3), B.Assign (b1, b2, b3) ->
+          m_lvalue a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_expr a3 b3 >>= fun (a3, b3) ->
+          return (A.Assign (a1, a2, a3), B.Assign (b1, b2, b3))
+      | A.AssignOp (a1, a2, a3), B.AssignOp (b1, b2, b3) ->
+          m_lvalue a1 b1 >>= fun (a1, b1) ->
+          m_wrap m_assignOp a2 b2 >>= fun (a2, b2) ->
+          m_expr a3 b3 >>= fun (a3, b3) ->
+          return (A.AssignOp (a1, a2, a3), B.AssignOp (b1, b2, b3))
+      | A.Postfix (a1, a2), B.Postfix (b1, b2) ->
+          m_rw_variable a1 b1 >>= fun (a1, b1) ->
+          m_wrap m_fixOp a2 b2 >>= fun (a2, b2) ->
+          return (A.Postfix (a1, a2), B.Postfix (b1, b2))
+      | A.Infix (a1, a2), B.Infix (b1, b2) ->
+          m_wrap m_fixOp a1 b1 >>= fun (a1, b1) ->
+          m_rw_variable a2 b2 >>= fun (a2, b2) ->
+          return (A.Infix (a1, a2), B.Infix (b1, b2))
+      | A.CondExpr (a1, a2, a3, a4, a5), B.CondExpr (b1, b2, b3, b4, b5) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_option m_expr a3 b3 >>= fun (a3, b3) ->
+          m_tok a4 b4 >>= fun (a4, b4) ->
+          m_expr a5 b5 >>= fun (a5, b5) ->
+          return
+            (A.CondExpr (a1, a2, a3, a4, a5), B.CondExpr (b1, b2, b3, b4, b5))
+      | A.AssignList (a1, a2, a3, a4), B.AssignList (b1, b2, b3, b4) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_paren (m_comma_list m_list_assign) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          m_expr a4 b4 >>= fun (a4, b4) ->
+          return (A.AssignList (a1, a2, a3, a4), B.AssignList (b1, b2, b3, b4))
       (* todo: isomorphism to abstract away the array long vs short syntax ? *)
-      | A.ArrayLong(a1, a2), B.ArrayLong(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_paren (m_list__m_array_pair) a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.ArrayLong(a1, a2),
-                B.ArrayLong(b1, b2)
-              )
-            ))
-      | A.ArrayShort(a1), B.ArrayShort(b1) ->
-          m_bracket (m_list__m_array_pair) a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.ArrayShort(a1),
-              B.ArrayShort(b1)
-            )
-          )
-
-      | A.Collection(a1,a2), B.Collection(b1,b2) ->
-          m_name a1 b1 >>= (fun (a1, b1) ->
-            m_brace (m_comma_list m_array_pair) a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Collection(a1,a2),
-                B.Collection(b1,b2)
-              )
-            ))
-      | A.New(a1, a2, a3), B.New(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_class_name_reference a2 b2 >>= (fun (a2, b2) ->
-              m_option__m_paren__m_list__m_argument a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.New(a1, a2, a3),
-                  B.New(b1, b2, b3)
-                )
-              )))
-      | A.Clone(a1, a2), B.Clone(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Clone(a1, a2),
-                B.Clone(b1, b2)
-              )
-            ))
-      | A.AssignRef(a1, a2, a3, a4), B.AssignRef(b1, b2, b3, b4) ->
-          m_lvalue a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                m_lvalue a4 b4 >>= (fun (a4, b4) ->
-                  return (
-                    A.AssignRef(a1, a2, a3, a4),
-                    B.AssignRef(b1, b2, b3, b4)
-                  )
-                ))))
-      | A.AssignNew(a1, a2, a3, a4, a5, a6), B.AssignNew(b1, b2, b3, b4, b5, b6) ->
-          m_lvalue a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                m_tok a4 b4 >>= (fun (a4, b4) ->
-                  m_class_name_reference a5 b5 >>= (fun (a5, b5) ->
-                    (m_option (m_paren (m_list__m_argument))) a6 b6 >>= (fun (a6, b6) ->
-                      return (
-                        A.AssignNew(a1, a2, a3, a4, a5, a6),
-                        B.AssignNew(b1, b2, b3, b4, b5, b6)
-                      )
-                    ))))))
-      | A.Cast(a1, a2), B.Cast(b1, b2) ->
-          m_wrap m_castOp a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Cast(a1, a2),
-                B.Cast(b1, b2)
-              )
-            ))
-      | A.CastUnset(a1, a2), B.CastUnset(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.CastUnset(a1, a2),
-                B.CastUnset(b1, b2)
-              )
-            ))
-      | A.InstanceOf(a1, a2, a3), B.InstanceOf(b1, b2, b3) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_class_name_reference a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.InstanceOf(a1, a2, a3),
-                  B.InstanceOf(b1, b2, b3)
-                )
-              )))
-      | A.Eval(a1, a2), B.Eval(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_paren m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Eval(a1, a2),
-                B.Eval(b1, b2)
-              )
-            ))
-      | A.Lambda(_a1), B.Lambda(_b1) ->
-          raise Todo
-      | A.ShortLambda(_a1), B.ShortLambda(_b1) ->
-          raise Todo
-
-      | A.XhpHtml(a1), B.XhpHtml(b1) ->
-          m_xhp_html a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.XhpHtml(a1),
-              B.XhpHtml(b1)
-            )
-          )
-
-      | A.Exit(a1, a2), B.Exit(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_option (m_paren (m_option m_expr))) a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Exit(a1, a2),
-                B.Exit(b1, b2)
-              )
-            ))
-      | A.At(a1, a2), B.At(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.At(a1, a2),
-                B.At(b1, b2)
-              )
-            ))
-      | A.Print(a1, a2), B.Print(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Print(a1, a2),
-                B.Print(b1, b2)
-              )
-            ))
-
+      | A.ArrayLong (a1, a2), B.ArrayLong (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_paren m_list__m_array_pair a2 b2 >>= fun (a2, b2) ->
+          return (A.ArrayLong (a1, a2), B.ArrayLong (b1, b2))
+      | A.ArrayShort a1, B.ArrayShort b1 ->
+          m_bracket m_list__m_array_pair a1 b1 >>= fun (a1, b1) ->
+          return (A.ArrayShort a1, B.ArrayShort b1)
+      | A.Collection (a1, a2), B.Collection (b1, b2) ->
+          m_name a1 b1 >>= fun (a1, b1) ->
+          m_brace (m_comma_list m_array_pair) a2 b2 >>= fun (a2, b2) ->
+          return (A.Collection (a1, a2), B.Collection (b1, b2))
+      | A.New (a1, a2, a3), B.New (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_class_name_reference a2 b2 >>= fun (a2, b2) ->
+          m_option__m_paren__m_list__m_argument a3 b3 >>= fun (a3, b3) ->
+          return (A.New (a1, a2, a3), B.New (b1, b2, b3))
+      | A.Clone (a1, a2), B.Clone (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.Clone (a1, a2), B.Clone (b1, b2))
+      | A.AssignRef (a1, a2, a3, a4), B.AssignRef (b1, b2, b3, b4) ->
+          m_lvalue a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          m_lvalue a4 b4 >>= fun (a4, b4) ->
+          return (A.AssignRef (a1, a2, a3, a4), B.AssignRef (b1, b2, b3, b4))
+      | ( A.AssignNew (a1, a2, a3, a4, a5, a6),
+          B.AssignNew (b1, b2, b3, b4, b5, b6) ) ->
+          m_lvalue a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          m_tok a4 b4 >>= fun (a4, b4) ->
+          m_class_name_reference a5 b5 >>= fun (a5, b5) ->
+          (m_option (m_paren m_list__m_argument)) a6 b6 >>= fun (a6, b6) ->
+          return
+            ( A.AssignNew (a1, a2, a3, a4, a5, a6),
+              B.AssignNew (b1, b2, b3, b4, b5, b6) )
+      | A.Cast (a1, a2), B.Cast (b1, b2) ->
+          m_wrap m_castOp a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.Cast (a1, a2), B.Cast (b1, b2))
+      | A.CastUnset (a1, a2), B.CastUnset (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.CastUnset (a1, a2), B.CastUnset (b1, b2))
+      | A.InstanceOf (a1, a2, a3), B.InstanceOf (b1, b2, b3) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_class_name_reference a3 b3 >>= fun (a3, b3) ->
+          return (A.InstanceOf (a1, a2, a3), B.InstanceOf (b1, b2, b3))
+      | A.Eval (a1, a2), B.Eval (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_paren m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.Eval (a1, a2), B.Eval (b1, b2))
+      | A.Lambda _a1, B.Lambda _b1 -> raise Todo
+      | A.ShortLambda _a1, B.ShortLambda _b1 -> raise Todo
+      | A.XhpHtml a1, B.XhpHtml b1 ->
+          m_xhp_html a1 b1 >>= fun (a1, b1) ->
+          return (A.XhpHtml a1, B.XhpHtml b1)
+      | A.Exit (a1, a2), B.Exit (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_option (m_paren (m_option m_expr))) a2 b2 >>= fun (a2, b2) ->
+          return (A.Exit (a1, a2), B.Exit (b1, b2))
+      | A.At (a1, a2), B.At (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) -> return (A.At (a1, a2), B.At (b1, b2))
+      | A.Print (a1, a2), B.Print (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.Print (a1, a2), B.Print (b1, b2))
       (* pad, iso on  ... *)
-      | A.BackQuote(a1, [A.EncapsString(("...", a2))], a3),
-        B.BackQuote(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (* TODO? distribute info of a2? *)
-            m_tok a3 b3 >>= (fun (a3, b3) ->
-              return (
-                A.BackQuote(a1, [A.EncapsString(("...", a2))], a3),
-                B.BackQuote(b1, b2, b3)
-              )
-            ))
-
-
-      | A.BackQuote(a1, a2, a3), B.BackQuote(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_list m_encaps a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.BackQuote(a1, a2, a3),
-                  B.BackQuote(b1, b2, b3)
-                )
-              )))
-      | A.Include(a1, a2), B.Include(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Include(a1, a2),
-                B.Include(b1, b2)
-              )
-            ))
-      | A.IncludeOnce(a1, a2), B.IncludeOnce(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.IncludeOnce(a1, a2),
-                B.IncludeOnce(b1, b2)
-              )
-            ))
-      | A.Require(a1, a2), B.Require(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Require(a1, a2),
-                B.Require(b1, b2)
-              )
-            ))
-      | A.RequireOnce(a1, a2), B.RequireOnce(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.RequireOnce(a1, a2),
-                B.RequireOnce(b1, b2)
-              )
-            ))
-      | A.Yield(a1, a2), B.Yield(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_array_pair a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Yield(a1, a2),
-                B.Yield(b1, b2)
-              )
-            ))
-      | A.YieldBreak(a1, a2), B.YieldBreak(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.YieldBreak(a1, a2),
-                B.YieldBreak(b1, b2)
-              )
-            ))
-      | A.Await(a1, a2), B.Await(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Await(a1, a2),
-                B.Await(b1, b2)
-              )
-            ))
-      | A.Empty(a1, a2), B.Empty(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_paren m_lvalue a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Empty(a1, a2),
-                B.Empty(b1, b2)
-              )
-            ))
-      | A.Isset(a1, a2), B.Isset(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_paren (m_comma_list m_lvalue)) a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Isset(a1, a2),
-                B.Isset(b1, b2)
-              )
-            ))
-      | A.ParenExpr(a1), B.ParenExpr(b1) ->
-          m_paren m_expr a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.ParenExpr(a1),
-              B.ParenExpr(b1)
-            )
-          )
+      | ( A.BackQuote (a1, [ A.EncapsString ("...", a2) ], a3),
+          B.BackQuote (b1, b2, b3) ) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (* TODO? distribute info of a2? *)
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return
+            ( A.BackQuote (a1, [ A.EncapsString ("...", a2) ], a3),
+              B.BackQuote (b1, b2, b3) )
+      | A.BackQuote (a1, a2, a3), B.BackQuote (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_list m_encaps a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.BackQuote (a1, a2, a3), B.BackQuote (b1, b2, b3))
+      | A.Include (a1, a2), B.Include (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.Include (a1, a2), B.Include (b1, b2))
+      | A.IncludeOnce (a1, a2), B.IncludeOnce (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.IncludeOnce (a1, a2), B.IncludeOnce (b1, b2))
+      | A.Require (a1, a2), B.Require (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.Require (a1, a2), B.Require (b1, b2))
+      | A.RequireOnce (a1, a2), B.RequireOnce (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.RequireOnce (a1, a2), B.RequireOnce (b1, b2))
+      | A.Yield (a1, a2), B.Yield (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_array_pair a2 b2 >>= fun (a2, b2) ->
+          return (A.Yield (a1, a2), B.Yield (b1, b2))
+      | A.YieldBreak (a1, a2), B.YieldBreak (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          return (A.YieldBreak (a1, a2), B.YieldBreak (b1, b2))
+      | A.Await (a1, a2), B.Await (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          return (A.Await (a1, a2), B.Await (b1, b2))
+      | A.Empty (a1, a2), B.Empty (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_paren m_lvalue a2 b2 >>= fun (a2, b2) ->
+          return (A.Empty (a1, a2), B.Empty (b1, b2))
+      | A.Isset (a1, a2), B.Isset (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_paren (m_comma_list m_lvalue)) a2 b2 >>= fun (a2, b2) ->
+          return (A.Isset (a1, a2), B.Isset (b1, b2))
+      | A.ParenExpr a1, B.ParenExpr b1 ->
+          m_paren m_expr a1 b1 >>= fun (a1, b1) ->
+          return (A.ParenExpr a1, B.ParenExpr b1)
       | A.Id _, _
-
       | A.IdVar _, _
       | A.This _, _
-
       | A.Call _, _
       | A.ObjGet _, _
       | A.ClassGet _, _
@@ -1391,7 +802,6 @@ module PHP_VS_PHP =
       | A.HashGet _, _
       | A.BraceIdent _, _
       | A.Deref _, _
-
       | A.Sc _, _
       | A.Binary _, _
       | A.Unary _, _
@@ -1428,87 +838,67 @@ module PHP_VS_PHP =
       | A.ParenExpr _, _
       | A.Yield _, _
       | A.YieldBreak _, _
-      | A.Await _, _
-        -> fail ()
+      | A.Await _, _ ->
+          fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* xhp (and a few xhp isos) *)
     (* ---------------------------------------------------------------------- *)
-
-    and m_xhp_tag a b =
-      match a, b with
-        (a, b) -> (m_list m_string) a b
+    and m_xhp_tag a b = match (a, b) with a, b -> (m_list m_string) a b
 
     and m_wrap_m_xhp_tag a b =
-      m_name_metavar_ok (A.XhpName a) (B.XhpName b) >>= (function
-        | (A.XhpName a), (B.XhpName b) -> return (a, b)
-        | _ -> raise Impossible
-      )
+      m_name_metavar_ok (A.XhpName a) (B.XhpName b) >>= function
+      | A.XhpName a, B.XhpName b -> return (a, b)
+      | _ -> raise Impossible
 
-    and m_wrap_m_option_m_xhp_tag (a,toka) (b, tokb) =
-      match a, b with
-      | None, None -> m_info toka tokb >>= (fun (toka, tokb) ->
-        return ((a, toka), (b, tokb))
-      )
+    and m_wrap_m_option_m_xhp_tag (a, toka) (b, tokb) =
+      match (a, b) with
+      | None, None ->
+          m_info toka tokb >>= fun (toka, tokb) -> return ((a, toka), (b, tokb))
       | Some a1, Some b1 ->
-          m_wrap_m_xhp_tag (a1, toka) (b1, tokb) >>= (fun ((a1,toka), (b1,tokb)) ->
-            return ((Some a1, toka), (Some b1, tokb))
-          )
+          m_wrap_m_xhp_tag (a1, toka) (b1, tokb)
+          >>= fun ((a1, toka), (b1, tokb)) ->
+          return ((Some a1, toka), (Some b1, tokb))
       (* todo: should be ok to use </> instead of explicit tag *)
-      | None, Some _
-      | Some _, None ->
-          fail ()
-
-
-
+      | None, Some _ | Some _, None -> fail ()
 
     and iso_m_list_m_xhp_body a b =
       match a with
       (* iso-by-absence: it's ok to have an empty body in the pattern *)
-      | [] ->
-          return (a, b)
-      | [A.XhpText ("\n", _)]
-      | [A.XhpText ("\n\n", _)]
-        -> return (a, b)
-      | _ ->
-          (m_list m_xhp_body) a b
+      | [] -> return (a, b)
+      | [ A.XhpText ("\n", _) ] | [ A.XhpText ("\n\n", _) ] -> return (a, b)
+      | _ -> (m_list m_xhp_body) a b
 
     and sort_xhp_attributes xs =
-      xs |> List.map (fun attr ->
-        let ((attr_name, _ii), _tok, _value) = attr in
-        attr_name, attr
-      ) |> Common.sort_by_key_highfirst |> List.map snd
+      xs
+      |> List.map (fun attr ->
+             let (attr_name, _ii), _tok, _value = attr in
+             (attr_name, attr))
+      |> Common.sort_by_key_highfirst |> List.map snd
 
     and iso_m_list_m_xhp_attribute a b =
       (* let's sort so don't care about order.
        * todo: if add metavar for attribut names then this will not work
        * anymore
-      *)
+       *)
       let a = sort_xhp_attributes a in
       let b = sort_xhp_attributes b in
 
       let rec aux a b =
-        match a, b with
+        match (a, b) with
         (* iso-by-absence: it's ok to have less attr in the pattern *)
         | [], b -> return ([], b)
         | _, [] -> fail ()
-        | x::xs, y::ys ->
-
-            (
-              m_xhp_attribute x y >>= (fun (x, y) ->
-                aux xs ys >>= (fun (xs, ys) ->
-                  return (x::xs, y::ys)
-                ))
-            ) >||> (
-              (* iso: allow to skip one attribute *)
-              aux (x::xs) (ys) >>= (fun (xs, ys) ->
-                return (xs, y::ys)
-              )
-            )
-
+        | x :: xs, y :: ys ->
+            m_xhp_attribute x y
+            >>= (fun (x, y) ->
+                  aux xs ys >>= fun (xs, ys) -> return (x :: xs, y :: ys))
+            >||> ( (* iso: allow to skip one attribute *)
+                   aux (x :: xs) ys
+                 >>= fun (xs, ys) -> return (xs, y :: ys) )
       in
-      aux a b
 
+      aux a b
 
     (* We want to allow multiple isomorphisms here.
      *
@@ -1523,374 +913,220 @@ module PHP_VS_PHP =
      *
      * Finally it's ok to have an empty xhp body. We may want
      * to add a "..." syntax for that instead of doing it by default.
-    *)
+     *)
     and m_xhp_html a b =
-      match a, b with
-      | A.Xhp(a1, a2, a3, a4, a5), B.Xhp(b1, b2, b3, b4, b5) ->
-          (m_wrap_m_xhp_tag) a1 b1 >>= (fun (a1, b1) ->
-            (iso_m_list_m_xhp_attribute) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                (iso_m_list_m_xhp_body) a4 b4 >>= (fun (a4, b4) ->
-                  m_wrap_m_option_m_xhp_tag a5 b5 >>= (fun (a5, b5) ->
-
-                    return (
-                      A.Xhp(a1, a2, a3, a4, a5),
-                      B.Xhp(b1, b2, b3, b4, b5)
-                    )
-                  )))))
-
-
-      | A.XhpSingleton(a1, a2, a3), B.XhpSingleton(b1, b2, b3) ->
-          (m_wrap m_xhp_tag) a1 b1 >>= (fun (a1, b1) ->
-            (iso_m_list_m_xhp_attribute) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.XhpSingleton(a1, a2, a3),
-                  B.XhpSingleton(b1, b2, b3)
-                )
-              )))
-      | A.Xhp _, _
-      | A.XhpSingleton _, _
-        -> fail ()
+      match (a, b) with
+      | A.Xhp (a1, a2, a3, a4, a5), B.Xhp (b1, b2, b3, b4, b5) ->
+          m_wrap_m_xhp_tag a1 b1 >>= fun (a1, b1) ->
+          iso_m_list_m_xhp_attribute a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          iso_m_list_m_xhp_body a4 b4 >>= fun (a4, b4) ->
+          m_wrap_m_option_m_xhp_tag a5 b5 >>= fun (a5, b5) ->
+          return (A.Xhp (a1, a2, a3, a4, a5), B.Xhp (b1, b2, b3, b4, b5))
+      | A.XhpSingleton (a1, a2, a3), B.XhpSingleton (b1, b2, b3) ->
+          (m_wrap m_xhp_tag) a1 b1 >>= fun (a1, b1) ->
+          iso_m_list_m_xhp_attribute a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.XhpSingleton (a1, a2, a3), B.XhpSingleton (b1, b2, b3))
+      | A.Xhp _, _ | A.XhpSingleton _, _ -> fail ()
 
     and m_xhp_attribute a b =
-      match a, b with
+      match (a, b) with
       | (a1, a2, a3), (b1, b2, b3) ->
-          m_xhp_attr_name a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_xhp_attr_value a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  (a1, a2, a3),
-                  (b1, b2, b3)
-                )
-              )))
+          m_xhp_attr_name a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_xhp_attr_value a3 b3 >>= fun (a3, b3) ->
+          return ((a1, a2, a3), (b1, b2, b3))
 
     and m_xhp_attr_name a b =
-      m_name_metavar_ok (A.Name a) (B.Name b) >>= (function
-        | (A.Name a), (B.Name b) -> return (a, b)
-        | _ -> raise Impossible
-      )
-
+      m_name_metavar_ok (A.Name a) (B.Name b) >>= function
+      | A.Name a, B.Name b -> return (a, b)
+      | _ -> raise Impossible
 
     and m_xhp_attr_value a b =
-      match a, b with
-      | A.SgrepXhpAttrValueMvar (name, i_name), b when MV.is_metavar_name name ->
-          X.envf (name, i_name) (B.XhpAttrValue b) >>= (function
-            | ((name, i_name), B.XhpAttrValue b) ->
-                return (
-                  A.SgrepXhpAttrValueMvar (name, i_name),
-                  b
-                )
-            | _ -> raise Impossible
-          )
-
-      | A.XhpAttrString(a1, a2, a3), B.XhpAttrString(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_list m_encaps) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.XhpAttrString(a1, a2, a3),
-                  B.XhpAttrString(b1, b2, b3)
-                )
-              )))
-      | A.XhpAttrExpr(a1), B.XhpAttrExpr(b1) ->
-          (m_brace m_expr) a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.XhpAttrExpr(a1),
-              B.XhpAttrExpr(b1)
-            )
-          )
-      | A.XhpAttrString _, _
-      | A.XhpAttrExpr _, _
-      | A.SgrepXhpAttrValueMvar _, _
-        -> fail ()
-
+      match (a, b) with
+      | A.SgrepXhpAttrValueMvar (name, i_name), b when MV.is_metavar_name name
+        -> (
+          X.envf (name, i_name) (B.XhpAttrValue b) >>= function
+          | (name, i_name), B.XhpAttrValue b ->
+              return (A.SgrepXhpAttrValueMvar (name, i_name), b)
+          | _ -> raise Impossible )
+      | A.XhpAttrString (a1, a2, a3), B.XhpAttrString (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_list m_encaps) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.XhpAttrString (a1, a2, a3), B.XhpAttrString (b1, b2, b3))
+      | A.XhpAttrExpr a1, B.XhpAttrExpr b1 ->
+          (m_brace m_expr) a1 b1 >>= fun (a1, b1) ->
+          return (A.XhpAttrExpr a1, B.XhpAttrExpr b1)
+      | A.XhpAttrString _, _ | A.XhpAttrExpr _, _ | A.SgrepXhpAttrValueMvar _, _
+        ->
+          fail ()
 
     and m_xhp_body a b =
-      match a, b with
-      | A.XhpText(a1), B.XhpText(b1) ->
-          m_string_xhp_text a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.XhpText(a1),
-              B.XhpText(b1)
-            )
-          )
-      | A.XhpExpr(a1), B.XhpExpr(b1) ->
-          (m_brace m_expr) a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.XhpExpr(a1),
-              B.XhpExpr(b1)
-            )
-          )
-      | A.XhpNested(a1), B.XhpNested(b1) ->
-          m_xhp_html a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.XhpNested(a1),
-              B.XhpNested(b1)
-            )
-          )
-      | A.XhpText _, _
-      | A.XhpExpr _, _
-      | A.XhpNested _, _
-        -> fail ()
+      match (a, b) with
+      | A.XhpText a1, B.XhpText b1 ->
+          m_string_xhp_text a1 b1 >>= fun (a1, b1) ->
+          return (A.XhpText a1, B.XhpText b1)
+      | A.XhpExpr a1, B.XhpExpr b1 ->
+          (m_brace m_expr) a1 b1 >>= fun (a1, b1) ->
+          return (A.XhpExpr a1, B.XhpExpr b1)
+      | A.XhpNested a1, B.XhpNested b1 ->
+          m_xhp_html a1 b1 >>= fun (a1, b1) ->
+          return (A.XhpNested a1, B.XhpNested b1)
+      | A.XhpText _, _ | A.XhpExpr _, _ | A.XhpNested _, _ -> fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* scalar and other expr *)
     (* ---------------------------------------------------------------------- *)
-
     and m_scalar a b =
-      match a, b with
-      | A.C(a1), B.C(b1) ->
-          m_constant a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.C(a1),
-              B.C(b1)
-            )
-          )
-      | A.Guil(a1, a2, a3), B.Guil(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_list m_encaps a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Guil(a1, a2, a3),
-                  B.Guil(b1, b2, b3)
-                )
-              )))
-      | A.HereDoc(a1, a2, a3), B.HereDoc(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_list m_encaps a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.HereDoc(a1, a2, a3),
-                  B.HereDoc(b1, b2, b3)
-                )
-              )))
-      | A.C _, _
-      | A.Guil _, _
-      | A.HereDoc _, _
-        -> fail ()
-
+      match (a, b) with
+      | A.C a1, B.C b1 ->
+          m_constant a1 b1 >>= fun (a1, b1) -> return (A.C a1, B.C b1)
+      | A.Guil (a1, a2, a3), B.Guil (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_list m_encaps a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.Guil (a1, a2, a3), B.Guil (b1, b2, b3))
+      | A.HereDoc (a1, a2, a3), B.HereDoc (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_list m_encaps a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.HereDoc (a1, a2, a3), B.HereDoc (b1, b2, b3))
+      | A.C _, _ | A.Guil _, _ | A.HereDoc _, _ -> fail ()
 
     and m_list_assign a b =
-      match a, b with
-      | A.ListVar(a1), B.ListVar(b1) ->
-          m_lvalue a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.ListVar(a1),
-              B.ListVar(b1)
-            )
-          )
-      | A.ListList(a1, a2), B.ListList(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_paren (m_comma_list m_list_assign)) a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.ListList(a1, a2),
-                B.ListList(b1, b2)
-              )
-            ))
-      | A.ListEmpty, B.ListEmpty ->
-          return (
-            A.ListEmpty,
-            B.ListEmpty
-          )
-      | A.ListVar _, _
-      | A.ListList _, _
-      | A.ListEmpty, _
-        -> fail ()
+      match (a, b) with
+      | A.ListVar a1, B.ListVar b1 ->
+          m_lvalue a1 b1 >>= fun (a1, b1) -> return (A.ListVar a1, B.ListVar b1)
+      | A.ListList (a1, a2), B.ListList (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_paren (m_comma_list m_list_assign)) a2 b2 >>= fun (a2, b2) ->
+          return (A.ListList (a1, a2), B.ListList (b1, b2))
+      | A.ListEmpty, B.ListEmpty -> return (A.ListEmpty, B.ListEmpty)
+      | A.ListVar _, _ | A.ListList _, _ | A.ListEmpty, _ -> fail ()
 
     and m_array_pair a b =
-      match a, b with
-      | A.ArrayExpr(a1), B.ArrayExpr(b1) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.ArrayExpr(a1),
-              B.ArrayExpr(b1)
-            )
-          )
-      | A.ArrayRef(a1, a2), B.ArrayRef(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_lvalue a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.ArrayRef(a1, a2),
-                B.ArrayRef(b1, b2)
-              )
-            ))
-      | A.ArrayArrowExpr(a1, a2, a3), B.ArrayArrowExpr(b1, b2, b3) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_expr a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.ArrayArrowExpr(a1, a2, a3),
-                  B.ArrayArrowExpr(b1, b2, b3)
-                )
-              )))
-      | A.ArrayArrowRef(a1, a2, a3, a4), B.ArrayArrowRef(b1, b2, b3, b4) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                m_lvalue a4 b4 >>= (fun (a4, b4) ->
-                  return (
-                    A.ArrayArrowRef(a1, a2, a3, a4),
-                    B.ArrayArrowRef(b1, b2, b3, b4)
-                  )
-                ))))
+      match (a, b) with
+      | A.ArrayExpr a1, B.ArrayExpr b1 ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          return (A.ArrayExpr a1, B.ArrayExpr b1)
+      | A.ArrayRef (a1, a2), B.ArrayRef (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_lvalue a2 b2 >>= fun (a2, b2) ->
+          return (A.ArrayRef (a1, a2), B.ArrayRef (b1, b2))
+      | A.ArrayArrowExpr (a1, a2, a3), B.ArrayArrowExpr (b1, b2, b3) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_expr a3 b3 >>= fun (a3, b3) ->
+          return (A.ArrayArrowExpr (a1, a2, a3), B.ArrayArrowExpr (b1, b2, b3))
+      | A.ArrayArrowRef (a1, a2, a3, a4), B.ArrayArrowRef (b1, b2, b3, b4) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          m_lvalue a4 b4 >>= fun (a4, b4) ->
+          return
+            (A.ArrayArrowRef (a1, a2, a3, a4), B.ArrayArrowRef (b1, b2, b3, b4))
       | A.ArrayExpr _, _
       | A.ArrayRef _, _
       | A.ArrayArrowExpr _, _
-      | A.ArrayArrowRef _, _
-        -> fail ()
+      | A.ArrayArrowRef _, _ ->
+          fail ()
+
     and m_class_name_reference a b = m_expr a b
 
     and m_encaps a b =
-      match a, b with
-      | A.EncapsString(a1), B.EncapsString(b1) ->
-          m_wrap m_string a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.EncapsString(a1),
-              B.EncapsString(b1)
-            )
-          )
-      | A.EncapsVar(a1), B.EncapsVar(b1) ->
-          m_lvalue a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.EncapsVar(a1),
-              B.EncapsVar(b1)
-            )
-          )
-      | A.EncapsCurly(a1, a2, a3), B.EncapsCurly(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_lvalue a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.EncapsCurly(a1, a2, a3),
-                  B.EncapsCurly(b1, b2, b3)
-                )
-              )))
-      | A.EncapsDollarCurly(a1, a2, a3), B.EncapsDollarCurly(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_lvalue a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.EncapsDollarCurly(a1, a2, a3),
-                  B.EncapsDollarCurly(b1, b2, b3)
-                )
-              )))
-      | A.EncapsExpr(a1, a2, a3), B.EncapsExpr(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.EncapsExpr(a1, a2, a3),
-                  B.EncapsExpr(b1, b2, b3)
-                )
-              )))
+      match (a, b) with
+      | A.EncapsString a1, B.EncapsString b1 ->
+          m_wrap m_string a1 b1 >>= fun (a1, b1) ->
+          return (A.EncapsString a1, B.EncapsString b1)
+      | A.EncapsVar a1, B.EncapsVar b1 ->
+          m_lvalue a1 b1 >>= fun (a1, b1) ->
+          return (A.EncapsVar a1, B.EncapsVar b1)
+      | A.EncapsCurly (a1, a2, a3), B.EncapsCurly (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_lvalue a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.EncapsCurly (a1, a2, a3), B.EncapsCurly (b1, b2, b3))
+      | A.EncapsDollarCurly (a1, a2, a3), B.EncapsDollarCurly (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_lvalue a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return
+            (A.EncapsDollarCurly (a1, a2, a3), B.EncapsDollarCurly (b1, b2, b3))
+      | A.EncapsExpr (a1, a2, a3), B.EncapsExpr (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.EncapsExpr (a1, a2, a3), B.EncapsExpr (b1, b2, b3))
       | A.EncapsString _, _
       | A.EncapsVar _, _
       | A.EncapsCurly _, _
       | A.EncapsDollarCurly _, _
-      | A.EncapsExpr _, _
-        -> fail ()
+      | A.EncapsExpr _, _ ->
+          fail ()
 
     and m_constant a b =
-      match a, b with
-      | A.Int(a1), B.Int(b1) ->
-          m_wrap m_string a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Int(a1),
-              B.Int(b1)
-            )
-          )
-      | A.Double(a1), B.Double(b1) ->
-          m_wrap m_string a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Double(a1),
-              B.Double(b1)
-            )
-          )
+      match (a, b) with
+      | A.Int a1, B.Int b1 ->
+          m_wrap m_string a1 b1 >>= fun (a1, b1) -> return (A.Int a1, B.Int b1)
+      | A.Double a1, B.Double b1 ->
+          m_wrap m_string a1 b1 >>= fun (a1, b1) ->
+          return (A.Double a1, B.Double b1)
       (* bind the content of a string to a metavariable.
        * PHP has no first-class function or class so it's quite common
        * to pass around function or class name via strings, so it's convenient
        * to bind a metavariable to a string content and consider it
        * as an entity (a Name).
-      *)
-      | A.String(name, info_name), B.String(sb, info_sb)
-        when MV.is_metavar_name name ->
-
+       *)
+      | A.String (name, info_name), B.String (sb, info_sb)
+        when MV.is_metavar_name name -> (
           (* removing the surrounding quotes *)
           let any1 = B.Ident2 (B.Name (sb, Parse_info.rewrap_str sb info_sb)) in
 
-          let any2 = B.Expr (B.Sc (B.C (B.String(sb, info_sb)))) in
+          let any2 = B.Expr (B.Sc (B.C (B.String (sb, info_sb)))) in
 
-          X.envf2 (name, info_name) (any1, any2) >>=
-          (function
-            | ((name, info_name),
-               (_any1, B.Expr (B.Sc (B.C (B.String(sb, info_sb)))))) ->
-                return (
-                  A.String(name, info_name),
-                  B.String(sb, info_sb)
-                )
-            | _ -> raise Impossible
-          )
-
-
+          X.envf2 (name, info_name) (any1, any2) >>= function
+          | ( (name, info_name),
+              (_any1, B.Expr (B.Sc (B.C (B.String (sb, info_sb))))) ) ->
+              return (A.String (name, info_name), B.String (sb, info_sb))
+          | _ -> raise Impossible )
       (* pad, iso on  name *)
-      | A.String("...", a), B.String(s, b) ->
-          m_info a b >>= (fun (a, b) ->
-            return (
-              A.String ("...", a),
-              B.String (s, b)
-            ))
-
+      | A.String ("...", a), B.String (s, b) ->
+          m_info a b >>= fun (a, b) ->
+          return (A.String ("...", a), B.String (s, b))
       (* todo: handle spatch too! one could want to bind things to \1 \2
        * and reference those \xxx in the + side of a semantic patch.
-      *)
-      | A.String(name, info_name), B.String(sb, info_sb)
+       *)
+      | A.String (name, info_name), B.String (sb, info_sb)
         when name =~ "^=~/\\(.*\\)/$" ->
           let s = Common.matched1 name in
-(*
+          (*
       let rex = Pcre.regexp s in
       if Pcre.pmatch ~rex sb
 *)
-          if sb =~ s
-          then
-            m_info info_name info_sb >>= (fun (info_name, info_sb) ->
-              return (
-                A.String(name, info_name),
-                B.String(sb, info_sb)
-              ))
+          if sb =~ s then
+            m_info info_name info_sb >>= fun (info_name, info_sb) ->
+            return (A.String (name, info_name), B.String (sb, info_sb))
           else fail ()
-
-      | A.String(a1), B.String(b1) ->
-          m_wrap m_string a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.String(a1),
-              B.String(b1)
-            )
-          )
-      | A.PreProcess(a1), B.PreProcess(b1) ->
-          m_wrap m_cpp_directive a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.PreProcess(a1),
-              B.PreProcess(b1)
-            )
-          )
-      | A.XdebugClass(_a1, _a2), B.XdebugClass(_b1, _b2) ->
+      | A.String a1, B.String b1 ->
+          m_wrap m_string a1 b1 >>= fun (a1, b1) ->
+          return (A.String a1, B.String b1)
+      | A.PreProcess a1, B.PreProcess b1 ->
+          m_wrap m_cpp_directive a1 b1 >>= fun (a1, b1) ->
+          return (A.PreProcess a1, B.PreProcess b1)
+      | A.XdebugClass (_a1, _a2), B.XdebugClass (_b1, _b2) ->
           (* no php_vs_php for class_stmt yet *)
           raise Todo
       | A.XdebugResource, B.XdebugResource ->
-          return (
-            A.XdebugResource,
-            B.XdebugResource
-          )
-
-
+          return (A.XdebugResource, B.XdebugResource)
       | A.Int _, _
       | A.Double _, _
       | A.String _, _
       | A.PreProcess _, _
       | A.XdebugClass _, _
-      | A.XdebugResource, _
-        -> fail ()
+      | A.XdebugResource, _ ->
+          fail ()
 
     (*---------------------------------------------------------------------------*)
     (* arguments list iso *)
@@ -1899,446 +1135,295 @@ module PHP_VS_PHP =
      *  to find the SgrepExprDots so it is not be that easy to factorize.
      * update: actually can use the comma_list_dots technique which avoid
      *  digging and help factorize code!
-    *)
-    and m_list__m_argument (xsa: A.argument A.comma_list) (xsb: B.argument B.comma_list) =
+     *)
+    and m_list__m_argument (xsa : A.argument A.comma_list)
+        (xsb : B.argument B.comma_list) =
       (*old: m_list m_argument xsa xsb *)
-      match xsa, xsb with
-      | [], [] ->
-          return ([], [])
-
+      match (xsa, xsb) with
+      | [], [] -> return ([], [])
       (* iso on trailing comma *)
-      | [Right comma], [] ->
-          if is_NoTransfo comma || is_Remove comma
-          then return  ([Right comma], [])
-          else failwith
-              "'+' transformation on trailing comma is not allowed, rewrite your spatch"
+      | [ Right comma ], [] ->
+          if is_NoTransfo comma || is_Remove comma then
+            return ([ Right comma ], [])
+          else
+            failwith
+              "'+' transformation on trailing comma is not allowed, rewrite \
+               your spatch"
       (* todo: what if previous elt in spatch was to remove, we should
        * then remove this comma too no? right now this forces the spatch
        * write to use the trailing comma in his pattern.
-      *)
-      | [], [Right comma] ->
-          return  ([], [Right comma])
-
+       *)
+      | [], [ Right comma ] -> return ([], [ Right comma ])
       (* iso on ... *)
-      | [Left (A.Arg (A.SgrepExprDots i))], _bbs ->
+      | [ Left (A.Arg (A.SgrepExprDots i)) ], _bbs ->
           (* todo: if remove could apply the transfo on bbs *)
-          if is_NoTransfo i then
-            return (
-              xsa,
-              xsb
-            )
-          else failwith
-              ("transformation (- or +) on '...' not allowed, rewrite your spatch")
-
+          if is_NoTransfo i then return (xsa, xsb)
+          else
+            failwith
+              "transformation (- or +) on '...' not allowed, rewrite your \
+               spatch"
       (* iso on Boolean vs. Int *)
-      | [Left (A.Arg ((A.Id (A.XName [A.QI (A.Name (name_a, info_name))]))))],
-        [Left (B.Arg (B.Sc (B.C (B.Int ((name_b, _))))))]
+      | ( [ Left (A.Arg (A.Id (A.XName [ A.QI (A.Name (name_a, info_name)) ]))) ],
+          [ Left (B.Arg (B.Sc (B.C (B.Int (name_b, _))))) ] )
         when is_bool_vs_int name_a name_b ->
-          return ([Left (B.Arg (B.Sc (B.C (B.Int ((name_b, info_name))))))], xsb)
-
-      | [Left (A.Arg ((A.Id (A.XName [A.QI (A.Name (name,info_name))]))))], bbs
-        when MV.is_metavar_manyargs_name name ->
-
-          X.envf (name, info_name) (B.Arguments (bbs)) >>= (function
-            | ((name, info_name), B.Arguments (bbs))  ->
-                return (
-                  [Left (A.Arg ((A.Id (A.XName [A.QI (A.Name (name,info_name))]))))],
-                  bbs
-                )
-            | _ -> raise Impossible
-          )
-
-
+          return ([ Left (B.Arg (B.Sc (B.C (B.Int (name_b, info_name))))) ], xsb)
+      | ( [ Left (A.Arg (A.Id (A.XName [ A.QI (A.Name (name, info_name)) ]))) ],
+          bbs )
+        when MV.is_metavar_manyargs_name name -> (
+          X.envf (name, info_name) (B.Arguments bbs) >>= function
+          | (name, info_name), B.Arguments bbs ->
+              return
+                ( [
+                    Left
+                      (A.Arg
+                         (A.Id (A.XName [ A.QI (A.Name (name, info_name)) ])));
+                  ],
+                  bbs )
+          | _ -> raise Impossible )
       (* bugfix: we can have some Replace or AddAfter in the token of
        * the comma. We need to apply it to the code.
-      *)
-      | [Right a; Left (A.Arg (A.SgrepExprDots i))], Right b::bbs ->
-          m_info a b >>= (fun (a, b) ->
-            return (
-              [Right a; Left (A.Arg (A.SgrepExprDots i))],
-              Right b::bbs
-            )
-          )
-
+       *)
+      | [ Right a; Left (A.Arg (A.SgrepExprDots i)) ], Right b :: bbs ->
+          m_info a b >>= fun (a, b) ->
+          return ([ Right a; Left (A.Arg (A.SgrepExprDots i)) ], Right b :: bbs)
       (* '...' can also match no argument.
        * this is ok in sgrep mode, but in spatch mode the comma
        * or SgrepExprDots could carry some transfo. What should we do?
        * Maybe just print warning.
-      *)
-      | [Right a; Left (A.Arg (A.SgrepExprDots _i))], [] ->
-          if is_NoTransfo a || is_Remove a
-          then
-            return (
-              xsa,
-              xsb
-            )
-          else failwith
-              ("transformation (- or +) on ',' not allowed when used with " ^
-               "'...'. Rewrite your spatch: put your trailing comma on the line " ^
-               "with the '...'. See also " ^
-               "https://github.com/facebook/pfff/wiki/Spatch#wiki-spacing-issues")
-      | [Right _;Left (A.Arg ((A.Id (A.XName [A.QI (A.Name (name,info_name))]))))],[]
-        when MV.is_metavar_manyargs_name name ->
-          X.envf (name, info_name) (B.Arguments ([])) >>= (function
-            | ((_name, _info_name), B.Arguments ([]))  ->
-                return (
-                  xsa,
-                  xsb
-                )
-            | _ -> raise Impossible
-          )
-
-      | [Right _; Left (A.Arg (A.SgrepExprDots _))], _bbs ->
-          raise Impossible
-
-      | Left (A.Arg (A.SgrepExprDots _))::_, _ ->
-          failwith
-            "... is allowed only at the end. Give money to pad to get this feature"
-
-      (* the general case *)
-      | xa::aas, xb::bbs ->
-          (m_either m_argument m_info) xa xb >>= (fun (xa, xb) ->
-            m_list__m_argument aas bbs >>= (fun (aas, bbs) ->
-              return (
-                xa::aas,
-                xb::bbs
+       *)
+      | [ Right a; Left (A.Arg (A.SgrepExprDots _i)) ], [] ->
+          if is_NoTransfo a || is_Remove a then return (xsa, xsb)
+          else
+            failwith
+              ( "transformation (- or +) on ',' not allowed when used with "
+              ^ "'...'. Rewrite your spatch: put your trailing comma on the \
+                 line " ^ "with the '...'. See also "
+              ^ "https://github.com/facebook/pfff/wiki/Spatch#wiki-spacing-issues"
               )
-            )
-          )
-      | [], _
-      | _::_, _ ->
-          fail ()
+      | ( [
+            Right _;
+            Left (A.Arg (A.Id (A.XName [ A.QI (A.Name (name, info_name)) ])));
+          ],
+          [] )
+        when MV.is_metavar_manyargs_name name -> (
+          X.envf (name, info_name) (B.Arguments []) >>= function
+          | (_name, _info_name), B.Arguments [] -> return (xsa, xsb)
+          | _ -> raise Impossible )
+      | [ Right _; Left (A.Arg (A.SgrepExprDots _)) ], _bbs -> raise Impossible
+      | Left (A.Arg (A.SgrepExprDots _)) :: _, _ ->
+          failwith
+            "... is allowed only at the end. Give money to pad to get this \
+             feature"
+      (* the general case *)
+      | xa :: aas, xb :: bbs ->
+          (m_either m_argument m_info) xa xb >>= fun (xa, xb) ->
+          m_list__m_argument aas bbs >>= fun (aas, bbs) ->
+          return (xa :: aas, xb :: bbs)
+      | [], _ | _ :: _, _ -> fail ()
 
     (* iso: new Foo(...) can match new X; *)
     and m_option__m_paren__m_list__m_argument a b =
-      match a, b with
+      match (a, b) with
       (* iso on ... *)
-      | Some (_lp, [Left (A.Arg (A.SgrepExprDots _))], _rp), None ->
+      | Some (_lp, [ Left (A.Arg (A.SgrepExprDots _)) ], _rp), None ->
           (* todo: for spatch need apply possible transfo *)
-          return (
-            a,
-            b
-          )
-      | _ ->
-          m_option (m_paren (m_list__m_argument)) a b
-
+          return (a, b)
+      | _ -> m_option (m_paren m_list__m_argument) a b
 
     (*---------------------------------------------------------------------------*)
     (* array list *)
     (*---------------------------------------------------------------------------*)
 
     (* todo: would be good to factorize code with m_list__m_argument *)
-    and m_list__m_array_pair (xsa: A.array_pair A.comma_list) (xsb: B.array_pair B.comma_list) =
-      match xsa, xsb with
-      | [], [] ->
-          return ([], [])
-
+    and m_list__m_array_pair (xsa : A.array_pair A.comma_list)
+        (xsb : B.array_pair B.comma_list) =
+      match (xsa, xsb) with
+      | [], [] -> return ([], [])
       (* iso on ... *)
-      | [Left (A.ArrayExpr (A.SgrepExprDots _))], _bbs ->
+      | [ Left (A.ArrayExpr (A.SgrepExprDots _)) ], _bbs ->
           (* TODO do different combinaisons *)
-          return (
-            xsa,
-            xsb
-          )
-
-      | [Right _; Left (A.ArrayExpr (A.SgrepExprDots _))], _bbs ->
+          return (xsa, xsb)
+      | [ Right _; Left (A.ArrayExpr (A.SgrepExprDots _)) ], _bbs ->
           (* TODO do different combinaisons *)
-          return (
-            xsa,
-            xsb
-          )
-
-      | Left (A.ArrayExpr (A.SgrepExprDots _))::_xs, _bbs ->
+          return (xsa, xsb)
+      | Left (A.ArrayExpr (A.SgrepExprDots _)) :: _xs, _bbs ->
           failwith
-            "... is allowed only at the end. Give money to pad to get this feature"
-
-      | xa::aas, xb::bbs ->
-          (m_either m_array_pair m_info) xa xb >>= (fun (xa, xb) ->
-            m_list__m_array_pair aas bbs >>= (fun (aas, bbs) ->
-              return (
-                xa::aas,
-                xb::bbs
-              )
-            ))
-      | [], _
-      | _::_, _ ->
-          fail ()
+            "... is allowed only at the end. Give money to pad to get this \
+             feature"
+      | xa :: aas, xb :: bbs ->
+          (m_either m_array_pair m_info) xa xb >>= fun (xa, xb) ->
+          m_list__m_array_pair aas bbs >>= fun (aas, bbs) ->
+          return (xa :: aas, xb :: bbs)
+      | [], _ | _ :: _, _ -> fail ()
 
     (*---------------------------------------------------------------------------*)
     (* comma list dots iso *)
     (*---------------------------------------------------------------------------*)
-
     and m_comma_list_dots :
-      'a 'b .
-        ('a -> 'b -> X.tin -> ('a * 'b) X.tout) ->
-      'a A.comma_list_dots ->
-      'b B.comma_list_dots ->
-      X.tin ->
-      ('a A.comma_list_dots * 'b B.comma_list_dots) X.tout
-      = fun  f xsa xsb ->
-        match xsa, xsb with
-        | [], [] ->
-            return ([], [])
-
-        (* iso on ... *)
-        | [Middle3 _infoTodo], _bbs ->
-            (* TODO do different combinaisons, and apply token *)
-            return (
-              xsa,
-              xsb
-            )
-
-        | [Right3 _; Middle3 _], _bbs ->
-            (* TODO do different combinaisons *)
-            return (xsa, xsb)
-
-        | (Middle3 _)::_xs, _bbs ->
-            failwith "... is allowed for now only at the end. Give money to pad to get this feature"
-
-        | xa::aas, xb::bbs ->
-            (m_either3 f m_info m_info) xa xb >>= (fun (xa, xb) ->
-              m_comma_list_dots f aas bbs >>= (fun (aas, bbs) ->
-                return (
-                  xa::aas,
-                  xb::bbs
-                )
-              ))
-        | [], _
-        | _::_, _ ->
-            fail ()
-
+          'a 'b. ('a -> 'b -> X.tin -> ('a * 'b) X.tout) ->
+          'a A.comma_list_dots -> 'b B.comma_list_dots -> X.tin ->
+          ('a A.comma_list_dots * 'b B.comma_list_dots) X.tout =
+     fun f xsa xsb ->
+      match (xsa, xsb) with
+      | [], [] -> return ([], [])
+      (* iso on ... *)
+      | [ Middle3 _infoTodo ], _bbs ->
+          (* TODO do different combinaisons, and apply token *)
+          return (xsa, xsb)
+      | [ Right3 _; Middle3 _ ], _bbs ->
+          (* TODO do different combinaisons *)
+          return (xsa, xsb)
+      | Middle3 _ :: _xs, _bbs ->
+          failwith
+            "... is allowed for now only at the end. Give money to pad to get \
+             this feature"
+      | xa :: aas, xb :: bbs ->
+          (m_either3 f m_info m_info) xa xb >>= fun (xa, xb) ->
+          m_comma_list_dots f aas bbs >>= fun (aas, bbs) ->
+          return (xa :: aas, xb :: bbs)
+      | [], _ | _ :: _, _ -> fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* stmt *)
     (* ---------------------------------------------------------------------- *)
-
     and m_stmt a b =
-      match a, b with
-      | A.ExprStmt(a1, a2), B.ExprStmt(b1, b2) ->
-          m_expr a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.ExprStmt(a1, a2),
-                B.ExprStmt(b1, b2)
-              )
-            ))
-      | A.EmptyStmt(a1), B.EmptyStmt(b1) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.EmptyStmt(a1),
-              B.EmptyStmt(b1)
-            )
-          )
-      | A.Block(a1), B.Block(b1) ->
-          (m_brace (m_list m_stmt_and_def)) a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Block(a1),
-              B.Block(b1)
-            )
-          )
-      | A.If(a1, a2, a3, a4, a5), B.If(b1, b2, b3, b4, b5) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_paren m_expr) a2 b2 >>= (fun (a2, b2) ->
-              m_stmt a3 b3 >>= (fun (a3, b3) ->
-                (m_list m_if_elseif) a4 b4 >>= (fun (a4, b4) ->
-                  (m_option m_if_else) a5 b5 >>= (fun (a5, b5) ->
-                    return (
-                      A.If(a1, a2, a3, a4, a5),
-                      B.If(b1, b2, b3, b4, b5)
-                    )
-                  )))))
-      | A.IfColon(a1, a2, a3, a4, a5, a6, a7, a8), B.IfColon(b1, b2, b3, b4, b5, b6, b7, b8) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_paren m_expr) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                (m_list m_stmt_and_def) a4 b4 >>= (fun (a4, b4) ->
-                  (m_list m_new_elseif) a5 b5 >>= (fun (a5, b5) ->
-                    (m_option m_new_else) a6 b6 >>= (fun (a6, b6) ->
-                      m_tok a7 b7 >>= (fun (a7, b7) ->
-                        m_tok a8 b8 >>= (fun (a8, b8) ->
-                          return (
-                            A.IfColon(a1, a2, a3, a4, a5, a6, a7, a8),
-                            B.IfColon(b1, b2, b3, b4, b5, b6, b7, b8)
-                          )
-                        ))))))))
-      | A.While(a1, a2, a3), B.While(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_paren m_expr) a2 b2 >>= (fun (a2, b2) ->
-              m_colon_stmt a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.While(a1, a2, a3),
-                  B.While(b1, b2, b3)
-                )
-              )))
-      | A.Do(a1, a2, a3, a4, a5), B.Do(b1, b2, b3, b4, b5) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_stmt a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                (m_paren m_expr) a4 b4 >>= (fun (a4, b4) ->
-                  m_tok a5 b5 >>= (fun (a5, b5) ->
-                    return (
-                      A.Do(a1, a2, a3, a4, a5),
-                      B.Do(b1, b2, b3, b4, b5)
-                    )
-                  )))))
-      | A.For(a1, a2, a3, a4, a5, a6, a7, a8, a9), B.For(b1, b2, b3, b4, b5, b6, b7, b8, b9) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_for_expr a3 b3 >>= (fun (a3, b3) ->
-                m_tok a4 b4 >>= (fun (a4, b4) ->
-                  m_for_expr a5 b5 >>= (fun (a5, b5) ->
-                    m_tok a6 b6 >>= (fun (a6, b6) ->
-                      m_for_expr a7 b7 >>= (fun (a7, b7) ->
-                        m_tok a8 b8 >>= (fun (a8, b8) ->
-                          m_colon_stmt a9 b9 >>= (fun (a9, b9) ->
-                            return (
-                              A.For(a1, a2, a3, a4, a5, a6, a7, a8, a9),
-                              B.For(b1, b2, b3, b4, b5, b6, b7, b8, b9)
-                            )
-                          )))))))))
-      | A.Switch(a1, a2, a3), B.Switch(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_paren m_expr) a2 b2 >>= (fun (a2, b2) ->
-              m_switch_case_list a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Switch(a1, a2, a3),
-                  B.Switch(b1, b2, b3)
-                )
-              )))
-      | A.Foreach(a1, a2, a3, a4, a5, a6, a7, a8), B.Foreach(b1, b2, b3, b4, b5, b6, b7, b8) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_expr a3 b3 >>= (fun (a3, b3) ->
-                m_option m_tok a4 b4 >>= (fun (a4, b4) ->
-                  m_tok a5 b5 >>= (fun (a5, b5) ->
-                    m_foreach_pattern a6 b6 >>= (fun (a6, b6) ->
-                      m_tok a7 b7 >>= (fun (a7, b7) ->
-                        m_colon_stmt a8 b8 >>= (fun (a8, b8) ->
-                          return (
-                            A.Foreach(a1, a2, a3, a4, a5, a6, a7, a8),
-                            B.Foreach(b1, b2, b3, b4, b5, b6, b7, b8)
-                          )
-                        ))))))))
-      | A.Break(a1, a2, a3), B.Break(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_option m_expr) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Break(a1, a2, a3),
-                  B.Break(b1, b2, b3)
-                )
-              )))
-      | A.Continue(a1, a2, a3), B.Continue(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_option m_expr) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Continue(a1, a2, a3),
-                  B.Continue(b1, b2, b3)
-                )
-              )))
-      | A.Return(a1, a2, a3), B.Return(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_option m_expr) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Return(a1, a2, a3),
-                  B.Return(b1, b2, b3)
-                )
-              )))
-      | A.Throw(a1, a2, a3), B.Throw(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_expr a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Throw(a1, a2, a3),
-                  B.Throw(b1, b2, b3)
-                )
-              )))
-      | A.Try(a1, a2, a3, a4), B.Try(b1, b2, b3, b4) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_brace (m_list m_stmt_and_def)) a2 b2 >>= (fun (a2, b2) ->
-              (m_list m_catch) a3 b3 >>= (fun (a3, b3) ->
-                (m_list m_finally) a4 b4 >>= (fun (a4, b4) ->
-                  return (
-                    A.Try(a1, a2, a3, a4),
-                    B.Try(b1, b2, b3, b4)
-                  )
-                ))))
-      | A.Echo(a1, a2, a3), B.Echo(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_comma_list m_expr) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Echo(a1, a2, a3),
-                  B.Echo(b1, b2, b3)
-                )
-              )))
-      | A.Globals(a1, a2, a3), B.Globals(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_comma_list m_global_var) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Globals(a1, a2, a3),
-                  B.Globals(b1, b2, b3)
-                )
-              )))
-      | A.StaticVars(a1, a2, a3), B.StaticVars(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_comma_list m_static_var) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.StaticVars(a1, a2, a3),
-                  B.StaticVars(b1, b2, b3)
-                )
-              )))
-      | A.InlineHtml(a1), B.InlineHtml(b1) ->
-          (m_wrap m_string) a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.InlineHtml(a1),
-              B.InlineHtml(b1)
-            )
-          )
-      | A.Use(a1, a2, a3), B.Use(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_use_filename a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Use(a1, a2, a3),
-                  B.Use(b1, b2, b3)
-                )
-              )))
-      | A.Unset(a1, a2, a3), B.Unset(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_paren (m_comma_list m_lvalue)) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Unset(a1, a2, a3),
-                  B.Unset(b1, b2, b3)
-                )
-              )))
-      | A.Declare(a1, a2, a3), B.Declare(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_paren (m_comma_list m_declare)) a2 b2 >>= (fun (a2, b2) ->
-              m_colon_stmt a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.Declare(a1, a2, a3),
-                  B.Declare(b1, b2, b3)
-                )
-              )))
-
-      | A.FuncDefNested(_a1), B.FuncDefNested(_b1) ->
-          fail2 "FuncDefNested"
-
-      | A.ClassDefNested(a1), B.ClassDefNested(b1) ->
-          m_class_def a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.ClassDefNested(a1),
-              B.ClassDefNested(b1)
-            )
-          )
-
-
+      match (a, b) with
+      | A.ExprStmt (a1, a2), B.ExprStmt (b1, b2) ->
+          m_expr a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          return (A.ExprStmt (a1, a2), B.ExprStmt (b1, b2))
+      | A.EmptyStmt a1, B.EmptyStmt b1 ->
+          m_tok a1 b1 >>= fun (a1, b1) -> return (A.EmptyStmt a1, B.EmptyStmt b1)
+      | A.Block a1, B.Block b1 ->
+          (m_brace (m_list m_stmt_and_def)) a1 b1 >>= fun (a1, b1) ->
+          return (A.Block a1, B.Block b1)
+      | A.If (a1, a2, a3, a4, a5), B.If (b1, b2, b3, b4, b5) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_paren m_expr) a2 b2 >>= fun (a2, b2) ->
+          m_stmt a3 b3 >>= fun (a3, b3) ->
+          (m_list m_if_elseif) a4 b4 >>= fun (a4, b4) ->
+          (m_option m_if_else) a5 b5 >>= fun (a5, b5) ->
+          return (A.If (a1, a2, a3, a4, a5), B.If (b1, b2, b3, b4, b5))
+      | ( A.IfColon (a1, a2, a3, a4, a5, a6, a7, a8),
+          B.IfColon (b1, b2, b3, b4, b5, b6, b7, b8) ) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_paren m_expr) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          (m_list m_stmt_and_def) a4 b4 >>= fun (a4, b4) ->
+          (m_list m_new_elseif) a5 b5 >>= fun (a5, b5) ->
+          (m_option m_new_else) a6 b6 >>= fun (a6, b6) ->
+          m_tok a7 b7 >>= fun (a7, b7) ->
+          m_tok a8 b8 >>= fun (a8, b8) ->
+          return
+            ( A.IfColon (a1, a2, a3, a4, a5, a6, a7, a8),
+              B.IfColon (b1, b2, b3, b4, b5, b6, b7, b8) )
+      | A.While (a1, a2, a3), B.While (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_paren m_expr) a2 b2 >>= fun (a2, b2) ->
+          m_colon_stmt a3 b3 >>= fun (a3, b3) ->
+          return (A.While (a1, a2, a3), B.While (b1, b2, b3))
+      | A.Do (a1, a2, a3, a4, a5), B.Do (b1, b2, b3, b4, b5) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_stmt a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          (m_paren m_expr) a4 b4 >>= fun (a4, b4) ->
+          m_tok a5 b5 >>= fun (a5, b5) ->
+          return (A.Do (a1, a2, a3, a4, a5), B.Do (b1, b2, b3, b4, b5))
+      | ( A.For (a1, a2, a3, a4, a5, a6, a7, a8, a9),
+          B.For (b1, b2, b3, b4, b5, b6, b7, b8, b9) ) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_for_expr a3 b3 >>= fun (a3, b3) ->
+          m_tok a4 b4 >>= fun (a4, b4) ->
+          m_for_expr a5 b5 >>= fun (a5, b5) ->
+          m_tok a6 b6 >>= fun (a6, b6) ->
+          m_for_expr a7 b7 >>= fun (a7, b7) ->
+          m_tok a8 b8 >>= fun (a8, b8) ->
+          m_colon_stmt a9 b9 >>= fun (a9, b9) ->
+          return
+            ( A.For (a1, a2, a3, a4, a5, a6, a7, a8, a9),
+              B.For (b1, b2, b3, b4, b5, b6, b7, b8, b9) )
+      | A.Switch (a1, a2, a3), B.Switch (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_paren m_expr) a2 b2 >>= fun (a2, b2) ->
+          m_switch_case_list a3 b3 >>= fun (a3, b3) ->
+          return (A.Switch (a1, a2, a3), B.Switch (b1, b2, b3))
+      | ( A.Foreach (a1, a2, a3, a4, a5, a6, a7, a8),
+          B.Foreach (b1, b2, b3, b4, b5, b6, b7, b8) ) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_expr a3 b3 >>= fun (a3, b3) ->
+          m_option m_tok a4 b4 >>= fun (a4, b4) ->
+          m_tok a5 b5 >>= fun (a5, b5) ->
+          m_foreach_pattern a6 b6 >>= fun (a6, b6) ->
+          m_tok a7 b7 >>= fun (a7, b7) ->
+          m_colon_stmt a8 b8 >>= fun (a8, b8) ->
+          return
+            ( A.Foreach (a1, a2, a3, a4, a5, a6, a7, a8),
+              B.Foreach (b1, b2, b3, b4, b5, b6, b7, b8) )
+      | A.Break (a1, a2, a3), B.Break (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_option m_expr) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.Break (a1, a2, a3), B.Break (b1, b2, b3))
+      | A.Continue (a1, a2, a3), B.Continue (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_option m_expr) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.Continue (a1, a2, a3), B.Continue (b1, b2, b3))
+      | A.Return (a1, a2, a3), B.Return (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_option m_expr) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.Return (a1, a2, a3), B.Return (b1, b2, b3))
+      | A.Throw (a1, a2, a3), B.Throw (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_expr a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.Throw (a1, a2, a3), B.Throw (b1, b2, b3))
+      | A.Try (a1, a2, a3, a4), B.Try (b1, b2, b3, b4) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_brace (m_list m_stmt_and_def)) a2 b2 >>= fun (a2, b2) ->
+          (m_list m_catch) a3 b3 >>= fun (a3, b3) ->
+          (m_list m_finally) a4 b4 >>= fun (a4, b4) ->
+          return (A.Try (a1, a2, a3, a4), B.Try (b1, b2, b3, b4))
+      | A.Echo (a1, a2, a3), B.Echo (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_comma_list m_expr) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.Echo (a1, a2, a3), B.Echo (b1, b2, b3))
+      | A.Globals (a1, a2, a3), B.Globals (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_comma_list m_global_var) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.Globals (a1, a2, a3), B.Globals (b1, b2, b3))
+      | A.StaticVars (a1, a2, a3), B.StaticVars (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_comma_list m_static_var) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.StaticVars (a1, a2, a3), B.StaticVars (b1, b2, b3))
+      | A.InlineHtml a1, B.InlineHtml b1 ->
+          (m_wrap m_string) a1 b1 >>= fun (a1, b1) ->
+          return (A.InlineHtml a1, B.InlineHtml b1)
+      | A.Use (a1, a2, a3), B.Use (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_use_filename a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.Use (a1, a2, a3), B.Use (b1, b2, b3))
+      | A.Unset (a1, a2, a3), B.Unset (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_paren (m_comma_list m_lvalue)) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          return (A.Unset (a1, a2, a3), B.Unset (b1, b2, b3))
+      | A.Declare (a1, a2, a3), B.Declare (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_paren (m_comma_list m_declare)) a2 b2 >>= fun (a2, b2) ->
+          m_colon_stmt a3 b3 >>= fun (a3, b3) ->
+          return (A.Declare (a1, a2, a3), B.Declare (b1, b2, b3))
+      | A.FuncDefNested _a1, B.FuncDefNested _b1 -> fail2 "FuncDefNested"
+      | A.ClassDefNested a1, B.ClassDefNested b1 ->
+          m_class_def a1 b1 >>= fun (a1, b1) ->
+          return (A.ClassDefNested a1, B.ClassDefNested b1)
       | A.ExprStmt _, _
       | A.EmptyStmt _, _
       | A.Block _, _
@@ -2362,167 +1447,118 @@ module PHP_VS_PHP =
       | A.Unset _, _
       | A.Declare _, _
       | A.FuncDefNested _, _
-      | A.ClassDefNested _, _
-        -> fail ()
-
+      | A.ClassDefNested _, _ ->
+          fail ()
 
     and m_stmt_and_def a b = m_stmt a b
 
     and m_colon_stmt a b =
-      match a, b with
-      | A.SingleStmt(a1), B.SingleStmt(b1) ->
-          m_stmt a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.SingleStmt(a1),
-              B.SingleStmt(b1)
-            )
-          )
-      | A.ColonStmt(a1, a2, a3, a4), B.ColonStmt(b1, b2, b3, b4) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_list m_stmt_and_def) a2 b2 >>= (fun (a2, b2) ->
-              m_tok a3 b3 >>= (fun (a3, b3) ->
-                m_tok a4 b4 >>= (fun (a4, b4) ->
-                  return (
-                    A.ColonStmt(a1, a2, a3, a4),
-                    B.ColonStmt(b1, b2, b3, b4)
-                  )
-                ))))
-      | A.SingleStmt _, _
-      | A.ColonStmt _, _
-        -> fail ()
+      match (a, b) with
+      | A.SingleStmt a1, B.SingleStmt b1 ->
+          m_stmt a1 b1 >>= fun (a1, b1) ->
+          return (A.SingleStmt a1, B.SingleStmt b1)
+      | A.ColonStmt (a1, a2, a3, a4), B.ColonStmt (b1, b2, b3, b4) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_list m_stmt_and_def) a2 b2 >>= fun (a2, b2) ->
+          m_tok a3 b3 >>= fun (a3, b3) ->
+          m_tok a4 b4 >>= fun (a4, b4) ->
+          return (A.ColonStmt (a1, a2, a3, a4), B.ColonStmt (b1, b2, b3, b4))
+      | A.SingleStmt _, _ | A.ColonStmt _, _ -> fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* stmt auxilaries *)
     (* ---------------------------------------------------------------------- *)
-
-    and m_foreach_pattern _a _b =
-      raise Todo
+    and m_foreach_pattern _a _b = raise Todo
 
     and m_foreach_variable a b =
-      match a, b with
+      match (a, b) with
       | (a1, a2), (b1, b2) ->
-          m_is_ref a1 b1 >>= (fun (a1, b1) ->
-            m_lvalue a2 b2 >>= (fun (a2, b2) ->
-              return (
-                (a1, a2),
-                (b1, b2)
-              )
-            ))
+          m_is_ref a1 b1 >>= fun (a1, b1) ->
+          m_lvalue a2 b2 >>= fun (a2, b2) -> return ((a1, a2), (b1, b2))
 
-    and m_is_ref a b =
-      m_option m_tok a b
+    and m_is_ref a b = m_option m_tok a b
 
-    and m_foreach_arrow _a _b =
-      fail2 "m_foreach_arrow"
+    and m_foreach_arrow _a _b = fail2 "m_foreach_arrow"
 
-    and m_if_elseif _a _b =
-      fail2 "m_if_elseif"
-    and m_if_else _a _b =
-      fail2 "m_if_else"
+    and m_if_elseif _a _b = fail2 "m_if_elseif"
 
-    and m_new_elseif _a _b =
-      fail2 "m_new_elseif"
-    and m_new_else _a _b =
-      fail2 "m_new_else"
+    and m_if_else _a _b = fail2 "m_if_else"
 
-    and m_for_expr _a _b =
-      fail2 "m_for_expr"
-    and m_switch_case_list _a _b =
-      fail2 "m_switch_case_list"
-    and m_case _a _b =
-      fail2 "m_case"
+    and m_new_elseif _a _b = fail2 "m_new_elseif"
 
-    and m_catch _a _b =
-      fail2 "m_catch"
-    and m_finally _a _b =
-      fail2 "m_finally"
-    and m_global_var _a _b =
-      fail2 "m_global_var"
-    and m_static_var _a _b =
-      fail2 "m_static_var"
-    and m_use_filename _a _b =
-      fail2 "m_use_filename"
-    and m_declare _a _b =
-      fail2 "m_declare"
+    and m_new_else _a _b = fail2 "m_new_else"
 
+    and m_for_expr _a _b = fail2 "m_for_expr"
+
+    and m_switch_case_list _a _b = fail2 "m_switch_case_list"
+
+    and m_case _a _b = fail2 "m_case"
+
+    and m_catch _a _b = fail2 "m_catch"
+
+    and m_finally _a _b = fail2 "m_finally"
+
+    and m_global_var _a _b = fail2 "m_global_var"
+
+    and m_static_var _a _b = fail2 "m_static_var"
+
+    and m_use_filename _a _b = fail2 "m_use_filename"
+
+    and m_declare _a _b = fail2 "m_declare"
 
     and m_modifiers x = m_list (m_wrap m_modifier) x
 
     and m_type a b = return (a, b)
 
-    and m_attributes _a _b =
-      raise Todo
+    and m_attributes _a _b = raise Todo
 
-    and m_xhp_children_decl _a _b =
-      raise Todo
+    and m_xhp_children_decl _a _b = raise Todo
 
     and m_hint_type a b =
-      match a, b with
-      | A.Hint(A.XName [A.QI (A.Name (name, info_name))], None), B.Hint(_, _)
-        when MV.is_metavar_name name ->
-
-          X.envf (name, info_name) (B.Hint2 b) >>= (function
-            | ((name, info_name), B.Hint2 (b)) ->
-                return (
-                  A.Hint(A.XName [A.QI (A.Name (name, info_name))], None),
-                  b
-                )
-            | _ -> raise Impossible
-          )
-      | A.Hint(a1, a2), B.Hint(b1, b2) ->
-          m_name a1 b1 >>= (fun (a1, b1) ->
-            m_option m_type_args a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.Hint(a1, a2),
-                B.Hint(b1, b2)
-              )))
-      | A.HintArray(a1), B.HintArray(b1) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.HintArray(a1),
-              B.HintArray(b1)
-            )
-          )
-      | A.HintQuestion(at,a1), B.HintQuestion(bt,b1) ->
-          (m_tok at bt) >>= (fun (at, bt) ->
-            (m_hint_type a1 b1) >>= (fun (a1, b1) ->
-              return (A.HintQuestion(at, a1), B.HintQuestion(bt, b1))
-            ))
-
+      match (a, b) with
+      | A.Hint (A.XName [ A.QI (A.Name (name, info_name)) ], None), B.Hint (_, _)
+        when MV.is_metavar_name name -> (
+          X.envf (name, info_name) (B.Hint2 b) >>= function
+          | (name, info_name), B.Hint2 b ->
+              return
+                (A.Hint (A.XName [ A.QI (A.Name (name, info_name)) ], None), b)
+          | _ -> raise Impossible )
+      | A.Hint (a1, a2), B.Hint (b1, b2) ->
+          m_name a1 b1 >>= fun (a1, b1) ->
+          m_option m_type_args a2 b2 >>= fun (a2, b2) ->
+          return (A.Hint (a1, a2), B.Hint (b1, b2))
+      | A.HintArray a1, B.HintArray b1 ->
+          m_tok a1 b1 >>= fun (a1, b1) -> return (A.HintArray a1, B.HintArray b1)
+      | A.HintQuestion (at, a1), B.HintQuestion (bt, b1) ->
+          m_tok at bt >>= fun (at, bt) ->
+          m_hint_type a1 b1 >>= fun (a1, b1) ->
+          return (A.HintQuestion (at, a1), B.HintQuestion (bt, b1))
       | A.HintTuple v1, B.HintTuple v2 ->
-          (m_paren (m_comma_list m_hint_type)) v1 v2 >>= (fun (v1, v2) ->
-            return (A.HintTuple v1, B.HintTuple v2))
-
-      | A.HintCallback (lp1, (tok1, args1, ret1), rp1),
-        B.HintCallback (lp2, (tok2, args2, ret2), rp2) ->
-          (m_tok lp1 lp2) >>= (fun (lp1, lp2) ->
-            (m_tok tok1 tok2) >>= (fun (tok1, tok2) ->
-              (m_paren (m_comma_list_dots m_hint_type)) args1 args2 >>= (fun (args1, args2) ->
-                (m_option m_hint_type_ret) ret1 ret2 >>= (fun (ret1, ret2) ->
-                  return (A.HintCallback (lp1, (tok1, args1, ret1), rp1),
-                          B.HintCallback (lp2, (tok2, args2, ret2), rp2))
-                ))))
-      | A.HintShape(a1, a2), B.HintShape(b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_paren (m_comma_list m_shape_field) a2 b2 >>= (fun (a2, b2) ->
-              return (A.HintShape(a1, a2),
-                      B.HintShape(b1, b2)
-                     )))
-      | A.HintTypeConst(a1, a2, a3), B.HintTypeConst(b1, b2, b3) ->
-          m_hint_type a1 b1 >>= (fun (a1, b1) ->
-            m_tok a2 b2 >>= (fun (a2, b2) ->
-              m_hint_type a3 b3 >>= (fun (a3, b3) ->
-                return (A.HintTypeConst(a1, a2, a3),
-                        B.HintTypeConst(b1, b2, b3)
-                       ))))
+          (m_paren (m_comma_list m_hint_type)) v1 v2 >>= fun (v1, v2) ->
+          return (A.HintTuple v1, B.HintTuple v2)
+      | ( A.HintCallback (lp1, (tok1, args1, ret1), rp1),
+          B.HintCallback (lp2, (tok2, args2, ret2), rp2) ) ->
+          m_tok lp1 lp2 >>= fun (lp1, lp2) ->
+          m_tok tok1 tok2 >>= fun (tok1, tok2) ->
+          (m_paren (m_comma_list_dots m_hint_type)) args1 args2
+          >>= fun (args1, args2) ->
+          (m_option m_hint_type_ret) ret1 ret2 >>= fun (ret1, ret2) ->
+          return
+            ( A.HintCallback (lp1, (tok1, args1, ret1), rp1),
+              B.HintCallback (lp2, (tok2, args2, ret2), rp2) )
+      | A.HintShape (a1, a2), B.HintShape (b1, b2) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_paren (m_comma_list m_shape_field) a2 b2 >>= fun (a2, b2) ->
+          return (A.HintShape (a1, a2), B.HintShape (b1, b2))
+      | A.HintTypeConst (a1, a2, a3), B.HintTypeConst (b1, b2, b3) ->
+          m_hint_type a1 b1 >>= fun (a1, b1) ->
+          m_tok a2 b2 >>= fun (a2, b2) ->
+          m_hint_type a3 b3 >>= fun (a3, b3) ->
+          return (A.HintTypeConst (a1, a2, a3), B.HintTypeConst (b1, b2, b3))
       | A.HintVariadic (a1, a2), B.HintVariadic (b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_option m_hint_type a2 b2 >>= (fun (a2, b2) ->
-              return (
-                A.HintVariadic (a1, a2),
-                B.HintVariadic (b1, b2)
-              )
-            ))
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_option m_hint_type a2 b2 >>= fun (a2, b2) ->
+          return (A.HintVariadic (a1, a2), B.HintVariadic (b1, b2))
       | A.Hint _, _
       | A.HintArray _, _
       | A.HintQuestion _, _
@@ -2530,220 +1566,142 @@ module PHP_VS_PHP =
       | A.HintCallback _, _
       | A.HintShape _, _
       | A.HintTypeConst _, _
-      | A.HintVariadic _, _
-        -> fail ()
+      | A.HintVariadic _, _ ->
+          fail ()
+
     and m_hint_type_ret (a1, a2, a3) (b1, b2, b3) =
-      m_tok a1 b1 >>= (fun (a1, b1) ->
-        (m_option m_tok) a2 b2 >>= (fun (a2, b2) ->
-          m_hint_type a3 b3 >>= (fun (a3, b3) ->
-            return ((a1, a2, a3), (b1, b2, b3))
-          )))
+      m_tok a1 b1 >>= fun (a1, b1) ->
+      (m_option m_tok) a2 b2 >>= fun (a2, b2) ->
+      m_hint_type a3 b3 >>= fun (a3, b3) -> return ((a1, a2, a3), (b1, b2, b3))
 
     and m_shape_field (a1, a2, a3) (b1, b2, b3) =
-      m_expr a1 b1 >>= (fun (a1, b1) ->
-        m_tok a2 b2 >>= (fun (a2, b2) ->
-          m_hint_type a3 b3 >>= (fun (a3, b3) ->
-            return ((a1, a2, a3), (b1, b2, b3))
-          )))
+      m_expr a1 b1 >>= fun (a1, b1) ->
+      m_tok a2 b2 >>= fun (a2, b2) ->
+      m_hint_type a3 b3 >>= fun (a3, b3) -> return ((a1, a2, a3), (b1, b2, b3))
 
     (* ------------------------------------------------------------------------- *)
     (* Class definition *)
     (* ------------------------------------------------------------------------- *)
-    and m_class_def _a _b =
-      fail2 "m_class_def"
+    and m_class_def _a _b = fail2 "m_class_def"
 
-    and m_interface_def _a _b =
-      fail2 "m_interface_def"
+    and m_interface_def _a _b = fail2 "m_interface_def"
 
-    and m_trait_def _a _b =
-      fail2 "m_trait_def"
+    and m_trait_def _a _b = fail2 "m_trait_def"
 
-    and m_method_def _a _b =
-      fail2 "m_method_def"
+    and m_method_def _a _b = fail2 "m_method_def"
 
     and m_class_constant a b =
-      match a, b with
+      match (a, b) with
       | (a1, a2), (b1, b2) ->
-          m_ident a1 b1 >>= (fun (a1, b1) ->
-            (m_option m_static_scalar_affect) a2 b2 >>= (fun (a2, b2) ->
-              return (
-                (a1, a2),
-                (b1, b2)
-              )
-            ))
+          m_ident a1 b1 >>= fun (a1, b1) ->
+          (m_option m_static_scalar_affect) a2 b2 >>= fun (a2, b2) ->
+          return ((a1, a2), (b1, b2))
 
     and m_class_stmt a b =
-      match a, b with
-      | A.ClassConstants(a0, a1, a2, a3, a4), B.ClassConstants(b0, b1, b2, b3, b4) ->
-          m_option m_tok a0 b0 >>= (fun (a0, b0) ->
-            m_tok a1 b1 >>= (fun (a1, b1) ->
-              (m_option m_hint_type) a2 b2 >>= (fun (a2, b2) ->
-                (m_comma_list m_class_constant) a3 b3 >>= (fun (a3, b3) ->
-                  m_tok a4 b4 >>= (fun (a4, b4) ->
-                    return (
-                      A.ClassConstants(a0, a1, a2, a3, a4),
-                      B.ClassConstants(b0, b1, b2, b3, b4)
-                    )
-                  )))))
-      | A.ClassVariables(a1, a2, a3, a4), B.ClassVariables(b1, b2, b3, b4) ->
-          m_class_var_modifier a1 b1 >>= (fun (a1, b1) ->
-            (m_option m_hint_type) a2 b2 >>= (fun (a2, b2) ->
-              (m_comma_list m_class_variable) a3 b3 >>= (fun (a3, b3) ->
-                m_tok a4 b4 >>= (fun (a4, b4) ->
-                  return (
-                    A.ClassVariables(a1, a2, a3, a4),
-                    B.ClassVariables(b1, b2, b3, b4)
-                  )
-                ))))
-      | A.Method(a1), B.Method(b1) ->
-          m_method_def a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.Method(a1),
-              B.Method(b1)
-            )
-          )
-      | A.XhpDecl(a1), B.XhpDecl(b1) ->
-          m_xhp_decl a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.XhpDecl(a1),
-              B.XhpDecl(b1)
-            )
-          )
-      | A.UseTrait(a1, a2, a3), B.UseTrait(b1, b2, b3) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            (m_comma_list m_hint_type) a2 b2 >>= (fun (a2, b2) ->
-              (m_either m_tok (m_brace (m_list m_trait_rule))) a3 b3 >>= (fun (a3, b3) ->
-                return (
-                  A.UseTrait(a1, a2, a3),
-                  B.UseTrait(b1, b2, b3)
-                )
-              )))
-
-      | A.TraitConstraint(a1, a2, a3, a4), B.TraitConstraint(b1, b2, b3, b4) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_wrap m_trait_constraint_kind a2 b2 >>= (fun (a2, b2) ->
-              m_hint_type a3 b3 >>= (fun (a3, b3) ->
-                m_tok a4 b4 >>= (fun (a4, b4) ->
-                  return (
-                    A.TraitConstraint(a1, a2, a3, a4),
-                    B.TraitConstraint(b1, b2, b3, b4)
-                  )
-                ))))
+      match (a, b) with
+      | ( A.ClassConstants (a0, a1, a2, a3, a4),
+          B.ClassConstants (b0, b1, b2, b3, b4) ) ->
+          m_option m_tok a0 b0 >>= fun (a0, b0) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_option m_hint_type) a2 b2 >>= fun (a2, b2) ->
+          (m_comma_list m_class_constant) a3 b3 >>= fun (a3, b3) ->
+          m_tok a4 b4 >>= fun (a4, b4) ->
+          return
+            ( A.ClassConstants (a0, a1, a2, a3, a4),
+              B.ClassConstants (b0, b1, b2, b3, b4) )
+      | A.ClassVariables (a1, a2, a3, a4), B.ClassVariables (b1, b2, b3, b4) ->
+          m_class_var_modifier a1 b1 >>= fun (a1, b1) ->
+          (m_option m_hint_type) a2 b2 >>= fun (a2, b2) ->
+          (m_comma_list m_class_variable) a3 b3 >>= fun (a3, b3) ->
+          m_tok a4 b4 >>= fun (a4, b4) ->
+          return
+            ( A.ClassVariables (a1, a2, a3, a4),
+              B.ClassVariables (b1, b2, b3, b4) )
+      | A.Method a1, B.Method b1 ->
+          m_method_def a1 b1 >>= fun (a1, b1) ->
+          return (A.Method a1, B.Method b1)
+      | A.XhpDecl a1, B.XhpDecl b1 ->
+          m_xhp_decl a1 b1 >>= fun (a1, b1) ->
+          return (A.XhpDecl a1, B.XhpDecl b1)
+      | A.UseTrait (a1, a2, a3), B.UseTrait (b1, b2, b3) ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          (m_comma_list m_hint_type) a2 b2 >>= fun (a2, b2) ->
+          (m_either m_tok (m_brace (m_list m_trait_rule))) a3 b3
+          >>= fun (a3, b3) ->
+          return (A.UseTrait (a1, a2, a3), B.UseTrait (b1, b2, b3))
+      | A.TraitConstraint (a1, a2, a3, a4), B.TraitConstraint (b1, b2, b3, b4)
+        ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_wrap m_trait_constraint_kind a2 b2 >>= fun (a2, b2) ->
+          m_hint_type a3 b3 >>= fun (a3, b3) ->
+          m_tok a4 b4 >>= fun (a4, b4) ->
+          return
+            ( A.TraitConstraint (a1, a2, a3, a4),
+              B.TraitConstraint (b1, b2, b3, b4) )
       | A.ClassType _, _
       | A.ClassConstants _, _
       | A.ClassVariables _, _
       | A.Method _, _
       | A.XhpDecl _, _
       | A.UseTrait _, _
-      | A.TraitConstraint _, _
-        -> fail ()
+      | A.TraitConstraint _, _ ->
+          fail ()
 
     and m_trait_rule = m_unit
 
     and m_trait_constraint_kind a b =
       match (a, b) with
-      | A.MustExtend, B.MustExtend
-      | A.MustImplement, B.MustImplement -> return (a, b)
+      | A.MustExtend, B.MustExtend | A.MustImplement, B.MustImplement ->
+          return (a, b)
       | _ -> fail ()
 
     and m_class_variable a b =
-      match a, b with
+      match (a, b) with
       | (a1, a2), (b1, b2) ->
-          m_dname a1 b1 >>= (fun (a1, b1) ->
-            (m_option m_static_scalar_affect) a2 b2 >>= (fun (a2, b2) ->
-              return (
-                (a1, a2),
-                (b1, b2)
-              )
-            ))
+          m_dname a1 b1 >>= fun (a1, b1) ->
+          (m_option m_static_scalar_affect) a2 b2 >>= fun (a2, b2) ->
+          return ((a1, a2), (b1, b2))
 
     and m_modifier a b =
-      match a, b with
-      | A.Public, B.Public ->
-          return (
-            A.Public,
-            B.Public
-          )
-      | A.Private, B.Private ->
-          return (
-            A.Private,
-            B.Private
-          )
-      | A.Protected, B.Protected ->
-          return (
-            A.Protected,
-            B.Protected
-          )
-      | A.Static, B.Static ->
-          return (
-            A.Static,
-            B.Static
-          )
-      | A.Abstract, B.Abstract ->
-          return (
-            A.Abstract,
-            B.Abstract
-          )
-      | A.Final, B.Final ->
-          return (
-            A.Final,
-            B.Final
-          )
-      | A.Async, B.Async ->
-          return (
-            A.Async,
-            B.Async
-          )
+      match (a, b) with
+      | A.Public, B.Public -> return (A.Public, B.Public)
+      | A.Private, B.Private -> return (A.Private, B.Private)
+      | A.Protected, B.Protected -> return (A.Protected, B.Protected)
+      | A.Static, B.Static -> return (A.Static, B.Static)
+      | A.Abstract, B.Abstract -> return (A.Abstract, B.Abstract)
+      | A.Final, B.Final -> return (A.Final, B.Final)
+      | A.Async, B.Async -> return (A.Async, B.Async)
       | A.Public, _
       | A.Private, _
       | A.Protected, _
       | A.Static, _
       | A.Abstract, _
       | A.Final, _
-      | A.Async, _
-        -> fail ()
+      | A.Async, _ ->
+          fail ()
 
     and m_class_var_modifier a b =
-      match a, b with
-      | A.NoModifiers(a1), B.NoModifiers(b1) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.NoModifiers(a1),
-              B.NoModifiers(b1)
-            )
-          )
-      | A.VModifiers(a1), B.VModifiers(b1) ->
-          (m_list (m_wrap m_modifier)) a1 b1 >>= (fun (a1, b1) ->
-            return (
-              A.VModifiers(a1),
-              B.VModifiers(b1)
-            )
-          )
-      | A.NoModifiers _, _
-      | A.VModifiers _, _
-        -> fail ()
+      match (a, b) with
+      | A.NoModifiers a1, B.NoModifiers b1 ->
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          return (A.NoModifiers a1, B.NoModifiers b1)
+      | A.VModifiers a1, B.VModifiers b1 ->
+          (m_list (m_wrap m_modifier)) a1 b1 >>= fun (a1, b1) ->
+          return (A.VModifiers a1, B.VModifiers b1)
+      | A.NoModifiers _, _ | A.VModifiers _, _ -> fail ()
 
     (* ------------------------------------------------------------------------- *)
     (* Other declarations *)
     (* ------------------------------------------------------------------------- *)
+    and m_xhp_decl _a _b = fail2 "m_xhp_decl"
 
-    and m_xhp_decl _a _b =
-      fail2 "m_xhp_decl"
-
-    and m_xhp_attribute_decl _a _b =
-      fail2 "m_xhp_decl"
+    and m_xhp_attribute_decl _a _b = fail2 "m_xhp_decl"
 
     and m_static_scalar a b = m_expr a b
 
     and m_static_scalar_affect a b =
-      match a, b with
+      match (a, b) with
       | (a1, a2), (b1, b2) ->
-          m_tok a1 b1 >>= (fun (a1, b1) ->
-            m_static_scalar a2 b2 >>= (fun (a2, b2) ->
-              return (
-                (a1, a2),
-                (b1, b2)
-              )
-            ))
-
+          m_tok a1 b1 >>= fun (a1, b1) ->
+          m_static_scalar a2 b2 >>= fun (a2, b2) -> return ((a1, a2), (b1, b2))
   end

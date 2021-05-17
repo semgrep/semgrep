@@ -11,50 +11,62 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
-*)
+ *)
 open Common
 open Ast_json
 module M = Map_AST
-
 module G = AST_generic
 
 let expr x =
   let e = Js_to_generic.expr x in
 
-  let visitor = M.mk_visitor {
-    M.default_visitor with
-    M.kexpr = (fun (k, _) e ->
-      (* apply on children *)
-      let e = k e in
-      match e with
-      | Record (lp, xs, rp) ->
-          let ys = xs |> List.map (function
-            | G.FieldStmt
-                ({s = G.DefStmt ({G.name = G.EN (G.Id (id, _)); _},
-                                 FieldDefColon ({vinit = Some e; _})); _}) ->
-                Left (id, e)
-            | G.FieldStmt ({s = ExprStmt ((Ellipsis t), _); _}) ->
-                Right t
-            | x -> failwith (spf "not a JSON field: %s" (G.show_field x))
-          ) in
-          let zs = ys |> List.map (function
-            | Left (id, e) -> G.Tuple (G.fake_bracket [G.L (G.String id); e])
-            | Right t -> G.Ellipsis t
-          ) in
-          G.Container (G.Dict, (lp, zs, rp))
-      | x -> x
-    );
-  } in
+  let visitor =
+    M.mk_visitor
+      {
+        M.default_visitor with
+        M.kexpr =
+          (fun (k, _) e ->
+            (* apply on children *)
+            let e = k e in
+            match e with
+            | Record (lp, xs, rp) ->
+                let ys =
+                  xs
+                  |> List.map (function
+                       | G.FieldStmt
+                           {
+                             s =
+                               G.DefStmt
+                                 ( { G.name = G.EN (G.Id (id, _)); _ },
+                                   FieldDefColon { vinit = Some e; _ } );
+                             _;
+                           } ->
+                           Left (id, e)
+                       | G.FieldStmt { s = ExprStmt (Ellipsis t, _); _ } ->
+                           Right t
+                       | x ->
+                           failwith
+                             (spf "not a JSON field: %s" (G.show_field x)))
+                in
+                let zs =
+                  ys
+                  |> List.map (function
+                       | Left (id, e) ->
+                           G.Tuple (G.fake_bracket [ G.L (G.String id); e ])
+                       | Right t -> G.Ellipsis t)
+                in
+                G.Container (G.Dict, (lp, zs, rp))
+            | x -> x);
+      }
+  in
   visitor.M.vexpr e
 
 let program ast =
   let e = expr ast in
-  [G.exprstmt e]
-
+  [ G.exprstmt e ]
 
 let any x =
   match x with
-  | E e ->
-      G.E (expr e)
+  | E e -> G.E (expr e)
   | PartialSingleField (v1, v2, v3) ->
       G.Partial (G.PartialSingleField (v1, v2, expr v3))
