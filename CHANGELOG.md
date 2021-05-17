@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+- C# alpha support
+
 ### Fixed
 
 - OCaml: fix useless-else false positives by generating appropriate AST for
