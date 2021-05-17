@@ -272,7 +272,7 @@ let just_parse_with_lang lang file =
       run file
         [
           Pfff (throw_tokens Parse_ml.parse);
-          TreeSitter Parse_ocaml_tree_sitter.parse;
+          (* TODO TreeSitter Parse_ocaml_tree_sitter.parse; *)
         ]
         Ml_to_generic.program
   | Lang.PHP ->
