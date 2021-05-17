@@ -9,15 +9,18 @@ import semgrep.semgrep_main
 import semgrep.test
 from semgrep import __VERSION__
 from semgrep.bytesize import parse_size
+from semgrep.constants import ADJUST_FOR_DOCKER
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
+from semgrep.constants import DEFAULT_TARGET
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
 from semgrep.constants import RCE_RULE_FLAG
+from semgrep.constants import SEMGREP_SRC_DIRECTORY
 from semgrep.constants import SEMGREP_URL
 from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
@@ -46,7 +49,7 @@ def cli() -> None:
     parser.add_argument(
         "target",
         nargs="*",
-        default=[os.curdir],
+        default=DEFAULT_TARGET,
         help=(
             "Search these files or directories. Defaults to entire current "
             "working directory. Implied argument if piping to semgrep."
@@ -446,13 +449,6 @@ def cli() -> None:
     # set the flags
     semgrep.util.set_flags(args.debug, args.quiet, args.force_color)
 
-    # change cwd if using docker
-    try:
-        semgrep.config_resolver.adjust_for_docker()
-    except SemgrepError as e:
-        logger.exception(str(e))
-        raise e
-
     output_format = OutputFormat.TEXT
     if args.json or args.json_time or args.debugging_json:
         output_format = OutputFormat.JSON
@@ -490,10 +486,15 @@ def cli() -> None:
         # uses managed_output internally
         semgrep.test.test_main(args)
 
+    if args.target == DEFAULT_TARGET and ADJUST_FOR_DOCKER:
+        target = [str(SEMGREP_SRC_DIRECTORY)]
+    else:
+        target = args.target
+
     # The 'optional_stdin_target' context manager must remain before
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
-    with optional_stdin_target(args.target) as target, managed_output(
+    with optional_stdin_target(target) as target, managed_output(
         output_settings
     ) as output_handler:
         if args.dump_ast:
