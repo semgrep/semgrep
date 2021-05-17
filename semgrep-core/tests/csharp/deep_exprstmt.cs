@@ -2,7 +2,7 @@ using System;
 
 class HelloWorldFuncCall
 {
-    public static void Main()
+    public static string Test()
     {
         //ERROR:
         StaticMethod();
@@ -19,6 +19,9 @@ class HelloWorldFuncCall
             //ERROR:
             throw new NullReferenceException(StaticMethod());
         }
+
+	//ERROR:
+	return StaticMethod();
     }
 
     private static string StaticMethod()
