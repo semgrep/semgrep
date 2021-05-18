@@ -1,4 +1,4 @@
-(*s: semgrep/matching/Semgrep_generic.ml *)
+(*s: semgrep/engine/Match_patterns.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
@@ -450,4 +450,4 @@ let check ~hook config a b c =
   Common.profile_code "Semgrep_generic.check" (fun () ->
       check2 ~hook config a b c)
 
-(*e: semgrep/matching/Semgrep_generic.ml *)
+(*e: semgrep/engine/Match_patterns.ml *)

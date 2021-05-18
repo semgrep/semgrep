@@ -1,4 +1,4 @@
-(*s: semgrep/matching/Semgrep_generic.mli *)
+(*s: semgrep/engine/Match_patterns.mli *)
 
 (*s: signature [[Semgrep_generic.check]] *)
 val check :
@@ -30,4 +30,4 @@ val match_any_any : (AST_generic.any, AST_generic.any) Matching_generic.matcher
 
 (*e: signature [[Semgrep_generic.match_any_any]] *)
 
-(*e: semgrep/matching/Semgrep_generic.mli *)
+(*e: semgrep/engine/Match_patterns.mli *)

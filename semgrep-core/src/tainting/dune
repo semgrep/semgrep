@@ -10,6 +10,7 @@
 
    semgrep_core
    semgrep_matching
+   semgrep_engine ; just for match_e_e
  )
  (preprocess (pps ppx_profiling))
 )

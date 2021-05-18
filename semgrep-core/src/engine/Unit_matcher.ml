@@ -1,4 +1,4 @@
-(*s: semgrep/matching/Unit_matcher.ml *)
+(*s: semgrep/engine/Unit_matcher.ml *)
 open Common
 open OUnit
 
@@ -116,7 +116,7 @@ let unittest ~any_gen_of_string =
            let config = Config_semgrep.default_config in
            let env = Matching_generic.empty_environment cache config in
            let matches_with_env =
-             Semgrep_generic.match_any_any pattern code env
+             Match_patterns.match_any_any pattern code env
            in
            if should_match then
              assert_bool
@@ -130,4 +130,4 @@ let unittest ~any_gen_of_string =
            failwith (spf "problem parsing %s or %s" spattern scode))
 
 (*e: function [[Unit_matcher.unittest]] *)
-(*e: semgrep/matching/Unit_matcher.ml *)
+(*e: semgrep/engine/Unit_matcher.ml *)

@@ -213,7 +213,7 @@ let unittest =
                             Matching_generic.empty_environment None
                               Config_semgrep.default_config
                           in
-                          Semgrep_generic.match_any_any pattern code env
+                          Match_patterns.match_any_any pattern code env
                         in
                         (* Debugging note: uses pattern_to_string for convenience,
                          * but really should match the code in the given file at

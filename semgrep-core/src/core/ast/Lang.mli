@@ -33,6 +33,8 @@ type t =
   | Yaml
 
 (*e: type [[Lang.t]] *)
+
+(* from deriving eq *)
 val pp : Format.formatter -> t -> unit
 
 val show : t -> string

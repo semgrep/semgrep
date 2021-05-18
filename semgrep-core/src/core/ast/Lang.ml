@@ -61,7 +61,9 @@ type t =
   (* config files *)
   | JSON
   | Yaml
+
 (*e: type [[Lang.t]] *)
+[@@ocamlformat "disable"]
 [@@deriving show, eq]
 
 let is_js = function Javascript | Typescript -> true | _ -> false

@@ -651,7 +651,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                 *)
                | (Timeout | Out_of_memory) as exn ->
                    let str_opt =
-                     match !Semgrep_generic.last_matched_rule with
+                     match !Match_patterns.last_matched_rule with
                      | None -> None
                      | Some rule ->
                          logger#info "critical exn while matching ruleid %s"
@@ -716,7 +716,7 @@ let semgrep_with_rules lang (rules, rule_parse_time) files_or_dirs =
                  let rules =
                    rules |> List.filter (fun r -> List.mem lang r.MR.languages)
                  in
-                 ( Semgrep_generic.check
+                 ( Match_patterns.check
                      ~hook:(fun _ _ -> ())
                      Config_semgrep.default_config rules (parse_equivalences ())
                      (file, lang, ast),
@@ -814,7 +814,7 @@ let semgrep_with_real_rules (rules, rule_parse_time) files_or_dirs =
                    failwith "requesting generic AST for LNone|LGeneric" )
            in
            let res =
-             Semgrep.check hook Config_semgrep.default_config rules
+             Match_rules.check hook Config_semgrep.default_config rules
                (file, xlang, lazy_ast_and_errors)
            in
            RP.add_file file res)
@@ -935,7 +935,7 @@ let semgrep_with_one_pattern lang xs =
                    let ast, errors = parse_generic lang file in
                    if errors <> [] then
                      pr2 (spf "WARNING: fail to fully parse %s" file);
-                   Semgrep_generic.check
+                   Match_patterns.check
                      ~hook:(fun env matched_tokens ->
                        let xs = Lazy.force matched_tokens in
                        print_match !mvars env Metavariable.ii_of_mval xs)
