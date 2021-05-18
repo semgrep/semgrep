@@ -88,6 +88,8 @@
  *    https://doc.bblf.sh/uast/uast-specification-v2.html
  *  - Coverity common program representation?
  *  - Semmle internal common representation?
+ *  - Sonarcube generic language
+ *    https://github.com/SonarSource/slang
  *  - Infer SIL (for C++, Java, Objective-C)
  *  - Dawson Engler and Fraser Brown micro-checkers for multiple languages
  *  - Lightweight Multi-language syntax transformation paper, but does not
@@ -1239,11 +1241,11 @@ and other_type_argument_operator =
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
-(* a.k.a decorators, annotations *)
 (*s: type [[AST_generic.attribute]] *)
 and attribute =
+  (* a.k.a modifiers *)
   | KeywordAttr of keyword_attribute wrap
-  (* for general @annotations. *)
+  (* a.k.a decorators, annotations *)
   | NamedAttr of tok (* @ *) * name * arguments bracket
   (*s: [[AST_generic.attribute]] OtherXxx case *)
   | OtherAttribute of other_attribute_operator * any list

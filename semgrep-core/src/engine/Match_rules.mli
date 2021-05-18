@@ -1,4 +1,4 @@
-(*s: semgrep/engine/Semgrep.mli *)
+(*s: semgrep/engine/Match_rules.mli *)
 
 (*
    Return matches, errors, match time.
@@ -10,4 +10,4 @@ val check :
   Common.filename * Rule.xlang * (Target.t * Error_code.error list) Lazy.t ->
   Report.times Report.match_result
 
-(*e: semgrep/engine/Semgrep.mli *)
+(*e: semgrep/engine/Match_rules.mli *)
