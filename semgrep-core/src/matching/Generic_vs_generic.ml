@@ -1000,9 +1000,12 @@ and m_compatible_type typed_mvar t e =
       m_type_ t (A.TyPointer (t1, TyBuiltin ("char", tok))) >>= fun () ->
       envf typed_mvar (MV.E e)
   (* for matching ids *)
+  | ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
+      (* NOTE: Name values must be represented with MV.Id! *)
+      m_type_option_with_hook idb (Some ta) !tb >>= fun () ->
+      envf typed_mvar (MV.Id (idb, Some id_infob))
   | ( ta,
-      ( B.N (B.Id (idb, { B.id_type = tb; _ }))
-      | B.N (B.IdQualified ((idb, _), { B.id_type = tb; _ }))
+      ( B.N (B.IdQualified ((idb, _), { B.id_type = tb; _ }))
       | B.DotAccess
           (IdSpecial (This, _), _, EN (Id (idb, { B.id_type = tb; _ }))) ) ) ->
       m_type_option_with_hook idb (Some ta) !tb >>= fun () ->
