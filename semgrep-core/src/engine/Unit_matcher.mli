@@ -1,4 +1,4 @@
-(*s: semgrep/matching/Unit_matcher.mli *)
+(*s: semgrep/engine/Unit_matcher.mli *)
 
 (*s: signature [[Unit_matcher.unittest]] *)
 (* Returns the testsuite for this directory To be concatenated by
@@ -8,4 +8,4 @@
 val unittest : any_gen_of_string:(string -> AST_generic.any) -> OUnit.test
 
 (*e: signature [[Unit_matcher.unittest]] *)
-(*e: semgrep/matching/Unit_matcher.mli *)
+(*e: semgrep/engine/Unit_matcher.mli *)

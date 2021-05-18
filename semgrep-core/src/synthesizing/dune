@@ -11,6 +11,7 @@
    semgrep_core
    semgrep_parsing
    semgrep_matching
+   semgrep_engine ; just for match_any_any
  )
  (preprocess (pps ppx_profiling))
 )

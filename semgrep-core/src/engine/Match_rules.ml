@@ -1,4 +1,4 @@
-(*s: semgrep/engine/Semgrep.ml *)
+(*s: semgrep/engine/Match_rules.ml *)
 (*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
@@ -36,12 +36,12 @@ let debug_matches = ref false
 (* The core engine of Semgrep.
  *
  * This module implements the boolean composition of patterns.
- * See Semgrep_generic.ml for the code to handle a single pattern and
+ * See Match_patterns.ml for the code to handle a single pattern and
  * the visitor/matching engine.
  *
  * Thus, we can decompose the engine in 3 main components:
  *  - composing matching results using boolean/set logic (this file)
- *  - visiting code (=~ Semgrep_generic.ml)
+ *  - visiting code (=~ Match_patterns.ml)
  *  - matching code (=~ Generic_vs_generic.ml)
  *
  * There are also "preprocessing" work before that:
@@ -375,7 +375,7 @@ let debug_semgrep config mini_rules equivalences file lang ast =
   |> List.map (fun mr ->
          logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
          let res =
-           Semgrep_generic.check
+           Match_patterns.check
              ~hook:(fun _ _ -> ())
              config [ mr ] equivalences (file, lang, ast)
          in
@@ -537,7 +537,7 @@ let matches_of_xpatterns config orig_rule
                 ( debug_semgrep config mini_rules equivalences file lang ast,
                   errors ) (* regular path *)
               else
-                ( Semgrep_generic.check
+                ( Match_patterns.check
                     ~hook:(fun _ _ -> ())
                     config mini_rules equivalences (file, lang, ast),
                   errors ))
@@ -718,7 +718,7 @@ let check hook config rules file_and_more =
                  matches =
                    final_ranges
                    |> List.map (range_to_pattern_match_adjusted r)
-                   (* dedup similar findings (we do that also in Semgrep_generic.ml,
+                   (* dedup similar findings (we do that also in Match_patterns.ml,
                     * but different mini-rules matches can now become the same match)
                     *)
                    |> Common.uniq_by (AST_utils.with_structural_equal PM.equal)
@@ -733,4 +733,4 @@ let check hook config rules file_and_more =
   |> RP.collate_semgrep_results
   [@@profiling]
 
-(*e: semgrep/engine/Semgrep.ml *)
+(*e: semgrep/engine/Match_rules.ml *)

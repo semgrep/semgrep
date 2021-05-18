@@ -117,7 +117,7 @@ let regression_tests_for_lang ~with_caching files lang =
      else []
     in
     Common.save_excursion Flag_semgrep.with_opt_cache with_caching (fun() ->
-     Semgrep_generic.check
+     Match_patterns.check
        ~hook:(fun _env matched_tokens ->
        (* there are a few fake tokens in the generic ASTs now (e.g., 
         * for DotAccess generated outside the grammar) *)
@@ -404,7 +404,7 @@ let lint_regression_tests ~with_caching =
     let { Parse_target. ast; _} = 
         Parse_target.just_parse_with_lang lang file in
     Common.save_excursion Flag_semgrep.with_opt_cache with_caching (fun() ->
-      Semgrep_generic.check ~hook:(fun _ _ -> ())
+      Match_patterns.check ~hook:(fun _ _ -> ())
          Config_semgrep.default_config
          rules equivs 
          (file, lang, ast)

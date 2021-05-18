@@ -651,7 +651,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                 *)
                | (Timeout | Out_of_memory) as exn ->
                    let str_opt =
-                     match !Semgrep_generic.last_matched_rule with
+                     match !Match_patterns.last_matched_rule with
                      | None -> None
                      | Some rule ->
                          logger#info "critical exn while matching ruleid %s"
@@ -702,7 +702,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
  * files or dirs.
  *)
 (*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
-let semgrep_with_rules lang (rules, rule_parse_time) files_or_dirs =
+let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
   let files = get_final_files lang files_or_dirs in
   logger#info "processing %d files" (List.length files);
   let file_results =
@@ -716,7 +716,7 @@ let semgrep_with_rules lang (rules, rule_parse_time) files_or_dirs =
                  let rules =
                    rules |> List.filter (fun r -> List.mem lang r.MR.languages)
                  in
-                 ( Semgrep_generic.check
+                 ( Match_patterns.check
                      ~hook:(fun _ _ -> ())
                      Config_semgrep.default_config rules (parse_equivalences ())
                      (file, lang, ast),
@@ -759,7 +759,7 @@ let semgrep_with_rules lang (rules, rule_parse_time) files_or_dirs =
 
 (*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
 
-let semgrep_with_rules_file lang rules_file files_or_dirs =
+let semgrep_with_patterns_file lang rules_file files_or_dirs =
   try
     (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     logger#info "Parsing %s" rules_file;
@@ -767,7 +767,7 @@ let semgrep_with_rules_file lang rules_file files_or_dirs =
     let timed_rules =
       Common.with_time (fun () -> Parse_mini_rule.parse rules_file)
     in
-    semgrep_with_rules lang timed_rules files_or_dirs;
+    semgrep_with_patterns lang timed_rules files_or_dirs;
     if !profile then save_rules_file_in_tmp ()
   with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
@@ -781,7 +781,7 @@ let semgrep_with_rules_file lang rules_file files_or_dirs =
 (* Semgrep -config *)
 (*****************************************************************************)
 
-let semgrep_with_real_rules (rules, rule_parse_time) files_or_dirs =
+let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
   (* todo: at some point we should infer the lang from the rules and
    * apply different rules with different languages and different files
    * automatically, like the semgrep python wrapper.
@@ -814,7 +814,7 @@ let semgrep_with_real_rules (rules, rule_parse_time) files_or_dirs =
                    failwith "requesting generic AST for LNone|LGeneric" )
            in
            let res =
-             Semgrep.check hook Config_semgrep.default_config rules
+             Match_rules.check hook Config_semgrep.default_config rules
                (file, xlang, lazy_ast_and_errors)
            in
            RP.add_file file res)
@@ -850,13 +850,13 @@ let semgrep_with_real_rules (rules, rule_parse_time) files_or_dirs =
       (* pr (spf "number of errors: %d" (List.length errs)); *)
       errors |> List.iter (fun err -> pr (E.string_of_error err))
 
-let semgrep_with_real_rules_file rules_file files_or_dirs =
+let semgrep_with_rules_file rules_file files_or_dirs =
   try
     logger#info "Parsing %s" rules_file;
     let timed_rules =
       Common.with_time (fun () -> Parse_rule.parse rules_file)
     in
-    semgrep_with_real_rules timed_rules files_or_dirs
+    semgrep_with_rules timed_rules files_or_dirs
   with exn when !output_format = Json ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     let json = JSON_report.json_of_exn exn in
@@ -917,7 +917,7 @@ let semgrep_with_one_pattern lang xs =
   match !output_format with
   | Json ->
       (* closer to -rules_file, but no incremental match output *)
-      semgrep_with_rules lang (rule, rule_parse_time) xs
+      semgrep_with_patterns lang (rule, rule_parse_time) xs
   | Text ->
       (* simpler code path than in semgrep_with_rules *)
       let files = Lang.files_of_dirs_or_files lang xs in
@@ -935,7 +935,7 @@ let semgrep_with_one_pattern lang xs =
                    let ast, errors = parse_generic lang file in
                    if errors <> [] then
                      pr2 (spf "WARNING: fail to fully parse %s" file);
-                   Semgrep_generic.check
+                   Match_patterns.check
                      ~hook:(fun env matched_tokens ->
                        let xs = Lazy.force matched_tokens in
                        print_match !mvars env Metavariable.ii_of_mval xs)
@@ -1514,11 +1514,11 @@ let main () =
       | x :: xs -> (
           match () with
           | _ when !config_file <> "" ->
-              semgrep_with_real_rules_file !config_file (x :: xs)
+              semgrep_with_rules_file !config_file (x :: xs)
           (*s: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !rules_file <> "" ->
               let lang = lang_of_string !lang in
-              semgrep_with_rules_file lang !rules_file (x :: xs)
+              semgrep_with_patterns_file lang !rules_file (x :: xs)
           (*x: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !tainting_rules_file <> "" ->
               let lang = lang_of_string !lang in
@@ -1536,7 +1536,7 @@ let main () =
       (* TODO: should not need that, semgrep should not call us when there
        * are no files to process. *)
       | [] when !target_file <> "" && !config_file <> "" ->
-          semgrep_with_real_rules_file !config_file []
+          semgrep_with_rules_file !config_file []
       | [] -> Common.usage usage_msg (options ()))
 
 (*e: function [[Main_semgrep_core.main]] *)

@@ -76,7 +76,7 @@ let match_pat_eorig pat =
         let env =
           Matching_generic.empty_environment None Config_semgrep.default_config
         in
-        let matches_with_env = Semgrep_generic.match_e_e rule pat eorig env in
+        let matches_with_env = Match_patterns.match_e_e rule pat eorig env in
         matches_with_env <> []
 
 let match_pat_exp pat exp =
