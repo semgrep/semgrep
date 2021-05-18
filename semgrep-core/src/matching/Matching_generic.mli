@@ -124,16 +124,11 @@ val m_option : 'a matcher -> 'a option matcher
 (*e: signature [[Matching_generic.m_option]] *)
 (*s: signature [[Matching_generic.m_option_ellipsis_ok]] *)
 val m_option_ellipsis_ok :
-  (AST_generic.expr -> 'a -> tin -> tout) ->
-  AST_generic.expr option ->
-  'a option ->
-  tin ->
-  tout
+  AST_generic.expr matcher -> AST_generic.expr option matcher
 
 (*e: signature [[Matching_generic.m_option_ellipsis_ok]] *)
 (*s: signature [[Matching_generic.m_option_none_can_match_some]] *)
-val m_option_none_can_match_some :
-  ('a -> 'b -> tin -> tout) -> 'a option -> 'b option -> tin -> tout
+val m_option_none_can_match_some : 'a matcher -> 'a option matcher
 
 (*e: signature [[Matching_generic.m_option_none_can_match_some]] *)
 
@@ -176,40 +171,32 @@ val string_is_prefix : string -> string -> bool
 
 (*e: signature [[Matching_generic.string_is_prefix]] *)
 (*s: signature [[Matching_generic.m_string_prefix]] *)
-val m_string_prefix : string -> string -> tin -> tout
+val m_string_prefix : string matcher
 
 (*e: signature [[Matching_generic.m_string_prefix]] *)
 val m_string_ellipsis_or_regexp_or_default :
-  ?m_string_for_default:string matcher -> string -> string -> tin -> tout
+  ?m_string_for_default:string matcher -> string matcher
 
 (*s: signature [[Matching_generic.m_info]] *)
-val m_info : 'a -> 'b -> tin -> tout
+val m_info : Parse_info.t matcher
 
 (*e: signature [[Matching_generic.m_info]] *)
 (*s: signature [[Matching_generic.m_tok]] *)
-val m_tok : 'a -> 'b -> tin -> tout
+val m_tok : Parse_info.t matcher
 
 (*e: signature [[Matching_generic.m_tok]] *)
 (*s: signature [[Matching_generic.m_wrap]] *)
-val m_wrap : ('a -> 'b -> tin -> tout) -> 'a * 'c -> 'b * 'd -> tin -> tout
+val m_wrap : 'a matcher -> 'a AST_generic.wrap matcher
 
 (*e: signature [[Matching_generic.m_wrap]] *)
 (*s: signature [[Matching_generic.m_bracket]] *)
-val m_bracket :
-  ('a -> 'b -> tin -> tout) -> 'c * 'a * 'd -> 'e * 'b * 'f -> tin -> tout
+val m_bracket : 'a matcher -> 'a AST_generic.bracket matcher
 
 (*e: signature [[Matching_generic.m_bracket]] *)
-val m_tuple3 :
-  ('a -> 'b -> tin -> tout) ->
-  ('c -> 'd -> tin -> tout) ->
-  ('e -> 'f -> tin -> tout) ->
-  'a * 'c * 'e ->
-  'b * 'd * 'f ->
-  tin ->
-  tout
+val m_tuple3 : 'a matcher -> 'b matcher -> 'c matcher -> ('a * 'b * 'c) matcher
 
 (*s: signature [[Matching_generic.m_other_xxx]] *)
-val m_other_xxx : 'a -> 'a -> tin -> tout
+val m_other_xxx : 'a matcher
 
 (*e: signature [[Matching_generic.m_other_xxx]] *)
 (*e: semgrep/matching/Matching_generic.mli *)
