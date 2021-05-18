@@ -31,6 +31,7 @@ exception UnexpectedCase of string
 type named_variants = (string * Pattern.t) list
 
 type environment = {
+  config : Config_semgrep.t;
   count : int;
   mapping : (expr * expr) list;
   has_type : bool;
@@ -46,7 +47,8 @@ let lookup env e =
   let rec look = function
     | [] -> None
     | (e1, e2) :: xs ->
-        if Matching_generic.equal_ast_binded_code (E e) (E e1) then Some e2
+        if Matching_generic.equal_ast_binded_code env.config (E e) (E e1) then
+          Some e2
         else look xs
   in
   look mapping
@@ -107,12 +109,15 @@ let get_id ?(with_type = false) env e =
           | L (String (_, tag)) -> (L (String ("...", tag)), false)
           | _ -> (notype_id, has_type)
       in
-      ( {
+      let env' =
+        {
+          env with
           count = env.count + 1;
           mapping = (e, new_id) :: env.mapping;
           has_type = new_has_type;
-        },
-        new_id )
+        }
+      in
+      (env', new_id)
 
 let has_nested_call =
   List.find_opt (fun x -> match x with Arg (Call _) -> true | _ -> false)
@@ -360,11 +365,11 @@ and generalize_any a env =
   | S s -> generalize_stmt s env
   | _ -> []
 
-let generalize a =
-  generalize_any a { count = 1; mapping = []; has_type = false }
+let generalize config a =
+  generalize_any a { config; count = 1; mapping = []; has_type = false }
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let from_any a = ("exact match", a) :: generalize a
+let from_any config a = ("exact match", a) :: generalize config a

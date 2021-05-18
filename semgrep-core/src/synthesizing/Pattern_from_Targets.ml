@@ -45,7 +45,12 @@ exception UnsupportedTargetType
  *)
 type stage = DONE | ANY of any | LN (* literal name *) of any
 
-type env = { prev : any; count : int; mapping : (expr * expr) list }
+type env = {
+  config : Config_semgrep.t;
+  prev : any;
+  count : int;
+  mapping : (expr * expr) list;
+}
 
 (* Each target comes with a list of patterns : pattern_instrs *)
 (* A pattern needs to keep track of its environment (env), the pattern (any), *
@@ -108,7 +113,8 @@ let lookup env e =
   let rec look = function
     | [] -> None
     | (e1, e2) :: xs ->
-        if Matching_generic.equal_ast_binded_code (E e) (E e1) then Some e2
+        if Matching_generic.equal_ast_binded_code env.config (E e) (E e1) then
+          Some e2
         else look xs
   in
   look mapping
@@ -149,12 +155,10 @@ let get_id env e =
   | None ->
       let notype_id = default_id (count_to_id env.count) in
       let new_id = notype_id in
-      ( {
-          count = env.count + 1;
-          mapping = (e, new_id) :: env.mapping;
-          prev = env.prev;
-        },
-        new_id )
+      let env' =
+        { env with count = env.count + 1; mapping = (e, new_id) :: env.mapping }
+      in
+      (env', new_id)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -170,8 +174,7 @@ let add_patterns s patterns =
 
 let lookup_pattern pattern s = Set.mem (p_any pattern) s
 
-let set_prev { prev = _; count; mapping } prev' =
-  { prev = prev'; count; mapping }
+let set_prev env prev' = { env with prev = prev' }
 
 (*****************************************************************************)
 (* Pattern generation *)
@@ -441,23 +444,19 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
 (* Entry point *)
 (*****************************************************************************)
 
-let generate_patterns s lang =
+let generate_patterns config s lang =
   global_lang := lang;
   (* Start each target node any as [$X, [ any, fun x -> x ]] *)
   let starting_pattern any =
     match any with
     | E _ ->
-        [
-          ( { prev = E (Ellipsis fk); count = 1; mapping = [] },
-            E (Ellipsis fk),
-            [ (ANY any, fun f a -> f a) ] );
-        ]
+        let env = { config; prev = E (Ellipsis fk); count = 1; mapping = [] } in
+        [ (env, E (Ellipsis fk), [ (ANY any, fun f a -> f a) ]) ]
     | S _ ->
-        [
-          ( { prev = S (exprstmt (Ellipsis fk)); count = 1; mapping = [] },
-            S (exprstmt (Ellipsis fk)),
-            [ (ANY any, fun f a -> f a) ] );
-        ]
+        let env =
+          { config; prev = S (exprstmt (Ellipsis fk)); count = 1; mapping = [] }
+        in
+        [ (env, S (exprstmt (Ellipsis fk)), [ (ANY any, fun f a -> f a) ]) ]
     | _ -> raise UnsupportedTargetType
   in
   let patterns = List.map starting_pattern s in

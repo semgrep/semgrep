@@ -180,9 +180,10 @@ let unittest =
          tests
          |> List.iter (fun (filename, range, sols) ->
                 let file = test_path ^ filename in
+                let config = Config_semgrep.default_config in
 
                 (* pattern candidates (as strings) *)
-                let pats = Synthesizer.synthesize_patterns range file in
+                let pats = Synthesizer.synthesize_patterns config range file in
                 (* the code *)
                 let { Parse_target.ast = code; errors = errs; _ } =
                   Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
