@@ -1149,10 +1149,8 @@ and m_list__m_argument (xsa : A.argument list) (xsb : A.argument list) =
   (*s: [[Generic_vs_generic.m_list__m_argument()]] [[ArgKwd]] pattern case *)
   (* unordered kwd argument matching *)
   | (A.ArgKwd (((s, _tok) as ida), ea) as a) :: xsa, xsb -> (
-      if
+      if MV.is_metavar_name s then
         (*s: [[Generic_vs_generic.m_list__m_argument()]] if metavar keyword argument *)
-        MV.is_metavar_name s
-      then
         let candidates = all_elem_and_rest_of_list xsb in
         (* less: could use a fold *)
         let rec aux xs =
@@ -2170,10 +2168,8 @@ and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
           } as a )
       :: xsa,
       xsb ) -> (
-      if
+      if MV.is_metavar_name s1 || Pattern.is_regexp_string s1 then
         (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
-        MV.is_metavar_name s1 || Pattern.is_regexp_string s1
-      then
         let candidates = all_elem_and_rest_of_list xsb in
         (* less: could use a fold *)
         let rec aux xs =

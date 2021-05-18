@@ -35,7 +35,6 @@ let go_really_deeper_stmt = ref true
 let subexprs_of_any_list xs =
   xs |> List.fold_left (fun x -> function E e -> e :: x | _ -> x) []
 
-(*s: function [[SubAST_generic.subexprs_of_stmt]] *)
 (* used for really deep statement matching *)
 let subexprs_of_stmt st =
   match st.s with
@@ -71,8 +70,6 @@ let subexprs_of_stmt st =
   | Continue _ | Break _ | Label _ | Goto _ | Try _ | DisjStmt _ | DefStmt _
   | WithUsingResource _ ->
       []
-
-(*e: function [[SubAST_generic.subexprs_of_stmt]] *)
 
 (*s: function [[SubAST_generic.subexprs_of_expr]] *)
 (* used for deep expression matching *)
@@ -124,6 +121,9 @@ let subexprs_of_expr e =
   [@@profiling]
 
 (*e: function [[SubAST_generic.subexprs_of_expr]] *)
+
+(*s: function [[SubAST_generic.subexprs_of_stmt]] *)
+(*e: function [[SubAST_generic.subexprs_of_stmt]] *)
 
 (*s: function [[SubAST_generic.substmts_of_stmt]] *)
 (* used for deep statement matching *)

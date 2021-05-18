@@ -154,7 +154,9 @@ let hash_fold_ref hash_fold_x acc x = hash_fold_x acc !x
  * the Parse_info.token_location embedded inside it, as well as the
  * transformation field that makes possible spatch on the code.
  *)
-type tok = Parse_info.t (*e: type [[AST_generic.tok]] *) [@@deriving show]
+type tok = Parse_info.t [@@deriving show]
+
+(*e: type [[AST_generic.tok]] *)
 
 (* with tarzan *)
 
@@ -1342,7 +1344,8 @@ and entity = {
   (*s: [[AST_generic.entity]] id info field *)
   (*e: [[AST_generic.entity]] id info field *)
   (*s: [[AST_generic.entity]] other fields *)
-  tparams : type_parameter list; (*e: [[AST_generic.entity]] other fields *)
+  (*e: [[AST_generic.entity]] other fields *)
+  tparams : type_parameter list;
 }
 
 (*e: type [[AST_generic.entity]] *)
@@ -1619,8 +1622,6 @@ and field =
   (*s: [[AST_generic.field]] other cases *)
   (* less: could abuse FieldStmt(ExprStmt(IdSpecial(Spread))) for that *)
   | FieldSpread of tok (* ... *) * expr
-
-(* usually a Name *)
 
 (*e: [[AST_generic.field]] other cases *)
 (*e: type [[AST_generic.field]] *)

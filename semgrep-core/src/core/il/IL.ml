@@ -85,18 +85,24 @@ module G = AST_generic
 
 (*s: type [[IL.tok]] *)
 (* the classic *)
-type tok = G.tok (*e: type [[IL.tok]] *) [@@deriving show]
+type tok = G.tok [@@deriving show]
+
+(*e: type [[IL.tok]] *)
 
 (* with tarzan *)
 
 (*s: type [[IL.wrap]] *)
-type 'a wrap = 'a G.wrap (*e: type [[IL.wrap]] *) [@@deriving show]
+type 'a wrap = 'a G.wrap [@@deriving show]
+
+(*e: type [[IL.wrap]] *)
 
 (* with tarzan *)
 
 (*s: type [[IL.bracket]] *)
 (* useful mainly for empty containers *)
-type 'a bracket = tok * 'a * tok (*e: type [[IL.bracket]] *) [@@deriving show]
+type 'a bracket = tok * 'a * tok [@@deriving show]
+
+(*e: type [[IL.bracket]] *)
 
 (* with tarzan *)
 
@@ -105,7 +111,9 @@ type 'a bracket = tok * 'a * tok (*e: type [[IL.bracket]] *) [@@deriving show]
 (*****************************************************************************)
 
 (*s: type [[IL.ident]] *)
-type ident = G.ident (*e: type [[IL.ident]] *) [@@deriving show]
+type ident = G.ident [@@deriving show]
+
+(*e: type [[IL.ident]] *)
 
 (* with tarzan *)
 
@@ -118,7 +126,9 @@ type ident = G.ident (*e: type [[IL.ident]] *) [@@deriving show]
  * can become control-flow sensitive? (e.g., DOOP)
  *
  *)
-type name = ident * G.sid (*e: type [[IL.name]] *) [@@deriving show]
+type name = ident * G.sid [@@deriving show]
+
+(*e: type [[IL.name]] *)
 
 (* with tarzan *)
 
@@ -151,6 +161,7 @@ type lval = {
 }
 
 (*e: type [[IL.lval]] *)
+
 (*s: type [[IL.base]] *)
 and base =
   | Var of name
@@ -238,7 +249,9 @@ and composite_kind =
 (* with tarzan *)
 
 (*s: type [[IL.argument]] *)
-type argument = exp (*e: type [[IL.argument]] *) [@@deriving show]
+type argument = exp [@@deriving show]
+
+(*e: type [[IL.argument]] *)
 
 (* with tarzan *)
 
