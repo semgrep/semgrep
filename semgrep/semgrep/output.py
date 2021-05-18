@@ -176,15 +176,13 @@ def build_timing_summary(
     time_data = _build_time_json(rules, targets, profiling_data, profiler)
     rule_parsing_time = sum(parse_time for parse_time in time_data["rule_parse_info"])
     rule_timings = {
-        rule["id"]: (
-            functools.reduce(
-                lambda x, y: (x[0] + y[0], x[1] + y[1]),
-                (
-                    (t["run_times"][i] - t["parse_times"][i], t["match_times"][i])
-                    for t in time_data["targets"]
-                ),
-                (time_data["rule_parse_info"][i], 0.0),
-            )
+        rule["id"]: functools.reduce(
+            lambda x, y: (x[0] + y[0], x[1] + y[1]),
+            (
+                (t["run_times"][i] - t["parse_times"][i], t["match_times"][i])
+                for t in time_data["targets"]
+            ),
+            (time_data["rule_parse_info"][i], 0.0),
         )
         for i, rule in enumerate(time_data["rules"])
     }
