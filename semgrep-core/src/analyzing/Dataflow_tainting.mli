@@ -1,9 +1,8 @@
 (*s: pfff/lang_GENERIC/analyze/Dataflow_tainting.mli *)
 
 (*s: type [[Dataflow_tainting.mapping]] *)
-
 type mapping = unit Dataflow.mapping
-(** Map for each node/var whether a variable is "tainted". *)
+(** Map for each node/var whether a variable is "tainted" *)
 
 (*e: type [[Dataflow_tainting.mapping]] *)
 
@@ -12,7 +11,6 @@ type fun_env = (Dataflow.var, unit) Hashtbl.t
   * Note that here [Dataflow.var] is a string of the form "<source name>:<sid>". *)
 
 (*s: type [[Dataflow_tainting.config]] *)
-
 type config = {
   is_source : IL.instr -> bool;
   is_source_exp : IL.exp -> bool;
