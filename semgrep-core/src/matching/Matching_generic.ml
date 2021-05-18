@@ -100,10 +100,10 @@ and tout = tin list
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
  *)
-(* currently 'a and 'b are usually the same type as we use the
+(* currently A and B are usually the same type as we use the
  * same language for the host language and pattern language
  *)
-type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
+type 'a matcher = 'a -> 'a -> tin -> tout
 
 (*e: type [[Matching_generic.matcher]] *)
 
@@ -328,7 +328,7 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
 (*e: function [[Matching_generic.check_and_add_metavar_binding]] *)
 
 (*s: function [[Matching_generic.envf]] *)
-let (envf : (MV.mvar AST.wrap, MV.mvalue) matcher) =
+let (envf : MV.mvar AST.wrap -> MV.mvalue -> tin -> tout) =
  fun (mvar, _imvar) any tin ->
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
@@ -448,7 +448,7 @@ let regexp_matcher_of_regexp_string s =
 (* stdlib: option *)
 (* ---------------------------------------------------------------------- *)
 (*s: function [[Matching_generic.m_option]] *)
-let (m_option : ('a, 'b) matcher -> ('a option, 'b option) matcher) =
+let (m_option : 'a matcher -> 'a option matcher) =
  fun f a b ->
   match (a, b) with
   | None, None -> return ()
@@ -484,7 +484,7 @@ let m_option_none_can_match_some f a b =
 (* stdlib: ref *)
 (* ---------------------------------------------------------------------- *)
 (*s: function [[Matching_generic.m_ref]] *)
-let (m_ref : ('a, 'b) matcher -> ('a ref, 'b ref) matcher) =
+let (m_ref : 'a matcher -> 'a ref matcher) =
  fun f a b ->
   match (a, b) with { contents = xa }, { contents = xb } -> f xa xb
 

@@ -25,10 +25,10 @@ and tout = tin list
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
  *)
-(* currently 'a and 'b are usually the same type as we use the
+(* currently A and B are usually the same type as we use the
  * same language for the host language and pattern language
  *)
-type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
+type 'a matcher = 'a -> 'a -> tin -> tout
 
 (*e: type [[Matching_generic.matcher]] *)
 
@@ -55,7 +55,7 @@ val fail : unit -> tin -> tout
 
 (*e: signature [[Matching_generic.fail]] *)
 
-val or_list : ('a, 'b) matcher -> 'a -> 'b list -> tin -> tout
+val or_list : 'a matcher -> 'a -> 'a list -> tin -> tout
 
 (* shortcut for >>=, since OCaml 4.08 you can define those "extended-let" *)
 val ( let* ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
@@ -74,7 +74,8 @@ val get_mv_capture : Metavariable.mvar -> tin -> Metavariable.mvalue option
 val extend_stmts_match_span : AST_generic.stmt -> tin -> tin
 
 (*s: signature [[Matching_generic.envf]] *)
-val envf : (Metavariable.mvar AST_generic.wrap, Metavariable.mvalue) matcher
+val envf :
+  Metavariable.mvar AST_generic.wrap -> Metavariable.mvalue -> tin -> tout
 
 (*e: signature [[Matching_generic.envf]] *)
 
@@ -118,7 +119,7 @@ val equal_ast_binded_code :
 
 (* generic matchers *)
 (*s: signature [[Matching_generic.m_option]] *)
-val m_option : ('a, 'b) matcher -> ('a option, 'b option) matcher
+val m_option : 'a matcher -> 'a option matcher
 
 (*e: signature [[Matching_generic.m_option]] *)
 (*s: signature [[Matching_generic.m_option_ellipsis_ok]] *)
@@ -137,39 +138,37 @@ val m_option_none_can_match_some :
 (*e: signature [[Matching_generic.m_option_none_can_match_some]] *)
 
 (*s: signature [[Matching_generic.m_ref]] *)
-val m_ref : ('a, 'b) matcher -> ('a ref, 'b ref) matcher
+val m_ref : 'a matcher -> 'a ref matcher
 
 (*e: signature [[Matching_generic.m_ref]] *)
 
 (*s: signature [[Matching_generic.m_list]] *)
-val m_list : ('a, 'b) matcher -> ('a list, 'b list) matcher
+val m_list : 'a matcher -> 'a list matcher
 
 (*e: signature [[Matching_generic.m_list]] *)
 (*s: signature [[Matching_generic.m_list_prefix]] *)
-val m_list_prefix : ('a, 'b) matcher -> ('a list, 'b list) matcher
+val m_list_prefix : 'a matcher -> 'a list matcher
 
 (*e: signature [[Matching_generic.m_list_prefix]] *)
 (*s: signature [[Matching_generic.m_list_with_dots]] *)
-val m_list_with_dots :
-  ('a, 'b) matcher -> ('a -> bool) -> bool -> ('a list, 'b list) matcher
+val m_list_with_dots : 'a matcher -> ('a -> bool) -> bool -> 'a list matcher
 
 (*e: signature [[Matching_generic.m_list_with_dots]] *)
-val m_list_in_any_order :
-  less_is_ok:bool -> ('a, 'b) matcher -> ('a list, 'b list) matcher
+val m_list_in_any_order : less_is_ok:bool -> 'a matcher -> 'a list matcher
 
 (* use = *)
-val m_eq : ('a, 'a) matcher
+val m_eq : 'a matcher
 
 (*s: signature [[Matching_generic.m_bool]] *)
-val m_bool : (bool, bool) matcher
+val m_bool : bool matcher
 
 (*e: signature [[Matching_generic.m_bool]] *)
 (*s: signature [[Matching_generic.m_int]] *)
-val m_int : (int, int) matcher
+val m_int : int matcher
 
 (*e: signature [[Matching_generic.m_int]] *)
 (*s: signature [[Matching_generic.m_string]] *)
-val m_string : (string, string) matcher
+val m_string : string matcher
 
 (*e: signature [[Matching_generic.m_string]] *)
 (*s: signature [[Matching_generic.string_is_prefix]] *)
@@ -181,11 +180,7 @@ val m_string_prefix : string -> string -> tin -> tout
 
 (*e: signature [[Matching_generic.m_string_prefix]] *)
 val m_string_ellipsis_or_regexp_or_default :
-  ?m_string_for_default:(string, string) matcher ->
-  string ->
-  string ->
-  tin ->
-  tout
+  ?m_string_for_default:string matcher -> string -> string -> tin -> tout
 
 (*s: signature [[Matching_generic.m_info]] *)
 val m_info : 'a -> 'b -> tin -> tout
