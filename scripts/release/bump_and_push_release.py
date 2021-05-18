@@ -6,7 +6,7 @@ from util import git
 from util import release_version
 
 
-BUMP_FILES = {"semgrep/semgrep/__init__.py", "setup.py"}
+BUMP_FILES = {"semgrep/semgrep/__init__.py", "setup.py", "CHANGELOG.md"}
 
 
 def bump_and_push(version: str):
