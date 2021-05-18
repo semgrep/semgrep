@@ -15,7 +15,7 @@ def bump_and_push(version: str):
     if set(changed_files) != BUMP_FILES:
         abort(2, f"Expected diffs only in {BUMP_FILES}")
     git("add", *BUMP_FILES)
-    git("commit", "-m", f"bump version to ${version}")
+    git("commit", "-m", f"Release {version}")
     git("push", "origin", "HEAD")
 
 
