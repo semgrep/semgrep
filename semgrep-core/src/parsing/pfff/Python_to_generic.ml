@@ -769,21 +769,19 @@ and excepthandler = function
   | ExceptHandler (t, v1, v2, v3) ->
       let v1 = option expr v1 (* a type actually, even tuple of types *)
       and v2 = option name v2
-      and v3 = list_stmt1 v3
-      in
-      t,
-      (match v1, v2 with
-       | Some e, None ->
-            (match e with
-                | G.Ellipsis tok -> G.PatEllipsis tok
-                | _ -> G.PatVar (H.expr_to_type e, None)
-            )
-       | None, None ->
-           G.PatUnderscore (fake "_")
-       | None, Some _ -> raise Impossible (* see the grammar *)
-       | Some e, Some n ->
-           G.PatVar (H.expr_to_type e, Some (n, G.empty_id_info ()))
-      ), v3
+      and v3 = list_stmt1 v3 in
+      ( t,
+        ( match (v1, v2) with
+        | Some e, None -> (
+            match e with
+            | G.Ellipsis tok -> G.PatEllipsis tok
+            | _ -> G.PatVar (H.expr_to_type e, None) )
+        | None, None -> G.PatUnderscore (fake "_")
+        | None, Some _ -> raise Impossible (* see the grammar *)
+        | Some e, Some n ->
+            G.PatVar (H.expr_to_type e, Some (n, G.empty_id_info ())) ),
+        v3 )
+
 (*e: function [[Python_to_generic.excepthandler]] *)
 
 (*s: function [[Python_to_generic.expr_to_attribute]] *)
