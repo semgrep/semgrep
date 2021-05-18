@@ -13,7 +13,6 @@ from typing import Tuple
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
-from semgrep.constants import ADJUST_FOR_DOCKER
 from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_CONFIG_FOLDER
@@ -21,8 +20,6 @@ from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
-from semgrep.constants import SEMGREP_IN_DOCKER
-from semgrep.constants import SEMGREP_SRC_DIRECTORY
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import InvalidRuleSchemaError
@@ -38,7 +35,15 @@ from semgrep.util import is_url
 
 logger = logging.getLogger(__name__)
 
+IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
+IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
+
+SRC_DIRECTORY = Path(os.environ.get("SEMGREP_SRC_DIRECTORY", Path("/") / "src"))
+OLD_SRC_DIRECTORY = Path("/") / "home" / "repo"
+
 RULES_REGISTRY = {"r2c": "https://semgrep.dev/c/p/r2c"}
+
+MISSING_RULE_ID = "no-rule-id"
 
 DEFAULT_CONFIG = {
     "rules": [
@@ -139,33 +144,25 @@ class Config:
 
     @staticmethod
     def _convert_config_id_to_prefix(config_id: str) -> str:
-        if ADJUST_FOR_DOCKER:
-            # Avoid prepending filesystem-dependent rule IDs with the source
-            # directory inside Docker. E.g. 'config.rule.id' instead of
-            # 'src.config.rule.id'. This keeps rule IDs consistent even inside
-            # Docker containers.
-            relative_path = SEMGREP_SRC_DIRECTORY
-        else:
-            relative_path = Path.cwd()
-
         at_path = Path(config_id)
-        at_path = Config._safe_relative_to(at_path, relative_path)
+        at_path = Config._safe_relative_to(at_path, Path.cwd())
 
-        prefix = ".".join(at_path.parts[:-1]).lstrip("./")
+        prefix = ".".join(at_path.parts[:-1]).lstrip("./").lstrip(".")
         if len(prefix):
             prefix += "."
-
         return prefix
 
     @staticmethod
     def _rename_rule_ids(valid_configs: Dict[str, List[Rule]]) -> Dict[str, List[Rule]]:
-        return {
-            config_id: [
-                rule.with_id(Config._convert_config_id_to_prefix(config_id) + rule.id)
+        transformed = {}
+        for config_id, rules in valid_configs.items():
+            transformed[config_id] = [
+                rule.with_id(
+                    f"{Config._convert_config_id_to_prefix(config_id)}{rule.id or MISSING_RULE_ID}"
+                )
                 for rule in rules
             ]
-            for config_id, rules in valid_configs.items()
-        }
+        return transformed
 
     # the mypy ignore is cause YamlTree puts an Any inside the @staticmethod decorator
     @staticmethod
@@ -252,6 +249,21 @@ def resolve_targets(targets: List[str]) -> List[Path]:
         Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
         for target in targets
     ]
+
+
+def adjust_for_docker() -> None:
+    # change into this folder so that all paths are relative to it
+    if IN_DOCKER and not IN_GH_ACTION:
+        if OLD_SRC_DIRECTORY.exists():
+            raise SemgrepError(
+                f"Detected Docker environment using old code volume, please use '{SRC_DIRECTORY}' instead of '{OLD_SRC_DIRECTORY}'"
+            )
+        if not SRC_DIRECTORY.exists():
+            raise SemgrepError(
+                f"Detected Docker environment without a code volume, please include '-v \"${{PWD}}:{SRC_DIRECTORY}\"'"
+            )
+    if SRC_DIRECTORY.exists():
+        os.chdir(SRC_DIRECTORY)
 
 
 def get_base_path() -> Path:
@@ -349,7 +361,7 @@ def load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
             raise SemgrepError(f"config location `{loc}` is not a file or folder!")
     else:
         addendum = ""
-        if SEMGREP_IN_DOCKER:
+        if IN_DOCKER:
             addendum = " (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
         raise SemgrepError(
             f"unable to find a config; path `{loc}` does not exist{addendum}"
