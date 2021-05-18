@@ -2,6 +2,7 @@ import os
 import re
 from enum import auto
 from enum import Enum
+from pathlib import Path
 
 from semgrep import __VERSION__
 
@@ -15,6 +16,7 @@ PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the semgrep engine; p
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
 DEFAULT_CONFIG_FILE = f".{DEFAULT_SEMGREP_CONFIG_NAME}.yml"
 DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
+DEFAULT_TARGET = [os.curdir]
 
 DEFAULT_TIMEOUT = 30  # seconds
 
@@ -22,6 +24,11 @@ SEMGREP_USER_AGENT = f"Semgrep/{__VERSION__}"
 SEMGREP_USER_AGENT_APPEND = os.environ.get("SEMGREP_USER_AGENT_APPEND")
 if SEMGREP_USER_AGENT_APPEND is not None:
     SEMGREP_USER_AGENT = f"{SEMGREP_USER_AGENT} {SEMGREP_USER_AGENT_APPEND}"
+
+SEMGREP_SRC_DIRECTORY = Path(os.environ.get("SEMGREP_SRC_DIRECTORY", Path("/") / "src"))
+SEMGREP_IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
+SEMGREP_IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
+ADJUST_FOR_DOCKER = SEMGREP_IN_DOCKER and not SEMGREP_IN_GH_ACTION
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
