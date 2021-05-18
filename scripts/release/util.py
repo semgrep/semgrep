@@ -29,7 +29,7 @@ def debug_bake(f: Callable[..., str]) -> Callable[..., str]:
 
     def runner(*args: Any, **kwargs: Any) -> str:
         res = f(*args, **kwargs)
-        click.secho(res, err=True, fg="blue")
+        click.secho(str(res), err=True, fg="blue")
         return res
 
     return runner
