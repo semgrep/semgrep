@@ -487,14 +487,14 @@ def cli() -> None:
         semgrep.test.test_main(args)
 
     if args.target == DEFAULT_TARGET and ADJUST_FOR_DOCKER:
-        target = [str(SEMGREP_SRC_DIRECTORY)]
+        target_input = [str(SEMGREP_SRC_DIRECTORY)]
     else:
-        target = args.target
+        target_input = args.target
 
     # The 'optional_stdin_target' context manager must remain before
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
-    with optional_stdin_target(target) as target, managed_output(
+    with optional_stdin_target(target_input) as target, managed_output(
         output_settings
     ) as output_handler:
         if args.dump_ast:

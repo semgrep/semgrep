@@ -140,6 +140,10 @@ class Config:
     @staticmethod
     def _convert_config_id_to_prefix(config_id: str) -> str:
         if ADJUST_FOR_DOCKER:
+            # Avoid prepending filesystem-dependent rule IDs with the source
+            # directory inside Docker. E.g. 'config.rule.id' instead of
+            # 'src.config.rule.id'. This keeps rule IDs consistent even inside
+            # Docker containers.
             relative_path = SEMGREP_SRC_DIRECTORY
         else:
             relative_path = Path.cwd()
