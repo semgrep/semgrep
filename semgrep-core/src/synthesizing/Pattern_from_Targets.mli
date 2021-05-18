@@ -58,4 +58,5 @@
  *)
 
 (* limited to expressions for now *)
-val generate_patterns : AST_generic.any list -> Lang.t -> Pattern.t list
+val generate_patterns :
+  Config_semgrep.t -> AST_generic.any list -> Lang.t -> Pattern.t list
