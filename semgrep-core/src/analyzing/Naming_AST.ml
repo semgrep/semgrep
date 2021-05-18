@@ -352,7 +352,7 @@ let error tok s =
 (*****************************************************************************)
 (* Other Helpers *)
 (*****************************************************************************)
-
+(*s: function [[Naming_AST.is_local_or_global_ctx]] *)
 let is_resolvable_name_ctx env lang =
   match top_context env with
   | AtToplevel | InFunction -> true
@@ -364,6 +364,8 @@ let is_resolvable_name_ctx env lang =
       | Lang.Javascript | Lang.Typescript ->
           true
       | _ -> false )
+
+(*e: function [[Naming_AST.is_local_or_global_ctx]] *)
 
 (*s: function [[Naming_AST.resolved_name_kind]] *)
 let resolved_name_kind env lang =

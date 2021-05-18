@@ -282,8 +282,8 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
   let toks = tokens_matched_code |> List.filter PI.is_origintok in
   ( if mvars = [] then
     Matching_report.print_match ?str ~format:!match_format toks
-    (*s: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
   else
+    (*s: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
     (* similar to the code of Lib_matcher.print_match, maybe could
      * factorize code a bit.
      *)
@@ -301,8 +301,9 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
                  |> Matching_report.join_with_space_if_needed
              | None -> failwith (spf "the metavariable '%s' was not binded" x))
     in
-    pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars))
-    (*e: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *) );
+    pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
+    (*e: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
+    () );
   (*s: [[Main_semgrep_core.print_match()]] hook *)
   toks |> List.iter (fun x -> Common.push x _matching_tokens)
 
@@ -584,9 +585,12 @@ let parse_equivalences () =
 let parse_pattern lang_pattern str =
   try
     Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-        Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
+        let res =
+          Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
+        in
         (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
-        (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *))
+        (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
+        res)
   with exn ->
     raise
       (Parse_mini_rule.InvalidPatternException
@@ -1428,15 +1432,15 @@ let options () =
   (*e: [[Main_semgrep_core.options]] concatenated flags *)
   (*s: [[Main_semgrep_core.options]] concatenated actions *)
   @ Common.options_of_actions action (all_actions ())
-  @ (*e: [[Main_semgrep_core.options]] concatenated actions *)
-  [
-    ( "-version",
-      Arg.Unit
-        (fun () ->
-          pr2 version;
-          exit 0),
-      "  guess what" );
-  ]
+  (*e: [[Main_semgrep_core.options]] concatenated actions *)
+  @ [
+      ( "-version",
+        Arg.Unit
+          (fun () ->
+            pr2 version;
+            exit 0),
+        "  guess what" );
+    ]
 
 (*e: function [[Main_semgrep_core.options]] *)
 

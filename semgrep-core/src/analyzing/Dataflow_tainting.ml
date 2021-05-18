@@ -36,8 +36,8 @@ module VarMap = Dataflow.VarMap
 (*****************************************************************************)
 
 (*s: type [[Dataflow_tainting.mapping]] *)
-(* map for each node/var whether a variable is "tainted" *)
 type mapping = unit Dataflow.mapping
+(** Map for each node/var whether a variable is "tainted" *)
 
 (*e: type [[Dataflow_tainting.mapping]] *)
 
@@ -45,7 +45,6 @@ type mapping = unit Dataflow.mapping
 type fun_env = (Dataflow.var, unit) Hashtbl.t
 
 (*s: type [[Dataflow_tainting.config]] *)
-(* this can use semgrep patterns under the hood *)
 type config = {
   is_source : IL.instr -> bool;
   is_source_exp : IL.exp -> bool;
@@ -53,6 +52,8 @@ type config = {
   is_sanitizer : IL.instr -> bool;
   found_tainted_sink : IL.instr -> unit Dataflow.env -> unit;
 }
+(** This can use semgrep patterns under the hood. Note that a source can be an
+  * instruction but also an expression. *)
 
 (*e: type [[Dataflow_tainting.config]] *)
 
