@@ -19,3 +19,10 @@ function another2($b) {
 function another3(array $c = []) {
   do_something($c);
 }
+
+//ERROR: match
+function another4(array $d = []) {
+  echo 'hello';
+  do_something($d);
+  return '4';
+}
