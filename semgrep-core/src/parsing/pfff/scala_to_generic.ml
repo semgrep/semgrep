@@ -47,7 +47,7 @@ let ids_of_name = function
 
 let error = G.error
 
-let todo _ = failwith "TODO"
+let todo s = failwith ("TODO:" ^ s)
 
 let fake = G.fake
 
@@ -67,9 +67,10 @@ let v_list = List.map
 
 let v_option = Common.map_opt
 
-let expr_of_block xs : G.expr = todo ()
+let expr_of_block xs : G.expr = todo "expr_of_block"
 
-let cases_to_lambda (cases : G.action list) : G.function_definition = todo ()
+let cases_to_lambda (cases : G.action list) : G.function_definition =
+  todo "cases_to_lambda"
 
 (*****************************************************************************)
 (* Boilerplate *)
@@ -511,7 +512,7 @@ and v_stmt = function
       let v1 = v_tok v1
       and v2 = v_bracket v_enumerators v2
       and v3 = v_for_body v3 in
-      todo ()
+      todo "for"
   | Return (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_option v_expr v2 in
       G.Return (v1, v2, G.sc) |> G.s
@@ -560,7 +561,7 @@ and v_for_body = function
 (* TODO: v2 should be a BeCases *)
 and v_catch_clause (v1, v2) : G.catch list =
   let v1 = v_tok v1 and v2 = v_expr v2 in
-  todo ()
+  todo "catch_clause"
 
 and v_finally_clause (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
@@ -593,38 +594,47 @@ and v_template_stat v = v_block_stat v
 
 and v_top_stat v = v_block_stat v
 
-and v_modifier v = v_wrap v_modifier_kind v
+and v_modifier v : G.attribute =
+  let kind, tok = v_wrap v_modifier_kind v in
+  match kind with
+  | Left kwd -> G.KeywordAttr (kwd, tok)
+  | Right s -> G.OtherAttribute (G.OA_Todo, [ G.TodoK (s, tok) ])
 
 and v_modifier_kind = function
-  | Abstract -> ()
-  | Final -> ()
-  | Sealed -> ()
-  | Implicit -> ()
-  | Lazy -> ()
+  | Abstract -> Left G.Abstract
+  | Final -> Left G.Final
+  | Sealed -> Right "sealed"
+  | Implicit -> Right "implicit"
+  | Lazy -> Left G.Lazy
   | Private v1 ->
-      let v1 = v_option (v_bracket v_ident_or_this) v1 in
-      ()
+      let _v1TODO = v_option (v_bracket v_ident_or_this) v1 in
+      Left G.Private
   | Protected v1 ->
-      let v1 = v_option (v_bracket v_ident_or_this) v1 in
-      ()
-  | Override -> ()
-  | CaseClassOrObject -> ()
-  | PackageObject -> ()
-  | Val -> ()
-  | Var -> ()
+      let _v1TODO = v_option (v_bracket v_ident_or_this) v1 in
+      Left G.Protected
+  | Override -> Left G.Override
+  | CaseClassOrObject -> Right "CaseClassOrObject"
+  | PackageObject -> Right "PackageObject"
+  | Val -> Left G.Const
+  | Var -> Left G.Mutable
 
 and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
-  todo ()
+  let args = v3 |> List.map G.unbracket |> List.flatten in
+  match v2 with
+  | TyN name -> G.NamedAttr (v1, name, fb args)
+  | _ ->
+      G.OtherAttribute
+        (OA_Todo, [ G.TodoK ("AnnotationComplexType", v1); G.T v2; G.Args args ])
 
 and v_attribute x : G.attribute =
   match x with
   | A v1 ->
       let v1 = v_annotation v1 in
-      todo ()
+      v1
   | M v1 ->
       let v1 = v_modifier v1 in
-      todo ()
+      v1
 
 and v_type_parameter
     {
@@ -658,7 +668,7 @@ and v_definition x : G.definition list =
       [ (v1, v2) ]
   | VarDefs v1 ->
       let v1 = v_variable_definitions v1 in
-      todo ()
+      todo "vardefs"
 
 and v_variable_definitions
     {
@@ -716,7 +726,7 @@ and v_fbody = function
       let lb, kind, rb = v_block_expr v1 in
       match kind with
       | Left stats -> G.Block (lb, stats, rb) |> G.s
-      | Right cases -> todo () )
+      | Right cases -> todo "fbody cases" )
   | FExpr (v1, v2) ->
       let _v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
       v2
@@ -765,29 +775,35 @@ and v_template_definition
       cparams = v_cparams;
       cparents = v_cparents;
       cbody = v_cbody;
-    } =
-  let arg = v_wrap v_template_kind v_ckind in
-  let arg = v_list v_bindings v_cparams in
-  let arg = v_template_parents v_cparents in
-  let arg = v_option v_template_body v_cbody in
-  todo "class_definition"
+    } : G.class_definition =
+  let ckind = v_wrap v_template_kind v_ckind in
+  (* TODO? flatten? *)
+  let cparams = v_list v_bindings v_cparams |> List.flatten in
+  let cextends, cmixins = v_template_parents v_cparents in
+  let body = v_option v_template_body v_cbody in
+  let cbody =
+    match body with
+    | None -> G.empty_body
+    | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.FieldStmt st), rb)
+  in
+  { G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }
 
 and v_template_parents { cextends = v_cextends; cwith = v_cwith } =
-  let arg =
+  let v1 =
     v_option
       (fun (v1, v2) ->
-        let v1 = v_type_ v1 and v2 = v_list v_arguments v2 in
-        ())
+        let v1 = v_type_ v1 and v2TODO = v_list v_arguments v2 in
+        v1)
       v_cextends
   in
-  let arg = v_list v_type_ v_cwith in
-  ()
+  let v2 = v_list v_type_ v_cwith in
+  (Common.opt_to_list v1, v2)
 
 and v_template_body v =
   v_bracket
     (fun (v1, v2) ->
-      let v1 = v_option v_self_type v1 and v2 = v_block v2 in
-      ())
+      let v1TODO = v_option v_self_type v1 and v2 = v_block v2 in
+      v2)
     v
 
 and v_self_type (v1, v2, v3) =
@@ -795,10 +811,10 @@ and v_self_type (v1, v2, v3) =
   ()
 
 and v_template_kind = function
-  | Class -> ()
-  | Trait -> ()
-  | Object -> ()
-  | Singleton -> ()
+  | Class -> G.Class
+  | Trait -> G.Trait
+  | Object -> G.Object
+  | Singleton -> G.Object
 
 and v_type_definition { ttok = v_ttok; tbody = v_tbody } =
   let _tok = v_tok v_ttok in
@@ -827,6 +843,6 @@ let v_any = function
 (* Entry points *)
 (*****************************************************************************)
 
-let program xs = failwith "TODO"
+let program xs = v_program xs
 
-let any x = failwith "TODO"
+let any x = v_any x

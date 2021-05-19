@@ -1317,6 +1317,7 @@ and other_attribute_operator =
   | OA_AnnotThrow
   (* Other *)
   | OA_Expr
+  | OA_Todo
 
 (* todo: Python, should transform in NamedAttr when can *)
 
