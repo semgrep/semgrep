@@ -613,17 +613,18 @@ and v_modifier_kind = function
   | Val -> ()
   | Var -> ()
 
-and v_annotation (v1, v2, v3) =
+and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
-  ()
+  todo ()
 
-and v_attribute = function
+and v_attribute x : G.attribute =
+  match x with
   | A v1 ->
       let v1 = v_annotation v1 in
-      ()
+      todo ()
   | M v1 ->
       let v1 = v_modifier v1 in
-      ()
+      todo ()
 
 and v_type_parameter
     {
@@ -634,25 +635,27 @@ and v_type_parameter
       tpbounds = v_tpbounds;
       tpviewbounds = v_tpviewbounds;
       tpcolons = v_tpcolons;
-    } =
-  let arg = v_ident_or_wildcard v_tpname in
-  let arg = v_option (v_wrap v_variance) v_tpvariance in
-  let arg = v_list v_annotation v_tpannots in
-  let arg = v_type_parameters v_tpparams in
-  let arg = v_type_bounds v_tpbounds in
-  let arg = v_list v_type_ v_tpviewbounds in
-  let arg = v_list v_type_ v_tpcolons in
-  ()
+    } : G.type_parameter =
+  let id = v_ident_or_wildcard v_tpname in
+  let _argTODO = v_option (v_wrap v_variance) v_tpvariance in
+  let _argTODO = v_list v_annotation v_tpannots in
+  let _argTODO = v_type_parameters v_tpparams in
+  let _argTODO = v_type_bounds v_tpbounds in
+  let _argTODO = v_list v_type_ v_tpviewbounds in
+  let _argTODO = v_list v_type_ v_tpcolons in
+  let constraints = [] in
+  (id, constraints)
 
 and v_variance = function Covariant -> () | Contravariant -> ()
 
-and v_type_parameters v = v_option (v_bracket (v_list v_type_parameter)) v
+and v_type_parameters v : G.type_parameter list =
+  match v with None -> [] | Some (lb, xs, rb) -> v_list v_type_parameter xs
 
 and v_definition x : G.definition list =
   match x with
   | DefEnt (v1, v2) ->
       let v1 = v_entity v1 and v2 = v_definition_kind v2 in
-      todo ()
+      [ (v1, v2) ]
   | VarDefs v1 ->
       let v1 = v_variable_definitions v1 in
       todo ()
@@ -671,21 +674,21 @@ and v_variable_definitions
   ()
 
 and v_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
-  let arg = v_ident v_name in
-  let arg = v_list v_attribute v_attrs in
-  let arg = v_type_parameters v_tparams in
-  ()
+  let v1 = v_ident v_name in
+  let v2 = v_list v_attribute v_attrs in
+  let v3 = v_type_parameters v_tparams in
+  { name = G.EN (name_of_id v1); attrs = v2; tparams = v3 }
 
 and v_definition_kind = function
   | FuncDef v1 ->
       let v1 = v_function_definition v1 in
-      ()
+      G.FuncDef v1
   | TypeDef v1 ->
       let v1 = v_type_definition v1 in
-      ()
+      G.TypeDef v1
   | Template v1 ->
       let v1 = v_template_definition v1 in
-      ()
+      G.ClassDef v1
 
 and v_function_definition
     {
@@ -694,23 +697,31 @@ and v_function_definition
       frettype = v_frettype;
       fbody = vfbody;
     } =
-  let arg = v_wrap v_function_kind v_fkind in
-  let arg = v_list v_bindings v_fparams in
-  let arg = v_option v_type_ v_frettype in
-  let arg = v_option v_fbody vfbody in
-  todo "function_definition"
+  let kind = v_wrap v_function_kind v_fkind in
+  let params = v_list v_bindings v_fparams in
+  let tret = v_option v_type_ v_frettype in
+  let fbody = v_option v_fbody vfbody in
+  {
+    fkind = kind;
+    fparams = List.flatten params;
+    (* TODO? *)
+    frettype = tret;
+    fbody = (match fbody with None -> G.empty_fbody | Some st -> st);
+  }
 
-and v_function_kind = function LambdaArrow -> () | Def -> ()
+and v_function_kind = function LambdaArrow -> G.Arrow | Def -> G.Method
 
 and v_fbody = function
-  | FBlock v1 ->
-      let v1 = v_block_expr v1 in
-      ()
+  | FBlock v1 -> (
+      let lb, kind, rb = v_block_expr v1 in
+      match kind with
+      | Left stats -> G.Block (lb, stats, rb) |> G.s
+      | Right cases -> todo () )
   | FExpr (v1, v2) ->
-      let v1 = v_tok v1 and v2 = v_expr v2 in
-      ()
+      let _v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
+      v2
 
-and v_bindings v = v_bracket (v_list v_binding) v
+and v_bindings v = v_bracket (v_list v_binding) v |> G.unbracket
 
 and v_binding
     {
@@ -718,23 +729,35 @@ and v_binding
       p_attrs = v_p_attrs;
       p_type = v_p_type;
       p_default = v_p_default;
-    } =
-  let arg = v_ident_or_wildcard v_p_name in
-  let arg = v_list v_attribute v_p_attrs in
-  let arg = v_option v_param_type v_p_type in
-  let arg = v_option v_expr v_p_default in
-  ()
-
-and v_param_type = function
-  | PT v1 ->
+    } : G.parameter =
+  let id = v_ident_or_wildcard v_p_name in
+  let attrs = v_list v_attribute v_p_attrs in
+  let default = v_option v_expr v_p_default in
+  let pclassic =
+    {
+      G.pname = Some id;
+      pattrs = attrs;
+      pdefault = default;
+      ptype = None;
+      pinfo = G.empty_id_info ();
+    }
+  in
+  match v_p_type with
+  | None -> G.ParamClassic pclassic
+  | Some (PT v1) ->
       let v1 = v_type_ v1 in
-      ()
-  | PTByNameApplication (v1, v2) ->
+      G.ParamClassic { pclassic with ptype = Some v1 }
+  | Some (PTByNameApplication (v1, v2)) ->
       let v1 = v_tok v1 and v2 = v_type_ v2 in
-      ()
-  | PTRepeatedApplication (v1, v2) ->
+      G.ParamClassic
+        {
+          pclassic with
+          ptype = Some v2;
+          pattrs = G.KeywordAttr (G.Lazy, v1) :: pclassic.pattrs;
+        }
+  | Some (PTRepeatedApplication (v1, v2)) ->
       let v1 = v_type_ v1 and v2 = v_tok v2 in
-      ()
+      G.ParamRest (v2, { pclassic with ptype = Some v1 })
 
 and v_template_definition
     {
@@ -778,27 +801,27 @@ and v_template_kind = function
   | Singleton -> ()
 
 and v_type_definition { ttok = v_ttok; tbody = v_tbody } =
-  let arg = v_tok v_ttok in
+  let _tok = v_tok v_ttok in
   let arg = v_type_definition_kind v_tbody in
-  ()
+  { tbody = arg }
 
 and v_type_definition_kind = function
   | TDef (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_type_ v2 in
-      ()
+      G.NewType v2
   | TDcl v1 ->
-      let v1 = v_type_bounds v1 in
-      ()
+      let _v1TODO = v_type_bounds v1 in
+      G.OtherTypeKind (G.OTKO_AbstractType, [])
 
-let v_program v = v_list v_top_stat v
+let v_program v = v_list v_top_stat v |> List.flatten
 
 let v_any = function
   | Program v1 ->
       let v1 = v_program v1 in
-      ()
+      G.Ss v1
   | Tk v1 ->
       let v1 = v_tok v1 in
-      ()
+      G.Tk v1
 
 (*****************************************************************************)
 (* Entry points *)

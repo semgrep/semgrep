@@ -1276,8 +1276,8 @@ and keyword_attribute =
   | Var
   | Let
   (* for fields (kinda types) *)
-  | Mutable
-  | Const (* a.k.a 'readonly' in Typescript *)
+  | Mutable (* a.k.a 'var' in Scala *)
+  | Const (* a.k.a 'readonly' in Typescript, 'val' in Scala *)
   (* less: should be part of the type *)
   | Optional
   (* Typescript '?' *)
@@ -1297,6 +1297,10 @@ and keyword_attribute =
   (* Rust *)
   | Unsafe
   | DefaultImpl
+  (* Scala *)
+  | Lazy
+
+(* By name application in Scala, via => T, in parameter *)
 
 (* unstable, RFC 1210 *)
 

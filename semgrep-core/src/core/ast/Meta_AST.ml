@@ -589,6 +589,7 @@ and vof_other_type_argument_operator = function
   | OTA_ConstBlock -> OCaml.VSum ("OTA_ConstBlock", [])
 
 and vof_keyword_attribute = function
+  | Lazy -> OCaml.VSum ("Lazy", [])
   | Static -> OCaml.VSum ("Static", [])
   | Volatile -> OCaml.VSum ("Volatile", [])
   | Extern -> OCaml.VSum ("Extern", [])
