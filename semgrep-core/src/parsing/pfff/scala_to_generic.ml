@@ -67,6 +67,10 @@ let v_list = List.map
 
 let v_option = Common.map_opt
 
+let expr_of_block xs : G.expr = todo ()
+
+let cases_to_lambda (cases : G.action list) : G.function_definition = todo ()
+
 (*****************************************************************************)
 (* Boilerplate *)
 (*****************************************************************************)
@@ -135,7 +139,7 @@ and v_alias (v1, v2) =
   let v1 = v_tok v1 and v2 = v_ident_or_wildcard v2 in
   (v1, v2)
 
-let dotted_name_of_stable_id (v1, v2) =
+let v_dotted_name_of_stable_id (v1, v2) =
   match v_simple_ref v1 with
   | Left id -> id :: v2
   | Right _ ->
@@ -143,7 +147,7 @@ let dotted_name_of_stable_id (v1, v2) =
       error tk "complex stable id not handled"
 
 let rec v_import_expr tk (v1, v2) =
-  let module_name = G.DottedName (dotted_name_of_stable_id v1) in
+  let module_name = G.DottedName (v_dotted_name_of_stable_id v1) in
   let v2 = v_import_spec v2 in
   v2 tk module_name
 
@@ -229,7 +233,7 @@ and v_type_ = function
       | Left lit -> todo_type "TyLiteralLit" [ G.E (G.L lit) ]
       | Right e -> todo_type "TyLiteralExpr" [ G.E e ] )
   | TyName v1 ->
-      let xs = dotted_name_of_stable_id v1 in
+      let xs = v_dotted_name_of_stable_id v1 in
       let name = name_of_ids xs in
       G.TyN name
   | TyProj (v1, v2, v3) ->
@@ -315,7 +319,7 @@ and v_pattern = function
       | Left lit -> G.PatLiteral lit
       | Right e -> todo_pattern "PatLiteralExpr" [ G.E e ] )
   | PatName v1 ->
-      let ids = dotted_name_of_stable_id v1 in
+      let ids = v_dotted_name_of_stable_id v1 in
       G.PatConstructor (ids, [])
   | PatTuple v1 ->
       let v1 = v_bracket (v_list v_pattern) v1 in
@@ -331,7 +335,7 @@ and v_pattern = function
       let v1 = v_varid v1 and v2 = v_tok v2 and v3 = v_pattern v3 in
       G.PatAs (v3, (v1, G.empty_id_info ()))
   | PatApply (v1, v2, v3) ->
-      let ids = dotted_name_of_stable_id v1 in
+      let ids = v_dotted_name_of_stable_id v1 in
       let _v2TODO = v_option (v_bracket (v_list v_type_)) v2 in
       let v3 = v_option (v_bracket (v_list v_pattern)) v3 in
       let xs = match v3 with None -> [] | Some (_, xs, _) -> xs in
@@ -346,72 +350,89 @@ and v_pattern = function
       let v1 = v_pattern v1 and v2 = v_tok v2 and v3 = v_pattern v3 in
       G.PatDisj (v1, v3)
 
+and todo_expr msg any = G.OtherExpr (G.OE_Todo, G.TodoK (msg, fake msg) :: any)
+
 and v_expr = function
   | L v1 -> (
       let v1 = v_literal v1 in
       match v1 with Left lit -> G.L lit | Right e -> e )
   | Tuple v1 ->
       let v1 = v_bracket (v_list v_expr) v1 in
-      todo ()
+      G.Tuple v1
   | Name v1 ->
-      let v1 = v_path v1 in
-      todo ()
+      let sref, ids = v_path v1 in
+      let start =
+        match sref with Left id -> G.N (name_of_id id) | Right e -> e
+      in
+      ids
+      |> List.fold_left
+           (fun acc fld -> G.DotAccess (acc, fake ".", G.EN (name_of_id fld)))
+           start
   | ExprUnderscore v1 ->
       let v1 = v_tok v1 in
-      todo ()
+      todo_expr "ExprUnderscore" [ G.Tk v1 ]
   | InstanciatedExpr (v1, v2) ->
-      let v1 = v_expr v1 and v2 = v_bracket (v_list v_type_) v2 in
-      todo ()
+      let v1 = v_expr v1 and _, v2, _ = v_bracket (v_list v_type_) v2 in
+      todo_expr "InstanciatedExpr" (G.E v1 :: List.map (fun t -> G.T t) v2)
   | TypedExpr (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ascription v3 in
-      todo ()
+      G.Cast (v3, v1)
   | DotAccess (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ident v3 in
-      todo ()
+      let name = name_of_id v3 in
+      G.DotAccess (v1, v2, G.EN name)
   | Apply (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_list v_arguments v2 in
-      todo ()
+      v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs)) v1
   | Infix (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_ident v2 and v3 = v_expr v3 in
-      todo ()
+      G.Call (G.N (name_of_id v2), fb [ G.Arg v1; G.Arg v3 ])
   | Prefix (v1, v2) ->
       let v1 = v_op v1 and v2 = v_expr v2 in
-      todo ()
+      G.Call (G.N (name_of_id v1), fb [ G.Arg v2 ])
   | Postfix (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_ident v2 in
-      todo ()
+      G.Call (G.N (name_of_id v2), fb [ G.Arg v1 ])
   | Assign (v1, v2, v3) ->
       let v1 = v_lhs v1 and v2 = v_tok v2 and v3 = v_expr v3 in
-      todo ()
+      G.Assign (v1, v2, v3)
   | Match (v1, v2, v3) ->
       let v1 = v_expr v1
       and v2 = v_tok v2
       and v3 = v_bracket v_case_clauses v3 in
-      todo ()
+      G.MatchPattern (v1, G.unbracket v3)
   | Lambda v1 ->
       let v1 = v_function_definition v1 in
-      todo ()
+      G.Lambda v1
   | New (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_template_definition v2 in
-      todo ()
-  | BlockExpr v1 ->
-      let v1 = v_block_expr v1 in
-      todo ()
+      let cl = G.AnonClass v2 in
+      let special = G.IdSpecial (G.New, v1) in
+      G.Call (special, fb [ G.Arg cl ])
+  | BlockExpr v1 -> (
+      let lb, kind, rb = v_block_expr v1 in
+      match kind with
+      | Left stats -> expr_of_block stats
+      | Right cases -> G.Lambda (cases_to_lambda cases) )
   | S v1 ->
       let v1 = v_stmt v1 in
-      todo ()
+      G.OtherExpr (G.OE_StmtExpr, [ G.S v1 ])
 
 and v_lhs v = v_expr v
 
 and v_arguments = function
   | Args v1 ->
       let v1 = v_bracket (v_list v_argument) v1 in
-      ()
-  | ArgBlock v1 ->
-      let v1 = v_block_expr v1 in
-      ()
+      v1
+  | ArgBlock v1 -> (
+      let lb, kind, rb = v_block_expr v1 in
+      match kind with
+      | Left stats -> (lb, [ G.Arg (expr_of_block stats) ], rb)
+      | Right cases -> (lb, [ G.Arg (G.Lambda (cases_to_lambda cases)) ], rb) )
 
-and v_argument v = v_expr v
+and v_argument v =
+  let v = v_expr v in
+  G.Arg v
 
 and v_case_clauses v = v_list v_case_clause v
 
@@ -421,36 +442,43 @@ and v_case_clause
       casepat = v_casepat;
       caseguard = v_caseguard;
       casebody = v_casebody;
-    } =
-  let arg =
+    } : G.action =
+  let icase, iarrow =
     match v_casetoks with
     | v1, v2 ->
         let v1 = v_tok v1 and v2 = v_tok v2 in
-        ()
+        (v1, v2)
   in
-  let arg = v_pattern v_casepat in
-  let arg = v_option v_guard v_caseguard in
-  let arg = v_block v_casebody in
-  ()
+  let pat = v_pattern v_casepat in
+  let guardopt = v_option v_guard v_caseguard in
+  let block = v_block v_casebody in
+  let pat =
+    match guardopt with None -> pat | Some (_t, e) -> PatWhen (pat, e)
+  in
+  (pat, expr_of_block block)
 
 and v_guard (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr v2 in
-  ()
+  (v1, v2)
 
-and v_block_expr v = v_bracket v_block_expr_kind v
+and v_block_expr v =
+  let lb, xs, rb = v_bracket v_block_expr_kind v in
+  (lb, xs, rb)
 
 and v_block_expr_kind = function
   | BEBlock v1 ->
       let v1 = v_block v1 in
-      ()
+      Left v1
   | BECases v1 ->
       let v1 = v_case_clauses v1 in
-      ()
+      Right v1
+
+and v_expr_for_stmt (e : expr) : G.stmt = todo ()
 
 and v_stmt = function
   | Block v1 ->
       let v1 = v_bracket v_block v1 in
-      ()
+      G.Block v1 |> G.s
   | If (v1, v2, v3, v4) ->
       let v1 = v_tok v1
       and v2 = v_bracket v_expr v2
@@ -462,33 +490,33 @@ and v_stmt = function
             ())
           v4
       in
-      ()
+      todo ()
   | While (v1, v2, v3) ->
       let v1 = v_tok v1 and v2 = v_bracket v_expr v2 and v3 = v_expr v3 in
-      ()
+      todo ()
   | DoWhile (v1, v2, v3, v4) ->
       let v1 = v_tok v1
       and v2 = v_expr v2
       and v3 = v_tok v3
       and v4 = v_bracket v_expr v4 in
-      ()
+      todo ()
   | For (v1, v2, v3) ->
       let v1 = v_tok v1
       and v2 = v_bracket v_enumerators v2
       and v3 = v_for_body v3 in
-      ()
+      todo ()
   | Return (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_option v_expr v2 in
-      ()
+      todo ()
   | Try (v1, v2, v3, v4) ->
       let v1 = v_tok v1
       and v2 = v_expr v2
       and v3 = v_option v_catch_clause v3
       and v4 = v_option v_finally_clause v4 in
-      ()
+      todo ()
   | Throw (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_expr v2 in
-      ()
+      todo ()
 
 and v_enumerators v = v_list v_enumerator v
 
@@ -534,19 +562,19 @@ and v_block v = v_list v_block_stat v
 and v_block_stat = function
   | D v1 ->
       let v1 = v_definition v1 in
-      ()
+      todo ()
   | I v1 ->
       let v1 = v_import v1 in
-      ()
+      todo ()
   | E v1 ->
       let v1 = v_expr v1 in
-      ()
+      todo ()
   | Package v1 ->
       let v1 = v_package v1 in
-      ()
+      todo ()
   | Packaging (v1, v2) ->
       let v1 = v_package v1 and v2 = v_bracket (v_list v_top_stat) v2 in
-      ()
+      todo ()
 
 and v_template_stat v = v_block_stat v
 
@@ -656,7 +684,7 @@ and v_function_definition
   let arg = v_list v_bindings v_fparams in
   let arg = v_option v_type_ v_frettype in
   let arg = v_option v_fbody vfbody in
-  ()
+  todo "function_definition"
 
 and v_function_kind = function LambdaArrow -> () | Def -> ()
 
@@ -705,7 +733,7 @@ and v_template_definition
   let arg = v_list v_bindings v_cparams in
   let arg = v_template_parents v_cparents in
   let arg = v_option v_template_body v_cbody in
-  ()
+  todo "class_definition"
 
 and v_template_parents { cextends = v_cextends; cwith = v_cwith } =
   let arg =

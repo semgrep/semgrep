@@ -475,10 +475,13 @@ and expr =
   | AnonClass of class_definition
   (*e: [[AST_generic.expr]] anonymous entity cases *)
   (*s: [[AST_generic.expr]] other cases *)
-  (* a.k.a ternary expression, or regular if in OCaml *)
+  (* a.k.a ternary expression. Note that even in languages like OCaml
+   * where 'if's are expressions, we still prefer to use the stmt 'If'
+   * because it allows an optional else part. We need to sometimes
+   * wrap those stmts inside an OE_StmtExpr though.
+   *)
   | Conditional of expr * expr * expr
   | MatchPattern of expr * action list
-  (* less: TryFunctional *)
   | Yield of tok * expr option * bool (* 'from' for Python *)
   | Await of tok * expr
   (* Send/Recv of Go are currently in OtherExpr *)
@@ -1116,7 +1119,7 @@ and pattern =
   (* OCaml and Scala *)
   | PatDisj of pattern * pattern (* also abused for catch in Java *)
   | PatTyped of pattern * type_
-  | PatWhen of pattern * expr
+  | PatWhen of pattern * expr (* TODO: add tok, 'when' OCaml, 'if' Scala *)
   | PatAs of pattern * (ident * id_info)
   (* For Go also in switch x.(type) { case int: ... } *)
   | PatType of type_
