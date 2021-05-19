@@ -229,16 +229,6 @@ def cli() -> None:
     output = parser.add_argument_group("output")
 
     output.add_argument(
-        "-q",
-        "--quiet",
-        action="store_true",
-        help=(
-            "Do not print any logging messages to stderr. Finding output will still be sent to stdout. Exit code "
-            "provides success status."
-        ),
-    )
-
-    output.add_argument(
         "--no-rewrite-rule-ids",
         action="store_true",
         help=(
@@ -346,10 +336,16 @@ def cli() -> None:
         help=("Maximum number of characters to show per line."),
     )
 
-    # logging options
-    logging_ = parser.add_argument_group("logging")
-
-    logging_.add_argument(
+    # verbosity options
+    verbosity_group = parser.add_argument_group("verbosity")
+    verbosity_ex = verbosity_group.add_mutually_exclusive_group()
+    verbosity_ex.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help=("Only output findings"),
+    )
+    verbosity_ex.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -357,11 +353,10 @@ def cli() -> None:
             "Show more details about what rules are running, which files failed to parse, etc."
         ),
     )
-
-    output.add_argument(
+    verbosity_ex.add_argument(
         "--debug",
         action="store_true",
-        help="Set the logging level to DEBUG",
+        help="Output debugging information",
     )
 
     parser.add_argument(
@@ -447,7 +442,7 @@ def cli() -> None:
     output_time = args.time or args.json_time
 
     # set the flags
-    semgrep.util.set_flags(args.debug, args.quiet, args.force_color)
+    semgrep.util.set_flags(args.verbose, args.debug, args.quiet, args.force_color)
 
     # change cwd if using docker
     try:

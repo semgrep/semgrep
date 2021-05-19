@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+from semgrep.verbose_logging import install_verbose_logging
+
+install_verbose_logging()
+
 import logging.handlers
 import sys
 
