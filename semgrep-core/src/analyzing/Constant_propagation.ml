@@ -219,6 +219,10 @@ let rec eval_expr env = function
    * | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->
    *)
   | Call (IdSpecial (Op op, _), (_, args, _)) -> eval_op env op args
+  | Call (IdSpecial (ConcatString _, _), (_, args, _)) ->
+      eval_concat_string env args
+  | Call (IdSpecial (InterpolatedElement, _), (_, [ Arg e ], _)) ->
+      eval_expr env e
   | __else__ -> None
 
 (* coupling: see also semgrep/matching/Normalize_generic.ml, even though
@@ -251,6 +255,22 @@ and eval_op env op args =
           eval_bop_string op s1 s2 >>= fun r -> Some (literal_of_string r)
       | __else__ -> None )
   | __else__ -> None
+
+and eval_concat_string env args : literal option =
+  let go_concat : arguments -> string option =
+    List.fold_left
+      (fun res arg ->
+        match arg with
+        | Arg e ->
+            let ( let* ) = ( >>= ) in
+            let* r = res in
+            let* lit = eval_expr env e in
+            let* s = string_of_literal lit in
+            Some (r ^ s)
+        | _else -> None)
+      (Some "")
+  in
+  args |> go_concat |> map_opt literal_of_string
 
 (*****************************************************************************)
 (* Entry point *)

@@ -236,6 +236,18 @@ and eval_op env wop args =
       G.Cst (union_ctype t1 t2)
   | ___else___ -> G.NotCst
 
+and eval_concat env args =
+  args
+  |> List.map (eval env)
+  |> List.fold_left
+       (fun res e ->
+         match (res, e) with
+         | G.Lit (G.String (r, _)), G.Lit (G.String (s, _)) ->
+             G.Lit (literal_of_string (r ^ s))
+         | (G.Lit _ | G.Cst _), G.Cst G.Cstr -> G.Cst G.Cstr
+         | _____else_____ -> G.NotCst)
+       (G.Lit (literal_of_string ""))
+
 (*****************************************************************************)
 (* Transfer *)
 (*****************************************************************************)
@@ -286,6 +298,12 @@ let transfer :
         (* TODO: Handle base=Mem _ and base=VarSpecial _ cases. *)
         | Assign ({ base = Var var; offset = NoOffset; constness = _ }, exp) ->
             let cexp = eval inp' exp in
+            D.VarMap.add (str_of_name var) cexp inp'
+        | CallSpecial
+            ( Some { base = Var var; offset = NoOffset; constness = _ },
+              (Concat, _),
+              args ) ->
+            let cexp = eval_concat inp' args in
             D.VarMap.add (str_of_name var) cexp inp'
         | ___else___ -> (
             (* assume non-constant *)
