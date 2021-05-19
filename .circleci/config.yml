@@ -29,7 +29,9 @@ jobs:
           name: dummy benchmarks
           command: |
             cd perf
-            make dummy-local
+            sudo pip install pipenv
+            pipenv install
+            ./run-benchmarks --dummy --upload
 
   # Real benchmarks
   benchmarks:
@@ -41,7 +43,9 @@ jobs:
           name: benchmarks
           command: |
             cd perf
-            make run-upload
+            sudo pip install pipenv
+            pipenv install
+            ./run-benchmarks --upload
 
 workflows:
   version: 2
