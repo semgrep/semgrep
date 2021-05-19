@@ -14,7 +14,5 @@ jobs:
         run: brew update
       - name: Brew Install
         run: brew install semgrep --HEAD
-      - name: Check semgrep-core version
-        run: semgrep-core -version
       - name: Check installed correctly
         run: brew test semgrep --HEAD
