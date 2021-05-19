@@ -94,7 +94,10 @@ let parse_pattern lang ?(print_errors = false) str =
         Ruby_to_generic.any any
     | Lang.PHP ->
         let any_cst = Parse_php.any_of_string str in
-        let any = Ast_php_build.any any_cst in
+        let any =
+          Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
+              Ast_php_build.any any_cst)
+        in
         Php_to_generic.any any
     | Lang.Cplusplus -> failwith "No C++ generic parser yet"
     | Lang.R -> failwith "No R generic parser yet"

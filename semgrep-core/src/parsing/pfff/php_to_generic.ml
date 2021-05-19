@@ -479,7 +479,13 @@ and function_kind (kind, t) =
 
 and parameters x = list parameter x
 
-and parameter { p_type; p_ref; p_name; p_default; p_attrs; p_variadic } =
+and parameter x =
+  match x with
+  | ParamClassic x -> parameter_classic x
+  | ParamEllipsis t -> G.ParamEllipsis t
+
+and parameter_classic { p_type; p_ref; p_name; p_default; p_attrs; p_variadic }
+    =
   let p_type = option hint_type p_type in
   let p_name = var p_name in
   let p_default = option expr p_default in
