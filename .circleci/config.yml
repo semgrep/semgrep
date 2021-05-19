@@ -29,7 +29,7 @@ jobs:
           name: dummy benchmarks
           command: |
             cd perf
-            sudo pip install pipenv
+            pip install pipenv
             pipenv install
             ./run-benchmarks --dummy --upload
 
@@ -43,7 +43,7 @@ jobs:
           name: benchmarks
           command: |
             cd perf
-            sudo pip install pipenv
+            pip install pipenv
             pipenv install
             ./run-benchmarks --upload
 
