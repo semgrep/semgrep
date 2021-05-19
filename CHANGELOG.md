@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - PHP: parsing correctly ... and metavariables in parameters
+- PHP: parsing correctly functions with a single statement in their body
 
 ### Changed
 
