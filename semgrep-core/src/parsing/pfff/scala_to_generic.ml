@@ -170,10 +170,10 @@ and v_import_spec = function
                in
                G.ImportFrom (tk, path, id, alias))
 
-let v_import (v1, v2) =
+let v_import (v1, v2) : G.directive list =
   let v1 = v_tok v1 in
   let v2 = v_list (v_import_expr v1) v2 in
-  v2
+  List.flatten v2
 
 let v_package (v1, v2) =
   let v1 = v_tok v1 and v2 = v_qualified_ident v2 in
@@ -473,7 +473,12 @@ and v_block_expr_kind = function
       let v1 = v_case_clauses v1 in
       Right v1
 
-and v_expr_for_stmt (e : expr) : G.stmt = todo ()
+and v_expr_for_stmt (e : expr) : G.stmt =
+  match e with
+  | S s -> v_stmt s
+  | _ ->
+      let e = v_expr e in
+      G.ExprStmt (e, G.sc) |> G.s
 
 and v_stmt = function
   | Block v1 ->
@@ -482,24 +487,26 @@ and v_stmt = function
   | If (v1, v2, v3, v4) ->
       let v1 = v_tok v1
       and v2 = v_bracket v_expr v2
-      and v3 = v_expr v3
+      and v3 = v_expr_for_stmt v3
       and v4 =
         v_option
           (fun (v1, v2) ->
-            let v1 = v_tok v1 and v2 = v_expr v2 in
-            ())
+            let v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
+            v2)
           v4
       in
-      todo ()
+      G.If (v1, G.unbracket v2, v3, v4) |> G.s
   | While (v1, v2, v3) ->
-      let v1 = v_tok v1 and v2 = v_bracket v_expr v2 and v3 = v_expr v3 in
-      todo ()
+      let v1 = v_tok v1
+      and v2 = v_bracket v_expr v2
+      and v3 = v_expr_for_stmt v3 in
+      G.While (v1, G.unbracket v2, v3) |> G.s
   | DoWhile (v1, v2, v3, v4) ->
       let v1 = v_tok v1
-      and v2 = v_expr v2
+      and v2 = v_expr_for_stmt v2
       and v3 = v_tok v3
       and v4 = v_bracket v_expr v4 in
-      todo ()
+      G.DoWhile (v1, v2, G.unbracket v4) |> G.s
   | For (v1, v2, v3) ->
       let v1 = v_tok v1
       and v2 = v_bracket v_enumerators v2
@@ -507,16 +514,17 @@ and v_stmt = function
       todo ()
   | Return (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_option v_expr v2 in
-      todo ()
+      G.Return (v1, v2, G.sc) |> G.s
   | Try (v1, v2, v3, v4) ->
       let v1 = v_tok v1
-      and v2 = v_expr v2
+      and v2 = v_expr_for_stmt v2
       and v3 = v_option v_catch_clause v3
       and v4 = v_option v_finally_clause v4 in
-      todo ()
+      let catches = match v3 with None -> [] | Some xs -> xs in
+      G.Try (v1, v2, catches, v4) |> G.s
   | Throw (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_expr v2 in
-      todo ()
+      G.Throw (v1, v2, G.sc) |> G.s
 
 and v_enumerators v = v_list v_enumerator v
 
@@ -549,32 +557,37 @@ and v_for_body = function
       let v1 = v_expr v1 in
       ()
 
-and v_catch_clause (v1, v2) =
+(* TODO: v2 should be a BeCases *)
+and v_catch_clause (v1, v2) : G.catch list =
   let v1 = v_tok v1 and v2 = v_expr v2 in
-  ()
+  todo ()
 
 and v_finally_clause (v1, v2) =
-  let v1 = v_tok v1 and v2 = v_expr v2 in
-  ()
+  let v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
+  (v1, v2)
 
-and v_block v = v_list v_block_stat v
+and v_block v = v_list v_block_stat v |> List.flatten
 
-and v_block_stat = function
+and v_block_stat x : G.item list =
+  match x with
   | D v1 ->
       let v1 = v_definition v1 in
-      todo ()
+      v1 |> List.map (fun def -> G.DefStmt def |> G.s)
   | I v1 ->
       let v1 = v_import v1 in
-      todo ()
+      v1 |> List.map (fun dir -> G.DirectiveStmt dir |> G.s)
   | E v1 ->
-      let v1 = v_expr v1 in
-      todo ()
+      let v1 = v_expr_for_stmt v1 in
+      [ v1 ]
   | Package v1 ->
-      let v1 = v_package v1 in
-      todo ()
-  | Packaging (v1, v2) ->
-      let v1 = v_package v1 and v2 = v_bracket (v_list v_top_stat) v2 in
-      todo ()
+      let ipak, ids = v_package v1 in
+      [ G.DirectiveStmt (G.Package (ipak, ids)) |> G.s ]
+  | Packaging (v1, (lb, v2, rb)) ->
+      let ipak, ids = v_package v1 in
+      let xxs = v_list v_top_stat v2 in
+      [ G.DirectiveStmt (G.Package (ipak, ids)) |> G.s ]
+      @ List.flatten xxs
+      @ [ G.DirectiveStmt (G.PackageEnd rb) |> G.s ]
 
 and v_template_stat v = v_block_stat v
 
@@ -635,13 +648,14 @@ and v_variance = function Covariant -> () | Contravariant -> ()
 
 and v_type_parameters v = v_option (v_bracket (v_list v_type_parameter)) v
 
-and v_definition = function
+and v_definition x : G.definition list =
+  match x with
   | DefEnt (v1, v2) ->
       let v1 = v_entity v1 and v2 = v_definition_kind v2 in
-      ()
+      todo ()
   | VarDefs v1 ->
       let v1 = v_variable_definitions v1 in
-      ()
+      todo ()
 
 and v_variable_definitions
     {
