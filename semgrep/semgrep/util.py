@@ -237,7 +237,7 @@ def format_bytes(num: float) -> str:
 
 def truncate(file_name: str, col_lim: int) -> str:
     name_len = len(file_name)
-    postfix = "..."
+    prefix = "..."
     if name_len > col_lim:
-        file_name = postfix + file_name[name_len - col_lim + len(postfix) :]
+        file_name = prefix + file_name[name_len - col_lim + len(prefix) :]
     return file_name
