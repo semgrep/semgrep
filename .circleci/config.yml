@@ -29,10 +29,7 @@ jobs:
           name: dummy benchmarks
           command: |
             cd perf
-            pip install pipenv
-            export PATH=$PATH:/home/semgrep/.local/bin
-            pipenv install
-            pipenv run ./run-benchmarks --dummy --upload
+            ./run-benchmarks --dummy --upload
 
   # Real benchmarks
   benchmarks:
@@ -44,10 +41,7 @@ jobs:
           name: benchmarks
           command: |
             cd perf
-            pip install pipenv
-            export PATH=$PATH:/home/semgrep/.local/bin
-            pipenv install
-            pipenv run ./run-benchmarks --upload
+            ./run-benchmarks --upload
 
 workflows:
   version: 2

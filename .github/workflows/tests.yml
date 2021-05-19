@@ -173,20 +173,16 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Run 0.46.0 Timing Benchmark
         run: |
-          cd perf
           pip3 install semgrep==0.46.0
           semgrep --version
           python3 -m semgrep --version
-          pip3 install pipenv
           export PATH=/github/home/.local/bin:$PATH
-          pipenv install
 
-          pipenv run python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing1.txt --no-time
+          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing1.txt --no-time
           cat semgrep/baseline_timing1.txt
-          pipenv run python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing2.txt --no-time
+          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing2.txt --no-time
           cat semgrep/baseline_timing2.txt
           pip3 uninstall -y semgrep
-          pip3 uninstall -y pipenv
       - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
@@ -195,13 +191,14 @@ jobs:
         run: |
           tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
           sudo cp ocaml-build-artifacts/bin/* /usr/bin
-      - name: Install perf
+      - name: Install semgrep
         run: |
-          cd perf
+          cd semgrep
           pip3 install pipenv
-          pipenv install
+          pipenv install --dev
       - name: Get timing for latest semgrep
         run: |
+          cd semgrep
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
