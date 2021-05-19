@@ -115,12 +115,12 @@ def test_invalid_metavariable_regex():
         rules:
         - id: boto3-internal-network
           patterns:
-            - pattern-inside: $MODULE.client(host=$HOST)
-            - metavariable-regex:
-                metavariable: $HOST
-                regex: '192.168\.\d{1,3}\.\d{1,3}'
-                metavariable: $MODULE
-                regex: (boto|boto3)
+          - pattern-inside: $MODULE.client(host=$HOST)
+          - metavariable-regex:
+              metavariable: $HOST
+              regex: '192.168\.\d{1,3}\.\d{1,3}'
+              metavariable: $MODULE
+              regex: (boto|boto3)
           message: "Boto3 connection to internal network"
           languages: [python]
           severity: ERROR
@@ -128,10 +128,8 @@ def test_invalid_metavariable_regex():
     )
 
     with pytest.raises(InvalidRuleSchemaError):
-        yaml = parse_config_string("testfile", rule, None)
-        config = yaml["testfile"].value
-        rules = config.get(RULES_KEY)
-        validate_single_rule(rules[0])
+        parse_config_string("testfile", rule, None)
+
 
 def test_invalid_pattern_child():
     rule = dedent("""
@@ -147,7 +145,21 @@ def test_invalid_pattern_child():
     """)
 
     with pytest.raises(InvalidRuleSchemaError):
-        yaml = parse_config_string("testfile", rule, None)
-        config = yaml["testfile"].value
-        rules = config.get(RULES_KEY)
-        validate_single_rule(rules[0])
+        parse_config_string("testfile", rule, None)
+
+
+def test_invalid_rule_with_null():
+    rule = dedent("""
+        rules:
+        - id: blah
+          message: ~
+          severity: INFO
+          languages: [python]
+          patterns:
+          - pattern-either:
+            - pattern: $X == $Y
+            - pattern-not: $Z == $Z
+    """)
+
+    with pytest.raises(InvalidRuleSchemaError):
+        parse_config_string("testfile", rule, None)
