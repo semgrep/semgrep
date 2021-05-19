@@ -52,6 +52,7 @@ type t =
   | Go
   (* functional *)
   | OCaml
+  | Scala
   (* scripting (Python is above) *)
   | Ruby
   | PHP
@@ -106,6 +107,7 @@ let list_of_lang =
     ("rust", Rust);
     ("r", R);
     ("yaml", Yaml);
+    ("scala", Scala);
   ]
 
 (*e: constant [[Lang.list_of_lang]] *)
@@ -144,6 +146,7 @@ let langs_of_filename filename =
   | FT.PL FT.Lua -> [ Lua ]
   | FT.PL FT.Rust -> [ Rust ]
   | FT.PL FT.R -> [ R ]
+  | FT.PL FT.Scala -> [ Scala ]
   | _ -> []
 
 (*e: function [[Lang.langs_of_filename]] *)
@@ -169,6 +172,7 @@ let string_of_lang = function
   | Rust -> "Rust"
   | R -> "R"
   | Yaml -> "Yaml"
+  | Scala -> "Scala"
 
 (*e: function [[Lang.string_of_lang]] *)
 
@@ -192,6 +196,7 @@ let ext_of_lang = function
   | Rust -> [ "rs" ]
   | R -> [ "r"; "R" ]
   | Yaml -> [ "yaml"; "yml" ]
+  | Scala -> [ "scala" ]
 
 (*e: function [[Lang.ext_of_lang]] *)
 

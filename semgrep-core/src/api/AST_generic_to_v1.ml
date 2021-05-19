@@ -562,9 +562,11 @@ and map_other_type_operator _x = "TODO"
 and map_other_type_argument_operator _x = "TODO"
 
 and map_attribute = function
-  | KeywordAttr v1 ->
+  | KeywordAttr v1 -> (
       let v1 = map_wrap map_keyword_attribute v1 in
-      `KeywordAttr v1
+      match v1 with
+      | Left v1, tok -> `KeywordAttr (v1, tok)
+      | Right s, tok -> `OtherAttribute (s, [ `Tk tok ]) )
   | NamedAttr (t, v1, v3) ->
       let t = map_tok t in
       let v1 = map_name v1 and v3 = map_bracket (map_of_list map_argument) v3 in
@@ -575,32 +577,33 @@ and map_attribute = function
       `OtherAttribute (v1, v2)
 
 and map_keyword_attribute = function
-  | Static -> `Static
-  | Volatile -> `Volatile
-  | Extern -> `Extern
-  | Public -> `Public
-  | Private -> `Private
-  | Protected -> `Protected
-  | Abstract -> `Abstract
-  | Final -> `Final
-  | Override -> `Override
-  | Var -> `Var
-  | Let -> `Let
-  | Mutable -> `Mutable
-  | Const -> `Const
-  | Optional -> `Optional
-  | NotNull -> `NotNull
-  | Generator -> `Generator
-  | Async -> `Async
-  | Recursive -> `Recursive
-  | MutuallyRecursive -> `MutuallyRecursive
-  | Inline -> `Inline
-  | Ctor -> `Ctor
-  | Dtor -> `Dtor
-  | Getter -> `Getter
-  | Setter -> `Setter
-  | Unsafe -> `Unsafe
-  | DefaultImpl -> `DefaultImpl
+  | Static -> Left `Static
+  | Volatile -> Left `Volatile
+  | Extern -> Left `Extern
+  | Public -> Left `Public
+  | Private -> Left `Private
+  | Protected -> Left `Protected
+  | Abstract -> Left `Abstract
+  | Final -> Left `Final
+  | Override -> Left `Override
+  | Var -> Left `Var
+  | Let -> Left `Let
+  | Mutable -> Left `Mutable
+  | Const -> Left `Const
+  | Optional -> Left `Optional
+  | NotNull -> Left `NotNull
+  | Generator -> Left `Generator
+  | Async -> Left `Async
+  | Recursive -> Left `Recursive
+  | MutuallyRecursive -> Left `MutuallyRecursive
+  | Inline -> Left `Inline
+  | Ctor -> Left `Ctor
+  | Dtor -> Left `Dtor
+  | Getter -> Left `Getter
+  | Setter -> Left `Setter
+  | Unsafe -> Left `Unsafe
+  | DefaultImpl -> Left `DefaultImpl
+  | Lazy -> Right "lazy"
 
 and map_other_attribute_operator _x = "TODO"
 
