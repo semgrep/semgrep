@@ -30,7 +30,8 @@
  *  - C (and some C++)
  *  - Go
  *  - OCaml
- *  - TODO next: Kotlin, Scala, Rust
+ *  - Scala
+ *  - TODO next: Kotlin, Rust
  *
  * rational: In the end, programming languages have a lot in Common.
  * Even though most interesting analysis are probably better done on a
@@ -77,7 +78,6 @@
  *
  * todo:
  *  - add C++ (argh)
- *  - add Scala (difficult)
  *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep.
  *
  * related work:
@@ -705,6 +705,8 @@ and concat_string_kind =
   (* Python requires the special f"" syntax to use interpolated strings,
    * and some semgrep users may want to explicitely match only f-strings,
    * which is why we record this information here.
+   * update: also use for interpolated Scala strings
+   * TODO: add of string ('f' or something else)
    *)
   | FString
 
@@ -1167,16 +1169,17 @@ and type_ =
   | TyN of name
   (* covers tuples, list, etc.
    * TODO: merge with TyN IdQualified? name_info has name_typeargs
+   * or make more general? TyApply (type_ * type_arguments)?
    *)
   | TyNameApply of dotted_ident * type_arguments
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
-  | TyAny of tok (* anonymous type, '_' in OCaml *)
+  | TyAny of tok (* anonymous type, '_' in OCaml, TODO: type bounds Scala? *)
   | TyPointer of tok * type_
   | TyRef of tok * type_ (* C++/Rust *)
   | TyQuestion of type_ * tok (* a.k.a option type *)
   | TyRest of tok * type_ (* '...foo' e.g. in a typescript tuple type *)
   (* intersection types, used for Java Cast, and in Typescript *)
-  | TyAnd of type_ * tok (* & *) * type_
+  | TyAnd of type_ * tok (* &, or 'with' in Scala *) * type_
   (* union types in Typescript *)
   | TyOr of type_ * tok (* | *) * type_
   (* Anonymous record type, a.k.a shape in PHP/Hack. See also AndType.
@@ -1736,7 +1739,7 @@ and directive =
    * the same package name; they are agglomarated in the same package
    *)
   | Package of tok * dotted_ident (* a.k.a namespace *)
-  (* for languages such as C++/PHP with scoped namespaces
+  (* for languages such as C++/PHP/Scala with scoped namespaces
    * alt: Package of tok * dotted_ident * item list bracket, but less
    * consistent with other directives, so better to use PackageEnd.
    *)
