@@ -89,6 +89,9 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.OCaml ->
         let any = Parse_ml.any_of_string str in
         Ml_to_generic.any any
+    | Lang.Scala ->
+        let any = Parse_scala.any_of_string str in
+        Scala_to_generic.any any
     | Lang.Ruby ->
         let any = Parse_ruby.any_of_string str in
         Ruby_to_generic.any any

@@ -1729,7 +1729,7 @@ and directive =
   (*s: [[AST_generic.directive]] other imports *)
   | ImportAs of tok * module_name * alias option (* as name *)
   (* bad practice! hard to resolve name locally *)
-  | ImportAll of tok * module_name * tok (* '.' in Go, '*' in Java/Python *)
+  | ImportAll of tok * module_name * tok (* '.' in Go, '*' in Java/Python, '_' in Scala *)
   (*e: [[AST_generic.directive]] other imports *)
   (*s: [[AST_generic.directive]] package cases *)
   (* packages are different from modules in that multiple files can reuse

@@ -22,6 +22,7 @@ type t =
   | Go
   (* functional *)
   | OCaml
+  | Scala
   (* scripting (Python is above) *)
   | Ruby
   | PHP
