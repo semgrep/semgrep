@@ -30,7 +30,7 @@ jobs:
           command: |
             cd perf
             pip install pipenv
-            export $PATH=$PATH:/home/semgrep/.local/bin
+            export PATH=$PATH:/home/semgrep/.local/bin
             pipenv install
             pipenv run ./run-benchmarks --dummy --upload
 
@@ -45,7 +45,7 @@ jobs:
           command: |
             cd perf
             pip install pipenv
-            export $PATH=$PATH:/home/semgrep/.local/bin
+            export PATH=$PATH:/home/semgrep/.local/bin
             pipenv install
             pipenv run ./run-benchmarks --upload
 
