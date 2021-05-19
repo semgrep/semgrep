@@ -4,6 +4,7 @@ from typing import Dict, List
 import copy
 import json
 import numpy as np
+import sys
 
 class RepositoryTimePerRule:
     def __init__(
@@ -19,11 +20,11 @@ class RepositoryTimePerRule:
             times_per_file = json.loads(times_per_file_bytes.decode('utf-8'))
         except (UnicodeDecodeError, ValueError):
             print ("Unable to decode the Semgrep result as JSON.")
-            exit(1)
+            sys.exit(1)
         
         if not 'time' in times_per_file:
             print ("Semgrep-core ran without the --time flag, please try again with --time set to true.")
-            exit(1)
+            sys.exit(1)
 
         rule_ids = []
         for rule_id in times_per_file['time']['rules']:
@@ -38,4 +39,4 @@ class RepositoryTimePerRule:
 
     def print_repo_to_times_per_rule(self):
         with open(self.output_file, 'w') as f:
-            json.dump(output, f)
+            json.dump(self.repo_to_times_per_rule, f)
