@@ -772,7 +772,10 @@ and excepthandler = function
       and v3 = list_stmt1 v3 in
       ( t,
         ( match (v1, v2) with
-        | Some e, None -> G.PatVar (H.expr_to_type e, None)
+        | Some e, None -> (
+            match e with
+            | G.Ellipsis tok -> G.PatEllipsis tok
+            | _ -> G.PatVar (H.expr_to_type e, None) )
         | None, None -> G.PatUnderscore (fake "_")
         | None, Some _ -> raise Impossible (* see the grammar *)
         | Some e, Some n ->
