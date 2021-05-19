@@ -173,6 +173,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Run 0.46.0 Timing Benchmark
         run: |
+          cd perf
           pip3 install semgrep==0.46.0
           semgrep --version
           python3 -m semgrep --version
@@ -201,7 +202,6 @@ jobs:
           pipenv install
       - name: Get timing for latest semgrep
         run: |
-          cd semgrep
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
