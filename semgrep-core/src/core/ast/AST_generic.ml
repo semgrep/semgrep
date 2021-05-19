@@ -1113,7 +1113,7 @@ and pattern =
   | PatKeyVal of pattern * pattern (* a kind of PatTuple *)
   (* special case of PatId *)
   | PatUnderscore of tok
-  (* OCaml *)
+  (* OCaml and Scala *)
   | PatDisj of pattern * pattern (* also abused for catch in Java *)
   | PatTyped of pattern * type_
   | PatWhen of pattern * expr
@@ -1148,6 +1148,7 @@ and other_pattern_operator =
 
 (*s: type [[AST_generic.type_]] *)
 and type_ =
+  (* TODO: TyLiteral, for Scala *)
   (* todo? a type_builtin = TInt | TBool | ...? see Literal.
    * or just delete and use (TyN Id) instead?
    *)

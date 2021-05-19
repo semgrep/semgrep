@@ -306,44 +306,50 @@ and v_type_bounds { supertype = v_supertype; subtype = v_subtype } =
 
 and v_ascription v = v_type_ v
 
+and todo_pattern msg any = G.OtherPat (G.OP_Todo, G.TodoK (msg, fake msg) :: any)
+
 and v_pattern = function
-  | PatLiteral v1 ->
+  | PatLiteral v1 -> (
       let v1 = v_literal v1 in
-      ()
+      match v1 with
+      | Left lit -> G.PatLiteral lit
+      | Right e -> todo_pattern "PatLiteralExpr" [ G.E e ] )
   | PatName v1 ->
-      let v1 = v_stable_id v1 in
-      ()
+      let ids = dotted_name_of_stable_id v1 in
+      G.PatConstructor (ids, [])
   | PatTuple v1 ->
       let v1 = v_bracket (v_list v_pattern) v1 in
-      ()
+      G.PatTuple v1
   | PatVarid v1 ->
       let v1 = v_varid_or_wildcard v1 in
-      ()
+      G.PatId (v1, G.empty_id_info ())
   | PatTypedVarid (v1, v2, v3) ->
       let v1 = v_varid_or_wildcard v1 and v2 = v_tok v2 and v3 = v_type_ v3 in
-      ()
+      let p1 = G.PatId (v1, G.empty_id_info ()) in
+      G.PatTyped (p1, v3)
   | PatBind (v1, v2, v3) ->
       let v1 = v_varid v1 and v2 = v_tok v2 and v3 = v_pattern v3 in
-      ()
+      G.PatAs (v3, (v1, G.empty_id_info ()))
   | PatApply (v1, v2, v3) ->
-      let v1 = v_stable_id v1
-      and v2 = v_option (v_bracket (v_list v_type_)) v2
-      and v3 = v_option (v_bracket (v_list v_pattern)) v3 in
-      ()
+      let ids = dotted_name_of_stable_id v1 in
+      let _v2TODO = v_option (v_bracket (v_list v_type_)) v2 in
+      let v3 = v_option (v_bracket (v_list v_pattern)) v3 in
+      let xs = match v3 with None -> [] | Some (_, xs, _) -> xs in
+      G.PatConstructor (ids, xs)
   | PatInfix (v1, v2, v3) ->
       let v1 = v_pattern v1 and v2 = v_ident v2 and v3 = v_pattern v3 in
-      ()
+      G.PatConstructor ([ v2 ], [ v1; v3 ])
   | PatUnderscoreStar (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_tok v2 in
-      ()
+      todo_pattern "PatUnderscoreStar" [ G.Tk v1; G.Tk v2 ]
   | PatDisj (v1, v2, v3) ->
       let v1 = v_pattern v1 and v2 = v_tok v2 and v3 = v_pattern v3 in
-      ()
+      G.PatDisj (v1, v3)
 
 and v_expr = function
-  | L v1 ->
+  | L v1 -> (
       let v1 = v_literal v1 in
-      todo ()
+      match v1 with Left lit -> G.L lit | Right e -> e )
   | Tuple v1 ->
       let v1 = v_bracket (v_list v_expr) v1 in
       todo ()
