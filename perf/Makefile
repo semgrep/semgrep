@@ -16,6 +16,16 @@ run:
 	pipenv install
 	pipenv run ./run-benchmarks
 
+.PHONY: run-upload
+run:
+	@set -e; \
+	if ! semgrep --version > /dev/null; then \
+	  echo "Missing 'semgrep' executable. Consider using 'make docker'."; \
+	  exit 1; \
+	fi
+	pipenv install
+	pipenv run ./run-benchmarks --upload
+
 # Use the latest semgrep build published on DockerHub.
 .PHONY: docker
 docker:
