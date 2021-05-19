@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 ### Fixed
+- PHP: parsing correctly ... and metavariables in parameters
 
 ### Changed
 
