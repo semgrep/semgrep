@@ -349,7 +349,7 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
                 if len(uniq_key_names) < len(kv_pairs):
                     raise InvalidRuleSchemaError(
                         short_msg="Detected duplicate key",
-                        long_msg=f"Detected duplicate key name, one of {uniq_key_names}.",
+                        long_msg=f"Detected duplicate key name, one of {list(sorted(uniq_key_names))}.",
                         spans=[
                             Span.from_node(
                             node, source_hash=source_hash, filename=filename
