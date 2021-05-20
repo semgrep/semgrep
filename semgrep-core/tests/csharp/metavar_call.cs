@@ -1,7 +1,9 @@
-public static void Test()
+public class Test
 {
-    // ERROR:
-    Foo(1, 2);
-
-    return 1;
+    public static int Test()
+    {
+        // ERROR:
+        Foo(1, 2);
+        return 1;
+    }
 }
