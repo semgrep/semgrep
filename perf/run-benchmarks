@@ -19,9 +19,11 @@ import re
 import subprocess
 import time
 import urllib.request
+from collections import defaultdict
 from contextlib import contextmanager
 from typing import Iterator
 from typing import Tuple
+from RepositoryTimePerRule import RepositoryTimePerRule
 
 import requests
 import semgrep_core_benchmark  # type: ignore
@@ -429,6 +431,7 @@ def run_benchmarks(
     std_only: bool,
     filter_corpus: str,
     filter_variant: str,
+    output_time_per_rule_json: str,
     plot_benchmarks: bool,
     upload: bool,
     include_time: bool,
@@ -445,6 +448,7 @@ def run_benchmarks(
     results_msgs = []
     durations = ""
     results: dict = {variant.name: [] for variant in variants}
+    output_per_rule_json_results = RepositoryTimePerRule(output_file=output_time_per_rule_json)
 
     corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES
     if dummy:
@@ -473,7 +477,10 @@ def run_benchmarks(
                 print(f"------ {name} ------")
                 duration, findings_bytes = run_semgrep(
                     docker, corpus, variant, include_time
-                )
+                )   
+
+                if not output_time_per_rule_json is None:
+                    output_per_rule_json_results.times_per_file_to_times_per_rule(corpus.name, findings_bytes)
 
                 # Report results
                 msg = f"{metric_name} = {duration:.3f} s"
@@ -524,6 +531,9 @@ def run_benchmarks(
         plotdata.plot(kind="bar")
         plt.show()
 
+    if not output_time_per_rule_json is None:
+        with chdir(called_dir):
+            output_per_rule_json_results.print_repo_to_times_per_rule()
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -590,6 +600,13 @@ def main() -> None:
     parser.add_argument(
         "--semgrep-core", help="run semgrep-core benchmarks", action="store_true"
     )
+    parser.add_argument(
+        "--output-time-per-rule-json",
+        nargs='?',
+        default=None,
+        const = 'repo_to_rule_time.json',        
+        help="output a json file that shows timing information for each rule."
+    )
     parser.add_argument("--no-time", help="disable time-checking", action="store_true")
     args = parser.parse_args()
 
@@ -609,6 +626,7 @@ def main() -> None:
                 args.std_only,
                 args.filter_corpus,
                 args.filter_variant,
+                args.output_time_per_rule_json,
                 args.plot_benchmarks,
                 args.upload,
                 not args.no_time,
