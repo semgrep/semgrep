@@ -1,5 +1,7 @@
 import logging
 from typing import Any
+from typing import cast
+from typing import Optional
 
 
 class VerboseLogging(logging.Logger):
@@ -38,3 +40,11 @@ def install_verbose_logging() -> None:
         VerboseLogging.VERBOSE_LOG_LEVEL, "VERBOSE"
     )  # Register VERBOSE as a logging level
     logging.setLoggerClass(VerboseLogging)
+
+
+def getLogger(name: Optional[str]) -> VerboseLogging:
+    """
+    Wrapper around logging.getLogger to correctly cast so mypy
+    detects verbose() function
+    """
+    return cast(VerboseLogging, logging.getLogger(name))

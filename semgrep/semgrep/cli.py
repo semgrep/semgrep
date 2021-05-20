@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import logging
 import multiprocessing
 import os
 
@@ -26,10 +25,10 @@ from semgrep.output import managed_output
 from semgrep.output import OutputSettings
 from semgrep.synthesize_patterns import synthesize_patterns
 from semgrep.target_manager import optional_stdin_target
+from semgrep.verbose_logging import getLogger
 from semgrep.version import is_running_latest
 
-
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 try:
     CPU_COUNT = multiprocessing.cpu_count()
 except NotImplementedError:
