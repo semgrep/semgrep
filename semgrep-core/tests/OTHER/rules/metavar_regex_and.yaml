@@ -1,0 +1,35 @@
+rules:
+- id: sequelize-weak-tls-version
+  message: >
+    TLS1.0 and TLS1.1 are deprecated and should be used anymore.
+    By default, NodeJS used TLSv1.2.
+    So, TLS min version must not be downgrade to TLS1.0 or TLS1.1.
+    Enforce TLS1.3 is hightly recommanded
+    This rule checks TLS configuration only for Postgresql, MariaDB and
+    MySQL. SQLite is not really concerned by TLS configuration.
+    This rule could be extended for MSSQL, but the dialectOptions
+    is specific for Tedious.
+  metadata:
+    owasp: 'A6: Security Misconfiguration'
+    references:
+    - https://node-postgres.com/features/ssl
+    - https://nodejs.org/api/tls.html#tls_class_tls_tlssocket
+    - https://nodejs.org/api/tls.html#tls_tls_createsecurecontext_options
+    - https://nodejs.org/api/tls.html#tls_tls_default_min_version
+  severity: WARNING
+  languages:
+  - javascript
+  - typescript
+  patterns:
+  - pattern-inside: |
+      {
+        dialect: $DIALECT,
+        ...
+       }
+  - pattern: |
+      {
+        minVersion: 'TLSv1'
+      }
+  - metavariable-regex:
+      metavariable: $DIALECT
+      regex: "['\"](mariadb|mysql|postgres)['\"]"
