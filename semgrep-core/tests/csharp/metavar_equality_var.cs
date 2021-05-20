@@ -1,6 +1,9 @@
-public static void Foo()
+public class Test
 {
-    // ERROR:
-    myFile = Open();
-    Close(myFile);
+    public static void Test()
+    {
+        // ERROR:
+        myFile = Open();
+        Close(myFile);
+    }
 }
