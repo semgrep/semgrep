@@ -6,7 +6,7 @@ import time
 from io import StringIO
 from pathlib import Path
 from re import sub
-from typing import Any
+from typing import Any, Tuple
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -21,7 +21,7 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
-from semgrep.error import MISSING_CONFIG_EXIT_CODE
+from semgrep.error import Level, MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
@@ -62,9 +62,9 @@ def notify_user_of_work(
             logger.info(f"- {rule.id}")
 
 
-def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
+def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> Tuple[bool, List[SemgrepError]]:
     if not rule_match.lines:
-        return False
+        return False, []
 
     # Only consider the first line of a match. This will keep consistent
     # behavior on where we expect a 'nosem' comment to exist. If we allow these
@@ -72,14 +72,14 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
     # the 'nosem' is referring to.
     re_match = NOSEM_INLINE_RE.search(rule_match.lines[0])
     if re_match is None:
-        return False
+        return False, []
 
     ids_str = re_match.groupdict()["ids"]
     if ids_str is None:
         logger.debug(
             f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
         )
-        return True
+        return True, []
 
     # Strip quotes to allow for use of nosem as an HTML attribute inside tags.
     # HTML comments inside tags are not allowed by the spec.
@@ -94,6 +94,7 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
     # or C-like multiline comments `*/`.
     pattern_ids = set(filter(lambda x: not sub(r"[\w\-\.]+", "", x), pattern_ids))
 
+    errors = []
     result = False
     for pattern_id in pattern_ids:
         if rule_match.id == pattern_id:
@@ -104,11 +105,11 @@ def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> bool:
         else:
             message = f"found 'nosem' comment with id '{pattern_id}', but no corresponding rule trying '{rule_match.id}'"
             if strict:
-                raise SemgrepError(message)
+                errors.append(SemgrepError(message, level=Level.WARN))
             else:
                 logger.debug(message)
 
-    return result
+    return result, errors
 
 
 def invoke_semgrep(
@@ -260,13 +261,16 @@ The two most popular are:
 
     output_handler.handle_semgrep_errors(semgrep_errors)
 
-    rule_matches_by_rule = {
-        rule: [
-            attr.evolve(rule_match, is_ignored=rule_match_nosem(rule_match, strict))
-            for rule_match in rule_matches
-        ]
-        for rule, rule_matches in rule_matches_by_rule.items()
-    }
+    nosem_errors = []
+    for rule, rule_matches in rule_matches_by_rule.items():
+        evolved_rule_matches = []
+        for rule_match in rule_matches:
+            ignored, returned_errors = rule_match_nosem(rule_match, strict)
+            evolved_rule_matches.append(attr.evolve(rule_match, is_ignored=ignored))
+            nosem_errors.extend(returned_errors)
+        rule_matches_by_rule[rule] = evolved_rule_matches
+
+    output_handler.handle_semgrep_errors(nosem_errors)
 
     num_findings_nosem = 0
     if not disable_nosem:
