@@ -131,6 +131,50 @@ def test_invalid_metavariable_regex():
         parse_config_string("testfile", rule, None)
 
 
+def test_invalid_metavariable_comparison():
+    rule = dedent(
+        """
+        rules:
+        - id: boto3-internal-network
+          patterns:
+          - pattern-inside: $MODULE.client(host=$HOST, port=$PORT)
+          - metavariable-comparison:
+              metavariable: $PORT
+              comparison: $PORT > 9999
+              metavariable: $MODULE
+              comparison: '(server|servers)'
+          message: "Boto3 connection to internal network"
+          languages: [python]
+          severity: ERROR
+        """
+    )
+
+    with pytest.raises(InvalidRuleSchemaError):
+        parse_config_string("testfile", rule, None)
+
+
+def test_invalid_metavariable_comparison2():
+    rule = dedent(
+        """
+        rules:
+        - id: boto3-internal-network
+          patterns:
+          - pattern-inside: $MODULE.client(host=$HOST, port=$PORT)
+          - metavariable-comparison:
+              metavariable: $PORT
+              comparison: $PORT > 9999
+              metavariable: $MODULE
+              regex: '(server|servers)'
+          message: "Boto3 connection to internal network"
+          languages: [python]
+          severity: ERROR
+        """
+    )
+
+    with pytest.raises(InvalidRuleSchemaError):
+        parse_config_string("testfile", rule, None)
+
+
 def test_invalid_pattern_child():
     rule = dedent("""
         rules:
