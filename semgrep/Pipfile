@@ -9,7 +9,6 @@ pytest = "*"
 pytest-snapshot = "*"
 pytest-xdist = "*"
 tox = "*"
-numpy = "*"
 
 [packages]
 semgrep = {editable = true,path = "."}
