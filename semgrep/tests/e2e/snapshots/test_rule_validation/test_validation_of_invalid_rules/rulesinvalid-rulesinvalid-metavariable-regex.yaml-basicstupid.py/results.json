@@ -3,7 +3,7 @@
     {
       "code": 4,
       "level": "error",
-      "long_msg": "Detected duplicate key name, one of {'metavariable', 'regex'}.",
+      "long_msg": "Detected duplicate key name, one of ['metavariable', 'regex'].",
       "short_msg": "Detected duplicate key",
       "spans": [
         {
