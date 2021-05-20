@@ -1,0 +1,34 @@
+{
+  "errors": [
+    {
+      "code": 4,
+      "level": "error",
+      "long_msg": "One of these properties may be invalid: 'pattern'\nOne of these properties is missing: 'mode', 'severity'",
+      "short_msg": "Invalid rule schema",
+      "spans": [
+        {
+          "context_end": null,
+          "context_start": null,
+          "end": {
+            "col": 20,
+            "line": 5
+          },
+          "file": "rules/invalid-rules/invalid-missing-top-item.yaml",
+          "source_hash": "80686607c0ff19816b5d3c0ac6852c3fed70416274758cd879daeb1bc2163a69",
+          "start": {
+            "col": 3,
+            "line": 2
+          }
+        }
+      ],
+      "type": "InvalidRuleSchemaError"
+    },
+    {
+      "code": 7,
+      "level": "error",
+      "message": "run with --strict and there were 1 errors loading configs",
+      "type": "SemgrepError"
+    }
+  ],
+  "results": []
+}

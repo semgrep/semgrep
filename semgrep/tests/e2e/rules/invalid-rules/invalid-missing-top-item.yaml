@@ -1,0 +1,5 @@
+rules:
+- id: blah
+  message: blah
+  languages: [python]
+  pattern: $X == $X
