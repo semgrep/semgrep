@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 ### Fixed
+- Fixed #3084 - Semgrep will report an InvalidRuleSchemaError for dictionaries with duplicate key names.
 
 ### Changed
 
