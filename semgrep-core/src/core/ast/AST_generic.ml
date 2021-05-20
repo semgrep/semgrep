@@ -30,7 +30,8 @@
  *  - C (and some C++)
  *  - Go
  *  - OCaml
- *  - TODO next: Kotlin, Scala, Rust
+ *  - Scala
+ *  - TODO next: Kotlin, Rust
  *
  * rational: In the end, programming languages have a lot in Common.
  * Even though most interesting analysis are probably better done on a
@@ -77,7 +78,6 @@
  *
  * todo:
  *  - add C++ (argh)
- *  - add Scala (difficult)
  *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep.
  *
  * related work:
@@ -475,10 +475,13 @@ and expr =
   | AnonClass of class_definition
   (*e: [[AST_generic.expr]] anonymous entity cases *)
   (*s: [[AST_generic.expr]] other cases *)
-  (* a.k.a ternary expression, or regular if in OCaml *)
+  (* a.k.a ternary expression. Note that even in languages like OCaml
+   * where 'if's are expressions, we still prefer to use the stmt 'If'
+   * because it allows an optional else part. We need to sometimes
+   * wrap those stmts inside an OE_StmtExpr though.
+   *)
   | Conditional of expr * expr * expr
   | MatchPattern of expr * action list
-  (* less: TryFunctional *)
   | Yield of tok * expr option * bool (* 'from' for Python *)
   | Await of tok * expr
   (* Send/Recv of Go are currently in OtherExpr *)
@@ -705,6 +708,8 @@ and concat_string_kind =
   (* Python requires the special f"" syntax to use interpolated strings,
    * and some semgrep users may want to explicitely match only f-strings,
    * which is why we record this information here.
+   * update: also use for interpolated Scala strings
+   * TODO: add of string ('f' or something else)
    *)
   | FString
 
@@ -1111,10 +1116,10 @@ and pattern =
   | PatKeyVal of pattern * pattern (* a kind of PatTuple *)
   (* special case of PatId *)
   | PatUnderscore of tok
-  (* OCaml *)
+  (* OCaml and Scala *)
   | PatDisj of pattern * pattern (* also abused for catch in Java *)
   | PatTyped of pattern * type_
-  | PatWhen of pattern * expr
+  | PatWhen of pattern * expr (* TODO: add tok, 'when' OCaml, 'if' Scala *)
   | PatAs of pattern * (ident * id_info)
   (* For Go also in switch x.(type) { case int: ... } *)
   | PatType of type_
@@ -1146,6 +1151,7 @@ and other_pattern_operator =
 
 (*s: type [[AST_generic.type_]] *)
 and type_ =
+  (* TODO: TyLiteral, for Scala *)
   (* todo? a type_builtin = TInt | TBool | ...? see Literal.
    * or just delete and use (TyN Id) instead?
    *)
@@ -1167,16 +1173,17 @@ and type_ =
   | TyN of name
   (* covers tuples, list, etc.
    * TODO: merge with TyN IdQualified? name_info has name_typeargs
+   * or make more general? TyApply (type_ * type_arguments)?
    *)
   | TyNameApply of dotted_ident * type_arguments
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
-  | TyAny of tok (* anonymous type, '_' in OCaml *)
+  | TyAny of tok (* anonymous type, '_' in OCaml, TODO: type bounds Scala? *)
   | TyPointer of tok * type_
   | TyRef of tok * type_ (* C++/Rust *)
   | TyQuestion of type_ * tok (* a.k.a option type *)
   | TyRest of tok * type_ (* '...foo' e.g. in a typescript tuple type *)
   (* intersection types, used for Java Cast, and in Typescript *)
-  | TyAnd of type_ * tok (* & *) * type_
+  | TyAnd of type_ * tok (* &, or 'with' in Scala *) * type_
   (* union types in Typescript *)
   | TyOr of type_ * tok (* | *) * type_
   (* Anonymous record type, a.k.a shape in PHP/Hack. See also AndType.
@@ -1269,8 +1276,8 @@ and keyword_attribute =
   | Var
   | Let
   (* for fields (kinda types) *)
-  | Mutable
-  | Const (* a.k.a 'readonly' in Typescript *)
+  | Mutable (* a.k.a 'var' in Scala *)
+  | Const (* a.k.a 'readonly' in Typescript, 'val' in Scala *)
   (* less: should be part of the type *)
   | Optional
   (* Typescript '?' *)
@@ -1290,6 +1297,10 @@ and keyword_attribute =
   (* Rust *)
   | Unsafe
   | DefaultImpl
+  (* Scala *)
+  | Lazy
+
+(* By name application in Scala, via => T, in parameter *)
 
 (* unstable, RFC 1210 *)
 
@@ -1306,6 +1317,7 @@ and other_attribute_operator =
   | OA_AnnotThrow
   (* Other *)
   | OA_Expr
+  | OA_Todo
 
 (* todo: Python, should transform in NamedAttr when can *)
 
@@ -1729,14 +1741,14 @@ and directive =
   (*s: [[AST_generic.directive]] other imports *)
   | ImportAs of tok * module_name * alias option (* as name *)
   (* bad practice! hard to resolve name locally *)
-  | ImportAll of tok * module_name * tok (* '.' in Go, '*' in Java/Python *)
+  | ImportAll of tok * module_name * tok (* '.' in Go, '*' in Java/Python, '_' in Scala *)
   (*e: [[AST_generic.directive]] other imports *)
   (*s: [[AST_generic.directive]] package cases *)
   (* packages are different from modules in that multiple files can reuse
    * the same package name; they are agglomarated in the same package
    *)
   | Package of tok * dotted_ident (* a.k.a namespace *)
-  (* for languages such as C++/PHP with scoped namespaces
+  (* for languages such as C++/PHP/Scala with scoped namespaces
    * alt: Package of tok * dotted_ident * item list bracket, but less
    * consistent with other directives, so better to use PackageEnd.
    *)

@@ -275,6 +275,10 @@ let just_parse_with_lang lang file =
           (* TODO TreeSitter Parse_ocaml_tree_sitter.parse; *)
         ]
         Ml_to_generic.program
+  | Lang.Scala ->
+      run file
+        [ Pfff (throw_tokens Parse_scala.parse) ]
+        Scala_to_generic.program
   | Lang.PHP ->
       run file
         [ Pfff (throw_tokens Parse_php.parse) ]

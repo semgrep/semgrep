@@ -160,8 +160,8 @@ let rec stmt_aux = function
       let v1 = expr v1 in
       [ G.Throw (t, v1, G.sc) |> G.s ]
   | Try (t, v1, v2, v3) ->
-      let v1 = list stmt v1 and v2 = list catch v2 and v3 = finally v3 in
-      [ G.Try (t, G.stmt1 v1, v2, v3) |> G.s ]
+      let v1 = stmt v1 and v2 = list catch v2 and v3 = finally v3 in
+      [ G.Try (t, v1, v2, v3) |> G.s ]
   | ClassDef v1 ->
       let ent, def = class_def v1 in
       [ G.DefStmt (ent, G.ClassDef def) |> G.s ]
@@ -226,15 +226,16 @@ and case = function
       ([ G.Default t ], G.stmt1 v1)
 
 and catch (t, v1, v2, v3) =
-  let v1 = hint_type v1 and v2 = var v2 and v3 = list stmt v3 in
+  let v1 = hint_type v1 and v2 = var v2 and v3 = stmt v3 in
   let pat = G.PatVar (v1, Some (v2, G.empty_id_info ())) in
-  (t, pat, G.stmt1 v3)
+  (t, pat, v3)
 
+(* a list of finally??? php ... *)
 and finally (v : finally list) =
-  let xs = list (fun (t, xs) -> (t, list stmt xs)) v in
+  let xs = list (fun (t, xs) -> (t, stmt xs)) v in
   match xs with
   | [] -> None
-  | (t, x) :: xs -> Some (t, G.stmt1 (x @ (List.map snd xs |> List.flatten)))
+  | (t, x) :: xs -> Some (t, G.stmt1 (x :: List.map snd xs))
 
 and expr = function
   | DeepEllipsis x -> G.DeepEllipsis (bracket expr x)
@@ -381,7 +382,7 @@ and expr = function
               l_uses
           in
 
-          let body = G.stmt1 (list stmt body) in
+          let body = stmt body in
           let ps = parameters ps in
           let rett = option hint_type rett in
           (* TODO: transform l_uses in UseOuterDecl preceding body *)
@@ -464,7 +465,7 @@ and func_def
       l_uses
   in
   let attrs = list attribute f_attrs in
-  let body = list stmt f_body |> G.stmt1 in
+  let body = stmt f_body in
   let ent = G.basic_entity id (modifiers @ attrs) in
   let def = { G.fparams = params; frettype = fret; fbody = body; fkind } in
   (ent, def)
@@ -479,7 +480,13 @@ and function_kind (kind, t) =
 
 and parameters x = list parameter x
 
-and parameter { p_type; p_ref; p_name; p_default; p_attrs; p_variadic } =
+and parameter x =
+  match x with
+  | ParamClassic x -> parameter_classic x
+  | ParamEllipsis t -> G.ParamEllipsis t
+
+and parameter_classic { p_type; p_ref; p_name; p_default; p_attrs; p_variadic }
+    =
   let p_type = option hint_type p_type in
   let p_name = var p_name in
   let p_default = option expr p_default in

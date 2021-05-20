@@ -1,4 +1,5 @@
 import contextlib
+import functools
 import logging
 import pathlib
 import sys
@@ -163,6 +164,7 @@ def build_timing_summary(
     rules: List[Rule],
     targets: Set[Path],
     profiling_data: ProfilingData,
+    profiler: Optional[ProfileManager],
     color_output: bool,
 ) -> Iterator[str]:
     items_to_show = 5
@@ -171,26 +173,27 @@ def build_timing_summary(
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
     YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
 
-    rule_parsing_time = 0.0
-    file_parsing_time = 0.0
-    rule_timings = {}
-    file_timings: Dict[str, float] = {}
-    for rule in rules:
-        parse_time = profiling_data.get_parse_time(rule.id)
-        rule_timings[rule.id] = (parse_time, 0.0)
-        rule_parsing_time += parse_time
-        for target in targets:
-            path_str = get_path_str(target)
-            times = profiling_data.get_run_times(rule.id, path_str)
-            rule_timings[rule.id] = tuple(
-                x + y
-                for x, y in zip(
-                    rule_timings[rule.id],
-                    (times.run_time - times.parse_time, times.match_time),
-                )
-            )  # type: ignore
-            file_timings[path_str] = file_timings.get(path_str, 0.0) + times.run_time
-            file_parsing_time += times.parse_time
+    time_data = _build_time_json(rules, targets, profiling_data, profiler)
+    rule_parsing_time = sum(parse_time for parse_time in time_data["rule_parse_info"])
+    rule_timings = {
+        rule["id"]: functools.reduce(
+            lambda x, y: (x[0] + y[0], x[1] + y[1]),
+            (
+                (t["run_times"][i] - t["parse_times"][i], t["match_times"][i])
+                for t in time_data["targets"]
+            ),
+            (time_data["rule_parse_info"][i], 0.0),
+        )
+        for i, rule in enumerate(time_data["rules"])
+    }
+    file_parsing_time = sum(
+        sum(target["parse_times"]) for target in time_data["targets"]
+    )
+    file_timings = {
+        target["path"]: float(sum(target["run_times"]))
+        for target in time_data["targets"]
+    }
+
     all_total_time = sum(i for i in file_timings.values()) + rule_parsing_time
     total_matching_time = sum(i[1] for i in rule_timings.values())
 
@@ -209,7 +212,7 @@ def build_timing_summary(
 
     yield f"Slowest {items_to_show} rules to run (excluding parse time)"
     slowest_rule_times = sorted(
-        rule_timings.items(), key=lambda x: x[1][0], reverse=True
+        rule_timings.items(), key=lambda x: x[1][0], reverse=True  # type: ignore
     )[:items_to_show]
     for rule_id, (total_time, match_time) in slowest_rule_times:
         rule_id = truncate(rule_id, col_lim) + ":"
@@ -226,6 +229,7 @@ def build_normal_output(
     show_times: bool,
     filtered_rules: List[Rule],
     profiling_data: ProfilingData,
+    profiler: Optional[ProfileManager],
 ) -> Iterator[str]:
     RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
     GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
@@ -290,7 +294,7 @@ def build_normal_output(
         )
     if show_times:
         yield from build_timing_summary(
-            filtered_rules, all_targets, profiling_data, color_output
+            filtered_rules, all_targets, profiling_data, profiler, color_output
         )
 
 
@@ -317,7 +321,7 @@ def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
     profiling_data: ProfilingData,  # (rule, target) -> times
-    total_time: float,
+    profiler: Optional[ProfileManager],
 ) -> Dict[str, Any]:
     """Convert match times to a json-ready format.
 
@@ -334,7 +338,7 @@ def _build_time_json(
     time_info["rule_parse_info"] = [
         profiling_data.get_parse_time(rule.id) for rule in rules
     ]
-    time_info["total_time"] = total_time
+    time_info["total_time"] = profiler.calls["total_time"][0] if profiler else -1.0
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
     time_info["targets"] = [
         _build_time_target_json(rules, target, num_bytes, profiling_data)
@@ -602,9 +606,11 @@ class OutputHandler:
                 "profiler": self.profiler.dump_stats() if self.profiler else None,
             }
         if self.settings.output_time:
-            total_time = self.profiler.calls["total_time"][0] if self.profiler else -1.0
             extra["time"] = _build_time_json(
-                self.filtered_rules, self.all_targets, self.profiling_data, total_time
+                self.filtered_rules,
+                self.all_targets,
+                self.profiling_data,
+                self.profiler,
             )
 
         structured_formatters: Dict[OutputFormat, Type[BaseFormatter]] = {
@@ -633,6 +639,7 @@ class OutputHandler:
                         self.settings.output_time,
                         self.filtered_rules,
                         self.profiling_data,
+                        self.profiler,
                     )
                 )
             )

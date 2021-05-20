@@ -362,6 +362,11 @@ and expr_aux env eorig =
       let args = arguments env args in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
       mk_e (Lvalue lval) eorig
+  | G.Call (G.IdSpecial (G.InterpolatedElement, _), (_, [ G.Arg e ], _)) ->
+      (* G.InterpolatedElement is useful for matching certain patterns against
+       * interpolated strings, but we do not have an use for it yet during
+       * semantic analysis, so in the IL we just unwrap the expression. *)
+      expr env e
   | G.Call (G.IdSpecial spec, args) ->
       let tok = snd spec in
       let lval = fresh_lval env tok in
@@ -514,10 +519,8 @@ and call_generic env tok e args =
 
 and call_special _env (x, tok) =
   ( ( match x with
-    | G.Op _ | G.IncrDecr _ ->
-        impossible (G.E (G.IdSpecial (x, tok)))
-        (* should be intercepted before *)
-    | G.This | G.Super | G.Self | G.Parent ->
+    | G.Op _ | G.IncrDecr _ | G.This | G.Super | G.Self | G.Parent
+    | G.InterpolatedElement ->
         impossible (G.E (G.IdSpecial (x, tok)))
         (* should be intercepted before *)
     | G.Eval -> Eval
@@ -528,7 +531,7 @@ and call_special _env (x, tok) =
     | G.ConcatString _kindopt -> Concat
     | G.Spread -> Spread
     | G.EncodedString _ | G.Defined | G.HashSplat | G.ForOf | G.NextArrayIndex
-    | G.InterpolatedElement ->
+      ->
         todo (G.E (G.IdSpecial (x, tok))) ),
     tok )
 

@@ -1,0 +1,3 @@
+function $FUNC($ARG = []) {
+  do_something($ARG);
+}

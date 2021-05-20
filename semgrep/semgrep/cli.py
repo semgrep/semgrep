@@ -98,7 +98,7 @@ def cli() -> None:
     config.add_argument(
         "--strict",
         action="store_true",
-        help="Only invoke semgrep if configuration files(s) are valid.",
+        help="Return a nonzero exit code when WARN level errors are encountered. Fails early if invalid configuration files are present.",
     )
     config.add_argument(
         "--optimizations",

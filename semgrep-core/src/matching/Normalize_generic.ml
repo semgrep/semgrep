@@ -103,6 +103,7 @@ let rec eval x : constness option =
       | Some (Lit (String (_s1, t1))) when all_args_are_string ->
           Some (Lit (String (concated, t1)))
       | _ -> None )
+  | Call (IdSpecial (InterpolatedElement, _), (_, [ Arg e ], _)) -> eval e
   (* TODO: partial evaluation for ints/floats/... *)
   | _ -> None
 

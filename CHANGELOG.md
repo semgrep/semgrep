@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 
 ### Fixed
+
+- Running with `--strict` will now return results if there are `nosem` mismatches. Semgrep will report a nonzero exit code if `--strict` is set and there are `nosem` mismathces. [#3099](https://github.com/returntocorp/semgrep/issues/3099)
+- PHP: parsing correctly ... and metavariables in parameters
+- PHP: parsing correctly functions with a single statement in their body
+- Evaluate interpolated strings during constant propagation (#3127)
 - Fixed #3084 - Semgrep will report an InvalidRuleSchemaError for dictionaries with duplicate key names.
 
 ### Changed
@@ -24,6 +29,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - OCaml: fix useless-else false positives by generating appropriate AST for
   if without an else.
 - JS/TS: Propagate constant definitions without declaration
+- Python: Make except ... match except _ as _
 
 ## [0.51.0](https://github.com/returntocorp/semgrep/releases/tag/v0.51.0) - 2021-05-13
 

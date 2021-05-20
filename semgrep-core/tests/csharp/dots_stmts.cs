@@ -1,9 +1,12 @@
-public static void Foo()
+public class Test
 {
-    //ERROR:
-    userData = Get();
-    Console.WriteLine("do stuff");
-    FooBar();
-    Eval(userData);
-    FooBar();
+    public static void Test()
+    {
+        //ERROR:
+        userData = Get();
+        Console.WriteLine("do stuff");
+        FooBar();
+        Eval(userData);
+        FooBar();
+    }
 }

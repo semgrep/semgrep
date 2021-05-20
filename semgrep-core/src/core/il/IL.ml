@@ -291,7 +291,7 @@ and call_special =
   | Instanceof
   | Sizeof
   (* old: better in exp: | Operator of G.arithmetic_operator *)
-  | Concat
+  | Concat (* THINK: Normalize as a Operator G.Concat ? *)
   | Spread
   | Yield
   | Await
