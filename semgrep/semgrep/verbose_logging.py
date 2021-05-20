@@ -42,6 +42,9 @@ def install_verbose_logging() -> None:
     logging.setLoggerClass(VerboseLogging)
 
 
+install_verbose_logging()
+
+
 def getLogger(name: Optional[str]) -> VerboseLogging:
     """
     Wrapper around logging.getLogger to correctly cast so mypy
