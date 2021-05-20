@@ -1,4 +1,4 @@
-public static void Test
+public static void Test()
 {
     // ERROR:
     Foo(1, 2);
