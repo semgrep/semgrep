@@ -282,24 +282,27 @@ let inside_compatible x y =
   | Some R.Inside, None -> false
 
 let intersect_ranges config xs ys =
+  let left_merge r1 r2 =
+    (* [r1] extended with [r2.mvars], assumes [included_in config r1 r2] *)
+    let r2_only_mvars =
+      r2.mvars
+      |> List.filter (fun (mvar, _) -> not (List.mem_assoc mvar r1.mvars))
+    in
+    { r1 with mvars = r2_only_mvars @ r1.mvars }
+  in
+  let left_included_merge us vs =
+    us
+    |> Common2.map_flatten (fun u ->
+           vs
+           |> List.filter_map (fun v ->
+                  if included_in config u v && inside_compatible u v then
+                    Some (left_merge u v)
+                  else None))
+  in
   if !debug_matches then
     logger#info "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
       (show_ranges ys);
-  let surviving_xs =
-    xs
-    |> List.filter (fun x ->
-           ys
-           |> List.exists (fun y ->
-                  included_in config x y && inside_compatible x y))
-  in
-  let surviving_ys =
-    ys
-    |> List.filter (fun y ->
-           xs
-           |> List.exists (fun x ->
-                  included_in config y x && inside_compatible y x))
-  in
-  surviving_xs @ surviving_ys
+  left_included_merge xs ys @ left_included_merge ys xs
   [@@profiling]
 
 let difference_ranges config pos neg =
