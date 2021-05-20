@@ -399,9 +399,30 @@ let params_of_parameters env xs =
 
 (*e: function [[Naming_AST.params_of_parameters]] *)
 
+let declare_var env lang id id_info ~explicit vinit vtype =
+  (* name resolution *)
+  let sid = H.gensym () in
+  (* for the type, we use the (optional) type in vtype, or, if we can infer  *)
+  (* the type of the expression vinit (literal or id), we use that as a type *)
+  (* useful when the type is not given, e.g. in Go: `var x = 2`  *)
+  let resolved_type = Typing.get_resolved_type lang (vinit, vtype) in
+  let name_kind, add_ident_to_its_scope =
+    (* In JS/TS an assignment to a variable that has not been
+     * previously declared will implicitly create a property on
+     * the *global* object. *)
+    if Lang.is_js lang && not explicit then (Global, add_ident_global_scope)
+    else (resolved_name_kind env lang, add_ident_current_scope)
+  in
+  let resolved = { entname = (name_kind, sid); enttype = resolved_type } in
+  add_ident_to_its_scope id resolved env.names;
+  set_resolved env id_info resolved
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
+
+let assign_implicitly_declares lang =
+  lang = Lang.Python || lang = Lang.Ruby || lang = Lang.PHP || Lang.is_js lang
 
 (*s: function [[Naming_AST.resolve]] *)
 let resolve2 lang prog =
@@ -456,23 +477,7 @@ let resolve2 lang prog =
               v (En ent);
               vinit |> do_option (fun e -> v (E e));
               vtype |> do_option (fun t -> v (T t));
-
-              (* name resolution *)
-              let sid = H.gensym () in
-              (* for the type, we use the (optional) type in vtype, or, if we can infer  *)
-              (* the type of the expression vinit (literal or id), we use that as a type *)
-              (* useful for Go, where you can write var x = 2 without declaring the type *)
-              let resolved_type =
-                Typing.get_resolved_type lang (vinit, vtype)
-              in
-              let resolved =
-                {
-                  entname = (resolved_name_kind env lang, sid);
-                  enttype = resolved_type;
-                }
-              in
-              add_ident_current_scope id resolved env.names;
-              set_resolved env id_info resolved
+              declare_var env lang id id_info ~explicit:true vinit vtype
           | { name = EN (Id (id, id_info)); _ }, FuncDef _
             when is_resolvable_name_ctx env lang ->
               ( match lang with
@@ -594,19 +599,11 @@ let resolve2 lang prog =
                * Also inside a PatAs(PatId x,b), the 'x' is actually
                * the name of a class, not a newly introduced local.
                *)
-              (* mostly copy-paste of VarDef code *)
-              let sid = H.gensym () in
-              let resolved = untyped_ent (resolved_name_kind env lang, sid) in
-              add_ident_current_scope id resolved env.names;
-              set_resolved env id_info resolved;
+              declare_var env lang id id_info ~explicit:true None None;
               k x
           | PatVar (_e, Some (id, id_info)) when is_resolvable_name_ctx env lang
             ->
-              (* mostly copy-paste of VarDef code *)
-              let sid = H.gensym () in
-              let resolved = untyped_ent (resolved_name_kind env lang, sid) in
-              add_ident_current_scope id resolved env.names;
-              set_resolved env id_info resolved;
+              declare_var env lang id id_info ~explicit:true None None;
               k x
           | OtherPat _
           (* This interacts badly with implicit JS/TS declarations. It causes
@@ -634,22 +631,18 @@ let resolve2 lang prog =
             when lang = Lang.Go
                  && Parse_info.str_of_info tok = ":="
                  && is_resolvable_name_ctx env lang ->
-              (* Need to visit expressions first so that type is populated *)
+              (* Need to visit the RHS first so that type is populated *)
               (* If we do var a = 3, then var b = a, we want to propagate the type of a *)
               k x;
-              (* name resolution *)
-              let sid = H.gensym () in
-              let resolved_type =
-                Typing.get_resolved_type lang (Some e2, None)
-              in
-              let resolved =
-                {
-                  entname = (resolved_name_kind env lang, sid);
-                  enttype = resolved_type;
-                }
-              in
-              add_ident_current_scope id resolved env.names;
-              set_resolved env id_info resolved;
+              declare_var env lang id id_info ~explicit:true (Some e2) None;
+              recurse := false
+          | Assign (N (Id (id, id_info)), _, e2)
+            when Option.is_none (lookup_scope_opt id env)
+                 && assign_implicitly_declares lang
+                 && is_resolvable_name_ctx env lang ->
+              (* Need to visit the RHS first so that type is populated *)
+              vout (E e2);
+              declare_var env lang id id_info ~explicit:false (Some e2) None;
               recurse := false
           (* todo: see lrvalue.ml
            * alternative? extra id_info tag?
@@ -667,36 +660,22 @@ let resolve2 lang prog =
               | Some resolved ->
                   (* name resolution *)
                   set_resolved env id_info resolved
-              | None -> (
-                  match (!(env.in_lvalue), lang) with
-                  (* first use of a variable can be a VarDef in some languages *)
-                  (* type propagation not necessary because this does not hold true for Java or Go *)
-                  | true, (Lang.Python | Lang.Ruby | Lang.PHP)
-                    when is_resolvable_name_ctx env lang ->
-                      (* mostly copy-paste of VarDef code *)
-                      let sid = H.gensym () in
-                      let resolved =
-                        untyped_ent (resolved_name_kind env lang, sid)
-                      in
-                      add_ident_current_scope id resolved env.names;
-                      set_resolved env id_info resolved
-                  | true, (Lang.Javascript | Lang.Typescript)
-                    when is_resolvable_name_ctx env lang ->
-                      (* In JS/TS an assignment to a variable that has not been
-                       * previously declared will implicitly create a property on
-                       * the *global* object. *)
-                      let sid = H.gensym () in
-                      let resolved = untyped_ent (Global, sid) in
-                      add_ident_global_scope id resolved env.names;
-                      set_resolved env id_info resolved
-                      (* hopefully the lang-specific resolved may have resolved that *)
-                  | _ ->
-                      (* TODO: this can happen because of in_lvalue bug detection, or
-                       * for certain entities like functions or classes which are
-                       * currently tagged
-                       *)
-                      let s, tok = id in
-                      error tok (spf "could not find '%s' in environment" s) ) )
+              | None ->
+                  if
+                    !(env.in_lvalue)
+                    && assign_implicitly_declares lang
+                    && is_resolvable_name_ctx env lang
+                  then
+                    (* first use of a variable can be a VarDef in some languages *)
+                    declare_var env lang id id_info ~explicit:false None None
+                  else
+                    (* hopefully the lang-specific resolved may have resolved that *)
+                    (* TODO: this can happen because of in_lvalue bug detection, or
+                     * for certain entities like functions or classes which are
+                     * currently tagged
+                     *)
+                    let s, tok = id in
+                    error tok (spf "could not find '%s' in environment" s) )
           | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info))) -> (
               match lookup_scope_opt id env with
               (* TODO: this is a v0 for doing naming and typing of fields.
