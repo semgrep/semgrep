@@ -24,8 +24,9 @@ module H = AST_generic_helpers
  *
  * See AST_generic.ml for more information.
  *
- * Scala can have multiple parameter lists or argument lists. Right now
- * In Call position we fold, but for the parameters we fold.
+ * TODO:
+ * - Scala can have multiple parameter lists or argument lists. Right now
+ *   In Call position we fold, but for the parameters we flatten.
  *)
 
 [@@@warning "-27-26-32"]
@@ -574,12 +575,21 @@ and v_for_body = function
       let v1 = v_expr_for_stmt v1 in
       v1
 
-(* TODO: v2 should be a BeCases *)
 and v_catch_clause (v1, v2) : G.catch list =
   let v1 = v_tok v1 in
-  let v2 = v_expr v2 in
-  pr2 "catch_clause";
-  []
+  match v2 with
+  | CatchCases (lb, xs, rb) ->
+      let actions = List.map v_case_clause xs in
+      actions
+      |> List.map (fun (pat, e) ->
+             (* todo? e was the result of expr_of_block, so maybe we
+              * should revert because we want a stmt here with block_of_expr
+              *)
+             (fake "case", pat, G.exprstmt e))
+  | CatchExpr e ->
+      let e = v_expr e in
+      let pat = G.PatUnderscore v1 in
+      [ (v1, pat, G.exprstmt e) ]
 
 and v_finally_clause (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
