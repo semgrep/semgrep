@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - PHP: parsing correctly ... and metavariables in parameters
 - PHP: parsing correctly functions with a single statement in their body
 - Evaluate interpolated strings during constant propagation (#3127)
+- Basic type inference also for implicit variable declarations (Python, Ruby, PHP, and JS)
 
 ### Changed
 
