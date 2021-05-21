@@ -1262,10 +1262,11 @@ and attribute =
 
 (*s: type [[AST_generic.keyword_attribute]] *)
 and keyword_attribute =
+  (* the classic C modifiers *)
   | Static
   | Volatile
   | Extern
-  (* for class fields *)
+  (* for class fields/methods *)
   | Public
   | Private
   | Protected
@@ -1278,11 +1279,11 @@ and keyword_attribute =
   (* for fields (kinda types) *)
   | Mutable (* a.k.a 'var' in Scala *)
   | Const (* a.k.a 'readonly' in Typescript, 'val' in Scala *)
-  (* less: should be part of the type *)
+  (* less: should be part of the type? *)
   | Optional
   (* Typescript '?' *)
   | NotNull (* Typescript '!' *)
-  (* for functions *)
+  (* for functions/methods *)
   | Generator
   (* '*' in JS *)
   | Async
@@ -1299,6 +1300,7 @@ and keyword_attribute =
   | DefaultImpl
   (* Scala *)
   | Lazy
+  | CaseClass
 
 (* By name application in Scala, via => T, in parameter *)
 
@@ -1472,6 +1474,9 @@ and function_kind =
   (* Also redundant; can just check if the fdef is in a Lambda *)
   | LambdaKind
   | Arrow
+  | BlockCases
+
+(* for Scala *)
 
 (* a.k.a short lambdas *)
 
@@ -1654,6 +1659,9 @@ and other_type_kind_operator = (* OCaml *)
 and class_definition = {
   ckind : class_kind wrap;
   (* usually just one parent, and type_ should be a TyApply *)
+  (* TODO? the parent can have arguments, as in Scala, to call super
+   * or when used inside a New.
+   *)
   cextends : type_ list;
   (* class_kind in type_ must be Interface *)
   cimplements : type_ list;
