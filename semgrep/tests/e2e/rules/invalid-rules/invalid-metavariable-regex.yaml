@@ -1,0 +1,12 @@
+rules:
+- id: boto3-internal-network
+  patterns:
+    - pattern-inside: $MODULE.client(host=$HOST)
+    - metavariable-regex:
+        metavariable: $HOST
+        regex: '192.168\.\d{1,3}\.\d{1,3}'
+        metavariable: $MODULE
+        regex: (boto|boto3)
+  message: "Boto3 connection to internal network"
+  languages: [python]
+  severity: ERROR
