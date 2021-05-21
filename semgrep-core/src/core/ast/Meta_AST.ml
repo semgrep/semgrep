@@ -1038,6 +1038,7 @@ and vof_function_kind = function
   | LambdaKind -> OCaml.VSum ("LambdaKind", [])
   | Method -> OCaml.VSum ("Method", [])
   | Arrow -> OCaml.VSum ("Arrow", [])
+  | BlockCases -> OCaml.VSum ("BlockCases", [])
 
 and vof_function_definition
     { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody } =

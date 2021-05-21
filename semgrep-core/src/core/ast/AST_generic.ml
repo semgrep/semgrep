@@ -1472,6 +1472,9 @@ and function_kind =
   (* Also redundant; can just check if the fdef is in a Lambda *)
   | LambdaKind
   | Arrow
+  | BlockCases
+
+(* for Scala *)
 
 (* a.k.a short lambdas *)
 
@@ -1654,6 +1657,9 @@ and other_type_kind_operator = (* OCaml *)
 and class_definition = {
   ckind : class_kind wrap;
   (* usually just one parent, and type_ should be a TyApply *)
+  (* TODO? the parent can have arguments, as in Scala, to call super
+   * or when used inside a New.
+   *)
   cextends : type_ list;
   (* class_kind in type_ must be Interface *)
   cimplements : type_ list;

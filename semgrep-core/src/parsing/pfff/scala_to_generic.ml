@@ -23,6 +23,9 @@ module H = AST_generic_helpers
 (* AST_scala to AST_generic.
  *
  * See AST_generic.ml for more information.
+ *
+ * Scala can have multiple parameter lists or argument lists. Right now
+ * In Call position we fold, but for the parameters we fold.
  *)
 
 [@@@warning "-27-26-32"]
@@ -47,8 +50,6 @@ let ids_of_name = function
 
 let error = G.error
 
-let todo s = failwith ("TODO:" ^ s)
-
 let fake = G.fake
 
 let fb = G.fake_bracket
@@ -67,10 +68,16 @@ let v_list = List.map
 
 let v_option = Common.map_opt
 
-let expr_of_block xs : G.expr = todo "expr_of_block"
-
-let cases_to_lambda (cases : G.action list) : G.function_definition =
-  todo "cases_to_lambda"
+let cases_to_lambda lb (cases : G.action list) : G.function_definition =
+  let id = ("!hidden_scala_param!", lb) in
+  let param = G.ParamClassic (G.param_of_id id) in
+  let body = G.exprstmt (G.MatchPattern (G.N (name_of_id id), cases)) in
+  {
+    fkind = (G.BlockCases, lb);
+    frettype = None;
+    fparams = [ param ];
+    fbody = body;
+  }
 
 (*****************************************************************************)
 (* Boilerplate *)
@@ -121,10 +128,13 @@ let v_simple_ref = function
       let fld = G.EN (G.Id (v4, G.empty_id_info ())) in
       Right (G.DotAccess (G.IdSpecial (G.Super, v2), fake ".", fld))
 
-let tok_of_simple_ref = function
-  | Id (_, t) -> t
-  | This (_, t) -> t
-  | Super (_, t, _, _) -> t
+(* TODO: should not use *)
+let id_of_simple_ref = function
+  | Id id -> id
+  | This (_, t) -> ("this", t)
+  | Super (_, t, _, _) -> ("super", t)
+
+let tok_of_simple_ref x = snd (id_of_simple_ref x)
 
 let v_path (v1, v2) =
   let v1 = v_simple_ref v1 and v2 = v_selectors v2 in
@@ -141,11 +151,8 @@ and v_alias (v1, v2) =
   (v1, v2)
 
 let v_dotted_name_of_stable_id (v1, v2) =
-  match v_simple_ref v1 with
-  | Left id -> id :: v2
-  | Right _ ->
-      let tk = tok_of_simple_ref v1 in
-      error tk "complex stable id not handled"
+  let id = id_of_simple_ref v1 in
+  id :: v2
 
 let rec v_import_expr tk (v1, v2) =
   let module_name = G.DottedName (v_dotted_name_of_stable_id v1) in
@@ -406,18 +413,24 @@ and v_expr = function
       let v1 = v_function_definition v1 in
       G.Lambda v1
   | New (v1, v2) ->
-      let v1 = v_tok v1 and v2 = v_template_definition v2 in
+      let v1 = v_tok v1 and v2, argss = v_template_definition v2 in
       let cl = G.AnonClass v2 in
       let special = G.IdSpecial (G.New, v1) in
-      G.Call (special, fb [ G.Arg cl ])
+      let start = G.Call (special, fb [ G.Arg cl ]) in
+      argss |> List.fold_left (fun acc args -> G.Call (acc, args)) start
   | BlockExpr v1 -> (
       let lb, kind, rb = v_block_expr v1 in
       match kind with
       | Left stats -> expr_of_block stats
-      | Right cases -> G.Lambda (cases_to_lambda cases) )
+      | Right cases -> G.Lambda (cases_to_lambda lb cases) )
   | S v1 ->
       let v1 = v_stmt v1 in
       G.OtherExpr (G.OE_StmtExpr, [ G.S v1 ])
+
+(* alt: transform in a series of Seq? *)
+and expr_of_block xs : G.expr =
+  let st = G.Block (fb xs) |> G.s in
+  G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
 
 and v_lhs v = v_expr v
 
@@ -429,7 +442,8 @@ and v_arguments = function
       let lb, kind, rb = v_block_expr v1 in
       match kind with
       | Left stats -> (lb, [ G.Arg (expr_of_block stats) ], rb)
-      | Right cases -> (lb, [ G.Arg (G.Lambda (cases_to_lambda cases)) ], rb) )
+      | Right cases -> (lb, [ G.Arg (G.Lambda (cases_to_lambda lb cases)) ], rb)
+      )
 
 and v_argument v =
   let v = v_expr v in
@@ -512,7 +526,8 @@ and v_stmt = function
       let v1 = v_tok v1
       and v2 = v_bracket v_enumerators v2
       and v3 = v_for_body v3 in
-      todo "for"
+      let header = G.ForClassic ([], None, None) (* TODO *) in
+      G.For (v1, header, v3) |> G.s
   | Return (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_option v_expr v2 in
       G.Return (v1, v2, G.sc) |> G.s
@@ -553,15 +568,18 @@ and v_generator
 and v_for_body = function
   | Yield (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_expr v2 in
-      ()
+      let e = G.Yield (v1, Some v2, false) in
+      G.exprstmt e
   | NoYield v1 ->
-      let v1 = v_expr v1 in
-      ()
+      let v1 = v_expr_for_stmt v1 in
+      v1
 
 (* TODO: v2 should be a BeCases *)
 and v_catch_clause (v1, v2) : G.catch list =
-  let v1 = v_tok v1 and v2 = v_expr v2 in
-  todo "catch_clause"
+  let v1 = v_tok v1 in
+  let v2 = v_expr v2 in
+  pr2 "catch_clause";
+  []
 
 and v_finally_clause (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
@@ -666,9 +684,7 @@ and v_definition x : G.definition list =
   | DefEnt (v1, v2) ->
       let v1 = v_entity v1 and v2 = v_definition_kind v2 in
       [ (v1, v2) ]
-  | VarDefs v1 ->
-      let v1 = v_variable_definitions v1 in
-      todo "vardefs"
+  | VarDefs v1 -> v_variable_definitions v1
 
 and v_variable_definitions
     {
@@ -677,11 +693,19 @@ and v_variable_definitions
       vtype = v_vtype;
       vbody = v_vbody;
     } =
-  let arg = v_list v_pattern v_vpatterns in
-  let arg = v_list v_attribute v_vattrs in
-  let arg = v_option v_type_ v_vtype in
-  let arg = v_option v_expr v_vbody in
-  ()
+  let attrs = v_list v_attribute v_vattrs in
+  let topt = v_option v_type_ v_vtype in
+  let eopt = v_option v_expr v_vbody in
+  v_vpatterns
+  |> Common.map_filter (fun pat ->
+         match pat with
+         | PatVarid id | PatName (Id id, []) ->
+             let ent = G.basic_entity id attrs in
+             let vdef = { G.vinit = eopt; vtype = topt } in
+             Some (ent, G.VarDef vdef)
+         | _ ->
+             pr2 "TODO pattern var";
+             None)
 
 and v_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let v1 = v_ident v_name in
@@ -697,7 +721,7 @@ and v_definition_kind = function
       let v1 = v_type_definition v1 in
       G.TypeDef v1
   | Template v1 ->
-      let v1 = v_template_definition v1 in
+      let v1, _argssTODO = v_template_definition v1 in
       G.ClassDef v1
 
 and v_function_definition
@@ -726,7 +750,9 @@ and v_fbody = function
       let lb, kind, rb = v_block_expr v1 in
       match kind with
       | Left stats -> G.Block (lb, stats, rb) |> G.s
-      | Right cases -> todo "fbody cases" )
+      | Right cases ->
+          let def = cases_to_lambda lb cases in
+          G.exprstmt (G.Lambda def) )
   | FExpr (v1, v2) ->
       let _v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
       v2
@@ -744,13 +770,7 @@ and v_binding
   let attrs = v_list v_attribute v_p_attrs in
   let default = v_option v_expr v_p_default in
   let pclassic =
-    {
-      G.pname = Some id;
-      pattrs = attrs;
-      pdefault = default;
-      ptype = None;
-      pinfo = G.empty_id_info ();
-    }
+    { (G.param_of_id id) with pattrs = attrs; pdefault = default }
   in
   match v_p_type with
   | None -> G.ParamClassic pclassic
@@ -775,29 +795,30 @@ and v_template_definition
       cparams = v_cparams;
       cparents = v_cparents;
       cbody = v_cbody;
-    } : G.class_definition =
+    } : G.class_definition * G.arguments bracket list =
   let ckind = v_wrap v_template_kind v_ckind in
   (* TODO? flatten? *)
   let cparams = v_list v_bindings v_cparams |> List.flatten in
-  let cextends, cmixins = v_template_parents v_cparents in
+  let (cextends, cmixins), argss = v_template_parents v_cparents in
   let body = v_option v_template_body v_cbody in
   let cbody =
     match body with
     | None -> G.empty_body
     | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.FieldStmt st), rb)
   in
-  { G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }
+  ({ G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }, argss)
 
 and v_template_parents { cextends = v_cextends; cwith = v_cwith } =
-  let v1 =
-    v_option
-      (fun (v1, v2) ->
-        let v1 = v_type_ v1 and v2TODO = v_list v_arguments v2 in
-        v1)
-      v_cextends
+  let parent, argss =
+    match v_cextends with
+    | None -> ([], [])
+    | Some (v1, v2) ->
+        let v1 = v_type_ v1 in
+        let v2 = v_list v_arguments v2 in
+        ([ v1 ], v2)
   in
   let v2 = v_list v_type_ v_cwith in
-  (Common.opt_to_list v1, v2)
+  ((parent, v2), argss)
 
 and v_template_body v =
   v_bracket

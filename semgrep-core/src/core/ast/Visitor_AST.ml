@@ -938,7 +938,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
         v_other_def_operator v1;
         v_list v_any v2
   and v_other_def_operator _ = ()
-  and v_function_kind = function Function | Method | Arrow | LambdaKind -> ()
+  and v_function_kind = function
+    | Function | Method | Arrow | LambdaKind | BlockCases -> ()
   and v_function_definition x =
     let k { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody }
         =
