@@ -347,6 +347,12 @@ let lang_regression_tests ~with_caching =
     let lang = Lang.Yaml in
     regression_tests_for_lang files lang
   );
+  "semgrep Scala" >::: (
+    let dir = Filename.concat tests_path "scala" in
+    let files = Common2.glob (spf "%s/*.scala" dir) in
+    let lang = Lang.Scala in
+    regression_tests_for_lang files lang
+  );
  ]
 (*e: constant [[Test.lang_regression_tests]] *)
 
