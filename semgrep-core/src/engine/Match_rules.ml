@@ -281,6 +281,22 @@ let inside_compatible x y =
    *)
   | Some R.Inside, None -> false
 
+(* We now not only check whether a range is included in another,
+ * we also merge their metavars. The reason is that with some rules like:
+ * - pattern-inside:  { dialect: $DIALECT,  ... }
+ * - pattern: { minVersion: 'TLSv1' }
+ * - metavariable-regex:
+ *     metavariable: $DIALECT
+ *     regex: "['\"](mariadb|mysql|postgres)['\"]"
+ * when intersecting the two patterns, we must propagate the binding
+ * for $DIALECT, so we can evaluate the metavariable-regex.
+ *
+ * alt: we could force the user to first And the metavariable-regex
+ * with the pattern-inside, to have the right scope.
+ * See https://github.com/returntocorp/semgrep/issues/2664
+ * alt: we could do the rewriting ourselves, detecting that the
+ * metavariable-regex has the wrong scope.
+ *)
 let intersect_ranges config xs ys =
   let left_merge r1 r2 =
     (* [r1] extended with [r2.mvars], assumes [included_in config r1 r2] *)
