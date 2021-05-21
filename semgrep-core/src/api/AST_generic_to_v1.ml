@@ -608,6 +608,7 @@ and map_keyword_attribute = function
   | DefaultImpl -> Left `DefaultImpl
   (* new: *)
   | Lazy -> Right "lazy"
+  | CaseClass -> Right "CaseClass"
 
 and map_other_attribute_operator _x = "TODO"
 
