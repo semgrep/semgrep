@@ -9,7 +9,8 @@ from semgrep.semgrep_types import Language_util
 
 
 # coupling: if you add a constant here, modify also ALL_EXTENSIONS below
-# and you probably also need to update _LANGS_TO_EXTS_INTERNAL
+# and you probably also need to update semgrep_types.py Language
+# and Language_util classes.
 # You may also have to regenerate some test snapshots with
 # pipenv run pytest tests/e2e/test_rule_parser.py --snapshot-update
 PYTHON_EXTENSIONS = [FileExtension(".py"), FileExtension(".pyi")]
@@ -27,6 +28,7 @@ KOTLIN_EXTENSIONS = [FileExtension(".kt"), FileExtension(".kts"), FileExtension(
 YAML_EXTENSIONS = [FileExtension(".yaml"), FileExtension(".yml")]
 ML_EXTENSIONS = [FileExtension(".mli"), FileExtension(".ml")]
 JSON_EXTENSIONS = [FileExtension(".json")]
+SCALA_EXTENSIONS = [FileExtension(".scala")]
 
 # This is used to determine the set of files with known extensions,
 # i.e. those for which we have a proper parser.
@@ -43,6 +45,7 @@ ALL_EXTENSIONS = (
     + RUST_EXTENSIONS
     + KOTLIN_EXTENSIONS
     + YAML_EXTENSIONS
+    + SCALA_EXTENSIONS
 )
 
 # This is used to select the files suitable for spacegrep, which is
@@ -70,6 +73,7 @@ _LANGS_TO_EXTS: Dict[Language, List[FileExtension]] = {
     Language.YAML: YAML_EXTENSIONS,
     Language.REGEX: GENERIC_EXTENSIONS,
     Language.GENERIC: GENERIC_EXTENSIONS,
+    Language.SCALA: SCALA_EXTENSIONS,
 }
 
 

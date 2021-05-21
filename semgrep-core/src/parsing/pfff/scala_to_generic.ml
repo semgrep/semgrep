@@ -358,6 +358,8 @@ and v_pattern = function
 and todo_expr msg any = G.OtherExpr (G.OE_Todo, G.TodoK (msg, fake msg) :: any)
 
 and v_expr = function
+  | Ellipsis v1 -> G.Ellipsis v1
+  | DeepEllipsis v1 -> G.DeepEllipsis (v_bracket v_expr v1)
   | L v1 -> (
       let v1 = v_literal v1 in
       match v1 with Left lit -> G.L lit | Right e -> e )
@@ -763,35 +765,38 @@ and v_fbody = function
 
 and v_bindings v = v_bracket (v_list v_binding) v |> G.unbracket
 
-and v_binding
-    {
-      p_name = v_p_name;
-      p_attrs = v_p_attrs;
-      p_type = v_p_type;
-      p_default = v_p_default;
-    } : G.parameter =
-  let id = v_ident_or_wildcard v_p_name in
-  let attrs = v_list v_attribute v_p_attrs in
-  let default = v_option v_expr v_p_default in
-  let pclassic =
-    { (G.param_of_id id) with pattrs = attrs; pdefault = default }
-  in
-  match v_p_type with
-  | None -> G.ParamClassic pclassic
-  | Some (PT v1) ->
-      let v1 = v_type_ v1 in
-      G.ParamClassic { pclassic with ptype = Some v1 }
-  | Some (PTByNameApplication (v1, v2)) ->
-      let v1 = v_tok v1 and v2 = v_type_ v2 in
-      G.ParamClassic
-        {
-          pclassic with
-          ptype = Some v2;
-          pattrs = G.KeywordAttr (G.Lazy, v1) :: pclassic.pattrs;
-        }
-  | Some (PTRepeatedApplication (v1, v2)) ->
-      let v1 = v_type_ v1 and v2 = v_tok v2 in
-      G.ParamRest (v2, { pclassic with ptype = Some v1 })
+and v_binding v : G.parameter =
+  match v with
+  | ParamEllipsis t -> G.ParamEllipsis t
+  | ParamClassic
+      {
+        p_name = v_p_name;
+        p_attrs = v_p_attrs;
+        p_type = v_p_type;
+        p_default = v_p_default;
+      } -> (
+      let id = v_ident_or_wildcard v_p_name in
+      let attrs = v_list v_attribute v_p_attrs in
+      let default = v_option v_expr v_p_default in
+      let pclassic =
+        { (G.param_of_id id) with pattrs = attrs; pdefault = default }
+      in
+      match v_p_type with
+      | None -> G.ParamClassic pclassic
+      | Some (PT v1) ->
+          let v1 = v_type_ v1 in
+          G.ParamClassic { pclassic with ptype = Some v1 }
+      | Some (PTByNameApplication (v1, v2)) ->
+          let v1 = v_tok v1 and v2 = v_type_ v2 in
+          G.ParamClassic
+            {
+              pclassic with
+              ptype = Some v2;
+              pattrs = G.KeywordAttr (G.Lazy, v1) :: pclassic.pattrs;
+            }
+      | Some (PTRepeatedApplication (v1, v2)) ->
+          let v1 = v_type_ v1 and v2 = v_tok v2 in
+          G.ParamRest (v2, { pclassic with ptype = Some v1 }) )
 
 and v_template_definition
     {
@@ -859,12 +864,19 @@ and v_type_definition_kind = function
 let v_program v = v_list v_top_stat v |> List.flatten
 
 let v_any = function
-  | Program v1 ->
+  | Pr v1 ->
       let v1 = v_program v1 in
       G.Ss v1
   | Tk v1 ->
       let v1 = v_tok v1 in
       G.Tk v1
+  | Ex e -> (
+      match v_expr_for_stmt e with
+      | { G.s = G.ExprStmt (e, _); _ } -> G.E e
+      | st -> G.S st )
+  | Ss b -> (
+      let xs = v_block b in
+      match xs with [ s ] -> G.S s | xs -> G.Ss xs )
 
 (*****************************************************************************)
 (* Entry points *)
