@@ -1,0 +1,9 @@
+rules:
+- id: blah
+  message: blah
+  severity: INFO
+  languages: [python]
+  patterns:
+  - pattern-either:
+    - pattern: $X == $Y
+    - pattern-not: $Z == $Z

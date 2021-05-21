@@ -3,7 +3,7 @@ import json
 import re
 from io import StringIO
 from pathlib import Path
-from typing import Any
+from typing import Any, Set, Tuple
 from typing import cast
 from typing import Dict
 from typing import Generic
@@ -21,6 +21,7 @@ from jsonschema.validators import Draft7Validator
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
+from ruamel.yaml.nodes import MappingNode
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
@@ -331,9 +332,33 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     class SpanPreservingRuamelConstructor(RoundTripConstructor):
         def construct_object(self, node: Node, deep: bool = False) -> YamlTree:
             r = super().construct_object(node, deep)
+
+            # Check for duplicate mapping keys.
+            # This -should- be caught and raised by ruamel.yaml.
+            # However, resetting the constructor below, where the line
+            # reads yaml.Constructor = SpanPreservingRuamelConstructor,
+            # causes ruamel's DuplicateKeyError not to be raised.
+            # This is a quick implementation that will check MappingNodes
+            # 
+            if isinstance(node, MappingNode):
+                from semgrep.error import InvalidRuleSchemaError
+                kv_pairs: List[Tuple[Node, Node]] = [t for t in node.value]
+                uniq_key_names: Set[str] = set(t[0].value for t in kv_pairs)
+                # If the number of unique key names is less than the number
+                # of key-value nodes, then there's a duplicate key
+                if len(uniq_key_names) < len(kv_pairs):
+                    raise InvalidRuleSchemaError(
+                        short_msg="Detected duplicate key",
+                        long_msg=f"Detected duplicate key name, one of {list(sorted(uniq_key_names))}.",
+                        spans=[
+                            Span.from_node(
+                            node, source_hash=source_hash, filename=filename
+                            ).with_context(before=1, after=1)
+                        ]
+                    )
+
             if r is None:
                 from semgrep.error import InvalidRuleSchemaError
-
                 Span.from_node(node, source_hash=source_hash, filename=filename)
                 raise InvalidRuleSchemaError(
                     short_msg="null values prohibited",
