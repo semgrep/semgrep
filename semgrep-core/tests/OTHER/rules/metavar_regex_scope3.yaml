@@ -1,0 +1,19 @@
+rules:
+- id: return-none
+  patterns:
+    - pattern-either: 
+      - pattern: |
+          return None
+      - pattern: |
+          return
+    - pattern-inside: |
+        class $C:
+            def $METHOD(...):
+              ...
+    - metavariable-regex:
+        metavariable: "$METHOD"
+        regex: "^[^_].*"
+  languages: [python]
+  message: |
+    public method returns None
+  severity: WARNING
