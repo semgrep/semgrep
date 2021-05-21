@@ -859,12 +859,19 @@ and v_type_definition_kind = function
 let v_program v = v_list v_top_stat v |> List.flatten
 
 let v_any = function
-  | Program v1 ->
+  | Pr v1 ->
       let v1 = v_program v1 in
       G.Ss v1
   | Tk v1 ->
       let v1 = v_tok v1 in
       G.Tk v1
+  | Ex e -> (
+      match v_expr_for_stmt e with
+      | { G.s = G.ExprStmt (e, _); _ } -> G.E e
+      | st -> G.S st )
+  | Ss b ->
+      let xs = v_block b in
+      G.Ss xs
 
 (*****************************************************************************)
 (* Entry points *)
