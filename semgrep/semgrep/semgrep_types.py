@@ -67,7 +67,7 @@ class Language_util:
         Language.RUST: [Language.RUST.value, "Rust", "rs"],
         Language.KOTLIN: [Language.KOTLIN.value, "Kotlin", "kotlin"],
         Language.YAML: [Language.YAML.value, "Yaml"],
-        Language.SCALA: [Language.SCALA.value, "scala"],
+        Language.SCALA: [Language.SCALA.value],
         Language.ML: [Language.ML.value, "ocaml"],
         Language.JSON: [Language.JSON.value, "JSON", "Json"],
         Language.REGEX: [Language.REGEX.value, "none"],
