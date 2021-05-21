@@ -593,6 +593,7 @@ def run_benchmarks(
     if filter_corpus:
         corpuses = [x for x in corpuses if re.search(filter_corpus, x.name) != None]
 
+    # Multithread here. Dedicate one core to each benchmark
     for corpus in corpuses:
         with chdir(corpus.name):
             corpus.prep()
