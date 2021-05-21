@@ -21,9 +21,19 @@ import time
 import urllib.request
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Iterator
+from typing import Iterator, List, Optional
 from typing import Tuple
+from pathlib import Path
 from RepositoryTimePerRule import RepositoryTimePerRule
+from config import SemgrepBenchmarkConfig, BenchmarkRunSetupData
+import logging
+import sys
+
+logger = logging.getLogger(__file__)
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler(stream=sys.stderr)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(handler)
 
 import requests
 import semgrep_core_benchmark  # type: ignore
@@ -34,6 +44,50 @@ BPS_ENDPOINT = "semgrep.perf.bps"
 LPS_ENDPOINT = "semgrep.perf.lps"
 
 STD = "std"
+
+SEMGREP_USER_AGENT = "Semgrep/0.0.0-benchmark"
+RULE_CONFIG_CACHE_DIR = Path("rules_cache")
+PREP_FILE_TEMPLATE = """#! /bin/sh
+#
+# Fetch rules and targets prior for the "r2c" benchmark.
+#
+# rule_dir: input/rules
+# target_dir: input/socket.io
+#
+# See ../r2c-rules for centralized copy of the rule
+# Uses sh because bash is not installed within the semgrep docker container.
+#
+set -eu
+
+mkdir -p input
+mkdir -p input/rules
+
+cp -r {rule_cache_dir} input/rules
+cd input
+
+# Obtain a shallow clone of a git repo for a specific commit
+shallow_clone() {{
+  if [ -d "$name" ]; then
+    echo "Reusing repo '$name'"
+  else
+    echo "Obtaining a shallow clone of git repo '$name', commit $commit"
+    mkdir -p "$name"
+    (
+      cd "$name"
+      git init
+      git remote add origin "$url"
+      git fetch --depth 1 origin "$commit"
+      git checkout FETCH_HEAD -b tmp
+    )
+  fi
+}}
+
+# Targets using other repos we run in CI
+name="{name}"
+url="{url}"
+commit="{commit_hash}"
+shallow_clone
+"""
 
 # Run command and propagate errors
 def cmd(*args: str) -> None:
@@ -421,6 +475,77 @@ def run_semgrep(
     return t2 - t1, res.stdout
 
 
+def normalize_rule_config_name(rule_config_str: str) -> str:
+    return rule_config_str.replace("/", ".") + ".yaml"
+
+
+def prepare_rule_cache_for_this_run(setup_data: BenchmarkRunSetupData)-> Tuple[Path, List[Path]]:
+    rule_cache_for_this_run: Path = RULE_CONFIG_CACHE_DIR / setup_data.run_name
+    rule_cache_for_this_run.mkdir(parents=True, exist_ok=True)
+    logger.debug(f"Rule cache for run {setup_data.run_name} created at {rule_cache_for_this_run}")
+    rule_config_paths = list()
+    for rule_config in setup_data.rule_configs:
+        logger.debug(f"Checking for rule config '{rule_config}' in cache")
+        normalized_rule_config = normalize_rule_config_name(rule_config)
+        rule_config_path = rule_cache_for_this_run / normalized_rule_config
+        # check if on filesystem
+        # if not, fetch from URL
+        if not rule_config_path.exists():
+            try:
+                rule_config_url = f"https://semgrep.dev/{rule_config}"
+                logger.debug(f"Fetching config from '{rule_config_url}'")
+                r = requests.get(
+                    rule_config_url,
+                    headers={"User-Agent": SEMGREP_USER_AGENT},
+                    timeout=60,
+                )
+            except requests.Timeout:
+                print(f"There was a timeout error trying to download the rule config at '{rule_config_url}'")
+                continue
+            rule_config_path.write_text(r.text)
+            logger.debug(f"Rule config '{rule_config}' has been written to '{rule_config_path}'")
+        else:
+            logger.debug(f"Rule config '{rule_config_path}' already exists, using this one")
+        rule_config_paths.append(rule_config_path)
+    return rule_cache_for_this_run, rule_config_paths
+
+def prepare_benchmark_run(benchmark_config: SemgrepBenchmarkConfig) -> List[Corpus]:
+    """
+    Sets up the relevant data for a benchmarking run
+    - downloads rule configs from an endpoint if necessary
+    - generates a 'prep' file which clones a repo from a URL and checks out the commit
+    """
+    corpuses = list()
+    for setup_data in benchmark_config.benchmark_setup_data:
+        logger.debug(f"Setting up benchmark run for run '{setup_data.run_name}'")
+        rule_cache_dir, _ = prepare_rule_cache_for_this_run(setup_data)
+        for repository in setup_data.repositories:
+            repo_name = repository.url.split('/')[-1]
+            generate_prep_file(repo_name, rule_cache_dir.absolute(), repository.url, repository.commit_hash)
+            corpuses.append(Corpus(
+                repo_name,
+                rule_cache_dir.absolute(),
+                Path("input") / repo_name,
+            ))
+    
+    return corpuses
+
+def generate_prep_file(name: str, rule_cache_dir: Path, url: str, commit_hash: str, ) -> bool:
+    # make dirs
+    benchdir = Path(name)
+    benchdir.mkdir(parents=True, exist_ok=True)
+    prep_file = benchdir / "prep"
+    # generate prep file
+    logger.debug(f"Generating 'prep' file at {prep_file}")
+    prep_file.touch(0o755, exist_ok=True)
+    prep_file.write_text(PREP_FILE_TEMPLATE.format(
+        name=name,
+        rule_cache_dir=rule_cache_dir,
+        url=url,
+        commit_hash=commit_hash
+    ))
+
+
 def run_benchmarks(
     docker: str,
     dummy: bool,
@@ -429,6 +554,7 @@ def run_benchmarks(
     internal: bool,
     gitlab: bool,
     std_only: bool,
+    config_file: Optional[Path],
     filter_corpus: str,
     filter_variant: str,
     output_time_per_rule_json: str,
@@ -453,15 +579,17 @@ def run_benchmarks(
     corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
-    if internal:
+    elif internal:
         corpuses = INTERNAL_CORPUSES
-    if gitlab:
+    elif gitlab:
         corpuses = GITLAB_CORPUSES
         variants = GITLAB_VARIANTS
-    if small_only:
+    elif small_only:
         corpuses = SMALL_CORPUSES
-    if all:
+    elif all:
         corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES + LARGE_CORPUSES
+    elif config_file:
+        corpuses = prepare_benchmark_run(SemgrepBenchmarkConfig.parse_config(config_file.absolute()))
     if filter_corpus:
         corpuses = [x for x in corpuses if re.search(filter_corpus, x.name) != None]
 
@@ -569,6 +697,12 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--config",
+        "-f",
+        default=None,
+        help="run benchmarks according to a config file",
+    )
+    parser.add_argument(
         "--std-only", help="only run the default semgrep", action="store_true"
     )
     parser.add_argument(
@@ -612,6 +746,7 @@ def main() -> None:
 
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     called_dir = os.getcwd()
+
     with chdir(cur_dir + "/bench"):
         if args.semgrep_core:
             semgrep_core_benchmark.run_benchmarks(args.dummy, args.upload)
@@ -624,6 +759,7 @@ def main() -> None:
                 args.internal,
                 args.gitlab,
                 args.std_only,
+                (Path(called_dir) / args.config) if args.config else None,
                 args.filter_corpus,
                 args.filter_variant,
                 args.output_time_per_rule_json,
