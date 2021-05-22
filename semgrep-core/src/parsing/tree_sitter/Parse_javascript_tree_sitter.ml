@@ -62,6 +62,10 @@ let todo_any str t any =
   pr2 (AST.show_any any);
   raise (Parse_info.Ast_builder_error (str, t))
 
+let todo_semgrep_pattern env tok =
+  let t = H.token env tok in
+  raise (Parse_info.Other_error ("missing support for semgrep pattern", t))
+
 let super env tok = IdSpecial (Super, token env tok)
 
 let this env tok = IdSpecial (This, token env tok)
@@ -316,7 +320,12 @@ let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
 
 let from_clause (env : env) ((v1, v2) : CST.from_clause) =
   let v1 = token env v1 (* "from" *) in
-  let v2 = string_ env v2 in
+  let v2 =
+    match v2 with
+    | `Str x -> string_ env x
+    | `Semg_meta tok -> todo_semgrep_pattern env tok
+    (* metavariable *)
+  in
   (v1, v2)
 
 let import_clause (env : env) (x : CST.import_clause) =
@@ -407,7 +416,9 @@ and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
       XmlAttr (v1, teq, v2)
   (* less: we could enforce that it's only a Spread operation *)
   | `Jsx_exp x -> XmlAttrExpr (jsx_expression_some env x)
+  | `Semg_dots tok -> todo_semgrep_pattern env tok
 
+(* "..." *)
 and jsx_expression_some env x =
   let t1, eopt, t2 = jsx_expression env x in
   match eopt with
@@ -429,7 +440,10 @@ and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
   | `Jsx_frag x ->
       let xml = jsx_fragment env x in
       Xml xml
+  | `Semg_dots tok -> todo_semgrep_pattern env tok (* "..." *)
+  | `Semg_meta tok -> todo_semgrep_pattern env tok
 
+(* metavariable *)
 and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
   match x with
   | `Jsx_text tok ->
@@ -682,7 +696,9 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
         | `Public_field_defi_choice_auto_semi (v1, v2) ->
             let v1 = public_field_definition env v1 in
             let _v2 = semicolon env v2 in
-            v1)
+            v1
+        | `Semg_dots tok -> todo_semgrep_pattern env tok
+        (* "..." *))
       v2
   in
   let v3 = token env v3 (* "}" *) in
@@ -702,7 +718,12 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
     match v2 with
     | `DOT tok (* "." *) | `QMARKDOT (* "?." *) tok -> token env tok
   in
-  let v3 = identifier env v3 (* identifier *) in
+  let v3 =
+    match v3 with
+    | `Id tok -> identifier env tok (* identifier *)
+    | `Semg_dots tok -> todo_semgrep_pattern env tok
+    (* "..." *)
+  in
   ObjAccess (v1, v2, PN v3)
 
 and assignment_pattern (env : env) ((v1, v2, v3) : CST.assignment_pattern) =
@@ -1067,6 +1088,12 @@ and expression (env : env) (x : CST.expression) : expr =
             | None -> Apply (IdSpecial (Yield, v1), fb []) )
       in
       v2
+  | `Semg_dots tok -> todo_semgrep_pattern env tok (* "..." *)
+  | `Semg_deep_exp (v1, v2, v3) ->
+      let _TODOv1 = token env v1 (* "<..." *) in
+      let _TODOv2 = expression env v2 in
+      let _TODOv3 = token env v3 (* "...>" *) in
+      todo_semgrep_pattern env v1
 
 and anon_choice_paren_exp_8725fb4 (env : env)
     (x : CST.anon_choice_paren_exp_8725fb4) : expr =
@@ -1306,6 +1333,13 @@ and statement (env : env) (x : CST.statement) : stmt list =
       let _v2 = token env v2 (* ":" *) in
       let v3 = statement1 env v3 in
       [ Label (v1, v3) ]
+  | `Semg_for (v1, v2, v3, v4, v5) ->
+      let _TODOv1 = token env v1 (* "for" *) in
+      let _TODOv2 = token env v2 (* "(" *) in
+      let _TODOv3 = token env v3 (* "..." *) in
+      let _TODOv4 = token env v4 (* ")" *) in
+      let _TODOv5 = statement env v5 in
+      todo_semgrep_pattern env v3
 
 and method_definition (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.method_definition) : property =
@@ -1540,7 +1574,7 @@ and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
     | Some (v1, v2) ->
         let v1 =
           match v1 with
-          | Some x -> [ anon_choice_pair_bc93fa1 env x ]
+          | Some x -> [ anon_choice_pair_5c8e4b4 env x ]
           | None -> []
         in
         let v2 =
@@ -1549,7 +1583,7 @@ and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
               let _v1 = token env v1 (* "," *) in
               let v2 =
                 match v2 with
-                | Some x -> [ anon_choice_pair_bc93fa1 env x ]
+                | Some x -> [ anon_choice_pair_5c8e4b4 env x ]
                 | None -> []
               in
               v2)
@@ -1561,7 +1595,7 @@ and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
   let v3 = token env v3 (* "}" *) in
   (v1, v2, v3)
 
-and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) :
+and anon_choice_pair_5c8e4b4 (env : env) (x : CST.anon_choice_pair_5c8e4b4) :
     property =
   match x with
   | `Pair (v1, v2, v3) ->
@@ -1575,6 +1609,10 @@ and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) :
       let t, e = spread_element env x in
       FieldSpread (t, e)
   | `Meth_defi x -> method_definition env x
+  | `Assign_pat x ->
+      let a, b, c = assignment_pattern env x in
+      (* only in pattern context *)
+      FieldPatDefault (a, b, c)
   (* { x } shorthand for { x: x }, like in OCaml *)
   | `Choice_id x ->
       let id = anon_choice_id_0e3c97f env x in
@@ -1586,11 +1624,9 @@ and anon_choice_pair_bc93fa1 (env : env) (x : CST.anon_choice_pair_bc93fa1) :
           fld_type = ty;
           fld_body = Some (idexp id);
         }
-  | `Assign_pat x ->
-      let a, b, c = assignment_pattern env x in
-      (* only in pattern context *)
-      FieldPatDefault (a, b, c)
+  | `Semg_dots tok -> todo_semgrep_pattern env tok
 
+(* "..." *)
 and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   match x with
   | `Member_exp x -> member_expression env x
@@ -1732,8 +1768,43 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
               p_attrs = [];
             }
       | Right pat -> todo_any "`Rest_param with pattern" v1 (Expr pat) )
+  | `Semg_dots tok -> todo_semgrep_pattern env tok
+
+(* "..." *)
 
 let toplevel env x = statement env x
+
+let todo_semgrep_partial (env : env) (x : CST.semgrep_partial) =
+  let todo _env _ = assert false in
+  match x with
+  | `Opt_async_func_id_formal_params (v1, v2, v3, v4) ->
+      let v1 =
+        match v1 with
+        | Some tok -> token env tok (* "async" *)
+        | None -> todo env ()
+      in
+      let v2 = token env v2 (* "function" *) in
+      let v3 = token env v3 (* identifier *) in
+      let v4 = formal_parameters env v4 in
+      todo env (v1, v2, v3, v4)
+  | `Rep_deco_class_id_opt_class_heri (v1, v2, v3, v4) ->
+      let v1 = List.map (decorator env) v1 in
+      let v2 = token env v2 (* "class" *) in
+      let v3 = token env v3 (* identifier *) in
+      let v4 =
+        match v4 with Some x -> class_heritage env x | None -> todo env ()
+      in
+      todo env (v1, v2, v3, v4)
+  | `If_paren_exp (v1, v2) ->
+      let v1 = token env v1 (* "if" *) in
+      let v2 = parenthesized_expression env v2 in
+      todo env (v1, v2)
+  | `Try_stmt_blk (v1, v2) ->
+      let v1 = token env v1 (* "try" *) in
+      let v2 = statement_block env v2 in
+      todo env (v1, v2)
+  | `Catch_clause x -> catch_clause env x |> todo env
+  | `Fina_clause x -> finally_clause env x |> todo env
 
 let program (env : env) ((v1, v2) : CST.program) : program =
   let _v1 =
@@ -1741,7 +1812,14 @@ let program (env : env) ((v1, v2) : CST.program) : program =
     | Some tok -> Some (token env tok) (* pattern #!.* *)
     | None -> None
   in
-  let v2 = List.map (toplevel env) v2 |> List.flatten in
+  let v2 =
+    match v2 with
+    | `Rep_choice_export_stmt xs -> List.map (toplevel env) xs |> List.flatten
+    | `X___SEMGREP_PARTIAL_semg_part (v1, v2) ->
+        let _TODOv1 = token env v1 (* "__SEMGREP_PARTIAL" *) in
+        let _TODOv2 () = todo_semgrep_partial env v2 in
+        todo_semgrep_pattern env v1
+  in
   v2
 
 (*****************************************************************************)
