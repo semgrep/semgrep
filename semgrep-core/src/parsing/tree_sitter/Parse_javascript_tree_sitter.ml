@@ -324,7 +324,6 @@ let from_clause (env : env) ((v1, v2) : CST.from_clause) =
     match v2 with
     | `Str x -> string_ env x
     | `Semg_meta tok -> todo_semgrep_pattern env tok
-    (* metavariable *)
   in
   (v1, v2)
 
@@ -418,7 +417,6 @@ and jsx_attribute_ (env : env) (x : CST.jsx_attribute_) : xml_attribute =
   | `Jsx_exp x -> XmlAttrExpr (jsx_expression_some env x)
   | `Semg_dots tok -> todo_semgrep_pattern env tok
 
-(* "..." *)
 and jsx_expression_some env x =
   let t1, eopt, t2 = jsx_expression env x in
   match eopt with
@@ -443,7 +441,6 @@ and jsx_attribute_value (env : env) (x : CST.jsx_attribute_value) =
   | `Semg_dots tok -> todo_semgrep_pattern env tok (* "..." *)
   | `Semg_meta tok -> todo_semgrep_pattern env tok
 
-(* metavariable *)
 and jsx_child (env : env) (x : CST.jsx_child) : xml_body =
   match x with
   | `Jsx_text tok ->
@@ -697,8 +694,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
             let v1 = public_field_definition env v1 in
             let _v2 = semicolon env v2 in
             v1
-        | `Semg_dots tok -> todo_semgrep_pattern env tok
-        (* "..." *))
+        | `Semg_dots tok -> todo_semgrep_pattern env tok)
       v2
   in
   let v3 = token env v3 (* "}" *) in
@@ -722,7 +718,6 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
     match v3 with
     | `Id tok -> identifier env tok (* identifier *)
     | `Semg_dots tok -> todo_semgrep_pattern env tok
-    (* "..." *)
   in
   ObjAccess (v1, v2, PN v3)
 
@@ -1626,7 +1621,6 @@ and anon_choice_pair_5c8e4b4 (env : env) (x : CST.anon_choice_pair_5c8e4b4) :
         }
   | `Semg_dots tok -> todo_semgrep_pattern env tok
 
-(* "..." *)
 and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   match x with
   | `Member_exp x -> member_expression env x
@@ -1769,8 +1763,6 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
             }
       | Right pat -> todo_any "`Rest_param with pattern" v1 (Expr pat) )
   | `Semg_dots tok -> todo_semgrep_pattern env tok
-
-(* "..." *)
 
 let toplevel env x = statement env x
 
