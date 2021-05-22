@@ -58,6 +58,13 @@ module JS_CST = Parse_javascript_tree_sitter.CST
 module JS = Parse_javascript_tree_sitter
 module CST = CST_tree_sitter_typescript (* typescript+tsx, merged *)
 
+(*
+   After adding semgrep pattern support, we'll be able to use
+   JS.from_clause directly.
+*)
+let from_clause env (undefined, from_clause) =
+  JS.from_clause env (undefined, `Str from_clause)
+
 let accessibility_modifier (env : env) (x : CST.accessibility_modifier) =
   match x with
   | `Public tok -> (Public, JS.token env tok) (* "public" *)
@@ -1635,7 +1642,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
         match v3 with
         | `Import_clause_from_clause (v1, v2) ->
             let f = import_clause env v1 in
-            let _t, path = JS.from_clause env v2 in
+            let _t, path = from_clause env v2 in
             f tok path
         | `Import_requ_clause x -> [ import_require_clause v1 env x ]
         | `Str x ->
@@ -1864,12 +1871,12 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
             match v2 with
             | `STAR_from_clause_choice_auto_semi (v1, v2, v3) ->
                 let v1 = JS.token env v1 (* "*" *) in
-                let tok2, path = JS.from_clause env v2 in
+                let tok2, path = from_clause env v2 in
                 let _v3 = JS.semicolon env v3 in
                 [ M (ReExportNamespace (tok, v1, tok2, path)) ]
             | `Export_clause_from_clause_choice_auto_semi (v1, v2, v3) ->
                 let v1 = export_clause env v1 in
-                let tok2, path = JS.from_clause env v2 in
+                let tok2, path = from_clause env v2 in
                 let _v3 = JS.semicolon env v3 in
                 v1
                 |> List.map (fun (n1, n2opt) ->
