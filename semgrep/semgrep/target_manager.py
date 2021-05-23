@@ -12,6 +12,7 @@ from typing import List
 from typing import Set
 
 import attr
+from wcmatch import glob as wcglob
 
 from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
@@ -189,12 +190,21 @@ class TargetManager:
         return frozenset(expanded)
 
     @staticmethod
-    def match_glob(path: Path, globs: List[str]) -> bool:
+    def preprocess_path_patterns(patterns: List[str]) -> List[str]:
+        """Convert semgrep's path include/exclude patterns to wcmatch's glob patterns.
+
+        In semgrep, pattern "foo/bar" should match paths "x/foo/bar", "foo/bar/x", and
+        "x/foo/bar/x". It implicitly matches zero or more directories at the beginning and the end
+        of the pattern. In contrast, we have to explicitly specify the globstar (**) patterns in
+        wcmatch. This function will converts a pattern "foo/bar" into "**/foo/bar" and
+        "**/foo/bar/**". We need the pattern without the trailing "/**" because "foo/bar.py/**"
+        won't match "foo/bar.py".
         """
-        Return true if path or any parent of path matches any glob in globs
-        """
-        subpaths = [path, *path.parents]
-        return any(p.match(glob) for p in subpaths for glob in globs)
+        result = []
+        for pattern in patterns:
+            result.append("**/" + pattern)
+            result.append("**/" + pattern + "/**")
+        return result
 
     @staticmethod
     def filter_includes(arr: FrozenSet[Path], includes: List[str]) -> FrozenSet[Path]:
@@ -206,17 +216,24 @@ class TargetManager:
         if not includes:
             return arr
 
+        includes = TargetManager.preprocess_path_patterns(includes)
         return frozenset(
-            elem for elem in arr if TargetManager.match_glob(elem, includes)
+            wcglob.globfilter(arr, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
         )
 
     @staticmethod
     def filter_excludes(arr: FrozenSet[Path], excludes: List[str]) -> FrozenSet[Path]:
         """
         Returns all elements in arr that do not match any excludes pattern
+
+        If excludes is empty, returns arr unchanged
         """
-        return frozenset(
-            elem for elem in arr if not TargetManager.match_glob(elem, excludes)
+        if not excludes:
+            return arr
+
+        excludes = TargetManager.preprocess_path_patterns(excludes)
+        return arr - frozenset(
+            wcglob.globfilter(arr, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
         )
 
     @staticmethod
