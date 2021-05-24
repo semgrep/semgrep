@@ -225,3 +225,19 @@ def is_config_suffix(path: Path) -> bool:
 
 def is_config_test_suffix(path: Path) -> bool:
     return any(listendswith(path.suffixes, suffixes) for suffixes in YML_TEST_SUFFIXES)
+
+
+def format_bytes(num: float) -> str:
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+        if abs(num) < 1024.0:
+            return "%3d%sB" % (num, unit)
+        num /= 1024.0
+    return "%.1f%sB" % (num, "Y")
+
+
+def truncate(file_name: str, col_lim: int) -> str:
+    name_len = len(file_name)
+    prefix = "..."
+    if name_len > col_lim:
+        file_name = prefix + file_name[name_len - col_lim + len(prefix) :]
+    return file_name
