@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import os
 import subprocess
 import time
 from io import StringIO
@@ -288,16 +289,21 @@ The two most popular are:
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
-    project_hash = None
     try:
         project_url = sub_check_output(
             ["git", "ls-remote", "--get-url"],
             encoding="utf-8",
             stderr=subprocess.DEVNULL,
         )
-        project_hash = hashlib.sha256(project_url.encode()).hexdigest()
     except Exception as e:
-        logger.debug(f"Failed to generate project hash: {e}")
+        logger.debug(f"Failed to get project hash from git: {e}")
+        project_url = os.getenv("CI_PROJECT_URL")
+    
+    if project_url is not None:
+        project_hash = hashlib.sha256(project_url.encode()).hexdigest()
+    else:
+        logger.debug(f"Project URL not found in CI_PROJECT_URL either")
+        project_hash = None
 
     metric_manager.set_project_hash(project_hash)
     metric_manager.set_configs_hash(configs)
