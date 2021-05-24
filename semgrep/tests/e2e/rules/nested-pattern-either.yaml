@@ -1,0 +1,12 @@
+rules:
+- id: test
+  message: test
+  severity: WARNING
+  languages: [javascript]
+  pattern-either:
+    - pattern-either:
+      - pattern: nested_patterns_func('foo', ...)
+      - pattern: nested_patterns_func('bar', ...)
+    - pattern-either:
+      - pattern: nested_patterns_func($X, 1, ...)
+      - pattern: nested_patterns_func($X, 2, ...)
