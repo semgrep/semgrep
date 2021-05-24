@@ -169,9 +169,9 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
     """
     if not os.path.isfile(path):
         return None
-    fd = open(path, mode="r")
-    contents = fd.read()
-    words = contents.split()
+    with open(path, mode="r") as fd:
+        contents = fd.read()
+        words = contents.split()
     # Find all of the individual words that contain the search_term
     matches = [w for w in words if search_term in w]
     return matches[0] + suffix if len(matches) > 0 else None
