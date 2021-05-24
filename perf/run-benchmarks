@@ -34,7 +34,7 @@ logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(stream=sys.stderr)
 handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(handler)
-from corpuses import Corpus, SMALL_CORPUSES, MEDIUM_CORPUSES, LARGE_CORPUSES, INTERNAL_CORPUSES, GITLAB_CORPUSES, DUMMY_CORPUSES
+from Corpuses import Corpus, SMALL_CORPUSES, MEDIUM_CORPUSES, LARGE_CORPUSES, INTERNAL_CORPUSES, GITLAB_CORPUSES, DUMMY_CORPUSES
 
 import requests
 import semgrep_core_benchmark  # type: ignore
@@ -43,7 +43,6 @@ DASHBOARD_URL = "https://dashboard.semgrep.dev"
 STATS_URL = "https://stats.semgrep.dev"
 BPS_ENDPOINT = "semgrep.perf.bps"
 LPS_ENDPOINT = "semgrep.perf.lps"
-ALL_RULES_FILE = "bench/r2c-rules/all.yml"
 
 STD = "std"
 
