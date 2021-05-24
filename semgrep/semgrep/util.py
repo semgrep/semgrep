@@ -167,6 +167,8 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
     Searches a file for the given search term and, if found,
     returns the first word that contains that search term
     """
+    if not os.path.isfile(path):
+        return None
     fd = open(path, mode="r")
     contents = fd.read()
     words = contents.split()

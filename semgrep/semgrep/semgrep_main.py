@@ -301,8 +301,11 @@ The two most popular are:
         )
     except Exception as e:
         logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
-        # add \n to match urls from git ls-remote (backwards compatability)
-        project_url = manually_search_file(".git/config", ".com", "\n")
+        try:
+            # add \n to match urls from git ls-remote (backwards compatability)
+            project_url = manually_search_file(".git/config", ".com", "\n")
+        except Exception as e:
+            logger.debug(f"Failed to get project url from .git/config: {e}")
 
     project_hash = (
         hashlib.sha256(project_url.encode()).hexdigest() if project_url else None
