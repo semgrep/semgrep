@@ -19,9 +19,11 @@ definitions:
       - $ref: '#/definitions/metavariable-comparison'
   pattern-either-content:
     type: array
+    title: "Return finding where any of the nested conditions are true"
     items:
       anyOf:
       - $ref: '#/definitions/patterns'
+      - $ref: '#/definitions/pattern-either'
       - $ref: '#/definitions/pattern-inside'
       - $ref: '#/definitions/pattern'
       - $ref: '#/definitions/pattern-regex'

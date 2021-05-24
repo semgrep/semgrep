@@ -231,6 +231,12 @@ def test_nested_patterns_rule(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_nested_pattern_either_rule(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/nested-pattern-either.yaml"), "results.json"
+    )
+
+
 def test_nosem_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(run_semgrep_in_tmp("rules/nosem.yaml"), "results.json")
 
