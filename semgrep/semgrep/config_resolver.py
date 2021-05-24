@@ -128,7 +128,7 @@ class Config:
         configs = self.valid
         if not no_rewrite_rule_ids:
             # re-write the configs to have the hierarchical rule ids
-            configs = self._rename_rule_ids(configs)
+            self._rename_rule_ids(configs)
 
         return list(
             OrderedDict.fromkeys([rule for rules in configs.values() for rule in rules])
@@ -153,16 +153,12 @@ class Config:
         return prefix
 
     @staticmethod
-    def _rename_rule_ids(valid_configs: Dict[str, List[Rule]]) -> Dict[str, List[Rule]]:
-        transformed = {}
+    def _rename_rule_ids(valid_configs: Dict[str, List[Rule]]) -> None:
         for config_id, rules in valid_configs.items():
-            transformed[config_id] = [
-                rule.with_id(
+            for rule in rules:
+                rule.rename_id(
                     f"{Config._convert_config_id_to_prefix(config_id)}{rule.id or MISSING_RULE_ID}"
                 )
-                for rule in rules
-            ]
-        return transformed
 
     # the mypy ignore is cause YamlTree puts an Any inside the @staticmethod decorator
     @staticmethod
