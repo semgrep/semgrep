@@ -198,7 +198,7 @@ rules:
   severity: WARNING
   languages: [python]
 # avoid-dill
-- id: bandit.B301-2
+- id: bandit.B301-3
   pattern-either:
   - pattern: dill.$FUNC(...)
   message: |
@@ -212,7 +212,7 @@ rules:
   languages: [python]
   severity: WARNING
 # avoid-shelve
-- id: bandit.B301-3
+- id: bandit.B301-4
   pattern-either:
   - pattern: shelve.$FUNC(...)
   message: |
@@ -537,21 +537,6 @@ rules:
     owasp: 'A3: Sensitive Data Exposure'
   languages: [python]
   severity: ERROR
-# source (modified): https://semgrep.dev/c/p/bandit
-# python.lang.security.audit.eval-detected.eval-detected
-- id: bandit.B307
-  patterns:
-  - pattern: eval(...)
-  message: |
-    Detected the use of eval(). eval() can be dangerous if used to evaluate
-    dynamic content. If this content can be input from outside the program, this
-    may be a code injection vulnerability. Ensure evaluated content is not definable
-    by external sources. Consider using safer ast.literal_eval.
-  metadata:
-    cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
-    owasp: 'A1: Injection'
-  severity: WARNING
-  languages: [python]
 # source (modified): https://semgrep.dev/c/p/bandit
 # python.lang.security.audit.eval-detected.eval-detected
 - id: bandit.B307
@@ -1306,7 +1291,6 @@ rules:
 - id: bandit.B703
   patterns:
   - pattern-either:
-    - pattern: django.utils.safestring.SafeText(...)
     - pattern: django.utils.safestring.SafeText(...)
     - pattern: django.utils.safestring.SafeUnicode(...)
     - pattern: django.utils.safestring.SafeString(...)

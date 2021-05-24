@@ -752,17 +752,18 @@ rules:
   patterns:
     - pattern: $O[$ARG]
     - pattern-not: $O["..."]
+    - pattern-not: "$O[($ARG : float)]"
     - pattern-not-inside: |
         $ARG = [$V];
         ...
+        <... $O[$ARG] ...>;
     - pattern-not-inside: |
         $ARG = $V;
         ...
+        <... $O[$ARG] ...>;
     - metavariable-regex:
-        metavariable: "$V"
-        regex: "[0-9]+"
-        metavariable: "$ARG"
-        regex: "[^0-9]+"
+        metavariable: $ARG
+        regex: (?![0-9]+)
   message: "Bracket object notation with user input is present, this might allow an attacker to access all properties of the object and even it's prototype, leading to possible code execution."
   languages:
     - javascript
