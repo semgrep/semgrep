@@ -43,6 +43,7 @@ DASHBOARD_URL = "https://dashboard.semgrep.dev"
 STATS_URL = "https://stats.semgrep.dev"
 BPS_ENDPOINT = "semgrep.perf.bps"
 LPS_ENDPOINT = "semgrep.perf.lps"
+ALL_RULES_FILE = "bench/r2c-rules/all.yml"
 
 STD = "std"
 
@@ -275,9 +276,8 @@ def output_differences(
     output_diff(s_diff)
     return fd_len, sd_len
 
-
 def run_semgrep(
-    docker: str, corpus: Corpus, variant: SemgrepVariant, include_time: bool
+    docker: str, corpus: Corpus, variant: SemgrepVariant, include_time: bool, right_rule_yaml: str
 ) -> Tuple[float, bytes]:
     args = []
     common_args = [
@@ -295,7 +295,7 @@ def run_semgrep(
             "docker",
             "run",
             "-v",
-            os.path.abspath(corpus.rule_dir) + ":/rules",
+            right_rule_yaml + ":/rules",
             "-v",
             os.path.abspath(corpus.target_dir) + ":/targets",
             "-t",
@@ -310,7 +310,7 @@ def run_semgrep(
         args = [
             "semgrep",
             "--config",
-            os.path.abspath(corpus.rule_dir),
+            right_rule_yaml,
             os.path.abspath(corpus.target_dir),
         ]
     args.extend(common_args)
@@ -343,6 +343,11 @@ def run_semgrep(
 
     return t2 - t1, res.stdout
 
+def get_right_rule_yaml(output_time_per_rule_json: bool, called_dir: str, corpus: Corpus):
+    #if output_time_per_rule_json:
+    #    with chdir(called_dir):
+    #        return os.path.abspath(ALL_RULES_FILE)
+    return os.path.abspath(corpus.rule_dir)
 
 def normalize_rule_config_name(rule_config_str: str) -> str:
     return rule_config_str.replace("/", ".") + ".yaml"
@@ -473,8 +478,9 @@ def run_benchmarks(
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
+                right_rule_yaml = get_right_rule_yaml(output_time_per_rule_json, called_dir, corpus)
                 duration, findings_bytes = run_semgrep(
-                    docker, corpus, variant, include_time
+                    docker, corpus, variant, include_time, right_rule_yaml
                 )   
 
                 if not output_time_per_rule_json is None:

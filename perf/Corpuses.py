@@ -162,4 +162,3 @@ GITLAB_CORPUSES = [
 ]
 
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", "js")]
-
