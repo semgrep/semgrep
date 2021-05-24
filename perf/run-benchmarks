@@ -34,7 +34,7 @@ logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(stream=sys.stderr)
 handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(handler)
-from Corpuses import Corpus, SMALL_CORPUSES, MEDIUM_CORPUSES, LARGE_CORPUSES, INTERNAL_CORPUSES, GITLAB_CORPUSES, DUMMY_CORPUSES
+from corpuses import Corpus, SMALL_CORPUSES, MEDIUM_CORPUSES, LARGE_CORPUSES, INTERNAL_CORPUSES, GITLAB_CORPUSES, DUMMY_CORPUSES
 
 import requests
 import semgrep_core_benchmark  # type: ignore
@@ -277,7 +277,7 @@ def output_differences(
     return fd_len, sd_len
 
 def run_semgrep(
-    docker: str, corpus: Corpus, variant: SemgrepVariant, include_time: bool, right_rule_yaml: str
+    docker: str, corpus: Corpus, variant: SemgrepVariant, include_time: bool
 ) -> Tuple[float, bytes]:
     args = []
     common_args = [
@@ -295,7 +295,7 @@ def run_semgrep(
             "docker",
             "run",
             "-v",
-            right_rule_yaml + ":/rules",
+            os.path.abspath(corpus.rule_dir) + ":/rules",
             "-v",
             os.path.abspath(corpus.target_dir) + ":/targets",
             "-t",
@@ -310,7 +310,7 @@ def run_semgrep(
         args = [
             "semgrep",
             "--config",
-            right_rule_yaml,
+            os.path.abspath(corpus.rule_dir),
             os.path.abspath(corpus.target_dir),
         ]
     args.extend(common_args)
@@ -342,12 +342,6 @@ def run_semgrep(
         res.check_returncode()
 
     return t2 - t1, res.stdout
-
-def get_right_rule_yaml(output_time_per_rule_json: bool, called_dir: str, corpus: Corpus):
-    #if output_time_per_rule_json:
-    #    with chdir(called_dir):
-    #        return os.path.abspath(ALL_RULES_FILE)
-    return os.path.abspath(corpus.rule_dir)
 
 def normalize_rule_config_name(rule_config_str: str) -> str:
     return rule_config_str.replace("/", ".") + ".yaml"
@@ -478,9 +472,8 @@ def run_benchmarks(
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
-                right_rule_yaml = get_right_rule_yaml(output_time_per_rule_json, called_dir, corpus)
                 duration, findings_bytes = run_semgrep(
-                    docker, corpus, variant, include_time, right_rule_yaml
+                    docker, corpus, variant, include_time
                 )   
 
                 if not output_time_per_rule_json is None:
