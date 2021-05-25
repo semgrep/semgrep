@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
@@ -132,34 +131,72 @@ def test_timings(snapshot) -> None:
     # Mock Path().stat().st_size
     with patch.object(Path, "stat") as stat_mock:
         m = MagicMock()
-        type(m).st_size = PropertyMock(side_effect=[1, 2])
+        # Note this mock is a little fragile and assumes st_size is called twice
+        # once in set_run_times then once in set_run_timings and assumes that
+        # it will be called for target[0] then target[1] then target[0] then target[1]
+        type(m).st_size = PropertyMock(side_effect=[1, 2, 1, 2])
         stat_mock.return_value = m
 
         targets = [Path("a"), Path("b")]
 
         profiling_data = ProfilingData()
         profiling_data.set_run_times(
-            rule1.id,
+            rule1,
             targets[0],
             Times(match_time=0.2, run_time=0.4),
         )
         profiling_data.set_run_times(
-            rule2.id,
+            rule2,
             targets[1],
             Times(match_time=1.2, run_time=1.4),
         )
-        profiling_data.set_rule_parse_time(rule1.id, 0.05)
-        profiling_data.set_rule_parse_time(rule2.id, 0.04)
+        profiling_data.set_rule_parse_time(rule1, 0.05)
+        profiling_data.set_rule_parse_time(rule2, 0.04)
+
+        # parse time should be max of set times
+        profiling_data.set_file_parse_time(targets[0], 0.1)
+        profiling_data.set_file_parse_time(targets[0], 0.3)
+        profiling_data.set_file_parse_time(targets[1], 0.2)
+        profiling_data.set_file_parse_time(targets[1], 0.1)
 
         metric_manager.set_run_timings(profiling_data, targets, rules)
 
-    assert metric_manager._rule_hashes == [
-        "720c14cd416c021bc45d6db0689dd0eb54d1d062bf9f446f85dae0cb5d1438c0",
-        "a5360bb56a3b0a3c33c1bb2b6e7d6465e9a246ccb8940bc05710bc5b35a43e30",
-        "2cc5dbc0cae3a8b6af0d8792079251c4d861b5e16815c1b1cdba676d1c96c5a5",
+    assert metric_manager._rule_stats == [
+        {
+            "ruleHash": "720c14cd416c021bc45d6db0689dd0eb54d1d062bf9f446f85dae0cb5d1438c0",
+            "parseTime": 0.05,
+            "matchTime": 0.2,
+            "runTime": 0.4,
+            "bytesScanned": 1,
+        },
+        {
+            "ruleHash": "a5360bb56a3b0a3c33c1bb2b6e7d6465e9a246ccb8940bc05710bc5b35a43e30",
+            "parseTime": 0.04,
+            "matchTime": 1.2,
+            "runTime": 1.4,
+            "bytesScanned": 2,
+        },
+        {
+            "ruleHash": "2cc5dbc0cae3a8b6af0d8792079251c4d861b5e16815c1b1cdba676d1c96c5a5",
+            "parseTime": 0.0,
+            "matchTime": -1.0,
+            "runTime": -1.0,
+            "bytesScanned": 0,
+        },
     ]
-    assert metric_manager._rule_parse_times == [0.05, 0.04, 0.0]
-    assert (
-        json.dumps(metric_manager._file_stats)
-        == """[{"size": 1, "parseTimes": [0.1, 0.0, 0.0], "matchTimes": [0.2, 0.0, 0.0], "runTimes": [0.4, 0.0, 0.0]}, {"size": 2, "parseTimes": [0.0, 1.1, 0.0], "matchTimes": [0.0, 1.2, 0.0], "runTimes": [0.0, 1.4, 0.0]}]"""
-    )
+    assert metric_manager._file_stats == [
+        {
+            "size": 1,
+            "numTimesScanned": 1,
+            "parseTime": 0.3,
+            "matchTime": 0.2,
+            "runTime": 0.4,
+        },
+        {
+            "size": 2,
+            "numTimesScanned": 1,
+            "parseTime": 0.2,
+            "matchTime": 1.2,
+            "runTime": 1.4,
+        },
+    ]
