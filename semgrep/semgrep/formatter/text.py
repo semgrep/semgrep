@@ -130,16 +130,14 @@ class TextFormatter(BaseFormatter):
             rule["id"]: functools.reduce(
                 lambda x, y: (x[0] + y[0], x[1] + y[1]),
                 (
-                    (t["run_times"][i] - t["parse_times"][i], t["match_times"][i])
+                    (t["run_times"][i], t["match_times"][i])
                     for t in time_data["targets"]
                 ),
                 (time_data["rule_parse_info"][i], 0.0),
             )
             for i, rule in enumerate(time_data["rules"])
         }
-        file_parsing_time = sum(
-            sum(target["parse_times"]) for target in time_data["targets"]
-        )
+        file_parsing_time = sum(target["parse_time"] for target in time_data["targets"])
         file_timings = {
             target["path"]: float(sum(target["run_times"]))
             for target in time_data["targets"]

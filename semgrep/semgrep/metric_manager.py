@@ -40,9 +40,8 @@ class _MetricManager:
         self._run_time: Optional[float] = None
         self._total_bytes_scanned: Optional[int] = None
         self._errors: List[str] = []
-        self._rule_hashes: List[str] = []
-        self._rule_parse_times: List[float] = []
         self._file_stats: List[Dict[str, Any]] = []
+        self._rule_stats: List[Dict[str, Any]] = []
 
         self._send_metrics = False
 
@@ -99,29 +98,32 @@ class _MetricManager:
         """
         Store rule hashes, rule parse times, and file-stats
         """
-        self._rule_hashes = [r.full_hash for r in rules]
-        self._rule_parse_times = [profiling_data.get_parse_time(r.id) for r in rules]
+        rule_stats = []
+        for rule in rules:
+            rule_stats.append(
+                {
+                    "ruleHash": rule.full_hash,
+                    "parseTime": profiling_data.get_rule_parse_time(rule),
+                    "matchTime": profiling_data.get_rule_match_time(rule),
+                    "runTime": profiling_data.get_rule_run_time(rule),
+                    "bytesScanned": profiling_data.get_rule_bytes_scanned(rule),
+                }
+            )
+        self._rule_stats = rule_stats
 
         file_stats = []
         for target in targets:
-            parse_times = []
-            match_times = []
-            run_times = []
-            for rule in rules:
-                times = profiling_data.get_run_times(rule.id, str(target))
-                parse_times.append(times.parse_time)
-                match_times.append(times.match_time)
-                run_times.append(times.run_time)
-
             file_stats.append(
                 {
                     "size": target.stat().st_size,
-                    "parseTimes": parse_times,
-                    "matchTimes": match_times,
-                    "runTimes": run_times,
+                    "numTimesScanned": profiling_data.get_file_num_times_scanned(
+                        target
+                    ),
+                    "parseTime": profiling_data.get_file_parse_time(target),
+                    "matchTime": profiling_data.get_file_match_time(target),
+                    "runTime": profiling_data.get_file_run_time(target),
                 }
             )
-
         self._file_stats = file_stats
 
     def as_dict(self) -> Dict[str, Any]:
@@ -134,8 +136,7 @@ class _MetricManager:
             },
             "performance": {
                 "fileStats": self._file_stats,
-                "ruleHashes": self._rule_hashes,
-                "ruleParseTimes": self._rule_parse_times,
+                "ruleStats": self._rule_stats,
                 "runTime": self._run_time,
                 "numRules": self._num_rules,
                 "numTargets": self._num_targets,

@@ -140,16 +140,16 @@ def test_timings(snapshot) -> None:
         profiling_data = ProfilingData()
         profiling_data.set_run_times(
             rule1.id,
-            str(targets[0]),
-            Times(parse_time=0.1, match_time=0.2, run_time=0.4),
+            targets[0],
+            Times(match_time=0.2, run_time=0.4),
         )
         profiling_data.set_run_times(
             rule2.id,
-            str(targets[1]),
-            Times(parse_time=1.1, match_time=1.2, run_time=1.4),
+            targets[1],
+            Times(match_time=1.2, run_time=1.4),
         )
-        profiling_data.set_parse_time(rule1.id, 0.05)
-        profiling_data.set_parse_time(rule2.id, 0.04)
+        profiling_data.set_rule_parse_time(rule1.id, 0.05)
+        profiling_data.set_rule_parse_time(rule2.id, 0.04)
 
         metric_manager.set_run_timings(profiling_data, targets, rules)
 

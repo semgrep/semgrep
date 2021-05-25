@@ -363,16 +363,20 @@ class CoreRunner:
             for target in output_time_json["targets"]:
                 if "match_time" in target and "path" in target:
                     profiling_data.set_run_times(
-                        rule.id,
-                        target["path"],
+                        rule,
+                        Path(target["path"]),
                         Times(
-                            parse_time=target["parse_time"],
                             match_time=target["match_time"],
                             run_time=target["run_time"],
                         ),
                     )
+                    profiling_data.set_file_parse_time(
+                        Path(target["path"]), target["parse_time"]
+                    )
         if "rule_parse_time" in output_time_json:
-            profiling_data.set_parse_time(rule.id, output_time_json["rule_parse_time"])
+            profiling_data.set_rule_parse_time(
+                rule, output_time_json["rule_parse_time"]
+            )
 
     def _run_rule(
         self,
