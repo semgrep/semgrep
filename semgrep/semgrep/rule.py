@@ -37,6 +37,8 @@ class Rule:
         self._yaml = raw
         self._raw: Dict[str, Any] = raw.unroll_dict()
 
+        self._id = str(self._raw["id"])
+
         # For tracking errors from semgrep-core
         self._pattern_spans: Dict[PatternId, Span] = {}
 
@@ -251,7 +253,7 @@ class Rule:
 
     @property
     def id(self) -> str:
-        return str(self._raw["id"])
+        return self._id
 
     @property
     def message(self) -> str:
@@ -313,14 +315,8 @@ class Rule:
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id}>"
 
-    def with_id(self, new_id: str) -> "Rule":
-        new_yaml = YamlTree(
-            value=YamlMap(dict(self._yaml.value._internal)), span=self._yaml.span
-        )
-        new_yaml.value[self._yaml.value.key_tree("id")] = YamlTree(
-            value=new_id, span=new_yaml.value["id"].span
-        )
-        return Rule(new_yaml)
+    def rename_id(self, new_id: str) -> None:
+        self._id = new_id
 
     @property
     def pattern_spans(self) -> Dict[PatternId, Span]:
