@@ -918,12 +918,14 @@ and m_special a b =
       fail ()
 
 (*e: function [[Generic_vs_generic.m_special]] *)
-
-(* fstring pattern should match only fstring *)
 and m_concat_string_kind a b =
   match (a, b) with
+  (* fstring pattern should match only fstring *)
   | A.FString, B.FString -> return ()
   | A.FString, _ -> fail ()
+  (* same for tagged template literals *)
+  | A.TaggedTemplateLiteral, B.TaggedTemplateLiteral -> return ()
+  | A.TaggedTemplateLiteral, _ | _, B.TaggedTemplateLiteral -> fail ()
   (* less-is-more: *)
   | _ -> return ()
 

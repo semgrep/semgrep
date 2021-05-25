@@ -362,6 +362,7 @@ and vof_interpolated_kind = function
   | FString -> OCaml.VSum ("FString", [])
   | InterpolatedConcat -> OCaml.VSum ("InterpolatedConcat", [])
   | SequenceConcat -> OCaml.VSum ("SequenceConcat", [])
+  | TaggedTemplateLiteral -> OCaml.VSum ("TaggedTemplateLiteral", [])
 
 and vof_inc_dec (v1, v2) =
   let v1 = vof_incr_decr v1 and v2 = vof_prepost v2 in

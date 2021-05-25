@@ -138,7 +138,11 @@ let special (x, tok) =
                         G.Arg
                           (G.Call
                              ( G.IdSpecial
-                                 (G.ConcatString G.InterpolatedConcat, tok),
+                                 (* update: we don't use InterpolatedConcat
+                                  * here anymore, to differentiate it from
+                                  * the above case.
+                                  *)
+                                 (G.ConcatString G.TaggedTemplateLiteral, tok),
                                rest
                                |> List.map (fun e -> G.Arg e)
                                |> G.fake_bracket ));
