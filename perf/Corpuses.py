@@ -82,7 +82,7 @@ SMALL_CORPUSES = [
     # for a full list of such apps
     #
     Corpus("DVWA", "input/rules", "input/DVWA"),
-    Corpus("juice-shop", "input/rules", "input/juice-shop"),
+    # Corpus("juice-shop", "input/rules", "input/juice-shop"),
     Corpus("Vulnerable-Flask-App", "input/rules", "input/Vulnerable-Flask-App"),
     # (Gitlab small) Run our python and flask rules on a python repo
     Corpus("pallets", "input/rules", "input/flask"),
@@ -159,6 +159,16 @@ GITLAB_CORPUSES = [
     Corpus("spring-projects", "../gitlab-rules", "input/spring"),
     # (Gitlab medium) java repo
     Corpus("pmd", "../gitlab-rules", "input/pmd"),
+]
+
+# For more comprehensive analysis of all the rules
+MORE_RULES_CORPUSES = [
+    # small java corpus
+    Corpus("coolMenu", "input/java.yml", "input/coolMenu"),
+    # small c corpus
+    Corpus("t00sh", "input/rules", "input/rop-tool"),
+    # small repository of dockerfiles
+    Corpus("grpc", "input/dockerfile.yml", "input/grpc-docker-library")
 ]
 
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", "js")]

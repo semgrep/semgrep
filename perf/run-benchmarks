@@ -34,7 +34,7 @@ logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(stream=sys.stderr)
 handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(handler)
-from Corpuses import Corpus, SMALL_CORPUSES, MEDIUM_CORPUSES, LARGE_CORPUSES, INTERNAL_CORPUSES, GITLAB_CORPUSES, DUMMY_CORPUSES
+from Corpuses import Corpus, SMALL_CORPUSES, MEDIUM_CORPUSES, LARGE_CORPUSES, INTERNAL_CORPUSES, GITLAB_CORPUSES, DUMMY_CORPUSES, MORE_RULES_CORPUSES
 
 import requests
 import semgrep_core_benchmark  # type: ignore
@@ -453,6 +453,9 @@ def run_benchmarks(
         variants = GITLAB_VARIANTS
     elif small_only:
         corpuses = SMALL_CORPUSES
+    elif output_time_per_rule_json:
+        corpuses = MORE_RULES_CORPUSES + SMALL_CORPUSES
+        variants = STD_VARIANTS
     elif all:
         corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES + LARGE_CORPUSES
     elif config_file:
@@ -474,7 +477,7 @@ def run_benchmarks(
                 duration, findings_bytes = run_semgrep(
                     docker, corpus, variant, include_time
                 )   
-
+                
                 if not output_time_per_rule_json is None:
                     output_per_rule_json_results.times_per_file_to_times_per_rule(corpus.name, findings_bytes)
 
