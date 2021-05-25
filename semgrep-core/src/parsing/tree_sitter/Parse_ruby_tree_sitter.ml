@@ -37,6 +37,8 @@ type env = unit H.env
 
 let _todo (_env : env) _ = failwith "not implemented, yikes."
 
+let fb = PI.fake_bracket
+
 let list_to_maybe_tuple = function
   | [] -> raise Impossible
   | [ x ] -> x
@@ -526,7 +528,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
             | `Scope_resol x -> ScopedId (scope_resolution env x) )
       in
       let v2 = command_argument_list env v2 in
-      Call (v1, v2, None)
+      Call (v1, fb v2, None)
   | `Cmd_call_with_blk x -> command_call_with_block env x
   | `Chai_cmd_call x -> chained_command_call env x
   | `Ret_cmd (v1, v2) ->
@@ -994,12 +996,12 @@ and command_call_with_block (env : env) (x : CST.command_call_with_block) :
       let v1 = anon_choice_call_fd54051 env v1 in
       let v2 = command_argument_list env v2 in
       let v3 = block env v3 in
-      Call (v1, v2, Some v3)
+      Call (v1, fb v2, Some v3)
   | `Choice_call_cmd_arg_list_do_blk (v1, v2, v3) ->
       let v1 = anon_choice_call_fd54051 env v1 in
       let v2 = command_argument_list env v2 in
       let v3 = do_block env v3 in
-      Call (v1, v2, Some v3)
+      Call (v1, fb v2, Some v3)
 
 and anon_choice_call_fd54051 (env : env) (x : CST.anon_choice_call_fd54051) =
   match x with
@@ -1015,26 +1017,26 @@ and call_ (env : env) (x : CST.call_) : AST.expr =
   match x with
   | `Choice_call_arg_list (v1, v2) ->
       let v1 = anon_choice_call_fd54051 env v1 in
-      let v2 = argument_list env v2 |> G.unbracket in
+      let v2 = argument_list env v2 in
       Call (v1, v2, None)
   | `Choice_call_arg_list_blk (v1, v2, v3) ->
       let v1 = anon_choice_call_fd54051 env v1 in
-      let v2 = argument_list env v2 |> G.unbracket in
+      let v2 = argument_list env v2 in
       let v3 = block env v3 in
       Call (v1, v2, Some v3)
   | `Choice_call_arg_list_do_blk (v1, v2, v3) ->
       let v1 = anon_choice_call_fd54051 env v1 in
-      let v2 = argument_list env v2 |> G.unbracket in
+      let v2 = argument_list env v2 in
       let v3 = do_block env v3 in
       Call (v1, v2, Some v3)
   | `Choice_call_blk (v1, v2) ->
       let v1 = anon_choice_call_fd54051 env v1 in
       let v2 = block env v2 in
-      Call (v1, [], Some v2)
+      Call (v1, fb [], Some v2)
   | `Choice_call_do_blk (v1, v2) ->
       let v1 = anon_choice_call_fd54051 env v1 in
       let v2 = do_block env v2 in
-      Call (v1, [], Some v2)
+      Call (v1, fb [], Some v2)
 
 and command_argument_list (env : env) ((v1, v2) : CST.command_argument_list) :
     AST.expr list =
@@ -1386,7 +1388,7 @@ and lhs (env : env) (x : CST.lhs) : AST.expr =
       in
       let v4 = token2 env v4 in
       let e = DotAccess (v1, v2, MethodOperator (Op_AREF, v4)) in
-      Call (e, v3, None)
+      Call (e, fb v3, None)
   | `Call x -> call env x
   | `Call_ x -> call_ env x
 
