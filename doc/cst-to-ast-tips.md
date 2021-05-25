@@ -55,6 +55,27 @@ Leave the original structure in place as much as possible. This is
 important for later when we want to update the grammar and need to
 compare the new boilerplate with the old/edited one.
 
+Add type annotations
+---
+
+The generated boilerplate looks like this, i.e. the return type will be
+an AST node determined by the programmer:
+
+```ocaml
+and formal_parameter (env : env) (x : CST.formal_parameter) =
+  ...
+```
+
+OCaml performs full type inference, so it's not technically required
+to specify return types.
+However, to make expectations clear and produce better error messages when
+upgrading a grammar, it works best to specify return types, e.g.
+
+```ocaml
+and formal_parameter (env : env) (x : CST.formal_parameter) : AST.parameter =
+  ...
+```
+
 Consult the original `grammar.js`
 --
 
