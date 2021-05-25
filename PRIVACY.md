@@ -21,7 +21,7 @@ Semgrep’s opt-in aggregate metrics are only sent when the environment variable
 
 ## Collected data
 
-Semgrep collects non-identifiable data to improve the underlying tools and user experience. Four types of data are collected:
+Semgrep collects non-identifiable data to improve the user experience. Four types of data are collected:
 
 ### Environmental
 
@@ -62,7 +62,7 @@ Semgrep reports data that indicate how useful a run is for the end user; e.g.
 
 ### Data NOT collected
 
-We strive to balance our desire to collect data for improving Semgrep and its underlying tools with our users' need for privacy. The following items don't leave your environment and are not sent or shared with anyone.
+We strive to balance our desire to collect data for improving Semgrep with our users' need for privacy. The following items don't leave your environment and are not sent or shared with anyone.
 
 * Source code
 * Raw repository names, filenames, file contents, or commit hashes
