@@ -6,10 +6,11 @@ import time
 from io import StringIO
 from pathlib import Path
 from re import sub
-from typing import Any, Tuple
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
 import attr
@@ -21,7 +22,8 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
-from semgrep.error import Level, MISSING_CONFIG_EXIT_CODE
+from semgrep.error import Level
+from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
@@ -30,6 +32,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.target_manager import TargetManager
+from semgrep.util import manually_search_file
 from semgrep.util import sub_check_output
 
 logger = logging.getLogger(__name__)
@@ -62,7 +65,9 @@ def notify_user_of_work(
             logger.info(f"- {rule.id}")
 
 
-def rule_match_nosem(rule_match: RuleMatch, strict: bool) -> Tuple[bool, List[SemgrepError]]:
+def rule_match_nosem(
+    rule_match: RuleMatch, strict: bool
+) -> Tuple[bool, List[SemgrepError]]:
     if not rule_match.lines:
         return False, []
 
@@ -288,16 +293,23 @@ The two most popular are:
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
-    project_hash = None
     try:
         project_url = sub_check_output(
             ["git", "ls-remote", "--get-url"],
             encoding="utf-8",
             stderr=subprocess.DEVNULL,
         )
-        project_hash = hashlib.sha256(project_url.encode()).hexdigest()
     except Exception as e:
-        logger.debug(f"Failed to generate project hash: {e}")
+        logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
+        try:
+            # add \n to match urls from git ls-remote (backwards compatability)
+            project_url = manually_search_file(".git/config", ".com", "\n")
+        except Exception as e:
+            logger.debug(f"Failed to get project url from .git/config: {e}")
+
+    project_hash = (
+        hashlib.sha256(project_url.encode()).hexdigest() if project_url else None
+    )
 
     metric_manager.set_project_hash(project_hash)
     metric_manager.set_configs_hash(configs)

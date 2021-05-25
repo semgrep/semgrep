@@ -10,6 +10,7 @@ from typing import Callable
 from typing import IO
 from typing import Iterable
 from typing import List
+from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import TypeVar
@@ -159,6 +160,21 @@ def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
     result = subprocess.check_output(cmd, **kwargs)  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
     # fmt: on
     return result
+
+
+def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[str]:
+    """
+    Searches a file for the given search term and, if found,
+    returns the first word that contains that search term
+    """
+    if not os.path.isfile(path):
+        return None
+    with open(path, mode="r") as fd:
+        contents = fd.read()
+        words = contents.split()
+    # Find all of the individual words that contain the search_term
+    matches = [w for w in words if search_term in w]
+    return matches[0] + suffix if len(matches) > 0 else None
 
 
 def compute_executable_path(exec_name: str) -> str:
