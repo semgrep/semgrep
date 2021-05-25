@@ -95,9 +95,10 @@ let rec expr = function
       G.Conditional (e1, e2, e3)
   | Call (e, xs, bopt) ->
       let e = expr e in
-      let xs = list expr xs in
+      let lb, xs, rb = bracket (list expr) xs in
+      (* TODO: maybe make an extra separate Call for the block? *)
       let last = option expr bopt |> Common.opt_to_list in
-      G.Call (e, fb (xs @ last |> List.map G.arg))
+      G.Call (e, (lb, xs @ last |> List.map G.arg, rb))
   | DotAccess (e, t, m) ->
       let e = expr e in
       let fld =

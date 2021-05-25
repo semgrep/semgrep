@@ -5,8 +5,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+
 - Scala alpha support
 - Metrics collection of project_hash in cases where git is not available
+
 ### Fixed
 
 - Running with `--strict` will now return results if there are `nosem` mismatches. Semgrep will report a nonzero exit code if `--strict` is set and there are `nosem` mismathces. [#3099](https://github.com/returntocorp/semgrep/issues/3099)
@@ -15,6 +17,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Evaluate interpolated strings during constant propagation (#3127)
 - Fixed #3084 - Semgrep will report an InvalidRuleSchemaError for dictionaries with duplicate key names.
 - Basic type inference also for implicit variable declarations (Python, Ruby, PHP, and JS)
+- JS/TS: differentiating tagged template literals in the AST (#3187)
+- Ruby: storing parenthesis in function calls in the AST (#3178)
 
 ### Changed
 
