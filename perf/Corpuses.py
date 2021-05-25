@@ -82,7 +82,7 @@ SMALL_CORPUSES = [
     # for a full list of such apps
     #
     Corpus("DVWA", "input/rules", "input/DVWA"),
-    # Corpus("juice-shop", "input/rules", "input/juice-shop"),
+    Corpus("juice-shop", "input/rules", "input/juice-shop"),
     Corpus("Vulnerable-Flask-App", "input/rules", "input/Vulnerable-Flask-App"),
     # (Gitlab small) Run our python and flask rules on a python repo
     Corpus("pallets", "input/rules", "input/flask"),
