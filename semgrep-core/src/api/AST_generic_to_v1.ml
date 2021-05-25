@@ -398,6 +398,8 @@ and map_of_interpolated_kind = function
   | InterpolatedConcat -> `InterpolatedConcat
   | SequenceConcat -> `SequenceConcat
   | FString -> `FString
+  (* new: *)
+  | TaggedTemplateLiteral -> `InterpolatedConcat
 
 and map_of_incdec = function Incr -> `Incr | Decr -> `Decr
 

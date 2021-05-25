@@ -712,6 +712,16 @@ and concat_string_kind =
    * TODO: add of string ('f' or something else)
    *)
   | FString
+  (* Javascript uses a special syntax called tagged template literals, e.g.,
+   * foo`template string = ${id}`. We must use a different representation
+   * for foo(`template string = ${id}`) because some semgrep users want
+   * to find one and not the other.
+   * In both case it will be inside Call (Apply (ConcatString  ... but then
+   * the kind will differ.
+   *)
+  | TaggedTemplateLiteral
+
+(* e.g., foo`template ${id}` *)
 
 (* Python *)
 
