@@ -11,7 +11,7 @@ set -eu
 
 mkdir -p input
 
-cp ../r2c-rules/dockerfile.yml input
+cp ../r2c-rules/docker.yml input
 cd input
 
 # Obtain a shallow clone of a git repo for a specific commit

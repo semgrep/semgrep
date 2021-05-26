@@ -168,7 +168,7 @@ MORE_RULES_CORPUSES = [
     # small c corpus
     Corpus("t00sh", "input/rules", "input/rop-tool"),
     # small repository of dockerfiles
-    Corpus("grpc", "input/dockerfile.yml", "input/grpc-docker-library")
+    Corpus("grpc", "input/docker.yml", "input/grpc-docker-library")
 ]
 
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", "js")]
