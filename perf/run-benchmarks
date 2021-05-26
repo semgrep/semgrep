@@ -189,6 +189,7 @@ def run_semgrep(
 ) -> Tuple[float, dict]:
     args = []
     common_args = [
+        "--strict",
         "--json",
         "--timeout",
         "0",
