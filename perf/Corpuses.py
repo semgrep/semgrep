@@ -88,6 +88,15 @@ SMALL_CORPUSES = [
     Corpus("pallets", "input/rules", "input/flask"),
     # (Gitlab small) Run our javascript rules on a JS repo
     Corpus("socketio", "input/javascript.yml", "input/socket"),
+    # 
+    # This is for more comprehensive rule timing information
+    #
+    # small java corpus
+    Corpus("coolMenu", "input/java.yml", "input/coolMenu"),
+    # small c corpus
+    Corpus("t00sh", "input/rules", "input/rop-tool"),
+    # small repository of dockerfiles
+    Corpus("grpc", "input/docker.yml", "input/grpc-docker-library")
 ]
 
 MEDIUM_CORPUSES = [
@@ -159,16 +168,6 @@ GITLAB_CORPUSES = [
     Corpus("spring-projects", "../gitlab-rules", "input/spring"),
     # (Gitlab medium) java repo
     Corpus("pmd", "../gitlab-rules", "input/pmd"),
-]
-
-# For more comprehensive analysis of all the rules
-MORE_RULES_CORPUSES = [
-    # small java corpus
-    Corpus("coolMenu", "input/java.yml", "input/coolMenu"),
-    # small c corpus
-    Corpus("t00sh", "input/rules", "input/rop-tool"),
-    # small repository of dockerfiles
-    Corpus("grpc", "input/docker.yml", "input/grpc-docker-library")
 ]
 
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", "js")]
