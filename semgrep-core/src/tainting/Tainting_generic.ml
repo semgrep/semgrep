@@ -112,8 +112,8 @@ let check rules file ast =
 
   let fun_env = Hashtbl.create 8 in
 
-  let check_fdef opt_name def =
-    let xs = AST_to_IL.stmt def.AST.fbody in
+  let check_stmt opt_name def_body =
+    let xs = AST_to_IL.stmt def_body in
     let flow = CFG_build.cfg_of_stmts xs in
 
     rules
@@ -148,12 +148,19 @@ let check rules file ast =
             match def_kind with
             | AST.FuncDef fdef ->
                 let opt_name = AST_to_IL.name_of_entity ent in
-                check_fdef opt_name fdef
+                check_stmt opt_name fdef.AST.fbody
             | __else__ -> k def);
-        V.kfunction_definition = (fun (_k, _) def -> check_fdef None def);
+        V.kfunction_definition =
+          (fun (_k, _) def -> check_stmt None def.AST.fbody);
       }
   in
+  (* Check each function definition. *)
   v (AST.Pr ast);
+  (* Check the top-level statements.
+   * In scripting languages it is not unusual to write code outside
+   * function declarations and we want to check this too. We simply
+   * treat the program itself as an anonymous function. *)
+  check_stmt None (AST.stmt1 ast);
 
   !matches
   [@@profiling]

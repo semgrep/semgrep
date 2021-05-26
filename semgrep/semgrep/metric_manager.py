@@ -55,8 +55,10 @@ class _MetricManager:
 
     def set_rules_hash(self, rules: List[Rule]) -> None:
         m = hashlib.sha256()
-        for r in rules:
-            m.update(r.full_hash.encode())
+        rule_hashes = [r.full_hash for r in rules]
+        rule_hashes.sort()  # sort hashes to have a stable rules_hash
+        for rule_hash in rule_hashes:
+            m.update(rule_hash.encode())
         self._rules_hash = m.hexdigest()
 
     def set_return_code(self, return_code: int) -> None:
