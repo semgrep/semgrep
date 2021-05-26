@@ -258,6 +258,7 @@ def run_semgrep(
 
     return t2 - t1, semgrep_results 
 
+
 def normalize_rule_config_name(rule_config_str: str) -> str:
     return rule_config_str.replace("/", ".") + ".yaml"
 
@@ -283,7 +284,7 @@ def prepare_rule_cache_for_this_run(setup_data: BenchmarkRunSetupData)-> Tuple[P
                     timeout=60,
                 )
             except requests.Timeout:
-                logger.warning(f"There was a timeout error trying to download the rule config at '{rule_config_url}'")
+                logger.warning(f"There was a timeout error trying to download the rule config at '{rule_config_url}'. Skipping.")
                 continue
             rule_config_path.write_text(r.text)
             logger.info(f"Rule config '{rule_config}' has been written to '{rule_config_path}'")
@@ -292,13 +293,14 @@ def prepare_rule_cache_for_this_run(setup_data: BenchmarkRunSetupData)-> Tuple[P
         rule_config_paths.append(rule_config_path)
     return rule_cache_for_this_run, rule_config_paths
 
+
 def prepare_benchmark_run(benchmark_config: SemgrepBenchmarkConfig) -> List[Corpus]:
     """
     Sets up the relevant data for a benchmarking run
     - downloads rule configs from an endpoint if necessary
     - generates a 'prep' file which clones a repo from a URL and checks out the commit
     """
-    corpuses = list()
+    corpuses: List[Corpus] = list()
     for setup_data in benchmark_config.benchmark_setup_data:
         logger.info(f"Setting up benchmark run for run '{setup_data.run_name}'")
         rule_cache_dir, _ = prepare_rule_cache_for_this_run(setup_data)
@@ -386,7 +388,12 @@ def run_benchmarks(
     # Multithread here. Dedicate one core to each benchmark
     for corpus in corpuses:
         with chdir(corpus.name):
-            corpus.prep()
+            try:
+                corpus.prep()
+            except Exception as e:
+                logger.warning(f"Could not execute 'prep' file for {corpus.name}. Please check it exists. Will skip this corpus. Error: {e}")
+                continue
+
             std_findings = {}
             for variant in variants:
 
