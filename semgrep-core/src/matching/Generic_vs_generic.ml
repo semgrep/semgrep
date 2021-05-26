@@ -1556,7 +1556,7 @@ and m_list__m_stmt ?less_is_ok ~list_kind xsa xsb tin =
  * TODO? can we remove the duplication
  *)
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
-and m_list__m_stmt_uncached ?(less_is_ok = false) ~list_kind (xsa : A.stmt list)
+and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
     (xsb : A.stmt list) =
   (* TODO: getting this list every time is redundant *)
   match stmts_may_match xsa xsb with
