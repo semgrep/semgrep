@@ -66,7 +66,7 @@ let todo_semgrep_pattern env tok =
   let t = H.token env tok in
   raise (Parse_info.Other_error ("missing support for semgrep pattern", t))
 
-let todo env _ = failwith "not implemented"
+let todo _env _ = failwith "not implemented"
 
 let super env tok = IdSpecial (Super, token env tok)
 
@@ -790,10 +790,11 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
   ObjAccess (v1, v2, PN v3)
 
 and assignment_pattern (env : env) ((v1, v2, v3) : CST.assignment_pattern) =
-  let v1 = pattern env v1 in
-  let v2 = token env v2 (* "=" *) in
-  let v3 = expression env v3 in
-  (v1, v2, v3)
+  let parameter = pattern env v1 in
+  let pat = parameter_to_pattern parameter in
+  let tok = token env v2 (* "=" *) in
+  let e = expression env v3 in
+  (pat, tok, e)
 
 and subscript_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.subscript_expression) : expr =
@@ -1728,7 +1729,10 @@ and anon_choice_pair_pat_3ff9cbe (env : env)
       (* default value for the property *)
       let e = expression env v3 in
       FieldPatDefault (pat, tok, e)
-  | `Choice_id x -> anon_choice_id_0e3c97f env x
+  | `Choice_id x ->
+      let id = anon_choice_id_0e3c97f env x in
+      FieldColon
+        { fld_name = PN id; fld_attrs = []; fld_type = None; fld_body = None }
 
 and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   match x with
@@ -1740,7 +1744,7 @@ and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   | `Choice_get x ->
       let id = reserved_identifier env x in
       idexp id
-  | `Choice_obj x -> destructuring_pattern env x
+  | `Dest_pat x -> destructuring_pattern env x
 
 and statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) : stmt
     =
@@ -1870,7 +1874,7 @@ and pattern (env : env) (x : CST.pattern) : parameter =
 and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
   match x with
   | `Pat x -> pattern env x
-  | `Assign_pat (v1, v2, v3) ->
+  | `Assign_pat x ->
       let a, b, c = assignment_pattern env x in
       ParamPattern (Assign (a, b, c))
   | `Semg_dots tok -> todo_semgrep_pattern env tok
@@ -1878,7 +1882,7 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
 let toplevel env x = statement env x
 
 let todo_semgrep_partial (env : env) (x : CST.semgrep_partial) =
-  let todo_partial env _ = assert false in
+  let todo_partial _env _ = assert false in
   match x with
   | `Opt_async_func_id_formal_params (v1, v2, v3, v4) ->
       let v1 =
