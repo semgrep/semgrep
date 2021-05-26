@@ -6,7 +6,9 @@ from semgrep.rule import Rule
 
 Semgrep_run = NamedTuple("Semgrep_run", [("rule", Rule), ("target", Path)])
 
-Times = NamedTuple("Times", [("match_time", float), ("run_time", float)])
+Times = NamedTuple(
+    "Times", [("parse_time", float), ("match_time", float), ("run_time", float)]
+)
 
 
 class ProfilingData:
@@ -25,17 +27,7 @@ class ProfilingData:
     def get_run_times(self, rule: Rule, target: Path) -> Times:
         return self._match_time_matrix.get(
             Semgrep_run(rule=rule, target=target),
-            Times(match_time=0.0, run_time=0.0),
-        )
-
-    def set_file_parse_time(self, target: Path, parse_time: float) -> None:
-        """
-        Assumes will be called many times but only the largest parse_time
-        for a file is the actual parse time and all the other parse_times
-        are semgrep-core hitting cache
-        """
-        self._file_parse_times[target] = max(
-            parse_time, self._file_parse_times.get(target, 0.0)
+            Times(parse_time=0.0, match_time=0.0, run_time=0.0),
         )
 
     def get_file_parse_time(self, target: Path) -> float:
@@ -112,6 +104,12 @@ class ProfilingData:
         )
         self._file_match_times[target] = (
             self._file_match_times.get(target, 0.0) + times.match_time
+        )
+
+        # File parse time is max of all parse times since others will be
+        # cache hits
+        self._file_parse_times[target] = max(
+            times.parse_time, self._file_parse_times.get(target, 0.0)
         )
 
         self._match_time_matrix[Semgrep_run(rule=rule, target=target)] = times
