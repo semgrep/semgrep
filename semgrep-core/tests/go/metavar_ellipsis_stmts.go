@@ -4,6 +4,7 @@ package sequitur
 
 import "bytes"
 
+//ERROR: match
 func Fuzz(data []byte) int {
         if len(data) == 0 {
                 return 0
