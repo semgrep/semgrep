@@ -35,7 +35,7 @@ from corpus import Corpus, SMALL_CORPUSES, MEDIUM_CORPUSES, LARGE_CORPUSES, INTE
 from variant import SemgrepVariant, STD_VARIANTS, GITLAB_VARIANTS, SEMGREP_VARIANTS
 
 logger = logging.getLogger(__file__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(stream=sys.stderr)
 handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(handler)
@@ -99,7 +99,7 @@ def chdir(dir: str) -> Iterator[None]:
 
 
 def upload(url: str, value: str) -> None:
-    print(f"Uploading to {url}")
+    logger.info(f"Uploading to {url}")
     r = urllib.request.urlopen(  # nosem
         url=url,
         data=value.encode("ascii"),
@@ -141,7 +141,7 @@ def upload_result(
         upload(lps_url, str(lps))
 
         # Upload timing data as a json
-        print(f"Uploading timing data to {STATS_URL}")
+        logger.info(f"Uploading timing data to {STATS_URL}")
         headers = {"content-type": "application/json"}
         r = requests.post(
             STATS_URL, data=json.dumps(timings), headers=headers, timeout=30
@@ -186,14 +186,12 @@ def output_differences(
 
 def run_semgrep(
     docker: str, corpus: Corpus, variant: SemgrepVariant, include_time: bool
-) -> Tuple[float, bytes]:
+) -> Tuple[float, dict]:
     args = []
     common_args = [
-        "--strict",
         "--json",
         "--timeout",
         "0",
-        "--verbose",
         "--no-git-ignore",  # because files in bench/*/input/ are git-ignored
     ]
     if docker:
@@ -219,7 +217,6 @@ def run_semgrep(
             "semgrep",
             "--config",
             os.path.abspath(corpus.rule_dir),
-            os.path.abspath(corpus.target_dir),
         ]
     args.extend(common_args)
     if variant.semgrep_extra != "":
@@ -227,17 +224,20 @@ def run_semgrep(
     if include_time:
         args.extend(["--time"])
 
-    print(f"current directory: {os.getcwd()}")
-    print("semgrep command: {}".format(" ".join(args)))
+    # Finally, add target
+    args.append(os.path.abspath(corpus.target_dir))
+
+    logger.info(f"current directory: {os.getcwd()}")
+    logger.info("semgrep command: {}".format(" ".join(args)))
     os.environ["SEMGREP_CORE_EXTRA"] = variant.semgrep_core_extra
-    print(f"extra arguments for semgrep-core: '{variant.semgrep_core_extra}'")
+    logger.info(f"extra arguments for semgrep-core: '{variant.semgrep_core_extra}'")
 
     t1 = time.time()
     res = subprocess.run(args, capture_output=True)  # nosem
     t2 = time.time()
 
     status = res.returncode
-    print(f"semgrep exit status: {status}")
+    logger.info(f"semgrep exit status: {status}")
     if status == 0:
         print("success")
     elif status == 3:
@@ -249,7 +249,14 @@ def run_semgrep(
         print(res.stderr)
         res.check_returncode()
 
-    return t2 - t1, res.stdout
+    try: 
+        stdout_decoded = res.stdout.decode('utf-8')
+        semgrep_results = json.loads(stdout_decoded)
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+        logger.error("Unable to decode the Semgrep result as JSON. Exiting.")
+        sys.exit(1)
+
+    return t2 - t1, semgrep_results 
 
 def normalize_rule_config_name(rule_config_str: str) -> str:
     return rule_config_str.replace("/", ".") + ".yaml"
@@ -258,10 +265,10 @@ def normalize_rule_config_name(rule_config_str: str) -> str:
 def prepare_rule_cache_for_this_run(setup_data: BenchmarkRunSetupData)-> Tuple[Path, List[Path]]:
     rule_cache_for_this_run: Path = RULE_CONFIG_CACHE_DIR / setup_data.run_name
     rule_cache_for_this_run.mkdir(parents=True, exist_ok=True)
-    logger.debug(f"Rule cache for run {setup_data.run_name} created at {rule_cache_for_this_run}")
+    logger.info(f"Rule cache for run {setup_data.run_name} created at {rule_cache_for_this_run}")
     rule_config_paths = list()
     for rule_config in setup_data.rule_configs:
-        logger.debug(f"Checking for rule config '{rule_config}' in cache")
+        logger.info(f"Checking for rule config '{rule_config}' in cache")
         normalized_rule_config = normalize_rule_config_name(rule_config)
         rule_config_path = rule_cache_for_this_run / normalized_rule_config
         # check if on filesystem
@@ -269,19 +276,19 @@ def prepare_rule_cache_for_this_run(setup_data: BenchmarkRunSetupData)-> Tuple[P
         if not rule_config_path.exists():
             try:
                 rule_config_url = f"https://semgrep.dev/{rule_config}"
-                logger.debug(f"Fetching config from '{rule_config_url}'")
+                logger.info(f"Fetching config from '{rule_config_url}'")
                 r = requests.get(
                     rule_config_url,
                     headers={"User-Agent": SEMGREP_USER_AGENT},
                     timeout=60,
                 )
             except requests.Timeout:
-                print(f"There was a timeout error trying to download the rule config at '{rule_config_url}'")
+                logger.warning(f"There was a timeout error trying to download the rule config at '{rule_config_url}'")
                 continue
             rule_config_path.write_text(r.text)
-            logger.debug(f"Rule config '{rule_config}' has been written to '{rule_config_path}'")
+            logger.info(f"Rule config '{rule_config}' has been written to '{rule_config_path}'")
         else:
-            logger.debug(f"Rule config '{rule_config_path}' already exists, using this one")
+            logger.info(f"Rule config '{rule_config_path}' already exists, using this one")
         rule_config_paths.append(rule_config_path)
     return rule_cache_for_this_run, rule_config_paths
 
@@ -293,7 +300,7 @@ def prepare_benchmark_run(benchmark_config: SemgrepBenchmarkConfig) -> List[Corp
     """
     corpuses = list()
     for setup_data in benchmark_config.benchmark_setup_data:
-        logger.debug(f"Setting up benchmark run for run '{setup_data.run_name}'")
+        logger.info(f"Setting up benchmark run for run '{setup_data.run_name}'")
         rule_cache_dir, _ = prepare_rule_cache_for_this_run(setup_data)
         for repository in setup_data.repositories:
             repo_name = repository.url.split('/')[-1]
@@ -313,9 +320,9 @@ def generate_prep_file(name: str, rule_cache_dir: Path, url: str, commit_hash: s
     prep_file = benchdir / "prep"
     # generate prep file
     if prep_file.exists():
-        logger.debug(f"'prep' file at {prep_file} already exists; using this one")
+        logger.info(f"'prep' file at {prep_file} already exists; using this one")
     else:
-        logger.debug(f"Generating 'prep' file at {prep_file}")
+        logger.info(f"Generating 'prep' file at {prep_file}")
         prep_file.touch(0o755, exist_ok=True)
         prep_file.write_text(PREP_FILE_TEMPLATE.format(
             name=name,
@@ -387,12 +394,17 @@ def run_benchmarks(
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
-                duration, findings_bytes = run_semgrep(
+                duration, semgrep_results = run_semgrep(
                     docker, corpus, variant, include_time
+<<<<<<< HEAD
                 )   
                 
+=======
+                )
+
+>>>>>>> Add logging statements
                 if not output_time_per_rule_json is None:
-                    output_per_rule_json_results.times_per_file_to_times_per_rule(corpus.name, findings_bytes)
+                    output_per_rule_json_results.times_per_file_to_times_per_rule(corpus.name, semgrep_results)
 
                 # Report results
                 msg = f"{metric_name} = {duration:.3f} s"
@@ -402,7 +414,7 @@ def run_benchmarks(
                 results[variant.name].append(duration)
 
                 findings, timings = standardize_findings(
-                    json.loads(findings_bytes), include_time
+                    semgrep_results, include_time
                 )
 
                 if upload:
