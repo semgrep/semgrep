@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Scala alpha support
 - Metrics collection of project_hash in cases where git is not available
+- $...MVARS can now match a list of statements (not just a list of arguments) (#3170)
 
 ### Fixed
 
