@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.53.0](https://github.com/returntocorp/semgrep/releases/tag/v0.53.0) - 2021-05-26
+
+### Added
+
 - Scala alpha support
 - Metrics collection of project_hash in cases where git is not available
 - Taint mode now also analyzes top-level statements.
@@ -20,8 +28,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Basic type inference also for implicit variable declarations (Python, Ruby, PHP, and JS)
 - JS/TS: differentiating tagged template literals in the AST (#3187)
 - Ruby: storing parenthesis in function calls in the AST (#3178)
-
-### Changed
 
 ## [0.52.0](https://github.com/returntocorp/semgrep/releases/tag/v0.52.0) - 2021-05-18
 
