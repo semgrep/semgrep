@@ -66,8 +66,6 @@ let todo_semgrep_pattern env tok =
   let t = H.token env tok in
   raise (Parse_info.Other_error ("missing support for semgrep pattern", t))
 
-let todo _env _ = failwith "not implemented"
-
 let super env tok = IdSpecial (Super, token env tok)
 
 let this env tok = IdSpecial (This, token env tok)
@@ -509,7 +507,7 @@ and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : pattern
         | None -> []
       in
       let v3 = token env v3 (* "}" *) in
-      todo env (v1, v2, v3)
+      Obj (v1, v2, v3)
   | `Array_pat (v1, v2, v3) ->
       (*
          formerly a choice for 'assignment_pattern':
@@ -521,30 +519,35 @@ and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : pattern
       *)
       let v1 = token env v1 (* "[" *) in
       let v2 =
+        (* comma-separated list *)
         match v2 with
         | Some (v1, v2) ->
             let v1 =
               match v1 with
-              | Some x -> formal_parameter_no_ellipsis env x
-              | None -> todo env ()
+              | Some x ->
+                  [ formal_parameter_no_ellipsis env x |> parameter_to_pattern ]
+              | None -> []
             in
             let v2 =
-              List.map
+              List.filter_map
                 (fun (v1, v2) ->
-                  let v1 = token env v1 (* "," *) in
+                  let _v1 = token env v1 (* "," *) in
                   let v2 =
                     match v2 with
-                    | Some x -> formal_parameter_no_ellipsis env x
-                    | None -> todo env ()
+                    | Some x ->
+                        Some
+                          ( formal_parameter_no_ellipsis env x
+                          |> parameter_to_pattern )
+                    | None -> None
                   in
-                  todo env (v1, v2))
+                  v2)
                 v2
             in
-            todo env (v1, v2)
-        | None -> todo env ()
+            v1 @ v2
+        | None -> []
       in
       let v3 = token env v3 (* "]" *) in
-      todo env (v1, v2, v3)
+      Arr (v1, v2, v3)
 
 and variable_declaration (env : env)
     ((v1, v2, v3, v4) : CST.variable_declaration) : var list =
