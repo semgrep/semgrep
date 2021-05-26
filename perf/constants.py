@@ -1,4 +1,4 @@
-from Pathlib import Path
+from pathlib import Path
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
 STATS_URL = "https://stats.semgrep.dev"
