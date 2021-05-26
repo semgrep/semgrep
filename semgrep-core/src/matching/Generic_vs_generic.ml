@@ -1132,9 +1132,11 @@ and m_list__m_argument (xsa : A.argument list) (xsb : A.argument list) =
   (*s: [[Generic_vs_generic.m_list__m_argument()]] ellipsis cases *)
   (* dots: ..., can also match no argument *)
   | [ A.Arg (A.Ellipsis _i) ], [] -> return ()
+  (* dots: metavars: $...ARGS *)
   | A.Arg (A.N (A.Id ((s, tok), _idinfo))) :: xsa, xb :: xsb
     when MV.is_metavar_ellipsis s ->
-      (* can match 1 or more arguments (or 0 is ok too?) *)
+      (* can match 1 or more arguments (or 0 is ok too? but then
+       * can maybe get some NoTokenLocation?) *)
       let candidates = inits_and_rest_of_list (xb :: xsb) in
       let rec aux xs =
         match xs with
@@ -1524,6 +1526,12 @@ and m_stmts_deep_uncached ~less_is_ok (xsa : A.stmt list) (xsb : A.stmt list) =
               m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id) xsa
                 xsb )
         ~else_:(fail ())
+  (* dots: metavars: $...BODY *)
+  | ( ({ s = A.ExprStmt (A.N (A.Id ((s, _), _idinfo)), _); _ } :: _ as xsa),
+      (_ :: _ as xsb) )
+    when MV.is_metavar_ellipsis s ->
+      (* less: for metavariable ellipsis, does it make sense to go deep? *)
+      m_list__m_stmt ~list_kind:CK.Original xsa xsb
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_stmt xa xb >>= fun () ->
@@ -1531,20 +1539,25 @@ and m_stmts_deep_uncached ~less_is_ok (xsa : A.stmt list) (xsb : A.stmt list) =
   | _ :: _, _ -> fail ()
 
 (*e: function [[Generic_vs_generic.m_stmts_deep]] *)
-and m_list__m_stmt ~list_kind xsa xsb tin =
+and m_list__m_stmt ?less_is_ok ~list_kind xsa xsb tin =
   (* shares the cache with m_stmts_deep *)
   match (tin.cache, xsa, xsb) with
   | Some cache, a :: _, _ :: _ when a.s_use_cache ->
       let tin = { tin with mv = Env.update_min_env tin.mv a } in
       Caching.Cache.match_stmt_list ~access:cache_access ~cache
         ~function_id:CK.Match_list ~list_kind ~less_is_ok:true
-        ~compute:(m_list__m_stmt_uncached ~list_kind)
+        ~compute:(m_list__m_stmt_uncached ?less_is_ok ~list_kind)
         ~pattern:xsa ~target:xsb tin
-  | _ -> m_list__m_stmt_uncached ~list_kind xsa xsb tin
+  | _ -> m_list__m_stmt_uncached ?less_is_ok ~list_kind xsa xsb tin
 
 (* TODO: factorize with m_list_and_dots less_is_ok = true *)
+(* coupling: many of the cases below are similar to the one in
+ * m_stmts_deep_uncached.
+ * TODO? can we remove the duplication
+ *)
 (*s: function [[Generic_vs_generic.m_list__m_stmt]] *)
-and m_list__m_stmt_uncached ~list_kind (xsa : A.stmt list) (xsb : A.stmt list) =
+and m_list__m_stmt_uncached ?(less_is_ok = false) ~list_kind (xsa : A.stmt list)
+    (xsb : A.stmt list) =
   (* TODO: getting this list every time is redundant *)
   match stmts_may_match xsa xsb with
   | No -> fail ()
@@ -1563,8 +1576,9 @@ and m_list__m_stmt_uncached ~list_kind (xsa : A.stmt list) (xsb : A.stmt list) =
        * TODO: sgrep_generic though then display the whole sequence as a match
        * instead of just the relevant part.
        *)
-      | [], _ :: _ -> return ()
+      | [], _ :: _ -> if less_is_ok then return () else fail ()
       (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
+
       (*s: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
       (* dots: '...', can also match no statement *)
       | [ { s = A.ExprStmt (A.Ellipsis _i, _); _ } ], [] -> return ()
@@ -1576,6 +1590,27 @@ and m_list__m_stmt_uncached ~list_kind (xsa : A.stmt list) (xsb : A.stmt list) =
           ( env_add_matched_stmt xb >>= fun () ->
             m_list__m_stmt ~list_kind xsa xsb_tail )
       (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
+      (* dots: metavars: $...BODY *)
+      | ( { s = A.ExprStmt (A.N (A.Id ((s, tok), _idinfo)), _); _ } :: xsa,
+          (_xb :: _xsbtail as xsb) )
+        when MV.is_metavar_ellipsis s ->
+          (* can match 1 or more arguments (is 0 ok? but then
+           * can maybe get some NoTokenLocation?) *)
+          let candidates = inits_and_rest_of_list xsb in
+          let rec aux xs =
+            match xs with
+            | [] -> fail ()
+            | (inits, rest) :: xs ->
+                envf (s, tok) (MV.Ss inits)
+                >>= (fun () ->
+                      (* less: env_add_matched_stmt ?? *)
+                      (* when we use { $...BODY }, we don't have an implicit
+                       * ... after, so we use less_is_ok:false here
+                       *)
+                      m_list__m_stmt ~less_is_ok:false ~list_kind xsa rest)
+                >||> aux xs
+          in
+          aux candidates
       (* the general case *)
       | xa :: aas, xb :: bbs ->
           m_stmt xa xb >>= fun () ->
@@ -1657,7 +1692,7 @@ and m_stmt a b =
       in
       or_list m_stmt a bs
   (* the general case *)
-  (* TODO: ... will allow a subset of stmts? good? *)
+  (* ... will now allow a subset of stmts (less_is_ok = false here) *)
   | A.Block a1, B.Block b1 -> m_bracket (m_stmts_deep ~less_is_ok:false) a1 b1
   (*e: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
