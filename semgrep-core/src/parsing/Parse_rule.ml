@@ -265,6 +265,9 @@ let rec parse_formula_old env (x : string * J.t) : R.formula_old =
   | "pattern-regex", J.String s ->
       let xpat = R.mk_xpat (Regexp (parse_regexp s)) s in
       R.Pat xpat
+  | "pattern-not-regex", J.String s ->
+      let xpat = R.mk_xpat (Regexp (parse_regexp s)) s in
+      R.PatNot xpat
   | x ->
       let extra = parse_extra env x in
       R.PatExtra extra
