@@ -402,15 +402,6 @@ def run_benchmarks(
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
-<<<<<<< HEAD
-                duration, semgrep_results = run_semgrep(
-                    docker, corpus, variant, include_time
-<<<<<<< HEAD
-                )   
-                
-=======
-                )
-=======
                 try:
                     duration, semgrep_results = run_semgrep(
                         docker, corpus, variant, include_time, hard_timeout,
@@ -419,9 +410,7 @@ def run_benchmarks(
                     logger.warning(f"A hard timeout was set for {hard_timeout} seconds.")
                     logger.warning(f"The test for '{variant.name}' on '{corpus.name}' exceeded the timeout. This test will be skipped.")
                     continue
->>>>>>> Add a 'hard-timeout' option to run-benchmarks which automatically kills benchmark jobs
 
->>>>>>> Add logging statements
                 if not output_time_per_rule_json is None:
                     output_per_rule_json_results.times_per_file_to_times_per_rule(corpus.name, semgrep_results)
 
