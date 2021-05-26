@@ -14,123 +14,32 @@
 import argparse
 import copy
 import json
+import logging
 import os
 import re
+import requests
 import subprocess
+import sys
 import time
 import urllib.request
-from collections import defaultdict
 from contextlib import contextmanager
 from typing import Iterator, List, Optional
 from typing import Tuple
 from pathlib import Path
+
+import semgrep_core_benchmark  # type: ignore
 from RepositoryTimePerRule import RepositoryTimePerRule
 from config import SemgrepBenchmarkConfig, BenchmarkRunSetupData
-import logging
-import sys
+from constants import STD, DASHBOARD_URL, STATS_URL, BPS_ENDPOINT, LPS_ENDPOINT, SEMGREP_USER_AGENT, RULE_CONFIG_CACHE_DIR, PREP_FILE_TEMPLATE
+from corpus import Corpus, SMALL_CORPUSES, MEDIUM_CORPUSES, LARGE_CORPUSES, INTERNAL_CORPUSES, GITLAB_CORPUSES, DUMMY_CORPUSES
+from variant import SemgrepVariant, STD_VARIANTS, GITLAB_VARIANTS, SEMGREP_VARIANTS
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(stream=sys.stderr)
 handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(handler)
-from Corpuses import Corpus, SMALL_CORPUSES, MEDIUM_CORPUSES, LARGE_CORPUSES, INTERNAL_CORPUSES, GITLAB_CORPUSES, DUMMY_CORPUSES
 
-import requests
-import semgrep_core_benchmark  # type: ignore
-
-DASHBOARD_URL = "https://dashboard.semgrep.dev"
-STATS_URL = "https://stats.semgrep.dev"
-BPS_ENDPOINT = "semgrep.perf.bps"
-LPS_ENDPOINT = "semgrep.perf.lps"
-
-STD = "std"
-
-SEMGREP_USER_AGENT = "Semgrep/0.0.0-benchmark"
-RULE_CONFIG_CACHE_DIR = Path("rules_cache")
-PREP_FILE_TEMPLATE = """#! /bin/sh
-#
-# Fetch rules and targets prior for the "r2c" benchmark.
-#
-# rule_dir: input/rules
-# target_dir: input/socket.io
-#
-# See ../r2c-rules for centralized copy of the rule
-# Uses sh because bash is not installed within the semgrep docker container.
-#
-set -eu
-
-mkdir -p input
-mkdir -p input/rules
-
-cp -r {rule_cache_dir} input/rules
-cd input
-
-# Obtain a shallow clone of a git repo for a specific commit
-shallow_clone() {{
-  if [ -d "$name" ]; then
-    echo "Reusing repo '$name'"
-  else
-    echo "Obtaining a shallow clone of git repo '$name', commit $commit"
-    mkdir -p "$name"
-    (
-      cd "$name"
-      git init
-      git remote add origin "$url"
-      git fetch --depth 1 origin "$commit"
-      git checkout FETCH_HEAD -b tmp
-    )
-  fi
-}}
-
-# Targets using other repos we run in CI
-name="{name}"
-url="{url}"
-commit="{commit_hash}"
-shallow_clone
-"""
-
-class SemgrepVariant:
-    def __init__(self, name: str, semgrep_core_extra: str, semgrep_extra: str = ""):
-        # name for the input corpus (rules and targets)
-        self.name = name
-
-        # space-separated extra arguments to pass to semgrep-core
-        # command via SEMGREP_CORE_EXTRA environment variable
-        self.semgrep_core_extra = semgrep_core_extra
-
-        # space-separated extra arguments to pass to the default semgrep
-        # command
-        self.semgrep_extra = semgrep_extra
-
-
-# Feel free to create new variants. The idea is to use the default set
-# of options as the baseline and we see what happens when we enable or
-# disable this or that optimization.
-#
-SEMGREP_VARIANTS = [
-    # default settings
-    SemgrepVariant(STD, ""),
-    # removing optimisations
-    SemgrepVariant("no-cache", "-no_opt_cache"),
-    SemgrepVariant("max-cache", "-opt_max_cache"),
-    SemgrepVariant("no-bloom", "-no_bloom_filter"),
-    SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
-    # alternate optimisations
-    SemgrepVariant("set_filters", "-set_filter"),
-    SemgrepVariant("experimental", "-no_filter_irrelevant_rules", "--optimizations"),
-    SemgrepVariant(
-        "experimental_and_fast", "-filter_irrelevant_rules", "--optimizations"
-    ),
-]
-
-# For when you just want to test a single change
-STD_VARIANTS = [SemgrepVariant(STD, "")]
-
-GITLAB_VARIANTS = [
-    SemgrepVariant(STD, ""),
-    SemgrepVariant("experimental", "-no_filter_irrelevant_rules", "--optimizations"),
-]
 
 # This class allows us to put semgrep results in a set and compute set
 # differences while saving the original JSON dictionary
@@ -403,14 +312,17 @@ def generate_prep_file(name: str, rule_cache_dir: Path, url: str, commit_hash: s
     benchdir.mkdir(parents=True, exist_ok=True)
     prep_file = benchdir / "prep"
     # generate prep file
-    logger.debug(f"Generating 'prep' file at {prep_file}")
-    prep_file.touch(0o755, exist_ok=True)
-    prep_file.write_text(PREP_FILE_TEMPLATE.format(
-        name=name,
-        rule_cache_dir=rule_cache_dir,
-        url=url,
-        commit_hash=commit_hash
-    ))
+    if prep_file.exists():
+        logger.debug(f"'prep' file at {prep_file} already exists; using this one")
+    else:
+        logger.debug(f"Generating 'prep' file at {prep_file}")
+        prep_file.touch(0o755, exist_ok=True)
+        prep_file.write_text(PREP_FILE_TEMPLATE.format(
+            name=name,
+            rule_cache_dir=rule_cache_dir,
+            url=url,
+            commit_hash=commit_hash
+        ))
 
 
 def run_benchmarks(
