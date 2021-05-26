@@ -185,7 +185,7 @@ def output_differences(
     return fd_len, sd_len
 
 def run_semgrep(
-    docker: str, corpus: Corpus, variant: SemgrepVariant, include_time: bool
+    docker: str, corpus: Corpus, variant: SemgrepVariant, include_time: bool, hard_timeout: int = 0
 ) -> Tuple[float, dict]:
     args = []
     common_args = [
@@ -233,7 +233,7 @@ def run_semgrep(
     print(f"extra arguments for semgrep-core: '{variant.semgrep_core_extra}'")
 
     t1 = time.time()
-    res = subprocess.run(args, capture_output=True)  # nosem
+    res = subprocess.run(args, capture_output=True, timeout=hard_timeout or None)  # nosem
     t2 = time.time()
 
     status = res.returncode
@@ -345,6 +345,7 @@ def run_benchmarks(
     config_file: Optional[Path],
     filter_corpus: str,
     filter_variant: str,
+    hard_timeout: int,
     output_time_per_rule_json: str,
     plot_benchmarks: bool,
     upload: bool,
@@ -401,6 +402,7 @@ def run_benchmarks(
                 name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
+<<<<<<< HEAD
                 duration, semgrep_results = run_semgrep(
                     docker, corpus, variant, include_time
 <<<<<<< HEAD
@@ -408,6 +410,16 @@ def run_benchmarks(
                 
 =======
                 )
+=======
+                try:
+                    duration, semgrep_results = run_semgrep(
+                        docker, corpus, variant, include_time, hard_timeout,
+                    )
+                except subprocess.TimeoutExpired:
+                    logger.warning(f"A hard timeout was set for {hard_timeout} seconds.")
+                    logger.warning(f"The test for '{variant.name}' on '{corpus.name}' exceeded the timeout. This test will be skipped.")
+                    continue
+>>>>>>> Add a 'hard-timeout' option to run-benchmarks which automatically kills benchmark jobs
 
 >>>>>>> Add logging statements
                 if not output_time_per_rule_json is None:
@@ -538,6 +550,12 @@ def main() -> None:
         "--semgrep-core", help="run semgrep-core benchmarks", action="store_true"
     )
     parser.add_argument(
+        "--hard-timeout",
+        help="TODO",
+        type=int,
+        default=0,
+    )
+    parser.add_argument(
         "--output-time-per-rule-json",
         nargs='?',
         default=None,
@@ -565,6 +583,7 @@ def main() -> None:
                 (Path(called_dir) / args.config) if args.config else None,
                 args.filter_corpus,
                 args.filter_variant,
+                args.hard_timeout,
                 args.output_time_per_rule_json,
                 args.plot_benchmarks,
                 args.upload,
