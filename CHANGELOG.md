@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 - Scala alpha support
 - Metrics collection of project_hash in cases where git is not available
+- Taint mode now also analyzes top-level statements.
 
 ### Fixed
 
