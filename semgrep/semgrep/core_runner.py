@@ -572,7 +572,7 @@ class CoreRunner:
             for rule in progress_bar(
                 rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"
             ):
-                debug_tqdm_write(f"Running rule {rule._raw.get('id')}...")
+                debug_tqdm_write(f"Running rule {rule.id}...")
                 rule_matches, debugging_steps, errors, rule_targets = self._run_rule(
                     rule,
                     target_manager,
@@ -634,7 +634,7 @@ class CoreRunner:
                     )
                 )
             ):
-                debug_tqdm_write(f"Running rule {rule._raw.get('id')}...")
+                debug_tqdm_write(f"Running rule {rule.id}...")
                 with tempfile.NamedTemporaryFile(
                     "w", suffix=".yaml"
                 ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:

@@ -5,7 +5,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+
 - Scala alpha support
+- Metrics collection of project_hash in cases where git is not available
 
 ### Fixed
 
@@ -18,6 +20,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JavaScript parsing: [Support decorators on
   properties](https://github.com/tree-sitter/tree-sitter-javascript/pull/166)
 - JavaScript parsing: [Allow default export for any declaration](https://github.com/tree-sitter/tree-sitter-javascript/pull/168)
+- JS/TS: differentiating tagged template literals in the AST (#3187)
+- Ruby: storing parenthesis in function calls in the AST (#3178)
 
 ### Changed
 

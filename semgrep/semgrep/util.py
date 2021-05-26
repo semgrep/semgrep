@@ -10,6 +10,7 @@ from typing import Callable
 from typing import IO
 from typing import Iterable
 from typing import List
+from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import TypeVar
@@ -161,6 +162,21 @@ def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
     return result
 
 
+def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[str]:
+    """
+    Searches a file for the given search term and, if found,
+    returns the first word that contains that search term
+    """
+    if not os.path.isfile(path):
+        return None
+    with open(path, mode="r") as fd:
+        contents = fd.read()
+        words = contents.split()
+    # Find all of the individual words that contain the search_term
+    matches = [w for w in words if search_term in w]
+    return matches[0] + suffix if len(matches) > 0 else None
+
+
 def compute_executable_path(exec_name: str) -> str:
     """Determine full executable path if full path is needed to run it."""
     # First, try packaged binaries
@@ -225,3 +241,19 @@ def is_config_suffix(path: Path) -> bool:
 
 def is_config_test_suffix(path: Path) -> bool:
     return any(listendswith(path.suffixes, suffixes) for suffixes in YML_TEST_SUFFIXES)
+
+
+def format_bytes(num: float) -> str:
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+        if abs(num) < 1024.0:
+            return "%3d%sB" % (num, unit)
+        num /= 1024.0
+    return "%.1f%sB" % (num, "Y")
+
+
+def truncate(file_name: str, col_lim: int) -> str:
+    name_len = len(file_name)
+    prefix = "..."
+    if name_len > col_lim:
+        file_name = prefix + file_name[name_len - col_lim + len(prefix) :]
+    return file_name

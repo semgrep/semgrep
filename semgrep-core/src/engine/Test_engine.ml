@@ -57,6 +57,9 @@ let test_rules ?(ounit_context = false) xs =
           * FT.Config ((* | FT.Json*) FT.Jsonnet) when not ounit_context -> true
           *)
          | _ -> false)
+    |> Common.exclude (fun filepath ->
+           (* .test.yaml files are YAML target files rather than config files! *)
+           Filename.check_suffix filepath ".test.yaml")
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
 
@@ -89,12 +92,26 @@ let test_rules ?(ounit_context = false) xs =
              let d, b, ext = Common2.dbe_of_filename file in
              Common2.readdir_to_file_list d @ Common2.readdir_to_link_list d
              |> Common.find_some (fun file2 ->
-                    let _, b2, ext2 = Common2.dbe_of_filename_noext_ok file2 in
-                    (* ugly: jsonnet exclusion below because of some .jsonnet and .yaml
-                     * ambiguities in tests/OTHER/rules *)
-                    if b = b2 && ext <> ext2 && ext2 <> "jsonnet" then
-                      Some (Filename.concat d file2)
-                    else None)
+                    let path2 = Filename.concat d file2 in
+                    (* In order to distinguish YAML test files from rule files,
+                     * YAML test files use the .test.yaml extension.
+                     * THINK: If we used .yml or .test_yaml we would not need
+                     *        to handle this case separately. *)
+                    let is_test_yaml =
+                      Filename.chop_suffix_opt ~suffix:".test.yaml" file2
+                    in
+                    match is_test_yaml with
+                    | Some b2 -> if b = b2 then Some path2 else None
+                    | None ->
+                        (* common case *)
+                        let _, b2, ext2 =
+                          Common2.dbe_of_filename_noext_ok file2
+                        in
+                        (* ugly: jsonnet exclusion below because of some .jsonnet and .yaml
+                         * ambiguities in tests/OTHER/rules *)
+                        if b = b2 && ext <> ext2 && ext2 <> "jsonnet" then
+                          Some path2
+                        else None)
            with Not_found ->
              failwith (spf "could not find a target for %s" file)
          in

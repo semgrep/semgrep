@@ -31,63 +31,9 @@ import time
 import urllib.request
 from contextlib import contextmanager
 from typing import Iterator
+from Corpuses import SEMGREP_CORE_CORPUSES, DUMMY_CORPUSES, Corpus
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
-
-# Run command and propagate errors
-def cmd(*args: str) -> None:
-    subprocess.run(args, check=True)  # nosem
-
-
-class Corpus:
-    def __init__(self, name: str, rule_dir: str, target_dir: str, language: str):
-        # name for the input corpus (rules and targets)
-        self.name = name
-
-        # folder containing the semgrep rules
-        self.rule_dir = rule_dir
-
-        # folder containing the target source files
-        self.target_dir = target_dir
-
-        # language to run rules with (because semgrep-core requires it)
-        self.language = language
-
-    # Fetch rules and targets is delegated to an ad-hoc script named 'prep'.
-    def prep(self) -> None:
-        cmd("./prep")
-
-
-CORPUSES = [
-    # Run Ajin's nodejsscan rules on some repo containing javascript files.
-    # This takes something like 4 hours or more. Maybe we could run it
-    # on fewer targets.
-    # Corpus("njs", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"),
-    Corpus("big-js", "input/semgrep.yml", "input/big-js", "js"),
-    # Commented out because it can't run with semgrep-core
-    # Corpus(
-    #    "njsbox", "input/njsscan/njsscan/rules/semantic_grep", "input/dropbox-sdk-js", "js"
-    # ),
-    Corpus("zulip", "input/semgrep.yml", "input/zulip", "python"),
-    # The tests below all run r2c rulepacks (in r2c-rules) on public repos
-    # For command Corpus("$X", ..., "input/$Y"), you can find the repo by
-    # going to github.com/$X/$Y
-    #
-    # Run our django rulepack on a large python repo
-    Corpus("apache", "input/django.yml", "input/libcloud", "python"),
-    # Run our flask rulepack on a python repo
-    Corpus("dropbox", "input/flask.yml", "input/pytest-flakefinder", "python"),
-    # Run our golang rulepack on a go/html repo
-    Corpus("0c34", "input/golang.yml", "input/govwa", "go"),
-    # Run our ruby rulepack on a large ruby repo
-    Corpus("rails", "input/ruby.yml", "input/rails", "ruby"),
-    # Also commented out because it can't run with semgrep-core
-    # Run our javascript and eslint-plugin-security packs on a large JS repo
-    # Corpus("lodash", "input/rules", "input/lodash", "js"),
-]
-
-DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", "js")]
-
 
 class SemgrepVariant:
     def __init__(self, name: str, semgrep_core_extra: str):
@@ -172,7 +118,7 @@ def run_semgrep_core(corpus: Corpus, variant: SemgrepVariant) -> float:
 
 def run_benchmarks(dummy: bool, upload: bool) -> None:
     results = []
-    corpuses = CORPUSES
+    corpuses = SEMGREP_CORE_CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
     for corpus in corpuses:
