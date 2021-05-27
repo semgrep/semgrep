@@ -1,13 +1,15 @@
 import hashlib
 import logging
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Set
 
 from semgrep.constants import SEMGREP_USER_AGENT
+from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
-
 
 METRICS_ENDPOINT = "https://metrics.semgrep.dev"
 
@@ -38,6 +40,8 @@ class _MetricManager:
         self._run_time: Optional[float] = None
         self._total_bytes_scanned: Optional[int] = None
         self._errors: List[str] = []
+        self._file_stats: List[Dict[str, Any]] = []
+        self._rule_stats: List[Dict[str, Any]] = []
 
         self._send_metrics = False
 
@@ -88,6 +92,40 @@ class _MetricManager:
     def set_errors(self, error_types: List[str]) -> None:
         self._errors = error_types
 
+    def set_run_timings(
+        self, profiling_data: ProfilingData, targets: Set[Path], rules: List[Rule]
+    ) -> None:
+        """
+        Store rule hashes, rule parse times, and file-stats
+        """
+        rule_stats = []
+        for rule in rules:
+            rule_stats.append(
+                {
+                    "ruleHash": rule.full_hash,
+                    "parseTime": profiling_data.get_rule_parse_time(rule),
+                    "matchTime": profiling_data.get_rule_match_time(rule),
+                    "runTime": profiling_data.get_rule_run_time(rule),
+                    "bytesScanned": profiling_data.get_rule_bytes_scanned(rule),
+                }
+            )
+        self._rule_stats = rule_stats
+
+        file_stats = []
+        for target in targets:
+            file_stats.append(
+                {
+                    "size": target.stat().st_size,
+                    "numTimesScanned": profiling_data.get_file_num_times_scanned(
+                        target
+                    ),
+                    "parseTime": profiling_data.get_file_parse_time(target),
+                    "matchTime": profiling_data.get_file_match_time(target),
+                    "runTime": profiling_data.get_file_run_time(target),
+                }
+            )
+        self._file_stats = file_stats
+
     def as_dict(self) -> Dict[str, Any]:
         return {
             "environment": {
@@ -97,6 +135,8 @@ class _MetricManager:
                 "rulesHash": self._rules_hash,
             },
             "performance": {
+                "fileStats": self._file_stats,
+                "ruleStats": self._rule_stats,
                 "runTime": self._run_time,
                 "numRules": self._num_rules,
                 "numTargets": self._num_targets,
@@ -117,6 +157,10 @@ class _MetricManager:
 
     def enable(self) -> None:
         self._send_metrics = True
+
+    @property
+    def is_enabled(self) -> bool:
+        return self._send_metrics
 
     def send(self) -> None:
         """

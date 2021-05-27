@@ -540,6 +540,5 @@ def cli() -> None:
                 timeout_threshold=args.timeout_threshold,
                 skip_unknown_extensions=args.skip_unknown_extensions,
                 severity=args.severity,
-                report_time=output_time,
                 optimizations=args.optimizations,
             )
