@@ -692,21 +692,6 @@ class CoreRunner:
                 ]
                 findings = create_output(rule, pattern_matches)
 
-                """
-                findings = [
-                    RuleMatch.from_pattern_match(
-                        rule.id,
-                        PatternMatch(pattern_match),
-                        message=rule.message,
-                        metadata=rule.metadata,
-                        severity=rule.severity,
-                        fix=rule.fix,
-                        fix_regex=rule.fix_regex,
-                    )
-                    for pattern_match in output_json["matches"]
-                ]
-                """
-
                 # TODO: we should do that in Semgrep_generic.ml instead
                 findings = dedup_output(findings)
                 outputs[rule].extend(findings)
