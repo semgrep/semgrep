@@ -29,7 +29,7 @@ from typing import Optional
 from typing import Tuple
 
 import requests
-import semgrep_core_benchmark  # type: ignore
+import semgrep_core_benchmark
 from config import BenchmarkRunSetupData
 from config import SemgrepBenchmarkConfig
 from constants import BPS_ENDPOINT
@@ -301,7 +301,7 @@ def prepare_rule_cache_for_this_run(
         # if not, fetch the rules into the cache
         if not rule_config_cache_path.exists():
             try:
-                path_to_use = rule_config.resolve_to_cache(rule_config_cache_path)
+                rule_config.resolve_to_cache(rule_config_cache_path)
             except ValueError as ve:
                 logger.warning(f"{str(ve)}. Skipping this config")
                 continue
@@ -348,7 +348,7 @@ def generate_prep_file(
     rule_cache_dir: Path,
     url: str,
     commit_hash: str,
-) -> bool:
+) -> None:
     # make dirs
     benchdir = Path(name)
     benchdir.mkdir(parents=True, exist_ok=True)

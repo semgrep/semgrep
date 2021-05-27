@@ -58,14 +58,23 @@ class RuleConfig(object):
     def _fetch_rule_config_from_path(self, path: Path) -> Optional[str]:
         pass
 
-    def is_path(self):
+    def _write(self, path: Path, text: Optional[str]) -> None:
+        if not text:
+            raise ValueError(
+                f"Data was not received from '{self.config_str}'. Could not write config"
+            )
+
+        logger.info(f"Rule config '{self.config_str}' has been written to '{path}'")
+        path.write_text(text)
+
+    def is_path(self) -> bool:
         return Path(self.config_str).expanduser().resolve().exists()
 
-    def is_url(self):
+    def is_url(self) -> bool:
         parsed = urlparse(self.config_str)
-        return parsed.scheme and parsed.netloc
+        return parsed.scheme != "" and parsed.netloc != ""
 
-    def is_short_config(self):
+    def is_short_config(self) -> bool:
         """
         Return true if the second character is a forward slash, such
         as in 'p/r2c' or 'r/python'
@@ -75,13 +84,12 @@ class RuleConfig(object):
     def normalize_rule_config_name(self) -> str:
         return self.config_str.replace("/", ".") + ".yaml"
 
-    def resolve_to_cache(self, cache_path: Path) -> Path:
+    def resolve_to_cache(self, cache_path: Path) -> None:
         """
         Resolves this RuleConfig to a path on the filesystem.
         If the rule config string is already a path on the system, just use that path.
         If the rule config string is a URL, download the rules and add that to the supplied cache path.
         If the rule config string is a short config like 'p/r2c', download the rules and add that to the supplied cache path.
-        Returns the path of the rules to use.
         Raises a ValueError if it cannot resolve the config string.
         """
         if self.is_path():
@@ -91,22 +99,13 @@ class RuleConfig(object):
                 f"Config '{self.config_str}' is already on filesystem. Copying to cache at '{cache_path}'"
             )
             shutil.copytree(Path(self.config_str).expanduser().resolve(), cache_path)
-            return cache_path
         elif self.is_url():
             consolidated_rules = self._fetch_rule_config_from_url(self.config_str)
-            cache_path.write_text(consolidated_rules)
-            logger.info(
-                f"Rule config '{self.config_str}' has been written to '{cache_path}'"
-            )
-            return cache_path
+            self._write(cache_path, consolidated_rules)
         elif self.is_short_config():
             rule_config_url = f"{SEMGREP_URL}/{self.config_str}"
             consolidated_rules = self._fetch_rule_config_from_url(rule_config_url)
-            logger.info(
-                f"Rule config '{self.config_str}' has been written to '{cache_path}'"
-            )
-            cache_path.write_text(consolidated_rules)
-            return cache_path
+            self._write(cache_path, consolidated_rules)
 
         raise ValueError(
             f"Could not resolve location of the config string '{self.config_str}'. Try using a filesystem path or valid Semgrep config"
@@ -150,7 +149,7 @@ class SemgrepBenchmarkConfig(object):
     benchmark_setup_data: List[BenchmarkRunSetupData] = attr.ib(factory=list)
 
     @classmethod
-    def parse_config(cls, config_file: Path):
+    def parse_config(cls, config_file: Path) -> SemgrepBenchmarkConfig:
         logger.debug(f"Using config at {config_file.absolute()}")
         with open(config_file, "r") as fin:
             config = yaml.load(fin)
