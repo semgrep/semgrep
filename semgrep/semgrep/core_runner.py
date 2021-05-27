@@ -725,9 +725,9 @@ class CoreRunner:
         """
         start = datetime.now()
 
-        experimental = optimizations == "all"
+        # experimental = optimizations == "all"
         runner_fxn = (
-            self._run_rules_direct_to_semgrep_core if experimental else self._run_rules
+            self._run_rules_direct_to_semgrep_core  # if experimental else self._run_rules
         )
         (
             findings_by_rule,
