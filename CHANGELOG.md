@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Basic type inference also for implicit variable declarations (Python, Ruby, PHP, and JS)
 - JS/TS: differentiating tagged template literals in the AST (#3187)
 - Ruby: storing parenthesis in function calls in the AST (#3178)
+- Metavariables in messages are filled in in experimental mode
 
 ### Changed
 
