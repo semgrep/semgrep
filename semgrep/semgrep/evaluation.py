@@ -396,6 +396,53 @@ def _evaluate_single_expression(
     return output_ranges
 
 
+def create_output(
+    rule: Rule,
+    pattern_matches: List[PatternMatch],
+    valid_ranges_to_output: Optional[Set[Range]] = None,
+) -> List[RuleMatch]:
+    output = []
+
+    if valid_ranges_to_output is None:
+        valid_ranges_to_output = {
+            pattern_match.range for pattern_match in pattern_matches
+        }
+
+    propagated_metavariable_lookup = {
+        _range: {
+            metavariable: pm.get_metavariable_value(metavariable)
+            for pm in pattern_matches
+            for metavariable in _range.propagated_metavariables
+            if compare_propagated_metavariable(_range, pm, metavariable)
+        }
+        for _range in valid_ranges_to_output
+    }
+
+    for pattern_match in pattern_matches:
+        if pattern_match.range in valid_ranges_to_output:
+            propagated_metavariables = propagated_metavariable_lookup[
+                pattern_match.range
+            ]
+            message = interpolate_message_metavariables(
+                rule, pattern_match, propagated_metavariables
+            )
+            fix = interpolate_fix_metavariables(
+                rule, pattern_match, propagated_metavariables
+            )
+            rule_match = RuleMatch.from_pattern_match(
+                rule.id,
+                pattern_match,
+                message=message,
+                metadata=rule.metadata,
+                severity=rule.severity,
+                fix=fix,
+                fix_regex=rule.fix_regex,
+            )
+            output.append(rule_match)
+
+    return sorted(output, key=lambda rule_match: rule_match._pattern_match.range.start)
+
+
 def evaluate(
     rule: Rule, pattern_matches: List[PatternMatch], allow_exec: bool
 ) -> Tuple[List[RuleMatch], List[Dict[str, Any]]]:
@@ -432,37 +479,7 @@ def evaluate(
         logger.debug(f"compiled result {valid_ranges_to_output}")
         logger.debug(BREAK_LINE)
 
-    propagated_metavariable_lookup = {
-        _range: {
-            metavariable: pm.get_metavariable_value(metavariable)
-            for pm in pattern_matches
-            for metavariable in _range.propagated_metavariables
-            if compare_propagated_metavariable(_range, pm, metavariable)
-        }
-        for _range in valid_ranges_to_output
-    }
-
-    for pattern_match in pattern_matches:
-        if pattern_match.range in valid_ranges_to_output:
-            propagated_metavariables = propagated_metavariable_lookup[
-                pattern_match.range
-            ]
-            message = interpolate_message_metavariables(
-                rule, pattern_match, propagated_metavariables
-            )
-            fix = interpolate_fix_metavariables(
-                rule, pattern_match, propagated_metavariables
-            )
-            rule_match = RuleMatch.from_pattern_match(
-                rule.id,
-                pattern_match,
-                message=message,
-                metadata=rule.metadata,
-                severity=rule.severity,
-                fix=fix,
-                fix_regex=rule.fix_regex,
-            )
-            output.append(rule_match)
+    output = create_output(rule, pattern_matches, valid_ranges_to_output)
 
     return output, [attr.asdict(step) for step in steps_for_debugging]
 

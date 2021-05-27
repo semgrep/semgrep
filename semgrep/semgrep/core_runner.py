@@ -30,6 +30,7 @@ from semgrep.error import InvalidPatternError
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
+from semgrep.evaluation import create_output
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate
 from semgrep.output import OutputSettings
@@ -686,6 +687,12 @@ class CoreRunner:
                         self._add_match_times(rule, profiling_data, output_json["time"])
 
                 # end with tempfile.NamedTemporaryFile(...) ...
+                pattern_matches = [
+                    PatternMatch(match) for match in output_json["matches"]
+                ]
+                findings = create_output(rule, pattern_matches)
+
+                """
                 findings = [
                     RuleMatch.from_pattern_match(
                         rule.id,
@@ -698,6 +705,8 @@ class CoreRunner:
                     )
                     for pattern_match in output_json["matches"]
                 ]
+                """
+
                 # TODO: we should do that in Semgrep_generic.ml instead
                 findings = dedup_output(findings)
                 outputs[rule].extend(findings)
