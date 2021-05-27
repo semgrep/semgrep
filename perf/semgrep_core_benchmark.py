@@ -31,9 +31,8 @@ import time
 import urllib.request
 from contextlib import contextmanager
 from typing import Iterator
-from Corpuses import SEMGREP_CORE_CORPUSES, DUMMY_CORPUSES, Corpus
-
-DASHBOARD_URL = "https://dashboard.semgrep.dev"
+from corpus import SEMGREP_CORE_CORPUSES, DUMMY_CORPUSES, Corpus
+from constants import DASHBOARD_URL
 
 class SemgrepVariant:
     def __init__(self, name: str, semgrep_core_extra: str):

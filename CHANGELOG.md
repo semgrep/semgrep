@@ -19,6 +19,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Evaluate interpolated strings during constant propagation (#3127)
 - Fixed #3084 - Semgrep will report an InvalidRuleSchemaError for dictionaries with duplicate key names.
 - Basic type inference also for implicit variable declarations (Python, Ruby, PHP, and JS)
+- JavaScript parsing: [Support decorators on
+  properties](https://github.com/tree-sitter/tree-sitter-javascript/pull/166)
+- JavaScript parsing: [Allow default export for any declaration](https://github.com/tree-sitter/tree-sitter-javascript/pull/168)
 - JS/TS: differentiating tagged template literals in the AST (#3187)
 - Ruby: storing parenthesis in function calls in the AST (#3178)
 
