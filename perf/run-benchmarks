@@ -37,7 +37,6 @@ from constants import DASHBOARD_URL
 from constants import LPS_ENDPOINT
 from constants import PREP_FILE_TEMPLATE
 from constants import RULE_CONFIG_CACHE_DIR
-from constants import SEMGREP_USER_AGENT
 from constants import STATS_URL
 from constants import STD
 from corpus import Corpus
@@ -257,9 +256,9 @@ def run_semgrep(
     print(f"extra arguments for semgrep-core: '{variant.semgrep_core_extra}'")
 
     t1 = time.time()
-    res = subprocess.run(
+    res = subprocess.run(  # nosem
         args, capture_output=True, timeout=hard_timeout or None
-    )  # nosem
+    )
     t2 = time.time()
 
     status = res.returncode
@@ -278,15 +277,11 @@ def run_semgrep(
     try:
         stdout_decoded = res.stdout.decode("utf-8")
         semgrep_results = json.loads(stdout_decoded)
-    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+    except (ValueError, json.JSONDecodeError):
         logger.error("Unable to decode the Semgrep result as JSON. Exiting.")
         sys.exit(1)
 
     return t2 - t1, semgrep_results
-
-
-def normalize_rule_config_name(rule_config_str: str) -> str:
-    return rule_config_str.replace("/", ".") + ".yaml"
 
 
 def prepare_rule_cache_for_this_run(
@@ -300,33 +295,22 @@ def prepare_rule_cache_for_this_run(
     rule_config_paths = list()
     for rule_config in setup_data.rule_configs:
         logger.info(f"Checking for rule config '{rule_config}' in cache")
-        normalized_rule_config = normalize_rule_config_name(rule_config)
-        rule_config_path = rule_cache_for_this_run / normalized_rule_config
-        # check if on filesystem
-        # if not, fetch from URL
-        if not rule_config_path.exists():
+        normalized_rule_config = rule_config.normalize_rule_config_name()
+        rule_config_cache_path = rule_cache_for_this_run / normalized_rule_config
+        # check if rules are in cache on filesystem
+        # if not, fetch the rules into the cache
+        if not rule_config_cache_path.exists():
             try:
-                rule_config_url = f"https://semgrep.dev/{rule_config}"
-                logger.info(f"Fetching config from '{rule_config_url}'")
-                r = requests.get(
-                    rule_config_url,
-                    headers={"User-Agent": SEMGREP_USER_AGENT},
-                    timeout=60,
-                )
-            except requests.Timeout:
-                logger.warning(
-                    f"There was a timeout error trying to download the rule config at '{rule_config_url}'. Skipping."
-                )
+                path_to_use = rule_config.resolve_to_cache(rule_config_cache_path)
+            except ValueError as ve:
+                logger.warning(f"{str(ve)}. Skipping this config")
                 continue
-            rule_config_path.write_text(r.text)
-            logger.info(
-                f"Rule config '{rule_config}' has been written to '{rule_config_path}'"
-            )
         else:
+            path_to_use = rule_config_cache_path
             logger.info(
-                f"Rule config '{rule_config_path}' already exists, using this one"
+                f"Rule config '{rule_config_cache_path}' already exists, using this one"
             )
-        rule_config_paths.append(rule_config_path)
+        rule_config_paths.append(path_to_use)
     return rule_cache_for_this_run, rule_config_paths
 
 

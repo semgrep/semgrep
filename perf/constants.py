@@ -2,6 +2,7 @@ from pathlib import Path
 
 DASHBOARD_URL = "https://dashboard.semgrep.dev"
 STATS_URL = "https://stats.semgrep.dev"
+SEMGREP_URL = "https://semgrep.dev"
 BPS_ENDPOINT = "semgrep.perf.bps"
 LPS_ENDPOINT = "semgrep.perf.lps"
 
