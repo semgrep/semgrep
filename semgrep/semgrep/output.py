@@ -62,7 +62,7 @@ def _build_time_target_json(
 
     target_json["path"] = path_str
     target_json["num_bytes"] = num_bytes
-    timings = [profiling_data.get_run_times(rule.id, path_str) for rule in rules]
+    timings = [profiling_data.get_run_times(rule.id, str(target)) for rule in rules]
     target_json["parse_times"] = [timing.parse_time for timing in timings]
     target_json["match_times"] = [timing.match_time for timing in timings]
     target_json["run_times"] = [timing.run_time for timing in timings]
