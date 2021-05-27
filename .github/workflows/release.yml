@@ -284,6 +284,7 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.pypi_upload_token }}
+          skip_existing: true
 
   homebrew-core-pr:
     name: Update on Homebrew-Core
