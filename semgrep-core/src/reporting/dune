@@ -10,6 +10,8 @@
 
    semgrep_core
    semgrep_parsing ; just for Parse_mini_rule exn
+
+   spacegrep ; just for Semgrep.atd
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )

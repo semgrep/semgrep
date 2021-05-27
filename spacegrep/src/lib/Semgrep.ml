@@ -17,7 +17,7 @@ let semgrep_pos (x : Lexing.position) : Semgrep_t.position =
 
 let unique_id_of_capture ~captured_string : unique_id =
   let md5sum = captured_string |> Digest.string |> Digest.to_hex in
-  { type_ = `AST; md5sum }
+  { type_ = `AST; md5sum = Some md5sum; sid = None }
 
 let convert_capture (name, x) =
   assert (name <> "" && name.[0] <> '$');
@@ -76,7 +76,12 @@ let make_semgrep_json ~with_time doc_matches : Semgrep_t.match_results =
   in
   let matches = List.flatten matches in
   let time =
-    if with_time then Some { targets = List.map make_target_time match_times }
+    if with_time then
+      Some
+        {
+          targets = List.map make_target_time match_times;
+          rule_parse_time = None;
+        }
     else None
   in
   {
