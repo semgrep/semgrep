@@ -1,0 +1,3 @@
+func Fuzz($DATA []byte) int {
+    $...BODY
+}
