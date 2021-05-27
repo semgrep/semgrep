@@ -1,6 +1,6 @@
 # Semgrep Privacy Policy
 
-Semgrep may collect usage data via anonymized metrics to help us improve the product. This document describes:
+Semgrep may collect non-identifiable aggregate metrics to help improve the product. This document describes:
 
 * the principles that guide our data-collection decisions
 * how to opt-in to Semgrep’s anonymized metrics
@@ -101,7 +101,7 @@ We strive to balance our desire to collect data for improving Semgrep with our u
 
 ### Sample metrics
 
-This is a sample blob of anonymized metrics described above:
+This is a sample blob of the non-identifiable aggregate metrics described above:
 
 ```
 {
