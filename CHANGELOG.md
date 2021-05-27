@@ -12,7 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Taint mode now also analyzes top-level statements.
 
 ### Fixed
-
+- Per rule parse times and per rule-file parse and match times added to opt-in metrics
 - Running with `--strict` will now return results if there are `nosem` mismatches. Semgrep will report a nonzero exit code if `--strict` is set and there are `nosem` mismathces. [#3099](https://github.com/returntocorp/semgrep/issues/3099)
 - PHP: parsing correctly ... and metavariables in parameters
 - PHP: parsing correctly functions with a single statement in their body
@@ -186,7 +186,7 @@ exec("dangerous");
 
 ### Fixed
 - SARIF output now nests invocations inside runs.
-- Go backslashed carets in regexes can be parsed 
+- Go backslashed carets in regexes can be parsed
 
 ### Changed
 - Deep expression matches (`<... foo ...>`) now match within records, bodies of
@@ -249,7 +249,7 @@ but have been fixed to the internal `semgrep-core` binary.
 
 ### Fixed
 
-- Parsing enum class patterns (#2715) 
+- Parsing enum class patterns (#2715)
 - Ocaml test metavar_equality_var (#2755)
 
 ### Changed

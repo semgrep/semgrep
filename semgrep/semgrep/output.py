@@ -62,7 +62,7 @@ def _build_time_target_json(
 
     target_json["path"] = path_str
     target_json["num_bytes"] = num_bytes
-    timings = [profiling_data.get_run_times(rule.id, str(target)) for rule in rules]
+    timings = [profiling_data.get_run_times(rule, target) for rule in rules]
     target_json["parse_times"] = [timing.parse_time for timing in timings]
     target_json["match_times"] = [timing.match_time for timing in timings]
     target_json["run_times"] = [timing.run_time for timing in timings]
@@ -89,7 +89,7 @@ def _build_time_json(
     # repeated for each target in the 'targets' field, saving space.
     time_info["rules"] = [{"id": rule.id} for rule in rules]
     time_info["rule_parse_info"] = [
-        profiling_data.get_parse_time(rule.id) for rule in rules
+        profiling_data.get_rule_parse_time(rule) for rule in rules
     ]
     time_info["total_time"] = profiler.calls["total_time"][0] if profiler else -1.0
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]

@@ -118,7 +118,6 @@ class CoreRunner:
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
-        report_time: bool,
     ):
         self._output_settings = output_settings
         self._allow_exec = allow_exec
@@ -126,7 +125,6 @@ class CoreRunner:
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
-        self._report_time = report_time
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -247,15 +245,13 @@ class CoreRunner:
                 str(self._timeout),
                 "-max_memory",
                 str(self._max_memory),
+                "-json_time",
             ]
 
             equivalences = rule.equivalences
             if equivalences:
                 self._write_equivalences_file(equiv_file, equivalences)
                 cmd += ["-equivalences", equiv_file.name]
-
-            if self._report_time:
-                cmd += ["-json_time"]
 
             if self._output_settings.debug:
                 cmd += ["-debug"]
@@ -367,8 +363,8 @@ class CoreRunner:
             for target in output_time_json["targets"]:
                 if "match_time" in target and "path" in target:
                     profiling_data.set_run_times(
-                        rule.id,
-                        target["path"],
+                        rule,
+                        Path(target["path"]),
                         Times(
                             parse_time=target["parse_time"],
                             match_time=target["match_time"],
@@ -376,7 +372,9 @@ class CoreRunner:
                         ),
                     )
         if "rule_parse_time" in output_time_json:
-            profiling_data.set_parse_time(rule.id, output_time_json["rule_parse_time"])
+            profiling_data.set_rule_parse_time(
+                rule, output_time_json["rule_parse_time"]
+            )
 
     def _run_rule(
         self,
@@ -464,7 +462,6 @@ class CoreRunner:
                         patterns,
                         targets,
                         timeout=self._timeout,
-                        report_time=self._report_time,
                     )
                 else:  # Run semgrep-core
                     output_json = profiler.track(
@@ -670,10 +667,8 @@ class CoreRunner:
                         str(self._timeout),
                         "-max_memory",
                         str(self._max_memory),
+                        "-json_time",
                     ]
-
-                    if self._report_time:
-                        cmd += ["-json_time"]
 
                     if self._output_settings.debug:
                         cmd += ["-debug"]
