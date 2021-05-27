@@ -32,7 +32,7 @@ module SJ = Spacegrep.Semgrep_j (* JSON conversions *)
 (* Unique ID *)
 (*****************************************************************************)
 (*s: function [[JSON_report.string_of_resolved]] *)
-let _string_of_resolved = function
+let string_of_resolved = function
   | Global -> "Global"
   | Local -> "Local"
   | Param -> "Param"
@@ -58,13 +58,18 @@ let unique_id any =
         (Id
           ((str, _tok), { id_resolved = { contents = Some (resolved, sid) }; _ })))
     ->
-      ignore (str, resolved);
-      (* old: we were using extra fields before, but they seem unused
-       * by the python side, so we can skip them
-       *    ("value", J.String str);
-       *    ("kind", J.String (string_of_resolved resolved));
-       *)
-      { ST.type_ = `ID; md5sum = None; sid = Some sid }
+      {
+        ST.type_ = `ID;
+        md5sum = None;
+        sid = Some sid;
+        (* old: we were using extra fields before, but they seem unused
+         * by the python side, so we should skip them. They seem
+         * just used in our test snapshots.
+         *)
+        kind = Some (string_of_resolved resolved);
+        (*  *)
+        value = Some str;
+      }
   (* not an Id, return a md5sum of its AST as a "single unique id" *)
   | _ ->
       (* todo? note that if the any use a parameter, or a local,
@@ -79,7 +84,13 @@ let unique_id any =
        *)
       let s = Marshal.to_string any [] in
       let md5 = Digest.string s in
-      { ST.type_ = `AST; md5sum = Some (Digest.to_hex md5); sid = None }
+      {
+        ST.type_ = `AST;
+        md5sum = Some (Digest.to_hex md5);
+        sid = None;
+        kind = None;
+        value = None;
+      }
 
 (*e: function [[JSON_report.unique_id]] *)
 

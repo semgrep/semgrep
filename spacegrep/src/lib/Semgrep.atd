@@ -94,13 +94,17 @@ type metavar_value = {
 *)
 type unique_id = {
   (* pad: we should use a sum type here because it's either
-     AST of md5sum | Id of sid, but that would require
+     AST of md5sum | Id of sid * ... but that would require
      to update the python side, so for now I use optional
      fields, but really at least one of md5sum or sid should be a Some
    *)
   type_ <json name="type">: unique_id_type;
+  (* AST case *)
   ?md5sum: string option;
+  (* ID case *)
   ?sid: int option;
+  ?kind: string option; (* used just in snapshots? *)
+  ?value: string option; (* used just in snapshots? *)
 }
 
 type unique_id_type = [
