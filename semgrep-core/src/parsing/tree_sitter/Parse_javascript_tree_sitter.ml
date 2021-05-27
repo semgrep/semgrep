@@ -1735,7 +1735,12 @@ and anon_choice_pair_pat_3ff9cbe (env : env)
   | `Choice_id x ->
       let id = anon_choice_id_0e3c97f env x in
       FieldColon
-        { fld_name = PN id; fld_attrs = []; fld_type = None; fld_body = None }
+        {
+          fld_name = PN id;
+          fld_attrs = [];
+          fld_type = None;
+          fld_body = Some (idexp id);
+        }
 
 and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   match x with
