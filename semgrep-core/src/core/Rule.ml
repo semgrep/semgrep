@@ -15,6 +15,7 @@
  * license.txt for more details.
  *)
 (*e: pad/r2c copyright *)
+module G = AST_generic
 module MV = Metavariable
 
 (*****************************************************************************)
@@ -213,18 +214,45 @@ let rec visit_new_formula f formula =
 (* Converter *)
 (*****************************************************************************)
 
+(* Substitutes `$MVAR` with `int($MVAR)` in cond. *)
+let rewrite_metavar_comparison_strip mvar cond =
+  let visitor =
+    Map_AST.mk_visitor
+      {
+        Map_AST.default_visitor with
+        Map_AST.kexpr =
+          (fun (k, _) e ->
+            (* apply on children *)
+            let e = k e in
+            match e with
+            | G.N (G.Id ((s, tok), _idinfo)) as x when s = mvar ->
+                let py_int = G.Id (("int", tok), G.empty_id_info ()) in
+                G.Call (G.N py_int, G.fake_bracket [ G.Arg x ])
+            | _ -> e);
+      }
+  in
+  visitor.Map_AST.vexpr cond
+
 let convert_extra x =
   match x with
   | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
   | MetavarComparison comp -> (
       match comp with
       (* do we care about strip and base? should not Eval_generic handle it?
-       * base I think can be handled automatically, and for strip the user
-       * should instead use a more complex condition that converts
-       * the string into a number (e.g., "1234" in 1234).
+       * - base is handled automatically, in the Generic AST all integer
+       *   literals are normalized and represented in base 10.
+       * - for strip the user should instead use a more complex condition that
+       *   converts the string into a number (e.g., "1234" in 1234).
        *)
-      | { metavariable = _; comparison = x; strip = _TODO1; base = _TODO2 } ->
-          CondGeneric x )
+      | { metavariable = mvar; comparison; strip; base = _NOT_NEEDED } ->
+          let cond =
+            (* if strip=true we rewrite the condition and insert Python's `int`
+             * function to parse the integer value of mvar. *)
+            match strip with
+            | None | Some false -> comparison
+            | Some true -> rewrite_metavar_comparison_strip mvar comparison
+          in
+          CondGeneric cond )
   | _ ->
       (*
   logger#debug "convert_extra: %s" s;
