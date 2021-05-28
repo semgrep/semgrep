@@ -1,7 +1,11 @@
 (*
    Type definitions for json communication with semgrep.
 
-   Inferred from JSON_report.ml in semgrep-core.
+   Originally inferred from JSON_report.ml in semgrep-core, but
+   now also used in JSON_report.ml.
+   TODO: once we call spacegrep only from semgrep-core, we can move
+   this file inside semgrep-core.
+
 *)
 
 type match_results = {
@@ -89,17 +93,28 @@ type metavar_value = {
    the atdgen feature called a json adapter.
 *)
 type unique_id = {
+  (* pad: we should use a sum type here because it's either
+     AST of md5sum | Id of sid * ... but that would require
+     to update the python side, so for now I use optional
+     fields, but really at least one of md5sum or sid should be a Some
+   *)
   type_ <json name="type">: unique_id_type;
-  md5sum: string;
+  (* AST case *)
+  ?md5sum: string option;
+  (* ID case *)
+  ?sid: int option;
+  ?kind: string option; (* used just in snapshots? *)
+  ?value: string option; (* used just in snapshots? *)
 }
 
 type unique_id_type = [
-(*  | ID <json name="id"> *) (* variant not supported at the moment *)
+  | ID <json name="id">
   | AST
 ]
 
 type time = {
   targets: target_time list;
+  ?rule_parse_time: float option; (* not used in spacegrep *)
 }
 
 type target_time = {
