@@ -613,90 +613,86 @@ class CoreRunner:
         Set[Path],
         ProfilingData,
     ]:
-        from itertools import chain
-        from collections import defaultdict
-
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
-        outputs: Dict[Rule, List[RuleMatch]] = defaultdict(list)
+        outputs: Dict[Rule, List[RuleMatch]] = collections.defaultdict(list)
         errors: List[SemgrepError] = []
         all_targets: Set[Path] = set()
         profiling_data: ProfilingData = ProfilingData()
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
-            for rule, language in tuple(
-                chain(
-                    *(
-                        [(rule, language) for language in rule.languages]
-                        for rule in rules
-                    )
-                )
+            for rule in progress_bar(
+                rules, bar_format="{l_bar}{bar}|{n_fmt}/{total_fmt}"
             ):
-                debug_tqdm_write(f"Running rule {rule.id}...")
-                with tempfile.NamedTemporaryFile(
-                    "w", suffix=".yaml"
-                ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
-                    targets = self.get_files_for_language(
-                        language, rule, target_manager
-                    )
-                    # opti: no need to call semgrep-core if no target files
-                    if not targets:
-                        continue
-                    all_targets = all_targets.union(targets)
+                for language in rule.languages:
+                    debug_tqdm_write(f"Running rule {rule.id}...")
+                    with tempfile.NamedTemporaryFile(
+                        "w", suffix=".yaml"
+                    ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
+                        targets = self.get_files_for_language(
+                            language, rule, target_manager
+                        )
+                        # opti: no need to call semgrep-core if no target files
+                        if not targets:
+                            continue
+                        all_targets = all_targets.union(targets)
 
-                    target_file.write("\n".join(map(lambda p: str(p), targets)))
-                    target_file.flush()
-                    yaml = YAML()
-                    yaml.dump({"rules": [rule._raw]}, rule_file)
-                    rule_file.flush()
+                        target_file.write("\n".join(map(lambda p: str(p), targets)))
+                        target_file.flush()
+                        yaml = YAML()
+                        yaml.dump({"rules": [rule._raw]}, rule_file)
+                        rule_file.flush()
 
-                    cmd = [SEMGREP_PATH] + [
-                        "-lang",
-                        language.value,
-                        "-fast",
-                        "-json",
-                        "-config",
-                        rule_file.name,
-                        "-j",
-                        str(self._jobs),
-                        "-target_file",
-                        target_file.name,
-                        "-use_parsing_cache",
-                        semgrep_core_ast_cache_dir,
-                        "-timeout",
-                        str(self._timeout),
-                        "-max_memory",
-                        str(self._max_memory),
-                        "-json_time",
+                        cmd = [SEMGREP_PATH] + [
+                            "-lang",
+                            language.value,
+                            "-fast",
+                            "-json",
+                            "-config",
+                            rule_file.name,
+                            "-j",
+                            str(self._jobs),
+                            "-target_file",
+                            target_file.name,
+                            "-use_parsing_cache",
+                            semgrep_core_ast_cache_dir,
+                            "-timeout",
+                            str(self._timeout),
+                            "-max_memory",
+                            str(self._max_memory),
+                            "-json_time",
+                        ]
+
+                        if self._output_settings.debug:
+                            cmd += ["-debug"]
+
+                        core_run = sub_run(
+                            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                        )
+                        output_json = self._extract_core_output(rule, [], core_run)
+
+                        if "time" in output_json:
+                            self._add_match_times(
+                                rule, profiling_data, output_json["time"]
+                            )
+
+                    # end with tempfile.NamedTemporaryFile(...) ...
+                    pattern_matches = [
+                        PatternMatch(match) for match in output_json["matches"]
                     ]
+                    findings = create_output(rule, pattern_matches)
 
-                    if self._output_settings.debug:
-                        cmd += ["-debug"]
-
-                    core_run = sub_run(
-                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                    # TODO: we should do that in Semgrep_generic.ml instead
+                    findings = dedup_output(findings)
+                    outputs[rule].extend(findings)
+                    errors.extend(
+                        CoreException.from_json(
+                            e, language.value, rule.id
+                        ).into_semgrep_error()
+                        for e in output_json["errors"]
                     )
-                    output_json = self._extract_core_output(rule, [], core_run)
-
-                    if "time" in output_json:
-                        self._add_match_times(rule, profiling_data, output_json["time"])
-
-                # end with tempfile.NamedTemporaryFile(...) ...
-                pattern_matches = [
-                    PatternMatch(match) for match in output_json["matches"]
-                ]
-                findings = create_output(rule, pattern_matches)
-
-                # TODO: we should do that in Semgrep_generic.ml instead
-                findings = dedup_output(findings)
-                outputs[rule].extend(findings)
-                errors.extend(
-                    CoreException.from_json(
-                        e, language.value, rule.id
-                    ).into_semgrep_error()
-                    for e in output_json["errors"]
-                )
-        # end for rule, language ...
+            # end for language ...
+        # end for rule ...
 
         return outputs, {}, errors, all_targets, profiling_data
 
