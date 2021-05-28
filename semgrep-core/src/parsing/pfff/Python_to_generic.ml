@@ -800,8 +800,8 @@ and excepthandler = function
             | _ -> G.PatVar (H.expr_to_type (G.Tuple (G.fake_bracket [e])), None) )
         | None, None -> G.PatUnderscore (fake "_")
         | None, Some _ -> raise Impossible (* see the grammar *)
-        | Some e, Some n -> G.PatVar (H.expr_to_type e, Some (n, G.empty_id_info ())
-          )),
+        | Some e, Some n -> 
+            G.PatVar (H.expr_to_type e, Some (n, G.empty_id_info ())) ),
         v3 )
 
 
