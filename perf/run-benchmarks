@@ -286,6 +286,7 @@ def run_semgrep(
 
 def prepare_rule_cache_for_this_run(
     setup_data: BenchmarkRunSetupData,
+    clean: bool = False,
 ) -> Tuple[Path, List[Path]]:
     rule_cache_for_this_run: Path = RULE_CONFIG_CACHE_DIR / setup_data.run_name
     rule_cache_for_this_run.mkdir(parents=True, exist_ok=True)
@@ -299,22 +300,23 @@ def prepare_rule_cache_for_this_run(
         rule_config_cache_path = rule_cache_for_this_run / normalized_rule_config
         # check if rules are in cache on filesystem
         # if not, fetch the rules into the cache
-        if not rule_config_cache_path.exists():
+        if not rule_config_cache_path.exists() or clean:
             try:
                 rule_config.resolve_to_cache(rule_config_cache_path)
             except ValueError as ve:
                 logger.warning(f"{str(ve)}. Skipping this config")
                 continue
         else:
-            path_to_use = rule_config_cache_path
             logger.info(
                 f"Rule config '{rule_config_cache_path}' already exists, using this one"
             )
-        rule_config_paths.append(path_to_use)
+        rule_config_paths.append(rule_config_cache_path)
     return rule_cache_for_this_run, rule_config_paths
 
 
-def prepare_benchmark_run(benchmark_config: SemgrepBenchmarkConfig) -> List[Corpus]:
+def prepare_benchmark_run(
+    benchmark_config: SemgrepBenchmarkConfig, clean: bool
+) -> List[Corpus]:
     """
     Sets up the relevant data for a benchmarking run
     - downloads rule configs from an endpoint if necessary
@@ -323,7 +325,7 @@ def prepare_benchmark_run(benchmark_config: SemgrepBenchmarkConfig) -> List[Corp
     corpuses: List[Corpus] = list()
     for setup_data in benchmark_config.benchmark_setup_data:
         logger.info(f"Setting up benchmark run for run '{setup_data.run_name}'")
-        rule_cache_dir, _ = prepare_rule_cache_for_this_run(setup_data)
+        rule_cache_dir, _ = prepare_rule_cache_for_this_run(setup_data, clean)
         for repository in setup_data.repositories:
             repo_name = repository.url.split("/")[-1]
             generate_prep_file(
@@ -354,19 +356,16 @@ def generate_prep_file(
     benchdir.mkdir(parents=True, exist_ok=True)
     prep_file = benchdir / "prep"
     # generate prep file
-    if prep_file.exists():
-        logger.info(f"'prep' file at {prep_file} already exists; using this one")
-    else:
-        logger.info(f"Generating 'prep' file at {prep_file}")
-        prep_file.touch(0o755, exist_ok=True)
-        prep_file.write_text(
-            PREP_FILE_TEMPLATE.format(
-                name=name,
-                rule_cache_dir=rule_cache_dir,
-                url=url,
-                commit_hash=commit_hash,
-            )
+    logger.info(f"Generating 'prep' file at {prep_file}")
+    prep_file.touch(0o755, exist_ok=True)
+    prep_file.write_text(
+        PREP_FILE_TEMPLATE.format(
+            name=name,
+            rule_cache_dir=rule_cache_dir,
+            url=url,
+            commit_hash=commit_hash,
         )
+    )
 
 
 def run_benchmarks(
@@ -385,6 +384,7 @@ def run_benchmarks(
     plot_benchmarks: bool,
     upload: bool,
     include_time: bool,
+    clean: bool,
     summary_file_path: str,
     called_dir: str,
 ) -> None:
@@ -420,7 +420,7 @@ def run_benchmarks(
         corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES + LARGE_CORPUSES
     elif config_file:
         corpuses = prepare_benchmark_run(
-            SemgrepBenchmarkConfig.parse_config(config_file.absolute())
+            SemgrepBenchmarkConfig.parse_config(config_file.absolute()), clean
         )
     if filter_corpus:
         corpuses = [x for x in corpuses if re.search(filter_corpus, x.name) != None]
@@ -595,6 +595,11 @@ def main() -> None:
         default=0,
     )
     parser.add_argument(
+        "--clean",
+        help="Regenerate rule cache and prep files",
+        action="store_true",
+    )
+    parser.add_argument(
         "--output-time-per-rule-json",
         nargs="?",
         default=None,
@@ -627,6 +632,7 @@ def main() -> None:
                 args.plot_benchmarks,
                 args.upload,
                 not args.no_time,
+                args.clean,
                 args.save_to,
                 called_dir,
             )

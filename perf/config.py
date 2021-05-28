@@ -70,6 +70,9 @@ class RuleConfig(object):
         path.write_text(text)
 
     def is_path(self) -> bool:
+        logger.debug(
+            f"Checking if config string is a path. Resolved path is {Path(self.config_str).expanduser().resolve()}"
+        )
         return Path(self.config_str).expanduser().resolve().exists()
 
     def is_url(self) -> bool:
@@ -84,7 +87,7 @@ class RuleConfig(object):
         return self.config_str.find("/") == 1
 
     def normalize_rule_config_name(self) -> str:
-        return self.config_str.replace("/", ".") + ".yaml"
+        return (self.config_str.replace("/", ".") + ".yaml").strip(".")
 
     def resolve_to_cache(self, cache_path: Path) -> None:
         """
@@ -95,12 +98,27 @@ class RuleConfig(object):
         Raises a ValueError if it cannot resolve the config string.
         """
         if self.is_path():
+            import os
             import shutil
 
             logger.info(
                 f"Config '{self.config_str}' is already on filesystem. Copying to cache at '{cache_path}'"
             )
-            shutil.copytree(Path(self.config_str).expanduser().resolve(), cache_path)
+            config_path = Path(self.config_str).expanduser().resolve()
+            if config_path.is_dir():
+                logger.debug(f"Copying directory from {config_path} to {cache_path}")
+                if cache_path.exists():
+                    shutil.rmtree(cache_path)
+                shutil.copytree(config_path, cache_path)
+            elif config_path.is_file():
+                logger.debug(f"Copying rules file from {config_path} to {cache_path}")
+                if cache_path.exists():
+                    os.remove(cache_path)
+                shutil.copyfile(config_path, cache_path)
+            else:
+                raise ValueError(
+                    f"Config string {self.config_str} exists on filesystem but is not a file or directory."
+                )
         elif self.is_url():
             consolidated_rules = self._fetch_rule_config_from_url(self.config_str)
             self._write(cache_path, consolidated_rules)
@@ -108,10 +126,10 @@ class RuleConfig(object):
             rule_config_url = f"{SEMGREP_URL}/{self.config_str}"
             consolidated_rules = self._fetch_rule_config_from_url(rule_config_url)
             self._write(cache_path, consolidated_rules)
-
-        raise ValueError(
-            f"Could not resolve location of the config string '{self.config_str}'. Try using a filesystem path or valid Semgrep config"
-        )
+        else:
+            raise ValueError(
+                f"Could not resolve location of the config string '{self.config_str}'. Try using a filesystem path or valid Semgrep config"
+            )
 
 
 @attr.s
