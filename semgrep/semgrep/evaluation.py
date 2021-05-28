@@ -1,5 +1,4 @@
 import copy
-import logging
 import re
 from collections import defaultdict
 from collections import OrderedDict
@@ -33,8 +32,9 @@ from semgrep.semgrep_types import PatternId
 from semgrep.semgrep_types import Range
 from semgrep.semgrep_types import TAINT_MODE
 from semgrep.util import flatten
+from semgrep.verbose_logging import getLogger
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 DebugRanges = Union[Set[Range], Dict[str, Set[Range]]]
 DebugRangesConverted = Union[List[Range], Dict[str, List[Range]]]
