@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import logging.handlers
 import sys
 
 from semgrep import __VERSION__
@@ -7,13 +6,14 @@ from semgrep.cli import cli
 from semgrep.error import OK_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.metric_manager import metric_manager
+from semgrep.verbose_logging import getLogger
 
 
 def main() -> int:
     # When running semgrep as a command line tool
     # silence root level logger otherwise logs higher
     # than warning are handled twice
-    logger = logging.getLogger("semgrep")
+    logger = getLogger("semgrep")
     logger.propagate = False
     metric_manager.set_version(__VERSION__)
     try:
