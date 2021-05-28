@@ -36,10 +36,8 @@
               "offset": 2376
             },
             "unique_id": {
-              "kind": "Local",
               "sid": 18,
-              "type": "id",
-              "value": "user"
+              "type": "id"
             }
           },
           "$VAR": {
@@ -55,10 +53,8 @@
               "offset": 2269
             },
             "unique_id": {
-              "kind": "Local",
               "sid": 20,
-              "type": "id",
-              "value": "new_password"
+              "type": "id"
             }
           },
           "$W": {
@@ -156,10 +152,8 @@
               "offset": 2977
             },
             "unique_id": {
-              "kind": "Local",
               "sid": 25,
-              "type": "id",
-              "value": "user"
+              "type": "id"
             }
           },
           "$VAR": {
@@ -175,10 +169,8 @@
               "offset": 2712
             },
             "unique_id": {
-              "kind": "Param",
               "sid": 24,
-              "type": "id",
-              "value": "password"
+              "type": "id"
             }
           }
         },

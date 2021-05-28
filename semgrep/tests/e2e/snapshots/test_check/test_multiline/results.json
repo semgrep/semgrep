@@ -26,10 +26,8 @@
               "offset": 115
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK"
+              "type": "id"
             }
           }
         },
