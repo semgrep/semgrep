@@ -350,13 +350,6 @@ let xlang_of_string s =
       let lang = lang_of_string s in
       R.L (lang, [])
 
-let xlang_files_of_dirs_or_files xlang files_or_dirs =
-  match xlang with
-  | R.LNone | R.LGeneric ->
-      (* TODO: assert is_file ? spacegrep filter files? *)
-      files_or_dirs
-  | R.L (lang, _) -> Lang.files_of_dirs_or_files lang files_or_dirs
-
 (*****************************************************************************)
 (* Caching *)
 (*****************************************************************************)
@@ -784,13 +777,14 @@ let semgrep_with_patterns_file lang rules_file files_or_dirs =
 (* Semgrep -config *)
 (*****************************************************************************)
 
-let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
+let semgrep_with_rules (rules, rule_parse_time) files =
   (* todo: at some point we should infer the lang from the rules and
    * apply different rules with different languages and different files
    * automatically, like the semgrep python wrapper.
+   *
+   * For now python wrapper passes down all files that should be scanned
    *)
   let xlang = xlang_of_string !lang in
-  let files = xlang_files_of_dirs_or_files xlang files_or_dirs in
   logger#info "processing %d files" (List.length files);
 
   let file_results =
