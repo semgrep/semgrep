@@ -26,10 +26,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -66,10 +64,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -106,10 +102,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -146,10 +140,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -186,10 +178,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -226,10 +216,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -266,10 +254,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -306,10 +292,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -346,10 +330,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -386,10 +368,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -426,10 +406,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -466,10 +444,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -506,10 +482,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -546,10 +520,8 @@
               "offset": 24
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },

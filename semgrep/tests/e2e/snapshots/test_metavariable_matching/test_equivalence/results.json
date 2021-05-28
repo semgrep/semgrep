@@ -26,10 +26,8 @@
               "offset": 91
             },
             "unique_id": {
-              "kind": "Local",
               "sid": 2,
-              "type": "id",
-              "value": "path"
+              "type": "id"
             }
           }
         },
@@ -66,10 +64,8 @@
               "offset": 260
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 6,
-              "type": "id",
-              "value": "z"
+              "type": "id"
             }
           }
         },
