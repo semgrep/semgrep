@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Dict
 from typing import NamedTuple
+from typing import Optional
 
 from semgrep.rule import Rule
 
@@ -30,26 +31,33 @@ class ProfilingData:
             Times(parse_time=0.0, match_time=0.0, run_time=0.0),
         )
 
-    def get_file_parse_time(self, target: Path) -> float:
-        return self._file_parse_times.get(target, 0.0)
+    def get_file_parse_time(self, target: Path) -> Optional[float]:
+        """
+        Return time taken to parse a file. This is the max of all
+        times reported to parse the file from semgrep-core since
+        it caches the parsed file.
 
-    def get_rule_match_time(self, rule: Rule) -> float:
+        Return None if target has no reported parse time
+        """
+        return self._file_parse_times.get(target)
+
+    def get_rule_match_time(self, rule: Rule) -> Optional[float]:
         """
         Return total match time for a given rule over all the files scanned
         with said rule
 
-        Return -1.0 if RULE has no timing information saved
+        Return None if RULE has no timing information saved
         """
-        return self._rule_match_times.get(rule, -1.0)
+        return self._rule_match_times.get(rule)
 
-    def get_rule_run_time(self, rule: Rule) -> float:
+    def get_rule_run_time(self, rule: Rule) -> Optional[float]:
         """
         Return total run time for a given rule over all the files scanned with
         said rule
 
-        Return -1.0 if RULE has no timing information saved
+        Return None if RULE has no timing information saved
         """
-        return self._rule_run_times.get(rule, -1.0)
+        return self._rule_run_times.get(rule)
 
     def get_rule_bytes_scanned(self, rule: Rule) -> int:
         """
@@ -57,23 +65,23 @@ class ProfilingData:
         """
         return self._rule_bytes_scanned.get(rule, 0)
 
-    def get_file_match_time(self, target: Path) -> float:
+    def get_file_match_time(self, target: Path) -> Optional[float]:
         """
         Return total match time for a given file over all the rules that
         scanned the file
 
-        Return -1.0 if TARGET has no timing information saved
+        Return None if TARGET has no timing information saved
         """
-        return self._file_match_times.get(target, -1.0)
+        return self._file_match_times.get(target)
 
-    def get_file_run_time(self, target: Path) -> float:
+    def get_file_run_time(self, target: Path) -> Optional[float]:
         """
         Return total run time for a given file over all the rules that
         scanned the file
 
-        Return -1.0 if TARGET has no timing information saved
+        Return None if TARGET has no timing information saved
         """
-        return self._file_run_times.get(target, -1.0)
+        return self._file_run_times.get(target)
 
     def get_file_num_times_scanned(self, target: Path) -> int:
         """

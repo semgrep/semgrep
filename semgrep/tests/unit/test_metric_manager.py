@@ -173,8 +173,8 @@ def test_timings(snapshot) -> None:
         {
             "ruleHash": "2cc5dbc0cae3a8b6af0d8792079251c4d861b5e16815c1b1cdba676d1c96c5a5",
             "parseTime": 0.0,
-            "matchTime": -1.0,
-            "runTime": -1.0,
+            "matchTime": None,
+            "runTime": None,
             "bytesScanned": 0,
         },
     ]
