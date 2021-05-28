@@ -260,13 +260,6 @@ def cli() -> None:
         "--json", action="store_true", help="Output results in JSON format."
     )
     output.add_argument(
-        "--save-test-output-tar",
-        action="store_true",
-        help=(
-            "Store json output as a tarball that will be uploaded as a Github artifact."
-        ),
-    )
-    output.add_argument(
         "--time",
         action="store_true",
         help=(
@@ -304,7 +297,6 @@ def cli() -> None:
             "(can use --json)."
         ),
     )
-    output.add_argument("--synthesize-patterns", help=argparse.SUPPRESS)
     output.add_argument(
         "--error",
         action="store_true",
@@ -421,6 +413,17 @@ def cli() -> None:
         action="store_true",
         help=argparse.SUPPRESS,
         # help="Deprecated alias for --json + --debug",
+    )
+    output.add_argument(
+        "--save-test-output-tar",
+        action="store_true",
+        help=argparse.SUPPRESS,
+        # help="Save --test output for use in semgrep-app registry",
+    )
+    output.add_argument(
+        "--synthesize-patterns",
+        help=argparse.SUPPRESS,
+        # help="Legacy pattern recommendation functionality for use in semgrep-app playground",
     )
 
     ### Parse and validate
