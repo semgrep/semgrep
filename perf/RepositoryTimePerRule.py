@@ -21,7 +21,7 @@ class TotalTimeAndTargetNum:
         self.total_rule_time = total_rule_time
         self.num_targets = num_targets
 
-    def __add__(self, other: TotalTimeAndTargetNum) -> TotalTimeAndTargetNum:
+    def __add__(self, other: "TotalTimeAndTargetNum") -> "TotalTimeAndTargetNum":
         added_total_rule_time = self.total_rule_time + other.total_rule_time
         added_num_targets = self.num_targets + other.num_targets
         return TotalTimeAndTargetNum(added_total_rule_time, added_num_targets)
