@@ -1,0 +1,43 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.eqeq-is-bad",
+      "end": {
+        "col": 26,
+        "line": 3
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "    return a + b == a + b",
+        "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "a+b",
+            "end": {
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "start": {
+              "col": 12,
+              "line": 3,
+              "offset": 55
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/stupid_no_extension",
+      "start": {
+        "col": 12,
+        "line": 3
+      }
+    }
+  ]
+}
