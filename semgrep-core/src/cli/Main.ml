@@ -338,19 +338,6 @@ let save_rules_file_in_tmp () =
   Common.write_file ~file:tmp (Common.read_file !rules_file)
 
 (*****************************************************************************)
-(* xLang *)
-(*****************************************************************************)
-
-(* coupling: Parse_mini_rule.parse_languages *)
-let xlang_of_string s =
-  match s with
-  | "none" | "regex" -> R.LNone
-  | "generic" -> R.LGeneric
-  | _ ->
-      let lang = lang_of_string s in
-      R.L (lang, [])
-
-(*****************************************************************************)
 (* Caching *)
 (*****************************************************************************)
 
@@ -603,9 +590,10 @@ let parse_pattern lang_pattern str =
 (* Small wrapper around Lang.files_of_dirs_or_files to also accept
  * an explicit list of files that may not be recognized as part
  * of the language (e.g., files without an extension but that we still
- * want to process)
+ * want to process). This is especially useful when called from the
+ * Python wrapper which gives us an explicit list of files to process.
  *)
-let get_final_files lang xs =
+let files_of_dirs_with_lang_and_explicit_files lang xs =
   let files = Lang.files_of_dirs_or_files lang xs in
   let explicit_files =
     xs
@@ -688,6 +676,30 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
 (*e: function [[Main_semgrep_core.format_output_exception]] *)
 
 (*****************************************************************************)
+(* xLang *)
+(*****************************************************************************)
+
+(* coupling: Parse_mini_rule.parse_languages *)
+let xlang_of_string s =
+  match s with
+  | "none" | "regex" -> R.LNone
+  | "generic" -> R.LGeneric
+  | _ ->
+      let lang = lang_of_string s in
+      R.L (lang, [])
+
+let xlang_files_of_dirs_or_files xlang files_or_dirs =
+  match xlang with
+  | R.LNone | R.LGeneric ->
+      (* TODO: assert is_file ? spacegrep filter files?
+       * Anyway right now the Semgrep python wrapper is
+       * calling -config with an explicit list of files.
+       *)
+      files_or_dirs
+  | R.L (lang, _) ->
+      files_of_dirs_with_lang_and_explicit_files lang files_or_dirs
+
+(*****************************************************************************)
 (* Semgrep -rules_file *)
 (*****************************************************************************)
 (* This is the main function used by the semgrep python wrapper right now.
@@ -697,7 +709,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
  *)
 (*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
 let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
-  let files = get_final_files lang files_or_dirs in
+  let files = files_of_dirs_with_lang_and_explicit_files lang files_or_dirs in
   logger#info "processing %d files" (List.length files);
   let file_results =
     files
@@ -777,7 +789,7 @@ let semgrep_with_patterns_file lang rules_file files_or_dirs =
 (* Semgrep -config *)
 (*****************************************************************************)
 
-let semgrep_with_rules (rules, rule_parse_time) files =
+let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
   (* todo: at some point we should infer the lang from the rules and
    * apply different rules with different languages and different files
    * automatically, like the semgrep python wrapper.
@@ -785,6 +797,7 @@ let semgrep_with_rules (rules, rule_parse_time) files =
    * For now python wrapper passes down all files that should be scanned
    *)
   let xlang = xlang_of_string !lang in
+  let files = xlang_files_of_dirs_or_files xlang files_or_dirs in
   logger#info "processing %d files" (List.length files);
 
   let file_results =
@@ -970,7 +983,7 @@ let tainting_with_rules lang rules_file files_or_dirs =
     logger#info "Parsing %s" rules_file;
     let rules = Parse_tainting_rules.parse rules_file in
 
-    let files = get_final_files lang files_or_dirs in
+    let files = files_of_dirs_with_lang_and_explicit_files lang files_or_dirs in
     let file_results =
       files
       |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
