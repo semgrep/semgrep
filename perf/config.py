@@ -8,7 +8,6 @@ from typing import Type
 from urllib.parse import urlparse
 
 import attr
-import requests
 from constants import SEMGREP_URL
 from constants import SEMGREP_USER_AGENT
 from ruamel.yaml import YAML
@@ -36,6 +35,8 @@ class RuleConfig(object):
     config_str: str = attr.ib(default="")
 
     def _fetch_rule_config_from_url(self, rule_config_url: str) -> Optional[str]:
+        import requests
+
         logger.info(f"Fetching config from '{rule_config_url}'")
         try:
             r = requests.get(
