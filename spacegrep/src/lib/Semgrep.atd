@@ -103,8 +103,6 @@ type unique_id = {
   ?md5sum: string option;
   (* ID case *)
   ?sid: int option;
-  ?kind: string option; (* used just in snapshots? *)
-  ?value: string option; (* used just in snapshots? *)
 }
 
 type unique_id_type = [

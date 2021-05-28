@@ -17,7 +17,7 @@ let semgrep_pos (x : Lexing.position) : Semgrep_t.position =
 
 let unique_id_of_capture ~captured_string : unique_id =
   let md5sum = captured_string |> Digest.string |> Digest.to_hex in
-  { type_ = `AST; md5sum = Some md5sum; sid = None; kind = None; value = None }
+  { type_ = `AST; md5sum = Some md5sum; sid = None }
 
 let convert_capture (name, x) =
   assert (name <> "" && name.[0] <> '$');
