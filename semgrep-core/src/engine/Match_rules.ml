@@ -23,6 +23,7 @@ module G = AST_generic
 module PI = Parse_info
 module MV = Metavariable
 module RP = Report
+module SJ = Spacegrep.Semgrep_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -398,16 +399,19 @@ let debug_semgrep config mini_rules equivalences file lang ast =
              ~hook:(fun _ _ -> ())
              config [ mr ] equivalences (file, lang, ast)
          in
-         if !debug_matches then (
-           let json = res |> List.map JSON_report.match_to_json in
-           let json_uniq = Common.uniq_by ( = ) json in
-           let res_uniq =
-             Common.uniq_by (AST_utils.with_structural_equal PM.equal) res
-           in
-           logger#debug
-             "Found %d mini rule matches (uniq = %d) (json_uniq = %d)"
-             (List.length res) (List.length res_uniq) (List.length json_uniq);
-           res |> List.iter (fun m -> logger#debug "match = %s" (PM.show m)) );
+         if !debug_matches then
+           (* TODO
+              let json = res |> List.map (fun x ->
+                   x |> JSON_report.match_to_match_ |> SJ.string_of_match_) in
+              let json_uniq = Common.uniq_by ( = ) json in
+              let res_uniq =
+                Common.uniq_by (AST_utils.with_structural_equal PM.equal) res
+              in
+              logger#debug
+                "Found %d mini rule matches (uniq = %d) (json_uniq = %d)"
+                (List.length res) (List.length res_uniq) (List.length json_uniq);
+           *)
+           res |> List.iter (fun m -> logger#debug "match = %s" (PM.show m));
          res)
   |> List.flatten
 

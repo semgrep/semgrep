@@ -17,6 +17,7 @@ module R = Rule
 module J = JSON
 module FT = File_type
 module RP = Report
+module SJ = Spacegrep.Semgrep_j
 
 (*****************************************************************************)
 (* Purpose *)
@@ -737,15 +738,17 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
    *)
-  let flds = JSON_report.json_fields_of_matches_and_errors files res in
-  let flds =
-    if !profile then (
-      let json = JSON_report.json_of_profile_info !profile_start in
-      (* so we don't get also the profile output of Common.main_boilerplate*)
-      Common.profile := Common.ProfNone;
-      flds @ [ ("profiling", json) ] )
-    else flds
-  in
+  let res = JSON_report.match_results_of_matches_and_errors files res in
+  (* TODO need change type match_results.time to a choice
+     let res =
+       if !profile then (
+         let json = JSON_report.json_of_profile_info !profile_start in
+         (* so we don't get also the profile output of Common.main_boilerplate*)
+         Common.profile := Common.ProfNone;
+         flds @ [ ("profiling", json) ] )
+       else flds
+     in
+  *)
   (*
      Not pretty-printing the json output (Yojson.Safe.prettify)
      because it kills performance, adding an extra 50% time on our
@@ -753,7 +756,7 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
      User should use an external tool like jq or ydump (latter comes with
      yojson) for pretty-printing json.
   *)
-  let s = J.string_of_json (J.Object flds) in
+  let s = SJ.string_of_match_results res in
   logger#info "size of returned JSON string: %d" (String.length s);
   pr s
 
@@ -833,16 +836,18 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
    *)
   match !output_format with
   | Json ->
-      let flds = JSON_report.json_fields_of_matches_and_errors files res in
-      let flds =
-        if !profile then (
-          let json = JSON_report.json_of_profile_info !profile_start in
-          (* so we don't get also the profile output of Common.main_boilerplate*)
-          Common.profile := Common.ProfNone;
-          flds @ [ ("profiling", json) ] )
-        else flds
-      in
-      let s = J.string_of_json (J.Object flds) in
+      let res = JSON_report.match_results_of_matches_and_errors files res in
+      (* TODO
+         let flds =
+           if !profile then (
+             let json = JSON_report.json_of_profile_info !profile_start in
+             (* so we don't get also the profile output of Common.main_boilerplate*)
+             Common.profile := Common.ProfNone;
+             flds @ [ ("profiling", json) ] )
+           else flds
+         in
+      *)
+      let s = SJ.string_of_match_results res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s
   | Text ->
@@ -988,8 +993,8 @@ let tainting_with_rules lang rules_file files_or_dirs =
     let res =
       RP.make_rule_result file_results ~report_time:false ~rule_parse_time:0.0
     in
-    let flds = JSON_report.json_fields_of_matches_and_errors files res in
-    let s = J.string_of_json (J.Object flds) in
+    let res = JSON_report.match_results_of_matches_and_errors files res in
+    let s = SJ.string_of_match_results res in
     pr s
   with exn ->
     let json = JSON_report.json_of_exn exn in
