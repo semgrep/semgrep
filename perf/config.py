@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from typing import List
 from typing import Optional
+from typing import Type
 from urllib.parse import urlparse
 
 import attr
@@ -149,7 +150,9 @@ class SemgrepBenchmarkConfig(object):
     benchmark_setup_data: List[BenchmarkRunSetupData] = attr.ib(factory=list)
 
     @classmethod
-    def parse_config(cls, config_file: Path) -> SemgrepBenchmarkConfig:
+    def parse_config(
+        cls: Type["SemgrepBenchmarkConfig"], config_file: Path
+    ) -> "SemgrepBenchmarkConfig":
         logger.debug(f"Using config at {config_file.absolute()}")
         with open(config_file, "r") as fin:
             config = yaml.load(fin)
