@@ -27,10 +27,8 @@
               "offset": 45
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "inputs"
+              "type": "id"
             }
           },
           "$KEY": {
@@ -46,10 +44,8 @@
               "offset": 52
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 2,
-              "type": "id",
-              "value": "x"
+              "type": "id"
             }
           }
         },
@@ -87,10 +83,8 @@
               "offset": 64
             },
             "unique_id": {
-              "kind": "Global",
               "sid": 1,
-              "type": "id",
-              "value": "inputs"
+              "type": "id"
             }
           },
           "$KEY": {

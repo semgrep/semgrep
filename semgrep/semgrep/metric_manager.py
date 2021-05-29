@@ -10,10 +10,11 @@ from typing import Set
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
+from semgrep.verbose_logging import getLogger
 
 METRICS_ENDPOINT = "https://metrics.semgrep.dev"
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class _MetricManager:

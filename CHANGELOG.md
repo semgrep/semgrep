@@ -5,28 +5,36 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Per rule parse times and per rule-file parse and match times added to opt-in metrics
+- $...MVAR can now match a list of statements (not just a list of arguments) (#3170)
+
+### Fixed
+- JavaScript parsing: [Support decorators on
+  properties](https://github.com/tree-sitter/tree-sitter-javascript/pull/166)
+- JavaScript parsing: [Allow default export for any declaration](https://github.com/tree-sitter/tree-sitter-javascript/pull/168)
+- Metavariables in messages are filled in when using `--optimizations all`
+
+### Changed
+- Moved some debug logging to verbose logging
+
+## [0.53.0](https://github.com/returntocorp/semgrep/releases/tag/v0.53.0) - 2021-05-26
+
+### Added
 
 - Scala alpha support
 - Metrics collection of project_hash in cases where git is not available
-- $...MVAR can now match a list of statements (not just a list of arguments) (#3170)
 - Taint mode now also analyzes top-level statements.
 
 ### Fixed
-- Per rule parse times and per rule-file parse and match times added to opt-in metrics
+
 - Running with `--strict` will now return results if there are `nosem` mismatches. Semgrep will report a nonzero exit code if `--strict` is set and there are `nosem` mismathces. [#3099](https://github.com/returntocorp/semgrep/issues/3099)
 - PHP: parsing correctly ... and metavariables in parameters
 - PHP: parsing correctly functions with a single statement in their body
 - Evaluate interpolated strings during constant propagation (#3127)
 - Fixed #3084 - Semgrep will report an InvalidRuleSchemaError for dictionaries with duplicate key names.
 - Basic type inference also for implicit variable declarations (Python, Ruby, PHP, and JS)
-- JavaScript parsing: [Support decorators on
-  properties](https://github.com/tree-sitter/tree-sitter-javascript/pull/166)
-- JavaScript parsing: [Allow default export for any declaration](https://github.com/tree-sitter/tree-sitter-javascript/pull/168)
 - JS/TS: differentiating tagged template literals in the AST (#3187)
 - Ruby: storing parenthesis in function calls in the AST (#3178)
-- Metavariables in messages are filled in in experimental mode
-
-### Changed
 
 ## [0.52.0](https://github.com/returntocorp/semgrep/releases/tag/v0.52.0) - 2021-05-18
 

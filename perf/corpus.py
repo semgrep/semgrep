@@ -1,4 +1,7 @@
 import subprocess
+from pathlib import Path
+from typing import Optional
+from typing import Union
 
 # Run command and propagate errors
 def cmd(*args: str) -> None:
@@ -6,7 +9,13 @@ def cmd(*args: str) -> None:
 
 
 class Corpus:
-    def __init__(self, name: str, rule_dir: str, target_dir: str, language: str = None):
+    def __init__(
+        self,
+        name: str,
+        rule_dir: Union[str, Path],
+        target_dir: Union[str, Path],
+        language: Optional[str] = None,
+    ):
         # name for the input corpus (rules and targets)
         self.name = name
 
@@ -88,7 +97,7 @@ SMALL_CORPUSES = [
     Corpus("pallets", "input/rules", "input/flask"),
     # (Gitlab small) Run our javascript rules on a JS repo
     Corpus("socketio", "input/javascript.yml", "input/socket"),
-    # 
+    #
     # This is for more comprehensive rule timing information
     #
     # small java corpus
@@ -96,7 +105,7 @@ SMALL_CORPUSES = [
     # small c corpus
     Corpus("t00sh", "input/rules", "input/rop-tool"),
     # small repository of dockerfiles
-    Corpus("grpc", "input/docker.yml", "input/grpc-docker-library")
+    Corpus("grpc", "input/docker.yml", "input/grpc-docker-library"),
 ]
 
 MEDIUM_CORPUSES = [

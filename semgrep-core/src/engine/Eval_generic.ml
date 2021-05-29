@@ -146,6 +146,15 @@ let rec eval env code =
       with Not_found ->
         logger#debug "could not find a value for %s in env" s;
         raise Not_found )
+  | G.Call (G.N (G.Id (("int", _), _)), (_, [ Arg e ], _)) -> (
+      let v = eval env e in
+      match v with
+      | Int _ -> v
+      | String s -> (
+          match int_of_string_opt s with
+          | None -> raise (NotHandled code)
+          | Some i -> Int i )
+      | __else__ -> raise (NotHandled code) )
   | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
       let values =
         args

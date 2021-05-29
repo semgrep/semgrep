@@ -17,6 +17,7 @@ module R = Rule
 module J = JSON
 module FT = File_type
 module RP = Report
+module SJ = Spacegrep.Semgrep_j
 
 (*****************************************************************************)
 (* Purpose *)
@@ -337,26 +338,6 @@ let save_rules_file_in_tmp () =
   Common.write_file ~file:tmp (Common.read_file !rules_file)
 
 (*****************************************************************************)
-(* xLang *)
-(*****************************************************************************)
-
-(* coupling: Parse_mini_rule.parse_languages *)
-let xlang_of_string s =
-  match s with
-  | "none" | "regex" -> R.LNone
-  | "generic" -> R.LGeneric
-  | _ ->
-      let lang = lang_of_string s in
-      R.L (lang, [])
-
-let xlang_files_of_dirs_or_files xlang files_or_dirs =
-  match xlang with
-  | R.LNone | R.LGeneric ->
-      (* TODO: assert is_file ? spacegrep filter files? *)
-      files_or_dirs
-  | R.L (lang, _) -> Lang.files_of_dirs_or_files lang files_or_dirs
-
-(*****************************************************************************)
 (* Caching *)
 (*****************************************************************************)
 
@@ -609,9 +590,10 @@ let parse_pattern lang_pattern str =
 (* Small wrapper around Lang.files_of_dirs_or_files to also accept
  * an explicit list of files that may not be recognized as part
  * of the language (e.g., files without an extension but that we still
- * want to process)
+ * want to process). This is especially useful when called from the
+ * Python wrapper which gives us an explicit list of files to process.
  *)
-let get_final_files lang xs =
+let files_of_dirs_with_lang_and_explicit_files lang xs =
   let files = Lang.files_of_dirs_or_files lang xs in
   let explicit_files =
     xs
@@ -694,6 +676,30 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
 (*e: function [[Main_semgrep_core.format_output_exception]] *)
 
 (*****************************************************************************)
+(* xLang *)
+(*****************************************************************************)
+
+(* coupling: Parse_mini_rule.parse_languages *)
+let xlang_of_string s =
+  match s with
+  | "none" | "regex" -> R.LNone
+  | "generic" -> R.LGeneric
+  | _ ->
+      let lang = lang_of_string s in
+      R.L (lang, [])
+
+let xlang_files_of_dirs_or_files xlang files_or_dirs =
+  match xlang with
+  | R.LNone | R.LGeneric ->
+      (* TODO: assert is_file ? spacegrep filter files?
+       * Anyway right now the Semgrep python wrapper is
+       * calling -config with an explicit list of files.
+       *)
+      files_or_dirs
+  | R.L (lang, _) ->
+      files_of_dirs_with_lang_and_explicit_files lang files_or_dirs
+
+(*****************************************************************************)
 (* Semgrep -rules_file *)
 (*****************************************************************************)
 (* This is the main function used by the semgrep python wrapper right now.
@@ -703,7 +709,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
  *)
 (*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
 let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
-  let files = get_final_files lang files_or_dirs in
+  let files = files_of_dirs_with_lang_and_explicit_files lang files_or_dirs in
   logger#info "processing %d files" (List.length files);
   let file_results =
     files
@@ -737,15 +743,17 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
    *)
-  let flds = JSON_report.json_fields_of_matches_and_errors files res in
-  let flds =
-    if !profile then (
-      let json = JSON_report.json_of_profile_info !profile_start in
-      (* so we don't get also the profile output of Common.main_boilerplate*)
-      Common.profile := Common.ProfNone;
-      flds @ [ ("profiling", json) ] )
-    else flds
-  in
+  let res = JSON_report.match_results_of_matches_and_errors files res in
+  (* TODO need change type match_results.time to a choice
+     let res =
+       if !profile then (
+         let json = JSON_report.json_of_profile_info !profile_start in
+         (* so we don't get also the profile output of Common.main_boilerplate*)
+         Common.profile := Common.ProfNone;
+         flds @ [ ("profiling", json) ] )
+       else flds
+     in
+  *)
   (*
      Not pretty-printing the json output (Yojson.Safe.prettify)
      because it kills performance, adding an extra 50% time on our
@@ -753,7 +761,7 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
      User should use an external tool like jq or ydump (latter comes with
      yojson) for pretty-printing json.
   *)
-  let s = J.string_of_json (J.Object flds) in
+  let s = SJ.string_of_match_results res in
   logger#info "size of returned JSON string: %d" (String.length s);
   pr s
 
@@ -785,6 +793,8 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
   (* todo: at some point we should infer the lang from the rules and
    * apply different rules with different languages and different files
    * automatically, like the semgrep python wrapper.
+   *
+   * For now python wrapper passes down all files that should be scanned
    *)
   let xlang = xlang_of_string !lang in
   let files = xlang_files_of_dirs_or_files xlang files_or_dirs in
@@ -833,16 +843,18 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
    *)
   match !output_format with
   | Json ->
-      let flds = JSON_report.json_fields_of_matches_and_errors files res in
-      let flds =
-        if !profile then (
-          let json = JSON_report.json_of_profile_info !profile_start in
-          (* so we don't get also the profile output of Common.main_boilerplate*)
-          Common.profile := Common.ProfNone;
-          flds @ [ ("profiling", json) ] )
-        else flds
-      in
-      let s = J.string_of_json (J.Object flds) in
+      let res = JSON_report.match_results_of_matches_and_errors files res in
+      (* TODO
+         let flds =
+           if !profile then (
+             let json = JSON_report.json_of_profile_info !profile_start in
+             (* so we don't get also the profile output of Common.main_boilerplate*)
+             Common.profile := Common.ProfNone;
+             flds @ [ ("profiling", json) ] )
+           else flds
+         in
+      *)
+      let s = SJ.string_of_match_results res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s
   | Text ->
@@ -971,7 +983,7 @@ let tainting_with_rules lang rules_file files_or_dirs =
     logger#info "Parsing %s" rules_file;
     let rules = Parse_tainting_rules.parse rules_file in
 
-    let files = get_final_files lang files_or_dirs in
+    let files = files_of_dirs_with_lang_and_explicit_files lang files_or_dirs in
     let file_results =
       files
       |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
@@ -988,8 +1000,8 @@ let tainting_with_rules lang rules_file files_or_dirs =
     let res =
       RP.make_rule_result file_results ~report_time:false ~rule_parse_time:0.0
     in
-    let flds = JSON_report.json_fields_of_matches_and_errors files res in
-    let s = J.string_of_json (J.Object flds) in
+    let res = JSON_report.match_results_of_matches_and_errors files res in
+    let s = SJ.string_of_match_results res in
     pr s
   with exn ->
     let json = JSON_report.json_of_exn exn in

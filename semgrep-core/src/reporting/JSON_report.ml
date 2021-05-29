@@ -19,57 +19,31 @@ open Common
 open AST_generic
 module V = Visitor_AST
 module PI = Parse_info
-module R = Mini_rule (* TODO: use MR instead *)
-
 module E = Error_code
 module J = JSON
 module MV = Metavariable
 module RP = Report
 open Pattern_match
+module ST = Spacegrep.Semgrep_t (* atdgen definitions *)
+
+module SJ = Spacegrep.Semgrep_j (* JSON conversions *)
 
 (*****************************************************************************)
 (* Unique ID *)
 (*****************************************************************************)
 (*s: function [[JSON_report.string_of_resolved]] *)
-let string_of_resolved = function
-  | Global -> "Global"
-  | Local -> "Local"
-  | Param -> "Param"
-  | EnclosedVar -> "EnclosedVar"
-  | ImportedEntity _ -> "ImportedEntity"
-  | ImportedModule _ -> "ImportedModule"
-  | TypeName -> "TypeName"
-  | Macro -> "Macro"
-  | EnumConstant -> "EnumConstant"
-
 (*e: function [[JSON_report.string_of_resolved]] *)
 
 (*s: function [[JSON_report.unique_id]] *)
 (* Returning scoping-aware information about a metavariable, so that
- * the callers of sgrep (sgrep-lint) can check if multiple metavariables
+ * the callers of semgrep (semgrep python) can check if multiple metavariables
  * reference the same entity, or reference exactly the same code.
- * See pfff/.../Naming_AST.ml for more information.
- *
- * TODO: provide a typed interface for the json object because it's really
- *       hard to see how to produce correct output. 'Semgrep.atd' in
- *       spacegrep already has definitions for about every type except this
- *       one.
+ * See Naming_AST.ml for more information.
  *)
 let unique_id any =
   match any with
-  | E
-      (N
-        (Id
-          ((str, _tok), { id_resolved = { contents = Some (resolved, sid) }; _ })))
-    ->
-      J.Object
-        [
-          ("type", J.String "id");
-          ("value", J.String str);
-          ("kind", J.String (string_of_resolved resolved));
-          (* single unique id *)
-          ("sid", J.Int sid);
-        ]
+  | E (N (Id (_, { id_resolved = { contents = Some (_, sid) }; _ }))) ->
+      { ST.type_ = `ID; md5sum = None; sid = Some sid }
   (* not an Id, return a md5sum of its AST as a "single unique id" *)
   | _ ->
       (* todo? note that if the any use a parameter, or a local,
@@ -84,8 +58,7 @@ let unique_id any =
        *)
       let s = Marshal.to_string any [] in
       let md5 = Digest.string s in
-      J.Object
-        [ ("type", J.String "AST"); ("md5sum", J.String (Digest.to_hex md5)) ]
+      { ST.type_ = `AST; md5sum = Some (Digest.to_hex md5); sid = None }
 
 (*e: function [[JSON_report.unique_id]] *)
 
@@ -94,36 +67,34 @@ let unique_id any =
 (*****************************************************************************)
 
 (*s: function [[JSON_report.json_range]] *)
-let json_range min_loc max_loc =
+let position_range min_loc max_loc =
   (* pfff (and Emacs) have the first column at index 0, but not r2c *)
   let adjust_column x = x + 1 in
 
   let len_max = String.length max_loc.PI.str in
-  ( J.Object
-      [
-        ("line", J.Int min_loc.PI.line);
-        ("col", J.Int (adjust_column min_loc.PI.column));
-        ("offset", J.Int min_loc.PI.charpos);
-      ],
-    J.Object
-      [
-        ("line", J.Int max_loc.PI.line);
-        ("col", J.Int (adjust_column (max_loc.PI.column + len_max)));
-        ("offset", J.Int (max_loc.PI.charpos + len_max));
-      ] )
+  ( {
+      ST.line = min_loc.PI.line;
+      col = adjust_column min_loc.PI.column;
+      offset = min_loc.PI.charpos;
+    },
+    {
+      ST.line = max_loc.PI.line;
+      col = adjust_column (max_loc.PI.column + len_max);
+      offset = max_loc.PI.charpos + len_max;
+    } )
 
 (*e: function [[JSON_report.json_range]] *)
 
 (*s: function [[JSON_report.range_of_any]] *)
 let range_of_any any =
   let min_loc, max_loc = V.range_of_any any in
-  let startp, endp = json_range min_loc max_loc in
+  let startp, endp = position_range min_loc max_loc in
   (startp, endp)
 
 (*e: function [[JSON_report.range_of_any]] *)
 
 (*s: function [[JSON_report.json_metavar]] *)
-let json_metavar startp (s, mval) =
+let metavars startp (s, mval) =
   let any = MV.mvalue_to_any mval in
   let startp, endp =
     try range_of_any any
@@ -131,45 +102,41 @@ let json_metavar startp (s, mval) =
       raise
         (Parse_info.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
-              (J.string_of_json startp)))
+              (SJ.string_of_position startp)))
   in
   ( s,
-    J.Object
-      [
-        ("start", startp);
-        ("end", endp);
-        ( "abstract_content",
-          J.String
-            ( any |> V.ii_of_any
-            |> List.filter PI.is_origintok
-            |> List.sort Parse_info.compare_pos
-            |> List.map PI.str_of_info
-            |> Matching_report.join_with_space_if_needed ) );
-        ("unique_id", unique_id any);
-      ] )
+    {
+      ST.start = startp;
+      end_ = endp;
+      abstract_content =
+        any |> V.ii_of_any
+        |> List.filter PI.is_origintok
+        |> List.sort Parse_info.compare_pos
+        |> List.map PI.str_of_info |> Matching_report.join_with_space_if_needed;
+      unique_id = unique_id any;
+    } )
 
 (*e: function [[JSON_report.json_metavar]] *)
 
 (*s: function [[JSON_report.match_to_json]] *)
-(* similar to pfff/h_program-lang/R2c.ml *)
-let match_to_json x =
+let match_to_match x =
   try
     let min_loc, max_loc = x.range_loc in
-    let startp, endp = json_range min_loc max_loc in
+    let startp, endp = position_range min_loc max_loc in
     Left
-      (J.Object
-         [
-           ("check_id", J.String x.rule_id.id);
-           ("path", J.String x.file);
-           ("start", startp);
-           ("end", endp);
-           ( "extra",
-             J.Object
-               [
-                 ("message", J.String x.rule_id.message);
-                 ("metavars", J.Object (x.env |> List.map (json_metavar startp)));
-               ] );
-         ])
+      ( {
+          ST.check_id = Some x.rule_id.id;
+          path = x.file;
+          start = startp;
+          end_ = endp;
+          extra =
+            {
+              message = Some x.rule_id.message;
+              metavars = x.env |> List.map (metavars startp);
+              lines = [] (* ?? spacegrep? *);
+            };
+        }
+        : ST.match_ )
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
@@ -184,47 +151,56 @@ let match_to_json x =
 
 (*e: function [[JSON_report.match_to_json]] *)
 
-let json_time_of_profiling_data profiling_data =
-  [
-    ( "time",
-      J.Object
-        [
-          ( "targets",
-            J.Array
-              (List.map
-                 (fun { RP.file = target; parse_time; match_time; run_time } ->
-                   J.Object
-                     [
-                       ("path", J.String target);
-                       ("parse_time", J.Float parse_time);
-                       ("match_time", J.Float match_time);
-                       ("run_time", J.Float run_time);
-                     ])
-                 profiling_data.RP.file_times) );
-          ("rule_parse_time", J.Float profiling_data.RP.rule_parse_time);
-        ] );
-  ]
+(* was in pfff/h_program-lang/R2c.ml becore *)
+let hcache = Hashtbl.create 101
 
-let json_fields_of_matches_and_errors files res =
+let lines_of_file (file : Common.filename) : string array =
+  Common.memoized hcache file (fun () ->
+      try Common.cat file |> Array.of_list with _ -> [| "EMPTY FILE" |])
+
+let error_to_error err =
+  let file = err.E.loc.PI.file in
+  let lines = lines_of_file file in
+  let startp, endp = position_range err.E.loc err.E.loc in
+  let line = err.E.loc.PI.line in
+  let check_id = E.check_id_of_error_kind err.E.typ in
+  let message = E.string_of_error_kind err.E.typ in
+  (*
+  let extra_extra =
+    match err.E.typ with
+    | _ -> []
+  in
+*)
+  {
+    ST.check_id = Some check_id;
+    path = file;
+    start = startp;
+    end_ = endp;
+    extra = { message; line = (try lines.(line - 1) with _ -> "NO LINE") };
+  }
+
+let json_time_of_profiling_data profiling_data =
+  {
+    ST.targets =
+      profiling_data.RP.file_times
+      |> List.map (fun { RP.file = target; parse_time; match_time; run_time } ->
+             { ST.path = target; parse_time; match_time; run_time });
+    rule_parse_time = Some profiling_data.RP.rule_parse_time;
+  }
+
+let match_results_of_matches_and_errors files res =
   let matches, new_errs =
-    Common.partition_either match_to_json res.RP.matches
+    Common.partition_either match_to_match res.RP.matches
   in
   let errs = new_errs @ res.RP.errors in
   let count_errors = List.length errs in
   let count_ok = List.length files - count_errors in
-  let time_field =
-    match res.RP.rule_profiling with
-    | None -> []
-    | Some x -> json_time_of_profiling_data x
-  in
-  [
-    ("matches", J.Array matches);
-    ("errors", J.Array (errs |> List.map R2c.error_to_json));
-    ( "stats",
-      J.Object
-        [ ("okfiles", J.Int count_ok); ("errorfiles", J.Int count_errors) ] );
-  ]
-  @ time_field
+  {
+    ST.matches;
+    errors = errs |> List.map error_to_error;
+    stats = { okfiles = count_ok; errorfiles = count_errors };
+    time = res.RP.rule_profiling |> Common.map_opt json_time_of_profiling_data;
+  }
   [@@profiling]
 
 let json_of_profile_info profile_start =
