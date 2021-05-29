@@ -124,7 +124,6 @@ let rec visit_expr hook lhs expr =
   (* todo: Special cases for function that are known to take implicit
    * lvalue, e.g., sscanf?
    *)
-
   (* todo? some languages allow function return value to be an lvalue? *)
   | Call (e, (_, args, _)) ->
       recr e;

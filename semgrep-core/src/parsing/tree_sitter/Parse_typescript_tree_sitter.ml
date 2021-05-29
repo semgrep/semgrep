@@ -174,7 +174,7 @@ let reserved_identifier (env : env) (x : CST.reserved_identifier) =
       | `Get tok -> JS.identifier env tok (* "get" *)
       | `Set tok -> JS.identifier env tok (* "set" *)
       | `Async tok -> JS.identifier env tok (* "async" *)
-      | `Static tok -> JS.identifier env tok (* "static" *))
+      | `Static tok -> JS.identifier env tok (* "static" *) )
 
 let anon_choice_COMMA_5194cb4 (env : env) (x : CST.anon_choice_COMMA_5194cb4) =
   match x with
@@ -372,7 +372,7 @@ let rec parenthesized_expression (env : env)
         | Some x ->
             let tok, ty = type_annotation env x in
             Cast (v1, tok, ty)
-        | None -> v1)
+        | None -> v1 )
     | `Seq_exp x -> sequence_expression env x
   in
   let _v3 = token env v3 (* ")" *) in
@@ -439,12 +439,12 @@ and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) :
     match v2 with
     | Some x ->
         Some
-          (match x with
+          ( match x with
           | `Exp x -> expression env x
           | `Seq_exp x -> sequence_expression env x
           | `Spread_elem x ->
               let t, e = spread_element env x in
-              Apply (IdSpecial (Spread, t), fb [ e ]))
+              Apply (IdSpecial (Spread, t), fb [ e ]) )
     (* abusing { } in XML to just add comments, e.g. { /* lint-ignore */ } *)
     | None -> None
   in
@@ -866,8 +866,8 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) :
             in
             match v1 with
             | None -> aux [] xs
-            | Some x -> add_decorators (List.rev acc_decorators) x :: aux [] xs)
-        )
+            | Some x -> add_decorators (List.rev acc_decorators) x :: aux [] xs
+            ) )
   in
   let v2 = aux [] v2 in
   let v3 = token env v3 (* "}" *) in
@@ -1172,9 +1172,9 @@ and object_type (env : env) ((v1, v2, v3) : CST.object_type) =
           match v1 with
           | Some x ->
               Some
-                (match x with
+                ( match x with
                 | `COMMA tok -> token env tok (* "," *)
-                | `SEMI tok -> token env tok (* ";" *))
+                | `SEMI tok -> token env tok (* ";" *) )
           | None -> None
         in
         let v2 = anon_choice_export_stmt_f90d83f env v2 in
@@ -1261,10 +1261,10 @@ and for_header (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_header) =
     match v2 with
     | Some x ->
         Some
-          (match x with
+          ( match x with
           | `Var tok -> (Var, token env tok) (* "var" *)
           | `Let tok -> (Let, token env tok) (* "let" *)
-          | `Const tok -> (Const, token env tok) (* "const" *))
+          | `Const tok -> (Const, token env tok) (* "const" *) )
     | None -> None
   in
   let v3 = anon_choice_paren_exp_9c42f0a env v3 in
@@ -1303,7 +1303,7 @@ and expression (env : env) (x : CST.expression) : expr =
           TypeAssert (v1, v2, x)
       | `Temp_str x ->
           let _, xs, _ = template_string env x in
-          ExprTodo (("WeirdCastTemplateString", v2), v1 :: xs))
+          ExprTodo (("WeirdCastTemplateString", v2), v1 :: xs) )
   | `Non_null_exp x -> non_null_expression env x
   | `Inte_module x -> (
       (* namespace (deprecated in favor of ES modules) *)
@@ -1322,7 +1322,7 @@ and expression (env : env) (x : CST.expression) : expr =
             }
           in
           Apply (Fun (fun_, Some name), fb [])
-      | None -> idexp name)
+      | None -> idexp name )
   | `Super tok -> JS.super env tok (* "super" *)
   | `Type_asse (v1, v2) -> (
       (* type assertion of the form <string>someValue *)
@@ -1330,7 +1330,7 @@ and expression (env : env) (x : CST.expression) : expr =
       let v2 = expression env v2 in
       match xs with
       | [ t ] -> TypeAssert (v2, t1, t)
-      | _ -> raise (PI.Parsing_error t1))
+      | _ -> raise (PI.Parsing_error t1) )
   | `Choice_this x -> primary_expression env x
   | `Choice_jsx_elem x ->
       let xml = jsx_element_ env x in
@@ -1356,7 +1356,7 @@ and expression (env : env) (x : CST.expression) : expr =
             | `Id tok ->
                 let id = JS.identifier env tok (* identifier *) in
                 idexp id
-            | `Paren_exp x -> parenthesized_expression env x)
+            | `Paren_exp x -> parenthesized_expression env x )
         | `Non_null_exp x -> non_null_expression env x
       in
       let op, is_logical, tok =
@@ -1426,7 +1426,7 @@ and expression (env : env) (x : CST.expression) : expr =
             | Some x ->
                 let x = expression env x in
                 Apply (IdSpecial (Yield, v1), fb [ x ])
-            | None -> Apply (IdSpecial (Yield, v1), fb []))
+            | None -> Apply (IdSpecial (Yield, v1), fb []) )
       in
       v2
 
@@ -1477,14 +1477,14 @@ and primary_type (env : env) (x : CST.primary_type) : type_ =
           let v1 = primary_type env v1 in
           let v2 = token env v2 (* "[" *) in
           let v3 = token env v3 (* "]" *) in
-          TyArray (v1, (v2, (), v3)))
+          TyArray (v1, (v2, (), v3)) )
   | `Tuple_type x -> (
       match x with
       | `Tuple_type_body x -> tuple_type_body env x
       | `Read_tuple_type_body (v1, v2) ->
           let _v1_TODO = token env v1 (* "readonly" *) in
           let v2 = tuple_type_body env v2 in
-          v2)
+          v2 )
   | `Flow_maybe_type (v1, v2) ->
       let v1 = token env v1 (* "?" *) in
       let v2 = primary_type env v2 in
@@ -1966,7 +1966,7 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                 let def, n = Ast_js.mk_default_entity_def v1 v2 in
                 [ DefStmt def; M (Export (v1, n)) ]
           in
-          v3)
+          v3 )
   | `Export_EQ_id_choice_auto_semi (v1, v2, v3, v4) ->
       let _v1 = token env v1 (* "export" *) in
       let _v2 = token env v2 (* "=" *) in
@@ -2137,7 +2137,7 @@ and public_field_definition (env : env)
     | Some x -> (
         match x with
         | `QMARK tok -> [ (Optional, token env tok) ] (* "?" *)
-        | `BANG tok -> [ (NotNull, token env tok) ] (* "!" *))
+        | `BANG tok -> [ (NotNull, token env tok) ] (* "!" *) )
     | None -> []
   in
   let v5 =
@@ -2216,7 +2216,7 @@ and anon_choice_requ_param_1bd7580 (env : env)
               p_attrs = [];
             }
       (* TODO: can have types and defaults on patterns? *)
-      | Right pat -> ParamPattern pat)
+      | Right pat -> ParamPattern pat )
   | `Rest_param ((v1, v2), v3) ->
       let v1 = token env v1 (* "..." *) in
       let id = JS.identifier env v2 (* identifier *) in
@@ -2245,7 +2245,7 @@ and anon_choice_requ_param_1bd7580 (env : env)
       match v1 with
       | Left id -> ParamClassic (mk_param id)
       (* TODO: can have types and defaults on patterns? *)
-      | Right pat -> ParamPattern pat)
+      | Right pat -> ParamPattern pat )
 
 and enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
   let v1 = token env v1 (* "{" *) in
@@ -2392,7 +2392,7 @@ and call_signature (env : env) ((v1, v2, v3) : CST.call_signature) :
               let v3 = type_ env v3 in
               TypeTodo (("IsType", v2), [ Expr v1; Type v3 ])
             in
-            Some v2)
+            Some v2 )
     | None -> None
   in
   (v1, (v2, v3))
@@ -2436,7 +2436,7 @@ and type_ (env : env) (x : CST.type_) : type_ =
           let x = type_ env x in
           TyOr (x, v2, v3)
       | None -> v3
-      (* ?? *))
+      (* ?? *) )
   | `Inte_type (v1, v2, v3) -> (
       let v2 = token env v2 (* "&" *) in
       let v3 = type_ env v3 in
@@ -2445,7 +2445,7 @@ and type_ (env : env) (x : CST.type_) : type_ =
           let x = type_ env x in
           TyAnd (x, v2, v3)
       | None -> v3
-      (* ?? *))
+      (* ?? *) )
   | `Func_type (v1, v2, v3, v4) ->
       let _tparams =
         match v1 with Some x -> type_parameters env x | None -> []
@@ -2532,7 +2532,7 @@ and lhs_expression (env : env) (x : CST.lhs_expression) =
       | `Subs_exp x -> subscript_expression env x
       | `Id tok -> JS.identifier env tok |> idexp (* identifier *)
       | `Choice_decl x -> reserved_identifier env x |> idexp
-      | `Choice_obj x -> destructuring_pattern env x)
+      | `Choice_obj x -> destructuring_pattern env x )
   | `Non_null_exp x -> non_null_expression env x
 
 and statement_block (env : env) ((v1, v2, v3, v4) : CST.statement_block) =
@@ -2681,7 +2681,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       | `Gene_func_decl x -> [ generator_function_declaration env x ]
       | `Class_decl x -> [ class_declaration env x ]
       | `Lexi_decl x -> lexical_declaration env x |> vars_to_defs
-      | `Var_decl x -> variable_declaration env x |> vars_to_defs)
+      | `Var_decl x -> variable_declaration env x |> vars_to_defs )
   | `Func_sign (v1, v2, v3, v4, v5) ->
       let _v1 =
         match v1 with
@@ -2875,6 +2875,6 @@ let parse ?dialect file =
 
       if debug then (
         Printexc.record_backtrace true;
-        CST.dump_tree cst);
+        CST.dump_tree cst );
 
       program env cst)

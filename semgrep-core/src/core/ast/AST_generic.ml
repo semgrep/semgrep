@@ -422,9 +422,7 @@ and expr =
   | N of name
   (*s: [[AST_generic.expr]] other identifier cases *)
   (*x: [[AST_generic.expr]] other identifier cases *)
-  | IdSpecial of special wrap
-  (*e: [[AST_generic.expr]] other identifier cases *)
-
+  | IdSpecial of special wrap (*e: [[AST_generic.expr]] other identifier cases *)
   (* operators and function application *)
   | Call of expr * arguments bracket (* can be fake '()' for OCaml/Ruby *)
   (*s: [[AST_generic.expr]] other call cases *)
@@ -449,9 +447,7 @@ and expr =
   (* less: could desugar in Assign, should be only binary_operator *)
   | AssignOp of expr * operator wrap * expr
   (* newvar:! newscope:? in OCaml yes but we miss the 'in' part here  *)
-  | LetPattern of pattern * expr
-  (*e: [[AST_generic.expr]] other assign cases *)
-
+  | LetPattern of pattern * expr (*e: [[AST_generic.expr]] other assign cases *)
   (* can be used for Record, Class, or Module access depending on expr.
    * In the last case it should be rewritten as a (N IdQualified) with a
    * qualifier though.
@@ -490,9 +486,7 @@ and expr =
   | Seq of expr list (* at least 2 elements *)
   (* less: could be in Special, but pretty important so I've lifted them here*)
   | Ref of tok (* &, address of *) * expr
-  | DeRef of tok (* '*' in C, '!' or '<-' in OCaml, ^ in Reason *) * expr
-  (*e: [[AST_generic.expr]] other cases *)
-
+  | DeRef of tok (* '*' in C, '!' or '<-' in OCaml, ^ in Reason *) * expr (*e: [[AST_generic.expr]] other cases *)
   (*s: [[AST_generic.expr]] semgrep extensions cases *)
   (* sgrep: ... in expressions, args, stmts, items, and fields
    * (and unfortunately also in types in Python) *)
@@ -583,7 +577,6 @@ and special =
    * (e.g., Python, Scala 3), instead certain 'Call' are really 'New' *)
   | New (* usually associated with Call(New, [ArgType _;...]) *)
   (* new by itself is not a valid expression*)
-
   (* used for interpolated strings constructs *)
   | ConcatString of concat_string_kind
   | EncodedString of string (* only for Python for now (e.g., b"foo") *)
@@ -905,7 +898,6 @@ and stmt = {
      This field is set on pattern ASTs only, in a pass right after parsing
      and before matching.
   *)
-
   (* used in semgrep to skip some AST matching *)
   mutable s_bf : Bloom_filter.t option; [@equal fun _a _b -> true] [@hash.ignore]
 }
@@ -917,7 +909,6 @@ and stmt_kind =
   (* newscope: in C++/Java/Go *)
   | Block of stmt list bracket (* can be fake {} in Python where use layout *)
   (* EmptyStmt = Block [], or separate so can not be matched by $S? $ *)
-
   (* newscope: for vardef in expr in C++/Go/... *)
   | If of tok (* 'if' or 'elif' *) * expr * stmt * stmt option
   | While of tok * expr * stmt
@@ -1678,7 +1669,6 @@ and class_definition = {
   (* class_kind in type_ is usually a Trait *)
   cmixins : type_ list;
   (* PHP 'uses' *)
-
   (* for Java Record or Scala Classes; we could transpile them into fields *)
   cparams : parameters;
   (* newscope:

@@ -1519,7 +1519,6 @@ let main () =
       | _ when not (Common.null_string !action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (*e: [[Main_semgrep_core.main()]] match [[args]] actions *)
-
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)

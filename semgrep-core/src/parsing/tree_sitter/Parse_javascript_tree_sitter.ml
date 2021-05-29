@@ -126,9 +126,9 @@ and anon_choice_type_id (env : env) (x : CST.anon_choice_id_b8f8ced) :
 
 let number (env : env) (tok : CST.number) =
   let s, t = str env tok (* number *) in
-  ( (match H.int_of_string_c_octal_opt s with
+  ( ( match H.int_of_string_c_octal_opt s with
     | Some i -> Some (float_of_int i)
-    | None -> float_of_string_opt s),
+    | None -> float_of_string_opt s ),
     t )
 
 let number_as_string (env : env) (tok : CST.number) = str env tok
@@ -384,12 +384,12 @@ and jsx_expression (env : env) ((v1, v2, v3) : CST.jsx_expression) :
     match v2 with
     | Some x ->
         Some
-          (match x with
+          ( match x with
           | `Exp x -> expression env x
           | `Seq_exp x -> sequence_expression env x
           | `Spread_elem x ->
               let t, e = spread_element env x in
-              Apply (IdSpecial (Spread, t), fb [ e ]))
+              Apply (IdSpecial (Spread, t), fb [ e ]) )
     (* abusing { } in XML to just add comments, e.g. { /* lint-ignore */ } *)
     | None -> None
   in
@@ -535,8 +535,8 @@ and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : expr =
                     match v2 with
                     | Some x ->
                         Some
-                          (formal_parameter_no_ellipsis env x
-                          |> parameter_to_pattern)
+                          ( formal_parameter_no_ellipsis env x
+                          |> parameter_to_pattern )
                     | None -> None
                   in
                   v2)
@@ -965,7 +965,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           let _v2 = token env v2 (* "?." *) in
           let v3 = arguments env v3 in
           (* TODO: distinguish "?." from a simple application *)
-          Apply (v1, v3))
+          Apply (v1, v3) )
   | `Semg_dots tok -> todo_semgrep_pattern env tok (* "..." *)
   | `Semg_deep_exp (v1, v2, v3) ->
       let _TODOv1 = token env v1 (* "<..." *) in
@@ -1038,9 +1038,9 @@ and for_header (env : env) ((v1, v2, v3, v4, v5) : CST.for_header) : for_header
     match v2 with
     | `Choice_choice_member_exp x ->
         Right
-          (match x with
+          ( match x with
           | `Choice_member_exp x -> lhs_expression env x
-          | `Paren_exp x -> parenthesized_expression env x)
+          | `Paren_exp x -> parenthesized_expression env x )
     | `Choice_var_choice_id (v1, v2) ->
         let vkind =
           match v1 with
@@ -1158,7 +1158,7 @@ and expression (env : env) (x : CST.expression) : expr =
             | Some x ->
                 let x = expression env x in
                 Apply (IdSpecial (Yield, v1), fb [ x ])
-            | None -> Apply (IdSpecial (Yield, v1), fb []))
+            | None -> Apply (IdSpecial (Yield, v1), fb []) )
       in
       v2
 
@@ -1421,7 +1421,7 @@ and method_definition (env : env)
         match x with
         | `Get tok -> [ attr (Get, token env tok) ] (* "get" *)
         | `Set tok -> [ attr (Set, token env tok) ] (* "set" *)
-        | `STAR tok -> [ attr (Generator, token env tok) ] (* "*" *))
+        | `STAR tok -> [ attr (Generator, token env tok) ] (* "*" *) )
     | None -> []
   in
   let v5 = property_name env v5 in
@@ -1546,7 +1546,7 @@ and export_statement (env : env) (x : CST.export_statement) : toplevel list =
                 let _v2 = semicolon env v2 in
                 let def, n = Ast_js.mk_default_entity_def default_tok e in
                 let def = add_decorators_to_declaration decorators def in
-                [ DefStmt def; M (Export (export_tok, n)) ])
+                [ DefStmt def; M (Export (export_tok, n)) ] )
       in
       v3
 
@@ -1878,7 +1878,7 @@ and pattern (env : env) (x : CST.pattern) : parameter =
               p_type = None;
               p_attrs = [];
             }
-      | Right pat -> todo_any "`Rest_param with pattern" v1 (Expr pat))
+      | Right pat -> todo_any "`Rest_param with pattern" v1 (Expr pat) )
 
 and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
   match x with
