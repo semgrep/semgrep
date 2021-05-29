@@ -6,6 +6,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
+from urllib.parse import urlparse
 
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.profiling import ProfilingData
@@ -45,8 +46,23 @@ class _MetricManager:
 
         self._send_metrics = False
 
-    def set_project_hash(self, project_hash: Optional[str]) -> None:
-        self._project_hash = project_hash
+    def set_project_hash(self, project_url: Optional[str]) -> None:
+        """
+        Standardizes url then hashes
+        """
+        if project_url is None:
+            self._project_hash = None
+        else:
+            parsed_url = urlparse(project_url)
+            if parsed_url.scheme == "https":
+                # Remove optional username/password from project_url
+                sanitized_url = f"{parsed_url.hostname}{parsed_url.path}"
+            else:
+                # For now don't do anything special with other git-url formats
+                sanitized_url = project_url
+
+            project_hash = hashlib.sha256(sanitized_url.encode()).hexdigest()
+            self._project_hash = project_hash
 
     def set_configs_hash(self, configs: List[str]) -> None:
         """
