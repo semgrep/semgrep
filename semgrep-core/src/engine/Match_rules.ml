@@ -97,22 +97,24 @@ let debug_matches = ref false
  *)
 type pattern_id = R.pattern_id
 
+type range_kind = Plain | Inside | Regexp [@@deriving show]
+
 (* range with metavars *)
 type range_with_mvars = {
   r : Range.t;
   mvars : Metavariable.bindings;
-  (* subtle but the pattern:/pattern-inside: and
-   * pattern-not:/pattern-not-inside: are actually different, so we need
-   * to keep the information around during the evaluation.
+  (* subtle but the pattern:/pattern-inside:/pattern-regex: and
+   * pattern-not:/pattern-not-inside:/pattern-not-regex: are actually different,
+   * so we need to keep the information around during the evaluation.
    * Note that this useful only for few tests in semgrep-rules/ so we
    * probably want to simplify things later and remove the difference between
-   * xxx and xxx-inside.
+   * xxx, xxx-inside, and xxx-regex.
    * TODO: in fact, if we do a proper intersection of ranges, where we
    * propery intersect (not just filter one or the other), and also merge
    * metavariables, this will clean lots of things, and remove the need
    * to keep around the Inside. AND will be commutative again!
    *)
-  inside : R.inside option;
+  kind : range_kind;
   origin : Pattern_match.t;
 }
 [@@deriving show]
@@ -191,7 +193,7 @@ let (match_result_to_range : Pattern_match.t -> range_with_mvars) =
  fun m ->
   let { Pattern_match.range_loc = start_loc, end_loc; env = mvars; _ } = m in
   let r = Range.range_of_token_locations start_loc end_loc in
-  { r; mvars; origin = m; inside = None }
+  { r; mvars; origin = m; kind = Plain }
 
 (* return list of "positive" x list of Not x list of Conds *)
 let (split_and :
@@ -272,15 +274,14 @@ let mval_of_spacegrep_string str t =
 
 (* when we know x <= y, are the ranges also in the good Inside direction *)
 let inside_compatible x y =
-  match (x.inside, y.inside) with
-  | Some R.Inside, Some R.Inside -> true
-  | None, None -> true
-  | None, Some R.Inside -> true
-  (* if we do x=pattern-inside:[1-2] /\ y=pattern:[1-3]
+  let x_inside = x.kind = Inside in
+  let y_inside = y.kind = Inside in
+  (* IF x is pattern-inside THEN y must be too:
+   * if we do x=pattern-inside:[1-2] /\ y=pattern:[1-3]
    * we don't want this x to survive.
    * See tests/OTHER/rules/and_inside.yaml
    *)
-  | Some R.Inside, None -> false
+  (not x_inside) || y_inside
 
 (* We now not only check whether a range is included in another,
  * we also merge their metavars. The reason is that with some rules like:
@@ -329,14 +330,17 @@ let difference_ranges config pos neg =
            not
              ( neg
              |> List.exists (fun y ->
-                    (* pattern-not vs pattern-not-inside, the difference matters.
-                     * This fixed 10 mismatches in semgrep-rules.
+                    (* pattern-not vs pattern-not-inside vs pattern-not-regex,
+                     * the difference matters!
+                     * This fixed 10 mismatches in semgrep-rules and some e2e tests.
                      *)
-                    match y.inside with
-                    (* pattern-not-inside: *)
-                    | Some R.Inside -> included_in config x y
+                    match y.kind with
+                    (* pattern-not-inside: x cannot occur inside y *)
+                    | Inside -> included_in config x y
+                    (* pattern-not-regex: x and y exclude each other *)
+                    | Regexp -> included_in config x y || included_in config y x
                     (* pattern-not: we require the ranges to be equal *)
-                    | None -> included_in config x y && included_in config y x)
+                    | Plain -> included_in config x y && included_in config y x)
              ))
   in
   surviving_pos
@@ -609,9 +613,15 @@ let rec (evaluate_formula : env -> R.formula -> range_with_mvars list) =
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with Not_found -> []
       in
+      let kind =
+        match inside with
+        | Some R.Inside -> Inside
+        | None when R.is_regexp xpat -> Regexp
+        | None -> Plain
+      in
       match_results
       |> List.map match_result_to_range
-      |> List.map (fun r -> { r with inside })
+      |> List.map (fun r -> { r with kind })
   | R.Or xs -> xs |> List.map (evaluate_formula env) |> List.flatten
   | R.And xs -> (
       let pos, neg, conds = split_and xs in
@@ -643,7 +653,7 @@ let rec (evaluate_formula : env -> R.formula -> range_with_mvars list) =
         |> Common.partition_either (fun xs ->
                match xs with
                (* todo? should we double check they are all inside? *)
-               | { inside = Some R.Inside; _ } :: _ -> Right xs
+               | { kind = Inside; _ } :: _ -> Right xs
                | _ -> Left xs)
       in
       match posrs @ posrs_inside with
