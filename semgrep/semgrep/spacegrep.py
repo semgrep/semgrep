@@ -1,4 +1,5 @@
 import json
+import logging
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -13,9 +14,8 @@ from semgrep.pattern import Pattern
 from semgrep.rule_lang import Position
 from semgrep.util import SPACEGREP_PATH
 from semgrep.util import sub_run
-from semgrep.verbose_logging import getLogger
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _extract_times(json: Dict[str, Any]) -> Tuple[float, float, float]:
@@ -104,7 +104,7 @@ def run_spacegrep(
                     # aggregate the match times obtained for the different patterns of the rule
                     path_s = str(target)
 
-                    targets_time[path_s] = tuple(  # type: ignore
+                    targets_time[path_s] = tuple(
                         [
                             i + j
                             for i, j in zip(
@@ -112,7 +112,7 @@ def run_spacegrep(
                                 _extract_times(output_json),
                             )
                         ]
-                    )
+                    )  # type: ignore
 
             except subprocess.CalledProcessError as e:
                 raw_error = p.stderr

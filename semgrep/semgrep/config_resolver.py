@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from collections import OrderedDict
@@ -31,9 +32,8 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
-from semgrep.verbose_logging import getLogger
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 IN_DOCKER = "SEMGREP_IN_DOCKER" in os.environ
 IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
@@ -98,7 +98,7 @@ class Config:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
                 resolved_config = resolve_config(config)
                 if not resolved_config:
-                    logger.verbose(f"Could not resolve config for {config}. Skipping.")
+                    logger.debug(f"Could not resolve config for {config}. Skipping.")
                     continue
 
                 for (
@@ -463,7 +463,7 @@ def resolve_config(config_str: str) -> Dict[str, YamlTree]:
     else:
         config = load_config_from_local_path(config_str)
     if config:
-        logger.verbose(f"loaded {len(config)} configs in {time.time() - start_t}")
+        logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
     return config
 
 
