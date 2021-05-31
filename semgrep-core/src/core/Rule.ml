@@ -176,7 +176,6 @@ type rule = {
   languages : xlang;
   file : string;
   (* for metachecking error location *)
-
   (* optional fields *)
   equivalences : string list option;
   (* TODO: parse them *)
