@@ -1130,11 +1130,10 @@ and m_list__m_argument (xsa : A.argument list) (xsb : A.argument list) =
   (* dots: ..., can also match no argument *)
   | [ A.Arg (A.Ellipsis _i) ], [] -> return ()
   (* dots: metavars: $...ARGS *)
-  | A.Arg (A.N (A.Id ((s, tok), _idinfo))) :: xsa, xb :: xsb
+  | A.Arg (A.N (A.Id ((s, tok), _idinfo))) :: xsa, xsb
     when MV.is_metavar_ellipsis s ->
-      (* can match 1 or more arguments (or 0 is ok too? but then
-       * can maybe get some NoTokenLocation?) *)
-      let candidates = inits_and_rest_of_list (xb :: xsb) in
+      (* can match 0 or more arguments (just like ...) *)
+      let candidates = inits_and_rest_of_list_empty_ok xsb in
       let rec aux xs =
         match xs with
         | [] -> fail ()
@@ -1523,8 +1522,7 @@ and m_stmts_deep_uncached ~less_is_ok (xsa : A.stmt list) (xsb : A.stmt list) =
                 xsb )
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
-  | ( ({ s = A.ExprStmt (A.N (A.Id ((s, _), _idinfo)), _); _ } :: _ as xsa),
-      (_ :: _ as xsb) )
+  | ({ s = A.ExprStmt (A.N (A.Id ((s, _), _idinfo)), _); _ } :: _ as xsa), xsb
     when MV.is_metavar_ellipsis s ->
       (* less: for metavariable ellipsis, does it make sense to go deep? *)
       m_list__m_stmt ~list_kind:CK.Original xsa xsb
@@ -1586,12 +1584,10 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
             m_list__m_stmt ~list_kind xsa xsb_tail )
       (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
       (* dots: metavars: $...BODY *)
-      | ( { s = A.ExprStmt (A.N (A.Id ((s, tok), _idinfo)), _); _ } :: xsa,
-          (_xb :: _xsbtail as xsb) )
+      | { s = A.ExprStmt (A.N (A.Id ((s, tok), _idinfo)), _); _ } :: xsa, xsb
         when MV.is_metavar_ellipsis s ->
-          (* can match 1 or more arguments (is 0 ok? but then
-           * can maybe get some NoTokenLocation?) *)
-          let candidates = inits_and_rest_of_list xsb in
+          (* can match 0 or more arguments *)
+          let candidates = inits_and_rest_of_list_empty_ok xsb in
           let rec aux xs =
             match xs with
             | [] -> fail ()

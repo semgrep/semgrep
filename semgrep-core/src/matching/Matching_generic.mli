@@ -97,7 +97,7 @@ val check_and_add_metavar_binding :
 val has_ellipsis_stmts : AST_generic.stmt list -> bool
 
 (*e: signature [[Matching_generic.has_ellipsis_stmts]] *)
-val inits_and_rest_of_list : 'a list -> ('a list * 'a list) list
+val inits_and_rest_of_list_empty_ok : 'a list -> ('a list * 'a list) list
 
 (*s: signature [[Matching_generic.all_elem_and_rest_of_list]] *)
 val all_elem_and_rest_of_list : 'a list -> ('a * 'a list Lazy.t) list
