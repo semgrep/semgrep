@@ -48,8 +48,6 @@ let ids_of_name = function
       | Some (G.QExpr _) ->
           raise Impossible (* H.name_of_ids can't generate this *) )
 
-let error = G.error
-
 let fake = G.fake
 
 let fb = G.fake_bracket
@@ -279,12 +277,15 @@ and v_type_ = function
       let v1 = v_type_ v1 and _v2TODO = v_list v_annotation v2 in
       v1
   | TyRefined (v1, v2) ->
-      let _v1TODO = v_option v_type_ v1
-      and lb, _xsTODO, _rb = v_refinement v2 in
-      error lb "TyRefined not handled"
+      let v1 = v_option v_type_ v1 and _lb, defs, _rb = v_refinement v2 in
+      todo_type "TyRefined"
+        ( (match v1 with None -> [] | Some t -> [ G.T t ])
+        @ (defs |> List.map (fun def -> G.Def def)) )
   | TyExistential (v1, v2, v3) ->
-      let v1 = v_type_ v1 and _v2 = v_tok v2 and _v3TODO = v_refinement v3 in
-      v1
+      let v1 = v_type_ v1 in
+      let _v2 = v_tok v2 in
+      let _lb, defs, _rb = v_refinement v3 in
+      todo_type "TyExistential" (G.T v1 :: (defs |> List.map (fun x -> G.Def x)))
   | TyWith (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_tok v2 and v3 = v_type_ v3 in
       G.TyAnd (v1, v2, v3)
@@ -292,7 +293,8 @@ and v_type_ = function
       let v1 = v_tok v1 and _v2TODO = v_type_bounds v2 in
       G.TyAny v1
 
-and v_refinement v = v_bracket (v_list v_refine_stat) v
+and v_refinement v =
+  v_bracket (fun xs -> v_list v_refine_stat xs |> List.flatten) v
 
 and v_refine_stat v = v_definition v
 
