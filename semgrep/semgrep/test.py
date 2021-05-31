@@ -13,6 +13,7 @@ import argparse
 import collections
 import functools
 import json
+import logging
 import multiprocessing
 import sys
 import tarfile
@@ -31,9 +32,8 @@ from semgrep.semgrep_main import invoke_semgrep
 from semgrep.util import is_config_suffix
 from semgrep.util import is_config_test_suffix
 from semgrep.util import partition
-from semgrep.verbose_logging import getLogger
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 SAVE_TEST_OUTPUT_JSON = "semgrep_runs_output.json"
 SAVE_TEST_OUTPUT_TAR = "semgrep_runs_output.tar.gz"

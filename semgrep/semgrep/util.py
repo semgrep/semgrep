@@ -52,10 +52,8 @@ def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
             yield item
 
 
-def set_flags(verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
+def set_flags(debug_level: bool, quiet: bool, force_color: bool) -> None:
     """Set the global DEBUG and QUIET flags"""
-    # Assumes only one of verbose, debug, quiet is True
-
     logger = logging.getLogger("semgrep")
     logger.handlers = []
     handler = logging.StreamHandler()
@@ -63,12 +61,10 @@ def set_flags(verbose: bool, debug: bool, quiet: bool, force_color: bool) -> Non
     handler.setFormatter(formatter)
 
     level = logging.INFO
-    if verbose:
-        level = logging.VERBOSE  # type: ignore[attr-defined]
-    elif debug:
+    if debug_level:
         level = logging.DEBUG
     elif quiet:
-        level = logging.CRITICAL
+        level = logging.ERROR
 
     handler.setLevel(level)
     logger.addHandler(handler)
@@ -78,13 +74,16 @@ def set_flags(verbose: bool, debug: bool, quiet: bool, force_color: bool) -> Non
     global DEBUG
     global QUIET
     global FORCE_COLOR
-    if debug:
+    if debug_level:
         DEBUG = True
+        # debug_print("DEBUG is on")
     if quiet:
         QUIET = True
+        # debug_print("QUIET is on")
 
     if force_color:
         FORCE_COLOR = True
+        # debug_print("Output will use ANSI escapes, even if output is not a TTY")
 
 
 def partition(pred: Callable, iterable: Iterable) -> Tuple[List, List]:
