@@ -1,5 +1,15 @@
+; The default combination of flags is ':standard', which is made of the
+; following options:
+;  -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs
+;
+; We considered disabling the '-short-paths' option due to bad aliases
+; being shown in type hints and error messages, but the alternative also
+; picks arbitrary aliases. Instead, we use '-short-paths' and prefix
+; our type aliases with 'a_' as a workaround.
+; See issue https://github.com/ocaml/ocaml/issues/10432 for details.
+;
 (env
-(dev
-(flags (:standard -w -52-6)))
-(release
-(flags (:standard -O3))))
+  (dev
+    (flags (:standard  -w -52-6)))
+  (release
+    (flags (:standard -O3))))

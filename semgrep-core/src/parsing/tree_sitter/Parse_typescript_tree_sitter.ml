@@ -2499,7 +2499,7 @@ and constraint_ (env : env) ((v1, v2) : CST.constraint_) :
   v2
 
 and parameter_name (env : env) ((v1, v2, v3) : CST.parameter_name) :
-    (ident, pattern) Common.either =
+    (ident, a_pattern) Common.either =
   let _v1 =
     match v1 with Some x -> [ accessibility_modifier env x ] | None -> []
   in

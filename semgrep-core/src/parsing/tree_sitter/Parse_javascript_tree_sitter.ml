@@ -351,7 +351,7 @@ let import_clause (env : env) (x : CST.import_clause) =
 (*****************************************************************************)
 
 let rec parenthesized_expression (env : env)
-    ((v1, v2, v3) : CST.parenthesized_expression) =
+    ((v1, v2, v3) : CST.parenthesized_expression) : expr =
   let _v1 = token env v1 (* "(" *) in
   let v2 = expressions env v2 in
   let _v3 = token env v3 (* ")" *) in
@@ -477,8 +477,7 @@ and formal_parameter_no_ellipsis (env : env) (x : CST.anon_choice_pat_3297d92) :
     parameter =
   formal_parameter env (x :> CST.formal_parameter)
 
-and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : pattern
-    =
+and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : expr =
   match x with
   | `Obj_pat (v1, v2, v3) ->
       (* similar to 'object_' *)
@@ -719,7 +718,7 @@ and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
   (v1, v2, v3)
 
 and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) :
-    (ident, pattern) either * type_ option * expr option =
+    (ident, a_pattern) either * type_ option * expr option =
   let v1 = anon_choice_id_940079a env v1 in
   let v2 = match v2 with Some x -> Some (initializer_ env x) | None -> None in
   let ty = None in
@@ -730,7 +729,7 @@ and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) :
    Ast_js.build_var.
 *)
 and anon_choice_id_940079a (env : env) (x : CST.anon_choice_id_940079a) :
-    (ident, pattern) either =
+    (ident, a_pattern) either =
   match x with
   | `Id tok ->
       let id = identifier env tok (* identifier *) in
@@ -792,7 +791,8 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
   in
   ObjAccess (v1, v2, PN v3)
 
-and assignment_pattern (env : env) ((v1, v2, v3) : CST.assignment_pattern) =
+and assignment_pattern (env : env) ((v1, v2, v3) : CST.assignment_pattern) :
+    a_pattern * tok * expr =
   let parameter = pattern env v1 in
   let pat = parameter_to_pattern parameter in
   let tok = token env v2 (* "=" *) in
@@ -1030,7 +1030,8 @@ and decorator_call_expression (env : env)
   let v2 = arguments env v2 in
   (v1, v2)
 
-and for_header (env : env) ((v1, v2, v3, v4, v5) : CST.for_header) =
+and for_header (env : env) ((v1, v2, v3, v4, v5) : CST.for_header) : for_header
+    =
   let _v1 = token env v1 (* "(" *) in
 
   let var_or_expr =
@@ -1629,12 +1630,12 @@ and spread_element (env : env) ((v1, v2) : CST.spread_element) =
   (v1, v2)
 
 and rest_pattern (env : env) ((v1, v2) : CST.rest_pattern) :
-    tok * (ident, pattern) either =
+    tok * (ident, a_pattern) either =
   let v1 = token env v1 (* "..." *) in
   let v2 = anon_choice_id_940079a env v2 in
   (v1, v2)
 
-and expressions (env : env) (x : CST.expressions) =
+and expressions (env : env) (x : CST.expressions) : expr =
   match x with
   | `Exp x -> expression env x
   | `Seq_exp x -> sequence_expression env x

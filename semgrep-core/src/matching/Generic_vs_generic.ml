@@ -210,7 +210,6 @@ let m_ident a b =
       let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
       if re_match strb then return () else fail ()
   (*e: [[Generic_vs_generic.m_ident()]] regexp case *)
-
   (* general case *)
   | a, b -> (m_wrap m_string) a b
 
@@ -565,9 +564,8 @@ and m_expr a b =
    *)
   | A.Ellipsis _a1, _ -> return ()
   (*x: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
-  | A.DeepEllipsis (_, a1, _), a2 -> m_expr_deep a1 a2
-  (*e: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
-
+  | A.DeepEllipsis (_, a1, _), a2 ->
+      m_expr_deep a1 a2 (*e: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
   (* must be before constant propagation case below *)
   | A.L a1, B.L b1 -> m_literal a1 b1
   (*s: [[Generic_vs_generic.m_expr()]] propagated constant case *)
@@ -586,7 +584,6 @@ and m_expr a b =
           | None -> fail () )
         ~else_:(fail ())
   (*e: [[Generic_vs_generic.m_expr()]] propagated constant case *)
-
   (*s: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
   | A.Container (A.Array, a2), B.Container (B.Array, b2) ->
       (m_bracket m_container_ordered_elements) a2 b2
@@ -1425,7 +1422,6 @@ and m_attribute a b =
       m_attribute a (B.NamedAttr (t1, B.Id (b1, B.empty_id_info ()), b2))
       >||> m_attribute a (B.NamedAttr (t1, H.name_of_ids dotted, b2))
   (*e: [[Generic_vs_generic.m_attribute]] resolving alias case *)
-
   (* boilerplate *)
   | A.KeywordAttr a1, B.KeywordAttr b1 -> m_wrap m_keyword_attribute a1 b1
   | A.NamedAttr (a0, a1, a2), B.NamedAttr (b0, b1, b2) ->
@@ -1578,7 +1574,6 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
        *)
       | [], _ :: _ -> if less_is_ok then return () else fail ()
       (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
-
       (*s: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
       (* dots: '...', can also match no statement *)
       | [ { s = A.ExprStmt (A.Ellipsis _i, _); _ } ], [] -> return ()
@@ -1705,7 +1700,6 @@ and m_stmt a b =
   (* equivalence: *)
   | A.ExprStmt (a1, _), B.Return (_, Some b1, _) -> m_expr_deep a1 b1
   (*e: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
-
   (* boilerplate *)
   | A.If (a0, a1, a2, a3), B.If (b0, b1, b2, b3) ->
       m_tok a0 b0 >>= fun () ->
@@ -1900,9 +1894,9 @@ and m_pattern a b =
         let e2 = H.pattern_to_expr b2 in
         envf (str, tok) (MV.E e2)
         (* this can happen with PatAs in exception handler in Python *)
-      with H.NotAnExpr -> envf (str, tok) (MV.P b2) )
-  (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *)
-
+      with H.NotAnExpr ->
+        envf (str, tok) (MV.P b2)
+        (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *) )
   (* dots: *)
   | A.PatEllipsis _, _ -> return ()
   (* boilerplate *)
@@ -2126,7 +2120,6 @@ and m_parameter_classic a b =
       (m_type_option_with_hook b1) a3 b3 >>= fun () ->
       m_list_in_any_order ~less_is_ok:true m_attribute a4 b4
   (*e: [[Generic_vs_generic.m_parameter_classic]] metavariable case *)
-
   (* boilerplate *)
   | ( { A.pname = a1; pdefault = a2; ptype = a3; pattrs = a4; pinfo = a5 },
       { B.pname = b1; pdefault = b2; ptype = b3; pattrs = b4; pinfo = b5 } ) ->
