@@ -59,9 +59,10 @@ type mvalue =
   | N of AST_generic.name
   | E of AST_generic.expr
   | S of AST_generic.stmt
-  | Ss of AST_generic.stmt list
   | T of AST_generic.type_
   | P of AST_generic.pattern
+  (* those can be now empty with $...XXX metavariables *)
+  | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
 [@@deriving show, eq, hash]
 
