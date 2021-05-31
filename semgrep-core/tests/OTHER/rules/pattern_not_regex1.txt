@@ -1,0 +1,9 @@
+# https://github.com/returntocorp/semgrep/issues/2465
+
+#ruleid:pattern-not-regex-bug
+Foo==1.1.1
+
+#ok:pattern-not-regex-bug
+Foo-Bar==3.0.8
+#ok:pattern-not-regex-bug
+Bar-Foo==3.0.8
