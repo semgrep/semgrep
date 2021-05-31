@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 from typing import Dict
@@ -8,9 +9,8 @@ from typing import Tuple
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.verbose_logging import getLogger
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 SPLIT_CHAR = "\n"
 
