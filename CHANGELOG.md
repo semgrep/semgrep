@@ -17,6 +17,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - $...ARGS can now match an empty list of arguments, just like ... (#3177)
+- JSON and SARIF outputs sort keys for predictable results
 
 ## [0.53.0](https://github.com/returntocorp/semgrep/releases/tag/v0.53.0) - 2021-05-26
 
