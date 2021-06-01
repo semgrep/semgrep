@@ -194,3 +194,18 @@ def test_timings(snapshot) -> None:
             "runTime": 1.4,
         },
     ]
+
+
+def test_project_hash():
+    metric_manager.set_project_hash("https://foo.bar.com/org/project.git")
+    no_username_password = metric_manager._project_hash
+    metric_manager.set_project_hash(
+        "https://username:password@foo.bar.com/org/project.git"
+    )
+    with_username_password_1 = metric_manager._project_hash
+    metric_manager.set_project_hash(
+        "https://username1:password2@foo.bar.com/org/project.git"
+    )
+    with_username_password_2 = metric_manager._project_hash
+    assert no_username_password == with_username_password_1
+    assert with_username_password_1 == with_username_password_2
