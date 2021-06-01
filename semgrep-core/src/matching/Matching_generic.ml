@@ -378,6 +378,20 @@ let _ =
         ([ 'a' ], [ 'b'; 'c' ]); ([ 'a'; 'b' ], [ 'c' ]); ([ 'a'; 'b'; 'c' ], []);
       ] )
 
+let inits_and_rest_of_list_empty_ok = function
+  | [] -> [ ([], []) ]
+  | xs -> [ ([], xs) ] @ inits_and_rest_of_list xs
+
+let _ =
+  Common2.example
+    ( inits_and_rest_of_list_empty_ok [ 'a'; 'b'; 'c' ]
+    = [
+        ([], [ 'a'; 'b'; 'c' ]);
+        ([ 'a' ], [ 'b'; 'c' ]);
+        ([ 'a'; 'b' ], [ 'c' ]);
+        ([ 'a'; 'b'; 'c' ], []);
+      ] )
+
 (*s: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 (* todo? optimize, probably not the optimal version ... *)
 let all_elem_and_rest_of_list xs =
