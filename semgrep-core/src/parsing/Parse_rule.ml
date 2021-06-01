@@ -268,6 +268,9 @@ let rec parse_formula_old env (x : string * J.t) : R.formula_old =
   | "pattern-not-regex", J.String s ->
       let xpat = R.mk_xpat (Regexp (parse_regexp s)) s in
       R.PatNot xpat
+  | "pattern-comby", J.String s ->
+      let xpat = R.mk_xpat (Comby s) s in
+      R.Pat xpat
   | x ->
       let extra = parse_extra env x in
       R.PatExtra extra
@@ -290,6 +293,9 @@ let rec parse_formula_new env (x : J.t) : R.formula =
           R.Leaf (R.P (parse_pattern env s, Some Inside))
       | [ ("regex", J.String s) ] ->
           let xpat = R.mk_xpat (R.Regexp (parse_regexp s)) s in
+          R.Leaf (R.P (xpat, None))
+      | [ ("comby", J.String s) ] ->
+          let xpat = R.mk_xpat (R.Comby s) s in
           R.Leaf (R.P (xpat, None))
       | [ ("where", J.String s) ] ->
           R.Leaf (R.MetavarCond (R.CondGeneric (parse_metavar_cond s)))

@@ -245,8 +245,10 @@ and xpat_step1 pat =
   (* less: could also extract ids and mvars, but maybe no need to
    * prefilter for spacegrep; it is probably fast enough already
    *)
-  | R.Spacegrep _ -> None
   | R.Regexp re -> Some (Regexp re)
+  (* todo? *)
+  | R.Spacegrep _ -> None
+  | R.Comby _ -> None
 
 and metavarcond_step1 x =
   match x with
