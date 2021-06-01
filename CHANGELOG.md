@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JavaScript parsing: [Allow default export for any declaration](https://github.com/tree-sitter/tree-sitter-javascript/pull/168)
 - Metavariables in messages are filled in when using `--optimizations all`
 - Python: class variables are matched in any order (#3212)
+- Respect `--timeout-threshold` option in `--optimizations all` mode
 
 ### Changed
 - $...ARGS can now match an empty list of arguments, just like ... (#3177)
