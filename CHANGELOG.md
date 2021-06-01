@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Python: class variables are matched in any order (#3212)
 
 ### Changed
+- Moved some debug logging to verbose logging
 - $...ARGS can now match an empty list of arguments, just like ... (#3177)
 - JSON and SARIF outputs sort keys for predictable results
 

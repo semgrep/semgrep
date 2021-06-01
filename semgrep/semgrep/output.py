@@ -1,5 +1,4 @@
 import contextlib
-import logging
 import pathlib
 import sys
 from collections import defaultdict
@@ -38,8 +37,9 @@ from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.util import is_url
 from semgrep.util import with_color
+from semgrep.verbose_logging import getLogger
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def get_path_str(target: Path) -> str:
@@ -335,7 +335,9 @@ class OutputHandler:
         logger.info(f"posting to {output_url}...")
         try:
             r = requests.post(output_url, data=output, timeout=10)
-            logger.debug(f"posted to {output_url} and got status_code:{r.status_code}")
+            logger.verbose(
+                f"posted to {output_url} and got status_code:{r.status_code}"
+            )
         except requests.exceptions.Timeout:
             raise SemgrepError(f"posting output to {output_url} timed out")
 
