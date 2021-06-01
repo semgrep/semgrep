@@ -1557,7 +1557,10 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
   | No -> fail ()
   | Maybe -> (
       (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
-      logger#ldebug (lazy (spf "%d vs %d" (List.length xsa) (List.length xsb)));
+      logger#ldebug
+        ( lazy
+          (spf "m_list__m_stmt_uncached: %d vs %d" (List.length xsa)
+             (List.length xsb)) );
       (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
       match (xsa, xsb) with
       | [], [] -> return ()
@@ -2175,6 +2178,8 @@ and m_fields (xsa : A.field list) (xsb : A.field list) =
 (* less: mix of m_list_and_dots and m_list_unordered_keys, hard to factorize *)
 (*s: function [[Generic_vs_generic.m_list__m_field]] *)
 and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
+  logger#ldebug
+    (lazy (spf "m_list__m_field:%d vs %d" (List.length xsa) (List.length xsb)));
   match (xsa, xsb) with
   | [], [] -> return ()
   (*s: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
@@ -2190,6 +2195,17 @@ and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
       raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
+  (* Note that we restrict the match-a-field-at-any-position only for
+   * definitions, which allows us to optimize things a little bit
+   * by using split_when below.
+   * However, if the field use a metavariable, we need to use
+   * the more expensive all_elem_and_rest_of_list.
+   *
+   * bugfix: In python we used to not do this match-a-field-at-any-pos
+   * for code like 'class $FOO: $VAR = 1' because those were originally
+   * not parsed as DefStmt but as Assign.
+   * alt: keep them as Assign, but always do the all_elem_and_rest_of_list
+   *)
   | ( ( A.FieldStmt
           {
             s = A.DefStmt (({ A.name = A.EN (A.Id ((s1, _), _)); _ }, _) as adef);
@@ -2235,6 +2251,9 @@ and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
         with Not_found -> fail () )
   (*e: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
   (* the general case *)
+  (* todo? ideally we should never reach this part and always allow
+   * to match a field at any position.
+   *)
   | xa :: aas, xb :: bbs -> m_field xa xb >>= fun () -> m_list__m_field aas bbs
   | _ :: _, _ -> fail ()
 
