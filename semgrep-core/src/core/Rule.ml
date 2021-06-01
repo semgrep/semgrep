@@ -63,6 +63,7 @@ and xpattern_kind =
   | Sem of Pattern.t * Lang.t (* language used for parsing the pattern *)
   | Spacegrep of Spacegrep.Pattern_AST.t
   | Regexp of regexp
+  | Comby of string
 
 (* used in the engine for rule->mini_rule and match_result gymnastic *)
 and pattern_id = int [@@deriving show, eq]
@@ -73,8 +74,7 @@ let mk_xpat pat pstr =
   incr count;
   { pat; pstr; pid = !count }
 
-let is_regexp xpat =
-  match xpat.pat with Regexp _ -> true | Sem _ | Spacegrep _ -> false
+let is_regexp xpat = match xpat.pat with Regexp _ -> true | _ -> false
 
 (*****************************************************************************)
 (* Formula (patterns boolean composition) *)

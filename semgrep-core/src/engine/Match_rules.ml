@@ -155,14 +155,23 @@ let (xpatterns_in_formula : R.formula -> R.xpattern list) =
   !res
 
 let partition_xpatterns xs =
+  (* todo: this is getting ugly. Maybe just split semgrep vs all others
+   * and factorize the timing and List.map in all those matches_of_xxx.
+   *)
+  let semgrep = ref [] in
+  let spacegrep = ref [] in
+  let regexp = ref [] in
+  let comby = ref [] in
   xs
-  |> Common.partition_either3 (fun xpat ->
+  |> List.iter (fun xpat ->
          let id = xpat.R.pid in
          let str = xpat.R.pstr in
          match xpat.R.pat with
-         | R.Sem (x, _lang) -> Left3 (x, id, str)
-         | R.Spacegrep x -> Middle3 (x, id, str)
-         | R.Regexp x -> Right3 (x, id, str))
+         | R.Sem (x, _lang) -> Common.push (x, id, str) semgrep
+         | R.Spacegrep x -> Common.push (x, id, str) spacegrep
+         | R.Regexp x -> Common.push (x, id, str) regexp
+         | R.Comby x -> Common.push (x, id, str) comby);
+  (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp, List.rev !comby)
 
 let (group_matches_per_pattern_id : Pattern_match.t list -> id_to_match_results)
     =
@@ -531,17 +540,74 @@ let matches_of_regexs regexps lazy_content file =
   [@@profiling]
 
 (*****************************************************************************)
+(* Evaluating Comby *)
+(*****************************************************************************)
+
+module CK = Comby_kernel
+module MS = CK.Matchers.Metasyntax
+
+let matches_of_combys combys lazy_content file =
+  let _d, _b, e = Common2.dbe_of_filename file in
+  let metasyntax =
+    {
+      MS.syntax = [ MS.Hole (Everything, MS.Delimited (Some "$", None)) ];
+      identifier = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    }
+  in
+  let (module M : CK.Matchers.Matcher.S) =
+    match CK.Matchers.Alpha.select_with_extension ~metasyntax ("." ^ e) with
+    | None -> failwith (spf "no Alpha Comby module for extension %s" e)
+    | Some x -> x
+  in
+
+  let source, parse_time =
+    Common.with_time (fun () -> Lazy.force lazy_content)
+  in
+  let res, match_time =
+    Common.with_time (fun () ->
+        combys
+        |> List.map (fun (pat, id, pstr) ->
+               let matches = M.all ~template:pat ~source () in
+               Format.printf "%a@." CK.Match.pp_json_lines (None, matches);
+               matches
+               |> List.map (fun { CK.Match.range; environment; matched } ->
+                      ignore environment;
+                      let {
+                        CK.Match.Location.offset = charpos;
+                        line = _;
+                        column = _;
+                      } =
+                        range.CK.Match.Range.match_start
+                      in
+                      (* TODO: line/column returned by comby seems wrong *)
+                      let line, column = line_col_of_charpos file charpos in
+                      let loc =
+                        { PI.str = matched; charpos; file; line; column }
+                      in
+                      let rule_id = fake_rule_id (id, pstr) in
+                      {
+                        PM.rule_id;
+                        file;
+                        range_loc = (loc, loc);
+                        tokens = lazy [ info_of_token_location loc ];
+                        env = [] (* TODO *);
+                      }))
+        |> List.flatten)
+  in
+  (res, parse_time, match_time)
+
+(*****************************************************************************)
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
 let matches_of_xpatterns config orig_rule
     (file, xlang, lazy_ast_and_errors, lazy_content) xpatterns =
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
-   * in theory we could mix all of them together.This is why below
-   * I don't match over xlang and instead assume we could have the 3 different
-   * kind of patterns at the same time.
+   * in theory we could mix all of them together. This is why below
+   * I don't match over xlang and instead assume we could have multiple
+   * kinds of patterns at the same time.
    *)
-  let patterns, spacegreps, regexps = partition_xpatterns xpatterns in
+  let patterns, spacegreps, regexps, combys = partition_xpatterns xpatterns in
 
   (* semgrep *)
   let semgrep_res =
@@ -585,18 +651,25 @@ let matches_of_xpatterns config orig_rule
     else matches_of_regexs regexps lazy_content file
   in
 
+  (* comby *)
+  let comby_matches, comby_parse_time, comby_match_time =
+    if combys = [] then ([], 0.0, 0.0)
+    else matches_of_combys combys lazy_content file
+  in
+
   (* final result *)
   {
-    RP.matches = semgrep_res.matches @ regexp_matches @ spacegrep_matches;
+    RP.matches =
+      semgrep_res.matches @ regexp_matches @ spacegrep_matches @ comby_matches;
     errors = semgrep_res.errors;
     profiling =
       {
         RP.parse_time =
           semgrep_res.profiling.parse_time +. regexp_parse_time
-          +. spacegrep_parse_time;
+          +. spacegrep_parse_time +. comby_parse_time;
         match_time =
           semgrep_res.profiling.match_time +. regexp_match_time
-          +. spacegrep_match_time;
+          +. spacegrep_match_time +. comby_match_time;
       };
   }
   [@@profiling]
