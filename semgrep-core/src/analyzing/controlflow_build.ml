@@ -251,7 +251,6 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
          state.g |> add_arc_opt (finalthen, newi);
          Some newfakeelse
   *)
-
   (* This time, we may return None, for instance if return in body of dowhile
    * (whereas While can't return None). But if we return None, certainly
    * sign of buggy code.

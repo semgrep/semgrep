@@ -31,8 +31,13 @@ import time
 import urllib.request
 from contextlib import contextmanager
 from typing import Iterator
-from corpus import SEMGREP_CORE_CORPUSES, DUMMY_CORPUSES, Corpus
+from typing import List
+
 from constants import DASHBOARD_URL
+from corpus import Corpus
+from corpus import DUMMY_CORPUSES
+from corpus import SEMGREP_CORE_CORPUSES
+
 
 class SemgrepVariant:
     def __init__(self, name: str, semgrep_core_extra: str):
@@ -78,19 +83,18 @@ def upload_result(metric_name: str, value: float) -> None:
 
 
 def run_semgrep_core(corpus: Corpus, variant: SemgrepVariant) -> float:
-    args = []
     common_args = ["-timeout", "0"]
     # Using absolute paths because run_semgrep did, and because it is convenient
     # to be able to run the command in different folders
-    args = [
+    args: List[str] = [
         "semgrep-core",
         "-j",
         "8",
         "-lang",
-        corpus.language,
+        corpus.language or "",
         "-config",
-        os.path.abspath(corpus.rule_dir),
-        os.path.abspath(corpus.target_dir),
+        os.path.abspath(corpus.rule_dir) or "",
+        os.path.abspath(corpus.target_dir) or "",
     ]
     args.extend(common_args)
     if variant.semgrep_core_extra != "":

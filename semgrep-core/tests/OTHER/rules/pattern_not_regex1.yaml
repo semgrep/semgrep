@@ -1,0 +1,9 @@
+rules:
+  - id: pattern-not-regex-bug
+    patterns:
+      - pattern-regex: "Foo"
+      - pattern-not-regex: "Foo-"
+      - pattern-not-regex: "-Foo"
+    message: "Found $TAG"
+    languages: [generic]
+    severity: ERROR

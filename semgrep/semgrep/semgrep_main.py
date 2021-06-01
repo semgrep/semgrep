@@ -1,4 +1,3 @@
-import hashlib
 import json
 import subprocess
 import time
@@ -290,6 +289,7 @@ The two most popular are:
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
     if metric_manager.is_enabled:
+        project_url = None
         try:
             project_url = sub_check_output(
                 ["git", "ls-remote", "--get-url"],
@@ -304,11 +304,7 @@ The two most popular are:
             except Exception as e:
                 logger.debug(f"Failed to get project url from .git/config: {e}")
 
-        project_hash = (
-            hashlib.sha256(project_url.encode()).hexdigest() if project_url else None
-        )
-
-        metric_manager.set_project_hash(project_hash)
+        metric_manager.set_project_hash(project_url)
         metric_manager.set_configs_hash(configs)
         metric_manager.set_rules_hash(filtered_rules)
         metric_manager.set_num_rules(len(filtered_rules))

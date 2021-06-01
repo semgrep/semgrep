@@ -173,8 +173,8 @@ def test_timings(snapshot) -> None:
         {
             "ruleHash": "2cc5dbc0cae3a8b6af0d8792079251c4d861b5e16815c1b1cdba676d1c96c5a5",
             "parseTime": 0.0,
-            "matchTime": -1.0,
-            "runTime": -1.0,
+            "matchTime": None,
+            "runTime": None,
             "bytesScanned": 0,
         },
     ]
@@ -194,3 +194,18 @@ def test_timings(snapshot) -> None:
             "runTime": 1.4,
         },
     ]
+
+
+def test_project_hash():
+    metric_manager.set_project_hash("https://foo.bar.com/org/project.git")
+    no_username_password = metric_manager._project_hash
+    metric_manager.set_project_hash(
+        "https://username:password@foo.bar.com/org/project.git"
+    )
+    with_username_password_1 = metric_manager._project_hash
+    metric_manager.set_project_hash(
+        "https://username1:password2@foo.bar.com/org/project.git"
+    )
+    with_username_password_2 = metric_manager._project_hash
+    assert no_username_password == with_username_password_1
+    assert with_username_password_1 == with_username_password_2

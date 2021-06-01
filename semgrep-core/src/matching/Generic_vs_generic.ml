@@ -210,7 +210,6 @@ let m_ident a b =
       let re_match = Matching_generic.regexp_matcher_of_regexp_string stra in
       if re_match strb then return () else fail ()
   (*e: [[Generic_vs_generic.m_ident()]] regexp case *)
-
   (* general case *)
   | a, b -> (m_wrap m_string) a b
 
@@ -565,9 +564,8 @@ and m_expr a b =
    *)
   | A.Ellipsis _a1, _ -> return ()
   (*x: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
-  | A.DeepEllipsis (_, a1, _), a2 -> m_expr_deep a1 a2
-  (*e: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
-
+  | A.DeepEllipsis (_, a1, _), a2 ->
+      m_expr_deep a1 a2 (*e: [[Generic_vs_generic.m_expr()]] ellipsis cases *)
   (* must be before constant propagation case below *)
   | A.L a1, B.L b1 -> m_literal a1 b1
   (*s: [[Generic_vs_generic.m_expr()]] propagated constant case *)
@@ -586,7 +584,6 @@ and m_expr a b =
           | None -> fail () )
         ~else_:(fail ())
   (*e: [[Generic_vs_generic.m_expr()]] propagated constant case *)
-
   (*s: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
   | A.Container (A.Array, a2), B.Container (B.Array, b2) ->
       (m_bracket m_container_ordered_elements) a2 b2
@@ -1133,11 +1130,10 @@ and m_list__m_argument (xsa : A.argument list) (xsb : A.argument list) =
   (* dots: ..., can also match no argument *)
   | [ A.Arg (A.Ellipsis _i) ], [] -> return ()
   (* dots: metavars: $...ARGS *)
-  | A.Arg (A.N (A.Id ((s, tok), _idinfo))) :: xsa, xb :: xsb
+  | A.Arg (A.N (A.Id ((s, tok), _idinfo))) :: xsa, xsb
     when MV.is_metavar_ellipsis s ->
-      (* can match 1 or more arguments (or 0 is ok too? but then
-       * can maybe get some NoTokenLocation?) *)
-      let candidates = inits_and_rest_of_list (xb :: xsb) in
+      (* can match 0 or more arguments (just like ...) *)
+      let candidates = inits_and_rest_of_list_empty_ok xsb in
       let rec aux xs =
         match xs with
         | [] -> fail ()
@@ -1425,7 +1421,6 @@ and m_attribute a b =
       m_attribute a (B.NamedAttr (t1, B.Id (b1, B.empty_id_info ()), b2))
       >||> m_attribute a (B.NamedAttr (t1, H.name_of_ids dotted, b2))
   (*e: [[Generic_vs_generic.m_attribute]] resolving alias case *)
-
   (* boilerplate *)
   | A.KeywordAttr a1, B.KeywordAttr b1 -> m_wrap m_keyword_attribute a1 b1
   | A.NamedAttr (a0, a1, a2), B.NamedAttr (b0, b1, b2) ->
@@ -1527,8 +1522,7 @@ and m_stmts_deep_uncached ~less_is_ok (xsa : A.stmt list) (xsb : A.stmt list) =
                 xsb )
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
-  | ( ({ s = A.ExprStmt (A.N (A.Id ((s, _), _idinfo)), _); _ } :: _ as xsa),
-      (_ :: _ as xsb) )
+  | ({ s = A.ExprStmt (A.N (A.Id ((s, _), _idinfo)), _); _ } :: _ as xsa), xsb
     when MV.is_metavar_ellipsis s ->
       (* less: for metavariable ellipsis, does it make sense to go deep? *)
       m_list__m_stmt ~list_kind:CK.Original xsa xsb
@@ -1563,7 +1557,10 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
   | No -> fail ()
   | Maybe -> (
       (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
-      logger#ldebug (lazy (spf "%d vs %d" (List.length xsa) (List.length xsb)));
+      logger#ldebug
+        ( lazy
+          (spf "m_list__m_stmt_uncached: %d vs %d" (List.length xsa)
+             (List.length xsb)) );
       (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
       match (xsa, xsb) with
       | [], [] -> return ()
@@ -1578,7 +1575,6 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
        *)
       | [], _ :: _ -> if less_is_ok then return () else fail ()
       (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
-
       (*s: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
       (* dots: '...', can also match no statement *)
       | [ { s = A.ExprStmt (A.Ellipsis _i, _); _ } ], [] -> return ()
@@ -1591,12 +1587,10 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
             m_list__m_stmt ~list_kind xsa xsb_tail )
       (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
       (* dots: metavars: $...BODY *)
-      | ( { s = A.ExprStmt (A.N (A.Id ((s, tok), _idinfo)), _); _ } :: xsa,
-          (_xb :: _xsbtail as xsb) )
+      | { s = A.ExprStmt (A.N (A.Id ((s, tok), _idinfo)), _); _ } :: xsa, xsb
         when MV.is_metavar_ellipsis s ->
-          (* can match 1 or more arguments (is 0 ok? but then
-           * can maybe get some NoTokenLocation?) *)
-          let candidates = inits_and_rest_of_list xsb in
+          (* can match 0 or more arguments *)
+          let candidates = inits_and_rest_of_list_empty_ok xsb in
           let rec aux xs =
             match xs with
             | [] -> fail ()
@@ -1705,7 +1699,6 @@ and m_stmt a b =
   (* equivalence: *)
   | A.ExprStmt (a1, _), B.Return (_, Some b1, _) -> m_expr_deep a1 b1
   (*e: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
-
   (* boilerplate *)
   | A.If (a0, a1, a2, a3), B.If (b0, b1, b2, b3) ->
       m_tok a0 b0 >>= fun () ->
@@ -1900,9 +1893,9 @@ and m_pattern a b =
         let e2 = H.pattern_to_expr b2 in
         envf (str, tok) (MV.E e2)
         (* this can happen with PatAs in exception handler in Python *)
-      with H.NotAnExpr -> envf (str, tok) (MV.P b2) )
-  (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *)
-
+      with H.NotAnExpr ->
+        envf (str, tok) (MV.P b2)
+        (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *) )
   (* dots: *)
   | A.PatEllipsis _, _ -> return ()
   (* boilerplate *)
@@ -2126,7 +2119,6 @@ and m_parameter_classic a b =
       (m_type_option_with_hook b1) a3 b3 >>= fun () ->
       m_list_in_any_order ~less_is_ok:true m_attribute a4 b4
   (*e: [[Generic_vs_generic.m_parameter_classic]] metavariable case *)
-
   (* boilerplate *)
   | ( { A.pname = a1; pdefault = a2; ptype = a3; pattrs = a4; pinfo = a5 },
       { B.pname = b1; pdefault = b2; ptype = b3; pattrs = b4; pinfo = b5 } ) ->
@@ -2186,6 +2178,8 @@ and m_fields (xsa : A.field list) (xsb : A.field list) =
 (* less: mix of m_list_and_dots and m_list_unordered_keys, hard to factorize *)
 (*s: function [[Generic_vs_generic.m_list__m_field]] *)
 and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
+  logger#ldebug
+    (lazy (spf "m_list__m_field:%d vs %d" (List.length xsa) (List.length xsb)));
   match (xsa, xsb) with
   | [], [] -> return ()
   (*s: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
@@ -2201,6 +2195,17 @@ and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
       raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
+  (* Note that we restrict the match-a-field-at-any-position only for
+   * definitions, which allows us to optimize things a little bit
+   * by using split_when below.
+   * However, if the field use a metavariable, we need to use
+   * the more expensive all_elem_and_rest_of_list.
+   *
+   * bugfix: In python we used to not do this match-a-field-at-any-pos
+   * for code like 'class $FOO: $VAR = 1' because those were originally
+   * not parsed as DefStmt but as Assign.
+   * alt: keep them as Assign, but always do the all_elem_and_rest_of_list
+   *)
   | ( ( A.FieldStmt
           {
             s = A.DefStmt (({ A.name = A.EN (A.Id ((s1, _), _)); _ }, _) as adef);
@@ -2246,6 +2251,9 @@ and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
         with Not_found -> fail () )
   (*e: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
   (* the general case *)
+  (* todo? ideally we should never reach this part and always allow
+   * to match a field at any position.
+   *)
   | xa :: aas, xb :: bbs -> m_field xa xb >>= fun () -> m_list__m_field aas bbs
   | _ :: _, _ -> fail ()
 

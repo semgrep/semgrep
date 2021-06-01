@@ -61,6 +61,11 @@ type error_extra = {
 }
 
 type metavar_value = {
+  (* for certain metavariable like $...ARGS, 'end' may be equal to 'start'
+   * to represent an empty metavariable value. The rest of the Python
+   * code (message metavariable substitution and autofix) works
+   * without change for empty ranges (when end = start).
+   *)
   start: position;
   end_ <json name="end">: position;
   abstract_content: string; (* value? *)

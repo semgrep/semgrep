@@ -73,6 +73,9 @@ let mk_xpat pat pstr =
   incr count;
   { pat; pstr; pid = !count }
 
+let is_regexp xpat =
+  match xpat.pat with Regexp _ -> true | Sem _ | Spacegrep _ -> false
+
 (*****************************************************************************)
 (* Formula (patterns boolean composition) *)
 (*****************************************************************************)
@@ -176,7 +179,6 @@ type rule = {
   languages : xlang;
   file : string;
   (* for metachecking error location *)
-
   (* optional fields *)
   equivalences : string list option;
   (* TODO: parse them *)
