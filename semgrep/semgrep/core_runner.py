@@ -618,6 +618,9 @@ class CoreRunner:
         outputs: Dict[Rule, List[RuleMatch]] = collections.defaultdict(list)
         errors: List[SemgrepError] = []
         all_targets: Set[Path] = set()
+        file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
+        max_timeout_files: Set[Path] = set()
+
         profiling_data: ProfilingData = ProfilingData()
         # cf. for bar_format: https://tqdm.github.io/docs/tqdm/
         with tempfile.TemporaryDirectory() as semgrep_core_ast_cache_dir:
@@ -632,6 +635,13 @@ class CoreRunner:
                         targets = self.get_files_for_language(
                             language, rule, target_manager
                         )
+
+                        targets = [
+                            target
+                            for target in targets
+                            if target not in max_timeout_files
+                        ]
+
                         # opti: no need to call semgrep-core if no target files
                         if not targets:
                             continue
@@ -685,12 +695,21 @@ class CoreRunner:
                     # TODO: we should do that in Semgrep_generic.ml instead
                     findings = dedup_output(findings)
                     outputs[rule].extend(findings)
-                    errors.extend(
+                    parsed_errors = [
                         CoreException.from_json(
                             e, language.value, rule.id
                         ).into_semgrep_error()
                         for e in output_json["errors"]
-                    )
+                    ]
+                    for err in parsed_errors:
+                        if isinstance(err, MatchTimeoutError):
+                            file_timeouts[err.path] += 1
+                            if (
+                                self._timeout_threshold != 0
+                                and file_timeouts[err.path] >= self._timeout_threshold
+                            ):
+                                max_timeout_files.add(err.path)
+                    errors.extend(parsed_errors)
             # end for language ...
         # end for rule ...
 
