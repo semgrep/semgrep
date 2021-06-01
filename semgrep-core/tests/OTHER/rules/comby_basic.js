@@ -1,5 +1,5 @@
 function foo() {
-    //ERROR:
+    //ruleid:
     foo(1, 2)
 
     //unfortunately it does not match
@@ -7,11 +7,11 @@ function foo() {
     //neither this one :(
     foo (1, 2)
 
-    //ERROR: this is detected
+    //ruleid: this is detected
     foo(1,
 	2)
 
-    //ERROR: this is detectedtoo
+    //ruleid: this is detectedtoo
     foo(1, // comment
 	 2)
 
