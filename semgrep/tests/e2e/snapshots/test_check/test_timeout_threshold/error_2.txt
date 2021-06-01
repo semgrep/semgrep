@@ -1,5 +1,4 @@
-loaded 1 configs in 0.0904989242553711
-running 3 rules from 1 config rules/multiple-long.yaml_0 
+running 3 rules from 1 config rules/multiple-long.yaml_0
 running 3 rules...
 rules:
 - rules.forcetimeout

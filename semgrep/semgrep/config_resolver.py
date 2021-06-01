@@ -463,7 +463,7 @@ def resolve_config(config_str: str) -> Dict[str, YamlTree]:
     else:
         config = load_config_from_local_path(config_str)
     if config:
-        logger.verbose(f"loaded {len(config)} configs in {time.time() - start_t}")
+        logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
     return config
 
 
