@@ -548,6 +548,27 @@ and list_stmt1 xs =
 
 (*e: function [[Python_to_generic.list_stmt1]] *)
 
+(* In Python, many Assign are actually VarDef. We should transform those,
+ * because this would simplify Naming_AST.ml later, but this requires
+ * some semantic analysis to detect which of those Assign are the first
+ * and can be safely transform in a VarDef.
+ * However, for class fields, an Assign in a field position is surely
+ * a VarDef (actually a FieldDef, but VarDef works too), so let's
+ * transform those.
+ *
+ * This tranformation is useful for Generic_vs_generic in m_list__m_field
+ * where we do some special magic to allow a definition using a metavariable
+ * to be matched at any position. If this definition was actually
+ * an Assign, we don't do the magic.
+ *)
+and fieldstmt x =
+  match x with
+  | { G.s = G.ExprStmt (G.Assign (G.N name, _teq, e), _sc); _ } ->
+      let vdef = { G.vinit = Some e; vtype = None } in
+      let ent = { G.name = G.EN name; attrs = []; tparams = [] } in
+      G.FieldStmt (G.DefStmt (ent, G.VarDef vdef) |> G.s)
+  | _ -> G.FieldStmt x
+
 (*s: function [[Python_to_generic.stmt_aux]] *)
 and stmt_aux x =
   match x with
@@ -575,7 +596,7 @@ and stmt_aux x =
           cimplements = [];
           cmixins = [];
           cparams = [];
-          cbody = fb (v3 |> List.map (fun x -> G.FieldStmt x));
+          cbody = fb (v3 |> List.map (fun x -> fieldstmt x));
         }
       in
       [ G.DefStmt (ent, G.ClassDef def) |> G.s ]

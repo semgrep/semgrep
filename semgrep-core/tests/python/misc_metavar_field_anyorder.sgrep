@@ -1,0 +1,3 @@
+class LOL(SuperClass):
+  ...
+  $VAR = Vuln(...)
