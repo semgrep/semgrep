@@ -1,4 +1,5 @@
 import hashlib
+import logging
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -52,13 +53,18 @@ class _MetricManager:
         if project_url is None:
             self._project_hash = None
         else:
-            parsed_url = urlparse(project_url)
-            if parsed_url.scheme == "https":
-                # Remove optional username/password from project_url
-                sanitized_url = f"{parsed_url.hostname}{parsed_url.path}"
-            else:
-                # For now don't do anything special with other git-url formats
+            try:
+                parsed_url = urlparse(project_url)
+                if parsed_url.scheme == "https":
+                    # Remove optional username/password from project_url
+                    sanitized_url = f"{parsed_url.hostname}{parsed_url.path}"
+                else:
+                    # For now don't do anything special with other git-url formats
+                    sanitized_url = project_url
+            except ValueError as e:
+                logger.debug(f"Failed to parse url {project_url}")
                 sanitized_url = project_url
+
 
             project_hash = hashlib.sha256(sanitized_url.encode()).hexdigest()
             self._project_hash = project_hash
