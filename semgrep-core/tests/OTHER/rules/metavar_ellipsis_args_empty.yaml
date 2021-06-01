@@ -1,0 +1,7 @@
+rules:
+- id: misc
+  message: $...ARGS
+  pattern: foo($X, $...ARGS)
+  languages: [ruby]
+  severity: WARNING
+  

@@ -86,23 +86,30 @@ let position_range min_loc max_loc =
 (*e: function [[JSON_report.json_range]] *)
 
 (*s: function [[JSON_report.range_of_any]] *)
-let range_of_any any =
-  let min_loc, max_loc = V.range_of_any any in
-  let startp, endp = position_range min_loc max_loc in
-  (startp, endp)
+let range_of_any startp_of_match_range any =
+  let empty_range = (startp_of_match_range, startp_of_match_range) in
+  match any with
+  (* those are ok and we don't want to generate a NoTokenLocation for those.
+   * alt: change Semgrep.atd to make optional startp/endp for metavar_value.
+   *)
+  | Ss [] | Args [] -> empty_range
+  | _ ->
+      let min_loc, max_loc = V.range_of_any any in
+      let startp, endp = position_range min_loc max_loc in
+      (startp, endp)
 
 (*e: function [[JSON_report.range_of_any]] *)
 
 (*s: function [[JSON_report.json_metavar]] *)
-let metavars startp (s, mval) =
+let metavars startp_of_match_range (s, mval) =
   let any = MV.mvalue_to_any mval in
   let startp, endp =
-    try range_of_any any
+    try range_of_any startp_of_match_range any
     with Parse_info.NoTokenLocation _exn ->
       raise
         (Parse_info.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
-              (SJ.string_of_position startp)))
+              (SJ.string_of_position startp_of_match_range)))
   in
   ( s,
     {

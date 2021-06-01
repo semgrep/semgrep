@@ -59,9 +59,14 @@ type mvalue =
   | N of AST_generic.name
   | E of AST_generic.expr
   | S of AST_generic.stmt
-  | Ss of AST_generic.stmt list
   | T of AST_generic.type_
   | P of AST_generic.pattern
+  (* Those can be now empty with $...XXX metavariables.
+   * coupling: if you add more constructors that allow an empty content,
+   * you may need to modify JSON_report.range_of_any to not get
+   * some NoTokenLocation exn.
+   *)
+  | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
 [@@deriving show, eq, hash]
 
