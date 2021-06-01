@@ -1,7 +1,6 @@
 import collections
 import functools
 import json
-import logging
 import re
 import subprocess
 import tempfile
@@ -53,8 +52,9 @@ from semgrep.util import partition
 from semgrep.util import progress_bar
 from semgrep.util import SEMGREP_PATH
 from semgrep.util import sub_run
+from semgrep.verbose_logging import getLogger
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def _offset_to_line_no(offset: int, buff: str) -> int:

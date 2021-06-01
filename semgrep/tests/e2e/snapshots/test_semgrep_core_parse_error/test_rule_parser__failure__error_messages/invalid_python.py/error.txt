@@ -1,4 +1,8 @@
+running 2 rules from 1 config rules/eqeq-python.yaml_0 
 running 2 rules...
+rules:
+- rules.assert-eqeq-is-ok
+- rules.eqeq-is-bad
 semgrep warn: parse error
   --> targets/bad/invalid_python.py:1
 1 | def foo(a)

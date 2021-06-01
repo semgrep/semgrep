@@ -1,4 +1,9 @@
+running 3 rules from 1 config rules/multiple-long.yaml_0 
 running 3 rules...
+rules:
+- rules.forcetimeout
+- rules.forcetimeout2
+- rules.forcetimeout3
 Warning: 1 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules: [rules.forcetimeout]
 Semgrep stopped running rules on targets/equivalence/open_redirect.py after 1 timeout error(s). See `--timeout-threshold` for more info.
 ran 3 rules on 1 files: 0 findings

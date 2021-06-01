@@ -1,5 +1,4 @@
 import json
-import logging
 import subprocess
 import time
 from io import StringIO
@@ -33,15 +32,15 @@ from semgrep.rule_match import RuleMatch
 from semgrep.target_manager import TargetManager
 from semgrep.util import manually_search_file
 from semgrep.util import sub_check_output
+from semgrep.verbose_logging import getLogger
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def notify_user_of_work(
     filtered_rules: List[Rule],
     include: List[str],
     exclude: List[str],
-    verbose: bool = False,
 ) -> None:
     """
     Notify user of what semgrep is about to do, including:
@@ -58,10 +57,9 @@ def notify_user_of_work(
         for exc in exclude:
             logger.info(f"- {exc}")
     logger.info(f"running {len(filtered_rules)} rules...")
-    if verbose:
-        logger.info("rules:")
-        for rule in filtered_rules:
-            logger.info(f"- {rule.id}")
+    logger.verbose("rules:")
+    for rule in filtered_rules:
+        logger.verbose(f"- {rule.id}")
 
 
 def rule_match_nosem(
@@ -80,7 +78,7 @@ def rule_match_nosem(
 
     ids_str = re_match.groupdict()["ids"]
     if ids_str is None:
-        logger.debug(
+        logger.verbose(
             f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
         )
         return True, []
@@ -102,7 +100,7 @@ def rule_match_nosem(
     result = False
     for pattern_id in pattern_ids:
         if rule_match.id == pattern_id:
-            logger.debug(
+            logger.verbose(
                 f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
             )
             result = result or True
@@ -111,7 +109,7 @@ def rule_match_nosem(
             if strict:
                 errors.append(SemgrepError(message, level=Level.WARN))
             else:
-                logger.debug(message)
+                logger.verbose(message)
 
     return result, errors
 
@@ -205,7 +203,7 @@ def main(
         invalid_msg = (
             f"({len(errors)} config files were invalid)" if len(errors) else ""
         )
-        logger.debug(
+        logger.verbose(
             f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}"
         )
 
