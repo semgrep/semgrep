@@ -272,6 +272,8 @@ and nested_lval env tok eorig =
 and pattern env pat =
   match pat with
   | G.PatId (id, id_info) -> Left (lval_of_id_info env id id_info)
+  | G.PatVar (_TODO, Some (id, id_info)) ->
+      Left (lval_of_id_info env id id_info)
   | _ -> todo (G.P pat)
 
 and pattern_assign_statements env exp eorig pat =
