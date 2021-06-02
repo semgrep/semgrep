@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.54.0](https://github.com/returntocorp/semgrep/releases/tag/v0.54.0) - 2021-06-2
+
 ### Added
 - Per rule parse times and per rule-file parse and match times added to opt-in metrics
 - $...MVAR can now match a list of statements (not just a list of arguments) (#3170)
