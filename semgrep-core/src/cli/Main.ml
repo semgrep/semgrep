@@ -825,6 +825,7 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
            in
            let res =
              Match_rules.check hook Config_semgrep.default_config rules
+               (parse_equivalences ())
                (file, xlang, lazy_ast_and_errors)
            in
            RP.add_file file res)

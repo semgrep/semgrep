@@ -631,7 +631,11 @@ class CoreRunner:
                     debug_tqdm_write(f"Running rule {rule.id}...")
                     with tempfile.NamedTemporaryFile(
                         "w", suffix=".yaml"
-                    ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
+                    ) as rule_file, tempfile.NamedTemporaryFile(
+                        "w"
+                    ) as target_file, tempfile.NamedTemporaryFile(
+                        "w"
+                    ) as equiv_file:
                         targets = self.get_files_for_language(
                             language, rule, target_manager
                         )
@@ -672,6 +676,11 @@ class CoreRunner:
                             str(self._max_memory),
                             "-json_time",
                         ]
+
+                        equivalences = rule.equivalences
+                        if equivalences:
+                            self._write_equivalences_file(equiv_file, equivalences)
+                            cmd += ["-equivalences", equiv_file.name]
 
                         if self._output_settings.debug:
                             cmd += ["-debug"]

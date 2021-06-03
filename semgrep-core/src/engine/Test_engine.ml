@@ -149,7 +149,7 @@ let test_rules ?(ounit_context = false) xs =
            try
              Match_rules.check
                (fun _ _ _ -> ())
-               config rules
+               config rules []
                (target, xlang, lazy_ast_and_errors)
            with exn ->
              failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))

@@ -602,7 +602,7 @@ let matches_of_combys combys lazy_content file =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns config orig_rule
+let matches_of_xpatterns config orig_rule equivalences
     (file, xlang, lazy_ast_and_errors, lazy_content) xpatterns =
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
@@ -623,10 +623,7 @@ let matches_of_xpatterns config orig_rule
               let mini_rules =
                 patterns |> List.map (mini_rule_of_pattern orig_rule)
               in
-              let equivalences =
-                (* TODO *)
-                []
-              in
+
               (* debugging path *)
               if !debug_timeout || !debug_matches then
                 ( debug_semgrep config mini_rules equivalences file lang ast,
@@ -778,7 +775,7 @@ let rec (evaluate_formula : env -> R.formula -> range_with_mvars list) =
 (* Main entry point *)
 (*****************************************************************************)
 
-let check hook config rules file_and_more =
+let check hook config rules equivs file_and_more =
   let file, xlang, lazy_ast_and_errors = file_and_more in
   logger#info "checking %s with %d rules" file (List.length rules);
   if !Common.profile = Common.ProfAll then (
@@ -805,7 +802,7 @@ let check hook config rules file_and_more =
              else
                let xpatterns = xpatterns_in_formula formula in
                let res =
-                 matches_of_xpatterns config r
+                 matches_of_xpatterns config r equivs
                    (file, xlang, lazy_ast_and_errors, lazy_content)
                    xpatterns
                in
