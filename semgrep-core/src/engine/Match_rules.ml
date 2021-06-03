@@ -196,7 +196,9 @@ let (range_to_pattern_match_adjusted :
       message = r.R.message (* keep pattern_str which can be useful to debug *);
     }
   in
-  { m with rule_id }
+  (* Need env to be the result of evaluate_formula, which propagates metavariables *)
+  (* rather than the original metavariables for the match                          *)
+  { m with rule_id; env = range.mvars }
 
 let (match_result_to_range : Pattern_match.t -> range_with_mvars) =
  fun m ->
