@@ -736,6 +736,12 @@ class CoreRunner:
         start = datetime.now()
 
         experimental = optimizations == "all"
+
+        # Fall back to normal mode if there is a tainting rule
+        if experimental and any(rule.mode == TAINT_MODE for rule in rules):
+            logger.info("Running with no optimizations since taint rule found")
+            experimental = False
+
         runner_fxn = (
             self._run_rules_direct_to_semgrep_core if experimental else self._run_rules
         )
