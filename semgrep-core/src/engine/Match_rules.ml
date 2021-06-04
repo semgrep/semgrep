@@ -23,7 +23,11 @@ module G = AST_generic
 module PI = Parse_info
 module MV = Metavariable
 module RP = Report
+
+(* other matchers *)
 module SJ = Spacegrep.Semgrep_j
+module CK = Comby_kernel
+module MS = CK.Matchers.Metasyntax
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -257,6 +261,17 @@ let line_col_of_charpos file charpos =
     Common.memoized hmemo file (fun () -> PI.full_charpos_to_pos_large file)
   in
   conv charpos
+
+(* "if you need line/column conversion [in Comby], then there's another
+ * function to run over matches to hydrate line/column info in the result"
+ * src: https://github.com/comby-tools/comby/issues/244
+ *)
+let line_col_charpos_of_comby_range file range =
+  let { CK.Match.Location.offset = charpos; line = _; column = _ } =
+    range.CK.Match.Range.match_start
+  in
+  let line, col = line_col_of_charpos file charpos in
+  (line, col, charpos)
 
 (* todo: same, we should not need that *)
 let info_of_token_location loc =
@@ -536,9 +551,6 @@ let matches_of_regexs regexps lazy_content file =
 (* Evaluating Comby *)
 (*****************************************************************************)
 
-module CK = Comby_kernel
-module MS = CK.Matchers.Metasyntax
-
 let matches_of_combys combys lazy_content file =
   let _d, _b, e = Common2.dbe_of_filename file in
   let metasyntax =
@@ -564,16 +576,32 @@ let matches_of_combys combys lazy_content file =
                Format.printf "%a@." CK.Match.pp_json_lines (None, matches);
                matches
                |> List.map (fun { CK.Match.range; environment; matched } ->
-                      ignore environment;
-                      let {
-                        CK.Match.Location.offset = charpos;
-                        line = _;
-                        column = _;
-                      } =
-                        range.CK.Match.Range.match_start
+                      let env =
+                        CK.Match.Environment.vars environment
+                        |> List.map (fun s ->
+                               let mvar = "$" ^ s in
+                               let str_opt =
+                                 CK.Match.Environment.lookup environment s
+                               in
+                               let range_opt =
+                                 CK.Match.Environment.lookup_range environment s
+                               in
+                               match (str_opt, range_opt) with
+                               | Some str, Some range ->
+                                   let line, column, charpos =
+                                     line_col_charpos_of_comby_range file range
+                                   in
+                                   let loc =
+                                     { PI.str; charpos; file; line; column }
+                                   in
+                                   let t = info_of_token_location loc in
+                                   let mval = mval_of_spacegrep_string str t in
+                                   (mvar, mval)
+                               | _ -> raise Impossible)
                       in
-                      (* TODO: line/column returned by comby seems wrong *)
-                      let line, column = line_col_of_charpos file charpos in
+                      let line, column, charpos =
+                        line_col_charpos_of_comby_range file range
+                      in
                       let loc =
                         { PI.str = matched; charpos; file; line; column }
                       in
@@ -583,7 +611,7 @@ let matches_of_combys combys lazy_content file =
                         file;
                         range_loc = (loc, loc);
                         tokens = lazy [ info_of_token_location loc ];
-                        env = [] (* TODO *);
+                        env;
                       }))
         |> List.flatten)
   in
