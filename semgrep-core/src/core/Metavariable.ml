@@ -22,6 +22,8 @@ module H = AST_generic_helpers
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 let debug = false
 
 (*****************************************************************************)
@@ -87,6 +89,23 @@ let mvalue_to_any = function
   | Args x -> G.Args x
   | T x -> G.T x
   | P x -> G.P x
+
+(* This is used for metavariable-pattern: where we need to transform the content
+ * of a metavariable into a program so we can use evaluate_formula on it *)
+let program_of_mvalue : mvalue -> G.program option = function
+  | E expr -> Some [ G.exprstmt expr ]
+  | S stmt -> Some [ stmt ]
+  | Id (id, Some idinfo) -> Some [ G.exprstmt (G.N (G.Id (id, idinfo))) ]
+  | Id (id, None) -> Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ()))) ]
+  | N x -> Some [ G.exprstmt (G.N x) ]
+  | Ss stmts -> Some stmts
+  | Args _ | T _ | P _ ->
+      logger#debug "program_of_mvalue: Args | T | P are not yet handled!";
+      None
+
+let range_of_mvalue mval =
+  let tok_start, tok_end = Visitor_AST.range_of_any (mvalue_to_any mval) in
+  Range.range_of_token_locations tok_start tok_end
 
 let str_of_any any =
   if !Flag_semgrep.debug_with_full_position then

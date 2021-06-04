@@ -141,46 +141,6 @@ let parse_regexp (id, _langs) s =
   with Pcre.Error exn ->
     raise (E.InvalidRegexpException (id, pcre_error_to_string s exn))
 
-let parse_extra env x =
-  match x with
-  | "metavariable-regex", J.Object xs -> (
-      match find_fields [ "metavariable"; "regex" ] xs with
-      | ( [
-            ("metavariable", Some (J.String metavar));
-            ("regex", Some (J.String regexp));
-          ],
-          [] ) ->
-          R.MetavarRegexp (metavar, parse_regexp env regexp)
-      | x ->
-          pr2_gen x;
-          error "wrong parse_extra fields" )
-  | "metavariable-comparison", J.Object xs -> (
-      match
-        find_fields [ "metavariable"; "comparison"; "strip"; "base" ] xs
-      with
-      | ( [
-            ("metavariable", Some (J.String metavariable));
-            ("comparison", Some (J.String comparison));
-            ("strip", strip_opt);
-            ("base", base_opt);
-          ],
-          [] ) ->
-          let comparison = parse_metavar_cond comparison in
-          R.MetavarComparison
-            {
-              R.metavariable;
-              comparison;
-              strip = Common.map_opt (parse_bool "strip") strip_opt;
-              base = Common.map_opt (parse_int "base") base_opt;
-            }
-      | x ->
-          pr2_gen x;
-          error "wrong parse_extra fields" )
-  | "pattern-where-python", J.String s -> R.PatWherePython s
-  | x ->
-      pr2_gen x;
-      error "wrong parse_extra fields"
-
 let parse_fix_regex env = function
   | J.Object xs -> (
       match find_fields [ "regex"; "replacement"; "count" ] xs with
@@ -248,7 +208,12 @@ let parse_pattern (id, lang) s =
       let ast = Spacegrep.Parse_pattern.of_src src in
       R.mk_xpat (Spacegrep ast) s
 
-let rec parse_formula_old env (x : string * J.t) : R.formula_old =
+let rec parse_formula env (x : string * J.t) : R.pformula =
+  match x with
+  | "match", v -> R.New (parse_formula_new env v)
+  | _ -> R.Old (parse_formula_old env x)
+
+and parse_formula_old env (x : string * J.t) : R.formula_old =
   match x with
   | "pattern", J.String pattern_string ->
       let pattern = parse_pattern env pattern_string in
@@ -295,7 +260,7 @@ let rec parse_formula_old env (x : string * J.t) : R.formula_old =
       let extra = parse_extra env x in
       R.PatExtra extra
 
-let rec parse_formula_new env (x : J.t) : R.formula =
+and parse_formula_new env (x : J.t) : R.formula =
   match x with
   | J.String s -> R.Leaf (R.P (parse_pattern env s, None))
   | J.Object xs -> (
@@ -328,10 +293,62 @@ let rec parse_formula_new env (x : J.t) : R.formula =
       pr2_gen x;
       error "parse_formula_new"
 
-let parse_formula env (x : string * J.t) : R.pformula =
+(* This is now mutually recursive because of metavariable-pattern: which can
+ * contain itself a formula! *)
+and parse_extra env x =
   match x with
-  | "match", v -> R.New (parse_formula_new env v)
-  | _ -> R.Old (parse_formula_old env x)
+  | "metavariable-regex", J.Object xs -> (
+      match find_fields [ "metavariable"; "regex" ] xs with
+      | ( [
+            ("metavariable", Some (J.String metavar));
+            ("regex", Some (J.String regexp));
+          ],
+          [] ) ->
+          R.MetavarRegexp (metavar, parse_regexp env regexp)
+      | x ->
+          pr2_gen x;
+          error "metavariable-regex: wrong parse_extra fields" )
+  | "metavariable-pattern", J.Object xs -> (
+      match find_fields [ "metavariable" ] xs with
+      | [ ("metavariable", Some (J.String metavar)) ], rest ->
+          let pformula =
+            match rest with
+            | [ x ] -> parse_formula env x
+            | x ->
+                pr2_gen x;
+                error "wrong rule fields"
+          in
+          let formula = R.formula_of_pformula pformula in
+          R.MetavarPattern (metavar, formula)
+      | x ->
+          pr2_gen x;
+          error "metavariable-pattern:  wrong parse_extra fields" )
+  | "metavariable-comparison", J.Object xs -> (
+      match
+        find_fields [ "metavariable"; "comparison"; "strip"; "base" ] xs
+      with
+      | ( [
+            ("metavariable", Some (J.String metavariable));
+            ("comparison", Some (J.String comparison));
+            ("strip", strip_opt);
+            ("base", base_opt);
+          ],
+          [] ) ->
+          let comparison = parse_metavar_cond comparison in
+          R.MetavarComparison
+            {
+              R.metavariable;
+              comparison;
+              strip = Common.map_opt (parse_bool "strip") strip_opt;
+              base = Common.map_opt (parse_int "base") base_opt;
+            }
+      | x ->
+          pr2_gen x;
+          error "metavariable-comparison: wrong parse_extra fields" )
+  | "pattern-where-python", J.String s -> R.PatWherePython s
+  | x ->
+      pr2_gen x;
+      error "wrong parse_extra fields"
 
 let parse_languages ~id langs =
   match langs with

@@ -121,6 +121,7 @@ and metavar_cond =
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
   | CondRegexp of MV.mvar * regexp
+  | CondPattern of MV.mvar * formula
 [@@deriving show, eq]
 
 (*****************************************************************************)
@@ -148,6 +149,7 @@ type formula_old =
 (* extra conditions, usually on metavariable content *)
 and extra =
   | MetavarRegexp of MV.mvar * regexp
+  | MetavarPattern of MV.mvar * formula
   | MetavarComparison of metavariable_comparison
   | PatWherePython of string
 
@@ -238,6 +240,7 @@ let rewrite_metavar_comparison_strip mvar cond =
 let convert_extra x =
   match x with
   | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
+  | MetavarPattern (mvar, formula) -> CondPattern (mvar, formula)
   | MetavarComparison comp -> (
       match comp with
       (* do we care about strip and base? should not Eval_generic handle it?
@@ -255,7 +258,7 @@ let convert_extra x =
             | Some true -> rewrite_metavar_comparison_strip mvar comparison
           in
           CondGeneric cond )
-  | _ ->
+  | PatWherePython _ ->
       (*
   logger#debug "convert_extra: %s" s;
   Parse_rule.parse_metavar_cond s
@@ -282,7 +285,10 @@ let (convert_formula_old : formula_old -> formula) =
   in
   aux e
 
-let formula_of_rule r =
-  match r.formula with New f -> f | Old oldf -> convert_formula_old oldf
+let formula_of_pformula = function
+  | New f -> f
+  | Old oldf -> convert_formula_old oldf
+
+let formula_of_rule r = formula_of_pformula r.formula
 
 (*e: semgrep/core/Rule.ml *)

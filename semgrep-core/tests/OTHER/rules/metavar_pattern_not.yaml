@@ -1,0 +1,13 @@
+rules:
+  - id: test-mvp-not
+    languages:
+      - python
+    message: Working!
+    patterns:
+      - pattern: foo($P, ...)
+      - metavariable-pattern:
+          metavariable: $P
+          patterns:
+              - pattern-not: |
+                  ... + ...
+    severity: WARNING
