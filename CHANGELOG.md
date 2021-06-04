@@ -4,6 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+### Fixed
+- Scala: parse correctly symbol literals and interpolated strings containing
+  double dollars
+
+### Changed
+
 ## [0.54.0](https://github.com/returntocorp/semgrep/releases/tag/v0.54.0) - 2021-06-2
 
 ### Added
