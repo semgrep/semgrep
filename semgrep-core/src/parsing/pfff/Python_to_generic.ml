@@ -797,7 +797,9 @@ and excepthandler = function
             match e with
             | G.Ellipsis tok -> G.PatEllipsis tok
             | G.Tuple _ -> G.PatVar (H.expr_to_type e, None)
-            | _ -> G.PatVar (H.expr_to_type (G.Tuple (G.fake_bracket [e])), None) )
+            | _ ->
+                G.PatVar (H.expr_to_type (G.Tuple (G.fake_bracket [ e ])), None)
+            )
         | None, None -> G.PatUnderscore (fake "_")
         | None, Some _ -> raise Impossible (* see the grammar *)
         | Some e, Some n ->
