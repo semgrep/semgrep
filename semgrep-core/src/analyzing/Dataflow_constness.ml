@@ -41,11 +41,8 @@ end)
 (*****************************************************************************)
 
 let warning tok s =
-  let opt_loc =
-    try Some (Parse_info.string_of_info tok)
-    with Parse_info.NoTokenLocation _ -> None
-  in
-  match opt_loc with Some loc -> pr2 (spf "%s: %s" loc s) | None -> pr2 s
+  (* TODO: Report these errors as matches of a builtin_div_by_zero rule. *)
+  Error_code.warning tok (Error_code.CFGError s)
 
 (*****************************************************************************)
 (* Helpers *)
