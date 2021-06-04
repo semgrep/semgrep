@@ -174,6 +174,8 @@ class CoreRunner:
             raise SemgrepError(
                 f'{error_json["language"]} was accepted by semgrep but rejected by semgrep-core. {PLEASE_FILE_ISSUE_TEXT}'
             )
+        elif error_type == "invalid regexp in rule":
+            raise SemgrepError(f'Invalid regexp in rule: {error_json["message"]}')
         elif error_type == "invalid pattern":
 
             matching_pattern = next(

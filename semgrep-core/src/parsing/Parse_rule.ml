@@ -106,6 +106,27 @@ let parse_int ctx = function
 (* Sub parsers extra *)
 (*****************************************************************************)
 
+let pcre_error_to_string s exn =
+  let message =
+    match exn with
+    | Pcre.Partial -> "String only matched the pattern partially"
+    | BadPartial ->
+        "Pattern contains items that cannot be used together with partial \
+         matching."
+    | BadPattern (msg, pos) -> spf "%s at position %d" msg pos
+    | BadUTF8 -> "UTF8 string being matched is invalid"
+    | BadUTF8Offset ->
+        "Gets raised when a UTF8 string being matched with offset is invalid."
+    | MatchLimit ->
+        "Maximum allowed number of match attempts with\n\
+        \                      backtracking or recursion is reached during \
+         matching."
+    | RecursionLimit -> "Recursion limit reached"
+    | WorkspaceSize -> "Workspace array size reached"
+    | InternalError msg -> spf "Internal error: %s" msg
+  in
+  spf "'%s': %s" s message
+
 let parse_metavar_cond s =
   try
     let lang = Lang.Python in
@@ -115,13 +136,12 @@ let parse_metavar_cond s =
     | _ -> error "not an expression"
   with exn -> raise exn
 
-let parse_regexp s =
+let parse_regexp (id, _langs) s =
   try (s, Pcre.regexp s)
-  with Pcre.Error _ as exn ->
-    failwith
-      (spf "failing to parse regexp %s, error = %s" s (Common.exn_to_s exn))
+  with Pcre.Error exn ->
+    raise (E.InvalidRegexpException (id, pcre_error_to_string s exn))
 
-let parse_extra _env x =
+let parse_extra env x =
   match x with
   | "metavariable-regex", J.Object xs -> (
       match find_fields [ "metavariable"; "regex" ] xs with
@@ -130,7 +150,7 @@ let parse_extra _env x =
             ("regex", Some (J.String regexp));
           ],
           [] ) ->
-          R.MetavarRegexp (metavar, parse_regexp regexp)
+          R.MetavarRegexp (metavar, parse_regexp env regexp)
       | x ->
           pr2_gen x;
           error "wrong parse_extra fields" )
@@ -161,7 +181,7 @@ let parse_extra _env x =
       pr2_gen x;
       error "wrong parse_extra fields"
 
-let parse_fix_regex = function
+let parse_fix_regex env = function
   | J.Object xs -> (
       match find_fields [ "regex"; "replacement"; "count" ] xs with
       | ( [
@@ -170,7 +190,7 @@ let parse_fix_regex = function
             ("count", count_opt);
           ],
           [] ) ->
-          ( parse_regexp regex,
+          ( parse_regexp env regex,
             Common.map_opt (parse_int "count") count_opt,
             replacement )
       | x ->
@@ -263,10 +283,10 @@ let rec parse_formula_old env (x : string * J.t) : R.formula_old =
                  error "wrong parse_formula fields")
            xs)
   | "pattern-regex", J.String s ->
-      let xpat = R.mk_xpat (Regexp (parse_regexp s)) s in
+      let xpat = R.mk_xpat (Regexp (parse_regexp env s)) s in
       R.Pat xpat
   | "pattern-not-regex", J.String s ->
-      let xpat = R.mk_xpat (Regexp (parse_regexp s)) s in
+      let xpat = R.mk_xpat (Regexp (parse_regexp env s)) s in
       R.PatNot xpat
   | "pattern-comby", J.String s ->
       let xpat = R.mk_xpat (Comby s) s in
@@ -292,7 +312,7 @@ let rec parse_formula_new env (x : J.t) : R.formula =
       | [ ("inside", J.String s) ] ->
           R.Leaf (R.P (parse_pattern env s, Some Inside))
       | [ ("regex", J.String s) ] ->
-          let xpat = R.mk_xpat (R.Regexp (parse_regexp s)) s in
+          let xpat = R.mk_xpat (R.Regexp (parse_regexp env s)) s in
           R.Leaf (R.P (xpat, None))
       | [ ("comby", J.String s) ] ->
           let xpat = R.mk_xpat (R.Comby s) s in
@@ -300,7 +320,7 @@ let rec parse_formula_new env (x : J.t) : R.formula =
       | [ ("where", J.String s) ] ->
           R.Leaf (R.MetavarCond (R.CondGeneric (parse_metavar_cond s)))
       | [ ("metavariable_regex", J.Array [ J.String mvar; J.String re ]) ] ->
-          R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp re)))
+          R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env re)))
       | _ ->
           pr2_gen x;
           error "parse_formula_new" )
@@ -398,7 +418,10 @@ let parse_json file json =
                        (* optional fields *)
                        metadata = metadata_opt;
                        fix = Common.map_opt (parse_string "fix") fix_opt;
-                       fix_regexp = Common.map_opt parse_fix_regex fix_regex_opt;
+                       fix_regexp =
+                         Common.map_opt
+                           (parse_fix_regex (id, languages))
+                           fix_regex_opt;
                        paths = Common.map_opt parse_paths paths_opt;
                        equivalences =
                          Common.map_opt parse_equivalences equivs_opt;
