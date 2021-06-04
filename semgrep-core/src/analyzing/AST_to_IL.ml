@@ -272,13 +272,17 @@ and nested_lval env tok eorig =
 and pattern env pat =
   match pat with
   | G.PatId (id, id_info) -> Left (lval_of_id_info env id id_info)
+  | G.PatVar (_TODO, Some (id, id_info)) ->
+      Left (lval_of_id_info env id id_info)
   | _ -> todo (G.P pat)
 
 and pattern_assign_statements env exp eorig pat =
-  let lval =
-    match pattern env pat with Left l -> l | Right _ -> todo (G.P pat)
-  in
-  [ mk_s (Instr (mk_i (Assign (lval, exp)) eorig)) ]
+  try
+    let lval =
+      match pattern env pat with Left l -> l | Right _ -> todo (G.P pat)
+    in
+    [ mk_s (Instr (mk_i (Assign (lval, exp)) eorig)) ]
+  with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 (*****************************************************************************)
 (* Assign *)
