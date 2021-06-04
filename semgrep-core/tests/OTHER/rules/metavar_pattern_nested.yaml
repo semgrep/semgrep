@@ -1,0 +1,17 @@
+rules:
+  - id: test-mvp-nested
+    languages:
+      - python
+    message: Working!
+    patterns:
+      - pattern: foo($P, ...)
+      - metavariable-pattern:
+          metavariable: $P
+          patterns:
+              - pattern: |
+                  bar($X)
+              - metavariable-pattern:
+                  metavariable: $X
+                  patterns:
+                    - pattern: ... + ...
+    severity: WARNING

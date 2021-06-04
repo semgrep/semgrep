@@ -253,6 +253,7 @@ and xpat_step1 pat =
 and metavarcond_step1 x =
   match x with
   | R.CondGeneric _ -> None
+  | R.CondPattern _ -> None
   | R.CondRegexp (mvar, re) ->
       (* bugfix: if the metavariable-regexp is "^(foo|bar)$" we
        * don't want to keep it because it can't be used on the whole file.
