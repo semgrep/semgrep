@@ -274,8 +274,9 @@ The two most popular are:
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
+        optimizations=optimizations,
     ).invoke_semgrep(
-        target_manager, profiler, filtered_rules, optimizations
+        target_manager, profiler, filtered_rules
     )
     profiler.save("total_time", start_time)
 

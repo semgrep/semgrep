@@ -86,6 +86,7 @@ def test_raise_semgrep_error_from_json_unknown_error():
         timeout=0,
         max_memory=0,
         timeout_threshold=0,
+        optimizations="all",
     )
 
     patterns: List[Pattern] = list(core_runner._flatten_rule_patterns([rule]))

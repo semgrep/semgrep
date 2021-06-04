@@ -26,6 +26,7 @@ from semgrep.core_exception import CoreException
 from semgrep.equivalences import Equivalence
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
+from semgrep.error import InvalidPatternErrorNoSpan
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
@@ -118,6 +119,7 @@ class CoreRunner:
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
+        optimizations: str,
     ):
         self._output_settings = output_settings
         self._allow_exec = allow_exec
@@ -125,6 +127,7 @@ class CoreRunner:
         self._timeout = timeout
         self._max_memory = max_memory
         self._timeout_threshold = timeout_threshold
+        self._optimizations = optimizations
 
     def _flatten_rule_patterns(self, rules: List[Rule]) -> Iterator[Pattern]:
         """
@@ -177,22 +180,28 @@ class CoreRunner:
         elif error_type == "invalid regexp in rule":
             raise SemgrepError(f'Invalid regexp in rule: {error_json["message"]}')
         elif error_type == "invalid pattern":
-
-            matching_pattern = next(
-                (p for p in patterns if p._id == error_json["pattern_id"]), None
-            )
-            if matching_pattern is None or matching_pattern.span is None:
-                raise SemgrepError(
-                    f"Pattern id from semgrep-core was missing in pattern spans. {PLEASE_FILE_ISSUE_TEXT}"
+            if self._optimizations == "all":
+                raise InvalidPatternErrorNoSpan(
+                    rule_id=error_json.get("pattern_id", "<no rule_id>"),
+                    pattern=error_json.get("pattern", "<no pattern>"),
+                    language=error_json.get("language", "<no language>"),
                 )
-            matching_span = matching_pattern.span
+            else:
+                matching_pattern = next(
+                    (p for p in patterns if p._id == error_json["pattern_id"]), None
+                )
+                if matching_pattern is None or matching_pattern.span is None:
+                    raise SemgrepError(
+                        f"Pattern id from semgrep-core was missing in pattern spans. {PLEASE_FILE_ISSUE_TEXT}"
+                    )
+                matching_span = matching_pattern.span
 
-            raise InvalidPatternError(
-                short_msg=error_type,
-                long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
-                spans=[matching_span],
-                help=None,
-            )
+                raise InvalidPatternError(
+                    short_msg=error_type,
+                    long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
+                    spans=[matching_span],
+                    help=None,
+                )
         # no special formatting ought to be required for the other types; the semgrep python should be performing
         # validation for them. So if any other type of error occurs, ask the user to file an issue
         else:
@@ -733,7 +742,6 @@ class CoreRunner:
         target_manager: TargetManager,
         profiler: ProfileManager,
         rules: List[Rule],
-        optimizations: str,
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Dict[str, Any]]],
@@ -746,7 +754,7 @@ class CoreRunner:
         """
         start = datetime.now()
 
-        experimental = optimizations == "all"
+        experimental = self._optimizations == "all"
         runner_fxn = (
             self._run_rules_direct_to_semgrep_core if experimental else self._run_rules
         )
