@@ -88,10 +88,7 @@ let type_parameters_with_constraints params constraints : type_parameter list =
     params
 
 let arg_to_expr (a : argument) =
-  match a with
-  | Arg e -> e
-  | ArgKwd (_, e) -> e (* TODO maybe ArgKwd is also impossible here *)
-  | _ -> raise Impossible
+  match a with Arg e -> e | ArgKwd (_, e) -> e | _ -> raise Impossible
 
 let var_def_stmt (decls : (entity * variable_definition) list)
     (attrs : attribute list) =
@@ -1026,8 +1023,7 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
     | `Exp x -> expression env x
     | `Decl_exp x -> declaration_expression env x
   in
-  (* TODO return Ast.ArgKwd if Some v1 *)
-  AST.Arg v3
+  match v1 with None -> AST.Arg v3 | Some id -> AST.ArgKwd (id, v3)
 
 and initializer_expression (env : env)
     ((v1, v2, v3, v4) : CST.initializer_expression) : expr list AST.bracket =
