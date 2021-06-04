@@ -67,9 +67,11 @@ def main() -> None:
         total_latest += latest_time
 
         # Send PR comment if performance is slower but not past blocking threshold
-        if latest_time < baseline_time * 1.1 or latest_time - baseline_time < 3.5:
+        if latest_time > baseline_time * 1.1:
             send_comment(
-                "Potential non-blocking slowdown", github_token, pull_request_number
+                f"Potential non-blocking slowdown latest time {latest_time} is over 12 percent slower than baseline {baseline_time}. See run output for more details",
+                github_token,
+                pull_request_number,
             )
 
     # Assert the rules in aggregate are not more than 6% slower than baseline
