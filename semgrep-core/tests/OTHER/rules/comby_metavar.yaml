@@ -1,0 +1,8 @@
+rules:
+- id: comby_basic
+  languages:
+  - javascript
+  - python
+  pattern-comby: foo($X, $Y)
+  message: found a comby match
+  severity: ERROR
