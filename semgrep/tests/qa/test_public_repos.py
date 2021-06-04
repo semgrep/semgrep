@@ -47,6 +47,8 @@ def _assert_sentinel_results(
         language,
         "--json",
         repo_path,
+        "--optimizations",
+        "none",  # Turn off optimizations since it skips parsing when it can and this test is testing parsing
     ]
 
     if excludes:
@@ -121,6 +123,8 @@ def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_u
         "--config=rules/regex-sentinel.yaml",
         "--strict",
         "--json",
+        "--optimizations",
+        "none",  # Turn off optimizations since it skips parsing when it can and this test is testing parsing
         repo_path,
     ]
 
