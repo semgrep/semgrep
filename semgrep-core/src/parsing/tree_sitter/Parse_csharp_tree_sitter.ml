@@ -41,24 +41,36 @@ let str = H.str
 let unhandled_keywordattr_to_namedattr env tok =
   AST.unhandled_keywordattr (str env tok)
 
-let ids_of_name name : dotted_ident =
-  let ident, name_info = name in
-  match name_info.name_qualifier with
-  | Some q -> (
-      match q with
-      | QDots ds -> ds @ [ ident ]
-      | _ -> failwith "unexpected qualifier type" )
-  | None -> [ ident ]
+let ids_of_name (name : name) : dotted_ident =
+  match name with
+  | Id (ident, _) -> [ ident ]
+  | IdQualified ((ident, name_info), _) -> (
+      match name_info.name_qualifier with
+      | Some q -> (
+          match q with
+          | QDots ds -> ds @ [ ident ]
+          | _ -> failwith "unexpected qualifier type" )
+      | None -> [ ident ] )
 
-(* TODO: delete once simple_name and co return a proper AST_generic.name *)
-(* todo: should also make sure nameinfo.name_typeargs is empty? *)
-let id_of_name_ (id, nameinfo) =
-  match nameinfo.name_qualifier with
-  | None | Some (QDots []) -> N (Id (id, empty_id_info ()))
-  | _ -> N (IdQualified ((id, nameinfo), empty_id_info ()))
-
-(* TODO: delete *)
-let name_of_id id = (id, empty_name_info)
+let prepend_qualifier_to_name (qualifier : qualifier) (name : name) : name =
+  match name with
+  | Id (ident, id_info) ->
+      let name_info =
+        { name_qualifier = Some qualifier; name_typeargs = None }
+      in
+      IdQualified ((ident, name_info), id_info)
+  | IdQualified ((ident, name_info), id_info) ->
+      let new_qualifier =
+        match (name_info.name_qualifier, qualifier) with
+        | None, q -> q
+        | Some (QTop _), QTop t2 -> QTop t2
+        | Some (QDots t1), QTop _ -> QDots t1
+        | Some (QTop _), QDots t2 -> QDots t2
+        | Some (QDots t1), QDots t2 -> QDots (t2 @ t1)
+        | _ -> failwith "qualifier not supported"
+      in
+      let name_info = { name_info with name_qualifier = Some new_qualifier } in
+      IdQualified ((ident, name_info), id_info)
 
 let type_parameters_with_constraints params constraints : type_parameter list =
   List.map
@@ -434,9 +446,9 @@ let modifier (env : env) (x : CST.modifier) =
   | `Read tok -> KeywordAttr (Const, token env tok) (* "readonly" *)
   | `Ref tok -> unhandled_keywordattr_to_namedattr env tok
   | `Sealed tok ->
+      (* TODO we map Sealed to Final here, is that OK? *)
       KeywordAttr (Final, token env tok)
       (* "sealed" *)
-      (* TODO we map Sealed to Final here, is that OK? *)
   | `Static tok -> KeywordAttr (Static, token env tok) (* "static" *)
   | `Unsafe tok -> unhandled_keywordattr_to_namedattr env tok
   | `Virt tok -> unhandled_keywordattr_to_namedattr env tok
@@ -912,25 +924,19 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
       let v2 = expression env v2 in
       Call (IdSpecial (Op BitNot, v1), fake_bracket [ Arg v2 ])
 
-(* TODO: should return a AST_generic.name *)
-and name (env : env) (x : CST.name) =
+and name (env : env) (x : CST.name) : AST.name =
   match x with
   | `Alias_qual_name (v1, v2, v3) ->
       let v1 = identifier_or_global_qualifier env v1 in
       let v2 = token env v2 (* "::" *) in
-      let ident3, name_info3 = simple_name env v3 in
-      ( ident3,
-        { name_qualifier = Some v1; name_typeargs = name_info3.name_typeargs }
-      )
+      let v3 = simple_name env v3 in
+      prepend_qualifier_to_name v1 v3
   | `Qual_name (v1, v2, v3) ->
       let v1 = name env v1 in
       let v2 = token env v2 (* "." *) in
-      let ident3, name_info3 = simple_name env v3 in
-      ( ident3,
-        {
-          name_qualifier = Some (QDots (ids_of_name v1));
-          name_typeargs = name_info3.name_typeargs;
-        } )
+      let v3 = simple_name env v3 in
+      let qualifier = QDots (ids_of_name v1) in
+      prepend_qualifier_to_name qualifier v3
   | `Simple_name x -> simple_name env x
 
 and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
@@ -1186,8 +1192,8 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       let v1 = expression env v1 in
       let v2 = token env v2 (* "as" *) in
       let v3 = type_ env v3 in
-      Cast (v3, v1)
       (* TODO `as` is really a conditional cast *)
+      Cast (v3, v1)
   | `Assign_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = assignment_operator env v2 in
@@ -1226,8 +1232,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         | `Member_bind_exp (x1, x2) ->
             let x1 = token env x1 (* "." *) in
             let x2 = simple_name env x2 in
-            let name = IdQualified (x2, empty_id_info ()) in
-            DotAccess (v1, x1, EN name)
+            DotAccess (v1, x1, EN x2)
       in
       Conditional (is_null, fake_null, access)
   | `Cond_exp (v1, v2, v3, v4, v5) ->
@@ -1332,10 +1337,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
             (* e.g. `int` in `int.maxValue` *)
             let id = str env x in
             N (Id (id, empty_id_info ()))
-            (* TODO should this be IdQualified? *)
-        | `Name x ->
-            let n = name env x in
-            id_of_name_ n
+        | `Name x -> N (name env x)
       in
       let v2 =
         match v2 with
@@ -1344,8 +1346,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         (* "->" *)
       in
       let v3 = simple_name env v3 in
-      let name = AST.IdQualified (v3, AST.empty_id_info ()) in
-      AST.DotAccess (v1, v2, AST.EN name)
+      AST.DotAccess (v1, v2, AST.EN v3)
   | `Obj_crea_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = type_constraint env v2 in
@@ -1460,7 +1461,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
        * - record patterns perhaps should match with-expressions
        *)
       AST.OtherExpr (AST.OE_RecordWith, [ AST.E v1; AST.E with_fields ])
-  | `Simple_name x -> id_of_name_ (simple_name env x)
+  | `Simple_name x -> N (simple_name env x)
   | `Lit x ->
       let x = literal env x in
       AST.L x
@@ -1472,14 +1473,15 @@ and simple_assignment_expression (env : env)
   let v3 = expression env v3 in
   AST.basic_field v1 (Some v3) None
 
-(* TODO: return an AST.name *)
-and simple_name (env : env) (x : CST.simple_name) : AST.ident * AST.name_info =
+and simple_name (env : env) (x : CST.simple_name) : AST.name =
   match x with
   | `Gene_name (v1, v2) ->
       let v1 = identifier env v1 (* identifier *) in
       let v2 = type_argument_list env v2 in
-      (v1, { name_qualifier = None; name_typeargs = Some v2 })
-  | `Choice_global x -> name_of_id (identifier_or_global env x)
+      IdQualified
+        ( (v1, { name_qualifier = None; name_typeargs = Some v2 }),
+          empty_id_info () )
+  | `Choice_global x -> Id (identifier_or_global env x, empty_id_info ())
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) :
     case_and_body list =
@@ -2193,7 +2195,7 @@ and attribute (env : env) ((v1, v2) : CST.attribute) =
     | None -> fake_bracket []
   in
   (* TODO get the first [ as token here? *)
-  AST.NamedAttr (fake "[", AST.IdQualified (v1, empty_id_info ()), v2)
+  AST.NamedAttr (fake "[", v1, v2)
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
     AST.arguments bracket =
@@ -2566,10 +2568,10 @@ and namespace_declaration (env : env)
             v1       v2      v3  v4
       *)
   let v1 = token env v1 (* "namespace" *) in
-  let ident, name_info = name env v2 in
+  let v2 = name env v2 in
   let open_brace, decls, close_brace = declaration_list env v3 in
   let body = AST.Block (open_brace, decls, close_brace) |> AST.s in
-  let ent = AST.basic_entity ident [] in
+  let ent = { name = EN v2; attrs = []; tparams = [] } in
   let mkind = AST.ModuleStruct (None, [ body ]) in
   let def = { AST.mbody = mkind } in
   AST.DefStmt (ent, AST.ModuleDef def) |> AST.s
