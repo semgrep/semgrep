@@ -253,6 +253,13 @@ let json_of_exn e =
           ("language", J.String lang);
           ("message", J.String message);
         ]
+  | Parse_mini_rule.InvalidRegexpException (pattern_id, message) ->
+      J.Object
+        [
+          ("pattern_id", J.String pattern_id);
+          ("error", J.String "invalid regexp in rule");
+          ("message", J.String message);
+        ]
   | Parse_mini_rule.UnparsableYamlException msg ->
       J.Object
         [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]

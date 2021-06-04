@@ -17,6 +17,9 @@ exception InvalidLanguageException of string * string
 exception InvalidPatternException of string * string * string * string
 
 (*e: exception [[Parse_rules.InvalidPatternException]] *)
+
+exception InvalidRegexpException of string * string
+
 (*s: exception [[Parse_rules.UnparsableYamlException]] *)
 exception UnparsableYamlException of string
 
