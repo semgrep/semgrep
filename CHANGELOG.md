@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Metavariables in messages are filled in when using `--optimizations all`
 - Python: class variables are matched in any order (#3212)
 - Respect `--timeout-threshold` option in `--optimizations all` mode
+- Dataflow: Analyze foreach body even if we do not handle the pattern yet (#3155)
 
 ### Changed
 - Moved some debug logging to verbose logging
