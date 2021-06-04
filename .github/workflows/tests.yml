@@ -208,4 +208,4 @@ jobs:
           cat timing2.txt
       - name: Compare timing infos
         run: |
-          python scripts/compare_perf.py semgrep/baseline_timing1.txt semgrep/baseline_timing2.txt semgrep/timing1.txt semgrep/timing2.txt
+          python scripts/compare_perf.py semgrep/baseline_timing1.txt semgrep/baseline_timing2.txt semgrep/timing1.txt semgrep/timing2.txt ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
