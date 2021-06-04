@@ -87,6 +87,35 @@ class Rule:
     def __hash__(self) -> int:
         return hash(self.id)
 
+    def has_pattern_where_python(self) -> bool:
+        """
+        Return true if this rule contains a pattern-where-python pattern
+        """
+
+        def _recursive_dict_key_exists(dictionary: Dict[str, Any], key: str) -> bool:
+            """
+            Returns true if
+            - dictionary contains key KEY or
+            - any value in dictionary that is a dict contains the key
+            - a value that is a list of dictionaries has a dict that contains the key
+            """
+            if key in dictionary:
+                return True
+
+            for val in dictionary.values():
+                if isinstance(val, dict) and _recursive_dict_key_exists(val, key):
+                    return True
+                if isinstance(val, list):
+                    for obj in val:
+                        if isinstance(obj, dict) and _recursive_dict_key_exists(
+                            obj, key
+                        ):
+                            return True
+
+            return False
+
+        return _recursive_dict_key_exists(self._raw, "pattern-where-python")
+
     def _validate_none_language_rule(self) -> None:
         """
         For regex-only rules, only patterns, pattern-either, and pattern-regex is valid.
