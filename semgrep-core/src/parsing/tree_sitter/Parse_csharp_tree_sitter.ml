@@ -2221,8 +2221,9 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
 and type_ (env : env) (x : CST.type_) : AST.type_ =
   match x with
   | `Impl_type tok ->
-      let tok = token env tok (* "var" *) in
-      todo_type env tok
+      (* When type_ is called, we expect an explicit type, not "var".
+         The implicit type is handled in local_variable_type. *)
+      raise Impossible
   | `Array_type x -> array_type env x
   | `Name x ->
       let n = name env x in
