@@ -439,6 +439,34 @@ let matches_of_patterns config orig_rule equivalences
 (*****************************************************************************)
 (* Evaluating spacegrep *)
 (*****************************************************************************)
+let spacegrep_aux (src, doc, file) (pat, id, pstr) =
+  let matches = Spacegrep.Match.search ~case_sensitive:true src pat doc in
+  matches
+  |> List.map (fun m ->
+         let (pos1, _), (_pos2, _) = m.Spacegrep.Match.region in
+         let { Spacegrep.Match.value = str; _ } = m.Spacegrep.Match.capture in
+         let env =
+           m.Spacegrep.Match.named_captures
+           |> List.map (fun (s, capture) ->
+                  let mvar = "$" ^ s in
+                  let { Spacegrep.Match.value = str; loc = pos, _ } = capture in
+                  let loc = lexing_pos_to_loc file pos str in
+                  let t = info_of_token_location loc in
+                  let mval = mval_of_spacegrep_string str t in
+                  (mvar, mval))
+         in
+
+         let loc = lexing_pos_to_loc file pos1 str in
+         (* this will be adjusted later *)
+         let rule_id = fake_rule_id (id, pstr) in
+         {
+           PM.rule_id;
+           file;
+           range_loc = (loc, loc);
+           env;
+           tokens = lazy [ info_of_token_location loc ];
+         })
+
 let matches_of_spacegrep spacegreps file =
   (* coupling: mostly copypaste of Spacegrep_main.run_all *)
   (*
@@ -468,44 +496,7 @@ let matches_of_spacegrep spacegreps file =
       let res, match_time =
         Common.with_time (fun () ->
             spacegreps
-            |> List.map (fun (pat, id, pstr) ->
-                   let matches =
-                     Spacegrep.Match.search ~case_sensitive:true src pat doc
-                   in
-                   matches
-                   |> List.map (fun m ->
-                          let (pos1, _), (_pos2, _) =
-                            m.Spacegrep.Match.region
-                          in
-                          let { Spacegrep.Match.value = str; _ } =
-                            m.Spacegrep.Match.capture
-                          in
-                          let env =
-                            m.Spacegrep.Match.named_captures
-                            |> List.map (fun (s, capture) ->
-                                   let mvar = "$" ^ s in
-                                   let {
-                                     Spacegrep.Match.value = str;
-                                     loc = pos, _;
-                                   } =
-                                     capture
-                                   in
-                                   let loc = lexing_pos_to_loc file pos str in
-                                   let t = info_of_token_location loc in
-                                   let mval = mval_of_spacegrep_string str t in
-                                   (mvar, mval))
-                          in
-
-                          let loc = lexing_pos_to_loc file pos1 str in
-                          (* this will be adjusted later *)
-                          let rule_id = fake_rule_id (id, pstr) in
-                          {
-                            PM.rule_id;
-                            file;
-                            range_loc = (loc, loc);
-                            env;
-                            tokens = lazy [ info_of_token_location loc ];
-                          }))
+            |> List.map (spacegrep_aux (src, doc, file))
             |> List.flatten)
       in
       (res, parse_time, match_time)
@@ -514,6 +505,24 @@ let matches_of_spacegrep spacegreps file =
 (*****************************************************************************)
 (* Evaluating regexps *)
 (*****************************************************************************)
+let regexp_aux (big_str, file) ((s, re), id, _pstr) =
+  let subs = try Pcre.exec_all ~rex:re big_str with Not_found -> [||] in
+  subs |> Array.to_list
+  |> List.map (fun sub ->
+         let charpos, _ = Pcre.get_substring_ofs sub 0 in
+         let str = Pcre.get_substring sub 0 in
+
+         let line, column = line_col_of_charpos file charpos in
+         let loc = { PI.str; charpos; file; line; column } in
+         (* this will be re-adjusted later *)
+         let rule_id = fake_rule_id (id, s) in
+         {
+           PM.rule_id;
+           file;
+           range_loc = (loc, loc);
+           tokens = lazy [ info_of_token_location loc ];
+           env = [];
+         })
 
 let matches_of_regexs regexps lazy_content file =
   let big_str, parse_time =
@@ -521,28 +530,7 @@ let matches_of_regexs regexps lazy_content file =
   in
   let res, match_time =
     Common.with_time (fun () ->
-        regexps
-        |> List.map (fun ((s, re), id, _pstr) ->
-               let subs =
-                 try Pcre.exec_all ~rex:re big_str with Not_found -> [||]
-               in
-               subs |> Array.to_list
-               |> List.map (fun sub ->
-                      let charpos, _ = Pcre.get_substring_ofs sub 0 in
-                      let str = Pcre.get_substring sub 0 in
-
-                      let line, column = line_col_of_charpos file charpos in
-                      let loc = { PI.str; charpos; file; line; column } in
-                      (* this will be re-adjusted later *)
-                      let rule_id = fake_rule_id (id, s) in
-                      {
-                        PM.rule_id;
-                        file;
-                        range_loc = (loc, loc);
-                        tokens = lazy [ info_of_token_location loc ];
-                        env = [];
-                      }))
-        |> List.flatten)
+        regexps |> List.map (regexp_aux (big_str, file)) |> List.flatten)
   in
   (res, parse_time, match_time)
   [@@profiling]
@@ -550,6 +538,52 @@ let matches_of_regexs regexps lazy_content file =
 (*****************************************************************************)
 (* Evaluating Comby *)
 (*****************************************************************************)
+
+let comby_aux (e, metasyntax, source, file) (pat, id, pstr) =
+  (* less: we should build M in the caller, once, but passing a first-class
+   * module in a tuple is not parsed correctly by our OCaml pfff parser
+   *)
+  let (module M : CK.Matchers.Matcher.S) =
+    match CK.Matchers.Alpha.select_with_extension ~metasyntax ("." ^ e) with
+    | None -> failwith (spf "no Alpha Comby module for extension %s" e)
+    | Some x -> x
+  in
+
+  let matches = M.all ~template:pat ~source () in
+  Format.printf "%a@." CK.Match.pp_json_lines (None, matches);
+  matches
+  |> List.map (fun { CK.Match.range; environment; matched } ->
+         let env =
+           CK.Match.Environment.vars environment
+           |> List.map (fun s ->
+                  let mvar = "$" ^ s in
+                  let str_opt = CK.Match.Environment.lookup environment s in
+                  let range_opt =
+                    CK.Match.Environment.lookup_range environment s
+                  in
+                  match (str_opt, range_opt) with
+                  | Some str, Some range ->
+                      let line, column, charpos =
+                        line_col_charpos_of_comby_range file range
+                      in
+                      let loc = { PI.str; charpos; file; line; column } in
+                      let t = info_of_token_location loc in
+                      let mval = mval_of_spacegrep_string str t in
+                      (mvar, mval)
+                  | _ -> raise Impossible)
+         in
+         let line, column, charpos =
+           line_col_charpos_of_comby_range file range
+         in
+         let loc = { PI.str = matched; charpos; file; line; column } in
+         let rule_id = fake_rule_id (id, pstr) in
+         {
+           PM.rule_id;
+           file;
+           range_loc = (loc, loc);
+           tokens = lazy [ info_of_token_location loc ];
+           env;
+         })
 
 let matches_of_combys combys lazy_content file =
   let _d, _b, e = Common2.dbe_of_filename file in
@@ -559,60 +593,13 @@ let matches_of_combys combys lazy_content file =
       identifier = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     }
   in
-  let (module M : CK.Matchers.Matcher.S) =
-    match CK.Matchers.Alpha.select_with_extension ~metasyntax ("." ^ e) with
-    | None -> failwith (spf "no Alpha Comby module for extension %s" e)
-    | Some x -> x
-  in
-
   let source, parse_time =
     Common.with_time (fun () -> Lazy.force lazy_content)
   in
   let res, match_time =
     Common.with_time (fun () ->
         combys
-        |> List.map (fun (pat, id, pstr) ->
-               let matches = M.all ~template:pat ~source () in
-               Format.printf "%a@." CK.Match.pp_json_lines (None, matches);
-               matches
-               |> List.map (fun { CK.Match.range; environment; matched } ->
-                      let env =
-                        CK.Match.Environment.vars environment
-                        |> List.map (fun s ->
-                               let mvar = "$" ^ s in
-                               let str_opt =
-                                 CK.Match.Environment.lookup environment s
-                               in
-                               let range_opt =
-                                 CK.Match.Environment.lookup_range environment s
-                               in
-                               match (str_opt, range_opt) with
-                               | Some str, Some range ->
-                                   let line, column, charpos =
-                                     line_col_charpos_of_comby_range file range
-                                   in
-                                   let loc =
-                                     { PI.str; charpos; file; line; column }
-                                   in
-                                   let t = info_of_token_location loc in
-                                   let mval = mval_of_spacegrep_string str t in
-                                   (mvar, mval)
-                               | _ -> raise Impossible)
-                      in
-                      let line, column, charpos =
-                        line_col_charpos_of_comby_range file range
-                      in
-                      let loc =
-                        { PI.str = matched; charpos; file; line; column }
-                      in
-                      let rule_id = fake_rule_id (id, pstr) in
-                      {
-                        PM.rule_id;
-                        file;
-                        range_loc = (loc, loc);
-                        tokens = lazy [ info_of_token_location loc ];
-                        env;
-                      }))
+        |> List.map (comby_aux (e, metasyntax, source, file))
         |> List.flatten)
   in
   (res, parse_time, match_time)
