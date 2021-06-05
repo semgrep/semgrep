@@ -41,6 +41,8 @@ let str = H.str
 let unhandled_keywordattr_to_namedattr env tok =
   AST.unhandled_keywordattr (str env tok)
 
+let map_opt func env = function None -> None | Some x -> Some (func env x)
+
 let ids_of_name (name : name) : dotted_ident =
   match name with
   | Id (ident, _) -> [ ident ]
@@ -854,15 +856,8 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
         let pat = Some (tuple_pattern env x) in
         (id, pat)
   in
-  let v2 =
-    (* TODO handle v2 *)
-    match v2 with
-    | Some x -> Some (element_binding_expression env x)
-    | None -> None
-  in
-  let v3 =
-    match v3 with Some x -> Some (equals_value_clause env x) | None -> None
-  in
+  let v2 = map_opt element_binding_expression env v2 in
+  let v3 = map_opt equals_value_clause env v3 in
   let vinit =
     match (pattern, v3) with
     | Some pat, Some init -> Some (LetPattern (pat, init))
@@ -990,16 +985,12 @@ and array_rank_specifier (env : env) ((v1, v2, v3) : CST.array_rank_specifier) =
   let v2 =
     match v2 with
     | Some (v1, v2) ->
-        let v1 =
-          match v1 with Some x -> Some (expression env x) | None -> None
-        in
+        let v1 = map_opt expression env v1 in
         let v2 =
           List.map
             (fun (v1, v2) ->
               let v1 = token env v1 (* "," *) in
-              let v2 =
-                match v2 with Some x -> Some (expression env x) | None -> None
-              in
+              let v2 = map_opt expression env v2 in
               v2)
             v2
         in
@@ -1011,7 +1002,7 @@ and array_rank_specifier (env : env) ((v1, v2, v3) : CST.array_rank_specifier) =
   (v1, v2, v3)
 
 and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
-  let v1 = match v1 with Some x -> Some (name_colon env x) | None -> None in
+  let v1 = map_opt name_colon env v1 in
   let v2 =
     match v2 with
     | Some x -> (
@@ -1033,9 +1024,7 @@ and initializer_expression (env : env)
     ((v1, v2, v3, v4) : CST.initializer_expression) : expr list AST.bracket =
   let v1 = token env v1 (* "{" *) in
   let v2 = anon_opt_cst_pat_rep_interp_alig_clause_080fdff env v2 in
-  let v3 =
-    match v3 with Some tok -> Some (token env tok) (* "," *) | None -> None
-  in
+  let v3 = map_opt token env v3 (* "," *) in
   let v4 = token env v4 (* "}" *) in
   (v1, v2, v4)
 
@@ -1162,11 +1151,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
             v1 :: v2
         | None -> []
       in
-      let v4 =
-        match v4 with
-        | Some tok -> Some (token env tok) (* "," *)
-        | None -> None
-      in
+      let v4 = map_opt token env v4 (* "," *) in
       let v5 = token env v5 (* "}" *) in
       AnonClass
         {
@@ -1619,11 +1604,7 @@ and statement (env : env) (x : CST.statement) =
       let _v5 = statement env v5 in
       todo_stmt env v1
   | `For_each_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
-      let v1 =
-        match v1 with
-        | Some tok -> Some (token env tok) (* "await" *)
-        | None -> None
-      in
+      let v1 = map_opt token env v1 (* "await" *) in
       let v2 = token env v2 (* "foreach" *) in
       let v3 = token env v3 (* "(" *) in
       let v4 =
@@ -1667,12 +1648,7 @@ and statement (env : env) (x : CST.statement) =
         | None -> []
       in
       let v4 = token env v4 (* ";" *) in
-      let v5 =
-        match v5 with
-        (* TODO use `Common.map_opt` function for constructs like this? *)
-        | Some x -> Some (expression env x)
-        | None -> None
-      in
+      let v5 = map_opt expression env v5 in
       let v6 = token env v6 (* ";" *) in
       let v7 = anon_opt_cst_pat_rep_interp_alig_clause_080fdff env v7 in
       let v8 = token env v8 (* ")" *) in
@@ -1720,18 +1696,8 @@ and statement (env : env) (x : CST.statement) =
       let v3 = statement env v3 in
       Label (v1, v3) |> AST.s
   | `Local_decl_stmt (v1, v2, v3, v4, v5) ->
-      let v1 =
-        (* TODO handle v1 *)
-        match v1 with
-        | Some tok -> Some (token env tok) (* "await" *)
-        | None -> None
-      in
-      let v2 =
-        (* TODO handle v2 *)
-        match v2 with
-        | Some tok -> Some (token env tok) (* "using" *)
-        | None -> None
-      in
+      let v1_todo = map_opt token env v1 (* "await" *) in
+      let v2_todo = map_opt token env v2 (* "using" *) in
       let v3 = List.map (modifier env) v3 in
       let v4 = variable_declaration env v4 in
       let v5 = token env v5 (* ";" *) in
@@ -1769,9 +1735,7 @@ and statement (env : env) (x : CST.statement) =
       OtherStmt (OS_Sync, [ E v3; S v5 ]) |> AST.s
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "return" *) in
-      let v2 =
-        match v2 with Some x -> Some (expression env x) | None -> None
-      in
+      let v2 = map_opt expression env v2 in
       let v3 = token env v3 (* ";" *) in
       Return (v1, v2, v3) |> AST.s
   | `Switch_stmt (v1, v2, v3) ->
@@ -1785,9 +1749,7 @@ and statement (env : env) (x : CST.statement) =
       AST.Switch (v1, Some v2, v3) |> AST.s
   | `Throw_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "throw" *) in
-      let v2 =
-        match v2 with Some x -> Some (expression env x) | None -> None
-      in
+      let v2 = map_opt expression env v2 in
       let v3 = token env v3 (* ";" *) in
       ( match v2 with
       | Some expr -> Throw (v1, expr, v3)
@@ -1797,20 +1759,14 @@ and statement (env : env) (x : CST.statement) =
       let v1 = token env v1 (* "try" *) in
       let v2 = block env v2 in
       let v3 = List.map (catch_clause env) v3 in
-      let v4 =
-        match v4 with Some x -> Some (finally_clause env x) | None -> None
-      in
+      let v4 = map_opt finally_clause env v4 in
       Try (v1, v2, v3, v4) |> AST.s
   | `Unsafe_stmt (v1, v2) ->
       let v1 = token env v1 (* "unsafe" *) in
       let _v2 = block env v2 in
       todo_stmt env v1
   | `Using_stmt (v1, v2, v3, v4, v5, v6) ->
-      let v1 =
-        match v1 with
-        | Some tok -> Some (token env tok) (* "await" *)
-        | None -> None
-      in
+      let v1 = map_opt token env v1 (* "await" *) in
       let v2 = token env v2 (* "using" *) in
       let v3 = token env v3 (* "(" *) in
       let v4 =
@@ -1869,11 +1825,7 @@ and interpolated_string_expression (env : env)
 
 and tuple_element (env : env) ((v1, v2) : CST.tuple_element) =
   let v1 = type_constraint env v1 in
-  let v2_todo =
-    match v2 with
-    | Some tok -> Some (identifier env tok) (* identifier *)
-    | None -> None
-  in
+  let v2_todo = map_opt identifier env v2 (* identifier *) in
   v1
 
 and constant_pattern (env : env) (x : CST.constant_pattern) =
@@ -1882,11 +1834,7 @@ and constant_pattern (env : env) (x : CST.constant_pattern) =
 and catch_declaration (env : env) ((v1, v2, v3, v4) : CST.catch_declaration) =
   let v1 = token env v1 (* "(" *) in
   let v2 = type_constraint env v2 in
-  let v3 =
-    match v3 with
-    | Some tok -> Some (identifier env tok) (* identifier *)
-    | None -> None
-  in
+  let v3 = map_opt identifier env v3 (* identifier *) in
   let v4 = token env v4 (* ")" *) in
   let var =
     match v3 with Some ident -> Some (ident, empty_id_info ()) | None -> None
@@ -1908,9 +1856,7 @@ and query_clause (env : env) (x : CST.query_clause) =
   | `From_clause x -> from_clause env x
   | `Join_clause (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
       let v1 = token env v1 (* "join" *) in
-      let v2 =
-        match v2 with Some x -> Some (type_constraint env x) | None -> None
-      in
+      let v2 = map_opt type_constraint env v2 in
       let v3 = identifier env v3 (* identifier *) in
       let v4 = token env v4 (* "in" *) in
       let v5 = expression env v5 in
@@ -1918,9 +1864,7 @@ and query_clause (env : env) (x : CST.query_clause) =
       let v7 = expression env v7 in
       let v8 = token env v8 (* "equals" *) in
       let v9 = expression env v9 in
-      let v10 =
-        match v10 with Some x -> Some (join_into_clause env x) | None -> None
-      in
+      let v10 = map_opt join_into_clause env v10 in
       Join (v1, (v2, v3), v5, v7, v9, v10)
   | `Let_clause (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "let" *) in
@@ -2013,7 +1957,7 @@ and attribute_list (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_list) :
     attribute list =
   (* TODO: Handle unused tokens. *)
   let _v1 = token env v1 (* "[" *) in
-  let _v2 = v2 |> map_opt (fun x -> attribute_target_specifier env x) in
+  let _v2 = map_opt attribute_target_specifier env v2 in
   let v3 = attribute env v3 in
   let v4 =
     List.map
@@ -2022,7 +1966,7 @@ and attribute_list (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_list) :
         attribute env y)
       v4
   in
-  let _v5 = v5 |> map_opt (fun x -> token env x (* "," *)) in
+  let _v5 = map_opt token env v5 (* "," *) in
   let _v6 = token env v6 (* "]" *) in
   v3 :: v4
 
@@ -2111,11 +2055,7 @@ and positional_pattern_clause (env : env)
   PatTuple (v1, v2, v3)
 
 and subpattern (env : env) ((v1, v2) : CST.subpattern) =
-  let v1 =
-    match v1 with
-    | Some x -> Some (name_colon env x) (* TODO handle this *)
-    | None -> None
-  in
+  let v1_todo = map_opt name_colon env v1 in
   let v2 = pattern env v2 in
   v2
 
@@ -2161,13 +2101,9 @@ and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
     TODO: add v2 as a keyword attribute? Pass v2 to parameter_modifier.
   *)
   let v1 = List.concat_map (attribute_list env) v1 in
-  let v3 =
-    match v3 with Some x -> Some (type_constraint env x) | None -> None
-  in
+  let v3 = map_opt type_constraint env v3 in
   let v4 = identifier env v4 (* identifier *) in
-  let v5 =
-    match v5 with Some x -> Some (equals_value_clause env x) | None -> None
-  in
+  let v5 = map_opt equals_value_clause env v5 in
   {
     pname = Some v4;
     ptype = v3;
@@ -2179,9 +2115,7 @@ and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
 and from_clause (env : env) ((v1, v2, v3, v4, v5) : CST.from_clause) :
     linq_query_part =
   let v1 = token env v1 (* "from" *) in
-  let v2 =
-    match v2 with Some x -> Some (type_constraint env x) | None -> None
-  in
+  let v2 = map_opt type_constraint env v2 in
   let v3 = identifier env v3 (* identifier *) in
   let v4 = token env v4 (* "in" *) in
   let v5 = expression env v5 in
@@ -2348,16 +2282,8 @@ and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) :
     expr bracket =
   let v1 = token env v1 (* "{" *) in
   let v2 = expression env v2 in
-  let v3 =
-    match v3 with
-    | Some x -> Some (interpolation_alignment_clause env x)
-    | None -> None
-  in
-  let v4 =
-    match v4 with
-    | Some x -> Some (interpolation_format_clause env x)
-    | None -> None
-  in
+  let v3_todo = map_opt interpolation_alignment_clause env v3 in
+  let v4_todo = map_opt interpolation_format_clause env v4 in
   let v5 = token env v5 (* "}" *) in
   (v1, v2, v5)
 
@@ -2420,9 +2346,7 @@ let enum_member_declaration (env : env)
     ((v1, v2, v3) : CST.enum_member_declaration) =
   let v1 = List.concat_map (attribute_list env) v1 in
   let v2 = identifier env v2 (* identifier *) in
-  let v3 =
-    match v3 with Some x -> Some (equals_value_clause env x) | None -> None
-  in
+  let v3 = map_opt equals_value_clause env v3 in
   OrEnum (v2, v3)
 
 let base_list (env : env) ((v1, v2, v3) : CST.base_list) =
@@ -2462,9 +2386,7 @@ let enum_member_declaration_list (env : env)
         v1 :: v2
     | None -> []
   in
-  let v3 =
-    match v3 with Some tok -> Some (token env tok) (* "," *) | None -> None
-  in
+  let v3 = map_opt token env v3 (* "," *) in
   let v4 = token env v4 (* "}" *) in
   v2
 
@@ -2624,9 +2546,7 @@ and enum_declaration env (v1, v2, v3, v4, v5, v6, v7) =
   let v4 = identifier env v4 (* identifier *) in
   let v5 = match v5 with Some x -> base_list env x | None -> [] in
   let v6 = enum_member_declaration_list env v6 in
-  let v7 =
-    match v7 with Some tok -> Some (token env tok) (* ";" *) | None -> None
-  in
+  let v7 = map_opt token env v7 (* ";" *) in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams = [] } in
   AST.DefStmt (ent, AST.TypeDef { tbody = OrType v6 }) |> AST.s
@@ -2665,11 +2585,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v3 = identifier env v3 (* identifier *) in
       let _, tok = v3 in
       let v4 = parameter_list env v4 in
-      let v5 =
-        match v5 with
-        | Some x -> Some (constructor_initializer env x)
-        | None -> None
-      in
+      let v5 = map_opt constructor_initializer env v5 in
       let v6 = function_body env v6 in
       let fbody =
         match v5 with
@@ -2739,11 +2655,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v2 = List.map (modifier env) v2 in
       let v3 = unhandled_keywordattr_to_namedattr env v3 (* "event" *) in
       let v4 = type_constraint env v4 in
-      let v5 =
-        match v5 with
-        | Some x -> Some (explicit_interface_specifier env x)
-        | None -> None
-      in
+      let v5 = map_opt explicit_interface_specifier env v5 in
       let v6 = identifier env v6 (* identifier *) in
       let fname, ftok = v6 in
       let v7 =
@@ -2804,11 +2716,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = type_constraint env v3 in
-      let v4 =
-        match v4 with
-        | Some x -> Some (explicit_interface_specifier env x)
-        | None -> None
-      in
+      let v4 = map_opt explicit_interface_specifier env v4 in
       let v5 = token env v5 (* "this" *) in
       let v6 = bracketed_parameter_list env v6 in
       let indexer_attrs = v1 @ v2 in
@@ -2934,11 +2842,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in
       let v3 = type_constraint env v3 in
-      let v4 =
-        match v4 with
-        | Some x -> Some (explicit_interface_specifier env x)
-        | None -> None
-      in
+      let v4 = map_opt explicit_interface_specifier env v4 in
       let v5 = identifier env v5 (* identifier *) in
       let fname, ftok = v5 in
       let accessors, vinit =
