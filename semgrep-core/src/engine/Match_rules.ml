@@ -244,32 +244,6 @@ let (mini_rule_of_pattern : R.t -> Pattern.t * Rule.pattern_id * string -> MR.t)
     pattern_string = pstr;
   }
 
-(* this will be adjusted later in range_to_pattern_match_adjusted *)
-let fake_rule_id (id, str) =
-  { PM.id = string_of_int id; pattern_string = str; message = "" }
-
-(* todo: same, we should not need that *)
-let hmemo = Hashtbl.create 101
-
-let line_col_of_charpos file charpos =
-  let conv =
-    Common.memoized hmemo file (fun () -> PI.full_charpos_to_pos_large file)
-  in
-  conv charpos
-
-(* todo: same, we should not need that *)
-let info_of_token_location loc =
-  { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
-
-let mval_of_string str t =
-  let literal =
-    match int_of_string_opt str with
-    | Some i -> G.Int (Some i, t)
-    (* TODO? could try float_of_string_opt? *)
-    | None -> G.String (str, t)
-  in
-  MV.E (G.L literal)
-
 (*****************************************************************************)
 (* Logic on ranges *)
 (*****************************************************************************)
@@ -418,9 +392,20 @@ type ('target_content, 'xpattern) xpattern_matcher = {
    * certain files (e.g., big binary or minified files for spacegrep)
    *)
   init : filename -> 'target_content option;
-  (* todo: could also return just loc and env *)
-  matcher : 'target_content * filename -> 'xpattern -> PM.t list;
+  matcher :
+    'target_content ->
+    filename ->
+    'xpattern ->
+    (Parse_info.token_location * MV.bindings) list;
 }
+
+(* this will be adjusted later in range_to_pattern_match_adjusted *)
+let fake_rule_id (id, str) =
+  { PM.id = string_of_int id; pattern_string = str; message = "" }
+
+(* todo: same, we should not need that *)
+let info_of_token_location loc =
+  { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
 
 let matches_of_matcher xpatterns matcher file =
   if xpatterns = [] then ([], 0., 0.)
@@ -434,12 +419,40 @@ let matches_of_matcher xpatterns matcher file =
         let res, match_time =
           Common.with_time (fun () ->
               xpatterns
-              |> List.map (fun xpat ->
-                     matcher.matcher (target_content, file) xpat)
+              |> List.map (fun (xpat, id, pstr) ->
+                     let xs = matcher.matcher target_content file xpat in
+                     xs
+                     |> List.map (fun (loc, env) ->
+                            (* this will be adjusted later *)
+                            let rule_id = fake_rule_id (id, pstr) in
+                            {
+                              PM.rule_id;
+                              file;
+                              range_loc = (loc, loc);
+                              env;
+                              tokens = lazy [ info_of_token_location loc ];
+                            }))
               |> List.flatten)
         in
         (res, parse_time, match_time)
-  [@@profiling]
+
+(* todo: same, we should not need that *)
+let hmemo = Hashtbl.create 101
+
+let line_col_of_charpos file charpos =
+  let conv =
+    Common.memoized hmemo file (fun () -> PI.full_charpos_to_pos_large file)
+  in
+  conv charpos
+
+let mval_of_string str t =
+  let literal =
+    match int_of_string_opt str with
+    | Some i -> G.Int (Some i, t)
+    (* TODO? could try float_of_string_opt? *)
+    | None -> G.String (str, t)
+  in
+  MV.E (G.L literal)
 
 (*-------------------------------------------------------------------*)
 (* Spacegrep *)
@@ -455,7 +468,7 @@ let lexing_pos_to_loc file x str =
   let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
   { PI.str; charpos; file; line; column }
 
-let spacegrep_matcher ((doc, src), file) (pat, id, pstr) =
+let spacegrep_matcher (doc, src) file pat =
   let matches = Spacegrep.Match.search ~case_sensitive:true src pat doc in
   matches
   |> List.map (fun m ->
@@ -471,17 +484,8 @@ let spacegrep_matcher ((doc, src), file) (pat, id, pstr) =
                   let mval = mval_of_string str t in
                   (mvar, mval))
          in
-
          let loc = lexing_pos_to_loc file pos1 str in
-         (* this will be adjusted later *)
-         let rule_id = fake_rule_id (id, pstr) in
-         {
-           PM.rule_id;
-           file;
-           range_loc = (loc, loc);
-           env;
-           tokens = lazy [ info_of_token_location loc ];
-         })
+         (loc, env))
 
 let matches_of_spacegrep spacegreps file =
   matches_of_matcher spacegreps
@@ -521,24 +525,17 @@ let matches_of_spacegrep spacegreps file =
 (*-------------------------------------------------------------------*)
 (* Regexps *)
 (*-------------------------------------------------------------------*)
-let regexp_matcher (big_str, file) ((_s, re), id, pstr) =
+let regexp_matcher big_str file (_s, re) =
   let subs = try Pcre.exec_all ~rex:re big_str with Not_found -> [||] in
   subs |> Array.to_list
   |> List.map (fun sub ->
          let charpos, _ = Pcre.get_substring_ofs sub 0 in
          let str = Pcre.get_substring sub 0 in
-
          let line, column = line_col_of_charpos file charpos in
          let loc = { PI.str; charpos; file; line; column } in
-         (* this will be re-adjusted later *)
-         let rule_id = fake_rule_id (id, pstr) in
-         {
-           PM.rule_id;
-           file;
-           range_loc = (loc, loc);
-           tokens = lazy [ info_of_token_location loc ];
-           env = [];
-         })
+         let env = [] in
+         (* TODO? *)
+         (loc, env))
 
 let matches_of_regexs regexps lazy_content file =
   matches_of_matcher regexps
@@ -567,7 +564,7 @@ let line_col_charpos_of_comby_range file range =
   let line, col = line_col_of_charpos file charpos in
   (line, col, charpos)
 
-let comby_matcher ((m_all, source), file) (pat, id, pstr) =
+let comby_matcher (m_all, source) file pat =
   let matches = m_all ~template:pat ~source () in
   Format.printf "%a@." CK.Match.pp_json_lines (None, matches);
   matches
@@ -595,14 +592,7 @@ let comby_matcher ((m_all, source), file) (pat, id, pstr) =
            line_col_charpos_of_comby_range file range
          in
          let loc = { PI.str = matched; charpos; file; line; column } in
-         let rule_id = fake_rule_id (id, pstr) in
-         {
-           PM.rule_id;
-           file;
-           range_loc = (loc, loc);
-           tokens = lazy [ info_of_token_location loc ];
-           env;
-         })
+         (loc, env))
 
 let matches_of_combys combys lazy_content file =
   matches_of_matcher combys
@@ -631,6 +621,7 @@ let matches_of_combys combys lazy_content file =
       matcher = comby_matcher;
     }
     file
+  [@@profiling]
 
 (*****************************************************************************)
 (* Evaluating xpatterns *)
