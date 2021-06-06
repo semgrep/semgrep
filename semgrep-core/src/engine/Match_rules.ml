@@ -387,6 +387,9 @@ let matches_of_patterns config orig_rule equivalences
 (* Extended patterns matchers *)
 (*****************************************************************************)
 
+(* This type and matches_of_matcher() below factorize code between
+ * the regexp, spacegrep, and now comby matchers.
+ *)
 type ('target_content, 'xpattern) xpattern_matcher = {
   (* init returns an option to let the matcher the option to skip
    * certain files (e.g., big binary or minified files for spacegrep)
@@ -419,7 +422,7 @@ let (matches_of_matcher :
       Common.with_time (fun () -> matcher.init file)
     in
     match target_content_opt with
-    | None -> RP.empty_semgrep_result
+    | None -> RP.empty_semgrep_result (* less: could include parse_time *)
     | Some target_content ->
         let res, match_time =
           Common.with_time (fun () ->
@@ -503,10 +506,10 @@ let matches_of_spacegrep spacegreps file =
         (fun _ ->
           (* coupling: mostly copypaste of Spacegrep_main.run_all *)
           (*
-        We inspect the first 4096 bytes to guess whether the file type.
-        This saves time on large files, by reading typically just one
-        block from the file system.
-      *)
+           We inspect the first 4096 bytes to guess whether the file type.
+           This saves time on large files, by reading typically just one
+           block from the file system.
+          *)
           let peek_length = 4096 in
           let partial_doc_src =
             Spacegrep.Src_file.of_file ~max_len:peek_length file
@@ -542,8 +545,8 @@ let regexp_matcher big_str file (_s, re) =
          let str = Pcre.get_substring sub 0 in
          let line, column = line_col_of_charpos file charpos in
          let loc = { PI.str; charpos; file; line; column } in
+         (* TODO? return regexp binded group? $1 $2 etc? *)
          let env = [] in
-         (* TODO? *)
          (loc, env))
 
 let matches_of_regexs regexps lazy_content file =
@@ -562,7 +565,7 @@ let matches_of_regexs regexps lazy_content file =
 module CK = Comby_kernel
 module MS = CK.Matchers.Metasyntax
 
-(* "if you need line/column conversion [in Comby], then there's another
+(* less: "if you need line/column conversion [in Comby], then there's another
  * function to run over matches to hydrate line/column info in the result"
  * src: https://github.com/comby-tools/comby/issues/244
  *)
@@ -570,12 +573,13 @@ let line_col_charpos_of_comby_range file range =
   let { CK.Match.Location.offset = charpos; line = _; column = _ } =
     range.CK.Match.Range.match_start
   in
+  (* reusing line_col_of_charpos is fine for now *)
   let line, col = line_col_of_charpos file charpos in
   (line, col, charpos)
 
 let comby_matcher (m_all, source) file pat =
   let matches = m_all ~template:pat ~source () in
-  Format.printf "%a@." CK.Match.pp_json_lines (None, matches);
+  (*Format.printf "%a@." CK.Match.pp_json_lines (None, matches);*)
   matches
   |> List.map (fun { CK.Match.range; environment; matched } ->
          let env =
@@ -661,7 +665,7 @@ let matches_of_xpatterns config orig_rule equivalences
 (* Formula evaluation *)
 (*****************************************************************************)
 
-(* TODO: use Set instead of list? *)
+(* less: use Set instead of list? *)
 let rec (evaluate_formula :
           env -> range_with_mvars option -> R.formula -> range_with_mvars list)
     =
