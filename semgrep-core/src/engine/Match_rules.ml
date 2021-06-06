@@ -414,19 +414,19 @@ let matches_of_patterns config orig_rule equivalences
 (*****************************************************************************)
 
 type ('target_content, 'xpattern) xpattern_matcher = {
-  (* init return an option to let the matcher the option to skip
+  (* init returns an option to let the matcher the option to skip
    * certain files (e.g., big binary or minified files for spacegrep)
    *)
-  init : string Lazy.t -> filename -> 'target_content option;
+  init : filename -> 'target_content option;
   (* todo: could also return just loc and env *)
   matcher : 'target_content * filename -> 'xpattern -> PM.t list;
 }
 
-let matches_of_matcher xpatterns matcher lazy_content file =
+let matches_of_matcher xpatterns matcher file =
   if xpatterns = [] then ([], 0., 0.)
   else
     let target_content_opt, parse_time =
-      Common.with_time (fun () -> matcher.init lazy_content file)
+      Common.with_time (fun () -> matcher.init file)
     in
     match target_content_opt with
     | None -> ([], 0., 0.)
@@ -434,7 +434,8 @@ let matches_of_matcher xpatterns matcher lazy_content file =
         let res, match_time =
           Common.with_time (fun () ->
               xpatterns
-              |> List.map (matcher.matcher (target_content, file))
+              |> List.map (fun xpat ->
+                     matcher.matcher (target_content, file) xpat)
               |> List.flatten)
         in
         (res, parse_time, match_time)
@@ -482,11 +483,11 @@ let spacegrep_matcher ((doc, src), file) (pat, id, pstr) =
            tokens = lazy [ info_of_token_location loc ];
          })
 
-let matches_of_spacegrep spacegreps lazy_content file =
+let matches_of_spacegrep spacegreps file =
   matches_of_matcher spacegreps
     {
       init =
-        (fun _ _ ->
+        (fun _ ->
           (* coupling: mostly copypaste of Spacegrep_main.run_all *)
           (*
         We inspect the first 4096 bytes to guess whether the file type.
@@ -514,7 +515,7 @@ let matches_of_spacegrep spacegreps lazy_content file =
               Some (Spacegrep.Parse_doc.of_src src, src));
       matcher = spacegrep_matcher;
     }
-    lazy_content file
+    file
   [@@profiling]
 
 (*-------------------------------------------------------------------*)
@@ -542,10 +543,10 @@ let regexp_matcher (big_str, file) ((_s, re), id, pstr) =
 let matches_of_regexs regexps lazy_content file =
   matches_of_matcher regexps
     {
-      init = (fun _ _ -> Some (Lazy.force lazy_content));
+      init = (fun _ -> Some (Lazy.force lazy_content));
       matcher = regexp_matcher;
     }
-    lazy_content file
+    file
   [@@profiling]
 
 (*-------------------------------------------------------------------*)
@@ -607,7 +608,7 @@ let matches_of_combys combys lazy_content file =
   matches_of_matcher combys
     {
       init =
-        (fun _ _ ->
+        (fun _ ->
           let _d, _b, e = Common2.dbe_of_filename file in
           let metasyntax =
             {
@@ -629,7 +630,7 @@ let matches_of_combys combys lazy_content file =
                   Lazy.force lazy_content ));
       matcher = comby_matcher;
     }
-    lazy_content file
+    file
 
 (*****************************************************************************)
 (* Evaluating xpatterns *)
@@ -653,7 +654,7 @@ let matches_of_xpatterns config orig_rule equivalences
 
   (* spacegrep *)
   let spacegrep_matches, spacegrep_parse_time, spacegrep_match_time =
-    matches_of_spacegrep spacegreps lazy_content file
+    matches_of_spacegrep spacegreps file
   in
   (* regexps *)
   let regexp_matches, regexp_parse_time, regexp_match_time =
