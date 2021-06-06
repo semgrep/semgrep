@@ -24,11 +24,6 @@ module PI = Parse_info
 module MV = Metavariable
 module RP = Report
 
-(* other matchers *)
-module SJ = Spacegrep.Semgrep_j
-module CK = Comby_kernel
-module MS = CK.Matchers.Metasyntax
-
 let logger = Logging.get_logger [ __MODULE__ ]
 
 let debug_timeout = ref false
@@ -249,54 +244,6 @@ let (mini_rule_of_pattern : R.t -> Pattern.t * Rule.pattern_id * string -> MR.t)
     pattern_string = pstr;
   }
 
-(* this will be adjusted later in range_to_pattern_match_adjusted *)
-let fake_rule_id (id, str) =
-  { PM.id = string_of_int id; pattern_string = str; message = "" }
-
-(* todo: same, we should not need that *)
-let hmemo = Hashtbl.create 101
-
-let line_col_of_charpos file charpos =
-  let conv =
-    Common.memoized hmemo file (fun () -> PI.full_charpos_to_pos_large file)
-  in
-  conv charpos
-
-(* "if you need line/column conversion [in Comby], then there's another
- * function to run over matches to hydrate line/column info in the result"
- * src: https://github.com/comby-tools/comby/issues/244
- *)
-let line_col_charpos_of_comby_range file range =
-  let { CK.Match.Location.offset = charpos; line = _; column = _ } =
-    range.CK.Match.Range.match_start
-  in
-  let line, col = line_col_of_charpos file charpos in
-  (line, col, charpos)
-
-(* todo: same, we should not need that *)
-let info_of_token_location loc =
-  { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
-
-(* for spacegrep *)
-let lexing_pos_to_loc file x str =
-  (* almost like Spacegrep.Semgrep.semgrep_pos() *)
-  let line = x.Lexing.pos_lnum in
-  let charpos = x.Lexing.pos_cnum in
-  (* bugfix: not +1 here, Parse_info.column is 0-based.
-   * JSON_report.json_range does the adjust_column + 1.
-   *)
-  let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
-  { PI.str; charpos; file; line; column }
-
-let mval_of_spacegrep_string str t =
-  let literal =
-    match int_of_string_opt str with
-    | Some i -> G.Int (Some i, t)
-    (* TODO? could try float_of_string_opt? *)
-    | None -> G.String (str, t)
-  in
-  MV.E (G.L literal)
-
 (*****************************************************************************)
 (* Logic on ranges *)
 (*****************************************************************************)
@@ -407,7 +354,7 @@ let debug_semgrep config mini_rules equivalences file lang ast =
   |> List.flatten
 
 (*****************************************************************************)
-(* Evaluating patterns *)
+(* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
 let matches_of_patterns config orig_rule equivalences
@@ -437,185 +384,257 @@ let matches_of_patterns config orig_rule equivalences
   | _ -> RP.empty_semgrep_result
 
 (*****************************************************************************)
-(* Evaluating spacegrep *)
+(* Extended patterns matchers *)
 (*****************************************************************************)
-let matches_of_spacegrep spacegreps file =
-  (* coupling: mostly copypaste of Spacegrep_main.run_all *)
-  (*
-     We inspect the first 4096 bytes to guess whether the file type.
-     This saves time on large files, by reading typically just one
-     block from the file system.
-   *)
-  let peek_length = 4096 in
-  let partial_doc_src = Spacegrep.Src_file.of_file ~max_len:peek_length file in
-  let doc_type = Spacegrep.File_type.classify partial_doc_src in
-  match doc_type with
-  | Minified | Binary ->
-      logger#info "ignoring gibberish file: %s\n%!" file;
-      ([], 0.0, 0.0)
-  | _ ->
-      let src =
-        if
-          Spacegrep.Src_file.length partial_doc_src < peek_length
-          (* it's actually complete, no need to re-input the file *)
-        then partial_doc_src
-        else Spacegrep.Src_file.of_file file
-      in
-      let doc, parse_time =
-        Common.with_time (fun () -> Spacegrep.Parse_doc.of_src src)
-      in
-      (* pr (Spacegrep.Doc_AST.show doc); *)
-      let res, match_time =
-        Common.with_time (fun () ->
-            spacegreps
-            |> List.map (fun (pat, id, pstr) ->
-                   let matches =
-                     Spacegrep.Match.search ~case_sensitive:true src pat doc
-                   in
-                   matches
-                   |> List.map (fun m ->
-                          let (pos1, _), (_pos2, _) =
-                            m.Spacegrep.Match.region
-                          in
-                          let { Spacegrep.Match.value = str; _ } =
-                            m.Spacegrep.Match.capture
-                          in
-                          let env =
-                            m.Spacegrep.Match.named_captures
-                            |> List.map (fun (s, capture) ->
-                                   let mvar = "$" ^ s in
-                                   let {
-                                     Spacegrep.Match.value = str;
-                                     loc = pos, _;
-                                   } =
-                                     capture
-                                   in
-                                   let loc = lexing_pos_to_loc file pos str in
-                                   let t = info_of_token_location loc in
-                                   let mval = mval_of_spacegrep_string str t in
-                                   (mvar, mval))
-                          in
 
-                          let loc = lexing_pos_to_loc file pos1 str in
-                          (* this will be adjusted later *)
-                          let rule_id = fake_rule_id (id, pstr) in
-                          {
-                            PM.rule_id;
-                            file;
-                            range_loc = (loc, loc);
-                            env;
-                            tokens = lazy [ info_of_token_location loc ];
-                          }))
-            |> List.flatten)
-      in
-      (res, parse_time, match_time)
+(* This type and matches_of_matcher() below factorize code between
+ * the regexp, spacegrep, and now comby matchers.
+ *)
+type ('target_content, 'xpattern) xpattern_matcher = {
+  (* init returns an option to let the matcher the option to skip
+   * certain files (e.g., big binary or minified files for spacegrep)
+   *)
+  init : filename -> 'target_content option;
+  matcher :
+    'target_content ->
+    filename ->
+    'xpattern ->
+    (Parse_info.token_location * MV.bindings) list;
+}
+
+(* this will be adjusted later in range_to_pattern_match_adjusted *)
+let fake_rule_id (id, str) =
+  { PM.id = string_of_int id; pattern_string = str; message = "" }
+
+(* todo: same, we should not need that *)
+let info_of_token_location loc =
+  { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
+
+let (matches_of_matcher :
+      ('xpattern * pattern_id * string) list ->
+      ('target_content, 'xpattern) xpattern_matcher ->
+      filename ->
+      RP.times RP.match_result) =
+ fun xpatterns matcher file ->
+  if xpatterns = [] then RP.empty_semgrep_result
+  else
+    let target_content_opt, parse_time =
+      Common.with_time (fun () -> matcher.init file)
+    in
+    match target_content_opt with
+    | None -> RP.empty_semgrep_result (* less: could include parse_time *)
+    | Some target_content ->
+        let res, match_time =
+          Common.with_time (fun () ->
+              xpatterns
+              |> List.map (fun (xpat, id, pstr) ->
+                     let xs = matcher.matcher target_content file xpat in
+                     xs
+                     |> List.map (fun (loc, env) ->
+                            (* this will be adjusted later *)
+                            let rule_id = fake_rule_id (id, pstr) in
+                            {
+                              PM.rule_id;
+                              file;
+                              range_loc = (loc, loc);
+                              env;
+                              tokens = lazy [ info_of_token_location loc ];
+                            }))
+              |> List.flatten)
+        in
+        {
+          RP.matches = res;
+          errors = [];
+          profiling = { RP.parse_time; match_time };
+        }
+
+(* todo: same, we should not need that *)
+let hmemo = Hashtbl.create 101
+
+let line_col_of_charpos file charpos =
+  let conv =
+    Common.memoized hmemo file (fun () -> PI.full_charpos_to_pos_large file)
+  in
+  conv charpos
+
+let mval_of_string str t =
+  let literal =
+    match int_of_string_opt str with
+    | Some i -> G.Int (Some i, t)
+    (* TODO? could try float_of_string_opt? *)
+    | None -> G.String (str, t)
+  in
+  MV.E (G.L literal)
+
+(*-------------------------------------------------------------------*)
+(* Spacegrep *)
+(*-------------------------------------------------------------------*)
+
+let lexing_pos_to_loc file x str =
+  (* almost like Spacegrep.Semgrep.semgrep_pos() *)
+  let line = x.Lexing.pos_lnum in
+  let charpos = x.Lexing.pos_cnum in
+  (* bugfix: not +1 here, Parse_info.column is 0-based.
+   * JSON_report.json_range does the adjust_column + 1.
+   *)
+  let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
+  { PI.str; charpos; file; line; column }
+
+let spacegrep_matcher (doc, src) file pat =
+  let matches = Spacegrep.Match.search ~case_sensitive:true src pat doc in
+  matches
+  |> List.map (fun m ->
+         let (pos1, _), (_pos2, _) = m.Spacegrep.Match.region in
+         let { Spacegrep.Match.value = str; _ } = m.Spacegrep.Match.capture in
+         let env =
+           m.Spacegrep.Match.named_captures
+           |> List.map (fun (s, capture) ->
+                  let mvar = "$" ^ s in
+                  let { Spacegrep.Match.value = str; loc = pos, _ } = capture in
+                  let loc = lexing_pos_to_loc file pos str in
+                  let t = info_of_token_location loc in
+                  let mval = mval_of_string str t in
+                  (mvar, mval))
+         in
+         let loc = lexing_pos_to_loc file pos1 str in
+         (loc, env))
+
+let matches_of_spacegrep spacegreps file =
+  matches_of_matcher spacegreps
+    {
+      init =
+        (fun _ ->
+          (* coupling: mostly copypaste of Spacegrep_main.run_all *)
+          (*
+           We inspect the first 4096 bytes to guess whether the file type.
+           This saves time on large files, by reading typically just one
+           block from the file system.
+          *)
+          let peek_length = 4096 in
+          let partial_doc_src =
+            Spacegrep.Src_file.of_file ~max_len:peek_length file
+          in
+          let doc_type = Spacegrep.File_type.classify partial_doc_src in
+          match doc_type with
+          | Minified | Binary ->
+              logger#info "ignoring gibberish file: %s\n%!" file;
+              None
+          | _ ->
+              let src =
+                if
+                  Spacegrep.Src_file.length partial_doc_src < peek_length
+                  (* it's actually complete, no need to re-input the file *)
+                then partial_doc_src
+                else Spacegrep.Src_file.of_file file
+              in
+              (* pr (Spacegrep.Doc_AST.show doc); *)
+              Some (Spacegrep.Parse_doc.of_src src, src));
+      matcher = spacegrep_matcher;
+    }
+    file
   [@@profiling]
 
-(*****************************************************************************)
-(* Evaluating regexps *)
-(*****************************************************************************)
+(*-------------------------------------------------------------------*)
+(* Regexps *)
+(*-------------------------------------------------------------------*)
+let regexp_matcher big_str file (_s, re) =
+  let subs = try Pcre.exec_all ~rex:re big_str with Not_found -> [||] in
+  subs |> Array.to_list
+  |> List.map (fun sub ->
+         let charpos, _ = Pcre.get_substring_ofs sub 0 in
+         let str = Pcre.get_substring sub 0 in
+         let line, column = line_col_of_charpos file charpos in
+         let loc = { PI.str; charpos; file; line; column } in
+         (* TODO? return regexp binded group? $1 $2 etc? *)
+         let env = [] in
+         (loc, env))
 
 let matches_of_regexs regexps lazy_content file =
-  let big_str, parse_time =
-    Common.with_time (fun () -> Lazy.force lazy_content)
-  in
-  let res, match_time =
-    Common.with_time (fun () ->
-        regexps
-        |> List.map (fun ((s, re), id, _pstr) ->
-               let subs =
-                 try Pcre.exec_all ~rex:re big_str with Not_found -> [||]
-               in
-               subs |> Array.to_list
-               |> List.map (fun sub ->
-                      let charpos, _ = Pcre.get_substring_ofs sub 0 in
-                      let str = Pcre.get_substring sub 0 in
-
-                      let line, column = line_col_of_charpos file charpos in
-                      let loc = { PI.str; charpos; file; line; column } in
-                      (* this will be re-adjusted later *)
-                      let rule_id = fake_rule_id (id, s) in
-                      {
-                        PM.rule_id;
-                        file;
-                        range_loc = (loc, loc);
-                        tokens = lazy [ info_of_token_location loc ];
-                        env = [];
-                      }))
-        |> List.flatten)
-  in
-  (res, parse_time, match_time)
+  matches_of_matcher regexps
+    {
+      init = (fun _ -> Some (Lazy.force lazy_content));
+      matcher = regexp_matcher;
+    }
+    file
   [@@profiling]
 
-(*****************************************************************************)
-(* Evaluating Comby *)
-(*****************************************************************************)
+(*-------------------------------------------------------------------*)
+(* Comby *)
+(*-------------------------------------------------------------------*)
 
-let matches_of_combys combys lazy_content file =
-  let _d, _b, e = Common2.dbe_of_filename file in
-  let metasyntax =
-    {
-      MS.syntax = [ MS.Hole (Everything, MS.Delimited (Some "$", None)) ];
-      identifier = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    }
-  in
-  let (module M : CK.Matchers.Matcher.S) =
-    match CK.Matchers.Alpha.select_with_extension ~metasyntax ("." ^ e) with
-    | None -> failwith (spf "no Alpha Comby module for extension %s" e)
-    | Some x -> x
-  in
+module CK = Comby_kernel
+module MS = CK.Matchers.Metasyntax
 
-  let source, parse_time =
-    Common.with_time (fun () -> Lazy.force lazy_content)
+(* less: "if you need line/column conversion [in Comby], then there's another
+ * function to run over matches to hydrate line/column info in the result"
+ * src: https://github.com/comby-tools/comby/issues/244
+ *)
+let line_col_charpos_of_comby_range file range =
+  let { CK.Match.Location.offset = charpos; line = _; column = _ } =
+    range.CK.Match.Range.match_start
   in
-  let res, match_time =
-    Common.with_time (fun () ->
-        combys
-        |> List.map (fun (pat, id, pstr) ->
-               let matches = M.all ~template:pat ~source () in
-               Format.printf "%a@." CK.Match.pp_json_lines (None, matches);
-               matches
-               |> List.map (fun { CK.Match.range; environment; matched } ->
-                      let env =
-                        CK.Match.Environment.vars environment
-                        |> List.map (fun s ->
-                               let mvar = "$" ^ s in
-                               let str_opt =
-                                 CK.Match.Environment.lookup environment s
-                               in
-                               let range_opt =
-                                 CK.Match.Environment.lookup_range environment s
-                               in
-                               match (str_opt, range_opt) with
-                               | Some str, Some range ->
-                                   let line, column, charpos =
-                                     line_col_charpos_of_comby_range file range
-                                   in
-                                   let loc =
-                                     { PI.str; charpos; file; line; column }
-                                   in
-                                   let t = info_of_token_location loc in
-                                   let mval = mval_of_spacegrep_string str t in
-                                   (mvar, mval)
-                               | _ -> raise Impossible)
-                      in
+  (* reusing line_col_of_charpos is fine for now *)
+  let line, col = line_col_of_charpos file charpos in
+  (line, col, charpos)
+
+let comby_matcher (m_all, source) file pat =
+  let matches = m_all ~template:pat ~source () in
+  (*Format.printf "%a@." CK.Match.pp_json_lines (None, matches);*)
+  matches
+  |> List.map (fun { CK.Match.range; environment; matched } ->
+         let env =
+           CK.Match.Environment.vars environment
+           |> List.map (fun s ->
+                  let mvar = "$" ^ s in
+                  let str_opt = CK.Match.Environment.lookup environment s in
+                  let range_opt =
+                    CK.Match.Environment.lookup_range environment s
+                  in
+                  match (str_opt, range_opt) with
+                  | Some str, Some range ->
                       let line, column, charpos =
                         line_col_charpos_of_comby_range file range
                       in
-                      let loc =
-                        { PI.str = matched; charpos; file; line; column }
-                      in
-                      let rule_id = fake_rule_id (id, pstr) in
-                      {
-                        PM.rule_id;
-                        file;
-                        range_loc = (loc, loc);
-                        tokens = lazy [ info_of_token_location loc ];
-                        env;
-                      }))
-        |> List.flatten)
-  in
-  (res, parse_time, match_time)
+                      let loc = { PI.str; charpos; file; line; column } in
+                      let t = info_of_token_location loc in
+                      let mval = mval_of_string str t in
+                      (mvar, mval)
+                  | _ -> raise Impossible)
+         in
+         let line, column, charpos =
+           line_col_charpos_of_comby_range file range
+         in
+         let loc = { PI.str = matched; charpos; file; line; column } in
+         (loc, env))
+
+let matches_of_combys combys lazy_content file =
+  matches_of_matcher combys
+    {
+      init =
+        (fun _ ->
+          let _d, _b, e = Common2.dbe_of_filename file in
+          let metasyntax =
+            {
+              MS.syntax =
+                [ MS.Hole (Everything, MS.Delimited (Some "$", None)) ];
+              identifier = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            }
+          in
+          match
+            CK.Matchers.Alpha.select_with_extension ~metasyntax ("." ^ e)
+          with
+          | None ->
+              logger#info "no Alpha Comby module for extension %s" e;
+              None
+          | Some x ->
+              let (module M : CK.Matchers.Matcher.S) = x in
+              Some
+                ( (fun ~template ~source () -> M.all ~template ~source ()),
+                  Lazy.force lazy_content ));
+      matcher = comby_matcher;
+    }
+    file
+  [@@profiling]
 
 (*****************************************************************************)
 (* Evaluating xpatterns *)
@@ -630,53 +649,23 @@ let matches_of_xpatterns config orig_rule equivalences
    *)
   let patterns, spacegreps, regexps, combys = partition_xpatterns xpatterns in
 
-  (* semgrep *)
-  let semgrep_res =
-    matches_of_patterns config orig_rule equivalences
-      (file, xlang, lazy_ast_and_errors)
-      patterns
-  in
-
-  (* spacegrep *)
-  let spacegrep_matches, spacegrep_parse_time, spacegrep_match_time =
-    if spacegreps = [] then ([], 0.0, 0.0)
-    else matches_of_spacegrep spacegreps file
-  in
-
-  (* regexps *)
-  let regexp_matches, regexp_parse_time, regexp_match_time =
-    if regexps = [] then ([], 0.0, 0.0)
-    else matches_of_regexs regexps lazy_content file
-  in
-
-  (* comby *)
-  let comby_matches, comby_parse_time, comby_match_time =
-    if combys = [] then ([], 0.0, 0.0)
-    else matches_of_combys combys lazy_content file
-  in
-
   (* final result *)
-  {
-    RP.matches =
-      semgrep_res.matches @ regexp_matches @ spacegrep_matches @ comby_matches;
-    errors = semgrep_res.errors;
-    profiling =
-      {
-        RP.parse_time =
-          semgrep_res.profiling.parse_time +. regexp_parse_time
-          +. spacegrep_parse_time +. comby_parse_time;
-        match_time =
-          semgrep_res.profiling.match_time +. regexp_match_time
-          +. spacegrep_match_time +. comby_match_time;
-      };
-  }
+  RP.collate_semgrep_results
+    [
+      matches_of_patterns config orig_rule equivalences
+        (file, xlang, lazy_ast_and_errors)
+        patterns;
+      matches_of_spacegrep spacegreps file;
+      matches_of_regexs regexps lazy_content file;
+      matches_of_combys combys lazy_content file;
+    ]
   [@@profiling]
 
 (*****************************************************************************)
 (* Formula evaluation *)
 (*****************************************************************************)
 
-(* TODO: use Set instead of list? *)
+(* less: use Set instead of list? *)
 let rec (evaluate_formula :
           env -> range_with_mvars option -> R.formula -> range_with_mvars list)
     =
