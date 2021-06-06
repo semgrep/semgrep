@@ -407,14 +407,19 @@ let fake_rule_id (id, str) =
 let info_of_token_location loc =
   { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
 
-let matches_of_matcher xpatterns matcher file =
-  if xpatterns = [] then ([], 0., 0.)
+let (matches_of_matcher :
+      ('xpattern * pattern_id * string) list ->
+      ('target_content, 'xpattern) xpattern_matcher ->
+      filename ->
+      RP.times RP.match_result) =
+ fun xpatterns matcher file ->
+  if xpatterns = [] then RP.empty_semgrep_result
   else
     let target_content_opt, parse_time =
       Common.with_time (fun () -> matcher.init file)
     in
     match target_content_opt with
-    | None -> ([], 0., 0.)
+    | None -> RP.empty_semgrep_result
     | Some target_content ->
         let res, match_time =
           Common.with_time (fun () ->
@@ -434,7 +439,11 @@ let matches_of_matcher xpatterns matcher file =
                             }))
               |> List.flatten)
         in
-        (res, parse_time, match_time)
+        {
+          RP.matches = res;
+          errors = [];
+          profiling = { RP.parse_time; match_time };
+        }
 
 (* todo: same, we should not need that *)
 let hmemo = Hashtbl.create 101
@@ -636,41 +645,16 @@ let matches_of_xpatterns config orig_rule equivalences
    *)
   let patterns, spacegreps, regexps, combys = partition_xpatterns xpatterns in
 
-  (* semgrep *)
-  let semgrep_res =
-    matches_of_patterns config orig_rule equivalences
-      (file, xlang, lazy_ast_and_errors)
-      patterns
-  in
-
-  (* spacegrep *)
-  let spacegrep_matches, spacegrep_parse_time, spacegrep_match_time =
-    matches_of_spacegrep spacegreps file
-  in
-  (* regexps *)
-  let regexp_matches, regexp_parse_time, regexp_match_time =
-    matches_of_regexs regexps lazy_content file
-  in
-  (* comby *)
-  let comby_matches, comby_parse_time, comby_match_time =
-    matches_of_combys combys lazy_content file
-  in
-
   (* final result *)
-  {
-    RP.matches =
-      semgrep_res.matches @ regexp_matches @ spacegrep_matches @ comby_matches;
-    errors = semgrep_res.errors;
-    profiling =
-      {
-        RP.parse_time =
-          semgrep_res.profiling.parse_time +. regexp_parse_time
-          +. spacegrep_parse_time +. comby_parse_time;
-        match_time =
-          semgrep_res.profiling.match_time +. regexp_match_time
-          +. spacegrep_match_time +. comby_match_time;
-      };
-  }
+  RP.collate_semgrep_results
+    [
+      matches_of_patterns config orig_rule equivalences
+        (file, xlang, lazy_ast_and_errors)
+        patterns;
+      matches_of_spacegrep spacegreps file;
+      matches_of_regexs regexps lazy_content file;
+      matches_of_combys combys lazy_content file;
+    ]
   [@@profiling]
 
 (*****************************************************************************)
