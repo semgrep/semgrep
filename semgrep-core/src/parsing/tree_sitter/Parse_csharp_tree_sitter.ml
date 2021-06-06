@@ -1759,8 +1759,8 @@ and statement (env : env) (x : CST.statement) =
       Try (v1, v2, v3, v4) |> AST.s
   | `Unsafe_stmt (v1, v2) ->
       let v1 = token env v1 (* "unsafe" *) in
-      let _v2 = block env v2 in
-      todo_stmt env v1
+      let v2 = block env v2 in
+      OtherStmtWithStmt (OSWS_UnsafeBlock, None, v2) |> AST.s
   | `Using_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = map_opt token env v1 (* "await" *) in
       let v2 = token env v2 (* "using" *) in
