@@ -2592,8 +2592,9 @@ and declaration (env : env) (x : CST.declaration) : stmt =
         AST.FuncDef
           { fkind = (AST.Method, tok); fparams = v4; frettype = None; fbody }
       in
-      let ent = basic_entity v3 (v1 @ v2) in
-      (* TODO add Ctor attribute *)
+      let ctor = KeywordAttr (Ctor, tok) in
+      let attrs = (ctor :: v1) @ v2 in
+      let ent = basic_entity v3 attrs in
       AST.DefStmt (ent, def) |> AST.s
   | `Conv_op_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.concat_map (attribute_list env) v1 in
