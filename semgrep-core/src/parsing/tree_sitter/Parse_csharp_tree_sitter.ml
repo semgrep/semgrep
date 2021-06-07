@@ -637,8 +637,9 @@ let literal (env : env) (x : CST.literal) : literal =
       in
       let v3 = token env v3 (* "\"" *) in
       let str = v2 |> List.map fst |> String.concat "" in
-      (* TODO should this call combine_infos ? *)
-      AST.String (str, v1)
+      let toks = v2 |> List.map snd in
+      let toks = PI.combine_infos v1 (toks @ [ v3 ]) in
+      AST.String (str, toks)
   | `Verb_str_lit tok -> verbatim_string_literal env tok
 
 (* verbatim_string_literal *)
