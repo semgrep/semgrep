@@ -12,7 +12,42 @@
         "lines": "Content-Type: text/html",
         "message": "Detected text/html",
         "metadata": {},
-        "metavars": {},
+        "metavars": {
+          "$READABLE": {
+            "abstract_content": "OK",
+            "end": {
+              "col": 16,
+              "line": 1,
+              "offset": 15
+            },
+            "start": {
+              "col": 14,
+              "line": 1,
+              "offset": 13
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$STATUS": {
+            "abstract_content": "200",
+            "end": {
+              "col": 13,
+              "line": 1,
+              "offset": 12
+            },
+            "start": {
+              "col": 10,
+              "line": 1,
+              "offset": 9
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "INFO"
       },
       "path": "targets/spacegrep/httpresponse.txt",

@@ -13,6 +13,23 @@
         "message": "",
         "metadata": {},
         "metavars": {
+          "$FUNC": {
+            "abstract_content": "arg",
+            "end": {
+              "col": 8,
+              "line": 7,
+              "offset": 171
+            },
+            "start": {
+              "col": 5,
+              "line": 7,
+              "offset": 168
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
           "$W": {
             "abstract_content": "POST",
             "end": {
@@ -51,6 +68,23 @@
         "message": "",
         "metadata": {},
         "metavars": {
+          "$FUNC": {
+            "abstract_content": "argh",
+            "end": {
+              "col": 9,
+              "line": 12,
+              "offset": 266
+            },
+            "start": {
+              "col": 5,
+              "line": 12,
+              "offset": 262
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
           "$W": {
             "abstract_content": "get_host",
             "end": {

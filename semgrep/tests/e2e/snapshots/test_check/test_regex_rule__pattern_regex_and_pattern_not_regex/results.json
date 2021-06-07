@@ -12,6 +12,7 @@
         "lines": "<h4>From: {{ from_email }}</h4>",
         "message": "test regex message",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex-any-language.html",
@@ -31,6 +32,7 @@
         "lines": "<h4>From: {{ from_email }}</h4>",
         "message": "test regex message",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex-any-language.html",
@@ -50,6 +52,7 @@
         "lines": "<h4>To:",
         "message": "test regex message",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex-any-language.html",
@@ -69,6 +72,7 @@
         "lines": "</h4>",
         "message": "test regex message",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex-any-language.html",
@@ -88,6 +92,7 @@
         "lines": "<h4>Subject: {{subject}}</h4>",
         "message": "test regex message",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex-any-language.html",
@@ -107,6 +112,7 @@
         "lines": "<h4>Subject: {{subject}}</h4>",
         "message": "test regex message",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex-any-language.html",
@@ -126,6 +132,7 @@
         "lines": "    <pre>{{ body }}</pre>",
         "message": "test regex message",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex-any-language.html",
@@ -145,6 +152,7 @@
         "lines": "    <pre>{{ body }}</pre>",
         "message": "test regex message",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex-any-language.html",
@@ -164,6 +172,7 @@
         "lines": "<hr>",
         "message": "test regex message",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex-any-language.html",

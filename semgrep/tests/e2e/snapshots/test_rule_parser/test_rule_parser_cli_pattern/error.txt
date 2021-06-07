@@ -1,7 +1,1 @@
-semgrep error: invalid pattern
-  --> CLI Input:1
-1 | #include<asdf><<>>><$X>
-  | ^^^^^^^^^^^^^^^^^^^^^^
-
-Pattern could not be parsed as a C semgrep pattern
-
+Rule id: - contains a pattern that could not be parsed as a pattern for language C: `#include<asdf><<>>><$X>`

@@ -18,6 +18,7 @@
             "https://flask.palletsprojects.com/en/1.1.x/templating/#jinja-setup"
           ]
         },
+        "metavars": {},
         "severity": "WARNING"
       },
       "path": "targets/basic/regex-any-language.html",
