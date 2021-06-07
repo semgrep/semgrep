@@ -371,6 +371,12 @@ let full_rule_regression_tests =
 let lang_tainting_tests =
   let taint_tests_path = Filename.concat tests_path "tainting_rules" in
   "lang tainting rules testing" >::: [
+    "tainting PHP" >::: (
+      let dir = Filename.concat taint_tests_path "php" in
+      let files = Common2.glob (spf "%s/*.php" dir) in
+      let lang = Lang.PHP in
+      tainting_tests_for_lang files lang
+    );
     "tainting Python" >::: (
       let dir = Filename.concat taint_tests_path "python" in
       let files = Common2.glob (spf "%s/*.py" dir) in
