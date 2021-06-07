@@ -1,0 +1,3 @@
+<?php
+//ERROR:
+echo 'hello';
