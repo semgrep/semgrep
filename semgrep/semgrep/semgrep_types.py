@@ -120,6 +120,7 @@ class OPERATORS:
     REGEX: Operator = Operator("regex")
     NOT_REGEX: Operator = Operator("not_regex")
     METAVARIABLE_REGEX: Operator = Operator("metavariable_regex")
+    METAVARIABLE_PATTERN: Operator = Operator("metavariable_pattern")
     METAVARIABLE_COMPARISON: Operator = Operator("metavariable_comparison")
 
 
@@ -139,6 +140,7 @@ OPERATOR_PATTERN_NAMES_MAP = {
     OPERATORS.REGEX: ["pattern-regex"],
     OPERATORS.NOT_REGEX: ["pattern-not-regex"],
     OPERATORS.METAVARIABLE_REGEX: ["metavariable-regex"],
+    OPERATORS.METAVARIABLE_PATTERN: ["metavariable-pattern"],
     OPERATORS.METAVARIABLE_COMPARISON: ["metavariable-comparison"],
 }
 PATTERN_NAMES_OPERATOR_MAP = {
