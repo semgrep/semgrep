@@ -440,16 +440,7 @@ def create_output(
             )
             output.append(rule_match)
 
-    # Reversing the output is a terrible hack. It is useful because running whole rule in semgrep-core
-    # will return the results backwards compared to running only the patterns in semgrep-core
-    #
-    # While the results can be sorted, without the hack, semgrep-inside will match the outer-most
-    # container rather than the inner-most (as users tend to expect). For an example, see
-    # tests/e2e/test_message_interpolation.py::test_message_interpolation; specifically, the
-    # multi-pattern-inside test
-    return sorted(
-        reversed(output), key=lambda rule_match: rule_match._pattern_match.range.start
-    )
+    return sorted(output, key=lambda rule_match: rule_match._pattern_match.range.start)
 
 
 def evaluate(
