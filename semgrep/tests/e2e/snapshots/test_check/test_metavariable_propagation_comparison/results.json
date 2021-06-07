@@ -12,7 +12,25 @@
         "lines": "    b = 10",
         "message": "Semgrep found a match 2\n",
         "metadata": {},
-        "metavars": {},
+        "metavars": {
+          "$INT": {
+            "abstract_content": "2",
+            "end": {
+              "col": 10,
+              "line": 7,
+              "offset": 66
+            },
+            "start": {
+              "col": 9,
+              "line": 7,
+              "offset": 65
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "WARNING"
       },
       "path": "targets/metavariable_propagation/metavariable-comparison-propagation.py",
@@ -32,7 +50,25 @@
         "lines": "    b = 10",
         "message": "Semgrep found a match 3\n",
         "metadata": {},
-        "metavars": {},
+        "metavars": {
+          "$INT": {
+            "abstract_content": "3",
+            "end": {
+              "col": 10,
+              "line": 12,
+              "offset": 112
+            },
+            "start": {
+              "col": 9,
+              "line": 12,
+              "offset": 111
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "WARNING"
       },
       "path": "targets/metavariable_propagation/metavariable-comparison-propagation.py",

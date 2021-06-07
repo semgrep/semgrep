@@ -2,26 +2,11 @@
   "errors": [
     {
       "code": 4,
+      "language": "Python",
       "level": "error",
-      "long_msg": "Pattern could not be parsed as a Python semgrep pattern",
-      "short_msg": "invalid pattern",
-      "spans": [
-        {
-          "context_end": null,
-          "context_start": null,
-          "end": {
-            "col": 28,
-            "line": 4
-          },
-          "file": "rules/syntax/badpattern.yaml",
-          "source_hash": "3721310e28daac277c2fc5496749be9e60441abcb6d2e3a99542a30f34628ee3",
-          "start": {
-            "col": 18,
-            "line": 4
-          }
-        }
-      ],
-      "type": "InvalidPatternError"
+      "pattern": "$X == $X 3",
+      "rule_id": "eqeq-is-bad",
+      "type": "InvalidPatternErrorNoSpan"
     }
   ],
   "results": []
