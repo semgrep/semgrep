@@ -14,6 +14,7 @@
         "metadata": {
           "source-rule-url": "https://github.com/grab/secret-scanner/blob/master/scanner/signatures/pattern.go"
         },
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex-nosemgrep.txt",

@@ -1,8 +1,2 @@
 running 1 rules...
-[31msemgrep error[39m: invalid pattern
-  --> rules/syntax/badpattern.yaml:4
-[94m4 | [39m      - pattern: $X == $X 3
-[94m  | [39m                 [31m^^^^^^^^^^[39m
-
-[31mPattern could not be parsed as a Python semgrep pattern[39m
-
+[31mRule id: eqeq-is-bad contains a pattern that could not be parsed as a pattern for language Python: `$X == $X 3`[39m

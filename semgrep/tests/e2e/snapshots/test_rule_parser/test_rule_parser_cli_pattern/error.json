@@ -2,26 +2,11 @@
   "errors": [
     {
       "code": 4,
+      "language": "C",
       "level": "error",
-      "long_msg": "Pattern could not be parsed as a C semgrep pattern",
-      "short_msg": "invalid pattern",
-      "spans": [
-        {
-          "context_end": null,
-          "context_start": null,
-          "end": {
-            "col": 23,
-            "line": 1
-          },
-          "file": "CLI Input",
-          "source_hash": "7efe89db58e7a4017c5cd63dd547745a14f3e4c1fc32fd5e2051b53858d9e85d",
-          "start": {
-            "col": 1,
-            "line": 1
-          }
-        }
-      ],
-      "type": "InvalidPatternError"
+      "pattern": "#include<asdf><<>>><$X>",
+      "rule_id": "-",
+      "type": "InvalidPatternErrorNoSpan"
     }
   ],
   "results": []
