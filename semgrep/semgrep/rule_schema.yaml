@@ -66,17 +66,45 @@ definitions:
           - metavariable
         oneOf:
           - required:
+              - pattern
+            not:
+              anyOf:
+                - required:
+                  - patterns
+                - required:
+                  - pattern-either
+                - required:
+                  - pattern-regex
+          - required:
               - patterns
             not:
               anyOf:
                 - required:
+                    - pattern
+                - required:
                     - pattern-either
+                - required:
+                    - pattern-regex
           - required:
               - pattern-either
             not:
               anyOf:
                 - required:
+                    - pattern
+                - required:
                     - patterns
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-regex
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
         additionalProperties: false
     required:
     - metavariable-pattern
