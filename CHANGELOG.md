@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Added new metavariable-pattern operator (available only via --optimizations),
+  thanks to Kai Zhong for the feature request (#3257).
 
 ### Fixed
 - Scala: parse correctly symbol literals and interpolated strings containing

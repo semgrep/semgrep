@@ -16,6 +16,7 @@ definitions:
       - $ref: '#/definitions/pattern-not-regex'
       - $ref: '#/definitions/pattern-where-python'
       - $ref: '#/definitions/metavariable-regex'
+      - $ref: '#/definitions/metavariable-pattern'
       - $ref: '#/definitions/metavariable-comparison'
   pattern-either-content:
     type: array
@@ -48,6 +49,37 @@ definitions:
         additionalProperties: false
     required:
     - metavariable-regex
+    additionalProperties: false
+  metavariable-pattern:
+    type: object
+    properties:
+      metavariable-pattern:
+        type: object
+        properties:
+          metavariable:
+            type: string
+          patterns:
+            $ref: '#/definitions/patterns-content'
+          pattern-either:
+            $ref: '#/definitions/pattern-either-content'
+        required:
+          - metavariable
+        oneOf:
+          - required:
+              - patterns
+            not:
+              anyOf:
+                - required:
+                    - pattern-either
+          - required:
+              - pattern-either
+            not:
+              anyOf:
+                - required:
+                    - patterns
+        additionalProperties: false
+    required:
+    - metavariable-pattern
     additionalProperties: false
   metavariable-comparison:
     type: object
