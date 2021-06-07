@@ -44,7 +44,7 @@ def main() -> None:
     latest_timing_file_1 = Path(sys.argv[3])
     latest_timing_file_2 = Path(sys.argv[4])
     github_token = sys.argv[5]
-    pull_request_number = sys.argv[6]
+    pull_request_number = sys.argv[6] if len(sys.argv) >= 7 else None
 
     baseline_times = zip(
         read_timing(baseline_timing_file_1), read_timing(baseline_timing_file_2)
@@ -67,7 +67,7 @@ def main() -> None:
         total_latest += latest_time
 
         # Send PR comment if performance is slower but not past blocking threshold
-        if latest_time > baseline_time * 1.1:
+        if pull_request_number is not None and latest_time > baseline_time * 1.1:
             send_comment(
                 f"Potential non-blocking slowdown latest time {latest_time} is over 12 percent slower than baseline {baseline_time}. See run output for more details",
                 github_token,
