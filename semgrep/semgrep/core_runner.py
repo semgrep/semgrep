@@ -449,6 +449,17 @@ class CoreRunner:
                 if language == Language.REGEX:
                     continue
 
+                # metatavarible-pattern is only available via --optimizations
+                metavariable_patterns = [
+                    pattern
+                    for pattern in patterns
+                    if pattern.expression.operator == OPERATORS.METAVARIABLE_PATTERN
+                ]
+                if len(metavariable_patterns) > 0:
+                    raise SemgrepError(
+                        "Operator metavariable-pattern is only supported by semgrep-core"
+                    )
+
                 # semgrep-core doesn't know about the following operators -
                 # they are strictly semgrep Python features:
                 #   - OPERATORS.METAVARIABLE_REGEX
