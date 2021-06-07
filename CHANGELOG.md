@@ -15,7 +15,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   taint rules, and `--debugging-json` (#3265)
 - Handle regexp parse errors gracefully when using optimizations (#3266)
 - Support equivalences when using optimizations (#3259)
-- PHP: Support ellipsis in include/require and echo (#3191, #3245).
+- PHP: Support ellipsis in include/require and echo (#3191, #3245)
+- PHP: Prefer expression patterns over statement patterns (#3191)
 
 ### Changed
 
