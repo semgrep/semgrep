@@ -102,9 +102,8 @@ def cli() -> None:
     config.add_argument(
         "--optimizations",
         nargs="?",
-        const="all",
-        default="none",
-        help="Turn on/off optimizations. Default = 'none'. Use 'all' to turn all optimizations on.",
+        default="all",
+        help="Turn on/off optimizations. Default = 'all'. Use 'none' to turn all optimizations off.",
     )
 
     parser.add_argument(
