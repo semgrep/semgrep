@@ -22,6 +22,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Run rules in semgrep-core (rather than patterns) by default (aka optimizations all)
+- Do not filter findings with the same range but different metavariable bindings
 
 ## [0.54.0](https://github.com/returntocorp/semgrep/releases/tag/v0.54.0) - 2021-06-2
 
