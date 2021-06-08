@@ -5,7 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## After cut
 
 - JSON: handle correctly metavariables as field (#3279)
-
+- JS: support partial field definitions pattern, like in JSON
+	
 ## Unreleased
 
 ### Added
