@@ -1,0 +1,15 @@
+rules:
+- id: my_pattern_id
+  pattern: |
+    { ...,
+      "dependencies": { 
+        ...,
+        $DEP_NAME: $DEP_VERSION,
+        ...
+      }
+    }
+  message: |
+    $DEP_NAME looks like a new dependency! Please check this on https://deps.dev/npm/$DEP_NAME/$DEP_VERSION to make sure its license is legit, doesn't have lots of known security issues, and that it has enough users.
+  severity: WARNING
+  languages: [javascript]
+  
