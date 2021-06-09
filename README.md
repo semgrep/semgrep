@@ -1,5 +1,5 @@
 <p align="center">
-    <a href="https://semgrep.dev"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep.svg" height="150" alt="Semgrep logo"/></a>
+    <a href="https://semgrep.dev"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep.svg" height="100" alt="Semgrep logo"/></a>
 </p>
 <h3 align="center">
   Lightweight static analysis for many languages.
@@ -31,16 +31,25 @@
 </p>
 </br>
 
-Semgrep is a fast, open-source, static analysis tool that finds bugs and enforces code standards at editor, commit, and CI time. Precise rules look like the code you’re searching; no more traversing abstract syntax trees, wrestling with regexes, or using a painful DSL. Code analysis is performed locally (code is not uploaded) and Semgrep runs on uncompiled code.
+Semgrep is a fast, open-source, static analysis tool for finding bugs and enforcing code standards at editor, commit, and CI time. [Get started →.](#getting-started)
 
-The [Semgrep Registry](https://semgrep.dev/explore) has 1,000+ rules written by the Semgrep community covering security, correctness, and performance bugs. No need to DIY unless you want to.
+Semgrep runs fully on your computer or build environment: **your code is never sent anywhere**.
 
-Semgrep is used in production everywhere from one-person startups to multi-billion dollar companies; it’s the engine inside tools like [NodeJsScan](https://semgrep.dev/p/nodejsscan). See tools [powered by Semgrep](https://semgrep.dev/docs/integrations/#semgrep-as-an-engine).
+Its rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements, run it online in Semgrep's Playground by clicking the image:
 
-Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev). r2c’s hosted service, [Semgrep App](https://semgrep.dev), lets organizations easily deploy in CI, manage rules across many projects, monitor the efficacy of code policy, and integrate with 3rd-party services. r2c offers free and paid hosted tiers ([see pricing](https://r2c.dev/pricing)).
+<p align="center">
+    <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep.svg" height="432px" alt="Semgrep rule example for finding Python print() statements"/></a>
+</p>
+
+The Semgrep ecosystem includes:
+
+- Semgrep - the open-source command line tool at the heart of everything
+- [Semgrep CI](https://semgrep.dev/docs/semgrep-ci/) - a specialized Docker image for running Semgrep in CI environments
+- [Semgrep Playground](https://semgrep.dev/editor) - an online interactive editor for writing and sharing rules.
+- [Semgrep Registry](https://semgrep.dev/explore) - 1,000+ community-driven rules covering security, correctness, and performance bugs. No need to DIY unless you want to.
+- [Semgrep App](https://semgrep.dev/manage) - deploy, manage, and monitor Semgrep at scale with free and paid tiers
 
 ### Language support
-
 
 <h4 align="center">General availability</h4>
 <p align="center">
@@ -76,7 +85,7 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 $ semgrep --config=p/r2c-ci path/to/src
 ```
 
-Visit [Getting started](https://semgrep.dev/docs/getting-started/) to learn more.
+Visit the [full docs](https://semgrep.dev/docs/getting-started/) to learn more.
 
 ### Rule examples
 
@@ -84,36 +93,32 @@ Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for us
 
 | Use case                          | Semgrep rule                                                                                                                                                                                                                                                                                                                                           |
 | :-------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ban dangerous APIs                | [Prevent use of exec](https://semgrep.dev/s/clintgibler:no-exec)                                                                                                                                                                                                                                                                                         |
-| Search routes and authentication   | [Extract Spring routes](https://semgrep.dev/s/clintgibler:spring-routes)                                                                                                                                                                                                                                                                                 |
-| Enforce the use secure defaults   | [Securely set Flask cookies](https://semgrep.dev/s/dlukeomalley:flask-set-cookie)                                                                                                                                                                                                                                                                        |
-| Enforce project best-practices    | [Use assertEqual for == checks](https://semgrep.dev/s/dlukeomalley:use-assertEqual-for-equality), [Always check subprocess calls](https://semgrep.dev/s/dlukeomalley:unchecked-subprocess-call)                                                                                                                                                            |
-| Codify project-specific knowledge | [Verify transactions before making them](https://semgrep.dev/s/dlukeomalley:verify-before-make)                                                                                                                                                                                                                                                          |
-| Audit security hotspots           | [Finding XSS in Apache Airflow](https://semgrep.dev/s/ievans:airflow-xss), [Hardcoded credentials](https://semgrep.dev/s/dlukeomalley:hardcoded-credentials)                                                                                                                                                                                               |
-| Audit configuration files         | [Find S3 ARN uses](https://semgrep.dev/s/dlukeomalley:s3-arn-use)                                                                                                                                                                                                                                                                                        |
+| Ban dangerous APIs                | [Prevent use of exec](https://semgrep.dev/s/clintgibler:no-exec)                                                                                                                                                                                                                                                                                       |
+| Search routes and authentication  | [Extract Spring routes](https://semgrep.dev/s/clintgibler:spring-routes)                                                                                                                                                                                                                                                                               |
+| Enforce the use secure defaults   | [Securely set Flask cookies](https://semgrep.dev/s/dlukeomalley:flask-set-cookie)                                                                                                                                                                                                                                                                      |
+| Enforce project best-practices    | [Use assertEqual for == checks](https://semgrep.dev/s/dlukeomalley:use-assertEqual-for-equality), [Always check subprocess calls](https://semgrep.dev/s/dlukeomalley:unchecked-subprocess-call)                                                                                                                                                        |
+| Codify project-specific knowledge | [Verify transactions before making them](https://semgrep.dev/s/dlukeomalley:verify-before-make)                                                                                                                                                                                                                                                        |
+| Audit security hotspots           | [Finding XSS in Apache Airflow](https://semgrep.dev/s/ievans:airflow-xss), [Hardcoded credentials](https://semgrep.dev/s/dlukeomalley:hardcoded-credentials)                                                                                                                                                                                           |
+| Audit configuration files         | [Find S3 ARN uses](https://semgrep.dev/s/dlukeomalley:s3-arn-use)                                                                                                                                                                                                                                                                                      |
 | Migrate from deprecated APIs      | [DES is deprecated](https://semgrep.dev/editor?registry=java.lang.security.audit.crypto.des-is-deprecated), [Deprecated Flask APIs](https://semgrep.dev/editor?registry=python.flask.maintainability.deprecated.deprecated-apis), [Deprecated Bokeh APIs](https://semgrep.dev/editor?registry=python.bokeh.maintainability.deprecated.deprecated_apis) |
-| Apply automatic fixes             | [Use listenAndServeTLS](https://semgrep.dev/s/clintgibler:use-listenAndServeTLS)   
-
+| Apply automatic fixes             | [Use listenAndServeTLS](https://semgrep.dev/s/clintgibler:use-listenAndServeTLS)                                                                                                                                                                                                                                                                       |
 
 ### Integrations
 
 Visit [Integrations](https://semgrep.dev/docs/integrations/) to learn about Semgrep editor, commit, and CI integrations. When integrated into CI and configured to scan pull requests, Semgrep will only report issues introduced by that pull request; this lets you start using Semgrep without fixing or ignoring pre-existing issues!
 
-
 ### Documentation
 
 Browse the full Semgrep [documentation on the website](https://semgrep.dev/docs). If you’re new to Semgrep, check out [Getting started](https://semgrep.dev/docs/getting-started/) or the [interactive tutorial](https://semgrep.dev/learn).
 
-
 ### More
 
-* [Frequently asked questions (FAQs)](https://semgrep.dev/docs/faq/)
-* [Contributing](https://semgrep.dev/docs/contributing/)
-* [Ask questions in the r2c Community Slack](https://r2c.dev/slack)
-* [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
-* [r2c YouTube channel with Semgrep presentation videos](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)
-* [License (LGPL-2.1)](LICENSE)
-
+- [Frequently asked questions (FAQs)](https://semgrep.dev/docs/faq/)
+- [Contributing](https://semgrep.dev/docs/contributing/)
+- [Ask questions in the r2c Community Slack](https://r2c.dev/slack)
+- [CLI reference and exit codes](https://semgrep.dev/docs/cli-usage)
+- [r2c YouTube channel with Semgrep presentation videos](https://www.youtube.com/channel/UC5ahcFBorwzUTqPipFhjkWg)
+- [License (LGPL-2.1)](LICENSE)
 
 ### Upgrading
 
