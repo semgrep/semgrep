@@ -396,11 +396,16 @@ type ('target_content, 'xpattern) xpattern_matcher = {
    *)
   init : filename -> 'target_content option;
   matcher :
-    'target_content ->
-    filename ->
-    'xpattern ->
-    (Parse_info.token_location * Parse_info.token_location * MV.bindings) list;
+    'target_content -> filename -> 'xpattern -> (match_range * MV.bindings) list;
 }
+
+(* bugfix: I used to just report one token_location, and if the match
+ * was on multiple lines anyway the token_location.str was contain
+ * the whole string. However, external programs using a startp/endp
+ * expect a different location if the end part is on a different line
+ * (e.g., the semgrep Python wrapper), so I now return a pair.
+ *)
+and match_range = Parse_info.token_location * Parse_info.token_location
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
 let fake_rule_id (id, str) =
@@ -430,7 +435,7 @@ let (matches_of_matcher :
               |> List.map (fun (xpat, id, pstr) ->
                      let xs = matcher.matcher target_content file xpat in
                      xs
-                     |> List.map (fun (loc1, loc2, env) ->
+                     |> List.map (fun ((loc1, loc2), env) ->
                             (* this will be adjusted later *)
                             let rule_id = fake_rule_id (id, pstr) in
                             {
@@ -498,7 +503,7 @@ let spacegrep_matcher (doc, src) file pat =
          in
          let loc1 = lexing_pos_to_loc file pos1 str in
          let loc2 = lexing_pos_to_loc file pos2 "" in
-         (loc1, loc2, env))
+         ((loc1, loc2), env))
 
 let matches_of_spacegrep spacegreps file =
   matches_of_matcher spacegreps
@@ -554,7 +559,7 @@ let regexp_matcher big_str file (_s, re) =
 
          (* TODO? return regexp binded group? $1 $2 etc? *)
          let env = [] in
-         (loc1, loc2, env))
+         ((loc1, loc2), env))
 
 let matches_of_regexs regexps lazy_content file =
   matches_of_matcher regexps
@@ -617,7 +622,7 @@ let comby_matcher (m_all, source) file pat =
          let line, column = line_col_of_charpos file charpos2 in
          let loc2 = { PI.str = ""; charpos = charpos2; file; line; column } in
 
-         (loc1, loc2, env))
+         ((loc1, loc2), env))
 
 let matches_of_combys combys lazy_content file =
   matches_of_matcher combys
