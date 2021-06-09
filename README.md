@@ -39,7 +39,7 @@ Semgrep runs fully on your computer or build environment: **your code is never s
 Its rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements, run it online in Semgrep's Playground by clicking the image:
 
 <p align="center">
-    <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="https://github.com/returntocorp/semgrep/blob/dlukeomalley/readme-intro/doc/playground-example.png" height="302px" alt="Semgrep rule example for finding Python print() statements"/></a>
+    <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="https://github.com/returntocorp/semgrep/blob/dlukeomalley/readme-intro/doc/playground-example.png" height="281px" alt="Semgrep rule example for finding Python print() statements"/></a>
 </p>
 
 The Semgrep ecosystem includes:
@@ -50,7 +50,7 @@ The Semgrep ecosystem includes:
 - [Semgrep Registry](https://semgrep.dev/explore) - 1,000+ community-driven rules covering security, correctness, and performance bugs
 - [Semgrep App](https://semgrep.dev/manage) - deploy, manage, and monitor Semgrep at scale with free and paid tiers.
 
-Semgrep is used by 100,000+ developers a month and is the engine inside tools like [NodeJsScan](https://semgrep.dev/p/nodejsscan). See tools [powered by Semgrep](https://semgrep.dev/docs/extensions//#semgrep-as-an-engine).
+Semgrep is used by 100,000+ developers a month and is powers tools like [NodeJsScan](https://semgrep.dev/p/nodejsscan), [Salus](https://github.com/coinbase/salus/blob/master/docs/scanners/semgrep.md), and [GitLab SAST](https://docs.gitlab.com/ee/user/application_security/sast/#supported-languages-and-frameworks). See [tools powered by Semgrep](https://semgrep.dev/docs/extensions//#semgrep-as-an-engine).
 
 Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev).
 
