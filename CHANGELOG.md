@@ -2,14 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## After cut
-
-- JSON: handle correctly metavariables as field (#3279)
-- JS: support partial field definitions pattern, like in JSON
-- Fixed wrong line numbers for multi-lines match in generic mode (#3315)
-- Handle correctly ellipsis inside function types (#3119)
-
-## Unreleased
+## [0.55.1](https://github.com/returntocorp/semgrep/releases/tag/v0.55.1) - 2021-06-9
 
 ### Added
 - Added new metavariable-pattern operator (available only via --optimizations),
@@ -27,6 +20,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - PHP: Support ellipsis in include/require and echo (#3191, #3245)
 - Taint mode: Allow statement-patterns when these are represented as
   statement-expressions in the Generic AST (#3191)
+- JSON: handle correctly metavariables as field (#3279)
+- JS: support partial field definitions pattern, like in JSON
+- Fixed wrong line numbers for multi-lines match in generic mode (#3315)
+- Handle correctly ellipsis inside function types (#3119)
 
 ### Changed
 - Run rules in semgrep-core (rather than patterns) by default (aka optimizations all)
