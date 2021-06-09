@@ -43,11 +43,11 @@ Its rules look like the code you already write; no abstract syntax trees, regex 
 
 The Semgrep ecosystem includes:
 
-- Semgrep - the open-source command line tool at the heart of everything
+- Semgrep - this project, the open-source command line tool at the heart of everything
 - [Semgrep CI](https://semgrep.dev/docs/semgrep-ci/) - a specialized Docker image for running Semgrep in CI environments
-- [Semgrep Playground](https://semgrep.dev/editor) - an online interactive editor for writing and sharing rules.
-- [Semgrep Registry](https://semgrep.dev/explore) - 1,000+ community-driven rules covering security, correctness, and performance bugs. No need to DIY unless you want to.
-- [Semgrep App](https://semgrep.dev/manage) - deploy, manage, and monitor Semgrep at scale with free and paid tiers
+- [Semgrep Playground](https://semgrep.dev/editor) - an online interactive editor for writing and sharing rules
+- [Semgrep Registry](https://semgrep.dev/explore) - 1,000+ community-driven rules covering security, correctness, and performance bugs
+- [Semgrep App](https://semgrep.dev/manage) - deploy, manage, and monitor Semgrep at scale with free and paid tiers.
 
 ### Language support
 
@@ -75,7 +75,7 @@ $ python3 -m pip install semgrep
 $ docker run --rm -v "${PWD}:/src" returntocorp/semgrep --help
 ```
 
-Once installed, Semgrep can run with single rules or entire rulesets. Visit [Running rules](https://semgrep.dev/docs/running-rules/) to learn more or try the following:
+Once installed, Semgrep can run with single rules or entire rulesets. Visit [Docs > Running rules](https://semgrep.dev/docs/running-rules/) to learn more or try the following:
 
 ```sh
 # Check for Python == where the left and right hand sides are the same (often a bug)
@@ -85,11 +85,11 @@ $ semgrep -e '$X == $X' --lang=py path/to/src
 $ semgrep --config=p/r2c-ci path/to/src
 ```
 
-Visit the [full docs](https://semgrep.dev/docs/getting-started/) to learn more.
+Visit the [full documentation](https://semgrep.dev/docs/getting-started/) to learn more.
 
 ### Rule examples
 
-Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for use cases and ideas. There is also an excellent [interactive tutorial](https://semgrep.dev/learn).
+Visit [Docs > Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for use cases and ideas.
 
 | Use case                          | Semgrep rule                                                                                                                                                                                                                                                                                                                                           |
 | :-------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -103,13 +103,13 @@ Visit [Rule examples](https://semgrep.dev/docs/writing-rules/rule-ideas/) for us
 | Migrate from deprecated APIs      | [DES is deprecated](https://semgrep.dev/editor?registry=java.lang.security.audit.crypto.des-is-deprecated), [Deprecated Flask APIs](https://semgrep.dev/editor?registry=python.flask.maintainability.deprecated.deprecated-apis), [Deprecated Bokeh APIs](https://semgrep.dev/editor?registry=python.bokeh.maintainability.deprecated.deprecated_apis) |
 | Apply automatic fixes             | [Use listenAndServeTLS](https://semgrep.dev/s/clintgibler:use-listenAndServeTLS)                                                                                                                                                                                                                                                                       |
 
-### Integrations
+### Extensions
 
-Visit [Integrations](https://semgrep.dev/docs/integrations/) to learn about Semgrep editor, commit, and CI integrations. When integrated into CI and configured to scan pull requests, Semgrep will only report issues introduced by that pull request; this lets you start using Semgrep without fixing or ignoring pre-existing issues!
+Visit [Docs > Extensions](https://semgrep.dev/docs/extensions/) to learn about Semgrep in your editor or pre-commit. When integrated into CI and configured to scan pull requests, Semgrep will only report issues introduced by that pull request; this lets you start using Semgrep without fixing or ignoring pre-existing issues!
 
 ### Documentation
 
-Browse the full Semgrep [documentation on the website](https://semgrep.dev/docs). If you’re new to Semgrep, check out [Getting started](https://semgrep.dev/docs/getting-started/) or the [interactive tutorial](https://semgrep.dev/learn).
+Browse the full Semgrep [documentation on the website](https://semgrep.dev/docs). If you’re new to Semgrep, check out [Docs > Getting started](https://semgrep.dev/docs/getting-started/) or the [interactive tutorial](https://semgrep.dev/learn).
 
 ### More
 
