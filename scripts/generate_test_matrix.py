@@ -612,7 +612,9 @@ def main() -> None:
     cheatsheet = generate_cheatsheet(args.directory, args.html)
 
     if args.json:
-        output = json.dumps(cheatsheet, indent=4, separators=(",", ": "))
+        output = json.dumps(
+            cheatsheet, indent=4, separators=(",", ": "), sort_keys=True
+        )
     elif args.html:
         output = cheatsheet_to_html(cheatsheet)
 

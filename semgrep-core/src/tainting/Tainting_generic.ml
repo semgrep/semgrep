@@ -56,6 +56,12 @@ let match_pat_eorig pat =
         xs
         |> List.map (function
              | AST.E e -> e
+             | AST.S { AST.s = AST.ExprStmt (e, _); _ } ->
+                 (* Some statements in the input language are translated into
+                  * expressions in the Generic AST. This is e.g. the case of
+                  * `echo' in PHP. This small hack allows us to annotate those
+                  * statements as souces/sanitizers/sinks. *)
+                 e
              | _ ->
                  failwith "Only Expr patterns are supported in tainting rules")
       in

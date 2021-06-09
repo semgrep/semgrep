@@ -5,6 +5,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Add helpUri to sarif output if rule source metadata is defined
+
+### Fixed
+- JSON: handle correctly metavariables as field (#3279)
+- JS: support partial field definitions pattern, like in JSON
+- Fixed wrong line numbers for multi-lines match in generic mode (#3315)
+- Handle correctly ellipsis inside function types (#3119)
+- Taint mode: Allow statement-patterns when these are represented as
+  statement-expressions in the Generic AST (#3191)
+
+## [0.55.0](https://github.com/returntocorp/semgrep/releases/tag/v0.55.0) - 2021-06-8
+
+### Added
+- Added new metavariable-pattern operator (available only via --optimizations),
+  thanks to Kai Zhong for the feature request (#3257).
 
 ### Fixed
 - Scala: parse correctly symbol literals and interpolated strings containing
@@ -15,9 +30,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   taint rules, and `--debugging-json` (#3265)
 - Handle regexp parse errors gracefully when using optimizations (#3266)
 - Support equivalences when using optimizations (#3259)
-- PHP: Support ellipsis in include/require and echo (#3191, #3245).
+- PHP: Support ellipsis in include/require and echo (#3191, #3245)
+- PHP: Prefer expression patterns over statement patterns (#3191)
+- C#: Support unsafe block syntax (#3283)
+
 
 ### Changed
+- Run rules in semgrep-core (rather than patterns) by default (aka optimizations all)
 
 ## [0.54.0](https://github.com/returntocorp/semgrep/releases/tag/v0.54.0) - 2021-06-2
 

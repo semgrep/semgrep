@@ -449,6 +449,17 @@ class CoreRunner:
                 if language == Language.REGEX:
                     continue
 
+                # metatavarible-pattern is only available via --optimizations
+                metavariable_patterns = [
+                    pattern
+                    for pattern in patterns
+                    if pattern.expression.operator == OPERATORS.METAVARIABLE_PATTERN
+                ]
+                if len(metavariable_patterns) > 0:
+                    raise SemgrepError(
+                        "Operator metavariable-pattern is only supported by semgrep-core"
+                    )
+
                 # semgrep-core doesn't know about the following operators -
                 # they are strictly semgrep Python features:
                 #   - OPERATORS.METAVARIABLE_REGEX
@@ -754,7 +765,7 @@ class CoreRunner:
         """
         start = datetime.now()
 
-        experimental = self._optimizations == "all"
+        experimental = self._optimizations != "none"
         runner_fxn = (
             self._run_rules_direct_to_semgrep_core if experimental else self._run_rules
         )
@@ -787,13 +798,17 @@ class CoreRunner:
         )
 
 
-# Note that this may remove matches that have the same range but different
-# metavariable bindings, and arbitrarily choose the first one in the list.
-# TODO: changes that? Do like in semgrep-core and return all the matches?
-# Also now Semgrep.ml Semgrep_generic.ml internally do some dedup, so we
-# may not need anymore to do it here.
+# This will remove matches that have the same range but different
+# metavariable bindings, choosing the last one in the list. We want the
+# last because if there multiple possible bindings, they will be returned
+# by semgrep-core from largest range to smallest. For an example, see
+# tests/e2e/test_message_interpolation.py::test_message_interpolation;
+# specifically, the multi-pattern-inside test
+#
+# Another option is to not dedup, since Semgrep.ml now does its own deduping
+# otherwise, and surface both matches
 def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
-    return list({uniq_id(r): r for r in outputs}.values())
+    return list({uniq_id(r): r for r in reversed(outputs)}.values())[::-1]
 
 
 def dedup_errors(errors: List[SemgrepError]) -> List[SemgrepError]:

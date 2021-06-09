@@ -13,6 +13,23 @@
         "message": "method B is in A",
         "metadata": {},
         "metavars": {
+          "$CLASS": {
+            "abstract_content": "A",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
           "$FUNC": {
             "abstract_content": "B",
             "end": {
@@ -51,6 +68,23 @@
         "message": "method C is in A",
         "metadata": {},
         "metavars": {
+          "$CLASS": {
+            "abstract_content": "A",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
           "$FUNC": {
             "abstract_content": "C",
             "end": {

@@ -396,11 +396,16 @@ type ('target_content, 'xpattern) xpattern_matcher = {
    *)
   init : filename -> 'target_content option;
   matcher :
-    'target_content ->
-    filename ->
-    'xpattern ->
-    (Parse_info.token_location * MV.bindings) list;
+    'target_content -> filename -> 'xpattern -> (match_range * MV.bindings) list;
 }
+
+(* bugfix: I used to just report one token_location, and if the match
+ * was on multiple lines anyway the token_location.str was contain
+ * the whole string. However, external programs using a startp/endp
+ * expect a different location if the end part is on a different line
+ * (e.g., the semgrep Python wrapper), so I now return a pair.
+ *)
+and match_range = Parse_info.token_location * Parse_info.token_location
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
 let fake_rule_id (id, str) =
@@ -430,15 +435,15 @@ let (matches_of_matcher :
               |> List.map (fun (xpat, id, pstr) ->
                      let xs = matcher.matcher target_content file xpat in
                      xs
-                     |> List.map (fun (loc, env) ->
+                     |> List.map (fun ((loc1, loc2), env) ->
                             (* this will be adjusted later *)
                             let rule_id = fake_rule_id (id, pstr) in
                             {
                               PM.rule_id;
                               file;
-                              range_loc = (loc, loc);
+                              range_loc = (loc1, loc2);
                               env;
-                              tokens = lazy [ info_of_token_location loc ];
+                              tokens = lazy [ info_of_token_location loc1 ];
                             }))
               |> List.flatten)
         in
@@ -484,7 +489,7 @@ let spacegrep_matcher (doc, src) file pat =
   let matches = Spacegrep.Match.search ~case_sensitive:true src pat doc in
   matches
   |> List.map (fun m ->
-         let (pos1, _), (_pos2, _) = m.Spacegrep.Match.region in
+         let (pos1, _), (_, pos2) = m.Spacegrep.Match.region in
          let { Spacegrep.Match.value = str; _ } = m.Spacegrep.Match.capture in
          let env =
            m.Spacegrep.Match.named_captures
@@ -496,8 +501,9 @@ let spacegrep_matcher (doc, src) file pat =
                   let mval = mval_of_string str t in
                   (mvar, mval))
          in
-         let loc = lexing_pos_to_loc file pos1 str in
-         (loc, env))
+         let loc1 = lexing_pos_to_loc file pos1 str in
+         let loc2 = lexing_pos_to_loc file pos2 "" in
+         ((loc1, loc2), env))
 
 let matches_of_spacegrep spacegreps file =
   matches_of_matcher spacegreps
@@ -544,10 +550,16 @@ let regexp_matcher big_str file (_s, re) =
          let charpos, _ = Pcre.get_substring_ofs sub 0 in
          let str = Pcre.get_substring sub 0 in
          let line, column = line_col_of_charpos file charpos in
-         let loc = { PI.str; charpos; file; line; column } in
+         let loc1 = { PI.str; charpos; file; line; column } in
+
+         let charpos = charpos + String.length str in
+         let str = "" in
+         let line, column = line_col_of_charpos file charpos in
+         let loc2 = { PI.str; charpos; file; line; column } in
+
          (* TODO? return regexp binded group? $1 $2 etc? *)
          let env = [] in
-         (loc, env))
+         ((loc1, loc2), env))
 
 let matches_of_regexs regexps lazy_content file =
   matches_of_matcher regexps
@@ -604,8 +616,13 @@ let comby_matcher (m_all, source) file pat =
          let line, column, charpos =
            line_col_charpos_of_comby_range file range
          in
-         let loc = { PI.str = matched; charpos; file; line; column } in
-         (loc, env))
+         let loc1 = { PI.str = matched; charpos; file; line; column } in
+
+         let charpos2 = charpos + String.length matched in
+         let line, column = line_col_of_charpos file charpos2 in
+         let loc2 = { PI.str = ""; charpos = charpos2; file; line; column } in
+
+         ((loc1, loc2), env))
 
 let matches_of_combys combys lazy_content file =
   matches_of_matcher combys

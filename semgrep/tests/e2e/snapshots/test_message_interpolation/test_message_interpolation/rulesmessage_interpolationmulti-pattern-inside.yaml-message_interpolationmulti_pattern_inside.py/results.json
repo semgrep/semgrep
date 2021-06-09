@@ -13,6 +13,40 @@
         "message": "'print(\"blah\")' detected in method 'B' in class 'A'",
         "metadata": {},
         "metavars": {
+          "$CLASS": {
+            "abstract_content": "A",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$FUNC": {
+            "abstract_content": "B",
+            "end": {
+              "col": 10,
+              "line": 2,
+              "offset": 20
+            },
+            "start": {
+              "col": 9,
+              "line": 2,
+              "offset": 19
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
           "$MSG": {
             "abstract_content": "\"blah\"",
             "end": {
@@ -51,6 +85,40 @@
         "message": "'print(\"bla\")' detected in method 'C' in class 'A'",
         "metadata": {},
         "metavars": {
+          "$CLASS": {
+            "abstract_content": "A",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$FUNC": {
+            "abstract_content": "C",
+            "end": {
+              "col": 10,
+              "line": 5,
+              "offset": 56
+            },
+            "start": {
+              "col": 9,
+              "line": 5,
+              "offset": 55
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
           "$MSG": {
             "abstract_content": "\"bla\"",
             "end": {
@@ -89,6 +157,40 @@
         "message": "'print('ble')' detected in method 'D' in class 'A'",
         "metadata": {},
         "metavars": {
+          "$CLASS": {
+            "abstract_content": "A",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$FUNC": {
+            "abstract_content": "D",
+            "end": {
+              "col": 10,
+              "line": 8,
+              "offset": 91
+            },
+            "start": {
+              "col": 9,
+              "line": 8,
+              "offset": 90
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
           "$MSG": {
             "abstract_content": "'ble'",
             "end": {
@@ -127,6 +229,40 @@
         "message": "'print(\"qwerty\")' detected in method 'G' in class 'F'",
         "metadata": {},
         "metavars": {
+          "$CLASS": {
+            "abstract_content": "F",
+            "end": {
+              "col": 8,
+              "line": 14,
+              "offset": 152
+            },
+            "start": {
+              "col": 7,
+              "line": 14,
+              "offset": 151
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$FUNC": {
+            "abstract_content": "G",
+            "end": {
+              "col": 10,
+              "line": 15,
+              "offset": 165
+            },
+            "start": {
+              "col": 9,
+              "line": 15,
+              "offset": 164
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
           "$MSG": {
             "abstract_content": "\"qwerty\"",
             "end": {

@@ -11,7 +11,12 @@ def send_comment(message: str, github_token: str, pull_request_number: str) -> N
     """
 
     Assumes commithash is in GITHUB_EVENT_PATH file at obj["pull_request"]["head"]["sha"]
+
+    If pull_request_number is "" then does nothing
     """
+    if pull_request_number == "":
+        return
+
     session = requests.Session()
     session.headers["Authorization"] = f"Token {github_token}"
     url = f"https://api.github.com/repos/returntocorp/semgrep/issues/{pull_request_number}/comments"
@@ -44,7 +49,9 @@ def main() -> None:
     latest_timing_file_1 = Path(sys.argv[3])
     latest_timing_file_2 = Path(sys.argv[4])
     github_token = sys.argv[5]
-    pull_request_number = sys.argv[6] if len(sys.argv) >= 7 else None
+
+    # Note this only defined in pull requests
+    pull_request_number = sys.argv[6] if len(sys.argv) >= 7 else ""
 
     baseline_times = zip(
         read_timing(baseline_timing_file_1), read_timing(baseline_timing_file_2)
@@ -67,7 +74,7 @@ def main() -> None:
         total_latest += latest_time
 
         # Send PR comment if performance is slower but not past blocking threshold
-        if pull_request_number is not None and latest_time > baseline_time * 1.1:
+        if latest_time > baseline_time * 1.1:
             send_comment(
                 f"Potential non-blocking slowdown latest time {latest_time} is over 12 percent slower than baseline {baseline_time}. See run output for more details",
                 github_token,

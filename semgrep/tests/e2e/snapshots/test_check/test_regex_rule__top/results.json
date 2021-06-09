@@ -12,6 +12,7 @@
         "lines": "boto3.client(host=\"123.123.123.123\")",
         "message": "test regex message",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/basic/regex.py",

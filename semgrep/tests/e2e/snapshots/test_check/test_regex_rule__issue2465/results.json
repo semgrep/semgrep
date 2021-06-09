@@ -12,6 +12,7 @@
         "lines": "Foo==1.1.1",
         "message": "Found $TAG",
         "metadata": {},
+        "metavars": {},
         "severity": "ERROR"
       },
       "path": "targets/pattern-not-regex/issue2465.requirements.txt",

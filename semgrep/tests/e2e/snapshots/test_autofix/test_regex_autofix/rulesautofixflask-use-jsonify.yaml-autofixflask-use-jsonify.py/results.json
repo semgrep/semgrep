@@ -17,7 +17,25 @@
         "lines": "    return json.dumps(user_dict)",
         "message": "flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from Flask routes",
         "metadata": {},
-        "metavars": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "user",
+            "end": {
+              "col": 9,
+              "line": 7,
+              "offset": 99
+            },
+            "start": {
+              "col": 5,
+              "line": 7,
+              "offset": 95
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "ERROR"
       },
       "path": "targets/autofix/flask-use-jsonify.py",
@@ -42,7 +60,25 @@
         "lines": "    return dumps(user_dict)",
         "message": "flask.jsonify() is a Flask helper method which handles the correct settings for returning JSON from Flask routes",
         "metadata": {},
-        "metavars": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "user",
+            "end": {
+              "col": 9,
+              "line": 15,
+              "offset": 263
+            },
+            "start": {
+              "col": 5,
+              "line": 15,
+              "offset": 259
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "ERROR"
       },
       "path": "targets/autofix/flask-use-jsonify.py",
