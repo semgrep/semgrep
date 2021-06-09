@@ -1281,7 +1281,7 @@ and m_type_ a b =
   (* boilerplate *)
   | A.TyBuiltin a1, B.TyBuiltin b1 -> (m_wrap m_string) a1 b1
   | A.TyFun (a1, a2), B.TyFun (b1, b2) ->
-      (m_list m_parameter) a1 b1 >>= fun () -> m_type_ a2 b2
+      m_parameters a1 b1 >>= fun () -> m_type_ a2 b2
   | A.TyArray (a1, a2), B.TyArray (b1, b2) ->
       m_bracket (m_option m_expr) a1 b1 >>= fun () -> m_type_ a2 b2
   | A.TyTuple a1, B.TyTuple b1 ->
