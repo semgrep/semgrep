@@ -1,3 +1,4 @@
+</br>
 <p align="center">
     <a href="https://semgrep.dev"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep.svg" height="100" alt="Semgrep logo"/></a>
 </p>
