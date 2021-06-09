@@ -25,7 +25,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Handle regexp parse errors gracefully when using optimizations (#3266)
 - Support equivalences when using optimizations (#3259)
 - PHP: Support ellipsis in include/require and echo (#3191, #3245)
-- PHP: Prefer expression patterns over statement patterns (#3191)
+- Taint mode: Allow statement-patterns when these are represented as
+  statement-expressions in the Generic AST (#3191)
 
 ### Changed
 - Run rules in semgrep-core (rather than patterns) by default (aka optimizations all)
