@@ -49,6 +49,10 @@ The Semgrep ecosystem includes:
 - [Semgrep Registry](https://semgrep.dev/explore) - 1,000+ community-driven rules covering security, correctness, and performance bugs
 - [Semgrep App](https://semgrep.dev/manage) - deploy, manage, and monitor Semgrep at scale with free and paid tiers.
 
+Semgrep is used by 100,000+ developers a month and is the engine inside tools like [NodeJsScan](https://semgrep.dev/p/nodejsscan). See tools [powered by Semgrep](https://semgrep.dev/docs/extensions//#semgrep-as-an-engine).
+
+Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev).
+
 ### Language support
 
 <h4 align="center">General availability</h4>
