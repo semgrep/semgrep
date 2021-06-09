@@ -2,16 +2,18 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## After cut
+## Unreleased
 
+### Added
+- Add helpUri to sarif output if rule source metadata is defined
+
+### Fixed
 - JSON: handle correctly metavariables as field (#3279)
 - JS: support partial field definitions pattern, like in JSON
 - Fixed wrong line numbers for multi-lines match in generic mode (#3315)
 - Handle correctly ellipsis inside function types (#3119)
 - Taint mode: Allow statement-patterns when these are represented as
   statement-expressions in the Generic AST (#3191)
-
-## Unreleased
 
 ## [0.55.0](https://github.com/returntocorp/semgrep/releases/tag/v0.55.0) - 2021-06-8
 
