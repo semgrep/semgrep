@@ -38,7 +38,7 @@ Semgrep runs fully on your computer or build environment: **your code is never s
 Its rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements, run it online in Semgrep's Playground by clicking the image:
 
 <p align="center">
-    <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep.svg" height="432px" alt="Semgrep rule example for finding Python print() statements"/></a>
+    <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="https://github.com/returntocorp/semgrep/blob/dlukeomalley/readme-intro/doc/playground-example.png" height="432px" alt="Semgrep rule example for finding Python print() statements"/></a>
 </p>
 
 The Semgrep ecosystem includes:
