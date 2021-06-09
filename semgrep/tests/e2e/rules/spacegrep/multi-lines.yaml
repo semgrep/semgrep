@@ -1,0 +1,10 @@
+rules:
+- id: multi-lines
+  languages:
+  - generic
+  pattern: |
+    $V = open();
+    ...
+    close($V);
+  message: found
+  severity: ERROR
