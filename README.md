@@ -14,20 +14,23 @@
   <a href="https://pypi.org/project/semgrep/">
     <img alt="PyPI" src="https://img.shields.io/pypi/v/semgrep?style=flat-square&color=blue">
   </a>
+  <a href="https://semgrep.dev/docs/">
+      <img src="https://img.shields.io/badge/docs-semgrep.dev-purple?style=flat-square" alt="Documentation" />
+  </a>
   <a href="https://r2c.dev/slack">
-    <img src="https://img.shields.io/badge/slack-join-green?style=flat-square" alt="Issues welcome!" />
+    <img src="https://img.shields.io/badge/slack-join-green?style=flat-square" alt="Join Semgrep community Slack" />
   </a>
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
   </a>
   <a href="https://github.com/returntocorp/semgrep#readme">
-    <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="1500+ GitHub stars" />
+    <img src="https://img.shields.io/github/stars/returntocorp/semgrep?label=GitHub%20Stars&style=flat-square" alt="4000+ GitHub stars" />
   </a>
   <a href="https://hub.docker.com/r/returntocorp/semgrep">
-  <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg" />
-    </a>
+    <img src="https://img.shields.io/docker/pulls/returntocorp/semgrep.svg" />
+  </a>
   <a href="https://twitter.com/intent/follow?screen_name=r2cdev">
-    <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev" />
+    <img src="https://img.shields.io/twitter/follow/r2cdev?label=Follow%20r2cdev&style=social&color=blue" alt="Follow @r2cdev on Twitter" />
   </a>
 </p>
 </br>
