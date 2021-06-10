@@ -1267,6 +1267,8 @@ and m_call_op aop aargs bop tokb bargs =
 (* Associative-Commutative (AC) matching of operators.
  *
  * This for example, will successfully match `a && b && c` against `b && a && c`!
+ * It will also match `if (<... b && c ...>) ...` against `if (a && b && c) ...`
+ * which was not matching before (`a && b && c` is parsed as `(a && b) && c`).
  *
  * POTENTIAL ISSUES:
  *
@@ -1282,11 +1284,9 @@ and m_call_op aop aargs bop tokb bargs =
  *
  * Note that AC-matching is an NP-complete problem. This is a naive
  * implementation with lots of dumb combinatorial search. If it
- * becomes a perf issue, see paper
+ * becomes a perf issue, see paper by Steven M. Eker:
  *
  *     "Associative-Commutative Matching Via Bipartite Graph Matching"
- *
- * by Steven M. Eker.
  *)
 and m_ac_op tok op aargs_ac bargs_ac =
   (* partitition aargs_ac to separate metavariables and ellipsis (avars) from
@@ -1298,23 +1298,23 @@ and m_ac_op tok op aargs_ac bargs_ac =
          | A.N (A.Id ((str, _tok), _id_info)) -> MV.is_metavar_name str
          | ___else___ -> false)
   in
-  (* try to match each aapp to a different barg, this is a 1-to-1 matching *)
+  (* try to match each aapp with a different barg, this is a 1-to-1 matching *)
   let bs_left =
     match aapps with
     (* if there are no aapps we don't want to fail *)
     | [] -> m_combs_unit bargs_ac
     | _ -> m_combs_1to1 m_expr aapps bargs_ac
   in
-  (* try to natch each varible to a different subset of the remaining bs_left,
-   * ellipsis (`...`) can match an empty subset. *)
+  (* try to match each variable with a unique disjoint subset of the remaining
+   * bs_left, ellipsis (`...`) can match the empty set. *)
   match avars with
   | [] -> m_combs_flatten bs_left
   | _ ->
       let m_var x bs' =
         match (x, H.undo_ac_matching_nf tok op bs') with
         | A.Ellipsis _, None -> return ()
-        | ___var___, None -> fail ()
-        | ___var___, Some op_bs' -> m_expr x op_bs'
+        | ___mvar___, None -> fail ()
+        | ___mvar___, Some op_bs' -> m_expr x op_bs'
       in
       m_combs_1toN m_var avars bs_left |> m_combs_flatten
 

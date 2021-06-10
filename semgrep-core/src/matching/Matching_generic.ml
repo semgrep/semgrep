@@ -395,10 +395,23 @@ let _ =
 (*s: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 (* todo? optimize, probably not the optimal version ... *)
 let all_elem_and_rest_of_list xs =
-  let xs = Common.index_list xs |> List.map (fun (x, i) -> (i, x)) in
-  xs
-  |> List.map (fun (i, x) -> (x, lazy (List.remove_assq i xs |> List.map snd)))
+  let rec loop acc prev_xs = function
+    | [] -> acc
+    | x :: next_xs ->
+        let other_xs = lazy (List.rev_append prev_xs next_xs) in
+        let acc' = (x, other_xs) :: acc in
+        let prev_xs' = x :: prev_xs in
+        loop acc' prev_xs' next_xs
+  in
+  loop [] [] xs
   [@@profiling]
+
+let rec all_splits = function
+  | [] -> [ ([], []) ]
+  | x :: xs ->
+      all_splits xs
+      |> List.map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
+      |> List.flatten
 
 (*e: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 
@@ -609,19 +622,11 @@ let m_combs_fold m_combs xs comb_matches : (_ list * tout) list =
  * returns `(bs \ b_i, m a b_i)`. This is essentially the combinatorial version
  * of `or_list`. *)
 let m_combs_or (m : _ matcher) a bs tin : (_ list * tout) list =
-  let rec loop prev_bs = function
-    | [] -> []
-    | b :: next_bs ->
-        let b_matches =
-          match m a b tin with
-          | [] -> []
-          | tout ->
-              let other_bs = List.rev_append prev_bs next_bs in
-              [ (other_bs, tout) ]
-        in
-        b_matches @ loop (b :: prev_bs) next_bs
-  in
-  loop [] bs
+  bs |> all_elem_and_rest_of_list
+  |> List.filter_map (fun (b, other_bs) ->
+         match m a b tin with
+         | [] -> None
+         | tout -> Some (Lazy.force other_bs, tout))
 
 let m_combs_1to1 (m : _ matcher) xs ys (tin : tin) : (_ list * tout) list =
   m_combs_fold (m_combs_or m) xs (m_combs_unit ys tin)
@@ -629,18 +634,6 @@ let m_combs_1to1 (m : _ matcher) xs ys (tin : tin) : (_ list * tout) list =
 (* Tries matching `a` against each possible sub-list [bs'] in [bs], and for
  * each succesful match returns `(bs \ bs', m_1toN a bs')`. *)
 let m_combs_splits m_1toN a bs (tin : tin) : (_ list * tout) list =
-  (* [all_splits xs] returns all possible pairs [(ls, rs)] such that [ls@rs]
-   * contains the same elements as [xs].
-   *
-   * e.g.
-   *     all_splits [1; 2] = [ ([1;2], []); ([2], [1]); ([1], [2]); ([], [1;2]) ] *)
-  let rec all_splits = function
-    | [] -> [ ([], []) ]
-    | x :: xs ->
-        all_splits xs
-        |> List.map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
-        |> List.flatten
-  in
   bs |> all_splits
   |> List.filter_map (fun (l, r) ->
          match m_1toN a l tin with [] -> None | tout -> Some (r, tout))

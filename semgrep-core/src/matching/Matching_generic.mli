@@ -103,6 +103,14 @@ val inits_and_rest_of_list_empty_ok : 'a list -> ('a list * 'a list) list
 val all_elem_and_rest_of_list : 'a list -> ('a * 'a list Lazy.t) list
 
 (*e: signature [[Matching_generic.all_elem_and_rest_of_list]] *)
+
+(* [all_splits xs] returns all possible pairs [(ls, rs)] such that [ls@rs]
+  * contains the same elements as [xs].
+  *
+  * e.g.
+  *     all_splits [1; 2] = [ ([1;2], []); ([2], [1]); ([1], [2]); ([], [1;2]) ] *)
+val all_splits : 'a list -> ('a list * 'a list) list
+
 val lazy_rest_of_list : 'a Lazy.t -> 'a
 
 (*s: signature [[Matching_generic.is_regexp_string]] *)
