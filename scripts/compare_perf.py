@@ -51,10 +51,7 @@ def main() -> None:
     github_token = sys.argv[5]
 
     # Note this only defined in pull requests
-    try:
-        pull_request_number = sys.argv[6]
-    except IndexError:
-        pull_request_number = ""
+    pull_request_number = sys.argv[6] if len(sys.argv) >= 7 else ""
 
     baseline_times = zip(
         read_timing(baseline_timing_file_1), read_timing(baseline_timing_file_2)
