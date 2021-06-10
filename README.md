@@ -32,9 +32,11 @@
 </p>
 </br>
 
-Semgrep is a fast, open-source, static analysis tool for finding bugs and enforcing code standards at editor, commit, and CI time. [Get started →.](#getting-started)
+Semgrep is a fast, open-source, static analysis tool for finding bugs and enforcing code standards at editor, commit, and CI time.
 
-Semgrep runs fully on your computer or build environment: **your code is never sent anywhere**.
+[Get started →.](#getting-started)
+
+Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**.
 
 Its rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements, run it online in Semgrep's Playground by clicking the image:
 
