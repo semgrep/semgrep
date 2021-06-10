@@ -49,7 +49,7 @@ Its rules look like the code you already write; no abstract syntax trees, regex 
 
 The Semgrep ecosystem includes:
 
-- Semgrep - this project, the open-source command line tool at the heart of everything
+- Semgrep - the open-source command line tool at the heart of everything (this project)
 - [Semgrep CI](https://semgrep.dev/docs/semgrep-ci/) - a specialized Docker image for running Semgrep in CI environments
 - [Semgrep Playground](https://semgrep.dev/editor) - an online interactive editor for writing and sharing rules
 - [Semgrep Registry](https://semgrep.dev/explore) - 1,000+ community-driven rules covering security, correctness, and performance bugs
