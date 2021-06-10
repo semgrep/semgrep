@@ -53,7 +53,7 @@ The Semgrep ecosystem includes:
 - [Semgrep Registry](https://semgrep.dev/explore) - 1,000+ community-driven rules covering security, correctness, and performance bugs
 - [Semgrep App](https://semgrep.dev/manage) - deploy, manage, and monitor Semgrep at scale with free and paid tiers.
 
-Join 100,000 other developers and security engineers already using Semgrep on teams at Apple, Dropbox, Figma, Netflix, Salesforce, Snowflake, and Stripe. Also checkout [tools powered by Semgrep](https://semgrep.dev/docs/extensions//#semgrep-as-an-engine)!
+Join 100,000 other developers and security engineers already using Semgrep on teams at Apple, Dropbox, Figma, Netflix, Salesforce, Snowflake, and Stripe. Also checkout [tools powered by Semgrep](https://semgrep.dev/docs/extensions/#semgrep-as-an-engine)!
 
 Semgrep is developed and commercially supported by [r2c, a software security company](https://r2c.dev).
 
