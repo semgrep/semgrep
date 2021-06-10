@@ -35,9 +35,7 @@
 </p>
 </br>
 
-Semgrep is a fast, open-source, static analysis tool for finding bugs and enforcing code standards at editor, commit, and CI time.
-
-[Get started →.](#getting-started)
+Semgrep is a fast, open-source, static analysis tool for finding bugs and enforcing code standards at editor, commit, and CI time. [Get started →.](#getting-started)
 
 Semgrep analyzes code locally on your computer or in your build environment: **code is never uploaded**.
 
