@@ -21,7 +21,7 @@ module MV = Metavariable
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Data structure representing a semgrep rule.
+(* Data structure representing a Semgrep rule.
  *
  * See also Mini_rule.ml where formula and many other features disappears.
  *
@@ -183,6 +183,7 @@ type rule = {
   (* for metachecking error location *)
   (* optional fields *)
   equivalences : string list option;
+  settings : Config_semgrep.t option;
   (* TODO: parse them *)
   fix : string option;
   fix_regexp : (regexp * int option * string) option;

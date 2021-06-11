@@ -234,7 +234,7 @@ let ac_matching_nf op args =
     |> List.map (function
          | Arg e -> e
          | ArgKwd _ | ArgType _ | ArgOther _ -> raise_notrace Exit)
-    |> List.concat_map nf_one
+    |> List.map nf_one |> List.flatten
   and nf_one = function
     | Call (IdSpecial (Op op1, _tok1), (_, args1, _)) when op = op1 -> nf args1
     | x -> [ x ]

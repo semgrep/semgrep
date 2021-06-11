@@ -876,7 +876,7 @@ and filter_ranges env xs cond =
 (* Main entry point *)
 (*****************************************************************************)
 
-let check hook config rules equivs file_and_more =
+let check hook default_config rules equivs file_and_more =
   let file, xlang, lazy_ast_and_errors = file_and_more in
   logger#info "checking %s with %d rules" file (List.length rules);
   if !Common.profile = Common.ProfAll then (
@@ -902,6 +902,7 @@ let check hook config rules equivs file_and_more =
                RP.empty_semgrep_result )
              else
                let xpatterns = xpatterns_in_formula formula in
+               let config = r.settings ||| default_config in
                let res =
                  matches_of_xpatterns config r equivs
                    (file, xlang, lazy_ast_and_errors, lazy_content)
