@@ -105,6 +105,10 @@ and tout = tin list
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
 
+type 'a comb_result = tin -> ('a * tout) list
+
+type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
+
 (*e: type [[Matching_generic.matcher]] *)
 
 (*****************************************************************************)
@@ -592,54 +596,44 @@ let rec m_list_in_any_order ~less_is_ok f xsa xsb =
 (* stdlib: combinatorial search *)
 (* ---------------------------------------------------------------------- *)
 
-(* These functions are not regulat `tin -> tout` matchers, but "combinatorial"
- * matchers `tin -> ('a list, tout) list. These `m_combs_xyz tin` return a list
- * of `(rest, tout)` pairs, where `rest` is list of elements remaining to be
- * matched.
- *
- * Used for Associative-Commutative (AC) matching! *)
+(* Used for Associative-Commutative (AC) matching! *)
 
-(* unit operation for the ('a list * tout) list monad *)
-let m_combs_unit xs (tin : tin) : (_ list * tout) list = [ (xs, [ tin ]) ]
+let m_comb_unit xs : _ comb_result = fun tin -> [ (xs, [ tin ]) ]
 
-(* bind operation for the ('a list * tout) list monad *)
-let rec m_combs_bind comb_matches f : (_ list * tout) list =
-  match comb_matches with
-  | [] -> []
-  | (bs, tout) :: comb_matches' ->
-      let bs_matches = tout |> List.map (fun tin -> f bs tin) |> List.flatten in
-      bs_matches @ m_combs_bind comb_matches' f
+let m_comb_bind (comb_result : _ comb_result) f : _ comb_result =
+ fun tin ->
+  let rec loop = function
+    | [] -> []
+    | (bs, tout) :: comb_matches' ->
+        let bs_matches =
+          tout |> List.map (fun tin -> f bs tin) |> List.flatten
+        in
+        bs_matches @ loop comb_matches'
+  in
+  loop (comb_result tin)
 
-let m_combs_flatten comb_result (tin : tin) : tout =
+let m_comb_flatten (comb_result : _ comb_result) (tin : tin) : tout =
   comb_result tin |> List.map snd |> List.flatten
 
-let m_combs_fold m_combs xs comb_matches : (_ list * tout) list =
+let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
+    (comb_result : _ comb_result) : _ comb_result =
   List.fold_left
-    (fun combs x -> m_combs_bind combs (fun ys' tin -> m_combs x ys' tin))
-    comb_matches xs
+    (fun comb_result' x -> m_comb_bind comb_result' (m_comb x))
+    comb_result xs
 
-(* Tries matching `a` against each `b_i` in `bs`, and for each succesful match
- * returns `(bs \ b_i, m a b_i)`. This is essentially the combinatorial version
- * of `or_list`. *)
-let m_combs_or (m : _ matcher) a bs tin : (_ list * tout) list =
+let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
+ fun tin ->
   bs |> all_elem_and_rest_of_list
   |> List.filter_map (fun (b, other_bs) ->
          match m a b tin with
          | [] -> None
          | tout -> Some (Lazy.force other_bs, tout))
 
-let m_combs_1to1 (m : _ matcher) xs ys (tin : tin) : (_ list * tout) list =
-  m_combs_fold (m_combs_or m) xs (m_combs_unit ys tin)
-
-(* Tries matching `a` against each possible sub-list [bs'] in [bs], and for
- * each succesful match returns `(bs \ bs', m_1toN a bs')`. *)
-let m_combs_splits m_1toN a bs (tin : tin) : (_ list * tout) list =
+let m_comb_1toN m_1toN a bs : _ comb_result =
+ fun tin ->
   bs |> all_splits
   |> List.filter_map (fun (l, r) ->
          match m_1toN a l tin with [] -> None | tout -> Some (r, tout))
-
-let m_combs_1toN m_1toN xs comb_result tin : (_ list * tout) list =
-  m_combs_fold (m_combs_splits m_1toN) xs (comb_result tin)
 
 (* ---------------------------------------------------------------------- *)
 (* stdlib: bool/int/string/... *)
