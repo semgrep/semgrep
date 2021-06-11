@@ -103,6 +103,14 @@ val inits_and_rest_of_list_empty_ok : 'a list -> ('a list * 'a list) list
 val all_elem_and_rest_of_list : 'a list -> ('a * 'a list Lazy.t) list
 
 (*e: signature [[Matching_generic.all_elem_and_rest_of_list]] *)
+
+(* [all_splits xs] returns all possible pairs [(ls, rs)] such that [ls@rs]
+  * contains the same elements as [xs].
+  *
+  * e.g.
+  *     all_splits [1; 2] = [ ([1;2], []); ([2], [1]); ([1], [2]); ([], [1;2]) ] *)
+val all_splits : 'a list -> ('a list * 'a list) list
+
 val lazy_rest_of_list : 'a Lazy.t -> 'a
 
 (*s: signature [[Matching_generic.is_regexp_string]] *)
@@ -150,6 +158,28 @@ val m_list_with_dots : 'a matcher -> ('a -> bool) -> bool -> 'a list matcher
 
 (*e: signature [[Matching_generic.m_list_with_dots]] *)
 val m_list_in_any_order : less_is_ok:bool -> 'a matcher -> 'a list matcher
+
+(* Unit operation for the [('a list * tout) list] monad *)
+val m_combs_unit : 'a list -> tin -> ('a list * tout) list
+
+val m_combs_flatten : (tin -> ('a list * tout) list) -> tin -> tout
+
+val m_combs_1to1 :
+  'a matcher -> 'a list -> 'a list -> tin -> ('a list * tout) list
+(** [m_combs_1to1 m xs ys tin] computes all [k]-combinations of [ys] such that
+ * each [x] matches a different [y], where [k = List.length xs]. Each combination
+ * results in a pair [(ys', tout)] where [ys'] is the subset of [ys] that was not
+ * match to any [x]. If [k < List.length ys] there will be no matches.  *)
+
+val m_combs_1toN :
+  ('a -> 'b list -> tin -> tout) ->
+  'a list ->
+  (tin -> ('b list * tout) list) ->
+  tin ->
+  ('b list * tout) list
+(** [m_combs_1toN m_1toN xs comb_matches] computes, for each [(ys, tout)] pair
+ * in [comb_matches], all partitions of [ys] such that each [x] matches either
+ * a different sub-list of [ys] or the empty list. *)
 
 (* use = *)
 val m_eq : 'a matcher
