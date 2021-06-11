@@ -285,6 +285,10 @@ let just_parse_with_lang lang file =
         (fun cst ->
           let ast = Ast_php_build.program cst in
           Php_to_generic.program ast)
+  | Lang.Hack ->
+      run file
+        [ TreeSitter (Parse_hack_tree_sitter.parse `Target) ]
+        Php_to_generic.program
   | Lang.R -> failwith "No R parser yet; improve the one in tree-sitter"
   | Lang.Yaml ->
       {
