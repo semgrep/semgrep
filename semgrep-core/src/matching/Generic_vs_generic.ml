@@ -29,7 +29,7 @@ module B = AST_generic
 module MV = Metavariable
 module AST = AST_generic
 module Flag = Flag_semgrep
-module Config = Config_semgrep
+module Config = Config_semgrep_t
 module H = AST_generic_helpers
 
 (* optimisations *)
