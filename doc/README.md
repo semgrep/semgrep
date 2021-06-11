@@ -163,12 +163,6 @@ Or running an individual test function:
 $ python -m pytest -k test_func_name path/to/test.py
 ```
 
-`semgrep` includes a more comprehensive QA test suite that can be run like so:
-
-```
-$ python -m pytest --qa
-```
-
 `semgrep` also includes [`pytest-benchmark`](https://pytest-benchmark.readthedocs.io/en/latest/)
 to allow for basic benchmarking functionality. This can be run like so:
 
