@@ -37,6 +37,8 @@
 (*****************************************************************************)
 type t = {
   constant_propagation : bool;
+  (* associative-commutative matching *)
+  ac_matching : bool;
   (* !experimental: a bit hacky, and may introduce big perf regressions! *)
   (* should be used with DeepEllipsis; do it implicitely has issues *)
   go_deeper_expr : bool;
@@ -53,6 +55,11 @@ type t = {
 (*****************************************************************************)
 
 let default_config =
-  { constant_propagation = true; go_deeper_expr = true; go_deeper_stmt = true }
+  {
+    constant_propagation = true;
+    ac_matching = true;
+    go_deeper_expr = true;
+    go_deeper_stmt = true;
+  }
 
 (*e: semgrep/core/Config_semgrep.ml *)

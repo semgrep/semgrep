@@ -627,6 +627,9 @@ and m_expr a b =
       m_expr a1 b1 >!> fun () ->
       (* try again deeper on b1 *)
       m_expr a b1
+  | ( A.Call (A.IdSpecial (A.Op aop, _toka), aargs),
+      B.Call (B.IdSpecial (B.Op bop, tokb), bargs) ) ->
+      m_call_op aop aargs bop tokb bargs
   (* boilerplate *)
   (* TODO: via m_name! and miss IdQualfied vs IdQualified otherwise *)
   | A.N (A.Id (a1, a2)), B.N (B.Id (b1, b2)) ->
@@ -1240,6 +1243,80 @@ and m_argument a b =
 and m_other_argument_operator = m_other_xxx
 
 (*e: function [[Generic_vs_generic.m_other_argument_operator]] *)
+
+(*---------------------------------------------------------------------------*)
+(* Associative-commutative iso *)
+(*---------------------------------------------------------------------------*)
+and m_call_op aop aargs bop tokb bargs =
+  let m_op_default =
+    m_arithmetic_operator aop bop >>= fun () -> m_arguments aargs bargs
+  in
+  (* We first try to perform AC-matching if possible, otherwise we fallback
+   * to the default matching strategy for non-AC operators. *)
+  match
+    ( H.ac_matching_nf aop (A.unbracket aargs),
+      H.ac_matching_nf bop (B.unbracket bargs) )
+  with
+  | Some aargs_ac, Some bargs_ac when aop =*= bop ->
+      if_config
+        (fun x -> x.ac_matching)
+        ~then_:(m_ac_op tokb aop aargs_ac bargs_ac)
+        ~else_:m_op_default
+  | ___else___ -> m_op_default
+
+(* Associative-Commutative (AC) matching of operators.
+ *
+ * This for example, will successfully match `a && b && c` against `b && a && c`!
+ * It will also match `if (<... b && c ...>) ...` against `if (a && b && c) ...`
+ * which was not matching before (`a && b && c` is parsed as `(a && b) && c`).
+ *
+ * POTENTIAL ISSUES:
+ *
+ * AC-matching of metavariables could lead to some strange behaviors given that
+ * we work with ranges. E.g. we can match `a && $X` against `b && a && c` by
+ * binding $X to `b && c`, but the range of $X will be that of the whole
+ * `b && a && c` expression. Eventually we should operate with the sub-ASTs
+ * matched by patterns rather than with their ranges.
+ *
+ * Autofix will probably not work well with AC-matching either.
+ *
+ * PERFORMANCE:
+ *
+ * Note that AC-matching is an NP-complete problem. This is a naive
+ * implementation with lots of dumb combinatorial search. If it
+ * becomes a perf issue, see paper by Steven M. Eker:
+ *
+ *     "Associative-Commutative Matching Via Bipartite Graph Matching"
+ *)
+and m_ac_op tok op aargs_ac bargs_ac =
+  (* partitition aargs_ac to separate metavariables and ellipsis (avars) from
+   * other kinds of expressions (aapps) *)
+  let avars, aapps =
+    aargs_ac
+    |> List.partition (function
+         | A.Ellipsis _ -> true
+         | A.N (A.Id ((str, _tok), _id_info)) -> MV.is_metavar_name str
+         | ___else___ -> false)
+  in
+  (* try to match each aapp with a different barg, this is a 1-to-1 matching *)
+  let bs_left =
+    match aapps with
+    (* if there are no aapps we don't want to fail *)
+    | [] -> m_combs_unit bargs_ac
+    | _ -> m_combs_1to1 m_expr aapps bargs_ac
+  in
+  (* try to match each variable with a unique disjoint subset of the remaining
+   * bs_left, ellipsis (`...`) can match the empty set. *)
+  match avars with
+  | [] -> m_combs_flatten bs_left
+  | _ ->
+      let m_var x bs' =
+        match (x, H.undo_ac_matching_nf tok op bs') with
+        | A.Ellipsis _, None -> return ()
+        | ___mvar___, None -> fail ()
+        | ___mvar___, Some op_bs' -> m_expr x op_bs'
+      in
+      m_combs_1toN m_var avars bs_left |> m_combs_flatten
 
 (*****************************************************************************)
 (* Type *)
