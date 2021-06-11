@@ -43,3 +43,6 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-ocaml"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-ocaml
 	url = https://github.com/returntocorp/semgrep-ocaml.git
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-hack"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-hack
+	url = https://github.com/returntocorp/semgrep-hack.git

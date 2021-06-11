@@ -26,6 +26,7 @@ type t =
   (* scripting (Python is above) *)
   | Ruby
   | PHP
+  | Hack
   | Lua
   (* data science *)
   | R
