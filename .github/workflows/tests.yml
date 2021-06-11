@@ -98,6 +98,7 @@ jobs:
           SEMGREP_SKIP_BIN: true
         run: |
           cd semgrep
+          # See tox.ini for pytest command being run
           tox -e py  # Run tox using the version of Python in `PATH`
 
   build-test:
@@ -134,7 +135,7 @@ jobs:
         run: |
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
-          pipenv run pytest -n auto -v --tb=short --durations=0 tests/
+          pipenv run pytest --ignore=tests/qa/test_public_repos.py -n auto -v --tb=short --durations=0 tests/
       - name: Generate test matrix data
         run: |
           cd semgrep
@@ -186,7 +187,7 @@ jobs:
         run: |
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
-          pipenv run pytest -n auto -v --tb=short --durations=0 tests/qa/run_public_repos.py
+          pipenv run pytest -n auto -v --tb=short --durations=0 tests/qa/test_public_repos.py
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
 
