@@ -56,6 +56,7 @@ type t =
   (* scripting (Python is above) *)
   | Ruby
   | PHP
+  | Hack
   | Lua
   (* data science *)
   | R
@@ -101,6 +102,7 @@ let list_of_lang =
     ("csharp", Csharp);
     ("c#", Csharp);
     ("php", PHP);
+    ("hack", Hack);
     ("kt", Kotlin);
     ("lua", Lua);
     ("rs", Rust);
@@ -142,6 +144,7 @@ let langs_of_filename filename =
   | FT.PL FT.Ruby -> [ Ruby ]
   | FT.PL FT.Csharp -> [ Csharp ]
   | FT.PL (FT.Web (FT.Php _)) -> [ PHP ]
+  | FT.PL (FT.Web FT.Hack) -> [ Hack ]
   | FT.PL FT.Kotlin -> [ Kotlin ]
   | FT.PL FT.Lua -> [ Lua ]
   | FT.PL FT.Rust -> [ Rust ]
@@ -167,6 +170,7 @@ let string_of_lang = function
   | Ruby -> "Ruby"
   | Csharp -> "C#"
   | PHP -> "PHP"
+  | Hack -> "Hack"
   | Kotlin -> "Kotlin"
   | Lua -> "Lua"
   | Rust -> "Rust"
@@ -191,6 +195,7 @@ let ext_of_lang = function
   | Ruby -> [ "rb" ]
   | Csharp -> [ "cs" ]
   | PHP -> [ "php" ]
+  | Hack -> [ "hh"; "hck"; "hack" ]
   | Kotlin -> [ "kt" ]
   | Lua -> [ "lua" ]
   | Rust -> [ "rs" ]
