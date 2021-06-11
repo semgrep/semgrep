@@ -12,10 +12,7 @@
         "lines": "console.log(x == x)",
         "message": "Detected a useless comparison operation `x == x` or `x != x`. This\noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.\n",
         "metadata": {
-          "category": "correctness",
-          "technology": [
-            "wkhtmltopdf"
-          ]
+          "category": "correctness"
         },
         "metavars": {
           "$X": {
@@ -55,10 +52,7 @@
         "lines": "    return a + b == a + b",
         "message": "This expression is always True: `a + b == a + b` or `a + b != a + b`. If testing for floating point NaN, use `math.isnan(a + b)`, or `cmath.isnan(a + b)` if the number is complex.",
         "metadata": {
-          "category": "correctness",
-          "technology": [
-            "pycryptodome"
-          ]
+          "category": "correctness"
         },
         "metavars": {
           "$X": {
