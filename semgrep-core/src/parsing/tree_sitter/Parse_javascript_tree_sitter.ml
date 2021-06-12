@@ -95,9 +95,9 @@ let empty_stmt env tok =
   let t = token env tok in
   Block (t, [], t)
 
-let identifier (env : env) (tok : CST.identifier) : ident = str env tok
+let identifier (env : env) (tok : CST.identifier) : a_ident = str env tok
 
-let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
+let reserved_identifier (env : env) (x : CST.reserved_identifier) : a_ident =
   match x with
   | `Get tok -> identifier env tok (* "get" *)
   | `Set tok -> identifier env tok (* "set" *)
@@ -108,7 +108,7 @@ let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
 let id_or_reserved_id (env : env)
     (x :
       [ `Id of Tree_sitter_run.Token.t | `Choice_get of CST.reserved_identifier ])
-    : ident =
+    : a_ident =
   match x with
   | `Id tok -> identifier env tok (* identifier *)
   | `Choice_get x -> reserved_identifier env x
@@ -118,7 +118,7 @@ let anon_choice_rese_id_9a83200 = id_or_reserved_id
 let anon_choice_id_0e3c97f = id_or_reserved_id
 
 let rec nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) :
-    ident list =
+    a_ident list =
   let v1 =
     match v1 with
     | `Id tok -> [ identifier env tok ] (* identifier *)
@@ -129,14 +129,14 @@ let rec nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) :
   v1 @ [ v3 ]
 
 let rec decorator_member_expression (env : env)
-    ((v1, v2, v3) : CST.decorator_member_expression) : ident list =
+    ((v1, v2, v3) : CST.decorator_member_expression) : a_ident list =
   let v1 = anon_choice_type_id env v1 in
   let _v2 = token env v2 (* "." *) in
   let v3 = identifier env v3 (* identifier *) in
   v1 @ [ v3 ]
 
 and anon_choice_type_id (env : env) (x : CST.anon_choice_id_b8f8ced) :
-    ident list =
+    a_ident list =
   match x with
   | `Id x -> [ identifier env x ]
   | `Deco_member_exp x -> decorator_member_expression env x
@@ -263,7 +263,7 @@ let jsx_attribute_name (env : env) (x : CST.jsx_attribute_name) =
       let str = fst id1 ^ ":" ^ fst id2 in
       (str, PI.combine_infos (snd id1) [ snd id2 ])
 
-let jsx_element_name (env : env) (x : CST.jsx_element_name) : ident =
+let jsx_element_name (env : env) (x : CST.jsx_element_name) : a_ident =
   match x with
   | `Choice_jsx_id x -> jsx_identifier_ env x
   | `Nested_id x ->
@@ -527,7 +527,7 @@ and variable_declaration (env : env)
   build_vars kind vars
 
 and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) :
-    function_definition * ident option =
+    function_definition * a_ident option =
   let v1 =
     match v1 with
     | Some tok -> [ attr (Async, token env tok) ] (* "async" *)
@@ -672,7 +672,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v3 = expression env v3 in
       Apply (IdSpecial (In, v2), fb [ v1; v3 ])
 
-and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
+and arguments (env : env) ((v1, v2, v3) : CST.arguments) : a_arguments =
   let v1 = token env v1 (* "(" *) in
   (* TODO what ellison means in call context? *)
   let v2 = anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4 env v2 in
@@ -680,7 +680,7 @@ and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
   (v1, v2, v3)
 
 and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) :
-    (ident, a_pattern) either * type_ option * expr option =
+    (a_ident, a_pattern) either * type_ option * expr option =
   let v1 = id_or_destructuring_pattern env v1 in
   let v2 = match v2 with Some x -> Some (initializer_ env x) | None -> None in
   let ty = None in
@@ -691,14 +691,14 @@ and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) :
    Ast_js.build_var.
 *)
 and anon_choice_id_940079a (env : env) (x : CST.anon_choice_id_940079a) :
-    (ident, a_pattern) either =
+    (a_ident, a_pattern) either =
   match x with
   | `Id tok ->
       let id = identifier env tok (* identifier *) in
       Left id
   | `Dest_pat x -> Right (destructuring_pattern env x)
 
-and id_or_destructuring_pattern env x : (ident, a_pattern) either =
+and id_or_destructuring_pattern env x : (a_ident, a_pattern) either =
   anon_choice_id_940079a env x
 
 and sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression) =
@@ -1579,7 +1579,7 @@ and spread_element (env : env) ((v1, v2) : CST.spread_element) =
   (v1, v2)
 
 and rest_pattern (env : env) ((v1, v2) : CST.rest_pattern) :
-    tok * (ident, a_pattern) either =
+    tok * (a_ident, a_pattern) either =
   let dots = token env v1 (* "..." *) in
   let id_or_pat = id_or_destructuring_pattern env v2 in
   (dots, id_or_pat)
@@ -1597,7 +1597,7 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
 and call_signature (env : env) (v1 : CST.call_signature) : parameter list =
   formal_parameters env v1
 
-and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
+and object_ (env : env) ((v1, v2, v3) : CST.object_) : a_obj =
   let v1 = token env v1 (* "{" *) in
   let v2 =
     match v2 with
@@ -1873,7 +1873,7 @@ let todo_semgrep_partial (env : env) (x : CST.semgrep_partial) =
   | `Catch_clause x -> catch_clause env x |> todo_partial env
   | `Fina_clause x -> finally_clause env x |> todo_partial env
 
-let program (env : env) ((v1, v2) : CST.program) : program =
+let program (env : env) ((v1, v2) : CST.program) : a_program =
   let _v1 =
     match v1 with
     | Some tok -> Some (token env tok) (* pattern #!.* *)

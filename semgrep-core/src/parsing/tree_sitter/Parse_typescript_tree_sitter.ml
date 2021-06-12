@@ -180,25 +180,24 @@ let anon_choice_COMMA_5194cb4 (env : env) (x : CST.anon_choice_COMMA_5194cb4) =
   | `Choice_auto_semi x -> semicolon env x
 
 let import_export_specifier (env : env)
-    ((v1, v2, v3) : CST.import_export_specifier) : ident option =
+    ((v1, v2, v3) : CST.import_export_specifier) :
+    (a_ident * a_ident option) option =
   let type_or_typeof =
     match v1 with Some x -> Some (type_or_typeof env x) | None -> None
   in
-  let expr_id =
-    match type_or_typeof with
-    | Some _ -> (* TODO: 'type foo', 'typeof foo' *) None
-    | None ->
-        let id = identifier env v2 in
-        Some id
+  let opt_as_id =
+    match v3 with
+    | None -> None
+    | Some (_as_tok, id_tok) -> Some (identifier env id_tok)
   in
-  let _as_id =
-    (* TODO: 'foo as bar' *)
-    match v3 with Some (_as_tok, _id) -> () | None -> ()
-  in
-  expr_id
+  match type_or_typeof with
+  | Some _ -> (* TODO: 'type foo', 'typeof foo' *) None
+  | None ->
+      let expr_id = identifier env v2 in
+      Some (expr_id, opt_as_id)
 
 let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) :
-    ident list =
+    a_ident list =
   match x with
   | `Id tok -> [ identifier env tok ] (* identifier *)
   | `Nested_id x -> nested_identifier env x
@@ -211,7 +210,7 @@ and nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) =
   let v3 = identifier env v3 (* identifier *) in
   v1 @ [ v3 ]
 
-let concat_nested_identifier (idents : ident list) : ident =
+let concat_nested_identifier (idents : a_ident list) : a_ident =
   let str = idents |> List.map fst |> String.concat "." in
   let tokens = List.map snd idents in
   let x, xs = match tokens with [] -> assert false | x :: xs -> (x, xs) in
@@ -259,7 +258,7 @@ let literal_type (env : env) (x : CST.literal_type) : literal =
 (* "false" *)
 
 let nested_type_identifier (env : env)
-    ((v1, v2, v3) : CST.nested_type_identifier) : ident list =
+    ((v1, v2, v3) : CST.nested_type_identifier) : a_ident list =
   let v1 = anon_choice_type_id_42c0412 env v1 in
   let _v2 = token env v2 (* "." *) in
   let v3 = str env v3 (* identifier *) in
@@ -268,7 +267,7 @@ let nested_type_identifier (env : env)
 let id_or_reserved_id (env : env)
     (x :
       [ `Id of Tree_sitter_run.Token.t
-      | `Choice_decl of CST.reserved_identifier ]) : ident =
+      | `Choice_decl of CST.reserved_identifier ]) : a_ident =
   match x with
   | `Id tok -> identifier env tok (* identifier *)
   | `Choice_decl x -> reserved_identifier env x
@@ -280,7 +279,7 @@ let anon_choice_type_id_dd17e7d = id_or_reserved_id
 let import_export_specifiers (env : env)
     ((v1, v2) :
       CST.anon_import_export_spec_rep_COMMA_import_export_spec_3a1421d) :
-    ident list =
+    (a_ident * a_ident option) list =
   map_sep_list env v1 v2 import_export_specifier
   |> List.filter_map (fun opt -> opt)
 
@@ -299,19 +298,18 @@ let export_clause (env : env) ((v1, v2, v3, v4) : CST.export_clause) =
   xs
 
 let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
-  let _v1 = token env v1 (* "{" *) in
-  let v2 =
-    match v2 with
-    | Some x ->
-        anon_import_export_spec_rep_COMMA_import_export_spec_3a1421d env x
-    | None -> []
+  let _open = token env v1 (* "{" *) in
+  let imports =
+    match v2 with Some x -> import_export_specifiers env x | None -> []
   in
-  let _v3 =
+  let _trailing_comma =
     match v3 with Some tok -> Some (token env tok) (* "," *) | None -> None
   in
-  let _v4 = token env v4 (* "}" *) in
-  fun tok path ->
-    v2 |> List.map (fun (n1, n2opt) -> Import (tok, n1, n2opt, path))
+  let _close = token env v4 (* "}" *) in
+  fun (import_tok : tok) (from_path : a_filename) ->
+    imports
+    |> List.map (fun (name, opt_as_name) ->
+           Import (import_tok, name, opt_as_name, from_path))
 
 let import_clause (env : env) (x : CST.import_clause) =
   match x with
@@ -336,14 +334,14 @@ let import_clause (env : env) (x : CST.import_clause) =
         default :: v2 t path
 
 let rec decorator_member_expression (env : env)
-    ((v1, v2, v3) : CST.decorator_member_expression) : ident list =
+    ((v1, v2, v3) : CST.decorator_member_expression) : a_ident list =
   let v1 = anon_choice_type_id_b8f8ced env v1 in
   let _v2 = token env v2 (* "." *) in
   let v3 = identifier env v3 (* identifier *) in
   v1 @ [ v3 ]
 
 and anon_choice_type_id_b8f8ced (env : env)
-    (x : CST.anon_choice_type_id_b8f8ced) : ident list =
+    (x : CST.anon_choice_type_id_b8f8ced) : a_ident list =
   match x with
   | `Id x -> [ identifier env x ]
   | `Deco_member_exp x -> decorator_member_expression env x
@@ -605,7 +603,7 @@ and variable_declaration (env : env)
   build_vars v1 vars
 
 and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) :
-    function_definition * ident option =
+    function_definition * a_ident option =
   let v1 =
     match v1 with
     | Some tok -> [ attr (Async, token env tok) ] (* "async" *)
@@ -622,7 +620,7 @@ and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) :
   let f_kind = (G.LambdaKind, v2) in
   ({ f_attrs = v1; f_params = v4; f_body = v5; f_rettype = tret; f_kind }, v3)
 
-and generic_type (env : env) ((v1, _v2) : CST.generic_type) : dotted_ident =
+and generic_type (env : env) ((v1, _v2) : CST.generic_type) : a_dotted_ident =
   let v1 =
     match v1 with
     | `Id tok -> [ identifier env tok ] (* identifier *)
@@ -784,7 +782,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v3 = expression env v3 in
       Apply (IdSpecial (In, v2), fb [ v1; v3 ])
 
-and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
+and arguments (env : env) ((v1, v2, v3) : CST.arguments) : a_arguments =
   let v1 = token env v1 (* "(" *) in
   let v2 = anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4 env v2 in
   let v3 = token env v3 (* ")" *) in
@@ -1779,7 +1777,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
       xs
   | `Import_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "import" *) in
-      let tok = v1 in
+      let import_tok = v1 in
       let _v2 =
         match v2 with Some x -> Some (type_or_typeof env x) | None -> None
       in
@@ -1787,12 +1785,12 @@ and statement (env : env) (x : CST.statement) : stmt list =
         match v3 with
         | `Import_clause_from_clause (v1, v2) ->
             let f = import_clause env v1 in
-            let _t, path = from_clause env v2 in
-            f tok path
+            let _t, from_path = from_clause env v2 in
+            f import_tok from_path
         | `Import_requ_clause x -> [ import_require_clause v1 env x ]
         | `Str x ->
             let file = string_ env x in
-            [ ImportFile (tok, file) ]
+            [ ImportFile (import_tok, file) ]
       in
       let _v4 = semicolon env v4 in
       v3 |> List.map (fun m -> M m)
@@ -2050,8 +2048,8 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
           in
           v2
       | `Rep_deco_export_choice_decl (v1, v2, v3) ->
-          let v1 = List.map (decorator env) v1 in
-          let tok = token env v2 (* "export" *) in
+          let decorators = List.map (decorator env) v1 in
+          let export_tok = token env v2 (* "export" *) in
           let v3 =
             match v3 with
             | `Decl x ->
@@ -2060,15 +2058,49 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                 |> List.map (fun def ->
                        let ent, defkind = def in
                        let n = ent.name in
-                       let ent = { ent with attrs = ent.attrs @ v1 } in
-                       [ DefStmt (ent, defkind); M (Export (tok, n)) ])
+                       let ent = { ent with attrs = ent.attrs @ decorators } in
+                       [ DefStmt (ent, defkind); M (Export (export_tok, n)) ])
                 |> List.flatten
-            | `Defa_exp_choice_auto_semi (v1, v2, v3) ->
-                let v1 = token env v1 (* "default" *) in
-                let v2 = expression env v2 in
-                let _v3 = semicolon env v3 in
-                let def, n = Ast_js.mk_default_entity_def v1 v2 in
-                [ DefStmt def; M (Export (v1, n)) ]
+            | `Defa_choice_decl (v1, v2) -> (
+                let tok_default (* TODO *) = token env v1 (* "default" *) in
+                match v2 with
+                | `Decl x ->
+                    let defs = declaration env x in
+                    defs
+                    |> List.map (fun def ->
+                           let ent, defkind = def in
+                           let ent =
+                             { ent with attrs = ent.attrs @ decorators }
+                           in
+                           let def = (ent, defkind) in
+
+                           let default_decl, default_name =
+                             let expr = idexp ent.name in
+                             Ast_js.mk_default_entity_def tok_default expr
+                           in
+
+                           (*
+                         We translate into 3 statements:
+
+                           export default const foo = bar
+
+                         -->
+
+                           const foo = bar
+                           const !default! = foo
+                           export !default!
+                      *)
+                           [
+                             DefStmt def;
+                             DefStmt default_decl;
+                             M (Export (export_tok, default_name));
+                           ])
+                    |> List.flatten
+                | `Exp_choice_auto_semi (v1, v2) ->
+                    let e = expression env v1 in
+                    let _semi = semicolon env v2 in
+                    let def, n = Ast_js.mk_default_entity_def tok_default e in
+                    [ DefStmt def; M (Export (export_tok, n)) ] )
           in
           v3 )
   | `Export_type_export_clause (v1, v2, v3) ->
@@ -2474,7 +2506,7 @@ and call_signature (env : env) ((v1, v2, v3) : CST.call_signature) :
   in
   (v1, (v2, v3))
 
-and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
+and object_ (env : env) ((v1, v2, v3) : CST.object_) : a_obj =
   let v1 = token env v1 (* "{" *) in
   let properties =
     match v2 with
@@ -2573,7 +2605,7 @@ and constraint_ (env : env) ((v1, v2) : CST.constraint_) :
   v2
 
 and parameter_name (env : env) ((v1, v2, v3, v4) : CST.parameter_name) :
-    (ident, a_pattern) Common.either =
+    (a_ident, a_pattern) Common.either =
   let _decorators = List.map (decorator env) v1 in
   let _accessibility =
     match v2 with Some x -> [ accessibility_modifier env x ] | None -> []
@@ -2678,16 +2710,16 @@ and tuple_type_body (env : env) ((v1, v2, v3) : CST.tuple_type_body) =
   TyTuple (v1, members, v3)
 
 and anon_choice_type_id_940079a (env : env)
-    (x : CST.anon_choice_type_id_940079a) : (ident, a_pattern) either =
+    (x : CST.anon_choice_type_id_940079a) : (a_ident, a_pattern) either =
   match x with
   | `Id tok -> Left (identifier env tok) (* identifier *)
   | `Dest_pat x -> Right (destructuring_pattern env x)
 
-and id_or_destructuring_pattern env x : (ident, a_pattern) either =
+and id_or_destructuring_pattern env x : (a_ident, a_pattern) either =
   anon_choice_type_id_940079a env x
 
 and rest_pattern (env : env) ((v1, v2) : CST.rest_pattern) :
-    tok * (ident, a_pattern) either =
+    tok * (a_ident, a_pattern) either =
   let dots = token env v1 (* "..." *) in
   let id_or_pat = id_or_destructuring_pattern env v2 in
   (dots, id_or_pat)
