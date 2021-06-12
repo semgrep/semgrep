@@ -257,15 +257,13 @@ class CoreRunner:
                 "-max_memory",
                 str(self._max_memory),
                 "-json_time",
+                "-debug",
             ]
 
             equivalences = rule.equivalences
             if equivalences:
                 self._write_equivalences_file(equiv_file, equivalences)
                 cmd += ["-equivalences", equiv_file.name]
-
-            if self._output_settings.debug:
-                cmd += ["-debug"]
 
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output_json = self._extract_core_output(rule, patterns, core_run)
@@ -283,13 +281,12 @@ class CoreRunner:
         # If semgrep-core prints anything on stderr when running with default
         # flags, it's a bug that should be fixed in semgrep-core.
         #
-        if semgrep_error_output != "":
-            name = f"[rule '{rule.id}']"
-            logger.info(
-                f"--- semgrep-core stderr {name} ---\n"
-                f"{semgrep_error_output}"
-                f"--- end semgrep-core stderr {name} ---"
-            )
+        name = f"[rule '{rule.id}']"
+        logger.debug(
+            f"--- semgrep-core stderr {name} ---\n"
+            f"{semgrep_error_output}"
+            f"--- end semgrep-core stderr {name} ---"
+        )
 
         returncode = core_run.returncode
         if returncode != 0:
@@ -697,15 +694,13 @@ class CoreRunner:
                             "-max_memory",
                             str(self._max_memory),
                             "-json_time",
+                            "-debug",
                         ]
 
                         equivalences = rule.equivalences
                         if equivalences:
                             self._write_equivalences_file(equiv_file, equivalences)
                             cmd += ["-equivalences", equiv_file.name]
-
-                        if self._output_settings.debug:
-                            cmd += ["-debug"]
 
                         core_run = sub_run(
                             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
