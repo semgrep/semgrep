@@ -691,9 +691,8 @@ and for_header =
       * anon_choice_type_id_940079a ]
   * [ `In of Token.t (* "in" *) | `Of of Token.t (* "of" *) ]
   * expressions
-  * Token.t
+  * (* ")" *) Token.t
 
-(* ")" *)
 and formal_parameter =
   [ `Requ_param of parameter_name * type_annotation option * initializer_ option
   | `Opt_param of
@@ -1158,9 +1157,8 @@ and type_parameters =
   * (Token.t (* "," *) * type_parameter) list
   (* zero or more *)
   * Token.t (* "," *) option
-  * Token.t
+  * (* ">" *) Token.t
 
-(* ">" *)
 and type_predicate =
   [ `Id of identifier (*tok*) | `This of Token.t (* "this" *) ]
   * Token.t (* "is" *)

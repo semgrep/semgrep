@@ -1404,7 +1404,7 @@ and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4 (env : env)
   match opt with
   | Some (v1, v2) ->
       let v1 =
-        match v1 with Some x -> [ anon_choice_exp_9818c1b env x ] | None -> []
+        match v1 with Some x -> [ expr_or_spread env x ] | None -> []
       in
       let v2 = anon_rep_COMMA_opt_choice_exp_ca698a5 env v2 in
       v1 @ v2
@@ -1416,21 +1416,22 @@ and anon_rep_COMMA_opt_choice_exp_ca698a5 (env : env)
     (fun (v1, v2) ->
       let _v1 = token env v1 (* "," *) in
       let v2 =
-        match v2 with Some x -> [ anon_choice_exp_9818c1b env x ] | None -> []
+        match v2 with Some x -> [ expr_or_spread env x ] | None -> []
       in
       v2)
     xs
   |> List.flatten
 
-and anon_choice_exp_9818c1b (env : env) (x : CST.anon_choice_exp_9818c1b) : expr
-    =
+and expr_or_spread (env : env) (x : CST.anon_choice_exp_9818c1b) : expr =
   match x with
   | `Exp x -> expression env x
   | `Spread_elem x ->
       let t, e = spread_element env x in
       Apply (IdSpecial (Spread, t), fb [ e ])
 
-and export_statement (env : env) (x : CST.export_statement) : toplevel list =
+and anon_choice_exp_9818c1b env x = expr_or_spread env x
+
+and export_statement (env : env) (x : CST.export_statement) : a_toplevel list =
   match x with
   | `Export_choice_STAR_from_clause_choice_auto_semi (v1, v2) ->
       let tok = token env v1 (* "export" *) in
