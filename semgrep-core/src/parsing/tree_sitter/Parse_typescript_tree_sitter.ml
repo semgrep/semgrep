@@ -2265,63 +2265,6 @@ and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) : parent list
   let _v1 = token env v1 (* "extends" *) in
   map_sep_list env v2 v3 anon_choice_choice_type_id_e16f95c
 
-(*
-(* This function is similar to 'formal_parameter' in the js grammar. *)
-and anon_choice_requ_param_1bd7580 (env : env)
-    (x : CST.anon_choice_requ_param_1bd7580) : parameter =
-  match x with
-  | `Requ_param (v1, v2, v3) -> (
-      let v1 = parameter_name env v1 in
-      let v2 =
-        match v2 with
-        | Some x -> Some (type_annotation env x |> snd)
-        | None -> None
-      in
-      let v3 =
-        match v3 with Some x -> Some (initializer_ env x) | None -> None
-      in
-      match v1 with
-      | Left id ->
-          ParamClassic
-            {
-              p_name = id;
-              p_default = v3;
-              p_type = v2;
-              p_dots = None;
-              p_attrs = [];
-            }
-      (* TODO: can have types and defaults on patterns? *)
-      | Right pat -> ParamPattern pat )
-  | `Rest_param ((v1, v2), v3) ->
-      let v1 = token env v1 (* "..." *) in
-      let id = identifier env v2 (* identifier *) in
-      let v3 =
-        match v3 with
-        | Some x -> Some (type_annotation env x |> snd)
-        | None -> None
-      in
-      ParamClassic
-        {
-          p_name = id;
-          p_default = None;
-          p_type = v3;
-          p_dots = Some v1;
-          p_attrs = [];
-        }
-  | `Opt_param (v1, v2, v3, v4) -> (
-      let v1 = parameter_name env v1 in
-      let _v2TODO = token env v2 (* "?" *) in
-      let _v3 =
-        match v3 with Some x -> Some (type_annotation env x) | None -> None
-      in
-      let _v4 =
-        match v4 with Some x -> Some (initializer_ env x) | None -> None
-      in
-      match v1 with
-      | Left id -> ParamClassic (mk_param id)
-      (* TODO: can have types and defaults on patterns? *)
-      | Right pat -> ParamPattern pat )
-*)
 and enum_body (env : env) ((v1, v2, v3) : CST.enum_body) =
   let v1 = token env v1 (* "{" *) in
   let body =
