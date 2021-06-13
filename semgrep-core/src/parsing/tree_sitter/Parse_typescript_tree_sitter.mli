@@ -16,4 +16,6 @@ type dialect = [ `Typescript | `TSX ]
    if the extension is unknown.
 *)
 val parse :
-  ?dialect:dialect -> string -> Ast_js.program Tree_sitter_run.Parsing_result.t
+  ?dialect:dialect ->
+  string ->
+  Ast_js.a_program Tree_sitter_run.Parsing_result.t
