@@ -40,6 +40,14 @@ let mk_functype (params, rett) = TyFun (params, rett)
 
 let todo _env _x = failwith "internal error: not implemented"
 
+(*
+   We preserve the distinction between a plain identifier and a more complex
+   pattern because function parameters make this distinction.
+   This conversion is intended to create a sub-pattern.
+*)
+let sub_pattern (id_or_pat : (a_ident, a_pattern) either) : a_pattern =
+  match id_or_pat with Left id -> Id id | Right pat -> pat
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -490,15 +498,15 @@ and jsx_element_ (env : env) (x : CST.jsx_element_) : xml =
         xml_body = [];
       }
 
-and pattern (env : env) (x : CST.pattern) : a_pattern =
+and pattern (env : env) (x : CST.pattern) : (a_ident, a_pattern) either =
   match x with
-  | `Id tok -> Id (identifier env tok)
-  | `Choice_decl x -> Id (reserved_identifier env x)
-  | `Dest_pat x -> destructuring_pattern env x
+  | `Id tok -> Left (identifier env tok)
+  | `Choice_decl x -> Left (reserved_identifier env x)
+  | `Dest_pat x -> Right (destructuring_pattern env x)
   | `Rest_pat (v1, v2) ->
       let tok = token env v1 (* "..." *) in
       let _id_or_pat_TODO = id_or_destructuring_pattern env v2 in
-      IdSpecial (Spread, tok)
+      Right (IdSpecial (Spread, tok))
 
 (*
    This is a pattern for destructuring an object property.
@@ -511,7 +519,7 @@ and object_property_pattern (env : env) (x : CST.anon_choice_pair_pat_3ff9cbe) :
   | `Pair_pat (v1, v2, v3) ->
       let v1 = property_name env v1 in
       let _v2 = token env v2 (* ":" *) in
-      let body = pattern env v3 in
+      let body = pattern env v3 |> sub_pattern in
       let ty = None in
       FieldColon
         { fld_name = v1; fld_attrs = []; fld_type = ty; fld_body = Some body }
@@ -558,19 +566,19 @@ and destructuring_pattern (env : env) (x : CST.destructuring_pattern) :
       let v3 = token env v3 (* "}" *) in
       Obj (v1, v2, v3)
   | `Array_pat (v1, v2, v3) ->
-      let v1 = token env v1 (* "[" *) in
-      let v2 =
+      let open_ = token env v1 (* "[" *) in
+      let elements =
         match v2 with
         | Some (v1, v2) ->
             map_sep_list env v1 v2 (fun env x ->
                 match x with
-                | Some x -> [ pat_or_assign_pat env x ]
+                | Some x -> [ pat_or_assign_pat env x |> sub_pattern ]
                 | None -> [])
             |> List.flatten
         | None -> []
       in
-      let v3 = token env v3 (* "]" *) in
-      Arr (v1, v2, v3)
+      let close = token env v3 (* "]" *) in
+      Arr (open_, elements, close)
 
 and variable_declaration (env : env)
     ((v1, v2, v3, v4) : CST.variable_declaration) : var list =
@@ -1608,9 +1616,8 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       let v2 = expression env v2 in
       Apply (IdSpecial (Delete, v1), fb [ v2 ])
 
-and pat_or_assign_pat env x : a_pattern = anon_choice_pat_3297d92 env x
-
-and anon_choice_pat_3297d92 (env : env) (x : CST.anon_choice_pat_3297d92) =
+and pat_or_assign_pat (env : env) (x : CST.anon_choice_pat_3297d92) :
+    (a_ident, a_pattern) either =
   match x with
   | `Pat x -> pattern env x
   | `Assign_pat (v1, v2, v3) ->
@@ -1684,37 +1691,6 @@ and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
   in
   let _close = token env v3 (* ")" *) in
   params
-
-(*
-and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
-    parameter list =
-  let _v1 = token env v1 (* "(" *) in
-  let v2 =
-    match v2 with
-    | Some (v1, v2, v3, v4) ->
-        let v1 = List.map (decorator env) v1 in
-        let v2 = anon_choice_requ_param_1bd7580 env v2 in
-        let p = add_attributes_param v1 v2 in
-        let ps =
-          List.map
-            (fun (v1, v2, v3) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = List.map (decorator env) v2 in
-              let v3 = anon_choice_requ_param_1bd7580 env v3 in
-              add_attributes_param v2 v3)
-            v3
-        in
-        let _v4 =
-          match v4 with
-          | Some tok -> Some (token env tok) (* "," *)
-          | None -> None
-        in
-        p :: ps
-    | None -> []
-  in
-  let _v3 = token env v3 (* ")" *) in
-  v2
-*)
 
 (* class Component<Props = any, State = any> { ... *)
 and default_type (env : env) ((v1, v2) : CST.default_type) =
@@ -2599,7 +2575,7 @@ and parameter_name (env : env) ((v1, v2, v3, v4) : CST.parameter_name) :
   in
   let id_or_pat =
     match v4 with
-    | `Pat x -> Right (pattern env x)
+    | `Pat x -> pattern env x
     | `This tok ->
         (* treating 'this' as a regular identifier for now *)
         let id = identifier env tok (* "this" *) in
