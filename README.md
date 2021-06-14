@@ -118,7 +118,7 @@ Visit [Docs > Extensions](https://semgrep.dev/docs/extensions/) to learn about S
 ### Documentation
 
 Browse the full Semgrep [documentation on the website](https://semgrep.dev/docs). If you’re new to Semgrep, check out [Docs > Getting started](https://semgrep.dev/docs/getting-started/) or the [interactive tutorial](https://semgrep.dev/learn).
-[
+
 ### Metrics
 
 Semgrep collects opt-in non-identifiable aggregate metrics for improving the user experience, guiding Semgrep feature development, and identifying regressions.
