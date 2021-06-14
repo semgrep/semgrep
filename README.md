@@ -42,7 +42,7 @@ Semgrep analyzes code locally on your computer or in your build environment: **c
 Its rules look like the code you already write; no abstract syntax trees, regex wrestling, or painful DSLs. Here's a quick rule for finding Python `print()` statements, run it online in Semgrep's Playground by clicking the image:
 
 <p align="center">
-    <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="https://github.com/returntocorp/semgrep/blob/develop/doc/playground-example.png" width="1026" height="860" alt="Semgrep rule example for finding Python print() statements"/></a>
+    <a href="https://semgrep.dev/s/ievans:print-to-logger"><img src="https://github.com/returntocorp/semgrep/blob/develop/doc/playground-example.png" width="513" height="430" alt="Semgrep rule example for finding Python print() statements"/></a>
 </p>
 
 The Semgrep ecosystem includes:
