@@ -5,14 +5,15 @@ The following explains how to build `semgrep` so that you can make and test chan
 Contents:
 
 * [Getting `semgrep-core` and `spacegrep` binaries](#getting-semgrep-core-and-spacegrep-binaries)
-* [Creating the Environment](#creating-the-environment)
+* [Setting Up the Environment](#creating-the-environment)
+* [Installing `semgrep`](#installing-semgrep)
 * [Running `semgrep`](#running-semgrep)
 * [Troubleshooting](#troubleshooting)
 * [Testing `semgrep`](#testing-semgrep)
 
 ## Getting `semgrep-core` and `spacegrep` binaries
 
-If you would like to install `semgrep-core` and `spacegrep` locally (for example, because you want to fix a parse error), follow the instructions in [Building `semgrep-core` and `spacegrep`](link) and skip this section.
+If you would like to install `semgrep-core` and `spacegrep` from source (for example, because you want to fix a parse error), follow the instructions in [Building `semgrep-core` and `spacegrep`](link) and skip this section.
 
 Otherwise, visit the [releases page](https://github.com/returntocorp/semgrep/releases)
 and grab the latest zipfile or tarball for your platform. Extract this archive
@@ -29,7 +30,7 @@ and run the binary from there.
 
 Alternatively, you may include it somewhere like `/usr/local/bin/`.
 
-## Creating the Environment
+## Setting Up the Environment
 
 Once you have `semgrep-core` and `spacegrep` installed, you will be able to build `semgrep`. You will need Python >= 3.6 as well.
 

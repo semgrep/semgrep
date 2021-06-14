@@ -65,9 +65,21 @@ At this point, you have the `semgrep-core` and `spacegrep` binaries, so if you w
 
 ## Development 
 
+Unless there is a significant dependency change, you will not want to run `make dev-setup` again. 
+
 ### Developing `semgrep-core`
 
-In practice, 
+The following assume you are in the `./semgrep-core` directory.
+
+After you make a change, you will need to compile using
+
+```
+make
+```
+
+This will build an executable for `semgrep-core` in `_build/default/src/cli/Main.exe` (you may want to alias something like `sc` to this).
+
+
 
 ### Testing
 

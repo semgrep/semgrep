@@ -87,9 +87,13 @@ The matched code is the same, but with `semgrep` the output is more polished and
 
 Semgrep runs on Python versions >= 3.6. If you don't have one of these versions installed, please do so before proceeding.
 
-Depending on what change you want to make, you might need to build only `semgrep`, `semgrep-core`, or `spacegrep`. 
+Because the Python and OCaml development paths are relatively independent, the instructions are divided into Python ([SEMGREP_CONTRIBUTING.md](fdsfd)) and OCaml ([SEMGREP_CORE_CONTRIBUTING.md](fds)).
 
-If you only want to modify `semgrep`, follow the instructions [here](fdsfd). Otherwise, follow the instructions [here](fds) to build and install `semgrep-core` locally first.
+To fully build Semgrep from source, start at [SEMGREP_CORE_CONTRIBUTING.md](fds). It will direct you to [SEMGREP_CONTRIBUTING.md](fdsfd) when appropriate.
+
+Depending on what change you want to make, it might be simpler to build only `semgrep` or only `semgrep-core`. For example, if you only want to modify Python code, you can skip installing OCaml by downloading binaries for the OCaml parts. Similarly, if you only want to modify OCaml code, you can work on `semgrep-core`/`spacegrep` directly.
+
+If you only want to build `semgrep`, go straight to [SEMGREP_CONTRIBUTING.md](fdsfd). Otherwise, follow the instructions in [SEMGREP_CORE_CONTRIBUTING](fds).
 
 Below is a guide for what functionality each of `semgrep` and `semgrep-core` controls. Generally, `spacegrep` is the same as `semgrep-core`, just for generic matching.
 
