@@ -49,6 +49,7 @@ from semgrep.spacegrep import run_spacegrep
 from semgrep.target_manager import TargetManager
 from semgrep.target_manager_extensions import all_supported_languages
 from semgrep.util import debug_tqdm_write
+from semgrep.util import is_debug
 from semgrep.util import partition
 from semgrep.util import progress_bar
 from semgrep.util import SEMGREP_PATH
@@ -257,13 +258,15 @@ class CoreRunner:
                 "-max_memory",
                 str(self._max_memory),
                 "-json_time",
-                "-debug",
             ]
 
             equivalences = rule.equivalences
             if equivalences:
                 self._write_equivalences_file(equiv_file, equivalences)
                 cmd += ["-equivalences", equiv_file.name]
+
+            if is_debug():
+                cmd += ["-debug"]
 
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output_json = self._extract_core_output(rule, patterns, core_run)
@@ -694,13 +697,15 @@ class CoreRunner:
                             "-max_memory",
                             str(self._max_memory),
                             "-json_time",
-                            "-debug",
                         ]
 
                         equivalences = rule.equivalences
                         if equivalences:
                             self._write_equivalences_file(equiv_file, equivalences)
                             cmd += ["-equivalences", equiv_file.name]
+
+                        if is_debug():
+                            cmd += ["-debug"]
 
                         core_run = sub_run(
                             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
