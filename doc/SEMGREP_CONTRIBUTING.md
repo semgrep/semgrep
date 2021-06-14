@@ -26,7 +26,7 @@ $ ./spacegrep --help
 
 Copy these files to somewhere in your `$PATH` so `semgrep` can find them. For
 example, you may create a `~/bin/` directory within the repository. [Include it in your `$PATH`](https://unix.stackexchange.com/questions/26047/how-to-correctly-add-a-path-to-path)
-and run the binary from there. 
+and run the binary from there.
 
 Alternatively, you may include it somewhere like `/usr/local/bin/`.
 
@@ -55,14 +55,7 @@ $ SEMGREP_SKIP_BIN=true python -m pipenv install --dev
 ```
 
 *`SEMGREP_SKIP_BIN` tells the installer that we will bring our own binaries.*
-
-(TODO is this ^ actually necessary? I've never done it)
-
-## Installing `semgrep`
-
-TODO Something something `pip install -e .`? Or just `pipenv install --dev`? This should happen whenever you want the Semgrep binary to be updated
-
-(As contrasted with going into `semgrep/semgrep` and running `semgrep`)
+This command will install dev depencendies like pytest and will also install semgrep in editable mode in the pipenv.
 
 ## Running `semgrep`
 
@@ -99,14 +92,18 @@ docker build -t semgrep .
 
 ## Testing
 
-`semgrep` uses [`pytest`](https://docs.pytest.org/en/latest/) for testing. 
+`semgrep` uses [`pytest`](https://docs.pytest.org/en/latest/) for testing.
 
-(TODO isn't it necessary to do `pip install -e .`? And `pipenv shell`?)
-
-Running the tests is as simple as running:
+To run tests, run the following command within the pipenv shell:
 
 ```
 $ python -m pytest
+```
+
+This command will run comprehensize parse tests on many open source projects. To skip these slow tests run:
+
+```sh
+$ python -m pytest --ignore=tests/qa/test_public_repos.py
 ```
 
 Running a single test file is simple too:
@@ -119,12 +116,6 @@ Or running an individual test function:
 
 ```
 $ python -m pytest -k test_func_name path/to/test.py
-```
-
-`semgrep` includes a more comprehensive QA test suite that can be run like so:
-
-```
-$ python -m pytest --qa
 ```
 
 `semgrep` also includes [`pytest-benchmark`](https://pytest-benchmark.readthedocs.io/en/latest/)
