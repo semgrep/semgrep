@@ -1699,27 +1699,28 @@ and statement (env : env) (x : CST.statement) =
       let v4 = variable_declaration env v4 in
       let v5 = token env v5 (* ";" *) in
       var_def_stmt v4 v3
-  | `Local_func_stmt (vtodo, v1, v2, v3, v4, v5, v6, v7) ->
-      let v1 = List.map (modifier env) v1 in
-      let v2 = return_type env v2 in
-      let v3 = identifier env v3 (* identifier *) in
-      let _, tok = v3 in
-      let v4 =
-        match v4 with Some x -> type_parameter_list env x | None -> []
+  | `Local_func_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
+      let v1 = List.concat_map (attribute_list env) v1 in
+      let v2 = List.map (modifier env) v2 in
+      let v3 = return_type env v3 in
+      let v4 = identifier env v4 (* identifier *) in
+      let _, tok = v4 in
+      let v5 =
+        match v5 with Some x -> type_parameter_list env x | None -> []
       in
-      let v5 = parameter_list env v5 in
-      let v6 = List.map (type_parameter_constraints_clause env) v6 in
-      let v7 = function_body env v7 in
-      let tparams = type_parameters_with_constraints v4 v6 in
+      let v6 = parameter_list env v6 in
+      let v7 = List.map (type_parameter_constraints_clause env) v7 in
+      let v8 = function_body env v8 in
+      let tparams = type_parameters_with_constraints v5 v7 in
       let idinfo = empty_id_info () in
-      let ent = { name = EN (Id (v3, idinfo)); attrs = v1; tparams } in
+      let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams } in
       let def =
         AST.FuncDef
           {
             fkind = (AST.Method, tok);
-            fparams = v5;
-            frettype = Some v2;
-            fbody = v7;
+            fparams = v6;
+            frettype = Some v3;
+            fbody = v8;
           }
       in
       AST.DefStmt (ent, def) |> AST.s
