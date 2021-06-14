@@ -60,7 +60,7 @@ $ SEMGREP_SKIP_BIN=true python -m pipenv install --dev
 
 ## Installing `semgrep`
 
-Something something `pip install -e .`? Or just `pipenv install --dev`? This should happen whenever you want the Semgrep binary to be updated
+TODO Something something `pip install -e .`? Or just `pipenv install --dev`? This should happen whenever you want the Semgrep binary to be updated
 
 (As contrasted with going into `semgrep/semgrep` and running `semgrep`)
 
