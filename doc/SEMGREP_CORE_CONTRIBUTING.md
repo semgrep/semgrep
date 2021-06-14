@@ -35,65 +35,44 @@ Install `pkg-config` in your environment. On a mac this is
 brew install pkg-config
 ```
 
-### 
+### Installing for the First Time
 
 The root `Makefile` contains targets that take care of building the
 right things. It is commented. Please refer to it and keep it
 up-to-date.
 
-For a first installation or if you're told external dependencies have
-changed, run
+To link all necessary dependencies and install `semgrep-core` and `spacegrep`, run (at the repository root)
 
 ```
 make dev-setup
 ```
 
-For a routine build after pulling in source code changes from git, run
+(TODO put back make build and make rebuild? Removed because they never work for me)
+
+Test the installation with 
 
 ```
-make rebuild
+semgrep-core -help
 ```
 
-If you're just editing source code locally, including code in the submodules,
-the following is sufficient:
+and
 
 ```
-make build  # or just 'make'
+spacegrep --help
 ```
 
-For a reference build that's known to work, consult the root `Dockerfile`
-to build semgrep inside a container. You can check that it builds with
+At this point, you have the `semgrep-core` and `spacegrep` binaries, so if you would like to finish the Semgrep installation, go to the [Python-side instructions](link). 
 
-```
-docker build -t semgrep .
-```
+## Development 
+
+### Developing `semgrep-core`
+
+In practice, 
 
 ### Testing
 
 `make test` in the `semgrep-core` directory will run tests that check code is correctly parsed
 and patterns perform as expected. To add a test in an appropriate language subdirectory, `semgrep-core/tests/LANGUAGE`, create a target file (expected file extension given language) and a .sgrep file with a pattern. The testing suite will check that all places with a comment with `ERROR` were matches found by the .sgrep file. See existing tests for more clarity.
-
-
-### Running
-
-Then to test semgrep on a file, for example tests/GENERIC/test.py run:
-
-```bash
-$ cd semgrep-core
-$ ./bin/semgrep-core -e foo -lang python tests/python
-```
-
-If you want to test semgrep on a directory with a set of given rules, run:
-
-```bash
-$ cp ./semgrep-core/bin/semgrep-core /usr/local/bin/semgrep_core
-$ cd semgrep
-$ pipenv install --dev
-$ pipenv run semgrep --config <YAML_FILE_OR_DIRECTORY> <code to check>
-```
-
-Note pipenv run command must be run from semgrep directory. If you want to run on other directories
-run `pipenv shell` to enter pipenv virtual environment.
 
 ### Development Environment
 
@@ -112,6 +91,8 @@ $ dune        --version # just checking dune is in your PATH
 $ ocamlmerlin -version  # just checking ocamlmerlin is in your PATH
 $ code .
 ```
+
+## Testing Performance
 
 ### Profiling Code
 

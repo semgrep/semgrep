@@ -5,7 +5,9 @@ The following explains how to build `semgrep` so that you can make and test chan
 Contents:
 
 * [Getting `semgrep-core` and `spacegrep` binaries](#getting-semgrep-core-and-spacegrep-binaries)
-* [Building `semgrep`](#building-semgrep)
+* [Creating the Environment](#creating-the-environment)
+* [Running `semgrep`](#running-semgrep)
+* [Troubleshooting](#troubleshooting)
 * [Testing `semgrep`](#testing-semgrep)
 
 ## Getting `semgrep-core` and `spacegrep` binaries
@@ -25,9 +27,9 @@ Copy these files to somewhere in your `$PATH` so `semgrep` can find them. For
 example, you may create a `~/bin/` directory within the repository. [Include it in your `$PATH`](https://unix.stackexchange.com/questions/26047/how-to-correctly-add-a-path-to-path)
 and run the binary from there. 
 
-Alternatively, you may include it somewhere like `/usr/local/bin/`. 
+Alternatively, you may include it somewhere like `/usr/local/bin/`.
 
-### Building `semgrep`
+## Creating the Environment
 
 Once you have `semgrep-core` and `spacegrep` installed, you will be able to build `semgrep`. You will need Python >= 3.6 as well.
 
@@ -38,7 +40,7 @@ $ cd semgrep
 ```
 
 We use [`pipenv`](https://github.com/pypa/pipenv) to manage our virtual
-environment. If you don't have `pipenv` installed the following command will do
+environment. If you don't have `pipenv` installed, the following command will do
 so for you:
 
 ```
@@ -55,13 +57,21 @@ $ SEMGREP_SKIP_BIN=true python -m pipenv install --dev
 
 (TODO is this ^ actually necessary? I've never done it)
 
-From here, you can operate inside the virtual environment by running:
+## Installing `semgrep`
+
+Something something `pip install -e .`? Or just `pipenv install --dev`? This should happen whenever you want the Semgrep binary to be updated
+
+(As contrasted with going into `semgrep/semgrep` and running `semgrep`)
+
+## Running `semgrep`
+
+You will want to be in the pipenv environment whenever you run semgrep. Start a shell with
 
 ```
 $ python -m pipenv shell
 ```
 
-At this point we can test our installation with:
+Within the shell, run:
 
 ```
 $ python -m semgrep -h
@@ -77,7 +87,16 @@ $ echo 'if 1 == 1: pass' | python -m semgrep --lang python --pattern '$X == $X' 
 
 Congratulations, you have Semgrep running locally!
 
-### Testing
+## Troubleshooting
+
+For a reference build that's known to work, consult the root `Dockerfile`
+to build semgrep inside a container. You can check that it builds with
+
+```
+docker build -t semgrep .
+```
+
+## Testing
 
 `semgrep` uses [`pytest`](https://docs.pytest.org/en/latest/) for testing. 
 
