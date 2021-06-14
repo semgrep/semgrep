@@ -188,7 +188,11 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
   (* No bloom filter, expected if -bloom_filter is not used *)
   | None -> true
   (* only when the Bloom_filter says No we can skip the stmt *)
-  | Some bf -> Bloom_filter.is_subset pattern_strs bf = Bloom_filter.Maybe
+  | Some bf ->
+      Bloom_filter.is_subset pattern_strs bf
+      = Bloom_filter.Maybe
+      |> Common.before_return (fun b ->
+             if not b then logger#debug "skipping pattern on stmt %d" st.s_id)
 
 (*****************************************************************************)
 (* Main entry point *)

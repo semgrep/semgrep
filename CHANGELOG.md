@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Associative-commutative matching for Boolean AND and OR operations
   (#3198)
 - Upgrade TypeScript parser (#3102)
+- Support metavariables inside strings (e.g., `foo("$VAR")`)
 
 ### Fixed
 - C#: Parse attributes for local functions (#3348)

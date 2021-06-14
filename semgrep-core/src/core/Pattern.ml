@@ -42,14 +42,23 @@ type t = AST_generic.any [@@deriving show, eq]
 
 (*e: type [[Pattern.t]] *)
 
+(* TODO: deprecate this *)
 let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
 
+(* TODO: deprecate this *)
 let is_regexp_string s = s =~ regexp_regexp_string
 
-let is_special_string_literal str = str = "..." || is_regexp_string str
+let is_special_string_literal str =
+  str = "..."
+  || Metavariable.is_metavar_name str
+  (* TODO: deprecate this *)
+  || is_regexp_string str
 
 let is_js lang = match lang with Some x -> Lang.is_js x | None -> true
 
+(* This is used in Analyze_pattern.ml to skip
+ * semgrep special identifiers.
+ *)
 let is_special_identifier ?lang str =
   Metavariable.is_metavar_name str
   (* emma: a hack because my regexp skills are not great *)
