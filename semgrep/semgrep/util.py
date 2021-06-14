@@ -40,7 +40,7 @@ def is_quiet() -> bool:
 def is_debug() -> bool:
     """
     Returns true if logging level is debug or noisier (lower)
-    (i.e. want no logs)
+    (i.e. want more logs)
     """
     return logging.getLogger("semgrep").getEffectiveLevel() <= logging.DEBUG
 
