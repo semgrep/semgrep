@@ -1,0 +1,104 @@
+# python.django.security.injection.open-redirect 
+rules:
+- id: open-redirect
+  message: |
+    Data from request ($DATA) is passed to redirect(). This is an open redirect and could be exploited.
+    Ensure you are redirecting to safe URLs by using django.utils.http.is_safe_url().
+    See https://cwe.mitre.org/data/definitions/601.html for more information.
+  metadata:
+    cwe: "CWE-601: URL Redirection to Untrusted Site ('Open Redirect')"
+    owasp: 'A1: Injection'
+    references:
+    - https://www.djm.org.uk/posts/djangos-little-protections-word-redirect-dangers/
+    - https://github.com/django/django/blob/d1b7bd030b1db111e1a3505b1fc029ab964382cc/django/utils/http.py#L231
+    category: security
+    technology:
+    - django
+  languages: [python]
+  severity: WARNING
+  patterns:
+  - pattern-inside: |
+      def $FUNC(...):
+        $...BODY
+  - metavariable-pattern:
+      metavariable: $...BODY
+      patterns:
+        - pattern-not: |
+            ...
+            django.utils.http.is_safe_url(...)
+            ...
+  - metavariable-pattern:
+      metavariable: $...BODY
+      patterns:
+        - pattern-not: |
+            ...
+            if <... django.utils.http.is_safe_url(...) ...>:
+                ...
+            ...
+  - pattern-either:
+    - patterns:
+      - pattern-either:
+        - pattern: $REDIRECT(..., $FORMAT, ...)
+        - pattern: return $REDIRECT(..., $FORMAT, ...)
+        - pattern: $A = $REDIRECT(..., $FORMAT, ...)
+      - metavariable-pattern:
+          metavariable: $REDIRECT
+          pattern-either:
+            - pattern: django.shortcuts.redirect
+            - pattern: django.http.HttpResponseRedirect
+      - metavariable-pattern:
+          metavariable: $FORMAT
+          patterns:
+            - pattern-either:
+                - pattern: $REQUEST
+                - pattern: $STR.format(..., $REQUEST, ...)
+                - pattern: $STR % $REQUEST
+                - pattern: $STR + $REQUEST
+                - pattern: f"...{$REQUEST}..."
+            - metavariable-pattern:
+                metavariable: $REQUEST
+                patterns:
+                  - pattern-either:
+                    - pattern: request.$W
+                    - pattern: request.$W.get(...)
+                    - pattern: request.$W(...)
+                    - pattern: request.$W[...]
+                  - metavariable-regex:
+                      metavariable: $W
+                      regex: (?!get_full_path)
+    - patterns:
+      - pattern-either:
+        - pattern: |
+              $DATA = $REQUEST
+              ...
+              $REDIRECT(..., $FORMAT, ...)
+        - pattern: |
+              $DATA = $REQUEST
+              ...
+              $INTERM = $FORMAT
+              ...
+              $REDIRECT(..., $INTERM, ...)
+      - metavariable-pattern:
+          metavariable: $REDIRECT
+          pattern-either:
+            - pattern: django.shortcuts.redirect
+            - pattern: django.http.HttpResponseRedirect
+      - metavariable-pattern:
+          metavariable: $REQUEST
+          patterns:
+            - pattern-either:
+              - pattern: request.$W
+              - pattern: request.$W.get(...)
+              - pattern: request.$W(...)
+              - pattern: request.$W[...]
+            - metavariable-regex:
+                metavariable: $W
+                regex: (?!get_full_path)
+      - metavariable-pattern:
+          metavariable: $FORMAT
+          pattern-either:
+            - pattern: $DATA
+            - pattern: $STR.format(..., $DATA, ...)
+            - pattern: $STR % $DATA
+            - pattern: $STR + $DATA
+            - pattern: f"...{$DATA}..."
