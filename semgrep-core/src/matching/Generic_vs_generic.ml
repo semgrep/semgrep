@@ -1247,8 +1247,8 @@ and m_call_op aop aargs bop tokb bargs =
   let m_op_default =
     m_arithmetic_operator aop bop >>= fun () -> m_arguments aargs bargs
   in
-  (* We first try to perform AC-matching if possible, otherwise we fallback
-   * to the default matching strategy for non-AC operators. *)
+  (* If this an AC operation we try to perform AC matching, otherwise we perform
+   * regular non-AC matching. *)
   match
     ( H.ac_matching_nf aop (A.unbracket aargs),
       H.ac_matching_nf bop (B.unbracket bargs) )
@@ -1263,30 +1263,36 @@ and m_call_op aop aargs bop tokb bargs =
 (* Associative-Commutative (AC) matching of operators.
  *
  * This for example, will successfully match `a && b && c` against `b && a && c`!
- * It will also match `if (<... b && c ...>) ...` against `if (a && b && c) ...`
+ * It will also match `if (<... b && c ...>) ...` against `if (a && b && c) S`
  * which was not matching before (`a && b && c` is parsed as `(a && b) && c`).
+ * In fact, we do not even need a deep-expr pattern, `if (b && c) ...` will also
+ * match `if (a && b && c) S`!
  *
- * POTENTIAL ISSUES:
+ * BEHAVIOR ISSUES:
  *
  * AC-matching of metavariables could lead to some strange behaviors given that
  * we work with ranges. E.g. we can match `a && $X` against `b && a && c` by
  * binding $X to `b && c`, but the range of $X will be that of the whole
- * `b && a && c` expression. Eventually we should operate with the sub-ASTs
- * matched by patterns rather than with their ranges.
+ * `b && a && c` expression. Eventually, if we switch to work with the sub-ASTs
+ * matched by patterns rather than with their ranges, this will stop being a
+ * problem. In the meantime, one can disable AC-matching per rule.
  *
  * Autofix will probably not work well with AC-matching either.
  *
- * PERFORMANCE:
+ * PERFORMANCE ISSUES:
  *
  * Note that AC-matching is an NP-complete problem. This is a naive
- * implementation with lots of dumb combinatorial search. If it
- * becomes a perf issue, see paper by Steven M. Eker:
+ * implementation with lots of dumb combinatorial search. We only use
+ * AC-matching when we expect it to be fast, otherwise we fall-back to
+ * regular non-AC matching.
+ *
+ * For a more efficient AC matching algorithm, see paper by Steven M. Eker:
  *
  *     "Associative-Commutative Matching Via Bipartite Graph Matching"
  *)
 and m_ac_op tok op aargs_ac bargs_ac =
   (* partitition aargs_ac to separate metavariables and ellipsis (avars) from
-   * other kinds of expressions (aapps) *)
+   * non-mvar-ish expressions (aapps). *)
   let avars, aapps =
     aargs_ac
     |> List.partition (function
@@ -1294,25 +1300,67 @@ and m_ac_op tok op aargs_ac bargs_ac =
          | A.N (A.Id ((str, _tok), _id_info)) -> MV.is_metavar_name str
          | ___else___ -> false)
   in
-  (* try to match each aapp with a different barg, this is a 1-to-1 matching *)
+  (* Try to match each aapp with a different barg, this is a 1-to-1 matching.
+   * Here we don't expect perf issues on real code, because each aapp will
+   * typically only match one bargs_ac, so there should be no combinatorial
+   * explosion. Of course one can construct a synthetic example that explodes!
+   * E.g. matching a long pattern `A && B && ...` against a very long decision
+   * `A && ... && A && B && ... && B && ...` could explode.
+   *)
   let bs_left =
     match aapps with
     (* if there are no aapps we don't want to fail *)
-    | [] -> m_combs_unit bargs_ac
-    | _ -> m_combs_1to1 m_expr aapps bargs_ac
+    | [] -> m_comb_unit bargs_ac
+    | _ -> m_comb_unit bargs_ac |> m_comb_fold (m_comb_1to1 m_expr) aapps
   in
-  (* try to match each variable with a unique disjoint subset of the remaining
-   * bs_left, ellipsis (`...`) can match the empty set. *)
-  match avars with
-  | [] -> m_combs_flatten bs_left
-  | _ ->
+  (* Try to match each variable with a unique disjoint subset of the remaining
+   * bs_left, ellipsis (`...`) can match the empty set. This can easily
+   * explode so we only perform full AC matching for variables when the
+   * number of bs left to match (num_bs_left) is small. Note that an mvar will
+   * typically match all subsets of the bs left!!! *)
+  let num_bs_left = List.length bargs_ac - List.length aapps in
+  let avars_no_end_dots =
+    (* An ending ellipsis (...) can be removed without affecting the result
+     * but reducing duplicates and improving perf. *)
+    match List.rev avars with
+    | A.Ellipsis _ :: rev_avars -> List.rev rev_avars
+    | ____else____ -> avars
+  in
+  match avars_no_end_dots with
+  (* Nothing to do here, just return. *)
+  | [] -> m_comb_flatten bs_left
+  | ___many___ when num_bs_left <= 3 ->
+      (* AC matching, it explodes easily so use with care! *)
       let m_var x bs' =
         match (x, H.undo_ac_matching_nf tok op bs') with
         | A.Ellipsis _, None -> return ()
         | ___mvar___, None -> fail ()
         | ___mvar___, Some op_bs' -> m_expr x op_bs'
       in
-      m_combs_1toN m_var avars bs_left |> m_combs_flatten
+      bs_left
+      |> m_comb_fold (m_comb_1toN m_var) avars_no_end_dots
+      |> m_comb_flatten
+  | ___many___ ->
+      (* FALLBACK: We add an ellipsis (`...`) at the end to make sure we match even if
+       * there are more bs left than avars, and then we do regular non-AC matching.
+       *
+       * TODO: Could we first fallback to associative-only matching? It could still
+       *       explode but not as easily
+       *)
+      (* TODO: Issue a proper warning to the user. *)
+      logger#debug
+        "Restricted AC-matching due to potential blow-up: op=%s avars#=%d \
+         bs_left#=%d\n"
+        (A.show_operator op) (List.length avars) num_bs_left;
+      m_comb_bind bs_left (fun bs' tin ->
+          let avars_dots = avars_no_end_dots @ [ A.Ellipsis (A.fake "...") ] in
+          let tout =
+            m_list__m_argument
+              (List.map A.arg avars_dots)
+              (List.map B.arg bs') tin
+          in
+          [ ([], tout) ])
+      |> m_comb_flatten
 
 (*****************************************************************************)
 (* Type *)
