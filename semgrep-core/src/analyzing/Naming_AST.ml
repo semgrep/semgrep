@@ -582,7 +582,18 @@ let resolve2 lang prog =
           | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
               (* for Go *)
               let sid = H.gensym () in
-              let base = (Filename.basename s, tok) in
+              let pkgname =
+                let pkgpath, pkgbase = Common2.dirs_and_base_of_file s in
+                if pkgbase =~ "v[0-9]+" then
+                  (* e.g. google.golang.org/api/youtube/v3 *)
+                  Common2.list_last pkgpath
+                else if pkgbase =~ "\\(.+\\)-go" then
+                  (* e.g. github.com/dgrijalva/jwt-go *)
+                  matched1 pkgbase
+                else (* default convention *)
+                  pkgbase
+              in
+              let base = (pkgname, tok) in
               let resolved =
                 untyped_ent (ImportedModule (DottedName [ base ]), sid)
               in
