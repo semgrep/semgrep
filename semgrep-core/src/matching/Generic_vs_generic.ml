@@ -273,11 +273,9 @@ let m_module_name_prefix a b =
       envf a1 (MV.E (B.L (B.String b1)))
   (* dots: '...' on string or regexp *)
   | A.FileName a, B.FileName b ->
-      m_wrap
-        (m_string_ellipsis_or_regexp_or_default
-         (* TODO figure out what prefix support means here *)
-           ~m_string_for_default:m_string_prefix)
-        a b
+      m_string_ellipsis_or_metavar_or_default
+      (* TODO figure out what prefix support means here *)
+        ~m_string_for_default:m_string_prefix a b
   | A.DottedName a1, B.DottedName b1 -> m_dotted_name_prefix_ok a1 b1
   | A.FileName _, _ | A.DottedName _, _ -> fail ()
 
@@ -791,7 +789,7 @@ and m_literal a b =
   match (a, b) with
   (*s: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (* dots: '...' on string or regexps *)
-  | A.String a, B.String b -> m_wrap m_string_ellipsis_or_regexp_or_default a b
+  | A.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
   (*x: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   | A.Regexp ("/.../", a), B.Regexp (_s, b) -> m_info a b
   (*e: [[Generic_vs_generic.m_literal()]] ellipsis case *)
@@ -1099,10 +1097,8 @@ and m_xml_attr_value a b =
 and m_body a b =
   match (a, b) with
   | A.XmlText a1, B.XmlText b1 ->
-      m_wrap
-        (m_string_ellipsis_or_regexp_or_default
-           ~m_string_for_default:m_string_xhp_text)
-        a1 b1
+      m_string_ellipsis_or_metavar_or_default
+        ~m_string_for_default:m_string_xhp_text a1 b1
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_body]] boilerplate cases *)
   | A.XmlExpr a1, B.XmlExpr b1 ->
@@ -2656,7 +2652,7 @@ and m_partial a b =
 (*s: function [[Generic_vs_generic.m_any]] *)
 and m_any a b =
   match (a, b) with
-  | A.Str a1, B.Str b1 -> m_wrap m_string_ellipsis_or_regexp_or_default a1 b1
+  | A.Str a1, B.Str b1 -> m_string_ellipsis_or_metavar_or_default a1 b1
   | A.Ss a1, B.Ss b1 -> m_stmts_deep ~less_is_ok:true a1 b1
   | A.E a1, B.E b1 -> m_expr a1 b1
   | A.S a1, B.S b1 -> m_stmt a1 b1

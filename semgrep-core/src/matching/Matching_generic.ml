@@ -23,6 +23,7 @@ module H = AST_generic_helpers
 module AST = AST_generic
 module Flag = Flag_semgrep
 module Env = Metavariable_capture
+module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -256,12 +257,14 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
     (* general case, equality modulo-position-and-constness.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!
+     * TODO? missing MV.Ss _, MV.Ss _ ??
      *)
     | MV.Id _, MV.Id _
     | MV.E _, MV.E _
     | MV.S _, MV.S _
     | MV.P _, MV.P _
     | MV.T _, MV.T _
+    | MV.Text _, MV.Text _
     | MV.Args _, MV.Args _ ->
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
@@ -442,7 +445,7 @@ let fail () = fail
 (*s: function [[Matching_generic.is_regexp_string]] *)
 (*e: function [[Matching_generic.is_regexp_string]] *)
 
-(* TODO: move in Core/Regexp_engine.ml! *)
+(* TODO: deprecate *)
 type regexp = Re.re (* old: Str.regexp *)
 
 (*s: function [[Matching_generic.regexp_of_regexp_string]] *)
@@ -678,16 +681,6 @@ let m_string_prefix a b = if string_is_prefix b a then return () else fail ()
 
 (*e: function [[Matching_generic.m_string_prefix]] *)
 
-let m_string_ellipsis_or_regexp_or_default ?(m_string_for_default = m_string) a
-    b =
-  match a with
-  (* dots: '...' on string *)
-  | "..." -> return ()
-  | _ when Pattern.is_regexp_string a ->
-      let f = regexp_matcher_of_regexp_string a in
-      if f b then return () else fail ()
-  | _ -> m_string_for_default a b
-
 (* ---------------------------------------------------------------------- *)
 (* Token *)
 (* ---------------------------------------------------------------------- *)
@@ -725,6 +718,47 @@ let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
 (* ---------------------------------------------------------------------- *)
 (* Misc *)
 (* ---------------------------------------------------------------------- *)
+
+(* TODO: this would be simpler if we had an
+ * AST_generic.String of string wrap bracket, but this requires
+ * lots of work in our Pfff parsers (less in tree-sitter which already
+ * split strings in different tokens).
+ *)
+let adjust_info_remove_enclosing_quotes (s, info) =
+  let loc = PI.token_location_of_info info in
+  let raw_str = loc.PI.str in
+  let re = Str.regexp_string s in
+  try
+    let pos = Str.search_forward re raw_str 0 in
+    let loc =
+      {
+        loc with
+        PI.str = s;
+        charpos = loc.charpos + pos;
+        column = loc.column + pos;
+      }
+    in
+    let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
+    (s, info)
+  with Not_found ->
+    logger#error "could not find %s in %s" s raw_str;
+    (* return original token ... better than failwith? *)
+    (s, info)
+
+let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
+    b =
+  match fst a with
+  (* dots: '...' on string *)
+  | "..." -> return ()
+  (* metavar: *)
+  | astr when MV.is_metavar_name astr ->
+      let text = adjust_info_remove_enclosing_quotes b in
+      envf a (MV.Text text)
+  (* TODO: deprecate *)
+  | astr when Pattern.is_regexp_string astr ->
+      let f = regexp_matcher_of_regexp_string astr in
+      if f (fst b) then return () else fail ()
+  | _ -> m_wrap m_string_for_default a b
 
 (*s: function [[Matching_generic.m_other_xxx]] *)
 let m_other_xxx a b =

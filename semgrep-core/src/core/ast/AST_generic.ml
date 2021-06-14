@@ -517,8 +517,8 @@ and literal =
   | Int of int option wrap
   | Float of float option wrap
   | Char of string wrap
-  | String of string wrap
-  | Regexp of string wrap
+  | String of string wrap (* TODO? bracket *)
+  | Regexp of string wrap (* TODO? bracket * string wrap option (modifiers) *)
   | Unit of tok
   (* a.k.a Void *)
   | Null of tok
@@ -527,6 +527,8 @@ and literal =
   (* Go, Python *)
   | Ratio of string wrap (* Ruby *)
   | Atom of string wrap
+
+(* TODO? tok * string wrap? *)
 
 (* Ruby *)
 
