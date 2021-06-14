@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - C#: Parse attributes for local functions (#3348)
+- Go: Recognize other common package naming conventions (#2424)
 
 ## [0.55.1](https://github.com/returntocorp/semgrep/releases/tag/v0.55.1) - 2021-06-9
 
