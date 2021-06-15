@@ -66,7 +66,6 @@ type mvalue =
   | S of AST_generic.stmt
   | T of AST_generic.type_
   | P of AST_generic.pattern
-  | Text of string AST_generic.wrap
   (* Those can be now empty with $...XXX metavariables.
    * coupling: if you add more constructors that allow an empty content,
    * you may need to modify JSON_report.range_of_any to not get
@@ -74,8 +73,9 @@ type mvalue =
    *)
   | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
-(* This is to match the content of a string or atom, without the
- * enclosing quotes. For a string this can actually be empty. *)
+  (* This is to match the content of a string or atom, without the
+   * enclosing quotes. For a string this can actually be empty. *)
+  | Text of string AST_generic.wrap
 [@@deriving show, eq, hash]
 
 (* we sometimes need to convert to an any to be able to use
