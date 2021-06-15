@@ -6,8 +6,8 @@ Contents:
 
 * [Getting `semgrep-core` and `spacegrep` binaries](#getting-semgrep-core-and-spacegrep-binaries)
 * [Setting Up the Environment](#creating-the-environment)
-* [Installing `semgrep`](#installing-semgrep)
 * [Running `semgrep`](#running-semgrep)
+* [Installing `semgrep`](#installing-semgrep)
 * [Troubleshooting](#troubleshooting)
 * [Testing `semgrep`](#testing-semgrep)
 
@@ -55,7 +55,7 @@ $ SEMGREP_SKIP_BIN=true python -m pipenv install --dev
 ```
 
 *`SEMGREP_SKIP_BIN` tells the installer that we will bring our own binaries.*
-This command will install dev depencendies like pytest and will also install semgrep in editable mode in the pipenv.
+This command will install dev dependencies such as pytest and will also install semgrep in editable mode in the pipenv.
 
 ## Running `semgrep`
 
@@ -80,6 +80,30 @@ $ echo 'if 1 == 1: pass' | python -m semgrep --lang python --pattern '$X == $X' 
 ```
 
 Congratulations, you have Semgrep running locally!
+
+## Installing `semgrep`
+
+You can always run `semgrep` from `./semgrep`, which will use your latest changes in that directory, but you may also want to install the `semgrep` binary. To do this, run
+
+```
+pipenv install --dev
+```
+
+Some people have encountered difficulties with the above. If it fails, you can also try (within the `./semgrep` directory)
+
+```
+sudo pip install -e .
+```
+
+Now you can run `semgrep -h` from anywhere.
+
+If you have installed `semgrep-core` and `spacegrep` from source, there are convenient targets in the root Makefile that let you update all binaries. After you pull, simply run
+
+```
+make rebuild
+```
+
+See the Makefile in `./`
 
 ## Troubleshooting
 

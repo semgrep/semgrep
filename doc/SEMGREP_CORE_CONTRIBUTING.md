@@ -41,13 +41,17 @@ The root `Makefile` contains targets that take care of building the
 right things. It is commented. Please refer to it and keep it
 up-to-date.
 
-To link all necessary dependencies and install `semgrep-core` and `spacegrep`, run (at the repository root)
+To link all necessary dependencies, run (at the repository root)
 
 ```
 make dev-setup
 ```
 
-(TODO put back make build and make rebuild? Removed because they never work for me)
+To install `semgrep-core` and `spacegrep`, run
+
+```
+make build-spacegrep && make build-core
+```
 
 Test the installation with 
 
@@ -61,15 +65,39 @@ and
 spacegrep --help
 ```
 
-At this point, you have the `semgrep-core` and `spacegrep` binaries, so if you would like to finish the Semgrep installation, go to the [Python-side instructions](link). 
+At this point, you have the `semgrep-core` and `spacegrep` binaries, so if you would like to finish the Semgrep installation, go to the [Python-side instructions](link).
+
+### Installing After a Pull
+
+Unless there is a significant dependency change, you will not need to run `make dev-setup` again. 
+
+For a routine build after pulling source code changes from git, run
+
+```
+make rebuild
+```
+
+After you make a change locally, you can install the changes with
+
+```
+make build    # or just `make`
+```
+
+This will update the `semgrep-core` and `spacegrep` binaries that the Python wrapper will work off of, and also update the `semgrep` binary. 
+
+(Note: Because this updates the `semgrep` binary, if you do not have your Python environment configured properly, you will encounter errors when running these commands. Follow the procedure under [Development](Development))
 
 ## Development 
 
-Unless there is a significant dependency change, you will not want to run `make dev-setup` again. 
+In practice, it is not always convenient to use `make build` or `make rebuild`. `make rebuild` will update everything within the project; `make build` will compile and install all the binaries. You can do this yourself in a more targeted fashion.
+
+Below is a flow appropriate for frequent developers of `semgrep-core`
+
+
 
 ### Developing `semgrep-core`
 
-The following assume you are in the `./semgrep-core` directory.
+The following assumes you are in the `./semgrep-core` directory.
 
 After you make a change, you will need to compile using
 
