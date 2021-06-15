@@ -754,6 +754,19 @@ let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
       if f (fst b) then return () else fail ()
   | _ -> m_wrap m_string_for_default a b
 
+let m_atom_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a b
+    =
+  match fst a with
+  | s when s =~ "^:\\(.*\\)" && MV.is_metavar_name (Common.matched1 s) ->
+      let mvar = Common.matched1 s in
+      let tok = snd a in
+      envf (mvar, tok) (MV.E (B.L (B.Atom b)))
+  | _ -> m_wrap m_string_for_default a b
+
+let m_regexp_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
+    b =
+  match fst a with "/.../" -> return () | _ -> m_wrap m_string_for_default a b
+
 (*s: function [[Matching_generic.m_other_xxx]] *)
 let m_other_xxx a b =
   match (a, b) with a, b when a =*= b -> return () | _ -> fail ()
