@@ -228,8 +228,7 @@ val m_string_prefix : string matcher
 val m_string_ellipsis_or_metavar_or_default :
   ?m_string_for_default:string matcher -> string AST_generic.wrap matcher
 
-val m_atom_ellipsis_or_metavar_or_default :
-  ?m_string_for_default:string matcher -> string AST_generic.wrap matcher
+val m_ellipsis_or_metavar_or_string : string AST_generic.wrap matcher
 
 val m_regexp_ellipsis_or_metavar_or_default :
   ?m_string_for_default:string matcher -> string AST_generic.wrap matcher

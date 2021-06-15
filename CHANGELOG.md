@@ -9,7 +9,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   (#3198)
 - Upgrade TypeScript parser (#3102)
 - Support metavariables inside strings (e.g., `foo("$VAR")`)
-
+- Support metavariables inside atoms (e.g., `foo(:$ATOM)`) as well as
+  ellipsis (e.g., `foo(:...)`)
+  
 ### Fixed
 - C#: Parse attributes for local functions (#3348)
 - Go: Recognize other common package naming conventions (#2424)

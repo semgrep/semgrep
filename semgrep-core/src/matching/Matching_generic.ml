@@ -754,12 +754,13 @@ let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
       if f (fst b) then return () else fail ()
   | _ -> m_wrap m_string_for_default a b
 
-let m_atom_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a b
-    =
+let m_ellipsis_or_metavar_or_string a b =
   match fst a with
-  | s when MV.is_metavar_name s ->
-      envf a (MV.E (B.L (B.Atom (PI.fake_info ":", b))))
-  | _ -> m_wrap m_string_for_default a b
+  (* dots: '...' on string in atom/regexp/string *)
+  | "..." -> return ()
+  (* metavar: *)
+  | s when MV.is_metavar_name s -> envf a (MV.Text b)
+  | _ -> m_wrap m_string a b
 
 let m_regexp_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
     b =
