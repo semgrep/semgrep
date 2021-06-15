@@ -796,57 +796,8 @@ and filter_ranges env xs cond =
          | R.CondGeneric e ->
              let env = Eval_generic.bindings_to_env bindings in
              Eval_generic.eval_bool env e
-         | R.CondPattern (mvar, opt_lang, formula) -> (
-             (* If anything goes wrong the default is to filter out! *)
-             match List.assoc_opt mvar bindings with
-             | None ->
-                 (* THINK: fatal error instead? *)
-                 logger#error "rule %s: metavariable-pattern: %s not found"
-                   env.rule.id mvar;
-                 false
-             | Some mval -> (
-                 let mval_range = MV.range_of_mvalue mval in
-                 match (opt_lang, mval) with
-                 | Some lang, MV.Text (content, _) ->
-                     (* The matched text must be interpreted according to `lang'. *)
-                     let lazy_ast_and_errors =
-                       lazy_ast_of_string lang content
-                     in
-                     eval_nested_formula env env.xlang formula
-                       lazy_ast_and_errors
-                       (lazy content)
-                       None
-                 | Some lang, _ ->
-                     (* This is useful when matching in generic mode, e.g. to check
-                      * the code inside a script tag `<script>$S</script>'.
-                      * TODO: As of now the power of metavariables in generic mode
-                      *   is fairly limite, so this is probably not useful yet. *)
-                     let content = Range.content_at_range env.file mval_range in
-                     let lazy_ast_and_errors =
-                       lazy_ast_of_string lang content
-                     in
-                     eval_nested_formula env
-                       (R.L (lang, []))
-                       formula lazy_ast_and_errors
-                       (lazy content)
-                       None
-                 | None, _ -> (
-                     match MV.program_of_mvalue mval with
-                     | None ->
-                         (* THINK: fatal error instead? *)
-                         logger#error
-                           "rule %s: metavariable-pattern: %s does not bound a \
-                            sub-program"
-                           env.rule.id mvar;
-                         false
-                     | Some mast ->
-                         let lazy_ast_and_errors = lazy (mast, []) in
-                         let lazy_content =
-                           lazy (Range.content_at_range env.file mval_range)
-                         in
-                         eval_nested_formula env env.xlang formula
-                           lazy_ast_and_errors lazy_content
-                           (Some { r with r = mval_range }) ) ) )
+         | R.CondPattern (mvar, opt_lang, formula) ->
+             match_range_with_pattern env r mvar opt_lang formula
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really
@@ -880,7 +831,69 @@ and filter_ranges env xs cond =
              in
              Eval_generic.eval_bool env e)
 
-and lazy_ast_of_string lang str =
+and match_range_with_pattern env r mvar opt_lang formula =
+  let bindings = r.mvars in
+  (* If anything goes wrong the default is to filter out! *)
+  match List.assoc_opt mvar bindings with
+  | None ->
+      (* THINK: fatal error instead? *)
+      logger#error "rule %s: metavariable-pattern: %s not found" env.rule.id
+        mvar;
+      false
+  | Some mval -> (
+      let mval_range = MV.range_of_mvalue mval in
+      match (opt_lang, mval) with
+      | Some lang, MV.Text (content, _) ->
+          (* The matched text must be interpreted according to `lang'. *)
+          let lazy_ast_and_errors =
+            lazy_ast_of_string lang content (fun () ->
+                spf
+                  "rule %s: metavariable-pattern: failed to fully parse the \
+                   content of %s"
+                  env.rule.id mvar)
+          in
+          eval_nested_formula env env.xlang formula lazy_ast_and_errors
+            (lazy content)
+            None
+      | Some lang, _ ->
+          (* TODO: We could probably restrict here to MV.E (G.L _),
+             * i.e. the stuff that spacegrep and comby return via
+             * mval_of_string. *)
+          (* This is useful when matching in generic mode, e.g. to check
+             * the code inside a script tag `<script>$S</script>'.
+             * TODO: As of now the power of metavariables in generic mode
+             *   is fairly limite, so this is probably not useful yet. *)
+          let content = Range.content_at_range env.file mval_range in
+          let lazy_ast_and_errors =
+            lazy_ast_of_string lang content (fun () ->
+                spf
+                  "rule %s: metavariable-pattern: failed to fully parse the \
+                   content of %s"
+                  env.rule.id mvar)
+          in
+          eval_nested_formula env
+            (R.L (lang, []))
+            formula lazy_ast_and_errors
+            (lazy content)
+            None
+      | None, _ -> (
+          match MV.program_of_mvalue mval with
+          | None ->
+              (* THINK: fatal error instead? *)
+              logger#error
+                "rule %s: metavariable-pattern: %s does not bound a sub-program"
+                env.rule.id mvar;
+              false
+          | Some mast ->
+              let lazy_ast_and_errors = lazy (mast, []) in
+              let lazy_content =
+                lazy (Range.content_at_range env.file mval_range)
+              in
+              eval_nested_formula env env.xlang formula lazy_ast_and_errors
+                lazy_content
+                (Some { r with r = mval_range }) ) )
+
+and lazy_ast_of_string lang str warn_msg =
   lazy
     (let ext =
        match Lang.ext_of_lang lang with x :: _ -> x | [] -> assert false
@@ -889,6 +902,7 @@ and lazy_ast_of_string lang str =
          let { Parse_target.ast; errors; _ } =
            Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
          in
+         if errors <> [] then pr2 (warn_msg ());
          (ast, errors)))
 
 and eval_nested_formula env xlang formula lazy_ast_and_errors lazy_content
