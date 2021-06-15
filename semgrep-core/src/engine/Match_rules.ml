@@ -798,40 +798,6 @@ and filter_ranges env xs cond =
              Eval_generic.eval_bool env e
          | R.CondPattern (mvar, opt_lang, formula) -> (
              (* If anything goes wrong the default is to filter out! *)
-             let lazy_ast_of_string lang str =
-               lazy
-                 (let ext =
-                    match Lang.ext_of_lang lang with
-                    | x :: _ -> x
-                    | [] -> assert false
-                  in
-                  Common2.with_tmp_file ~str ~ext (fun file ->
-                      let { Parse_target.ast; errors; _ } =
-                        Parse_target
-                        .parse_and_resolve_name_use_pfff_or_treesitter lang file
-                      in
-                      (ast, errors)))
-             in
-             let go_eval_formula env xlang formula lazy_ast_and_errors
-                 lazy_content opt_context =
-               (* the following code is very similar to `check' below;
-                * we could maybe factorize things *)
-               let xpatterns = xpatterns_in_formula formula in
-               let res =
-                 matches_of_xpatterns env.config env.rule env.equivalences
-                   (env.file, xlang, lazy_ast_and_errors, lazy_content)
-                   xpatterns
-               in
-               let pattern_matches_per_id =
-                 group_matches_per_pattern_id res.matches
-               in
-               let env =
-                 { env with pattern_matches = pattern_matches_per_id }
-               in
-               match evaluate_formula env opt_context formula with
-               | [] -> false
-               | _ :: _ -> true
-             in
              match List.assoc_opt mvar bindings with
              | None ->
                  (* THINK: fatal error instead? *)
@@ -846,7 +812,8 @@ and filter_ranges env xs cond =
                      let lazy_ast_and_errors =
                        lazy_ast_of_string lang content
                      in
-                     go_eval_formula env env.xlang formula lazy_ast_and_errors
+                     eval_nested_formula env env.xlang formula
+                       lazy_ast_and_errors
                        (lazy content)
                        None
                  | Some lang, _ ->
@@ -858,7 +825,7 @@ and filter_ranges env xs cond =
                      let lazy_ast_and_errors =
                        lazy_ast_of_string lang content
                      in
-                     go_eval_formula env
+                     eval_nested_formula env
                        (R.L (lang, []))
                        formula lazy_ast_and_errors
                        (lazy content)
@@ -877,7 +844,7 @@ and filter_ranges env xs cond =
                          let lazy_content =
                            lazy (Range.content_at_range env.file mval_range)
                          in
-                         go_eval_formula env env.xlang formula
+                         eval_nested_formula env env.xlang formula
                            lazy_ast_and_errors lazy_content
                            (Some { r with r = mval_range }) ) ) )
          (* todo: would be nice to have CondRegexp also work on
@@ -912,6 +879,33 @@ and filter_ranges env xs cond =
                Eval_generic.bindings_to_env_with_just_strings bindings
              in
              Eval_generic.eval_bool env e)
+
+and lazy_ast_of_string lang str =
+  lazy
+    (let ext =
+       match Lang.ext_of_lang lang with x :: _ -> x | [] -> assert false
+     in
+     Common2.with_tmp_file ~str ~ext (fun file ->
+         let { Parse_target.ast; errors; _ } =
+           Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+         in
+         (ast, errors)))
+
+and eval_nested_formula env xlang formula lazy_ast_and_errors lazy_content
+    opt_context =
+  (* the following code is very similar to `check' below;
+     * we could maybe factorize things *)
+  let xpatterns = xpatterns_in_formula formula in
+  let res =
+    matches_of_xpatterns env.config env.rule env.equivalences
+      (env.file, xlang, lazy_ast_and_errors, lazy_content)
+      xpatterns
+  in
+  let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
+  let env = { env with pattern_matches = pattern_matches_per_id } in
+  match evaluate_formula env opt_context formula with
+  | [] -> false
+  | _ :: _ -> true
   [@@profiling]
 
 (*****************************************************************************)
