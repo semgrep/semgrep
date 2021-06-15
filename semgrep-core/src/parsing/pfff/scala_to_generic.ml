@@ -182,7 +182,7 @@ let v_package (v1, v2) =
   (v1, v2)
 
 let rec v_literal = function
-  | Symbol (s, t) -> Left (G.Atom (s, t))
+  | Symbol (tquote, id) -> Left (G.Atom (tquote, id))
   | Int v1 ->
       let v1 = v_wrap (v_option v_int) v1 in
       Left (G.Int v1)

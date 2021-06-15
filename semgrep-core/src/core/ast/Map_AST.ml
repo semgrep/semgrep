@@ -321,9 +321,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Ratio v1 ->
         let v1 = map_wrap map_of_string v1 in
         Ratio v1
-    | Atom v1 ->
+    | Atom (v0, v1) ->
+        let v0 = map_tok v0 in
         let v1 = map_wrap map_of_string v1 in
-        Atom v1
+        Atom (v0, v1)
     | Char v1 ->
         let v1 = map_wrap map_of_string v1 in
         Char v1

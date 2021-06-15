@@ -249,7 +249,7 @@ let map_literal_token (env : env) (x : CST.literal) : PI.token_mutable =
   | Undefined tok
   | Imag (_, tok)
   | Ratio (_, tok)
-  | Atom (_, tok) ->
+  | Atom (_, (_, tok)) ->
       tok
 
 let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =

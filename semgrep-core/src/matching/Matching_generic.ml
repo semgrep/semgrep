@@ -757,10 +757,8 @@ let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
 let m_atom_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a b
     =
   match fst a with
-  | s when s =~ "^:\\(.*\\)" && MV.is_metavar_name (Common.matched1 s) ->
-      let mvar = Common.matched1 s in
-      let tok = snd a in
-      envf (mvar, tok) (MV.E (B.L (B.Atom b)))
+  | s when MV.is_metavar_name s ->
+      envf a (MV.E (B.L (B.Atom (PI.fake_info ":", b))))
   | _ -> m_wrap m_string_for_default a b
 
 let m_regexp_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
