@@ -2,12 +2,11 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.56.0](https://github.com/returntocorp/semgrep/releases/tag/v0.56.0) - 2021-06-15
 
 ### Added
 - Associative-commutative matching for Boolean AND and OR operations
   (#3198)
-- Upgrade TypeScript parser (#3102)
 - Support metavariables inside strings (e.g., `foo("$VAR")`)
 - Support metavariables inside atoms (e.g., `foo(:$ATOM)`)
 - metavariable-pattern: Allow matching the content of a metavariable under
@@ -16,6 +15,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 - C#: Parse attributes for local functions (#3348)
 - Go: Recognize other common package naming conventions (#2424)
+- PHP: Support for associative-commutative matching (#3198)
+
+### Changed
+- Upgrade TypeScript parser (#3102)
 
 ## [0.55.1](https://github.com/returntocorp/semgrep/releases/tag/v0.55.1) - 2021-06-9
 
