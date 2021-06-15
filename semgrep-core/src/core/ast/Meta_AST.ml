@@ -289,9 +289,10 @@ and vof_literal = function
   | Ratio v1 ->
       let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("Ratio", [ v1 ])
-  | Atom v1 ->
+  | Atom (v0, v1) ->
+      let v0 = vof_tok v0 in
       let v1 = vof_wrap OCaml.vof_string v1 in
-      OCaml.VSum ("Atom", [ v1 ])
+      OCaml.VSum ("Atom", [ v0; v1 ])
   | Char v1 ->
       let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("Char", [ v1 ])

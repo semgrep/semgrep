@@ -790,7 +790,7 @@ and m_literal a b =
   (*s: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (* dots: metavar: '...' and metavars on string/regexps/atoms *)
   | A.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
-  | A.Atom a, B.Atom b -> m_atom_ellipsis_or_metavar_or_default a b
+  | A.Atom (_, a), B.Atom (_, b) -> m_atom_ellipsis_or_metavar_or_default a b
   | A.Regexp a, B.Regexp b -> m_regexp_ellipsis_or_metavar_or_default a b
   (*x: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (*e: [[Generic_vs_generic.m_literal()]] ellipsis case *)

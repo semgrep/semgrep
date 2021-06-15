@@ -324,7 +324,8 @@ and map_literal = function
   | Ratio v1 ->
       let v1 = map_wrap map_of_string v1 in
       `Ratio v1
-  | Atom v1 ->
+  (* new: _v0 skipped *)
+  | Atom (_v0, v1) ->
       let v1 = map_wrap map_of_string v1 in
       `Atom v1
   | Char v1 ->
