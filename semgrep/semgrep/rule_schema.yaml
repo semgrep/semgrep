@@ -58,6 +58,8 @@ definitions:
         properties:
           metavariable:
             type: string
+          language:
+            type: string
           patterns:
             $ref: '#/definitions/patterns-content'
           pattern-either:
