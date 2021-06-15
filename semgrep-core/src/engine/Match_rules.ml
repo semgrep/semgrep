@@ -843,8 +843,9 @@ and match_range_with_pattern env r mvar opt_lang formula =
   | Some mval -> (
       let mval_range = MV.range_of_mvalue mval in
       match (opt_lang, mval) with
-      | Some lang, MV.Text (content, _) ->
-          (* The matched text must be interpreted according to `lang'. *)
+      | Some lang, MV.Text (content, _)
+      | Some lang, MV.E (G.L (G.String (content, _))) ->
+          (* The matched text will be interpreted according to `lang'. *)
           let lazy_ast_and_errors =
             lazy_ast_of_string lang content (fun () ->
                 spf
@@ -855,28 +856,13 @@ and match_range_with_pattern env r mvar opt_lang formula =
           eval_nested_formula env env.xlang formula lazy_ast_and_errors
             (lazy content)
             None
-      | Some lang, _ ->
-          (* TODO: We could probably restrict here to MV.E (G.L _),
-             * i.e. the stuff that spacegrep and comby return via
-             * mval_of_string. *)
-          (* This is useful when matching in generic mode, e.g. to check
-             * the code inside a script tag `<script>$S</script>'.
-             * TODO: As of now the power of metavariables in generic mode
-             *   is fairly limite, so this is probably not useful yet. *)
-          let content = Range.content_at_range env.file mval_range in
-          let lazy_ast_and_errors =
-            lazy_ast_of_string lang content (fun () ->
-                spf
-                  "rule %s: metavariable-pattern: failed to fully parse the \
-                   content of %s"
-                  env.rule.id mvar)
-          in
-          eval_nested_formula env
-            (R.L (lang, []))
-            formula lazy_ast_and_errors
-            (lazy content)
-            None
-      | None, _ -> (
+      | Some _lang, _mval ->
+          (* THINK: fatal error instead? *)
+          logger#error
+            "rule %s: metavariable-pattern: the content of %s is not text"
+            env.rule.id mvar;
+          false
+      | None, _mval -> (
           match MV.program_of_mvalue mval with
           | None ->
               (* THINK: fatal error instead? *)
