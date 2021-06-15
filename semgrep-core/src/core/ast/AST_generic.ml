@@ -519,18 +519,14 @@ and literal =
   | Char of string wrap
   | String of string wrap (* TODO? bracket *)
   | Regexp of string wrap (* TODO? bracket * string wrap option (modifiers) *)
+  | Atom of tok (* ':' in Ruby, ''' in Scala *) * string wrap
   | Unit of tok
   (* a.k.a Void *)
   | Null of tok
   | Undefined of tok (* JS *)
   | Imag of string wrap
   (* Go, Python *)
-  | Ratio of string wrap (* Ruby *)
-  | Atom of string wrap
-
-(* TODO? tok * string wrap? *)
-
-(* Ruby *)
+  | Ratio of string wrap
 
 (*e: type [[AST_generic.literal]] *)
 
