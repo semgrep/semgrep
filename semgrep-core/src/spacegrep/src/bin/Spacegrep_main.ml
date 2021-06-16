@@ -128,7 +128,12 @@ let run config =
   in
   let docs =
     match config.doc_files with
-    | [] -> [ (fun ?max_len:_ () -> Src_file.of_stdin ()) ]
+    | [] ->
+        [
+          (fun ?max_len () ->
+            ignore max_len;
+            Src_file.of_stdin ());
+        ]
     | roots ->
         let files = Find_files.list roots in
         List.map (fun file ?max_len () -> Src_file.of_file ?max_len file) files
