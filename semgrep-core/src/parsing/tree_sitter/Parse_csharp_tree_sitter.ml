@@ -1308,9 +1308,9 @@ and expression (env : env) (x : CST.expression) : AST.expr =
   | `Make_ref_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "__makeref" *) in
       let _v2 = token env v2 (* "(" *) in
-      let _v3 = expression env v3 in
+      let v3 = expression env v3 in
       let _v4 = token env v4 (* ")" *) in
-      todo_expr env v1
+      Ref (v1, v3)
   | `Member_access_exp (v1, v2, v3) ->
       let v1 =
         match v1 with
@@ -1366,18 +1366,18 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       AST.Ref (v1, v2)
   | `Ref_type_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "__reftype" *) in
-      let _v2 = token env v2 (* "(" *) in
-      let _v3 = expression env v3 in
-      let _v4 = token env v4 (* ")" *) in
-      todo_expr env v1
+      let v2 = token env v2 (* "(" *) in
+      let v3 = expression env v3 in
+      let v4 = token env v4 (* ")" *) in
+      Call (IdSpecial (Typeof, v1), (v2, [ Arg (DeRef (v1, v3)) ], v4))
   | `Ref_value_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "__refvalue" *) in
       let _v2 = token env v2 (* "(" *) in
-      let _v3 = expression env v3 in
+      let v3 = expression env v3 in
       let _v4 = token env v4 (* "," *) in
       let _v5 = type_constraint env v5 in
       let _v6 = token env v6 (* ")" *) in
-      todo_expr env v1
+      DeRef (v1, v3)
   | `Size_of_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "sizeof" *) in
       let v2 = token env v2 (* "(" *) in
