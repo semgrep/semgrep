@@ -46,25 +46,25 @@ let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
 (* Pfff only *)
 (*****************************************************************************)
 
-let dump_ast_pfff file =
-  match Lang.langs_of_filename file with
-  | [ _lang ] ->
-      let ast =
-        Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
-            Parse_target.parse_program file)
-      in
-      let v = Meta_AST.vof_any (G.Pr ast) in
-      let s = OCaml.string_of_v v in
-      pr2 s
-  | [] -> failwith (spf "no language detected for %s" file)
-  | _ :: _ :: _ -> failwith (spf "too many languages detected for %s" file)
+let dump_pfff_ast lang file =
+  let ast =
+    Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
+        let res = Parse_target.just_parse_with_lang lang file in
+        res.ast)
+  in
+  let v = Meta_AST.vof_any (G.Pr ast) in
+  let s = OCaml.string_of_v v in
+  pr2 s
 
 (*****************************************************************************)
 (* Tree-sitter only *)
 (*****************************************************************************)
 
-(* less: could infer lang from filename *)
-let dump_tree_sitter_cst_lang lang file =
+(*
+   Inferring the file type from the name doesn't work e.g. '.h' could
+   be C or C++, '.py' could be Python 2 or Python 3.
+*)
+let dump_tree_sitter_cst lang file =
   match lang with
   | Lang.R ->
       Tree_sitter_r.Parse.file file
@@ -106,12 +106,6 @@ let dump_tree_sitter_cst_lang lang file =
       Tree_sitter_cpp.Parse.file file
       |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
-
-let dump_tree_sitter_cst file =
-  match Lang.langs_of_filename file with
-  | [ l ] -> dump_tree_sitter_cst_lang l file
-  | [] -> failwith (spf "no language detected for %s" file)
-  | _ :: _ :: _ -> failwith (spf "too many languages detected for %s" file)
 
 let test_parse_tree_sitter lang xs =
   let xs = List.map Common.fullpath xs in
