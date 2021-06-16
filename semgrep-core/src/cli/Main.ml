@@ -1104,7 +1104,7 @@ let dump_pattern (file : Common.filename) =
 
 (*s: function [[Main_semgrep_core.dump_ast]] *)
 let dump_ast ?(naming = false) lang file =
-  E.try_with_print_exn_and_reraise file (fun () ->
+  E.try_with_print_exn_and_exit_fast file (fun () ->
       let { Parse_target.ast; errors; _ } =
         if naming then
           Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
@@ -1187,10 +1187,9 @@ let all_actions () =
     ( "-dump_ast",
       " <file>",
       fun file ->
-        pr_time "dump ast" (fun () ->
-            Common.mk_action_1_arg
-              (dump_ast ~naming:false (lang_of_string !lang))
-              file) );
+        Common.mk_action_1_arg
+          (dump_ast ~naming:false (lang_of_string !lang))
+          file );
     ( "-dump_named_ast",
       " <file>",
       fun file ->
