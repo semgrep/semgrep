@@ -704,8 +704,9 @@ and primary (env : env) (x : CST.primary) : AST.expr =
   | `Regex (v1, v2, v3) ->
       let v1 = token2 env v1 in
       let v2 = match v2 with Some x -> literal_contents env x | None -> [] in
-      let _v3 = token2 env v3 in
-      Literal (Regexp ((v2, "??"), v1))
+      let v3 = token2 env v3 in
+      (* TODO: no modifier in Ruby grammar.js? *)
+      Literal (Regexp ((v1, v2, v3), None))
   | `Lambda (v1, v2, v3) ->
       let v1 = token2 env v1 in
       let v2 =
