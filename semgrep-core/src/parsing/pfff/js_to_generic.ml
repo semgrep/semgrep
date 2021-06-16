@@ -220,7 +220,8 @@ and literal x =
       G.String v1
   | Regexp v1 ->
       let v1 = wrap string v1 in
-      G.Regexp v1
+      (* TODO: *)
+      G.Regexp (G.fake_bracket v1, None)
 
 and expr (x : expr) =
   match x with

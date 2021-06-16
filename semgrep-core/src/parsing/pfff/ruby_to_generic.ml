@@ -370,7 +370,9 @@ and literal x =
       | Tick xs -> string_contents_list xs )
   | Regexp ((xs, s2), t) -> (
       match xs with
-      | [ StrChars (s, _t2) ] -> G.L (G.Regexp (s ^ s2, t))
+      | [ StrChars (s, _t2) ] ->
+          (* TODO *)
+          G.L (G.Regexp (G.fake_bracket (s ^ s2, t), None))
       | _ ->
           let l, r = (t, t) in
           (* TODO *)
