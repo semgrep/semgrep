@@ -1,0 +1,6 @@
+# Prevent frequent conflict resolution in the changelog by
+# asking git to always take both sides of a branch in the
+# changelog. As a downside, two edits to an existing line
+# in the changelog will show up as two lines in the merged
+# output. We should remove these duplicates at release time.
+CHANGELOG.md merge=union
