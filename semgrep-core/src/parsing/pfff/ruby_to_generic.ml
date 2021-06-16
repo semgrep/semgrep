@@ -368,13 +368,10 @@ and literal x =
       (* TODO: generate interpolation Special *)
       | Double xs -> string_contents_list xs
       | Tick xs -> string_contents_list xs )
-  | Regexp ((xs, s2), t) -> (
+  | Regexp ((l, xs, r), opt) -> (
       match xs with
-      | [ StrChars (s, _t2) ] ->
-          (* TODO *)
-          G.L (G.Regexp (G.fake_bracket (s ^ s2, t), None))
+      | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))
       | _ ->
-          let l, r = (t, t) in
           (* TODO *)
           string_contents_list (l, xs, r) )
 
