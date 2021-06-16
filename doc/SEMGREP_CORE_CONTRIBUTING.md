@@ -241,39 +241,45 @@ In these next sections we will give an overview of `semgrep-core` and then some 
 
 ### Entry Point
 
-The entry point to `semgrep-core` is `Main.ml`, in `semgrep-core/src/cli`. Add command-line arguments there. It calls functions depending on the mode in which `semgrep-core` was invoked (`-config` for a yaml file, `-f` for a single pattern, etc.)
+The entry point to `semgrep-core` is `Main.ml`, in `semgrep-core/src/cli/`. This is where you add command-line arguments. It calls functions depending on the mode in which `semgrep-core` was invoked (`-config` for a yaml file, `-f` for a single pattern, etc.)
 
-When invoked by `semgrep`, `semgrep-core` is called by default wih `-config`. This corresponds to the function `semgrep-with-rules-file`, which in turn calls `semgrep-with-rules`.
+When invoked by `semgrep`, `semgrep-core` is called by default wih `-config`. This corresponds to the function `semgrep-with-rules-file`, which in turn calls `semgrep-with-rules`. These functions will parse and then match the rule and targets.
 
 ### Parsing
 
-`semgrep-core` uses an external module to parse code into an augmented language-specific abstract syntax tree (AST). Though we call these ASTs, they additionally contain token information such as parentheses that are traditionally only present in concrete syntax trees (CSTs) so that we can output results in the correct range.
+`semgrep-core` uses external modules to parse code into augmented language-specific abstract syntax trees (ASTs). Though we call these ASTs, they additionally contain token information such as parentheses that are traditionally only present in concrete syntax trees (CSTs) so that we can output results in the correct range.
 
 When `semgrep-core` receives a rule or a target, it will first need to parse it. The functions that do this are located in `semgrep-core/src/parsing/`. 
 
 * If it reads a rule, it will go through `Parse_rule.ml`, which uses `Parse_pattern.ml` to parse the code-like portions of the rule
 * If it reads a target, it will go through `Parse_target.ml`
 
-Depending on the language, `Parse_pattern.ml` and `Parse_target.ml` will invoke parsers to parse the code. For example, if we have Java code, at this point it will be parsed into a Java-specific AST.
+Depending on the language, `Parse_pattern.ml` and `Parse_target.ml` will invoke parsers to parse the code. For example, if we have Java code, it will first be parsed into a Java-specific AST.
 
 ### Converting to the Generic AST
 
-`semgrep-core` does not match based on that AST. It has a generic AST, defined in `AST_generic` (in `semgrep-core/src/core/ast`), which all other ASTs are converted to.
+`semgrep-core` does not match based on the Java AST. It has a generic AST, defined in `AST_generic.ml` (in `semgrep-core/src/core/ast`), which all language-specific ASTs are converted to.
 
-The functions for this conversion are in either `semgrep-core/src/parsing/pfff/` or `semgrep-core/src/parsing/tree-sitter/`. They are named with the appropriate language. We will talk about them more later.
+The functions for this conversion are in either `semgrep-core/src/parsing/pfff/` or `semgrep-core/src/parsing/tree-sitter/`. They are named with the appropriate language in a consistent convention.
 
 ### Matching
 
-The matching functions are contained in `semgrep-core/src/engine` (`Match_rules.ml`, `Match_patterns.ml`) and `semgrep-core/src/matching` (`Generic_vs_generic.ml`). There are several possible matchers to invoke
+The matching functions are contained in `semgrep-core/src/engine/` (e.g. `Match_rules.ml`, `Match_patterns.ml`) and `semgrep-core/src/matching/` (e.g. `Generic_vs_generic.ml`). There are several possible matchers to invoke
 
 * spacegrep (for generic mode)
 * regexp (to match by regexp instead of semgrep patterns)
 * comby (an experimental mode for C++)
 * pattern (the main mode)
 
-We will only talk about the last for now. In most cases, you will go to the `check` function in `Match_patterns.ml`. This will traverse (visit) the target AST and try to match the pattern to it at each point. If the pattern and the target node correspond, it will call the relevant function in `Generic_vs_generic.ml`.
+We will only talk about the last for now. In most cases, `Match_rules.ml` will invoke the `check` function in `Match_patterns.ml`. This will visit the target AST and try to match the pattern to it at each point. If the pattern and the target node correspond, it will call the relevant function in `Generic_vs_generic.ml`.
 
 The core of the matching is done by `Generic_vs_generic.ml`. The logic for whether two expressions, statements, etc. match is contained within this file. 
+
+### Reporting results
+
+The results of the match will be returned to the calling function in `Main.ml` (for example, `semgrep-with-rules`). From there, the results are formatted and outputted.
+
+There are two modes for outputting: JSON and text. JSON output is processed by functions in `JSON_report.ml` in `semgrep-core/src/reporting/`
 
 ## Fixing a Parse Error 
 
@@ -312,9 +318,109 @@ Here's the breakdown by language as of February 2021:
   - R
   - Rust
 
-###
+### Fixing a `pfff` Parse Error
 
-Within `semgrep-core/src/`, there are two folders, `pfff/` and `o
+#### Parsing With `pfff`
+
+[`pfff`](https://github.com/returntocorp/pfff) is an OCaml project that we plug into `semgrep-core` as a git submodule. It uses menhir to generate parsers from a defined grammar.
+
+Consider a Python pattern (or target). To parse it into a generic AST form, we transform the code as follows:
+
+Text -- (via `Lexer_python.mll`) --> Tokens -- (via `Parser_python.mly`) --> `Ast_python` -- (via `Python_to_generic.ml`) --> `AST_generic`
+
+These files live in different places. Specifically,
+
+* `Lexer_python.mll` is in `semgrep-core/src/pfff/lang_python/parsing`
+* `Parser_python.mly` is in `semgrep-core/src/pfff/lang_python/parsing`
+* `AST_python.ml` is in `semgrep-core/src/pfff/lang_python/parsing`
+* `Python_to_generic.ml` is in `semgrep-core/src/parsing/pfff`
+* `AST_generic.ml` is in `semgrep-core/src/core/ast`
+
+You will notice that the first three, `Lexer_python.mll`, `Parser_python.mly`, and `AST_python.ml` are in `semgrep-core/src/pfff`, which is a submodule. This means that when you modify them, you modify the submodule rather than `semgrep-core`. It also means that when you make a change in `pfff`, it gets compiled when you run `make` in `semgrep-core/`
+
+When a language is particularly complicated, it can be convenient to first parse into a CST, then convert to the AST. Currently, we only do this for PHP. In this case, there is an extra step:
+
+Tokens -- (via `Parser_php.mly`) --> `Cst_php` -- (via `Ast_php_build.ml`) --> `Ast_php`
+
+The lexers and parsers apply for both patterns and targets of a given language. To avoid parsing invalid targets, we have a function `Flag_semgrep.sgrep_guard` which fails when parsing constructs that only appear in patterns if a target is being parsed.
+
+#### Identifying the Error
+
+The source of the error can be anywhere along the Text --> `AST_generic` path, so you will want to identify which file is causing it. 
+
+First, create a minimum failing case. If you are debugging a rule, isolate this to an individual pattern if possible, saved in a `.sgrep` file. 
+
+For simplicity, we will use Python in the examples, but you can substitute Python for any language parsed with `pfff`. 
+
+If the problem is in `Lexer_python.mll`, you will probably get a helpful error message which should tell you what you need to change. 
+
+If the problem is in `Parser_python.mly`, you will probably not get a helpful error message, because the error will be reported in the generated parser, not the grammar. To identify which production within the grammar is problematic, you will want to see what AST the parser is trying to produce. Modify the failing case minimally until it parses successfully.
+
+Now, you can see what generic AST is produced by this similar code. You can run
+
+* For a pattern: 
+   ```
+   sc -dump_pattern -f [your_pattern].sgrep -lang python
+   ```
+* For a target: 
+   ```
+   sc -dump_ast [your_target].py -lang python
+   ```
+
+where `sc` is an alias for `semgrep-core/_build/default/src/cli/Main.exe`, the executable produced by running `make` in `semgrep-core/`. If you have installed `semgrep-core`, you can instead use `semgrep-core` here, but each time you make a change you will need to compile (`make`) and then install (`make install`).
+
+You may also find it useful to see the Python AST representation of the pattern. Just as `make` produces an executable for `semgrep-core` in `semgrep-core/_build/default/src/cli/Main.exe`, it also produces one for `pfff` in `semgrep-core/_build/default/src/pfff/cli/Main.exe` (alias to `pf` for these docs).
+
+To dump the Python AST, run
+
+* For a pattern: 
+  ```
+  pf -dump_python [your_pattern].sgrep -sgrep_mode -lang python
+  ```
+* For a target: 
+  ```
+  pf -dump_python [your_target].py -lang python
+  ```
+
+(Note that `-sgrep_mode` does not always work with incomplete programs. You may need to wrap your pattern so that it is a valid program for that language, except for semgrep constructs such as `...`)
+
+#### Fixing the Error
+
+At this point, the relevant change you need to make will vary depending on your goal. It may be as simple as adding `...` as a possible case. It may require you to introduce a new construct and add it to `AST_generic` and `Ast_python`. As a rule of thumb, prefer to avoid changing `AST_generic` if possible. This will also make your life easier!
+
+When you change the grammar, it is important that you do not introduce conflicts. It can sometimes be okay to introduce a `shift/reduce` conflict, though avoid doing this if possible. It is never okay to introduce a `reduce/reduce` conflict. To understand this further, read about [LR(1) parsers][https://en.wikipedia.org/wiki/Canonical_LR_parser].
+
+If you do introduce a conflict, you can understand how to resolve it by running
+
+```
+menhir --explain Parser_python.mly
+```
+
+This will produce the file `Parser_python.conflicts` in the same folder as `Parser_python.mly`, which will show the two possible interpretations Menhir is considering for each conflict.
+
+Unfortunately, it will also produce `Parser_python.ml` and `Parser_python.mli`, which will confuse dune when it tries to build. Remove these files before you run `make` again.
+
+#### Committing the Fix
+
+Once you have made your desired pattern or target parse, you need to make sure it doesn't break anything else! In `semgrep-core/`, run `make test`. If at the end it says `Ok`, you can commit your fix.
+
+First, if you have any changes in `pfff`, go into the `semgrep-core/src/pfff/` directory, checkout `develop`, pull, and then make a pull request as usual with your changes.
+
+Once you have changed `pfff`, `semgrep-core` will realize that `pfff` is different. If you go back up to `semgrep-core/` and run `git status`, you will see `modified: src/pfff (modified content)`. To pin your latest `pfff` changes to `semgrep-core`, add `src/pfff`.
+
+Now, make the rest of your pull request for `semgrep-core` as usual.
+
+If you haven't changed `pfff`, don't worry about this. Just make a pull request with your changes.
+
+Remember to add test cases so that future changes don't break your example! See [Testing `semgrep-core`](#testing-semgrep-core)
+
+### Fixing a Tree-sitter Parse Error
+
+There is more information in [Adding Support for a Language](#adding-support-for-a-language) on tree-sitter which will be helpful. Also, see `semgrep-core/src/parsing/tree-sitter/`.  
+
+## Fixing a Match Error
+
+
 
 ## Adding Support for a Language
 
