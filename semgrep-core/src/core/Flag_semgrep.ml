@@ -11,8 +11,6 @@ let debug_matching = ref false
 
 (*e: constant [[Flag_semgrep.debug]] *)
 (*s: constant [[Flag_semgrep.debug_with_full_position]] *)
-let debug_with_full_position = ref false
-
 (*e: constant [[Flag_semgrep.debug_with_full_position]] *)
 
 (* we usually try first with the pfff parser and then with the tree-sitter

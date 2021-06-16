@@ -219,10 +219,9 @@ and literal x =
       let v1 = wrap string v1 in
       G.String v1
   | Regexp (v1, v2) ->
-      let v1 = wrap string v1 in
-      (* TODO: *)
-      let v2 = if v2 = "" then None else Some (v2, PI.fake_info v2) in
-      G.Regexp (G.fake_bracket v1, v2)
+      let v1 = bracket (wrap string) v1 in
+      let v2 = option (wrap string) v2 in
+      G.Regexp (v1, v2)
 
 and expr (x : expr) =
   match x with

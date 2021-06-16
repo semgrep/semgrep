@@ -802,18 +802,14 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       Apply (IdSpecial (Encaps false, t1), (t1, xs, t2))
   | `Regex (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "/" *) in
-      let s, t = str env v2 (* regex_pattern *) in
+      let v2 = str env v2 (* regex_pattern *) in
       let v3 = token env v3 (* "/" *) in
-      let v4, str_modifer =
+      let v4 =
         match v4 with
-        | Some tok ->
-            let t = token env tok (* pattern [a-z]+ *) in
-            ([ t ], PI.str_of_info t)
-        | None -> ([], "")
+        | Some tok -> Some (str env tok) (* pattern [a-z]+ *)
+        | None -> None
       in
-      let tok = PI.combine_infos v1 ([ t; v3 ] @ v4) in
-      (* TODO: fix *)
-      L (Regexp ((s, tok), str_modifer))
+      L (Regexp ((v1, v2, v3), v4))
   | `True tok -> L (Bool (true, token env tok) (* "true" *))
   | `False tok -> L (Bool (false, token env tok) (* "false" *))
   | `Null tok -> IdSpecial (Null, token env tok) (* "null" *)
