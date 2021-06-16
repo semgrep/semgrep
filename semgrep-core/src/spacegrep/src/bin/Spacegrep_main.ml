@@ -128,7 +128,7 @@ let run config =
   in
   let docs =
     match config.doc_files with
-    | [] -> [ (fun ?max_len () -> Src_file.of_stdin ()) ]
+    | [] -> [ (fun ?max_len:_ () -> Src_file.of_stdin ()) ]
     | roots ->
         let files = Find_files.list roots in
         List.map (fun file ?max_len () -> Src_file.of_file ?max_len file) files
@@ -168,11 +168,7 @@ let output_format_conv =
     | s -> Error (`Msg ("Invalid output format: " ^ s))
   in
   let printer fmt output_format =
-    let s =
-      match output_format with
-      | Text -> "text"
-      | Semgrep -> "semgrep"
-    in
+    let s = match output_format with Text -> "text" | Semgrep -> "semgrep" in
     Format.pp_print_string fmt s
   in
   Cmdliner.Arg.conv (parser, printer)
@@ -315,9 +311,7 @@ let cmdline_term =
   let combine case_insensitive color output_format debug force pattern
       pattern_files anon_doc_file doc_files time timeout warn =
     let doc_files =
-      match anon_doc_file with
-      | None -> doc_files
-      | Some x -> x :: doc_files
+      match anon_doc_file with None -> doc_files | Some x -> x :: doc_files
     in
     {
       case_insensitive;
@@ -358,9 +352,7 @@ let info name = Term.info ~doc ~man name
 let parse_command_line name =
   match Term.eval (cmdline_term, info name) with
   | `Error _ -> exit 1
-  | `Version
-  | `Help ->
-      exit 0
+  | `Version | `Help -> exit 0
   | `Ok config -> config
 
 (*

@@ -1,5 +1,0 @@
-(env
- (default
-  (flags (:standard -warn-error +a)))
- (static
-  (flags (:standard -ccopt -static))))
