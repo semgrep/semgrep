@@ -1265,11 +1265,18 @@ and m_call_op aop aargs bop tokb bargs =
  *
  * This for example, will successfully match `a && b && c` against `b && a && c`!
  * It will also match `if (<... b && c ...>) ...` against `if (a && b && c) S`
- * which was not matching before (`a && b && c` is parsed as `(a && b) && c`).
- * In fact, we do not even need a deep-expr pattern, `if (b && c) ...` will also
- * match `if (a && b && c) S`!
+ * which was not matching before as `a && b && c` is parsed as `(a && b) && c`.
  *
  * BEHAVIOR ISSUES:
+ *
+ * Even without a deep-expr pattern, `if (b && c) ...` will also match
+ * `if (a && b && c) S`. That is, there is an implicit `op ...` added to AC
+ * operators. Why? Let's say that we want to match pattern `<... a && b ...>`
+ * against `a && (b && c)`, the sub-expressions of `a && (b && c)` are itself,
+ * `a`, `b && c`, `b`, and `c`. The only chance to match `a && b` is to do it
+ * on `a && (b && c)`, and for that to work we cannot fail when there are
+ * operands left to match. TODO: We could try to detect when the AC op-pattern
+ * occurs inside a deep-expr and only then assume an implicit `&& ...`.
  *
  * AC-matching of metavariables could lead to some strange behaviors given that
  * we work with ranges. E.g. we can match `a && $X` against `b && a && c` by
