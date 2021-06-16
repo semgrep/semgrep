@@ -299,9 +299,10 @@ and vof_literal = function
   | String v1 ->
       let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("String", [ v1 ])
-  | Regexp v1 ->
-      let v1 = vof_wrap OCaml.vof_string v1 in
-      OCaml.VSum ("Regexp", [ v1 ])
+  | Regexp (v1, v2) ->
+      let v1 = vof_bracket (vof_wrap OCaml.vof_string) v1 in
+      let v2 = OCaml.vof_option (vof_wrap OCaml.vof_string) v2 in
+      OCaml.VSum ("Regexp", [ v1; v2 ])
   | Null v1 ->
       let v1 = vof_tok v1 in
       OCaml.VSum ("Null", [ v1 ])

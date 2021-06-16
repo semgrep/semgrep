@@ -791,7 +791,13 @@ and m_literal a b =
   (* dots: metavar: '...' and metavars on string/regexps/atoms *)
   | A.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
   | A.Atom (_, a), B.Atom (_, b) -> m_ellipsis_or_metavar_or_string a b
-  | A.Regexp a, B.Regexp b -> m_regexp_ellipsis_or_metavar_or_default a b
+  | A.Regexp (a1, a2), B.Regexp (b1, b2) -> (
+      let* () = m_bracket m_ellipsis_or_metavar_or_string a1 b1 in
+      match (a2, b2) with
+      (* less_is_ok: *)
+      | None, _ -> return ()
+      | Some a, Some b -> m_ellipsis_or_metavar_or_string a b
+      | Some _, None -> fail () )
   (*x: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (*e: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (*s: [[Generic_vs_generic.m_literal()]] regexp case *)

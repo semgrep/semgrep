@@ -517,8 +517,8 @@ and literal =
   | Int of int option wrap
   | Float of float option wrap
   | Char of string wrap
-  | String of string wrap (* TODO? bracket *)
-  | Regexp of string wrap (* TODO? bracket * string wrap option (modifiers) *)
+  | String of string wrap (* TODO? bracket, ', ", or even """ *)
+  | Regexp of string wrap bracket (* // *) * string wrap option (* modifiers *)
   | Atom of tok (* ':' in Ruby, ''' in Scala *) * string wrap
   | Unit of tok
   (* a.k.a Void *)
