@@ -40,21 +40,13 @@ git submodule update --init --recursive --depth 1
 echo "Install tree-sitter runtime and prepare ocaml-tree-sitter source"
 ./scripts/install-tree-sitter-runtime
 
-echo "Install spacegrep"
-(
-  cd spacegrep
-  opam install --deps-only -y .
-  DUNE_PROFILE=static make
-  make install
-)
-
 echo "Install pfff dependencies"
 (
   cd semgrep-core/src/pfff
   opam install --deps-only -y .
 )
 
-echo "Install semgrep-core"
+echo "Install semgrep-core and spacegrep"
 (
   cd semgrep-core
   opam install --deps-only -y .
@@ -66,6 +58,6 @@ echo "Copy executables to artifacts archive"
 rm -rf ocaml-build-artifacts
 bin=ocaml-build-artifacts/bin
 mkdir -p "$bin"
-cp ./spacegrep/_build/install/default/bin/spacegrep "$bin"
+cp ./semgrep-core/_build/install/default/bin/spacegrep "$bin"
 cp ./semgrep-core/_build/install/default/bin/semgrep-core "$bin"
 tar czf ocaml-build-artifacts.tgz ocaml-build-artifacts

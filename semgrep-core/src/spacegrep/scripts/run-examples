@@ -5,8 +5,9 @@
 #
 set -eu
 
+spacegrep=../../bin/spacegrep
 for pat in examples/*.pat; do
   doc=${pat%.pat}.doc
-  echo "# ./bin/spacegrep -p $pat -d $doc"
-  ./bin/spacegrep -p "$pat" -d "$doc"
+  echo "# $spacegrep -p $pat -d $doc"
+  "$spacegrep" -p "$pat" -d "$doc"
 done

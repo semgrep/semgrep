@@ -124,9 +124,7 @@ let doc_matches_dots ~dots last_loc doc =
 
 let rec pat_matches_empty_doc pat =
   match pat with
-  | []
-  | End :: _ ->
-      true
+  | [] | End :: _ -> true
   | Atom _ :: _ -> false
   | Dots _ :: pat -> pat_matches_empty_doc pat
   | List pat1 :: pat2 ->
@@ -321,9 +319,7 @@ let fold_block_starts acc (doc : Doc_AST.node list) f =
   fold ~is_block_start:true acc doc
 
 let starts_with_dots (pat : Pattern_AST.node list) =
-  match pat with
-  | Dots _ :: _ -> true
-  | _ -> false
+  match pat with Dots _ :: _ -> true | _ -> false
 
 let convert_named_captures env =
   Env.bindings env
@@ -418,9 +414,7 @@ let timed_search ?case_sensitive src pat doc =
   timef (fun () -> search ?case_sensitive src pat doc)
 
 let ansi_highlight s =
-  match s with
-  | "" -> s
-  | s -> ANSITerminal.(sprintf [ Bold; green ] "%s" s)
+  match s with "" -> s | s -> ANSITerminal.(sprintf [ Bold; green ] "%s" s)
 
 let make_separator_printer () =
   let is_first = ref true in
@@ -432,10 +426,7 @@ let print ?(highlight = false)
   let line_prefix =
     match Src_file.source src with
     | File path -> sprintf "%s:" path
-    | Stdin
-    | String
-    | Channel ->
-        ""
+    | Stdin | String | Channel -> ""
   in
   List.iter
     (fun match_ ->
