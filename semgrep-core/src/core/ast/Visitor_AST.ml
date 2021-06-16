@@ -397,8 +397,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | String v1 ->
         let v1 = v_wrap v_string v1 in
         ()
-    | Regexp v1 ->
-        let v1 = v_wrap v_string v1 in
+    | Regexp (v1, v2) ->
+        let v1 = v_bracket (v_wrap v_string) v1 in
+        let v2 = v_option (v_wrap v_string) v2 in
         ()
     | Null v1 ->
         let v1 = v_tok v1 in

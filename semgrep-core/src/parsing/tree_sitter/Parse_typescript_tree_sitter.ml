@@ -978,13 +978,15 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
           let v1 = token env v1 (* "/" *) in
           let s, t = str env v2 (* regex_pattern *) in
           let v3 = token env v3 (* "/" *) in
-          let v4 =
+          let v4, str_modifier =
             match v4 with
-            | Some tok -> [ token env tok ] (* pattern [a-z]+ *)
-            | None -> []
+            | Some tok ->
+                let t = token env tok (* pattern [a-z]+ *) in
+                ([ t ], PI.str_of_info t)
+            | None -> ([], "")
           in
           let tok = PI.combine_infos v1 ([ t; v3 ] @ v4) in
-          L (Regexp (s, tok))
+          L (Regexp ((s, tok), str_modifier))
       | `True tok -> L (Bool (true, token env tok) (* "true" *))
       | `False tok -> L (Bool (false, token env tok) (* "false" *))
       | `Null tok -> IdSpecial (Null, token env tok) (* "null" *)
