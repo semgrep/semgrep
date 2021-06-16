@@ -41,19 +41,19 @@ The root `Makefile` contains targets that take care of building the
 right things. It is commented. Please refer to it and keep it
 up-to-date.
 
-To link all necessary dependencies, run (at the repository root)
+To link all necessary dependencies, run (at the repository root `semgrep/`)
 
 ```
 make dev-setup
 ```
 
-To install `semgrep-core` and `spacegrep`, run
+Next, to install `semgrep-core` and `spacegrep`, run
 
 ```
-make build-spacegrep && make build-core
+make build-core
 ```
 
-Test the installation with 
+Finally, test the installation with 
 
 ```
 semgrep-core -help
@@ -67,23 +67,24 @@ spacegrep --help
 
 At this point, you have the `semgrep-core` and `spacegrep` binaries, so if you would like to finish the Semgrep installation, go to the [Python-side instructions](link).
 
-### Installing After a Pull
+### Installing After a Change
 
 Unless there is a significant dependency change, you will not need to run `make dev-setup` again. 
 
-For a routine build after pulling source code changes from git, run
+We have provided useful targets to help you build and link the entire semgrep project, including both `semgrep-core` and `spacegrep` and `semgrep`. You may find these helpful.
+
+To install the latest OCaml binaries and `semgrep` binary after pulling source code changes from git, run
 
 ```
 make rebuild
 ```
 
-After you make a change locally, you can install the changes with
-
+To install after you make a change locally, run
 ```
 make build    # or just `make`
 ```
 
-This will update the `semgrep-core` and `spacegrep` binaries that the Python wrapper will work off of, and also update the `semgrep` binary. 
+After making either of these targets, `semgrep` will run with all your local changes, OCaml and Python both.
 
 (Note: Because this updates the `semgrep` binary, if you do not have your Python environment configured properly, you will encounter errors when running these commands. Follow the procedure under [Development](Development))
 
@@ -91,25 +92,67 @@ This will update the `semgrep-core` and `spacegrep` binaries that the Python wra
 
 In practice, it is not always convenient to use `make build` or `make rebuild`. `make rebuild` will update everything within the project; `make build` will compile and install all the binaries. You can do this yourself in a more targeted fashion.
 
-Below is a flow appropriate for frequent developers of `semgrep-core`
+Below is a flow appropriate for frequent developers of `semgrep-core` or `spacegrep`
 
+After you pull, run
 
+```
+git submodule update --recursive
+```
+
+This will update internal dependencies. (We suggest aliasing it to `uu`)
+
+After `tree-sitter` is updated, you may need to reconfigure it. If so, run
+
+```
+make config
+```
 
 ### Developing `semgrep-core`
 
-The following assumes you are in the `./semgrep-core` directory.
+If you are developing `semgrep-core`, enter the `semgrep/semgrep-core/` directory. The `Makefile` for `semgrep-core`-specific targets is at `semgrep/semgrep-core/`; the code is primarily in `src/`.
 
-After you make a change, you will need to compile using
+The following assumes you are in `semgrep/semgrep-core/`.
+
+After you pull or make a change, compile using
 
 ```
 make
 ```
 
-This will build an executable for `semgrep-core` in `_build/default/src/cli/Main.exe` (you may want to alias something like `sc` to this).
+This will build an executable for `semgrep-core` in `semgrep/semgrep-core/_build/default/src/cli/Main.exe` (we suggest aliasing this to `sc`). Try it out by running
 
+```
+_build/default/src/cli/Main.exe -help
+```
 
+When you are done, test your changes with 
 
-### Testing
+```
+make test
+```
+
+Finally, to update the `semgrep-core` binary used by `semgrep`, run
+
+```
+make install
+```
+
+### Developing `spacegrep`
+
+If you are developing `spacegrep`, enter the `semgrep/spacegrep/` directory. The setup is largely the same as for `semgrep-core`. The `Makefile` for `spacegrep`-specific targets is at `semgrep/spacegre/`; the code is primarily in `src/`.
+
+To compile after a change, use `make`. To run the test suite, use `make test`.
+
+The executable for `spacegrep` is in `semgrep/spacegrep/_build/default/src/bin/Space_main.exe`. You can try it out with
+
+```
+_build/default/src/bin/Space_main.exe --help
+```
+
+To update the `spacegrep` binary used by `semgrep`, run `make install`
+
+### Testing `semgrep-core`
 
 `make test` in the `semgrep-core` directory will run tests that check code is correctly parsed
 and patterns perform as expected. To add a test in an appropriate language subdirectory, `semgrep-core/tests/LANGUAGE`, create a target file (expected file extension given language) and a .sgrep file with a pattern. The testing suite will check that all places with a comment with `ERROR` were matches found by the .sgrep file. See existing tests for more clarity.
@@ -204,7 +247,53 @@ If you are concerned about performance, the recommended way to test is to hide y
 
 You can also test the impact of your change by running `./run_benchmarks --std_only` in `perf`, which will only run the default version of semgrep.
 
-## Adding Support for a Language
+***
+
+In these next sections we will give an overview of `semgrep-core` and then some tips for making common changes to `semgrep-core`. These are only tips; without seeing an error, we cannot know its cause and proper resolution, but hopefully it gives useful direction.
+
+## `semgrep-core` Overview
+
+### Entry Point
+
+The entry point to `semgrep-core` is `Main.ml`, in `semgrep-core/src/cli`. Add command-line arguments there. It calls functions depending on the mode in which `semgrep-core` was invoked (`-config` for a yaml file, `-f` for a single pattern, etc.)
+
+When invoked by `semgrep`, `semgrep-core` is called by default wih `-config`. This corresponds to the function `semgrep-with-rules-file`, which in turn calls `semgrep-with-rules`.
+
+### Parsing
+
+`semgrep-core` uses an external module to parse code into an augmented language-specific abstract syntax tree (AST). Though we call these ASTs, they additionally contain token information such as parentheses that are traditionally only present in concrete syntax trees (CSTs) so that we can output results in the correct range.
+
+When `semgrep-core` receives a rule or a target, it will first need to parse it. The functions that do this are located in `semgrep-core/src/parsing/`. 
+
+* If it reads a rule, it will go through `Parse_rule.ml`, which uses `Parse_pattern.ml` to parse the code-like portions of the rule
+* If it reads a target, it will go through `Parse_target.ml`
+
+Depending on the language, `Parse_pattern.ml` and `Parse_target.ml` will invoke parsers to parse the code. For example, if we have Java code, at this point it will be parsed into a Java-specific AST.
+
+### Converting to the Generic AST
+
+`semgrep-core` does not match based on that AST. It has a generic AST, defined in `AST_generic` (in `semgrep-core/src/core/ast`), which all other ASTs are converted to.
+
+The functions for this conversion are in either `semgrep-core/src/parsing/pfff/` or `semgrep-core/src/parsing/tree-sitter/`. They are named with the appropriate language. We will talk about them more later.
+
+### Matching
+
+The matching functions are contained in `semgrep-core/src/engine` (`Match_rules.ml`, `Match_patterns.ml`) and `semgrep-core/src/matching` (`Generic_vs_generic.ml`). There are several possible matchers to invoke
+
+* spacegrep (for generic mode)
+* regexp (to match by regexp instead of semgrep patterns)
+* comby (an experimental mode for C++)
+* pattern (the main mode)
+
+We will only talk about the last for now. In most cases, you will go to the `check` function in `Match_patterns.ml`. This will traverse (visit) the target AST and try to match the pattern to it at each point. If the pattern and the target node correspond, it will call the relevant function in `Generic_vs_generic.ml`.
+
+The core of the matching is done by `Generic_vs_generic.ml`. The logic for whether two expressions, statements, etc. match is contained within this file. 
+
+## Fixing a Parse Error 
+
+Before you start fixing a parse error, you need to know what parser was used. This bears some explanation.
+
+### Guide to Parsers
 
 The parsers used by semgrep fall into these categories:
 * legacy parsers (pfff): implemented directly in OCaml via a parser generator
@@ -236,6 +325,12 @@ Here's the breakdown by language as of February 2021:
   - Lua
   - R
   - Rust
+
+###
+
+Within `semgrep-core/src/`, there are two folders, `pfff/` and `o
+
+## Adding Support for a Language
 
 New languages should use tree-sitter.
 

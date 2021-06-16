@@ -34,7 +34,7 @@ Alternatively, you may include it somewhere like `/usr/local/bin/`.
 
 Once you have `semgrep-core` and `spacegrep` installed, you will be able to build `semgrep`. You will need Python >= 3.6 as well.
 
-Most `semgrep` development will operate inside the `semgrep` directory (from the top level of this repo, `./semgrep`):
+Most `semgrep` development will operate inside the `semgrep` directory (from the top level of this repo, `semgrep/semgrep/`):
 
 ```
 $ cd semgrep
@@ -65,7 +65,7 @@ You will want to be in the pipenv environment whenever you run semgrep. Start a 
 $ python -m pipenv shell
 ```
 
-Within the shell, run:
+Make sure you are in `semgrep/semgrep/`. Within the shell, run:
 
 ```
 $ python -m semgrep -h
@@ -83,13 +83,13 @@ Congratulations, you have Semgrep running locally!
 
 ## Installing `semgrep`
 
-You can always run `semgrep` from `./semgrep`, which will use your latest changes in that directory, but you may also want to install the `semgrep` binary. To do this, run
+You can always run `semgrep` from `semgrep/semgrep/`, which will use your latest changes in that directory, but you may also want to install the `semgrep` binary. To do this, run
 
 ```
 pipenv install --dev
 ```
 
-Some people have encountered difficulties with the above. If it fails, you can also try (within the `./semgrep` directory)
+Some people have encountered difficulties with the above. If it fails, you can also try (within the `semgrep/semgrep/` directory)
 
 ```
 sudo pip install -e .
@@ -103,7 +103,7 @@ If you have installed `semgrep-core` and `spacegrep` from source, there are conv
 make rebuild
 ```
 
-See the Makefile in `./`
+See the Makefile in `semgrep/`
 
 ## Troubleshooting
 
