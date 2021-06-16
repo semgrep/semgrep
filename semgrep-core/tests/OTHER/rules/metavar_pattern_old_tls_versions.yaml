@@ -19,17 +19,7 @@ rules:
         metavariable: $OPTS
         patterns:
             - pattern-not: |
-                {secureOptions: $CONST.SSL_OP_NO_TLSv1 | $CONST.SSL_OP_NO_SSLv3 | $CONST.SSL_OP_NO_SSLv2}
-            - pattern-not: |
                 {secureOptions: $CONST.SSL_OP_NO_TLSv1 | $CONST.SSL_OP_NO_SSLv2 | $CONST.SSL_OP_NO_SSLv3}
-            - pattern-not: |
-                {secureOptions: $CONST.SSL_OP_NO_SSLv2  | $CONST.SSL_OP_NO_TLSv1 | $CONST.SSL_OP_NO_SSLv3}
-            - pattern-not: |
-                {secureOptions: $CONST.SSL_OP_NO_SSLv2 | $CONST.SSL_OP_NO_SSLv3 | $CONST.SSL_OP_NO_TLSv1}
-            - pattern-not: |
-                {secureOptions: $CONST.SSL_OP_NO_SSLv3 | $CONST.SSL_OP_NO_SSLv2 | $CONST.SSL_OP_NO_TLSv1}
-            - pattern-not: |
-                {secureOptions: $CONST.SSL_OP_NO_SSLv3 | $CONST.SSL_OP_NO_TLSv1 | $CONST.SSL_OP_NO_SSLv2}
   message: |
     Detects creations of https servers from option objects that don't disallow SSL v2, SSL v3, and TLS v1.
     These protocols are deprecated due to POODLE, man in the middle attacks, and other vulnerabilities.

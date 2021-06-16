@@ -223,8 +223,8 @@ let abstract_for_comparison_any x =
 (*****************************************************************************)
 
 let is_AC_operator = function
-  | Or | And -> true
-  (* TODO: Plus, Mult, BitOr, BitAnd, ... ? *)
+  | Or | And | BitOr | BitAnd | BitXor -> true
+  (* TODO: Plus, Mult, ... ? *)
   | __else__ -> false
 
 let ac_matching_nf op args =
