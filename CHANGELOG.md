@@ -4,12 +4,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+- C#: parse __makeref, __reftype, __refvalue (#3364)
+
 ### Added
 - Associative-commutative matching for Boolean AND and OR operations
   (#3198)
 - Upgrade TypeScript parser (#3102)
 - Support metavariables inside strings (e.g., `foo("$VAR")`)
-- C#: parse __makeref, __reftype, __refvalue (#3364)
+- Support metavariables inside atoms (e.g., `foo(:$ATOM)`)
+- metavariable-pattern: Allow matching the content of a metavariable under
+  a different language.
 
 ### Fixed
 - C#: Parse attributes for local functions (#3348)

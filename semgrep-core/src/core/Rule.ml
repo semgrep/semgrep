@@ -121,7 +121,7 @@ and metavar_cond =
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
   | CondRegexp of MV.mvar * regexp
-  | CondPattern of MV.mvar * formula
+  | CondPattern of MV.mvar * Lang.t option * formula
 [@@deriving show, eq]
 
 (*****************************************************************************)
@@ -149,7 +149,8 @@ type formula_old =
 (* extra conditions, usually on metavariable content *)
 and extra =
   | MetavarRegexp of MV.mvar * regexp
-  | MetavarPattern of MV.mvar * formula
+  (* TODO: Generalize `Lang.t option` to `xlang`. *)
+  | MetavarPattern of MV.mvar * Lang.t option * formula
   | MetavarComparison of metavariable_comparison
   | PatWherePython of string
 
@@ -241,7 +242,8 @@ let rewrite_metavar_comparison_strip mvar cond =
 let convert_extra x =
   match x with
   | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
-  | MetavarPattern (mvar, formula) -> CondPattern (mvar, formula)
+  | MetavarPattern (mvar, opt_lang, formula) ->
+      CondPattern (mvar, opt_lang, formula)
   | MetavarComparison comp -> (
       match comp with
       (* do we care about strip and base? should not Eval_generic handle it?
