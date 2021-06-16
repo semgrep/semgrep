@@ -1,5 +1,6 @@
 $id: https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep/semgrep/rule_schema.yaml
 $schema: http://json-schema.org/draft-07/schema#
+$comment: '!!if you modify this file, you probably also need to update the one in semgrep-app:server/semgrep_app/rule_schema.yaml!!'
 definitions:
   patterns-content:
     type: array
