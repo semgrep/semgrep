@@ -1,10 +1,10 @@
 # `semgrep-core` Contributing
 
-The following explains how to build `semgrep-core` (and `spacegrep`) so you can make and test changes to the OCaml code. Once you have `semgrep-core` and `spacegrep` installed, you can refer to SEMGREP_CONTRIBUTING.md to see how to build and run the Semgrep application.
+The following explains how to build `semgrep-core` so you can make and test changes to the OCaml code. This will also install the `spacegrep` binary so it can be called by `semgrep`. Once you have `semgrep-core` and `spacegrep` installed, you can refer to SEMGREP_CONTRIBUTING.md to see how to build and run the Semgrep application.
 
 Contents:
 
-* [Building `semgrep-core` and `spacegrep`]
+* [Building `semgrep-core`](#building-semgrep-core)
 
   * [Development Environment](#development-environment)
   * [Profiling Code](#profiling-code)
@@ -15,11 +15,11 @@ Contents:
   * [Tree-Sitter Parsers](#tree-sitter-parsers)
   * [Tips for converting CST to generic AST](cst-to-ast-tips.md)
 
-## Building `semgrep-core` and `spacegrep`
+## Building `semgrep-core`
 
 ### Requirements
 
-Both `semgrep-core` and `spacegrep` are written primarily in OCaml. You will need to [install OCaml](https://opam.ocaml.org/doc/Install.html) and its package manager OPAM. On macOS, it should consist in doing:
+`semgrep-core` is written primarily in OCaml. You will need to [install OCaml](https://opam.ocaml.org/doc/Install.html) and its package manager OPAM. On macOS, it should consist in doing:
 
 ```bash
 brew install opam
@@ -47,7 +47,7 @@ To link all necessary dependencies, run (at the repository root `semgrep/`)
 make dev-setup
 ```
 
-Next, to install `semgrep-core` and `spacegrep`, run
+Next, to install `semgrep-core`, run
 
 ```
 make build-core
@@ -59,7 +59,7 @@ Finally, test the installation with
 semgrep-core -help
 ```
 
-and
+You should also be able to run
 
 ```
 spacegrep --help
@@ -71,7 +71,7 @@ At this point, you have the `semgrep-core` and `spacegrep` binaries, so if you w
 
 Unless there is a significant dependency change, you will not need to run `make dev-setup` again. 
 
-We have provided useful targets to help you build and link the entire semgrep project, including both `semgrep-core` and `spacegrep` and `semgrep`. You may find these helpful.
+We have provided useful targets to help you build and link the entire semgrep project, including both `semgrep-core` and `semgrep`. You may find these helpful.
 
 To install the latest OCaml binaries and `semgrep` binary after pulling source code changes from git, run
 
@@ -92,7 +92,7 @@ After making either of these targets, `semgrep` will run with all your local cha
 
 In practice, it is not always convenient to use `make build` or `make rebuild`. `make rebuild` will update everything within the project; `make build` will compile and install all the binaries. You can do this yourself in a more targeted fashion.
 
-Below is a flow appropriate for frequent developers of `semgrep-core` or `spacegrep`
+Below is a flow appropriate for frequent developers of `semgrep-core` 
 
 After you pull, run
 
@@ -137,20 +137,6 @@ Finally, to update the `semgrep-core` binary used by `semgrep`, run
 ```
 make install
 ```
-
-### Developing `spacegrep`
-
-If you are developing `spacegrep`, enter the `semgrep/spacegrep/` directory. The setup is largely the same as for `semgrep-core`. The `Makefile` for `spacegrep`-specific targets is at `semgrep/spacegre/`; the code is primarily in `src/`.
-
-To compile after a change, use `make`. To run the test suite, use `make test`.
-
-The executable for `spacegrep` is in `semgrep/spacegrep/_build/default/src/bin/Space_main.exe`. You can try it out with
-
-```
-_build/default/src/bin/Space_main.exe --help
-```
-
-To update the `spacegrep` binary used by `semgrep`, run `make install`
 
 ### Testing `semgrep-core`
 

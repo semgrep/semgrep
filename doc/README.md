@@ -21,7 +21,7 @@ This README gives an overview of the repository. For further information on buil
 
 ## File Structure
 
-Semgrep consists of a Python wrapper (`semgrep`) around two OCaml engines (`semgrep-core` and `spacegrep`) which perform the core parsing/matching work. `semgrep-core` is responsible for supported languages, while `spacegrep` performs generic matching. Within `semgrep-core`, there are two sources of parsers, `pfff`, linked as a [submodule](https://github.com/returntocorp/pfff), and `tree-sitter-lang`, built using [tree-sitter](https://github.com/tree-sitter/tree-sitter).
+Semgrep consists of a Python wrapper (`semgrep`) around an OCaml engine (`semgrep-core`) which performs the core parsing/matching work. Within `semgrep-core`, there are two sources of parsers, `pfff`, linked as a [submodule](https://github.com/returntocorp/pfff), and `tree-sitter-lang`, built using [tree-sitter](https://github.com/tree-sitter/tree-sitter). Additionally, `semgrep-core` contains a subengine, `spacegrep`, for generic matching.
 
 You may also be interested in `perf`, which contains our code for running repositories against specific rulesets.
 
@@ -34,18 +34,17 @@ There are many other files, but the below diagram broadly displays the file stru
 ├── semgrep-core/  (OCaml engine for matching)
 │   └── src/
 |       |── pfff/ [submodule](https://github.com/returntocorp/pfff)
-|       └── tree-sitter-lang/ 
-|
-├── spacegrep/ (OCaml engine for generic matching)
-│   └── src/
+|       |── tree-sitter-lang/
+|       └── spacegrep/  (Generic matching)
+|           └── src/ 
 |
 └── perf/  (Performance benchmarking)
 
-Most of Semgrep's logic is in `semgrep/semgrep`, `semgrep-core/src`, or `spacegrep/src`. 
+Most of Semgrep's logic is in `semgrep/semgrep` or `semgrep-core/src`. 
 
 ## Code Relationship
 
-The `semgrep-core` and `spacegrep` binaries stand alone. Once built, it is possible to run `semgrep-core` on a semgrep rule for a given language with a file/directory and receive matches. Similarly, it is possible to run `spacegrep` on a generic semgrep rule and file/directory.
+The `semgrep-core` binary stands alone. Once built, it is possible to run `semgrep-core` on a semgrep rule for a given language with a file/directory and receive matches. 
 
 For example, say you create the config file `unsafe-exec.yaml` and the program `unsafe-exec.py`:
 
@@ -83,6 +82,8 @@ The matched code is the same, but with `semgrep` the output is more polished and
 
 `semgrep` invokes the `semgrep-core` binary as a subprocess, with a flag to request JSON output. It reads the `semgrep-core` output and transforms it appropriately.
 
+Currently, depending on the flags used, `spacegrep` is invoked both independently by `semgrep` as a subprocess and by `semgrep-core` as a subfolder. Therefore, `semgrep` requires the `spacegrep` binary, but building `semgrep-core` will build `spacegrep` as well.
+
 ## Making a Change
 
 Semgrep runs on Python versions >= 3.6. If you don't have one of these versions installed, please do so before proceeding.
@@ -95,7 +96,7 @@ Depending on what change you want to make, it might be simpler to build only `se
 
 If you only want to build `semgrep`, go straight to [SEMGREP_CONTRIBUTING.md](fdsfd). Otherwise, follow the instructions in [SEMGREP_CORE_CONTRIBUTING](fds).
 
-Below is a guide for what functionality each of `semgrep` and `semgrep-core` controls. Generally, `spacegrep` is the same as `semgrep-core`, just for generic matching.
+Below is a guide for what functionality each of `semgrep` and `semgrep-core` controls. 
 
 ### Only `semgrep`
 
