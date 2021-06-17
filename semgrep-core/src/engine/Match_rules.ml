@@ -44,25 +44,30 @@ let debug_matches = ref false
  *  - visiting code (=~ Match_patterns.ml)
  *  - matching code (=~ Generic_vs_generic.ml)
  *
- * There are also "preprocessing" work before that:
+ * There are also "preprocessing" work before:
  *  - parsing (lexing, parsing) rules, code, patterns
  *  - normalizing (convert to a generic AST)
  *  - naming (but bugs probably)
  *  - SEMI typing (propagating type decls at least and small inference)
  *  - SEMI analyzing (dataflow constant propagation)
- *    but could do much more: deep static analysis using Datalog?
+ *    but we could do much more: deep static analysis using Datalog?
  *
  * TODO
  *  - associate the metavariable-regexp to the appropriate pattern
+ *    to get the right scope (right now we accept the wrong scope but
+ *    this forces to extend some ranges with metavars from other ranges)
  *  - pattern-where-python? use pycaml? works for dlint rule?
- *    right now only 4 rules are using pattern-where-python
+ *    right now only 4 rules are using pattern-where-python, so maybe
+ *    we could deprecate it?
  *
- * LATER (if really decide to rewrite the python wrapper in OCaml):
+ * LATER (if really decide to rewrite the whole python wrapper code in OCaml):
  *  - paths
  *  - autofix
+ *  - adjust messages with metavariable content
  *  - ...
  *
  * FUTURE WORK:
+ * update: TODO move in DeepSemgrep
  * Right now we just analyze one file at a time. Later we could
  * maybe take a list of files and do some global analysis for:
  *     * caller/callee in different files
@@ -109,9 +114,9 @@ type range_with_mvars = {
    * probably want to simplify things later and remove the difference between
    * xxx, xxx-inside, and xxx-regex.
    * TODO: in fact, if we do a proper intersection of ranges, where we
-   * propery intersect (not just filter one or the other), and also merge
+   * properly intersect (not just filter one or the other), and also merge
    * metavariables, this will clean lots of things, and remove the need
-   * to keep around the Inside. AND will be commutative again!
+   * to keep around the Inside. 'And' would be commutative again!
    *)
   kind : range_kind;
   origin : Pattern_match.t;
@@ -157,9 +162,6 @@ let (xpatterns_in_formula : R.formula -> R.xpattern list) =
   !res
 
 let partition_xpatterns xs =
-  (* todo: this is getting ugly. Maybe just split semgrep vs all others
-   * and factorize the timing and List.map in all those matches_of_xxx.
-   *)
   let semgrep = ref [] in
   let spacegrep = ref [] in
   let regexp = ref [] in
@@ -557,8 +559,22 @@ let regexp_matcher big_str file (_s, re) =
          let line, column = line_col_of_charpos file charpos in
          let loc2 = { PI.str; charpos; file; line; column } in
 
-         (* TODO? return regexp binded group? $1 $2 etc? *)
-         let env = [] in
+         (* return regexp binded group $1 $2 etc *)
+         let n = Pcre.num_of_subs sub in
+         let env =
+           match n with
+           | 1 -> []
+           | _ when n <= 0 -> raise Impossible
+           | n ->
+               Common2.enum 1 (n - 1)
+               |> List.map (fun n ->
+                      let charpos, _ = Pcre.get_substring_ofs sub n in
+                      let str = Pcre.get_substring sub n in
+                      let line, column = line_col_of_charpos file charpos in
+                      let loc = { PI.str; charpos; file; line; column } in
+                      let t = PI.mk_info_of_loc loc in
+                      (spf "$%d" n, MV.Text (str, t)))
+         in
          ((loc1, loc2), env))
 
 let matches_of_regexs regexps lazy_content file =
@@ -709,7 +725,8 @@ let rec (evaluate_formula :
       (* we now treat pattern: and pattern-inside: differently. We first
        * process the pattern: and then the pattern-inside.
        * This fixed only one mismatch in semgrep-rules.
-       * old:
+       *
+       * old: the old code was simpler ... but incorrect.
        *  (match pos with
        *  | [] -> failwith "empty And; no positive terms in And"
        *  | start::pos ->
