@@ -435,7 +435,7 @@ To dump the Python AST, run
 
 At this point, the relevant change you need to make will vary depending on your goal. It may be as simple as adding `...` as a possible case. It may require you to introduce a new construct and add it to `AST_generic` and `Ast_python`. As a rule of thumb, prefer to avoid changing `AST_generic` if possible. This will also make your life easier!
 
-When you change the grammar, it is important that you do not introduce conflicts. It can sometimes be okay to introduce a `shift/reduce` conflict, though avoid doing this if possible. It is never okay to introduce a `reduce/reduce` conflict. To understand this further, read about [LR(1) parsers][https://en.wikipedia.org/wiki/Canonical_LR_parser].
+When you change the grammar, it is important that you do not introduce conflicts. It can sometimes be okay to introduce a `shift/reduce` conflict, though avoid doing this if possible. It is never okay to introduce a `reduce/reduce` conflict. To understand this further, read about [LR(1) parsers](https://en.wikipedia.org/wiki/Canonical_LR_parser).
 
 If you do introduce a conflict, you can understand how to resolve it by running
 
