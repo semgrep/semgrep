@@ -36,6 +36,7 @@ install:
 .PHONY: build-core
 build-core:
 	$(MAKE) -C semgrep-core
+	$(MAKE) -C semgrep-core install
 
 # Update and rebuild everything within the project.
 #
