@@ -33,6 +33,7 @@ Contents:
   * [Fixing a Tree-sitter Parse Error](#fixing-a-tree-sitter-parse-error)
 * [Fixing a Match Error](#fixing-a-match-error)
 * [Fixing an Autofix Error](#fixing-an-autofix-error)
+* [Debugging Resources](#debugging-resources)
 * [Adding Support for a Language](#adding-support-for-a-language)
   * [Tree-Sitter Parsers](#tree-sitter-parsers)
   * [Tips for converting CST to generic AST](cst-to-ast-tips.md)
