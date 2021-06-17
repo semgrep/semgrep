@@ -237,6 +237,29 @@ You can also test the impact of your change by running `./run_benchmarks --std_o
 
 In these next sections we will give an overview of `semgrep-core` and then some tips for making common changes to `semgrep-core`. These are only tips; without seeing an error, we cannot know its cause and proper resolution, but hopefully it gives useful direction.
 
+## Cheatsheet
+
+The following assume you are in `semgrep/semgrep-core/`.
+
+Compilation:
+
+* To compile: `make`
+* To run the test suite: `make test`
+* To install the `semgrep-core` binary: `make install`
+* The `semgrep-core` executable produced by `make`: `_build/default/src/cli/Main.exe` (alias `sc`)
+* The `pfff` executable produced by `make`: `_build/default/src/pfff/cli/Main.exe` (alias `pf`)
+
+Running (examples in Python):
+
+* To match a rule file against a target: `sc -config [your-rule].yaml [your-target].py -lang python`
+* To match a pattern against a target: `sc -f [your-pattern].sgrep [your-target].py -lang python`
+* To dump a pattern AST: `sc -dump_pattern [your-pattern].sgrep -lang python`
+* To dump a target AST: `sc -dump_ast [your-target].py -lang python` 
+* To dump a pattern Python AST: `pf -dump_python [your_pattern].sgrep -sgrep_mode -lang python`
+* To dump a target Python AST: `pf -dump_python [your_pattern].sgrep -lang python`
+
+Try it out: `sc -f tests/python/dots_stmts.sgrep tests/python/dots_stmts.py -lang python`
+
 ## `semgrep-core` Overview
 
 ### Entry Point
