@@ -4,8 +4,6 @@
 
 There are probably changes to submodules that you don't have. Run `git submodule update --recursive`. 
 
-Additionally, `semgrep-core` depends on `spacegrep`, which is a separate binary. If you've already updated submodules, try `make && make install` in `./spacegrep`
-
 ## Pre-commit
 
 ### The pre-commit test is failing on Github
