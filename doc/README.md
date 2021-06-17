@@ -30,15 +30,15 @@ There are many other files, but the below diagram broadly displays the file stru
 ```
 .
 ├── semgrep/  (Python wrapper)
-|   └── semgrep/
-|
+│    └── semgrep/
+│ 
 ├── semgrep-core/  (OCaml engine for matching)
 │   └── src/
-|       |── pfff/ [submodule](https://github.com/returntocorp/pfff)
-|       |── tree-sitter-lang/
-|       └── spacegrep/  (Generic matching)
-|           └── src/
-|
+│       │── pfff/ [submodule](https://github.com/returntocorp/pfff)
+│       │── tree-sitter-lang/
+│       └── spacegrep/  (Generic matching)
+│           └── src/
+│ 
 └── perf/  (Performance benchmarking)
 ```
 
