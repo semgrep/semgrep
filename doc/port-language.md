@@ -32,7 +32,7 @@ Now that you have added you new language 'X' to pfff, do the following:
             Parallel.invoke Tree_sitter_X.Parse.file file ()
         )
    ```
-6. In `parsing/dune`, add `tree-sitter-lang.X`.
+6. In `parsing/tree_sitter/dune`, add `tree-sitter-lang.X`.
 7. Write a basic test case for your language in `tests/X/hello-world.X`. This can
    just be a hello-world function.
 8. Test that the command
