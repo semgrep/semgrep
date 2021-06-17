@@ -392,6 +392,8 @@ Now, you can see what generic AST is produced by this similar code. You can run
 
 where `sc` is an alias for `semgrep-core/_build/default/src/cli/Main.exe`, the executable produced by running `make` in `semgrep-core/`. If you have installed `semgrep-core`, you can instead use `semgrep-core` here, but each time you make a change you will need to compile (`make`) and then install (`make install`).
 
+By default, tokens are not shown in full in the dumped AST. Their presence is indicated by `()`.
+
 You may also find it useful to see the Python AST representation of the pattern. Just as `make` produces an executable for `semgrep-core` in `semgrep-core/_build/default/src/cli/Main.exe`, it also produces one for `pfff` in `semgrep-core/_build/default/src/pfff/cli/Main.exe` (alias to `pf` for these docs).
 
 To dump the Python AST, run
@@ -425,7 +427,7 @@ Unfortunately, it will also produce `Parser_python.ml` and `Parser_python.mli`, 
 
 #### Committing the Fix
 
-Once you have made your desired pattern or target parse, you need to make sure it doesn't break anything else! In `semgrep-core/`, run `make test`. If at the end it says `Ok`, you can commit your fix.
+Once you have made your desired pattern or target parse, you need to make sure it doesn't break anything else. In `semgrep-core/`, run `make test`. If at the end it says `Ok`, you can commit your fix!
 
 First, if you have any changes in `pfff`, go into the `semgrep-core/src/pfff/` directory, checkout `develop`, pull, and then make a pull request as usual with your changes.
 
@@ -443,17 +445,49 @@ There is more information in [Adding Support for a Language](#adding-support-for
 
 ## Fixing a Match Error
 
+The first thing you will need to do is understand what you expected and why you aren't getting that. If possible, reduce your rule to a single pattern that doesn't match. You may need to experiment with the clauses in your rule. For example, if you are getting too many matches, it may be because the pattern in `pattern-not` doesn't match what you expect.
 
+If you are unable to do so, you may need to investigate `Match_rule.ml`.
+
+Otherwise, produce a minimal failing pattern/target pair. You will need to compare the ASTs to see which portion is not matching as you expect. Run
+
+```
+sc -dump_ast [your_target].py -lang py
+```
+
+and then
+
+```
+sc -dump_pattern [your_pattern].sgrep -lang py
+```
+
+It can be hard to figure out where in the AST you are looking. You can make it easier by using a distinctive variable name in the section you're interested in. 
+
+Once you've isolated the parts that aren't matching, try to figure out where they're different, taking into account special features like metavariables and ellipses. It is unlikely (though not impossible) that the problem would ever be that two identical code segments aren't matching or that there is some AST element that ellipses refuse to match. You might find it helpful to write out the AST parts you want to match on a whiteboard, indicating which part is matched by a special feature. Pare down the code as much as possible and try changing the bit you're interested in.
+
+When you are sure you know what ought to have happened, make it happen. If two pieces of code should match but don't, change `Generic_vs_generic.ml` to tell it that pattern should match the target.
+
+Oftentimes, a matching error is actually a parsing error. You may want to change how `Parser_python.mly` reduces the construct or how it gets converted in `Python_to_generic.ml`. Refer to [Fixing a Parse Error](#fixing-a-parse-error) for advice.
+
+At the end, confirm the match with
+
+```
+sc -f [your_pattern].sgrep [your_target].py -lang py
+```
+
+## Fixing an Autofix Error
+
+Autofix runs through both `semgrep-core` and `semgrep`, but the most common autofix error people encounter is some kind of incorrect range. This happens because `semgrep-core` determines the range of a match based on the locations of the tokens stored in the AST. When the range is incorrect, that usually means a token is missing. You can see token location information with
+
+```
+sc -full_token_info -dump_ast [your_target].py -lang py
+```
+
+See [Fixing a Parse Error](#fixing-a-parse-error) for more on parsing 
 
 ## Adding Support for a Language
 
-New languages should use tree-sitter.
-
-### Legacy Parsers
-
-These parsers are implemented in
-[pfff](https://github.com/returntocorp/pfff), which is an OCaml
-project that we plug into semgrep-core as a git submodule.
+There are some cases where we have chosen to implement a new parser in `pfff`, but in general new languages should use tree-sitter.
 
 ### Tree-Sitter Parsers
 
