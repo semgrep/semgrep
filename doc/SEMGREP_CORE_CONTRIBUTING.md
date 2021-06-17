@@ -381,7 +381,7 @@ These files live in different places. Specifically,
 * `Python_to_generic.ml` is in `semgrep-core/src/parsing/pfff`
 * `AST_generic.ml` is in `semgrep-core/src/core/ast`
 
-You will notice that the first three, `Lexer_python.mll`, `Parser_python.mly`, and `AST_python.ml` are in `semgrep-core/src/pfff`, which is a submodule. This means that when you modify them, you modify the submodule rather than `semgrep-core`. Note that `pfff` is compiled when you run `make` in `semgrep-core/`
+You will notice that the first three, `Lexer_python.mll`, `Parser_python.mly`, and `AST_python.ml` are in `semgrep-core/src/pfff`, which is a submodule. This means that when you modify them, you modify the submodule rather than `semgrep-core`. You can develop as usual---`pfff` is compiled when you run `make` in `semgrep-core/`---but will need to go through an extra step to make a pull request.
 
 When a language is particularly complicated, it can be convenient to first parse into a CST, then convert to the AST. Currently, we only do this for PHP. In this case, there is an extra step:
 
