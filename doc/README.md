@@ -28,17 +28,17 @@ You may also be interested in `perf`, which contains our code for running reposi
 There are many other files, but the below diagram broadly displays the file structure. 
 
 .
-├── semgrep/  (Python wrapper)
-|   └── semgrep/
-|
-├── semgrep-core/  (OCaml engine for matching)
-│   └── src/
-|       |── pfff/ [submodule](https://github.com/returntocorp/pfff)
-|       |── tree-sitter-lang/
-|       └── spacegrep/  (Generic matching)
-|           └── src/ 
-|
-└── perf/  (Performance benchmarking)
+├── semgrep/  (Python wrapper)  
+|   └── semgrep/  
+|  
+├── semgrep-core/  (OCaml engine for matching)  
+│   └── src/  
+|       |── pfff/ [submodule](https://github.com/returntocorp/pfff)  
+|       |── tree-sitter-lang/  
+|       └── spacegrep/  (Generic matching)  
+|           └── src/  
+|  
+└── perf/  (Performance benchmarking)  
 
 Most of Semgrep's logic is in `semgrep/semgrep` or `semgrep-core/src`. 
 
