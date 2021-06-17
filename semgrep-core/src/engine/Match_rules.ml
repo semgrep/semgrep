@@ -545,12 +545,13 @@ let matches_of_spacegrep spacegreps file =
 (*-------------------------------------------------------------------*)
 (* Regexps *)
 (*-------------------------------------------------------------------*)
-let regexp_matcher big_str file (_s, re) =
+let regexp_matcher big_str file (re_str, re) =
   let subs = try Pcre.exec_all ~rex:re big_str with Not_found -> [||] in
   subs |> Array.to_list
   |> List.map (fun sub ->
+         let matched_str = Pcre.get_substring sub 0 in
          let charpos, _ = Pcre.get_substring_ofs sub 0 in
-         let str = Pcre.get_substring sub 0 in
+         let str = matched_str in
          let line, column = line_col_of_charpos file charpos in
          let loc1 = { PI.str; charpos; file; line; column } in
 
@@ -567,13 +568,18 @@ let regexp_matcher big_str file (_s, re) =
            | _ when n <= 0 -> raise Impossible
            | n ->
                Common2.enum 1 (n - 1)
-               |> List.map (fun n ->
-                      let charpos, _ = Pcre.get_substring_ofs sub n in
-                      let str = Pcre.get_substring sub n in
-                      let line, column = line_col_of_charpos file charpos in
-                      let loc = { PI.str; charpos; file; line; column } in
-                      let t = PI.mk_info_of_loc loc in
-                      (spf "$%d" n, MV.Text (str, t)))
+               |> Common.map_filter (fun n ->
+                      try
+                        let charpos, _ = Pcre.get_substring_ofs sub n in
+                        let str = Pcre.get_substring sub n in
+                        let line, column = line_col_of_charpos file charpos in
+                        let loc = { PI.str; charpos; file; line; column } in
+                        let t = PI.mk_info_of_loc loc in
+                        Some (spf "$%d" n, MV.Text (str, t))
+                      with Not_found ->
+                        logger#debug "not found %d substring of %s in %s" n
+                          re_str matched_str;
+                        None)
          in
          ((loc1, loc2), env))
 
@@ -932,9 +938,11 @@ and eval_nested_formula env xlang formula lazy_ast_and_errors lazy_content
 let check hook default_config rules equivs file_and_more =
   let file, xlang, lazy_ast_and_errors = file_and_more in
   logger#info "checking %s with %d rules" file (List.length rules);
+  if rules = [] then logger#error "empty rules";
   if !Common.profile = Common.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
     lazy_force lazy_ast_and_errors |> ignore );
+
   let lazy_content = lazy (Common.read_file file) in
   rules
   |> List.map (fun r ->
