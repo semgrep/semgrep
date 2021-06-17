@@ -288,7 +288,7 @@ Try it out: `sc -f tests/python/dots_stmts.sgrep tests/python/dots_stmts.py -lan
 
 The entry point to `semgrep-core` is `Main.ml`, in `semgrep-core/src/cli/`. This is where you add command-line arguments. It calls functions depending on the mode in which `semgrep-core` was invoked (`-config` for a yaml file, `-f` for a single pattern, etc.)
 
-When invoked by `semgrep`, `semgrep-core` is called by default wih `-config`. This corresponds to the function `semgrep-with-rules-file`, which in turn calls `semgrep-with-rules`. These functions will parse and then match the rule and targets.
+When invoked by `semgrep`, `semgrep-core` is called by default wih `-config`. This corresponds to the function `semgrep_with_rules_file`, which in turn calls `semgrep_with_rules`. These functions will parse and then match the rule and targets.
 
 ### Parsing
 
@@ -313,7 +313,7 @@ The matching functions are contained in `semgrep-core/src/engine/` (e.g. `Match_
 
 * spacegrep (for generic mode)
 * regexp (to match by regexp instead of semgrep patterns)
-* comby (an experimental mode for C++)
+* comby (an experimental mode for languages we don't yet support)
 * pattern (the main mode)
 
 We will only talk about the last for now. In most cases, `Match_rules.ml` will invoke the `check` function in `Match_patterns.ml`. This will visit the target AST and try to match the pattern to it at each point. If the pattern and the target node correspond, it will call the relevant function in `Generic_vs_generic.ml`.
@@ -322,7 +322,7 @@ The core of the matching is done by `Generic_vs_generic.ml`. The logic for wheth
 
 ### Reporting results
 
-The results of the match will be returned to the calling function in `Main.ml` (for example, `semgrep-with-rules`). From there, the results are formatted and outputted.
+The results of the match will be returned to the calling function in `Main.ml` (for example, `semgrep_with_rules`). From there, the results are formatted and outputted.
 
 There are two modes for outputting: JSON and text. JSON output is processed by functions in `JSON_report.ml` in `semgrep-core/src/reporting/`
 
@@ -381,7 +381,7 @@ These files live in different places. Specifically,
 * `Python_to_generic.ml` is in `semgrep-core/src/parsing/pfff`
 * `AST_generic.ml` is in `semgrep-core/src/core/ast`
 
-You will notice that the first three, `Lexer_python.mll`, `Parser_python.mly`, and `AST_python.ml` are in `semgrep-core/src/pfff`, which is a submodule. This means that when you modify them, you modify the submodule rather than `semgrep-core`. It also means that when you make a change in `pfff`, it gets compiled when you run `make` in `semgrep-core/`
+You will notice that the first three, `Lexer_python.mll`, `Parser_python.mly`, and `AST_python.ml` are in `semgrep-core/src/pfff`, which is a submodule. This means that when you modify them, you modify the submodule rather than `semgrep-core`. Note that `pfff` is compiled when you run `make` in `semgrep-core/`
 
 When a language is particularly complicated, it can be convenient to first parse into a CST, then convert to the AST. Currently, we only do this for PHP. In this case, there is an extra step:
 
@@ -401,7 +401,7 @@ If the problem is in `Lexer_python.mll`, you will probably get a helpful error m
 
 If the problem is in `Parser_python.mly`, you will probably not get a helpful error message, because the error will be reported in the generated parser, not the grammar. To identify which production within the grammar is problematic, you will want to see what AST the parser is trying to produce. Modify the failing case minimally until it parses successfully.
 
-Now, you can see what generic AST is produced by this similar code. You can run
+Now, you can see what generic AST is produced by this similar code. You can actually do this in the playground, by going to Tools -> Dump AST. On the command line, you can run
 
 * For a pattern: 
    ```
