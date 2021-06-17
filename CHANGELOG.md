@@ -2,18 +2,26 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.56.0](https://github.com/returntocorp/semgrep/releases/tag/v0.56.0) - 2021-06-15
+### Unreleased
 
-- C#: parse __makeref, __reftype, __refvalue (#3364)
+### Added
+- Capture groups in pattern-regex: in $1, $2, etc. (#3356)
+- Support metavariables inside atoms (e.g., `foo(:$ATOM)`)
 - Support metavariables and ellipsis inside regexp literals
   (e.g., `foo(/.../)`)
 - Associative-commutative matching for bitwise OR, AND, and XOR operations
+
+### Fixed
+- C#: parse __makeref, __reftype, __refvalue (#3364)
+
+### Changed
+
+## [0.56.0](https://github.com/returntocorp/semgrep/releases/tag/v0.56.0) - 2021-06-15
 
 ### Added
 - Associative-commutative matching for Boolean AND and OR operations
   (#3198)
 - Support metavariables inside strings (e.g., `foo("$VAR")`)
-- Support metavariables inside atoms (e.g., `foo(:$ATOM)`)
 - metavariable-pattern: Allow matching the content of a metavariable under
   a different language.
 
