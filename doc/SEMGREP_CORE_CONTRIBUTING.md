@@ -381,7 +381,7 @@ These files live in different places. Specifically,
 * `Python_to_generic.ml` is in `semgrep-core/src/parsing/pfff`
 * `AST_generic.ml` is in `semgrep-core/src/core/ast`
 
-You will notice that the first three, `Lexer_python.mll`, `Parser_python.mly`, and `AST_python.ml` are in `semgrep-core/src/pfff`, which is a submodule. This means that when you modify them, you modify the submodule rather than `semgrep-core`. You can develop as usual---`pfff` is compiled when you run `make` in `semgrep-core/`---but will need to go through an extra step to make a pull request.
+You will notice that the first three, `Lexer_python.mll`, `Parser_python.mly`, and `AST_python.ml` are in `semgrep-core/src/pfff/`, which is a submodule. This means that when you modify them, you modify the submodule rather than `semgrep-core`. You can develop as usual---`pfff` is compiled when you run `make` in `semgrep-core/`---but will need to go through an extra step to make a pull request (explained later).
 
 When a language is particularly complicated, it can be convenient to first parse into a CST, then convert to the AST. Currently, we only do this for PHP. In this case, there is an extra step:
 
@@ -401,7 +401,7 @@ If the problem is in `Lexer_python.mll`, you will probably get a helpful error m
 
 If the problem is in `Parser_python.mly`, you will probably not get a helpful error message, because the error will be reported in the generated parser, not the grammar. To identify which production within the grammar is problematic, you will want to see what AST the parser is trying to produce. Modify the failing case minimally until it parses successfully.
 
-Now, you can see what generic AST is produced by this similar code. You can actually do this in the playground, by going to Tools -> Dump AST. On the command line, you can run
+Now, you need to see what generic AST is produced by this similar code. You can actually do this in the playground, by going to Tools -> Dump AST. On the command line, you can run
 
 * For a pattern: 
    ```
@@ -435,9 +435,13 @@ To dump the Python AST, run
 
 At this point, the relevant change you need to make will vary depending on your goal. It may be as simple as adding `...` as a possible case. It may require you to introduce a new construct and add it to `AST_generic` and `Ast_python`. As a rule of thumb, prefer to avoid changing `AST_generic` if possible. This will also make your life easier!
 
-When you change the grammar, it is important that you do not introduce conflicts. It can sometimes be okay to introduce a `shift/reduce` conflict, though avoid doing this if possible. It is never okay to introduce a `reduce/reduce` conflict. To understand this further, read about [LR(1) parsers](https://en.wikipedia.org/wiki/Canonical_LR_parser).
+If you add a pattern-specific feature, remember to use `Flag_semgrep.sgrep_guard` so that an invalid target does not parse successfully.
 
-If you do introduce a conflict, you can understand how to resolve it by running
+When you change the grammar, it is important that you do not introduce conflicts. Check the conflicts before you start by forcing dune to compile the grammar. (You can either use `make clean` and read through the output or make a change in `Parser_python.mly`, run `make`, then remove the change and run `make` again.) Then, after you change the grammar, see if there are any more conflicts than there were before your change.
+
+It can sometimes be okay to introduce a `shift/reduce` conflict, though avoid doing this if possible. It is never okay to introduce a `reduce/reduce` conflict. To understand why, read about [LR(1) parsers](https://en.wikipedia.org/wiki/Canonical_LR_parser).
+
+If you do introduce a conflict, you can figure out how to resolve it by running
 
 ```
 menhir --explain Parser_python.mly
@@ -451,9 +455,9 @@ Unfortunately, it will also produce `Parser_python.ml` and `Parser_python.mli`, 
 
 Once you have made your desired pattern or target parse, you need to make sure it doesn't break anything else. In `semgrep-core/`, run `make test`. If at the end it says `Ok`, you can commit your fix!
 
-First, if you have any changes in `pfff`, go into the `semgrep-core/src/pfff/` directory, checkout `develop`, pull, and then make a pull request as usual with your changes.
+First, if you have any changes in `pfff`, go into the `semgrep-core/src/pfff/` directory, checkout `develop`, pull, and then make a pull request as usual with your changes. This will make a PR to [`pfff`](https://github.com/returntocorp/pfff).
 
-Once you have changed `pfff`, `semgrep-core` will realize that `pfff` is different. If you go back up to `semgrep-core/` and run `git status`, you will see `modified: src/pfff (modified content)`. To pin your latest `pfff` changes to `semgrep-core`, add `src/pfff`.
+When you change files in `pfff`, `semgrep-core` will realize that `pfff` is different (though not which file within `pfff`). If you go back up to `semgrep-core/` and run `git status`, you will see `modified: src/pfff (modified content)`. To pin your latest `pfff` changes to `semgrep-core`, add `src/pfff`.
 
 Now, make the rest of your pull request for `semgrep-core` as usual.
 
@@ -506,6 +510,20 @@ sc -full_token_info -dump_ast [your_target].py -lang py
 ```
 
 See [Fixing a Parse Error](#fixing-a-parse-error) for more on parsing 
+
+## Debugging Resources
+
+In the process of debugging, you will probably want to print things. We provide a function `pr2` in `Common.ml` (in `semgrep-core/src/pfff/commons/`) to print strings. You can also use the `Printf` module.
+
+If you would like to print an AST element, you can use a `show` function. For example, to print a node of type `any` in `AST_generic`, you can use
+
+`pr2 (show_any your_node)`
+
+Any type that includes `[@@deriving show]` in its definition can be converted to a string in this way.
+
+We also provide some flags that are useful. If you run with `-debug`, you can see the steps `semgrep-core` is taking. You can see more information (and change what you want to see) using `-log_config_file`, which takes a file. You can use one of `semgrep-core/log_config.json.ex1` or `semgrep-core/log_config.json.ex2` to start.
+
+Additionally, the [OCaml debugger](https://ocaml.org/manual/debugger.html) is a great resource.
 
 ## Adding Support for a Language
 
