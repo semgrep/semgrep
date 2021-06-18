@@ -31,9 +31,9 @@ Editing the boilerplate
 ### Study examples
 
 `Parse_foo_tree_sitter.ml` is copied from the generated file
-`Boilerplate.ml`. The `todo env x` calls are typically replaced by the
+[`Boilerplate.ml`](https://github.com/returntocorp/semgrep-go/blob/main/lib/Boilerplate.ml). The `todo env x` calls are typically replaced by the
 construction of a node of the AST.
-See how it's done for example in `Parse_go_tree_sitter.ml`.
+See how it's done for example in [`Parse_go_tree_sitter.ml`](https://github.com/returntocorp/semgrep/blob/develop/semgrep-core/src/parsing/tree_sitter/Parse_go_tree_sitter.ml).
 
 ### Learn OCaml basics
 
