@@ -42,10 +42,9 @@ accommodate nodes of different kinds under the same type.
 Those are known as variants (e.g. `Expr e`) and
 polymorphic variants in OCaml jargon (e.g. `` `Expr e``).
 
-Another aspect of the language with unusual syntax is parametrized
-types, which are known as generics in languages like Java.
+Parametrized types in OCaml are like generics in languages like Java.
 The OCaml type for a list of ints is denoted `int list`, which would
-be denoted `List<Int>` a Java-like language.
+be denoted `List<Int>` in a Java-like language.
 
 Run `utop` (`opam install utop`) and go over [this tutorial about OCaml
 types at ocaml.org](https://ocaml.org/learn//tutorials/data_types_and_matching.html).
