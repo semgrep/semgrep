@@ -13,7 +13,7 @@ Contents:
 
 ## Getting `semgrep-core` and `spacegrep` binaries
 
-If you would like to install `semgrep-core` and `spacegrep` from source (for example, because you want to fix a parse error), follow the instructions in [Building `semgrep-core`](https://github.com/returntocorp/semgrep/blob/develop/doc/SEMGREP_CORE_CONTRIBUTING.md#building-semgrep-core) and skip this section.
+If you would like to install `semgrep-core` and `spacegrep` from source (for example, because you want to fix a parse error), follow the instructions in [Building `semgrep-core`](doc/SEMGREP_CORE_CONTRIBUTING.md#building-semgrep-core) and skip this section.
 
 Otherwise, visit the [releases page](https://github.com/returntocorp/semgrep/releases)
 and grab the latest zipfile or tarball for your platform. Extract this archive
