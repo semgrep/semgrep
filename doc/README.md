@@ -17,7 +17,7 @@ Contents:
   * [Both `semgrep` and `semgrep-core`](#both-semgrep-and-semgrep-core) 
 * [Development Workflow](#development-workflow)
 
-This README gives an overview of the repository. For further information on building, you will be directed to [SEMGREP_CORE_CONTRIBUTING.md](fds) and/or [SEMGREP_CONTRIBUTING.md](fdsfd) in [Making a Change](#making-a-change). 
+This README gives an overview of the repository. For further information on building, you will be directed to [SEMGREP_CORE_CONTRIBUTING.md](SEMGREP_CORE_CONTRIBUTING.md) and/or [SEMGREP_CONTRIBUTING.md](SEMGREP_CONTRIBUTING.md) in [Making a Change](#making-a-change). 
 
 ## File Structure
 
@@ -27,18 +27,20 @@ You may also be interested in `perf`, which contains our code for running reposi
 
 There are many other files, but the below diagram broadly displays the file structure. 
 
+```
 .
 ├── semgrep/  (Python wrapper)
-|   └── semgrep/
-|
+│    └── semgrep/
+│ 
 ├── semgrep-core/  (OCaml engine for matching)
 │   └── src/
-|       |── pfff/ [submodule](https://github.com/returntocorp/pfff)
-|       |── tree-sitter-lang/
-|       └── spacegrep/  (Generic matching)
-|           └── src/ 
-|
+│       │── pfff/ [submodule](https://github.com/returntocorp/pfff)
+│       │── tree-sitter-lang/
+│       └── spacegrep/  (Generic matching)
+│           └── src/
+│ 
 └── perf/  (Performance benchmarking)
+```
 
 Most of Semgrep's logic is in `semgrep/semgrep` or `semgrep-core/src`. 
 
@@ -88,13 +90,13 @@ Currently, depending on the flags used, `spacegrep` is invoked both independentl
 
 Semgrep runs on Python versions >= 3.6. If you don't have one of these versions installed, please do so before proceeding.
 
-Because the Python and OCaml development paths are relatively independent, the instructions are divided into Python ([SEMGREP_CONTRIBUTING.md](fdsfd)) and OCaml ([SEMGREP_CORE_CONTRIBUTING.md](fds)).
+Because the Python and OCaml development paths are relatively independent, the instructions are divided into Python ([SEMGREP_CONTRIBUTING.md](SEMGREP_CONTRIBUTING.md)) and OCaml ([SEMGREP_CORE_CONTRIBUTING.md](SEMGREP_CORE_CONTRIBUTING.md)).
 
-To fully build Semgrep from source, start at [SEMGREP_CORE_CONTRIBUTING.md](fds). It will direct you to [SEMGREP_CONTRIBUTING.md](fdsfd) when appropriate.
+To fully build Semgrep from source, start at [SEMGREP_CORE_CONTRIBUTING.md](SEMGREP_CORE_CONTRIBUTING.md). It will direct you to [SEMGREP_CONTRIBUTING.md](SEMGREP_CONTRIBUTING.md) when appropriate.
 
 Depending on what change you want to make, it might be simpler to build only `semgrep` or only `semgrep-core`. For example, if you only want to modify Python code, you can skip installing OCaml by downloading binaries for the OCaml parts. Similarly, if you only want to modify OCaml code, you can work on `semgrep-core`/`spacegrep` directly.
 
-If you only want to build `semgrep`, go straight to [SEMGREP_CONTRIBUTING.md](fdsfd). Otherwise, follow the instructions in [SEMGREP_CORE_CONTRIBUTING](fds).
+If you only want to build `semgrep`, go straight to [SEMGREP_CONTRIBUTING.md](SEMGREP_CONTRIBUTING.md). Otherwise, follow the instructions in [SEMGREP_CORE_CONTRIBUTING](SEMGREP_CORE_CONTRIBUTING.md).
 
 Below is a guide for what functionality each of `semgrep` and `semgrep-core` controls. 
 
@@ -106,7 +108,7 @@ The python code for Semgrep performs pre and post-processing work. You likely ne
 * What files are scanned for each language
 * The message that is displayed
 
-Go to [SEMGREP_CONTRIBUTING.md](fdsfd)
+Go to [SEMGREP_CONTRIBUTING.md](SEMGREP_CONTRIBUTING.md)
 
 ### Only `semgrep-core`
 
@@ -116,7 +118,7 @@ The OCaml code for Semgrep performs all the parsing and matching work. You likel
 * Fix a matching error
 * Improve Semgrep's performance
 
-Go to [SEMGREP_CORE_CONTRIBUTING.md](fds)
+Go to [SEMGREP_CORE_CONTRIBUTING.md](SEMGREP_CORE_CONTRIBUTING.md)
 
 ### Both `semgrep` and `semgrep-core`
 
@@ -126,7 +128,7 @@ There are some features that cross through both OCaml and Python code. You will 
 * Add a new language
 * Change error reporting
 
-Go to [SEMGREP_CORE_CONTRIBUTING.md](fds). It will direct you to [SEMGREP_CONTRIBUTING.md](fdsfd) when appropriate. 
+Go to [SEMGREP_CORE_CONTRIBUTING.md](SEMGREP_CORE_CONTRIBUTING.md). It will direct you to [SEMGREP_CONTRIBUTING.md](SEMGREP_CONTRIBUTING.md) when appropriate. 
 
 ## Development Workflow
 
