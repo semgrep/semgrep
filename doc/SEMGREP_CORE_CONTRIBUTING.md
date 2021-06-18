@@ -88,7 +88,7 @@ You should also be able to run
 spacegrep --help
 ```
 
-At this point, you have the `semgrep-core` and `spacegrep` binaries, so if you would like to finish the Semgrep installation, go to the [Python-side instructions](link).
+At this point, you have the `semgrep-core` and `spacegrep` binaries, so if you would like to finish the Semgrep installation, go to the [Python-side instructions](SEMGREP_CONTRIBUTING.md).
 
 ### Installing After a Change
 
@@ -109,7 +109,7 @@ make build    # or just `make`
 
 After making either of these targets, `semgrep` will run with all your local changes, OCaml and Python both.
 
-(Note: Because this updates the `semgrep` binary, if you do not have your Python environment configured properly, you will encounter errors when running these commands. Follow the procedure under [Development](Development))
+(Note: Because this updates the `semgrep` binary, if you do not have your Python environment configured properly, you will encounter errors when running these commands. Follow the procedure under [Development](#development))
 
 ## Development 
 
