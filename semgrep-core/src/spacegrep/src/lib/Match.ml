@@ -99,27 +99,29 @@ let case_insensitive_equal a b =
   with Exit -> false
 
 (*
-   Find the rightmost location in a document and return it only if it's
-   not too far (past the maximum line max_line_num).
- *)
+   Find the rightmost location in a document that is not too far away, i.e.
+   not beyond line 'max_line_num'.
+*)
 let rec extend_last_loc ~max_line_num last_loc (doc : Doc_AST.node list) =
   match doc with
-  | [] -> Some last_loc
-  | List doc1 :: doc2 -> (
-      match extend_last_loc ~max_line_num last_loc doc1 with
-      | None -> None
-      | Some last_loc -> extend_last_loc ~max_line_num last_loc doc2 )
+  | [] -> last_loc
+  | List doc1 :: doc2 ->
+      let last_loc = extend_last_loc ~max_line_num last_loc doc1 in
+      extend_last_loc ~max_line_num last_loc doc2
   | Atom (loc, _) :: doc ->
       if loc_lnum loc <= max_line_num then extend_last_loc ~max_line_num loc doc
-      else Some last_loc
+      else last_loc
 
+(*
+   Match trailing dots, if any, against the tail of a block.
+*)
 let doc_matches_dots ~dots last_loc doc =
   match (dots, doc) with
   | None, [] -> Some last_loc
   | None, _ -> None
   | Some max_line_num, doc ->
       if loc_lnum last_loc <= max_line_num then
-        extend_last_loc ~max_line_num last_loc doc
+        Some (extend_last_loc ~max_line_num last_loc doc)
       else None
 
 let rec pat_matches_empty_doc pat =
