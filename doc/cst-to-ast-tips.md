@@ -70,9 +70,8 @@ here:
         let id = concat_nested_identifier v1 in
         let _v2 =
 ```
-among other locations.
 
-Instead, it works better to give it the name `id_or_nested_id` as
+Instead, it works better to give it a meaningful name like `id_or_nested_id` as
 follows:
 
 ```ocaml
@@ -111,7 +110,7 @@ so as to figure out type errors a lot more easily.
 let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) =
 ```
 becomes
-```
+```ocaml
 let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) : ident =
 ```
 
@@ -121,6 +120,8 @@ Summary:
 * Replace `let v1 =` by a meaningful name.
 * Specify the return type of functions that map CST to AST.
 * Preserve the general structure of the generated functions.
+
+This all helps with updating the code when the grammar changes.
 
 Compile regularly
 --
