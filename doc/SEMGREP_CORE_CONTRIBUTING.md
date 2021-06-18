@@ -88,7 +88,7 @@ You should also be able to run
 spacegrep --help
 ```
 
-At this point, you have the `semgrep-core` and `spacegrep` binaries, so if you would like to finish the Semgrep installation, go to the [Python-side instructions](https://github.com/returntocorp/semgrep/blob/develop/doc/SEMGREP_CONTRIBUTING.md).
+At this point, you have the `semgrep-core` and `spacegrep` binaries, so if you would like to finish the Semgrep installation, go to the [Python-side instructions](SEMGREP_CONTRIBUTING.md).
 
 ### Installing After a Change
 
