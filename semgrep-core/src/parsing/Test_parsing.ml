@@ -167,6 +167,10 @@ let test_parse_tree_sitter lang xs =
 (* Pfff and tree-sitter parsing *)
 (*****************************************************************************)
 
+(*
+   Expand the list of files or directories into a list of files in the
+   specified language, and return a record for each file.
+*)
 let parsing_common ?(verbose = true) lang xs =
   let xs = List.map Common.fullpath xs in
   let fullxs =
@@ -195,22 +199,110 @@ let parsing_common ?(verbose = true) lang xs =
              Common.push stat stat_list));
   !stat_list
 
-let parsing_stats lang json files_or_dirs =
+(*
+   Parse files from multiple root folders, each root being considered a
+   separate project. Keeping projects separate allows us to spot
+   projects with unusual results.
+*)
+let parse_project lang name files_or_dirs =
   let stat_list = parsing_common lang files_or_dirs in
-  if json then
-    let total, bad = Parse_info.aggregate_stats stat_list in
-    let good = total - bad in
-    let json =
-      J.Object
-        [
-          ("total", J.Int total);
-          ("bad", J.Int bad);
-          ("percent_correct", J.Float (Common2.pourcent_float good total));
-        ]
-    in
-    let s = J.string_of_json json in
-    pr s
-  else Parse_info.print_parsing_stat_list stat_list
+  (name, stat_list)
+
+(* Json doesn't tolerate NaN values, so we use 1 instead. *)
+let replace_nan x = if x <> x then 1. else x
+
+let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
+    Parsing_stats_t.project_stats =
+  {
+    acc with
+    parsing_rate =
+      1. -. (float acc.error_line_count /. float acc.line_count) |> replace_nan;
+  }
+
+(*
+   Add things up for json reporting: file stats -> project stat
+*)
+let aggregate_file_stats (results : (string * PI.parsing_stat list) list) :
+    Parsing_stats_t.project_stats list =
+  List.map
+    (fun (project_name, file_stats) ->
+      let acc =
+        {
+          Parsing_stats_t.name = project_name;
+          parsing_rate = nan;
+          line_count = 0;
+          error_line_count = 0;
+          file_count = 0;
+          error_file_count = 0;
+        }
+      in
+      let acc =
+        List.fold_left
+          (fun (acc : Parsing_stats_t.project_stats) (x : PI.parsing_stat) ->
+            let success = x.error_line_count = 0 in
+            {
+              acc with
+              Parsing_stats_t.line_count = acc.line_count + x.total_line_count;
+              error_line_count = acc.error_line_count + x.error_line_count;
+              file_count = acc.file_count + 1;
+              error_file_count =
+                (acc.error_file_count + if not success then 1 else 0);
+            })
+          acc file_stats
+      in
+      update_parsing_rate acc)
+    results
+
+(*
+   Add things up for json reporting: project stats -> global stat
+*)
+let aggregate_project_stats lang
+    (project_stats : Parsing_stats_t.project_stats list) : Parsing_stats_t.t =
+  let open Parsing_stats_t in
+  let acc =
+    {
+      name = "*";
+      parsing_rate = nan;
+      line_count = 0;
+      error_line_count = 0;
+      file_count = 0;
+      error_file_count = 0;
+    }
+  in
+  let acc =
+    List.fold_left
+      (fun acc proj ->
+        {
+          acc with
+          line_count = acc.line_count + proj.line_count;
+          error_line_count = acc.error_line_count + proj.error_line_count;
+          file_count = acc.file_count + proj.file_count;
+          error_file_count = acc.error_file_count + proj.error_file_count;
+        })
+      acc project_stats
+  in
+  let global = update_parsing_rate acc in
+  { language = Lang.string_of_lang lang; global; projects = project_stats }
+
+let print_json lang results =
+  let project_stats = aggregate_file_stats results in
+  let stats = aggregate_project_stats lang project_stats in
+  let s = Parsing_stats_j.string_of_t stats in
+  print_endline (Yojson.Safe.prettify s)
+
+let parse_projects lang project_dirs =
+  List.map
+    (fun dir ->
+      let name = dir in
+      parse_project lang name [ dir ])
+    project_dirs
+
+let parsing_stats lang json project_dirs =
+  let stat_list = parse_projects lang project_dirs in
+  if json then print_json lang stat_list
+  else
+    let flat_stat = List.map snd stat_list |> List.flatten in
+    Parse_info.print_parsing_stat_list flat_stat
 
 let parsing_regressions lang files_or_dirs =
   let _stat_list = parsing_common lang files_or_dirs in
