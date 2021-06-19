@@ -427,7 +427,8 @@ and literal env = function
       | Lang.Kotlin | Lang.JSON | Lang.Javascript | Lang.OCaml | Lang.Ruby
       | Lang.Typescript | Lang.Lua | Lang.Rust | Lang.R ->
           "\"" ^ s ^ "\"" )
-  | Regexp (s, _) -> s
+  | Regexp ((_, (s, _), _), rmod) -> (
+      "/" ^ s ^ "/" ^ match rmod with None -> "" | Some (s, _) -> s )
   | x -> todo (E (L x))
 
 and arguments env xs =

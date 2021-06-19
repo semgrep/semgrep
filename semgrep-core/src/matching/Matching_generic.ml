@@ -739,6 +739,9 @@ let adjust_info_remove_enclosing_quotes (s, info) =
     (* return original token ... better than failwith? *)
     (s, info)
 
+(* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
+ * point when AST_generic.String is of string bracket
+ *)
 let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
     b =
   match fst a with
@@ -753,6 +756,14 @@ let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
       let f = regexp_matcher_of_regexp_string astr in
       if f (fst b) then return () else fail ()
   | _ -> m_wrap m_string_for_default a b
+
+let m_ellipsis_or_metavar_or_string a b =
+  match fst a with
+  (* dots: '...' on string in atom/regexp/string *)
+  | "..." -> return ()
+  (* metavar: *)
+  | s when MV.is_metavar_name s -> envf a (MV.Text b)
+  | _ -> m_wrap m_string a b
 
 (*s: function [[Matching_generic.m_other_xxx]] *)
 let m_other_xxx a b =

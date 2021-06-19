@@ -324,7 +324,8 @@ and map_literal = function
   | Ratio v1 ->
       let v1 = map_wrap map_of_string v1 in
       `Ratio v1
-  | Atom v1 ->
+  (* new: TODO: v0 skipped, should use PI.combine_info *)
+  | Atom (_v0, v1) ->
       let v1 = map_wrap map_of_string v1 in
       `Atom v1
   | Char v1 ->
@@ -333,7 +334,8 @@ and map_literal = function
   | String v1 ->
       let v1 = map_wrap map_of_string v1 in
       `String v1
-  | Regexp v1 ->
+  (* new: TODO: lots of tokens skipped, should use PI.combine_info *)
+  | Regexp ((_, v1, _), _) ->
       let v1 = map_wrap map_of_string v1 in
       `Regexp v1
   | Null v1 ->

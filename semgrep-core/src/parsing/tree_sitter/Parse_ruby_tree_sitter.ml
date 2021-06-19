@@ -631,7 +631,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v5 = token2 env v5 (* string_end *) in
       Literal (String (Double (v1, v3 |> List.flatten, v5)))
   | `Symb_array (v1, v2, v3, v4, v5) ->
-      let v1 = token2 env v1 in
+      let v1 = token2 env v1 (* %i( *) in
       let _v2 =
         match v2 with Some tok -> Some (token2 env tok) | None -> None
       in
@@ -643,8 +643,8 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let _v4 =
         match v4 with Some tok -> Some (token2 env tok) | None -> None
       in
-      let v5 = token2 env v5 in
-      Atom (AtomFromString (v1, v3 |> List.flatten, v5))
+      let v5 = token2 env v5 (* ) *) in
+      Atom (v1, AtomFromString (v1, v3 |> List.flatten, v5))
   | `Hash (v1, v2, v3) ->
       let v1 = token2 env v1 in
       let v2 =
@@ -704,8 +704,9 @@ and primary (env : env) (x : CST.primary) : AST.expr =
   | `Regex (v1, v2, v3) ->
       let v1 = token2 env v1 in
       let v2 = match v2 with Some x -> literal_contents env x | None -> [] in
-      let _v3 = token2 env v3 in
-      Literal (Regexp ((v2, "??"), v1))
+      let v3 = token2 env v3 in
+      (* TODO: no modifier in Ruby grammar.js? *)
+      Literal (Regexp ((v1, v2, v3), None))
   | `Lambda (v1, v2, v3) ->
       let v1 = token2 env v1 in
       let v2 =
@@ -1425,14 +1426,19 @@ and string_ (env : env) ((v1, v2, v3) : CST.string_) : AST.interp list bracket =
   (* single or double quote *)
   (v1, v2, v3)
 
-and simple_symbol (env : env) (tok : CST.simple_symbol) =
-  AtomSimple (str env tok)
+and simple_symbol (env : env) (tok : CST.simple_symbol) : atom =
+  (* TODO: split tok *)
+  let t = token2 env tok in
+  let tcolon, tafter = PI.split_info_at_pos 1 t in
+  let str = PI.str_of_info tafter in
+  (tcolon, AtomSimple (str, tafter))
 
-and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) =
-  let v1 = token2 env v1 (* symbol_start *) in
-  let v2 = match v2 with Some x -> literal_contents env x | None -> [] in
-  let v3 = token2 env v3 (* string_end *) in
-  AtomFromString (v1, v2, v3)
+and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) : atom =
+  (* TODO: split v1 *)
+  let v1 = token2 env v1 (* symbol_start :" "*) in
+  let res = match v2 with Some x -> literal_contents env x | None -> [] in
+  let v3 = token2 env v3 (* string_end " "*) in
+  (Parse_info.fake_info ":", AtomFromString (v1, res, v3))
 
 and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
   List.filter_map

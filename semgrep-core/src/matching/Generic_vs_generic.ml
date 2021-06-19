@@ -788,17 +788,20 @@ and m_label_ident a b =
 and m_literal a b =
   match (a, b) with
   (*s: [[Generic_vs_generic.m_literal()]] ellipsis case *)
-  (* dots: '...' on string or regexps *)
+  (* dots: metavar: '...' and metavars on string/regexps/atoms *)
   | A.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
+  | A.Atom (_, a), B.Atom (_, b) -> m_ellipsis_or_metavar_or_string a b
+  | A.Regexp (a1, a2), B.Regexp (b1, b2) -> (
+      let* () = m_bracket m_ellipsis_or_metavar_or_string a1 b1 in
+      match (a2, b2) with
+      (* less_is_ok: *)
+      | None, _ -> return ()
+      | Some a, Some b -> m_ellipsis_or_metavar_or_string a b
+      | Some _, None -> fail () )
   (*x: [[Generic_vs_generic.m_literal()]] ellipsis case *)
-  | A.Regexp ("/.../", a), B.Regexp (_s, b) -> m_info a b
   (*e: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (*s: [[Generic_vs_generic.m_literal()]] regexp case *)
   (*e: [[Generic_vs_generic.m_literal()]] regexp case *)
-  | A.Atom (s, tok), B.Atom _b1
-    when s =~ "^:\\(.*\\)" && MV.is_metavar_name (Common.matched1 s) ->
-      let mvar = Common.matched1 s in
-      envf (mvar, tok) (MV.E (B.L b))
   (* boilerplate *)
   | A.Unit a1, B.Unit b1 -> m_tok a1 b1
   | A.Bool a1, B.Bool b1 -> (m_wrap m_bool) a1 b1
@@ -806,9 +809,7 @@ and m_literal a b =
   | A.Float a1, B.Float b1 -> m_wrap_m_float_opt a1 b1
   | A.Imag a1, B.Imag b1 -> (m_wrap m_string) a1 b1
   | A.Ratio a1, B.Ratio b1 -> (m_wrap m_string) a1 b1
-  | A.Atom a1, B.Atom b1 -> (m_wrap m_string) a1 b1
   | A.Char a1, B.Char b1 -> (m_wrap m_string) a1 b1
-  | A.Regexp a1, B.Regexp b1 -> (m_wrap m_string) a1 b1
   | A.Null a1, B.Null b1 -> m_tok a1 b1
   | A.Undefined a1, B.Undefined b1 -> m_tok a1 b1
   | A.Unit _, _
@@ -1264,11 +1265,18 @@ and m_call_op aop aargs bop tokb bargs =
  *
  * This for example, will successfully match `a && b && c` against `b && a && c`!
  * It will also match `if (<... b && c ...>) ...` against `if (a && b && c) S`
- * which was not matching before (`a && b && c` is parsed as `(a && b) && c`).
- * In fact, we do not even need a deep-expr pattern, `if (b && c) ...` will also
- * match `if (a && b && c) S`!
+ * which was not matching before as `a && b && c` is parsed as `(a && b) && c`.
  *
  * BEHAVIOR ISSUES:
+ *
+ * Even without a deep-expr pattern, `if (b && c) ...` will also match
+ * `if (a && b && c) S`. That is, there is an implicit `op ...` added to AC
+ * operators. Why? Let's say that we want to match pattern `<... a && b ...>`
+ * against `a && (b && c)`, the sub-expressions of `a && (b && c)` are itself,
+ * `a`, `b && c`, `b`, and `c`. The only chance to match `a && b` is to do it
+ * on `a && (b && c)`, and for that to work we cannot fail when there are
+ * operands left to match. TODO: We could try to detect when the AC op-pattern
+ * occurs inside a deep-expr and only then assume an implicit `&& ...`.
  *
  * AC-matching of metavariables could lead to some strange behaviors given that
  * we work with ranges. E.g. we can match `a && $X` against `b && a && c` by

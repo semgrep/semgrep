@@ -243,13 +243,14 @@ let map_literal_token (env : env) (x : CST.literal) : PI.token_mutable =
   | Float (_, tok)
   | Char (_, tok)
   | String (_, tok)
-  | Regexp (_, tok)
   | Unit tok
   | Null tok
   | Undefined tok
   | Imag (_, tok)
   | Ratio (_, tok)
-  | Atom (_, tok) ->
+  (* TODO? use PI.combine_info for the other tokens in it ? *)
+  | Atom (_, (_, tok))
+  | Regexp ((_, (_, tok), _), _) ->
       tok
 
 let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =

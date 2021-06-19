@@ -69,7 +69,7 @@ let ident x = wrap string x
 
 let rec expr = function
   | Literal x -> literal x
-  | Atom x -> atom x
+  | Atom (tk, x) -> atom tk x
   | Id (id, kind) -> (
       match kind with
       | ID_Self -> G.IdSpecial (G.Self, snd id)
@@ -234,7 +234,8 @@ and method_name mn =
       Left (s ^ "=", PI.combine_infos t [ teq ])
   | MethodUOperator (_, t) | MethodOperator (_, t) -> Left (PI.str_of_info t, t)
   | MethodDynamic e -> Right (expr e)
-  | MethodAtom x -> (
+  | MethodAtom (_tcolon, x) -> (
+      (* todo? add ":" in name? *)
       match x with
       | AtomSimple x -> Left x
       | AtomFromString (l, xs, r) -> (
@@ -329,14 +330,14 @@ and unary (op, t) e =
   (* should be only in arguments, to pass procs. I abuse Ref for now *)
   | Op_UAmper -> G.Ref (t, e)
 
-and atom x =
+and atom tcolon x =
   match x with
-  | AtomSimple x -> G.L (G.Atom x)
+  | AtomSimple x -> G.L (G.Atom (tcolon, x))
   | AtomFromString (l, xs, r) -> (
       match xs with
       | [ StrChars (s, t2) ] ->
           let t = PI.combine_infos l [ t2; r ] in
-          G.L (G.Atom (s, t))
+          G.L (G.Atom (tcolon, (s, t)))
       | _ -> string_contents_list (l, xs, r) )
 
 and literal x =
@@ -367,11 +368,10 @@ and literal x =
       (* TODO: generate interpolation Special *)
       | Double xs -> string_contents_list xs
       | Tick xs -> string_contents_list xs )
-  | Regexp ((xs, s2), t) -> (
+  | Regexp ((l, xs, r), opt) -> (
       match xs with
-      | [ StrChars (s, _t2) ] -> G.L (G.Regexp (s ^ s2, t))
+      | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))
       | _ ->
-          let l, r = (t, t) in
           (* TODO *)
           string_contents_list (l, xs, r) )
 

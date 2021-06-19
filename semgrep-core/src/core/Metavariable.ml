@@ -66,7 +66,6 @@ type mvalue =
   | S of AST_generic.stmt
   | T of AST_generic.type_
   | P of AST_generic.pattern
-  | Text of string AST_generic.wrap
   (* Those can be now empty with $...XXX metavariables.
    * coupling: if you add more constructors that allow an empty content,
    * you may need to modify JSON_report.range_of_any to not get
@@ -74,8 +73,9 @@ type mvalue =
    *)
   | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
-(* This is to match the content of a string or atom, without the
- * enclosing quotes. For a string this can actually be empty. *)
+  (* This is to match the content of a string or atom, without the
+   * enclosing quotes. For a string this can actually be empty. *)
+  | Text of string AST_generic.wrap
 [@@deriving show, eq, hash]
 
 (* we sometimes need to convert to an any to be able to use
@@ -116,19 +116,9 @@ let range_of_mvalue mval =
   let tok_start, tok_end = Visitor_AST.range_of_any (mvalue_to_any mval) in
   Range.range_of_token_locations tok_start tok_end
 
-let str_of_any any =
-  if !Flag_semgrep.debug_with_full_position then
-    Meta_parse_info._current_precision :=
-      {
-        Meta_parse_info.default_dumper_precision with
-        Meta_parse_info.full_info = true;
-      };
-  let s = AST_generic.show_any any in
-  s
-
 let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
 
-let str_of_mval x = x |> mvalue_to_any |> str_of_any
+let str_of_mval x = show_mvalue x
 
 (*s: type [[Metavars_generic.metavars_binding]] *)
 (* note that the mvalue acts as the value of the metavar and also
