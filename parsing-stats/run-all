@@ -5,11 +5,43 @@
 #
 set -eu -o pipefail
 
+forwarded_option_list=''
+
+usage() {
+  cat <<EOF
+Usage: ./run-all [OPTIONS]
+
+Run parsing stats for all the languages supported by semgrep-core.
+
+Options:
+  --help
+     Show this message and exit.
+  --upload
+     Upload the stats to the semgrep dashboard as soon as they're available
+     for each language.
+EOF
+}
+
+while [[ $# != 0 ]]; do
+  case "$1" in
+    --upload)
+      forwarded_option_list+=" --upload"
+      ;;
+    --help)
+      usage
+      exit 0
+      ;;
+    *)
+      error "Unsupported command-line argument: $1"
+  esac
+  shift
+done
+
 # Run the parsing jobs in parallel. Output may be mangled.
 pid_list=''
 for dir in lang/*; do
   lang=$(basename "$dir")
-  ./run-lang "$lang" &
+  ./run-lang "$lang" $forwarded_option_list &
   pid=$!
   pid_list+=" $pid"
 done

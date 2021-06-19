@@ -1,2 +1,3 @@
 tmp
-stats.json
+lang/**/stats.json
+test/**/stats.json

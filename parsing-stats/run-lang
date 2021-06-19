@@ -27,13 +27,35 @@ error() {
   exit 1
 }
 
-if [[ $# != 1 ]]; then
-  usage 2>&1
-  exit 1
-fi
-
-lang="$1"
 projects_file=projects.txt
+lang=""
+with_upload=false
+
+while [[ $# != 0 ]]; do
+  case "$1" in
+    --help)
+      usage
+      exit 0
+      ;;
+    --upload)
+      with_upload=true
+      ;;
+    -*)
+      error "Unsupported option: '$1'"
+      ;;
+    *)
+      if [[ -n "$lang" ]]; then
+        error "Don't know what to do with extra non-optional argument: '$1'"
+      else
+        lang=$1
+      fi
+  esac
+  shift
+done
+
+if [[ -z "$lang" ]]; then
+  error "Missing language argument"
+fi
 
 fetch_project_files() {
   name=$(basename "${url%.git}")
@@ -62,21 +84,26 @@ EOF
 }
 
 main() {
-  cd lang/"$lang"
-
-  url_list=$(grep -v '^ *\(#\| *$\)' "$projects_file")
-
-  # Run the stats on each git project
-  project_list=""
-  for url in $url_list; do
-    fetch_project_files
-  done
-
   (
-    cd tmp
-    semgrep-core -lang "$lang" -parsing_stats -json $project_list
-  ) > stats.json
+    cd lang/"$lang"
 
+    url_list=$(grep -v '^ *\(#\| *$\)' "$projects_file")
+
+    # Run the stats on each git project
+    project_list=""
+    for url in $url_list; do
+      fetch_project_files
+    done
+
+    (
+      cd tmp
+      semgrep-core -lang "$lang" -parsing_stats -json $project_list
+    ) > stats.json
+  )
+
+  if [[ "$with_upload" = true ]]; then
+    ./upload-parsing-rates lang/"$lang"/stats.json
+  fi
 }
 
 main
