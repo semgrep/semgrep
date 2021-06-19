@@ -282,7 +282,7 @@ let aggregate_project_stats lang
       acc project_stats
   in
   let global = update_parsing_rate acc in
-  { language = Lang.string_of_lang lang; global; projects = project_stats }
+  { language = Lang.to_lowercase_alnum lang; global; projects = project_stats }
 
 let print_json lang results =
   let project_stats = aggregate_file_stats results in

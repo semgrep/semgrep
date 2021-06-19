@@ -179,6 +179,30 @@ let string_of_lang = function
   | Yaml -> "Yaml"
   | Scala -> "Scala"
 
+(* must match [a-z][a-z0-9]* *)
+let to_lowercase_alnum = function
+  | C -> "c"
+  | Cplusplus -> "cpp"
+  | Csharp -> "csharp"
+  | Go -> "go"
+  | Hack -> "hack"
+  | JSON -> "json"
+  | Java -> "java"
+  | Javascript -> "javascript"
+  | Kotlin -> "kotlin"
+  | Lua -> "lua"
+  | OCaml -> "ocaml"
+  | PHP -> "php"
+  | Python -> "python"
+  | Python2 -> "python2"
+  | Python3 -> "python3"
+  | R -> "r"
+  | Ruby -> "ruby"
+  | Rust -> "rust"
+  | Scala -> "scala"
+  | Typescript -> "typescript"
+  | Yaml -> "yaml"
+
 (*e: function [[Lang.string_of_lang]] *)
 
 (*s: function [[Lang.ext_of_lang]] *)
