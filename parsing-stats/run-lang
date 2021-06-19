@@ -1,0 +1,82 @@
+#! /usr/bin/env bash
+#
+# Fetch git projects from a list and run our parser on the files for
+# a language of interest.
+#
+set -eu -o pipefail
+
+progdir=$(dirname "$0")
+progname=$(basename "$0")
+
+usage() {
+  cat <<EOF
+Usage: $progname LANG
+
+Expects:
+- lang/LANG/projects.txt: contains one git URL per line
+- semgrep-core command must be available
+
+Produces lang/LANG/stats.json.
+
+Example: $progname java
+EOF
+}
+
+error() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+if [[ $# != 1 ]]; then
+  usage 2>&1
+  exit 1
+fi
+
+lang="$1"
+projects_file=projects.txt
+
+fetch_project_files() {
+  name=$(basename "${url%.git}")
+  project_list+=" $name"
+
+  mkdir -p tmp
+  (
+    cd tmp
+    if [[ ! -d "$name" ]]; then
+      echo "Cloning '$name' from '$url'."
+      git clone --depth 1 "$url" "$name"
+    else
+      echo "Using local git repo for '$name'."
+      origin_url=$(git -C "$name" remote get-url origin)
+      if [[ "$url" != "$origin_url" ]]; then
+        cat >&2 <<EOF
+Wrong remote URL found in cloned repository '$name':
+  found $origin_url
+  expected $url
+Check that you don't have two project URLs with the same repo name.
+EOF
+        exit 1
+      fi
+    fi
+  )
+}
+
+main() {
+  cd lang/"$lang"
+
+  url_list=$(grep -v '^ *\(#\| *$\)' "$projects_file")
+
+  # Run the stats on each git project
+  project_list=""
+  for url in $url_list; do
+    fetch_project_files
+  done
+
+  (
+    cd tmp
+    semgrep-core -lang "$lang" -parsing_stats -json $project_list
+  ) > stats.json
+
+}
+
+main

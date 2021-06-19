@@ -1,0 +1,33 @@
+# Git URLs of publicly-accessible projects to be used for parsing stats,
+# one per line.
+#
+https://github.com/facebookarchive/hack-example-site.git
+https://github.com/titon/framework.git
+https://github.com/facebookarchive/oss-performance.git
+https://github.com/oracle/kernel-fuzzing.git
+https://github.com/igorw/reasoned-php.git
+https://github.com/hacktx/nucleus.git
+https://github.com/vinitshahdeo/online-debate-system.git
+https://github.com/AntoineAugusti/laravel-sentiment-analysis.git
+https://github.com/RVP04/Laravel-5.7-with-Admin-LTE-3-Boiler-Plate.git
+https://github.com/unixjazz/freezam.git
+https://github.com/2xlink/docker-compose-traefik-nextcloud.git
+https://github.com/pauloamgomes/CockpitCMS-Moderation.git
+https://github.com/philsinatra/IDM222.git
+https://github.com/ivivian/EchartSample.git
+https://github.com/JarJarBernie/jimmybox5.git
+https://github.com/XinLiangCoder/web_barrage.git
+https://github.com/wangzhenjjcn/WZ_WEB_ENGINE.git
+https://github.com/nuxed/framework.git
+https://github.com/hhvm/type-assert.git
+https://github.com/pauloamgomes/BackupAndRestore.git
+https://github.com/iamcal/grant-pattishall-award.com.git
+https://github.com/shawon100/IdCard-Generator.git
+https://github.com/steelbrain/HHVM-Async-Server.git
+https://github.com/AllYarnsAreBeautiful/allyarnsarebeautiful.github.io.git
+https://github.com/fucongcong/ssos.git
+https://github.com/slashmili/fighter.git
+https://github.com/usox/hackttp.git
+https://github.com/nazg-hack/framework.git
+https://github.com/philsinatra/IDM231.git
+https://github.com/jesseschalken/hack-utils.git

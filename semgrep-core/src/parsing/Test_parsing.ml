@@ -204,8 +204,8 @@ let parsing_common ?(verbose = true) lang xs =
    separate project. Keeping projects separate allows us to spot
    projects with unusual results.
 *)
-let parse_project lang name files_or_dirs =
-  let stat_list = parsing_common lang files_or_dirs in
+let parse_project ~verbose lang name files_or_dirs =
+  let stat_list = parsing_common ~verbose lang files_or_dirs in
   (name, stat_list)
 
 (* Json doesn't tolerate NaN values, so we use 1 instead. *)
@@ -290,15 +290,15 @@ let print_json lang results =
   let s = Parsing_stats_j.string_of_t stats in
   print_endline (Yojson.Safe.prettify s)
 
-let parse_projects lang project_dirs =
+let parse_projects ~verbose lang project_dirs =
   List.map
     (fun dir ->
       let name = dir in
-      parse_project lang name [ dir ])
+      parse_project ~verbose lang name [ dir ])
     project_dirs
 
 let parsing_stats lang json project_dirs =
-  let stat_list = parse_projects lang project_dirs in
+  let stat_list = parse_projects ~verbose:(not json) lang project_dirs in
   if json then print_json lang stat_list
   else
     let flat_stat = List.map snd stat_list |> List.flatten in

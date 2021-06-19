@@ -1,0 +1,24 @@
+#! /usr/bin/env bash
+#
+# Run the statistics for all the languages instead of just one, in parallel.
+# Any argument is optional and will be forwarded to the run-lang script.
+#
+set -eu -o pipefail
+
+# Run the parsing jobs in parallel. Output may be mangled.
+pid_list=''
+for dir in lang/*; do
+  lang=$(basename "$dir")
+  ./run-lang "$lang" &
+  pid=$!
+  pid_list+=" $pid"
+done
+
+for pid in $pid_list; do
+  wait "$pid"
+done
+
+# Show all the results sequentially at the end
+for dir in lang/*; do
+  cat "$dir"/stats.json
+done
