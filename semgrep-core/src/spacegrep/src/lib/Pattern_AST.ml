@@ -12,7 +12,7 @@ type atom =
 type node =
   | Atom of Loc.t * atom
   | List of node list
-  | Dots of Loc.t
+  | Dots of Loc.t * string option (* both ... and $...MVAR *)
   | End (* used to mark the end of the root pattern, so as to distinguish
            it from the end of a sub-pattern. *)
 [@@deriving show { with_path = false }, eq]
@@ -41,7 +41,7 @@ let rec as_doc (pat : t) : t =
           Atom (Loc.sub loc 0 1, Punct '$')
           :: Atom (word_loc, Word s)
           :: as_doc pat )
-  | Dots loc :: pat ->
+  | Dots (loc, None) :: pat ->
       let pos0, pos3 = loc in
       let pos1 = Loc.Pos.shift pos0 1 in
       let pos2 = Loc.Pos.shift pos1 1 in
@@ -51,6 +51,23 @@ let rec as_doc (pat : t) : t =
       Atom (loc0, Punct '.')
       :: Atom (loc1, Punct '.')
       :: Atom (loc2, Punct '.')
+      :: as_doc pat
+  | Dots (loc, Some s) :: pat ->
+      let pos0, pos5 = loc in
+      let pos1 = Loc.Pos.shift pos0 1 in
+      let pos2 = Loc.Pos.shift pos1 1 in
+      let pos3 = Loc.Pos.shift pos2 1 in
+      let pos4 = Loc.Pos.shift pos3 1 in
+      let loc0 = (pos0, pos1) in
+      let loc1 = (pos1, pos2) in
+      let loc2 = (pos2, pos3) in
+      let loc3 = (pos3, pos4) in
+      let loc4 = (pos4, pos5) in
+      Atom (loc0, Punct '$')
+      :: Atom (loc1, Punct '.')
+      :: Atom (loc2, Punct '.')
+      :: Atom (loc3, Punct '.')
+      :: Atom (loc4, Word s)
       :: as_doc pat
   | List pat1 :: pat2 -> List (as_doc pat1) :: as_doc pat2
 
@@ -62,7 +79,10 @@ let rec eq a b =
       ( match (a_head, b_head) with
       | Atom (_, a), Atom (_, b) -> a = b
       | List a, List b -> eq a b
-      | Dots _, Dots _ -> true
+      | Dots (_, None), Dots (_, None) -> true
+      | Dots (_, Some mva), Dots (_, Some mvb) -> mva = mvb
+      | Dots (_, None), Dots (_, Some _) | Dots (_, Some _), Dots (_, None) ->
+          false
       | End, End -> true
       | _ -> false )
       && eq a_tail b_tail

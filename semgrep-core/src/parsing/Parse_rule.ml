@@ -210,10 +210,12 @@ let parse_pattern (id, lang) s =
   match lang with
   | R.L (lang, _) -> R.mk_xpat (Sem (H.parse_pattern ~id ~lang s, lang)) s
   | R.LNone -> failwith "you should not use real pattern with language = none"
-  | R.LGeneric ->
+  | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
-      let ast = Spacegrep.Parse_pattern.of_src src in
-      R.mk_xpat (Spacegrep ast) s
+      match Spacegrep.Parse_pattern.of_src src with
+      | Ok ast -> R.mk_xpat (Spacegrep ast) s
+      | Error err ->
+          raise (H.InvalidPatternException (id, s, "generic", err.msg)) )
 
 let rec parse_formula env (x : string * J.t) : R.pformula =
   match x with

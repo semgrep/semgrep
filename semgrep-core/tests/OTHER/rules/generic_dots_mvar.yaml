@@ -1,0 +1,15 @@
+rules:
+- id: dots-mvar
+  languages:
+  - generic
+  patterns:
+    - pattern: |
+        <script>
+        $...X
+        </script>
+    - metavariable-regex:
+        metavariable: $...X
+        regex: .*working.*
+  message: found
+  severity: ERROR
+

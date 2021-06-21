@@ -11,7 +11,7 @@ let punct c = Pattern_AST.(Atom (Loc.dummy, Punct c))
 
 let byte c = Pattern_AST.(Atom (Loc.dummy, Byte c))
 
-let dots = Pattern_AST.(Dots Loc.dummy)
+let dots = Pattern_AST.(Dots (Loc.dummy, None))
 
 let metavar s = Pattern_AST.(Atom (Loc.dummy, Metavar s))
 
@@ -21,7 +21,7 @@ let test_pattern_parser () =
     "Hello, (world).\n  foo\n  ...\n  bar\n\nmore things ...\n$Var_0\n"
   in
   let pat_src = Src_file.of_string pat_str in
-  let pat = Parse_pattern.of_src pat_src in
+  let pat = Parse_pattern.of_src pat_src |> Result.get_ok in
   assert (
     Pattern_AST.eq pat
       [
@@ -66,7 +66,9 @@ let search ~case_sensitive pat doc_src doc =
   matches
 
 let search_str ~case_sensitive pat_str doc_str =
-  let pat = Src_file.of_string pat_str |> Parse_pattern.of_src in
+  let pat =
+    Src_file.of_string pat_str |> Parse_pattern.of_src |> Result.get_ok
+  in
   let doc_src = Src_file.of_string doc_str in
   let doc = Parse_doc.of_src doc_src in
   search ~case_sensitive pat doc_src doc
@@ -181,6 +183,11 @@ let matcher_corpus =
     ("metavariable mismatch", Count 0, "$X $X", "a b");
     ("metavariable scope", Count 1, "a\n  $X\nb\n  $X\n", "a\n  x\nb\n  x\n");
     ("multiple metavariables", Count 1, "$X $Y $X $Y", "a b a b");
+    ("dots metavariable", Count 1, "a $...X b $...X", "a x y b x y");
+    ("dots metavariable mismatch", Count 0, "a $...X b $...X", "a x y b u v");
+    ("multiple dots metavariable", Count 1, "a $...X b $...Y c", "a x b x x c");
+    ("overnumerous dots metavariable", Count 1, "a $...X ... c", "a b c");
+    ("trailing dots metavariable", Matches [ "a b c" ], "a $...X", "a b c");
     ("nested matches", Matches [ "a b b a"; "b b" ], "$A ... $A", "a b b a");
     ( "prefer shorter match",
       Matches [ "function foo" ],

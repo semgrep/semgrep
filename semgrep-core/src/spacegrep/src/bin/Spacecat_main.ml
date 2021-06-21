@@ -69,12 +69,18 @@ let run_one config input =
     | `Stdin -> Src_file.of_stdin ()
     | `File path -> Src_file.of_file path
   in
-  let pat =
-    if config.is_pattern then Parse_pattern.of_src src
-    else Parse_doc.of_src src |> Doc_AST.to_pattern
-  in
   let print = if config.debug then Print.Debug.to_stdout else Print.to_stdout in
-  print pat
+  if config.is_pattern then
+    match Parse_pattern.of_src src with
+    | Ok pat -> print pat
+    | Error err ->
+        let src_prefix =
+          match Src_file.source src with
+          | File path -> Printf.sprintf "%s: " path
+          | Stdin | String | Channel -> ""
+        in
+        Printf.printf "%s%s\n" src_prefix err.msg
+  else src |> Parse_doc.of_src |> Doc_AST.to_pattern |> print
 
 let run config =
   match config.input_files with

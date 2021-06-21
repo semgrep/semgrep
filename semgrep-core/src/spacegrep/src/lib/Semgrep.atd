@@ -28,7 +28,7 @@ type match_ = {
   extra: match_extra;
 }
 
-(* See R2c.ml in semgrep-core *)
+(* See Error_code in Pfff *)
 type error = {
   ?check_id: string option;
   path: string;

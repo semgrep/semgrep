@@ -37,7 +37,8 @@ let make_target_time (src, parse_time, match_time, run_time) :
 (*
    Convert match results to the format expected by semgrep.
 *)
-let make_semgrep_json ~with_time doc_matches : Semgrep_t.match_results =
+let make_semgrep_json ~with_time doc_matches pat_errors :
+    Semgrep_t.match_results =
   let matches, match_times =
     List.map
       (fun (src, pat_matches, parse_time, run_time) ->
@@ -75,6 +76,23 @@ let make_semgrep_json ~with_time doc_matches : Semgrep_t.match_results =
     |> List.split
   in
   let matches = List.flatten matches in
+  let errors =
+    pat_errors
+    |> List.map (fun (src, error) ->
+           let path = Src_file.source_string src in
+           let pos1, pos2 = error.Parse_pattern.loc in
+           let line =
+             Src_file.list_lines_of_pos_range src pos1 pos2 |> List.hd
+           in
+           let extra = { message = error.Parse_pattern.msg; line } in
+           {
+             check_id = None;
+             path;
+             start = semgrep_pos pos1;
+             end_ = semgrep_pos pos2;
+             extra;
+           })
+  in
   let time =
     if with_time then
       Some
@@ -86,11 +104,11 @@ let make_semgrep_json ~with_time doc_matches : Semgrep_t.match_results =
   in
   {
     matches;
-    errors = [];
+    errors;
     stats = { okfiles = List.length doc_matches; errorfiles = 0 };
     time;
   }
 
-let print_semgrep_json ~with_time doc_matches =
-  make_semgrep_json ~with_time doc_matches
+let print_semgrep_json ~with_time doc_matches errors =
+  make_semgrep_json ~with_time doc_matches errors
   |> Semgrep_j.string_of_match_results |> print_endline

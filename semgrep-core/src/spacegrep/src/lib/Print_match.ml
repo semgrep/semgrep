@@ -14,7 +14,8 @@ let show_pat_node (pat_node : Pattern_AST.node) =
   | Atom (_loc, Byte c) -> sprintf "Byte 0x%02x" (Char.code c)
   | Atom (_loc, Metavar s) -> sprintf "Metavar %s" s
   | List _ -> "List"
-  | Dots _loc -> "Dots"
+  | Dots (_loc, None) -> "Dots"
+  | Dots (_loc, Some s) -> sprintf "Dots %s" s
   | End -> "End"
 
 let show_doc_node (doc_node : Doc_AST.node) =
