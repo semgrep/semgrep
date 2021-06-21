@@ -26,6 +26,15 @@ type config = {
   warn : bool;
 }
 
+type matches = {
+  matches :
+    (Src_file.t * (int * Match.match_ list * float) list * float * float) list;
+  num_analyzed : int;
+  num_files : int;
+  num_matches : int;
+  num_matching_files : int;
+}
+
 let detect_highlight when_use_color oc =
   match when_use_color with
   | Always -> true
@@ -35,8 +44,7 @@ let detect_highlight when_use_color oc =
 (*
    Run all the patterns on all the documents.
 *)
-let run_all ~case_sensitive ~debug ~force ~output_format ~highlight ~time ~warn
-    patterns docs =
+let run_all ~case_sensitive ~debug ~force ~warn patterns docs : matches =
   let num_files = ref 0 in
   let num_analyzed = ref 0 in
   let num_matching_files = ref 0 in
@@ -78,6 +86,7 @@ let run_all ~case_sensitive ~debug ~force ~output_format ~highlight ~time ~warn
                   let matches_in_file =
                     List.mapi
                       (fun pat_id (pat_src, pat) ->
+                        (* TODO: Shouldn't we assign pattern ids earlier? *)
                         if debug then
                           printf
                             "match document from %s against pattern from %s\n%!"
@@ -103,12 +112,13 @@ let run_all ~case_sensitive ~debug ~force ~output_format ~highlight ~time ~warn
             Some (doc_src, matches_in_file, parse_time, run_time))
       docs
   in
-  ( match output_format with
-  | Text -> Match.print_nested_results ~highlight matches
-  | Semgrep -> Semgrep.print_semgrep_json ~with_time:time matches );
-  if debug then (
-    printf "\nanalyzed %i files out of %i\n" !num_analyzed !num_files;
-    printf "found %i matches in %i files\n" !num_matches !num_matching_files )
+  {
+    matches;
+    num_analyzed = !num_analyzed;
+    num_files = !num_files;
+    num_matches = !num_matches;
+    num_matching_files = !num_matching_files;
+  }
 
 let apply_timeout config =
   match config.timeout with
@@ -118,13 +128,24 @@ let apply_timeout config =
 
 let run config =
   apply_timeout config;
-  let patterns =
+  let patterns_or_errors =
     let pattern_files = Find_files.list config.pattern_files in
     ( match config.pattern with
     | None -> []
     | Some pat_str -> [ Src_file.of_string pat_str ] )
     @ List.map Src_file.of_file pattern_files
     |> List.map (fun pat_src -> (pat_src, Parse_pattern.of_src pat_src))
+  in
+  let patterns, errors =
+    let rev_patterns, rev_errors =
+      List.fold_left
+        (fun (rev_patterns, rev_errors) (src, parse_result) ->
+          match parse_result with
+          | Ok pat -> ((src, pat) :: rev_patterns, rev_errors)
+          | Error err -> (rev_patterns, (src, err) :: rev_errors))
+        ([], []) patterns_or_errors
+    in
+    (List.rev rev_patterns, List.rev rev_errors)
   in
   let docs =
     match config.doc_files with
@@ -141,10 +162,18 @@ let run config =
   let debug = config.debug in
   if debug then Match.debug := true;
   let highlight = detect_highlight config.color stdout in
-  run_all
-    ~case_sensitive:(not config.case_insensitive)
-    ~debug ~force:config.force ~output_format:config.output_format ~highlight
-    ~time:config.time ~warn:config.warn patterns docs
+  let { matches; num_analyzed; num_files; num_matches; num_matching_files } =
+    run_all
+      ~case_sensitive:(not config.case_insensitive)
+      ~debug ~force:config.force ~warn:config.warn patterns docs
+  in
+  ( match config.output_format with
+  | Text -> Match.print_nested_results ~highlight matches errors
+  | Semgrep -> Semgrep.print_semgrep_json ~with_time:config.time matches errors
+  );
+  if debug then (
+    printf "\nanalyzed %i files out of %i\n" num_analyzed num_files;
+    printf "found %i matches in %i files\n" num_matches num_matching_files )
 
 let color_conv =
   let parser when_use_color =

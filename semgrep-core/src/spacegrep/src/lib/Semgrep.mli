@@ -13,4 +13,5 @@ val print_semgrep_json :
   * float
   * float )
   list ->
+  (Src_file.t * Parse_pattern.error) list ->
   unit

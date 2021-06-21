@@ -8,7 +8,7 @@ let run_debug input expected_output =
   let output =
     input |> Src_file.of_string
     |> Parse_pattern.of_src ~is_doc:true
-    |> Pattern_AST.as_doc |> Print.Debug.to_string
+    |> Result.get_ok |> Pattern_AST.as_doc |> Print.Debug.to_string
   in
   Alcotest.(check string) "equal" expected_output output
 
@@ -16,7 +16,7 @@ let run_pretty input expected_output =
   let output =
     input |> Src_file.of_string
     |> Parse_pattern.of_src ~is_doc:true
-    |> Pattern_AST.as_doc |> Print.to_string
+    |> Result.get_ok |> Pattern_AST.as_doc |> Print.to_string
   in
   Alcotest.(check string) "equal" expected_output output
 

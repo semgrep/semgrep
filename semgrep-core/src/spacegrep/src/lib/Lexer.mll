@@ -1,7 +1,7 @@
 {
 type token =
   | Atom of Loc.t * Pattern_AST.atom
-  | Dots of Loc.t
+  | Dots of Loc.t * string option (* ... and $...MVAR *)
   | Open_paren of Loc.t | Close_paren of Loc.t
   | Open_bracket of Loc.t | Close_bracket of Loc.t
   | Open_curly of Loc.t | Close_curly of Loc.t
@@ -68,7 +68,10 @@ and tokens acc = parse
       tokens (List.rev_append elts acc) lexbuf
     }
   | "..." { let loc = loc lexbuf in
-            tokens (Dots loc :: acc) lexbuf }
+            tokens (Dots (loc, None) :: acc) lexbuf }
+  | '$' "..." (capitalized_word as s) {
+      let loc = loc lexbuf in
+      tokens (Dots (loc, Some s) :: acc) lexbuf }
   | '$' (capitalized_word as s) {
       let loc = loc lexbuf in
       tokens (Atom (loc, Metavar s) :: acc) lexbuf
