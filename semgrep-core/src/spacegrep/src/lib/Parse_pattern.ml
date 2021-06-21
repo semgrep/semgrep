@@ -7,6 +7,8 @@
 open Lexer
 open Pattern_AST
 
+type error = { loc : Loc.t; msg : string }
+
 let close_acc acc = List.rev acc
 
 type pending_brace = Paren | Bracket | Curly
@@ -49,7 +51,8 @@ let rec parse_line pending_braces acc (tokens : Lexer.token list) :
       match pending_braces with
       | [] -> Some (close_acc acc, [], Loc.dummy, [])
       | _ -> None )
-  | Dots loc :: tokens -> parse_line pending_braces (Dots loc :: acc) tokens
+  | Dots (loc, opt_mvar) :: tokens ->
+      parse_line pending_braces (Dots (loc, opt_mvar) :: acc) tokens
   | Atom (loc, atom) :: tokens ->
       parse_line pending_braces (Atom (loc, atom) :: acc) tokens
   | Open_paren open_loc :: tokens -> (
@@ -126,7 +129,7 @@ let parse_pattern_line (tokens : Lexer.token list) : Pattern_AST.node list =
     (fun (token : Lexer.token) ->
       match token with
       | Atom (loc, atom) -> Atom (loc, atom)
-      | Dots loc -> Dots loc
+      | Dots (loc, opt_mvar) -> Dots (loc, opt_mvar)
       | Open_paren loc -> Atom (loc, open_paren)
       | Close_paren loc -> Atom (loc, close_paren)
       | Open_bracket loc -> Atom (loc, open_bracket)
@@ -166,8 +169,28 @@ let parse_root ~is_doc lines =
       End :: List.rev nodes |> List.rev
   | _ -> assert false
 
+let check_pattern pat0 =
+  let rec check = function
+    | [] -> None
+    | List pat1 :: pat2 -> (
+        match check pat1 with Some err -> Some err | None -> check pat2 )
+    | Dots (_, opt_mvar1) :: Dots (loc, Some mvar2) :: _ ->
+        let msg =
+          Printf.sprintf "Invalid pattern sequence: %s $...%s"
+            ( match opt_mvar1 with
+            | None -> "..."
+            | Some mvar1 -> Printf.sprintf "$...%s" mvar1 )
+            mvar2
+        in
+        Some { loc; msg }
+    | _ :: pat -> check pat
+  in
+  check pat0
+
 let of_lexbuf ?(is_doc = false) lexbuf =
   let lines = Lexer.lines lexbuf in
-  parse_root ~is_doc lines
+  let pat = parse_root ~is_doc lines in
+  if is_doc then Ok pat
+  else match check_pattern pat with None -> Ok pat | Some err -> Error err
 
 let of_src ?is_doc src = Src_file.to_lexbuf src |> of_lexbuf ?is_doc

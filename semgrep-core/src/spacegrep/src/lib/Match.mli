@@ -84,4 +84,5 @@ val print_nested_results :
   ?highlight:bool ->
   ?print_optional_separator:(unit -> unit) ->
   (Src_file.t * (pattern_id * match_ list * float) list * float * float) list ->
+  (Src_file.t * Parse_pattern.error) list ->
   unit

@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Support metavariables and ellipsis inside regexp literals
   (e.g., `foo(/.../)`)
 - Associative-commutative matching for bitwise OR, AND, and XOR operations
+- Add support for $...MVAR in generic patterns.
 
 ### Fixed
 - C#: parse __makeref, __reftype, __refvalue (#3364)
