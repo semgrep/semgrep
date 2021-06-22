@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - C#: parse __makeref, __reftype, __refvalue (#3364)
+- Java: parsing of dots inside function annotations with brackets (#3389)
 
 ### Changed
 
