@@ -104,6 +104,7 @@ let list_of_lang =
     ("php", PHP);
     ("hack", Hack);
     ("kt", Kotlin);
+    ("kotlin", Kotlin);
     ("lua", Lua);
     ("rs", Rust);
     ("rust", Rust);
@@ -131,7 +132,7 @@ let langs_of_filename filename =
   match typ with
   | FT.PL (FT.Web FT.Js) -> [ Javascript ] (* Add TypeScript too? *)
   | FT.PL (FT.Web FT.TypeScript) -> [ Typescript ]
-  | FT.PL FT.Python -> [ Python; Python2; Python2 ]
+  | FT.PL FT.Python -> [ Python; Python2; Python3 ]
   (* .h could also be Cpp at some point *)
   | FT.PL (FT.C "c") -> [ C ]
   | FT.PL (FT.C "h") -> [ C; Cplusplus ]
@@ -177,6 +178,30 @@ let string_of_lang = function
   | R -> "R"
   | Yaml -> "Yaml"
   | Scala -> "Scala"
+
+(* must match [a-z][a-z0-9]* *)
+let to_lowercase_alnum = function
+  | C -> "c"
+  | Cplusplus -> "cpp"
+  | Csharp -> "csharp"
+  | Go -> "go"
+  | Hack -> "hack"
+  | JSON -> "json"
+  | Java -> "java"
+  | Javascript -> "javascript"
+  | Kotlin -> "kotlin"
+  | Lua -> "lua"
+  | OCaml -> "ocaml"
+  | PHP -> "php"
+  | Python -> "python"
+  | Python2 -> "python2"
+  | Python3 -> "python3"
+  | R -> "r"
+  | Ruby -> "ruby"
+  | Rust -> "rust"
+  | Scala -> "scala"
+  | Typescript -> "typescript"
+  | Yaml -> "yaml"
 
 (*e: function [[Lang.string_of_lang]] *)
 

@@ -1,0 +1,27 @@
+# Popular javascript projects
+
+https://github.com/freeCodeCamp/freeCodeCamp.git
+https://github.com/twbs/bootstrap.git
+https://github.com/airbnb/javascript.git
+https://github.com/d3/d3.git
+https://github.com/axios/axios.git
+https://github.com/trekhleb/javascript-algorithms.git
+https://github.com/mrdoob/three.js
+https://github.com/mui-org/material-ui
+https://github.com/angular/angular.js
+https://github.com/hakimel/reveal.js.git
+
+# The following projects use Flow, which extends the syntax of
+# javascript but keep the .js extension.
+#https://github.com/vuejs/vue.git
+#https://github.com/facebook/react.git
+#https://github.com/facebook/react-native.git
+#https://github.com/facebook/create-react-app.git
+
+# deps/v8/test contains a bunch of functions starting with a '%',
+# which is not standard javascript. It presumably with a specific
+# testing framework.
+# A user of semgrep would probably ignore the whole folder or use
+# a preprocessor over each file to turn it into standard javascript.
+#
+#https://github.com/nodejs/node.git
