@@ -49,6 +49,7 @@ from semgrep.spacegrep import run_spacegrep
 from semgrep.target_manager import TargetManager
 from semgrep.target_manager_extensions import all_supported_languages
 from semgrep.util import debug_tqdm_write
+from semgrep.util import is_debug
 from semgrep.util import partition
 from semgrep.util import progress_bar
 from semgrep.util import SEMGREP_PATH
@@ -264,7 +265,7 @@ class CoreRunner:
                 self._write_equivalences_file(equiv_file, equivalences)
                 cmd += ["-equivalences", equiv_file.name]
 
-            if self._output_settings.debug:
+            if is_debug():
                 cmd += ["-debug"]
 
             core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -283,13 +284,12 @@ class CoreRunner:
         # If semgrep-core prints anything on stderr when running with default
         # flags, it's a bug that should be fixed in semgrep-core.
         #
-        if semgrep_error_output != "":
-            name = f"[rule '{rule.id}']"
-            logger.info(
-                f"--- semgrep-core stderr {name} ---\n"
-                f"{semgrep_error_output}"
-                f"--- end semgrep-core stderr {name} ---"
-            )
+        name = f"[rule '{rule.id}']"
+        logger.debug(
+            f"--- semgrep-core stderr {name} ---\n"
+            f"{semgrep_error_output}"
+            f"--- end semgrep-core stderr {name} ---"
+        )
 
         returncode = core_run.returncode
         if returncode != 0:
@@ -704,7 +704,7 @@ class CoreRunner:
                             self._write_equivalences_file(equiv_file, equivalences)
                             cmd += ["-equivalences", equiv_file.name]
 
-                        if self._output_settings.debug:
+                        if is_debug():
                             cmd += ["-debug"]
 
                         core_run = sub_run(

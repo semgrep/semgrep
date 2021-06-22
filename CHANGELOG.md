@@ -35,6 +35,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 - Upgrade TypeScript parser (#3102)
 
+### Changed
+- `--debug` now prints out semgrep-core debug logs instead of having this
+  behavior with `--debugging-json`
+
 ## [0.55.1](https://github.com/returntocorp/semgrep/releases/tag/v0.55.1) - 2021-06-9
 
 ### Added
