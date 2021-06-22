@@ -1,0 +1,10 @@
+https://github.com/golang/go.git
+https://github.com/kubernetes/kubernetes.git
+https://github.com/moby/moby.git
+https://github.com/gohugoio/hugo.git
+https://github.com/gin-gonic/gin.git
+https://github.com/fatedier/frp.git
+https://github.com/astaxie/build-web-application-with-golang.git
+https://github.com/gogs/gogs.git
+https://github.com/v2ray/v2ray-core.git
+https://github.com/syncthing/syncthing.git
