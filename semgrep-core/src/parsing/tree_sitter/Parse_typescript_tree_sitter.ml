@@ -196,10 +196,8 @@ let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) :
   | `Id tok -> [ identifier env tok ] (* identifier *)
   | `Nested_id x -> nested_identifier env x
 
-and anon_choice_type_id_42c0412 env x = id_or_nested_id env x
-
 and nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) =
-  let v1 = anon_choice_type_id_42c0412 env v1 in
+  let v1 = id_or_nested_id env v1 in
   let _v2 = token env v2 (* "." *) in
   let v3 = identifier env v3 (* identifier *) in
   v1 @ [ v3 ]
@@ -253,7 +251,7 @@ let literal_type (env : env) (x : CST.literal_type) : literal =
 
 let nested_type_identifier (env : env)
     ((v1, v2, v3) : CST.nested_type_identifier) : a_ident list =
-  let v1 = anon_choice_type_id_42c0412 env v1 in
+  let v1 = id_or_nested_id env v1 in
   let _v2 = token env v2 (* "." *) in
   let v3 = str env v3 (* identifier *) in
   v1 @ [ v3 ]
@@ -357,8 +355,8 @@ and jsx_opening_element (env : env) ((v1, v2, v3, v4) : CST.jsx_opening_element)
     match v2 with
     | `Choice_choice_jsx_id x -> jsx_attribute_name env x
     | `Choice_id_opt_type_args (v1, v2) ->
-        let v1 = anon_choice_type_id_42c0412 env v1 in
-        let id = concat_nested_identifier v1 in
+        let ids = id_or_nested_id env v1 in
+        let id = concat_nested_identifier ids in
         let _v2 =
           match v2 with
           | Some x -> type_arguments env x |> PI.unbracket
@@ -377,7 +375,7 @@ and jsx_self_clos_elem (env : env)
     match v2 with
     | `Choice_choice_jsx_id x -> jsx_attribute_name env x
     | `Choice_id_opt_type_args (v1, v2) ->
-        let v1 = anon_choice_type_id_42c0412 env v1 in
+        let v1 = id_or_nested_id env v1 in
         let id = concat_nested_identifier v1 in
         let _v2 =
           match v2 with
@@ -2773,7 +2771,7 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       let _v1 = token env v1 (* "import" *) in
       let _v2 = identifier env v2 (* identifier *) in
       let _v3 = token env v3 (* "=" *) in
-      let _v4 = anon_choice_type_id_42c0412 env v4 in
+      let _v4 = id_or_nested_id env v4 in
       let _v5 = semicolon env v5 in
       []
       (* TODO *)

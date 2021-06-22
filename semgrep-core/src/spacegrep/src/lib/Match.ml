@@ -60,9 +60,19 @@ type match_ = {
 
 (* configuration used during matching *)
 type conf = {
+  src : Src_file.t;
   (* string equality function used to compare words, which can be
      case-insensitive. *)
   word_equal : string -> string -> bool;
+}
+
+(* Dots environment. *)
+type dots = {
+  max_line_num : int;
+  (* until which line we can skip/match *)
+  matched : Loc.t;
+  (* region skipped/matched by .../$...MVAR so far *)
+  opt_mvar : string option; (* the MVAR in $...MVAR *)
 }
 
 (* Map from metavariables to their captured value, which is a Word. *)
@@ -99,9 +109,63 @@ let case_insensitive_equal a b =
   with Exit -> false
 
 (*
-   Find the rightmost location in a document that is not too far away, i.e.
-   not beyond line 'max_line_num'.
+   Create or update the 'dots' object which indicates:
+   1. that we're allowing to skip document nodes that don't match;
+   2. and until which line we allow this skipping.
 *)
+let extend_dots ~dots:opt_dots opt_mvar (last_loc : Loc.t) =
+  let ellipsis_max_span = 10 (* lines *) in
+  match (opt_dots, opt_mvar) with
+  | None, _ ->
+      (* Allow `...` to extend for at most 10 lines. *)
+      let _, last_pos = last_loc in
+      Some
+        {
+          max_line_num = last_pos.pos_lnum + ellipsis_max_span;
+          matched = (last_pos, last_pos);
+          opt_mvar;
+        }
+  | Some dots, None ->
+      (* Extra `...`s let us skip more lines. *)
+      Some { dots with max_line_num = dots.max_line_num + ellipsis_max_span }
+  | Some _, Some _ ->
+      (* `... $...X` and `$...Y $...X` are rejected by Parse_pattern. *)
+      assert false
+
+let extend_dots_matched ~dots:opt_dots (end_ : Loc.Pos.t) =
+  match opt_dots with
+  | None -> None
+  | Some dots ->
+      let dots_start, dots_end = dots.matched in
+      assert (dots_end.pos_cnum <= end_.pos_cnum);
+      Some { dots with matched = (dots_start, end_) }
+
+let close_dots conf ~dots:opt_dots env =
+  match opt_dots with
+  | None | Some { opt_mvar = None; _ } -> Some env
+  | Some { matched; opt_mvar = Some name; _ } -> (
+      let name = "..." ^ name in
+      let start_pos, end_pos = matched in
+      let value = Src_file.region_of_pos_range conf.src start_pos end_pos in
+      match Env.find_opt name env with
+      | None -> Some (Env.add name (matched, value) env)
+      | Some (_loc0, value0) ->
+          (* This must be an exact match even if case-insensitive matching was requested. *)
+          if String.equal value value0 then Some env else None )
+
+let close_dots_or_fail conf ~dots env f =
+  match close_dots conf ~dots env with None -> Fail | Some env' -> f env'
+
+let complete_dots conf ~dots env last_loc =
+  let _, last_end = last_loc in
+  let dots' = extend_dots_matched ~dots last_end in
+  close_dots_or_fail conf ~dots:dots' env (fun env' ->
+      Complete (env', last_loc))
+
+(*
+   Find the rightmost location in a document and return it only if it's
+   not too far (past the maximum line max_line_num).
+ *)
 let rec extend_last_loc ~max_line_num last_loc (doc : Doc_AST.node list) =
   match doc with
   | [] -> last_loc
@@ -115,11 +179,11 @@ let rec extend_last_loc ~max_line_num last_loc (doc : Doc_AST.node list) =
 (*
    Match trailing dots, if any, against the tail of a block.
 *)
-let doc_matches_dots ~dots last_loc doc =
-  match (dots, doc) with
+let doc_matches_dots ~dots:opt_dots last_loc doc =
+  match (opt_dots, doc) with
   | None, [] -> Some last_loc
   | None, _ -> None
-  | Some max_line_num, doc ->
+  | Some { max_line_num; _ }, doc ->
       if loc_lnum last_loc <= max_line_num then
         Some (extend_last_loc ~max_line_num last_loc doc)
       else None
@@ -136,10 +200,13 @@ let rec pat_matches_empty_doc pat =
    A document atom is skippable if we're within an ellipsis (dots)
    pattern and within 10 lines from the last atom matched before the ellipsis.
 *)
-let is_skippable_doc_atom ~dots loc =
-  match dots with
-  | None -> false
-  | Some max_line_num -> loc_lnum loc <= max_line_num
+let is_skippable_doc_atom ~dots:opt_dots loc =
+  match opt_dots with
+  | None -> None
+  | Some dots when loc_lnum loc <= dots.max_line_num ->
+      let _, loc_end = loc in
+      extend_dots_matched ~dots:opt_dots loc_end
+  | Some _ -> None
 
 (*
    A document atom can always be considered for a match unless we're
@@ -149,21 +216,7 @@ let is_skippable_doc_atom ~dots loc =
 let within_ellipsis_range ~dots loc =
   match dots with
   | None -> true (* <-- difference with 'is_skippable' *)
-  | Some max_line_num -> loc_lnum loc <= max_line_num
-
-(*
-   Create or update the 'dots' object which indicates:
-   1. that we're allowing to skip document nodes that don't match;
-   2. and until which line we allow this skipping.
-*)
-let extend_dots ~dots (last_loc : Loc.t) =
-  let ellipsis_max_span = 10 (* lines *) in
-  match dots with
-  | None ->
-      (* allow '...' to extend for at most 10 lines *)
-      let _, last_pos = last_loc in
-      Some (last_pos.pos_lnum + ellipsis_max_span)
-  | Some line_num -> Some (line_num + ellipsis_max_span)
+  | Some dots -> loc_lnum loc <= dots.max_line_num
 
 (*
    Match a pattern against a document tree.
@@ -182,20 +235,20 @@ let extend_dots ~dots (last_loc : Loc.t) =
      to determine how far an ellipsis can span, and extend it if another
      '...' is found.
 *)
-let rec match_ (conf : conf) ~(dots : int option) (env : env) (last_loc : Loc.t)
-    (pat : Pattern_AST.node list) (doc : Doc_AST.node list)
+let rec match_ (conf : conf) ~(dots : dots option) (env : env)
+    (last_loc : Loc.t) (pat : Pattern_AST.node list) (doc : Doc_AST.node list)
     (cont :
-      dots:int option -> env -> Loc.t -> Pattern_AST.node list -> match_result)
+      dots:dots option -> env -> Loc.t -> Pattern_AST.node list -> match_result)
     : match_result =
   if !debug then Print_match.print pat doc;
   match (pat, doc) with
   | [], doc -> (
       match doc_matches_dots ~dots last_loc doc with
-      | Some last_loc -> Complete (env, last_loc)
+      | Some last_loc -> complete_dots conf ~dots env last_loc
       | None -> Fail )
   | [ End ], doc -> (
       match doc_matches_dots ~dots last_loc doc with
-      | Some last_loc -> Complete (env, last_loc)
+      | Some last_loc -> complete_dots conf ~dots env last_loc
       | None -> Complete (env, last_loc) )
   | End :: _, _ -> assert false
   | List pat1 :: pat2, doc -> (
@@ -204,26 +257,32 @@ let rec match_ (conf : conf) ~(dots : int option) (env : env) (last_loc : Loc.t)
           (* No document left to match against. *)
           assert (pat1 <> []);
           if pat_matches_empty_doc pat1 && pat_matches_empty_doc pat2 then
-            Complete (env, last_loc)
+            complete_dots conf ~dots env last_loc
           else Fail
-      | List doc1 :: doc2 -> (
+      | List doc1 :: doc2 ->
           (* Indented block coincides with an indented block in the document.
              These blocks must match, independently from the rest. *)
-          match match_ conf ~dots:None env last_loc pat1 doc1 full_match with
-          | Complete (env, last_loc) ->
-              match_ conf ~dots:None env last_loc pat2 doc2 cont
-          | Fail -> Fail )
-      | Atom (loc, _) :: doc_tail ->
+          close_dots_or_fail conf ~dots env (fun env ->
+              match
+                match_ conf ~dots:None env last_loc pat1 doc1 full_match
+              with
+              | Complete (env, last_loc) ->
+                  match_ conf ~dots:None env last_loc pat2 doc2 cont
+              | Fail -> Fail)
+      | Atom (loc, _) :: doc_tail -> (
           (* Indented block in pattern doesn't match in the document.
              Skip document node if allowed. *)
           assert (pat1 <> []);
-          if is_skippable_doc_atom ~dots loc then
-            match_ conf ~dots env last_loc pat doc_tail cont
-          else if pat_matches_empty_doc pat1 then
-            match_ conf ~dots env last_loc pat2 doc cont
-          else Fail )
-  | Dots _ :: pat_tail, doc ->
-      let dots = extend_dots ~dots last_loc in
+          match is_skippable_doc_atom ~dots loc with
+          | Some _ as dots' ->
+              match_ conf ~dots:dots' env last_loc pat doc_tail cont
+          | None ->
+              close_dots_or_fail conf ~dots env (fun env ->
+                  if pat_matches_empty_doc pat1 then
+                    match_ conf ~dots:None env last_loc pat2 doc cont
+                  else Fail) ) )
+  | Dots (_, opt_mvar) :: pat_tail, doc ->
+      let dots = extend_dots ~dots opt_mvar last_loc in
       match_ conf ~dots env last_loc pat_tail doc cont
   | Atom (_, p) :: pat_tail, doc -> (
       match doc with
@@ -243,38 +302,41 @@ let rec match_ (conf : conf) ~(dots : int option) (env : env) (last_loc : Loc.t)
               if not (within_ellipsis_range ~dots loc) then Fail
               else
                 let match_result =
-                  match (p, d) with
-                  | Metavar name, Word value -> (
-                      match Env.find_opt name env with
-                      | None ->
-                          (* First encounter of the metavariable,
-                             store its value. *)
-                          let env = Env.add name (loc, value) env in
+                  close_dots_or_fail conf ~dots env (fun env ->
+                      match (p, d) with
+                      | Metavar name, Word value -> (
+                          match Env.find_opt name env with
+                          | None ->
+                              (* First encounter of the metavariable,
+                                 store its value. *)
+                              let env = Env.add name (loc, value) env in
+                              match_ conf ~dots:None env loc pat_tail doc_tail
+                                cont
+                          | Some (_loc0, value0) ->
+                              (* Check if value matches previously captured
+                                 value. This must be an exact match even
+                                 if case-insensitive matching was requested. *)
+                              if String.equal value value0 then
+                                match_ conf ~dots:None env loc pat_tail doc_tail
+                                  cont
+                              else Fail )
+                      | Word a, Word b when conf.word_equal a b ->
                           match_ conf ~dots:None env loc pat_tail doc_tail cont
-                      | Some (_loc0, value0) ->
-                          (* Check if value matches previously captured
-                             value. This must be an exact match even
-                             if case-insensitive matching was requested. *)
-                          if String.equal value value0 then
-                            match_ conf ~dots:None env loc pat_tail doc_tail
-                              cont
-                          else Fail )
-                  | Word a, Word b when conf.word_equal a b ->
-                      match_ conf ~dots:None env loc pat_tail doc_tail cont
-                  | Punct a, Punct b when a = b ->
-                      match_ conf ~dots:None env loc pat_tail doc_tail cont
-                  | Byte a, Byte b when a = b ->
-                      match_ conf ~dots:None env loc pat_tail doc_tail cont
-                  | _ -> Fail
+                      | Punct a, Punct b when a = b ->
+                          match_ conf ~dots:None env loc pat_tail doc_tail cont
+                      | Byte a, Byte b when a = b ->
+                          match_ conf ~dots:None env loc pat_tail doc_tail cont
+                      | _ -> Fail)
                 in
                 match match_result with
                 | Complete _ -> match_result
-                | Fail ->
+                | Fail -> (
                     (* Pattern doesn't match document.
                        Skip document's head node if we're allowed to. *)
-                    if is_skippable_doc_atom ~dots loc then
-                      match_ conf ~dots env last_loc pat doc_tail cont
-                    else Fail ) ) )
+                    match is_skippable_doc_atom ~dots loc with
+                    | Some _ as dots' ->
+                        match_ conf ~dots:dots' env last_loc pat doc_tail cont
+                    | None -> Fail ) ) ) )
 
 (*
 let starts_after last_loc loc =
@@ -380,13 +442,19 @@ let search ?(case_sensitive = true) src pat doc =
   (* table of all matches we want to keep, keyed by end location,
      with at most one entry per end location. *)
   let conf =
-    if case_sensitive then { word_equal = String.equal }
-    else { word_equal = case_insensitive_equal }
+    let word_equal =
+      if case_sensitive then String.equal else case_insensitive_equal
+    in
+    { src; word_equal }
   in
   let end_loc_tbl = Hashtbl.create 100 in
   let fold = if starts_with_dots pat then fold_block_starts else fold_all in
   fold [] doc (fun matches start_loc doc ->
-      match match_ conf ~dots:None Env.empty start_loc pat doc full_match with
+      let start_pos, _ = start_loc in
+      (* At the start, nothing has been matched. If `last_loc = start_loc` then
+       * `...` would incorrectly match the token at `start_loc`. *)
+      let last_loc = (start_pos, start_pos) in
+      match match_ conf ~dots:None Env.empty last_loc pat doc full_match with
       | Complete (env, last_loc) ->
           let match_ =
             let region = (start_loc, last_loc) in
@@ -441,12 +509,28 @@ let print ?(highlight = false)
       |> print_string)
     matches
 
+let print_errors ?(highlight = false) errors =
+  let error_prefix =
+    if highlight then ANSITerminal.(sprintf [ Bold; red ] "%s" "error:")
+    else "error:"
+  in
+  List.iter
+    (fun (src, error) ->
+      let src_prefix =
+        match Src_file.source src with
+        | File path -> sprintf "%s: " path
+        | Stdin | String | Channel -> ""
+      in
+      Printf.eprintf "%s %s%s\n" error_prefix src_prefix error.Parse_pattern.msg)
+    errors
+
 let print_nested_results ?highlight
-    ?(print_optional_separator = make_separator_printer ()) doc_matches =
+    ?(print_optional_separator = make_separator_printer ()) doc_matches errors =
   List.iter
     (fun (src, pat_matches, _parse_time, _run_time) ->
       List.iter
         (fun (_pat_id, matches, _match_time) ->
           print ?highlight ~print_optional_separator src matches)
         pat_matches)
-    doc_matches
+    doc_matches;
+  print_errors ?highlight errors

@@ -10,9 +10,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Support metavariables and ellipsis inside regexp literals
   (e.g., `foo(/.../)`)
 - Associative-commutative matching for bitwise OR, AND, and XOR operations
+- Add support for $...MVAR in generic patterns.
 
 ### Fixed
 - C#: parse __makeref, __reftype, __refvalue (#3364)
+- Java: parsing of dots inside function annotations with brackets (#3389)
 
 ### Changed
 
@@ -32,6 +34,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Upgrade TypeScript parser (#3102)
+
+### Changed
+- `--debug` now prints out semgrep-core debug logs instead of having this
+  behavior with `--debugging-json`
 
 ## [0.55.1](https://github.com/returntocorp/semgrep/releases/tag/v0.55.1) - 2021-06-9
 
