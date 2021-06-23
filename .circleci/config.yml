@@ -51,6 +51,7 @@ jobs:
       - checkout
       - run:
           name: parsing stats
+          no_output_timeout: 60m
           command: |
             cd parsing-stats
             ./run-all --upload
