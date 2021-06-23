@@ -227,9 +227,15 @@ let lazy_force x = Lazy.force x [@@profiling]
 (* Adapters *)
 (*****************************************************************************)
 
-let (mini_rule_of_pattern : R.t -> Pattern.t * Rule.pattern_id * string -> MR.t)
-    =
- fun r (pattern, id, pstr) ->
+(* old: Before we used to pass the entire rule and we got the list of languages
+ * from there. But after metavariable-pattern we can now recursively call
+ * evaluate_formula using a different language than the one used by the rule!
+ * If the rule is a generic one, but the nested pattern formula is not, then
+ * this will raise Impossible... Thus, now we have to pass the language(s) that
+ * we are specifically targeting. *)
+let (mini_rule_of_pattern :
+      R.xlang -> Pattern.t * Rule.pattern_id * string -> MR.t) =
+ fun xlang (pattern, id, pstr) ->
   {
     MR.id = string_of_int id;
     pattern;
@@ -239,7 +245,7 @@ let (mini_rule_of_pattern : R.t -> Pattern.t * Rule.pattern_id * string -> MR.t)
     message = "";
     severity = MR.Error;
     languages =
-      ( match r.R.languages with
+      ( match xlang with
       | R.L (x, xs) -> x :: xs
       | R.LNone | R.LGeneric -> raise Impossible );
     (* useful for debugging timeout *)
@@ -359,8 +365,8 @@ let debug_semgrep config mini_rules equivalences file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns config orig_rule equivalences
-    (file, xlang, lazy_ast_and_errors) patterns =
+let matches_of_patterns config equivalences (file, xlang, lazy_ast_and_errors)
+    patterns =
   match xlang with
   | R.L (lang, _) ->
       let (ast, errors), parse_time =
@@ -369,7 +375,7 @@ let matches_of_patterns config orig_rule equivalences
       let (matches, errors), match_time =
         Common.with_time (fun () ->
             let mini_rules =
-              patterns |> List.map (mini_rule_of_pattern orig_rule)
+              patterns |> List.map (mini_rule_of_pattern xlang)
             in
 
             (* debugging path *)
@@ -679,7 +685,7 @@ let matches_of_combys combys lazy_content file =
 (* Evaluating xpatterns *)
 (*****************************************************************************)
 
-let matches_of_xpatterns config orig_rule equivalences
+let matches_of_xpatterns config equivalences
     (file, xlang, lazy_ast_and_errors, lazy_content) xpatterns =
   (* Right now you can only mix semgrep/regexps and spacegrep/regexps, but
    * in theory we could mix all of them together. This is why below
@@ -691,7 +697,7 @@ let matches_of_xpatterns config orig_rule equivalences
   (* final result *)
   RP.collate_semgrep_results
     [
-      matches_of_patterns config orig_rule equivalences
+      matches_of_patterns config equivalences
         (file, xlang, lazy_ast_and_errors)
         patterns;
       matches_of_spacegrep spacegreps file;
@@ -866,19 +872,21 @@ and match_range_with_pattern env r mvar opt_lang formula =
   | Some mval -> (
       let mval_range = MV.range_of_mvalue mval in
       match (opt_lang, mval) with
-      | Some lang, MV.Text (content, _)
-      | Some lang, MV.E (G.L (G.String (content, _))) ->
+      | Some lang, MV.Text (content, tok)
+      | Some lang, MV.E (G.L (G.String (content, tok))) ->
           (* The matched text will be interpreted according to `lang'. *)
           let lazy_ast_and_errors =
-            lazy_ast_of_string lang content (fun () ->
+            lazy_ast_of_string lang tok content (fun () ->
                 spf
                   "rule %s: metavariable-pattern: failed to fully parse the \
                    content of %s"
                   env.rule.id mvar)
           in
-          eval_nested_formula env env.xlang formula lazy_ast_and_errors
+          eval_nested_formula env
+            (R.L (lang, []))
+            formula lazy_ast_and_errors
             (lazy content)
-            None
+            (Some { r with r = mval_range })
       | Some _lang, _mval ->
           (* THINK: fatal error instead? *)
           logger#error
@@ -902,7 +910,19 @@ and match_range_with_pattern env r mvar opt_lang formula =
                 lazy_content
                 (Some { r with r = mval_range }) ) )
 
-and lazy_ast_of_string lang str warn_msg =
+and lazy_ast_of_string lang base_tok str warn_msg =
+  let fix_toks ast =
+    let base_loc = Parse_info.token_location_of_info base_tok in
+    let visitor =
+      Map_AST.mk_visitor
+        {
+          Map_AST.default_visitor with
+          Map_AST.kinfo =
+            (fun (_, _) tok -> Parse_info.adjust_info_wrt_base base_loc tok);
+        }
+    in
+    visitor.Map_AST.vprogram ast
+  in
   lazy
     (let ext =
        match Lang.ext_of_lang lang with x :: _ -> x | [] -> assert false
@@ -911,6 +931,7 @@ and lazy_ast_of_string lang str warn_msg =
          let { Parse_target.ast; errors; _ } =
            Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
          in
+         let ast = fix_toks ast in
          if errors <> [] then pr2 (warn_msg ());
          (ast, errors)))
 
@@ -920,7 +941,7 @@ and eval_nested_formula env xlang formula lazy_ast_and_errors lazy_content
      * we could maybe factorize things *)
   let xpatterns = xpatterns_in_formula formula in
   let res =
-    matches_of_xpatterns env.config env.rule env.equivalences
+    matches_of_xpatterns env.config env.equivalences
       (env.file, xlang, lazy_ast_and_errors, lazy_content)
       xpatterns
   in
@@ -965,7 +986,7 @@ let check hook default_config rules equivs file_and_more =
                let xpatterns = xpatterns_in_formula formula in
                let config = r.settings ||| default_config in
                let res =
-                 matches_of_xpatterns config r equivs
+                 matches_of_xpatterns config equivs
                    (file, xlang, lazy_ast_and_errors, lazy_content)
                    xpatterns
                in
