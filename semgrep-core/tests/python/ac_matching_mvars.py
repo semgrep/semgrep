@@ -1,20 +1,20 @@
 
 #ERROR:
-if A and B:
+if A & B:
   foo()
 
 #ERROR:
-if B and A:
+if B & A:
   foo()
 
 #ERROR:
-if A and C:
+if A & C:
   foo()
 
 #ERROR:
-if A and B and C:
+if A & B & C:
   foo()
 
 #OK:
-if B and C:
+if B & C:
   foo()

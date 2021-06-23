@@ -1,3 +1,3 @@
 #ERROR:
-if (A and B and C):
+if (A & B) & C:
     foo()

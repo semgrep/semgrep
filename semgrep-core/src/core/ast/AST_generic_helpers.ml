@@ -222,9 +222,10 @@ let abstract_for_comparison_any x =
 (* Associative-Commutative (AC) matching *)
 (*****************************************************************************)
 
-let is_AC_operator = function
+let is_associative_operator op =
+  match op with
   | Or | And | BitOr | BitAnd | BitXor -> true
-  (* TODO: Plus, Mult, ... ? *)
+  (* TODO: Plus, Mult, ... *)
   | __else__ -> false
 
 let ac_matching_nf op args =
@@ -239,7 +240,7 @@ let ac_matching_nf op args =
     | Call (IdSpecial (Op op1, _tok1), (_, args1, _)) when op = op1 -> nf args1
     | x -> [ x ]
   in
-  if is_AC_operator op then (
+  if is_associative_operator op then (
     try Some (nf args)
     with Exit ->
       logger#error
