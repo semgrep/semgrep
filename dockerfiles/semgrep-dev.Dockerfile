@@ -20,7 +20,8 @@ USER root
 #
 RUN apk add --no-cache \
   bash \
-  curl
+  curl \
+  jq
 
 # Let the user know how their container was built
 COPY dockerfiles/semgrep-dev.Dockerfile /Dockerfile
