@@ -504,7 +504,7 @@ let identifier (env : env) (tok : CST.identifier) : ident =
   match tok with
   | `Choice_id_tok (`Id_tok tok) -> str env tok
   | `Choice_id_tok (`Cont_keywos kw) -> contextual_keywords env kw
-  | `Tok_pat_8cc7dbf tok -> str env tok
+  | `Semg_meta tok -> str env tok
 
 (* TODO: not sure why preprocessor_call was not generated. Because
  * was in extras?
