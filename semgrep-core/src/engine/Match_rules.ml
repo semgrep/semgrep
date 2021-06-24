@@ -711,7 +711,7 @@ let matches_of_xpatterns config equivalences
 (*****************************************************************************)
 
 (* less: use Set instead of list? *)
-let rec (evaluate_formula :
+let rec (compose_patterns :
           env -> range_with_mvars option -> R.formula -> range_with_mvars list)
     =
  fun env ctx_opt e ->
@@ -730,7 +730,7 @@ let rec (evaluate_formula :
       match_results
       |> List.map match_result_to_range
       |> List.map (fun r -> { r with kind })
-  | R.Or xs -> xs |> List.map (evaluate_formula env ctx_opt) |> List.flatten
+  | R.Or xs -> xs |> List.map (compose_patterns env ctx_opt) |> List.flatten
   | R.And xs -> (
       let pos, neg, conds = split_and xs in
 
@@ -749,7 +749,7 @@ let rec (evaluate_formula :
        *)
 
       (* let's start with the positive ranges *)
-      let posrs = List.map (evaluate_formula env ctx_opt) pos in
+      let posrs = List.map (compose_patterns env ctx_opt) pos in
       (* subtle: we need to process and intersect the pattern-inside after
        * (see tests/OTHER/rules/inside.yaml).
        * TODO: this is ugly; AND should be commutative, so we should just
@@ -790,7 +790,7 @@ let rec (evaluate_formula :
             |> List.fold_left
                  (fun acc x ->
                    difference_ranges env.config acc
-                     (evaluate_formula env ctx_opt x))
+                     (compose_patterns env ctx_opt x))
                  res
           in
           (* let's apply additional filters.
@@ -826,7 +826,7 @@ and filter_ranges env xs cond =
              let env = Eval_generic.bindings_to_env bindings in
              Eval_generic.eval_bool env e
          | R.CondPattern (mvar, opt_lang, formula) ->
-             match_range_with_pattern env r mvar opt_lang formula
+             range_matches_with_pattern env r mvar opt_lang formula
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really
@@ -860,7 +860,7 @@ and filter_ranges env xs cond =
              in
              Eval_generic.eval_bool env e)
 
-and match_range_with_pattern env r mvar opt_lang formula =
+and range_matches_with_pattern env r mvar opt_lang formula =
   let bindings = r.mvars in
   (* If anything goes wrong the default is to filter out! *)
   match List.assoc_opt mvar bindings with
@@ -882,7 +882,7 @@ and match_range_with_pattern env r mvar opt_lang formula =
                    content of %s"
                   env.rule.id mvar)
           in
-          eval_nested_formula
+          nested_formula_has_matches
             { env with xlang = R.L (lang, []) }
             formula lazy_ast_and_errors
             (lazy content)
@@ -906,7 +906,8 @@ and match_range_with_pattern env r mvar opt_lang formula =
               let lazy_content =
                 lazy (Range.content_at_range env.file mval_range)
               in
-              eval_nested_formula env formula lazy_ast_and_errors lazy_content
+              nested_formula_has_matches env formula lazy_ast_and_errors
+                lazy_content
                 (Some { r with r = mval_range }) ) )
 
 and lazy_ast_of_string lang base_tok str warn_msg =
@@ -938,21 +939,30 @@ and lazy_ast_of_string lang base_tok str warn_msg =
          if errors <> [] then pr2 (warn_msg ());
          (ast, errors)))
 
-and eval_nested_formula env formula lazy_ast_and_errors lazy_content opt_context
-    =
-  (* the following code is very similar to `check' below;
-     * we could maybe factorize things *)
+and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
+    opt_context =
+  let _, final_ranges =
+    evaluate_formula env formula lazy_ast_and_errors lazy_content opt_context
+  in
+  match final_ranges with [] -> false | _ :: _ -> true
+  [@@profiling]
+
+and evaluate_formula env formula lazy_ast_and_errors lazy_content opt_context =
   let xpatterns = xpatterns_in_formula formula in
   let res =
     matches_of_xpatterns env.config env.equivalences
       (env.file, env.xlang, lazy_ast_and_errors, lazy_content)
       xpatterns
   in
+  logger#info "found %d matches" (List.length res.matches);
+  (* match results per minirule id which is the same than pattern_id in
+   * the formula *)
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
   let env = { env with pattern_matches = pattern_matches_per_id } in
-  match evaluate_formula env opt_context formula with
-  | [] -> false
-  | _ :: _ -> true
+  logger#info "evaluating the formula";
+  let final_ranges = compose_patterns env opt_context formula in
+  logger#info "found %d final ranges" (List.length final_ranges);
+  (res, final_ranges)
   [@@profiling]
 
 (*****************************************************************************)
@@ -971,7 +981,6 @@ let check hook default_config rules equivs file_and_more =
   rules
   |> List.map (fun r ->
          Common.profile_code (spf "real_rule:%s" r.R.id) (fun () ->
-             let formula = Rule.formula_of_rule r in
              let relevant_rule =
                if !Flag_semgrep.filter_irrelevant_rules then (
                  match Analyze_rule.regexp_prefilter_of_rule r with
@@ -986,33 +995,23 @@ let check hook default_config rules equivs file_and_more =
                logger#info "skipping rule %s for %s" r.R.id file;
                RP.empty_semgrep_result )
              else
-               let xpatterns = xpatterns_in_formula formula in
+               let formula = Rule.formula_of_rule r in
                let config = r.settings ||| default_config in
-               let res =
-                 matches_of_xpatterns config equivs
-                   (file, xlang, lazy_ast_and_errors, lazy_content)
-                   xpatterns
-               in
-               logger#info "found %d matches" (List.length res.matches);
-               (* match results per minirule id which is the same than pattern_id in
-                * the formula *)
-               let pattern_matches_per_id =
-                 group_matches_per_pattern_id res.matches
-               in
+               let dummy_matches = Hashtbl.create 1 in
                let env =
                  {
                    config;
-                   pattern_matches = pattern_matches_per_id;
+                   pattern_matches = dummy_matches;
                    file;
                    rule = r;
                    xlang;
                    equivalences = equivs;
                  }
                in
-               logger#info "evaluating the formula";
-               let final_ranges = evaluate_formula env None formula in
-               logger#info "found %d final ranges" (List.length final_ranges);
-
+               let res, final_ranges =
+                 evaluate_formula env formula lazy_ast_and_errors lazy_content
+                   None
+               in
                {
                  matches =
                    final_ranges
