@@ -93,7 +93,6 @@ type formula =
    * should always be inside an And to be intersected with "positive" formula.
    *)
   | Not of formula
-[@@deriving show, eq]
 
 (* todo: try to remove this at some point, but difficult. See
  * https://github.com/returntocorp/semgrep/issues/1218
