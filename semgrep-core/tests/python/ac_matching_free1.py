@@ -1,20 +1,20 @@
 
 #OK:
-if A and B:
+if A | B:
   foo()
 
 # OK
-if A and C:
+if A | C:
   foo()
 
 #ERROR:
-if A and B and B:
+if A | B | B:
   foo()
 
 #ERROR:
-if A and B and C and B:
+if A | B | C | B:
   foo()
 
 #OK:
-if B and (B and C):
+if B | (B | C):
   foo()
