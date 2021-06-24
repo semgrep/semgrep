@@ -945,7 +945,6 @@ and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
     evaluate_formula env formula lazy_ast_and_errors lazy_content opt_context
   in
   match final_ranges with [] -> false | _ :: _ -> true
-  [@@profiling]
 
 and evaluate_formula env formula lazy_ast_and_errors lazy_content opt_context =
   let xpatterns = xpatterns_in_formula formula in
