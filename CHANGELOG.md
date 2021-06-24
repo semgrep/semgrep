@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add per-rule settings object to enable/disable certain matching features
 - Add support for $...MVAR in generic patterns.
 - metavariable-pattern: Add support for nested Spacegrep/regex/Comby patterns
+- C#: support ellipsis in method parameters (#3289)
 
 ### Fixed
 - C#: parse __makeref, __reftype, __refvalue (#3364)
