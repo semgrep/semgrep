@@ -366,11 +366,6 @@ let verbatim_string_literal (env : env) (tok : CST.verbatim_string_literal) =
 
 (* verbatim_string_literal *)
 
-let _preprocessor_directive (env : env) (tok : CST.preprocessor_directive) =
-  token env tok
-
-(* pattern #[a-z]\w* *)
-
 let default_switch_label (env : env) ((v1, v2) : CST.default_switch_label) =
   let v1 = token env v1 (* "default" *) in
   let v2 = token env v2 (* ":" *) in
@@ -522,7 +517,7 @@ let _preproc_directive_end (env : env) (tok : CST.preproc_directive_end) =
 let interpolated_string_text (env : env) (x : CST.interpolated_string_text) =
   match x with
   | `LCURLLCURL tok -> String (str env tok) (* "{{" *)
-  | `Imm_tok_pat_2755817 tok ->
+  | `Inte_str_text_frag tok ->
       String (str env tok) (* pattern "[^{\"\\\\\\n]+" *)
   | `Esc_seq tok -> escape_sequence env tok
 
@@ -629,8 +624,7 @@ let literal (env : env) (x : CST.literal) : literal =
         List.map
           (fun x ->
             match x with
-            | `Imm_tok_pat_5a6fa79 tok ->
-                str env tok (* pattern "[^\"\\\\\\n]+" *)
+            | `Str_lit_frag tok -> str env tok (* pattern "[^\"\\\\\\n]+" *)
             | `Esc_seq tok -> str env tok
             (* escape_sequence *))
           v2
@@ -933,7 +927,7 @@ and name (env : env) (x : CST.name) : AST.name =
   | `Simple_name x -> simple_name env x
 
 and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
-  let v1 = match v1 with Some x -> attribute_list env x | None -> [] in
+  let v1 = List.concat_map (attribute_list env) v1 in
   let v2 =
     match v2 with
     | Some x -> (
