@@ -882,8 +882,8 @@ and match_range_with_pattern env r mvar opt_lang formula =
                    content of %s"
                   env.rule.id mvar)
           in
-          eval_nested_formula env
-            (R.L (lang, []))
+          eval_nested_formula
+            { env with xlang = R.L (lang, []) }
             formula lazy_ast_and_errors
             (lazy content)
             (Some { r with r = mval_range })
@@ -906,12 +906,15 @@ and match_range_with_pattern env r mvar opt_lang formula =
               let lazy_content =
                 lazy (Range.content_at_range env.file mval_range)
               in
-              eval_nested_formula env env.xlang formula lazy_ast_and_errors
-                lazy_content
+              eval_nested_formula env formula lazy_ast_and_errors lazy_content
                 (Some { r with r = mval_range }) ) )
 
 and lazy_ast_of_string lang base_tok str warn_msg =
   let fix_toks ast =
+    (* We put `str` into a temporary file and parse it as `lang`, then all
+     * location info refers to this temporary file. But we want parse errors
+     * and matching ranges to refer to positions in the original file! So, we
+     * apply Parse_info.adjust_info_wrt_base to every parse info to fix this. *)
     let base_loc = Parse_info.token_location_of_info base_tok in
     let visitor =
       Map_AST.mk_visitor
@@ -935,14 +938,14 @@ and lazy_ast_of_string lang base_tok str warn_msg =
          if errors <> [] then pr2 (warn_msg ());
          (ast, errors)))
 
-and eval_nested_formula env xlang formula lazy_ast_and_errors lazy_content
-    opt_context =
+and eval_nested_formula env formula lazy_ast_and_errors lazy_content opt_context
+    =
   (* the following code is very similar to `check' below;
      * we could maybe factorize things *)
   let xpatterns = xpatterns_in_formula formula in
   let res =
     matches_of_xpatterns env.config env.equivalences
-      (env.file, xlang, lazy_ast_and_errors, lazy_content)
+      (env.file, env.xlang, lazy_ast_and_errors, lazy_content)
       xpatterns
   in
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
