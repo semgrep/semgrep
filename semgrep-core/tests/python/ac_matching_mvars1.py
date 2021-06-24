@@ -1,8 +1,8 @@
 
 #OK:
-if A and B:
+if A | B:
   foo()
 
 #ERROR:
-if C and B and A:
+if C | B | A:
   foo()

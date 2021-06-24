@@ -41,10 +41,8 @@ val abstract_for_comparison_any : AST_generic.any -> AST_generic.any
  * with polymorphic operators.
 *)
 
-val is_AC_operator : AST_generic.operator -> bool
-(** Determines whether an operator will be subject to
- * associative-communitative (AC) matching. Note that
- * AC matching is expensive! *)
+val is_associative_operator : AST_generic.operator -> bool
+(** Test whether an operator is suitable for associative-matching.  *)
 
 val ac_matching_nf :
   AST_generic.operator -> AST_generic.arguments -> AST_generic.expr list option

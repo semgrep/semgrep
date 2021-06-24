@@ -1,36 +1,36 @@
 
 #ERROR:
-if A and B:
+if A & B:
   foo()
 
 #ERROR:
-if B and A:
+if B & A:
   foo()
 
 # OK
-if A and C:
+if A & C:
   foo()
 
 #ERROR:
-if A and B and B:
+if A & B & B:
   foo()
 
 #ERROR:
-if A and B and C:
+if A & B & C:
   foo()
 
 #ERROR:
-if A and (B and C):
+if A & (B & C):
   foo()
 
 #ERROR:
-if C and A and B:
+if C & A & B:
   foo()
 
 #ERROR:
-if B and A and C:
+if B & A & C:
   foo()
 
 #ERROR:
-if A and C and B:
+if A & C & B:
   foo()

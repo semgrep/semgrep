@@ -620,14 +620,17 @@ and m_expr a b =
         ( A.IdSpecial (A.Op aop, _toka),
           (_, [ A.Arg a1; A.Arg (A.Ellipsis _tdots) ], _) ),
       B.Call (B.IdSpecial (B.Op bop, _tokb), (_, [ B.Arg b1; B.Arg _b2 ], _)) )
-    ->
+  (* This applies to any binary operation! Associative operators (declared
+   * in AST_generic_helpers.is_associative_operator) are better handled by
+   * m_call_op below. *)
+    when (not (H.is_associative_operator aop)) || aop <> bop ->
       m_arithmetic_operator aop bop >>= fun () ->
       m_expr a1 b1 >!> fun () ->
       (* try again deeper on b1 *)
       m_expr a b1
-  | ( A.Call (A.IdSpecial (A.Op aop, _toka), aargs),
+  | ( A.Call (A.IdSpecial (A.Op aop, toka), aargs),
       B.Call (B.IdSpecial (B.Op bop, tokb), bargs) ) ->
-      m_call_op aop aargs bop tokb bargs
+      m_call_op aop toka aargs bop tokb bargs
   (* boilerplate *)
   (* TODO: via m_name! and miss IdQualfied vs IdQualified otherwise *)
   | A.N (A.Id (a1, a2)), B.N (B.Id (b1, b2)) ->
@@ -1244,28 +1247,83 @@ and m_other_argument_operator = m_other_xxx
 (*---------------------------------------------------------------------------*)
 (* Associative-commutative iso *)
 (*---------------------------------------------------------------------------*)
-and m_call_op aop aargs bop tokb bargs =
+and m_call_op aop toka aargs bop tokb bargs tin =
+  let is_commutative_operator = function
+    | A.BitOr | A.BitAnd | A.BitXor -> true
+    (* TODO: Plus, Mult, ... ? *)
+    | A.And | A.Or -> tin.config.commutative_boolop
+    | __else__ -> false
+  in
   let m_op_default =
     m_arithmetic_operator aop bop >>= fun () -> m_arguments aargs bargs
   in
   (* If this an AC operation we try to perform AC matching, otherwise we perform
    * regular non-AC matching. *)
-  match
-    ( H.ac_matching_nf aop (A.unbracket aargs),
-      H.ac_matching_nf bop (B.unbracket bargs) )
-  with
-  | Some aargs_ac, Some bargs_ac when aop =*= bop ->
-      if_config
-        (fun x -> x.ac_matching)
-        ~then_:(m_ac_op tokb aop aargs_ac bargs_ac)
-        ~else_:m_op_default
-  | ___else___ -> m_op_default
+  if tin.config.ac_matching && aop =*= bop && H.is_associative_operator aop then (
+    match
+      ( H.ac_matching_nf aop (A.unbracket aargs),
+        H.ac_matching_nf bop (B.unbracket bargs) )
+    with
+    | Some aargs_ac, Some bargs_ac ->
+        if is_commutative_operator aop then
+          m_ac_op tokb aop aargs_ac bargs_ac tin
+        else m_assoc_op tokb aop aargs_ac bargs_ac tin
+    | ___else___ ->
+        logger#warning
+          "Will not perform AC-matching, something went wrong when trying to \
+           convert operands to AC normal form: %s ~ %s"
+          (A.show_expr (A.Call (A.IdSpecial (A.Op aop, toka), aargs)))
+          (B.show_expr (B.Call (B.IdSpecial (B.Op bop, tokb), bargs)));
+        m_op_default tin )
+  else m_op_default tin
+
+(* Associative-matching of operators.
+ *
+ * This is very similar to m_list__m_argument where $MVAR acts like $...$MVAR
+ * (but cannot match an empty list of arguments).
+ *
+ * NOTE: There is not need for supporting $...MVAR here, and strictly speaking
+ *   it doesn't apply either since we still see the operator as binary.
+ *)
+and m_assoc_op tok op aargs_ac bargs_ac =
+  match (aargs_ac, bargs_ac) with
+  | [], [] -> return ()
+  (* dots: ..., can also match no argument *)
+  | [ A.Ellipsis _i ], [] -> return ()
+  (* $MVAR, acting similar to $...MVAR *)
+  | (A.N (A.Id ((s, _tok), _idinfo)) as xa) :: xsa, xsb
+    when MV.is_metavar_name s ->
+      let candidates = inits_and_rest_of_list_empty_ok xsb in
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | (inits, rest) :: xs -> (
+            match H.undo_ac_matching_nf tok op inits with
+            | Some op_bs' ->
+                m_expr xa op_bs'
+                >>= (fun () -> m_assoc_op tok op xsa rest)
+                >||> aux xs
+            | None -> aux xs )
+      in
+      aux candidates
+  | A.Ellipsis i :: xsa, xb :: xsb ->
+      (* can match nothing *)
+      m_assoc_op tok op xsa (xb :: xsb)
+      >||> (* can match more *)
+      m_assoc_op tok op (A.Ellipsis i :: xsa) xsb
+  | xa :: xsa, xb :: xsb ->
+      let* () = m_expr xa xb in
+      m_assoc_op tok op xsa xsb
+  | _ :: _, [] | [], _ :: _ -> fail ()
 
 (* Associative-Commutative (AC) matching of operators.
  *
  * This for example, will successfully match `a && b && c` against `b && a && c`!
  * It will also match `if (<... b && c ...>) ...` against `if (a && b && c) S`
  * which was not matching before as `a && b && c` is parsed as `(a && b) && c`.
+ *
+ * NOTE: There is not need for supporting $...MVAR here, and strictly speaking
+ *   it doesn't apply either since we still see the operator as binary.
  *
  * BEHAVIOR ISSUES:
  *
@@ -1299,7 +1357,7 @@ and m_call_op aop aargs bop tokb bargs =
  *     "Associative-Commutative Matching Via Bipartite Graph Matching"
  *)
 and m_ac_op tok op aargs_ac bargs_ac =
-  (* partitition aargs_ac to separate metavariables and ellipsis (avars) from
+  (* Partitition aargs_ac to separate metavariables and ellipsis (avars) from
    * non-mvar-ish expressions (aapps). *)
   let avars, aapps =
     aargs_ac
@@ -1340,6 +1398,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
   | ___many___ when num_bs_left <= 3 ->
       (* AC matching, it explodes easily so use with care! *)
       let m_var x bs' =
+        (* `...` can match the empty set, whereas `$MVAR` must much something. *)
         match (x, H.undo_ac_matching_nf tok op bs') with
         | A.Ellipsis _, None -> return ()
         | ___mvar___, None -> fail ()
@@ -1356,7 +1415,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
        *       explode but not as easily
        *)
       (* TODO: Issue a proper warning to the user. *)
-      logger#debug
+      logger#warning
         "Restricted AC-matching due to potential blow-up: op=%s avars#=%d \
          bs_left#=%d\n"
         (A.show_operator op) (List.length avars) num_bs_left;

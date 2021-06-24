@@ -1,12 +1,12 @@
 
 #ERROR:
-if A and B:
+if A & B:
   foo()
 
 #ERROR:
-if C and B and A:
+if C & B & A:
   foo()
 
 #OK:
-if A and A:
+if A & A:
   foo()

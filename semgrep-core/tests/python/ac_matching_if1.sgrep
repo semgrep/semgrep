@@ -1,2 +1,2 @@
-if B and C:
+if B | C:
 	foo()
