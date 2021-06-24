@@ -1468,7 +1468,7 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) :
 
 and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
   match x with
-  | `Param x -> ParamClassic (parameter env x)
+  | `Param x -> parameter env x
   | `Param_array (v1, v2, v3, v4) ->
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = token env v2 (* "params" *) in
@@ -2086,7 +2086,13 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v2 = block env v2 in
   (v1, v2)
 
-and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
+and parameter (env : env) (v1 : CST.parameter) : AST.parameter =
+  match v1 with
+  | `Rep_attr_list_opt_param_modi_opt_type_id_opt_equals_value_clause v1 ->
+      explicit_parameter env v1
+  | `Ellips v1 -> ParamEllipsis (token env v1)
+
+and explicit_parameter (env : env) (v1, v2, v3, v4, v5) =
   (*
     [FromBody] ref string param1 = "default"
         v1     v2   v3     v4      v5
@@ -2096,13 +2102,14 @@ and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
   let v3 = map_opt type_constraint env v3 in
   let v4 = identifier env v4 (* identifier *) in
   let v5 = map_opt equals_value_clause env v5 in
-  {
-    pname = Some v4;
-    ptype = v3;
-    pdefault = v5;
-    pattrs = v1;
-    pinfo = empty_id_info ();
-  }
+  ParamClassic
+    {
+      pname = Some v4;
+      ptype = v3;
+      pdefault = v5;
+      pattrs = v1;
+      pinfo = empty_id_info ();
+    }
 
 and from_clause (env : env) ((v1, v2, v3, v4, v5) : CST.from_clause) :
     linq_query_part =
@@ -2320,7 +2327,7 @@ let bracketed_parameter_list (env : env)
       v3
   in
   let v4 = token env v4 (* "]" *) in
-  List.map (fun p -> ParamClassic p) (v2 :: v3)
+  v2 :: v3
 
 let constructor_initializer (env : env)
     ((v1, v2, v3) : CST.constructor_initializer) =
