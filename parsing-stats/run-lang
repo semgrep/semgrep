@@ -97,6 +97,9 @@ main() {
 
     (
       cd tmp
+      # Set memory limit to avoid killing other processes that run in parallel
+      # if this semgrep-core instance uses too much memory.
+      ulimit -v 4000000  # KiB
       semgrep-core -lang "$lang" -parsing_stats -json $project_list
     ) > stats.json
   )

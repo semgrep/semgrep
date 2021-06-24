@@ -36,3 +36,19 @@ git@github.com:basarat/typescript-book.git
 # Too many weird test cases in the following:
 # git@github.com:DefinitelyTyped/DefinitelyTyped.git
 # git@github.com:microsoft/TypeScript.git
+
+#
+# Public projects with .tsx files, obtained from GitHub search
+# by searching for the keyword "react" and filter by language "typescript".
+# (Filtering by language "TSX" or by extension "tsx" didn't work.)
+#
+https://github.com/omariosouto/lucasflix.git
+https://github.com/EmmaRamirez/nuzlocke-generator.git
+https://github.com/ant-design/ant-design.git
+https://github.com/FaridSafi/react-native-gifted-chat.git
+https://github.com/microsoft/reactxp.git
+https://github.com/react-component/slider.git
+https://github.com/formium/formik.git
+https://github.com/tannerlinsley/react-query.git
+https://github.com/material-components/material-components-web-react.git
+https://github.com/projectstorm/react-diagrams.git
