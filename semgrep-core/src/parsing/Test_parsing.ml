@@ -170,6 +170,9 @@ let test_parse_tree_sitter lang xs =
 (*
    Expand the list of files or directories into a list of files in the
    specified language, and return a record for each file.
+
+   This is meant to run the same parsers as semgrep-core does for normal
+   semgrep scans.
 *)
 let parsing_common ?(verbose = true) lang xs =
   let xs = List.map Common.fullpath xs in
@@ -177,27 +180,21 @@ let parsing_common ?(verbose = true) lang xs =
     Lang.files_of_dirs_or_files lang xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
-
-  let stat_list = ref [] in
   fullxs
-  |> Console.progress ~show:verbose (fun k ->
-         List.iter (fun file ->
-             k ();
-             logger#info "processing %s" file;
-             let stat =
-               try
-                 let res =
-                   Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
-                     lang file
-                 in
-                 res.Parse_target.stat
-               with exn ->
-                 if verbose then
-                   pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-                 PI.bad_stat file
+  |> List.rev_map (fun file ->
+         pr2 (spf "[%s] processing %s" (Lang.to_lowercase_alnum lang) file);
+         let stat =
+           try
+             let res =
+               Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang
+                 file
              in
-             Common.push stat stat_list));
-  !stat_list
+             res.Parse_target.stat
+           with exn ->
+             if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+             PI.bad_stat file
+         in
+         stat)
 
 (*
    Parse files from multiple root folders, each root being considered a
