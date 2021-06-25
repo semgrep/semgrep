@@ -20,7 +20,7 @@
             "line": 10
           },
           "file": "rules/invalid-rules/invalid-metavariable-regex.yaml",
-          "source_hash": "7ce4f2d97bbaa3d8753888619ed52b5934c2b24826f793d8b0cf6f4244ac1c8a",
+          "source_hash": "9f42d4b4baf0414d8b2e815cf11e60f57c74d51f0c62e15ff00bb964c113fc1d",
           "start": {
             "col": 9,
             "line": 6

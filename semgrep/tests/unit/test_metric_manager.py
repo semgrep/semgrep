@@ -32,23 +32,23 @@ def test_configs_hash() -> None:
 def test_rules_hash() -> None:
     config1 = dedent(
         """
-    rules:
-    - id: rule1
-      pattern: $X == $X
-      languages: [python]
-      severity: INFO
-      message: bad
-    - id: rule2
-      pattern: $X == $Y
-      languages: [python]
-      severity: INFO
-      message: good
-    - id: rule3
-      pattern: $X < $Y
-      languages: [c]
-      severity: INFO
-      message: doog
-    """
+        rules:
+        - id: rule1
+          pattern: $X == $X
+          languages: [python]
+          severity: INFO
+          message: bad
+        - id: rule2
+          pattern: $X == $Y
+          languages: [python]
+          severity: INFO
+          message: good
+        - id: rule3
+          pattern: $X < $Y
+          languages: [c]
+          severity: INFO
+          message: doog
+        """
     )
     # Load rules
     with NamedTemporaryFile() as tf1:
@@ -88,7 +88,7 @@ def test_send() -> None:
 
     # test that network is blocked
     with pytest.raises(Exception):
-        r = requests.get(
+        _ = requests.get(
             "https://semgrep.dev",
             timeout=2,
         )
@@ -100,23 +100,23 @@ def test_send() -> None:
 def test_timings(snapshot) -> None:
     config1 = dedent(
         """
-    rules:
-    - id: rule1
-      pattern: $X == $X
-      languages: [python]
-      severity: INFO
-      message: bad
-    - id: rule2
-      pattern: $X == $Y
-      languages: [python]
-      severity: INFO
-      message: good
-    - id: rule3
-      pattern: $X < $Y
-      languages: [c]
-      severity: INFO
-      message: doog
-    """
+        rules:
+        - id: rule1
+          pattern: $X == $X
+          languages: [python]
+          severity: INFO
+          message: bad
+        - id: rule2
+          pattern: $X == $Y
+          languages: [python]
+          severity: INFO
+          message: good
+        - id: rule3
+          pattern: $X < $Y
+          languages: [c]
+          severity: INFO
+          message: doog
+        """
     )
     # Load rules
     with NamedTemporaryFile() as tf1:
