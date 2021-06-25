@@ -8,6 +8,7 @@ mkdir -p tmp
 cd tmp
 
 spacecat=../bin/spacecat
+spacegrep=../bin/spacegrep
 
 #
 # Any content that looks like source code:
@@ -71,7 +72,11 @@ for i in `seq 1 50`; do
   cat medium >> big
 done
 
+tr '\n' ' ' < medium > medium.oneline
 tr '\n' ' ' < big > big.oneline
+
+# 1 MB of random bytes
+head -c 1000000 /dev/random > big-blob
 
 print() {
   echo "[spacecat] $*" >&2
@@ -83,5 +88,34 @@ time "$spacecat" < small
 print "Parse and print big file"
 time "$spacecat" < big
 
-print "Parse and print big file on a single line"
+print "Parse and print single-line big file"
 time "$spacecat" < big.oneline
+
+print "Parse and print big binary file"
+time "$spacecat" < big-blob
+
+print() {
+  echo "[spacegrep] $*" >&2
+}
+
+print "Run simple pattern on small file"
+time "$spacegrep" foo small
+
+print "Run simple pattern on big file"
+time "$spacegrep" foo big
+
+print "Run ellipsis pattern on medium file"
+time "$spacegrep" '$X ... foo' medium
+
+print "Run ellipsis pattern on medium one-line file"
+time "$spacegrep" '$X ... foo' medium.oneline --force
+
+print "Run ellipsis pattern on big file"
+time "$spacegrep" '$X ... foo' big
+
+# The following takes forever because we hit O(n^2) complexity:
+# print "Run ellipsis pattern on single-line big file"
+# time "$spacegrep" '$X ... foo' big.oneline --force
+
+print "Run ellipsis pattern on big binary file"
+time "$spacegrep" '$X ... foo' big-blob --force
