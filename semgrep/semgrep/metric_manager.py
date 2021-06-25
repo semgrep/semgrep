@@ -4,7 +4,6 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Set
 from urllib.parse import urlparse
 
 from semgrep.constants import SEMGREP_USER_AGENT
@@ -113,7 +112,7 @@ class _MetricManager:
         self._errors = error_types
 
     def set_run_timings(
-        self, profiling_data: ProfilingData, targets: Set[Path], rules: List[Rule]
+        self, profiling_data: ProfilingData, targets: List[Path], rules: List[Rule]
     ) -> None:
         """
         Store rule hashes, rule parse times, and file-stats
