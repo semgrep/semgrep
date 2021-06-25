@@ -212,12 +212,10 @@ let case_insensitive_term =
     Arg.info
       [ "case-insensitive"; "i" ]
       ~doc:
-        "Match ascii letters in a case-insensitive fashion.\n\
-        \            For example, the pattern 'Hello' will match both 'HellO'\n\
-        \            and 'hello'.\n\
-        \            However, backreferences must still match exactly e.g.\n\
-        \            the pattern '\\$A + \\$A' will match 'foo + foo'\n\
-        \            but not 'foo + Foo'."
+        "Match ascii letters in a case-insensitive fashion. For example, the \
+         pattern 'Hello' will match both 'HellO' and 'hello'. However, \
+         backreferences must still match exactly e.g. the pattern '\\$A + \
+         \\$A' will match 'foo + foo' but not 'foo + Foo'."
   in
   Arg.value (Arg.flag info)
 
@@ -225,8 +223,8 @@ let color_term =
   let info =
     Arg.info [ "color" ]
       ~doc:
-        "Whether to highlight matching text. Valid values are 'auto'\n\
-        \            (default), 'always', and 'never'."
+        "Whether to highlight matching text. Valid values are 'auto' \
+         (default), 'always', and 'never'."
   in
   Arg.value (Arg.opt color_conv Auto info)
 
@@ -234,14 +232,11 @@ let output_format_term =
   let info =
     Arg.info [ "output-format" ]
       ~doc:
-        "Specifies how to print the matches. The default format, 'text',\n\
-        \            is an unspecified human-readable format. The other \
-         available\n\
-        \            format is 'semgrep', which produces json output for \
-         internal\n\
-        \            consumption by the semgrep front-end. Use a program like \
-         'jq'\n\
-        \            or 'ydump' for pretty-printing this json output."
+        "Specifies how to print the matches. The default format, 'text', is an \
+         unspecified human-readable format. The other format is 'semgrep', \
+         which produces json output for consumption by the semgrep front-end. \
+         Use a program like 'jq' or 'ydump' for pretty-printing this json \
+         output."
   in
   Arg.value (Arg.opt output_format_conv Text info)
 
@@ -262,27 +257,19 @@ let pattern_term =
   let info =
     Arg.info [] ~docv:"PATTERN"
       ~doc:
-        "$(docv) is a pattern. Any text is a valid pattern. The special\n\
-        \            constructs '...' and uppercase metavariables such as '$X'\n\
-        \            are supported. Each '...' allows skipping non-matching \
-         input in the\n\
-        \            same block or in sub-blocks, spanning at most 10 lines.\n\
-        \            Metavariables will capture words. If the same \
-         metavariable occurs\n\
-        \            in multiple places in the pattern, it must capture the same\n\
-        \            word everywhere.\n\
-        \            Indentation in the pattern is significant and is useful to\n\
-        \            specify how far '...' extends. Any nesting in the pattern\n\
-        \            must match the nesting in the document.\n\
-        \            However, a flat pattern may still match a nested document.\n\
-        \            Nesting in the document is determined primarily by \
-         indentation\n\
-        \            but also by matching standard ascii braces that occur on \
-         the same\n\
-        \            line ('()', '[]', {}').\n\
-        \            Use the companion command 'spacecat' to see how a document\n\
-        \            or a pattern is interpreted by 'spacegrep'.\n\
-        \            "
+        "$(docv) is a pattern. Any text is a valid pattern. The special \
+         constructs '...' and uppercase metavariables such as '$X' are \
+         supported. Each '...' allows skipping non-matching input in the same \
+         block or in sub-blocks, spanning at most 10 lines. Metavariables will \
+         capture words. If the same metavariable occurs in multiple places in \
+         the pattern, it must capture the same word everywhere. Indentation in \
+         the pattern is significant and is useful to specify how far '...' \
+         extends. Any nesting in the pattern must match the nesting in the \
+         document. However, a flat pattern may still match a nested document. \
+         Nesting in the document is determined primarily by indentation but \
+         also by matching standard ascii braces that occur on the same line \
+         ('()', '[]', {}'). Use the companion command 'spacecat' to see how a \
+         document or a pattern is interpreted by 'spacegrep'."
   in
   Arg.value (Arg.pos 0 Arg.(some string) None info)
 
@@ -297,9 +284,8 @@ let anon_doc_file_term =
   let info =
     Arg.info [] ~docv:"FILE"
       ~doc:
-        "Read documents from file or directory $(docv).\n\
-        \            This disables document input from stdin.\n\
-        \            Same as using '-d' or '--docfile'."
+        "Read documents from file or directory $(docv). This disables document \
+         input from stdin. Same as using '-d' or '--docfile'."
   in
   Arg.value (Arg.pos 1 Arg.(some string) None info)
 
@@ -307,10 +293,9 @@ let doc_file_term =
   let info =
     Arg.info [ "docfile"; "d" ] ~docv:"FILE"
       ~doc:
-        "Read documents from file or root directory $(docv).\n\
-        \            This disables document input from stdin.\n\
-        \            This option can be used multiple times to specify multiple\n\
-        \            files or scanning roots."
+        "Read documents from file or root directory $(docv). This disables \
+         document input from stdin. This option can be used multiple times to \
+         specify multiple files or scanning roots."
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
@@ -326,8 +311,8 @@ let timeout_term =
     Arg.info [ "timeout" ] ~docv:"SECONDS"
       ~doc:
         (sprintf
-           "Exit with code %i if the\n\
-           \                     task is not finished after $(docv) seconds."
+           "Exit with code %i if the task is not finished after $(docv) \
+            seconds."
            timeout_exit_code)
   in
   Arg.value (Arg.opt Arg.(some int) None info)
@@ -336,8 +321,8 @@ let warn_term =
   let info =
     Arg.info [ "warn"; "w" ]
       ~doc:
-        "Print warnings about files that can't be processed such\n\
-        \            as binary files or minified files."
+        "Print warnings about files that can't be processed such as binary \
+         files or minified files."
   in
   Arg.value (Arg.flag info)
 
