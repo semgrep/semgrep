@@ -1,0 +1,2 @@
+; Dune doesn't like dangling symlinks like we have in bin
+(dirs :standard \ bin)
