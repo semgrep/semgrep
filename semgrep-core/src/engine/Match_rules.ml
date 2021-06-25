@@ -826,7 +826,7 @@ and (evaluate_formula :
             conds
             |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res
           in
-          List.map (S.select_from_range selector_opt) res )
+          S.select_from_ranges env.file selector_opt res )
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
   | S.Leaf (R.MetavarCond _) ->
       failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
