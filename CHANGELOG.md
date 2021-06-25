@@ -20,8 +20,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   a generic rule
 - metavariable-pattern: Fix parse info when matching content of a metavariable
   under a different language
+- generic mode on Markdown files with very long lines will now work (#2987)
 
 ### Changed
+- generic mode: files that don't look like nicely-indented programs
+  are no longer ignored, which may cause accidental slowdowns in setups
+  where excessively large files are not excluded explicitly (#3418).
 
 ## [0.56.0](https://github.com/returntocorp/semgrep/releases/tag/v0.56.0) - 2021-06-15
 
