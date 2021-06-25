@@ -601,7 +601,7 @@ let rec filter_ranges env xs cond =
              let env = Eval_generic.bindings_to_env bindings in
              Eval_generic.eval_bool env e
          | R.CondPattern (mvar, opt_lang, formula) ->
-             range_matches_with_pattern env r mvar opt_lang formula
+             satisfies_metavar_pattern_condition env r mvar opt_lang formula
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
           * We could also use re.match(), to be close to python, but really
@@ -635,7 +635,7 @@ let rec filter_ranges env xs cond =
              in
              Eval_generic.eval_bool env e)
 
-and range_matches_with_pattern env r mvar opt_lang formula =
+and satisfies_metavar_pattern_condition env r mvar opt_lang formula =
   let bindings = r.mvars in
   (* If anything goes wrong the default is to filter out! *)
   match List.assoc_opt mvar bindings with
