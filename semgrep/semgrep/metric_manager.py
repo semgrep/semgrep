@@ -1,5 +1,4 @@
 import hashlib
-import logging
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -65,7 +64,6 @@ class _MetricManager:
             except ValueError as e:
                 logger.debug(f"Failed to parse url {project_url}")
                 sanitized_url = project_url
-
 
             project_hash = hashlib.sha256(sanitized_url.encode()).hexdigest()
             self._project_hash = project_hash

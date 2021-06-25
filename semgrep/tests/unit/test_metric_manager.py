@@ -153,7 +153,7 @@ def test_timings(snapshot) -> None:
         profiling_data.set_rule_parse_time(rule1, 0.05)
         profiling_data.set_rule_parse_time(rule2, 0.04)
 
-        metric_manager.set_run_timings(profiling_data, targets, rules)
+        metric_manager.set_run_timings(profiling_data, set(targets), rules)
 
     assert metric_manager._rule_stats == [
         {
