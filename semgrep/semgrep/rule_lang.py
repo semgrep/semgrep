@@ -20,10 +20,10 @@ from typing import Union
 import attr
 import jsonschema.exceptions
 from jsonschema.validators import Draft7Validator
+from ruamel.yaml import MappingNode
 from ruamel.yaml import Node
 from ruamel.yaml import RoundTripConstructor
 from ruamel.yaml import YAML
-from ruamel.yaml.nodes import MappingNode
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 
