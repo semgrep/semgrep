@@ -1,5 +1,6 @@
 import json
 from subprocess import CalledProcessError
+
 import pytest
 
 
