@@ -21,11 +21,6 @@ function Vulnerable3() {
     );
 }
 
-function Vulnerable4(input) {
-// ruleid: react-css-injection
-    return React.createElement('div', {style: input}, `foobar`);
-}
-
 function OkTest({siteUrl, input}) {
     return (
         <SuperDiv>
