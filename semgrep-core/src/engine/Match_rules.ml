@@ -782,7 +782,7 @@ and (evaluate_formula :
         match posrs @ posrs_inside with
         | [] -> (
             match ctx_opt with
-            | None -> failwith "empty And; no positive terms in And"
+            | None -> [ Selector.match_selector selector_opt ]
             | Some r -> [ [ r ] ] )
         | ps -> ps
       in
@@ -833,7 +833,11 @@ and (evaluate_formula :
 
 and matches_of_formula env formula lazy_ast_and_errors lazy_content opt_context
     =
-  let formula = Selector.formula_to_sformula formula in
+  let match_func =
+    matches_of_patterns env.config env.equivalences
+      (env.file, env.xlang, lazy_ast_and_errors)
+  in
+  let formula = Selector.formula_to_sformula match_func formula in
   let xpatterns = xpatterns_in_formula formula in
   let res =
     matches_of_xpatterns env.config env.equivalences
