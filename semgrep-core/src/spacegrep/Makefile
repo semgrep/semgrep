@@ -6,6 +6,10 @@
 .PHONY: build
 build:
 	dune build
+	$(MAKE) symlinks
+
+.PHONY: symlinks
+symlinks:
 	mkdir -p bin
 	ln -sf ../../../_build/install/default/bin/spacegrep bin/spacegrep
 	ln -sf spacegrep bin/spacecat
@@ -13,6 +17,7 @@ build:
 .PHONY: test
 test:
 	dune exec src/test/test.exe
+	$(MAKE) symlinks
 	$(MAKE) examples > /dev/null
 	$(MAKE) big-cat > /dev/null
 
