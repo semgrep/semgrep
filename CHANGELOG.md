@@ -13,7 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add support for $...MVAR in generic patterns.
 
 ### Fixed
-- C#: parse __makeref, __reftype, __refvalue (#3364)
+- C#: parse `__makeref`, `__reftype`, `__refvalue` (#3364)
 - Java: parsing of dots inside function annotations with brackets (#3389)
 - Do not pretend that short-circuit Boolean AND and OR operators are commutative (#3399)
 - metavariable-pattern: Fix crash when nesting a non-generic pattern within
@@ -22,6 +22,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   under a different language
 
 ### Changed
+- When anded with other patterns, `pattern: $X` will not be evaluated on its own, but will look at the context and find `$X` within the metavariables bound
 
 ## [0.56.0](https://github.com/returntocorp/semgrep/releases/tag/v0.56.0) - 2021-06-15
 
