@@ -41,7 +41,7 @@ type xlang =
   | LNone
   (* for spacegrep *)
   | LGeneric
-[@@deriving show]
+[@@deriving show, eq]
 
 type regexp = Regexp_engine.Pcre_engine.t [@@deriving show, eq]
 
@@ -121,7 +121,7 @@ and metavar_cond =
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
   | CondRegexp of MV.mvar * regexp
-  | CondPattern of MV.mvar * Lang.t option * formula
+  | CondPattern of MV.mvar * xlang option * formula
 [@@deriving show, eq]
 
 (*****************************************************************************)
@@ -150,7 +150,7 @@ type formula_old =
 and extra =
   | MetavarRegexp of MV.mvar * regexp
   (* TODO: Generalize `Lang.t option` to `xlang`. *)
-  | MetavarPattern of MV.mvar * Lang.t option * formula
+  | MetavarPattern of MV.mvar * xlang option * formula
   | MetavarComparison of metavariable_comparison
   | PatWherePython of string
 
@@ -242,8 +242,8 @@ let rewrite_metavar_comparison_strip mvar cond =
 let convert_extra x =
   match x with
   | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
-  | MetavarPattern (mvar, opt_lang, formula) ->
-      CondPattern (mvar, opt_lang, formula)
+  | MetavarPattern (mvar, opt_xlang, formula) ->
+      CondPattern (mvar, opt_xlang, formula)
   | MetavarComparison comp -> (
       match comp with
       (* do we care about strip and base? should not Eval_generic handle it?
