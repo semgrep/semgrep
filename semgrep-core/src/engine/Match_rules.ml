@@ -753,7 +753,7 @@ let rec filter_ranges env xs cond =
              in
              Eval_generic.eval_bool env e)
 
-and range_matches_with_pattern env r mvar opt_lang formula =
+and range_matches_with_pattern env r mvar opt_xlang formula =
   let bindings = r.mvars in
   (* If anything goes wrong the default is to filter out! *)
   match List.assoc_opt mvar bindings with
@@ -764,29 +764,13 @@ and range_matches_with_pattern env r mvar opt_lang formula =
       false
   | Some mval -> (
       let mval_range = MV.range_of_mvalue mval in
-      match (opt_lang, mval) with
-      | Some lang, MV.Text (content, tok)
-      | Some lang, MV.E (G.L (G.String (content, tok))) ->
-          (* The matched text will be interpreted according to `lang'. *)
-          let lazy_ast_and_errors =
-            lazy_ast_of_string lang tok content (fun () ->
-                spf
-                  "rule %s: metavariable-pattern: failed to fully parse the \
-                   content of %s"
-                  env.rule.id mvar)
-          in
-          nested_formula_has_matches
-            { env with xlang = R.L (lang, []) }
-            formula lazy_ast_and_errors
-            (lazy content)
-            (Some { r with r = mval_range })
-      | Some _lang, _mval ->
-          (* THINK: fatal error instead? *)
-          logger#error
-            "rule %s: metavariable-pattern: the content of %s is not text"
-            env.rule.id mvar;
-          false
-      | None, _mval -> (
+      match (opt_xlang, mval) with
+      | None, __any_mval__ -> (
+          (* We match wrt the same language as the rule.
+           * NOTE: A generic pattern nested inside a generic won't work because
+           *   generic mode binds metavariables to `MV.Text`, and
+           *   `MV.program_of_mvalue` does not handle `MV.Text`. So one must
+           *   specify `language: generic` (case `Some xlang` below). *)
           match MV.program_of_mvalue mval with
           | None ->
               (* THINK: fatal error instead? *)
@@ -801,36 +785,57 @@ and range_matches_with_pattern env r mvar opt_lang formula =
               in
               nested_formula_has_matches env formula lazy_ast_and_errors
                 lazy_content
-                (Some { r with r = mval_range }) ) )
-
-and lazy_ast_of_string lang base_tok str warn_msg =
-  let fix_toks ast =
-    (* We put `str` into a temporary file and parse it as `lang`, then all
-     * location info refers to this temporary file. But we want parse errors
-     * and matching ranges to refer to positions in the original file! So, we
-     * apply Parse_info.adjust_info_wrt_base to every parse info to fix this. *)
-    let base_loc = Parse_info.token_location_of_info base_tok in
-    let visitor =
-      Map_AST.mk_visitor
-        {
-          Map_AST.default_visitor with
-          Map_AST.kinfo =
-            (fun (_, _) tok -> Parse_info.adjust_info_wrt_base base_loc tok);
-        }
-    in
-    visitor.Map_AST.vprogram ast
-  in
-  lazy
-    (let ext =
-       match Lang.ext_of_lang lang with x :: _ -> x | [] -> assert false
-     in
-     Common2.with_tmp_file ~str ~ext (fun file ->
-         let { Parse_target.ast; errors; _ } =
-           Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
-         in
-         let ast = fix_toks ast in
-         if errors <> [] then pr2 (warn_msg ());
-         (ast, errors)))
+                (Some { r with r = mval_range }) )
+      | Some xlang, MV.Text (content, _tok)
+      | Some xlang, MV.E (G.L (G.String (content, _tok))) ->
+          (* We reinterpret the matched text as `xlang`. *)
+          let ext =
+            match xlang with
+            | R.LNone | R.LGeneric -> "generic"
+            | R.L (lang, _) -> (
+                match Lang.ext_of_lang lang with
+                | x :: _ -> x
+                | [] -> assert false )
+          in
+          Common2.with_tmp_file ~str:content ~ext (fun file ->
+              let lazy_ast_and_errors =
+                lazy
+                  ( match xlang with
+                  | R.L (lang, _) ->
+                      let { Parse_target.ast; errors; _ } =
+                        Parse_target
+                        .parse_and_resolve_name_use_pfff_or_treesitter lang file
+                      in
+                      (* TODO: If we wanted to report the parse errors then we should
+                       * fix the parse info with Parse_info.adjust_info_wrt_base! *)
+                      if errors <> [] then
+                        pr2
+                          (spf
+                             "rule %s: metavariable-pattern: failed to fully \
+                              parse the content of %s"
+                             env.rule.id mvar);
+                      (ast, errors)
+                  | R.LNone | R.LGeneric ->
+                      failwith "requesting generic AST for LNone|LGeneric" )
+              in
+              let r' =
+                (* Fix the range wrt the temporary file that we now use for
+                 * evaluating the nested pattern formula. *)
+                {
+                  r with
+                  r = { start = 0; end_ = mval_range.end_ - mval_range.start };
+                }
+              in
+              nested_formula_has_matches { env with file; xlang } formula
+                lazy_ast_and_errors
+                (lazy content)
+                (Some r'))
+      | Some _lang, _mval ->
+          (* THINK: fatal error instead? *)
+          logger#error
+            "rule %s: metavariable-pattern: the content of %s is not text"
+            env.rule.id mvar;
+          false )
 
 and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
     opt_context =
