@@ -321,19 +321,23 @@ and parse_extra env x =
       match find_fields [ "metavariable" ] xs with
       | [ ("metavariable", Some (J.String metavar)) ], rest ->
           let id, _ = env in
-          let env', opt_lang, rest' =
+          let env', opt_xlang, rest' =
             match find_fields [ "language" ] rest with
             | [ ("language", Some (J.String s)) ], rest' ->
-                let lang =
-                  match Lang.lang_of_string_opt s with
-                  | None ->
-                      raise
-                        (E.InvalidLanguageException
-                           (id, spf "unsupported language: %s" s))
-                  | Some l -> l
+                let xlang =
+                  (* TODO: This code is similar to Main.xlang_of_string. *)
+                  if s =$= "none" || s =$= "regex" then R.LNone
+                  else if s =$= "generic" then R.LGeneric
+                  else
+                    match Lang.lang_of_string_opt s with
+                    | None ->
+                        raise
+                          (E.InvalidLanguageException
+                             (id, spf "unsupported language: %s" s))
+                    | Some l -> R.L (l, [])
                 in
-                let env' = (id, R.L (lang, [])) in
-                (env', Some lang, rest')
+                let env' = (id, xlang) in
+                (env', Some xlang, rest')
             | ___else___ -> (env, None, rest)
           in
           let pformula =
@@ -344,7 +348,7 @@ and parse_extra env x =
                 error "wrong rule fields"
           in
           let formula = R.formula_of_pformula pformula in
-          R.MetavarPattern (metavar, opt_lang, formula)
+          R.MetavarPattern (metavar, opt_xlang, formula)
       | x ->
           pr2_gen x;
           error "metavariable-pattern:  wrong parse_extra fields" )

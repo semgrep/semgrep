@@ -117,7 +117,7 @@ def test_invalid_metavariable_regex():
           - pattern-inside: $MODULE.client(host=$HOST)
           - metavariable-regex:
               metavariable: $HOST
-              regex: '192.168\.\d{1,3}\.\d{1,3}'
+              regex: '192.168\\.\\d{1,3}\\.\\d{1,3}'
               metavariable: $MODULE
               regex: (boto|boto3)
           message: "Boto3 connection to internal network"

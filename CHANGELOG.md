@@ -10,7 +10,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Support metavariables and ellipsis inside regexp literals
   (e.g., `foo(/.../)`)
 - Associative-commutative matching for bitwise OR, AND, and XOR operations
+- Add support for $...MVAR in generic patterns
+- Add per-rule settings object to enable/disable certain matching features
 - Add support for $...MVAR in generic patterns.
+- metavariable-pattern: Add support for nested Spacegrep/regex/Comby patterns
 
 ### Fixed
 - C#: parse __makeref, __reftype, __refvalue (#3364)
@@ -26,6 +29,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - generic mode: files that don't look like nicely-indented programs
   are no longer ignored, which may cause accidental slowdowns in setups
   where excessively large files are not excluded explicitly (#3418).
+- metavariable-comparison: Fix crash when comparing integers and floats
+
+### Changed
+- Memoize getting ranges to speed up rules with large ranges
 
 ## [0.56.0](https://github.com/returntocorp/semgrep/releases/tag/v0.56.0) - 2021-06-15
 
