@@ -1,28 +1,19 @@
-(*
-   Type of our universal abstract syntax tree of a program.
-*)
+#! /usr/bin/env bash
+#
+# Create a big file and check that we can parse it and pretty-print it.
+#
+set -eu
 
-type atom =
-  | Word of string (* ascii words [A-Za-z0-9_]+ *)
-  | Punct of char (* ascii punctuation, including braces *)
-  | Byte of char (* everything else, excluding ascii whitespace *)
-[@@deriving show { with_path = false }]
+mkdir -p tmp
+cd tmp
 
-type node = Atom of Loc.t * atom | List of node list
-[@@deriving show { with_path = false }]
+spacecat=../bin/spacecat
+spacegrep=../bin/spacegrep
 
-type t = node list [@@deriving show]
-
-let list_map_tailrec f l = List.rev_map f l |> List.rev
-
-(*
-   For convenience of implementation, a document is parsed as a pattern.
-   Here we convert the pattern-specific constructs to normal document
-   elements.
-
-   This function is made tail-recursive to avoid stack overflows on
-   large files.
-*)
+#
+# Any content that looks like source code:
+#
+cat > small <<EOF
 let rec of_pattern (pat : Pattern_AST.t) : t =
   List.fold_left of_pattern_node [] pat |> List.rev
 
@@ -69,16 +60,62 @@ and of_pattern_node acc pat_node =
       :: Atom (loc0, Punct '$')
       :: acc
   | List pat -> List (of_pattern pat) :: acc
+EOF
 
-let rec to_pattern (doc : t) : Pattern_AST.t = list_map_tailrec to_pat_node doc
+rm -f medium
+for i in `seq 1 50`; do
+  cat small >> medium
+done
 
-and to_pat_node (node : node) : Pattern_AST.node =
-  match node with
-  | Atom (loc, atom) -> Atom (loc, to_pat_atom atom)
-  | List nodes -> List (to_pattern nodes)
+rm -f big
+for i in `seq 1 50`; do
+  cat medium >> big
+done
 
-and to_pat_atom (atom : atom) : Pattern_AST.atom =
-  match atom with Word s -> Word s | Punct c -> Punct c | Byte c -> Byte c
+tr '\n' ' ' < medium > medium.oneline
+tr '\n' ' ' < big > big.oneline
 
-(* Equality function that disregards location. Meant for unit tests. *)
-let eq a b = Pattern_AST.eq (to_pattern a) (to_pattern b)
+# 1 MB of random bytes
+head -c 1000000 /dev/random > big-blob
+
+print() {
+  echo "[spacecat] $*" >&2
+}
+
+print "Parse and print small file"
+time "$spacecat" < small
+
+print "Parse and print big file"
+time "$spacecat" < big
+
+print "Parse and print single-line big file"
+time "$spacecat" < big.oneline
+
+print "Parse and print big binary file"
+time "$spacecat" < big-blob
+
+print() {
+  echo "[spacegrep] $*" >&2
+}
+
+print "Run simple pattern on small file"
+time "$spacegrep" foo small
+
+print "Run simple pattern on big file"
+time "$spacegrep" foo big
+
+print "Run ellipsis pattern on medium file"
+time "$spacegrep" '$X ... foo' medium
+
+print "Run ellipsis pattern on medium one-line file"
+time "$spacegrep" '$X ... foo' medium.oneline --force
+
+print "Run ellipsis pattern on big file"
+time "$spacegrep" '$X ... foo' big
+
+# The following takes forever because we hit O(n^2) complexity:
+# print "Run ellipsis pattern on single-line big file"
+# time "$spacegrep" '$X ... foo' big.oneline --force
+
+print "Run ellipsis pattern on big binary file"
+time "$spacegrep" '$X ... foo' big-blob --force
