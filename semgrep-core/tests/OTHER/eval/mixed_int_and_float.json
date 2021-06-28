@@ -1,0 +1,8 @@
+{
+  "metavars": {
+    "$INT": 443,
+    "$FLOAT": 443.0
+  },
+  "code": "$INT <= 500.0 and $FLOAT <= 500",
+  "language": "python"
+}
