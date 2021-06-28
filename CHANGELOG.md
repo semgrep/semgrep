@@ -21,6 +21,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   a generic rule
 - metavariable-pattern: Fix parse info when matching content of a metavariable
   under a different language
+- metavariable-comparison: Fix crash when comparing integers and floats
 
 ### Changed
 - Memoize getting ranges to speed up rules with large ranges

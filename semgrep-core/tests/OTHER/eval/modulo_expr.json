@@ -1,0 +1,8 @@
+{
+  "metavars": {
+    "$X": 42,
+    "$Y": 2.5
+  },
+  "language": "python",
+  "code": "$X % 2 == 0 and $Y % 0.25 == 0"
+}
