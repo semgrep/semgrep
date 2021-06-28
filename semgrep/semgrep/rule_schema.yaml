@@ -255,6 +255,8 @@ properties:
               $ref: '#/definitions/path-array'
             exclude:
               $ref: '#/definitions/path-array'
+            add:
+              $ref: '#/definitions/path-array'
           additionalProperties: false
         severity:
           title: Severity to report alongside this finding

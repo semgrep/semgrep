@@ -43,7 +43,7 @@ def optional_stdin_target(target: List[str]) -> Iterator[List[str]]:
 @attr.s(auto_attribs=True)
 class TargetManager:
     """
-    Handles all file include/exclude logic for semgrep
+    Handles all file include/exclude/add logic for semgrep
 
     If respect_git_ignore is true then will only consider files that are
     tracked or (untracked but not ignored) by git
@@ -55,6 +55,7 @@ class TargetManager:
 
     includes: List[str]
     excludes: List[str]
+    adds: List[str]
     max_target_bytes: int
     targets: List[str]
     respect_git_ignore: bool
@@ -77,7 +78,10 @@ class TargetManager:
 
     @staticmethod
     def _expand_dir(
-        curr_dir: Path, language: Language, respect_git_ignore: bool
+        curr_dir: Path,
+        language: Language,
+        respect_git_ignore: bool,
+        additional_extensions: Set[str],
     ) -> Set[Path]:
         """
         Recursively go through a directory and return list of all files with
@@ -115,6 +119,7 @@ class TargetManager:
             }
 
         extensions = lang_to_exts(language)
+        extensions.extend(FileExtension(ext) for ext in additional_extensions)
         expanded: Set[Path] = set()
 
         for ext in extensions:
@@ -168,7 +173,10 @@ class TargetManager:
 
     @staticmethod
     def expand_targets(
-        targets: Collection[Path], lang: Language, respect_git_ignore: bool
+        targets: Collection[Path],
+        lang: Language,
+        respect_git_ignore: bool,
+        additional_extensions: Set[str],
     ) -> Set[Path]:
         """
         Explore all directories. Remove duplicates
@@ -180,7 +188,9 @@ class TargetManager:
 
             if target.is_dir():
                 expanded.update(
-                    TargetManager._expand_dir(target, lang, respect_git_ignore)
+                    TargetManager._expand_dir(
+                        target, lang, respect_git_ignore, additional_extensions
+                    )
                 )
             else:
                 expanded.add(target)
@@ -250,6 +260,23 @@ class TargetManager:
 
         files, directories = partition_set(lambda p: not p.is_dir(), targets)
 
+        additional_files: Set[str] = set()
+        additional_extensions: Set[str] = set()
+        if self.adds:
+            # Use 'is_file' to check if input is a fully-specified filename. If so,
+            # explicitly add it as a target, else assume input is a file extension and
+            # use that to include all matching files
+            additional_files, additional_extensions = partition_set(
+                lambda a: Path(a).is_file(), self.adds
+            )
+            # The '*' for file globs is automatically included,
+            # so normalize input to not include it if found
+            additional_extensions = {
+                ext[1:] if ext.startswith("*") else ext
+                for ext in additional_extensions
+                if ext
+            }
+
         # Error on non-existent files
         explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
         if nonexistent_files:
@@ -257,7 +284,9 @@ class TargetManager:
                 FilesNotFoundError(tuple(nonexistent_files))
             )
 
-        targets = self.expand_targets(directories, lang, self.respect_git_ignore)
+        targets = self.expand_targets(
+            directories, lang, self.respect_git_ignore, additional_extensions
+        )
         targets = self.filter_includes(targets, self.includes)
         targets = self.filter_excludes(targets, self.excludes + [".git"])
         targets = self.filter_by_size(targets, self.max_target_bytes)
@@ -269,6 +298,7 @@ class TargetManager:
             if (any(f.match(f"*{ext}") for ext in lang_to_exts(lang)))
         )
         targets = targets.union(explicit_files_with_lang_extension)
+        targets = targets.union({Path(f) for f in additional_files})
 
         if not self.skip_unknown_extensions:
             explicit_files_with_unknown_extensions = set(

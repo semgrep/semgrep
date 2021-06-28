@@ -42,6 +42,7 @@ def notify_user_of_work(
     filtered_rules: List[Rule],
     include: List[str],
     exclude: List[str],
+    add: List[str],
 ) -> None:
     """
     Notify user of what semgrep is about to do, including:
@@ -57,6 +58,10 @@ def notify_user_of_work(
         logger.info(f"excluding files:")
         for exc in exclude:
             logger.info(f"- {exc}")
+    if add:
+        logger.info(f"adding files:")
+        for a in add:
+            logger.info(f"- {a}")
     logger.info(f"running {len(filtered_rules)} rules...")
     logger.verbose("rules:")
     for rule in filtered_rules:
@@ -160,6 +165,7 @@ def main(
     jobs: int = 1,
     include: Optional[List[str]] = None,
     exclude: Optional[List[str]] = None,
+    add: Optional[List[str]] = None,
     strict: bool = False,
     autofix: bool = False,
     dryrun: bool = False,
@@ -179,6 +185,9 @@ def main(
 
     if exclude is None:
         exclude = []
+
+    if add is None:
+        add = []
 
     configs_obj, errors = get_config(pattern, lang, configs)
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
@@ -225,12 +234,13 @@ The two most popular are:
                     code=MISSING_CONFIG_EXIT_CODE,
                 )
 
-        notify_user_of_work(filtered_rules, include, exclude)
+        notify_user_of_work(filtered_rules, include, exclude, add)
 
     respect_git_ignore = not no_git_ignore
     target_manager = TargetManager(
         includes=include,
         excludes=exclude,
+        adds=add,
         max_target_bytes=max_target_bytes,
         targets=target,
         respect_git_ignore=respect_git_ignore,

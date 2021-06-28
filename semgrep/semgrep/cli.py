@@ -132,6 +132,23 @@ def cli() -> None:
         " which is documented at https://docs.python.org/3/library/glob.html",
     )
     parser.add_argument(
+        "--add",
+        action="append",
+        default=[],
+        help="Add files or directories by path. The argument is a"
+        " glob-style pattern such as 'foo.*' that must match the path."
+        " This is an extra path in addition to other applicable paths."
+        " For example, specifying the language with '-l php' will"
+        " preselect files like 'src/foo.php'. Specifying one of"
+        " '--add=src/bar/test.txt' or '--add=*.php5' will add the"
+        " selection to the single file 'src/foo.php'."
+        " A choice of multiple '--add' patterns can be specified."
+        " For example, '--add=*.php5 --add=*.txt' will select"
+        " both 'src/foo.php5' and 'lib/bar.txt'."
+        " Glob-style patterns follow the syntax supported by python,"
+        " which is documented at https://docs.python.org/3/library/glob.html",
+    )
+    parser.add_argument(
         "--no-git-ignore",
         action="store_true",
         help="Don't skip files ignored by git."
@@ -524,6 +541,7 @@ def cli() -> None:
                 jobs=args.jobs,
                 include=args.include,
                 exclude=args.exclude,
+                add=args.add,
                 max_target_bytes=args.max_target_bytes,
                 strict=args.strict,
                 autofix=args.autofix,
