@@ -71,6 +71,7 @@ def run_spacegrep(
                 "--timeout",
                 str(timeout),
                 "--time",
+                "--force",
             ]
 
             try:
