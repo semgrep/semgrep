@@ -164,8 +164,7 @@ let get_id env e =
 (* Helpers *)
 (*****************************************************************************)
 
-let replace_sk { s = _s; s_id; s_use_cache; s_backrefs; s_bf } s_kind =
-  { s = s_kind; s_id; s_use_cache; s_backrefs; s_bf }
+let replace_sk stmt s_kind = { stmt with s = s_kind }
 
 let add_pattern s pattern = Set.add (p_any pattern) s
 
