@@ -1,0 +1,13 @@
+rules:
+  - id: test-mvp-regex
+    languages:
+      - generic
+    message: New dependency with name $1 and version $2
+    patterns:
+      - pattern-regex: gem "(.*)", "(.*)"
+      - metavariable-pattern:
+          metavariable: $1
+          language: generic
+          patterns:
+            - pattern: google-cloud-storage
+    severity: INFO

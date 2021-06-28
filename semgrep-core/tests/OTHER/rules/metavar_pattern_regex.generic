@@ -1,0 +1,6 @@
+source "https://rubygems.org"
+
+#OK:test-mvp-regex
+gem "functions_framework", "~> 0.7"
+#ruleid:test-mvp-regex
+gem "google-cloud-storage", "~> 1.29"
