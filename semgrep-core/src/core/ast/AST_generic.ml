@@ -897,7 +897,11 @@ and stmt = {
      and before matching.
   *)
   (* used in semgrep to skip some AST matching *)
-  mutable s_bf : Bloom_filter.t option; [@equal fun _a _b -> true] [@hash.ignore]
+  mutable s_bf : Bloom_filter.t option;
+      [@equal fun _a _b -> true] [@hash.ignore]
+  mutable s_range :
+    (Parse_info.token_location * Parse_info.token_location) option;
+      [@hash.ignore]
 }
 
 and stmt_kind =
@@ -1976,6 +1980,7 @@ let s skind =
     s_use_cache = false;
     s_backrefs = None;
     s_bf = None;
+    s_range = None;
   }
 
 (*s: function [[AST_generic.basic_field]] *)
