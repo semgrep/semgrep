@@ -5,13 +5,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Unreleased
 
 ### Added
+- new `options:` field in a YAML rule to enable/disable certain features
+  (e.g., constant propagation). See https://github.com/returntocorp/semgrep/blob/develop/semgrep-core/src/core/Config_semgrep.atd
+  for the list of available features one can enable/disable.
 - Capture groups in pattern-regex: in $1, $2, etc. (#3356)
 - Support metavariables inside atoms (e.g., `foo(:$ATOM)`)
 - Support metavariables and ellipsis inside regexp literals
   (e.g., `foo(/.../)`)
 - Associative-commutative matching for bitwise OR, AND, and XOR operations
 - Add support for $...MVAR in generic patterns
-- Add per-rule settings object to enable/disable certain matching features
 - Add support for $...MVAR in generic patterns.
 - metavariable-pattern: Add support for nested Spacegrep/regex/Comby patterns
 - C#: support ellipsis in method parameters (#3289)
