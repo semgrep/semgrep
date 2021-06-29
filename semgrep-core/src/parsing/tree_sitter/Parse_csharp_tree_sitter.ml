@@ -366,11 +366,6 @@ let verbatim_string_literal (env : env) (tok : CST.verbatim_string_literal) =
 
 (* verbatim_string_literal *)
 
-let _preprocessor_directive (env : env) (tok : CST.preprocessor_directive) =
-  token env tok
-
-(* pattern #[a-z]\w* *)
-
 let default_switch_label (env : env) ((v1, v2) : CST.default_switch_label) =
   let v1 = token env v1 (* "default" *) in
   let v2 = token env v2 (* ":" *) in
@@ -466,7 +461,7 @@ let interpolated_verbatim_string_text (env : env)
   let x =
     match x with
     | `LCURLLCURL tok -> str env tok (* "{{" *)
-    | `Pat_6d9db72 tok -> str env tok (* pattern "[^{\"]+" *)
+    | `Inte_verb_str_text_frag tok -> str env tok (* pattern "[^{\"]+" *)
     | `DQUOTDQUOT tok -> str env tok
     (* "\"\"" *)
   in
@@ -509,7 +504,7 @@ let identifier (env : env) (tok : CST.identifier) : ident =
   match tok with
   | `Choice_id_tok (`Id_tok tok) -> str env tok
   | `Choice_id_tok (`Cont_keywos kw) -> contextual_keywords env kw
-  | `Tok_pat_8cc7dbf tok -> str env tok
+  | `Semg_meta tok -> str env tok
 
 (* TODO: not sure why preprocessor_call was not generated. Because
  * was in extras?
@@ -522,7 +517,7 @@ let _preproc_directive_end (env : env) (tok : CST.preproc_directive_end) =
 let interpolated_string_text (env : env) (x : CST.interpolated_string_text) =
   match x with
   | `LCURLLCURL tok -> String (str env tok) (* "{{" *)
-  | `Imm_tok_pat_2755817 tok ->
+  | `Inte_str_text_frag tok ->
       String (str env tok) (* pattern "[^{\"\\\\\\n]+" *)
   | `Esc_seq tok -> escape_sequence env tok
 
@@ -629,8 +624,7 @@ let literal (env : env) (x : CST.literal) : literal =
         List.map
           (fun x ->
             match x with
-            | `Imm_tok_pat_5a6fa79 tok ->
-                str env tok (* pattern "[^\"\\\\\\n]+" *)
+            | `Str_lit_frag tok -> str env tok (* pattern "[^\"\\\\\\n]+" *)
             | `Esc_seq tok -> str env tok
             (* escape_sequence *))
           v2
@@ -933,7 +927,7 @@ and name (env : env) (x : CST.name) : AST.name =
   | `Simple_name x -> simple_name env x
 
 and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
-  let v1 = match v1 with Some x -> attribute_list env x | None -> [] in
+  let v1 = List.concat_map (attribute_list env) v1 in
   let v2 =
     match v2 with
     | Some x -> (
@@ -1474,7 +1468,7 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) :
 
 and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
   match x with
-  | `Param x -> ParamClassic (parameter env x)
+  | `Param x -> parameter env x
   | `Param_array (v1, v2, v3, v4) ->
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = token env v2 (* "params" *) in
@@ -2092,7 +2086,13 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v2 = block env v2 in
   (v1, v2)
 
-and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
+and parameter (env : env) (v1 : CST.parameter) : AST.parameter =
+  match v1 with
+  | `Rep_attr_list_opt_param_modi_opt_type_id_opt_equals_value_clause v1 ->
+      explicit_parameter env v1
+  | `Ellips v1 -> ParamEllipsis (token env v1)
+
+and explicit_parameter (env : env) (v1, v2, v3, v4, v5) =
   (*
     [FromBody] ref string param1 = "default"
         v1     v2   v3     v4      v5
@@ -2102,13 +2102,14 @@ and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
   let v3 = map_opt type_constraint env v3 in
   let v4 = identifier env v4 (* identifier *) in
   let v5 = map_opt equals_value_clause env v5 in
-  {
-    pname = Some v4;
-    ptype = v3;
-    pdefault = v5;
-    pattrs = v1;
-    pinfo = empty_id_info ();
-  }
+  ParamClassic
+    {
+      pname = Some v4;
+      ptype = v3;
+      pdefault = v5;
+      pattrs = v1;
+      pinfo = empty_id_info ();
+    }
 
 and from_clause (env : env) ((v1, v2, v3, v4, v5) : CST.from_clause) :
     linq_query_part =
@@ -2326,7 +2327,7 @@ let bracketed_parameter_list (env : env)
       v3
   in
   let v4 = token env v4 (* "]" *) in
-  List.map (fun p -> ParamClassic p) (v2 :: v3)
+  v2 :: v3
 
 let constructor_initializer (env : env)
     ((v1, v2, v3) : CST.constructor_initializer) =
