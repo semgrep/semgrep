@@ -18,6 +18,7 @@
    tree-sitter-lang.rust
    tree-sitter-lang.r
    tree-sitter-lang.ocaml
+   tree-sitter-lang.hack
 
    commons
    pfff-lang_GENERIC

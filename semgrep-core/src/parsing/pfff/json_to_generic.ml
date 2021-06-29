@@ -52,7 +52,15 @@ let expr x =
                   ys
                   |> List.map (function
                        | Left (id, e) ->
-                           G.Tuple (G.fake_bracket [ G.L (G.String id); e ])
+                           let key =
+                             (* we don't want $FLD: 1 to be transformed
+                              * in "$FLD" : 1, which currently would not match
+                              * anything in Semgrep (this may change though) *)
+                             if AST_generic_.is_metavar_name (fst id) then
+                               G.N (G.Id (id, G.empty_id_info ()))
+                             else G.L (G.String id)
+                           in
+                           G.Tuple (G.fake_bracket [ key; e ])
                        | Right t -> G.Ellipsis t)
                 in
                 G.Container (G.Dict, (lp, zs, rp))

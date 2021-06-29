@@ -1,11 +1,9 @@
 import hashlib
-import logging
 from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Set
 from urllib.parse import urlparse
 
 from semgrep.constants import SEMGREP_USER_AGENT
@@ -66,7 +64,6 @@ class _MetricManager:
                 logger.debug(f"Failed to parse url {project_url}")
                 sanitized_url = project_url
 
-
             project_hash = hashlib.sha256(sanitized_url.encode()).hexdigest()
             self._project_hash = project_hash
 
@@ -115,7 +112,7 @@ class _MetricManager:
         self._errors = error_types
 
     def set_run_timings(
-        self, profiling_data: ProfilingData, targets: Set[Path], rules: List[Rule]
+        self, profiling_data: ProfilingData, targets: List[Path], rules: List[Rule]
     ) -> None:
         """
         Store rule hashes, rule parse times, and file-stats

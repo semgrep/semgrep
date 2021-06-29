@@ -193,6 +193,13 @@ let parse_paths = function
       pr2_gen x;
       error "parse_paths"
 
+let parse_settings json =
+  let s = J.string_of_json json in
+  Common.save_excursion Atdgen_runtime.Util.Json.unknown_field_handler
+    (fun _src_loc field_name ->
+      raise (E.InvalidYamlException (spf "unknown setting: %s" field_name)))
+    (fun () -> Config_semgrep_j.t_of_string s)
+
 (*****************************************************************************)
 (* Sub parsers patterns and formulas *)
 (*****************************************************************************)
@@ -203,10 +210,12 @@ let parse_pattern (id, lang) s =
   match lang with
   | R.L (lang, _) -> R.mk_xpat (Sem (H.parse_pattern ~id ~lang s, lang)) s
   | R.LNone -> failwith "you should not use real pattern with language = none"
-  | R.LGeneric ->
+  | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
-      let ast = Spacegrep.Parse_pattern.of_src src in
-      R.mk_xpat (Spacegrep ast) s
+      match Spacegrep.Parse_pattern.of_src src with
+      | Ok ast -> R.mk_xpat (Spacegrep ast) s
+      | Error err ->
+          raise (H.InvalidPatternException (id, s, "generic", err.msg)) )
 
 let rec parse_formula env (x : string * J.t) : R.pformula =
   match x with
@@ -311,15 +320,35 @@ and parse_extra env x =
   | "metavariable-pattern", J.Object xs -> (
       match find_fields [ "metavariable" ] xs with
       | [ ("metavariable", Some (J.String metavar)) ], rest ->
+          let id, _ = env in
+          let env', opt_xlang, rest' =
+            match find_fields [ "language" ] rest with
+            | [ ("language", Some (J.String s)) ], rest' ->
+                let xlang =
+                  (* TODO: This code is similar to Main.xlang_of_string. *)
+                  if s =$= "none" || s =$= "regex" then R.LNone
+                  else if s =$= "generic" then R.LGeneric
+                  else
+                    match Lang.lang_of_string_opt s with
+                    | None ->
+                        raise
+                          (E.InvalidLanguageException
+                             (id, spf "unsupported language: %s" s))
+                    | Some l -> R.L (l, [])
+                in
+                let env' = (id, xlang) in
+                (env', Some xlang, rest')
+            | ___else___ -> (env, None, rest)
+          in
           let pformula =
-            match rest with
-            | [ x ] -> parse_formula env x
+            match rest' with
+            | [ x ] -> parse_formula env' x
             | x ->
                 pr2_gen x;
                 error "wrong rule fields"
           in
           let formula = R.formula_of_pformula pformula in
-          R.MetavarPattern (metavar, formula)
+          R.MetavarPattern (metavar, opt_xlang, formula)
       | x ->
           pr2_gen x;
           error "metavariable-pattern:  wrong parse_extra fields" )
@@ -393,6 +422,7 @@ let top_fields =
     "fix-regex";
     "paths";
     "equivalences";
+    "settings";
   ]
 
 let parse_json file json =
@@ -415,6 +445,7 @@ let parse_json file json =
                        ("fix-regex", fix_regex_opt);
                        ("paths", paths_opt);
                        ("equivalences", equivs_opt);
+                       ("settings", settings_opt);
                      ],
                      rest ) ->
                      let languages = parse_languages ~id langs in
@@ -442,6 +473,7 @@ let parse_json file json =
                        paths = Common.map_opt parse_paths paths_opt;
                        equivalences =
                          Common.map_opt parse_equivalences equivs_opt;
+                       settings = Common.map_opt parse_settings settings_opt;
                      }
                  | x ->
                      pr2_gen x;

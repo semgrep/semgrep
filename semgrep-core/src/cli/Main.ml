@@ -1103,21 +1103,19 @@ let dump_pattern (file : Common.filename) =
 (*e: function [[Main_semgrep_core.dump_pattern]] *)
 
 (*s: function [[Main_semgrep_core.dump_ast]] *)
-let dump_ast ?(naming = false) file =
-  match Lang.langs_of_filename file with
-  | lang :: _ ->
-      E.try_with_print_exn_and_reraise file (fun () ->
-          let { Parse_target.ast; errors; _ } =
-            if naming then
-              Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang
-                file
-            else Parse_target.just_parse_with_lang lang file
-          in
-          let v = Meta_AST.vof_any (AST_generic.Pr ast) in
-          let s = dump_v_to_format v in
-          pr s;
-          if errors <> [] then pr2 (spf "WARNING: fail to fully parse %s" file))
-  | [] -> failwith (spf "unsupported language for %s" file)
+let dump_ast ?(naming = false) lang file =
+  E.try_with_print_exn_and_exit_fast file (fun () ->
+      let { Parse_target.ast; errors; _ } =
+        if naming then
+          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+        else Parse_target.just_parse_with_lang lang file
+      in
+      let v = Meta_AST.vof_any (AST_generic.Pr ast) in
+      let s = dump_v_to_format v in
+      pr s;
+      if errors <> [] then (
+        pr2 (spf "WARNING: fail to fully parse %s" file);
+        exit 1 ))
 
 (*e: function [[Main_semgrep_core.dump_ast]] *)
 let dump_v1_json file =
@@ -1186,10 +1184,18 @@ let all_actions () =
     (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
     ("-dump_pattern", " <file>", Common.mk_action_1_arg dump_pattern);
     (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
-    ("-dump_ast", " <file>", Common.mk_action_1_arg (dump_ast ~naming:false));
+    ( "-dump_ast",
+      " <file>",
+      fun file ->
+        Common.mk_action_1_arg
+          (dump_ast ~naming:false (lang_of_string !lang))
+          file );
     ( "-dump_named_ast",
       " <file>",
-      Common.mk_action_1_arg (dump_ast ~naming:true) );
+      fun file ->
+        Common.mk_action_1_arg
+          (dump_ast ~naming:true (lang_of_string !lang))
+          file );
     ("-dump_v1_json", " <file>", Common.mk_action_1_arg dump_v1_json);
     (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
     ("-dump_equivalences", " <file>", Common.mk_action_1_arg dump_equivalences);
@@ -1200,16 +1206,18 @@ let all_actions () =
     (*e: [[Main_semgrep_core.all_actions]] dumper cases *)
     ("-dump_rule", " <file>", Common.mk_action_1_arg dump_rule);
     ( "-dump_tree_sitter_cst",
-      " <file>",
-      Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst );
+      " <file> dump the CST obtained from a tree-sitter parser",
+      Common.mk_action_1_arg (fun file ->
+          Test_parsing.dump_tree_sitter_cst (lang_of_string !lang) file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Common.mk_action_1_arg (fun file ->
           Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file)
     );
-    ( "-dump_ast_pfff",
-      " <file>",
-      Common.mk_action_1_arg Test_parsing.dump_ast_pfff );
+    ( "-dump_pfff_ast",
+      " <file> dump the generic AST obtained from a pfff parser",
+      Common.mk_action_1_arg (fun file ->
+          Test_parsing.dump_pfff_ast (lang_of_string !lang) file) );
     ("-dump_il", " <file>", Common.mk_action_1_arg Datalog_experiment.dump_il);
     ( "-diff_pfff_tree_sitter",
       " <file>",
@@ -1555,7 +1563,7 @@ let main () =
 
 (*****************************************************************************)
 (*s: toplevel [[Main_semgrep_core._1]] *)
-let _ =
+let () =
   Common.main_boilerplate (fun () ->
       Common.finalize
         (fun () -> main ())

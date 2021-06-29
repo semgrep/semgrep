@@ -1,0 +1,17 @@
+rules:
+  - id: test-mvp-dots-mvar
+    languages:
+      - python
+    message: Working!
+    patterns:
+      - pattern: |
+          def $F():
+              $...BODY
+      - metavariable-pattern:
+          metavariable: $...BODY
+          patterns:
+              - pattern: |
+                  foo(...)
+                  ...
+                  baz(...)
+    severity: WARNING

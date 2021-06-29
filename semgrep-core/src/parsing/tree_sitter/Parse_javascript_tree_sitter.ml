@@ -48,6 +48,27 @@ let str = H.str
 
 let fb = PI.fake_bracket
 
+(*
+   Map the comma-separated representation of a list to an ocaml list.
+   The separator doesn't have to be a comma but must be a simple token.
+
+   This is used usually where the commaSep function was used as a macro
+   in the original grammar.js.
+
+   Usage:
+
+     map_sep_list env v1 v2 (fun env x ->
+       ...
+     )
+*)
+let map_sep_list (env : env) (head : 'a) (tail : (_ * 'a) list)
+    (f : env -> 'a -> 'b) : 'b list =
+  let head = f env head in
+  let tail =
+    List.map (fun ((_sep : Tree_sitter_run.Token.t), elt) -> f env elt) tail
+  in
+  head :: tail
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -74,11 +95,9 @@ let empty_stmt env tok =
   let t = token env tok in
   Block (t, [], t)
 
-let identifier (env : env) (tok : CST.identifier) : ident = str env tok
+let identifier (env : env) (tok : CST.identifier) : a_ident = str env tok
 
-(* identifier *)
-
-let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
+let reserved_identifier (env : env) (x : CST.reserved_identifier) : a_ident =
   match x with
   | `Get tok -> identifier env tok (* "get" *)
   | `Set tok -> identifier env tok (* "set" *)
@@ -86,22 +105,20 @@ let reserved_identifier (env : env) (x : CST.reserved_identifier) : ident =
   | `Static tok -> identifier env tok (* "static" *)
   | `Export tok -> (* export *) identifier env tok
 
-let anon_choice_rese_id_9a83200 (env : env)
-    (x : CST.anon_choice_rese_id_9a83200) : ident =
-  match x with
-  | `Choice_get x -> reserved_identifier env x
-  | `Id tok -> identifier env tok
-
-(* identifier *)
-
-let anon_choice_id_0e3c97f (env : env) (x : CST.anon_choice_id_0e3c97f) : ident
-    =
+let id_or_reserved_id (env : env)
+    (x :
+      [ `Id of Tree_sitter_run.Token.t | `Choice_get of CST.reserved_identifier ])
+    : a_ident =
   match x with
   | `Id tok -> identifier env tok (* identifier *)
   | `Choice_get x -> reserved_identifier env x
 
+let anon_choice_rese_id_9a83200 = id_or_reserved_id
+
+let anon_choice_id_0e3c97f = id_or_reserved_id
+
 let rec nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) :
-    ident list =
+    a_ident list =
   let v1 =
     match v1 with
     | `Id tok -> [ identifier env tok ] (* identifier *)
@@ -112,14 +129,14 @@ let rec nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) :
   v1 @ [ v3 ]
 
 let rec decorator_member_expression (env : env)
-    ((v1, v2, v3) : CST.decorator_member_expression) : ident list =
+    ((v1, v2, v3) : CST.decorator_member_expression) : a_ident list =
   let v1 = anon_choice_type_id env v1 in
   let _v2 = token env v2 (* "." *) in
   let v3 = identifier env v3 (* identifier *) in
   v1 @ [ v3 ]
 
 and anon_choice_type_id (env : env) (x : CST.anon_choice_id_b8f8ced) :
-    ident list =
+    a_ident list =
   match x with
   | `Id x -> [ identifier env x ]
   | `Deco_member_exp x -> decorator_member_expression env x
@@ -199,9 +216,7 @@ let automatic_semicolon (_env : env) (_tok : CST.automatic_semicolon) =
 let semicolon (env : env) (x : CST.semicolon) =
   match x with
   | `Auto_semi tok -> automatic_semicolon env tok (* automatic_semicolon *)
-  | `SEMI tok -> token env tok
-
-(* ";" *)
+  | `SEMI tok -> (* ";" *) token env tok
 
 let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import) =
   let _v1 = token env v1 (* "*" *) in
@@ -248,7 +263,7 @@ let jsx_attribute_name (env : env) (x : CST.jsx_attribute_name) =
       let str = fst id1 ^ ":" ^ fst id2 in
       (str, PI.combine_infos (snd id1) [ snd id2 ])
 
-let jsx_element_name (env : env) (x : CST.jsx_element_name) : ident =
+let jsx_element_name (env : env) (x : CST.jsx_element_name) : a_ident =
   match x with
   | `Choice_jsx_id x -> jsx_identifier_ env x
   | `Nested_id x ->
@@ -275,16 +290,7 @@ let jsx_closing_element (env : env) ((v1, v2, v3, v4) : CST.jsx_closing_element)
 let anon_import_export_spec_rep_COMMA_import_export_spec_3a1421d (env : env)
     ((v1, v2) :
       CST.anon_import_export_spec_rep_COMMA_import_export_spec_3a1421d) =
-  let v1 = import_export_specifier env v1 in
-  let v2 =
-    List.map
-      (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = import_export_specifier env v2 in
-        v2)
-      v2
-  in
-  v1 :: v2
+  map_sep_list env v1 v2 import_export_specifier
 
 let export_clause (env : env) ((v1, v2, v3, v4) : CST.export_clause) =
   let _v1 = token env v1 (* "{" *) in
@@ -485,64 +491,29 @@ and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : expr =
       let v2 =
         match v2 with
         | Some (v1, v2) ->
-            let v1 =
-              match v1 with
-              | Some x -> [ anon_choice_pair_pat_3ff9cbe env x ]
-              | None -> []
-            in
-            let v2 =
-              List.map
-                (fun (v1, v2) ->
-                  let _v1 = token env v1 (* "," *) in
-                  let v2 =
-                    match v2 with
-                    | Some x -> [ anon_choice_pair_pat_3ff9cbe env x ]
-                    | None -> []
-                  in
-                  v2)
-                v2
-            in
-            v1 @ List.flatten v2
+            map_sep_list env v1 v2 (fun env x ->
+                match x with
+                | Some x -> [ object_property_pattern env x ]
+                | None -> [])
+            |> List.flatten
         | None -> []
       in
       let v3 = token env v3 (* "}" *) in
       Obj (v1, v2, v3)
   | `Array_pat (v1, v2, v3) ->
-      (*
-         formerly a choice for 'assignment_pattern':
-
-        | `Assign_pat x ->
-      let a, b, c = assignment_pattern env x in
-      (* only in pattern context *)
-      FieldPatDefault (a, b, c)
-      *)
       let v1 = token env v1 (* "[" *) in
       let v2 =
         (* comma-separated list *)
         match v2 with
         | Some (v1, v2) ->
-            let v1 =
-              match v1 with
-              | Some x ->
-                  [ formal_parameter_no_ellipsis env x |> parameter_to_pattern ]
-              | None -> []
-            in
-            let v2 =
-              List.filter_map
-                (fun (v1, v2) ->
-                  let _v1 = token env v1 (* "," *) in
-                  let v2 =
-                    match v2 with
-                    | Some x ->
-                        Some
-                          ( formal_parameter_no_ellipsis env x
-                          |> parameter_to_pattern )
-                    | None -> None
-                  in
-                  v2)
-                v2
-            in
-            v1 @ v2
+            map_sep_list env v1 v2 (fun env x ->
+                match x with
+                | Some x ->
+                    [
+                      formal_parameter_no_ellipsis env x |> parameter_to_pattern;
+                    ]
+                | None -> [])
+            |> List.flatten
         | None -> []
       in
       let v3 = token env v3 (* "]" *) in
@@ -550,22 +521,13 @@ and destructuring_pattern (env : env) (x : CST.destructuring_pattern) : expr =
 
 and variable_declaration (env : env)
     ((v1, v2, v3, v4) : CST.variable_declaration) : var list =
-  let v1 = (Var, token env v1) (* "var" *) in
-  let v2 = variable_declarator env v2 in
-  let v3 =
-    List.map
-      (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = variable_declarator env v2 in
-        v2)
-      v3
-  in
+  let kind = (Var, token env v1) (* "var" *) in
+  let vars = map_sep_list env v2 v3 variable_declarator in
   let _v4 = semicolon env v4 in
-  let vars = v2 :: v3 in
-  build_vars v1 vars
+  build_vars kind vars
 
 and function_ (env : env) ((v1, v2, v3, v4, v5) : CST.function_) :
-    function_definition * ident option =
+    function_definition * a_ident option =
   let v1 =
     match v1 with
     | Some tok -> [ attr (Async, token env tok) ] (* "async" *)
@@ -710,7 +672,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v3 = expression env v3 in
       Apply (IdSpecial (In, v2), fb [ v1; v3 ])
 
-and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
+and arguments (env : env) ((v1, v2, v3) : CST.arguments) : a_arguments =
   let v1 = token env v1 (* "(" *) in
   (* TODO what ellison means in call context? *)
   let v2 = anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4 env v2 in
@@ -718,8 +680,8 @@ and arguments (env : env) ((v1, v2, v3) : CST.arguments) : arguments =
   (v1, v2, v3)
 
 and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) :
-    (ident, a_pattern) either * type_ option * expr option =
-  let v1 = anon_choice_id_940079a env v1 in
+    (a_ident, a_pattern) either * type_ option * expr option =
+  let v1 = id_or_destructuring_pattern env v1 in
   let v2 = match v2 with Some x -> Some (initializer_ env x) | None -> None in
   let ty = None in
   (v1, ty, v2)
@@ -729,12 +691,15 @@ and variable_declarator (env : env) ((v1, v2) : CST.variable_declarator) :
    Ast_js.build_var.
 *)
 and anon_choice_id_940079a (env : env) (x : CST.anon_choice_id_940079a) :
-    (ident, a_pattern) either =
+    (a_ident, a_pattern) either =
   match x with
   | `Id tok ->
       let id = identifier env tok (* identifier *) in
       Left id
   | `Dest_pat x -> Right (destructuring_pattern env x)
+
+and id_or_destructuring_pattern env x : (a_ident, a_pattern) either =
+  anon_choice_id_940079a env x
 
 and sequence_expression (env : env) ((v1, v2, v3) : CST.sequence_expression) =
   let v1 = expression env v1 in
@@ -793,8 +758,7 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
 
 and assignment_pattern (env : env) ((v1, v2, v3) : CST.assignment_pattern) :
     a_pattern * tok * expr =
-  let parameter = pattern env v1 in
-  let pat = parameter_to_pattern parameter in
+  let pat = pattern env v1 in
   let tok = token env v2 (* "=" *) in
   let e = expression env v3 in
   (pat, tok, e)
@@ -838,15 +802,14 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       Apply (IdSpecial (Encaps false, t1), (t1, xs, t2))
   | `Regex (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "/" *) in
-      let s, t = str env v2 (* regex_pattern *) in
+      let v2 = str env v2 (* regex_pattern *) in
       let v3 = token env v3 (* "/" *) in
       let v4 =
         match v4 with
-        | Some tok -> [ token env tok ] (* pattern [a-z]+ *)
-        | None -> []
+        | Some tok -> Some (str env tok) (* pattern [a-z]+ *)
+        | None -> None
       in
-      let tok = PI.combine_infos v1 ([ t; v3 ] @ v4) in
-      L (Regexp (s, tok))
+      L (Regexp ((v1, v2, v3), v4))
   | `True tok -> L (Bool (true, token env tok) (* "true" *))
   | `False tok -> L (Bool (false, token env tok) (* "false" *))
   | `Null tok -> IdSpecial (Null, token env tok) (* "null" *)
@@ -871,7 +834,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       let v2 =
         match v2 with
         | `Choice_choice_get x ->
-            let id = anon_choice_rese_id_9a83200 env x in
+            let id = id_or_reserved_id env x in
             [ ParamClassic (mk_param id) ]
         | `Formal_params x -> call_signature env x
       in
@@ -985,7 +948,7 @@ and catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) =
     match v2 with
     | Some (v1bis, v2, v3bis) ->
         let _v1 = token env v1bis (* "(" *) in
-        let v2 = anon_choice_id_940079a env v2 in
+        let v2 = id_or_destructuring_pattern env v2 in
         let _v3 = token env v3bis (* ")" *) in
         let pat = match v2 with Left id -> idexp id | Right pat -> pat in
         BoundCatch (v1, pat, v3)
@@ -1049,7 +1012,7 @@ and for_header (env : env) ((v1, v2, v3, v4, v5) : CST.for_header) : for_header
           | `Const tok -> (Const, token env tok)
           (* "const" *)
         in
-        let var_or_pat = anon_choice_id_940079a env v2 in
+        let var_or_pat = id_or_destructuring_pattern env v2 in
         let pat = match var_or_pat with Left id -> Id id | Right pat -> pat in
         let var = Ast_js.var_pattern_to_var vkind pat (snd vkind) None in
         Left var
@@ -1196,28 +1159,20 @@ and unary_expression (env : env) (x : CST.unary_expression) : expr =
 and formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) :
     parameter list =
   let _v1 = token env v1 (* "(" *) in
-  let v2 =
+  let params =
     match v2 with
     | Some (v1, v2, v3) ->
-        let v1 = formal_parameter env v1 in
-        let v2 =
-          List.map
-            (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = formal_parameter env v2 in
-              v2)
-            v2
-        in
+        let params = map_sep_list env v1 v2 formal_parameter in
         let _v3 =
           match v3 with
           | Some tok -> Some (token env tok) (* "," *)
           | None -> None
         in
-        v1 :: v2
+        params
     | None -> []
   in
   let _v3 = token env v3 (* ")" *) in
-  v2
+  params
 
 and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
   let v1 = token env v1 (* "default" *) in
@@ -1390,7 +1345,7 @@ and statement (env : env) (x : CST.statement) : stmt list =
       [ Throw (v1, v2, v3) ]
   | `Empty_stmt tok -> [ empty_stmt env tok (* ";" *) ]
   | `Labe_stmt (v1, v2, v3) ->
-      let v1 = anon_choice_id_0e3c97f env v1 in
+      let v1 = id_or_reserved_id env v1 in
       let _v2 = token env v2 (* ":" *) in
       let v3 = statement1 env v3 in
       [ Label (v1, v3) ]
@@ -1448,7 +1403,7 @@ and anon_opt_opt_choice_exp_rep_COMMA_opt_choice_exp_208ebb4 (env : env)
   match opt with
   | Some (v1, v2) ->
       let v1 =
-        match v1 with Some x -> [ anon_choice_exp_9818c1b env x ] | None -> []
+        match v1 with Some x -> [ expr_or_spread env x ] | None -> []
       in
       let v2 = anon_rep_COMMA_opt_choice_exp_ca698a5 env v2 in
       v1 @ v2
@@ -1460,21 +1415,22 @@ and anon_rep_COMMA_opt_choice_exp_ca698a5 (env : env)
     (fun (v1, v2) ->
       let _v1 = token env v1 (* "," *) in
       let v2 =
-        match v2 with Some x -> [ anon_choice_exp_9818c1b env x ] | None -> []
+        match v2 with Some x -> [ expr_or_spread env x ] | None -> []
       in
       v2)
     xs
   |> List.flatten
 
-and anon_choice_exp_9818c1b (env : env) (x : CST.anon_choice_exp_9818c1b) : expr
-    =
+and expr_or_spread (env : env) (x : CST.anon_choice_exp_9818c1b) : expr =
   match x with
   | `Exp x -> expression env x
   | `Spread_elem x ->
       let t, e = spread_element env x in
       Apply (IdSpecial (Spread, t), fb [ e ])
 
-and export_statement (env : env) (x : CST.export_statement) : toplevel list =
+and anon_choice_exp_9818c1b env x = expr_or_spread env x
+
+and export_statement (env : env) (x : CST.export_statement) : a_toplevel list =
   match x with
   | `Export_choice_STAR_from_clause_choice_auto_semi (v1, v2) ->
       let tok = token env v1 (* "export" *) in
@@ -1583,17 +1539,9 @@ and lexical_declaration (env : env) ((v1, v2, v3, v4) : CST.lexical_declaration)
     | `Const tok -> (Const, token env tok)
     (* "const" *)
   in
-  let v2 = variable_declarator env v2 in
-  let v3 =
-    List.map
-      (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = variable_declarator env v2 in
-        v2)
-      v3
-  in
+  let vars = map_sep_list env v2 v3 variable_declarator in
   let _v4 = semicolon env v4 in
-  build_vars v1 (v2 :: v3)
+  build_vars v1 vars
 
 and class_heritage (env : env) ((v1, v2) : CST.class_heritage) =
   let _v1 = token env v1 (* "extends" *) in
@@ -1603,7 +1551,7 @@ and class_heritage (env : env) ((v1, v2) : CST.class_heritage) =
 and property_name (env : env) (x : CST.property_name) : property_name =
   match x with
   | `Choice_id x ->
-      let id = anon_choice_id_0e3c97f env x in
+      let id = id_or_reserved_id env x in
       PN id
   | `Str x ->
       let s = string_ env x in
@@ -1630,10 +1578,10 @@ and spread_element (env : env) ((v1, v2) : CST.spread_element) =
   (v1, v2)
 
 and rest_pattern (env : env) ((v1, v2) : CST.rest_pattern) :
-    tok * (ident, a_pattern) either =
-  let v1 = token env v1 (* "..." *) in
-  let v2 = anon_choice_id_940079a env v2 in
-  (v1, v2)
+    tok * (a_ident, a_pattern) either =
+  let dots = token env v1 (* "..." *) in
+  let id_or_pat = id_or_destructuring_pattern env v2 in
+  (dots, id_or_pat)
 
 and expressions (env : env) (x : CST.expressions) : expr =
   match x with
@@ -1648,29 +1596,16 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
 and call_signature (env : env) (v1 : CST.call_signature) : parameter list =
   formal_parameters env v1
 
-and object_ (env : env) ((v1, v2, v3) : CST.object_) : obj_ =
+and object_ (env : env) ((v1, v2, v3) : CST.object_) : a_obj =
   let v1 = token env v1 (* "{" *) in
   let v2 =
     match v2 with
     | Some (v1, v2) ->
-        let v1 =
-          match v1 with
-          | Some x -> [ anon_choice_pair_fa39041 env x ]
-          | None -> []
-        in
-        let v2 =
-          List.map
-            (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 =
-                match v2 with
-                | Some x -> [ anon_choice_pair_fa39041 env x ]
-                | None -> []
-              in
-              v2)
-            v2
-        in
-        v1 @ List.flatten v2
+        map_sep_list env v1 v2 (fun env x ->
+            match x with
+            | Some x -> [ anon_choice_pair_fa39041 env x ]
+            | None -> [])
+        |> List.flatten
     | None -> []
   in
   let v3 = token env v3 (* "}" *) in
@@ -1692,7 +1627,7 @@ and anon_choice_pair_fa39041 (env : env) (x : CST.anon_choice_pair_fa39041) :
   | `Meth_defi x -> method_definition env x
   (* { x } shorthand for { x: x }, like in OCaml *)
   | `Choice_id x ->
-      let id = anon_choice_id_0e3c97f env x in
+      let id = id_or_reserved_id env x in
       let ty = None in
       FieldColon
         {
@@ -1714,8 +1649,7 @@ and anon_choice_pair_pat_3ff9cbe (env : env)
   | `Pair_pat (v1, v2, v3) ->
       let v1 = property_name env v1 in
       let _v2 = token env v2 (* ":" *) in
-      let v3 = pattern env v3 in
-      let body = parameter_to_pattern v3 in
+      let body = pattern env v3 in
       let ty = None in
       FieldColon
         { fld_name = v1; fld_attrs = []; fld_type = ty; fld_body = Some body }
@@ -1726,7 +1660,7 @@ and anon_choice_pair_pat_3ff9cbe (env : env)
   | `Obj_assign_pat (v1, v2, v3) ->
       let pat =
         match v1 with
-        | `Choice_choice_get x -> anon_choice_rese_id_9a83200 env x |> idexp
+        | `Choice_choice_get x -> id_or_reserved_id env x |> idexp
         | `Dest_pat x -> destructuring_pattern env x
       in
       let tok = token env v2 (* "=" *) in
@@ -1734,7 +1668,7 @@ and anon_choice_pair_pat_3ff9cbe (env : env)
       let e = expression env v3 in
       FieldPatDefault (pat, tok, e)
   | `Choice_id x ->
-      let id = anon_choice_id_0e3c97f env x in
+      let id = id_or_reserved_id env x in
       FieldColon
         {
           fld_name = PN id;
@@ -1742,6 +1676,9 @@ and anon_choice_pair_pat_3ff9cbe (env : env)
           fld_type = None;
           fld_body = Some (idexp id);
         }
+
+and object_property_pattern (env : env) (x : CST.anon_choice_pair_pat_3ff9cbe) =
+  anon_choice_pair_pat_3ff9cbe env x
 
 and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   match x with
@@ -1856,7 +1793,18 @@ and declaration (env : env) (x : CST.declaration) : definition list =
       let vars = variable_declaration env x in
       vars_to_defs vars
 
-and pattern (env : env) (x : CST.pattern) : parameter =
+and pattern (env : env) (x : CST.pattern) : a_pattern =
+  match x with
+  | `Id tok -> Id (identifier env tok)
+  | `Choice_get x -> Id (reserved_identifier env x)
+  | `Dest_pat x -> destructuring_pattern env x
+  | `Rest_pat (v1, v2) ->
+      let tok = token env v1 (* "..." *) in
+      let _id_or_pat_TODO = id_or_destructuring_pattern env v2 in
+      IdSpecial (Spread, tok)
+
+(* Same CST input as 'pattern', different output. *)
+and parameter_pattern (env : env) (x : CST.pattern) : parameter =
   match x with
   | `Id tok ->
       let id = identifier env tok (* identifier *) in
@@ -1867,7 +1815,7 @@ and pattern (env : env) (x : CST.pattern) : parameter =
   | `Dest_pat x -> ParamPattern (destructuring_pattern env x)
   | `Rest_pat (v1, v2) -> (
       let v1 = token env v1 (* "..." *) in
-      let v2 = anon_choice_id_940079a env v2 in
+      let v2 = id_or_destructuring_pattern env v2 in
       match v2 with
       | Left id ->
           ParamClassic
@@ -1882,7 +1830,7 @@ and pattern (env : env) (x : CST.pattern) : parameter =
 
 and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
   match x with
-  | `Pat x -> pattern env x
+  | `Pat x -> parameter_pattern env x
   | `Assign_pat x ->
       let a, b, c = assignment_pattern env x in
       ParamPattern (Assign (a, b, c))
@@ -1924,7 +1872,7 @@ let todo_semgrep_partial (env : env) (x : CST.semgrep_partial) =
   | `Catch_clause x -> catch_clause env x |> todo_partial env
   | `Fina_clause x -> finally_clause env x |> todo_partial env
 
-let program (env : env) ((v1, v2) : CST.program) : program =
+let program (env : env) ((v1, v2) : CST.program) : a_program =
   let _v1 =
     match v1 with
     | Some tok -> Some (token env tok) (* pattern #!.* *)

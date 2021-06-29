@@ -26,6 +26,7 @@ type t =
   (* scripting (Python is above) *)
   | Ruby
   | PHP
+  | Hack
   | Lua
   (* data science *)
   | R
@@ -68,6 +69,16 @@ val files_of_dirs_or_files : t -> Common.path list -> Common.filename list
 
 (*s: signature [[Lang.string_of_lang]] *)
 val string_of_lang : t -> string
+
+(*
+   Convert to the most standard and unambiguous representation of the
+   language name of form [a-z][a-z0-9]*
+   e.g. 'python3' or 'csharp'.
+
+   This is meant to be URL-friendly, filesystem-friendly, and generally
+   programmer-friendly.
+*)
+val to_lowercase_alnum : t -> string
 
 (*e: signature [[Lang.string_of_lang]] *)
 (*s: signature [[Lang.ext_of_lang]] *)

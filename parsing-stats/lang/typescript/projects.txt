@@ -1,0 +1,54 @@
+#
+# Top projects on GitHub from that list:
+#
+#   https://github.com/topics/typescript?l=typescript&o=desc&s=forks
+#
+#   topic: typescript
+#   language filter: typescript
+#   sort by: most forks
+#
+
+git@github.com:ant-design/ant-design.git
+git@github.com:angular/angular.git
+git@github.com:microsoft/vscode.git
+git@github.com:ionic-team/ionic.git
+git@github.com:angular/angular-cli.git
+git@github.com:akveo/ngx-admin.git
+git@github.com:desktop/desktop.git
+git@github.com:storybookjs/storybook.git
+git@github.com:vuetifyjs/vuetify.git
+git@github.com:angular-ui/ui-router.git
+git@github.com:typeorm/typeorm.git
+git@github.com:denoland/deno.git
+git@github.com:primefaces/primeng.git
+git@github.com:nestjs/nest.git
+git@github.com:NG-ZORRO/ng-zorro-antd.git
+git@github.com:BabylonJS/Babylon.js.git
+git@github.com:alibaba/ice.git
+git@github.com:apollographql/apollo-client.git
+git@github.com:palantir/blueprint.git
+git@github.com:mgechev/angular-seed.git
+git@github.com:swimlane/ngx-datatable.git
+git@github.com:NativeScript/NativeScript.git
+git@github.com:ant-design/ant-design-mobile.git
+git@github.com:basarat/typescript-book.git
+
+# Too many weird test cases in the following:
+# git@github.com:DefinitelyTyped/DefinitelyTyped.git
+# git@github.com:microsoft/TypeScript.git
+
+#
+# Public projects with .tsx files, obtained from GitHub search
+# by searching for the keyword "react" and filter by language "typescript".
+# (Filtering by language "TSX" or by extension "tsx" didn't work.)
+#
+https://github.com/omariosouto/lucasflix.git
+https://github.com/EmmaRamirez/nuzlocke-generator.git
+https://github.com/ant-design/ant-design.git
+https://github.com/FaridSafi/react-native-gifted-chat.git
+https://github.com/microsoft/reactxp.git
+https://github.com/react-component/slider.git
+https://github.com/formium/formik.git
+https://github.com/tannerlinsley/react-query.git
+https://github.com/material-components/material-components-web-react.git
+https://github.com/projectstorm/react-diagrams.git

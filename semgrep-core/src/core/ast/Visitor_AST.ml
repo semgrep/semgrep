@@ -15,6 +15,7 @@
 open OCaml
 open AST_generic
 module H = AST_generic_helpers
+module PI = Parse_info
 
 (* Disable warnings against unused variables *)
 [@@@warning "-26"]
@@ -103,11 +104,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
   let rec v_info x =
     let k x =
       match x with
-      | { Parse_info.token = _v_pinfox; transfo = _v_transfo } ->
+      | { PI.token = _v_pinfox; transfo = _v_transfo } ->
           (*
-    let arg = Parse_info.v_pinfo v_pinfox in
+    let arg = PI.v_pinfo v_pinfox in
     let arg = v_unit v_comments in
-    let arg = Parse_info.v_transformation v_transfo in
+    let arg = PI.v_transformation v_transfo in
 *)
           ()
     in
@@ -256,7 +257,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
               v2 |> unbracket
               |> List.iter (function
                    | Tuple (_, [ L (String id); e ], _) ->
-                       let t = Parse_info.fake_info ":" in
+                       let t = PI.fake_info ":" in
                        v_partial ~recurse:false (PartialSingleField (id, t, e))
                    | _ -> ())
           (* for Go where we use List for composite literals *)
@@ -264,7 +265,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
               v2 |> unbracket
               |> List.iter (function
                    | Tuple (_, [ N (Id (id, _)); e ], _) ->
-                       let t = Parse_info.fake_info ":" in
+                       let t = PI.fake_info ":" in
                        v_partial ~recurse:false (PartialSingleField (id, t, e))
                    | _ -> ())
           | _ -> () );
@@ -387,7 +388,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Ratio v1 ->
         let v1 = v_wrap v_string v1 in
         ()
-    | Atom v1 ->
+    | Atom (v0, v1) ->
+        let v0 = v_tok v0 in
         let v1 = v_wrap v_string v1 in
         ()
     | Char v1 ->
@@ -396,8 +398,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | String v1 ->
         let v1 = v_wrap v_string v1 in
         ()
-    | Regexp v1 ->
-        let v1 = v_wrap v_string v1 in
+    | Regexp (v1, v2) ->
+        let v1 = v_bracket (v_wrap v_string) v1 in
+        let v2 = v_option (v_wrap v_string) v2 in
         ()
     | Null v1 ->
         let v1 = v_tok v1 in
@@ -1016,7 +1019,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
           | DefStmt
               ( { name = EN (Id (id, _)); _ },
                 FieldDefColon { vinit = Some e; _ } ) ->
-              let t = Parse_info.fake_info ":" in
+              let t = PI.fake_info ":" in
               v_partial ~recurse:false (PartialSingleField (id, t, e))
           | _ -> () );
           let v1 = v_stmt v1 in
@@ -1209,7 +1212,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
 (*****************************************************************************)
 
 (*****************************************************************************)
-(* Extract infos *)
+(* Extract tokens *)
 (*****************************************************************************)
 
 (*s: function [[Lib_AST.extract_info_visitor]] *)
@@ -1231,12 +1234,54 @@ let ii_of_any any =
 
 (*e: function [[Lib_AST.ii_of_any]] *)
 
+(*****************************************************************************)
+(* Extract ranges *)
+(*****************************************************************************)
+
+(*s: function [[Lib_AST.extract_info_visitor]] *)
+let extract_ranges recursor =
+  let ranges = ref None in
+  let smaller t1 t2 =
+    if compare t1.PI.charpos t2.PI.charpos < 0 then t1 else t2
+  in
+  let larger t1 t2 =
+    if compare t1.PI.charpos t2.PI.charpos > 0 then t1 else t2
+  in
+  let incorporate_tokens (left, right) =
+    match !ranges with
+    | None -> ranges := Some (left, right)
+    | Some (orig_left, orig_right) ->
+        ranges := Some (smaller orig_left left, larger orig_right right)
+  in
+  let incorporate_token tok =
+    if PI.is_origintok tok then
+      let tok_loc = PI.token_location_of_info tok in
+      incorporate_tokens (tok_loc, tok_loc)
+  in
+  let hooks =
+    {
+      default_visitor with
+      kinfo = (fun (_k, _) i -> incorporate_token i);
+      kstmt =
+        (fun (k, _) stmt ->
+          match stmt.s_range with
+          | None -> (
+              let saved_ranges = !ranges in
+              ranges := None;
+              k stmt;
+              stmt.s_range <- !ranges;
+              match saved_ranges with
+              | None -> ()
+              | Some r -> incorporate_tokens r )
+          | Some range -> incorporate_tokens range);
+    }
+  in
+  let vout = mk_visitor hooks in
+  recursor vout;
+  match !ranges with Some range -> range | None -> failwith "no tokens found"
+
 let range_of_tokens tokens =
-  List.filter Parse_info.is_origintok tokens |> Parse_info.min_max_ii_by_pos
+  List.filter PI.is_origintok tokens |> PI.min_max_ii_by_pos
   [@@profiling]
 
-let range_of_any any =
-  let leftmost_token, rightmost_token = ii_of_any any |> range_of_tokens in
-  ( Parse_info.token_location_of_info leftmost_token,
-    Parse_info.token_location_of_info rightmost_token )
-  [@@profiling]
+let range_of_any any = extract_ranges (fun visitor -> visitor any) [@@profiling]

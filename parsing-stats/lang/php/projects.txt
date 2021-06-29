@@ -1,0 +1,34 @@
+#
+# Top php projects from GitHub, sorted by stars.
+# Created by ./scripts/most-starred-for-language.
+#
+https://github.com/laravel/laravel
+https://github.com/danielmiessler/SecLists
+https://github.com/blueimp/jQuery-File-Upload
+https://github.com/fzaninotto/Faker
+https://github.com/symfony/symfony
+https://github.com/composer/composer
+https://github.com/laravel/framework
+https://github.com/guzzle/guzzle
+https://github.com/DesignPatternsPHP/DesignPatternsPHP
+https://github.com/Seldaek/monolog
+https://github.com/bcit-ci/CodeIgniter
+https://github.com/sebastianbergmann/phpunit
+https://github.com/PHPMailer/PHPMailer
+https://github.com/briannesbitt/Carbon
+https://github.com/WordPress/WordPress
+https://github.com/matomo-org/matomo
+https://github.com/easychen/howto-make-more-money
+https://github.com/nikic/PHP-Parser
+https://github.com/nextcloud/server
+https://github.com/yiisoft/yii2
+https://github.com/erusev/parsedown
+https://github.com/monicahq/monica
+https://github.com/barryvdh/laravel-debugbar
+https://github.com/getgrav/grav
+https://github.com/koel/koel
+https://github.com/filp/whoops
+https://github.com/phacility/phabricator
+https://github.com/CachetHQ/Cachet
+https://github.com/thephpleague/flysystem
+https://github.com/Intervention/image

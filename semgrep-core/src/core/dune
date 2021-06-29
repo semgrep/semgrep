@@ -21,3 +21,13 @@
    )
  )
 )
+
+(rule
+ (targets Config_semgrep_j.ml Config_semgrep_j.mli)
+ (deps    Config_semgrep.atd)
+ (action  (run atdgen -j -j-strict-fields -j-std %{deps})))
+
+(rule
+ (targets Config_semgrep_t.ml Config_semgrep_t.mli)
+ (deps    Config_semgrep.atd)
+ (action  (run atdgen -t %{deps})))

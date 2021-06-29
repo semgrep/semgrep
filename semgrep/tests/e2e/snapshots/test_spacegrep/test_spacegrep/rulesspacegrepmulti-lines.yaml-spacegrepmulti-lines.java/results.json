@@ -1,0 +1,43 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.spacegrep.multi-lines",
+      "end": {
+        "col": 21,
+        "line": 9
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "    myfile = open();\n    try {\n      foo(myfile);\n    }\n    finally {\n      close(myfile);",
+        "message": "found",
+        "metadata": {},
+        "metavars": {
+          "$V": {
+            "abstract_content": "myfile",
+            "end": {
+              "col": 11,
+              "line": 4,
+              "offset": 51
+            },
+            "start": {
+              "col": 5,
+              "line": 4,
+              "offset": 45
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/spacegrep/multi-lines.java",
+      "start": {
+        "col": 5,
+        "line": 4
+      }
+    }
+  ]
+}

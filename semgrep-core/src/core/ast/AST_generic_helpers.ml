@@ -19,6 +19,8 @@ open Common
 open AST_generic
 module M = Map_AST
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -215,6 +217,46 @@ let abstract_for_comparison_visitor recursor =
 
 let abstract_for_comparison_any x =
   abstract_for_comparison_visitor (fun visitor -> visitor.M.vany x)
+
+(*****************************************************************************)
+(* Associative-Commutative (AC) matching *)
+(*****************************************************************************)
+
+let is_associative_operator op =
+  match op with
+  | Or | And | BitOr | BitAnd | BitXor -> true
+  (* TODO: Plus, Mult, ... *)
+  | __else__ -> false
+
+let ac_matching_nf op args =
+  (* yes... here we use exceptions like a "goto" to avoid the option monad *)
+  let rec nf args1 =
+    args1
+    |> List.map (function
+         | Arg e -> e
+         | ArgKwd _ | ArgType _ | ArgOther _ -> raise_notrace Exit)
+    |> List.map nf_one |> List.flatten
+  and nf_one = function
+    | Call (IdSpecial (Op op1, _tok1), (_, args1, _)) when op = op1 -> nf args1
+    | x -> [ x ]
+  in
+  if is_associative_operator op then (
+    try Some (nf args)
+    with Exit ->
+      logger#error
+        "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
+        (show_operator op) (show_arguments args);
+      None )
+  else None
+
+let undo_ac_matching_nf tok op : expr list -> expr option = function
+  | [] -> None
+  | [ arg ] -> Some arg
+  | a1 :: a2 :: args ->
+      let mk_op x y =
+        Call (IdSpecial (Op op, tok), fake_bracket [ Arg x; Arg y ])
+      in
+      Some (List.fold_left mk_op (mk_op a1 a2) args)
 
 (*****************************************************************************)
 (* Conversion *)

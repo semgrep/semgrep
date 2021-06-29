@@ -2,7 +2,74 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+### Unreleased
+
+### Added
+- Capture groups in pattern-regex: in $1, $2, etc. (#3356)
+- Support metavariables inside atoms (e.g., `foo(:$ATOM)`)
+- Support metavariables and ellipsis inside regexp literals
+  (e.g., `foo(/.../)`)
+- Associative-commutative matching for bitwise OR, AND, and XOR operations
+- Add support for $...MVAR in generic patterns
+- Add per-rule settings object to enable/disable certain matching features
+- Add support for $...MVAR in generic patterns.
+- metavariable-pattern: Add support for nested Spacegrep/regex/Comby patterns
+- C#: support ellipsis in method parameters (#3289)
+
+### Fixed
+- C#: parse __makeref, __reftype, __refvalue (#3364)
+- Java: parsing of dots inside function annotations with brackets (#3389)
+- Do not pretend that short-circuit Boolean AND and OR operators are commutative (#3399)
+- metavariable-pattern: Fix crash when nesting a non-generic pattern within
+  a generic rule
+- metavariable-pattern: Fix parse info when matching content of a metavariable
+  under a different language
+- generic mode on Markdown files with very long lines will now work (#2987)
+
+### Changed
+- generic mode: files that don't look like nicely-indented programs
+  are no longer ignored, which may cause accidental slowdowns in setups
+  where excessively large files are not excluded explicitly (#3418).
+- metavariable-comparison: Fix crash when comparing integers and floats
+
+### Changed
+- Memoize getting ranges to speed up rules with large ranges
+
+## [0.56.0](https://github.com/returntocorp/semgrep/releases/tag/v0.56.0) - 2021-06-15
+
+### Added
+- Associative-commutative matching for Boolean AND and OR operations
+  (#3198)
+- Support metavariables inside strings (e.g., `foo("$VAR")`)
+- metavariable-pattern: Allow matching the content of a metavariable under
+  a different language.
+
+### Fixed
+- C#: Parse attributes for local functions (#3348)
+- Go: Recognize other common package naming conventions (#2424)
+- PHP: Support for associative-commutative matching (#3198)
+
+### Changed
+- Upgrade TypeScript parser (#3102)
+
+### Changed
+- `--debug` now prints out semgrep-core debug logs instead of having this
+  behavior with `--debugging-json`
+
+## [0.55.1](https://github.com/returntocorp/semgrep/releases/tag/v0.55.1) - 2021-06-9
+
+### Added
+- Add helpUri to sarif output if rule source metadata is defined
+
+### Fixed
+- JSON: handle correctly metavariables as field (#3279)
+- JS: support partial field definitions pattern, like in JSON
+- Fixed wrong line numbers for multi-lines match in generic mode (#3315)
+- Handle correctly ellipsis inside function types (#3119)
+- Taint mode: Allow statement-patterns when these are represented as
+  statement-expressions in the Generic AST (#3191)
+
+## [0.55.0](https://github.com/returntocorp/semgrep/releases/tag/v0.55.0) - 2021-06-8
 
 ### Added
 - Added new metavariable-pattern operator (available only via --optimizations),
@@ -19,6 +86,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Support equivalences when using optimizations (#3259)
 - PHP: Support ellipsis in include/require and echo (#3191, #3245)
 - PHP: Prefer expression patterns over statement patterns (#3191)
+- C#: Support unsafe block syntax (#3283)
+
 
 ### Changed
 - Run rules in semgrep-core (rather than patterns) by default (aka optimizations all)

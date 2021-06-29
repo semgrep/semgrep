@@ -1,0 +1,15 @@
+(executables
+  (package spacegrep)
+  (public_names spacegrep)
+  (names Space_main)
+  (libraries
+    spacegrep
+    cmdliner
+  )
+  (flags (:include flags.sexp))
+)
+
+; use cli/flags.sh to generate the OS specific build flags
+(rule
+ (targets flags.sexp)
+ (action (run %{workspace_root}/src/cli/flags.sh)))

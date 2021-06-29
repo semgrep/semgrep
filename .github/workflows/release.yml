@@ -126,9 +126,7 @@ jobs:
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
-      - name: Test spacegrep
-        run: opam exec -- make -C spacegrep test
-      - name: Test semgrep-core
+      - name: Test semgrep-core and spacegrep
         run: opam exec -- make -C semgrep-core test
 
   build-core-osx:
@@ -286,9 +284,18 @@ jobs:
           password: ${{ secrets.pypi_upload_token }}
           skip_existing: true
 
+  sleep-before-homebrew:
+    name: Sleep 10 min before releasing to homebrew
+    # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
+    needs: [upload-wheels]
+    runs-on: ubuntu-16.04
+    steps:
+      - name: Sleep 10 min
+        run: sleep 10m
+
   homebrew-core-pr:
     name: Update on Homebrew-Core
-    needs: [upload-wheels]  # Needs to run after pypi released so brew can update pypi dependency hashes
+    needs: [sleep-before-homebrew]  # Needs to run after pypi released so brew can update pypi dependency hashes
     runs-on: macos-latest
     steps:
       - name: Brew update

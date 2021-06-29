@@ -54,6 +54,9 @@ type mvar = string [@@deriving show, eq, hash]
  * define our own Pattern.t with just the valid cases, but we don't
  * want code in pfff to depend on semgrep/core/Pattern.ml, hence the
  * use of AST_generic.any for patterns.
+ *
+ * coupling: if you add a constructor here, you probably also want to
+ * modify Matching_generic.equal_ast_binded_code!
  *)
 type mvalue =
   (* TODO: get rid of Id, N generalize it *)
@@ -70,6 +73,9 @@ type mvalue =
    *)
   | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
+  (* This is to match the content of a string or atom, without the
+   * enclosing quotes. For a string this can actually be empty. *)
+  | Text of string AST_generic.wrap
 [@@deriving show, eq, hash]
 
 (* we sometimes need to convert to an any to be able to use
@@ -89,37 +95,30 @@ let mvalue_to_any = function
   | Args x -> G.Args x
   | T x -> G.T x
   | P x -> G.P x
+  | Text (s, info) -> G.E (G.L (G.String (s, info)))
 
 (* This is used for metavariable-pattern: where we need to transform the content
  * of a metavariable into a program so we can use evaluate_formula on it *)
-let program_of_mvalue : mvalue -> G.program option = function
+let program_of_mvalue : mvalue -> G.program option =
+ fun mval ->
+  match mval with
   | E expr -> Some [ G.exprstmt expr ]
   | S stmt -> Some [ stmt ]
   | Id (id, Some idinfo) -> Some [ G.exprstmt (G.N (G.Id (id, idinfo))) ]
   | Id (id, None) -> Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ()))) ]
   | N x -> Some [ G.exprstmt (G.N x) ]
   | Ss stmts -> Some stmts
-  | Args _ | T _ | P _ ->
-      logger#debug "program_of_mvalue: Args | T | P are not yet handled!";
+  | Args _ | T _ | P _ | Text _ ->
+      logger#debug "program_of_mvalue: not handled '%s'" (show_mvalue mval);
       None
 
 let range_of_mvalue mval =
   let tok_start, tok_end = Visitor_AST.range_of_any (mvalue_to_any mval) in
   Range.range_of_token_locations tok_start tok_end
 
-let str_of_any any =
-  if !Flag_semgrep.debug_with_full_position then
-    Meta_parse_info._current_precision :=
-      {
-        Meta_parse_info.default_dumper_precision with
-        Meta_parse_info.full_info = true;
-      };
-  let s = AST_generic.show_any any in
-  s
-
 let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
 
-let str_of_mval x = x |> mvalue_to_any |> str_of_any
+let str_of_mval x = show_mvalue x
 
 (*s: type [[Metavars_generic.metavars_binding]] *)
 (* note that the mvalue acts as the value of the metavar and also

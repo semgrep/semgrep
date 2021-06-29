@@ -366,11 +366,6 @@ let verbatim_string_literal (env : env) (tok : CST.verbatim_string_literal) =
 
 (* verbatim_string_literal *)
 
-let _preprocessor_directive (env : env) (tok : CST.preprocessor_directive) =
-  token env tok
-
-(* pattern #[a-z]\w* *)
-
 let default_switch_label (env : env) ((v1, v2) : CST.default_switch_label) =
   let v1 = token env v1 (* "default" *) in
   let v2 = token env v2 (* ":" *) in
@@ -466,7 +461,7 @@ let interpolated_verbatim_string_text (env : env)
   let x =
     match x with
     | `LCURLLCURL tok -> str env tok (* "{{" *)
-    | `Pat_6d9db72 tok -> str env tok (* pattern "[^{\"]+" *)
+    | `Inte_verb_str_text_frag tok -> str env tok (* pattern "[^{\"]+" *)
     | `DQUOTDQUOT tok -> str env tok
     (* "\"\"" *)
   in
@@ -509,7 +504,7 @@ let identifier (env : env) (tok : CST.identifier) : ident =
   match tok with
   | `Choice_id_tok (`Id_tok tok) -> str env tok
   | `Choice_id_tok (`Cont_keywos kw) -> contextual_keywords env kw
-  | `Tok_pat_8cc7dbf tok -> str env tok
+  | `Semg_meta tok -> str env tok
 
 (* TODO: not sure why preprocessor_call was not generated. Because
  * was in extras?
@@ -522,7 +517,7 @@ let _preproc_directive_end (env : env) (tok : CST.preproc_directive_end) =
 let interpolated_string_text (env : env) (x : CST.interpolated_string_text) =
   match x with
   | `LCURLLCURL tok -> String (str env tok) (* "{{" *)
-  | `Imm_tok_pat_2755817 tok ->
+  | `Inte_str_text_frag tok ->
       String (str env tok) (* pattern "[^{\"\\\\\\n]+" *)
   | `Esc_seq tok -> escape_sequence env tok
 
@@ -629,8 +624,7 @@ let literal (env : env) (x : CST.literal) : literal =
         List.map
           (fun x ->
             match x with
-            | `Imm_tok_pat_5a6fa79 tok ->
-                str env tok (* pattern "[^\"\\\\\\n]+" *)
+            | `Str_lit_frag tok -> str env tok (* pattern "[^\"\\\\\\n]+" *)
             | `Esc_seq tok -> str env tok
             (* escape_sequence *))
           v2
@@ -933,7 +927,7 @@ and name (env : env) (x : CST.name) : AST.name =
   | `Simple_name x -> simple_name env x
 
 and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
-  let v1 = match v1 with Some x -> attribute_list env x | None -> [] in
+  let v1 = List.concat_map (attribute_list env) v1 in
   let v2 =
     match v2 with
     | Some x -> (
@@ -1308,9 +1302,9 @@ and expression (env : env) (x : CST.expression) : AST.expr =
   | `Make_ref_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "__makeref" *) in
       let _v2 = token env v2 (* "(" *) in
-      let _v3 = expression env v3 in
+      let v3 = expression env v3 in
       let _v4 = token env v4 (* ")" *) in
-      todo_expr env v1
+      Ref (v1, v3)
   | `Member_access_exp (v1, v2, v3) ->
       let v1 =
         match v1 with
@@ -1366,18 +1360,18 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       AST.Ref (v1, v2)
   | `Ref_type_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "__reftype" *) in
-      let _v2 = token env v2 (* "(" *) in
-      let _v3 = expression env v3 in
-      let _v4 = token env v4 (* ")" *) in
-      todo_expr env v1
+      let v2 = token env v2 (* "(" *) in
+      let v3 = expression env v3 in
+      let v4 = token env v4 (* ")" *) in
+      Call (IdSpecial (Typeof, v1), (v2, [ Arg (DeRef (v1, v3)) ], v4))
   | `Ref_value_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "__refvalue" *) in
       let _v2 = token env v2 (* "(" *) in
-      let _v3 = expression env v3 in
+      let v3 = expression env v3 in
       let _v4 = token env v4 (* "," *) in
       let _v5 = type_constraint env v5 in
       let _v6 = token env v6 (* ")" *) in
-      todo_expr env v1
+      DeRef (v1, v3)
   | `Size_of_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "sizeof" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1474,7 +1468,7 @@ and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) :
 
 and anon_choice_param_ce11a32 (env : env) (x : CST.anon_choice_param_ce11a32) =
   match x with
-  | `Param x -> ParamClassic (parameter env x)
+  | `Param x -> parameter env x
   | `Param_array (v1, v2, v3, v4) ->
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = token env v2 (* "params" *) in
@@ -1699,27 +1693,28 @@ and statement (env : env) (x : CST.statement) =
       let v4 = variable_declaration env v4 in
       let v5 = token env v5 (* ";" *) in
       var_def_stmt v4 v3
-  | `Local_func_stmt (vtodo, v1, v2, v3, v4, v5, v6, v7) ->
-      let v1 = List.map (modifier env) v1 in
-      let v2 = return_type env v2 in
-      let v3 = identifier env v3 (* identifier *) in
-      let _, tok = v3 in
-      let v4 =
-        match v4 with Some x -> type_parameter_list env x | None -> []
+  | `Local_func_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
+      let v1 = List.concat_map (attribute_list env) v1 in
+      let v2 = List.map (modifier env) v2 in
+      let v3 = return_type env v3 in
+      let v4 = identifier env v4 (* identifier *) in
+      let _, tok = v4 in
+      let v5 =
+        match v5 with Some x -> type_parameter_list env x | None -> []
       in
-      let v5 = parameter_list env v5 in
-      let v6 = List.map (type_parameter_constraints_clause env) v6 in
-      let v7 = function_body env v7 in
-      let tparams = type_parameters_with_constraints v4 v6 in
+      let v6 = parameter_list env v6 in
+      let v7 = List.map (type_parameter_constraints_clause env) v7 in
+      let v8 = function_body env v8 in
+      let tparams = type_parameters_with_constraints v5 v7 in
       let idinfo = empty_id_info () in
-      let ent = { name = EN (Id (v3, idinfo)); attrs = v1; tparams } in
+      let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams } in
       let def =
         AST.FuncDef
           {
             fkind = (AST.Method, tok);
-            fparams = v5;
-            frettype = Some v2;
-            fbody = v7;
+            fparams = v6;
+            frettype = Some v3;
+            fbody = v8;
           }
       in
       AST.DefStmt (ent, def) |> AST.s
@@ -2091,7 +2086,13 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v2 = block env v2 in
   (v1, v2)
 
-and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
+and parameter (env : env) (v1 : CST.parameter) : AST.parameter =
+  match v1 with
+  | `Rep_attr_list_opt_param_modi_opt_type_id_opt_equals_value_clause v1 ->
+      explicit_parameter env v1
+  | `Ellips v1 -> ParamEllipsis (token env v1)
+
+and explicit_parameter (env : env) (v1, v2, v3, v4, v5) =
   (*
     [FromBody] ref string param1 = "default"
         v1     v2   v3     v4      v5
@@ -2101,13 +2102,14 @@ and parameter (env : env) ((v1, v2, v3, v4, v5) : CST.parameter) =
   let v3 = map_opt type_constraint env v3 in
   let v4 = identifier env v4 (* identifier *) in
   let v5 = map_opt equals_value_clause env v5 in
-  {
-    pname = Some v4;
-    ptype = v3;
-    pdefault = v5;
-    pattrs = v1;
-    pinfo = empty_id_info ();
-  }
+  ParamClassic
+    {
+      pname = Some v4;
+      ptype = v3;
+      pdefault = v5;
+      pattrs = v1;
+      pinfo = empty_id_info ();
+    }
 
 and from_clause (env : env) ((v1, v2, v3, v4, v5) : CST.from_clause) :
     linq_query_part =
@@ -2325,7 +2327,7 @@ let bracketed_parameter_list (env : env)
       v3
   in
   let v4 = token env v4 (* "]" *) in
-  List.map (fun p -> ParamClassic p) (v2 :: v3)
+  v2 :: v3
 
 let constructor_initializer (env : env)
     ((v1, v2, v3) : CST.constructor_initializer) =

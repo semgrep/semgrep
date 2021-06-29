@@ -218,9 +218,10 @@ and literal x =
   | String v1 ->
       let v1 = wrap string v1 in
       G.String v1
-  | Regexp v1 ->
-      let v1 = wrap string v1 in
-      G.Regexp v1
+  | Regexp (v1, v2) ->
+      let v1 = bracket (wrap string) v1 in
+      let v2 = option (wrap string) v2 in
+      G.Regexp (v1, v2)
 
 and expr (x : expr) =
   match x with

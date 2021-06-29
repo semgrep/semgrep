@@ -1,0 +1,15 @@
+rules:
+  - id: test-mvp-lang
+    languages:
+      - python
+    message: Working!
+    patterns:
+      - pattern: |
+          eval_C("$CODE")
+      - metavariable-pattern:
+          metavariable: $CODE
+          language: C
+          patterns:
+              - pattern: |
+                  $X++;
+    severity: WARNING

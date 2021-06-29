@@ -1,4 +1,5 @@
 from typing import NamedTuple, Any
+
 class LineCol(NamedTuple):
     line: int
     column: int
@@ -6,6 +7,9 @@ class LineCol(NamedTuple):
 class Node(NamedTuple):
     start_mark: LineCol
     end_mark: LineCol
+
+class MappingNode:
+    value: Any
 
 class RoundTripConstructor:
     def construct_object(self, node: Node, deep: bool = False) -> Any:

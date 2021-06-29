@@ -21,7 +21,7 @@ module MV = Metavariable
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Data structure representing a semgrep rule.
+(* Data structure representing a Semgrep rule.
  *
  * See also Mini_rule.ml where formula and many other features disappears.
  *
@@ -41,7 +41,7 @@ type xlang =
   | LNone
   (* for spacegrep *)
   | LGeneric
-[@@deriving show]
+[@@deriving show, eq]
 
 type regexp = Regexp_engine.Pcre_engine.t [@@deriving show, eq]
 
@@ -121,7 +121,7 @@ and metavar_cond =
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
   | CondRegexp of MV.mvar * regexp
-  | CondPattern of MV.mvar * formula
+  | CondPattern of MV.mvar * xlang option * formula
 [@@deriving show, eq]
 
 (*****************************************************************************)
@@ -149,7 +149,8 @@ type formula_old =
 (* extra conditions, usually on metavariable content *)
 and extra =
   | MetavarRegexp of MV.mvar * regexp
-  | MetavarPattern of MV.mvar * formula
+  (* TODO: Generalize `Lang.t option` to `xlang`. *)
+  | MetavarPattern of MV.mvar * xlang option * formula
   | MetavarComparison of metavariable_comparison
   | PatWherePython of string
 
@@ -183,6 +184,7 @@ type rule = {
   (* for metachecking error location *)
   (* optional fields *)
   equivalences : string list option;
+  settings : Config_semgrep.t option;
   (* TODO: parse them *)
   fix : string option;
   fix_regexp : (regexp * int option * string) option;
@@ -240,7 +242,8 @@ let rewrite_metavar_comparison_strip mvar cond =
 let convert_extra x =
   match x with
   | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
-  | MetavarPattern (mvar, formula) -> CondPattern (mvar, formula)
+  | MetavarPattern (mvar, opt_xlang, formula) ->
+      CondPattern (mvar, opt_xlang, formula)
   | MetavarComparison comp -> (
       match comp with
       (* do we care about strip and base? should not Eval_generic handle it?

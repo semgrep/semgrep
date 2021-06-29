@@ -1,12 +1,19 @@
 import json
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
+import appdirs
 import pytest
 
+from ..conftest import chdir
 from ..conftest import TESTS_PATH
 from ..public_repos import ALL_LANGUAGES
+from ..public_repos import ALL_REPOS
+
 
 SENTINEL_VALUE = 87518275812375164
 
@@ -87,17 +94,89 @@ def _assert_sentinel_results(
         )
 
 
+REPO_CACHE = Path(
+    os.path.expanduser(
+        os.environ.get("GITHUB_REPO_CACHE", appdirs.user_cache_dir("semgrep-tests"))
+    )
+)
+
+
+def clone_github_repo(repo_url: str, sha: Optional[str] = None, retries: int = 3):
+    """
+    Internal fixture function. Do not use directly, use the `clone_github_repo` fixture.
+    Wraps `_github_repo` function with retries. If the `_github_repo` throws an exception,
+    it will delete `repo_destination` and retry up to `retries` times.
+    """
+    sha_str = sha or "latest"
+    repo_dir = "-".join(repo_url.split("/")[-2:]) + "-" + sha_str
+    repo_destination = REPO_CACHE / repo_dir
+    try:
+        return _github_repo(repo_url, sha, repo_destination)
+    except (GitError, subprocess.CalledProcessError) as ex:
+        print(f"Failed to clone github repo for tests {ex}")
+        if repo_destination.exists():
+            shutil.rmtree(repo_destination)
+        if retries == 0:
+            raise
+        else:
+            return clone_github_repo(repo_url, sha, retries - 1)
+
+
+class GitError(BaseException):
+    pass
+
+
+def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path):
+    """
+    Internal fixture function. Use the `clone_github_repo` fixture.
+    Clones the github repo at repo_url into `repo_destination` and checks out `sha`.
+
+    If `repo_destination` already exists, it will validate that the correct repo is present at that location.
+    """
+    if not repo_destination.exists():
+        if sha is None:
+            subprocess.check_output(
+                ["git", "clone", "--depth=1", repo_url, repo_destination]
+            )
+        else:
+            repo_destination.mkdir()
+            # Sadly, no fast way to clone a specific commit without a super
+            # modern git client
+            subprocess.check_output(["git", "clone", repo_url, repo_destination])
+            with chdir(repo_destination):
+                subprocess.check_output(["git", "checkout", sha])
+
+    # validate that the repo seems setup properly
+    with chdir(repo_destination):
+        # some tests modify it, lets put everything back to normal
+        subprocess.check_output(["git", "clean", "-fd"])
+        subprocess.check_output(["git", "reset", "--hard"])
+        all_clean = (
+            subprocess.check_output(["git", "status", "--porcelain"]).strip() == b""
+        )
+        if not all_clean:
+            raise GitError("Couldn't clean the repo, something is wrong. Deleting.")
+        repo_sha = subprocess.check_output(["git", "rev-parse", "HEAD"])
+        if sha:
+            if not repo_sha.startswith(sha.encode("utf-8")):
+                shutil.rmtree(repo_destination)
+                raise GitError(
+                    f"Github repo is broken (not set to correct sha: {repo_sha.decode('utf-8', errors='replace')}"
+                )
+
+    return repo_destination
+
+
+@pytest.mark.parametrize("repo_object", ALL_REPOS)
 # public_repo_url is a fancy dynamic parameterization defined in conftest.
-# In `--qa` mode, it runs every public repo in public_repos.ALL_REPOS
-# In regular mode, it runs the first 5 from public_repos.PASSING.
-def test_semgrep_on_repo(monkeypatch, clone_github_repo, tmp_path, public_repo_url):
+def test_semgrep_on_repo(monkeypatch, tmp_path, repo_object):
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "qa" / "rules").resolve())
 
     monkeypatch.chdir(tmp_path)
 
-    repo_url = public_repo_url["repo"]
-    languages = public_repo_url["languages"]
-    excludes = public_repo_url.get("excludes")
+    repo_url = repo_object["repo"]
+    languages = repo_object["languages"]
+    excludes = repo_object.get("excludes")
     repo_path = clone_github_repo(repo_url=repo_url)
     repo_languages = (
         LANGUAGE_SENTINELS

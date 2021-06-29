@@ -517,18 +517,16 @@ and literal =
   | Int of int option wrap
   | Float of float option wrap
   | Char of string wrap
-  | String of string wrap
-  | Regexp of string wrap
+  | String of string wrap (* TODO? bracket, ', ", or even """ *)
+  | Regexp of string wrap bracket (* // *) * string wrap option (* modifiers *)
+  | Atom of tok (* ':' in Ruby, ''' in Scala *) * string wrap
   | Unit of tok
   (* a.k.a Void *)
   | Null of tok
   | Undefined of tok (* JS *)
   | Imag of string wrap
   (* Go, Python *)
-  | Ratio of string wrap (* Ruby *)
-  | Atom of string wrap
-
-(* Ruby *)
+  | Ratio of string wrap
 
 (*e: type [[AST_generic.literal]] *)
 
@@ -899,7 +897,11 @@ and stmt = {
      and before matching.
   *)
   (* used in semgrep to skip some AST matching *)
-  mutable s_bf : Bloom_filter.t option; [@equal fun _a _b -> true] [@hash.ignore]
+  mutable s_bf : Bloom_filter.t option;
+      [@equal fun _a _b -> true] [@hash.ignore]
+  mutable s_range :
+    (Parse_info.token_location * Parse_info.token_location) option;
+      [@hash.ignore]
 }
 
 and stmt_kind =
@@ -1978,6 +1980,7 @@ let s skind =
     s_use_cache = false;
     s_backrefs = None;
     s_bf = None;
+    s_range = None;
   }
 
 (*s: function [[AST_generic.basic_field]] *)

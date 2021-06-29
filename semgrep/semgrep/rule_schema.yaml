@@ -1,5 +1,6 @@
 $id: https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep/semgrep/rule_schema.yaml
 $schema: http://json-schema.org/draft-07/schema#
+$comment: '!!if you modify this file, you probably also need to update the one in semgrep-app:server/semgrep_app/rule_schema.yaml!!'
 definitions:
   patterns-content:
     type: array
@@ -57,6 +58,8 @@ definitions:
         type: object
         properties:
           metavariable:
+            type: string
+          language:
             type: string
           patterns:
             $ref: '#/definitions/patterns-content'
@@ -287,6 +290,9 @@ properties:
           additionalProperties: false
         metadata:
           title: Arbitrary structured data for your own reference
+          type: object
+        settings:
+          title: Settings object to enable/disable certain matching features in semgrep-core
           type: object
         pattern:
           title: Return finding where Semgrep pattern matches exactly

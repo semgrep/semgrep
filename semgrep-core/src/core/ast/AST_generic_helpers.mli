@@ -41,6 +41,35 @@ val abstract_for_comparison_any : AST_generic.any -> AST_generic.any
  * with polymorphic operators.
 *)
 
+val is_associative_operator : AST_generic.operator -> bool
+(** Test whether an operator is suitable for associative-matching.  *)
+
+val ac_matching_nf :
+  AST_generic.operator -> AST_generic.arguments -> AST_generic.expr list option
+(** [ac_matching_nf op args] converts the operands [args] of an
+ * AC-operator [op] to a normal form (NF) better suited for AC-matching.
+ * Essentially, we flatten out all [op]-operations. Note that this is not
+ * a canonical form (i.e., it is not a unique representation).
+ * E.g.
+ *    ac_matching_nf And [a; Call(Op And, [b; c])] = Some [a; b; c]
+ * The function returns [None] if [op] is not an AC-operator. It also
+ * returns [None] if the operands have an unexpected shape (see code),
+ * in which case we just log an error and skip AC-matching (rather
+ * than crashing). *)
+
+val undo_ac_matching_nf :
+  Parse_info.t ->
+  AST_generic.operator ->
+  AST_generic.expr list ->
+  AST_generic.expr option
+(** [undo_ac_matching_nf tok op args_nf] folds [args_nf] using [op]
+ * (in a sense, it "undoes" [ac_matching_nf]). Here [tok] is the token of
+ * the operand [op] in the source file. Note that this does not remember
+ * the original grouping of the operands!
+ * E.g.
+ *    undo_ac_matching_nf tok And [a; b; c] = Call(Op And, [Call(Op And, [a; b]); c])
+ *)
+
 val conv_op : AST_generic_.operator -> AST_generic.operator
 
 val conv_incr : AST_generic_.incr_decr -> AST_generic.incr_decr

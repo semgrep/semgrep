@@ -9,6 +9,7 @@ import pytest
         ("rules/spacegrep/markdown.yaml", "spacegrep/markdown.md"),
         ("rules/spacegrep/httpresponse.yaml", "spacegrep/httpresponse.txt"),
         ("rules/spacegrep/dockerfile.yaml", "spacegrep/root.Dockerfile"),
+        ("rules/spacegrep/multi-lines.yaml", "spacegrep/multi-lines.java"),
     ],
 )
 def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):

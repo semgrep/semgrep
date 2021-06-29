@@ -13,7 +13,7 @@ function f2() {
     https.createServer(sslOptions);
 }
 
-function f1() {
+function f3() {
     // OK: test-mvp-either
     var constants = require('foobar');
     var sslOptions = {};

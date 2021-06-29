@@ -28,12 +28,14 @@ clean:
 # and dune runtest -f does not see this new file, probably because
 # the cached file under _build/.../tests/ is still the old one.
 test: all
+	$(MAKE) -C src/spacegrep test
 	dune runtest -f
 e2etest:
 	python3 tests/e2e/test_target_file.py
 install:
 	dune install
 	cp -f _build/install/default/bin/semgrep-core ../semgrep/semgrep/bin/
+	cp -f _build/install/default/bin/spacegrep ../semgrep/semgrep/bin/
 dump:
 	./_build/default/tests/test.bc -dump_ast tests/lint/stupid.py
 

@@ -13,6 +13,7 @@ def test_api(capsys, run_semgrep_in_tmp):
     )
 
     captured = capsys.readouterr()
+    assert isinstance(output, dict)
     assert len(output["errors"]) == 1
     assert len(output["results"]) == 1
     assert captured.out == ""

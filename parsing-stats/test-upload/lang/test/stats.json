@@ -1,0 +1,29 @@
+{
+  "language": "test",
+  "global": {
+    "name": "*",
+    "parsing_rate": 1.0,
+    "line_count": 15648,
+    "error_line_count": 0,
+    "file_count": 10,
+    "error_file_count": 0
+  },
+  "projects": [
+    {
+      "name": "semgrep-go",
+      "parsing_rate": 1.0,
+      "line_count": 6936,
+      "error_line_count": 0,
+      "file_count": 5,
+      "error_file_count": 0
+    },
+    {
+      "name": "semgrep-ruby",
+      "parsing_rate": 1.0,
+      "line_count": 8712,
+      "error_line_count": 0,
+      "file_count": 5,
+      "error_file_count": 0
+    }
+  ]
+}

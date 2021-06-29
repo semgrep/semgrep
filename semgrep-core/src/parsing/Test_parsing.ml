@@ -46,25 +46,25 @@ let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
 (* Pfff only *)
 (*****************************************************************************)
 
-let dump_ast_pfff file =
-  match Lang.langs_of_filename file with
-  | [ _lang ] ->
-      let ast =
-        Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
-            Parse_target.parse_program file)
-      in
-      let v = Meta_AST.vof_any (G.Pr ast) in
-      let s = OCaml.string_of_v v in
-      pr2 s
-  | [] -> failwith (spf "no language detected for %s" file)
-  | _ :: _ :: _ -> failwith (spf "too many languages detected for %s" file)
+let dump_pfff_ast lang file =
+  let ast =
+    Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
+        let res = Parse_target.just_parse_with_lang lang file in
+        res.ast)
+  in
+  let v = Meta_AST.vof_any (G.Pr ast) in
+  let s = OCaml.string_of_v v in
+  pr2 s
 
 (*****************************************************************************)
 (* Tree-sitter only *)
 (*****************************************************************************)
 
-(* less: could infer lang from filename *)
-let dump_tree_sitter_cst_lang lang file =
+(*
+   Inferring the file type from the name doesn't work e.g. '.h' could
+   be C or C++, '.py' could be Python 2 or Python 3.
+*)
+let dump_tree_sitter_cst lang file =
   match lang with
   | Lang.R ->
       Tree_sitter_r.Parse.file file
@@ -106,12 +106,6 @@ let dump_tree_sitter_cst_lang lang file =
       Tree_sitter_cpp.Parse.file file
       |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
-
-let dump_tree_sitter_cst file =
-  match Lang.langs_of_filename file with
-  | [ l ] -> dump_tree_sitter_cst_lang l file
-  | [] -> failwith (spf "no language detected for %s" file)
-  | _ :: _ :: _ -> failwith (spf "too many languages detected for %s" file)
 
 let test_parse_tree_sitter lang xs =
   let xs = List.map Common.fullpath xs in
@@ -173,50 +167,139 @@ let test_parse_tree_sitter lang xs =
 (* Pfff and tree-sitter parsing *)
 (*****************************************************************************)
 
+(*
+   Expand the list of files or directories into a list of files in the
+   specified language, and return a record for each file.
+
+   This is meant to run the same parsers as semgrep-core does for normal
+   semgrep scans.
+*)
 let parsing_common ?(verbose = true) lang xs =
   let xs = List.map Common.fullpath xs in
   let fullxs =
     Lang.files_of_dirs_or_files lang xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
-
-  let stat_list = ref [] in
   fullxs
-  |> Console.progress ~show:verbose (fun k ->
-         List.iter (fun file ->
-             k ();
-             logger#info "processing %s" file;
-             let stat =
-               try
-                 let res =
-                   Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
-                     lang file
-                 in
-                 res.Parse_target.stat
-               with exn ->
-                 if verbose then
-                   pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-                 PI.bad_stat file
+  |> List.rev_map (fun file ->
+         pr2 (spf "[%s] processing %s" (Lang.to_lowercase_alnum lang) file);
+         let stat =
+           try
+             let res =
+               Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang
+                 file
              in
-             Common.push stat stat_list));
-  !stat_list
+             res.Parse_target.stat
+           with exn ->
+             if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+             PI.bad_stat file
+         in
+         stat)
 
-let parsing_stats lang json files_or_dirs =
-  let stat_list = parsing_common lang files_or_dirs in
-  if json then
-    let total, bad = Parse_info.aggregate_stats stat_list in
-    let good = total - bad in
-    let json =
-      J.Object
-        [
-          ("total", J.Int total);
-          ("bad", J.Int bad);
-          ("percent_correct", J.Float (Common2.pourcent_float good total));
-        ]
-    in
-    let s = J.string_of_json json in
-    pr s
-  else Parse_info.print_parsing_stat_list stat_list
+(*
+   Parse files from multiple root folders, each root being considered a
+   separate project. Keeping projects separate allows us to spot
+   projects with unusual results.
+*)
+let parse_project ~verbose lang name files_or_dirs =
+  let stat_list = parsing_common ~verbose lang files_or_dirs in
+  (name, stat_list)
+
+(* Json doesn't tolerate NaN values, so we use 1 instead. *)
+let replace_nan x = if x <> x then 1. else x
+
+let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
+    Parsing_stats_t.project_stats =
+  {
+    acc with
+    parsing_rate =
+      1. -. (float acc.error_line_count /. float acc.line_count) |> replace_nan;
+  }
+
+(*
+   Add things up for json reporting: file stats -> project stat
+*)
+let aggregate_file_stats (results : (string * PI.parsing_stat list) list) :
+    Parsing_stats_t.project_stats list =
+  List.map
+    (fun (project_name, file_stats) ->
+      let acc =
+        {
+          Parsing_stats_t.name = project_name;
+          parsing_rate = nan;
+          line_count = 0;
+          error_line_count = 0;
+          file_count = 0;
+          error_file_count = 0;
+        }
+      in
+      let acc =
+        List.fold_left
+          (fun (acc : Parsing_stats_t.project_stats) (x : PI.parsing_stat) ->
+            let success = x.error_line_count = 0 in
+            {
+              acc with
+              Parsing_stats_t.line_count = acc.line_count + x.total_line_count;
+              error_line_count = acc.error_line_count + x.error_line_count;
+              file_count = acc.file_count + 1;
+              error_file_count =
+                (acc.error_file_count + if not success then 1 else 0);
+            })
+          acc file_stats
+      in
+      update_parsing_rate acc)
+    results
+
+(*
+   Add things up for json reporting: project stats -> global stat
+*)
+let aggregate_project_stats lang
+    (project_stats : Parsing_stats_t.project_stats list) : Parsing_stats_t.t =
+  let open Parsing_stats_t in
+  let acc =
+    {
+      name = "*";
+      parsing_rate = nan;
+      line_count = 0;
+      error_line_count = 0;
+      file_count = 0;
+      error_file_count = 0;
+    }
+  in
+  let acc =
+    List.fold_left
+      (fun acc proj ->
+        {
+          acc with
+          line_count = acc.line_count + proj.line_count;
+          error_line_count = acc.error_line_count + proj.error_line_count;
+          file_count = acc.file_count + proj.file_count;
+          error_file_count = acc.error_file_count + proj.error_file_count;
+        })
+      acc project_stats
+  in
+  let global = update_parsing_rate acc in
+  { language = Lang.to_lowercase_alnum lang; global; projects = project_stats }
+
+let print_json lang results =
+  let project_stats = aggregate_file_stats results in
+  let stats = aggregate_project_stats lang project_stats in
+  let s = Parsing_stats_j.string_of_t stats in
+  print_endline (Yojson.Safe.prettify s)
+
+let parse_projects ~verbose lang project_dirs =
+  List.map
+    (fun dir ->
+      let name = dir in
+      parse_project ~verbose lang name [ dir ])
+    project_dirs
+
+let parsing_stats lang json project_dirs =
+  let stat_list = parse_projects ~verbose:(not json) lang project_dirs in
+  if json then print_json lang stat_list
+  else
+    let flat_stat = List.map snd stat_list |> List.flatten in
+    Parse_info.print_parsing_stat_list flat_stat
 
 let parsing_regressions lang files_or_dirs =
   let _stat_list = parsing_common lang files_or_dirs in

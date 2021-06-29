@@ -1,0 +1,9 @@
+<!-- ruleid:test-mvp-lang -->
+<script>
+console.log("hello")
+</script>
+
+<!-- OK:test-mvp-lang -->
+<script>
+foo()
+</script>

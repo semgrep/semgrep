@@ -636,13 +636,6 @@ let any = function
   | Program v1 ->
       let v1 = program v1 in
       G.Ss v1
-  (* We prefer an expr-pattern over a stmt-pattern, because expr-patterns can
-   * match anywhere. Also, in the current taint-mode, sources/sanitizers/sinks
-   * must be expr-patterns; so, without this, you could not e.g. use `echo` as
-   * a sink. *)
-  | Stmt (Expr (v1, _t)) ->
-      let v1 = expr v1 in
-      G.E v1
   | Stmt v1 ->
       let v1 = stmt v1 in
       G.S v1

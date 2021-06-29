@@ -39,7 +39,7 @@ class SarifFormatter(BaseFormatter):
     def _rule_to_sarif(rule: Rule) -> Dict[str, Any]:
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
-        return {
+        rule_json = {
             "id": rule.id,
             "name": rule.id,
             "shortDescription": {"text": rule.message},
@@ -47,6 +47,12 @@ class SarifFormatter(BaseFormatter):
             "defaultConfiguration": {"level": severity},
             "properties": {"precision": "very-high", "tags": tags},
         }
+
+        rule_url = rule.metadata.get("source")
+        if rule_url is not None:
+            rule_json["helpUri"] = rule_url
+
+        return rule_json
 
     @staticmethod
     def _rule_to_sarif_severity(rule: Rule) -> str:

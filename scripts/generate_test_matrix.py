@@ -508,7 +508,13 @@ def read_if_exists(path: Optional[str]):
 
 
 def lang_dir_to_ext(lang: str):
-    LANG_DIR_TO_EXT = {"python": "py", "ruby": "rb", "ocaml": "ml", "csharp": "cs", "rust": "rs"}
+    LANG_DIR_TO_EXT = {
+        "python": "py",
+        "ruby": "rb",
+        "ocaml": "ml",
+        "csharp": "cs",
+        "rust": "rs",
+    }
     return LANG_DIR_TO_EXT.get(lang, lang)
 
 
@@ -612,7 +618,9 @@ def main() -> None:
     cheatsheet = generate_cheatsheet(args.directory, args.html)
 
     if args.json:
-        output = json.dumps(cheatsheet, indent=4, separators=(",", ": "))
+        output = json.dumps(
+            cheatsheet, indent=4, separators=(",", ": "), sort_keys=True
+        )
     elif args.html:
         output = cheatsheet_to_html(cheatsheet)
 

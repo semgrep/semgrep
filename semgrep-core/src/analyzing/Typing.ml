@@ -26,7 +26,7 @@ let get_resolved_type lang (vinit, vtype) =
       | Some (L (Float (_, tok))) -> make_type "float" tok
       | Some (L (Char (_, tok))) -> make_type "char" tok
       | Some (L (String (_, tok))) -> make_type string_str tok
-      | Some (L (Regexp (_, tok))) -> make_type "regexp" tok
+      | Some (L (Regexp ((_, (_, tok), _), _))) -> make_type "regexp" tok
       | Some (L (Unit tok)) -> make_type "unit" tok
       | Some (L (Null tok)) -> make_type "null" tok
       | Some (L (Imag (_, tok))) -> make_type "imag" tok

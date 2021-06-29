@@ -1,0 +1,10 @@
+rules:
+- id: test-template
+  patterns:
+  - pattern: |
+        foo($X)
+  - pattern-inside: |
+        bar($Y)
+  message: Working!
+  severity: WARNING
+  languages: [javascript]

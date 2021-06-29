@@ -23,6 +23,7 @@ module H = AST_generic_helpers
 module AST = AST_generic
 module Flag = Flag_semgrep
 module Env = Metavariable_capture
+module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -104,6 +105,10 @@ and tout = tin list
  * same language for the host language and pattern language
  *)
 type 'a matcher = 'a -> 'a -> tin -> tout
+
+type 'a comb_result = tin -> ('a * tout) list
+
+type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
 
 (*e: type [[Matching_generic.matcher]] *)
 
@@ -256,12 +261,14 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
     (* general case, equality modulo-position-and-constness.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!
+     * TODO? missing MV.Ss _, MV.Ss _ ??
      *)
     | MV.Id _, MV.Id _
     | MV.E _, MV.E _
     | MV.S _, MV.S _
     | MV.P _, MV.P _
     | MV.T _, MV.T _
+    | MV.Text _, MV.Text _
     | MV.Args _, MV.Args _ ->
         (* Note that because we want to retain the position information
          * of the matched code in the environment (e.g. for the -pvar
@@ -395,10 +402,23 @@ let _ =
 (*s: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 (* todo? optimize, probably not the optimal version ... *)
 let all_elem_and_rest_of_list xs =
-  let xs = Common.index_list xs |> List.map (fun (x, i) -> (i, x)) in
-  xs
-  |> List.map (fun (i, x) -> (x, lazy (List.remove_assq i xs |> List.map snd)))
+  let rec loop acc prev_xs = function
+    | [] -> acc
+    | x :: next_xs ->
+        let other_xs = lazy (List.rev_append prev_xs next_xs) in
+        let acc' = (x, other_xs) :: acc in
+        let prev_xs' = x :: prev_xs in
+        loop acc' prev_xs' next_xs
+  in
+  loop [] [] xs
   [@@profiling]
+
+let rec all_splits = function
+  | [] -> [ ([], []) ]
+  | x :: xs ->
+      all_splits xs
+      |> List.map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
+      |> List.flatten
 
 (*e: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 
@@ -429,7 +449,7 @@ let fail () = fail
 (*s: function [[Matching_generic.is_regexp_string]] *)
 (*e: function [[Matching_generic.is_regexp_string]] *)
 
-(* TODO: move in Core/Regexp_engine.ml! *)
+(* TODO: deprecate *)
 type regexp = Re.re (* old: Str.regexp *)
 
 (*s: function [[Matching_generic.regexp_of_regexp_string]] *)
@@ -576,6 +596,49 @@ let rec m_list_in_any_order ~less_is_ok f xsa xsb =
       aux candidates
 
 (* ---------------------------------------------------------------------- *)
+(* stdlib: combinatorial search *)
+(* ---------------------------------------------------------------------- *)
+
+(* Used for Associative-Commutative (AC) matching! *)
+
+let m_comb_unit xs : _ comb_result = fun tin -> [ (xs, [ tin ]) ]
+
+let m_comb_bind (comb_result : _ comb_result) f : _ comb_result =
+ fun tin ->
+  let rec loop = function
+    | [] -> []
+    | (bs, tout) :: comb_matches' ->
+        let bs_matches =
+          tout |> List.map (fun tin -> f bs tin) |> List.flatten
+        in
+        bs_matches @ loop comb_matches'
+  in
+  loop (comb_result tin)
+
+let m_comb_flatten (comb_result : _ comb_result) (tin : tin) : tout =
+  comb_result tin |> List.map snd |> List.flatten
+
+let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
+    (comb_result : _ comb_result) : _ comb_result =
+  List.fold_left
+    (fun comb_result' x -> m_comb_bind comb_result' (m_comb x))
+    comb_result xs
+
+let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
+ fun tin ->
+  bs |> all_elem_and_rest_of_list
+  |> List.filter_map (fun (b, other_bs) ->
+         match m a b tin with
+         | [] -> None
+         | tout -> Some (Lazy.force other_bs, tout))
+
+let m_comb_1toN m_1toN a bs : _ comb_result =
+ fun tin ->
+  bs |> all_splits
+  |> List.filter_map (fun (l, r) ->
+         match m_1toN a l tin with [] -> None | tout -> Some (r, tout))
+
+(* ---------------------------------------------------------------------- *)
 (* stdlib: bool/int/string/... *)
 (* ---------------------------------------------------------------------- *)
 
@@ -611,16 +674,6 @@ let string_is_prefix s1 s2 =
 let m_string_prefix a b = if string_is_prefix b a then return () else fail ()
 
 (*e: function [[Matching_generic.m_string_prefix]] *)
-
-let m_string_ellipsis_or_regexp_or_default ?(m_string_for_default = m_string) a
-    b =
-  match a with
-  (* dots: '...' on string *)
-  | "..." -> return ()
-  | _ when Pattern.is_regexp_string a ->
-      let f = regexp_matcher_of_regexp_string a in
-      if f b then return () else fail ()
-  | _ -> m_string_for_default a b
 
 (* ---------------------------------------------------------------------- *)
 (* Token *)
@@ -659,6 +712,58 @@ let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
 (* ---------------------------------------------------------------------- *)
 (* Misc *)
 (* ---------------------------------------------------------------------- *)
+
+(* TODO: this would be simpler if we had an
+ * AST_generic.String of string wrap bracket, but this requires
+ * lots of work in our Pfff parsers (less in tree-sitter which already
+ * split strings in different tokens).
+ *)
+let adjust_info_remove_enclosing_quotes (s, info) =
+  let loc = PI.token_location_of_info info in
+  let raw_str = loc.PI.str in
+  let re = Str.regexp_string s in
+  try
+    let pos = Str.search_forward re raw_str 0 in
+    let loc =
+      {
+        loc with
+        PI.str = s;
+        charpos = loc.charpos + pos;
+        column = loc.column + pos;
+      }
+    in
+    let info = { PI.transfo = PI.NoTransfo; token = PI.OriginTok loc } in
+    (s, info)
+  with Not_found ->
+    logger#error "could not find %s in %s" s raw_str;
+    (* return original token ... better than failwith? *)
+    (s, info)
+
+(* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
+ * point when AST_generic.String is of string bracket
+ *)
+let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
+    b =
+  match fst a with
+  (* dots: '...' on string *)
+  | "..." -> return ()
+  (* metavar: *)
+  | astr when MV.is_metavar_name astr ->
+      let text = adjust_info_remove_enclosing_quotes b in
+      envf a (MV.Text text)
+  (* TODO: deprecate *)
+  | astr when Pattern.is_regexp_string astr ->
+      let f = regexp_matcher_of_regexp_string astr in
+      if f (fst b) then return () else fail ()
+  | _ -> m_wrap m_string_for_default a b
+
+let m_ellipsis_or_metavar_or_string a b =
+  match fst a with
+  (* dots: '...' on string in atom/regexp/string *)
+  | "..." -> return ()
+  (* metavar: *)
+  | s when MV.is_metavar_name s -> envf a (MV.Text b)
+  | _ -> m_wrap m_string a b
 
 (*s: function [[Matching_generic.m_other_xxx]] *)
 let m_other_xxx a b =

@@ -1,0 +1,24 @@
+#
+# Top C projects from GitHub, sorted by stars.
+# Created by ../../scripts/most-starred-for-language.
+#
+
+# Linux is 20M lines of .c files, 7M of .h files, which is more than necessary.
+# It's also possibly too homogenous.
+# https://github.com/torvalds/linux
+
+https://github.com/coolsnowwolf/lede
+https://github.com/FFmpeg/FFmpeg
+https://github.com/php/php-src
+https://github.com/radareorg/radare2
+https://github.com/arendst/Tasmota
+https://github.com/openssl/openssl
+https://github.com/Awesome-HarmonyOS/HarmonyOS
+https://github.com/netdata/netdata
+https://github.com/git/git
+https://github.com/taosdata/TDengine
+https://github.com/obsproject/obs-studio
+https://github.com/curl/curl
+https://github.com/ventoy/Ventoy
+https://github.com/redis/redis
+https://github.com/mpv-player/mpv

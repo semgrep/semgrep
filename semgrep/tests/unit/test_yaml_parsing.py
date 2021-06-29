@@ -1,12 +1,9 @@
 import io
-
-import pytest
-from attr import validate
 from tempfile import NamedTemporaryFile
 from textwrap import dedent
 
+import pytest
 from ruamel.yaml import YAML
-from jsonschema.exceptions import ValidationError
 
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import parse_config_string
@@ -16,35 +13,37 @@ from semgrep.error import InvalidRuleSchemaError
 
 
 def test_parse_taint_rules():
-    yaml_contents = """
-rules:
-  - id: stupid_equal
-    pattern: $X == $X
-    message: Dude, $X == $X is always true (Unless X is NAN ...)
-    languages: [python, javascript]
-    severity: WARNING
-  - id: stupid_equal2
-    mode: search
-    pattern: $X == $X
-    message: Dude, $X == $X is always true (Unless X is NAN ...)
-    languages: [python, javascript]
-    severity: WARNING
-  - id: example_id
-    mode: taint
-    pattern-sources:
-      - source(...)
-      - source1(...)
-    pattern-sinks:
-      - sink(...)
-      - sink1(...)
-      - eval(...)
-    pattern-sanitizers:
-      - sanitize(...)
-      - sanitize1(...)
-    message: A user input source() went into a dangerous sink()
-    languages: [python, javascript]
-    severity: WARNING
-    """
+    yaml_contents = dedent(
+        """
+        rules:
+          - id: stupid_equal
+            pattern: $X == $X
+            message: Dude, $X == $X is always true (Unless X is NAN ...)
+            languages: [python, javascript]
+            severity: WARNING
+          - id: stupid_equal2
+            mode: search
+            pattern: $X == $X
+            message: Dude, $X == $X is always true (Unless X is NAN ...)
+            languages: [python, javascript]
+            severity: WARNING
+          - id: example_id
+            mode: taint
+            pattern-sources:
+              - source(...)
+              - source1(...)
+            pattern-sinks:
+              - sink(...)
+              - sink1(...)
+              - eval(...)
+            pattern-sanitizers:
+              - sanitize(...)
+              - sanitize1(...)
+            message: A user input source() went into a dangerous sink()
+            languages: [python, javascript]
+            severity: WARNING
+        """
+    )
     yaml = parse_config_string("testfile", yaml_contents, "file.py")
     config = yaml["testfile"].value
     rules = config.get(RULES_KEY)
@@ -56,28 +55,28 @@ rules:
 def test_multiple_configs():
     config1 = dedent(
         """
-    rules:
-    - id: rule1
-      pattern: $X == $X
-      languages: [python]
-      severity: INFO
-      message: bad
-    """
+        rules:
+        - id: rule1
+          pattern: $X == $X
+          languages: [python]
+          severity: INFO
+          message: bad
+        """
     )
     config2 = dedent(
         """
-    rules:
-    - id: rule2
-      pattern: $X == $Y
-      languages: [python]
-      severity: INFO
-      message: good
-    - id: rule3
-      pattern: $X < $Y
-      languages: [c]
-      severity: INFO
-      message: doog
-    """
+        rules:
+        - id: rule2
+          pattern: $X == $Y
+          languages: [python]
+          severity: INFO
+          message: good
+        - id: rule3
+          pattern: $X < $Y
+          languages: [c]
+          severity: INFO
+          message: doog
+        """
     )
 
     with NamedTemporaryFile() as tf1, NamedTemporaryFile() as tf2:
@@ -118,7 +117,7 @@ def test_invalid_metavariable_regex():
           - pattern-inside: $MODULE.client(host=$HOST)
           - metavariable-regex:
               metavariable: $HOST
-              regex: '192.168\.\d{1,3}\.\d{1,3}'
+              regex: '192.168\\.\\d{1,3}\\.\\d{1,3}'
               metavariable: $MODULE
               regex: (boto|boto3)
           message: "Boto3 connection to internal network"
@@ -176,7 +175,8 @@ def test_invalid_metavariable_comparison2():
 
 
 def test_invalid_pattern_child():
-    rule = dedent("""
+    rule = dedent(
+        """
         rules:
         - id: blah
           message: blah
@@ -186,14 +186,16 @@ def test_invalid_pattern_child():
           - pattern-either:
             - pattern: $X == $Y
             - pattern-not: $Z == $Z
-    """)
+        """
+    )
 
     with pytest.raises(InvalidRuleSchemaError):
         parse_config_string("testfile", rule, None)
 
 
 def test_invalid_rule_with_null():
-    rule = dedent("""
+    rule = dedent(
+        """
         rules:
         - id: blah
           message: ~
@@ -203,7 +205,8 @@ def test_invalid_rule_with_null():
           - pattern-either:
             - pattern: $X == $Y
             - pattern-not: $Z == $Z
-    """)
+        """
+    )
 
     with pytest.raises(InvalidRuleSchemaError):
         parse_config_string("testfile", rule, None)

@@ -321,18 +321,20 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Ratio v1 ->
         let v1 = map_wrap map_of_string v1 in
         Ratio v1
-    | Atom v1 ->
+    | Atom (v0, v1) ->
+        let v0 = map_tok v0 in
         let v1 = map_wrap map_of_string v1 in
-        Atom v1
+        Atom (v0, v1)
     | Char v1 ->
         let v1 = map_wrap map_of_string v1 in
         Char v1
     | String v1 ->
         let v1 = map_wrap map_of_string v1 in
         String v1
-    | Regexp v1 ->
-        let v1 = map_wrap map_of_string v1 in
-        Regexp v1
+    | Regexp (v1, v2) ->
+        let v1 = map_bracket (map_wrap map_of_string) v1 in
+        let v2 = map_of_option (map_wrap map_of_string) v2 in
+        Regexp (v1, v2)
     | Null v1 ->
         let v1 = map_tok v1 in
         Null v1

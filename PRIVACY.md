@@ -3,7 +3,7 @@
 Semgrep may collect non-identifiable aggregate metrics to help improve the product. This document describes:
 
 * the principles that guide our data-collection decisions
-* how to opt-in to Semgrep’s anonymized metrics
+* how to opt-in to Semgrep’s metrics
 * the breakdown of the data that are and are not collected
 * how we use the data to make Semgrep better
 
