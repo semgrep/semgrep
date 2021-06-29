@@ -192,9 +192,11 @@ let parsing_common ?(verbose = true) lang xs =
                      lang file)
              in
              res.Parse_target.stat
-           with exn ->
+           with exn -> (
              if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-             PI.bad_stat file
+             match exn with
+             | Timeout -> { (PI.bad_stat file) with have_timeout = true }
+             | _else_ -> PI.bad_stat file )
          in
          stat)
 
