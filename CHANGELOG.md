@@ -31,6 +31,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   are no longer ignored, which may cause accidental slowdowns in setups
   where excessively large files are not excluded explicitly (#3418).
 - metavariable-comparison: Fix crash when comparing integers and floats
+- Do not filter findings with the same range but different metavariable bindings (#3310)
 
 ### Changed
 - Memoize getting ranges to speed up rules with large ranges
