@@ -14,7 +14,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   (e.g., `foo(/.../)`)
 - Associative-commutative matching for bitwise OR, AND, and XOR operations
 - Add support for $...MVAR in generic patterns
-- Add per-rule settings object to enable/disable certain matching features
 - Add support for $...MVAR in generic patterns.
 - metavariable-pattern: Add support for nested Spacegrep/regex/Comby patterns
 - C#: support ellipsis in method parameters (#3289)
