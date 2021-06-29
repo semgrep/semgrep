@@ -461,7 +461,7 @@ let interpolated_verbatim_string_text (env : env)
   let x =
     match x with
     | `LCURLLCURL tok -> str env tok (* "{{" *)
-    | `Pat_6d9db72 tok -> str env tok (* pattern "[^{\"]+" *)
+    | `Inte_verb_str_text_frag tok -> str env tok (* pattern "[^{\"]+" *)
     | `DQUOTDQUOT tok -> str env tok
     (* "\"\"" *)
   in
