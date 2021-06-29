@@ -1,7 +1,7 @@
 type range_kind = Plain | Inside | Regexp [@@deriving show]
 
 (* range with metavars *)
-type range_with_mvars = {
+type t = {
   r : Range.t;
   mvars : Metavariable.bindings;
   (* subtle but the pattern:/pattern-inside:/pattern-regex: and
@@ -20,13 +20,13 @@ type range_with_mvars = {
 }
 [@@deriving show]
 
-type ranges = range_with_mvars list [@@deriving show]
+type ranges = t list [@@deriving show]
 
 (*****************************************************************************)
 (* Convertors *)
 (*****************************************************************************)
 
-let (match_result_to_range : Pattern_match.t -> range_with_mvars) =
+let (match_result_to_range : Pattern_match.t -> t) =
  fun m ->
   let { Pattern_match.range_loc = start_loc, end_loc; env = mvars; _ } = m in
   let r = Range.range_of_token_locations start_loc end_loc in

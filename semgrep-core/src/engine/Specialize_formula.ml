@@ -1,5 +1,5 @@
 module R = Rule
-module AR = Augmented_range
+module RM = Range_with_metavars
 module G = AST_generic
 module M = Metavariable
 module PM = Pattern_match
@@ -29,16 +29,17 @@ type sformula =
 let fake_rule_id (id, str) =
   { PM.id = string_of_int id; pattern_string = str; message = "" }
 
-let match_selector (sel_opt : selector option) : AR.ranges =
+let match_selector ?err:(msg = "no match") (sel_opt : selector option) :
+    RM.ranges =
   let get_match (x : RP.times RP.match_result) = x.matches in
   match sel_opt with
-  | None -> failwith "empty And; no positive terms in And"
+  | None -> failwith msg
   | Some selector ->
-      List.map AR.match_result_to_range
+      List.map RM.match_result_to_range
         (get_match (Lazy.force selector.lazy_matches))
 
-let select_from_ranges file (sel_opt : selector option) (ranges : AR.ranges) :
-    AR.ranges =
+let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
+    RM.ranges =
   let pattern_match_from_binding selector (mvar, mval) =
     {
       PM.rule_id = fake_rule_id (selector.pid, selector.pstr);
@@ -55,13 +56,13 @@ let select_from_ranges file (sel_opt : selector option) (ranges : AR.ranges) :
         match
           List.find_opt
             (fun (mvar, _mval) -> M.equal_mvar selector.mvar mvar)
-            range.AR.mvars
+            range.RM.mvars
         with
         | None -> []
         | Some binding ->
-            (* make a pattern match, then use AR.match_result_to_range *)
+            (* make a pattern match, then use RM.match_result_to_range *)
             [
-              AR.match_result_to_range
+              RM.match_result_to_range
                 (pattern_match_from_binding selector binding);
             ] )
   in
@@ -73,29 +74,29 @@ let selector_equal s1 s2 = s1.mvar = s2.mvar
 (* Converter *)
 (*****************************************************************************)
 
+let selector_from_formula match_func f =
+  match f with
+  | R.Leaf (R.P ({ pat = Sem (pattern, _); pid; pstr }, None)) -> (
+      match pattern with
+      | G.E (G.N (G.Id ((mvar, _), _))) ->
+          Some
+            {
+              mvar;
+              pid;
+              pstr;
+              lazy_matches = lazy (match_func [ (pattern, pid, pstr) ]);
+            }
+      | _ -> None )
+  | _ -> None
+
 let formula_to_sformula match_func formula =
   let rec formula_to_sformula formula =
-    let selector_from_formula f =
-      match f with
-      | R.Leaf (R.P ({ pat = Sem (pattern, _); pid; pstr }, None)) -> (
-          match pattern with
-          | G.E (G.N (G.Id ((mvar, _), _))) ->
-              Some
-                {
-                  mvar;
-                  pid;
-                  pstr;
-                  lazy_matches = lazy (match_func [ (pattern, pid, pstr) ]);
-                }
-          | _ -> None )
-      | _ -> None
-    in
     let rec remove_selectors (selector, acc) formulas =
       match formulas with
       | [] -> (selector, acc)
       | x :: xs ->
           let selector, acc =
-            match (selector, selector_from_formula x) with
+            match (selector, selector_from_formula match_func x) with
             | None, None -> (None, x :: acc)
             | Some s, None -> (Some s, x :: acc)
             | None, Some s -> (Some s, acc)

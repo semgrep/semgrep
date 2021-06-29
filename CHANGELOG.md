@@ -25,7 +25,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Memoize getting ranges to speed up rules with large ranges
-- When anded with other patterns, `pattern: $X` will not be evaluated on its own, but will look at the context and find `$X` within the metavariables bound
+- When anded with other patterns, `pattern: $X` will not be evaluated on its own, but will look at the context and find `$X` within the metavariables bound, which should be significantly faster
 
 ## [0.56.0](https://github.com/returntocorp/semgrep/releases/tag/v0.56.0) - 2021-06-15
 

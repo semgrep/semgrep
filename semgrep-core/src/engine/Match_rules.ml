@@ -23,8 +23,8 @@ module G = AST_generic
 module PI = Parse_info
 module MV = Metavariable
 module RP = Report
-module S = Selector
-module AR = Augmented_range
+module S = Specialize_formula
+module RM = Range_with_metavars
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -152,8 +152,7 @@ let (group_matches_per_pattern_id : Pattern_match.t list -> id_to_match_results)
          Hashtbl.add h id m);
   h
 
-let (range_to_pattern_match_adjusted :
-      Rule.t -> AR.range_with_mvars -> Pattern_match.t) =
+let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
  fun r range ->
   let m = range.origin in
   let rule_id = m.rule_id in
@@ -595,7 +594,7 @@ let matches_of_xpatterns config equivalences
 let rec filter_ranges env xs cond =
   xs
   |> List.filter (fun r ->
-         let bindings = r.AR.mvars in
+         let bindings = r.RM.mvars in
          match cond with
          | R.CondGeneric e ->
              let env = Eval_generic.bindings_to_env bindings in
@@ -722,11 +721,7 @@ and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
   match final_ranges with [] -> false | _ :: _ -> true
 
 (* less: use Set instead of list? *)
-and (evaluate_formula :
-      env ->
-      AR.range_with_mvars option ->
-      S.sformula ->
-      AR.range_with_mvars list) =
+and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
  fun env ctx_opt e ->
   match e with
   | S.Leaf (R.P (xpat, inside)) ->
@@ -736,13 +731,13 @@ and (evaluate_formula :
       in
       let kind =
         match inside with
-        | Some R.Inside -> AR.Inside
-        | None when R.is_regexp xpat -> AR.Regexp
-        | None -> AR.Plain
+        | Some R.Inside -> RM.Inside
+        | None when R.is_regexp xpat -> RM.Regexp
+        | None -> RM.Plain
       in
       match_results
-      |> List.map AR.match_result_to_range
-      |> List.map (fun r -> { r with AR.kind })
+      |> List.map RM.match_result_to_range
+      |> List.map (fun r -> { r with RM.kind })
   | S.Or xs -> xs |> List.map (evaluate_formula env ctx_opt) |> List.flatten
   | S.And (selector_opt, xs) -> (
       let pos, neg, conds = split_and xs in
@@ -775,14 +770,18 @@ and (evaluate_formula :
         |> Common.partition_either (fun xs ->
                match xs with
                (* todo? should we double check they are all inside? *)
-               | { AR.kind = Inside; _ } :: _ -> Right xs
+               | { RM.kind = Inside; _ } :: _ -> Right xs
                | _ -> Left xs)
       in
       let all_posr =
         match posrs @ posrs_inside with
         | [] -> (
             match ctx_opt with
-            | None -> [ Selector.match_selector selector_opt ]
+            | None ->
+                [
+                  S.match_selector ~err:"empty And; no positive terms in And"
+                    selector_opt;
+                ]
             | Some r -> [ [ r ] ] )
         | ps -> ps
       in
@@ -794,7 +793,7 @@ and (evaluate_formula :
             posrs
             |> List.fold_left
                  (fun acc r ->
-                   AR.intersect_ranges env.config !debug_matches acc r)
+                   RM.intersect_ranges env.config !debug_matches acc r)
                  res
           in
 
@@ -803,7 +802,7 @@ and (evaluate_formula :
             neg
             |> List.fold_left
                  (fun acc x ->
-                   AR.difference_ranges env.config acc
+                   RM.difference_ranges env.config acc
                      (evaluate_formula env ctx_opt x))
                  res
           in
@@ -837,7 +836,7 @@ and matches_of_formula env formula lazy_ast_and_errors lazy_content opt_context
     matches_of_patterns env.config env.equivalences
       (env.file, env.xlang, lazy_ast_and_errors)
   in
-  let formula = Selector.formula_to_sformula match_func formula in
+  let formula = S.formula_to_sformula match_func formula in
   let xpatterns = xpatterns_in_formula formula in
   let res =
     matches_of_xpatterns env.config env.equivalences
