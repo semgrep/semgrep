@@ -193,11 +193,17 @@ let parse_paths = function
       pr2_gen x;
       error "parse_paths"
 
-let parse_settings json =
+let parse_options json =
   let s = J.string_of_json json in
   Common.save_excursion Atdgen_runtime.Util.Json.unknown_field_handler
     (fun _src_loc field_name ->
-      raise (E.InvalidYamlException (spf "unknown setting: %s" field_name)))
+      (* for forward compatibility, better to not raise an exn and just
+       * ignore the new fields.
+       * TODO: we should use a warning/logging infra to report
+       * this in the JSON to the semgrep wrapper and user.
+       *)
+      (*raise (E.InvalidYamlException (spf "unknown option: %s" field_name))*)
+      pr2 (spf "WARNING: unknown option: %s" field_name))
     (fun () -> Config_semgrep_j.t_of_string s)
 
 (*****************************************************************************)
@@ -422,7 +428,7 @@ let top_fields =
     "fix-regex";
     "paths";
     "equivalences";
-    "settings";
+    "options";
   ]
 
 let parse_json file json =
@@ -445,7 +451,7 @@ let parse_json file json =
                        ("fix-regex", fix_regex_opt);
                        ("paths", paths_opt);
                        ("equivalences", equivs_opt);
-                       ("settings", settings_opt);
+                       ("options", options_opt);
                      ],
                      rest ) ->
                      let languages = parse_languages ~id langs in
@@ -473,7 +479,7 @@ let parse_json file json =
                        paths = Common.map_opt parse_paths paths_opt;
                        equivalences =
                          Common.map_opt parse_equivalences equivs_opt;
-                       settings = Common.map_opt parse_settings settings_opt;
+                       options = Common.map_opt parse_options options_opt;
                      }
                  | x ->
                      pr2_gen x;

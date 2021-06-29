@@ -3,7 +3,7 @@ rules:
     languages:
       - php
     message: Working!
-    settings:
+    options:
       commutative_boolop: true
     pattern: |
       !check1($stuff) && !check2($stuff)
