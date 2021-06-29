@@ -723,8 +723,8 @@ class CoreRunner:
                     ]
                     findings = create_output(rule, pattern_matches)
 
-                    # TODO: we should do that in Semgrep_generic.ml instead
-                    findings = dedup_output(findings)
+                    # No need for findings = dedup_output(findings)
+                    # This is handled already semgrep-core side
                     outputs[rule].extend(findings)
                     parsed_errors = [
                         CoreException.from_json(
