@@ -184,7 +184,7 @@ type rule = {
   (* for metachecking error location *)
   (* optional fields *)
   equivalences : string list option;
-  settings : Config_semgrep.t option;
+  options : Config_semgrep.t option;
   (* TODO: parse them *)
   fix : string option;
   fix_regexp : (regexp * int option * string) option;

@@ -1000,7 +1000,7 @@ let check hook default_config rules equivs file_and_more =
                RP.empty_semgrep_result )
              else
                let formula = Rule.formula_of_rule r in
-               let config = r.settings ||| default_config in
+               let config = r.options ||| default_config in
                let dummy_matches = Hashtbl.create 1 in
                let env =
                  {

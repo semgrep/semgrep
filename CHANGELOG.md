@@ -5,6 +5,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Unreleased
 
 ### Added
+- new `options:` field in a YAML rule to enable/disable certain features
+  (e.g., constant propagation). See https://github.com/returntocorp/semgrep/blob/develop/semgrep-core/src/core/Config_semgrep.atd
+  for the list of available features one can enable/disable.
 - Capture groups in pattern-regex: in $1, $2, etc. (#3356)
 - Support metavariables inside atoms (e.g., `foo(:$ATOM)`)
 - Support metavariables and ellipsis inside regexp literals
