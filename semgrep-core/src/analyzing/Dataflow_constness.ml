@@ -198,7 +198,7 @@ let eval_binop_string op s1 s2 =
 
 let rec eval (env : G.constness D.env) exp : G.constness =
   match exp.e with
-  | Rvalue lval -> eval_lval env lval
+  | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
   | Operator (op, args) -> eval_op env op args
   | Composite _ | Record _ | Cast _ | FixmeExp _ -> G.NotCst

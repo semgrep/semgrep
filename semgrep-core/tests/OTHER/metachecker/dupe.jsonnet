@@ -1,7 +1,7 @@
 {
   rules: [
     {
-      id: "impossible",
+      id: "eval-is-bad",
       match: {
         and: [
           "eval(...)",
