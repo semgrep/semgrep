@@ -40,6 +40,10 @@ let mk_functype (params, rett) = TyFun (params, rett)
 
 let todo _env _x = failwith "internal error: not implemented"
 
+let todo_any str t any =
+  pr2 (AST.show_any any);
+  raise (Parse_info.Ast_builder_error (str, t))
+
 (*
    We preserve the distinction between a plain identifier and a more complex
    pattern because function parameters make this distinction.
@@ -47,14 +51,6 @@ let todo _env _x = failwith "internal error: not implemented"
 *)
 let sub_pattern (id_or_pat : (a_ident, a_pattern) either) : a_pattern =
   match id_or_pat with Left id -> Id id | Right pat -> pat
-
-(*****************************************************************************)
-(* Boilerplate converter *)
-(*****************************************************************************)
-
-module CST = CST_tree_sitter_typescript (* typescript+tsx, merged *)
-
-let str = H.str
 
 let fb = PI.fake_bracket
 
@@ -81,6 +77,14 @@ let map_sep_list (env : env) (head : 'a) (tail : (_ * 'a) list)
     List.map (fun ((_sep : Tree_sitter_run.Token.t), elt) -> f env elt) tail
   in
   head :: tail
+
+(*****************************************************************************)
+(* Boilerplate converter *)
+(*****************************************************************************)
+
+module CST = CST_tree_sitter_typescript (* typescript+tsx, merged *)
+
+let str = H.str
 
 let identifier (env : env) (tok : CST.identifier) : a_ident = str env tok
 
@@ -109,10 +113,6 @@ let empty_stmt env tok =
   Block (t, [], t)
 
 let number_as_string (env : env) (tok : CST.number) = str env tok
-
-let todo_any str t any =
-  pr2 (AST.show_any any);
-  raise (Parse_info.Ast_builder_error (str, t))
 
 let string_ (env : env) (x : CST.string_) : string wrap =
   match x with
@@ -2616,7 +2616,7 @@ and parameter_name (env : env) ((v1, v2, v3, v4) : CST.parameter_name) :
   in
   id_or_pat
 
-and lhs_expression (env : env) (x : CST.lhs_expression) =
+and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
   match x with
   | `Choice_member_exp x -> (
       match x with
