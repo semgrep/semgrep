@@ -32,7 +32,7 @@ def test_filter_include():
         "bar/baz/qux/foo/a.py",
         "/foo/bar/baz/a.py",
     ]
-    all_files = set({Path(elem) for elem in all_file_names})
+    all_files = frozenset({Path(elem) for elem in all_file_names})
 
     # All .py files
     assert len(TargetManager.filter_includes(all_files, ["*.py"])) == 9
@@ -74,7 +74,7 @@ def test_filter_exclude():
         "bar/baz/qux/foo/a.py",
         "/foo/bar/baz/a.py",
     ]
-    all_files = set({Path(elem) for elem in all_file_names})
+    all_files = frozenset({Path(elem) for elem in all_file_names})
 
     # Filter out .py files
     assert len(TargetManager.filter_excludes(all_files, ["*.py"])) == 9
@@ -100,7 +100,7 @@ def test_filter_by_size():
         fp.write(b"0123456789")
         fp.flush()
         path = Path(fp.name)
-        targets = {path}
+        targets = frozenset({path})
 
         # no max size
         assert len(TargetManager.filter_by_size(targets, 0)) == 1
