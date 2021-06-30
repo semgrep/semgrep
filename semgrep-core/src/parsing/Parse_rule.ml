@@ -215,7 +215,7 @@ type _env = string * R.xlang
 let parse_pattern (id, lang) s =
   match lang with
   | R.L (lang, _) -> R.mk_xpat (Sem (H.parse_pattern ~id ~lang s, lang)) s
-  | R.LNone -> failwith "you should not use real pattern with language = none"
+  | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
       match Spacegrep.Parse_pattern.of_src src with
@@ -298,7 +298,7 @@ and parse_formula_new env (x : J.t) : R.formula =
           let xpat = R.mk_xpat (R.Comby s) s in
           R.Leaf (R.P (xpat, None))
       | [ ("where", J.String s) ] ->
-          R.Leaf (R.MetavarCond (R.CondGeneric (parse_metavar_cond s)))
+          R.Leaf (R.MetavarCond (R.CondEval (parse_metavar_cond s)))
       | [ ("metavariable_regex", J.Array [ J.String mvar; J.String re ]) ] ->
           R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env re)))
       | _ ->
@@ -332,7 +332,7 @@ and parse_extra env x =
             | [ ("language", Some (J.String s)) ], rest' ->
                 let xlang =
                   (* TODO: This code is similar to Main.xlang_of_string. *)
-                  if s =$= "none" || s =$= "regex" then R.LNone
+                  if s =$= "none" || s =$= "regex" then R.LRegex
                   else if s =$= "generic" then R.LGeneric
                   else
                     match Lang.lang_of_string_opt s with
@@ -387,7 +387,7 @@ and parse_extra env x =
 
 let parse_languages ~id langs =
   match langs with
-  | [ J.String ("none" | "regex") ] -> R.LNone
+  | [ J.String ("none" | "regex") ] -> R.LRegex
   | [ J.String "generic" ] -> R.LGeneric
   | xs -> (
       let languages =
