@@ -50,6 +50,8 @@ TESTS = [
     Test("stmts-double-ellipsis-aba", "js", "l1000.js"),
     # Double ellipsis on statements with backrefs: $A; ... $A; ... foo($A);
     Test("stmts-double-ellipsis-aaa", "js", "l1000.js"),
+    # Constness analysis of a large function
+    Test("constness", "csharp", "l5000.cs"),
     #
     # Real world examples (.sgrep or .yaml files when True last argument)
     #
@@ -87,6 +89,10 @@ def run_tests(
 
         pattern_file = os.path.join(dirname, test.name + ext)
         target_file = os.path.join(dirname, test.target)
+        target_file_gz = os.path.join(dirname, test.target + ".gz")
+
+        if os.path.isfile(target_file_gz):
+            subprocess.check_call(["gunzip", "-k", "-f", target_file_gz])
 
         t1 = time.time()
         args = [
