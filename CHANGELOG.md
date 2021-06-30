@@ -32,6 +32,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - metavariable-pattern: Fix parse info when matching content of a metavariable
   under a different language
 - generic mode on Markdown files with very long lines will now work (#2987)
+- Ruby command shells are distinguished from strings (#3343)
 
 ### Changed
 - generic mode: files that don't look like nicely-indented programs
