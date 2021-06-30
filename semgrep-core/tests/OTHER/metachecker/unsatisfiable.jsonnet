@@ -1,14 +1,14 @@
 {
   rules: [
     {
-      id: "impossible",
+      id: "eval-and-not-eval-is-bad",
       match: {
         and: [
           "eval(...)",
           { not: "eval(...)" }
         ]
       },
-      message: "Not satisfiable, A and not A",
+      message: "Bad eval and missing eval",
       languages: ["javascript"],
       severity: "ERROR"
     }

@@ -200,7 +200,7 @@ and exp = { e : exp_kind; eorig : G.expr }
 (*e: type [[IL.exp]] *)
 (*s: type [[IL.exp_kind]] *)
 and exp_kind =
-  | Rvalue of lval (* lvalue used in a rvalue context *)
+  | Fetch of lval (* lvalue used in a rvalue context *)
   | Literal of G.literal
   | Composite of composite_kind * exp list bracket
   (* Record could be a Composite where the arguments are CTuple with
@@ -445,7 +445,7 @@ let rexps_of_instr x =
 (* opti: could use a set *)
 let rec lvals_of_exp e =
   match e.e with
-  | Rvalue lval -> lval :: lvals_in_lval lval
+  | Fetch lval -> lval :: lvals_in_lval lval
   | Literal _ -> []
   | Cast (_, e) -> lvals_of_exp e
   | Composite (_, (_, xs, _)) | Operator (_, xs) -> lvals_of_exps xs
