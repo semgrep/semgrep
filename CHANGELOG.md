@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-### Unreleased
+## [0.57.0](https://github.com/returntocorp/semgrep/releases/tag/v0.57.0) - 2021-06-29[
 
 ### Fixed
 - Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)
@@ -40,6 +40,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   where excessively large files are not excluded explicitly (#3418).
 - metavariable-comparison: Fix crash when comparing integers and floats
 - Do not filter findings with the same range but different metavariable bindings (#3310)
+- Set parsing_state.have_timeout when a timeout occurs (#3438)
+- Set a timeout of 10s per file (#3434)
+- Improvements to contributing documentation (#3353)
 
 ### Changed
 - Memoize getting ranges to speed up rules with large ranges
