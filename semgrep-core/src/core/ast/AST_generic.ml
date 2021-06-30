@@ -826,6 +826,7 @@ and other_expr_operator =
   | OE_Send
   | OE_Recv
   (* Ruby *)
+  | OE_Subshell
   (* Rust *)
   | OE_MacroInvocation
   (* C# *)

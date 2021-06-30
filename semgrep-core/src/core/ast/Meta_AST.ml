@@ -482,6 +482,7 @@ and vof_other_expr_operator = function
   | OE_MacroInvocation -> OCaml.VSum ("OE_MacroInvocation", [])
   | OE_Checked -> OCaml.VSum ("OE_Checked", [])
   | OE_Unchecked -> OCaml.VSum ("OE_Unchecked", [])
+  | OE_Subshell -> OCaml.VSum ("OE_Subshell", [])
 
 and vof_type_ = function
   | TyEllipsis v1 ->
