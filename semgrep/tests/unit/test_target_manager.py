@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Set
+from typing import Collection
 
 from semgrep.constants import OutputFormat
 from semgrep.output import OutputHandler
@@ -294,7 +294,7 @@ def test_expand_targets_git(tmp_path, monkeypatch):
     )
 
 
-def cmp_path_sets(a: Set[Path], b: Set[Path]) -> bool:
+def cmp_path_sets(a: Collection[Path], b: Collection[Path]) -> bool:
     """
     Check that two sets of path contain the same paths
     """
