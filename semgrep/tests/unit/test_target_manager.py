@@ -430,9 +430,9 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
         output_per_line_max_chars_limit=None,
     )
     defaulthandler = OutputHandler(output_settings)
-    assert [] == TargetManager([], [], 0, [foo], True, defaulthandler, False).get_files(
-        language, [], []
-    )
+    assert frozenset() == TargetManager(
+        [], [], 0, [foo], True, defaulthandler, False
+    ).get_files(language, [], [])
 
 
 def test_explicit_path(tmp_path, monkeypatch):
@@ -486,35 +486,29 @@ def test_explicit_path(tmp_path, monkeypatch):
         TargetManager([], [], 0, ["foo/a.go"], False, defaulthandler, False).get_files(
             python_language, [], []
         )
-        == []
+        == frozenset()
     )
 
     # Should include explicitly passed file with unknown extension if skip_unknown_extensions=False
     assert cmp_path_sets(
-        set(
-            TargetManager(
-                [], [], 0, ["foo/noext"], False, defaulthandler, False
-            ).get_files(python_language, [], [])
+        TargetManager([], [], 0, ["foo/noext"], False, defaulthandler, False).get_files(
+            python_language, [], []
         ),
         {foo_noext},
     )
 
     # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
     assert cmp_path_sets(
-        set(
-            TargetManager(
-                [], [], 0, ["foo/noext"], False, defaulthandler, True
-            ).get_files(python_language, [], [])
+        TargetManager([], [], 0, ["foo/noext"], False, defaulthandler, True).get_files(
+            python_language, [], []
         ),
         set(),
     )
 
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
     assert cmp_path_sets(
-        set(
-            TargetManager(
-                [], [], 0, ["foo/noext", "foo/a.py"], False, defaulthandler, True
-            ).get_files(python_language, [], [])
-        ),
+        TargetManager(
+            [], [], 0, ["foo/noext", "foo/a.py"], False, defaulthandler, True
+        ).get_files(python_language, [], []),
         {foo_a},
     )
