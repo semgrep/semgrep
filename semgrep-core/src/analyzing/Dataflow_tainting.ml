@@ -92,7 +92,7 @@ let option_to_varmap = function
 
 let sanitized config instr =
   match instr.i with
-  | Call (_, { e = Lvalue { base = Var (("sanitize", _), _); _ }; _ }, []) ->
+  | Call (_, { e = Rvalue { base = Var (("sanitize", _), _); _ }; _ }, []) ->
       true
   | ___else___ -> config.is_sanitizer instr
 
@@ -103,12 +103,12 @@ let rec tainted config fun_env env exp =
    * Also note that any arbitrary expression can be source! *)
   let is_tainted = tainted config fun_env env in
   let go_into = function
-    | Lvalue { base = Var var; _ } ->
+    | Rvalue { base = Var var; _ } ->
         VarMap.mem (str_of_name var) env
         || Hashtbl.mem fun_env (str_of_name var)
-    | Lvalue { base = VarSpecial (This, _); offset = Dot fld; _ } ->
+    | Rvalue { base = VarSpecial (This, _); offset = Dot fld; _ } ->
         Hashtbl.mem fun_env (str_of_name fld)
-    | Lvalue _ | Literal _ | FixmeExp _ -> false
+    | Rvalue _ | Literal _ | FixmeExp _ -> false
     | Composite (_, (_, es, _)) | Operator (_, es) -> List.exists is_tainted es
     | Record fields -> List.exists (fun (_, e) -> is_tainted e) fields
     | Cast (_, e) -> is_tainted e
@@ -120,7 +120,7 @@ let tainted_instr config fun_env env instr =
   let tainted_args = function
     | Assign (_, e) -> is_tainted e
     | AssignAnon _ -> false (* TODO *)
-    | Call (_, { e = Lvalue { base = Var (("source", _), _); _ }; _ }, []) ->
+    | Call (_, { e = Rvalue { base = Var (("source", _), _); _ }; _ }, []) ->
         true
     | Call (_, e, args) -> is_tainted e || List.exists is_tainted args
     | CallSpecial (_, _, args) -> List.exists is_tainted args

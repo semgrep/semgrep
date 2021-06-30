@@ -39,12 +39,13 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *        require("foo.js")
  *        ...
  *
- * the current Mini_rules_filter used in Semgrep_generic will just see a flat
+ * the current Mini_rules_filter used in Match_patterns will just see a flat
  * list of patterns, and will look separately for 'eval' and 'foo.js'
  * and filter certain patterns; But really, even if 'foo.js' is mentioned
  * in a file, we should completly skip the file if 'eval' is not in the file
  * because after all 'foo.js' is mentioned in a pattern-not context!
- *
+ * The goal of this file is to process a rule holistically to
+ * overcome the limitations of Analyze_pattern.ml
  *
  * There are many optimization opportunities when semgrep-core can see
  * the whole rule:
@@ -252,8 +253,8 @@ and xpat_step1 pat =
 
 and metavarcond_step1 x =
   match x with
-  | R.CondGeneric _ -> None
-  | R.CondPattern _ -> None
+  | R.CondEval _ -> None
+  | R.CondNestedFormula _ -> None
   | R.CondRegexp (mvar, re) ->
       (* bugfix: if the metavariable-regexp is "^(foo|bar)$" we
        * don't want to keep it because it can't be used on the whole file.
