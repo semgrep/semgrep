@@ -266,6 +266,17 @@ let map f xs =
       | _ -> n / !ncores
     in
     assert (!ncores > 0 && chunksize > 0);
+    (* Quoting Parmap's README:
+     * > To obtain maximum speed, Parmap tries to pin the worker processes to a CPU
+     * Unfortunately, on the new Apple M1, and depending on the number of workers,
+     * Parmap will enter an infinite loop trying (but failing) to pin a worker to
+     * CPU 0. This only happens with HomeBrew installs, presumably because under
+     * HomeBrew's build environment HAVE_MACH_THREAD_POLICY_H is set
+     * (https://github.com/rdicosmo/parmap/blob/1.2.3/src/setcore_stubs.c#L47).
+     * So, despite it may hurt perf a bit, we disable core pinning to work around
+     * this issue until this is fixed in a future version of Parmap.
+     *)
+    Parmap.disable_core_pinning ();
     Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
 
 (*e: function [[Main_semgrep_core.map]] *)

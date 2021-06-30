@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Unreleased
 
+### Fixed
+- Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)
+
+### Unreleased
+
 ### Added
 - new `options:` field in a YAML rule to enable/disable certain features
   (e.g., constant propagation). See https://github.com/returntocorp/semgrep/blob/develop/semgrep-core/src/core/Config_semgrep.atd
