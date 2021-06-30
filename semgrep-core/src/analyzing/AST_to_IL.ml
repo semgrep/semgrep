@@ -260,7 +260,7 @@ and nested_lval env tok eorig =
     | NoOffset -> lval.base
     | _ ->
         let fresh = fresh_lval env tok in
-        let lvalexp = mk_e (Lvalue lval) eorig in
+        let lvalexp = mk_e (Rvalue lval) eorig in
         add_instr env (mk_i (Assign (fresh, lvalexp)) eorig);
         fresh.base
   in
@@ -293,7 +293,7 @@ and assign env lhs _tok rhs_exp eorig =
       try
         let lval = lval env lhs in
         add_instr env (mk_i (Assign (lval, rhs_exp)) eorig);
-        mk_e (Lvalue lval) lhs
+        mk_e (Rvalue lval) lhs
       with Fixme (kind, any_generic) ->
         add_instr env (fixme_instr kind any_generic eorig);
         fixme_exp kind any_generic lhs )
@@ -312,7 +312,7 @@ and assign env lhs _tok rhs_exp eorig =
                let lval_i =
                  { base = Var tmp; offset = offset_i; constness = ref None }
                in
-               assign env lhs_i tok1 { e = Lvalue lval_i; eorig } eorig)
+               assign env lhs_i tok1 { e = Rvalue lval_i; eorig } eorig)
       in
       (* (E1, ..., En) *)
       mk_e (Composite (CTuple, (tok1, tup_elems, tok2))) eorig
@@ -347,7 +347,7 @@ and expr_aux env eorig =
       match G.unbracket args with
       | [ G.Arg e ] ->
           let lval = lval env e in
-          let lvalexp = mk_e (Lvalue lval) e in
+          let lvalexp = mk_e (Rvalue lval) e in
           let op =
             ((match incdec with G.Incr -> G.Plus | G.Decr -> G.Minus), tok)
           in
@@ -365,7 +365,7 @@ and expr_aux env eorig =
       let special = (Eval, tok) in
       let args = arguments env args in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
-      mk_e (Lvalue lval) eorig
+      mk_e (Rvalue lval) eorig
   | G.Call (G.IdSpecial (G.InterpolatedElement, _), (_, [ G.Arg e ], _)) ->
       (* G.InterpolatedElement is useful for matching certain patterns against
        * interpolated strings, but we do not have an use for it yet during
@@ -377,14 +377,14 @@ and expr_aux env eorig =
       let special = call_special env spec in
       let args = arguments env args in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
-      mk_e (Lvalue lval) eorig
+      mk_e (Rvalue lval) eorig
   | G.Call (e, args) ->
       let tok = G.fake "call" in
       call_generic env tok e args
   | G.L lit -> mk_e (Literal lit) eorig
   | G.N _ | G.DotAccess (_, _, _) | G.ArrayAccess (_, _) | G.DeRef (_, _) ->
       let lval = lval env eorig in
-      mk_e (Lvalue lval) eorig
+      mk_e (Rvalue lval) eorig
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp eorig
@@ -396,7 +396,7 @@ and expr_aux env eorig =
   | G.AssignOp (e1, op, e2) ->
       let exp = expr env e2 in
       let lval = lval env e1 in
-      let lvalexp = mk_e (Lvalue lval) e1 in
+      let lvalexp = mk_e (Rvalue lval) e1 in
       let opexp = mk_e (Operator (op, [ lvalexp; exp ])) eorig in
       add_instr env (mk_i (Assign (lval, opexp)) eorig);
       lvalexp
@@ -423,13 +423,13 @@ and expr_aux env eorig =
       let tok = G.fake "lambda" in
       let lval = fresh_lval env tok in
       add_instr env (mk_i (AssignAnon (lval, Lambda def)) eorig);
-      mk_e (Lvalue lval) eorig
+      mk_e (Rvalue lval) eorig
   | G.AnonClass def ->
       (* TODO: should use def.ckind *)
       let tok = Common2.fst3 def.G.cbody in
       let lval = fresh_lval env tok in
       add_instr env (mk_i (AssignAnon (lval, AnonClass def)) eorig);
-      mk_e (Lvalue lval) eorig
+      mk_e (Rvalue lval) eorig
   | G.IdSpecial (spec, tok) -> (
       let opt_var_special =
         match spec with
@@ -442,7 +442,7 @@ and expr_aux env eorig =
       match opt_var_special with
       | Some var_special ->
           let lval = lval_of_base (VarSpecial (var_special, tok)) in
-          mk_e (Lvalue lval) eorig
+          mk_e (Rvalue lval) eorig
       | None -> impossible (G.E eorig) )
   | G.SliceAccess (_, _) -> todo (G.E eorig)
   (* e1 ? e2 : e3 ==>
@@ -453,7 +453,7 @@ and expr_aux env eorig =
   | G.Conditional (e1orig, e2orig, e3orig) ->
       let tok = G.fake "conditional" in
       let lval = fresh_lval env tok in
-      let lvalexp = mk_e (Lvalue lval) e1orig in
+      let lvalexp = mk_e (Rvalue lval) e1orig in
 
       (* not sure this is correct *)
       let before = List.rev !(env.stmts) in
@@ -519,7 +519,7 @@ and call_generic env tok e args =
   let args = arguments env args in
   let lval = fresh_lval env tok in
   add_instr env (mk_i (Call (Some lval, e, args)) eorig);
-  mk_e (Lvalue lval) eorig
+  mk_e (Rvalue lval) eorig
 
 and call_special _env (x, tok) =
   ( ( match x with
@@ -710,9 +710,9 @@ let rec stmt_aux env st =
        * directly in next_call instead of using intermediate next_lval?
        *)
       let assign =
-        pattern_assign_statements env (mk_e (Lvalue next_lval) e) e pat
+        pattern_assign_statements env (mk_e (Rvalue next_lval) e) e pat
       in
-      let cond = mk_e (Lvalue hasnext_lval) e in
+      let cond = mk_e (Rvalue hasnext_lval) e in
 
       (ss @ [ hasnext_call ])
       @ [
