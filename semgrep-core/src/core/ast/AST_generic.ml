@@ -20,7 +20,7 @@
 (* Prelude *)
 (*****************************************************************************)
 (* A generic AST, to factorize similar analysis in different programming
- * languages (e.g., semgrep).
+ * languages (e.g., naming, semantic code highlighting, semgrep).
  *
  * Right now this generic AST is mostly the factorized union of:
  *  - Python, Ruby, Lua
@@ -138,8 +138,6 @@
  *  - todo? each language should add the VarDefs that defines the locals
  *    used in a function (instead of having the first Assign play the role
  *    of a VarDef, as done in Python for example).
- *
- * See also pfff/lang_GENERIC/
  *)
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
@@ -160,8 +158,6 @@ type tok = Parse_info.t [@@deriving show]
 
 (*e: type [[AST_generic.tok]] *)
 
-(* with tarzan *)
-
 (* sgrep: we do not care about position when comparing for equality 2 ASTs.
  * related: Lib_AST.abstract_position_info_any and then use OCaml generic '='.
  *)
@@ -177,8 +173,6 @@ type 'a wrap = 'a * tok
 (*e: type [[AST_generic.wrap]] *)
 [@@deriving show, eq, hash]
 
-(* with tarzan *)
-
 (*s: type [[AST_generic.bracket]] *)
 (* Use for round(), square[], curly{}, and angle<> brackets.
  * note: in theory we should not care about those tokens in an AST,
@@ -189,20 +183,14 @@ type 'a bracket = tok * 'a * tok
 (*e: type [[AST_generic.bracket]] *)
 [@@deriving show, eq, hash]
 
-(* with tarzan *)
-
 (* semicolon, a FakeTok in languages that do not require them (e.g., Python).
  * alt: tok option.
  * See the sc value also at the end of this file to build an sc.
  *)
 type sc = tok [@@deriving show, eq, hash]
 
-(* with tarzan *)
-
 (* an AST element not yet handled; works with the Xx_Todo and Todo in any *)
 type todo_kind = string wrap [@@deriving show, eq, hash]
-
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Names *)
@@ -219,8 +207,6 @@ type dotted_ident = ident list (* at least 1 element *)
 (*e: type [[AST_generic.dotted_ident]] *)
 [@@deriving show, eq, hash]
 
-(* with tarzan *)
-
 (*s: type [[AST_generic.module_name]] *)
 (* module_name can also be used for a package name or a namespace *)
 type module_name =
@@ -229,8 +215,6 @@ type module_name =
   | FileName of string wrap (* ex: Js import, C #include, Go import *)
 (*e: type [[AST_generic.module_name]] *)
 [@@deriving show { with_path = false }, eq, hash]
-
-(* with tarzan *)
 
 (* A single unique id: sid (uid would be a better name, but it usually
  * means "user id" for people).
@@ -247,9 +231,8 @@ type module_name =
  * Resolve_xxx.resolve) on the generic AST to set it correctly.
  *)
 (*s: type [[AST_generic.sid]] *)
-type sid = int
-
 (* a single unique gensym'ed number. See gensym() below *)
+type sid = int
 
 (*e: type [[AST_generic.sid]] *)
 
@@ -296,8 +279,6 @@ and resolved_name_kind =
 (*e: type [[AST_generic.resolved_name_kind]] *)
 [@@deriving show { with_path = false }, eq, hash]
 
-(* with tarzan *)
-
 (* Start of big mutually recursive types because of the use of 'any'
  * in OtherXxx *)
 
@@ -337,11 +318,12 @@ and name_info = {
 (*e: type [[AST_generic.name_info]] *)
 (*s: type [[AST_generic.qualifier]] *)
 and qualifier =
-  | QTop of tok (* ::, Ruby, C++, also '`' abuse for PolyVariant in OCaml *)
-  | QDots of dotted_ident (* Java, OCaml *)
+  (* ::, Ruby, C++, also '`' abuse for PolyVariant in OCaml *)
+  | QTop of tok
+  (* Java, OCaml *)
+  | QDots of dotted_ident
+  (* Ruby *)
   | QExpr of expr * tok
-
-(* Ruby *)
 
 (*e: type [[AST_generic.qualifier]] *)
 
@@ -511,8 +493,9 @@ and expr =
 (*s: type [[AST_generic.literal]] *)
 and literal =
   | Bool of bool wrap
-  (* the numbers are an option because OCaml numbers (e.g., 63bits int)
-   * may not be able to represent all numbers.
+  (* the numbers are an option because OCaml numbers
+   * may not be able to represent all numbers. For example, OCaml integers
+   * are limited to 63 bits, but C integers can use 64 bits.
    *)
   | Int of int option wrap
   | Float of float option wrap
@@ -542,10 +525,9 @@ and container_operator =
   | Array (* todo? designator? use ArrayAccess for designator? *)
   | List
   | Set
+  (* a.k.a Hash or Map (combine with Tuple to get Key/value pair) *)
   (* TODO? merge with Record *)
   | Dict
-
-(* a.k.a Hash or Map (combine with Tuple to get Key/value pair) *)
 
 (*e: type [[AST_generic.container_operator]] *)
 
@@ -553,7 +535,7 @@ and container_operator =
  * They need to be handled in a special way by certain analysis and just
  * using Name for them would be error-prone.
  * Note though that by putting all of them together in a type, we lose
- * typing information, for example Eval takes only one argument and
+ * typing information. For example, Eval takes only one argument and
  * InstanceOf takes a type and an expr. This is a tradeoff to also not
  * polluate too much expr with too many constructs.
  *)
@@ -562,19 +544,22 @@ and special =
   (* special vars *)
   | This
   | Super (* called 'base' in C# *)
+  (* less: how different self/parent is from this/super? *)
   | Self
-  | Parent (* different from This/Super? *)
-  | NextArrayIndex (* Lua, todo: just remove it, create Dict without key *)
+  | Parent
+  (* for Lua, todo: just remove it, create Dict without key *)
+  | NextArrayIndex
   (* special calls *)
   | Eval
   | Typeof (* for C? and Go in switch x.(type) *)
   | Instanceof
   | Sizeof (* takes a ArgType *)
   | Defined (* defined? in Ruby, other? *)
-  (* note that certain languages do not have a 'new' keyword
-   * (e.g., Python, Scala 3), instead certain 'Call' are really 'New' *)
+  (* Note that certain languages do not have a 'new' keyword
+   * (e.g., Python, Scala 3), instead certain 'Call' are really 'New'.
+   * Note that 'new' by itself is not a valid expression
+   *)
   | New (* usually associated with Call(New, [ArgType _;...]) *)
-  (* new by itself is not a valid expression*)
   (* used for interpolated strings constructs *)
   | ConcatString of concat_string_kind
   | EncodedString of string (* only for Python for now (e.g., b"foo") *)
@@ -590,7 +575,7 @@ and special =
    * as an expression
    *)
   | InterpolatedElement
-  (* "Inline" the content of a var containing a list (a.k.a a Splat in Ruby).
+  (* "Inline" the content of a var containing a list (a.k.a Splat in Ruby).
    * Used in a Container or Call argument context.
    * The corresponding constructor in a parameter context is ParamRest.
    *)
@@ -617,9 +602,10 @@ and special =
  *)
 (*s: type [[AST_generic.arithmetic_operator]] *)
 and operator =
+  (* unary too *)
   | Plus
   (* unary too *)
-  | Minus (* unary too *)
+  | Minus
   | Mult
   | Div
   | Mod
@@ -632,16 +618,18 @@ and operator =
   | BitOr
   | BitXor
   | BitAnd
+  (* unary too *)
   | BitNot
-  (* unary *)
   | BitClear (* Go *)
-  (* todo? rewrite in CondExpr? have special behavior *)
+  (* And/Or are also shortcut operator.
+   * todo? rewrite in CondExpr? have special behavior
+   *)
   | And
   | Or
-  (* also shortcut operator *)
+  (* PHP has a xor shortcut operator ... hmmm *)
   | Xor
-  (* PHP*)
-  | Not (* unary *)
+  (* unary *)
+  | Not
   | Eq (* '=' in OCaml, '==' in Go/... *)
   | NotEq (* less: could be desugared to Not Eq *)
   | PhysEq (* '==' in OCaml, '===' in JS/... *)
@@ -669,17 +657,15 @@ and operator =
   | In
   (* in: checks that value belongs to a collection *)
   | NotIn (* !in *)
-  | Is
   (* is: checks value has type *)
+  | Is
+  (* !is: *)
   | NotIs
-
-(* !is: *)
 
 (*e: type [[AST_generic.arithmetic_operator]] *)
 (*s: type [[AST_generic.incr_decr]] *)
-and incr_decr = Incr | Decr
-
 (* '++', '--' *)
+and incr_decr = Incr | Decr
 
 (*e: type [[AST_generic.incr_decr]] *)
 (*s: type [[AST_generic.prefix_postfix]] *)
@@ -709,29 +695,26 @@ and concat_string_kind =
    * to find one and not the other.
    * In both case it will be inside Call (Apply (ConcatString  ... but then
    * the kind will differ.
+   * example: foo`template ${id}`
    *)
   | TaggedTemplateLiteral
-
-(* e.g., foo`template ${id}` *)
-
-(* Python *)
 
 (*s: type [[AST_generic.field_ident]] *)
 (*s: [[AST_generic.field_ident]] other cases *)
 (*e: [[AST_generic.field_ident]] other cases *)
 (*e: type [[AST_generic.field_ident]] *)
 
-(* newscope: newvar: *)
 (*s: type [[AST_generic.action]] *)
+(* newscope: newvar: *)
 and action = pattern * expr
 
 (*e: type [[AST_generic.action]] *)
 
-(* less: could make it more generic by adding a 'expr so it could be
+(*s: type [[AST_generic.xml]] *)
+(* This is for JSX/TSX in javascript land (old: and XHP in PHP land).
+ * less: we could make it more generic by adding a 'expr so it could be
  * reused in ast_js.ml, ast_php.ml
  *)
-(*s: type [[AST_generic.xml]] *)
-(* this is for JSX/TSX in javascript land (old: and XHP in PHP land) *)
 and xml = {
   xml_kind : xml_kind;
   xml_attrs : xml_attribute list;
@@ -743,9 +726,7 @@ and xml_kind =
   | XmlClassic of tok (*'<'*) * ident * tok (*'>'*) * tok (*'</foo>'*)
   | XmlSingleton of tok (*'<'*) * ident * tok (* '/>', with xml_body = [] *)
   (* React/JS specific *)
-  | XmlFragment of tok (* '<>' *) * tok
-
-(* '</>', with xml_attrs = [] *)
+  | XmlFragment of tok (* '<>' *) * (* '</>', with xml_attrs = [] *) tok
 
 (*s: type [[AST_generic.xml_attribute]] *)
 and xml_attribute =
@@ -864,8 +845,8 @@ and stmt = {
   s : stmt_kind;
       [@equal AST_utils.equal_stmt_field_s equal_stmt_kind] [@hash.ignore]
   (* this can be used to compare and hash more efficiently stmts,
-     or in semgrep to quickly know if a stmt is a children of another stmt.
-  *)
+   * or in semgrep to quickly know if a stmt is a children of another stmt.
+   *)
   s_id : AST_utils.Node_ID.t; [@equal AST_utils.equal_stmt_field_s_id]
   (* todo? we could store a range: (tok * tok) to delimit the range of a stmt
    * which would allow us to remove some of the extra 'tok' in stmt_kind.
@@ -899,6 +880,7 @@ and stmt = {
   (* used in semgrep to skip some AST matching *)
   mutable s_bf : Bloom_filter.t option;
       [@equal fun _a _b -> true] [@hash.ignore]
+  (* used in semgrep to quickly get the range of a matched statement *)
   mutable s_range :
     (Parse_info.token_location * Parse_info.token_location) option;
       [@hash.ignore]
@@ -969,9 +951,7 @@ and stmt_kind =
 and case_and_body =
   | CasesAndBody of (case list * stmt)
   (* sgrep: *)
-  | CaseEllipsis of tok
-
-(* ... *)
+  | CaseEllipsis of (* ... *) tok
 
 (*e: type [[AST_generic.case_and_body]] *)
 (*s: type [[AST_generic.case]] *)
@@ -1006,28 +986,24 @@ and label_ident =
   | LNone (* C/Python *)
   | LId of label (* Java/Go *)
   | LInt of int wrap (* PHP *)
+  (* PHP, woohoo, dynamic break! bailout for CFG *)
   | LDynamic of expr
-
-(* PHP, woohoo, dynamic break! bailout for CFG *)
 
 (*e: type [[AST_generic.label_ident]] *)
 
 (*s: type [[AST_generic.for_header]] *)
 and for_header =
-  (* todo? copy Go and have instead
-   * ForClassic of simple option * expr * simple option?
-   *)
+  (* todo? copy Go and have 'of simple option * expr * simple option'? *)
   | ForClassic of
       for_var_or_expr list (* init *) * expr option (* cond *) * expr option (* next *)
   (* newvar: *)
   | ForEach of
       pattern * tok (* 'in' Python, 'range' Go, 'as' PHP, '' Java *) * expr (* pattern 'in' expr *)
-  (* sgrep: *)
-  | ForEllipsis of tok (* ... *)
   (* Lua. todo: merge with ForEach? *)
+  (* pattern 'in' expr *)
   | ForIn of for_var_or_expr list (* init *) * expr list
-
-(* pattern 'in' expr *)
+  (* sgrep: *)
+  | ForEllipsis of (* ... *) tok
 
 (*e: type [[AST_generic.for_header]] *)
 
@@ -1275,23 +1251,22 @@ and keyword_attribute =
   | Protected
   | Abstract
   | Final
-  | Override (* override *)
-  (* for vars (JS) *)
+  | Override
+  (* for variables (JS) *)
   | Var
   | Let
   (* for fields (kinda types) *)
-  | Mutable (* a.k.a 'var' in Scala *)
-  | Const (* a.k.a 'readonly' in Typescript, 'val' in Scala *)
+  | Mutable (* 'var' in Scala *)
+  | Const (* 'readonly' in Typescript, 'val' in Scala *)
   (* less: should be part of the type? *)
   | Optional
   (* Typescript '?' *)
   | NotNull (* Typescript '!' *)
   (* for functions/methods *)
-  | Generator
-  (* '*' in JS *)
-  | Async
   | Recursive
   | MutuallyRecursive
+  | Generator (* '*' in JS *)
+  | Async
   | Inline
   (* for methods *)
   | Ctor
@@ -1300,14 +1275,10 @@ and keyword_attribute =
   | Setter
   (* Rust *)
   | Unsafe
-  | DefaultImpl
+  | DefaultImpl (* Rust unstable, RFC 1210 *)
   (* Scala *)
-  | Lazy
+  | Lazy (* By name application in Scala, via => T, in parameter *)
   | CaseClass
-
-(* By name application in Scala, via => T, in parameter *)
-
-(* unstable, RFC 1210 *)
 
 (*e: type [[AST_generic.keyword_attribute]] *)
 
@@ -1321,10 +1292,9 @@ and other_attribute_operator =
   | OA_Default
   | OA_AnnotThrow
   (* Other *)
+  (* todo: used for Python, but should transform in NamedAttr when can *)
   | OA_Expr
   | OA_Todo
-
-(* todo: Python, should transform in NamedAttr when can *)
 
 (*e: type [[AST_generic.other_attribute_operator]] *)
 
@@ -1422,8 +1392,8 @@ and other_def_operator = OD_Todo
 
 (*e: type [[AST_generic.definition_kind]] *)
 
-(* template/generics/polymorphic-type *)
 (*s: type [[AST_generic.type_parameter]] *)
+(* template/generics/polymorphic-type *)
 and type_parameter = ident * type_parameter_constraint list
 
 (*e: type [[AST_generic.type_parameter]] *)
@@ -1448,13 +1418,13 @@ and other_type_parameter_operator =
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
 (* ------------------------------------------------------------------------- *)
-(* less: could be merged with variable_definition *)
 (*s: type [[AST_generic.function_definition]] *)
+(* less: could be merged with variable_definition *)
 and function_definition = {
   fkind : function_kind wrap;
   fparams : parameters;
-  frettype : type_ option;
   (* return type *)
+  frettype : type_ option;
   (* newscope:
    * note: can be empty statement for methods in interfaces.
    * update: can also be empty when used in a Partial.
@@ -1476,12 +1446,10 @@ and function_kind =
   | Method
   (* Also redundant; can just check if the fdef is in a Lambda *)
   | LambdaKind
+  (* a.k.a short lambdas *)
   | Arrow
+  (* for Scala *)
   | BlockCases
-
-(* for Scala *)
-
-(* a.k.a short lambdas *)
 
 (*s: type [[AST_generic.parameters]] *)
 and parameters = parameter list
@@ -1516,10 +1484,10 @@ and parameter =
 (*e: [[AST_generic.parameter]] OtherXxx case *)
 (*e: type [[AST_generic.parameter]] *)
 
+(*s: type [[AST_generic.parameter_classic]] *)
 (* less: could be merged with variable_definition, or pattern
  * less: could factorize pname/pattrs/pinfo with entity
  *)
-(*s: type [[AST_generic.parameter_classic]] *)
 and parameter_classic = {
   (* alt: use a 'ParamNoIdent of type_' when pname is None instead? *)
   pname : ident option;
@@ -1554,12 +1522,12 @@ and other_parameter_operator =
 (* ------------------------------------------------------------------------- *)
 (* Variable definition *)
 (* ------------------------------------------------------------------------- *)
+(*s: type [[AST_generic.variable_definition]] *)
 (* Also used for constant_definition with attrs = [Const].
  * Also used for field definition in a class (and record).
  * less: could use for function_definition with vinit = Some (Lambda (...))
  *  but maybe useful to explicitely makes the difference for now?
  *)
-(*s: type [[AST_generic.variable_definition]] *)
 and variable_definition = {
   (* todo? should remove vinit and transform a VarDef with init with a VarDef
    * followed by an Assign (possibly to Null). See vardef_to_assign().
@@ -1657,21 +1625,21 @@ and other_type_kind_operator = (* OCaml *)
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
 (* ------------------------------------------------------------------------- *)
-(* less: could be a special kind of type_definition *)
 (*s: type [[AST_generic.class_definition]] *)
+(* less: could be a special kind of type_definition *)
 and class_definition = {
   ckind : class_kind wrap;
-  (* usually just one parent, and type_ should be a TyApply *)
+  (* cextends contains usually just one parent, and type_ should be TyApply *)
   (* TODO? the parent can have arguments, as in Scala, to call super
    * or when used inside a New.
    *)
   cextends : type_ list;
-  (* class_kind in type_ must be Interface *)
+  (* the class_kind in type_ must be Interface *)
   cimplements : type_ list;
-  (* class_kind in type_ is usually a Trait *)
-  cmixins : type_ list;
+  (* the class_kind in type_ are usually Trait *)
   (* PHP 'uses' *)
-  (* for Java Record or Scala Classes; we could transpile them into fields *)
+  cmixins : type_ list;
+  (* for Java Record or Scala Classes (we could transpile them into fields) *)
   cparams : parameters;
   (* newscope:
    * note: this can be an empty fake bracket when used in Partial.
@@ -1691,10 +1659,8 @@ and class_kind =
   | Object
   (* Java 'record', Scala 'case class' *)
   | RecordClass
-  (* java: *)
+  (* Java @interface, a.k.a annotation type declaration *)
   | AtInterface
-
-(* @interface, a.k.a annotation type declaration *)
 
 (*e: type [[AST_generic.class_kind]] *)
 
@@ -1725,8 +1691,8 @@ and other_module_operator =
 (* ------------------------------------------------------------------------- *)
 (* Macro definition *)
 (* ------------------------------------------------------------------------- *)
-(* Used by cpp in C/C++ *)
 (*s: type [[AST_generic.macro_definition]] *)
+(* Used by cpp in C/C++ *)
 and macro_definition = { macroparams : ident list; macrobody : any list }
 
 (*e: type [[AST_generic.macro_definition]] *)
@@ -1739,7 +1705,7 @@ and macro_definition = { macroparams : ident list; macrobody : any list }
  * 'Import of dotted_ident * ...', but module_name is not always a DottedName
  * so it is better to clearly separate what is module_name/namespace from an
  * entity (in this module/namespace) even though some languages such as Python
- * blurs the difference.
+ * blur the difference.
  *)
 and directive =
   (* newvar: *)
@@ -1755,10 +1721,10 @@ and directive =
   (*e: [[AST_generic.directive]] other imports *)
   (*s: [[AST_generic.directive]] package cases *)
   (* packages are different from modules in that multiple files can reuse
-   * the same package name; they are agglomarated in the same package
+   * the same package name; they are agglomerated in the same package
    *)
   | Package of tok * dotted_ident (* a.k.a namespace *)
-  (* for languages such as C++/PHP/Scala with scoped namespaces
+  (* This is used for languages such as C++/PHP/Scala with scoped namespaces.
    * alt: Package of tok * dotted_ident * item list bracket, but less
    * consistent with other directives, so better to use PackageEnd.
    *)
@@ -1772,7 +1738,7 @@ and directive =
 (*e: type [[AST_generic.directive]] *)
 
 (*s: type [[AST_generic.alias]] *)
-(* ... as name *)
+(* xxx as name *)
 and alias = ident * id_info
 
 (*e: type [[AST_generic.alias]] *)
@@ -1834,6 +1800,7 @@ and partial =
 (*****************************************************************************)
 
 (* mentioned in many OtherXxx so must be part of the mutually recursive type *)
+
 (*s: type [[AST_generic.any]] *)
 and any =
   (*s: [[AST_generic.any]] semgrep cases *)
@@ -1871,8 +1838,6 @@ and any =
 (*e: type [[AST_generic.any]] *)
 [@@deriving show { with_path = false }, eq, hash]
 
-(* with tarzan *)
-
 (*s: constant [[AST_generic.special_multivardef_pattern]] *)
 (* In JS one can do 'var {x,y} = foo();'. We used to transpile that
  * in multiple vars, but in sgrep one may want to match over those patterns.
@@ -1880,9 +1845,9 @@ and any =
  * model we currently use, so for now we need this ugly hack of converting
  * the statement above in
  * ({name = "!MultiVarDef"}, VarDef {vinit = Assign (Record {...}, foo())}).
-                                     * This is bit ugly, but at some point we may want to remove completely
-                                     * VarDef by transforming them in Assign (see vardef_to_assign() below)
-                                     * so this temporary hack is not too bad.
+ * This is bit ugly, but at some point we may want to remove completely
+ * VarDef by transforming them in Assign (see vardef_to_assign() below)
+ * so this temporary hack is not too bad.
  *)
 let special_multivardef_pattern = AST_generic_.special_multivardef_pattern
 
@@ -1916,23 +1881,19 @@ let error tok msg = raise (Error (msg, tok))
 let sid_TODO = -1
 
 (*e: constant [[AST_generic.sid_TODO]] *)
-
 (*s: constant [[AST_generic.empty_name_info]] *)
 let empty_name_info = { name_qualifier = None; name_typeargs = None }
 
 (*e: constant [[AST_generic.empty_name_info]] *)
-
 (*s: constant [[AST_generic.empty_var]] *)
 let empty_var = { vinit = None; vtype = None }
 
 (*e: constant [[AST_generic.empty_var]] *)
-
 (*s: function [[AST_generic.empty_id_info]] *)
 let empty_id_info () =
   { id_resolved = ref None; id_type = ref None; id_constness = ref None }
 
 (*e: function [[AST_generic.empty_id_info]] *)
-
 (*s: function [[AST_generic.basic_id_info]] *)
 let basic_id_info resolved =
   {
@@ -1942,7 +1903,6 @@ let basic_id_info resolved =
   }
 
 (*e: function [[AST_generic.basic_id_info]] *)
-
 (*s: function [[AST_generic.param_of_id]] *)
 let param_of_id id =
   {
@@ -1965,7 +1925,6 @@ let param_of_type typ =
   }
 
 (*e: function [[AST_generic.param_of_type]] *)
-
 (*s: function [[AST_generic.basic_entity]] *)
 let basic_entity id attrs =
   let idinfo = empty_id_info () in
@@ -1989,7 +1948,6 @@ let basic_field id vopt typeopt =
   FieldStmt (s (DefStmt (entity, VarDef { vinit = vopt; vtype = typeopt })))
 
 (*e: function [[AST_generic.basic_field]] *)
-
 (*s: function [[AST_generic.attr]] *)
 let attr kwd tok = KeywordAttr (kwd, tok)
 
@@ -1998,7 +1956,6 @@ let attr kwd tok = KeywordAttr (kwd, tok)
 let arg e = Arg e
 
 (*e: function [[AST_generic.arg]] *)
-
 (*s: function [[AST_generic.fake]] *)
 (* Try avoid using them! if you build new constructs, you should try
  * to derive the tokens in those new constructs from existing constructs.

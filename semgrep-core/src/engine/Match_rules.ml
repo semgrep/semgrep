@@ -206,7 +206,7 @@ let (mini_rule_of_pattern :
     languages =
       ( match xlang with
       | R.L (x, xs) -> x :: xs
-      | R.LNone | R.LGeneric -> raise Impossible );
+      | R.LRegex | R.LGeneric -> raise Impossible );
     (* useful for debugging timeout *)
     pattern_string = pstr;
   }
@@ -596,10 +596,10 @@ let rec filter_ranges env xs cond =
   |> List.filter (fun r ->
          let bindings = r.RM.mvars in
          match cond with
-         | R.CondGeneric e ->
+         | R.CondEval e ->
              let env = Eval_generic.bindings_to_env bindings in
              Eval_generic.eval_bool env e
-         | R.CondPattern (mvar, opt_lang, formula) ->
+         | R.CondNestedFormula (mvar, opt_lang, formula) ->
              satisfies_metavar_pattern_condition env r mvar opt_lang formula
          (* todo: would be nice to have CondRegexp also work on
           * eval'ed bindings.
@@ -672,7 +672,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
           (* We reinterpret the matched text as `xlang`. *)
           let ext =
             match xlang with
-            | R.LNone | R.LGeneric -> "generic"
+            | R.LRegex | R.LGeneric -> "generic"
             | R.L (lang, _) -> (
                 match Lang.ext_of_lang lang with
                 | x :: _ -> x
@@ -696,8 +696,8 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                               parse the content of %s"
                              env.rule.id mvar);
                       (ast, errors)
-                  | R.LNone | R.LGeneric ->
-                      failwith "requesting generic AST for LNone|LGeneric" )
+                  | R.LRegex | R.LGeneric ->
+                      failwith "requesting generic AST for LRegex|LGeneric" )
               in
               let r' =
                 (* Fix the range wrt the temporary file that we now use for
