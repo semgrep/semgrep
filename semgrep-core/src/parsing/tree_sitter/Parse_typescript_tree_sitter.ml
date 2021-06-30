@@ -1,5 +1,5 @@
 (**
-   Derive a javascript AST from a tree-sitter typescript CST.
+   Derive a javascript AST from a tree-sitter typescript or TSX CST.
 
    This is derived from generated code 'typescript/lib/Boilerplate.ml'
    in tree-sitter-lang and reuse functions from
@@ -52,47 +52,162 @@ let sub_pattern (id_or_pat : (a_ident, a_pattern) either) : a_pattern =
 (* Boilerplate converter *)
 (*****************************************************************************)
 
-(*
-   We extend the javascript parsing module. Types are
-   partially compatible.
-*)
-module JS_CST = Parse_javascript_tree_sitter.CST
-module JS = Parse_javascript_tree_sitter
 module CST = CST_tree_sitter_typescript (* typescript+tsx, merged *)
+
+let str = H.str
+
+let fb = PI.fake_bracket
 
 let optional env opt f =
   match opt with None -> None | Some x -> Some (f env x)
 
-(* Functions reused from javascript *)
-let map_sep_list = JS.map_sep_list
+(*
+   Map the comma-separated representation of a list to an ocaml list.
+   The separator doesn't have to be a comma but must be a simple token.
 
-let identifier = JS.identifier
+   This is used usually where the commaSep function was used as a macro
+   in the original grammar.js.
 
-let semicolon = JS.semicolon
+   Usage:
 
-let str = JS.str
+     map_sep_list env v1 v2 (fun env x ->
+       ...
+     )
+*)
+let map_sep_list (env : env) (head : 'a) (tail : (_ * 'a) list)
+    (f : env -> 'a -> 'b) : 'b list =
+  let head = f env head in
+  let tail =
+    List.map (fun ((_sep : Tree_sitter_run.Token.t), elt) -> f env elt) tail
+  in
+  head :: tail
 
-let this = JS.this
+let identifier (env : env) (tok : CST.identifier) : a_ident = str env tok
 
-let super = JS.super
+let automatic_semicolon (_env : env) (_tok : CST.automatic_semicolon) =
+  (* do like in pfff: *)
+  Parse_info.fake_info ";"
 
-let number = JS.number
+let semicolon (env : env) (x : CST.semicolon) =
+  match x with
+  | `Auto_semi tok -> automatic_semicolon env tok (* automatic_semicolon *)
+  | `SEMI tok -> (* ";" *) token env tok
 
-let fb = JS.fb
+let this env tok = IdSpecial (This, token env tok)
 
-let empty_stmt = JS.empty_stmt
+let super env tok = IdSpecial (Super, token env tok)
 
-let number_as_string = JS.number_as_string
+let number (env : env) (tok : CST.number) =
+  let s, t = str env tok (* number *) in
+  ( ( match H.int_of_string_c_octal_opt s with
+    | Some i -> Some (float_of_int i)
+    | None -> float_of_string_opt s ),
+    t )
 
-let todo_any = JS.todo_any
+let empty_stmt env tok =
+  let t = token env tok in
+  Block (t, [], t)
 
-let string_ = JS.string_
+let number_as_string (env : env) (tok : CST.number) = str env tok
 
-let namespace_import = JS.namespace_import
+let todo_any str t any =
+  pr2 (AST.show_any any);
+  raise (Parse_info.Ast_builder_error (str, t))
 
-let jsx_attribute_name = JS.jsx_attribute_name
+let string_ (env : env) (x : CST.string_) : string wrap =
+  match x with
+  | `DQUOT_rep_choice_imm_tok_pat_3a2a380_DQUOT (v1, v2, v3) ->
+      let v1 = token env v1 (* "\"" *) in
+      let v2 =
+        List.map
+          (fun x ->
+            match x with
+            | `Imm_tok_pat_3a2a380 tok -> str env tok (* pattern "[^\"\\\\]+" *)
+            | `Esc_seq tok -> str env tok
+            (* escape_sequence *))
+          v2
+      in
+      let v3 = token env v3 (* "\"" *) in
+      let str = v2 |> List.map fst |> String.concat "" in
+      let toks = (v2 |> List.map snd) @ [ v3 ] in
+      (str, PI.combine_infos v1 toks)
+  | `SQUOT_rep_choice_imm_tok_pat_dc28280_SQUOT (v1, v2, v3) ->
+      let v1 = token env v1 (* "'" *) in
+      let v2 =
+        List.map
+          (fun x ->
+            match x with
+            | `Imm_tok_pat_dc28280 tok -> str env tok (* pattern "[^'\\\\]+" *)
+            | `Esc_seq tok -> str env tok
+            (* escape_sequence *))
+          v2
+      in
+      let v3 = token env v3 (* "'" *) in
+      let str = v2 |> List.map fst |> String.concat "" in
+      let toks = (v2 |> List.map snd) @ [ v3 ] in
+      (str, PI.combine_infos v1 toks)
 
-let jsx_closing_element = JS.jsx_closing_element
+let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import) =
+  let _v1 = token env v1 (* "*" *) in
+  let _v2 = token env v2 (* "as" *) in
+  let v3 = identifier env v3 (* identifier *) in
+  fun tok path -> [ ModuleAlias (tok, v3, path) ]
+
+let jsx_identifier_ (env : env) (x : CST.jsx_identifier_) =
+  match x with
+  | `Jsx_id tok ->
+      str env tok (* pattern [a-zA-Z_$][a-zA-Z\d_$]*-[a-zA-Z\d_$\-]* *)
+  | `Id tok -> identifier env tok
+
+let jsx_namespace_name (env : env) ((v1, v2, v3) : CST.jsx_namespace_name) =
+  let v1 = jsx_identifier_ env v1 in
+  let _v2 = token env v2 (* ":" *) in
+  let v3 = jsx_identifier_ env v3 in
+  (v1, v3)
+
+let jsx_attribute_name (env : env) (x : CST.jsx_attribute_name) =
+  match x with
+  | `Choice_jsx_id x -> jsx_identifier_ env x
+  | `Jsx_name_name x ->
+      let id1, id2 = jsx_namespace_name env x in
+      let str = fst id1 ^ ":" ^ fst id2 in
+      (str, PI.combine_infos (snd id1) [ snd id2 ])
+
+let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) :
+    a_ident list =
+  match x with
+  | `Id tok -> [ identifier env tok ] (* identifier *)
+  | `Nested_id x -> nested_identifier env x
+
+and nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) =
+  let v1 = id_or_nested_id env v1 in
+  let _v2 = token env v2 (* "." *) in
+  let v3 = identifier env v3 (* identifier *) in
+  v1 @ [ v3 ]
+
+let jsx_element_name (env : env) (x : CST.jsx_element_name) : a_ident =
+  match x with
+  | `Choice_jsx_id x -> jsx_identifier_ env x
+  | `Nested_id x ->
+      let xs = nested_identifier env x in
+      let str = xs |> List.map fst |> String.concat "." in
+      let hd, tl =
+        match xs with [] -> raise Impossible | x :: xs -> (x, xs)
+      in
+      (str, PI.combine_infos (snd hd) (tl |> List.map snd))
+  | `Jsx_name_name x ->
+      let id1, id2 = jsx_namespace_name env x in
+      let str = fst id1 ^ ":" ^ fst id2 in
+      (str, PI.combine_infos (snd id1) [ snd id2 ])
+
+let jsx_closing_element (env : env) ((v1, v2, v3, v4) : CST.jsx_closing_element)
+    =
+  let v1 = token env v1 (* "<" *) in
+  let v2 = token env v2 (* "/" *) in
+  let str, v3 = jsx_element_name env v3 in
+  let v4 = token env v4 (* ">" *) in
+  let t = PI.combine_infos v1 [ v2; v3; v4 ] in
+  (str, t)
 
 let from_clause (env : env) ((v1, v2) : CST.from_clause) : tok * string wrap =
   let v1 = token env v1 (* "from" *) in
@@ -103,9 +218,7 @@ let accessibility_modifier (env : env) (x : CST.accessibility_modifier) =
   match x with
   | `Public tok -> (Public, token env tok) (* "public" *)
   | `Priv tok -> (Private, token env tok) (* "private" *)
-  | `Prot tok -> (Protected, token env tok)
-
-(* "protected" *)
+  | `Prot tok -> (* "protected" *) (Protected, token env tok)
 
 let predefined_type (env : env) (x : CST.predefined_type) =
   match x with
@@ -114,17 +227,13 @@ let predefined_type (env : env) (x : CST.predefined_type) =
   | `Bool tok -> identifier env tok (* "boolean" *)
   | `Str tok -> identifier env tok (* "string" *)
   | `Symb tok -> identifier env tok (* "symbol" *)
-  | `Void tok -> identifier env tok
-
-(* "void" *)
+  | `Void tok -> (* "void" *) identifier env tok
 
 let anon_choice_PLUSPLUS_e498e28 (env : env)
     (x : CST.anon_choice_PLUSPLUS_e498e28) =
   match x with
   | `PLUSPLUS tok -> (G.Incr, token env tok) (* "++" *)
-  | `DASHDASH tok -> (G.Decr, token env tok)
-
-(* "--" *)
+  | `DASHDASH tok -> (* "--" *) (G.Decr, token env tok)
 
 let type_or_typeof (env : env) (x : CST.anon_choice_type_2b11f6b) =
   match x with
@@ -134,15 +243,11 @@ let type_or_typeof (env : env) (x : CST.anon_choice_type_2b11f6b) =
 let automatic_semicolon (env : env) (tok : CST.automatic_semicolon) =
   token env tok
 
-(* automatic_semicolon *)
-
 let anon_choice_get_8fb02de (env : env) (x : CST.anon_choice_get_8fb02de) =
   match x with
   | `Get tok -> (Get, token env tok) (* "get" *)
   | `Set tok -> (Set, token env tok) (* "set" *)
-  | `STAR tok -> (Generator, token env tok)
-
-(* "*" *)
+  | `STAR tok -> (* "*" *) (Generator, token env tok)
 
 let reserved_identifier (env : env) (x : CST.reserved_identifier) =
   match x with
@@ -189,18 +294,6 @@ let import_export_specifier (env : env)
   | None ->
       let expr_id = identifier env v2 in
       Some (expr_id, opt_as_id)
-
-let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) :
-    a_ident list =
-  match x with
-  | `Id tok -> [ identifier env tok ] (* identifier *)
-  | `Nested_id x -> nested_identifier env x
-
-and nested_identifier (env : env) ((v1, v2, v3) : CST.nested_identifier) =
-  let v1 = id_or_nested_id env v1 in
-  let _v2 = token env v2 (* "." *) in
-  let v3 = identifier env v3 (* identifier *) in
-  v1 @ [ v3 ]
 
 let concat_nested_identifier (idents : a_ident list) : a_ident =
   let str = idents |> List.map fst |> String.concat "." in
