@@ -2,12 +2,12 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.57.0](https://github.com/returntocorp/semgrep/releases/tag/v0.57.0) - 2021-06-29[
+## Unreleased
 
 ### Fixed
 - Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)
 
-### Unreleased
+## [0.57.0](https://github.com/returntocorp/semgrep/releases/tag/v0.57.0) - 2021-06-29
 
 ### Added
 - new `options:` field in a YAML rule to enable/disable certain features
@@ -43,8 +43,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Set parsing_state.have_timeout when a timeout occurs (#3438)
 - Set a timeout of 10s per file (#3434)
 - Improvements to contributing documentation (#3353)
-
-### Changed
 - Memoize getting ranges to speed up rules with large ranges
 - When anded with other patterns, `pattern: $X` will not be evaluated on its own, but will look at the context and find `$X` within the metavariables bound, which should be significantly faster
 
