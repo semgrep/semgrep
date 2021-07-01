@@ -568,7 +568,7 @@ class CoreRunner:
                 long_msg=f"unsupported language: {language}. supported languages are: {', '.join(all_supported_languages())}",
                 spans=[rule.languages_span.with_context(before=1, after=1)],
             ) from ex
-        return targets
+        return list(targets)
 
     def _run_rules(
         self, rules: List[Rule], target_manager: TargetManager, profiler: ProfileManager
