@@ -262,7 +262,10 @@ class OldCoreRunner:
             equivalences = rule.equivalences
             if equivalences:
                 self._write_equivalences_file(equiv_file, equivalences)
-                cmd += ["-equivalences", equiv_file.name]
+                cmd += [
+                    "-equivalences",
+                    equiv_file.name,  # nosem: python.lang.correctness.tempfile.flush.tempfile-without-flush
+                ]
 
             if is_debug():
                 cmd += ["-debug"]
