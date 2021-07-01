@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Set
+from typing import Collection
 
 from semgrep.constants import OutputFormat
 from semgrep.output import OutputHandler
@@ -32,7 +32,7 @@ def test_filter_include():
         "bar/baz/qux/foo/a.py",
         "/foo/bar/baz/a.py",
     ]
-    all_files = set({Path(elem) for elem in all_file_names})
+    all_files = frozenset({Path(elem) for elem in all_file_names})
 
     # All .py files
     assert len(TargetManager.filter_includes(all_files, ["*.py"])) == 9
@@ -74,7 +74,7 @@ def test_filter_exclude():
         "bar/baz/qux/foo/a.py",
         "/foo/bar/baz/a.py",
     ]
-    all_files = set({Path(elem) for elem in all_file_names})
+    all_files = frozenset({Path(elem) for elem in all_file_names})
 
     # Filter out .py files
     assert len(TargetManager.filter_excludes(all_files, ["*.py"])) == 9
@@ -100,7 +100,7 @@ def test_filter_by_size():
         fp.write(b"0123456789")
         fp.flush()
         path = Path(fp.name)
-        targets = {path}
+        targets = frozenset({path})
 
         # no max size
         assert len(TargetManager.filter_by_size(targets, 0)) == 1
@@ -294,7 +294,7 @@ def test_expand_targets_git(tmp_path, monkeypatch):
     )
 
 
-def cmp_path_sets(a: Set[Path], b: Set[Path]) -> bool:
+def cmp_path_sets(a: Collection[Path], b: Collection[Path]) -> bool:
     """
     Check that two sets of path contain the same paths
     """
@@ -430,9 +430,9 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
         output_per_line_max_chars_limit=None,
     )
     defaulthandler = OutputHandler(output_settings)
-    assert [] == TargetManager([], [], 0, [foo], True, defaulthandler, False).get_files(
-        language, [], []
-    )
+    assert frozenset() == TargetManager(
+        [], [], 0, [foo], True, defaulthandler, False
+    ).get_files(language, [], [])
 
 
 def test_explicit_path(tmp_path, monkeypatch):
@@ -486,35 +486,29 @@ def test_explicit_path(tmp_path, monkeypatch):
         TargetManager([], [], 0, ["foo/a.go"], False, defaulthandler, False).get_files(
             python_language, [], []
         )
-        == []
+        == frozenset()
     )
 
     # Should include explicitly passed file with unknown extension if skip_unknown_extensions=False
     assert cmp_path_sets(
-        set(
-            TargetManager(
-                [], [], 0, ["foo/noext"], False, defaulthandler, False
-            ).get_files(python_language, [], [])
+        TargetManager([], [], 0, ["foo/noext"], False, defaulthandler, False).get_files(
+            python_language, [], []
         ),
         {foo_noext},
     )
 
     # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
     assert cmp_path_sets(
-        set(
-            TargetManager(
-                [], [], 0, ["foo/noext"], False, defaulthandler, True
-            ).get_files(python_language, [], [])
+        TargetManager([], [], 0, ["foo/noext"], False, defaulthandler, True).get_files(
+            python_language, [], []
         ),
         set(),
     )
 
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
     assert cmp_path_sets(
-        set(
-            TargetManager(
-                [], [], 0, ["foo/noext", "foo/a.py"], False, defaulthandler, True
-            ).get_files(python_language, [], [])
-        ),
+        TargetManager(
+            [], [], 0, ["foo/noext", "foo/a.py"], False, defaulthandler, True
+        ).get_files(python_language, [], []),
         {foo_a},
     )

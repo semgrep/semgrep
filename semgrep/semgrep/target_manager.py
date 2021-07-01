@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 from typing import Collection
 from typing import Dict
+from typing import FrozenSet
 from typing import Iterator
 from typing import List
 from typing import Set
@@ -61,15 +62,15 @@ class TargetManager:
     output_handler: OutputHandler
     skip_unknown_extensions: bool
 
-    _filtered_targets: Dict[Language, Set[Path]] = attr.ib(factory=dict)
+    _filtered_targets: Dict[Language, FrozenSet[Path]] = attr.ib(factory=dict)
 
     @staticmethod
-    def resolve_targets(targets: List[str]) -> Set[Path]:
+    def resolve_targets(targets: List[str]) -> FrozenSet[Path]:
         """
         Return list of Path objects appropriately resolving relative paths
         (relative to cwd) if necessary
         """
-        return set(resolve_targets(targets))
+        return frozenset(resolve_targets(targets))
 
     @staticmethod
     def _is_valid(path: Path) -> bool:
@@ -78,44 +79,44 @@ class TargetManager:
     @staticmethod
     def _expand_dir(
         curr_dir: Path, language: Language, respect_git_ignore: bool
-    ) -> Set[Path]:
+    ) -> FrozenSet[Path]:
         """
         Recursively go through a directory and return list of all files with
         default file extension of language
         """
 
-        def _parse_output(output: str, curr_dir: Path) -> Set[Path]:
+        def _parse_output(output: str, curr_dir: Path) -> FrozenSet[Path]:
             """
             Convert a newline delimited list of files to a set of path objects
             prepends curr_dir to all paths in said list
 
             If list is empty then returns an empty set
             """
-            files: Set[Path] = set()
+            files: FrozenSet[Path] = frozenset()
             if output:
-                files = {
+                files = frozenset(
                     p
                     for p in (
                         Path(curr_dir) / elem for elem in output.strip().split("\n")
                     )
                     if TargetManager._is_valid(p)
-                }
+                )
             return files
 
         def _find_files_with_extension(
             curr_dir: Path, extension: FileExtension
-        ) -> Set[Path]:
+        ) -> FrozenSet[Path]:
             """
             Return set of all files in curr_dir with given extension
             """
-            return {
+            return frozenset(
                 p
                 for p in curr_dir.rglob(f"*{extension}")
                 if TargetManager._is_valid(p) and p.is_file()
-            }
+            )
 
         extensions = lang_to_exts(language)
-        expanded: Set[Path] = set()
+        expanded: FrozenSet[Path] = frozenset()
 
         for ext in extensions:
             if respect_git_ignore:
@@ -169,11 +170,11 @@ class TargetManager:
     @staticmethod
     def expand_targets(
         targets: Collection[Path], lang: Language, respect_git_ignore: bool
-    ) -> Set[Path]:
+    ) -> FrozenSet[Path]:
         """
         Explore all directories. Remove duplicates
         """
-        expanded = set()
+        expanded: Set[Path] = set()
         for target in targets:
             if not TargetManager._is_valid(target):
                 continue
@@ -185,7 +186,7 @@ class TargetManager:
             else:
                 expanded.add(target)
 
-        return expanded
+        return frozenset(expanded)
 
     @staticmethod
     def match_glob(path: Path, globs: List[str]) -> bool:
@@ -196,7 +197,7 @@ class TargetManager:
         return any(p.match(glob) for p in subpaths for glob in globs)
 
     @staticmethod
-    def filter_includes(arr: Set[Path], includes: List[str]) -> Set[Path]:
+    def filter_includes(arr: FrozenSet[Path], includes: List[str]) -> FrozenSet[Path]:
         """
         Returns all elements in arr that match any includes pattern
 
@@ -205,17 +206,21 @@ class TargetManager:
         if not includes:
             return arr
 
-        return {elem for elem in arr if TargetManager.match_glob(elem, includes)}
+        return frozenset(
+            elem for elem in arr if TargetManager.match_glob(elem, includes)
+        )
 
     @staticmethod
-    def filter_excludes(arr: Set[Path], excludes: List[str]) -> Set[Path]:
+    def filter_excludes(arr: FrozenSet[Path], excludes: List[str]) -> FrozenSet[Path]:
         """
         Returns all elements in arr that do not match any excludes pattern
         """
-        return {elem for elem in arr if not TargetManager.match_glob(elem, excludes)}
+        return frozenset(
+            elem for elem in arr if not TargetManager.match_glob(elem, excludes)
+        )
 
     @staticmethod
-    def filter_by_size(arr: Set[Path], max_target_bytes: int) -> Set[Path]:
+    def filter_by_size(arr: FrozenSet[Path], max_target_bytes: int) -> FrozenSet[Path]:
         """
         Return all the files whose size doesn't exceed the limit.
 
@@ -226,14 +231,14 @@ class TargetManager:
         if max_target_bytes <= 0:
             return arr
         else:
-            return {
+            return frozenset(
                 path
                 for path in arr
                 if TargetManager._is_valid(path)
                 and os.path.getsize(path) <= max_target_bytes
-            }
+            )
 
-    def filtered_files(self, lang: Language) -> Set[Path]:
+    def filtered_files(self, lang: Language) -> FrozenSet[Path]:
         """
         Return all files that are decendants of any directory in TARGET that have
         an extension matching LANG that match any pattern in INCLUDES and do not
@@ -263,7 +268,7 @@ class TargetManager:
         targets = self.filter_by_size(targets, self.max_target_bytes)
 
         # Remove explicit_files with known extensions.
-        explicit_files_with_lang_extension = set(
+        explicit_files_with_lang_extension = frozenset(
             f
             for f in explicit_files
             if (any(f.match(f"*{ext}") for ext in lang_to_exts(lang)))
@@ -271,7 +276,7 @@ class TargetManager:
         targets = targets.union(explicit_files_with_lang_extension)
 
         if not self.skip_unknown_extensions:
-            explicit_files_with_unknown_extensions = set(
+            explicit_files_with_unknown_extensions = frozenset(
                 f
                 for f in explicit_files
                 if not any(f.match(f"*{ext}") for ext in ALL_EXTENSIONS)
@@ -283,7 +288,7 @@ class TargetManager:
 
     def get_files(
         self, lang: Language, includes: List[str], excludes: List[str]
-    ) -> List[Path]:
+    ) -> FrozenSet[Path]:
         """
         Returns list of files that should be analyzed for a LANG
 
@@ -299,4 +304,4 @@ class TargetManager:
         targets = self.filter_includes(targets, includes)
         targets = self.filter_excludes(targets, excludes)
         targets = self.filter_by_size(targets, self.max_target_bytes)
-        return list(targets)
+        return targets
