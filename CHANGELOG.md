@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)
+- Ruby command shells are distinguished from strings (#3343)
+- Java varargs are now correctly matched (#3455)
+- Support for partial statements (e.g., `try { ... }`) for Java (#3417)
 
 ## [0.57.0](https://github.com/returntocorp/semgrep/releases/tag/v0.57.0) - 2021-06-29
 
@@ -32,13 +35,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - metavariable-pattern: Fix parse info when matching content of a metavariable
   under a different language
 - generic mode on Markdown files with very long lines will now work (#2987)
-- Ruby command shells are distinguished from strings (#3343)
 
 ### Changed
 - generic mode: files that don't look like nicely-indented programs
   are no longer ignored, which may cause accidental slowdowns in setups
   where excessively large files are not excluded explicitly (#3418).
 - metavariable-comparison: Fix crash when comparing integers and floats
+  Thanks to Justin Timmons for the fix!
 - Do not filter findings with the same range but different metavariable bindings (#3310)
 - Set parsing_state.have_timeout when a timeout occurs (#3438)
 - Set a timeout of 10s per file (#3434)
