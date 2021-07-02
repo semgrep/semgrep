@@ -260,6 +260,10 @@ The two most popular are:
             )
             optimizations = "none"
 
+        elif any(len(rule.equivalences) > 0 for rule in filtered_rules):
+            logger.info("Running without optimizations since running equivalence rules")
+            optimizations = "none"
+
     start_time = time.time()
     # actually invoke semgrep
     if optimizations == "none":
