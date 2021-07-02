@@ -1,12 +1,18 @@
 (*
    Fast check that tells whether a pattern has any chance of matching the
    document with 'Match.search'.
+
+   In the future, it may be superseded by an equivalent pre-parse
+   optimization that operates directly on the source files rather than the
+   AST. It would be better since it turns out parsing is usually more
+   expensive than matching, and that would allow skipping the parsing step.
+   See https://github.com/returntocorp/semgrep/issues/3461
 *)
 
 (*
    Check if the pattern contains 'Byte' tokens, since they often don't
-   and the target often does. This is meant as an optimization to not
-   fill the lookup table with many useless entries.
+   and the target may contain many of them. This is meant as an optimization
+   to avoid making many useless table lookups when scanning the target.
 *)
 let pattern_has_bytes (pat : Pattern_AST.t) =
   let open Pattern_AST in
