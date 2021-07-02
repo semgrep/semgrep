@@ -544,6 +544,6 @@ let print_nested_results ?(with_time = false) ?highlight
         pat_matches)
     doc_matches;
   if with_time then
-    printf "parse time: %.6f s\nmatch time: %.6f s\n" !total_parse_time
+    eprintf "parse time: %.6f s\nmatch time: %.6f s\n" !total_parse_time
       !total_match_time;
   print_errors ?highlight errors
