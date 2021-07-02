@@ -132,3 +132,7 @@ time "$spacegrep" '$X ... foo' big-blob --force
 
 print "Run complex pattern on big django template"
 time "$spacegrep" -p "$perf_data_dir"/django-template.pat -d django-template.po
+
+print "Run complex pattern on big django template - no pre-match optimization"
+time "$spacegrep" --no-skip-search \
+  -p "$perf_data_dir"/django-template.pat -d django-template.po
