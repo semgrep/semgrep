@@ -793,12 +793,104 @@ let rec stmt_aux env st =
       let stmt2 = stmt env stmt2 in
       stmt1 @ stmt2
   | G.DisjStmt _ -> sgrep_construct (G.S st)
+  | G.OtherStmtWithStmt (G.OSWS_With, Some manager_as_pat, body) ->
+      let opt_pat, manager =
+        (* Extract <manager> and <pat> from `with <manager> as <pat>`;
+         * <manager> is an expression that evaluates to a context manager,
+         * <pat> is optional. *)
+        match manager_as_pat with
+        | G.LetPattern (pat, manager) -> (Some pat, manager)
+        | manager -> (None, manager)
+      in
+      python_with_stmt env manager opt_pat body
   | G.OtherStmt _ | G.OtherStmtWithStmt _ -> todo (G.S st)
 
 (*s: function [[AST_to_IL.stmt]] *)
 and stmt env st =
   try stmt_aux env st
   with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
+
+(*
+ *     with MANAGER as PAT:
+ *         BODY
+ *
+ * ~>
+ *
+ *     mgr = MANAGER
+ *     value = type(mgr).__enter__(mgr)
+ *     try:
+ *         PAT = value
+ *         BODY
+ *     finally:
+ *         type(mgr).__exit__(mgr)
+ *
+ * This is NOT a 100% accurate translation but works for our purposes,
+ * see https://www.python.org/dev/peps/pep-0343/.
+ *)
+and python_with_stmt env manager opt_pat body =
+  (* mgr = MANAGER *)
+  let mgr = fresh_lval env G.sc in
+  let ss_def_mgr =
+    let ss_mk_mgr, manager' = expr_with_pre_stmts env manager in
+    ss_mk_mgr @ [ mk_s (Instr (mk_i (Assign (mgr, manager')) manager)) ]
+  in
+  (* type(mgr) *)
+  let type_mgr_var = fresh_var env G.sc in
+  let mgr_class = lval_of_base (Var type_mgr_var) in
+  let ss_mgr_class =
+    [
+      mk_s
+        (Instr
+           (mk_i
+              (CallSpecial
+                 (Some mgr_class, (Typeof, G.sc), [ mk_e (Fetch mgr) manager ]))
+              manager));
+    ]
+  in
+  (* tmp = type(mgr).__method__(mgr) *)
+  let call_mgr_method method_name =
+    let tmp = fresh_lval env G.sc in
+    let mgr_method =
+      (* type(mgr).__method___ *)
+      {
+        base = Var type_mgr_var;
+        offset = Dot ((method_name, G.sc), -1);
+        constness = ref None;
+      }
+    in
+    let ss =
+      [
+        mk_s
+          (Instr
+             (mk_i
+                (Call
+                   ( Some tmp,
+                     mk_e (Fetch mgr_method) manager,
+                     [ mk_e (Fetch mgr) manager ] ))
+                manager));
+      ]
+    in
+    (ss, tmp)
+  in
+  let ss_enter, value = call_mgr_method "__enter__" in
+  let pre_try_stmts = ss_def_mgr @ ss_mgr_class @ ss_enter in
+  let try_body =
+    (* PAT = type(mgr).__enter__(mgr)
+     * BODY *)
+    let ss_def_pat =
+      match opt_pat with
+      | None -> []
+      | Some pat ->
+          pattern_assign_statements env (mk_e (Fetch value) manager) manager pat
+    in
+    ss_def_pat @ stmt env body
+  in
+  let try_catches = [] in
+  let try_finally =
+    let ss_exit, _ = call_mgr_method "__exit___" in
+    ss_exit
+  in
+  pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_finally)) ]
 
 (*e: function [[AST_to_IL.stmt]] *)
 

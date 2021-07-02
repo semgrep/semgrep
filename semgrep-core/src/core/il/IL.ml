@@ -319,7 +319,7 @@ and stmt_kind =
   (* alt: do as in CIL and resolve that directly in 'Goto of stmt' *)
   | Goto of tok * label
   | Label of label
-  | Try of stmt list * (name * stmt list) list * stmt list
+  | Try of stmt list * (name * stmt list) list (* catches *) * stmt list (* finally *)
   | Throw of tok * exp (* less: enforce lval here? *)
   | MiscStmt of other_stmt
   | FixmeStmt of fixme_kind * G.any
