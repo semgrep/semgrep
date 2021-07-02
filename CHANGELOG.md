@@ -11,6 +11,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Support for partial statements (e.g., `try { ... }`) for Java (#3417)
 - Constant propagation now works inside Python `with` statements (#3402)
 
+### Changed
+- Faster matching times for generic mode
+
 ## [0.57.0](https://github.com/returntocorp/semgrep/releases/tag/v0.57.0) - 2021-06-29
 
 ### Added
