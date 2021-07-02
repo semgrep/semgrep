@@ -438,7 +438,7 @@ let convert_capture src (start_pos, _) (_, end_pos) =
 
    last_loc is the location of the last token of a match.
 *)
-let search ?(case_sensitive = true) src pat doc =
+let really_search ~case_sensitive src pat doc =
   (* table of all matches we want to keep, keyed by end location,
      with at most one entry per end location. *)
   let conf =
@@ -474,14 +474,20 @@ let search ?(case_sensitive = true) src pat doc =
          | None -> assert false
          | Some selected_match -> phys_eq match_ selected_match)
 
+let search ~no_skip_search ~case_sensitive src pat doc =
+  (* optimization *)
+  if no_skip_search || Pre_match.may_match ~case_sensitive pat doc then
+    really_search ~case_sensitive src pat doc
+  else []
+
 let timef f =
   let t1 = Unix.gettimeofday () in
   let res = f () in
   let t2 = Unix.gettimeofday () in
   (res, t2 -. t1)
 
-let timed_search ?case_sensitive src pat doc =
-  timef (fun () -> search ?case_sensitive src pat doc)
+let timed_search ~no_skip_search ~case_sensitive src pat doc =
+  timef (fun () -> search ~no_skip_search ~case_sensitive src pat doc)
 
 let ansi_highlight s =
   match s with "" -> s | s -> ANSITerminal.(sprintf [ Bold; green ] "%s" s)
@@ -521,16 +527,23 @@ let print_errors ?(highlight = false) errors =
         | File path -> sprintf "%s: " path
         | Stdin | String | Channel -> ""
       in
-      Printf.eprintf "%s %s%s\n" error_prefix src_prefix error.Parse_pattern.msg)
+      eprintf "%s %s%s\n" error_prefix src_prefix error.Parse_pattern.msg)
     errors
 
-let print_nested_results ?highlight
+let print_nested_results ?(with_time = false) ?highlight
     ?(print_optional_separator = make_separator_printer ()) doc_matches errors =
+  let total_parse_time = ref 0. in
+  let total_match_time = ref 0. in
   List.iter
-    (fun (src, pat_matches, _parse_time, _run_time) ->
+    (fun (src, pat_matches, parse_time, _run_time) ->
+      total_parse_time := !total_parse_time +. parse_time;
       List.iter
-        (fun (_pat_id, matches, _match_time) ->
+        (fun (_pat_id, matches, match_time) ->
+          total_match_time := !total_match_time +. match_time;
           print ?highlight ~print_optional_separator src matches)
         pat_matches)
     doc_matches;
+  if with_time then
+    eprintf "parse time: %.6f s\nmatch time: %.6f s\n" !total_parse_time
+      !total_match_time;
   print_errors ?highlight errors

@@ -61,7 +61,9 @@ let matches_eq expected_doc_strings matches =
   && List.for_all2 doc_eq expected_doc_strings doc_strings
 
 let search ~case_sensitive pat doc_src doc =
-  let matches = Match.search ~case_sensitive doc_src pat doc in
+  let matches =
+    Match.search ~no_skip_search:false ~case_sensitive doc_src pat doc
+  in
   Match.print doc_src matches;
   matches
 
