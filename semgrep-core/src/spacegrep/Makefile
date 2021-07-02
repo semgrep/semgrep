@@ -19,15 +19,15 @@ test:
 	dune exec src/test/test.exe
 	$(MAKE) symlinks
 	$(MAKE) examples > /dev/null
-	$(MAKE) big-cat > /dev/null
+	$(MAKE) show-perf > /dev/null
 
 .PHONY: examples
 examples:
 	./scripts/run-examples
 
-.PHONY: big-cat
-big-cat:
-	./scripts/big-cat
+.PHONY: show-perf
+show-perf:
+	./scripts/show-perf
 
 .PHONY: clean
 clean:

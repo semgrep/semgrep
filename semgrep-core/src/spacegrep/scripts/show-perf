@@ -7,8 +7,12 @@ set -eu
 mkdir -p tmp
 cd tmp
 
-spacecat=../bin/spacecat
-spacegrep=../bin/spacegrep
+project_root=$(git rev-parse --show-toplevel)
+spacegrep_root="$project_root"/semgrep-core/src/spacegrep
+
+spacegrep="$spacegrep_root"/bin/spacegrep
+spacecat="$spacegrep_root"/bin/spacecat
+perf_data_dir="$spacegrep_root"/perf-data
 
 #
 # Any content that looks like source code:
@@ -78,6 +82,9 @@ tr '\n' ' ' < big > big.oneline
 # 1 MB of random bytes
 head -c 1000000 /dev/random > big-blob
 
+# A big target that we keep under version control
+zcat "$perf_data_dir"/django-template.po.gz > django-template.po
+
 print() {
   echo "[spacecat] $*" >&2
 }
@@ -93,6 +100,9 @@ time "$spacecat" < big.oneline
 
 print "Parse and print big binary file"
 time "$spacecat" < big-blob
+
+print "Parse and print big django template"
+time "$spacecat" < django-template.po
 
 print() {
   echo "[spacegrep] $*" >&2
@@ -119,3 +129,6 @@ time "$spacegrep" '$X ... foo' big
 
 print "Run ellipsis pattern on big binary file"
 time "$spacegrep" '$X ... foo' big-blob --force
+
+print "Run complex pattern on big django template"
+time "$spacegrep" -p "$perf_data_dir"/django-template.pat -d django-template.po
