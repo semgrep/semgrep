@@ -648,6 +648,18 @@ let partial = function
       match x.G.s with
       | G.DefStmt def -> G.PartialDef def
       | _ -> failwith "unsupported PartialDecl" )
+  | PartialIf (v1, v2) ->
+      let v2 = expr v2 in
+      G.PartialIf (v1, v2)
+  | PartialTry (v1, v2) ->
+      let v2 = stmt v2 in
+      G.PartialTry (v1, v2)
+  | PartialFinally (v1, v2) ->
+      let v2 = stmt v2 in
+      G.PartialFinally (v1, v2)
+  | PartialCatch v1 ->
+      let v1 = catch v1 in
+      G.PartialCatch v1
 
 let any = function
   | AMod v1 ->
