@@ -438,7 +438,7 @@ let convert_capture src (start_pos, _) (_, end_pos) =
 
    last_loc is the location of the last token of a match.
 *)
-let search ?(case_sensitive = true) src pat doc =
+let really_search ~case_sensitive src pat doc =
   (* table of all matches we want to keep, keyed by end location,
      with at most one entry per end location. *)
   let conf =
@@ -474,14 +474,20 @@ let search ?(case_sensitive = true) src pat doc =
          | None -> assert false
          | Some selected_match -> phys_eq match_ selected_match)
 
+let search ~no_skip_search ~case_sensitive src pat doc =
+  (* optimization *)
+  if no_skip_search || Pre_match.may_match ~case_sensitive pat doc then
+    really_search ~case_sensitive src pat doc
+  else []
+
 let timef f =
   let t1 = Unix.gettimeofday () in
   let res = f () in
   let t2 = Unix.gettimeofday () in
   (res, t2 -. t1)
 
-let timed_search ?case_sensitive src pat doc =
-  timef (fun () -> search ?case_sensitive src pat doc)
+let timed_search ~no_skip_search ~case_sensitive src pat doc =
+  timef (fun () -> search ~no_skip_search ~case_sensitive src pat doc)
 
 let ansi_highlight s =
   match s with "" -> s | s -> ANSITerminal.(sprintf [ Bold; green ] "%s" s)

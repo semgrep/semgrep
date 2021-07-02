@@ -53,7 +53,8 @@ val timef : (unit -> 'a) -> 'a * float
    of the case-sensitivity setting.
 *)
 val search :
-  ?case_sensitive:bool ->
+  no_skip_search:bool ->
+  case_sensitive:bool ->
   Src_file.t ->
   Pattern_AST.t ->
   Doc_AST.t ->
@@ -61,7 +62,8 @@ val search :
 
 (* Same as 'search', but also returns the time it took. *)
 val timed_search :
-  ?case_sensitive:bool ->
+  no_skip_search:bool ->
+  case_sensitive:bool ->
   Src_file.t ->
   Pattern_AST.t ->
   Doc_AST.t ->
