@@ -304,7 +304,6 @@ class CoreRunner:
                         all_targets = all_targets.union(targets)
 
                         target_file.write("\n".join(map(lambda p: str(p), targets)))
-                        target_file.flush()
                         yaml = YAML()
                         yaml.dump({"rules": [rule._raw]}, rule_file)
                         rule_file.flush()
