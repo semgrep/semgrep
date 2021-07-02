@@ -391,6 +391,12 @@ def test_timeout(run_semgrep_in_tmp, snapshot):
 
 def test_spacegrep_timeout(run_semgrep_in_tmp, snapshot):
     # Check that spacegrep timeouts are handled gracefully.
+    #
+    # The pattern is designed to defeat any optimization that would
+    # prevent a timeout. Both the words 'Frob' and 'Yoyodyne' occur
+    # once in the file but in a different order, preventing any match.
+    #
+    pattern = "$A ... $B ... $C ... Frob ... Yoyodyne"
     snapshot.assert_match(
         run_semgrep_in_tmp(
             config=None,
@@ -399,7 +405,7 @@ def test_spacegrep_timeout(run_semgrep_in_tmp, snapshot):
                 "--lang",
                 "generic",
                 "--pattern",
-                "$A ... $B ... $C ... foo",
+                pattern,
                 "--timeout",
                 "1",
             ],
