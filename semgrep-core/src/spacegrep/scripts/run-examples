@@ -5,7 +5,9 @@
 #
 set -eu
 
-spacegrep=../../bin/spacegrep
+project_root=$(git rev-parse --show-toplevel)
+spacegrep="$project_root"/semgrep-core/src/spacegrep/bin/spacegrep
+
 for pat in examples/*.pat; do
   doc=${pat%.pat}.doc
   echo "# $spacegrep -p $pat -d $doc"

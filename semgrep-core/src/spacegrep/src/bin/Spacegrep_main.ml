@@ -24,6 +24,7 @@ type config = {
   time : bool;
   timeout : int option;
   warn : bool;
+  no_skip_search : bool;
 }
 
 type matches = {
@@ -44,7 +45,8 @@ let detect_highlight when_use_color oc =
 (*
    Run all the patterns on all the documents.
 *)
-let run_all ~case_sensitive ~debug ~force ~warn patterns docs : matches =
+let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
+    matches =
   let num_files = ref 0 in
   let num_analyzed = ref 0 in
   let num_matching_files = ref 0 in
@@ -55,10 +57,10 @@ let run_all ~case_sensitive ~debug ~force ~warn patterns docs : matches =
         let matches, run_time =
           Match.timef (fun () ->
               (*
-         We inspect the first 4096 bytes to guess whether the file type.
-         This saves time on large files, by reading typically just one
-         block from the file system.
-      *)
+                 We inspect the first 4096 bytes to guess whether the
+                 file type. This saves time on large files, by reading
+                 typically just one block from the file system.
+              *)
               let peek_length = 4096 in
               let partial_doc_src = get_doc_src ~max_len:peek_length () in
               let doc_type = File_type.classify partial_doc_src in
@@ -86,14 +88,14 @@ let run_all ~case_sensitive ~debug ~force ~warn patterns docs : matches =
                   let matches_in_file =
                     List.mapi
                       (fun pat_id (pat_src, pat) ->
-                        (* TODO: Shouldn't we assign pattern ids earlier? *)
                         if debug then
                           printf
                             "match document from %s against pattern from %s\n%!"
                             (Src_file.source_string doc_src)
                             (Src_file.source_string pat_src);
                         let matches_for_pat, match_time =
-                          Match.timed_search ~case_sensitive doc_src pat doc
+                          Match.timed_search ~no_skip_search ~case_sensitive
+                            doc_src pat doc
                         in
                         num_matches :=
                           !num_matches + List.length matches_for_pat;
@@ -165,10 +167,13 @@ let run config =
   let { matches; num_analyzed; num_files; num_matches; num_matching_files } =
     run_all
       ~case_sensitive:(not config.case_insensitive)
-      ~debug ~force:config.force ~warn:config.warn patterns docs
+      ~debug ~force:config.force ~warn:config.warn
+      ~no_skip_search:config.no_skip_search patterns docs
   in
   ( match config.output_format with
-  | Text -> Match.print_nested_results ~highlight matches errors
+  | Text ->
+      Match.print_nested_results ~with_time:config.time ~highlight matches
+        errors
   | Semgrep -> Semgrep.print_semgrep_json ~with_time:config.time matches errors
   );
   if debug then (
@@ -302,7 +307,10 @@ let doc_file_term =
 let time_term =
   let info =
     Arg.info [ "time" ]
-      ~doc:"Include matching times in the json output ('semgrep' format)."
+      ~doc:
+        "Include parsing and matching times in the output.\n\
+        \            This is an extra json field if the output is json\n\
+        \            ('semgrep' format)."
   in
   Arg.value (Arg.flag info)
 
@@ -326,9 +334,20 @@ let warn_term =
   in
   Arg.value (Arg.flag info)
 
+let no_skip_search_term =
+  let info =
+    Arg.info [ "no-skip-search" ]
+      ~doc:
+        "Disable the optimization that performs a first inspection of the \
+         parsed pattern and parsed target and determines in some cases that \
+         there can't be a match. Disabling this optimization forces the normal \
+         search function to be called no matter what."
+  in
+  Arg.value (Arg.flag info)
+
 let cmdline_term =
   let combine case_insensitive color output_format debug force pattern
-      pattern_files anon_doc_file doc_files time timeout warn =
+      pattern_files anon_doc_file doc_files time timeout warn no_skip_search =
     let doc_files =
       match anon_doc_file with None -> doc_files | Some x -> x :: doc_files
     in
@@ -344,12 +363,14 @@ let cmdline_term =
       time;
       timeout;
       warn;
+      no_skip_search;
     }
   in
   Term.(
     const combine $ case_insensitive_term $ color_term $ output_format_term
     $ debug_term $ force_term $ pattern_term $ pattern_file_term
-    $ anon_doc_file_term $ doc_file_term $ time_term $ timeout_term $ warn_term)
+    $ anon_doc_file_term $ doc_file_term $ time_term $ timeout_term $ warn_term
+    $ no_skip_search_term)
 
 let doc = "match a pattern against any program"
 
