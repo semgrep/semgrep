@@ -83,6 +83,7 @@ val print :
    Print the results of matching multiple patterns against multiple documents.
 *)
 val print_nested_results :
+  ?with_time:bool ->
   ?highlight:bool ->
   ?print_optional_separator:(unit -> unit) ->
   (Src_file.t * (pattern_id * match_ list * float) list * float * float) list ->

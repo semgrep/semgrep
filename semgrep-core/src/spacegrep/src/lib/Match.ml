@@ -527,16 +527,23 @@ let print_errors ?(highlight = false) errors =
         | File path -> sprintf "%s: " path
         | Stdin | String | Channel -> ""
       in
-      Printf.eprintf "%s %s%s\n" error_prefix src_prefix error.Parse_pattern.msg)
+      eprintf "%s %s%s\n" error_prefix src_prefix error.Parse_pattern.msg)
     errors
 
-let print_nested_results ?highlight
+let print_nested_results ?(with_time = false) ?highlight
     ?(print_optional_separator = make_separator_printer ()) doc_matches errors =
+  let total_parse_time = ref 0. in
+  let total_match_time = ref 0. in
   List.iter
-    (fun (src, pat_matches, _parse_time, _run_time) ->
+    (fun (src, pat_matches, parse_time, _run_time) ->
+      total_parse_time := !total_parse_time +. parse_time;
       List.iter
-        (fun (_pat_id, matches, _match_time) ->
+        (fun (_pat_id, matches, match_time) ->
+          total_match_time := !total_match_time +. match_time;
           print ?highlight ~print_optional_separator src matches)
         pat_matches)
     doc_matches;
+  if with_time then
+    printf "parse time: %.6f s\nmatch time: %.6f s\n" !total_parse_time
+      !total_match_time;
   print_errors ?highlight errors

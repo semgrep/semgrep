@@ -57,10 +57,10 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
         let matches, run_time =
           Match.timef (fun () ->
               (*
-         We inspect the first 4096 bytes to guess whether the file type.
-         This saves time on large files, by reading typically just one
-         block from the file system.
-      *)
+                 We inspect the first 4096 bytes to guess whether the
+                 file type. This saves time on large files, by reading
+                 typically just one block from the file system.
+              *)
               let peek_length = 4096 in
               let partial_doc_src = get_doc_src ~max_len:peek_length () in
               let doc_type = File_type.classify partial_doc_src in
@@ -88,7 +88,6 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
                   let matches_in_file =
                     List.mapi
                       (fun pat_id (pat_src, pat) ->
-                        (* TODO: Shouldn't we assign pattern ids earlier? *)
                         if debug then
                           printf
                             "match document from %s against pattern from %s\n%!"
@@ -172,7 +171,9 @@ let run config =
       ~no_skip_search:config.no_skip_search patterns docs
   in
   ( match config.output_format with
-  | Text -> Match.print_nested_results ~highlight matches errors
+  | Text ->
+      Match.print_nested_results ~with_time:config.time ~highlight matches
+        errors
   | Semgrep -> Semgrep.print_semgrep_json ~with_time:config.time matches errors
   );
   if debug then (
@@ -306,7 +307,10 @@ let doc_file_term =
 let time_term =
   let info =
     Arg.info [ "time" ]
-      ~doc:"Include matching times in the json output ('semgrep' format)."
+      ~doc:
+        "Include parsing and matching times in the output.\n\
+        \            This is an extra json field if the output is json\n\
+        \            ('semgrep' format)."
   in
   Arg.value (Arg.flag info)
 
