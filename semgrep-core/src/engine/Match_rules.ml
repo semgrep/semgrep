@@ -111,7 +111,7 @@ type env = {
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   file : Common.filename;
-  rule : R.rule;
+  rule_id : string;
   xlang : R.xlang;
   equivalences : Equivalence.equivalences;
 }
@@ -643,7 +643,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   match List.assoc_opt mvar bindings with
   | None ->
       (* THINK: fatal error instead? *)
-      logger#error "rule %s: metavariable-pattern: %s not found" env.rule.id
+      logger#error "rule %s: metavariable-pattern: %s not found" env.rule_id
         mvar;
       false
   | Some mval -> (
@@ -660,7 +660,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
               (* THINK: fatal error instead? *)
               logger#error
                 "rule %s: metavariable-pattern: %s does not bound a sub-program"
-                env.rule.id mvar;
+                env.rule_id mvar;
               false
           | Some mast ->
               let lazy_ast_and_errors = lazy (mast, []) in
@@ -697,7 +697,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                           (spf
                              "rule %s: metavariable-pattern: failed to fully \
                               parse the content of %s"
-                             env.rule.id mvar);
+                             env.rule_id mvar);
                       (ast, errors)
                   | R.LRegex | R.LGeneric ->
                       failwith "requesting generic AST for LRegex|LGeneric" )
@@ -718,7 +718,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
           (* THINK: fatal error instead? *)
           logger#error
             "rule %s: metavariable-pattern: the content of %s is not text"
-            env.rule.id mvar;
+            env.rule_id mvar;
           false )
 
 and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
@@ -901,7 +901,7 @@ let check hook default_config rules equivs file_and_more =
                    config;
                    pattern_matches = dummy_matches;
                    file;
-                   rule = r;
+                   rule_id = r.id;
                    xlang;
                    equivalences = equivs;
                  }
