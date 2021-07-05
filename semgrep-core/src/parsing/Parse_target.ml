@@ -297,6 +297,7 @@ let just_parse_with_lang lang file =
         stat = Parse_info.default_stat file;
       }
   | Lang.HTML -> failwith "No HTML generic parser yet"
+  | Lang.Vue -> failwith "No Vue parser yet"
 
 (*****************************************************************************)
 (* Entry point *)

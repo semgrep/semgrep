@@ -109,6 +109,7 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.R -> failwith "No R generic parser yet"
     | Lang.Yaml -> Yaml_to_generic.any str
     | Lang.HTML -> failwith "No HTML generic parser yet"
+    | Lang.Vue -> failwith "No Vue parser yet"
   in
 
   Caching.prepare_pattern any;

@@ -16,6 +16,7 @@ type t =
   (* mainstream with Gc *)
   | Javascript
   | Typescript
+  | Vue
   | Java
   | Kotlin
   | Csharp
