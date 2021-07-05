@@ -111,7 +111,7 @@ type env = {
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   file : Common.filename;
-  rule : R.rule;
+  rule_id : string;
   xlang : R.xlang;
   equivalences : Equivalence.equivalences;
 }
@@ -643,7 +643,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   match List.assoc_opt mvar bindings with
   | None ->
       (* THINK: fatal error instead? *)
-      logger#error "rule %s: metavariable-pattern: %s not found" env.rule.id
+      logger#error "rule %s: metavariable-pattern: %s not found" env.rule_id
         mvar;
       false
   | Some mval -> (
@@ -660,7 +660,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
               (* THINK: fatal error instead? *)
               logger#error
                 "rule %s: metavariable-pattern: %s does not bound a sub-program"
-                env.rule.id mvar;
+                env.rule_id mvar;
               false
           | Some mast ->
               let lazy_ast_and_errors = lazy (mast, []) in
@@ -697,7 +697,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                           (spf
                              "rule %s: metavariable-pattern: failed to fully \
                               parse the content of %s"
-                             env.rule.id mvar);
+                             env.rule_id mvar);
                       (ast, errors)
                   | R.LRegex | R.LGeneric ->
                       failwith "requesting generic AST for LRegex|LGeneric" )
@@ -718,13 +718,15 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
           (* THINK: fatal error instead? *)
           logger#error
             "rule %s: metavariable-pattern: the content of %s is not text"
-            env.rule.id mvar;
+            env.rule_id mvar;
           false )
 
 and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
     opt_context =
   let _, final_ranges =
-    matches_of_formula env formula lazy_ast_and_errors lazy_content opt_context
+    let file_and_more = (env.file, env.xlang, lazy_ast_and_errors) in
+    matches_of_formula env.config env.equivalences env.rule_id file_and_more
+      lazy_content formula opt_context
   in
   match final_ranges with [] -> false | _ :: _ -> true
 
@@ -838,24 +840,33 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
   | S.Leaf (R.MetavarCond _) ->
       failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
 
-and matches_of_formula env formula lazy_ast_and_errors lazy_content opt_context
-    =
+and matches_of_formula config equivs rule_id file_and_more lazy_content formula
+    opt_context =
+  let file, xlang, lazy_ast_and_errors = file_and_more in
   let match_func =
-    matches_of_patterns env.config env.equivalences
-      (env.file, env.xlang, lazy_ast_and_errors)
+    matches_of_patterns config equivs (file, xlang, lazy_ast_and_errors)
   in
   let formula = S.formula_to_sformula match_func formula in
   let xpatterns = xpatterns_in_formula formula in
   let res =
-    matches_of_xpatterns env.config env.equivalences
-      (env.file, env.xlang, lazy_ast_and_errors, lazy_content)
+    matches_of_xpatterns config equivs
+      (file, xlang, lazy_ast_and_errors, lazy_content)
       xpatterns
   in
   logger#info "found %d matches" (List.length res.matches);
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
-  let env = { env with pattern_matches = pattern_matches_per_id } in
+  let env =
+    {
+      config;
+      pattern_matches = pattern_matches_per_id;
+      file;
+      rule_id;
+      xlang;
+      equivalences = equivs;
+    }
+  in
   logger#info "evaluating the formula";
   let final_ranges = evaluate_formula env opt_context formula in
   logger#info "found %d final ranges" (List.length final_ranges);
@@ -867,7 +878,7 @@ and matches_of_formula env formula lazy_ast_and_errors lazy_content opt_context
 (*****************************************************************************)
 
 let check hook default_config rules equivs file_and_more =
-  let file, xlang, lazy_ast_and_errors = file_and_more in
+  let file, _xlang, lazy_ast_and_errors = file_and_more in
   logger#info "checking %s with %d rules" file (List.length rules);
   if rules = [] then logger#error "empty rules";
   if !Common.profile = Common.ProfAll then (
@@ -894,21 +905,9 @@ let check hook default_config rules equivs file_and_more =
              else
                let formula = Rule.formula_of_rule r in
                let config = r.options ||| default_config in
-               let dummy_matches = Hashtbl.create 1 in
-               (* TODO this is ugly*)
-               let env =
-                 {
-                   config;
-                   pattern_matches = dummy_matches;
-                   file;
-                   rule = r;
-                   xlang;
-                   equivalences = equivs;
-                 }
-               in
                let res, final_ranges =
-                 matches_of_formula env formula lazy_ast_and_errors lazy_content
-                   None
+                 matches_of_formula config equivs r.id file_and_more
+                   lazy_content formula None
                in
                {
                  matches =
