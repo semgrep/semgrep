@@ -63,6 +63,8 @@ type t =
   (* config files *)
   | JSON
   | Yaml
+  (* doc files *)
+  | HTML
 
 (*e: type [[Lang.t]] *)
 [@@ocamlformat "disable"]
@@ -111,6 +113,7 @@ let list_of_lang =
     ("r", R);
     ("yaml", Yaml);
     ("scala", Scala);
+    ("html", HTML);
   ]
 
 (*e: constant [[Lang.list_of_lang]] *)
@@ -151,6 +154,7 @@ let langs_of_filename filename =
   | FT.PL FT.Rust -> [ Rust ]
   | FT.PL FT.R -> [ R ]
   | FT.PL FT.Scala -> [ Scala ]
+  | FT.PL (FT.Web FT.Html) -> [ HTML ]
   | _ -> []
 
 (*e: function [[Lang.langs_of_filename]] *)
@@ -178,6 +182,7 @@ let string_of_lang = function
   | R -> "R"
   | Yaml -> "Yaml"
   | Scala -> "Scala"
+  | HTML -> "HTML"
 
 (* must match [a-z][a-z0-9]* *)
 let to_lowercase_alnum = function
@@ -202,6 +207,7 @@ let to_lowercase_alnum = function
   | Scala -> "scala"
   | Typescript -> "typescript"
   | Yaml -> "yaml"
+  | HTML -> "html"
 
 (*e: function [[Lang.string_of_lang]] *)
 
@@ -227,6 +233,7 @@ let ext_of_lang = function
   | R -> [ "r"; "R" ]
   | Yaml -> [ "yaml"; "yml" ]
   | Scala -> [ "scala" ]
+  | HTML -> [ "html"; "htm" ]
 
 (*e: function [[Lang.ext_of_lang]] *)
 

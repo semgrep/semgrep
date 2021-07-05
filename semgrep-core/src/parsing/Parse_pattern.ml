@@ -108,6 +108,7 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Cplusplus -> failwith "No C++ generic parser yet"
     | Lang.R -> failwith "No R generic parser yet"
     | Lang.Yaml -> Yaml_to_generic.any str
+    | Lang.HTML -> failwith "No HTML generic parser yet"
   in
 
   Caching.prepare_pattern any;
