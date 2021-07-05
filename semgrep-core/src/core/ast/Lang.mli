@@ -33,6 +33,8 @@ type t =
   (* config files *)
   | JSON
   | Yaml
+  (* doc files *)
+  | HTML
 
 (*e: type [[Lang.t]] *)
 
