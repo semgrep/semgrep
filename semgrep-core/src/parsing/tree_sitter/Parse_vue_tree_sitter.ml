@@ -1,4 +1,4 @@
-(* Colleen Dai
+(* Yoann Padioleau
  *
  * Copyright (c) 2021 R2C
  *
@@ -52,7 +52,7 @@ let sc = PI.fake_info ";"
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
-(* This was started by copying tree-sitter-lang/semgrep-kotlin/Boilerplate.ml *)
+(* This was started by copying tree-sitter-lang/semgrep-vue/Boilerplate.ml *)
 
 (**
    Boilerplate to be used as a template when mapping the vue CST
