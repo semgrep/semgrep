@@ -296,7 +296,9 @@ let just_parse_with_lang lang file =
         errors = [];
         stat = Parse_info.default_stat file;
       }
-  | Lang.HTML -> failwith "No HTML generic parser yet"
+  | Lang.HTML ->
+      (* less: there is an html parser in pfff too we could use as backup *)
+      run file [ TreeSitter Parse_html_tree_sitter.parse ] (fun x -> x)
   | Lang.Vue -> failwith "No Vue parser yet"
 
 (*****************************************************************************)
