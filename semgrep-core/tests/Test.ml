@@ -250,6 +250,12 @@ let lang_parsing_tests =
       let lang = Lang.Scala in
       parsing_tests_for_lang files lang
     );
+    "HTML" >::: (
+      let dir = Filename.concat tests_path "html/parsing" in
+      let files = Common2.glob (spf "%s/*.html" dir) in
+      let lang = Lang.HTML in
+      parsing_tests_for_lang files lang
+    );
   ]
 
 (*s: constant [[Test.lang_regression_tests]] *)
