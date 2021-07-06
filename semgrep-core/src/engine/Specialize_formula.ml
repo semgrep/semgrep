@@ -106,14 +106,15 @@ let formula_to_sformula match_func formula =
           in
           remove_selectors (selector, acc) xs
     in
-    let convert_and_formulas fs =
+    let _convert_and_formulas fs =
+      (* TODO put back this function *)
       let selector, fs = remove_selectors (None, []) fs in
       (selector, List.map formula_to_sformula fs)
     in
     (* Visit formula and convert *)
     match formula with
     | R.Leaf leaf -> Leaf leaf
-    | R.And fs -> And (convert_and_formulas fs)
+    | R.And fs -> And (None, List.map formula_to_sformula fs)
     | R.Or fs -> Or (List.map formula_to_sformula fs)
     | R.Not f -> Not (formula_to_sformula f)
   in
