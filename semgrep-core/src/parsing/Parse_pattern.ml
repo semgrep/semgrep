@@ -75,7 +75,7 @@ let parse_pattern lang ?(print_errors = false) str =
         let any = Parse_python.any_of_string ~parsing_mode str in
         Python_to_generic.any any
     (* abusing JS parser so no need extend tree-sitter grammar*)
-    | Lang.Typescript | Lang.Javascript ->
+    | Lang.Typescript | Lang.Javascript | Lang.Vue ->
         let any = Parse_js.any_of_string str in
         Js_to_generic.any any
     | Lang.JSON ->
@@ -114,7 +114,6 @@ let parse_pattern lang ?(print_errors = false) str =
     (* not yet handled *)
     | Lang.Cplusplus -> failwith "No C++ generic parser yet"
     | Lang.R -> failwith "No R generic parser yet"
-    | Lang.Vue -> failwith "No Vue parser yet"
   in
 
   Caching.prepare_pattern any;
