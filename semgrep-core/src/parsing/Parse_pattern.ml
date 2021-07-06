@@ -53,6 +53,7 @@ let extract_pattern_from_tree_sitter_result
 let parse_pattern lang ?(print_errors = false) str =
   let any =
     match lang with
+    (* directly to generic AST any using tree-sitter only *)
     | Lang.Csharp ->
         let res = Parse_csharp_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
@@ -64,6 +65,9 @@ let parse_pattern lang ?(print_errors = false) str =
         extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Kotlin ->
         let res = Parse_kotlin_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.HTML ->
+        let res = Parse_html_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
     (* use pfff *)
     | Lang.Python | Lang.Python2 | Lang.Python3 ->
@@ -105,9 +109,12 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Hack ->
         let any = Parse_hack_tree_sitter.any_of_string `Pattern str in
         Php_to_generic.any any
+    (* use adhoc parser (neither pfff nor tree-sitter) *)
+    | Lang.Yaml -> Yaml_to_generic.any str
+    (* not yet handled *)
     | Lang.Cplusplus -> failwith "No C++ generic parser yet"
     | Lang.R -> failwith "No R generic parser yet"
-    | Lang.Yaml -> Yaml_to_generic.any str
+    | Lang.Vue -> failwith "No Vue parser yet"
   in
 
   Caching.prepare_pattern any;

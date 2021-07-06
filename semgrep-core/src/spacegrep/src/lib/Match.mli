@@ -53,7 +53,8 @@ val timef : (unit -> 'a) -> 'a * float
    of the case-sensitivity setting.
 *)
 val search :
-  ?case_sensitive:bool ->
+  no_skip_search:bool ->
+  case_sensitive:bool ->
   Src_file.t ->
   Pattern_AST.t ->
   Doc_AST.t ->
@@ -61,7 +62,8 @@ val search :
 
 (* Same as 'search', but also returns the time it took. *)
 val timed_search :
-  ?case_sensitive:bool ->
+  no_skip_search:bool ->
+  case_sensitive:bool ->
   Src_file.t ->
   Pattern_AST.t ->
   Doc_AST.t ->
@@ -81,6 +83,7 @@ val print :
    Print the results of matching multiple patterns against multiple documents.
 *)
 val print_nested_results :
+  ?with_time:bool ->
   ?highlight:bool ->
   ?print_optional_separator:(unit -> unit) ->
   (Src_file.t * (pattern_id * match_ list * float) list * float * float) list ->

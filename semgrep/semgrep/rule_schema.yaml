@@ -291,6 +291,9 @@ properties:
         metadata:
           title: Arbitrary structured data for your own reference
           type: object
+        options:
+          title: Options object to enable/disable certain matching features in semgrep-core
+          type: object
         pattern:
           title: Return finding where Semgrep pattern matches exactly
           type: string

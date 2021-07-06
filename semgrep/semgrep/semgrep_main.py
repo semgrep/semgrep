@@ -24,6 +24,7 @@ from semgrep.error import Level
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.metric_manager import metric_manager
+from semgrep.old_core_runner import OldCoreRunner
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
@@ -261,23 +262,43 @@ The two most popular are:
 
     start_time = time.time()
     # actually invoke semgrep
-    (
-        rule_matches_by_rule,
-        debug_steps_by_rule,
-        semgrep_errors,
-        all_targets,
-        profiling_data,
-    ) = CoreRunner(
-        output_settings=output_handler.settings,
-        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
-        jobs=jobs,
-        timeout=timeout,
-        max_memory=max_memory,
-        timeout_threshold=timeout_threshold,
-        optimizations=optimizations,
-    ).invoke_semgrep(
-        target_manager, profiler, filtered_rules
-    )
+    if optimizations == "none":
+        (
+            rule_matches_by_rule,
+            debug_steps_by_rule,
+            semgrep_errors,
+            all_targets,
+            profiling_data,
+        ) = OldCoreRunner(
+            output_settings=output_handler.settings,
+            allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+            jobs=jobs,
+            timeout=timeout,
+            max_memory=max_memory,
+            timeout_threshold=timeout_threshold,
+            optimizations=optimizations,
+        ).invoke_semgrep(
+            target_manager, profiler, filtered_rules
+        )
+    else:
+        (
+            rule_matches_by_rule,
+            debug_steps_by_rule,
+            semgrep_errors,
+            all_targets,
+            profiling_data,
+        ) = CoreRunner(
+            output_settings=output_handler.settings,
+            allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+            jobs=jobs,
+            timeout=timeout,
+            max_memory=max_memory,
+            timeout_threshold=timeout_threshold,
+            optimizations=optimizations,
+        ).invoke_semgrep(
+            target_manager, profiler, filtered_rules
+        )
+
     profiler.save("total_time", start_time)
 
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -336,7 +357,9 @@ The two most popular are:
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
         metric_manager.set_total_bytes_scanned(total_bytes_scanned)
         metric_manager.set_errors(list(type(e).__name__ for e in semgrep_errors))
-        metric_manager.set_run_timings(profiling_data, all_targets, filtered_rules)
+        metric_manager.set_run_timings(
+            profiling_data, list(all_targets), filtered_rules
+        )
 
     output_handler.handle_semgrep_core_output(
         rule_matches_by_rule,

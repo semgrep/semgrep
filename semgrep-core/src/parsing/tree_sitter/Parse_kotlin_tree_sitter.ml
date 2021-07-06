@@ -23,7 +23,7 @@ module G = AST_generic
 (* Prelude *)
 (*****************************************************************************)
 (* kotlin parser using tree-sitter-lang/semgrep-kotlin and converting
- * directly to pfff/h_program-lang/ast_generic.ml
+ * directly to AST_generic.ml
  *
  *)
 

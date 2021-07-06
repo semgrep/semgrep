@@ -13,6 +13,8 @@ type node = Atom of Loc.t * atom | List of node list
 
 type t = node list [@@deriving show]
 
+let list_map_tailrec f l = List.rev_map f l |> List.rev
+
 (*
    For convenience of implementation, a document is parsed as a pattern.
    Here we convert the pattern-specific constructs to normal document
@@ -68,7 +70,7 @@ and of_pattern_node acc pat_node =
       :: acc
   | List pat -> List (of_pattern pat) :: acc
 
-let rec to_pattern (doc : t) : Pattern_AST.t = List.map to_pat_node doc
+let rec to_pattern (doc : t) : Pattern_AST.t = list_map_tailrec to_pat_node doc
 
 and to_pat_node (node : node) : Pattern_AST.node =
   match node with

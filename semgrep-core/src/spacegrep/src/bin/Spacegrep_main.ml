@@ -24,6 +24,7 @@ type config = {
   time : bool;
   timeout : int option;
   warn : bool;
+  no_skip_search : bool;
 }
 
 type matches = {
@@ -44,7 +45,8 @@ let detect_highlight when_use_color oc =
 (*
    Run all the patterns on all the documents.
 *)
-let run_all ~case_sensitive ~debug ~force ~warn patterns docs : matches =
+let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
+    matches =
   let num_files = ref 0 in
   let num_analyzed = ref 0 in
   let num_matching_files = ref 0 in
@@ -55,10 +57,10 @@ let run_all ~case_sensitive ~debug ~force ~warn patterns docs : matches =
         let matches, run_time =
           Match.timef (fun () ->
               (*
-         We inspect the first 4096 bytes to guess whether the file type.
-         This saves time on large files, by reading typically just one
-         block from the file system.
-      *)
+                 We inspect the first 4096 bytes to guess whether the
+                 file type. This saves time on large files, by reading
+                 typically just one block from the file system.
+              *)
               let peek_length = 4096 in
               let partial_doc_src = get_doc_src ~max_len:peek_length () in
               let doc_type = File_type.classify partial_doc_src in
@@ -86,14 +88,14 @@ let run_all ~case_sensitive ~debug ~force ~warn patterns docs : matches =
                   let matches_in_file =
                     List.mapi
                       (fun pat_id (pat_src, pat) ->
-                        (* TODO: Shouldn't we assign pattern ids earlier? *)
                         if debug then
                           printf
                             "match document from %s against pattern from %s\n%!"
                             (Src_file.source_string doc_src)
                             (Src_file.source_string pat_src);
                         let matches_for_pat, match_time =
-                          Match.timed_search ~case_sensitive doc_src pat doc
+                          Match.timed_search ~no_skip_search ~case_sensitive
+                            doc_src pat doc
                         in
                         num_matches :=
                           !num_matches + List.length matches_for_pat;
@@ -165,10 +167,13 @@ let run config =
   let { matches; num_analyzed; num_files; num_matches; num_matching_files } =
     run_all
       ~case_sensitive:(not config.case_insensitive)
-      ~debug ~force:config.force ~warn:config.warn patterns docs
+      ~debug ~force:config.force ~warn:config.warn
+      ~no_skip_search:config.no_skip_search patterns docs
   in
   ( match config.output_format with
-  | Text -> Match.print_nested_results ~highlight matches errors
+  | Text ->
+      Match.print_nested_results ~with_time:config.time ~highlight matches
+        errors
   | Semgrep -> Semgrep.print_semgrep_json ~with_time:config.time matches errors
   );
   if debug then (
@@ -212,12 +217,10 @@ let case_insensitive_term =
     Arg.info
       [ "case-insensitive"; "i" ]
       ~doc:
-        "Match ascii letters in a case-insensitive fashion.\n\
-        \            For example, the pattern 'Hello' will match both 'HellO'\n\
-        \            and 'hello'.\n\
-        \            However, backreferences must still match exactly e.g.\n\
-        \            the pattern '\\$A + \\$A' will match 'foo + foo'\n\
-        \            but not 'foo + Foo'."
+        "Match ascii letters in a case-insensitive fashion. For example, the \
+         pattern 'Hello' will match both 'HellO' and 'hello'. However, \
+         backreferences must still match exactly e.g. the pattern '\\$A + \
+         \\$A' will match 'foo + foo' but not 'foo + Foo'."
   in
   Arg.value (Arg.flag info)
 
@@ -225,8 +228,8 @@ let color_term =
   let info =
     Arg.info [ "color" ]
       ~doc:
-        "Whether to highlight matching text. Valid values are 'auto'\n\
-        \            (default), 'always', and 'never'."
+        "Whether to highlight matching text. Valid values are 'auto' \
+         (default), 'always', and 'never'."
   in
   Arg.value (Arg.opt color_conv Auto info)
 
@@ -234,14 +237,11 @@ let output_format_term =
   let info =
     Arg.info [ "output-format" ]
       ~doc:
-        "Specifies how to print the matches. The default format, 'text',\n\
-        \            is an unspecified human-readable format. The other \
-         available\n\
-        \            format is 'semgrep', which produces json output for \
-         internal\n\
-        \            consumption by the semgrep front-end. Use a program like \
-         'jq'\n\
-        \            or 'ydump' for pretty-printing this json output."
+        "Specifies how to print the matches. The default format, 'text', is an \
+         unspecified human-readable format. The other format is 'semgrep', \
+         which produces json output for consumption by the semgrep front-end. \
+         Use a program like 'jq' or 'ydump' for pretty-printing this json \
+         output."
   in
   Arg.value (Arg.opt output_format_conv Text info)
 
@@ -262,27 +262,19 @@ let pattern_term =
   let info =
     Arg.info [] ~docv:"PATTERN"
       ~doc:
-        "$(docv) is a pattern. Any text is a valid pattern. The special\n\
-        \            constructs '...' and uppercase metavariables such as '$X'\n\
-        \            are supported. Each '...' allows skipping non-matching \
-         input in the\n\
-        \            same block or in sub-blocks, spanning at most 10 lines.\n\
-        \            Metavariables will capture words. If the same \
-         metavariable occurs\n\
-        \            in multiple places in the pattern, it must capture the same\n\
-        \            word everywhere.\n\
-        \            Indentation in the pattern is significant and is useful to\n\
-        \            specify how far '...' extends. Any nesting in the pattern\n\
-        \            must match the nesting in the document.\n\
-        \            However, a flat pattern may still match a nested document.\n\
-        \            Nesting in the document is determined primarily by \
-         indentation\n\
-        \            but also by matching standard ascii braces that occur on \
-         the same\n\
-        \            line ('()', '[]', {}').\n\
-        \            Use the companion command 'spacecat' to see how a document\n\
-        \            or a pattern is interpreted by 'spacegrep'.\n\
-        \            "
+        "$(docv) is a pattern. Any text is a valid pattern. The special \
+         constructs '...' and uppercase metavariables such as '$X' are \
+         supported. Each '...' allows skipping non-matching input in the same \
+         block or in sub-blocks, spanning at most 10 lines. Metavariables will \
+         capture words. If the same metavariable occurs in multiple places in \
+         the pattern, it must capture the same word everywhere. Indentation in \
+         the pattern is significant and is useful to specify how far '...' \
+         extends. Any nesting in the pattern must match the nesting in the \
+         document. However, a flat pattern may still match a nested document. \
+         Nesting in the document is determined primarily by indentation but \
+         also by matching standard ascii braces that occur on the same line \
+         ('()', '[]', {}'). Use the companion command 'spacecat' to see how a \
+         document or a pattern is interpreted by 'spacegrep'."
   in
   Arg.value (Arg.pos 0 Arg.(some string) None info)
 
@@ -297,9 +289,8 @@ let anon_doc_file_term =
   let info =
     Arg.info [] ~docv:"FILE"
       ~doc:
-        "Read documents from file or directory $(docv).\n\
-        \            This disables document input from stdin.\n\
-        \            Same as using '-d' or '--docfile'."
+        "Read documents from file or directory $(docv). This disables document \
+         input from stdin. Same as using '-d' or '--docfile'."
   in
   Arg.value (Arg.pos 1 Arg.(some string) None info)
 
@@ -307,17 +298,19 @@ let doc_file_term =
   let info =
     Arg.info [ "docfile"; "d" ] ~docv:"FILE"
       ~doc:
-        "Read documents from file or root directory $(docv).\n\
-        \            This disables document input from stdin.\n\
-        \            This option can be used multiple times to specify multiple\n\
-        \            files or scanning roots."
+        "Read documents from file or root directory $(docv). This disables \
+         document input from stdin. This option can be used multiple times to \
+         specify multiple files or scanning roots."
   in
   Arg.value (Arg.opt_all Arg.string [] info)
 
 let time_term =
   let info =
     Arg.info [ "time" ]
-      ~doc:"Include matching times in the json output ('semgrep' format)."
+      ~doc:
+        "Include parsing and matching times in the output.\n\
+        \            This is an extra json field if the output is json\n\
+        \            ('semgrep' format)."
   in
   Arg.value (Arg.flag info)
 
@@ -326,8 +319,8 @@ let timeout_term =
     Arg.info [ "timeout" ] ~docv:"SECONDS"
       ~doc:
         (sprintf
-           "Exit with code %i if the\n\
-           \                     task is not finished after $(docv) seconds."
+           "Exit with code %i if the task is not finished after $(docv) \
+            seconds."
            timeout_exit_code)
   in
   Arg.value (Arg.opt Arg.(some int) None info)
@@ -336,14 +329,25 @@ let warn_term =
   let info =
     Arg.info [ "warn"; "w" ]
       ~doc:
-        "Print warnings about files that can't be processed such\n\
-        \            as binary files or minified files."
+        "Print warnings about files that can't be processed such as binary \
+         files or minified files."
+  in
+  Arg.value (Arg.flag info)
+
+let no_skip_search_term =
+  let info =
+    Arg.info [ "no-skip-search" ]
+      ~doc:
+        "Disable the optimization that performs a first inspection of the \
+         parsed pattern and parsed target and determines in some cases that \
+         there can't be a match. Disabling this optimization forces the normal \
+         search function to be called no matter what."
   in
   Arg.value (Arg.flag info)
 
 let cmdline_term =
   let combine case_insensitive color output_format debug force pattern
-      pattern_files anon_doc_file doc_files time timeout warn =
+      pattern_files anon_doc_file doc_files time timeout warn no_skip_search =
     let doc_files =
       match anon_doc_file with None -> doc_files | Some x -> x :: doc_files
     in
@@ -359,12 +363,14 @@ let cmdline_term =
       time;
       timeout;
       warn;
+      no_skip_search;
     }
   in
   Term.(
     const combine $ case_insensitive_term $ color_term $ output_format_term
     $ debug_term $ force_term $ pattern_term $ pattern_file_term
-    $ anon_doc_file_term $ doc_file_term $ time_term $ timeout_term $ warn_term)
+    $ anon_doc_file_term $ doc_file_term $ time_term $ timeout_term $ warn_term
+    $ no_skip_search_term)
 
 let doc = "match a pattern against any program"
 

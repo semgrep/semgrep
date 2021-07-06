@@ -1,9 +1,9 @@
 rules:
-- id: test-settings
+- id: test-options
   patterns:
   - pattern: |
         foo(1)
-  settings:
+  options:
     constant_propagation: false
   message: Working!
   severity: WARNING

@@ -105,6 +105,9 @@ let dump_tree_sitter_cst lang file =
   | Lang.Cplusplus ->
       Tree_sitter_cpp.Parse.file file
       |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
+  | Lang.HTML ->
+      Tree_sitter_html.Parse.file file
+      |> dump_and_print_errors Tree_sitter_html.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang xs =
@@ -150,6 +153,8 @@ let test_parse_tree_sitter lang xs =
                      Tree_sitter_c.Parse.file file |> fail_on_error |> ignore
                  | Lang.Cplusplus ->
                      Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
+                 | Lang.HTML ->
+                     Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
                  | _ ->
                      failwith
                        (spf "lang %s not supported with tree-sitter"
@@ -175,6 +180,7 @@ let test_parse_tree_sitter lang xs =
    semgrep scans.
 *)
 let parsing_common ?(verbose = true) lang xs =
+  let timeout_seconds = 10 in
   let xs = List.map Common.fullpath xs in
   let fullxs =
     Lang.files_of_dirs_or_files lang xs
@@ -186,13 +192,16 @@ let parsing_common ?(verbose = true) lang xs =
          let stat =
            try
              let res =
-               Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang
-                 file
+               Common.timeout_function ~verbose:false timeout_seconds (fun () ->
+                   Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
+                     lang file)
              in
              res.Parse_target.stat
-           with exn ->
+           with exn -> (
              if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-             PI.bad_stat file
+             match exn with
+             | Timeout -> { (PI.bad_stat file) with have_timeout = true }
+             | _else_ -> PI.bad_stat file )
          in
          stat)
 

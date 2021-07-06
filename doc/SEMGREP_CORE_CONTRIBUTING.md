@@ -549,6 +549,6 @@ shared by all languages in semgrep.
 
 These guides go over the integration work in more details:
 
-* [How to add support for a new language](https://github.com/returntocorp/ocaml-tree-sitter/blob/master/doc/adding-a-language.md)
-* [How to upgrade the grammar for a language](https://github.com/returntocorp/ocaml-tree-sitter/blob/master/doc/updating-a-grammar.md)
+* [How to add support for a new language](https://github.com/returntocorp/ocaml-tree-sitter-semgrep/blob/master/doc/adding-a-language.md)
+* [How to upgrade the grammar for a language](https://github.com/returntocorp/ocaml-tree-sitter-semgrep/blob/master/doc/updating-a-grammar.md)
 * [Tips for converting CST to generic AST](cst-to-ast-tips.md)

@@ -2,26 +2,56 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-### Unreleased
+## Unreleased
+
+### Fixed
+- Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)
+- Ruby command shells are distinguished from strings (#3343)
+- Java varargs are now correctly matched (#3455)
+- Support for partial statements (e.g., `try { ... }`) for Java (#3417)
+- Constant propagation now works inside Python `with` statements (#3402)
+
+### Changed
+- Faster matching times for generic mode
+
+## [0.57.0](https://github.com/returntocorp/semgrep/releases/tag/v0.57.0) - 2021-06-29
 
 ### Added
+- new `options:` field in a YAML rule to enable/disable certain features
+  (e.g., constant propagation). See https://github.com/returntocorp/semgrep/blob/develop/semgrep-core/src/core/Config_semgrep.atd
+  for the list of available features one can enable/disable.
 - Capture groups in pattern-regex: in $1, $2, etc. (#3356)
 - Support metavariables inside atoms (e.g., `foo(:$ATOM)`)
 - Support metavariables and ellipsis inside regexp literals
   (e.g., `foo(/.../)`)
 - Associative-commutative matching for bitwise OR, AND, and XOR operations
+- Add support for $...MVAR in generic patterns
 - Add support for $...MVAR in generic patterns.
+- metavariable-pattern: Add support for nested Spacegrep/regex/Comby patterns
+- C#: support ellipsis in method parameters (#3289)
 
 ### Fixed
-- C#: parse __makeref, __reftype, __refvalue (#3364)
+- C#: parse `__makeref`, `__reftype`, `__refvalue` (#3364)
 - Java: parsing of dots inside function annotations with brackets (#3389)
 - Do not pretend that short-circuit Boolean AND and OR operators are commutative (#3399)
 - metavariable-pattern: Fix crash when nesting a non-generic pattern within
   a generic rule
 - metavariable-pattern: Fix parse info when matching content of a metavariable
   under a different language
+- generic mode on Markdown files with very long lines will now work (#2987)
 
 ### Changed
+- generic mode: files that don't look like nicely-indented programs
+  are no longer ignored, which may cause accidental slowdowns in setups
+  where excessively large files are not excluded explicitly (#3418).
+- metavariable-comparison: Fix crash when comparing integers and floats
+  Thanks to Justin Timmons for the fix!
+- Do not filter findings with the same range but different metavariable bindings (#3310)
+- Set parsing_state.have_timeout when a timeout occurs (#3438)
+- Set a timeout of 10s per file (#3434)
+- Improvements to contributing documentation (#3353)
+- Memoize getting ranges to speed up rules with large ranges
+- When anded with other patterns, `pattern: $X` will not be evaluated on its own, but will look at the context and find `$X` within the metavariables bound, which should be significantly faster
 
 ## [0.56.0](https://github.com/returntocorp/semgrep/releases/tag/v0.56.0) - 2021-06-15
 

@@ -12,7 +12,7 @@ let string_of_lval x =
   | Index _ -> "[...]"
 
 let string_of_exp e =
-  match e.e with Lvalue l -> string_of_lval l | _ -> "<EXP>"
+  match e.e with Fetch l -> string_of_lval l | _ -> "<EXP>"
 
 let short_string_of_node_kind nkind =
   match nkind with

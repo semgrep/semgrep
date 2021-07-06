@@ -266,6 +266,17 @@ let map f xs =
       | _ -> n / !ncores
     in
     assert (!ncores > 0 && chunksize > 0);
+    (* Quoting Parmap's README:
+     * > To obtain maximum speed, Parmap tries to pin the worker processes to a CPU
+     * Unfortunately, on the new Apple M1, and depending on the number of workers,
+     * Parmap will enter an infinite loop trying (but failing) to pin a worker to
+     * CPU 0. This only happens with HomeBrew installs, presumably because under
+     * HomeBrew's build environment HAVE_MACH_THREAD_POLICY_H is set
+     * (https://github.com/rdicosmo/parmap/blob/1.2.3/src/setcore_stubs.c#L47).
+     * So, despite it may hurt perf a bit, we disable core pinning to work around
+     * this issue until this is fixed in a future version of Parmap.
+     *)
+    Parmap.disable_core_pinning ();
     Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
 
 (*e: function [[Main_semgrep_core.map]] *)
@@ -682,7 +693,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
 (* coupling: Parse_mini_rule.parse_languages *)
 let xlang_of_string s =
   match s with
-  | "none" | "regex" -> R.LNone
+  | "none" | "regex" -> R.LRegex
   | "generic" -> R.LGeneric
   | _ ->
       let lang = lang_of_string s in
@@ -690,7 +701,7 @@ let xlang_of_string s =
 
 let xlang_files_of_dirs_or_files xlang files_or_dirs =
   match xlang with
-  | R.LNone | R.LGeneric ->
+  | R.LRegex | R.LGeneric ->
       (* TODO: assert is_file ? spacegrep filter files?
        * Anyway right now the Semgrep python wrapper is
        * calling -config with an explicit list of files.
@@ -808,7 +819,7 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
              |> List.filter (fun r ->
                     match (r.R.languages, xlang) with
                     | R.L (x, xs), R.L (lang, _) -> List.mem lang (x :: xs)
-                    | R.LNone, R.LNone | R.LGeneric, R.LGeneric -> true
+                    | R.LRegex, R.LRegex | R.LGeneric, R.LGeneric -> true
                     | _ -> false)
            in
            let hook str env matched_tokens =
@@ -820,8 +831,8 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
              lazy
                ( match xlang with
                | R.L (lang, _) -> parse_generic lang file
-               | R.LNone | R.LGeneric ->
-                   failwith "requesting generic AST for LNone|LGeneric" )
+               | R.LRegex | R.LGeneric ->
+                   failwith "requesting generic AST for LRegex|LGeneric" )
            in
            let res =
              Match_rules.check hook Config_semgrep.default_config rules

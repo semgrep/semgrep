@@ -6,9 +6,9 @@ let lang_has_no_dollar_ids =
   Lang.(
     function
     | Python | Python2 | Python3 | Java | Go | C | Cplusplus | OCaml | JSON
-    | Yaml | Csharp | Kotlin | Lua | R ->
+    | Yaml | Csharp | Kotlin | Lua | R | HTML ->
         true
-    | Javascript | Ruby | Typescript | PHP | Hack | Rust | Scala -> false)
+    | Javascript | Typescript | Vue | Ruby | PHP | Hack | Rust | Scala -> false)
 
 (*e: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
 

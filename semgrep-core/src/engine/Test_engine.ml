@@ -140,7 +140,7 @@ let test_rules ?(ounit_context = false) xs =
                      lang target
                  in
                  (ast, errors)
-             | R.LNone | R.LGeneric -> raise Impossible )
+             | R.LRegex | R.LGeneric -> raise Impossible )
          in
          E.g_errors := [];
          Flag_semgrep.with_opt_cache := false;

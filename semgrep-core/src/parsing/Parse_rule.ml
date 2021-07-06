@@ -193,11 +193,17 @@ let parse_paths = function
       pr2_gen x;
       error "parse_paths"
 
-let parse_settings json =
+let parse_options json =
   let s = J.string_of_json json in
   Common.save_excursion Atdgen_runtime.Util.Json.unknown_field_handler
     (fun _src_loc field_name ->
-      raise (E.InvalidYamlException (spf "unknown setting: %s" field_name)))
+      (* for forward compatibility, better to not raise an exn and just
+       * ignore the new fields.
+       * TODO: we should use a warning/logging infra to report
+       * this in the JSON to the semgrep wrapper and user.
+       *)
+      (*raise (E.InvalidYamlException (spf "unknown option: %s" field_name))*)
+      pr2 (spf "WARNING: unknown option: %s" field_name))
     (fun () -> Config_semgrep_j.t_of_string s)
 
 (*****************************************************************************)
@@ -209,7 +215,7 @@ type _env = string * R.xlang
 let parse_pattern (id, lang) s =
   match lang with
   | R.L (lang, _) -> R.mk_xpat (Sem (H.parse_pattern ~id ~lang s, lang)) s
-  | R.LNone -> failwith "you should not use real pattern with language = none"
+  | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
       match Spacegrep.Parse_pattern.of_src src with
@@ -292,7 +298,7 @@ and parse_formula_new env (x : J.t) : R.formula =
           let xpat = R.mk_xpat (R.Comby s) s in
           R.Leaf (R.P (xpat, None))
       | [ ("where", J.String s) ] ->
-          R.Leaf (R.MetavarCond (R.CondGeneric (parse_metavar_cond s)))
+          R.Leaf (R.MetavarCond (R.CondEval (parse_metavar_cond s)))
       | [ ("metavariable_regex", J.Array [ J.String mvar; J.String re ]) ] ->
           R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env re)))
       | _ ->
@@ -321,19 +327,23 @@ and parse_extra env x =
       match find_fields [ "metavariable" ] xs with
       | [ ("metavariable", Some (J.String metavar)) ], rest ->
           let id, _ = env in
-          let env', opt_lang, rest' =
+          let env', opt_xlang, rest' =
             match find_fields [ "language" ] rest with
             | [ ("language", Some (J.String s)) ], rest' ->
-                let lang =
-                  match Lang.lang_of_string_opt s with
-                  | None ->
-                      raise
-                        (E.InvalidLanguageException
-                           (id, spf "unsupported language: %s" s))
-                  | Some l -> l
+                let xlang =
+                  (* TODO: This code is similar to Main.xlang_of_string. *)
+                  if s =$= "none" || s =$= "regex" then R.LRegex
+                  else if s =$= "generic" then R.LGeneric
+                  else
+                    match Lang.lang_of_string_opt s with
+                    | None ->
+                        raise
+                          (E.InvalidLanguageException
+                             (id, spf "unsupported language: %s" s))
+                    | Some l -> R.L (l, [])
                 in
-                let env' = (id, R.L (lang, [])) in
-                (env', Some lang, rest')
+                let env' = (id, xlang) in
+                (env', Some xlang, rest')
             | ___else___ -> (env, None, rest)
           in
           let pformula =
@@ -344,7 +354,7 @@ and parse_extra env x =
                 error "wrong rule fields"
           in
           let formula = R.formula_of_pformula pformula in
-          R.MetavarPattern (metavar, opt_lang, formula)
+          R.MetavarPattern (metavar, opt_xlang, formula)
       | x ->
           pr2_gen x;
           error "metavariable-pattern:  wrong parse_extra fields" )
@@ -377,7 +387,7 @@ and parse_extra env x =
 
 let parse_languages ~id langs =
   match langs with
-  | [ J.String ("none" | "regex") ] -> R.LNone
+  | [ J.String ("none" | "regex") ] -> R.LRegex
   | [ J.String "generic" ] -> R.LGeneric
   | xs -> (
       let languages =
@@ -418,7 +428,7 @@ let top_fields =
     "fix-regex";
     "paths";
     "equivalences";
-    "settings";
+    "options";
   ]
 
 let parse_json file json =
@@ -441,7 +451,7 @@ let parse_json file json =
                        ("fix-regex", fix_regex_opt);
                        ("paths", paths_opt);
                        ("equivalences", equivs_opt);
-                       ("settings", settings_opt);
+                       ("options", options_opt);
                      ],
                      rest ) ->
                      let languages = parse_languages ~id langs in
@@ -469,7 +479,7 @@ let parse_json file json =
                        paths = Common.map_opt parse_paths paths_opt;
                        equivalences =
                          Common.map_opt parse_equivalences equivs_opt;
-                       settings = Common.map_opt parse_settings settings_opt;
+                       options = Common.map_opt parse_options options_opt;
                      }
                  | x ->
                      pr2_gen x;

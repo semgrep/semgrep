@@ -145,6 +145,7 @@ let check_files fparser xs =
          | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
+  if fullxs = [] then logger#error "no rules to check";
   fullxs
   |> List.iter (fun file ->
          logger#info "processing %s" file;
