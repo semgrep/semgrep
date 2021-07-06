@@ -1,0 +1,11 @@
+rules:
+- id: test
+  patterns:
+    - pattern: 
+        $X
+    - pattern-inside: |
+        f($X, ...)
+        ...
+  message: Semgrep found a match
+  languages: [python]
+  severity: WARNING
