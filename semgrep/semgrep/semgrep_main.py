@@ -12,6 +12,7 @@ from typing import Tuple
 from typing import Union
 
 import attr
+from colorama import Fore
 
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
@@ -34,6 +35,7 @@ from semgrep.semgrep_types import TAINT_MODE
 from semgrep.target_manager import TargetManager
 from semgrep.util import manually_search_file
 from semgrep.util import sub_check_output
+from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -259,6 +261,9 @@ The two most popular are:
                 "Running without optimizations since running pattern-where-python rules"
             )
             optimizations = "none"
+        elif any(len(rule.equivalences) > 0 for rule in filtered_rules):
+            logger.info("Running without optimizations since running equivalence rules")
+            optimizations = "none"
 
     start_time = time.time()
     # actually invoke semgrep
@@ -370,6 +375,21 @@ The two most popular are:
         filtered_rules,
         profiling_data,
     )
+
+    if optimizations == "none":
+        logger.warning(
+            with_color(
+                Fore.RED,
+                "Deprecation Notice: running with `--optimizations none` will be deprecated by 0.60.0\n"
+                "This includes the following functionality:\n"
+                "- pattern-where-python\n"
+                "- taint-mode\n"
+                "- equivalences\n"
+                "- step-by-step evaluation output\n"
+                "If you are seeing this notice, without specifing `--optimizations none` it means the rules\n"
+                "you are running are using some of this functionality.",
+            )
+        )
 
     if autofix:
         apply_fixes(rule_matches_by_rule, dryrun)
