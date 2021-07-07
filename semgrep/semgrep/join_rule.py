@@ -167,7 +167,10 @@ def match_on_conditions(
             (A, condition.property_a, B, condition.property_b, condition.operator)
         )
 
-    return joined.select().where(
+    # Use the rhs of the final condition as the finding to return.
+    # Without this, the return value is non-deterministic.
+    last_condition_model = condition_terms[-1][0]
+    return joined.select(last_condition_model.raw).where(
         *list(map(lambda terms: evaluate_condition(*terms), condition_terms))
     )
 
