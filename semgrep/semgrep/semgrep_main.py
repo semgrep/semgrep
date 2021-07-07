@@ -29,7 +29,6 @@ from semgrep.metric_manager import metric_manager
 from semgrep.old_core_runner import OldCoreRunner
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
-from semgrep.pattern_match import PatternMatch
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
@@ -326,27 +325,9 @@ The two most popular are:
     if join_rules:
         for rule in join_rules:
             join_rule_matches, join_rule_errors = run_join_rule(
-                rule.raw.get("join"), target_manager.targets
+                rule.raw, [Path(t) for t in target_manager.targets]
             )
-            join_rule_matches_by_rule = {
-                Rule.from_json(rule.raw): [
-                    RuleMatch(
-                        id=match.get("check_id", "[UH-OH]"),
-                        pattern_match=PatternMatch({}),
-                        message=match.get("message", "[empty]"),
-                        metadata=match.get("metadata", {}),
-                        severity=match.get("severity", "INFO"),
-                        path=Path(match.get("path", "[empty]")),
-                        start=match.get("start", {}),
-                        end=match.get("end", {}),
-                        extra=match.get("extra", {}),
-                        fix=None,
-                        fix_regex=None,
-                        lines_cache={},
-                    )
-                    for match in join_rule_matches
-                ]
-            }
+            join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}
             rule_matches_by_rule.update(join_rule_matches_by_rule)
             output_handler.handle_semgrep_errors(join_rule_errors)
 

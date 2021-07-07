@@ -8,18 +8,24 @@ from functools import reduce
 from itertools import chain
 from pathlib import Path
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Tuple
+from typing import Type
 
 import attr
 import peewee as pw
+from peewee import ModelSelect
 from ruamel.yaml import YAML
 
 import semgrep.semgrep_main
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import resolve_config
+from semgrep.error import SemgrepError
+from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 
 yaml = YAML()
 
@@ -57,7 +63,7 @@ rules:
 
 
 ### Utility functions
-def group(items: List[Any], key) -> Dict[Any, Any]:
+def group(items: List[Any], key: Callable[[Any], Any]) -> Dict[Any, Any]:
     dd = defaultdict(list)
     for item in items:
         k = key(item)
@@ -103,12 +109,12 @@ class Condition:
 db = pw.SqliteDatabase(":memory:")
 
 
-class BaseModel(pw.Model):
+class BaseModel(pw.Model):  # type: ignore
     class Meta:
         database = db
 
 
-def model_factory(model_name: str, columns: List[str]) -> BaseModel.__class__:
+def model_factory(model_name: str, columns: List[str]) -> Type[BaseModel]:
     return type(
         model_name,
         (BaseModel,),
@@ -132,11 +138,11 @@ def evaluate_condition(
     raise NotImplementedError(f"The operator {operator} is not supported.")
 
 
-def match_on_conditions(
-    model_map,
-    aliases,
+def match_on_conditions(  # type: ignore
+    model_map: Dict[str, Type[BaseModel]],
+    aliases: Dict[str, str],
     conditions: List[Condition],
-) -> List[pw.ModelSelect]:
+) -> pw.ModelSelect:
     # get all collections
     collections = set(
         chain(
@@ -147,12 +153,12 @@ def match_on_conditions(
         )
     )
     collection_models = list(
-        map(lambda collection: model_map[aliases.get(collection)], collections)
+        map(lambda collection: model_map[aliases.get(collection, "")], collections)
     )
 
     # join them together
-    joined = reduce(
-        lambda A, B: A.select().join(B, join_type=pw.JOIN.CROSS), collection_models
+    joined: ModelSelect = reduce(  # type: ignore
+        lambda A, B: A.select().join(B, join_type=pw.JOIN.CROSS), collection_models  # type: ignore
     )
 
     # evaluate conjoined conditions
@@ -169,9 +175,9 @@ def match_on_conditions(
 
     # Use the rhs of the final condition as the finding to return.
     # Without this, the return value is non-deterministic.
-    last_condition_model = condition_terms[-1][0]
+    last_condition_model: Type[BaseModel] = condition_terms[-1][0]
     return joined.select(last_condition_model.raw).where(
-        *list(map(lambda terms: evaluate_condition(*terms), condition_terms))
+        *list(map(lambda terms: evaluate_condition(*terms), condition_terms))  # type: ignore
     )
 
 
@@ -189,19 +195,23 @@ def create_config_map(semgrep_config_strings: List[str]) -> Dict[str, Rule]:
 def rename_metavars_in_place(
     semgrep_results: List[Dict[str, Any]],
     refs_lookup: Dict[str, Ref],
-):
+) -> None:
     for result in semgrep_results:
         metavars = result.get("extra", {}).get("metavars", {})
         renamed_metavars = {
-            refs_lookup[result.get("check_id")].renames.get(metavar, metavar): contents
+            refs_lookup[result.get("check_id", "")].renames.get(
+                metavar, metavar
+            ): contents
             for metavar, contents in metavars.items()
         }
         result["extra"]["metavars"] = renamed_metavars
 
 
-def create_model_map(semgrep_results: List[Dict[str, Any]]) -> Dict[str, BaseModel]:
+def create_model_map(
+    semgrep_results: List[Dict[str, Any]]
+) -> Dict[str, Type[BaseModel]]:
     collections = group(semgrep_results, key=lambda item: item.get("check_id"))
-    model_map: Dict[str, BaseModel] = {}
+    model_map: Dict[str, Type[BaseModel]] = {}
     for name, findings in collections.items():
         metavars = set()
         for finding in findings:
@@ -213,8 +223,8 @@ def create_model_map(semgrep_results: List[Dict[str, Any]]) -> Dict[str, BaseMod
 
 
 def populate_data(
-    semgrep_results: List[Dict[str, Any]], model_map: Dict[str, BaseModel]
-):
+    semgrep_results: List[Dict[str, Any]], model_map: Dict[str, Type[BaseModel]]
+) -> None:
     collections = group(semgrep_results, key=lambda item: item.get("check_id"))
     for name, findings in collections.items():
         for finding in findings:
@@ -233,8 +243,9 @@ def populate_data(
 def main(
     join_rule: Dict[str, Any],
     targets: List[Path],
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    semgrep_config_strings = [ref.get("rule") for ref in join_rule.get("refs", [])]
+) -> Tuple[List[RuleMatch], List[SemgrepError]]:
+    join_contents = join_rule.get("join", {})
+    semgrep_config_strings = [ref.get("rule") for ref in join_contents.get("refs", [])]
     config_map = create_config_map(semgrep_config_strings)
 
     join_rule_refs: List[Ref] = [
@@ -246,7 +257,7 @@ def main(
             },
             alias=ref.get("as"),
         )
-        for ref in join_rule.get("refs", [])
+        for ref in join_contents.get("refs", [])
     ]
     refs_lookup = {ref.id: ref for ref in join_rule_refs}
     alias_lookup = {ref.alias: ref.id for ref in join_rule_refs}
@@ -255,10 +266,12 @@ def main(
     with tempfile.NamedTemporaryFile() as rule_path:
         yaml.dump({"rules": [rule.raw for rule in config_map.values()]}, rule_path)
         output = semgrep.semgrep_main.invoke_semgrep(
-            config=rule_path.name,
+            config=Path(rule_path.name),
             targets=targets,
             no_rewrite_rule_ids=True,
         )
+
+    assert isinstance(output, dict)
 
     results = output.get("results", [])
     errors = output.get("errors", [])
@@ -275,26 +288,43 @@ def main(
     # Populate the model tables with real data from the Semgrep results.
     populate_data(results, model_map)
 
-    # Apply the conditions and only keep which combinations
-    # of findings satisfy the conditions.
-
-    print("matching...")
+    # Apply the conditions and only keep combinations
+    # of findings that satisfy the conditions.
     matches = []
     for match in match_on_conditions(
         model_map,
         alias_lookup,
         [
             Condition.parse(condition_string)
-            for condition_string in join_rule.get("on", [])
+            for condition_string in join_contents.get("on", [])
         ],
     ):
         matches.append(json.loads(match.raw.decode("utf-8")))
 
-    print("matching done.")
-
     # TODO: override result IDs, message, severity, and metadata.
     # Better yet, consider just making new ones
-    return matches, errors
+    rule_matches = [
+        RuleMatch(
+            id=join_rule.get("id", match.get("check_id", "[empty]")),
+            pattern_match=PatternMatch({}),
+            message=join_rule.get(
+                "message", match.get("extra", {}).get("message", "[empty]")
+            ),
+            metadata=join_rule.get(
+                "metadata", match.get("extra", {}).get("metadata", {})
+            ),
+            severity=join_rule.get("severity", match.get("severity", "INFO")),
+            path=Path(match.get("path", "[empty]")),
+            start=match.get("start", {}),
+            end=match.get("end", {}),
+            extra=match.get("extra", {}),
+            fix=None,
+            fix_regex=None,
+            lines_cache={},
+        )
+        for match in matches
+    ]
+    return rule_matches, errors
 
 
 if __name__ == "__main__":
@@ -310,6 +340,6 @@ if __name__ == "__main__":
         contents = yaml.load(fin)
 
     for rule in contents.get("rules", []):
-        join_rule = rule.get("join", {})
-        matches, errors = main(join_rule, Path(args.target).rglob("*"))
-        print(json.dumps({"results": matches, "errors": errors}))
+        matches, errors = main(rule, list(Path(args.target).rglob("*")))
+        print(matches)
+        print(errors)
