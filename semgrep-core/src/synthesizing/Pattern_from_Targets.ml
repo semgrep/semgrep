@@ -175,6 +175,25 @@ let lookup_pattern pattern s = Set.mem (p_any pattern) s
 
 let set_prev env prev' = { env with prev = prev' }
 
+(* Tranposes a list of lists, must be rectangular. *)
+let rec transpose (list : 'a list list) : 'a list list =
+  match list with
+  | [] -> []
+  | [] :: xss -> transpose xss
+  | (x :: xs) :: xss ->
+      (x :: List.map List.hd xss) :: transpose (xs :: List.map List.tl xss)
+
+(* We can't handle lists of statements of unequal size yet.
+ * Check that each target has the same number of statements.
+ *)
+let check_equal_length (targets : 'a list list) : bool =
+  match targets with
+  | [] -> true
+  | _ ->
+      let lengths = List.map List.length targets in
+      let hdlen = List.hd lengths in
+      List.for_all (( == ) hdlen) lengths
+
 (*****************************************************************************)
 (* Pattern generation *)
 (*****************************************************************************)
@@ -423,10 +442,7 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
     pr2 "target patterns";
     show_pattern_sets target_patterns );
   let pattern_children =
-    List.map
-      (fun patterns ->
-        List.map (fun pattern -> get_one_step_replacements pattern) patterns)
-      target_patterns
+    List.map (List.map get_one_step_replacements) target_patterns
   in
   (* Keep only the patterns in each Sn that appear in every other OR *)
   (* the patterns that were included last time, don't have children, and have another replacement to try *)
@@ -437,15 +453,15 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
       true included_patterns
   in
   (* Call recursively on these patterns *)
-  if cont then generate_patterns_help included_patterns else target_patterns
+  if cont then generate_patterns_help included_patterns
+  else List.map List.hd target_patterns
 
-(*****************************************************************************)
-(* Entry point *)
-(*****************************************************************************)
+let extract_pattern (pats : pattern_instr) : Pattern.t =
+  (fun (_, pattern, _) -> pattern) pats
 
-let generate_patterns config s lang =
-  global_lang := lang;
-  (* Start each target node any as [$X, [ any, fun x -> x ]] *)
+(* Start each target node any as [$X, [ any, fun x -> x ]] *)
+let generate_starting_patterns config (targets : AST_generic.any list list) :
+    pattern_instrs list list =
   let starting_pattern any =
     match any with
     | E _ ->
@@ -458,8 +474,45 @@ let generate_patterns config s lang =
         [ (env, S (exprstmt (Ellipsis fk)), [ (ANY any, fun f a -> f a) ]) ]
     | _ -> raise UnsupportedTargetType
   in
-  let patterns = List.map starting_pattern s in
-  let patterns =
-    match generate_patterns_help patterns with [] -> [] | x :: _ -> x
+  List.map (List.map starting_pattern) targets
+
+(* Copies the metavar count and mapping from src pattern_instr to
+ *  each env in dsts.
+ *)
+let cp_meta_env (src : pattern_instr) (dsts : pattern_instrs) : pattern_instrs =
+  let senv, _, _ = src in
+  let cp dst =
+    let denv, dpattern, dholes = dst in
+    let denv' = { denv with count = senv.count; mapping = senv.mapping } in
+    (denv', dpattern, dholes)
   in
-  List.map (fun (_, pattern, _) -> pattern) patterns
+  List.map cp dsts
+
+(* Calls generate_patterns_help on each list of pattern_instrs, retaining
+ * the metavariable environment between calls.
+ * The environment is retained within a single target for subsequent statements, 
+ * not across targets.
+ *)
+let rec generate_with_env (target_patterns : pattern_instrs list list) :
+    pattern_instrs =
+  match target_patterns with
+  | [] -> []
+  | [ cur ] -> [ List.hd (generate_patterns_help cur) ]
+  | cur :: next :: rest ->
+      let curpats = generate_patterns_help cur in
+      let next' = List.map2 cp_meta_env curpats next in
+      List.hd curpats :: generate_with_env (next' :: rest)
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let generate_patterns config targets lang =
+  global_lang := lang;
+  if check_equal_length targets then
+    targets
+    |> generate_starting_patterns config
+    (* Transpose to intersect across targets, not within. *)
+    |> transpose
+    |> generate_with_env |> List.map extract_pattern
+  else failwith "Only targets of equal length are supported."
