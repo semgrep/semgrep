@@ -24,15 +24,19 @@ from semgrep.core_runner import CoreRunner
 from semgrep.error import Level
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
+from semgrep.join_rule import main as run_join_rule
 from semgrep.metric_manager import metric_manager
 from semgrep.old_core_runner import OldCoreRunner
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
+from semgrep.pattern_match import PatternMatch
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import TargetManager
 from semgrep.util import manually_search_file
+from semgrep.util import partition
 from semgrep.util import sub_check_output
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -125,7 +129,6 @@ def invoke_semgrep(
 ) -> Union[Dict[str, Any], str]:
     """
     Return Semgrep results of 'config' on 'targets' as a dict|str
-
     Uses default arguments of 'semgrep_main.main' unless overwritten with 'kwargs'
     """
     if output_settings is None:
@@ -275,6 +278,12 @@ The two most popular are:
             )
         )
 
+    join_rules, rest_of_the_rules = partition(
+        lambda rule: rule.raw.get("mode") == JOIN_MODE,
+        filtered_rules,
+    )
+    filtered_rules = rest_of_the_rules
+
     start_time = time.time()
     # actually invoke semgrep
     if optimizations == "none":
@@ -313,6 +322,33 @@ The two most popular are:
         ).invoke_semgrep(
             target_manager, profiler, filtered_rules
         )
+
+    if join_rules:
+        for rule in join_rules:
+            join_rule_matches, join_rule_errors = run_join_rule(
+                rule.raw.get("join"), target_manager.targets
+            )
+            join_rule_matches_by_rule = {
+                Rule.from_json(rule.raw): [
+                    RuleMatch(
+                        id=match.get("check_id", "[UH-OH]"),
+                        pattern_match=PatternMatch({}),
+                        message=match.get("message", "[empty]"),
+                        metadata=match.get("metadata", {}),
+                        severity=match.get("severity", "INFO"),
+                        path=Path(match.get("path", "[empty]")),
+                        start=match.get("start", {}),
+                        end=match.get("end", {}),
+                        extra=match.get("extra", {}),
+                        fix=None,
+                        fix_regex=None,
+                        lines_cache={},
+                    )
+                    for match in join_rule_matches
+                ]
+            }
+            rule_matches_by_rule.update(join_rule_matches_by_rule)
+            output_handler.handle_semgrep_errors(join_rule_errors)
 
     profiler.save("total_time", start_time)
 

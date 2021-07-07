@@ -19,6 +19,7 @@ definitions:
       - $ref: '#/definitions/metavariable-regex'
       - $ref: '#/definitions/metavariable-pattern'
       - $ref: '#/definitions/metavariable-comparison'
+      - $ref: '#/definitions/join'
   pattern-either-content:
     type: array
     title: "Return finding where any of the nested conditions are true"
@@ -86,6 +87,33 @@ definitions:
                     - patterns
                 - required:
                     - pattern-either
+  join-content:
+    type: object
+    title: "Join one or more rules together based on metavariable contents"
+    properties:
+      refs:
+        type: array
+        items:
+          type: object
+          properties:
+            rule:
+              type: string
+            renames:
+              type: array
+              items:
+                type: object
+                properties:
+                  from:
+                    type: string
+                  to:
+                    type: string
+            as:
+              type: string
+      on:
+        type: array
+        items:
+          type: string
+      additionProperties: false
   metavariable-regex:
     type: object
     properties:
@@ -300,6 +328,7 @@ properties:
           enum:
           - search
           - taint
+          - join
         languages:
           title: Languages this pattern should run on
           type: array
@@ -326,6 +355,8 @@ properties:
           $ref: '#/definitions/taint-content'
         pattern-sanitizers:
           $ref: '#/definitions/taint-content'
+        join:
+          $ref: '#/definitions/join-content'
         fix:
           title: Replacement text to fix matched code. Can use matched metavariables.
           type: string
@@ -387,6 +418,15 @@ properties:
                 - pattern-either
               - required:
                 - pattern-regex
+
+        - properties:
+            mode:
+              const: join
+          required:
+            - id
+            - message
+            - severity
+            - join
 
         - properties:
             mode:

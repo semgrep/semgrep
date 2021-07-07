@@ -31,8 +31,10 @@ handler.setFormatter(
 logger.addHandler(handler)
 
 # TODO: wire up to main semgrep
+# # TODO: amend schema to allow 'join' clauses
 # TODO: refactor into nice code files instead of this giant file
-# TODO: decide how to represent these kinds of rules
+# TODO: decide how to represent these kinds of rules in the output.
+# # report the last finding? report multiple findings?
 
 """
 rules:
@@ -219,12 +221,12 @@ def main(
     join_rule: Dict[str, Any],
     targets: List[Path],
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    semgrep_config_strings = [ref.get("id") for ref in join_rule.get("refs", [])]
+    semgrep_config_strings = [ref.get("rule") for ref in join_rule.get("refs", [])]
     config_map = create_config_map(semgrep_config_strings)
 
     join_rule_refs: List[Ref] = [
         Ref(
-            id=config_map[ref.get("id")].id,
+            id=config_map[ref.get("rule")].id,
             renames={
                 rename.get("from"): rename.get("to")
                 for rename in ref.get("renames", [])
