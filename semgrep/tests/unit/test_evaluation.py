@@ -562,10 +562,14 @@ def test_single_pattern_match_filtering() -> None:
 
 
 def test_interpolation() -> None:
-    pattern_match = PatternMatchMock(0, 100, {"$X": {"abstract_content": "VALUE1"}})
+    pattern_match = PatternMatchMock(
+        0,
+        100,
+        {"$X": {"abstract_content": "VALUE1"}, "$X2": {"abstract_content": "VALUE2"}},
+    )
 
-    text = "Expect $X to be VALUE1"
-    expected = "Expect VALUE1 to be VALUE1"
+    text = "Expect $X to be VALUE1 and $X2 to be VALUE2"
+    expected = "Expect VALUE1 to be VALUE1 and VALUE2 to be VALUE2"
 
     result = interpolate_string_with_metavariables(text, pattern_match, {})
 

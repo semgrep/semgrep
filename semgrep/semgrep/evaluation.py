@@ -492,12 +492,17 @@ def interpolate_string_with_metavariables(
     text: str, pattern_match: PatternMatch, propagated_metavariables: Dict[str, str]
 ) -> str:
     """Interpolates a string with the metavariables contained in it, returning a new string"""
-    for metavariable in pattern_match.metavariables:
+
+    # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
+    for metavariable in sorted(pattern_match.metavariables, key=len, reverse=True):
         text = text.replace(
             metavariable, pattern_match.get_metavariable_value(metavariable)
         )
-    for metavariable, metavariable_text in propagated_metavariables.items():
-        text = text.replace(metavariable, metavariable_text)
+
+    # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
+    for metavariable in sorted(propagated_metavariables.keys(), key=len, reverse=True):
+        text = text.replace(metavariable, propagated_metavariables[metavariable])
+
     return text
 
 

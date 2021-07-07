@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Java varargs are now correctly matched (#3455)
 - Support for partial statements (e.g., `try { ... }`) for Java (#3417)
 - Constant propagation now works inside Python `with` statements (#3402)
+- Metavariable value replacement in message/autofix no longer mixes up short and long names like $X vs $X2 (#3458)
 
 ### Changed
 - Faster matching times for generic mode
