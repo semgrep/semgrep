@@ -5,6 +5,7 @@ import tempfile
 from collections import defaultdict
 from enum import Enum
 from functools import reduce
+from itertools import chain
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -30,9 +31,10 @@ handler.setFormatter(
 )
 logger.addHandler(handler)
 
-# TODO: wire up to main semgrep
-# # TODO: amend schema to allow 'join' clauses
+# TODO: placate mypy
 # TODO: refactor into nice code files instead of this giant file
+# TODO: update messages, severity on the results
+# TODO: probably, add error handling
 # TODO: decide how to represent these kinds of rules in the output.
 # # report the last finding? report multiple findings?
 
@@ -135,30 +137,38 @@ def match_on_conditions(
     aliases,
     conditions: List[Condition],
 ) -> List[pw.ModelSelect]:
+    # get all collections
+    collections = set(
+        chain(
+            *[
+                (condition.collection_a, condition.collection_b)
+                for condition in conditions
+            ]
+        )
+    )
+    collection_models = list(
+        map(lambda collection: model_map[aliases.get(collection)], collections)
+    )
+
+    # join them together
+    joined = reduce(
+        lambda A, B: A.select().join(B, join_type=pw.JOIN.CROSS), collection_models
+    )
+
+    # evaluate conjoined conditions
     condition_terms = []
     for condition in conditions:
         collection_a_real = aliases.get(condition.collection_a, condition.collection_a)
         collection_b_real = aliases.get(condition.collection_b, condition.collection_b)
         A = model_map[collection_a_real]
         B = model_map[collection_b_real]
+
         condition_terms.append(
             (A, condition.property_a, B, condition.property_b, condition.operator)
         )
 
-    # This is silly, but required because Python's 'reduce(...)'
-    # function requires at least two elements.  >:(
-    if len(condition_terms) < 2:
-        condition_terms.append(condition_terms[0])
-
-    return (
-        A.select()
-        .join(B, join_type=pw.JOIN.CROSS)
-        .where(
-            reduce(
-                lambda x, y: evaluate_condition(*x) & evaluate_condition(*y),
-                condition_terms,
-            )
-        )
+    return joined.select().where(
+        *list(map(lambda terms: evaluate_condition(*terms), condition_terms))
     )
 
 
@@ -264,6 +274,8 @@ def main(
 
     # Apply the conditions and only keep which combinations
     # of findings satisfy the conditions.
+
+    print("matching...")
     matches = []
     for match in match_on_conditions(
         model_map,
@@ -274,6 +286,8 @@ def main(
         ],
     ):
         matches.append(json.loads(match.raw.decode("utf-8")))
+
+    print("matching done.")
 
     # TODO: override result IDs, message, severity, and metadata.
     # Better yet, consider just making new ones
