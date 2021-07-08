@@ -887,7 +887,7 @@ let check hook default_config rules equivs file_and_more =
 
   let lazy_content = lazy (Common.read_file file) in
   rules
-  |> List.map (fun r ->
+  |> List.map (fun (r, pformula) ->
          Common.profile_code (spf "real_rule:%s" r.R.id) (fun () ->
              let relevant_rule =
                if !Flag_semgrep.filter_irrelevant_rules then (
@@ -903,8 +903,8 @@ let check hook default_config rules equivs file_and_more =
                logger#info "skipping rule %s for %s" r.R.id file;
                RP.empty_semgrep_result )
              else
-               let formula = Rule.formula_of_rule r in
                let config = r.options ||| default_config in
+               let formula = R.formula_of_pformula pformula in
                let res, final_ranges =
                  matches_of_formula config equivs r.id file_and_more
                    lazy_content formula None
@@ -916,7 +916,7 @@ let check hook default_config rules equivs file_and_more =
                    (* dedup similar findings (we do that also in Match_patterns.ml,
                     * but different mini-rules matches can now become the same match)
                     *)
-                   |> Common.uniq_by (AST_utils.with_structural_equal PM.equal)
+                   |> uniq_by (AST_utils.with_structural_equal PM.equal)
                    |> before_return (fun v ->
                           v
                           |> List.iter (fun (m : Pattern_match.t) ->

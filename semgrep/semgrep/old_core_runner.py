@@ -228,7 +228,7 @@ class OldCoreRunner:
         cache_dir: str,
     ) -> dict:
         with tempfile.NamedTemporaryFile(
-            "w"
+            "w", suffix=".yaml"
         ) as pattern_file, tempfile.NamedTemporaryFile(
             "w"
         ) as target_file, tempfile.NamedTemporaryFile(
@@ -417,7 +417,6 @@ class OldCoreRunner:
 
             if rule.mode == TAINT_MODE:
                 pattern_json = rule._raw.copy()
-                del pattern_json["mode"]
                 pattern = Pattern(
                     0, rule.expression, rule.severity, language, rule._yaml.span
                 )
@@ -430,7 +429,7 @@ class OldCoreRunner:
                     targets,
                     language,
                     rule,
-                    "-tainting_rules_file",
+                    "-config",
                     cache_dir,
                 )
             else:

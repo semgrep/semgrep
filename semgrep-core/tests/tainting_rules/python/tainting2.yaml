@@ -1,5 +1,6 @@
 rules:
   - id: tainting
+    mode: taint
     languages:
       - python
     message: |
