@@ -11,10 +11,10 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import Type
-from typing import Union
 
 import attr
 import peewee as pw
@@ -24,6 +24,7 @@ from ruamel.yaml import YAML
 import semgrep.semgrep_main
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import resolve_config
+from semgrep.error import ERROR_MAP
 from semgrep.error import SemgrepError
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
@@ -42,7 +43,13 @@ logger.addHandler(handler)
 # TODO: refactor into nice code files instead of this giant file
 # TODO: probably, add error handling
 # TODO: decide how to represent these kinds of rules in the output.
+# TODO(bug): join rules don't propagate metavariables forward into messages
 # # report the last finding? report multiple findings?
+
+### Known Semgrep bugs:
+# TODO: JSON output does not return all instances of a multi-matched pattern.
+# # e.g., a pattern 'this_function(..., $VAR=$VALUE, ...)' will only have one match
+# # even if there are multiple satisfactory patterns
 
 """
 rules:
@@ -115,6 +122,7 @@ class BaseModel(pw.Model):  # type: ignore
 
 
 def model_factory(model_name: str, columns: List[str]) -> Type[BaseModel]:
+    logger.debug(f"Creating model '{model_name}' with columns {columns}")
     return type(
         model_name,
         (BaseModel,),
@@ -153,7 +161,7 @@ def match_on_conditions(  # type: ignore
     model_map: Dict[str, Type[BaseModel]],
     aliases: Dict[str, str],
     conditions: List[Condition],
-) -> Union[pw.ModelSelect, List[None]]:
+) -> Optional[pw.ModelSelect]:
     # get all collections
     collections = create_collection_set_from_conditions(conditions)
     try:
@@ -288,12 +296,29 @@ def main(
             config=Path(rule_path.name),
             targets=targets,
             no_rewrite_rule_ids=True,
+            optimizations="all",
         )
 
     assert isinstance(output, dict)  # placate mypy
 
     results = output.get("results", [])
     errors = output.get("errors", [])
+
+    parsed_errors = []
+    for error_dict in errors:
+        try:
+            del error_dict["code"]
+            del error_dict["level"]
+            errortype = error_dict.get("type")
+            del error_dict["type"]
+            parsed_errors.append(
+                ERROR_MAP[error_dict.get(errortype)].from_dict(error_dict)
+            )
+        except KeyError:
+            logger.warning(
+                f"Could not reconstitute Semgrep error: {error_dict}.\nSkipping processing of error"
+            )
+            continue
 
     # Small optimization: if there are no results for rules that
     # are used in a condition, there's no sense in continuing.
@@ -306,7 +331,7 @@ def main(
         logger.debug(
             f"No results for {collection_set_unaliased - rule_ids} in join rule '{join_rule.get('id')}'."
         )
-        return [], errors
+        return [], parsed_errors
 
     # Rename metavariables with user-defined renames.
     rename_metavars_in_place(results, refs_lookup)
@@ -323,15 +348,17 @@ def main(
     # Apply the conditions and only keep combinations
     # of findings that satisfy the conditions.
     matches = []
-    for match in match_on_conditions(
+    matched_on_conditions = match_on_conditions(
         model_map,
         alias_lookup,
         [
             Condition.parse(condition_string)
             for condition_string in join_contents.get("on", [])
         ],
-    ):
-        matches.append(json.loads(match.raw.decode("utf-8")))
+    )
+    if matched_on_conditions:  # This is ugly, but makes mypy happy
+        for match in matched_on_conditions:
+            matches.append(json.loads(match.raw.decode("utf-8")))
 
     rule_matches = [
         RuleMatch(
@@ -354,7 +381,7 @@ def main(
         )
         for match in matches
     ]
-    return rule_matches, errors
+    return rule_matches, parsed_errors
 
 
 if __name__ == "__main__":
