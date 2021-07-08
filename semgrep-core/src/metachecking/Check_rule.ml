@@ -129,9 +129,11 @@ let check_formula env lang f =
 
 let check r =
   (* less: maybe we could also have formula_old specific checks *)
-  let f = Rule.formula_of_rule r in
-  check_formula r r.languages f;
-  ()
+  match r.mode with
+  | Rule.Search pf ->
+      let f = Rule.formula_of_pformula pf in
+      check_formula r r.languages f
+  | Taint _ -> (* TODO *) ()
 
 (* We parse the parsing function fparser (Parser_rule.parse) to avoid
  * circular dependencies.

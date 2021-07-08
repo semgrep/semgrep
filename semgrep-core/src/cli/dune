@@ -36,7 +36,6 @@
     semgrep_metachecking
     semgrep_parsing
     semgrep_matching
-    semgrep_tainting
     semgrep_analyzing
     semgrep_reporting
     semgrep_synthesizing
