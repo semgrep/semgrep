@@ -81,6 +81,8 @@ class Operator(Enum):
     EQUALS = "=="
     NOT_EQUALS = "!="
     SIMILAR = "~"
+    SIMILAR_LEFT = "<"
+    SIMILAR_RIGHT = ">"
 
 
 @attr.s(auto_attribs=True)
@@ -135,8 +137,10 @@ def evaluate_condition(
         return getattr(A, property_a) == getattr(B, property_b)
     elif operator == Operator.NOT_EQUALS:
         return getattr(A, property_a) != getattr(B, property_b)
-    elif operator == Operator.SIMILAR:
+    elif operator == Operator.SIMILAR or operator == Operator.SIMILAR_RIGHT:
         return getattr(A, property_a).contains(getattr(B, property_b))
+    elif operator == Operator.SIMILAR_LEFT:
+        return getattr(B, property_b).contains(getattr(A, property_a))
 
     raise NotImplementedError(f"The operator {operator} is not supported.")
 
@@ -189,8 +193,12 @@ def match_on_conditions(  # type: ignore
     # Use the rhs of the final condition as the finding to return.
     # Without this, the return value is non-deterministic.
     last_condition_model: Type[BaseModel] = condition_terms[-1][0]
-    query = joined.select(last_condition_model.raw).where(
-        *list(map(lambda terms: evaluate_condition(*terms), condition_terms))  # type: ignore
+    query = (
+        joined.select(last_condition_model.raw)
+        .distinct()
+        .where(
+            *list(map(lambda terms: evaluate_condition(*terms), condition_terms))  # type: ignore
+        )
     )
     logger.debug(query)
     return query
@@ -249,7 +257,7 @@ def populate_data(
                 path=finding.get("path"),
                 raw=json.dumps(finding),
                 **{
-                    metavar: content.get("abstract_content").strip()
+                    metavar: content.get("abstract_content").strip().strip("\"'")
                     for metavar, content in finding.get("extra", {})
                     .get("metavars", {})
                     .items()
