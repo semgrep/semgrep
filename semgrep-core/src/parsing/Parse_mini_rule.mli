@@ -14,7 +14,9 @@ exception InvalidLanguageException of string * string
 
 (*e: exception [[Parse_rules.InvalidLanguageException]] *)
 (*s: exception [[Parse_rules.InvalidPatternException]] *)
-exception InvalidPatternException of string * string * string * string
+exception
+  InvalidPatternException of
+    string * string * string * string * (Parse_info.t * Parse_info.t)
 
 (*e: exception [[Parse_rules.InvalidPatternException]] *)
 
@@ -40,7 +42,8 @@ val parse_severity : id:string -> string -> Mini_rule.severity
 
 (*e: signature [[Parse_rules.parse_severity]] *)
 (*s: signature [[Parse_rules.parse_pattern]] *)
-val parse_pattern : id:string -> lang:Lang.t -> string -> Pattern.t
+val parse_pattern :
+  id:string -> lang:Lang.t -> string -> Parse_info.t * Parse_info.t -> Pattern.t
 
 (*e: signature [[Parse_rules.parse_pattern]] *)
 

@@ -22,6 +22,7 @@ module R = Rule
 module E = Parse_mini_rule
 module H = Parse_mini_rule
 module G = AST_generic
+module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -62,6 +63,7 @@ let error s = raise (E.InvalidYamlException s)
 
 let parse_string ctx = function
   | G.L (String (value, _)) -> value
+  | G.N (Id ((value, _), _)) -> value
   | _ -> error ("Expected a string value for " ^ ctx)
 
 let parse_list ctx f = function
@@ -222,16 +224,26 @@ let parse_options json =
 
 type _env = string * R.xlang
 
-let parse_pattern (id, lang) s =
+let parse_pattern (id, lang) e =
+  let s =
+    match e with
+    | G.L (String (value, _)) -> value
+    | G.N (Id ((value, _), _)) -> value
+    | _ -> error ("Expected a string value for " ^ id)
+  in
+  let start, end_ = Visitor_AST.range_of_any (G.E e) in
+  let s_range = (PI.mk_info_of_loc start, PI.mk_info_of_loc end_) in
   match lang with
-  | R.L (lang, _) -> R.mk_xpat (Sem (H.parse_pattern ~id ~lang s, lang)) s
+  | R.L (lang, _) ->
+      R.mk_xpat (Sem (H.parse_pattern ~id ~lang s s_range, lang)) s
   | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> R.mk_xpat (Spacegrep ast) s
       | Error err ->
-          raise (H.InvalidPatternException (id, s, "generic", err.msg)) )
+          raise (H.InvalidPatternException (id, s, "generic", err.msg, s_range))
+      )
 
 let find_formula_old rule_info : string * G.expr =
   let find key = (key, Hashtbl.find_opt rule_info key) in
@@ -262,7 +274,7 @@ let rec parse_formula env (rule_info : (string, G.expr) Hashtbl.t) : R.pformula
   | None -> R.Old (parse_formula_old env (find_formula_old rule_info))
 
 and parse_formula_old env ((key, value) : string * G.expr) : R.formula_old =
-  let get_pattern str_e = parse_pattern env (parse_string key str_e) in
+  let get_pattern str_e = parse_pattern env str_e in
   let get_nested_formula x =
     match x with
     | G.Container
@@ -297,15 +309,13 @@ and parse_formula_old env ((key, value) : string * G.expr) : R.formula_old =
    R.PatExtra extra *)
 and parse_formula_new env (x : G.expr) : R.formula =
   match x with
-  | G.L (String (value, _)) -> R.Leaf (R.P (parse_pattern env value, None))
   | G.Container (Dict, (_, [ Tuple (_, [ L (String (key, _)); value ], _) ], _))
     -> (
       match key with
       | "and" -> R.And (parse_list key (parse_formula_new env) value)
       | "or" -> R.Or (parse_list key (parse_formula_new env) value)
       | "not" -> R.Not (parse_formula_new env value)
-      | "inside" ->
-          R.Leaf (R.P (parse_pattern env (parse_string key value), Some Inside))
+      | "inside" -> R.Leaf (R.P (parse_pattern env value, Some Inside))
       | "regex" ->
           let s = parse_string key value in
           let xpat = R.mk_xpat (R.Regexp (parse_regexp env s)) s in
@@ -325,9 +335,7 @@ and parse_formula_new env (x : G.expr) : R.formula =
               R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env re)))
           | _ -> error "Expected a metavariable and regex" )
       | _ -> error ("Invalid key for formula_new " ^ key) )
-  | _ ->
-      pr2_gen x;
-      error "parse_formula_new"
+  | _ -> R.Leaf (R.P (parse_pattern env x, None))
 
 (* This is now mutually recursive because of metavariable-pattern: which can
  * contain itself a formula! *)

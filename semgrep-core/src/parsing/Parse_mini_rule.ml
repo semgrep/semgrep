@@ -25,7 +25,9 @@ exception InvalidLanguageException of string * string
 
 (*e: exception [[Parse_rules.InvalidLanguageException]] *)
 (*s: exception [[Parse_rules.InvalidPatternException]] *)
-exception InvalidPatternException of string * string * string * string
+exception
+  InvalidPatternException of
+    string * string * string * string * (Parse_info.t * Parse_info.t)
 
 (*e: exception [[Parse_rules.InvalidPatternException]] *)
 
@@ -59,7 +61,7 @@ let parse_severity ~id s =
 (*e: function [[Parse_rules.parse_severity]] *)
 
 (*s: function [[Parse_rules.parse_pattern]] *)
-let parse_pattern ~id ~lang pattern =
+let parse_pattern ~id ~lang pattern pat_range =
   (* todo? call Normalize_ast.normalize here? *)
   try Parse_pattern.parse_pattern lang ~print_errors:false pattern with
   | Timeout -> raise Timeout
@@ -67,7 +69,11 @@ let parse_pattern ~id ~lang pattern =
   | exn ->
       raise
         (InvalidPatternException
-           (id, pattern, Lang.string_of_lang lang, Common.exn_to_s exn))
+           ( id,
+             pattern,
+             Lang.string_of_lang lang,
+             Common.exn_to_s exn,
+             pat_range ))
 
 (*e: function [[Parse_rules.parse_pattern]] *)
 
@@ -121,7 +127,12 @@ let parse file =
                       ("severity", `String sev);
                      ] ->
                          let languages, lang = parse_languages ~id langs in
-                         let pattern = parse_pattern ~id ~lang pattern_string in
+                         let fake_range =
+                           (Parse_info.fake_info "", Parse_info.fake_info "")
+                         in
+                         let pattern =
+                           parse_pattern ~id ~lang pattern_string fake_range
+                         in
                          let severity = parse_severity ~id sev in
                          {
                            R.id;

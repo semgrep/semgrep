@@ -131,6 +131,16 @@ class Span:
         end = Position(line=len(lines), col=len(lines[-1]))
         return Span(start=start, end=end, file=filename, source_hash=src_hash)
 
+    @classmethod
+    def from_string_token(
+        cls, s: str, line: int, col: int, filename: Optional[str] = None
+    ) -> "Span":
+        src_hash = SourceTracker.add_source(s)
+        start = Position(line, col)
+        lines = s.splitlines()
+        end = Position(line=len(lines), col=len(lines[-1]))
+        return Span(start=start, end=end, file=filename, source_hash=src_hash)
+
     def fix(self) -> "Span":
         # some issues in ruamel lead to bad spans
         # correct empty spans by rewinding to the last non-whitespace character:

@@ -243,8 +243,21 @@ let json_of_exn e =
           ("error", J.String "invalid language");
           ("language", J.String language);
         ]
-  | Parse_mini_rule.InvalidPatternException (pattern_id, pattern, lang, message)
-    ->
+  | Parse_mini_rule.InvalidPatternException
+      (pattern_id, pattern, lang, message, range) ->
+      let start, _end_ = range in
+      let range_json =
+        match start with
+        | { token = PI.FakeTokStr _; _ } -> J.String "nothing"
+        | _ ->
+            let s_loc = PI.token_location_of_info start in
+            J.Object
+              [
+                ("file", J.String s_loc.file);
+                ("line", J.Int s_loc.line);
+                ("col", J.Int s_loc.column);
+              ]
+      in
       J.Object
         [
           ("pattern_id", J.String pattern_id);
@@ -252,6 +265,7 @@ let json_of_exn e =
           ("pattern", J.String pattern);
           ("language", J.String lang);
           ("message", J.String message);
+          ("range", range_json);
         ]
   | Parse_mini_rule.InvalidRegexpException (pattern_id, message) ->
       J.Object
