@@ -76,6 +76,12 @@
             "markers": "python_version >= '3.6'",
             "version": "==21.0"
         },
+        "peewee": {
+            "hashes": [
+                "sha256:9e356b327c2eaec6dd42ecea6f4ddded025793dba906a3d065a0452e726c51a2"
+            ],
+            "version": "==3.14.4"
+        },
         "pyparsing": {
             "hashes": [
                 "sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1",
