@@ -484,10 +484,65 @@ def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None
         raise SemgrepError(str(e))
 
 
+class MetaConfig:
+    """
+    Handles parsing a config file and exposes function that returns list of
+    valid rules as well as other options to run semgrep
+
+    For now called metaconfig because object that just wraps around rules is already
+    called Config
+    """
+
+    def __init__(self, filename: str) -> None:
+        with open(filename) as file:
+            yaml = YAML()
+            x = yaml.load(file)
+
+        resources = x["resources"]
+
+        flattened = [
+            r["id"] for r in resources if r["type"] in ["registry", "local", "snippet"]
+        ]
+        config, self.errors = Config.from_config_list(flattened)
+
+        patches = x["patches"]
+        rule_id_to_patches = {}
+        for patch_file in patches:
+            with open(patch_file) as f:
+                patch_yaml = yaml.load(f)
+
+            patch_rule_id = patch_yaml["id"]
+            rule_id_to_patches[patch_rule_id] = patch_yaml
+
+        modified_valids = {}
+        for config_id, rules in config.valid.items():
+            modified = []
+            for rule in rules:
+                if rule.id not in rule_id_to_patches:
+                    modified.append(rule)
+                else:
+                    logger.verbose(f"Patching {rule.id}.")
+                    logger.debug(f"original rule: {rule.raw}")
+                    patch = rule_id_to_patches[rule.id]
+                    logger.debug(f"patch: {patch}")
+                    modified_rule = rule.apply_patch(patch)
+                    logger.debug(f"patched rule: {modified_rule.raw}")
+                    modified.append(modified_rule)
+            modified_valids[config_id] = modified
+
+        self.config = Config(modified_valids)
+
+    def rules(self) -> Tuple[Config, List[SemgrepError]]:
+        return self.config, self.errors
+
+
 def get_config(
-    pattern: str, lang: str, config_strs: List[str]
+    pattern: str, lang: str, config_strs: List[str], meta_config_file: str = None
 ) -> Tuple[Config, List[SemgrepError]]:
-    if pattern:
+    if meta_config_file:
+        metaconfig = MetaConfig(meta_config_file)
+        config, errors = metaconfig.rules()
+    elif pattern:
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")
         config, errors = Config.from_pattern_lang(pattern, lang)

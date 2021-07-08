@@ -360,6 +360,32 @@ class Rule:
             json.dumps(self._raw, sort_keys=True).encode()
         ).hexdigest()
 
+    def apply_patch(self, patch) -> "Rule":
+        """
+        Applies patch to rule
+
+        This is v hacky. For now just return a brand new rule object
+        """
+        import copy
+
+        raw_copy = copy.copy(self._raw)
+
+        if "message" in patch:
+            raw_copy["message"] = patch["message"]
+
+        if "severity" in patch:
+            raw_copy["severity"] = patch["severity"]
+
+        if "paths" in patch:
+            raw_copy["paths"] = patch["paths"]
+
+        print("-------------------")
+        print(json.dumps(self._raw, indent=4))
+        print(json.dumps(raw_copy, indent=4))
+        print("-------------------")
+
+        return Rule.from_json(raw_copy)
+
 
 def operator_for_pattern_name(pattern_name: YamlTree[str]) -> Operator:
     return PATTERN_NAMES_OPERATOR_MAP[pattern_name.value]

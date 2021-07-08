@@ -181,7 +181,7 @@ def main(
     if exclude is None:
         exclude = []
 
-    configs_obj, errors = get_config(pattern, lang, configs)
+    configs_obj, errors = get_config(pattern, lang, configs, configs[0])
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
 
     if severity is None or severity == []:
