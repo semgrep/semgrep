@@ -21,6 +21,7 @@
    tree-sitter-lang.hack
    tree-sitter-lang.html
    tree-sitter-lang.vue
+   tree-sitter-lang.bash
 
    commons
    pfff-lang_GENERIC
