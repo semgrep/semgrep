@@ -56,29 +56,20 @@ let rec find_fields flds xs =
 
 let error s = raise (E.InvalidYamlException s)
 
-(*****************************************************************************)
-(* Yaml parsers basic types *)
-(*****************************************************************************)
-
-let parse_string ctx = function
-  | G.L (String (value, _)) -> value
-  | _ -> error ("Expected a string value for " ^ ctx)
-
-let parse_list ctx f = function
-  | G.Container (Array, (_, xs, _)) -> List.map f xs
-  | _ -> error ("Expected a list for " ^ ctx)
-
-let parse_string_list ctx e =
-  let extract_string = function
-    | G.L (String (value, _)) -> value
-    | _ -> error ("Expected all values in the list to be strings for " ^ ctx)
-  in
-  parse_list ctx extract_string e
+let rec yaml_to_json = function
+  | `Null -> J.Null
+  | `Bool b -> J.Bool b
+  | `Float f ->
+      (* or use J.Int? *)
+      J.Float f
+  | `String s -> J.String s
+  | `A xs -> J.Array (xs |> List.map yaml_to_json)
+  | `O xs -> J.Object (xs |> List.map (fun (k, v) -> (k, yaml_to_json v)))
 
 (*****************************************************************************)
 (* Sub parsers basic types *)
 (*****************************************************************************)
-(* let parse_string ctx = function
+let parse_string ctx = function
   | J.String s -> s
   | x ->
       pr2_gen x;
@@ -88,7 +79,7 @@ let parse_strings ctx = function
   | J.Array xs -> List.map (fun t -> parse_string ctx t) xs
   | x ->
       pr2_gen x;
-      error (spf "parse_strings for %s" ctx) *)
+      error (spf "parse_strings for %s" ctx)
 
 let parse_bool ctx = function
   | J.String "true" -> true
@@ -190,11 +181,11 @@ let parse_paths = function
             R.include_ =
               ( match inc_opt with
               | None -> []
-              | Some _xs -> [] (* parse_strings "include" xs *) );
+              | Some xs -> parse_strings "include" xs );
             exclude =
               ( match exc_opt with
               | None -> []
-              | Some _xs -> [] (* parse_strings "exclude" xs *) );
+              | Some xs -> parse_strings "exclude" xs );
           }
       | x ->
           pr2_gen x;
@@ -233,105 +224,94 @@ let parse_pattern (id, lang) s =
       | Error err ->
           raise (H.InvalidPatternException (id, s, "generic", err.msg)) )
 
-let find_formula_old rule_info : string * G.expr =
-  let find key = (key, Hashtbl.find_opt rule_info key) in
-  match
-    ( find "pattern",
-      find "pattern-either",
-      find "patterns",
-      find "pattern-regex" )
-  with
-  | (_, None), (_, None), (_, None), (_, None) ->
-      error
-        "Expected one of `pattern`, `pattern-either`, `patterns`, \
-         `pattern-regex` to be present"
-  | (key, Some value), (_, None), (_, None), (_, None)
-  | (_, None), (key, Some value), (_, None), (_, None)
-  | (_, None), (_, None), (key, Some value), (_, None)
-  | (_, None), (_, None), (_, None), (key, Some value) ->
-      (key, value)
-  | _ ->
-      error
-        "Expected only one of `pattern`, `pattern-either`, `patterns`, or \
-         `pattern-regex`"
+let rec parse_formula env (x : string * J.t) : R.pformula =
+  match x with
+  | "match", v -> R.New (parse_formula_new env v)
+  | _ -> R.Old (parse_formula_old env x)
 
-let rec parse_formula env (rule_info : (string, G.expr) Hashtbl.t) : R.pformula
-    =
-  match Hashtbl.find_opt rule_info "match" with
-  | Some v -> R.New (parse_formula_new env v)
-  | None -> R.Old (parse_formula_old env (find_formula_old rule_info))
-
-and parse_formula_old env ((key, value) : string * G.expr) : R.formula_old =
-  let get_pattern str_e = parse_pattern env (parse_string key str_e) in
-  let get_nested_formula x =
-    match x with
-    | G.Container
-        (Dict, (_, [ Tuple (_, [ L (String (key, _)); value ], _) ], _)) ->
-        parse_formula_old env (key, value)
-    | _ ->
-        pr2_gen x;
-        error "Wrong parse_formula fields"
-  in
-  match (key, value) with
-  | "pattern", s -> R.Pat (get_pattern s)
-  | "pattern-not", s -> R.PatNot (get_pattern s)
-  | "pattern-inside", s -> R.PatInside (get_pattern s)
-  | "pattern-not-inside", s -> R.PatNotInside (get_pattern s)
-  | "pattern-either", xs -> R.PatEither (parse_list key get_nested_formula xs)
-  | "patterns", xs -> R.Patterns (parse_list key get_nested_formula xs)
-  | "pattern-regex", s ->
-      let s = parse_string key s in
+and parse_formula_old env (x : string * J.t) : R.formula_old =
+  match x with
+  | "pattern", J.String pattern_string ->
+      let pattern = parse_pattern env pattern_string in
+      R.Pat pattern
+  | "pattern-not", J.String pattern_string ->
+      let pattern = parse_pattern env pattern_string in
+      R.PatNot pattern
+  | "pattern-inside", J.String pattern_string ->
+      let pattern = parse_pattern env pattern_string in
+      R.PatInside pattern
+  | "pattern-not-inside", J.String pattern_string ->
+      let pattern = parse_pattern env pattern_string in
+      R.PatNotInside pattern
+  | "pattern-either", J.Array xs ->
+      R.PatEither
+        (List.map
+           (fun x ->
+             match x with
+             | J.Object [ x ] -> parse_formula_old env x
+             | x ->
+                 pr2_gen x;
+                 error "wrong parse_formula fields")
+           xs)
+  | "patterns", J.Array xs ->
+      R.Patterns
+        (List.map
+           (fun x ->
+             match x with
+             | J.Object [ x ] -> parse_formula_old env x
+             | x ->
+                 pr2_gen x;
+                 error "wrong parse_formula fields")
+           xs)
+  | "pattern-regex", J.String s ->
       let xpat = R.mk_xpat (Regexp (parse_regexp env s)) s in
       R.Pat xpat
-  | "pattern-not-regex", s ->
-      let s = parse_string key s in
+  | "pattern-not-regex", J.String s ->
       let xpat = R.mk_xpat (Regexp (parse_regexp env s)) s in
       R.PatNot xpat
-  | "pattern-comby", s ->
-      let s = parse_string key s in
+  | "pattern-comby", J.String s ->
       let xpat = R.mk_xpat (Comby s) s in
       R.Pat xpat
-  | _x -> error "unimplemented"
+  | x ->
+      let extra = parse_extra env x in
+      R.PatExtra extra
 
-(* let extra = parse_extra env x in
-   R.PatExtra extra *)
-and parse_formula_new env (x : G.expr) : R.formula =
+and parse_formula_new env (x : J.t) : R.formula =
   match x with
-  | G.L (String (value, _)) -> R.Leaf (R.P (parse_pattern env value, None))
-  | G.Container (Dict, (_, [ Tuple (_, [ L (String (key, _)); value ], _) ], _))
-    -> (
-      match key with
-      | "and" -> R.And (parse_list key (parse_formula_new env) value)
-      | "or" -> R.Or (parse_list key (parse_formula_new env) value)
-      | "not" -> R.Not (parse_formula_new env value)
-      | "inside" ->
-          R.Leaf (R.P (parse_pattern env (parse_string key value), Some Inside))
-      | "regex" ->
-          let s = parse_string key value in
+  | J.String s -> R.Leaf (R.P (parse_pattern env s, None))
+  | J.Object xs -> (
+      match xs with
+      | [ ("and", J.Array xs) ] ->
+          let xs = xs |> List.map (parse_formula_new env) in
+          R.And xs
+      | [ ("or", J.Array xs) ] ->
+          let xs = xs |> List.map (parse_formula_new env) in
+          R.Or xs
+      | [ ("not", v) ] ->
+          let f = parse_formula_new env v in
+          R.Not f
+      | [ ("inside", J.String s) ] ->
+          R.Leaf (R.P (parse_pattern env s, Some Inside))
+      | [ ("regex", J.String s) ] ->
           let xpat = R.mk_xpat (R.Regexp (parse_regexp env s)) s in
           R.Leaf (R.P (xpat, None))
-      | "comby" ->
-          let s = parse_string key value in
+      | [ ("comby", J.String s) ] ->
           let xpat = R.mk_xpat (R.Comby s) s in
           R.Leaf (R.P (xpat, None))
-      | "where" ->
-          let s = parse_string key value in
+      | [ ("where", J.String s) ] ->
           R.Leaf (R.MetavarCond (R.CondEval (parse_metavar_cond s)))
-      | "metavariable_regex" -> (
-          match value with
-          | G.Container (Array, (_, [ mvar; re ], _)) ->
-              let mvar = parse_string key mvar in
-              let re = parse_string key re in
-              R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env re)))
-          | _ -> error "Expected a metavariable and regex" )
-      | _ -> error ("Invalid key for formula_new " ^ key) )
+      | [ ("metavariable_regex", J.Array [ J.String mvar; J.String re ]) ] ->
+          R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env re)))
+      | _ ->
+          pr2_gen x;
+          error "parse_formula_new" )
   | _ ->
       pr2_gen x;
       error "parse_formula_new"
 
 (* This is now mutually recursive because of metavariable-pattern: which can
  * contain itself a formula! *)
-and _parse_extra env x =
+and parse_extra env x =
   match x with
   | "metavariable-regex", J.Object xs -> (
       match find_fields [ "metavariable"; "regex" ] xs with
@@ -348,7 +328,7 @@ and _parse_extra env x =
       match find_fields [ "metavariable" ] xs with
       | [ ("metavariable", Some (J.String metavar)) ], rest ->
           let id, _ = env in
-          let _env', opt_xlang, rest' =
+          let env', opt_xlang, rest' =
             match find_fields [ "language" ] rest with
             | [ ("language", Some (J.String s)) ], rest' ->
                 let xlang =
@@ -369,7 +349,7 @@ and _parse_extra env x =
           in
           let pformula =
             match rest' with
-            | [ _x ] -> error "unimplemented" (* parse_formula env' x *)
+            | [ x ] -> parse_formula env' x
             | x ->
                 pr2_gen x;
                 error "wrong rule fields"
@@ -408,18 +388,23 @@ and _parse_extra env x =
 
 let parse_languages ~id langs =
   match langs with
-  | [ ("none" | "regex") ] -> R.LRegex
-  | [ "generic" ] -> R.LGeneric
+  | [ J.String ("none" | "regex") ] -> R.LRegex
+  | [ J.String "generic" ] -> R.LGeneric
   | xs -> (
       let languages =
         xs
-        |> List.map (function s ->
-               ( match Lang.lang_of_string_opt s with
-               | None ->
-                   raise
-                     (E.InvalidLanguageException
-                        (id, spf "unsupported language: %s" s))
-               | Some l -> l ))
+        |> List.map (function
+             | J.String s -> (
+                 match Lang.lang_of_string_opt s with
+                 | None ->
+                     raise
+                       (E.InvalidLanguageException
+                          (id, spf "unsupported language: %s" s))
+                 | Some l -> l )
+             | _ ->
+                 raise
+                   (E.InvalidRuleException
+                      (id, spf "expecting a string for languages")))
       in
       match languages with
       | [] ->
@@ -430,109 +415,101 @@ let parse_languages ~id langs =
 (* Main entry point *)
 (*****************************************************************************)
 
-let yaml_to_dict rule =
-  match rule with
-  | G.Container (Dict, (_, fields, _)) ->
-      let dict = Hashtbl.create 10 in
-      fields
-      |> List.iter (fun field ->
-             match field with
-             | G.Tuple (_, [ L (String (key, _)); value ], _) ->
-                 Hashtbl.add dict key value
-             | _ -> error "Not a valid key value pair");
-      dict
-  | _ -> error "each rule should be a dictionary of fields"
+let top_fields =
+  [
+    "id";
+    "languages";
+    "message";
+    "severity";
+    (* pattern* handled specialy via parse_formula *)
 
-let get dict f key =
-  match Hashtbl.find_opt dict key with
-  | Some value -> f key value
-  | None -> error ("Missing required field " ^ key)
+    (* optional *)
+    "metadata";
+    "fix";
+    "fix-regex";
+    "paths";
+    "equivalences";
+    "options";
+  ]
 
-let get_opt dict f key = Common.map_opt (f key) (Hashtbl.find_opt dict key)
-
-let parse_generic file formula_ast =
-  let rules_block =
-    match formula_ast with
-    | [
-     {
-       G.s =
-         G.ExprStmt
-           ( Container
-               ( Dict,
-                 (_, [ Tuple (_, [ L (String ("rules", _)); rules ], _) ], _) ),
-             _ );
-       _;
-     };
-    ] ->
-        rules
-    | _ -> error "missing rules entry as top-level key"
-  in
-  let rules =
-    match rules_block with
-    | Container (Array, (_, rules, _)) -> rules
-    | _ -> error "expected a list of rules following `rules:`"
-  in
-  rules
-  |> List.map (fun rule ->
-         let rule_info = yaml_to_dict rule in
-         let get f key = get rule_info f key in
-         let get_opt f key = get_opt rule_info f key in
-         let ( id,
-               languages,
-               message,
-               severity,
-               metadata_opt,
-               fix_opt,
-               fix_regex_opt,
-               paths_opt,
-               equivs_opt,
-               options_opt ) =
-           ( get parse_string "id",
-             get parse_string_list "languages",
-             get parse_string "message",
-             get parse_string "severity",
-             None,
-             get_opt parse_string "fix",
-             None,
-             None,
-             None,
-             None )
-         in
-         let languages = parse_languages ~id languages in
-         let formula = parse_formula (id, languages) rule_info in
-         {
-           R.id;
-           formula;
-           message;
-           languages;
-           file;
-           severity = H.parse_severity ~id severity;
-           (* optional fields *)
-           metadata = metadata_opt;
-           fix = fix_opt;
-           fix_regexp =
-             Common.map_opt (parse_fix_regex (id, languages)) fix_regex_opt;
-           paths = Common.map_opt parse_paths paths_opt;
-           equivalences = Common.map_opt parse_equivalences equivs_opt;
-           options = Common.map_opt parse_options options_opt;
-         })
+let parse_json file json =
+  match json with
+  | J.Object [ ("rules", J.Array xs) ] ->
+      xs
+      |> List.map (fun v ->
+             match v with
+             | J.Object xs -> (
+                 match find_fields top_fields xs with
+                 (* coupling: the order of the fields below must match the
+                  * order in top_fields. *)
+                 | ( [
+                       ("id", Some (J.String id));
+                       ("languages", Some (J.Array langs));
+                       ("message", Some (J.String message));
+                       ("severity", Some (J.String sev));
+                       ("metadata", metadata_opt);
+                       ("fix", fix_opt);
+                       ("fix-regex", fix_regex_opt);
+                       ("paths", paths_opt);
+                       ("equivalences", equivs_opt);
+                       ("options", options_opt);
+                     ],
+                     rest ) ->
+                     let languages = parse_languages ~id langs in
+                     let formula =
+                       match rest with
+                       | [ x ] -> parse_formula (id, languages) x
+                       | x ->
+                           pr2_gen x;
+                           error "wrong rule fields"
+                     in
+                     {
+                       R.id;
+                       formula;
+                       message;
+                       languages;
+                       file;
+                       severity = H.parse_severity ~id sev;
+                       (* optional fields *)
+                       metadata = metadata_opt;
+                       fix = Common.map_opt (parse_string "fix") fix_opt;
+                       fix_regexp =
+                         Common.map_opt
+                           (parse_fix_regex (id, languages))
+                           fix_regex_opt;
+                       paths = Common.map_opt parse_paths paths_opt;
+                       equivalences =
+                         Common.map_opt parse_equivalences equivs_opt;
+                       options = Common.map_opt parse_options options_opt;
+                     }
+                 | x ->
+                     pr2_gen x;
+                     error "wrong rule fields" )
+             | x ->
+                 pr2_gen x;
+                 error "wrong rule fields")
+  | _ -> error "missing rules entry as top-level key"
 
 let parse file =
-  let ast =
+  let json =
     match FT.file_type_of_file file with
-    | FT.Config FT.Yaml -> Yaml_to_generic.program file
-    | FT.Config FT.Json ->
-        Json_to_generic.program (Parse_json.parse_program file)
+    | FT.Config FT.Yaml -> (
+        let str = Common.read_file file in
+        let yaml_res = Yaml.of_string str in
+        match yaml_res with
+        | Result.Ok v -> yaml_to_json v
+        | Result.Error (`Msg s) -> raise (E.UnparsableYamlException s) )
+    | FT.Config FT.Json -> J.load_json file
     | FT.Config FT.Jsonnet ->
         Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
             let cmd = spf "jsonnet %s -o %s" file tmpfile in
             let n = Sys.command cmd in
             if n <> 0 then failwith (spf "error executing %s" cmd);
-            Json_to_generic.program (Parse_json.parse_program tmpfile))
+            J.load_json tmpfile)
     | _ ->
         failwith
           (spf "wrong rule format, only JSON/YAML/JSONNET are valid:%s:" file)
   in
-  parse_generic file ast
+  parse_json file json
 
 (*e: semgrep/parsing/Parse_rule.ml *)
