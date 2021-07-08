@@ -13,6 +13,7 @@ class JsonFormatter(BaseFormatter):
         json_obj = copy.deepcopy(rule_match._pattern_match._raw_json)
 
         json_obj["check_id"] = rule_match.id
+        json_obj["extra"] = json_obj.get("extra", {})
         json_obj["extra"]["message"] = rule_match.message
         json_obj["extra"]["metadata"] = rule_match.metadata
         json_obj["extra"]["severity"] = rule_match.severity
