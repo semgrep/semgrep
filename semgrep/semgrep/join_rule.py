@@ -46,11 +46,6 @@ logger.addHandler(handler)
 # TODO(bug): join rules don't propagate metavariables forward into messages
 # # report the last finding? report multiple findings?
 
-### Known Semgrep bugs:
-# TODO: JSON output does not return all instances of a multi-matched pattern.
-# # e.g., a pattern 'this_function(..., $VAR=$VALUE, ...)' will only have one match
-# # even if there are multiple satisfactory patterns
-
 """
 rules:
 - id: blah
@@ -292,6 +287,7 @@ def main(
     # Run Semgrep
     with tempfile.NamedTemporaryFile() as rule_path:
         yaml.dump({"rules": [rule.raw for rule in config_map.values()]}, rule_path)
+        rule_path.flush()
         output = semgrep.semgrep_main.invoke_semgrep(
             config=Path(rule_path.name),
             targets=targets,
@@ -358,7 +354,7 @@ def main(
     )
     if matched_on_conditions:  # This is ugly, but makes mypy happy
         for match in matched_on_conditions:
-            matches.append(json.loads(match.raw.decode("utf-8")))
+            matches.append(json.loads(match.raw.decode("utf-8", errors="replace")))
 
     rule_matches = [
         RuleMatch(
