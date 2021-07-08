@@ -31,8 +31,8 @@ Environmental data provides contextual data about Semgrep’s runtime environmen
 * If the command ran in a CI environment
 * The version of Semgrep
 * The user’s OS and shell
-* Anonymized hash of the scanned project’s name
-* Anonymized hash of the rules run
+* De-identified hash of the scanned project’s name
+* De-identified hash of the rules run
 
 ### Performance
 
