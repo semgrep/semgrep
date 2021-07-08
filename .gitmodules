@@ -46,3 +46,18 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-hack"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-hack
 	url = https://github.com/returntocorp/semgrep-hack.git
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-html"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-html
+	url = https://github.com/returntocorp/semgrep-html.git
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-vue"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-vue
+	url = https://github.com/returntocorp/semgrep-vue.git
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-dockerfile"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-dockerfile
+	url = https://github.com/returntocorp/semgrep-dockerfile
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-sqlite"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-sqlite
+	url = https://github.com/returntocorp/semgrep-sqlite
+[submodule "semgrep-core/src/tree-sitter-lang/semgrep-bash"]
+	path = semgrep-core/src/tree-sitter-lang/semgrep-bash
+	url = https://github.com/returntocorp/semgrep-bash

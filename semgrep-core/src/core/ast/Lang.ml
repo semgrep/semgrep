@@ -46,6 +46,7 @@ type t =
   (* mainstream with Gc *)
   | Javascript
   | Typescript
+  | Vue
   | Java
   | Kotlin
   | Csharp
@@ -63,12 +64,14 @@ type t =
   (* config files *)
   | JSON
   | Yaml
+  (* doc files *)
+  | HTML
 
 (*e: type [[Lang.t]] *)
 [@@ocamlformat "disable"]
 [@@deriving show, eq]
 
-let is_js = function Javascript | Typescript -> true | _ -> false
+let is_js = function Javascript | Typescript | Vue -> true | _ -> false
 
 let is_python = function Python | Python2 | Python3 -> true | _ -> false
 
@@ -111,6 +114,8 @@ let list_of_lang =
     ("r", R);
     ("yaml", Yaml);
     ("scala", Scala);
+    ("html", HTML);
+    ("vue", Vue);
   ]
 
 (*e: constant [[Lang.list_of_lang]] *)
@@ -132,6 +137,7 @@ let langs_of_filename filename =
   match typ with
   | FT.PL (FT.Web FT.Js) -> [ Javascript ] (* Add TypeScript too? *)
   | FT.PL (FT.Web FT.TypeScript) -> [ Typescript ]
+  | FT.PL (FT.Web FT.Vue) -> [ Vue ]
   | FT.PL FT.Python -> [ Python; Python2; Python3 ]
   (* .h could also be Cpp at some point *)
   | FT.PL (FT.C "c") -> [ C ]
@@ -151,6 +157,7 @@ let langs_of_filename filename =
   | FT.PL FT.Rust -> [ Rust ]
   | FT.PL FT.R -> [ R ]
   | FT.PL FT.Scala -> [ Scala ]
+  | FT.PL (FT.Web FT.Html) -> [ HTML ]
   | _ -> []
 
 (*e: function [[Lang.langs_of_filename]] *)
@@ -162,6 +169,7 @@ let string_of_lang = function
   | Python3 -> "Python3"
   | Javascript -> "Javascript"
   | Typescript -> "Typescript"
+  | Vue -> "Vue"
   | JSON -> "JSON"
   | Java -> "Java"
   | C -> "C"
@@ -178,6 +186,7 @@ let string_of_lang = function
   | R -> "R"
   | Yaml -> "Yaml"
   | Scala -> "Scala"
+  | HTML -> "HTML"
 
 (* must match [a-z][a-z0-9]* *)
 let to_lowercase_alnum = function
@@ -201,7 +210,9 @@ let to_lowercase_alnum = function
   | Rust -> "rust"
   | Scala -> "scala"
   | Typescript -> "typescript"
+  | Vue -> "vue"
   | Yaml -> "yaml"
+  | HTML -> "html"
 
 (*e: function [[Lang.string_of_lang]] *)
 
@@ -227,6 +238,8 @@ let ext_of_lang = function
   | R -> [ "r"; "R" ]
   | Yaml -> [ "yaml"; "yml" ]
   | Scala -> [ "scala" ]
+  | HTML -> [ "html"; "htm" ]
+  | Vue -> [ "vue" ]
 
 (*e: function [[Lang.ext_of_lang]] *)
 

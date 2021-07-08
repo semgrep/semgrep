@@ -16,6 +16,7 @@ type t =
   (* mainstream with Gc *)
   | Javascript
   | Typescript
+  | Vue
   | Java
   | Kotlin
   | Csharp
@@ -33,6 +34,8 @@ type t =
   (* config files *)
   | JSON
   | Yaml
+  (* doc files *)
+  | HTML
 
 (*e: type [[Lang.t]] *)
 

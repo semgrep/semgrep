@@ -19,6 +19,8 @@
    tree-sitter-lang.r
    tree-sitter-lang.ocaml
    tree-sitter-lang.hack
+   tree-sitter-lang.html
+   tree-sitter-lang.vue
 
    commons
    pfff-lang_GENERIC
