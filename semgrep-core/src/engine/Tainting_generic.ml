@@ -17,9 +17,8 @@
 (*e: pad/r2c copyright *)
 module AST = AST_generic
 module V = Visitor_AST
-module R = Tainting_rule
+module R = Rule
 module R2 = Mini_rule
-module Flag = Flag_semgrep
 module PM = Pattern_match
 
 (*****************************************************************************)
@@ -97,12 +96,12 @@ let match_pat_instr pat instr =
 (*e: function [[Tainting_generic.match_pat_instr]] *)
 
 (*s: function [[Tainting_generic.config_of_rule]] *)
-let config_of_rule found_tainted_sink rule =
+let config_of_rule found_tainted_sink spec =
   {
-    Dataflow_tainting.is_source = match_pat_instr rule.R.source;
-    is_source_exp = match_pat_exp rule.R.source;
-    is_sanitizer = match_pat_instr rule.R.sanitizer;
-    is_sink = match_pat_instr rule.R.sink;
+    Dataflow_tainting.is_source = match_pat_instr spec.R.sources;
+    is_source_exp = match_pat_exp spec.R.sources;
+    is_sanitizer = match_pat_instr spec.R.sanitizers;
+    is_sink = match_pat_instr spec.R.sinks;
     found_tainted_sink;
   }
 
@@ -113,7 +112,7 @@ let config_of_rule found_tainted_sink rule =
 (*****************************************************************************)
 
 (*s: function [[Tainting_generic.check2]] *)
-let check rules file ast =
+let check hook (taint_rules : (Rule.rule * Rule.taint_spec) list) file ast =
   let matches = ref [] in
 
   let fun_env = Hashtbl.create 8 in
@@ -122,19 +121,25 @@ let check rules file ast =
     let xs = AST_to_IL.stmt def_body in
     let flow = CFG_build.cfg_of_stmts xs in
 
-    rules
-    |> List.iter (fun rule ->
+    taint_rules
+    |> List.iter (fun (rule, taint_spec) ->
            let found_tainted_sink instr _env =
              let code = AST.E instr.IL.iorig in
              let range_loc = V.range_of_any code in
              let tokens = lazy (V.ii_of_any code) in
-             let rule_id = Tainting_rule.rule_id_of_tainting_rule rule in
+             let rule_id =
+               {
+                 Pattern_match.id = rule.Rule.id;
+                 message = rule.Rule.message;
+                 pattern_string = "TODO: no pattern_string";
+               }
+             in
              (* todo: use env from sink matching func?  *)
              Common.push
                { PM.rule_id; file; range_loc; tokens; env = [] }
                matches
            in
-           let config = config_of_rule found_tainted_sink rule in
+           let config = config_of_rule found_tainted_sink taint_spec in
            let mapping =
              Dataflow_tainting.fixpoint config fun_env opt_name flow
            in
@@ -169,6 +174,13 @@ let check rules file ast =
   check_stmt None (AST.stmt1 ast);
 
   !matches
+  (* same post-processing as for search-mode in Match_rules.ml *)
+  |> Common.uniq_by (AST_utils.with_structural_equal PM.equal)
+  |> Common.before_return (fun v ->
+         v
+         |> List.iter (fun (m : Pattern_match.t) ->
+                let str = Common.spf "with rule %s" m.rule_id.id in
+                hook str m.env m.tokens))
   [@@profiling]
 
 (*e: function [[Tainting_generic.check2]] *)

@@ -463,4 +463,8 @@ let hmemo = Hashtbl.create 101
 let regexp_prefilter_of_rule r =
   let k = r.R.file ^ "." ^ r.R.id in
   Common.memoized hmemo k (fun () ->
-      r |> Rule.formula_of_rule |> regexp_prefilter_of_formula)
+      match r.mode with
+      | R.Search pf ->
+          let f = R.formula_of_pformula pf in
+          regexp_prefilter_of_formula f
+      | R.Taint _ -> (* TODO *) None)

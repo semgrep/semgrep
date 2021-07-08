@@ -179,10 +179,26 @@ type pformula = New of formula | Old of formula_old [@@deriving show, eq]
 (* The rule *)
 (*****************************************************************************)
 
+(* alt:
+ *     type common = { id : string; ... }
+ *     type search = { common : common; formula : pformula; }
+ *     type taint  = { common : common; spec : taint_spec; }
+ *     type rule   = Search of search | Taint of taint
+ *)
+
+type taint_spec = {
+  sources : Pattern.t list;
+  sanitizers : Pattern.t list;
+  sinks : Pattern.t list;
+}
+[@@deriving show]
+
+type mode = Search of pformula | Taint of taint_spec [@@deriving show]
+
 type rule = {
   (* MANDATORY fields *)
   id : string;
-  formula : pformula;
+  mode : mode;
   message : string;
   severity : Mini_rule.severity;
   languages : xlang;
@@ -299,6 +315,9 @@ let formula_of_pformula = function
   | New f -> f
   | Old oldf -> convert_formula_old oldf
 
-let formula_of_rule r = formula_of_pformula r.formula
+let partition_rules rules =
+  rules
+  |> Common.partition_either (fun r ->
+         match r.mode with Search f -> Left (r, f) | Taint s -> Right (r, s))
 
 (*e: semgrep/core/Rule.ml *)

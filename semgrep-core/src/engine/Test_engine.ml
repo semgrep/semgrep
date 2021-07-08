@@ -147,7 +147,7 @@ let test_rules ?(ounit_context = false) xs =
          let config = Config_semgrep.default_config in
          let res =
            try
-             Match_rules.check
+             Run_rules.check
                (fun _ _ _ -> ())
                config rules []
                (target, xlang, lazy_ast_and_errors)

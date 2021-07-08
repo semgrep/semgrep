@@ -835,7 +835,7 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
                    failwith "requesting generic AST for LRegex|LGeneric" )
            in
            let res =
-             Match_rules.check hook Config_semgrep.default_config rules
+             Run_rules.check hook Config_semgrep.default_config rules
                (parse_equivalences ())
                (file, xlang, lazy_ast_and_errors)
            in
@@ -984,46 +984,6 @@ let semgrep_with_one_pattern lang xs =
 (*e: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
 
 (*****************************************************************************)
-(* Semgrep -tainting_rules_file *)
-(*****************************************************************************)
-
-module TR = Tainting_rule
-
-(*s: function [[Main_semgrep_core.tainting_with_rules]] *)
-let tainting_with_rules lang rules_file files_or_dirs =
-  try
-    logger#info "Parsing %s" rules_file;
-    let rules = Parse_tainting_rules.parse rules_file in
-
-    let files = files_of_dirs_with_lang_and_explicit_files lang files_or_dirs in
-    let file_results =
-      files
-      |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
-             let ast, errors = parse_generic lang file in
-             let rules =
-               rules |> List.filter (fun r -> List.mem lang r.TR.languages)
-             in
-             {
-               matches = Tainting_generic.check rules file ast;
-               errors;
-               profiling = RP.empty_partial_profiling file (* TODO? *);
-             })
-    in
-    let res =
-      RP.make_rule_result file_results ~report_time:false ~rule_parse_time:0.0
-    in
-    let res = JSON_report.match_results_of_matches_and_errors files res in
-    let s = SJ.string_of_match_results res in
-    pr s
-  with exn ->
-    let json = JSON_report.json_of_exn exn in
-    let s = J.string_of_json json in
-    pr s;
-    exit 2
-
-(*e: function [[Main_semgrep_core.tainting_with_rules]] *)
-
-(*****************************************************************************)
 (* Checker *)
 (*****************************************************************************)
 (*s: function [[Main_semgrep_core.read_all]] *)
@@ -1165,13 +1125,6 @@ let dump_equivalences file =
 
 (*e: function [[Main_semgrep_core.dump_equivalences]] *)
 
-(*s: function [[Main_semgrep_core.dump_tainting_rules]] *)
-let dump_tainting_rules file =
-  let xs = Parse_tainting_rules.parse file in
-  pr2_gen xs
-
-(*e: function [[Main_semgrep_core.dump_tainting_rules]] *)
-
 let dump_rule file =
   let rules = Parse_rule.parse file in
   rules |> List.iter (fun r -> pr (Rule.show r))
@@ -1210,10 +1163,6 @@ let all_actions () =
     ("-dump_v1_json", " <file>", Common.mk_action_1_arg dump_v1_json);
     (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
     ("-dump_equivalences", " <file>", Common.mk_action_1_arg dump_equivalences);
-    (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
-    ( "-dump_tainting_rules",
-      " <file>",
-      Common.mk_action_1_arg dump_tainting_rules );
     (*e: [[Main_semgrep_core.all_actions]] dumper cases *)
     ("-dump_rule", " <file>", Common.mk_action_1_arg dump_rule);
     ( "-dump_tree_sitter_cst",
@@ -1361,10 +1310,6 @@ let options () =
     ( "-gen_layer",
       Arg.String (fun s -> Experiments.layer_file := Some s),
       " <file> save result in a codemap layer file" );
-    (*x: [[Main_semgrep_core.options]] other cases *)
-    ( "-tainting_rules_file",
-      Arg.Set_string tainting_rules_file,
-      " <file> obtain source/sink/sanitizer patterns from YAML file" );
     (*x: [[Main_semgrep_core.options]] other cases *)
     ( "-error_recovery",
       Arg.Unit
@@ -1550,10 +1495,6 @@ let main () =
           | _ when !rules_file <> "" ->
               let lang = lang_of_string !lang in
               semgrep_with_patterns_file lang !rules_file (x :: xs)
-          (*x: [[Main_semgrep_core.main()]] main entry match cases *)
-          | _ when !tainting_rules_file <> "" ->
-              let lang = lang_of_string !lang in
-              tainting_with_rules lang !tainting_rules_file (x :: xs)
           (*e: [[Main_semgrep_core.main()]] main entry match cases *)
           (*s: [[Main_semgrep_core.main()]] main entry match cases default case *)
           | _ ->

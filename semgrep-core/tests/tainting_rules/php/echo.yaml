@@ -1,5 +1,6 @@
 rules:
   - id: test-taint-echo
+    mode: taint
     languages:
       - php
     message: Working!
