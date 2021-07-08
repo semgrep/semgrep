@@ -4,7 +4,6 @@ open OUnit
 module E = Error_code
 module P = Pattern_match
 module R = Mini_rule
-module T = Tainting_rule
 
 (*****************************************************************************)
 (* Purpose *)
@@ -141,7 +140,7 @@ let regression_tests_for_lang ~with_caching files lang =
 let tainting_test lang rules_file file =
   let rules =
     try
-      Parse_tainting_rules.parse rules_file
+      Parse_rule.parse rules_file
     with exn ->
       failwith (spf "fail to parse tainting rules %s (exn = %s)"
                 rules_file
@@ -160,8 +159,15 @@ let tainting_test lang rules_file file =
                   (Common.exn_to_s exn))
   in
   let rules =
-    rules |> List.filter (fun r -> List.mem lang r.T.languages) in
-  let matches = Tainting_generic.check rules file ast in
+    rules
+    |> List.filter (fun r ->
+          match r.Rule.languages with
+          | Rule.L (x, xs) -> List.mem lang (x :: xs)
+          | _ -> false)
+    in
+  let search_rules, taint_rules = Rule.partition_rules rules in
+  assert (search_rules = []);
+  let matches = Tainting_generic.check (fun _ _ _ -> ()) taint_rules file ast in
   let actual =
     matches |> List.map (fun m ->
       { E.typ = SemgrepMatchFound(m.P.rule_id.id,m.P.rule_id.message);

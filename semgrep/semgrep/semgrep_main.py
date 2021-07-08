@@ -30,7 +30,6 @@ from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.semgrep_types import TAINT_MODE
 from semgrep.target_manager import TargetManager
 from semgrep.util import manually_search_file
 from semgrep.util import sub_check_output
@@ -243,12 +242,8 @@ The two most popular are:
 
     # # Turn off optimizations if using features not supported yet
     if optimizations == "all":
-        # taint mode rules not yet supported
-        if any(rule.mode == TAINT_MODE for rule in filtered_rules):
-            logger.info("Running without optimizations since taint rule found")
-            optimizations = "none"
         # step by step evaluation output not yet supported
-        elif output_handler.settings.debug:
+        if output_handler.settings.debug:
             logger.info(
                 "Running without optimizations since step-by-step evaluation output desired"
             )

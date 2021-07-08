@@ -414,7 +414,6 @@ let parse_languages ~id langs =
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
-
 let top_fields =
   [
     "id";
@@ -424,6 +423,7 @@ let top_fields =
     (* pattern* handled specialy via parse_formula *)
 
     (* optional *)
+    "mode";
     "metadata";
     "fix";
     "fix-regex";
@@ -431,6 +431,63 @@ let top_fields =
     "equivalences";
     "options";
   ]
+
+let parse_mode env mode_opt (xs : (string * J.t) list) : R.mode =
+  let read_string = function
+    | J.String s -> s
+    | _ -> error "wrong rule fields"
+  in
+  match mode_opt with
+  | None | Some (J.String "search") ->
+      let formula =
+        match xs with
+        | [ x ] -> parse_formula env x
+        | x ->
+            pr2_gen x;
+            error "wrong rule fields"
+      in
+      R.Search formula
+  | Some (J.String "taint") -> (
+      let id, lang =
+        match env with
+        | id, R.L (lang, _) -> (id, lang)
+        | __else___ -> error "Invalid language for taint mode"
+      in
+      match
+        find_fields
+          [ "pattern-sources"; "pattern-sanitizers"; "pattern-sinks" ]
+          xs
+      with
+      | ( [
+            ("pattern-sources", Some (J.Array sources));
+            ("pattern-sanitizers", sanitizers_opt);
+            ("pattern-sinks", Some (J.Array sinks));
+          ],
+          [] ) ->
+          let sources =
+            List.map
+              (fun s -> H.parse_pattern ~id ~lang (read_string s))
+              sources
+          in
+          let sanitizers =
+            match sanitizers_opt with
+            | None -> []
+            | Some (J.Array sanitizers) ->
+                List.map
+                  (fun s -> H.parse_pattern ~id ~lang (read_string s))
+                  sanitizers
+            | _ -> error "wrong rule fields"
+          in
+          let sinks =
+            List.map (fun s -> H.parse_pattern ~id ~lang (read_string s)) sinks
+          in
+          R.Taint { sources; sanitizers; sinks }
+      | x ->
+          pr2_gen x;
+          error "wrong rule fields" )
+  | _ ->
+      pr2_gen xs;
+      error "wrong rule fields"
 
 let parse_json file json =
   match json with
@@ -447,6 +504,7 @@ let parse_json file json =
                        ("languages", Some (J.Array langs));
                        ("message", Some (J.String message));
                        ("severity", Some (J.String sev));
+                       ("mode", mode_opt);
                        ("metadata", metadata_opt);
                        ("fix", fix_opt);
                        ("fix-regex", fix_regex_opt);
@@ -456,16 +514,11 @@ let parse_json file json =
                      ],
                      rest ) ->
                      let languages = parse_languages ~id langs in
-                     let formula =
-                       match rest with
-                       | [ x ] -> parse_formula (id, languages) x
-                       | x ->
-                           pr2_gen x;
-                           error "wrong rule fields"
-                     in
+                     let env = (id, languages) in
+                     let mode = parse_mode env mode_opt rest in
                      {
                        R.id;
-                       formula;
+                       mode;
                        message;
                        languages;
                        file;
@@ -474,9 +527,7 @@ let parse_json file json =
                        metadata = metadata_opt;
                        fix = Common.map_opt (parse_string "fix") fix_opt;
                        fix_regexp =
-                         Common.map_opt
-                           (parse_fix_regex (id, languages))
-                           fix_regex_opt;
+                         Common.map_opt (parse_fix_regex env) fix_regex_opt;
                        paths = Common.map_opt parse_paths paths_opt;
                        equivalences =
                          Common.map_opt parse_equivalences equivs_opt;

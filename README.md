@@ -123,7 +123,7 @@ Browse the full Semgrep [documentation on the website](https://semgrep.dev/docs)
 
 Semgrep collects opt-in non-identifiable aggregate metrics for improving the user experience, guiding Semgrep feature development, and identifying regressions.
 
-The [PRIVACY.md](privacy.md) file describes the principles that guide data-collection decisions, the breakdown of the data that are and are not collected when the metrics are enabled, and how to opt into Semgrep’s metrics.
+The [PRIVACY.md](PRIVACY.md) file describes the principles that guide data-collection decisions, the breakdown of the data that are and are not collected when the metrics are enabled, and how to opt into Semgrep’s metrics.
 
 > Semgrep CI never sends your source code anywhere.
 

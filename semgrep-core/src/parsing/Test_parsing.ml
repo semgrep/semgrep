@@ -108,6 +108,9 @@ let dump_tree_sitter_cst lang file =
   | Lang.HTML ->
       Tree_sitter_html.Parse.file file
       |> dump_and_print_errors Tree_sitter_html.CST.dump_tree
+  | Lang.Vue ->
+      Tree_sitter_vue.Parse.file file
+      |> dump_and_print_errors Tree_sitter_vue.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang xs =
@@ -155,6 +158,8 @@ let test_parse_tree_sitter lang xs =
                      Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
                  | Lang.HTML ->
                      Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
+                 | Lang.Vue ->
+                     Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
                  | _ ->
                      failwith
                        (spf "lang %s not supported with tree-sitter"

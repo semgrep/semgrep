@@ -1,5 +1,6 @@
 rules:
   - id: typescript.nestjs.security.test-taint-mode
+    mode: taint
     languages:
       - typescript
     message: |

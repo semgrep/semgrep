@@ -500,9 +500,10 @@ let parse_generic file formula_ast =
          in
          let languages = parse_languages ~id languages in
          let formula = parse_formula (id, languages) rule_info in
+         let mode = R.Search formula in
          {
            R.id;
-           formula;
+           mode;
            message;
            languages;
            file;
