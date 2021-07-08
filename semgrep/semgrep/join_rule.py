@@ -11,8 +11,10 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Set
 from typing import Tuple
 from typing import Type
+from typing import Union
 
 import attr
 import peewee as pw
@@ -30,16 +32,14 @@ from semgrep.rule_match import RuleMatch
 yaml = YAML()
 
 logger = logging.getLogger(__file__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(stream=sys.stderr)
 handler.setFormatter(
     logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 )
 logger.addHandler(handler)
 
-# TODO: placate mypy
 # TODO: refactor into nice code files instead of this giant file
-# TODO: update messages, severity on the results
 # TODO: probably, add error handling
 # TODO: decide how to represent these kinds of rules in the output.
 # # report the last finding? report multiple findings?
@@ -138,13 +138,8 @@ def evaluate_condition(
     raise NotImplementedError(f"The operator {operator} is not supported.")
 
 
-def match_on_conditions(  # type: ignore
-    model_map: Dict[str, Type[BaseModel]],
-    aliases: Dict[str, str],
-    conditions: List[Condition],
-) -> pw.ModelSelect:
-    # get all collections
-    collections = set(
+def create_collection_set_from_conditions(conditions: List[Condition]) -> Set[str]:
+    return set(
         chain(
             *[
                 (condition.collection_a, condition.collection_b)
@@ -152,9 +147,24 @@ def match_on_conditions(  # type: ignore
             ]
         )
     )
-    collection_models = list(
-        map(lambda collection: model_map[aliases.get(collection, "")], collections)
-    )
+
+
+def match_on_conditions(  # type: ignore
+    model_map: Dict[str, Type[BaseModel]],
+    aliases: Dict[str, str],
+    conditions: List[Condition],
+) -> Union[pw.ModelSelect, List[None]]:
+    # get all collections
+    collections = create_collection_set_from_conditions(conditions)
+    try:
+        collection_models = [
+            model_map[aliases.get(collection, "")] for collection in collections
+        ]
+    except KeyError as ke:
+        logger.warning(
+            f"No model exists for this rule '{ke}' but a condition for '{ke}' is required. Cannot proceed with this join rule."
+        )
+        return []
 
     # join them together
     joined: ModelSelect = reduce(  # type: ignore
@@ -176,9 +186,11 @@ def match_on_conditions(  # type: ignore
     # Use the rhs of the final condition as the finding to return.
     # Without this, the return value is non-deterministic.
     last_condition_model: Type[BaseModel] = condition_terms[-1][0]
-    return joined.select(last_condition_model.raw).where(
+    query = joined.select(last_condition_model.raw).where(
         *list(map(lambda terms: evaluate_condition(*terms), condition_terms))  # type: ignore
     )
+    logger.debug(query)
+    return query
 
 
 def create_config_map(semgrep_config_strings: List[str]) -> Dict[str, Rule]:
@@ -210,7 +222,9 @@ def rename_metavars_in_place(
 def create_model_map(
     semgrep_results: List[Dict[str, Any]]
 ) -> Dict[str, Type[BaseModel]]:
-    collections = group(semgrep_results, key=lambda item: item.get("check_id"))
+    collections: Dict[str, List[Dict]] = group(
+        semgrep_results, key=lambda item: item.get("check_id")
+    )
     model_map: Dict[str, Type[BaseModel]] = {}
     for name, findings in collections.items():
         metavars = set()
@@ -262,6 +276,11 @@ def main(
     refs_lookup = {ref.id: ref for ref in join_rule_refs}
     alias_lookup = {ref.alias: ref.id for ref in join_rule_refs}
 
+    conditions = [
+        Condition.parse(condition_string)
+        for condition_string in join_contents.get("on", [])
+    ]
+
     # Run Semgrep
     with tempfile.NamedTemporaryFile() as rule_path:
         yaml.dump({"rules": [rule.raw for rule in config_map.values()]}, rule_path)
@@ -271,10 +290,23 @@ def main(
             no_rewrite_rule_ids=True,
         )
 
-    assert isinstance(output, dict)
+    assert isinstance(output, dict)  # placate mypy
 
     results = output.get("results", [])
     errors = output.get("errors", [])
+
+    # Small optimization: if there are no results for rules that
+    # are used in a condition, there's no sense in continuing.
+    collection_set_unaliased = {
+        alias_lookup[collection]
+        for collection in create_collection_set_from_conditions(conditions)
+    }
+    rule_ids = set(result.get("check_id") for result in results)
+    if collection_set_unaliased - rule_ids:
+        logger.debug(
+            f"No results for {collection_set_unaliased - rule_ids} in join rule '{join_rule.get('id')}'."
+        )
+        return [], errors
 
     # Rename metavariables with user-defined renames.
     rename_metavars_in_place(results, refs_lookup)
@@ -301,8 +333,6 @@ def main(
     ):
         matches.append(json.loads(match.raw.decode("utf-8")))
 
-    # TODO: override result IDs, message, severity, and metadata.
-    # Better yet, consider just making new ones
     rule_matches = [
         RuleMatch(
             id=join_rule.get("id", match.get("check_id", "[empty]")),
