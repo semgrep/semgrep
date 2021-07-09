@@ -9,7 +9,6 @@ rules:
       - metavariable-pattern:
           metavariable: $CODE
           language: C
-          patterns:
-              - pattern: |
-                  $X++;
+          pattern: |
+            $X++;
     severity: WARNING
