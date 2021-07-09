@@ -108,7 +108,7 @@ class CoreRunner:
                     spans=[matching_span],
                     help=None,
                     config_path=config_path,
-                    config_location=config_path,
+                    config_location=config_location,
                 )
             # no special formatting ought to be required for the other types; the semgrep python should be performing
             else:
