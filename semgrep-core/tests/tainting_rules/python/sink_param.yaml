@@ -6,12 +6,12 @@ rules:
     message: |
       This confirms taint mode works.
     pattern-sinks:
-      - pattern: sink(...)
-      - pattern: sink1(...)
-      - pattern: eval(...)
+      - patterns:
+        - pattern-inside: sink1($SINK, ...)
+        - pattern: $SINK
     pattern-sources:
       - pattern: source1(...)
     pattern-sanitizers:
-      - pattern: sanitize(...)
+      - pattern: sanitize1(...)
     severity: ERROR
 

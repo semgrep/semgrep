@@ -18,7 +18,7 @@ module RP = Report
 
 let lazy_force x = Lazy.force x [@@profiling]
 
-let check_taint hook taint_rules file_and_more =
+let check_taint hook default_config taint_rules equivs file_and_more =
   match taint_rules with
   | [] -> RP.empty_semgrep_result
   | __else__ ->
@@ -28,7 +28,8 @@ let check_taint hook taint_rules file_and_more =
       in
       let matches, match_time =
         Common.with_time (fun () ->
-            Tainting_generic.check hook taint_rules file ast)
+            Tainting_generic.check hook default_config taint_rules equivs file
+              ast)
       in
       { RP.matches; errors; profiling = { RP.parse_time; match_time } }
 
@@ -37,5 +38,7 @@ let check hook default_config rules equivs file_and_more =
   let res_search =
     Match_rules.check hook default_config search_rules equivs file_and_more
   in
-  let res_taint = check_taint hook taint_rules file_and_more in
+  let res_taint =
+    check_taint hook default_config taint_rules equivs file_and_more
+  in
   RP.collate_semgrep_results [ res_search; res_taint ]

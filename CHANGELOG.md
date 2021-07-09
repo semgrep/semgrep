@@ -6,6 +6,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Vue.js alpha support (#1751)
+- New iteration of taint-mode that allows to specify sources/sanitizers/sinks
+  using arbitrary pattern formulas. This provides plenty of flexibility. Note
+  that we breaks compatibility with the previous taint-mode format, e.g.
+  `- source(...)` must now be written as `- pattern: source(...)`.
 
 ### Fixed
 - Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)

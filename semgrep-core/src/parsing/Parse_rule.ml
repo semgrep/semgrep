@@ -433,8 +433,8 @@ let top_fields =
   ]
 
 let parse_mode env mode_opt (xs : (string * J.t) list) : R.mode =
-  let read_string = function
-    | J.String s -> s
+  let read_object = function
+    | J.Object [ x ] -> x
     | _ -> error "wrong rule fields"
   in
   match mode_opt with
@@ -448,11 +448,6 @@ let parse_mode env mode_opt (xs : (string * J.t) list) : R.mode =
       in
       R.Search formula
   | Some (J.String "taint") -> (
-      let id, lang =
-        match env with
-        | id, R.L (lang, _) -> (id, lang)
-        | __else___ -> error "Invalid language for taint mode"
-      in
       match
         find_fields
           [ "pattern-sources"; "pattern-sanitizers"; "pattern-sinks" ]
@@ -465,21 +460,17 @@ let parse_mode env mode_opt (xs : (string * J.t) list) : R.mode =
           ],
           [] ) ->
           let sources =
-            List.map
-              (fun s -> H.parse_pattern ~id ~lang (read_string s))
-              sources
+            List.map (fun s -> parse_formula env (read_object s)) sources
           in
           let sanitizers =
             match sanitizers_opt with
             | None -> []
             | Some (J.Array sanitizers) ->
-                List.map
-                  (fun s -> H.parse_pattern ~id ~lang (read_string s))
-                  sanitizers
+                List.map (fun s -> parse_formula env (read_object s)) sanitizers
             | _ -> error "wrong rule fields"
           in
           let sinks =
-            List.map (fun s -> H.parse_pattern ~id ~lang (read_string s)) sinks
+            List.map (fun s -> parse_formula env (read_object s)) sinks
           in
           R.Taint { sources; sanitizers; sinks }
       | x ->

@@ -187,9 +187,9 @@ type pformula = New of formula | Old of formula_old [@@deriving show, eq]
  *)
 
 type taint_spec = {
-  sources : Pattern.t list;
-  sanitizers : Pattern.t list;
-  sinks : Pattern.t list;
+  sources : pformula list;
+  sanitizers : pformula list;
+  sinks : pformula list;
 }
 [@@deriving show]
 
