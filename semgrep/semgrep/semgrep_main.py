@@ -265,6 +265,21 @@ The two most popular are:
             logger.info("Running without optimizations since running equivalence rules")
             optimizations = "none"
 
+    if optimizations == "none":
+        logger.warning(
+            with_color(
+                Fore.RED,
+                "Deprecation Notice: running with `--optimizations none` will be deprecated by 0.60.0\n"
+                "This includes the following functionality:\n"
+                "- pattern-where-python\n"
+                "- taint-mode\n"
+                "- equivalences\n"
+                "- step-by-step evaluation output\n"
+                "If you are seeing this notice, without specifing `--optimizations none` it means the rules\n"
+                "you are running are using some of this functionality.",
+            )
+        )
+
     start_time = time.time()
     # actually invoke semgrep
     if optimizations == "none":
@@ -375,21 +390,6 @@ The two most popular are:
         filtered_rules,
         profiling_data,
     )
-
-    if optimizations == "none":
-        logger.warning(
-            with_color(
-                Fore.RED,
-                "Deprecation Notice: running with `--optimizations none` will be deprecated by 0.60.0\n"
-                "This includes the following functionality:\n"
-                "- pattern-where-python\n"
-                "- taint-mode\n"
-                "- equivalences\n"
-                "- step-by-step evaluation output\n"
-                "If you are seeing this notice, without specifing `--optimizations none` it means the rules\n"
-                "you are running are using some of this functionality.",
-            )
-        )
 
     if autofix:
         apply_fixes(rule_matches_by_rule, dryrun)
