@@ -136,6 +136,8 @@ definitions:
   pattern:
     type: object
     properties:
+      pattern-id:
+        type: string
       pattern:
         title: Return finding where Semgrep pattern matches exactly
         type: string
@@ -145,6 +147,8 @@ definitions:
   pattern-regex:
     type: object
     properties:
+      pattern-id:
+        type: string
       pattern-regex:
         title: Return finding where regular expression matches
         type: string
@@ -154,6 +158,8 @@ definitions:
   pattern-not-regex:
     type: object
     properties:
+      pattern-id:
+        type: string
       pattern-not-regex:
         title: Do not return finding where regular expression matches
         type: string
@@ -163,6 +169,8 @@ definitions:
   patterns:
     type: object
     properties:
+      pattern-id:
+        type: string
       patterns:
         title: Return finding where all of the nested conditions are true
         $ref: '#/definitions/patterns-content'
@@ -172,6 +180,8 @@ definitions:
   pattern-either:
     type: object
     properties:
+      pattern-id:
+        type: string
       pattern-either:
         title: Return finding where any of the nested conditions are true
         $ref: '#/definitions/pattern-either-content'
@@ -181,6 +191,8 @@ definitions:
   pattern-inside:
     type: object
     properties:
+      pattern-id:
+        type: string
       pattern-inside:
         title: Return findings only from within snippets Semgrep pattern matches
         type: string
@@ -190,6 +202,8 @@ definitions:
   pattern-not-inside:
     type: object
     properties:
+      pattern-id:
+        type: string
       pattern-not-inside:
         title: Do not return findings from within snippets Semgrep pattern matches
         type: string
@@ -201,6 +215,9 @@ definitions:
     properties:
       pattern-not:
         title: Do not return finding where Semgrep pattern matches exactly
+        type: string
+      pattern-id:
+        title: Some identifier
         type: string
     required:
     - pattern-not

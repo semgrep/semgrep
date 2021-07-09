@@ -306,7 +306,24 @@ class CoreRunner:
                         target_file.write("\n".join(map(lambda p: str(p), targets)))
                         target_file.flush()
                         yaml = YAML()
-                        yaml.dump({"rules": [rule._raw]}, rule_file)
+
+                        # So much hacks
+                        raw = rule._raw
+
+                        def remove_a_key(d, remove_key):
+                            if isinstance(d, dict):
+                                for key in list(d.keys()):
+                                    if key == remove_key:
+                                        del d[key]
+                                    else:
+                                        remove_a_key(d[key], remove_key)
+                            if isinstance(d, list):
+                                for elem in d:
+                                    remove_a_key(elem, remove_key)
+
+                        remove_a_key(raw, "pattern-id")
+
+                        yaml.dump({"rules": [raw]}, rule_file)
                         rule_file.flush()
 
                         cmd = [SEMGREP_PATH] + [

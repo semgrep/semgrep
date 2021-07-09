@@ -178,6 +178,8 @@ class Rule:
         """
         for rule_index, pattern_tree in enumerate(rule_patterns.value):
             for boolean_operator_yaml, sub_pattern in pattern_tree.value.items():
+                if boolean_operator_yaml.value == "pattern-id":
+                    continue
                 operator = operator_for_pattern_name(boolean_operator_yaml)
                 if operator in OPERATORS_WITH_CHILDREN:
                     sub_expression = self._parse_boolean_expression(
@@ -378,6 +380,28 @@ class Rule:
 
         if "paths" in patch:
             raw_copy["paths"] = patch["paths"]
+
+        def update_object(d, pattern_id, patch):
+            print(d)
+            if isinstance(d, dict):
+                if d.get("pattern-id") == pattern_id:
+                    for key in d.keys():
+                        if key == "pattern-id":
+                            continue
+                        else:
+                            d[key] = patch
+                else:
+                    for value in d.values():
+                        update_object(value, pattern_id, patch)
+            if isinstance(d, list):
+                for elem in d:
+                    update_object(elem, pattern_id, patch)
+
+        if "pattern-patches" in patch:
+            for obj in patch["pattern-patches"]:
+                pattern_id = obj["pattern-id"]
+                pattern = obj["pattern"]
+                update_object(raw_copy, pattern_id, pattern)
 
         print("-------------------")
         print(json.dumps(self._raw, indent=4))
