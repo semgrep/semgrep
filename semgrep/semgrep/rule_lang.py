@@ -148,7 +148,7 @@ class Span:
         lines = s.splitlines()
         row_diff = len(lines)
         col_diff = len(lines[-1])
-        end = Position(line=(row_diff + line - 1), col=(col_diff + col))
+        end = Position(line=(row_diff + line - 1), col=(col_diff + col + 1))
         return Span(
             start=start,
             end=end,
@@ -156,7 +156,7 @@ class Span:
             source_hash=src_hash,
             config_path=tuple(path),
             config_start=Position(0, 1),
-            config_end=Position(row_diff - 1, col_diff),
+            config_end=Position(row_diff - 1, col_diff + 1),
         )
 
     def fix(self) -> "Span":
