@@ -227,7 +227,13 @@ let map_style_element (env : env) ((v1, v2, v3) : CST.style_element) : xml =
 let map_script_element (env : env) ((v1, v2, v3) : CST.script_element) =
   let l, id, attrs, r = map_script_start_tag env v1 in
   let v2 =
-    match v2 with Some tok -> Some (str env tok) (* raw_text *) | None -> None
+    match v2 with
+    | Some tok ->
+        (* TODO: https://github.com/returntocorp/ocaml-tree-sitter-core/issues/5 *)
+        let v = H.str_if_wrong_content_temporary_fix env tok in
+        Some v
+        (* raw_text *)
+    | None -> None
   in
   let v3 = map_end_tag env v3 in
   (l, id, r, v3, attrs, v2)
