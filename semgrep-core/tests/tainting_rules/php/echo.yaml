@@ -5,9 +5,9 @@ rules:
       - php
     message: Working!
     pattern-sources:
-      - $_GET[...]
+      - pattern: $_GET[...]
     pattern-sanitizers:
-      - htmlspecialchars(...)
+      - pattern: htmlspecialchars(...)
     pattern-sinks:
-      - echo ...;
+      - pattern: echo ...;
     severity: ERROR

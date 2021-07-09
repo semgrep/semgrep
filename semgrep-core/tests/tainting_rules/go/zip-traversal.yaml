@@ -1,0 +1,26 @@
+# Based on https://semgrep.dev/s/eKq8/ example by François Proulx
+rules:
+  - id: tainting
+    mode: taint
+    languages:
+      - go
+    message: |
+      This confirms taint mode works.
+    severity: ERROR
+    pattern-sources:
+      - patterns:
+        - pattern: $READER.File
+        - pattern-inside: |
+            import "archive/zip"
+            ...
+        - pattern-inside: |
+            $READER, $ERR := zip.OpenReader($ARCHIVE)
+            ...
+    pattern-sinks:
+      - patterns:
+        - pattern: $PATH
+        - pattern-inside: os.OpenFile($PATH, ...)
+        - pattern-not-inside: |
+            if !strings.HasPrefix($PATH, <... $TARGET ...>, ...) {...}
+            ...
+            <... os.OpenFile($PATH, ...) ...>

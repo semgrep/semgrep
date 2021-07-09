@@ -1,0 +1,22 @@
+# GitLab's eslint.detect-object-injection
+rules:
+  - id: tainting
+    mode: taint
+    languages:
+      - js
+    message: |
+      This confirms taint mode works.
+    severity: ERROR
+    pattern-sources:
+      - pattern-either:
+        - patterns:
+          - pattern-inside: |
+              function ...(..., $PARAM, ...) {
+                ...
+              }
+          - pattern: $PARAM
+        - pattern: $F(...)
+    pattern-sinks:
+       - patterns:
+         - pattern-inside: $OBJ[$SINK]
+         - pattern: $SINK

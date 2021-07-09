@@ -2,7 +2,9 @@
 (*s: signature [[Tainting_generic.check]] *)
 val check :
   (string -> Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
+  Config_semgrep.t ->
   (Rule.rule * Rule.taint_spec) list ->
+  Equivalence.equivalences ->
   Common.filename ->
   Target.t ->
   Pattern_match.t list
