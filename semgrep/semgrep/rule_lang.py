@@ -136,9 +136,9 @@ class Span:
         cls, s: str, line: int, col: int, filename: Optional[str] = None
     ) -> "Span":
         src_hash = SourceTracker.add_source(s)
-        start = Position(line, col)
+        start = Position(line, col + 1)
         lines = s.splitlines()
-        end = Position(line=(len(lines) + line - 1), col=(len(lines[-1]) + col) - 1)
+        end = Position(line=(len(lines) + line - 1), col=(len(lines[-1]) + col))
         return Span(start=start, end=end, file=filename, source_hash=src_hash)
 
     def fix(self) -> "Span":
