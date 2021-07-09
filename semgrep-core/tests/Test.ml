@@ -383,6 +383,12 @@ let lang_regression_tests ~with_caching =
     let lang = Lang.Scala in
     regression_tests_for_lang files lang
   );
+  "semgrep HTML" >::: (
+    let dir = Filename.concat tests_path "html" in
+    let files = Common2.glob (spf "%s/*.html" dir) in
+    let lang = Lang.HTML in
+    regression_tests_for_lang files lang
+  );
   "semgrep Vue" >::: (
     let dir = Filename.concat tests_path "vue" in
     let files = Common2.glob (spf "%s/*.vue" dir) in
