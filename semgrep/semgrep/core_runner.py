@@ -311,8 +311,6 @@ class CoreRunner:
                         yaml.indent(mapping=2, sequence=4, offset=2)  # type: ignore
                         yaml.dump({"rules": [rule._raw]}, rule_file)
                         rule_file.flush()
-                        with open(rule_file.name) as f:
-                            print("".join(f.readlines()))
 
                         cmd = [SEMGREP_PATH] + [
                             "-lang",
