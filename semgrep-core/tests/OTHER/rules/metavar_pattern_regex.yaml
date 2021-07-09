@@ -8,6 +8,5 @@ rules:
       - metavariable-pattern:
           metavariable: $1
           language: generic
-          patterns:
-            - pattern: google-cloud-storage
+          pattern: google-cloud-storage
     severity: INFO
