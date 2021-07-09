@@ -30,10 +30,8 @@ type pipeline_bar = Bar of tok | Bar_ampersand of tok
 type pipeline_control_operator =
   | Foreground of tok (* ';' or '\n' or ';;' *)
   | Background of tok (* & *)
-  | And of tok (* && *)
-  | Or of tok
-
-(* || *)
+  | And of (* && *) tok
+  | Or of (* || *) tok
 
 type redirect = todo
 
@@ -178,7 +176,7 @@ and expression =
   | Raw_string of string wrap
   | Ansii_c_string of string wrap
   | Special_character of string wrap
-  | String_expansion
+  | String_expansion of string wrap
   | Concatenation of expression list
   | Semgrep_ellipsis of tok
   | Semgrep_metavariable of string wrap
