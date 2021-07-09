@@ -46,6 +46,7 @@ class Language(Enum):
     ML: str = "ml"
     SCALA: str = "scala"
     VUE: str = "vue"
+    HTML: str = "html"
     JSON: str = "json"
     REGEX: str = "regex"
     GENERIC: str = "generic"
@@ -70,6 +71,7 @@ class Language_util:
         Language.YAML: [Language.YAML.value, "Yaml"],
         Language.SCALA: [Language.SCALA.value],
         Language.VUE: [Language.VUE.value],
+        Language.HTML: [Language.HTML.value],
         Language.ML: [Language.ML.value, "ocaml"],
         Language.JSON: [Language.JSON.value, "JSON", "Json"],
         Language.REGEX: [Language.REGEX.value, "none"],

@@ -99,8 +99,11 @@ let map_attribute (env : env) ((v1, v2) : CST.attribute) : xml_attribute =
       (* <foo a /> <=> <foo a=true>? That's what we do for JSX, but should
        * we instead introduce a XmlAttrNoValue in AST_generic?
        *)
-      let v = L (Bool (true, fake "true")) in
-      XmlAttr (id, fake "=", v)
+      (* sgrep-ext: *)
+      if fst id = "..." then XmlEllipsis (snd id)
+      else
+        let v = L (Bool (true, fake "true")) in
+        XmlAttr (id, fake "=", v)
 
 let map_script_start_tag (env : env) ((v1, v2, v3, v4) : CST.script_start_tag) =
   let v1 = token env v1 (* "<" *) in
@@ -125,6 +128,11 @@ let map_start_tag (env : env) ((v1, v2, v3, v4) : CST.start_tag) =
 
 let rec map_element (env : env) (x : CST.element) : xml =
   match x with
+  | `Semg_elem (v1, v2, v3) ->
+      let l, id, attrs, r = map_start_tag env v1 in
+      let v2 = map_fragment env v2 in
+      let v3 = map_end_tag env v3 in
+      { xml_kind = XmlClassic (l, id, r, v3); xml_attrs = attrs; xml_body = v2 }
   | `Start_tag_rep_node_choice_end_tag (v1, v2, v3) ->
       let l, id, attrs, r = map_start_tag env v1 in
       let v2 = map_fragment env v2 in
@@ -242,18 +250,27 @@ let parse file =
         pr2 s;
         raise exn)
 
-let parse_pattern _str = failwith "TODO"
-
-(*
+let parse_pattern str =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
-      Parallel.invoke parse_expression_or_source_file str ())
+      Parallel.invoke Tree_sitter_html.Parse.string str ())
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match source_file env cst with
-      | AST.Pr [ x ] -> AST.S x
-      | AST.Pr xs -> AST.Ss xs
-      | x -> x)
-*)
+
+      let xs = map_fragment env cst in
+      match xs with
+      (* todo: not sure why the parser adds thos enclosing XmlText "" *)
+      | [ XmlText ("", _); XmlXml xml; XmlText ("", _) ] -> G.E (G.Xml xml)
+      | [ XmlXml xml ] -> G.E (G.Xml xml)
+      | _ ->
+          let xml =
+            {
+              xml_kind = XmlFragment (fake "", fake "");
+              xml_attrs = [];
+              xml_body = xs;
+            }
+          in
+          let e = Xml xml in
+          G.E e)
