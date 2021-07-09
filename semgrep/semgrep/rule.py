@@ -403,10 +403,23 @@ class Rule:
                 pattern = obj["pattern"]
                 update_object(raw_copy, pattern_id, pattern)
 
-        print("-------------------")
-        print(json.dumps(self._raw, indent=4))
-        print(json.dumps(raw_copy, indent=4))
-        print("-------------------")
+        def crawl_update(pattern_root, patch_root):
+            for child_patch_key, child_patch_child in patch_root.items():
+                if isinstance(child_patch_child, str):
+                    pattern_root[child_patch_key] = child_patch_child
+                else:
+                    crawl_update(pattern_root[child_patch_key], child_patch_child)
+
+
+        if "patterns" in patch:
+            pattern_patch = patch["patterns"]
+            crawl_update(raw_copy["patterns"], patch["patterns"])
+
+
+        # print("-------------------")
+        # print(json.dumps(self._raw, indent=4))
+        # print(json.dumps(raw_copy, indent=4))
+        # print("-------------------")
 
         return Rule.from_json(raw_copy)
 

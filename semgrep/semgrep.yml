@@ -1,0 +1,7 @@
+resources:
+  # - type: registry
+  #   id: p/security-audit
+  - type: local
+    id: tests/e2e/rules/eqeq.yaml
+patches:
+  - eqeq-for-me.yaml

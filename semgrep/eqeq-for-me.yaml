@@ -1,0 +1,12 @@
+id: "eqeq-is-bad"
+message: "look i got rewritten"
+# pattern-patches:
+#   - pattern-id: assert-blah
+#     pattern: assert(...)
+# patterns:
+#   1:
+#     pattern-not-inside: assert(...)
+
+# paths:
+#   exclude:
+#     - "tests/e2e/targets/cli_test/multiple_annotations/multiple-annotations.py"
