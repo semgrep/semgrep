@@ -94,17 +94,6 @@ class FilesNotFoundError(SemgrepError):
         return "\n".join(lines)
 
 
-def path_list_to_tuple(spans: Optional[List[Any]]) -> Optional[Tuple[Any, ...]]:
-    """
-    Helper converter so mypy can track that we are converting
-    from list of spans to tuple of spans
-    """
-    if spans:
-        return tuple(spans)
-    else:
-        return None
-
-
 def span_list_to_tuple(spans: List[Span]) -> Tuple[Span, ...]:
     """
     Helper converter so mypy can track that we are converting
@@ -148,10 +137,10 @@ class ErrorWithSpan(SemgrepError):
     long_msg: Optional[str] = attr.ib()
     spans: List[Span] = attr.ib(converter=span_list_to_tuple)
     help: Optional[str] = attr.ib(default=None)
-    config_path: Optional[List[Any]] = attr.ib(
-        default=None, converter=path_list_to_tuple
-    )  # type: ignore
-    config_location: Optional[Tuple[Position, Position]] = attr.ib(default=None)
+    # config_path: Optional[List[Any]] = attr.ib(
+    #    default=None, converter=path_list_to_tuple
+    # )  # type: ignore
+    # config_location: Optional[Tuple[Position, Position]] = attr.ib(default=None)
 
     def __attrs_post_init__(self) -> None:
         if not hasattr(self, "code"):
@@ -170,12 +159,6 @@ class ErrorWithSpan(SemgrepError):
         # otherwise, we end up with `help: null` in JSON
         if self.help:
             base["help"] = self.help
-        if self.config_location and self.config_path:
-            base["config_location"] = dict(
-                path=self.config_path,
-                start=attr.asdict(self.config_location[0]),
-                end=attr.asdict(self.config_location[1]),
-            )  # type: ignore
         return base
 
     @staticmethod

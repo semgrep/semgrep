@@ -30,7 +30,6 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.rule import Rule
-from semgrep.rule_lang import Position
 from semgrep.rule_lang import Span
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import Language
@@ -95,20 +94,15 @@ class CoreRunner:
                     s=s,
                     line=range.get("line", 0),
                     col=range.get("col", 0),
+                    path=range.get("path", []),
                     filename="semgrep temp file",
                 )
-                lines = s.splitlines()
-                end = Position(line=len(lines), col=len(lines[-1]))
-                config_path = range.get("path", [])
-                config_location = (Position(0, 0), end)
 
                 raise InvalidPatternError(
                     short_msg=error_type,
                     long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
                     spans=[matching_span],
                     help=None,
-                    config_path=config_path,
-                    config_location=config_location,
                 )
             # no special formatting ought to be required for the other types; the semgrep python should be performing
             else:
@@ -126,8 +120,6 @@ class CoreRunner:
                     long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
                     spans=[matching_span],
                     help=None,
-                    config_path=None,
-                    config_location=None,
                 )
         # no special formatting ought to be required for the other types; the semgrep python should be performing
         # validation for them. So if any other type of error occurs, ask the user to file an issue
