@@ -12,11 +12,10 @@ type fun_env = (Dataflow.var, unit) Hashtbl.t
 
 (*s: type [[Dataflow_tainting.config]] *)
 type config = {
-  is_source : IL.instr -> bool;
-  is_source_exp : IL.exp -> bool;
-  is_sink : IL.instr -> bool;
-  is_sanitizer : IL.instr -> bool;
-  found_tainted_sink : IL.instr -> unit Dataflow.env -> unit;
+  is_source : AST_generic.any -> bool;
+  is_sink : AST_generic.any -> bool;
+  is_sanitizer : AST_generic.any -> bool;
+  found_tainted_sink : AST_generic.any -> unit Dataflow.env -> unit;
 }
 (** This can use semgrep patterns under the hood. Note that a source can be an
   * instruction but also an expression. *)

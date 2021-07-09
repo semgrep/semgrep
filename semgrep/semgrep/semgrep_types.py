@@ -45,6 +45,7 @@ class Language(Enum):
     YAML: str = "yaml"
     ML: str = "ml"
     SCALA: str = "scala"
+    VUE: str = "vue"
     JSON: str = "json"
     REGEX: str = "regex"
     GENERIC: str = "generic"
@@ -68,6 +69,7 @@ class Language_util:
         Language.KOTLIN: [Language.KOTLIN.value, "Kotlin", "kotlin"],
         Language.YAML: [Language.YAML.value, "Yaml"],
         Language.SCALA: [Language.SCALA.value],
+        Language.VUE: [Language.VUE.value],
         Language.ML: [Language.ML.value, "ocaml"],
         Language.JSON: [Language.JSON.value, "JSON", "Json"],
         Language.REGEX: [Language.REGEX.value, "none"],

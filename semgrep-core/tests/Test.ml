@@ -167,7 +167,13 @@ let tainting_test lang rules_file file =
     in
   let search_rules, taint_rules = Rule.partition_rules rules in
   assert (search_rules = []);
-  let matches = Tainting_generic.check (fun _ _ _ -> ()) taint_rules file ast in
+  let matches =
+    let equivs = [] in
+    Tainting_generic.check
+      (fun _ _ _ -> ())
+      Config_semgrep.default_config
+      taint_rules equivs file ast
+  in
   let actual =
     matches |> List.map (fun m ->
       { E.typ = SemgrepMatchFound(m.P.rule_id.id,m.P.rule_id.message);
@@ -260,6 +266,12 @@ let lang_parsing_tests =
       let dir = Filename.concat tests_path "html/parsing" in
       let files = Common2.glob (spf "%s/*.html" dir) in
       let lang = Lang.HTML in
+      parsing_tests_for_lang files lang
+    );
+    "Vue" >::: (
+      let dir = Filename.concat tests_path "vue/parsing" in
+      let files = Common2.glob (spf "%s/*.vue" dir) in
+      let lang = Lang.Vue in
       parsing_tests_for_lang files lang
     );
   ]
@@ -371,6 +383,12 @@ let lang_regression_tests ~with_caching =
     let lang = Lang.Scala in
     regression_tests_for_lang files lang
   );
+  "semgrep Vue" >::: (
+    let dir = Filename.concat tests_path "vue" in
+    let files = Common2.glob (spf "%s/*.vue" dir) in
+    let lang = Lang.Vue in
+    regression_tests_for_lang files lang
+  );
  ]
 (*e: constant [[Test.lang_regression_tests]] *)
 
@@ -383,6 +401,12 @@ let full_rule_regression_tests =
 let lang_tainting_tests =
   let taint_tests_path = Filename.concat tests_path "tainting_rules" in
   "lang tainting rules testing" >::: [
+    "tainting Go" >::: (
+      let dir = Filename.concat taint_tests_path "go" in
+      let files = Common2.glob (spf "%s/*.go" dir) in
+      let lang = Lang.Go in
+      tainting_tests_for_lang files lang
+    );
     "tainting PHP" >::: (
       let dir = Filename.concat taint_tests_path "php" in
       let files = Common2.glob (spf "%s/*.php" dir) in
@@ -393,6 +417,12 @@ let lang_tainting_tests =
       let dir = Filename.concat taint_tests_path "python" in
       let files = Common2.glob (spf "%s/*.py" dir) in
       let lang = Lang.Python in
+      tainting_tests_for_lang files lang
+    );
+    "tainting Javascript" >::: (
+      let dir = Filename.concat taint_tests_path "js" in
+      let files = Common2.glob (spf "%s/*.js" dir) in
+      let lang = Lang.Javascript in
       tainting_tests_for_lang files lang
     );
     "tainting Typescript" >::: (

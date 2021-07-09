@@ -30,15 +30,15 @@ def test_parse_taint_rules():
           - id: example_id
             mode: taint
             pattern-sources:
-              - source(...)
-              - source1(...)
+              - pattern: source(...)
+              - pattern: source1(...)
             pattern-sinks:
-              - sink(...)
-              - sink1(...)
-              - eval(...)
+              - pattern: sink(...)
+              - pattern: sink1(...)
+              - pattern: eval(...)
             pattern-sanitizers:
-              - sanitize(...)
-              - sanitize1(...)
+              - pattern: sanitize(...)
+              - pattern: sanitize1(...)
             message: A user input source() went into a dangerous sink()
             languages: [python, javascript]
             severity: WARNING

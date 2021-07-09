@@ -184,6 +184,10 @@ let mk_s s = { s }
 
 (*e: function [[AST_to_IL.mk_s]] *)
 
+let mk_unit tok eorig =
+  let unit = G.Unit tok in
+  mk_e (Literal unit) eorig
+
 (*s: function [[AST_to_IL.add_instr]] *)
 let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
 
@@ -269,19 +273,43 @@ and nested_lval env tok eorig =
 (*****************************************************************************)
 (* Pattern *)
 (*****************************************************************************)
-and pattern env pat =
+
+(* TODO: This code is very similar to that of `assign`. Actually, we should not
+ * be dealing with patterns in the LHS of `Assign`, those are supposed to be
+ * `LetPattern`s. *)
+and pattern env pat eorig =
   match pat with
-  | G.PatId (id, id_info) -> Left (lval_of_id_info env id id_info)
-  | G.PatVar (_TODO, Some (id, id_info)) ->
-      Left (lval_of_id_info env id id_info)
+  | G.PatUnderscore tok ->
+      let lval = fresh_lval env tok in
+      (lval, [])
+  | G.PatId (id, id_info) | G.PatVar (_, Some (id, id_info)) ->
+      let lval = lval_of_id_info env id id_info in
+      (lval, [])
+  | G.PatTuple (tok1, pats, tok2) ->
+      (* P1, ..., Pn *)
+      let tmp = fresh_var env tok2 in
+      let tmp_lval = lval_of_base (Var tmp) in
+      (* Pi = tmp[i] *)
+      let ss =
+        pats
+        |> List.mapi (fun i pat_i ->
+               let index_i = Literal (G.Int (Some i, tok1)) in
+               let offset_i = Index { e = index_i; eorig } in
+               let lval_i =
+                 { base = Var tmp; offset = offset_i; constness = ref None }
+               in
+               pattern_assign_statements env
+                 (mk_e (Fetch lval_i) eorig)
+                 eorig pat_i)
+        |> List.concat
+      in
+      (tmp_lval, ss)
   | _ -> todo (G.P pat)
 
 and pattern_assign_statements env exp eorig pat =
   try
-    let lval =
-      match pattern env pat with Left l -> l | Right _ -> todo (G.P pat)
-    in
-    [ mk_s (Instr (mk_i (Assign (lval, exp)) eorig)) ]
+    let lval, ss = pattern env pat eorig in
+    [ mk_s (Instr (mk_i (Assign (lval, exp)) eorig)) ] @ ss
   with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 (*****************************************************************************)
@@ -400,6 +428,10 @@ and expr_aux env eorig =
       let opexp = mk_e (Operator (op, [ lvalexp; exp ])) eorig in
       add_instr env (mk_i (Assign (lval, opexp)) eorig);
       lvalexp
+  | G.LetPattern (pat, e) ->
+      let exp = expr env e in
+      add_stmts env (pattern_assign_statements env exp eorig pat);
+      mk_unit (G.fake "()") eorig
   | G.Seq xs -> (
       match List.rev xs with
       | [] -> impossible (G.E eorig)
@@ -480,8 +512,7 @@ and expr_aux env eorig =
               )));
       lvalexp
   | G.Xml _ -> todo (G.E eorig)
-  | G.Constructor (_, _) | G.LetPattern (_, _) | G.MatchPattern (_, _) ->
-      todo (G.E eorig)
+  | G.Constructor (_, _) | G.MatchPattern (_, _) -> todo (G.E eorig)
   | G.Yield (_, _, _) | G.Await (_, _) -> todo (G.E eorig)
   | G.Cast (typ, e) ->
       let e = expr env e in

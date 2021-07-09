@@ -6,12 +6,12 @@ rules:
     message: |
       This confirms taint mode works.
     pattern-sinks:
-      - React.createElement(...)
+      - pattern: React.createElement(...)
     pattern-sources:
-      - location.href
-      - location.hash
-      - location.search
-      - location.pathname
-      - document.referrer
+      - pattern: location.href
+      - pattern: location.hash
+      - pattern: location.search
+      - pattern: location.pathname
+      - pattern: document.referrer
     severity: ERROR
 
