@@ -323,7 +323,13 @@ let map_component (env : env) (xs : CST.component) : stmt list =
       | `Temp_elem x ->
           let xml = map_template_element env x in
           [ G.exprstmt (Xml xml) ]
-      (* TODO: parse as JS *)
+      (* Note that right now the AST will not contain the enclosing
+       * <script>, because XmlExpr contain single expressions, not
+       * full programs, so it's simpler to just lift up the
+       * program and remove the enclosing <script>. If at some point
+       * people want to explicitly restrict their code search to
+       * the <script> part we might revisit that.
+       *)
       | `Script_elem x -> (
           let _l, _id, _r, _rend, _xml_attrs, body_opt =
             map_script_element env x
