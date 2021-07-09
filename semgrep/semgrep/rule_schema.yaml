@@ -33,7 +33,59 @@ definitions:
     type: array
     items:
       anyOf:
-      - type: string
+      - type: object
+        properties:
+          pattern:
+            title: Return finding where Semgrep pattern matches exactly
+            type: string
+          pattern-regex:
+            title: Return finding where regular expression matches exactly
+            type: string
+          patterns:
+            $ref: '#/definitions/patterns-content'
+          pattern-either:
+            $ref: '#/definitions/pattern-either-content'
+        oneOf:
+          - required:
+              - pattern
+            not:
+              anyOf:
+                - required:
+                  - patterns
+                - required:
+                  - pattern-either
+                - required:
+                  - pattern-regex
+          - required:
+              - patterns
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-either
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-regex
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
   metavariable-regex:
     type: object
     properties:

@@ -167,7 +167,13 @@ let tainting_test lang rules_file file =
     in
   let search_rules, taint_rules = Rule.partition_rules rules in
   assert (search_rules = []);
-  let matches = Tainting_generic.check (fun _ _ _ -> ()) taint_rules file ast in
+  let matches =
+    let equivs = [] in
+    Tainting_generic.check
+      (fun _ _ _ -> ())
+      Config_semgrep.default_config
+      taint_rules equivs file ast
+  in
   let actual =
     matches |> List.map (fun m ->
       { E.typ = SemgrepMatchFound(m.P.rule_id.id,m.P.rule_id.message);
@@ -383,6 +389,12 @@ let full_rule_regression_tests =
 let lang_tainting_tests =
   let taint_tests_path = Filename.concat tests_path "tainting_rules" in
   "lang tainting rules testing" >::: [
+    "tainting Go" >::: (
+      let dir = Filename.concat taint_tests_path "go" in
+      let files = Common2.glob (spf "%s/*.go" dir) in
+      let lang = Lang.Go in
+      tainting_tests_for_lang files lang
+    );
     "tainting PHP" >::: (
       let dir = Filename.concat taint_tests_path "php" in
       let files = Common2.glob (spf "%s/*.php" dir) in
@@ -393,6 +405,12 @@ let lang_tainting_tests =
       let dir = Filename.concat taint_tests_path "python" in
       let files = Common2.glob (spf "%s/*.py" dir) in
       let lang = Lang.Python in
+      tainting_tests_for_lang files lang
+    );
+    "tainting Javascript" >::: (
+      let dir = Filename.concat taint_tests_path "js" in
+      let files = Common2.glob (spf "%s/*.js" dir) in
+      let lang = Lang.Javascript in
       tainting_tests_for_lang files lang
     );
     "tainting Typescript" >::: (
