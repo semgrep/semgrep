@@ -3,12 +3,14 @@
    to another type of tree.
 *)
 
+(* Disable warnings against unused variables *)
+[@@@warning "-26-27-32"]
+
 open Common
 module AST = AST_bash
 module CST = Tree_sitter_bash.CST
 module PI = Parse_info
 open AST_bash
-module G = AST_generic_
 module H = Parse_tree_sitter_helpers
 
 (*****************************************************************************)
@@ -19,6 +21,17 @@ type env = unit H.env
 let token = H.token
 
 let str = H.str
+
+(*
+   The 'statement' rule returns one of 3 possible levels of constructs:
+   - list = list of pipelines
+   - pipeline = list of commands
+   - command
+*)
+type tmp_stmt =
+  | Tmp_list of list_
+  | Tmp_pipeline of pipeline
+  | Tmp_command of (command_with_redirects * pipeline_control_operator option)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -40,14 +53,12 @@ let ansii_c_string (env : env) (tok : CST.ansii_c_string) : string wrap =
 let variable_name (env : env) (tok : CST.variable_name) : string wrap =
   str env tok
 
-let terminator (env : env) (x : CST.terminator) =
+let terminator (env : env) (x : CST.terminator) : pipeline_control_operator =
   match x with
-  | `SEMI tok -> token env tok (* ";" *)
-  | `SEMISEMI tok -> token env tok (* ";;" *)
-  | `LF tok -> token env tok (* "\n" *)
-  | `AMP tok -> token env tok
-
-(* "&" *)
+  | `SEMI tok -> Foreground (token env tok (* ";" *))
+  | `SEMISEMI tok -> Foreground (token env tok (* ";;" *))
+  | `LF tok -> Foreground (token env tok (* "\n" *))
+  | `AMP tok -> Background (token env tok (* "&" *))
 
 let empty_value (_env : env) (_tok : CST.empty_value) : unit = ()
 
@@ -80,9 +91,7 @@ let special_variable_name (env : env) (x : CST.special_variable_name) :
   | `DASH tok -> str env tok (* "-" *)
   | `DOLLAR tok -> str env tok (* "$" *)
   | `X_0 tok -> str env tok (* "0" *)
-  | `X__ tok -> str env tok
-
-(* "_" *)
+  | `X__ tok -> (* "_" *) str env tok
 
 let heredoc_body_beginning (env : env) (tok : CST.heredoc_body_beginning) =
   token env tok
@@ -109,9 +118,9 @@ let heredoc_redirect (env : env) ((v1, v2) : CST.heredoc_redirect) : todo =
   let _v1 =
     match v1 with
     | `LTLT tok -> token env tok (* "<<" *)
-    | `LTLTDASH tok -> token env tok
-    (* "<<-" *)
+    | `LTLTDASH tok -> (* "<<-" *) token env tok
   in
+
   let _v2 = token env v2 (* heredoc_start *) in
   TODO
 
@@ -133,9 +142,19 @@ let rec prim_exp_or_special_char (env : env)
   | `Spec_char tok -> Special_character (str env tok)
 
 and stmt_with_opt_heredoc (env : env)
-    ((v1, v2, v3) : CST.anon_stmt_opt_LF_here_body_term_3efa649) =
-  let _v1 = statement env v1 in
-  let _v2 =
+    ((v1, v2, v3) : CST.anon_stmt_opt_LF_here_body_term_3efa649) : pipeline =
+  (*
+     This handling of heredocs is incorrect but usually works
+     in practice. Code like the following is allowed by bash:
+
+       a <<A; b <<B
+
+     ... after which two successive heredoc bodies are expected.
+  *)
+  let pipeline, _none_hopefully = pipeline_statement env v1 in
+  let _opt_heredoc =
+    (* needs to be paired with the correct command
+     * in the pipeline. *)
     match v2 with
     | Some (v1, v2) ->
         let _v1 = token env v1 (* "\n" *) in
@@ -143,8 +162,8 @@ and stmt_with_opt_heredoc (env : env)
         TODO
     | None -> TODO
   in
-  let _v3 = terminator env v3 in
-  TODO
+  let control_op = terminator env v3 in
+  (pipeline, Some control_op)
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let _v1 = token env v1 (* "(" *) in
@@ -172,8 +191,7 @@ and binary_expression (env : env) (x : CST.binary_expression) =
         | `GTEQ tok -> token env tok (* ">=" *)
         | `BARBAR tok -> token env tok (* "||" *)
         | `AMPAMP tok -> token env tok (* "&&" *)
-        | `Test_op tok -> token env tok
-        (* test_operator *)
+        | `Test_op tok -> (* test_operator *) token env tok
       in
       let _v3 = expression env v3 in
       TODO
@@ -182,20 +200,20 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       let _v2 =
         match v2 with
         | `EQEQ tok -> token env tok (* "==" *)
-        | `EQTILDE tok -> token env tok
-        (* "=~" *)
+        | `EQTILDE tok -> (* "=~" *) token env tok
       in
+
       let _v3 = token env v3 (* regex *) in
       TODO
 
 and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
   let _v1 = literal env v1 in
-  let _v2 =
+  let _v2 () =
     List.map
       (fun (v1, v2) ->
         let v1 = token env v1 (* "|" *) in
         let v2 = literal env v2 in
-        todo env (v1, v2))
+        TODO)
       v2
   in
   let _v3 = token env v3 (* ")" *) in
@@ -210,7 +228,7 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
   in
   TODO
 
-and command (env : env) ((v1, v2, v3) : CST.command) =
+and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
   let assignments, redirects =
     partition_either
       (fun x ->
@@ -225,23 +243,25 @@ and command (env : env) ((v1, v2, v3) : CST.command) =
       (fun x ->
         match x with
         | `Choice_conc x -> literal env x
-        | `Choice_EQTILDE_choice_choice_conc (v1, v2) ->
-            let v1 =
+        | `Choice_EQTILDE_choice_choice_conc (v1, _v2) ->
+            let _v1 =
               match v1 with
               | `EQTILDE tok -> token env tok (* "=~" *)
               | `EQEQ tok -> token env tok
               (* "==" *)
             in
+            (*
             let v2 =
               match v2 with
               | `Choice_conc x -> literal env x
-              | `Regex tok -> token env tok
-              (* regex *)
+              | `Regex tok -> (* regex *) token env tok
             in
-            todo env (v1, v2))
+*)
+            Expression_TODO)
       v3
   in
-  todo env (v1, v2, v3)
+  let command = Simple_command { assignments; arguments = name :: arguments } in
+  { command; redirects }
 
 and command_name (env : env) (x : CST.command_name) : expression =
   match x with
@@ -262,18 +282,22 @@ and command_substitution (env : env) (x : CST.command_substitution) :
       let open_ = token env v1 (* "$(" *) in
       let _v2 = (* TODO: what's this? *) file_redirect env v2 in
       let close = token env v3 (* ")" *) in
-      (open_, Empty, close)
+      (open_, [], close)
   | `BQUOT_stmts_BQUOT (v1, v2, v3) ->
       let open_ = token env v1 (* "`" *) in
       let list = statements env v2 in
       let close = token env v3 (* "`" *) in
       (open_, list, close)
 
-and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) =
-  let v1 = token env v1 (* "{" *) in
-  let v2 = match v2 with Some x -> statements2 env x | None -> todo env () in
-  let v3 = token env v3 (* "}" *) in
-  todo env (v1, v2, v3)
+and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) :
+    command_group =
+  let _todo () =
+    let v1 = token env v1 (* "{" *) in
+    let v2 = match v2 with Some x -> statements2 env x | None -> [] in
+    let v3 = token env v3 (* "}" *) in
+    TODO
+  in
+  TODO
 
 and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
     expression list =
@@ -372,8 +396,7 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
                   | `COLONDASH tok -> todo env tok (* ":-" *)
                   | `PERC tok -> todo env tok (* "%" *)
                   | `DASH tok -> todo env tok (* "-" *)
-                  | `HASH tok -> todo env tok
-                  (* "#" *))
+                  | `HASH tok -> (* "#" *) todo env tok)
                 v3
             in
             opt_variable )
@@ -397,9 +420,9 @@ and expression (env : env) (x : CST.expression) : todo =
       let _v1 =
         match v1 with
         | `BANG tok -> token env tok (* "!" *)
-        | `Test_op tok -> token env tok
-        (* test_operator *)
+        | `Test_op tok -> (* test_operator *) token env tok
       in
+
       let _v2 = expression env v2 in
       TODO
   | `Tern_exp (v1, v2, v3, v4, v5) ->
@@ -415,9 +438,9 @@ and expression (env : env) (x : CST.expression) : todo =
       let _v2 =
         match v2 with
         | `PLUSPLUS tok -> token env tok (* "++" *)
-        | `DASHDASH tok -> token env tok
-        (* "--" *)
+        | `DASHDASH tok -> (* "--" *) token env tok
       in
+
       TODO
   | `Paren_exp (v1, v2, v3) ->
       let _v1 = token env v1 (* "(" *) in
@@ -440,9 +463,9 @@ and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : todo =
     | `AMPGTGT tok -> token env tok (* "&>>" *)
     | `LTAMP tok -> token env tok (* "<&" *)
     | `GTAMP tok -> token env tok (* ">&" *)
-    | `GTBAR tok -> token env tok
-    (* ">|" *)
+    | `GTBAR tok -> (* ">|" *) token env tok
   in
+
   let _v3 = literal env v3 in
   TODO
 
@@ -520,37 +543,86 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
   | `Simple_expa x ->
       String_fragment (Expansion (Simple_expansion (simple_expansion env x)))
   | `Str_expa (v1, v2) ->
-      let v1 = token env v1 (* "$" *) in
+      let _dollar = token env v1 (* "$" *) in
       let v2 =
         match v2 with
-        | `Str x -> string_ env x
+        | `Str x ->
+            (* TODO: do something with the dollar sign *)
+            String (string_ env x)
         | `Raw_str tok ->
             (* TODO: how is it different from ANSI C strings?
                e.g. $'hello\nbye' *)
-            token env tok
-        (* pattern "'[^']*'" *)
+            (* pattern "'[^']*'" *)
+            Ansii_c_string (str env tok)
       in
+
       todo env (v1, v2)
-  | `Cmd_subs x -> command_substitution env x
+  | `Cmd_subs x ->
+      String_fragment (Command_substitution (command_substitution env x))
   | `Proc_subs (v1, v2, v3) ->
-      let v1 =
-        match v1 with
-        | `LTLPAR tok -> token env tok (* "<(" *)
-        | `GTLPAR tok -> token env tok
-        (* ">(" *)
+      let _todo () =
+        let v1 =
+          match v1 with
+          | `LTLPAR tok -> token env tok (* "<(" *)
+          | `GTLPAR tok -> (* ">(" *) token env tok
+        in
+        let v2 = statements env v2 in
+        let v3 = token env v3 (* ")" *) in
+        (v1, v2, v3)
       in
-      let v2 = statements env v2 in
-      let v3 = token env v3 (* ")" *) in
-      todo env (v1, v2, v3)
+      Expression_TODO
 
-and program (env : env) (opt : CST.program) =
-  match opt with Some x -> statements env x | None -> todo env ()
+and program (env : env) (opt : CST.program) : list_ =
+  match opt with Some x -> statements env x | None -> []
 
-and statement (env : env) (x : CST.statement) =
+(*
+   Read a statement as a list (of pipelines).
+*)
+and list_statement (env : env) (x : CST.statement) : list_ =
+  match statement env x with
+  | Tmp_list x -> x
+  | Tmp_pipeline x -> [ x ]
+  | Tmp_command (cmd_redir, control_op) ->
+      [ ([ (None, cmd_redir) ], control_op) ]
+
+(*
+   Read a statement as a pipeline where a pipeline or a single command
+   is expected.
+*)
+and pipeline_statement (env : env) (x : CST.statement) : pipeline =
+  match statement env x with
+  | Tmp_list _ -> assert false
+  | Tmp_pipeline x -> x
+  | Tmp_command (cmd_redir, control_op) -> ([ (None, cmd_redir) ], control_op)
+
+(*
+   Read a statement as single command where a single command is
+   expected.
+*)
+and command_statement (env : env) (x : CST.statement) :
+    command_with_redirects * pipeline_control_operator option =
+  match statement env x with
+  | Tmp_list _ -> assert false
+  | Tmp_pipeline _ -> assert false
+  | Tmp_command x -> x
+
+(*
+   Do not call this function directly. Instead use one of the
+   following depending on which construct is expected:
+   - list_statement
+   - pipeline_statement
+   - command_statement
+*)
+and statement (env : env) (x : CST.statement) : tmp_stmt =
   match x with
   | `Redi_stmt (v1, v2) ->
-      let v1 = statement env v1 in
-      let v2 =
+      (* TODO: report or fix bug in original grammar: redirects can
+               occur in-between arguments, not just at the end.
+         test case:
+         echo a > /tmp/foo b
+      *)
+      let cmd_redir_ctrl = command_statement env v1 in
+      let _redirects_TODO () =
         List.map
           (fun x ->
             match x with
@@ -559,20 +631,22 @@ and statement (env : env) (x : CST.statement) =
             | `Here_redi_7d3292d x -> herestring_redirect env x)
           v2
       in
-      todo env (v1, v2)
-  | `Var_assign x -> variable_assignment env x
-  | `Cmd x -> command env x
-  | `Decl_cmd (v1, v2) ->
-      let v1 =
+      Tmp_command cmd_redir_ctrl
+  | `Var_assign x ->
+      let command = Assignment (variable_assignment env x) in
+      Tmp_command ({ command; redirects = [] }, None)
+  | `Cmd x -> Tmp_command (command env x, None)
+  | `Decl_cmd (v1, _v2) ->
+      let _v1 () =
         match v1 with
         | `Decl tok -> token env tok (* "declare" *)
         | `Type tok -> token env tok (* "typeset" *)
         | `Export tok -> token env tok (* "export" *)
         | `Read tok -> token env tok (* "readonly" *)
-        | `Local tok -> token env tok
-        (* "local" *)
+        | `Local tok -> (* "local" *) token env tok
       in
-      let v2 =
+      (*
+      let _v2 () =
         List.map
           (fun x ->
             match x with
@@ -581,14 +655,16 @@ and statement (env : env) (x : CST.statement) =
             | `Var_assign x -> variable_assignment env x)
           v2
       in
-      todo env (v1, v2)
-  | `Unset_cmd (v1, v2) ->
-      let v1 =
+*)
+      let command = Declaration TODO in
+      Tmp_command ({ command; redirects = [] }, None)
+  | `Unset_cmd (v1, _v2) ->
+      let _v1 =
         match v1 with
         | `Unset tok -> token env tok (* "unset" *)
-        | `Unse tok -> token env tok
-        (* "unsetenv" *)
+        | `Unse tok -> (* "unsetenv" *) token env tok
       in
+      (*
       let v2 =
         List.map
           (fun x ->
@@ -597,20 +673,31 @@ and statement (env : env) (x : CST.statement) =
             | `Pat_42e353e tok -> simple_variable_name env tok)
           v2
       in
-      todo env (v1, v2)
-  | `Test_cmd x -> test_command env x
-  | `Nega_cmd (v1, v2) ->
-      let v1 = token env v1 (* "!" *) in
-      let v2 =
-        match v2 with
-        | `Cmd x -> command env x
-        | `Test_cmd x -> test_command env x
-        | `Subs x -> subshell env x
+*)
+      let command = Declaration TODO in
+      Tmp_command ({ command; redirects = [] }, None)
+  | `Test_cmd x ->
+      let command =
+        Compound_command (Conditional_expression (test_command env x))
       in
-      todo env (v1, v2)
-  | `For_stmt (v1, v2, v3, v4, v5) ->
-      let v1 = token env v1 (* "for" *) in
-      let v2 = token env v2 (* pattern \w+ *) in
+      Tmp_command ({ command; redirects = [] }, None)
+  | `Nega_cmd (v1, v2) ->
+      let excl = token env v1 (* "!" *) in
+      let command, redirects =
+        match v2 with
+        | `Cmd x ->
+            let { command; redirects } = command env x in
+            (command, redirects)
+        | `Test_cmd x ->
+            (Compound_command (Conditional_expression (test_command env x)), [])
+        | `Subs x -> (Compound_command (Subshell (subshell env x)), [])
+      in
+      let command = Negated_command (excl, command) in
+      Tmp_command ({ command; redirects }, None)
+  | `For_stmt (v1, v2, _v3, v4, v5) ->
+      let _v1 = token env v1 (* "for" *) in
+      let _v2 = token env v2 (* pattern \w+ *) in
+      (*
       let v3 =
         match v3 with
         | Some (v1, v2) ->
@@ -619,135 +706,177 @@ and statement (env : env) (x : CST.statement) =
             todo env (v1, v2)
         | None -> todo env ()
       in
-      let v4 = terminator env v4 in
-      let v5 = do_group env v5 in
-      todo env (v1, v2, v3, v4, v5)
-  | `C_style_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
-      let v1 = token env v1 (* "for" *) in
-      let v2 = token env v2 (* "((" *) in
-      let v3 =
-        match v3 with Some x -> expression env x | None -> todo env ()
-      in
-      let v4 = terminator env v4 in
-      let v5 =
-        match v5 with Some x -> expression env x | None -> todo env ()
-      in
-      let v6 = terminator env v6 in
-      let v7 =
-        match v7 with Some x -> expression env x | None -> todo env ()
-      in
-      let v8 = token env v8 (* "))" *) in
-      let v9 =
-        match v9 with
-        | Some tok -> token env tok (* ";" *)
-        | None -> todo env ()
-      in
-      let v10 =
-        match v10 with
-        | `Do_group x -> do_group env x
-        | `Comp_stmt x -> compound_statement env x
-      in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10)
-  | `While_stmt (v1, v2, v3) ->
+*)
+      let _v4 = terminator env v4 in
+      let _v5 = do_group env v5 in
+      let command = Compound_command (For_loop TODO) in
+      Tmp_command ({ command; redirects = [] }, None)
+  | `C_style_for_stmt _ ->
+      (* (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
+         let v1 = token env v1 (* "for" *) in
+         let v2 = token env v2 (* "((" *) in
+         let v3 =
+           match v3 with Some x -> expression env x | None -> todo env ()
+         in
+         let v4 = terminator env v4 in
+         let v5 =
+           match v5 with Some x -> expression env x | None -> todo env ()
+         in
+         let v6 = terminator env v6 in
+         let v7 =
+           match v7 with Some x -> expression env x | None -> todo env ()
+         in
+         let v8 = token env v8 (* "))" *) in
+         let v9 =
+           match v9 with
+           | Some tok -> token env tok (* ";" *)
+           | None -> todo env ()
+         in
+         let v10 =
+           match v10 with
+           | `Do_group x -> do_group env x
+           | `Comp_stmt x -> compound_statement env x
+         in
+      *)
+      let command = Compound_command (For_loop_c_style TODO) in
+      Tmp_command ({ command; redirects = [] }, None)
+  | `While_stmt (_v1, _v2, _v3) ->
+      (*
       let v1 = token env v1 (* "while" *) in
       let v2 = terminated_statement env v2 in
       let v3 = do_group env v3 in
-      todo env (v1, v2, v3)
-  | `If_stmt (v1, v2, v3, v4, v5, v6, v7) ->
-      let v1 = token env v1 (* "if" *) in
-      let v2 = terminated_statement env v2 in
-      let v3 = token env v3 (* "then" *) in
-      let v4 =
-        match v4 with Some x -> statements2 env x | None -> todo env ()
-      in
-      let v5 = List.map (elif_clause env) v5 in
-      let v6 =
-        match v6 with Some x -> else_clause env x | None -> todo env ()
-      in
-      let v7 = token env v7 (* "fi" *) in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
-  | `Case_stmt (v1, v2, v3, v4, v5, v6, v7) ->
-      let v1 = token env v1 (* "case" *) in
-      let v2 = literal env v2 in
-      let v3 =
-        match v3 with Some x -> terminator env x | None -> todo env ()
-      in
-      let v4 = token env v4 (* "in" *) in
-      let v5 = terminator env v5 in
-      let v6 =
-        match v6 with
-        | Some (v1, v2) ->
-            let v1 = List.map (case_item env) v1 in
-            let v2 = last_case_item env v2 in
-            todo env (v1, v2)
-        | None -> todo env ()
-      in
-      let v7 = token env v7 (* "esac" *) in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+*)
+      let command = Compound_command (While_loop TODO) in
+      Tmp_command ({ command; redirects = [] }, None)
+  | `If_stmt _ ->
+      (*(v1, v2, v3, v4, v5, v6, v7) ->
+        let v1 = token env v1 (* "if" *) in
+        let v2 = terminated_statement env v2 in
+        let v3 = token env v3 (* "then" *) in
+        let v4 =
+          match v4 with Some x -> statements2 env x | None -> todo env ()
+        in
+        let v5 = List.map (elif_clause env) v5 in
+        let v6 =
+          match v6 with Some x -> else_clause env x | None -> todo env ()
+        in
+        let v7 = token env v7 (* "fi" *) in
+      *)
+      let command = Compound_command (If TODO) in
+      Tmp_command ({ command; redirects = [] }, None)
+  | `Case_stmt _ ->
+      (* (v1, v2, v3, v4, v5, v6, v7) ->
+         let v1 = token env v1 (* "case" *) in
+         let v2 = literal env v2 in
+         let v3 =
+           match v3 with Some x -> terminator env x | None -> todo env ()
+         in
+         let v4 = token env v4 (* "in" *) in
+         let v5 = terminator env v5 in
+         let v6 =
+           match v6 with
+           | Some (v1, v2) ->
+               let v1 = List.map (case_item env) v1 in
+               let v2 = last_case_item env v2 in
+               todo env (v1, v2)
+           | None -> todo env ()
+         in
+         let v7 = token env v7 (* "esac" *) in
+      *)
+      let command = Compound_command (Case TODO) in
+      Tmp_command ({ command; redirects = [] }, None)
   | `Pipe (v1, v2, v3) ->
-      let v1 = statement env v1 in
-      let v2 =
+      (*
+         Pipes are parsed with left associativity, so the statement on the
+         left is the pipeline we're extending with the one extra
+         command on the right.
+      *)
+      let pipeline, _none_hopefully = pipeline_statement env v1 in
+      let bar =
         match v2 with
-        | `BAR tok -> token env tok (* "|" *)
-        | `BARAMP tok -> token env tok
-        (* "|&" *)
+        | `BAR tok -> Bar (token env tok (* "|" *))
+        | `BARAMP tok -> Bar_ampersand (token env tok (* "|&" *))
       in
-      let v3 = statement env v3 in
-      todo env (v1, v2, v3)
+      let extra_cmd, control_op = command_statement env v3 in
+      Tmp_pipeline (pipeline @ [ (Some bar, extra_cmd) ], control_op)
   | `List (v1, v2, v3) ->
-      let v1 = statement env v1 in
-      let v2 =
+      let list = list_statement env v1 in
+      let control_op =
         match v2 with
-        | `AMPAMP tok -> token env tok (* "&&" *)
-        | `BARBAR tok -> token env tok
-        (* "||" *)
+        | `AMPAMP tok -> And (token env tok (* "&&" *))
+        | `BARBAR tok -> Or (token env tok (* "||" *))
       in
-      let v3 = statement env v3 in
-      todo env (v1, v2, v3)
-  | `Subs x -> subshell env x
-  | `Comp_stmt x -> compound_statement env x
+      let list =
+        match List.rev list with
+        | (pipeline, _none_hopefully) :: other ->
+            List.rev ((pipeline, Some control_op) :: other)
+        | [] -> assert false
+      in
+      let pipeline = pipeline_statement env v3 in
+      Tmp_list (list @ [ pipeline ])
+  | `Subs x ->
+      let command = Compound_command (Subshell (subshell env x)) in
+      Tmp_command ({ command; redirects = [] }, None)
+  | `Comp_stmt x ->
+      let command =
+        Compound_command (Command_group (compound_statement env x))
+      in
+      Tmp_command ({ command; redirects = [] }, None)
   | `Func_defi (v1, v2) ->
-      let v1 =
+      let function_, name =
         match v1 with
         | `Func_word_opt_LPAR_RPAR (v1, v2, v3) ->
-            let v1 = token env v1 (* "function" *) in
-            let v2 = token env v2 (* word *) in
-            let v3 =
+            let function_ = str env v1 (* "function" *) in
+            let name = str env v2 (* word *) in
+            let _empty_parens =
               match v3 with
               | Some (v1, v2) ->
-                  let v1 = token env v1 (* "(" *) in
-                  let v2 = token env v2 (* ")" *) in
-                  todo env (v1, v2)
-              | None -> todo env ()
+                  let _v1 = token env v1 (* "(" *) in
+                  let _v2 = token env v2 (* ")" *) in
+                  ()
+              | None -> ()
             in
-            todo env (v1, v2, v3)
+            (Some function_, name)
         | `Word_LPAR_RPAR (v1, v2, v3) ->
-            let v1 = token env v1 (* word *) in
-            let v2 = token env v2 (* "(" *) in
-            let v3 = token env v3 (* ")" *) in
-            todo env (v1, v2, v3)
+            let name = str env v1 (* word *) in
+            let _v2 = token env v2 (* "(" *) in
+            let _v3 = token env v3 (* ")" *) in
+            (None, name)
       in
-      let v2 =
-        match v2 with
-        | `Comp_stmt x -> compound_statement env x
-        | `Subs x -> subshell env x
-        | `Test_cmd x -> test_command env x
+      let body =
+        Compound_command
+          ( match v2 with
+          | `Comp_stmt x -> Command_group (compound_statement env x)
+          | `Subs x -> Subshell (subshell env x)
+          | `Test_cmd x -> Conditional_expression (test_command env x) )
       in
-      todo env (v1, v2)
+      let command =
+        Function_definition
+          { func_function = function_; func_name = name; func_body = body }
+      in
+      Tmp_command ({ command; redirects = [] }, None)
 
-and statements (env : env) ((v1, v2, v3, v4) : CST.statements) =
-  let v1 = List.map (stmt_with_opt_heredoc env) v1 in
-  let v2 = statement env v2 in
-  let v3 =
+and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : list_ =
+  let list = List.map (stmt_with_opt_heredoc env) v1 in
+  (* The following is identical to stmt_with_opt_heredoc but with
+     optional control_op. *)
+  let last_pipeline, _none_hopefully = pipeline_statement env v2 in
+  let _last_heredoc =
     match v3 with
     | Some (v1, v2) ->
-        let v1 = token env v1 (* "\n" *) in
-        let v2 = heredoc_body env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        let _v1 = token env v1 (* "\n" *) in
+        let _v2 = heredoc_body env v2 in
+        TODO
+    | None -> TODO
   in
-  let v4 = match v4 with Some x -> terminator env x | None -> todo env () in
-  todo env (v1, v2, v3, v4)
+  let control_op =
+    match v4 with
+    | Some x -> Some (terminator env x)
+    | None ->
+        (* no need for a newline at the end of the program/list *)
+        None
+  in
+  list @ [ (last_pipeline, control_op) ]
 
 and statements2 (env : env) (xs : CST.statements2) =
   List.map (stmt_with_opt_heredoc env) xs
@@ -786,7 +915,7 @@ and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
     | None -> []
   in
   let close = token env v4 (* "\"" *) in
-  (open_, fragments @ [ fragment ], close)
+  (open_, fragments @ fragment, close)
 
 and subscript (env : env) ((v1, v2, v3, v4, v5, v6) : CST.subscript) =
   let v1 = token env v1 (* variable_name *) in
@@ -802,9 +931,9 @@ and subscript (env : env) ((v1, v2, v3, v4, v5, v6) : CST.subscript) =
   todo env (v1, v2, v3, v4, v5, v6)
 
 and subshell (env : env) ((v1, v2, v3) : CST.subshell) : subshell =
-  let v1 = token env v1 (* "(" *) in
-  let v2 = statements env v2 in
-  let v3 = token env v3 (* ")" *) in
+  let _v1 = token env v1 (* "(" *) in
+  let _v2 = statements env v2 in
+  let _v3 = token env v3 (* ")" *) in
   TODO
 
 and terminated_statement (env : env) ((v1, v2) : CST.terminated_statement) =
@@ -830,26 +959,27 @@ and test_command (env : env) (v1 : CST.test_command) =
       let v3 = token env v3 (* "))" *) in
       todo env (v1, v2, v3)
 
-and variable_assignment (env : env) ((v1, v2, v3) : CST.variable_assignment) =
-  let v1 =
+and variable_assignment (env : env) ((v1, v2, v3) : CST.variable_assignment) :
+    todo =
+  let _v1 =
     match v1 with
     | `Var_name tok -> token env tok (* variable_name *)
     | `Subs x -> subscript env x
   in
-  let v2 =
+  let _v2 =
     match v2 with
     | `EQ tok -> token env tok (* "=" *)
-    | `PLUSEQ tok -> token env tok
-    (* "+=" *)
+    | `PLUSEQ tok -> (* "+=" *) token env tok
   in
-  let v3 =
+  (*
+  let _v3 =
     match v3 with
     | `Choice_conc x -> literal env x
     | `Array x -> array_ env x
-    | `Empty_value tok -> token env tok
-    (* empty_value *)
+    | `Empty_value tok -> (* empty_value *) token env tok
   in
-  todo env (v1, v2, v3)
+*)
+  TODO
 
 (*****************************************************************************)
 (* Entry point *)

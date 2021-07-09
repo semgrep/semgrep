@@ -25,23 +25,30 @@ type 'a bracket = tok * 'a * tok [@@deriving show]
 
 type todo = TODO
 
-type pipeline_control_operator = Foreground | Background | And | Or
+type pipeline_bar = Bar of tok | Bar_ampersand of tok
 
-type redirection = todo
+type pipeline_control_operator =
+  | Foreground of tok (* ';' or '\n' or ';;' *)
+  | Background of tok (* & *)
+  | And of tok (* && *)
+  | Or of tok
+
+(* || *)
+
+type redirect = todo
 
 (*
    Redirections can occur anywhere within a simple command. We extract
    them into a list while preserving their order, which matters.
 *)
-type command_with_redirections = {
-  command : command;
-  redirections : redirection list;
-}
+type command_with_redirects = { command : command; redirects : redirect list }
 
 (*
+   A command is anything that can be chained into a pipeline.
+
    These are all the different kinds of commands as presented in the
    Bash man page. IO redirections are hoisted up into the
-   'command_with_redirections' wrapper.
+   'command_with_redirects' wrapper.
 
    The syntax doesn't allow for nested coprocesses, but we allow it in
    the AST because it's simpler this way.
@@ -56,6 +63,7 @@ and command =
   | Assignment of assignment
   | Declaration of declaration
   | Negated_command of tok * command
+  | Function_definition of function_definition
 
 (*
    Example of a so-called simple command:
@@ -72,7 +80,7 @@ and command =
                                ^^^^^^^
                                 arg 2
                           ^^^^
-                       redirection
+                       redirect
 
    The argument list is a list of words to be expanded at run time.
    In the example, $options (no quotes) would expand into any number
@@ -86,14 +94,18 @@ and simple_command = {
 (*
    Sample pipeline
 
-   foo -x 2>&1 | bar floob &
+   foo -x 2>&1 | bla floob &
    ^^^^^^^^^^^   ^^^^^^^^^
-    command 0    command 1
-                           ^
-                      pipeline control operator
+    command0     command1
+   ^           ^           ^
+ no bar       bar         pipeline control operator
+
+   The first command of a pipeline is of the form (None, cmd). The
+   commands after that are of the form (Some bar, cmd).
 *)
 and pipeline =
-  command_with_redirections list * pipeline_control_operator wrap option
+  (pipeline_bar option * command_with_redirects) list
+  * pipeline_control_operator option
 
 (*
    Sample list
@@ -104,15 +116,14 @@ and pipeline =
               ^^^
             pipeline 1
 *)
-and list_ = List of pipeline * list_ | Empty
+and list_ = pipeline list
 
 (*
-   All the commands that are not simple commands and not coprocesses
-   are called compound commands.
+   All the commands that are called "compound commands" in the man page.
 *)
 and compound_command =
   | Subshell of subshell
-  | Group_command of group_command
+  | Command_group of command_group
   | Arithmetic_expression of arithmetic_expression
   | Conditional_expression of conditional_expression
   | For_loop of for_loop
@@ -131,12 +142,12 @@ and compound_command =
 and function_definition = {
   func_function : string wrap option;
   func_name : string wrap;
-  func_body : command_with_redirections;
+  func_body : command;
 }
 
 and subshell = todo
 
-and group_command = todo
+and command_group = todo
 
 and arithmetic_expression = todo
 
@@ -162,7 +173,7 @@ and declaration = todo
 
 and expression =
   | Word of string wrap
-  | String of string_fragment bracket
+  | String of string_fragment list bracket
   | String_fragment of string_fragment
   | Raw_string of string wrap
   | Ansii_c_string of string wrap
@@ -171,12 +182,13 @@ and expression =
   | Concatenation of expression list
   | Semgrep_ellipsis of tok
   | Semgrep_metavariable of string wrap
+  | Expression_TODO
 
 (* Fragment of a double-quoted string *)
 and string_fragment =
   | String_content of string wrap
   | Expansion of expansion
-  | Command_substitution of command_substitution
+  | Command_substitution of list_ bracket
 
 (* $foo or something like ${foo ...} *)
 and expansion =
@@ -192,7 +204,7 @@ and complex_expansion = Variable of variable_name | Complex_expansion_TODO
 (* $(foo; bar) or `foo; bar` *)
 and command_substitution = list_ bracket
 
-(* A program is a so-called list of pipelines *)
+(* A program is a list of pipelines *)
 type program = list_
 
 (*[@@deriving show { with_path = false }]*)
