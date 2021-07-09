@@ -183,7 +183,7 @@ let lang_to_python_parsing_mode = function
   | Lang.Python3 -> Parse_python.Python3
   | s -> failwith (spf "not a python language:%s" (Lang.string_of_lang s))
 
-let just_parse_with_lang lang file =
+let rec just_parse_with_lang lang file =
   match lang with
   | Lang.Ruby ->
       (* for Ruby we start with the tree-sitter parser because the pfff parser
@@ -299,7 +299,20 @@ let just_parse_with_lang lang file =
   | Lang.HTML ->
       (* less: there is an html parser in pfff too we could use as backup *)
       run file [ TreeSitter Parse_html_tree_sitter.parse ] (fun x -> x)
-  | Lang.Vue -> run file [ TreeSitter Parse_vue_tree_sitter.parse ] (fun x -> x)
+  | Lang.Vue ->
+      let parse_embedded_js file =
+        let { ast; errors; stat = _ } =
+          just_parse_with_lang Lang.Javascript file
+        in
+        (* TODO: pass the errors down to Parse_vue_tree_sitter.parse
+         * and accumulate with other vue parse errors
+         *)
+        if errors <> [] then failwith "parse error in embedded JS";
+        ast
+      in
+      run file
+        [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
+        (fun x -> x)
 
 (*****************************************************************************)
 (* Entry point *)
