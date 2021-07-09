@@ -97,10 +97,14 @@ class CoreRunner:
                     path=range.get("path", []),
                     filename="semgrep temp file",
                 )
+                if error_json["message"] == "Parsing.ParseError":
+                    long_msg = f"Pattern could not be parsed as a {error_json['language']} semgrep pattern"
+                else:
+                    long_msg = f"Error parsing {error_json['language']} pattern: {error_json['message']}"
 
                 raise InvalidPatternError(
                     short_msg=error_type,
-                    long_msg=f"Error parsing {error_json['language']} pattern: {error_json['message']}",
+                    long_msg=long_msg,
                     spans=[matching_span],
                     help=None,
                 )

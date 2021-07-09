@@ -146,17 +146,17 @@ class Span:
         src_hash = SourceTracker.add_source(s)
         start = Position(line, col + 1)
         lines = s.splitlines()
-        x_diff = len(lines)
-        y_diff = len(lines[-1])
-        end = Position(line=(x_diff + line - 1), col=(y_diff + col))
+        row_diff = len(lines)
+        col_diff = len(lines[-1])
+        end = Position(line=(row_diff + line - 1), col=(col_diff + col))
         return Span(
             start=start,
             end=end,
             file=filename,
             source_hash=src_hash,
             config_path=tuple(path),
-            config_start=Position(0, 0),
-            config_end=Position(x_diff, y_diff),
+            config_start=Position(0, 1),
+            config_end=Position(row_diff - 1, col_diff),
         )
 
     def fix(self) -> "Span":
