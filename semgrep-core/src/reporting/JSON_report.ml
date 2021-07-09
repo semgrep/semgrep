@@ -244,7 +244,7 @@ let json_of_exn e =
           ("language", J.String language);
         ]
   | Parse_mini_rule.InvalidPatternException
-      (pattern_id, pattern, lang, message, range) ->
+      (pattern_id, pattern, lang, message, range, path) ->
       let start, _end_ = range in
       let range_json =
         match start with
@@ -256,6 +256,14 @@ let json_of_exn e =
                 ("file", J.String s_loc.file);
                 ("line", J.Int s_loc.line);
                 ("col", J.Int s_loc.column);
+                ( "path",
+                  J.Array
+                    (List.map
+                       (fun x ->
+                         match int_of_string_opt x with
+                         | Some i -> J.Int i
+                         | None -> J.String x)
+                       (List.rev path)) );
               ]
       in
       J.Object

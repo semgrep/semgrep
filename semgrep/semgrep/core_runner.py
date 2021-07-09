@@ -30,6 +30,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.rule import Rule
+from semgrep.rule_lang import Position
 from semgrep.rule_lang import Span
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import Language
@@ -89,12 +90,27 @@ class CoreRunner:
         elif error_type == "invalid pattern":
             if self._optimizations == "all":
                 range = error_json["range"]
+                s = error_json.get("pattern", "<no pattern>")
                 matching_span = Span.from_string_token(
-                    s=error_json.get("pattern", "<no pattern>"),
+                    s=s,
                     line=range.get("line", 0),
                     col=range.get("col", 0),
                     filename="semgrep temp file",
                 )
+                lines = s.splitlines()
+                end = Position(line=len(lines), col=len(lines[-1]))
+                config_path = range.get("path", [])
+                config_location = (Position(0, 0), end)
+
+                raise InvalidPatternError(
+                    short_msg=error_type,
+                    long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
+                    spans=[matching_span],
+                    help=None,
+                    config_path=config_path,
+                    config_location=config_path,
+                )
+            # no special formatting ought to be required for the other types; the semgrep python should be performing
             else:
                 matching_pattern = next(
                     (p for p in patterns if p._id == error_json["pattern_id"]), None
@@ -105,12 +121,14 @@ class CoreRunner:
                     )
                 matching_span = matching_pattern.span
 
-            raise InvalidPatternError(
-                short_msg=error_type,
-                long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
-                spans=[matching_span],
-                help=None,
-            )
+                raise InvalidPatternError(
+                    short_msg=error_type,
+                    long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
+                    spans=[matching_span],
+                    help=None,
+                    config_path=None,
+                    config_location=None,
+                )
         # no special formatting ought to be required for the other types; the semgrep python should be performing
         # validation for them. So if any other type of error occurs, ask the user to file an issue
         else:

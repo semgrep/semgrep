@@ -590,7 +590,8 @@ let parse_pattern lang_pattern str =
            str,
            !lang,
            Common.exn_to_s exn,
-           (PI.fake_info "", PI.fake_info "") ))
+           (PI.fake_info "", PI.fake_info ""),
+           [] ))
   [@@profiling]
 
 (*e: function [[Main_semgrep_core.parse_pattern]] *)

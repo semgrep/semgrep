@@ -27,7 +27,12 @@ exception InvalidLanguageException of string * string
 (*s: exception [[Parse_rules.InvalidPatternException]] *)
 exception
   InvalidPatternException of
-    string * string * string * string * (Parse_info.t * Parse_info.t)
+    string
+    * string
+    * string
+    * string
+    * (Parse_info.t * Parse_info.t)
+    * string list
 
 (*e: exception [[Parse_rules.InvalidPatternException]] *)
 
@@ -61,7 +66,7 @@ let parse_severity ~id s =
 (*e: function [[Parse_rules.parse_severity]] *)
 
 (*s: function [[Parse_rules.parse_pattern]] *)
-let parse_pattern ~id ~lang pattern pat_range =
+let parse_pattern ~id ~lang pattern pat_range path =
   (* todo? call Normalize_ast.normalize here? *)
   try Parse_pattern.parse_pattern lang ~print_errors:false pattern with
   | Timeout -> raise Timeout
@@ -73,7 +78,8 @@ let parse_pattern ~id ~lang pattern pat_range =
              pattern,
              Lang.string_of_lang lang,
              Common.exn_to_s exn,
-             pat_range ))
+             pat_range,
+             path ))
 
 (*e: function [[Parse_rules.parse_pattern]] *)
 
@@ -131,7 +137,7 @@ let parse file =
                            (Parse_info.fake_info "", Parse_info.fake_info "")
                          in
                          let pattern =
-                           parse_pattern ~id ~lang pattern_string fake_range
+                           parse_pattern ~id ~lang pattern_string fake_range []
                          in
                          let severity = parse_severity ~id sev in
                          {

@@ -45,6 +45,8 @@ module PI = Parse_info
 (* Helpers *)
 (*****************************************************************************)
 
+type env = string * R.xlang * string list
+
 (* less: could use a hash to accelerate things *)
 let rec find_fields flds xs =
   match flds with
@@ -76,6 +78,10 @@ let parse_string_list ctx e =
     | _ -> error ("Expected all values in the list to be strings for " ^ ctx)
   in
   parse_list ctx extract_string e
+
+let parse_listi ctx f = function
+  | G.Container (Array, (_, xs, _)) -> List.mapi f xs
+  | _ -> error ("Expected a list for " ^ ctx)
 
 (*****************************************************************************)
 (* Sub parsers basic types *)
@@ -148,7 +154,7 @@ let parse_metavar_cond s =
     | _ -> error "not an expression"
   with exn -> raise exn
 
-let parse_regexp (id, _langs) s =
+let parse_regexp (id, _langs, _path) s =
   try (s, Pcre.regexp s)
   with Pcre.Error exn ->
     raise (E.InvalidRegexpException (id, pcre_error_to_string s exn))
@@ -224,7 +230,7 @@ let parse_options json =
 
 type _env = string * R.xlang
 
-let parse_pattern (id, lang) e =
+let parse_pattern (id, lang, path) e =
   let s =
     match e with
     | G.L (String (value, _)) -> value
@@ -235,14 +241,15 @@ let parse_pattern (id, lang) e =
   let s_range = (PI.mk_info_of_loc start, PI.mk_info_of_loc end_) in
   match lang with
   | R.L (lang, _) ->
-      R.mk_xpat (Sem (H.parse_pattern ~id ~lang s s_range, lang)) s
+      R.mk_xpat (Sem (H.parse_pattern ~id ~lang s s_range path, lang)) s
   | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> R.mk_xpat (Spacegrep ast) s
       | Error err ->
-          raise (H.InvalidPatternException (id, s, "generic", err.msg, s_range))
+          raise
+            (H.InvalidPatternException (id, s, "generic", err.msg, s_range, path))
       )
 
 let find_formula_old rule_info : string * G.expr =
@@ -267,15 +274,19 @@ let find_formula_old rule_info : string * G.expr =
         "Expected only one of `pattern`, `pattern-either`, `patterns`, or \
          `pattern-regex`"
 
-let rec parse_formula env (rule_info : (string, G.expr) Hashtbl.t) : R.pformula
-    =
+let rec parse_formula (env : env) (rule_info : (string, G.expr) Hashtbl.t) :
+    R.pformula =
   match Hashtbl.find_opt rule_info "match" with
   | Some v -> R.New (parse_formula_new env v)
   | None -> R.Old (parse_formula_old env (find_formula_old rule_info))
 
-and parse_formula_old env ((key, value) : string * G.expr) : R.formula_old =
+and parse_formula_old (id, lang, path) ((key, value) : string * G.expr) :
+    R.formula_old =
+  let env = (id, lang, key :: path) in
   let get_pattern str_e = parse_pattern env str_e in
-  let get_nested_formula x =
+  let get_nested_formula i x =
+    let id, lang, path = env in
+    let env = (id, lang, string_of_int i :: path) in
     match x with
     | G.Container
         (Dict, (_, [ Tuple (_, [ L (String (key, _)); value ], _) ], _)) ->
@@ -289,8 +300,8 @@ and parse_formula_old env ((key, value) : string * G.expr) : R.formula_old =
   | "pattern-not", s -> R.PatNot (get_pattern s)
   | "pattern-inside", s -> R.PatInside (get_pattern s)
   | "pattern-not-inside", s -> R.PatNotInside (get_pattern s)
-  | "pattern-either", xs -> R.PatEither (parse_list key get_nested_formula xs)
-  | "patterns", xs -> R.Patterns (parse_list key get_nested_formula xs)
+  | "pattern-either", xs -> R.PatEither (parse_listi key get_nested_formula xs)
+  | "patterns", xs -> R.Patterns (parse_listi key get_nested_formula xs)
   | "pattern-regex", s ->
       let s = parse_string key s in
       let xpat = R.mk_xpat (Regexp (parse_regexp env s)) s in
@@ -355,7 +366,7 @@ and _parse_extra env x =
   | "metavariable-pattern", J.Object xs -> (
       match find_fields [ "metavariable" ] xs with
       | [ ("metavariable", Some (J.String metavar)) ], rest ->
-          let id, _ = env in
+          let id, _, _ = env in
           let _env', opt_xlang, rest' =
             match find_fields [ "language" ] rest with
             | [ ("language", Some (J.String s)) ], rest' ->
@@ -371,7 +382,7 @@ and _parse_extra env x =
                              (id, spf "unsupported language: %s" s))
                     | Some l -> R.L (l, [])
                 in
-                let env' = (id, xlang) in
+                let env' = (id, xlang, [ (* todo *) ]) in
                 (env', Some xlang, rest')
             | ___else___ -> (env, None, rest)
           in
@@ -481,7 +492,7 @@ let parse_generic file formula_ast =
     | _ -> error "expected a list of rules following `rules:`"
   in
   rules
-  |> List.map (fun rule ->
+  |> List.mapi (fun i rule ->
          let rule_info = yaml_to_dict rule in
          let get f key = get rule_info f key in
          let get_opt f key = get_opt rule_info f key in
@@ -507,7 +518,9 @@ let parse_generic file formula_ast =
              None )
          in
          let languages = parse_languages ~id languages in
-         let formula = parse_formula (id, languages) rule_info in
+         let formula =
+           parse_formula (id, languages, [ string_of_int i; "rules" ]) rule_info
+         in
          let mode = R.Search formula in
          {
            R.id;
@@ -520,7 +533,9 @@ let parse_generic file formula_ast =
            metadata = metadata_opt;
            fix = fix_opt;
            fix_regexp =
-             Common.map_opt (parse_fix_regex (id, languages)) fix_regex_opt;
+             Common.map_opt
+               (parse_fix_regex (id, languages, [ string_of_int i; "rules" ]))
+               fix_regex_opt;
            paths = Common.map_opt parse_paths paths_opt;
            equivalences = Common.map_opt parse_equivalences equivs_opt;
            options = Common.map_opt parse_options options_opt;
