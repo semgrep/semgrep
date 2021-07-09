@@ -30,7 +30,13 @@ module G = AST_generic
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-type env = unit H.env
+type extra = {
+  (* todo: later we should also propagate parsing errors *)
+  parse_js_program : string wrap -> AST_generic.program;
+  parse_js_expr : string wrap -> AST_generic.expr;
+}
+
+type env = extra H.env
 
 let fake = AST_generic.fake
 
@@ -218,15 +224,13 @@ let map_style_element (env : env) ((v1, v2, v3) : CST.style_element) : xml =
   let v3 = map_end_tag env v3 in
   { xml_kind = XmlClassic (l, id, r, v3); xml_attrs = attrs; xml_body = v2 }
 
-let map_script_element (env : env) ((v1, v2, v3) : CST.script_element) : xml =
+let map_script_element (env : env) ((v1, v2, v3) : CST.script_element) =
   let l, id, attrs, r = map_script_start_tag env v1 in
   let v2 =
-    match v2 with
-    | Some tok -> [ XmlText (str env tok) (* raw_text *) ]
-    | None -> []
+    match v2 with Some tok -> Some (str env tok) (* raw_text *) | None -> None
   in
   let v3 = map_end_tag env v3 in
-  { xml_kind = XmlClassic (l, id, r, v3); xml_attrs = attrs; xml_body = v2 }
+  (l, id, r, v3, attrs, v2)
 
 let rec map_element (env : env) (x : CST.element) : xml =
   match x with
@@ -273,9 +277,17 @@ and map_node (env : env) (x : CST.node) : xml_body list =
   | `Temp_elem x ->
       let xml = map_template_element env x in
       [ XmlXml xml ]
-  (* TODO: parse as JS *)
   | `Script_elem x ->
-      let xml = map_script_element env x in
+      let l, id, r, rend, xml_attrs, body_opt = map_script_element env x in
+      let xml_body =
+        match body_opt with
+        (* TODO: parse as JS *)
+        | Some s -> [ XmlText s ]
+        | None -> []
+      in
+      let xml =
+        { xml_kind = XmlClassic (l, id, r, rend); xml_attrs; xml_body }
+      in
       [ XmlXml xml ]
   (* less: parse as CSS *)
   | `Style_elem x ->
@@ -298,7 +310,7 @@ and map_template_element (env : env) ((v1, v2, v3) : CST.template_element) : xml
   let v3 = map_end_tag env v3 in
   { xml_kind = XmlClassic (l, id, r, v3); xml_attrs = attrs; xml_body = v2 }
 
-let map_component (env : env) (xs : CST.component) : xml list =
+let map_component (env : env) (xs : CST.component) : stmt list =
   List.map
     (fun x ->
       match x with
@@ -307,44 +319,60 @@ let map_component (env : env) (xs : CST.component) : xml list =
           []
       | `Elem x ->
           let xml = map_element env x in
-          [ xml ]
+          [ G.exprstmt (Xml xml) ]
       | `Temp_elem x ->
           let xml = map_template_element env x in
-          [ xml ]
-      (* TODO: parse as JS *)
-      | `Script_elem x ->
-          let xml = map_script_element env x in
-          [ xml ]
+          [ G.exprstmt (Xml xml) ]
+      (* Note that right now the AST will not contain the enclosing
+       * <script>, because XmlExpr contain single expressions, not
+       * full programs, so it's simpler to just lift up the
+       * program and remove the enclosing <script>. If at some point
+       * people want to explicitly restrict their code search to
+       * the <script> part we might revisit that.
+       *)
+      | `Script_elem x -> (
+          let _l, _id, _r, _rend, _xml_attrs, body_opt =
+            map_script_element env x
+          in
+          match body_opt with
+          | Some s -> env.extra.parse_js_program s
+          | None -> [] )
       (* less: parse as CSS *)
       | `Style_elem x ->
           let xml = map_style_element env x in
-          [ xml ])
+          [ G.exprstmt (Xml xml) ])
     xs
   |> List.flatten
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let parse file =
+
+(* TODO: move in Parse_tree_sitter_helpers.ml *)
+let parse_string_and_adjust_wrt_base content _tbaseTODO fparse =
+  Common2.with_tmp_file ~str:content ~ext:"js" (fun file -> fparse file)
+
+let parse parse_js file =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
       Parallel.invoke Tree_sitter_vue.Parse.file file ())
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+      let extra =
+        {
+          parse_js_program =
+            (fun (s, t) -> parse_string_and_adjust_wrt_base s t parse_js);
+          parse_js_expr =
+            (fun (s, t) ->
+              let _xs = parse_string_and_adjust_wrt_base s t parse_js in
+              failwith "TODO: extract expr");
+        }
+      in
+      let env = { H.file; conv = H.line_col_to_pos file; extra } in
 
       try
         let xs = map_component env cst in
-        let xml =
-          {
-            xml_kind = XmlFragment (fake "", fake "");
-            xml_attrs = [];
-            xml_body = xs |> List.map (fun xml -> XmlXml xml);
-          }
-        in
-        let e = Xml xml in
-        let st = G.exprstmt e in
-        [ st ]
+        xs
       with Failure "not implemented" as exn ->
         let s = Printexc.get_backtrace () in
         pr2 "Some constructs are not handled yet";

@@ -1401,6 +1401,9 @@ let options () =
             Common.profile := Common.ProfAll;
             profile := true),
         " output profiling information" );
+      ( "-keep_tmp_files",
+        Arg.Set Common.save_tmp_files,
+        " keep temporary generated files" );
     ]
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
   @ Meta_parse_info.cmdline_flags_precision ()
