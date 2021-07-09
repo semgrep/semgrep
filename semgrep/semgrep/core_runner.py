@@ -93,6 +93,7 @@ class CoreRunner:
                     s=error_json.get("pattern", "<no pattern>"),
                     line=range.get("line", 0),
                     col=range.get("col", 0),
+                    filename="semgrep temp file",
                 )
             else:
                 matching_pattern = next(
