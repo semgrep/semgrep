@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- Vue.js alpha support (#1751)
+
 ### Fixed
 - Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)
 - Ruby command shells are distinguished from strings (#3343)
