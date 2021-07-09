@@ -113,6 +113,12 @@ definitions:
             type: string
           language:
             type: string
+          pattern:
+            title: Return finding where Semgrep pattern matches exactly
+            type: string
+          pattern-regex:
+            title: Return finding where regular expression matches exactly
+            type: string
           patterns:
             $ref: '#/definitions/patterns-content'
           pattern-either:

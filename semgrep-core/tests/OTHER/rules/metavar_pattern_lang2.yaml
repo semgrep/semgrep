@@ -9,7 +9,6 @@ rules:
       - metavariable-pattern:
           metavariable: $...JS
           language: javascript
-          patterns:
-              - pattern: |
-                  console.log(...)
+          pattern: |
+            console.log(...)
     severity: WARNING
