@@ -159,7 +159,6 @@ let test_dfg_tainting file =
              let config =
                {
                  Dataflow_tainting.is_source = (fun _ -> false);
-                 is_source_exp = (fun _ -> false);
                  is_sink = (fun _ -> false);
                  is_sanitizer = (fun _ -> false);
                  found_tainted_sink = (fun _ _ -> ());

@@ -1,0 +1,35 @@
+# Based on python.django.security.injection.open-redirect
+rules:
+  - id: tainting
+    mode: taint
+    languages:
+      - python
+    message: |
+      This confirms taint mode works.
+    severity: ERROR
+    pattern-sources:
+    - patterns:
+      - pattern-inside: |
+          def $FUNC(...):
+            ...
+      - pattern-not-inside: |
+          def $FUNC(...):
+            ...
+            <... django.utils.http.is_safe_url(...) ...>
+            ...
+      - pattern-not-inside: |
+          def $FUNC(...):
+            ...
+            if <... django.utils.http.is_safe_url(...) ...>:
+              ...
+      - pattern-either:
+        - pattern: request.$W.get(...)
+        - pattern: request.$W(...)
+        - pattern: request.$W[...]
+      - metavariable-regex:
+          metavariable: $W
+          regex: (?!get_full_path)
+    pattern-sinks:
+    - pattern-either:
+      - pattern: django.shortcuts.redirect(...)
+      - pattern: django.http.HttpResponseRedirect(...)

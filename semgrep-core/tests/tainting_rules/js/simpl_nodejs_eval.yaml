@@ -1,0 +1,20 @@
+# Simplified version of nodejsscan.eval_sandbox
+rules:
+  - id: tainting
+    mode: taint
+    languages:
+      - js
+    message: |
+      This confirms taint mode works.
+    severity: ERROR
+    pattern-sources:
+      - patterns:
+        - pattern-inside: |
+            require('sandbox');
+            ...
+        - pattern-inside: function ($REQ, ...) {...}
+        - pattern: $REQ.query
+    pattern-sinks:
+      - patterns:
+        - pattern-inside: $S.run($SINK, ...)
+        - pattern: $SINK
