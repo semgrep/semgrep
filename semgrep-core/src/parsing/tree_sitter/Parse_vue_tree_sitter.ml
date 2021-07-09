@@ -355,8 +355,21 @@ let map_component (env : env) (xs : CST.component) : stmt list =
 (*****************************************************************************)
 
 (* TODO: move in Parse_tree_sitter_helpers.ml *)
-let parse_string_and_adjust_wrt_base content _tbaseTODO fparse =
-  Common2.with_tmp_file ~str:content ~ext:"js" (fun file -> fparse file)
+let parse_string_and_adjust_wrt_base content tbase fparse =
+  Common2.with_tmp_file ~str:content ~ext:"js" (fun file ->
+      let x = fparse file in
+
+      let visitor =
+        Map_AST.mk_visitor
+          {
+            Map_AST.default_visitor with
+            Map_AST.kinfo =
+              (fun (_, _) t ->
+                let base_loc = PI.token_location_of_info tbase in
+                PI.adjust_info_wrt_base base_loc t);
+          }
+      in
+      visitor.Map_AST.vprogram x)
 
 let parse parse_js file =
   H.wrap_parser

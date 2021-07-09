@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Vue.js alpha support (#1751)
 - New iteration of taint-mode that allows to specify sources/sanitizers/sinks
   using arbitrary pattern formulas. This provides plenty of flexibility. Note
   that we breaks compatibility with the previous taint-mode format, e.g.

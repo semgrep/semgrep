@@ -268,6 +268,12 @@ let lang_parsing_tests =
       let lang = Lang.HTML in
       parsing_tests_for_lang files lang
     );
+    "Vue" >::: (
+      let dir = Filename.concat tests_path "vue/parsing" in
+      let files = Common2.glob (spf "%s/*.vue" dir) in
+      let lang = Lang.Vue in
+      parsing_tests_for_lang files lang
+    );
   ]
 
 (*s: constant [[Test.lang_regression_tests]] *)
@@ -375,6 +381,12 @@ let lang_regression_tests ~with_caching =
     let dir = Filename.concat tests_path "scala" in
     let files = Common2.glob (spf "%s/*.scala" dir) in
     let lang = Lang.Scala in
+    regression_tests_for_lang files lang
+  );
+  "semgrep Vue" >::: (
+    let dir = Filename.concat tests_path "vue" in
+    let files = Common2.glob (spf "%s/*.vue" dir) in
+    let lang = Lang.Vue in
     regression_tests_for_lang files lang
   );
  ]
