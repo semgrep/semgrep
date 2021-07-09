@@ -80,11 +80,46 @@ let token env (tok : Tree_sitter_run.Token.t) =
   in
   let file = env.file in
   let tok_loc = { PI.str; charpos; line; column; file } in
-  { PI.token = PI.OriginTok tok_loc; transfo = PI.NoTransfo }
+  PI.mk_info_of_loc tok_loc
 
 let str env (tok : Tree_sitter_run.Token.t) =
   let _, s = tok in
   (s, token env tok)
+
+(* This is a temporary fix until
+ * https://github.com/returntocorp/ocaml-tree-sitter-core/issues/5
+ * is fixed.
+ *)
+let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
+  let loc, _wrong_str = tok in
+
+  let file = env.file in
+  let h = env.conv in
+
+  let charpos, line, column =
+    let pos = loc.Tree_sitter_run.Loc.start in
+    (* Parse_info is 1-line based and 0-column based, like Emacs *)
+    let line = pos.Tree_sitter_run.Loc.row + 1 in
+    let column = pos.Tree_sitter_run.Loc.column in
+    try (Hashtbl.find h (line, column), line, column)
+    with Not_found ->
+      failwith (spf "could not find line:%d x col:%d in %s" line column file)
+  in
+  let charpos2 =
+    let pos = loc.Tree_sitter_run.Loc.end_ in
+    (* Parse_info is 1-line based and 0-column based, like Emacs *)
+    let line = pos.Tree_sitter_run.Loc.row + 1 in
+    let column = pos.Tree_sitter_run.Loc.column in
+    try Hashtbl.find h (line, column)
+    with Not_found ->
+      failwith (spf "could not find line:%d x col:%d in %s" line column file)
+  in
+  (* Range.t is inclusive, so we need -1 to remove the char at the pos *)
+  let charpos2 = charpos2 - 1 in
+  let r = { Range.start = charpos; end_ = charpos2 } in
+  let str = Range.content_at_range file r in
+  let tok_loc = { PI.str; charpos; line; column; file } in
+  (str, PI.mk_info_of_loc tok_loc)
 
 let combine_tokens_DEPRECATED env xs =
   match xs with
