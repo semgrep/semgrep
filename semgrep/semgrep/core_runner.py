@@ -100,7 +100,7 @@ class CoreRunner:
 
                 raise InvalidPatternError(
                     short_msg=error_type,
-                    long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
+                    long_msg=f"Error parsing {error_json['language']} pattern: {error_json['message']}",
                     spans=[matching_span],
                     help=None,
                 )

@@ -23,6 +23,7 @@ module E = Parse_mini_rule
 module H = Parse_mini_rule
 module G = AST_generic
 module PI = Parse_info
+module Set = Set_
 
 (*****************************************************************************)
 (* Prelude *)
@@ -45,7 +46,9 @@ module PI = Parse_info
 (* Helpers *)
 (*****************************************************************************)
 
-type env = string * R.xlang * string list
+let patterns = ref Set.empty
+
+type env = { id : string; languages : R.xlang; path : string list }
 
 (* less: could use a hash to accelerate things *)
 let rec find_fields flds xs =
@@ -154,10 +157,10 @@ let parse_metavar_cond s =
     | _ -> error "not an expression"
   with exn -> raise exn
 
-let parse_regexp (id, _langs, _path) s =
+let parse_regexp env s =
   try (s, Pcre.regexp s)
   with Pcre.Error exn ->
-    raise (E.InvalidRegexpException (id, pcre_error_to_string s exn))
+    raise (E.InvalidRegexpException (env.id, pcre_error_to_string s exn))
 
 let parse_fix_regex env = function
   | J.Object xs -> (
@@ -230,18 +233,27 @@ let parse_options json =
 
 type _env = string * R.xlang
 
-let parse_pattern (id, lang, path) e =
+let parse_pattern env e =
   let s =
     match e with
     | G.L (String (value, _)) -> value
     | G.N (Id ((value, _), _)) -> value
-    | _ -> error ("Expected a string value for " ^ id)
+    | _ -> error ("Expected a string value for " ^ env.id)
   in
   let start, end_ = Visitor_AST.range_of_any (G.E e) in
   let s_range = (PI.mk_info_of_loc start, PI.mk_info_of_loc end_) in
-  match lang with
+  let () =
+    if Set.mem s !patterns then
+      raise
+        (H.InvalidPatternException
+           (env.id, s, "semgrep", "Duplicate pattern", s_range, env.path))
+    else patterns := Set.add s !patterns
+  in
+  match env.languages with
   | R.L (lang, _) ->
-      R.mk_xpat (Sem (H.parse_pattern ~id ~lang s s_range path, lang)) s
+      R.mk_xpat
+        (Sem (H.parse_pattern ~id:env.id ~lang s s_range env.path, lang))
+        s
   | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
@@ -249,8 +261,8 @@ let parse_pattern (id, lang, path) e =
       | Ok ast -> R.mk_xpat (Spacegrep ast) s
       | Error err ->
           raise
-            (H.InvalidPatternException (id, s, "generic", err.msg, s_range, path))
-      )
+            (H.InvalidPatternException
+               (env.id, s, "generic", err.msg, s_range, env.path)) )
 
 let find_formula_old rule_info : string * G.expr =
   let find key = (key, Hashtbl.find_opt rule_info key) in
@@ -280,13 +292,11 @@ let rec parse_formula (env : env) (rule_info : (string, G.expr) Hashtbl.t) :
   | Some v -> R.New (parse_formula_new env v)
   | None -> R.Old (parse_formula_old env (find_formula_old rule_info))
 
-and parse_formula_old (id, lang, path) ((key, value) : string * G.expr) :
-    R.formula_old =
-  let env = (id, lang, key :: path) in
+and parse_formula_old env ((key, value) : string * G.expr) : R.formula_old =
+  let env = { env with path = key :: env.path } in
   let get_pattern str_e = parse_pattern env str_e in
   let get_nested_formula i x =
-    let id, lang, path = env in
-    let env = (id, lang, string_of_int i :: path) in
+    let env = { env with path = string_of_int i :: env.path } in
     match x with
     | G.Container
         (Dict, (_, [ Tuple (_, [ L (String (key, _)); value ], _) ], _)) ->
@@ -366,7 +376,6 @@ and _parse_extra env x =
   | "metavariable-pattern", J.Object xs -> (
       match find_fields [ "metavariable" ] xs with
       | [ ("metavariable", Some (J.String metavar)) ], rest ->
-          let id, _, _ = env in
           let _env', opt_xlang, rest' =
             match find_fields [ "language" ] rest with
             | [ ("language", Some (J.String s)) ], rest' ->
@@ -379,10 +388,12 @@ and _parse_extra env x =
                     | None ->
                         raise
                           (E.InvalidLanguageException
-                             (id, spf "unsupported language: %s" s))
+                             (env.id, spf "unsupported language: %s" s))
                     | Some l -> R.L (l, [])
                 in
-                let env' = (id, xlang, [ (* todo *) ]) in
+                let env' =
+                  { id = env.id; languages = xlang; path = [ (* todo *) ] }
+                in
                 (env', Some xlang, rest')
             | ___else___ -> (env, None, rest)
           in
@@ -519,7 +530,9 @@ let parse_generic file formula_ast =
          in
          let languages = parse_languages ~id languages in
          let formula =
-           parse_formula (id, languages, [ string_of_int i; "rules" ]) rule_info
+           parse_formula
+             { id; languages; path = [ string_of_int i; "rules" ] }
+             rule_info
          in
          let mode = R.Search formula in
          {
@@ -534,7 +547,8 @@ let parse_generic file formula_ast =
            fix = fix_opt;
            fix_regexp =
              Common.map_opt
-               (parse_fix_regex (id, languages, [ string_of_int i; "rules" ]))
+               (parse_fix_regex
+                  { id; languages; path = [ string_of_int i; "rules" ] })
                fix_regex_opt;
            paths = Common.map_opt parse_paths paths_opt;
            equivalences = Common.map_opt parse_equivalences equivs_opt;
