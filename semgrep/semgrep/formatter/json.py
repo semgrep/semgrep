@@ -17,7 +17,7 @@ class JsonFormatter(BaseFormatter):
         json_obj["extra"]["message"] = rule_match.message
         json_obj["extra"]["metadata"] = rule_match.metadata
         json_obj["extra"]["severity"] = rule_match.severity
-        json_obj["path"] = json_obj.get("path", rule_match.path)
+        json_obj["path"] = json_obj.get("path", str(rule_match.path))
         json_obj["start"] = rule_match.start
         json_obj["end"] = rule_match.end
 
