@@ -23,6 +23,13 @@ let token = H.token
 let str = H.str
 
 (*
+   Replace the last element of a list.
+   This is usually a sign that something wasn't done right.
+*)
+let map_last l f =
+  match List.rev l with [] -> [] | last :: other -> List.rev (f last :: other)
+
+(*
    The 'statement' rule returns one of 3 possible levels of constructs:
    - list = list of pipelines
    - pipeline = list of commands
@@ -142,7 +149,7 @@ let rec prim_exp_or_special_char (env : env)
   | `Spec_char tok -> Special_character (str env tok)
 
 and stmt_with_opt_heredoc (env : env)
-    ((v1, v2, v3) : CST.anon_stmt_opt_LF_here_body_term_3efa649) : pipeline =
+    ((v1, v2, v3) : CST.anon_stmt_opt_LF_here_body_term_3efa649) : list_ =
   (*
      This handling of heredocs is incorrect but usually works
      in practice. Code like the following is allowed by bash:
@@ -151,10 +158,10 @@ and stmt_with_opt_heredoc (env : env)
 
      ... after which two successive heredoc bodies are expected.
   *)
-  let pipeline, _none_hopefully = pipeline_statement env v1 in
+  let list_ = list_statement env v1 in
   let _opt_heredoc =
     (* needs to be paired with the correct command
-     * in the pipeline. *)
+     * in one of the pipeline in the list occurring on the previous line. *)
     match v2 with
     | Some (v1, v2) ->
         let _v1 = token env v1 (* "\n" *) in
@@ -162,8 +169,8 @@ and stmt_with_opt_heredoc (env : env)
         TODO
     | None -> TODO
   in
-  let control_op = terminator env v3 in
-  (pipeline, Some control_op)
+  let _trailing_newline = terminator env v3 in
+  list_
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let _v1 = token env v1 (* "(" *) in
@@ -800,20 +807,26 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let extra_cmd, control_op = command_statement env v3 in
       Tmp_pipeline (pipeline @ [ (Some bar, extra_cmd) ], control_op)
   | `List (v1, v2, v3) ->
-      let list = list_statement env v1 in
+      let list_left = list_statement env v1 in
       let control_op =
         match v2 with
         | `AMPAMP tok -> And (token env tok (* "&&" *))
         | `BARBAR tok -> Or (token env tok (* "||" *))
       in
-      let list =
-        match List.rev list with
-        | (pipeline, _none_hopefully) :: other ->
-            List.rev ((pipeline, Some control_op) :: other)
-        | [] -> assert false
+      let list_left =
+        map_last list_left (fun (pipeline, _none_hopefully) ->
+            (pipeline, Some control_op))
       in
+
+      (*
+         && and || are left-associative, so we should have a pipeline
+         on the right, not a list. The following doesn't work, though,
+         when parsing just 'a || b'.
+
       let pipeline = pipeline_statement env v3 in
-      Tmp_list (list @ [ pipeline ])
+       *)
+      let list_right = list_statement env v3 in
+      Tmp_list (list_left @ list_right)
   | `Subs x ->
       let command = Compound_command (Subshell (subshell env x)) in
       Tmp_command ({ command; redirects = [] }, None)
@@ -857,10 +870,10 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command ({ command; redirects = [] }, None)
 
 and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : list_ =
-  let list = List.map (stmt_with_opt_heredoc env) v1 in
-  (* The following is identical to stmt_with_opt_heredoc but with
-     optional control_op. *)
-  let last_pipeline, _none_hopefully = pipeline_statement env v2 in
+  let list = List.map (stmt_with_opt_heredoc env) v1 |> List.flatten in
+  (* See stmt_with_opt_heredoc, which is almost identical except for
+     the optional trailing newline. *)
+  let last_list = list_statement env v2 in
   let _last_heredoc =
     match v3 with
     | Some (v1, v2) ->
@@ -869,14 +882,10 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : list_ =
         TODO
     | None -> TODO
   in
-  let control_op =
-    match v4 with
-    | Some x -> Some (terminator env x)
-    | None ->
-        (* no need for a newline at the end of the program/list *)
-        None
+  let _trailing_newline =
+    match v4 with Some x -> Some (terminator env x) | None -> None
   in
-  list @ [ (last_pipeline, control_op) ]
+  list @ last_list
 
 and statements2 (env : env) (xs : CST.statements2) =
   List.map (stmt_with_opt_heredoc env) xs
