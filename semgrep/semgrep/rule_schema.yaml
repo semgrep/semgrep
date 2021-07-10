@@ -431,8 +431,6 @@ properties:
           not:
             anyOf:
               - required:
-                - languages
-              - required:
                 - patterns
               - required:
                 - pattern
