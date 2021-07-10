@@ -1,0 +1,24 @@
+rules:
+- id: user-input-escaped-with-safe
+  mode: join
+  join:
+    refs:
+    - rule: rules/join_rules/rule_parts/flask-user-input.yaml
+      as: user-input
+    - rule: rules/join_rules/rule_parts/render-template-input.yaml
+      as: render-template-input
+    - rule: rules/join_rules/rule_parts/template-var-safe.yaml
+      renames:
+      - from: '$...EXPR'
+        to: '$VAR'
+      as: template-vars
+    on:
+    - 'user-input.$VAR == render-template-input.$INPUT'
+    - 'render-template-input.$VAR == template-vars.$VAR'
+    - 'render-template-input.$TEMPLATE ~ template-vars.path'
+  message: >-
+    The variable '$VAR' is most likely an XSS. It originates as user input
+    and is unsafely rendered with the '| safe' filter.
+  severity: ERROR
+  metadata:
+    hi: hi

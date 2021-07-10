@@ -1,0 +1,26 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "user-input-escaped-with-safe",
+      "end": {
+        "col": 38,
+        "line": 19
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<h1>Search results for \"{{ query|safe }}\"</h1>",
+        "message": "The variable '$VAR' is most likely an XSS. It originates as user input and is unsafely rendered with the '| safe' filter.",
+        "metadata": {
+          "hi": "hi"
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/join_rules/user-input-escaped-with-safe/search.html",
+      "start": {
+        "col": 28,
+        "line": 19
+      }
+    }
+  ]
+}
