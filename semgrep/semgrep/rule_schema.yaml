@@ -19,7 +19,6 @@ definitions:
       - $ref: '#/definitions/metavariable-regex'
       - $ref: '#/definitions/metavariable-pattern'
       - $ref: '#/definitions/metavariable-comparison'
-      - $ref: '#/definitions/join'
   pattern-either-content:
     type: array
     title: "Return finding where any of the nested conditions are true"
@@ -113,7 +112,7 @@ definitions:
         type: array
         items:
           type: string
-      additionProperties: false
+      additionalProperties: false
   metavariable-regex:
     type: object
     properties:
@@ -418,6 +417,8 @@ properties:
                 - pattern-either
               - required:
                 - pattern-regex
+              - required:
+                - join
 
         - properties:
             mode:
@@ -427,6 +428,18 @@ properties:
             - message
             - severity
             - join
+          not:
+            anyOf:
+              - required:
+                - languages
+              - required:
+                - patterns
+              - required:
+                - pattern
+              - required:
+                - pattern-either
+              - required:
+                - pattern-regex
 
         - properties:
             mode:
@@ -485,4 +498,6 @@ properties:
                 - pattern-sources
               - required:
                 - pattern-sanitizers
+              - required:
+                - join
 additionalProperties: false
