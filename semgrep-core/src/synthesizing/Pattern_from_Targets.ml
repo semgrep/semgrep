@@ -490,7 +490,7 @@ let cp_meta_env (src : pattern_instr) (dsts : pattern_instrs) : pattern_instrs =
 
 (* Calls generate_patterns_help on each list of pattern_instrs, retaining
  * the metavariable environment between calls.
- * The environment is retained within a single target for subsequent statements, 
+ * The environment is retained within a single target for subsequent statements,
  * not across targets.
  *)
 let rec generate_with_env (target_patterns : pattern_instrs list list) :
