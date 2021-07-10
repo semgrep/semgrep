@@ -24,7 +24,6 @@ from semgrep.core_runner import CoreRunner
 from semgrep.error import Level
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
-from semgrep.join_rule import main as run_join_rule
 from semgrep.metric_manager import metric_manager
 from semgrep.old_core_runner import OldCoreRunner
 from semgrep.output import OutputHandler
@@ -39,6 +38,7 @@ from semgrep.util import partition
 from semgrep.util import sub_check_output
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
+
 
 logger = getLogger(__name__)
 
@@ -323,8 +323,10 @@ The two most popular are:
         )
 
     if join_rules:
+        import semgrep.join_rule as join_rule
+
         for rule in join_rules:
-            join_rule_matches, join_rule_errors = run_join_rule(
+            join_rule_matches, join_rule_errors = join_rule.main(
                 rule.raw, [Path(t) for t in target_manager.targets]
             )
             join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}

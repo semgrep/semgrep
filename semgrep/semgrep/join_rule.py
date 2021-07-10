@@ -25,6 +25,8 @@ import semgrep.semgrep_main
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import resolve_config
 from semgrep.error import ERROR_MAP
+from semgrep.error import FATAL_EXIT_CODE
+from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
@@ -33,7 +35,7 @@ from semgrep.rule_match import RuleMatch
 yaml = YAML()
 
 logger = logging.getLogger(__file__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(stream=sys.stderr)
 handler.setFormatter(
     logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -46,22 +48,10 @@ logger.addHandler(handler)
 # TODO(bug): join rules don't propagate metavariables forward into messages
 # # report the last finding? report multiple findings?
 
-"""
-rules:
-- id: blah
-  join:
-    refs:
-    - id: join_rule/unescaped-template-extension.yaml
-      as: unescaped-extensions
-    - id: join_rule/any-template-var.yaml
-      renames:
-      - from: '$...EXPR'
-        to: '$VAR'
-      as: template-vars
-    on:
-    - 'unescaped-extensions.$VAR == template-vars.$VAR'
-    - 'unescaped-extensions.$PATH ~ template-vars.path'
-"""
+
+class InvalidConditionError(SemgrepError):
+    level = Level.ERROR
+    code = FATAL_EXIT_CODE
 
 
 ### Utility functions
@@ -102,12 +92,17 @@ class Condition:
 
     @classmethod
     def parse(cls, condition_string: str) -> "Condition":
-        lhs, operator, rhs = condition_string.split()
-        # TODO: consider enforcing aliases to avoid extra dots
-        # Also consider using a different property accessor instead of a dot
-        a, prop_a = (".".join(rhs.split(".")[:-1]), rhs.split(".")[-1])
-        b, prop_b = (".".join(lhs.split(".")[:-1]), lhs.split(".")[-1])
-        return cls(a, prop_a, b, prop_b, Operator(operator))
+        try:
+            lhs, operator, rhs = condition_string.split()
+            # TODO: consider enforcing aliases to avoid extra dots
+            # Also consider using a different property accessor instead of a dot
+            a, prop_a = (".".join(lhs.split(".")[:-1]), lhs.split(".")[-1])
+            b, prop_b = (".".join(rhs.split(".")[:-1]), rhs.split(".")[-1])
+            return cls(a, prop_a, b, prop_b, Operator(operator))
+        except ValueError as ve:
+            raise InvalidConditionError(
+                f"The condition '{condition_string}' was invalid. Must be of the form '<rule>.<metavar> <operator> <rule>.<metavar>'. {str(ve).capitalize()}"
+            )
 
 
 db = pw.SqliteDatabase(":memory:")
@@ -137,9 +132,9 @@ def evaluate_condition(
         return getattr(A, property_a) == getattr(B, property_b)
     elif operator == Operator.NOT_EQUALS:
         return getattr(A, property_a) != getattr(B, property_b)
-    elif operator == Operator.SIMILAR or operator == Operator.SIMILAR_RIGHT:
+    elif operator == Operator.SIMILAR_RIGHT:
         return getattr(A, property_a).contains(getattr(B, property_b))
-    elif operator == Operator.SIMILAR_LEFT:
+    elif operator == Operator.SIMILAR or operator == Operator.SIMILAR_LEFT:
         return getattr(B, property_b).contains(getattr(A, property_a))
 
     raise NotImplementedError(f"The operator {operator} is not supported.")
@@ -192,7 +187,7 @@ def match_on_conditions(  # type: ignore
 
     # Use the rhs of the final condition as the finding to return.
     # Without this, the return value is non-deterministic.
-    last_condition_model: Type[BaseModel] = condition_terms[-1][0]
+    last_condition_model: Type[BaseModel] = condition_terms[-1][2]
     query = (
         joined.select(last_condition_model.raw)
         .distinct()
@@ -287,10 +282,13 @@ def main(
     refs_lookup = {ref.id: ref for ref in join_rule_refs}
     alias_lookup = {ref.alias: ref.id for ref in join_rule_refs}
 
-    conditions = [
-        Condition.parse(condition_string)
-        for condition_string in join_contents.get("on", [])
-    ]
+    try:
+        conditions = [
+            Condition.parse(condition_string)
+            for condition_string in join_contents.get("on", [])
+        ]
+    except InvalidConditionError as e:
+        return [], [e]
 
     # Run Semgrep
     with tempfile.NamedTemporaryFile() as rule_path:
