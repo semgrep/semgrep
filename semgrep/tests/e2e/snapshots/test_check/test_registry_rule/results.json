@@ -13,6 +13,7 @@
         "message": "Detected a useless comparison operation `x == x` or `x != x`. This\noperation is always true.\nIf testing for floating point NaN, use `math.isnan`, or\n`cmath.isnan` if the number is complex.\n",
         "metadata": {
           "category": "correctness",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
           "source": "https://semgrep.dev/r/javascript.lang.correctness.useless-eqeq.eqeq-is-bad"
         },
         "metavars": {
@@ -54,6 +55,7 @@
         "message": "This expression is always True: `a + b == a + b` or `a + b != a + b`. If testing for floating point NaN, use `math.isnan(a + b)`, or `cmath.isnan(a + b)` if the number is complex.",
         "metadata": {
           "category": "correctness",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
           "source": "https://semgrep.dev/r/python.lang.correctness.useless-eqeq.useless-eqeq"
         },
         "metavars": {
