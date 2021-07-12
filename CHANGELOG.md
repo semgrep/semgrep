@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ruby command shells are distinguished from strings (#3343)
 - Java varargs are now correctly matched (#3455)
 - Support for partial statements (e.g., `try { ... }`) for Java (#3417)
+- Java generics are now correctly stored in the AST (#3505)
 - Constant propagation now works inside Python `with` statements (#3402)
 - Revert `pattern: $X` optimization (#3476)
 - metavariable-pattern: Allow filtering using a single `pattern` or

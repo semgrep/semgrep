@@ -18,6 +18,7 @@ module H = Parse_tree_sitter_helpers
 module PI = Parse_info
 open AST_generic
 module G = AST_generic
+module H2 = AST_generic_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -1570,8 +1571,8 @@ and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) =
     match v2 with
     | Some x ->
         let args = type_arguments env x in
-        let name = [ v1 ] in
-        TyNameApply (name, args)
+        let name = H2.name_of_ids [ v1 ] in
+        TyApply (TyN name, args)
     | None -> TyN (Id (v1, empty_id_info ()))
   in
   v2

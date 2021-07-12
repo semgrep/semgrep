@@ -503,8 +503,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | TyFun (v1, v2) ->
           let v1 = v_list v_parameter v1 and v2 = v_type_ v2 in
           ()
-      | TyNameApply (v1, v2) ->
-          let v1 = v_dotted_ident v1 and v2 = v_type_arguments v2 in
+      | TyApply (v1, v2) ->
+          let v1 = v_type_ v1 and v2 = v_type_arguments v2 in
           ()
       | TyN v1 -> v_name v1
       | TyVar v1 ->
