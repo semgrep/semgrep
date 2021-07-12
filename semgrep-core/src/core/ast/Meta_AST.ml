@@ -552,7 +552,7 @@ and vof_type_ = function
       let v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherType", [ v1; v2 ])
 
-and vof_type_arguments v = OCaml.vof_list vof_type_argument v
+and vof_type_arguments v = vof_bracket (OCaml.vof_list vof_type_argument) v
 
 and vof_type_argument = function
   | TypeArg v1 ->

@@ -540,7 +540,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
           ()
     in
     vin.ktype_ (k, all_functions) x
-  and v_type_arguments v = v_list v_type_argument v
+  and v_type_arguments v = v_bracket (v_list v_type_argument) v
   and v_type_argument = function
     | TypeArg v1 ->
         let v1 = v_type_ v1 in

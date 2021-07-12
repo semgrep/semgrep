@@ -1668,7 +1668,7 @@ and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
   v2
 
 and type_arguments (env : env) ((v1, v2, v3, v4) : CST.type_arguments) =
-  let _v1 = token env v1 (* "<" *) in
+  let v1 = token env v1 (* "<" *) in
   let v2 = type_projection env v2 in
   let v3 =
     List.map
@@ -1678,8 +1678,8 @@ and type_arguments (env : env) ((v1, v2, v3, v4) : CST.type_arguments) =
         v2)
       v3
   in
-  let _v4 = token env v4 (* ">" *) in
-  v2 :: v3
+  let v4 = token env v4 (* ">" *) in
+  (v1, v2 :: v3, v4)
 
 and type_constraint (env : env) ((v1, v2, v3, v4) : CST.type_constraint) :
     ident * type_ =
