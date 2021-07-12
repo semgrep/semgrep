@@ -14,7 +14,6 @@
 
 module G = AST_generic
 module V = Visitor_AST
-open Common2
 open Range (* for the $..$ range operators *)
 
 (*****************************************************************************)
@@ -32,7 +31,7 @@ exception Found of G.any
 exception FoundExpr of G.expr
 
 (* Returns range of tokens in AST. *)
-let range_of_ast = V.ii_of_any $ Range.range_of_tokens
+let range_of_ast ast = Range.range_of_tokens (V.ii_of_any ast)
 
 let expr_at_range r1 ast =
   (* This could probably be implemented more efficiently ... but should be
