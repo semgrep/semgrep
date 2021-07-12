@@ -2352,20 +2352,27 @@ and m_variable_definition a b =
  *)
 (*s: function [[Generic_vs_generic.m_fields]] *)
 and m_fields (xsa : A.field list) (xsb : A.field list) =
+  let has_ellipsis = ref false in
   (* let's filter the '...' *)
   let xsa =
+    (* TODO: Similar to has_ellipsis_and_filter_ellipsis, refactor? *)
     xsa
     |> Common.exclude (function
-         | A.FieldStmt { s = A.ExprStmt (A.Ellipsis _, _); _ } -> true
+         | A.FieldStmt { s = A.ExprStmt (A.Ellipsis _, _); _ } ->
+             has_ellipsis := true;
+             true
          | _ -> false)
   in
-  m_list__m_field xsa xsb
+  if_config
+    (fun x -> x.implicit_ellipsis)
+    ~then_:(m_list__m_field ~less_is_ok:true xsa xsb)
+    ~else_:(m_list__m_field ~less_is_ok:!has_ellipsis xsa xsb)
 
 (*e: function [[Generic_vs_generic.m_fields]] *)
 
 (* less: mix of m_list_and_dots and m_list_unordered_keys, hard to factorize *)
 (*s: function [[Generic_vs_generic.m_list__m_field]] *)
-and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
+and m_list__m_field ~less_is_ok (xsa : A.field list) (xsb : A.field list) =
   logger#ldebug
     (lazy (spf "m_list__m_field:%d vs %d" (List.length xsa) (List.length xsb)));
   match (xsa, xsb) with
@@ -2374,9 +2381,8 @@ and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
   (* less-is-ok:
    * it's ok to have fields after in the concrete code as long as we
    * matched all the fields in the pattern.
-   * TODO? should we impose to use '...' if you allow extra fields?
    *)
-  | [], _ :: _ -> return ()
+  | [], _ :: _ -> if less_is_ok then return () else fail ()
   (*e: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   | A.FieldStmt { s = A.ExprStmt (A.Ellipsis _, _); _ } :: _, _ ->
@@ -2387,63 +2393,59 @@ and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
    * definitions, which allows us to optimize things a little bit
    * by using split_when below.
    * However, if the field use a metavariable, we need to use
-   * the more expensive all_elem_and_rest_of_list.
+   * the more expensive all_elem_and_rest_of_list (see "general case" below).
    *
    * bugfix: In python we used to not do this match-a-field-at-any-pos
    * for code like 'class $FOO: $VAR = 1' because those were originally
    * not parsed as DefStmt but as Assign.
    * alt: keep them as Assign, but always do the all_elem_and_rest_of_list
    *)
-  | ( ( A.FieldStmt
-          {
-            s = A.DefStmt (({ A.name = A.EN (A.Id ((s1, _), _)); _ }, _) as adef);
-            _;
-          } as a )
+  | ( A.FieldStmt
+        {
+          s = A.DefStmt (({ A.name = A.EN (A.Id ((s1, _), _)); _ }, _) as adef);
+          _;
+        }
       :: xsa,
-      xsb ) -> (
-      if MV.is_metavar_name s1 || Pattern.is_regexp_string s1 then
-        (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
-        let candidates = all_elem_and_rest_of_list xsb in
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | (b, xsb) :: xs ->
-              m_field a b
-              >>= (fun () -> m_list__m_field xsa (lazy_rest_of_list xsb))
-              >||> aux xs
+      xsb )
+    when (not (MV.is_metavar_name s1)) && not (Pattern.is_regexp_string s1) -> (
+      try
+        let before, there, after =
+          xsb
+          |> Common2.split_when (function
+               | A.FieldStmt
+                   {
+                     s =
+                       A.DefStmt ({ B.name = B.EN (B.Id ((s2, _tok), _)); _ }, _);
+                     _;
+                   }
+                 when s2 = s1 ->
+                   true
+               | _ -> false)
         in
-        aux candidates
-        (*e: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
-      else
-        try
-          let before, there, after =
-            xsb
-            |> Common2.split_when (function
-                 | A.FieldStmt
-                     {
-                       s =
-                         A.DefStmt
-                           ({ B.name = B.EN (B.Id ((s2, _tok), _)); _ }, _);
-                       _;
-                     }
-                   when s2 = s1 ->
-                     true
-                 | _ -> false)
-          in
-          match there with
-          | A.FieldStmt { s = A.DefStmt bdef; _ } ->
-              m_definition adef bdef >>= fun () ->
-              m_list__m_field xsa (before @ after)
-          | _ -> raise Impossible
-        with Not_found -> fail () )
+        match there with
+        | A.FieldStmt { s = A.DefStmt bdef; _ } ->
+            m_definition adef bdef >>= fun () ->
+            m_list__m_field ~less_is_ok xsa (before @ after)
+        | _ -> raise Impossible
+      with Not_found -> fail () )
   (*e: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
   (* the general case *)
-  (* todo? ideally we should never reach this part and always allow
-   * to match a field at any position.
+  (* This applies to definitions where the field name is a metavariable,
+   * and to any other non-def kind of field (e.g., FieldSpread for `...x` in JS).
    *)
-  | xa :: aas, xb :: bbs -> m_field xa xb >>= fun () -> m_list__m_field aas bbs
-  | _ :: _, _ -> fail ()
+  | a :: xsa, xsb ->
+      let candidates = all_elem_and_rest_of_list xsb in
+      (* less: could use a fold *)
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | (b, xsb) :: xs ->
+            m_field a b
+            >>= (fun () ->
+                  m_list__m_field ~less_is_ok xsa (lazy_rest_of_list xsb))
+            >||> aux xs
+      in
+      aux candidates
 
 (*e: function [[Generic_vs_generic.m_list__m_field]] *)
 
