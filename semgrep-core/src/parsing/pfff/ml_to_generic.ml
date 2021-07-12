@@ -46,6 +46,8 @@ let error = G.error
  * AST_generic.ml or ast_ml.ml *)
 let fake = G.fake
 
+let fb = G.fake_bracket
+
 let add_attrs ent attrs = { ent with G.attrs }
 
 (*****************************************************************************)
@@ -101,10 +103,10 @@ and type_ = function
       G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
       let v1 = list type_ v1 and v2 = dotted_ident_of_name v2 in
-      G.TyNameApply (v2, v1 |> List.map (fun t -> G.TypeArg t))
+      G.TyNameApply (v2, fb (v1 |> List.map (fun t -> G.TypeArg t)))
   | TyTuple v1 ->
       let v1 = list type_ v1 in
-      G.TyTuple (G.fake_bracket v1)
+      G.TyTuple (fb v1)
   | TyTodo (t, v1) ->
       let t = todo_category t in
       let v1 = list type_ v1 in
@@ -124,7 +126,7 @@ and stmt e : G.stmt =
   (* alt: could be a G.Seq expr *)
   | Sequence v1 ->
       let v1 = list stmt v1 in
-      G.Block (G.fake_bracket v1) |> G.s
+      G.Block (fb v1) |> G.s
   | Try (t, v1, v2) ->
       let v1 = stmt v1 and v2 = list match_case v2 in
       let catches =
@@ -145,8 +147,7 @@ and stmt e : G.stmt =
       let n = G.N (G.Id (v1, G.empty_id_info ())) in
       let next = G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1, tok))) in
       let cond =
-        G.Call
-          (G.IdSpecial (G.Op condop, tok), G.fake_bracket [ G.Arg n; G.Arg v4 ])
+        G.Call (G.IdSpecial (G.Op condop, tok), fb [ G.Arg n; G.Arg v4 ])
       in
       let header =
         G.ForClassic ([ G.ForInitVar (ent, var) ], Some cond, Some next)
@@ -202,21 +203,19 @@ and expr e =
       G.Constructor (dotted_ident, Common.opt_to_list v2)
   | Tuple v1 ->
       let v1 = list expr v1 in
-      G.Tuple (G.fake_bracket v1)
+      G.Tuple (fb v1)
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)
   | Prefix (v1, v2) ->
       let v1 = wrap string v1 and v2 = expr v2 in
-      G.Call (G.N (G.Id (v1, G.empty_id_info ())), G.fake_bracket [ G.Arg v2 ])
+      G.Call (G.N (G.Id (v1, G.empty_id_info ())), fb [ G.Arg v2 ])
   | Infix (v1, v2, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
-      G.Call
-        ( G.N (G.Id (v2, G.empty_id_info ())),
-          G.fake_bracket [ G.Arg v1; G.Arg v3 ] )
+      G.Call (G.N (G.Id (v2, G.empty_id_info ())), fb [ G.Arg v1; G.Arg v3 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = list argument v2 in
-      G.Call (v1, G.fake_bracket v2)
+      G.Call (v1, fb v2)
   | RefAccess (v1, v2) ->
       let v1 = tok v1 and v2 = expr v2 in
       G.DeRef (v1, v2)
@@ -259,7 +258,7 @@ and expr e =
       | Some e -> G.OtherExpr (G.OE_RecordWith, [ G.E e; G.E obj ]) )
   | New (v1, v2) ->
       let v1 = tok v1 and v2 = name v2 in
-      G.Call (G.IdSpecial (G.New, v1), G.fake_bracket [ G.Arg (G.N v2) ])
+      G.Call (G.IdSpecial (G.New, v1), fb [ G.Arg (G.N v2) ])
   | ObjAccess (v1, t, v2) ->
       let v1 = expr v1 and v2 = ident v2 in
       let t = tok t in
@@ -277,7 +276,7 @@ and expr e =
                  let exp = G.LetPattern (pat, e) in
                  G.exprstmt exp)
       in
-      let st = G.Block (G.fake_bracket (defs @ [ G.exprstmt v3 ])) |> G.s in
+      let st = G.Block (fb (defs @ [ G.exprstmt v3 ])) |> G.s in
       G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
   | Fun (t, v1, v2) ->
       let v1 = list parameter v1 and v2 = expr v2 in
@@ -387,7 +386,7 @@ and pattern = function
       G.PatConstructor (n, [ v1; v3 ])
   | PatTuple v1 ->
       let v1 = list pattern v1 in
-      G.PatTuple (G.fake_bracket v1)
+      G.PatTuple (fb v1)
   | PatList v1 ->
       let v1 = bracket (list pattern) v1 in
       G.PatList v1

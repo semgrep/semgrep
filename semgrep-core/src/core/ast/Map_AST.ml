@@ -467,7 +467,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | OtherType (v1, v2) ->
         let v1 = map_other_type_operator v1 and v2 = map_of_list map_any v2 in
         OtherType (v1, v2)
-  and map_type_arguments v = map_of_list map_type_argument v
+  and map_type_arguments v = map_bracket (map_of_list map_type_argument) v
   and map_type_argument = function
     | TypeArg v1 ->
         let v1 = map_type_ v1 in

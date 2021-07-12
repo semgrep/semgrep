@@ -134,12 +134,14 @@ let top_func () =
           match ret with None -> G.TyBuiltin (fake_id "void") | Some t -> t
         in
         G.TyFun (params, ret)
-    | TMap (t, (_, v1, _), v2) ->
+    | TMap (t, (lp, v1, rp), v2) ->
         let v1 = type_ v1 and v2 = type_ v2 in
-        G.TyNameApply (mk_dotted_ident "map" t, [ G.TypeArg v1; G.TypeArg v2 ])
+        G.TyNameApply
+          (mk_dotted_ident "map" t, (lp, [ G.TypeArg v1; G.TypeArg v2 ], rp))
     | TChan (t, v1, v2) ->
         let v1 = chan_dir v1 and v2 = type_ v2 in
-        G.TyNameApply (mk_dotted_ident "chan" t, [ G.TypeArg v1; G.TypeArg v2 ])
+        G.TyNameApply
+          (mk_dotted_ident "chan" t, fb [ G.TypeArg v1; G.TypeArg v2 ])
     | TStruct (t, v1) ->
         let v1 = bracket (list struct_field) v1 in
         G.TyRecordAnon (t, v1)
