@@ -38,16 +38,6 @@ let name_of_id id = G.Id (id, G.empty_id_info ())
 
 let name_of_ids ids = H.name_of_ids ids
 
-let ids_of_name = function
-  | G.Id (id, _) -> [ id ]
-  | G.IdQualified ((id, info), _) -> (
-      match info.G.name_qualifier with
-      | None -> [ id ]
-      | Some (G.QTop _) -> [ id ]
-      | Some (G.QDots xs) -> xs @ [ id ]
-      | Some (G.QExpr _) ->
-          raise Impossible (* H.name_of_ids can't generate this *) )
-
 let fake = G.fake
 
 let fb = G.fake_bracket
@@ -247,15 +237,13 @@ and v_type_ = function
       let lp, xs, rp = v2 in
       let args = xs |> List.map (fun x -> G.TypeArg x) in
       match v1 with
-      | G.TyN n ->
-          let ids = ids_of_name n in
-          G.TyNameApply (ids, (lp, args, rp))
+      | G.TyN n -> G.TyApply (G.TyN n, (lp, args, rp))
       | _ ->
           todo_type "TyAppliedComplex"
             (G.T v1 :: (xs |> List.map (fun x -> G.T x))) )
   | TyInfix (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_ident v2 and v3 = v_type_ v3 in
-      G.TyNameApply ([ v2 ], fb [ G.TypeArg v1; G.TypeArg v3 ])
+      G.TyApply (G.TyN (H.name_of_ids [ v2 ]), fb [ G.TypeArg v1; G.TypeArg v3 ])
   | TyFunction1 (v1, v2, v3) ->
       let v1 = v_type_ v1 and _v2 = v_tok v2 and v3 = v_type_ v3 in
       G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v3)
