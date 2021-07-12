@@ -1151,11 +1151,12 @@ and type_ =
    *  self/parent/static (e.g., in PHP)
    *)
   | TyN of name
-  (* covers tuples, list, etc.
-   * TODO: merge with TyN IdQualified? name_info has name_typeargs
-   * or make more general? TyApply (type_ * type_arguments)?
+  (* covers list, hashtbl, etc.
+   * note: the type_ should always be a TyN, so really it's a TyNameApply
+   * but it's simpler to not repeat TyN to factorize code in semgrep regarding
+   * aliasing.
    *)
-  | TyNameApply of dotted_ident * type_arguments
+  | TyApply of type_ * type_arguments
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
   | TyAny of tok (* anonymous type, '_' in OCaml, TODO: type bounds Scala? *)
   | TyPointer of tok * type_

@@ -1483,8 +1483,8 @@ and m_type_ a b =
       let* () = m_name_ a1 b1 in
       m_id_info a2 b2
   | A.TyAny a1, B.TyAny b1 -> m_tok a1 b1
-  | A.TyNameApply (a1, a2), B.TyNameApply (b1, b2) ->
-      m_dotted_name a1 b1 >>= fun () -> m_type_arguments a2 b2
+  | A.TyApply (a1, a2), B.TyApply (b1, b2) ->
+      m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2
   | A.TyVar a1, B.TyVar b1 -> m_ident a1 b1
   | A.TyPointer (a0, a1), B.TyPointer (b0, b1) ->
       m_tok a0 b0 >>= fun () -> m_type_ a1 b1
@@ -1510,7 +1510,7 @@ and m_type_ a b =
       m_other_type_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | A.TyBuiltin _, _
   | A.TyFun _, _
-  | A.TyNameApply _, _
+  | A.TyApply _, _
   | A.TyVar _, _
   | A.TyArray _, _
   | A.TyPointer _, _
