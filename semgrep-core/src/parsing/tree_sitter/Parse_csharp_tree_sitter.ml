@@ -306,9 +306,6 @@ end
 (* Disable warnings against unused variables *)
 [@@@warning "-26-27-32"]
 
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39"]
-
 let todo_expr _env tok = AST.OtherExpr (AST.OE_Todo, [ AST.Tk tok ])
 
 let todo_stmt _env tok = AST.s (AST.OtherStmt (AST.OS_Todo, [ AST.Tk tok ]))
@@ -2208,7 +2205,7 @@ and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
         v1 :: v2
   in
   let v3 = token env v3 (* ">" *) in
-  List.map (fun t -> TypeArg t) v2
+  (v1, List.map (fun t -> TypeArg t) v2, v3)
 
 and type_parameter_constraints_clause (env : env)
     ((v1, v2, v3, v4, v5) : CST.type_parameter_constraints_clause) =

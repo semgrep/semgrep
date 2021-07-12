@@ -2400,7 +2400,7 @@ and map_scoped_identifier_name (env : env)
   let ident = ident env v3 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   let qualifier = Option.map (fun x -> G.QExpr (x, colons)) qualifier_expr in
-  let typeargs = Option.map (fun x -> [ G.TypeArg x ]) type_ in
+  let typeargs = Option.map (fun x -> fb [ G.TypeArg x ]) type_ in
   (ident, { G.name_qualifier = qualifier; G.name_typeargs = typeargs })
 
 and map_scoped_identifier (env : env) (v1 : CST.scoped_identifier) : G.expr =
@@ -2418,13 +2418,13 @@ and map_scoped_type_identifier_name (env : env)
             (Some (G.QExpr (ident, colons)), None)
         | `Gene_type_with_turb x ->
             let ty = map_generic_type_with_turbofish_type env x in
-            (None, Some [ G.TypeArg ty ])
+            (None, Some (fb [ G.TypeArg ty ]))
         | `Brac_type x ->
             let _, ty, _ = map_bracketed_type env x in
-            (None, Some [ G.TypeArg ty ])
+            (None, Some (fb [ G.TypeArg ty ]))
         | `Gene_type x ->
             let ty = map_generic_type env x in
-            (None, Some [ G.TypeArg ty ]) )
+            (None, Some (fb [ G.TypeArg ty ])) )
     | None -> (None, None)
   in
   let ident = ident env v3 in
@@ -2449,7 +2449,7 @@ and map_scoped_type_identifier_in_expression_position (env : env)
             (Some (G.QExpr (ident, colons)), None)
         | `Gene_type_with_turb x ->
             let ty = map_generic_type_with_turbofish_type env x in
-            (None, Some [ G.TypeArg ty ]) )
+            (None, Some (fb [ G.TypeArg ty ])) )
     | None -> (None, None)
   in
   let ident = ident env v3 in
@@ -2642,7 +2642,7 @@ and map_type_arguments (env : env) ((v1, v2, v3, v4, v5) : CST.type_arguments) :
   in
   let comma = Option.map (fun tok -> token env tok) v4 in
   let gthan = token env v5 (* ">" *) in
-  typearg_first :: typearg_rest
+  (lthan, typearg_first :: typearg_rest, gthan)
 
 and map_type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters)
     : G.type_parameter list =

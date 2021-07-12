@@ -1183,7 +1183,8 @@ and type_ =
 (*e: type [[AST_generic.type_]] *)
 
 (*s: type [[AST_generic.type_arguments]] *)
-and type_arguments = type_argument list
+(* <> in Java/C#/C++/Kotlin/Rust/..., [] in Scala and Go (for Map) *)
+and type_arguments = type_argument list bracket
 
 (*e: type [[AST_generic.type_arguments]] *)
 

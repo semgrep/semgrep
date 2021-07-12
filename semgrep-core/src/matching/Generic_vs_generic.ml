@@ -1535,7 +1535,7 @@ and m_type_ a b =
 
 (*s: function [[Generic_vs_generic.m_type_arguments]] *)
 and m_type_arguments a b =
-  match (a, b) with a, b -> (m_list m_type_argument) a b
+  match (a, b) with a, b -> m_bracket (m_list m_type_argument) a b
 
 (*e: function [[Generic_vs_generic.m_type_arguments]] *)
 
