@@ -236,7 +236,7 @@ def create_model_map(
     return model_map
 
 
-def populate_data(
+def load_results_into_db(
     semgrep_results: List[Dict[str, Any]], model_map: Dict[str, Type[BaseModel]]
 ) -> None:
     collections = group(semgrep_results, key=lambda item: item.get("check_id"))
@@ -339,7 +339,7 @@ def run_join_rule(
     db.create_tables(model_map.values())
 
     # Populate the model tables with real data from the Semgrep results.
-    populate_data(results, model_map)
+    load_results_into_db(results, model_map)
 
     # Apply the conditions and only keep combinations
     # of findings that satisfy the conditions.
