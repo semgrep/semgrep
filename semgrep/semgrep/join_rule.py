@@ -61,7 +61,7 @@ def camel_case(s: str) -> str:
     return "".join(c for c in s.title() if c.isalnum())
 
 
-class Operator(Enum):
+class JoinOperator(Enum):
     EQUALS = "=="
     NOT_EQUALS = "!="
     SIMILAR = "~"
@@ -82,7 +82,7 @@ class Condition:
     property_a: str
     collection_b: str
     property_b: str
-    operator: Operator
+    operator: JoinOperator
 
     @classmethod
     def parse(cls, condition_string: str) -> "Condition":
@@ -92,7 +92,7 @@ class Condition:
             # Also consider using a different property accessor instead of a dot
             a, prop_a = (".".join(lhs.split(".")[:-1]), lhs.split(".")[-1])
             b, prop_b = (".".join(rhs.split(".")[:-1]), rhs.split(".")[-1])
-            return cls(a, prop_a, b, prop_b, Operator(operator))
+            return cls(a, prop_a, b, prop_b, JoinOperator(operator))
         except ValueError as ve:
             raise InvalidConditionError(
                 f"The condition '{condition_string}' was invalid. Must be of the form '<rule>.<metavar> <operator> <rule>.<metavar>'. {str(ve).capitalize()}"
@@ -120,15 +120,15 @@ def model_factory(model_name: str, columns: List[str]) -> Type[BaseModel]:
 
 
 def evaluate_condition(
-    A: BaseModel, property_a: str, B: BaseModel, property_b: str, operator: Operator
+    A: BaseModel, property_a: str, B: BaseModel, property_b: str, operator: JoinOperator
 ) -> Any:
-    if operator == Operator.EQUALS:
+    if operator == JoinOperator.EQUALS:
         return getattr(A, property_a) == getattr(B, property_b)
-    elif operator == Operator.NOT_EQUALS:
+    elif operator == JoinOperator.NOT_EQUALS:
         return getattr(A, property_a) != getattr(B, property_b)
-    elif operator == Operator.SIMILAR_RIGHT:
+    elif operator == JoinOperator.SIMILAR_RIGHT:
         return getattr(A, property_a).contains(getattr(B, property_b))
-    elif operator == Operator.SIMILAR or operator == Operator.SIMILAR_LEFT:
+    elif operator == JoinOperator.SIMILAR or operator == JoinOperator.SIMILAR_LEFT:
         return getattr(B, property_b).contains(getattr(A, property_a))
 
     raise NotImplementedError(f"The operator {operator} is not supported.")
