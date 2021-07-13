@@ -4,28 +4,34 @@ from semgrep.join_rule import Condition
 from semgrep.join_rule import create_collection_set_from_conditions
 from semgrep.join_rule import create_model_map
 from semgrep.join_rule import InvalidConditionError
+from semgrep.join_rule import JoinOperator
 from semgrep.join_rule import model_factory
-from semgrep.join_rule import Operator
 
 
 @pytest.mark.parametrize(
     "A,propA,B,propB,op",
     [
-        ("hello", "world", "goodbye", "world", Operator("==")),
-        ("hello", "world", "goodbye", "world", Operator("!=")),
-        ("hello", "world", "goodbye", "world", Operator("~")),
-        ("hello", "world", "goodbye", "world", Operator("<")),
-        ("hello", "world", "goodbye", "world", Operator(">")),
-        ("hello.hello", "$WORLD", "goodbye", "$WORLD", Operator("==")),
-        ("hello.hello.test.asdf.hello", "world", "goodbye", "world", Operator("==")),
+        ("hello", "world", "goodbye", "world", JoinOperator("==")),
+        ("hello", "world", "goodbye", "world", JoinOperator("!=")),
+        ("hello", "world", "goodbye", "world", JoinOperator("~")),
+        ("hello", "world", "goodbye", "world", JoinOperator("<")),
+        ("hello", "world", "goodbye", "world", JoinOperator(">")),
+        ("hello.hello", "$WORLD", "goodbye", "$WORLD", JoinOperator("==")),
+        (
+            "hello.hello.test.asdf.hello",
+            "world",
+            "goodbye",
+            "world",
+            JoinOperator("=="),
+        ),
         (
             "hello.hello.test.asdf.hello",
             "world",
             "goodbye.goodbye",
             "world",
-            Operator("=="),
+            JoinOperator("=="),
         ),
-        ("hello-other-punc", "world", "goodbye.goodbye", "world", Operator("==")),
+        ("hello-other-punc", "world", "goodbye.goodbye", "world", JoinOperator("==")),
     ],
 )
 def test_condition_parse(A, propA, B, propB, op):
@@ -42,7 +48,7 @@ def test_condition_parse_dot_behavior():
     propA = "$FOO"
     B = "f.g.h.i"
     propB = "$BAR"
-    op = Operator("==")
+    op = JoinOperator("==")
 
     condition_string = f"{A}.{propA} {op.value} {B}.{propB}"
     actual = Condition.parse(condition_string)
@@ -82,8 +88,8 @@ def test_model_factory():
 
 def test_create_collection_set_from_conditions():
     conditions = [
-        Condition("A", "propA1", "B", "propB", Operator("==")),
-        Condition("A", "propA2", "C", "propC", Operator("!=")),
+        Condition("A", "propA1", "B", "propB", JoinOperator("==")),
+        Condition("A", "propA2", "C", "propC", JoinOperator("!=")),
     ]
     expected = {"A", "B", "C"}
     actual = create_collection_set_from_conditions(conditions)
