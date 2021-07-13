@@ -1,0 +1,9 @@
+(library
+ (name semgrep_parsing_ast)
+ (wrapped false)
+ (libraries
+   commons
+   pfff-lang_GENERIC
+ )
+ (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
+)

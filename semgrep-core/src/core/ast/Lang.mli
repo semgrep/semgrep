@@ -29,6 +29,8 @@ type t =
   | PHP
   | Hack
   | Lua
+  (* shells *)
+  | Bash
   (* data science *)
   | R
   (* config files *)
