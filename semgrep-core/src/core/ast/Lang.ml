@@ -59,6 +59,8 @@ type t =
   | PHP
   | Hack
   | Lua
+  (* shells *)
+  | Bash
   (* data science *)
   | R
   (* config files *)
@@ -109,6 +111,7 @@ let list_of_lang =
     ("kt", Kotlin);
     ("kotlin", Kotlin);
     ("lua", Lua);
+    ("bash", Bash);
     ("rs", Rust);
     ("rust", Rust);
     ("r", R);
@@ -154,6 +157,7 @@ let langs_of_filename filename =
   | FT.PL (FT.Web FT.Hack) -> [ Hack ]
   | FT.PL FT.Kotlin -> [ Kotlin ]
   | FT.PL FT.Lua -> [ Lua ]
+  | FT.PL (FT.Script "bash") -> [ Bash ]
   | FT.PL FT.Rust -> [ Rust ]
   | FT.PL FT.R -> [ R ]
   | FT.PL FT.Scala -> [ Scala ]
@@ -182,6 +186,7 @@ let string_of_lang = function
   | Hack -> "Hack"
   | Kotlin -> "Kotlin"
   | Lua -> "Lua"
+  | Bash -> "Bash"
   | Rust -> "Rust"
   | R -> "R"
   | Yaml -> "Yaml"
@@ -190,6 +195,7 @@ let string_of_lang = function
 
 (* must match [a-z][a-z0-9]* *)
 let to_lowercase_alnum = function
+  | Bash -> "bash"
   | C -> "c"
   | Cplusplus -> "cpp"
   | Csharp -> "csharp"
@@ -234,6 +240,7 @@ let ext_of_lang = function
   | Hack -> [ "hh"; "hck"; "hack" ]
   | Kotlin -> [ "kt" ]
   | Lua -> [ "lua" ]
+  | Bash -> [ "bash"; "sh" ]
   | Rust -> [ "rs" ]
   | R -> [ "r"; "R" ]
   | Yaml -> [ "yaml"; "yml" ]

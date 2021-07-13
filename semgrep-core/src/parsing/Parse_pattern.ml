@@ -60,6 +60,9 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.Lua ->
         let res = Parse_lua_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.Bash ->
+        let res = Parse_bash_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     | Lang.Rust ->
         let res = Parse_rust_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
