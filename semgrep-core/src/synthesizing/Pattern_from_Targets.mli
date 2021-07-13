@@ -55,8 +55,42 @@
  *
  * The type also includes an environment, since each pattern must keep track of
  * its individual state, such as how many metavariables have already been used.
+ *
+ * Handling targets with multiple statements:
+ * -----------------------------------------
+ * A user might highlight a snippet that contains multiple statements.
+ *
+ * For example the target snippets might be:
+ * // target 1
+ * x = a
+ * foo(x)
+ *
+ * // target 2
+ * y = a
+ * foo(y)
+ *
+ * Here, the targets each have two top-level ExprStmt nodes, the assignment and
+ * the call to foo. Each target is parsed into a list, in this case two targets
+ * each of length 2.
+ *
+ * The main intersection algorithm is run on the first element of each target,
+ * then the second element of each target, and so on.. A pattern is first
+ * generated for [x = a; y = a] yielding $X = a, then for [foo(x); foo(y)]
+ * yielding foo($X).
+ *
+ * In this example we want the metavariable to be re-used within a target.
+ * $X = a     is better than    $X = a
+ * foo($X)                      foo($Y)
+ *
+ * To accomplish this, the metavariable environment is retained between
+ * target sets. The metavariable count and mappings established when
+ * the pattern $X = a is generated for for [x = a; y = a] is passed on to the
+ * starting patterns when the pattern exec($X) is being generated from
+ * [foo(x); foo(y)].
+ *
+ * For now each target must be the same length (no ellipsis support).
  *)
 
 (* limited to expressions for now *)
 val generate_patterns :
-  Config_semgrep.t -> AST_generic.any list -> Lang.t -> Pattern.t list
+  Config_semgrep.t -> AST_generic.any list list -> Lang.t -> Pattern.t list
