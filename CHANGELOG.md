@@ -13,6 +13,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   using arbitrary pattern formulas. This provides plenty of flexibility. Note
   that we breaks compatibility with the previous taint-mode format, e.g.
   `- source(...)` must now be written as `- pattern: source(...)`.
+- New matching option `implicit_ellipsis` that allows to disable the implicit
+  `...` that are added to record patterns, plus allow matching "spread fields"
+  (JS `...x`) at any position (#3120)
 
 ### Fixed
 - Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)

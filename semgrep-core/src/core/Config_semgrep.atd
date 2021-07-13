@@ -51,6 +51,10 @@ type t = {
   (* this ultimately should go away once '...' works on the CFG *)
   ~go_deeper_stmt <ocaml default="true"> : bool;
 
+  (* implicitly assume ellipsis in record patterns *)
+  (* TODO: eventually the default should be 'false'. *)
+  ~implicit_ellipsis <ocaml default="true"> : bool;
+
   (* TODO: equivalences:
    *   - const_let_to_var
    *   - require_to_import (but need pass config to Js_to_generic)
