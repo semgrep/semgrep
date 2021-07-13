@@ -108,6 +108,11 @@ class BaseModel(pw.Model):  # type: ignore
 
 
 def model_factory(model_name: str, columns: List[str]) -> Type[BaseModel]:
+    """
+    Dynamically create a database model with the specified column names.
+    By default, all columns will be TextFields.
+    Returns a model _class_, not a model _object_.
+    """
     logger.debug(f"Creating model '{model_name}' with columns {columns}")
     return type(
         model_name,
@@ -122,6 +127,15 @@ def model_factory(model_name: str, columns: List[str]) -> Type[BaseModel]:
 def evaluate_condition(
     A: BaseModel, property_a: str, B: BaseModel, property_b: str, operator: JoinOperator
 ) -> Any:
+    """
+    Apply the specified JoinOperator 'operator' on two models and
+    the specified properties.
+
+    The return value is the same as a 'peewee' expression, such as
+    BlogPost.author == User.name.
+
+    This is where you can add new JoinOperator functionality.
+    """
     if operator == JoinOperator.EQUALS:
         return getattr(A, property_a) == getattr(B, property_b)
     elif operator == JoinOperator.NOT_EQUALS:
@@ -131,7 +145,7 @@ def evaluate_condition(
     elif operator == JoinOperator.SIMILAR or operator == JoinOperator.SIMILAR_LEFT:
         return getattr(B, property_b).contains(getattr(A, property_a))
 
-    raise NotImplementedError(f"The operator {operator} is not supported.")
+    raise NotImplementedError(f"The operator '{operator}' is not supported.")
 
 
 def create_collection_set_from_conditions(conditions: List[Condition]) -> Set[str]:
@@ -150,6 +164,12 @@ def match_on_conditions(  # type: ignore
     aliases: Dict[str, str],
     conditions: List[Condition],
 ) -> Optional[pw.ModelSelect]:
+    """
+    Retrieve all the findings that satisfy the conditions.
+
+    The return value is the same as a 'peewee' .select() expression, such as
+    BlogPost.select().where(author="Author").
+    """
     # get all collections
     collections = create_collection_set_from_conditions(conditions)
     try:
@@ -194,6 +214,13 @@ def match_on_conditions(  # type: ignore
 
 
 def create_config_map(semgrep_config_strings: List[str]) -> Dict[str, Rule]:
+    """
+    Create a mapping of Semgrep config strings to Rule objects.
+    This will resolve the config strings into their Rule objects, as well.
+
+    NOTE: this will only use the _first rule_ in the resolved config.
+    TODO: support more than the first rule.
+    """
     config = {}
     for config_string in semgrep_config_strings:
         resolved = resolve_config(config_string)
@@ -208,6 +235,13 @@ def rename_metavars_in_place(
     semgrep_results: List[Dict[str, Any]],
     refs_lookup: Dict[str, Ref],
 ) -> None:
+    """
+    Rename metavariables in-place for all results in 'semgrep_results'.
+
+    Why?
+    Since 'join' rules only work on resolved configs at the moment,
+    'renames' make it easier to work with metavariables.
+    """
     for result in semgrep_results:
         metavars = result.get("extra", {}).get("metavars", {})
         renamed_metavars = {
@@ -222,6 +256,13 @@ def rename_metavars_in_place(
 def create_model_map(
     semgrep_results: List[Dict[str, Any]]
 ) -> Dict[str, Type[BaseModel]]:
+    """
+    Dynamically create 'peewee' model classes directly from Semgrep results.
+    The models are stored in a mapping where the key is the rule ID.
+    The models themselves use the result metavariables as fields.
+
+    The return value is a mapping from rule ID to its model class.
+    """
     collections: Dict[str, List[Dict]] = group(
         semgrep_results, key=lambda item: item.get("check_id")
     )
@@ -239,6 +280,11 @@ def create_model_map(
 def load_results_into_db(
     semgrep_results: List[Dict[str, Any]], model_map: Dict[str, Type[BaseModel]]
 ) -> None:
+    """
+    Populate the models in the database directly from Semgrep results.
+
+    Returns nothing; this will load all data directly into the in-memory database.
+    """
     collections = group(semgrep_results, key=lambda item: item.get("check_id"))
     for name, findings in collections.items():
         for finding in findings:
@@ -258,6 +304,36 @@ def run_join_rule(
     join_rule: Dict[str, Any],
     targets: List[Path],
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:
+    """
+    Run a 'join' mode rule.
+
+    Join rules are comprised of multiple Semgrep rules and a set
+    of conditions which must be satisfied in order to return a result.
+    These conditions are typically some comparison of metavariable contents
+    from different rules.
+
+    'join_rule' is a join rule definition in dictionary form. The required keys are
+    {'id', 'mode', 'severity', 'message', 'join'}.
+
+    'join' is dictionary with the required keys {'refs', 'on'}.
+
+    'refs' is dictionary with the required key {'rule'}. 'rule' is identical to
+    a Semgrep config string -- the same thing used on the command line. e.g.,
+    `semgrep -f p/javascript.lang.security.rule` or `semgrep -f path/to/rule.yaml`.
+
+    'refs' has optional keys {'renames', 'as'}. 'renames' is a list of objects
+    with properties {'from', 'to'}. 'renames' are used to rename metavariables
+    of the associated 'rule'. 'as' lets you alias the collection of rule results
+    for use in the conditions, similar to a SQL alias. By default, collection names
+    will be the rule ID.
+
+    'on' is a list of strings of the form <collection>.<property> <operator> <collection>.<property>.
+    These are the conditions which must be satisifed for this rule to report results.
+    All conditions must be satisfied.
+
+    See semgrep/tests/e2e/rules/join_rules/user-input-with-unescaped-extension.yaml
+    for an example.
+    """
     join_contents = join_rule.get("join", {})
     semgrep_config_strings = [ref.get("rule") for ref in join_contents.get("refs", [])]
     config_map = create_config_map(semgrep_config_strings)
@@ -303,6 +379,16 @@ def run_join_rule(
     parsed_errors = []
     for error_dict in errors:
         try:
+            """
+            This is a hack to reconstitute errors after they've been
+            JSONified as output. Subclasses of SemgrepError define the 'level'
+            and 'code' as class properties, which means they aren't accepted
+            as arguments when instantiated. 'type' is also added when errors are
+            JSONified, and is just a string of the error class name. It's not used
+            as an argument.
+            All of these properties will be properly populated because it's using the
+            class properties of the SemgrepError inferred by 'type'.
+            """
             del error_dict["code"]
             del error_dict["level"]
             errortype = error_dict.get("type")
