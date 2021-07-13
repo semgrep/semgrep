@@ -254,7 +254,7 @@ def populate_data(
             )
 
 
-def main(
+def run_join_rule(
     join_rule: Dict[str, Any],
     targets: List[Path],
 ) -> Tuple[List[RuleMatch], List[SemgrepError]]:

@@ -326,7 +326,7 @@ The two most popular are:
         import semgrep.join_rule as join_rule
 
         for rule in join_rules:
-            join_rule_matches, join_rule_errors = join_rule.main(
+            join_rule_matches, join_rule_errors = join_rule.run_join_rule(
                 rule.raw, [Path(t) for t in target_manager.targets]
             )
             join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}
