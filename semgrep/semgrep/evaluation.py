@@ -423,11 +423,15 @@ def create_output(
             propagated_metavariables = propagated_metavariable_lookup[
                 pattern_match.range
             ]
-            message = interpolate_message_metavariables(
-                rule, pattern_match, propagated_metavariables
+            message = interpolate_string_with_metavariables(
+                rule.message, pattern_match, propagated_metavariables
             )
-            fix = interpolate_fix_metavariables(
-                rule, pattern_match, propagated_metavariables
+            fix = (
+                interpolate_string_with_metavariables(
+                    rule.fix, pattern_match, propagated_metavariables
+                )
+                if rule.fix
+                else None
             )
             rule_match = RuleMatch.from_pattern_match(
                 rule.id,
@@ -484,32 +488,22 @@ def evaluate(
     return output, [attr.asdict(step) for step in steps_for_debugging]
 
 
-def interpolate_message_metavariables(
-    rule: Rule, pattern_match: PatternMatch, propagated_metavariables: Dict[str, str]
+def interpolate_string_with_metavariables(
+    text: str, pattern_match: PatternMatch, propagated_metavariables: Dict[str, str]
 ) -> str:
-    msg_text = rule.message
-    for metavariable in pattern_match.metavariables:
-        msg_text = msg_text.replace(
+    """Interpolates a string with the metavariables contained in it, returning a new string"""
+
+    # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
+    for metavariable in sorted(pattern_match.metavariables, key=len, reverse=True):
+        text = text.replace(
             metavariable, pattern_match.get_metavariable_value(metavariable)
         )
-    for metavariable, metavariable_text in propagated_metavariables.items():
-        msg_text = msg_text.replace(metavariable, metavariable_text)
-    return msg_text
 
+    # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
+    for metavariable in sorted(propagated_metavariables.keys(), key=len, reverse=True):
+        text = text.replace(metavariable, propagated_metavariables[metavariable])
 
-def interpolate_fix_metavariables(
-    rule: Rule, pattern_match: PatternMatch, propagated_metavariables: Dict[str, str]
-) -> Optional[str]:
-    fix_str = rule.fix
-    if fix_str is None:
-        return None
-    for metavariable in pattern_match.metavariables:
-        fix_str = fix_str.replace(
-            metavariable, pattern_match.get_metavariable_value(metavariable)
-        )
-    for metavariable, metavariable_text in propagated_metavariables.items():
-        fix_str = fix_str.replace(metavariable, metavariable_text)
-    return fix_str
+    return text
 
 
 def evaluate_expression(
