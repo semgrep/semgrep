@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - New matching option `implicit_ellipsis` that allows disabling the implicit
   `...` that are added to record patterns, plus allow matching "spread fields"
   (JS `...x`) at any position (#3120)
+- Support globstar (`**`) syntax in path include/exclude (#3173)
 
 ### Fixed
 - Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)
