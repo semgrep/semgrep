@@ -28,10 +28,8 @@ type todo = TODO
 type pipeline_bar = Bar of tok | Bar_ampersand of tok
 
 type unary_control_operator =
-  | Foreground of tok (* ';' or '\n' or ';;' *)
-  | Background of tok
-
-(* & *)
+  | Foreground of (* ';' or '\n' or ';;' *) tok
+  | Background of (* & *) tok
 
 type redirect = todo
 
@@ -112,7 +110,7 @@ and pipeline =
   | Control_operator of pipeline * unary_control_operator
 
 (*
-   Sample list
+   Sample bash list (blist)
 
    foo | bar; baz
    ^^^^^^^^^
@@ -120,12 +118,13 @@ and pipeline =
               ^^^
             pipeline 1
 
-   Not a great type definition but easy to construct:
+   The following type definition is redundant but it's meant to be easy
+   to construct and to read from:
 *)
-and list_ =
-  | Seq of (list_ * list_)
-  | And of (list_ * tok (* && *) * list_)
-  | Or of (list_ * tok (* || *) * list_)
+and blist =
+  | Seq of (blist * blist)
+  | And of (blist * tok (* && *) * blist)
+  | Or of (blist * tok (* || *) * blist)
   | Pipelines of pipeline list
   | Empty
 
@@ -199,7 +198,7 @@ and expression =
 and string_fragment =
   | String_content of string wrap
   | Expansion of expansion
-  | Command_substitution of list_ bracket
+  | Command_substitution of blist bracket
 
 (* $foo or something like ${foo ...} *)
 and expansion =
@@ -213,14 +212,14 @@ and variable_name =
 and complex_expansion = Variable of variable_name | Complex_expansion_TODO
 
 (* $(foo; bar) or `foo; bar` *)
-and command_substitution = list_ bracket
+and command_substitution = blist bracket
 
 (* A program is a list of pipelines *)
-type program = list_
+type program = blist
 
 (*[@@deriving show { with_path = false }]*)
 
-let concat_lists (x : list_ list) : list_ =
+let concat_lists (x : blist list) : blist =
   match List.rev x with
   | [] -> Empty
   | last_list :: lists ->

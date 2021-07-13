@@ -3,7 +3,7 @@
 
    A Bash program is organized into the following hierarchy:
 
-   - List: a list of pipelines. A whole program is a list.
+   - List: a list of pipelines. A whole program is a list (type blist).
 
        echo hello | tr h y; echo bye
 
@@ -81,24 +81,30 @@ module G = AST_generic
 (* Helpers *)
 (*****************************************************************************)
 
-(* Temporary representation *)
+(* Temporary representation.
+   Avoids superfluous early wrapping of expressions in statements and
+   vice-versa. *)
 type stmt_or_expr = Stmt of G.stmt | Expr of G.expr
 
 let fake_tok = G.fake ""
 
+let stmt_of_expr (e : G.expr) : G.stmt = G.s (G.ExprStmt (e, fake_tok))
+
+let expr_of_stmt (st : G.stmt) : G.expr = G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
+
 let as_stmt : stmt_or_expr -> G.stmt = function
   | Stmt st -> st
-  | Expr e -> G.s (G.ExprStmt (e, fake_tok))
+  | Expr e -> stmt_of_expr e
 
 let as_expr : stmt_or_expr -> G.expr = function
-  | Stmt st -> G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
+  | Stmt st -> expr_of_stmt st
   | Expr e -> e
 
-let list_as_expr : stmt_or_expr list -> G.expr = function
-  | [x] -> as_expr x
+let block : stmt_or_expr list -> stmt_or_expr = function
+  | [ x ] -> x
   | several ->
-      (* make sequence of statements, then wrap in an expression *)
-      ???
+      let stmts = List.map as_stmt several in
+      Stmt (G.s (G.Block (G.fake_bracket stmts)))
 
 module C = struct
   let mk (name : string) =
@@ -119,15 +125,12 @@ module C = struct
        ${args}
        ${args%.c}
   *)
-  let split = mk "split"
+  let _split = mk "split"
 
   (* Concatenate two string fragments e.g.
        foo"$bar"
   *)
-  let concat = mk "concat"
-
-  (* Represents a pipeline terminator: ';', '&', '||', '&&' *)
-  let ctrl_op = mk "ctrl_op"
+  let _concat = mk "concat"
 end
 
 (*
@@ -137,82 +140,70 @@ end
    Usage: call C.cmd args
 *)
 let call name exprs =
-  G.Call (name, exprs)
+  G.Call (name, G.fake_bracket (List.map (fun e -> G.Arg e) exprs))
 
-let todo_stmt = G.OtherStmt (G.OS_Todo, [])
+let todo_stmt = G.s (G.OtherStmt (G.OS_Todo, []))
+
 let todo_expr = G.OtherExpr (G.OE_Todo, [])
 
 (*****************************************************************************)
 (* Converter from bash AST to generic AST *)
 (*****************************************************************************)
 
-let apply_control_operator (e : G.expr) (op : unary_control_operator)
-  : stmt_or_expr =
-  match op with
-  | Foreground tok -> Stmt (G.s (G.ExprStmt (e, tok)))
-  | Background tok ->
-      let function_ = G.IdSpecial ((G.Op G.Background), tok) in
-      Expr (G.Call (function_, G.fake_bracket [G.Arg e]))
+(*
+   Redirect stderr in the last command of the pipeline.
+*)
+let redirect_pipeline_stderr_to_stdout pip =
+  (* TODO: don't ignore redirects *)
+  pip
 
-let rec list_ (l : list_) : stmt_or_expr list =
+let rec blist (l : blist) : stmt_or_expr list =
   match l with
-  | Seq (l1, l2) -> list_ l1 @ list_ l2
-  | And (l1, tok, l2) ->
-      (* TODO: can't compile this to an expression because the left-handside
-         updates the environment, affecting the right-handside.
-         Maybe translate to an if-then-else, which is also a statement.
-
-         a && b
-
-         -->
-
-         a
-         if [[ $? = 0 ]]; then
-           b
-         fi
-
-      *)
-      let e1 = list_ l1 |> as_expr in
-      let e2 = list_ l2 |> as_expr in
-      let function_ = G.IdSpecial ((G.Op G.And), tok) in
-      (*[Expr (G.Call (function_, G.fake_bracket [G.Arg e1; G.Arg e2]))]*)
-  | Or (l1, tok, l2) ->
-      let e1 = list_ l1 |> as_expr in
-      let e2 = list_ l2 |> as_expr in
-      let function_ = G.IdSpecial ((G.Op G.Or), tok) in
-      (*[Expr (G.Call (function_, G.fake_bracket [G.Arg e1; G.Arg e2]))]*)
+  | Seq (left, right) -> blist left @ blist right
+  | And (left, and_tok, right) -> [ transpile_and left and_tok right ]
+  | Or (left, or_tok, right) -> [ transpile_or left or_tok right ]
   | Pipelines pl -> List.map (fun x -> pipeline x) pl
   | Empty -> []
 
-and pipeline (x : pipeline) : stmt_or_expr list =
-  let commands, control_op = x in
-  match commands with
-  | [] -> assert false
-  | [ (_none, single_cmd) ] -> single_cmd
-  | (_none, first) :: other ->
-      let init = command_with_redirects first |> as_expr in
-      let e =
-        List.fold_left
-          (fun left (opt_bar, cmd_redir) ->
-             let bar, tok =
-               match opt_bar with
-               | None -> assert false
-               | Some bar -> bar
-             in
-             let op = G.IdSpecial ((G.Op G.Pipe), tok) in
-             let right = command_with_redirects cmd_redir |> as_expr in
-             G.Call (op, [left; right])
-          ) init other
+and pipeline (x : pipeline) : stmt_or_expr =
+  match x with
+  | Command cmd_redir -> command_with_redirects cmd_redir
+  | Pipeline (pip, pipe_op, cmd_redir) ->
+      let pip, bar_tok =
+        match pipe_op with
+        | Bar tok -> (pip, tok)
+        | Bar_ampersand tok ->
+            (* Transpile:
+
+                 a |& b
+
+               -->
+
+                 a 2>&1 | b
+            *)
+            (redirect_pipeline_stderr_to_stdout pip, tok)
       in
-      Expr e
+      let func = G.IdSpecial (G.Op G.Pipe, bar_tok) in
+      let left = pipeline pip |> as_expr in
+      let right = command_with_redirects cmd_redir |> as_expr in
+      Expr (G.Call (func, G.fake_bracket [ G.Arg left; G.Arg right ]))
+  | Control_operator (pip, control_op) -> (
+      match control_op with
+      | Foreground _tok -> pipeline pip
+      | Background amp_tok ->
+          let func = G.IdSpecial (G.Op G.Pipe, amp_tok) in
+          let arg = pipeline pip |> as_expr in
+          Expr (G.Call (func, G.fake_bracket [ G.Arg arg ])) )
 
 and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
+  (* TODO: don't ignore redirects *)
   let { command = cmd; redirects } = x in
   ignore redirects;
   command cmd
 
-and command (cmd : command) : G.stmt option =
+and command (cmd : command) : stmt_or_expr =
   match cmd with
+<<<<<<< HEAD
   | Simple_command { assignments = _; arguments } -> (
       match arguments with
       | [] -> None
@@ -226,16 +217,27 @@ and command (cmd : command) : G.stmt option =
   | Declaration _ -> None
   | Negated_command _ -> None
   | Function_definition _ -> None
+=======
+  | Simple_command { assignments = _; arguments } ->
+      let args = List.map expression arguments in
+      Expr (call C.cmd args)
+  | Compound_command _ -> Expr todo_expr
+  | Coprocess _ -> Expr todo_expr
+  | Assignment _ -> Stmt todo_stmt
+  | Declaration _ -> Stmt todo_stmt
+  | Negated_command _ -> Expr todo_expr
+  | Function_definition _ -> Stmt todo_stmt
+>>>>>>> 0199c628... New mapping from the bash AST to the generic AST (compiles, but
 
 and expression (e : expression) : G.expr =
-  let todo = G.L (String ("", G.fake "")) in
   match e with
   | Word x -> G.L (G.Atom (G.fake "", x))
-  | String _ -> todo
+  | String _ -> todo_expr
   | String_fragment frag -> (
       match frag with
       | String_content x -> G.L (G.Atom (G.fake "", x))
       | Expansion ex -> expansion ex
+<<<<<<< HEAD
       | Command_substitution (_open, _x, _close) -> todo)
   | Raw_string _ -> todo
   | Ansii_c_string _ -> todo
@@ -245,13 +247,23 @@ and expression (e : expression) : G.expr =
   | Semgrep_ellipsis _ -> todo
   | Semgrep_metavariable _ -> todo
   | Expression_TODO -> todo
+=======
+      | Command_substitution (_open, _x, _close) -> todo_expr )
+  | Raw_string _ -> todo_expr
+  | Ansii_c_string _ -> todo_expr
+  | Special_character _ -> todo_expr
+  | String_expansion _ -> todo_expr
+  | Concatenation _ -> todo_expr
+  | Semgrep_ellipsis _ -> todo_expr
+  | Semgrep_metavariable _ -> todo_expr
+  | Expression_TODO -> todo_expr
+>>>>>>> 0199c628... New mapping from the bash AST to the generic AST (compiles, but
 
 (*
    '$' followed by a variable to transform and expand into a list.
    We treat this as a function call.
 *)
 and expansion (x : expansion) : G.expr =
-  let todo = G.L (String ("", G.fake "")) in
   match x with
   | Simple_expansion (dollar_tok, var_name) ->
       let arg =
@@ -259,11 +271,49 @@ and expansion (x : expansion) : G.expr =
         | Simple_variable_name name | Special_variable_name name ->
             G.Arg (G.N (G.Id (name, G.empty_id_info ())))
       in
-      let function_ = G.N (G.Id (("$", dollar_tok), G.empty_id_info ())) in
-      let e = G.Call (function_, G.fake_bracket [ arg ]) in
+      let func = G.N (G.Id (("$", dollar_tok), G.empty_id_info ())) in
+      let e = G.Call (func, G.fake_bracket [ arg ]) in
       e
-  | Complex_expansion _ -> todo
+  | Complex_expansion _ -> todo_expr
 
-let program x = list_ x
+(*
+   'a && b' and 'a || b' looks like expressions but they're really
+   conditional statements. We make such translation rather than introducing
+   special statement constructs into the generic AST.
+
+      a && b
+
+     -->
+
+     if a; then
+       b
+     fi
+*)
+and transpile_and (left : blist) tok_and (right : blist) : stmt_or_expr =
+  let cond = blist left |> block |> as_expr in
+  let body = blist right |> block |> as_stmt in
+  Stmt (G.s (G.If (tok_and, cond, body, None)))
+
+(*
+   This is similar to 'transpile_and', with a negated condition.
+
+     a || b
+
+   -->
+
+     if ! a; then
+       b
+     fi
+*)
+and transpile_or (left : blist) tok_and (right : blist) : stmt_or_expr =
+  let cond =
+    let e = blist left |> block |> as_expr in
+    let not_ = G.IdSpecial (G.Op G.Not, G.fake "!") in
+    G.Call (not_, G.fake_bracket [ G.Arg e ])
+  in
+  let body = blist right |> block |> as_stmt in
+  Stmt (G.s (G.If (tok_and, cond, body, None)))
+
+let program x = blist x |> List.map as_stmt
 
 let any x = G.Ss (program x)

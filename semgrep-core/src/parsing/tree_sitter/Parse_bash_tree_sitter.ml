@@ -39,7 +39,7 @@ let map_last l f =
    - command
 *)
 type tmp_stmt =
-  | Tmp_list of list_
+  | Tmp_blist of blist
   | Tmp_pipeline of pipeline
   | Tmp_command of (command_with_redirects * unary_control_operator option)
 
@@ -152,7 +152,7 @@ let rec prim_exp_or_special_char (env : env)
   | `Spec_char tok -> Special_character (str env tok)
 
 and stmt_with_opt_heredoc (env : env)
-    ((v1, v2, v3) : CST.anon_stmt_opt_LF_here_body_term_3efa649) : list_ =
+    ((v1, v2, v3) : CST.anon_stmt_opt_LF_here_body_term_3efa649) : blist =
   (*
      This handling of heredocs is incorrect but usually works
      in practice. Code like the following is allowed by bash:
@@ -161,7 +161,7 @@ and stmt_with_opt_heredoc (env : env)
 
      ... after which two successive heredoc bodies are expected.
   *)
-  let list_ = list_statement env v1 in
+  let blist = blist_statement env v1 in
   let _opt_heredoc =
     (* needs to be paired with the correct command
      * in one of the pipeline in the list occurring on the previous line. *)
@@ -173,7 +173,7 @@ and stmt_with_opt_heredoc (env : env)
     | None -> TODO
   in
   let _trailing_newline = terminator env v3 in
-  list_
+  blist
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let _v1 = token env v1 (* "(" *) in
@@ -281,7 +281,7 @@ and command_name (env : env) (x : CST.command_name) : expression =
       Concatenation (List.map (fun tok -> Special_character (str env tok)) xs)
 
 and command_substitution (env : env) (x : CST.command_substitution) :
-    list_ bracket =
+    blist bracket =
   match x with
   | `DOLLARLPAR_stmts_RPAR (v1, v2, v3) ->
       let open_ = token env v1 (* "$(" *) in
@@ -582,15 +582,15 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
       in
       Expression_TODO
 
-and program (env : env) (opt : CST.program) : list_ =
+and program (env : env) (opt : CST.program) : blist =
   match opt with Some x -> statements env x | None -> Empty
 
 (*
    Read a statement as a list (of pipelines).
 *)
-and list_statement (env : env) (x : CST.statement) : list_ =
+and blist_statement (env : env) (x : CST.statement) : blist =
   match statement env x with
-  | Tmp_list x -> x
+  | Tmp_blist x -> x
   | Tmp_pipeline x -> Pipelines [ x ]
   | Tmp_command (cmd_redir, control_op) -> (
       match control_op with
@@ -603,7 +603,7 @@ and list_statement (env : env) (x : CST.statement) : list_ =
 *)
 and pipeline_statement (env : env) (x : CST.statement) : pipeline =
   match statement env x with
-  | Tmp_list _ -> assert false
+  | Tmp_blist _ -> assert false
   | Tmp_pipeline x -> x
   | Tmp_command (cmd_redir, control_op) -> (
       match control_op with
@@ -617,14 +617,14 @@ and pipeline_statement (env : env) (x : CST.statement) : pipeline =
 and command_statement (env : env) (x : CST.statement) :
     command_with_redirects * unary_control_operator option =
   match statement env x with
-  | Tmp_list _ -> assert false
+  | Tmp_blist _ -> assert false
   | Tmp_pipeline _ -> assert false
   | Tmp_command x -> x
 
 (*
    Do not call this function directly. Instead use one of the
    following depending on which construct is expected:
-   - list_statement
+   - blist_statement
    - pipeline_statement
    - command_statement
 *)
@@ -821,7 +821,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       Tmp_pipeline pipeline
   | `List (v1, v2, v3) ->
-      let left = list_statement env v1 in
+      let left = blist_statement env v1 in
 
       (*
          && and || are left-associative, so we should have a pipeline
@@ -830,13 +830,13 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
 
       let pipeline = pipeline_statement env v3 in
        *)
-      let right = list_statement env v3 in
-      let list_ =
+      let right = blist_statement env v3 in
+      let blist =
         match v2 with
         | `AMPAMP tok -> And (left, token env tok, right)
         | `BARBAR tok -> Or (left, token env tok, right)
       in
-      Tmp_list list_
+      Tmp_blist blist
   | `Subs x ->
       let command = Compound_command (Subshell (subshell env x)) in
       Tmp_command ({ command; redirects = [] }, None)
@@ -879,11 +879,11 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       Tmp_command ({ command; redirects = [] }, None)
 
-and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : list_ =
+and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
   let list = List.map (stmt_with_opt_heredoc env) v1 |> concat_lists in
   (* See stmt_with_opt_heredoc, which is almost identical except for
      the optional trailing newline. *)
-  let last_list = list_statement env v2 in
+  let last_list = blist_statement env v2 in
   let _last_heredoc =
     match v3 with
     | Some (v1, v2) ->
