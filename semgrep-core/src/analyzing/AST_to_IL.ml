@@ -219,8 +219,7 @@ let name_of_entity ent =
 let rec lval env eorig =
   match eorig with
   | G.N n -> name env n
-  | G.IdSpecial (G.This, tok) ->
-      { base = VarSpecial (This, tok); offset = NoOffset; constness = ref None }
+  | G.IdSpecial (G.This, tok) -> lval_of_base (VarSpecial (This, tok))
   | G.DotAccess (e1orig, tok, field) -> (
       let base, base_constness = nested_lval env tok e1orig in
       match field with
@@ -258,17 +257,16 @@ and name env = function
       lval
 
 and nested_lval env tok eorig =
-  let lval = lval env eorig in
-  let base =
-    match lval.offset with
-    | NoOffset -> lval.base
-    | _ ->
+  let lval =
+    match expr env eorig with
+    | { e = Fetch ({ offset = NoOffset; _ } as lval); _ } -> lval
+    | rhs ->
         let fresh = fresh_lval env tok in
-        let lvalexp = mk_e (Fetch lval) eorig in
-        add_instr env (mk_i (Assign (fresh, lvalexp)) eorig);
-        fresh.base
+        add_instr env (mk_i (Assign (fresh, rhs)) eorig);
+        fresh
   in
-  (base, lval.constness)
+  assert (lval.offset = NoOffset);
+  (lval.base, lval.constness)
 
 (*****************************************************************************)
 (* Pattern *)

@@ -27,6 +27,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Revert `pattern: $X` optimization (#3476)
 - metavariable-pattern: Allow filtering using a single `pattern` or
   `pattern-regex`
+- Dataflow: Translate call chains into IL
 
 ### Changed
 - Faster matching times for generic mode
