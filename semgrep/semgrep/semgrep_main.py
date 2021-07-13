@@ -278,7 +278,7 @@ The two most popular are:
         )
 
     join_rules, rest_of_the_rules = partition(
-        lambda rule: rule.raw.get("mode") == JOIN_MODE,
+        lambda rule: rule.mode == JOIN_MODE,
         filtered_rules,
     )
     filtered_rules = rest_of_the_rules

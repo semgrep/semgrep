@@ -43,3 +43,4 @@ def launch():
 def index():
     return render_template('index.htm.j2')
 
+print("Hi")
