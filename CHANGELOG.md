@@ -5,15 +5,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-- HTML experimental support. This does not rely on the "generic" mode
-  but instead really parses the HTML using tree-sitter-html. This allows
-  some semantic matching (e.g., matching attributes in any order).
-- Vue.js alpha support (#1751)
 - New iteration of taint-mode that allows to specify sources/sanitizers/sinks
   using arbitrary pattern formulas. This provides plenty of flexibility. Note
   that we breaks compatibility with the previous taint-mode format, e.g.
   `- source(...)` must now be written as `- pattern: source(...)`.
-- New matching option `implicit_ellipsis` that allows to disable the implicit
+- HTML experimental support. This does not rely on the "generic" mode
+  but instead really parses the HTML using tree-sitter-html. This allows
+  some semantic matching (e.g., matching attributes in any order).
+- Vue.js alpha support (#1751)
+- New matching option `implicit_ellipsis` that allows disabling the implicit
   `...` that are added to record patterns, plus allow matching "spread fields"
   (JS `...x`) at any position (#3120)
 
