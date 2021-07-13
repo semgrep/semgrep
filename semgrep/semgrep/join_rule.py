@@ -377,4 +377,6 @@ def main(
         )
         for match in matches
     ]
+
+    db.close()
     return rule_matches, parsed_errors
