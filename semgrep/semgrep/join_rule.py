@@ -1,6 +1,4 @@
 import json
-import logging
-import sys
 import tempfile
 from collections import defaultdict
 from enum import Enum
@@ -31,16 +29,12 @@ from semgrep.error import SemgrepError
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__file__)
 
 yaml = YAML()
 
-logger = logging.getLogger(__file__)
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler(stream=sys.stderr)
-handler.setFormatter(
-    logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-)
-logger.addHandler(handler)
 
 # TODO: refactor into nice code files instead of this giant file
 # TODO: probably, add error handling
