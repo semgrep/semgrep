@@ -27,11 +27,11 @@ type todo = TODO
 
 type pipeline_bar = Bar of tok | Bar_ampersand of tok
 
-type pipeline_control_operator =
+type unary_control_operator =
   | Foreground of tok (* ';' or '\n' or ';;' *)
-  | Background of tok (* & *)
-  | And of (* && *) tok
-  | Or of (* || *) tok
+  | Background of tok
+
+(* & *)
 
 type redirect = todo
 
@@ -100,10 +100,16 @@ and simple_command = {
 
    The first command of a pipeline is of the form (None, cmd). The
    commands after that are of the form (Some bar, cmd).
+
+   The following is actually a list of two pipelines but we call this
+   a pipeline for convenience when working with the AST:
+
+     a | b && c | d
 *)
 and pipeline =
-  (pipeline_bar option * command_with_redirects) list
-  * pipeline_control_operator option
+  | Command of command_with_redirects
+  | Pipeline of pipeline * pipeline_bar * command_with_redirects
+  | Control_operator of pipeline * unary_control_operator
 
 (*
    Sample list
@@ -113,8 +119,15 @@ and pipeline =
    pipeline 0
               ^^^
             pipeline 1
+
+   Not a great type definition but easy to construct:
 *)
-and list_ = pipeline list
+and list_ =
+  | Seq of (list_ * list_)
+  | And of (list_ * tok (* && *) * list_)
+  | Or of (list_ * tok (* || *) * list_)
+  | Pipelines of pipeline list
+  | Empty
 
 (*
    All the commands that are called "compound commands" in the man page.
@@ -206,3 +219,9 @@ and command_substitution = list_ bracket
 type program = list_
 
 (*[@@deriving show { with_path = false }]*)
+
+let concat_lists (x : list_ list) : list_ =
+  match List.rev x with
+  | [] -> Empty
+  | last_list :: lists ->
+      List.fold_left (fun acc list -> Seq (list, acc)) last_list lists

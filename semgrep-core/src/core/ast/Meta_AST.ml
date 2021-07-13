@@ -412,6 +412,7 @@ and vof_arithmetic_operator = function
   | Or -> OCaml.VSum ("Or", [])
   | Not -> OCaml.VSum ("Not", [])
   | Xor -> OCaml.VSum ("Xor", [])
+  | Pipe -> OCaml.VSum ("Pipe", [])
   | Eq -> OCaml.VSum ("Eq", [])
   | NotEq -> OCaml.VSum ("NotEq", [])
   | PhysEq -> OCaml.VSum ("PhysEq", [])
@@ -422,6 +423,7 @@ and vof_arithmetic_operator = function
   | GtE -> OCaml.VSum ("GtE", [])
   | Cmp -> OCaml.VSum ("Cmp", [])
   | Length -> OCaml.VSum ("Length", [])
+  | Background -> OCaml.VSum ("Background", [])
 
 and vof_arguments v = vof_bracket (OCaml.vof_list vof_argument) v
 

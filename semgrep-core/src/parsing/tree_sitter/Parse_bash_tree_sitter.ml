@@ -32,13 +32,16 @@ let map_last l f =
 (*
    The 'statement' rule returns one of 3 possible levels of constructs:
    - list = list of pipelines
-   - pipeline = list of commands
+   - pipeline = one of
+      - list of commands
+      - pipeline && pipeline
+      - pipeline || pipeline
    - command
 *)
 type tmp_stmt =
   | Tmp_list of list_
   | Tmp_pipeline of pipeline
-  | Tmp_command of (command_with_redirects * pipeline_control_operator option)
+  | Tmp_command of (command_with_redirects * unary_control_operator option)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -60,7 +63,7 @@ let ansii_c_string (env : env) (tok : CST.ansii_c_string) : string wrap =
 let variable_name (env : env) (tok : CST.variable_name) : string wrap =
   str env tok
 
-let terminator (env : env) (x : CST.terminator) : pipeline_control_operator =
+let terminator (env : env) (x : CST.terminator) : unary_control_operator =
   match x with
   | `SEMI tok -> Foreground (token env tok (* ";" *))
   | `SEMISEMI tok -> Foreground (token env tok (* ";;" *))
@@ -289,7 +292,7 @@ and command_substitution (env : env) (x : CST.command_substitution) :
       let open_ = token env v1 (* "$(" *) in
       let _v2 = (* TODO: what's this? *) file_redirect env v2 in
       let close = token env v3 (* ")" *) in
-      (open_, [], close)
+      (open_, Empty, close)
   | `BQUOT_stmts_BQUOT (v1, v2, v3) ->
       let open_ = token env v1 (* "`" *) in
       let list = statements env v2 in
@@ -580,7 +583,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
       Expression_TODO
 
 and program (env : env) (opt : CST.program) : list_ =
-  match opt with Some x -> statements env x | None -> []
+  match opt with Some x -> statements env x | None -> Empty
 
 (*
    Read a statement as a list (of pipelines).
@@ -588,9 +591,11 @@ and program (env : env) (opt : CST.program) : list_ =
 and list_statement (env : env) (x : CST.statement) : list_ =
   match statement env x with
   | Tmp_list x -> x
-  | Tmp_pipeline x -> [ x ]
-  | Tmp_command (cmd_redir, control_op) ->
-      [ ([ (None, cmd_redir) ], control_op) ]
+  | Tmp_pipeline x -> Pipelines [ x ]
+  | Tmp_command (cmd_redir, control_op) -> (
+      match control_op with
+      | None -> Pipelines [ Command cmd_redir ]
+      | Some op -> Pipelines [ Control_operator (Command cmd_redir, op) ] )
 
 (*
    Read a statement as a pipeline where a pipeline or a single command
@@ -600,14 +605,17 @@ and pipeline_statement (env : env) (x : CST.statement) : pipeline =
   match statement env x with
   | Tmp_list _ -> assert false
   | Tmp_pipeline x -> x
-  | Tmp_command (cmd_redir, control_op) -> ([ (None, cmd_redir) ], control_op)
+  | Tmp_command (cmd_redir, control_op) -> (
+      match control_op with
+      | None -> Command cmd_redir
+      | Some op -> Control_operator (Command cmd_redir, op) )
 
 (*
    Read a statement as single command where a single command is
    expected.
 *)
 and command_statement (env : env) (x : CST.statement) :
-    command_with_redirects * pipeline_control_operator option =
+    command_with_redirects * unary_control_operator option =
   match statement env x with
   | Tmp_list _ -> assert false
   | Tmp_pipeline _ -> assert false
@@ -798,25 +806,22 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
          left is the pipeline we're extending with the one extra
          command on the right.
       *)
-      let pipeline, _none_hopefully = pipeline_statement env v1 in
+      let left_pipeline = pipeline_statement env v1 in
       let bar =
         match v2 with
         | `BAR tok -> Bar (token env tok (* "|" *))
         | `BARAMP tok -> Bar_ampersand (token env tok (* "|&" *))
       in
       let extra_cmd, control_op = command_statement env v3 in
-      Tmp_pipeline (pipeline @ [ (Some bar, extra_cmd) ], control_op)
+      let pipeline = Pipeline (left_pipeline, bar, extra_cmd) in
+      let pipeline =
+        match control_op with
+        | None -> pipeline
+        | Some op -> Control_operator (pipeline, op)
+      in
+      Tmp_pipeline pipeline
   | `List (v1, v2, v3) ->
-      let list_left = list_statement env v1 in
-      let control_op =
-        match v2 with
-        | `AMPAMP tok -> And (token env tok (* "&&" *))
-        | `BARBAR tok -> Or (token env tok (* "||" *))
-      in
-      let list_left =
-        map_last list_left (fun (pipeline, _none_hopefully) ->
-            (pipeline, Some control_op))
-      in
+      let left = list_statement env v1 in
 
       (*
          && and || are left-associative, so we should have a pipeline
@@ -825,8 +830,13 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
 
       let pipeline = pipeline_statement env v3 in
        *)
-      let list_right = list_statement env v3 in
-      Tmp_list (list_left @ list_right)
+      let right = list_statement env v3 in
+      let list_ =
+        match v2 with
+        | `AMPAMP tok -> And (left, token env tok, right)
+        | `BARBAR tok -> Or (left, token env tok, right)
+      in
+      Tmp_list list_
   | `Subs x ->
       let command = Compound_command (Subshell (subshell env x)) in
       Tmp_command ({ command; redirects = [] }, None)
@@ -870,7 +880,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command ({ command; redirects = [] }, None)
 
 and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : list_ =
-  let list = List.map (stmt_with_opt_heredoc env) v1 |> List.flatten in
+  let list = List.map (stmt_with_opt_heredoc env) v1 |> concat_lists in
   (* See stmt_with_opt_heredoc, which is almost identical except for
      the optional trailing newline. *)
   let last_list = list_statement env v2 in
@@ -885,7 +895,7 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : list_ =
   let _trailing_newline =
     match v4 with Some x -> Some (terminator env x) | None -> None
   in
-  list @ last_list
+  Seq (list, last_list)
 
 and statements2 (env : env) (xs : CST.statements2) =
   List.map (stmt_with_opt_heredoc env) xs

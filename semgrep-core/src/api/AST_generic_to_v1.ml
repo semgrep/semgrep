@@ -426,7 +426,8 @@ and map_arithmetic_operator = function
   | BitClear -> `BitClear
   | And -> `And
   | Or -> `Or
-  | Xor -> `Xor
+  | Xor -> `Xor (* new: *)
+  | Pipe -> `Pipe
   | Not -> `Not
   | Eq -> `Eq
   | NotEq -> `NotEq
@@ -450,7 +451,8 @@ and map_arithmetic_operator = function
   | In -> `In
   | NotIn -> `NotIn
   | Is -> `Is
-  | NotIs -> `NotIs
+  | NotIs -> `NotIs (* new: *)
+  | Background -> `Background
 
 and map_arguments v = map_bracket (map_of_list map_argument) v
 

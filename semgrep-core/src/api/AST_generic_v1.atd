@@ -374,7 +374,8 @@ type operator = [
   | FloorDiv | MatMult (* Python *)
   | LSL | LSR | ASR (* L = logic, A = Arithmetic, SL = shift left *)
   | BitOr | BitXor | BitAnd | BitNot (* unary *) | BitClear (* Go *)
-  | And | Or (* also shortcut operator *) | Xor (* PHP*) | Not (* unary *)
+  | And | Or (* also shortcut operator *) | Xor (* PHP*) | Pipe (* shell *)
+  | Not (* unary *)
   | Eq (* '=' in OCaml, '==' in Go/... *)
   | NotEq
   | PhysEq (* '==' in OCaml, '===' in JS/... *)
@@ -398,6 +399,7 @@ type operator = [
   | Nullish (* ?? in Javascript *)
   | In (* in: checks that value belongs to a collection *) | NotIn (* !in *)
   | Is (* is: checks value has type *)| NotIs (* !is: *)
+  | Background (* & in shell *)
   ]
 
 type incr_decr = [Incr | Decr] (* '++', '--' *)
