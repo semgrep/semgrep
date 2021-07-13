@@ -12,6 +12,7 @@ import pytest
 from semgrep.error import SemgrepError
 from semgrep.evaluation import enumerate_patterns_in_boolean_expression
 from semgrep.evaluation import evaluate_expression as raw_evaluate_expression
+from semgrep.evaluation import interpolate_string_with_metavariables
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.semgrep_types import BooleanRuleExpression
@@ -558,3 +559,18 @@ def test_single_pattern_match_filtering() -> None:
     ]
     result = evaluate_expression(expression, results)
     assert result == set(), f"{result}"
+
+
+def test_interpolation() -> None:
+    pattern_match = PatternMatchMock(
+        0,
+        100,
+        {"$X": {"abstract_content": "VALUE1"}, "$X2": {"abstract_content": "VALUE2"}},
+    )
+
+    text = "Expect $X to be VALUE1 and $X2 to be VALUE2"
+    expected = "Expect VALUE1 to be VALUE1 and VALUE2 to be VALUE2"
+
+    result = interpolate_string_with_metavariables(text, pattern_match, {})
+
+    assert result == expected
