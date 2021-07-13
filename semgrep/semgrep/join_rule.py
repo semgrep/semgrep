@@ -378,21 +378,3 @@ def main(
         for match in matches
     ]
     return rule_matches, parsed_errors
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    # Add arguments here
-    parser.add_argument("-f", "--config")
-    parser.add_argument("target", default=".")
-    args = parser.parse_args()
-
-    with Path(args.config).open("r") as fin:
-        contents = yaml.load(fin)
-
-    for rule in contents.get("rules", []):
-        matches, errors = main(rule, list(Path(args.target).rglob("*")))
-        print(matches)
-        print(errors)
