@@ -1,0 +1,9 @@
+# https://github.com/returntocorp/semgrep/issues/3120
+rules:
+- id: test-3120
+  options:
+    implicit_ellipsis: false
+  pattern: '{x:$X}'
+  message: Test
+  languages: [js]
+  severity: ERROR
