@@ -11,9 +11,7 @@ docker run -v $(pwd):/src -e SEMGREP_UPLOAD_DEPLOYMENT=DEPLOYMENT_ID -e SEMGREP_
 
 ### Using different registry_url
 
-```
-docker run -v $(pwd):/src -e SEMGREP_UPLOAD_DEPLOYMENT=DEPLOYMENT_ID -e SEMGREP_TOKEN=SOME_TOKEN -e SEMGREP_REGISTRY_BASE_URL=https://staging.semgrep.dev returntocorp/semgrep-upload:latest /src/RULE_YAML
-```
+You can change the registry URL used by setting the SEMGREP_REGISTRY_BASE_URL env variable
 
 ## Local Dev
 
