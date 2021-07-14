@@ -33,7 +33,7 @@ jobs:
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
       - uses: actions/checkout@v2
-      - name: Check OCaml code
+      - name: Check Some OCaml code XXX
         run: sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
 
   semgrep-run-r2c-config:
