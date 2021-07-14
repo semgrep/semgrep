@@ -117,7 +117,7 @@ let parse_card j =
             Some (parse_issue (J.Object rest))
         | J.Null -> None
         | J.Object [ ("__typename", J.String "PullRequest") ] -> None
-        | _ -> error j "not a card" )
+        | _ -> error j "not a card")
   | _ -> error j "not a card"
 
 let parse_column j =

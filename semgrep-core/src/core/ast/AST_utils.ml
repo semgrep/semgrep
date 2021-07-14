@@ -44,7 +44,7 @@ end = struct
       if id = -1 then failwith "Node_ID.create: int overflow"
       else (
         incr counter;
-        id )
+        id)
 end
 
 (*

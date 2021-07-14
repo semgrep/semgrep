@@ -342,7 +342,7 @@ let map_component (env : env) (xs : CST.component) : stmt list =
           in
           match body_opt with
           | Some s -> env.extra.parse_js_program s
-          | None -> [] )
+          | None -> [])
       (* less: parse as CSS *)
       | `Style_elem x ->
           let xml = map_style_element env x in

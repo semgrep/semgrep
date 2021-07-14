@@ -56,10 +56,10 @@ let subexprs_of_stmt st =
       Common.opt_to_list eopt
   (* n *)
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
-      ( xs
+      (xs
       |> Common.map_filter (function
            | ForInitExpr e -> Some e
-           | ForInitVar (_, vdef) -> vdef.vinit) )
+           | ForInitVar (_, vdef) -> vdef.vinit))
       @ Common.opt_to_list eopt1 @ Common.opt_to_list eopt2
   | Assert (_, e1, e2opt, _) -> e1 :: Common.opt_to_list e2opt
   | For (_, ForIn (_, es), _) -> es
@@ -100,16 +100,16 @@ let subexprs_of_expr e =
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
       e
-      :: ( args |> unbracket
+      :: (args |> unbracket
          |> Common.map_filter (function
               | Arg e | ArgKwd (_, e) -> Some e
-              | ArgType _ | ArgOther _ -> None) )
+              | ArgType _ | ArgOther _ -> None))
   | SliceAccess (e1, e2) ->
       e1
-      :: ( e2 |> unbracket
+      :: (e2 |> unbracket
          |> (fun (a, b, c) -> [ a; b; c ])
          |> List.map Common.opt_to_list
-         |> List.flatten )
+         |> List.flatten)
   | Yield (_, eopt, _) -> Common.opt_to_list eopt
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
@@ -154,7 +154,7 @@ let substmts_of_stmt st =
   | Try (_, st, xs, opt) -> (
       [ st ]
       @ (xs |> List.map Common2.thd3)
-      @ match opt with None -> [] | Some (_, st) -> [ st ] )
+      @ match opt with None -> [] | Some (_, st) -> [ st ])
   | DisjStmt _ -> raise Common.Impossible
   (* this may slow down things quite a bit *)
   | DefStmt (_ent, def) -> (
@@ -172,7 +172,7 @@ let substmts_of_stmt st =
             def.cbody |> unbracket
             |> Common.map_filter (function
                  | FieldStmt st -> Some st
-                 | FieldSpread _ -> None) )
+                 | FieldSpread _ -> None))
 
 (*e: function [[SubAST_generic.substmts_of_stmt]] *)
 
@@ -239,11 +239,11 @@ let flatten_substmts_of_stmts xs =
      * a zillion times on big files (see tests/PERF/) if we do the
      * matching naively in m_stmts_deep.
      *)
-    ( if !go_really_deeper_stmt then
-      let es = subexprs_of_stmt x in
-      (* getting deeply nested lambdas stmts *)
-      let lambdas = es |> List.map lambdas_in_expr_memo |> List.flatten in
-      lambdas |> List.map (fun def -> def.fbody) |> List.iter aux );
+    (if !go_really_deeper_stmt then
+     let es = subexprs_of_stmt x in
+     (* getting deeply nested lambdas stmts *)
+     let lambdas = es |> List.map lambdas_in_expr_memo |> List.flatten in
+     lambdas |> List.map (fun def -> def.fbody) |> List.iter aux);
 
     let xs = substmts_of_stmt x in
     match xs with

@@ -131,19 +131,19 @@ let match_to_match x =
     let min_loc, max_loc = x.range_loc in
     let startp, endp = position_range min_loc max_loc in
     Left
-      ( {
-          ST.check_id = Some x.rule_id.id;
-          path = x.file;
-          start = startp;
-          end_ = endp;
-          extra =
-            {
-              message = Some x.rule_id.message;
-              metavars = x.env |> List.map (metavars startp);
-              lines = [] (* ?? spacegrep? *);
-            };
-        }
-        : ST.match_ )
+      ({
+         ST.check_id = Some x.rule_id.id;
+         path = x.file;
+         start = startp;
+         end_ = endp;
+         extra =
+           {
+             message = Some x.rule_id.message;
+             metavars = x.env |> List.map (metavars startp);
+             lines = [] (* ?? spacegrep? *);
+           };
+       }
+        : ST.match_)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)

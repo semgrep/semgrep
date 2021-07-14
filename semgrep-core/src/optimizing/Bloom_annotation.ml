@@ -101,7 +101,7 @@ let rec statement_strings stmt =
             (* First statement visited is the current statement *)
             if !top_level then (
               top_level := false;
-              k x )
+              k x)
             else
               (* For any other statement, recurse to add the filter *)
               let strs = statement_strings x in

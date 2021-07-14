@@ -246,7 +246,7 @@ let ac_matching_nf op args =
       logger#error
         "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
         (show_operator op) (show_arguments args);
-      None )
+      None)
   else None
 
 let undo_ac_matching_nf tok op : expr list -> expr option = function
@@ -339,21 +339,21 @@ let (conv_class_kind :
       AST_generic_.class_kind * Parse_info.t ->
       AST_generic.class_kind * Parse_info.t) =
  fun (c, t) ->
-  ( ( match c with
+  ( (match c with
     | G_.Class -> G.Class
     | G_.Interface -> G.Interface
-    | G_.Trait -> G.Trait ),
+    | G_.Trait -> G.Trait),
     t )
 
 let (conv_function_kind :
       AST_generic_.function_kind * Parse_info.t ->
       AST_generic.function_kind * Parse_info.t) =
  fun (c, t) ->
-  ( ( match c with
+  ( (match c with
     | G_.Function -> G.Function
     | G_.Method -> G.Method
     | G_.LambdaKind -> G.LambdaKind
-    | G_.Arrow -> G.Arrow ),
+    | G_.Arrow -> G.Arrow),
     t )
 
 (*e: pfff/lang_GENERIC_base/AST_generic_helpers.ml *)

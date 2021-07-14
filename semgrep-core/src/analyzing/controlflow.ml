@@ -154,7 +154,7 @@ let short_string_of_node_kind nkind =
       | DirectiveStmt _ -> "<directive>"
       | Assert _ -> "<assert>"
       | Parameter _ -> "<param>"
-      | OtherStmt _ -> "<other_stmt>" )
+      | OtherStmt _ -> "<other_stmt>")
 
 let short_string_of_node node = short_string_of_node_kind node.n
 

@@ -183,7 +183,7 @@ let parse file =
         (* if the next line was a +, then associate with the last token
          * on this line
          *)
-        ( match Common2.hfind_option (line + 1) hline_env with
+        (match Common2.hfind_option (line + 1) hline_env with
         | None ->
             (* probably because was last line *)
             ()
@@ -201,8 +201,8 @@ let parse file =
             match last_tok.transfo with
             | Remove -> last_tok.transfo <- Replace (AddStr toadd)
             | NoTransfo -> last_tok.transfo <- AddAfter (AddStr toadd)
-            | _ -> raise Impossible )
-        | Some _ -> () );
+            | _ -> raise Impossible)
+        | Some _ -> ());
         aux rest
     | [] -> ()
   in
@@ -241,7 +241,7 @@ let spatch ?(case_sensitive = false) pattern file =
                 was_modifed := true;
                 Transforming_php.transform_xhp_xhp xhp x
                   (* TODO, maybe could get multiple matching env *)
-                  (List.hd matches_with_env) ));
+                  (List.hd matches_with_env)));
         }
     | Expr pattern_expr ->
         {
@@ -254,7 +254,7 @@ let spatch ?(case_sensitive = false) pattern file =
                 was_modifed := true;
                 Transforming_php.transform_e_e pattern_expr x
                   (* TODO, maybe could get multiple matching env *)
-                  (List.hd matches_with_env) ));
+                  (List.hd matches_with_env)));
         }
     | Stmt2 pattern ->
         {
@@ -267,7 +267,7 @@ let spatch ?(case_sensitive = false) pattern file =
                 was_modifed := true;
                 Transforming_php.transform_st_st pattern x
                   (* TODO, maybe could get multiple matching env *)
-                  (List.hd matches_with_env) ));
+                  (List.hd matches_with_env)));
         }
     | Hint2 pattern ->
         {
@@ -280,12 +280,12 @@ let spatch ?(case_sensitive = false) pattern file =
                 was_modifed := true;
                 Transforming_php.transform_hint_hint pattern x
                   (* TODO, maybe could get multiple matching env *)
-                  (List.hd matches_with_env) ));
+                  (List.hd matches_with_env)));
         }
     | _ ->
         failwith
-          ( spf "pattern not yet supported:"
-          ^ "TODO" (* Export_ast_php.ml_pattern_string_of_any pattern*) )
+          (spf "pattern not yet supported:"
+          ^ "TODO" (* Export_ast_php.ml_pattern_string_of_any pattern*))
   in
   Common.save_excursion Php_vs_php.case_sensitive case_sensitive (fun () ->
       (V.mk_visitor hook) (Program ast));

@@ -265,9 +265,8 @@ type import_clause =
   | `Named_imports of named_imports
   | `Id_opt_COMMA_choice_name_import of
     identifier (*tok*)
-    * ( Token.t (* "," *)
-      * [ `Name_import of namespace_import | `Named_imports of named_imports ]
-      )
+    * (Token.t (* "," *)
+      * [ `Name_import of namespace_import | `Named_imports of named_imports ])
       option ]
 [@@deriving sexp_of]
 
@@ -437,10 +436,10 @@ and call_signature_ = call_signature
 
 and catch_clause =
   Token.t (* "catch" *)
-  * ( Token.t (* "(" *)
+  * (Token.t (* "(" *)
     * anon_choice_type_id_940079a
     * type_annotation option
-    * Token.t )
+    * Token.t)
     (* ")" *)
     option
   * statement_block
@@ -562,16 +561,16 @@ and default_type = Token.t (* "=" *) * type_
 and destructuring_pattern =
   [ `Obj_pat of
     Token.t (* "{" *)
-    * ( anon_choice_pair_pat_3ff9cbe option
-      * (Token.t (* "," *) * anon_choice_pair_pat_3ff9cbe option) list )
+    * (anon_choice_pair_pat_3ff9cbe option
+      * (Token.t (* "," *) * anon_choice_pair_pat_3ff9cbe option) list)
       (* zero or more *)
       option
     * Token.t
     (* "}" *)
   | `Array_pat of
     Token.t (* "[" *)
-    * ( anon_choice_pat_3297d92 option
-      * (Token.t (* "," *) * anon_choice_pat_3297d92 option) list )
+    * (anon_choice_pat_3297d92 option
+      * (Token.t (* "," *) * anon_choice_pat_3297d92 option) list)
       (* zero or more *)
       option
     * Token.t
@@ -581,10 +580,10 @@ and else_clause = Token.t (* "else" *) * statement
 
 and enum_body =
   Token.t (* "{" *)
-  * ( anon_choice_prop_name_6cc9e4b
+  * (anon_choice_prop_name_6cc9e4b
     * (Token.t (* "," *) * anon_choice_prop_name_6cc9e4b) list
     (* zero or more *)
-    * Token.t (* "," *) option )
+    * Token.t (* "," *) option)
     option
   * Token.t
 
@@ -703,10 +702,10 @@ and formal_parameter =
 
 and formal_parameters =
   Token.t (* "(" *)
-  * ( formal_parameter
+  * (formal_parameter
     * (Token.t (* "," *) * formal_parameter) list
     (* zero or more *)
-    * Token.t (* "," *) option )
+    * Token.t (* "," *) option)
     option
   * Token.t
 
@@ -881,8 +880,8 @@ and non_null_expression = expression * Token.t
 (* "!" *)
 and object_ =
   Token.t (* "{" *)
-  * ( anon_choice_pair_20c9acd option
-    * (Token.t (* "," *) * anon_choice_pair_20c9acd option) list )
+  * (anon_choice_pair_20c9acd option
+    * (Token.t (* "," *) * anon_choice_pair_20c9acd option) list)
     (* zero or more *)
     option
   * Token.t
@@ -890,11 +889,11 @@ and object_ =
 (* "}" *)
 and object_type =
   [ `LCURL of Token.t (* "{" *) | `LCURLBAR of Token.t (* "{|" *) ]
-  * ( [ `COMMA of Token.t (* "," *) | `SEMI of Token.t (* ";" *) ] option
+  * ([ `COMMA of Token.t (* "," *) | `SEMI of Token.t (* ";" *) ] option
     * anon_choice_export_stmt_f90d83f
     * (anon_choice_COMMA_5194cb4 * anon_choice_export_stmt_f90d83f) list
     (* zero or more *)
-    * anon_choice_COMMA_5194cb4 option )
+    * anon_choice_COMMA_5194cb4 option)
     option
   * [ `RCURL of Token.t (* "}" *) | `BARRCURL of Token.t (* "|}" *) ]
 
@@ -1320,8 +1319,8 @@ type ambient_declaration =
 
 type array_pattern =
   Token.t (* "[" *)
-  * ( anon_choice_pat_3297d92 option
-    * (Token.t (* "," *) * anon_choice_pat_3297d92 option) list )
+  * (anon_choice_pat_3297d92 option
+    * (Token.t (* "," *) * anon_choice_pat_3297d92 option) list)
     (* zero or more *)
     option
   * Token.t
@@ -1572,8 +1571,8 @@ type object_assignment_pattern =
 
 type object_pattern =
   Token.t (* "{" *)
-  * ( anon_choice_pair_pat_3ff9cbe option
-    * (Token.t (* "," *) * anon_choice_pair_pat_3ff9cbe option) list )
+  * (anon_choice_pair_pat_3ff9cbe option
+    * (Token.t (* "," *) * anon_choice_pair_pat_3ff9cbe option) list)
     (* zero or more *)
     option
   * Token.t

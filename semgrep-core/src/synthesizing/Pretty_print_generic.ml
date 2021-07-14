@@ -71,7 +71,7 @@ let print_bool env = function
       | Lang.Vue | Lang.Csharp | Lang.PHP | Lang.Hack | Lang.Kotlin | Lang.Lua
       | Lang.Bash | Lang.Rust | Lang.Scala | Lang.HTML ->
           "true"
-      | Lang.R -> "TRUE" )
+      | Lang.R -> "TRUE")
   | false -> (
       match env.lang with
       | Lang.Python | Lang.Python2 | Lang.Python3 -> "False"
@@ -80,7 +80,7 @@ let print_bool env = function
       | Lang.Vue | Lang.PHP | Lang.Hack | Lang.Kotlin | Lang.Lua | Lang.Bash
       | Lang.Rust | Lang.Scala | Lang.HTML ->
           "false"
-      | Lang.R -> "FALSE" )
+      | Lang.R -> "FALSE")
 
 let arithop env (op, tok) =
   match op with
@@ -90,7 +90,7 @@ let arithop env (op, tok) =
   | Div -> "/"
   | Mod -> "%"
   | Pow -> "**"
-  | Eq -> ( match env.lang with Lang.OCaml -> "=" | _ -> "==" )
+  | Eq -> ( match env.lang with Lang.OCaml -> "=" | _ -> "==")
   | Lt -> "<"
   | LtE -> "<="
   | Gt -> ">"
@@ -426,7 +426,7 @@ and call env (e, (_, es, _)) =
       let op_str = match i_d with Incr -> "++" | Decr -> "--" in
       match pre_post with
       | Prefix -> F.sprintf "%s%s" op_str (argument env x)
-      | Postfix -> F.sprintf "%s%s" (argument env x) op_str )
+      | Postfix -> F.sprintf "%s%s" (argument env x) op_str)
   | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
 and literal env = function
@@ -442,9 +442,9 @@ and literal env = function
       | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus | Lang.Csharp
       | Lang.Kotlin | Lang.JSON | Lang.Javascript | Lang.Vue | Lang.OCaml
       | Lang.Ruby | Lang.Typescript | Lang.Lua | Lang.Rust | Lang.R ->
-          "\"" ^ s ^ "\"" )
+          "\"" ^ s ^ "\"")
   | Regexp ((_, (s, _), _), rmod) -> (
-      "/" ^ s ^ "/" ^ match rmod with None -> "" | Some (s, _) -> s )
+      "/" ^ s ^ "/" ^ match rmod with None -> "" | Some (s, _) -> s)
   | x -> todo (E (L x))
 
 and arguments env xs =

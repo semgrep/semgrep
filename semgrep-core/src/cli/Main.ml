@@ -292,8 +292,8 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
    * for DotAccess generated outside the grammar) *)
   let toks = tokens_matched_code |> List.filter PI.is_origintok in
-  ( if mvars = [] then
-    Matching_report.print_match ?str ~format:!match_format toks
+  (if mvars = [] then
+   Matching_report.print_match ?str ~format:!match_format toks
   else
     (*s: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
     (* similar to the code of Lib_matcher.print_match, maybe could
@@ -315,7 +315,7 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
     in
     pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
     (*e: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
-    () );
+    ());
   (*s: [[Main_semgrep_core.print_match()]] hook *)
   toks |> List.iter (fun x -> Common.push x _matching_tokens)
 
@@ -365,7 +365,7 @@ let cache_computation file cache_file_of_file f =
   else if not (Sys.file_exists file) then (
     pr2 ("WARNING: cache_computation: can't find file " ^ file);
     pr2 "defaulting to calling the function";
-    f () )
+    f ())
   else
     Common.profile_code "Main.cache_computation" (fun () ->
         let file_cache = cache_file_of_file file in
@@ -382,7 +382,7 @@ let cache_computation file cache_file_of_file f =
                  "Not the same file! Md5sum collision! Clean the cache file %s"
                  file_cache);
 
-          res )
+          res)
         else
           let res = f () in
           Common2.write_value (Version.version, file, res) file_cache;
@@ -433,7 +433,7 @@ let run_with_memory_limit limit_mb f =
       let mem = (Gc.quick_stat ()).Gc.heap_words in
       if mem > limit / (Sys.word_size / 8) then (
         logger#info "maxout allocated memory: %d" (mem * (Sys.word_size / 8));
-        raise Out_of_memory )
+        raise Out_of_memory)
     in
     let alarm = Gc.create_alarm limit_memory in
     Fun.protect f ~finally:(fun () ->
@@ -659,14 +659,14 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                      errors =
                        [
                          Error_code.mk_error_loc loc
-                           ( match exn with
+                           (match exn with
                            | Timeout ->
                                logger#info "Timeout on %s" file;
                                Error_code.Timeout str_opt
                            | Out_of_memory ->
                                logger#info "OutOfMemory on %s" file;
                                Error_code.OutOfMemory str_opt
-                           | _ -> raise Impossible );
+                           | _ -> raise Impossible);
                        ];
                      profiling = RP.empty_partial_profiling file;
                    }
@@ -829,10 +829,10 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
            in
            let lazy_ast_and_errors =
              lazy
-               ( match xlang with
+               (match xlang with
                | R.L (lang, _) -> parse_generic lang file
                | R.LRegex | R.LGeneric ->
-                   failwith "requesting generic AST for LRegex|LGeneric" )
+                   failwith "requesting generic AST for LRegex|LGeneric")
            in
            let res =
              Run_rules.check hook Config_semgrep.default_config rules
@@ -1038,7 +1038,7 @@ let json_of_v (v : OCaml.v) =
         match xs with
         | [] -> J.String (spf "%s" s)
         | [ one_element ] -> J.Object [ (s, aux one_element) ]
-        | _ -> J.Object [ (s, J.Array (List.map aux xs)) ] )
+        | _ -> J.Object [ (s, J.Array (List.map aux xs)) ])
     | OCaml.VVar (s, i64) -> J.String (spf "%s_%d" s (Int64.to_int i64))
     | OCaml.VArrow _ -> failwith "Arrow TODO"
     | OCaml.VNone -> J.Null
@@ -1086,7 +1086,7 @@ let dump_ast ?(naming = false) lang file =
       pr s;
       if errors <> [] then (
         pr2 (spf "WARNING: fail to fully parse %s" file);
-        exit 1 ))
+        exit 1))
 
 (*e: function [[Main_semgrep_core.dump_ast]] *)
 let dump_v1_json file =
@@ -1460,20 +1460,20 @@ let main () =
 
   if Sys.file_exists !log_config_file then (
     Logging.load_config_file !log_config_file;
-    logger#info "loaded %s" !log_config_file );
+    logger#info "loaded %s" !log_config_file);
   if !debug then (
     let open Easy_logging in
     let h = Handlers.make (CliErr Debug) in
     logger#add_handler h;
     logger#set_level Debug;
-    () );
+    ());
 
   logger#info "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " ");
   logger#info "Version: %s" version;
   if !profile then (
     logger#info "Profile mode On";
     logger#info "disabling -j when in profiling mode";
-    ncores := 1 );
+    ncores := 1);
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->

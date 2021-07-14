@@ -344,7 +344,7 @@ let rec map_extended_module_path (env : env) (x : CST.extended_module_path) =
           let v1 = map_extended_module_path env v1 in
           let v2 = token env v2 (* "." *) in
           let v3 = token env v3 (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
-          todo env (v1, v2, v3) )
+          todo env (v1, v2, v3))
   | `Exte_module_path_LPAR_exte_module_path_RPAR (v1, v2, v3, v4) ->
       let v1 = map_extended_module_path env v1 in
       let v2 = token env v2 (* "(" *) in
@@ -596,12 +596,12 @@ let map_constant (env : env) (x : CST.constant) : expr =
   | `Num tok ->
       let s, t = str env tok (* number *) in
       L
-        ( try
-            let i = int_of_string s in
-            Int (Some i, t)
-          with _ ->
-            let fopt = float_of_string_opt s in
-            Float (fopt, t) )
+        (try
+           let i = int_of_string s in
+           Int (Some i, t)
+         with _ ->
+           let fopt = float_of_string_opt s in
+           Float (fopt, t))
   | `Char (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
       let v2 = map_character_content env v2 in
@@ -665,7 +665,7 @@ let map_type_param (env : env) ((v1, v2) : CST.type_param) =
               | Some x -> map_anon_choice_PLUS_da42005 env x
               | None -> todo env ()
             in
-            todo env (v1, v2) )
+            todo env (v1, v2))
     | None -> todo env ()
   in
   let v2 =
@@ -740,7 +740,7 @@ let map_toplevel_directive (env : env) ((v1, v2) : CST.toplevel_directive) =
         match x with
         | `Cst x -> map_constant env x
         | `Value_path x -> map_value_path env x
-        | `Module_path x -> map_module_path env x )
+        | `Module_path x -> map_module_path env x)
     | None -> todo env ()
   in
   todo env (v1, v2)
@@ -1321,7 +1321,7 @@ and map_constructor_declaration (env : env)
             let v2 = token env v2 (* ")" *) in
             todo env (v1, v2)
         | `True tok -> token env tok (* "true" *)
-        | `False tok -> token env tok (* "false" *) )
+        | `False tok -> token env tok (* "false" *))
   in
   let v2 =
     match v2 with
@@ -1341,7 +1341,7 @@ and map_constructor_declaration (env : env)
         | `EQ_cons_path (v1, v2) ->
             let v1 = token env v1 (* "=" *) in
             let v2 = map_constructor_path env v2 in
-            todo env (v1, v2) )
+            todo env (v1, v2))
     | None -> todo env ()
   in
   todo env (v1, v2)
@@ -2765,7 +2765,7 @@ and map_simple_type (env : env) (x : CST.simple_type) : type_ =
             | None -> todo env ()
           in
           let v6 = token env v6 (* "]" *) in
-          todo env (v1, v2, v3, v4, v5, v6) )
+          todo env (v1, v2, v3, v4, v5, v6))
   | `Pack_type (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = token env v2 (* "module" *) in
@@ -2814,7 +2814,7 @@ and map_simple_type (env : env) (x : CST.simple_type) : type_ =
                   | None -> todo env ()
                 in
                 todo env (v1, v2, v3)
-            | `DOTDOT tok -> token env tok (* ".." *) )
+            | `DOTDOT tok -> token env tok (* ".." *))
         | None -> todo env ()
       in
       let v3 = token env v3 (* ">" *) in

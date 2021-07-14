@@ -177,7 +177,7 @@ let stmts_may_match pattern_stmts (stmts : AST_generic.stmt list) =
       | stmt :: rest -> (
           match acc with
           | F.No -> pattern_in_any_stmt pat rest (pat_in_stmt pat stmt)
-          | F.Maybe -> acc )
+          | F.Maybe -> acc)
     in
     let patterns_all_in_stmts acc x =
       match acc with
@@ -367,7 +367,7 @@ and m_type_option_with_hook idb taopt tbopt =
   | Some ta, None -> (
       match !Hooks.get_type idb with
       | Some tb -> m_type_ ta tb
-      | None -> fail () )
+      | None -> fail ())
   (* less-is-ok:, like m_option_none_can_match_some *)
   | None, _ -> return ()
 
@@ -575,11 +575,11 @@ and m_expr a b =
       if_config
         (fun x -> x.Config.constant_propagation)
         ~then_:
-          ( match
-              Normalize_generic.constant_propagation_and_evaluate_literal b1
-            with
+          (match
+             Normalize_generic.constant_propagation_and_evaluate_literal b1
+           with
           | Some b1 -> m_literal_constness a1 b1
-          | None -> fail () )
+          | None -> fail ())
         ~else_:(fail ())
   (*e: [[Generic_vs_generic.m_expr()]] propagated constant case *)
   (*s: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
@@ -655,7 +655,7 @@ and m_expr a b =
             match xs with [] -> fail () | x :: xs -> m_expr a x >||> aux xs
           in
           aux mult_assigns
-      | _, _ -> fail () )
+      | _, _ -> fail ())
   | A.DotAccess (a1, at, a2), B.DotAccess (b1, bt, b2) ->
       m_expr a1 b1 >>= fun () ->
       m_tok at bt >>= fun () -> m_name_or_dynamic a2 b2
@@ -800,7 +800,7 @@ and m_literal a b =
       (* less_is_ok: *)
       | None, _ -> return ()
       | Some a, Some b -> m_ellipsis_or_metavar_or_string a b
-      | Some _, None -> fail () )
+      | Some _, None -> fail ())
   (*x: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (*e: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (*s: [[Generic_vs_generic.m_literal()]] regexp case *)
@@ -859,7 +859,7 @@ and m_literal_constness a b =
   match b with
   | B.Lit b1 -> m_literal a b1
   | B.Cst B.Cstr -> (
-      match a with A.String ("...", _) -> return () | ___else___ -> fail () )
+      match a with A.String ("...", _) -> return () | ___else___ -> fail ())
   | B.Cst _ | B.NotCst -> fail ()
 
 (*s: function [[Generic_vs_generic.m_action]] *)
@@ -1182,7 +1182,7 @@ and m_list__m_argument (xsa : A.argument list) (xsb : A.argument list) =
               m_ident ida idb >>= fun () ->
               m_expr ea eb >>= fun () -> m_list__m_argument xsa (before @ after)
           | _ -> raise Impossible
-        with Not_found -> fail () )
+        with Not_found -> fail ())
   (*e: [[Generic_vs_generic.m_list__m_argument()]] [[ArgKwd]] pattern case *)
   (* the general case *)
   | xa :: aas, xb :: bbs ->
@@ -1216,7 +1216,7 @@ and m_arguments_concat a b =
       (* interpolated, and ellipsis implicitly is                   *)
       match (xa, xb) with
       | A.Arg (A.Ellipsis _), A.Arg (A.L (A.String _)) -> fail ()
-      | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs )
+      | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs)
   | [], _ | _ :: _, _ -> fail ()
 
 (*e: function [[Generic_vs_generic.m_arguments_concat]] *)
@@ -1274,7 +1274,7 @@ and m_call_op aop toka aargs bop tokb bargs tin =
            convert operands to AC normal form: %s ~ %s"
           (A.show_expr (A.Call (A.IdSpecial (A.Op aop, toka), aargs)))
           (B.show_expr (B.Call (B.IdSpecial (B.Op bop, tokb), bargs)));
-        m_op_default tin )
+        m_op_default tin)
   else m_op_default tin
 
 (* Associative-matching of operators.
@@ -1303,7 +1303,7 @@ and m_assoc_op tok op aargs_ac bargs_ac =
                 m_expr xa op_bs'
                 >>= (fun () -> m_assoc_op tok op xsa rest)
                 >||> aux xs
-            | None -> aux xs )
+            | None -> aux xs)
       in
       aux candidates
   | A.Ellipsis i :: xsa, xb :: xsb ->
@@ -1703,11 +1703,11 @@ and m_stmts_deep_uncached ~less_is_ok (xsa : A.stmt list) (xsb : A.stmt list) =
       if_config
         (fun x -> x.go_deeper_stmt)
         ~then_:
-          ( match SubAST_generic.flatten_substmts_of_stmts xsb with
+          (match SubAST_generic.flatten_substmts_of_stmts xsb with
           | None -> fail () (* was already flat *)
           | Some (xsb, last_stmt) ->
               m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id) xsa
-                xsb )
+                xsb)
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ({ s = A.ExprStmt (A.N (A.Id ((s, _), _idinfo)), _); _ } :: _ as xsa), xsb
@@ -1746,9 +1746,9 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
   | Maybe -> (
       (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
       logger#ldebug
-        ( lazy
+        (lazy
           (spf "m_list__m_stmt_uncached: %d vs %d" (List.length xsa)
-             (List.length xsb)) );
+             (List.length xsb)));
       (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
       match (xsa, xsb) with
       | [], [] -> return ()
@@ -1798,7 +1798,7 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
           m_stmt xa xb >>= fun () ->
           env_add_matched_stmt xb >>= fun () ->
           m_list__m_stmt ~list_kind aas bbs
-      | _ :: _, _ -> fail () )
+      | _ :: _, _ -> fail ())
 
 (*e: function [[Generic_vs_generic.m_list__m_stmt]] *)
 
@@ -1830,7 +1830,7 @@ and m_stmt a b =
       match b.s with
       | B.ExprStmt (subb, _) when not (Parse_info.is_fake sc) ->
           m_expr suba subb
-      | _ -> fail () )
+      | _ -> fail ())
   (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   (* dots: '...' can to match any statememt *)
@@ -2083,7 +2083,7 @@ and m_pattern a b =
         (* this can happen with PatAs in exception handler in Python *)
       with H.NotAnExpr ->
         envf (str, tok) (MV.P b2)
-        (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *) )
+        (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *))
   (* dots: *)
   | A.PatEllipsis _, _ -> return ()
   (* boilerplate *)
@@ -2427,7 +2427,7 @@ and m_list__m_field ~less_is_ok (xsa : A.field list) (xsb : A.field list) =
             m_definition adef bdef >>= fun () ->
             m_list__m_field ~less_is_ok xsa (before @ after)
         | _ -> raise Impossible
-      with Not_found -> fail () )
+      with Not_found -> fail ())
   (*e: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
   (* the general case *)
   (* This applies to definitions where the field name is a metavariable,
@@ -2656,7 +2656,7 @@ and m_directive a b =
       match (normal_a, normal_b) with
       | Some (a0, a1), Some (b0, b1) ->
           m_tok a0 b0 >>= fun () -> m_module_name_prefix a1 b1
-      | _ -> fail () )
+      | _ -> fail ())
   (* more complex pattern should not be normalized *)
   | A.ImportFrom _ | A.ImportAs _
   (* definitely do not normalize the pattern for ImportAll *)

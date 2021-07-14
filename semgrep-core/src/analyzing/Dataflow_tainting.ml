@@ -202,9 +202,9 @@ let (transfer :
         else None
     (* if just a single return is tainted then the function is tainted *)
     | NReturn (tok, e) when check_tainted_return config fun_env in' tok e ->
-        ( match opt_name with
+        (match opt_name with
         | Some var -> Hashtbl.add fun_env (str_of_name var) ()
-        | None -> () );
+        | None -> ());
         None
     | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
     | NThrow _ | NOther _ | NTodo _ ->
