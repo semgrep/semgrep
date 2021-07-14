@@ -1,7 +1,7 @@
 name: Lint
 on:
   workflow_dispatch:
-  pull_request_target:
+  pull_request:
 
 jobs:
   pre-commit:
@@ -22,7 +22,8 @@ jobs:
 
   pre-commit-ocaml:
     runs-on: ubuntu-latest
-    # Custom image provides 'ocamlformat', needed to check ocaml code
+    # Custom image provides 'ocamlformat' with a specific version needed to check
+    # ocaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu
     steps:
       - name: Pre-checkout fixes
@@ -32,8 +33,8 @@ jobs:
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
       - uses: actions/checkout@v2
-      - name: Check OCaml code
-        run: sudo -u user opam exec -- pre-commit run --all lint-ocaml
+      - name: Check Some OCaml code XXX
+        run: sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
 
   semgrep-run-r2c-config:
     name: semgrep with r2c registry

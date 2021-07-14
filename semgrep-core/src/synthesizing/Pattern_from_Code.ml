@@ -101,7 +101,7 @@ let get_id ?(with_type = false) env e =
           | N (Id (_, { id_type; _ })) -> (
               match !id_type with
               | None -> (notype_id, has_type)
-              | Some t -> (default_tyvar (count_to_id env.count) t, true) )
+              | Some t -> (default_tyvar (count_to_id env.count) t, true))
           | L (String (_, tag)) -> (L (String ("...", tag)), false)
           | _ -> (notype_id, has_type)
         else
@@ -205,7 +205,7 @@ let generalize_call env = function
           shallow_dots (e, (lp, rp))
           :: shallow_metavar (e, (lp, es, rp)) env
           :: exact_metavar (e, (lp, es, rp)) env
-          :: optional )
+          :: optional)
   | _ -> []
 
 (* Id *)

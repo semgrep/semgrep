@@ -380,10 +380,10 @@ let rec inits_and_rest_of_list = function
 
 let _ =
   Common2.example
-    ( inits_and_rest_of_list [ 'a'; 'b'; 'c' ]
+    (inits_and_rest_of_list [ 'a'; 'b'; 'c' ]
     = [
         ([ 'a' ], [ 'b'; 'c' ]); ([ 'a'; 'b' ], [ 'c' ]); ([ 'a'; 'b'; 'c' ], []);
-      ] )
+      ])
 
 let inits_and_rest_of_list_empty_ok = function
   | [] -> [ ([], []) ]
@@ -391,13 +391,13 @@ let inits_and_rest_of_list_empty_ok = function
 
 let _ =
   Common2.example
-    ( inits_and_rest_of_list_empty_ok [ 'a'; 'b'; 'c' ]
+    (inits_and_rest_of_list_empty_ok [ 'a'; 'b'; 'c' ]
     = [
         ([], [ 'a'; 'b'; 'c' ]);
         ([ 'a' ], [ 'b'; 'c' ]);
         ([ 'a'; 'b' ], [ 'c' ]);
         ([ 'a'; 'b'; 'c' ], []);
-      ] )
+      ])
 
 (*s: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 (* todo? optimize, probably not the optimal version ... *)
@@ -469,7 +469,7 @@ let regexp_matcher_of_regexp_string s =
     fun s2 ->
       Re.Pcre.pmatch ~rex:re s2 |> fun b ->
       logger#debug "regexp match: %s on %s, result = %b" s s2 b;
-      b )
+      b)
   else failwith (spf "This is not a PCRE-compatible regexp: " ^ s)
 
 (*e: function [[Matching_generic.regexp_of_regexp_string]] *)

@@ -89,7 +89,7 @@ let (lookup_some_ctx :
     | x :: xs -> (
         match ctx_filter x with
         | None -> aux depth xs
-        | Some a -> if depth = level then Some a else aux (depth + 1) xs )
+        | Some a -> if depth = level then Some a else aux (depth + 1) xs)
   in
   aux 1 xs
 
@@ -131,11 +131,11 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
         match stmt.s with
         | While (_, e, stmt) -> (F.WhileHeader e, stmt)
         | For (_, forheader, stmt) ->
-            ( ( match forheader with
+            ( (match forheader with
               | ForClassic _ -> raise Todo
               | ForEach (pat, _, e) -> F.ForeachHeader (pat, e)
               | ForEllipsis _ -> raise Todo
-              | ForIn _ -> raise Todo ),
+              | ForIn _ -> raise Todo),
               stmt )
         | _ -> raise Impossible
       in
@@ -279,7 +279,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
           None
       | Some finalthen ->
           state.g |> add_arc (finalthen, taili);
-          Some newfakeelse )
+          Some newfakeelse)
   | If (_, e, st_then, st_else) -> (
       (* previ -> newi --->  newfakethen -> ... -> finalthen --> lasti -> <rest>
        *                |                                     |
@@ -314,7 +314,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
           let lasti = state.g#add_node { F.n = F.Join; i = None } in
           state.g |> add_arc (n1, lasti);
           state.g |> add_arc (n2, lasti);
-          Some lasti )
+          Some lasti)
   | Return (_, e, _) ->
       let newi = state.g#add_node { F.n = F.Return e; i = i () } in
       state.g |> add_arc_opt (previ, newi);
@@ -359,9 +359,9 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
                  Some endi
              | TryCtx _ | NoCtx -> None)
       in
-      ( match nodei_to_jump_to with
+      (match nodei_to_jump_to with
       | Some nodei -> state.g |> add_arc (newi, nodei)
-      | None -> raise (Error (NoEnclosingLoop, i ())) );
+      | None -> raise (Error (NoEnclosingLoop, i ())));
       None
   | Switch (_, e, cases_and_body) ->
       let newi = state.g#add_node { F.n = F.SwitchHeader e; i = i () } in
@@ -377,14 +377,14 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
        *)
       if
         not
-          ( cases_and_body
+          (cases_and_body
           |> List.exists (function
                | CasesAndBody (cases, _body) ->
                    cases
                    |> List.exists (function
                         | Ast.Default _ -> true
                         | _ -> false)
-               | CaseEllipsis _ -> raise Impossible) )
+               | CaseEllipsis _ -> raise Impossible))
       then state.g |> add_arc (newi, endi);
       (* let's process all cases *)
       let last_stmt_opt = cfg_cases (newi, endi) state None cases_and_body in
@@ -394,7 +394,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
       if (state.g#predecessors endi)#null then (
         (* coupling: make sure Dataflow.new_node_array handle that case *)
         state.g#del_node endi;
-        None )
+        None)
       else Some endi
   (*
    * Handling try part 1. See the case for Throw below and the
@@ -488,16 +488,16 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
              | TryCtx nextcatchi -> Some nextcatchi
              | LoopCtx _ | SwitchCtx _ | NoCtx -> None)
       in
-      ( match nodei_to_jump_to with
+      (match nodei_to_jump_to with
       | Some nextcatchi -> state.g |> add_arc (last_false_node, nextcatchi)
-      | None -> state.g |> add_arc (last_false_node, state.exiti) );
+      | None -> state.g |> add_arc (last_false_node, state.exiti));
 
       (* if nobody connected to endi erase the node. For instance
        * if have only return in the try body.
        *)
       if (state.g#predecessors endi)#null then (
         state.g#del_node endi;
-        None )
+        None)
       else Some endi
   (*
    * For now we don't do any fancy analysis to statically detect
@@ -521,11 +521,11 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
              | TryCtx catchi -> Some catchi
              | LoopCtx _ | SwitchCtx _ | NoCtx -> None)
       in
-      ( match nodei_to_jump_to with
+      (match nodei_to_jump_to with
       | Some catchi -> state.g |> add_arc (newi, catchi)
       | None ->
           (* no enclosing handler, branch to exit node of the function *)
-          state.g |> add_arc (newi, state.exiti) );
+          state.g |> add_arc (newi, state.exiti));
       None
   (* TODO? should create a OtherStmtWithStmtFooter and arc to it? *)
   | OtherStmtWithStmt (op, eopt, st) ->

@@ -270,7 +270,7 @@ let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =
           let fopt, t = float_literal env tok in
           (* float_literal *)
           let fopt = match fopt with Some f -> Some (-.f) | None -> None in
-          G.PatLiteral (G.Float (fopt, PI.combine_infos (snd neg) [ t ])) )
+          G.PatLiteral (G.Float (fopt, PI.combine_infos (snd neg) [ t ])))
 
 let map_extern_modifier (env : env) ((v1, v2) : CST.extern_modifier) :
     G.attribute list =
@@ -421,8 +421,8 @@ let map_function_modifiers (env : env) (xs : CST.function_modifiers) :
     xs
   |> List.flatten
 
-let map_for_lifetimes (env : env) ((v1, v2, v3, v4, _v5TODO, v6) : CST.for_lifetimes)
-    : lifetime list =
+let map_for_lifetimes (env : env)
+    ((v1, v2, v3, v4, _v5TODO, v6) : CST.for_lifetimes) : lifetime list =
   let _for_ = token env v1 (* "for" *) in
   let _lthan = token env v2 (* "<" *) in
   let lifetime_first = map_lifetime env v3 in
@@ -572,7 +572,7 @@ and map_struct_pattern_field (env : env) (x : CST.anon_choice_field_pat_8e757e8)
           (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
           let _colon = token env v2 (* ":" *) in
           let pat = map_pattern env v3 in
-          ([ ident ], pat) )
+          ([ ident ], pat))
   | `Rema_field_pat tok ->
       let ident = ident env tok in
       (* ".." *)
@@ -1086,7 +1086,7 @@ and map_expression (env : env) (x : CST.expression) =
       | `BANG tok ->
           let tok = token env tok in
           (* "!" *)
-          G.Call (G.IdSpecial (G.Op G.Not, tok), fb [ G.Arg expr ]) )
+          G.Call (G.IdSpecial (G.Op G.Not, tok), fb [ G.Arg expr ]))
   | `Ref_exp (v1, v2, v3) ->
       let ref_ = token env v1 (* "&" *) in
       let _mutabilityTODO =
@@ -1177,7 +1177,7 @@ and map_expression (env : env) (x : CST.expression) =
             (ident, { G.name_qualifier; G.name_typeargs = Some typeargs })
           in
           G.N (G.IdQualified (name, G.empty_id_info ()))
-      | `Field_exp x -> map_field_expression env x (Some typeargs) )
+      | `Field_exp x -> map_field_expression env x (Some typeargs))
   | `Await_exp (v1, v2, v3) ->
       let expr = map_expression env v1 in
       let _dot = token env v2 (* "." *) in
@@ -1404,7 +1404,7 @@ and map_expression_statement (env : env) (x : CST.expression_statement) : G.stmt
           G.ExprStmt (expr, semicolon) |> G.s
       | `Choice_unsafe_blk x ->
           let expr = map_expression_ending_with_block env x in
-          G.ExprStmt (expr, sc) |> G.s )
+          G.ExprStmt (expr, sc) |> G.s)
   | `Ellips_SEMI (v1, v2) ->
       let ellipsis = token env v1 (* "..." *) in
       let sc = token env v2 (* ";" *) in
@@ -1547,13 +1547,13 @@ and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression)
               (ident, { G.name_qualifier = None; G.name_typeargs = Some tas })
             in
             G.EN (G.IdQualified (name_, G.empty_id_info ()))
-        | None -> G.EN (G.Id (ident, G.empty_id_info ())) )
+        | None -> G.EN (G.Id (ident, G.empty_id_info ())))
     | `Int_lit tok -> (
         let literal = G.L (G.Int (integer_literal env tok)) in
         (* integer_literal *)
         match typeargs with
         | Some _tas -> raise Impossible
-        | None -> G.EDynamic literal )
+        | None -> G.EDynamic literal)
   in
   G.DotAccess (expr, dot, ident_or_dyn)
 
@@ -1964,8 +1964,8 @@ and map_mod_block (env : env) ((v1, v2, v3, v4) : CST.mod_block) :
   let rbrace = token env v4 (* "}" *) in
   (lbrace, stmts, rbrace)
 
-and map_ordered_field (_env : env) _outer_attrsTODO (_attrsTODO : G.attribute list)
-    (type_ : G.type_) (index : int) : G.field =
+and map_ordered_field (_env : env) _outer_attrsTODO
+    (_attrsTODO : G.attribute list) (type_ : G.type_) (index : int) : G.field =
   let index_s = string_of_int index in
   let var_def = { G.vinit = None; G.vtype = Some type_ } in
   let ent =
@@ -2387,7 +2387,7 @@ and map_scoped_identifier_name (env : env)
             (None, Some ty)
         | `Gene_type_with_turb x ->
             let ty = map_generic_type_with_turbofish_type env x in
-            (None, Some ty) )
+            (None, Some ty))
     | None -> (None, None)
   in
   let colons = token env v2 (* "::" *) in
@@ -2418,7 +2418,7 @@ and map_scoped_type_identifier_name (env : env)
             (None, Some (fb [ G.TypeArg ty ]))
         | `Gene_type x ->
             let ty = map_generic_type env x in
-            (None, Some (fb [ G.TypeArg ty ])) )
+            (None, Some (fb [ G.TypeArg ty ])))
     | None -> (None, None)
   in
   let ident = ident env v3 in
@@ -2443,7 +2443,7 @@ and map_scoped_type_identifier_in_expression_position (env : env)
             (Some (G.QExpr (ident, colons)), None)
         | `Gene_type_with_turb x ->
             let ty = map_generic_type_with_turbofish_type env x in
-            (None, Some (fb [ G.TypeArg ty ])) )
+            (None, Some (fb [ G.TypeArg ty ])))
     | None -> (None, None)
   in
   let ident = ident env v3 in
@@ -2705,7 +2705,7 @@ and prepend_scope (dir : G.directive) (scope : G.dotted_ident option) :
       | ImportAll (tok, modname, wildcard) ->
           let modname = prepend_module_name scope modname in
           G.ImportAll (tok, modname, wildcard)
-      | _ -> dir )
+      | _ -> dir)
   | None -> dir
 
 and map_use_list (env : env) ((v1, v2, v3, v4) : CST.use_list)
@@ -3237,7 +3237,7 @@ let parse_expression_or_source_file str =
       | [] -> expr_res
       | _ ->
           let stmt_str = "__SEMGREP_STATEMENT " ^ str in
-          Tree_sitter_rust.Parse.string stmt_str )
+          Tree_sitter_rust.Parse.string stmt_str)
 
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =

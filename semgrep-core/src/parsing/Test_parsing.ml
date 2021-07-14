@@ -28,9 +28,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 
 let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
-  ( match res.program with
+  (match res.program with
   | Some cst -> dumper cst
-  | None -> failwith "unknown error from tree-sitter parser" );
+  | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
          pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))
@@ -127,7 +127,7 @@ let test_parse_tree_sitter lang xs =
              logger#info "processing %s" file;
              let stat =
                try
-                 ( match lang with
+                 (match lang with
                  (* less: factorize with dump_tree_sitter_cst_lang *)
                  | Lang.Ruby ->
                      Tree_sitter_ruby.Parse.file file |> fail_on_error |> ignore
@@ -163,7 +163,7 @@ let test_parse_tree_sitter lang xs =
                  | _ ->
                      failwith
                        (spf "lang %s not supported with tree-sitter"
-                          (Lang.string_of_lang lang)) );
+                          (Lang.string_of_lang lang)));
                  PI.correct_stat file
                with exn ->
                  pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
@@ -206,7 +206,7 @@ let parsing_common ?(verbose = true) lang xs =
              if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
              match exn with
              | Timeout -> { (PI.bad_stat file) with have_timeout = true }
-             | _else_ -> PI.bad_stat file )
+             | _else_ -> PI.bad_stat file)
          in
          stat)
 

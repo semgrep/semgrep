@@ -67,12 +67,10 @@ let subst_e (env : Env.t) e =
                     e
                 | Some _ ->
                     failwith
-                      (spf "incompatible metavar: %s, was expecting an expr"
-                         str)
+                      (spf "incompatible metavar: %s, was expecting an expr" str)
                 | None ->
                     failwith
-                      (spf "could not find metavariable %s in environment" str)
-                )
+                      (spf "could not find metavariable %s in environment" str))
             | _ -> k x);
       }
   in
@@ -130,7 +128,7 @@ let apply equivs any =
                       then x' (* disjunction (if different) *)
                       else DisjExpr (x', alt)
                   (* no match yet, trying another equivalence *)
-                  | [] -> aux xs )
+                  | [] -> aux xs)
             in
             aux expr_rules);
         M.kstmt = (fun (_k, _) x -> x);

@@ -28,9 +28,9 @@ open Common
 (*****************************************************************************)
 
 let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
-  ( match res.program with
+  (match res.program with
   | Some cst -> dumper cst
-  | None -> failwith "unknown error from tree-sitter parser" );
+  | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
          pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))

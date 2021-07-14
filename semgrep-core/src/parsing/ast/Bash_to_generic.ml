@@ -78,7 +78,7 @@ and command (cmd : command) : G.stmt option =
       | arg0 :: args ->
           let args = List.map (fun x -> G.Arg (expression x)) args in
           let e = G.Call (expression arg0, G.fake_bracket args) in
-          Some (G.s (ExprStmt (e, G.fake ""))) )
+          Some (G.s (ExprStmt (e, G.fake ""))))
   | Compound_command _ -> None
   | Coprocess _ -> None
   | Assignment _ -> None
@@ -95,7 +95,7 @@ and expression (e : expression) : G.expr =
       match frag with
       | String_content x -> G.L (G.Atom (G.fake "", x))
       | Expansion ex -> expansion ex
-      | Command_substitution (_open, _x, _close) -> todo )
+      | Command_substitution (_open, _x, _close) -> todo)
   | Raw_string _ -> todo
   | Ansii_c_string _ -> todo
   | Special_character _ -> todo

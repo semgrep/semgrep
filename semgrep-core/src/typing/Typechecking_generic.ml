@@ -49,13 +49,13 @@ let compatible_type t e =
     ->
       true
   | TyBuiltin (t1, _), N (Id (_, { id_type; _ })) -> (
-      match !id_type with Some (TyBuiltin (t2, _)) -> t1 = t2 | _ -> false )
+      match !id_type with Some (TyBuiltin (t2, _)) -> t1 = t2 | _ -> false)
   | TyN (Id ((t1, _), _)), N (Id (_, { id_type; _ })) -> (
-      match !id_type with Some (TyN (Id ((t2, _), _))) -> t1 = t2 | _ -> false )
+      match !id_type with Some (TyN (Id ((t2, _), _))) -> t1 = t2 | _ -> false)
   | TyArray (_, TyN (Id ((t1, _), _))), N (Id (_, { id_type; _ })) -> (
       match !id_type with
       | Some (TyArray (_, TyN (Id ((t2, _), _)))) -> t1 = t2
-      | _ -> false )
+      | _ -> false)
   | _ -> false
 
 (*e: function [[Typechecking_generic.compatible_type]] *)

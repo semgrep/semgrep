@@ -95,7 +95,7 @@ let parse_json file =
             xs |> List.map (fun (s, json) -> (s, metavar_of_json s json))
           in
           (Common.hash_of_list metavars, code)
-      | _ -> failwith "wrong json format" )
+      | _ -> failwith "wrong json format")
   | _ -> failwith "wrong json format"
 
 (*****************************************************************************)
@@ -123,7 +123,7 @@ let print_result xopt =
       (* allow to abuse int to encode boolean ... ugly C tradition *)
       | Int 0 -> pr (string_of_bool false)
       | Int _ -> pr (string_of_bool true)
-      | _ -> pr "NONE" )
+      | _ -> pr "NONE")
   [@@action]
 
 (*****************************************************************************)
@@ -139,13 +139,13 @@ let rec eval env code =
       (* big integers or floats can't be evaluated (Int (None, ...)) *)
       | G.Int (Some i, _t) -> Int i
       | G.Float (Some f, _t) -> Float f
-      | _ -> raise (NotHandled code) )
+      | _ -> raise (NotHandled code))
   (* less: sanity check that s is a metavar_name? *)
   | G.N (G.Id ((s, _t), _idinfo)) -> (
       try Hashtbl.find env s
       with Not_found ->
         logger#debug "could not find a value for %s in env" s;
-        raise Not_found )
+        raise Not_found)
   | G.Call (G.N (G.Id (("int", _), _)), (_, [ Arg e ], _)) -> (
       let v = eval env e in
       match v with
@@ -153,8 +153,8 @@ let rec eval env code =
       | String s -> (
           match int_of_string_opt s with
           | None -> raise (NotHandled code)
-          | Some i -> Int i )
-      | __else__ -> raise (NotHandled code) )
+          | Some i -> Int i)
+      | __else__ -> raise (NotHandled code))
   | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
       let values =
         args
@@ -186,7 +186,7 @@ let rec eval env code =
           let v = Bool res in
           logger#info "regexp %s on %s return %s" re s (show_value v);
           v
-      | _ -> raise (NotHandled code) )
+      | _ -> raise (NotHandled code))
   | _ -> raise (NotHandled code)
 
 and eval_op op values code =
@@ -241,7 +241,7 @@ and eval_op op values code =
   | G.NotEq, [ Float v1; Int v2 ] -> Bool (v1 <> float_of_int v2)
   | G.NotEq, [ v1; v2 ] -> Bool (v1 <> v2)
   | G.In, [ v1; v2 ] -> (
-      match v2 with List xs -> Bool (List.mem v1 xs) | _ -> Bool false )
+      match v2 with List xs -> Bool (List.mem v1 xs) | _ -> Bool false)
   | _ -> raise (NotHandled code)
 
 (*****************************************************************************)
@@ -285,7 +285,7 @@ let bindings_to_env xs =
              with NotHandled _e ->
                logger#debug "can't eval %s value %s" mvar (MV.show_mvalue mval);
                (* todo: if not a value, could default to AST of range *)
-               None )
+               None)
          | x ->
              logger#debug "filtering mvar %s, not an expr %s" mvar
                (MV.show_mvalue x);

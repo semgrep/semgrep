@@ -35,7 +35,7 @@ let unittest parse_program parse_pattern =
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
-                                  type String" )
+                                  type String")
                        | _ -> ());
                  }
              in
@@ -57,15 +57,15 @@ let unittest parse_program parse_pattern =
                      (fun (_k, _) exp ->
                        match exp with
                        | A.Call (_, (_, [ x; y ], _)) -> (
-                           ( match x with
+                           (match x with
                            | A.Arg (A.N (A.Id (_, { A.id_type; _ }))) -> (
                                match !id_type with
                                | Some (A.TyN (A.Id (("String", _), _))) -> ()
                                | _ ->
                                    assert_failure
                                      "Variable 1 referenced did not have \
-                                      expected type String" )
-                           | _ -> () );
+                                      expected type String")
+                           | _ -> ());
                            match y with
                            | A.Arg (A.N (A.Id (_, { A.id_type; _ }))) -> (
                                match !id_type with
@@ -73,15 +73,15 @@ let unittest parse_program parse_pattern =
                                | _ ->
                                    assert_failure
                                      "Variable 2 referenced did not have \
-                                      expected type int" )
-                           | _ -> () )
+                                      expected type int")
+                           | _ -> ())
                        | A.Assign (A.N (A.Id (_, { A.id_type; _ })), _, _) -> (
                            match !id_type with
                            | Some (A.TyN (A.Id (("String", _), _))) -> ()
                            | _ ->
                                assert_failure
                                  "Variable 1 referenced did not have expected \
-                                  type String" )
+                                  type String")
                        | _ -> ());
                  }
              in
@@ -103,15 +103,15 @@ let unittest parse_program parse_pattern =
                      (fun (_k, _) exp ->
                        match exp with
                        | A.Call (_, (_, [ x; y ], _)) -> (
-                           ( match x with
+                           (match x with
                            | A.Arg (A.N (A.Id (_, { A.id_type; _ }))) -> (
                                match !id_type with
                                | Some (A.TyBuiltin ("int", _)) -> ()
                                | _ ->
                                    assert_failure
                                      "Variable 1 referenced did not have \
-                                      expected type String" )
-                           | _ -> () );
+                                      expected type String")
+                           | _ -> ());
                            match y with
                            | A.Arg (A.N (A.Id (_, { A.id_type; _ }))) -> (
                                match !id_type with
@@ -119,8 +119,8 @@ let unittest parse_program parse_pattern =
                                | _ ->
                                    assert_failure
                                      "Variable 2 referenced did not have \
-                                      expected type int" )
-                           | _ -> () )
+                                      expected type int")
+                           | _ -> ())
                        | _ -> ());
                  }
              in
@@ -147,14 +147,14 @@ let unittest parse_program parse_pattern =
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
-                                  type int" )
+                                  type int")
                        | A.N (A.Id (("default_age", _), { A.id_type; _ })) -> (
                            match !id_type with
                            | Some (A.TyBuiltin ("int", _)) -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
-                                  type int" )
+                                  type int")
                        | _ -> ());
                  }
              in
@@ -201,7 +201,7 @@ let unittest parse_program parse_pattern =
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
-                                  type int" )
+                                  type int")
                        | _ -> ());
                  }
              in
@@ -223,7 +223,7 @@ let unittest parse_program parse_pattern =
                      (fun (_k, _) exp ->
                        match exp with
                        | A.Call (_, (_, [ x; y ], _)) -> (
-                           ( match x with
+                           (match x with
                            | A.Arg (A.N (A.Id (("a", _), { A.id_type; _ })))
                              -> (
                                match !id_type with
@@ -231,11 +231,11 @@ let unittest parse_program parse_pattern =
                                | _ ->
                                    assert_failure
                                      "Variable referenced did not have \
-                                      expected type int" )
+                                      expected type int")
                            | _ ->
                                assert_failure
                                  "Expected function call to be with int a as \
-                                  first argument" );
+                                  first argument");
                            match y with
                            | A.Arg (A.N (A.Id (("c", _), { A.id_type; _ })))
                              -> (
@@ -244,11 +244,11 @@ let unittest parse_program parse_pattern =
                                | _ ->
                                    assert_failure
                                      "Variable referenced did not have \
-                                      expected type bool" )
+                                      expected type bool")
                            | _ ->
                                assert_failure
                                  "Epected function call to have bool c as \
-                                  second argument" )
+                                  second argument")
                        | _ -> ());
                  }
              in
@@ -275,21 +275,21 @@ let unittest parse_program parse_pattern =
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
-                                  type char" )
+                                  type char")
                        | A.N (A.Id (("b", _), { A.id_type; _ })) -> (
                            match !id_type with
                            | Some (A.TyN (A.Id (("int", _), _))) -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
-                                  type int" )
+                                  type int")
                        | A.N (A.Id (("c", _), { A.id_type; _ })) -> (
                            match !id_type with
                            | Some (A.TyN (A.Id (("char", _), _))) -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
-                                  type char" )
+                                  type char")
                        | _ -> ());
                  }
              in

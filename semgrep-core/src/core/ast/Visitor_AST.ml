@@ -252,7 +252,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
           let v1 = v_bracket v_expr v1 in
           ()
       | Container (v1, v2) ->
-          ( match v1 with
+          (match v1 with
           | Dict ->
               v2 |> unbracket
               |> List.iter (function
@@ -268,7 +268,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
                        let t = PI.fake_info ":" in
                        v_partial ~recurse:false (PartialSingleField (id, t, e))
                    | _ -> ())
-          | _ -> () );
+          | _ -> ());
           let v1 = v_container_operator v1
           and v2 = v_bracket (v_list v_expr) v2 in
           ()
@@ -551,7 +551,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | None -> ()
         | Some (v1, v2) ->
             v_wrap v_bool v1;
-            v_type_ v2 )
+            v_type_ v2)
     | TypeLifetime v1 ->
         let v1 = v_ident v1 in
         ()
@@ -877,26 +877,26 @@ let (mk_visitor : visitor_in -> visitor_out) =
           (* Do not call v_def here, otherwise you'll get infinite loop *)
           if recurse then (
             v_entity v1;
-            v_def_kind v2 );
+            v_def_kind v2);
           ()
       | PartialIf (v1, v2) ->
           if recurse then (
             v_tok v1;
-            v_expr v2 )
+            v_expr v2)
       | PartialTry (v1, v2) ->
           if recurse then (
             v_tok v1;
-            v_stmt v2 )
+            v_stmt v2)
       | PartialCatch v1 -> if recurse then v_catch v1
       | PartialFinally (v1, v2) ->
           if recurse then (
             v_tok v1;
-            v_stmt v2 )
+            v_stmt v2)
       | PartialSingleField (v1, v2, v3) ->
           if recurse then (
             v_wrap v_string v1;
             v_tok v2;
-            v_expr v3 )
+            v_expr v3)
       | PartialLambdaOrFuncDef v1 -> if recurse then v_function_definition v1
     in
     vin.kpartial (k, all_functions) x
@@ -1015,13 +1015,13 @@ let (mk_visitor : visitor_in -> visitor_out) =
           let v1 = v_expr v1 in
           ()
       | FieldStmt v1 ->
-          ( match v1.s with
+          (match v1.s with
           | DefStmt
               ( { name = EN (Id (id, _)); _ },
                 FieldDefColon { vinit = Some e; _ } ) ->
               let t = PI.fake_info ":" in
               v_partial ~recurse:false (PartialSingleField (id, t, e))
-          | _ -> () );
+          | _ -> ());
           let v1 = v_stmt v1 in
           ()
     in
@@ -1272,7 +1272,7 @@ let extract_ranges recursor =
               stmt.s_range <- !ranges;
               match saved_ranges with
               | None -> ()
-              | Some r -> incorporate_tokens r )
+              | Some r -> incorporate_tokens r)
           | Some range -> incorporate_tokens range);
     }
   in

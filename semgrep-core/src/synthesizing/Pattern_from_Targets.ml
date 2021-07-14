@@ -92,10 +92,10 @@ let rec show_patterns (patterns : pattern_instrs) =
   | [] -> pr2 "---"
   | (_any, pattern, replacements) :: pats ->
       pr2
-        ( "( " (* ^ (p_any any) ^ ", " *) ^ p_any pattern
+        ("( " (* ^ (p_any any) ^ ", " *) ^ p_any pattern
         ^ ", "
         ^ show_replacements replacements
-        ^ " )" );
+        ^ " )");
       show_patterns pats
 
 let show_pattern_sets patsets =
@@ -208,7 +208,7 @@ let pattern_from_args env args : pattern_instrs =
         | E x -> Args (Arg (Ellipsis el) :: Arg x :: xs)
         | x ->
             pr2 (show_any x);
-            raise InvalidSubstitution )
+            raise InvalidSubstitution)
     | Args (_ :: _) -> args
     | _ -> raise InvalidSubstitution
   in
@@ -223,11 +223,11 @@ let pattern_from_args env args : pattern_instrs =
     | Args (Arg (Ellipsis el) :: Arg e :: rest) -> (
         match f (Args rest) with
         | Args args' -> Args (Arg (Ellipsis el) :: Arg e :: args')
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | Args (Arg e :: rest) -> (
         match f (Args rest) with
         | Args args' -> Args (Arg e :: args')
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
   let remove_end_ellipsis _f args =
@@ -276,7 +276,7 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
     | E (Call (e, (lp, args, rp))) -> (
         match f (E e) with
         | E x -> E (Call (x, (lp, args, rp)))
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
   let replace_args f e =
@@ -284,7 +284,7 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
     | E (Call (e, (lp, args, rp))) -> (
         match f (Args args) with
         | Args x -> E (Call (e, (lp, x, rp)))
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
   [
@@ -312,11 +312,11 @@ let pattern_from_assign env (e1, tok, e2) : pattern_instrs =
     | E (Assign (e1, tok, e2)), Left -> (
         match f (E e1) with
         | E x -> E (Assign (x, tok, e2))
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | E (Assign (e1, tok, e2)), Right -> (
         match f (E e2) with
         | E x -> E (Assign (e1, tok, x))
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
   [
@@ -350,7 +350,7 @@ let rec pattern_from_stmt env ({ s; _ } as stmt) : pattern_instrs =
         | S ({ s = ExprStmt (e', _); _ } as stmt) -> (
             match f (E e') with
             | E x -> S (replace_sk stmt (ExprStmt (x, sc)))
-            | _ -> raise InvalidSubstitution )
+            | _ -> raise InvalidSubstitution)
         | _ ->
             pr2 "h1";
             raise InvalidSubstitution
@@ -425,7 +425,7 @@ let get_included_patterns pattern_children =
     | [] -> (
         match holes with
         | [] -> []
-        | _ -> [ (set_prev env pattern, pattern, holes) ] )
+        | _ -> [ (set_prev env pattern, pattern, holes) ])
     | _ -> children
   in
   List.map
@@ -440,7 +440,7 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   if false then (
     (* Set this for debug info *)
     pr2 "target patterns";
-    show_pattern_sets target_patterns );
+    show_pattern_sets target_patterns);
   let pattern_children =
     List.map (List.map get_one_step_replacements) target_patterns
   in

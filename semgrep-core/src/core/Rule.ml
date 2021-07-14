@@ -283,7 +283,7 @@ let convert_extra x =
             | None | Some false -> comparison
             | Some true -> rewrite_metavar_comparison_strip mvar comparison
           in
-          CondEval cond )
+          CondEval cond)
   | PatWherePython _ ->
       (*
   logger#debug "convert_extra: %s" s;

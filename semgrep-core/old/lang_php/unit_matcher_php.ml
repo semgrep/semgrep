@@ -248,7 +248,7 @@ let spatch_unittest =
                (spf "spatch %s on %s should have resulted in %s"
                   (Filename.basename spatchfile)
                   (Filename.basename phpfile)
-                  (Filename.basename expfile)) )
+                  (Filename.basename expfile)))
          else failwith ("wrong format for expfile: " ^ expfile))
 
 (*****************************************************************************)

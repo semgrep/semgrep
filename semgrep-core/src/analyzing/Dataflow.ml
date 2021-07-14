@@ -259,7 +259,7 @@ module Make (F : Flow) = struct
         if eq_inout eq old new_ then work'
         else (
           mapping.(ni) <- new_;
-          NodeiSet.union work' (succs flow ni) )
+          NodeiSet.union work' (succs flow ni))
       in
       fixpoint_worker eq mapping trans flow succs work''
 

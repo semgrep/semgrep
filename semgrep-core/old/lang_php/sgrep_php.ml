@@ -129,8 +129,8 @@ let sgrep_ast ?(case_sensitive = false) ~hook pattern ast =
         }
     | _ ->
         failwith
-          ( spf "pattern not yet supported:"
-          ^ "TODO" (*    Export_ast_php.ml_pattern_string_of_any pattern *) )
+          (spf "pattern not yet supported:"
+          ^ "TODO" (*    Export_ast_php.ml_pattern_string_of_any pattern *))
   in
   (* opti ? dont analyze func if no constant in it ?*)
   Common.save_excursion Php_vs_php.case_sensitive case_sensitive (fun () ->

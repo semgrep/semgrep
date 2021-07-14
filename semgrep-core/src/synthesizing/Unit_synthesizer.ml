@@ -221,7 +221,7 @@ let unittest =
                         if matches_with_env = [] then (
                           pr2 str;
                           pr2 (AST_generic.show_any pattern);
-                          pr2 (AST_generic.show_any code) );
+                          pr2 (AST_generic.show_any code));
                         assert_bool
                           (spf "pattern:|%s| should match |%s" pat
                              (PPG.pattern_to_string lang code))
@@ -238,6 +238,6 @@ let unittest =
                     "" pats
                 in
                 assert_bool
-                  ( "Patterns do not match solution, where inferred patterns are:\n"
-                  ^ pats_str )
+                  ("Patterns do not match solution, where inferred patterns are:\n"
+                 ^ pats_str)
                   (pats = sols)))

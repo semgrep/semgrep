@@ -533,7 +533,7 @@ and argument (env : env) ((v1, v2) : CST.argument) =
     | Some x -> (
         match x with
         | `Inout_modi tok -> token env tok (* "inout" *)
-        | `Vari_modi tok -> token env tok (* "..." *) )
+        | `Vari_modi tok -> token env tok (* "..." *))
     | None -> todo env ()
   in
   let v2 = expression env v2 in
@@ -1001,7 +1001,7 @@ and declaration (env : env) (x : CST.declaration) =
                   | None -> todo env ()
                 in
                 let v2 = compound_statement env v2 in
-                todo env (v1, v2) )
+                todo env (v1, v2))
         | None -> todo env ()
       in
       todo env (v1, v2)
@@ -1454,7 +1454,7 @@ and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
               | Some tok -> token env tok (* "," *)
               | None -> todo env ()
             in
-            todo env (v1, v2, v3) )
+            todo env (v1, v2, v3))
     | None -> todo env ()
   in
   let v3 = token env v3 (* ")" *) in
@@ -2066,7 +2066,7 @@ and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) =
         match x with
         | `PLUS tok -> token env tok (* "+" *)
         | `DASH tok -> token env tok (* "-" *)
-        | `Reify tok -> token env tok (* "reify" *) )
+        | `Reify tok -> token env tok (* "reify" *))
     | None -> todo env ()
   in
   let v3 =
@@ -2194,7 +2194,7 @@ and xhp_attribute (env : env) (x : CST.xhp_attribute) =
   | `Choice_xhp_braced_exp x -> (
       match x with
       | `Xhp_braced_exp x -> xhp_braced_expression env x
-      | `Xhp_spread_exp x -> xhp_spread_expression env x )
+      | `Xhp_spread_exp x -> xhp_spread_expression env x)
 
 and xhp_attribute_declaration (env : env)
     ((v1, v2, v3, v4) : CST.xhp_attribute_declaration) =
@@ -2244,7 +2244,7 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
     | Some x -> (
         match x with
         | `ATre tok -> token env tok (* "@required" *)
-        | `ATla tok -> token env tok (* "@lateinit" *) )
+        | `ATla tok -> token env tok (* "@lateinit" *))
     | None -> todo env ()
   in
   todo env (v1, v2, v3, v4)
