@@ -37,7 +37,7 @@ let test_pattern_parser () =
         dots;
         metavar "Var_0";
         End;
-      ] )
+      ])
 
 (*
    Compare the structure of two unparsed documents.

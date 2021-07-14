@@ -58,14 +58,14 @@ let make_semgrep_json ~with_time doc_matches pat_errors :
                       Src_file.list_lines_of_pos_range src pos1 pos2
                     in
                     let extra = { message = None; metavars; lines } in
-                    ( {
-                        check_id;
-                        path;
-                        start = semgrep_pos pos1;
-                        end_ = semgrep_pos pos2;
-                        extra;
-                      }
-                      : match_ ))
+                    ({
+                       check_id;
+                       path;
+                       start = semgrep_pos pos1;
+                       end_ = semgrep_pos pos2;
+                       extra;
+                     }
+                      : match_))
                   matches
               in
               (matches_out @ matches_acc, match_time +. match_time_acc))

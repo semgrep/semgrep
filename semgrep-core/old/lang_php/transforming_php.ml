@@ -171,8 +171,7 @@ module XMATCH = struct
                  try List.assoc matched env
                  with Not_found ->
                    failwith
-                     (spf "metavariable %s was not found in environment"
-                        matched))
+                     (spf "metavariable %s was not found in environment" matched))
         in
 
         let s =
@@ -182,8 +181,7 @@ module XMATCH = struct
                  try List.assoc matched env
                  with Not_found ->
                    failwith
-                     (spf "metavariable %s was not found in environment"
-                        matched))
+                     (spf "metavariable %s was not found in environment" matched))
         in
         PI.AddStr s
 

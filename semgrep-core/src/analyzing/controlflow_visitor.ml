@@ -97,7 +97,7 @@ let exprs_of_node node =
       (* TODO: should use visitor! *)
       | OtherStmt _ -> []
       (* TODO: should transform in Assign *)
-      | Parameter _p -> [] )
+      | Parameter _p -> [])
 
 (* this can also be used as an iter; just pass () to acc *)
 let fold_on_node_and_expr hook (flow : flow) acc =

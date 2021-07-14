@@ -37,7 +37,7 @@ and of_pattern_node acc pat_node =
       | Metavar s ->
           let start, end_ = loc in
           let word_loc = (Loc.Pos.shift start 1, end_) in
-          Atom (word_loc, Word s) :: Atom (Loc.sub loc 0 1, Punct '$') :: acc )
+          Atom (word_loc, Word s) :: Atom (Loc.sub loc 0 1, Punct '$') :: acc)
   | Dots (loc, None) ->
       (* ... *)
       let pos0, pos3 = loc in

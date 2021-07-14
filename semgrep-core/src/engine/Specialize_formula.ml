@@ -64,7 +64,7 @@ let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
             [
               RM.match_result_to_range
                 (pattern_match_from_binding selector binding);
-            ] )
+            ])
   in
   List.flatten (List.map select_from_range ranges)
 
@@ -86,7 +86,7 @@ let selector_from_formula match_func f =
               pstr;
               lazy_matches = lazy (match_func [ (pattern, pid, pstr) ]);
             }
-      | _ -> None )
+      | _ -> None)
   | _ -> None
 
 let formula_to_sformula match_func formula =

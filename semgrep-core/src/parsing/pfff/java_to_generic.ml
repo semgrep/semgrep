@@ -273,7 +273,7 @@ and expr e =
                 cbody = decls |> bracket (List.map (fun x -> G.FieldStmt x));
               }
           in
-          G.Call (G.IdSpecial (G.New, v0), (lp, G.Arg anonclass :: v2, rp)) )
+          G.Call (G.IdSpecial (G.New, v0), (lp, G.Arg anonclass :: v2, rp)))
   | NewArray (v0, v1, v2, v3, v4) -> (
       let v1 = typ v1
       and v2 = list argument v2
@@ -289,7 +289,7 @@ and expr e =
       match v4 with
       | None -> G.Call (G.IdSpecial (G.New, v0), fb (G.ArgType t :: v2))
       | Some e ->
-          G.Call (G.IdSpecial (G.New, v0), fb (G.ArgType t :: G.Arg e :: v2)) )
+          G.Call (G.IdSpecial (G.New, v0), fb (G.ArgType t :: G.Arg e :: v2)))
   (* x.new Y(...) {...} *)
   | NewQualifiedClass (v0, _tok1, _tok2, v2, v3, v4) ->
       let v0 = expr v0
@@ -299,8 +299,8 @@ and expr e =
       let any =
         [ G.E v0; G.T v2 ]
         @ (v3 |> G.unbracket |> List.map (fun arg -> G.Ar arg))
-        @ ( Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
-          |> List.map (fun st -> G.S st) )
+        @ (Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
+          |> List.map (fun st -> G.S st))
       in
       G.OtherExpr (G.OE_NewQualifiedClass, any)
   | MethodRef (v1, v2, v3, v4) ->
@@ -600,11 +600,11 @@ and class_decl
   (ent, cdef)
 
 and class_kind (x, t) =
-  ( ( match x with
+  ( (match x with
     | ClassRegular -> G.Class
     | Interface -> G.Interface
     | AtInterface -> G.AtInterface
-    | Record -> G.RecordClass ),
+    | Record -> G.RecordClass),
     t )
 
 and decl decl =
@@ -650,7 +650,7 @@ let partial = function
       let x = decl x in
       match x.G.s with
       | G.DefStmt def -> G.PartialDef def
-      | _ -> failwith "unsupported PartialDecl" )
+      | _ -> failwith "unsupported PartialDecl")
   | PartialIf (v1, v2) ->
       let v2 = expr v2 in
       G.PartialIf (v1, v2)

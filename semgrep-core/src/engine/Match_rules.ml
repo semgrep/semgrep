@@ -204,9 +204,9 @@ let (mini_rule_of_pattern :
     message = "";
     severity = MR.Error;
     languages =
-      ( match xlang with
+      (match xlang with
       | R.L (x, xs) -> x :: xs
-      | R.LRegex | R.LGeneric -> raise Impossible );
+      | R.LRegex | R.LGeneric -> raise Impossible);
     (* useful for debugging timeout *)
     pattern_string = pstr;
   }
@@ -669,7 +669,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
               in
               nested_formula_has_matches env formula lazy_ast_and_errors
                 lazy_content
-                (Some { r with r = mval_range }) )
+                (Some { r with r = mval_range }))
       | Some xlang, MV.Text (content, _tok)
       | Some xlang, MV.E (G.L (G.String (content, _tok))) ->
           (* We reinterpret the matched text as `xlang`. *)
@@ -679,12 +679,12 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
             | R.L (lang, _) -> (
                 match Lang.ext_of_lang lang with
                 | x :: _ -> x
-                | [] -> assert false )
+                | [] -> assert false)
           in
           Common2.with_tmp_file ~str:content ~ext (fun file ->
               let lazy_ast_and_errors =
                 lazy
-                  ( match xlang with
+                  (match xlang with
                   | R.L (lang, _) ->
                       let { Parse_target.ast; errors; _ } =
                         Parse_target
@@ -700,7 +700,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                              env.rule_id mvar);
                       (ast, errors)
                   | R.LRegex | R.LGeneric ->
-                      failwith "requesting generic AST for LRegex|LGeneric" )
+                      failwith "requesting generic AST for LRegex|LGeneric")
               in
               let r' =
                 (* Fix the range wrt the temporary file that we now use for
@@ -719,7 +719,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
           logger#error
             "rule %s: metavariable-pattern: the content of %s is not text"
             env.rule_id mvar;
-          false )
+          false)
 
 and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
     opt_context =
@@ -792,7 +792,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
                   S.match_selector ~err:"empty And; no positive terms in And"
                     selector_opt;
                 ]
-            | Some r -> [ [ r ] ] )
+            | Some r -> [ [ r ] ])
         | ps -> ps
       in
       match all_posr with
@@ -835,7 +835,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
             conds
             |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res
           in
-          S.select_from_ranges env.file selector_opt res )
+          S.select_from_ranges env.file selector_opt res)
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
   | S.Leaf (R.MetavarCond _) ->
       failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
@@ -883,7 +883,7 @@ let check hook default_config rules equivs file_and_more =
   if rules = [] then logger#error "empty rules";
   if !Common.profile = Common.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
-    lazy_force lazy_ast_and_errors |> ignore );
+    lazy_force lazy_ast_and_errors |> ignore);
 
   let lazy_content = lazy (Common.read_file file) in
   rules
@@ -896,12 +896,12 @@ let check hook default_config rules equivs file_and_more =
                  | Some (re, f) ->
                      let content = Lazy.force lazy_content in
                      logger#info "looking for %s in %s" re file;
-                     f content )
+                     f content)
                else true
              in
              if not relevant_rule then (
                logger#info "skipping rule %s for %s" r.R.id file;
-               RP.empty_semgrep_result )
+               RP.empty_semgrep_result)
              else
                let config = r.options ||| default_config in
                let formula = R.formula_of_pformula pformula in

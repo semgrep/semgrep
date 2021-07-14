@@ -169,7 +169,7 @@ and stmt e : G.stmt =
        *)
       match e with
       | G.Ellipsis _ | G.DeepEllipsis _ -> G.exprstmt e
-      | _ -> G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) |> G.s )
+      | _ -> G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) |> G.s)
 
 and expr e =
   match e with
@@ -179,7 +179,7 @@ and expr e =
       match v1 with
       | G.N (G.Id (id, _idinfo)) when AST_generic_.is_metavar_name (fst id) ->
           G.TypedMetavar (id, v2, v3)
-      | _ -> G.Cast (v3, v1) )
+      | _ -> G.Cast (v3, v1))
   | Ellipsis v1 ->
       let v1 = tok v1 in
       G.Ellipsis v1
@@ -255,7 +255,7 @@ and expr e =
       let obj = G.Record v2 in
       match v1 with
       | None -> obj
-      | Some e -> G.OtherExpr (G.OE_RecordWith, [ G.E e; G.E obj ]) )
+      | Some e -> G.OtherExpr (G.OE_RecordWith, [ G.E e; G.E obj ]))
   | New (v1, v2) ->
       let v1 = tok v1 and v2 = name v2 in
       G.Call (G.IdSpecial (G.New, v1), fb [ G.Arg (G.N v2) ])
@@ -425,7 +425,7 @@ and let_binding = function
       match v1 with
       | G.PatTyped (G.PatId (id, _idinfo), ty) ->
           let ent = G.basic_entity id [] in
-          ( match ent.G.name with
+          (match ent.G.name with
           | G.EN (G.Id (_, idinfo)) ->
               (* less: abusing id_type? Do we asume id_info is populated
                * by further static analysis (naming/typing)? But the info
@@ -433,9 +433,9 @@ and let_binding = function
                * a form of TypedMetavar, so let's abuse it for now.
                *)
               idinfo.G.id_type := Some ty
-          | _ -> raise Impossible );
+          | _ -> raise Impossible);
           Left (ent, [], None, G.exprstmt v2)
-      | _ -> Right (v1, v2) )
+      | _ -> Right (v1, v2))
 
 and let_def { lname; lparams; lrettype; lbody } =
   let v1 = ident lname in
@@ -453,7 +453,7 @@ and parameter = function
       | G.PatId (id, _idinfo) -> G.ParamClassic (G.param_of_id id)
       | G.PatTyped (G.PatId (id, _idinfo), ty) ->
           G.ParamClassic { (G.param_of_id id) with G.ptype = Some ty }
-      | _ -> G.ParamPattern v )
+      | _ -> G.ParamPattern v)
   | ParamTodo t -> G.OtherParam (G.OPO_Todo, [ G.Tk t ])
 
 and type_declaration { tname; tparams; tbody } =
@@ -487,14 +487,14 @@ and type_def_kind = function
                let v1 = ident v1 and v2 = type_ v2 and v3 = option tok v3 in
                let ent =
                  G.basic_entity v1
-                   ( match v3 with
+                   (match v3 with
                    | Some tok -> [ G.attr G.Mutable tok ]
-                   | None -> [] )
+                   | None -> [])
                in
                G.FieldStmt
-                 ( G.DefStmt
-                     (ent, G.FieldDefColon { G.vinit = None; vtype = Some v2 })
-                 |> G.s )))
+                 (G.DefStmt
+                    (ent, G.FieldDefColon { G.vinit = None; vtype = Some v2 })
+                 |> G.s)))
           v1
       in
       G.AndType v1
@@ -613,12 +613,12 @@ and any = function
       let x = expr x in
       match x with
       | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.S s
-      | _ -> G.E x )
+      | _ -> G.E x)
   | I x -> (
       match item x with
       | [] -> raise Impossible
       | [ x ] -> G.S x
-      | xs -> G.Ss xs )
+      | xs -> G.Ss xs)
   | T x ->
       let x = type_ x in
       G.T x

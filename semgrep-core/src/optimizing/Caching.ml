@@ -247,7 +247,7 @@ let prepare_pattern any =
                   printf "post backref counts:\n%a" print_name_counts
                     post_backref_counts;
                   printf "backrefs:\n%a" print_names backrefs;
-                  printf "\n" ));
+                  printf "\n"));
             (* continue scanning the current subtree. *)
             k stmt);
       }
@@ -325,10 +325,10 @@ module Cache_key = struct
   let show_compact k =
     sprintf "%s %s %s %B %i %i" (show_env k.min_env)
       (match k.function_id with Match_deep -> "deep" | Match_list -> "list")
-      ( match k.list_kind with
+      (match k.list_kind with
       | Original -> "orig"
       | Flattened_until last_id ->
-          sprintf "flat[%i-%i]" (k.target_stmt_id :> int) (last_id :> int) )
+          sprintf "flat[%i-%i]" (k.target_stmt_id :> int) (last_id :> int))
       k.less_is_ok
       (k.pattern_stmt_id :> int)
       (k.target_stmt_id :> int)
@@ -476,12 +476,12 @@ module Cache = struct
                 List.map
                   (fun cached_acc ->
                     patch_result_from_cache ~access backrefs a acc cached_acc)
-                  res )
+                  res)
         | None ->
             incr cache_misses;
             let res = compute pattern target acc in
             Tbl.replace cache key res;
-            res )
+            res)
 end
 
 let print_stats () =

@@ -72,7 +72,7 @@ let range_of_linecol_spec str file =
       if (l, c) = (line2, col2) then end_ := i
     done;
     if !start <> -1 && !end_ <> -1 then { start = !start; end_ = !end_ }
-    else failwith (spf "could not find range %s in %s" str file) )
+    else failwith (spf "could not find range %s in %s" str file))
   else failwith (spf "wrong format for linecol range spec: %s" str)
 
 let range_of_token_locations (start_loc : PI.token_location)

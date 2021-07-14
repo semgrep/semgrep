@@ -215,7 +215,7 @@ and opt_expr_to_label_ident = function
       | Id [ label ] -> G.LId label
       | _ ->
           let e = expr e in
-          G.LDynamic e )
+          G.LDynamic e)
 
 and case = function
   | Case (t, v1, v2) ->
@@ -342,7 +342,7 @@ and expr = function
       match v2 with
       | Left (op, t) ->
           G.Call (G.IdSpecial (G.Op op, t), fb [ G.Arg v1; G.Arg v3 ])
-      | Right x -> G.Call (G.IdSpecial x, fb [ G.Arg v1; G.Arg v3 ]) )
+      | Right x -> G.Call (G.IdSpecial x, fb [ G.Arg v1; G.Arg v3 ]))
   | Unop ((v1, t), v2) ->
       let v1 = unaryOp v1 and v2 = expr v2 in
       G.Call (G.IdSpecial (G.Op (H.conv_op v1), t), fb [ G.Arg v2 ])
@@ -393,7 +393,7 @@ and expr = function
               fbody = body;
               fkind = (G.LambdaKind, t);
             }
-      | _ -> error tok "TODO: Lambda" )
+      | _ -> error tok "TODO: Lambda")
 
 and argument e =
   let e = expr e in
@@ -471,11 +471,11 @@ and func_def
   (ent, def)
 
 and function_kind (kind, t) =
-  ( ( match kind with
+  ( (match kind with
     | Function -> G.Function
     | AnonLambda -> G.LambdaKind
     | ShortLambda -> G.Arrow
-    | Method -> G.Method ),
+    | Method -> G.Method),
     t )
 
 and parameters x = list parameter x

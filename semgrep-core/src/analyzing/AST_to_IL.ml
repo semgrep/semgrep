@@ -234,7 +234,7 @@ let rec lval env eorig =
           { base; offset = Index attr; constness = base_constness }
       | G.EDynamic e2orig ->
           let attr = expr env e2orig in
-          { base; offset = Index attr; constness = base_constness } )
+          { base; offset = Index attr; constness = base_constness })
   | G.ArrayAccess (e1orig, (_, e2orig, _)) ->
       let tok = G.fake "[]" in
       let base, constness = nested_lval env tok e1orig in
@@ -322,7 +322,7 @@ and assign env lhs _tok rhs_exp eorig =
         mk_e (Fetch lval) lhs
       with Fixme (kind, any_generic) ->
         add_instr env (fixme_instr kind any_generic eorig);
-        fixme_exp kind any_generic lhs )
+        fixme_exp kind any_generic lhs)
   | G.Tuple (tok1, lhss, tok2) ->
       (* E1, ..., En = RHS *)
       (* tmp = RHS*)
@@ -382,7 +382,7 @@ and expr_aux env eorig =
           let opexp = mk_e (Operator (op, [ lvalexp; one_exp ])) eorig in
           add_instr env (mk_i (Assign (lval, opexp)) eorig);
           lvalexp
-      | _ -> impossible (G.E eorig) )
+      | _ -> impossible (G.E eorig))
   (* todo: if the xxx_to_generic forgot to generate Eval *)
   | G.Call
       ( G.N (G.Id (("eval", tok), { G.id_resolved = { contents = None }; _ })),
@@ -439,7 +439,7 @@ and expr_aux env eorig =
           |> List.iter (fun e ->
                  let _eIGNORE = expr env e in
                  ());
-          expr env last )
+          expr env last)
   | G.Container (kind, xs) ->
       let xs = bracket_keep (List.map (expr env)) xs in
       let kind = composite_kind kind in
@@ -473,7 +473,7 @@ and expr_aux env eorig =
       | Some var_special ->
           let lval = lval_of_base (VarSpecial (var_special, tok)) in
           mk_e (Fetch lval) eorig
-      | None -> impossible (G.E eorig) )
+      | None -> impossible (G.E eorig))
   | G.SliceAccess (_, _) -> todo (G.E eorig)
   (* e1 ? e2 : e3 ==>
    *  pre: lval = e1;
@@ -551,7 +551,7 @@ and call_generic env tok e args =
   mk_e (Fetch lval) eorig
 
 and call_special _env (x, tok) =
-  ( ( match x with
+  ( (match x with
     | G.Op _ | G.IncrDecr _ | G.This | G.Super | G.Self | G.Parent
     | G.InterpolatedElement ->
         impossible (G.E (G.IdSpecial (x, tok)))
@@ -565,7 +565,7 @@ and call_special _env (x, tok) =
     | G.Spread -> Spread
     | G.EncodedString _ | G.Defined | G.HashSplat | G.ForOf | G.NextArrayIndex
       ->
-        todo (G.E (G.IdSpecial (x, tok))) ),
+        todo (G.E (G.IdSpecial (x, tok)))),
     tok )
 
 and composite_kind = function
@@ -667,7 +667,7 @@ let for_var_or_expr_list env xs =
                let ss, e' = expr_with_pre_stmts env e in
                let lv = lval_of_ent env ent in
                ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) e)) ]
-           | _ -> [] ))
+           | _ -> []))
   |> List.flatten
 
 (*e: function [[AST_to_IL.for_var_or_expr_list]] *)

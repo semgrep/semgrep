@@ -162,7 +162,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
           let lasti = state.g#add_node { F.n = F.Join } in
           state.g |> add_arc (n1, lasti);
           state.g |> add_arc (n2, lasti);
-          CfgFirstLast (newi, Some lasti) )
+          CfgFirstLast (newi, Some lasti))
   | Loop (tok, e, st) ->
       (* previ -> newi ---> newfakethen -> ... -> finalthen -
        *             |---|-----------------------------------|
