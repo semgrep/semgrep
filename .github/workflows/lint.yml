@@ -22,7 +22,8 @@ jobs:
 
   pre-commit-ocaml:
     runs-on: ubuntu-latest
-    # Custom image provides 'ocamlformat', needed to check ocaml code
+    # Custom image provides 'ocamlformat' with a specific version needed to check
+    # ocaml code (must be the same than the one in semgrep-core/dev/dev.opam)
     container: returntocorp/ocaml:ubuntu
     steps:
       - name: Pre-checkout fixes
