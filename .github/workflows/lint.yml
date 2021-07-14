@@ -32,8 +32,8 @@ jobs:
           sudo mkdir -p "$github_cache_dir"
           sudo chmod -R 777 "$github_cache_dir"
       - uses: actions/checkout@v2
-      - name: Check OCaml code
-        run: sudo -u user opam exec -- pre-commit run --all lint-ocaml
+      - name: Check OCaml code TEST HERE
+        run: sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
 
   semgrep-run-r2c-config:
     name: semgrep with r2c registry
