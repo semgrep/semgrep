@@ -22,6 +22,8 @@ let token = H.token
 
 let str = H.str
 
+let todo = ()
+
 (*
    Replace the last element of a list.
    This is usually a sign that something wasn't done right.
@@ -125,14 +127,14 @@ let special_character (env : env) (tok : CST.special_character) : string wrap =
   str env tok
 
 let heredoc_redirect (env : env) ((v1, v2) : CST.heredoc_redirect) : todo =
-  let _v1 =
+  let start_ =
     match v1 with
     | `LTLT tok -> token env tok (* "<<" *)
     | `LTLTDASH tok -> (* "<<-" *) token env tok
   in
 
-  let _v2 = token env v2 (* heredoc_start *) in
-  TODO
+  let heredoc_start = token env v2 (* heredoc_start *) in
+  TODO (start_, heredoc_start)
 
 let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) =
   let dollar = token env v1 (* "$" *) in
@@ -169,23 +171,23 @@ and stmt_with_opt_heredoc (env : env)
     | Some (v1, v2) ->
         let _v1 = token env v1 (* "\n" *) in
         let _v2 = heredoc_body env v2 in
-        TODO
-    | None -> TODO
+        None
+    | None -> None
   in
   let _trailing_newline = terminator env v3 in
   blist
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
-  let _v1 = token env v1 (* "(" *) in
+  let open_ = token env v1 (* "(" *) in
   let _v2 = List.map (literal env) v2 in
-  let _v3 = token env v3 (* ")" *) in
-  TODO
+  let close = token env v3 (* ")" *) in
+  TODO (open_, close)
 
-and binary_expression (env : env) (x : CST.binary_expression) =
+and binary_expression (env : env) (x : CST.binary_expression) : expression =
   match x with
   | `Exp_choice_EQ_exp (v1, v2, v3) ->
-      let _v1 = expression env v1 in
-      let _v2 =
+      let left = expression env v1 in
+      let op =
         match v2 with
         | `EQ tok -> token env tok (* "=" *)
         | `EQEQ tok -> token env tok (* "==" *)
@@ -203,18 +205,18 @@ and binary_expression (env : env) (x : CST.binary_expression) =
         | `AMPAMP tok -> token env tok (* "&&" *)
         | `Test_op tok -> (* test_operator *) token env tok
       in
-      let _v3 = expression env v3 in
-      TODO
+      let right = expression env v3 in
+      Expression_TODO (range (expression_loc left) (expression_loc right))
   | `Exp_choice_EQEQ_regex (v1, v2, v3) ->
-      let _v1 = expression env v1 in
-      let _v2 =
+      let left = expression env v1 in
+      let _op =
         match v2 with
         | `EQEQ tok -> token env tok (* "==" *)
         | `EQTILDE tok -> (* "=~" *) token env tok
       in
 
-      let _v3 = token env v3 (* regex *) in
-      TODO
+      let right = token env v3 (* regex *) in
+      Expression_TODO (fst (expression_loc left), right)
 
 and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
   let _v1 = literal env v1 in
@@ -223,7 +225,7 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
       (fun (v1, v2) ->
         let v1 = token env v1 (* "|" *) in
         let v2 = literal env v2 in
-        TODO)
+        todo)
       v2
   in
   let _v3 = token env v3 (* ")" *) in
@@ -236,7 +238,7 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
         | `SEMIAMP tok -> token env tok (* ";&" *)
         | `SEMISEMIAMP tok -> token env tok (* ";;&" *))
   in
-  TODO
+  todo
 
 and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
   let assignments, redirects =
@@ -248,37 +250,48 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
       v1
   in
   let name = command_name env v2 in
-  let arguments =
+  let args =
     List.map
       (fun x ->
         match x with
         | `Choice_conc x -> literal env x
-        | `Choice_EQTILDE_choice_choice_conc (v1, _v2) ->
-            let _v1 =
+        | `Choice_EQTILDE_choice_choice_conc (v1, v2) ->
+            let eq =
               match v1 with
-              | `EQTILDE tok -> token env tok (* "=~" *)
-              | `EQEQ tok -> token env tok
-              (* "==" *)
+              | `EQTILDE tok -> (* "=~" *) EQTILDE (token env tok)
+              | `EQEQ tok -> (* "==" *) EQEQ (token env tok)
             in
-            (*
-            let v2 =
+            let right =
               match v2 with
-              | `Choice_conc x -> literal env x
-              | `Regex tok -> (* regex *) token env tok
+              | `Choice_conc x ->
+                  let e = literal env x in
+                  Literal (expression_loc e, e)
+              | `Regex tok -> (* regex *) Regexp (str env tok)
             in
-*)
-            Expression_TODO)
+            let loc = range (eq_op_loc eq) (right_eq_operand_loc right) in
+            Equality_test (loc, eq, right))
       v3
   in
-  let command = Simple_command { assignments; arguments = name :: arguments } in
-  { command; redirects }
+  let arguments = name :: args in
+  let loc =
+    let loc1 = list_loc assignment_loc assignments in
+    let loc2 = list_loc expression_loc arguments in
+    union_loc loc1 loc2
+  in
+  let command = Simple_command (loc, { loc; assignments; arguments }) in
+  { loc; command; redirects }
 
 and command_name (env : env) (x : CST.command_name) : expression =
   match x with
-  | `Conc x -> Concatenation (concatenation env x)
+  | `Conc x ->
+      let el = concatenation env x in
+      let loc = list_loc expression_loc el in
+      Concatenation (loc, el)
   | `Choice_semg_ellips x -> primary_expression env x
   | `Rep1_spec_char xs ->
-      Concatenation (List.map (fun tok -> Special_character (str env tok)) xs)
+      let el = List.map (fun tok -> Special_character (str env tok)) xs in
+      let loc = list_loc expression_loc el in
+      Concatenation (loc, el)
 
 and command_substitution (env : env) (x : CST.command_substitution) :
     blist bracket =
@@ -292,7 +305,8 @@ and command_substitution (env : env) (x : CST.command_substitution) :
       let open_ = token env v1 (* "$(" *) in
       let _v2 = (* TODO: what's this? *) file_redirect env v2 in
       let close = token env v3 (* ")" *) in
-      (open_, Empty, close)
+      let loc = (open_, close) in
+      (open_, Empty loc, close)
   | `BQUOT_stmts_BQUOT (v1, v2, v3) ->
       let open_ = token env v1 (* "`" *) in
       let list = statements env v2 in
@@ -301,13 +315,10 @@ and command_substitution (env : env) (x : CST.command_substitution) :
 
 and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) :
     command_group =
-  let _todo () =
-    let v1 = token env v1 (* "{" *) in
-    let v2 = match v2 with Some x -> statements2 env x | None -> [] in
-    let v3 = token env v3 (* "}" *) in
-    TODO
-  in
-  TODO
+  let open_ = token env v1 (* "{" *) in
+  let blists = match v2 with Some x -> statements2 env x | None -> [] in
+  let close = token env v3 (* "}" *) in
+  TODO (open_, close)
 
 and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
     expression list =
@@ -421,11 +432,11 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
   (open_, complex_expansion, close)
 
 (* These are expressions used in [[ ... ]], in C-style for loops, etc. *)
-and expression (env : env) (x : CST.expression) : todo =
+and expression (env : env) (x : CST.expression) : expression =
   match x with
   | `Choice_conc x ->
       literal env x |> ignore;
-      TODO
+      Expression_TODO
   | `Un_exp (v1, v2) ->
       let _v1 =
         match v1 with
@@ -434,14 +445,14 @@ and expression (env : env) (x : CST.expression) : todo =
       in
 
       let _v2 = expression env v2 in
-      TODO
+      Expression_TODO
   | `Tern_exp (v1, v2, v3, v4, v5) ->
       let _v1 = expression env v1 in
       let _v2 = token env v2 (* "?" *) in
       let _v3 = expression env v3 in
       let _v4 = token env v4 (* ":" *) in
       let _v5 = expression env v5 in
-      TODO
+      Expression_TODO
   | `Bin_exp x -> binary_expression env x
   | `Post_exp (v1, v2) ->
       let _v1 = expression env v1 in
@@ -450,13 +461,12 @@ and expression (env : env) (x : CST.expression) : todo =
         | `PLUSPLUS tok -> token env tok (* "++" *)
         | `DASHDASH tok -> (* "--" *) token env tok
       in
-
-      TODO
+      Expression_TODO
   | `Paren_exp (v1, v2, v3) ->
       let _v1 = token env v1 (* "(" *) in
       let _v2 = expression env v2 in
       let _v3 = token env v3 (* ")" *) in
-      TODO
+      Expression_TODO
 
 and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : todo =
   let _fd =

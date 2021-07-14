@@ -142,9 +142,9 @@ end
 let call name exprs =
   G.Call (name, G.fake_bracket (List.map (fun e -> G.Arg e) exprs))
 
-let todo_stmt = G.s (G.OtherStmt (G.OS_Todo, []))
+let todo_stmt tok = G.s (G.OtherStmt (G.OS_Todo, [ G.TodoK tok ]))
 
-let todo_expr = G.OtherExpr (G.OE_Todo, [])
+let todo_expr tok = G.OtherExpr (G.OE_Todo, [ G.TodoK tok ])
 
 (*****************************************************************************)
 (* Converter from bash AST to generic AST *)
@@ -287,12 +287,15 @@ and expansion (x : expansion) : G.expr =
 
      if a; then
        b
+     else
+       false
      fi
 *)
 and transpile_and (left : blist) tok_and (right : blist) : stmt_or_expr =
   let cond = blist left |> block |> as_expr in
   let body = blist right |> block |> as_stmt in
-  Stmt (G.s (G.If (tok_and, cond, body, None)))
+  let fail = stmt_of_expr (G.L (G.Bool (false, G.fake "false"))) in
+  Stmt (G.s (G.If (tok_and, cond, body, Some fail)))
 
 (*
    This is similar to 'transpile_and', with a negated condition.
