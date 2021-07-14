@@ -97,10 +97,14 @@ repos:
         args: ['--config', 'https://semgrep.dev/p/bandit', '--error']
         stages: [manual]
 
-  # Reformat OCaml code (ml, mli) with ocamlformat if ocamlformat is
-  # present. If ocamlformat is missing, this step will succeed.
+  # Reformat OCaml code (ml, mli) with ocp-indent if ocp-indent is
+  # present. If ocp-indent is missing, this step will succeed.
   # This allows pure python users to run 'pre-commit run --all' without
-  # installing opam and ocamlformat.
+  # installing opam and ocp-indent.
+  #
+  # Note that we used ocamlformat at some point and we want to use it
+  # again in the future when dependency conflicts are resolved.
+  # See https://github.com/returntocorp/ocaml-layer/pull/5#issuecomment-878997912
   #
   - repo: local
     hooks:

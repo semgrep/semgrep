@@ -7,17 +7,20 @@ set -eu
 
 eval $(opam env)
 
-if $(ocamlformat --version > /dev/null 2>&1); then
+if $(ocp-indent --version > /dev/null 2>&1); then
+  # old command using ocamlformat instead of ocp-indent:
   #TODO: we should require a specific version, like the one in dev.opam
-  ocamlformat --inplace --enable-outside-detected-project "$@"
+  # ocamlformat --inplace --enable-outside-detected-project "$@"
+
+  ocp-indent -i "$@"
 else
   cat <<EOF
-*** ocamlformat was not found. ***
+*** ocp-indent was not found. ***
 
-If you wish to re-indent OCaml code, you must install ocamlformat, which is
+If you wish to re-indent OCaml code, you must install ocp-indent, which is
 normally done with the following command:
 
-  $ opam install ocamlformat
+  $ opam install ocp-indent
 
 For now, let's pretend everything is fine.
 EOF
