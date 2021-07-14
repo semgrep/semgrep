@@ -19,10 +19,6 @@ SEMGREP_REGISTRY_BASE_URL = os.environ.get(
 SEMGREP_REGISTRY_UPLOAD_URL = f"{SEMGREP_REGISTRY_BASE_URL}/api/registry/rule"
 SEMGREP_REGISTRY_VIEW_URL = f"{SEMGREP_REGISTRY_BASE_URL}/r/"
 
-# TODO remove
-SEMGREP_REGISTRY_UPLOAD_URL = f"http://127.0.0.1:5000/api/registry/rule"
-SEMGREP_REGISTRY_VIEW_URL = f"http://127.0.0.1:3000/r/"
-
 
 def is_valid(rule: Dict[str, Any]) -> bool:
     """
