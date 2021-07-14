@@ -73,7 +73,7 @@ let fold_one ~accept_file_name ~accept_dir_name visit_tracker f acc root =
       | Some Unix.S_REG -> if accept_file_name name then f acc path else acc
       | None | Some _ ->
           (* leave broken symlinks and special files alone *)
-          acc )
+          acc)
   in
   fold acc root
 

@@ -54,7 +54,7 @@ let of_channel ?(source = Channel) ?max_len ic =
     | None -> (
         match get_channel_length ic with
         | None -> input_all_from_nonseekable_channel ic
-        | Some len -> really_input_string ic len )
+        | Some len -> really_input_string ic len)
     | Some max_len -> partial_input max_len ic
   in
   { source; contents }

@@ -62,8 +62,8 @@ let create set_instead_of_bloom =
   {
     added = false;
     filter =
-      ( if set_instead_of_bloom then Set (ref Set.empty)
-      else Bloom (B.create ~error_rate:0.01 2500) );
+      (if set_instead_of_bloom then Set (ref Set.empty)
+      else Bloom (B.create ~error_rate:0.01 2500));
   }
 
 let is_empty bf = not bf.added

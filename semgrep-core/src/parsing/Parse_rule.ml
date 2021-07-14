@@ -91,13 +91,13 @@ let parse_bool ctx = function
 let parse_int ctx = function
   | J.String s -> (
       try int_of_string s
-      with Failure _ -> error (spf "parse_int  for %s" ctx) )
+      with Failure _ -> error (spf "parse_int  for %s" ctx))
   | J.Float f ->
       let i = int_of_float f in
       if float_of_int i = f then i
       else (
         pr2_gen f;
-        error "not an int" )
+        error "not an int")
   | x ->
       pr2_gen x;
       error (spf "parse_int for %s" ctx)
@@ -155,7 +155,7 @@ let parse_fix_regex env = function
             replacement )
       | x ->
           pr2_gen x;
-          error "parse_fix_regex" )
+          error "parse_fix_regex")
   | x ->
       pr2_gen x;
       error "parse_fix_regex"
@@ -178,17 +178,17 @@ let parse_paths = function
       | [ ("include", inc_opt); ("exclude", exc_opt) ], [] ->
           {
             R.include_ =
-              ( match inc_opt with
+              (match inc_opt with
               | None -> []
-              | Some xs -> parse_strings "include" xs );
+              | Some xs -> parse_strings "include" xs);
             exclude =
-              ( match exc_opt with
+              (match exc_opt with
               | None -> []
-              | Some xs -> parse_strings "exclude" xs );
+              | Some xs -> parse_strings "exclude" xs);
           }
       | x ->
           pr2_gen x;
-          error "parse_paths" )
+          error "parse_paths")
   | x ->
       pr2_gen x;
       error "parse_paths"
@@ -221,7 +221,7 @@ let parse_pattern (id, lang) s =
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> R.mk_xpat (Spacegrep ast) s
       | Error err ->
-          raise (H.InvalidPatternException (id, s, "generic", err.msg)) )
+          raise (H.InvalidPatternException (id, s, "generic", err.msg)))
 
 let rec parse_formula env (x : string * J.t) : R.pformula =
   match x with
@@ -303,7 +303,7 @@ and parse_formula_new env (x : J.t) : R.formula =
           R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env re)))
       | _ ->
           pr2_gen x;
-          error "parse_formula_new" )
+          error "parse_formula_new")
   | _ ->
       pr2_gen x;
       error "parse_formula_new"
@@ -322,7 +322,7 @@ and parse_extra env x =
           R.MetavarRegexp (metavar, parse_regexp env regexp)
       | x ->
           pr2_gen x;
-          error "metavariable-regex: wrong parse_extra fields" )
+          error "metavariable-regex: wrong parse_extra fields")
   | "metavariable-pattern", J.Object xs -> (
       match find_fields [ "metavariable" ] xs with
       | [ ("metavariable", Some (J.String metavar)) ], rest ->
@@ -357,7 +357,7 @@ and parse_extra env x =
           R.MetavarPattern (metavar, opt_xlang, formula)
       | x ->
           pr2_gen x;
-          error "metavariable-pattern:  wrong parse_extra fields" )
+          error "metavariable-pattern:  wrong parse_extra fields")
   | "metavariable-comparison", J.Object xs -> (
       match
         find_fields [ "metavariable"; "comparison"; "strip"; "base" ] xs
@@ -379,7 +379,7 @@ and parse_extra env x =
             }
       | x ->
           pr2_gen x;
-          error "metavariable-comparison: wrong parse_extra fields" )
+          error "metavariable-comparison: wrong parse_extra fields")
   | "pattern-where-python", J.String s -> R.PatWherePython s
   | x ->
       pr2_gen x;
@@ -399,7 +399,7 @@ let parse_languages ~id langs =
                      raise
                        (E.InvalidLanguageException
                           (id, spf "unsupported language: %s" s))
-                 | Some l -> l )
+                 | Some l -> l)
              | _ ->
                  raise
                    (E.InvalidRuleException
@@ -408,7 +408,7 @@ let parse_languages ~id langs =
       match languages with
       | [] ->
           raise (E.InvalidRuleException (id, "we need at least one language"))
-      | x :: xs -> R.L (x, xs) )
+      | x :: xs -> R.L (x, xs))
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -475,7 +475,7 @@ let parse_mode env mode_opt (xs : (string * J.t) list) : R.mode =
           R.Taint { sources; sanitizers; sinks }
       | x ->
           pr2_gen x;
-          error "wrong rule fields" )
+          error "wrong rule fields")
   | _ ->
       pr2_gen xs;
       error "wrong rule fields"
@@ -526,7 +526,7 @@ let parse_json file json =
                      }
                  | x ->
                      pr2_gen x;
-                     error "wrong rule fields" )
+                     error "wrong rule fields")
              | x ->
                  pr2_gen x;
                  error "wrong rule fields")
@@ -540,7 +540,7 @@ let parse file =
         let yaml_res = Yaml.of_string str in
         match yaml_res with
         | Result.Ok v -> yaml_to_json v
-        | Result.Error (`Msg s) -> raise (E.UnparsableYamlException s) )
+        | Result.Error (`Msg s) -> raise (E.UnparsableYamlException s))
     | FT.Config FT.Json -> J.load_json file
     | FT.Config FT.Jsonnet ->
         Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->

@@ -89,14 +89,14 @@ let id_extra env = function
   | `Choice_open x -> (
       match x with
       | `Open tok -> str env tok (* "open" *)
-      | `Module tok -> str env tok (* "module" *) )
+      | `Module tok -> str env tok (* "module" *))
 
 let rec qualifier_extra env = function
   | `Id tok -> [ str env tok ] (* pattern [a-zA-Z_]\w* *)
   | `Choice_open x -> (
       match x with
       | `Open tok -> [ str env tok ] (* "open" *)
-      | `Module tok -> [ str env tok ] (* "module" *) )
+      | `Module tok -> [ str env tok ] (* "module" *))
   | `Scoped_id x -> scoped_identifier env x
 
 and scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) :
@@ -244,7 +244,7 @@ let rec expression (env : env) (x : CST.expression) =
         | `Choice_open x -> (
             match x with
             | `Open tok -> name_of_id env tok (* "open" *)
-            | `Module tok -> name_of_id env tok (* "module" *) )
+            | `Module tok -> name_of_id env tok (* "module" *))
         | `Field_access x -> field_access env x
         | `Array_access x -> array_access env x
       in
@@ -267,7 +267,7 @@ let rec expression (env : env) (x : CST.expression) =
       let v3 = expression env v3 in
       match v2 with
       | Left (), t -> Assign (v1, t, v3)
-      | Right op, t -> AssignOp (v1, (op, t), v3) )
+      | Right op, t -> AssignOp (v1, (op, t), v3))
   | `Bin_exp x -> binary_expression env x
   | `Inst_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -499,7 +499,7 @@ and primary_expression (env : env) (x : CST.primary_expression) =
   | `Choice_open x -> (
       match x with
       | `Open tok -> name_of_id env tok (* "open" *)
-      | `Module tok -> name_of_id env tok (* "module" *) )
+      | `Module tok -> name_of_id env tok (* "module" *))
   | `Paren_exp x -> parenthesized_expression env x
   | `Obj_crea_exp x -> object_creation_expression env x
   | `Field_access x -> field_access env x
@@ -638,7 +638,7 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
     | `Choice_open x -> (
         match x with
         | `Open tok -> str env tok (* "open" *)
-        | `Module tok -> str env tok (* "module" *) )
+        | `Module tok -> str env tok (* "module" *))
     | `This tok -> str env tok
     (* "this" *)
   in
@@ -1057,7 +1057,7 @@ and annotation_argument_list (env : env)
                 v2
             in
             AnnotArgPairInit (v1 :: v2)
-        | None -> EmptyAnnotArg )
+        | None -> EmptyAnnotArg)
   in
   let v3 = token env v3 (* ")" *) in
   (v1, v2, v3)
@@ -1135,7 +1135,7 @@ and declaration (env : env) (x : CST.declaration) : AST.stmt =
         | None -> (
             match List.rev v3 with
             | [] -> raise Impossible
-            | x :: xs -> ImportFrom (v1, List.rev xs, x) )
+            | x :: xs -> ImportFrom (v1, List.rev xs, x))
       in
       let _v5 = token env v5 (* ";" *) in
       DirectiveStmt (Import (v2, v4))

@@ -231,7 +231,7 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
     | `Choice_SEMIAMP x -> (
         match x with
         | `SEMIAMP tok -> token env tok (* ";&" *)
-        | `SEMISEMIAMP tok -> token env tok (* ";;&" *) )
+        | `SEMISEMIAMP tok -> token env tok (* ";;&" *))
   in
   TODO
 
@@ -353,7 +353,7 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
     | Some x -> (
         match x with
         | `HASH tok -> Some (token env tok (* "#" *))
-        | `BANG tok -> Some (token env tok (* "!" *)) )
+        | `BANG tok -> Some (token env tok (* "!" *)))
     | None -> None
   in
   (* TODO: need to handle all the cases other than just a variable
@@ -406,7 +406,7 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
                   | `HASH tok -> (* "#" *) todo env tok)
                 v3
             in
-            opt_variable )
+            opt_variable)
     | None -> None
   in
   let close = token env v4 (* "}" *) in
@@ -858,10 +858,10 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       let body =
         Compound_command
-          ( match v2 with
+          (match v2 with
           | `Comp_stmt x -> Command_group (compound_statement env x)
           | `Subs x -> Subshell (subshell env x)
-          | `Test_cmd x -> Conditional_expression (test_command env x) )
+          | `Test_cmd x -> Conditional_expression (test_command env x))
       in
       let command =
         Function_definition

@@ -51,8 +51,8 @@ let ids_of_name (name : name) : dotted_ident =
       | Some q -> (
           match q with
           | QDots ds -> ds @ [ ident ]
-          | _ -> failwith "unexpected qualifier type" )
-      | None -> [ ident ] )
+          | _ -> failwith "unexpected qualifier type")
+      | None -> [ ident ])
 
 let prepend_qualifier_to_name (qualifier : qualifier) (name : name) : name =
   match name with
@@ -262,7 +262,7 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
               [ enum; left_func; right_func; res_func ]
           in
           let lambda_params = lambda_params @ [ into ] in
-          linq_remainder_to_expr tl base_expr lambda_params )
+          linq_remainder_to_expr tl base_expr lambda_params)
 
 let linq_to_expr (from : linq_query_part) (body : linq_query_part list) =
   match from with
@@ -930,7 +930,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
     | Some x -> (
         match x with
         | `In tok -> Some (token env tok) (* "in" *)
-        | `Out tok -> Some (token env tok) (* "out" *) )
+        | `Out tok -> Some (token env tok) (* "out" *))
     | None -> None
   in
   let v3 = identifier env v3 (* identifier *) in
@@ -998,7 +998,7 @@ and argument (env : env) ((v1, v2, v3) : CST.argument) : AST.argument =
         match x with
         | `Ref tok -> Some (token env tok) (* "ref" *)
         | `Out tok -> Some (token env tok) (* "out" *)
-        | `In tok -> Some (token env tok) (* "in" *) )
+        | `In tok -> Some (token env tok) (* "in" *))
     | None -> None
   in
   let v3 =
@@ -1075,7 +1075,7 @@ and ordering (env : env) ((v1, v2) : CST.ordering) =
     | Some x -> (
         match x with
         | `Asce tok -> Ascending (* "ascending" *)
-        | `Desc tok -> Descending (* "descending" *) )
+        | `Desc tok -> Descending (* "descending" *))
     | None -> Ascending
   in
   (v1, v2)
@@ -1606,7 +1606,7 @@ and statement (env : env) (x : CST.statement) =
               | `Tuple_pat x -> tuple_pattern env x
             in
             let v1 = local_variable_type env v1 in
-            match v1 with Some t -> PatTyped (v2, t) | None -> v2 )
+            match v1 with Some t -> PatTyped (v2, t) | None -> v2)
         | `Exp x -> H2.expr_to_pattern (expression env x)
       in
       let v5 = token env v5 (* "in" *) in
@@ -1632,7 +1632,7 @@ and statement (env : env) (x : CST.statement) =
                 let v1 = expression env v1 in
                 let v2 = List.map (interpolation_alignment_clause env) v2 in
                 let exprs = v1 :: v2 in
-                List.map (fun e -> ForInitExpr e) exprs )
+                List.map (fun e -> ForInitExpr e) exprs)
         | None -> []
       in
       let v4 = token env v4 (* ";" *) in
@@ -1662,7 +1662,7 @@ and statement (env : env) (x : CST.statement) =
           todo_stmt env v1
       | `Defa tok ->
           let tok = token env tok (* "default" *) in
-          todo_stmt env tok )
+          todo_stmt env tok)
   | `If_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "if" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1740,9 +1740,9 @@ and statement (env : env) (x : CST.statement) =
       let v1 = token env v1 (* "throw" *) in
       let v2 = map_opt expression env v2 in
       let v3 = token env v3 (* ";" *) in
-      ( match v2 with
+      (match v2 with
       | Some expr -> Throw (v1, expr, v3)
-      | None -> OtherStmt (OS_ThrowNothing, [ Tk v1; Tk v3 ]) )
+      | None -> OtherStmt (OS_ThrowNothing, [ Tk v1; Tk v3 ]))
       |> AST.s
   | `Try_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "try" *) in
@@ -1890,7 +1890,7 @@ and attribute_argument (env : env) ((v1, v2) : CST.attribute_argument) =
     | Some x -> (
         match x with
         | `Name_equals x -> Some (name_equals env x)
-        | `Name_colon x -> Some (name_colon env x) )
+        | `Name_colon x -> Some (name_colon env x))
     | None -> None
   in
   let v2 = expression env v2 in
@@ -2422,7 +2422,7 @@ and using_directive (env : env) ((v1, v2, v3, v4) : CST.using_directive) =
             AST.ImportAs
               ( v1,
                 AST.DottedName (ids_of_name v3),
-                Some (alias, empty_id_info ()) ) )
+                Some (alias, empty_id_info ()) ))
     | None ->
         (* using System.IO; *)
         AST.ImportAll (v1, AST.DottedName (ids_of_name v3), v4)
@@ -2777,7 +2777,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                 fbody;
               }
           in
-          DefStmt (ent, funcdef) |> AST.s )
+          DefStmt (ent, funcdef) |> AST.s)
   | `Meth_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       (*
         [Attr] static int IList<T>.MyMethod<T>(int p1) where T : Iterator { ... }
@@ -2868,18 +2868,18 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                       {
                         fkind = (Method, itok);
                         fparams =
-                          ( if has_params then
-                            [
-                              ParamClassic
-                                {
-                                  pname = Some ("value", fake "value");
-                                  ptype = Some v3;
-                                  pdefault = None;
-                                  pattrs = [];
-                                  pinfo = empty_id_info ();
-                                };
-                            ]
-                          else [] );
+                          (if has_params then
+                           [
+                             ParamClassic
+                               {
+                                 pname = Some ("value", fake "value");
+                                 ptype = Some v3;
+                                 pdefault = None;
+                                 pattrs = [];
+                                 pinfo = empty_id_info ();
+                               };
+                           ]
+                          else []);
                         frettype = (if has_return then Some v3 else None);
                         (* TODO Should this be "void"? *)
                         fbody;

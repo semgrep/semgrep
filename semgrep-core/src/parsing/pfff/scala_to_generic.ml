@@ -224,7 +224,7 @@ and v_type_ = function
       let v1 = v_literal v1 in
       match v1 with
       | Left lit -> todo_type "TyLiteralLit" [ G.E (G.L lit) ]
-      | Right e -> todo_type "TyLiteralExpr" [ G.E e ] )
+      | Right e -> todo_type "TyLiteralExpr" [ G.E e ])
   | TyName v1 ->
       let xs = v_dotted_name_of_stable_id v1 in
       let name = name_of_ids xs in
@@ -240,7 +240,7 @@ and v_type_ = function
       | G.TyN n -> G.TyApply (G.TyN n, (lp, args, rp))
       | _ ->
           todo_type "TyAppliedComplex"
-            (G.T v1 :: (xs |> List.map (fun x -> G.T x))) )
+            (G.T v1 :: (xs |> List.map (fun x -> G.T x))))
   | TyInfix (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_ident v2 and v3 = v_type_ v3 in
       G.TyApply (G.TyN (H.name_of_ids [ v2 ]), fb [ G.TypeArg v1; G.TypeArg v3 ])
@@ -268,8 +268,8 @@ and v_type_ = function
   | TyRefined (v1, v2) ->
       let v1 = v_option v_type_ v1 and _lb, defs, _rb = v_refinement v2 in
       todo_type "TyRefined"
-        ( (match v1 with None -> [] | Some t -> [ G.T t ])
-        @ (defs |> List.map (fun def -> G.Def def)) )
+        ((match v1 with None -> [] | Some t -> [ G.T t ])
+        @ (defs |> List.map (fun def -> G.Def def)))
   | TyExistential (v1, v2, v3) ->
       let v1 = v_type_ v1 in
       let _v2 = v_tok v2 in
@@ -313,7 +313,7 @@ and v_pattern = function
       let v1 = v_literal v1 in
       match v1 with
       | Left lit -> G.PatLiteral lit
-      | Right e -> todo_pattern "PatLiteralExpr" [ G.E e ] )
+      | Right e -> todo_pattern "PatLiteralExpr" [ G.E e ])
   | PatName v1 ->
       let ids = v_dotted_name_of_stable_id v1 in
       G.PatConstructor (ids, [])
@@ -353,7 +353,7 @@ and v_expr = function
   | DeepEllipsis v1 -> G.DeepEllipsis (v_bracket v_expr v1)
   | L v1 -> (
       let v1 = v_literal v1 in
-      match v1 with Left lit -> G.L lit | Right e -> e )
+      match v1 with Left lit -> G.L lit | Right e -> e)
   | Tuple v1 ->
       let v1 = v_bracket (v_list v_expr) v1 in
       G.Tuple v1
@@ -412,7 +412,7 @@ and v_expr = function
       let lb, kind, _rb = v_block_expr v1 in
       match kind with
       | Left stats -> expr_of_block stats
-      | Right cases -> G.Lambda (cases_to_lambda lb cases) )
+      | Right cases -> G.Lambda (cases_to_lambda lb cases))
   | S v1 ->
       let v1 = v_stmt v1 in
       G.OtherExpr (G.OE_StmtExpr, [ G.S v1 ])
@@ -749,7 +749,7 @@ and v_fbody = function
       | Left stats -> G.Block (lb, stats, rb) |> G.s
       | Right cases ->
           let def = cases_to_lambda lb cases in
-          G.exprstmt (G.Lambda def) )
+          G.exprstmt (G.Lambda def))
   | FExpr (v1, v2) ->
       let _v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
       v2
@@ -787,7 +787,7 @@ and v_binding v : G.parameter =
             }
       | Some (PTRepeatedApplication (v1, v2)) ->
           let v1 = v_type_ v1 and v2 = v_tok v2 in
-          G.ParamRest (v2, { pclassic with ptype = Some v1 }) )
+          G.ParamRest (v2, { pclassic with ptype = Some v1 }))
 
 and v_template_definition
     {
@@ -864,10 +864,10 @@ let v_any = function
   | Ex e -> (
       match v_expr_for_stmt e with
       | { G.s = G.ExprStmt (e, _); _ } -> G.E e
-      | st -> G.S st )
+      | st -> G.S st)
   | Ss b -> (
       let xs = v_block b in
-      match xs with [ s ] -> G.S s | xs -> G.Ss xs )
+      match xs with [ s ] -> G.S s | xs -> G.Ss xs)
 
 (*****************************************************************************)
 (* Entry points *)

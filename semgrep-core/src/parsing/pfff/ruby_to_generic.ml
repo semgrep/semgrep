@@ -74,7 +74,7 @@ let rec expr = function
       match kind with
       | ID_Self -> G.IdSpecial (G.Self, snd id)
       | ID_Super -> G.IdSpecial (G.Super, snd id)
-      | _ -> G.N (G.Id (ident id, G.empty_id_info ())) )
+      | _ -> G.N (G.Id (ident id, G.empty_id_info ())))
   | ScopedId x ->
       let name = scope_resolution x in
       G.N (G.IdQualified (name, G.empty_id_info ()))
@@ -224,7 +224,7 @@ and variable_or_method_name = function
   | SM m -> (
       match method_name m with
       | Left id -> id
-      | Right _ -> failwith "TODO: variable_or_method_name" )
+      | Right _ -> failwith "TODO: variable_or_method_name")
 
 and method_name mn =
   match mn with
@@ -243,7 +243,7 @@ and method_name mn =
           | [ StrChars (s, t2) ] ->
               let t = PI.combine_infos l [ t2; r ] in
               Left (s, t)
-          | _ -> Right (string_contents_list (l, xs, r)) ) )
+          | _ -> Right (string_contents_list (l, xs, r))))
 
 and string_contents_list (t1, xs, t2) =
   let xs = list string_contents xs in
@@ -338,7 +338,7 @@ and atom tcolon x =
       | [ StrChars (s, t2) ] ->
           let t = PI.combine_infos l [ t2; r ] in
           G.L (G.Atom (tcolon, (s, t)))
-      | _ -> string_contents_list (l, xs, r) )
+      | _ -> string_contents_list (l, xs, r))
 
 and literal x =
   match x with
@@ -374,7 +374,7 @@ and literal x =
       | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))
       | _ ->
           (* TODO *)
-          string_contents_list (l, xs, r) )
+          string_contents_list (l, xs, r))
 
 and expr_as_stmt = function
   | S x -> stmt x
@@ -506,12 +506,12 @@ and definition def =
           | Right e ->
               let ent = G.basic_entity ("", fake "") [] in
               G.OtherStmt (G.OS_Todo, [ G.E e; G.Def (ent, G.FuncDef funcdef) ])
-              |> G.s )
+              |> G.s)
       | SingletonM e ->
           let e = expr e in
           let ent = G.basic_entity ("", fake "") [] in
           G.OtherStmt (G.OS_Todo, [ G.E e; G.Def (ent, G.FuncDef funcdef) ])
-          |> G.s )
+          |> G.s)
   | ClassDef (t, kind, body) -> (
       let body = body_exn body in
       match kind with
@@ -545,7 +545,7 @@ and definition def =
           G.DefStmt (ent, G.ClassDef def) |> G.s
       | SingletonC (t, e) ->
           let e = expr e in
-          G.OtherStmt (G.OS_Todo, [ G.Tk t; G.E e; G.S body ]) |> G.s )
+          G.OtherStmt (G.OS_Todo, [ G.Tk t; G.E e; G.S body ]) |> G.s)
   | ModuleDef (_t, name, body) ->
       let body = body_exn body in
       let ent =
@@ -604,7 +604,7 @@ and body_exn x =
           let st = list_stmt1 sts in
           let try_ = G.Try (fake "try", body, catches, finally_opt) |> G.s in
           let st = G.Block (fb [ try_; st ]) |> G.s in
-          G.OtherStmtWithStmt (G.OSWS_Else_in_try, None, st) |> G.s )
+          G.OtherStmtWithStmt (G.OSWS_Else_in_try, None, st) |> G.s)
 
 and rescue_clause (t, exns, exnvaropt, sts) =
   let st = list_stmt1 sts in
@@ -674,7 +674,7 @@ let any x =
       match x with
       | S x -> G.S (stmt x)
       | D x -> G.S (definition x)
-      | _ -> G.E (expr x) )
+      | _ -> G.E (expr x))
   | S2 x -> G.S (stmt x)
   | Ss xs -> G.Ss (list_stmts xs)
   | Pr xs -> G.Ss (list_stmts xs)

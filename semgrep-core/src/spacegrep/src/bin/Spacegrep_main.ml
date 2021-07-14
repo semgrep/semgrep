@@ -106,7 +106,7 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
                   | [] -> None
                   | _ ->
                       incr num_matching_files;
-                      Some (doc_src, matches_in_file, parse_time) ))
+                      Some (doc_src, matches_in_file, parse_time)))
         in
         match matches with
         | None -> None
@@ -132,9 +132,9 @@ let run config =
   apply_timeout config;
   let patterns_or_errors =
     let pattern_files = Find_files.list config.pattern_files in
-    ( match config.pattern with
+    (match config.pattern with
     | None -> []
-    | Some pat_str -> [ Src_file.of_string pat_str ] )
+    | Some pat_str -> [ Src_file.of_string pat_str ])
     @ List.map Src_file.of_file pattern_files
     |> List.map (fun pat_src -> (pat_src, Parse_pattern.of_src pat_src))
   in
@@ -170,15 +170,14 @@ let run config =
       ~debug ~force:config.force ~warn:config.warn
       ~no_skip_search:config.no_skip_search patterns docs
   in
-  ( match config.output_format with
+  (match config.output_format with
   | Text ->
       Match.print_nested_results ~with_time:config.time ~highlight matches
         errors
-  | Semgrep -> Semgrep.print_semgrep_json ~with_time:config.time matches errors
-  );
+  | Semgrep -> Semgrep.print_semgrep_json ~with_time:config.time matches errors);
   if debug then (
     printf "\nanalyzed %i files out of %i\n" num_analyzed num_files;
-    printf "found %i matches in %i files\n" num_matches num_matching_files )
+    printf "found %i matches in %i files\n" num_matches num_matching_files)
 
 let color_conv =
   let parser when_use_color =

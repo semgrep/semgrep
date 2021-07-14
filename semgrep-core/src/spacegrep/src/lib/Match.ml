@@ -151,7 +151,7 @@ let close_dots conf ~dots:opt_dots env =
       | None -> Some (Env.add name (matched, value) env)
       | Some (_loc0, value0) ->
           (* This must be an exact match even if case-insensitive matching was requested. *)
-          if String.equal value value0 then Some env else None )
+          if String.equal value value0 then Some env else None)
 
 let close_dots_or_fail conf ~dots env f =
   match close_dots conf ~dots env with None -> Fail | Some env' -> f env'
@@ -245,11 +245,11 @@ let rec match_ (conf : conf) ~(dots : dots option) (env : env)
   | [], doc -> (
       match doc_matches_dots ~dots last_loc doc with
       | Some last_loc -> complete_dots conf ~dots env last_loc
-      | None -> Fail )
+      | None -> Fail)
   | [ End ], doc -> (
       match doc_matches_dots ~dots last_loc doc with
       | Some last_loc -> complete_dots conf ~dots env last_loc
-      | None -> Complete (env, last_loc) )
+      | None -> Complete (env, last_loc))
   | End :: _, _ -> assert false
   | List pat1 :: pat2, doc -> (
       match doc with
@@ -280,7 +280,7 @@ let rec match_ (conf : conf) ~(dots : dots option) (env : env)
               close_dots_or_fail conf ~dots env (fun env ->
                   if pat_matches_empty_doc pat1 then
                     match_ conf ~dots:None env last_loc pat2 doc cont
-                  else Fail) ) )
+                  else Fail)))
   | Dots (_, opt_mvar) :: pat_tail, doc ->
       let dots = extend_dots ~dots opt_mvar last_loc in
       match_ conf ~dots env last_loc pat_tail doc cont
@@ -319,7 +319,7 @@ let rec match_ (conf : conf) ~(dots : dots option) (env : env)
                               if String.equal value value0 then
                                 match_ conf ~dots:None env loc pat_tail doc_tail
                                   cont
-                              else Fail )
+                              else Fail)
                       | Word a, Word b when conf.word_equal a b ->
                           match_ conf ~dots:None env loc pat_tail doc_tail cont
                       | Punct a, Punct b when a = b ->
@@ -336,7 +336,7 @@ let rec match_ (conf : conf) ~(dots : dots option) (env : env)
                     match is_skippable_doc_atom ~dots loc with
                     | Some _ as dots' ->
                         match_ conf ~dots:dots' env last_loc pat doc_tail cont
-                    | None -> Fail ) ) ) )
+                    | None -> Fail))))
 
 (*
 let starts_after last_loc loc =

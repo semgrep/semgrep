@@ -82,7 +82,7 @@ let parse_languages ~id langs =
                  raise
                    (InvalidLanguageException
                       (id, spf "unsupported language: %s" s))
-             | Some l -> l )
+             | Some l -> l)
          | _ ->
              raise
                (InvalidRuleException (id, spf "expecting a string for languages")))
@@ -133,7 +133,7 @@ let parse file =
                          }
                      | x ->
                          pr2_gen x;
-                         raise (InvalidYamlException "wrong rule fields") )
+                         raise (InvalidYamlException "wrong rule fields"))
                  | x ->
                      pr2_gen x;
                      raise (InvalidYamlException "wrong rule fields"))

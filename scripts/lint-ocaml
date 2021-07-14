@@ -8,6 +8,7 @@ set -eu
 eval $(opam env)
 
 if $(ocamlformat --version > /dev/null 2>&1); then
+  #TODO: we should require a specific version, like the one in dev.opam
   ocamlformat --inplace --enable-outside-detected-project "$@"
 else
   cat <<EOF

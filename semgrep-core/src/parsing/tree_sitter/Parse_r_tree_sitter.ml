@@ -472,7 +472,7 @@ and map_program (env : env) (xs : CST.program) =
         | Some x -> (
             match x with
             | `LF tok -> token env tok (* "\n" *)
-            | `SEMI tok -> token env tok (* ";" *) )
+            | `SEMI tok -> token env tok (* ";" *))
         | None -> todo env ()
       in
       todo env (v1, v2))

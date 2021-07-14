@@ -82,7 +82,7 @@ let merge_and_deduplicate get_key a b =
         let k = get_key v in
         if not (Hashtbl.mem tbl k) then (
           Hashtbl.add tbl k ();
-          acc := v :: !acc ))
+          acc := v :: !acc))
       values
   in
   add a;

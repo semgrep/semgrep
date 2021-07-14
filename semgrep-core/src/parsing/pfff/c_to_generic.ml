@@ -199,7 +199,7 @@ and expr = function
       let v1 = assignOp v1 and v2 = expr v2 and v3 = expr v3 in
       match v1 with
       | Left tok -> G.Assign (v2, tok, v3)
-      | Right (op, tok) -> G.AssignOp (v2, (op, tok), v3) )
+      | Right (op, tok) -> G.AssignOp (v2, (op, tok), v3))
   | ArrayAccess (v1, v2) ->
       let v1 = expr v1 and v2 = bracket expr v2 in
       G.ArrayAccess (v1, v2)
@@ -274,7 +274,7 @@ and argument v =
 and const_expr v = expr v
 
 let rec stmt st =
-  ( match st with
+  (match st with
   | DefStmt x -> definition x
   | DirStmt x -> directive x
   | CaseStmt x -> case_stmt x
@@ -321,7 +321,7 @@ let rec stmt st =
       (G.stmt1 (v1 |> List.map (fun v -> G.s (G.DefStmt v)))).G.s
   | Asm v1 ->
       let v1 = list expr v1 in
-      G.OtherStmt (G.OS_Asm, v1 |> List.map (fun e -> G.E e)) )
+      G.OtherStmt (G.OS_Asm, v1 |> List.map (fun e -> G.E e)))
   |> G.s
 
 and expr_or_vars v1 =

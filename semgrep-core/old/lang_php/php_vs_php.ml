@@ -317,7 +317,7 @@ functor
         when MV.is_metavar_name name -> (
           X.envf (name, info_name) (B.Ident2 b) >>= function
           | (name, info_name), B.Ident2 b -> return (A.Name (name, info_name), b)
-          | _ -> raise Impossible )
+          | _ -> raise Impossible)
       | A.Name a1, B.Name b1 ->
           (m_wrap m_string_case) a1 b1 >>= fun (a1, b1) ->
           return (A.Name a1, B.Name b1)
@@ -326,7 +326,7 @@ functor
           X.envf (name, info_name) (B.Ident2 b) >>= function
           | (name, info_name), B.Ident2 b ->
               return (A.XhpName ([ name ], info_name), b)
-          | _ -> raise Impossible )
+          | _ -> raise Impossible)
       | A.XhpName a1, B.XhpName b1 ->
           (m_wrap (m_list m_string)) a1 b1 >>= fun (a1, b1) ->
           return (A.XhpName a1, B.XhpName b1)
@@ -531,7 +531,7 @@ functor
                 ( A.Arg a1,
                   B.Arg (B.Assign (B.IdVar (bname, bscope), btok, bexpr)) )
           | a1, b1 ->
-              m_expr a1 b1 >>= fun (a1, b1) -> return (A.Arg a1, B.Arg b1) )
+              m_expr a1 b1 >>= fun (a1, b1) -> return (A.Arg a1, B.Arg b1))
       (* an expression metavariable should also match a reference argument *)
       | ( A.Arg (A.Id (A.XName [ A.QI (A.Name (name, info_name)) ])),
           B.ArgRef (_, _) )
@@ -540,7 +540,7 @@ functor
           | (name, info_name), B.Argument b ->
               return
                 (A.Arg (A.Id (A.XName [ A.QI (A.Name (name, info_name)) ])), b)
-          | _ -> raise Impossible )
+          | _ -> raise Impossible)
       | A.ArgRef (a1, a2), B.ArgRef (b1, b2) ->
           m_tok a1 b1 >>= fun (a1, b1) ->
           m_w_variable a2 b2 >>= fun (a2, b2) ->
@@ -562,7 +562,7 @@ functor
           X.envf (name, info_name) (B.Expr e2) >>= function
           | (name, info_name), B.Expr e2 ->
               return (A.Id (A.XName [ A.QI (A.Name (name, info_name)) ]), e2)
-          | _ -> raise Impossible )
+          | _ -> raise Impossible)
       (* pad *)
       | A.SgrepExprDots _, _ -> fail ()
       | _, B.SgrepExprDots _ ->
@@ -589,7 +589,7 @@ functor
           >>= function
           | (dname, info_dname), B.Expr b ->
               return (A.IdVar (A.DName (dname, info_dname), a2), b)
-          | _ -> raise Impossible )
+          | _ -> raise Impossible)
       | A.IdVar (a1, a2), B.IdVar (b1, b2) ->
           m_dname a1 b1 >>= fun (a1, b1) ->
           m_ref m_xxx_scope a2 b2 >>= fun (a2, b2) ->
@@ -950,7 +950,7 @@ functor
           X.envf (name, i_name) (B.XhpAttrValue b) >>= function
           | (name, i_name), B.XhpAttrValue b ->
               return (A.SgrepXhpAttrValueMvar (name, i_name), b)
-          | _ -> raise Impossible )
+          | _ -> raise Impossible)
       | A.XhpAttrString (a1, a2, a3), B.XhpAttrString (b1, b2, b3) ->
           m_tok a1 b1 >>= fun (a1, b1) ->
           (m_list m_encaps) a2 b2 >>= fun (a2, b2) ->
@@ -1090,7 +1090,7 @@ functor
           | ( (name, info_name),
               (_any1, B.Expr (B.Sc (B.C (B.String (sb, info_sb))))) ) ->
               return (A.String (name, info_name), B.String (sb, info_sb))
-          | _ -> raise Impossible )
+          | _ -> raise Impossible)
       (* pad, iso on  name *)
       | A.String ("...", a), B.String (s, b) ->
           m_info a b >>= fun (a, b) ->
@@ -1179,7 +1179,7 @@ functor
                          (A.Id (A.XName [ A.QI (A.Name (name, info_name)) ])));
                   ],
                   bbs )
-          | _ -> raise Impossible )
+          | _ -> raise Impossible)
       (* bugfix: we can have some Replace or AddAfter in the token of
        * the comma. We need to apply it to the code.
        *)
@@ -1195,10 +1195,10 @@ functor
           if is_NoTransfo a || is_Remove a then return (xsa, xsb)
           else
             failwith
-              ( "transformation (- or +) on ',' not allowed when used with "
-              ^ "'...'. Rewrite your spatch: put your trailing comma on the \
-                 line " ^ "with the '...'. See also "
-              ^ "https://github.com/facebook/pfff/wiki/Spatch#wiki-spacing-issues"
+              ("transformation (- or +) on ',' not allowed when used with "
+             ^ "'...'. Rewrite your spatch: put your trailing comma on the \
+                line " ^ "with the '...'. See also "
+             ^ "https://github.com/facebook/pfff/wiki/Spatch#wiki-spacing-issues"
               )
       | ( [
             Right _;
@@ -1208,7 +1208,7 @@ functor
         when MV.is_metavar_manyargs_name name -> (
           X.envf (name, info_name) (B.Arguments []) >>= function
           | (_name, _info_name), B.Arguments [] -> return (xsa, xsb)
-          | _ -> raise Impossible )
+          | _ -> raise Impossible)
       | [ Right _; Left (A.Arg (A.SgrepExprDots _)) ], _bbs -> raise Impossible
       | Left (A.Arg (A.SgrepExprDots _)) :: _, _ ->
           failwith
@@ -1522,7 +1522,7 @@ functor
           | (name, info_name), B.Hint2 b ->
               return
                 (A.Hint (A.XName [ A.QI (A.Name (name, info_name)) ], None), b)
-          | _ -> raise Impossible )
+          | _ -> raise Impossible)
       | A.Hint (a1, a2), B.Hint (b1, b2) ->
           m_name a1 b1 >>= fun (a1, b1) ->
           m_option m_type_args a2 b2 >>= fun (a2, b2) ->
