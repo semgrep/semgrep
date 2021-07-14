@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.58.0](https://github.com/returntocorp/semgrep/releases/tag/v0.58.0) - 2021-07-14
 
 ### Added
 - New iteration of taint-mode that allows to specify sources/sanitizers/sinks
@@ -26,6 +26,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Java generics are now correctly stored in the AST (#3505)
 - Constant propagation now works inside Python `with` statements (#3402)
 - Metavariable value replacement in message/autofix no longer mixes up short and long names like $X vs $X2 (#3458)
+- Fixed metavariable name collision during interpolation of message / autofix (#3483)
+  Thanks to Justin Timmons for the fix!
 - Revert `pattern: $X` optimization (#3476)
 - metavariable-pattern: Allow filtering using a single `pattern` or
   `pattern-regex`
