@@ -8,7 +8,8 @@
 # The same applies to the 'spacegrep' executable.
 #
 
-FROM returntocorp/ocaml:alpine-2021-04-08 as build-semgrep-core
+# This currently uses OCaml 4.10.2+flambda
+FROM returntocorp/ocaml:alpine-2021-06-23 as build-semgrep-core
 
 USER root
 # for ocaml-pcre now used in semgrep-core
