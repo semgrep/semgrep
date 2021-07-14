@@ -103,7 +103,7 @@ let difference_ranges config pos neg =
     pos
     |> List.filter (fun x ->
            not
-             ( neg
+             (neg
              |> List.exists (fun y ->
                     (* pattern-not vs pattern-not-inside vs pattern-not-regex,
                      * the difference matters!

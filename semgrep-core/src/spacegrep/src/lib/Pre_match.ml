@@ -18,7 +18,7 @@ let pattern_has_bytes (pat : Pattern_AST.t) =
   let open Pattern_AST in
   let rec has_bytes = function
     | Atom (_, atom) -> (
-        match atom with Byte _ -> true | Word _ | Punct _ | Metavar _ -> false )
+        match atom with Byte _ -> true | Word _ | Punct _ | Metavar _ -> false)
     | List nodes -> List.exists has_bytes nodes
     | Dots _ | End -> false
   in

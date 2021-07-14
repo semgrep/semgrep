@@ -117,7 +117,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
       | Timeout -> raise Timeout
       | exn ->
           logger#debug "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
-          Error exn )
+          Error exn)
 
 let rec (run_either :
           Common.filename -> 'ast parser list -> 'ast internal_result) =
@@ -139,7 +139,7 @@ let rec (run_either :
               Partial (ast, errs, stat)
           | Partial _ ->
               logger#debug "Partial again but return first Partial";
-              Partial (ast, errs, stat) )
+              Partial (ast, errs, stat))
       | Error exn -> (
           let res = run_either file xs in
           match res with
@@ -152,7 +152,7 @@ let rec (run_either :
               logger#debug "exn again (%s) but return original exn (%s)"
                 (Common.exn_to_s exn2) (Common.exn_to_s exn);
               (* prefer the first error *)
-              Error exn ) )
+              Error exn))
 
 let (run :
       Common.filename ->

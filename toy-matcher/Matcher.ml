@@ -99,7 +99,7 @@ let construct_backref_set pat_val =
       | Any_symbol
       | Symbol _
       | Ellipsis ->
-          pat.backrefs )
+          pat.backrefs)
 
 let create_pattern pat_val capture_name =
   let backrefs = construct_backref_set pat_val in
@@ -179,7 +179,7 @@ let rec check_pattern_ env (pat : pattern) =
   | Nil -> (
       match pat.capture_name with
       | None -> ()
-      | Some name -> failwith ("invalid capture of Nil node: " ^ name) )
+      | Some name -> failwith ("invalid capture of Nil node: " ^ name))
   | Cons (atom, pat) ->
       let new_env =
         match orig_pat.capture_name with
@@ -189,13 +189,13 @@ let rec check_pattern_ env (pat : pattern) =
               failwith ("multiple atoms have the same name: " ^ name)
             else name :: env
       in
-      ( match atom with
+      (match atom with
       | Any_symbol -> ()
       | Symbol _ -> ()
       | Ellipsis -> ()
       | Backref name ->
           if not (List.mem name env) then
-            failwith ("backreference to invalid name: " ^ name) );
+            failwith ("backreference to invalid name: " ^ name));
       check_pattern_ new_env pat
 
 let check_pattern pat = check_pattern_ [] pat
@@ -282,14 +282,14 @@ let print_pat_head oc pat =
   match pat.pat_val with
   | Nil -> fprintf oc " _:''"
   | Cons (atom, _tail) -> (
-      ( match pat.capture_name with
+      (match pat.capture_name with
       | None -> fprintf oc " _:"
-      | Some name -> fprintf oc " %s:" name );
+      | Some name -> fprintf oc " %s:" name);
       match atom with
       | Any_symbol -> fprintf oc "_"
       | Symbol c -> fprintf oc "%C" c
       | Ellipsis -> fprintf oc "..."
-      | Backref name -> fprintf oc "%s" name )
+      | Backref name -> fprintf oc "%s" name)
 
 (* to be appended to existing line *)
 let print_input_head oc input =
@@ -433,7 +433,7 @@ let match_input ?(trace = true) ?cache root_pat root_input :
             if in_ellipsis then
               let ellipsis = extend_ellipsis ellipsis symbol in
               match_ ellipsis env orig_pat input
-            else None )
+            else None)
     | Cons (pat_atom, pat) -> (
         match input with
         | [] -> (
@@ -447,10 +447,10 @@ let match_input ?(trace = true) ?cache root_pat root_input :
                 | Some [] ->
                     let env = extend env ellipsis orig_pat [] in
                     match_ Not_in_ellipsis env pat input
-                | _ -> None )
+                | _ -> None)
             | Any_symbol
             | Symbol _ ->
-                None )
+                None)
         | symbol :: input -> (
             let head_match =
               match pat_atom with
@@ -471,7 +471,7 @@ let match_input ?(trace = true) ?cache root_pat root_input :
                   | Some [ symbol0 ] when symbol0 = symbol ->
                       let env = extend env ellipsis orig_pat [ symbol ] in
                       Some (Not_in_ellipsis, env, input)
-                  | _ -> None )
+                  | _ -> None)
             in
             let matches_here =
               match head_match with
@@ -488,20 +488,20 @@ let match_input ?(trace = true) ?cache root_pat root_input :
                   (* skip input symbol and retry *)
                   let ellipsis = extend_ellipsis ellipsis symbol in
                   match_ ellipsis env orig_pat input
-                else None ) )
+                else None))
   in
-  ( match cache with
+  (match cache with
   | Some cache_when ->
       get_from_cache := Memoize.create ~cache_when uncached_match
-  | None -> get_from_cache := uncached_match );
+  | None -> get_from_cache := uncached_match);
 
   let opt_captures =
     match match_ Not_in_ellipsis empty_env root_pat root_input with
     | None -> None
     | Some env ->
         Some
-          ( Bindings.bindings env.full_env
-          |> List.map (fun (k, v) -> (k, unparse v)) )
+          (Bindings.bindings env.full_env
+          |> List.map (fun (k, v) -> (k, unparse v)))
   in
   (opt_captures, stat)
 
@@ -530,13 +530,13 @@ let check_match ?cache ?min_match_calls ?max_match_calls pat input_str
   in
   print_result stdout actual;
   Alcotest.(check bool) "equal" true (expected = actual);
-  ( match min_match_calls with
+  (match min_match_calls with
   | None -> ()
   | Some mini ->
       printf "min number of calls to the match function: %i\n" mini;
       Alcotest.(check bool)
         (sprintf "no more than %i match calls" mini)
-        true (match_calls >= mini) );
+        true (match_calls >= mini));
   match max_match_calls with
   | None -> ()
   | Some maxi ->

@@ -1,10 +1,10 @@
 open IL
 
 let string_of_lval x =
-  ( match x.base with
+  (match x.base with
   | Var n -> str_of_name n
   | VarSpecial _ -> "<varspecial>"
-  | Mem _ -> "<Mem>" )
+  | Mem _ -> "<Mem>")
   ^
   match x.offset with
   | NoOffset -> ""
@@ -32,7 +32,7 @@ let short_string_of_node_kind nkind =
       | AssignAnon _ -> " ... = <lambda|class>"
       | Call (_lopt, exp, _) -> string_of_exp exp ^ "(...)"
       | CallSpecial _ -> "<special>"
-      | FixmeInstr _ -> "<fix-me instr>" )
+      | FixmeInstr _ -> "<fix-me instr>")
   | NTodo _ -> "<to-do stmt>"
 
 (* using internally graphviz dot and ghostview on X11 *)

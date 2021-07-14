@@ -116,7 +116,7 @@ let instr env x =
           let v = var_of_name env n in
           let h = heap_of_int env s in
           add env (D.PointTo (v, h))
-      | _ -> todo (I x) )
+      | _ -> todo (I x))
   | _ -> todo (I x)
 
 let stmt env x = match x.IL.s with Instr x -> instr env x | _ -> todo (S x)

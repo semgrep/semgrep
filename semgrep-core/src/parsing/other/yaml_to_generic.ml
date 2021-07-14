@@ -160,7 +160,7 @@ let make_scalar _anchor _tag pos value env : A.expr =
     | ".nan" | ".NaN" | ".NAN" -> A.L (A.Float (Some nan, token))
     | _ -> (
         try A.L (A.Float (Some (float_of_string value), token))
-        with _ -> A.L (A.String (value, token)) )
+        with _ -> A.L (A.String (value, token)))
 
 (* Sequences are arrays in the generic AST *)
 let make_sequence _anchor _tag start_pos (es, end_pos) env =
@@ -344,7 +344,7 @@ let split_on_ellipses line =
           | 2 ->
               substring line 0 ellipses_start
               :: split (substring line (i + 1) line_length) 0 0 0
-          | _ -> raise ImpossibleDots )
+          | _ -> raise ImpossibleDots)
       | _ -> split line (i + 1) 0 0
   in
   let pieces = split line 0 0 0 in
@@ -377,7 +377,7 @@ let preprocess_yaml str =
               in
               match last_same_whitespace ws context with
               | Some ws -> (context, conv @ [ ws ^ sgrep_ellipses ], ellipses')
-              | None -> (context, conv, (ws_len, ws) :: ellipses') )
+              | None -> (context, conv, (ws_len, ws) :: ellipses'))
           | _ ->
               let conv, ellipses' =
                 convert_leftover_ellipses (hyphen_loc, ws) ~is_line:true

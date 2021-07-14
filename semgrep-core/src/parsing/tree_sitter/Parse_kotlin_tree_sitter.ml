@@ -456,7 +456,7 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
             ImportAll (v1, DottedName v2, t)
         | `Import_alias x ->
             let t, id = import_alias env x in
-            ImportAs (t, DottedName v2, Some (id, empty_id_info ())) )
+            ImportAs (t, DottedName v2, Some (id, empty_id_info ())))
     | None -> ImportAs (v1, DottedName v2, None)
   in
   let _v4 = token env v4 (* pattern [\r\n]+ *) in
@@ -892,7 +892,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
                 let _v1 = token env v1 (* "=" *) in
                 let v2 = expression env v2 in
                 Some v2
-            | `Prop_dele x -> property_delegate env x )
+            | `Prop_dele x -> property_delegate env x)
         | None -> None
       in
       let _v7 =
@@ -902,13 +902,13 @@ and declaration (env : env) (x : CST.declaration) : definition =
             | Some x ->
                 let x = getter env x in
                 todo env x
-            | None -> None )
+            | None -> None)
         | `Opt_setter opt -> (
             match opt with
             | Some x ->
                 let x = setter env x in
                 todo env x
-            | None -> None )
+            | None -> None)
       in
       let vdef = { vinit = v6; vtype = type_info } in
       let ent = basic_entity tok [] in
@@ -995,7 +995,7 @@ and expression (env : env) (x : CST.expression) : expr =
       match x with
       | `Un_exp x -> unary_expression env x
       | `Bin_exp x -> binary_expression env x
-      | `Prim_exp x -> primary_expression env x )
+      | `Prim_exp x -> primary_expression env x)
   | `Ellips x -> Ellipsis (token env x)
   | `Deep_ellips (x1, x2, x3) ->
       let x1 = token env x1 in
@@ -1202,7 +1202,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
         | None -> None
       in
       let return_tok, id = v1 in
-      ( match id with
+      (match id with
       | None -> Return (return_tok, v2, sc)
       | Some simple_id -> (
           let id = N (Id (simple_id, empty_id_info ())) in
@@ -1212,7 +1212,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
               OtherStmt (OS_Todo, list)
           | Some v2_expr ->
               let list = [ TodoK ("return@", return_tok); E id; E v2_expr ] in
-              OtherStmt (OS_Todo, list) ) )
+              OtherStmt (OS_Todo, list)))
       |> G.s
   | `Cont tok ->
       let v1 = token env tok (* "continue" *) in
@@ -1790,7 +1790,7 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       match v2 with
       | Left incr_decr ->
           Call (IdSpecial (IncrDecr (incr_decr, Postfix), v3), fb [ Arg v1 ])
-      | Right operator -> Call (IdSpecial (Op operator, v3), fb [ Arg v1 ]) )
+      | Right operator -> Call (IdSpecial (Op operator, v3), fb [ Arg v1 ]))
   | `Call_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = call_suffix env v2 in
@@ -1820,7 +1820,7 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       | Some (Left incr_decr, tok) ->
           Call (IdSpecial (IncrDecr (incr_decr, Postfix), tok), fb [ Arg v2 ])
       | Some (Right operator, tok) ->
-          Call (IdSpecial (Op operator, tok), fb [ Arg v2 ]) )
+          Call (IdSpecial (Op operator, tok), fb [ Arg v2 ]))
   | `As_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let _v2 = as_operator env v2 in

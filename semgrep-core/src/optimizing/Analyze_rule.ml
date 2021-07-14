@@ -123,7 +123,7 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
       | R.Not f -> remove_not f
       (* todo? apply De Morgan's law? *)
       | R.Or _xs -> failwith "Not Or"
-      | R.And _xs -> failwith "Not And" )
+      | R.And _xs -> failwith "Not And")
   | R.Leaf x -> Some (R.Leaf x)
 
 let remove_not_final f =
@@ -164,7 +164,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
         | [ x ] -> x
         | [ And ps; And qs ] ->
             And
-              ( ps
+              (ps
               |> List.map (fun pi ->
                      let ands =
                        qs
@@ -175,7 +175,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
                               Or ors)
                      in
                      ands)
-              |> List.flatten )
+              |> List.flatten)
         | x :: xs ->
             let y = aux xs in
             aux [ x; y ]

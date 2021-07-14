@@ -36,7 +36,7 @@ let test_cfg_generic file =
                let flow = Controlflow_build.cfg_of_func def in
                Controlflow.display_flow flow
              with Controlflow_build.Error err ->
-               Controlflow_build.report_error err )
+               Controlflow_build.report_error err)
          | _ -> ())
 
 (*e: function [[Test_analyze_generic.test_cfg_generic]] *)

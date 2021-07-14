@@ -136,7 +136,7 @@ let rec read_response (id, req) io =
           | Error err ->
               let json = Jsonrpc.Response.Error.yojson_of_t err in
               let s = Import.Json.to_pretty_string json in
-              failwith (spf "error: %s" s) ) )
+              failwith (spf "error: %s" s)))
 
 (*****************************************************************************)
 (* OCaml LSP get type *)
@@ -197,7 +197,7 @@ let type_at_tok tk uri io =
           in
           if !debug then pr2_gen ty;
           Some ty
-      | _ -> failwith "not a `MarkedContent`" )
+      | _ -> failwith "not a `MarkedContent`")
 
 (*****************************************************************************)
 (* Entry points *)
@@ -222,15 +222,15 @@ let rec get_type id =
   let uri = "file://" ^ file in
   match !global with
   | { io = Some io; last_uri } when last_uri = uri -> (
-      try type_at_tok tok uri io with _exn -> None )
+      try type_at_tok tok uri io with _exn -> None)
   | { io = Some io; last_uri } when last_uri <> uri ->
-      ( if last_uri <> "" then
-        let notif =
-          Client_notification.TextDocumentDidClose
-            (DidCloseTextDocumentParams.create
-               ~textDocument:(TextDocumentIdentifier.create ~uri))
-        in
-        send_notif notif io );
+      (if last_uri <> "" then
+       let notif =
+         Client_notification.TextDocumentDidClose
+           (DidCloseTextDocumentParams.create
+              ~textDocument:(TextDocumentIdentifier.create ~uri))
+       in
+       send_notif notif io);
 
       let notif =
         Client_notification.TextDocumentDidOpen

@@ -61,7 +61,7 @@ let normalize2 any lang =
                             Arg
                               (Call (IdSpecial (Op other_op, tok), fb [ a; b ]));
                           ],
-                          rp ) ) )
+                          rp ) ))
             | _ -> e);
       }
   in

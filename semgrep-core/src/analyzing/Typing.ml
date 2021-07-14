@@ -31,4 +31,4 @@ let get_resolved_type lang (vinit, vtype) =
       | Some (L (Null tok)) -> make_type "null" tok
       | Some (L (Imag (_, tok))) -> make_type "imag" tok
       | Some (N (Id (_, { id_type; _ }))) -> !id_type
-      | _ -> None )
+      | _ -> None)

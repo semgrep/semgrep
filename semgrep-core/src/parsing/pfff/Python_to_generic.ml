@@ -183,18 +183,18 @@ let rec expr (x : expr) =
       G.Call
         ( G.IdSpecial (G.ConcatString G.FString, fake "concat"),
           fb
-            ( xs
+            (xs
             |> List.map (fun x ->
                    let x = expr x in
-                   G.Arg x) ) )
+                   G.Arg x)) )
   | ConcatenatedString xs ->
       G.Call
         ( G.IdSpecial (G.ConcatString G.SequenceConcat, fake "concat"),
           fb
-            ( xs
+            (xs
             |> List.map (fun x ->
                    let x = expr x in
-                   G.Arg x) ) )
+                   G.Arg x)) )
   | TypedExpr (v1, v2) ->
       let v1 = expr v1 in
       let v2 = type_ v2 in
@@ -231,7 +231,7 @@ let rec expr (x : expr) =
       | l1, [ x ], l2 -> slice1 e (l1, x, l2)
       | _, xs, _ ->
           let xs = list (slice e) xs in
-          G.OtherExpr (G.OE_Slices, xs |> List.map (fun x -> G.E x)) )
+          G.OtherExpr (G.OE_Slices, xs |> List.map (fun x -> G.E x)))
   | Attribute (v1, t, v2, v3) ->
       let v1 = expr v1
       and t = info t
@@ -268,7 +268,7 @@ let rec expr (x : expr) =
       match v1 with
       | Left op ->
           G.Call (G.IdSpecial (G.Op op, tok), fb ([ v2 ] |> List.map G.arg))
-      | Right oe -> G.OtherExpr (oe, [ G.E v2 ]) )
+      | Right oe -> G.OtherExpr (oe, [ G.E v2 ]))
   | Compare (v1, v2, v3) -> (
       let v1 = expr v1 and v2 = list cmpop v2 and v3 = list expr v3 in
       match (v2, v3) with
@@ -281,7 +281,7 @@ let rec expr (x : expr) =
                    G.E (G.IdSpecial (G.Op arith, tok)))
           in
           let any = anyops @ (v3 |> List.map (fun e -> G.E e)) in
-          G.OtherExpr (G.OE_CmpOps, any) )
+          G.OtherExpr (G.OE_CmpOps, any))
   | Call (v1, v2) ->
       let v1 = expr v1 in
       let v2 = bracket (list argument) v2 in
@@ -618,8 +618,8 @@ and stmt_aux x =
            * No because we have some magic equivalences to convert some
            * Vardef back in Assign in Generic_vs_generic.
            *)
-          | _ -> [ G.exprstmt (G.Assign (a, v2, v3)) ] )
-      | xs -> [ G.exprstmt (G.Assign (G.Tuple (G.fake_bracket xs), v2, v3)) ] )
+          | _ -> [ G.exprstmt (G.Assign (a, v2, v3)) ])
+      | xs -> [ G.exprstmt (G.Assign (G.Tuple (G.fake_bracket xs), v2, v3)) ])
   | AugAssign (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = operator v2 and v3 = expr v3 in
       [ G.exprstmt (G.AssignOp (v1, (v2, tok), v3)) ]
@@ -647,7 +647,7 @@ and stmt_aux x =
                    |> G.s;
                  ])
             |> G.s;
-          ] )
+          ])
   | For (t, v1, t2, v2, v3, v4) -> (
       let foreach = pattern v1
       and ins = expr v2
@@ -667,7 +667,7 @@ and stmt_aux x =
                    |> G.s;
                  ])
             |> G.s;
-          ] )
+          ])
   (* TODO: unsugar in sequence? *)
   | With (_t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = option expr v2 and v3 = list_stmt1 v3 in
@@ -687,7 +687,7 @@ and stmt_aux x =
           let from = expr from in
           let st = G.Throw (t, e, G.sc) |> G.s in
           [ G.OtherStmt (G.OS_ThrowFrom, [ G.E from; G.S st ]) |> G.s ]
-      | None -> [ G.OtherStmt (G.OS_ThrowNothing, [ G.Tk t ]) |> G.s ] )
+      | None -> [ G.OtherStmt (G.OS_ThrowNothing, [ G.Tk t ]) |> G.s ])
   | RaisePython2 (t, e, v2, v3) -> (
       let e = expr e in
       let st = G.Throw (t, e, G.sc) |> G.s in
@@ -701,7 +701,7 @@ and stmt_aux x =
       | Some args, None ->
           let args = expr args in
           [ G.OtherStmt (G.OS_ThrowArgsLocation, [ G.E args; G.S st ]) |> G.s ]
-      | None, _ -> [ st ] )
+      | None, _ -> [ st ])
   | TryExcept (t, v1, v2, v3) -> (
       let v1 = list_stmt1 v1
       and v2 = list excepthandler v2
@@ -719,7 +719,7 @@ and stmt_aux x =
                    |> G.s;
                  ])
             |> G.s;
-          ] )
+          ])
   | TryFinally (t, v1, t2, v2) ->
       let v1 = list_stmt1 v1 and v2 = list_stmt1 v2 in
       (* could lift down the Try in v1 *)
@@ -756,7 +756,7 @@ and stmt_aux x =
               ({ ent with G.attrs = G.attr G.Async t :: ent.G.attrs }, func)
             |> G.s;
           ]
-      | _ -> [ G.OtherStmt (G.OS_Async, [ G.S x ]) |> G.s ] )
+      | _ -> [ G.OtherStmt (G.OS_Async, [ G.S x ]) |> G.s ])
   | Pass t -> [ G.OtherStmt (G.OS_Pass, [ G.Tk t ]) |> G.s ]
   | Break t -> [ G.Break (t, G.LNone, G.sc) |> G.s ]
   | Continue t -> [ G.Continue (t, G.LNone, G.sc) |> G.s ]
@@ -792,7 +792,7 @@ and excepthandler = function
       and v2 = option name v2
       and v3 = list_stmt1 v3 in
       ( t,
-        ( match (v1, v2) with
+        (match (v1, v2) with
         | Some e, None -> (
             match e with
             | G.Ellipsis tok -> G.PatEllipsis tok
@@ -803,7 +803,7 @@ and excepthandler = function
         | None, None -> G.PatUnderscore (fake "_")
         | None, Some _ -> raise Impossible (* see the grammar *)
         | Some e, Some n ->
-            G.PatVar (H.expr_to_type e, Some (n, G.empty_id_info ())) ),
+            G.PatVar (H.expr_to_type e, Some (n, G.empty_id_info ()))),
         v3 )
 
 (*e: function [[Python_to_generic.excepthandler]] *)
@@ -845,7 +845,7 @@ let any = function
   | Stmt v1 -> (
       let v1 = stmt v1 in
       (* in Python Assign is a stmt but in the generic AST it's an expression*)
-      match v1.G.s with G.ExprStmt (x, _t) -> G.E x | _ -> G.S v1 )
+      match v1.G.s with G.ExprStmt (x, _t) -> G.E x | _ -> G.S v1)
   (* TODO? should use list stmt_aux here? Some intermediate Block
    * could be inserted preventing some sgrep matching?
    *)

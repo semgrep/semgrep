@@ -238,7 +238,7 @@ and eval_op env op args =
           int_of_literal l >>= fun i -> Some (literal_of_int i)
       | Minus, Some (Int _ as l) ->
           int_of_literal l >>= fun i -> Some (literal_of_int (-i))
-      | __else__ -> None )
+      | __else__ -> None)
   | [ Arg e1; Arg e2 ] -> (
       match (eval_expr env e1, eval_expr env e2) with
       | Some (Bool _ as l1), Some (Bool _ as l2) ->
@@ -253,7 +253,7 @@ and eval_op env op args =
           string_of_literal l1 >>= fun s1 ->
           string_of_literal l2 >>= fun s2 ->
           eval_bop_string op s1 s2 >>= fun r -> Some (literal_of_string r)
-      | __else__ -> None )
+      | __else__ -> None)
   | __else__ -> None
 
 and eval_concat_string env args : literal option =
@@ -322,12 +322,12 @@ let propagate_basic lang prog =
           | N (Id (id, id_info)) when not !(env.in_lvalue) -> (
               match find_id env id id_info with
               | Some literal -> id_info.id_constness := Some (Lit literal)
-              | _ -> () )
+              | _ -> ())
           | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info)))
             when not !(env.in_lvalue) -> (
               match find_id env id id_info with
               | Some literal -> id_info.id_constness := Some (Lit literal)
-              | _ -> () )
+              | _ -> ())
           | ArrayAccess (e1, (_, e2, _)) ->
               v (E e1);
               Common.save_excursion env.in_lvalue false (fun () -> v (E e2))
@@ -345,8 +345,8 @@ let propagate_basic lang prog =
                      if
                        !(stats.lvalue) = 1
                        (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
-                       && ( lang = Lang.Python || lang = Lang.Ruby
-                          || lang = Lang.PHP || Lang.is_js lang )
+                       && (lang = Lang.Python || lang = Lang.Ruby
+                         || lang = Lang.PHP || Lang.is_js lang)
                        && kind = Global
                      then add_constant_env id (sid, literal) env);
               v (E rexp)

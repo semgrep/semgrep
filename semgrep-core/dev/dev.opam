@@ -9,5 +9,5 @@ synopsis: "OCaml development dependencies"
 
 depends: [
   "merlin"  # used by the various text editors with ocaml support
-  "ocamlformat" {= "0.15.0" }  # used by the pre-commit hook
+  "ocamlformat" {= "0.16.0" }  # used by the pre-commit hook
 ]
