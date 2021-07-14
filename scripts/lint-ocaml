@@ -6,8 +6,6 @@
 set -eu
 
 eval $(opam env)
-ocamlformat --version
-echo "$@"
 
 if $(ocamlformat --version > /dev/null 2>&1); then
   #TODO: we should require a specific version, like the one in dev.opam
