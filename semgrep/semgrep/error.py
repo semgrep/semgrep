@@ -1,3 +1,5 @@
+import inspect
+import sys
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -67,6 +69,13 @@ class SemgrepError(Exception):
         All values returned must be JSON serializable.
         """
         return {"message": str(self)}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "SemgrepError":  # type: ignore
+        """
+        Instantiates class from dict representation
+        """
+        return cls(**data)
 
 
 class SemgrepInternalError(Exception):
@@ -379,3 +388,13 @@ class _UnknownLanguageError(SemgrepInternalError):
 
 class _UnknownExtensionError(SemgrepInternalError):
     pass
+
+
+# cf. https://stackoverflow.com/questions/1796180/how-can-i-get-a-list-of-all-classes-within-current-module-in-python/1796247#1796247
+ERROR_MAP = {
+    classname: classdef
+    for classname, classdef in inspect.getmembers(
+        sys.modules[__name__],
+        lambda member: inspect.isclass(member) and member.__module__ == __name__,
+    )
+}

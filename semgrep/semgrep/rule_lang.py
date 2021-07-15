@@ -402,6 +402,7 @@ class RuleValidation:
         "patterns",
         "pattern-sinks",
         "pattern-sources",
+        "join",
     }
     INVALID_SENTINEL = " is not allowed for "
     BAD_TYPE_SENTINEL = "is not of type"
