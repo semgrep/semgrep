@@ -4,6 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- A new experimental 'join' mode. This mode runs multiple Semgrep rules
+  on a codebase and "joins" the results based on metavariable contents. This
+  lets users ask questions of codebases like "do any 3rd party
+  libraries use a dangerous function, and do I import that library directly?" or
+  "is this variable passed to an HTML template, and is it rendered in that template?"
+  with several Semgrep rules.
+
 ## [0.58.2](https://github.com/returntocorp/semgrep/releases/tag/v0.58.2) - 2021-07-15
 
 ### Fixed

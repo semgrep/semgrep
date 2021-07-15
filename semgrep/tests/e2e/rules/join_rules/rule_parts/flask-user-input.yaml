@@ -1,0 +1,6 @@
+rules:
+- id: flask-user-input
+  languages: [python]
+  severity: INFO
+  message: $VAR
+  pattern: '$VAR = flask.request.$SOMETHING.get(...)'
