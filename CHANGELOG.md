@@ -4,6 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- A new experimental 'join' mode. This mode runs multiple Semgrep rules
+  on a codebase and "joins" the results based on metavariable contents. This
+  lets users ask questions of codebases like "do any 3rd party
+  libraries use a dangerous function, and do I import that library directly?" or
+  "is this variable passed to an HTML template, and is it rendered in that template?"
+  with several Semgrep rules.
+
 ## [0.58.1](https://github.com/returntocorp/semgrep/releases/tag/v0.58.1) - 2021-07-15
 
 ### Fixed
@@ -30,11 +38,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `...` that are added to record patterns, plus allow matching "spread fields"
   (JS `...x`) at any position (#3120)
 - Support globstar (`**`) syntax in path include/exclude (#3173)
-- A new experimental 'join' mode. This mode runs multiple Semgrep rules
-  on a codebase and "joins" the results based on metavariable contents. This
-  creates the ability to ask questions of codebases like "do any 3rd party
-  libraries use a dangerous function, and do I import that library directly?"
-  with several Semgrep rules.
 
 ### Fixed
 - Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)
