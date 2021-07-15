@@ -47,8 +47,8 @@ Contents:
 ```bash
 brew install opam
 opam init
-opam switch create 4.10.0
-opam switch 4.10.0
+opam switch create 4.12.0
+opam switch 4.12.0
 eval $(opam env)
 ```
 
