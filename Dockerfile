@@ -12,9 +12,9 @@
 # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
 #
 # coupling: if you modify the OCaml version there, you probably also need
-# to modify scripts/osx-release.sh. Note that many .github/workflows/
-# use returntocorp/ocaml:alpine, which should be the latest, and may differ
-# from this one.
+# to modify scripts/osx-release.sh, as well as doc/SEMGREP_CORE_CONTRIBUTING.md
+# Note that many .github/workflows/ use returntocorp/ocaml:alpine, which should
+# be the latest, but may differ from this one.
 FROM returntocorp/ocaml:alpine-2021-07-15 as build-semgrep-core
 
 USER root
