@@ -2,14 +2,17 @@
 # First, build a static 'semgrep-core' binary on Alpine because it comes set up
 # for it (requires using musl rather than glibc).
 #
-# Then 'semgrep-core' alone is copied to a container with that takes care
+# Then 'semgrep-core' alone is copied to a container which takes care
 # of the 'semgrep' wrapping.
 #
 # The same applies to the 'spacegrep' executable.
 #
 
-# This currently uses OCaml 4.10.2+flambda
-FROM returntocorp/ocaml:alpine-2021-06-23 as build-semgrep-core
+# The docker base image below currently uses OCaml 4.10.2+flambda.
+# See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
+# coupling: if you modify the OCaml version there, you probably also need
+# to modify scripts/osx-release.sh
+FROM returntocorp/ocaml:alpine-2021-07-14 as build-semgrep-core
 
 USER root
 # for ocaml-pcre now used in semgrep-core
