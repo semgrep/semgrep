@@ -1,0 +1,11 @@
+rules:
+- id: template-var-safe
+  languages: [generic]
+  severity: WARNING
+  message: $...EXPR
+  patterns:
+  - pattern-inside: '{{ ... }}'
+  - pattern: '$...EXPR | safe'
+  paths:
+    include:
+    - '*.html'

@@ -18,6 +18,7 @@ from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import BooleanRuleExpression
 from semgrep.semgrep_types import DEFAULT_MODE
+from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Language_util
 from semgrep.semgrep_types import Mode
@@ -63,7 +64,7 @@ class Rule:
         self._excludes = path_dict.get("exclude", [])
         rule_languages = {
             Language_util.resolve(l, self.languages_span)
-            for l in self._raw["languages"]
+            for l in self._raw.get("languages", [])
         }
 
         # add typescript to languages if the rule supports javascript.
@@ -73,7 +74,12 @@ class Rule:
         self._languages = sorted(rule_languages, key=lambda lang: lang.value)  # type: ignore
 
         # check taint/search mode
-        self._expression, self._mode = self._build_search_patterns_for_mode(self._yaml)
+        if self._raw.get("mode") == JOIN_MODE:
+            self._mode = JOIN_MODE
+        else:
+            self._expression, self._mode = self._build_search_patterns_for_mode(
+                self._yaml
+            )
 
         if any(language == Language.REGEX for language in self._languages):
             self._validate_none_language_rule()

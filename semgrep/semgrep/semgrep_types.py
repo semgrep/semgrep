@@ -20,9 +20,10 @@ PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
 FileExtension = NewType("FileExtension", str)
 
+JOIN_MODE = Mode("join")
 TAINT_MODE = Mode("taint")
 SEARCH_MODE = DEFAULT_MODE = Mode("search")
-SUPPORTED_MODES = {TAINT_MODE, SEARCH_MODE}
+SUPPORTED_MODES = {TAINT_MODE, SEARCH_MODE, JOIN_MODE}
 
 YAML_TAINT_MUST_HAVE_KEYS = {"pattern-sinks", "pattern-sources"}
 
