@@ -130,10 +130,31 @@ class CoreRunner:
     ) -> Dict[str, Any]:
         semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
 
+        stderr = core_run.stderr
+        if stderr is None:
+            semgrep_error_output = (
+                "<semgrep-core stderr not captured, should be printed above>\n"
+            )
+        else:
+            semgrep_error_output = stderr.decode("utf-8", errors="replace")
+
+        # By default, we print semgrep-core's error output, which includes
+        # semgrep-core's logging if it was requested via --debug.
+        #
+        # If semgrep-core prints anything on stderr when running with default
+        # flags, it's a bug that should be fixed in semgrep-core.
+        #
+        name = f"[rule '{rule.id}']"
+        logger.debug(
+            f"--- semgrep-core stderr {name} ---\n"
+            f"{semgrep_error_output}"
+            f"--- end semgrep-core stderr {name} ---"
+        )
+
         returncode = core_run.returncode
         if returncode != 0:
             output_json = self._parse_core_output(
-                rule, core_run, semgrep_output, returncode
+                rule, core_run, semgrep_output, semgrep_error_output, returncode
             )
 
             if "error" in output_json:
@@ -145,10 +166,11 @@ class CoreRunner:
                     core_run,
                     returncode,
                     semgrep_output,
+                    semgrep_error_output,
                 )
 
         output_json = self._parse_core_output(
-            rule, core_run, semgrep_output, returncode
+            rule, core_run, semgrep_output, semgrep_error_output, returncode
         )
         return output_json
 
@@ -157,6 +179,7 @@ class CoreRunner:
         rule: Rule,
         core_run: subprocess.CompletedProcess,
         semgrep_output: str,
+        semgrep_error_output: str,
         returncode: int,
     ) -> Dict[str, Any]:
         # See if semgrep output contains a JSON error that we can decode.
@@ -169,6 +192,7 @@ class CoreRunner:
                 core_run,
                 returncode,
                 semgrep_output,
+                semgrep_error_output,
             )
             return {}  # never reached
 
@@ -179,6 +203,7 @@ class CoreRunner:
         core_run: subprocess.CompletedProcess,
         returncode: int,
         semgrep_output: str,
+        semgrep_error_output: str,
     ) -> None:
         # Once we require python >= 3.8, switch to using shlex.join instead
         # for proper quoting of the command line.
@@ -192,6 +217,9 @@ class CoreRunner:
             "--- semgrep-core stdout ---\n"
             f"{semgrep_output}"
             "--- end semgrep-core stdout ---\n"
+            "--- semgrep-core stderr ---\n"
+            f"{semgrep_error_output}"
+            "--- end semgrep-core stderr ---\n"
             f"{PLEASE_FILE_ISSUE_TEXT}"
         )
 
