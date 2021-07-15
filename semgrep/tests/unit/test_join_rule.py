@@ -216,4 +216,4 @@ def test_create_model_map():
         check_id = result.get("check_id")
         metavars = result.get("extra", {}).get("metavars")  # type: ignore
         for metavar in metavars.keys():
-            assert getattr(model_map[check_id], metavar)
+            assert getattr(model_map[check_id], metavar)  # type: ignore
