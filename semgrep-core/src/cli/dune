@@ -45,7 +45,7 @@
  )
  (preprocess (pps ppx_profiling))
  ; for ocamldebug
- (modes byte)
+ (modes native byte)
  (flags (:include flags.sexp))
 )
 
