@@ -12,6 +12,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   "is this variable passed to an HTML template, and is it rendered in that template?"
   with several Semgrep rules.
 
+## [0.58.2](https://github.com/returntocorp/semgrep/releases/tag/v0.58.2) - 2021-07-15
+
+### Fixed
+- Significant speed improvements, but the binary is now 95MB (from 47MB
+  in 0.58.1, but it was 170MB in 0.58.0)
+
 ## [0.58.1](https://github.com/returntocorp/semgrep/releases/tag/v0.58.1) - 2021-07-15
 
 ### Fixed
