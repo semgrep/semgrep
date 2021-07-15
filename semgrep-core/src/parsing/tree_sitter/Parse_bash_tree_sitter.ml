@@ -426,17 +426,19 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
   let close = token env v4 (* "}" *) in
   let complex_expansion =
     match opt_variable with
-    | Some variable_name -> Variable variable_name
-    | None -> Complex_expansion_TODO
+    | Some varname ->
+        let loc = variable_name_loc varname in
+        Variable (loc, varname)
+    | None ->
+        let loc = (open_, close) in
+        Complex_expansion_TODO loc
   in
   (open_, complex_expansion, close)
 
 (* These are expressions used in [[ ... ]], in C-style for loops, etc. *)
 and expression (env : env) (x : CST.expression) : expression =
   match x with
-  | `Choice_conc x ->
-      literal env x |> ignore;
-      Expression_TODO
+  | `Choice_conc x -> literal env x
   | `Un_exp (v1, v2) ->
       let _v1 =
         match v1 with
