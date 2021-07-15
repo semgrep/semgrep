@@ -7,12 +7,32 @@ set -eu
 
 eval $(opam env)
 
+# DIY check for style that ocamlformat would fix but ocp-indent won't.
+report_leading_semicolons() {
+  if grep -C 5 '^[ \t]*;' "$@"; then
+    cat >&2 <<EOF
+
+File: $*
+
+** OCaml style violation: semicolons may not start a line.
+Please use the conventional style (as in 'ocamlformat -p conventional') e.g.
+
+  type t = {
+    x: int;
+    y: string list;
+  }
+EOF
+    exit 1
+  fi
+}
+
 if $(ocp-indent --version > /dev/null 2>&1); then
   # old command using ocamlformat instead of ocp-indent:
   #TODO: we should require a specific version, like the one in dev.opam
   # ocamlformat --inplace --enable-outside-detected-project "$@"
 
   ocp-indent -i "$@"
+  report_leading_semicolons "$@"
 else
   cat <<EOF
 *** ocp-indent was not found. ***
