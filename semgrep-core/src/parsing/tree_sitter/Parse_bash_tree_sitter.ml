@@ -50,7 +50,7 @@ let string_content (env : env) (tok : CST.string_content) : string wrap =
   str env tok
 
 let simple_heredoc_body (env : env) (tok : CST.simple_heredoc_body) :
-    string wrap =
+  string wrap =
   str env tok
 
 let ansii_c_string (env : env) (tok : CST.ansii_c_string) : string wrap =
@@ -76,7 +76,7 @@ let file_descriptor (env : env) (tok : CST.file_descriptor) = token env tok
 let concat (_env : env) (_tok : CST.concat) : unit = ()
 
 let semgrep_metavariable_name (env : env) (tok : CST.semgrep_metavariable_name)
-    =
+  =
   (* pattern [A-Z_][A-Z_0-9]* *)
   str env tok
 
@@ -85,12 +85,12 @@ let test_operator (env : env) (tok : CST.test_operator) : string wrap =
   str env tok
 
 let simple_variable_name (env : env) (tok : CST.simple_variable_name) :
-    string wrap =
+  string wrap =
   (* pattern \w+ *)
   str env tok
 
 let special_variable_name (env : env) (x : CST.special_variable_name) :
-    string wrap =
+  string wrap =
   match x with
   | `STAR tok -> str env tok (* "*" *)
   | `AT tok -> str env tok (* "@" *)
@@ -218,9 +218,9 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
   let _v2 () =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "|" *) in
-        let v2 = literal env v2 in
-        TODO)
+         let v1 = token env v1 (* "|" *) in
+         let v2 = literal env v2 in
+         TODO)
       v2
   in
   let _v3 = token env v3 (* ")" *) in
@@ -239,24 +239,24 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
   let assignments, redirects =
     partition_either
       (fun x ->
-        match x with
-        | `Var_assign x -> Left (variable_assignment env x)
-        | `File_redi x -> Right (file_redirect env x))
+         match x with
+         | `Var_assign x -> Left (variable_assignment env x)
+         | `File_redi x -> Right (file_redirect env x))
       v1
   in
   let name = command_name env v2 in
   let arguments =
     List.map
       (fun x ->
-        match x with
-        | `Choice_conc x -> literal env x
-        | `Choice_EQTILDE_choice_choice_conc (v1, _v2) ->
-            let _v1 =
-              match v1 with
-              | `EQTILDE tok -> token env tok (* "=~" *)
-              | `EQEQ tok -> token env tok
-              (* "==" *)
-            in
+         match x with
+         | `Choice_conc x -> literal env x
+         | `Choice_EQTILDE_choice_choice_conc (v1, _v2) ->
+             let _v1 =
+               match v1 with
+               | `EQTILDE tok -> token env tok (* "=~" *)
+               | `EQEQ tok -> token env tok
+               (* "==" *)
+             in
             (*
             let v2 =
               match v2 with
@@ -264,7 +264,7 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
               | `Regex tok -> (* regex *) token env tok
             in
 *)
-            Expression_TODO)
+             Expression_TODO)
       v3
   in
   let command = Simple_command { assignments; arguments = name :: arguments } in
@@ -278,7 +278,7 @@ and command_name (env : env) (x : CST.command_name) : expression =
       Concatenation (List.map (fun tok -> Special_character (str env tok)) xs)
 
 and command_substitution (env : env) (x : CST.command_substitution) :
-    list_ bracket =
+  list_ bracket =
   match x with
   | `DOLLARLPAR_stmts_RPAR (v1, v2, v3) ->
       let open_ = token env v1 (* "$(" *) in
@@ -297,7 +297,7 @@ and command_substitution (env : env) (x : CST.command_substitution) :
       (open_, list, close)
 
 and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) :
-    command_group =
+  command_group =
   let _todo () =
     let v1 = token env v1 (* "{" *) in
     let v2 = match v2 with Some x -> statements2 env x | None -> [] in
@@ -307,14 +307,14 @@ and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) :
   TODO
 
 and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
-    expression list =
+  expression list =
   let v1 = prim_exp_or_special_char env v1 in
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* concat *) in
-        let v2 = prim_exp_or_special_char env v2 in
-        todo env (v1, v2))
+         let v1 = token env v1 (* concat *) in
+         let v2 = prim_exp_or_special_char env v2 in
+         todo env (v1, v2))
       v2
   in
   let v3 =
@@ -346,7 +346,7 @@ and else_clause (env : env) ((v1, v2) : CST.else_clause) =
   todo env (v1, v2)
 
 and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
-    complex_expansion bracket =
+  complex_expansion bracket =
   let open_ = token env v1 (* "${" *) in
   let _v2_TODO =
     match v2 with
@@ -395,15 +395,15 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
             let _v3_TODO () =
               List.map
                 (fun x ->
-                  match x with
-                  | `Choice_conc x -> literal env x
-                  | `COLON tok -> todo env tok (* ":" *)
-                  | `COLONQMARK tok -> todo env tok (* ":?" *)
-                  | `EQ tok -> todo env tok (* "=" *)
-                  | `COLONDASH tok -> todo env tok (* ":-" *)
-                  | `PERC tok -> todo env tok (* "%" *)
-                  | `DASH tok -> todo env tok (* "-" *)
-                  | `HASH tok -> (* "#" *) todo env tok)
+                   match x with
+                   | `Choice_conc x -> literal env x
+                   | `COLON tok -> todo env tok (* ":" *)
+                   | `COLONQMARK tok -> todo env tok (* ":?" *)
+                   | `EQ tok -> todo env tok (* "=" *)
+                   | `COLONDASH tok -> todo env tok (* ":-" *)
+                   | `PERC tok -> todo env tok (* "%" *)
+                   | `DASH tok -> todo env tok (* "-" *)
+                   | `HASH tok -> (* "#" *) todo env tok)
                 v3
             in
             opt_variable)
@@ -486,19 +486,19 @@ and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
       let _v2 =
         List.map
           (fun x ->
-            match x with
-            | `Expa x ->
-                expansion env x |> ignore;
-                TODO
-            | `Simple_expa x ->
-                simple_expansion env x |> ignore;
-                TODO
-            | `Cmd_subs x ->
-                command_substitution env x |> ignore;
-                TODO
-            | `Here_body_middle tok ->
-                token env tok (* heredoc_body_middle *) |> ignore;
-                TODO)
+             match x with
+             | `Expa x ->
+                 expansion env x |> ignore;
+                 TODO
+             | `Simple_expa x ->
+                 simple_expansion env x |> ignore;
+                 TODO
+             | `Cmd_subs x ->
+                 command_substitution env x |> ignore;
+                 TODO
+             | `Here_body_middle tok ->
+                 token env tok (* heredoc_body_middle *) |> ignore;
+                 TODO)
           v2
       in
       let _v3 = token env v3 (* heredoc_body_end *) in
@@ -514,9 +514,9 @@ and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
   let _v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "|" *) in
-        let _v2 = literal env v2 in
-        TODO)
+         let _v1 = token env v1 (* "|" *) in
+         let _v2 = literal env v2 in
+         TODO)
       v2
   in
   let _v3 = token env v3 (* ")" *) in
@@ -607,7 +607,7 @@ and pipeline_statement (env : env) (x : CST.statement) : pipeline =
    expected.
 *)
 and command_statement (env : env) (x : CST.statement) :
-    command_with_redirects * pipeline_control_operator option =
+  command_with_redirects * pipeline_control_operator option =
   match statement env x with
   | Tmp_list _ -> assert false
   | Tmp_pipeline _ -> assert false
@@ -632,10 +632,10 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let _redirects_TODO () =
         List.map
           (fun x ->
-            match x with
-            | `File_redi x -> file_redirect env x
-            | `Here_redi_a9657de x -> heredoc_redirect env x
-            | `Here_redi_7d3292d x -> herestring_redirect env x)
+             match x with
+             | `File_redi x -> file_redirect env x
+             | `Here_redi_a9657de x -> heredoc_redirect env x
+             | `Here_redi_7d3292d x -> herestring_redirect env x)
           v2
       in
       Tmp_command cmd_redir_ctrl
@@ -815,7 +815,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       let list_left =
         map_last list_left (fun (pipeline, _none_hopefully) ->
-            (pipeline, Some control_op))
+          (pipeline, Some control_op))
       in
 
       (*
@@ -859,9 +859,9 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let body =
         Compound_command
           (match v2 with
-          | `Comp_stmt x -> Command_group (compound_statement env x)
-          | `Subs x -> Subshell (subshell env x)
-          | `Test_cmd x -> Conditional_expression (test_command env x))
+           | `Comp_stmt x -> Command_group (compound_statement env x)
+           | `Subs x -> Subshell (subshell env x)
+           | `Test_cmd x -> Conditional_expression (test_command env x))
       in
       let command =
         Function_definition
@@ -891,30 +891,30 @@ and statements2 (env : env) (xs : CST.statements2) =
   List.map (stmt_with_opt_heredoc env) xs
 
 and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
-    string_fragment list bracket =
+  string_fragment list bracket =
   let open_ = token env v1 (* "\"" *) in
   let fragments =
     List.map
       (fun (v1, v2) ->
-        let fragments =
-          match v1 with
-          | `Opt_DOLLAR_str_content (v1, v2) ->
-              let dollar =
-                match v1 with
-                | Some tok -> [ String_content (str env tok) (* "$" *) ]
-                | None -> []
-              in
-              let content =
-                [ String_content (str env v2) (* string_content *) ]
-              in
-              dollar @ content
-          | `Expa x -> [ Expansion (Complex_expansion (expansion env x)) ]
-          | `Simple_expa x ->
-              [ Expansion (Simple_expansion (simple_expansion env x)) ]
-          | `Cmd_subs x -> [ Command_substitution (command_substitution env x) ]
-        in
-        let _concat = match v2 with Some _tok -> () | None -> () in
-        fragments)
+         let fragments =
+           match v1 with
+           | `Opt_DOLLAR_str_content (v1, v2) ->
+               let dollar =
+                 match v1 with
+                 | Some tok -> [ String_content (str env tok) (* "$" *) ]
+                 | None -> []
+               in
+               let content =
+                 [ String_content (str env v2) (* string_content *) ]
+               in
+               dollar @ content
+           | `Expa x -> [ Expansion (Complex_expansion (expansion env x)) ]
+           | `Simple_expa x ->
+               [ Expansion (Simple_expansion (simple_expansion env x)) ]
+           | `Cmd_subs x -> [ Command_substitution (command_substitution env x) ]
+         in
+         let _concat = match v2 with Some _tok -> () | None -> () in
+         fragments)
       v2
     |> List.flatten
   in
@@ -969,7 +969,7 @@ and test_command (env : env) (v1 : CST.test_command) =
       todo env (v1, v2, v3)
 
 and variable_assignment (env : env) ((v1, v2, v3) : CST.variable_assignment) :
-    todo =
+  todo =
   let _v1 =
     match v1 with
     | `Var_name tok -> token env tok (* variable_name *)
@@ -997,20 +997,20 @@ and variable_assignment (env : env) ((v1, v2, v3) : CST.variable_assignment) :
 let parse file =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_bash.Parse.file file ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_bash.Parse.file file ())
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      let bash_ast = program env cst in
-      Bash_to_generic.program bash_ast)
+       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+       let bash_ast = program env cst in
+       Bash_to_generic.program bash_ast)
 
 let parse_pattern str =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_bash.Parse.string str ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_bash.Parse.string str ())
     (fun cst ->
-      let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      let bash_ast = program env cst in
-      Bash_to_generic.any bash_ast)
+       let file = "<pattern>" in
+       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+       let bash_ast = program env cst in
+       Bash_to_generic.any bash_ast)

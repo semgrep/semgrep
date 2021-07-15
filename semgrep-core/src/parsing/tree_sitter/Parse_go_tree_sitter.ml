@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 module AST = Ast_go
 module CST = Tree_sitter_go.CST
@@ -27,7 +27,7 @@ module H = Parse_tree_sitter_helpers
  *
  * The resulting AST can then be converted to the generic AST by using
  * pfff/lang_go/analyze/go_to_generic.ml
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -114,7 +114,7 @@ let qualified_type (env : env) ((v1, v2, v3) : CST.qualified_type) =
   [ v1; v3 ]
 
 let empty_labeled_statement (env : env) ((v1, v2) : CST.empty_labeled_statement)
-    : stmt =
+  : stmt =
   let v1 = identifier env v1 (* identifier *) in
   let _v2 = token env v2 (* ":" *) in
   Label (v1, Empty)
@@ -124,9 +124,9 @@ let field_name_list (env : env) ((v1, v2) : CST.field_name_list) : ident list =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let v1 = identifier env v1 (* "," *) in
-        let _v2 = token env v2 (* identifier *) in
-        v1)
+         let v1 = identifier env v1 (* "," *) in
+         let _v2 = token env v2 (* identifier *) in
+         v1)
       v2
   in
   v1 :: v2
@@ -139,11 +139,11 @@ let string_literal (env : env) (x : CST.string_literal) =
       let v2 =
         List.map
           (fun x ->
-            match x with
-            | `Imm_tok_pat_101b4f2 tok ->
-                str env tok (* pattern "[^\"\\n\\\\]+" *)
-            | `Esc_seq tok -> escape_sequence env tok
-            (* escape_sequence *))
+             match x with
+             | `Imm_tok_pat_101b4f2 tok ->
+                 str env tok (* pattern "[^\"\\n\\\\]+" *)
+             | `Esc_seq tok -> escape_sequence env tok
+             (* escape_sequence *))
           v2
       in
       let v3 = token env v3 (* "\"" *) in
@@ -170,9 +170,9 @@ let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) =
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = type_ env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = type_ env v2 in
+         v2)
       v3
   in
   let _v4 = token env v4 (* ":" *) in
@@ -316,7 +316,7 @@ and receive_statement (env : env) ((v1, v2) : CST.receive_statement) =
   (v1, v2)
 
 and field_declaration (env : env) ((v1, v2) : CST.field_declaration) :
-    struct_field list =
+  struct_field list =
   let v1 =
     match v1 with
     | `Id_rep_COMMA_id_choice_simple_type (v1, v2, v3) ->
@@ -324,9 +324,9 @@ and field_declaration (env : env) ((v1, v2) : CST.field_declaration) :
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = identifier env v2 (* identifier *) in
-              v2)
+               let _v1 = token env v1 (* "," *) in
+               let v2 = identifier env v2 (* identifier *) in
+               v2)
             v2
         in
         let v3 = type_ env v3 in
@@ -357,9 +357,9 @@ and special_argument_list (env : env)
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = expression env v2 in
-        Arg v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = expression env v2 in
+         Arg v2)
       v3
   in
   let _v4 =
@@ -391,7 +391,7 @@ and anon_choice_param_decl_18823e5 (env : env)
       | Some x ->
           field_name_list env x
           |> List.map (fun id ->
-                 ParamClassic { pname = Some id; ptype = v2; pdots = None })
+            ParamClassic { pname = Some id; ptype = v2; pdots = None })
       | None -> [ ParamClassic { pname = None; ptype = v2; pdots = None } ])
   | `Vari_param_decl (v1, v2, v3) ->
       let v1 =
@@ -412,9 +412,9 @@ and method_spec_list (env : env) ((v1, v2, v3) : CST.method_spec_list) =
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = anon_choice_LF_249c99f env v1 in
-              let v2 = anon_choice_field_id_ccb7464 env v2 in
-              v2)
+               let _v1 = anon_choice_LF_249c99f env v1 in
+               let v2 = anon_choice_field_id_ccb7464 env v2 in
+               v2)
             v2
         in
         let _v3 =
@@ -503,9 +503,9 @@ and expression_list (env : env) ((v1, v2) : CST.expression_list) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = expression env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = expression env v2 in
+         v2)
       v2
   in
   v1 :: v2
@@ -731,9 +731,9 @@ and statement (env : env) (x : CST.statement) : stmt =
       let v5 =
         List.map
           (fun x ->
-            match x with
-            | `Exp_case x -> CaseClause (expression_case env x)
-            | `Defa_case x -> CaseClause (default_case env x))
+             match x with
+             | `Exp_case x -> CaseClause (expression_case env x)
+             | `Defa_case x -> CaseClause (default_case env x))
           v5
       in
       let _v6 = token env v6 (* "}" *) in
@@ -745,9 +745,9 @@ and statement (env : env) (x : CST.statement) : stmt =
       let v4 =
         List.map
           (fun x ->
-            match x with
-            | `Type_case x -> type_case env x
-            | `Defa_case x -> default_case env x)
+             match x with
+             | `Type_case x -> type_case env x
+             | `Defa_case x -> default_case env x)
           v4
         |> List.map (fun x -> CaseClause x)
       in
@@ -760,9 +760,9 @@ and statement (env : env) (x : CST.statement) : stmt =
       let v3 =
         List.map
           (fun x ->
-            match x with
-            | `Comm_case x -> communication_case env x
-            | `Defa_case x -> default_case env x)
+             match x with
+             | `Comm_case x -> communication_case env x
+             | `Defa_case x -> default_case env x)
           v3
         |> List.map (fun x -> CaseClause x)
       in
@@ -828,9 +828,9 @@ and field_declaration_list (env : env)
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = anon_choice_LF_249c99f env v1 in
-              let v2 = field_declaration env v2 in
-              v2)
+               let _v1 = anon_choice_LF_249c99f env v1 in
+               let v2 = field_declaration env v2 in
+               v2)
             v2
         in
         let _v3 =
@@ -876,9 +876,9 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = anon_choice_exp_047b57a env v2 in
-              v2)
+               let _v1 = token env v1 (* "," *) in
+               let v2 = anon_choice_exp_047b57a env v2 in
+               v2)
             v2
         in
         let _v3 =
@@ -906,9 +906,9 @@ and const_spec (env : env) ((v1, v2, v3) : CST.const_spec) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = identifier env v2 (* identifier *) in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = identifier env v2 (* identifier *) in
+         v2)
       v2
   in
   let xs = v1 :: v2 in
@@ -967,7 +967,7 @@ and channel_type (env : env) (x : CST.channel_type) =
       TChan (v2, TSend, v3)
 
 and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
-    parameter_binding list =
+  parameter_binding list =
   let _v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with
@@ -979,9 +979,9 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
               let v2 =
                 List.map
                   (fun (v1, v2) ->
-                    let _v1 = token env v1 (* "," *) in
-                    let v2 = anon_choice_param_decl_18823e5 env v2 in
-                    v2)
+                     let _v1 = token env v1 (* "," *) in
+                     let v2 = anon_choice_param_decl_18823e5 env v2 in
+                     v2)
                   v2
               in
               v1 @ List.flatten v2
@@ -1008,9 +1008,9 @@ and var_spec (env : env) ((v1, v2, v3) : CST.var_spec) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = identifier env v2 (* identifier *) in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = identifier env v2 (* identifier *) in
+         v2)
       v2
   in
   let xs = v1 :: v2 in
@@ -1043,9 +1043,9 @@ and declaration (env : env) (x : CST.declaration) =
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 = const_spec env v1 in
-                  let _v2 = anon_choice_LF_249c99f env v2 in
-                  v1)
+                   let v1 = const_spec env v1 in
+                   let _v2 = anon_choice_LF_249c99f env v2 in
+                   v1)
                 v2
             in
             let _v3 = token env v3 (* ")" *) in
@@ -1063,13 +1063,13 @@ and declaration (env : env) (x : CST.declaration) =
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 =
-                    match v1 with
-                    | `Type_spec x -> type_spec env x
-                    | `Type_alias x -> type_alias env x
-                  in
-                  let _v2 = anon_choice_LF_249c99f env v2 in
-                  v1)
+                   let v1 =
+                     match v1 with
+                     | `Type_spec x -> type_spec env x
+                     | `Type_alias x -> type_alias env x
+                   in
+                   let _v2 = anon_choice_LF_249c99f env v2 in
+                   v1)
                 v2
             in
             let _v3 = token env v3 (* ")" *) in
@@ -1086,9 +1086,9 @@ and declaration (env : env) (x : CST.declaration) =
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 = var_spec env v1 in
-                  let _v2 = anon_choice_LF_249c99f env v2 in
-                  v1)
+                   let v1 = var_spec env v1 in
+                   let _v2 = anon_choice_LF_249c99f env v2 in
+                   v1)
                 v2
             in
             let _v3 = token env v3 (* ")" *) in
@@ -1103,9 +1103,9 @@ and statement_list (env : env) (x : CST.statement_list) : stmt list =
       let v2 =
         List.map
           (fun (v1, v2) ->
-            let _v1 = anon_choice_LF_249c99f env v1 in
-            let v2 = statement env v2 in
-            v2)
+             let _v1 = anon_choice_LF_249c99f env v1 in
+             let v2 = statement env v2 in
+             v2)
           v2
       in
       let v3 =
@@ -1142,7 +1142,7 @@ and communication_case (env : env) ((v1, v2, v3, v4) : CST.communication_case) =
   (v2, stmt1 v4)
 
 and literal_value (env : env) ((v1, v2, v3) : CST.literal_value) :
-    init list bracket =
+  init list bracket =
   let v1 = token env v1 (* "{" *) in
   let v2 =
     match v2 with
@@ -1151,9 +1151,9 @@ and literal_value (env : env) ((v1, v2, v3) : CST.literal_value) :
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = anon_choice_elem_c42cd9b env v2 in
-              v2)
+               let _v1 = token env v1 (* "," *) in
+               let v2 = anon_choice_elem_c42cd9b env v2 in
+               v2)
             v2
         in
         let _v3 =
@@ -1172,16 +1172,16 @@ let import_spec_list (env : env) ((v1, v2, v3) : CST.import_spec_list) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let v1 = import_spec env v1 in
-        let _v2 = anon_choice_LF_249c99f env v2 in
-        v1)
+         let v1 = import_spec env v1 in
+         let _v2 = anon_choice_LF_249c99f env v2 in
+         v1)
       v2
   in
   let _v3 = token env v3 (* ")" *) in
   v2
 
 let top_level_declaration (env : env) (x : CST.top_level_declaration) :
-    top_decl list =
+  top_decl list =
   match x with
   | `Pack_clause (v1, v2) ->
       let v1 = token env v1 (* "package" *) in
@@ -1229,19 +1229,19 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration) :
 let source_file (env : env) (xs : CST.source_file) : program =
   List.map
     (fun x ->
-      match x with
-      | `Stmt_choice_LF (v1, v2) ->
-          let v1 = statement env v1 in
-          let _v2 = anon_choice_LF_249c99f env v2 in
-          [ STop v1 ]
-      | `Choice_pack_clause_opt_choice_LF (v1, v2) ->
-          let v1 = top_level_declaration env v1 in
-          let _v2 =
-            match v2 with
-            | Some x -> Some (anon_choice_LF_249c99f env x)
-            | None -> None
-          in
-          v1)
+       match x with
+       | `Stmt_choice_LF (v1, v2) ->
+           let v1 = statement env v1 in
+           let _v2 = anon_choice_LF_249c99f env v2 in
+           [ STop v1 ]
+       | `Choice_pack_clause_opt_choice_LF (v1, v2) ->
+           let v1 = top_level_declaration env v1 in
+           let _v2 =
+             match v2 with
+             | Some x -> Some (anon_choice_LF_249c99f env x)
+             | None -> None
+           in
+           v1)
     xs
   |> List.flatten
 
@@ -1252,9 +1252,9 @@ let source_file (env : env) (xs : CST.source_file) : program =
 let parse file =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_go.Parse.file file ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_go.Parse.file file ())
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      let x = source_file env cst in
-      x)
+       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+       let x = source_file env cst in
+       x)

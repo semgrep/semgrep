@@ -8,7 +8,7 @@ type nodei = int
 (* The comparison function uses only the name of a variable (a string), so
  * two variables at different positions in the code will be agglomerated
  * correctly in the Set or Map.
- *)
+*)
 type var = string
 
 (*e: type [[Dataflow.var]] *)
@@ -23,7 +23,7 @@ module VarSet : Set.S with type elt = String.t
 
 (* Return value of a dataflow analysis.
  * The array is indexed by nodei.
- *)
+*)
 (*s: type [[Dataflow.mapping]] *)
 type 'a mapping = 'a inout array
 
@@ -58,7 +58,7 @@ val empty_inout : unit -> 'a inout
  * sharing of reference in the 'a, so that when one update the
  * value associated to a var, its reference variable get also
  * the update.
- *)
+*)
 type 'a transfn = 'a mapping -> nodei -> 'a inout
 
 (*e: type [[Dataflow.transfn]] *)
@@ -74,7 +74,7 @@ val varmap_diff : ('a -> 'a -> 'a) -> ('a -> bool) -> 'a env -> 'a env -> 'a env
 
 (* common/useful 'a for mapping: a set of nodes (via their indices),
  * used for example in the reaching analysis.
- *)
+*)
 (*s: module [[Dataflow.NodeiSet]] *)
 module NodeiSet : Set.S with type elt = Int.t
 
@@ -106,7 +106,7 @@ val ns_to_str : NodeiSet.t -> string
 
 (* we use now a functor so we can reuse the same code for dataflow on
  * the IL (IL.cfg) or generic AST (Controlflow.flow)
- *)
+*)
 (*s: module type [[Dataflow.Flow]] *)
 module type Flow = sig
   type node

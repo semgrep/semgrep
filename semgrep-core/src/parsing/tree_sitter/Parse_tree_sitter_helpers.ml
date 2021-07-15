@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 module PI = Parse_info
 
@@ -19,7 +19,7 @@ module PI = Parse_info
 (*****************************************************************************)
 (* A few helpers to help factorize code between the different
  * Parse_xxx_tree_sitter.ml
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -60,7 +60,7 @@ let line_col_to_pos file =
       (* bugfix: this is wrong:  Hashtbl.add h (!line, 0) !charpos;
        * because an ident on the last line would get
        * the last charpos.
-       *)
+      *)
       ()
   in
   full_charpos_to_pos_aux ();
@@ -89,7 +89,7 @@ let str env (tok : Tree_sitter_run.Token.t) =
 (* This is a temporary fix until
  * https://github.com/returntocorp/ocaml-tree-sitter-core/issues/5
  * is fixed.
- *)
+*)
 let str_if_wrong_content_temporary_fix env (tok : Tree_sitter_run.Token.t) =
   let loc, _wrong_str = tok in
 
@@ -141,7 +141,7 @@ let wrap_parser tree_sitter_parser ast_mapper =
    * So take care! Fortunately the ocaml-tree-sitter parsers now
    * return a list of error instead of an exception so this is now
    * less an issue.
-   *)
+  *)
   let res : 'a Tree_sitter_run.Parsing_result.t = tree_sitter_parser () in
   let program =
     match res.program with Some cst -> Some (ast_mapper cst) | None -> None

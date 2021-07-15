@@ -21,7 +21,7 @@ let synthesize_patterns config s file =
    * Pattern_from_Code only handles a single expression, so we take
    * the first element here. This matches previous behavior when range_to_ast
    * returned a single subtree.
-   *)
+  *)
   let a = List.hd (range_to_ast file lang s) in
   let patterns = Pattern_from_Code.from_any config a in
   List.map
@@ -54,5 +54,5 @@ let generate_pattern_choices config s =
   let targets, lang = parse_targets s in
   List.map (print_target lang) targets
   @ List.map
-      (Pretty_print_generic.pattern_to_string lang)
-      (Pattern_from_Targets.generate_patterns config targets lang)
+    (Pretty_print_generic.pattern_to_string lang)
+    (Pattern_from_Targets.generate_patterns config targets lang)

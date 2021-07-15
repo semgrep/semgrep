@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 open AST_generic
@@ -39,7 +39,7 @@ module SJ = Spacegrep.Semgrep_j (* JSON conversions *)
  * the callers of semgrep (semgrep python) can check if multiple metavariables
  * reference the same entity, or reference exactly the same code.
  * See Naming_AST.ml for more information.
- *)
+*)
 let unique_id any =
   match any with
   | E (N (Id (_, { id_resolved = { contents = Some (_, sid) }; _ }))) ->
@@ -50,12 +50,12 @@ let unique_id any =
        * as in foo(x): return complex(x), then they will have different
        * md5sum because the parameter will be different! We may
        * want to abstract also the resolved information in those cases.
-       *)
+      *)
       let any = AST_generic_helpers.abstract_for_comparison_any any in
       (* alt: Using the AST dumper should work also.
        * let v = Meta_AST.vof_any any in
        * let s = OCaml.string_of_v v in
-       *)
+      *)
       let s = Marshal.to_string any [] in
       let md5 = Digest.string s in
       { ST.type_ = `AST; md5sum = Some (Digest.to_hex md5); sid = None }
@@ -73,10 +73,10 @@ let position_range min_loc max_loc =
 
   let len_max = String.length max_loc.PI.str in
   ( {
-      ST.line = min_loc.PI.line;
-      col = adjust_column min_loc.PI.column;
-      offset = min_loc.PI.charpos;
-    },
+    ST.line = min_loc.PI.line;
+    col = adjust_column min_loc.PI.column;
+    offset = min_loc.PI.charpos;
+  },
     {
       ST.line = max_loc.PI.line;
       col = adjust_column (max_loc.PI.column + len_max);
@@ -91,7 +91,7 @@ let range_of_any startp_of_match_range any =
   match any with
   (* those are ok and we don't want to generate a NoTokenLocation for those.
    * alt: change Semgrep.atd to make optional startp/endp for metavar_value.
-   *)
+  *)
   | Ss [] | Args [] -> empty_range
   | _ ->
       let min_loc, max_loc = V.range_of_any any in
@@ -132,21 +132,21 @@ let match_to_match x =
     let startp, endp = position_range min_loc max_loc in
     Left
       ({
-         ST.check_id = Some x.rule_id.id;
-         path = x.file;
-         start = startp;
-         end_ = endp;
-         extra =
-           {
-             message = Some x.rule_id.message;
-             metavars = x.env |> List.map (metavars startp);
-             lines = [] (* ?? spacegrep? *);
-           };
-       }
+        ST.check_id = Some x.rule_id.id;
+        path = x.file;
+        start = startp;
+        end_ = endp;
+        extra =
+          {
+            message = Some x.rule_id.message;
+            metavars = x.env |> List.map (metavars startp);
+            lines = [] (* ?? spacegrep? *);
+          };
+      }
         : ST.match_)
-    (* raised by min_max_ii_by_pos in range_of_any when the AST of the
-     * pattern in x.code or the metavar does not contain any token
-     *)
+  (* raised by min_max_ii_by_pos in range_of_any when the AST of the
+   * pattern in x.code or the metavar does not contain any token
+  *)
   with Parse_info.NoTokenLocation s ->
     let loc = Parse_info.first_loc_of_file x.file in
     let s =
@@ -154,7 +154,7 @@ let match_to_match x =
     in
     let err = E.mk_error_loc loc (E.MatchingError s) in
     Right err
-  [@@profiling]
+[@@profiling]
 
 (*e: function [[JSON_report.match_to_json]] *)
 
@@ -163,7 +163,7 @@ let hcache = Hashtbl.create 101
 
 let lines_of_file (file : Common.filename) : string array =
   Common.memoized hcache file (fun () ->
-      try Common.cat file |> Array.of_list with _ -> [| "EMPTY FILE" |])
+    try Common.cat file |> Array.of_list with _ -> [| "EMPTY FILE" |])
 
 let error_to_error err =
   let file = err.E.loc.PI.file in
@@ -191,7 +191,7 @@ let json_time_of_profiling_data profiling_data =
     ST.targets =
       profiling_data.RP.file_times
       |> List.map (fun { RP.file = target; parse_time; match_time; run_time } ->
-             { ST.path = target; parse_time; match_time; run_time });
+        { ST.path = target; parse_time; match_time; run_time });
     rule_parse_time = Some profiling_data.RP.rule_parse_time;
   }
 
@@ -208,7 +208,7 @@ let match_results_of_matches_and_errors files res =
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = res.RP.rule_profiling |> Common.map_opt json_time_of_profiling_data;
   }
-  [@@profiling]
+[@@profiling]
 
 let json_of_profile_info profile_start =
   let now = Unix.gettimeofday () in
@@ -223,7 +223,7 @@ let json_of_profile_info profile_start =
   in
   xs
   |> List.map (fun (k, (t, cnt)) ->
-         (k, J.Object [ ("time", J.Float !t); ("count", J.Int !cnt) ]))
+    (k, J.Object [ ("time", J.Float !t); ("count", J.Int !cnt) ]))
   |> fun xs -> J.Object xs
 
 let json_of_exn e =
@@ -278,7 +278,7 @@ let json_of_exn e =
 (*s: function [[JSON_report.error]] *)
 (* this is used only in the testing code, to reuse the
  * Error_code.compare_actual_to_expected
- *)
+*)
 let error loc (rule : Pattern_match.rule_id) =
   E.error_loc loc (E.SemgrepMatchFound (rule.id, rule.message))
 

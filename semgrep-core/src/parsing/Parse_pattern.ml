@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 
@@ -29,11 +29,11 @@ open Common
 
 let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   (match res.program with
-  | Some cst -> dumper cst
-  | None -> failwith "unknown error from tree-sitter parser");
+   | Some cst -> dumper cst
+   | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
-         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))
+    pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))
 
 let extract_pattern_from_tree_sitter_result
     (res : 'a Tree_sitter_run.Parsing_result.t) (print_errors : bool) =
@@ -44,7 +44,7 @@ let extract_pattern_from_tree_sitter_result
       if print_errors then
         res.errors
         |> List.iter (fun err ->
-               pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err));
+          pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err));
       failwith "error parsing the pattern"
 
 (*****************************************************************************)
@@ -106,7 +106,7 @@ let parse_pattern lang ?(print_errors = false) str =
         let any_cst = Parse_php.any_of_string str in
         let any =
           Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-              Ast_php_build.any any_cst)
+            Ast_php_build.any any_cst)
         in
         Php_to_generic.any any
     | Lang.Hack ->

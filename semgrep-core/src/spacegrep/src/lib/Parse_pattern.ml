@@ -41,10 +41,10 @@ let append_block_to_accumulator open_punct close_punct open_loc close_loc
    opening brace is treated as an ordinary token.
 *)
 let rec parse_line pending_braces acc (tokens : Lexer.token list) :
-    (Pattern_AST.node list
-    * pending_brace list
-    * Loc.t (* location of the closing brace, if any *)
-    * Lexer.token list)
+  (Pattern_AST.node list
+   * pending_brace list
+   * Loc.t (* location of the closing brace, if any *)
+   * Lexer.token list)
     option =
   match tokens with
   | [] -> (
@@ -127,15 +127,15 @@ let parse_doc_line tokens : Pattern_AST.node list =
 let parse_pattern_line (tokens : Lexer.token list) : Pattern_AST.node list =
   List.map
     (fun (token : Lexer.token) ->
-      match token with
-      | Atom (loc, atom) -> Atom (loc, atom)
-      | Dots (loc, opt_mvar) -> Dots (loc, opt_mvar)
-      | Open_paren loc -> Atom (loc, open_paren)
-      | Close_paren loc -> Atom (loc, close_paren)
-      | Open_bracket loc -> Atom (loc, open_bracket)
-      | Close_bracket loc -> Atom (loc, close_bracket)
-      | Open_curly loc -> Atom (loc, open_curly)
-      | Close_curly loc -> Atom (loc, close_curly))
+       match token with
+       | Atom (loc, atom) -> Atom (loc, atom)
+       | Dots (loc, opt_mvar) -> Dots (loc, opt_mvar)
+       | Open_paren loc -> Atom (loc, open_paren)
+       | Close_paren loc -> Atom (loc, close_paren)
+       | Open_bracket loc -> Atom (loc, open_bracket)
+       | Close_bracket loc -> Atom (loc, close_bracket)
+       | Open_curly loc -> Atom (loc, open_curly)
+       | Close_curly loc -> Atom (loc, close_curly))
     tokens
 
 (*
@@ -178,8 +178,8 @@ let check_pattern pat0 =
         let msg =
           Printf.sprintf "Invalid pattern sequence: %s $...%s"
             (match opt_mvar1 with
-            | None -> "..."
-            | Some mvar1 -> Printf.sprintf "$...%s" mvar1)
+             | None -> "..."
+             | Some mvar1 -> Printf.sprintf "$...%s" mvar1)
             mvar2
         in
         Some { loc; msg }

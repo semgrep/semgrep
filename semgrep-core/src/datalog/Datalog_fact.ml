@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 
 (*****************************************************************************)
@@ -22,7 +22,7 @@ open Common
  *
  * This was started from pfff/h_program-lang/datalog_code.ml.
  * See Datalog.io.ml to read/write those facts on disk.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -158,7 +158,7 @@ let string_of_fact fact =
   let str, xs = meta_fact fact in
   spf "%s(%s)" str
     (xs
-    |> List.map (function
-         | V x | F x | N x | I x -> spf "'%s'" x
-         | Z i -> spf "%d" i)
-    |> Common.join ", ")
+     |> List.map (function
+       | V x | F x | N x | I x -> spf "'%s'" x
+       | Z i -> spf "%d" i)
+     |> Common.join ", ")

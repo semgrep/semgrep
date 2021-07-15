@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 open IL
@@ -30,7 +30,7 @@ module VarMap = Dataflow.VarMap
  * This is a very rudimentary tainting analysis. Just intraprocedural,
  * very coarse grained (taint whole array/object).
  * This is step1 for taint tracking support in semgrep.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -59,14 +59,14 @@ type config = {
 
 (*s: module [[Dataflow.Make(Il)]] *)
 module DataflowX = Dataflow.Make (struct
-  type node = F.node
+    type node = F.node
 
-  type edge = F.edge
+    type edge = F.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+    type flow = (node, edge) Ograph_extended.ograph_mutable
 
-  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
-end)
+    let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
+  end)
 
 (*e: module [[Dataflow.Make(Il)]] *)
 
@@ -183,55 +183,55 @@ let diff = Dataflow.varmap_diff (fun () () -> ()) (fun () -> true)
 
 (*s: function [[Dataflow_tainting.transfer]] *)
 let (transfer :
-      config -> fun_env -> IL.name option -> flow:F.cfg -> unit Dataflow.transfn)
-    =
- fun config fun_env opt_name ~flow
-     (* the transfer function to update the mapping at node index ni *)
-       mapping ni ->
-  let in' =
-    (flow#predecessors ni)#fold
-      (fun acc (ni_pred, _) -> union acc mapping.(ni_pred).D.out_env)
-      VarMap.empty
-  in
-  let node = flow#nodes#assoc ni in
+       config -> fun_env -> IL.name option -> flow:F.cfg -> unit Dataflow.transfn)
+  =
+  fun config fun_env opt_name ~flow
+    (* the transfer function to update the mapping at node index ni *)
+    mapping ni ->
+    let in' =
+      (flow#predecessors ni)#fold
+        (fun acc (ni_pred, _) -> union acc mapping.(ni_pred).D.out_env)
+        VarMap.empty
+    in
+    let node = flow#nodes#assoc ni in
 
-  let gen_ni_opt =
-    match node.F.n with
-    | NInstr x ->
-        if check_tainted_instr config fun_env in' x then IL.lvar_of_instr_opt x
-        else None
-    (* if just a single return is tainted then the function is tainted *)
-    | NReturn (tok, e) when check_tainted_return config fun_env in' tok e ->
-        (match opt_name with
-        | Some var -> Hashtbl.add fun_env (str_of_name var) ()
-        | None -> ());
-        None
-    | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
-    | NThrow _ | NOther _ | NTodo _ ->
-        None
-  in
-  let kill_ni_opt =
-    (* old:
-     *  if gen_ni_opt <> None
-     *  then None
-     * but now gen_ni <> None does not necessarily mean we had a source().
-     * It can also be one tainted rvars which propagate to the lvar
-     *)
-    match node.F.n with
-    | NInstr x ->
-        if check_tainted_instr config fun_env in' x then None
-        else
-          (* all clean arguments should reset the taint *)
-          IL.lvar_of_instr_opt x
-    | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
-    | NThrow _ | NOther _ | NTodo _ ->
-        None
-  in
-  let gen_ni = option_to_varmap gen_ni_opt in
-  let kill_ni = option_to_varmap kill_ni_opt in
+    let gen_ni_opt =
+      match node.F.n with
+      | NInstr x ->
+          if check_tainted_instr config fun_env in' x then IL.lvar_of_instr_opt x
+          else None
+      (* if just a single return is tainted then the function is tainted *)
+      | NReturn (tok, e) when check_tainted_return config fun_env in' tok e ->
+          (match opt_name with
+           | Some var -> Hashtbl.add fun_env (str_of_name var) ()
+           | None -> ());
+          None
+      | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
+      | NThrow _ | NOther _ | NTodo _ ->
+          None
+    in
+    let kill_ni_opt =
+      (* old:
+       *  if gen_ni_opt <> None
+       *  then None
+       * but now gen_ni <> None does not necessarily mean we had a source().
+       * It can also be one tainted rvars which propagate to the lvar
+      *)
+      match node.F.n with
+      | NInstr x ->
+          if check_tainted_instr config fun_env in' x then None
+          else
+            (* all clean arguments should reset the taint *)
+            IL.lvar_of_instr_opt x
+      | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
+      | NThrow _ | NOther _ | NTodo _ ->
+          None
+    in
+    let gen_ni = option_to_varmap gen_ni_opt in
+    let kill_ni = option_to_varmap kill_ni_opt in
 
-  let out' = diff (union in' gen_ni) kill_ni in
-  { D.in_env = in'; out_env = out' }
+    let out' = diff (union in' gen_ni) kill_ni in
+    { D.in_env = in'; out_env = out' }
 
 (*e: function [[Dataflow_tainting.transfer]] *)
 
@@ -241,13 +241,13 @@ let (transfer :
 
 (*s: function [[Dataflow_tainting.fixpoint]] *)
 let (fixpoint : config -> fun_env -> IL.name option -> F.cfg -> mapping) =
- fun config fun_env opt_name flow ->
+  fun config fun_env opt_name flow ->
   DataflowX.fixpoint
     ~eq:(fun () () -> true)
     ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
     ~trans:
       (transfer config fun_env opt_name ~flow)
-      (* tainting is a forward analysis! *)
+    (* tainting is a forward analysis! *)
     ~forward:true ~flow
 
 (*e: function [[Dataflow_tainting.fixpoint]] *)

@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 module G = AST_generic
 module MV = Metavariable
@@ -30,7 +30,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * related work:
  * - https://github.com/google/cel-spec by Google
  * - https://github.com/facebook/Haxl by Facebook (was called FXL before)
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -46,7 +46,7 @@ type value =
   (* default case where we don't really have good builtin operations.
    * This should be a AST_generic.any once parsed.
    * See JSON_report.json_metavar().
-   *)
+  *)
   | AST of string (* any AST, e.g., "x+1" *)
 (* less: Id of string (* simpler to merge with AST *) *)
 [@@deriving show]
@@ -77,9 +77,9 @@ let parse_json file =
   | J.Object xs -> (
       match Common.sort_by_key_lowfirst xs with
       | [
-       ("code", J.String code);
-       ("language", J.String lang);
-       ("metavars", J.Object xs);
+        ("code", J.String code);
+        ("language", J.String lang);
+        ("metavars", J.Object xs);
       ] ->
           let lang =
             try Hashtbl.find Lang.lang_of_string_map lang
@@ -124,7 +124,7 @@ let print_result xopt =
       | Int 0 -> pr (string_of_bool false)
       | Int _ -> pr (string_of_bool true)
       | _ -> pr "NONE")
-  [@@action]
+[@@action]
 
 (*****************************************************************************)
 (* Eval algorithm *)
@@ -159,8 +159,8 @@ let rec eval env code =
       let values =
         args
         |> List.map (function
-             | G.Arg e -> eval env e
-             | _ -> raise (NotHandled code))
+          | G.Arg e -> eval env e
+          | _ -> raise (NotHandled code))
       in
       eval_op op values code
   | G.Container (G.List, (_, xs, _)) ->
@@ -174,7 +174,7 @@ let rec eval env code =
        * and enforce e1 can only be an Id metavariable.
        * alt: let s = value_to_string v in
        * to convert anything in a string before using regexps on it
-       *)
+      *)
       let v = eval env e1 in
 
       match v with
@@ -250,7 +250,7 @@ and eval_op op values code =
 
 (* This is when called from the semgrep Python wrapper for the
  * metavariable-comparison: condition.
- *)
+*)
 let eval_json_file file =
   try
     let env, code = parse_json file in
@@ -279,28 +279,28 @@ let test_eval file =
 let bindings_to_env xs =
   xs
   |> Common.map_filter (fun (mvar, mval) ->
-         match mval with
-         | MV.E e -> (
-             try Some (mvar, eval (Hashtbl.create 0) e)
-             with NotHandled _e ->
-               logger#debug "can't eval %s value %s" mvar (MV.show_mvalue mval);
-               (* todo: if not a value, could default to AST of range *)
-               None)
-         | x ->
-             logger#debug "filtering mvar %s, not an expr %s" mvar
-               (MV.show_mvalue x);
-             None)
+    match mval with
+    | MV.E e -> (
+        try Some (mvar, eval (Hashtbl.create 0) e)
+        with NotHandled _e ->
+          logger#debug "can't eval %s value %s" mvar (MV.show_mvalue mval);
+          (* todo: if not a value, could default to AST of range *)
+          None)
+    | x ->
+        logger#debug "filtering mvar %s, not an expr %s" mvar
+          (MV.show_mvalue x);
+        None)
   |> Common.hash_of_list
 
 (* this is for metavariable-regexp *)
 let bindings_to_env_with_just_strings xs =
   xs
   |> List.map (fun (mvar, mval) ->
-         let any = MV.mvalue_to_any mval in
-         let min, max = Visitor_AST.range_of_any any in
-         let file = min.Parse_info.file in
-         let range = Range.range_of_token_locations min max in
-         (mvar, String (Range.content_at_range file range)))
+    let any = MV.mvalue_to_any mval in
+    let min, max = Visitor_AST.range_of_any any in
+    let file = min.Parse_info.file in
+    let range = Range.range_of_token_locations min max in
+    (mvar, String (Range.content_at_range file range)))
   |> Common.hash_of_list
 
 let eval_bool env e =
@@ -315,7 +315,7 @@ let eval_bool env e =
        * e.g., os.getenv("foo") which can't be evaluated. It's ok to
        * return false then.
        * todo: should reraise?
-       *)
+      *)
       false
   | NotHandled e ->
       pr2 (G.show_expr e);

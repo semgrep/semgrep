@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open IL
 module AST = AST_generic
@@ -53,7 +53,7 @@ module D = Datalog_fact
    -  [2] https://bitbucket.org/yanniss/doop/src/master/docs/doop-101.md
    -  [3] https://souffle-lang.github.io/docs.html
    -  [4] https://yanniss.github.io/ptaint-oopsla17-prelim.pdf
- *)
+*)
 
 (*****************************************************************************)
 (* Type *)
@@ -76,17 +76,17 @@ let dump_il file =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let s = AST_generic.show_any (AST.S def.AST.fbody) in
-            pr2 s;
-            pr2 "==>";
+             let s = AST_generic.show_any (AST.S def.AST.fbody) in
+             pr2 s;
+             pr2 "==>";
 
-            let xs = AST_to_IL.stmt def.AST.fbody in
-            let s = IL.show_any (IL.Ss xs) in
-            pr2 s);
+             let xs = AST_to_IL.stmt def.AST.fbody in
+             let s = IL.show_any (IL.Ss xs) in
+             pr2 s);
       }
   in
   v (AST.Pr ast)
-  [@@action]
+[@@action]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -138,7 +138,7 @@ let gen_facts file outdir =
 
   (* less: use treesitter also later
    *  Parse_code.parse_and_resolve_name_use_pfff_or_treesitter lang file in
-   *)
+  *)
   let facts = ref [] in
 
   let v =

@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open AST_scala
 module G = AST_generic
@@ -28,7 +28,7 @@ module H = AST_generic_helpers
  * - see TODO, especially generators, This/Super class, etc.
  * - Scala can have multiple parameter lists or argument lists. Right now
  *   In Call position we fold, but for the parameters we flatten.
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -155,12 +155,12 @@ and v_import_spec = function
       fun tk path ->
         v1
         |> List.map (fun (id, opt) ->
-               let alias =
-                 match opt with
-                 | None -> None
-                 | Some (_, id) -> Some (id, G.empty_id_info ())
-               in
-               G.ImportFrom (tk, path, id, alias))
+          let alias =
+            match opt with
+            | None -> None
+            | Some (_, id) -> Some (id, G.empty_id_info ())
+          in
+          G.ImportFrom (tk, path, id, alias))
 
 let v_import (v1, v2) : G.directive list =
   let v1 = v_tok v1 in
@@ -197,10 +197,10 @@ let rec v_literal = function
       let args =
         v2
         |> List.map (function
-             | Left lit -> G.Arg (G.L lit)
-             | Right e ->
-                 let special = G.IdSpecial (G.InterpolatedElement, fake "") in
-                 G.Arg (G.Call (special, fb [ G.Arg e ])))
+          | Left lit -> G.Arg (G.L lit)
+          | Right e ->
+              let special = G.IdSpecial (G.InterpolatedElement, fake "") in
+              G.Arg (G.Call (special, fb [ G.Arg e ])))
       in
       Right (G.Call (special, (snd v1, args, v3)))
 
@@ -269,7 +269,7 @@ and v_type_ = function
       let v1 = v_option v_type_ v1 and _lb, defs, _rb = v_refinement v2 in
       todo_type "TyRefined"
         ((match v1 with None -> [] | Some t -> [ G.T t ])
-        @ (defs |> List.map (fun def -> G.Def def)))
+         @ (defs |> List.map (fun def -> G.Def def)))
   | TyExistential (v1, v2, v3) ->
       let v1 = v_type_ v1 in
       let _v2 = v_tok v2 in
@@ -291,15 +291,15 @@ and v_type_bounds { supertype = v_supertype; subtype = v_subtype } =
   let arg1 =
     v_option
       (fun (v1, v2) ->
-        let v1 = v_tok v1 and v2 = v_type_ v2 in
-        (v1, v2))
+         let v1 = v_tok v1 and v2 = v_type_ v2 in
+         (v1, v2))
       v_supertype
   in
   let arg2 =
     v_option
       (fun (v1, v2) ->
-        let v1 = v_tok v1 and v2 = v_type_ v2 in
-        (v1, v2))
+         let v1 = v_tok v1 and v2 = v_type_ v2 in
+         (v1, v2))
       v_subtype
   in
   (arg1, arg2)
@@ -364,8 +364,8 @@ and v_expr = function
       in
       ids
       |> List.fold_left
-           (fun acc fld -> G.DotAccess (acc, fake ".", G.EN (name_of_id fld)))
-           start
+        (fun acc fld -> G.DotAccess (acc, fake ".", G.EN (name_of_id fld)))
+        start
   | ExprUnderscore v1 ->
       let v1 = v_tok v1 in
       todo_expr "ExprUnderscore" [ G.Tk v1 ]
@@ -433,7 +433,7 @@ and v_arguments = function
       match kind with
       | Left stats -> (lb, [ G.Arg (expr_of_block stats) ], rb)
       | Right cases -> (lb, [ G.Arg (G.Lambda (cases_to_lambda lb cases)) ], rb)
-      )
+    )
 
 and v_argument v =
   let v = v_expr v in
@@ -496,8 +496,8 @@ and v_stmt = function
       and v4 =
         v_option
           (fun (v1, v2) ->
-            let _v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
-            v2)
+             let _v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
+             v2)
           v4
       in
       G.If (v1, G.unbracket v2, v3, v4) |> G.s
@@ -571,10 +571,10 @@ and v_catch_clause (v1, v2) : G.catch list =
       let actions = List.map v_case_clause xs in
       actions
       |> List.map (fun (pat, e) ->
-             (* todo? e was the result of expr_of_block, so maybe we
-              * should revert because we want a stmt here with block_of_expr
-              *)
-             (fake "case", pat, G.exprstmt e))
+        (* todo? e was the result of expr_of_block, so maybe we
+         * should revert because we want a stmt here with block_of_expr
+        *)
+        (fake "case", pat, G.exprstmt e))
   | CatchExpr e ->
       let e = v_expr e in
       let pat = G.PatUnderscore v1 in
@@ -695,14 +695,14 @@ and v_variable_definitions
   let eopt = v_option v_expr v_vbody in
   v_vpatterns
   |> Common.map_filter (fun pat ->
-         match pat with
-         | PatVarid id | PatName (Id id, []) ->
-             let ent = G.basic_entity id attrs in
-             let vdef = { G.vinit = eopt; vtype = topt } in
-             Some (ent, G.VarDef vdef)
-         | _ ->
-             pr2 "TODO pattern var";
-             None)
+    match pat with
+    | PatVarid id | PatName (Id id, []) ->
+        let ent = G.basic_entity id attrs in
+        let vdef = { G.vinit = eopt; vtype = topt } in
+        Some (ent, G.VarDef vdef)
+    | _ ->
+        pr2 "TODO pattern var";
+        None)
 
 and v_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let v1 = v_ident v_name in
@@ -823,8 +823,8 @@ and v_template_parents { cextends = v_cextends; cwith = v_cwith } =
 and v_template_body v =
   v_bracket
     (fun (v1, v2) ->
-      let _v1TODO = v_option v_self_type v1 and v2 = v_block v2 in
-      v2)
+       let _v1TODO = v_option v_self_type v1 and v2 = v_block v2 in
+       v2)
     v
 
 and v_self_type (v1, v2, v3) =

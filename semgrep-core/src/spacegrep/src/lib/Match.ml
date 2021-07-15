@@ -160,7 +160,7 @@ let complete_dots conf ~dots env last_loc =
   let _, last_end = last_loc in
   let dots' = extend_dots_matched ~dots last_end in
   close_dots_or_fail conf ~dots:dots' env (fun env' ->
-      Complete (env', last_loc))
+    Complete (env', last_loc))
 
 (*
    Find the rightmost location in a document and return it only if it's
@@ -238,8 +238,8 @@ let within_ellipsis_range ~dots loc =
 let rec match_ (conf : conf) ~(dots : dots option) (env : env)
     (last_loc : Loc.t) (pat : Pattern_AST.node list) (doc : Doc_AST.node list)
     (cont :
-      dots:dots option -> env -> Loc.t -> Pattern_AST.node list -> match_result)
-    : match_result =
+       dots:dots option -> env -> Loc.t -> Pattern_AST.node list -> match_result)
+  : match_result =
   if !debug then Print_match.print pat doc;
   match (pat, doc) with
   | [], doc -> (
@@ -263,12 +263,12 @@ let rec match_ (conf : conf) ~(dots : dots option) (env : env)
           (* Indented block coincides with an indented block in the document.
              These blocks must match, independently from the rest. *)
           close_dots_or_fail conf ~dots env (fun env ->
-              match
-                match_ conf ~dots:None env last_loc pat1 doc1 full_match
-              with
-              | Complete (env, last_loc) ->
-                  match_ conf ~dots:None env last_loc pat2 doc2 cont
-              | Fail -> Fail)
+            match
+              match_ conf ~dots:None env last_loc pat1 doc1 full_match
+            with
+            | Complete (env, last_loc) ->
+                match_ conf ~dots:None env last_loc pat2 doc2 cont
+            | Fail -> Fail)
       | Atom (loc, _) :: doc_tail -> (
           (* Indented block in pattern doesn't match in the document.
              Skip document node if allowed. *)
@@ -278,9 +278,9 @@ let rec match_ (conf : conf) ~(dots : dots option) (env : env)
               match_ conf ~dots:dots' env last_loc pat doc_tail cont
           | None ->
               close_dots_or_fail conf ~dots env (fun env ->
-                  if pat_matches_empty_doc pat1 then
-                    match_ conf ~dots:None env last_loc pat2 doc cont
-                  else Fail)))
+                if pat_matches_empty_doc pat1 then
+                  match_ conf ~dots:None env last_loc pat2 doc cont
+                else Fail)))
   | Dots (_, opt_mvar) :: pat_tail, doc ->
       let dots = extend_dots ~dots opt_mvar last_loc in
       match_ conf ~dots env last_loc pat_tail doc cont
@@ -295,38 +295,38 @@ let rec match_ (conf : conf) ~(dots : dots option) (env : env)
                  in the block as if the document was flat. *)
               match_ conf ~dots env last_loc pat sub_doc
                 (fun ~dots env last_loc pat ->
-                  (* The sub-block was matched but some of the pattern wasn't
-                     consumed. We continue, in the sub-block's parent. *)
-                  match_ conf ~dots env last_loc pat doc_tail cont)
+                   (* The sub-block was matched but some of the pattern wasn't
+                      consumed. We continue, in the sub-block's parent. *)
+                   match_ conf ~dots env last_loc pat doc_tail cont)
           | Atom (loc, d) -> (
               if not (within_ellipsis_range ~dots loc) then Fail
               else
                 let match_result =
                   close_dots_or_fail conf ~dots env (fun env ->
-                      match (p, d) with
-                      | Metavar name, Word value -> (
-                          match Env.find_opt name env with
-                          | None ->
-                              (* First encounter of the metavariable,
-                                 store its value. *)
-                              let env = Env.add name (loc, value) env in
+                    match (p, d) with
+                    | Metavar name, Word value -> (
+                        match Env.find_opt name env with
+                        | None ->
+                            (* First encounter of the metavariable,
+                               store its value. *)
+                            let env = Env.add name (loc, value) env in
+                            match_ conf ~dots:None env loc pat_tail doc_tail
+                              cont
+                        | Some (_loc0, value0) ->
+                            (* Check if value matches previously captured
+                               value. This must be an exact match even
+                               if case-insensitive matching was requested. *)
+                            if String.equal value value0 then
                               match_ conf ~dots:None env loc pat_tail doc_tail
                                 cont
-                          | Some (_loc0, value0) ->
-                              (* Check if value matches previously captured
-                                 value. This must be an exact match even
-                                 if case-insensitive matching was requested. *)
-                              if String.equal value value0 then
-                                match_ conf ~dots:None env loc pat_tail doc_tail
-                                  cont
-                              else Fail)
-                      | Word a, Word b when conf.word_equal a b ->
-                          match_ conf ~dots:None env loc pat_tail doc_tail cont
-                      | Punct a, Punct b when a = b ->
-                          match_ conf ~dots:None env loc pat_tail doc_tail cont
-                      | Byte a, Byte b when a = b ->
-                          match_ conf ~dots:None env loc pat_tail doc_tail cont
-                      | _ -> Fail)
+                            else Fail)
+                    | Word a, Word b when conf.word_equal a b ->
+                        match_ conf ~dots:None env loc pat_tail doc_tail cont
+                    | Punct a, Punct b when a = b ->
+                        match_ conf ~dots:None env loc pat_tail doc_tail cont
+                    | Byte a, Byte b when a = b ->
+                        match_ conf ~dots:None env loc pat_tail doc_tail cont
+                    | _ -> Fail)
                 in
                 match match_result with
                 | Complete _ -> match_result
@@ -450,29 +450,29 @@ let really_search ~case_sensitive src pat doc =
   let end_loc_tbl = Hashtbl.create 100 in
   let fold = if starts_with_dots pat then fold_block_starts else fold_all in
   fold [] doc (fun matches start_loc doc ->
-      let start_pos, _ = start_loc in
-      (* At the start, nothing has been matched. If `last_loc = start_loc` then
-       * `...` would incorrectly match the token at `start_loc`. *)
-      let last_loc = (start_pos, start_pos) in
-      match match_ conf ~dots:None Env.empty last_loc pat doc full_match with
-      | Complete (env, last_loc) ->
-          let match_ =
-            let region = (start_loc, last_loc) in
-            let capture = convert_capture src start_loc last_loc in
-            let named_captures = convert_named_captures env in
-            { region; capture; named_captures }
-          in
-          (* If two matches end at the same location, prefer the shorter one.
-             The replacement in the table marks any earlier, longer match
-             as undesirable. *)
-          Hashtbl.replace end_loc_tbl last_loc match_;
-          match_ :: matches
-      | Fail -> matches)
+    let start_pos, _ = start_loc in
+    (* At the start, nothing has been matched. If `last_loc = start_loc` then
+     * `...` would incorrectly match the token at `start_loc`. *)
+    let last_loc = (start_pos, start_pos) in
+    match match_ conf ~dots:None Env.empty last_loc pat doc full_match with
+    | Complete (env, last_loc) ->
+        let match_ =
+          let region = (start_loc, last_loc) in
+          let capture = convert_capture src start_loc last_loc in
+          let named_captures = convert_named_captures env in
+          { region; capture; named_captures }
+        in
+        (* If two matches end at the same location, prefer the shorter one.
+           The replacement in the table marks any earlier, longer match
+           as undesirable. *)
+        Hashtbl.replace end_loc_tbl last_loc match_;
+        match_ :: matches
+    | Fail -> matches)
   |> List.rev
   |> List.filter (fun match_ ->
-         match Hashtbl.find_opt end_loc_tbl (snd match_.region) with
-         | None -> assert false
-         | Some selected_match -> phys_eq match_ selected_match)
+    match Hashtbl.find_opt end_loc_tbl (snd match_.region) with
+    | None -> assert false
+    | Some selected_match -> phys_eq match_ selected_match)
 
 let search ~no_skip_search ~case_sensitive src pat doc =
   (* optimization *)
@@ -506,13 +506,13 @@ let print ?(highlight = false)
   in
   List.iter
     (fun match_ ->
-      print_optional_separator ();
-      let start_loc, end_loc = match_.region in
-      if !debug then
-        printf "match from %s to %s\n" (Loc.show start_loc) (Loc.show end_loc);
-      Src_file.lines_of_loc_range ?highlight:highlight_fun ~line_prefix src
-        start_loc end_loc
-      |> print_string)
+       print_optional_separator ();
+       let start_loc, end_loc = match_.region in
+       if !debug then
+         printf "match from %s to %s\n" (Loc.show start_loc) (Loc.show end_loc);
+       Src_file.lines_of_loc_range ?highlight:highlight_fun ~line_prefix src
+         start_loc end_loc
+       |> print_string)
     matches
 
 let print_errors ?(highlight = false) errors =
@@ -522,12 +522,12 @@ let print_errors ?(highlight = false) errors =
   in
   List.iter
     (fun (src, error) ->
-      let src_prefix =
-        match Src_file.source src with
-        | File path -> sprintf "%s: " path
-        | Stdin | String | Channel -> ""
-      in
-      eprintf "%s %s%s\n" error_prefix src_prefix error.Parse_pattern.msg)
+       let src_prefix =
+         match Src_file.source src with
+         | File path -> sprintf "%s: " path
+         | Stdin | String | Channel -> ""
+       in
+       eprintf "%s %s%s\n" error_prefix src_prefix error.Parse_pattern.msg)
     errors
 
 let print_nested_results ?(with_time = false) ?highlight
@@ -536,12 +536,12 @@ let print_nested_results ?(with_time = false) ?highlight
   let total_match_time = ref 0. in
   List.iter
     (fun (src, pat_matches, parse_time, _run_time) ->
-      total_parse_time := !total_parse_time +. parse_time;
-      List.iter
-        (fun (_pat_id, matches, match_time) ->
-          total_match_time := !total_match_time +. match_time;
-          print ?highlight ~print_optional_separator src matches)
-        pat_matches)
+       total_parse_time := !total_parse_time +. parse_time;
+       List.iter
+         (fun (_pat_id, matches, match_time) ->
+            total_match_time := !total_match_time +. match_time;
+            print ?highlight ~print_optional_separator src matches)
+         pat_matches)
     doc_matches;
   if with_time then
     eprintf "parse time: %.6f s\nmatch time: %.6f s\n" !total_parse_time

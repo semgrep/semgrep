@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open AST_generic
 module V = Visitor_AST
@@ -124,7 +124,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *  - simple resolve_python.ml with variable and import resolution
  *  - separate resolve_go.ml  with import resolution
  *  - try to unify those resolvers in one file, naming_ast.ml
- *)
+*)
 
 (*****************************************************************************)
 (* Scope *)
@@ -155,10 +155,10 @@ type scopes = {
   blocks : scope list ref;
   (* useful for python, kind of global scope but for entities *)
   imported : scope ref;
-      (* todo?
-       * - class? right now we abuse EnclosedVar in resolved_name_kind.
-       * - function? for 'var' in JS
-       *)
+  (* todo?
+   * - class? right now we abuse EnclosedVar in resolved_name_kind.
+   * - function? for 'var' in JS
+  *)
 }
 
 (*e: type [[Naming_AST.scopes]] *)
@@ -172,7 +172,7 @@ let default_scopes () = { global = ref []; blocks = ref []; imported = ref [] }
 (* because we use a Visitor instead of a clean recursive
  * function passing down an environment, we need to emulate a scoped
  * environment by using save_excursion.
- *)
+*)
 
 let with_new_function_scope params scopes f =
   Common.save_excursion scopes.blocks (params :: !(scopes.blocks)) f
@@ -259,7 +259,7 @@ type env = {
   ctx : context list ref;
   (* handle locals/params/globals, block vas, enclosed vars (closures).
    * handle also basic typing information now for Java/Go.
-   *)
+  *)
   names : scopes;
   in_lvalue : bool ref;
   in_type : bool ref;
@@ -302,7 +302,7 @@ let top_context env =
 let set_resolved env id_info x =
   (* TODO? maybe do it only if we have something better than what the
    * lang-specific resolved found?
-   *)
+  *)
   id_info.id_resolved := Some x.entname;
   (* this is defensive programming against the possibility of introducing
    * cycles in the AST.
@@ -376,7 +376,7 @@ let resolved_name_kind env lang =
       match lang with
       (* true for Java so that we can type class fields.
        * alt: use a different scope.class?
-       *)
+      *)
       | Lang.Java
       (* true for JS/TS to resolve class methods. *)
       | Lang.Javascript | Lang.Typescript ->
@@ -390,12 +390,12 @@ let resolved_name_kind env lang =
 let params_of_parameters env xs =
   xs
   |> Common.map_filter (function
-       | ParamClassic { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
-           let sid = H.gensym () in
-           let resolved = { entname = (Param, sid); enttype = typ } in
-           set_resolved env id_info resolved;
-           Some (H.str_of_ident id, resolved)
-       | _ -> None)
+    | ParamClassic { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
+        let sid = H.gensym () in
+        let resolved = { entname = (Param, sid); enttype = typ } in
+        set_resolved env id_info resolved;
+        Some (H.str_of_ident id, resolved)
+    | _ -> None)
 
 (*e: function [[Naming_AST.params_of_parameters]] *)
 
@@ -432,308 +432,308 @@ let resolve2 lang prog =
   (* would be better to use a classic recursive-with-environment visit.
    * coupling: we do similar things in Constant_propagation.ml so if you
    * add a feature here, you might want to add a similar thing over there too.
-   *)
+  *)
   let hooks =
     {
       V.default_visitor with
       (* the defs *)
       V.kfunction_definition =
         (fun (k, _v) x ->
-          (* todo: add the function as a Global. In fact we should do a first
-           * pass for some languages to add all of them first, because
-           * Go for example allow the use of forward function reference
-           * (no need to declarare prototype and forward decls as in C).
+           (* todo: add the function as a Global. In fact we should do a first
+            * pass for some languages to add all of them first, because
+            * Go for example allow the use of forward function reference
+            * (no need to declarare prototype and forward decls as in C).
            *)
-          let new_params = params_of_parameters env x.fparams in
-          with_new_context InFunction env (fun () ->
-              with_new_function_scope new_params env.names (fun () ->
-                  (* todo: actually we should first go inside x.fparams.ptype
-                   * without the new_params (this would also prevent cycle if
-                   * a parameter name is the same than type name used in ptype
-                   * (see tests/python/naming/shadow_name_type.py) *)
-                  k x)));
+           let new_params = params_of_parameters env x.fparams in
+           with_new_context InFunction env (fun () ->
+             with_new_function_scope new_params env.names (fun () ->
+               (* todo: actually we should first go inside x.fparams.ptype
+                * without the new_params (this would also prevent cycle if
+                * a parameter name is the same than type name used in ptype
+                * (see tests/python/naming/shadow_name_type.py) *)
+               k x)));
       V.kclass_definition =
         (fun (k, _v) x ->
-          (* todo: we should first process all fields in the class before
-           * processing the methods, as some languages may allow forward ref.
+           (* todo: we should first process all fields in the class before
+            * processing the methods, as some languages may allow forward ref.
            *)
-          with_new_context InClass env (fun () -> k x));
+           with_new_context InClass env (fun () -> k x));
       V.kdef =
         (fun (k, v) x ->
-          match x with
-          | ( ({ name = EN (Id (id, id_info)); _ } as ent),
-              VarDef { vinit; vtype } )
-          (* note that some languages such as Python do not have VarDef
-           * construct
-           * todo? should add those somewhere instead of in_lvalue detection? *)
-            when is_resolvable_name_ctx env lang ->
-              (* Need to visit expressions first so that type is populated, e.g.
-               * if we do var a = 3, then var b = a, we want to propagate the type of a. *)
-              (* Note that we are careful to visit each part of the declaration
-               * separately in order to avoid the v_vardef_as_assign_expr
-               * equivalence in Visitor_AST. This is a problem for JS/TS where
-               * there are both explicit and implicit variable declarations, and
-               * it will cause the same identifier to be resolved twice. *)
-              v (En ent);
-              vinit |> do_option (fun e -> v (E e));
-              vtype |> do_option (fun t -> v (T t));
-              declare_var env lang id id_info ~explicit:true vinit vtype
-          | { name = EN (Id (id, id_info)); _ }, FuncDef _
-            when is_resolvable_name_ctx env lang ->
-              (match lang with
-              (* We restrict function-name resolution to JS/TS.
-               *
-               * Note that this causes problems with Python rule/test:
-               *
-               *     semgrep-rules/python/flask/correctness/same-handler-name.yaml
-               *
-               * This rule tries to match two different functions using the same
-               * meta-variable. This works when the function names are not resolved,
-               * but breaks when each function gets a unique sid.
-               *
-               * Function-name resolution is useful for interprocedural analysis,
-               * feature that was requested by JS/TS users, see:
-               *
-               *     https://github.com/returntocorp/semgrep/issues/2787.
-               *)
-              | Lang.Javascript | Lang.Typescript ->
-                  let sid = H.gensym () in
-                  let resolved =
-                    untyped_ent (resolved_name_kind env lang, sid)
-                  in
-                  (* Previously we tried using add_ident_current_scope, but this
-                   * shadowed imported function names which are added to the
-                   * "imported" scope (globals/block scope is looked up first)
-                   * even when the import statement comes after...
-                   * This broke the following test:
-                   *
-                   *     semgrep-rules/python/django/security/audit/raw-query.py
-                   *
-                   * For now we add function names also to the "imported" scope...
-                   * but do we need a special scope for imported functions?
-                   *)
-                  add_ident_imported_scope id resolved env.names;
-                  set_resolved env id_info resolved
-              | ___else___ -> ());
-              k x
-          | { name = EN (Id (id, id_info)); _ }, UseOuterDecl tok ->
-              let s = Parse_info.str_of_info tok in
-              let flookup =
-                match s with
-                | "global" -> lookup_global_scope
-                | "nonlocal" -> lookup_nonlocal_scope
-                | _ ->
-                    error tok (spf "unrecognized UseOuterDecl directive: %s" s);
-                    lookup_global_scope
-              in
-              (match flookup id env.names with
-              | Some resolved ->
-                  set_resolved env id_info resolved;
-                  add_ident_current_scope id resolved env.names
-              | None ->
-                  error tok
-                    (spf "could not find '%s' for directive %s"
-                       (H.str_of_ident id) s));
-              k x
-          | _ -> k x);
+           match x with
+           | ( ({ name = EN (Id (id, id_info)); _ } as ent),
+               VarDef { vinit; vtype } )
+             (* note that some languages such as Python do not have VarDef
+              * construct
+              * todo? should add those somewhere instead of in_lvalue detection? *)
+             when is_resolvable_name_ctx env lang ->
+               (* Need to visit expressions first so that type is populated, e.g.
+                * if we do var a = 3, then var b = a, we want to propagate the type of a. *)
+               (* Note that we are careful to visit each part of the declaration
+                * separately in order to avoid the v_vardef_as_assign_expr
+                * equivalence in Visitor_AST. This is a problem for JS/TS where
+                * there are both explicit and implicit variable declarations, and
+                * it will cause the same identifier to be resolved twice. *)
+               v (En ent);
+               vinit |> do_option (fun e -> v (E e));
+               vtype |> do_option (fun t -> v (T t));
+               declare_var env lang id id_info ~explicit:true vinit vtype
+           | { name = EN (Id (id, id_info)); _ }, FuncDef _
+             when is_resolvable_name_ctx env lang ->
+               (match lang with
+                (* We restrict function-name resolution to JS/TS.
+                 *
+                 * Note that this causes problems with Python rule/test:
+                 *
+                 *     semgrep-rules/python/flask/correctness/same-handler-name.yaml
+                 *
+                 * This rule tries to match two different functions using the same
+                 * meta-variable. This works when the function names are not resolved,
+                 * but breaks when each function gets a unique sid.
+                 *
+                 * Function-name resolution is useful for interprocedural analysis,
+                 * feature that was requested by JS/TS users, see:
+                 *
+                 *     https://github.com/returntocorp/semgrep/issues/2787.
+                *)
+                | Lang.Javascript | Lang.Typescript ->
+                    let sid = H.gensym () in
+                    let resolved =
+                      untyped_ent (resolved_name_kind env lang, sid)
+                    in
+                    (* Previously we tried using add_ident_current_scope, but this
+                     * shadowed imported function names which are added to the
+                     * "imported" scope (globals/block scope is looked up first)
+                     * even when the import statement comes after...
+                     * This broke the following test:
+                     *
+                     *     semgrep-rules/python/django/security/audit/raw-query.py
+                     *
+                     * For now we add function names also to the "imported" scope...
+                     * but do we need a special scope for imported functions?
+                    *)
+                    add_ident_imported_scope id resolved env.names;
+                    set_resolved env id_info resolved
+                | ___else___ -> ());
+               k x
+           | { name = EN (Id (id, id_info)); _ }, UseOuterDecl tok ->
+               let s = Parse_info.str_of_info tok in
+               let flookup =
+                 match s with
+                 | "global" -> lookup_global_scope
+                 | "nonlocal" -> lookup_nonlocal_scope
+                 | _ ->
+                     error tok (spf "unrecognized UseOuterDecl directive: %s" s);
+                     lookup_global_scope
+               in
+               (match flookup id env.names with
+                | Some resolved ->
+                    set_resolved env id_info resolved;
+                    add_ident_current_scope id resolved env.names
+                | None ->
+                    error tok
+                      (spf "could not find '%s' for directive %s"
+                         (H.str_of_ident id) s));
+               k x
+           | _ -> k x);
       (* sgrep: the import aliases *)
       V.kdir =
         (fun (k, _v) x ->
-          (match x with
-          | ImportFrom (_, DottedName xs, id, Some (alias, id_info)) ->
-              (* for python *)
-              let sid = H.gensym () in
-              let resolved = untyped_ent (ImportedEntity (xs @ [ id ]), sid) in
-              set_resolved env id_info resolved;
-              add_ident_imported_scope alias resolved env.names
-          | ImportFrom (_, DottedName xs, id, None) ->
-              (* for python *)
-              let sid = H.gensym () in
-              let resolved = untyped_ent (ImportedEntity (xs @ [ id ]), sid) in
-              add_ident_imported_scope id resolved env.names
-          | ImportFrom (_, FileName (s, tok), id, None)
-            when Lang.is_js lang && fst id <> Ast_js.default_entity ->
-              (* for JS we consider import { x } from 'a/b/foo' as foo.x.
-               * Note that we guard this code with is_js lang, because Python
-               * uses also Filename in 'from ...conf import x'.
-               *)
-              let sid = H.gensym () in
-              let _, b, _ = Common2.dbe_of_filename_noext_ok s in
-              let base = (b, tok) in
-              let resolved = untyped_ent (ImportedEntity [ base; id ], sid) in
-              add_ident_imported_scope id resolved env.names
-          | ImportFrom (_, FileName (s, tok), id, Some (alias, id_info))
-            when Lang.is_js lang && fst id <> Ast_js.default_entity ->
-              (* for JS *)
-              let sid = H.gensym () in
-              let _, b, _ = Common2.dbe_of_filename_noext_ok s in
-              let base = (b, tok) in
-              let resolved = untyped_ent (ImportedEntity [ base; id ], sid) in
-              set_resolved env id_info resolved;
-              add_ident_imported_scope alias resolved env.names
-          | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
-              (* for python *)
-              let sid = H.gensym () in
-              let resolved =
-                untyped_ent (ImportedModule (DottedName xs), sid)
-              in
-              set_resolved env id_info resolved;
-              add_ident_imported_scope alias resolved env.names
-          | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
-              (* for Go *)
-              let sid = H.gensym () in
-              let pkgname =
-                let pkgpath, pkgbase = Common2.dirs_and_base_of_file s in
-                if pkgbase =~ "v[0-9]+" then
-                  (* e.g. google.golang.org/api/youtube/v3 *)
-                  Common2.list_last pkgpath
-                else if pkgbase =~ "\\(.+\\)-go" then
-                  (* e.g. github.com/dgrijalva/jwt-go *)
-                  matched1 pkgbase
-                else (* default convention *)
-                  pkgbase
-              in
-              let base = (pkgname, tok) in
-              let resolved =
-                untyped_ent (ImportedModule (DottedName [ base ]), sid)
-              in
-              set_resolved env id_info resolved;
-              add_ident_imported_scope alias resolved env.names
-          | _ -> ());
-          k x);
+           (match x with
+            | ImportFrom (_, DottedName xs, id, Some (alias, id_info)) ->
+                (* for python *)
+                let sid = H.gensym () in
+                let resolved = untyped_ent (ImportedEntity (xs @ [ id ]), sid) in
+                set_resolved env id_info resolved;
+                add_ident_imported_scope alias resolved env.names
+            | ImportFrom (_, DottedName xs, id, None) ->
+                (* for python *)
+                let sid = H.gensym () in
+                let resolved = untyped_ent (ImportedEntity (xs @ [ id ]), sid) in
+                add_ident_imported_scope id resolved env.names
+            | ImportFrom (_, FileName (s, tok), id, None)
+              when Lang.is_js lang && fst id <> Ast_js.default_entity ->
+                (* for JS we consider import { x } from 'a/b/foo' as foo.x.
+                 * Note that we guard this code with is_js lang, because Python
+                 * uses also Filename in 'from ...conf import x'.
+                *)
+                let sid = H.gensym () in
+                let _, b, _ = Common2.dbe_of_filename_noext_ok s in
+                let base = (b, tok) in
+                let resolved = untyped_ent (ImportedEntity [ base; id ], sid) in
+                add_ident_imported_scope id resolved env.names
+            | ImportFrom (_, FileName (s, tok), id, Some (alias, id_info))
+              when Lang.is_js lang && fst id <> Ast_js.default_entity ->
+                (* for JS *)
+                let sid = H.gensym () in
+                let _, b, _ = Common2.dbe_of_filename_noext_ok s in
+                let base = (b, tok) in
+                let resolved = untyped_ent (ImportedEntity [ base; id ], sid) in
+                set_resolved env id_info resolved;
+                add_ident_imported_scope alias resolved env.names
+            | ImportAs (_, DottedName xs, Some (alias, id_info)) ->
+                (* for python *)
+                let sid = H.gensym () in
+                let resolved =
+                  untyped_ent (ImportedModule (DottedName xs), sid)
+                in
+                set_resolved env id_info resolved;
+                add_ident_imported_scope alias resolved env.names
+            | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
+                (* for Go *)
+                let sid = H.gensym () in
+                let pkgname =
+                  let pkgpath, pkgbase = Common2.dirs_and_base_of_file s in
+                  if pkgbase =~ "v[0-9]+" then
+                    (* e.g. google.golang.org/api/youtube/v3 *)
+                    Common2.list_last pkgpath
+                  else if pkgbase =~ "\\(.+\\)-go" then
+                    (* e.g. github.com/dgrijalva/jwt-go *)
+                    matched1 pkgbase
+                  else (* default convention *)
+                    pkgbase
+                in
+                let base = (pkgname, tok) in
+                let resolved =
+                  untyped_ent (ImportedModule (DottedName [ base ]), sid)
+                in
+                set_resolved env id_info resolved;
+                add_ident_imported_scope alias resolved env.names
+            | _ -> ());
+           k x);
       V.kpattern =
         (fun (k, _vout) x ->
-          match x with
-          | PatId (id, id_info) when is_resolvable_name_ctx env lang ->
-              (* todo: in Python it does not necessarily introduce
-               * a newvar if the ID was already declared before.
-               * Also inside a PatAs(PatId x,b), the 'x' is actually
-               * the name of a class, not a newly introduced local.
+           match x with
+           | PatId (id, id_info) when is_resolvable_name_ctx env lang ->
+               (* todo: in Python it does not necessarily introduce
+                * a newvar if the ID was already declared before.
+                * Also inside a PatAs(PatId x,b), the 'x' is actually
+                * the name of a class, not a newly introduced local.
                *)
-              declare_var env lang id id_info ~explicit:true None None;
-              k x
-          | PatVar (_e, Some (id, id_info)) when is_resolvable_name_ctx env lang
-            ->
-              declare_var env lang id id_info ~explicit:true None None;
-              k x
-          | OtherPat _
-          (* This interacts badly with implicit JS/TS declarations. It causes
-           * `foo` in `function f({ foo }) { ... }` to be resolved as a global
-           * variable, which in turn affects semgrep-rule _react-props-in-state_.
-           * This when-clause achieves the previous behavior of leaving `foo`
-           * unresolved. *)
-          (* TODO: We should fix the AST of JS/TS so those `f({foo})` patterns do
-           * not show as regular variables. *)
-            when not (Lang.is_js lang) ->
-              Common.save_excursion env.in_lvalue true (fun () -> k x)
-          | _ -> k x);
+               declare_var env lang id id_info ~explicit:true None None;
+               k x
+           | PatVar (_e, Some (id, id_info)) when is_resolvable_name_ctx env lang
+             ->
+               declare_var env lang id id_info ~explicit:true None None;
+               k x
+           | OtherPat _
+             (* This interacts badly with implicit JS/TS declarations. It causes
+              * `foo` in `function f({ foo }) { ... }` to be resolved as a global
+              * variable, which in turn affects semgrep-rule _react-props-in-state_.
+              * This when-clause achieves the previous behavior of leaving `foo`
+              * unresolved. *)
+             (* TODO: We should fix the AST of JS/TS so those `f({foo})` patterns do
+              * not show as regular variables. *)
+             when not (Lang.is_js lang) ->
+               Common.save_excursion env.in_lvalue true (fun () -> k x)
+           | _ -> k x);
       (* the uses *)
       V.kexpr =
         (fun (k, vout) x ->
-          let recurse = ref true in
-          (match x with
-          (* Go: This is `x := E`, a single-variable short variable declaration.
-           * When this declaration is legal, and that is when the same variable
-           * has not yet been declared in the same scope, it *always* introduces
-           * a new variable. (Quoting Go' spec, "redeclaration can only appear
-           * in a multi-variable short declaration".)
-           * See: https://golang.org/ref/spec#Short_variable_declarations *)
-          | AssignOp (N (Id (id, id_info)), (Eq, tok), e2)
-            when lang = Lang.Go
-                 && Parse_info.str_of_info tok = ":="
-                 && is_resolvable_name_ctx env lang ->
-              (* Need to visit the RHS first so that type is populated *)
-              (* If we do var a = 3, then var b = a, we want to propagate the type of a *)
-              k x;
-              declare_var env lang id id_info ~explicit:true (Some e2) None;
-              recurse := false
-          | Assign (N (Id (id, id_info)), _, e2)
-            when Option.is_none (lookup_scope_opt id env)
-                 && assign_implicitly_declares lang
-                 && is_resolvable_name_ctx env lang ->
-              (* Need to visit the RHS first so that type is populated *)
-              vout (E e2);
-              declare_var env lang id id_info ~explicit:false (Some e2) None;
-              recurse := false
-          (* todo: see lrvalue.ml
-           * alternative? extra id_info tag?
-           *)
-          | Assign (e1, _, e2) | AssignOp (e1, _, e2) ->
-              Common.save_excursion env.in_lvalue true (fun () -> vout (E e1));
-              vout (E e2);
-              recurse := false
-          | ArrayAccess (e1, (_, e2, _)) ->
-              vout (E e1);
-              Common.save_excursion env.in_lvalue false (fun () -> vout (E e2));
-              recurse := false
-          | N (Id (id, id_info)) -> (
-              match lookup_scope_opt id env with
-              | Some resolved ->
-                  (* name resolution *)
-                  set_resolved env id_info resolved
-              | None ->
-                  if
-                    !(env.in_lvalue)
-                    && assign_implicitly_declares lang
-                    && is_resolvable_name_ctx env lang
-                  then
-                    (* first use of a variable can be a VarDef in some languages *)
-                    declare_var env lang id id_info ~explicit:false None None
-                  else
-                    (* hopefully the lang-specific resolved may have resolved that *)
-                    (* TODO: this can happen because of in_lvalue bug detection, or
-                     * for certain entities like functions or classes which are
-                     * currently tagged
-                     *)
+           let recurse = ref true in
+           (match x with
+            (* Go: This is `x := E`, a single-variable short variable declaration.
+             * When this declaration is legal, and that is when the same variable
+             * has not yet been declared in the same scope, it *always* introduces
+             * a new variable. (Quoting Go' spec, "redeclaration can only appear
+             * in a multi-variable short declaration".)
+             * See: https://golang.org/ref/spec#Short_variable_declarations *)
+            | AssignOp (N (Id (id, id_info)), (Eq, tok), e2)
+              when lang = Lang.Go
+                && Parse_info.str_of_info tok = ":="
+                && is_resolvable_name_ctx env lang ->
+                (* Need to visit the RHS first so that type is populated *)
+                (* If we do var a = 3, then var b = a, we want to propagate the type of a *)
+                k x;
+                declare_var env lang id id_info ~explicit:true (Some e2) None;
+                recurse := false
+            | Assign (N (Id (id, id_info)), _, e2)
+              when Option.is_none (lookup_scope_opt id env)
+                && assign_implicitly_declares lang
+                && is_resolvable_name_ctx env lang ->
+                (* Need to visit the RHS first so that type is populated *)
+                vout (E e2);
+                declare_var env lang id id_info ~explicit:false (Some e2) None;
+                recurse := false
+            (* todo: see lrvalue.ml
+             * alternative? extra id_info tag?
+            *)
+            | Assign (e1, _, e2) | AssignOp (e1, _, e2) ->
+                Common.save_excursion env.in_lvalue true (fun () -> vout (E e1));
+                vout (E e2);
+                recurse := false
+            | ArrayAccess (e1, (_, e2, _)) ->
+                vout (E e1);
+                Common.save_excursion env.in_lvalue false (fun () -> vout (E e2));
+                recurse := false
+            | N (Id (id, id_info)) -> (
+                match lookup_scope_opt id env with
+                | Some resolved ->
+                    (* name resolution *)
+                    set_resolved env id_info resolved
+                | None ->
+                    if
+                      !(env.in_lvalue)
+                      && assign_implicitly_declares lang
+                      && is_resolvable_name_ctx env lang
+                    then
+                      (* first use of a variable can be a VarDef in some languages *)
+                      declare_var env lang id id_info ~explicit:false None None
+                    else
+                      (* hopefully the lang-specific resolved may have resolved that *)
+                      (* TODO: this can happen because of in_lvalue bug detection, or
+                       * for certain entities like functions or classes which are
+                       * currently tagged
+                      *)
+                      let s, tok = id in
+                      error tok (spf "could not find '%s' in environment" s))
+            | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info))) -> (
+                match lookup_scope_opt id env with
+                (* TODO: this is a v0 for doing naming and typing of fields.
+                 * we should really use a different lookup_scope_class, that
+                 * would handle shadowing of fields from locals, etc. but it's
+                 * a start.
+                *)
+                | Some ({ entname = EnclosedVar, _sid; _ } as resolved) ->
+                    set_resolved env id_info resolved
+                | _ ->
                     let s, tok = id in
-                    error tok (spf "could not find '%s' in environment" s))
-          | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info))) -> (
-              match lookup_scope_opt id env with
-              (* TODO: this is a v0 for doing naming and typing of fields.
-               * we should really use a different lookup_scope_class, that
-               * would handle shadowing of fields from locals, etc. but it's
-               * a start.
-               *)
-              | Some ({ entname = EnclosedVar, _sid; _ } as resolved) ->
-                  set_resolved env id_info resolved
-              | _ ->
-                  let s, tok = id in
-                  error tok (spf "could not find '%s' field in environment" s))
-          | _ -> ());
-          if !recurse then k x);
+                    error tok (spf "could not find '%s' field in environment" s))
+            | _ -> ());
+           if !recurse then k x);
       V.kattr =
         (fun (k, _v) x ->
-          (match x with
-          | NamedAttr (_, Id (id, id_info), _args) -> (
-              match lookup_scope_opt id env with
-              | Some resolved ->
-                  (* name resolution *)
-                  set_resolved env id_info resolved
-              | _ -> ())
-          | _ -> ());
-          k x);
-      V.ktype_ =
-        (fun (k, _v) x ->
-          let f x =
-            (match x with
-            (* TODO: factorize in kname? *)
-            | TyN (Id (id, id_info)) -> (
+           (match x with
+            | NamedAttr (_, Id (id, id_info), _args) -> (
                 match lookup_scope_opt id env with
-                | Some resolved -> set_resolved env id_info resolved
+                | Some resolved ->
+                    (* name resolution *)
+                    set_resolved env id_info resolved
                 | _ -> ())
             | _ -> ());
-            k x
-          in
-          (* when we are inside a type, especially in  (OtherType (OT_Expr)),
-           * we don't want set_resolved to set the type on some Id because
-           * this could lead to cycle in the AST because of id_type
-           * that will reference a type, that could containi an OT_Expr, containing
-           * an Id, that could contain the same id_type, and so on.
-           * See tests/python/naming/shadow_name_type.py for a patological example
-           * See also tests/rust/parsing/misc_recursion.rs for another example.
+           k x);
+      V.ktype_ =
+        (fun (k, _v) x ->
+           let f x =
+             (match x with
+              (* TODO: factorize in kname? *)
+              | TyN (Id (id, id_info)) -> (
+                  match lookup_scope_opt id env with
+                  | Some resolved -> set_resolved env id_info resolved
+                  | _ -> ())
+              | _ -> ());
+             k x
+           in
+           (* when we are inside a type, especially in  (OtherType (OT_Expr)),
+            * we don't want set_resolved to set the type on some Id because
+            * this could lead to cycle in the AST because of id_type
+            * that will reference a type, that could containi an OT_Expr, containing
+            * an Id, that could contain the same id_type, and so on.
+            * See tests/python/naming/shadow_name_type.py for a patological example
+            * See also tests/rust/parsing/misc_recursion.rs for another example.
            *)
-          if !(env.in_type) then f x
-          else Common.save_excursion env.in_type true (fun () -> f x));
+           if !(env.in_type) then f x
+           else Common.save_excursion env.in_type true (fun () -> f x));
     }
   in
   let visitor = V.mk_visitor hooks in

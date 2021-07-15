@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common (* >>= *)
 
@@ -26,7 +26,7 @@ open AST_generic
  *
  * TODO: merge with pfff/.../normalize_ast.ml at some point
  *
- *)
+*)
 
 (*****************************************************************************)
 (* Entry points *)
@@ -37,7 +37,7 @@ open AST_generic
  * Examples (for Python):
  *   from foo import bar -> import foo.bar
  *   from foo.bar import baz -> import foo.bar.baz
- *)
+*)
 
 let full_module_name is_pattern from_module_name import_opt =
   match (from_module_name, import_opt) with
@@ -52,7 +52,7 @@ let full_module_name is_pattern from_module_name import_opt =
        * does not make sense to allow this pattern to match
        * import y from "path". Use just 'import "path"' if you just want
        * to check you vaguely imported a package.
-       *)
+      *)
       Some (FileName s)
   | FileName _, Some _ -> None
 
@@ -74,7 +74,7 @@ let normalize_import_opt is_pattern i =
 (*s: function [[Normalize_generic.eval]] *)
 (* see also Constant_propagation.ml. At some point we should remove
  * the code below and rely only on Constant_propagation.ml
- *)
+*)
 let rec eval x : constness option =
   match x with
   | L x -> Some (Lit x)
@@ -88,12 +88,12 @@ let rec eval x : constness option =
       let literals =
         args |> unbracket
         |> Common.map_filter (fun arg ->
-               match arg with Arg e -> eval e | _ -> None)
+          match arg with Arg e -> eval e | _ -> None)
       in
       let strs =
         literals
         |> Common.map_filter (fun lit ->
-               match lit with Lit (String (s1, _)) -> Some s1 | _ -> None)
+          match lit with Lit (String (s1, _)) -> Some s1 | _ -> None)
       in
       let concated = String.concat "" strs in
       let all_args_are_string =

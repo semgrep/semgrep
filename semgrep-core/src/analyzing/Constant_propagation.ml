@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open AST_generic
 module H = AST_generic_helpers
@@ -53,7 +53,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * - ver2: added second flow-sensitive constant propagation pass.
  * - ver3: do not assign constant values to labels; in x = E, x is just a label
  * (a "ref") and denotes a memory location rather than the value stored in it.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -104,7 +104,7 @@ let find_id env id id_info =
  * TODO: do it also for Java private fields; if they are not used in an
  * lvalue in this class, they can't be accessed from anywhere else so it's
  * safe to do the const propagation.
- *)
+*)
 let var_stats prog : var_stats =
   let h = Hashtbl.create 101 in
   let get_stat_or_create var h =
@@ -120,53 +120,53 @@ let var_stats prog : var_stats =
       V.default_visitor with
       V.kdef =
         (fun (k, v) x ->
-          match x with
-          | ( {
-                name =
-                  EN
-                    (Id
-                      (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
-                _;
-              },
-              VarDef { vinit = Some e; _ } ) ->
-              let var = (H.str_of_ident id, sid) in
-              let stat = get_stat_or_create var h in
-              incr stat.lvalue;
-              (* We can't do `k x` otherwise the variable-declaration itself is
-               * re-visited but now interpreted as an assignment (because of
-               * v_vardef_as_assign_expr in Visitor_AST), and we would be wrongly
-               * incrementing `stat.lvalue` a second time. Instead, we just need
-               * to visit the defining expression. *)
-              v (E e)
-          | _ -> k x);
+           match x with
+           | ( {
+             name =
+               EN
+                 (Id
+                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
+             _;
+           },
+             VarDef { vinit = Some e; _ } ) ->
+               let var = (H.str_of_ident id, sid) in
+               let stat = get_stat_or_create var h in
+               incr stat.lvalue;
+               (* We can't do `k x` otherwise the variable-declaration itself is
+                * re-visited but now interpreted as an assignment (because of
+                * v_vardef_as_assign_expr in Visitor_AST), and we would be wrongly
+                * incrementing `stat.lvalue` a second time. Instead, we just need
+                * to visit the defining expression. *)
+               v (E e)
+           | _ -> k x);
       V.kexpr =
         (fun (k, vout) x ->
-          match x with
-          (* TODO: very incomplete, what if Assign (Tuple?) *)
-          | Assign
-              ( N
-                  (Id
-                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ })),
-                _,
-                e2 )
-          | AssignOp
-              ( N
-                  (Id
-                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ })),
-                _,
-                e2 ) ->
-              let var = (H.str_of_ident id, sid) in
-              let stat = get_stat_or_create var h in
-              incr stat.lvalue;
-              (match x with AssignOp _ -> incr stat.rvalue | _ -> ());
-              vout (E e2)
-          | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
-            ->
-              let var = (H.str_of_ident id, sid) in
-              let stat = get_stat_or_create var h in
-              incr stat.rvalue;
-              k x
-          | _ -> k x);
+           match x with
+           (* TODO: very incomplete, what if Assign (Tuple?) *)
+           | Assign
+               ( N
+                   (Id
+                      (id, { id_resolved = { contents = Some (_kind, sid) }; _ })),
+                 _,
+                 e2 )
+           | AssignOp
+               ( N
+                   (Id
+                      (id, { id_resolved = { contents = Some (_kind, sid) }; _ })),
+                 _,
+                 e2 ) ->
+               let var = (H.str_of_ident id, sid) in
+               let stat = get_stat_or_create var h in
+               incr stat.lvalue;
+               (match x with AssignOp _ -> incr stat.rvalue | _ -> ());
+               vout (E e2)
+           | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
+             ->
+               let var = (H.str_of_ident id, sid) in
+               let stat = get_stat_or_create var h in
+               incr stat.rvalue;
+               k x
+           | _ -> k x);
     }
   in
   let visitor = V.mk_visitor hooks in
@@ -217,7 +217,7 @@ let rec eval_expr env = function
   | N (Id (id, id_info)) -> find_id env id id_info
   (* TODO: do what we do in Normalize_generic.ml.
    * | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->
-   *)
+  *)
   | Call (IdSpecial (Op op, _), (_, args, _)) -> eval_op env op args
   | Call (IdSpecial (ConcatString _, _), (_, args, _)) ->
       eval_concat_string env args
@@ -227,7 +227,7 @@ let rec eval_expr env = function
 
 (* coupling: see also semgrep/matching/Normalize_generic.ml, even though
  * we should remove it because it's doing similar work.
- *)
+*)
 and eval_op env op args =
   match args with
   | [ Arg e ] -> (
@@ -260,14 +260,14 @@ and eval_concat_string env args : literal option =
   let go_concat : arguments -> string option =
     List.fold_left
       (fun res arg ->
-        match arg with
-        | Arg e ->
-            let ( let* ) = ( >>= ) in
-            let* r = res in
-            let* lit = eval_expr env e in
-            let* s = string_of_literal lit in
-            Some (r ^ s)
-        | _else -> None)
+         match arg with
+         | Arg e ->
+             let ( let* ) = ( >>= ) in
+             let* r = res in
+             let* lit = eval_expr env e in
+             let* s = string_of_literal lit in
+             Some (r ^ s)
+         | _else -> None)
       (Some "")
   in
   args |> go_concat |> map_opt literal_of_string
@@ -290,70 +290,70 @@ let propagate_basic lang prog =
       (* the defs *)
       V.kdef =
         (fun (k, _v) x ->
-          match x with
-          | ( {
-                name =
-                  EN
-                    (Id
-                      (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
-                attrs;
-                _;
-              },
-              VarDef { vinit = Some (L literal); _ } )
-          (* note that some languages such as Python do not have VarDef.
-           * todo? should add those somewhere instead of in_lvalue detection?*)
-            ->
-              let stats =
-                try Hashtbl.find stats (H.str_of_ident id, sid)
-                with Not_found -> raise Impossible
-              in
-              if
-                H.has_keyword_attr Const attrs
-                || H.has_keyword_attr Final attrs
-                || !(stats.lvalue) = 1
-                   && (lang = Lang.Javascript || lang = Lang.Typescript)
-              then add_constant_env id (sid, literal) env;
-              k x
-          | _ -> k x);
+           match x with
+           | ( {
+             name =
+               EN
+                 (Id
+                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
+             attrs;
+             _;
+           },
+             VarDef { vinit = Some (L literal); _ } )
+             (* note that some languages such as Python do not have VarDef.
+              * todo? should add those somewhere instead of in_lvalue detection?*)
+             ->
+               let stats =
+                 try Hashtbl.find stats (H.str_of_ident id, sid)
+                 with Not_found -> raise Impossible
+               in
+               if
+                 H.has_keyword_attr Const attrs
+                 || H.has_keyword_attr Final attrs
+                 || !(stats.lvalue) = 1
+                    && (lang = Lang.Javascript || lang = Lang.Typescript)
+               then add_constant_env id (sid, literal) env;
+               k x
+           | _ -> k x);
       (* the uses (and also defs for Python Assign) *)
       V.kexpr =
         (fun (k, v) x ->
-          match x with
-          | N (Id (id, id_info)) when not !(env.in_lvalue) -> (
-              match find_id env id id_info with
-              | Some literal -> id_info.id_constness := Some (Lit literal)
-              | _ -> ())
-          | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info)))
-            when not !(env.in_lvalue) -> (
-              match find_id env id id_info with
-              | Some literal -> id_info.id_constness := Some (Lit literal)
-              | _ -> ())
-          | ArrayAccess (e1, (_, e2, _)) ->
-              v (E e1);
-              Common.save_excursion env.in_lvalue false (fun () -> v (E e2))
-              (* Assign that is really a hidden VarDef (e.g., in Python) *)
-          | Assign
-              ( N (Id (id, { id_resolved = { contents = Some (kind, sid) }; _ })),
-                _,
-                rexp ) ->
-              eval_expr env rexp
-              |> do_option (fun literal ->
-                     let stats =
-                       try Hashtbl.find stats (H.str_of_ident id, sid)
-                       with Not_found -> raise Impossible
-                     in
-                     if
-                       !(stats.lvalue) = 1
-                       (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
-                       && (lang = Lang.Python || lang = Lang.Ruby
-                         || lang = Lang.PHP || Lang.is_js lang)
-                       && kind = Global
-                     then add_constant_env id (sid, literal) env);
-              v (E rexp)
-          | Assign (e1, _, e2) | AssignOp (e1, _, e2) ->
-              Common.save_excursion env.in_lvalue true (fun () -> v (E e1));
-              v (E e2)
-          | _ -> k x);
+           match x with
+           | N (Id (id, id_info)) when not !(env.in_lvalue) -> (
+               match find_id env id id_info with
+               | Some literal -> id_info.id_constness := Some (Lit literal)
+               | _ -> ())
+           | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info)))
+             when not !(env.in_lvalue) -> (
+               match find_id env id id_info with
+               | Some literal -> id_info.id_constness := Some (Lit literal)
+               | _ -> ())
+           | ArrayAccess (e1, (_, e2, _)) ->
+               v (E e1);
+               Common.save_excursion env.in_lvalue false (fun () -> v (E e2))
+           (* Assign that is really a hidden VarDef (e.g., in Python) *)
+           | Assign
+               ( N (Id (id, { id_resolved = { contents = Some (kind, sid) }; _ })),
+                 _,
+                 rexp ) ->
+               eval_expr env rexp
+               |> do_option (fun literal ->
+                 let stats =
+                   try Hashtbl.find stats (H.str_of_ident id, sid)
+                   with Not_found -> raise Impossible
+                 in
+                 if
+                   !(stats.lvalue) = 1
+                   (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
+                   && (lang = Lang.Python || lang = Lang.Ruby
+                       || lang = Lang.PHP || Lang.is_js lang)
+                   && kind = Global
+                 then add_constant_env id (sid, literal) env);
+               v (E rexp)
+           | Assign (e1, _, e2) | AssignOp (e1, _, e2) ->
+               Common.save_excursion env.in_lvalue true (fun () -> v (E e1));
+               v (E e2)
+           | _ -> k x);
     }
   in
   let visitor = V.mk_visitor hooks in
@@ -371,10 +371,10 @@ let propagate_dataflow ast =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let inputs, xs = AST_to_IL.function_definition def in
-            let flow = CFG_build.cfg_of_stmts xs in
-            let mapping = Dataflow_constness.fixpoint inputs flow in
-            Dataflow_constness.update_constness flow mapping);
+             let inputs, xs = AST_to_IL.function_definition def in
+             let flow = CFG_build.cfg_of_stmts xs in
+             let mapping = Dataflow_constness.fixpoint inputs flow in
+             Dataflow_constness.update_constness flow mapping);
       }
   in
   v (Pr ast)

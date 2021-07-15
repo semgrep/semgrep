@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 module G = AST_generic
@@ -36,7 +36,7 @@ let debug = false
 
 (* less: could want to remember the position in the pattern of the metavar
  * for error reporting on pattern itself? so use a 'string AST_generic.wrap'?
- *)
+*)
 (*s: type [[Metavars_generic.mvar]] *)
 type mvar = string [@@deriving show, eq, hash]
 
@@ -57,7 +57,7 @@ type mvar = string [@@deriving show, eq, hash]
  *
  * coupling: if you add a constructor here, you probably also want to
  * modify Matching_generic.equal_ast_binded_code!
- *)
+*)
 type mvalue =
   (* TODO: get rid of Id, N generalize it *)
   | Id of AST_generic.ident * AST_generic.id_info option
@@ -70,7 +70,7 @@ type mvalue =
    * coupling: if you add more constructors that allow an empty content,
    * you may need to modify JSON_report.range_of_any to not get
    * some NoTokenLocation exn.
-   *)
+  *)
   | Ss of AST_generic.stmt list
   | Args of AST_generic.argument list
   (* This is to match the content of a string or atom, without the
@@ -80,14 +80,14 @@ type mvalue =
 
 (* we sometimes need to convert to an any to be able to use
  * Lib_AST.ii_of_any, or Lib_AST.abstract_position_info_any
- *)
+*)
 let mvalue_to_any = function
   | E e -> G.E e
   | S s -> G.S s
   (* bugfix: do not return G.I id. We need the id_info because
    * it can be used to check if two metavars are equal and have the same
    * sid (single unique id).
-   *)
+  *)
   | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)))
   | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info ())))
   | N x -> G.E (G.N x)
@@ -100,7 +100,7 @@ let mvalue_to_any = function
 (* This is used for metavariable-pattern: where we need to transform the content
  * of a metavariable into a program so we can use evaluate_formula on it *)
 let program_of_mvalue : mvalue -> G.program option =
- fun mval ->
+  fun mval ->
   match mval with
   | E expr -> Some [ G.exprstmt expr ]
   | S stmt -> Some [ stmt ]
@@ -147,7 +147,7 @@ type bindings = (mvar * mvalue) list (* = Common.assoc *)
  * However this conflicts with PHP superglobals, hence the special
  * cases below in is_metavar_name.
  * coupling: AST_generic.is_metavar_name
- *)
+*)
 let metavar_regexp_string = "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
 
 (*e: constant [[Metavars_generic.metavar_regexp_string]] *)
@@ -164,10 +164,10 @@ let is_metavar_name s =
    * that would require to thread it through lots of functions, so for
    * now we have this special case for PHP superglobals.
    * ref: https://www.php.net/manual/en/language.variables.superglobals.php
-   *)
+  *)
   | "$_SERVER" | "$_GET" | "$_POST" | "$_FILES" | "$_COOKIE" | "$_SESSION"
   | "$_REQUEST" | "$_ENV"
-  (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
+    (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
     ->
       false
   | _ -> s =~ metavar_regexp_string
@@ -176,7 +176,7 @@ let is_metavar_name s =
 
 (* $...XXX multivariadic metavariables. Note that I initially chose
  * $X... but this leads to parsing conflicts in Javascript.
- *)
+*)
 let metavar_ellipsis_regexp_string = "^\\(\\$\\.\\.\\.[A-Z_][A-Z_0-9]*\\)$"
 
 let is_metavar_ellipsis s = s =~ metavar_ellipsis_regexp_string

@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 module CST = Tree_sitter_lua.CST
 module H = Parse_tree_sitter_helpers
@@ -25,7 +25,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* LUA parser using tree-sitter-lang/semgrep-lua and converting
  * directly to pfff/h_program-lang/ast_generic.ml
  *
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -92,7 +92,7 @@ let string_literal (env : env) (tok : CST.identifier) =
   let s =
     (* tree-sitter-lua external 'string' rule keeps the enclosing quotes,
      * but AST_generic.String assumes the string does not contain the delimiter
-     *)
+    *)
     match s with
     | s when s =~ "^\"\\(.*\\)\"$" -> Common.matched1 s
     | _ ->
@@ -133,9 +133,9 @@ let map_parameters (env : env) ((v1, v2, v3) : CST.parameters) : G.parameters =
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
-              Some (G.ParamClassic (G.param_of_id v2)))
+               let _v1 = token env v1 (* "," *) in
+               let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
+               Some (G.ParamClassic (G.param_of_id v2)))
             v2
         in
         let v3 =
@@ -158,9 +158,9 @@ let map_local_variable_declarator (env : env)
   let ident_rest =
     List.map
       (fun (v1, v2) ->
-        let _comma = token env v1 (* "," *) in
-        let ident = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
-        ident)
+         let _comma = token env v1 (* "," *) in
+         let ident = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
+         ident)
       v2
   in
   List.map
@@ -174,9 +174,9 @@ let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field)
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "." *) in
-        let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
-        v2)
+         let _v1 = token env v1 (* "." *) in
+         let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
+         v2)
       v2
   in
   let list =
@@ -199,7 +199,7 @@ let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field)
 
 (* TODO: return a G.name *)
 let map_function_name (env : env) ((v1, v2) : CST.function_name) :
-    G.ident * G.name_info =
+  G.ident * G.name_info =
   match v1 with
   | `Id tok ->
       let ident = identifier env tok in
@@ -213,9 +213,9 @@ let rec map_expression_list (env : env)
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = map_expression env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = map_expression env v2 in
+         v2)
       v2
   in
   v1 :: v2
@@ -414,7 +414,7 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   | `Num tok ->
       let s, tok = str env tok in
       G.L (G.Float (float_of_string_opt s, tok))
-      (* number *)
+  (* number *)
   | `Nil tok -> G.L (G.Null (token env tok)) (* "nil" *)
   | `True tok -> G.L (G.Bool (true, token env tok)) (* "true" *)
   | `False tok -> G.L (G.Bool (false, token env tok)) (* "false" *)
@@ -444,14 +444,14 @@ and map_field (env : env) (x : CST.field) : G.expr =
   G.Assign (ent, tok, def)
 
 and map_field_sequence (env : env) ((v1, v2, v3) : CST.field_sequence) :
-    G.expr list =
+  G.expr list =
   let v1 = map_field env v1 in
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = map_field_sep env v1 in
-        let v2 = map_field env v2 in
-        v2)
+         let _v1 = map_field_sep env v1 in
+         let v2 = map_field env v2 in
+         v2)
       v2
   in
   let _v3 = match v3 with Some x -> [ map_field_sep env x ] | None -> [] in
@@ -469,7 +469,7 @@ and map_function_body (env : env) ((v1, v2, v3, v4) : CST.function_body)
   }
 
 and map_function_call_expr (env : env) (x : CST.function_call_statement) :
-    G.expr =
+  G.expr =
   match x with
   | `Prefix_args (v1, v2) ->
       let v1 = map_prefix env v1 in
@@ -491,7 +491,7 @@ and map_function_call_expr (env : env) (x : CST.function_call_statement) :
       G.Call (G.N (G.IdQualified (name, G.empty_id_info ())), args)
 
 and map_function_call_statement (env : env) (x : CST.function_call_statement) :
-    G.stmt =
+  G.stmt =
   let expr = map_function_call_expr env x in
   G.ExprStmt (expr, sc) |> G.s
 
@@ -503,10 +503,10 @@ and map_in_loop_expression (env : env)
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
-        let var : G.variable_definition = { vinit = None; vtype = None } in
-        G.ForInitVar (G.basic_entity v2 [], var))
+         let _v1 = token env v1 (* "," *) in
+         let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
+         let var : G.variable_definition = { vinit = None; vtype = None } in
+         G.ForInitVar (G.basic_entity v2 [], var))
       v2
   in
   (* TODO *)
@@ -515,9 +515,9 @@ and map_in_loop_expression (env : env)
   let v5 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = map_expression env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = map_expression env v2 in
+         v2)
       v5
   in
   G.ForIn (for_init_var :: v2, v4 :: v5)
@@ -574,9 +574,9 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let ident_rest =
         List.map
           (fun (v1, v2) ->
-            let _v1 = token env v1 (* "," *) in
-            let v2 = map_variable_declarator env v2 in
-            v2)
+             let _v1 = token env v1 (* "," *) in
+             let v2 = map_variable_declarator env v2 in
+             v2)
           v2
       in
       let equal = token env v3 (* "=" *) in
@@ -584,9 +584,9 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let expr_rest =
         List.map
           (fun (v1, v2) ->
-            let _v1 = token env v1 (* "," *) in
-            let v2 = map_expression env v2 in
-            v2)
+             let _v1 = token env v1 (* "," *) in
+             let v2 = map_expression env v2 in
+             v2)
           v5
       in
       let assigns =
@@ -604,9 +604,9 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
             let v3 =
               List.map
                 (fun (v1, v2) ->
-                  let _v1 = token env v1 (* "," *) in
-                  let v2 = map_expression env v2 in
-                  v2)
+                   let _v1 = token env v1 (* "," *) in
+                   let v2 = map_expression env v2 in
+                   v2)
                 v3
             in
             v2 :: v3
@@ -625,14 +625,14 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let elseifs =
         List.fold_left
           (fun (acc : G.stmt option) ((v1, v2, v3, v4, v5) : CST.elseif) ->
-            let v1 = token env v1 (* "elseif" *) in
-            let v2 = map_expression env v2 in
-            let _v3 = token env v3 (* "then" *) in
-            let stmt_list =
-              G.Block (G.fake_bracket (map_statements_and_return env (v4, v5)))
-              |> G.s
-            in
-            Some (G.If (v1, v2, stmt_list, acc) |> G.s))
+             let v1 = token env v1 (* "elseif" *) in
+             let v2 = map_expression env v2 in
+             let _v3 = token env v3 (* "then" *) in
+             let stmt_list =
+               G.Block (G.fake_bracket (map_statements_and_return env (v4, v5)))
+               |> G.s
+             in
+             Some (G.If (v1, v2, stmt_list, acc) |> G.s))
           None v6
       in
       let v7 =
@@ -701,7 +701,7 @@ and map_table (env : env) ((v1, v2, v3) : CST.table) : G.expr =
   G.Container (G.Dict, (v1, v2, v3))
 
 and map_variable_declarator_expr (env : env) (x : CST.variable_declarator) :
-    G.expr =
+  G.expr =
   match x with
   | `Id tok -> G.N (ident env tok) (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
   | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
@@ -726,7 +726,7 @@ and map_variable_declarator (env : env) (x : CST.variable_declarator) : G.expr =
   match x with
   | `Id tok ->
       G.N (G.Id (identifier env tok, G.empty_id_info ()))
-      (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+  (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
   | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
       let v1 = map_prefix env v1 in
       let v2 = token env v2 (* "[" *) in
@@ -750,31 +750,31 @@ let map_program (env : env) ((v1, v2) : CST.program) : G.program =
 let parse file =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_lua.Parse.file file ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_lua.Parse.file file ())
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
-      try map_program env cst
-      with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
-        raise exn)
+       try map_program env cst
+       with Failure "not implemented" as exn ->
+         let s = Printexc.get_backtrace () in
+         pr2 "Some constructs are not handled yet";
+         pr2 "CST was:";
+         CST.dump_tree cst;
+         pr2 "Original backtrace:";
+         pr2 s;
+         raise exn)
 
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_lua.Parse.string str ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_lua.Parse.string str ())
     (fun cst ->
-      let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match map_program env cst with
-      | [ { s = G.ExprStmt (e, _); _ } ] -> G.E e
-      | [ x ] -> G.S x
-      | xs -> G.Ss xs)
+       let file = "<pattern>" in
+       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+       match map_program env cst with
+       | [ { s = G.ExprStmt (e, _); _ } ] -> G.E e
+       | [ x ] -> G.S x
+       | xs -> G.Ss xs)

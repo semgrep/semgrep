@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 module CST = Tree_sitter_vue.CST
 module H = Parse_tree_sitter_helpers
@@ -25,7 +25,7 @@ module G = AST_generic
  * to ast_js.ml
  *
  * There are similarities with the code in Parse_html_tree_sitter.ml.
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -69,7 +69,7 @@ let map_text (env : env) (x : CST.text) =
 (* "{{" *)
 
 let map_quoted_attribute_value (env : env) (x : CST.quoted_attribute_value) :
-    string wrap =
+  string wrap =
   match x with
   | `SQUOT_opt_pat_58fbb2e_SQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
@@ -97,9 +97,9 @@ let map_quoted_attribute_value (env : env) (x : CST.quoted_attribute_value) :
 let map_directive_modifiers (env : env) (xs : CST.directive_modifiers) =
   List.map
     (fun (v1, v2) ->
-      let v1 = token env v1 (* "." *) in
-      let v2 = str env v2 (* pattern "[^<>\"'/=\\s.]+" *) in
-      (v1, v2))
+       let v1 = token env v1 (* "." *) in
+       let v2 = str env v2 (* pattern "[^<>\"'/=\\s.]+" *) in
+       (v1, v2))
     xs
 
 let map_anon_choice_attr_value_5986531 (env : env)
@@ -129,7 +129,7 @@ let map_anon_choice_dire_arg_b33821e (env : env)
       Right (v1, v2, v3)
 
 let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
-    : xml_attribute =
+  : xml_attribute =
   match x with
   | `Attr (v1, v2) ->
       let id = str env v1 (* pattern "[^<>\"'=/\\s]+" *) in
@@ -142,7 +142,7 @@ let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
         | None ->
             (* <foo a /> <=> <foo a=true>? That's what we do for JSX, but should
              * we instead introduce a XmlAttrNoValue in AST_generic?
-             *)
+            *)
             let v = L (Bool (true, fake "true")) in
             (fake "=", v)
       in
@@ -178,7 +178,7 @@ let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
         | None ->
             (* <foo a /> <=> <foo a=true>? That's what we do for JSX, but should
              * we instead introduce a XmlAttrNoValue in AST_generic?
-             *)
+            *)
             let v = L (Bool (true, fake "true")) in
             (fake "=", v)
       in
@@ -232,7 +232,7 @@ let map_script_element (env : env) ((v1, v2, v3) : CST.script_element) =
         (* TODO: https://github.com/returntocorp/ocaml-tree-sitter-core/issues/5 *)
         let v = H.str_if_wrong_content_temporary_fix env tok in
         Some v
-        (* raw_text *)
+    (* raw_text *)
     | None -> None
   in
   let v3 = map_end_tag env v3 in
@@ -310,7 +310,7 @@ and map_node (env : env) (x : CST.node) : xml_body list =
       [ XmlXml xml ]
 
 and map_template_element (env : env) ((v1, v2, v3) : CST.template_element) : xml
-    =
+  =
   let l, id, attrs, r = map_template_start_tag env v1 in
   let v2 = List.map (map_node env) v2 |> List.flatten in
   let v3 = map_end_tag env v3 in
@@ -319,34 +319,34 @@ and map_template_element (env : env) ((v1, v2, v3) : CST.template_element) : xml
 let map_component (env : env) (xs : CST.component) : stmt list =
   List.map
     (fun x ->
-      match x with
-      | `Comm tok ->
-          let _x = token env tok (* comment *) in
-          []
-      | `Elem x ->
-          let xml = map_element env x in
-          [ G.exprstmt (Xml xml) ]
-      | `Temp_elem x ->
-          let xml = map_template_element env x in
-          [ G.exprstmt (Xml xml) ]
-      (* Note that right now the AST will not contain the enclosing
-       * <script>, because XmlExpr contain single expressions, not
-       * full programs, so it's simpler to just lift up the
-       * program and remove the enclosing <script>. If at some point
-       * people want to explicitly restrict their code search to
-       * the <script> part we might revisit that.
+       match x with
+       | `Comm tok ->
+           let _x = token env tok (* comment *) in
+           []
+       | `Elem x ->
+           let xml = map_element env x in
+           [ G.exprstmt (Xml xml) ]
+       | `Temp_elem x ->
+           let xml = map_template_element env x in
+           [ G.exprstmt (Xml xml) ]
+       (* Note that right now the AST will not contain the enclosing
+        * <script>, because XmlExpr contain single expressions, not
+        * full programs, so it's simpler to just lift up the
+        * program and remove the enclosing <script>. If at some point
+        * people want to explicitly restrict their code search to
+        * the <script> part we might revisit that.
        *)
-      | `Script_elem x -> (
-          let _l, _id, _r, _rend, _xml_attrs, body_opt =
-            map_script_element env x
-          in
-          match body_opt with
-          | Some s -> env.extra.parse_js_program s
-          | None -> [])
-      (* less: parse as CSS *)
-      | `Style_elem x ->
-          let xml = map_style_element env x in
-          [ G.exprstmt (Xml xml) ])
+       | `Script_elem x -> (
+           let _l, _id, _r, _rend, _xml_attrs, body_opt =
+             map_script_element env x
+           in
+           match body_opt with
+           | Some s -> env.extra.parse_js_program s
+           | None -> [])
+       (* less: parse as CSS *)
+       | `Style_elem x ->
+           let xml = map_style_element env x in
+           [ G.exprstmt (Xml xml) ])
     xs
   |> List.flatten
 
@@ -357,46 +357,46 @@ let map_component (env : env) (xs : CST.component) : stmt list =
 (* TODO: move in Parse_tree_sitter_helpers.ml *)
 let parse_string_and_adjust_wrt_base content tbase fparse =
   Common2.with_tmp_file ~str:content ~ext:"js" (fun file ->
-      let x = fparse file in
+    let x = fparse file in
 
-      let visitor =
-        Map_AST.mk_visitor
-          {
-            Map_AST.default_visitor with
-            Map_AST.kinfo =
-              (fun (_, _) t ->
-                let base_loc = PI.token_location_of_info tbase in
-                PI.adjust_info_wrt_base base_loc t);
-          }
-      in
-      visitor.Map_AST.vprogram x)
+    let visitor =
+      Map_AST.mk_visitor
+        {
+          Map_AST.default_visitor with
+          Map_AST.kinfo =
+            (fun (_, _) t ->
+               let base_loc = PI.token_location_of_info tbase in
+               PI.adjust_info_wrt_base base_loc t);
+        }
+    in
+    visitor.Map_AST.vprogram x)
 
 let parse parse_js file =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_vue.Parse.file file ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_vue.Parse.file file ())
     (fun cst ->
-      let extra =
-        {
-          parse_js_program =
-            (fun (s, t) -> parse_string_and_adjust_wrt_base s t parse_js);
-          parse_js_expr =
-            (fun (s, t) ->
-              let _xs = parse_string_and_adjust_wrt_base s t parse_js in
-              failwith "TODO: extract expr");
-        }
-      in
-      let env = { H.file; conv = H.line_col_to_pos file; extra } in
+       let extra =
+         {
+           parse_js_program =
+             (fun (s, t) -> parse_string_and_adjust_wrt_base s t parse_js);
+           parse_js_expr =
+             (fun (s, t) ->
+                let _xs = parse_string_and_adjust_wrt_base s t parse_js in
+                failwith "TODO: extract expr");
+         }
+       in
+       let env = { H.file; conv = H.line_col_to_pos file; extra } in
 
-      try
-        let xs = map_component env cst in
-        xs
-      with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
-        raise exn)
+       try
+         let xs = map_component env cst in
+         xs
+       with Failure "not implemented" as exn ->
+         let s = Printexc.get_backtrace () in
+         pr2 "Some constructs are not handled yet";
+         pr2 "CST was:";
+         CST.dump_tree cst;
+         pr2 "Original backtrace:";
+         pr2 s;
+         raise exn)

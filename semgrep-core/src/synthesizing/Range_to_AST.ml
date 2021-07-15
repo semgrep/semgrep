@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 
 module G = AST_generic
 module V = Visitor_AST
@@ -39,20 +39,20 @@ let expr_at_range r1 ast =
    * todo? ideally every expression nodes in the AST would have range field
    * associated with it, or at least a special id so we could memoize
    * range for subexpressions.
-   *)
+  *)
   let visitor =
     V.mk_visitor
       {
         V.default_visitor with
         V.kexpr =
           (fun (k, _) e ->
-            let r2_opt = range_of_ast (G.E e) in
-            match r2_opt with
-            (* NoTokenLocation issue for the expression, should fix! *)
-            | None -> ()
-            | Some r2 ->
-                if not (r1 $<>$ r2) then
-                  if r2 $<=$ r1 then raise (FoundExpr e) (* recurse *) else k e);
+             let r2_opt = range_of_ast (G.E e) in
+             match r2_opt with
+             (* NoTokenLocation issue for the expression, should fix! *)
+             | None -> ()
+             | Some r2 ->
+                 if not (r1 $<>$ r2) then
+                   if r2 $<=$ r1 then raise (FoundExpr e) (* recurse *) else k e);
       }
   in
 
@@ -67,21 +67,21 @@ let any_at_range r1 ast =
    * todo? ideally every expression nodes in the AST would have range field
    * associated with it, or at least a special id so we could memoize
    * range for subexpressions.
-   *)
+  *)
   let visitor =
     V.mk_visitor
       {
         V.default_visitor with
         V.kstmt =
           (fun (k, _) s ->
-            let r2_opt = range_of_ast (G.S s) in
-            match r2_opt with
-            (* NoTokenLocation issue for the expression, should fix! *)
-            | None -> ()
-            | Some r2 ->
-                if not (r1 $<>$ r2) then
-                  if r2 $<=$ r1 then raise (Found (G.S s)) (* recurse *)
-                  else k s);
+             let r2_opt = range_of_ast (G.S s) in
+             match r2_opt with
+             (* NoTokenLocation issue for the expression, should fix! *)
+             | None -> ()
+             | Some r2 ->
+                 if not (r1 $<>$ r2) then
+                   if r2 $<=$ r1 then raise (Found (G.S s)) (* recurse *)
+                   else k s);
       }
   in
 

@@ -11,7 +11,7 @@ module J = JSON
  *  $ ./_build/default/oncall.exe -base yesterday.json today.json > email
  *
  * See README.md for more information.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -187,24 +187,24 @@ let report ~base ~today =
   today_board
   |> get_cards_of_column "Assigned To Do"
   |> List.iter (fun card ->
-         match find_issue_opt card base_cards with
-         | None -> report_card card
-         | Some old ->
-             let extra =
-               if card.updatedAt = old.updatedAt then "!NO_UPDATE!" else ""
-             in
-             report_card ~extra card);
+    match find_issue_opt card base_cards with
+    | None -> report_card card
+    | Some old ->
+        let extra =
+          if card.updatedAt = old.updatedAt then "!NO_UPDATE!" else ""
+        in
+        report_card ~extra card);
 
   (* less: In Progress column, double check if actual progress ... *)
 
   (* TODO: look at closed by in the issue when no assignee or if last
    * PR related to the issue is someone else.
-   *)
+  *)
   pr "\nClosed since last email (good job guys!)\n";
   let base_done = base_board |> get_cards_of_column "Done" in
   today_board |> get_cards_of_column "Done"
   |> List.iter (fun card ->
-         if not (base_done |> has_issue card) then report_card card);
+    if not (base_done |> has_issue card) then report_card card);
 
   pr "\nNew semgrep issues NOT in the customer board\n";
   let all_issues_today_boards =
@@ -213,10 +213,10 @@ let report ~base ~today =
   let base_issues = base_repo.issues in
   today_repo.issues
   |> List.iter (fun issue ->
-         if
-           (not (all_issues_today_boards |> has_issue issue))
-           && not (base_issues |> has_issue issue)
-         then report_issue issue);
+    if
+      (not (all_issues_today_boards |> has_issue issue))
+      && not (base_issues |> has_issue issue)
+    then report_issue issue);
   ()
 
 (*****************************************************************************)

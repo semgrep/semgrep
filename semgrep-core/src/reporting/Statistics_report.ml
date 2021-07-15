@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 
 open Common
 
@@ -26,7 +26,7 @@ open Common
  *
  * coupling: the regexps in this module are strongly coupled with the
  * logging code in semgrep-core and semgrep.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -36,7 +36,7 @@ let debug = ref false
 
 (* timeout value used when running semgrep-core.
  * todo: we could extract it from the log.
- *)
+*)
 let timeout = ref 10.
 
 type run = {
@@ -77,9 +77,9 @@ let parse_run (rule, xs) =
     match
       xs
       |> Common.find_some_opt (fun s ->
-             if s =~ ".*Executed as.*-lang \\([^ ]+\\) .*" then
-               Some (Common.matched1 s)
-             else None)
+        if s =~ ".*Executed as.*-lang \\([^ ]+\\) .*" then
+          Some (Common.matched1 s)
+        else None)
     with
     | Some s -> s
     | None -> "no_language_found"
@@ -88,28 +88,28 @@ let parse_run (rule, xs) =
   let files =
     xs
     |> Common.map_filter (fun s ->
-           match () with
-           | _ when s =~ "\\[\\([0-9]+\\.[0-9]+\\) .* done with \\(.*\\)" ->
-               let time, f = Common.matched2 s in
-               let time = float_of_string time in
-               last_time := time;
-               Some (f, time)
-           | _ when s =~ ".*raised Timeout in .* for \\(.*\\)" ->
-               let f = Common.matched1 s in
-               (* best guess *)
-               last_time := !last_time +. !timeout;
-               Some (f, !last_time)
-           | _ -> None)
+      match () with
+      | _ when s =~ "\\[\\([0-9]+\\.[0-9]+\\) .* done with \\(.*\\)" ->
+          let time, f = Common.matched2 s in
+          let time = float_of_string time in
+          last_time := time;
+          Some (f, time)
+      | _ when s =~ ".*raised Timeout in .* for \\(.*\\)" ->
+          let f = Common.matched1 s in
+          (* best guess *)
+          last_time := !last_time +. !timeout;
+          Some (f, !last_time)
+      | _ -> None)
     |> map_with_previous
-         (fun (_, prevtime) (f, time) -> (f, time -. prevtime))
-         ("<nofile>", 0.)
+      (fun (_, prevtime) (f, time) -> (f, time -. prevtime))
+      ("<nofile>", 0.)
   in
   let timeout =
     xs
     |> Common.map_filter (fun s ->
-           if s =~ ".*raised Timeout in .* for \\(.*\\)" then
-             Some (Common.matched1 s)
-           else None)
+      if s =~ ".*raised Timeout in .* for \\(.*\\)" then
+        Some (Common.matched1 s)
+      else None)
   in
   { lang; rule; files; timeout }
 
@@ -141,8 +141,8 @@ let stat file =
   let problematic_rules =
     runs
     |> List.map (fun x ->
-           ( (x.rule, List.length x.files, x.lang),
-             x.files |> List.map snd |> Common2.sum_float ))
+      ( (x.rule, List.length x.files, x.lang),
+        x.files |> List.map snd |> Common2.sum_float ))
     |> Common.sort_by_val_highfirst |> Common.take_safe 30
   in
   pr2 "PROBLEMATIC RULES";
@@ -153,16 +153,16 @@ let stat file =
   let stats =
     groups
     |> List.map (fun (xlang, xs) ->
-           let total_rules = List.length xs in
-           let total_time =
-             xs
-             |> List.map (fun x -> x.files)
-             |> List.flatten |> List.map snd |> Common2.sum_float
-           in
-           let total_files =
-             xs |> List.map (fun x -> List.length x.files) |> Common2.sum
-           in
-           { xlang; total_rules; total_time; total_files })
+      let total_rules = List.length xs in
+      let total_time =
+        xs
+        |> List.map (fun x -> x.files)
+        |> List.flatten |> List.map snd |> Common2.sum_float
+      in
+      let total_files =
+        xs |> List.map (fun x -> List.length x.files) |> Common2.sum
+      in
+      { xlang; total_rules; total_time; total_files })
   in
 
   stats

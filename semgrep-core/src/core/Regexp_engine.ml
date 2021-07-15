@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -44,7 +44,7 @@
  *  - switch everything to PCRE? use Re.Glob just for globbing?
  *  - make internal modules so easy to test and switch implem?
  *
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers  *)
@@ -69,7 +69,7 @@ module Re_engine = struct
   let run (_, t) str =
     let re = compile t in
     Re.execp re str
-    [@@profiling]
+  [@@profiling]
 end
 
 module Str_engine = struct
@@ -89,12 +89,12 @@ module Str_engine = struct
      * because you need to add ".*" in front to make it work,
      * (but then you can not use regexp_string above)
      * => use Str.search_forward instead.
-     *)
+    *)
     try
       Str.search_forward re str 0 |> ignore;
       true
     with Not_found -> false
-    [@@profiling]
+  [@@profiling]
 end
 
 module Pcre_engine = struct

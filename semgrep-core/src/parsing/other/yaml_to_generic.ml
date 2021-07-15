@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 
 module Y = Yaml
 module S = Yaml.Stream
@@ -38,7 +38,7 @@ module A = AST_generic
  *
  * It is unfortunately impossible to simply replace every ellipsis with that
  * because we need to add dashes to match other list items
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -52,7 +52,7 @@ exception UnreachableList
 
 (* right now we just pass down the filename in the environment, but
  * we could need to pass more information later.
- *)
+*)
 type env = {
   (* when we parse a pattern, the filename is fake ("<pattern_file>") *)
   file : Common.filename;
@@ -108,10 +108,10 @@ let mk_tok { E.start_mark = { M.index; M.line; M.column }; _ } str env =
 
 let mk_bracket
     ( {
-        E.start_mark =
-          { M.index = s_index; M.line = s_line; M.column = s_column };
-        _;
-      },
+      E.start_mark =
+        { M.index = s_index; M.line = s_line; M.column = s_column };
+      _;
+    },
       {
         E.end_mark = { M.index = e_index; M.line = e_line; M.column = e_column };
         _;
@@ -386,8 +386,8 @@ let preprocess_yaml str =
               ( (hyphen_loc, ws) :: exit_context hyphen_loc context,
                 conv
                 @ [
-                    String.concat sgrep_ellipses_inline (split_on_ellipses line);
-                  ],
+                  String.concat sgrep_ellipses_inline (split_on_ellipses line);
+                ],
                 ellipses' )
         in
         line' @ process_lines rest context' ellipses'

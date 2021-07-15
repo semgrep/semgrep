@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 
 (*****************************************************************************)
@@ -22,7 +22,7 @@
 (* Type to represent a pattern match.
  *
  * old: used to be called Match_result.t
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -37,7 +37,7 @@
  * One match can come from a pattern-not: in which case
  * even if it returns the same match than a similar match coming
  * from a pattern:, we should not merge them!
- *)
+*)
 
 (*s: type [[Match_result.t]] *)
 type t = {
@@ -62,14 +62,14 @@ type t = {
  * some functions are simpler (we use the same trick with Parse_info.t
  * where for example we embed the filename in it, not just a position).
  * alt: reuse Mini_rule.t
- *)
+*)
 and rule_id = {
   (* This id is usually a string like 'check-double-equal'.
    * It can be the id of a rule or mini rule.
    *
    * Note that when we process a full rule, this id can temporarily
    * contain a Rule.pattern_id.
-   *)
+  *)
   id : string;
   (* other parts of a rule (or mini_rule) used in JSON_report.ml *)
   message : string;

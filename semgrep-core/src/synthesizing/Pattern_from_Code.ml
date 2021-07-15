@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open AST_generic
 module G = AST_generic
 
@@ -21,7 +21,7 @@ module G = AST_generic
  *
  * related work:
  *  - coccinelle spinfer?
- *)
+*)
 
 exception UnexpectedCase of string
 
@@ -262,17 +262,17 @@ and generalize_exp e env =
 and add_expr e f env =
   List.map
     (fun x ->
-      match x with
-      | str, E e' -> f (str, e')
-      | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
+       match x with
+       | str, E e' -> f (str, e')
+       | _ -> raise (UnexpectedCase "Must pass in an any of form E x"))
     (generalize_exp e env)
 
 and add_stmt s f env =
   List.map
     (fun x ->
-      match x with
-      | str, S s' -> f (str, s')
-      | _ -> raise (UnexpectedCase "Must pass in an any of form S x"))
+       match x with
+       | str, S s' -> f (str, s')
+       | _ -> raise (UnexpectedCase "Must pass in an any of form S x"))
     (generalize_stmt s env)
 
 (* All statements *)
@@ -314,7 +314,7 @@ and generalize_while (tok, e, s) env =
   let expr_choices_in_cond =
     add_expr e
       (fun (str, e') ->
-        ("condition " ^ str, S (While (tok, e', body_dots) |> G.s)))
+         ("condition " ^ str, S (While (tok, e', body_dots) |> G.s)))
       env
   in
   dots_in_cond :: dots_in_body :: expr_choices_in_cond

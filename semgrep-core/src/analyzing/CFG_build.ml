@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open IL
 module F = IL (* to be even more similar to controlflow_build.ml *)
 
@@ -28,7 +28,7 @@ module F = IL (* to be even more similar to controlflow_build.ml *)
  *  - factorize at some point with controlflow_build.ml?
  *  - remove controlflow.ml? now that we have the Il, maybe better to
  *    do any kind of cfg-based analysis on the IL rather than the generic AST.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -36,14 +36,14 @@ module F = IL (* to be even more similar to controlflow_build.ml *)
 
 (* Like IL.label but without the token attached to the ident, this is to allow
  * the label to be used as a key in a map or hash table.
- *)
+*)
 type label_key = string * G.sid
 
 (*s: type [[CFG_build.state]] *)
 (* Information passed recursively in stmt or stmt_list below.
  * The graph g is mutable, so most of the work is done by side effects on it.
  * No need to return a new state.
- *)
+*)
 type state = {
   g : F.cfg;
   (* When there is a 'return' we need to know the exit node to link to *)
@@ -80,16 +80,16 @@ let add_pending_goto state gotoi label =
 let label_node state labels nodei =
   labels
   |> List.iter (fun label ->
-         Hashtbl.add state.labels (key_of_label label) nodei)
+    Hashtbl.add state.labels (key_of_label label) nodei)
 
 let resolve_gotos state =
   !(state.gotos)
   |> List.iter (fun (srci, label_key) ->
-         match Hashtbl.find_opt state.labels label_key with
-         | None ->
-             Common.pr2
-             @@ Common.spf "Could not resolve label: %s" (fst label_key)
-         | Some dsti -> state.g |> add_arc (srci, dsti));
+    match Hashtbl.find_opt state.labels label_key with
+    | None ->
+        Common.pr2
+        @@ Common.spf "Could not resolve label: %s" (fst label_key)
+    | Some dsti -> state.g |> add_arc (srci, dsti));
   state.gotos := []
 
 (*****************************************************************************)
@@ -116,7 +116,7 @@ let resolve_gotos state =
  *
  * subtle: try/throw. The current algo is not very precise, but
  * it's probably good enough for many analysis.
- *)
+*)
 
 type cfg_stmt_result =
   (* A label for a label statement. *)
@@ -125,11 +125,11 @@ type cfg_stmt_result =
    * Last node is optional; it is None when the execution will not
    * continue (return), or when it may continue with a different
    * statement than the subsequent one (goto).
-   *)
+  *)
   | CfgFirstLast of F.nodei * F.nodei option
 
 let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
- fun state previ stmt ->
+  fun state previ stmt ->
   match stmt.s with
   | Instr x ->
       let newi = state.g#add_node { F.n = F.NInstr x } in
@@ -141,7 +141,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *                |->  newfakeelse -> ... -> finalelse -|
        *
        * The lasti can be a Join when there is no return in either branch.
-       *)
+      *)
       let newi = state.g#add_node { F.n = F.NCond (tok, e) } in
       state.g |> add_arc_opt (previ, newi);
 
@@ -167,7 +167,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       (* previ -> newi ---> newfakethen -> ... -> finalthen -
        *             |---|-----------------------------------|
        *                 |-> newfakelse
-       *)
+      *)
       let newi = state.g#add_node { F.n = NCond (tok, e) } in
       state.g |> add_arc_opt (previ, newi);
 
@@ -199,7 +199,7 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *                      |->  ...   -|
        *                      |-> catchN -|
        *                      |-----------|-> newfakefinally -> finally
-       *)
+      *)
       let newi = state.g#add_node { F.n = F.TrueNode } in
       state.g |> add_arc_opt (previ, newi);
       let finaltry = cfg_stmt_list state (Some newi) try_st in
@@ -207,8 +207,8 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       state.g |> add_arc_opt (finaltry, newfakefinally);
       catches
       |> List.iter (fun (_, catch_st) ->
-             let finalcatch = cfg_stmt_list state finaltry catch_st in
-             state.g |> add_arc_opt (finalcatch, newfakefinally));
+        let finalcatch = cfg_stmt_list state finaltry catch_st in
+        state.g |> add_arc_opt (finalcatch, newfakefinally));
       let finalfinally = cfg_stmt_list state (Some newfakefinally) finally_st in
       CfgFirstLast (newi, finalfinally)
   | Throw (_, _) -> cfg_todo state previ stmt
@@ -227,16 +227,16 @@ and cfg_stmt_list state previ xs =
   let lasti_opt =
     xs
     |> List.fold_left
-         (fun (previ, labels) stmt ->
-           (* We don't create special nodes for labels in the CFG; instead,
-            * we assign them to the entry nodes of the labeled statements.
-            *)
-           match cfg_stmt state previ stmt with
-           | CfgFirstLast (firsti, lasti) ->
-               label_node state labels firsti;
-               (lasti, [])
-           | CfgLabel label -> (previ, label :: labels))
-         (previ, [])
+      (fun (previ, labels) stmt ->
+         (* We don't create special nodes for labels in the CFG; instead,
+          * we assign them to the entry nodes of the labeled statements.
+         *)
+         match cfg_stmt state previ stmt with
+         | CfgFirstLast (firsti, lasti) ->
+             label_node state labels firsti;
+             (lasti, [])
+         | CfgLabel label -> (previ, label :: labels))
+      (previ, [])
     |> fst
   in
   lasti_opt
@@ -246,7 +246,7 @@ and cfg_stmt_list state previ xs =
 (*****************************************************************************)
 
 let (cfg_of_stmts : stmt list -> F.cfg) =
- fun xs ->
+  fun xs ->
   (* yes, I sometimes use objects, and even mutable objects in OCaml ... *)
   let g = new Ograph_extended.ograph_mutable in
 
@@ -261,7 +261,7 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
   resolve_gotos state;
   (* maybe the body does not contain a single 'return', so by default
    * connect last stmt to the exit node
-   *)
+  *)
   g |> add_arc_opt (last_node_opt, exiti);
   g
 

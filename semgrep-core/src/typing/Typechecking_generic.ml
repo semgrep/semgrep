@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open AST_generic
 
@@ -28,7 +28,7 @@ open AST_generic
  *    foo($X: $T) ... $T x; ...
  *    which would require to transform the code in the generic_vs_generic
  *    style as typechecking could also bind metavariables in the process
- *)
+*)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -37,7 +37,7 @@ open AST_generic
 (*s: function [[Typechecking_generic.compatible_type]] *)
 (* very Python specific for now where the type is currently an OT_Expr
  * TODO: fill AST_generic.expr_to_type at least.
- *)
+*)
 let compatible_type t e =
   match (t, e) with
   | OtherType (OT_Expr, [ E (N (Id (("int", _tok), _idinfo))) ]), L (Int _) ->

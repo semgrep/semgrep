@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 open AST_python
@@ -28,7 +28,7 @@ module H = AST_generic_helpers
  * See AST_generic.ml for more information.
  *
  * TODO: intercept Call to eval and transform in special Eval?
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -175,7 +175,7 @@ let rec expr (x : expr) =
        * the metavar is used in the message, r'foo' will be displayed
        * three times.
        * todo: the right fix is to have EncodedStr of string wrap * string wrap
-       *)
+      *)
       G.Call
         ( G.IdSpecial (G.EncodedString pre, fake ""),
           fb [ G.Arg (G.L (G.String v1)) ] )
@@ -184,17 +184,17 @@ let rec expr (x : expr) =
         ( G.IdSpecial (G.ConcatString G.FString, fake "concat"),
           fb
             (xs
-            |> List.map (fun x ->
-                   let x = expr x in
-                   G.Arg x)) )
+             |> List.map (fun x ->
+               let x = expr x in
+               G.Arg x)) )
   | ConcatenatedString xs ->
       G.Call
         ( G.IdSpecial (G.ConcatString G.SequenceConcat, fake "concat"),
           fb
             (xs
-            |> List.map (fun x ->
-                   let x = expr x in
-                   G.Arg x)) )
+             |> List.map (fun x ->
+               let x = expr x in
+               G.Arg x)) )
   | TypedExpr (v1, v2) ->
       let v1 = expr v1 in
       let v2 = type_ v2 in
@@ -244,11 +244,11 @@ let rec expr (x : expr) =
         if
           v
           |> List.for_all (function
-               | KeyVal _
-               (* semgrep-ext: ... should not count *)
-               | Key (Ellipsis _) ->
-                   true
-               | _ -> false)
+            | KeyVal _
+            (* semgrep-ext: ... should not count *)
+            | Key (Ellipsis _) ->
+                true
+            | _ -> false)
           || v = []
         then G.Dict
         else G.Set
@@ -278,7 +278,7 @@ let rec expr (x : expr) =
           let anyops =
             v2
             |> List.map (function arith, tok ->
-                   G.E (G.IdSpecial (G.Op arith, tok)))
+              G.E (G.IdSpecial (G.Op arith, tok)))
           in
           let any = anyops @ (v3 |> List.map (fun e -> G.E e)) in
           G.OtherExpr (G.OE_CmpOps, any))
@@ -469,30 +469,30 @@ and param_pattern = function
 and parameters xs =
   xs
   |> List.map (function
-       | ParamDefault ((n, topt), e) ->
-           let n = name n in
-           let topt = option type_ topt in
-           let e = expr e in
-           G.ParamClassic
-             { (G.param_of_id n) with G.ptype = topt; pdefault = Some e }
-       | ParamPattern (PatternName n, topt) ->
-           let n = name n and topt = option type_ topt in
-           G.ParamClassic { (G.param_of_id n) with G.ptype = topt }
-       | ParamPattern (PatternTuple pat, _) ->
-           let pat = list param_pattern pat in
-           G.ParamPattern (G.PatTuple (G.fake_bracket pat))
-       | ParamStar (t, (n, topt)) ->
-           let n = name n in
-           let topt = option type_ topt in
-           G.ParamRest (t, { (G.param_of_id n) with G.ptype = topt })
-       | ParamPow (t, (n, topt)) ->
-           let n = name n in
-           let topt = option type_ topt in
-           G.ParamHashSplat (t, { (G.param_of_id n) with G.ptype = topt })
-       | ParamEllipsis tok -> G.ParamEllipsis tok
-       | ParamSingleStar tok ->
-           G.OtherParam (G.OPO_SingleStarParam, [ G.Tk tok ])
-       | ParamSlash tok -> G.OtherParam (G.OPO_SlashParam, [ G.Tk tok ]))
+    | ParamDefault ((n, topt), e) ->
+        let n = name n in
+        let topt = option type_ topt in
+        let e = expr e in
+        G.ParamClassic
+          { (G.param_of_id n) with G.ptype = topt; pdefault = Some e }
+    | ParamPattern (PatternName n, topt) ->
+        let n = name n and topt = option type_ topt in
+        G.ParamClassic { (G.param_of_id n) with G.ptype = topt }
+    | ParamPattern (PatternTuple pat, _) ->
+        let pat = list param_pattern pat in
+        G.ParamPattern (G.PatTuple (G.fake_bracket pat))
+    | ParamStar (t, (n, topt)) ->
+        let n = name n in
+        let topt = option type_ topt in
+        G.ParamRest (t, { (G.param_of_id n) with G.ptype = topt })
+    | ParamPow (t, (n, topt)) ->
+        let n = name n in
+        let topt = option type_ topt in
+        G.ParamHashSplat (t, { (G.param_of_id n) with G.ptype = topt })
+    | ParamEllipsis tok -> G.ParamEllipsis tok
+    | ParamSingleStar tok ->
+        G.OtherParam (G.OPO_SingleStarParam, [ G.Tk tok ])
+    | ParamSlash tok -> G.OtherParam (G.OPO_SlashParam, [ G.Tk tok ]))
 
 (*e: function [[Python_to_generic.parameters]] *)
 
@@ -540,7 +540,7 @@ and list_stmt1 xs =
    *
    * in which case we remove the G.Block around it.
    * hacky ...
-   *)
+  *)
   | [ ({ G.s = G.ExprStmt (G.N (G.Id ((s, _), _)), _); _ } as x) ]
     when AST_generic_.is_metavar_name s ->
       x
@@ -560,7 +560,7 @@ and list_stmt1 xs =
  * where we do some special magic to allow a definition using a metavariable
  * to be matched at any position. If this definition was actually
  * an Assign, we don't do the magic.
- *)
+*)
 and fieldstmt x =
   match x with
   | { G.s = G.ExprStmt (G.Assign (G.N name, _teq, e), _sc); _ } ->
@@ -617,7 +617,7 @@ and stmt_aux x =
            * Is it bad for semgrep to turn only the typed assign in VarDef?
            * No because we have some magic equivalences to convert some
            * Vardef back in Assign in Generic_vs_generic.
-           *)
+          *)
           | _ -> [ G.exprstmt (G.Assign (a, v2, v3)) ])
       | xs -> [ G.exprstmt (G.Assign (G.Tuple (G.fake_bracket xs), v2, v3)) ])
   | AugAssign (v1, (v2, tok), v3) ->
@@ -742,8 +742,8 @@ and stmt_aux x =
       let v1 = list name v1 in
       v1
       |> List.map (fun x ->
-             let ent = G.basic_entity x [] in
-             G.DefStmt (ent, G.UseOuterDecl t) |> G.s)
+        let ent = G.basic_entity x [] in
+        G.DefStmt (ent, G.UseOuterDecl t) |> G.s)
   | ExprStmt v1 ->
       let v1 = expr v1 in
       [ G.exprstmt v1 ]
@@ -793,17 +793,17 @@ and excepthandler = function
       and v3 = list_stmt1 v3 in
       ( t,
         (match (v1, v2) with
-        | Some e, None -> (
-            match e with
-            | G.Ellipsis tok -> G.PatEllipsis tok
-            | G.Tuple _ -> G.PatVar (H.expr_to_type e, None)
-            | _ ->
-                G.PatVar (H.expr_to_type (G.Tuple (G.fake_bracket [ e ])), None)
-            )
-        | None, None -> G.PatUnderscore (fake "_")
-        | None, Some _ -> raise Impossible (* see the grammar *)
-        | Some e, Some n ->
-            G.PatVar (H.expr_to_type e, Some (n, G.empty_id_info ()))),
+         | Some e, None -> (
+             match e with
+             | G.Ellipsis tok -> G.PatEllipsis tok
+             | G.Tuple _ -> G.PatVar (H.expr_to_type e, None)
+             | _ ->
+                 G.PatVar (H.expr_to_type (G.Tuple (G.fake_bracket [ e ])), None)
+           )
+         | None, None -> G.PatUnderscore (fake "_")
+         | None, Some _ -> raise Impossible (* see the grammar *)
+         | Some e, Some n ->
+             G.PatVar (H.expr_to_type e, Some (n, G.empty_id_info ()))),
         v3 )
 
 (*e: function [[Python_to_generic.excepthandler]] *)
@@ -848,7 +848,7 @@ let any = function
       match v1.G.s with G.ExprStmt (x, _t) -> G.E x | _ -> G.S v1)
   (* TODO? should use list stmt_aux here? Some intermediate Block
    * could be inserted preventing some sgrep matching?
-   *)
+  *)
   | Stmts v1 ->
       let v1 = list stmt v1 in
       G.Ss v1

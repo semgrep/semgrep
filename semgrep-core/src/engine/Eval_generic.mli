@@ -20,7 +20,7 @@ exception NotInEnv of Metavariable.mvar
 
 (* raise NotHandled if the code is outside the subset of expressions allowed,
  * and NotInEnv if a metavariable is not binded in the environment.
- *)
+*)
 val eval : env -> code -> value
 
 (* entry point for -eval *)

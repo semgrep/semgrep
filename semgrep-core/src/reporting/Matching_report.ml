@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 module PI = Parse_info
 
@@ -30,7 +30,7 @@ type match_format =
    *  foo(
    *   1,
    *   2);
-   *)
+  *)
   | Normal
   (* ex: tests/misc/foo4.php:3: foo( *)
   | Emacs
@@ -50,7 +50,7 @@ type match_format =
  * to just List.map str_of_info because some PHP expressions such as
  * '$x = print FOO' would then be transformed into $x=printFOO, hence
  * this function
- *)
+*)
 let rec join_with_space_if_needed xs =
   match xs with
   | [] -> ""
@@ -86,7 +86,7 @@ let print_match ?(format = Normal) ?(str = "") ii =
     | OneLine ->
         pr
           (prefix ^ ": "
-          ^ (ii |> List.map PI.str_of_info |> join_with_space_if_needed))
+           ^ (ii |> List.map PI.str_of_info |> join_with_space_if_needed))
   with Failure "get_pos: Ab or FakeTok" ->
     pr "<could not locate match, FakeTok or AbstractTok>"
 

@@ -54,7 +54,7 @@ val do_visit_with_ref:
 (* Note that ii_of_any relies on Visitor_AST which itself
  * uses OCaml.v_ref_do_not_visit, so no need to worry about
  * tokens inside id_type or id_info.
- *)
+*)
 val ii_of_any : AST_generic.any -> Parse_info.t list
 
 val range_of_tokens : Parse_info.t list -> Parse_info.t * Parse_info.t

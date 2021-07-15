@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 module CST = Tree_sitter_r.CST
 module H = Parse_tree_sitter_helpers
@@ -89,10 +89,10 @@ let map_special (env : env) ((v1, v2, v3) : CST.special) =
   let v2 =
     List.map
       (fun x ->
-        match x with
-        | `Pat_5e7ac5f tok -> token env tok (* pattern [^%\\\n]+|\\\r?\n *)
-        | `Esc_seq tok -> token env tok
-        (* escape_sequence *))
+         match x with
+         | `Pat_5e7ac5f tok -> token env tok (* pattern [^%\\\n]+|\\\r?\n *)
+         | `Esc_seq tok -> token env tok
+         (* escape_sequence *))
       v2
   in
   let v3 = token env v3 (* "%" *) in
@@ -106,10 +106,10 @@ let map_identifier (env : env) (x : CST.identifier) =
       let v2 =
         List.map
           (fun x ->
-            match x with
-            | `Pat_4ad362e tok -> token env tok (* pattern [^`\\\n]+|\\\r?\n *)
-            | `Esc_seq tok -> token env tok
-            (* escape_sequence *))
+             match x with
+             | `Pat_4ad362e tok -> token env tok (* pattern [^`\\\n]+|\\\r?\n *)
+             | `Esc_seq tok -> token env tok
+             (* escape_sequence *))
           v2
       in
       let v3 = token env v3 (* "`" *) in
@@ -122,11 +122,11 @@ let map_string_ (env : env) (x : CST.string_) =
       let v2 =
         List.map
           (fun x ->
-            match x with
-            | `Pat_de5d470 tok ->
-                token env tok (* pattern "[^\"\\\\\\n]+|\\\\\\r?\\n" *)
-            | `Esc_seq tok -> token env tok
-            (* escape_sequence *))
+             match x with
+             | `Pat_de5d470 tok ->
+                 token env tok (* pattern "[^\"\\\\\\n]+|\\\\\\r?\\n" *)
+             | `Esc_seq tok -> token env tok
+             (* escape_sequence *))
           v2
       in
       let v3 = token env v3 (* "\"" *) in
@@ -136,11 +136,11 @@ let map_string_ (env : env) (x : CST.string_) =
       let v2 =
         List.map
           (fun x ->
-            match x with
-            | `Pat_3e57880 tok ->
-                token env tok (* pattern "[^'\\\\\\n]+|\\\\\\r?\\n" *)
-            | `Esc_seq tok -> token env tok
-            (* escape_sequence *))
+             match x with
+             | `Pat_3e57880 tok ->
+                 token env tok (* pattern "[^'\\\\\\n]+|\\\\\\r?\\n" *)
+             | `Esc_seq tok -> token env tok
+             (* escape_sequence *))
           v2
       in
       let v3 = token env v3 (* "'" *) in
@@ -168,8 +168,8 @@ let rec map_argument (env : env) (x : CST.argument) =
 and map_arguments (env : env) (xs : CST.arguments) =
   List.map
     (fun x ->
-      match x with `Arg x -> map_argument env x | `COMMA tok -> token env tok
-      (* "," *))
+       match x with `Arg x -> map_argument env x | `COMMA tok -> token env tok
+       (* "," *))
     xs
 
 and map_assignment (env : env) (x : CST.assignment) =
@@ -440,9 +440,9 @@ and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) =
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = token env v1 (* "," *) in
-              let v2 = map_formal_parameter env v2 in
-              todo env (v1, v2))
+               let v1 = token env v1 (* "," *) in
+               let v2 = map_formal_parameter env v2 in
+               todo env (v1, v2))
             v2
         in
         let v3 =
@@ -457,7 +457,7 @@ and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) =
   todo env (v1, v2, v3)
 
 and map_function_definition (env : env) ((v1, v2, v3) : CST.function_definition)
-    =
+  =
   let v1 = token env v1 (* "function" *) in
   let v2 = map_formal_parameters env v2 in
   let v3 = map_expression env v3 in
@@ -466,16 +466,16 @@ and map_function_definition (env : env) ((v1, v2, v3) : CST.function_definition)
 and map_program (env : env) (xs : CST.program) =
   List.map
     (fun (v1, v2) ->
-      let v1 = map_expression env v1 in
-      let v2 =
-        match v2 with
-        | Some x -> (
-            match x with
-            | `LF tok -> token env tok (* "\n" *)
-            | `SEMI tok -> token env tok (* ";" *))
-        | None -> todo env ()
-      in
-      todo env (v1, v2))
+       let v1 = map_expression env v1 in
+       let v2 =
+         match v2 with
+         | Some x -> (
+             match x with
+             | `LF tok -> token env tok (* "\n" *)
+             | `SEMI tok -> token env tok (* ";" *))
+         | None -> todo env ()
+       in
+       todo env (v1, v2))
     xs
 
 and map_unary (env : env) (x : CST.unary) =
@@ -503,16 +503,16 @@ and map_unary (env : env) (x : CST.unary) =
 let parse file =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_r.Parse.file file ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_r.Parse.file file ())
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try map_program env cst
-      with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
-        raise exn)
+       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+       try map_program env cst
+       with Failure "not implemented" as exn ->
+         let s = Printexc.get_backtrace () in
+         pr2 "Some constructs are not handled yet";
+         pr2 "CST was:";
+         CST.dump_tree cst;
+         pr2 "Original backtrace:";
+         pr2 s;
+         raise exn)

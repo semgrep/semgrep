@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 module PI = Parse_info
 module G = AST_generic
@@ -29,11 +29,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   (match res.program with
-  | Some cst -> dumper cst
-  | None -> failwith "unknown error from tree-sitter parser");
+   | Some cst -> dumper cst
+   | None -> failwith "unknown error from tree-sitter parser");
   res.errors
   |> List.iter (fun err ->
-         pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))
+    pr2 (Tree_sitter_run.Tree_sitter_error.to_string ~color:true err))
 
 let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
   match (parsing_res.program, parsing_res.errors) with
@@ -49,8 +49,8 @@ let fail_on_error (parsing_res : 'a Tree_sitter_run.Parsing_result.t) =
 let dump_pfff_ast lang file =
   let ast =
     Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
-        let res = Parse_target.just_parse_with_lang lang file in
-        res.ast)
+      let res = Parse_target.just_parse_with_lang lang file in
+      res.ast)
   in
   let v = Meta_AST.vof_any (G.Pr ast) in
   let s = OCaml.string_of_v v in
@@ -122,54 +122,54 @@ let test_parse_tree_sitter lang xs =
   let stat_list = ref [] in
   fullxs
   |> Console.progress (fun k ->
-         List.iter (fun file ->
-             k ();
-             logger#info "processing %s" file;
-             let stat =
-               try
-                 (match lang with
-                 (* less: factorize with dump_tree_sitter_cst_lang *)
-                 | Lang.Ruby ->
-                     Tree_sitter_ruby.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Java ->
-                     Tree_sitter_java.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Go ->
-                     Tree_sitter_go.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Csharp ->
-                     Tree_sitter_c_sharp.Parse.file file
-                     |> fail_on_error |> ignore
-                 | Lang.Kotlin ->
-                     Tree_sitter_kotlin.Parse.file file
-                     |> fail_on_error |> ignore
-                 | Lang.Javascript ->
-                     Tree_sitter_javascript.Parse.file file
-                     |> fail_on_error |> ignore
-                 | Lang.Typescript ->
-                     Tree_sitter_typescript.Parse.file file
-                     |> fail_on_error |> ignore
-                 | Lang.Rust ->
-                     Tree_sitter_rust.Parse.file file |> fail_on_error |> ignore
-                 | Lang.OCaml ->
-                     Tree_sitter_ocaml.Parse.file file
-                     |> fail_on_error |> ignore
-                 | Lang.C ->
-                     Tree_sitter_c.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Cplusplus ->
-                     Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
-                 | Lang.HTML ->
-                     Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Vue ->
-                     Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
-                 | _ ->
-                     failwith
-                       (spf "lang %s not supported with tree-sitter"
-                          (Lang.string_of_lang lang)));
-                 PI.correct_stat file
-               with exn ->
-                 pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-                 PI.bad_stat file
-             in
-             Common.push stat stat_list));
+    List.iter (fun file ->
+      k ();
+      logger#info "processing %s" file;
+      let stat =
+        try
+          (match lang with
+           (* less: factorize with dump_tree_sitter_cst_lang *)
+           | Lang.Ruby ->
+               Tree_sitter_ruby.Parse.file file |> fail_on_error |> ignore
+           | Lang.Java ->
+               Tree_sitter_java.Parse.file file |> fail_on_error |> ignore
+           | Lang.Go ->
+               Tree_sitter_go.Parse.file file |> fail_on_error |> ignore
+           | Lang.Csharp ->
+               Tree_sitter_c_sharp.Parse.file file
+               |> fail_on_error |> ignore
+           | Lang.Kotlin ->
+               Tree_sitter_kotlin.Parse.file file
+               |> fail_on_error |> ignore
+           | Lang.Javascript ->
+               Tree_sitter_javascript.Parse.file file
+               |> fail_on_error |> ignore
+           | Lang.Typescript ->
+               Tree_sitter_typescript.Parse.file file
+               |> fail_on_error |> ignore
+           | Lang.Rust ->
+               Tree_sitter_rust.Parse.file file |> fail_on_error |> ignore
+           | Lang.OCaml ->
+               Tree_sitter_ocaml.Parse.file file
+               |> fail_on_error |> ignore
+           | Lang.C ->
+               Tree_sitter_c.Parse.file file |> fail_on_error |> ignore
+           | Lang.Cplusplus ->
+               Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
+           | Lang.HTML ->
+               Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
+           | Lang.Vue ->
+               Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
+           | _ ->
+               failwith
+                 (spf "lang %s not supported with tree-sitter"
+                    (Lang.string_of_lang lang)));
+          PI.correct_stat file
+        with exn ->
+          pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+          PI.bad_stat file
+      in
+      Common.push stat stat_list));
   Parse_info.print_parsing_stat_list !stat_list;
   ()
 
@@ -193,22 +193,22 @@ let parsing_common ?(verbose = true) lang xs =
   in
   fullxs
   |> List.rev_map (fun file ->
-         pr2 (spf "[%s] processing %s" (Lang.to_lowercase_alnum lang) file);
-         let stat =
-           try
-             let res =
-               Common.timeout_function ~verbose:false timeout_seconds (fun () ->
-                   Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
-                     lang file)
-             in
-             res.Parse_target.stat
-           with exn -> (
-             if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-             match exn with
-             | Timeout -> { (PI.bad_stat file) with have_timeout = true }
-             | _else_ -> PI.bad_stat file)
-         in
-         stat)
+    pr2 (spf "[%s] processing %s" (Lang.to_lowercase_alnum lang) file);
+    let stat =
+      try
+        let res =
+          Common.timeout_function ~verbose:false timeout_seconds (fun () ->
+            Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
+              lang file)
+        in
+        res.Parse_target.stat
+      with exn -> (
+          if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+          match exn with
+          | Timeout -> { (PI.bad_stat file) with have_timeout = true }
+          | _else_ -> PI.bad_stat file)
+    in
+    stat)
 
 (*
    Parse files from multiple root folders, each root being considered a
@@ -223,7 +223,7 @@ let parse_project ~verbose lang name files_or_dirs =
 let replace_nan x = if x <> x then 1. else x
 
 let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
-    Parsing_stats_t.project_stats =
+  Parsing_stats_t.project_stats =
   {
     acc with
     parsing_rate =
@@ -234,34 +234,34 @@ let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
    Add things up for json reporting: file stats -> project stat
 *)
 let aggregate_file_stats (results : (string * PI.parsing_stat list) list) :
-    Parsing_stats_t.project_stats list =
+  Parsing_stats_t.project_stats list =
   List.map
     (fun (project_name, file_stats) ->
-      let acc =
-        {
-          Parsing_stats_t.name = project_name;
-          parsing_rate = nan;
-          line_count = 0;
-          error_line_count = 0;
-          file_count = 0;
-          error_file_count = 0;
-        }
-      in
-      let acc =
-        List.fold_left
-          (fun (acc : Parsing_stats_t.project_stats) (x : PI.parsing_stat) ->
-            let success = x.error_line_count = 0 in
-            {
-              acc with
-              Parsing_stats_t.line_count = acc.line_count + x.total_line_count;
-              error_line_count = acc.error_line_count + x.error_line_count;
-              file_count = acc.file_count + 1;
-              error_file_count =
-                (acc.error_file_count + if not success then 1 else 0);
-            })
-          acc file_stats
-      in
-      update_parsing_rate acc)
+       let acc =
+         {
+           Parsing_stats_t.name = project_name;
+           parsing_rate = nan;
+           line_count = 0;
+           error_line_count = 0;
+           file_count = 0;
+           error_file_count = 0;
+         }
+       in
+       let acc =
+         List.fold_left
+           (fun (acc : Parsing_stats_t.project_stats) (x : PI.parsing_stat) ->
+              let success = x.error_line_count = 0 in
+              {
+                acc with
+                Parsing_stats_t.line_count = acc.line_count + x.total_line_count;
+                error_line_count = acc.error_line_count + x.error_line_count;
+                file_count = acc.file_count + 1;
+                error_file_count =
+                  (acc.error_file_count + if not success then 1 else 0);
+              })
+           acc file_stats
+       in
+       update_parsing_rate acc)
     results
 
 (*
@@ -283,13 +283,13 @@ let aggregate_project_stats lang
   let acc =
     List.fold_left
       (fun acc proj ->
-        {
-          acc with
-          line_count = acc.line_count + proj.line_count;
-          error_line_count = acc.error_line_count + proj.error_line_count;
-          file_count = acc.file_count + proj.file_count;
-          error_file_count = acc.error_file_count + proj.error_file_count;
-        })
+         {
+           acc with
+           line_count = acc.line_count + proj.line_count;
+           error_line_count = acc.error_line_count + proj.error_line_count;
+           file_count = acc.file_count + proj.file_count;
+           error_file_count = acc.error_file_count + proj.error_file_count;
+         })
       acc project_stats
   in
   let global = update_parsing_rate acc in
@@ -304,8 +304,8 @@ let print_json lang results =
 let parse_projects ~verbose lang project_dirs =
   List.map
     (fun dir ->
-      let name = dir in
-      parse_project ~verbose lang name [ dir ])
+       let name = dir in
+       parse_project ~verbose lang name [ dir ])
     project_dirs
 
 let parsing_stats lang json project_dirs =
@@ -323,23 +323,23 @@ let diff_pfff_tree_sitter xs =
   pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
   xs
   |> List.iter (fun file ->
-         match Lang.langs_of_filename file with
-         | [ _lang ] ->
-             let ast1 =
-               Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
-                   Parse_target.parse_program file)
-             in
-             let ast2 =
-               Common.save_excursion Flag_semgrep.tree_sitter_only true
-                 (fun () -> Parse_target.parse_program file)
-             in
-             let s1 = AST_generic.show_program ast1 in
-             let s2 = AST_generic.show_program ast2 in
-             Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
-                 Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
-                     let xs = Common2.unix_diff file1 file2 in
-                     xs |> List.iter pr2))
-         | _ -> failwith (spf "can't detect single language for %s" file))
+    match Lang.langs_of_filename file with
+    | [ _lang ] ->
+        let ast1 =
+          Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
+            Parse_target.parse_program file)
+        in
+        let ast2 =
+          Common.save_excursion Flag_semgrep.tree_sitter_only true
+            (fun () -> Parse_target.parse_program file)
+        in
+        let s1 = AST_generic.show_program ast1 in
+        let s2 = AST_generic.show_program ast2 in
+        Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
+          Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
+            let xs = Common2.unix_diff file1 file2 in
+            xs |> List.iter pr2))
+    | _ -> failwith (spf "can't detect single language for %s" file))
 
 (*****************************************************************************)
 (* Rule parsing *)
@@ -352,7 +352,7 @@ let test_parse_rules xs =
   in
   fullxs
   |> List.iter (fun file ->
-         logger#info "processing %s" file;
-         let _r = Parse_rule.parse file in
-         ());
+    logger#info "processing %s" file;
+    let _r = Parse_rule.parse file in
+    ());
   logger#info "done test_parse_rules"

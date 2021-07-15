@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open AST_generic
 open Common
 module Set = Set_
@@ -32,7 +32,7 @@ exception UnsupportedTargetType
  *
  * related work:
  *  - coccinelle spinfer?
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -42,7 +42,7 @@ exception UnsupportedTargetType
  * specificity. For example, "abc" goes from $X to "..." to "abc". This can   *
  * also be achieved by adding checks, but having a type makes it easier to    *
  * separate the cases
- *)
+*)
 type stage = DONE | ANY of any | LN (* literal name *) of any
 
 type env = {
@@ -57,7 +57,7 @@ type env = {
  * and a list of instructions for how to make the pattern more specific.      *
  * The replacement information gives the piece that was removed from the hole *
  * as well as instructions for where to put it back                           *
- *)
+*)
 type replacement_info = stage * ((any -> any) -> any -> any)
 
 type pattern_instr = env * any * replacement_info list
@@ -93,9 +93,9 @@ let rec show_patterns (patterns : pattern_instrs) =
   | (_any, pattern, replacements) :: pats ->
       pr2
         ("( " (* ^ (p_any any) ^ ", " *) ^ p_any pattern
-        ^ ", "
-        ^ show_replacements replacements
-        ^ " )");
+         ^ ", "
+         ^ show_replacements replacements
+         ^ " )");
       show_patterns pats
 
 let show_pattern_sets patsets =
@@ -185,7 +185,7 @@ let rec transpose (list : 'a list list) : 'a list list =
 
 (* We can't handle lists of statements of unequal size yet.
  * Check that each target has the same number of statements.
- *)
+*)
 let check_equal_length (targets : 'a list list) : bool =
   match targets with
   | [] -> true
@@ -388,15 +388,15 @@ and get_one_step_replacements (env, pattern, holes) =
       let incorporate_holes holes =
         List.map
           (fun (removed_target, g) ->
-            (removed_target, fun h any -> f (g h) any))
+             (removed_target, fun h any -> f (g h) any))
           holes
       in
       ( (env, pattern, holes'),
         List.map
           (fun (env, pattern', target_holes) ->
-            ( set_prev env pattern',
-              f (fun _ -> pattern') pattern,
-              incorporate_holes target_holes @ holes' ))
+             ( set_prev env pattern',
+               f (fun _ -> pattern') pattern,
+               incorporate_holes target_holes @ holes' ))
           target_replacements )
 
 let get_included_patterns pattern_children =
@@ -409,9 +409,9 @@ let get_included_patterns pattern_children =
   let sets =
     List.map
       (fun patterns ->
-        List.fold_left
-          (fun s (_, child_patterns) -> add_patterns s child_patterns)
-          Set.empty patterns)
+         List.fold_left
+           (fun s (_, child_patterns) -> add_patterns s child_patterns)
+           Set.empty patterns)
       pattern_children
   in
   let intersection = intersect_all sets in
@@ -461,7 +461,7 @@ let extract_pattern (pats : pattern_instr) : Pattern.t =
 
 (* Start each target node any as [$X, [ any, fun x -> x ]] *)
 let generate_starting_patterns config (targets : AST_generic.any list list) :
-    pattern_instrs list list =
+  pattern_instrs list list =
   let starting_pattern any =
     match any with
     | E _ ->
@@ -478,7 +478,7 @@ let generate_starting_patterns config (targets : AST_generic.any list list) :
 
 (* Copies the metavar count and mapping from src pattern_instr to
  *  each env in dsts.
- *)
+*)
 let cp_meta_env (src : pattern_instr) (dsts : pattern_instrs) : pattern_instrs =
   let senv, _, _ = src in
   let cp dst =
@@ -492,9 +492,9 @@ let cp_meta_env (src : pattern_instr) (dsts : pattern_instrs) : pattern_instrs =
  * the metavariable environment between calls.
  * The environment is retained within a single target for subsequent statements,
  * not across targets.
- *)
+*)
 let rec generate_with_env (target_patterns : pattern_instrs list list) :
-    pattern_instrs =
+  pattern_instrs =
   match target_patterns with
   | [] -> []
   | [ cur ] -> [ List.hd (generate_patterns_help cur) ]

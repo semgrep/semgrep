@@ -63,5 +63,5 @@ module PHP_VS_PHP : functor (X : PARAM) -> sig
 
   (* there are far more functions in this functor but they
    * do not have to be exported
-   *)
+  *)
 end

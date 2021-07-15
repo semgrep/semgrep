@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open AST_generic
 module V = Visitor_AST
@@ -24,7 +24,7 @@ module V = Visitor_AST
  *
  * alternatives:
  *  - have a proper lvalue type and an IL (a la CIL/RIL/PIL/...)
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -52,7 +52,7 @@ let unbracket (_, x, _) = x
  * alt:
  *  - use a visitor? and then do things differently only when inside an
  *    Assign?
- *)
+*)
 let rec visit_expr hook lhs expr =
   (* recurse lvalue (used for known left hand value, e.g. in left assign *)
   let reclvl = visit_expr hook Lhs in
@@ -68,12 +68,12 @@ let rec visit_expr hook lhs expr =
           V.default_visitor with
           V.kexpr =
             (fun (_k, _anyf) e ->
-              visit_expr hook lhs e (* do not call k here! *))
-            (* todo? should no go through FuncDef? intercept kdef?
-             * TODO: should also consider PatVar?
-             *  with PatVar we will miss some lvalue, but it will just lead
-             *  to some FNs for liveness, not FPs.
-             *);
+               visit_expr hook lhs e (* do not call k here! *))
+          (* todo? should no go through FuncDef? intercept kdef?
+           * TODO: should also consider PatVar?
+           *  with PatVar we will miss some lvalue, but it will just lead
+           *  to some FNs for liveness, not FPs.
+          *);
         }
     in
     v any
@@ -97,7 +97,7 @@ let rec visit_expr hook lhs expr =
       (* x += b <=> x = x + b hence the call also to 'recr e' *)
       recr e;
       reclvl e
-      (* possible lvalues (also rvalues, hence the call to recl, not reclvl) *)
+  (* possible lvalues (also rvalues, hence the call to recl, not reclvl) *)
   | Tuple xs -> xs |> unbracket |> List.iter recl
   | Container (typ, xs) -> (
       match typ with
@@ -123,17 +123,17 @@ let rec visit_expr hook lhs expr =
   | IdSpecial _ -> ()
   (* todo: Special cases for function that are known to take implicit
    * lvalue, e.g., sscanf?
-   *)
+  *)
   (* todo? some languages allow function return value to be an lvalue? *)
   | Call (e, (_, args, _)) ->
       recr e;
       args
       |> List.iter (function
-           (* Todo: false positive because passsing by reference? *)
-           | Arg e -> recr e
-           | ArgKwd (_id, e) -> recr e
-           | ArgType _ -> ()
-           | ArgOther (_, anys) -> List.iter (anyhook hook Rhs) anys)
+        (* Todo: false positive because passsing by reference? *)
+        | Arg e -> recr e
+        | ArgKwd (_id, e) -> recr e
+        | ArgType _ -> ()
+        | ArgOther (_, anys) -> List.iter (anyhook hook Rhs) anys)
   | Cast (_t, e) -> recr e
   (* Do some languages allow this to be part of an assign? *)
   | Conditional (e, e1, e2) ->
@@ -153,7 +153,7 @@ let rec visit_expr hook lhs expr =
        * As a first step, we could just filter and only return rvalues
        * TODO As a second step we could return lvalues but only for variables
        * tagged as an EnclosedVar.
-       *)
+      *)
       let filter_rvalue_hook lhs name idinfo =
         if lhs = Rhs then hook lhs name idinfo
       in

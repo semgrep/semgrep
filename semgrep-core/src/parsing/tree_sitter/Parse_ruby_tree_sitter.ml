@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 module AST = Ast_ruby
 module CST = Tree_sitter_ruby.CST
@@ -27,7 +27,7 @@ module H = Parse_tree_sitter_helpers
  *
  * The resulting AST can then be converted to the generic AST by using
  * pfff/lang_ruby/analyze/ruby_to_generic.ml
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -106,7 +106,7 @@ let anon_choice_int_e7b97da (env : env) (x : CST.anon_choice_int_e7b97da) =
   match x with
   | `Int tok ->
       str env tok
-      (* pattern 0[bB][01](_?[01])*|0[oO]?[0-7](_?[0-7])*|(0[dD])?\d(_?\d)*|0x[0-9a-fA-F](_?[0-9a-fA-F])* *)
+  (* pattern 0[bB][01](_?[01])*|0[oO]?[0-7](_?[0-7])*|(0[dD])?\d(_?\d)*|0x[0-9a-fA-F](_?[0-9a-fA-F])* *)
   | `Float tok -> str env tok
 
 (* pattern \d(_?\d)*(\.\d)?(_?\d)*([eE][\+-]?\d(_?\d)*\
@@ -135,13 +135,13 @@ let rec statements (env : env) (x : CST.statements) : AST.stmts =
       let v1 =
         v1
         |> List.map (fun x ->
-               match x with
-               | `Stmt_term (v1, v2) ->
-                   let v1 = statement env v1 in
-                   let _v2 = terminator env v2 in
-                   [ v1 ]
-               (* TODO? use EmptyStmt in generic AST? *)
-               | `Empty_stmt _tok -> [])
+          match x with
+          | `Stmt_term (v1, v2) ->
+              let v1 = statement env v1 in
+              let _v2 = terminator env v2 in
+              [ v1 ]
+          (* TODO? use EmptyStmt in generic AST? *)
+          | `Empty_stmt _tok -> [])
         |> List.flatten
       in
       let v2 = match v2 with Some x -> [ statement env x ] | None -> [] in
@@ -149,7 +149,7 @@ let rec statements (env : env) (x : CST.statements) : AST.stmts =
   | `Stmt x -> [ statement env x ]
 
 and statement (env : env) (x : CST.statement) :
-    AST.expr (* TODO AST.stmt at some point *) =
+  AST.expr (* TODO AST.stmt at some point *) =
   match x with
   | `Undef (v1, v2, v3) ->
       let v1 = token2 env v1 in
@@ -157,9 +157,9 @@ and statement (env : env) (x : CST.statement) :
       let v3 =
         List.map
           (fun (v1, v2) ->
-            let _v1 = token2 env v1 in
-            let v2 = method_name env v2 in
-            v2)
+             let _v1 = token2 env v1 in
+             let v2 = method_name env v2 in
+             v2)
           v3
       in
       D (Undef (v1, v2 :: v3))
@@ -232,7 +232,7 @@ and method_rest (env : env) ((v1, v2, v3) : CST.method_rest) =
   (v1, v2, xs)
 
 and parameters (env : env) ((v1, v2, v3) : CST.parameters) :
-    AST.formal_param list bracket =
+  AST.formal_param list bracket =
   let lp = token2 env v1 in
   let v2 =
     match v2 with
@@ -241,9 +241,9 @@ and parameters (env : env) ((v1, v2, v3) : CST.parameters) :
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token2 env v1 in
-              let v2 = formal_parameter env v2 in
-              v2)
+               let _v1 = token2 env v1 in
+               let v2 = formal_parameter env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -253,20 +253,20 @@ and parameters (env : env) ((v1, v2, v3) : CST.parameters) :
   (lp, v2, rp)
 
 and bare_parameters (env : env) ((v1, v2) : CST.bare_parameters) :
-    AST.formal_param list =
+  AST.formal_param list =
   let v1 = simple_formal_parameter env v1 in
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token2 env v1 in
-        let v2 = formal_parameter env v2 in
-        v2)
+         let _v1 = token2 env v1 in
+         let v2 = formal_parameter env v2 in
+         v2)
       v2
   in
   v1 :: v2
 
 and block_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.block_parameters) :
-    AST.formal_param list bracket =
+  AST.formal_param list bracket =
   let pipe1 = token2 env v1 in
   let v2 =
     match v2 with
@@ -275,9 +275,9 @@ and block_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.block_parameters) :
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token2 env v1 in
-              let v2 = formal_parameter env v2 in
-              v2)
+               let _v1 = token2 env v1 in
+               let v2 = formal_parameter env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -292,9 +292,9 @@ and block_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.block_parameters) :
         let v3 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token2 env v1 in
-              let v2 = str env v2 in
-              v2)
+               let _v1 = token2 env v1 in
+               let v2 = str env v2 in
+               v2)
             v3
         in
         v2 :: v3
@@ -311,7 +311,7 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : AST.formal_param =
       Formal_tuple (lp, xs, rp)
 
 and simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) :
-    AST.formal_param =
+  AST.formal_param =
   match x with
   | `Id tok ->
       let id = str env tok in
@@ -358,9 +358,9 @@ and when_ (env : env) ((v1, v2, v3, v4) : CST.when_) =
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let _tcomma = token2 env v1 in
-        let v2 = pattern env v2 in
-        v2)
+         let _tcomma = token2 env v1 in
+         let v2 = pattern env v2 in
+         v2)
       v3
   in
   let v4 =
@@ -390,10 +390,10 @@ and elsif (env : env) ((v1, v2, v3, v4) : CST.elsif) : AST.tok * AST.stmt =
     | Some x ->
         Some
           (match x with
-          | `Else x -> else_ env x
-          | `Elsif x ->
-              let t, s = elsif env x in
-              (t, [ S s ]))
+           | `Else x -> else_ env x
+           | `Elsif x ->
+               let t, s = elsif env x in
+               (t, [ S s ]))
     | None -> None
   in
   (v1, If (v1, v2, v3, v4))
@@ -443,13 +443,13 @@ and exceptions (env : env) ((v1, v2) : CST.exceptions) : AST.expr list =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token2 env v1 in
-        let v2 =
-          match v2 with
-          | `Arg x -> arg env x
-          | `Splat_arg x -> splat_argument env x
-        in
-        v2)
+         let _v1 = token2 env v1 in
+         let v2 =
+           match v2 with
+           | `Arg x -> arg env x
+           | `Splat_arg x -> splat_argument env x
+         in
+         v2)
       v2
   in
   v1 :: v2
@@ -460,17 +460,17 @@ and exception_variable (env : env) ((v1, v2) : CST.exception_variable) =
   (v1, v2)
 
 and body_statement (env : env) ((v1, v2, v3) : CST.body_statement) :
-    AST.body_exn * AST.tok =
+  AST.body_exn * AST.tok =
   let v1 = match v1 with Some x -> statements env x | None -> [] in
   let rescue_exprs, else_expr, ensure_expr =
     Common2.partition_either3
       (fun x ->
-        match x with
-        | `Rescue x -> Common2.Left3 (rescue env x)
-        | `Else x -> Common2.Middle3 (else_ env x)
-        | `Ensure x ->
-            let t, xs = ensure env x in
-            Common2.Right3 (t, xs))
+         match x with
+         | `Rescue x -> Common2.Left3 (rescue env x)
+         | `Else x -> Common2.Middle3 (else_ env x)
+         | `Ensure x ->
+             let t, xs = ensure env x in
+             Common2.Right3 (t, xs))
       v2
   in
   let tend = token2 env v3 in
@@ -590,9 +590,9 @@ and anon_lit_content_rep_pat_3d340f6_lit_content_3d2b44e (env : env)
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token2 env v1 (* pattern \s+ *) in
-        let v2 = literal_contents env v2 in
-        v2)
+         let _v1 = token2 env v1 (* pattern \s+ *) in
+         let v2 = literal_contents env v2 in
+         v2)
       v2
   in
   v1 :: v2
@@ -658,13 +658,13 @@ and primary (env : env) (x : CST.primary) : AST.expr =
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let _v1 = token2 env v1 in
-                  let v2 =
-                    match v2 with
-                    | `Pair x -> pair env x
-                    | `Hash_splat_arg x -> hash_splat_argument env x
-                  in
-                  v2)
+                   let _v1 = token2 env v1 in
+                   let v2 =
+                     match v2 with
+                     | `Pair x -> pair env x
+                     | `Hash_splat_arg x -> hash_splat_argument env x
+                   in
+                   v2)
                 v2
             in
             let _v3 = match v3 with Some _tok -> () | None -> () in
@@ -695,8 +695,8 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       let v2 =
         List.map
           (fun x ->
-            let _lp, x, _ = string_ env x in
-            x)
+             let _lp, x, _ = string_ env x in
+             x)
           v2
         |> List.flatten
       in
@@ -714,8 +714,8 @@ and primary (env : env) (x : CST.primary) : AST.expr =
         | Some x ->
             Some
               (match x with
-              | `Params x -> parameters env x |> G.unbracket
-              | `Bare_params x -> bare_parameters env x)
+               | `Params x -> parameters env x |> G.unbracket
+               | `Bare_params x -> bare_parameters env x)
         | None -> None
       in
       let v3 =
@@ -814,10 +814,10 @@ and primary (env : env) (x : CST.primary) : AST.expr =
         | Some x ->
             Some
               (match x with
-              | `Else x -> else_ env x
-              | `Elsif x ->
-                  let t, s = elsif env x in
-                  (t, [ S s ]))
+               | `Else x -> else_ env x
+               | `Elsif x ->
+                   let t, s = elsif env x in
+                   (t, [ S s ]))
         | None -> None
       in
       let _v5 = token2 env v5 in
@@ -837,10 +837,10 @@ and primary (env : env) (x : CST.primary) : AST.expr =
         | Some x ->
             Some
               (match x with
-              | `Else x -> else_ env x
-              | `Elsif x ->
-                  let t, s = elsif env x in
-                  (t, [ S s ]))
+               | `Else x -> else_ env x
+               | `Elsif x ->
+                   let t, s = elsif env x in
+                   (t, [ S s ]))
         | None -> None
       in
       let _v5 = token2 env v5 in
@@ -948,7 +948,7 @@ and parenthesized_statements (env : env)
   (v1, v2, v3)
 
 and scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) :
-    AST.scope_resolution =
+  AST.scope_resolution =
   let v1 =
     match v1 with
     | `COLONCOLON tok -> fun e -> TopScope (token2 env tok, e)
@@ -984,14 +984,14 @@ and call (env : env) ((v1, v2, v3) : CST.call) =
   DotAccess (v1, v2, v3)
 
 and chained_command_call (env : env) ((v1, v2, v3) : CST.chained_command_call) :
-    AST.expr =
+  AST.expr =
   let v1 = command_call_with_block env v1 in
   let v2 = anon_choice_DOT_5431c66 env v2 in
   let v3 = anon_choice_id_5ca805c env v3 in
   DotAccess (v1, v2, v3)
 
 and command_call_with_block (env : env) (x : CST.command_call_with_block) :
-    AST.expr =
+  AST.expr =
   match x with
   | `Choice_call_cmd_arg_list_blk (v1, v2, v3) ->
       let v1 = anon_choice_call_fd54051 env v1 in
@@ -1040,20 +1040,20 @@ and call_ (env : env) (x : CST.call_) : AST.expr =
       Call (v1, fb [], Some v2)
 
 and command_argument_list (env : env) ((v1, v2) : CST.command_argument_list) :
-    AST.expr list =
+  AST.expr list =
   let v1 = argument env v1 in
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _t = token2 env v1 in
-        let v2 = argument env v2 in
-        v2)
+         let _t = token2 env v1 in
+         let v2 = argument env v2 in
+         v2)
       v2
   in
   v1 :: v2
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
-    AST.expr list AST.bracket =
+  AST.expr list AST.bracket =
   let lp = token2 env v1 in
   let v2 =
     match v2 with
@@ -1069,9 +1069,9 @@ and argument_list_with_trailing_comma (env : env)
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _ = token2 env v1 in
-        let v2 = argument env v2 in
-        v2)
+         let _ = token2 env v1 in
+         let v2 = argument env v2 in
+         v2)
       v2
   in
   let _v3 = match v3 with Some _tok -> () | None -> () in
@@ -1309,7 +1309,7 @@ and command_unary (env : env) (x : CST.command_unary) : AST.expr =
       Unary (v1, v2)
 
 and anon_choice_DOTDOT_ed078ec (env : env) (x : CST.anon_choice_DOTDOT_ed078ec)
-    =
+  =
   match x with
   | `DOTDOT tok -> (B Op_DOT2, token2 env tok)
   | `DOTDOTDOT tok -> (Op_DOT3, token2 env tok)
@@ -1333,20 +1333,20 @@ and range (env : env) (x : CST.range) : AST.expr =
       Binop (v1, v2, fake_nil t)
 
 and right_assignment_list (env : env) ((v1, v2) : CST.right_assignment_list) :
-    AST.expr list =
+  AST.expr list =
   let v1 =
     match v1 with `Arg x -> arg env x | `Splat_arg x -> splat_argument env x
   in
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token2 env v1 in
-        let v2 =
-          match v2 with
-          | `Arg x -> arg env x
-          | `Splat_arg x -> splat_argument env x
-        in
-        v2)
+         let _v1 = token2 env v1 in
+         let v2 =
+           match v2 with
+           | `Arg x -> arg env x
+           | `Splat_arg x -> splat_argument env x
+         in
+         v2)
       v2
   in
   v1 :: v2
@@ -1413,7 +1413,7 @@ and method_name (env : env) (x : CST.method_name) : AST.method_name =
   | `Global_var tok -> MethodId (str env tok, ID_Global)
 
 and interpolation (env : env) ((v1, v2, v3) : CST.interpolation) :
-    AST.expr AST.bracket option =
+  AST.expr AST.bracket option =
   let lb = token2 env v1 (* "#{" *) in
   let rb = token2 env v3 (* "}" *) in
   match v2 with Some x -> Some (lb, statement env x, rb) | None -> None
@@ -1443,17 +1443,17 @@ and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) : atom =
 and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
   List.filter_map
     (fun x ->
-      match x with
-      | `Str_content tok ->
-          let x = str env tok in
-          Some (StrChars x)
-      | `Interp x -> (
-          match interpolation env x with
-          | Some (lb, e, rb) -> Some (StrExpr (lb, e, rb))
-          | None -> None)
-      | `Esc_seq tok ->
-          let x = str env tok in
-          Some (StrChars x))
+       match x with
+       | `Str_content tok ->
+           let x = str env tok in
+           Some (StrChars x)
+       | `Interp x -> (
+           match interpolation env x with
+           | Some (lb, e, rb) -> Some (StrExpr (lb, e, rb))
+           | None -> None)
+       | `Esc_seq tok ->
+           let x = str env tok in
+           Some (StrChars x))
     xs
 
 and mlhs (env : env) ((v1, v2, v3) : CST.mlhs) : AST.expr list =
@@ -1461,9 +1461,9 @@ and mlhs (env : env) ((v1, v2, v3) : CST.mlhs) : AST.expr list =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token2 env v1 in
-        let v2 = anon_choice_lhs_3a98eae env v2 in
-        v2)
+         let _v1 = token2 env v1 in
+         let v2 = anon_choice_lhs_3a98eae env v2 in
+         v2)
       v2
   in
   let _v3 = match v3 with Some _tok -> () | None -> () in
@@ -1503,23 +1503,23 @@ let parse file =
   let debug = false in
   H.wrap_parser
     (fun () ->
-      (* TODO: tree-sitter bindings are buggy so we cheat and fork to
-       * avoid segfaults to popup. See Main.ml test_parse_ruby function.
+       (* TODO: tree-sitter bindings are buggy so we cheat and fork to
+        * avoid segfaults to popup. See Main.ml test_parse_ruby function.
        *)
-      match 2 with
-      (* segfault quite often *)
-      | 1 -> Tree_sitter_ruby.Parse.file file
-      (* segfault less, but as we fork from a more complex point where
-       * we allocated quite a few stuff, the probability to get a segfault
-       * in the child grows
+       match 2 with
+       (* segfault quite often *)
+       | 1 -> Tree_sitter_ruby.Parse.file file
+       (* segfault less, but as we fork from a more complex point where
+        * we allocated quite a few stuff, the probability to get a segfault
+        * in the child grows
        *)
-      | _ ->
-          Parallel.backtrace_when_exn := false;
-          Parallel.invoke Tree_sitter_ruby.Parse.file file ())
+       | _ ->
+           Parallel.backtrace_when_exn := false;
+           Parallel.invoke Tree_sitter_ruby.Parse.file file ())
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      (if debug then
-       let sexp = CST.sexp_of_program cst in
-       let s = Sexplib.Sexp.to_string_hum sexp in
-       print_endline s);
-      program env cst)
+       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+       (if debug then
+          let sexp = CST.sexp_of_program cst in
+          let s = Sexplib.Sexp.to_string_hum sexp in
+          print_endline s);
+       program env cst)

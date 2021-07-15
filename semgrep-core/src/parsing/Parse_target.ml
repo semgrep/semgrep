@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 
 open Common
@@ -28,7 +28,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Mostly a wrapper around pfff Parse_generic, but which can also use
  * tree-sitter parsers when possible.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -79,19 +79,19 @@ let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
   }
 
 let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
- fun parser file ->
+  fun parser file ->
   match parser with
   | Pfff f ->
       Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
-          logger#info "trying to parse with Pfff parser %s" file;
-          try
-            let res = f file in
-            Ok res
-          with
-          | Timeout -> raise Timeout
-          | exn ->
-              logger#debug "exn (%s) with Pfff parser" (Common.exn_to_s exn);
-              Error exn)
+        logger#info "trying to parse with Pfff parser %s" file;
+        try
+          let res = f file in
+          Ok res
+        with
+        | Timeout -> raise Timeout
+        | exn ->
+            logger#debug "exn (%s) with Pfff parser" (Common.exn_to_s exn);
+            Error exn)
   | TreeSitter f -> (
       logger#info "trying to parse with TreeSitter parser %s" file;
       try
@@ -120,8 +120,8 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
           Error exn)
 
 let rec (run_either :
-          Common.filename -> 'ast parser list -> 'ast internal_result) =
- fun file xs ->
+           Common.filename -> 'ast parser list -> 'ast internal_result) =
+  fun file xs ->
   match xs with
   | [] -> Error (Failure (spf "no parser found for %s" file))
   | p :: xs -> (
@@ -155,11 +155,11 @@ let rec (run_either :
               Error exn))
 
 let (run :
-      Common.filename ->
-      'ast parser list ->
-      ('ast -> AST_generic.program) ->
-      parsing_result) =
- fun file xs fconvert ->
+       Common.filename ->
+     'ast parser list ->
+     ('ast -> AST_generic.program) ->
+     parsing_result) =
+  fun file xs fconvert ->
   let xs =
     match () with
     | _ when !Flag.tree_sitter_only ->
@@ -188,7 +188,7 @@ let rec just_parse_with_lang lang file =
   | Lang.Ruby ->
       (* for Ruby we start with the tree-sitter parser because the pfff parser
        * is not great and some of the token positions may be wrong.
-       *)
+      *)
       run file
         [
           TreeSitter Parse_ruby_tree_sitter.parse;
@@ -204,7 +204,7 @@ let rec just_parse_with_lang lang file =
            * than tree-sitter (because we need to wrap tree-sitter inside
            * an invoke because of a segfault/memory-leak), but when both parsers
            * fail, it's better to give the tree-sitter parsing error now.
-           *)
+          *)
           TreeSitter Parse_java_tree_sitter.parse;
           Pfff (throw_tokens Parse_java.parse);
         ]
@@ -220,7 +220,7 @@ let rec just_parse_with_lang lang file =
       (* we start directly with tree-sitter here, because
        * the pfff parser is slow on minified files due to its (slow) error
        * recovery strategy.
-       *)
+      *)
       run file
         [
           TreeSitter Parse_javascript_tree_sitter.parse;
@@ -234,7 +234,7 @@ let rec just_parse_with_lang lang file =
   (* there is no pfff parsers for C#/Kotlin/... so let's go directly to
    *  tree-sitter, and there's no ast_xxx.ml either so we directly generate
    * a generic AST (no xxx_to_generic here)
-   *)
+  *)
   | Lang.Csharp ->
       run file [ TreeSitter Parse_csharp_tree_sitter.parse ] (fun x -> x)
   | Lang.Kotlin ->
@@ -259,14 +259,14 @@ let rec just_parse_with_lang lang file =
         [ Pfff (throw_tokens (Parse_python.parse ~parsing_mode)) ]
         (* old: Resolve_python.resolve ast;
          * switched to call Naming_AST.ml to correct def and use tagger
-         *)
+        *)
         Python_to_generic.program
   | Lang.JSON ->
       run file
         [
           Pfff
             (fun file ->
-              (Parse_json.parse_program file, Parse_info.correct_stat file));
+               (Parse_json.parse_program file, Parse_info.correct_stat file));
         ]
         Json_to_generic.program
   | Lang.Cplusplus -> failwith "TODO"
@@ -285,8 +285,8 @@ let rec just_parse_with_lang lang file =
       run file
         [ Pfff (throw_tokens Parse_php.parse) ]
         (fun cst ->
-          let ast = Ast_php_build.program cst in
-          Php_to_generic.program ast)
+           let ast = Ast_php_build.program cst in
+           Php_to_generic.program ast)
   | Lang.Hack ->
       run file
         [ TreeSitter (Parse_hack_tree_sitter.parse `Target) ]
@@ -308,7 +308,7 @@ let rec just_parse_with_lang lang file =
         in
         (* TODO: pass the errors down to Parse_vue_tree_sitter.parse
          * and accumulate with other vue parse errors
-         *)
+        *)
         if errors <> [] then failwith "parse error in embedded JS";
         ast
       in
@@ -326,7 +326,7 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   (* to be deterministic, reset the gensym; anyway right now semgrep is
    * used only for local per-file analysis, so no need to have a unique ID
    * among a set of files in a project like codegraph.
-   *)
+  *)
   AST_generic_helpers.gensym_counter := 0;
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;

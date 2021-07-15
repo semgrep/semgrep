@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 module PI = Parse_info
 
@@ -25,7 +25,7 @@ module PI = Parse_info
  * We also now use it to manipulate ranges and apply boolean logic operations
  * on them (for pattern-inside, pattern-not, etc.), now that we also handle
  * the whole rule in OCaml
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -33,7 +33,7 @@ module PI = Parse_info
 
 (* charpos is 0-indexed. First char of a file is at charpos:0
  * (unlike in Emacs where point starts at 1).
- *)
+*)
 type charpos = int [@@deriving show]
 
 (* the range is inclusive, {start = 0; end_ = 4} means [0..4] not [0..4[ *)

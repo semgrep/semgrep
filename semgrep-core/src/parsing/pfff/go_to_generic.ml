@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open Ast_go
 module G = AST_generic
@@ -23,7 +23,7 @@ module H = AST_generic_helpers
 (* Ast_go to AST_generic.
  *
  * See ast_generic.ml for more information.
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -70,11 +70,11 @@ let return_type_of_results results =
       Some
         (G.TyTuple
            (xs
-           |> List.map (function
-                | G.ParamClassic { G.ptype = Some t; _ } -> t
-                | G.ParamClassic { G.ptype = None; _ } -> raise Impossible
-                | _ -> raise Impossible)
-           |> fb))
+            |> List.map (function
+              | G.ParamClassic { G.ptype = Some t; _ } -> t
+              | G.ParamClassic { G.ptype = None; _ } -> raise Impossible
+              | _ -> raise Impossible)
+            |> fb))
 
 let list_to_tuple_or_expr xs =
   match xs with
@@ -355,7 +355,7 @@ let top_func () =
         (* people don't want '=' assign pattern to match ':=' short var decls,
          * so better to not generate an Assign there too.
          * less: could define a ColonEq operator in AST_generic.ml
-         *)
+        *)
         G.AssignOp
           (list_to_tuple_or_expr v1, (G.Eq, v2), list_to_tuple_or_expr v3)
     | AssignOp (v1, v2, v3) ->
@@ -371,7 +371,7 @@ let top_func () =
           (G.IdSpecial (G.IncrDecr (H.conv_incr v2, v3), tok), fb [ G.Arg v1 ])
   (* invariant: you should not use 'list stmt', but instead always
    * use list stmt_aux ... |> List.flatten
-   *)
+  *)
   and stmt x = G.stmt1 (stmt_aux x)
   and stmt_aux = function
     | DeclStmts v1 ->
@@ -386,7 +386,7 @@ let top_func () =
          * otherwise they will not match. This is why stmt_aux need
          * to return a list of stmts that may or may not be put inside
          * a Block depending on the context (Ss and Items will not).
-         *)
+        *)
         let v1 = list decl v1 in
         v1
     | Block (t1, v1, t2) ->
@@ -411,17 +411,17 @@ let top_func () =
           | Some s ->
               Some
                 (match s with
-                | ExprStmt (TypeSwitchExpr (e, tok1)) ->
-                    let e = expr e in
-                    G.Call (G.IdSpecial (G.Typeof, tok1), fb [ G.Arg e ])
-                | DShortVars (xs, tok1, [ TypeSwitchExpr (e, tok2) ]) ->
-                    let xs = list expr xs in
-                    let e = expr e in
-                    G.Assign
-                      ( list_to_tuple_or_expr xs,
-                        tok1,
-                        G.Call (G.IdSpecial (G.Typeof, tok2), fb [ G.Arg e ]) )
-                | s -> simple s)
+                 | ExprStmt (TypeSwitchExpr (e, tok1)) ->
+                     let e = expr e in
+                     G.Call (G.IdSpecial (G.Typeof, tok1), fb [ G.Arg e ])
+                 | DShortVars (xs, tok1, [ TypeSwitchExpr (e, tok2) ]) ->
+                     let xs = list expr xs in
+                     let e = expr e in
+                     G.Assign
+                       ( list_to_tuple_or_expr xs,
+                         tok1,
+                         G.Call (G.IdSpecial (G.Typeof, tok2), fb [ G.Arg e ]) )
+                 | s -> simple s)
         and v3 = list case_clause v3 in
         wrap_init_in_block_maybe v1 (G.Switch (v0, v2, v3) |> G.s)
     | Select (v1, v2) ->
@@ -470,8 +470,8 @@ let top_func () =
         let opt =
           option
             (fun (v1, v2) ->
-              let v1 = list expr v1 and v2 = tok v2 in
-              (v1, v2))
+               let v1 = list expr v1 and v2 = tok v2 in
+               (v1, v2))
             v1
         and v2 = tok v2
         and v3 = expr v3 in
@@ -506,8 +506,8 @@ let top_func () =
         let v1 =
           v1
           |> List.map (function
-               | Left e -> e
-               | Right _ -> error tok "TODO: Case Assign with Type?")
+            | Left e -> e
+            | Right _ -> error tok "TODO: Case Assign with Type?")
         in
         [ G.CaseEqualExpr (tok, G.Assign (list_to_tuple_or_expr v1, v2, v3)) ]
     | CaseDefault v1 ->
@@ -573,7 +573,7 @@ let top_func () =
         (* old: in Go, import "a/b/c" is really equivalent to import c "a/b/c",
          * but we don't do return anymore G.ImportAs (itok, module_name, Some id)
          * otherwise sgrep can not know if an alias was explicitely given or not
-         *)
+        *)
         G.ImportAs (itok, module_name, None)
     | ImportNamed v1 ->
         let v1 = ident v1 in

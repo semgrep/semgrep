@@ -83,9 +83,9 @@ let update_min_env env (stmt_pat : G.stmt) =
   let min_env =
     List.filter
       (fun (k, _v) ->
-        let keep = Set_.mem k backrefs in
-        if debug then printf "keep %s in min env: %B\n" k keep;
-        keep)
+         let keep = Set_.mem k backrefs in
+         if debug then printf "keep %s in min env: %B\n" k keep;
+         keep)
       env.min_env
   in
   { env with min_env; last_stmt_backrefs = backrefs }

@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 open AST_generic
@@ -29,7 +29,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * Very often used helper functions are actually in AST_generic.ml at
  * the end (e.g., AST_generic.basic_entity).
  * This module is for the more rarely used helpers.
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -76,7 +76,7 @@ let name_of_ids ?(name_typeargs = None) xs =
  * case it should be a pattern like | _ when expr = x.
  * For Python you can actually have a PatDisj of exception classes.
  * coupling: see pattern_to_expr below
- *)
+*)
 let rec expr_to_pattern e =
   (* TODO: diconstruct e and generate the right pattern (PatLiteral, ...) *)
   match e with
@@ -201,7 +201,7 @@ let has_keyword_attr kwd attrs =
 
 (* update: you should now use AST_generic.equal_any which internally
  * does not care about position information.
- *)
+*)
 
 let abstract_for_comparison_visitor recursor =
   let hooks =
@@ -233,8 +233,8 @@ let ac_matching_nf op args =
   let rec nf args1 =
     args1
     |> List.map (function
-         | Arg e -> e
-         | ArgKwd _ | ArgType _ | ArgOther _ -> raise_notrace Exit)
+      | Arg e -> e
+      | ArgKwd _ | ArgType _ | ArgOther _ -> raise_notrace Exit)
     |> List.map nf_one |> List.flatten
   and nf_one = function
     | Call (IdSpecial (Op op1, _tok1), (_, args1, _)) when op = op1 -> nf args1
@@ -274,7 +274,7 @@ module G = AST_generic
  * below to convert them back to AST_generic.
  *
  * alt: use polymorphic variants (e.g., `Plus)
- *)
+*)
 
 let (conv_op : AST_generic_.operator -> AST_generic.operator) = function
   | G_.Plus -> G.Plus
@@ -331,29 +331,29 @@ let (conv_prepost : AST_generic_.prefix_postfix -> AST_generic.prefix_postfix) =
   | G_.Postfix -> G.Postfix
 
 let (conv_incdec :
-      AST_generic_.incr_decr * AST_generic_.prefix_postfix ->
-      AST_generic.incr_decr * AST_generic.prefix_postfix) =
- fun (x, y) -> (conv_incr x, conv_prepost y)
+       AST_generic_.incr_decr * AST_generic_.prefix_postfix ->
+     AST_generic.incr_decr * AST_generic.prefix_postfix) =
+  fun (x, y) -> (conv_incr x, conv_prepost y)
 
 let (conv_class_kind :
-      AST_generic_.class_kind * Parse_info.t ->
-      AST_generic.class_kind * Parse_info.t) =
- fun (c, t) ->
+       AST_generic_.class_kind * Parse_info.t ->
+     AST_generic.class_kind * Parse_info.t) =
+  fun (c, t) ->
   ( (match c with
-    | G_.Class -> G.Class
-    | G_.Interface -> G.Interface
-    | G_.Trait -> G.Trait),
+      | G_.Class -> G.Class
+      | G_.Interface -> G.Interface
+      | G_.Trait -> G.Trait),
     t )
 
 let (conv_function_kind :
-      AST_generic_.function_kind * Parse_info.t ->
-      AST_generic.function_kind * Parse_info.t) =
- fun (c, t) ->
+       AST_generic_.function_kind * Parse_info.t ->
+     AST_generic.function_kind * Parse_info.t) =
+  fun (c, t) ->
   ( (match c with
-    | G_.Function -> G.Function
-    | G_.Method -> G.Method
-    | G_.LambdaKind -> G.LambdaKind
-    | G_.Arrow -> G.Arrow),
+      | G_.Function -> G.Function
+      | G_.Method -> G.Method
+      | G_.LambdaKind -> G.LambdaKind
+      | G_.Arrow -> G.Arrow),
     t )
 
 (*e: pfff/lang_GENERIC_base/AST_generic_helpers.ml *)

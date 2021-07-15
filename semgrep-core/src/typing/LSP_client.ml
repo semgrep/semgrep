@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 
 open Common
 module J = JSON
@@ -225,12 +225,12 @@ let rec get_type id =
       try type_at_tok tok uri io with _exn -> None)
   | { io = Some io; last_uri } when last_uri <> uri ->
       (if last_uri <> "" then
-       let notif =
-         Client_notification.TextDocumentDidClose
-           (DidCloseTextDocumentParams.create
-              ~textDocument:(TextDocumentIdentifier.create ~uri))
-       in
-       send_notif notif io);
+         let notif =
+           Client_notification.TextDocumentDidClose
+             (DidCloseTextDocumentParams.create
+                ~textDocument:(TextDocumentIdentifier.create ~uri))
+         in
+         send_notif notif io);
 
       let notif =
         Client_notification.TextDocumentDidOpen
@@ -252,7 +252,7 @@ let init () =
   Hooks.get_type := get_type;
   Hooks.exit
   |> Common.push (fun () ->
-         if !debug then pr2 "LSP CLOSING";
-         send_request Client_request.Shutdown io |> ignore;
-         Io.close io);
+    if !debug then pr2 "LSP CLOSING";
+    send_request Client_request.Shutdown io |> ignore;
+    Io.close io);
   ()

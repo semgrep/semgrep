@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 module G = AST_generic
 
@@ -77,7 +77,7 @@ module G = AST_generic
  *  - SiMPL language in BAP/BitBlaze dynamic analysis libraries
  *    but probably too close to assembly/bytecode
  *  - Jimpl in Soot/Wala
- *)
+*)
 
 (*****************************************************************************)
 (* Token (leaf) *)
@@ -114,7 +114,7 @@ type ident = G.ident [@@deriving show]
  * TODO: use it to also do SSA! so some control-flow insensitive analysis
  * can become control-flow sensitive? (e.g., DOOP)
  *
- *)
+*)
 type name = ident * G.sid [@@deriving show]
 
 (*e: type [[IL.name]] *)
@@ -125,7 +125,7 @@ type name = ident * G.sid [@@deriving show]
 
 (* AST-to-IL translation is still a work in progress. When we encounter some
  * that we cannot handle, we insert a [FixmeExp], [FixmeInstr], or [FixmeStmt].
- *)
+*)
 type fixme_kind =
   | ToDo (* some construct that we still don't support *)
   | Sgrep_construct (* some Sgrep construct shows up in the code, e.g. `...' *)
@@ -142,8 +142,8 @@ type lval = {
   base : base;
   offset : offset;
   constness : G.constness option ref;
-      (* THINK: Drop option? *)
-      (* todo: ltype: typ; *)
+  (* THINK: Drop option? *)
+  (* todo: ltype: typ; *)
 }
 
 (*e: type [[IL.lval]] *)
@@ -173,7 +173,7 @@ and offset =
    *      proper (resolved) name here. For example, we want to resolve this.foo()
    *      to the class method "foo"; this is useful for our poor's man
    *      interprocedural analysis.
-   *)
+  *)
   | Dot of name
   | Index of exp
 
@@ -194,7 +194,7 @@ and var_special = This | Super | Self | Parent
  * with AST_generic.expr.
  * Here 'exp' does not contain any side effect!
  * todo: etype: typ;
- *)
+*)
 and exp = { e : exp_kind; eorig : G.expr }
 
 (*e: type [[IL.exp]] *)
@@ -209,7 +209,7 @@ and exp_kind =
    * TODO should we transform that in a New followed by a series of Assign
    * with Dot? simpler?
    * This could also be used for Dict.
-   *)
+  *)
   | Record of (ident * exp) list
   | Cast of G.type_ * exp
   (* This could be put in call_special, but dumped IL are then less readable
@@ -242,7 +242,7 @@ type argument = exp [@@deriving show]
 (*s: type [[IL.instr]] *)
 (* Easier type to compute lvalue/rvalue set of a too general 'expr', which
  * is now split in  instr vs exp vs lval.
- *)
+*)
 type instr = { i : instr_kind; iorig : G.expr }
 
 (*e: type [[IL.instr]] *)
@@ -265,7 +265,7 @@ and call_special =
    * actually New under the hood.
    * The type_ argument is usually a name, but it can also be an name[] in
    * Java/C++.
-   *)
+  *)
   | New (* TODO: lift up and add 'of type_ * argument list'? *)
   | Typeof
   | Instanceof
@@ -294,7 +294,7 @@ and call_special =
 and anonymous_entity =
   | Lambda of G.function_definition
   | AnonClass of G.class_definition
-(*e: type [[IL.anonymous_entity]] *)
+  (*e: type [[IL.anonymous_entity]] *)
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
@@ -313,7 +313,7 @@ and stmt_kind =
    * Break/Continue are handled via Label.
    * alt: we could go further and transform in If+Goto, but nice to
    * not be too far from the original code.
-   *)
+  *)
   | Loop of tok * exp * stmt list
   | Return of tok * exp (* use Unit instead of 'exp option' *)
   (* alt: do as in CIL and resolve that directly in 'Goto of stmt' *)
@@ -352,9 +352,9 @@ and label = ident * G.sid
  * See controlflow.ml for more information. *)
 type node = {
   n : node_kind;
-      (* old: there are tok in the nodes anyway
-       * t: Parse_info.t option;
-       *)
+  (* old: there are tok in the nodes anyway
+   * t: Parse_info.t option;
+  *)
 }
 
 (*e: type [[IL.node]] *)
@@ -372,13 +372,13 @@ and node_kind =
   | NThrow of tok * exp
   | NOther of other_stmt
   | NTodo of stmt
-(*e: type [[IL.node_kind]] *)
+  (*e: type [[IL.node_kind]] *)
 [@@deriving show { with_path = false }]
 
 (*s: type [[IL.edge]] *)
 (* For now there is just one kind of edge.
  * (we may use more? the "ShadowNode" idea of Julia Lawall?)
- *)
+*)
 type edge = Direct
 
 (*e: type [[IL.edge]] *)
@@ -471,8 +471,8 @@ let rlvals_of_instr x =
 let rvars_of_instr x =
   x |> rlvals_of_instr
   |> Common.map_filter (function
-       | { base = Var var; _ } -> Some var
-       | ___else___ -> None)
+    | { base = Var var; _ } -> Some var
+    | ___else___ -> None)
 
 let rlvals_of_node = function
   | Enter | Exit | TrueNode | FalseNode | NGoto _ | Join -> []

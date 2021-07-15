@@ -13,7 +13,7 @@ module PI = Parse_info
 
 (* We now log the files who have too many matches, but this action below
  * can still be useful for deeper debugging.
- *)
+*)
 let stat_matches file =
   let (matches : Pattern_match.t list) = Common2.get_value file in
   pr2 (spf "matched: %d" (List.length matches));
@@ -52,33 +52,33 @@ let ebnf_to_menhir file =
     let xs = Stream.npeek 100 tokens in
     xs |> insert_space_when_needed
     |> List.map (function
-         | T.Kwd s -> spf "%s" s
-         | T.Ident s ->
-             if s =~ "^[A-Z]" then lower s
-             else (
-               Hashtbl.replace htokens (upper s) true;
-               upper s)
-         | T.Int _ | T.Float _ | T.Char _ -> raise Impossible
-         | T.String s ->
-             Hashtbl.replace hkwd s true;
-             spf "\"%s\"" s)
+      | T.Kwd s -> spf "%s" s
+      | T.Ident s ->
+          if s =~ "^[A-Z]" then lower s
+          else (
+            Hashtbl.replace htokens (upper s) true;
+            upper s)
+      | T.Int _ | T.Float _ | T.Char _ -> raise Impossible
+      | T.String s ->
+          Hashtbl.replace hkwd s true;
+          spf "\"%s\"" s)
     |> String.concat ""
   in
   let ys =
     xs
     |> List.map (fun s ->
-           match s with
-           | _ when s =~ "^ *\\([A-Z][a-zA-Z0-9]*\\) +::= \\(.*\\)$" ->
-               let s1, s2 = Common.matched2 s in
-               let s2 = process s2 in
-               let s1 = lower s1 in
-               spf "%s: %s { }" s1 s2
-           | _ when s =~ "^ *| \\(.*\\)$" ->
-               let s2 = Common.matched1 s in
-               let s2 = process s2 in
-               spf " | %s { }" s2
-           | _ when s =~ "^[ \t]*$" -> ""
-           | _ -> failwith (spf "not handled: %s" s))
+      match s with
+      | _ when s =~ "^ *\\([A-Z][a-zA-Z0-9]*\\) +::= \\(.*\\)$" ->
+          let s1, s2 = Common.matched2 s in
+          let s2 = process s2 in
+          let s1 = lower s1 in
+          spf "%s: %s { }" s1 s2
+      | _ when s =~ "^ *| \\(.*\\)$" ->
+          let s2 = Common.matched1 s in
+          let s2 = process s2 in
+          spf " | %s { }" s2
+      | _ when s =~ "^[ \t]*$" -> ""
+      | _ -> failwith (spf "not handled: %s" s))
   in
   pr "%{";
   pr "%}";
@@ -90,8 +90,8 @@ let ebnf_to_menhir file =
   let i = ref 0 in
   hkwd |> Common.hashset_to_list
   |> List.iter (fun s ->
-         incr i;
-         pr (spf "%%token <unit> X%d \"%s\"" !i s));
+    incr i;
+    pr (spf "%%token <unit> X%d \"%s\"" !i s));
   pr "%start <unit> compilationUnit";
   pr "%%";
   pr "";
@@ -114,10 +114,10 @@ let gen_layer ~root ~query _matching_tokens file =
   let files_and_lines =
     toks
     |> List.map (fun tok ->
-           let file = PI.file_of_info tok in
-           let line = PI.line_of_info tok in
-           let file = Common2.relative_to_absolute file in
-           (Common.readable root file, line))
+      let file = PI.file_of_info tok in
+      let line = PI.line_of_info tok in
+      let file = Common2.relative_to_absolute file in
+      (Common.readable root file, line))
   in
   let group = Common.group_assoc_bykey_eff files_and_lines in
   let layer =
@@ -128,13 +128,13 @@ let gen_layer ~root ~query _matching_tokens file =
       files =
         group
         |> List.map (fun (file, lines) ->
-               let lines = Common2.uniq lines in
-               ( file,
-                 {
-                   Layer_code.micro_level =
-                     lines |> List.map (fun l -> (l, "m"));
-                   macro_level = (if null lines then [] else [ ("m", 1.) ]);
-                 } ));
+          let lines = Common2.uniq lines in
+          ( file,
+            {
+              Layer_code.micro_level =
+                lines |> List.map (fun l -> (l, "m"));
+              macro_level = (if null lines then [] else [ ("m", 1.) ]);
+            } ));
     }
   in
   Layer_code.save_layer layer file;
@@ -143,5 +143,5 @@ let gen_layer ~root ~query _matching_tokens file =
 let gen_layer_maybe _matching_tokens pattern_string xs =
   !layer_file
   |> Common.do_option (fun file ->
-         let root = Common2.common_prefix_of_files_or_dirs xs in
-         gen_layer ~root ~query:pattern_string _matching_tokens file)
+    let root = Common2.common_prefix_of_files_or_dirs xs in
+    gen_layer ~root ~query:pattern_string _matching_tokens file)

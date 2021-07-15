@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open Ast_ml
 module G = AST_generic
@@ -23,7 +23,7 @@ module H = AST_generic_helpers
 (* Ast_ml to AST_generic.
  *
  * See AST_generic.ml for more information.
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -166,7 +166,7 @@ and stmt e : G.stmt =
        *
        * update: there are cases though where we want to generate an
        * ExprStmt for Ellipsis otherwise Generic_vs_generic will not work.
-       *)
+      *)
       match e with
       | G.Ellipsis _ | G.DeepEllipsis _ -> G.exprstmt e
       | _ -> G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) |> G.s)
@@ -238,18 +238,18 @@ and expr e =
       and v2 =
         bracket
           (list (fun (v1, v2) ->
-               let v2 = expr v2 in
-               match v1 with
-               | [], id ->
-                   let id = ident id in
-                   G.basic_field id (Some v2) None
-               | _ ->
-                   let v1 = dotted_ident_of_name v1 in
-                   let e =
-                     G.OtherExpr (G.OE_RecordFieldName, [ G.Di v1; G.E v2 ])
-                   in
-                   let st = G.exprstmt e in
-                   G.FieldStmt st))
+             let v2 = expr v2 in
+             match v1 with
+             | [], id ->
+                 let id = ident id in
+                 G.basic_field id (Some v2) None
+             | _ ->
+                 let v1 = dotted_ident_of_name v1 in
+                 let e =
+                   G.OtherExpr (G.OE_RecordFieldName, [ G.Di v1; G.E v2 ])
+                 in
+                 let st = G.exprstmt e in
+                 G.FieldStmt st))
           v2
       in
       let obj = G.Record v2 in
@@ -270,11 +270,11 @@ and expr e =
       let defs =
         v2
         |> List.map (function
-             | Left (ent, params, tret, body) ->
-                 G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
-             | Right (pat, e) ->
-                 let exp = G.LetPattern (pat, e) in
-                 G.exprstmt exp)
+          | Left (ent, params, tret, body) ->
+              G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
+          | Right (pat, e) ->
+              let exp = G.LetPattern (pat, e) in
+              G.exprstmt exp)
       in
       let st = G.Block (fb (defs @ [ G.exprstmt v3 ])) |> G.s in
       G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
@@ -397,8 +397,8 @@ and pattern = function
       let v1 =
         bracket
           (list (fun (v1, v2) ->
-               let v1 = dotted_ident_of_name v1 and v2 = pattern v2 in
-               (v1, v2)))
+             let v1 = dotted_ident_of_name v1 and v2 = pattern v2 in
+             (v1, v2)))
           v1
       in
       G.PatRecord v1
@@ -426,14 +426,14 @@ and let_binding = function
       | G.PatTyped (G.PatId (id, _idinfo), ty) ->
           let ent = G.basic_entity id [] in
           (match ent.G.name with
-          | G.EN (G.Id (_, idinfo)) ->
-              (* less: abusing id_type? Do we asume id_info is populated
-               * by further static analysis (naming/typing)? But the info
-               * is here, and this can be used in semgrep too to express
-               * a form of TypedMetavar, so let's abuse it for now.
+           | G.EN (G.Id (_, idinfo)) ->
+               (* less: abusing id_type? Do we asume id_info is populated
+                * by further static analysis (naming/typing)? But the info
+                * is here, and this can be used in semgrep too to express
+                * a form of TypedMetavar, so let's abuse it for now.
                *)
-              idinfo.G.id_type := Some ty
-          | _ -> raise Impossible);
+               idinfo.G.id_type := Some ty
+           | _ -> raise Impossible);
           Left (ent, [], None, G.exprstmt v2)
       | _ -> Right (v1, v2))
 
@@ -475,8 +475,8 @@ and type_def_kind = function
       let v1 =
         list
           (fun (v1, v2) ->
-            let v1 = ident v1 and v2 = list type_ v2 in
-            G.OrConstructor (v1, v2))
+             let v1 = ident v1 and v2 = list type_ v2 in
+             G.OrConstructor (v1, v2))
           v1
       in
       G.OrType v1
@@ -484,17 +484,17 @@ and type_def_kind = function
       let v1 =
         bracket
           (list (fun (v1, v2, v3) ->
-               let v1 = ident v1 and v2 = type_ v2 and v3 = option tok v3 in
-               let ent =
-                 G.basic_entity v1
-                   (match v3 with
-                   | Some tok -> [ G.attr G.Mutable tok ]
-                   | None -> [])
-               in
-               G.FieldStmt
-                 (G.DefStmt
-                    (ent, G.FieldDefColon { G.vinit = None; vtype = Some v2 })
-                 |> G.s)))
+             let v1 = ident v1 and v2 = type_ v2 and v3 = option tok v3 in
+             let ent =
+               G.basic_entity v1
+                 (match v3 with
+                  | Some tok -> [ G.attr G.Mutable tok ]
+                  | None -> [])
+             in
+             G.FieldStmt
+               (G.DefStmt
+                  (ent, G.FieldDefColon { G.vinit = None; vtype = Some v2 })
+                |> G.s)))
           v1
       in
       G.AndType v1
@@ -522,10 +522,10 @@ and attribute (t1, (dotted, xs), t2) =
   let args =
     xs
     |> Common.map_filter (function
-         | { i = TopExpr e; iattrs = [] } ->
-             let e = expr e in
-             Some (G.Arg e)
-         | _ -> None)
+      | { i = TopExpr e; iattrs = [] } ->
+          let e = expr e in
+          Some (G.Arg e)
+      | _ -> None)
   in
   let name = H.name_of_ids dotted in
   G.NamedAttr (t1, name, (t2, args, t2))
@@ -540,9 +540,9 @@ and item { i; iattrs } =
       let xs = list type_declaration v1 in
       xs
       |> List.map (fun (ent, def) ->
-             (* add attrs to all mutual type decls *)
-             let ent = add_attrs ent attrs in
-             G.DefStmt (ent, G.TypeDef def) |> G.s)
+        (* add attrs to all mutual type decls *)
+        let ent = add_attrs ent attrs in
+        G.DefStmt (ent, G.TypeDef def) |> G.s)
   | Exception (_t, v1, v2) ->
       let v1 = ident v1 and v2 = list type_ v2 in
       let ent = G.basic_entity v1 attrs in
@@ -568,13 +568,13 @@ and item { i; iattrs } =
       let _v1 = rec_opt v1 and v2 = list let_binding v2 in
       v2
       |> List.map (function
-           | Left (ent, params, tret, body) ->
-               let ent = add_attrs ent attrs in
-               G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
-           | Right (pat, e) ->
-               (* TODO no attrs *)
-               let exp = G.LetPattern (pat, e) in
-               G.exprstmt exp)
+        | Left (ent, params, tret, body) ->
+            let ent = add_attrs ent attrs in
+            G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
+        | Right (pat, e) ->
+            (* TODO no attrs *)
+            let exp = G.LetPattern (pat, e) in
+            G.exprstmt exp)
   | Module (_t, v1) ->
       let ent, def = module_declaration v1 in
       let ent = add_attrs ent attrs in

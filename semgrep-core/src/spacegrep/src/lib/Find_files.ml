@@ -83,7 +83,7 @@ let fold ?(excluded_paths = []) ?(accept_file_name = fun _file -> true)
   List.iter visit_tracker.mark_visited excluded_paths;
   List.fold_left
     (fun acc root ->
-      fold_one ~accept_file_name ~accept_dir_name visit_tracker f acc root)
+       fold_one ~accept_file_name ~accept_dir_name visit_tracker f acc root)
     acc roots
 
 let iter ?excluded_paths ?accept_file_name ?accept_dir_name f roots =

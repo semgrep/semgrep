@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open Ast_ruby
 module G = AST_generic
@@ -30,7 +30,7 @@ module PI = Parse_info
  *    of stmt_as_expr, but expr may be too far from original expr
  *  - start from an ast_ruby_stmt.ml which is half between ast_ruby.ml and
  *    il_ruby.ml
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -212,7 +212,7 @@ and scope_resolution = function
       (* TODO: use an 'expr_for_scope' instead of 'expr' below, because
        * the expression itself could be another Scope ...
        * in which case we could generate a QDots instead of a QEXpr
-       *)
+      *)
       let e = expr e in
       let qualif = G.QExpr (e, t) in
       (id, { G.name_qualifier = Some qualif; name_typeargs = None })
@@ -368,7 +368,7 @@ and literal x =
       (* TODO: generate interpolation Special *)
       | Double xs -> string_contents_list xs
       | Tick xs -> G.OtherExpr (G.OE_Subshell, [ G.E (string_contents_list xs) ])
-      )
+    )
   | Regexp ((l, xs, r), opt) -> (
       match xs with
       | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))
@@ -582,10 +582,10 @@ and body_exn x =
     ->
       list_stmt1 xs
   | {
-   body_exprs = xs;
-   rescue_exprs = catches;
-   ensure_expr = finally_opt;
-   else_expr = elseopt;
+    body_exprs = xs;
+    rescue_exprs = catches;
+    ensure_expr = finally_opt;
+    else_expr = elseopt;
   } -> (
       let body = list_stmt1 xs in
       let catches = list rescue_clause catches in
@@ -657,7 +657,7 @@ and list_stmt1 xs =
    *
    * in which case we remove the G.Block around it.
    * hacky ...
-   *)
+  *)
   | [ ({ G.s = G.ExprStmt (G.N (G.Id ((s, _), _)), _); _ } as x) ]
     when AST_generic_.is_metavar_name s ->
       x

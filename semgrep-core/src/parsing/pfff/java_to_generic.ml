@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open Ast_java
 module G = AST_generic
@@ -23,7 +23,7 @@ module H = AST_generic_helpers
 (* Ast_java to AST_generic.
  *
  * See ast_generic.ml for more information.
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -98,8 +98,8 @@ and class_type v =
   let res =
     list1
       (fun (v1, v2) ->
-        let v1 = ident v1 and v2 = option type_arguments v2 in
-        (v1, v2))
+         let v1 = ident v1 and v2 = option type_arguments v2 in
+         (v1, v2))
       v
   in
   match List.rev res with
@@ -126,8 +126,8 @@ and type_argument = function
       let v2 =
         option
           (fun (v1, v2) ->
-            let v1 = wrap bool v1 and v2 = ref_type v2 in
-            (v1, v2))
+             let v1 = wrap bool v1 and v2 = ref_type v2 in
+             (v1, v2))
           v2
       in
       G.TypeWildcard (v1, v2)
@@ -300,7 +300,7 @@ and expr e =
         [ G.E v0; G.T v2 ]
         @ (v3 |> G.unbracket |> List.map (fun arg -> G.Ar arg))
         @ (Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
-          |> List.map (fun st -> G.S st))
+           |> List.map (fun st -> G.S st))
       in
       G.OtherExpr (G.OE_NewQualifiedClass, any)
   | MethodRef (v1, v2, v3, v4) ->
@@ -363,8 +363,8 @@ and expr e =
       and v2 =
         list
           (fun (v1, v2) ->
-            let v1 = cases v1 and v2 = stmts v2 in
-            (v1, G.stmt1 v2))
+             let v1 = cases v1 and v2 = stmts v2 in
+             (v1, G.stmt1 v2))
           v2
         |> List.map (fun x -> G.CasesAndBody x)
       in
@@ -398,8 +398,8 @@ and stmt st =
       and v2 =
         list
           (fun (v1, v2) ->
-            let v1 = cases v1 and v2 = stmts v2 in
-            (v1, G.stmt1 v2))
+             let v1 = cases v1 and v2 = stmts v2 in
+             (v1, G.stmt1 v2))
           v2
         |> List.map (fun x -> G.CasesAndBody x)
       in
@@ -601,10 +601,10 @@ and class_decl
 
 and class_kind (x, t) =
   ( (match x with
-    | ClassRegular -> G.Class
-    | Interface -> G.Interface
-    | AtInterface -> G.AtInterface
-    | Record -> G.RecordClass),
+      | ClassRegular -> G.Class
+      | Interface -> G.Interface
+      | AtInterface -> G.AtInterface
+      | Record -> G.RecordClass),
     t )
 
 and decl decl =

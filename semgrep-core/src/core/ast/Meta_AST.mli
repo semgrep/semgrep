@@ -5,7 +5,7 @@
  * We keep Meta_AST.ml just because we use it to generate the JSON
  * from the OCaml.v type of the generic AST in semgrep (and use that
  * JSON in the semgrep Web UI).
- *)
+*)
 
 (*s: signature [[Meta_AST.vof_any]] *)
 val vof_any : AST_generic.any -> OCaml.v

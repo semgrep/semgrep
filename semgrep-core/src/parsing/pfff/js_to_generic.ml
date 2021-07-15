@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open Ast_js
 module G = AST_generic
@@ -23,7 +23,7 @@ module H = AST_generic_helpers
 (* Ast_js to AST_generic.
  *
  * See ast_generic.ml for more information.
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -49,7 +49,7 @@ exception ComplicatedCase
 
 (* todo: you should not use that, just pass the token as-is,
  * they are the same in ast_js.ml and AST_generic.ml
- *)
+*)
 let info x = x
 
 let wrap _of_a (v1, v2) =
@@ -94,59 +94,59 @@ let special (x, tok) =
   | Delete -> SR_Other (G.OE_Delete, tok)
   (* a kind of cast operator:
    * See https://stackoverflow.com/questions/7452341/what-does-void-0-mean
-   *)
+  *)
   | Void ->
       SR_NeedArgs
         (fun args ->
-          match args with
-          | [ e ] ->
-              let tvoid = G.TyBuiltin ("void", tok) in
-              G.Cast (tvoid, e)
-          | _ -> error tok "Impossible: Too many arguments to Void")
+           match args with
+           | [ e ] ->
+               let tvoid = G.TyBuiltin ("void", tok) in
+               G.Cast (tvoid, e)
+           | _ -> error tok "Impossible: Too many arguments to Void")
   | Spread -> SR_Special (G.Spread, tok)
   | Yield ->
       SR_NeedArgs
         (fun args ->
-          match args with
-          | [] -> G.Yield (tok, None, false)
-          | [ e ] -> G.Yield (tok, Some e, false)
-          | _ -> error tok "Impossible: Too many arguments to Yield")
+           match args with
+           | [] -> G.Yield (tok, None, false)
+           | [ e ] -> G.Yield (tok, Some e, false)
+           | _ -> error tok "Impossible: Too many arguments to Yield")
   | YieldStar -> SR_Other (G.OE_YieldStar, tok)
   | Await ->
       SR_NeedArgs
         (fun args ->
-          match args with
-          | [ e ] -> G.Await (tok, e)
-          | _ -> error tok "Impossible: Too many arguments to Await")
+           match args with
+           | [ e ] -> G.Await (tok, e)
+           | _ -> error tok "Impossible: Too many arguments to Await")
   | Encaps has_tag_function ->
       if not has_tag_function then
         SR_NeedArgs
           (fun args ->
-            G.Call
-              ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, tok),
-                args |> List.map (fun e -> G.Arg e) |> G.fake_bracket ))
+             G.Call
+               ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, tok),
+                 args |> List.map (fun e -> G.Arg e) |> G.fake_bracket ))
       else
         SR_NeedArgs
           (fun args ->
-            match args with
-            | [] -> raise Impossible
-            | tag :: rest ->
-                G.Call
-                  ( tag,
-                    G.fake_bracket
-                      [
-                        G.Arg
-                          (G.Call
-                             ( G.IdSpecial
-                                 (* update: we don't use InterpolatedConcat
-                                  * here anymore, to differentiate it from
-                                  * the above case.
+             match args with
+             | [] -> raise Impossible
+             | tag :: rest ->
+                 G.Call
+                   ( tag,
+                     G.fake_bracket
+                       [
+                         G.Arg
+                           (G.Call
+                              ( G.IdSpecial
+                                  (* update: we don't use InterpolatedConcat
+                                   * here anymore, to differentiate it from
+                                   * the above case.
                                   *)
-                                 (G.ConcatString G.TaggedTemplateLiteral, tok),
-                               rest
-                               |> List.map (fun e -> G.Arg e)
-                               |> G.fake_bracket ));
-                      ] ))
+                                  (G.ConcatString G.TaggedTemplateLiteral, tok),
+                                rest
+                                |> List.map (fun e -> G.Arg e)
+                                |> G.fake_bracket ));
+                       ] ))
   | ArithOp op -> SR_Special (G.Op (H.conv_op op), tok)
   | IncrDecr v -> SR_Special (G.IncrDecr (H.conv_incdec v), tok)
 
@@ -397,8 +397,8 @@ and for_header = function
           let vars =
             vars
             |> List.map (fun x ->
-                   let a, b = var_of_var x in
-                   G.ForInitVar (a, b))
+              let a, b = var_of_var x in
+              G.ForInitVar (a, b))
           in
           G.ForClassic (vars, v2, v3)
       | Right e ->
@@ -441,7 +441,7 @@ and case = function
 
 (* used to be an AST_generic.type_ with no conversion needed, but now that
  * we moved AST_generic.ml out of pfff, we need the boilerplate below
- *)
+*)
 and type_ x =
   match x with
   | TyBuiltin id -> G.TyBuiltin (ident id)
@@ -582,20 +582,20 @@ and attribute = function
 
 and keyword_attribute (x, tok) =
   ( (match x with
-    (* methods *)
-    | Get -> G.Getter
-    | Set -> G.Setter
-    | Generator -> G.Generator
-    | Async -> G.Async
-    (* fields *)
-    | Static -> G.Static
-    | Public -> G.Public
-    | Private -> G.Private
-    | Protected -> G.Protected
-    | Readonly -> G.Const
-    | Optional -> G.Optional
-    | Abstract -> G.Abstract
-    | NotNull -> G.NotNull),
+      (* methods *)
+      | Get -> G.Getter
+      | Set -> G.Setter
+      | Generator -> G.Generator
+      | Async -> G.Async
+      (* fields *)
+      | Static -> G.Static
+      | Public -> G.Public
+      | Private -> G.Private
+      | Protected -> G.Protected
+      | Readonly -> G.Const
+      | Optional -> G.Optional
+      | Abstract -> G.Abstract
+      | NotNull -> G.NotNull),
     tok )
 
 and obj_ v = bracket (list property) v
@@ -612,13 +612,13 @@ and class_ { c_extends; c_implements; c_body; c_kind; c_attrs } =
   let attrs = list attribute c_attrs in
   let cimplements = list type_ c_implements in
   ( {
-      G.ckind = H.conv_class_kind c_kind;
-      cextends;
-      cimplements;
-      cmixins = [];
-      cparams = [];
-      cbody = v2;
-    },
+    G.ckind = H.conv_class_kind c_kind;
+    cextends;
+    cimplements;
+    cmixins = [];
+    cparams = [];
+    cbody = v2;
+  },
     attrs )
 
 and field_classic
@@ -686,7 +686,7 @@ and module_directive x =
       G.ImportAs (t, G.FileName v2, Some v1)
   (* sgrep: we used to convert this in an OI_ImportEffect, but
    * we now want import "foo" to be used to match any form of import
-   *)
+  *)
   | ImportFile (t, v1) ->
       let v1 = name v1 in
       (* old: G.OtherDirective (G.OI_ImportEffect, [G.I v1]) *)
@@ -707,11 +707,11 @@ and require_to_import_in_stmt_opt st =
             v_init =
               Some
                 (Assign
-                  ( pattern,
-                    _,
-                    Apply
-                      (IdSpecial (Require, treq), (_, [ L (String file) ], _))
-                  ));
+                   ( pattern,
+                     _,
+                     Apply
+                       (IdSpecial (Require, treq), (_, [ L (String file) ], _))
+                   ));
           } )
     when x =$= AST_generic_.special_multivardef_pattern -> (
       try
@@ -720,22 +720,22 @@ and require_to_import_in_stmt_opt st =
             let ys =
               xs
               |> List.map (function
-                   | FieldColon
-                       {
-                         fld_name = PN id1;
-                         fld_body = Some (Id id2);
-                         fld_attrs = [];
-                         fld_type = None;
-                       } ->
-                       let alias_opt =
-                         match (id1, id2) with
-                         | (s1, _), (s2, _) when s1 =$= s2 -> None
-                         | _ -> Some (id2, G.empty_id_info ())
-                       in
-                       G.DirectiveStmt
-                         (G.ImportFrom (treq, G.FileName file, id1, alias_opt))
-                       |> G.s
-                   | _ -> raise ComplicatedCase)
+                | FieldColon
+                    {
+                      fld_name = PN id1;
+                      fld_body = Some (Id id2);
+                      fld_attrs = [];
+                      fld_type = None;
+                    } ->
+                    let alias_opt =
+                      match (id1, id2) with
+                      | (s1, _), (s2, _) when s1 =$= s2 -> None
+                      | _ -> Some (id2, G.empty_id_info ())
+                    in
+                    G.DirectiveStmt
+                      (G.ImportFrom (treq, G.FileName file, id1, alias_opt))
+                    |> G.s
+                | _ -> raise ComplicatedCase)
             in
             (* we also keep the require() call in the AST so people using
              * semgrep patterns like 'require("foo")' still find those
@@ -743,7 +743,7 @@ and require_to_import_in_stmt_opt st =
              * for Naming_AST to recognize those require and do the
              * right aliasing for them too.
              * alt: do the conversion in Naming_AST.ml instead?
-             *)
+            *)
             let orig = stmt st in
             Some (ys @ [ orig ])
         | _ -> raise ComplicatedCase
@@ -753,12 +753,12 @@ and require_to_import_in_stmt_opt st =
 and list_stmt xs =
   (* converting require() in import, so they can benefit from the
    * other goodies coming with import in semgrep (e.g., equivalence aliasing)
-   *)
+  *)
   xs
   |> List.map (fun st ->
-         match require_to_import_in_stmt_opt st with
-         | Some xs -> xs
-         | None -> [ stmt st ])
+    match require_to_import_in_stmt_opt st with
+    | Some xs -> xs
+    | None -> [ stmt st ])
   |> List.flatten
 
 and program v = list_stmt v

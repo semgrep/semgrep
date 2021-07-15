@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 module Ast = AST_generic
 open Controlflow
 module F = Controlflow
@@ -24,7 +24,7 @@ module F = Controlflow
  *
  * Less useful now that we have Controlflow.exprs_of_node and
  * Controlflow.fold_on_node_and_expr.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -103,6 +103,6 @@ let exprs_of_node node =
 let fold_on_node_and_expr hook (flow : flow) acc =
   flow#nodes#fold
     (fun acc (ni, node) ->
-      let xs = exprs_of_node node in
-      xs |> List.fold_left (fun acc e -> hook (ni, node) e acc) acc)
+       let xs = exprs_of_node node in
+       xs |> List.fold_left (fun acc e -> hook (ni, node) e acc) acc)
     acc

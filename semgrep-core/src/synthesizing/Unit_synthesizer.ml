@@ -170,74 +170,74 @@ let java_tests =
  * They will then be matched against the code at the given range to make
  * sure semgrep actually correctly matches the pattern to the code.
  * Place test files in semgrep-core/tests/SYNTHESIZING
- *)
+*)
 
 let unittest =
   "pattern inference features" >:: fun () ->
-  let cases = [ (Lang.Python, python_tests); (Lang.Java, java_tests) ] in
-  cases
-  |> List.iter (fun (lang, tests) ->
-         tests
-         |> List.iter (fun (filename, range, sols) ->
-                let file = test_path ^ filename in
-                let config = Config_semgrep.default_config in
+    let cases = [ (Lang.Python, python_tests); (Lang.Java, java_tests) ] in
+    cases
+    |> List.iter (fun (lang, tests) ->
+      tests
+      |> List.iter (fun (filename, range, sols) ->
+        let file = test_path ^ filename in
+        let config = Config_semgrep.default_config in
 
-                (* pattern candidates (as strings) *)
-                let pats = Synthesizer.synthesize_patterns config range file in
-                (* the code *)
-                let { Parse_target.ast = code; errors = errs; _ } =
-                  Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
-                    lang file
+        (* pattern candidates (as strings) *)
+        let pats = Synthesizer.synthesize_patterns config range file in
+        (* the code *)
+        let { Parse_target.ast = code; errors = errs; _ } =
+          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
+            lang file
+        in
+        if errs <> [] then failwith (spf "problem parsing %s" filename);
+        Naming_AST.resolve lang code;
+
+        let r = Range.range_of_linecol_spec range file in
+
+        let check_pats (str, pat) =
+          try
+            (* the pattern AST *)
+            let pattern = Parse_pattern.parse_pattern lang pat in
+
+            (* extracting the code at the range *)
+            let e_opt = Range_to_AST.any_at_range r code in
+            match e_opt with
+            | Some any ->
+                let code =
+                  match (pattern, any) with
+                  | A.E _, A.S { A.s = A.ExprStmt (e, _); _ } -> A.E e
+                  | _, x -> x
                 in
-                if errs <> [] then failwith (spf "problem parsing %s" filename);
-                Naming_AST.resolve lang code;
-
-                let r = Range.range_of_linecol_spec range file in
-
-                let check_pats (str, pat) =
-                  try
-                    (* the pattern AST *)
-                    let pattern = Parse_pattern.parse_pattern lang pat in
-
-                    (* extracting the code at the range *)
-                    let e_opt = Range_to_AST.any_at_range r code in
-                    match e_opt with
-                    | Some any ->
-                        let code =
-                          match (pattern, any) with
-                          | A.E _, A.S { A.s = A.ExprStmt (e, _); _ } -> A.E e
-                          | _, x -> x
-                        in
-                        let matches_with_env =
-                          let env =
-                            Matching_generic.empty_environment None
-                              Config_semgrep.default_config
-                          in
-                          Match_patterns.match_any_any pattern code env
-                        in
-                        (* Debugging note: uses pattern_to_string for convenience,
-                         * but really should match the code in the given file at
-                         * the given range *)
-                        if matches_with_env = [] then (
-                          pr2 str;
-                          pr2 (AST_generic.show_any pattern);
-                          pr2 (AST_generic.show_any code));
-                        assert_bool
-                          (spf "pattern:|%s| should match |%s" pat
-                             (PPG.pattern_to_string lang code))
-                          (matches_with_env <> [])
-                    | None ->
-                        failwith (spf "Couldn't find range %s in %s" range file)
-                  with Parsing.Parse_error ->
-                    failwith (spf "problem parsing %s" pat)
+                let matches_with_env =
+                  let env =
+                    Matching_generic.empty_environment None
+                      Config_semgrep.default_config
+                  in
+                  Match_patterns.match_any_any pattern code env
                 in
-                pats |> List.iter check_pats;
-                let pats_str =
-                  List.fold_left
-                    (fun s (s1, s2) -> s ^ s1 ^ ": " ^ s2 ^ "\n")
-                    "" pats
-                in
+                (* Debugging note: uses pattern_to_string for convenience,
+                 * but really should match the code in the given file at
+                 * the given range *)
+                if matches_with_env = [] then (
+                  pr2 str;
+                  pr2 (AST_generic.show_any pattern);
+                  pr2 (AST_generic.show_any code));
                 assert_bool
-                  ("Patterns do not match solution, where inferred patterns are:\n"
-                 ^ pats_str)
-                  (pats = sols)))
+                  (spf "pattern:|%s| should match |%s" pat
+                     (PPG.pattern_to_string lang code))
+                  (matches_with_env <> [])
+            | None ->
+                failwith (spf "Couldn't find range %s in %s" range file)
+          with Parsing.Parse_error ->
+            failwith (spf "problem parsing %s" pat)
+        in
+        pats |> List.iter check_pats;
+        let pats_str =
+          List.fold_left
+            (fun s (s1, s2) -> s ^ s1 ^ ": " ^ s2 ^ "\n")
+            "" pats
+        in
+        assert_bool
+          ("Patterns do not match solution, where inferred patterns are:\n"
+           ^ pats_str)
+          (pats = sols)))

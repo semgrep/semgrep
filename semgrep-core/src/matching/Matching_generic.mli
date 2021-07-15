@@ -24,10 +24,10 @@ and tout = tin list
  * the AST of the program we want to match over), then some environment
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
- *)
+*)
 (* currently A and B are usually the same type as we use the
  * same language for the host language and pattern language
- *)
+*)
 type 'a matcher = 'a -> 'a -> tin -> tout
 
 (*e: type [[Matching_generic.matcher]] *)
@@ -184,7 +184,7 @@ val m_comb_fold :
  * That is, m_comb_fold m_comb [x1; ...; xn] comb_result is:
  *
  *    m_comb_bind ((m_comb_bind comb_result (m_comb x1)) ...)) (m_comb xn)
- *)
+*)
 
 val m_comb_flatten : 'a comb_result -> tin -> tout
 (** [m_comb_flatten comb_result] takes each (xs, tout) pair in [comb_result],

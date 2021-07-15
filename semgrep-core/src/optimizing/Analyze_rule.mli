@@ -20,7 +20,7 @@
  * that always return true (which means we should analyze the target file).
  *
  * Note that this function use Common.memoized on the rule id
- *)
+*)
 val regexp_prefilter_of_rule :
   Rule.t -> (string (* for debugging *) * (string -> bool)) option
 

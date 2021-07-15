@@ -14,5 +14,5 @@ val metavar_variable_regexp_string : string
 
 (* will throw a Failure if the pattern contains some legacy code
  * (e.g. the old lvalue metavariables $V)
- *)
+*)
 val check_pattern : Cst_php.any -> Cst_php.any

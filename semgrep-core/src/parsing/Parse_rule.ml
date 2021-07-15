@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 module J = JSON
@@ -37,7 +37,7 @@ module H = Parse_mini_rule
  *    in a generated file, so maybe better to give error location by
  *    describing the line and what is wrong with it?).
  *  - Move the H.xxx here and get rid of Parse_mini_rule.ml
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -145,11 +145,11 @@ let parse_fix_regex env = function
   | J.Object xs -> (
       match find_fields [ "regex"; "replacement"; "count" ] xs with
       | ( [
-            ("regex", Some (J.String regex));
-            ("replacement", Some (J.String replacement));
-            ("count", count_opt);
-          ],
-          [] ) ->
+        ("regex", Some (J.String regex));
+        ("replacement", Some (J.String replacement));
+        ("count", count_opt);
+      ],
+        [] ) ->
           ( parse_regexp env regex,
             Common.map_opt (parse_int "count") count_opt,
             replacement )
@@ -164,10 +164,10 @@ let parse_equivalences = function
   | J.Array xs ->
       xs
       |> List.map (function
-           | J.Object [ ("equivalence", J.String s) ] -> s
-           | x ->
-               pr2_gen x;
-               error "parse_equivalence")
+        | J.Object [ ("equivalence", J.String s) ] -> s
+        | x ->
+            pr2_gen x;
+            error "parse_equivalence")
   | x ->
       pr2_gen x;
       error "parse_equivalences"
@@ -179,12 +179,12 @@ let parse_paths = function
           {
             R.include_ =
               (match inc_opt with
-              | None -> []
-              | Some xs -> parse_strings "include" xs);
+               | None -> []
+               | Some xs -> parse_strings "include" xs);
             exclude =
               (match exc_opt with
-              | None -> []
-              | Some xs -> parse_strings "exclude" xs);
+               | None -> []
+               | Some xs -> parse_strings "exclude" xs);
           }
       | x ->
           pr2_gen x;
@@ -197,13 +197,13 @@ let parse_options json =
   let s = J.string_of_json json in
   Common.save_excursion Atdgen_runtime.Util.Json.unknown_field_handler
     (fun _src_loc field_name ->
-      (* for forward compatibility, better to not raise an exn and just
-       * ignore the new fields.
-       * TODO: we should use a warning/logging infra to report
-       * this in the JSON to the semgrep wrapper and user.
+       (* for forward compatibility, better to not raise an exn and just
+        * ignore the new fields.
+        * TODO: we should use a warning/logging infra to report
+        * this in the JSON to the semgrep wrapper and user.
        *)
-      (*raise (E.InvalidYamlException (spf "unknown option: %s" field_name))*)
-      pr2 (spf "WARNING: unknown option: %s" field_name))
+       (*raise (E.InvalidYamlException (spf "unknown option: %s" field_name))*)
+       pr2 (spf "WARNING: unknown option: %s" field_name))
     (fun () -> Config_semgrep_j.t_of_string s)
 
 (*****************************************************************************)
@@ -246,21 +246,21 @@ and parse_formula_old env (x : string * J.t) : R.formula_old =
       R.PatEither
         (List.map
            (fun x ->
-             match x with
-             | J.Object [ x ] -> parse_formula_old env x
-             | x ->
-                 pr2_gen x;
-                 error "wrong parse_formula fields")
+              match x with
+              | J.Object [ x ] -> parse_formula_old env x
+              | x ->
+                  pr2_gen x;
+                  error "wrong parse_formula fields")
            xs)
   | "patterns", J.Array xs ->
       R.Patterns
         (List.map
            (fun x ->
-             match x with
-             | J.Object [ x ] -> parse_formula_old env x
-             | x ->
-                 pr2_gen x;
-                 error "wrong parse_formula fields")
+              match x with
+              | J.Object [ x ] -> parse_formula_old env x
+              | x ->
+                  pr2_gen x;
+                  error "wrong parse_formula fields")
            xs)
   | "pattern-regex", J.String s ->
       let xpat = R.mk_xpat (Regexp (parse_regexp env s)) s in
@@ -315,10 +315,10 @@ and parse_extra env x =
   | "metavariable-regex", J.Object xs -> (
       match find_fields [ "metavariable"; "regex" ] xs with
       | ( [
-            ("metavariable", Some (J.String metavar));
-            ("regex", Some (J.String regexp));
-          ],
-          [] ) ->
+        ("metavariable", Some (J.String metavar));
+        ("regex", Some (J.String regexp));
+      ],
+        [] ) ->
           R.MetavarRegexp (metavar, parse_regexp env regexp)
       | x ->
           pr2_gen x;
@@ -363,12 +363,12 @@ and parse_extra env x =
         find_fields [ "metavariable"; "comparison"; "strip"; "base" ] xs
       with
       | ( [
-            ("metavariable", Some (J.String metavariable));
-            ("comparison", Some (J.String comparison));
-            ("strip", strip_opt);
-            ("base", base_opt);
-          ],
-          [] ) ->
+        ("metavariable", Some (J.String metavariable));
+        ("comparison", Some (J.String comparison));
+        ("strip", strip_opt);
+        ("base", base_opt);
+      ],
+        [] ) ->
           let comparison = parse_metavar_cond comparison in
           R.MetavarComparison
             {
@@ -393,17 +393,17 @@ let parse_languages ~id langs =
       let languages =
         xs
         |> List.map (function
-             | J.String s -> (
-                 match Lang.lang_of_string_opt s with
-                 | None ->
-                     raise
-                       (E.InvalidLanguageException
-                          (id, spf "unsupported language: %s" s))
-                 | Some l -> l)
-             | _ ->
-                 raise
-                   (E.InvalidRuleException
-                      (id, spf "expecting a string for languages")))
+          | J.String s -> (
+              match Lang.lang_of_string_opt s with
+              | None ->
+                  raise
+                    (E.InvalidLanguageException
+                       (id, spf "unsupported language: %s" s))
+              | Some l -> l)
+          | _ ->
+              raise
+                (E.InvalidRuleException
+                   (id, spf "expecting a string for languages")))
       in
       match languages with
       | [] ->
@@ -454,11 +454,11 @@ let parse_mode env mode_opt (xs : (string * J.t) list) : R.mode =
           xs
       with
       | ( [
-            ("pattern-sources", Some (J.Array sources));
-            ("pattern-sanitizers", sanitizers_opt);
-            ("pattern-sinks", Some (J.Array sinks));
-          ],
-          [] ) ->
+        ("pattern-sources", Some (J.Array sources));
+        ("pattern-sanitizers", sanitizers_opt);
+        ("pattern-sinks", Some (J.Array sinks));
+      ],
+        [] ) ->
           let sources =
             List.map (fun s -> parse_formula env (read_object s)) sources
           in
@@ -485,51 +485,51 @@ let parse_json file json =
   | J.Object [ ("rules", J.Array xs) ] ->
       xs
       |> List.map (fun v ->
-             match v with
-             | J.Object xs -> (
-                 match find_fields top_fields xs with
-                 (* coupling: the order of the fields below must match the
-                  * order in top_fields. *)
-                 | ( [
-                       ("id", Some (J.String id));
-                       ("languages", Some (J.Array langs));
-                       ("message", Some (J.String message));
-                       ("severity", Some (J.String sev));
-                       ("mode", mode_opt);
-                       ("metadata", metadata_opt);
-                       ("fix", fix_opt);
-                       ("fix-regex", fix_regex_opt);
-                       ("paths", paths_opt);
-                       ("equivalences", equivs_opt);
-                       ("options", options_opt);
-                     ],
-                     rest ) ->
-                     let languages = parse_languages ~id langs in
-                     let env = (id, languages) in
-                     let mode = parse_mode env mode_opt rest in
-                     {
-                       R.id;
-                       mode;
-                       message;
-                       languages;
-                       file;
-                       severity = H.parse_severity ~id sev;
-                       (* optional fields *)
-                       metadata = metadata_opt;
-                       fix = Common.map_opt (parse_string "fix") fix_opt;
-                       fix_regexp =
-                         Common.map_opt (parse_fix_regex env) fix_regex_opt;
-                       paths = Common.map_opt parse_paths paths_opt;
-                       equivalences =
-                         Common.map_opt parse_equivalences equivs_opt;
-                       options = Common.map_opt parse_options options_opt;
-                     }
-                 | x ->
-                     pr2_gen x;
-                     error "wrong rule fields")
-             | x ->
-                 pr2_gen x;
-                 error "wrong rule fields")
+        match v with
+        | J.Object xs -> (
+            match find_fields top_fields xs with
+            (* coupling: the order of the fields below must match the
+             * order in top_fields. *)
+            | ( [
+              ("id", Some (J.String id));
+              ("languages", Some (J.Array langs));
+              ("message", Some (J.String message));
+              ("severity", Some (J.String sev));
+              ("mode", mode_opt);
+              ("metadata", metadata_opt);
+              ("fix", fix_opt);
+              ("fix-regex", fix_regex_opt);
+              ("paths", paths_opt);
+              ("equivalences", equivs_opt);
+              ("options", options_opt);
+            ],
+              rest ) ->
+                let languages = parse_languages ~id langs in
+                let env = (id, languages) in
+                let mode = parse_mode env mode_opt rest in
+                {
+                  R.id;
+                  mode;
+                  message;
+                  languages;
+                  file;
+                  severity = H.parse_severity ~id sev;
+                  (* optional fields *)
+                  metadata = metadata_opt;
+                  fix = Common.map_opt (parse_string "fix") fix_opt;
+                  fix_regexp =
+                    Common.map_opt (parse_fix_regex env) fix_regex_opt;
+                  paths = Common.map_opt parse_paths paths_opt;
+                  equivalences =
+                    Common.map_opt parse_equivalences equivs_opt;
+                  options = Common.map_opt parse_options options_opt;
+                }
+            | x ->
+                pr2_gen x;
+                error "wrong rule fields")
+        | x ->
+            pr2_gen x;
+            error "wrong rule fields")
   | _ -> error "missing rules entry as top-level key"
 
 let parse file =
@@ -544,10 +544,10 @@ let parse file =
     | FT.Config FT.Json -> J.load_json file
     | FT.Config FT.Jsonnet ->
         Common2.with_tmp_file ~str:"parse_rule" ~ext:"json" (fun tmpfile ->
-            let cmd = spf "jsonnet %s -o %s" file tmpfile in
-            let n = Sys.command cmd in
-            if n <> 0 then failwith (spf "error executing %s" cmd);
-            J.load_json tmpfile)
+          let cmd = spf "jsonnet %s -o %s" file tmpfile in
+          let n = Sys.command cmd in
+          if n <> 0 then failwith (spf "error executing %s" cmd);
+          J.load_json tmpfile)
     | _ ->
         failwith
           (spf "wrong rule format, only JSON/YAML/JSONNET are valid:%s:" file)

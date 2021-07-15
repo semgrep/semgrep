@@ -2,9 +2,9 @@ open IL
 
 let string_of_lval x =
   (match x.base with
-  | Var n -> str_of_name n
-  | VarSpecial _ -> "<varspecial>"
-  | Mem _ -> "<Mem>")
+   | Var n -> str_of_name n
+   | VarSpecial _ -> "<varspecial>"
+   | Mem _ -> "<Mem>")
   ^
   match x.offset with
   | NoOffset -> ""
@@ -37,8 +37,8 @@ let short_string_of_node_kind nkind =
 
 (* using internally graphviz dot and ghostview on X11 *)
 let (display_cfg : cfg -> unit) =
- fun flow ->
+  fun flow ->
   flow
   |> Ograph_extended.print_ograph_mutable_generic
-       ~s_of_node:(fun (_nodei, node) ->
-         (short_string_of_node_kind node.n, None, None))
+    ~s_of_node:(fun (_nodei, node) ->
+      (short_string_of_node_kind node.n, None, None))

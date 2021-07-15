@@ -130,11 +130,11 @@ let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
   let not_backrefs_in_rest_of_pattern =
     Set_.fold
       (fun k acc ->
-        let added_backref_count =
-          diff_count k ~new_counts:new_backref_counts
-            ~old_counts:old_backref_counts
-        in
-        match added_backref_count with 0 -> Set_.add k acc | _ -> acc)
+         let added_backref_count =
+           diff_count k ~new_counts:new_backref_counts
+             ~old_counts:old_backref_counts
+         in
+         match added_backref_count with 0 -> Set_.add k acc | _ -> acc)
       bound_metavars Set_.empty
   in
   Set_.diff bound_metavars not_backrefs_in_rest_of_pattern
@@ -201,25 +201,25 @@ let prepare_pattern any =
         Visitor_AST.default_visitor with
         kident =
           (fun (_k, _) (id, _tok) ->
-            if debug then printf "kident %s\n" id;
-            if Metavariable.is_metavar_name id then add_metavar id);
+             if debug then printf "kident %s\n" id;
+             if Metavariable.is_metavar_name id then add_metavar id);
         kstmt =
           (fun (k, _) stmt ->
-            let stmt_id = (stmt.s_id :> int) in
-            if debug then printf "kstmt %i\n" stmt_id;
+             let stmt_id = (stmt.s_id :> int) in
+             if debug then printf "kstmt %i\n" stmt_id;
 
-            (* compare the number of backreferences encountered before and after
-               visiting the rest of the pattern, so as to determine the set
-               of metavariables occurring in the rest of the pattern. *)
-            let pre_bound_metavars = !bound_metavars in
-            let pre_backref_counts = !backref_counts in
-            add_to_stack (fun () ->
-                let post_backref_counts = !backref_counts in
-                let backrefs =
-                  diff_backrefs pre_bound_metavars
-                    ~new_backref_counts:post_backref_counts
-                    ~old_backref_counts:pre_backref_counts
-                in
+             (* compare the number of backreferences encountered before and after
+                visiting the rest of the pattern, so as to determine the set
+                of metavariables occurring in the rest of the pattern. *)
+             let pre_bound_metavars = !bound_metavars in
+             let pre_backref_counts = !backref_counts in
+             add_to_stack (fun () ->
+               let post_backref_counts = !backref_counts in
+               let backrefs =
+                 diff_backrefs pre_bound_metavars
+                   ~new_backref_counts:post_backref_counts
+                   ~old_backref_counts:pre_backref_counts
+               in
 
                 (*
            It happens that the same stmt can be visited multiple times, to
@@ -227,29 +227,29 @@ let prepare_pattern any =
 
              assert (stmt.s_backrefs = None);
         *)
-                stmt.s_backrefs <- Some backrefs;
+               stmt.s_backrefs <- Some backrefs;
 
-                (* Only consult the cache if it's economical, see details earlier. *)
-                if
-                  is_ellipsis_stmt stmt
-                  && (Set_.is_empty backrefs || !Flag.max_cache)
-                then stmt.s_use_cache <- true;
+               (* Only consult the cache if it's economical, see details earlier. *)
+               if
+                 is_ellipsis_stmt stmt
+                 && (Set_.is_empty backrefs || !Flag.max_cache)
+               then stmt.s_use_cache <- true;
 
-                if debug then (
-                  printf "stmt %i\n" stmt_id;
-                  printf "$A backrefs before %i, after %i\n"
-                    (get_count "$A" pre_backref_counts)
-                    (get_count "$A" post_backref_counts);
-                  printf "bound metavariables:\n%a" print_names
-                    pre_bound_metavars;
-                  printf "pre backref counts:\n%a" print_name_counts
-                    pre_backref_counts;
-                  printf "post backref counts:\n%a" print_name_counts
-                    post_backref_counts;
-                  printf "backrefs:\n%a" print_names backrefs;
-                  printf "\n"));
-            (* continue scanning the current subtree. *)
-            k stmt);
+               if debug then (
+                 printf "stmt %i\n" stmt_id;
+                 printf "$A backrefs before %i, after %i\n"
+                   (get_count "$A" pre_backref_counts)
+                   (get_count "$A" post_backref_counts);
+                 printf "bound metavariables:\n%a" print_names
+                   pre_bound_metavars;
+                 printf "pre backref counts:\n%a" print_name_counts
+                   pre_backref_counts;
+                 printf "post backref counts:\n%a" print_name_counts
+                   post_backref_counts;
+                 printf "backrefs:\n%a" print_names backrefs;
+                 printf "\n"));
+             (* continue scanning the current subtree. *)
+             k stmt);
       }
   in
   visitor any;
@@ -326,9 +326,9 @@ module Cache_key = struct
     sprintf "%s %s %s %B %i %i" (show_env k.min_env)
       (match k.function_id with Match_deep -> "deep" | Match_list -> "list")
       (match k.list_kind with
-      | Original -> "orig"
-      | Flattened_until last_id ->
-          sprintf "flat[%i-%i]" (k.target_stmt_id :> int) (last_id :> int))
+       | Original -> "orig"
+       | Flattened_until last_id ->
+           sprintf "flat[%i-%i]" (k.target_stmt_id :> int) (last_id :> int))
       k.less_is_ok
       (k.pattern_stmt_id :> int)
       (k.target_stmt_id :> int)
@@ -340,7 +340,7 @@ module Cache_key = struct
   let equal_calls = ref 0
 
   let equal : t -> t -> bool =
-   fun a b ->
+    fun a b ->
     incr equal_calls;
     a.pattern_stmt_id = b.pattern_stmt_id
     && a.target_stmt_id = b.target_stmt_id
@@ -411,7 +411,7 @@ module Cache = struct
      one obtained from the cache.
   *)
   let patch_result_from_cache ~access backrefs current_stmt orig_acc cached_acc
-      =
+    =
     let orig_env : Env.t = access.get_mv_field orig_acc in
     let cached_env : Env.t = access.get_mv_field cached_acc in
     let orig_span : Stmts_match_span.t = access.get_span_field orig_acc in
@@ -420,12 +420,12 @@ module Cache = struct
     let patched_full_env =
       List.map
         (fun ((k, _v) as cached_binding) ->
-          if Env.has_backref k backrefs (* = is in min_env *) then
-            cached_binding
-          else
-            match Env.get_capture k orig_env with
-            | None -> (* wasn't bound before the call *) cached_binding
-            | Some orig_v -> (* to be restored *) (k, orig_v))
+           if Env.has_backref k backrefs (* = is in min_env *) then
+             cached_binding
+           else
+             match Env.get_capture k orig_env with
+             | None -> (* wasn't bound before the call *) cached_binding
+             | Some orig_v -> (* to be restored *) (k, orig_v))
         cached_env.full_env
     in
     let patched_env = { cached_env with full_env = patched_full_env } in
@@ -475,7 +475,7 @@ module Cache = struct
             | res ->
                 List.map
                   (fun cached_acc ->
-                    patch_result_from_cache ~access backrefs a acc cached_acc)
+                     patch_result_from_cache ~access backrefs a acc cached_acc)
                   res)
         | None ->
             incr cache_misses;

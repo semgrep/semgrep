@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open IL
 module G = AST_generic
@@ -27,14 +27,14 @@ module VarMap = Dataflow.VarMap
 type mapping = G.constness Dataflow.mapping
 
 module DataflowX = Dataflow.Make (struct
-  type node = F.node
+    type node = F.node
 
-  type edge = F.edge
+    type edge = F.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+    type flow = (node, edge) Ograph_extended.ograph_mutable
 
-  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
-end)
+    let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
+  end)
 
 (*****************************************************************************)
 (* Error management *)
@@ -158,7 +158,7 @@ let eval_unop_int op opt_i =
 (* This reduces arithmetic "exceptions" to `G.Cst G.Cint`, it does NOT
  * detect overflows for any other language than OCaml. Note that OCaml
  * integers have just 63-bits in 64-bit architectures!
- *)
+*)
 let eval_binop_int tok op opt_i1 opt_i2 =
   let sign i = i asr (Sys.int_size - 1) in
   match (op, opt_i1, opt_i2) with
@@ -169,17 +169,17 @@ let eval_binop_int tok op opt_i1 opt_i2 =
   | G.Minus, Some i1, Some i2 ->
       let r = i1 - i2 in
       if sign i1 <> sign i2 && sign r <> sign i1 then G.Cst G.Cint
-        (* overflow *)
+      (* overflow *)
       else G.Lit (literal_of_int (i1 + i2))
   | G.Mult, Some i1, Some i2 ->
       let overflow =
         i1 <> 0 && i2 <> 0
         && ((i1 < 0 && i2 = min_int) (* >max_int *)
-           || (i1 = min_int && i2 < 0) (* >max_int *)
-           ||
-           if sign i1 * sign i2 = 1 then abs i1 > abs (max_int / i2)
-             (* >max_int *)
-           else abs i1 > abs (min_int / i2) (* <min_int *))
+            || (i1 = min_int && i2 < 0) (* >max_int *)
+            ||
+            if sign i1 * sign i2 = 1 then abs i1 > abs (max_int / i2)
+            (* >max_int *)
+            else abs i1 > abs (min_int / i2) (* <min_int *))
       in
       if overflow then G.Cst G.Cint else G.Lit (literal_of_int (i1 * i2))
   | G.Div, Some i1, Some i2 -> (
@@ -237,13 +237,13 @@ and eval_concat env args =
   args
   |> List.map (eval env)
   |> List.fold_left
-       (fun res e ->
-         match (res, e) with
-         | G.Lit (G.String (r, _)), G.Lit (G.String (s, _)) ->
-             G.Lit (literal_of_string (r ^ s))
-         | (G.Lit _ | G.Cst _), G.Cst G.Cstr -> G.Cst G.Cstr
-         | _____else_____ -> G.NotCst)
-       (G.Lit (literal_of_string ""))
+    (fun res e ->
+       match (res, e) with
+       | G.Lit (G.String (r, _)), G.Lit (G.String (s, _)) ->
+           G.Lit (literal_of_string (r ^ s))
+       | (G.Lit _ | G.Cst _), G.Cst G.Cstr -> G.Cst G.Cstr
+       | _____else_____ -> G.NotCst)
+    (G.Lit (literal_of_string ""))
 
 (*****************************************************************************)
 (* Transfer *)
@@ -263,61 +263,61 @@ and eval_concat env args =
  * It would be more sound to assume "Top" (i.e., `G.NotCst`) as default, or
  * perhaps we could have a switch to control whether we want a may- or must-
  * analysis?
- *)
+*)
 let union_env = Dataflow.varmap_union union
 
 let transfer :
-    enter_env:G.constness Dataflow.env ->
-    flow:F.cfg ->
-    G.constness Dataflow.transfn =
- fun ~enter_env ~flow
-     (* the transfer function to update the mapping at node index ni *)
-       mapping ni ->
-  let node = flow#nodes#assoc ni in
+  enter_env:G.constness Dataflow.env ->
+  flow:F.cfg ->
+  G.constness Dataflow.transfn =
+  fun ~enter_env ~flow
+    (* the transfer function to update the mapping at node index ni *)
+    mapping ni ->
+    let node = flow#nodes#assoc ni in
 
-  let inp' =
-    (* input mapping *)
-    match node.F.n with
-    | Enter -> enter_env
-    | _else ->
-        (flow#predecessors ni)#fold
-          (fun acc (ni_pred, _) -> union_env acc mapping.(ni_pred).D.out_env)
-          VarMap.empty
-  in
+    let inp' =
+      (* input mapping *)
+      match node.F.n with
+      | Enter -> enter_env
+      | _else ->
+          (flow#predecessors ni)#fold
+            (fun acc (ni_pred, _) -> union_env acc mapping.(ni_pred).D.out_env)
+            VarMap.empty
+    in
 
-  let out' =
-    match node.F.n with
-    | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
-    | NThrow _ | NOther _ | NTodo _ ->
-        inp'
-    | NInstr instr -> (
-        match instr.i with
-        (* TODO: Handle base=Mem _ and base=VarSpecial _ cases. *)
-        | Assign ({ base = Var var; offset = NoOffset; constness = _ }, exp) ->
-            let cexp = eval inp' exp in
-            D.VarMap.add (str_of_name var) cexp inp'
-        | CallSpecial
-            ( Some { base = Var var; offset = NoOffset; constness = _ },
-              (Concat, _),
-              args ) ->
-            let cexp = eval_concat inp' args in
-            D.VarMap.add (str_of_name var) cexp inp'
-        | ___else___ -> (
-            (* assume non-constant *)
-            let lvar_opt = IL.lvar_of_instr_opt instr in
-            match lvar_opt with
-            | None -> inp'
-            | Some lvar -> D.VarMap.add (str_of_name lvar) G.NotCst inp'))
-  in
+    let out' =
+      match node.F.n with
+      | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
+      | NThrow _ | NOther _ | NTodo _ ->
+          inp'
+      | NInstr instr -> (
+          match instr.i with
+          (* TODO: Handle base=Mem _ and base=VarSpecial _ cases. *)
+          | Assign ({ base = Var var; offset = NoOffset; constness = _ }, exp) ->
+              let cexp = eval inp' exp in
+              D.VarMap.add (str_of_name var) cexp inp'
+          | CallSpecial
+              ( Some { base = Var var; offset = NoOffset; constness = _ },
+                (Concat, _),
+                args ) ->
+              let cexp = eval_concat inp' args in
+              D.VarMap.add (str_of_name var) cexp inp'
+          | ___else___ -> (
+              (* assume non-constant *)
+              let lvar_opt = IL.lvar_of_instr_opt instr in
+              match lvar_opt with
+              | None -> inp'
+              | Some lvar -> D.VarMap.add (str_of_name lvar) G.NotCst inp'))
+    in
 
-  { D.in_env = inp'; out_env = out' }
+    { D.in_env = inp'; out_env = out' }
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let (fixpoint : IL.name list -> F.cfg -> mapping) =
- fun inputs flow ->
+  fun inputs flow ->
   let enter_env =
     inputs |> List.to_seq
     |> Seq.map (fun var -> (str_of_name var, G.NotCst))
@@ -331,19 +331,19 @@ let (fixpoint : IL.name list -> F.cfg -> mapping) =
 let update_constness (flow : F.cfg) mapping =
   flow#nodes#keys
   |> List.iter (fun ni ->
-         let ni_info = mapping.(ni) in
+    let ni_info = mapping.(ni) in
 
-         let node = flow#nodes#assoc ni in
+    let node = flow#nodes#assoc ni in
 
-         (* Update RHS constness according to the input env. *)
-         rlvals_of_node node.n
-         |> List.iter (function
-              | { base = Var var; constness; _ } -> (
-                  match
-                    D.VarMap.find_opt (str_of_name var) ni_info.D.in_env
-                  with
-                  | None -> ()
-                  | Some c -> refine_constness_ref constness c)
-              | ___else___ -> ())
-         (* Should not update the LHS constness since in x = E, x is a "ref",
-          * and it should not be substituted for the value it holds. *))
+    (* Update RHS constness according to the input env. *)
+    rlvals_of_node node.n
+    |> List.iter (function
+      | { base = Var var; constness; _ } -> (
+          match
+            D.VarMap.find_opt (str_of_name var) ni_info.D.in_env
+          with
+          | None -> ()
+          | Some c -> refine_constness_ref constness c)
+      | ___else___ -> ())
+    (* Should not update the LHS constness since in x = E, x is a "ref",
+     * and it should not be substituted for the value it holds. *))

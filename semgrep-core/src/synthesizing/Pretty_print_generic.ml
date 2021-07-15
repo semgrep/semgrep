@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 open AST_generic
 module F = Format
@@ -29,7 +29,7 @@ module PI = Parse_info
  *  - OCaml Format lib? see pfff/commons/OCaml.string_of_v for an example
  *  - Martin's easy-format?
  *  - Wadler's pretty-printer combinators?
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -53,7 +53,7 @@ let opt f = function None -> "" | Some x -> f x
 
 (* pad: note that Parse_info.str_of_info does not raise an exn anymore
  * on fake tokens. It instead returns the fake token string
- *)
+*)
 let token default tok =
   try Parse_info.str_of_info tok with Parse_info.NoTokenLocation _ -> default
 
@@ -289,14 +289,14 @@ and def_stmt env (entity, def_kind) =
       | Lang.Go ->
           ( (fun typ id _e -> F.sprintf "var %s %s" id typ),
             fun typ id e -> F.sprintf "var %s %s = %s" id typ e )
-          (* will have extra space if no type *)
+      (* will have extra space if no type *)
       | Lang.Python | Lang.Python2 | Lang.Python3 | Lang.Ruby ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s = %s" id e )
       | Lang.Rust ->
           ( (fun typ id _e -> F.sprintf "let %s: %s" id typ),
             fun typ id e -> F.sprintf "let %s: %s = %s" id typ e )
-          (* will have extra space if no type *)
+      (* will have extra space if no type *)
       | Lang.R ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s <- %s" id e )

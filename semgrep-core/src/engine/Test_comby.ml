@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 open Comby_kernel
 module MS = Matchers.Metasyntax
@@ -24,7 +24,7 @@ let _logger = Logging.get_logger [ __MODULE__ ]
  *
  * This is the first step in integrating Comby in semgrep. We first
  * need to debug how to use the Comby API in comby.mli
- *)
+*)
 
 (*****************************************************************************)
 (* Entry point *)

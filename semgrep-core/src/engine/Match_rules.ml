@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 module R = Rule
@@ -92,7 +92,7 @@ let debug_matches = ref false
  * compositions of patterns.
  * Coccinelle instead opted for very complex patterns and using CTL to
  * hold of that together.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -100,7 +100,7 @@ let debug_matches = ref false
 (* Id of a single pattern in a formula. This will be used to generate
  * mini rules with this id, and later when we evaluate the formula, find
  * the matching results corresponding to this id.
- *)
+*)
 type pattern_id = R.pattern_id
 
 (* !This hash table uses the Hashtbl.find_all property! *)
@@ -121,7 +121,7 @@ type env = {
 (*****************************************************************************)
 
 let (xpatterns_in_formula : S.sformula -> R.xpattern list) =
- fun e ->
+  fun e ->
   let res = ref [] in
   e |> S.visit_sformula (fun xpat -> Common.push xpat res);
   !res
@@ -133,27 +133,27 @@ let partition_xpatterns xs =
   let comby = ref [] in
   xs
   |> List.iter (fun xpat ->
-         let id = xpat.R.pid in
-         let str = xpat.R.pstr in
-         match xpat.R.pat with
-         | R.Sem (x, _lang) -> Common.push (x, id, str) semgrep
-         | R.Spacegrep x -> Common.push (x, id, str) spacegrep
-         | R.Regexp x -> Common.push (x, id, str) regexp
-         | R.Comby x -> Common.push (x, id, str) comby);
+    let id = xpat.R.pid in
+    let str = xpat.R.pstr in
+    match xpat.R.pat with
+    | R.Sem (x, _lang) -> Common.push (x, id, str) semgrep
+    | R.Spacegrep x -> Common.push (x, id, str) spacegrep
+    | R.Regexp x -> Common.push (x, id, str) regexp
+    | R.Comby x -> Common.push (x, id, str) comby);
   (List.rev !semgrep, List.rev !spacegrep, List.rev !regexp, List.rev !comby)
 
 let (group_matches_per_pattern_id : Pattern_match.t list -> id_to_match_results)
-    =
- fun xs ->
+  =
+  fun xs ->
   let h = Hashtbl.create 101 in
   xs
   |> List.iter (fun m ->
-         let id = int_of_string m.PM.rule_id.id in
-         Hashtbl.add h id m);
+    let id = int_of_string m.PM.rule_id.id in
+    Hashtbl.add h id m);
   h
 
 let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
- fun r range ->
+  fun r range ->
   let m = range.origin in
   let rule_id = m.rule_id in
   (* adjust the rule id *)
@@ -170,15 +170,15 @@ let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
 
 (* return list of "positive" x list of Not x list of Conds *)
 let (split_and :
-      S.sformula list -> S.sformula list * S.sformula list * R.metavar_cond list)
-    =
- fun xs ->
+       S.sformula list -> S.sformula list * S.sformula list * R.metavar_cond list)
+  =
+  fun xs ->
   xs
   |> Common.partition_either3 (fun e ->
-         match e with
-         | S.Not f -> Middle3 f
-         | S.Leaf (R.MetavarCond c) -> Right3 c
-         | _ -> Left3 e)
+    match e with
+    | S.Not f -> Middle3 f
+    | S.Leaf (R.MetavarCond c) -> Right3 c
+    | _ -> Left3 e)
 
 let lazy_force x = Lazy.force x [@@profiling]
 
@@ -193,20 +193,20 @@ let lazy_force x = Lazy.force x [@@profiling]
  * this will raise Impossible... Thus, now we have to pass the language(s) that
  * we are specifically targeting. *)
 let (mini_rule_of_pattern :
-      R.xlang -> Pattern.t * Rule.pattern_id * string -> MR.t) =
- fun xlang (pattern, id, pstr) ->
+       R.xlang -> Pattern.t * Rule.pattern_id * string -> MR.t) =
+  fun xlang (pattern, id, pstr) ->
   {
     MR.id = string_of_int id;
     pattern;
     (* parts that are not really needed I think in this context, since
      * we just care about the matching result.
-     *)
+    *)
     message = "";
     severity = MR.Error;
     languages =
       (match xlang with
-      | R.L (x, xs) -> x :: xs
-      | R.LRegex | R.LGeneric -> raise Impossible);
+       | R.L (x, xs) -> x :: xs
+       | R.LRegex | R.LGeneric -> raise Impossible);
     (* useful for debugging timeout *)
     pattern_string = pstr;
   }
@@ -220,26 +220,26 @@ let debug_semgrep config mini_rules equivalences file lang ast =
   logger#info "DEBUG SEMGREP MODE!";
   mini_rules
   |> List.map (fun mr ->
-         logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
-         let res =
-           Match_patterns.check
-             ~hook:(fun _ _ -> ())
-             config [ mr ] equivalences (file, lang, ast)
+    logger#debug "Checking mini rule with pattern %s" mr.MR.pattern_string;
+    let res =
+      Match_patterns.check
+        ~hook:(fun _ _ -> ())
+        config [ mr ] equivalences (file, lang, ast)
+    in
+    if !debug_matches then
+      (* TODO
+         let json = res |> List.map (fun x ->
+              x |> JSON_report.match_to_match_ |> SJ.string_of_match_) in
+         let json_uniq = Common.uniq_by ( = ) json in
+         let res_uniq =
+           Common.uniq_by (AST_utils.with_structural_equal PM.equal) res
          in
-         if !debug_matches then
-           (* TODO
-              let json = res |> List.map (fun x ->
-                   x |> JSON_report.match_to_match_ |> SJ.string_of_match_) in
-              let json_uniq = Common.uniq_by ( = ) json in
-              let res_uniq =
-                Common.uniq_by (AST_utils.with_structural_equal PM.equal) res
-              in
-              logger#debug
-                "Found %d mini rule matches (uniq = %d) (json_uniq = %d)"
-                (List.length res) (List.length res_uniq) (List.length json_uniq);
-           *)
-           res |> List.iter (fun m -> logger#debug "match = %s" (PM.show m));
-         res)
+         logger#debug
+           "Found %d mini rule matches (uniq = %d) (json_uniq = %d)"
+           (List.length res) (List.length res_uniq) (List.length json_uniq);
+      *)
+      res |> List.iter (fun m -> logger#debug "match = %s" (PM.show m));
+    res)
   |> List.flatten
 
 (*****************************************************************************)
@@ -255,19 +255,19 @@ let matches_of_patterns config equivalences (file, xlang, lazy_ast_and_errors)
       in
       let (matches, errors), match_time =
         Common.with_time (fun () ->
-            let mini_rules =
-              patterns |> List.map (mini_rule_of_pattern xlang)
-            in
+          let mini_rules =
+            patterns |> List.map (mini_rule_of_pattern xlang)
+          in
 
-            (* debugging path *)
-            if !debug_timeout || !debug_matches then
-              ( debug_semgrep config mini_rules equivalences file lang ast,
-                errors ) (* regular path *)
-            else
-              ( Match_patterns.check
-                  ~hook:(fun _ _ -> ())
-                  config mini_rules equivalences (file, lang, ast),
-                errors ))
+          (* debugging path *)
+          if !debug_timeout || !debug_matches then
+            ( debug_semgrep config mini_rules equivalences file lang ast,
+              errors ) (* regular path *)
+          else
+            ( Match_patterns.check
+                ~hook:(fun _ _ -> ())
+                config mini_rules equivalences (file, lang, ast),
+              errors ))
       in
       { RP.matches; errors; profiling = { RP.parse_time; match_time } }
   | _ -> RP.empty_semgrep_result
@@ -278,11 +278,11 @@ let matches_of_patterns config equivalences (file, xlang, lazy_ast_and_errors)
 
 (* This type and matches_of_matcher() below factorize code between
  * the regexp, spacegrep, and now comby matchers.
- *)
+*)
 type ('target_content, 'xpattern) xpattern_matcher = {
   (* init returns an option to let the matcher the option to skip
    * certain files (e.g., big binary or minified files for spacegrep)
-   *)
+  *)
   init : filename -> 'target_content option;
   matcher :
     'target_content -> filename -> 'xpattern -> (match_range * MV.bindings) list;
@@ -293,7 +293,7 @@ type ('target_content, 'xpattern) xpattern_matcher = {
  * the whole string. However, external programs using a startp/endp
  * expect a different location if the end part is on a different line
  * (e.g., the semgrep Python wrapper), so I now return a pair.
- *)
+*)
 and match_range = Parse_info.token_location * Parse_info.token_location
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
@@ -305,11 +305,11 @@ let info_of_token_location loc =
   { PI.token = PI.OriginTok loc; transfo = PI.NoTransfo }
 
 let (matches_of_matcher :
-      ('xpattern * pattern_id * string) list ->
-      ('target_content, 'xpattern) xpattern_matcher ->
-      filename ->
-      RP.times RP.match_result) =
- fun xpatterns matcher file ->
+       ('xpattern * pattern_id * string) list ->
+     ('target_content, 'xpattern) xpattern_matcher ->
+     filename ->
+     RP.times RP.match_result) =
+  fun xpatterns matcher file ->
   if xpatterns = [] then RP.empty_semgrep_result
   else
     let target_content_opt, parse_time =
@@ -320,21 +320,21 @@ let (matches_of_matcher :
     | Some target_content ->
         let res, match_time =
           Common.with_time (fun () ->
-              xpatterns
-              |> List.map (fun (xpat, id, pstr) ->
-                     let xs = matcher.matcher target_content file xpat in
-                     xs
-                     |> List.map (fun ((loc1, loc2), env) ->
-                            (* this will be adjusted later *)
-                            let rule_id = fake_rule_id (id, pstr) in
-                            {
-                              PM.rule_id;
-                              file;
-                              range_loc = (loc1, loc2);
-                              env;
-                              tokens = lazy [ info_of_token_location loc1 ];
-                            }))
-              |> List.flatten)
+            xpatterns
+            |> List.map (fun (xpat, id, pstr) ->
+              let xs = matcher.matcher target_content file xpat in
+              xs
+              |> List.map (fun ((loc1, loc2), env) ->
+                (* this will be adjusted later *)
+                let rule_id = fake_rule_id (id, pstr) in
+                {
+                  PM.rule_id;
+                  file;
+                  range_loc = (loc1, loc2);
+                  env;
+                  tokens = lazy [ info_of_token_location loc1 ];
+                }))
+            |> List.flatten)
         in
         {
           RP.matches = res;
@@ -370,7 +370,7 @@ let lexing_pos_to_loc file x str =
   let charpos = x.Lexing.pos_cnum in
   (* bugfix: not +1 here, Parse_info.column is 0-based.
    * JSON_report.json_range does the adjust_column + 1.
-   *)
+  *)
   let column = x.Lexing.pos_cnum - x.Lexing.pos_bol in
   { PI.str; charpos; file; line; column }
 
@@ -381,56 +381,56 @@ let spacegrep_matcher (doc, src) file pat =
   in
   matches
   |> List.map (fun m ->
-         let (pos1, _), (_, pos2) = m.Spacegrep.Match.region in
-         let { Spacegrep.Match.value = str; _ } = m.Spacegrep.Match.capture in
-         let env =
-           m.Spacegrep.Match.named_captures
-           |> List.map (fun (s, capture) ->
-                  let mvar = "$" ^ s in
-                  let { Spacegrep.Match.value = str; loc = pos, _ } = capture in
-                  let loc = lexing_pos_to_loc file pos str in
-                  let t = info_of_token_location loc in
-                  let mval = mval_of_string str t in
-                  (mvar, mval))
-         in
-         let loc1 = lexing_pos_to_loc file pos1 str in
-         let loc2 = lexing_pos_to_loc file pos2 "" in
-         ((loc1, loc2), env))
+    let (pos1, _), (_, pos2) = m.Spacegrep.Match.region in
+    let { Spacegrep.Match.value = str; _ } = m.Spacegrep.Match.capture in
+    let env =
+      m.Spacegrep.Match.named_captures
+      |> List.map (fun (s, capture) ->
+        let mvar = "$" ^ s in
+        let { Spacegrep.Match.value = str; loc = pos, _ } = capture in
+        let loc = lexing_pos_to_loc file pos str in
+        let t = info_of_token_location loc in
+        let mval = mval_of_string str t in
+        (mvar, mval))
+    in
+    let loc1 = lexing_pos_to_loc file pos1 str in
+    let loc2 = lexing_pos_to_loc file pos2 "" in
+    ((loc1, loc2), env))
 
 let matches_of_spacegrep spacegreps file =
   matches_of_matcher spacegreps
     {
       init =
         (fun _ ->
-          (* coupling: mostly copypaste of Spacegrep_main.run_all *)
+           (* coupling: mostly copypaste of Spacegrep_main.run_all *)
           (*
            We inspect the first 4096 bytes to guess whether the file type.
            This saves time on large files, by reading typically just one
            block from the file system.
           *)
-          let peek_length = 4096 in
-          let partial_doc_src =
-            Spacegrep.Src_file.of_file ~max_len:peek_length file
-          in
-          let doc_type = Spacegrep.File_type.classify partial_doc_src in
-          match doc_type with
-          | Minified | Binary ->
-              logger#info "ignoring gibberish file: %s\n%!" file;
-              None
-          | _ ->
-              let src =
-                if
-                  Spacegrep.Src_file.length partial_doc_src < peek_length
-                  (* it's actually complete, no need to re-input the file *)
-                then partial_doc_src
-                else Spacegrep.Src_file.of_file file
-              in
-              (* pr (Spacegrep.Doc_AST.show doc); *)
-              Some (Spacegrep.Parse_doc.of_src src, src));
+           let peek_length = 4096 in
+           let partial_doc_src =
+             Spacegrep.Src_file.of_file ~max_len:peek_length file
+           in
+           let doc_type = Spacegrep.File_type.classify partial_doc_src in
+           match doc_type with
+           | Minified | Binary ->
+               logger#info "ignoring gibberish file: %s\n%!" file;
+               None
+           | _ ->
+               let src =
+                 if
+                   Spacegrep.Src_file.length partial_doc_src < peek_length
+                   (* it's actually complete, no need to re-input the file *)
+                 then partial_doc_src
+                 else Spacegrep.Src_file.of_file file
+               in
+               (* pr (Spacegrep.Doc_AST.show doc); *)
+               Some (Spacegrep.Parse_doc.of_src src, src));
       matcher = spacegrep_matcher;
     }
     file
-  [@@profiling]
+[@@profiling]
 
 (*-------------------------------------------------------------------*)
 (* Regexps *)
@@ -439,39 +439,39 @@ let regexp_matcher big_str file (re_str, re) =
   let subs = try Pcre.exec_all ~rex:re big_str with Not_found -> [||] in
   subs |> Array.to_list
   |> List.map (fun sub ->
-         let matched_str = Pcre.get_substring sub 0 in
-         let charpos, _ = Pcre.get_substring_ofs sub 0 in
-         let str = matched_str in
-         let line, column = line_col_of_charpos file charpos in
-         let loc1 = { PI.str; charpos; file; line; column } in
+    let matched_str = Pcre.get_substring sub 0 in
+    let charpos, _ = Pcre.get_substring_ofs sub 0 in
+    let str = matched_str in
+    let line, column = line_col_of_charpos file charpos in
+    let loc1 = { PI.str; charpos; file; line; column } in
 
-         let charpos = charpos + String.length str in
-         let str = "" in
-         let line, column = line_col_of_charpos file charpos in
-         let loc2 = { PI.str; charpos; file; line; column } in
+    let charpos = charpos + String.length str in
+    let str = "" in
+    let line, column = line_col_of_charpos file charpos in
+    let loc2 = { PI.str; charpos; file; line; column } in
 
-         (* return regexp binded group $1 $2 etc *)
-         let n = Pcre.num_of_subs sub in
-         let env =
-           match n with
-           | 1 -> []
-           | _ when n <= 0 -> raise Impossible
-           | n ->
-               Common2.enum 1 (n - 1)
-               |> Common.map_filter (fun n ->
-                      try
-                        let charpos, _ = Pcre.get_substring_ofs sub n in
-                        let str = Pcre.get_substring sub n in
-                        let line, column = line_col_of_charpos file charpos in
-                        let loc = { PI.str; charpos; file; line; column } in
-                        let t = PI.mk_info_of_loc loc in
-                        Some (spf "$%d" n, MV.Text (str, t))
-                      with Not_found ->
-                        logger#debug "not found %d substring of %s in %s" n
-                          re_str matched_str;
-                        None)
-         in
-         ((loc1, loc2), env))
+    (* return regexp binded group $1 $2 etc *)
+    let n = Pcre.num_of_subs sub in
+    let env =
+      match n with
+      | 1 -> []
+      | _ when n <= 0 -> raise Impossible
+      | n ->
+          Common2.enum 1 (n - 1)
+          |> Common.map_filter (fun n ->
+            try
+              let charpos, _ = Pcre.get_substring_ofs sub n in
+              let str = Pcre.get_substring sub n in
+              let line, column = line_col_of_charpos file charpos in
+              let loc = { PI.str; charpos; file; line; column } in
+              let t = PI.mk_info_of_loc loc in
+              Some (spf "$%d" n, MV.Text (str, t))
+            with Not_found ->
+              logger#debug "not found %d substring of %s in %s" n
+                re_str matched_str;
+              None)
+    in
+    ((loc1, loc2), env))
 
 let matches_of_regexs regexps lazy_content file =
   matches_of_matcher regexps
@@ -480,7 +480,7 @@ let matches_of_regexs regexps lazy_content file =
       matcher = regexp_matcher;
     }
     file
-  [@@profiling]
+[@@profiling]
 
 (*-------------------------------------------------------------------*)
 (* Comby *)
@@ -492,7 +492,7 @@ module MS = CK.Matchers.Metasyntax
 (* less: "if you need line/column conversion [in Comby], then there's another
  * function to run over matches to hydrate line/column info in the result"
  * src: https://github.com/comby-tools/comby/issues/244
- *)
+*)
 let line_col_charpos_of_comby_range file range =
   let { CK.Match.Location.offset = charpos; line = _; column = _ } =
     range.CK.Match.Range.match_start
@@ -506,64 +506,64 @@ let comby_matcher (m_all, source) file pat =
   (*Format.printf "%a@." CK.Match.pp_json_lines (None, matches);*)
   matches
   |> List.map (fun { CK.Match.range; environment; matched } ->
-         let env =
-           CK.Match.Environment.vars environment
-           |> List.map (fun s ->
-                  let mvar = "$" ^ s in
-                  let str_opt = CK.Match.Environment.lookup environment s in
-                  let range_opt =
-                    CK.Match.Environment.lookup_range environment s
-                  in
-                  match (str_opt, range_opt) with
-                  | Some str, Some range ->
-                      let line, column, charpos =
-                        line_col_charpos_of_comby_range file range
-                      in
-                      let loc = { PI.str; charpos; file; line; column } in
-                      let t = info_of_token_location loc in
-                      let mval = mval_of_string str t in
-                      (mvar, mval)
-                  | _ -> raise Impossible)
-         in
-         let line, column, charpos =
-           line_col_charpos_of_comby_range file range
-         in
-         let loc1 = { PI.str = matched; charpos; file; line; column } in
+    let env =
+      CK.Match.Environment.vars environment
+      |> List.map (fun s ->
+        let mvar = "$" ^ s in
+        let str_opt = CK.Match.Environment.lookup environment s in
+        let range_opt =
+          CK.Match.Environment.lookup_range environment s
+        in
+        match (str_opt, range_opt) with
+        | Some str, Some range ->
+            let line, column, charpos =
+              line_col_charpos_of_comby_range file range
+            in
+            let loc = { PI.str; charpos; file; line; column } in
+            let t = info_of_token_location loc in
+            let mval = mval_of_string str t in
+            (mvar, mval)
+        | _ -> raise Impossible)
+    in
+    let line, column, charpos =
+      line_col_charpos_of_comby_range file range
+    in
+    let loc1 = { PI.str = matched; charpos; file; line; column } in
 
-         let charpos2 = charpos + String.length matched in
-         let line, column = line_col_of_charpos file charpos2 in
-         let loc2 = { PI.str = ""; charpos = charpos2; file; line; column } in
+    let charpos2 = charpos + String.length matched in
+    let line, column = line_col_of_charpos file charpos2 in
+    let loc2 = { PI.str = ""; charpos = charpos2; file; line; column } in
 
-         ((loc1, loc2), env))
+    ((loc1, loc2), env))
 
 let matches_of_combys combys lazy_content file =
   matches_of_matcher combys
     {
       init =
         (fun _ ->
-          let _d, _b, e = Common2.dbe_of_filename file in
-          let metasyntax =
-            {
-              MS.syntax =
-                [ MS.Hole (Everything, MS.Delimited (Some "$", None)) ];
-              identifier = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            }
-          in
-          match
-            CK.Matchers.Alpha.select_with_extension ~metasyntax ("." ^ e)
-          with
-          | None ->
-              logger#info "no Alpha Comby module for extension %s" e;
-              None
-          | Some x ->
-              let (module M : CK.Matchers.Matcher.S) = x in
-              Some
-                ( (fun ~template ~source () -> M.all ~template ~source ()),
-                  Lazy.force lazy_content ));
+           let _d, _b, e = Common2.dbe_of_filename file in
+           let metasyntax =
+             {
+               MS.syntax =
+                 [ MS.Hole (Everything, MS.Delimited (Some "$", None)) ];
+               identifier = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+             }
+           in
+           match
+             CK.Matchers.Alpha.select_with_extension ~metasyntax ("." ^ e)
+           with
+           | None ->
+               logger#info "no Alpha Comby module for extension %s" e;
+               None
+           | Some x ->
+               let (module M : CK.Matchers.Matcher.S) = x in
+               Some
+                 ( (fun ~template ~source () -> M.all ~template ~source ()),
+                   Lazy.force lazy_content ));
       matcher = comby_matcher;
     }
     file
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Evaluating xpatterns *)
@@ -575,7 +575,7 @@ let matches_of_xpatterns config equivalences
    * in theory we could mix all of them together. This is why below
    * I don't match over xlang and instead assume we could have multiple
    * kinds of patterns at the same time.
-   *)
+  *)
   let patterns, spacegreps, regexps, combys = partition_xpatterns xpatterns in
 
   (* final result *)
@@ -588,7 +588,7 @@ let matches_of_xpatterns config equivalences
       matches_of_regexs regexps lazy_content file;
       matches_of_combys combys lazy_content file;
     ]
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Formula evaluation *)
@@ -597,45 +597,45 @@ let matches_of_xpatterns config equivalences
 let rec filter_ranges env xs cond =
   xs
   |> List.filter (fun r ->
-         let bindings = r.RM.mvars in
-         match cond with
-         | R.CondEval e ->
-             let env = Eval_generic.bindings_to_env bindings in
-             Eval_generic.eval_bool env e
-         | R.CondNestedFormula (mvar, opt_lang, formula) ->
-             satisfies_metavar_pattern_condition env r mvar opt_lang formula
-         (* todo: would be nice to have CondRegexp also work on
-          * eval'ed bindings.
-          * We could also use re.match(), to be close to python, but really
-          * Eval_generic must do something special here with the metavariable
-          * which may not always be a string. The regexp is really done on
-          * the text representation of the metavar content.
+    let bindings = r.RM.mvars in
+    match cond with
+    | R.CondEval e ->
+        let env = Eval_generic.bindings_to_env bindings in
+        Eval_generic.eval_bool env e
+    | R.CondNestedFormula (mvar, opt_lang, formula) ->
+        satisfies_metavar_pattern_condition env r mvar opt_lang formula
+    (* todo: would be nice to have CondRegexp also work on
+     * eval'ed bindings.
+     * We could also use re.match(), to be close to python, but really
+     * Eval_generic must do something special here with the metavariable
+     * which may not always be a string. The regexp is really done on
+     * the text representation of the metavar content.
+    *)
+    | R.CondRegexp (mvar, (re_str, _re)) ->
+        let fk = Parse_info.fake_info "" in
+        let fki = AST_generic.empty_id_info () in
+        let e =
+          (* old: spf "semgrep_re_match(%s, \"%s\")" mvar re_str
+           * but too many possible escaping problems, so easier to build
+           * an expression manually.
           *)
-         | R.CondRegexp (mvar, (re_str, _re)) ->
-             let fk = Parse_info.fake_info "" in
-             let fki = AST_generic.empty_id_info () in
-             let e =
-               (* old: spf "semgrep_re_match(%s, \"%s\")" mvar re_str
-                * but too many possible escaping problems, so easier to build
-                * an expression manually.
-                *)
-               G.Call
-                 ( G.DotAccess
-                     ( G.N (G.Id (("re", fk), fki)),
-                       fk,
-                       EN (Id (("match", fk), fki)) ),
-                   ( fk,
-                     [
-                       G.Arg (G.N (G.Id ((mvar, fk), fki)));
-                       G.Arg (G.L (G.String (re_str, fk)));
-                     ],
-                     fk ) )
-             in
+          G.Call
+            ( G.DotAccess
+                ( G.N (G.Id (("re", fk), fki)),
+                  fk,
+                  EN (Id (("match", fk), fki)) ),
+              ( fk,
+                [
+                  G.Arg (G.N (G.Id ((mvar, fk), fki)));
+                  G.Arg (G.L (G.String (re_str, fk)));
+                ],
+                fk ) )
+        in
 
-             let env =
-               Eval_generic.bindings_to_env_with_just_strings bindings
-             in
-             Eval_generic.eval_bool env e)
+        let env =
+          Eval_generic.bindings_to_env_with_just_strings bindings
+        in
+        Eval_generic.eval_bool env e)
 
 and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   let bindings = r.mvars in
@@ -682,38 +682,38 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                 | [] -> assert false)
           in
           Common2.with_tmp_file ~str:content ~ext (fun file ->
-              let lazy_ast_and_errors =
-                lazy
-                  (match xlang with
-                  | R.L (lang, _) ->
-                      let { Parse_target.ast; errors; _ } =
-                        Parse_target
-                        .parse_and_resolve_name_use_pfff_or_treesitter lang file
-                      in
-                      (* TODO: If we wanted to report the parse errors then we should
-                       * fix the parse info with Parse_info.adjust_info_wrt_base! *)
-                      if errors <> [] then
-                        pr2
-                          (spf
-                             "rule %s: metavariable-pattern: failed to fully \
-                              parse the content of %s"
-                             env.rule_id mvar);
-                      (ast, errors)
-                  | R.LRegex | R.LGeneric ->
-                      failwith "requesting generic AST for LRegex|LGeneric")
-              in
-              let r' =
-                (* Fix the range wrt the temporary file that we now use for
-                 * evaluating the nested pattern formula. *)
-                {
-                  r with
-                  r = { start = 0; end_ = mval_range.end_ - mval_range.start };
-                }
-              in
-              nested_formula_has_matches { env with file; xlang } formula
-                lazy_ast_and_errors
-                (lazy content)
-                (Some r'))
+            let lazy_ast_and_errors =
+              lazy
+                (match xlang with
+                 | R.L (lang, _) ->
+                     let { Parse_target.ast; errors; _ } =
+                       Parse_target
+                       .parse_and_resolve_name_use_pfff_or_treesitter lang file
+                     in
+                     (* TODO: If we wanted to report the parse errors then we should
+                      * fix the parse info with Parse_info.adjust_info_wrt_base! *)
+                     if errors <> [] then
+                       pr2
+                         (spf
+                            "rule %s: metavariable-pattern: failed to fully \
+                             parse the content of %s"
+                            env.rule_id mvar);
+                     (ast, errors)
+                 | R.LRegex | R.LGeneric ->
+                     failwith "requesting generic AST for LRegex|LGeneric")
+            in
+            let r' =
+              (* Fix the range wrt the temporary file that we now use for
+               * evaluating the nested pattern formula. *)
+              {
+                r with
+                r = { start = 0; end_ = mval_range.end_ - mval_range.start };
+              }
+            in
+            nested_formula_has_matches { env with file; xlang } formula
+              lazy_ast_and_errors
+              (lazy content)
+              (Some r'))
       | Some _lang, _mval ->
           (* THINK: fatal error instead? *)
           logger#error
@@ -732,7 +732,7 @@ and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
 
 (* less: use Set instead of list? *)
 and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
- fun env ctx_opt e ->
+  fun env ctx_opt e ->
   match e with
   | S.Leaf (R.P (xpat, inside)) ->
       let id = xpat.R.pid in
@@ -764,7 +764,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
        *    let res = pos |> List.fold_left (fun acc x ->
        *      intersect_ranges acc (evaluate_formula env x)
        * ...
-       *)
+      *)
 
       (* let's start with the positive ranges *)
       let posrs = List.map (evaluate_formula env ctx_opt) pos in
@@ -774,14 +774,14 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
        * merge ranges, not just filter one or the other.
        * update: however we have some tests that rely on pattern-inside:
        * being special, see tests/OTHER/rules/and_inside.yaml.
-       *)
+      *)
       let posrs, posrs_inside =
         posrs
         |> Common.partition_either (fun xs ->
-               match xs with
-               (* todo? should we double check they are all inside? *)
-               | { RM.kind = Inside; _ } :: _ -> Right xs
-               | _ -> Left xs)
+          match xs with
+          (* todo? should we double check they are all inside? *)
+          | { RM.kind = Inside; _ } :: _ -> Right xs
+          | _ -> Left xs)
       in
       let all_posr =
         match posrs @ posrs_inside with
@@ -802,19 +802,19 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
           let res =
             posrs
             |> List.fold_left
-                 (fun acc r ->
-                   RM.intersect_ranges env.config !debug_matches acc r)
-                 res
+              (fun acc r ->
+                 RM.intersect_ranges env.config !debug_matches acc r)
+              res
           in
 
           (* let's remove the negative ranges *)
           let res =
             neg
             |> List.fold_left
-                 (fun acc x ->
-                   RM.difference_ranges env.config acc
-                     (evaluate_formula env ctx_opt x))
-                 res
+              (fun acc x ->
+                 RM.difference_ranges env.config acc
+                   (evaluate_formula env ctx_opt x))
+              res
           in
           (* let's apply additional filters.
            * TODO: Note that some metavariable-regexp may be part of an
@@ -830,7 +830,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
            *  - propagate metavariables when intersecting ranges
            *  - distribute filter_range in intersect_range?
            * See https://github.com/returntocorp/semgrep/issues/2664
-           *)
+          *)
           let res =
             conds
             |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res
@@ -871,7 +871,7 @@ and matches_of_formula config equivs rule_id file_and_more lazy_content formula
   let final_ranges = evaluate_formula env opt_context formula in
   logger#info "found %d final ranges" (List.length final_ranges);
   (res, final_ranges)
-  [@@profiling]
+[@@profiling]
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -888,44 +888,44 @@ let check hook default_config rules equivs file_and_more =
   let lazy_content = lazy (Common.read_file file) in
   rules
   |> List.map (fun (r, pformula) ->
-         Common.profile_code (spf "real_rule:%s" r.R.id) (fun () ->
-             let relevant_rule =
-               if !Flag_semgrep.filter_irrelevant_rules then (
-                 match Analyze_rule.regexp_prefilter_of_rule r with
-                 | None -> true
-                 | Some (re, f) ->
-                     let content = Lazy.force lazy_content in
-                     logger#info "looking for %s in %s" re file;
-                     f content)
-               else true
-             in
-             if not relevant_rule then (
-               logger#info "skipping rule %s for %s" r.R.id file;
-               RP.empty_semgrep_result)
-             else
-               let config = r.options ||| default_config in
-               let formula = R.formula_of_pformula pformula in
-               let res, final_ranges =
-                 matches_of_formula config equivs r.id file_and_more
-                   lazy_content formula None
-               in
-               {
-                 matches =
-                   final_ranges
-                   |> List.map (range_to_pattern_match_adjusted r)
-                   (* dedup similar findings (we do that also in Match_patterns.ml,
-                    * but different mini-rules matches can now become the same match)
-                    *)
-                   |> uniq_by (AST_utils.with_structural_equal PM.equal)
-                   |> before_return (fun v ->
-                          v
-                          |> List.iter (fun (m : Pattern_match.t) ->
-                                 let str = spf "with rule %s" r.R.id in
-                                 hook str m.env m.tokens));
-                 errors = res.errors;
-                 profiling = res.profiling;
-               }))
+    Common.profile_code (spf "real_rule:%s" r.R.id) (fun () ->
+      let relevant_rule =
+        if !Flag_semgrep.filter_irrelevant_rules then (
+          match Analyze_rule.regexp_prefilter_of_rule r with
+          | None -> true
+          | Some (re, f) ->
+              let content = Lazy.force lazy_content in
+              logger#info "looking for %s in %s" re file;
+              f content)
+        else true
+      in
+      if not relevant_rule then (
+        logger#info "skipping rule %s for %s" r.R.id file;
+        RP.empty_semgrep_result)
+      else
+        let config = r.options ||| default_config in
+        let formula = R.formula_of_pformula pformula in
+        let res, final_ranges =
+          matches_of_formula config equivs r.id file_and_more
+            lazy_content formula None
+        in
+        {
+          matches =
+            final_ranges
+            |> List.map (range_to_pattern_match_adjusted r)
+            (* dedup similar findings (we do that also in Match_patterns.ml,
+             * but different mini-rules matches can now become the same match)
+            *)
+            |> uniq_by (AST_utils.with_structural_equal PM.equal)
+            |> before_return (fun v ->
+              v
+              |> List.iter (fun (m : Pattern_match.t) ->
+                let str = spf "with rule %s" r.R.id in
+                hook str m.env m.tokens));
+          errors = res.errors;
+          profiling = res.profiling;
+        }))
   |> RP.collate_semgrep_results
-  [@@profiling]
+[@@profiling]
 
 (*e: semgrep/engine/Match_rules.ml *)

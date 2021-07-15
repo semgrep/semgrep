@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 module FT = File_type
 
@@ -28,7 +28,7 @@ module FT = File_type
 (* coupling: if you add a language here, after fixing the compilation errors,
  * you probably still need to add also special code in list_of_lang and
  * langs_of_filename below.
- *)
+*)
 (*s: type [[Lang.t]] *)
 type t =
   | Python
@@ -261,13 +261,13 @@ let find_source lang xs =
 (*s: function [[Lang.files_of_dirs_or_files]] *)
 (* this is used by sgrep, so it is probably better to keep the logic
  * simple and not perform any Skip_code filtering (bento already does that)
- *)
+*)
 let files_of_dirs_or_files lang xs =
   (* old: let xs = List.map Common.fullpath xs in
    * better to not transform in fullpath; does not interact
    * well with -exclude-dir and anyway this should be done in the caller
    * or not at all. Better just do one thing here.
-   *)
+  *)
   find_source lang xs
 
 (*e: function [[Lang.files_of_dirs_or_files]] *)

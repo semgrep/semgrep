@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open Ast_json
 module M = Map_AST
@@ -26,45 +26,45 @@ let expr x =
         M.default_visitor with
         M.kexpr =
           (fun (k, _) e ->
-            (* apply on children *)
-            let e = k e in
-            match e with
-            | Record (lp, xs, rp) ->
-                let ys =
-                  xs
-                  |> List.map (function
-                       | G.FieldStmt
-                           {
-                             s =
-                               G.DefStmt
-                                 ( { G.name = G.EN (G.Id (id, _)); _ },
-                                   FieldDefColon { vinit = Some e; _ } );
-                             _;
-                           } ->
-                           Left (id, e)
-                       | G.FieldStmt { s = ExprStmt (Ellipsis t, _); _ } ->
-                           Right t
-                       | x ->
-                           failwith
-                             (spf "not a JSON field: %s" (G.show_field x)))
-                in
-                let zs =
-                  ys
-                  |> List.map (function
-                       | Left (id, e) ->
-                           let key =
-                             (* we don't want $FLD: 1 to be transformed
-                              * in "$FLD" : 1, which currently would not match
-                              * anything in Semgrep (this may change though) *)
-                             if AST_generic_.is_metavar_name (fst id) then
-                               G.N (G.Id (id, G.empty_id_info ()))
-                             else G.L (G.String id)
-                           in
-                           G.Tuple (G.fake_bracket [ key; e ])
-                       | Right t -> G.Ellipsis t)
-                in
-                G.Container (G.Dict, (lp, zs, rp))
-            | x -> x);
+             (* apply on children *)
+             let e = k e in
+             match e with
+             | Record (lp, xs, rp) ->
+                 let ys =
+                   xs
+                   |> List.map (function
+                     | G.FieldStmt
+                         {
+                           s =
+                             G.DefStmt
+                               ( { G.name = G.EN (G.Id (id, _)); _ },
+                                 FieldDefColon { vinit = Some e; _ } );
+                           _;
+                         } ->
+                         Left (id, e)
+                     | G.FieldStmt { s = ExprStmt (Ellipsis t, _); _ } ->
+                         Right t
+                     | x ->
+                         failwith
+                           (spf "not a JSON field: %s" (G.show_field x)))
+                 in
+                 let zs =
+                   ys
+                   |> List.map (function
+                     | Left (id, e) ->
+                         let key =
+                           (* we don't want $FLD: 1 to be transformed
+                            * in "$FLD" : 1, which currently would not match
+                            * anything in Semgrep (this may change though) *)
+                           if AST_generic_.is_metavar_name (fst id) then
+                             G.N (G.Id (id, G.empty_id_info ()))
+                           else G.L (G.String id)
+                         in
+                         G.Tuple (G.fake_bracket [ key; e ])
+                     | Right t -> G.Ellipsis t)
+                 in
+                 G.Container (G.Dict, (lp, zs, rp))
+             | x -> x);
       }
   in
   visitor.M.vexpr e

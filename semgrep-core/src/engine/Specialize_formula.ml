@@ -18,7 +18,7 @@ type sformula =
   | Or of sformula list
   (* There are restrictions on where a Not can appear in a formula. It
    * should always be inside an And to be intersected with "positive" formula.
-   *)
+  *)
   | Not of sformula
 
 (*****************************************************************************)
@@ -30,7 +30,7 @@ let fake_rule_id (id, str) =
   { PM.id = string_of_int id; pattern_string = str; message = "" }
 
 let match_selector ?err:(msg = "no match") (sel_opt : selector option) :
-    RM.ranges =
+  RM.ranges =
   let get_match (x : RP.times RP.match_result) = x.matches in
   match sel_opt with
   | None -> failwith msg
@@ -39,7 +39,7 @@ let match_selector ?err:(msg = "no match") (sel_opt : selector option) :
         (get_match (Lazy.force selector.lazy_matches))
 
 let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
-    RM.ranges =
+  RM.ranges =
   let pattern_match_from_binding selector (mvar, mval) =
     {
       PM.rule_id = fake_rule_id (selector.pid, selector.pstr);
@@ -102,7 +102,7 @@ let formula_to_sformula match_func formula =
             | None, Some s -> (Some s, acc)
             | Some s1, Some s2 ->
                 if selector_equal s1 s2 then (Some s1, acc) else (None, [])
-            (* This will never be valid *)
+                (* This will never be valid *)
           in
           remove_selectors (selector, acc) xs
     in

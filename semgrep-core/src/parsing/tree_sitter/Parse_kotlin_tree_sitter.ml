@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 module CST = Tree_sitter_kotlin.CST
 module AST = AST_generic
@@ -26,7 +26,7 @@ module H2 = AST_generic_helpers
 (* kotlin parser using tree-sitter-lang/semgrep-kotlin and converting
  * directly to AST_generic.ml
  *
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -218,7 +218,7 @@ let additive_operator (env : env) (x : CST.additive_operator) =
 
 (* note that there's no octal literal in Kotlin so no need for
  * H.int_of_string_c_octal_opt
- *)
+*)
 let integer_literal (env : env) (tok : CST.integer_literal) =
   let s, t = str env tok (* integer_literal *) in
   (int_of_string_opt s, t)
@@ -291,7 +291,7 @@ let multi_line_string_content (env : env) (x : CST.multi_line_string_content) =
 (* "\"" *)
 
 let uni_character_literal (env : env) ((v1, v2, v3) : CST.uni_character_literal)
-    =
+  =
   let v1 = str env v1 (* "\\" *) in
   let _v2 = str env v2 (* "u" *) in
   let v3 = str env v3 (* pattern [0-9a-fA-F]{4} *) in
@@ -386,9 +386,9 @@ let identifier (env : env) ((v1, v2) : CST.identifier) : dotted_ident =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "." *) in
-        let v2 = simple_identifier env v2 in
-        v2)
+         let _v1 = token env v1 (* "." *) in
+         let v2 = simple_identifier env v2 in
+         v2)
       v2
   in
   v1 :: v2
@@ -444,7 +444,7 @@ let package_header (env : env) ((v1, v2, v3) : CST.package_header) : directive =
   Package (v1, v2)
 
 let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
-    =
+  =
   let v1 = token env v1 (* "import" *) in
   let v2 = identifier env v2 in
   let v3 =
@@ -597,7 +597,7 @@ and call_suffix (env : env) (v1 : CST.call_suffix) =
   | `Value_args x -> value_arguments env x
 
 and catch_block (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.catch_block)
-    =
+  =
   let v1 = token env v1 (* "catch" *) in
   let _v2 = token env v2 (* "(" *) in
   let v3 = List.map (annotation env) v3 in
@@ -620,7 +620,7 @@ and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   (v1, v2, v3)
 
 and class_declaration (env : env) (x : CST.class_declaration) :
-    entity * class_definition =
+  entity * class_definition =
   match x with
   | `Opt_modifs_choice_class_simple_id_opt_type_params_opt_prim_cons_opt_COLON_dele_specis_opt_type_consts_opt_class_body
       (v1, v2, v3, v4, v5, v6, v7, v8) ->
@@ -698,7 +698,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
       (ent, cdef)
 
 and class_member_declaration (env : env) (x : CST.class_member_declaration) :
-    field =
+  field =
   match x with
   | `Decl x ->
       let d = declaration env x in
@@ -753,16 +753,16 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
       todo env (v1, v2, v3, v4, v5)
 
 and class_member_declarations (env : env) (xs : CST.class_member_declarations) :
-    field list =
+  field list =
   List.map
     (fun (v1, v2) ->
-      let v1 = class_member_declaration env v1 in
-      let _v2 = token env v2 (* pattern [\r\n]+ *) in
-      v1)
+       let v1 = class_member_declaration env v1 in
+       let _v2 = token env v2 (* pattern [\r\n]+ *) in
+       v1)
     xs
 
 and class_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_parameter)
-    =
+  =
   let v1 = match v1 with Some x -> modifiers env x | None -> [] in
   let v2 =
     match v2 with
@@ -791,9 +791,9 @@ and class_parameters (env : env) ((v1, v2, v3) : CST.class_parameters) =
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = class_parameter env v2 in
-              v2)
+               let _v1 = token env v1 (* "," *) in
+               let v2 = class_parameter env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -942,9 +942,9 @@ and delegation_specifiers (env : env) ((v1, v2) : CST.delegation_specifiers) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = delegation_specifier env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = delegation_specifier env v2 in
+         v2)
       v2
   in
   v1 :: v2
@@ -970,9 +970,9 @@ and enum_entries (env : env) ((v1, v2, v3) : CST.enum_entries) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = enum_entry env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = enum_entry env v2 in
+         v2)
       v2
   in
   let _v3 =
@@ -1028,9 +1028,9 @@ and function_literal (env : env) (x : CST.function_literal) =
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let _v1 = token env v1 (* "." *) in
-                  let v2 = simple_user_type env v2 in
-                  v2)
+                   let _v1 = token env v1 (* "." *) in
+                   let v2 = simple_user_type env v2 in
+                   v2)
                 v2
             in
             let _v3 = token env v3 (* "." *) in
@@ -1072,9 +1072,9 @@ and function_type_parameters (env : env)
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = anon_choice_param_b77c1d8 env v2 in
-              v2)
+               let _v1 = token env v1 (* "," *) in
+               let v2 = anon_choice_param_b77c1d8 env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -1120,9 +1120,9 @@ and function_value_parameters (env : env)
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = function_value_parameter env v2 in
-              v2)
+               let _v1 = token env v1 (* "," *) in
+               let v2 = function_value_parameter env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -1159,9 +1159,9 @@ and indexing_suffix (env : env) ((v1, v2, v3, v4) : CST.indexing_suffix) =
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = Arg (expression env v2) in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = Arg (expression env v2) in
+         v2)
       v3
   in
   let combine = v2 :: v3 in
@@ -1203,16 +1203,16 @@ and jump_expression (env : env) (x : CST.jump_expression) =
       in
       let return_tok, id = v1 in
       (match id with
-      | None -> Return (return_tok, v2, sc)
-      | Some simple_id -> (
-          let id = N (Id (simple_id, empty_id_info ())) in
-          match v2 with
-          | None ->
-              let list = [ TodoK ("return@", return_tok); E id ] in
-              OtherStmt (OS_Todo, list)
-          | Some v2_expr ->
-              let list = [ TodoK ("return@", return_tok); E id; E v2_expr ] in
-              OtherStmt (OS_Todo, list)))
+       | None -> Return (return_tok, v2, sc)
+       | Some simple_id -> (
+           let id = N (Id (simple_id, empty_id_info ())) in
+           match v2 with
+           | None ->
+               let list = [ TodoK ("return@", return_tok); E id ] in
+               OtherStmt (OS_Todo, list)
+           | Some v2_expr ->
+               let list = [ TodoK ("return@", return_tok); E id; E v2_expr ] in
+               OtherStmt (OS_Todo, list)))
       |> G.s
   | `Cont tok ->
       let v1 = token env tok (* "continue" *) in
@@ -1260,9 +1260,9 @@ and lambda_parameters (env : env) ((v1, v2) : CST.lambda_parameters) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = lambda_parameter env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = lambda_parameter env v2 in
+         v2)
       v2
   in
   v1 :: v2
@@ -1450,9 +1450,9 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       let v3 =
         List.map
           (fun (v1, v2) ->
-            let _v1 = token env v1 (* "," *) in
-            let v2 = expression env v2 in
-            v2)
+             let _v1 = token env v1 (* "," *) in
+             let v2 = expression env v2 in
+             v2)
           v3
       in
       let v4 = token env v4 (* "]" *) in
@@ -1462,7 +1462,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `This_exp tok ->
       let tok = token env tok in
       IdSpecial (This, tok)
-      (* "this" *)
+  (* "this" *)
   | `Super_exp v1 ->
       let tok = token env v1 in
       IdSpecial (Super, tok)
@@ -1609,9 +1609,9 @@ and statements (env : env) ((v1, v2, v3) : CST.statements) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* pattern [\r\n]+ *) in
-        let v2 = statement env v2 in
-        v2)
+         let _v1 = token env v1 (* pattern [\r\n]+ *) in
+         let v2 = statement env v2 in
+         v2)
       v2
   in
   let () =
@@ -1630,11 +1630,11 @@ and string_literal (env : env) (x : CST.string_literal) =
       let v2 =
         List.map
           (fun x ->
-            match x with
-            | `Line_str_content x -> line_string_content env x
-            | `Interp x ->
-                let e = interpolation env x in
-                todo env e)
+             match x with
+             | `Line_str_content x -> line_string_content env x
+             | `Interp x ->
+                 let e = interpolation env x in
+                 todo env e)
           v2
       in
       let v3 = token env v3 (* "\dq" *) in
@@ -1646,11 +1646,11 @@ and string_literal (env : env) (x : CST.string_literal) =
       let v2 =
         List.map
           (fun x ->
-            match x with
-            | `Multi_line_str_content x -> multi_line_string_content env x
-            | `Interp x ->
-                let _ = interpolation env x in
-                raise Todo)
+             match x with
+             | `Multi_line_str_content x -> multi_line_string_content env x
+             | `Interp x ->
+                 let _ = interpolation env x in
+                 raise Todo)
           v2
       in
       let v3 = token env v3 (* "\"\"\dq" *) in
@@ -1674,16 +1674,16 @@ and type_arguments (env : env) ((v1, v2, v3, v4) : CST.type_arguments) =
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = type_projection env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = type_projection env v2 in
+         v2)
       v3
   in
   let v4 = token env v4 (* ">" *) in
   (v1, v2 :: v3, v4)
 
 and type_constraint (env : env) ((v1, v2, v3, v4) : CST.type_constraint) :
-    ident * type_ =
+  ident * type_ =
   let _v1 = List.map (annotation env) v1 in
   let v2 = simple_identifier env v2 in
   let _v3 = token env v3 (* ":" *) in
@@ -1696,9 +1696,9 @@ and type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = type_constraint env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = type_constraint env v2 in
+         v2)
       v3
   in
   v2 :: v3
@@ -1747,9 +1747,9 @@ and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) =
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = type_parameter env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = type_parameter env v2 in
+         v2)
       v3
   in
   let _v4 = token env v4 (* ">" *) in
@@ -1845,16 +1845,16 @@ and user_type (env : env) ((v1, v2) : CST.user_type) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "." *) in
-        let v2 = simple_user_type env v2 in
-        v2)
+         let _v1 = token env v1 (* "." *) in
+         let v2 = simple_user_type env v2 in
+         v2)
       v2
   in
   let list = v1 :: v2 in
   TyTuple (fake_bracket list)
 
 and value_argument (env : env) ((v1, v2, v3, v4) : CST.value_argument) :
-    argument =
+  argument =
   let _v1 = match v1 with Some x -> annotation env x | None -> [] in
   let v2 =
     match v2 with
@@ -1876,7 +1876,7 @@ and value_argument (env : env) ((v1, v2, v3, v4) : CST.value_argument) :
   match v2 with None -> Arg e | Some (id, _t) -> ArgKwd (id, e)
 
 and value_arguments (env : env) ((v1, v2, v3) : CST.value_arguments) :
-    arguments bracket =
+  arguments bracket =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with
@@ -1885,9 +1885,9 @@ and value_arguments (env : env) ((v1, v2, v3) : CST.value_arguments) :
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = value_argument env v2 in
-              v2)
+               let _v1 = token env v1 (* "," *) in
+               let v2 = value_argument env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -1922,9 +1922,9 @@ and when_entry (env : env) ((v1, v2, v3, v4) : CST.when_entry) =
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let _v1 = token env v1 (* "," *) in
-              let v2 = when_condition env v2 in
-              v2)
+               let _v1 = token env v1 (* "," *) in
+               let v2 = when_condition env v2 in
+               v2)
             v2
         in
         Left (v1 :: v2)
@@ -2008,9 +2008,9 @@ let source_file (env : env) (x : CST.source_file) : any =
       let v5 =
         List.map
           (fun (v1, v2) ->
-            let v1 = statement env v1 in
-            let _v2 = token env v2 (* pattern [\r\n]+ *) in
-            v1)
+             let v1 = statement env v1 in
+             let _v2 = token env v2 (* pattern [\r\n]+ *) in
+             v1)
           v5
       in
       let dirs = v3 @ v4 |> List.map (fun d -> DirectiveStmt d |> G.s) in
@@ -2025,23 +2025,23 @@ let source_file (env : env) (x : CST.source_file) : any =
 let parse file =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_kotlin.Parse.file file ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_kotlin.Parse.file file ())
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
-      try
-        match source_file env cst with
-        | AST.Pr xs -> xs
-        | _ -> failwith "not a program"
-      with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
-        raise exn)
+       try
+         match source_file env cst with
+         | AST.Pr xs -> xs
+         | _ -> failwith "not a program"
+       with Failure "not implemented" as exn ->
+         let s = Printexc.get_backtrace () in
+         pr2 "Some constructs are not handled yet";
+         pr2 "CST was:";
+         CST.dump_tree cst;
+         pr2 "Original backtrace:";
+         pr2 s;
+         raise exn)
 
 let parse_expression_or_source_file str =
   let res = Tree_sitter_kotlin.Parse.string str in
@@ -2055,12 +2055,12 @@ let parse_expression_or_source_file str =
 let parse_pattern str =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke parse_expression_or_source_file str ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke parse_expression_or_source_file str ())
     (fun cst ->
-      let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match source_file env cst with
-      | AST.Pr [ x ] -> AST.S x
-      | AST.Pr xs -> AST.Ss xs
-      | x -> x)
+       let file = "<pattern>" in
+       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+       match source_file env cst with
+       | AST.Pr [ x ] -> AST.S x
+       | AST.Pr xs -> AST.Ss xs
+       | x -> x)

@@ -190,12 +190,12 @@ let rec check_pattern_ env (pat : pattern) =
             else name :: env
       in
       (match atom with
-      | Any_symbol -> ()
-      | Symbol _ -> ()
-      | Ellipsis -> ()
-      | Backref name ->
-          if not (List.mem name env) then
-            failwith ("backreference to invalid name: " ^ name));
+       | Any_symbol -> ()
+       | Symbol _ -> ()
+       | Ellipsis -> ()
+       | Backref name ->
+           if not (List.mem name env) then
+             failwith ("backreference to invalid name: " ^ name));
       check_pattern_ new_env pat
 
 let check_pattern pat = check_pattern_ [] pat
@@ -273,8 +273,8 @@ let print_some_env oc some_env =
   let is_first = ref true in
   Bindings.bindings some_env
   |> List.iter (fun (name, subseq) ->
-         if !is_first then is_first := false else fprintf oc " ";
-         fprintf oc "%s:%S" name (unparse subseq));
+    if !is_first then is_first := false else fprintf oc " ";
+    fprintf oc "%s:%S" name (unparse subseq));
   fprintf oc "}"
 
 (* to be appended to existing line *)
@@ -283,8 +283,8 @@ let print_pat_head oc pat =
   | Nil -> fprintf oc " _:''"
   | Cons (atom, _tail) -> (
       (match pat.capture_name with
-      | None -> fprintf oc " _:"
-      | Some name -> fprintf oc " %s:" name);
+       | None -> fprintf oc " _:"
+       | Some name -> fprintf oc " %s:" name);
       match atom with
       | Any_symbol -> fprintf oc "_"
       | Symbol c -> fprintf oc "%C" c
@@ -323,7 +323,7 @@ module Cache_key = struct
   let hash_env env =
     Bindings.fold
       (fun k v h ->
-        Hashtbl.hash_param 10 100 k + Hashtbl.hash_param 10 100 v + h)
+         Hashtbl.hash_param 10 100 k + Hashtbl.hash_param 10 100 v + h)
       env.min_env 0
 
   (*
@@ -412,7 +412,7 @@ end
    mode with 'make bench'.
 *)
 let match_input ?(trace = true) ?cache root_pat root_input :
-    (string * string) list option * stat =
+  (string * string) list option * stat =
   let stat = { match_calls = 0 } in
   let get_from_cache = ref (fun _ellipsis _env _pat _input -> assert false) in
 
@@ -491,9 +491,9 @@ let match_input ?(trace = true) ?cache root_pat root_input :
                 else None))
   in
   (match cache with
-  | Some cache_when ->
-      get_from_cache := Memoize.create ~cache_when uncached_match
-  | None -> get_from_cache := uncached_match);
+   | Some cache_when ->
+       get_from_cache := Memoize.create ~cache_when uncached_match
+   | None -> get_from_cache := uncached_match);
 
   let opt_captures =
     match match_ Not_in_ellipsis empty_env root_pat root_input with
@@ -501,7 +501,7 @@ let match_input ?(trace = true) ?cache root_pat root_input :
     | Some env ->
         Some
           (Bindings.bindings env.full_env
-          |> List.map (fun (k, v) -> (k, unparse v)))
+           |> List.map (fun (k, v) -> (k, unparse v)))
   in
   (opt_captures, stat)
 
@@ -531,12 +531,12 @@ let check_match ?cache ?min_match_calls ?max_match_calls pat input_str
   print_result stdout actual;
   Alcotest.(check bool) "equal" true (expected = actual);
   (match min_match_calls with
-  | None -> ()
-  | Some mini ->
-      printf "min number of calls to the match function: %i\n" mini;
-      Alcotest.(check bool)
-        (sprintf "no more than %i match calls" mini)
-        true (match_calls >= mini));
+   | None -> ()
+   | Some mini ->
+       printf "min number of calls to the match function: %i\n" mini;
+       Alcotest.(check bool)
+         (sprintf "no more than %i match calls" mini)
+         true (match_calls >= mini));
   match max_match_calls with
   | None -> ()
   | Some maxi ->

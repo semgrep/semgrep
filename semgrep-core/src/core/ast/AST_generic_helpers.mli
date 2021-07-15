@@ -68,7 +68,7 @@ val undo_ac_matching_nf :
  * the original grouping of the operands!
  * E.g.
  *    undo_ac_matching_nf tok And [a; b; c] = Call(Op And, [Call(Op And, [a; b]); c])
- *)
+*)
 
 val conv_op : AST_generic_.operator -> AST_generic.operator
 

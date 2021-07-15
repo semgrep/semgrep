@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 module AST = AST_generic
 module V = Visitor_AST
@@ -27,7 +27,7 @@ module PM = Pattern_match
  *
  * Here we pass matcher functions that uses semgrep patterns to
  * describe the source/sink/sanitizers.
- *)
+*)
 let _logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
@@ -37,14 +37,14 @@ let _logger = Logging.get_logger [ __MODULE__ ]
 module F2 = IL
 
 module DataflowY = Dataflow.Make (struct
-  type node = F2.node
+    type node = F2.node
 
-  type edge = F2.edge
+    type edge = F2.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+    type flow = (node, edge) Ograph_extended.ograph_mutable
 
-  let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
-end)
+    let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
+  end)
 
 let any_in_ranges any ranges =
   (* This is potentially slow. We may need to store range position in
@@ -99,23 +99,23 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
   let taint_configs =
     taint_rules
     |> List.map (fun (rule, taint_spec) ->
-           let rule_id =
-             {
-               Pattern_match.id = rule.Rule.id;
-               message = rule.Rule.message;
-               pattern_string = "TODO: no pattern_string";
-             }
-           in
-           let found_tainted_sink code _env =
-             let range_loc = V.range_of_any code in
-             let tokens = lazy (V.ii_of_any code) in
-             (* todo: use env from sink matching func?  *)
-             Common.push
-               { PM.rule_id; file; range_loc; tokens; env = [] }
-               matches
-           in
-           taint_config_of_rule default_config equivs file (ast, []) rule
-             taint_spec found_tainted_sink)
+      let rule_id =
+        {
+          Pattern_match.id = rule.Rule.id;
+          message = rule.Rule.message;
+          pattern_string = "TODO: no pattern_string";
+        }
+      in
+      let found_tainted_sink code _env =
+        let range_loc = V.range_of_any code in
+        let tokens = lazy (V.ii_of_any code) in
+        (* todo: use env from sink matching func?  *)
+        Common.push
+          { PM.rule_id; file; range_loc; tokens; env = [] }
+          matches
+      in
+      taint_config_of_rule default_config equivs file (ast, []) rule
+        taint_spec found_tainted_sink)
   in
 
   let fun_env = Hashtbl.create 8 in
@@ -126,14 +126,14 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
 
     taint_configs
     |> List.iter (fun taint_config ->
-           let mapping =
-             Dataflow_tainting.fixpoint taint_config fun_env opt_name flow
-           in
-           ignore mapping
-           (* TODO
-              logger#sdebug (DataflowY.mapping_to_str flow
-               (fun () -> "()") mapping);
-           *))
+      let mapping =
+        Dataflow_tainting.fixpoint taint_config fun_env opt_name flow
+      in
+      ignore mapping
+      (* TODO
+         logger#sdebug (DataflowY.mapping_to_str flow
+          (fun () -> "()") mapping);
+      *))
   in
 
   let v =
@@ -142,11 +142,11 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
         V.default_visitor with
         V.kdef =
           (fun (k, _) ((ent, def_kind) as def) ->
-            match def_kind with
-            | AST.FuncDef fdef ->
-                let opt_name = AST_to_IL.name_of_entity ent in
-                check_stmt opt_name fdef.AST.fbody
-            | __else__ -> k def);
+             match def_kind with
+             | AST.FuncDef fdef ->
+                 let opt_name = AST_to_IL.name_of_entity ent in
+                 check_stmt opt_name fdef.AST.fbody
+             | __else__ -> k def);
         V.kfunction_definition =
           (fun (_k, _) def -> check_stmt None def.AST.fbody);
       }
@@ -163,11 +163,11 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
   (* same post-processing as for search-mode in Match_rules.ml *)
   |> Common.uniq_by (AST_utils.with_structural_equal PM.equal)
   |> Common.before_return (fun v ->
-         v
-         |> List.iter (fun (m : Pattern_match.t) ->
-                let str = Common.spf "with rule %s" m.rule_id.id in
-                hook str m.env m.tokens))
-  [@@profiling]
+    v
+    |> List.iter (fun (m : Pattern_match.t) ->
+      let str = Common.spf "with rule %s" m.rule_id.id in
+      hook str m.env m.tokens))
+[@@profiling]
 
 (*e: function [[Tainting_generic.check2]] *)
 

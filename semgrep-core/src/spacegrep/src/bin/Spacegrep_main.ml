@@ -46,7 +46,7 @@ let detect_highlight when_use_color oc =
    Run all the patterns on all the documents.
 *)
 let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
-    matches =
+  matches =
   let num_files = ref 0 in
   let num_analyzed = ref 0 in
   let num_matching_files = ref 0 in
@@ -54,40 +54,40 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
   let matches =
     List.filter_map
       (fun (get_doc_src : ?max_len:int -> unit -> Src_file.t) ->
-        let matches, run_time =
-          Match.timef (fun () ->
+         let matches, run_time =
+           Match.timef (fun () ->
               (*
                  We inspect the first 4096 bytes to guess whether the
                  file type. This saves time on large files, by reading
                  typically just one block from the file system.
               *)
-              let peek_length = 4096 in
-              let partial_doc_src = get_doc_src ~max_len:peek_length () in
-              let doc_type = File_type.classify partial_doc_src in
-              incr num_files;
-              match (doc_type, force) with
-              | (Minified | Binary), false ->
-                  if warn then
-                    eprintf "ignoring gibberish file: %s\n%!"
-                      (Src_file.source_string partial_doc_src);
-                  None
-              | _ -> (
-                  incr num_analyzed;
-                  let doc_src =
-                    if Src_file.length partial_doc_src < peek_length then
-                      (* it's actually complete, no need to re-input the file *)
-                      partial_doc_src
-                    else get_doc_src ()
-                  in
-                  if debug then
-                    printf "parse document: %s\n%!"
-                      (Src_file.source_string doc_src);
-                  let doc, parse_time =
-                    Match.timef (fun () -> Parse_doc.of_src doc_src)
-                  in
-                  let matches_in_file =
-                    List.mapi
-                      (fun pat_id (pat_src, pat) ->
+             let peek_length = 4096 in
+             let partial_doc_src = get_doc_src ~max_len:peek_length () in
+             let doc_type = File_type.classify partial_doc_src in
+             incr num_files;
+             match (doc_type, force) with
+             | (Minified | Binary), false ->
+                 if warn then
+                   eprintf "ignoring gibberish file: %s\n%!"
+                     (Src_file.source_string partial_doc_src);
+                 None
+             | _ -> (
+                 incr num_analyzed;
+                 let doc_src =
+                   if Src_file.length partial_doc_src < peek_length then
+                     (* it's actually complete, no need to re-input the file *)
+                     partial_doc_src
+                   else get_doc_src ()
+                 in
+                 if debug then
+                   printf "parse document: %s\n%!"
+                     (Src_file.source_string doc_src);
+                 let doc, parse_time =
+                   Match.timef (fun () -> Parse_doc.of_src doc_src)
+                 in
+                 let matches_in_file =
+                   List.mapi
+                     (fun pat_id (pat_src, pat) ->
                         if debug then
                           printf
                             "match document from %s against pattern from %s\n%!"
@@ -100,18 +100,18 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
                         num_matches :=
                           !num_matches + List.length matches_for_pat;
                         (pat_id, matches_for_pat, match_time))
-                      patterns
-                  in
-                  match matches_in_file with
-                  | [] -> None
-                  | _ ->
-                      incr num_matching_files;
-                      Some (doc_src, matches_in_file, parse_time)))
-        in
-        match matches with
-        | None -> None
-        | Some (doc_src, matches_in_file, parse_time) ->
-            Some (doc_src, matches_in_file, parse_time, run_time))
+                     patterns
+                 in
+                 match matches_in_file with
+                 | [] -> None
+                 | _ ->
+                     incr num_matching_files;
+                     Some (doc_src, matches_in_file, parse_time)))
+         in
+         match matches with
+         | None -> None
+         | Some (doc_src, matches_in_file, parse_time) ->
+             Some (doc_src, matches_in_file, parse_time, run_time))
       docs
   in
   {
@@ -133,8 +133,8 @@ let run config =
   let patterns_or_errors =
     let pattern_files = Find_files.list config.pattern_files in
     (match config.pattern with
-    | None -> []
-    | Some pat_str -> [ Src_file.of_string pat_str ])
+     | None -> []
+     | Some pat_str -> [ Src_file.of_string pat_str ])
     @ List.map Src_file.of_file pattern_files
     |> List.map (fun pat_src -> (pat_src, Parse_pattern.of_src pat_src))
   in
@@ -142,9 +142,9 @@ let run config =
     let rev_patterns, rev_errors =
       List.fold_left
         (fun (rev_patterns, rev_errors) (src, parse_result) ->
-          match parse_result with
-          | Ok pat -> ((src, pat) :: rev_patterns, rev_errors)
-          | Error err -> (rev_patterns, (src, err) :: rev_errors))
+           match parse_result with
+           | Ok pat -> ((src, pat) :: rev_patterns, rev_errors)
+           | Error err -> (rev_patterns, (src, err) :: rev_errors))
         ([], []) patterns_or_errors
     in
     (List.rev rev_patterns, List.rev rev_errors)
@@ -154,8 +154,8 @@ let run config =
     | [] ->
         [
           (fun ?max_len () ->
-            ignore max_len;
-            Src_file.of_stdin ());
+             ignore max_len;
+             Src_file.of_stdin ());
         ]
     | roots ->
         let files = Find_files.list roots in
@@ -171,10 +171,10 @@ let run config =
       ~no_skip_search:config.no_skip_search patterns docs
   in
   (match config.output_format with
-  | Text ->
-      Match.print_nested_results ~with_time:config.time ~highlight matches
-        errors
-  | Semgrep -> Semgrep.print_semgrep_json ~with_time:config.time matches errors);
+   | Text ->
+       Match.print_nested_results ~with_time:config.time ~highlight matches
+         errors
+   | Semgrep -> Semgrep.print_semgrep_json ~with_time:config.time matches errors);
   if debug then (
     printf "\nanalyzed %i files out of %i\n" num_analyzed num_files;
     printf "found %i matches in %i files\n" num_matches num_matching_files)

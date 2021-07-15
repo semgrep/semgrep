@@ -77,13 +77,13 @@ let rec eq a b =
   | [], [] -> true
   | a_head :: a_tail, b_head :: b_tail ->
       (match (a_head, b_head) with
-      | Atom (_, a), Atom (_, b) -> a = b
-      | List a, List b -> eq a b
-      | Dots (_, None), Dots (_, None) -> true
-      | Dots (_, Some mva), Dots (_, Some mvb) -> mva = mvb
-      | Dots (_, None), Dots (_, Some _) | Dots (_, Some _), Dots (_, None) ->
-          false
-      | End, End -> true
-      | _ -> false)
+       | Atom (_, a), Atom (_, b) -> a = b
+       | List a, List b -> eq a b
+       | Dots (_, None), Dots (_, None) -> true
+       | Dots (_, Some mva), Dots (_, Some mvb) -> mva = mvb
+       | Dots (_, None), Dots (_, Some _) | Dots (_, Some _), Dots (_, None) ->
+           false
+       | End, End -> true
+       | _ -> false)
       && eq a_tail b_tail
   | _ -> false

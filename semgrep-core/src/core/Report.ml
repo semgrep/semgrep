@@ -1,7 +1,7 @@
 (* Full result information *)
 (* TODO: We could use atdgen to specify those to factorize type definitions
  * that have to be present anyway in Semgrep.atd.
- *)
+*)
 
 type profiling = {
   file : Common.filename;

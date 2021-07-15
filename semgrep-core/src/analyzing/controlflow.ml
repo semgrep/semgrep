@@ -12,7 +12,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 
 open AST_generic
 module A = AST_generic
@@ -30,7 +30,7 @@ module A = AST_generic
  *  - CFG for C for coccinelle
  *  - CFG for PHP for checkModule at Facebook
  *  - CFG for AST generic for scheck at r2c
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -42,7 +42,7 @@ type node = {
    *  in each CFG nodes.
    * alt: We could also record such extra information in an external table
    *  that maps Ograph_extended.nodei, that is nodeid, to some information.
-   *)
+  *)
   n : node_kind;
   (* for error report *)
   i : Parse_info.t option;
@@ -54,7 +54,7 @@ and node_kind =
   | Exit
   (* alt: An alternative is to store such information in the edges, but
    * experience shows it's easier to encode it via regular nodes
-   *)
+  *)
   | TrueNode
   | FalseNode
   | Join
@@ -79,7 +79,7 @@ and node_kind =
   | Throw of expr
   (* statements without multiple outgoing or ingoing edges, such as
    * expression statements.
-   *)
+  *)
   | SimpleNode of simple_node
 
 (* not used for now, was used in coccinelle:
@@ -95,7 +95,7 @@ and simple_node =
    * also have an influence on the control flow ...
    * We may want to uplift those constructors here and have
    * a better expr type
-   *)
+  *)
   | ExprStmt of expr
   | DefStmt of definition
   | DirectiveStmt of directive
@@ -107,7 +107,7 @@ and simple_node =
 
 (* For now there is just one kind of edge.
  * later: we may have more, see the ShadowNode idea of Julia Lawall?
- *)
+*)
 type edge = Direct
 
 type flow = (node, edge) Ograph_extended.ograph_mutable
@@ -120,7 +120,7 @@ type nodei = Ograph_extended.nodei
 
 (* This is useful in graphviz and in dataflow analysis result tables
  * to just get a quick idea of what a node is (without too much details).
- *)
+*)
 let short_string_of_node_kind nkind =
   match nkind with
   | Enter -> "<enter>"
@@ -204,8 +204,8 @@ let find_enter cfg = find_node (fun node -> node.n = Enter) cfg
 
 (* using internally graphviz dot and ghostview on X11 *)
 let (display_flow : flow -> unit) =
- fun flow ->
+  fun flow ->
   flow
   |> Ograph_extended.print_ograph_mutable_generic
-       ~s_of_node:(fun (_nodei, node) ->
-         (short_string_of_node_kind node.n, None, None))
+    ~s_of_node:(fun (_nodei, node) ->
+      (short_string_of_node_kind node.n, None, None))

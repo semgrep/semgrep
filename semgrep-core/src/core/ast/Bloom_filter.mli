@@ -1,6 +1,6 @@
 (* For now let's simplify and store only strings (e.g., from tokens)
  * inside the bloom filter. Later we can maybe make it polymorph.
- *)
+*)
 
 type t
 

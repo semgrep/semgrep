@@ -1,6 +1,6 @@
 (* pad: this is not a great filename, but I just want to keep AST_generic.ml
  * as small as possible (it is already very big).
- *)
+*)
 
 (* Provide hash_* and hash_fold_* for the core ocaml types *)
 open Ppx_hash_lib.Std.Hash.Builtin

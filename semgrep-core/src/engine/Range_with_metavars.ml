@@ -14,7 +14,7 @@ type t = {
    * properly intersect (not just filter one or the other), and also merge
    * metavariables, this will clean lots of things, and remove the need
    * to keep around the Inside. 'And' would be commutative again!
-   *)
+  *)
   kind : range_kind;
   origin : Pattern_match.t;
 }
@@ -27,7 +27,7 @@ type ranges = t list [@@deriving show]
 (*****************************************************************************)
 
 let (match_result_to_range : Pattern_match.t -> t) =
- fun m ->
+  fun m ->
   let { Pattern_match.range_loc = start_loc, end_loc; env = mvars; _ } = m in
   let r = Range.range_of_token_locations start_loc end_loc in
   { r; mvars; origin = m; kind = Plain }
@@ -42,10 +42,10 @@ let included_in config rv1 rv2 =
   Range.( $<=$ ) rv1.r rv2.r
   && rv1.mvars
      |> List.for_all (fun (mvar, mval1) ->
-            match List.assoc_opt mvar rv2.mvars with
-            | None -> true
-            | Some mval2 ->
-                Matching_generic.equal_ast_binded_code config mval1 mval2)
+       match List.assoc_opt mvar rv2.mvars with
+       | None -> true
+       | Some mval2 ->
+           Matching_generic.equal_ast_binded_code config mval1 mval2)
 
 (* when we know x <= y, are the ranges also in the good Inside direction *)
 let inside_compatible x y =
@@ -55,7 +55,7 @@ let inside_compatible x y =
    * if we do x=pattern-inside:[1-2] /\ y=pattern:[1-3]
    * we don't want this x to survive.
    * See tests/OTHER/rules/and_inside.yaml
-   *)
+  *)
   (not x_inside) || y_inside
 
 (* We now not only check whether a range is included in another,
@@ -73,7 +73,7 @@ let inside_compatible x y =
  * See https://github.com/returntocorp/semgrep/issues/2664
  * alt: we could do the rewriting ourselves, detecting that the
  * metavariable-regex has the wrong scope.
- *)
+*)
 let intersect_ranges config debug_matches xs ys =
   let left_merge r1 r2 =
     (* [r1] extended with [r2.mvars], assumes [included_in config r1 r2] *)
@@ -86,37 +86,37 @@ let intersect_ranges config debug_matches xs ys =
   let left_included_merge us vs =
     us
     |> Common2.map_flatten (fun u ->
-           vs
-           |> List.filter_map (fun v ->
-                  if included_in config u v && inside_compatible u v then
-                    Some (left_merge u v)
-                  else None))
+      vs
+      |> List.filter_map (fun v ->
+        if included_in config u v && inside_compatible u v then
+          Some (left_merge u v)
+        else None))
   in
   if debug_matches then
     logger#info "intersect_range:\n\t%s\nvs\n\t%s" (show_ranges xs)
       (show_ranges ys);
   left_included_merge xs ys @ left_included_merge ys xs
-  [@@profiling]
+[@@profiling]
 
 let difference_ranges config pos neg =
   let surviving_pos =
     pos
     |> List.filter (fun x ->
-           not
-             (neg
-             |> List.exists (fun y ->
-                    (* pattern-not vs pattern-not-inside vs pattern-not-regex,
-                     * the difference matters!
-                     * This fixed 10 mismatches in semgrep-rules and some e2e tests.
-                     *)
-                    match y.kind with
-                    (* pattern-not-inside: x cannot occur inside y *)
-                    | Inside -> included_in config x y
-                    (* pattern-not-regex: x and y exclude each other *)
-                    | Regexp -> included_in config x y || included_in config y x
-                    (* pattern-not: we require the ranges to be equal *)
-                    | Plain -> included_in config x y && included_in config y x)
-             ))
+      not
+        (neg
+         |> List.exists (fun y ->
+           (* pattern-not vs pattern-not-inside vs pattern-not-regex,
+            * the difference matters!
+            * This fixed 10 mismatches in semgrep-rules and some e2e tests.
+           *)
+           match y.kind with
+           (* pattern-not-inside: x cannot occur inside y *)
+           | Inside -> included_in config x y
+           (* pattern-not-regex: x and y exclude each other *)
+           | Regexp -> included_in config x y || included_in config y x
+           (* pattern-not: we require the ranges to be equal *)
+           | Plain -> included_in config x y && included_in config y x)
+        ))
   in
   surviving_pos
-  [@@profiling]
+[@@profiling]

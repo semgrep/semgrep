@@ -10,6 +10,6 @@ val pattern_to_string : Lang.t -> Pattern.t -> string
  * in which case we should just pretty print the metavariable as is.
  * Passing the binding is useful only for the autofixing, for synthesizing
  * the binding should always be empty.
- *)
+*)
 val expr_to_string :
   Lang.t -> Metavariable.bindings -> AST_generic.expr -> string

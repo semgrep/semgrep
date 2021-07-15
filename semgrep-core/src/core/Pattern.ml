@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 
@@ -29,7 +29,7 @@ open Common
  * (e.g., "=~/foo/").
  *
  * See also Metavariable.ml.
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -58,7 +58,7 @@ let is_js lang = match lang with Some x -> Lang.is_js x | None -> true
 
 (* This is used in Analyze_pattern.ml to skip
  * semgrep special identifiers.
- *)
+*)
 let is_special_identifier ?lang str =
   Metavariable.is_metavar_name str
   (* emma: a hack because my regexp skills are not great *)

@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open OCaml (* map_of_string, ... *)
 
@@ -34,7 +34,7 @@ exception NoInterpolatedElement
  *
  * I've tagged with 'new' recent AST_generic constructs not present
  * in AST_generic_v1.atd.
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -135,7 +135,7 @@ and map_id_info x =
 
 and map_xml
     { A.xml_kind = v_xml_tag; xml_attrs = v_xml_attrs; xml_body = v_xml_body } :
-    B.xml =
+  B.xml =
   let v_xml_body = map_of_list map_xml_body v_xml_body in
   let v_xml_attrs = map_of_list map_xml_attribute v_xml_attrs in
   let v_xml_tag = map_xml_kind v_xml_tag in
@@ -802,8 +802,8 @@ and map_pattern = function
       let v1 =
         map_bracket
           (map_of_list (fun (v1, v2) ->
-               let v1 = map_dotted_ident v1 and v2 = map_pattern v2 in
-               (v1, v2)))
+             let v1 = map_dotted_ident v1 and v2 = map_pattern v2 in
+             (v1, v2)))
           v1
       in
       `PatRecord v1
@@ -815,8 +815,8 @@ and map_pattern = function
       and v2 =
         map_of_option
           (fun (v1, v2) ->
-            let v1 = map_ident v1 and v2 = map_id_info v2 in
-            (v1, v2))
+             let v1 = map_ident v1 and v2 = map_id_info v2 in
+             (v1, v2))
           v2
       in
       `PatVar (v1, v2)

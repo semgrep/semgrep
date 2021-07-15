@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 open Cst_php
 open Ast_php
@@ -24,7 +24,7 @@ module H = AST_generic_helpers
 (* Ast_php to AST_generic.
  *
  * See AST_generic.ml for more information.
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -185,21 +185,21 @@ let rec stmt_aux = function
   | StaticVars (t, v1) ->
       v1
       |> list (fun (v1, v2) ->
-             let v1 = var v1 and v2 = option expr v2 in
-             let attr = [ G.KeywordAttr (G.Static, t) ] in
-             let ent = G.basic_entity v1 attr in
-             let def = { G.vinit = v2; vtype = None } in
-             G.DefStmt (ent, G.VarDef def) |> G.s)
+        let v1 = var v1 and v2 = option expr v2 in
+        let attr = [ G.KeywordAttr (G.Static, t) ] in
+        let ent = G.basic_entity v1 attr in
+        let def = { G.vinit = v2; vtype = None } in
+        G.DefStmt (ent, G.VarDef def) |> G.s)
   | Global (t, v1) ->
       v1
       |> List.map (fun e ->
-             match e with
-             | Id [ id ] ->
-                 let ent = G.basic_entity id [] in
-                 G.DefStmt (ent, G.UseOuterDecl t) |> G.s
-             | _ ->
-                 let e = expr e in
-                 G.OtherStmt (G.OS_GlobalComplex, [ G.E e ]) |> G.s)
+        match e with
+        | Id [ id ] ->
+            let ent = G.basic_entity id [] in
+            G.DefStmt (ent, G.UseOuterDecl t) |> G.s
+        | _ ->
+            let e = expr e in
+            G.OtherStmt (G.OS_GlobalComplex, [ G.E e ]) |> G.s)
 
 and alias x =
   let x = ident x in
@@ -266,7 +266,7 @@ and expr = function
   (* $var[] = ... used to be handled in the Assign caller, but there are still
    * other complex uses of $var[] in other contexts such as
    * $var[][] = ... where we must generate something.
-   *)
+  *)
   | Array_get (v1, (t1, None, _)) ->
       let v1 = expr v1 in
       G.OtherExpr (G.OE_ArrayAppend, [ G.Tk t1; G.E v1 ])
@@ -303,7 +303,7 @@ and expr = function
    *   and v3 = expr v3
    *   in
    *   G.AssignOp (v1, (G.Append, t), v3)
-   *)
+  *)
   | Assign (v1, t, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
       G.Assign (v1, t, v3)
@@ -315,7 +315,7 @@ and expr = function
           (* todo: should introduce intermediate var *)
           G.Assign
             (v1, t, G.Call (G.IdSpecial (special, t), fb [ G.Arg v1; G.Arg v3 ]))
-      )
+    )
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)
@@ -364,21 +364,21 @@ and expr = function
       let tok = snd v1.f_name in
       match v1 with
       | {
-       f_kind = AnonLambda, t;
-       f_ref = false;
-       m_modifiers = [];
-       f_name = _ignored;
-       l_uses;
-       f_attrs = [];
-       f_params = ps;
-       f_return_type = rett;
-       f_body = body;
+        f_kind = AnonLambda, t;
+        f_ref = false;
+        m_modifiers = [];
+        f_name = _ignored;
+        l_uses;
+        f_attrs = [];
+        f_params = ps;
+        f_return_type = rett;
+        f_body = body;
       } ->
           let _lusesTODO =
             list
               (fun (v1, v2) ->
-                let _v1 = bool v1 and _v2 = var v2 in
-                ())
+                 let _v1 = bool v1 and _v2 = var v2 in
+                 ())
               l_uses
           in
 
@@ -460,8 +460,8 @@ and func_def
   let _lusesTODO =
     list
       (fun (v1, v2) ->
-        let _v1 = bool v1 and _v2 = var v2 in
-        ())
+         let _v1 = bool v1 and _v2 = var v2 in
+         ())
       l_uses
   in
   let attrs = list attribute f_attrs in
@@ -472,10 +472,10 @@ and func_def
 
 and function_kind (kind, t) =
   ( (match kind with
-    | Function -> G.Function
-    | AnonLambda -> G.LambdaKind
-    | ShortLambda -> G.Arrow
-    | Method -> G.Method),
+      | Function -> G.Function
+      | AnonLambda -> G.LambdaKind
+      | ShortLambda -> G.Arrow
+      | Method -> G.Method),
     t )
 
 and parameters x = list parameter x
@@ -486,7 +486,7 @@ and parameter x =
   | ParamEllipsis t -> G.ParamEllipsis t
 
 and parameter_classic { p_type; p_ref; p_name; p_default; p_attrs; p_variadic }
-    =
+  =
   let p_type = option hint_type p_type in
   let p_name = var p_name in
   let p_default = option expr p_default in

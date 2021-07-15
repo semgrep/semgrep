@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 module FT = File_type
@@ -49,7 +49,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *    in a AND with the relevant pattern. If used with an AND of OR,
  *    make sure all ORs define the metavar.
  *    see https://github.com/returntocorp/semgrep/issues/2664
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -85,7 +85,7 @@ let check_formula env lang f =
    * but at the same level!
    *
    * See also now semgrep-rules/meta/identical_pattern.sgrep :)
-   *)
+  *)
   let rec find_dupe f =
     match f with
     | Leaf (P _) -> ()
@@ -98,7 +98,7 @@ let check_formula env lang f =
           | x :: xs ->
               (* todo: for Pat, we could also check if exist PatNot
                * in which case intersection will always be empty
-               *)
+              *)
               if xs |> List.exists (equal_formula x) then
                 error env (spf "Duplicate pattern %s" (show_formula x));
               if xs |> List.exists (equal_formula (Not x)) then
@@ -115,12 +115,12 @@ let check_formula env lang f =
   (* call Check_pattern subchecker *)
   f
   |> visit_new_formula (fun { pat; pstr = _pat_str; pid = _ } ->
-         match (pat, lang) with
-         | Sem (semgrep_pat, _lang), L (lang, _rest) ->
-             Check_pattern.check lang semgrep_pat
-         | Spacegrep _spacegrep_pat, LGeneric -> ()
-         | Regexp _, _ -> ()
-         | _ -> raise Impossible);
+    match (pat, lang) with
+    | Sem (semgrep_pat, _lang), L (lang, _rest) ->
+        Check_pattern.check lang semgrep_pat
+    | Spacegrep _spacegrep_pat, LGeneric -> ()
+    | Regexp _, _ -> ()
+    | _ -> raise Impossible);
   ()
 
 (*****************************************************************************)
@@ -138,46 +138,46 @@ let check r =
 (* We parse the parsing function fparser (Parser_rule.parse) to avoid
  * circular dependencies.
  * Similar to Test_parsing.test_parse_rules.
- *)
+*)
 let check_files fparser xs =
   let fullxs =
     xs
     |> File_type.files_of_dirs_or_files (function
-         | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
-         | _ -> false)
+      | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
+      | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   if fullxs = [] then logger#error "no rules to check";
   fullxs
   |> List.iter (fun file ->
-         logger#info "processing %s" file;
-         let rs = fparser file in
-         rs |> List.iter check)
+    logger#info "processing %s" file;
+    let rs = fparser file in
+    rs |> List.iter check)
 
 let stat_files fparser xs =
   let fullxs =
     xs
     |> File_type.files_of_dirs_or_files (function
-         | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
-         | _ -> false)
+      | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
+      | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
   let good = ref 0 in
   let bad = ref 0 in
   fullxs
   |> List.iter (fun file ->
-         logger#info "processing %s" file;
-         let rs = fparser file in
-         rs
-         |> List.iter (fun r ->
-                let res = Analyze_rule.regexp_prefilter_of_rule r in
-                match res with
-                | None ->
-                    incr bad;
-                    pr2 (spf "PB: no regexp prefilter for rule %s:%s" file r.id)
-                | Some (s, _f) ->
-                    incr good;
-                    pr2 (spf "regexp: %s" s)));
+    logger#info "processing %s" file;
+    let rs = fparser file in
+    rs
+    |> List.iter (fun r ->
+      let res = Analyze_rule.regexp_prefilter_of_rule r in
+      match res with
+      | None ->
+          incr bad;
+          pr2 (spf "PB: no regexp prefilter for rule %s:%s" file r.id)
+      | Some (s, _f) ->
+          incr good;
+          pr2 (spf "regexp: %s" s)));
   pr2 (spf "good = %d, no regexp found = %d" !good !bad)
 
 (*e: semgrep/metachecking/Check_rule.ml *)

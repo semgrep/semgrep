@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 
 module R = Rule
 module RP = Report
@@ -28,8 +28,8 @@ let check_taint hook default_config taint_rules equivs file_and_more =
       in
       let matches, match_time =
         Common.with_time (fun () ->
-            Tainting_generic.check hook default_config taint_rules equivs file
-              ast)
+          Tainting_generic.check hook default_config taint_rules equivs file
+            ast)
       in
       { RP.matches; errors; profiling = { RP.parse_time; match_time } }
 

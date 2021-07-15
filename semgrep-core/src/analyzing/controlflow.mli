@@ -39,13 +39,13 @@ and simple_node =
   | Assert of tok * expr * expr option
   (* The 'any' below should not containt stmts, otherwise the CFG will
    * be incomplete. Use other_stmt_with_stmt_operator instead.
-   *)
+  *)
   | OtherStmt of other_stmt_operator * any list
   | Parameter of parameter
 
 (* For now there is just one kind of edge. Later we may have more,
  * see the ShadowNode idea of Julia Lawall.
- *)
+*)
 type edge = Direct
 
 type flow = (node, edge) Ograph_extended.ograph_mutable

@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 open Common
 module A = AST_generic
@@ -39,7 +39,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *     * m_list__m_attribute
  *     * m_list__m_xml_attr
  *     * m_list__m_argument (harder)
- *)
+*)
 
 (*****************************************************************************)
 (* Types *)
@@ -100,10 +100,10 @@ and tout = tin list
  * the AST of the program we want to match over), then some environment
  * information tin, and it will return something (tout) that will
  * represent a match between element A and B.
- *)
+*)
 (* currently A and B are usually the same type as we use the
  * same language for the host language and pattern language
- *)
+*)
 type 'a matcher = 'a -> 'a -> tin -> tout
 
 type 'a comb_result = tin -> ('a * tout) list
@@ -140,15 +140,15 @@ type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
  *
  * For more context, this tutorial on monads in OCaml can be useful:
  * https://www.cs.cornell.edu/courses/cs3110/2019sp/textbook/ads/ex_maybe_monad.html
- *)
+*)
 
 (*s: function [[Matching_generic.monadic_bind]] *)
 let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
- fun m1 m2 tin ->
+  fun m1 m2 tin ->
   (* let's get a list of possible environment match (could be
    * the empty list when it didn't match, playing the role None
    * had before)
-   *)
+  *)
   let xs = m1 tin in
   (* try m2 on each possible returned bindings *)
   let xxs = xs |> List.map (fun binding -> m2 () binding) in
@@ -159,7 +159,7 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
 (*s: function [[Matching_generic.monadic_or]] *)
 (* the disjunctive combinator *)
 let (( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout) =
- fun m1 m2 tin ->
+  fun m1 m2 tin ->
   (* CHOICE
         let xs = m1 tin in
         if null xs
@@ -189,7 +189,7 @@ let (return : tin -> tout) = fun tin -> [ tin ]
 
 (*s: function [[Matching_generic.fail]] *)
 let (fail : tin -> tout) =
- fun _tin ->
+  fun _tin ->
   if !Flag.debug_matching then failwith "Generic_vs_generic.fail: Match failure";
   []
 
@@ -203,7 +203,7 @@ let or_list m a bs =
  * alt: use ppx_let, but you need to write it as let%bind (uglier)
  * You can use the ppx future_syntax to support older version of OCaml, but
  * then you can not use other PPX rewriters (which we do).
- *)
+*)
 let ( let* ) o f = o >>= f
 
 (*****************************************************************************)
@@ -224,7 +224,7 @@ let extend_stmts_match_span rightmost_stmt (env : tin) =
 (*s: function [[Matching_generic.equal_ast_binded_code]] *)
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
- *)
+*)
 let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
     (b : MV.mvalue) : bool =
   let res =
@@ -240,7 +240,7 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
      *
      * TODO: relax even more and allow some id_resolved EnclosedVar (a field)
      * to match anything?
-     *)
+    *)
     | ( MV.Id ((s1, _), Some { AST.id_resolved = { contents = None }; _ }),
         MV.Id ((s2, _), _) )
     | ( MV.Id ((s1, _), _),
@@ -262,7 +262,7 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!
      * TODO? missing MV.Ss _, MV.Ss _ ??
-     *)
+    *)
     | MV.Id _, MV.Id _
     | MV.E _, MV.E _
     | MV.S _, MV.S _
@@ -283,11 +283,11 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
          * let a = MV.abstract_position_info_mval a in
          * let b = MV.abstract_position_info_mval b in
          * a =*= b
-         *)
+        *)
         (* This will perform equality but not care about:
          * - position information (see adhoc AST_generic.equal_tok)
          * - id_constness (see the special @equal for id_constness)
-         *)
+        *)
         MV.Structural.equal_mvalue a b
     | MV.Id _, MV.E (A.N (A.Id (b_id, b_id_info))) ->
         (* TODO still needed now that we have the better MV.Id of id_info? *)
@@ -300,7 +300,7 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
          * metavar with an id metavar.
          * For example, we want the pattern 'const $X = foo.$X' to match 'const bar = foo.bar'
          * (this is useful in the Javascript transpilation context of complex pattern parameter).
-         *)
+        *)
         equal_ast_binded_code config a (MV.Id (b_id, Some b_id_info))
     | _, _ -> false
   in
@@ -320,9 +320,9 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
        * Hmmm, we can't because it leads to a circular dependencies.
        * Moreover here we know both valu and valu' are regular code,
        * not patterns, so we can just use the generic '=' of OCaml.
-       *)
+      *)
       if equal_ast_binded_code tin.config valu valu' then Some tin
-        (* valu remains the metavar witness *)
+      (* valu remains the metavar witness *)
       else None
   | None ->
       (* 'backrefs' is the set of metavariables that may be referenced later
@@ -336,7 +336,7 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
 
 (*s: function [[Matching_generic.envf]] *)
 let (envf : MV.mvar AST.wrap -> MV.mvalue -> tin -> tout) =
- fun (mvar, _imvar) any tin ->
+  fun (mvar, _imvar) any tin ->
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
       (*s: [[Matching_generic.envf]] if [[verbose]] when fail *)
@@ -367,7 +367,7 @@ let empty_environment opt_cache config =
 let has_ellipsis_stmts xs =
   xs
   |> List.exists (fun st ->
-         match st.A.s with A.ExprStmt (A.Ellipsis _, _) -> true | _ -> false)
+    match st.A.s with A.ExprStmt (A.Ellipsis _, _) -> true | _ -> false)
 
 (*e: function [[Matching_generic.has_ellipsis_stmts]] *)
 
@@ -381,9 +381,9 @@ let rec inits_and_rest_of_list = function
 let _ =
   Common2.example
     (inits_and_rest_of_list [ 'a'; 'b'; 'c' ]
-    = [
-        ([ 'a' ], [ 'b'; 'c' ]); ([ 'a'; 'b' ], [ 'c' ]); ([ 'a'; 'b'; 'c' ], []);
-      ])
+     = [
+       ([ 'a' ], [ 'b'; 'c' ]); ([ 'a'; 'b' ], [ 'c' ]); ([ 'a'; 'b'; 'c' ], []);
+     ])
 
 let inits_and_rest_of_list_empty_ok = function
   | [] -> [ ([], []) ]
@@ -392,12 +392,12 @@ let inits_and_rest_of_list_empty_ok = function
 let _ =
   Common2.example
     (inits_and_rest_of_list_empty_ok [ 'a'; 'b'; 'c' ]
-    = [
-        ([], [ 'a'; 'b'; 'c' ]);
-        ([ 'a' ], [ 'b'; 'c' ]);
-        ([ 'a'; 'b' ], [ 'c' ]);
-        ([ 'a'; 'b'; 'c' ], []);
-      ])
+     = [
+       ([], [ 'a'; 'b'; 'c' ]);
+       ([ 'a' ], [ 'b'; 'c' ]);
+       ([ 'a'; 'b' ], [ 'c' ]);
+       ([ 'a'; 'b'; 'c' ], []);
+     ])
 
 (*s: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 (* todo? optimize, probably not the optimal version ... *)
@@ -411,7 +411,7 @@ let all_elem_and_rest_of_list xs =
         loop acc' prev_xs' next_xs
   in
   loop [] [] xs
-  [@@profiling]
+[@@profiling]
 
 let rec all_splits = function
   | [] -> [ ([], []) ]
@@ -433,7 +433,7 @@ let rec all_splits = function
   * computing the rest of the list *)
 let lazy_rest_of_list v =
   Common.profile_code "Matching_generic.eval_rest_of_list" (fun () ->
-      Lazy.force v)
+    Lazy.force v)
 
 (*s: function [[Matching_generic.return_bis]] *)
 let return () = return
@@ -483,7 +483,7 @@ let regexp_matcher_of_regexp_string s =
 (* ---------------------------------------------------------------------- *)
 (*s: function [[Matching_generic.m_option]] *)
 let (m_option : 'a matcher -> 'a option matcher) =
- fun f a b ->
+  fun f a b ->
   match (a, b) with
   | None, None -> return ()
   | Some xa, Some xb -> f xa xb
@@ -519,7 +519,7 @@ let m_option_none_can_match_some f a b =
 (* ---------------------------------------------------------------------- *)
 (*s: function [[Matching_generic.m_ref]] *)
 let (m_ref : 'a matcher -> 'a ref matcher) =
- fun f a b ->
+  fun f a b ->
   match (a, b) with { contents = xa }, { contents = xb } -> f xa xb
 
 (*e: function [[Matching_generic.m_ref]] *)
@@ -575,7 +575,7 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
 (* todo? opti? try to go faster to the one with split_when?
  * need reflect tin so we can call the matcher and query whether there
  * was a match. Maybe a <??> monadic operator?
- *)
+*)
 let rec m_list_in_any_order ~less_is_ok f xsa xsb =
   match (xsa, xsb) with
   | [], [] -> return ()
@@ -590,7 +590,7 @@ let rec m_list_in_any_order ~less_is_ok f xsa xsb =
         | (b, xsb) :: xs ->
             f a b
             >>= (fun () ->
-                  m_list_in_any_order ~less_is_ok f xsa (lazy_rest_of_list xsb))
+              m_list_in_any_order ~less_is_ok f xsa (lazy_rest_of_list xsb))
             >||> aux xs
       in
       aux candidates
@@ -604,7 +604,7 @@ let rec m_list_in_any_order ~less_is_ok f xsa xsb =
 let m_comb_unit xs : _ comb_result = fun tin -> [ (xs, [ tin ]) ]
 
 let m_comb_bind (comb_result : _ comb_result) f : _ comb_result =
- fun tin ->
+  fun tin ->
   let rec loop = function
     | [] -> []
     | (bs, tout) :: comb_matches' ->
@@ -625,18 +625,18 @@ let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
     comb_result xs
 
 let m_comb_1to1 (m : _ matcher) a bs : _ comb_result =
- fun tin ->
+  fun tin ->
   bs |> all_elem_and_rest_of_list
   |> List.filter_map (fun (b, other_bs) ->
-         match m a b tin with
-         | [] -> None
-         | tout -> Some (Lazy.force other_bs, tout))
+    match m a b tin with
+    | [] -> None
+    | tout -> Some (Lazy.force other_bs, tout))
 
 let m_comb_1toN m_1toN a bs : _ comb_result =
- fun tin ->
+  fun tin ->
   bs |> all_splits
   |> List.filter_map (fun (l, r) ->
-         match m_1toN a l tin with [] -> None | tout -> Some (r, tout))
+    match m_1toN a l tin with [] -> None | tout -> Some (r, tout))
 
 (* ---------------------------------------------------------------------- *)
 (* stdlib: bool/int/string/... *)
@@ -682,7 +682,7 @@ let m_string_prefix a b = if string_is_prefix b a then return () else fail ()
 (*s: function [[Matching_generic.m_info]] *)
 (* we do not care about position! or differences in space/indent/comment!
  * so we can just  'return ()'
- *)
+*)
 let m_info _a _b = return ()
 
 (*e: function [[Matching_generic.m_info]] *)
@@ -717,7 +717,7 @@ let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
  * AST_generic.String of string wrap bracket, but this requires
  * lots of work in our Pfff parsers (less in tree-sitter which already
  * split strings in different tokens).
- *)
+*)
 let adjust_info_remove_enclosing_quotes (s, info) =
   let loc = PI.token_location_of_info info in
   let raw_str = loc.PI.str in
@@ -741,7 +741,7 @@ let adjust_info_remove_enclosing_quotes (s, info) =
 
 (* TODO: should factorize with m_ellipsis_or_metavar_or_string at some
  * point when AST_generic.String is of string bracket
- *)
+*)
 let m_string_ellipsis_or_metavar_or_default ?(m_string_for_default = m_string) a
     b =
   match fst a with

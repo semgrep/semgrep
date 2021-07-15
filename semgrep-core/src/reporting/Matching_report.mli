@@ -5,7 +5,7 @@ type match_format =
    *  foo(
    *   1,
    *   2);
-   *)
+  *)
   | Normal
   (* ex: tests/misc/foo4.php:3: foo( *)
   | Emacs

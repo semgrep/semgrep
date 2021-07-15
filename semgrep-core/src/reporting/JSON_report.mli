@@ -3,7 +3,7 @@
 (*s: signature [[JSON_report.match_to_json]] *)
 (* Can return an Error because when have a NoTokenLocation exn when
  * trying to get the range of a match or metavar.
- *)
+*)
 val match_to_match :
   Pattern_match.t ->
   (Spacegrep.Semgrep_t.match_, Error_code.error) Common.either

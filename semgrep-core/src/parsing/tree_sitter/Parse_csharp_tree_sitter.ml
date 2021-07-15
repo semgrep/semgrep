@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
- *)
+*)
 open Common
 module CST = Tree_sitter_c_sharp.CST
 module AST = AST_generic
@@ -25,7 +25,7 @@ module PI = Parse_info
 (* Csharp parser using tree-sitter-lang/semgrep-charp and converting
  * directly to pfff/h_program-lang/AST_generic.ml
  *
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -77,16 +77,16 @@ let prepend_qualifier_to_name (qualifier : qualifier) (name : name) : name =
 let type_parameters_with_constraints params constraints : type_parameter list =
   List.map
     (fun param ->
-      let with_constraints =
-        List.find_opt
-          (fun p ->
-            let id, _ = p in
-            let id, _ = id in
-            let param, _ = param in
-            id = param)
-          constraints
-      in
-      match with_constraints with Some x -> x | None -> (param, []))
+       let with_constraints =
+         List.find_opt
+           (fun p ->
+              let id, _ = p in
+              let id, _ = id in
+              let param, _ = param in
+              id = param)
+           constraints
+       in
+       match with_constraints with Some x -> x | None -> (param, []))
     params
 
 let arg_to_expr (a : argument) =
@@ -97,8 +97,8 @@ let var_def_stmt (decls : (entity * variable_definition) list)
   let stmts =
     List.map
       (fun (ent, def) ->
-        let ent = { ent with attrs = ent.attrs @ attrs } in
-        DefStmt (ent, VarDef def) |> AST.s)
+         let ent = { ent with attrs = ent.attrs @ attrs } in
+         DefStmt (ent, VarDef def) |> AST.s)
       decls
   in
   stmt1 stmts
@@ -162,7 +162,7 @@ let create_join_result_lambda lambda_params ident =
 
 (* create a new lambda in the form
  * base_expr.funcname(lambda_params => expr)
- *)
+*)
 let call_lambda base_expr funcname tok funcs =
   (* let funcs = exprs |> List.map (fun expr -> create_lambda lambda_params expr) in *)
   let args = funcs |> List.map (fun func -> Arg func) in
@@ -201,7 +201,7 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
       | Let (tok, ident, expr) ->
           (* base_expr.Select(lambda_params -> (lambda_params..., expr))
            * and add ident to lambda_params
-           *)
+          *)
           let ids =
             List.map (fun id -> N (Id (id, empty_id_info ()))) lambda_params
           in
@@ -213,7 +213,7 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
       | Group (tok, vals, key) ->
           (* base_expr.GroupBy(lambda_params -> key, lambda_params -> vals)
            * and clear lambda_params
-           *)
+          *)
           let key_func = create_lambda lambda_params key in
           let val_func = create_lambda lambda_params vals in
           let base_expr =
@@ -226,7 +226,7 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
       | From (tok, (_type, ident), expr) ->
           (* base_expr.SelectMany(lambda_params -> expr, (lambda_params, col) -> (lambda_params, col))
            * and add ident to lambda_params
-           *)
+          *)
           let sel_func = create_lambda lambda_params expr in
           let res_func = create_join_result_lambda lambda_params ident in
           let base_expr =
@@ -240,7 +240,7 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
       | Join (tok, (_type, ident), enum, left, right, None) ->
           (* base_expr.Join(enum, lambda_params -> left, ident -> right, (lambda_params, ident) -> (lambda_params, ident))
            * and add ident to lambda_params
-           *)
+          *)
           let left_func = create_lambda lambda_params left in
           let right_func = create_lambda [ ident ] right in
           let res_func = create_join_result_lambda lambda_params ident in
@@ -331,7 +331,7 @@ let escape_sequence (env : env) (tok : CST.escape_sequence) =
   String s
 
 let assignment_operator (env : env) (x : CST.assignment_operator) :
-    operator wrap =
+  operator wrap =
   match x with
   | `EQ tok -> (Eq, token env tok) (* "=" *)
   | `PLUSEQ tok -> (Plus, token env tok) (* "+=" *)
@@ -386,7 +386,7 @@ let attribute_target_specifier (env : env)
 
 (* note that there's no octal literal in C# so no need for
  * H.int_of_string_c_octal_opt
- *)
+*)
 let integer_literal (env : env) (tok : CST.integer_literal) =
   let s, t = str env tok in
   (* integer_literal *)
@@ -439,7 +439,7 @@ let modifier (env : env) (x : CST.modifier) =
   | `Sealed tok ->
       (* TODO we map Sealed to Final here, is that OK? *)
       KeywordAttr (Final, token env tok)
-      (* "sealed" *)
+  (* "sealed" *)
   | `Static tok -> KeywordAttr (Static, token env tok) (* "static" *)
   | `Unsafe tok -> unhandled_keywordattr_to_namedattr env tok
   | `Virt tok -> unhandled_keywordattr_to_namedattr env tok
@@ -505,7 +505,7 @@ let identifier (env : env) (tok : CST.identifier) : ident =
 
 (* TODO: not sure why preprocessor_call was not generated. Because
  * was in extras?
- *)
+*)
 let _preproc_directive_end (env : env) (tok : CST.preproc_directive_end) =
   token env tok
 
@@ -532,9 +532,9 @@ let rec variable_designation (env : env) (x : CST.variable_designation) =
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 = token env v1 (* "," *) in
-                  let v2 = variable_designation env v2 in
-                  v2)
+                   let v1 = token env v1 (* "," *) in
+                   let v2 = variable_designation env v2 in
+                   v2)
                 v2
             in
             v1 :: v2
@@ -571,9 +571,9 @@ let rec tuple_pattern (env : env) ((v1, v2, v3, v4) : CST.tuple_pattern) =
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "," *) in
-        let v2 = anon_choice_id_c036834 env v2 in
-        v2)
+         let v1 = token env v1 (* "," *) in
+         let v2 = anon_choice_id_c036834 env v2 in
+         v2)
       v3
   in
   let v4 = token env v4 (* ")" *) in
@@ -620,10 +620,10 @@ let literal (env : env) (x : CST.literal) : literal =
       let v2 =
         List.map
           (fun x ->
-            match x with
-            | `Str_lit_frag tok -> str env tok (* pattern "[^\"\\\\\\n]+" *)
-            | `Esc_seq tok -> str env tok
-            (* escape_sequence *))
+             match x with
+             | `Str_lit_frag tok -> str env tok (* pattern "[^\"\\\\\\n]+" *)
+             | `Esc_seq tok -> str env tok
+             (* escape_sequence *))
           v2
       in
       let v3 = token env v3 (* "\"" *) in
@@ -644,15 +644,15 @@ let rec return_type (env : env) (x : CST.return_type) : type_ =
 and type_pattern (env : env) (x : CST.type_pattern) = type_ env x
 
 and variable_declaration (env : env) ((v1, v2, v3) : CST.variable_declaration) :
-    (entity * variable_definition) list =
+  (entity * variable_definition) list =
   let v1 = local_variable_type env v1 in
   let v2 = variable_declarator env v2 in
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "," *) in
-        let v2 = variable_declarator env v2 in
-        v2)
+         let v1 = token env v1 (* "," *) in
+         let v2 = variable_declarator env v2 in
+         v2)
       v3
   in
   let decls = v2 :: v3 in
@@ -734,7 +734,7 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       let v2 = token env v2 (* ">>" *) in
       let v3 = expression env v3 in
       Call (IdSpecial (Op LSR, v2), fake_bracket [ Arg v1; Arg v3 ])
-      (* TODO Is LSR the correct shift type? *)
+  (* TODO Is LSR the correct shift type? *)
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "<<" *) in
@@ -862,9 +862,9 @@ and with_initializer_expression (env : env)
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = simple_assignment_expression env v2 in
-        v2)
+         let _v1 = token env v1 (* "," *) in
+         let v2 = simple_assignment_expression env v2 in
+         v2)
       v2
   in
   v2
@@ -938,7 +938,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
   v3
 
 and element_binding_expression (env : env) (x : CST.element_binding_expression)
-    =
+  =
   let open_br, args, close_br = bracketed_argument_list env x in
   let exprs = List.map arg_to_expr args in
   (open_br, exprs, close_br)
@@ -978,9 +978,9 @@ and array_rank_specifier (env : env) ((v1, v2, v3) : CST.array_rank_specifier) =
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = token env v1 (* "," *) in
-              let v2 = map_opt expression env v2 in
-              v2)
+               let v1 = token env v1 (* "," *) in
+               let v2 = map_opt expression env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -1032,9 +1032,9 @@ and tuple_expression (env : env) ((v1, v2, v3, v4) : CST.tuple_expression) =
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "," *) in
-        let v2 = argument env v2 in
-        v2)
+         let v1 = token env v1 (* "," *) in
+         let v2 = argument env v2 in
+         v2)
       v3
   in
   let v4 = token env v4 (* ")" *) in
@@ -1131,9 +1131,9 @@ and expression (env : env) (x : CST.expression) : AST.expr =
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 = token env v1 (* "," *) in
-                  let v2 = anonymous_object_member_declarator env v2 in
-                  v2)
+                   let v1 = token env v1 (* "," *) in
+                   let v2 = anonymous_object_member_declarator env v2 in
+                   v2)
                 v2
             in
             v1 :: v2
@@ -1287,7 +1287,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
             let id = identifier env tok in
             let p = param_of_id id in
             [ ParamClassic p ]
-        (* identifier *)
+            (* identifier *)
       in
       let v3 = token env v3 (* "=>" *) in
       let v4 =
@@ -1395,9 +1395,9 @@ and expression (env : env) (x : CST.expression) : AST.expr =
             let v2 =
               List.map
                 (fun (v1, v2) ->
-                  let v1 = token env v1 (* "," *) in
-                  let v2 = switch_expression_arm env v2 in
-                  v2)
+                   let v1 = token env v1 (* "," *) in
+                   let v2 = switch_expression_arm env v2 in
+                   v2)
                 v2
             in
             v1 :: v2
@@ -1432,7 +1432,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
       (* THINK:
        * - with-expressions may deserve first-class support in Generic AST
        * - record patterns perhaps should match with-expressions
-       *)
+      *)
       AST.OtherExpr (AST.OE_RecordWith, [ AST.E v1; AST.E with_fields ])
   | `Simple_name x -> N (simple_name env x)
   | `Lit x ->
@@ -1457,7 +1457,7 @@ and simple_name (env : env) (x : CST.simple_name) : AST.name =
   | `Choice_global x -> Id (identifier_or_global env x, empty_id_info ())
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) :
-    case_and_body list =
+  case_and_body list =
   let v1 = token env v1 (* "{" *) in
   let v2 = List.map (switch_section env) v2 in
   let v3 = token env v3 (* "}" *) in
@@ -1495,15 +1495,15 @@ and anon_opt_cst_pat_rep_interp_alig_clause_080fdff (env : env)
   | None -> []
 
 and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
-    =
+  =
   let v1 = token env v1 (* "<" *) in
   let v2 = type_parameter env v2 in
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "," *) in
-        let v2 = type_parameter env v2 in
-        v2)
+         let v1 = token env v1 (* "," *) in
+         let v2 = type_parameter env v2 in
+         v2)
       v3
   in
   let v4 = token env v4 (* ">" *) in
@@ -1741,8 +1741,8 @@ and statement (env : env) (x : CST.statement) =
       let v2 = map_opt expression env v2 in
       let v3 = token env v3 (* ";" *) in
       (match v2 with
-      | Some expr -> Throw (v1, expr, v3)
-      | None -> OtherStmt (OS_ThrowNothing, [ Tk v1; Tk v3 ]))
+       | Some expr -> Throw (v1, expr, v3)
+       | None -> OtherStmt (OS_ThrowNothing, [ Tk v1; Tk v3 ]))
       |> AST.s
   | `Try_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "try" *) in
@@ -1867,9 +1867,9 @@ and query_clause (env : env) (x : CST.query_clause) =
       let v3 =
         List.map
           (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
-            let v2 = ordering env v2 in
-            v2)
+             let v1 = token env v1 (* "," *) in
+             let v2 = ordering env v2 in
+             v2)
           v3
       in
       OrderBy (v1, v2 :: v3)
@@ -1879,7 +1879,7 @@ and query_clause (env : env) (x : CST.query_clause) =
       Where (v1, v2)
 
 and arrow_expression_clause (env : env) ((v1, v2) : CST.arrow_expression_clause)
-    =
+  =
   let v1 = token env v1 (* "=>" *) in
   let v2 = expression env v2 in
   (v1, v2)
@@ -1897,7 +1897,7 @@ and attribute_argument (env : env) ((v1, v2) : CST.attribute_argument) =
   match v1 with Some name -> ArgKwd (name, v2) | None -> Arg v2
 
 and catch_filter_clause (env : env) ((v1, v2, v3, v4) : CST.catch_filter_clause)
-    =
+  =
   let v1 = token env v1 (* "when" *) in
   let v2 = token env v2 (* "(" *) in
   let v3 = expression env v3 in
@@ -1909,15 +1909,15 @@ and formal_parameter_list (env : env) ((v1, v2) : CST.formal_parameter_list) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "," *) in
-        let v2 = anon_choice_param_ce11a32 env v2 in
-        v2)
+         let v1 = token env v1 (* "," *) in
+         let v2 = anon_choice_param_ce11a32 env v2 in
+         v2)
       v2
   in
   v1 :: v2
 
 and equals_value_clause (env : env) ((v1, v2) : CST.equals_value_clause) : expr
-    =
+  =
   let v1 = token env v1 (* "=" *) in
   let v2 = expression env v2 in
   v2
@@ -1932,10 +1932,10 @@ and switch_section (env : env) ((v1, v2) : CST.switch_section) : case_and_body =
   let v1 =
     List.map
       (fun x ->
-        match x with
-        | `Case_switch_label x -> case_switch_label env x
-        | `Case_pat_switch_label x -> case_pattern_switch_label env x
-        | `Defa_switch_label x -> default_switch_label env x)
+         match x with
+         | `Case_switch_label x -> case_switch_label env x
+         | `Case_pat_switch_label x -> case_pattern_switch_label env x
+         | `Defa_switch_label x -> default_switch_label env x)
       v1
   in
   let v2 = List.map (statement env) v2 in
@@ -1943,7 +1943,7 @@ and switch_section (env : env) ((v1, v2) : CST.switch_section) : case_and_body =
   CasesAndBody (v1, stmt1 v2)
 
 and attribute_list (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_list) :
-    attribute list =
+  attribute list =
   (* TODO: Handle unused tokens. *)
   let _v1 = token env v1 (* "[" *) in
   let _v2 = map_opt attribute_target_specifier env v2 in
@@ -1951,8 +1951,8 @@ and attribute_list (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_list) :
   let v4 =
     List.map
       (fun (x, y) ->
-        token env x (* "," *) |> ignore;
-        attribute env y)
+         token env x (* "," *) |> ignore;
+         attribute env y)
       v4
   in
   let _v5 = map_opt token env v5 (* "," *) in
@@ -1966,9 +1966,9 @@ and bracketed_argument_list (env : env)
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "," *) in
-        let v2 = argument env v2 in
-        v2)
+         let v1 = token env v1 (* "," *) in
+         let v2 = argument env v2 in
+         v2)
       v3
   in
   let v4 = token env v4 (* "]" *) in
@@ -2109,7 +2109,7 @@ and explicit_parameter (env : env) (v1, v2, v3, v4, v5) =
     }
 
 and from_clause (env : env) ((v1, v2, v3, v4, v5) : CST.from_clause) :
-    linq_query_part =
+  linq_query_part =
   let v1 = token env v1 (* "from" *) in
   let v2 = map_opt type_constraint env v2 in
   let v3 = identifier env v3 (* identifier *) in
@@ -2128,7 +2128,7 @@ and attribute (env : env) ((v1, v2) : CST.attribute) =
   AST.NamedAttr (fake "[", v1, v2)
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
-    AST.arguments bracket =
+  AST.arguments bracket =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with
@@ -2137,9 +2137,9 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = token env v1 (* "," *) in
-              let v2 = argument env v2 in
-              v2)
+               let v1 = token env v1 (* "," *) in
+               let v2 = argument env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -2179,9 +2179,9 @@ and type_ (env : env) (x : CST.type_) : AST.type_ =
       let v5 =
         List.map
           (fun (v1, v2) ->
-            let v1 = token env v1 (* "," *) in
-            let v2 = tuple_element env v2 in
-            v2)
+             let v1 = token env v1 (* "," *) in
+             let v2 = tuple_element env v2 in
+             v2)
           v5
       in
       let v6 = token env v6 (* ")" *) in
@@ -2197,9 +2197,9 @@ and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = token env v1 (* "," *) in
-              let v2 = type_constraint env v2 in
-              v2)
+               let v1 = token env v1 (* "," *) in
+               let v2 = type_constraint env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -2216,15 +2216,15 @@ and type_parameter_constraints_clause (env : env)
   let v5 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "," *) in
-        let v2 = type_parameter_constraint env v2 in
-        v2)
+         let v1 = token env v1 (* "," *) in
+         let v2 = type_parameter_constraint env v2 in
+         v2)
       v5
   in
   (v2, v4 :: v5)
 
 and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
-    parameter list =
+  parameter list =
   let v1 = token env v1 (* "(" *) in
   let v2 = match v2 with Some x -> formal_parameter_list env x | None -> [] in
   let v3 = token env v3 (* ")" *) in
@@ -2240,9 +2240,9 @@ and attribute_argument_list (env : env)
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = token env v1 (* "," *) in
-              let v2 = attribute_argument env v2 in
-              v2)
+               let v1 = token env v1 (* "," *) in
+               let v2 = attribute_argument env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -2275,7 +2275,7 @@ and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) =
   | None -> N (Id (v2, empty_id_info ()))
 
 and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) :
-    expr bracket =
+  expr bracket =
   let v1 = token env v1 (* "{" *) in
   let v2 = expression env v2 in
   let v3_todo = map_opt interpolation_alignment_clause env v3 in
@@ -2318,9 +2318,9 @@ let bracketed_parameter_list (env : env)
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "," *) in
-        let v2 = parameter env v2 in
-        v2)
+         let v1 = token env v1 (* "," *) in
+         let v2 = parameter env v2 in
+         v2)
       v3
   in
   let v4 = token env v4 (* "]" *) in
@@ -2351,9 +2351,9 @@ let base_list (env : env) ((v1, v2, v3) : CST.base_list) =
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "," *) in
-        let v2 = type_constraint env v2 in
-        v2)
+         let v1 = token env v1 (* "," *) in
+         let v2 = type_constraint env v2 in
+         v2)
       v3
   in
   v2 :: v3
@@ -2374,9 +2374,9 @@ let enum_member_declaration_list (env : env)
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = token env v1 (* "," *) in
-              let v2 = enum_member_declaration env v2 in
-              v2)
+               let v1 = token env v1 (* "," *) in
+               let v2 = enum_member_declaration env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -2446,9 +2446,9 @@ and global_attribute_list (env : env)
         let v2 =
           List.map
             (fun (v1, v2) ->
-              let v1 = token env v1 (* "," *) in
-              let v2 = attribute env v2 in
-              v2)
+               let v1 = token env v1 (* "," *) in
+               let v2 = attribute env v2 in
+               v2)
             v2
         in
         v1 :: v2
@@ -2662,28 +2662,28 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let funcs =
               accs
               |> List.map (fun (attrs, id, fbody) ->
-                     let iname, itok = id in
-                     let ent = basic_entity (iname ^ "_" ^ fname, itok) attrs in
-                     let valparam =
-                       ParamClassic
-                         {
-                           pname = Some ("value", fake "value");
-                           ptype = Some v4;
-                           pdefault = None;
-                           pattrs = [];
-                           pinfo = empty_id_info ();
-                         }
-                     in
-                     let funcdef =
-                       FuncDef
-                         {
-                           fkind = (Method, itok);
-                           fparams = [ valparam ];
-                           frettype = None;
-                           fbody;
-                         }
-                     in
-                     DefStmt (ent, funcdef) |> AST.s)
+                let iname, itok = id in
+                let ent = basic_entity (iname ^ "_" ^ fname, itok) attrs in
+                let valparam =
+                  ParamClassic
+                    {
+                      pname = Some ("value", fake "value");
+                      ptype = Some v4;
+                      pdefault = None;
+                      pattrs = [];
+                      pinfo = empty_id_info ();
+                    }
+                in
+                let funcdef =
+                  FuncDef
+                    {
+                      fkind = (Method, itok);
+                      fparams = [ valparam ];
+                      frettype = None;
+                      fbody;
+                    }
+                in
+                DefStmt (ent, funcdef) |> AST.s)
             in
             (open_br, funcs, close_br)
         | `SEMI tok ->
@@ -2723,43 +2723,43 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           let funcs =
             accs
             |> List.map (fun (attrs, id, fbody) ->
-                   let iname, itok = id in
-                   match iname with
-                   | "get" ->
-                       let ent = basic_entity ("get_Item", itok) attrs in
-                       let funcdef =
-                         FuncDef
-                           {
-                             fkind = (Method, itok);
-                             fparams = v6;
-                             frettype = Some v3;
-                             fbody;
-                           }
-                       in
-                       DefStmt (ent, funcdef) |> AST.s
-                   | "set" ->
-                       let valparam =
-                         ParamClassic
-                           {
-                             pname = Some ("value", fake "value");
-                             ptype = Some v3;
-                             pdefault = None;
-                             pattrs = [];
-                             pinfo = empty_id_info ();
-                           }
-                       in
-                       let ent = basic_entity ("set_Item", itok) attrs in
-                       let funcdef =
-                         FuncDef
-                           {
-                             fkind = (Method, itok);
-                             fparams = v6 @ [ valparam ];
-                             frettype = None;
-                             fbody;
-                           }
-                       in
-                       DefStmt (ent, funcdef) |> AST.s
-                   | _ -> raise Impossible)
+              let iname, itok = id in
+              match iname with
+              | "get" ->
+                  let ent = basic_entity ("get_Item", itok) attrs in
+                  let funcdef =
+                    FuncDef
+                      {
+                        fkind = (Method, itok);
+                        fparams = v6;
+                        frettype = Some v3;
+                        fbody;
+                      }
+                  in
+                  DefStmt (ent, funcdef) |> AST.s
+              | "set" ->
+                  let valparam =
+                    ParamClassic
+                      {
+                        pname = Some ("value", fake "value");
+                        ptype = Some v3;
+                        pdefault = None;
+                        pattrs = [];
+                        pinfo = empty_id_info ();
+                      }
+                  in
+                  let ent = basic_entity ("set_Item", itok) attrs in
+                  let funcdef =
+                    FuncDef
+                      {
+                        fkind = (Method, itok);
+                        fparams = v6 @ [ valparam ];
+                        frettype = None;
+                        fbody;
+                      }
+                  in
+                  DefStmt (ent, funcdef) |> AST.s
+              | _ -> raise Impossible)
           in
           Block (open_br, funcs, close_br) |> AST.s
       | `Arrow_exp_clause_SEMI (v1, v2) ->
@@ -2859,40 +2859,40 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let funcs =
               List.map
                 (fun (attrs, id, fbody) ->
-                  let iname, itok = id in
-                  let has_params = iname <> "get" in
-                  let has_return = iname = "get" in
-                  let ent = basic_entity (iname ^ "_" ^ fname, itok) attrs in
-                  let funcdef =
-                    FuncDef
-                      {
-                        fkind = (Method, itok);
-                        fparams =
-                          (if has_params then
-                           [
-                             ParamClassic
-                               {
-                                 pname = Some ("value", fake "value");
-                                 ptype = Some v3;
-                                 pdefault = None;
-                                 pattrs = [];
-                                 pinfo = empty_id_info ();
-                               };
-                           ]
-                          else []);
-                        frettype = (if has_return then Some v3 else None);
-                        (* TODO Should this be "void"? *)
-                        fbody;
-                      }
-                  in
-                  DefStmt (ent, funcdef) |> AST.s)
+                   let iname, itok = id in
+                   let has_params = iname <> "get" in
+                   let has_return = iname = "get" in
+                   let ent = basic_entity (iname ^ "_" ^ fname, itok) attrs in
+                   let funcdef =
+                     FuncDef
+                       {
+                         fkind = (Method, itok);
+                         fparams =
+                           (if has_params then
+                              [
+                                ParamClassic
+                                  {
+                                    pname = Some ("value", fake "value");
+                                    ptype = Some v3;
+                                    pdefault = None;
+                                    pattrs = [];
+                                    pinfo = empty_id_info ();
+                                  };
+                              ]
+                            else []);
+                         frettype = (if has_return then Some v3 else None);
+                         (* TODO Should this be "void"? *)
+                         fbody;
+                       }
+                   in
+                   DefStmt (ent, funcdef) |> AST.s)
                 v1
             in
             ((open_br, funcs, close_br), v2)
         | `Arrow_exp_clause_SEMI (v1, v2) ->
             (* public int SomeProp => 3;
              * Convert it to `get_SomeProp { return 3; }`
-             *)
+            *)
             let v1 = arrow_expression_clause env v1 in
             let v2 = token env v2 (* ";" *) in
             let arrow, expr = v1 in
@@ -2922,23 +2922,23 @@ and declaration (env : env) (x : CST.declaration) : stmt =
 let parse file =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_c_sharp.Parse.file file ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke Tree_sitter_c_sharp.Parse.file file ())
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
-      try
-        match compilation_unit env cst with
-        | AST.Pr xs -> xs
-        | _ -> failwith "not a program"
-      with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
-        raise exn)
+       try
+         match compilation_unit env cst with
+         | AST.Pr xs -> xs
+         | _ -> failwith "not a program"
+       with Failure "not implemented" as exn ->
+         let s = Printexc.get_backtrace () in
+         pr2 "Some constructs are not handled yet";
+         pr2 "CST was:";
+         CST.dump_tree cst;
+         pr2 "Original backtrace:";
+         pr2 s;
+         raise exn)
 
 let parse_pattern_aux str =
   (* ugly: coupling: see grammar.js of csharp.
@@ -2954,12 +2954,12 @@ let parse_pattern_aux str =
 let parse_pattern str =
   H.wrap_parser
     (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke parse_pattern_aux str ())
+       Parallel.backtrace_when_exn := false;
+       Parallel.invoke parse_pattern_aux str ())
     (fun cst ->
-      let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      match compilation_unit env cst with
-      | AST.Pr [ x ] -> AST.S x
-      | AST.Pr xs -> AST.Ss xs
-      | x -> x)
+       let file = "<pattern>" in
+       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+       match compilation_unit env cst with
+       | AST.Pr [ x ] -> AST.S x
+       | AST.Pr xs -> AST.Ss xs
+       | x -> x)

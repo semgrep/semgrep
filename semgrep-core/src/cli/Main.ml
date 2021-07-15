@@ -53,7 +53,7 @@ module SJ = Spacegrep.Semgrep_j
  *
  * See also codequery for more structural queries.
  * See also old information at https://github.com/facebook/pfff/wiki/Sgrep.
- *)
+*)
 
 (*****************************************************************************)
 (* Flags *)
@@ -66,7 +66,7 @@ module SJ = Spacegrep.Semgrep_j
 (* You can set those environment variables to enable debugging/profiling
  * instead of using -debug or -profile. This is useful when you don't call
  * directly semgrep-core but instead use the semgrep Python wrapper.
- *)
+*)
 let env_debug = "SEMGREP_CORE_DEBUG"
 
 let env_profile = "SEMGREP_CORE_PROFILE"
@@ -95,7 +95,7 @@ let report_time = ref false
 (*s: constant [[Main_semgrep_core.error_recovery]] *)
 (* try to continue processing files, even if one has a parse error with -e/f.
  * note that -rules_file does its own error recovery.
- *)
+*)
 let error_recovery = ref false
 
 (*e: constant [[Main_semgrep_core.error_recovery]] *)
@@ -107,7 +107,7 @@ let profile_start = ref 0.
 
 (* there are a few other debugging flags in Flag_semgrep.ml
  * (e.g., debug_matching)
- *)
+*)
 (* ------------------------------------------------------------------------- *)
 (* main flags *)
 (* ------------------------------------------------------------------------- *)
@@ -238,7 +238,7 @@ let set_gc () =
 *)
   (* only relevant in bytecode, in native the stacklimit is the os stacklimit,
    * which usually requires a ulimit -s 40000
-   *)
+  *)
   Gc.set { (Gc.get ()) with Gc.stack_limit = 1000 * 1024 * 1024 };
   (* see www.elehack.net/michael/blog/2010/06/ocaml-memory-tuning *)
   Gc.set { (Gc.get ()) with Gc.minor_heap_size = 4_000_000 };
@@ -256,7 +256,7 @@ let map f xs =
     (* Heuristic. Note that if you don't set a chunksize, Parmap
      * will evenly split the list xs, which does not provide any load
      * balancing.
-     *)
+    *)
     let chunksize =
       match n with
       | _ when n > 1000 -> 10
@@ -275,7 +275,7 @@ let map f xs =
      * (https://github.com/rdicosmo/parmap/blob/1.2.3/src/setcore_stubs.c#L47).
      * So, despite it may hurt perf a bit, we disable core pinning to work around
      * this issue until this is fixed in a future version of Parmap.
-     *)
+    *)
     Parmap.disable_core_pinning ();
     Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
 
@@ -293,29 +293,29 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
    * for DotAccess generated outside the grammar) *)
   let toks = tokens_matched_code |> List.filter PI.is_origintok in
   (if mvars = [] then
-   Matching_report.print_match ?str ~format:!match_format toks
-  else
-    (*s: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
-    (* similar to the code of Lib_matcher.print_match, maybe could
-     * factorize code a bit.
+     Matching_report.print_match ?str ~format:!match_format toks
+   else
+     (*s: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
+     (* similar to the code of Lib_matcher.print_match, maybe could
+      * factorize code a bit.
      *)
-    let mini, _maxi = PI.min_max_ii_by_pos toks in
-    let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
+     let mini, _maxi = PI.min_max_ii_by_pos toks in
+     let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
 
-    let strings_metavars =
-      mvars
-      |> List.map (fun x ->
-             match Common2.assoc_opt x mvar_binding with
-             | Some any ->
-                 any |> ii_of_any
-                 |> List.filter PI.is_origintok
-                 |> List.map PI.str_of_info
-                 |> Matching_report.join_with_space_if_needed
-             | None -> failwith (spf "the metavariable '%s' was not binded" x))
-    in
-    pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
-    (*e: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
-    ());
+     let strings_metavars =
+       mvars
+       |> List.map (fun x ->
+         match Common2.assoc_opt x mvar_binding with
+         | Some any ->
+             any |> ii_of_any
+             |> List.filter PI.is_origintok
+             |> List.map PI.str_of_info
+             |> Matching_report.join_with_space_if_needed
+         | None -> failwith (spf "the metavariable '%s' was not binded" x))
+     in
+     pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
+     (*e: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
+     ());
   (*s: [[Main_semgrep_core.print_match()]] hook *)
   toks |> List.iter (fun x -> Common.push x _matching_tokens)
 
@@ -342,7 +342,7 @@ let lang_of_string s =
  * certain profiling statistics may refer to rule id that are generated
  * by semgrep-python, making it hard to know what the problem is.
  * At least we can save this generated rule file to help debugging.
- *)
+*)
 let save_rules_file_in_tmp () =
   let tmp = Filename.temp_file "semgrep_core_rule-" ".yaml" in
   pr2 (spf "saving rules file for debugging in: %s" tmp);
@@ -359,7 +359,7 @@ let filemtime file = (Unix.stat file).Unix.st_mtime
  * anywhere thanks to the argument 'cache_file_of_file'.
  * We also try to be a bit more type-safe by using the version tag above.
  * TODO: merge in pfff/commons/Common.ml at some point
- *)
+*)
 let cache_computation file cache_file_of_file f =
   if !use_parsing_cache = "" then f ()
   else if not (Sys.file_exists file) then (
@@ -368,25 +368,25 @@ let cache_computation file cache_file_of_file f =
     f ())
   else
     Common.profile_code "Main.cache_computation" (fun () ->
-        let file_cache = cache_file_of_file file in
-        if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
-        then (
-          logger#info "using cache: %s" file_cache;
-          let version, file2, res = Common2.get_value file_cache in
-          if version <> Version.version then
-            failwith
-              (spf "Version mismatch! Clean the cache file %s" file_cache);
-          if file <> file2 then
-            failwith
-              (spf
-                 "Not the same file! Md5sum collision! Clean the cache file %s"
-                 file_cache);
+      let file_cache = cache_file_of_file file in
+      if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
+      then (
+        logger#info "using cache: %s" file_cache;
+        let version, file2, res = Common2.get_value file_cache in
+        if version <> Version.version then
+          failwith
+            (spf "Version mismatch! Clean the cache file %s" file_cache);
+        if file <> file2 then
+          failwith
+            (spf
+               "Not the same file! Md5sum collision! Clean the cache file %s"
+               file_cache);
 
-          res)
-        else
-          let res = f () in
-          Common2.write_value (Version.version, file, res) file_cache;
-          res)
+        res)
+      else
+        let res = f () in
+        Common2.write_value (Version.version, file, res) file_cache;
+        res)
 
 let cache_file_of_file filename =
   let dir = !use_parsing_cache in
@@ -403,16 +403,16 @@ let cache_file_of_file filename =
  * avoid exn handler such as try (...) with _ -> otherwise Timeout will
  * not bubble up enough. In such case, add a case before such as
  * with Timeout -> raise Timeout | _ -> ...
- *)
+*)
 let timeout_function file f =
   let timeout = !timeout in
   if timeout <= 0. then f ()
   else
     Common.timeout_function_float ~verbose:false timeout (fun () ->
-        try f ()
-        with Timeout ->
-          logger#info "raised Timeout in timeout_function for %s" file;
-          raise Timeout)
+      try f ()
+      with Timeout ->
+        logger#info "raised Timeout in timeout_function for %s" file;
+        raise Timeout)
 
 (*
    Fail gracefully if memory becomes insufficient.
@@ -437,8 +437,8 @@ let run_with_memory_limit limit_mb f =
     in
     let alarm = Gc.create_alarm limit_memory in
     Fun.protect f ~finally:(fun () ->
-        Gc.delete_alarm alarm;
-        Gc.compact ())
+      Gc.delete_alarm alarm;
+      Gc.compact ())
 
 (* Certain patterns may be too general and match too many times on big files.
  * This does not cause a Timeout during parsing or matching, but returning
@@ -446,7 +446,7 @@ let run_with_memory_limit limit_mb f =
  * and anyway is probably a sign that the pattern should be rewritten.
  * This puts also lots of stress on the semgrep Python wrapper which has
  * to do lots of range intersections with all those matches.
- *)
+*)
 let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   let per_files =
     matches
@@ -456,43 +456,43 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   let offending_files =
     per_files
     |> List.filter_map (fun (file, xs) ->
-           if List.length xs > !max_match_per_file then Some file else None)
+      if List.length xs > !max_match_per_file then Some file else None)
     |> Common.hashset_of_list
   in
   let new_matches =
     matches
     |> Common.exclude (fun m ->
-           Hashtbl.mem offending_files m.Pattern_match.file)
+      Hashtbl.mem offending_files m.Pattern_match.file)
   in
   let new_errors =
     offending_files |> Common.hashset_to_list
     |> List.map (fun file ->
-           (* logging useful info for rule writers *)
-           logger#info "too many matches on %s, generating exn for it" file;
-           let biggest_offending_rule =
-             let matches = List.assoc file per_files in
-             matches
-             |> List.map (fun m ->
-                    let rule_id = m.Pattern_match.rule_id in
-                    ( ( rule_id.Pattern_match.id,
-                        rule_id.Pattern_match.pattern_string ),
-                      m ))
-             |> Common.group_assoc_bykey_eff
-             |> List.map (fun (k, xs) -> (k, List.length xs))
-             |> Common.sort_by_val_highfirst |> List.hd
-             (* nosemgrep *)
-           in
-           let (id, pat), cnt = biggest_offending_rule in
-           logger#info
-             "most offending rule: id = %s, matches = %d, pattern = %s" id cnt
-             pat;
+      (* logging useful info for rule writers *)
+      logger#info "too many matches on %s, generating exn for it" file;
+      let biggest_offending_rule =
+        let matches = List.assoc file per_files in
+        matches
+        |> List.map (fun m ->
+          let rule_id = m.Pattern_match.rule_id in
+          ( ( rule_id.Pattern_match.id,
+              rule_id.Pattern_match.pattern_string ),
+            m ))
+        |> Common.group_assoc_bykey_eff
+        |> List.map (fun (k, xs) -> (k, List.length xs))
+        |> Common.sort_by_val_highfirst |> List.hd
+        (* nosemgrep *)
+      in
+      let (id, pat), cnt = biggest_offending_rule in
+      logger#info
+        "most offending rule: id = %s, matches = %d, pattern = %s" id cnt
+        pat;
 
-           (* todo: we should maybe use a new error: TooManyMatches of int * string*)
-           let loc = Parse_info.first_loc_of_file file in
-           Error_code.mk_error_loc loc (Error_code.TooManyMatches pat))
+      (* todo: we should maybe use a new error: TooManyMatches of int * string*)
+      let loc = Parse_info.first_loc_of_file file in
+      Error_code.mk_error_loc loc (Error_code.TooManyMatches pat))
   in
   (new_matches, new_errors)
-  [@@profiling "Main.filter_too_many_matches"]
+[@@profiling "Main.filter_too_many_matches"]
 
 (*****************************************************************************)
 (* Parsing *)
@@ -502,7 +502,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
 (* It should really be just a call to Parse_target.parse_and_resolve...
  * but the semgrep python wrapper calls semgrep-core separately for each
  * rule, so we need to cache parsed AST to avoid extra work.
- *)
+*)
 let parse_generic lang file =
   (*s: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h then
@@ -512,40 +512,40 @@ let parse_generic lang file =
   let v =
     cache_computation file
       (fun file ->
-        (* we may use different parsers for the same file (e.g., in Python3 or
-         * Python2 mode), so put the lang as part of the cache "dependency".
-         * We also add ast_version here so bumping the version will not
-         * try to use the old cache file (which should generate an exception).
+         (* we may use different parsers for the same file (e.g., in Python3 or
+          * Python2 mode), so put the lang as part of the cache "dependency".
+          * We also add ast_version here so bumping the version will not
+          * try to use the old cache file (which should generate an exception).
          *)
-        let full_filename =
-          spf "%s__%s__%s" file (Lang.string_of_lang lang) Version.version
-        in
-        cache_file_of_file full_filename)
+         let full_filename =
+           spf "%s__%s__%s" file (Lang.string_of_lang lang) Version.version
+         in
+         cache_file_of_file full_filename)
       (fun () ->
-        try
-          logger#info "parsing %s" file;
-          (* finally calling the actual function *)
-          let { Parse_target.ast; errors; _ } =
-            Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
-          in
-          (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
-          (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
-          Left (ast, errors)
-          (* This is a bit subtle, but we now store in the cache whether we had
-           * an exception on this file, especially Timeout. Indeed, semgrep now calls
-           * semgrep-core per rule, and if one file timeout during parsing, it would
-           * timeout for each rule, but we don't want to wait each time 5sec for each
-           * rule. So here we store the exn in the cache, and below we reraise it
-           * after we got it back from the cache.
-           *
-           * TODO: right now we just capture Timeout, but we should capture any exn.
-           *  However this introduces some weird regressions in CI so we focus on
-           *  just Timeout for now.
-           *)
-        with Timeout -> Right Timeout)
+         try
+           logger#info "parsing %s" file;
+           (* finally calling the actual function *)
+           let { Parse_target.ast; errors; _ } =
+             Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+           in
+           (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
+           (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
+           Left (ast, errors)
+         (* This is a bit subtle, but we now store in the cache whether we had
+          * an exception on this file, especially Timeout. Indeed, semgrep now calls
+          * semgrep-core per rule, and if one file timeout during parsing, it would
+          * timeout for each rule, but we don't want to wait each time 5sec for each
+          * rule. So here we store the exn in the cache, and below we reraise it
+          * after we got it back from the cache.
+          *
+          * TODO: right now we just capture Timeout, but we should capture any exn.
+          *  However this introduces some weird regressions in CI so we focus on
+          *  just Timeout for now.
+         *)
+         with Timeout -> Right Timeout)
   in
   match v with Left x -> x | Right exn -> raise exn
-  [@@profiling]
+[@@profiling]
 
 (*e: function [[Main_semgrep_core.parse_generic]] *)
 
@@ -554,7 +554,7 @@ let parse_equivalences () =
   match !equivalences_file with
   | "" -> []
   | file -> Parse_equivalences.parse file
-  [@@profiling]
+[@@profiling]
 
 (*e: function [[Main_semgrep_core.parse_equivalences]] *)
 
@@ -577,17 +577,17 @@ let parse_equivalences () =
 let parse_pattern lang_pattern str =
   try
     Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-        let res =
-          Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
-        in
-        (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
-        (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
-        res)
+      let res =
+        Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
+      in
+      (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
+      (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
+      res)
   with exn ->
     raise
       (Parse_mini_rule.InvalidPatternException
          ("no-id", str, !lang, Common.exn_to_s exn))
-  [@@profiling]
+[@@profiling]
 
 (*e: function [[Main_semgrep_core.parse_pattern]] *)
 
@@ -603,16 +603,16 @@ let parse_pattern lang_pattern str =
  * of the language (e.g., files without an extension but that we still
  * want to process). This is especially useful when called from the
  * Python wrapper which gives us an explicit list of files to process.
- *)
+*)
 let files_of_dirs_with_lang_and_explicit_files lang xs =
   let files = Lang.files_of_dirs_or_files lang xs in
   let explicit_files =
     xs
     |> List.filter (fun file ->
-           Sys.file_exists file && not (Sys.is_directory file))
+      Sys.file_exists file && not (Sys.is_directory file))
   in
   Common2.uniq_eff (files @ explicit_files)
-  [@@profiling]
+[@@profiling]
 
 (*e: function [[Main_semgrep_core.get_final_files]] *)
 
@@ -620,64 +620,64 @@ let files_of_dirs_with_lang_and_explicit_files lang xs =
 let iter_files_and_get_matches_and_exn_to_errors f files =
   files
   |> map (fun file ->
-         logger#info "Analyzing %s" file;
-         let res, run_time =
-           Common.with_time (fun () ->
-               try
-                 run_with_memory_limit !max_memory (fun () ->
-                     timeout_function file (fun () ->
-                         f file |> fun v ->
-                         (* This is just to test -max_memory, to give a chance
-                          * to Gc.create_alarm to run even if the program does
-                          * not even need to run the Gc. However, this has a slow
-                          * perf penality on small programs, which is why it's
-                          * better to keep guarded when you're
-                          * not testing -max_memory.
-                          *)
-                         if !test then Gc.full_major ();
-                         logger#info "done with %s" file;
-                         v))
-               with
-               (* note that Error_code.exn_to_error already handles Timeout
-                * and would generate a TimeoutError code for it, but we intercept
-                * Timeout here to give a better diagnostic.
-                *)
-               | (Timeout | Out_of_memory) as exn ->
-                   let str_opt =
-                     match !Match_patterns.last_matched_rule with
-                     | None -> None
-                     | Some rule ->
-                         logger#info "critical exn while matching ruleid %s"
-                           rule.MR.id;
-                         logger#info "full pattern is: %s"
-                           rule.MR.pattern_string;
-                         Some (spf " with ruleid %s" rule.MR.id)
-                   in
-                   let loc = Parse_info.first_loc_of_file file in
-                   {
-                     RP.matches = [];
-                     errors =
-                       [
-                         Error_code.mk_error_loc loc
-                           (match exn with
-                           | Timeout ->
-                               logger#info "Timeout on %s" file;
-                               Error_code.Timeout str_opt
-                           | Out_of_memory ->
-                               logger#info "OutOfMemory on %s" file;
-                               Error_code.OutOfMemory str_opt
-                           | _ -> raise Impossible);
-                       ];
-                     profiling = RP.empty_partial_profiling file;
-                   }
-               | exn when not !fail_fast ->
-                   {
-                     RP.matches = [];
-                     errors = [ Error_code.exn_to_error file exn ];
-                     profiling = RP.empty_partial_profiling file;
-                   })
-         in
-         RP.add_run_time run_time res)
+    logger#info "Analyzing %s" file;
+    let res, run_time =
+      Common.with_time (fun () ->
+        try
+          run_with_memory_limit !max_memory (fun () ->
+            timeout_function file (fun () ->
+              f file |> fun v ->
+              (* This is just to test -max_memory, to give a chance
+               * to Gc.create_alarm to run even if the program does
+               * not even need to run the Gc. However, this has a slow
+               * perf penality on small programs, which is why it's
+               * better to keep guarded when you're
+               * not testing -max_memory.
+              *)
+              if !test then Gc.full_major ();
+              logger#info "done with %s" file;
+              v))
+        with
+        (* note that Error_code.exn_to_error already handles Timeout
+         * and would generate a TimeoutError code for it, but we intercept
+         * Timeout here to give a better diagnostic.
+        *)
+        | (Timeout | Out_of_memory) as exn ->
+            let str_opt =
+              match !Match_patterns.last_matched_rule with
+              | None -> None
+              | Some rule ->
+                  logger#info "critical exn while matching ruleid %s"
+                    rule.MR.id;
+                  logger#info "full pattern is: %s"
+                    rule.MR.pattern_string;
+                  Some (spf " with ruleid %s" rule.MR.id)
+            in
+            let loc = Parse_info.first_loc_of_file file in
+            {
+              RP.matches = [];
+              errors =
+                [
+                  Error_code.mk_error_loc loc
+                    (match exn with
+                     | Timeout ->
+                         logger#info "Timeout on %s" file;
+                         Error_code.Timeout str_opt
+                     | Out_of_memory ->
+                         logger#info "OutOfMemory on %s" file;
+                         Error_code.OutOfMemory str_opt
+                     | _ -> raise Impossible);
+                ];
+              profiling = RP.empty_partial_profiling file;
+            }
+        | exn when not !fail_fast ->
+            {
+              RP.matches = [];
+              errors = [ Error_code.exn_to_error file exn ];
+              profiling = RP.empty_partial_profiling file;
+            })
+    in
+    RP.add_run_time run_time res)
 
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
@@ -705,7 +705,7 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
       (* TODO: assert is_file ? spacegrep filter files?
        * Anyway right now the Semgrep python wrapper is
        * calling -config with an explicit list of files.
-       *)
+      *)
       files_or_dirs
   | R.L (lang, _) ->
       files_of_dirs_with_lang_and_explicit_files lang files_or_dirs
@@ -717,7 +717,7 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
  * It takes a language, a set of mini rules (rules with a single pattern,
  * no formula) and a set of files or dirs and recursively process those
  * files or dirs.
- *)
+*)
 (*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
 let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
   let files = files_of_dirs_with_lang_and_explicit_files lang files_or_dirs in
@@ -725,21 +725,21 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
   let file_results =
     files
     |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
-           let (ast, errors), parse_time =
-             Common.with_time (fun () -> parse_generic lang file)
-           in
-           let (matches, errors), match_time =
-             Common.with_time (fun () ->
-                 let rules =
-                   rules |> List.filter (fun r -> List.mem lang r.MR.languages)
-                 in
-                 ( Match_patterns.check
-                     ~hook:(fun _ _ -> ())
-                     Config_semgrep.default_config rules (parse_equivalences ())
-                     (file, lang, ast),
-                   errors ))
-           in
-           { RP.matches; errors; profiling = { file; parse_time; match_time } })
+      let (ast, errors), parse_time =
+        Common.with_time (fun () -> parse_generic lang file)
+      in
+      let (matches, errors), match_time =
+        Common.with_time (fun () ->
+          let rules =
+            rules |> List.filter (fun r -> List.mem lang r.MR.languages)
+          in
+          ( Match_patterns.check
+              ~hook:(fun _ _ -> ())
+              Config_semgrep.default_config rules (parse_equivalences ())
+              (file, lang, ast),
+            errors ))
+      in
+      { RP.matches; errors; profiling = { file; parse_time; match_time } })
   in
   let res = RP.make_rule_result file_results !report_time rule_parse_time in
   logger#info "found %d matches and %d errors"
@@ -753,7 +753,7 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
-   *)
+  *)
   let res = JSON_report.match_results_of_matches_and_errors files res in
   (* TODO need change type match_results.time to a choice
      let res =
@@ -806,7 +806,7 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
    * automatically, like the semgrep python wrapper.
    *
    * For now python wrapper passes down all files that should be scanned
-   *)
+  *)
   let xlang = xlang_of_string !lang in
   let files = xlang_files_of_dirs_or_files xlang files_or_dirs in
   logger#info "processing %d files" (List.length files);
@@ -814,32 +814,32 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
   let file_results =
     files
     |> iter_files_and_get_matches_and_exn_to_errors (fun file ->
-           let rules =
-             rules
-             |> List.filter (fun r ->
-                    match (r.R.languages, xlang) with
-                    | R.L (x, xs), R.L (lang, _) -> List.mem lang (x :: xs)
-                    | R.LRegex, R.LRegex | R.LGeneric, R.LGeneric -> true
-                    | _ -> false)
-           in
-           let hook str env matched_tokens =
-             if !output_format = Text then
-               let xs = Lazy.force matched_tokens in
-               print_match ~str !mvars env Metavariable.ii_of_mval xs
-           in
-           let lazy_ast_and_errors =
-             lazy
-               (match xlang with
-               | R.L (lang, _) -> parse_generic lang file
-               | R.LRegex | R.LGeneric ->
-                   failwith "requesting generic AST for LRegex|LGeneric")
-           in
-           let res =
-             Run_rules.check hook Config_semgrep.default_config rules
-               (parse_equivalences ())
-               (file, xlang, lazy_ast_and_errors)
-           in
-           RP.add_file file res)
+      let rules =
+        rules
+        |> List.filter (fun r ->
+          match (r.R.languages, xlang) with
+          | R.L (x, xs), R.L (lang, _) -> List.mem lang (x :: xs)
+          | R.LRegex, R.LRegex | R.LGeneric, R.LGeneric -> true
+          | _ -> false)
+      in
+      let hook str env matched_tokens =
+        if !output_format = Text then
+          let xs = Lazy.force matched_tokens in
+          print_match ~str !mvars env Metavariable.ii_of_mval xs
+      in
+      let lazy_ast_and_errors =
+        lazy
+          (match xlang with
+           | R.L (lang, _) -> parse_generic lang file
+           | R.LRegex | R.LGeneric ->
+               failwith "requesting generic AST for LRegex|LGeneric")
+      in
+      let res =
+        Run_rules.check hook Config_semgrep.default_config rules
+          (parse_equivalences ())
+          (file, xlang, lazy_ast_and_errors)
+      in
+      RP.add_file file res)
   in
   let res = RP.make_rule_result file_results !report_time rule_parse_time in
   logger#info "found %d matches and %d errors" (List.length res.matches)
@@ -852,7 +852,7 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
-   *)
+  *)
   match !output_format with
   | Json ->
       let res = JSON_report.match_results_of_matches_and_errors files res in
@@ -915,7 +915,7 @@ let rule_of_pattern lang pattern_string pattern =
 let semgrep_with_one_pattern lang xs =
   (* old: let xs = List.map Common.fullpath xs in
    * better no fullpath here, not our responsability.
-   *)
+  *)
   let pattern, pattern_string =
     match (!pattern_file, !pattern_string) with
     (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] sanity check cases *)
@@ -951,26 +951,26 @@ let semgrep_with_one_pattern lang xs =
       (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
       files
       |> List.iter (fun file ->
-             (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
-             logger#info "processing: %s" file;
-             (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
-             let process file =
-               timeout_function file (fun () ->
-                   let ast, errors = parse_generic lang file in
-                   if errors <> [] then
-                     pr2 (spf "WARNING: fail to fully parse %s" file);
-                   Match_patterns.check
-                     ~hook:(fun env matched_tokens ->
-                       let xs = Lazy.force matched_tokens in
-                       print_match !mvars env Metavariable.ii_of_mval xs)
-                     Config_semgrep.default_config rule (parse_equivalences ())
-                     (file, lang, ast)
-                   |> ignore)
-             in
+        (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
+        logger#info "processing: %s" file;
+        (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
+        let process file =
+          timeout_function file (fun () ->
+            let ast, errors = parse_generic lang file in
+            if errors <> [] then
+              pr2 (spf "WARNING: fail to fully parse %s" file);
+            Match_patterns.check
+              ~hook:(fun env matched_tokens ->
+                let xs = Lazy.force matched_tokens in
+                print_match !mvars env Metavariable.ii_of_mval xs)
+              Config_semgrep.default_config rule (parse_equivalences ())
+              (file, lang, ast)
+            |> ignore)
+        in
 
-             if not !error_recovery then
-               E.try_with_print_exn_and_reraise file (fun () -> process file)
-             else E.try_with_exn_to_error file (fun () -> process file));
+        if not !error_recovery then
+          E.try_with_print_exn_and_reraise file (fun () -> process file)
+        else E.try_with_exn_to_error file (fun () -> process file));
 
       (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] display error count *)
       let n = List.length !E.g_errors in
@@ -991,7 +991,7 @@ let semgrep_with_one_pattern lang xs =
  * does remove newlines (and may do other clever things), but
  * newlines have a special meaning in some languages
  * (e.g., Python), so we use the lower-level Stdlib.input instead.
- *)
+*)
 let rec read_all chan =
   let buf = Bytes.create 4096 in
   let len = input chan buf 0 4096 in
@@ -1066,40 +1066,40 @@ let dump_pattern (file : Common.filename) =
   (* mostly copy-paste of parse_pattern above, but with better error report *)
   let lang = lang_of_string !lang in
   E.try_with_print_exn_and_reraise file (fun () ->
-      let any = Parse_pattern.parse_pattern lang ~print_errors:true s in
-      let v = Meta_AST.vof_any any in
-      let s = dump_v_to_format v in
-      pr s)
+    let any = Parse_pattern.parse_pattern lang ~print_errors:true s in
+    let v = Meta_AST.vof_any any in
+    let s = dump_v_to_format v in
+    pr s)
 
 (*e: function [[Main_semgrep_core.dump_pattern]] *)
 
 (*s: function [[Main_semgrep_core.dump_ast]] *)
 let dump_ast ?(naming = false) lang file =
   E.try_with_print_exn_and_exit_fast file (fun () ->
-      let { Parse_target.ast; errors; _ } =
-        if naming then
-          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
-        else Parse_target.just_parse_with_lang lang file
-      in
-      let v = Meta_AST.vof_any (AST_generic.Pr ast) in
-      let s = dump_v_to_format v in
-      pr s;
-      if errors <> [] then (
-        pr2 (spf "WARNING: fail to fully parse %s" file);
-        exit 1))
+    let { Parse_target.ast; errors; _ } =
+      if naming then
+        Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+      else Parse_target.just_parse_with_lang lang file
+    in
+    let v = Meta_AST.vof_any (AST_generic.Pr ast) in
+    let s = dump_v_to_format v in
+    pr s;
+    if errors <> [] then (
+      pr2 (spf "WARNING: fail to fully parse %s" file);
+      exit 1))
 
 (*e: function [[Main_semgrep_core.dump_ast]] *)
 let dump_v1_json file =
   match Lang.langs_of_filename file with
   | lang :: _ ->
       E.try_with_print_exn_and_reraise file (fun () ->
-          let { Parse_target.ast; errors; _ } =
-            Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
-          in
-          let v1 = AST_generic_to_v1.program ast in
-          let s = AST_generic_v1_j.string_of_program v1 in
-          pr s;
-          if errors <> [] then pr2 (spf "WARNING: fail to fully parse %s" file))
+        let { Parse_target.ast; errors; _ } =
+          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+        in
+        let v1 = AST_generic_to_v1.program ast in
+        let s = AST_generic_v1_j.string_of_program v1 in
+        pr s;
+        if errors <> [] then pr2 (spf "WARNING: fail to fully parse %s" file))
   | [] -> failwith (spf "unsupported language for %s" file)
 
 (*s: function [[Main_semgrep_core.dump_ext_of_lang]] *)
@@ -1107,10 +1107,10 @@ let dump_ext_of_lang () =
   let lang_to_exts =
     keys
     |> List.map (fun lang_str ->
-           match Lang.lang_of_string_opt lang_str with
-           | Some lang ->
-               lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
-           | None -> "")
+      match Lang.lang_of_string_opt lang_str with
+      | Some lang ->
+          lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)
+      | None -> "")
   in
   pr2
     (spf "Language to supported file extension mappings:\n %s"
@@ -1168,16 +1168,16 @@ let all_actions () =
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Common.mk_action_1_arg (fun file ->
-          Test_parsing.dump_tree_sitter_cst (lang_of_string !lang) file) );
+        Test_parsing.dump_tree_sitter_cst (lang_of_string !lang) file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Common.mk_action_1_arg (fun file ->
-          Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file)
+        Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file)
     );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Common.mk_action_1_arg (fun file ->
-          Test_parsing.dump_pfff_ast (lang_of_string !lang) file) );
+        Test_parsing.dump_pfff_ast (lang_of_string !lang) file) );
     ("-dump_il", " <file>", Common.mk_action_1_arg Datalog_experiment.dump_il);
     ( "-diff_pfff_tree_sitter",
       " <file>",
@@ -1205,16 +1205,16 @@ let all_actions () =
     ( "-parsing_stats",
       " <files or dirs> generate parsing statistics (use -json for JSON output)",
       Common.mk_action_n_arg (fun xs ->
-          Test_parsing.parsing_stats (lang_of_string !lang)
-            (!output_format = Json) xs) );
+        Test_parsing.parsing_stats (lang_of_string !lang)
+          (!output_format = Json) xs) );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Common.mk_action_n_arg (fun xs ->
-          Test_parsing.parsing_regressions (lang_of_string !lang) xs) );
+        Test_parsing.parsing_regressions (lang_of_string !lang) xs) );
     ( "-test_parse_tree_sitter",
       " <files or dirs> test tree-sitter parser on target files",
       Common.mk_action_n_arg (fun xs ->
-          Test_parsing.test_parse_tree_sitter (lang_of_string !lang) xs) );
+        Test_parsing.test_parse_tree_sitter (lang_of_string !lang) xs) );
     ( "-check_rules",
       " <files or dirs>",
       Common.mk_action_n_arg (Check_rule.check_files Parse_rule.parse) );
@@ -1279,8 +1279,8 @@ let options () =
     ( "-opt_max_cache",
       Arg.Unit
         (fun () ->
-          Flag.with_opt_cache := true;
-          Flag.max_cache := true),
+           Flag.with_opt_cache := true;
+           Flag.max_cache := true),
       " cache matches more aggressively; implies -opt_cache (experimental)" );
     ( "-no_gc_tuning",
       Arg.Clear Flag.gc_tuning,
@@ -1297,8 +1297,8 @@ let options () =
     ( "-json_time",
       Arg.Unit
         (fun () ->
-          output_format := Json;
-          report_time := true),
+           output_format := Json;
+           report_time := true),
       " report detailed matching times as part of the JSON response. Implies \
        '-json'." );
     (*e: [[Main_semgrep_core.options]] report match mode cases *)
@@ -1314,8 +1314,8 @@ let options () =
     ( "-error_recovery",
       Arg.Unit
         (fun () ->
-          error_recovery := true;
-          Flag_parsing.error_recovery := true),
+           error_recovery := true;
+           Flag_parsing.error_recovery := true),
       " do not stop at first parsing error with -e/-f" );
     ( "-fail_fast",
       Arg.Set fail_fast,
@@ -1377,10 +1377,10 @@ let options () =
     ( "-log_to_file",
       Arg.String
         (fun file ->
-          let open Easy_logging in
-          let h = Handlers.make (File (file, Debug)) in
-          logger#add_handler h;
-          logger#set_level Debug),
+           let open Easy_logging in
+           let h = Handlers.make (File (file, Debug)) in
+           logger#add_handler h;
+           logger#set_level Debug),
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
     ( "-lsp",
@@ -1392,19 +1392,19 @@ let options () =
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
   (* inlining of: Common2.cmdline_flags_devel () @ *)
   @ [
-      ( "-debugger",
-        Arg.Set Common.debugger,
-        " option to set if launched inside ocamldebug" );
-      ( "-profile",
-        Arg.Unit
-          (fun () ->
-            Common.profile := Common.ProfAll;
-            profile := true),
-        " output profiling information" );
-      ( "-keep_tmp_files",
-        Arg.Set Common.save_tmp_files,
-        " keep temporary generated files" );
-    ]
+    ( "-debugger",
+      Arg.Set Common.debugger,
+      " option to set if launched inside ocamldebug" );
+    ( "-profile",
+      Arg.Unit
+        (fun () ->
+           Common.profile := Common.ProfAll;
+           profile := true),
+      " output profiling information" );
+    ( "-keep_tmp_files",
+      Arg.Set Common.save_tmp_files,
+      " keep temporary generated files" );
+  ]
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
   @ Meta_parse_info.cmdline_flags_precision ()
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
@@ -1414,13 +1414,13 @@ let options () =
   @ Common.options_of_actions action (all_actions ())
   (*e: [[Main_semgrep_core.options]] concatenated actions *)
   @ [
-      ( "-version",
-        Arg.Unit
-          (fun () ->
-            pr2 version;
-            exit 0),
-        "  guess what" );
-    ]
+    ( "-version",
+      Arg.Unit
+        (fun () ->
+           pr2 version;
+           exit 0),
+      "  guess what" );
+  ]
 
 (*e: function [[Main_semgrep_core.options]] *)
 
@@ -1477,42 +1477,42 @@ let main () =
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->
-      match args with
-      (*s: [[Main_semgrep_core.main()]] match [[args]] actions *)
-      (* --------------------------------------------------------- *)
-      (* actions, useful to debug subpart *)
-      (* --------------------------------------------------------- *)
-      | xs when List.mem !action (Common.action_list (all_actions ())) ->
-          Common.do_action !action xs (all_actions ())
-      | _ when not (Common.null_string !action) ->
-          failwith ("unrecognized action or wrong params: " ^ !action)
-      (*e: [[Main_semgrep_core.main()]] match [[args]] actions *)
-      (* --------------------------------------------------------- *)
-      (* main entry *)
-      (* --------------------------------------------------------- *)
-      | x :: xs -> (
-          match () with
-          | _ when !config_file <> "" ->
-              semgrep_with_rules_file !config_file (x :: xs)
-          (*s: [[Main_semgrep_core.main()]] main entry match cases *)
-          | _ when !rules_file <> "" ->
-              let lang = lang_of_string !lang in
-              semgrep_with_patterns_file lang !rules_file (x :: xs)
-          (*e: [[Main_semgrep_core.main()]] main entry match cases *)
-          (*s: [[Main_semgrep_core.main()]] main entry match cases default case *)
-          | _ ->
-              let lang = lang_of_string !lang in
-              semgrep_with_one_pattern lang (x :: xs)
-              (*e: [[Main_semgrep_core.main()]] main entry match cases default case *)
-          )
-      (* --------------------------------------------------------- *)
-      (* empty entry *)
-      (* --------------------------------------------------------- *)
-      (* TODO: should not need that, semgrep should not call us when there
-       * are no files to process. *)
-      | [] when !target_file <> "" && !config_file <> "" ->
-          semgrep_with_rules_file !config_file []
-      | [] -> Common.usage usage_msg (options ()))
+    match args with
+    (*s: [[Main_semgrep_core.main()]] match [[args]] actions *)
+    (* --------------------------------------------------------- *)
+    (* actions, useful to debug subpart *)
+    (* --------------------------------------------------------- *)
+    | xs when List.mem !action (Common.action_list (all_actions ())) ->
+        Common.do_action !action xs (all_actions ())
+    | _ when not (Common.null_string !action) ->
+        failwith ("unrecognized action or wrong params: " ^ !action)
+    (*e: [[Main_semgrep_core.main()]] match [[args]] actions *)
+    (* --------------------------------------------------------- *)
+    (* main entry *)
+    (* --------------------------------------------------------- *)
+    | x :: xs -> (
+        match () with
+        | _ when !config_file <> "" ->
+            semgrep_with_rules_file !config_file (x :: xs)
+        (*s: [[Main_semgrep_core.main()]] main entry match cases *)
+        | _ when !rules_file <> "" ->
+            let lang = lang_of_string !lang in
+            semgrep_with_patterns_file lang !rules_file (x :: xs)
+        (*e: [[Main_semgrep_core.main()]] main entry match cases *)
+        (*s: [[Main_semgrep_core.main()]] main entry match cases default case *)
+        | _ ->
+            let lang = lang_of_string !lang in
+            semgrep_with_one_pattern lang (x :: xs)
+            (*e: [[Main_semgrep_core.main()]] main entry match cases default case *)
+      )
+    (* --------------------------------------------------------- *)
+    (* empty entry *)
+    (* --------------------------------------------------------- *)
+    (* TODO: should not need that, semgrep should not call us when there
+     * are no files to process. *)
+    | [] when !target_file <> "" && !config_file <> "" ->
+        semgrep_with_rules_file !config_file []
+    | [] -> Common.usage usage_msg (options ()))
 
 (*e: function [[Main_semgrep_core.main]] *)
 
@@ -1520,9 +1520,9 @@ let main () =
 (*s: toplevel [[Main_semgrep_core._1]] *)
 let () =
   Common.main_boilerplate (fun () ->
-      Common.finalize
-        (fun () -> main ())
-        (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))
+    Common.finalize
+      (fun () -> main ())
+      (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))
 
 (*e: toplevel [[Main_semgrep_core._1]] *)
 (*e: semgrep/CLI/Main.ml *)

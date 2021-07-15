@@ -216,19 +216,19 @@ let matcher_corpus_case_insensitive =
 let matcher_suite =
   List.map
     (fun (name, expectation, pat_str, doc_str) ->
-      ( name,
-        `Quick,
-        fun () ->
-          check_matching ~case_sensitive:true pat_str doc_str expectation ))
+       ( name,
+         `Quick,
+         fun () ->
+           check_matching ~case_sensitive:true pat_str doc_str expectation ))
     matcher_corpus
 
 let matcher_suite_case_insensitive =
   List.map
     (fun (name, expectation, pat_str, doc_str) ->
-      ( name,
-        `Quick,
-        fun () ->
-          check_matching ~case_sensitive:false pat_str doc_str expectation ))
+       ( name,
+         `Quick,
+         fun () ->
+           check_matching ~case_sensitive:false pat_str doc_str expectation ))
     matcher_corpus_case_insensitive
 
 let test =

@@ -11,7 +11,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 open Common
 module D = Datalog_fact
 open Datalog_fact
@@ -24,7 +24,7 @@ open Datalog_fact
  * This was started from pfff/h_program-lang/datalog_code.ml which
  * handled the BDDBDDB and lui-based datalog engines.
  * This file handles DOOP/Souffle.
- *)
+*)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -44,7 +44,7 @@ let write_facts_for_doop facts dir =
   let groups = facts |> Common.group_assoc_bykey_eff in
   groups
   |> List.iter (fun (table, tuples) ->
-         let file = Filename.concat dir table ^ ".csv" in
-         pr2 (spf "generating tuples for %s" file);
-         Common.with_open_outfile file (fun (mypr, _chan) ->
-             tuples |> List.iter (fun tuple -> mypr (csv_of_tuple tuple))))
+    let file = Filename.concat dir table ^ ".csv" in
+    pr2 (spf "generating tuples for %s" file);
+    Common.with_open_outfile file (fun (mypr, _chan) ->
+      tuples |> List.iter (fun tuple -> mypr (csv_of_tuple tuple))))

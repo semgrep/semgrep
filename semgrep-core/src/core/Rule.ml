@@ -13,7 +13,7 @@
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
- *)
+*)
 (*e: pad/r2c copyright *)
 module G = AST_generic
 module MV = Metavariable
@@ -27,7 +27,7 @@ module MV = Metavariable
  *
  * TODO:
  *  - parse equivalences
- *)
+*)
 
 (*****************************************************************************)
 (* Extended languages and patterns *)
@@ -53,7 +53,7 @@ type xpattern = {
    * TODO: right now we have some false positives, e.g., in Python
    * assert(...) and assert ... are considered equal AST-wise
    * but it might be a bug!.
-   *)
+  *)
   pstr : string; [@equal fun _ _ -> true]
   (* unique id, incremented via a gensym()-like function in mk_pat() *)
   pid : pattern_id; [@equal fun _ _ -> true]
@@ -89,7 +89,7 @@ let is_regexp xpat = match xpat.pat with Regexp _ -> true | _ -> false
  * negation in the presence of metavariables.
  * todo: add tok (Parse_info.t) for good error locations (metachecker)
  * todo? enforce invariant that Not/MetavarCond can only appear in And?
- *)
+*)
 type formula =
   | Leaf of leaf
   | And of formula list (* see Match_rules.split_and() *)
@@ -97,7 +97,7 @@ type formula =
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
    * But this could change? If we were moving to a different range semantic?
-   *)
+  *)
   | Not of formula
 
 and leaf =
@@ -106,14 +106,14 @@ and leaf =
    * (see tests/OTHER/rules/inside.yaml)
    * The same is true for pattern-not and pattern-not-inside
    * (see tests/OTHER/rules/negation_exact.yaml)
-   *)
+  *)
   | P of xpattern (* a leaf pattern *) * inside option
   (* This can also only appear inside an And *)
   | MetavarCond of metavar_cond
 
 (* todo: try to remove this at some point, but difficult. See
  * https://github.com/returntocorp/semgrep/issues/1218
- *)
+*)
 and inside = Inside
 
 and metavar_cond =
@@ -126,7 +126,7 @@ and metavar_cond =
    * calls in Eval_generic.ml
    * update: this is also useful to keep separate from CondEval for
    * the "regexpizer" optimizer (see Analyze_rule.ml).
-   *)
+  *)
   | CondRegexp of MV.mvar * regexp
   | CondNestedFormula of MV.mvar * xlang option * formula
 [@@deriving show, eq]
@@ -137,7 +137,7 @@ and metavar_cond =
 
 (* Unorthodox original pattern compositions.
  * See also the JSON schema in rule_schema.yaml
- *)
+*)
 type formula_old =
   (* pattern: *)
   | Pat of xpattern
@@ -184,7 +184,7 @@ type pformula = New of formula | Old of formula_old [@@deriving show, eq]
  *     type search = { common : common; formula : pformula; }
  *     type taint  = { common : common; spec : taint_spec; }
  *     type rule   = Search of search | Taint of taint
- *)
+*)
 
 type taint_spec = {
   sources : pformula list;
@@ -251,13 +251,13 @@ let rewrite_metavar_comparison_strip mvar cond =
         Map_AST.default_visitor with
         Map_AST.kexpr =
           (fun (k, _) e ->
-            (* apply on children *)
-            let e = k e in
-            match e with
-            | G.N (G.Id ((s, tok), _idinfo)) as x when s = mvar ->
-                let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int, G.fake_bracket [ G.Arg x ])
-            | _ -> e);
+             (* apply on children *)
+             let e = k e in
+             match e with
+             | G.N (G.Id ((s, tok), _idinfo)) as x when s = mvar ->
+                 let py_int = G.Id (("int", tok), G.empty_id_info ()) in
+                 G.Call (G.N py_int, G.fake_bracket [ G.Arg x ])
+             | _ -> e);
       }
   in
   visitor.Map_AST.vexpr cond
@@ -274,7 +274,7 @@ let convert_extra x =
        *   literals are normalized and represented in base 10.
        * - for strip the user should instead use a more complex condition that
        *   converts the string into a number (e.g., "1234" in 1234).
-       *)
+      *)
       | { metavariable = mvar; comparison; strip; base = _NOT_NEEDED } ->
           let cond =
             (* if strip=true we rewrite the condition and insert Python's `int`
@@ -292,7 +292,7 @@ let convert_extra x =
       failwith (Common.spf "convert_extra: TODO: %s" (show_extra x))
 
 let (convert_formula_old : formula_old -> formula) =
- fun e ->
+  fun e ->
   let rec aux e =
     match e with
     | Pat x -> Leaf (P (x, None))
@@ -318,6 +318,6 @@ let formula_of_pformula = function
 let partition_rules rules =
   rules
   |> Common.partition_either (fun r ->
-         match r.mode with Search f -> Left (r, f) | Taint s -> Right (r, s))
+    match r.mode with Search f -> Left (r, f) | Taint s -> Right (r, s))
 
 (*e: semgrep/core/Rule.ml *)

@@ -184,5 +184,5 @@ let list_lines_of_pos_range ?highlight ?line_prefix x start_pos end_pos =
   remove_trailing_newline s |> String.split_on_char '\n'
 
 let list_lines_of_loc_range ?highlight ?line_prefix x (start_pos, _) (_, end_pos)
-    =
+  =
   list_lines_of_pos_range ?highlight ?line_prefix x start_pos end_pos
