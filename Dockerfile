@@ -8,11 +8,14 @@
 # The same applies to the 'spacegrep' executable.
 #
 
-# The docker base image below currently uses OCaml 4.10.2+flambda.
+# The docker base image below currently uses OCaml 4.12.0
 # See https://github.com/returntocorp/ocaml-layer/blob/master/configs/alpine.sh
+#
 # coupling: if you modify the OCaml version there, you probably also need
-# to modify scripts/osx-release.sh
-FROM returntocorp/ocaml:alpine-2021-07-14 as build-semgrep-core
+# to modify scripts/osx-release.sh. Note that many .github/workflows/
+# use returntocorp/ocaml:alpine, which should be the latest, and may differ
+# from this one.
+FROM returntocorp/ocaml:alpine-2021-07-15 as build-semgrep-core
 
 USER root
 # for ocaml-pcre now used in semgrep-core
