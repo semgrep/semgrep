@@ -9,6 +9,7 @@ from typing import cast
 from typing import Dict
 from typing import IO
 from typing import List
+from typing import Optional
 from typing import Set
 from typing import Tuple
 
@@ -128,7 +129,14 @@ class CoreRunner:
         self, rule: Rule, patterns: List[Pattern], core_run: subprocess.CompletedProcess
     ) -> Dict[str, Any]:
         semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
-        semgrep_error_output = core_run.stderr.decode("utf-8", errors="replace")
+
+        stderr = core_run.stderr
+        if stderr is None:
+            semgrep_error_output = (
+                "<semgrep-core stderr not captured, should be printed above>\n"
+            )
+        else:
+            semgrep_error_output = stderr.decode("utf-8", errors="replace")
 
         # By default, we print semgrep-core's error output, which includes
         # semgrep-core's logging if it was requested via --debug.
@@ -334,12 +342,12 @@ class CoreRunner:
                             self._write_equivalences_file(equiv_file, equivalences)
                             cmd += ["-equivalences", equiv_file.name]
 
+                        stderr: Optional[int] = subprocess.PIPE
                         if is_debug():
                             cmd += ["-debug"]
+                            stderr = None
 
-                        core_run = sub_run(
-                            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                        )
+                        core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=stderr)
                         output_json = self._extract_core_output(rule, [], core_run)
 
                         if "time" in output_json:
