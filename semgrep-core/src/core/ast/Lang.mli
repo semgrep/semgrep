@@ -62,6 +62,10 @@ val lang_of_string_opt : string -> t option
 
 (*e: signature [[Lang.lang_of_string_opt]] *)
 
+val keys : string list
+
+val supported_langs : string
+
 (*s: signature [[Lang.langs_of_filename]] *)
 val langs_of_filename : Common.filename -> t list
 
@@ -91,3 +95,5 @@ val ext_of_lang : t -> string list
 
 (*e: signature [[Lang.ext_of_lang]] *)
 (*e: pfff/lang_GENERIC/parsing/Lang.mli *)
+
+val unsupported_language_message : string -> string

@@ -176,15 +176,6 @@ let mvars = ref ([] : Metavariable.mvar list)
 (*s: constant [[Main_semgrep_core.layer_file]] *)
 (*e: constant [[Main_semgrep_core.layer_file]] *)
 
-(*s: constant [[Main_semgrep_core.keys]] *)
-let keys = Common2.hkeys Lang.lang_of_string_map
-
-(*e: constant [[Main_semgrep_core.keys]] *)
-(*s: constant [[Main_semgrep_core.supported_langs]] *)
-let supported_langs : string = String.concat ", " keys
-
-(*e: constant [[Main_semgrep_core.supported_langs]] *)
-
 (* ------------------------------------------------------------------------- *)
 (* limits *)
 (* ------------------------------------------------------------------------- *)
@@ -324,19 +315,12 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
 (*s: function [[Main_semgrep_core.gen_layer]] *)
 (*e: function [[Main_semgrep_core.gen_layer]] *)
 
-(*s: function [[Main_semgrep_core.unsupported_language_message]] *)
-let unsupported_language_message lang =
-  if lang = "unset" then "no language specified; use -lang"
-  else
-    spf "unsupported language: %s; supported language tags are: %s" lang
-      supported_langs
-
 (*e: function [[Main_semgrep_core.unsupported_language_message]] *)
 
 let lang_of_string s =
   match Lang.lang_of_string_opt s with
   | Some x -> x
-  | None -> failwith (unsupported_language_message s)
+  | None -> failwith (Lang.unsupported_language_message s)
 
 (* when called from semgrep-python, error messages in semgrep-core or
  * certain profiling statistics may refer to rule id that are generated
@@ -679,26 +663,6 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
          in
          RP.add_run_time run_time res)
 
-(*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
-
-(*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
-(*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
-(*s: function [[Main_semgrep_core.format_output_exception]] *)
-(*e: function [[Main_semgrep_core.format_output_exception]] *)
-
-(*****************************************************************************)
-(* xLang *)
-(*****************************************************************************)
-
-(* coupling: Parse_mini_rule.parse_languages *)
-let xlang_of_string s =
-  match s with
-  | "none" | "regex" -> R.LRegex
-  | "generic" -> R.LGeneric
-  | _ ->
-      let lang = lang_of_string s in
-      R.L (lang, [])
-
 let xlang_files_of_dirs_or_files xlang files_or_dirs =
   match xlang with
   | R.LRegex | R.LGeneric ->
@@ -710,6 +674,12 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
   | R.L (lang, _) ->
       files_of_dirs_with_lang_and_explicit_files lang files_or_dirs
 
+(*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
+
+(*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
+(*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
+(*s: function [[Main_semgrep_core.format_output_exception]] *)
+(*e: function [[Main_semgrep_core.format_output_exception]] *)
 (*****************************************************************************)
 (* Semgrep -rules_file *)
 (*****************************************************************************)
@@ -807,8 +777,8 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
    *
    * For now python wrapper passes down all files that should be scanned
    *)
-  let xlang = xlang_of_string !lang in
-  let files = xlang_files_of_dirs_or_files xlang files_or_dirs in
+  let xlang = Xlang.xlang_of_string !lang in
+  let files = Xlang.xlang_files_of_dirs_or_files xlang files_or_dirs in
   logger#info "processing %d files" (List.length files);
 
   let file_results =
@@ -878,7 +848,7 @@ let semgrep_with_rules_file rules_file files_or_dirs =
   try
     logger#info "Parsing %s" rules_file;
     let timed_rules =
-      Common.with_time (fun () -> Parse_rule.parse rules_file)
+      Common.with_time (fun () -> Parse_rule_new.parse rules_file)
     in
     semgrep_with_rules timed_rules files_or_dirs
   with exn when !output_format = Json ->
@@ -1105,7 +1075,7 @@ let dump_v1_json file =
 (*s: function [[Main_semgrep_core.dump_ext_of_lang]] *)
 let dump_ext_of_lang () =
   let lang_to_exts =
-    keys
+    Lang.keys
     |> List.map (fun lang_str ->
            match Lang.lang_of_string_opt lang_str with
            | Some lang ->
@@ -1256,7 +1226,8 @@ let options () =
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-lang",
       Arg.Set_string lang,
-      spf " <str> choose language (valid choices:\n     %s)" supported_langs );
+      spf " <str> choose language (valid choices:\n     %s)"
+        Lang.supported_langs );
     ( "-target_file",
       Arg.Set_string target_file,
       " <file> obtain list of targets to run patterns on" );

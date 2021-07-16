@@ -81,6 +81,8 @@ let is_python = function Python | Python2 | Python3 -> true | _ -> false
 (* Helpers *)
 (*****************************************************************************)
 
+(*e: constant [[Main_semgrep_core.supported_langs]] *)
+
 (*s: constant [[Lang.list_of_lang]] *)
 let list_of_lang =
   [
@@ -133,6 +135,13 @@ let lang_of_string_opt x =
   Hashtbl.find_opt lang_of_string_map (String.lowercase_ascii x)
 
 (*e: function [[Lang.lang_of_string_opt]] *)
+
+(*s: constant [[Main_semgrep_core.keys]] *)
+let keys = Common2.hkeys lang_of_string_map
+
+(*e: constant [[Main_semgrep_core.keys]] *)
+(*s: constant [[Main_semgrep_core.supported_langs]] *)
+let supported_langs : string = String.concat ", " keys
 
 (*s: function [[Lang.langs_of_filename]] *)
 let langs_of_filename filename =
@@ -272,3 +281,10 @@ let files_of_dirs_or_files lang xs =
 
 (*e: function [[Lang.files_of_dirs_or_files]] *)
 (*e: pfff/lang_GENERIC/parsing/Lang.ml *)
+
+(*s: function [[Main_semgrep_core.unsupported_language_message]] *)
+let unsupported_language_message lang =
+  if lang = "unset" then "no language specified; use -lang"
+  else
+    Common.spf "unsupported language: %s; supported language tags are: %s" lang
+      supported_langs

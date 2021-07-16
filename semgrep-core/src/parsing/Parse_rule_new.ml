@@ -32,6 +32,9 @@ module Set = Set_
  *
  * See also the JSON schema in rule_schema.yaml
  *
+ * Parsing generic dictionaries creates a mutable Hashtbl and consumes the
+ * fields as they are processed
+ *
  * TODO:
  *  - use the new position-aware YAML parser to get position information (for
  *    precise error location) by using an AST_generic expression instead of
@@ -64,25 +67,25 @@ let error s = raise (E.InvalidYamlException s)
 (* Sub parsers basic types *)
 (*****************************************************************************)
 
-let parse_string ctx = function
+let parse_string key = function
   | G.L (String (value, _)) -> value
   | G.N (Id ((value, _), _)) -> value
-  | _ -> error ("Expected a string value for " ^ ctx)
+  | _ -> error ("Expected a string value for " ^ key)
 
-let parse_list ctx f = function
+let parse_list key f = function
   | G.Container (Array, (_, xs, _)) -> List.map f xs
-  | _ -> error ("Expected a list for " ^ ctx)
+  | _ -> error ("Expected a list for " ^ key)
 
-let parse_string_list ctx e =
+let parse_string_list key e =
   let extract_string = function
     | G.L (String (value, _)) -> value
-    | _ -> error ("Expected all values in the list to be strings for " ^ ctx)
+    | _ -> error ("Expected all values in the list to be strings for " ^ key)
   in
-  parse_list ctx extract_string e
+  parse_list key extract_string e
 
-let parse_listi ctx f = function
+let parse_listi key f = function
   | G.Container (Array, (_, xs, _)) -> List.mapi f xs
-  | _ -> error ("Expected a list for " ^ ctx)
+  | _ -> error ("Expected a list for " ^ key)
 
 (* *dfasd;lfkjaslkfjads;lfjads;lkfjaskl;fjas;klfjsdalk;fjdasl;k* *)
 
@@ -213,6 +216,35 @@ let parse_options json =
     (fun () -> Config_semgrep_j.t_of_string s)
 
 (*****************************************************************************)
+(* Dict helper methods *)
+(*****************************************************************************)
+
+let yaml_to_dict rule =
+  match rule with
+  | G.Container (Dict, (_, fields, _)) ->
+      let dict = Hashtbl.create 10 in
+      fields
+      |> List.iter (fun field ->
+             match field with
+             | G.Tuple (_, [ L (String (key, _)); value ], _) ->
+                 Hashtbl.add dict key value
+             | _ -> error "Not a valid key value pair");
+      dict
+  | _ -> error "each rule should be a dictionary of fields"
+
+(* Mutates the Hashtbl! *)
+let take dict f key =
+  match Hashtbl.find_opt dict key with
+  | Some value ->
+      let value = f key value in
+      Hashtbl.remove dict key;
+      value
+  | None -> error ("Missing required field " ^ key)
+
+(* Mutates the Hashtbl! *)
+let take_opt dict f key = Common.map_opt (f key) (Hashtbl.find_opt dict key)
+
+(*****************************************************************************)
 (* Sub parsers patterns and formulas *)
 (*****************************************************************************)
 
@@ -228,13 +260,6 @@ let parse_pattern env e =
     (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
     (* TODO put in *)
   in
-  (* let () =
-       if Set.mem s !patterns then
-         raise
-           (H.InvalidPatternException
-              (env.id, s, "semgrep", "Duplicate pattern", s_range, env.path))
-       else patterns := Set.add s !patterns
-     in *)
   match env.languages with
   | R.L (lang, _) ->
       R.mk_xpat (Sem (H.parse_pattern ~id:env.id ~lang s, lang)) s
@@ -246,8 +271,8 @@ let parse_pattern env e =
       | Error err ->
           raise (H.InvalidPatternException (env.id, s, "generic", err.msg)))
 
-let find_formula_old rule_info : string * G.expr =
-  let find key = (key, Hashtbl.find_opt rule_info key) in
+let find_formula_old rule_dict : string * G.expr =
+  let find key = (key, Hashtbl.find_opt rule_dict key) in
   match
     ( find "pattern",
       find "pattern-either",
@@ -268,11 +293,11 @@ let find_formula_old rule_info : string * G.expr =
         "Expected only one of `pattern`, `pattern-either`, `patterns`, or \
          `pattern-regex`"
 
-let rec parse_formula (env : env) (rule_info : (string, G.expr) Hashtbl.t) :
+let rec parse_formula (env : env) (rule_dict : (string, G.expr) Hashtbl.t) :
     R.pformula =
-  match Hashtbl.find_opt rule_info "match" with
+  match Hashtbl.find_opt rule_dict "match" with
   | Some v -> R.New (parse_formula_new env v)
-  | None -> R.Old (parse_formula_old env (find_formula_old rule_info))
+  | None -> R.Old (parse_formula_old env (find_formula_old rule_dict))
 
 and parse_formula_old env ((key, value) : string * G.expr) : R.formula_old =
   let env = { env with path = key :: env.path } in
@@ -310,7 +335,7 @@ and parse_formula_old env ((key, value) : string * G.expr) : R.formula_old =
   | "metavariable-pattern", _
   | "metavariable-comparison", _
   | "pattern-where-python", _ ->
-      parse_extra env key value
+      R.PatExtra (parse_extra env key value)
   | _x -> error "unimplemented"
 
 (* let extra = parse_extra env x in
@@ -347,78 +372,47 @@ and parse_formula_new env (x : G.expr) : R.formula =
 
 (* This is now mutually recursive because of metavariable-pattern: which can
  * contain itself a formula! *)
-and parse_extra env key s =
+and parse_extra env key value : Rule.extra =
   match key with
-  | "metavariable-regex" -> (
-      match find_fields [ "metavariable"; "regex" ] xs with
-      | ( [
-            ("metavariable", Some (J.String metavar));
-            ("regex", Some (J.String regexp));
-          ],
-          [] ) ->
-          R.MetavarRegexp (metavar, parse_regexp env regexp)
-      | x ->
-          pr2_gen x;
-          error "metavariable-regex: wrong parse_extra fields")
-  | "metavariable-pattern" -> (
-      match find_fields [ "metavariable" ] xs with
-      | [ ("metavariable", Some (J.String metavar)) ], rest ->
-          let _env', opt_xlang, rest' =
-            match find_fields [ "language" ] rest with
-            | [ ("language", Some (J.String s)) ], rest' ->
-                let xlang =
-                  (* TODO: This code is similar to Main.xlang_of_string. *)
-                  if s =$= "none" || s =$= "regex" then R.LRegex
-                  else if s =$= "generic" then R.LGeneric
-                  else
-                    match Lang.lang_of_string_opt s with
-                    | None ->
-                        raise
-                          (E.InvalidLanguageException
-                             (env.id, spf "unsupported language: %s" s))
-                    | Some l -> R.L (l, [])
-                in
-                let env' =
-                  { id = env.id; languages = xlang; path = [ (* todo *) ] }
-                in
-                (env', Some xlang, rest')
-            | ___else___ -> (env, None, rest)
-          in
-          let pformula =
-            match rest' with
-            | [ _x ] -> error "unimplemented" (* parse_formula env' x *)
-            | x ->
-                pr2_gen x;
-                error "wrong rule fields"
-          in
-          let formula = R.formula_of_pformula pformula in
-          R.MetavarPattern (metavar, opt_xlang, formula)
-      | x ->
-          pr2_gen x;
-          error "metavariable-pattern:  wrong parse_extra fields")
-  | "metavariable-comparison" -> (
-      match
-        find_fields [ "metavariable"; "comparison"; "strip"; "base" ] xs
-      with
-      | ( [
-            ("metavariable", Some (J.String metavariable));
-            ("comparison", Some (J.String comparison));
-            ("strip", strip_opt);
-            ("base", base_opt);
-          ],
-          [] ) ->
-          let comparison = parse_metavar_cond comparison in
-          R.MetavarComparison
-            {
-              R.metavariable;
-              comparison;
-              strip = Common.map_opt (parse_bool "strip") strip_opt;
-              base = Common.map_opt (parse_int "base") base_opt;
-            }
-      | x ->
-          pr2_gen x;
-          error "metavariable-comparison: wrong parse_extra fields")
-  | "pattern-where-python" -> R.PatWherePython s
+  | "metavariable-regex" ->
+      let mv_regex_dict = yaml_to_dict value in
+      let metavar, regexp =
+        ( take mv_regex_dict parse_string "metavariable",
+          take mv_regex_dict parse_string "regexp" )
+      in
+      R.MetavarRegexp (metavar, parse_regexp env regexp)
+  | "metavariable-pattern" ->
+      let mv_pattern_dict = yaml_to_dict value in
+      let metavar = take mv_pattern_dict parse_string "metavariable" in
+      let env', opt_xlang =
+        match take_opt mv_pattern_dict parse_string "language" with
+        | Some s ->
+            let xlang = R.xlang_of_string ~id:(Some env.id) s in
+            let env' =
+              {
+                id = env.id;
+                languages = xlang;
+                path = "metavariable-pattern" :: "metavariable" :: env.path;
+              }
+            in
+            (env', Some xlang)
+        | ___else___ -> (env, None)
+      in
+      let pformula = parse_formula env' mv_pattern_dict in
+      let formula = R.formula_of_pformula pformula in
+      R.MetavarPattern (metavar, opt_xlang, formula)
+  | "metavariable-comparison" ->
+      let mv_comparison_dict = yaml_to_dict value in
+      let metavariable, comparison, strip, base =
+        ( take mv_comparison_dict parse_string "metavariable",
+          take mv_comparison_dict parse_string "comparison",
+          take_opt mv_comparison_dict parse_bool "strip",
+          take_opt mv_comparison_dict parse_int "base" )
+      in
+      let comparison = parse_metavar_cond comparison in
+      R.MetavarComparison { R.metavariable; comparison; strip; base }
+  | "pattern-where-python" ->
+      R.PatWherePython (parse_string "pattern-where-python" value)
   | x ->
       pr2_gen x;
       error "wrong parse_extra fields"
@@ -447,26 +441,6 @@ let parse_languages ~id langs =
 (* Main entry point *)
 (*****************************************************************************)
 
-let yaml_to_dict rule =
-  match rule with
-  | G.Container (Dict, (_, fields, _)) ->
-      let dict = Hashtbl.create 10 in
-      fields
-      |> List.iter (fun field ->
-             match field with
-             | G.Tuple (_, [ L (String (key, _)); value ], _) ->
-                 Hashtbl.add dict key value
-             | _ -> error "Not a valid key value pair");
-      dict
-  | _ -> error "each rule should be a dictionary of fields"
-
-let get dict f key =
-  match Hashtbl.find_opt dict key with
-  | Some value -> f key value
-  | None -> error ("Missing required field " ^ key)
-
-let get_opt dict f key = Common.map_opt (f key) (Hashtbl.find_opt dict key)
-
 let parse_generic file formula_ast =
   let rules_block =
     match formula_ast with
@@ -491,9 +465,9 @@ let parse_generic file formula_ast =
   in
   rules
   |> List.mapi (fun i rule ->
-         let rule_info = yaml_to_dict rule in
-         let get f key = get rule_info f key in
-         let get_opt f key = get_opt rule_info f key in
+         let rule_dict = yaml_to_dict rule in
+         let take f key = take rule_dict f key in
+         let take_opt f key = take_opt rule_dict f key in
          let ( id,
                languages,
                message,
@@ -504,12 +478,12 @@ let parse_generic file formula_ast =
                paths_opt,
                equivs_opt,
                options_opt ) =
-           ( get parse_string "id",
-             get parse_string_list "languages",
-             get parse_string "message",
-             get parse_string "severity",
+           ( take parse_string "id",
+             take parse_string_list "languages",
+             take parse_string "message",
+             take parse_string "severity",
              None,
-             get_opt parse_string "fix",
+             take_opt parse_string "fix",
              None,
              None,
              None,
@@ -519,7 +493,7 @@ let parse_generic file formula_ast =
          let formula =
            parse_formula
              { id; languages; path = [ string_of_int i; "rules" ] }
-             rule_info
+             rule_dict
          in
          let mode = R.Search formula in
          {

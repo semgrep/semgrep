@@ -29,8 +29,12 @@ module MV = Metavariable
  *  - parse equivalences
  *)
 
+(*e: exception [[Parse_rules.InvalidRuleException]] *)
+(*s: exception [[Parse_rules.InvalidLanguageException]] *)
+exception InvalidLanguageException of string * string
+
 (*****************************************************************************)
-(* Extended languages and patterns *)
+(* Extended languages *)
 (*****************************************************************************)
 
 (* eXtended language, stored in the languages: field in the rule.
@@ -44,7 +48,26 @@ type xlang =
   | LGeneric
 [@@deriving show, eq]
 
-(* eXtended pattern *)
+(* coupling: Parse_mini_rule.parse_languages *)
+let xlang_of_string ?id:(id_opt = None) s =
+  match s with
+  | "none" | "regex" -> LRegex
+  | "generic" -> LGeneric
+  | _ -> (
+      match Lang.lang_of_string_opt s with
+      | None -> (
+          match id_opt with
+          | None -> failwith (Lang.unsupported_language_message s)
+          | Some id ->
+              raise
+                (InvalidLanguageException
+                   (id, Common.spf "unsupported language: %s" s)))
+      | Some l -> L (l, []))
+
+(*****************************************************************************)
+(* Extended patterns *)
+(*****************************************************************************)
+
 type xpattern = {
   pat : xpattern_kind;
   (* Regarding @equal below, even if two patterns have different indentation,
