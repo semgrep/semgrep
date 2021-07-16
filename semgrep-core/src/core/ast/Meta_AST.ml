@@ -443,6 +443,7 @@ and vof_argument = function
 and vof_other_argument_operator = function
   | OA_ArgComp -> OCaml.VSum ("OA_ArgComp", [])
   | OA_ArgQuestion -> OCaml.VSum ("OA_ArgQuestion", [])
+  | OA_ArgMacro -> OCaml.VSum ("OA_ArgMacro", [])
 
 and vof_action (v1, v2) =
   let v1 = vof_pattern v1 and v2 = vof_expr v2 in
@@ -1313,6 +1314,9 @@ and vof_any = function
   | Args v1 ->
       let v1 = OCaml.vof_list vof_argument v1 in
       OCaml.VSum ("Args", [ v1 ])
+  | Anys v1 ->
+      let v1 = OCaml.vof_list vof_any v1 in
+      OCaml.VSum ("Anys", [ v1 ])
   | Partial v1 ->
       let v1 = vof_partial v1 in
       OCaml.VSum ("Partial", [ v1 ])

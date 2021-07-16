@@ -780,6 +780,8 @@ and other_argument_operator =
   | OA_ArgComp (* comprehension *)
   (* OCaml *)
   | OA_ArgQuestion
+  (* Rust *)
+  | OA_ArgMacro
 
 (*e: type [[AST_generic.other_argument_operator]] *)
 
@@ -1827,20 +1829,22 @@ and any =
   | Def of definition
   | Dir of directive
   | Pr of program
+  | Tk of tok
+  | TodoK of todo_kind
+  | Ar of argument
   (*s: [[AST_generic.any]] other cases *)
   (* todo: get rid of some? *)
   | Modn of module_name
   | ModDk of module_definition_kind
   | En of entity
   | Pa of parameter
-  | Ar of argument
   | Dk of definition_kind
   | Di of dotted_ident
   | Lbli of label_ident
   | NoD of name_or_dynamic
-  | Tk of tok
-  | TodoK of todo_kind
-(*e: [[AST_generic.any]] other cases *)
+  (*e: [[AST_generic.any]] other cases *)
+  (* Used only for Rust macro arguments for now *)
+  | Anys of any list
 (*e: type [[AST_generic.any]] *)
 [@@deriving show { with_path = false }, eq, hash]
 
