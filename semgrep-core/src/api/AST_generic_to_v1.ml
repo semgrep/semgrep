@@ -1158,6 +1158,7 @@ and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | Anys _ -> error x
   | E v1 ->
       let v1 = map_expr v1 in
       `E v1

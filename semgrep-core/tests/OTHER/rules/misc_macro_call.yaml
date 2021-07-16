@@ -1,0 +1,19 @@
+rules:
+  - id: test-macro-match 
+    languages:
+      - rust
+    message: "Message to user"
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          - patterns:
+            - pattern-inside: |
+                fn $FUNC (...) {
+                  ...
+                  $WRITE(...);
+                  ...
+                }
+            - pattern: $WRITE(...);
+            - metavariable-regex:
+                metavariable: $WRITE
+                regex: "^(println!|debug!)$"
