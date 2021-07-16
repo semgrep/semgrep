@@ -1,10 +1,3 @@
-# !TAKE CARE! 'pull_request' below was changed to 'pull_request_target', but then
-# any modification of this file in a PR does not trigger any changes
-# in the CI jobs for this PR. See the problems I had here:
-# https://github.com/returntocorp/semgrep/pull/3516
-# So for now I've switched it back to 'pull_request'
-# See also https://github.com/returntocorp/semgrep/pull/3468 where
-# 'pull_request' was changed to 'pull_request_target'
 name: Lint
 on:
   workflow_dispatch:
@@ -42,18 +35,6 @@ jobs:
       - uses: actions/checkout@v2
       - name: Check OCaml code
         run: sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
-
-  semgrep-run-r2c-config:
-    name: semgrep with r2c registry
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Semgrep
-        id: semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: "1"
 
   changelog-reminder:
     name: Changelog Reminder

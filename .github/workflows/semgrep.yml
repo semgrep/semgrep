@@ -1,0 +1,21 @@
+# This workflow runs on 'pull_request_target' so that PRs from forks are able
+# to run an action that uses the SEMGREP_APP_TOKEN secret
+# Note that any modification of this file in a PR does not reflect on said PR
+# Changes must be merged to develop first
+name: Lint
+on:
+  workflow_dispatch:
+  pull_request_target:
+
+jobs:
+  semgrep-run-r2c-config:
+    name: semgrep with r2c registry
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Semgrep
+        id: semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
+          publishDeployment: "1"
