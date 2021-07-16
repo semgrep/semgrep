@@ -88,6 +88,11 @@ let str = H.str
 
 let identifier (env : env) (tok : CST.identifier) : a_ident = str env tok
 
+let identifier_ (env : env) (x : CST.identifier_) : expr =
+  match x with
+  | `Unde tok -> IdSpecial (Undefined, token env tok)
+  | `Id tok -> identifier env tok |> idexp_or_special
+
 let automatic_semicolon (_env : env) (_tok : CST.automatic_semicolon) =
   (* do like in pfff: *)
   Parse_info.fake_info ";"
@@ -103,9 +108,9 @@ let super env tok = IdSpecial (Super, token env tok)
 
 let number (env : env) (tok : CST.number) =
   let s, t = str env tok (* number *) in
-  ( ( match H.int_of_string_c_octal_opt s with
+  ( (match H.int_of_string_c_octal_opt s with
     | Some i -> Some (float_of_int i)
-    | None -> float_of_string_opt s ),
+    | None -> float_of_string_opt s),
     t )
 
 let empty_stmt env tok =
@@ -116,42 +121,42 @@ let number_as_string (env : env) (tok : CST.number) = str env tok
 
 let string_ (env : env) (x : CST.string_) : string wrap =
   match x with
-  | `DQUOT_rep_choice_imm_tok_pat_3a2a380_DQUOT (v1, v2, v3) ->
-      let v1 = token env v1 (* "\"" *) in
+  | `DQUOT_rep_choice_unes_double_str_frag_DQUOT (v1, v2, v3) ->
+      let open_ = token env v1 (* "\"" *) in
+      let contents =
+        List.map
+          (fun x ->
+            match x with
+            | `Unes_double_str_frag tok ->
+                str env tok (* pattern "[^\"\\\\]+" *)
+            | `Esc_seq tok -> (* escape_sequence *) str env tok)
+          v2
+      in
+      let close = token env v3 (* "\"" *) in
+      let str = contents |> List.map fst |> String.concat "" in
+      let toks = (contents |> List.map snd) @ [ close ] in
+      (str, PI.combine_infos open_ toks)
+  | `SQUOT_rep_choice_unes_single_str_frag_SQUOT (v1, v2, v3) ->
+      let open_ = token env v1 (* "'" *) in
       let v2 =
         List.map
           (fun x ->
             match x with
-            | `Imm_tok_pat_3a2a380 tok -> str env tok (* pattern "[^\"\\\\]+" *)
+            | `Unes_single_str_frag tok -> str env tok (* pattern "[^'\\\\]+" *)
             | `Esc_seq tok -> str env tok
             (* escape_sequence *))
           v2
       in
-      let v3 = token env v3 (* "\"" *) in
+      let close = token env v3 (* "'" *) in
       let str = v2 |> List.map fst |> String.concat "" in
-      let toks = (v2 |> List.map snd) @ [ v3 ] in
-      (str, PI.combine_infos v1 toks)
-  | `SQUOT_rep_choice_imm_tok_pat_dc28280_SQUOT (v1, v2, v3) ->
-      let v1 = token env v1 (* "'" *) in
-      let v2 =
-        List.map
-          (fun x ->
-            match x with
-            | `Imm_tok_pat_dc28280 tok -> str env tok (* pattern "[^'\\\\]+" *)
-            | `Esc_seq tok -> str env tok
-            (* escape_sequence *))
-          v2
-      in
-      let v3 = token env v3 (* "'" *) in
-      let str = v2 |> List.map fst |> String.concat "" in
-      let toks = (v2 |> List.map snd) @ [ v3 ] in
-      (str, PI.combine_infos v1 toks)
+      let toks = (v2 |> List.map snd) @ [ close ] in
+      (str, PI.combine_infos open_ toks)
 
 let namespace_import (env : env) ((v1, v2, v3) : CST.namespace_import) =
-  let _v1 = token env v1 (* "*" *) in
-  let _v2 = token env v2 (* "as" *) in
-  let v3 = identifier env v3 (* identifier *) in
-  fun tok path -> [ ModuleAlias (tok, v3, path) ]
+  let star = token env v1 (* "*" *) in
+  let _as = token env v2 (* "as" *) in
+  let id = identifier env v3 (* identifier *) in
+  (star, id)
 
 let jsx_identifier_ (env : env) (x : CST.jsx_identifier_) =
   match x with
@@ -391,7 +396,9 @@ let named_imports (env : env) ((v1, v2, v3, v4) : CST.named_imports) =
 
 let import_clause (env : env) (x : CST.import_clause) =
   match x with
-  | `Name_import x -> namespace_import env x
+  | `Name_import x ->
+      let _star, id = namespace_import env x in
+      fun tok path -> [ ModuleAlias (tok, id, path) ]
   | `Named_imports x -> named_imports env x
   | `Id_opt_COMMA_choice_name_import (v1, v2) ->
       let v1 = identifier env v1 (* identifier *) in
@@ -401,7 +408,9 @@ let import_clause (env : env) (x : CST.import_clause) =
             let _v1 = token env v1 (* "," *) in
             let v2 =
               match v2 with
-              | `Name_import x -> namespace_import env x
+              | `Name_import x ->
+                  let _star, id = namespace_import env x in
+                  fun tok path -> [ ModuleAlias (tok, id, path) ]
               | `Named_imports x -> named_imports env x
             in
             v2
@@ -1002,7 +1011,16 @@ and member_expression (env : env) ((v1, v2, v3) : CST.member_expression) : expr
     match v2 with
     | `DOT tok (* "." *) | `QMARKDOT (* "?." *) tok -> token env tok
   in
-  let id = identifier env v3 (* identifier *) in
+  let id_tok =
+    match v3 with
+    | `Id x -> x
+    | `Priv_prop_id x ->
+        (* has a leading '#' indicating a private property.
+           Should it have a special construct so we could match
+           all private properties in semgrep with e.g. #$VAR ? *)
+        x
+  in
+  let id = identifier env id_tok (* identifier *) in
   ObjAccess (expr, dot_tok, PN id)
 
 and object_property (env : env) (x : CST.anon_choice_pair_20c9acd) : property =
@@ -1052,7 +1070,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       | `Subs_exp x -> subscript_expression env x
       | `Member_exp x -> member_expression env x
       | `Paren_exp x -> parenthesized_expression env x
-      | `Id tok -> identifier env tok |> idexp_or_special
+      | `Choice_unde x -> identifier_ env x
       | `Choice_decl x -> reserved_identifier env x |> idexp
       | `This tok -> this env tok (* "this" *)
       | `Super tok -> super env tok (* "super" *)
@@ -1078,7 +1096,6 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       | `True tok -> L (Bool (true, token env tok) (* "true" *))
       | `False tok -> L (Bool (false, token env tok) (* "false" *))
       | `Null tok -> IdSpecial (Null, token env tok) (* "null" *)
-      | `Unde tok -> IdSpecial (Undefined, token env tok) (* "undefined" *)
       | `Import tok -> identifier env tok (* import *) |> idexp
       | `Obj x ->
           let o = object_ env x in
@@ -2048,15 +2065,26 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
   | `Choice_export_choice_STAR_from_clause_choice_auto_semi x -> (
       match x with
       | `Export_choice_STAR_from_clause_choice_auto_semi (v1, v2) ->
-          let tok = token env v1 (* "export" *) in
+          let export_tok = token env v1 (* "export" *) in
           let v2 =
             match v2 with
             | `STAR_from_clause_choice_auto_semi (v1, v2, v3) ->
-                let v1 = token env v1 (* "*" *) in
-                let tok2, path = from_clause env v2 in
+                (* export * from 'foo'; *)
+                let star = token env v1 (* "*" *) in
+                let from, path = from_clause env v2 in
                 let _v3 = semicolon env v3 in
-                [ M (ReExportNamespace (tok, v1, tok2, path)) ]
+                [ M (ReExportNamespace (export_tok, star, None, from, path)) ]
+            | `Name_import_from_clause_choice_auto_semi (v1, v2, v3) ->
+                (* export * as foo from "module"; *)
+                let star, alias = namespace_import env v1 (* * as foo *) in
+                let from, path = from_clause env v2 (* from "module" *) in
+                let _semi = semicolon env v3 (* ; *) in
+                [
+                  M
+                    (ReExportNamespace (export_tok, star, Some alias, from, path));
+                ]
             | `Export_clause_from_clause_choice_auto_semi (v1, v2, v3) ->
+                (* export { name1, name2, nameN } from 'foo'; *)
                 let v1 = export_clause env v1 in
                 let tok2, path = from_clause env v2 in
                 let _v3 = semicolon env v3 in
@@ -2068,21 +2096,22 @@ and export_statement (env : env) (x : CST.export_statement) : stmt list =
                        match n2opt with
                        | None ->
                            let v = Ast_js.mk_const_var n1 e in
-                           [ M import; DefStmt v; M (Export (tok, n1)) ]
+                           [ M import; DefStmt v; M (Export (export_tok, n1)) ]
                        | Some n2 ->
                            let v = Ast_js.mk_const_var n2 e in
-                           [ M import; DefStmt v; M (Export (tok, n2)) ])
+                           [ M import; DefStmt v; M (Export (export_tok, n2)) ])
                 |> List.flatten
             | `Export_clause_choice_auto_semi (v1, v2) ->
+                (* export { import1 as name1, import2 as name2, nameN } from 'foo'; *)
                 let v1 = export_clause env v1 in
                 let _v2 = semicolon env v2 in
                 v1
                 |> List.map (fun (n1, n2opt) ->
                        match n2opt with
-                       | None -> [ M (Export (tok, n1)) ]
+                       | None -> [ M (Export (export_tok, n1)) ]
                        | Some n2 ->
                            let v = Ast_js.mk_const_var n2 (idexp n1) in
-                           [ DefStmt v; M (Export (tok, n2)) ])
+                           [ DefStmt v; M (Export (export_tok, n2)) ])
                 |> List.flatten
           in
           v2
@@ -2388,6 +2417,9 @@ and property_name (env : env) (x : CST.property_name) =
   | `Choice_id x ->
       let id = id_or_reserved_id env x in
       PN id
+  | `Priv_prop_id tok ->
+      let id = str env tok in
+      PN id
   | `Str x ->
       let s = string_ env x in
       PN s
@@ -2622,7 +2654,7 @@ and lhs_expression (env : env) (x : CST.lhs_expression) : expr =
       match x with
       | `Member_exp x -> member_expression env x
       | `Subs_exp x -> subscript_expression env x
-      | `Id tok -> identifier env tok |> idexp (* identifier *)
+      | `Choice_unde x -> identifier_ env x
       | `Choice_decl x -> reserved_identifier env x |> idexp
       | `Dest_pat x -> destructuring_pattern env x)
   | `Non_null_exp x -> non_null_expression env x
