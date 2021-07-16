@@ -9,7 +9,6 @@
    tree-sitter-lang.kotlin
    tree-sitter-lang.go
    tree-sitter-lang.c-sharp
-   tree-sitter-lang.javascript
    tree-sitter-lang.typescript
    tree-sitter-lang.tsx
    tree-sitter-lang.lua

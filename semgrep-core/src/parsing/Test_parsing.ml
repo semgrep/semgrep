@@ -85,8 +85,9 @@ let dump_tree_sitter_cst lang file =
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
   | Lang.Javascript ->
-      Tree_sitter_javascript.Parse.file file
-      |> dump_and_print_errors Tree_sitter_javascript.CST.dump_tree
+      (* JavaScript/JSX is a strict subset of TSX *)
+      Tree_sitter_tsx.Parse.file file
+      |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
   | Lang.Typescript ->
       Tree_sitter_typescript.Parse.file file
       |> dump_and_print_errors Tree_sitter_typescript.CST.dump_tree
@@ -142,8 +143,7 @@ let test_parse_tree_sitter lang xs =
                      Tree_sitter_kotlin.Parse.file file
                      |> fail_on_error |> ignore
                  | Lang.Javascript ->
-                     Tree_sitter_javascript.Parse.file file
-                     |> fail_on_error |> ignore
+                     Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
                  | Lang.Typescript ->
                      Tree_sitter_typescript.Parse.file file
                      |> fail_on_error |> ignore
