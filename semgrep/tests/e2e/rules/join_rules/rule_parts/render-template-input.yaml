@@ -1,0 +1,7 @@
+rules:
+- id: render-template-input
+  languages: [python]
+  severity: INFO
+  message: '$INPUT'
+  pattern-either:
+  - pattern: flask.render_template("$TEMPLATE", ..., $VAR=$INPUT, ...)

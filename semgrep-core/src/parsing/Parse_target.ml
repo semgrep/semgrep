@@ -223,7 +223,7 @@ let rec just_parse_with_lang lang file =
        *)
       run file
         [
-          TreeSitter Parse_javascript_tree_sitter.parse;
+          TreeSitter (Parse_typescript_tree_sitter.parse ~dialect:`TSX);
           Pfff (throw_tokens Parse_js.parse);
         ]
         Js_to_generic.program

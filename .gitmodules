@@ -16,9 +16,6 @@
 [submodule "semgrep-core/tree-sitter-lang/semgrep-java"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-java
 	url = https://github.com/returntocorp/semgrep-java
-[submodule "semgrep-core/tree-sitter-lang/semgrep-javascript"]
-	path = semgrep-core/src/tree-sitter-lang/semgrep-javascript
-	url = https://github.com/returntocorp/semgrep-javascript
 [submodule "semgrep-core/tree-sitter-lang/semgrep-kotlin"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-kotlin
 	url = https://github.com/returntocorp/semgrep-kotlin

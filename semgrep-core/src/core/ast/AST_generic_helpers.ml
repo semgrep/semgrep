@@ -70,6 +70,19 @@ let name_of_ids ?(name_typeargs = None) xs =
       IdQualified
         ((x, { name_qualifier = qualif; name_typeargs }), empty_id_info ())
 
+let name_of_id id = Id (id, empty_id_info ())
+
+(* TODO: you should not need to use that. This is mostly because
+ * Constructor and PatConstructor currently takes a dotted_ident instead
+ * of a name.
+ *)
+let dotted_ident_of_name (n : name) : dotted_ident =
+  match n with
+  | Id (id, _) -> [ id ]
+  | IdQualified ((id, _nameinfoTODO), _) ->
+      (* TODO, look QDots, ... *)
+      [ id ]
+
 (*s: function [[AST_generic.expr_to_pattern]] *)
 (* In Go a pattern can be a complex expressions. It is just
  * matched for equality with the thing it's matched against, so in that

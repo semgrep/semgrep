@@ -30,4 +30,9 @@ val default_visitor : visitor_in
 val mk_visitor : visitor_in -> visitor_out
 
 (*e: signature [[Map_AST.mk_visitor]] *)
+
+val mk_fix_token_locations :
+  (Parse_info.token_location -> Parse_info.token_location) -> visitor_out
+(** Make a visitor that fixes token locations.  *)
+
 (*e: pfff/lang_GENERIC/parsing/Map_AST.mli *)

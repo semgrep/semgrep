@@ -675,7 +675,7 @@ and alias v1 =
 
 and module_directive x =
   match x with
-  | ReExportNamespace (v1, _v2, _v3, v4) ->
+  | ReExportNamespace (v1, _v2, _opt_alias, _v3, v4) ->
       let v4 = filename v4 in
       G.OtherDirective (G.OI_ReExportNamespace, [ G.Tk v1; G.Str v4 ])
   | Import (t, v1, v2, v3) ->
