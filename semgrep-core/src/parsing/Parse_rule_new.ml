@@ -51,23 +51,13 @@ module Set = Set_
 
 type env = { id : string; languages : R.xlang; path : string list }
 
-(* less: could use a hash to accelerate things *)
-let rec find_fields flds xs =
-  match flds with
-  | [] -> ([], xs)
-  | fld :: flds ->
-      let fld_match = List.assoc_opt fld xs in
-      let xs = List.remove_assoc fld xs in
-      let matches, rest = find_fields flds xs in
-      ((fld, fld_match) :: matches, rest)
-
 let error s = raise (E.InvalidYamlException s)
 
 (*****************************************************************************)
 (* Dict helper methods *)
 (*****************************************************************************)
 
-let yaml_to_dict rule =
+let yaml_to_dict key rule =
   match rule with
   | G.Container (Dict, (_, fields, _)) ->
       let dict = Hashtbl.create 10 in
@@ -78,7 +68,7 @@ let yaml_to_dict rule =
                  Hashtbl.add dict key value
              | _ -> error "Not a valid key value pair");
       dict
-  | _ -> error "each rule should be a dictionary of fields"
+  | _ -> error ("each " ^ key ^ " should be a dictionary of fields")
 
 (* Mutates the Hashtbl! *)
 let take dict f key =
@@ -177,8 +167,8 @@ let parse_regexp env s =
   with Pcre.Error exn ->
     raise (E.InvalidRegexpException (env.id, pcre_error_to_string s exn))
 
-let parse_fix_regex env fields =
-  let fix_regex_dict = yaml_to_dict fields in
+let parse_fix_regex key env fields =
+  let fix_regex_dict = yaml_to_dict key fields in
   let regex, replacement, count_opt =
     ( take fix_regex_dict parse_string "regex",
       take fix_regex_dict parse_string "replacement",
@@ -186,41 +176,29 @@ let parse_fix_regex env fields =
   in
   (parse_regexp env regex, count_opt, replacement)
 
-let parse_equivalences = function
-  | J.Array xs ->
-      xs
-      |> List.map (function
-           | J.Object [ ("equivalence", J.String s) ] -> s
-           | x ->
-               pr2_gen x;
-               error "parse_equivalence")
-  | x ->
-      pr2_gen x;
-      error "parse_equivalences"
+let parse_equivalences key value =
+  let parse_equivalence equiv =
+    match equiv with
+    | G.Container
+        ( Dict,
+          (_, [ Tuple (_, [ L (String ("equivalence", _)); value ], _) ], _) )
+      ->
+        parse_string "equivalence" value
+    | _ -> error "Expected `equivalence: $X` for each equivalences list item"
+  in
+  parse_list key parse_equivalence value
 
-let parse_paths = function
-  | J.Object xs -> (
-      match find_fields [ "include"; "exclude" ] xs with
-      | [ ("include", inc_opt); ("exclude", exc_opt) ], [] ->
-          {
-            R.include_ =
-              (match inc_opt with
-              | None -> []
-              | Some _xs -> [] (* TODO parse_strings "include" xs *));
-            exclude =
-              (match exc_opt with
-              | None -> []
-              | Some _xs -> [] (* TODO parse_strings "exclude" x s *));
-          }
-      | x ->
-          pr2_gen x;
-          error "parse_paths")
-  | x ->
-      pr2_gen x;
-      error "parse_paths"
+let parse_paths key value =
+  let paths_dict = yaml_to_dict key value in
+  let inc_opt, exc_opt =
+    ( take_opt paths_dict parse_string_list "include",
+      take_opt paths_dict parse_string_list "exclude" )
+  in
+  let opt_to_list = function None -> [] | Some xs -> xs in
+  { R.include_ = opt_to_list inc_opt; exclude = opt_to_list exc_opt }
 
-let parse_options json =
-  let s = J.string_of_json json in
+let parse_options key value =
+  let s = parse_string key value in
   Common.save_excursion Atdgen_runtime.Util.Json.unknown_field_handler
     (fun _src_loc field_name ->
       (* for forward compatibility, better to not raise an exn and just
@@ -363,14 +341,14 @@ and parse_formula_new env (x : G.expr) : R.formula =
 and parse_extra env key value : Rule.extra =
   match key with
   | "metavariable-regex" ->
-      let mv_regex_dict = yaml_to_dict value in
+      let mv_regex_dict = yaml_to_dict key value in
       let metavar, regexp =
         ( take mv_regex_dict parse_string "metavariable",
           take mv_regex_dict parse_string "regexp" )
       in
       R.MetavarRegexp (metavar, parse_regexp env regexp)
   | "metavariable-pattern" ->
-      let mv_pattern_dict = yaml_to_dict value in
+      let mv_pattern_dict = yaml_to_dict key value in
       let metavar = take mv_pattern_dict parse_string "metavariable" in
       let env', opt_xlang =
         match take_opt mv_pattern_dict parse_string "language" with
@@ -390,7 +368,7 @@ and parse_extra env key value : Rule.extra =
       let formula = R.formula_of_pformula pformula in
       R.MetavarPattern (metavar, opt_xlang, formula)
   | "metavariable-comparison" ->
-      let mv_comparison_dict = yaml_to_dict value in
+      let mv_comparison_dict = yaml_to_dict key value in
       let metavariable, comparison, strip, base =
         ( take mv_comparison_dict parse_string "metavariable",
           take mv_comparison_dict parse_string "comparison",
@@ -453,7 +431,7 @@ let parse_generic file formula_ast =
   in
   rules
   |> List.mapi (fun i rule ->
-         let rule_dict = yaml_to_dict rule in
+         let rule_dict = yaml_to_dict "rules" rule in
          let take f key = take rule_dict f key in
          let take_opt f key = take_opt rule_dict f key in
          let ( id,
@@ -473,9 +451,9 @@ let parse_generic file formula_ast =
              None,
              take_opt parse_string "fix",
              take_opt (fun _key x -> x) "fix-regex",
-             None,
-             None,
-             None )
+             take_opt parse_paths "paths",
+             take_opt parse_equivalences "equivalences",
+             take_opt parse_options "options" )
          in
          let languages = parse_languages ~id languages in
          let env = { id; languages; path = [ string_of_int i; "rules" ] } in
@@ -491,10 +469,11 @@ let parse_generic file formula_ast =
            (* optional fields *)
            metadata = metadata_opt;
            fix = fix_opt;
-           fix_regexp = Common.map_opt (parse_fix_regex env) fix_regex_opt;
-           paths = Common.map_opt parse_paths paths_opt;
-           equivalences = Common.map_opt parse_equivalences equivs_opt;
-           options = Common.map_opt parse_options options_opt;
+           fix_regexp =
+             Common.map_opt (parse_fix_regex "fix_regex" env) fix_regex_opt;
+           paths = paths_opt;
+           equivalences = equivs_opt;
+           options = options_opt;
          })
 
 let parse file =

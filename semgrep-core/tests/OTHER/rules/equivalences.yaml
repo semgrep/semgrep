@@ -1,0 +1,10 @@
+rules:
+  - equivalences:
+      - equivalence: request.$W.get(...) <==> request.$W[...]
+    id: equivalences-example
+    languages:
+      - python
+    message: Found request data
+    pattern: request.POST.get(...)
+    severity: WARNING
+
