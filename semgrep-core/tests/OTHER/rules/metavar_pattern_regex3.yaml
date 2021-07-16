@@ -1,0 +1,13 @@
+# https://github.com/returntocorp/semgrep/issues/3503
+rules:
+  - id: test-mvp-regex-3
+    languages:
+      - ts
+      - js
+    message: Test
+    patterns:
+      - pattern: let $VAR = $VALUE
+      - metavariable-pattern:
+          metavariable: $VALUE
+          pattern-regex: ^[0-9]+$
+    severity: WARNING
