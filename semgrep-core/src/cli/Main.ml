@@ -848,7 +848,7 @@ let semgrep_with_rules_file rules_file files_or_dirs =
   try
     logger#info "Parsing %s" rules_file;
     let timed_rules =
-      Common.with_time (fun () -> Parse_rule_new.parse rules_file)
+      Common.with_time (fun () -> Parse_rule.parse rules_file)
     in
     semgrep_with_rules timed_rules files_or_dirs
   with exn when !output_format = Json ->
