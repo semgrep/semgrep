@@ -2776,6 +2776,7 @@ and m_any a b =
   (*s: [[Generic_vs_generic.m_any]] boilerplate cases *)
   | A.Partial a1, B.Partial b1 -> m_partial a1 b1
   | A.Args a1, B.Args b1 -> m_list m_argument a1 b1
+  | A.Anys a1, B.Anys b1 -> m_list m_any a1 b1
   (* boilerplate *)
   | A.Modn a1, B.Modn b1 -> m_module_name a1 b1
   | A.ModDk a1, B.ModDk b1 -> m_module_definition_kind a1 b1
@@ -2820,6 +2821,7 @@ and m_any a b =
   | A.TodoK _, _
   | A.Partial _, _
   | A.Args _, _
+  | A.Anys _, _
   | A.Str _, _ ->
       fail ()
 

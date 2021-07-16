@@ -47,15 +47,17 @@ let add_type_args_to_name (name : G.name) _typeargs : G.name =
   (* TODO: if Id, then need transform in IdQualified *)
   name
 
-(*****************************************************************************)
-(* Boilerplate converter *)
-(*****************************************************************************)
-(* This was started by copying tree-sitter-lang/semgrep-rust/Boilerplate.ml *)
+let deoptionalize l =
+  let rec deopt acc = function
+    | [] -> List.rev acc
+    | None :: tl -> deopt acc tl
+    | Some x :: tl -> deopt (x :: acc) tl
+  in
+  deopt [] l
 
-(**
-   Boilerplate to be used as a template when mapping the rust CST
-   to another type of tree.
-*)
+(*****************************************************************************)
+(* Intermediate AST-like types *)
+(*****************************************************************************)
 
 type function_declaration_rs = {
   name : G.name_or_dynamic;
@@ -64,44 +66,91 @@ type function_declaration_rs = {
   retval : G.type_ option;
 }
 
-and trait_bound =
+type lifetime = G.ident
+
+type trait_bound =
   | TraitBoundType of G.type_
   | TraitBoundLifetime of lifetime
   | TraitBoundHigherRanked of G.type_parameter list * G.type_
   | TraitBoundRemoved of G.type_
 
-and where_clause = where_predicate list
-
-and where_predicate = where_predicate_type * trait_bound list
-
-and where_predicate_type =
+type where_predicate_type =
   | WherePredLifetime of lifetime
   | WherePredId of G.ident
   | WherePredType of G.type_
   | WherePredHigherRanked of G.type_parameter list * G.type_
 
-and lifetime = G.ident
+type where_predicate = where_predicate_type * trait_bound list
 
-and rust_macro_definition = rust_macro_rule list G.bracket
+type where_clause = where_predicate list
 
-and rust_macro_item =
-  | Tk of G.tok
-  | MacTkTree of rust_macro_item list G.bracket
-  | MacTks of rust_macro_item list G.bracket * G.ident option * G.tok
+type rust_macro_item =
+  | MacAny of G.any
+  | MacTree of rust_macro_item list G.bracket
+  | MacTreeBis of rust_macro_item list G.bracket * G.ident option * G.tok
+
+(* Note that the commas are considered like any other tokens in a Rust macro;
+ * they are not separators between rust_macro_items.
+ *)
+let rec macro_items_to_anys (xs : rust_macro_item list) : G.any list =
+  xs |> List.map macro_item_to_any
+
+and macro_item_to_any = function
+  | MacAny x -> x
+  | MacTree (l, xs, r) ->
+      G.Anys ([ G.Tk l ] @ macro_items_to_anys xs @ [ G.Tk r ])
+  | MacTreeBis ((l, xs, r), idopt, t) ->
+      G.Anys
+        ([ G.Tk l ] @ macro_items_to_anys xs @ [ G.Tk r ]
+        @ (match idopt with None -> [] | Some id -> [ G.I id ])
+        @ [ G.Tk t ])
+
+(* TODO: factorize with macro_items_to_anys above *)
+let rec convert_macro_item (item : rust_macro_item) : G.any list =
+  match item with
+  | MacAny any -> [ any ]
+  | MacTree (_, items, _) -> List.flatten (List.map convert_macro_item items)
+  | MacTreeBis ((_, items, _), ident, tok) ->
+      let items = List.flatten (List.map convert_macro_item items) in
+      let ident = match ident with Some i -> [ G.I i ] | None -> [] in
+      items @ ident @ [ G.Tk tok ]
+
+type rust_macro_pattern =
+  | RustMacPatTree of rust_macro_pattern list
+  | RustMacPatRepetition of
+      rust_macro_pattern list G.bracket * G.ident option * G.tok
+  | RustMacPatBinding of G.ident * G.tok
+  | RustMacPatToken of G.any
+
+type rust_macro_definition = rust_macro_rule list G.bracket
 
 and rust_macro_rule = {
   rules : rust_macro_pattern list;
   body : rust_macro_item list G.bracket;
 }
 
-and rust_macro_pattern =
-  | RustMacPatTree of rust_macro_pattern list
-  | RustMacPatRepetition of
-      rust_macro_pattern list G.bracket * G.ident option * G.tok
-  | RustMacPatBinding of G.ident * G.tok
-  | RustMacPatToken of G.tok
+let rec convert_macro_pattern (pattern : rust_macro_pattern) : G.any list =
+  match pattern with
+  | RustMacPatTree _patsTODO -> []
+  | RustMacPatRepetition ((_, pats, _), ident, tok) ->
+      let pats = List.flatten (List.map convert_macro_pattern pats) in
+      let ident = match ident with Some i -> [ G.I i ] | None -> [] in
+      pats @ ident @ [ G.Tk tok ]
+  | RustMacPatBinding (ident, tok) -> [ G.I ident; G.Tk tok ]
+  | RustMacPatToken any -> [ any ]
 
-and rust_meta_argument =
+and convert_macro_rule (rule : rust_macro_rule) : G.any list =
+  let rules = List.flatten (List.map convert_macro_pattern rule.rules) in
+  let _, items, _ = rule.body in
+  let body = List.flatten (List.map convert_macro_item items) in
+  rules @ body
+
+and convert_macro_def (macro_def : rust_macro_definition) : G.macro_definition =
+  let _, rules, _ = macro_def in
+  let body = List.flatten (List.map convert_macro_rule rules) in
+  { G.macroparams = []; G.macrobody = body }
+
+type rust_meta_argument =
   | MetaArgMetaItem of rust_meta_item
   | MetaArgLiteral of G.literal
 
@@ -111,15 +160,19 @@ and rust_meta_item_value =
 
 and rust_meta_item = G.dotted_ident * rust_meta_item_value option
 
-and rust_attribute = AttrInner of rust_meta_item | AttrOuter of rust_meta_item
+type rust_attribute =
+  | AttrInner of rust_meta_item
+  | AttrOuter of rust_meta_item
 
-let deoptionalize l =
-  let rec deopt acc = function
-    | [] -> List.rev acc
-    | None :: tl -> deopt acc tl
-    | Some x :: tl -> deopt (x :: acc) tl
-  in
-  deopt [] l
+(*****************************************************************************)
+(* Boilerplate converter *)
+(*****************************************************************************)
+(* This was started by copying tree-sitter-lang/semgrep-rust/Boilerplate.ml *)
+
+(**
+   Boilerplate to be used as a template when mapping the rust CST
+   to another type of tree.
+*)
 
 let ident (env : env) (tok : CST.identifier) : G.ident = str env tok
 
@@ -229,24 +282,6 @@ let map_literal (env : env) (x : CST.literal) : G.literal =
   | `Float_lit tok -> G.Float (float_literal env tok)
 
 (* float_literal *)
-
-let map_literal_token (env : env) (x : CST.literal) : PI.token_mutable =
-  let lit = map_literal env x in
-  match lit with
-  | Bool (_, tok)
-  | Int (_, tok)
-  | Float (_, tok)
-  | Char (_, tok)
-  | String (_, tok)
-  | Unit tok
-  | Null tok
-  | Undefined tok
-  | Imag (_, tok)
-  | Ratio (_, tok)
-  (* TODO? use PI.combine_info for the other tokens in it ? *)
-  | Atom (_, (_, tok))
-  | Regexp ((_, (_, tok), _), _) ->
-      tok
 
 let map_literal_pattern (env : env) (x : CST.literal_pattern) : G.pattern =
   match x with
@@ -363,50 +398,51 @@ let map_loop_label (env : env) ((v1, v2) : CST.loop_label) : G.label_ident =
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   G.LId label
 
-let map_non_special_token (env : env) (x : CST.non_special_token) :
-    PI.token_mutable =
+let map_non_special_token (env : env) (x : CST.non_special_token) : G.any =
   match x with
-  | `Lit x -> map_literal_token env x
+  | `Lit x ->
+      let lit = map_literal env x in
+      G.E (G.L lit)
   | `Id tok ->
-      token env tok
+      G.I (str env tok)
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  | `Meta tok -> token env tok (* pattern \$[a-zA-Z_]\w* *)
-  | `Muta_spec tok -> token env tok (* "mut" *)
-  | `Self tok -> token env tok (* "self" *)
-  | `Super tok -> token env tok (* "super" *)
-  | `Crate tok -> token env tok (* "crate" *)
   | `Choice_u8 x ->
-      let _, tok = map_primitive_type_ident env x in
-      tok
-  | `Pat_e14e5d5 tok -> token env tok (*tok*)
-  | `SQUOT tok -> token env tok (* "'" *)
-  | `As tok -> token env tok (* "as" *)
-  | `Async tok -> token env tok (* "async" *)
-  | `Await tok -> token env tok (* "await" *)
-  | `Brk tok -> token env tok (* "break" *)
-  | `Const tok -> token env tok (* "const" *)
-  | `Cont tok -> token env tok (* "continue" *)
-  | `Defa tok -> token env tok (* "default" *)
-  | `Enum tok -> token env tok (* "enum" *)
-  | `Fn tok -> token env tok (* "fn" *)
-  | `For tok -> token env tok (* "for" *)
-  | `If tok -> token env tok (* "if" *)
-  | `Impl tok -> token env tok (* "impl" *)
-  | `Let tok -> token env tok (* "let" *)
-  | `Loop tok -> token env tok (* "loop" *)
-  | `Match tok -> token env tok (* "match" *)
-  | `Mod tok -> token env tok (* "mod" *)
-  | `Pub tok -> token env tok (* "pub" *)
-  | `Ret tok -> token env tok (* "return" *)
-  | `Static tok -> token env tok (* "static" *)
-  | `Struct tok -> token env tok (* "struct" *)
-  | `Trait tok -> token env tok (* "trait" *)
-  | `Type tok -> token env tok (* "type" *)
-  | `Union tok -> token env tok (* "union" *)
-  | `Unsafe tok -> token env tok (* "unsafe" *)
-  | `Use tok -> token env tok (* "use" *)
-  | `Where tok -> token env tok (* "where" *)
-  | `While tok -> token env tok
+      let id = map_primitive_type_ident env x in
+      G.I id
+  | `Pat_e14e5d5 tok -> G.Tk (token env tok) (*tok*)
+  | `Meta tok -> G.Tk (token env tok) (* pattern \$[a-zA-Z_]\w* *)
+  | `Muta_spec tok -> G.I (str env tok) (* "mut" *)
+  | `Self tok -> G.I (str env tok) (* "self" *)
+  | `Super tok -> G.I (str env tok) (* "super" *)
+  | `Crate tok -> G.I (str env tok) (* "crate" *)
+  | `SQUOT tok -> G.I (str env tok) (* "'" *)
+  | `As tok -> G.I (str env tok) (* "as" *)
+  | `Async tok -> G.I (str env tok) (* "async" *)
+  | `Await tok -> G.I (str env tok) (* "await" *)
+  | `Brk tok -> G.I (str env tok) (* "break" *)
+  | `Const tok -> G.I (str env tok) (* "const" *)
+  | `Cont tok -> G.I (str env tok) (* "continue" *)
+  | `Defa tok -> G.I (str env tok) (* "default" *)
+  | `Enum tok -> G.I (str env tok) (* "enum" *)
+  | `Fn tok -> G.I (str env tok) (* "fn" *)
+  | `For tok -> G.I (str env tok) (* "for" *)
+  | `If tok -> G.I (str env tok) (* "if" *)
+  | `Impl tok -> G.I (str env tok) (* "impl" *)
+  | `Let tok -> G.I (str env tok) (* "let" *)
+  | `Loop tok -> G.I (str env tok) (* "loop" *)
+  | `Match tok -> G.I (str env tok) (* "match" *)
+  | `Mod tok -> G.I (str env tok) (* "mod" *)
+  | `Pub tok -> G.I (str env tok) (* "pub" *)
+  | `Ret tok -> G.I (str env tok) (* "return" *)
+  | `Static tok -> G.I (str env tok) (* "static" *)
+  | `Struct tok -> G.I (str env tok) (* "struct" *)
+  | `Trait tok -> G.I (str env tok) (* "trait" *)
+  | `Type tok -> G.I (str env tok) (* "type" *)
+  | `Union tok -> G.I (str env tok) (* "union" *)
+  | `Unsafe tok -> G.I (str env tok) (* "unsafe" *)
+  | `Use tok -> G.I (str env tok) (* "use" *)
+  | `Where tok -> G.I (str env tok) (* "where" *)
+  | `While tok -> G.I (str env tok)
 
 (* "while" *)
 
@@ -463,7 +499,7 @@ let rec map_token_tree (env : env) (x : CST.token_tree) :
 
 and map_tokens (env : env) (x : CST.tokens) : rust_macro_item =
   match x with
-  | `Tok_tree x -> MacTkTree (map_token_tree env x)
+  | `Tok_tree x -> MacTree (map_token_tree env x)
   | `Tok_repe (v1, v2, v3, v4, v5, v6) ->
       let _dollarTODO = token env v1 (* "$" *) in
       let lparen = token env v2 (* "(" *) in
@@ -472,8 +508,8 @@ and map_tokens (env : env) (x : CST.tokens) : rust_macro_item =
       let ident = Option.map (fun tok -> ident env tok) v5 in
       (* pattern [^+*?]+ *)
       let quantifier = map_token_quantifier env v6 in
-      MacTks ((lparen, tokens, rparen), ident, quantifier)
-  | `Choice_lit x -> Tk (map_non_special_token env x)
+      MacTreeBis ((lparen, tokens, rparen), ident, quantifier)
+  | `Choice_lit x -> MacAny (map_non_special_token env x)
 
 let rec map_token_pattern (env : env) (x : CST.token_pattern) :
     rust_macro_pattern =
@@ -1864,10 +1900,17 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
     | `Id tok -> H2.name_of_id (ident env tok)
     (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   in
-  let _bangTODO = token env v2 (* "!" *) in
-  let _tokensTODO = map_token_tree env v3 in
-  let di = H2.dotted_ident_of_name name in
-  G.OtherExpr (G.OE_MacroInvocation, [ G.Di di ])
+  let bang = token env v2 (* "!" *) in
+  let name =
+    match name with
+    | G.Id ((s, i1), info) ->
+        G.Id ((s ^ "!", PI.combine_infos i1 [ bang ]), info)
+    | G.IdQualified (((s, i1), nameinfo), info) ->
+        G.IdQualified (((s ^ "!", PI.combine_infos i1 [ bang ]), nameinfo), info)
+  in
+  let l, xs, r = map_token_tree env v3 in
+  let anys = macro_items_to_anys xs in
+  G.Call (G.N name, (l, [ G.ArgOther (G.OA_ArgMacro, anys) ], r))
 
 and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm) : G.action =
   let _outer_attrs = List.map (map_outer_attribute_item env) v1 in
@@ -2805,36 +2848,6 @@ and map_where_predicate (env : env) ((v1, v2) : CST.where_predicate) :
   in
   let trait_bounds = map_trait_bounds env v2 in
   (where_predicate_type, trait_bounds)
-
-and convert_macro_item (item : rust_macro_item) : G.any list =
-  match item with
-  | Tk tok -> [ G.Tk tok ]
-  | MacTkTree (_, items, _) -> List.flatten (List.map convert_macro_item items)
-  | MacTks ((_, items, _), ident, tok) ->
-      let items = List.flatten (List.map convert_macro_item items) in
-      let ident = match ident with Some i -> [ G.I i ] | None -> [] in
-      items @ ident @ [ G.Tk tok ]
-
-and convert_macro_pattern (pattern : rust_macro_pattern) : G.any list =
-  match pattern with
-  | RustMacPatTree _patsTODO -> []
-  | RustMacPatRepetition ((_, pats, _), ident, tok) ->
-      let pats = List.flatten (List.map convert_macro_pattern pats) in
-      let ident = match ident with Some i -> [ G.I i ] | None -> [] in
-      pats @ ident @ [ G.Tk tok ]
-  | RustMacPatBinding (ident, tok) -> [ G.I ident; G.Tk tok ]
-  | RustMacPatToken tok -> [ G.Tk tok ]
-
-and convert_macro_rule (rule : rust_macro_rule) : G.any list =
-  let rules = List.flatten (List.map convert_macro_pattern rule.rules) in
-  let _, items, _ = rule.body in
-  let body = List.flatten (List.map convert_macro_item items) in
-  rules @ body
-
-and convert_macro_def (macro_def : rust_macro_definition) : G.macro_definition =
-  let _, rules, _ = macro_def in
-  let body = List.flatten (List.map convert_macro_rule rules) in
-  { G.macroparams = []; G.macrobody = body }
 
 and map_item_kind (env : env) _outer_attrs _visibility (x : CST.item_kind) :
     G.stmt list =

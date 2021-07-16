@@ -1143,6 +1143,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and v_any = function
     | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
+    | Anys v1 -> v_list v_any v1
     | Partial v1 -> v_partial ~recurse:true v1
     | TodoK v1 -> v_ident v1
     | Modn v1 ->
