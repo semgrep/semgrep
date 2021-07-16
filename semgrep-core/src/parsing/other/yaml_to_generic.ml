@@ -148,7 +148,7 @@ let make_scalar _anchor _tag pos value env : A.expr =
     let token = mk_tok pos value env in
     match value with
     | "__sgrep_ellipses__" -> A.Ellipsis (Parse_info.fake_info "...")
-    | "null" | "NULL" | "" | "Null" | "~" -> A.L (A.Null token)
+    | "null" | "NULL" | "Null" | "~" -> A.L (A.Null token)
     | "y" | "Y" | "yes" | "Yes" | "YES" | "true" | "True" | "TRUE" | "on" | "On"
     | "ON" ->
         A.L (A.Bool (true, token))
