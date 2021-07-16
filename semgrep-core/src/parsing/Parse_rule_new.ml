@@ -87,21 +87,19 @@ let parse_listi key f = function
   | G.Container (Array, (_, xs, _)) -> List.mapi f xs
   | _ -> error ("Expected a list for " ^ key)
 
-(* *dfasd;lfkjaslkfjads;lfjads;lkfjaskl;fjas;klfjsdalk;fjdasl;k* *)
-
-let parse_bool ctx = function
-  | J.String "true" -> true
-  | J.String "false" -> false
-  | J.Bool b -> b
+let parse_bool key = function
+  | G.L (String ("true", _)) -> true
+  | G.L (String ("false", _)) -> false
+  | G.L (Bool (b, _)) -> b
   | x ->
       pr2_gen x;
-      error (spf "parse_bool for %s" ctx)
+      error (spf "parse_bool for %s" key)
 
-let parse_int ctx = function
-  | J.String s -> (
-      try int_of_string s
-      with Failure _ -> error (spf "parse_int  for %s" ctx))
-  | J.Float f ->
+let parse_int key = function
+  | G.L (Int (Some i, _)) -> i
+  | G.L (String (s, _)) -> (
+      try int_of_string s with Failure _ -> error (spf "parse_int for %s" key))
+  | G.L (Float (Some f, _)) ->
       let i = int_of_float f in
       if float_of_int i = f then i
       else (
@@ -109,7 +107,7 @@ let parse_int ctx = function
         error "not an int")
   | x ->
       pr2_gen x;
-      error (spf "parse_int for %s" ctx)
+      error (spf "parse_int for %s" key)
 
 (*****************************************************************************)
 (* Sub parsers extra *)
