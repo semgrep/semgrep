@@ -647,7 +647,13 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
         mvar;
       false
   | Some mval -> (
+      (* We will create a temporary file with the content of the metavariable,
+       * then call evaluate_formula recursively. *)
       let mval_range = MV.range_of_mvalue mval in
+      let r' =
+        (* Fix the range to match the content of the temporary file. *)
+        { r with r = { start = 0; end_ = mval_range.end_ - mval_range.start } }
+      in
       match (opt_xlang, mval) with
       | None, __any_mval__ -> (
           (* We match wrt the same language as the rule.
@@ -663,25 +669,35 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                 env.rule_id mvar;
               false
           | Some mast ->
-              let lazy_ast_and_errors = lazy (mast, []) in
-              let lazy_content =
-                lazy (Range.content_at_range env.file mval_range)
-              in
-              nested_formula_has_matches env formula lazy_ast_and_errors
-                lazy_content
-                (Some { r with r = mval_range }))
+              let content = Range.content_at_range env.file mval_range in
+              Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
+                (fun file ->
+                  (* We don't want having to re-parse `content', but then we
+                   * need to fix the token locations in `mast`. *)
+                  let mast_start_loc =
+                    mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens |> fst
+                    |> PI.token_location_of_info
+                  in
+                  let fix_loc loc =
+                    {
+                      loc with
+                      PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
+                      line = loc.line - mast_start_loc.line + 1;
+                      column = loc.column - mast_start_loc.column;
+                      file;
+                    }
+                  in
+                  let fixing_visitor = Map_AST.mk_fix_token_locations fix_loc in
+                  let mast' = fixing_visitor.Map_AST.vprogram mast in
+                  let lazy_ast_and_errors = lazy (mast', []) in
+                  nested_formula_has_matches { env with file } formula
+                    lazy_ast_and_errors
+                    (lazy content)
+                    (Some r')))
       | Some xlang, MV.Text (content, _tok)
       | Some xlang, MV.E (G.L (G.String (content, _tok))) ->
-          (* We reinterpret the matched text as `xlang`. *)
-          let ext =
-            match xlang with
-            | R.LRegex | R.LGeneric -> "generic"
-            | R.L (lang, _) -> (
-                match Lang.ext_of_lang lang with
-                | x :: _ -> x
-                | [] -> assert false)
-          in
-          Common2.with_tmp_file ~str:content ~ext (fun file ->
+          (* We re-parse the matched text as `xlang`. *)
+          Common2.with_tmp_file ~str:content ~ext:"mvar-pattern" (fun file ->
               let lazy_ast_and_errors =
                 lazy
                   (match xlang with
@@ -701,14 +717,6 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                       (ast, errors)
                   | R.LRegex | R.LGeneric ->
                       failwith "requesting generic AST for LRegex|LGeneric")
-              in
-              let r' =
-                (* Fix the range wrt the temporary file that we now use for
-                 * evaluating the nested pattern formula. *)
-                {
-                  r with
-                  r = { start = 0; end_ = mval_range.end_ - mval_range.start };
-                }
               in
               nested_formula_has_matches { env with file; xlang } formula
                 lazy_ast_and_errors
@@ -732,7 +740,7 @@ and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
 
 (* less: use Set instead of list? *)
 and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
- fun env ctx_opt e ->
+ fun env opt_context e ->
   match e with
   | S.Leaf (R.P (xpat, inside)) ->
       let id = xpat.R.pid in
@@ -748,7 +756,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
       match_results
       |> List.map RM.match_result_to_range
       |> List.map (fun r -> { r with RM.kind })
-  | S.Or xs -> xs |> List.map (evaluate_formula env ctx_opt) |> List.flatten
+  | S.Or xs -> xs |> List.map (evaluate_formula env opt_context) |> List.flatten
   | S.And (selector_opt, xs) -> (
       let pos, neg, conds = split_and xs in
 
@@ -767,7 +775,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
        *)
 
       (* let's start with the positive ranges *)
-      let posrs = List.map (evaluate_formula env ctx_opt) pos in
+      let posrs = List.map (evaluate_formula env opt_context) pos in
       (* subtle: we need to process and intersect the pattern-inside after
        * (see tests/OTHER/rules/inside.yaml).
        * TODO: this is ugly; AND should be commutative, so we should just
@@ -786,7 +794,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
       let all_posr =
         match posrs @ posrs_inside with
         | [] -> (
-            match ctx_opt with
+            match opt_context with
             | None ->
                 [
                   S.match_selector ~err:"empty And; no positive terms in And"
@@ -813,7 +821,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
             |> List.fold_left
                  (fun acc x ->
                    RM.difference_ranges env.config acc
-                     (evaluate_formula env ctx_opt x))
+                     (evaluate_formula env opt_context x))
                  res
           in
           (* let's apply additional filters.

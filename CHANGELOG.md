@@ -12,6 +12,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   "is this variable passed to an HTML template, and is it rendered in that template?"
   with several Semgrep rules.
 
+### Fixed
+- metavariable-pattern: `pattern-not-regex` now works (#3503)
+
 ## [0.58.2](https://github.com/returntocorp/semgrep/releases/tag/v0.58.2) - 2021-07-15
 
 ### Fixed

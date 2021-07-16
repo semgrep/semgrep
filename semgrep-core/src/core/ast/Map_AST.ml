@@ -1099,3 +1099,21 @@ let (mk_visitor : visitor_in -> visitor_out) =
     }
   in
   all_functions
+
+(*****************************************************************************)
+(* Fix token locations *)
+(*****************************************************************************)
+
+let mk_fix_token_locations fix =
+  mk_visitor
+    {
+      default_visitor with
+      kstmt =
+        (fun (k, _) s ->
+          k
+            {
+              s with
+              s_range = Common.map_opt (fun (x, y) -> (fix x, fix y)) s.s_range;
+            });
+      kinfo = (fun (_, _) t -> Parse_info.fix_token_location fix t);
+    }
