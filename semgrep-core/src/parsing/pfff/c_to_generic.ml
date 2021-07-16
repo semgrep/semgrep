@@ -133,7 +133,7 @@ let rec type_ = function
       let v1 = name v1 in
       G.TyN (G.Id (v1, G.empty_id_info ()))
   | TMacroApply (v1, (lp, v2, rp)) ->
-      let v1 = H.name_of_ids [ v1 ] in
+      let v1 = H.name_of_id v1 in
       let v2 = type_ v2 in
       G.TyApply (G.TyN v1, (lp, [ G.TypeArg v2 ], rp))
 

@@ -43,8 +43,9 @@ let fake_id s = (s, G.fake s)
 
 let stmt_to_expr stmt = G.OtherExpr (G.OE_StmtExpr, [ G.S stmt ])
 
-(* TODO: delete once return proper AST_generic.name in a few functions *)
-let name_of_id id = (id, G.empty_name_info)
+let add_type_args_to_name (name : G.name) _typeargs : G.name =
+  (* TODO: if Id, then need transform in IdQualified *)
+  name
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -323,11 +324,14 @@ and map_simple_scoped_identifier (env : env)
   (path, ident)
 
 and map_simple_scoped_identifier_name (env : env)
-    ((v1, v2, v3) : CST.simple_scoped_identifier) : G.ident * G.name_info =
+    ((v1, v2, v3) : CST.simple_scoped_identifier) : G.name =
   let path = map_simple_path env v1 in
+  (* TODO: QTop *)
   let _colons = token env v2 (* "::" *) in
   let ident = ident env v3 (* identifier *) in
-  (ident, { G.name_qualifier = Some (G.QDots path); G.name_typeargs = None })
+  G.IdQualified
+    ( (ident, { G.name_qualifier = Some (G.QDots path); G.name_typeargs = None }),
+      G.empty_id_info () )
 
 let map_foreign_item_type (env : env) ((v1, v2, v3) : CST.foreign_item_type) :
     G.stmt =
@@ -527,24 +531,21 @@ let rec map_abstract_type_trait_name (env : env)
   | `Scoped_type_id x -> map_scoped_type_identifier env x
   | `Gene_type x ->
       let name = map_generic_type_name env x in
-      G.TyN (G.IdQualified (name, G.empty_id_info ()))
+      G.TyN name
   | `Func_type x -> map_function_type env x
 
-(* TODO: return AST_generic.name *)
-and map_struct_name (env : env) (x : CST.anon_choice_type_id_2c46bcf) :
-    G.ident * G.name_info =
+and map_struct_name (env : env) (x : CST.anon_choice_type_id_2c46bcf) : G.name =
   match x with
   | `Id tok ->
-      name_of_id (ident env tok)
+      H2.name_of_id (ident env tok)
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   | `Scoped_type_id x -> map_scoped_type_identifier_name env x
 
-(* TODO: return AST_generic.name *)
 and map_tuple_struct_name (env : env) (x : CST.anon_choice_type_id_f1f5a37) :
-    G.ident * G.name_info =
+    G.name =
   match x with
   | `Id tok ->
-      name_of_id (ident env tok)
+      H2.name_of_id (ident env tok)
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   | `Scoped_id x -> map_scoped_identifier_name env x
 
@@ -616,17 +617,13 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
       let ty = map_type_ env v4 in
       (ident, [ G.OtherTypeParam (G.OTP_Const, [ G.T ty ]) ])
 
-and dotted_ident_of_name_ (n : G.ident * G.name_info) : G.dotted_ident =
-  match n with (* TODO, look QDots too *)
-  | id, _ -> [ id ]
-
 and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0) :
     G.pattern =
   match x with
   | `Lit_pat x -> map_literal_pattern env x
   | `Choice_self x ->
       let name = map_path_name env x in
-      let dotted = dotted_ident_of_name_ name in
+      let dotted = H2.dotted_ident_of_name name in
       G.PatConstructor (dotted, [])
 
 and map_meta_argument (env : env) (x : CST.anon_choice_meta_item_fefa160) :
@@ -1152,6 +1149,7 @@ and map_expression (env : env) (x : CST.expression) =
   | `Self tok -> G.IdSpecial (G.Self, token env tok) (* "self" *)
   | `Scoped_id x -> map_scoped_identifier env x
   | `Gene_func (v1, v2, v3) -> (
+      (* TODO: QTop *)
       let _colons = token env v2 (* "::" *) in
       let typeargs = map_type_arguments env v3 in
       match v1 with
@@ -1309,18 +1307,18 @@ and map_expression (env : env) (x : CST.expression) =
       let _rparen = token env v3 (* ")" *) in
       expr
   | `Struct_exp (v1, v2) ->
-      let name : G.ident * G.name_info =
+      let name : G.name =
         match v1 with
         | `Id tok ->
             let ident = ident env tok in
             (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-            (ident, G.empty_name_info)
+            H2.name_of_id ident
         | `Scoped_type_id_in_exp_posi x ->
             map_scoped_type_identifier_in_expression_position env x
         | `Gene_type_with_turb x -> map_generic_type_with_turbofish env x
       in
       let fields = map_field_initializer_list env v2 in
-      G.Constructor (dotted_ident_of_name_ name, fields)
+      G.Constructor (H2.dotted_ident_of_name name, fields)
   | `Ellips tok -> G.Ellipsis (token env tok) (* "..." *)
   | `Deep_ellips (v1, v2, v3) ->
       let lellips = token env v1 (* "<..." *) in
@@ -1735,31 +1733,26 @@ and map_function_type (env : env) ((v1, v2, v3, v4) : CST.function_type) :
   G.TyFun (params, ret_type)
 
 (* TODO lifetimes, modifiers, traits *)
-and map_generic_type_name (env : env) ((v1, v2) : CST.generic_type) :
-    G.ident * G.name_info =
-  let ident, info = map_struct_name env v1 in
+and map_generic_type_name (env : env) ((v1, v2) : CST.generic_type) : G.name =
+  let name = map_struct_name env v1 in
   let typeargs = map_type_arguments env v2 in
-  ( ident,
-    { G.name_qualifier = info.name_qualifier; G.name_typeargs = Some typeargs }
-  )
+  add_type_args_to_name name typeargs
 
 and map_generic_type (env : env) ((v1, v2) : CST.generic_type) : G.type_ =
   let name = map_generic_type_name env (v1, v2) in
-  G.TyN (G.IdQualified (name, G.empty_id_info ()))
+  G.TyN name
 
 and map_generic_type_with_turbofish (env : env)
-    ((v1, v2, v3) : CST.generic_type_with_turbofish) : G.ident * G.name_info =
-  let ident, info = map_tuple_struct_name env v1 in
+    ((v1, v2, v3) : CST.generic_type_with_turbofish) : G.name =
+  let name = map_tuple_struct_name env v1 in
   let _colons = token env v2 (* "::" *) in
   let typeargs = map_type_arguments env v3 in
-  ( ident,
-    { G.name_qualifier = info.name_qualifier; G.name_typeargs = Some typeargs }
-  )
+  add_type_args_to_name name typeargs
 
 and map_generic_type_with_turbofish_type (env : env)
     ((v1, v2, v3) : CST.generic_type_with_turbofish) : G.type_ =
   let name = map_generic_type_with_turbofish env (v1, v2, v3) in
-  G.TyN (G.IdQualified (name, G.empty_id_info ()))
+  G.TyN name
 
 and map_if_expression (env : env) ((v1, v2, v3, v4) : CST.if_expression) :
     G.expr =
@@ -1868,12 +1861,12 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
   let name =
     match v1 with
     | `Simple_scoped_id x -> map_simple_scoped_identifier_name env x
-    | `Id tok -> name_of_id (ident env tok)
+    | `Id tok -> H2.name_of_id (ident env tok)
     (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   in
   let _bangTODO = token env v2 (* "!" *) in
   let _tokensTODO = map_token_tree env v3 in
-  let di = dotted_ident_of_name_ name in
+  let di = H2.dotted_ident_of_name name in
   G.OtherExpr (G.OE_MacroInvocation, [ G.Di di ])
 
 and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm) : G.action =
@@ -2156,31 +2149,31 @@ and map_path (env : env) (x : CST.path) : G.expr =
       G.N (G.Id (ident, G.empty_id_info ()))
   | `Scoped_id x -> map_scoped_identifier env x
 
-and map_path_name (env : env) (x : CST.path) : G.ident * G.name_info =
+and map_path_name (env : env) (x : CST.path) : G.name =
   match x with
   | `Self tok ->
       let self = ident env tok in
       (* "self" *)
-      (self, G.empty_name_info)
+      H2.name_of_id self
   | `Choice_u8 x ->
       let ident = map_primitive_type_ident env x in
-      (ident, G.empty_name_info)
+      H2.name_of_id ident
   | `Meta tok ->
       let metavar = ident env tok in
       (* pattern \$[a-zA-Z_]\w* *)
-      (metavar, G.empty_name_info)
+      H2.name_of_id metavar
   | `Super tok ->
       let super = ident env tok in
       (* "super" *)
-      (super, G.empty_name_info)
+      H2.name_of_id super
   | `Crate tok ->
       let crate = ident env tok in
       (* "crate" *)
-      (crate, G.empty_name_info)
+      H2.name_of_id crate
   | `Id tok ->
       let ident = ident env tok in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      (ident, G.empty_name_info)
+      H2.name_of_id ident
   | `Scoped_id x -> map_scoped_identifier_name env x
 
 and map_pattern (env : env) (x : CST.pattern) : G.pattern =
@@ -2195,7 +2188,7 @@ and map_pattern (env : env) (x : CST.pattern) : G.pattern =
       G.PatId (ident, G.empty_id_info ())
   | `Scoped_id x ->
       G.PatConstructor
-        (dotted_ident_of_name_ (map_scoped_identifier_name env x), [])
+        (H2.dotted_ident_of_name (map_scoped_identifier_name env x), [])
   | `Tuple_pat (v1, v2, v3, v4) ->
       let lparen = token env v1 (* "(" *) in
       let items =
@@ -2376,7 +2369,7 @@ and map_return_expression (env : env) (x : CST.return_expression) : G.expr =
   stmt_to_expr return_stmt
 
 and map_scoped_identifier_name (env : env)
-    ((v1, v2, v3) : CST.scoped_identifier) : G.ident * G.name_info =
+    ((v1, v2, v3) : CST.scoped_identifier) : G.name =
   let qualifier_expr, type_ =
     match v1 with
     | Some x -> (
@@ -2390,18 +2383,22 @@ and map_scoped_identifier_name (env : env)
             (None, Some ty))
     | None -> (None, None)
   in
+  (* TODO: QTop *)
   let colons = token env v2 (* "::" *) in
   let ident = ident env v3 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   let qualifier = Option.map (fun x -> G.QExpr (x, colons)) qualifier_expr in
   let typeargs = Option.map (fun x -> fb [ G.TypeArg x ]) type_ in
-  (ident, { G.name_qualifier = qualifier; G.name_typeargs = typeargs })
+  G.IdQualified
+    ( (ident, { G.name_qualifier = qualifier; G.name_typeargs = typeargs }),
+      G.empty_id_info () )
 
 and map_scoped_identifier (env : env) (v1 : CST.scoped_identifier) : G.expr =
-  G.N (G.IdQualified (map_scoped_identifier_name env v1, G.empty_id_info ()))
+  G.N (map_scoped_identifier_name env v1)
 
 and map_scoped_type_identifier_name (env : env)
-    ((v1, v2, v3) : CST.scoped_type_identifier) : G.ident * G.name_info =
+    ((v1, v2, v3) : CST.scoped_type_identifier) : G.name =
+  (* TODO: QTop *)
   let colons = token env v2 (* "::" *) in
   let qualifier, typeargs =
     match v1 with
@@ -2423,16 +2420,19 @@ and map_scoped_type_identifier_name (env : env)
   in
   let ident = ident env v3 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  (ident, { G.name_qualifier = qualifier; G.name_typeargs = typeargs })
+  G.IdQualified
+    ( (ident, { G.name_qualifier = qualifier; G.name_typeargs = typeargs }),
+      G.empty_id_info () )
 
 and map_scoped_type_identifier (env : env)
     ((v1, v2, v3) : CST.scoped_type_identifier) : G.type_ =
   let name = map_scoped_type_identifier_name env (v1, v2, v3) in
-  G.TyN (G.IdQualified (name, G.empty_id_info ()))
+  G.TyN name
 
 and map_scoped_type_identifier_in_expression_position (env : env)
-    ((v1, v2, v3) : CST.scoped_type_identifier_in_expression_position) :
-    G.ident * G.name_info =
+    ((v1, v2, v3) : CST.scoped_type_identifier_in_expression_position) : G.name
+    =
+  (* TODO: QTop *)
   let colons = token env v2 (* "::" *) in
   let qualifier, typeargs =
     match v1 with
@@ -2448,7 +2448,9 @@ and map_scoped_type_identifier_in_expression_position (env : env)
   in
   let ident = ident env v3 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-  (ident, { G.name_qualifier = qualifier; G.name_typeargs = typeargs })
+  G.IdQualified
+    ( (ident, { G.name_qualifier = qualifier; G.name_typeargs = typeargs }),
+      G.empty_id_info () )
 
 and map_statement (env : env) (x : CST.statement) : G.stmt list =
   match x with

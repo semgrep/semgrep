@@ -397,6 +397,7 @@ and expr =
   (* Or-type (could be used instead of Container, Cons, Nil, etc.).
    * (ab)used also for polymorphic variants where qualifier is QTop with
    * the '`' token.
+   * todo: should probably replace dotted_ident by name here.
    *)
   | Constructor of dotted_ident * expr list
   (* see also Call(IdSpecial (New,_), [ArgType _;...] for other values *)
@@ -1082,8 +1083,10 @@ and other_stmt_operator =
 (*s: type [[AST_generic.pattern]] *)
 and pattern =
   | PatLiteral of literal
-  (* Or-Type, used also to match OCaml exceptions *)
-  (* Used with Rust path expressions, with an empty pattern list *)
+  (* Or-Type, used also to match OCaml exceptions.
+   * Used with Rust path expressions, with an empty pattern list.
+   * todo: should probably replace dotted_ident by name here.
+   *)
   | PatConstructor of dotted_ident * pattern list
   (* And-Type*)
   | PatRecord of (dotted_ident * pattern) list bracket

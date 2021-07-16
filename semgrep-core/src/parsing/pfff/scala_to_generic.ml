@@ -34,10 +34,6 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 
-let name_of_id id = G.Id (id, G.empty_id_info ())
-
-let name_of_ids ids = H.name_of_ids ids
-
 let fake = G.fake
 
 let fb = G.fake_bracket
@@ -59,7 +55,7 @@ let v_option = Common.map_opt
 let cases_to_lambda lb (cases : G.action list) : G.function_definition =
   let id = ("!hidden_scala_param!", lb) in
   let param = G.ParamClassic (G.param_of_id id) in
-  let body = G.exprstmt (G.MatchPattern (G.N (name_of_id id), cases)) in
+  let body = G.exprstmt (G.MatchPattern (G.N (H.name_of_id id), cases)) in
   {
     fkind = (G.BlockCases, lb);
     frettype = None;
@@ -210,7 +206,7 @@ and v_encaps = function
       Left (G.String v1)
   | EncapsDollarIdent v1 ->
       let v1 = v_ident v1 in
-      let name = name_of_id v1 in
+      let name = H.name_of_id v1 in
       Right (G.N name)
   | EncapsExpr v1 ->
       (* always a Block *)
@@ -227,7 +223,7 @@ and v_type_ = function
       | Right e -> todo_type "TyLiteralExpr" [ G.E e ])
   | TyName v1 ->
       let xs = v_dotted_name_of_stable_id v1 in
-      let name = name_of_ids xs in
+      let name = H.name_of_ids xs in
       G.TyN name
   | TyProj (v1, v2, v3) ->
       let v1 = v_type_ v1 and _v2 = v_tok v2 and v3 = v_ident v3 in
@@ -360,11 +356,11 @@ and v_expr = function
   | Name v1 ->
       let sref, ids = v_path v1 in
       let start =
-        match sref with Left id -> G.N (name_of_id id) | Right e -> e
+        match sref with Left id -> G.N (H.name_of_id id) | Right e -> e
       in
       ids
       |> List.fold_left
-           (fun acc fld -> G.DotAccess (acc, fake ".", G.EN (name_of_id fld)))
+           (fun acc fld -> G.DotAccess (acc, fake ".", G.EN (H.name_of_id fld)))
            start
   | ExprUnderscore v1 ->
       let v1 = v_tok v1 in
@@ -377,20 +373,20 @@ and v_expr = function
       G.Cast (v3, v1)
   | DotAccess (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ident v3 in
-      let name = name_of_id v3 in
+      let name = H.name_of_id v3 in
       G.DotAccess (v1, v2, G.EN name)
   | Apply (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_list v_arguments v2 in
       v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs)) v1
   | Infix (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_ident v2 and v3 = v_expr v3 in
-      G.Call (G.N (name_of_id v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.N (H.name_of_id v2), fb [ G.Arg v1; G.Arg v3 ])
   | Prefix (v1, v2) ->
       let v1 = v_op v1 and v2 = v_expr v2 in
-      G.Call (G.N (name_of_id v1), fb [ G.Arg v2 ])
+      G.Call (G.N (H.name_of_id v1), fb [ G.Arg v2 ])
   | Postfix (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_ident v2 in
-      G.Call (G.N (name_of_id v2), fb [ G.Arg v1 ])
+      G.Call (G.N (H.name_of_id v2), fb [ G.Arg v1 ])
   | Assign (v1, v2, v3) ->
       let v1 = v_lhs v1 and v2 = v_tok v2 and v3 = v_expr v3 in
       G.Assign (v1, v2, v3)
@@ -708,7 +704,7 @@ and v_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let v1 = v_ident v_name in
   let v2 = v_list v_attribute v_attrs in
   let v3 = v_type_parameters v_tparams in
-  { name = G.EN (name_of_id v1); attrs = v2; tparams = v3 }
+  { name = G.EN (H.name_of_id v1); attrs = v2; tparams = v3 }
 
 and v_definition_kind = function
   | FuncDef v1 ->
