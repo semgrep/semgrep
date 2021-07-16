@@ -777,8 +777,8 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
    *
    * For now python wrapper passes down all files that should be scanned
    *)
-  let xlang = Xlang.xlang_of_string !lang in
-  let files = Xlang.xlang_files_of_dirs_or_files xlang files_or_dirs in
+  let xlang = R.xlang_of_string !lang in
+  let files = xlang_files_of_dirs_or_files xlang files_or_dirs in
   logger#info "processing %d files" (List.length files);
 
   let file_results =

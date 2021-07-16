@@ -64,6 +64,35 @@ let rec find_fields flds xs =
 let error s = raise (E.InvalidYamlException s)
 
 (*****************************************************************************)
+(* Dict helper methods *)
+(*****************************************************************************)
+
+let yaml_to_dict rule =
+  match rule with
+  | G.Container (Dict, (_, fields, _)) ->
+      let dict = Hashtbl.create 10 in
+      fields
+      |> List.iter (fun field ->
+             match field with
+             | G.Tuple (_, [ L (String (key, _)); value ], _) ->
+                 Hashtbl.add dict key value
+             | _ -> error "Not a valid key value pair");
+      dict
+  | _ -> error "each rule should be a dictionary of fields"
+
+(* Mutates the Hashtbl! *)
+let take dict f key =
+  match Hashtbl.find_opt dict key with
+  | Some value ->
+      let value = f key value in
+      Hashtbl.remove dict key;
+      value
+  | None -> error ("Missing required field " ^ key)
+
+(* Mutates the Hashtbl! *)
+let take_opt dict f key = Common.map_opt (f key) (Hashtbl.find_opt dict key)
+
+(*****************************************************************************)
 (* Sub parsers basic types *)
 (*****************************************************************************)
 
@@ -148,24 +177,14 @@ let parse_regexp env s =
   with Pcre.Error exn ->
     raise (E.InvalidRegexpException (env.id, pcre_error_to_string s exn))
 
-let parse_fix_regex env = function
-  | J.Object xs -> (
-      match find_fields [ "regex"; "replacement"; "count" ] xs with
-      | ( [
-            ("regex", Some (J.String regex));
-            ("replacement", Some (J.String replacement));
-            ("count", count_opt);
-          ],
-          [] ) ->
-          ( parse_regexp env regex,
-            Common.map_opt (parse_int "count") count_opt,
-            replacement )
-      | x ->
-          pr2_gen x;
-          error "parse_fix_regex")
-  | x ->
-      pr2_gen x;
-      error "parse_fix_regex"
+let parse_fix_regex env fields =
+  let fix_regex_dict = yaml_to_dict fields in
+  let regex, replacement, count_opt =
+    ( take fix_regex_dict parse_string "regex",
+      take fix_regex_dict parse_string "replacement",
+      take_opt fix_regex_dict parse_int "count" )
+  in
+  (parse_regexp env regex, count_opt, replacement)
 
 let parse_equivalences = function
   | J.Array xs ->
@@ -212,35 +231,6 @@ let parse_options json =
       (*raise (E.InvalidYamlException (spf "unknown option: %s" field_name))*)
       pr2 (spf "WARNING: unknown option: %s" field_name))
     (fun () -> Config_semgrep_j.t_of_string s)
-
-(*****************************************************************************)
-(* Dict helper methods *)
-(*****************************************************************************)
-
-let yaml_to_dict rule =
-  match rule with
-  | G.Container (Dict, (_, fields, _)) ->
-      let dict = Hashtbl.create 10 in
-      fields
-      |> List.iter (fun field ->
-             match field with
-             | G.Tuple (_, [ L (String (key, _)); value ], _) ->
-                 Hashtbl.add dict key value
-             | _ -> error "Not a valid key value pair");
-      dict
-  | _ -> error "each rule should be a dictionary of fields"
-
-(* Mutates the Hashtbl! *)
-let take dict f key =
-  match Hashtbl.find_opt dict key with
-  | Some value ->
-      let value = f key value in
-      Hashtbl.remove dict key;
-      value
-  | None -> error ("Missing required field " ^ key)
-
-(* Mutates the Hashtbl! *)
-let take_opt dict f key = Common.map_opt (f key) (Hashtbl.find_opt dict key)
 
 (*****************************************************************************)
 (* Sub parsers patterns and formulas *)
@@ -482,17 +472,14 @@ let parse_generic file formula_ast =
              take parse_string "severity",
              None,
              take_opt parse_string "fix",
-             None,
+             take_opt (fun _key x -> x) "fix-regex",
              None,
              None,
              None )
          in
          let languages = parse_languages ~id languages in
-         let formula =
-           parse_formula
-             { id; languages; path = [ string_of_int i; "rules" ] }
-             rule_dict
-         in
+         let env = { id; languages; path = [ string_of_int i; "rules" ] } in
+         let formula = parse_formula env rule_dict in
          let mode = R.Search formula in
          {
            R.id;
@@ -504,11 +491,7 @@ let parse_generic file formula_ast =
            (* optional fields *)
            metadata = metadata_opt;
            fix = fix_opt;
-           fix_regexp =
-             Common.map_opt
-               (parse_fix_regex
-                  { id; languages; path = [ string_of_int i; "rules" ] })
-               fix_regex_opt;
+           fix_regexp = Common.map_opt (parse_fix_regex env) fix_regex_opt;
            paths = Common.map_opt parse_paths paths_opt;
            equivalences = Common.map_opt parse_equivalences equivs_opt;
            options = Common.map_opt parse_options options_opt;
