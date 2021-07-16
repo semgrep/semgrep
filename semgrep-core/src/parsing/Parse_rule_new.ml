@@ -74,11 +74,13 @@ let generic_to_json key ast =
   in
   generic_to_json_help ast
 
+let opt_to_list = function None -> [] | Some xs -> xs
+
 (*****************************************************************************)
 (* Dict helper methods *)
 (*****************************************************************************)
 
-let yaml_to_dict key rule =
+let yaml_to_dict name rule =
   match rule with
   | G.Container (Dict, (_, fields, _)) ->
       let dict = Hashtbl.create 10 in
@@ -89,7 +91,7 @@ let yaml_to_dict key rule =
                  Hashtbl.add dict key value
              | _ -> error "Not a valid key value pair");
       dict
-  | _ -> error ("each " ^ key ^ " should be a dictionary of fields")
+  | _ -> error ("each " ^ name ^ " should be a dictionary of fields")
 
 (* Mutates the Hashtbl! *)
 let take dict f key =
@@ -215,7 +217,6 @@ let parse_paths key value =
     ( take_opt paths_dict parse_string_list "include",
       take_opt paths_dict parse_string_list "exclude" )
   in
-  let opt_to_list = function None -> [] | Some xs -> xs in
   { R.include_ = opt_to_list inc_opt; exclude = opt_to_list exc_opt }
 
 let parse_options key value =
@@ -428,6 +429,26 @@ let parse_languages ~id langs =
 (* Main entry point *)
 (*****************************************************************************)
 
+let parse_mode env mode_opt (rule_dict : (string, G.expr) Hashtbl.t) : R.mode =
+  match mode_opt with
+  | None | Some "search" ->
+      let formula = parse_formula env rule_dict in
+      R.Search formula
+  | Some "taint" ->
+      let parse_sub_patterns key patterns =
+        let parse_sub_pattern name pattern =
+          parse_formula env (yaml_to_dict name pattern)
+        in
+        parse_list key (parse_sub_pattern (key ^ "list item")) patterns
+      in
+      let sources, sanitizers_opt, sinks =
+        ( take rule_dict parse_sub_patterns "pattern-sources",
+          take_opt rule_dict parse_sub_patterns "pattern-sanitizers",
+          take rule_dict parse_sub_patterns "pattern-sinks" )
+      in
+      R.Taint { sources; sanitizers = opt_to_list sanitizers_opt; sinks }
+  | Some _ -> error "Unexpected value for mode, should be 'search' or 'taint'"
+
 let parse_generic file formula_ast =
   let rules_block =
     match formula_ast with
@@ -462,6 +483,7 @@ let parse_generic file formula_ast =
          let env = { id; languages; path = [ string_of_int i; "rules" ] } in
          let ( message,
                severity,
+               mode_opt,
                metadata_opt,
                fix_opt,
                fix_regex_opt,
@@ -470,6 +492,7 @@ let parse_generic file formula_ast =
                options_opt ) =
            ( take parse_string "message",
              take parse_string "severity",
+             take_opt parse_string "mode",
              take_opt generic_to_json "metadata",
              take_opt parse_string "fix",
              take_opt (parse_fix_regex env) "fix-regex",
@@ -477,8 +500,7 @@ let parse_generic file formula_ast =
              take_opt parse_equivalences "equivalences",
              take_opt parse_options "options" )
          in
-         let formula = parse_formula env rule_dict in
-         let mode = R.Search formula in
+         let mode = parse_mode env mode_opt rule_dict in
          {
            R.id;
            message;
