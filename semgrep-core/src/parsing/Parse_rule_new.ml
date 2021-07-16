@@ -53,6 +53,27 @@ type env = { id : string; languages : R.xlang; path : string list }
 
 let error s = raise (E.InvalidYamlException s)
 
+let generic_to_json key ast =
+  let rec generic_to_json_help = function
+    | G.L (Null _) -> J.Null
+    | G.L (Bool (b, _)) -> J.Bool b
+    | G.L (Float (Some f, _)) -> J.Float f
+    | G.L (Int (Some i, _)) -> J.Int i
+    | G.L (String (s, _)) -> J.String s
+    | G.Container (Array, (_, xs, _)) ->
+        J.Array (xs |> List.map generic_to_json_help)
+    | G.Container (Dict, (_, xs, _)) ->
+        J.Object
+          (xs
+          |> List.map (fun x ->
+                 match x with
+                 | G.Tuple (_, [ L (String (k, _)); v ], _) ->
+                     (k, generic_to_json_help v)
+                 | _ -> error ("Expected key value pair in " ^ key ^ " dict")))
+    | _ -> error "Unexpected generic representation of yaml"
+  in
+  generic_to_json_help ast
+
 (*****************************************************************************)
 (* Dict helper methods *)
 (*****************************************************************************)
@@ -167,7 +188,7 @@ let parse_regexp env s =
   with Pcre.Error exn ->
     raise (E.InvalidRegexpException (env.id, pcre_error_to_string s exn))
 
-let parse_fix_regex key env fields =
+let parse_fix_regex env key fields =
   let fix_regex_dict = yaml_to_dict key fields in
   let regex, replacement, count_opt =
     ( take fix_regex_dict parse_string "regex",
@@ -434,9 +455,12 @@ let parse_generic file formula_ast =
          let rule_dict = yaml_to_dict "rules" rule in
          let take f key = take rule_dict f key in
          let take_opt f key = take_opt rule_dict f key in
-         let ( id,
-               languages,
-               message,
+         let id, languages =
+           (take parse_string "id", take parse_string_list "languages")
+         in
+         let languages = parse_languages ~id languages in
+         let env = { id; languages; path = [ string_of_int i; "rules" ] } in
+         let ( message,
                severity,
                metadata_opt,
                fix_opt,
@@ -444,33 +468,28 @@ let parse_generic file formula_ast =
                paths_opt,
                equivs_opt,
                options_opt ) =
-           ( take parse_string "id",
-             take parse_string_list "languages",
-             take parse_string "message",
+           ( take parse_string "message",
              take parse_string "severity",
-             None,
+             take_opt generic_to_json "metadata",
              take_opt parse_string "fix",
-             take_opt (fun _key x -> x) "fix-regex",
+             take_opt (parse_fix_regex env) "fix-regex",
              take_opt parse_paths "paths",
              take_opt parse_equivalences "equivalences",
              take_opt parse_options "options" )
          in
-         let languages = parse_languages ~id languages in
-         let env = { id; languages; path = [ string_of_int i; "rules" ] } in
          let formula = parse_formula env rule_dict in
          let mode = R.Search formula in
          {
            R.id;
-           mode;
            message;
            languages;
            file;
            severity = H.parse_severity ~id severity;
+           mode;
            (* optional fields *)
            metadata = metadata_opt;
            fix = fix_opt;
-           fix_regexp =
-             Common.map_opt (parse_fix_regex "fix_regex" env) fix_regex_opt;
+           fix_regexp = fix_regex_opt;
            paths = paths_opt;
            equivalences = equivs_opt;
            options = options_opt;
