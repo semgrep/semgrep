@@ -36,18 +36,6 @@ jobs:
       - name: Check OCaml code
         run: sudo -u user opam exec -- pre-commit run --verbose --all lint-ocaml
 
-  semgrep-run-r2c-config:
-    name: semgrep with r2c registry
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Semgrep
-        id: semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          publishDeployment: "1"
-
   changelog-reminder:
     name: Changelog Reminder
     runs-on: ubuntu-latest
