@@ -16,6 +16,8 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+type ts_tok = Tree_sitter_run.Token.t
+
 type env = unit H.env
 
 let token = H.token
@@ -50,6 +52,60 @@ type tmp_stmt =
 (*****************************************************************************)
 
 let todo (_env : env) _ = failwith "not implemented"
+
+let unary_test_operator (env : env) (tok : ts_tok) : unary_test_operator wrap =
+  let s, tok = str env tok in
+  let op =
+    match s with
+    | "-t" -> FD_refers_to_terminal
+    | "-o" -> Is_shell_option_enabled
+    | "-v" -> Is_shell_variable_set
+    | "-R" -> Is_shell_variable_a_name_ref
+    | "-z" -> Is_empty_string
+    | "-n" -> Is_nonempty_string
+    | "-a" | "-e " -> File_exists
+    | "-b" -> Is_block_special_file
+    | "-c" -> Is_character_special_file
+    | "-d" -> Is_directory
+    | "-f" -> Is_regular_file
+    | "-g" -> Has_SGID_bit
+    | "-h" | "-L" -> Is_symlink
+    | "-k" -> Has_sticky_bit
+    | "-p" -> Is_named_pipe
+    | "-r" -> Is_readable
+    | "-s" -> Is_nonempty_file
+    | "-u" -> Has_SUID_bit
+    | "-w" -> Is_writable
+    | "-x" -> Is_executable
+    | "-G" -> Is_owned_by_effective_group_id
+    | "-N" -> Was_modified_since_last_read
+    | "-O" -> Is_owned_by_effective_user_id
+    | "-S" -> Is_socket
+    | other -> Other_unary_test_operator
+  in
+  (op, tok)
+
+let binary_operator (env : env) (tok : ts_tok) : binary_test_operator wrap =
+  let s, tok = str env tok in
+  let op =
+    match s with
+    | "-ef" -> Same_physical_file
+    | "-nt" -> File_newer_than
+    | "-ot" -> File_older_than
+    | "=" -> String_equal
+    | "==" -> String_pattern_matching
+    | "!=" -> String_not_equal
+    | "<" -> String_lesser_than
+    | ">" -> String_greater_than
+    | "-eq" -> Int_equal
+    | "-ne" -> Int_not_equal
+    | "-lt" -> Int_lesser_than
+    | "-le" -> Int_lesser_equal
+    | "-gt" -> Int_greater_than
+    | "-ge" -> Int_greater_equal
+    | other -> Other_binary_test_operator
+  in
+  (op, tok)
 
 let string_content (env : env) (tok : CST.string_content) : string wrap =
   str env tok
@@ -183,7 +239,8 @@ and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let close = token env v3 (* ")" *) in
   TODO (open_, close)
 
-and binary_expression (env : env) (x : CST.binary_expression) : expression =
+and binary_expression (env : env) (x : CST.binary_expression) : test_expression
+    =
   match x with
   | `Exp_choice_EQ_exp (v1, v2, v3) ->
       let left = expression env v1 in
@@ -435,26 +492,47 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
   in
   (open_, complex_expansion, close)
 
-(* These are expressions used in [[ ... ]], in C-style for loops, etc. *)
-and expression (env : env) (x : CST.expression) : expression =
+(* This covers
+   - sh test commands: [ ... ]
+   - bash test commands: [[ ... ]]
+   - arithmetic expressions: (( ... ))
+   But it doesn't fit arithmetic expressions, which are really a different
+   language.
+*)
+and expression (env : env) (x : CST.expression) : test_expression =
   match x with
-  | `Choice_conc x -> literal env x
-  | `Un_exp (v1, v2) ->
-      let _v1 =
-        match v1 with
-        | `BANG tok -> token env tok (* "!" *)
-        | `Test_op tok -> (* test_operator *) token env tok
-      in
-
-      let _v2 = expression env v2 in
-      Expression_TODO
+  | `Choice_conc x ->
+      let e = literal env x in
+      T_expr (expression_loc e, e)
+  | `Un_exp (v1, v2) -> (
+      let e = expression env v2 in
+      let e_loc = test_expression_loc e in
+      match v1 with
+      | `BANG tok ->
+          let bang = token env tok in
+          let loc = (bang, snd e_loc) in
+          T_not (loc, bang, e)
+      | `Test_op tok -> (
+          match e with
+          | T_expr (e_loc, e) ->
+              let ((_, op_tok) as op) = unary_operator env tok in
+              let loc = (op_tok, snd e_loc) in
+              T_unop (loc, op, e)
+          | _ ->
+              (* This doesn't make sense since unary operators like '-e'
+                 can only be applied to strings. *)
+              e))
   | `Tern_exp (v1, v2, v3, v4, v5) ->
-      let _v1 = expression env v1 in
+      (* This is a construct valid in arithmetic mode only. *)
+      let cond = expression env v1 in
       let _v2 = token env v2 (* "?" *) in
-      let _v3 = expression env v3 in
+      let branch1 = expression env v3 in
       let _v4 = token env v4 (* ":" *) in
-      let _v5 = expression env v5 in
-      Expression_TODO
+      let branch2 = expression env v5 in
+      let start, _ = test_expression_loc cond in
+      let _, end_ = test_expression_loc branch2 in
+      let loc = (start, end_) in
+      T_todo loc
   | `Bin_exp x -> binary_expression env x
   | `Post_exp (v1, v2) ->
       let _v1 = expression env v1 in
@@ -607,7 +685,7 @@ and blist_statement (env : env) (x : CST.statement) : blist =
   | Tmp_command (cmd_redir, control_op) -> (
       match control_op with
       | None -> Pipelines [ Command cmd_redir ]
-      | Some op -> Pipelines [ Control_operator (Command cmd_redir, op) ] )
+      | Some op -> Pipelines [ Control_operator (Command cmd_redir, op) ])
 
 (*
    Read a statement as a pipeline where a pipeline or a single command
@@ -620,7 +698,7 @@ and pipeline_statement (env : env) (x : CST.statement) : pipeline =
   | Tmp_command (cmd_redir, control_op) -> (
       match control_op with
       | None -> Command cmd_redir
-      | Some op -> Control_operator (Command cmd_redir, op) )
+      | Some op -> Control_operator (Command cmd_redir, op))
 
 (*
    Read a statement as single command where a single command is

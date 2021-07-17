@@ -38,6 +38,64 @@ type 'a bracket = tok * 'a * tok [@@deriving show]
 
 type todo = TODO of loc
 
+(* See list and descriptions at
+   https://www.gnu.org/software/bash/manual/html_node/Bash-Conditional-Expressions.html
+*)
+type unary_test_operator =
+  | FD_refers_to_terminal (* -t fd *)
+  | Is_shell_option_enabled (* -o optname *)
+  | Is_shell_variable_set (* -v varname *)
+  | Is_shell_variable_a_name_ref (* -R varname. See also: declare -n *)
+  | Is_empty_string (* -z *)
+  | Is_nonempty_string (* -n *)
+  (* Tests on files *)
+  | File_exists (* -a, -e *)
+  | Is_block_special_file (* -b *)
+  | Is_character_special_file (* -c *)
+  | Is_directory (* -d *)
+  | Is_regular_file (* -f *)
+  | Has_SGID_bit (* -g *)
+  | Is_symlink (* -h, -L *)
+  | Has_sticky_bit (* -k *)
+  | Is_named_pipe (* -p *)
+  | Is_readable (* -r *)
+  | Is_nonempty_file (* -s *)
+  | Has_SUID_bit (* -u *)
+  | Is_writable (* -w *)
+  | Is_executable (* -x *)
+  | Is_owned_by_effective_group_id (* -G *)
+  | Was_modified_since_last_read (* -N *)
+  | Is_owned_by_effective_user_id (* -O *)
+  | Is_socket (* -S *)
+  | Other_unary_test_operator
+
+(* See list and descriptions at
+   https://www.gnu.org/software/bash/manual/html_node/Bash-Conditional-Expressions.html
+*)
+type binary_test_operator =
+  | Same_physical_file (* -ef *)
+  | File_newer_than (* -nt; true if only first file exists *)
+  | File_older_than (* -ot; true if only first file exists *)
+  | String_equal (* = always, == outside of [[ ]] *)
+  | String_pattern_matching (* == within [[ ]] *)
+  | String_not_equal (* != *)
+  | String_lesser_than (* < within [[ ]] *)
+  | String_greater_than (* > within [[ ]] *)
+  (* Comparison of int literals with the 'test' command and of arithmetic
+     expressions within [[ ]].
+
+      test 9 -lt 10         --> true
+      test 8+1 -lt 10       --> syntax error: '8+1' is not an int literal
+      [[ 8+1 -lt 10 ]]      --> true
+  *)
+  | Int_equal
+  | Int_not_equal
+  | Int_lesser_than
+  | Int_lesser_equal
+  | Int_greater_than
+  | Int_greater_equal
+  | Other_binary_test_operator
+
 type pipeline_bar = Bar of tok | Bar_ampersand of tok
 
 type unary_control_operator =
@@ -152,8 +210,9 @@ and blist =
 and compound_command =
   | Subshell of loc * subshell
   | Command_group of loc * command_group
+  | Sh_test of loc * sh_test
+  | Bash_test of loc * bash_test
   | Arithmetic_expression of loc * arithmetic_expression
-  | Conditional_expression of loc * conditional_expression
   | For_loop of loc * for_loop
   | For_loop_c_style of loc * for_loop_c_style
   | Select of loc * select
@@ -178,9 +237,20 @@ and subshell = todo
 
 and command_group = todo
 
-and arithmetic_expression = todo
+(* [ ... ] *)
+and sh_test = test_expression bracket
 
-and conditional_expression = todo
+(* [[ ... ]] *)
+and bash_test = test_expression bracket
+
+(*
+   Arithmetic expressions are really a different language.
+   Eventually, we should parse them separately from test expressions
+   ([...] and [[...]]) and they should have their own AST.
+   See https://www.shell-tips.com/bash/math-arithmetic-calculation/
+   for a gentle tutorial.
+*)
+and arithmetic_expression = todo bracket
 
 and for_loop = todo
 
@@ -211,7 +281,7 @@ and expression =
   | Concatenation of loc * expression list
   | Semgrep_ellipsis of tok
   | Semgrep_metavariable of string wrap
-  | Equality_test of loc * eq_op * right_eq_operand
+  | Equality_test of loc * eq_op * right_eq_operand (* should it be here? *)
   | Expression_TODO of loc
 
 (* Fragment of a double-quoted string *)
@@ -236,6 +306,15 @@ and complex_expansion =
 and eq_op = EQTILDE of (* "=~" *) tok | EQEQ of (* "==" *) tok
 
 and right_eq_operand = Literal of loc * expression | Regexp of string wrap
+
+and test_expression =
+  | T_expr of loc * expression
+  | T_unop of loc * unary_test_operator wrap * expression
+  | T_binop of loc * expression * binary_test_operator wrap * expression
+  | T_not of loc * tok * test_expression
+  | T_and of loc * test_expression * tok * test_expression
+  | T_or of loc * test_expression * tok * test_expression
+  | T_todo of loc
 
 (* A program is a list of pipelines *)
 type program = blist
@@ -348,8 +427,9 @@ let blist_loc = function
 let compound_command_loc = function
   | Subshell (loc, _) -> loc
   | Command_group (loc, _) -> loc
+  | Sh_test (loc, _) -> loc
+  | Bash_test (loc, _) -> loc
   | Arithmetic_expression (loc, _) -> loc
-  | Conditional_expression (loc, _) -> loc
   | For_loop (loc, _) -> loc
   | For_loop_c_style (loc, _) -> loc
   | Select (loc, _) -> loc
@@ -364,9 +444,17 @@ let subshell_loc (x : subshell) = todo_loc x
 
 let command_group_loc (x : command_group) = todo_loc x
 
-let arithmetic_expression_loc (x : arithmetic_expression) = todo_loc x
+let sh_test_loc (x : sh_test) =
+  let open_, _, close = x in
+  (open_, close)
 
-let conditional_expression_loc (x : conditional_expression) = todo_loc x
+let bash_test_loc (x : bash_test) =
+  let open_, _, close = x in
+  (open_, close)
+
+let arithmetic_expression_loc (x : arithmetic_expression) =
+  let open_, _, close = x in
+  (open_, close)
 
 let for_loop_loc (x : for_loop) = todo_loc x
 
@@ -428,6 +516,16 @@ let eq_op_loc = function
 let right_eq_operand_loc = function
   | Literal (loc, _) -> loc
   | Regexp x -> wrap_loc x
+
+let test_expression_loc = function
+  | T_expr (loc, _)
+  | T_unop (loc, _, _)
+  | T_binop (loc, _, _, _)
+  | T_not (loc, _, _)
+  | T_and (loc, _, _, _)
+  | T_or (loc, _, _, _)
+  | T_todo loc ->
+      loc
 
 (*****************************************************************************)
 (* Helpers for users of the module *)
