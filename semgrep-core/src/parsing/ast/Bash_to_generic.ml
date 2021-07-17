@@ -159,11 +159,11 @@ let redirect_pipeline_stderr_to_stdout pip =
 
 let rec blist (l : blist) : stmt_or_expr list =
   match l with
-  | Seq (left, right) -> blist left @ blist right
-  | And (left, and_tok, right) -> [ transpile_and left and_tok right ]
-  | Or (left, or_tok, right) -> [ transpile_or left or_tok right ]
-  | Pipelines pl -> List.map (fun x -> pipeline x) pl
-  | Empty -> []
+  | Seq (loc, left, right) -> blist left @ blist right
+  | And (loc, left, and_tok, right) -> [ transpile_and left and_tok right ]
+  | Or (loc, left, or_tok, right) -> [ transpile_or left or_tok right ]
+  | Pipelines (loc, pl) -> List.map (fun x -> pipeline x) pl
+  | Empty loc -> []
 
 and pipeline (x : pipeline) : stmt_or_expr =
   match x with

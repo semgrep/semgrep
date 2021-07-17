@@ -341,6 +341,10 @@ let range a b =
   else if Parse_info.is_fake start_tok then (end_tok, end_tok)
   else (start_tok, end_tok)
 
+let extend_left new_start_tok (_, end_) : loc = (new_start_tok, end_)
+
+let extend_right (start, _) new_end_tok : loc = (start, new_end_tok)
+
 let fake_tok = Parse_info.fake_info "fake"
 
 let fake_loc = (fake_tok, fake_tok)
