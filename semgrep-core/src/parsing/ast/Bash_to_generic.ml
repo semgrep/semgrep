@@ -193,7 +193,7 @@ and pipeline (x : pipeline) : stmt_or_expr =
       | Background amp_tok ->
           let func = G.IdSpecial (G.Op G.Pipe, amp_tok) in
           let arg = pipeline pip |> as_expr in
-          Expr (G.Call (func, G.fake_bracket [ G.Arg arg ])) )
+          Expr (G.Call (func, G.fake_bracket [ G.Arg arg ])))
 
 and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
   (* TODO: don't ignore redirects *)
@@ -203,21 +203,6 @@ and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
 
 and command (cmd : command) : stmt_or_expr =
   match cmd with
-<<<<<<< HEAD
-  | Simple_command { assignments = _; arguments } -> (
-      match arguments with
-      | [] -> None
-      | arg0 :: args ->
-          let args = List.map (fun x -> G.Arg (expression x)) args in
-          let e = G.Call (expression arg0, G.fake_bracket args) in
-          Some (G.s (ExprStmt (e, G.fake ""))))
-  | Compound_command _ -> None
-  | Coprocess _ -> None
-  | Assignment _ -> None
-  | Declaration _ -> None
-  | Negated_command _ -> None
-  | Function_definition _ -> None
-=======
   | Simple_command { assignments = _; arguments } ->
       let args = List.map expression arguments in
       Expr (call C.cmd args)
@@ -227,7 +212,6 @@ and command (cmd : command) : stmt_or_expr =
   | Declaration _ -> Stmt todo_stmt
   | Negated_command _ -> Expr todo_expr
   | Function_definition _ -> Stmt todo_stmt
->>>>>>> 0199c628... New mapping from the bash AST to the generic AST (compiles, but
 
 and expression (e : expression) : G.expr =
   match e with
@@ -237,18 +221,7 @@ and expression (e : expression) : G.expr =
       match frag with
       | String_content x -> G.L (G.Atom (G.fake "", x))
       | Expansion ex -> expansion ex
-<<<<<<< HEAD
-      | Command_substitution (_open, _x, _close) -> todo)
-  | Raw_string _ -> todo
-  | Ansii_c_string _ -> todo
-  | Special_character _ -> todo
-  | String_expansion _ -> todo
-  | Concatenation _ -> todo
-  | Semgrep_ellipsis _ -> todo
-  | Semgrep_metavariable _ -> todo
-  | Expression_TODO -> todo
-=======
-      | Command_substitution (_open, _x, _close) -> todo_expr )
+      | Command_substitution (_open, _x, _close) -> todo_expr)
   | Raw_string _ -> todo_expr
   | Ansii_c_string _ -> todo_expr
   | Special_character _ -> todo_expr
@@ -257,7 +230,6 @@ and expression (e : expression) : G.expr =
   | Semgrep_ellipsis _ -> todo_expr
   | Semgrep_metavariable _ -> todo_expr
   | Expression_TODO -> todo_expr
->>>>>>> 0199c628... New mapping from the bash AST to the generic AST (compiles, but
 
 (*
    '$' followed by a variable to transform and expand into a list.
