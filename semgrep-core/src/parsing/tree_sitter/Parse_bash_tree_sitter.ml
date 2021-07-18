@@ -45,7 +45,7 @@ let map_last l f =
 type tmp_stmt =
   | Tmp_blist of blist
   | Tmp_pipeline of pipeline
-  | Tmp_command of (command_with_redirects * unary_control_operator option)
+  | Tmp_command of (command_with_redirects * unary_control_operator wrap option)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -121,12 +121,12 @@ let ansii_c_string (env : env) (tok : CST.ansii_c_string) : string wrap =
 let variable_name (env : env) (tok : CST.variable_name) : string wrap =
   str env tok
 
-let terminator (env : env) (x : CST.terminator) : unary_control_operator =
+let terminator (env : env) (x : CST.terminator) : unary_control_operator wrap =
   match x with
-  | `SEMI tok -> Foreground (token env tok (* ";" *))
-  | `SEMISEMI tok -> Foreground (token env tok (* ";;" *))
-  | `LF tok -> Foreground (token env tok (* "\n" *))
-  | `AMP tok -> Background (token env tok (* "&" *))
+  | `SEMI tok -> (Foreground, token env tok (* ";" *))
+  | `SEMISEMI tok -> (Foreground, token env tok (* ";;" *))
+  | `LF tok -> (Foreground, token env tok (* "\n" *))
+  | `AMP tok -> (Background, token env tok (* "&" *))
 
 let empty_value (_env : env) (_tok : CST.empty_value) : unit = ()
 
@@ -201,7 +201,8 @@ let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) =
     | `BANG tok -> Special_variable_name (str env tok (* "!" *))
     | `HASH tok -> Special_variable_name (str env tok (* "#" *))
   in
-  (dollar, variable_name)
+  let loc = (dollar, snd (variable_name_loc variable_name)) in
+  (loc, dollar, variable_name)
 
 let rec prim_exp_or_special_char (env : env)
     (x : CST.anon_choice_prim_exp_618725a) : expression =
@@ -237,7 +238,7 @@ and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let open_ = token env v1 (* "(" *) in
   let _v2 = List.map (literal env) v2 in
   let close = token env v3 (* ")" *) in
-  TODO (open_, close)
+  Expression_TODO (open_, close)
 
 and binary_expression (env : env) (x : CST.binary_expression) : test_expression
     =
@@ -371,11 +372,12 @@ and command_substitution (env : env) (x : CST.command_substitution) :
       (open_, list, close)
 
 and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) :
-    command_group =
+    blist bracket =
   let open_ = token env v1 (* "{" *) in
-  let blists = match v2 with Some x -> statements2 env x | None -> [] in
   let close = token env v3 (* "}" *) in
-  TODO (open_, close)
+  let loc = (open_, close) in
+  let blist = match v2 with Some x -> statements2 env x | None -> Empty loc in
+  (open_, blist, close)
 
 and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
     expression list =
@@ -398,23 +400,31 @@ and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
   in
   todo env (v1, v2, v3)
 
-and do_group (env : env) ((v1, v2, v3) : CST.do_group) =
-  let v1 = token env v1 (* "do" *) in
-  let v2 = match v2 with Some x -> statements2 env x | None -> todo env () in
-  let v3 = token env v3 (* "done" *) in
-  todo env (v1, v2, v3)
+and do_group (env : env) ((v1, v2, v3) : CST.do_group) : blist bracket =
+  let do_ = token env v1 (* "do" *) in
+  let done_ = token env v3 (* "done" *) in
+  let blist =
+    match v2 with Some x -> statements2 env x | None -> Empty (do_, done_)
+  in
+  (do_, blist, done_)
 
-and elif_clause (env : env) ((v1, v2, v3, v4) : CST.elif_clause) =
-  let v1 = token env v1 (* "elif" *) in
-  let v2 = terminated_statement env v2 in
-  let v3 = token env v3 (* "then" *) in
-  let v4 = match v4 with Some x -> statements2 env x | None -> todo env () in
-  todo env (v1, v2, v3, v4)
+and elif_clause (env : env) ((v1, v2, v3, v4) : CST.elif_clause) : elif =
+  let elif = token env v1 (* "elif" *) in
+  let cond = terminated_statement env v2 in
+  let then_ = token env v3 (* "then" *) in
+  let body =
+    match v4 with Some x -> statements2 env x | None -> Empty (then_, then_)
+  in
+  let loc = (elif, snd (blist_loc body)) in
+  (loc, elif, cond, then_, body)
 
-and else_clause (env : env) ((v1, v2) : CST.else_clause) =
-  let v1 = token env v1 (* "else" *) in
-  let v2 = match v2 with Some x -> statements2 env x | None -> todo env () in
-  todo env (v1, v2)
+and else_clause (env : env) ((v1, v2) : CST.else_clause) : else_ =
+  let else_ = token env v1 (* "else" *) in
+  let body =
+    match v2 with Some x -> statements2 env x | None -> Empty (else_, else_)
+  in
+  let loc = (else_, snd (blist_loc body)) in
+  (loc, else_, body)
 
 and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
     complex_expansion bracket =
@@ -649,12 +659,11 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
   | `Ansii_c_str tok ->
       Ansii_c_string (str env tok (* pattern "\\$'([^']|\\\\')*'" *))
   | `Expa x ->
-      let ((start, _, end_) as e) = expansion env x in
-      let loc = (start, end_) in
+      let e = expansion env x in
+      let loc = bracket_loc e in
       String_fragment (loc, Expansion (loc, Complex_expansion e))
   | `Simple_expa x ->
-      let dollar, varname = simple_expansion env x in
-      let loc = (dollar, snd (variable_name_loc varname)) in
+      let loc, dollar, varname = simple_expansion env x in
       String_fragment
         (loc, Expansion (loc, Simple_expansion (loc, dollar, varname)))
   | `Str_expa (v1, v2) ->
@@ -702,7 +711,7 @@ and blist_statement (env : env) (x : CST.statement) : blist =
       match control_op with
       | None -> Pipelines (loc, [ cmd ])
       | Some op ->
-          let _, end_ = unary_control_operator_loc op in
+          let _, end_ = wrap_loc op in
           let loc2 = (fst loc, end_) in
           Pipelines (loc2, [ Control_operator (loc2, cmd, op) ]))
 
@@ -720,16 +729,16 @@ and pipeline_statement (env : env) (x : CST.statement) : pipeline =
       match control_op with
       | None -> cmd
       | Some op ->
-          let _, end_ = unary_control_operator_loc op in
+          let _, end_ = wrap_loc op in
           let loc2 = (fst loc, end_) in
           Control_operator (loc, cmd, op))
 
 (*
-   Read a statement as single command where a single command is
+   Read a statement as a single command where a single command is
    expected.
 *)
 and command_statement (env : env) (x : CST.statement) :
-    command_with_redirects * unary_control_operator option =
+    command_with_redirects * unary_control_operator wrap option =
   match statement env x with
   | Tmp_blist _ -> assert false
   | Tmp_pipeline _ -> assert false
@@ -810,9 +819,8 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let command = Declaration (loc, TODO loc) in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Test_cmd x ->
-      let comp = test_command env x in
-      let loc = compound_command_loc comp in
-      let command = Compound_command (loc, comp) in
+      let command = test_command env x in
+      let loc = command_loc command in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Nega_cmd (v1, v2) ->
       let excl = token env v1 (* "!" *) in
@@ -822,108 +830,111 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
             let { loc; command; redirects } = command env x in
             (loc, command, redirects)
         | `Test_cmd x ->
-            let comp = test_command env x in
-            let loc = compound_command_loc comp in
-            (loc, Compound_command (loc, comp), [])
+            let command = test_command env x in
+            let loc = command_loc command in
+            (loc, command, [])
         | `Subs x ->
             let sub = subshell env x in
-            let loc = subshell_loc sub in
-            (loc, Compound_command (loc, Subshell (loc, sub)), [])
+            let loc = bracket_loc sub in
+            (loc, Subshell (loc, sub), [])
       in
       let loc = extend_left excl loc in
       let command = Negated_command (loc, excl, command) in
       Tmp_command ({ loc; command; redirects }, None)
-  | `For_stmt (v1, v2, _v3, v4, v5) ->
-      let _v1 = token env v1 (* "for" *) in
-      let _v2 = token env v2 (* pattern \w+ *) in
-      (*
-      let v3 =
+  | `For_stmt (v1, v2, v3, v4, v5) ->
+      let for_ = token env v1 (* "for" *) in
+      let _loop_var = token env v2 (* pattern \w+ *) in
+      let _loop_vals =
+        (* TODO *)
         match v3 with
         | Some (v1, v2) ->
-            let v1 = token env v1 (* "in" *) in
-            let v2 = List.map (literal env) v2 in
-            todo env (v1, v2)
+            let _in = token env v1 (* "in" *) in
+            let _values = List.map (literal env) v2 in
+            ()
+        | None ->
+            (* iterate over $1, $2, ..., $# *)
+            ()
+      in
+      let _semi = terminator env v4 in
+      let do_, body, done_ = do_group env v5 in
+      let loc = (for_, done_) in
+      let command = For_loop (loc, body) in
+      Tmp_command ({ loc; command; redirects = [] }, None)
+  | `C_style_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
+      let for_ = token env v1 (* "for" *) in
+      let header_open_ = token env v2 (* "((" *) in
+      let _x () =
+        match v3 with Some x -> expression env x | None -> todo env ()
+      in
+      let _x () = terminator env v4 in
+      let _x () =
+        match v5 with Some x -> expression env x | None -> todo env ()
+      in
+      let _x () = terminator env v6 in
+      let _x () =
+        match v7 with Some x -> expression env x | None -> todo env ()
+      in
+      let header_close = token env v8 (* "))" *) in
+      let _x () =
+        match v9 with
+        | Some tok -> token env tok (* ";" *)
         | None -> todo env ()
       in
-*)
-      let _v4 = terminator env v4 in
-      let _v5 = do_group env v5 in
-      let command = Compound_command (For_loop TODO) in
-      Tmp_command ({ command; redirects = [] }, None)
-  | `C_style_for_stmt _ ->
-      (* (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
-         let v1 = token env v1 (* "for" *) in
-         let v2 = token env v2 (* "((" *) in
-         let v3 =
-           match v3 with Some x -> expression env x | None -> todo env ()
-         in
-         let v4 = terminator env v4 in
-         let v5 =
-           match v5 with Some x -> expression env x | None -> todo env ()
-         in
-         let v6 = terminator env v6 in
-         let v7 =
-           match v7 with Some x -> expression env x | None -> todo env ()
-         in
-         let v8 = token env v8 (* "))" *) in
-         let v9 =
-           match v9 with
-           | Some tok -> token env tok (* ";" *)
-           | None -> todo env ()
-         in
-         let v10 =
-           match v10 with
-           | `Do_group x -> do_group env x
-           | `Comp_stmt x -> compound_statement env x
-         in
-      *)
-      let command = Compound_command (For_loop_c_style TODO) in
-      Tmp_command ({ command; redirects = [] }, None)
-  | `While_stmt (_v1, _v2, _v3) ->
-      (*
-      let v1 = token env v1 (* "while" *) in
-      let v2 = terminated_statement env v2 in
-      let v3 = do_group env v3 in
-*)
-      let command = Compound_command (While_loop TODO) in
-      Tmp_command ({ command; redirects = [] }, None)
-  | `If_stmt _ ->
-      (*(v1, v2, v3, v4, v5, v6, v7) ->
-        let v1 = token env v1 (* "if" *) in
-        let v2 = terminated_statement env v2 in
-        let v3 = token env v3 (* "then" *) in
-        let v4 =
-          match v4 with Some x -> statements2 env x | None -> todo env ()
-        in
-        let v5 = List.map (elif_clause env) v5 in
-        let v6 =
-          match v6 with Some x -> else_clause env x | None -> todo env ()
-        in
-        let v7 = token env v7 (* "fi" *) in
-      *)
-      let command = Compound_command (If TODO) in
-      Tmp_command ({ command; redirects = [] }, None)
-  | `Case_stmt _ ->
-      (* (v1, v2, v3, v4, v5, v6, v7) ->
-         let v1 = token env v1 (* "case" *) in
-         let v2 = literal env v2 in
-         let v3 =
-           match v3 with Some x -> terminator env x | None -> todo env ()
-         in
-         let v4 = token env v4 (* "in" *) in
-         let v5 = terminator env v5 in
-         let v6 =
-           match v6 with
-           | Some (v1, v2) ->
-               let v1 = List.map (case_item env) v1 in
-               let v2 = last_case_item env v2 in
-               todo env (v1, v2)
-           | None -> todo env ()
-         in
-         let v7 = token env v7 (* "esac" *) in
-      *)
-      let command = Compound_command (Case TODO) in
-      Tmp_command ({ command; redirects = [] }, None)
+      let body_open, body, body_close =
+        match v10 with
+        | `Do_group x -> do_group env x
+        | `Comp_stmt x -> compound_statement env x
+      in
+      let loc = (for_, body_close) in
+      let command = For_loop_c_style (loc, body) in
+      Tmp_command ({ loc; command; redirects = [] }, None)
+  | `While_stmt (v1, v2, v3) ->
+      let while_ = token env v1 (* "while" *) in
+      let _header () = terminated_statement env v2 in
+      let open_body, body, close_body = do_group env v3 in
+      let loc = (while_, close_body) in
+      let command = While_loop (loc, body) in
+      Tmp_command ({ loc; command; redirects = [] }, None)
+  | `If_stmt (v1, v2, v3, v4, v5, v6, v7) ->
+      let if_ = token env v1 (* "if" *) in
+      let cond = terminated_statement env v2 in
+      let then_ = token env v3 (* "then" *) in
+      let body =
+        match v4 with
+        | Some x -> statements2 env x
+        | None -> Empty (then_, then_)
+      in
+      let elif_branches = List.map (elif_clause env) v5 in
+      let else_branch =
+        match v6 with Some x -> Some (else_clause env x) | None -> None
+      in
+      let fi = token env v7 (* "fi" *) in
+      let loc = (if_, fi) in
+      let command =
+        If (loc, if_, cond, then_, body, elif_branches, else_branch, fi)
+      in
+      Tmp_command ({ loc; command; redirects = [] }, None)
+  | `Case_stmt (v1, v2, v3, v4, v5, v6, v7) ->
+      let case = token env v1 (* "case" *) in
+      let subject = literal env v2 in
+      let _term =
+        match v3 with Some x -> Some (terminator env x) | None -> None
+      in
+      let in_ = token env v4 (* "in" *) in
+      let _term = terminator env v5 in
+      let cases =
+        match v6 with
+        | Some (v1, v2) ->
+            (* TODO *)
+            let cases = List.map (case_item env) v1 in
+            let last_case = last_case_item env v2 in
+            []
+        | None -> []
+      in
+      let esac = token env v7 (* "esac" *) in
+      let loc = (case, esac) in
+      let command = Case (loc, TODO loc) in
+      Tmp_command ({ loc; command; redirects = [] }, None)
   | `Pipe (v1, v2, v3) ->
       (*
          Pipes are parsed with left associativity, so the statement on the
@@ -933,15 +944,20 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let left_pipeline = pipeline_statement env v1 in
       let bar =
         match v2 with
-        | `BAR tok -> Bar (token env tok (* "|" *))
-        | `BARAMP tok -> Bar_ampersand (token env tok (* "|&" *))
+        | `BAR tok -> (Bar, token env tok (* "|" *))
+        | `BARAMP tok -> (Bar_ampersand, token env tok (* "|&" *))
       in
       let extra_cmd, control_op = command_statement env v3 in
-      let pipeline = Pipeline (left_pipeline, bar, extra_cmd) in
+      let start, _ = pipeline_loc left_pipeline in
+      let _, end_ = extra_cmd.loc in
+      let loc = (start, end_) in
+      let pipeline = Pipeline (loc, left_pipeline, bar, extra_cmd) in
       let pipeline =
         match control_op with
         | None -> pipeline
-        | Some op -> Control_operator (pipeline, op)
+        | Some ((_, tok) as op) ->
+            let loc = extend_right loc tok in
+            Control_operator (loc, pipeline, op)
       in
       Tmp_pipeline pipeline
   | `List (v1, v2, v3) ->
@@ -955,25 +971,28 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let pipeline = pipeline_statement env v3 in
        *)
       let right = blist_statement env v3 in
+      let loc = range (blist_loc left) (blist_loc right) in
       let blist =
         match v2 with
-        | `AMPAMP tok -> And (left, token env tok, right)
-        | `BARBAR tok -> Or (left, token env tok, right)
+        | `AMPAMP tok -> And (loc, left, token env tok, right)
+        | `BARBAR tok -> Or (loc, left, token env tok, right)
       in
       Tmp_blist blist
   | `Subs x ->
-      let command = Compound_command (Subshell (subshell env x)) in
-      Tmp_command ({ command; redirects = [] }, None)
+      let sub = subshell env x in
+      let loc = bracket_loc sub in
+      let command = Subshell (loc, sub) in
+      Tmp_command ({ loc; command; redirects = [] }, None)
   | `Comp_stmt x ->
-      let command =
-        Compound_command (Command_group (compound_statement env x))
-      in
-      Tmp_command ({ command; redirects = [] }, None)
+      let res = compound_statement env x in
+      let loc = bracket_loc res in
+      let command = Command_group (loc, res) in
+      Tmp_command ({ loc; command; redirects = [] }, None)
   | `Func_defi (v1, v2) ->
-      let function_, name =
+      let start, function_, name =
         match v1 with
         | `Func_word_opt_LPAR_RPAR (v1, v2, v3) ->
-            let function_ = str env v1 (* "function" *) in
+            let function_ = token env v1 (* "function" *) in
             let name = str env v2 (* word *) in
             let _empty_parens =
               match v3 with
@@ -983,46 +1002,49 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
                   ()
               | None -> ()
             in
-            (Some function_, name)
+            (function_, Some function_, name)
         | `Word_LPAR_RPAR (v1, v2, v3) ->
             let name = str env v1 (* word *) in
             let _v2 = token env v2 (* "(" *) in
             let _v3 = token env v3 (* ")" *) in
-            (None, name)
+            (snd name, None, name)
       in
       let body =
-        Compound_command
-          (match v2 with
-          | `Comp_stmt x -> Command_group (compound_statement env x)
-          | `Subs x -> Subshell (subshell env x)
-          | `Test_cmd x -> Conditional_expression (test_command env x))
+        match v2 with
+        | `Comp_stmt x ->
+            let br = compound_statement env x in
+            Command_group (bracket_loc br, br)
+        | `Subs x ->
+            let br = subshell env x in
+            Subshell (bracket_loc br, br)
+        | `Test_cmd x -> test_command env x
       in
-      let command =
-        Function_definition
-          { func_function = function_; func_name = name; func_body = body }
-      in
-      Tmp_command ({ command; redirects = [] }, None)
+      let loc = extend_left start (command_loc body) in
+      let command = Function_definition (loc, { loc; function_; name; body }) in
+      Tmp_command ({ loc; command; redirects = [] }, None)
 
 and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
-  let list = List.map (stmt_with_opt_heredoc env) v1 |> concat_lists in
+  let blist = List.map (stmt_with_opt_heredoc env) v1 |> concat_blists in
   (* See stmt_with_opt_heredoc, which is almost identical except for
      the optional trailing newline. *)
-  let last_list = blist_statement env v2 in
+  let last_blist = blist_statement env v2 in
   let _last_heredoc =
+    (* TODO *)
     match v3 with
     | Some (v1, v2) ->
         let _v1 = token env v1 (* "\n" *) in
         let _v2 = heredoc_body env v2 in
-        TODO
-    | None -> TODO
+        ()
+    | None -> ()
   in
   let _trailing_newline =
     match v4 with Some x -> Some (terminator env x) | None -> None
   in
-  Seq (list, last_list)
+  let loc = range (blist_loc blist) (blist_loc last_blist) in
+  Seq (loc, blist, last_blist)
 
-and statements2 (env : env) (xs : CST.statements2) =
-  List.map (stmt_with_opt_heredoc env) xs
+and statements2 (env : env) (xs : CST.statements2) : blist =
+  List.map (stmt_with_opt_heredoc env) xs |> concat_blists
 
 and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
     string_fragment list bracket =
@@ -1042,9 +1064,13 @@ and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
                 [ String_content (str env v2) (* string_content *) ]
               in
               dollar @ content
-          | `Expa x -> [ Expansion (Complex_expansion (expansion env x)) ]
+          | `Expa x ->
+              let e = expansion env x in
+              let loc = bracket_loc e in
+              [ Expansion (loc, Complex_expansion e) ]
           | `Simple_expa x ->
-              [ Expansion (Simple_expansion (simple_expansion env x)) ]
+              let loc, dollar, e = simple_expansion env x in
+              [ Expansion (loc, Simple_expansion (loc, dollar, e)) ]
           | `Cmd_subs x -> [ Command_substitution (command_substitution env x) ]
         in
         let _concat = match v2 with Some _tok -> () | None -> () in
@@ -1060,32 +1086,28 @@ and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
   let close = token env v4 (* "\"" *) in
   (open_, fragments @ fragment, close)
 
-and subscript (env : env) ((v1, v2, v3, v4, v5, v6) : CST.subscript) =
-  let v1 = token env v1 (* variable_name *) in
-  let v2 = token env v2 (* "[" *) in
-  let v3 = literal env v3 in
-  let v4 =
-    match v4 with Some tok -> token env tok (* concat *) | None -> todo env ()
-  in
-  let v5 = token env v5 (* "]" *) in
-  let v6 =
-    match v6 with Some tok -> token env tok (* concat *) | None -> todo env ()
-  in
-  todo env (v1, v2, v3, v4, v5, v6)
+and subscript (env : env) ((v1, v2, v3, v4, v5, v6) : CST.subscript) :
+    string wrap * tok * expression * tok =
+  let var = str env v1 (* variable_name *) in
+  let open_ = token env v2 (* "[" *) in
+  let index = literal env v3 in
+  let _concat = match v4 with Some _tok -> () (* concat *) | None -> () in
+  let close = token env v5 (* "]" *) in
+  let _concat = match v6 with Some _tok -> () (* concat *) | None -> () in
+  (var, open_, index, close)
 
-and subshell (env : env) ((v1, v2, v3) : CST.subshell) : subshell =
+and subshell (env : env) ((v1, v2, v3) : CST.subshell) : blist bracket =
   let open_ = token env v1 (* "(" *) in
-  let _v2 = statements env v2 in
+  let blist = statements env v2 in
   let close = token env v3 (* ")" *) in
-  let loc = (open_, close) in
-  TODO loc
+  (open_, blist, close)
 
 and terminated_statement (env : env) ((v1, v2) : CST.terminated_statement) =
   let v1 = statement env v1 in
   let v2 = terminator env v2 in
   todo env (v1, v2)
 
-and test_command (env : env) (v1 : CST.test_command) : compound_command =
+and test_command (env : env) (v1 : CST.test_command) : command =
   match v1 with
   | `LBRACK_exp_RBRACK (v1, v2, v3) ->
       let open_ = token env v1 (* "[" *) in
@@ -1104,29 +1126,37 @@ and test_command (env : env) (v1 : CST.test_command) : compound_command =
       let e = expression env v2 in
       let close = token env v3 (* "))" *) in
       let loc = (open_, close) in
-      Arithmetic_expression (loc, (open_, e, close))
+      Arithmetic_expression (loc, (open_, TODO loc, close))
 
 and variable_assignment (env : env) ((v1, v2, v3) : CST.variable_assignment) :
-    todo =
-  let _v1 =
+    assignment =
+  let lhs =
     match v1 with
-    | `Var_name tok -> token env tok (* variable_name *)
-    | `Subs x -> subscript env x
+    | `Var_name tok -> str env tok (* variable_name *)
+    | `Subs x ->
+        (* TODO: assignment to array cell *)
+        let var, _open, _index, _close = subscript env x in
+        var
   in
-  let _v2 =
+  let assign_op =
     match v2 with
-    | `EQ tok -> token env tok (* "=" *)
-    | `PLUSEQ tok -> (* "+=" *) token env tok
+    | `EQ tok -> (Set, token env tok (* "=" *))
+    | `PLUSEQ tok -> (Add, token env tok (* "+=" *))
   in
-  (*
-  let _v3 =
+  let rhs =
     match v3 with
     | `Choice_conc x -> literal env x
-    | `Array x -> array_ env x
-    | `Empty_value tok -> (* empty_value *) token env tok
+    | `Array x ->
+        let array_literal = array_ env x in
+        let loc = expression_loc array_literal in
+        Expression_TODO loc
+    | `Empty_value tok ->
+        let empty = token env tok in
+        let loc = (empty, empty) in
+        Empty_expression loc
   in
-*)
-  TODO
+  let loc = (snd lhs, snd (expression_loc rhs)) in
+  { loc; lhs; assign_op; rhs }
 
 (*****************************************************************************)
 (* Entry point *)

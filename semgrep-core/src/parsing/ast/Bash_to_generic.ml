@@ -167,7 +167,7 @@ let rec blist (l : blist) : stmt_or_expr list =
 
 and pipeline (x : pipeline) : stmt_or_expr =
   match x with
-  | Command cmd_redir -> command_with_redirects cmd_redir
+  | Command (loc, cmd_redir) -> command_with_redirects cmd_redir
   | Pipeline (pip, pipe_op, cmd_redir) ->
       let pip, bar_tok =
         match pipe_op with

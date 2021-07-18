@@ -38,6 +38,19 @@ type 'a bracket = tok * 'a * tok [@@deriving show]
 
 type todo = TODO of loc
 
+(*
+  The effect of '+=' depends on the type of variable:
+  - usual string variables: append to the previous value
+  - integer variables (created with 'declare -i'): add to the previous value
+  - array variables: append to the previous array
+*)
+type assignment_operator =
+  | Set
+  (* = *)
+  | Add
+
+(* += *)
+
 (* See list and descriptions at
    https://www.gnu.org/software/bash/manual/html_node/Bash-Conditional-Expressions.html
 *)
@@ -96,11 +109,13 @@ type binary_test_operator =
   | Int_greater_equal
   | Other_binary_test_operator
 
-type pipeline_bar = Bar of tok | Bar_ampersand of tok
+type pipeline_bar = Bar | Bar_ampersand
 
 type unary_control_operator =
-  | Foreground of (* ';' or '\n' or ';;' *) tok
-  | Background of (* & *) tok
+  | Foreground (* ';' or '\n' or ';;' *)
+  | Background
+
+(* & *)
 
 type redirect = todo
 
@@ -129,7 +144,28 @@ type command_with_redirects = {
 *)
 and command =
   | Simple_command of loc * simple_command
-  | Compound_command of loc * compound_command
+  (* What the manual refers to as "compound commands" *)
+  | Subshell of loc * blist bracket
+  | Command_group of loc * blist bracket
+  | Sh_test of loc * sh_test
+  | Bash_test of loc * bash_test
+  | Arithmetic_expression of loc * arithmetic_expression
+  | For_loop of loc * for_loop
+  | For_loop_c_style of loc * for_loop_c_style
+  | Select of loc * select
+  | Case of loc * case
+  | If of
+      loc
+      * (* if *) tok
+      * blist
+      * (* then *) tok
+      * blist
+      * elif list
+      * else_ option
+      * (* fi *) tok
+  | While_loop of loc * while_
+  | Until_loop of loc * until_
+  (* Other commands *)
   | Coprocess of loc * string option * (* simple or compound *) command
   | Assignment of loc * assignment
   | Declaration of loc * declaration
@@ -182,8 +218,8 @@ and simple_command = {
 *)
 and pipeline =
   | Command of loc * command_with_redirects
-  | Pipeline of loc * pipeline * pipeline_bar * command_with_redirects
-  | Control_operator of loc * pipeline * unary_control_operator
+  | Pipeline of loc * pipeline * pipeline_bar wrap * command_with_redirects
+  | Control_operator of loc * pipeline * unary_control_operator wrap
 
 (*
    Sample bash list (blist)
@@ -205,37 +241,16 @@ and blist =
   | Empty of loc
 
 (*
-   All the commands that are called "compound commands" in the man page.
-*)
-and compound_command =
-  | Subshell of loc * subshell
-  | Command_group of loc * command_group
-  | Sh_test of loc * sh_test
-  | Bash_test of loc * bash_test
-  | Arithmetic_expression of loc * arithmetic_expression
-  | For_loop of loc * for_loop
-  | For_loop_c_style of loc * for_loop_c_style
-  | Select of loc * select
-  | Case of loc * case
-  | If of loc * if_
-  | While_loop of loc * while_
-  | Until_loop of loc * until_
-
-(*
    Bash syntax allows the body of a function definition only to a
    compound command but it doesn't matter in the AST that we also
    allow simple commands.
 *)
 and function_definition = {
   loc : loc;
-  function_ : string wrap option;
-  func_name : string wrap;
-  func_body : command;
+  function_ : tok option;
+  name : string wrap;
+  body : command;
 }
-
-and subshell = todo
-
-and command_group = todo
 
 (* [ ... ] *)
 and sh_test = test_expression bracket
@@ -252,21 +267,36 @@ and bash_test = test_expression bracket
 *)
 and arithmetic_expression = todo bracket
 
-and for_loop = todo
+(* TODO: represent the loop header: for ... in ...; *)
+and for_loop = blist
 
-and for_loop_c_style = todo
+(* TODO: represent the loop header: for (( ... )); *)
+and for_loop_c_style = blist
 
 and select = todo
 
 and case = todo
 
-and if_ = todo
+and elif = loc * (* elif *) tok * blist * (* then *) tok * blist
 
-and while_ = todo
+and else_ = loc * (* else *) tok * blist
 
-and until_ = todo
+(* TODO: represent the loop header *)
+and while_ = blist
 
-and assignment = todo
+(* TODO: represent the loop header *)
+and until_ = blist
+
+(* TODO: add support for assigning to an array cell
+   TODO: add support for assigning an array literal *)
+and assignment = {
+  loc : loc;
+  lhs : string wrap;
+  assign_op : assignment_operator wrap;
+  rhs : expression;
+}
+
+and assign_rhs = expression
 
 and declaration = todo
 
@@ -282,6 +312,7 @@ and expression =
   | Semgrep_ellipsis of tok
   | Semgrep_metavariable of string wrap
   | Equality_test of loc * eq_op * right_eq_operand (* should it be here? *)
+  | Empty_expression of loc
   | Expression_TODO of loc
 
 (* Fragment of a double-quoted string *)
@@ -393,21 +424,24 @@ let bracket_loc (start_tok, _, end_tok) : loc = (start_tok, end_tok)
 
 let todo_loc (TODO loc) = loc
 
-let pipeline_bar_loc = function
-  | Bar tok -> (tok, tok)
-  | Bar_ampersand tok -> (tok, tok)
-
-let unary_control_operator_loc = function
-  | Foreground tok -> (tok, tok)
-  | Background tok -> (tok, tok)
-
 let redirect_loc x = todo_loc x
 
 let command_with_redirects_loc x = x.loc
 
 let command_loc = function
   | Simple_command (loc, _) -> loc
-  | Compound_command (loc, _) -> loc
+  | Subshell (loc, _) -> loc
+  | Command_group (loc, _) -> loc
+  | Sh_test (loc, _) -> loc
+  | Bash_test (loc, _) -> loc
+  | Arithmetic_expression (loc, _) -> loc
+  | For_loop (loc, _) -> loc
+  | For_loop_c_style (loc, _) -> loc
+  | Select (loc, _) -> loc
+  | Case (loc, _) -> loc
+  | If (loc, _, _, _, _, _, _, _) -> loc
+  | While_loop (loc, _) -> loc
+  | Until_loop (loc, _) -> loc
   | Coprocess (loc, _, _) -> loc
   | Assignment (loc, _) -> loc
   | Declaration (loc, _) -> loc
@@ -428,25 +462,7 @@ let blist_loc = function
   | Pipelines (loc, _) -> loc
   | Empty loc -> loc
 
-let compound_command_loc = function
-  | Subshell (loc, _) -> loc
-  | Command_group (loc, _) -> loc
-  | Sh_test (loc, _) -> loc
-  | Bash_test (loc, _) -> loc
-  | Arithmetic_expression (loc, _) -> loc
-  | For_loop (loc, _) -> loc
-  | For_loop_c_style (loc, _) -> loc
-  | Select (loc, _) -> loc
-  | Case (loc, _) -> loc
-  | If (loc, _) -> loc
-  | While_loop (loc, _) -> loc
-  | Until_loop (loc, _) -> loc
-
 let function_definition_loc (x : function_definition) = x.loc
-
-let subshell_loc (x : subshell) = todo_loc x
-
-let command_group_loc (x : command_group) = todo_loc x
 
 let sh_test_loc (x : sh_test) =
   let open_, _, close = x in
@@ -460,21 +476,19 @@ let arithmetic_expression_loc (x : arithmetic_expression) =
   let open_, _, close = x in
   (open_, close)
 
-let for_loop_loc (x : for_loop) = todo_loc x
-
-let for_loop_c_style_loc (x : for_loop_c_style) = todo_loc x
-
 let select_loc (x : select) = todo_loc x
 
 let case_loc (x : case) = todo_loc x
 
-let if_loc (x : if_) = todo_loc x
+let elif_loc (x : elif) =
+  let loc, _elif, _cond, _then, _body = x in
+  loc
 
-let while_loc (x : while_) = todo_loc x
+let else_loc (x : else_) =
+  let loc, _else, _body = x in
+  loc
 
-let until_loc (x : until_) = todo_loc x
-
-let assignment_loc (x : assignment) = todo_loc x
+let assignment_loc (x : assignment) = x.loc
 
 let assignment_list_loc (x : assignment list) = list_loc assignment_loc x
 
@@ -492,7 +506,10 @@ let expression_loc = function
   | Semgrep_ellipsis tok -> (tok, tok)
   | Semgrep_metavariable x -> wrap_loc x
   | Equality_test (loc, _, _) -> loc
+  | Empty_expression loc -> loc
   | Expression_TODO loc -> loc
+
+let assign_rhs_loc (x : assign_rhs) = expression_loc x
 
 let string_fragment_loc = function
   | String_content x -> wrap_loc x
