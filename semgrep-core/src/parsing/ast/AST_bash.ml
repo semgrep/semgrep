@@ -44,12 +44,7 @@ type todo = TODO of loc
   - integer variables (created with 'declare -i'): add to the previous value
   - array variables: append to the previous array
 *)
-type assignment_operator =
-  | Set
-  (* = *)
-  | Add
-
-(* += *)
+type assignment_operator = (* = *) Set | (* += *) Add
 
 (* See list and descriptions at
    https://www.gnu.org/software/bash/manual/html_node/Bash-Conditional-Expressions.html
@@ -143,7 +138,7 @@ type command_with_redirects = {
    anything below that.
 *)
 and command =
-  | Simple_command of loc * simple_command
+  | Simple_command of simple_command
   (* What the manual refers to as "compound commands" *)
   | Subshell of loc * blist bracket
   | Command_group of loc * blist bracket
@@ -429,7 +424,7 @@ let redirect_loc x = todo_loc x
 let command_with_redirects_loc x = x.loc
 
 let command_loc = function
-  | Simple_command (loc, _) -> loc
+  | Simple_command x -> x.loc
   | Subshell (loc, _) -> loc
   | Command_group (loc, _) -> loc
   | Sh_test (loc, _) -> loc

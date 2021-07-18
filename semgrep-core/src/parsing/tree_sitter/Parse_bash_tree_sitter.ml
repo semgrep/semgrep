@@ -336,7 +336,7 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
     let loc2 = list_loc expression_loc arguments in
     union_loc loc1 loc2
   in
-  let command = Simple_command (loc, { loc; assignments; arguments }) in
+  let command = Simple_command { loc; assignments; arguments } in
   { loc; command; redirects }
 
 and command_name (env : env) (x : CST.command_name) : expression =

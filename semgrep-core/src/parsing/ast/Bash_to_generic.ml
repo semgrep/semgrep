@@ -71,6 +71,9 @@
    the context.
 *)
 
+(* Disable warnings against unused variables *)
+[@@@warning "-26-27-32"]
+
 open! Common
 open AST_bash
 module G = AST_generic
@@ -159,20 +162,20 @@ let redirect_pipeline_stderr_to_stdout pip =
 
 let rec blist (l : blist) : stmt_or_expr list =
   match l with
-  | Seq (loc, left, right) -> blist left @ blist right
-  | And (loc, left, and_tok, right) -> [ transpile_and left and_tok right ]
-  | Or (loc, left, or_tok, right) -> [ transpile_or left or_tok right ]
-  | Pipelines (loc, pl) -> List.map (fun x -> pipeline x) pl
-  | Empty loc -> []
+  | Seq (_loc, left, right) -> blist left @ blist right
+  | And (_loc, left, and_tok, right) -> [ transpile_and left and_tok right ]
+  | Or (_loc, left, or_tok, right) -> [ transpile_or left or_tok right ]
+  | Pipelines (_loc, pl) -> List.map (fun x -> pipeline x) pl
+  | Empty _loc -> []
 
 and pipeline (x : pipeline) : stmt_or_expr =
   match x with
   | Command (loc, cmd_redir) -> command_with_redirects cmd_redir
-  | Pipeline (pip, pipe_op, cmd_redir) ->
+  | Pipeline (loc, pip, pipe_op, cmd_redir) ->
       let pip, bar_tok =
         match pipe_op with
-        | Bar tok -> (pip, tok)
-        | Bar_ampersand tok ->
+        | Bar, tok -> (pip, tok)
+        | Bar_ampersand, tok ->
             (* Transpile:
 
                  a |& b
@@ -187,23 +190,23 @@ and pipeline (x : pipeline) : stmt_or_expr =
       let left = pipeline pip |> as_expr in
       let right = command_with_redirects cmd_redir |> as_expr in
       Expr (G.Call (func, G.fake_bracket [ G.Arg left; G.Arg right ]))
-  | Control_operator (pip, control_op) -> (
+  | Control_operator (loc, pip, control_op) -> (
       match control_op with
-      | Foreground _tok -> pipeline pip
-      | Background amp_tok ->
+      | Foreground, tok -> pipeline pip
+      | Background, amp_tok ->
           let func = G.IdSpecial (G.Op G.Pipe, amp_tok) in
           let arg = pipeline pip |> as_expr in
           Expr (G.Call (func, G.fake_bracket [ G.Arg arg ])))
 
 and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
   (* TODO: don't ignore redirects *)
-  let { command = cmd; redirects } = x in
+  let { loc; command = cmd; redirects } = x in
   ignore redirects;
   command cmd
 
 and command (cmd : command) : stmt_or_expr =
   match cmd with
-  | Simple_command { assignments = _; arguments } ->
+  | Simple_command { loc = _; assignments = _; arguments } ->
       let args = List.map expression arguments in
       Expr (call C.cmd args)
   | Compound_command _ -> Expr todo_expr
