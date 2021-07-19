@@ -28,8 +28,9 @@ module SJ = Spacegrep.Semgrep_j
  * Right now there is:
  *  - good support for: Python, Java, Go, Ruby,
  *    Javascript (and JSX), Typescript (and TSX), JSON
- *  - partial support for: PHP, C, OCaml, Lua, C#, YAML
- *  - almost support for: Rust, R, Kotlin.
+ *  - partial support for: C, C#, PHP, OCaml, Scala, Rust, Lua,
+ *    YAML, HTML, Vue
+ *  - almost support for: R, Kotlin, Bash, Docker
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
