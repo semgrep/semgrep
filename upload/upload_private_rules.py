@@ -28,7 +28,7 @@ def is_valid(rule: Dict[str, Any]) -> bool:
     - only have one rule definition
     - passes schema validation
     """
-    if len(rule["rules"]) != 1:
+    if len(rule.get("rules", [])) != 1:
         print("Rule contains more than one rule")
         return False
 
