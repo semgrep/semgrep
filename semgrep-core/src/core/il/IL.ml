@@ -23,7 +23,7 @@ module G = AST_generic
 (* Intermediate Language (IL) for static analysis.
  *
  * Just like for the CST -> AST, the goal of an AST -> IL transformation
- * is to simplify things even more for program analysis purpose.
+ * is to simplify things even more for program analysis purposes.
  *
  * Here are the simplifications done compared to the generic AST:
  *  - intermediate 'instr' type (instr for instruction), for expressions with
@@ -31,17 +31,17 @@ module G = AST_generic
  *    moving Assign/Seq/Call/Conditional out of 'expr' and
  *    moving Assert out of 'stmt'
  *  - new expression type 'exp' for side-effect free expressions
- *  - intermediate 'lvalue' type; expressions are splitted in
+ *  - intermediate 'lvalue' type; expressions are split into
  *    lvalue vs regular expressions, moved Dot/Index out of expr
  *
  *  - Assign/Calls are now instructions, not expressions, and no more Seq
  *  - no AssignOp, or Decr/Incr, just Assign
  *  - Lambdas are now instructions (not nested again)
  *
- *  - no For/Foreach/DoWhile/While, converted all in Loop,
- *  - no Foreach, converted in a Loop and 2 new special
- *  - TODO no Switch, converted in Ifs
- *  - TODO no Continue/Break, converted in goto
+ *  - no For/Foreach/DoWhile/While, converted all to Loop,
+ *  - no Foreach, converted to a Loop and 2 new special
+ *  - TODO no Switch, converted to Ifs
+ *  - TODO no Continue/Break, converted to goto
  *  - less use of expr option (in Return/Assert/...), use Unit in those cases
  *
  *  - no Sgrep constructs
@@ -241,7 +241,7 @@ type argument = exp [@@deriving show]
 
 (*s: type [[IL.instr]] *)
 (* Easier type to compute lvalue/rvalue set of a too general 'expr', which
- * is now split in  instr vs exp vs lval.
+ * is now split into  instr vs exp vs lval.
  *)
 type instr = { i : instr_kind; iorig : G.expr }
 
