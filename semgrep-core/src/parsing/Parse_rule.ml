@@ -19,8 +19,7 @@ open Common
 module J = JSON
 module FT = File_type
 module R = Rule
-module E = Parse_mini_rule
-module H = Parse_mini_rule
+module MR = Mini_rule
 module G = AST_generic
 module PI = Parse_info
 module Set = Set_
@@ -44,13 +43,23 @@ module Set = Set_
  * See the Yaml_to_generic.program function. We then abuse this function
  * to also parse a semgrep rule (which is a yaml file) in this file.
  *
- * TODO:
- *  - Move the H.xxx here and get rid of Parse_mini_rule.ml
  *)
 
 (*****************************************************************************)
-(* Helpers *)
+(* Types *)
 (*****************************************************************************)
+
+exception InvalidRuleException of string * string
+
+exception InvalidLanguageException of string * string
+
+exception InvalidPatternException of string * string * string * string
+
+exception InvalidRegexpException of string * string
+
+exception UnparsableYamlException of string
+
+exception InvalidYamlException of string
 
 type env = {
   (* id of the current rule (needed by some exns) *)
@@ -63,8 +72,12 @@ type env = {
   path : string list;
 }
 
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
+
 (* TODO: switch to precise error location! *)
-let error s = raise (E.InvalidYamlException s)
+let error s = raise (InvalidYamlException s)
 
 (* Why do we need this generic_to_json function? Why would we want to convert
  * to JSON when we actually did lots of work to convert the YAML/JSON
@@ -211,7 +224,7 @@ let parse_metavar_cond s =
 let parse_regexp env s =
   try (s, Pcre.regexp s)
   with Pcre.Error exn ->
-    raise (E.InvalidRegexpException (env.id, pcre_error_to_string s exn))
+    raise (InvalidRegexpException (env.id, pcre_error_to_string s exn))
 
 let parse_fix_regex env key fields =
   let fix_regex_dict = yaml_to_dict key fields in
@@ -251,7 +264,7 @@ let parse_options key value =
        * TODO: we should use a warning/logging infra to report
        * this in the JSON to the semgrep wrapper and user.
        *)
-      (*raise (E.InvalidYamlException (spf "unknown option: %s" field_name))*)
+      (*raise (InvalidYamlException (spf "unknown option: %s" field_name))*)
       pr2 (spf "WARNING: unknown option: %s" field_name))
     (fun () -> Config_semgrep_j.t_of_string s)
 
@@ -259,7 +272,17 @@ let parse_options key value =
 (* Sub parsers patterns and formulas *)
 (*****************************************************************************)
 
-let parse_pattern env e =
+let parse_pattern ~id ~lang pattern =
+  (* todo? call Normalize_ast.normalize here? *)
+  try Parse_pattern.parse_pattern lang ~print_errors:false pattern with
+  | Timeout -> raise Timeout
+  | UnixExit n -> raise (UnixExit n)
+  | exn ->
+      raise
+        (InvalidPatternException
+           (id, pattern, Lang.string_of_lang lang, Common.exn_to_s exn))
+
+let parse_xpattern env e =
   let s =
     match e with
     | G.L (String (value, _)) -> value
@@ -278,15 +301,14 @@ let parse_pattern env e =
     (* TODO put in *)
   in
   match env.languages with
-  | R.L (lang, _) ->
-      R.mk_xpat (Sem (H.parse_pattern ~id:env.id ~lang s, lang)) s
+  | R.L (lang, _) -> R.mk_xpat (Sem (parse_pattern ~id:env.id ~lang s, lang)) s
   | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> R.mk_xpat (Spacegrep ast) s
       | Error err ->
-          raise (H.InvalidPatternException (env.id, s, "generic", err.msg)))
+          raise (InvalidPatternException (env.id, s, "generic", err.msg)))
 
 let find_formula_old rule_dict : string * G.expr =
   let find key = (key, Hashtbl.find_opt rule_dict key) in
@@ -320,7 +342,7 @@ let rec parse_formula (env : env) (rule_dict : (string, G.expr) Hashtbl.t) :
 
 and parse_formula_old env ((key, value) : string * G.expr) : R.formula_old =
   let env = { env with path = key :: env.path } in
-  let get_pattern str_e = parse_pattern env str_e in
+  let get_pattern str_e = parse_xpattern env str_e in
   let get_nested_formula i x =
     let env = { env with path = string_of_int i :: env.path } in
     match x with
@@ -367,7 +389,7 @@ and parse_formula_new env (x : G.expr) : R.formula =
       | "and" -> R.And (parse_list key (parse_formula_new env) value)
       | "or" -> R.Or (parse_list key (parse_formula_new env) value)
       | "not" -> R.Not (parse_formula_new env value)
-      | "inside" -> R.Leaf (R.P (parse_pattern env value, Some Inside))
+      | "inside" -> R.Leaf (R.P (parse_xpattern env value, Some Inside))
       | "regex" ->
           let s = parse_string key value in
           let xpat = R.mk_xpat (R.Regexp (parse_regexp env s)) s in
@@ -387,7 +409,7 @@ and parse_formula_new env (x : G.expr) : R.formula =
               R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env re)))
           | _ -> error "Expected a metavariable and regex")
       | _ -> error ("Invalid key for formula_new " ^ key))
-  | _ -> R.Leaf (R.P (parse_pattern env x, None))
+  | _ -> R.Leaf (R.P (parse_xpattern env x, None))
 
 (* This is now mutually recursive because of metavariable-pattern: which can
  * contain itself a formula! *)
@@ -447,14 +469,23 @@ let parse_languages ~id langs =
                (match Lang.lang_of_string_opt s with
                | None ->
                    raise
-                     (E.InvalidLanguageException
+                     (InvalidLanguageException
                         (id, spf "unsupported language: %s" s))
                | Some l -> l))
       in
       match languages with
-      | [] ->
-          raise (E.InvalidRuleException (id, "we need at least one language"))
+      | [] -> raise (InvalidRuleException (id, "we need at least one language"))
       | x :: xs -> R.L (x, xs))
+
+let parse_severity ~id s =
+  match s with
+  | "ERROR" -> R.Error
+  | "WARNING" -> R.Warning
+  | "INFO" -> R.Info
+  | s ->
+      raise
+        (InvalidRuleException
+           (id, spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s))
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -537,7 +568,7 @@ let parse_generic file formula_ast =
            message;
            languages;
            file;
-           severity = H.parse_severity ~id severity;
+           severity = parse_severity ~id severity;
            mode;
            (* optional fields *)
            metadata = metadata_opt;
