@@ -59,8 +59,10 @@ and rules = rule list
 
 (*e: type [[Rule.rules]] *)
 
-(* TODO? just reuse Error_code.severity *)
 (*s: type [[Rule.severity]] *)
+(* TODO? just reuse Error_code.severity
+ * TODO: move in Rule.ml at some point
+ *)
 and severity = Error | Warning | Info
 (*e: type [[Rule.severity]] *)
 [@@deriving eq, show]

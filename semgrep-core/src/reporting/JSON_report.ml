@@ -229,22 +229,21 @@ let json_of_profile_info profile_start =
 let json_of_exn e =
   (* if (ouptut_as_json) then *)
   match e with
-  | Parse_mini_rule.InvalidRuleException (pattern_id, msg) ->
+  | Parse_rule.InvalidRuleException (pattern_id, msg) ->
       J.Object
         [
           ("pattern_id", J.String pattern_id);
           ("error", J.String "invalid rule");
           ("message", J.String msg);
         ]
-  | Parse_mini_rule.InvalidLanguageException (pattern_id, language) ->
+  | Parse_rule.InvalidLanguageException (pattern_id, language) ->
       J.Object
         [
           ("pattern_id", J.String pattern_id);
           ("error", J.String "invalid language");
           ("language", J.String language);
         ]
-  | Parse_mini_rule.InvalidPatternException (pattern_id, pattern, lang, message)
-    ->
+  | Parse_rule.InvalidPatternException (pattern_id, pattern, lang, message) ->
       J.Object
         [
           ("pattern_id", J.String pattern_id);
@@ -253,17 +252,17 @@ let json_of_exn e =
           ("language", J.String lang);
           ("message", J.String message);
         ]
-  | Parse_mini_rule.InvalidRegexpException (pattern_id, message) ->
+  | Parse_rule.InvalidRegexpException (pattern_id, message) ->
       J.Object
         [
           ("pattern_id", J.String pattern_id);
           ("error", J.String "invalid regexp in rule");
           ("message", J.String message);
         ]
-  | Parse_mini_rule.UnparsableYamlException msg ->
+  | Parse_rule.UnparsableYamlException msg ->
       J.Object
         [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]
-  | Parse_mini_rule.InvalidYamlException msg ->
+  | Parse_rule.InvalidYamlException msg ->
       J.Object [ ("error", J.String "invalid yaml"); ("message", J.String msg) ]
   | exn ->
       J.Object

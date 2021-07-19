@@ -575,7 +575,7 @@ let parse_pattern lang_pattern str =
         res)
   with exn ->
     raise
-      (Parse_mini_rule.InvalidPatternException
+      (Parse_rule.InvalidPatternException
          ("no-id", str, !lang, Common.exn_to_s exn))
   [@@profiling]
 
