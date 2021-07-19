@@ -62,6 +62,12 @@ val lang_of_string_opt : string -> t option
 
 (*e: signature [[Lang.lang_of_string_opt]] *)
 
+(* list of languages *)
+val keys : string list
+
+(* list of languages comma separated *)
+val supported_langs : string
+
 (*s: signature [[Lang.langs_of_filename]] *)
 val langs_of_filename : Common.filename -> t list
 
@@ -90,4 +96,14 @@ val to_lowercase_alnum : t -> string
 val ext_of_lang : t -> string list
 
 (*e: signature [[Lang.ext_of_lang]] *)
+
+(* unsupported_language_message [lang] takes the language as a string and
+ * returns an error message.
+ *
+ * If the language is "unset", it returns a "no language specified error"
+ * coupling: Main.lang reference.
+ * Otherwise it returns an error with the list of supported languages.
+ *)
+val unsupported_language_message : string -> string
+
 (*e: pfff/lang_GENERIC/parsing/Lang.mli *)
