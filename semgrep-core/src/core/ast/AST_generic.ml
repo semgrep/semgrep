@@ -629,6 +629,8 @@ and operator =
   | Or
   (* PHP has a xor shortcut operator ... hmmm *)
   | Xor
+  (* Shell *)
+  | Pipe
   (* unary *)
   | Not
   | Eq (* '=' in OCaml, '==' in Go/... *)
@@ -662,6 +664,8 @@ and operator =
   | Is
   (* !is: *)
   | NotIs
+  (* Shell *)
+  | (* & *) Background
 
 (*e: type [[AST_generic.arithmetic_operator]] *)
 (*s: type [[AST_generic.incr_decr]] *)
