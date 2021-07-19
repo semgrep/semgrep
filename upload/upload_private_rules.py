@@ -68,6 +68,7 @@ def upload_rule(rule_file: Path, deployment_id: int, token: str) -> None:
 
     request_json = {
         "definition": rule,
+        "visibility": "org_private",
         # below should always be defined if passed validation
         "languages": rule["rules"][0]["languages"],
         "deployment_id": deployment_id,
