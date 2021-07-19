@@ -19,7 +19,7 @@ val parse_metavar_cond : string -> AST_generic.expr
 
 (* internals used by other parsers (e.g., Parse_mini_rule.ml) *)
 
-val parse_severity : id:string -> string -> Rule.severity
+val parse_severity : id:string Rule.wrap -> string -> Rule.severity
 
 val parse_pattern : id:string -> lang:Lang.t -> string -> Pattern.t
 

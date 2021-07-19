@@ -160,7 +160,7 @@ let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
   let rule_id =
     {
       rule_id with
-      Pattern_match.id = r.R.id;
+      Pattern_match.id = fst r.R.id;
       message = r.R.message (* keep pattern_str which can be useful to debug *);
     }
   in
@@ -896,7 +896,9 @@ let check hook default_config rules equivs file_and_more =
   let lazy_content = lazy (Common.read_file file) in
   rules
   |> List.map (fun (r, pformula) ->
-         Common.profile_code (spf "real_rule:%s" r.R.id) (fun () ->
+         Common.profile_code
+           (spf "real_rule:%s" (fst r.R.id))
+           (fun () ->
              let relevant_rule =
                if !Flag_semgrep.filter_irrelevant_rules then (
                  match Analyze_rule.regexp_prefilter_of_rule r with
@@ -908,13 +910,13 @@ let check hook default_config rules equivs file_and_more =
                else true
              in
              if not relevant_rule then (
-               logger#info "skipping rule %s for %s" r.R.id file;
+               logger#info "skipping rule %s for %s" (fst r.R.id) file;
                RP.empty_semgrep_result)
              else
                let config = r.options ||| default_config in
                let formula = R.formula_of_pformula pformula in
                let res, final_ranges =
-                 matches_of_formula config equivs r.id file_and_more
+                 matches_of_formula config equivs (fst r.id) file_and_more
                    lazy_content formula None
                in
                {
@@ -928,7 +930,7 @@ let check hook default_config rules equivs file_and_more =
                    |> before_return (fun v ->
                           v
                           |> List.iter (fun (m : Pattern_match.t) ->
-                                 let str = spf "with rule %s" r.R.id in
+                                 let str = spf "with rule %s" (fst r.R.id) in
                                  hook str m.env m.tokens));
                  errors = res.errors;
                  profiling = res.profiling;
