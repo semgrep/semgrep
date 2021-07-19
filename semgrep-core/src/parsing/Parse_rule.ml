@@ -1,6 +1,6 @@
 (*s: semgrep/parsing/Parse_rule.ml *)
 (*s: pad/r2c copyright *)
-(* Yoann Padioleau
+(* Yoann Padioleau, Emma Jin
  *
  * Copyright (C) 2019-2021 r2c
  *
@@ -30,18 +30,21 @@ module Set = Set_
 (*****************************************************************************)
 (* Parsing a Semgrep rule, including complex pattern formulas.
  *
- * See also the JSON schema in rule_schema.yaml
+ * See also the JSON schema in rule_schema.yaml.
  *
- * Parsing generic dictionaries creates a mutable Hashtbl and consumes the
- * fields as they are processed
+ * history: we used to parse a rule by simply using the basic API of
+ * the OCaml 'yaml' library. This API allows converting a yaml file to
+ * a simple and compact JSON type.
+ * However, this JSON type did not contain any location information, which
+ * made it hard to report errors in a YAML rule. This is why we switched
+ * to the low-level API of the 'yaml' library that returns a stream
+ * of tokens with location information. We actually used first that low-level
+ * API to return the generic AST of a yaml file, to add support for
+ * YAML in semgrep (allowing semgrep rules on YAML file).
+ * See the Yaml_to_generic.program function. We then abuse this function
+ * to also parse a semgrep rule (which is a yaml file) in this file.
  *
  * TODO:
- *  - use the new position-aware YAML parser to get position information (for
- *    precise error location) by using an AST_generic expression instead of
- *    JSON.t (at the same time, in the long term we want
- *    to use JSON and jsonnet, so we might get anyway a line location
- *    in a generated file, so maybe better to give error location by
- *    describing the line and what is wrong with it?).
  *  - Move the H.xxx here and get rid of Parse_mini_rule.ml
  *)
 
@@ -51,34 +54,43 @@ module Set = Set_
 
 type env = { id : string; languages : R.xlang; path : string list }
 
+(* TODO: switch to precise error location! *)
 let error s = raise (E.InvalidYamlException s)
 
+(* Why do we need this generic_to_json function? Why would we want to convert
+ * to JSON when we actually did lots of work to convert the YAML/JSON
+ * in the generic AST to get proper error location. This is because
+ * the 'metadata' field in Rule.ml is JSON.
+ *)
 let generic_to_json key ast =
-  let rec generic_to_json_help = function
+  let rec aux = function
     | G.L (Null _) -> J.Null
     | G.L (Bool (b, _)) -> J.Bool b
     | G.L (Float (Some f, _)) -> J.Float f
     | G.L (Int (Some i, _)) -> J.Int i
     | G.L (String (s, _)) -> J.String s
-    | G.Container (Array, (_, xs, _)) ->
-        J.Array (xs |> List.map generic_to_json_help)
+    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> List.map aux)
     | G.Container (Dict, (_, xs, _)) ->
         J.Object
           (xs
           |> List.map (fun x ->
                  match x with
-                 | G.Tuple (_, [ L (String (k, _)); v ], _) ->
-                     (k, generic_to_json_help v)
+                 | G.Tuple (_, [ L (String (k, _)); v ], _) -> (k, aux v)
                  | _ -> error ("Expected key value pair in " ^ key ^ " dict")))
     | _ -> error "Unexpected generic representation of yaml"
   in
-  generic_to_json_help ast
+  aux ast
 
-let opt_to_list = function None -> [] | Some xs -> xs
+let optlist_to_list = function None -> [] | Some xs -> xs
 
 (*****************************************************************************)
 (* Dict helper methods *)
 (*****************************************************************************)
+
+(* Parsing generic dictionaries creates a mutable Hashtbl and consumes the
+ * fields as they are processed.
+ * todo? use a Map instead?
+ *)
 
 let yaml_to_dict name rule =
   match rule with
@@ -91,9 +103,11 @@ let yaml_to_dict name rule =
                  Hashtbl.add dict key value
              | _ -> error "Not a valid key value pair");
       dict
-  | _ -> error ("each " ^ name ^ " should be a dictionary of fields")
+  | _ -> error ("each " ^ name ^ " should be an object")
 
-(* Mutates the Hashtbl! *)
+(* Mutates the Hashtbl!
+ * todo? define in terms of take_opt?
+ *)
 let take dict f key =
   match Hashtbl.find_opt dict key with
   | Some value ->
@@ -217,7 +231,7 @@ let parse_paths key value =
     ( take_opt paths_dict parse_string_list "include",
       take_opt paths_dict parse_string_list "exclude" )
   in
-  { R.include_ = opt_to_list inc_opt; exclude = opt_to_list exc_opt }
+  { R.include_ = optlist_to_list inc_opt; exclude = optlist_to_list exc_opt }
 
 let parse_options key value =
   let s = J.string_of_json (generic_to_json key value) in
@@ -326,7 +340,7 @@ and parse_formula_old env ((key, value) : string * G.expr) : R.formula_old =
   | "metavariable-comparison", _
   | "pattern-where-python", _ ->
       R.PatExtra (parse_extra env key value)
-  | _x -> error "unimplemented"
+  | x, _ -> error (spf "unexpected key %s" x)
 
 (* let extra = parse_extra env x in
    R.PatExtra extra *)
@@ -448,7 +462,7 @@ let parse_mode env mode_opt (rule_dict : (string, G.expr) Hashtbl.t) : R.mode =
           take_opt rule_dict parse_sub_patterns "pattern-sanitizers",
           take rule_dict parse_sub_patterns "pattern-sinks" )
       in
-      R.Taint { sources; sanitizers = opt_to_list sanitizers_opt; sinks }
+      R.Taint { sources; sanitizers = optlist_to_list sanitizers_opt; sinks }
   | Some _ -> error "Unexpected value for mode, should be 'search' or 'taint'"
 
 let parse_generic file formula_ast =

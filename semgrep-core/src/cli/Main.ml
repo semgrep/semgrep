@@ -176,6 +176,11 @@ let mvars = ref ([] : Metavariable.mvar list)
 (*s: constant [[Main_semgrep_core.layer_file]] *)
 (*e: constant [[Main_semgrep_core.layer_file]] *)
 
+(*s: constant [[Main_semgrep_core.keys]] *)
+(*e: constant [[Main_semgrep_core.keys]] *)
+(*s: constant [[Main_semgrep_core.supported_langs]] *)
+(*e: constant [[Main_semgrep_core.supported_langs]] *)
+
 (* ------------------------------------------------------------------------- *)
 (* limits *)
 (* ------------------------------------------------------------------------- *)
@@ -315,6 +320,7 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
 (*s: function [[Main_semgrep_core.gen_layer]] *)
 (*e: function [[Main_semgrep_core.gen_layer]] *)
 
+(*s: function [[Main_semgrep_core.unsupported_language_message]] *)
 (*e: function [[Main_semgrep_core.unsupported_language_message]] *)
 
 let lang_of_string s =

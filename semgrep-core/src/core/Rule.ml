@@ -29,8 +29,6 @@ module MV = Metavariable
  *  - parse equivalences
  *)
 
-(*e: exception [[Parse_rules.InvalidRuleException]] *)
-(*s: exception [[Parse_rules.InvalidLanguageException]] *)
 exception InvalidLanguageException of string * string
 
 (*****************************************************************************)
