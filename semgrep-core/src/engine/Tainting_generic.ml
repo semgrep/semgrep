@@ -72,7 +72,7 @@ let taint_config_of_rule default_config equivs file ast_and_errors
   let find_ranges pfs =
     (* if perf is a problem, we could build an interval set here *)
     pfs
-    |> List.map (ranges_of_pformula config equivs file_and_more rule.id)
+    |> List.map (ranges_of_pformula config equivs file_and_more (fst rule.id))
     |> List.concat
   in
   let sources_ranges = find_ranges spec.sources
@@ -101,7 +101,7 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
     |> List.map (fun (rule, taint_spec) ->
            let rule_id =
              {
-               Pattern_match.id = rule.Rule.id;
+               Pattern_match.id = fst rule.Rule.id;
                message = rule.Rule.message;
                pattern_string = "TODO: no pattern_string";
              }

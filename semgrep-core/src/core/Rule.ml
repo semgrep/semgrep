@@ -29,6 +29,15 @@ module MV = Metavariable
  *  - parse equivalences
  *)
 
+(*****************************************************************************)
+(* Position information and errors *)
+(*****************************************************************************)
+
+(* similar to what we do in AST_generic *)
+type tok = AST_generic.tok [@@deriving show, eq, hash]
+
+type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
+
 exception InvalidLanguageException of string * string
 
 (*****************************************************************************)
@@ -221,14 +230,11 @@ type severity = Error | Warning | Info [@@deriving show]
 
 type rule = {
   (* MANDATORY fields *)
-  id : string;
+  id : string wrap;
   mode : mode;
   message : string;
   severity : severity;
   languages : xlang;
-  (* todo: used for error location (metachecker) but should disappear when
-   * using a YAML parser keeping location information and some tok/wrap *)
-  file : string;
   (* OPTIONAL fields *)
   options : Config_semgrep.t option;
   (* deprecated? todo: parse them *)
