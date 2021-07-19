@@ -28,8 +28,9 @@ module SJ = Spacegrep.Semgrep_j
  * Right now there is:
  *  - good support for: Python, Java, Go, Ruby,
  *    Javascript (and JSX), Typescript (and TSX), JSON
- *  - partial support for: PHP, C, OCaml, Lua, C#, YAML
- *  - almost support for: Rust, R, Kotlin.
+ *  - partial support for: C, C#, PHP, OCaml, Scala, Rust, Lua,
+ *    YAML, HTML, Vue
+ *  - almost support for: R, Kotlin, Bash, Docker
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
@@ -575,7 +576,7 @@ let parse_pattern lang_pattern str =
         res)
   with exn ->
     raise
-      (Parse_mini_rule.InvalidPatternException
+      (Parse_rule.InvalidPatternException
          ("no-id", str, !lang, Common.exn_to_s exn))
   [@@profiling]
 
@@ -874,7 +875,7 @@ let rule_of_pattern lang pattern_string pattern =
     pattern_string;
     pattern;
     message = "";
-    severity = MR.Error;
+    severity = R.Error;
     languages = [ lang ];
   }
 

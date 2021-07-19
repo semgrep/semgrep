@@ -40,7 +40,7 @@ type rule = {
   id : string;
   pattern : Pattern.t;
   message : string;
-  severity : severity;
+  severity : Rule.severity;
   languages : Lang.t list;
   (* at least one element *)
   (* Useful for debugging, to report bad rules. We could rule.id to
@@ -56,14 +56,11 @@ type rule = {
 
 (*s: type [[Rule.rules]] *)
 and rules = rule list
-
 (*e: type [[Rule.rules]] *)
 
-(* TODO? just reuse Error_code.severity *)
 (*s: type [[Rule.severity]] *)
-and severity = Error | Warning | Info
 (*e: type [[Rule.severity]] *)
-[@@deriving eq, show]
+[@@deriving show]
 
 (*s: type [[Rule.t]] *)
 (* alias *)

@@ -202,7 +202,7 @@ let (mini_rule_of_pattern :
      * we just care about the matching result.
      *)
     message = "";
-    severity = MR.Error;
+    severity = R.Error;
     languages =
       (match xlang with
       | R.L (x, xs) -> x :: xs

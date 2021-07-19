@@ -1,7 +1,7 @@
 (*s: semgrep/matching/Unit_matcher.ml *)
 open Common
 open OUnit
-module R = Mini_rule
+module R = Rule
 
 let test_path = "../../../tests/OTHER/synthesizing/targets/"
 
@@ -58,7 +58,7 @@ let ranges_matched lang file pattern : Range.t list =
   let ast = parse_file lang file in
   let rule =
     {
-      R.id = "unit testing";
+      Mini_rule.id = "unit testing";
       pattern;
       message = "";
       severity = R.Error;

@@ -15,29 +15,17 @@
  *)
 open Common
 module R = Mini_rule
+module PR = Parse_rule
 
 (*s: exception [[Parse_rules.InvalidRuleException]] *)
-exception InvalidRuleException of string * string
-
 (*e: exception [[Parse_rules.InvalidRuleException]] *)
 (*s: exception [[Parse_rules.InvalidLanguageException]] *)
-exception InvalidLanguageException of string * string
-
 (*e: exception [[Parse_rules.InvalidLanguageException]] *)
 (*s: exception [[Parse_rules.InvalidPatternException]] *)
-exception InvalidPatternException of string * string * string * string
-
 (*e: exception [[Parse_rules.InvalidPatternException]] *)
-
-exception InvalidRegexpException of string * string
-
 (*s: exception [[Parse_rules.UnparsableYamlException]] *)
-exception UnparsableYamlException of string
-
 (*e: exception [[Parse_rules.UnparsableYamlException]] *)
 (*s: exception [[Parse_rules.InvalidYamlException]] *)
-exception InvalidYamlException of string
-
 (*e: exception [[Parse_rules.InvalidYamlException]] *)
 
 (*****************************************************************************)
@@ -45,30 +33,9 @@ exception InvalidYamlException of string
 (*****************************************************************************)
 
 (*s: function [[Parse_rules.parse_severity]] *)
-(* also used in Parse_tainting_rules.ml *)
-let parse_severity ~id s =
-  match s with
-  | "ERROR" -> R.Error
-  | "WARNING" -> R.Warning
-  | "INFO" -> R.Info
-  | s ->
-      raise
-        (InvalidRuleException
-           (id, spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s))
-
 (*e: function [[Parse_rules.parse_severity]] *)
 
 (*s: function [[Parse_rules.parse_pattern]] *)
-let parse_pattern ~id ~lang pattern =
-  (* todo? call Normalize_ast.normalize here? *)
-  try Parse_pattern.parse_pattern lang ~print_errors:false pattern with
-  | Timeout -> raise Timeout
-  | UnixExit n -> raise (UnixExit n)
-  | exn ->
-      raise
-        (InvalidPatternException
-           (id, pattern, Lang.string_of_lang lang, Common.exn_to_s exn))
-
 (*e: function [[Parse_rules.parse_pattern]] *)
 
 (*s: function [[Parse_rules.parse_languages]] *)
@@ -80,16 +47,18 @@ let parse_languages ~id langs =
              match Lang.lang_of_string_opt s with
              | None ->
                  raise
-                   (InvalidLanguageException
+                   (PR.InvalidLanguageException
                       (id, spf "unsupported language: %s" s))
              | Some l -> l)
          | _ ->
              raise
-               (InvalidRuleException (id, spf "expecting a string for languages")))
+               (PR.InvalidRuleException
+                  (id, spf "expecting a string for languages")))
   in
   let lang =
     match languages with
-    | [] -> raise (InvalidRuleException (id, "we need at least one language"))
+    | [] ->
+        raise (PR.InvalidRuleException (id, "we need at least one language"))
     | x :: _xs -> x
   in
   (languages, lang)
@@ -121,8 +90,10 @@ let parse file =
                       ("severity", `String sev);
                      ] ->
                          let languages, lang = parse_languages ~id langs in
-                         let pattern = parse_pattern ~id ~lang pattern_string in
-                         let severity = parse_severity ~id sev in
+                         let pattern =
+                           PR.parse_pattern ~id ~lang pattern_string
+                         in
+                         let severity = PR.parse_severity ~id sev in
                          {
                            R.id;
                            pattern;
@@ -133,13 +104,14 @@ let parse file =
                          }
                      | x ->
                          pr2_gen x;
-                         raise (InvalidYamlException "wrong rule fields"))
+                         raise (PR.InvalidYamlException "wrong rule fields"))
                  | x ->
                      pr2_gen x;
-                     raise (InvalidYamlException "wrong rule fields"))
-      | _ -> raise (InvalidYamlException "missing rules entry as top-level key")
+                     raise (PR.InvalidYamlException "wrong rule fields"))
+      | _ ->
+          raise (PR.InvalidYamlException "missing rules entry as top-level key")
       )
-  | Result.Error (`Msg s) -> raise (UnparsableYamlException s)
+  | Result.Error (`Msg s) -> raise (PR.UnparsableYamlException s)
 
 (*e: function [[Parse_rules.parse]] *)
 
