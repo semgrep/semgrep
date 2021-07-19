@@ -91,6 +91,5 @@
  * For now each target must be the same length (no ellipsis support).
  *)
 
-(* limited to expressions for now *)
 val generate_patterns :
-  Config_semgrep.t -> AST_generic.any list list -> Lang.t -> Pattern.t list
+  Config_semgrep.t -> AST_generic.any list -> Lang.t -> Pattern.t option
