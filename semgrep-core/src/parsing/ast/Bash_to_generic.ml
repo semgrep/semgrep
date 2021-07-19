@@ -87,38 +87,40 @@ module G = AST_generic
 (* Temporary representation.
    Avoids superfluous early wrapping of expressions in statements and
    vice-versa. *)
-type stmt_or_expr = Stmt of G.stmt | Expr of G.expr
+type stmt_or_expr = Stmt of loc * G.stmt | Expr of loc * G.expr
 
-let fake_tok = G.fake ""
+let stmt_of_expr loc (e : G.expr) : G.stmt = G.s (G.ExprStmt (e, fst loc))
 
-let stmt_of_expr (e : G.expr) : G.stmt = G.s (G.ExprStmt (e, fake_tok))
-
-let expr_of_stmt (st : G.stmt) : G.expr = G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
+let expr_of_stmt loc (st : G.stmt) : G.expr =
+  G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
 
 let as_stmt : stmt_or_expr -> G.stmt = function
-  | Stmt st -> st
-  | Expr e -> stmt_of_expr e
+  | Stmt (loc, st) -> st
+  | Expr (loc, e) -> stmt_of_expr loc e
 
 let as_expr : stmt_or_expr -> G.expr = function
-  | Stmt st -> expr_of_stmt st
-  | Expr e -> e
+  | Stmt (loc, st) -> expr_of_stmt loc st
+  | Expr (loc, e) -> e
+
+let stmt_or_expr_loc = function Stmt (loc, _) | Expr (loc, _) -> loc
 
 let block : stmt_or_expr list -> stmt_or_expr = function
   | [ x ] -> x
   | several ->
+      let loc = list_loc stmt_or_expr_loc several in
       let stmts = List.map as_stmt several in
-      Stmt (G.s (G.Block (G.fake_bracket stmts)))
+      Stmt (loc, G.s (G.Block (bracket loc stmts)))
 
 module C = struct
-  let mk (name : string) =
+  let mk (loc : loc) (name : string) =
     let id = "!sh_" ^ name ^ "!" in
     let id_info = G.empty_id_info () in
-    G.N (G.Id ((id, fake_tok), id_info))
+    G.N (G.Id ((id, fst loc), id_info))
 
   (* For simple commands, e.g.
        $echo "$@"
   *)
-  let cmd = mk "cmd"
+  let cmd loc = mk loc "cmd"
 
   (* Split a string according to whitespace defined by "$IFS".
      This is done on the result of unquoted $ expansions:
@@ -128,12 +130,12 @@ module C = struct
        ${args}
        ${args%.c}
   *)
-  let _split = mk "split"
+  let split loc = mk loc "split"
 
   (* Concatenate two string fragments e.g.
        foo"$bar"
   *)
-  let _concat = mk "concat"
+  let concat loc = mk loc "concat"
 end
 
 (*
@@ -142,12 +144,22 @@ end
 
    Usage: call C.cmd args
 *)
-let call name exprs =
-  G.Call (name, G.fake_bracket (List.map (fun e -> G.Arg e) exprs))
+let call loc name exprs =
+  G.Call (name loc, bracket loc (List.map (fun e -> G.Arg e) exprs))
 
-let todo_stmt tok = G.s (G.OtherStmt (G.OS_Todo, [ G.TodoK tok ]))
+let todo_tokens ((start, end_) : loc) =
+  let wrap tok = (Parse_info.string_of_info tok, tok) in
+  if start = end_ then [ G.TodoK (wrap start) ]
+  else [ G.TodoK (wrap start); G.TodoK (wrap end_) ]
 
-let todo_expr tok = G.OtherExpr (G.OE_Todo, [ G.TodoK tok ])
+let todo_stmt (loc : loc) : G.stmt =
+  G.s (G.OtherStmt (G.OS_Todo, todo_tokens loc))
+
+let todo_expr (loc : loc) : G.expr = G.OtherExpr (G.OE_Todo, todo_tokens loc)
+
+let todo_stmt2 (loc : loc) : stmt_or_expr = Stmt (loc, todo_stmt loc)
+
+let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc)
 
 (*****************************************************************************)
 (* Converter from bash AST to generic AST *)
@@ -189,14 +201,14 @@ and pipeline (x : pipeline) : stmt_or_expr =
       let func = G.IdSpecial (G.Op G.Pipe, bar_tok) in
       let left = pipeline pip |> as_expr in
       let right = command_with_redirects cmd_redir |> as_expr in
-      Expr (G.Call (func, G.fake_bracket [ G.Arg left; G.Arg right ]))
+      Expr (loc, G.Call (func, bracket loc [ G.Arg left; G.Arg right ]))
   | Control_operator (loc, pip, control_op) -> (
       match control_op with
       | Foreground, tok -> pipeline pip
       | Background, amp_tok ->
           let func = G.IdSpecial (G.Op G.Pipe, amp_tok) in
           let arg = pipeline pip |> as_expr in
-          Expr (G.Call (func, G.fake_bracket [ G.Arg arg ])))
+          Expr (loc, G.Call (func, bracket loc [ G.Arg arg ])))
 
 and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
   (* TODO: don't ignore redirects *)
@@ -204,35 +216,62 @@ and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
   ignore redirects;
   command cmd
 
+(*
+  The preference between stmt or expr depends on whether the most fitting
+  construct of the generic AST is an stmt or an expr. For the todos, it
+  may be little arbitrary.
+*)
 and command (cmd : command) : stmt_or_expr =
   match cmd with
-  | Simple_command { loc = _; assignments = _; arguments } ->
+  | Simple_command { loc; assignments = _; arguments } ->
       let args = List.map expression arguments in
-      Expr (call C.cmd args)
-  | Compound_command _ -> Expr todo_expr
-  | Coprocess _ -> Expr todo_expr
-  | Assignment _ -> Stmt todo_stmt
-  | Declaration _ -> Stmt todo_stmt
-  | Negated_command _ -> Expr todo_expr
-  | Function_definition _ -> Stmt todo_stmt
+      Expr (loc, call loc C.cmd args)
+  | Subshell (loc, _) -> todo_stmt2 loc
+  | Command_group (loc, _) -> todo_stmt2 loc
+  | Sh_test (loc, _) -> todo_expr2 loc
+  | Bash_test (loc, _) -> todo_expr2 loc
+  | Arithmetic_expression (loc, _) -> todo_expr2 loc
+  | For_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
+  | For_loop_c_style (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
+  | Select (loc, _) -> todo_expr2 loc
+  | Case (loc, _) -> todo_stmt2 loc
+  | If (loc, _, _, _, _, _, _, _) -> todo_stmt2 loc
+  | While_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
+  | Until_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
+  | Coprocess (loc, _, _) -> todo_expr2 loc
+  | Assignment (loc, _) -> todo_expr2 loc
+  | Declaration (loc, _) -> todo_stmt2 loc
+  | Negated_command (loc, _, _) -> todo_expr2 loc
+  | Function_definition (loc, _) -> todo_stmt2 loc
+
+and stmt_group (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
+  let stmts = List.map as_stmt l in
+  let start, end_ = loc in
+  Stmt (loc, G.s (G.Block (start, stmts, end_)))
 
 and expression (e : expression) : G.expr =
   match e with
-  | Word x -> G.L (G.Atom (G.fake "", x))
-  | String _ -> todo_expr
-  | String_fragment frag -> (
+  | Word ((_, tok) as wrap) -> G.L (G.Atom (tok, wrap))
+  | String x -> todo_expr (bracket_loc x)
+  | String_fragment (loc, frag) -> (
       match frag with
-      | String_content x -> G.L (G.Atom (G.fake "", x))
-      | Expansion ex -> expansion ex
-      | Command_substitution (_open, _x, _close) -> todo_expr)
-  | Raw_string _ -> todo_expr
-  | Ansii_c_string _ -> todo_expr
-  | Special_character _ -> todo_expr
-  | String_expansion _ -> todo_expr
-  | Concatenation _ -> todo_expr
-  | Semgrep_ellipsis _ -> todo_expr
-  | Semgrep_metavariable _ -> todo_expr
-  | Expression_TODO -> todo_expr
+      | String_content ((_, tok) as wrap) -> G.L (G.Atom (tok, wrap))
+      | Expansion (loc, ex) -> expansion ex
+      | Command_substitution (open_, _, close) ->
+          let loc = (open_, close) in
+          todo_expr loc)
+  | Raw_string x -> todo_expr (wrap_loc x)
+  | Ansii_c_string x -> todo_expr (wrap_loc x)
+  | Special_character x -> todo_expr (wrap_loc x)
+  | String_expansion x -> todo_expr (wrap_loc x)
+  | Concatenation (loc, _) -> todo_expr loc
+  | Semgrep_ellipsis tok -> G.Ellipsis tok
+  | Semgrep_metavariable x -> todo_expr (wrap_loc x)
+  | Equality_test (loc, _, _) -> todo_expr loc
+  | Empty_expression loc ->
+      let start, _ = loc in
+      G.L (G.Atom (start, ("", start)))
+  | Expression_TODO loc -> todo_expr loc
 
 (*
    '$' followed by a variable to transform and expand into a list.
@@ -240,16 +279,16 @@ and expression (e : expression) : G.expr =
 *)
 and expansion (x : expansion) : G.expr =
   match x with
-  | Simple_expansion (dollar_tok, var_name) ->
+  | Simple_expansion (loc, dollar_tok, var_name) ->
       let arg =
         match var_name with
         | Simple_variable_name name | Special_variable_name name ->
             G.Arg (G.N (G.Id (name, G.empty_id_info ())))
       in
       let func = G.N (G.Id (("$", dollar_tok), G.empty_id_info ())) in
-      let e = G.Call (func, G.fake_bracket [ arg ]) in
+      let e = G.Call (func, bracket loc [ arg ]) in
       e
-  | Complex_expansion _ -> todo_expr
+  | Complex_expansion br -> todo_expr (bracket_loc br)
 
 (*
    'a && b' and 'a || b' looks like expressions but they're really
@@ -267,10 +306,11 @@ and expansion (x : expansion) : G.expr =
      fi
 *)
 and transpile_and (left : blist) tok_and (right : blist) : stmt_or_expr =
-  let cond = blist left |> block |> as_expr in
-  let body = blist right |> block |> as_stmt in
-  let fail = stmt_of_expr (G.L (G.Bool (false, G.fake "false"))) in
-  Stmt (G.s (G.If (tok_and, cond, body, Some fail)))
+  let cond = blist left |> block in
+  let body = blist right |> block in
+  let loc = range (stmt_or_expr_loc cond) (stmt_or_expr_loc body) in
+  let fail = stmt_of_expr loc (G.L (G.Bool (false, snd loc))) in
+  Stmt (loc, G.s (G.If (tok_and, as_expr cond, as_stmt body, Some fail)))
 
 (*
    This is similar to 'transpile_and', with a negated condition.
@@ -283,14 +323,15 @@ and transpile_and (left : blist) tok_and (right : blist) : stmt_or_expr =
        b
      fi
 *)
-and transpile_or (left : blist) tok_and (right : blist) : stmt_or_expr =
-  let cond =
-    let e = blist left |> block |> as_expr in
-    let not_ = G.IdSpecial (G.Op G.Not, G.fake "!") in
-    G.Call (not_, G.fake_bracket [ G.Arg e ])
-  in
-  let body = blist right |> block |> as_stmt in
-  Stmt (G.s (G.If (tok_and, cond, body, None)))
+and transpile_or (left : blist) tok_or (right : blist) : stmt_or_expr =
+  let e = blist left |> block in
+  let ((start, _) as cond_loc) = stmt_or_expr_loc e in
+  let not_ = G.IdSpecial (G.Op G.Not, tok_or) in
+  let cond = G.Call (not_, bracket cond_loc [ G.Arg (as_expr e) ]) in
+  let body = blist right |> block in
+  let _, end_ = stmt_or_expr_loc body in
+  let loc = (start, end_) in
+  Stmt (loc, G.s (G.If (tok_or, cond, as_stmt body, None)))
 
 let program x = blist x |> List.map as_stmt
 

@@ -375,6 +375,22 @@ let fake_tok = Parse_info.fake_info "fake"
 
 let fake_loc = (fake_tok, fake_tok)
 
+(*
+   Convert a pair (loc, x) to a wrap, which uses a single token to indicate
+   the location of the object in the generic AST.
+*)
+let wrap (loc : loc) x : 'a wrap =
+  let start, _ = loc in
+  (x, start)
+
+(*
+   Convert a pair (loc, x) to a bracket, which uses a leading and trailing
+   token to indicate the location.
+*)
+let bracket (loc : loc) x : 'a bracket =
+  let start, end_ = loc in
+  (start, x, end_)
+
 let compare_loc (a, _) (b, _) = Parse_info.compare_pos a b
 
 let min_loc_tok a b =
@@ -549,7 +565,10 @@ let test_expression_loc = function
 
 let concat_blists (x : blist list) : blist =
   match List.rev x with
-  | [] -> assert false
+  | [] ->
+      (* TODO: use actual location in the program rather than completely
+         fake location *)
+      Empty fake_loc
   | last_blist :: blists ->
       let end_ = blist_loc last_blist in
       List.fold_left

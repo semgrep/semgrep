@@ -314,6 +314,8 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
         match x with
         | `Choice_conc x -> literal env x
         | `Choice_EQTILDE_choice_choice_conc (v1, v2) ->
+            (* Not sure why we have this here. Should be only within
+               test commands [[ ... ]]. *)
             let eq =
               match v1 with
               | `EQTILDE tok -> (* "=~" *) EQTILDE (token env tok)
@@ -696,7 +698,12 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
       Expression_TODO loc
 
 and program (env : env) (opt : CST.program) : blist =
-  match opt with Some x -> statements env x | None -> Empty fake_loc
+  match opt with
+  | Some x -> statements env x
+  | None ->
+      (* TODO: use an empty token at the current position in the source
+         file rather than a completely fake token. *)
+      Empty fake_loc
 
 (*
    Read a statement as a list (of pipelines).
