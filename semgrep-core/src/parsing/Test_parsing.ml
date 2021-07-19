@@ -193,7 +193,10 @@ let parsing_common ?(verbose = true) lang xs =
   in
   fullxs
   |> List.rev_map (fun file ->
-         pr2 (spf "[%s] processing %s" (Lang.to_lowercase_alnum lang) file);
+         pr2
+           (spf "%05.1fs: [%s] processing %s" (Sys.time ())
+              (Lang.to_lowercase_alnum lang)
+              file);
          let stat =
            try
              let res =
@@ -217,6 +220,10 @@ let parsing_common ?(verbose = true) lang xs =
 *)
 let parse_project ~verbose lang name files_or_dirs =
   let stat_list = parsing_common ~verbose lang files_or_dirs in
+  pr2
+    (spf "%05.1fs: [%s] done parsing %s" (Sys.time ())
+       (Lang.to_lowercase_alnum lang)
+       name);
   (name, stat_list)
 
 (* Json doesn't tolerate NaN values, so we use 1 instead. *)

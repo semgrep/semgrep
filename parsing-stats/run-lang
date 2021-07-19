@@ -58,7 +58,10 @@ if [[ -z "$lang" ]]; then
 fi
 
 fetch_project_files() {
-  name=$(basename "${url%.git}")
+  # Note that project names are not unique
+  project=$(basename "${url%.git}")
+  org=$(basename $(dirname "${url%.git}"))
+  name="$org-$project"
   project_list+=" $name"
 
   mkdir -p tmp
