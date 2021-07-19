@@ -90,6 +90,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
           with
           | Timeout -> raise Timeout
           | exn ->
+              (* TODO: print where the exception was raised or reraise *)
               logger#debug "exn (%s) with Pfff parser" (Common.exn_to_s exn);
               Error exn)
   | TreeSitter f -> (
@@ -116,6 +117,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
       with
       | Timeout -> raise Timeout
       | exn ->
+          (* TODO: print where the exception was raised or reraise *)
           logger#debug "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
           Error exn)
 

@@ -24,8 +24,6 @@ let token = H.token
 
 let str = H.str
 
-let todo = ()
-
 (*
    Replace the last element of a list.
    This is usually a sign that something wasn't done right.
@@ -47,11 +45,16 @@ type tmp_stmt =
   | Tmp_pipeline of pipeline
   | Tmp_command of (command_with_redirects * unary_control_operator wrap option)
 
+let blist_of_pipeline (pip : pipeline) =
+  let loc = pipeline_loc pip in
+  Pipelines (loc, [ pip ])
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
 
-let todo (_env : env) _ = failwith "not implemented"
+let todo (_env : env) _ =
+  failwith "Parse_bash_tree_sitter: feature not implemented"
 
 let unary_test_operator (env : env) (tok : ts_tok) : unary_test_operator wrap =
   let s, tok = str env tok in
@@ -283,7 +286,7 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
       (fun (v1, v2) ->
         let v1 = token env v1 (* "|" *) in
         let v2 = literal env v2 in
-        todo)
+        ())
       v2
   in
   let _v3 = token env v3 (* ")" *) in
@@ -296,7 +299,7 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
         | `SEMIAMP tok -> token env tok (* ";&" *)
         | `SEMISEMIAMP tok -> token env tok (* ";;&" *))
   in
-  todo
+  ()
 
 and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
   let assignments, redirects =
@@ -384,7 +387,7 @@ and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) :
 and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
     expression list =
   let v1 = prim_exp_or_special_char env v1 in
-  let v2 =
+  let v2 () =
     List.map
       (fun (v1, v2) ->
         let v1 = token env v1 (* concat *) in
@@ -392,7 +395,7 @@ and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
         todo env (v1, v2))
       v2
   in
-  let v3 =
+  let v3 () =
     match v3 with
     | Some (v1, v2) ->
         let v1 = token env v1 (* concat *) in
@@ -400,7 +403,7 @@ and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
         todo env (v1, v2)
     | None -> todo env ()
   in
-  todo env (v1, v2, v3)
+  []
 
 and do_group (env : env) ((v1, v2, v3) : CST.do_group) : blist bracket =
   let do_ = token env v1 (* "do" *) in
@@ -412,7 +415,7 @@ and do_group (env : env) ((v1, v2, v3) : CST.do_group) : blist bracket =
 
 and elif_clause (env : env) ((v1, v2, v3, v4) : CST.elif_clause) : elif =
   let elif = token env v1 (* "elif" *) in
-  let cond = terminated_statement env v2 in
+  let cond = terminated_statement env v2 |> blist_of_pipeline in
   let then_ = token env v3 (* "then" *) in
   let body =
     match v4 with Some x -> statements2 env x | None -> Empty (then_, then_)
@@ -904,7 +907,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `If_stmt (v1, v2, v3, v4, v5, v6, v7) ->
       let if_ = token env v1 (* "if" *) in
-      let cond = terminated_statement env v2 in
+      let cond = terminated_statement env v2 |> blist_of_pipeline in
       let then_ = token env v3 (* "then" *) in
       let body =
         match v4 with
@@ -1109,10 +1112,11 @@ and subshell (env : env) ((v1, v2, v3) : CST.subshell) : blist bracket =
   let close = token env v3 (* ")" *) in
   (open_, blist, close)
 
-and terminated_statement (env : env) ((v1, v2) : CST.terminated_statement) =
-  let v1 = statement env v1 in
-  let v2 = terminator env v2 in
-  todo env (v1, v2)
+and terminated_statement (env : env) ((v1, v2) : CST.terminated_statement) :
+    pipeline =
+  let pip = pipeline_statement env v1 in
+  let op = terminator env v2 in
+  Control_operator (pipeline_loc pip, pip, op)
 
 and test_command (env : env) (v1 : CST.test_command) : command =
   match v1 with

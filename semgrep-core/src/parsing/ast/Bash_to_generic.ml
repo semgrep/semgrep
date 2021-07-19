@@ -226,8 +226,9 @@ and command (cmd : command) : stmt_or_expr =
   | Simple_command { loc; assignments = _; arguments } ->
       let args = List.map expression arguments in
       Expr (loc, call loc C.cmd args)
-  | Subshell (loc, _) -> todo_stmt2 loc
-  | Command_group (loc, _) -> todo_stmt2 loc
+  | Subshell (loc, (open_, bl, close)) ->
+      (* TODO: subshell *) stmt_group loc (blist bl)
+  | Command_group (loc, (open_, bl, close)) -> stmt_group loc (blist bl)
   | Sh_test (loc, _) -> todo_expr2 loc
   | Bash_test (loc, _) -> todo_expr2 loc
   | Arithmetic_expression (loc, _) -> todo_expr2 loc
@@ -235,10 +236,31 @@ and command (cmd : command) : stmt_or_expr =
   | For_loop_c_style (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
   | Select (loc, _) -> todo_expr2 loc
   | Case (loc, _) -> todo_stmt2 loc
-  | If (loc, _, _, _, _, _, _, _) -> todo_stmt2 loc
+  | If (loc, if_, cond, then_, body, elifs, else_, fi) ->
+      let ifs = (loc, if_, cond, then_, body) :: elifs in
+      let else_stmt =
+        match else_ with
+        | None -> None
+        | Some (loc, else_tok, body) -> Some (blist body |> block |> as_stmt)
+      in
+      let opt_stmt =
+        List.fold_right
+          (fun if_ (else_stmt : G.stmt option) ->
+            let loc1, if_, cond, then_, body = if_ in
+            let cond_expr = blist cond |> block |> as_expr in
+            let body_stmt = blist body |> block |> as_stmt in
+            Some (G.s (G.If (if_, cond_expr, body_stmt, else_stmt))))
+          ifs else_stmt
+      in
+      let stmt =
+        match opt_stmt with
+        | None -> (* there's at least one 'if ... then ...' *) assert false
+        | Some stmt -> stmt
+      in
+      Stmt (loc, stmt)
   | While_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
   | Until_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
-  | Coprocess (loc, _, _) -> todo_expr2 loc
+  | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command cmd
   | Assignment (loc, _) -> todo_expr2 loc
   | Declaration (loc, _) -> todo_stmt2 loc
   | Negated_command (loc, _, _) -> todo_expr2 loc
