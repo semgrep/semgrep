@@ -70,7 +70,7 @@ let global_lang = ref Lang.OCaml
 (* Print *)
 (*****************************************************************************)
 
-let p_any = Pretty_print_generic.pattern_to_string !global_lang
+let p_any any = Pretty_print_generic.pattern_to_string !global_lang any
 
 let stage_string = function
   | DONE -> "done"
@@ -509,10 +509,11 @@ let rec generate_with_env (target_patterns : pattern_instrs list list) :
 
 let generate_patterns config targets lang =
   global_lang := lang;
-  if check_equal_length targets then
-    targets
+  let split_targets = List.map Range_to_AST.split_any targets in
+  if check_equal_length split_targets then
+    split_targets
     |> generate_starting_patterns config
     (* Transpose to intersect across targets, not within. *)
     |> transpose
-    |> generate_with_env |> List.map extract_pattern
+    |> generate_with_env |> List.map extract_pattern |> Range_to_AST.join_anys
   else failwith "Only targets of equal length are supported."

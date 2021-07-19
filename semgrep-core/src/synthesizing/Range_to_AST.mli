@@ -4,7 +4,9 @@
  *)
 val expr_at_range : Range.t -> AST_generic.program -> AST_generic.expr option
 
-val any_at_range : Range.t -> AST_generic.program -> AST_generic.any option
+(* Returns the first any found within range. *)
+val any_at_range_first :
+  Range.t -> AST_generic.program -> AST_generic.any option
 
 (* Repeatedly calls any_at_range to consume as much of the target input as possible.
  * If a call at any_at_range does not consume the entire token range, then
@@ -18,4 +20,14 @@ val any_at_range : Range.t -> AST_generic.program -> AST_generic.any option
 
  * Empty list is returned if no matches are found.
  *)
-val many_at_range : Range.t -> AST_generic.program -> AST_generic.any list
+val any_at_range_all : Range.t -> AST_generic.program -> AST_generic.any option
+
+(* Utility function for joining a list of anys together.
+ * Primary purpose is converting AST_generic.S list to AST_generic.Ss
+ *)
+val join_anys : AST_generic.any list -> AST_generic.any option
+
+(* Utility function for splitting an any into a list.
+ *  Primary purpose is splitting AST_generic.Ss into AST_generic.S list.
+ *)
+val split_any : AST_generic.any -> AST_generic.any list

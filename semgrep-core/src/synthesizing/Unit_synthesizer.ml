@@ -200,7 +200,7 @@ let unittest =
                     let pattern = Parse_pattern.parse_pattern lang pat in
 
                     (* extracting the code at the range *)
-                    let e_opt = Range_to_AST.any_at_range r code in
+                    let e_opt = Range_to_AST.any_at_range_first r code in
                     match e_opt with
                     | Some any ->
                         let code =

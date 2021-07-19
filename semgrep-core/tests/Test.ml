@@ -513,6 +513,7 @@ let test regexp =
       (* just expression vs expression testing for one language (Python) *)
       Unit_matcher.unittest ~any_gen_of_string;
       Unit_synthesizer.unittest;
+      Unit_synthesizer_targets.unittest;
       Unit_dataflow.unittest Parse_target.parse_program;
       Unit_typing_generic.unittest 
         Parse_target.parse_program 
