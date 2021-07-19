@@ -55,6 +55,10 @@ jobs:
           command: |
             cd parsing-stats
             ./run-all --upload
+      - store_artifacts:
+          path: parsing-stats/logs
+      - store_artifacts:
+          path: parsing-stats/results.txt
 
 workflows:
   version: 2
