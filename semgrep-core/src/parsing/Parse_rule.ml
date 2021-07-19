@@ -32,15 +32,15 @@ module Set = Set_
  *
  * See also the JSON schema in rule_schema.yaml.
  *
- * history: we used to parse a rule by simply using the basic API of
- * the OCaml 'yaml' library. This API allows converting a yaml file to
- * a simple and compact JSON type.
- * However, this JSON type did not contain any location information, which
+ * history: we used to parse a semgrep rule by simply using the basic API of
+ * the OCaml 'yaml' library. This API allows converting a yaml file into
+ * a simple and compact JSON.t value.
+ * However, this JSON.t value did not contain any location information, which
  * made it hard to report errors in a YAML rule. This is why we switched
  * to the low-level API of the 'yaml' library that returns a stream
  * of tokens with location information. We actually used first that low-level
  * API to return the generic AST of a yaml file, to add support for
- * YAML in semgrep (allowing semgrep rules on YAML file).
+ * YAML in semgrep (allowing semgrep rules on any YAML files).
  * See the Yaml_to_generic.program function. We then abuse this function
  * to also parse a semgrep rule (which is a yaml file) in this file.
  *
@@ -52,7 +52,16 @@ module Set = Set_
 (* Helpers *)
 (*****************************************************************************)
 
-type env = { id : string; languages : R.xlang; path : string list }
+type env = {
+  (* id of the current rule (needed by some exns) *)
+  id : string;
+  (* languages of the current rule (needed by parse_pattern) *)
+  languages : R.xlang;
+  (* emma: save the path within the yaml file for each pattern
+   * (this will allow us to later report errors in playground basic mode)
+   *)
+  path : string list;
+}
 
 (* TODO: switch to precise error location! *)
 let error s = raise (E.InvalidYamlException s)
@@ -257,6 +266,12 @@ let parse_pattern env e =
     | G.N (Id ((value, _), _)) -> value
     | _ -> error ("Expected a string value for " ^ env.id)
   in
+  (* emma: This is for later, but note that start and end_ are currently the same
+   * (each pattern is only associated with one token). This might be really annoying
+   * to change (we need to compute an accurate end_, but the string given to us by
+   * the yaml parser has tabs removed). Will include a note to this effect when
+   * I make my "add ranges to patterns" PR.
+   *)
   let start, end_ = Visitor_AST.range_of_any (G.E e) in
   let _s_range =
     (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
