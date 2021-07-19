@@ -216,12 +216,15 @@ type taint_spec = {
 
 type mode = Search of pformula | Taint of taint_spec [@@deriving show]
 
+(* TODO? just reuse Error_code.severity *)
+type severity = Error | Warning | Info [@@deriving show]
+
 type rule = {
   (* MANDATORY fields *)
   id : string;
   mode : mode;
   message : string;
-  severity : Mini_rule.severity;
+  severity : severity;
   languages : xlang;
   (* todo: used for error location (metachecker) but should disappear when
    * using a YAML parser keeping location information and some tok/wrap *)

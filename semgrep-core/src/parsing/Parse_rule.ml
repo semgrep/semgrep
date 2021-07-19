@@ -479,9 +479,9 @@ let parse_languages ~id langs =
 
 let parse_severity ~id s =
   match s with
-  | "ERROR" -> MR.Error
-  | "WARNING" -> MR.Warning
-  | "INFO" -> MR.Info
+  | "ERROR" -> R.Error
+  | "WARNING" -> R.Warning
+  | "INFO" -> R.Info
   | s ->
       raise
         (InvalidRuleException

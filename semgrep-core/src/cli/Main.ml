@@ -874,7 +874,7 @@ let rule_of_pattern lang pattern_string pattern =
     pattern_string;
     pattern;
     message = "";
-    severity = MR.Error;
+    severity = R.Error;
     languages = [ lang ];
   }
 
