@@ -145,9 +145,15 @@ let take_opt dict f key = Common.map_opt (f key) (Hashtbl.find_opt dict key)
 (* Sub parsers basic types *)
 (*****************************************************************************)
 
+(* TODO: delete at some point, should use parse_string_wrap instead *)
 let parse_string key = function
   | G.L (String (value, _)) -> value
   | G.N (Id ((value, _), _)) -> value
+  | _ -> error ("Expected a string value for " ^ key)
+
+let parse_string_wrap key = function
+  | G.L (String (value, t)) -> (value, t)
+  | G.N (Id ((value, t), _)) -> (value, t)
   | _ -> error ("Expected a string value for " ^ key)
 
 let parse_list key f = function
@@ -470,11 +476,12 @@ let parse_languages ~id langs =
                | None ->
                    raise
                      (InvalidLanguageException
-                        (id, spf "unsupported language: %s" s))
+                        (fst id, spf "unsupported language: %s" s))
                | Some l -> l))
       in
       match languages with
-      | [] -> raise (InvalidRuleException (id, "we need at least one language"))
+      | [] ->
+          raise (InvalidRuleException (fst id, "we need at least one language"))
       | x :: xs -> R.L (x, xs))
 
 let parse_severity ~id s =
@@ -485,7 +492,7 @@ let parse_severity ~id s =
   | s ->
       raise
         (InvalidRuleException
-           (id, spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s))
+           (fst id, spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s))
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -511,7 +518,7 @@ let parse_mode env mode_opt (rule_dict : (string, G.expr) Hashtbl.t) : R.mode =
       R.Taint { sources; sanitizers = optlist_to_list sanitizers_opt; sinks }
   | Some _ -> error "Unexpected value for mode, should be 'search' or 'taint'"
 
-let parse_generic file formula_ast =
+let parse_generic formula_ast =
   let rules_block =
     match formula_ast with
     | [
@@ -535,14 +542,15 @@ let parse_generic file formula_ast =
   in
   rules
   |> List.mapi (fun i rule ->
-         let rule_dict = yaml_to_dict "rules" rule in
-         let take f key = take rule_dict f key in
-         let take_opt f key = take_opt rule_dict f key in
+         let rd = yaml_to_dict "rules" rule in
          let id, languages =
-           (take parse_string "id", take parse_string_list "languages")
+           ( take rd parse_string_wrap "id",
+             take rd parse_string_list "languages" )
          in
          let languages = parse_languages ~id languages in
-         let env = { id; languages; path = [ string_of_int i; "rules" ] } in
+         let env =
+           { id = fst id; languages; path = [ string_of_int i; "rules" ] }
+         in
          let ( message,
                severity,
                mode_opt,
@@ -552,22 +560,21 @@ let parse_generic file formula_ast =
                paths_opt,
                equivs_opt,
                options_opt ) =
-           ( take parse_string "message",
-             take parse_string "severity",
-             take_opt parse_string "mode",
-             take_opt generic_to_json "metadata",
-             take_opt parse_string "fix",
-             take_opt (parse_fix_regex env) "fix-regex",
-             take_opt parse_paths "paths",
-             take_opt parse_equivalences "equivalences",
-             take_opt parse_options "options" )
+           ( take rd parse_string "message",
+             take rd parse_string "severity",
+             take_opt rd parse_string "mode",
+             take_opt rd generic_to_json "metadata",
+             take_opt rd parse_string "fix",
+             take_opt rd (parse_fix_regex env) "fix-regex",
+             take_opt rd parse_paths "paths",
+             take_opt rd parse_equivalences "equivalences",
+             take_opt rd parse_options "options" )
          in
-         let mode = parse_mode env mode_opt rule_dict in
+         let mode = parse_mode env mode_opt rd in
          {
            R.id;
            message;
            languages;
-           file;
            severity = parse_severity ~id severity;
            mode;
            (* optional fields *)
@@ -595,6 +602,6 @@ let parse file =
         failwith
           (spf "wrong rule format, only JSON/YAML/JSONNET are valid:%s:" file)
   in
-  parse_generic file ast
+  parse_generic ast
 
 (*e: semgrep/parsing/Parse_rule.ml *)

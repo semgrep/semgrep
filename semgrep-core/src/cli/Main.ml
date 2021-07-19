@@ -129,9 +129,6 @@ let rules_file = ref ""
 
 (*e: constant [[Main_semgrep_core.rules_file]] *)
 (*s: constant [[Main_semgrep_core.tainting_rules_file]] *)
-(* -tainting_rules_file *)
-let tainting_rules_file = ref ""
-
 (*e: constant [[Main_semgrep_core.tainting_rules_file]] *)
 
 (* -config *)

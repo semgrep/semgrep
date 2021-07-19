@@ -62,8 +62,9 @@ type env = Rule.t
 
 (* TODO: use a Parse_info.t when we switch to YAML with position info *)
 let error (env : env) s =
-  let loc = Parse_info.first_loc_of_file env.file in
-  let s = spf "%s (in ruleid: %s)" s env.id in
+  let ruleid, t = env.id in
+  let loc = Parse_info.token_location_of_info t in
+  let s = spf "%s (in ruleid: %s)" s ruleid in
   let check_id = "semgrep-metacheck-rule" in
   let err = E.mk_error_loc loc (E.SemgrepMatchFound (check_id, s)) in
   pr2 (E.string_of_error err)
@@ -174,7 +175,9 @@ let stat_files fparser xs =
                 match res with
                 | None ->
                     incr bad;
-                    pr2 (spf "PB: no regexp prefilter for rule %s:%s" file r.id)
+                    pr2
+                      (spf "PB: no regexp prefilter for rule %s:%s" file
+                         (fst r.id))
                 | Some (s, _f) ->
                     incr good;
                     pr2 (spf "regexp: %s" s)));

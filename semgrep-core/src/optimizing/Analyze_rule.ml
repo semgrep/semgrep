@@ -17,6 +17,7 @@ module Re = Regexp_engine.Re_engine
 module Pcre = Regexp_engine.Pcre_engine
 module R = Rule
 module MV = Metavariable
+module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -461,7 +462,8 @@ let regexp_prefilter_of_formula f =
 let hmemo = Hashtbl.create 101
 
 let regexp_prefilter_of_rule r =
-  let k = r.R.file ^ "." ^ r.R.id in
+  let id, t = r.R.id in
+  let k = PI.file_of_info t ^ "." ^ id in
   Common.memoized hmemo k (fun () ->
       match r.mode with
       | R.Search pf ->

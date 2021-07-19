@@ -93,7 +93,11 @@ let parse file =
                          let pattern =
                            PR.parse_pattern ~id ~lang pattern_string
                          in
-                         let severity = PR.parse_severity ~id sev in
+                         let severity =
+                           PR.parse_severity
+                             ~id:(id, Parse_info.fake_info "id")
+                             sev
+                         in
                          {
                            R.id;
                            pattern;
