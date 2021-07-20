@@ -71,6 +71,11 @@ let xlang_of_string ?id:(id_opt = None) s =
                    (id, Common.spf "unsupported language: %s" s)))
       | Some l -> L (l, []))
 
+let string_of_xlang = function
+  | L (l, _) -> Lang.string_of_lang l
+  | LRegex -> "regex"
+  | LGeneric -> "generic"
+
 (*****************************************************************************)
 (* Extended patterns *)
 (*****************************************************************************)

@@ -573,8 +573,12 @@ let parse_pattern lang_pattern str =
         res)
   with exn ->
     raise
-      (Parse_rule.InvalidPatternException
-         ("no-id", str, !lang, Common.exn_to_s exn))
+      (Parse_rule.InvalidPattern
+         ( "no-id",
+           str,
+           Rule.L (lang_pattern, []),
+           Common.exn_to_s exn,
+           Parse_info.fake_info "no loc" ))
   [@@profiling]
 
 (*e: function [[Main_semgrep_core.parse_pattern]] *)
