@@ -27,7 +27,11 @@ module H = AST_generic_helpers
  *
  * See AST_generic.ml for more information.
  *
- * TODO: intercept Call to eval and transform in special Eval?
+ * TODO:
+ *  - intercept Call to eval and transform in special Eval?
+ *  - call to (list stmt) should be converted to list_stmt
+ *    to avoid intermediates Block
+ *    (should use embedded-Semgrep-rule idea of rcoh!)
  *)
 
 (*****************************************************************************)
@@ -548,6 +552,11 @@ and list_stmt1 xs =
 
 (*e: function [[Python_to_generic.list_stmt1]] *)
 
+(* This will avoid intermediate Block. You should prefer this function
+ * to calls to (list stmt)
+ *)
+and list_stmt xs = list stmt_aux xs |> List.flatten
+
 (* In Python, many Assign are actually VarDef. We should transform those,
  * because this would simplify Naming_AST.ml later, but this requires
  * some semantic analysis to detect which of those Assign are the first
@@ -586,7 +595,7 @@ and stmt_aux x =
   | ClassDef (v0, v1, v2, v3, v4) ->
       let v1 = name v1
       and v2 = list type_parent v2
-      and v3 = list stmt v3
+      and v3 = list_stmt v3
       and v4 = list decorator v4 in
       let ent = G.basic_entity v1 v4 in
       let def =
@@ -633,7 +642,10 @@ and stmt_aux x =
       let v1 = expr v1 and v2 = list_stmt1 v2 and v3 = option list_stmt1 v3 in
       [ G.If (t, v1, v2, v3) |> G.s ]
   | While (t, v1, v2, v3) -> (
-      let v1 = expr v1 and v2 = list_stmt1 v2 and v3 = list stmt v3 in
+      (* TODO? missing list_stmt1 for v3? *)
+      let v1 = expr v1
+      and v2 = list_stmt1 v2
+      and v3 = list_stmt v3 in
       match v3 with
       | [] -> [ G.While (t, v1, v2) |> G.s ]
       | _ ->
@@ -652,7 +664,7 @@ and stmt_aux x =
       let foreach = pattern v1
       and ins = expr v2
       and body = list_stmt1 v3
-      and orelse = list stmt v4 in
+      and orelse = list_stmt v4 in
       let header = G.ForEach (foreach, t2, ins) in
       match orelse with
       | [] -> [ G.For (t, header, body) |> G.s ]
@@ -705,7 +717,7 @@ and stmt_aux x =
   | TryExcept (t, v1, v2, v3) -> (
       let v1 = list_stmt1 v1
       and v2 = list excepthandler v2
-      and orelse = list stmt v3 in
+      and orelse = list_stmt v3 in
       match orelse with
       | [] -> [ G.Try (t, v1, v2, None) |> G.s ]
       | _ ->
@@ -774,6 +786,9 @@ and ident_and_id_info x =
   (x, G.empty_id_info ())
 
 (*s: function [[Python_to_generic.stmt]] *)
+(* try avoid using that function as it may introduce
+ * intermediate Block that could prevent some semgrep matching
+ *)
 and stmt x = G.stmt1 (stmt_aux x)
 
 (*e: function [[Python_to_generic.stmt]] *)
@@ -832,7 +847,7 @@ and alias (v1, v2) =
 
 (*s: function [[Python_to_generic.program]] *)
 let program v =
-  let v = list stmt v in
+  let v = list_stmt v in
   v
 
 (*e: function [[Python_to_generic.program]] *)
@@ -846,11 +861,8 @@ let any = function
       let v1 = stmt v1 in
       (* in Python Assign is a stmt but in the generic AST it's an expression*)
       match v1.G.s with G.ExprStmt (x, _t) -> G.E x | _ -> G.S v1)
-  (* TODO? should use list stmt_aux here? Some intermediate Block
-   * could be inserted preventing some sgrep matching?
-   *)
   | Stmts v1 ->
-      let v1 = list stmt v1 in
+      let v1 = list_stmt v1 in
       G.Ss v1
   | Program v1 ->
       let v1 = program v1 in
