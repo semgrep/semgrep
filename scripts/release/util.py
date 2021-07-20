@@ -71,7 +71,5 @@ def diffs() -> Sequence[Sequence[str]]:
     Returns the current git status as a list of [code, filename] pairs
     """
     return [
-        d.strip().split(" ")
-        for d in git("status", "--porcelain").strip().split("\n")
-        if d
+        d.strip().split() for d in git("status", "--porcelain").strip().split("\n") if d
     ]
