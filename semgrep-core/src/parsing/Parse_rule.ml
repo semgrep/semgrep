@@ -134,24 +134,22 @@ let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
       { h = dict }
   | _ -> error ("each " ^ fst enclosing ^ " should be an object")
 
-(* Mutates the Hashtbl!
- * todo? define in terms of take_opt?
- *)
-let (take : dict -> (key -> G.expr -> 'a) -> string -> 'a) =
- fun dict f key_str ->
-  match Hashtbl.find_opt dict.h key_str with
-  | Some (key, value) ->
-      let res = f key value in
-      Hashtbl.remove dict.h key_str;
-      res
-  | None -> error ("Missing required field " ^ key_str)
-
 (* Mutates the Hashtbl! *)
 let (take_opt : dict -> (key -> G.expr -> 'a) -> string -> 'a option) =
  fun dict f key_str ->
   Common.map_opt
-    (fun (key, value) -> f key value)
+    (fun (key, value) ->
+      let res = f key value in
+      Hashtbl.remove dict.h key_str;
+      res)
     (Hashtbl.find_opt dict.h key_str)
+
+(* Mutates the Hashtbl! *)
+let (take : dict -> (key -> G.expr -> 'a) -> string -> 'a) =
+ fun dict f key_str ->
+  match take_opt dict f key_str with
+  | Some res -> res
+  | None -> error ("Missing required field " ^ key_str)
 
 (*****************************************************************************)
 (* Sub parsers basic types *)
