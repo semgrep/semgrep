@@ -1,0 +1,11 @@
+rules:
+- id: test-template
+  patterns:
+  - pattern-inside: |
+        bar($Y);
+        other_stuff($X);
+  #ERROR: bad pattern
+  - pattern: 1 + 
+  message: Working!
+  severity: WARNING
+  languages: [javascript]
