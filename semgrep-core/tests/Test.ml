@@ -499,8 +499,12 @@ let eval_regression_tests =
       )
   )
 
-let parsing_rule_regression_tests = 
-  "parsing rule regression testing" >::: (
+(* alt: we could split the purely-syntactical parsing error checks
+ * from the metachecker checks, but simpler to consider all of that
+ * as just errors.
+ *)
+let metachecker_regression_tests = 
+  "metachecker regression testing" >::: (
       let dir = Filename.concat tests_path "OTHER/errors" in
       let files = Common2.glob (spf "%s/*.yaml" dir) in
       files |> List.map (fun file ->
@@ -509,11 +513,18 @@ let parsing_rule_regression_tests =
         Error_code.g_errors := [];
         E.try_with_exn_to_error file (fun () ->
           try
-            let _ = Parse_rule.parse file in
-            ()
+            let rules = Parse_rule.parse file in
+            rules |> List.iter (fun rule ->
+              let errs = Check_rule.check rule in
+              Error_code.g_errors := errs @ !Error_code.g_errors
+            )
           with
           (* convert to things handled by E.try_with_exn_to_error *)
-          | Parse_rule.InvalidYamlException (s, t) ->
+          | Parse_rule.InvalidRule (_, s, t)
+          | Parse_rule.InvalidYaml (s, t)
+          | Parse_rule.InvalidRegexp (_, s, t)
+          | Parse_rule.InvalidLanguage (_, s, t)
+           ->
               raise (Parse_info.Other_error (s, t))
         );
 
@@ -557,7 +568,7 @@ let test regexp =
       eval_regression_tests;
       full_rule_regression_tests;
       lang_tainting_tests;
-      parsing_rule_regression_tests;
+      metachecker_regression_tests;
     ]
   in
   let suite =

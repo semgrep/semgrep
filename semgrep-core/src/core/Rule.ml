@@ -230,7 +230,7 @@ type severity = Error | Warning | Info [@@deriving show]
 
 type rule = {
   (* MANDATORY fields *)
-  id : string wrap;
+  id : rule_id wrap;
   mode : mode;
   message : string;
   severity : severity;
@@ -245,6 +245,8 @@ type rule = {
   (* ex: [("owasp", "A1: Injection")] but can be anything *)
   metadata : JSON.t option;
 }
+
+and rule_id = string
 
 and paths = {
   (* not regexp but globs *)

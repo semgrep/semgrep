@@ -12,6 +12,8 @@ val parse : Common.filename -> Mini_rule.rules
 (*s: exception [[Parse_rules.InvalidPatternException]] *)
 (*e: exception [[Parse_rules.InvalidPatternException]] *)
 (*s: exception [[Parse_rules.UnparsableYamlException]] *)
+exception UnparsableYamlException of string
+
 (*e: exception [[Parse_rules.UnparsableYamlException]] *)
 (*s: exception [[Parse_rules.InvalidYamlException]] *)
 (*e: exception [[Parse_rules.InvalidYamlException]] *)

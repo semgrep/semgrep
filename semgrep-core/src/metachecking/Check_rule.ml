@@ -122,7 +122,8 @@ let check_formula env lang f =
          | Spacegrep _spacegrep_pat, LGeneric -> ()
          | Regexp _, _ -> ()
          | _ -> raise Impossible);
-  ()
+  (* TODO *)
+  []
 
 (*****************************************************************************)
 (* Entry points *)
@@ -134,7 +135,7 @@ let check r =
   | Rule.Search pf ->
       let f = Rule.formula_of_pformula pf in
       check_formula r r.languages f
-  | Taint _ -> (* TODO *) ()
+  | Taint _ -> (* TODO *) []
 
 (* We parse the parsing function fparser (Parser_rule.parse) to avoid
  * circular dependencies.
@@ -147,13 +148,17 @@ let check_files fparser xs =
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
+    |> Common.exclude (fun file -> file =~ ".*\\.test\\.yaml")
   in
   if fullxs = [] then logger#error "no rules to check";
   fullxs
   |> List.iter (fun file ->
          logger#info "processing %s" file;
          let rs = fparser file in
-         rs |> List.iter check)
+         rs
+         |> List.iter (fun file ->
+                let errs = check file in
+                errs |> List.iter (fun err -> pr2 (E.string_of_error err))))
 
 let stat_files fparser xs =
   let fullxs =
