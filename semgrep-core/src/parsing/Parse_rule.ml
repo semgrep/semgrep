@@ -70,7 +70,7 @@ type dict = {
   (* !this is mutated! *)
   h : (string, key * AST_generic.expr) Hashtbl.t;
   (* for error reports on missing fields *)
-  enclosing : string R.wrap;
+  first_tok : R.tok;
 }
 
 (*****************************************************************************)
@@ -135,7 +135,10 @@ let optlist_to_list = function None -> [] | Some xs -> xs
 
 let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
   match rule with
-  | G.Container (Dict, (_, fields, _)) ->
+  (* note that the l/r are actually populated by yaml_to_generic, even
+   * though there is no proper corresponding token
+   *)
+  | G.Container (Dict, (l, fields, _r)) ->
       let dict = Hashtbl.create 10 in
       fields
       |> List.iter (fun field ->
@@ -143,7 +146,7 @@ let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
              | G.Tuple (_, [ L (String (key_str, t)); value ], _) ->
                  Hashtbl.add dict key_str ((key_str, t), value)
              | x -> error_at_expr x "Not a valid key value pair");
-      { h = dict; enclosing }
+      { h = dict; first_tok = l }
   | x -> error_at_expr x ("each " ^ fst enclosing ^ " should be an object")
 
 (* Mutates the Hashtbl! *)
@@ -161,7 +164,7 @@ let (take : dict -> (key -> G.expr -> 'a) -> string -> 'a) =
  fun dict f key_str ->
   match take_opt dict f key_str with
   | Some res -> res
-  | None -> error_at_key dict.enclosing ("Missing required field " ^ key_str)
+  | None -> error dict.first_tok ("Missing required field " ^ key_str)
 
 (*****************************************************************************)
 (* Sub parsers basic types *)
@@ -347,7 +350,7 @@ let find_formula_old (rule_dict : dict) : key * G.expr =
       find "pattern-comby" )
   with
   | None, None, None, None, None ->
-      error_at_key rule_dict.enclosing
+      error rule_dict.first_tok
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
          `pattern-regex`, `pattern-comby` to be present"
   | Some (key, value), None, None, None, None
@@ -357,7 +360,7 @@ let find_formula_old (rule_dict : dict) : key * G.expr =
   | None, None, None, None, Some (key, value) ->
       (key, value)
   | _ ->
-      error_at_key rule_dict.enclosing
+      error rule_dict.first_tok
         "Expected only one of `pattern`, `pattern-either`, `patterns`, \
          `pattern-regex`, or `pattern-comby`"
 
