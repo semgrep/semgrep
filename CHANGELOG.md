@@ -2,7 +2,7 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.59.0](https://github.com/returntocorp/semgrep/releases/tag/v0.59.0) - 2021-07-20
 
 ### Added
 - A new experimental 'join' mode. This mode runs multiple Semgrep rules
@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   with several Semgrep rules.
 
 ### Fixed
+- Improve location reporting of errors
 - metavariable-pattern: `pattern-not-regex` now works (#3503)
 - Rust: correctly parse macros (#3513)
 - Python: imports are unsugared correctly (#3940)
