@@ -246,18 +246,17 @@ and method_name mn =
           | _ -> Right (string_contents_list (l, xs, r))))
 
 and string_contents_list (t1, xs, t2) =
-  let xs = list string_contents xs in
+  let xs = list (string_contents t1) xs in
 
   G.Call
-    ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, PI.fake_info ""),
+    ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t1),
       (t1, xs |> List.map (fun e -> G.Arg e), t2) )
 
-and string_contents = function
+and string_contents tok = function
   | StrChars s -> G.L (G.String s)
   | StrExpr (l, e, r) ->
       G.Call
-        ( G.IdSpecial (G.InterpolatedElement, PI.fake_info ""),
-          (l, [ G.Arg (expr e) ], r) )
+        (G.IdSpecial (G.InterpolatedElement, tok), (l, [ G.Arg (expr e) ], r))
 
 and method_name_to_any mn =
   match method_name mn with Left id -> G.I id | Right e -> G.E e
