@@ -47,13 +47,6 @@ jobs:
           docker build -t "$tag" .
           docker push "$tag"
 
-      - name: update dev.semgrep.dev
-        run: curl --fail -X POST https://dev.semgrep.dev/api/admin/update-docker
-      - name: update staging.semgrep.dev
-        run: curl --fail -X POST https://staging.semgrep.dev/api/admin/update-docker
-      - name: update semgrep.dev
-        run: curl --fail -X POST https://semgrep.dev/api/admin/update-docker
-
       # Extend the semgrep image, changing the entry point to bash and
       # adding some utilities. This image is meant for internal uses
       # such as benchmarks.
