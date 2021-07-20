@@ -319,7 +319,7 @@ let parse_options (key : key) value =
  * by the YAML parser do not correspond exactly to the content
  * in the YAML file. If the pattern is on a single line, as in
  *    pattern: foo($X)
- * then everything is fine, but if it's on multiple line as in
+ * then everything is fine, but if it's on multiple lines as in
  *    pattern: |
  *       foo($X);
  *       bar($X);
