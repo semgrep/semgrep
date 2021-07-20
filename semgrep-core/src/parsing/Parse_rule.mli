@@ -6,11 +6,11 @@ exception InvalidLanguageException of string * string
 
 exception InvalidPatternException of string * string * string * string
 
-exception InvalidRegexpException of string * string
+exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
 
 exception UnparsableYamlException of string
 
-exception InvalidYamlException of string * Parse_info.t
+exception InvalidYaml of string * Parse_info.t
 
 (* may raise all the exns above *)
 val parse : Common.filename -> Rule.rules

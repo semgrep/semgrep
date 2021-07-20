@@ -51,7 +51,7 @@ module Set = Set_
 
 type env = {
   (* id of the current rule (needed by some exns) *)
-  id : string;
+  id : Rule.rule_id;
   (* languages of the current rule (needed by parse_pattern) *)
   languages : R.xlang;
   (* emma: save the path within the yaml file for each pattern
@@ -83,14 +83,14 @@ exception InvalidLanguageException of string * string
 
 exception InvalidPatternException of string * string * string * string
 
-exception InvalidRegexpException of string * string
+exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
 
 exception UnparsableYamlException of string
 
 (* general error *)
-exception InvalidYamlException of string * Parse_info.t
+exception InvalidYaml of string * Parse_info.t
 
-let error t s = raise (InvalidYamlException (s, t))
+let error t s = raise (InvalidYaml (s, t))
 
 let error_at_key (key : key) s = error (snd key) s
 
@@ -251,14 +251,14 @@ let parse_metavar_cond key s =
   | UnixExit n -> raise (UnixExit n)
   | exn -> error_at_key key ("exn: " ^ Common.exn_to_s exn)
 
-let parse_regexp env s =
+let parse_regexp env (s, t) =
   try (s, Pcre.regexp s)
   with Pcre.Error exn ->
-    raise (InvalidRegexpException (env.id, pcre_error_to_string s exn))
+    raise (InvalidRegexp (env.id, pcre_error_to_string s exn, t))
 
 let parse_fix_regex (env : env) (key : key) fields =
   let fix_regex_dict = yaml_to_dict key fields in
-  let (regex : string) = take fix_regex_dict parse_string "regex" in
+  let (regex : string R.wrap) = take fix_regex_dict parse_string_wrap "regex" in
   let (replacement : string) = take fix_regex_dict parse_string "replacement" in
   let (count_opt : int option) = take_opt fix_regex_dict parse_int "count" in
   (parse_regexp env regex, count_opt, replacement)
@@ -387,12 +387,12 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "pattern-either" -> R.PatEither (parse_listi key get_nested_formula value)
   | "patterns" -> R.Patterns (parse_listi key get_nested_formula value)
   | "pattern-regex" ->
-      let s = parse_string key value in
-      let xpat = R.mk_xpat (Regexp (parse_regexp env s)) s in
+      let x = parse_string_wrap key value in
+      let xpat = R.mk_xpat (Regexp (parse_regexp env x)) (fst x) in
       R.Pat xpat
   | "pattern-not-regex" ->
-      let s = parse_string key value in
-      let xpat = R.mk_xpat (Regexp (parse_regexp env s)) s in
+      let x = parse_string_wrap key value in
+      let xpat = R.mk_xpat (Regexp (parse_regexp env x)) (fst x) in
       R.PatNot xpat
   | "pattern-comby" ->
       let s = parse_string key value in
@@ -401,6 +401,10 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "metavariable-regex" | "metavariable-pattern" | "metavariable-comparison"
   | "pattern-where-python" ->
       R.PatExtra (parse_extra env key value)
+  (* fix suggestions *)
+  | "metavariable-regexp" ->
+      error_at_key key
+        (spf "unexpected key %s, did you mean metavariable-regex" (fst key))
   | _ -> error_at_key key (spf "unexpected key %s" (fst key))
 
 (* let extra = parse_extra env x in
@@ -414,8 +418,8 @@ and parse_formula_new env (x : G.expr) : R.formula =
       | "not" -> R.Not (parse_formula_new env value)
       | "inside" -> R.Leaf (R.P (parse_xpattern env value, Some Inside))
       | "regex" ->
-          let s = parse_string key value in
-          let xpat = R.mk_xpat (R.Regexp (parse_regexp env s)) s in
+          let x = parse_string_wrap key value in
+          let xpat = R.mk_xpat (R.Regexp (parse_regexp env x)) (fst x) in
           R.Leaf (R.P (xpat, None))
       | "comby" ->
           let s = parse_string key value in
@@ -428,8 +432,8 @@ and parse_formula_new env (x : G.expr) : R.formula =
           match value with
           | G.Container (Array, (_, [ mvar; re ], _)) ->
               let mvar = parse_string key mvar in
-              let re = parse_string key re in
-              R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env re)))
+              let x = parse_string_wrap key re in
+              R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env x)))
           | x -> error_at_expr x "Expected a metavariable and regex")
       | _ -> error_at_key key ("Invalid key for formula_new " ^ fst key))
   | _ -> R.Leaf (R.P (parse_xpattern env x, None))
@@ -442,7 +446,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       let mv_regex_dict = yaml_to_dict key value in
       let metavar, regexp =
         ( take mv_regex_dict parse_string "metavariable",
-          take mv_regex_dict parse_string "regex" )
+          take mv_regex_dict parse_string_wrap "regex" )
       in
       R.MetavarRegexp (metavar, parse_regexp env regexp)
   | "metavariable-pattern" ->

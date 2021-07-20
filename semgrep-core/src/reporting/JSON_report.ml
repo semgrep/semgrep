@@ -252,7 +252,7 @@ let json_of_exn e =
           ("language", J.String lang);
           ("message", J.String message);
         ]
-  | Parse_rule.InvalidRegexpException (pattern_id, message) ->
+  | Parse_rule.InvalidRegexp (pattern_id, message, _posTODO) ->
       J.Object
         [
           ("pattern_id", J.String pattern_id);
@@ -262,7 +262,7 @@ let json_of_exn e =
   | Parse_rule.UnparsableYamlException msg ->
       J.Object
         [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]
-  | Parse_rule.InvalidYamlException (msg, _posTODO) ->
+  | Parse_rule.InvalidYaml (msg, _posTODO) ->
       J.Object [ ("error", J.String "invalid yaml"); ("message", J.String msg) ]
   | exn ->
       J.Object

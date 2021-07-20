@@ -2,8 +2,8 @@
 
 (*s: signature [[Check_semgrep.check_pattern]] *)
 
-val check : Lang.t -> AST_generic.any -> unit
-(** Check semgrep patterns for potential issues. Will raise exn if issue. *)
+(* Check semgrep patterns for potential issues. *)
+val check : Lang.t -> Pattern.t -> (* TODO Error_code.error list *) unit
 
 (*e: signature [[Check_semgrep.check_pattern]] *)
 (*e: semgrep/parsing/Check_pattern.mli *)

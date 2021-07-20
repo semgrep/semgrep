@@ -110,15 +110,11 @@ let parse file =
                          }
                      | x ->
                          pr2_gen x;
-                         raise
-                           (PR.InvalidYamlException ("wrong rule fields", t)))
+                         raise (PR.InvalidYaml ("wrong rule fields", t)))
                  | x ->
                      pr2_gen x;
-                     raise (PR.InvalidYamlException ("wrong rule fields", t)))
-      | _ ->
-          raise
-            (PR.InvalidYamlException ("missing rules entry as top-level key", t))
-      )
+                     raise (PR.InvalidYaml ("wrong rule fields", t)))
+      | _ -> raise (PR.InvalidYaml ("missing rules entry as top-level key", t)))
   | Result.Error (`Msg s) -> raise (PR.UnparsableYamlException s)
 
 (*e: function [[Parse_rules.parse]] *)
