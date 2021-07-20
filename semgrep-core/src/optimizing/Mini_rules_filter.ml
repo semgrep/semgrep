@@ -43,7 +43,7 @@ let filter_mini_rules_relevant_to_file_using_regexp rules lang file =
            (* we could avoid running multiple regexps on the same file
             * by first orring them and do the and only of the or succeed,
             * but probably not worth the opti.
-         let t = xs |> List.map (fun x -> regexp_matching_str x) |> Re.alt in
+         let t = xs |> Ls.map (fun x -> regexp_matching_str x) |> Re.alt in
          let re = compile_regexp t in
          run_regexp re str
             *)

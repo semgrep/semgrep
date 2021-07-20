@@ -32,7 +32,7 @@ let expr x =
             | Record (lp, xs, rp) ->
                 let ys =
                   xs
-                  |> List.map (function
+                  |> Ls.map (function
                        | G.FieldStmt
                            {
                              s =
@@ -50,7 +50,7 @@ let expr x =
                 in
                 let zs =
                   ys
-                  |> List.map (function
+                  |> Ls.map (function
                        | Left (id, e) ->
                            let key =
                              (* we don't want $FLD: 1 to be transformed

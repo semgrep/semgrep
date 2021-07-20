@@ -86,7 +86,7 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
                     Match.timef (fun () -> Parse_doc.of_src doc_src)
                   in
                   let matches_in_file =
-                    List.mapi
+                    Ls.mapi
                       (fun pat_id (pat_src, pat) ->
                         if debug then
                           printf
@@ -135,8 +135,8 @@ let run config =
     (match config.pattern with
     | None -> []
     | Some pat_str -> [ Src_file.of_string pat_str ])
-    @ List.map Src_file.of_file pattern_files
-    |> List.map (fun pat_src -> (pat_src, Parse_pattern.of_src pat_src))
+    @ Ls.map Src_file.of_file pattern_files
+    |> Ls.map (fun pat_src -> (pat_src, Parse_pattern.of_src pat_src))
   in
   let patterns, errors =
     let rev_patterns, rev_errors =
@@ -159,7 +159,7 @@ let run config =
         ]
     | roots ->
         let files = Find_files.list roots in
-        List.map (fun file ?max_len () -> Src_file.of_file ?max_len file) files
+        Ls.map (fun file ?max_len () -> Src_file.of_file ?max_len file) files
   in
   let debug = config.debug in
   if debug then Match.debug := true;

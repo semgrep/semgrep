@@ -244,7 +244,7 @@ let set_gc () =
 
 (*s: function [[Main_semgrep_core.map]] *)
 let map f xs =
-  if !ncores <= 1 then List.map f xs
+  if !ncores <= 1 then Ls.map f xs
   else
     let n = List.length xs in
     (* Heuristic. Note that if you don't set a chunksize, Parmap
@@ -298,12 +298,12 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
 
     let strings_metavars =
       mvars
-      |> List.map (fun x ->
+      |> Ls.map (fun x ->
              match Common2.assoc_opt x mvar_binding with
              | Some any ->
                  any |> ii_of_any
                  |> List.filter PI.is_origintok
-                 |> List.map PI.str_of_info
+                 |> Ls.map PI.str_of_info
                  |> Matching_report.join_with_space_if_needed
              | None -> failwith (spf "the metavariable '%s' was not binded" x))
     in
@@ -438,7 +438,7 @@ let run_with_memory_limit limit_mb f =
 let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   let per_files =
     matches
-    |> List.map (fun m -> (m.Pattern_match.file, m))
+    |> Ls.map (fun m -> (m.Pattern_match.file, m))
     |> Common.group_assoc_bykey_eff
   in
   let offending_files =
@@ -454,19 +454,19 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   in
   let new_errors =
     offending_files |> Common.hashset_to_list
-    |> List.map (fun file ->
+    |> Ls.map (fun file ->
            (* logging useful info for rule writers *)
            logger#info "too many matches on %s, generating exn for it" file;
            let biggest_offending_rule =
              let matches = List.assoc file per_files in
              matches
-             |> List.map (fun m ->
+             |> Ls.map (fun m ->
                     let rule_id = m.Pattern_match.rule_id in
                     ( ( rule_id.Pattern_match.id,
                         rule_id.Pattern_match.pattern_string ),
                       m ))
              |> Common.group_assoc_bykey_eff
-             |> List.map (fun (k, xs) -> (k, List.length xs))
+             |> Ls.map (fun (k, xs) -> (k, List.length xs))
              |> Common.sort_by_val_highfirst |> List.hd
              (* nosemgrep *)
            in
@@ -891,7 +891,7 @@ let rule_of_pattern lang pattern_string pattern =
 (*s: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
 (* simpler code path compared to semgrep_with_rules *)
 let semgrep_with_one_pattern lang xs =
-  (* old: let xs = List.map Common.fullpath xs in
+  (* old: let xs = Ls.map Common.fullpath xs in
    * better no fullpath here, not our responsability.
    *)
   let pattern, pattern_string =
@@ -1010,19 +1010,19 @@ let json_of_v (v : OCaml.v) =
     | OCaml.VChar v1 -> J.String (spf "'%c'" v1)
     | OCaml.VString v1 -> J.String v1
     | OCaml.VInt i -> J.Int i
-    | OCaml.VTuple xs -> J.Array (List.map aux xs)
-    | OCaml.VDict xs -> J.Object (List.map (fun (k, v) -> (k, aux v)) xs)
+    | OCaml.VTuple xs -> J.Array (Ls.map aux xs)
+    | OCaml.VDict xs -> J.Object (Ls.map (fun (k, v) -> (k, aux v)) xs)
     | OCaml.VSum (s, xs) -> (
         match xs with
         | [] -> J.String (spf "%s" s)
         | [ one_element ] -> J.Object [ (s, aux one_element) ]
-        | _ -> J.Object [ (s, J.Array (List.map aux xs)) ])
+        | _ -> J.Object [ (s, J.Array (Ls.map aux xs)) ])
     | OCaml.VVar (s, i64) -> J.String (spf "%s_%d" s (Int64.to_int i64))
     | OCaml.VArrow _ -> failwith "Arrow TODO"
     | OCaml.VNone -> J.Null
     | OCaml.VSome v -> J.Object [ ("some", aux v) ]
     | OCaml.VRef v -> J.Object [ ("ref@", aux v) ]
-    | OCaml.VList xs -> J.Array (List.map aux xs)
+    | OCaml.VList xs -> J.Array (Ls.map aux xs)
     | OCaml.VTODO _ -> J.String "VTODO"
   in
   aux v
@@ -1084,7 +1084,7 @@ let dump_v1_json file =
 let dump_ext_of_lang () =
   let lang_to_exts =
     Lang.keys
-    |> List.map (fun lang_str ->
+    |> Ls.map (fun lang_str ->
            match Lang.lang_of_string_opt lang_str with
            | Some lang ->
                lang_str ^ "->" ^ String.concat ", " (Lang.ext_of_lang lang)

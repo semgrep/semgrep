@@ -38,7 +38,7 @@ let (lang_of_rules: Rule.t list -> Lang.t) = fun rs ->
 *)
 
 let (xlangs_of_rules : Rule.t list -> Rule.xlang list) =
- fun rs -> rs |> List.map (fun r -> r.R.languages) |> List.sort_uniq compare
+ fun rs -> rs |> Ls.map (fun r -> r.R.languages) |> List.sort_uniq compare
 
 let first_xlang_of_rules rs =
   match rs with [] -> failwith "no rules" | { R.languages = x; _ } :: _ -> x

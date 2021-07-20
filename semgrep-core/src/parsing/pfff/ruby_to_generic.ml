@@ -39,7 +39,7 @@ let id x = x
 
 let option = Common.map_opt
 
-let list = List.map
+let list = Ls.map
 
 let bool = id
 
@@ -98,7 +98,7 @@ let rec expr = function
       let lb, xs, rb = bracket (list expr) xs in
       (* TODO: maybe make an extra separate Call for the block? *)
       let last = option expr bopt |> Common.opt_to_list in
-      G.Call (e, (lb, xs @ last |> List.map G.arg, rb))
+      G.Call (e, (lb, xs @ last |> Ls.map G.arg, rb))
   | DotAccess (e, t, m) ->
       let e = expr e in
       let fld =
@@ -108,7 +108,7 @@ let rec expr = function
       in
       G.DotAccess (e, t, fld)
   | Splat (t, eopt) ->
-      let xs = option expr eopt |> Common.opt_to_list |> List.map G.arg in
+      let xs = option expr eopt |> Common.opt_to_list |> Ls.map G.arg in
       let special = G.IdSpecial (G.Spread, t) in
       G.Call (special, fb xs)
   | CodeBlock ((t1, _, t2), params_opt, xs) ->
@@ -250,7 +250,7 @@ and string_contents_list (t1, xs, t2) =
 
   G.Call
     ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t1),
-      (t1, xs |> List.map (fun e -> G.Arg e), t2) )
+      (t1, xs |> Ls.map (fun e -> G.Arg e), t2) )
 
 and string_contents tok = function
   | StrChars s -> G.L (G.String s)
@@ -446,14 +446,14 @@ and stmt st =
             let st = list_stmt1 sts in
             [ ([ G.Default t ], st) ]
       in
-      G.Switch (t, eopt, whens @ default |> List.map (fun x -> G.CasesAndBody x))
+      G.Switch (t, eopt, whens @ default |> Ls.map (fun x -> G.CasesAndBody x))
       |> G.s
   | ExnBlock b -> body_exn b
 
 and when_clause (t, pats, sts) =
   let pats = list pattern pats in
   let st = list_stmt1 sts in
-  (pats |> List.map (fun pat -> G.Case (t, pat)), st)
+  (pats |> Ls.map (fun pat -> G.Case (t, pat)), st)
 
 and exprs_to_label_ident = function
   | [] -> G.LNone

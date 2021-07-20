@@ -239,7 +239,7 @@ and stmt_with_opt_heredoc (env : env)
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let open_ = token env v1 (* "(" *) in
-  let _v2 = List.map (literal env) v2 in
+  let _v2 = Ls.map (literal env) v2 in
   let close = token env v3 (* ")" *) in
   Expression_TODO (open_, close)
 
@@ -282,7 +282,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
 and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
   let _v1 = literal env v1 in
   let _v2 () =
-    List.map
+    Ls.map
       (fun (v1, v2) ->
         let v1 = token env v1 (* "|" *) in
         let v2 = literal env v2 in
@@ -312,7 +312,7 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
   in
   let name = command_name env v2 in
   let args =
-    List.map
+    Ls.map
       (fun x ->
         match x with
         | `Choice_conc x -> literal env x
@@ -352,7 +352,7 @@ and command_name (env : env) (x : CST.command_name) : expression =
       Concatenation (loc, el)
   | `Choice_semg_ellips x -> primary_expression env x
   | `Rep1_spec_char xs ->
-      let el = List.map (fun tok -> Special_character (str env tok)) xs in
+      let el = Ls.map (fun tok -> Special_character (str env tok)) xs in
       let loc = list_loc expression_loc el in
       Concatenation (loc, el)
 
@@ -388,7 +388,7 @@ and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
     expression list =
   let v1 = prim_exp_or_special_char env v1 in
   let v2 () =
-    List.map
+    Ls.map
       (fun (v1, v2) ->
         let v1 = token env v1 (* concat *) in
         let v2 = prim_exp_or_special_char env v2 in
@@ -479,7 +479,7 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
               | None -> todo env ()
             in
             let _v3_TODO () =
-              List.map
+              Ls.map
                 (fun x ->
                   match x with
                   | `Choice_conc x -> literal env x
@@ -598,7 +598,7 @@ and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
   | `Here_body_begin_rep_choice_expa_here_body_end (v1, v2, v3) ->
       let start = token env v1 (* heredoc_body_beginning *) in
       let _body =
-        List.map
+        Ls.map
           (fun x ->
             match x with
             | `Expa x -> expansion env x |> ignore
@@ -621,7 +621,7 @@ and herestring_redirect (env : env) ((v1, v2) : CST.herestring_redirect) =
 and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
   let pat = literal env v1 in
   let pats =
-    List.map
+    Ls.map
       (fun (v1, v2) ->
         let _bar = token env v1 (* "|" *) in
         let pat = literal env v2 in
@@ -646,7 +646,7 @@ and literal (env : env) (x : CST.literal) : expression =
       Concatenation (loc, el)
   | `Choice_semg_ellips x -> primary_expression env x
   | `Rep1_spec_char xs ->
-      let el = List.map (fun tok -> Special_character (str env tok)) xs in
+      let el = Ls.map (fun tok -> Special_character (str env tok)) xs in
       let loc = list_loc expression_loc el in
       Concatenation (loc, el)
 
@@ -771,7 +771,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       *)
       let cmd_redir_ctrl = command_statement env v1 in
       let _redirects_TODO () =
-        List.map
+        Ls.map
           (fun x ->
             match x with
             | `File_redi x -> file_redirect env x
@@ -797,7 +797,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       (*
       let _v2 () =
-        List.map
+        Ls.map
           (fun x ->
             match x with
             | `Choice_conc x -> literal env x
@@ -817,7 +817,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       (*
       let v2 =
-        List.map
+        Ls.map
           (fun x ->
             match x with
             | `Choice_conc x -> literal env x
@@ -859,7 +859,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         match v3 with
         | Some (v1, v2) ->
             let _in = token env v1 (* "in" *) in
-            let _values = List.map (literal env) v2 in
+            let _values = Ls.map (literal env) v2 in
             ()
         | None ->
             (* iterate over $1, $2, ..., $# *)
@@ -914,7 +914,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         | Some x -> statements2 env x
         | None -> Empty (then_, then_)
       in
-      let elif_branches = List.map (elif_clause env) v5 in
+      let elif_branches = Ls.map (elif_clause env) v5 in
       let else_branch =
         match v6 with Some x -> Some (else_clause env x) | None -> None
       in
@@ -936,7 +936,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
         match v6 with
         | Some (v1, v2) ->
             (* TODO *)
-            let cases = List.map (case_item env) v1 in
+            let cases = Ls.map (case_item env) v1 in
             let last_case = last_case_item env v2 in
             []
         | None -> []
@@ -1034,7 +1034,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command ({ loc; command; redirects = [] }, None)
 
 and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
-  let blist = List.map (stmt_with_opt_heredoc env) v1 |> concat_blists in
+  let blist = Ls.map (stmt_with_opt_heredoc env) v1 |> concat_blists in
   (* See stmt_with_opt_heredoc, which is almost identical except for
      the optional trailing newline. *)
   let last_blist = blist_statement env v2 in
@@ -1054,13 +1054,13 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
   Seq (loc, blist, last_blist)
 
 and statements2 (env : env) (xs : CST.statements2) : blist =
-  List.map (stmt_with_opt_heredoc env) xs |> concat_blists
+  Ls.map (stmt_with_opt_heredoc env) xs |> concat_blists
 
 and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
     string_fragment list bracket =
   let open_ = token env v1 (* "\"" *) in
   let fragments =
-    List.map
+    Ls.map
       (fun (v1, v2) ->
         let fragments =
           match v1 with
@@ -1086,7 +1086,7 @@ and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
         let _concat = match v2 with Some _tok -> () | None -> () in
         fragments)
       v2
-    |> List.flatten
+    |> Ls.flatten
   in
   let fragment =
     match v3 with

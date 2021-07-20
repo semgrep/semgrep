@@ -40,19 +40,19 @@ let make_target_time (src, parse_time, match_time, run_time) :
 let make_semgrep_json ~with_time doc_matches pat_errors :
     Semgrep_t.match_results =
   let matches, match_times =
-    List.map
+    Ls.map
       (fun (src, pat_matches, parse_time, run_time) ->
         let path = Src_file.source_string src in
         let matches, match_time =
-          List.fold_right
+          Ls.fold_right
             (fun (pat_id, matches, match_time) (matches_acc, match_time_acc) ->
               let check_id = Some (string_of_int pat_id) in
               let matches_out =
-                List.map
+                Ls.map
                   (fun match_ ->
                     let (pos1, _), (_, pos2) = match_.region in
                     let metavars =
-                      List.map convert_capture match_.named_captures
+                      Ls.map convert_capture match_.named_captures
                     in
                     let lines =
                       Src_file.list_lines_of_pos_range src pos1 pos2
@@ -73,12 +73,12 @@ let make_semgrep_json ~with_time doc_matches pat_errors :
         in
         (matches, (src, parse_time, match_time, run_time)))
       doc_matches
-    |> List.split
+    |> Ls.split
   in
-  let matches = List.flatten matches in
+  let matches = Ls.flatten matches in
   let errors =
     pat_errors
-    |> List.map (fun (src, error) ->
+    |> Ls.map (fun (src, error) ->
            let path = Src_file.source_string src in
            let pos1, pos2 = error.Parse_pattern.loc in
            let line =
@@ -97,7 +97,7 @@ let make_semgrep_json ~with_time doc_matches pat_errors :
     if with_time then
       Some
         {
-          targets = List.map make_target_time match_times;
+          targets = Ls.map make_target_time match_times;
           rule_parse_time = None;
         }
     else None

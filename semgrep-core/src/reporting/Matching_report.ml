@@ -47,7 +47,7 @@ type match_format =
 (* When we print in the OneLine format we want to normalize the matched
  * expression or code and so only print the tokens in the AST (and not
  * the extra whitespace, newlines or comments). It's not enough though
- * to just List.map str_of_info because some PHP expressions such as
+ * to just Ls.map str_of_info because some PHP expressions such as
  * '$x = print FOO' would then be transformed into $x=printFOO, hence
  * this function
  *)
@@ -79,14 +79,12 @@ let print_match ?(format = Normal) ?(str = "") ii =
         let prefix = if str = "" then prefix else prefix ^ " " ^ str in
         pr prefix;
         (* todo? some context too ? *)
-        lines
-        |> List.map (fun i -> arr.(i))
-        |> List.iter (fun s -> pr (" " ^ s))
+        lines |> Ls.map (fun i -> arr.(i)) |> List.iter (fun s -> pr (" " ^ s))
     | Emacs -> pr (prefix ^ ": " ^ arr.(List.hd lines))
     | OneLine ->
         pr
           (prefix ^ ": "
-          ^ (ii |> List.map PI.str_of_info |> join_with_space_if_needed))
+          ^ (ii |> Ls.map PI.str_of_info |> join_with_space_if_needed))
   with Failure "get_pos: Ab or FakeTok" ->
     pr "<could not locate match, FakeTok or AbstractTok>"
 

@@ -32,7 +32,7 @@ let id x = x
 
 let string = id
 
-let list = List.map
+let list = Ls.map
 
 let option = Common.map_opt
 
@@ -70,7 +70,7 @@ let return_type_of_results results =
       Some
         (G.TyTuple
            (xs
-           |> List.map (function
+           |> Ls.map (function
                 | G.ParamClassic { G.ptype = Some t; _ } -> t
                 | G.ParamClassic { G.ptype = None; _ } -> raise Impossible
                 | _ -> raise Impossible)
@@ -245,7 +245,7 @@ let top_func () =
         and v3 = expr v3 in
         G.Call
           ( G.IdSpecial (G.Op (H.conv_op v2), tok),
-            fb ([ v1; v3 ] |> List.map G.arg) )
+            fb ([ v1; v3 ] |> Ls.map G.arg) )
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1
         and _t1, v2, _t2 = bracket (list init_for_composite_lit) v2 in
@@ -370,7 +370,7 @@ let top_func () =
         G.Call
           (G.IdSpecial (G.IncrDecr (H.conv_incr v2, v3), tok), fb [ G.Arg v1 ])
   (* invariant: you should not use 'list stmt', but instead always
-   * use list stmt_aux ... |> List.flatten
+   * use list stmt_aux ... |> Ls.flatten
    *)
   and stmt x = G.stmt1 (stmt_aux x)
   and stmt_aux = function
@@ -390,7 +390,7 @@ let top_func () =
         let v1 = list decl v1 in
         v1
     | Block (t1, v1, t2) ->
-        let v1 = list stmt_aux v1 |> List.flatten in
+        let v1 = list stmt_aux v1 |> Ls.flatten in
         [ G.Block (t1, v1, t2) |> G.s ]
     | Empty -> [ G.Block (fb []) |> G.s ]
     | SimpleStmt v1 ->
@@ -481,7 +481,7 @@ let top_func () =
             G.ForEach (pattern, v2, v3)
         | Some (xs, _tokEqOrColonEqTODO) ->
             let pattern =
-              G.PatTuple (xs |> List.map H.expr_to_pattern |> G.fake_bracket)
+              G.PatTuple (xs |> Ls.map H.expr_to_pattern |> G.fake_bracket)
             in
             G.ForEach (pattern, v2, v3))
   and case_clause = function
@@ -500,12 +500,12 @@ let top_func () =
         | Right t -> G.PatType t)
   and case_kind = function
     | CaseExprs (tok, v1) ->
-        v1 |> List.map (fun x -> G.Case (tok, expr_or_type_to_pattern x))
+        v1 |> Ls.map (fun x -> G.Case (tok, expr_or_type_to_pattern x))
     | CaseAssign (tok, v1, v2, v3) ->
         let v1 = list expr_or_type v1 and v3 = expr v3 in
         let v1 =
           v1
-          |> List.map (function
+          |> Ls.map (function
                | Left e -> e
                | Right _ -> error tok "TODO: Case Assign with Type?")
         in
@@ -634,13 +634,13 @@ let top_func () =
       (* not used anymore, Items is now used for sgrep *)
       | Ss v1 ->
           let v1 = list stmt_aux v1 in
-          G.Ss (List.flatten v1)
+          G.Ss (Ls.flatten v1)
       | Item v1 ->
           let v1 = item v1 in
           G.S v1
       | Items v1 ->
           let v1 = list item_aux v1 in
-          G.Ss (List.flatten v1)
+          G.Ss (Ls.flatten v1)
     in
     res
   in

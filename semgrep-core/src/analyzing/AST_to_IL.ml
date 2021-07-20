@@ -290,7 +290,7 @@ and pattern env pat eorig =
       (* Pi = tmp[i] *)
       let ss =
         pats
-        |> List.mapi (fun i pat_i ->
+        |> Ls.mapi (fun i pat_i ->
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i = Index { e = index_i; eorig } in
                let lval_i =
@@ -299,7 +299,7 @@ and pattern env pat eorig =
                pattern_assign_statements env
                  (mk_e (Fetch lval_i) eorig)
                  eorig pat_i)
-        |> List.concat
+        |> Ls.concat
       in
       (tmp_lval, ss)
   | _ -> todo (G.P pat)
@@ -332,7 +332,7 @@ and assign env lhs _tok rhs_exp eorig =
       (* Ei = tmp[i] *)
       let tup_elems =
         lhss
-        |> List.mapi (fun i lhs_i ->
+        |> Ls.mapi (fun i lhs_i ->
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i = Index { e = index_i; eorig } in
                let lval_i =
@@ -441,11 +441,11 @@ and expr_aux env eorig =
                  ());
           expr env last)
   | G.Container (kind, xs) ->
-      let xs = bracket_keep (List.map (expr env)) xs in
+      let xs = bracket_keep (Ls.map (expr env)) xs in
       let kind = composite_kind kind in
       mk_e (Composite (kind, xs)) eorig
   | G.Tuple xs ->
-      let xs = bracket_keep (List.map (expr env)) xs in
+      let xs = bracket_keep (Ls.map (expr env)) xs in
       mk_e (Composite (CTuple, xs)) eorig
   | G.Record fields -> record env fields
   | G.Lambda def ->
@@ -575,7 +575,7 @@ and composite_kind = function
   | G.Set -> CSet
 
 (* TODO: dependency of order between arguments for instr? *)
-and arguments env xs = xs |> G.unbracket |> List.map (argument env)
+and arguments env xs = xs |> G.unbracket |> Ls.map (argument env)
 
 and argument env arg =
   match arg with
@@ -589,7 +589,7 @@ and record env ((_tok, origfields, _) as record_def) =
   let eorig = G.Record record_def in
   let fields =
     origfields
-    |> List.map (function
+    |> Ls.map (function
          | G.FieldStmt
              {
                s =
@@ -656,7 +656,7 @@ let expr_with_pre_stmts_opt env eopt =
 (*s: function [[AST_to_IL.for_var_or_expr_list]] *)
 let for_var_or_expr_list env xs =
   xs
-  |> List.map (function
+  |> Ls.map (function
        | G.ForInitExpr e ->
            let ss, _eIGNORE = expr_with_pre_stmts env e in
            ss
@@ -668,7 +668,7 @@ let for_var_or_expr_list env xs =
                let lv = lval_of_ent env ent in
                ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) e)) ]
            | _ -> []))
-  |> List.flatten
+  |> Ls.flatten
 
 (*e: function [[AST_to_IL.for_var_or_expr_list]] *)
 
@@ -698,13 +698,11 @@ let rec stmt_aux env st =
       ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) e)) ]
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
-  | G.Block xs -> xs |> G.unbracket |> List.map (stmt env) |> List.flatten
+  | G.Block xs -> xs |> G.unbracket |> Ls.map (stmt env) |> Ls.flatten
   | G.If (tok, e, st1, st2) ->
       let ss, e' = expr_with_pre_stmts env e in
       let st1 = stmt env st1 in
-      let st2 =
-        List.map (stmt env) (st2 |> Common.opt_to_list) |> List.flatten
-      in
+      let st2 = Ls.map (stmt env) (st2 |> Common.opt_to_list) |> Ls.flatten in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
   | G.Switch (_, _, _) -> todo (G.S st)
   | G.While (tok, e, st) ->

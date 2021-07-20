@@ -650,7 +650,7 @@ and m_expr a b =
       | B.Tuple (_, vars, _), B.Tuple (_, vals, _)
         when List.length vars = List.length vals ->
           let create_assigns expr1 expr2 = B.Assign (expr1, bt, expr2) in
-          let mult_assigns = List.map2 create_assigns vars vals in
+          let mult_assigns = Ls.map2 create_assigns vars vals in
           let rec aux xs =
             match xs with [] -> fail () | x :: xs -> m_expr a x >||> aux xs
           in
@@ -1422,9 +1422,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
       m_comb_bind bs_left (fun bs' tin ->
           let avars_dots = avars_no_end_dots @ [ A.Ellipsis (A.fake "...") ] in
           let tout =
-            m_list__m_argument
-              (List.map A.arg avars_dots)
-              (List.map B.arg bs') tin
+            m_list__m_argument (Ls.map A.arg avars_dots) (Ls.map B.arg bs') tin
           in
           [ ([], tout) ])
       |> m_comb_flatten

@@ -119,7 +119,7 @@ let metavars startp_of_match_range (s, mval) =
         any |> V.ii_of_any
         |> List.filter PI.is_origintok
         |> List.sort Parse_info.compare_pos
-        |> List.map PI.str_of_info |> Matching_report.join_with_space_if_needed;
+        |> Ls.map PI.str_of_info |> Matching_report.join_with_space_if_needed;
       unique_id = unique_id any;
     } )
 
@@ -139,7 +139,7 @@ let match_to_match x =
          extra =
            {
              message = Some x.rule_id.message;
-             metavars = x.env |> List.map (metavars startp);
+             metavars = x.env |> Ls.map (metavars startp);
              lines = [] (* ?? spacegrep? *);
            };
        }
@@ -190,7 +190,7 @@ let json_time_of_profiling_data profiling_data =
   {
     ST.targets =
       profiling_data.RP.file_times
-      |> List.map (fun { RP.file = target; parse_time; match_time; run_time } ->
+      |> Ls.map (fun { RP.file = target; parse_time; match_time; run_time } ->
              { ST.path = target; parse_time; match_time; run_time });
     rule_parse_time = Some profiling_data.RP.rule_parse_time;
   }
@@ -204,7 +204,7 @@ let match_results_of_matches_and_errors files res =
   let count_ok = List.length files - count_errors in
   {
     ST.matches;
-    errors = errs |> List.map error_to_error;
+    errors = errs |> Ls.map error_to_error;
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = res.RP.rule_profiling |> Common.map_opt json_time_of_profiling_data;
   }
@@ -222,7 +222,7 @@ let json_of_profile_info profile_start =
     |> List.sort (fun (_k1, (t1, _n1)) (_k2, (t2, _n2)) -> compare t2 t1)
   in
   xs
-  |> List.map (fun (k, (t, cnt)) ->
+  |> Ls.map (fun (k, (t, cnt)) ->
          (k, J.Object [ ("time", J.Float !t); ("count", J.Int !cnt) ]))
   |> fun xs -> J.Object xs
 

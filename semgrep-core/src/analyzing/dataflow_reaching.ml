@@ -67,7 +67,7 @@ let (defs : F.flow -> NodeiSet.t Dataflow.env) =
       |> List.fold_left
            (fun env e ->
              let lvals = Lrvalue.lvalues_of_expr e in
-             let vars = lvals |> List.map (fun ((s, _tok), _idinfo) -> s) in
+             let vars = lvals |> Ls.map (fun ((s, _tok), _idinfo) -> s) in
              vars
              |> List.fold_left
                   (fun env var -> Dataflow.add_var_and_nodei_to_env var ni env)
@@ -91,7 +91,7 @@ let (gens : F.flow -> VarSet.t array) =
   V.fold_on_node_and_expr
     (fun (ni, _nd) e arr ->
       let lvals = Lrvalue.lvalues_of_expr e in
-      let vars = lvals |> List.map (fun ((s, _tok), _idinfo) -> s) in
+      let vars = lvals |> Ls.map (fun ((s, _tok), _idinfo) -> s) in
       vars |> List.iter (fun var -> arr.(ni) <- VarSet.add var arr.(ni));
       arr)
     flow arr
@@ -103,7 +103,7 @@ let (kills : NodeiSet.t Dataflow.env -> F.flow -> NodeiSet.t Dataflow.env array)
   V.fold_on_node_and_expr
     (fun (ni, _nd) e () ->
       let lvals = Lrvalue.lvalues_of_expr e in
-      let vars = lvals |> List.map (fun ((s, _tok), _idinfo) -> s) in
+      let vars = lvals |> Ls.map (fun ((s, _tok), _idinfo) -> s) in
       vars
       |> List.iter (fun var ->
              let set = NodeiSet.remove ni (VarMap.find var defs) in

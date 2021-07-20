@@ -19,9 +19,9 @@ let stat_matches file =
   pr2 (spf "matched: %d" (List.length matches));
   let per_files =
     matches
-    |> List.map (fun m -> (m.Pattern_match.file, m))
+    |> Ls.map (fun m -> (m.Pattern_match.file, m))
     |> Common.group_assoc_bykey_eff
-    |> List.map (fun (file, xs) -> (file, List.length xs))
+    |> Ls.map (fun (file, xs) -> (file, List.length xs))
     |> Common.sort_by_val_highfirst |> Common.take_safe 10
   in
   pr2 "biggest file offenders";
@@ -51,7 +51,7 @@ let ebnf_to_menhir file =
     let tokens = lexer chars in
     let xs = Stream.npeek 100 tokens in
     xs |> insert_space_when_needed
-    |> List.map (function
+    |> Ls.map (function
          | T.Kwd s -> spf "%s" s
          | T.Ident s ->
              if s =~ "^[A-Z]" then lower s
@@ -66,7 +66,7 @@ let ebnf_to_menhir file =
   in
   let ys =
     xs
-    |> List.map (fun s ->
+    |> Ls.map (fun s ->
            match s with
            | _ when s =~ "^ *\\([A-Z][a-zA-Z0-9]*\\) +::= \\(.*\\)$" ->
                let s1, s2 = Common.matched2 s in
@@ -113,7 +113,7 @@ let gen_layer ~root ~query _matching_tokens file =
   (* todo: could now use Layer_code.simple_layer_of_parse_infos *)
   let files_and_lines =
     toks
-    |> List.map (fun tok ->
+    |> Ls.map (fun tok ->
            let file = PI.file_of_info tok in
            let line = PI.line_of_info tok in
            let file = Common2.relative_to_absolute file in
@@ -127,12 +127,11 @@ let gen_layer ~root ~query _matching_tokens file =
       kinds;
       files =
         group
-        |> List.map (fun (file, lines) ->
+        |> Ls.map (fun (file, lines) ->
                let lines = Common2.uniq lines in
                ( file,
                  {
-                   Layer_code.micro_level =
-                     lines |> List.map (fun l -> (l, "m"));
+                   Layer_code.micro_level = lines |> Ls.map (fun l -> (l, "m"));
                    macro_level = (if null lines then [] else [ ("m", 1.) ]);
                  } ));
     }

@@ -387,7 +387,7 @@ let starts_with_dots (pat : Pattern_AST.node list) =
 
 let convert_named_captures env =
   Env.bindings env
-  |> List.map (fun (name, (loc, value)) -> (name, { value; loc }))
+  |> Ls.map (fun (name, (loc, value)) -> (name, { value; loc }))
 
 (*
 let to_string src match_ =

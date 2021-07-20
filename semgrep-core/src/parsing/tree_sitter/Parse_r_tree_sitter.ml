@@ -87,7 +87,7 @@ let map_pat_3e57880 (env : env) (tok : CST.pat_3e57880) = token env tok
 let map_special (env : env) ((v1, v2, v3) : CST.special) =
   let v1 = token env v1 (* "%" *) in
   let v2 =
-    List.map
+    Ls.map
       (fun x ->
         match x with
         | `Pat_5e7ac5f tok -> token env tok (* pattern [^%\\\n]+|\\\r?\n *)
@@ -104,7 +104,7 @@ let map_identifier (env : env) (x : CST.identifier) =
   | `BQUOT_rep_choice_pat_4ad362e_BQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "`" *) in
       let v2 =
-        List.map
+        Ls.map
           (fun x ->
             match x with
             | `Pat_4ad362e tok -> token env tok (* pattern [^`\\\n]+|\\\r?\n *)
@@ -120,7 +120,7 @@ let map_string_ (env : env) (x : CST.string_) =
   | `DQUOT_rep_choice_pat_de5d470_DQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "\"" *) in
       let v2 =
-        List.map
+        Ls.map
           (fun x ->
             match x with
             | `Pat_de5d470 tok ->
@@ -134,7 +134,7 @@ let map_string_ (env : env) (x : CST.string_) =
   | `SQUOT_rep_choice_pat_3e57880_SQUOT (v1, v2, v3) ->
       let v1 = token env v1 (* "'" *) in
       let v2 =
-        List.map
+        Ls.map
           (fun x ->
             match x with
             | `Pat_3e57880 tok ->
@@ -166,7 +166,7 @@ let rec map_argument (env : env) (x : CST.argument) =
       todo env (v1, v2, v3)
 
 and map_arguments (env : env) (xs : CST.arguments) =
-  List.map
+  Ls.map
     (fun x ->
       match x with `Arg x -> map_argument env x | `COMMA tok -> token env tok
       (* "," *))
@@ -320,7 +320,7 @@ and map_expression (env : env) (x : CST.expression) =
       todo env (v1, v2, v3)
   | `Paren_list (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
-      let v2 = List.map (map_expression env) v2 in
+      let v2 = Ls.map (map_expression env) v2 in
       let v3 = token env v3 (* ")" *) in
       todo env (v1, v2, v3)
   | `Bin x -> map_binary env x
@@ -438,7 +438,7 @@ and map_formal_parameters (env : env) ((v1, v2, v3) : CST.formal_parameters) =
     | Some (v1, v2, v3) ->
         let v1 = map_formal_parameter env v1 in
         let v2 =
-          List.map
+          Ls.map
             (fun (v1, v2) ->
               let v1 = token env v1 (* "," *) in
               let v2 = map_formal_parameter env v2 in
@@ -464,7 +464,7 @@ and map_function_definition (env : env) ((v1, v2, v3) : CST.function_definition)
   todo env (v1, v2, v3)
 
 and map_program (env : env) (xs : CST.program) =
-  List.map
+  Ls.map
     (fun (v1, v2) ->
       let v1 = map_expression env v1 in
       let v2 =

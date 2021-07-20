@@ -32,7 +32,7 @@ let id x = x
 
 let option = Common.map_opt
 
-let list = List.map
+let list = Ls.map
 
 let string = id
 
@@ -103,14 +103,14 @@ and type_ = function
       G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
       let v1 = list type_ v1 and v2 = name v2 in
-      G.TyApply (G.TyN v2, fb (v1 |> List.map (fun t -> G.TypeArg t)))
+      G.TyApply (G.TyN v2, fb (v1 |> Ls.map (fun t -> G.TypeArg t)))
   | TyTuple v1 ->
       let v1 = list type_ v1 in
       G.TyTuple (fb v1)
   | TyTodo (t, v1) ->
       let t = todo_category t in
       let v1 = list type_ v1 in
-      G.OtherType (G.OT_Todo, G.TodoK t :: List.map (fun x -> G.T x) v1)
+      G.OtherType (G.OT_Todo, G.TodoK t :: Ls.map (fun x -> G.T x) v1)
 
 and expr_body e : G.stmt = stmt e
 
@@ -130,7 +130,7 @@ and stmt e : G.stmt =
   | Try (t, v1, v2) ->
       let v1 = stmt v1 and v2 = list match_case v2 in
       let catches =
-        v2 |> List.map (fun (pat, e) -> (fake "catch", pat, G.exprstmt e))
+        v2 |> Ls.map (fun (pat, e) -> (fake "catch", pat, G.exprstmt e))
       in
       G.Try (t, v1, catches, None) |> G.s
   | While (t, v1, v2) ->
@@ -269,7 +269,7 @@ and expr e =
       let v3 = expr v3 in
       let defs =
         v2
-        |> List.map (function
+        |> Ls.map (function
              | Left (ent, params, tret, body) ->
                  G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
              | Right (pat, e) ->
@@ -308,7 +308,7 @@ and expr e =
   | ExprTodo (t, xs) ->
       let t = todo_category t in
       let xs = list expr xs in
-      G.OtherExpr (G.OE_Todo, G.TodoK t :: List.map (fun x -> G.E x) xs)
+      G.OtherExpr (G.OE_Todo, G.TodoK t :: Ls.map (fun x -> G.E x) xs)
   | If _ | Try _ | For _ | While _ | Sequence _ ->
       let s = stmt e in
       G.OtherExpr (G.OE_StmtExpr, [ G.S s ])
@@ -414,7 +414,7 @@ and pattern = function
   | PatTodo (t, xs) ->
       let t = todo_category t in
       let xs = list pattern xs in
-      G.OtherPat (G.OP_Todo, G.TodoK t :: List.map (fun x -> G.P x) xs)
+      G.OtherPat (G.OP_Todo, G.TodoK t :: Ls.map (fun x -> G.P x) xs)
 
 and let_binding = function
   | LetClassic v1 ->
@@ -509,12 +509,12 @@ and module_expr = function
       let v1 = dotted_ident_of_name v1 in
       G.ModuleAlias v1
   | ModuleStruct v1 ->
-      let v1 = list item v1 |> List.flatten in
+      let v1 = list item v1 |> Ls.flatten in
       G.ModuleStruct (None, v1)
   | ModuleTodo (t, xs) ->
       let t = todo_category t in
       let xs = list module_expr xs in
-      G.OtherModule (G.OMO_Todo, G.TodoK t :: List.map (fun x -> G.ModDk x) xs)
+      G.OtherModule (G.OMO_Todo, G.TodoK t :: Ls.map (fun x -> G.ModDk x) xs)
 
 and attributes xs = list attribute xs
 
@@ -539,7 +539,7 @@ and item { i; iattrs } =
   | Type (_t, v1) ->
       let xs = list type_declaration v1 in
       xs
-      |> List.map (fun (ent, def) ->
+      |> Ls.map (fun (ent, def) ->
              (* add attrs to all mutual type decls *)
              let ent = add_attrs ent attrs in
              G.DefStmt (ent, G.TypeDef def) |> G.s)
@@ -567,7 +567,7 @@ and item { i; iattrs } =
   | Let (tlet, v1, v2) ->
       let _v1 = rec_opt v1 and v2 = list let_binding v2 in
       v2
-      |> List.map (function
+      |> Ls.map (function
            | Left (ent, params, tret, body) ->
                let ent = add_attrs ent attrs in
                G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
@@ -581,13 +581,13 @@ and item { i; iattrs } =
       [ G.DefStmt (ent, G.ModuleDef def) |> G.s ]
   | ItemTodo (t, xs) ->
       let t = todo_category t in
-      let xs = list item xs |> List.flatten in
+      let xs = list item xs |> Ls.flatten in
       [
         G.OtherStmt
           ( G.OS_Todo,
             [ G.TodoK t ]
-            @ List.map (fun x -> G.S x) xs
-            @ List.map (fun x -> G.At x) attrs )
+            @ Ls.map (fun x -> G.S x) xs
+            @ Ls.map (fun x -> G.At x) attrs )
         |> G.s;
       ]
 
@@ -606,7 +606,7 @@ and mk_var_or_func tlet params tret body =
           fbody = body;
         }
 
-and program xs = List.map item xs |> List.flatten
+and program xs = Ls.map item xs |> Ls.flatten
 
 and any = function
   | E x -> (

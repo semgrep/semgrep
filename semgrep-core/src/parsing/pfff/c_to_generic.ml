@@ -179,7 +179,7 @@ and expr = function
   | ConcatString xs ->
       G.Call
         ( G.IdSpecial (G.ConcatString G.SequenceConcat, fake " "),
-          fb (xs |> List.map (fun x -> G.Arg (G.L (G.String x)))) )
+          fb (xs |> Ls.map (fun x -> G.Arg (G.L (G.String x)))) )
   | Defined (t, id) ->
       let e = G.N (G.Id (id, G.empty_id_info ())) in
       G.Call (G.IdSpecial (G.Defined, t), fb [ G.Arg e ])
@@ -259,7 +259,7 @@ and expr = function
       let v1 = type_ v1 and v2 = expr v2 in
       G.Call
         ( G.IdSpecial (G.New, fake "new"),
-          fb (G.ArgType v1 :: ([ v2 ] |> List.map G.arg)) )
+          fb (G.ArgType v1 :: ([ v2 ] |> Ls.map G.arg)) )
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in
@@ -290,7 +290,7 @@ let rec stmt st =
   | Switch (v0, v1, v2) ->
       let v0 = info v0 in
       let v1 = expr v1
-      and v2 = list case v2 |> List.map (fun x -> G.CasesAndBody x) in
+      and v2 = list case v2 |> Ls.map (fun x -> G.CasesAndBody x) in
       G.Switch (v0, Some v1, v2)
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
@@ -318,10 +318,10 @@ let rec stmt st =
       G.Goto (t, v1)
   | Vars v1 ->
       let v1 = list var_decl v1 in
-      (G.stmt1 (v1 |> List.map (fun v -> G.s (G.DefStmt v)))).G.s
+      (G.stmt1 (v1 |> Ls.map (fun v -> G.s (G.DefStmt v)))).G.s
   | Asm v1 ->
       let v1 = list expr v1 in
-      G.OtherStmt (G.OS_Asm, v1 |> List.map (fun e -> G.E e)))
+      G.OtherStmt (G.OS_Asm, v1 |> Ls.map (fun e -> G.E e)))
   |> G.s
 
 and expr_or_vars v1 =
@@ -387,12 +387,12 @@ and struct_def { s_name; s_kind; s_flds } =
   match s_kind with
   | Struct ->
       let fields =
-        bracket (List.map (fun (n, t) -> G.basic_field n None (Some t))) v3
+        bracket (Ls.map (fun (n, t) -> G.basic_field n None (Some t))) v3
       in
       (entity, G.TypeDef { G.tbody = G.AndType fields })
   | Union ->
       let ctors =
-        v3 |> G.unbracket |> List.map (fun (n, t) -> G.OrUnion (n, t))
+        v3 |> G.unbracket |> Ls.map (fun (n, t) -> G.OrUnion (n, t))
       in
       (entity, G.TypeDef { G.tbody = G.OrType ctors })
 
@@ -411,7 +411,7 @@ and enum_def { e_name = v1; e_consts = v2 } =
       v2
   in
   let entity = G.basic_entity v1 [] in
-  let ors = v2 |> List.map (fun (n, eopt) -> G.OrEnum (n, eopt)) in
+  let ors = v2 |> Ls.map (fun (n, eopt) -> G.OrEnum (n, eopt)) in
   (entity, G.TypeDef { G.tbody = G.OrType ors })
 
 and type_def { t_name = v1; t_type = v2 } =

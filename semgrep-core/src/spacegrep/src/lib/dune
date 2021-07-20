@@ -5,6 +5,8 @@
      ANSITerminal
      unix
      atdgen-runtime
+
+     commons  ; at the time of adding, this is just for the 'Ls' module
   )
   (preprocess
    (pps

@@ -407,7 +407,7 @@ let program file =
   let str = Common.read_file file in
   let charpos_to_pos = Some (Parse_info.full_charpos_to_pos_large file) in
   let env = { file; charpos_to_pos } in
-  List.map A.exprstmt (get_res (S.parser str) |> parse env)
+  Ls.map A.exprstmt (get_res (S.parser str) |> parse env)
 
 let any str =
   let env = { file = "<pattern_file>"; charpos_to_pos = None } in

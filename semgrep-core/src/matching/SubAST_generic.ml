@@ -108,8 +108,7 @@ let subexprs_of_expr e =
       e1
       :: (e2 |> unbracket
          |> (fun (a, b, c) -> [ a; b; c ])
-         |> List.map Common.opt_to_list
-         |> List.flatten)
+         |> Ls.map Common.opt_to_list |> Ls.flatten)
   | Yield (_, eopt, _) -> Common.opt_to_list eopt
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
@@ -147,13 +146,13 @@ let substmts_of_stmt st =
   | Block (_, xs, _) -> xs
   | Switch (_, _, xs) ->
       xs
-      |> List.map (function
+      |> Ls.map (function
            | CasesAndBody (_, st) -> [ st ]
            | CaseEllipsis _ -> [])
-      |> List.flatten
+      |> Ls.flatten
   | Try (_, st, xs, opt) -> (
       [ st ]
-      @ (xs |> List.map Common2.thd3)
+      @ (xs |> Ls.map Common2.thd3)
       @ match opt with None -> [] | Some (_, st) -> [ st ])
   | DisjStmt _ -> raise Common.Impossible
   (* this may slow down things quite a bit *)
@@ -225,7 +224,7 @@ let lambdas_in_expr_memo a =
 (*s: function [[SubAST_generic.flatten_substmts_of_stmts]] *)
 let flatten_substmts_of_stmts xs =
   (* opti: using a ref, List.iter, and Common.push instead of a mix of
-   * List.map, List.flatten and @ below speed things up
+   * Ls.map, Ls.flatten and @ below speed things up
    * (but it is still slow when called many many times)
    *)
   let res = ref [] in
@@ -242,8 +241,8 @@ let flatten_substmts_of_stmts xs =
     (if !go_really_deeper_stmt then
      let es = subexprs_of_stmt x in
      (* getting deeply nested lambdas stmts *)
-     let lambdas = es |> List.map lambdas_in_expr_memo |> List.flatten in
-     lambdas |> List.map (fun def -> def.fbody) |> List.iter aux);
+     let lambdas = es |> Ls.map lambdas_in_expr_memo |> Ls.flatten in
+     lambdas |> Ls.map (fun def -> def.fbody) |> List.iter aux);
 
     let xs = substmts_of_stmt x in
     match xs with

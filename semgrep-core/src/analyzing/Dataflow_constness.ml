@@ -215,7 +215,7 @@ and eval_lval env lval =
 
 and eval_op env wop args =
   let op, tok = wop in
-  let cs = List.map (eval env) args in
+  let cs = Ls.map (eval env) args in
   match (op, cs) with
   | G.Plus, [ c1 ] -> c1
   | op, [ G.Lit (G.Bool (b, _)) ] -> eval_unop_bool op b
@@ -235,7 +235,7 @@ and eval_op env wop args =
 
 and eval_concat env args =
   args
-  |> List.map (eval env)
+  |> Ls.map (eval env)
   |> List.fold_left
        (fun res e ->
          match (res, e) with

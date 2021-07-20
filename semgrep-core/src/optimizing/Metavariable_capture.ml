@@ -48,16 +48,16 @@ let add_capture k v env =
 let replace_capture k v env =
   if debug then printf "replace_capture %s\n" k;
   let kv = (k, v) in
-  let full_env = kv :: List.remove_assoc k env.full_env in
-  let min_env = kv :: List.remove_assoc k env.min_env in
+  let full_env = kv :: Ls.remove_assoc k env.full_env in
+  let min_env = kv :: Ls.remove_assoc k env.min_env in
   { env with full_env; min_env }
 
 let remove_capture k env =
   if debug then printf "remove_capture %s\n" k;
   {
     env with
-    full_env = List.remove_assoc k env.full_env;
-    min_env = List.remove_assoc k env.min_env;
+    full_env = Ls.remove_assoc k env.full_env;
+    min_env = Ls.remove_assoc k env.min_env;
   }
 
 (*

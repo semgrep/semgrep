@@ -46,7 +46,7 @@ let option = Common.map_opt
 
 (*e: constant [[Python_to_generic.option]] *)
 (*s: constant [[Python_to_generic.list]] *)
-let list = List.map
+let list = Ls.map
 
 (*e: constant [[Python_to_generic.list]] *)
 (*s: function [[Python_to_generic.vref]] *)
@@ -112,11 +112,11 @@ let module_name (v1, dots) =
   | Some toks ->
       let count =
         toks
-        |> List.map Parse_info.str_of_info
+        |> Ls.map Parse_info.str_of_info
         |> String.concat "" |> String.length
       in
       let tok = List.hd toks in
-      let elems = v1 |> List.map fst in
+      let elems = v1 |> Ls.map fst in
       let prefixes =
         match count with
         | 1 -> [ "." ]
@@ -188,7 +188,7 @@ let rec expr (x : expr) =
         ( G.IdSpecial (G.ConcatString G.FString, fake "concat"),
           fb
             (xs
-            |> List.map (fun x ->
+            |> Ls.map (fun x ->
                    let x = expr x in
                    G.Arg x)) )
   | ConcatenatedString xs ->
@@ -196,7 +196,7 @@ let rec expr (x : expr) =
         ( G.IdSpecial (G.ConcatString G.SequenceConcat, fake "concat"),
           fb
             (xs
-            |> List.map (fun x ->
+            |> Ls.map (fun x ->
                    let x = expr x in
                    G.Arg x)) )
   | TypedExpr (v1, v2) ->
@@ -235,7 +235,7 @@ let rec expr (x : expr) =
       | l1, [ x ], l2 -> slice1 e (l1, x, l2)
       | _, xs, _ ->
           let xs = list (slice e) xs in
-          G.OtherExpr (G.OE_Slices, xs |> List.map (fun x -> G.E x)))
+          G.OtherExpr (G.OE_Slices, xs |> Ls.map (fun x -> G.E x)))
   | Attribute (v1, t, v2, v3) ->
       let v1 = expr v1
       and t = info t
@@ -263,28 +263,28 @@ let rec expr (x : expr) =
       G.Container (G.Dict, fb e1)
   | BoolOp ((v1, tok), v2) ->
       let v1 = boolop v1 and v2 = list expr v2 in
-      G.Call (G.IdSpecial (G.Op v1, tok), fb (v2 |> List.map G.arg))
+      G.Call (G.IdSpecial (G.Op v1, tok), fb (v2 |> Ls.map G.arg))
   | BinOp (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = operator v2 and v3 = expr v3 in
-      G.Call (G.IdSpecial (G.Op v2, tok), fb ([ v1; v3 ] |> List.map G.arg))
+      G.Call (G.IdSpecial (G.Op v2, tok), fb ([ v1; v3 ] |> Ls.map G.arg))
   | UnaryOp ((v1, tok), v2) -> (
       let v1 = unaryop v1 and v2 = expr v2 in
       match v1 with
       | Left op ->
-          G.Call (G.IdSpecial (G.Op op, tok), fb ([ v2 ] |> List.map G.arg))
+          G.Call (G.IdSpecial (G.Op op, tok), fb ([ v2 ] |> Ls.map G.arg))
       | Right oe -> G.OtherExpr (oe, [ G.E v2 ]))
   | Compare (v1, v2, v3) -> (
       let v1 = expr v1 and v2 = list cmpop v2 and v3 = list expr v3 in
       match (v2, v3) with
       | [ (op, tok) ], [ e ] ->
-          G.Call (G.IdSpecial (G.Op op, tok), fb ([ v1; e ] |> List.map G.arg))
+          G.Call (G.IdSpecial (G.Op op, tok), fb ([ v1; e ] |> Ls.map G.arg))
       | _ ->
           let anyops =
             v2
-            |> List.map (function arith, tok ->
+            |> Ls.map (function arith, tok ->
                    G.E (G.IdSpecial (G.Op arith, tok)))
           in
-          let any = anyops @ (v3 |> List.map (fun e -> G.E e)) in
+          let any = anyops @ (v3 |> Ls.map (fun e -> G.E e)) in
           G.OtherExpr (G.OE_CmpOps, any))
   | Call (v1, v2) ->
       let v1 = expr v1 in
@@ -472,7 +472,7 @@ and param_pattern = function
 (*s: function [[Python_to_generic.parameters]] *)
 and parameters xs =
   xs
-  |> List.map (function
+  |> Ls.map (function
        | ParamDefault ((n, topt), e) ->
            let n = name n in
            let topt = option type_ topt in
@@ -605,7 +605,7 @@ and stmt_aux x =
           cimplements = [];
           cmixins = [];
           cparams = [];
-          cbody = fb (v3 |> List.map (fun x -> fieldstmt x));
+          cbody = fb (v3 |> Ls.map (fun x -> fieldstmt x));
         }
       in
       [ G.DefStmt (ent, G.ClassDef def) |> G.s ]
@@ -637,7 +637,7 @@ and stmt_aux x =
       [ G.Return (t, v1, G.sc) |> G.s ]
   | Delete (_t, v1) ->
       let v1 = list expr v1 in
-      [ G.OtherStmt (G.OS_Delete, v1 |> List.map (fun x -> G.E x)) |> G.s ]
+      [ G.OtherStmt (G.OS_Delete, v1 |> Ls.map (fun x -> G.E x)) |> G.s ]
   | If (t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = list_stmt1 v2 and v3 = option list_stmt1 v3 in
       [ G.If (t, v1, v2, v3) |> G.s ]
@@ -654,8 +654,7 @@ and stmt_aux x =
               (fb
                  [
                    G.While (t, v1, v2) |> G.s;
-                   G.OtherStmt
-                     (G.OS_WhileOrElse, v3 |> List.map (fun x -> G.S x))
+                   G.OtherStmt (G.OS_WhileOrElse, v3 |> Ls.map (fun x -> G.S x))
                    |> G.s;
                  ])
             |> G.s;
@@ -675,7 +674,7 @@ and stmt_aux x =
                  [
                    G.For (t, header, body) |> G.s;
                    G.OtherStmt
-                     (G.OS_ForOrElse, orelse |> List.map (fun x -> G.S x))
+                     (G.OS_ForOrElse, orelse |> Ls.map (fun x -> G.S x))
                    |> G.s;
                  ])
             |> G.s;
@@ -727,7 +726,7 @@ and stmt_aux x =
                  [
                    G.Try (t, v1, v2, None) |> G.s;
                    G.OtherStmt
-                     (G.OS_TryOrElse, orelse |> List.map (fun x -> G.S x))
+                     (G.OS_TryOrElse, orelse |> Ls.map (fun x -> G.S x))
                    |> G.s;
                  ])
             |> G.s;
@@ -747,13 +746,13 @@ and stmt_aux x =
       [ G.DirectiveStmt (G.ImportAll (t, mname, v2)) |> G.s ]
   | ImportFrom (t, v1, v2) ->
       let v1 = module_name v1 and v2 = list alias v2 in
-      List.map
+      Ls.map
         (fun (a, b) -> G.DirectiveStmt (G.ImportFrom (t, v1, a, b)) |> G.s)
         v2
   | Global (t, v1) | NonLocal (t, v1) ->
       let v1 = list name v1 in
       v1
-      |> List.map (fun x ->
+      |> Ls.map (fun x ->
              let ent = G.basic_entity x [] in
              G.DefStmt (ent, G.UseOuterDecl t) |> G.s)
   | ExprStmt v1 ->
@@ -775,7 +774,7 @@ and stmt_aux x =
   (* python2: *)
   | Print (tok, _dest, vals, _nl) ->
       let id = Name (("print", tok), Load, ref NotResolved) in
-      stmt_aux (ExprStmt (Call (id, fb (vals |> List.map (fun e -> Arg e)))))
+      stmt_aux (ExprStmt (Call (id, fb (vals |> Ls.map (fun e -> Arg e)))))
   | Exec (tok, e, _eopt, _eopt2) ->
       let id = Name (("exec", tok), Load, ref NotResolved) in
       stmt_aux (ExprStmt (Call (id, fb [ Arg e ])))

@@ -22,7 +22,7 @@ let highlight_corpus =
   ]
 
 let rec find_word_locations word (ast : Doc_AST.node list) =
-  List.map (find_word_locations_in_node word) ast |> List.flatten
+  Ls.map (find_word_locations_in_node word) ast |> Ls.flatten
 
 and find_word_locations_in_node word node =
   match node with
@@ -58,11 +58,11 @@ let lines_of_range_corpus =
 
 let test =
   let suite =
-    List.map
+    Ls.map
       (fun (name, input, start, end_, expected_output) ->
         (name, `Quick, fun () -> test_highlight input start end_ expected_output))
       highlight_corpus
-    @ List.map
+    @ Ls.map
         (fun (name, input, start_word, end_word, expected_output) ->
           ( name,
             `Quick,

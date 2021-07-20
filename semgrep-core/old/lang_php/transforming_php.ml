@@ -84,8 +84,8 @@ module XMATCH = struct
      *)
     let xs = m1 tin in
     (* try m2 on each possible returned bindings *)
-    let xxs = xs |> List.map (fun ((a, b), binding) -> m2 (a, b) binding) in
-    List.flatten xxs
+    let xxs = xs |> Ls.map (fun ((a, b), binding) -> m2 (a, b) binding) in
+    Ls.flatten xxs
 
   let ( >||> ) m1 m2 tin =
     (* CHOICE
@@ -156,7 +156,7 @@ module XMATCH = struct
 
   let subst_metavars env add =
     let env =
-      env |> List.map (fun (mvar, any) -> (mvar, Unparse_php.string_of_any any))
+      env |> Ls.map (fun (mvar, any) -> (mvar, Unparse_php.string_of_any any))
     in
     match add with
     | PI.AddNewlineAndIdent -> PI.AddNewlineAndIdent

@@ -82,15 +82,15 @@ let collate_semgrep_results results =
   in
   let matches, errors, parse_time, match_time = unzip_results results in
   {
-    matches = List.flatten matches;
-    errors = List.flatten errors;
+    matches = Ls.flatten matches;
+    errors = Ls.flatten errors;
     profiling = { parse_time; match_time };
   }
 
 let make_rule_result results ~report_time ~rule_parse_time =
-  let matches = results |> List.map (fun x -> x.matches) |> List.flatten in
-  let errors = results |> List.map (fun x -> x.errors) |> List.flatten in
-  let file_times = results |> List.map (fun x -> x.profiling) in
+  let matches = results |> Ls.map (fun x -> x.matches) |> Ls.flatten in
+  let errors = results |> Ls.map (fun x -> x.errors) |> Ls.flatten in
+  let file_times = results |> Ls.map (fun x -> x.profiling) in
   let rule_profiling =
     if report_time then Some { rule_parse_time; file_times } else None
   in

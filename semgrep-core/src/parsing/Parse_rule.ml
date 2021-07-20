@@ -118,11 +118,11 @@ let generic_to_json (key : key) ast =
     | G.L (Float (Some f, _)) -> J.Float f
     | G.L (Int (Some i, _)) -> J.Int i
     | G.L (String (s, _)) -> J.String s
-    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> List.map aux)
+    | G.Container (Array, (_, xs, _)) -> J.Array (xs |> Ls.map aux)
     | G.Container (Dict, (_, xs, _)) ->
         J.Object
           (xs
-          |> List.map (fun x ->
+          |> Ls.map (fun x ->
                  match x with
                  | G.Tuple (_, [ L (String (k, _)); v ], _) -> (k, aux v)
                  | _ ->
@@ -198,7 +198,7 @@ let parse_string_wrap (key : key) = function
   | _ -> error_at_key key ("Expected a string value for " ^ fst key)
 
 let parse_list (key : key) f = function
-  | G.Container (Array, (_, xs, _)) -> List.map f xs
+  | G.Container (Array, (_, xs, _)) -> Ls.map f xs
   | _ -> error_at_key key ("Expected a list for " ^ fst key)
 
 (* TODO: delete at some point, should use parse_string_wrap_list *)
@@ -221,7 +221,7 @@ let parse_string_wrap_list (key : key) e =
   parse_list key extract_string e
 
 let parse_listi (key : key) f = function
-  | G.Container (Array, (_, xs, _)) -> List.mapi f xs
+  | G.Container (Array, (_, xs, _)) -> Ls.mapi f xs
   | _ -> error_at_key key ("Expected a list for " ^ fst key)
 
 let parse_bool (key : key) = function
@@ -546,7 +546,7 @@ let parse_languages ~id langs =
   | xs -> (
       let languages =
         xs
-        |> List.map (function s, t ->
+        |> Ls.map (function s, t ->
                (match Lang.lang_of_string_opt s with
                | None ->
                    raise
@@ -623,7 +623,7 @@ let parse_generic file ast =
     | x -> error_at_expr x "expected a list of rules following `rules:`"
   in
   rules
-  |> List.mapi (fun i rule ->
+  |> Ls.mapi (fun i rule ->
          let rd = yaml_to_dict ("rules", t) rule in
          let id, languages =
            ( take rd parse_string_wrap "id",

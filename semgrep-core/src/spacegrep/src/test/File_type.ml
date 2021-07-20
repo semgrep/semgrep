@@ -30,7 +30,7 @@ let run_one expected_class data =
 
 let test =
   let suite =
-    List.map
+    Ls.map
       (fun (name, expected_class, data) ->
         (name, `Quick, fun () -> run_one expected_class data))
       corpus

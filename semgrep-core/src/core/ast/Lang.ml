@@ -267,7 +267,7 @@ let find_source lang xs =
  * simple and not perform any Skip_code filtering (bento already does that)
  *)
 let files_of_dirs_or_files lang xs =
-  (* old: let xs = List.map Common.fullpath xs in
+  (* old: let xs = Ls.map Common.fullpath xs in
    * better to not transform in fullpath; does not interact
    * well with -exclude-dir and anyway this should be done in the caller
    * or not at all. Better just do one thing here.

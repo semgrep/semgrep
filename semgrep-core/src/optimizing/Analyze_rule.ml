@@ -157,10 +157,10 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * )
    *)
   | R.And (_, xs) ->
-      let ys = List.map cnf xs in
-      And (ys |> List.map (function And ors -> ors) |> List.flatten)
+      let ys = Ls.map cnf xs in
+      And (ys |> Ls.map (function And ors -> ors) |> Ls.flatten)
   | R.Or (_, xs) ->
-      let ys = List.map cnf xs in
+      let ys = Ls.map cnf xs in
       let rec aux ys =
         match ys with
         | [] -> And []
@@ -168,17 +168,17 @@ let rec (cnf : Rule.formula -> cnf_step0) =
         | [ And ps; And qs ] ->
             And
               (ps
-              |> List.map (fun pi ->
+              |> Ls.map (fun pi ->
                      let ands =
                        qs
-                       |> List.map (fun qi ->
+                       |> Ls.map (fun qi ->
                               let (Or pi_ors) = pi in
                               let (Or qi_ors) = qi in
                               let ors = pi_ors @ qi_ors in
                               Or ors)
                      in
                      ands)
-              |> List.flatten)
+              |> Ls.flatten)
         | x :: xs ->
             let y = aux xs in
             aux [ x; y ]
@@ -330,7 +330,7 @@ let or_step2 (Or xs) =
        | _ -> ());
   let ys =
     xs
-    |> List.map (function
+    |> Ls.map (function
          | StringsAndMvars (xs, _) -> Idents xs
          | Regexp re -> Regexp2 re
          | MvarRegexp (_mvar, re) -> Regexp2 re)
@@ -338,7 +338,7 @@ let or_step2 (Or xs) =
   Or ys
 
 let and_step2 (And xs) =
-  let ys = xs |> List.map or_step2 in
+  let ys = xs |> Ls.map or_step2 in
   And ys
 
 (*****************************************************************************)
@@ -357,7 +357,7 @@ type cnf_final = AndFinal of final_step list
 [@@deriving show]
 
 let or_final (Or xs) =
-  let ys = xs |> List.map (function
+  let ys = xs |> Ls.map (function
    | Idents [] -> raise Impossible
    (* take the first one *)
    | Idents (x::_) -> Re.matching_exact_string x

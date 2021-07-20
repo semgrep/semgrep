@@ -108,7 +108,7 @@ let block : stmt_or_expr list -> stmt_or_expr = function
   | [ x ] -> x
   | several ->
       let loc = list_loc stmt_or_expr_loc several in
-      let stmts = List.map as_stmt several in
+      let stmts = Ls.map as_stmt several in
       Stmt (loc, G.s (G.Block (bracket loc stmts)))
 
 module C = struct
@@ -145,7 +145,7 @@ end
    Usage: call C.cmd args
 *)
 let call loc name exprs =
-  G.Call (name loc, bracket loc (List.map (fun e -> G.Arg e) exprs))
+  G.Call (name loc, bracket loc (Ls.map (fun e -> G.Arg e) exprs))
 
 let todo_tokens ((start, end_) : loc) =
   let wrap tok = (Parse_info.string_of_info tok, tok) in
@@ -177,7 +177,7 @@ let rec blist (l : blist) : stmt_or_expr list =
   | Seq (_loc, left, right) -> blist left @ blist right
   | And (_loc, left, and_tok, right) -> [ transpile_and left and_tok right ]
   | Or (_loc, left, or_tok, right) -> [ transpile_or left or_tok right ]
-  | Pipelines (_loc, pl) -> List.map (fun x -> pipeline x) pl
+  | Pipelines (_loc, pl) -> Ls.map (fun x -> pipeline x) pl
   | Empty _loc -> []
 
 and pipeline (x : pipeline) : stmt_or_expr =
@@ -224,7 +224,7 @@ and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
 and command (cmd : command) : stmt_or_expr =
   match cmd with
   | Simple_command { loc; assignments = _; arguments } ->
-      let args = List.map expression arguments in
+      let args = Ls.map expression arguments in
       Expr (loc, call loc C.cmd args)
   | Subshell (loc, (open_, bl, close)) ->
       (* TODO: subshell *) stmt_group loc (blist bl)
@@ -244,7 +244,7 @@ and command (cmd : command) : stmt_or_expr =
         | Some (loc, else_tok, body) -> Some (blist body |> block |> as_stmt)
       in
       let opt_stmt =
-        List.fold_right
+        Ls.fold_right
           (fun if_ (else_stmt : G.stmt option) ->
             let loc1, if_, cond, then_, body = if_ in
             let cond_expr = blist cond |> block |> as_expr in
@@ -267,7 +267,7 @@ and command (cmd : command) : stmt_or_expr =
   | Function_definition (loc, _) -> todo_stmt2 loc
 
 and stmt_group (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
-  let stmts = List.map as_stmt l in
+  let stmts = Ls.map as_stmt l in
   let start, end_ = loc in
   Stmt (loc, G.s (G.Block (start, stmts, end_)))
 
@@ -355,6 +355,6 @@ and transpile_or (left : blist) tok_or (right : blist) : stmt_or_expr =
   let loc = (start, end_) in
   Stmt (loc, G.s (G.If (tok_or, cond, as_stmt body, None)))
 
-let program x = blist x |> List.map as_stmt
+let program x = blist x |> Ls.map as_stmt
 
 let any x = G.Ss (program x)

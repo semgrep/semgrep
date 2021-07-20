@@ -871,10 +871,10 @@ functor
 
     and sort_xhp_attributes xs =
       xs
-      |> List.map (fun attr ->
+      |> Ls.map (fun attr ->
              let (attr_name, _ii), _tok, _value = attr in
              (attr_name, attr))
-      |> Common.sort_by_key_highfirst |> List.map snd
+      |> Common.sort_by_key_highfirst |> Ls.map snd
 
     and iso_m_list_m_xhp_attribute a b =
       (* let's sort so don't care about order.

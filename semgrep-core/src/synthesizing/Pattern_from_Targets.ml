@@ -181,7 +181,7 @@ let rec transpose (list : 'a list list) : 'a list list =
   | [] -> []
   | [] :: xss -> transpose xss
   | (x :: xs) :: xss ->
-      (x :: List.map List.hd xss) :: transpose (xs :: List.map List.tl xss)
+      (x :: Ls.map List.hd xss) :: transpose (xs :: Ls.map List.tl xss)
 
 (* We can't handle lists of statements of unequal size yet.
  * Check that each target has the same number of statements.
@@ -190,7 +190,7 @@ let check_equal_length (targets : 'a list list) : bool =
   match targets with
   | [] -> true
   | _ ->
-      let lengths = List.map List.length targets in
+      let lengths = Ls.map List.length targets in
       let hdlen = List.hd lengths in
       List.for_all (( == ) hdlen) lengths
 
@@ -386,13 +386,13 @@ and get_one_step_replacements (env, pattern, holes) =
        * For example, if f turns foo(...), a -> foo(a), and g turns (...), a -> (a, ...), we want a function *
        * that turns foo(...), a -> foo(a, ...) *)
       let incorporate_holes holes =
-        List.map
+        Ls.map
           (fun (removed_target, g) ->
             (removed_target, fun h any -> f (g h) any))
           holes
       in
       ( (env, pattern, holes'),
-        List.map
+        Ls.map
           (fun (env, pattern', target_holes) ->
             ( set_prev env pattern',
               f (fun _ -> pattern') pattern,
@@ -407,7 +407,7 @@ let get_included_patterns pattern_children =
     | x :: xs -> List.fold_left (fun acc s -> Set.inter acc s) x xs
   in
   let sets =
-    List.map
+    Ls.map
       (fun patterns ->
         List.fold_left
           (fun s (_, child_patterns) -> add_patterns s child_patterns)
@@ -428,8 +428,8 @@ let get_included_patterns pattern_children =
         | _ -> [ (set_prev env pattern, pattern, holes) ])
     | _ -> children
   in
-  List.map
-    (fun patterns -> List.flatten (List.map include_pattern patterns))
+  Ls.map
+    (fun patterns -> Ls.flatten (Ls.map include_pattern patterns))
     pattern_children
 
 let rec generate_patterns_help (target_patterns : pattern_instrs list) =
@@ -442,7 +442,7 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
     pr2 "target patterns";
     show_pattern_sets target_patterns);
   let pattern_children =
-    List.map (List.map get_one_step_replacements) target_patterns
+    Ls.map (Ls.map get_one_step_replacements) target_patterns
   in
   (* Keep only the patterns in each Sn that appear in every other OR *)
   (* the patterns that were included last time, don't have children, and have another replacement to try *)
@@ -454,7 +454,7 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   in
   (* Call recursively on these patterns *)
   if cont then generate_patterns_help included_patterns
-  else List.map List.hd target_patterns
+  else Ls.map List.hd target_patterns
 
 let extract_pattern (pats : pattern_instr) : Pattern.t =
   (fun (_, pattern, _) -> pattern) pats
@@ -474,7 +474,7 @@ let generate_starting_patterns config (targets : AST_generic.any list list) :
         [ (env, S (exprstmt (Ellipsis fk)), [ (ANY any, fun f a -> f a) ]) ]
     | _ -> raise UnsupportedTargetType
   in
-  List.map (List.map starting_pattern) targets
+  Ls.map (Ls.map starting_pattern) targets
 
 (* Copies the metavar count and mapping from src pattern_instr to
  *  each env in dsts.
@@ -486,7 +486,7 @@ let cp_meta_env (src : pattern_instr) (dsts : pattern_instrs) : pattern_instrs =
     let denv' = { denv with count = senv.count; mapping = senv.mapping } in
     (denv', dpattern, dholes)
   in
-  List.map cp dsts
+  Ls.map cp dsts
 
 (* Calls generate_patterns_help on each list of pattern_instrs, retaining
  * the metavariable environment between calls.
@@ -500,7 +500,7 @@ let rec generate_with_env (target_patterns : pattern_instrs list list) :
   | [ cur ] -> [ List.hd (generate_patterns_help cur) ]
   | cur :: next :: rest ->
       let curpats = generate_patterns_help cur in
-      let next' = List.map2 cp_meta_env curpats next in
+      let next' = Ls.map2 cp_meta_env curpats next in
       List.hd curpats :: generate_with_env (next' :: rest)
 
 (*****************************************************************************)
@@ -509,11 +509,11 @@ let rec generate_with_env (target_patterns : pattern_instrs list list) :
 
 let generate_patterns config targets lang =
   global_lang := lang;
-  let split_targets = List.map Range_to_AST.split_any targets in
+  let split_targets = Ls.map Range_to_AST.split_any targets in
   if check_equal_length split_targets then
     split_targets
     |> generate_starting_patterns config
     (* Transpose to intersect across targets, not within. *)
     |> transpose
-    |> generate_with_env |> List.map extract_pattern |> Range_to_AST.join_anys
+    |> generate_with_env |> Ls.map extract_pattern |> Range_to_AST.join_anys
   else failwith "Only targets of equal length are supported."

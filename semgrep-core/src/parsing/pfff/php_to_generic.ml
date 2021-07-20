@@ -33,7 +33,7 @@ let id x = x
 
 let option = Common.map_opt
 
-let list = List.map
+let list = Ls.map
 
 let bool = id
 
@@ -113,7 +113,7 @@ let list_expr_to_opt xs =
   | [ e ] -> Some e
   | x :: xs -> Some (G.Seq (x :: xs))
 
-let for_var xs = xs |> List.map (fun e -> G.ForInitExpr e)
+let for_var xs = xs |> Ls.map (fun e -> G.ForInitExpr e)
 
 let rec stmt_aux = function
   | Expr (v1, t) ->
@@ -127,7 +127,7 @@ let rec stmt_aux = function
       [ G.If (t, v1, v2, Some (* TODO *) v3) |> G.s ]
   | Switch (t, v1, v2) ->
       let v1 = expr v1
-      and v2 = list case v2 |> List.map (fun x -> G.CasesAndBody x) in
+      and v2 = list case v2 |> Ls.map (fun x -> G.CasesAndBody x) in
       [ G.Switch (t, Some v1, v2) |> G.s ]
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
@@ -192,7 +192,7 @@ let rec stmt_aux = function
              G.DefStmt (ent, G.VarDef def) |> G.s)
   | Global (t, v1) ->
       v1
-      |> List.map (fun e ->
+      |> Ls.map (fun e ->
              match e with
              | Id [ id ] ->
                  let ent = G.basic_entity id [] in
@@ -235,7 +235,7 @@ and finally (v : finally list) =
   let xs = list (fun (t, xs) -> (t, stmt xs)) v in
   match xs with
   | [] -> None
-  | (t, x) :: xs -> Some (t, G.stmt1 (x :: List.map snd xs))
+  | (t, x) :: xs -> Some (t, G.stmt1 (x :: Ls.map snd xs))
 
 and expr = function
   | DeepEllipsis x -> G.DeepEllipsis (bracket expr x)
@@ -284,15 +284,15 @@ and expr = function
       G.DotAccess (v1, t, G.EDynamic v2)
   | New (t, v1, v2) ->
       let v1 = expr v1 and v2 = list expr v2 in
-      G.Call (G.IdSpecial (G.New, t), fb (v1 :: v2 |> List.map G.arg))
+      G.Call (G.IdSpecial (G.New, t), fb (v1 :: v2 |> Ls.map G.arg))
   | NewAnonClass (t, args, cdef) ->
       let _ent, cdef = class_def cdef in
       let args = list expr args in
       let anon_class = G.AnonClass cdef in
-      G.Call (G.IdSpecial (G.New, t), fb (anon_class :: args |> List.map G.arg))
+      G.Call (G.IdSpecial (G.New, t), fb (anon_class :: args |> Ls.map G.arg))
   | InstanceOf (t, v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Instanceof, t), fb ([ v1; v2 ] |> List.map G.arg))
+      G.Call (G.IdSpecial (G.Instanceof, t), fb ([ v1; v2 ] |> Ls.map G.arg))
   (* v[] = 1 --> v <append>= 1.
    * update: because we must generate an OE_ArrayAppend in other contexts,
    * this prevents the simple pattern '$x[]' to be matched in an Assign
@@ -350,7 +350,7 @@ and expr = function
       let v1 = list expr v1 in
       G.Call
         ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t),
-          fb (v1 |> List.map G.arg) )
+          fb (v1 |> Ls.map G.arg) )
   | ConsArray v1 ->
       let v1 = bracket (list array_value) v1 in
       G.Container (G.Array, v1)
@@ -420,9 +420,7 @@ and hint_type = function
       G.TyTuple (t1, v1, t2)
   | HintCallback (v1, v2) ->
       let v1 = list hint_type v1 and v2 = option hint_type v2 in
-      let params =
-        v1 |> List.map (fun x -> G.ParamClassic (G.param_of_type x))
-      in
+      let params = v1 |> Ls.map (fun x -> G.ParamClassic (G.param_of_type x)) in
       let fret =
         match v2 with Some t -> t | None -> G.TyBuiltin ("void", fake "void")
       in
@@ -454,7 +452,7 @@ and func_def
   let fret = option hint_type f_return_type in
   let _is_refTODO = bool f_ref in
   let modifiers =
-    list modifier m_modifiers |> List.map (fun m -> G.KeywordAttr m)
+    list modifier m_modifiers |> Ls.map (fun m -> G.KeywordAttr m)
   in
   (* todo: transform in UseOuterDecl before first body stmt *)
   let _lusesTODO =
@@ -557,7 +555,7 @@ and class_def
   let _enum = option (enum_type tok) c_enum_type in
 
   let modifiers =
-    list modifier c_modifiers |> List.map (fun m -> G.KeywordAttr m)
+    list modifier c_modifiers |> Ls.map (fun m -> G.KeywordAttr m)
   in
   let attrs = list attribute c_attrs in
 
@@ -566,9 +564,9 @@ and class_def
   let methods = list method_def c_methods in
 
   let fields =
-    (csts |> List.map (fun (ent, var) -> (ent, G.VarDef var)))
-    @ (vars |> List.map (fun (ent, var) -> (ent, G.VarDef var)))
-    @ (methods |> List.map (fun (ent, var) -> (ent, G.FuncDef var)))
+    (csts |> Ls.map (fun (ent, var) -> (ent, G.VarDef var)))
+    @ (vars |> Ls.map (fun (ent, var) -> (ent, G.VarDef var)))
+    @ (methods |> Ls.map (fun (ent, var) -> (ent, G.FuncDef var)))
   in
 
   let ent = G.basic_entity id (attrs @ modifiers) in
@@ -581,7 +579,7 @@ and class_def
       cparams = [];
       cbody =
         ( t1,
-          fields |> List.map (fun def -> G.FieldStmt (G.DefStmt def |> G.s)),
+          fields |> Ls.map (fun def -> G.FieldStmt (G.DefStmt def |> G.s)),
           t2 );
     }
   in
@@ -605,7 +603,7 @@ and class_var
   let typ = option hint_type ctype in
   let value = option expr cvalue in
   let modifiers =
-    list modifier cmodifiers |> List.map (fun m -> G.KeywordAttr m)
+    list modifier cmodifiers |> Ls.map (fun m -> G.KeywordAttr m)
   in
   let ent = G.basic_entity id modifiers in
   let def = { G.vtype = typ; vinit = value } in

@@ -79,7 +79,7 @@ let (gens : F.flow -> unit Dataflow.env array) =
        * something - kill(x) but this is wrong, as shown
        * p214 which contradicts p385.
        *)
-      let rvars = rvals |> List.map (fun ((s, _tok), _idinfo) -> s) in
+      let rvars = rvals |> Ls.map (fun ((s, _tok), _idinfo) -> s) in
       rvars |> List.iter (fun var -> arr.(ni) <- VarMap.add var () arr.(ni)))
     flow ();
   arr
@@ -95,7 +95,7 @@ let (kills : F.flow -> unit Dataflow.env array) =
   V.fold_on_node_and_expr
     (fun (ni, _nd) e () ->
       let lvals = Lrvalue.lvalues_of_expr e in
-      let vars = lvals |> List.map (fun ((s, _tok), _idinfo) -> s) in
+      let vars = lvals |> Ls.map (fun ((s, _tok), _idinfo) -> s) in
       vars |> List.iter (fun var -> arr.(ni) <- VarMap.add var () arr.(ni)))
     flow ();
   arr

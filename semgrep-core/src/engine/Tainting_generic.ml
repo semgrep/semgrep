@@ -60,7 +60,7 @@ let ranges_of_pformula config equivs file_and_more rule_id pformula =
   Match_rules.matches_of_formula config equivs rule_id file_and_more
     lazy_content formula None
   |> snd
-  |> List.map (fun rwm -> rwm.Range_with_metavars.r)
+  |> Ls.map (fun rwm -> rwm.Range_with_metavars.r)
 
 (*s: function [[Tainting_generic.config_of_rule]] *)
 
@@ -72,8 +72,8 @@ let taint_config_of_rule default_config equivs file ast_and_errors
   let find_ranges pfs =
     (* if perf is a problem, we could build an interval set here *)
     pfs
-    |> List.map (ranges_of_pformula config equivs file_and_more (fst rule.id))
-    |> List.concat
+    |> Ls.map (ranges_of_pformula config equivs file_and_more (fst rule.id))
+    |> Ls.concat
   in
   let sources_ranges = find_ranges spec.sources
   and sanitizers_ranges = find_ranges spec.sanitizers
@@ -98,7 +98,7 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
 
   let taint_configs =
     taint_rules
-    |> List.map (fun (rule, taint_spec) ->
+    |> Ls.map (fun (rule, taint_spec) ->
            let rule_id =
              {
                Pattern_match.id = fst rule.Rule.id;

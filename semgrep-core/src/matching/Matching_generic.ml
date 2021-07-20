@@ -151,8 +151,8 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
    *)
   let xs = m1 tin in
   (* try m2 on each possible returned bindings *)
-  let xxs = xs |> List.map (fun binding -> m2 () binding) in
-  List.flatten xxs
+  let xxs = xs |> Ls.map (fun binding -> m2 () binding) in
+  Ls.flatten xxs
 
 (*e: function [[Matching_generic.monadic_bind]] *)
 
@@ -376,7 +376,7 @@ let rec inits_and_rest_of_list = function
   | [ e ] -> [ ([ e ], []) ]
   | e :: l ->
       ([ e ], l)
-      :: List.map (fun (l, rest) -> (e :: l, rest)) (inits_and_rest_of_list l)
+      :: Ls.map (fun (l, rest) -> (e :: l, rest)) (inits_and_rest_of_list l)
 
 let _ =
   Common2.example
@@ -417,8 +417,8 @@ let rec all_splits = function
   | [] -> [ ([], []) ]
   | x :: xs ->
       all_splits xs
-      |> List.map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
-      |> List.flatten
+      |> Ls.map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
+      |> Ls.flatten
 
 (*e: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 
@@ -608,15 +608,13 @@ let m_comb_bind (comb_result : _ comb_result) f : _ comb_result =
   let rec loop = function
     | [] -> []
     | (bs, tout) :: comb_matches' ->
-        let bs_matches =
-          tout |> List.map (fun tin -> f bs tin) |> List.flatten
-        in
+        let bs_matches = tout |> Ls.map (fun tin -> f bs tin) |> Ls.flatten in
         bs_matches @ loop comb_matches'
   in
   loop (comb_result tin)
 
 let m_comb_flatten (comb_result : _ comb_result) (tin : tin) : tout =
-  comb_result tin |> List.map snd |> List.flatten
+  comb_result tin |> Ls.map snd |> Ls.flatten
 
 let m_comb_fold (m_comb : _ comb_matcher) (xs : _ list)
     (comb_result : _ comb_result) : _ comb_result =

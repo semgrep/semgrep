@@ -32,7 +32,7 @@ let id x = x
 
 let option = Common.map_opt
 
-let list = List.map
+let list = Ls.map
 
 let (string : string -> string) = id
 
@@ -111,12 +111,12 @@ and class_type v =
         {
           G.name_typeargs = None;
           (* could be v1TODO above *)
-          name_qualifier = Some (G.QDots (List.rev (List.map fst xs)));
+          name_qualifier = Some (G.QDots (List.rev (Ls.map fst xs)));
         }
       in
       G.TyN (G.IdQualified ((id, name_info), G.empty_id_info ()))
   | (id, Some ts) :: xs ->
-      G.TyApply (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))), ts)
+      G.TyApply (G.TyN (H.name_of_ids (List.rev (id :: Ls.map fst xs))), ts)
 
 and type_argument = function
   | TArgument v1 ->
@@ -137,7 +137,7 @@ and ref_type v = typ v
 let type_parameter = function
   | TParam (v1, v2) ->
       let v1 = ident v1 and v2 = list ref_type v2 in
-      (v1, v2 |> List.map (fun t -> G.Extends t))
+      (v1, v2 |> Ls.map (fun t -> G.Extends t))
 
 let rec modifier (x, tok) =
   match x with
@@ -270,7 +270,7 @@ and expr e =
                 cimplements = [];
                 cmixins = [];
                 cparams = [];
-                cbody = decls |> bracket (List.map (fun x -> G.FieldStmt x));
+                cbody = decls |> bracket (Ls.map (fun x -> G.FieldStmt x));
               }
           in
           G.Call (G.IdSpecial (G.New, v0), (lp, G.Arg anonclass :: v2, rp)))
@@ -298,9 +298,9 @@ and expr e =
       and v4 = option (bracket decls) v4 in
       let any =
         [ G.E v0; G.T v2 ]
-        @ (v3 |> G.unbracket |> List.map (fun arg -> G.Ar arg))
-        @ (Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
-          |> List.map (fun st -> G.S st))
+        @ (v3 |> G.unbracket |> Ls.map (fun arg -> G.Ar arg))
+        @ (Common.opt_to_list v4 |> Ls.map G.unbracket |> Ls.flatten
+          |> Ls.map (fun st -> G.S st))
       in
       G.OtherExpr (G.OE_NewQualifiedClass, any)
   | MethodRef (v1, v2, v3, v4) ->
@@ -366,7 +366,7 @@ and expr e =
             let v1 = cases v1 and v2 = stmts v2 in
             (v1, G.stmt1 v2))
           v2
-        |> List.map (fun x -> G.CasesAndBody x)
+        |> Ls.map (fun x -> G.CasesAndBody x)
       in
       G.OtherExpr (G.OE_StmtExpr, [ G.S (G.Switch (v0, Some v1, v2) |> G.s) ])
 
@@ -401,7 +401,7 @@ and stmt st =
             let v1 = cases v1 and v2 = stmts v2 in
             (v1, G.stmt1 v2))
           v2
-        |> List.map (fun x -> G.CasesAndBody x)
+        |> Ls.map (fun x -> G.CasesAndBody x)
       in
       G.Switch (v0, Some v1, v2) |> G.s
   | While (t, v1, v2) ->
@@ -480,10 +480,10 @@ and for_control tok = function
 and for_init = function
   | ForInitVars v1 ->
       let v1 = list var_with_init v1 in
-      v1 |> List.map (fun (ent, v) -> G.ForInitVar (ent, v))
+      v1 |> Ls.map (fun (ent, v) -> G.ForInitVar (ent, v))
   | ForInitExprs v1 ->
       let v1 = list expr v1 in
-      v1 |> List.map (fun e -> G.ForInitExpr e)
+      v1 |> Ls.map (fun e -> G.ForInitExpr e)
 
 and var { name; mods; type_ = xtyp } =
   let v1 = ident name in
@@ -517,7 +517,7 @@ and init = function
       let v1 = bracket (list init) v1 in
       G.Container (G.Array, v1)
 
-and parameters v = List.map parameter_binding v
+and parameters v = Ls.map parameter_binding v
 
 and parameter_binding = function
   | ParamClassic v | ParamReceiver v ->
@@ -535,7 +535,7 @@ and method_decl { m_var; m_formals; m_throws; m_body } =
   let v3 = list typ m_throws in
   let v4 = stmt m_body in
   let throws =
-    v3 |> List.map (fun t -> G.OtherAttribute (G.OA_AnnotThrow, [ G.T t ]))
+    v3 |> Ls.map (fun t -> G.OtherAttribute (G.OA_AnnotThrow, [ G.T t ]))
   in
   ( { ent with G.attrs = ent.G.attrs @ throws },
     {
@@ -585,7 +585,7 @@ and class_decl
   let v6 = list ref_type cl_impls in
   let cparams = parameters cl_formals in
   let v7 = class_body cl_body in
-  let fields = v7 |> bracket (List.map (fun x -> G.FieldStmt x)) in
+  let fields = v7 |> bracket (Ls.map (fun x -> G.FieldStmt x)) in
   let ent = { (G.basic_entity v1 v4) with G.tparams = v3 } in
   let cdef =
     {
@@ -681,7 +681,7 @@ let any = function
       let v1 = stmt v1 in
       G.S v1
   | AStmts v1 ->
-      let v1 = List.map stmt v1 in
+      let v1 = Ls.map stmt v1 in
       G.Ss v1
   | ATyp v1 ->
       let v1 = typ v1 in

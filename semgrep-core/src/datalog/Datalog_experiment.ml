@@ -151,6 +151,6 @@ let gen_facts file outdir =
   in
   v (AST.Pr ast);
 
-  let facts = !facts |> List.rev |> List.flatten in
+  let facts = !facts |> List.rev |> Ls.flatten in
   pr2 (spf "generating %d facts in %s" (List.length facts) outdir);
   Datalog_io.write_facts_for_doop facts outdir

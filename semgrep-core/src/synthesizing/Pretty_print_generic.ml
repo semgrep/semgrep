@@ -268,7 +268,7 @@ and for_stmt env level (for_tok, hdr, s) =
     | ForEllipsis tok -> token "..." tok
     | ForIn (init, exprs) ->
         F.sprintf "%s %s %s" (show_init_list init) "in"
-          (String.concat "," (List.map (fun e -> expr env e) exprs))
+          (String.concat "," (Ls.map (fun e -> expr env e) exprs))
   in
   let body_str = stmt env (level + 1) s in
   for_format (token "for" for_tok) hdr_str body_str
@@ -528,7 +528,7 @@ let pattern_to_string lang any =
   match any with
   | E e -> expr_to_string lang mvars e
   | S s -> stmt_to_string lang mvars s
-  | Ss stmts -> List.map (stmt_to_string lang mvars) stmts |> String.concat "\n"
+  | Ss stmts -> Ls.map (stmt_to_string lang mvars) stmts |> String.concat "\n"
   | Args args -> arguments { lang; mvars } args
   | _ ->
       pr2 (AST_generic.show_any any);

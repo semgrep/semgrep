@@ -39,7 +39,7 @@ let string_of_class_var_modifier modifiers =
   | NoModifiers _ -> "var"
   | VModifiers xs ->
       xs
-      |> List.map (fun (_modifier, tok) -> PI.str_of_info tok)
+      |> Ls.map (fun (_modifier, tok) -> PI.str_of_info tok)
       |> Common.join " "
 
 let last_token_classes classnames =

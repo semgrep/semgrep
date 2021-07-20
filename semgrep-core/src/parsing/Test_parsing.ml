@@ -115,7 +115,7 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang xs =
-  let xs = List.map Common.fullpath xs in
+  let xs = Ls.map Common.fullpath xs in
   let fullxs =
     Lang.files_of_dirs_or_files lang xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
@@ -186,7 +186,7 @@ let test_parse_tree_sitter lang xs =
 *)
 let parsing_common ?(verbose = true) lang xs =
   let timeout_seconds = 10 in
-  let xs = List.map Common.fullpath xs in
+  let xs = Ls.map Common.fullpath xs in
   let fullxs =
     Lang.files_of_dirs_or_files lang xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
@@ -242,7 +242,7 @@ let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
 *)
 let aggregate_file_stats (results : (string * PI.parsing_stat list) list) :
     Parsing_stats_t.project_stats list =
-  List.map
+  Ls.map
     (fun (project_name, file_stats) ->
       let acc =
         {
@@ -309,7 +309,7 @@ let print_json lang results =
   print_endline (Yojson.Safe.prettify s)
 
 let parse_projects ~verbose lang project_dirs =
-  List.map
+  Ls.map
     (fun dir ->
       let name = dir in
       parse_project ~verbose lang name [ dir ])
@@ -319,7 +319,7 @@ let parsing_stats lang json project_dirs =
   let stat_list = parse_projects ~verbose:(not json) lang project_dirs in
   if json then print_json lang stat_list
   else
-    let flat_stat = List.map snd stat_list |> List.flatten in
+    let flat_stat = Ls.map snd stat_list |> Ls.flatten in
     Parse_info.print_parsing_stat_list flat_stat
 
 let parsing_regressions lang files_or_dirs =

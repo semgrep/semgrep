@@ -44,7 +44,7 @@ exception UnparsableYamlException of string
 let parse_languages ~id t langs =
   let languages =
     langs
-    |> List.map (function
+    |> Ls.map (function
          | `String s -> (
              match Lang.lang_of_string_opt s with
              | None ->
@@ -79,7 +79,7 @@ let parse file =
       match v with
       | `O [ ("rules", `A xs) ] ->
           xs
-          |> List.map (fun v ->
+          |> Ls.map (fun v ->
                  match v with
                  | `O xs -> (
                      match Common.sort_by_key_lowfirst xs with

@@ -108,21 +108,21 @@ let map_attribute (env : env) ((v1, v2) : CST.attribute) : xml_attribute =
 let map_script_start_tag (env : env) ((v1, v2, v3, v4) : CST.script_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* script_start_tag_name *) in
-  let v3 = List.map (map_attribute env) v3 in
+  let v3 = Ls.map (map_attribute env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
 let map_style_start_tag (env : env) ((v1, v2, v3, v4) : CST.style_start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* style_start_tag_name *) in
-  let v3 = List.map (map_attribute env) v3 in
+  let v3 = Ls.map (map_attribute env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
 let map_start_tag (env : env) ((v1, v2, v3, v4) : CST.start_tag) =
   let v1 = token env v1 (* "<" *) in
   let v2 = str env v2 (* start_tag_name *) in
-  let v3 = List.map (map_attribute env) v3 in
+  let v3 = Ls.map (map_attribute env) v3 in
   let v4 = token env v4 (* ">" *) in
   (v1, v2, v3, v4)
 
@@ -146,12 +146,12 @@ let rec map_element (env : env) (x : CST.element) : xml =
   | `Self_clos_tag (v1, v2, v3, v4) ->
       let l = token env v1 (* "<" *) in
       let id = str env v2 (* start_tag_name *) in
-      let attrs = List.map (map_attribute env) v3 in
+      let attrs = Ls.map (map_attribute env) v3 in
       let r = token env v4 (* "/>" *) in
       { xml_kind = XmlSingleton (l, id, r); xml_attrs = attrs; xml_body = [] }
 
 and map_fragment (env : env) (xs : CST.fragment) : xml_body list =
-  List.map (map_node env) xs
+  Ls.map (map_node env) xs
 
 and map_node (env : env) (x : CST.node) : xml_body =
   match x with

@@ -48,12 +48,12 @@ let any_gen_of_string str =
 (*e: function [[Test.parse_generic]] *)
 
 let parsing_tests_for_lang files lang =
-  files |> List.map (fun file ->
+  files |> Ls.map (fun file ->
     (Filename.basename file) >:: (fun () ->
       let {Parse_target. errors = errs; _ } = 
          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
       if errs <> []
-      then failwith (String.concat ";" (List.map Error_code.string_of_error errs));
+      then failwith (String.concat ";" (Ls.map Error_code.string_of_error errs));
     )
   )
 
@@ -65,7 +65,7 @@ let parsing_tests_for_lang files lang =
 *)
 (*s: function [[Test.regression_tests_for_lang]] *)
 let regression_tests_for_lang ~with_caching files lang =
-  files |> List.map (fun file ->
+  files |> Ls.map (fun file ->
    (Filename.basename file) >:: (fun () ->
     let sgrep_file =
       let (d,b,_e) = Common2.dbe_of_filename file in
@@ -176,7 +176,7 @@ let tainting_test lang rules_file file =
       taint_rules equivs file ast
   in
   let actual =
-    matches |> List.map (fun m ->
+    matches |> Ls.map (fun m ->
       { E.typ = SemgrepMatchFound(m.P.rule_id.id,m.P.rule_id.message);
         loc   = fst m.range_loc;
         sev   = Error; }
@@ -186,7 +186,7 @@ let tainting_test lang rules_file file =
   Error_code.compare_actual_to_expected actual expected
 
 let tainting_tests_for_lang files lang =
-  files |> List.map (fun file ->
+  files |> Ls.map (fun file ->
    (Filename.basename file) >:: (fun () ->
     let rules_file =
       let (d,b,_e) = Common2.dbe_of_filename file in
@@ -577,7 +577,7 @@ let test regexp =
     then tests
     else
       let paths =
-        OUnit.test_case_paths tests |> List.map OUnit.string_of_path in
+        OUnit.test_case_paths tests |> Ls.map OUnit.string_of_path in
       let keep = paths |> List.filter (fun path ->
         path =~ (".*" ^ regexp))
       in

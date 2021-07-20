@@ -92,7 +92,7 @@ let parse_json file =
             | _ -> failwith "only expressions are supported"
           in
           let metavars =
-            xs |> List.map (fun (s, json) -> (s, metavar_of_json s json))
+            xs |> Ls.map (fun (s, json) -> (s, metavar_of_json s json))
           in
           (Common.hash_of_list metavars, code)
       | _ -> failwith "wrong json format")
@@ -158,13 +158,13 @@ let rec eval env code =
   | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
       let values =
         args
-        |> List.map (function
+        |> Ls.map (function
              | G.Arg e -> eval env e
              | _ -> raise (NotHandled code))
       in
       eval_op op values code
   | G.Container (G.List, (_, xs, _)) ->
-      let vs = List.map (eval env) xs in
+      let vs = Ls.map (eval env) xs in
       List vs
   (* Emulate Python re.match just enough *)
   | G.Call
@@ -295,7 +295,7 @@ let bindings_to_env xs =
 (* this is for metavariable-regexp *)
 let bindings_to_env_with_just_strings xs =
   xs
-  |> List.map (fun (mvar, mval) ->
+  |> Ls.map (fun (mvar, mval) ->
          let any = MV.mvalue_to_any mval in
          let min, max = Visitor_AST.range_of_any any in
          let file = min.Parse_info.file in

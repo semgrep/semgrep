@@ -117,22 +117,22 @@ let stat file =
   (* parsing *)
   let xs = Common.cat file in
   let ys = xs |> Common2.split_list_regexp "^Running rule" in
-  let runs = ys |> List.map parse_run in
+  let runs = ys |> Ls.map parse_run in
 
   if !debug then runs |> List.iter (fun r -> pr2 (show_run r));
 
   (* reporting *)
   pr2 (spf "TIMEOUT FILES (timeout = %.1f" !timeout);
   let timeout_files =
-    runs |> List.map (fun x -> x.timeout) |> List.flatten |> Common2.uniq
+    runs |> Ls.map (fun x -> x.timeout) |> Ls.flatten |> Common2.uniq
   in
   timeout_files |> List.iter pr2_gen;
 
   pr2 "SLOW FILES";
   let problematic_files =
     runs
-    |> List.map (fun x -> x.files)
-    |> List.flatten
+    |> Ls.map (fun x -> x.files)
+    |> Ls.flatten
     |> Common.exclude (fun (file, _) -> List.mem file timeout_files)
     |> Common.sort_by_val_highfirst |> Common.take_safe 30
   in
@@ -140,9 +140,9 @@ let stat file =
 
   let problematic_rules =
     runs
-    |> List.map (fun x ->
+    |> Ls.map (fun x ->
            ( (x.rule, List.length x.files, x.lang),
-             x.files |> List.map snd |> Common2.sum_float ))
+             x.files |> Ls.map snd |> Common2.sum_float ))
     |> Common.sort_by_val_highfirst |> Common.take_safe 30
   in
   pr2 "PROBLEMATIC RULES";
@@ -152,21 +152,21 @@ let stat file =
   let groups = runs |> Common.group_by (fun x -> x.lang) in
   let stats =
     groups
-    |> List.map (fun (xlang, xs) ->
+    |> Ls.map (fun (xlang, xs) ->
            let total_rules = List.length xs in
            let total_time =
              xs
-             |> List.map (fun x -> x.files)
-             |> List.flatten |> List.map snd |> Common2.sum_float
+             |> Ls.map (fun x -> x.files)
+             |> Ls.flatten |> Ls.map snd |> Common2.sum_float
            in
            let total_files =
-             xs |> List.map (fun x -> List.length x.files) |> Common2.sum
+             xs |> Ls.map (fun x -> List.length x.files) |> Common2.sum
            in
            { xlang; total_rules; total_time; total_files })
   in
 
   stats
-  |> List.map (fun stat -> (stat, stat.total_time))
+  |> Ls.map (fun stat -> (stat, stat.total_time))
   |> Common.sort_by_val_highfirst
   |> List.iter (fun (stat, _) -> report_stat_per_lang stat);
 

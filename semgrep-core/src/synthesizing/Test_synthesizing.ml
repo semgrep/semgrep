@@ -30,7 +30,7 @@ let expr_at_range s file =
 let synthesize_patterns s file =
   let config = Config_semgrep.default_config in
   let options = Synthesizer.synthesize_patterns config s file in
-  let json_opts = J.Object (List.map (fun (k, v) -> (k, J.String v)) options) in
+  let json_opts = J.Object (Ls.map (fun (k, v) -> (k, J.String v)) options) in
   let s = J.string_of_json json_opts in
   pr s
   [@@action]

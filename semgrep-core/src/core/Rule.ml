@@ -353,10 +353,10 @@ let (convert_formula_old : formula_old -> formula) =
     | PatNot (t, x) -> Not (t, Leaf (P (x, None)))
     | PatNotInside (t, x) -> Not (t, Leaf (P (x, Some Inside)))
     | PatEither (t, xs) ->
-        let xs = List.map aux xs in
+        let xs = Ls.map aux xs in
         Or (t, xs)
     | Patterns (t, xs) ->
-        let xs = List.map aux xs in
+        let xs = Ls.map aux xs in
         And (t, xs)
     | PatExtra (t, x) ->
         let e = convert_extra x in

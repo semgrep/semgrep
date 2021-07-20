@@ -94,10 +94,10 @@ let rec expr_to_pattern e =
   (* TODO: diconstruct e and generate the right pattern (PatLiteral, ...) *)
   match e with
   | N (Id (id, info)) -> PatId (id, info)
-  | Tuple (t1, xs, t2) -> PatTuple (t1, xs |> List.map expr_to_pattern, t2)
+  | Tuple (t1, xs, t2) -> PatTuple (t1, xs |> Ls.map expr_to_pattern, t2)
   | L l -> PatLiteral l
   | Container (List, (t1, xs, t2)) ->
-      PatList (t1, xs |> List.map expr_to_pattern, t2)
+      PatList (t1, xs |> Ls.map expr_to_pattern, t2)
   (* Todo:  PatKeyVal *)
   | _ -> OtherPat (OP_Expr, [ E e ])
 
@@ -112,10 +112,10 @@ exception NotAnExpr
 let rec pattern_to_expr p =
   match p with
   | PatId (id, info) -> N (Id (id, info))
-  | PatTuple (t1, xs, t2) -> Tuple (t1, xs |> List.map pattern_to_expr, t2)
+  | PatTuple (t1, xs, t2) -> Tuple (t1, xs |> Ls.map pattern_to_expr, t2)
   | PatLiteral l -> L l
   | PatList (t1, xs, t2) ->
-      Container (List, (t1, xs |> List.map pattern_to_expr, t2))
+      Container (List, (t1, xs |> Ls.map pattern_to_expr, t2))
   | OtherPat (OP_Expr, [ E e ]) -> e
   | PatAs _ | PatVar _ -> raise NotAnExpr
   | _ -> raise NotAnExpr
@@ -245,10 +245,10 @@ let ac_matching_nf op args =
   (* yes... here we use exceptions like a "goto" to avoid the option monad *)
   let rec nf args1 =
     args1
-    |> List.map (function
+    |> Ls.map (function
          | Arg e -> e
          | ArgKwd _ | ArgType _ | ArgOther _ -> raise_notrace Exit)
-    |> List.map nf_one |> List.flatten
+    |> Ls.map nf_one |> Ls.flatten
   and nf_one = function
     | Call (IdSpecial (Op op1, _tok1), (_, args1, _)) when op = op1 -> nf args1
     | x -> [ x ]

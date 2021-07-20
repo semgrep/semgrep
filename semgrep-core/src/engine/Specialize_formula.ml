@@ -35,7 +35,7 @@ let match_selector ?err:(msg = "no match") (sel_opt : selector option) :
   match sel_opt with
   | None -> failwith msg
   | Some selector ->
-      List.map RM.match_result_to_range
+      Ls.map RM.match_result_to_range
         (get_match (Lazy.force selector.lazy_matches))
 
 let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
@@ -66,7 +66,7 @@ let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
                 (pattern_match_from_binding selector binding);
             ])
   in
-  List.flatten (List.map select_from_range ranges)
+  Ls.flatten (Ls.map select_from_range ranges)
 
 let selector_equal s1 s2 = s1.mvar = s2.mvar
 
@@ -109,13 +109,13 @@ let formula_to_sformula match_func formula =
     let _convert_and_formulas fs =
       (* TODO put back this function *)
       let selector, fs = remove_selectors (None, []) fs in
-      (selector, List.map formula_to_sformula fs)
+      (selector, Ls.map formula_to_sformula fs)
     in
     (* Visit formula and convert *)
     match formula with
     | R.Leaf leaf -> Leaf leaf
-    | R.And (_, fs) -> And (None, List.map formula_to_sformula fs)
-    | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
+    | R.And (_, fs) -> And (None, Ls.map formula_to_sformula fs)
+    | R.Or (_, fs) -> Or (Ls.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
   in
   formula_to_sformula formula

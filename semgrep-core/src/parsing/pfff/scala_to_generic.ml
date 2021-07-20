@@ -48,7 +48,7 @@ let v_float = id
 
 let v_bool = id
 
-let v_list = List.map
+let v_list = Ls.map
 
 let v_option = Common.map_opt
 
@@ -150,7 +150,7 @@ and v_import_spec = function
       let v1 = (v_list v_import_selector) v1 in
       fun tk path ->
         v1
-        |> List.map (fun (id, opt) ->
+        |> Ls.map (fun (id, opt) ->
                let alias =
                  match opt with
                  | None -> None
@@ -161,7 +161,7 @@ and v_import_spec = function
 let v_import (v1, v2) : G.directive list =
   let v1 = v_tok v1 in
   let v2 = v_list (v_import_expr v1) v2 in
-  List.flatten v2
+  Ls.flatten v2
 
 let v_package (v1, v2) =
   let v1 = v_tok v1 and v2 = v_qualified_ident v2 in
@@ -192,7 +192,7 @@ let rec v_literal = function
       let special = G.IdSpecial (G.ConcatString G.FString, snd v1) in
       let args =
         v2
-        |> List.map (function
+        |> Ls.map (function
              | Left lit -> G.Arg (G.L lit)
              | Right e ->
                  let special = G.IdSpecial (G.InterpolatedElement, fake "") in
@@ -231,12 +231,12 @@ and v_type_ = function
   | TyApplied (v1, v2) -> (
       let v1 = v_type_ v1 and v2 = v_bracket (v_list v_type_) v2 in
       let lp, xs, rp = v2 in
-      let args = xs |> List.map (fun x -> G.TypeArg x) in
+      let args = xs |> Ls.map (fun x -> G.TypeArg x) in
       match v1 with
       | G.TyN n -> G.TyApply (G.TyN n, (lp, args, rp))
       | _ ->
           todo_type "TyAppliedComplex"
-            (G.T v1 :: (xs |> List.map (fun x -> G.T x))))
+            (G.T v1 :: (xs |> Ls.map (fun x -> G.T x))))
   | TyInfix (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_ident v2 and v3 = v_type_ v3 in
       G.TyApply (G.TyN (H.name_of_ids [ v2 ]), fb [ G.TypeArg v1; G.TypeArg v3 ])
@@ -249,7 +249,7 @@ and v_type_ = function
       and v3 = v_type_ v3 in
       let ts =
         v1 |> G.unbracket
-        |> List.map (fun t -> G.ParamClassic (G.param_of_type t))
+        |> Ls.map (fun t -> G.ParamClassic (G.param_of_type t))
       in
       G.TyFun (ts, v3)
   | TyTuple v1 ->
@@ -265,12 +265,12 @@ and v_type_ = function
       let v1 = v_option v_type_ v1 and _lb, defs, _rb = v_refinement v2 in
       todo_type "TyRefined"
         ((match v1 with None -> [] | Some t -> [ G.T t ])
-        @ (defs |> List.map (fun def -> G.Def def)))
+        @ (defs |> Ls.map (fun def -> G.Def def)))
   | TyExistential (v1, v2, v3) ->
       let v1 = v_type_ v1 in
       let _v2 = v_tok v2 in
       let _lb, defs, _rb = v_refinement v3 in
-      todo_type "TyExistential" (G.T v1 :: (defs |> List.map (fun x -> G.Def x)))
+      todo_type "TyExistential" (G.T v1 :: (defs |> Ls.map (fun x -> G.Def x)))
   | TyWith (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_tok v2 and v3 = v_type_ v3 in
       G.TyAnd (v1, v2, v3)
@@ -279,7 +279,7 @@ and v_type_ = function
       G.TyAny v1
 
 and v_refinement v =
-  v_bracket (fun xs -> v_list v_refine_stat xs |> List.flatten) v
+  v_bracket (fun xs -> v_list v_refine_stat xs |> Ls.flatten) v
 
 and v_refine_stat v = v_definition v
 
@@ -367,7 +367,7 @@ and v_expr = function
       todo_expr "ExprUnderscore" [ G.Tk v1 ]
   | InstanciatedExpr (v1, v2) ->
       let v1 = v_expr v1 and _, v2, _ = v_bracket (v_list v_type_) v2 in
-      todo_expr "InstanciatedExpr" (G.E v1 :: List.map (fun t -> G.T t) v2)
+      todo_expr "InstanciatedExpr" (G.E v1 :: Ls.map (fun t -> G.T t) v2)
   | TypedExpr (v1, v2, v3) ->
       let v1 = v_expr v1 and _v2 = v_tok v2 and v3 = v_ascription v3 in
       G.Cast (v3, v1)
@@ -564,9 +564,9 @@ and v_catch_clause (v1, v2) : G.catch list =
   let v1 = v_tok v1 in
   match v2 with
   | CatchCases (_lb, xs, _rb) ->
-      let actions = List.map v_case_clause xs in
+      let actions = Ls.map v_case_clause xs in
       actions
-      |> List.map (fun (pat, e) ->
+      |> Ls.map (fun (pat, e) ->
              (* todo? e was the result of expr_of_block, so maybe we
               * should revert because we want a stmt here with block_of_expr
               *)
@@ -580,16 +580,16 @@ and v_finally_clause (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
   (v1, v2)
 
-and v_block v = v_list v_block_stat v |> List.flatten
+and v_block v = v_list v_block_stat v |> Ls.flatten
 
 and v_block_stat x : G.item list =
   match x with
   | D v1 ->
       let v1 = v_definition v1 in
-      v1 |> List.map (fun def -> G.DefStmt def |> G.s)
+      v1 |> Ls.map (fun def -> G.DefStmt def |> G.s)
   | I v1 ->
       let v1 = v_import v1 in
-      v1 |> List.map (fun dir -> G.DirectiveStmt dir |> G.s)
+      v1 |> Ls.map (fun dir -> G.DirectiveStmt dir |> G.s)
   | E v1 ->
       let v1 = v_expr_for_stmt v1 in
       [ v1 ]
@@ -600,7 +600,7 @@ and v_block_stat x : G.item list =
       let ipak, ids = v_package v1 in
       let xxs = v_list v_top_stat v2 in
       [ G.DirectiveStmt (G.Package (ipak, ids)) |> G.s ]
-      @ List.flatten xxs
+      @ Ls.flatten xxs
       @ [ G.DirectiveStmt (G.PackageEnd rb) |> G.s ]
 
 and v_top_stat v = v_block_stat v
@@ -631,7 +631,7 @@ and v_modifier_kind = function
 
 and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
-  let args = v3 |> List.map G.unbracket |> List.flatten in
+  let args = v3 |> Ls.map G.unbracket |> Ls.flatten in
   match v2 with
   | TyN name -> G.NamedAttr (v1, name, fb args)
   | _ ->
@@ -730,7 +730,7 @@ and v_function_definition
   let fbody = v_option v_fbody vfbody in
   {
     fkind = kind;
-    fparams = List.flatten params;
+    fparams = Ls.flatten params;
     (* TODO? *)
     frettype = tret;
     fbody = (match fbody with None -> G.empty_fbody | Some st -> st);
@@ -794,13 +794,13 @@ and v_template_definition
     } : G.class_definition * G.arguments bracket list =
   let ckind = v_wrap v_template_kind v_ckind in
   (* TODO? flatten? *)
-  let cparams = v_list v_bindings v_cparams |> List.flatten in
+  let cparams = v_list v_bindings v_cparams |> Ls.flatten in
   let (cextends, cmixins), argss = v_template_parents v_cparents in
   let body = v_option v_template_body v_cbody in
   let cbody =
     match body with
     | None -> G.empty_body
-    | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.FieldStmt st), rb)
+    | Some (lb, xs, rb) -> (lb, xs |> Ls.map (fun st -> G.FieldStmt st), rb)
   in
   ({ G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }, argss)
 
@@ -848,7 +848,7 @@ and v_type_definition_kind = function
       let _v1TODO = v_type_bounds v1 in
       G.OtherTypeKind (G.OTKO_AbstractType, [])
 
-let v_program v = v_list v_top_stat v |> List.flatten
+let v_program v = v_list v_top_stat v |> Ls.flatten
 
 let v_any = function
   | Pr v1 ->
