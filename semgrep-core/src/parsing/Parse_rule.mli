@@ -10,12 +10,15 @@ exception InvalidRegexpException of string * string
 
 exception UnparsableYamlException of string
 
-exception InvalidYamlException of string
+exception InvalidYamlException of string * Parse_info.t
 
 val parse : Common.filename -> Rule.rules
 
 (* used also by Convert_rule.ml *)
-val parse_metavar_cond : string -> AST_generic.expr
+val parse_metavar_cond :
+  string Rule.wrap (* enclosing location *) ->
+  string (* condition to parse *) ->
+  AST_generic.expr
 
 (* internals used by other parsers (e.g., Parse_mini_rule.ml) *)
 

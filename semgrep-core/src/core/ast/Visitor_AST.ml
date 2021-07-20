@@ -1235,6 +1235,12 @@ let ii_of_any any =
 
 (*e: function [[Lib_AST.ii_of_any]] *)
 
+let first_info_of_any any =
+  let xs = ii_of_any any in
+  match xs with
+  | [] -> raise (Parse_info.NoTokenLocation "first_info_of_any")
+  | x :: _ -> x
+
 (*****************************************************************************)
 (* Extract ranges *)
 (*****************************************************************************)

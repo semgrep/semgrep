@@ -72,6 +72,8 @@ let parse_languages ~id langs =
 (*s: function [[Parse_rules.parse]] *)
 let parse file =
   let str = Common.read_file file in
+  let loc = Parse_info.first_loc_of_file file in
+  let t = Parse_info.mk_info_of_loc loc in
   let yaml_res = Yaml.of_string str in
   match yaml_res with
   | Result.Ok v -> (
@@ -108,12 +110,14 @@ let parse file =
                          }
                      | x ->
                          pr2_gen x;
-                         raise (PR.InvalidYamlException "wrong rule fields"))
+                         raise
+                           (PR.InvalidYamlException ("wrong rule fields", t)))
                  | x ->
                      pr2_gen x;
-                     raise (PR.InvalidYamlException "wrong rule fields"))
+                     raise (PR.InvalidYamlException ("wrong rule fields", t)))
       | _ ->
-          raise (PR.InvalidYamlException "missing rules entry as top-level key")
+          raise
+            (PR.InvalidYamlException ("missing rules entry as top-level key", t))
       )
   | Result.Error (`Msg s) -> raise (PR.UnparsableYamlException s)
 
