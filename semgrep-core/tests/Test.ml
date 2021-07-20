@@ -488,7 +488,7 @@ let lint_regression_tests ~with_caching =
 (*e: constant [[Test.lint_regression_tests]] *)
 
 let eval_regression_tests = 
-  "eval regression resting" >:: (fun () ->
+  "eval regression testing" >:: (fun () ->
       let dir = Filename.concat tests_path "OTHER/eval" in
       let files = Common2.glob (spf "%s/*.json" dir) in
       files |> List.iter (fun file ->
@@ -496,6 +496,31 @@ let eval_regression_tests =
         let res = Eval_generic.eval env code in
         OUnit.assert_equal ~msg:(spf "%s should evaluate to true" file)
           (Eval_generic.Bool true) res
+      )
+  )
+
+let parsing_rule_regression_tests = 
+  "parsing rule regression testing" >::: (
+      let dir = Filename.concat tests_path "OTHER/errors" in
+      let files = Common2.glob (spf "%s/*.yaml" dir) in
+      files |> List.map (fun file ->
+       (Filename.basename file) >:: (fun () ->
+
+        Error_code.g_errors := [];
+        E.try_with_exn_to_error file (fun () ->
+          try
+            let _ = Parse_rule.parse file in
+            ()
+          with
+          (* convert to things handled by E.try_with_exn_to_error *)
+          | Parse_rule.InvalidYamlException (s, t) ->
+              raise (Parse_info.Other_error (s, t))
+        );
+
+        let actual = !Error_code.g_errors in
+        let expected = Error_code.expected_error_lines_of_files [file] in
+        Error_code.compare_actual_to_expected actual expected; 
+       )   
       )
   )
 
@@ -532,6 +557,7 @@ let test regexp =
       eval_regression_tests;
       full_rule_regression_tests;
       lang_tainting_tests;
+      parsing_rule_regression_tests;
     ]
   in
   let suite =

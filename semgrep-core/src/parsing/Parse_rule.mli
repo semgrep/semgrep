@@ -12,6 +12,7 @@ exception UnparsableYamlException of string
 
 exception InvalidYamlException of string * Parse_info.t
 
+(* may raise all the exns above *)
 val parse : Common.filename -> Rule.rules
 
 (* used also by Convert_rule.ml *)
