@@ -128,6 +128,7 @@ let scope_identifier (env : env) (x : CST.scope_identifier) =
   | `Parent tok -> (* "parent" *) token env tok
   | `Static tok -> (* "static" *) token env tok
   )
+
 (*
 let xhp_string (env : env) (tok : CST.xhp_string) =
   (* xhp_string *) token env tok
@@ -137,10 +138,11 @@ let xhp_class_identifier (env : env) (tok : CST.xhp_class_identifier) =
 *)
 
 let null (env : env) (x : CST.null) =
+  (* Safe to pass up all token processing? *)
   (match x with
-  | `Null_37a6259 tok -> (* "null" *) token env tok
-  | `Null_bbb93ef tok -> (* "Null" *) token env tok
-  | `NULL tok -> (* "NULL" *) token env tok
+  | `Null_37a6259 tok -> (* "null" *) tok
+  | `Null_bbb93ef tok -> (* "Null" *) tok
+  | `NULL tok -> (* "NULL" *) tok
   )
 
 let collection_type (env : env) (x : CST.collection_type) =
@@ -299,19 +301,19 @@ let rec xhp_attribute_expression (env : env) (x : CST.xhp_attribute_expression) 
       todo env (v1, v2, v3, v4)
   )
 
-let primitive_type (env : env) (x : CST.primitive_type) =
+let primitive_type (env : env) (x : CST.primitive_type) : G.type_=
   (match x with
-  | `Bool tok -> (* "bool" *) token env tok
-  | `Float tok -> (* "float" *) token env tok
-  | `Int tok -> (* "int" *) token env tok
-  | `Str tok -> (* "string" *) token env tok
-  | `Arra tok -> (* "arraykey" *) token env tok
-  | `Void tok -> (* "void" *) token env tok
-  | `Nonn tok -> (* "nonnull" *) token env tok
-  | `Null x -> null env x
-  | `Mixed tok -> (* "mixed" *) token env tok
-  | `Dyna tok -> (* "dynamic" *) token env tok
-  | `Nore tok -> (* "noreturn" *) token env tok
+  | `Bool tok -> (* "bool" *) TyBuiltin (str env tok)
+  | `Float tok -> (* "float" *) TyBuiltin (str env tok)
+  | `Int tok -> (* "int" *) TyBuiltin (str env tok)
+  | `Str tok -> (* "string" *) TyBuiltin (str env tok)
+  | `Arra tok -> (* "arraykey" *) TyBuiltin (str env tok)
+  | `Void tok -> (* "void" *) TyBuiltin (str env tok)
+  | `Nonn tok -> (* "nonnull" *) TyBuiltin (str env tok)
+  | `Null x -> TyBuiltin (str env (null env x))
+  | `Mixed tok -> (* "mixed" *) TyBuiltin (str env tok)
+  | `Dyna tok -> (* "dynamic" *) TyBuiltin (str env tok)
+  | `Nore tok -> (* "noreturn" *) TyBuiltin (str env tok)
   )
 
 let member_modifier (env : env) (x : CST.member_modifier) =
@@ -345,7 +347,7 @@ let literal (env : env) (x : CST.literal) =
       G.Float (float_of_string_opt s, tok) 
   | `True x -> G.Bool (true, true_ env x)
   | `False x -> G.Bool (false, false_ env x)
-  | `Null x -> G.Null (null env x)
+  | `Null x -> G.Null (token env (null env x))
   )
 
 let namespace_identifier (env : env) (x : CST.namespace_identifier) =
@@ -419,7 +421,7 @@ let keyword (env : env) (x : CST.keyword) =
   | `Clone tok -> (* "clone" *) token env tok
   | `New tok -> (* "new" *) token env tok
   | `Print tok -> (* "print" *) token env tok
-  | `Choice_bool x -> primitive_type env x
+  | `Choice_bool x -> todo env x (* primitive_type env x *)
   | `Choice_array x -> collection_type env x
   )
 
@@ -1533,45 +1535,52 @@ and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
   let v4 = anon_choice_comp_stmt_c6c6bb4 env v4 in
   todo env (v1, v2, v3, v4)
 
-and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) =
+and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) : AST.parameter =
   let v1 =
     (match v1 with
-    | Some x -> attribute_modifier env x
-    | None -> todo env ())
+    | Some x -> Some (attribute_modifier env x)
+    | None -> None) (* Could also be []? Preference? *)
   in
   let v2 =
     (match v2 with
-    | Some x -> visibility_modifier env x
-    | None -> todo env ())
+    | Some x -> Some (visibility_modifier env x)
+    | None -> None)
   in
   let v3 =
     (match v3 with
-    | Some tok -> (* "inout" *) token env tok
-    | None -> todo env ())
+    | Some tok -> (* "inout" *) Some (token env tok)
+    | None -> None)
   in
   let v4 =
     (match v4 with
-    | Some x -> type_ env x
-    | None -> todo env ())
+    | Some x -> Some (type_ env x)
+    | None -> None)
   in
   let v5 =
     (match v5 with
-    | Some tok -> (* "..." *) token env tok
-    | None -> todo env ())
+    | Some tok -> (* "..." *) Some (token env tok)
+    | None -> None)
   in
-  let v6 = (* variable *) token env v6 in
+  let v6 = (* variable *) str env v6 in
   let v7 =
     (match v7 with
     | Some (v1, v2) ->
         let v1 = (* "=" *) token env v1 in
         let v2 = expression env v2 in
         todo env (v1, v2)
-    | None -> todo env ())
+    | None -> None)
   in
-  todo env (v1, v2, v3, v4, v5, v6, v7)
+  (* May not be ?classic?, need to check if v5 exists *)
+  ParamClassic {
+    pname = Some v6;
+    ptype = v4;
+    pdefault = v7;
+    pattrs = [];
+    pinfo = G.basic_id_info (Param, G.sid_TODO); (* But why sid_TODO? Like what is this info? *)
+  }
 
 and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
-  let v1 = (* "(" *) token env v1 in
+  let _v1 = (* "(" *) token env v1 in
   let v2 =
     (match v2 with
     | Some x ->
@@ -1583,20 +1592,20 @@ and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
               List.map (fun (v1, v2) ->
                 let v1 = (* "," *) token env v1 in
                 let v2 = parameter env v2 in
-                todo env (v1, v2)
+                v2
               ) v2
             in
             let v3 =
               (match v3 with
-              | Some tok -> (* "," *) token env tok
-              | None -> todo env ())
+              | Some tok -> (* "," *) Some (token env tok)
+              | None -> None)
             in
-            todo env (v1, v2, v3)
+            v1 :: v2
         )
     | None -> [])
   in
-  let v3 = (* ")" *) token env v3 in
-  v2 (* todo env (v1, v2, v3) *)
+  let _v3 = (* ")" *) token env v3 in
+  v2
 
 and parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_expression) =
   let v1 = (* "(" *) token env v1 in
@@ -2037,24 +2046,24 @@ and trait_use_clause (env : env) ((v1, v2, v3, v4) : CST.trait_use_clause) =
   in
   todo env (v1, v2, v3, v4)
 
-and type_ (env : env) (x : CST.type_) =
+and type_ (env : env) (x : CST.type_) : G.type_=
   (match x with
   | `Type_spec (v1, v2, v3) ->
       let v1 = List.map (type_modifier env) v1 in
       let v2 =
         (match v2 with
         | `Choice_bool x -> primitive_type env x
-        | `Qual_id x -> qualified_identifier env x
-        | `Choice_array x -> collection_type env x
-        | `Choice_xhp_id x -> xhp_identifier_ env x
+        | `Qual_id x -> todo env x (* qualified_identifier env x *)
+        | `Choice_array x -> todo env x (* collection_type env x *)
+        | `Choice_xhp_id x -> todo env x (* xhp_identifier_ env x *)
         )
       in
       let v3 =
         (match v3 with
         | Some x -> type_arguments env x
-        | None -> todo env ())
+        | None -> None)
       in
-      todo env (v1, v2, v3)
+      v2
   | `Type_cst (v1, v2) ->
       let v1 = List.map (type_modifier env) v1 in
       let v2 = type_constant_ env v2 in
