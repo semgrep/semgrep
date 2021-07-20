@@ -243,7 +243,8 @@ let json_of_exn e =
           ("error", J.String "invalid language");
           ("language", J.String language);
         ]
-  | Parse_rule.InvalidPatternException (pattern_id, pattern, lang, message) ->
+  | Parse_rule.InvalidPattern (pattern_id, pattern, xlang, message, _posTODO) ->
+      let lang = Rule.string_of_xlang xlang in
       J.Object
         [
           ("pattern_id", J.String pattern_id);

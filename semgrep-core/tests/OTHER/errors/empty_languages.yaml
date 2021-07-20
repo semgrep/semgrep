@@ -1,5 +1,5 @@
 rules:
-#ERROR: empty languages
+#ERROR: empty languages, TODO, would be better closer to languages field
 - id: test-template
   patterns:
   - pattern: |

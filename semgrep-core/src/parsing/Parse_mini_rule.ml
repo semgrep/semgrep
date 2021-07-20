@@ -92,11 +92,12 @@ let parse file =
                      ] ->
                          let languages, lang = parse_languages ~id t langs in
                          let pattern =
-                           PR.parse_pattern ~id ~lang pattern_string
+                           PR.parse_pattern ~id ~lang
+                             ( pattern_string,
+                               Parse_info.fake_info pattern_string )
                          in
                          let severity =
-                           PR.parse_severity
-                             ~id:(id, Parse_info.fake_info "id")
+                           PR.parse_severity ~id
                              (sev, Parse_info.fake_info "sev")
                          in
                          {

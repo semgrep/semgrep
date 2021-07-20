@@ -2,7 +2,8 @@
 
 exception InvalidLanguage of Rule.rule_id * string * Parse_info.t
 
-exception InvalidPatternException of string * string * string * string
+exception
+  InvalidPattern of Rule.rule_id * string * Rule.xlang * string * Parse_info.t
 
 exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
 
@@ -21,8 +22,9 @@ val parse_metavar_cond :
 
 (* internals used by other parsers (e.g., Parse_mini_rule.ml) *)
 
-val parse_severity : id:string Rule.wrap -> string Rule.wrap -> Rule.severity
+val parse_severity : id:Rule.rule_id -> string Rule.wrap -> Rule.severity
 
-val parse_pattern : id:string -> lang:Lang.t -> string -> Pattern.t
+val parse_pattern :
+  id:Rule.rule_id -> lang:Lang.t -> string Rule.wrap -> Pattern.t
 
 (*e: semgrep/parsing/Parse_rule.mli *)

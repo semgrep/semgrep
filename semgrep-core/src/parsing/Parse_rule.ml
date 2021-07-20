@@ -79,7 +79,11 @@ type dict = {
 
 exception InvalidLanguage of Rule.rule_id * string * Parse_info.t
 
-exception InvalidPatternException of string * string * string * string
+(* TODO: the Parse_info.t is not precise for now, it corresponds to the
+ * start of the pattern *)
+exception
+  InvalidPattern of
+    Rule.rule_id * string * Rule.xlang * string (* exn *) * Parse_info.t
 
 exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
 
@@ -311,21 +315,40 @@ let parse_options (key : key) value =
 (* Sub parsers patterns and formulas *)
 (*****************************************************************************)
 
-let parse_pattern ~id ~lang pattern =
-  (* todo? call Normalize_ast.normalize here? *)
-  try Parse_pattern.parse_pattern lang ~print_errors:false pattern with
+(* TODO: note that the [pattern] string and token location [t] given to us
+ * by the YAML parser do not correspond exactly to the content
+ * in the YAML file. If the pattern is on a single line, as in
+ *    pattern: foo($X)
+ * then everything is fine, but if it's on multiple line as in
+ *    pattern: |
+ *       foo($X);
+ *       bar($X);
+ * The pattern string will contain "foo($X);\nbar($X);\n" without any
+ * indentation and the token location [t] will actually be the location
+ * of the leading "|", so we need to recompute location by reparsing
+ * the YAML file and look at the indentation there.
+ *)
+let parse_pattern ~id ~lang (pattern, t) =
+  try
+    (* old? todo? call Normalize_ast.normalize here? *)
+    let any = Parse_pattern.parse_pattern lang ~print_errors:false pattern in
+    (* TODO: adjust pos with Map_AST.mk_fix_token_locations and
+     * Parse_info.adjust_info_wrt_base t
+     *)
+    any
+  with
   | Timeout -> raise Timeout
   | UnixExit n -> raise (UnixExit n)
+  (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       raise
-        (InvalidPatternException
-           (id, pattern, Lang.string_of_lang lang, Common.exn_to_s exn))
+        (InvalidPattern (id, pattern, Rule.L (lang, []), Common.exn_to_s exn, t))
 
 let parse_xpattern env e =
-  let s =
+  let s, t =
     match e with
-    | G.L (String (value, _)) -> value
-    | G.N (Id ((value, _), _)) -> value
+    | G.L (String (s, t)) -> (s, t)
+    | G.N (Id ((s, t), _)) -> (s, t)
     | x -> error_at_expr x ("Expected a string value for " ^ env.id)
   in
   (* emma: This is for later, but note that start and end_ are currently the same
@@ -340,14 +363,16 @@ let parse_xpattern env e =
     (* TODO put in *)
   in
   match env.languages with
-  | R.L (lang, _) -> R.mk_xpat (Sem (parse_pattern ~id:env.id ~lang s, lang)) s
+  | R.L (lang, _) ->
+      R.mk_xpat (Sem (parse_pattern ~id:env.id ~lang (s, t), lang)) s
   | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> R.mk_xpat (Spacegrep ast) s
       | Error err ->
-          raise (InvalidPatternException (env.id, s, "generic", err.msg)))
+          (* TODO: adjust error pos instead of using [t] *)
+          raise (InvalidPattern (env.id, s, Rule.LGeneric, err.msg, t)))
 
 let find_formula_old (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in
@@ -519,9 +544,7 @@ let parse_severity ~id (s, t) =
   | s ->
       raise
         (InvalidRule
-           ( fst id,
-             spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s,
-             t ))
+           (id, spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s, t))
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -611,7 +634,7 @@ let parse_generic file ast =
            R.id;
            message;
            languages;
-           severity = parse_severity ~id severity;
+           severity = parse_severity ~id:env.id severity;
            mode;
            (* optional fields *)
            metadata = metadata_opt;
