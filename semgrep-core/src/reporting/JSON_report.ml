@@ -262,7 +262,7 @@ let json_of_exn e =
   | Parse_rule.UnparsableYamlException msg ->
       J.Object
         [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]
-  | Parse_rule.InvalidYamlException msg ->
+  | Parse_rule.InvalidYamlException (msg, _posTODO) ->
       J.Object [ ("error", J.String "invalid yaml"); ("message", J.String msg) ]
   | exn ->
       J.Object

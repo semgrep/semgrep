@@ -49,18 +49,6 @@ module Set = Set_
 (* Types *)
 (*****************************************************************************)
 
-exception InvalidRuleException of string * string
-
-exception InvalidLanguageException of string * string
-
-exception InvalidPatternException of string * string * string * string
-
-exception InvalidRegexpException of string * string
-
-exception UnparsableYamlException of string
-
-exception InvalidYamlException of string
-
 type env = {
   (* id of the current rule (needed by some exns) *)
   id : string;
@@ -81,14 +69,37 @@ type key = string R.wrap
 type dict = {
   (* !this is mutated! *)
   h : (string, key * AST_generic.expr) Hashtbl.t;
+  (* for error reports on missing fields *)
+  enclosing : string R.wrap;
 }
+
+(*****************************************************************************)
+(* Error Management *)
+(*****************************************************************************)
+
+exception InvalidRuleException of string * string
+
+exception InvalidLanguageException of string * string
+
+exception InvalidPatternException of string * string * string * string
+
+exception InvalidRegexpException of string * string
+
+exception UnparsableYamlException of string
+
+(* general error *)
+exception InvalidYamlException of string * Parse_info.t
+
+let error t s = raise (InvalidYamlException (s, t))
+
+let error_at_key (key : key) s = error (snd key) s
+
+let error_at_expr (e : G.expr) s =
+  error (Visitor_AST.first_info_of_any (G.E e)) s
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-(* TODO: switch to precise error location! *)
-let error s = raise (InvalidYamlException s)
 
 (* Why do we need this generic_to_json function? Why would we want to convert
  * to JSON when we actually did lots of work to convert the YAML/JSON
@@ -109,9 +120,10 @@ let generic_to_json (key : key) ast =
           |> List.map (fun x ->
                  match x with
                  | G.Tuple (_, [ L (String (k, _)); v ], _) -> (k, aux v)
-                 | _ -> error ("Expected key value pair in " ^ fst key ^ " dict"))
-          )
-    | _ -> error "Unexpected generic representation of yaml"
+                 | _ ->
+                     error_at_expr x
+                       ("Expected key value pair in " ^ fst key ^ " object")))
+    | x -> error_at_expr x "Unexpected generic representation of yaml"
   in
   aux ast
 
@@ -130,9 +142,9 @@ let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
              match field with
              | G.Tuple (_, [ L (String (key_str, t)); value ], _) ->
                  Hashtbl.add dict key_str ((key_str, t), value)
-             | _ -> error "Not a valid key value pair");
-      { h = dict }
-  | _ -> error ("each " ^ fst enclosing ^ " should be an object")
+             | x -> error_at_expr x "Not a valid key value pair");
+      { h = dict; enclosing }
+  | x -> error_at_expr x ("each " ^ fst enclosing ^ " should be an object")
 
 (* Mutates the Hashtbl! *)
 let (take_opt : dict -> (key -> G.expr -> 'a) -> string -> 'a option) =
@@ -149,7 +161,7 @@ let (take : dict -> (key -> G.expr -> 'a) -> string -> 'a) =
  fun dict f key_str ->
   match take_opt dict f key_str with
   | Some res -> res
-  | None -> error ("Missing required field " ^ key_str)
+  | None -> error_at_key dict.enclosing ("Missing required field " ^ key_str)
 
 (*****************************************************************************)
 (* Sub parsers basic types *)
@@ -159,50 +171,45 @@ let (take : dict -> (key -> G.expr -> 'a) -> string -> 'a) =
 let parse_string (key : key) = function
   | G.L (String (value, _)) -> value
   | G.N (Id ((value, _), _)) -> value
-  | _ -> error ("Expected a string value for " ^ fst key)
+  | _ -> error_at_key key ("Expected a string value for " ^ fst key)
 
 let parse_string_wrap (key : key) = function
   | G.L (String (value, t)) -> (value, t)
   | G.N (Id ((value, t), _)) -> (value, t)
-  | _ -> error ("Expected a string value for " ^ fst key)
+  | _ -> error_at_key key ("Expected a string value for " ^ fst key)
 
 let parse_list (key : key) f = function
   | G.Container (Array, (_, xs, _)) -> List.map f xs
-  | _ -> error ("Expected a list for " ^ fst key)
+  | _ -> error_at_key key ("Expected a list for " ^ fst key)
 
 let parse_string_list (key : key) e =
   let extract_string = function
     | G.L (String (value, _)) -> value
-    | _ -> error ("Expected all values in the list to be strings for " ^ fst key)
+    | _ ->
+        error_at_key key
+          ("Expected all values in the list to be strings for " ^ fst key)
   in
   parse_list key extract_string e
 
 let parse_listi (key : key) f = function
   | G.Container (Array, (_, xs, _)) -> List.mapi f xs
-  | _ -> error ("Expected a list for " ^ fst key)
+  | _ -> error_at_key key ("Expected a list for " ^ fst key)
 
 let parse_bool (key : key) = function
   | G.L (String ("true", _)) -> true
   | G.L (String ("false", _)) -> false
   | G.L (Bool (b, _)) -> b
-  | x ->
-      pr2_gen x;
-      error (spf "parse_bool for %s" (fst key))
+  | _x -> error_at_key key (spf "parse_bool for %s" (fst key))
 
 let parse_int (key : key) = function
   | G.L (Int (Some i, _)) -> i
   | G.L (String (s, _)) -> (
       try int_of_string s
-      with Failure _ -> error (spf "parse_int for %s" (fst key)))
+      with Failure _ -> error_at_key key (spf "parse_int for %s" (fst key)))
   | G.L (Float (Some f, _)) ->
       let i = int_of_float f in
-      if float_of_int i = f then i
-      else (
-        pr2_gen f;
-        error "not an int")
-  | x ->
-      pr2_gen x;
-      error (spf "parse_int for %s" (fst key))
+      if float_of_int i = f then i else error_at_key key "not an int"
+  | _x -> error_at_key key (spf "parse_int for %s" (fst key))
 
 (*****************************************************************************)
 (* Sub parsers extra *)
@@ -229,14 +236,17 @@ let pcre_error_to_string s exn =
   in
   spf "'%s': %s" s message
 
-let parse_metavar_cond s =
+let parse_metavar_cond key s =
   try
     let lang = Lang.Python in
     (* todo? use lang in env? *)
     match Parse_pattern.parse_pattern lang ~print_errors:false s with
     | AST_generic.E e -> e
-    | _ -> error "not an expression"
-  with exn -> raise exn
+    | _ -> error_at_key key "not an expression"
+  with
+  | Timeout -> raise Timeout
+  | UnixExit n -> raise (UnixExit n)
+  | exn -> error_at_key key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_regexp env s =
   try (s, Pcre.regexp s)
@@ -258,7 +268,9 @@ let parse_equivalences key value =
           (_, [ Tuple (_, [ L (String ("equivalence", t)); value ], _) ], _) )
       ->
         parse_string ("equivalence", t) value
-    | _ -> error "Expected `equivalence: $X` for each equivalences list item"
+    | x ->
+        error_at_expr x
+          "Expected `equivalence: $X` for each equivalences list item"
   in
   parse_list key parse_equivalence value
 
@@ -302,7 +314,7 @@ let parse_xpattern env e =
     match e with
     | G.L (String (value, _)) -> value
     | G.N (Id ((value, _), _)) -> value
-    | _ -> error ("Expected a string value for " ^ env.id)
+    | x -> error_at_expr x ("Expected a string value for " ^ env.id)
   in
   (* emma: This is for later, but note that start and end_ are currently the same
    * (each pattern is only associated with one token). This might be really annoying
@@ -335,7 +347,7 @@ let find_formula_old (rule_dict : dict) : key * G.expr =
       find "pattern-comby" )
   with
   | None, None, None, None, None ->
-      error
+      error_at_key rule_dict.enclosing
         "Expected one of `pattern`, `pattern-either`, `patterns`, \
          `pattern-regex`, `pattern-comby` to be present"
   | Some (key, value), None, None, None, None
@@ -345,7 +357,7 @@ let find_formula_old (rule_dict : dict) : key * G.expr =
   | None, None, None, None, Some (key, value) ->
       (key, value)
   | _ ->
-      error
+      error_at_key rule_dict.enclosing
         "Expected only one of `pattern`, `pattern-either`, `patterns`, \
          `pattern-regex`, or `pattern-comby`"
 
@@ -362,35 +374,31 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
     match x with
     | G.Container (Dict, (_, [ Tuple (_, [ L (String key); value ], _) ], _)) ->
         parse_formula_old env (key, value)
-    | _ ->
-        pr2_gen x;
-        error "Wrong parse_formula fields"
+    | x -> error_at_expr x "Wrong parse_formula fields"
   in
-  match (fst key, value) with
-  | "pattern", s -> R.Pat (get_pattern s)
-  | "pattern-not", s -> R.PatNot (get_pattern s)
-  | "pattern-inside", s -> R.PatInside (get_pattern s)
-  | "pattern-not-inside", s -> R.PatNotInside (get_pattern s)
-  | "pattern-either", xs -> R.PatEither (parse_listi key get_nested_formula xs)
-  | "patterns", xs -> R.Patterns (parse_listi key get_nested_formula xs)
-  | "pattern-regex", s ->
-      let s = parse_string key s in
+  match fst key with
+  | "pattern" -> R.Pat (get_pattern value)
+  | "pattern-not" -> R.PatNot (get_pattern value)
+  | "pattern-inside" -> R.PatInside (get_pattern value)
+  | "pattern-not-inside" -> R.PatNotInside (get_pattern value)
+  | "pattern-either" -> R.PatEither (parse_listi key get_nested_formula value)
+  | "patterns" -> R.Patterns (parse_listi key get_nested_formula value)
+  | "pattern-regex" ->
+      let s = parse_string key value in
       let xpat = R.mk_xpat (Regexp (parse_regexp env s)) s in
       R.Pat xpat
-  | "pattern-not-regex", s ->
-      let s = parse_string key s in
+  | "pattern-not-regex" ->
+      let s = parse_string key value in
       let xpat = R.mk_xpat (Regexp (parse_regexp env s)) s in
       R.PatNot xpat
-  | "pattern-comby", s ->
-      let s = parse_string key s in
+  | "pattern-comby" ->
+      let s = parse_string key value in
       let xpat = R.mk_xpat (Comby s) s in
       R.Pat xpat
-  | "metavariable-regex", _
-  | "metavariable-pattern", _
-  | "metavariable-comparison", _
-  | "pattern-where-python", _ ->
+  | "metavariable-regex" | "metavariable-pattern" | "metavariable-comparison"
+  | "pattern-where-python" ->
       R.PatExtra (parse_extra env key value)
-  | x, _ -> error (spf "unexpected key %s" x)
+  | _ -> error_at_key key (spf "unexpected key %s" (fst key))
 
 (* let extra = parse_extra env x in
    R.PatExtra extra *)
@@ -412,15 +420,15 @@ and parse_formula_new env (x : G.expr) : R.formula =
           R.Leaf (R.P (xpat, None))
       | "where" ->
           let s = parse_string key value in
-          R.Leaf (R.MetavarCond (R.CondEval (parse_metavar_cond s)))
+          R.Leaf (R.MetavarCond (R.CondEval (parse_metavar_cond key s)))
       | "metavariable_regex" -> (
           match value with
           | G.Container (Array, (_, [ mvar; re ], _)) ->
               let mvar = parse_string key mvar in
               let re = parse_string key re in
               R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env re)))
-          | _ -> error "Expected a metavariable and regex")
-      | _ -> error ("Invalid key for formula_new " ^ fst key))
+          | x -> error_at_expr x "Expected a metavariable and regex")
+      | _ -> error_at_key key ("Invalid key for formula_new " ^ fst key))
   | _ -> R.Leaf (R.P (parse_xpattern env x, None))
 
 (* This is now mutually recursive because of metavariable-pattern: which can
@@ -462,12 +470,10 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
           take_opt mv_comparison_dict parse_bool "strip",
           take_opt mv_comparison_dict parse_int "base" )
       in
-      let comparison = parse_metavar_cond comparison in
+      let comparison = parse_metavar_cond key comparison in
       R.MetavarComparison { R.metavariable; comparison; strip; base }
   | "pattern-where-python" -> R.PatWherePython (parse_string key value)
-  | x ->
-      pr2_gen x;
-      error "wrong parse_extra fields"
+  | _ -> error_at_key key ("wrong parse_extra field: " ^ fst key)
 
 let parse_languages ~id langs =
   match langs with
@@ -505,10 +511,10 @@ let parse_severity ~id s =
 
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   match mode_opt with
-  | None | Some "search" ->
+  | None | Some ("search", _) ->
       let formula = parse_formula env rule_dict in
       R.Search formula
-  | Some "taint" ->
+  | Some ("taint", _) ->
       let parse_sub_patterns key patterns =
         let parse_sub_pattern name pattern =
           parse_formula env (yaml_to_dict name pattern)
@@ -523,11 +529,14 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
           take rule_dict parse_sub_patterns "pattern-sinks" )
       in
       R.Taint { sources; sanitizers = optlist_to_list sanitizers_opt; sinks }
-  | Some _ -> error "Unexpected value for mode, should be 'search' or 'taint'"
+  | Some key ->
+      error_at_key key
+        (spf "Unexpected value for mode, should be 'search' or 'taint', not %s"
+           (fst key))
 
-let parse_generic formula_ast =
+let parse_generic file ast =
   let rules_block =
-    match formula_ast with
+    match ast with
     | [
      {
        G.s =
@@ -540,12 +549,14 @@ let parse_generic formula_ast =
      };
     ] ->
         rules
-    | _ -> error "missing rules entry as top-level key"
+    | _ ->
+        let loc = PI.first_loc_of_file file in
+        error (PI.mk_info_of_loc loc) "missing rules entry as top-level key"
   in
   let t, rules =
     match rules_block with
     | Container (Array, (l, rules, _r)) -> (l, rules)
-    | _ -> error "expected a list of rules following `rules:`"
+    | x -> error_at_expr x "expected a list of rules following `rules:`"
   in
   rules
   |> List.mapi (fun i rule ->
@@ -569,7 +580,7 @@ let parse_generic formula_ast =
                options_opt ) =
            ( take rd parse_string "message",
              take rd parse_string "severity",
-             take_opt rd parse_string "mode",
+             take_opt rd parse_string_wrap "mode",
              take_opt rd generic_to_json "metadata",
              take_opt rd parse_string "fix",
              take_opt rd (parse_fix_regex env) "fix-regex",
@@ -609,6 +620,6 @@ let parse file =
         failwith
           (spf "wrong rule format, only JSON/YAML/JSONNET are valid:%s:" file)
   in
-  parse_generic ast
+  parse_generic file ast
 
 (*e: semgrep/parsing/Parse_rule.ml *)
