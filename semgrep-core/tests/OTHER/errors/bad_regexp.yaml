@@ -1,0 +1,12 @@
+rules:
+- id: test-template
+  patterns:
+  - pattern: |
+        foo($X)
+  - metavariable-regex:
+      metavariable: foo
+      #ERROR: bad regexp
+      regex: "["
+  message: Working!
+  severity: WARNING
+  languages: [javascript]

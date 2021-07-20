@@ -24,6 +24,8 @@ module PR = Parse_rule
 (*s: exception [[Parse_rules.InvalidPatternException]] *)
 (*e: exception [[Parse_rules.InvalidPatternException]] *)
 (*s: exception [[Parse_rules.UnparsableYamlException]] *)
+exception UnparsableYamlException of string
+
 (*e: exception [[Parse_rules.UnparsableYamlException]] *)
 (*s: exception [[Parse_rules.InvalidYamlException]] *)
 (*e: exception [[Parse_rules.InvalidYamlException]] *)
@@ -39,7 +41,7 @@ module PR = Parse_rule
 (*e: function [[Parse_rules.parse_pattern]] *)
 
 (*s: function [[Parse_rules.parse_languages]] *)
-let parse_languages ~id langs =
+let parse_languages ~id t langs =
   let languages =
     langs
     |> List.map (function
@@ -47,18 +49,15 @@ let parse_languages ~id langs =
              match Lang.lang_of_string_opt s with
              | None ->
                  raise
-                   (PR.InvalidLanguageException
-                      (id, spf "unsupported language: %s" s))
+                   (PR.InvalidLanguage (id, spf "unsupported language: %s" s, t))
              | Some l -> l)
          | _ ->
              raise
-               (PR.InvalidRuleException
-                  (id, spf "expecting a string for languages")))
+               (PR.InvalidRule (id, spf "expecting a string for languages", t)))
   in
   let lang =
     match languages with
-    | [] ->
-        raise (PR.InvalidRuleException (id, "we need at least one language"))
+    | [] -> raise (PR.InvalidRule (id, "we need at least one language", t))
     | x :: _xs -> x
   in
   (languages, lang)
@@ -91,14 +90,14 @@ let parse file =
                       ("pattern", `String pattern_string);
                       ("severity", `String sev);
                      ] ->
-                         let languages, lang = parse_languages ~id langs in
+                         let languages, lang = parse_languages ~id t langs in
                          let pattern =
                            PR.parse_pattern ~id ~lang pattern_string
                          in
                          let severity =
                            PR.parse_severity
                              ~id:(id, Parse_info.fake_info "id")
-                             sev
+                             (sev, Parse_info.fake_info "sev")
                          in
                          {
                            R.id;
@@ -110,16 +109,12 @@ let parse file =
                          }
                      | x ->
                          pr2_gen x;
-                         raise
-                           (PR.InvalidYamlException ("wrong rule fields", t)))
+                         raise (PR.InvalidYaml ("wrong rule fields", t)))
                  | x ->
                      pr2_gen x;
-                     raise (PR.InvalidYamlException ("wrong rule fields", t)))
-      | _ ->
-          raise
-            (PR.InvalidYamlException ("missing rules entry as top-level key", t))
-      )
-  | Result.Error (`Msg s) -> raise (PR.UnparsableYamlException s)
+                     raise (PR.InvalidYaml ("wrong rule fields", t)))
+      | _ -> raise (PR.InvalidYaml ("missing rules entry as top-level key", t)))
+  | Result.Error (`Msg s) -> raise (UnparsableYamlException s)
 
 (*e: function [[Parse_rules.parse]] *)
 

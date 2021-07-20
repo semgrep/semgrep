@@ -1,0 +1,9 @@
+rules:
+#ERROR: empty languages
+- id: test-template
+  patterns:
+  - pattern: |
+        foo($X)
+  message: Working!
+  severity: WARNING
+  languages: []
