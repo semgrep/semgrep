@@ -920,23 +920,26 @@ and const_declarator (env : env) ((v1, v2, v3) : CST.const_declarator) =
   let v3 = expression env v3 in
   todo env (v1, v2, v3)
 
-and declaration (env : env) (x : CST.declaration) =
+and declaration (env : env) (x : CST.declaration) : AST.definition =
   (match x with
   | `Func_decl (v1, v2, v3) ->
       let v1 =
         (match v1 with
         | Some x -> attribute_modifier env x
-        | None -> todo env ())
+        | None -> [])
       in
-      let v2 = function_declaration_header env v2 in
-      let v3 = anon_choice_comp_stmt_c6c6bb4 env v3 in
-      todo env (v1, v2, v3)
+      let v2, identifier = function_declaration_header env v2 in
+      let v3 = anon_choice_comp_stmt_c6c6bb4 env v3 in      
+      let def = {v2 with fbody = v3} in
+      (* Lua does this way: let ent = { G.name = G.EN name; G.attrs = []; G.tparams = [] } *)
+      let ent = AST.basic_entity identifier [] in
+      (ent, G.FuncDef def)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) ->
       let v1 =
         (match v1 with
         | Some x -> attribute_modifier env x
         | None -> todo env ())
-      in
+      in 
       let v2 =
         (match v2 with
         | Some x -> class_modifier env x
@@ -1442,23 +1445,23 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v2 = compound_statement env v2 in
   todo env (v1, v2)
 
-and function_declaration_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.function_declaration_header) =
-  let v1 =
+and function_declaration_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.function_declaration_header) : AST.function_definition * G.label =
+  let async_modifier =
     (match v1 with
-    | Some tok -> (* "async" *) token env tok
-    | None -> todo env ())
+    | Some tok -> (* "async" *) Some (G.KeywordAttr (G.Async, token env tok))
+    | None -> None)
   in
-  let v2 = (* "function" *) token env v2 in
-  let v3 =
-    (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env v3
+  let function_keyword = (* "function" *) token env v2 in
+  let identifier =
+    (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
   in
-  let v4 =
+  let type_parameters =
     (match v4 with
     | Some x -> type_parameters env x
-    | None -> todo env ())
+    | None -> [])
   in
-  let v5 = parameters env v5 in
-  let v6 =
+  let parameters = parameters env v5 in
+  let attribute_modifier_and_return_type =
     (match v6 with
     | Some (v1, v2, v3) ->
         let v1 = (* ":" *) token env v1 in
@@ -1469,14 +1472,21 @@ and function_declaration_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.
         in
         let v3 = type_ env v3 in
         todo env (v1, v2, v3)
-    | None -> todo env ())
+    | None -> None)
   in
-  let v7 =
+  let where_clause =
     (match v7 with
     | Some x -> where_clause env x
-    | None -> todo env ())
+    | None -> None)
   in
-  todo env (v1, v2, v3, v4, v5, v6, v7)
+  {
+    fkind = (AST.Function, function_keyword);
+    fparams = parameters;
+    frettype = attribute_modifier_and_return_type;
+    fbody = AST.empty_fbody;(* To be replaced in parent with real statement *)
+  },
+  identifier
+  (* TODO: So many different label/identifier types! How to know which one? *)
 
 and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) =
   let v1 = (* "implements" *) token env v1 in
@@ -1566,7 +1576,7 @@ and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
     (match v2 with
     | Some x ->
         (match x with
-        | `Vari_modi tok -> (* "..." *) token env tok
+        | `Vari_modi tok -> (* "..." *) todo env tok (* Added TODO from `token env tok` *)
         | `Param_rep_COMMA_param_opt_COMMA (v1, v2, v3) ->
             let v1 = parameter env v1 in
             let v2 =
@@ -1583,10 +1593,10 @@ and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
             in
             todo env (v1, v2, v3)
         )
-    | None -> todo env ())
+    | None -> [])
   in
   let v3 = (* ")" *) token env v3 in
-  todo env (v1, v2, v3)
+  v2 (* todo env (v1, v2, v3) *)
 
 and parenthesized_expression (env : env) ((v1, v2, v3) : CST.parenthesized_expression) =
   let v1 = (* "(" *) token env v1 in
@@ -1720,7 +1730,8 @@ and selection_expression (env : env) ((v1, v2, v3) : CST.selection_expression) =
 
 and statement (env : env) (x : CST.statement) =
   (match x with
-  | `Choice_func_decl x -> declaration env x
+  | `Choice_func_decl x ->
+      let dec = declaration env x in AST.DefStmt dec |> AST.s
   | `Comp_stmt x -> compound_statement env x
   | `Empty_stmt tok -> (* ";" *) empty_stmt env tok
   | `Exp_stmt x -> expression_statement env x
