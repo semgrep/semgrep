@@ -1235,6 +1235,11 @@ let ii_of_any any =
 
 (*e: function [[Lib_AST.ii_of_any]] *)
 
+let first_info_of_any any =
+  let xs = ii_of_any any in
+  let min, _max = Parse_info.min_max_ii_by_pos xs in
+  min
+
 (*****************************************************************************)
 (* Extract ranges *)
 (*****************************************************************************)
