@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - metavariable-pattern: `pattern-not-regex` now works (#3503)
 - Rust: correctly parse macros (#3513)
 - Python: imports are unsugared correctly (#3940)
+- Ruby: `pattern: $X` in the presence of interpolated strings now works (#3560)
 
 ## [0.58.2](https://github.com/returntocorp/semgrep/releases/tag/v0.58.2) - 2021-07-15
 
