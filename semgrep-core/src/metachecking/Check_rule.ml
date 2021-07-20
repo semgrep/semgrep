@@ -148,7 +148,7 @@ let check_files fparser xs =
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
-    |> Common.exclude (fun file -> file =~ ".*\.test\.yaml")
+    |> Common.exclude (fun file -> file =~ ".*\\.test\\.yaml")
   in
   if fullxs = [] then logger#error "no rules to check";
   fullxs

@@ -229,14 +229,14 @@ let json_of_profile_info profile_start =
 let json_of_exn e =
   (* if (ouptut_as_json) then *)
   match e with
-  | Parse_rule.InvalidRuleException (pattern_id, msg) ->
+  | Parse_rule.InvalidRule (pattern_id, msg, _posTODO) ->
       J.Object
         [
           ("pattern_id", J.String pattern_id);
           ("error", J.String "invalid rule");
           ("message", J.String msg);
         ]
-  | Parse_rule.InvalidLanguageException (pattern_id, language) ->
+  | Parse_rule.InvalidLanguage (pattern_id, language, _posTODO) ->
       J.Object
         [
           ("pattern_id", J.String pattern_id);
@@ -259,11 +259,11 @@ let json_of_exn e =
           ("error", J.String "invalid regexp in rule");
           ("message", J.String message);
         ]
-  | Parse_rule.UnparsableYamlException msg ->
-      J.Object
-        [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]
   | Parse_rule.InvalidYaml (msg, _posTODO) ->
       J.Object [ ("error", J.String "invalid yaml"); ("message", J.String msg) ]
+  | Parse_mini_rule.UnparsableYamlException msg ->
+      J.Object
+        [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]
   | exn ->
       J.Object
         [

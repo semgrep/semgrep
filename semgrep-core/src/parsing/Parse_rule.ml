@@ -77,18 +77,17 @@ type dict = {
 (* Error Management *)
 (*****************************************************************************)
 
-exception InvalidRuleException of string * string
-
-exception InvalidLanguageException of string * string
+exception InvalidLanguage of Rule.rule_id * string * Parse_info.t
 
 exception InvalidPatternException of string * string * string * string
 
 exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
 
-exception UnparsableYamlException of string
-
-(* general error *)
+(* general errors *)
 exception InvalidYaml of string * Parse_info.t
+
+(* less: could be merged with InvalidYaml *)
+exception InvalidRule of Rule.rule_id * string * Parse_info.t
 
 let error t s = raise (InvalidYaml (s, t))
 
@@ -185,9 +184,19 @@ let parse_list (key : key) f = function
   | G.Container (Array, (_, xs, _)) -> List.map f xs
   | _ -> error_at_key key ("Expected a list for " ^ fst key)
 
+(* TODO: delete at some point, should use parse_string_wrap_list *)
 let parse_string_list (key : key) e =
   let extract_string = function
     | G.L (String (value, _)) -> value
+    | _ ->
+        error_at_key key
+          ("Expected all values in the list to be strings for " ^ fst key)
+  in
+  parse_list key extract_string e
+
+let parse_string_wrap_list (key : key) e =
+  let extract_string = function
+    | G.L (String (value, t)) -> (value, t)
     | _ ->
         error_at_key key
           ("Expected all values in the list to be strings for " ^ fst key)
@@ -484,33 +493,35 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
 
 let parse_languages ~id langs =
   match langs with
-  | [ ("none" | "regex") ] -> R.LRegex
-  | [ "generic" ] -> R.LGeneric
+  | [ (("none" | "regex"), _t) ] -> R.LRegex
+  | [ ("generic", _t) ] -> R.LGeneric
   | xs -> (
       let languages =
         xs
-        |> List.map (function s ->
+        |> List.map (function s, t ->
                (match Lang.lang_of_string_opt s with
                | None ->
                    raise
-                     (InvalidLanguageException
-                        (fst id, spf "unsupported language: %s" s))
+                     (InvalidLanguage
+                        (fst id, spf "unsupported language: %s" s, t))
                | Some l -> l))
       in
       match languages with
       | [] ->
-          raise (InvalidRuleException (fst id, "we need at least one language"))
+          raise (InvalidRule (fst id, "we need at least one language", snd id))
       | x :: xs -> R.L (x, xs))
 
-let parse_severity ~id s =
+let parse_severity ~id (s, t) =
   match s with
   | "ERROR" -> R.Error
   | "WARNING" -> R.Warning
   | "INFO" -> R.Info
   | s ->
       raise
-        (InvalidRuleException
-           (fst id, spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s))
+        (InvalidRule
+           ( fst id,
+             spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s,
+             t ))
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -570,7 +581,7 @@ let parse_generic file ast =
          let rd = yaml_to_dict ("rules", t) rule in
          let id, languages =
            ( take rd parse_string_wrap "id",
-             take rd parse_string_list "languages" )
+             take rd parse_string_wrap_list "languages" )
          in
          let languages = parse_languages ~id languages in
          let env =
@@ -586,7 +597,7 @@ let parse_generic file ast =
                equivs_opt,
                options_opt ) =
            ( take rd parse_string "message",
-             take rd parse_string "severity",
+             take rd parse_string_wrap "severity",
              take_opt rd parse_string_wrap "mode",
              take_opt rd generic_to_json "metadata",
              take_opt rd parse_string "fix",

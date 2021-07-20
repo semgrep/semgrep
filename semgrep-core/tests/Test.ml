@@ -520,8 +520,10 @@ let metachecker_regression_tests =
             )
           with
           (* convert to things handled by E.try_with_exn_to_error *)
+          | Parse_rule.InvalidRule (_, s, t)
           | Parse_rule.InvalidYaml (s, t)
           | Parse_rule.InvalidRegexp (_, s, t)
+          | Parse_rule.InvalidLanguage (_, s, t)
            ->
               raise (Parse_info.Other_error (s, t))
         );
