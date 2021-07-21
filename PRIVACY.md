@@ -71,7 +71,9 @@ We strive to balance our desire to collect data for improving Semgrep with our u
 
 ### Pseudoanonymization
 
-Certain identifying data (e.g. project URLs) are pseudoanonymized before being sent to the r2c backend. "Pseudoanonymized" means the data are transformed using a deterministic cryptographically secure hash.
+Certain identifying data (e.g. project URLs) are pseudoanonymized before being sent to the r2c backend.
+
+"Pseudoanonymized" means the data are transformed using a deterministic cryptographically secure hash. When the input data are unknown, this hash is expensive to reverse. However, when input data are known, a reverse dictionary of identifiers to hashes can be built. Hence, data are anonymous only when the source values are unknown.
 
 We use a deterministic hash to:
 * Track performance and value improvements over succesive runs on projects
