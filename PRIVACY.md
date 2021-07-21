@@ -83,7 +83,10 @@ Using a deterministic hash, however, implies:
 * An entity that independently knows the value of an input datum AND who has access to r2c's metrics data could access metrics for that known datum
 
 r2c will:
-* Protect these metrics data using application-security best practices
+* Treat collected metrics data as secret, using application-security best practices, including (but not limited to)
+  * Encryption during transit and rest
+  * Strict access control to data-storage systems
+  * Application-security-policy requirements for third parties (e.g. cloud-service providers; see "data sharing" below)
 * Only correlate hashed data to input data when these inputs are publicly known (e.g. publicly available project URLs for open-source projects)
 
 
