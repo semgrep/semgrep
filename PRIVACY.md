@@ -134,10 +134,7 @@ This is a sample blob of the non-identifiable aggregate metrics described above:
         "runTime": 37.1234233823,
         "numRules": 2,
         "numTargets": 573,
-        "totalBytesScanned": 33938923
-    },
-    "errors": {
-        "returnCode": 1,
+        "totalBytesScanned": 33938923,
         "ruleStats": [{
           "ruleHash": "7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166",
           "parseTime": 0,
@@ -151,7 +148,10 @@ This is a sample blob of the non-identifiable aggregate metrics described above:
           "parseTime": 0.013289928436279297,
           "matchTime": 0.05480456352233887,
           "runTime": 0.20836973190307617
-        }],
+        }]
+    },
+    "errors": {
+        "returnCode": 1,
         "errors": ["UnknownLanguage"],
         "warnings": ["MaxFileSizeExceeded", "TimeoutExceeded"]
     },
