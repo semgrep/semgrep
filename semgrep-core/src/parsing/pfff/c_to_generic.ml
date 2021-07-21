@@ -33,7 +33,7 @@ let id x = x
 
 let option = Common.map_opt
 
-let list = List.map
+let list = Common.map
 
 let either f g x = match x with Left x -> Left (f x) | Right x -> Right (g x)
 
