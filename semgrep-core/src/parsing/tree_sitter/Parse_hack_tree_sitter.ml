@@ -1802,17 +1802,21 @@ and statement (env : env) (x : CST.statement) =
       let v3 = (* ";" *) token env v3 in
       todo env (v1, v2, v3)
   | `Echo_stmt (v1, v2, v3, v4) ->
-      let v1 = (* "echo" *) token env v1 in
-      let v2 = expression env v2 in
+      let v1 = (* "echo" *) str env v1 in
+      let v2 = G.Arg (expression env v2) in
       let v3 =
         List.map (fun (v1, v2) ->
           let v1 = (* "," *) token env v1 in
-          let v2 = expression env v2 in
-          todo env (v1, v2)
+          let v2 = G.Arg(expression env v2) in
+          v2
         ) v3
       in
       let v4 = (* ";" *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      let exprs = v2 :: v3 in 
+      let iden = G.Id (v1, G.empty_id_info()) in
+      (* TODO: This doesn't seem exactly right?
+          I feel like it should be IdSpecial maybe? *)
+      G.ExprStmt(G.Call((G.N iden), G.fake_bracket exprs), v4) |> AST.s
   | `Unset_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* "unset" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
