@@ -234,7 +234,7 @@ let xhp_category_declaration (env : env) ((v1, v2, v3, v4) : CST.xhp_category_de
   let v4 = (* ";" *) token env v4 in
   todo env (v1, v2, v3, v4)
 
-let qualified_identifier (env : env) (x : CST.qualified_identifier) : G.type_ =
+let qualified_identifier (env : env) (x : CST.qualified_identifier) : G.name =
   (match x with
   | `Opt_id_rep1_back_id (v1, v2) ->
       let v1 =
@@ -258,14 +258,14 @@ let qualified_identifier (env : env) (x : CST.qualified_identifier) : G.type_ =
       | None -> v2) in
       let ident = List.hd (ids) in (* Q: Bad OCaml? But we know lists can't be empty... *)
       let qual = G.QDots(List.rev(List.tl (ids))) in
-      TyN (G.IdQualified(
+      G.IdQualified(
         (ident, {name_qualifier = Some qual; name_typeargs = None;}),
-        G.empty_id_info())
+        G.empty_id_info()
       )
   | `Id tok ->
       (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *)
       let ident = str env tok in
-      TyN (Id (ident, G.empty_id_info()))
+      Id (ident, G.empty_id_info())
   )
 
 let xhp_identifier_ (env : env) (x : CST.xhp_identifier_) =
@@ -349,9 +349,9 @@ let anon_choice_str_d42aa42 (env : env) (x : CST.anon_choice_str_d42aa42) =
   | `Int tok -> (* integer *) token env tok
   )
 
-let literal (env : env) (x : CST.literal) =
+let literal (env : env) (x : CST.literal) : G.literal =
   (match x with
-  | `Str tok -> (* string *) G.String (todo env tok)
+  | `Str tok -> (* string *) G.String (str env tok)
   | `Int tok -> (* integer *) 
       let s, tok = str env tok in
       G.Int (int_of_string_opt s, tok)
@@ -582,20 +582,21 @@ and anon_exp_rep_COMMA_exp_0bb260c (env : env) ((v1, v2) : CST.anon_exp_rep_COMM
   in
   todo env (v1, v2)
 
-and argument (env : env) ((v1, v2) : CST.argument) =
+and argument (env : env) ((v1, v2) : CST.argument) : G.argument =
+  (* TODO: Support these modifiers? *)
   let v1 =
     (match v1 with
     | Some x ->
         (match x with
-        | `Inout_modi tok -> (* "inout" *) token env tok
-        | `Vari_modi tok -> (* "..." *) token env tok
+        | `Inout_modi tok -> (* "inout" *) Some (token env tok)
+        | `Vari_modi tok -> (* "..." *) Some (token env tok)
         )
-    | None -> todo env ())
+    | None -> None)
   in
   let v2 = expression env v2 in
-  todo env (v1, v2)
+  G.Arg v2
 
-and arguments (env : env) ((v1, v2, v3) : CST.arguments) =
+and arguments (env : env) ((v1, v2, v3) : CST.arguments) : G.arguments G.bracket =
   let v1 = (* "(" *) token env v1 in
   let v2 =
     (match v2 with
@@ -605,19 +606,19 @@ and arguments (env : env) ((v1, v2, v3) : CST.arguments) =
           List.map (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
             let v2 = argument env v2 in
-            todo env (v1, v2)
+            v2
           ) v2
         in
         let v3 =
           (match v3 with
-          | Some tok -> (* "," *) token env tok
-          | None -> todo env ())
+          | Some tok -> (* "," *) Some (token env tok)
+          | None -> None)
         in
-        todo env (v1, v2, v3)
-    | None -> todo env ())
+        v1 :: v2
+    | None -> [])
   in
   let v3 = (* ")" *) token env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and as_expression (env : env) ((v1, v2, v3) : CST.as_expression) =
   let v1 = expression env v1 in
@@ -630,14 +631,23 @@ and as_expression (env : env) ((v1, v2, v3) : CST.as_expression) =
   let v3 = type_ env v3 in
   todo env (v1, v2, v3)
 
-and attribute_modifier (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_modifier) =
+and attribute_modifier (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_modifier) : G.attribute =
+  (* Attributes are actually just constructors!
+     Should we treat them as such? We can have an attribute (singular)
+     be:
+     - entities with NamedAttr -> name_or_dynamic and EDynamic of expr
+     - OtherAttribute with OA_Expr and the Constructor Expr
+     - Named Attr with args being args *)
   let v1 = (* "<<" *) token env v1 in
   let v2 = qualified_identifier env v2 in
   let v3 =
     (match v3 with
     | Some x -> arguments env x
-    | None -> todo env ())
+    | None -> G.fake_bracket [])
   in
+  (* TODO: Forced to use Call instead of Constructor here because Constructor doesn't use G.name *)
+  let constr_call = G.Call((G.N v2), v3) in
+  let first_attr_mod = G.E constr_call in
   let v4 =
     List.map (fun (v1, v2, v3) ->
       let v1 = (* "," *) token env v1 in
@@ -645,18 +655,18 @@ and attribute_modifier (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_mod
       let v3 =
         (match v3 with
         | Some x -> arguments env x
-        | None -> todo env ())
+        | None -> G.fake_bracket [])
       in
-      todo env (v1, v2, v3)
+      G.E (G.Call((G.N v2), v3))
     ) v4
   in
   let v5 =
     (match v5 with
-    | Some tok -> (* "," *) token env tok
-    | None -> todo env ())
+    | Some tok -> (* "," *) Some (token env tok)
+    | None -> None)
   in
   let v6 = (* ">>" *) token env v6 in
-  todo env (v1, v2, v3, v4, v5, v6)
+  G.OtherAttribute(G.OA_Expr, first_attr_mod :: v4)
 
 and binary_expression (env : env) (x : CST.binary_expression) =
   (match x with
@@ -940,14 +950,14 @@ and declaration (env : env) (x : CST.declaration) : AST.definition =
   | `Func_decl (v1, v2, v3) ->
       let v1 =
         (match v1 with
-        | Some x -> attribute_modifier env x
+        | Some x -> [attribute_modifier env x]
         | None -> [])
       in
       let v2, identifier = function_declaration_header env v2 in
       let v3 = anon_choice_comp_stmt_c6c6bb4 env v3 in      
       let def = {v2 with fbody = v3} in
       (* Lua does this way: let ent = { G.name = G.EN name; G.attrs = []; G.tparams = [] } *)
-      let ent = AST.basic_entity identifier [] in
+      let ent = AST.basic_entity identifier v1 in
       (ent, G.FuncDef def)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) ->
       let v1 =
@@ -1482,11 +1492,11 @@ and function_declaration_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.
         let v1 = (* ":" *) token env v1 in
         let v2 =
           (match v2 with
-          | Some x -> attribute_modifier env x
-          | None -> todo env ())
+          | Some x -> Some (attribute_modifier env x)
+          | None -> None)
         in
         let v3 = type_ env v3 in
-        todo env (v1, v2, v3)
+        Some v3
     | None -> None)
   in
   let where_clause =
@@ -2066,7 +2076,7 @@ and type_ (env : env) (x : CST.type_) : G.type_=
       let v2 =
         (match v2 with
         | `Choice_bool x -> primitive_type env x
-        | `Qual_id x -> qualified_identifier env x (* qualified_identifier env x *)
+        | `Qual_id x -> G.TyN (qualified_identifier env x) (* qualified_identifier env x *)
         | `Choice_array x -> todo env x (* collection_type env x *)
         | `Choice_xhp_id x -> todo env x (* xhp_identifier_ env x *)
         )
