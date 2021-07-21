@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from collections import namedtuple
 from pathlib import Path
 from typing import List
 
@@ -36,10 +37,23 @@ def send_comment(message: str, github_token: str, pull_request_number: str) -> N
     r.raise_for_status()
 
 
-def read_timing(filename: Path) -> List[float]:
+Timing = namedtuple("Timing", "name time")
+
+
+def read_timing(filename: Path) -> List[Timing]:
     print(f"Reading {filename}")
-    times = filename.read_text()
-    return [float(t) for t in times.split()]
+    with open(filename) as f:
+        return [Timing(a["name"], a["time"]) for a in json.load(f)]
+
+
+def select_min_timings(al: List[Timing], bl: List[Timing]) -> List[Timing]:
+    res = []
+    for a, b in zip(al, bl):
+        if a.time < b.time:
+            res.append(a)
+        else:
+            res.append(b)
+    return res
 
 
 def main() -> None:
@@ -53,16 +67,14 @@ def main() -> None:
     # Note this only defined in pull requests
     pull_request_number = sys.argv[6] if len(sys.argv) >= 7 else ""
 
-    baseline_times = zip(
+    # Eliminate "flukes" by taking the fastest time available for each
+    # benchmark that ran twice.
+    baseline_times = select_min_timings(
         read_timing(baseline_timing_file_1), read_timing(baseline_timing_file_2)
     )
-    latest_times = zip(
+    latest_times = select_min_timings(
         read_timing(latest_timing_file_1), read_timing(latest_timing_file_2)
     )
-    # Eliminate "flukes" by taking the fastest time available for each
-    # benchmark.
-    baseline_times = [min(t1, t2) for t1, t2 in baseline_times]
-    latest_times = [min(t1, t2) for t1, t2 in latest_times]
 
     # Accumulators
     n = 0
@@ -77,8 +89,10 @@ def main() -> None:
     messages = []
     errors = 0
 
-    for baseline_time, latest_time in zip(baseline_times, latest_times):
-        i = n
+    for baseline, latest in zip(baseline_times, latest_times):
+        name = baseline.name
+        baseline_time = baseline.time
+        latest_time = latest.time
         n += 1
         total_baseline += baseline_time
         total_latest += latest_time
@@ -89,7 +103,7 @@ def main() -> None:
         max_rel_dur = max(max_rel_dur, rel_dur)
 
         print(
-            f"[{i}] {rel_dur:.3f}x "
+            f"[{name}] {rel_dur:.3f}x "
             f"Baseline: {baseline_time:.3f}, Latest: {latest_time:.3f}"
         )
 
@@ -99,13 +113,14 @@ def main() -> None:
         # or is within a fixed "probably environmental" range
         if latest_time > baseline_time * 1.2 and latest_time - baseline_time > 5.0:
             errors += 1
-            messages.append(f"🚫 Benchmark {i} is too slow: " f"+{perc:.1f}%")
+            messages.append(f"🚫 Benchmark {name} is too slow: " f"+{perc:.1f}%")
         elif rel_dur > 1.1:
             messages.append(
-                f"⚠ Potential non-blocking slowdown in benchmark {i}: " f"+{perc:.1f}%"
+                f"⚠ Potential non-blocking slowdown in benchmark {name}: "
+                f"+{perc:.1f}%"
             )
         elif rel_dur < 0.9:
-            messages.append(f"🔥 Potential speedup in benchmark {i}: " f"{perc:.1f}%")
+            messages.append(f"🔥 Potential speedup in benchmark {name}: " f"{perc:.1f}%")
 
     mean_rel_dur = total_rel_dur / n
     mean_perc = 100 * (mean_rel_dur - 1)
@@ -119,7 +134,7 @@ def main() -> None:
         f"Min: {min_rel_dur:.3f}x, "
         f"Max: {max_rel_dur:.3f}x"
     )
-    print(f"Total Baseline: {total_baseline} s, Latest: {total_latest} s")
+    print(f"Total Baseline: {total_baseline:.3f} s, Latest: {total_latest:.3f} s")
 
     # Send PR comment if anything's weird or really wrong
     if messages:
