@@ -122,7 +122,8 @@ let integer (env : env) (tok : CST.integer) =
   (* integer *) token env tok
 *)
 
-let scope_identifier (env : env) (x : CST.scope_identifier) =
+(* Note: We do use this once we remove some todos *)
+let _scope_identifier (env : env) (x : CST.scope_identifier) =
   (match x with
   | `Self tok -> (* "self" *) token env tok
   | `Parent tok -> (* "parent" *) token env tok
@@ -138,7 +139,7 @@ let xhp_class_identifier (env : env) (tok : CST.xhp_class_identifier) =
 *)
 
 let null (env : env) (x : CST.null) =
-  (* Safe to pass up all token processing? *)
+  (* Q: Safe to pass up all token processing? *)
   (match x with
   | `Null_37a6259 tok -> (* "null" *) tok
   | `Null_bbb93ef tok -> (* "Null" *) tok
@@ -233,27 +234,38 @@ let xhp_category_declaration (env : env) ((v1, v2, v3, v4) : CST.xhp_category_de
   let v4 = (* ";" *) token env v4 in
   todo env (v1, v2, v3, v4)
 
-let qualified_identifier (env : env) (x : CST.qualified_identifier) =
+let qualified_identifier (env : env) (x : CST.qualified_identifier) : G.type_ =
   (match x with
   | `Opt_id_rep1_back_id (v1, v2) ->
       let v1 =
         (match v1 with
         | Some tok ->
-            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env tok
-        | None -> todo env ())
+            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *)
+            Some (str env tok)
+        | None -> None)
       in
       let v2 =
         List.map (fun (v1, v2) ->
           let v1 = (* "\\" *) token env v1 in
           let v2 =
-            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env v2
+            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v2
           in
-          todo env (v1, v2)
+          v2
         ) v2
       in
-      todo env (v1, v2)
+      let ids = List.rev (match v1 with
+      | Some v1 -> v1 :: v2
+      | None -> v2) in
+      let ident = List.hd (ids) in (* Q: Bad OCaml? But we know lists can't be empty... *)
+      let qual = G.QDots(List.rev(List.tl (ids))) in
+      TyN (G.IdQualified(
+        (ident, {name_qualifier = Some qual; name_typeargs = None;}),
+        G.empty_id_info())
+      )
   | `Id tok ->
-      (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env tok
+      (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *)
+      let ident = str env tok in
+      TyN (Id (ident, G.empty_id_info()))
   )
 
 let xhp_identifier_ (env : env) (x : CST.xhp_identifier_) =
@@ -310,6 +322,7 @@ let primitive_type (env : env) (x : CST.primitive_type) : G.type_=
   | `Arra tok -> (* "arraykey" *) TyBuiltin (str env tok)
   | `Void tok -> (* "void" *) TyBuiltin (str env tok)
   | `Nonn tok -> (* "nonnull" *) TyBuiltin (str env tok)
+  (* Q: Why can't we access `x` directly before pass... Getting type error? *)
   | `Null x -> TyBuiltin (str env (null env x))
   | `Mixed tok -> (* "mixed" *) TyBuiltin (str env tok)
   | `Dyna tok -> (* "dynamic" *) TyBuiltin (str env tok)
@@ -448,10 +461,10 @@ let scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) =
   let v1 =
     (match v1 with
     | `Qual_id x -> qualified_identifier env x
-    | `Var tok -> (* variable *) token env tok
-    | `Scope_id x -> scope_identifier env x
-    | `Choice_xhp_id x -> xhp_identifier_ env x
-    | `Pipe_var tok -> (* "$$" *) token env tok
+    | `Var tok -> (* variable *) todo env tok(* token env tok *)
+    | `Scope_id x -> todo env x (* scope_identifier env x *)
+    | `Choice_xhp_id x -> todo env x (* xhp_identifier_ env x *)
+    | `Pipe_var tok -> (* "$$" *) todo env tok (* token env tok *)
     )
   in
   let v2 = (* "::" *) token env v2 in
@@ -2053,7 +2066,7 @@ and type_ (env : env) (x : CST.type_) : G.type_=
       let v2 =
         (match v2 with
         | `Choice_bool x -> primitive_type env x
-        | `Qual_id x -> todo env x (* qualified_identifier env x *)
+        | `Qual_id x -> qualified_identifier env x (* qualified_identifier env x *)
         | `Choice_array x -> todo env x (* collection_type env x *)
         | `Choice_xhp_id x -> todo env x (* xhp_identifier_ env x *)
         )
