@@ -125,7 +125,7 @@ r2c will:
 
 ### Sample metrics
 
-This is a sample blob of the non-identifiable aggregate metrics described above:
+This is a sample blob of the aggregate metrics described above:
 
 ```
 {
