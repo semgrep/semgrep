@@ -1,6 +1,6 @@
 # Semgrep Privacy Policy
 
-Semgrep may collect non-identifiable aggregate metrics to help improve the product. This document describes:
+Semgrep may collect aggregate metrics to help improve the product. This document describes:
 
 * the principles that guide our data-collection decisions
 * how to opt-in to Semgrep’s metrics
@@ -13,7 +13,7 @@ These principles inform our decisions around data collection:
 
 1. **Transparency**: Collect and use data in a way that is clearly explained to the user and benefits them
 2. **User control**: Put users in control of their data at all times
-3. **Limited data**: Collect what is needed, de-identify where possible, and delete when no longer necessary
+3. **Limited data**: Collect what is needed, pseduoanonymize where possible, and delete when no longer necessary
 
 ## Opt-in behavior
 
@@ -23,11 +23,11 @@ Note that certain Semgrep integrators set this environment variable by default. 
 
 ## Collected data
 
-Semgrep collects non-identifiable data to improve the user experience. Four types of data are collected:
+Semgrep collects data to improve the user experience. Four types of data are collected:
 
 ### Environmental
 
-Environmental data provides contextual data about Semgrep’s runtime environment, as well as information that helps debug any issues users may be facing; e.g.
+Environmental data provide contextual data about Semgrep’s runtime environment, as well as information that helps debug any issues users may be facing; e.g.
 
 * How long the command took to run
 * The version of Semgrep
@@ -37,7 +37,7 @@ Environmental data provides contextual data about Semgrep’s runtime environmen
 
 ### Performance
 
-Performance data enables understanding of which rules and types of files are slow in the aggregate so r2c can improve the Semgrep program-analysis engine, query optimizer, and debug slow rules; e.g.
+Performance data enable understanding of which rules and types of files are slow in the aggregate so r2c can improve the Semgrep program-analysis engine, query optimizer, and debug slow rules; e.g.
 
 * Runtime duration
 * Total number of rules
@@ -92,7 +92,7 @@ r2c will:
 
 ## Description of fields
 
-|Category   |Field  |Description    |Use Case   |Example Data   |Type   |
+|Category   |Field  |Description    |Use Case   |Example Datum   |Type   |
 |---    |---    |---    |---    |---    |---    |
 |Environment    |   |   |   |   |   |
 |   |Timestamp  |Time when the event fired                              |Understanding tool usage over time                     |2021-05-10T21:05:06+00:00  |String |
