@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- Detect duplicate keys in YAML dictionaries in semgrep rules when parsing a rule
+  (e.g., detect multiple 'metavariable' inside one 'metavariable-regex')
+
 ### Changed
 - Added precise error location for the semgrep metachecker, to detect for example
   duplicate patterns in a rule
