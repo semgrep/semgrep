@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+- C/C++: Fixed stack overflows (segmentation faults) when processing very large
+  files (#3538)
+
 ### Changed
 - Added precise error location for the semgrep metachecker, to detect for example
   duplicate patterns in a rule
