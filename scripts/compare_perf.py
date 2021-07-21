@@ -114,7 +114,11 @@ def main() -> None:
     else:
         mean_perc_str = f"{-mean_perc:.1f}% faster"
 
-    print(f"Average: {rel_dur:.3f}x, " f"Min: {rel_dur:.3f}x, " f"Max: {rel_dur:.3f}x")
+    print(
+        f"Average: {mean_rel_dur:.3f}x, "
+        f"Min: {min_rel_dur:.3f}x, "
+        f"Max: {max_rel_dur:.3f}x"
+    )
     print(f"Total Baseline: {total_baseline} s, Latest: {total_latest} s")
 
     # Send PR comment if anything's weird or really wrong
