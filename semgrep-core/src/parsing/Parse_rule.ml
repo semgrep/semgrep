@@ -413,13 +413,14 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
         parse_formula_old env (key, value)
     | x -> error_at_expr x "Wrong parse_formula fields"
   in
-  match fst key with
+  let s, t = key in
+  match s with
   | "pattern" -> R.Pat (get_pattern value)
-  | "pattern-not" -> R.PatNot (get_pattern value)
+  | "pattern-not" -> R.PatNot (t, get_pattern value)
   | "pattern-inside" -> R.PatInside (get_pattern value)
-  | "pattern-not-inside" -> R.PatNotInside (get_pattern value)
-  | "pattern-either" -> R.PatEither (parse_listi key get_nested_formula value)
-  | "patterns" -> R.Patterns (parse_listi key get_nested_formula value)
+  | "pattern-not-inside" -> R.PatNotInside (t, get_pattern value)
+  | "pattern-either" -> R.PatEither (t, parse_listi key get_nested_formula value)
+  | "patterns" -> R.Patterns (t, parse_listi key get_nested_formula value)
   | "pattern-regex" ->
       let x = parse_string_wrap key value in
       let xpat = R.mk_xpat (Regexp (parse_regexp env x)) x in
@@ -427,14 +428,14 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "pattern-not-regex" ->
       let x = parse_string_wrap key value in
       let xpat = R.mk_xpat (Regexp (parse_regexp env x)) x in
-      R.PatNot xpat
+      R.PatNot (t, xpat)
   | "pattern-comby" ->
       let x = parse_string_wrap key value in
       let xpat = R.mk_xpat (Comby (fst x)) x in
       R.Pat xpat
   | "metavariable-regex" | "metavariable-pattern" | "metavariable-comparison"
   | "pattern-where-python" ->
-      R.PatExtra (parse_extra env key value)
+      R.PatExtra (t, parse_extra env key value)
   (* fix suggestions *)
   | "metavariable-regexp" ->
       error_at_key key
@@ -446,10 +447,12 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
 and parse_formula_new env (x : G.expr) : R.formula =
   match x with
   | G.Container (Dict, (_, [ Tuple (_, [ L (String key); value ], _) ], _)) -> (
-      match fst key with
-      | "and" -> R.And (parse_list key (parse_formula_new env) value)
-      | "or" -> R.Or (parse_list key (parse_formula_new env) value)
-      | "not" -> R.Not (parse_formula_new env value)
+      let s, t = key in
+
+      match s with
+      | "and" -> R.And (t, parse_list key (parse_formula_new env) value)
+      | "or" -> R.Or (t, parse_list key (parse_formula_new env) value)
+      | "not" -> R.Not (t, parse_formula_new env value)
       | "inside" -> R.Leaf (R.P (parse_xpattern env value, Some Inside))
       | "regex" ->
           let x = parse_string_wrap key value in
@@ -461,13 +464,14 @@ and parse_formula_new env (x : G.expr) : R.formula =
           R.Leaf (R.P (xpat, None))
       | "where" ->
           let s = parse_string key value in
-          R.Leaf (R.MetavarCond (R.CondEval (parse_metavar_cond key s)))
+          R.Leaf (R.MetavarCond (t, R.CondEval (parse_metavar_cond key s)))
       | "metavariable_regex" -> (
           match value with
           | G.Container (Array, (_, [ mvar; re ], _)) ->
               let mvar = parse_string key mvar in
               let x = parse_string_wrap key re in
-              R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env x)))
+              R.Leaf
+                (R.MetavarCond (t, R.CondRegexp (mvar, parse_regexp env x)))
           | x -> error_at_expr x "Expected a metavariable and regex")
       | _ -> error_at_key key ("Invalid key for formula_new " ^ fst key))
   | _ -> R.Leaf (R.P (parse_xpattern env x, None))

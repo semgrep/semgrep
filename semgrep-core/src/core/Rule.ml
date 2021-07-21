@@ -30,15 +30,15 @@ module MV = Metavariable
  *)
 
 (*****************************************************************************)
-(* Position information and errors *)
+(* Position information *)
 (*****************************************************************************)
 
-(* similar to what we do in AST_generic *)
+(* This is similar to what we do in AST_generic to get precise
+ * error location when a rule is malformed.
+ *)
 type tok = AST_generic.tok [@@deriving show, eq, hash]
 
 type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
-
-exception InvalidLanguageException of string * string
 
 (*****************************************************************************)
 (* Extended languages *)
@@ -55,6 +55,8 @@ type xlang =
   | LGeneric
 [@@deriving show, eq]
 
+exception InvalidLanguage of string (* rule id *) * string (* msg *)
+
 (* coupling: Parse_mini_rule.parse_languages *)
 let xlang_of_string ?id:(id_opt = None) s =
   match s with
@@ -67,8 +69,7 @@ let xlang_of_string ?id:(id_opt = None) s =
           | None -> failwith (Lang.unsupported_language_message s)
           | Some id ->
               raise
-                (InvalidLanguageException
-                   (id, Common.spf "unsupported language: %s" s)))
+                (InvalidLanguage (id, Common.spf "unsupported language: %s" s)))
       | Some l -> L (l, []))
 
 let string_of_xlang = function
@@ -84,13 +85,16 @@ type xpattern = {
   pat : xpattern_kind;
   (* Regarding @equal below, even if two patterns have different indentation,
    * we don't care. We rely only on the equality on pat, which will
-   * abstract away line position.
+   * abstract away line positions.
    * TODO: right now we have some false positives, e.g., in Python
    * assert(...) and assert ... are considered equal AST-wise
    * but it might be a bug!.
    *)
   pstr : string wrap; [@equal fun _ _ -> true]
-  (* unique id, incremented via a gensym()-like function in mk_pat() *)
+  (* Unique id, incremented via a gensym()-like function in mk_pat().
+   * This is used to run the patterns in a formula in a batch all-at-once
+   * and remember what was the matching results for a certain pattern id.
+   *)
   pid : pattern_id; [@equal fun _ _ -> true]
 }
 
@@ -122,18 +126,19 @@ let is_regexp xpat = match xpat.pat with Regexp _ -> true | _ -> false
 (* Classic boolean-logic/set operators with text range set semantic.
  * The main complication is the handling of metavariables and especially
  * negation in the presence of metavariables.
- * todo: add tok (Parse_info.t) for good error locations (metachecker)
+ *
  * todo? enforce invariant that Not/MetavarCond can only appear in And?
+ * move MetavarCond out of leaf in an additional element in And.
  *)
 type formula =
   | Leaf of leaf
-  | And of formula list (* see Match_rules.split_and() *)
-  | Or of formula list
+  | And of tok * formula list (* see Match_rules.split_and() *)
+  | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
    * But this could change? If we were moving to a different range semantic?
    *)
-  | Not of formula
+  | Not of tok * formula
 
 and leaf =
   (* pattern: and pattern-inside: are actually slightly different so
@@ -144,7 +149,7 @@ and leaf =
    *)
   | P of xpattern (* a leaf pattern *) * inside option
   (* This can also only appear inside an And *)
-  | MetavarCond of metavar_cond
+  | MetavarCond of tok * metavar_cond
 
 (* todo: try to remove this at some point, but difficult. See
  * https://github.com/returntocorp/semgrep/issues/1218
@@ -177,16 +182,16 @@ type formula_old =
   (* pattern: *)
   | Pat of xpattern
   (* pattern-not: *)
-  | PatNot of xpattern
-  | PatExtra of extra
+  | PatNot of tok * xpattern
+  | PatExtra of tok * extra
   (* pattern-inside: *)
   | PatInside of xpattern
   (* pattern-not-inside: *)
-  | PatNotInside of xpattern
+  | PatNotInside of tok * xpattern
   (* pattern-either: Or *)
-  | PatEither of formula_old list
+  | PatEither of tok * formula_old list
   (* patterns: And *)
-  | Patterns of formula_old list
+  | Patterns of tok * formula_old list
 
 (* extra conditions, usually on metavariable content *)
 and extra =
@@ -273,8 +278,8 @@ let rec visit_new_formula f formula =
   match formula with
   | Leaf (P (p, _)) -> f p
   | Leaf (MetavarCond _) -> ()
-  | Not x -> visit_new_formula f x
-  | Or xs | And xs -> xs |> List.iter (visit_new_formula f)
+  | Not (_, x) -> visit_new_formula f x
+  | Or (_, xs) | And (_, xs) -> xs |> List.iter (visit_new_formula f)
 
 (*****************************************************************************)
 (* Converters *)
@@ -334,17 +339,17 @@ let (convert_formula_old : formula_old -> formula) =
     match e with
     | Pat x -> Leaf (P (x, None))
     | PatInside x -> Leaf (P (x, Some Inside))
-    | PatNot x -> Not (Leaf (P (x, None)))
-    | PatNotInside x -> Not (Leaf (P (x, Some Inside)))
-    | PatEither xs ->
+    | PatNot (t, x) -> Not (t, Leaf (P (x, None)))
+    | PatNotInside (t, x) -> Not (t, Leaf (P (x, Some Inside)))
+    | PatEither (t, xs) ->
         let xs = List.map aux xs in
-        Or xs
-    | Patterns xs ->
+        Or (t, xs)
+    | Patterns (t, xs) ->
         let xs = List.map aux xs in
-        And xs
-    | PatExtra x ->
+        And (t, xs)
+    | PatExtra (t, x) ->
         let e = convert_extra x in
-        Leaf (MetavarCond e)
+        Leaf (MetavarCond (t, e))
   in
   aux e
 

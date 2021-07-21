@@ -114,9 +114,9 @@ let formula_to_sformula match_func formula =
     (* Visit formula and convert *)
     match formula with
     | R.Leaf leaf -> Leaf leaf
-    | R.And fs -> And (None, List.map formula_to_sformula fs)
-    | R.Or fs -> Or (List.map formula_to_sformula fs)
-    | R.Not f -> Not (formula_to_sformula f)
+    | R.And (_, fs) -> And (None, List.map formula_to_sformula fs)
+    | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
+    | R.Not (_, f) -> Not (formula_to_sformula f)
   in
   formula_to_sformula formula
 

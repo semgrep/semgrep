@@ -177,7 +177,7 @@ let (split_and :
   |> Common.partition_either3 (fun e ->
          match e with
          | S.Not f -> Middle3 f
-         | S.Leaf (R.MetavarCond c) -> Right3 c
+         | S.Leaf (R.MetavarCond (_, c)) -> Right3 c
          | _ -> Left3 e)
 
 let lazy_force x = Lazy.force x [@@profiling]
