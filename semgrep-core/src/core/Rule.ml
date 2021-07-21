@@ -83,13 +83,13 @@ let string_of_xlang = function
 type xpattern = {
   pat : xpattern_kind;
   (* Regarding @equal below, even if two patterns have different indentation,
-   * we don't care. We rely also on the equality on pat, which will
+   * we don't care. We rely only on the equality on pat, which will
    * abstract away line position.
    * TODO: right now we have some false positives, e.g., in Python
    * assert(...) and assert ... are considered equal AST-wise
    * but it might be a bug!.
    *)
-  pstr : string; [@equal fun _ _ -> true]
+  pstr : string wrap; [@equal fun _ _ -> true]
   (* unique id, incremented via a gensym()-like function in mk_pat() *)
   pid : pattern_id; [@equal fun _ _ -> true]
 }
