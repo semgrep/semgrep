@@ -364,12 +364,12 @@ let parse_xpattern env e =
   in
   match env.languages with
   | R.L (lang, _) ->
-      R.mk_xpat (Sem (parse_pattern ~id:env.id ~lang (s, t), lang)) s
+      R.mk_xpat (Sem (parse_pattern ~id:env.id ~lang (s, t), lang)) (s, t)
   | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
       match Spacegrep.Parse_pattern.of_src src with
-      | Ok ast -> R.mk_xpat (Spacegrep ast) s
+      | Ok ast -> R.mk_xpat (Spacegrep ast) (s, t)
       | Error err ->
           (* TODO: adjust error pos instead of using [t] *)
           raise (InvalidPattern (env.id, s, Rule.LGeneric, err.msg, t)))
@@ -422,15 +422,15 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   | "patterns" -> R.Patterns (parse_listi key get_nested_formula value)
   | "pattern-regex" ->
       let x = parse_string_wrap key value in
-      let xpat = R.mk_xpat (Regexp (parse_regexp env x)) (fst x) in
+      let xpat = R.mk_xpat (Regexp (parse_regexp env x)) x in
       R.Pat xpat
   | "pattern-not-regex" ->
       let x = parse_string_wrap key value in
-      let xpat = R.mk_xpat (Regexp (parse_regexp env x)) (fst x) in
+      let xpat = R.mk_xpat (Regexp (parse_regexp env x)) x in
       R.PatNot xpat
   | "pattern-comby" ->
-      let s = parse_string key value in
-      let xpat = R.mk_xpat (Comby s) s in
+      let x = parse_string_wrap key value in
+      let xpat = R.mk_xpat (Comby (fst x)) x in
       R.Pat xpat
   | "metavariable-regex" | "metavariable-pattern" | "metavariable-comparison"
   | "pattern-where-python" ->
@@ -453,11 +453,11 @@ and parse_formula_new env (x : G.expr) : R.formula =
       | "inside" -> R.Leaf (R.P (parse_xpattern env value, Some Inside))
       | "regex" ->
           let x = parse_string_wrap key value in
-          let xpat = R.mk_xpat (R.Regexp (parse_regexp env x)) (fst x) in
+          let xpat = R.mk_xpat (R.Regexp (parse_regexp env x)) x in
           R.Leaf (R.P (xpat, None))
       | "comby" ->
-          let s = parse_string key value in
-          let xpat = R.mk_xpat (R.Comby s) s in
+          let x = parse_string_wrap key value in
+          let xpat = R.mk_xpat (R.Comby (fst x)) x in
           R.Leaf (R.P (xpat, None))
       | "where" ->
           let s = parse_string key value in

@@ -7,7 +7,7 @@
 type selector = {
   mvar : Metavariable.mvar;
   pid : int;
-  pstr : string;
+  pstr : string Rule.wrap;
   (* lazy_matches necessary in case `$X` is the only pattern *)
   lazy_matches : Report.times Report.match_result Lazy.t;
 }
@@ -40,7 +40,8 @@ val selector_equal : selector -> selector -> bool
 (*****************************************************************************)
 
 val formula_to_sformula :
-  ((AST_generic.any * int * string) list -> Report.times Report.match_result) ->
+  ((AST_generic.any * Rule.pattern_id * string) list ->
+  Report.times Report.match_result) ->
   Rule.formula ->
   sformula
 

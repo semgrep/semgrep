@@ -8,7 +8,7 @@ module RP = Report
 type selector = {
   mvar : M.mvar;
   pid : int;
-  pstr : string;
+  pstr : string R.wrap;
   lazy_matches : RP.times RP.match_result Lazy.t;
 }
 
@@ -42,7 +42,7 @@ let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
     RM.ranges =
   let pattern_match_from_binding selector (mvar, mval) =
     {
-      PM.rule_id = fake_rule_id (selector.pid, selector.pstr);
+      PM.rule_id = fake_rule_id (selector.pid, fst selector.pstr);
       PM.file;
       PM.range_loc = Visitor_AST.range_of_any (M.mvalue_to_any mval);
       PM.tokens = lazy (M.ii_of_mval mval);
@@ -84,7 +84,7 @@ let selector_from_formula match_func f =
               mvar;
               pid;
               pstr;
-              lazy_matches = lazy (match_func [ (pattern, pid, pstr) ]);
+              lazy_matches = lazy (match_func [ (pattern, pid, fst pstr) ]);
             }
       | _ -> None)
   | _ -> None
