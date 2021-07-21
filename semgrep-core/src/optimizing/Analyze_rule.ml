@@ -111,20 +111,22 @@ exception EmptyOr
 let rec (remove_not : Rule.formula -> Rule.formula option) =
  fun f ->
   match f with
-  | R.And xs ->
+  | R.And (t, xs) ->
       let ys = Common.map_filter remove_not xs in
-      if null ys then failwith "null And after remove_not" else Some (R.And ys)
-  | R.Or xs ->
+      if null ys then failwith "null And after remove_not"
+      else Some (R.And (t, ys))
+  | R.Or (t, xs) ->
       let ys = Common.map_filter remove_not xs in
-      if null ys then failwith "null Or after remove_not" else Some (R.Or ys)
-  | R.Not f -> (
+      if null ys then failwith "null Or after remove_not"
+      else Some (R.Or (t, ys))
+  | R.Not (_, f) -> (
       match f with
       | R.Leaf _ -> None
       (* double negation *)
-      | R.Not f -> remove_not f
+      | R.Not (_, f) -> remove_not f
       (* todo? apply De Morgan's law? *)
-      | R.Or _xs -> failwith "Not Or"
-      | R.And _xs -> failwith "Not And")
+      | R.Or (_, _xs) -> failwith "Not Or"
+      | R.And (_, _xs) -> failwith "Not And")
   | R.Leaf x -> Some (R.Leaf x)
 
 let remove_not_final f =
@@ -141,7 +143,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
  fun f ->
   match f with
   | R.Leaf x -> And [ Or [ L x ] ]
-  | R.Not _f ->
+  | R.Not (_, _f) ->
       (* should be filtered by remove_not *)
       failwith "call remove_not before cnf"
   (* old:
@@ -154,10 +156,10 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * | R.And _xs -> failwith "Not And"
    * )
    *)
-  | R.And xs ->
+  | R.And (_, xs) ->
       let ys = List.map cnf xs in
       And (ys |> List.map (function And ors -> ors) |> List.flatten)
-  | R.Or xs ->
+  | R.Or (_, xs) ->
       let ys = List.map cnf xs in
       let rec aux ys =
         match ys with
@@ -237,7 +239,7 @@ and leaf_step1 f =
   (* old: we can't filter now; too late, see comment above on step0 *)
   (*  | Not _ -> None *)
   | L (R.P (pat, _inside)) -> xpat_step1 pat
-  | L (R.MetavarCond x) -> metavarcond_step1 x
+  | L (R.MetavarCond (_, x)) -> metavarcond_step1 x
 
 and xpat_step1 pat =
   match pat.R.pat with
