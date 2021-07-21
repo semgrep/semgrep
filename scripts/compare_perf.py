@@ -29,7 +29,7 @@ def send_comment(message: str, github_token: str, pull_request_number: str) -> N
         "body": message,
         "commit_id": commit_id,
     }
-    r = session.post(url, json=pr_comment_payload)
+    r = session.post(url, json=pr_comment_payload, timeout=10)
 
     # Raise if unable to comment
     print(message)
