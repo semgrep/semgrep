@@ -102,7 +102,7 @@ def main() -> None:
             messages.append(f"🚫 Benchmark {i} is too slow: " f"+{perc:.1f}%")
         elif rel_dur > 1.1:
             messages.append(
-                f"⚠️Potential non-blocking slowdown in benchmark {i}: " f"+{perc:.1f}%"
+                f"⚠ Potential non-blocking slowdown in benchmark {i}: " f"+{perc:.1f}%"
             )
         elif rel_dur < 0.9:
             messages.append(f"🔥 Potential speedup in benchmark {i}: " f"{perc:.1f}%")
