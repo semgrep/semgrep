@@ -99,13 +99,13 @@ def main() -> None:
         # or is within a fixed "probably environmental" range
         if latest_time > baseline_time * 1.2 and latest_time - baseline_time > 5.0:
             errors += 1
-            messages.append(f"🚫 Benchmark #{i} is too slow: " f"+{perc:.1f}%")
+            messages.append(f"🚫 Benchmark {i} is too slow: " f"+{perc:.1f}%")
         elif rel_dur > 1.1:
             messages.append(
-                f"⚠️Potential non-blocking slowdown in benchmark #{i}: " f"+{perc:.1f}%"
+                f"⚠️Potential non-blocking slowdown in benchmark {i}: " f"+{perc:.1f}%"
             )
         elif rel_dur < 0.9:
-            messages.append(f"🔥 Potential speedup in benchmark #{i}: " f"{perc:.1f}%")
+            messages.append(f"🔥 Potential speedup in benchmark {i}: " f"{perc:.1f}%")
 
     mean_rel_dur = total_rel_dur / n
     mean_perc = 100 * (mean_rel_dur - 1)
