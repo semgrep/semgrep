@@ -239,28 +239,19 @@ let qualified_identifier (env : env) (x : CST.qualified_identifier) =
       let v1 =
         (match v1 with
         | Some tok ->
-            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *)
-            Some (token env tok)
-        | None -> None)
+            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env tok
+        | None -> todo env ())
       in
       let v2 =
         List.map (fun (v1, v2) ->
           let v1 = (* "\\" *) token env v1 in
           let v2 =
-            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *)
-            (* Q: Why are we doing much manipulation? 
-              Or should be doing qualified identifier? UGH
-            *)
-            G.TyN (G.Id ((str env v2), G.empty_id_info()))
+            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env v2
           in
-          v2
+          todo env (v1, v2)
         ) v2
       in
-      let types = (match v1 with
-      | Some v1 -> v1 :: v2
-      | None -> v2)
-      in
-      G.TyTuple (G.fake_bracket types)
+      todo env (v1, v2)
   | `Id tok ->
       (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env tok
   )
@@ -319,7 +310,6 @@ let primitive_type (env : env) (x : CST.primitive_type) : G.type_=
   | `Arra tok -> (* "arraykey" *) TyBuiltin (str env tok)
   | `Void tok -> (* "void" *) TyBuiltin (str env tok)
   | `Nonn tok -> (* "nonnull" *) TyBuiltin (str env tok)
-    (* Why can't we access `x` directly before pass... Getting type error?*)
   | `Null x -> TyBuiltin (str env (null env x))
   | `Mixed tok -> (* "mixed" *) TyBuiltin (str env tok)
   | `Dyna tok -> (* "dynamic" *) TyBuiltin (str env tok)
@@ -2063,7 +2053,7 @@ and type_ (env : env) (x : CST.type_) : G.type_=
       let v2 =
         (match v2 with
         | `Choice_bool x -> primitive_type env x
-        | `Qual_id x -> qualified_identifier env x
+        | `Qual_id x -> todo env x (* qualified_identifier env x *)
         | `Choice_array x -> todo env x (* collection_type env x *)
         | `Choice_xhp_id x -> todo env x (* xhp_identifier_ env x *)
         )
