@@ -2,6 +2,12 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+- Added precise error location for the semgrep metachecker, to detect for example
+  duplicate patterns in a rule
+
 ## [0.59.0](https://github.com/returntocorp/semgrep/releases/tag/v0.59.0) - 2021-07-20
 
 ### Added
