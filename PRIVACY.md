@@ -19,6 +19,8 @@ These principles inform our decisions around data collection:
 
 Semgrep’s opt-in aggregate metrics are only sent when the environment variable `SEMGREP_SEND_METRICS` is set or when the flag `--enable-metrics` is set. If this environment variable is not set or if the flag is not set, the aggregate metrics are not sent anywhere.
 
+Note that certain Semgrep integrators set this environment variable by default. For example, both the [Semgrep CI agent](https://github.com/returntocorp/semgrep-action) and [GitLab's Semgrep SAST analyzer](https://gitlab.com/gitlab-org/security-products/analyzers/semgrep) enable aggregate-metrics collection by default.
+
 ## Collected data
 
 Semgrep collects non-identifiable data to improve the user experience. Four types of data are collected:
@@ -28,11 +30,10 @@ Semgrep collects non-identifiable data to improve the user experience. Four type
 Environmental data provides contextual data about Semgrep’s runtime environment, as well as information that helps debug any issues users may be facing; e.g.
 
 * How long the command took to run
-* If the command ran in a CI environment
 * The version of Semgrep
-* The user’s OS and shell
-* De-identified hash of the scanned project’s name
-* De-identified hash of the rules run
+* Pseudoanonymized hash of the scanned project’s name
+* Pseudoanonymized hash of the rule definitions run
+* Pseduoanonymized hash of the config option
 
 ### Performance
 
@@ -42,7 +43,6 @@ Performance data enables understanding of which rules and types of files are slo
 * Total number of rules
 * Total number of files
 * Project size in bytes
-* One-way hashes of the rule definitions
 
 ### Errors
 
@@ -58,7 +58,7 @@ Semgrep reports data that indicate how useful a run is for the end user; e.g.
 
 * Number of raised findings
 * Number of ignored findings
-* One-way hashes of the rule definitions that yield findings
+* Pseudoanonymized hashes of the rule definitions that yield findings
 
 ### Data NOT collected
 
@@ -69,6 +69,20 @@ We strive to balance our desire to collect data for improving Semgrep with our u
 * User-identifiable data about Semgrep’s findings in your code, including finding messages
 * Private rules
 
+### Pseudoanonymization
+
+Certain identifying data (e.g. project URLs) are pseudoanonymized before being sent to the r2c backend. "Pseudoanonymized" means the data are transformed using a deterministic cryptographically secure hash.
+
+We use a deterministic hash to:
+* Track performance and value improvements over succesive runs on projects
+* Remove test data from our metrics
+
+Using a deterministic hash, however, implies:
+* An entity that independently knows the value of an input datum AND who has access to r2c's metrics data could access metrics for that known datum
+
+r2c will:
+* Protect these metrics data using application-security best practices
+* Only correlate hashed data to input data when these inputs are publicly known (e.g. publicly available project URLs for open-source projects)
 
 
 ## Description of fields
@@ -76,8 +90,11 @@ We strive to balance our desire to collect data for improving Semgrep with our u
 |Category   |Field  |Description    |Use Case   |Example Data   |Type   |
 |---    |---    |---    |---    |---    |---    |
 |Environment    |   |   |   |   |   |
-|   |Timestamp  |Time when the event fired  |Understanding tool usage over time |2021-05-10T21:05:06+00:00  |String |
-|   |Version    |Semgrep version being used |Reproduce and debug issues with specific versions  |0.51.0 |String |
+|   |Timestamp  |Time when the event fired                              |Understanding tool usage over time                     |2021-05-10T21:05:06+00:00  |String |
+|   |Version    |Semgrep version being used                             |Reproduce and debug issues with specific versions      |0.51.0 |String |
+|   |Project hash |One-way hash of the project URL                      |Understand performance and accuracy improvements      |`c65437265631ab2566802d4d90797b27fbe0f608dceeb9451b979d1671c4bc1a`|String |
+|   |Rules hash |One-way hash of the rule definitions                   |Understand performance improvements                    |`b03e452f389e5a86e56426c735afef13686b3e396499fc3c42561f36f6281c43`|String |
+|   |Config hash|One-way hash of the config argument                    |Understand performance and accuracy improvements       |`ede96c41b57de3e857090fb3c486e69ad8efae3267bac4ac5fbc19dde7161094`|String |
 |   |CI |Notes if Semgrep is running in CI and the name of the provider |Reproduce and debug issues with specific CI providers  |GitLabCI v0.13.12  |String |
 |   |   |   |   |   |   |
 |Performance    |   |   |   |   |   |
@@ -85,13 +102,15 @@ We strive to balance our desire to collect data for improving Semgrep with our u
 |   |Total Rules    |Count of rules |Understand how duration is affected by #rules  |137    |Number |
 |   |Total Files    |Count of files |Understand how duration is affected by #files  |4378   |Number |
 |   |Total Bytes    |Summation of target file size  |Understand how duration is related to total size of all target files   |40838239   |Number |
+|   |Rule Stats |Performance statistics (w/ rule hashes) for slowest rules|Debug rule performance|`[{"ruleHash": "7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166","parseTime": 0,"matchTime": 0.05480456352233887,"runTime": 0.20836973190307617,"bytesScanned": 0}]`|StatsClass[] |
+|   |File Stats |Performance statistics for slowest files|Debug rule performance|`[{"size": 6725,"numTimesScanned": 147,"parseTime": 0.013289928436279297,"matchTime": 0.05480456352233887,"runTime": 0.20836973190307617}]`|StatsClass[] |
 |   |   |   |   |   |   |
 |Errors |   |   |   |   |   |
 |   |Exit Code  |Numeric exit code  |Debug commonly occurring issues and aggregate error counts |1  |Number |
 |   |Number of Errors   |Count of errors    |Understanding avg #errors  |2  |Number |
 |   |Number of Warnings |Count of warnings  |Understanding avg #warnings    |1  |Number |
-|   |Errors |Array of Error Classes (compile-time-constant) |Understand most common errors users encounter  |["UnknownLanguage", "MaxFileSizeExceeded"] |ErrorClass[]   |
-|   |Warnings   |Array of Warning Classes (compile-time-constant)   |Understand most common warnings users encounter    |["TimeoutExceeded"]    |WarningClass[] |
+|   |Errors |Array of Error Classes (compile-time-constant) |Understand most common errors users encounter  |`["UnknownLanguage", "MaxFileSizeExceeded"] `|ErrorClass[]   |
+|   |Warnings   |Array of Warning Classes (compile-time-constant)   |Understand most common warnings users encounter    |`["TimeoutExceeded"]`    |WarningClass[] |
 |   |   |   |   |   |   |
 |Value  |   |   |   |   |   |
 |   |Total Findings |Count of all findings  |Understand if rules are super noisy for the user   |7  |Number |
@@ -106,26 +125,39 @@ This is a sample blob of the non-identifiable aggregate metrics described above:
 ```
 {
     "environment": {
-        "timestamp": "2021-05-10T21:05:06+00:00",
         "version": "0.51.0",
-        "ci": "Gitlab v13.12"
+        "configNamesHash": "ede96c41b57de3e857090fb3c486e69ad8efae3267bac4ac5fbc19dde7161094",
+        "projectHash": "c65437265631ab2566802d4d90797b27fbe0f608dceeb9451b979d1671c4bc1a",
+        "rulesHash": "b03e452f389e5a86e56426c735afef13686b3e396499fc3c42561f36f6281c43",
     },
     "performance": {
-        "duration": 37.1234233823,
-        "totalRules": 2,
-        "totalFiles": 573,
-        "totalBytes": 33938923
+        "runTime": 37.1234233823,
+        "numRules": 2,
+        "numTargets": 573,
+        "totalBytesScanned": 33938923
     },
     "errors": {
-        "exitCode": 1,
-        "totalErrors": 1,
-        "totalWarnings": 2,
+        "returnCode": 1,
+        "ruleStats": [{
+          "ruleHash": "7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166",
+          "parseTime": 0,
+          "matchTime": 0.05480456352233887,
+          "runTime": 0.20836973190307617,
+          "bytesScanned": 0
+        }],
+        "fileStats": [{
+          "size": 6725,
+          "numTimesScanned": 147,
+          "parseTime": 0.013289928436279297,
+          "matchTime": 0.05480456352233887,
+          "runTime": 0.20836973190307617
+        }],
         "errors": ["UnknownLanguage"],
         "warnings": ["MaxFileSizeExceeded", "TimeoutExceeded"]
     },
     "value": {
-        "totalFindings": 7,
-        "totalNosems": 3
+        "numFindings": 7,
+        "numIgnored": 3
     }
 }
 ```
