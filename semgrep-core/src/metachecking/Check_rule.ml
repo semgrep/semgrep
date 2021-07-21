@@ -74,7 +74,7 @@ let error (env : env) s =
 (*****************************************************************************)
 
 let show_formula pf =
-  match pf with Leaf (P (x, _)) -> x.pstr | _ -> R.show_formula pf
+  match pf with Leaf (P (x, _)) -> fst x.pstr | _ -> R.show_formula pf
 
 let equal_formula x y = AST_utils.with_structural_equal R.equal_formula x y
 

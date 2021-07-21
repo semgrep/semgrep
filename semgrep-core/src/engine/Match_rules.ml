@@ -134,7 +134,7 @@ let partition_xpatterns xs =
   xs
   |> List.iter (fun xpat ->
          let id = xpat.R.pid in
-         let str = xpat.R.pstr in
+         let str = fst xpat.R.pstr in
          match xpat.R.pat with
          | R.Sem (x, _lang) -> Common.push (x, id, str) semgrep
          | R.Spacegrep x -> Common.push (x, id, str) spacegrep
