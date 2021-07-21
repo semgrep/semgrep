@@ -149,7 +149,7 @@ and leaf =
    *)
   | P of xpattern (* a leaf pattern *) * inside option
   (* This can also only appear inside an And *)
-  | MetavarCond of metavar_cond
+  | MetavarCond of tok * metavar_cond
 
 (* todo: try to remove this at some point, but difficult. See
  * https://github.com/returntocorp/semgrep/issues/1218
@@ -183,7 +183,7 @@ type formula_old =
   | Pat of xpattern
   (* pattern-not: *)
   | PatNot of tok * xpattern
-  | PatExtra of extra
+  | PatExtra of tok * extra
   (* pattern-inside: *)
   | PatInside of xpattern
   (* pattern-not-inside: *)
@@ -347,9 +347,9 @@ let (convert_formula_old : formula_old -> formula) =
     | Patterns (t, xs) ->
         let xs = List.map aux xs in
         And (t, xs)
-    | PatExtra x ->
+    | PatExtra (t, x) ->
         let e = convert_extra x in
-        Leaf (MetavarCond e)
+        Leaf (MetavarCond (t, e))
   in
   aux e
 

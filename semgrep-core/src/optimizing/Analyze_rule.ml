@@ -239,7 +239,7 @@ and leaf_step1 f =
   (* old: we can't filter now; too late, see comment above on step0 *)
   (*  | Not _ -> None *)
   | L (R.P (pat, _inside)) -> xpat_step1 pat
-  | L (R.MetavarCond x) -> metavarcond_step1 x
+  | L (R.MetavarCond (_, x)) -> metavarcond_step1 x
 
 and xpat_step1 pat =
   match pat.R.pat with

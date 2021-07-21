@@ -435,7 +435,7 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
       R.Pat xpat
   | "metavariable-regex" | "metavariable-pattern" | "metavariable-comparison"
   | "pattern-where-python" ->
-      R.PatExtra (parse_extra env key value)
+      R.PatExtra (t, parse_extra env key value)
   (* fix suggestions *)
   | "metavariable-regexp" ->
       error_at_key key
@@ -464,13 +464,14 @@ and parse_formula_new env (x : G.expr) : R.formula =
           R.Leaf (R.P (xpat, None))
       | "where" ->
           let s = parse_string key value in
-          R.Leaf (R.MetavarCond (R.CondEval (parse_metavar_cond key s)))
+          R.Leaf (R.MetavarCond (t, R.CondEval (parse_metavar_cond key s)))
       | "metavariable_regex" -> (
           match value with
           | G.Container (Array, (_, [ mvar; re ], _)) ->
               let mvar = parse_string key mvar in
               let x = parse_string_wrap key re in
-              R.Leaf (R.MetavarCond (R.CondRegexp (mvar, parse_regexp env x)))
+              R.Leaf
+                (R.MetavarCond (t, R.CondRegexp (mvar, parse_regexp env x)))
           | x -> error_at_expr x "Expected a metavariable and regex")
       | _ -> error_at_key key ("Invalid key for formula_new " ^ fst key))
   | _ -> R.Leaf (R.P (parse_xpattern env x, None))
