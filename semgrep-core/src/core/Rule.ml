@@ -271,7 +271,7 @@ type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
 
 (*****************************************************************************)
-(* Visitor *)
+(* Visitor/extractor *)
 (*****************************************************************************)
 (* currently used in Check_rule.ml metachecker *)
 let rec visit_new_formula f formula =
@@ -280,6 +280,17 @@ let rec visit_new_formula f formula =
   | Leaf (MetavarCond _) -> ()
   | Not (_, x) -> visit_new_formula f x
   | Or (_, xs) | And (_, xs) -> xs |> List.iter (visit_new_formula f)
+
+(* used by the metachecker for precise error location *)
+let tok_of_formula = function
+  | And (t, _) | Or (t, _) | Not (t, _) -> t
+  | Leaf (P (p, _)) -> snd p.pstr
+  | Leaf (MetavarCond (t, _)) -> t
+
+let kind_of_formula = function
+  | Leaf (P _) -> "pattern"
+  | Leaf (MetavarCond _) -> "condition"
+  | Or _ | And _ | Not _ -> "formula"
 
 (*****************************************************************************)
 (* Converters *)
