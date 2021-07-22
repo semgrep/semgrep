@@ -169,3 +169,6 @@ semgrep/semgrep/bin/spacegrep
 
 # Git repo that's not a submodule
 /ocaml-tree-sitter
+
+# Temporary data
+tmp
