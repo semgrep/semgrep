@@ -667,208 +667,212 @@ and attribute_modifier (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_mod
   let v6 = (* ">>" *) token env v6 in
   G.OtherAttribute(G.OA_Expr, first_attr_mod :: v4)
 
-and binary_expression (env : env) (x : CST.binary_expression) =
+and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
   (match x with
   | `Exp_BARGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "|>" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Pipe, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_QMARKQMARK_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "??" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Nullish, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_BARBAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "||" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Or, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_AMPAMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "&&" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Or, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_BAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "|" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.BitOr, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_HAT_exp (v1, v2, v3) ->
+      (* Q: Comment in generic file says PHP has a xor shortcut operator as G.Xor? *)
       let v1 = expression env v1 in
       let v2 = (* "^" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.BitXor, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_AMP_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "&" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.BitAnd, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_EQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "==" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Eq, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_BANGEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "!=" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.NotEq, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_EQEQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "===" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.PhysEq, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_BANGEQEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "!==" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.NotPhysEq, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_LT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "<" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Lt, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_GT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* ">" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Gt, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_LTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "<=" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.LtE, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_GTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* ">=" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.GtE, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_LTEQGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "<=>" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Cmp, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "<<" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.LSL, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* ">>" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.LSR, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_PLUS_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "+" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Plus, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_DASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "-" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Minus, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_DOT_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "." *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Concat, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_STAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "*" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Mult, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_SLASH_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "/" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Div, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_PERC_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "%" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Mod, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_STARSTAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "**" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Pow, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_QMARKCOLON_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "?:" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      G.Call (G.IdSpecial (G.Op G.Elvis, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
+  
+  (* These are all assignment
+     TODO: Consider splitting out in grammar *)
   | `Exp_EQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "=" *) token env v2 in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      Assign (v1, v2, v3)
   | `Exp_QMARKQMARKEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "??=" *) token env v2 in
+      let v2, op = (* "??=" *) token env v2, G.Nullish in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_DOTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* ".=" *) token env v2 in
+      let v2, op = (* ".=" *) token env v2, G.Concat in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_BAREQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "|=" *) token env v2 in
+      let v2, op = (* "|=" *) token env v2, G.BitOr in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_HATEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "^=" *) token env v2 in
+      let v2, op = (* "^=" *) token env v2, G.BitXor in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_AMPEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "&=" *) token env v2 in
+      let v2, op = (* "&=" *) token env v2, G.BitAnd in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_LTLTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "<<=" *) token env v2 in
+      let v2, op = (* "<<=" *) token env v2, G.LSL in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_GTGTEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* ">>=" *) token env v2 in
+      let v2, op = (* ">>=" *) token env v2, G.LSR in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_PLUSEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "+=" *) token env v2 in
+      let v2, op = (* "+=" *) token env v2, G.Plus in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_DASHEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "-=" *) token env v2 in
+      let v2, op = (* "-=" *) token env v2, G.Minus in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_STAREQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "*=" *) token env v2 in
+      let v2, op = (* "*=" *) token env v2, G.Mult in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_SLASHEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "/=" *) token env v2 in
+      let v2, op = (* "/=" *) token env v2, G.Div in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_PERCEQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "%=" *) token env v2 in
+      let v2, op = (* "%=" *) token env v2, G.Mod in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   | `Exp_STARSTAREQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let v2 = (* "**=" *) token env v2 in
+      let v2, op = (* "**=" *) token env v2, G.Pow in
       let v3 = expression env v3 in
-      todo env (v1, v2, v3)
+      AssignOp(v1, (op, v2), v3)
   )
 
 and braced_expression (env : env) ((v1, v2, v3) : CST.braced_expression) =
@@ -1303,13 +1307,13 @@ and expression (env : env) (x : CST.expression) : G.expr =
   | `Prefix_un_exp x -> prefix_unary_expression env x
   | `Post_un_exp (v1, v2) ->
       let v1 = expression env v1 in
-      let v2 =
+      let v2, op =
         (match v2 with
-        | `PLUSPLUS tok -> (* "++" *) token env tok
-        | `DASHDASH tok -> (* "--" *) token env tok
+        | `PLUSPLUS tok -> (* "++" *) token env tok, G.Incr
+        | `DASHDASH tok -> (* "--" *) token env tok, G.Decr
         )
       in
-      todo env (v1, v2)
+      G.Call (G.IdSpecial (IncrDecr (op, Postfix), v2), G.fake_bracket [ G.Arg v1 ])
   | `Is_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "is" *) token env v2 in
@@ -1439,7 +1443,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
 and expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
   let v1 = expression env v1 in
   let v2 = (* ";" *) token env v2 in
-  todo env (v1, v2)
+  G.ExprStmt(v1, v2)
 
 and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) =
   let v1 = (* "extends" *) token env v1 in
@@ -1656,11 +1660,11 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `PLUSPLUS_exp (v1, v2) ->
       let v1 = (* "++" *) token env v1 in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      G.Call (G.IdSpecial (IncrDecr (Incr, Prefix), v1), G.fake_bracket [ G.Arg v2 ])
   | `DASHDASH_exp (v1, v2) ->
       let v1 = (* "--" *) token env v1 in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      G.Call (G.IdSpecial (IncrDecr (Decr, Prefix), v1), G.fake_bracket [ G.Arg v2 ])
   | `Print_exp (v1, v2) ->
       let v1 = (* "print" *) token env v1 in
       let v2 = expression env v2 in
@@ -1765,7 +1769,7 @@ and statement (env : env) (x : CST.statement) =
       let dec = declaration env x in G.DefStmt dec |> G.s
   | `Comp_stmt x -> compound_statement env x
   | `Empty_stmt tok -> (* ";" *) empty_stmt env tok
-  | `Exp_stmt x -> expression_statement env x
+  | `Exp_stmt x -> expression_statement env x |> G.s
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = (* "return" *) token env v1 in
       let v2 =
@@ -2300,7 +2304,7 @@ and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
 
 and variablish (env : env) (x : CST.variablish) =
   (match x with
-  | `Var tok -> (* variable *) todo env x (* TODO: token env tok *)
+  | `Var tok -> (* variable *) N (Id (str env tok, G.empty_id_info ()))
   | `Pipe_var tok -> (* "$$" *) todo env x (* TODO: token env tok *)
   | `List_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "list" *) token env v1 in
