@@ -1,0 +1,47 @@
+#! /usr/bin/env bash
+#
+# Test the 'compare-perf' script locally.
+#
+set -eu
+
+mkdir -p tmp
+
+cat > tmp/baseline1.json <<EOF
+[
+{"name": "semgrep.bench.a.std", "time": 1.0},
+{"name": "semgrep.bench.b.std", "time": 2.0},
+{"name": "semgrep.bench.c.std", "time": 4.0},
+{"name": "semgrep.bench.d.std", "time": 99.0}
+]
+EOF
+
+cat > tmp/baseline2.json <<EOF
+[
+{"name": "semgrep.bench.a.std", "time": 1.02},
+{"name": "semgrep.bench.b.std", "time": 2.01},
+{"name": "semgrep.bench.c.std", "time": 7.7},
+{"name": "semgrep.bench.d.std", "time": 95}
+]
+EOF
+
+cat > tmp/latest1.json <<EOF
+[
+{"name": "semgrep.bench.a.std", "time": 0.99},
+{"name": "semgrep.bench.b.std", "time": 2.41},
+{"name": "semgrep.bench.c.std", "time": 3.2},
+{"name": "semgrep.bench.d.std", "time": 167}
+]
+EOF
+
+cat > tmp/latest2.json <<EOF
+[
+{"name": "semgrep.bench.a.std", "time": 0.98},
+{"name": "semgrep.bench.b.std", "time": 2.43},
+{"name": "semgrep.bench.c.std", "time": 3.1},
+{"name": "semgrep.bench.d.std", "time": 180}
+]
+EOF
+
+exec_path=$(dirname "$0")
+"$exec_path"/compare-perf \
+  tmp/baseline1.json tmp/baseline2.json tmp/latest1.json tmp/latest2.json xxx

@@ -213,10 +213,10 @@ jobs:
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
 
-          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing1.txt --no-time
-          cat semgrep/baseline_timing1.txt
-          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing2.txt --no-time
-          cat semgrep/baseline_timing2.txt
+          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing1.json --no-time
+          jq . semgrep/baseline_timing1.json
+          python3 perf/run-benchmarks --small-only --std-only --save-to semgrep/baseline_timing2.json --no-time
+          jq . semgrep/baseline_timing2.json
           pip3 uninstall -y semgrep
       - name: Download artifacts
         uses: actions/download-artifact@v1
@@ -237,10 +237,10 @@ jobs:
           pipenv run semgrep --version
           pipenv run python -m semgrep --version
           pipenv run semgrep-core -version
-          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing1.txt
-          cat timing1.txt
-          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing2.txt
-          cat timing2.txt
+          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing1.json
+          jq . timing1.json
+          pipenv run python3 ../perf/run-benchmarks --small-only --std-only --save-to timing2.json
+          jq . timing2.json
       - name: Compare timing infos
         run: |
-          python scripts/compare_perf.py semgrep/baseline_timing1.txt semgrep/baseline_timing2.txt semgrep/timing1.txt semgrep/timing2.txt ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
+          ./scripts/compare-perf semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}

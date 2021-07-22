@@ -1,6 +1,16 @@
+#! /usr/bin/env python3
+#
+# Compare the benchmarks run for two different versions of semgrep.
+# It's meant to run within a semgrep pull request.
+# This posts a GitHub PR comment if a performance anomaly is detected.
+# It fails if the anomaly is really big.
+#
+# Testing: run the companion 'test-compare-perf' script.
+#
 import json
 import os
 import sys
+from collections import namedtuple
 from pathlib import Path
 from typing import List
 
@@ -36,10 +46,23 @@ def send_comment(message: str, github_token: str, pull_request_number: str) -> N
     r.raise_for_status()
 
 
-def read_timing(filename: Path) -> List[float]:
+Timing = namedtuple("Timing", "name time")
+
+
+def read_timing(filename: Path) -> List[Timing]:
     print(f"Reading {filename}")
-    times = filename.read_text()
-    return [float(t) for t in times.split()]
+    with open(filename) as f:
+        return [Timing(a["name"], a["time"]) for a in json.load(f)]
+
+
+def select_min_timings(al: List[Timing], bl: List[Timing]) -> List[Timing]:
+    res = []
+    for a, b in zip(al, bl):
+        if a.time < b.time:
+            res.append(a)
+        else:
+            res.append(b)
+    return res
 
 
 def main() -> None:
@@ -53,59 +76,65 @@ def main() -> None:
     # Note this only defined in pull requests
     pull_request_number = sys.argv[6] if len(sys.argv) >= 7 else ""
 
-    baseline_times = zip(
+    # Eliminate "flukes" by taking the fastest time available for each
+    # benchmark that ran twice.
+    baseline_times = select_min_timings(
         read_timing(baseline_timing_file_1), read_timing(baseline_timing_file_2)
     )
-    latest_times = zip(
+    latest_times = select_min_timings(
         read_timing(latest_timing_file_1), read_timing(latest_timing_file_2)
     )
-    # Eliminate "flukes" by taking the fastest time available for each
-    # benchmark.
-    baseline_times = [min(t1, t2) for t1, t2 in baseline_times]
-    latest_times = [min(t1, t2) for t1, t2 in latest_times]
 
     # Accumulators
     n = 0
     total_baseline = 0.0
     total_latest = 0.0
     total_rel_dur = 0.0
-    min_rel_dur = 1.0
-    max_rel_dur = 1.0
+    min_rel_dur = 10000.0
+    max_rel_dur = 0.0
 
     # Accumulators of warning messages and error messages in the format
     # expected by GitHub comments.
     messages = []
     errors = 0
 
-    for baseline_time, latest_time in zip(baseline_times, latest_times):
-        i = n
+    for baseline, latest in zip(baseline_times, latest_times):
+        name = baseline.name
+        baseline_time = baseline.time
+        latest_time = latest.time
         n += 1
         total_baseline += baseline_time
         total_latest += latest_time
 
         rel_dur = latest_time / baseline_time
+        diff = latest_time - baseline_time
         total_rel_dur += rel_dur
         min_rel_dur = min(min_rel_dur, rel_dur)
         max_rel_dur = max(max_rel_dur, rel_dur)
 
         print(
-            f"[{i}] {rel_dur:.3f}x "
+            f"[{name}] {rel_dur:.3f}x "
             f"Baseline: {baseline_time:.3f}, Latest: {latest_time:.3f}"
         )
 
         perc = 100 * (rel_dur - 1)
 
-        # Assert latest time is not more than 20% slower than baseline
-        # or is within a fixed "probably environmental" range
-        if latest_time > baseline_time * 1.2 and latest_time - baseline_time > 5.0:
+        # Assert latest time is not more than 30% slower than baseline.
+        if rel_dur > 1.3:
             errors += 1
-            messages.append(f"🚫 Benchmark {i} is too slow: " f"+{perc:.1f}%")
-        elif rel_dur > 1.1:
             messages.append(
-                f"⚠ Potential non-blocking slowdown in benchmark {i}: " f"+{perc:.1f}%"
+                f"🚫 Benchmark {name} is too slow: " f"+{perc:.1f}% (+{diff:.3f} s)"
             )
-        elif rel_dur < 0.9:
-            messages.append(f"🔥 Potential speedup in benchmark {i}: " f"{perc:.1f}%")
+        elif rel_dur > 1.2:
+            messages.append(
+                f"⚠️  Potential non-blocking slowdown in benchmark {name}: "
+                f"+{perc:.1f}% (+{diff:.3f} s)"
+            )
+        elif rel_dur < 0.85:
+            messages.append(
+                f"🔥 Potential speedup in benchmark {name}: "
+                f"{perc:.1f}% ({diff:.3f} s)"
+            )
 
     mean_rel_dur = total_rel_dur / n
     mean_perc = 100 * (mean_rel_dur - 1)
@@ -119,14 +148,21 @@ def main() -> None:
         f"Min: {min_rel_dur:.3f}x, "
         f"Max: {max_rel_dur:.3f}x"
     )
-    print(f"Total Baseline: {total_baseline} s, Latest: {total_latest} s")
+    print(f"Total Baseline: {total_baseline:.3f} s, Latest: {total_latest:.3f} s")
 
     # Send PR comment if anything's weird or really wrong
     if messages:
         messages.append(f"{n} benchmarks, {mean_perc_str} on average.")
+        # TODO: link to the job output. It seems not possible at the moment
+        # without using the GitHub API.
+        # See https://github.community/t/github-actions-url-to-run/16029
         messages.append(
-            "Deviations greater than 10% from the baseline are reported. "
-            "See run output for more details."
+            "Individual deviations greater than 20% from the baseline are reported. "
+            "An individual performance degradation of over 30% or "
+            "a global degradation of over 7% is an error and will block "
+            "the pull request. "
+            "See run output for full results "
+            "('Show all checks' > 'Tests / semgrep benchmark tests' 'Details')."
         )
         msg = "\n\n".join(messages)
         print(f"Sending warnings and errors as a PR comment:\n{msg}")
@@ -139,8 +175,8 @@ def main() -> None:
     # Fail only after printing and sending all messages
     assert not errors
 
-    # Assert the rules in aggregate are not more than 6% slower than baseline
-    assert mean_rel_dur < 1.06
+    # Assert the rules in aggregate are not more than 7% slower than baseline
+    assert mean_rel_dur < 1.07
 
 
 if __name__ == "__main__":
