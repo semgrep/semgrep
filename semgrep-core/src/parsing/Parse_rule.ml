@@ -90,6 +90,8 @@ exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
 (* general errors *)
 exception InvalidYaml of string * Parse_info.t
 
+exception DuplicateYamlKey of string * Parse_info.t
+
 (* less: could be merged with InvalidYaml *)
 exception InvalidRule of Rule.rule_id * string * Parse_info.t
 
@@ -125,7 +127,8 @@ let generic_to_json (key : key) ast =
                  | G.Tuple (_, [ L (String (k, _)); v ], _) -> (k, aux v)
                  | _ ->
                      error_at_expr x
-                       ("Expected key value pair in " ^ fst key ^ " object")))
+                       ("Expected key/value pair in " ^ fst key ^ " dictionary"))
+          )
     | x -> error_at_expr x "Unexpected generic representation of yaml"
   in
   aux ast
@@ -147,10 +150,20 @@ let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
       |> List.iter (fun field ->
              match field with
              | G.Tuple (_, [ L (String (key_str, t)); value ], _) ->
+                 (* Those are actually silently ignored by many YAML parsers
+                  * which just consider the last key/value as the final one.
+                  * This was a source of bugs in semgrep rules where people
+                  * thought you could enter multiple metavariables under one
+                  * metavariable-regex.
+                  *)
+                 if Hashtbl.mem dict key_str then
+                   raise
+                     (DuplicateYamlKey
+                        (spf "duplicate key '%s' in dictionary" key_str, t));
                  Hashtbl.add dict key_str ((key_str, t), value)
              | x -> error_at_expr x "Not a valid key value pair");
       { h = dict; first_tok = l }
-  | x -> error_at_expr x ("each " ^ fst enclosing ^ " should be an object")
+  | x -> error_at_expr x ("each " ^ fst enclosing ^ " should be a dictionary")
 
 (* Mutates the Hashtbl! *)
 let (take_opt : dict -> (key -> G.expr -> 'a) -> string -> 'a option) =
@@ -481,7 +494,13 @@ and parse_formula_new env (x : G.expr) : R.formula =
 and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
   match fst key with
   | "metavariable-regex" ->
-      let mv_regex_dict = yaml_to_dict key value in
+      let mv_regex_dict =
+        try yaml_to_dict key value
+        with DuplicateYamlKey (msg, t) ->
+          raise
+            (InvalidYaml
+               (msg ^ ". You should use multiple metavariable-regex", t))
+      in
       let metavar, regexp =
         ( take mv_regex_dict parse_string "metavariable",
           take mv_regex_dict parse_string_wrap "regex" )
