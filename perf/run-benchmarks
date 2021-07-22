@@ -400,7 +400,7 @@ def run_benchmarks(
         variants = STD_VARIANTS
 
     results_msgs = []
-    durations = ""
+    durations = []
     results: dict = {variant.name: [] for variant in variants}
     output_per_rule_json_results = RepositoryTimePerRule(
         output_file=output_time_per_rule_json
@@ -469,7 +469,12 @@ def run_benchmarks(
                 msg = f"{metric_name} = {duration:.3f} s"
                 print(msg)
                 results_msgs.append(msg)
-                durations += f"{duration:.3f}\n"
+                durations.append(
+                    {
+                        "name": name,
+                        "time": duration,
+                    }
+                )
                 results[variant.name].append(duration)
 
                 findings, timings = standardize_findings(semgrep_results, include_time)
@@ -499,9 +504,8 @@ def run_benchmarks(
 
     if summary_file_path:
         with chdir(called_dir):
-            summary_file = open(summary_file_path, "w+")
-            summary_file.write(durations)
-            summary_file.close()
+            with open(summary_file_path, "w") as f:
+                json.dump(durations, f)
 
     if plot_benchmarks:
         import matplotlib.pyplot as plt
@@ -578,7 +582,7 @@ def main() -> None:
         "--save-to",
         metavar="FILE_NAME",
         type=str,
-        help="save timing summary to the file given by the argument",
+        help="save timing summary to the json file given by the argument",
     )
     parser.add_argument(
         "--plot-benchmarks",
@@ -616,25 +620,26 @@ def main() -> None:
         if args.semgrep_core:
             semgrep_core_benchmark.run_benchmarks(args.dummy, args.upload)
         else:
+            config_file = (Path(called_dir) / args.config) if args.config else None
             run_benchmarks(
-                args.docker,
-                args.dummy,
-                args.small_only,
-                args.all,
-                args.internal,
-                args.gitlab,
-                args.std_only,
-                (Path(called_dir) / args.config) if args.config else None,
-                args.filter_corpus,
-                args.filter_variant,
-                args.hard_timeout,
-                args.output_time_per_rule_json,
-                args.plot_benchmarks,
-                args.upload,
-                not args.no_time,
-                args.clean,
-                args.save_to,
-                called_dir,
+                docker=args.docker,
+                dummy=args.dummy,
+                small_only=args.small_only,
+                all=args.all,
+                internal=args.internal,
+                gitlab=args.gitlab,
+                std_only=args.std_only,
+                config_file=config_file,
+                filter_corpus=args.filter_corpus,
+                filter_variant=args.filter_variant,
+                hard_timeout=args.hard_timeout,
+                output_time_per_rule_json=args.output_time_per_rule_json,
+                plot_benchmarks=args.plot_benchmarks,
+                upload=args.upload,
+                include_time=not args.no_time,
+                clean=args.clean,
+                summary_file_path=args.save_to,
+                called_dir=called_dir,
             )
 
 
