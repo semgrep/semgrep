@@ -91,8 +91,8 @@ def main() -> None:
     total_baseline = 0.0
     total_latest = 0.0
     total_rel_dur = 0.0
-    min_rel_dur = 1.0
-    max_rel_dur = 1.0
+    min_rel_dur = 10000.0
+    max_rel_dur = 0.0
 
     # Accumulators of warning messages and error messages in the format
     # expected by GitHub comments.
@@ -108,6 +108,7 @@ def main() -> None:
         total_latest += latest_time
 
         rel_dur = latest_time / baseline_time
+        diff = latest_time - baseline_time
         total_rel_dur += rel_dur
         min_rel_dur = min(min_rel_dur, rel_dur)
         max_rel_dur = max(max_rel_dur, rel_dur)
@@ -119,18 +120,22 @@ def main() -> None:
 
         perc = 100 * (rel_dur - 1)
 
-        # Assert latest time is not more than 20% slower than baseline
-        # or is within a fixed "probably environmental" range
-        if latest_time > baseline_time * 1.2 and latest_time - baseline_time > 5.0:
+        # Assert latest time is not more than 30% slower than baseline.
+        if rel_dur > 1.3:
             errors += 1
-            messages.append(f"🚫 Benchmark {name} is too slow: " f"+{perc:.1f}%")
-        elif rel_dur > 1.1:
             messages.append(
-                f"⚠ Potential non-blocking slowdown in benchmark {name}: "
-                f"+{perc:.1f}%"
+                f"🚫 Benchmark {name} is too slow: " f"+{perc:.1f}% (+{diff:.3f} s)"
             )
-        elif rel_dur < 0.9:
-            messages.append(f"🔥 Potential speedup in benchmark {name}: " f"{perc:.1f}%")
+        elif rel_dur > 1.2:
+            messages.append(
+                f"⚠️  Potential non-blocking slowdown in benchmark {name}: "
+                f"+{perc:.1f}% (+{diff:.3f} s)"
+            )
+        elif rel_dur < 0.85:
+            messages.append(
+                f"🔥 Potential speedup in benchmark {name}: "
+                f"{perc:.1f}% ({diff:.3f} s)"
+            )
 
     mean_rel_dur = total_rel_dur / n
     mean_perc = 100 * (mean_rel_dur - 1)
@@ -149,9 +154,16 @@ def main() -> None:
     # Send PR comment if anything's weird or really wrong
     if messages:
         messages.append(f"{n} benchmarks, {mean_perc_str} on average.")
+        # TODO: link to the job output. It seems not possible at the moment
+        # without using the GitHub API.
+        # See https://github.community/t/github-actions-url-to-run/16029
         messages.append(
-            "Deviations greater than 10% from the baseline are reported. "
-            "See run output for more details."
+            "Individual deviations greater than 20% from the baseline are reported. "
+            "An individual performance degradation of over 30% or "
+            "an average degradation of over 7% is an error and will block "
+            "the pull request. "
+            "See run output for full results "
+            "('Show all checks' > 'Tests / semgrep benchmark tests' 'Details')."
         )
         msg = "\n\n".join(messages)
         print(f"Sending warnings and errors as a PR comment:\n{msg}")
@@ -164,8 +176,8 @@ def main() -> None:
     # Fail only after printing and sending all messages
     assert not errors
 
-    # Assert the rules in aggregate are not more than 6% slower than baseline
-    assert mean_rel_dur < 1.06
+    # Assert the rules in aggregate are not more than 7% slower than baseline
+    assert mean_rel_dur < 1.07
 
 
 if __name__ == "__main__":
