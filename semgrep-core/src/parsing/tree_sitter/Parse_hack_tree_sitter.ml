@@ -7,7 +7,6 @@
 *)
 
 open Common
-module AST = AST_generic
 module G = AST_generic
 module CST = Tree_sitter_hack.CST
 module H = Parse_tree_sitter_helpers
@@ -56,7 +55,7 @@ let todo (env : env) _ = failwith "not implemented"
 
 let empty_stmt env t =
   let t = token env t (* ";" *) in
-  AST.Block (t, [], t) |> AST.s
+  G.Block (t, [], t) |> G.s
   
 (*
    Boilerplate converters
@@ -933,11 +932,11 @@ and class_const_declarator (env : env) ((v1, v2) : CST.class_const_declarator) =
   in
   todo env (v1, v2)
 
-and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) : AST.stmt =
+and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) : G.stmt =
   let v1 = (* "{" *) token env v1 in
   let v2 = List.map (statement env) v2 in
   let v3 = (* "}" *) token env v3 in
-  AST.Block (v1, v2, v3) |> AST.s
+  G.Block (v1, v2, v3) |> G.s
 
 and const_declarator (env : env) ((v1, v2, v3) : CST.const_declarator) =
   let v1 = anon_choice_id_0f53960 env v1 in
@@ -945,7 +944,7 @@ and const_declarator (env : env) ((v1, v2, v3) : CST.const_declarator) =
   let v3 = expression env v3 in
   todo env (v1, v2, v3)
 
-and declaration (env : env) (x : CST.declaration) : AST.definition =
+and declaration (env : env) (x : CST.declaration) : G.definition =
   (match x with
   | `Func_decl (v1, v2, v3) ->
       let v1 =
@@ -957,7 +956,7 @@ and declaration (env : env) (x : CST.declaration) : AST.definition =
       let v3 = anon_choice_comp_stmt_c6c6bb4 env v3 in      
       let def = {v2 with fbody = v3} in
       (* Lua does this way: let ent = { G.name = G.EN name; G.attrs = []; G.tparams = [] } *)
-      let ent = AST.basic_entity identifier v1 in
+      let ent = G.basic_entity identifier v1 in
       (ent, G.FuncDef def)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) ->
       let v1 =
@@ -1200,7 +1199,7 @@ and enumerator (env : env) ((v1, v2, v3, v4) : CST.enumerator) =
   let v4 = (* ";" *) token env v4 in
   todo env (v1, v2, v3, v4)
 
-and expression (env : env) (x : CST.expression) : AST.expr =
+and expression (env : env) (x : CST.expression) : G.expr =
   (match x with
   | `Here (v1, v2, v3, v4) ->
       let v1 = (* "<<<" *) token env v1 in
@@ -1470,7 +1469,7 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v2 = compound_statement env v2 in
   todo env (v1, v2)
 
-and function_declaration_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.function_declaration_header) : AST.function_definition * G.label =
+and function_declaration_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.function_declaration_header) : G.function_definition * G.label =
   let async_modifier =
     (match v1 with
     | Some tok -> (* "async" *) Some (G.KeywordAttr (G.Async, token env tok))
@@ -1505,10 +1504,10 @@ and function_declaration_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.
     | None -> None)
   in
   {
-    fkind = (AST.Function, function_keyword);
+    fkind = (G.Function, function_keyword);
     fparams = parameters;
     frettype = attribute_modifier_and_return_type;
-    fbody = AST.empty_fbody;(* To be replaced in parent with real statement *)
+    fbody = G.empty_fbody;(* To be replaced in parent with real statement *)
   },
   identifier
   (* TODO: So many different label/identifier types! How to know which one? *)
@@ -1558,7 +1557,7 @@ and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
   let v4 = anon_choice_comp_stmt_c6c6bb4 env v4 in
   todo env (v1, v2, v3, v4)
 
-and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) : AST.parameter =
+and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) : G.parameter =
   let v1 =
     (match v1 with
     | Some x -> Some (attribute_modifier env x)
@@ -1763,7 +1762,7 @@ and selection_expression (env : env) ((v1, v2, v3) : CST.selection_expression) =
 and statement (env : env) (x : CST.statement) =
   (match x with
   | `Choice_func_decl x ->
-      let dec = declaration env x in AST.DefStmt dec |> AST.s
+      let dec = declaration env x in G.DefStmt dec |> G.s
   | `Comp_stmt x -> compound_statement env x
   | `Empty_stmt tok -> (* ";" *) empty_stmt env tok
   | `Exp_stmt x -> expression_statement env x
@@ -1777,7 +1776,7 @@ and statement (env : env) (x : CST.statement) =
         | None -> None)
       in
       let v3 = (* ";" *) token env v3 in
-      AST.Return (v1, v2, v3) |> AST.s
+      G.Return (v1, v2, v3) |> G.s
   | `Brk_stmt (v1, v2, v3) ->
       let v1 = (* "break" *) token env v1 in
       let v2 =
@@ -1816,7 +1815,7 @@ and statement (env : env) (x : CST.statement) =
       let iden = G.Id (v1, G.empty_id_info()) in
       (* TODO: This doesn't seem exactly right?
           I feel like it should be IdSpecial maybe? *)
-      G.ExprStmt(G.Call((G.N iden), G.fake_bracket exprs), v4) |> AST.s
+      G.ExprStmt(G.Call((G.N iden), G.fake_bracket exprs), v4) |> G.s
   | `Unset_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* "unset" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -2479,7 +2478,7 @@ and xhp_spread_expression (env : env) ((v1, v2, v3, v4) : CST.xhp_spread_express
   let v4 = (* "}" *) token env v4 in
   todo env (v1, v2, v3, v4)
 
-let script (env : env) ((v1, v2) : CST.script) : AST.program =
+let script (env : env) ((v1, v2) : CST.script) : G.program =
   let _v1 =
     (match v1 with
     | Some tok -> (* pattern <\?[hH][hH] *) token env tok |> ignore
@@ -2519,6 +2518,6 @@ let parse_pattern str =
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
       match script env cst with
-      | [ { AST.s = G.ExprStmt (e, _); _ } ] -> G.E e
+      | [ { G.s = G.ExprStmt (e, _); _ } ] -> G.E e
       | [ x ] -> G.S x
       | xs -> G.Ss xs)
