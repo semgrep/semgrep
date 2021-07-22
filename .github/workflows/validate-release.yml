@@ -1,4 +1,5 @@
-name: Validate a Release
+# Validate a Release
+name: validate-release
 
 on:
   push:

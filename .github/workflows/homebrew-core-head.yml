@@ -1,4 +1,5 @@
-name: Verify Homebrew Core Formula Works
+# Verify Homebrew Core Formula Works
+name: homebrew-core-head
 
 on:
   schedule:
