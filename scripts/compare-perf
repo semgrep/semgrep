@@ -1,3 +1,13 @@
+#! /usr/bin/env python3
+#
+# Compare the benchmarks run for two different versions of semgrep.
+# It's meant to run within a semgrep pull request.
+# This posts a GitHub PR comment if a performance anomaly is detected.
+# It fails if the anomaly is really big.
+#
+# Testing: run locally with dummy GitHub credentials. It produces a log
+# that includes what would be posted as a PR comment.
+#
 import json
 import os
 import sys

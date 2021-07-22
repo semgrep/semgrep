@@ -243,4 +243,4 @@ jobs:
           jq . timing2.json
       - name: Compare timing infos
         run: |
-          python scripts/compare_perf.py semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
+          ./scripts/compare-perf semgrep/baseline_timing1.json semgrep/baseline_timing2.json semgrep/timing1.json semgrep/timing2.json ${{ secrets.GITHUB_TOKEN }} ${{ github.event.number }}
