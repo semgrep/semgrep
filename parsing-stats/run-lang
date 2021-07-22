@@ -69,7 +69,10 @@ fetch_project_files() {
     cd tmp
     if [[ ! -d "$name" ]]; then
       echo "Cloning '$name' from '$url'."
-      git clone --depth 1 "$url" "$name"
+      # Since we do not care about revision history or
+      # Git Large File Storage files, we can shallow clone
+      # and ignore LFS pointers to expedite cloning.
+      GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 "$url" "$name"
     else
       echo "Using local git repo for '$name'."
       origin_url=$(git -C "$name" remote get-url origin)
