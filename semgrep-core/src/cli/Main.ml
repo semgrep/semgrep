@@ -337,6 +337,26 @@ let save_rules_file_in_tmp () =
   Common.write_file ~file:tmp (Common.read_file !rules_file)
 
 (*****************************************************************************)
+(* Error management *)
+(*****************************************************************************)
+(* Small wrapper over Error_code.exn_to_error to handle also semgrep-specific
+ * exns that have a position.
+ *
+ * See also JSON_report.json_of_exn for non-target related exn handling.
+ *
+ * invariant: every target-related semgrep-specific exn that has a
+ * Parse_info.t should be captured here for precise location in error
+ * reporting.
+ *  - TODO: naming exns?
+ *)
+let exn_to_error file exn =
+  match exn with
+  | AST_generic.Error (s, tok) ->
+      let loc = PI.token_location_of_info tok in
+      E.mk_error_loc loc (AstBuilderError s)
+  | _ -> E.exn_to_error file exn
+
+(*****************************************************************************)
 (* Caching *)
 (*****************************************************************************)
 
@@ -665,7 +685,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                | exn when not !fail_fast ->
                    {
                      RP.matches = [];
-                     errors = [ Error_code.exn_to_error file exn ];
+                     errors = [ exn_to_error file exn ];
                      profiling = RP.empty_partial_profiling file;
                    })
          in

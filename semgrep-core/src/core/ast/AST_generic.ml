@@ -1872,9 +1872,9 @@ let special_multivardef_pattern = AST_generic_.special_multivardef_pattern
 (*****************************************************************************)
 
 (*s: exception [[AST_generic.Error]] *)
-(* this can be used in the xxx_to_generic.ml file to signal limitations,
- * and can be captured in Error_code.exn_to_error to pinpoint the error
- * location.
+(* This can be used in the xxx_to_generic.ml file to signal limitations.
+ * This is captured in Main.exn_to_error to pinpoint the error location.
+ * alt: reuse Parse_info.Ast_builder_error exn.
  *)
 exception Error of string * Parse_info.t
 
