@@ -128,12 +128,6 @@ let combine_tokens_DEPRECATED env xs =
       let t = token env x in
       t
 
-let int_of_string_c_octal_opt s =
-  if s =~ "^0\\([0-7]+\\)$" then
-    let s = Common.matched1 s in
-    int_of_string_opt ("0o" ^ s)
-  else int_of_string_opt s
-
 let wrap_parser tree_sitter_parser ast_mapper =
   (* Note that because we currently use Parallel.invoke to
    * invoke the tree-sitter parser, unmarshalled exn
