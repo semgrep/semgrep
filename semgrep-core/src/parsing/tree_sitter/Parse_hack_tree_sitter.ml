@@ -57,6 +57,16 @@ let empty_stmt env t =
   let t = token env t (* ";" *) in
   G.Block (t, [], t) |> G.s
   
+let unwrap_qualified_identifier qual = (match qual with 
+  | G.Id (ident, id_info) -> [ident]
+  (* Unwrap all existing indentifiers *)
+  | IdQualified ((ident, name_info), id_info) -> let name_info = name_info.name_qualifier in
+  let idents = (match name_info with 
+  | Some QDots (dotted_ident) -> dotted_ident @ [ident]
+  | _ -> raise Impossible
+  ) in idents
+)
+
 (*
    Boilerplate converters
 *)
@@ -458,10 +468,11 @@ let xhp_enum_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.xhp_enum_type) =
 
 let scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) =
   let v1 =
+    (* Q: This is ugly, but is now a helper *)
     (match v1 with
-    | `Qual_id x -> qualified_identifier env x
-    | `Var tok -> (* variable *) todo env tok(* token env tok *)
-    | `Scope_id x -> todo env x (* scope_identifier env x *)
+    | `Qual_id x -> let qual = qualified_identifier env x in unwrap_qualified_identifier qual
+    | `Var tok -> (* variable *) todo env tok (* token env tok *)
+    | `Scope_id x -> todo env x (* scope_identifier env x *) (* TODO: Will need to break open scopes? *)
     | `Choice_xhp_id x -> todo env x (* xhp_identifier_ env x *)
     | `Pipe_var tok -> (* "$$" *) todo env tok (* token env tok *)
     )
@@ -470,11 +481,15 @@ let scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) =
   let v3 =
     (match v3 with
     | `Id tok ->
-        (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env tok
-    | `Var tok -> (* variable *) token env tok
+        (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env tok
+    | `Var tok -> (* variable *) str env tok
     )
   in
-  todo env (v1, v2, v3)
+  let qual = G.QDots(v1) in
+  G.IdQualified(
+    (v3, {name_qualifier = Some qual; name_typeargs = None;}),
+    G.empty_id_info()
+  )
 
 let anonymous_function_use_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.anonymous_function_use_clause) =
   let v1 = (* "use" *) token env v1 in
@@ -688,7 +703,7 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v1 = expression env v1 in
       let v2 = (* "&&" *) token env v2 in
       let v3 = expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Or, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.And, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   | `Exp_BAR_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "|" *) token env v2 in
@@ -891,10 +906,10 @@ and call_expression (env : env) ((v1, v2, v3) : CST.call_expression) =
   let v2 =
     (match v2 with
     | Some x -> type_arguments env x
-    | None -> todo env ())
+    | None -> None)
   in
   let v3 = arguments env v3 in
-  todo env (v1, v2, v3)
+  G.Call(v1, v3)
 
 and catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) =
   let v1 = (* "catch" *) token env v1 in
@@ -948,7 +963,7 @@ and const_declarator (env : env) ((v1, v2, v3) : CST.const_declarator) =
   let v3 = expression env v3 in
   todo env (v1, v2, v3)
 
-and declaration (env : env) (x : CST.declaration) : G.definition =
+and declaration (env : env) (x : CST.declaration) =
   (match x with
   | `Func_decl (v1, v2, v3) ->
       let v1 =
@@ -961,7 +976,7 @@ and declaration (env : env) (x : CST.declaration) : G.definition =
       let def = {v2 with fbody = v3} in
       (* Lua does this way: let ent = { G.name = G.EN name; G.attrs = []; G.tparams = [] } *)
       let ent = G.basic_entity identifier v1 in
-      (ent, G.FuncDef def)
+      G.DefStmt (ent, G.FuncDef def)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) ->
       let v1 =
         (match v1 with
@@ -1132,19 +1147,23 @@ and declaration (env : env) (x : CST.declaration) : G.definition =
             | `Qual_id_SEMI (v1, v2) ->
                 let v1 = qualified_identifier env v1 in
                 let v2 = (* ";" *) token env v2 in
-                todo env (v1, v2)
+                Some (unwrap_qualified_identifier v1)
             | `Opt_qual_id_comp_stmt (v1, v2) ->
                 let v1 =
                   (match v1 with
-                  | Some x -> qualified_identifier env x
-                  | None -> todo env ())
+                  | Some x -> Some (qualified_identifier env x |> unwrap_qualified_identifier)
+                  | None -> None)
                 in
+                (* TODO: Handle namespace with block inside *)
                 let v2 = compound_statement env v2 in
-                todo env (v1, v2)
+                v1
             )
-        | None -> todo env ())
+        | None -> None)
       in
-      todo env (v1, v2)
+      (match v2 with
+      | Some v2 -> G.DirectiveStmt(G.Package (v1, v2))
+      | None -> G.DirectiveStmt(G.PackageEnd (v1))
+      )
   | `Const_decl (v1, v2, v3, v4, v5) ->
       let v1 = (* "const" *) token env v1 in
       let v2 =
@@ -1461,7 +1480,7 @@ and field_initializer (env : env) ((v1, v2, v3) : CST.field_initializer) =
   let v1 =
     (match v1 with
     | `Str tok -> (* string *) token env tok
-    | `Scoped_id x -> scoped_identifier env x
+    | `Scoped_id x -> todo env x (* scoped_identifier env x *)
     )
   in
   let v2 = (* "=>" *) token env v2 in
@@ -1676,7 +1695,7 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `Await_exp (v1, v2) ->
       let v1 = (* "await" *) token env v1 in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      Await(v1, v2)
   | `AT_exp (v1, v2) ->
       let v1 = (* "@" *) token env v1 in
       let v2 = expression env v2 in
@@ -1765,8 +1784,7 @@ and selection_expression (env : env) ((v1, v2, v3) : CST.selection_expression) =
 
 and statement (env : env) (x : CST.statement) =
   (match x with
-  | `Choice_func_decl x ->
-      let dec = declaration env x in G.DefStmt dec |> G.s
+  | `Choice_func_decl x -> declaration env x |> G.s
   | `Comp_stmt x -> compound_statement env x
   | `Empty_stmt tok -> (* ";" *) empty_stmt env tok
   | `Exp_stmt x -> expression_statement env x |> G.s
@@ -2304,7 +2322,7 @@ and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
 
 and variablish (env : env) (x : CST.variablish) =
   (match x with
-  | `Var tok -> (* variable *) N (Id (str env tok, G.empty_id_info ()))
+  | `Var tok -> (* variable *) G.N (Id (str env tok, G.empty_id_info ()))
   | `Pipe_var tok -> (* "$$" *) todo env x (* TODO: token env tok *)
   | `List_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "list" *) token env v1 in
@@ -2342,10 +2360,10 @@ and variablish (env : env) (x : CST.variablish) =
       in
       let v4 = (* "]" *) token env v4 in
       todo env (v1, v2, v3, v4)
-  | `Qual_id x -> todo env x(* TODO: qualified_identifier env x *)
+  | `Qual_id x -> G.N (qualified_identifier env x)
   | `Paren_exp x -> parenthesized_expression env x
   | `Call_exp x -> call_expression env x
-  | `Scoped_id x -> scoped_identifier env x
+  | `Scoped_id x -> G.N (scoped_identifier env x)
   | `Scope_id x -> todo env x (* TODO: scope_identifier env x *)
   | `Sele_exp x -> selection_expression env x
   | `Choice_xhp_id x -> todo env x (* TODO: xhp_identifier_ env x *)
