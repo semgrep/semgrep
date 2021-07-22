@@ -5,8 +5,7 @@
 # This posts a GitHub PR comment if a performance anomaly is detected.
 # It fails if the anomaly is really big.
 #
-# Testing: run locally with dummy GitHub credentials. It produces a log
-# that includes what would be posted as a PR comment.
+# Testing: run the companion 'test-compare-perf' script.
 #
 import json
 import os
