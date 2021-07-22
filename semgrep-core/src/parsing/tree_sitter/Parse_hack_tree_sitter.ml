@@ -632,7 +632,7 @@ and as_expression (env : env) ((v1, v2, v3) : CST.as_expression) =
   todo env (v1, v2, v3)
 
 and attribute_modifier (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_modifier) : G.attribute =
-  (* Attributes are actually just constructors!
+  (* Q: Attributes are actually just constructors!
      Should we treat them as such? We can have an attribute (singular)
      be:
      - entities with NamedAttr -> name_or_dynamic and EDynamic of expr
@@ -1593,7 +1593,7 @@ and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) : AST.p
         todo env (v1, v2)
     | None -> None)
   in
-  (* May not be ?classic?, need to check if v5 exists *)
+  (* Q: May not be ?classic?, need to check if v5 exists *)
   ParamClassic {
     pname = Some v6;
     ptype = v4;
