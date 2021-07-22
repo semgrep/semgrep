@@ -17,7 +17,7 @@ https://github.com/ivivian/EchartSample.git
 https://github.com/JarJarBernie/jimmybox5.git
 https://github.com/XinLiangCoder/web_barrage.git
 https://github.com/wangzhenjjcn/WZ_WEB_ENGINE.git
-https://github.com/nuxed/framework.git
+# https://github.com/nuxed/framework.git
 https://github.com/hhvm/type-assert.git
 https://github.com/pauloamgomes/BackupAndRestore.git
 https://github.com/iamcal/grant-pattishall-award.com.git
@@ -27,6 +27,6 @@ https://github.com/AllYarnsAreBeautiful/allyarnsarebeautiful.github.io.git
 https://github.com/fucongcong/ssos.git
 https://github.com/slashmili/fighter.git
 https://github.com/usox/hackttp.git
-https://github.com/nazg-hack/framework.git
+# https://github.com/nazg-hack/framework.git
 https://github.com/philsinatra/IDM231.git
 https://github.com/jesseschalken/hack-utils.git
