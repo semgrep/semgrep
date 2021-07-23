@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   files (#3538)
 - JS: Fixed stack overflows (segmentation faults) when processing very large
   files (#3538)
+- JS: Detect numeric object keys `1` and `0x1` as equal (#3579)
 
 ### Changed
 - Added precise error location for the semgrep metachecker, to detect for example

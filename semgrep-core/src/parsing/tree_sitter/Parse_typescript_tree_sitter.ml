@@ -108,16 +108,17 @@ let super env tok = IdSpecial (Super, token env tok)
 
 let number (env : env) (tok : CST.number) =
   let s, t = str env tok (* number *) in
-  ( (match H.int_of_string_c_octal_opt s with
-    | Some i -> Some (float_of_int i)
-    | None -> float_of_string_opt s),
-    t )
+  (Common2.float_of_string_opt s, t)
 
 let empty_stmt env tok =
   let t = token env tok in
   Block (t, [], t)
 
-let number_as_string (env : env) (tok : CST.number) = str env tok
+let number_as_string (env : env) (tok : CST.number) =
+  let _, s = tok in
+  let opt_num, t = number env tok in
+  let num_str = match opt_num with None -> s | Some n -> string_of_float n in
+  (num_str, t)
 
 let string_ (env : env) (x : CST.string_) : string wrap =
   match x with

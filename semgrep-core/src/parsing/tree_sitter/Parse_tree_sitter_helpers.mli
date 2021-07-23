@@ -18,10 +18,6 @@ val str_if_wrong_content_temporary_fix :
 val combine_tokens_DEPRECATED :
   'a env -> Tree_sitter_run.Token.t list -> Parse_info.t
 
-(* like int_of_string_opt, but also converts C octals like 0400 in
- * the right value. *)
-val int_of_string_c_octal_opt : string -> int option
-
 (*
    Call a tree-sitter parser and then map the CST into an AST
    with the user-provided function. Takes care of error handling.
