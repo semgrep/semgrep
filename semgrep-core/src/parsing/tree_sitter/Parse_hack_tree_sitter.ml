@@ -269,6 +269,7 @@ let qualified_identifier (env : env) (x : CST.qualified_identifier) : G.name =
           v2
         ) v2
       in
+      (* Q: Is it fine to ignore if the name is fully vs partially qualified? *)
       let ids = List.rev (match v1 with
       | Some v1 -> v1 :: v2
       | None -> v2) in
@@ -385,11 +386,11 @@ let namespace_identifier (env : env) (x : CST.namespace_identifier) =
       let v1 = qualified_identifier env v1 in
       let v2 =
         (match v2 with
-        | Some tok -> (* "\\" *) token env tok
-        | None -> todo env ())
+        | Some tok -> (* "\\" *) Some(token env tok)
+        | None -> None)
       in
-      todo env (v1, v2)
-  | `Back tok -> (* "\\" *) token env tok
+      Some(v1)
+  | `Back tok -> (* "\\" *) None (* token env tok *)
   )
 
 let rec type_constant_ (env : env) ((v1, v2, v3) : CST.type_constant_) =
@@ -518,23 +519,27 @@ let anonymous_function_use_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.an
   todo env (v1, v2, v3, v4, v5, v6)
 
 let use_clause (env : env) ((v1, v2, v3) : CST.use_clause) =
+  (* Q: How to represent `use` type? *)
   let v1 =
     (match v1 with
-    | Some x -> use_type env x
-    | None -> todo env ())
+    | Some x -> Some (use_type env x)
+    | None -> None)
   in
   let v2 = namespace_identifier env v2 in
-  let v3 =
+  let v3 : G.alias option =
     (match v3 with
     | Some (v1, v2) ->
         let v1 = (* "as" *) token env v1 in
         let v2 =
-          (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env v2
+          (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v2
         in
-        todo env (v1, v2)
-    | None -> todo env ())
+        Some (v2, G.empty_id_info())
+    | None -> None)
   in
-  todo env (v1, v2, v3)
+  (match v2 with
+  | Some x -> Some(unwrap_qualified_identifier x), v3
+  | None -> None, v3
+  )
 
 let anon_choice_id_0f53960 (env : env) (x : CST.anon_choice_id_0f53960) =
   (match x with
@@ -1868,51 +1873,69 @@ and statement (env : env) (x : CST.statement) =
       let v5 = (* ";" *) token env v5 in
       todo env (v1, v2, v3, v4, v5)
   | `Use_stmt (v1, v2, v3) ->
+    (* Q: ImportAs vs ImportFrom? Both use alias option. *)
+    (* Q: What do comma seperated use statements mean? And how do they alias? *)
       let v1 = (* "use" *) token env v1 in
+      let create_directive use_clause prefix_idents =
+        let idents, alias = use_clause in
+        let idents = (match idents with
+          | Some x -> x
+          | None -> raise Impossible
+        ) in
+        G.s(
+          G.DirectiveStmt(
+           G.ImportAs(v1, G.DottedName (prefix_idents @ idents), alias)))
+      in
       let v2 =
         (match v2 with
         | `Use_clause_rep_COMMA_use_clause_opt_COMMA (v1, v2, v3) ->
-            let v1 = use_clause env v1 in
+            let v1 = create_directive (use_clause env v1) [] in
             let v2 =
               List.map (fun (v1, v2) ->
                 let v1 = (* "," *) token env v1 in
                 let v2 = use_clause env v2 in
-                todo env (v1, v2)
+                (* Q: Module name vs identifier? What's the difference? *)
+                create_directive v2 []
               ) v2
             in
             let v3 =
               (match v3 with
-              | Some tok -> (* "," *) token env tok
-              | None -> todo env ())
+              | Some tok -> (* "," *) Some(token env tok)
+              | None -> None)
             in
-            todo env (v1, v2, v3)
+            G.Block (G.fake_bracket (v1 :: v2))
         | `Opt_use_type_name_id_LCURL_use_clause_rep_COMMA_use_clause_opt_COMMA_RCURL (v1, v2, v3, v4, v5, v6, v7) ->
+            (* Q: How to represent `use` type? We are also possibly passed it up from use_clause. *)
             let v1 =
               (match v1 with
-              | Some x -> use_type env x
-              | None -> todo env ())
+              | Some x -> Some(use_type env x)
+              | None -> None)
             in
             let v2 = namespace_identifier env v2 in
+            let ident_prefix = (match v2 with
+            | Some x -> unwrap_qualified_identifier x
+            | None -> []
+            ) in
             let v3 = (* "{" *) token env v3 in
-            let v4 = use_clause env v4 in
+            let v4 = create_directive(use_clause env v4) ident_prefix in
             let v5 =
               List.map (fun (v1, v2) ->
                 let v1 = (* "," *) token env v1 in
                 let v2 = use_clause env v2 in
-                todo env (v1, v2)
+                create_directive v2 ident_prefix
               ) v5
             in
             let v6 =
               (match v6 with
-              | Some tok -> (* "," *) token env tok
-              | None -> todo env ())
+              | Some tok -> (* "," *) Some(token env tok)
+              | None -> None)
             in
             let v7 = (* "}" *) token env v7 in
-            todo env (v1, v2, v3, v4, v5, v6, v7)
+            G.Block (G.fake_bracket (v4 :: v5))
         )
       in
       let v3 = (* ";" *) token env v3 in
-      todo env (v1, v2, v3)
+      v2 |> G.s
   | `If_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* "if" *) token env v1 in
       let v2 = parenthesized_expression env v2 in
