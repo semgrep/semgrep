@@ -101,20 +101,12 @@ let map_anon_choice_TILDE_72781e5 (env : env)
 
 (* "?" *)
 
-let map_sign_operator (env : env) (x : CST.sign_operator) =
+let map_sign_operator (env : env) (x : CST.sign_operator) : string wrap =
   match x with
-  | `PLUS tok ->
-      let x = token env tok (* "+" *) in
-      Left x
-  | `DASH tok ->
-      let x = token env tok (* "-" *) in
-      Right x
-  | `PLUSDOT tok ->
-      let x = token env tok (* "+." *) in
-      Left x
-  | `DASHDOT tok ->
-      let x = token env tok in
-      Right x
+  | `PLUS tok -> str env tok (* "+" *)
+  | `DASH tok -> str env tok (* "-" *)
+  | `PLUSDOT tok -> str env tok (* "+." *)
+  | `DASHDOT tok -> str env tok
 
 (* "-." *)
 
@@ -307,94 +299,90 @@ let map_label (env : env) ((v1, v2) : CST.label) =
   let v2 = str env v2 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
   (v1, v2)
 
-let map_constructor_path (env : env) (x : CST.constructor_path) : ident list =
+let map_constructor_path (env : env) (x : CST.constructor_path) : name =
   match x with
   | `Choice_capi_id x ->
       let x = map_constructor_name env x in
-      [ x ]
+      ([], x)
   | `Module_path_DOT_choice_capi_id (v1, v2, v3) ->
       let v1 = map_module_path env v1 in
       let _v2 = token env v2 (* "." *) in
       let v3 = map_constructor_name env v3 in
-      v1 @ [ v3 ]
+      (v1, v3)
 
-let map_indexing_operator_path (env : env) (x : CST.indexing_operator_path) =
+let map_indexing_operator_path (env : env) (x : CST.indexing_operator_path) :
+    name =
   match x with
   | `Inde_op tok ->
-      let x = token env tok (* indexing_operator *) in
-      todo env x
+      let x = str env tok (* indexing_operator *) in
+      ([], x)
   | `Module_path_DOT_inde_op (v1, v2, v3) ->
       let v1 = map_module_path env v1 in
-      let v2 = token env v2 (* "." *) in
-      let v3 = token env v3 (* indexing_operator *) in
-      todo env (v1, v2, v3)
+      let _v2 = token env v2 (* "." *) in
+      let v3 = str env v3 (* indexing_operator *) in
+      (v1, v3)
 
-let map_class_path (env : env) (x : CST.class_path) =
+let map_class_path (env : env) (x : CST.class_path) : name =
   match x with
   | `Id tok ->
-      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      todo env x
+      let x = str env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      ([], x)
   | `Module_path_DOT_id (v1, v2, v3) ->
       let v1 = map_module_path env v1 in
-      let v2 = token env v2 (* "." *) in
-      let v3 = token env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      todo env (v1, v2, v3)
+      let _v2 = token env v2 (* "." *) in
+      let v3 = str env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      (v1, v3)
 
-let map_field_path (env : env) (x : CST.field_path) =
+let map_field_path (env : env) (x : CST.field_path) : name =
   match x with
   | `Id tok ->
-      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      todo env x
+      let x = str env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      ([], x)
   | `Module_path_DOT_id (v1, v2, v3) ->
       let v1 = map_module_path env v1 in
-      let v2 = token env v2 (* "." *) in
-      let v3 = token env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      todo env (v1, v2, v3)
+      let _v2 = token env v2 (* "." *) in
+      let v3 = str env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      (v1, v3)
 
-let map_type_constructor_path (env : env) (x : CST.type_constructor_path) =
+let map_type_constructor_path (env : env) (x : CST.type_constructor_path) : name
+    =
   match x with
   | `Id tok ->
-      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      todo env x
+      let x = str env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      ([], x)
   | `Exte_module_path_DOT_id (v1, v2, v3) ->
       let v1 = map_extended_module_path env v1 in
-      let v2 = token env v2 (* "." *) in
-      let v3 = token env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      todo env (v1, v2, v3)
+      let _v2 = token env v2 (* "." *) in
+      let v3 = str env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      (v1, v3)
 
-let map_class_type_path (env : env) (x : CST.class_type_path) =
+let map_class_type_path (env : env) (x : CST.class_type_path) : name =
   match x with
   | `Id tok ->
-      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      todo env x
+      let x = str env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      ([], x)
   | `Exte_module_path_DOT_id (v1, v2, v3) ->
       let v1 = map_extended_module_path env v1 in
-      let v2 = token env v2 (* "." *) in
-      let v3 = token env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      todo env (v1, v2, v3)
+      let _v2 = token env v2 (* "." *) in
+      let v3 = str env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      (v1, v3)
 
-let map_string_ (env : env) ((v1, v2, v3) : CST.string_) =
+let map_string_ (env : env) ((v1, v2, v3) : CST.string_) : string wrap =
   let v1 = token env v1 (* "\"" *) in
-  let v2 =
-    match v2 with Some x -> map_string_content env x | None -> todo env ()
-  in
+  let v2 = match v2 with Some x -> map_string_content env x | None -> [] in
   let v3 = token env v3 (* "\"" *) in
-  todo env (v1, v2, v3)
+  let s = v2 |> List.map fst |> String.concat "" in
+  let ts = v2 |> List.map snd in
+  (s, PI.combine_infos v1 (ts @ [ v3 ]))
 
 let map_parenthesized_operator (env : env)
-    ((v1, v2, v3) : CST.parenthesized_operator) =
-  let v1 = token env v1 (* "(" *) in
+    ((v1, v2, v3) : CST.parenthesized_operator) : string wrap =
+  let _v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with
-    | `Prefix_op tok ->
-        let x = token env tok (* prefix_operator *) in
-        todo env x
-    | `Sign_op x ->
-        let res = map_sign_operator env x in
-        todo env res
-    | `Infix_op x ->
-        let res = map_infix_operator env x in
-        todo env res
+    | `Prefix_op tok -> str env tok (* prefix_operator *)
+    | `Sign_op x -> map_sign_operator env x
+    | `Infix_op x -> map_infix_operator env x
     | `DOT_inde_op_choice_LPAR_opt_SEMI_DOTDOT_RPAR_opt_LTDASH (v1, v2, v3, v4)
       ->
         let v1 = token env v1 (* "." *) in
@@ -525,7 +513,9 @@ let map_constant (env : env) (x : CST.constant) : expr =
       let v2 = map_character_content env v2 in
       let v3 = token env v3 (* "'" *) in
       todo env (v1, v2, v3)
-  | `Str x -> map_string_ env x
+  | `Str x ->
+      let x = map_string_ env x in
+      todo env x
   | `Quoted_str (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "{" *) in
       let v2 = token env v2 (* left_quoted_string_delimiter *) in
@@ -880,8 +870,12 @@ and map_bigarray_get_expression (env : env)
 
 and map_binding_pattern (env : env) (x : CST.binding_pattern) =
   match x with
-  | `Value_name x -> map_value_name env x
-  | `Signed_cst x -> map_signed_constant env x
+  | `Value_name x ->
+      let x = map_value_name env x in
+      todo env x
+  | `Signed_cst x ->
+      let x = map_signed_constant env x in
+      todo env x
   | `Typed_bind_pat (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = map_binding_pattern_ext env v2 in
@@ -2415,7 +2409,9 @@ and map_simple_class_expression (env : env) (x : CST.simple_class_expression) =
 
 and map_simple_class_type (env : env) (x : CST.simple_class_type) =
   match x with
-  | `Class_type_path x -> map_class_type_path env x
+  | `Class_type_path x ->
+      let x = map_class_type_path env x in
+      todo env x
   | `Inst_class_type (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "[" *) in
       let v2 = map_type_ext env v2 in
@@ -2457,12 +2453,18 @@ and map_simple_class_type (env : env) (x : CST.simple_class_type) =
 and map_simple_class_type_ext (env : env) (x : CST.simple_class_type_ext) =
   match x with
   | `Simple_class_type x -> map_simple_class_type env x
-  | `Exte x -> map_extension env x
+  | `Exte x ->
+      let x = map_extension env x in
+      todo env x
 
 and map_simple_expression (env : env) (x : CST.simple_expression) : expr =
   match x with
-  | `Value_path x -> map_value_path env x
-  | `Cst x -> map_constant env x
+  | `Value_path x ->
+      let x = map_value_path env x in
+      todo env x
+  | `Cst x ->
+      let x = map_constant env x in
+      todo env x
   | `Typed_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = map_sequence_expression_ext env v2 in
@@ -2649,8 +2651,12 @@ and map_simple_pattern_ext (env : env) (x : CST.simple_pattern_ext) : pattern =
 (*****************************************************************************)
 and map_simple_type (env : env) (x : CST.simple_type) : type_ =
   match x with
-  | `Type_var x -> map_type_variable env x
-  | `Type_cons_path x -> map_type_constructor_path env x
+  | `Type_var x ->
+      let x = map_type_variable env x in
+      todo env x
+  | `Type_cons_path x ->
+      let x = map_type_constructor_path env x in
+      todo env x
   | `Cons_type (v1, v2) ->
       let v1 = map_anon_choice_simple_type_ext_30dd028 env v1 in
       let v2 = map_type_constructor_path env v2 in
