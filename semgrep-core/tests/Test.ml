@@ -519,7 +519,9 @@ let metachecker_regression_tests =
               Error_code.g_errors := errs @ !Error_code.g_errors
             )
           with
-          (* convert to things handled by E.try_with_exn_to_error *)
+          (* convert to something handled by E.try_with_exn_to_error.
+           * coupling: JSON_report.json_of_exn
+           *)
           | Parse_rule.InvalidRule (_, s, t)
           | Parse_rule.InvalidYaml (s, t)
           | Parse_rule.InvalidRegexp (_, s, t)
