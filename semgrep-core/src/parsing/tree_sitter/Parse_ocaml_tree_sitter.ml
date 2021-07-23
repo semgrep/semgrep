@@ -23,7 +23,7 @@ open Ast_ml
 
 type env = unit H.env
 
-let _token = H.token
+let token = H.token
 
 let _fake = PI.fake_info
 
@@ -42,22 +42,7 @@ let str = H.str
 (* Disable warnings against unused variables *)
 [@@@warning "-26-27"]
 
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39"]
-
-let token (env : env) (_tok : Tree_sitter_run.Token.t) =
-  failwith "not implemented"
-
 let todo (env : env) _ = failwith "not implemented"
-
-let _map_capitalized_identifier (env : env) (tok : CST.capitalized_identifier) =
-  token env tok
-
-(* pattern "[A-Z][a-zA-Z0-9_']*" *)
-
-let _map_conversion_specification (env : env)
-    (tok : CST.conversion_specification) =
-  token env tok
 
 (* conversion_specification *)
 
@@ -79,21 +64,13 @@ let map_boolean (env : env) (x : CST.boolean) : literal =
 
 (* "false" *)
 
-let _map_rel_operator (env : env) (tok : CST.rel_operator) = token env tok
-
-(* rel_operator *)
-
-let map_or_operator (env : env) (x : CST.or_operator) =
-  match x with
-  | `Or tok -> token env tok (* "or" *)
-  | `BARBAR tok -> token env tok
+let map_or_operator (env : env) (x : CST.or_operator) : string wrap =
+  match x with `Or tok -> str env tok (* "or" *) | `BARBAR tok -> str env tok
 
 (* "||" *)
 
-let map_and_operator_ (env : env) (x : CST.and_operator_) =
-  match x with
-  | `AMP tok -> token env tok (* "&" *)
-  | `AMPAMP tok -> token env tok
+let map_and_operator_ (env : env) (x : CST.and_operator_) : string wrap =
+  match x with `AMP tok -> str env tok (* "&" *) | `AMPAMP tok -> str env tok
 
 (* "&&" *)
 
@@ -104,191 +81,126 @@ let map_anon_choice_EQ_4ccabd6 (env : env) (x : CST.anon_choice_EQ_4ccabd6) =
 
 (* ":=" *)
 
-let _map_prefix_operator (env : env) (tok : CST.prefix_operator) = token env tok
-
-(* prefix_operator *)
-
-let _map_concat_operator (env : env) (tok : CST.concat_operator) = token env tok
-
-(* concat_operator *)
-
-let _map_match_operator (env : env) (tok : CST.match_operator) = token env tok
-
-(* match_operator *)
-
-let _map_pat_d43393f (env : env) (tok : CST.pat_d43393f) = token env tok
-
-(* pattern "[^\\\\']" *)
-
-let _map_hash_operator (env : env) (tok : CST.hash_operator) = token env tok
-
-(* hash_operator *)
-
 let map_anon_choice_priv_c7cc539 (env : env) (x : CST.anon_choice_priv_c7cc539)
     =
   match x with
   | `Priv tok -> token env tok (* "private" *)
   | `Virt tok -> token env tok
 
-(* "virtual" *)
-
-let _map_pat_60fc52b (env : env) (tok : CST.pat_60fc52b) = token env tok
-
 (* pattern "\\\\[\\\\\"'ntbr ]" *)
 
 let map_anon_choice_TILDE_72781e5 (env : env)
     (x : CST.anon_choice_TILDE_72781e5) =
   match x with
-  | `TILDE tok -> token env tok (* "~" *)
-  | `QMARK tok -> token env tok
+  | `TILDE tok ->
+      let x = token env tok (* "~" *) in
+      Left x
+  | `QMARK tok ->
+      let x = token env tok in
+      Right x
 
 (* "?" *)
 
-let _map_pat_6cdf4be (env : env) (tok : CST.pat_6cdf4be) = token env tok
-
-(* pattern \\u\{[0-9A-Fa-f]+\} *)
-
-let _map_pat_21333c0 (env : env) (tok : CST.pat_21333c0) = token env tok
-
-(* pattern \\o[0-3][0-7][0-7] *)
-
-let _map_let_operator (env : env) (tok : CST.let_operator) = token env tok
-
-(* let_operator *)
-
-let _map_pat_9465c8b (env : env) (tok : CST.pat_9465c8b) = token env tok
-
-(* pattern \\\n[\t ]* *)
-
-let _map_add_operator (env : env) (tok : CST.add_operator) = token env tok
-
-(* add_operator *)
-
-let _map_left_quoted_string_delimiter (env : env)
-    (tok : CST.left_quoted_string_delimiter) =
-  token env tok
-
-(* left_quoted_string_delimiter *)
-
-let _map_pat_86b875b (env : env) (tok : CST.pat_86b875b) = token env tok
-
-(* pattern \\[0-9][0-9][0-9] *)
-
-let _map_indexing_operator (env : env) (tok : CST.indexing_operator) =
-  token env tok
-
-(* indexing_operator *)
-
-let _map_pat_3d340f6 (env : env) (tok : CST.pat_3d340f6) = token env tok
-
-(* pattern \s+ *)
-
-let _map_pat_19aaf34 (env : env) (tok : CST.pat_19aaf34) = token env tok
-
-(* pattern "[^\\\\\"%@]+|%|@" *)
-
-let _map_right_quoted_string_delimiter (env : env)
-    (tok : CST.right_quoted_string_delimiter) =
-  token env tok
-
-(* right_quoted_string_delimiter *)
-
-let _map_and_operator (env : env) (tok : CST.and_operator) = token env tok
-
-(* and_operator *)
-
-let _map_pat_3bf11d1 (env : env) (tok : CST.pat_3bf11d1) = token env tok
-
-(* pattern \\x[0-9A-Fa-f][0-9A-Fa-f] *)
-
-let _map_null (env : env) (tok : CST.null) = token env tok
-
-(* null *)
-
-let _map_pat_714c625 (env : env) (tok : CST.pat_714c625) = token env tok
-
-(* pattern [^%@|]+|%|@|\| *)
-
 let map_sign_operator (env : env) (x : CST.sign_operator) =
   match x with
-  | `PLUS tok -> token env tok (* "+" *)
-  | `DASH tok -> token env tok (* "-" *)
-  | `PLUSDOT tok -> token env tok (* "+." *)
-  | `DASHDOT tok -> token env tok
+  | `PLUS tok ->
+      let x = token env tok (* "+" *) in
+      todo env x
+  | `DASH tok ->
+      let x = token env tok (* "-" *) in
+      todo env x
+  | `PLUSDOT tok ->
+      let x = token env tok (* "+." *) in
+      todo env x
+  | `DASHDOT tok ->
+      let x = token env tok in
+      todo env x
 
 (* "-." *)
-
-let _map_tok_choice_pat_4349e4b (env : env) (tok : CST.tok_choice_pat_4349e4b) =
-  token env tok
-
-(* tok_choice_pat_4349e4b *)
-
-let _map_shebang (env : env) (tok : CST.shebang) = token env tok
-
-(* pattern #!.* *)
 
 let map_anon_choice_muta_d43fe41 (env : env) (x : CST.anon_choice_muta_d43fe41)
     =
   match x with
-  | `Muta tok -> token env tok (* "mutable" *)
-  | `Virt tok -> token env tok
+  | `Muta tok ->
+      let x = token env tok (* "mutable" *) in
+      todo env x
+  | `Virt tok ->
+      let x = token env tok in
+      todo env x
 
 (* "virtual" *)
 
 let map_assign_operator (env : env) (x : CST.assign_operator) =
-  match x with `COLONEQ tok -> token env tok
+  match x with
+  | `COLONEQ tok ->
+      let x = token env tok in
+      todo env x
 
 (* ":=" *)
-
-let _map_identifier (env : env) (tok : CST.identifier) = token env tok
-
-(* pattern "[a-z_][a-zA-Z0-9_']*" *)
-
-let _map_ocamlyacc_value (env : env) (tok : CST.ocamlyacc_value) = token env tok
-
-(* pattern \$[0-9]+ *)
-
-let _map_pretty_printing_indication (env : env)
-    (tok : CST.pretty_printing_indication) =
-  token env tok
-
-(* pattern @([\[\], ;.{}?]|\\n|<[0-9]+>) *)
 
 let map_anon_choice_PLUS_da42005 (env : env) (x : CST.anon_choice_PLUS_da42005)
     =
   match x with
-  | `PLUS tok -> token env tok (* "+" *)
-  | `DASH tok -> token env tok
+  | `PLUS tok ->
+      let x = token env tok (* "+" *) in
+      todo env x
+  | `DASH tok ->
+      let x = token env tok in
+      todo env x
 
 (* "-" *)
 
 let map_mult_operator (env : env) (x : CST.mult_operator) =
   match x with
   | `Tok_pat_058c54c_rep_pat_525fbb4 tok ->
-      token env tok (* tok_pat_058c54c_rep_pat_525fbb4 *)
-  | `Mod tok -> token env tok (* "mod" *)
-  | `Land tok -> token env tok (* "land" *)
-  | `Lor tok -> token env tok (* "lor" *)
-  | `Lxor tok -> token env tok
+      let x = token env tok (* tok_pat_058c54c_rep_pat_525fbb4 *) in
+      todo env x
+  | `Mod tok ->
+      let x = token env tok (* "mod" *) in
+      todo env x
+  | `Land tok ->
+      let x = token env tok (* "land" *) in
+      todo env x
+  | `Lor tok ->
+      let x = token env tok (* "lor" *) in
+      todo env x
+  | `Lxor tok ->
+      let x = token env tok in
+      todo env x
 
 (* "lxor" *)
 
 let map_escape_sequence (env : env) (x : CST.escape_sequence) =
   match x with
-  | `Pat_60fc52b tok -> token env tok (* pattern "\\\\[\\\\\"'ntbr ]" *)
-  | `Pat_86b875b tok -> token env tok (* pattern \\[0-9][0-9][0-9] *)
-  | `Pat_3bf11d1 tok -> token env tok (* pattern \\x[0-9A-Fa-f][0-9A-Fa-f] *)
-  | `Pat_21333c0 tok -> token env tok
+  | `Pat_60fc52b tok ->
+      let x = token env tok (* pattern "\\\\[\\\\\"'ntbr ]" *) in
+      todo env x
+  | `Pat_86b875b tok ->
+      let x = token env tok (* pattern \\[0-9][0-9][0-9] *) in
+      todo env x
+  | `Pat_3bf11d1 tok ->
+      let x = token env tok (* pattern \\x[0-9A-Fa-f][0-9A-Fa-f] *) in
+      todo env x
+  | `Pat_21333c0 tok ->
+      let x = token env tok in
+      todo env x
 
 (* pattern \\o[0-3][0-7][0-7] *)
 
 let map_pow_operator (env : env) (x : CST.pow_operator) =
   match x with
   | `Tok_STARSTAR_rep_pat_525fbb4 tok ->
-      token env tok (* tok_STARSTAR_rep_pat_525fbb4 *)
-  | `Lsl tok -> token env tok (* "lsl" *)
-  | `Lsr tok -> token env tok (* "lsr" *)
-  | `Asr tok -> token env tok
+      let x = token env tok (* tok_STARSTAR_rep_pat_525fbb4 *) in
+      todo env x
+  | `Lsl tok ->
+      let x = token env tok (* "lsl" *) in
+      todo env x
+  | `Lsr tok ->
+      let x = token env tok (* "lsr" *) in
+      todo env x
+  | `Asr tok ->
+      let x = token env tok in
+      todo env x
 
 (* "asr" *)
 
@@ -296,22 +208,44 @@ let map_quoted_string_content (env : env) (xs : CST.quoted_string_content) =
   List.map
     (fun x ->
       match x with
-      | `Imm_tok_SPACE tok -> token env tok (* " " *)
-      | `Imm_tok_LF tok -> token env tok (* "\n" *)
-      | `Imm_tok_HT tok -> token env tok (* "\t" *)
-      | `Imm_tok_LBRACKAT tok -> token env tok (* "[@" *)
-      | `Imm_tok_LBRACKATAT tok -> token env tok (* "[@@" *)
-      | `Imm_tok_LBRACKATATAT tok -> token env tok (* "[@@@" *)
-      | `Pat_714c625 tok -> token env tok (* pattern [^%@|]+|%|@|\| *)
-      | `Null tok -> token env tok (* null *)
-      | `Conv_spec tok -> token env tok (* conversion_specification *)
-      | `Pretty_prin_indi tok -> token env tok
+      | `Imm_tok_SPACE tok ->
+          let x = token env tok (* " " *) in
+          todo env x
+      | `Imm_tok_LF tok ->
+          let x = token env tok (* "\n" *) in
+          todo env x
+      | `Imm_tok_HT tok ->
+          let x = token env tok (* "\t" *) in
+          todo env x
+      | `Imm_tok_LBRACKAT tok ->
+          let x = token env tok (* "[@" *) in
+          todo env x
+      | `Imm_tok_LBRACKATAT tok ->
+          let x = token env tok (* "[@@" *) in
+          todo env x
+      | `Imm_tok_LBRACKATATAT tok ->
+          let x = token env tok (* "[@@@" *) in
+          todo env x
+      | `Pat_714c625 tok ->
+          let x = token env tok (* pattern [^%@|]+|%|@|\| *) in
+          todo env x
+      | `Null tok ->
+          let x = token env tok (* null *) in
+          todo env x
+      | `Conv_spec tok ->
+          let x = token env tok (* conversion_specification *) in
+          todo env x
+      | `Pretty_prin_indi tok ->
+          let x = token env tok in
+          todo env x
       (* pattern @([\[\], ;.{}?]|\\n|<[0-9]+>) *))
     xs
 
 let map_constructor_name (env : env) (x : CST.constructor_name) =
   match x with
-  | `Capi_id tok -> token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *)
+  | `Capi_id tok ->
+      let x = token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
+      todo env x
   | `LPAR_COLONCOLON_RPAR (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = token env v2 (* "::" *) in
@@ -320,7 +254,9 @@ let map_constructor_name (env : env) (x : CST.constructor_name) =
 
 let rec map_module_path (env : env) (x : CST.module_path) =
   match x with
-  | `Capi_id tok -> token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *)
+  | `Capi_id tok ->
+      let x = token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
+      todo env x
   | `Module_path_DOT_capi_id (v1, v2, v3) ->
       let v1 = map_module_path env v1 in
       let v2 = token env v2 (* "." *) in
@@ -330,8 +266,12 @@ let rec map_module_path (env : env) (x : CST.module_path) =
 let map_anon_choice_module_name_7ad5569 (env : env)
     (x : CST.anon_choice_module_name_7ad5569) =
   match x with
-  | `Capi_id tok -> token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *)
-  | `X__ tok -> token env tok
+  | `Capi_id tok ->
+      let x = token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
+      todo env x
+  | `X__ tok ->
+      let x = token env tok in
+      todo env x
 
 (* "_" *)
 
@@ -339,7 +279,9 @@ let rec map_extended_module_path (env : env) (x : CST.extended_module_path) =
   match x with
   | `Choice_capi_id x -> (
       match x with
-      | `Capi_id tok -> token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *)
+      | `Capi_id tok ->
+          let x = token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
+          todo env x
       | `Exte_module_path_DOT_capi_id (v1, v2, v3) ->
           let v1 = map_extended_module_path env v1 in
           let v2 = token env v2 (* "." *) in
@@ -356,44 +298,84 @@ let map_string_content (env : env) (xs : CST.string_content) =
   List.map
     (fun x ->
       match x with
-      | `Imm_tok_SPACE tok -> token env tok (* " " *)
-      | `Imm_tok_LF tok -> token env tok (* "\n" *)
-      | `Imm_tok_HT tok -> token env tok (* "\t" *)
-      | `Imm_tok_LBRACKAT tok -> token env tok (* "[@" *)
-      | `Imm_tok_LBRACKATAT tok -> token env tok (* "[@@" *)
-      | `Imm_tok_LBRACKATATAT tok -> token env tok (* "[@@@" *)
-      | `Pat_19aaf34 tok -> token env tok (* pattern "[^\\\\\"%@]+|%|@" *)
-      | `Null tok -> token env tok (* null *)
+      | `Imm_tok_SPACE tok ->
+          let x = token env tok (* " " *) in
+          todo env x
+      | `Imm_tok_LF tok ->
+          let x = token env tok (* "\n" *) in
+          todo env x
+      | `Imm_tok_HT tok ->
+          let x = token env tok (* "\t" *) in
+          todo env x
+      | `Imm_tok_LBRACKAT tok ->
+          let x = token env tok (* "[@" *) in
+          todo env x
+      | `Imm_tok_LBRACKATAT tok ->
+          let x = token env tok (* "[@@" *) in
+          todo env x
+      | `Imm_tok_LBRACKATATAT tok ->
+          let x = token env tok (* "[@@@" *) in
+          todo env x
+      | `Pat_19aaf34 tok ->
+          let x = token env tok (* pattern "[^\\\\\"%@]+|%|@" *) in
+          todo env x
+      | `Null tok ->
+          let x = token env tok (* null *) in
+          todo env x
       | `Esc_seq x -> map_escape_sequence env x
-      | `Pat_6cdf4be tok -> token env tok (* pattern \\u\{[0-9A-Fa-f]+\} *)
-      | `Pat_9465c8b tok -> token env tok (* pattern \\\n[\t ]* *)
-      | `Conv_spec tok -> token env tok (* conversion_specification *)
-      | `Pretty_prin_indi tok -> token env tok
+      | `Pat_6cdf4be tok ->
+          let x = token env tok (* pattern \\u\{[0-9A-Fa-f]+\} *) in
+          todo env x
+      | `Pat_9465c8b tok ->
+          let x = token env tok (* pattern \\\n[\t ]* *) in
+          todo env x
+      | `Conv_spec tok ->
+          let x = token env tok (* conversion_specification *) in
+          todo env x
+      | `Pretty_prin_indi tok ->
+          let x = token env tok in
+          todo env x
       (* pattern @([\[\], ;.{}?]|\\n|<[0-9]+>) *))
     xs
 
 let map_character_content (env : env) (x : CST.character_content) =
   match x with
-  | `Pat_d43393f tok -> token env tok (* pattern "[^\\\\']" *)
-  | `Null tok -> token env tok (* null *)
+  | `Pat_d43393f tok ->
+      let x = token env tok (* pattern "[^\\\\']" *) in
+      todo env x
+  | `Null tok ->
+      let x = token env tok (* null *) in
+      todo env x
   | `Esc_seq x -> map_escape_sequence env x
 
 let map_infix_operator (env : env) (x : CST.infix_operator) =
   match x with
-  | `Hash_op tok -> token env tok (* hash_operator *)
+  | `Hash_op tok ->
+      let x = token env tok (* hash_operator *) in
+      todo env x
   | `Pow_op x -> map_pow_operator env x
   | `Mult_op x -> map_mult_operator env x
-  | `Add_op tok -> token env tok (* add_operator *)
-  | `Concat_op tok -> token env tok (* concat_operator *)
-  | `Rel_op tok -> token env tok (* rel_operator *)
+  | `Add_op tok ->
+      let x = token env tok (* add_operator *) in
+      todo env x
+  | `Concat_op tok ->
+      let x = token env tok (* concat_operator *) in
+      todo env x
+  | `Rel_op tok ->
+      let x = token env tok (* rel_operator *) in
+      todo env x
   | `And_op_ x -> map_and_operator_ env x
   | `Or_op x -> map_or_operator env x
   | `Assign_op x -> map_assign_operator env x
 
 let map_module_type_name (env : env) (x : CST.module_type_name) =
   match x with
-  | `Capi_id tok -> token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *)
-  | `Id tok -> token env tok
+  | `Capi_id tok ->
+      let x = token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
+      todo env x
+  | `Id tok ->
+      let x = token env tok in
+      todo env x
 
 (* pattern "[a-z_][a-zA-Z0-9_']*" *)
 
@@ -405,8 +387,12 @@ let map_abstract_type (env : env) ((v1, v2) : CST.abstract_type) =
 let map_anon_choice_inst_var_name_cbd841f (env : env)
     (x : CST.anon_choice_inst_var_name_cbd841f) =
   match x with
-  | `Id tok -> token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *)
-  | `Capi_id tok -> token env tok
+  | `Id tok ->
+      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      todo env x
+  | `Capi_id tok ->
+      let x = token env tok in
+      todo env x
 
 (* pattern "[A-Z][a-zA-Z0-9_']*" *)
 
@@ -426,7 +412,9 @@ let map_constructor_path (env : env) (x : CST.constructor_path) =
 
 let map_indexing_operator_path (env : env) (x : CST.indexing_operator_path) =
   match x with
-  | `Inde_op tok -> token env tok (* indexing_operator *)
+  | `Inde_op tok ->
+      let x = token env tok (* indexing_operator *) in
+      todo env x
   | `Module_path_DOT_inde_op (v1, v2, v3) ->
       let v1 = map_module_path env v1 in
       let v2 = token env v2 (* "." *) in
@@ -435,7 +423,9 @@ let map_indexing_operator_path (env : env) (x : CST.indexing_operator_path) =
 
 let map_class_path (env : env) (x : CST.class_path) =
   match x with
-  | `Id tok -> token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *)
+  | `Id tok ->
+      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      todo env x
   | `Module_path_DOT_id (v1, v2, v3) ->
       let v1 = map_module_path env v1 in
       let v2 = token env v2 (* "." *) in
@@ -444,7 +434,9 @@ let map_class_path (env : env) (x : CST.class_path) =
 
 let map_field_path (env : env) (x : CST.field_path) =
   match x with
-  | `Id tok -> token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *)
+  | `Id tok ->
+      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      todo env x
   | `Module_path_DOT_id (v1, v2, v3) ->
       let v1 = map_module_path env v1 in
       let v2 = token env v2 (* "." *) in
@@ -453,7 +445,9 @@ let map_field_path (env : env) (x : CST.field_path) =
 
 let map_type_constructor_path (env : env) (x : CST.type_constructor_path) =
   match x with
-  | `Id tok -> token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *)
+  | `Id tok ->
+      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      todo env x
   | `Exte_module_path_DOT_id (v1, v2, v3) ->
       let v1 = map_extended_module_path env v1 in
       let v2 = token env v2 (* "." *) in
@@ -462,7 +456,9 @@ let map_type_constructor_path (env : env) (x : CST.type_constructor_path) =
 
 let map_class_type_path (env : env) (x : CST.class_type_path) =
   match x with
-  | `Id tok -> token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *)
+  | `Id tok ->
+      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      todo env x
   | `Exte_module_path_DOT_id (v1, v2, v3) ->
       let v1 = map_extended_module_path env v1 in
       let v2 = token env v2 (* "." *) in
@@ -482,7 +478,9 @@ let map_parenthesized_operator (env : env)
   let v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with
-    | `Prefix_op tok -> token env tok (* prefix_operator *)
+    | `Prefix_op tok ->
+        let x = token env tok (* prefix_operator *) in
+        todo env x
     | `Sign_op x -> map_sign_operator env x
     | `Infix_op x -> map_infix_operator env x
     | `DOT_inde_op_choice_LPAR_opt_SEMI_DOTDOT_RPAR_opt_LTDASH (v1, v2, v3, v4)
@@ -530,13 +528,21 @@ let map_parenthesized_operator (env : env)
         in
         let v4 =
           match v4 with
-          | Some tok -> token env tok (* "<-" *)
+          | Some tok ->
+              let x = token env tok (* "<-" *) in
+              todo env x
           | None -> todo env ()
         in
         todo env (v1, v2, v3, v4)
-    | `Let_op tok -> token env tok (* let_operator *)
-    | `And_op tok -> token env tok (* and_operator *)
-    | `Match_op tok -> token env tok
+    | `Let_op tok ->
+        let x = token env tok (* let_operator *) in
+        todo env x
+    | `And_op tok ->
+        let x = token env tok (* and_operator *) in
+        todo env x
+    | `Match_op tok ->
+        let x = token env tok in
+        todo env x
     (* match_operator *)
   in
   let v3 = token env v3 (* ")" *) in
@@ -624,12 +630,16 @@ let map_constant (env : env) (x : CST.constant) : expr =
 
 let map_value_pattern (env : env) (x : CST.value_pattern) =
   match x with
-  | `Id tok -> token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *)
+  | `Id tok ->
+      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      todo env x
   | `Paren_op x -> map_parenthesized_operator env x
 
 let map_value_name (env : env) (x : CST.value_name) =
   match x with
-  | `Id tok -> token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *)
+  | `Id tok ->
+      let id = str env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+      todo env id
   | `Paren_op x -> map_parenthesized_operator env x
 
 let map_attribute (env : env) ((v1, v2) : CST.attribute) =
@@ -646,7 +656,9 @@ let map_type_param (env : env) ((v1, v2) : CST.type_param) =
             let v1 = token env v1 (* "+" *) in
             let v2 =
               match v2 with
-              | Some tok -> token env tok (* "!" *)
+              | Some tok ->
+                  let x = token env tok (* "!" *) in
+                  todo env x
               | None -> todo env ()
             in
             todo env (v1, v2)
@@ -654,7 +666,9 @@ let map_type_param (env : env) ((v1, v2) : CST.type_param) =
             let v1 = token env v1 (* "-" *) in
             let v2 =
               match v2 with
-              | Some tok -> token env tok (* "!" *)
+              | Some tok ->
+                  let x = token env tok (* "!" *) in
+                  todo env x
               | None -> todo env ()
             in
             todo env (v1, v2)
@@ -671,7 +685,9 @@ let map_type_param (env : env) ((v1, v2) : CST.type_param) =
   let v2 =
     match v2 with
     | `Type_var x -> map_type_variable env x
-    | `X__ tok -> token env tok
+    | `X__ tok ->
+        let x = token env tok in
+        todo env x
     (* "_" *)
   in
   todo env (v1, v2)
@@ -1320,8 +1336,12 @@ and map_constructor_declaration (env : env)
             let v1 = token env v1 (* "(" *) in
             let v2 = token env v2 (* ")" *) in
             todo env (v1, v2)
-        | `True tok -> token env tok (* "true" *)
-        | `False tok -> token env tok (* "false" *))
+        | `True tok ->
+            let x = token env tok (* "true" *) in
+            todo env x
+        | `False tok ->
+            let x = token env tok (* "false" *) in
+            todo env x)
   in
   let v2 =
     match v2 with
@@ -1403,7 +1423,9 @@ and map_expression (env : env) (x : CST.expression) : expr =
         | `Array_get_exp x -> map_array_get_expression env x
         | `Str_get_exp x -> map_string_get_expression env x
         | `Biga_get_exp x -> map_bigarray_get_expression env x
-        | `Id tok -> token env tok
+        | `Id tok ->
+            let x = token env tok in
+            todo env x
         (* pattern "[a-z_][a-zA-Z0-9_']*" *)
       in
       let v2 = token env v2 (* "<-" *) in
@@ -1456,7 +1478,9 @@ and map_expression (env : env) (x : CST.expression) : expr =
               | None -> todo env ()
             in
             todo env (v1, v2)
-        | `Match_op tok -> token env tok
+        | `Match_op tok ->
+            let x = token env tok in
+            todo env x
         (* match_operator *)
       in
       let v2 = map_sequence_expression_ext env v2 in
@@ -1828,7 +1852,9 @@ and map_match_case (env : env) ((v1, v2, v3, v4) : CST.match_case) =
   let v4 =
     match v4 with
     | `Seq_exp_ext x -> map_sequence_expression_ext env x
-    | `Refu_case tok -> token env tok
+    | `Refu_case tok ->
+        let x = token env tok in
+        todo env x
     (* "." *)
   in
   todo env (v1, v2, v3, v4)
@@ -2573,7 +2599,9 @@ and map_simple_expression (env : env) (x : CST.simple_expression) : expr =
       let v3 = token env v3 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
       todo env (v1, v2, v3)
   | `Paren_exp x -> map_parenthesized_expression env x
-  | `Ocam_value tok -> token env tok
+  | `Ocam_value tok ->
+      let x = token env tok in
+      todo env x
 
 (* pattern \$[0-9]+ *)
 and map_simple_expression_ext (env : env) (x : CST.simple_expression_ext) =
@@ -3005,7 +3033,9 @@ and map_type_binding (env : env) ((v1, v2, v3) : CST.type_binding) =
                 match v3 with
                 | `Vari_decl x -> map_variant_declaration env x
                 | `Record_decl x -> map_record_declaration env x
-                | `DOTDOT tok -> token env tok
+                | `DOTDOT tok ->
+                    let x = token env tok in
+                    todo env x
                 (* ".." *)
               in
               todo env (v1, v2, v3)

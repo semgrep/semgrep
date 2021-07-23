@@ -110,6 +110,7 @@ main() {
   if [[ "$with_upload" = true ]]; then
     ./upload-parsing-rates lang/"$lang"/stats.json
   fi
+  echo "stats available in lang/$lang/stats.json"
 }
 
 main
