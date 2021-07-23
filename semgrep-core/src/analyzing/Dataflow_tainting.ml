@@ -110,7 +110,12 @@ let rec check_tainted_expr ~in_a_sink config fun_env env exp =
   in
   let check_base = function
     | Var var ->
-        VarMap.mem (str_of_name var) env
+        let var_tok_is_tainted =
+          let (_, tok), _ = var in
+          Parse_info.is_origintok tok && config.is_source (G.Tk tok)
+        in
+        var_tok_is_tainted
+        || VarMap.mem (str_of_name var) env
         || Hashtbl.mem fun_env (str_of_name var)
     | VarSpecial _ -> false
     | Mem e -> check e
