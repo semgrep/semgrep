@@ -7,13 +7,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Detect duplicate keys in YAML dictionaries in semgrep rules when parsing a rule
   (e.g., detect multiple 'metavariable' inside one 'metavariable-regex')
-  
+
 ### Fixed
 - C/C++: Fixed stack overflows (segmentation faults) when processing very large
   files (#3538)
 - JS: Fixed stack overflows (segmentation faults) when processing very large
   files (#3538)
 - JS: Detect numeric object keys `1` and `0x1` as equal (#3579)
+- Fewer parsing timeouts due to a fix in the retry logic involving two
+  different parsers. Affects JavaScript and TypeScript, among
+  others. (#3599)
 
 ### Changed
 - Added precise error location for the semgrep metachecker, to detect for example
