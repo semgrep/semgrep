@@ -214,36 +214,35 @@ let rec map_module_path (env : env) (x : CST.module_path) : qualifier =
       let v3 = str env v3 (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
       v1 @ [ v3 ]
 
+(* todo: special type for _? *)
 let map_anon_choice_module_name_7ad5569 (env : env)
-    (x : CST.anon_choice_module_name_7ad5569) =
+    (x : CST.anon_choice_module_name_7ad5569) : ident =
   match x with
-  | `Capi_id tok ->
-      let x = token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
-      todo env x
-  | `X__ tok ->
-      let x = token env tok in
-      todo env x
+  | `Capi_id tok -> str env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *)
+  | `X__ tok -> str env tok
 
 (* "_" *)
 
-let rec map_extended_module_path (env : env) (x : CST.extended_module_path) =
+(* TODO: handle functor arguments in path *)
+let rec map_extended_module_path (env : env) (x : CST.extended_module_path) :
+    qualifier =
   match x with
   | `Choice_capi_id x -> (
       match x with
       | `Capi_id tok ->
-          let x = token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
-          todo env x
+          let x = str env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
+          [ x ]
       | `Exte_module_path_DOT_capi_id (v1, v2, v3) ->
           let v1 = map_extended_module_path env v1 in
-          let v2 = token env v2 (* "." *) in
-          let v3 = token env v3 (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
-          todo env (v1, v2, v3))
+          let _v2 = token env v2 (* "." *) in
+          let v3 = str env v3 (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
+          v1 @ [ v3 ])
   | `Exte_module_path_LPAR_exte_module_path_RPAR (v1, v2, v3, v4) ->
       let v1 = map_extended_module_path env v1 in
-      let v2 = token env v2 (* "(" *) in
-      let v3 = map_extended_module_path env v3 in
-      let v4 = token env v4 (* ")" *) in
-      todo env (v1, v2, v3, v4)
+      let _v2 = token env v2 (* "(" *) in
+      let _v3TODO = map_extended_module_path env v3 in
+      let _v4 = token env v4 (* ")" *) in
+      v1
 
 let map_string_content (env : env) (xs : CST.string_content) =
   List.map
@@ -283,21 +282,17 @@ let map_infix_operator (env : env) (x : CST.infix_operator) =
   | `Or_op x -> map_or_operator env x
   | `Assign_op x -> map_assign_operator env x
 
-let map_module_type_name (env : env) (x : CST.module_type_name) =
+let map_module_type_name (env : env) (x : CST.module_type_name) : ident =
   match x with
-  | `Capi_id tok ->
-      let x = token env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *) in
-      todo env x
-  | `Id tok ->
-      let x = token env tok in
-      todo env x
+  | `Capi_id tok -> str env tok (* pattern "[A-Z][a-zA-Z0-9_']*" *)
+  | `Id tok -> str env tok
 
 (* pattern "[a-z_][a-zA-Z0-9_']*" *)
 
 let map_abstract_type (env : env) ((v1, v2) : CST.abstract_type) =
   let v1 = token env v1 (* "type" *) in
-  let v2 = List.map (token env) (* pattern "[a-z_][a-zA-Z0-9_']*" *) v2 in
-  todo env (v1, v2)
+  let v2 = List.map (str env) (* pattern "[a-z_][a-zA-Z0-9_']*" *) v2 in
+  (v1, v2)
 
 let map_anon_choice_inst_var_name_cbd841f (env : env)
     (x : CST.anon_choice_inst_var_name_cbd841f) =
@@ -2195,7 +2190,9 @@ and map_polymorphic_type (env : env) (x : CST.polymorphic_type) =
       let v1 =
         match v1 with
         | `Rep1_type_var xs -> List.map (map_type_variable env) xs
-        | `Abst_type x -> map_abstract_type env x
+        | `Abst_type x ->
+            let x = map_abstract_type env x in
+            todo env x
       in
       let v2 = token env v2 (* "." *) in
       let v3 = map_type_ext env v3 in
@@ -2401,7 +2398,9 @@ and map_simple_class_expression (env : env) (x : CST.simple_class_expression) =
       let v4 = token env v4 (* "]" *) in
       let v5 = map_class_path env v5 in
       todo env (v1, v2, v3, v4, v5)
-  | `Obj_exp x -> map_object_expression env x
+  | `Obj_exp x ->
+      let x = map_object_expression env x in
+      todo env x
   | `Typed_class_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "(" *) in
       let v2 = map_class_expression_ext env v2 in
