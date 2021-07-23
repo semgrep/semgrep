@@ -1,6 +1,5 @@
 (*
-   Map a Hack CST obtained from the tree-sitter parser to the PHP/Hack AST
-   as defined in pfff (Ast_php).
+   Map a Hack CST obtained from the tree-sitter parser directly to the generic AST.
 
    This file is derived from and kept in sync with the generated
    file 'semgrep-hack/lib/Boilerplate.ml'.
@@ -12,20 +11,9 @@ module CST = Tree_sitter_hack.CST
 module H = Parse_tree_sitter_helpers
 module PI = Parse_info
 
-(**
-   Boilerplate to be used as a template when mapping the hack CST
-   to another type of tree.
-*)
-
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39"]
-
-(*
-   Helpers
-*)
+(*****************************************************************************)
+(* Helpers *)
+(*****************************************************************************)
 
 (*
    Since we use the same code for handling semgrep patterns and target
@@ -43,6 +31,13 @@ let _fk = Parse_info.fake_info ""
 (*
    Temporarily avoid warnings about these things being unused.
 *)
+
+(* Disable warnings against unused variables *)
+[@@@warning "-26-27"]
+
+(* Disable warning against unused 'rec' *)
+[@@@warning "-39"]
+
 let () =
   ignore pr;
   (* from Common *)
@@ -51,15 +46,18 @@ let () =
 (* Remove this function when everything is done *)
 let todo (env : env) _ = failwith "not implemented"
 
-(* Manual additions *)
+(* Below are manual additions.
+   There are more helpers in AST_generic.ml and AST_generic_helpers.ml.
+ *)
 
 let empty_stmt env t =
   let t = token env t (* ";" *) in
   G.Block (t, [], t) |> G.s
-  
+
+(* TODO: How can we avoid using this? *)
 let unwrap_qualified_identifier qual = (match qual with 
   | G.Id (ident, id_info) -> [ident]
-  (* Unwrap all existing indentifiers *)
+  (* Unwrap all existing identifiers *)
   | IdQualified ((ident, name_info), id_info) -> let name_info = name_info.name_qualifier in
   let idents = (match name_info with 
   | Some QDots (dotted_ident) -> dotted_ident @ [ident]
@@ -67,13 +65,16 @@ let unwrap_qualified_identifier qual = (match qual with
   ) in idents
 )
 
-(*
-   Boilerplate converters
+(*****************************************************************************)
+(* Boilerplate converter *)
+(*****************************************************************************)
+(* This was started by copying tree-sitter-lang/semgrep-hack/Boilerplate.ml *)
+
+(* Q: The commented-out items below are in the Boilerplate.ml, but are not used.
+   So why do they exist? This comment applies to a later commented code as well.
 *)
 
-(* Why do we have these things that the other doesn't? *)
 (*
-
 let heredoc_start (env : env) (tok : CST.heredoc_start) =
   (* heredoc_start *) token env tok
 
@@ -131,7 +132,9 @@ let integer (env : env) (tok : CST.integer) =
   (* integer *) token env tok
 *)
 
-(* Note: We do use this once we remove some todos *)
+(* Note: This method is considered unused because instances were replaced
+   were replaced with todos. TODO: Re-enable scope_identifier.
+*)
 let _scope_identifier (env : env) (x : CST.scope_identifier) =
   (match x with
   | `Self tok -> (* "self" *) token env tok
@@ -148,7 +151,10 @@ let xhp_class_identifier (env : env) (tok : CST.xhp_class_identifier) =
 *)
 
 let null (env : env) (x : CST.null) =
-  (* Q: Safe to pass up all token processing? *)
+  (* Q: Sometimes we need str env tok and sometimes we need token env tok.
+     I couldn't figure out how to handle that within this method, so we just pass
+     up the token.Safe/effective to pass up all token processing?
+  *)
   (match x with
   | `Null_37a6259 tok -> (* "null" *) tok
   | `Null_bbb93ef tok -> (* "Null" *) tok
@@ -183,6 +189,7 @@ let false_ (env : env) (x : CST.false_) =
 let string_ (env : env) (tok : CST.string_) =
   (* string *) token env tok
  *)
+
 let true_ (env : env) (x : CST.true_) =
   (match x with
   | `True_b326b50 tok -> (* "true" *) token env tok
@@ -597,7 +604,7 @@ and anon_exp_rep_COMMA_exp_0bb260c (env : env) ((v1, v2) : CST.anon_exp_rep_COMM
   todo env (v1, v2)
 
 and argument (env : env) ((v1, v2) : CST.argument) : G.argument =
-  (* TODO: Support these modifiers? *)
+  (* TODO: Add modifier support *)
   let v1 =
     (match v1 with
     | Some x ->
@@ -659,7 +666,10 @@ and attribute_modifier (env : env) ((v1, v2, v3, v4, v5, v6) : CST.attribute_mod
     | Some x -> arguments env x
     | None -> G.fake_bracket [])
   in
-  (* TODO: Forced to use Call instead of Constructor here because Constructor doesn't use G.name *)
+  (* TODO: Forced to use Call instead of Constructor here because Constructor doesn't use G.name.
+     Could also try using unwrap_qualified_identifier, but then will also need to convert args back to
+     expressions.
+  *)
   let constr_call = G.Call((G.N v2), v3) in
   let first_attr_mod = G.E constr_call in
   let v4 =
@@ -816,8 +826,8 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       let v3 = expression env v3 in
       G.Call (G.IdSpecial (G.Op G.Elvis, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   
-  (* These are all assignment
-     TODO: Consider splitting out in grammar *)
+  (* These are all assignment.
+     TODO: Consider splitting out in grammar. *)
   | `Exp_EQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "=" *) token env v2 in
@@ -974,7 +984,6 @@ and declaration (env : env) (x : CST.declaration) =
       let v2, identifier = function_declaration_header env v2 in
       let v3 = anon_choice_comp_stmt_c6c6bb4 env v3 in      
       let def = {v2 with fbody = v3} in
-      (* Lua does this way: let ent = { G.name = G.EN name; G.attrs = []; G.tparams = [] } *)
       let ent = G.basic_entity identifier v1 in
       G.DefStmt (ent, G.FuncDef def)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) ->
@@ -1533,7 +1542,6 @@ and function_declaration_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.
     fbody = G.empty_fbody;(* To be replaced in parent with real statement *)
   },
   identifier
-  (* TODO: So many different label/identifier types! How to know which one? *)
 
 and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) =
   let v1 = (* "implements" *) token env v1 in
@@ -1615,13 +1623,14 @@ and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) : G.par
         todo env (v1, v2)
     | None -> None)
   in
-  (* Q: May not be ?classic?, need to check if v5 exists *)
+  (* Q: May not be ?classic?
+     TODO: need to check if v5 exists and handle.*)
   ParamClassic {
     pname = Some v6;
     ptype = v4;
     pdefault = v7;
     pattrs = [];
-    pinfo = G.basic_id_info (Param, G.sid_TODO); (* But why sid_TODO? Like what is this info? *)
+    pinfo = G.basic_id_info (Param, G.sid_TODO); (* Q: But why sid_TODO? Like what is this info? *)
   }
 
 and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
@@ -2530,7 +2539,7 @@ let parse file =
         pr2 s;
         raise exn)
 
-(* todo: special mode to convert Ellipsis in the right construct! *)
+(* todo: special mode to convert Ellipsis in the right construct! (This comment was copied from Parse_lua. *)
 let parse_pattern str =
   H.wrap_parser
     (fun () ->
