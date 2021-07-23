@@ -297,30 +297,26 @@ let map_abstract_type (env : env) ((v1, v2) : CST.abstract_type) =
 let map_anon_choice_inst_var_name_cbd841f (env : env)
     (x : CST.anon_choice_inst_var_name_cbd841f) =
   match x with
-  | `Id tok ->
-      let x = token env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-      todo env x
-  | `Capi_id tok ->
-      let x = token env tok in
-      todo env x
+  | `Id tok -> str env tok (* pattern "[a-z_][a-zA-Z0-9_']*" *)
+  | `Capi_id tok -> str env tok
 
 (* pattern "[A-Z][a-zA-Z0-9_']*" *)
 
 let map_label (env : env) ((v1, v2) : CST.label) =
   let v1 = map_anon_choice_TILDE_72781e5 env v1 in
-  let v2 = token env v2 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
-  todo env (v1, v2)
+  let v2 = str env v2 (* pattern "[a-z_][a-zA-Z0-9_']*" *) in
+  (v1, v2)
 
-let map_constructor_path (env : env) (x : CST.constructor_path) =
+let map_constructor_path (env : env) (x : CST.constructor_path) : ident list =
   match x with
   | `Choice_capi_id x ->
       let x = map_constructor_name env x in
-      todo env x
+      [ x ]
   | `Module_path_DOT_choice_capi_id (v1, v2, v3) ->
       let v1 = map_module_path env v1 in
-      let v2 = token env v2 (* "." *) in
+      let _v2 = token env v2 (* "." *) in
       let v3 = map_constructor_name env v3 in
-      todo env (v1, v2, v3)
+      v1 @ [ v3 ]
 
 let map_indexing_operator_path (env : env) (x : CST.indexing_operator_path) =
   match x with
@@ -1703,7 +1699,9 @@ and map_item_extension (env : env) (x : CST.item_extension) =
 
 and map_labeled_argument (env : env) (x : CST.labeled_argument) =
   match x with
-  | `Label x -> map_label env x
+  | `Label x ->
+      let x = map_label env x in
+      todo env x
   | `Label_imm_tok_COLON_choice_simple_exp (v1, v2, v3) ->
       let v1 = map_label env v1 in
       let v2 = token env v2 (* ":" *) in
@@ -2061,7 +2059,9 @@ and map_parameter (env : env) (x : CST.parameter) =
 and map_parameter_ (env : env) (x : CST.parameter_) =
   match x with
   | `Simple_pat_ext x -> map_simple_pattern_ext env x
-  | `Choice_TILDE_id x -> map_label env x
+  | `Choice_TILDE_id x ->
+      let x = map_label env x in
+      todo env x
   | `Label_imm_tok_COLON_simple_pat_ext (v1, v2, v3) ->
       let v1 = map_label env v1 in
       let v2 = token env v2 (* ":" *) in
@@ -2469,7 +2469,9 @@ and map_simple_expression (env : env) (x : CST.simple_expression) : expr =
       let v3 = map_typed env v3 in
       let v4 = token env v4 (* ")" *) in
       todo env (v1, v2, v3, v4)
-  | `Cons_path x -> map_constructor_path env x
+  | `Cons_path x ->
+      let x = map_constructor_path env x in
+      todo env x
   | `Tag x -> map_tag env x
   | `List_exp x -> map_list_expression env x
   | `Array_exp x -> map_array_expression env x
@@ -2599,7 +2601,9 @@ and map_simple_pattern (env : env) (x : CST.simple_pattern) : pattern =
       let v3 = map_typed env v3 in
       let v4 = token env v4 (* ")" *) in
       todo env (v1, v2, v3, v4)
-  | `Cons_path x -> map_constructor_path env x
+  | `Cons_path x ->
+      let x = map_constructor_path env x in
+      todo env x
   | `Tag x -> map_tag env x
   | `Poly_vari_pat x -> map_polymorphic_variant_pattern env x
   | `Record_pat x -> map_record_pattern env x
@@ -2633,7 +2637,7 @@ and map_simple_pattern (env : env) (x : CST.simple_pattern) : pattern =
       let v3 = token env v3 (* ")" *) in
       todo env (v1, v2, v3)
 
-and map_simple_pattern_ext (env : env) (x : CST.simple_pattern_ext) =
+and map_simple_pattern_ext (env : env) (x : CST.simple_pattern_ext) : pattern =
   match x with
   | `Simple_pat x -> map_simple_pattern env x
   | `Exte x ->
