@@ -141,14 +141,19 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
       {
         V.default_visitor with
         V.kdef =
-          (fun (k, _) ((ent, def_kind) as def) ->
+          (fun (k, _v) ((ent, def_kind) as def) ->
             match def_kind with
             | AST.FuncDef fdef ->
                 let opt_name = AST_to_IL.name_of_entity ent in
-                check_stmt opt_name fdef.AST.fbody
+                check_stmt opt_name fdef.AST.fbody;
+                (* go into nested functions *)
+                k def
             | __else__ -> k def);
         V.kfunction_definition =
-          (fun (_k, _) def -> check_stmt None def.AST.fbody);
+          (fun (k, _v) def ->
+            check_stmt None def.AST.fbody;
+            (* go into nested functions *)
+            k def);
       }
   in
   (* Check each function definition. *)
