@@ -169,6 +169,7 @@ let test_parse_tree_sitter lang xs =
                  pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
                  PI.bad_stat file
              in
+             logger#info "stat: %s" (PI.summary_of_stat stat);
              Common.push stat stat_list));
   Parse_info.print_parsing_stat_list !stat_list;
   ()
@@ -211,6 +212,7 @@ let parsing_common ?(verbose = true) lang xs =
              | Timeout -> { (PI.bad_stat file) with have_timeout = true }
              | _else_ -> PI.bad_stat file)
          in
+         pr2 (spf "stat: %s" (PI.summary_of_stat stat));
          stat)
 
 (*

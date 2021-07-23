@@ -78,6 +78,25 @@ let stat_of_tree_sitter_stat file (stat : Tree_sitter_run.Parsing_result.stat) =
     problematic_lines = [];
   }
 
+(*
+   Parse a file with the one of the available parsers.
+
+   For some languages, multiple parsers are available. Typically, it's
+   a legacy pfff parser and a newer or experimental tree-sitter parser.
+   It is a little tricky due to the following outcomes:
+   - partial parsing: tree-sitter can return an AST with problematic portions
+     omitted.
+   - timeouts
+
+   Our preferences are:
+   1. partial is better than error.
+   2. parsers are ordered by preference.
+
+   e.g.:
+     [Ok a; _] -> a
+     [Partial a; Partial b] -> a
+     [Error; Partial b] -> b
+*)
 let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
  fun parser file ->
   match parser with
@@ -88,7 +107,9 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
             let res = f file in
             Ok res
           with
-          | Timeout -> raise Timeout
+          | Timeout ->
+              logger#debug "timeout with Pfff parser";
+              Error Timeout
           | exn ->
               (* TODO: print where the exception was raised or reraise *)
               logger#debug "exn (%s) with Pfff parser" (Common.exn_to_s exn);
@@ -115,7 +136,9 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
             let err = E.exn_to_error file exn in
             Partial (ast, [ err ], stat)
       with
-      | Timeout -> raise Timeout
+      | Timeout ->
+          logger#debug "timeout with TreeSitter parser";
+          Error Timeout
       | exn ->
           (* TODO: print where the exception was raised or reraise *)
           logger#debug "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);

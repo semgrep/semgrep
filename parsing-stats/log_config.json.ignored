@@ -1,0 +1,13 @@
+{
+    "loggers":
+        [
+            { "name": "Main", "level": "debug",
+              "handlers": [ {"cli_err": {"level" : "debug"}} ]
+            },
+            { "name": "Main.Parse_target", "level": "debug" },
+            { "name": "Main.Test_parsing", "level": "debug" }
+        ],
+   "handlers": {
+        "file_handlers": { "logs_folder" : "logs", "truncate" : false }
+    }
+}

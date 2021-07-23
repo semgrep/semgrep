@@ -530,27 +530,31 @@ let parse_generic lang file =
         in
         cache_file_of_file full_filename)
       (fun () ->
-        try
-          logger#info "parsing %s" file;
-          (* finally calling the actual function *)
-          let { Parse_target.ast; errors; _ } =
-            Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
-          in
-          (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
-          (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
-          Left (ast, errors)
-          (* This is a bit subtle, but we now store in the cache whether we had
-           * an exception on this file, especially Timeout. Indeed, semgrep now calls
-           * semgrep-core per rule, and if one file timeout during parsing, it would
-           * timeout for each rule, but we don't want to wait each time 5sec for each
-           * rule. So here we store the exn in the cache, and below we reraise it
-           * after we got it back from the cache.
-           *
-           * TODO: right now we just capture Timeout, but we should capture any exn.
-           *  However this introduces some weird regressions in CI so we focus on
-           *  just Timeout for now.
-           *)
-        with Timeout -> Right Timeout)
+        logger#info "parsing %s" file;
+        (* finally calling the actual function *)
+        let { Parse_target.ast; errors; stat } =
+          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
+        in
+        match stat.have_timeout with
+        | false ->
+            (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
+            (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
+            Left (ast, errors)
+            (* This is a bit subtle, but we now store in the cache
+               whether we had an exception on this file, especially
+               Timeout. Indeed, semgrep now calls semgrep-core per
+               rule, and if one file timeout during parsing, it
+               would timeout for each rule, but we don't want to
+               wait each time 5sec for each rule. So here we store
+               the exn in the cache, and below we reraise it after
+               we got it back from the cache.
+
+               TODO: right now we just capture Timeout, but we
+               should capture any exn.  However this introduces some
+               weird regressions in CI so we focus on just Timeout
+               for now.
+            *)
+        | true -> Right Timeout)
   in
   match v with Left x -> x | Right exn -> raise exn
   [@@profiling]
