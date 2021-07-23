@@ -123,7 +123,7 @@ let inferred_parameters (env : env) ((v1, v2, v3, v4) : CST.inferred_parameters)
 
 let int_literal env tok =
   let s, t = str env tok in
-  (H.int_of_string_c_octal_opt s, t)
+  (Common2.int_of_string_c_octal_opt s, t)
 
 let string_literal env tok =
   let s, t = str env tok in
