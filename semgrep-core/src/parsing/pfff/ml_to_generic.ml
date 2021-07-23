@@ -626,4 +626,9 @@ and any = function
   | P x ->
       let x = pattern x in
       G.P x
-  | Pr _x -> raise Todo
+  | Id x ->
+      let x = ident x in
+      G.I x
+  | Pr xs ->
+      let xs = program xs in
+      G.Ss xs

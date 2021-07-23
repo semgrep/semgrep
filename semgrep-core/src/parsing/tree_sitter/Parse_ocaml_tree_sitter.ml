@@ -651,41 +651,43 @@ let map_range_pattern (env : env) ((v1, v2, v3) : CST.range_pattern) =
   let v3 = map_signed_constant env v3 in
   (v1, v2, v3)
 
-let map_toplevel_directive (env : env) ((v1, v2) : CST.toplevel_directive) =
-  let v1 = map_directive env v1 in
-  let v2 =
+let map_toplevel_directive (env : env) ((v1, v2) : CST.toplevel_directive) :
+    item =
+  let tsharp, _id = map_directive env v1 in
+  let _v2TODO =
     match v2 with
     | Some x -> (
         match x with
         | `Cst x ->
             let x = map_constant env x in
-            todo env x
+            [ E (L x) ]
         | `Value_path x ->
             let x = map_value_path env x in
-            todo env x
+            [ E (Name x) ]
         | `Module_path x ->
-            let x = map_module_path env x in
-            todo env x)
-    | None -> todo env ()
+            let xs = map_module_path env x in
+            xs |> List.map (fun x -> Id x))
+    | None -> []
   in
-  todo env (v1, v2)
+  ItemTodo (("directive", tsharp), []) |> mki
 
 let rec map_anon_bind_pat_ext_rep_SEMI_bind_pat_ext_opt_SEMI_38caf30 (env : env)
     ((v1, v2, v3) :
-      CST.anon_bind_pat_ext_rep_SEMI_bind_pat_ext_opt_SEMI_38caf30) =
+      CST.anon_bind_pat_ext_rep_SEMI_bind_pat_ext_opt_SEMI_38caf30) :
+    pattern list =
   let v1 = map_binding_pattern_ext env v1 in
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* ";" *) in
+        let _v1 = token env v1 (* ";" *) in
         let v2 = map_binding_pattern_ext env v2 in
-        todo env (v1, v2))
+        v2)
       v2
   in
-  let v3 =
-    match v3 with Some tok -> token env tok (* ";" *) | None -> todo env ()
+  let _v3 =
+    match v3 with Some tok -> [ token env tok (* ";" *) ] | None -> []
   in
-  todo env (v1, v2, v3)
+  v1 :: v2
 
 and map_anon_choice_cons_type_771aabb (env : env)
     (x : CST.anon_choice_cons_type_771aabb) =
@@ -869,7 +871,7 @@ and map_bigarray_get_expression (env : env)
   let v6 = token env v6 (* "}" *) in
   todo env (v1, v2, v3, v4, v5, v6)
 
-and map_binding_pattern (env : env) (x : CST.binding_pattern) =
+and map_binding_pattern (env : env) (x : CST.binding_pattern) : pattern =
   match x with
   | `Value_name x ->
       let x = map_value_name env x in
@@ -886,7 +888,9 @@ and map_binding_pattern (env : env) (x : CST.binding_pattern) =
   | `Cons_path x ->
       let x = map_constructor_path env x in
       todo env x
-  | `Tag x -> map_tag env x
+  | `Tag x ->
+      let x = map_tag env x in
+      todo env x
   | `Poly_vari_pat x ->
       let x = map_polymorphic_variant_pattern env x in
       todo env x
@@ -946,7 +950,9 @@ and map_binding_pattern (env : env) (x : CST.binding_pattern) =
       let v2 = token env v2 (* "::" *) in
       let v3 = map_binding_pattern_ext env v3 in
       todo env (v1, v2, v3)
-  | `Range_pat x -> map_range_pattern env x
+  | `Range_pat x ->
+      let x = map_range_pattern env x in
+      todo env x
   | `Lazy_bind_pat (v1, v2, v3) ->
       let v1 = token env v1 (* "lazy" *) in
       let v2 =
@@ -955,7 +961,8 @@ and map_binding_pattern (env : env) (x : CST.binding_pattern) =
       let v3 = map_binding_pattern_ext env v3 in
       todo env (v1, v2, v3)
 
-and map_binding_pattern_ext (env : env) (x : CST.binding_pattern_ext) =
+and map_binding_pattern_ext (env : env) (x : CST.binding_pattern_ext) : pattern
+    =
   match x with
   | `Bind_pat x -> map_binding_pattern env x
   | `Exte x ->
@@ -2162,7 +2169,9 @@ and map_pattern (env : env) (x : CST.pattern) : pattern =
       let v2 = token env v2 (* "::" *) in
       let v3 = map_pattern_ext env v3 in
       todo env (v1, v2, v3)
-  | `Range_pat x -> map_range_pattern env x
+  | `Range_pat x ->
+      let x = map_range_pattern env x in
+      todo env x
   | `Lazy_pat (v1, v2, v3) ->
       let v1 = token env v1 (* "lazy" *) in
       let v2 =
