@@ -2,7 +2,7 @@
 # to run an action that uses the SEMGREP_APP_TOKEN secret
 # Note that any modification of this file in a PR does not reflect on said PR
 # Changes must be merged to develop first
-name: Lint
+name: semgrep
 on:
   workflow_dispatch:
   pull_request_target:

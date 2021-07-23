@@ -1,4 +1,5 @@
-name: Push Semgrep Docker Image
+# Push Semgrep Docker Image
+name: docker
 
 on:
   workflow_dispatch:

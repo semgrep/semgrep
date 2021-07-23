@@ -1,4 +1,4 @@
-name: Semgrepdep
+name: semgrepdep
 
 on:
   pull_request:
