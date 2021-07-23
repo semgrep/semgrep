@@ -157,11 +157,13 @@ let check_files fparser xs =
   fullxs
   |> List.iter (fun file ->
          logger#info "processing %s" file;
-         let rs = fparser file in
-         rs
-         |> List.iter (fun file ->
-                let errs = check file in
-                errs |> List.iter (fun err -> pr2 (E.string_of_error err))))
+         try
+           let rs = fparser file in
+           rs
+           |> List.iter (fun file ->
+                  let errs = check file in
+                  errs |> List.iter (fun err -> pr2 (E.string_of_error err)))
+         with exn -> pr2 (E.string_of_error (E.exn_to_error file exn)))
 
 let stat_files fparser xs =
   let fullxs =

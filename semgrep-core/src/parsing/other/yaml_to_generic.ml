@@ -17,7 +17,8 @@ module Y = Yaml
 module S = Yaml.Stream
 module E = Yaml.Stream.Event
 module M = Yaml.Stream.Mark
-module A = AST_generic
+module G = AST_generic
+module PI = Parse_info
 
 (*****************************************************************************)
 (* Prelude *)
@@ -44,12 +45,6 @@ module A = AST_generic
 (* Types *)
 (*****************************************************************************)
 
-exception ParseError of string
-
-exception ImpossibleDots
-
-exception UnreachableList
-
 (* right now we just pass down the filename in the environment, but
  * we could need to pass more information later.
  *)
@@ -58,6 +53,10 @@ type env = {
   file : Common.filename;
   (* function *)
   charpos_to_pos : (int -> int * int) option;
+  (* From yaml.mli: "[parser] tracks the state of generating {!Event.t}
+   * values" *)
+  parser : S.parser;
+  mutable last_event : (E.t * E.pos) option;
 }
 
 (*****************************************************************************)
@@ -80,10 +79,6 @@ let p_token = function
   | E.Alias _ -> "alias"
   | E.Scalar { value; _ } -> "scalar " ^ value
   | E.Nothing -> "nothing"
-
-let get_res = function
-  | Result.Error (`Msg s) -> raise (ParseError s)
-  | Result.Ok v -> v
 
 let _pos_str
     {
@@ -127,91 +122,121 @@ let mk_bracket
     v,
     tok (e_index, e_line, e_column) ")" env )
 
-let mk_err err v ({ E.start_mark = { M.line; M.column; _ }; _ } as pos) env =
-  A.error
-    (mk_tok pos (p_token v) env)
-    (Printf.sprintf "%s %s at line %d column %d" err (p_token v) line column)
+let mk_id str pos env = G.Id ((str, mk_tok pos "" env), G.empty_id_info ())
 
-let mk_id str pos env = A.Id ((str, mk_tok pos "" env), A.empty_id_info ())
+(*****************************************************************************)
+(* Error management *)
+(*****************************************************************************)
+
+exception ImpossibleDots
+
+exception UnreachableList
+
+let error str v pos env =
+  let t = mk_tok pos (p_token v) env in
+  raise (PI.Other_error (str, t))
+
+let get_res file = function
+  | Result.Error (`Msg str) ->
+      let loc = PI.first_loc_of_file file in
+      let tok = PI.mk_info_of_loc loc in
+      raise (PI.Other_error (str, tok))
+  | Result.Ok v -> v
+
+let do_parse env =
+  match S.do_parse env.parser with
+  (* like get_res, but with better error location *)
+  | Result.Error (`Msg str) ->
+      let prefix, tok =
+        match env.last_event with
+        | None ->
+            let loc = PI.first_loc_of_file env.file in
+            ("(incorrect error location) ", PI.mk_info_of_loc loc)
+        | Some (v, pos) ->
+            ( "(approximate error location; error nearby after) ",
+              mk_tok pos (p_token v) env )
+      in
+      raise (PI.Other_error (prefix ^ str, tok))
+  | Result.Ok (ev, pos) ->
+      env.last_event <- Some (ev, pos);
+      (ev, pos)
 
 (*****************************************************************************)
 (* Parser functions *)
 (*****************************************************************************)
 
-let make_alias anchor pos env : A.name = mk_id anchor pos env
+let make_alias anchor pos env : G.name = mk_id anchor pos env
 
 (* Scalars must first be checked for sgrep patterns *)
 (* Then, they may need to be converted from a string to a value *)
-let make_scalar _anchor _tag pos value env : A.expr =
-  if AST_generic_.is_metavar_name value then A.N (mk_id value pos env)
+let make_scalar _anchor _tag pos value env : G.expr =
+  if AST_generic_.is_metavar_name value then G.N (mk_id value pos env)
   else
     let token = mk_tok pos value env in
     match value with
-    | "__sgrep_ellipses__" -> A.Ellipsis (Parse_info.fake_info "...")
+    | "__sgrep_ellipses__" -> G.Ellipsis (Parse_info.fake_info "...")
     (* TODO: emma: I will put "" back to Null and have either a warning or
      * an error when we try to parse a string and get Null in another PR.
      *)
-    | "null" | "NULL" | "Null" | "~" -> A.L (A.Null token)
+    | "null" | "NULL" | "Null" | "~" -> G.L (G.Null token)
     | "y" | "Y" | "yes" | "Yes" | "YES" | "true" | "True" | "TRUE" | "on" | "On"
     | "ON" ->
-        A.L (A.Bool (true, token))
+        G.L (G.Bool (true, token))
     | "n" | "N" | "no" | "No" | "NO" | "false" | "False" | "FALSE" | "off"
     | "Off" | "OFF" ->
-        A.L (A.Bool (false, token))
-    | "-.inf" -> A.L (A.Float (Some neg_infinity, token))
-    | ".inf" -> A.L (A.Float (Some neg_infinity, token))
-    | ".nan" | ".NaN" | ".NAN" -> A.L (A.Float (Some nan, token))
+        G.L (G.Bool (false, token))
+    | "-.inf" -> G.L (G.Float (Some neg_infinity, token))
+    | ".inf" -> G.L (G.Float (Some neg_infinity, token))
+    | ".nan" | ".NaN" | ".NAN" -> G.L (G.Float (Some nan, token))
     | _ -> (
-        try A.L (A.Float (Some (float_of_string value), token))
-        with _ -> A.L (A.String (value, token)))
+        try G.L (G.Float (Some (float_of_string value), token))
+        with _ -> G.L (G.String (value, token)))
 
 (* Sequences are arrays in the generic AST *)
 let make_sequence _anchor _tag start_pos (es, end_pos) env =
-  (A.Container (A.Array, mk_bracket (start_pos, end_pos) es env), end_pos)
+  (G.Container (G.Array, mk_bracket (start_pos, end_pos) es env), end_pos)
 
 (* Mappings are dictionaries in the generic AST *)
 let make_mappings _anchor _tag start_pos (es, end_pos) env =
   match es with
-  | [ A.Ellipsis e ] -> (A.Ellipsis e, end_pos)
-  | _ -> (A.Container (A.Dict, mk_bracket (start_pos, end_pos) es env), end_pos)
+  | [ G.Ellipsis e ] -> (G.Ellipsis e, end_pos)
+  | _ -> (G.Container (G.Dict, mk_bracket (start_pos, end_pos) es env), end_pos)
 
-let make_mapping (pos1, pos2) ((key, value) : A.expr * A.expr) env =
+let make_mapping (pos1, pos2) ((key, value) : G.expr * G.expr) env =
   match (key, value) with
-  | A.Ellipsis _, A.Ellipsis _ -> (A.Ellipsis (Parse_info.fake_info "..."), pos2)
-  | _ -> (A.Tuple (mk_bracket (pos1, pos2) [ key; value ] env), pos2)
+  | G.Ellipsis _, G.Ellipsis _ -> (G.Ellipsis (Parse_info.fake_info "..."), pos2)
+  | _ -> (G.Tuple (mk_bracket (pos1, pos2) [ key; value ] env), pos2)
 
-let make_doc start_pos (doc, end_pos) env : A.expr list =
+let make_doc start_pos (doc, end_pos) env : G.expr list =
   match doc with
   | [] -> []
   | [ x ] -> [ x ]
-  | xs -> [ A.Container (A.Array, mk_bracket (start_pos, end_pos) xs env) ]
+  | xs -> [ G.Container (G.Array, mk_bracket (start_pos, end_pos) xs env) ]
 
-let parse env parser : A.expr list =
+let parse (env : env) : G.expr list =
   (* Parse states *)
-  let rec read_stream () : A.expr list =
-    match get_res (S.do_parse parser) with
+  let rec read_stream () : G.expr list =
+    match do_parse env with
     | E.Stream_start _, pos -> make_doc pos (read_documents []) env
-    | v, pos -> mk_err "Expected start of string, got" v pos env
-  and read_documents acc : A.expr list * E.pos =
-    match get_res (S.do_parse parser) with
+    | v, pos -> error "Expected start of string, got" v pos env
+  and read_documents acc : G.expr list * E.pos =
+    match do_parse env with
     | E.Document_start _, _pos ->
         let docs, _ = read_document () in
         let rest, end_pos = read_documents acc in
         (docs :: rest, end_pos)
     | E.Stream_end, pos -> (acc, pos)
     | v, pos ->
-        mk_err "Expected start of document or end of stream, got" v pos env
-  and read_document () : A.expr * E.pos =
+        error "Expected start of document or end of stream, got" v pos env
+  and read_document () : G.expr * E.pos =
     let node_ast, _ = read_node () in
-    match get_res (S.do_parse parser) with
+    match do_parse env with
     | E.Document_end _, pos -> (node_ast, pos)
-    | v, pos -> mk_err "Expected end of document, got" v pos env
-  and read_node ?node_val:(res = None) () : A.expr * E.pos =
-    let res =
-      match res with None -> get_res (S.do_parse parser) | Some r -> r
-    in
+    | v, pos -> error "Expected end of document, got" v pos env
+  and read_node ?node_val:(res = None) () : G.expr * E.pos =
+    let res = match res with None -> do_parse env | Some r -> r in
     match res with
-    | E.Alias { anchor }, pos -> (A.N (make_alias anchor pos env), pos)
+    | E.Alias { anchor }, pos -> (G.N (make_alias anchor pos env), pos)
     | E.Scalar { anchor; tag; value; _ }, pos ->
         (make_scalar anchor tag pos value env, pos)
     | E.Sequence_start { anchor; tag; _ }, pos ->
@@ -219,27 +244,27 @@ let parse env parser : A.expr list =
     | E.Mapping_start { anchor; tag; _ }, pos ->
         make_mappings anchor tag pos (read_mappings []) env
     | v, pos ->
-        mk_err "Expected a valid YAML element or end of sequence, got" v pos env
-  and read_sequence acc : A.expr list * E.pos =
-    match get_res (S.do_parse parser) with
+        error "Expected a valid YAML element or end of sequence, got" v pos env
+  and read_sequence acc : G.expr list * E.pos =
+    match do_parse env with
     | E.Sequence_end, pos -> (acc, pos)
     | v, pos ->
         let seq = fst (read_node ~node_val:(Some (v, pos)) ()) in
         let rest, end_pos = read_sequence acc in
         (seq :: rest, end_pos)
-  and read_mappings acc : A.expr list * E.pos =
-    match get_res (S.do_parse parser) with
+  and read_mappings acc : G.expr list * E.pos =
+    match do_parse env with
     | E.Mapping_end, pos -> (acc, pos)
     | v, pos ->
         let map = read_mapping (v, pos) in
         let rest, end_pos = read_mappings acc in
         (map :: rest, end_pos)
-  and read_mapping first_node : A.expr =
+  and read_mapping first_node : G.expr =
     let key, pos1 =
       match first_node with
       | E.Scalar { anchor; tag; value; _ }, pos ->
           (make_scalar anchor tag pos value env, pos)
-      | v, pos -> mk_err "Expected a valid scalar, got" v pos env
+      | v, pos -> error "Expected a valid scalar, got" v pos env
     in
     let value, pos2 = read_node () in
     let value, _ = make_mapping (pos1, pos2) (key, value) env in
@@ -251,9 +276,9 @@ let make_pattern_expr e =
   match e with
   (* If the user creates a pattern with a single field, assume they just want *
    * to match the field, not the whole enclosing container *)
-  | [ A.Container (A.Dict, (_lp, [ x ], _rp)) ] -> A.E x
-  | [ A.Container (A.Array, (_lp, [ x ], _rp)) ] -> A.E x
-  | [ x ] -> A.E x
+  | [ G.Container (G.Dict, (_lp, [ x ], _rp)) ] -> G.E x
+  | [ G.Container (G.Array, (_lp, [ x ], _rp)) ] -> G.E x
+  | [ x ] -> G.E x
   | _ -> raise UnreachableList
 
 (*****************************************************************************)
@@ -406,11 +431,15 @@ let program file =
    * only in the pattern *)
   let str = Common.read_file file in
   let charpos_to_pos = Some (Parse_info.full_charpos_to_pos_large file) in
-  let env = { file; charpos_to_pos } in
-  List.map A.exprstmt (get_res (S.parser str) |> parse env)
+  let parser = get_res file (S.parser str) in
+  let env = { file; charpos_to_pos; parser; last_event = None } in
+  let xs = parse env in
+  List.map G.exprstmt xs
 
 let any str =
-  let env = { file = "<pattern_file>"; charpos_to_pos = None } in
+  let file = "<pattern_file>" in
   let str = preprocess_yaml str in
-  (* Common.pr2 str; *)
-  get_res (S.parser str) |> parse env |> make_pattern_expr
+  let parser = get_res file (S.parser str) in
+  let env = { file; charpos_to_pos = None; parser; last_event = None } in
+  let xs = parse env in
+  make_pattern_expr xs

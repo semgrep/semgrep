@@ -226,8 +226,34 @@ let json_of_profile_info profile_start =
          (k, J.Object [ ("time", J.Float !t); ("count", J.Int !cnt) ]))
   |> fun xs -> J.Object xs
 
+(*****************************************************************************)
+(* Error management *)
+(*****************************************************************************)
+
+(* This function is used for non-target related exns (e.g., parsing a rule).
+ * It is called in Main.ml as a last resort instead of returning
+ * matching results (which can also contain errors).
+
+ * The Parse_info.Parsing_error and other exns in Parse_info, which are
+ * raised during a target analysis (parsing, naming, matching, etc.), are
+ * captured in Main.ml by Error_code.exn_to_error. The function below is
+ * for all the other non-target related exns.
+ * update: we actually now use the generic AST to parse a YAML rule, so
+ * we may raise Parse_info.Other_Error in a non-target context too.
+ *
+ * invariant: every non-target related exn that has a Parse_info.t should
+ * be captured here!
+ * TODO:
+ *  - use the _posTODO below
+ *  - handle Yaml_to_generic.Parse_error
+ *  - handle more exn in Parse_rule.ml? covered everything?
+ *  - handle Parse_info.Other_error and more, which can now be raised
+ *    when parsing a rule.
+ * todo? move all non-pfff exns to a central file Error_semgrep.ml?
+ *
+ * coupling: Test.metachecker_regression_tests
+ *)
 let json_of_exn e =
-  (* if (ouptut_as_json) then *)
   match e with
   | Parse_rule.InvalidRule (pattern_id, msg, _posTODO) ->
       J.Object
@@ -265,6 +291,9 @@ let json_of_exn e =
   | Parse_mini_rule.UnparsableYamlException msg ->
       J.Object
         [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]
+  (* Other exns (Failure, Timeout, etc.) without position information :(
+   * Not much we can do.
+   *)
   | exn ->
       J.Object
         [
@@ -272,9 +301,6 @@ let json_of_exn e =
           ("message", J.String (Common.exn_to_s exn));
         ]
 
-(*****************************************************************************)
-(* Error *)
-(*****************************************************************************)
 (*s: function [[JSON_report.error]] *)
 (* this is used only in the testing code, to reuse the
  * Error_code.compare_actual_to_expected
