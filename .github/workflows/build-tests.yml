@@ -1,4 +1,4 @@
-name: Build Tests
+name: build-tests
 
 on:
   workflow_dispatch:
