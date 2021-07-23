@@ -18,6 +18,20 @@ module H = Parse_tree_sitter_helpers
 open Ast_ml
 
 (*****************************************************************************)
+(* Prelude *)
+(*****************************************************************************)
+(* OCaml parser using tree-sitter-lang/semgrep-ocaml and converting
+ * to pfff/lang_go/parsing/ast_ml.ml
+ *
+ * The resulting AST can then be converted to the generic AST by using
+ * ml_to_generic.ml
+ *
+ * TODO:
+ *  - see calls to 'todo env' in this file
+ *  - see use of ()
+ *)
+
+(*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
@@ -689,7 +703,6 @@ let rec map_anon_bind_pat_ext_rep_SEMI_bind_pat_ext_opt_SEMI_38caf30 (env : env)
   in
   v1 :: v2
 
-(* module type with ... TODO *)
 and map_anon_choice_cons_type_771aabb (env : env)
     (x : CST.anon_choice_cons_type_771aabb) =
   match x with
@@ -700,7 +713,6 @@ and map_anon_choice_cons_type_771aabb (env : env)
       let _v4 = map_type_equation env v4 in
       let _v5 = List.map (map_type_constraint env) v5 in
       ()
-      (* TODO *)
   | `Cons_module (v1, v2, v3, v4) ->
       let _v1 = token env v1 (* "module" *) in
       let _v2 = map_module_path env v2 in
@@ -715,7 +727,6 @@ and map_anon_choice_cons_type_771aabb (env : env)
       let _v5 = map_module_type_ext env v5 in
       ()
 
-(* method type TODO *)
 and map_anon_choice_meth_type_345b567 (env : env)
     (x : CST.anon_choice_meth_type_345b567) =
   match x with
@@ -845,10 +856,11 @@ and map_array_pattern (env : env) ((v1, v2, v3) : CST.array_pattern) =
   let v3 = token env v3 (* "|]" *) in
   PatTodo (("Array", v1), v2)
 
-(* TODO *)
 and map_attribute_payload (env : env) (x : CST.attribute_payload) =
   match x with
-  | `Stru x -> map_structure env x
+  | `Stru x ->
+      let _x = map_structure env x in
+      ()
   | `COLON_choice_type_ext (v1, v2) ->
       let _v1 = token env v1 (* ":" *) in
       let _v2 =
@@ -975,7 +987,6 @@ and map_binding_pattern_ext (env : env) (x : CST.binding_pattern_ext) : pattern
       let t = map_extension env x in
       PatTodo (t, [])
 
-(* TODO *)
 and map_class_binding (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.class_binding) =
   let _v1 =
@@ -1243,24 +1254,27 @@ and map_class_typed (env : env) ((v1, v2) : CST.class_typed) =
   let v2 = map_class_type_ext env v2 in
   (v1, v2)
 
-and map_constructor_argument (env : env) (x : CST.constructor_argument) =
+and map_constructor_argument (env : env) (x : CST.constructor_argument) :
+    type_ list =
   match x with
   | `Choice_simple_type_rep_STAR_choice_simple_type (v1, v2) ->
       let v1 = map_simple_type_ext env v1 in
       let v2 =
         List.map
           (fun (v1, v2) ->
-            let v1 = token env v1 (* "*" *) in
+            let _v1 = token env v1 (* "*" *) in
             let v2 = map_simple_type_ext env v2 in
-            todo env (v1, v2))
+            v2)
           v2
       in
-      todo env (v1, v2)
-  | `Record_decl x -> map_record_declaration env x
+      v1 :: v2
+  | `Record_decl x ->
+      let l, _xs, _r = map_record_declaration env x in
+      [ TyTodo (("InlineRecord", l), []) ]
 
 and map_constructor_declaration (env : env)
-    ((v1, v2) : CST.constructor_declaration) =
-  let v1 =
+    ((v1, v2) : CST.constructor_declaration) : ident * type_ list =
+  let (v1 : ident) =
     match v1 with
     | `Choice_capi_id x -> map_constructor_name env x
     | `Choice_LBRACK_RBRACK x -> (
@@ -1268,40 +1282,40 @@ and map_constructor_declaration (env : env)
         | `LBRACK_RBRACK (v1, v2) ->
             let v1 = token env v1 (* "[" *) in
             let v2 = token env v2 (* "]" *) in
-            todo env (v1, v2)
+            ("[]", PI.combine_infos v1 [ v2 ])
         | `LPAR_RPAR (v1, v2) ->
             let v1 = token env v1 (* "(" *) in
             let v2 = token env v2 (* ")" *) in
-            todo env (v1, v2)
-        | `True tok ->
-            let x = token env tok (* "true" *) in
-            todo env x
-        | `False tok ->
-            let x = token env tok (* "false" *) in
-            todo env x)
+            ("()", PI.combine_infos v1 [ v2 ])
+        | `True tok -> str env tok (* "true" *)
+        | `False tok -> str env tok (* "false" *))
   in
+
   let v2 =
     match v2 with
     | Some x -> (
         match x with
         | `Of_cons_arg (v1, v2) ->
-            let v1 = token env v1 (* "of" *) in
+            let _v1 = token env v1 (* "of" *) in
             let v2 = map_constructor_argument env v2 in
-            todo env (v1, v2)
-        | `Simple_typed x -> map_simple_typed env x
+            v2
+        (* GADTs TODO *)
+        | `Simple_typed x ->
+            let _t, _ = map_simple_typed env x in
+            []
         | `COLON_cons_arg_DASHGT_choice_simple_type (v1, v2, v3, v4) ->
-            let v1 = token env v1 (* ":" *) in
-            let v2 = map_constructor_argument env v2 in
-            let v3 = token env v3 (* "->" *) in
-            let v4 = map_simple_type_ext env v4 in
-            todo env (v1, v2, v3, v4)
+            let _v1 = token env v1 (* ":" *) in
+            let _v2 = map_constructor_argument env v2 in
+            let _v3 = token env v3 (* "->" *) in
+            let _v4 = map_simple_type_ext env v4 in
+            []
         | `EQ_cons_path (v1, v2) ->
-            let v1 = token env v1 (* "=" *) in
-            let v2 = map_constructor_path env v2 in
-            todo env (v1, v2))
-    | None -> todo env ()
+            let _v1 = token env v1 (* "=" *) in
+            let _v2 = map_constructor_path env v2 in
+            [])
+    | None -> []
   in
-  todo env (v1, v2)
+  (v1, v2)
 
 and map_do_clause (env : env) ((v1, v2, v3) : CST.do_clause) =
   let v1 = token env v1 (* "do" *) in
@@ -2260,16 +2274,16 @@ and map_record_declaration (env : env)
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* ";" *) in
+        let _v1 = token env v1 (* ";" *) in
         let v2 = map_field_declaration env v2 in
-        todo env (v1, v2))
+        v2)
       v3
   in
-  let v4 =
-    match v4 with Some tok -> token env tok (* ";" *) | None -> todo env ()
+  let _v4 =
+    match v4 with Some tok -> Some (token env tok) (* ";" *) | None -> None
   in
   let v5 = token env v5 (* "}" *) in
-  todo env (v1, v2, v3, v4, v5)
+  (v1, v2 :: v3, v5)
 
 and map_record_expression (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.record_expression) =
@@ -2865,7 +2879,7 @@ and map_string_get_expression (env : env)
 (*****************************************************************************)
 (* Structure *)
 (*****************************************************************************)
-and map_structure (env : env) (x : CST.structure) =
+and map_structure (env : env) (x : CST.structure) : item list =
   match x with
   | `Rep1_SEMISEMI xs ->
       let xs = List.map (token env) (* ";;" *) xs in
@@ -3183,18 +3197,17 @@ and map_variant_declaration (env : env) (x : CST.variant_declaration) =
       in
       todo env (v1, v2)
   | `Cons_decl_rep_BAR_cons_decl x ->
-      map_anon_cons_decl_rep_BAR_cons_decl_fc0ccc5 env x
+      let x = map_anon_cons_decl_rep_BAR_cons_decl_fc0ccc5 env x in
+      todo env x
 
 let map_compilation_unit (env : env) ((v1, v2) : CST.compilation_unit) =
-  let v1 =
+  let _v1 =
     match v1 with
-    | Some tok -> token env tok (* pattern #!.* *)
-    | None -> todo env ()
+    | Some tok -> Some (token env tok) (* pattern #!.* *)
+    | None -> None
   in
-  let v2 =
-    match v2 with Some x -> map_structure env x | None -> todo env ()
-  in
-  todo env (v1, v2)
+  let v2 = match v2 with Some x -> map_structure env x | None -> [] in
+  v2
 
 (*****************************************************************************)
 (* Entry point *)
