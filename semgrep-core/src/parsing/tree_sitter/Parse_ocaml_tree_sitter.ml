@@ -1317,30 +1317,30 @@ and map_constructor_declaration (env : env)
   in
   (v1, v2)
 
-and map_do_clause (env : env) ((v1, v2, v3) : CST.do_clause) =
-  let v1 = token env v1 (* "do" *) in
+and map_do_clause (env : env) ((v1, v2, v3) : CST.do_clause) : expr =
+  let _v1 = token env v1 (* "do" *) in
   let v2 =
     match v2 with
     | Some x -> map_sequence_expression_ext env x
-    | None -> todo env ()
+    | None -> Sequence []
   in
-  let v3 = token env v3 (* "done" *) in
-  todo env (v1, v2, v3)
+  let _v3 = token env v3 (* "done" *) in
+  v2
 
 and map_else_clause (env : env) ((v1, v2) : CST.else_clause) =
-  let v1 = token env v1 (* "else" *) in
+  let _v1 = token env v1 (* "else" *) in
   let v2 = map_expression_ext env v2 in
-  todo env (v1, v2)
+  v2
 
 and map_exception_definition (env : env)
     ((v1, v2, v3, v4) : CST.exception_definition) =
   let v1 = token env v1 (* "exception" *) in
   let v2 =
-    match v2 with Some x -> map_attribute env x | None -> todo env ()
+    match v2 with Some x -> Some (map_attribute env x) | None -> None
   in
-  let v3 = map_constructor_declaration env v3 in
-  let v4 = List.map (map_item_attribute env) v4 in
-  todo env (v1, v2, v3, v4)
+  let id, tys = map_constructor_declaration env v3 in
+  let _v4 = List.map (map_item_attribute env) v4 in
+  Exception (v1, id, tys)
 
 (*****************************************************************************)
 (* Expression *)
@@ -1350,23 +1350,24 @@ and map_expression (env : env) (x : CST.expression) : expr =
   | `Simple_exp x -> map_simple_expression env x
   | `Prod_exp (v1, v2, v3) ->
       let v1 = map_expression_ext env v1 in
-      let v2 = token env v2 (* "," *) in
+      let _v2 = token env v2 (* "," *) in
       let v3 = map_expression_ext env v3 in
-      todo env (v1, v2, v3)
+      Tuple [ v1; v3 ]
   | `Cons_exp (v1, v2, v3) ->
       let v1 = map_expression_ext env v1 in
-      let v2 = token env v2 (* "::" *) in
+      let v2 = str env v2 (* "::" *) in
       let v3 = map_expression_ext env v3 in
-      todo env (v1, v2, v3)
+      (* TODO? Constructor or Infix? *)
+      Infix (v1, v2, v3)
   | `App_exp (v1, v2) ->
       let v1 = map_simple_expression_ext env v1 in
       let v2 = List.map (map_argument env) v2 in
-      todo env (v1, v2)
+      Call (v1, v2)
   | `Infix_exp x -> map_infix_expression env x
   | `Sign_exp (v1, v2) ->
       let v1 = map_sign_operator env v1 in
       let v2 = map_expression_ext env v2 in
-      todo env (v1, v2)
+      Prefix (v1, v2)
   | `Set_exp (v1, v2, v3) ->
       let v1 =
         match v1 with
@@ -1384,23 +1385,23 @@ and map_expression (env : env) (x : CST.expression) : expr =
       todo env (v1, v2, v3)
   | `If_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "if" *) in
-      let v2 =
-        match v2 with Some x -> map_attribute env x | None -> todo env ()
+      let _v2 =
+        match v2 with Some x -> Some (map_attribute env x) | None -> None
       in
       let v3 = map_sequence_expression_ext env v3 in
       let v4 = map_then_clause env v4 in
       let v5 =
-        match v5 with Some x -> map_else_clause env x | None -> todo env ()
+        match v5 with Some x -> Some (map_else_clause env x) | None -> None
       in
-      todo env (v1, v2, v3, v4, v5)
+      If (v1, v3, v4, v5)
   | `While_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "while" *) in
-      let v2 =
-        match v2 with Some x -> map_attribute env x | None -> todo env ()
+      let _v2 =
+        match v2 with Some x -> Some (map_attribute env x) | None -> None
       in
       let v3 = map_sequence_expression_ext env v3 in
       let v4 = map_do_clause env v4 in
-      todo env (v1, v2, v3, v4)
+      While (v1, v3, v4)
   | `For_exp (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 = token env v1 (* "for" *) in
       let v2 =
@@ -2413,13 +2414,19 @@ and map_signature_item (env : env) (x : CST.signature_item) =
   | `Class_defi x ->
       let x = map_class_definition env x in
       todo env x
-  | `Class_type_defi x -> map_class_type_definition env x
-  | `Floa_attr x -> map_floating_attribute env x
+  | `Class_type_defi x ->
+      let x = map_class_type_definition env x in
+      todo env x
+  | `Floa_attr x ->
+      let x = map_floating_attribute env x in
+      todo env x
 
 and map_signature_item_ext (env : env) (x : CST.signature_item_ext) =
   match x with
   | `Sign_item x -> map_signature_item env x
-  | `Item_exte x -> map_item_extension env x
+  | `Item_exte x ->
+      let x = map_item_extension env x in
+      todo env x
 
 and map_simple_class_expression (env : env) (x : CST.simple_class_expression) =
   match x with
