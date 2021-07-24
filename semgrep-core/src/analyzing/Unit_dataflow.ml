@@ -5,7 +5,7 @@ open OUnit
 (* Unit tests *)
 (*****************************************************************************)
 
-let timeout_secs = 1
+let timeout_secs = 1.0
 
 let unittest parse_program =
   "dataflow_python"
@@ -19,14 +19,16 @@ let unittest parse_program =
                   let ast = parse_program file in
                   let lang = List.hd (Lang.langs_of_filename file) in
                   Naming_AST.resolve lang ast;
-                  try
-                    timeout_function timeout_secs (fun () ->
+                  match
+                    set_timeout ~name:"cst_prop" timeout_secs (fun () ->
                         Constant_propagation.propagate_basic lang ast;
                         Constant_propagation.propagate_dataflow ast)
-                  with Timeout ->
-                    assert_failure
-                      (spf
-                         "constant propagation should finish in less than %ds: \
-                          %s"
-                         timeout_secs file)) );
+                  with
+                  | Some res -> res
+                  | None ->
+                      assert_failure
+                        (spf
+                           "constant propagation should finish in less than \
+                            %gs: %s"
+                           timeout_secs file)) );
        ]

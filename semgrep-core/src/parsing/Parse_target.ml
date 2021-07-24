@@ -88,7 +88,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
             let res = f file in
             Ok res
           with
-          | Timeout -> raise Timeout
+          | Timeout _ as e -> raise e
           | exn ->
               (* TODO: print where the exception was raised or reraise *)
               logger#debug "exn (%s) with Pfff parser" (Common.exn_to_s exn);
@@ -115,7 +115,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
             let err = E.exn_to_error file exn in
             Partial (ast, [ err ], stat)
       with
-      | Timeout -> raise Timeout
+      | Timeout _ as e -> raise e
       | exn ->
           (* TODO: print where the exception was raised or reraise *)
           logger#debug "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
