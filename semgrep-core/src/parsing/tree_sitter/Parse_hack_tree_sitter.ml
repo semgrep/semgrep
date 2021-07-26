@@ -949,18 +949,18 @@ and class_const_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_co
   (* TODO: I dislike this pattern of reaching into objects and editing them.
       How do I avoid this? By passing down :yikes: *)
   let v6 = (* ";" *) token env v6 in
-  let v4 = class_const_declarator env v4 attrs v3 |> G.s in
+  let v4 = class_const_declarator env v4 attrs v3 in
   let v5 =
     List.map (fun (v1, v2) ->
       let v1 = (* "," *) token env v1 in
-      let v2 = class_const_declarator env v2 attrs v3 |> G.s in
+      let v2 = class_const_declarator env v2 attrs v3 in
       v2
     ) v5
   in
   let defs = v4 :: v5 in
   (* Q: Represent statements series without blocks? Use function [[AST_generic.basic_field]]? *)
   (* Could get around it here by changing parent, but not always applicable/sensible *)
-  G.FieldStmt(G.Block(G.fake_bracket defs) |> G.s)
+  G.Block(G.fake_bracket defs)
 
 and class_const_declarator (env : env) ((v1, v2) : CST.class_const_declarator) attrs vtype =
   let v1 = anon_choice_id_0f53960 env v1 in
@@ -978,7 +978,7 @@ and class_const_declarator (env : env) ((v1, v2) : CST.class_const_declarator) a
     vtype = vtype;
   }
   in
-  G.DefStmt(ent, G.VarDef def)
+  G.DefStmt(ent, G.VarDef def) |> G.s
   (* TODO: Handle const declaration without assignment. Is this VarDef? *)
   (* Q: VarDef vs Assign! *)
 
@@ -1595,10 +1595,10 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
   let v2 =
     List.map (fun x ->
       (match x with
-      | `Class_const_decl x -> class_const_declaration env x
+      | `Class_const_decl x -> G.FieldStmt(class_const_declaration env x |> G.s)
       | `Meth_decl x -> G.FieldStmt(method_declaration env x |> G.s)
-      | `Prop_decl x -> property_declaration env x
-      | `Type_const_decl x -> type_const_declaration env x
+      | `Prop_decl x -> G.FieldStmt(property_declaration env x |> G.s)
+      | `Type_const_decl x -> G.FieldStmt(type_const_declaration env x)
       | `Trait_use_clause x -> trait_use_clause env x
       | `Requ_imples_clause x ->
           require_implements_clause env x
@@ -1751,37 +1751,45 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
 and property_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.property_declaration) =
   let v1 =
     (match v1 with
-    | Some x -> attribute_modifier env x
-    | None -> todo env ())
+    | Some x -> [attribute_modifier env x]
+    | None -> [])
   in
   let v2 = List.map (member_modifier env) v2 in
+  let attrs = v1 @ v2 in
   let v3 =
     (match v3 with
-    | Some x -> type_ env x
-    | None -> todo env ())
+    | Some x -> Some(type_ env x)
+    | None -> None)
   in
-  let v4 = property_declarator env v4 in
+  let v4 = property_declarator env v4 attrs v3 in
   let v5 =
     List.map (fun (v1, v2) ->
       let v1 = (* "," *) token env v1 in
-      let v2 = property_declarator env v2 in
-      todo env (v1, v2)
+      let v2 = property_declarator env v2 attrs v3 in
+      v2
     ) v5
   in
+  let defs = v4 :: v5 in
   let v6 = (* ";" *) token env v6 in
-  todo env (v1, v2, v3, v4, v5, v6)
+  G.Block(G.fake_bracket defs)
 
-and property_declarator (env : env) ((v1, v2) : CST.property_declarator) =
-  let v1 = (* variable *) token env v1 in
+and property_declarator (env : env) ((v1, v2) : CST.property_declarator) attrs vtype =
+  let v1 = (* variable *) str env v1 in
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
         let v1 = (* "=" *) token env v1 in
         let v2 = expression env v2 in
-        todo env (v1, v2)
-    | None -> todo env ())
+        Some v2
+    | None -> None)
   in
-  todo env (v1, v2)
+  let ent = G.basic_entity v1 attrs in
+  let def : G.variable_definition = {
+    vinit = v2;
+    vtype = vtype;
+  }
+  in
+  G.DefStmt(ent, G.VarDef def) |> G.s
 
 and require_extends_clause (env : env) ((v1, v2, v3, v4, v5) : CST.require_extends_clause) =
   let v1 = (* "require" *) token env v1 in
@@ -2306,38 +2314,43 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) =
 and type_const_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.type_const_declaration) =
   let v1 =
     (match v1 with
-    | Some x -> attribute_modifier env x
-    | None -> todo env ())
+    | Some x -> [attribute_modifier env x]
+    | None -> [])
   in
   let v2 = List.map (member_modifier env) v2 in
-  let v3 = (* "const" *) token env v3 in
+  let v3 = (* "const" *) [G.KeywordAttr(Const, (token env v3))] in
   let v4 = (* "type" *) token env v4 in
   let v5 =
-    (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env v5
+    (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v5
   in
   let v6 =
     (match v6 with
-    | Some x -> type_parameters env x
-    | None -> todo env ())
+    | Some x -> Some(type_parameters env x)
+    | None -> None)
   in
+  (* Q: How to represent this `as __type__`? It is a constraint? Make an attribute? *)
   let v7 =
     (match v7 with
     | Some (v1, v2) ->
         let v1 = (* "as" *) token env v1 in
         let v2 = type_ env v2 in
-        todo env (v1, v2)
-    | None -> todo env ())
+        Some v2
+    | None -> None)
   in
   let v8 =
     (match v8 with
     | Some (v1, v2) ->
         let v1 = (* "=" *) token env v1 in
         let v2 = type_ env v2 in
-        todo env (v1, v2)
-    | None -> todo env ())
+        Some(v2)
+    | None -> None)
   in
   let v9 = (* ";" *) token env v9 in
-  todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+  (match v8 with
+  | Some v8 -> G.DefStmt(G.basic_entity v5 (v1 @ v2 @ v3), G.TypeDef { tbody = AliasType v8 }) |> G.s
+  (* TODO: WHAT TO DO IN THIS CASE? WHAT IS `const type T1;` doing? *)
+  | None -> G.DefStmt(G.basic_entity v5 (v1 @ v2 @ v3), G.OtherDef(G.OD_Todo, [])) |> G.s
+  )
 
 and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) =
   let v1 =
