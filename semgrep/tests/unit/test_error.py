@@ -1,17 +1,13 @@
 import io
 from typing import Any
 from typing import Dict
-from typing import List
 
 import pytest
 from ruamel.yaml import YAML
 
-from semgrep.constants import OutputFormat
+from semgrep.core_runner import CoreRunner
 from semgrep.error import SemgrepError
 from semgrep.error import SourceParseError
-from semgrep.old_core_runner import OldCoreRunner
-from semgrep.output import OutputSettings
-from semgrep.pattern import Pattern
 from semgrep.rule import Rule
 
 yaml = YAML()
@@ -79,9 +75,7 @@ def test_raise_semgrep_error_from_json_unknown_error():
     rule_dict = yaml.load(rule_yaml_text).get("rules")[0]
     rule: Rule = Rule.from_json(rule_dict)
 
-    core_runner = OldCoreRunner(
-        allow_exec=False,
-        output_settings=OutputSettings(OutputFormat.TEXT),
+    core_runner = CoreRunner(
         jobs=1,
         timeout=0,
         max_memory=0,
@@ -89,12 +83,10 @@ def test_raise_semgrep_error_from_json_unknown_error():
         optimizations="all",
     )
 
-    patterns: List[Pattern] = list(core_runner._flatten_rule_patterns([rule]))
-
     output_json: Dict[str, Any] = {
         "error": "unknown exception",
         "message": "End_of_file",
     }
     with pytest.raises(SemgrepError) as excinfo:
-        core_runner._raise_semgrep_error_from_json(output_json, patterns, rule)
+        core_runner._raise_semgrep_error_from_json(output_json, rule)
         assert test_rule_id in str(excinfo.value)

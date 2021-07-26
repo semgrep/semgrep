@@ -88,10 +88,6 @@ class SemgrepInternalError(Exception):
     pass
 
 
-class UnknownOperatorError(SemgrepError):
-    pass
-
-
 @attr.s(auto_attribs=True, frozen=True)
 class FilesNotFoundError(SemgrepError):
     level = Level.ERROR
@@ -257,12 +253,6 @@ class ErrorWithSpan(SemgrepError):
 
 
 @attr.s(frozen=True, eq=True)
-class InvalidPatternError(ErrorWithSpan):
-    code = INVALID_PATTERN_EXIT_CODE
-    level = Level.ERROR
-
-
-@attr.s(frozen=True, eq=True)
 class InvalidPatternErrorNoSpan(SemgrepError):
     rule_id: str = attr.ib()
     pattern: str = attr.ib()
@@ -293,11 +283,6 @@ class InvalidRuleSchemaError(ErrorWithSpan):
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
     level = Level.ERROR
-
-
-@attr.s(frozen=True, eq=True)
-class InvalidPatternNameError(InvalidRuleSchemaError):
-    pass
 
 
 @attr.s(frozen=True, eq=True)

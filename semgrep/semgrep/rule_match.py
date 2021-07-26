@@ -136,7 +136,3 @@ class RuleMatch:
 
         self._lines_cache[(start_line, end_line)] = result
         return result
-
-    @property
-    def should_fail_run(self) -> bool:
-        return self._severity in {"WARNING", "ERROR"}

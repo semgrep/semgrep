@@ -12,7 +12,6 @@ from typing import Tuple
 from typing import Union
 
 import attr
-from colorama import Fore
 
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
@@ -25,7 +24,6 @@ from semgrep.error import Level
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.metric_manager import metric_manager
-from semgrep.old_core_runner import OldCoreRunner
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
@@ -36,7 +34,6 @@ from semgrep.target_manager import TargetManager
 from semgrep.util import manually_search_file
 from semgrep.util import partition
 from semgrep.util import sub_check_output
-from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 
@@ -244,39 +241,6 @@ The two most popular are:
 
     profiler = ProfileManager()
 
-    # # Turn off optimizations if using features not supported yet
-    if optimizations == "all":
-        # step by step evaluation output not yet supported
-        if output_handler.settings.debug:
-            logger.info(
-                "Running without optimizations since step-by-step evaluation output desired"
-            )
-            optimizations = "none"
-
-        elif any(rule.has_pattern_where_python() for rule in filtered_rules):
-            logger.info(
-                "Running without optimizations since running pattern-where-python rules"
-            )
-            optimizations = "none"
-        elif any(len(rule.equivalences) > 0 for rule in filtered_rules):
-            logger.info("Running without optimizations since running equivalence rules")
-            optimizations = "none"
-
-    if optimizations == "none":
-        logger.warning(
-            with_color(
-                Fore.RED,
-                "Deprecation Notice: running with `--optimizations none` will be deprecated by 0.60.0\n"
-                "This includes the following functionality:\n"
-                "- pattern-where-python\n"
-                "- taint-mode\n"
-                "- equivalences\n"
-                "- step-by-step evaluation output\n"
-                "If you are seeing this notice, without specifing `--optimizations none` it means the rules\n"
-                "you are running are using some of this functionality.",
-            )
-        )
-
     join_rules, rest_of_the_rules = partition(
         lambda rule: rule.mode == JOIN_MODE,
         filtered_rules,
@@ -285,42 +249,21 @@ The two most popular are:
 
     start_time = time.time()
     # actually invoke semgrep
-    if optimizations == "none":
-        (
-            rule_matches_by_rule,
-            debug_steps_by_rule,
-            semgrep_errors,
-            all_targets,
-            profiling_data,
-        ) = OldCoreRunner(
-            output_settings=output_handler.settings,
-            allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
-            jobs=jobs,
-            timeout=timeout,
-            max_memory=max_memory,
-            timeout_threshold=timeout_threshold,
-            optimizations=optimizations,
-        ).invoke_semgrep(
-            target_manager, profiler, filtered_rules
-        )
-    else:
-        (
-            rule_matches_by_rule,
-            debug_steps_by_rule,
-            semgrep_errors,
-            all_targets,
-            profiling_data,
-        ) = CoreRunner(
-            output_settings=output_handler.settings,
-            allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
-            jobs=jobs,
-            timeout=timeout,
-            max_memory=max_memory,
-            timeout_threshold=timeout_threshold,
-            optimizations=optimizations,
-        ).invoke_semgrep(
-            target_manager, profiler, filtered_rules
-        )
+    (
+        rule_matches_by_rule,
+        debug_steps_by_rule,
+        semgrep_errors,
+        all_targets,
+        profiling_data,
+    ) = CoreRunner(
+        jobs=jobs,
+        timeout=timeout,
+        max_memory=max_memory,
+        timeout_threshold=timeout_threshold,
+        optimizations=optimizations,
+    ).invoke_semgrep(
+        target_manager, profiler, filtered_rules
+    )
 
     if join_rules:
         import semgrep.join_rule as join_rule
