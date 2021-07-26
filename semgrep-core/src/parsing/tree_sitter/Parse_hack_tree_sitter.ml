@@ -1317,6 +1317,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       (* TODO: Do not generalize to Dict *)
       G.Container(Dict, (v3, v4, v5))
   | `Tuple (v1, v2, v3, v4) ->
+      (* Note: Purposefully not using Tuple so hope that's correct *)
       let v1 = (* "tuple" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
       let v3 =
@@ -1327,19 +1328,19 @@ and expression (env : env) (x : CST.expression) : G.expr =
               List.map (fun (v1, v2) ->
                 let v1 = (* "," *) token env v1 in
                 let v2 = expression env v2 in
-                todo env (v1, v2)
+                v2
               ) v2
             in
             let v3 =
               (match v3 with
-              | Some tok -> (* "," *) token env tok
-              | None -> todo env ())
+              | Some tok -> (* "," *) Some(token env tok)
+              | None -> None)
             in
-            todo env (v1, v2, v3)
-        | None -> todo env ())
+           v1 :: v2
+        | None -> [])
       in
       let v4 = (* ")" *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      G.Container(List, (v2, v3, v4))
   | `Shape (v1, v2, v3, v4) ->
       let v1 = (* "shape" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -1413,16 +1414,16 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v1 = (* "(" *) token env v1 in
       let v2 =
         (match v2 with
-        | `Array tok -> (* "array" *) token env tok
-        | `Int tok -> (* "int" *) token env tok
-        | `Float tok -> (* "float" *) token env tok
-        | `Str tok -> (* "string" *) token env tok
-        | `Bool tok -> (* "bool" *) token env tok
+        | `Array tok -> (* "array" *) G.TyBuiltin(str env tok)
+        | `Int tok -> (* "int" *) G.TyBuiltin(str env tok)
+        | `Float tok -> (* "float" *) G.TyBuiltin(str env tok)
+        | `Str tok -> (* "string" *) G.TyBuiltin(str env tok)
+        | `Bool tok -> (* "bool" *) G.TyBuiltin(str env tok)
         )
       in
       let v3 = (* ")" *) token env v3 in
       let v4 = expression env v4 in
-      todo env (v1, v2, v3, v4)
+      G.Cast(v2, v4)
   | `Tern_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
       let v2 = (* "?" *) token env v2 in
