@@ -288,9 +288,9 @@ let qualified_identifier (env : env) (x : CST.qualified_identifier) : G.name =
 let xhp_identifier_ (env : env) (x : CST.xhp_identifier_) =
   (match x with
   | `Xhp_id tok ->
-      (* pattern [a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) token env tok
+      (* pattern [a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) str env tok
   | `Xhp_class_id tok ->
-      (* pattern :[a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) token env tok
+      (* pattern :[a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) str env tok
   )
 
 let rec xhp_attribute_expression (env : env) (x : CST.xhp_attribute_expression) =
@@ -356,8 +356,8 @@ let member_modifier (env : env) (x : CST.member_modifier) =
 
 let class_modifier (env : env) (x : CST.class_modifier) =
   (match x with
-  | `Abst_modi tok -> (* "abstract" *) token env tok
-  | `Final_modi tok -> (* "final" *) token env tok
+  | `Abst_modi tok -> (* "abstract" *) G.KeywordAttr(Abstract, (token env tok))
+  | `Final_modi tok -> (* "final" *) G.KeywordAttr(Final, (token env tok))
   )
 
 let anon_choice_str_d42aa42 (env : env) (x : CST.anon_choice_str_d42aa42) =
@@ -994,54 +994,68 @@ and declaration (env : env) (x : CST.declaration) =
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) ->
       let v1 =
         (match v1 with
-        | Some x -> attribute_modifier env x
-        | None -> todo env ())
+        | Some x -> [attribute_modifier env x]
+        | None -> [])
       in 
       let v2 =
         (match v2 with
-        | Some x -> class_modifier env x
-        | None -> todo env ())
+        | Some x -> [class_modifier env x]
+        | None -> [])
       in
       let v3 =
         (match v3 with
-        | Some x -> class_modifier env x
-        | None -> todo env ())
+        | Some x -> [class_modifier env x]
+        | None -> [])
       in
       let v4 =
         (match v4 with
-        | Some tok -> (* "xhp" *) token env tok
-        | None -> todo env ())
+        | Some tok -> (* "xhp" *)
+          (* Q: Does it make sense for the token and name to both be the xhp identifier?
+             Is NamedAttr even correct? *)
+          [G.NamedAttr(token env tok, Id (str env tok, G.empty_id_info()), G.fake_bracket [])]
+        | None -> [])
       in
       let v5 = (* "class" *) token env v5 in
       let v6 =
         (match v6 with
         | `Id tok ->
-            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env tok
+            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env tok
         | `Choice_xhp_id x -> xhp_identifier_ env x
         )
       in
       let v7 =
         (match v7 with
-        | Some x -> type_parameters env x
-        | None -> todo env ())
+        | Some x -> Some(type_parameters env x)
+        | None -> None)
       in
       let v8 =
         (match v8 with
         | Some x -> extends_clause env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v9 =
         (match v9 with
         | Some x -> implements_clause env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v10 =
+        (* Q: What does this even do? *)
         (match v10 with
         | Some x -> where_clause env x
-        | None -> todo env ())
+        | None -> None)
       in
       let v11 = member_declarations env v11 in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11)
+      let def : G.class_definition = {
+        ckind = (G.Class, v5);
+        cextends = v8;
+        cimplements = v9;
+        cmixins = [];
+        cparams = [];
+        cbody = v11;
+      } in
+      let attrs = v1 @ v2 @ v3 @ v4
+      in
+      G.DefStmt (G.basic_entity v6 attrs, G.ClassDef def)
   | `Inte_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         (match v1 with
@@ -1485,10 +1499,10 @@ and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) =
     List.map (fun (v1, v2) ->
       let v1 = (* "," *) token env v1 in
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
-  todo env (v1, v2, v3)
+  v2 :: v3
 
 and field_initializer (env : env) ((v1, v2, v3) : CST.field_initializer) =
   let v1 =
@@ -1555,10 +1569,10 @@ and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) =
     List.map (fun (v1, v2) ->
       let v1 = (* "," *) token env v1 in
       let v2 = type_ env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
-  todo env (v1, v2, v3)
+  v2 :: v3
 
 and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
   let v1 = (* "{" *) token env v1 in
@@ -1580,7 +1594,7 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
     ) v2
   in
   let v3 = (* "}" *) token env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
   let v1 =
