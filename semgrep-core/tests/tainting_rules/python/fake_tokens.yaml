@@ -1,0 +1,10 @@
+rules:
+- id: open-redirect
+  mode: taint
+  message: Test
+  languages: [python]
+  severity: WARNING
+  pattern-sources:
+  - pattern: request.$W
+  pattern-sinks:
+  - pattern: redirect(...)
