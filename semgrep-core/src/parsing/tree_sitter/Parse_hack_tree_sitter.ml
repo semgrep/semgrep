@@ -101,9 +101,9 @@ let use_type (env : env) (x : CST.use_type) =
 
 let visibility_modifier (env : env) (x : CST.visibility_modifier) =
   (match x with
-  | `Public tok -> (* "public" *) token env tok
-  | `Prot tok -> (* "protected" *) token env tok
-  | `Priv tok -> (* "private" *) token env tok
+  | `Public tok -> (* "public" *) G.KeywordAttr(Public, (token env tok))
+  | `Prot tok -> (* "protected" *) G.KeywordAttr(Protected, (token env tok))
+  | `Priv tok -> (* "private" *) G.KeywordAttr(Private, (token env tok))
   )
 
 (*
@@ -163,12 +163,13 @@ let null (env : env) (x : CST.null) =
 
 let collection_type (env : env) (x : CST.collection_type) =
   (match x with
-  | `Array tok -> (* "array" *) token env tok
-  | `Varray tok -> (* "varray" *) token env tok
-  | `Darray tok -> (* "darray" *) token env tok
-  | `Vec tok -> (* "vec" *) token env tok
-  | `Dict tok -> (* "dict" *) token env tok
-  | `Keyset tok -> (* "keyset" *) token env tok
+  (* Note: Changing `token` to `str` may backfire later *)
+  | `Array tok -> (* "array" *) str env tok
+  | `Varray tok -> (* "varray" *) str env tok
+  | `Darray tok -> (* "darray" *) str env tok
+  | `Vec tok -> (* "vec" *) str env tok
+  | `Dict tok -> (* "dict" *) str env tok
+  | `Keyset tok -> (* "keyset" *) str env tok
   )
 
 let type_modifier (env : env) (x : CST.type_modifier) =
@@ -330,28 +331,28 @@ let rec xhp_attribute_expression (env : env) (x : CST.xhp_attribute_expression) 
       todo env (v1, v2, v3, v4)
   )
 
-let primitive_type (env : env) (x : CST.primitive_type) : G.type_=
+let primitive_type (env : env) (x : CST.primitive_type) =
   (match x with
-  | `Bool tok -> (* "bool" *) TyBuiltin (str env tok)
-  | `Float tok -> (* "float" *) TyBuiltin (str env tok)
-  | `Int tok -> (* "int" *) TyBuiltin (str env tok)
-  | `Str tok -> (* "string" *) TyBuiltin (str env tok)
-  | `Arra tok -> (* "arraykey" *) TyBuiltin (str env tok)
-  | `Void tok -> (* "void" *) TyBuiltin (str env tok)
-  | `Nonn tok -> (* "nonnull" *) TyBuiltin (str env tok)
+  | `Bool tok -> (* "bool" *) (str env tok)
+  | `Float tok -> (* "float" *) (str env tok)
+  | `Int tok -> (* "int" *) (str env tok)
+  | `Str tok -> (* "string" *) (str env tok)
+  | `Arra tok -> (* "arraykey" *) (str env tok)
+  | `Void tok -> (* "void" *) (str env tok)
+  | `Nonn tok -> (* "nonnull" *) (str env tok)
   (* Q: Why can't we access `x` directly before pass... Getting type error? *)
-  | `Null x -> TyBuiltin (str env (null env x))
-  | `Mixed tok -> (* "mixed" *) TyBuiltin (str env tok)
-  | `Dyna tok -> (* "dynamic" *) TyBuiltin (str env tok)
-  | `Nore tok -> (* "noreturn" *) TyBuiltin (str env tok)
+  | `Null x -> (str env (null env x))
+  | `Mixed tok -> (* "mixed" *) (str env tok)
+  | `Dyna tok -> (* "dynamic" *) (str env tok)
+  | `Nore tok -> (* "noreturn" *) (str env tok)
   )
 
 let member_modifier (env : env) (x : CST.member_modifier) =
   (match x with
   | `Visi_modi x -> visibility_modifier env x
-  | `Static_modi tok -> (* "static" *) token env tok
-  | `Abst_modi tok -> (* "abstract" *) token env tok
-  | `Final_modi tok -> (* "final" *) token env tok
+  | `Static_modi tok -> (* "static" *) G.KeywordAttr(Static, (token env tok))
+  | `Abst_modi tok -> (* "abstract" *) G.KeywordAttr(Abstract, (token env tok))
+  | `Final_modi tok -> (* "final" *) G.KeywordAttr(Final, (token env tok))
   )
 
 let class_modifier (env : env) (x : CST.class_modifier) =
@@ -444,14 +445,14 @@ let xhp_children_declaration (env : env) ((v1, v2, v3, v4) : CST.xhp_children_de
 
 let keyword (env : env) (x : CST.keyword) =
   (match x with
-  | `Type tok -> (* "type" *) token env tok
-  | `Newt tok -> (* "newtype" *) token env tok
-  | `Shape tok -> (* "shape" *) token env tok
-  | `Tupe tok -> (* "tupe" *) token env tok
-  | `Clone tok -> (* "clone" *) token env tok
-  | `New tok -> (* "new" *) token env tok
-  | `Print tok -> (* "print" *) token env tok
-  | `Choice_bool x -> todo env x (* primitive_type env x *)
+  | `Type tok -> (* "type" *) str env tok
+  | `Newt tok -> (* "newtype" *) str env tok
+  | `Shape tok -> (* "shape" *) str env tok
+  | `Tupe tok -> (* "tupe" *) str env tok
+  | `Clone tok -> (* "clone" *) str env tok
+  | `New tok -> (* "new" *) str env tok
+  | `Print tok -> (* "print" *) str env tok
+  | `Choice_bool x -> primitive_type env x
   | `Choice_array x -> collection_type env x
   )
 
@@ -544,7 +545,7 @@ let use_clause (env : env) ((v1, v2, v3) : CST.use_clause) =
 let anon_choice_id_0f53960 (env : env) (x : CST.anon_choice_id_0f53960) =
   (match x with
   | `Id tok ->
-      (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env tok
+      (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env tok
   | `Choice_type x -> keyword env x
   )
 
@@ -832,7 +833,8 @@ and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
       G.Call (G.IdSpecial (G.Op G.Elvis, v2), G.fake_bracket [ G.Arg v1; G.Arg v3 ])
   
   (* These are all assignment.
-     TODO: Consider splitting out in grammar. *)
+     TODO: Consider splitting out in grammar.
+     Q: Does this overlap with VarDef? *)
   | `Exp_EQ_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = (* "=" *) token env v2 in
@@ -937,34 +939,48 @@ and catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) =
 
 and class_const_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_const_declaration) =
   let v1 = List.map (member_modifier env) v1 in
-  let v2 = (* "const" *) token env v2 in
+  let v2 = (* "const" *) [G.KeywordAttr(Const, (token env v2))] in
+  let attrs = v1 @ v2 in
   let v3 =
     (match v3 with
-    | Some x -> type_ env x
-    | None -> todo env ())
+    | Some x -> Some(type_ env x)
+    | None -> None)
   in
-  let v4 = class_const_declarator env v4 in
+  (* TODO: I dislike this pattern of reaching into objects and editing them.
+      How do I avoid this? By passing down :yikes: *)
+  let v6 = (* ";" *) token env v6 in
+  let v4 = class_const_declarator env v4 attrs v3 |> G.s in
   let v5 =
     List.map (fun (v1, v2) ->
       let v1 = (* "," *) token env v1 in
-      let v2 = class_const_declarator env v2 in
-      todo env (v1, v2)
+      let v2 = class_const_declarator env v2 attrs v3 |> G.s in
+      v2
     ) v5
   in
-  let v6 = (* ";" *) token env v6 in
-  todo env (v1, v2, v3, v4, v5, v6)
+  let defs = v4 :: v5 in
+  (* Q: Represent statements series without blocks? Use function [[AST_generic.basic_field]]? *)
+  (* Could get around it here by changing parent, but not always applicable/sensible *)
+  G.FieldStmt(G.Block(G.fake_bracket defs) |> G.s)
 
-and class_const_declarator (env : env) ((v1, v2) : CST.class_const_declarator) =
+and class_const_declarator (env : env) ((v1, v2) : CST.class_const_declarator) attrs vtype =
   let v1 = anon_choice_id_0f53960 env v1 in
   let v2 =
     (match v2 with
     | Some (v1, v2) ->
         let v1 = (* "=" *) token env v1 in
         let v2 = expression env v2 in
-        todo env (v1, v2)
-    | None -> todo env ())
+        Some v2
+    | None -> None)
   in
-  todo env (v1, v2)
+  let ent = G.basic_entity v1 attrs in
+  let def : G.variable_definition = {
+    vinit = v2;
+    vtype = vtype;
+  }
+  in
+  G.DefStmt(ent, G.VarDef def)
+  (* TODO: Handle const declaration without assignment. Is this VarDef? *)
+  (* Q: VarDef vs Assign! *)
 
 and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) : G.stmt =
   let v1 = (* "{" *) token env v1 in
@@ -1580,7 +1596,7 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
     List.map (fun x ->
       (match x with
       | `Class_const_decl x -> class_const_declaration env x
-      | `Meth_decl x -> method_declaration env x
+      | `Meth_decl x -> G.FieldStmt(method_declaration env x |> G.s)
       | `Prop_decl x -> property_declaration env x
       | `Type_const_decl x -> type_const_declaration env x
       | `Trait_use_clause x -> trait_use_clause env x
@@ -1599,13 +1615,15 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
 and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
   let v1 =
     (match v1 with
-    | Some x -> attribute_modifier env x
-    | None -> todo env ())
+    | Some x -> [attribute_modifier env x]
+    | None -> [])
   in
   let v2 = List.map (member_modifier env) v2 in
-  let v3 = function_declaration_header env v3 in
+  let v3, identifier = function_declaration_header env v3 in
   let v4 = anon_choice_comp_stmt_c6c6bb4 env v4 in
-  todo env (v1, v2, v3, v4)
+  let def = {v3 with fbody = v4} in
+  let ent = G.basic_entity identifier (v1 @ v2) in
+  G.DefStmt (ent, G.FuncDef def)
 
 and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) : G.parameter =
   let v1 =
@@ -1917,6 +1935,8 @@ and statement (env : env) (x : CST.statement) =
               | Some tok -> (* "," *) Some(token env tok)
               | None -> None)
             in
+            (* Q: Is it improper to use blocks to represent directive groups? *)
+            (* Lua seems to get around this by return statement lists here and flattening way up *)
             G.Block (G.fake_bracket (v1 :: v2))
         | `Opt_use_type_name_id_LCURL_use_clause_rep_COMMA_use_clause_opt_COMMA_RCURL (v1, v2, v3, v4, v5, v6, v7) ->
             (* Q: How to represent `use` type? We are also possibly passed it up from use_clause. *)
@@ -2146,7 +2166,7 @@ and type_ (env : env) (x : CST.type_) : G.type_=
       let v1 = List.map (type_modifier env) v1 in
       let v2 =
         (match v2 with
-        | `Choice_bool x -> primitive_type env x
+        | `Choice_bool x -> G.TyBuiltin(primitive_type env x)
         | `Qual_id x -> G.TyN (qualified_identifier env x) (* qualified_identifier env x *)
         | `Choice_array x -> todo env x (* collection_type env x *)
         | `Choice_xhp_id x -> todo env x (* xhp_identifier_ env x *)
@@ -2260,24 +2280,28 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) =
   let v2 =
     (match v2 with
     | Some (v1, v2, v3) ->
-        let v1 = type_ env v1 in
+        let v1 = G.TypeArg(type_ env v1) in
         let v2 =
           List.map (fun (v1, v2) ->
             let v1 = (* "," *) token env v1 in
-            let v2 = type_ env v2 in
-            todo env (v1, v2)
+            let v2 = G.TypeArg(type_ env v2) in
+            v2
           ) v2
         in
         let v3 =
           (match v3 with
-          | Some tok -> (* "," *) token env tok
-          | None -> todo env ())
+          | Some tok -> (* "," *) Some(token env tok)
+          | None -> None)
         in
-        todo env (v1, v2, v3)
-    | None -> todo env ())
+        Some(v1 :: v2)
+    | None -> None)
   in
   let v3 = (* ">" *) token env v3 in
-  todo env (v1, v2, v3)
+  (match v2 with
+  | Some v2 -> Some(v1, v2, v3)
+  | None -> None
+  )
+  
 
 and type_const_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.type_const_declaration) =
   let v1 =
