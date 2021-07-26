@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - JS: Detect numeric object keys `1` and `0x1` as equal (#3579)
 - taint-mode: Check nested functions
 - taint-mode: `foo.x` is now detected as tainted if `foo` is a source of taint
+- taint-mode: Do not crash when is not possible to compute range info
 
 ### Changed
 - Added precise error location for the semgrep metachecker, to detect for example

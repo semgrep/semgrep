@@ -28,7 +28,7 @@ module PM = Pattern_match
  * Here we pass matcher functions that uses semgrep patterns to
  * describe the source/sink/sanitizers.
  *)
-let _logger = Logging.get_logger [ __MODULE__ ]
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -49,9 +49,15 @@ end)
 let any_in_ranges any ranges =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
-  let tok1, tok2 = Visitor_AST.range_of_any any in
-  let r = { Range.start = tok1.charpos; end_ = tok2.charpos } in
-  List.exists (Range.( $<=$ ) r) ranges
+  match Visitor_AST.range_of_any_opt any with
+  | None ->
+      logger#debug
+        "Cannot compute range, there are no real tokens in this AST: %s"
+        (AST.show_any any);
+      false
+  | Some (tok1, tok2) ->
+      let r = { Range.start = tok1.charpos; end_ = tok2.charpos } in
+      List.exists (Range.( $<=$ ) r) ranges
 
 let ranges_of_pformula config equivs file_and_more rule_id pformula =
   let file, _, _ = file_and_more in
