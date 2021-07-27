@@ -3,7 +3,8 @@
 exception InvalidLanguage of Rule.rule_id * string * Parse_info.t
 
 exception
-  InvalidPattern of Rule.rule_id * string * Rule.xlang * string * Parse_info.t * string list
+  InvalidPattern of
+    Rule.rule_id * string * Rule.xlang * string * Parse_info.t * string list
 
 exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
 

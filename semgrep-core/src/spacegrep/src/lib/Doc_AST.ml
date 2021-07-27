@@ -47,9 +47,7 @@ and of_pattern_node acc pat_node =
       let loc1 = (pos1, pos2) in
       let loc2 = (pos2, pos3) in
       Atom (loc2, Punct '.')
-      :: Atom (loc1, Punct '.')
-      :: Atom (loc0, Punct '.')
-      :: acc
+      :: Atom (loc1, Punct '.') :: Atom (loc0, Punct '.') :: acc
   | Dots (loc, Some s) ->
       (* $...MVAR *)
       let pos0, pos5 = loc in
@@ -63,11 +61,11 @@ and of_pattern_node acc pat_node =
       let loc3 = (pos3, pos4) in
       let loc4 = (pos4, pos5) in
       Atom (loc4, Word s)
-      :: Atom (loc3, Punct '.')
-      :: Atom (loc2, Punct '.')
-      :: Atom (loc1, Punct '.')
-      :: Atom (loc0, Punct '$')
-      :: acc
+      ::
+      Atom (loc3, Punct '.')
+      ::
+      Atom (loc2, Punct '.')
+      :: Atom (loc1, Punct '.') :: Atom (loc0, Punct '$') :: acc
   | List pat -> List (of_pattern pat) :: acc
 
 let rec to_pattern (doc : t) : Pattern_AST.t = list_map_tailrec to_pat_node doc

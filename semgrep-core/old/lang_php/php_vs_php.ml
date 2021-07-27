@@ -1260,8 +1260,11 @@ functor
     (* comma list dots iso *)
     (*---------------------------------------------------------------------------*)
     and m_comma_list_dots :
-          'a 'b. ('a -> 'b -> X.tin -> ('a * 'b) X.tout) ->
-          'a A.comma_list_dots -> 'b B.comma_list_dots -> X.tin ->
+          'a 'b.
+          ('a -> 'b -> X.tin -> ('a * 'b) X.tout) ->
+          'a A.comma_list_dots ->
+          'b B.comma_list_dots ->
+          X.tin ->
           ('a A.comma_list_dots * 'b B.comma_list_dots) X.tout =
      fun f xsa xsb ->
       match (xsa, xsb) with

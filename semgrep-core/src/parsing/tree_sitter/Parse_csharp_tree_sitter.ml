@@ -1332,7 +1332,7 @@ and expression (env : env) (x : CST.expression) : AST.expr =
         | None -> fake_bracket []
       in
       let lp, v3', rp = v3 in
-      let args = (lp, (ArgType v2 :: v3') @ [ Arg (Tuple v4) ], rp) in
+      let args = (lp, ArgType v2 :: v3' @ [ Arg (Tuple v4) ], rp) in
       Call (IdSpecial (New, v1), args)
   | `Paren_exp x -> parenthesized_expression env x
   | `Post_un_exp x -> postfix_unary_expression env x
@@ -2309,7 +2309,7 @@ let accessor_declaration (env : env)
   in
   let v4 = function_body env v4 in
   let id, attr = v3 in
-  ((attr :: v1) @ v2, id, v4)
+  (attr :: v1 @ v2, id, v4)
 
 let bracketed_parameter_list (env : env)
     ((v1, v2, v3, v4) : CST.bracketed_parameter_list) =
@@ -2593,7 +2593,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           { fkind = (AST.Method, tok); fparams = v4; frettype = None; fbody }
       in
       let ctor = KeywordAttr (Ctor, tok) in
-      let attrs = (ctor :: v1) @ v2 in
+      let attrs = ctor :: v1 @ v2 in
       let ent = basic_entity v3 attrs in
       AST.DefStmt (ent, def) |> AST.s
   | `Conv_op_decl (v1, v2, v3, v4, v5, v6, v7) ->
@@ -2645,7 +2645,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           }
       in
       let dtor = KeywordAttr (Dtor, v3) in
-      let ent = basic_entity name ((dtor :: v1) @ v2) in
+      let ent = basic_entity name (dtor :: v1 @ v2) in
       AST.DefStmt (ent, def) |> AST.s
   | `Event_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.concat_map (attribute_list env) v1 in
@@ -2702,7 +2702,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v3 = unhandled_keywordattr_to_namedattr env v3 (* "event" *) in
       let v4 = variable_declaration env v4 in
       let v5 = token env v5 (* ";" *) in
-      var_def_stmt v4 ((v3 :: v1) @ v2)
+      var_def_stmt v4 (v3 :: v1 @ v2)
   | `Field_decl (v1, v2, v3, v4) ->
       let v1 = List.concat_map (attribute_list env) v1 in
       let v2 = List.map (modifier env) v2 in

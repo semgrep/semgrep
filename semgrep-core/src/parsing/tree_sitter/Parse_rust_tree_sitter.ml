@@ -332,8 +332,7 @@ let rec map_simple_path (env : env) (x : CST.simple_path) : G.dotted_ident =
   | `Super tok -> [ ident env tok ] (* "super" *)
   | `Crate tok -> [ ident env tok ] (* "crate" *)
   | `Id tok ->
-      [ ident env tok ]
-      (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+      [ ident env tok ] (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   | `Simple_scoped_id x ->
       let dots, ident = map_simple_scoped_identifier env x in
       ident :: dots
@@ -347,8 +346,7 @@ and map_simple_path_ident (env : env) (x : CST.simple_path) :
   | `Super tok -> ([], ident env tok) (* "super" *)
   | `Crate tok -> ([], ident env tok) (* "crate" *)
   | `Id tok ->
-      ([], ident env tok)
-      (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+      ([], ident env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   | `Simple_scoped_id x -> map_simple_scoped_identifier env x
 
 and map_simple_scoped_identifier (env : env)
@@ -404,8 +402,7 @@ let map_non_special_token (env : env) (x : CST.non_special_token) : G.any =
       let lit = map_literal env x in
       G.E (G.L lit)
   | `Id tok ->
-      G.I (str env tok)
-      (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
+      G.I (str env tok) (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   | `Choice_u8 x ->
       let id = map_primitive_type_ident env x in
       G.I id

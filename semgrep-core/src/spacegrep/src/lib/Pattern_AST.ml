@@ -39,8 +39,7 @@ let rec as_doc (pat : t) : t =
           let start, end_ = loc in
           let word_loc = (Loc.Pos.shift start 1, end_) in
           Atom (Loc.sub loc 0 1, Punct '$')
-          :: Atom (word_loc, Word s)
-          :: as_doc pat)
+          :: Atom (word_loc, Word s) :: as_doc pat)
   | Dots (loc, None) :: pat ->
       let pos0, pos3 = loc in
       let pos1 = Loc.Pos.shift pos0 1 in
@@ -49,9 +48,7 @@ let rec as_doc (pat : t) : t =
       let loc1 = (pos1, pos2) in
       let loc2 = (pos2, pos3) in
       Atom (loc0, Punct '.')
-      :: Atom (loc1, Punct '.')
-      :: Atom (loc2, Punct '.')
-      :: as_doc pat
+      :: Atom (loc1, Punct '.') :: Atom (loc2, Punct '.') :: as_doc pat
   | Dots (loc, Some s) :: pat ->
       let pos0, pos5 = loc in
       let pos1 = Loc.Pos.shift pos0 1 in
@@ -64,11 +61,11 @@ let rec as_doc (pat : t) : t =
       let loc3 = (pos3, pos4) in
       let loc4 = (pos4, pos5) in
       Atom (loc0, Punct '$')
-      :: Atom (loc1, Punct '.')
-      :: Atom (loc2, Punct '.')
-      :: Atom (loc3, Punct '.')
-      :: Atom (loc4, Word s)
-      :: as_doc pat
+      ::
+      Atom (loc1, Punct '.')
+      ::
+      Atom (loc2, Punct '.')
+      :: Atom (loc3, Punct '.') :: Atom (loc4, Word s) :: as_doc pat
   | List pat1 :: pat2 -> List (as_doc pat1) :: as_doc pat2
 
 (* Equality function that disregards location. Meant for unit tests. *)

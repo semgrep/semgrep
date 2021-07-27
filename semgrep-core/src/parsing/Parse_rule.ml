@@ -83,7 +83,13 @@ exception InvalidLanguage of Rule.rule_id * string * Parse_info.t
  * start of the pattern *)
 exception
   InvalidPattern of
-    Rule.rule_id * string * Rule.xlang * string (* exn *) * Parse_info.t * string list (* path *)
+    Rule.rule_id
+    * string
+    * Rule.xlang
+    * string (* exn *)
+    * Parse_info.t
+    * string list
+(* path *)
 
 exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
 
@@ -355,7 +361,8 @@ let parse_pattern ~id ~lang (pattern, t, path) =
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       raise
-        (InvalidPattern (id, pattern, Rule.L (lang, []), Common.exn_to_s exn, t, path))
+        (InvalidPattern
+           (id, pattern, Rule.L (lang, []), Common.exn_to_s exn, t, path))
 
 let parse_xpattern env e =
   let s, t =
@@ -377,7 +384,9 @@ let parse_xpattern env e =
   in
   match env.languages with
   | R.L (lang, _) ->
-      R.mk_xpat (Sem (parse_pattern ~id:env.id ~lang (s, t, env.path), lang)) (s, t)
+      R.mk_xpat
+        (Sem (parse_pattern ~id:env.id ~lang (s, t, env.path), lang))
+        (s, t)
   | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
@@ -385,7 +394,8 @@ let parse_xpattern env e =
       | Ok ast -> R.mk_xpat (Spacegrep ast) (s, t)
       | Error err ->
           (* TODO: adjust error pos instead of using [t] *)
-          raise (InvalidPattern (env.id, s, Rule.LGeneric, err.msg, t, env.path)))
+          raise
+            (InvalidPattern (env.id, s, Rule.LGeneric, err.msg, t, env.path)))
 
 let find_formula_old (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in

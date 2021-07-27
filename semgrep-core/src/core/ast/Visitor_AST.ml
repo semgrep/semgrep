@@ -1229,8 +1229,7 @@ let extract_info_visitor recursor =
 (*e: function [[Lib_AST.extract_info_visitor]] *)
 
 (*s: function [[Lib_AST.ii_of_any]] *)
-let ii_of_any any =
-  extract_info_visitor (fun visitor -> visitor any)
+let ii_of_any any = extract_info_visitor (fun visitor -> visitor any)
   [@@profiling]
 
 (*e: function [[Lib_AST.ii_of_any]] *)
@@ -1290,8 +1289,7 @@ let range_of_tokens tokens =
   List.filter PI.is_origintok tokens |> PI.min_max_ii_by_pos
   [@@profiling]
 
-let range_of_any_opt any =
-  extract_ranges (fun visitor -> visitor any)
+let range_of_any_opt any = extract_ranges (fun visitor -> visitor any)
   [@@profiling]
 
 let range_of_any any =

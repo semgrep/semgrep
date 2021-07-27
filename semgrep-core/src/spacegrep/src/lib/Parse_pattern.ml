@@ -31,9 +31,7 @@ let append_block_to_accumulator open_punct close_punct open_loc close_loc
   | [] -> Atom (close_loc, close_punct) :: Atom (open_loc, open_punct) :: acc
   | block_nodes ->
       Atom (close_loc, close_punct)
-      :: List block_nodes
-      :: Atom (open_loc, open_punct)
-      :: acc
+      :: List block_nodes :: Atom (open_loc, open_punct) :: acc
 
 (*
    Parse a line made of ordinary tokens and of opening and closing braces.

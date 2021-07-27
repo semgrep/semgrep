@@ -270,7 +270,8 @@ and v_type_ = function
       let v1 = v_type_ v1 in
       let _v2 = v_tok v2 in
       let _lb, defs, _rb = v_refinement v3 in
-      todo_type "TyExistential" (G.T v1 :: (defs |> List.map (fun x -> G.Def x)))
+      todo_type "TyExistential"
+        (G.T v1 :: (defs |> List.map (fun x -> G.Def x)))
   | TyWith (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_tok v2 and v3 = v_type_ v3 in
       G.TyAnd (v1, v2, v3)

@@ -269,7 +269,8 @@ let json_of_exn e =
           ("error", J.String "invalid language");
           ("language", J.String language);
         ]
-  | Parse_rule.InvalidPattern (pattern_id, pattern, xlang, message, pos, path) ->
+  | Parse_rule.InvalidPattern (pattern_id, pattern, xlang, message, pos, path)
+    ->
       let lang = Rule.string_of_xlang xlang in
       let range_json =
         match pos with
@@ -288,7 +289,7 @@ let json_of_exn e =
                          match int_of_string_opt x with
                          | Some i -> J.Int i
                          | None -> J.String x)
-                       (List.rev path)));
+                       (List.rev path)) );
               ]
       in
       J.Object
@@ -298,7 +299,7 @@ let json_of_exn e =
           ("pattern", J.String pattern);
           ("language", J.String lang);
           ("message", J.String message);
-          ("range", range_json)
+          ("range", range_json);
         ]
   | Parse_rule.InvalidRegexp (pattern_id, message, _posTODO) ->
       J.Object

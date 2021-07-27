@@ -203,9 +203,9 @@ let generalize_call env = function
       | IdSpecial _ -> exact_metavar (e, (lp, es, rp)) env :: optional
       | _ ->
           shallow_dots (e, (lp, rp))
-          :: shallow_metavar (e, (lp, es, rp)) env
-          :: exact_metavar (e, (lp, es, rp)) env
-          :: optional)
+          ::
+          shallow_metavar (e, (lp, es, rp)) env
+          :: exact_metavar (e, (lp, es, rp)) env :: optional)
   | _ -> []
 
 (* Id *)
