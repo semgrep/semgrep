@@ -26,7 +26,7 @@ module H = Parse_tree_sitter_helpers
  * to pfff/lang_go/parsing/ast_go.ml
  *
  * The resulting AST can then be converted to the generic AST by using
- * pfff/lang_go/analyze/go_to_generic.ml
+ * go_to_generic.ml
  *)
 
 (*****************************************************************************)
