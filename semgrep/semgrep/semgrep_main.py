@@ -177,6 +177,7 @@ def main(
     skip_unknown_extensions: bool = False,
     severity: Optional[List[str]] = None,
     optimizations: str = "none",
+    sarif_include_ignores: bool = False,
 ) -> None:
     if include is None:
         include = []
@@ -356,6 +357,8 @@ The two most popular are:
             for rule_match in rule_matches:
                 if rule_match._is_ignored:
                     num_findings_nosem += 1
+                    if sarif_include_ignores:
+                        filtered_rule_matches.append(rule_match)
                 else:
                     filtered_rule_matches.append(rule_match)
             filtered_rule_matches_by_rule[rule] = filtered_rule_matches

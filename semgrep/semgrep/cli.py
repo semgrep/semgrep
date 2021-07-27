@@ -262,6 +262,11 @@ def cli() -> None:
         "--sarif", action="store_true", help="Output results in SARIF format."
     )
     output.add_argument(
+        "--sarif-include-nosem-findings",
+        action="store_true",
+        help="If --sarif is set, include nosemgrep ignored findings with a suppressions object attached.",
+    )
+    output.add_argument(
         "--emacs",
         action="store_true",
         help="Output results in Emacs single-line format.",
@@ -537,4 +542,6 @@ def cli() -> None:
                 skip_unknown_extensions=args.skip_unknown_extensions,
                 severity=args.severity,
                 optimizations=args.optimizations,
+                sarif_include_ignores=args.sarif_include_nosem_findings
+                and output_format == OutputFormat.SARIF,
             )
