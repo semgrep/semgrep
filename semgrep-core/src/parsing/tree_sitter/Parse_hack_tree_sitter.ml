@@ -1300,7 +1300,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v4 = (* heredoc_end *) token env v4 in
       todo env (v1, v2, v3, v4)
   | `Array (v1, v2, v3, v4, v5) ->
-      let v1 = collection_type env v1 in
+      let collection = collection_type env v1 in
       let v2 =
         (match v2 with
         | Some x -> type_arguments env x
@@ -1314,8 +1314,16 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | None -> [])
       in
       let v5 = (* "]" *) token env v5 in
-      (* TODO: Do not generalize to Dict *)
-      G.Container(Dict, (v3, v4, v5))
+      let collection_type = (match v1 with
+      | `Array tok -> (* "array" *) G.Dict
+      | `Varray tok -> (* "varray" *) G.Array
+      | `Darray tok -> (* "darray" *) G.Dict
+      | `Vec tok -> (* "vec" *) G.Array
+      | `Dict tok -> (* "dict" *) G.Dict
+      | `Keyset tok -> (* "keyset" *) G.Set
+      )
+      in
+      G.Container(collection_type, (v3, v4, v5))
   | `Tuple (v1, v2, v3, v4) ->
       (* Note: Purposefully not using Tuple so hope that's correct *)
       let v1 = (* "tuple" *) token env v1 in
@@ -1604,7 +1612,7 @@ and function_declaration_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.
     fkind = (G.Function, function_keyword);
     fparams = parameters;
     frettype = attribute_modifier_and_return_type;
-    fbody = G.empty_fbody;(* To be replaced in parent with real statement *)
+    fbody = G.empty_fbody; (* To be replaced in parent with real statement. Could also replace with passthrough strategy *)
   },
   identifier
 
@@ -1658,18 +1666,19 @@ and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
 and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) : G.parameter =
   let v1 =
     (match v1 with
-    | Some x -> Some (attribute_modifier env x)
-    | None -> None) (* Could also be []? Preference? *)
+    | Some x -> [attribute_modifier env x]
+    | None -> [])
   in
   let v2 =
     (match v2 with
-    | Some x -> Some (visibility_modifier env x)
-    | None -> None)
+    | Some x -> [visibility_modifier env x]
+    | None -> [])
   in
   let v3 =
+    (* Q: Mutable? This is the best keyword I could think of. *)
     (match v3 with
-    | Some tok -> (* "inout" *) Some (token env tok)
-    | None -> None)
+    | Some tok -> (* "inout" *) [G.KeywordAttr(Mutable, (token env tok))]
+    | None -> [])
   in
   let v4 =
     (match v4 with
@@ -1696,7 +1705,7 @@ and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) : G.par
     pname = Some v6;
     ptype = v4;
     pdefault = v7;
-    pattrs = [];
+    pattrs = v1 @ v2 @ v3;
     pinfo = G.basic_id_info (Param, G.sid_TODO); (* Q: But why sid_TODO? Like what is this info? *)
   }
 
@@ -2268,14 +2277,15 @@ and type_ (env : env) (x : CST.type_) : G.type_=
             in
             let v4 =
               List.map (fun (v1, v2, v3, v4) ->
-              (* TODO: Handle `...` and `inout` *)
+              (* TODO: Handle `...` *)
                 let v1 = (* "," *) token env v1 in
                 let v2 =
                   (match v2 with
-                  | Some tok -> (* "inout" *) Some(token env tok)
-                  | None -> None)
+                  | Some tok -> (* "inout" *) [G.KeywordAttr(Mutable, (token env tok))]
+                  | None -> [])
                 in
-                let v3 = G.ParamClassic(G.param_of_type (type_ env v3)) in
+                let v3 = let param = G.param_of_type (type_ env v3) in
+                  G.ParamClassic({param with pattrs = v2}) in
                 let v4 =
                   (match v4 with
                   | Some tok -> (* "..." *) Some(token env tok)
