@@ -20,9 +20,10 @@ PatternId = NewType("PatternId", str)
 Operator = NewType("Operator", str)
 FileExtension = NewType("FileExtension", str)
 
+JOIN_MODE = Mode("join")
 TAINT_MODE = Mode("taint")
 SEARCH_MODE = DEFAULT_MODE = Mode("search")
-SUPPORTED_MODES = {TAINT_MODE, SEARCH_MODE}
+SUPPORTED_MODES = {TAINT_MODE, SEARCH_MODE, JOIN_MODE}
 
 YAML_TAINT_MUST_HAVE_KEYS = {"pattern-sinks", "pattern-sources"}
 
@@ -45,6 +46,8 @@ class Language(Enum):
     YAML: str = "yaml"
     ML: str = "ml"
     SCALA: str = "scala"
+    VUE: str = "vue"
+    HTML: str = "html"
     JSON: str = "json"
     REGEX: str = "regex"
     GENERIC: str = "generic"
@@ -68,6 +71,8 @@ class Language_util:
         Language.KOTLIN: [Language.KOTLIN.value, "Kotlin", "kotlin"],
         Language.YAML: [Language.YAML.value, "Yaml"],
         Language.SCALA: [Language.SCALA.value],
+        Language.VUE: [Language.VUE.value],
+        Language.HTML: [Language.HTML.value],
         Language.ML: [Language.ML.value, "ocaml"],
         Language.JSON: [Language.JSON.value, "JSON", "Json"],
         Language.REGEX: [Language.REGEX.value, "none"],

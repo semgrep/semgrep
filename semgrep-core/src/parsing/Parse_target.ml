@@ -90,6 +90,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
           with
           | Timeout -> raise Timeout
           | exn ->
+              (* TODO: print where the exception was raised or reraise *)
               logger#debug "exn (%s) with Pfff parser" (Common.exn_to_s exn);
               Error exn)
   | TreeSitter f -> (
@@ -116,8 +117,9 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
       with
       | Timeout -> raise Timeout
       | exn ->
+          (* TODO: print where the exception was raised or reraise *)
           logger#debug "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
-          Error exn )
+          Error exn)
 
 let rec (run_either :
           Common.filename -> 'ast parser list -> 'ast internal_result) =
@@ -139,7 +141,7 @@ let rec (run_either :
               Partial (ast, errs, stat)
           | Partial _ ->
               logger#debug "Partial again but return first Partial";
-              Partial (ast, errs, stat) )
+              Partial (ast, errs, stat))
       | Error exn -> (
           let res = run_either file xs in
           match res with
@@ -152,7 +154,7 @@ let rec (run_either :
               logger#debug "exn again (%s) but return original exn (%s)"
                 (Common.exn_to_s exn2) (Common.exn_to_s exn);
               (* prefer the first error *)
-              Error exn ) )
+              Error exn))
 
 let (run :
       Common.filename ->
@@ -183,7 +185,7 @@ let lang_to_python_parsing_mode = function
   | Lang.Python3 -> Parse_python.Python3
   | s -> failwith (spf "not a python language:%s" (Lang.string_of_lang s))
 
-let just_parse_with_lang lang file =
+let rec just_parse_with_lang lang file =
   match lang with
   | Lang.Ruby ->
       (* for Ruby we start with the tree-sitter parser because the pfff parser
@@ -223,7 +225,7 @@ let just_parse_with_lang lang file =
        *)
       run file
         [
-          TreeSitter Parse_javascript_tree_sitter.parse;
+          TreeSitter (Parse_typescript_tree_sitter.parse ~dialect:`TSX);
           Pfff (throw_tokens Parse_js.parse);
         ]
         Js_to_generic.program
@@ -240,6 +242,8 @@ let just_parse_with_lang lang file =
   | Lang.Kotlin ->
       run file [ TreeSitter Parse_kotlin_tree_sitter.parse ] (fun x -> x)
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
+  | Lang.Bash ->
+      run file [ TreeSitter Parse_bash_tree_sitter.parse ] (fun x -> x)
   | Lang.Rust ->
       run file [ TreeSitter Parse_rust_tree_sitter.parse ] (fun x -> x)
   | Lang.C ->
@@ -285,6 +289,10 @@ let just_parse_with_lang lang file =
         (fun cst ->
           let ast = Ast_php_build.program cst in
           Php_to_generic.program ast)
+  | Lang.Hack ->
+      run file
+        [ TreeSitter (Parse_hack_tree_sitter.parse `Target) ]
+        Php_to_generic.program
   | Lang.R -> failwith "No R parser yet; improve the one in tree-sitter"
   | Lang.Yaml ->
       {
@@ -292,6 +300,23 @@ let just_parse_with_lang lang file =
         errors = [];
         stat = Parse_info.default_stat file;
       }
+  | Lang.HTML ->
+      (* less: there is an html parser in pfff too we could use as backup *)
+      run file [ TreeSitter Parse_html_tree_sitter.parse ] (fun x -> x)
+  | Lang.Vue ->
+      let parse_embedded_js file =
+        let { ast; errors; stat = _ } =
+          just_parse_with_lang Lang.Javascript file
+        in
+        (* TODO: pass the errors down to Parse_vue_tree_sitter.parse
+         * and accumulate with other vue parse errors
+         *)
+        if errors <> [] then failwith "parse error in embedded JS";
+        ast
+      in
+      run file
+        [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
+        (fun x -> x)
 
 (*****************************************************************************)
 (* Entry point *)

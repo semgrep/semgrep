@@ -62,7 +62,7 @@ let string_of_constness = function
       | G.Bool (b, _) -> Printf.sprintf "lit(%b)" b
       | G.Int (Some i, _) -> Printf.sprintf "lit(%d)" i
       | G.String (s, _) -> Printf.sprintf "lit(\"%s\")" s
-      | ___else___ -> "lit(???)" )
+      | ___else___ -> "lit(???)")
 
 let str_of_name ((s, _tok), sid) = spf "%s:%d" s sid
 
@@ -174,12 +174,12 @@ let eval_binop_int tok op opt_i1 opt_i2 =
   | G.Mult, Some i1, Some i2 ->
       let overflow =
         i1 <> 0 && i2 <> 0
-        && ( (i1 < 0 && i2 = min_int) (* >max_int *)
+        && ((i1 < 0 && i2 = min_int) (* >max_int *)
            || (i1 = min_int && i2 < 0) (* >max_int *)
            ||
            if sign i1 * sign i2 = 1 then abs i1 > abs (max_int / i2)
              (* >max_int *)
-           else abs i1 > abs (min_int / i2) (* <min_int *) )
+           else abs i1 > abs (min_int / i2) (* <min_int *))
       in
       if overflow then G.Cst G.Cint else G.Lit (literal_of_int (i1 * i2))
   | G.Div, Some i1, Some i2 -> (
@@ -188,7 +188,7 @@ let eval_binop_int tok op opt_i1 opt_i2 =
         try G.Lit (literal_of_int (i1 / i2))
         with Division_by_zero ->
           warning tok "Found division by zero";
-          G.Cst G.Cint )
+          G.Cst G.Cint)
   | ___else____ -> G.Cst G.Cint
 
 let eval_binop_string op s1 s2 =
@@ -198,7 +198,7 @@ let eval_binop_string op s1 s2 =
 
 let rec eval (env : G.constness D.env) exp : G.constness =
   match exp.e with
-  | Lvalue lval -> eval_lval env lval
+  | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
   | Operator (op, args) -> eval_op env op args
   | Composite _ | Record _ | Cast _ | FixmeExp _ -> G.NotCst
@@ -210,7 +210,7 @@ and eval_lval env lval =
       match (!constness, opt_c) with
       | None, None -> G.NotCst
       | Some c, None | None, Some c -> c
-      | Some c1, Some c2 -> refine c1 c2 )
+      | Some c1, Some c2 -> refine c1 c2)
   | ___else___ -> G.NotCst
 
 and eval_op env wop args =
@@ -307,7 +307,7 @@ let transfer :
             let lvar_opt = IL.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
-            | Some lvar -> D.VarMap.add (str_of_name lvar) G.NotCst inp' ) )
+            | Some lvar -> D.VarMap.add (str_of_name lvar) G.NotCst inp'))
   in
 
   { D.in_env = inp'; out_env = out' }
@@ -343,7 +343,7 @@ let update_constness (flow : F.cfg) mapping =
                     D.VarMap.find_opt (str_of_name var) ni_info.D.in_env
                   with
                   | None -> ()
-                  | Some c -> refine_constness_ref constness c )
+                  | Some c -> refine_constness_ref constness c)
               | ___else___ -> ())
          (* Should not update the LHS constness since in x = E, x is a "ref",
           * and it should not be substituted for the value it holds. *))

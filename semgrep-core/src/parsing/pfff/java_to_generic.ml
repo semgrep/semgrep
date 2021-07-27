@@ -92,26 +92,31 @@ let rec typ = function
       let v1 = typ v1 in
       G.TyArray ((t1, None, t2), v1)
 
+and type_arguments v = bracket (list type_argument) v
+
 and class_type v =
   let res =
     list1
       (fun (v1, v2) ->
-        let v1 = ident v1 and _v2TODO = list type_argument v2 in
-        v1)
+        let v1 = ident v1 and v2 = option type_arguments v2 in
+        (v1, v2))
       v
   in
   match List.rev res with
   | [] -> raise Impossible (* list1 *)
-  | [ id ] -> G.TyN (G.Id (id, G.empty_id_info ()))
-  | id :: xs ->
+  | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ()))
+  | [ (id, Some ts) ] -> G.TyApply (G.TyN (H.name_of_ids [ id ]), ts)
+  | (id, None) :: xs ->
       let name_info =
         {
           G.name_typeargs = None;
           (* could be v1TODO above *)
-          name_qualifier = Some (G.QDots (List.rev xs));
+          name_qualifier = Some (G.QDots (List.rev (List.map fst xs)));
         }
       in
       G.TyN (G.IdQualified ((id, name_info), G.empty_id_info ()))
+  | (id, Some ts) :: xs ->
+      G.TyApply (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))), ts)
 
 and type_argument = function
   | TArgument v1 ->
@@ -159,8 +164,6 @@ and annotation (t, v1, v2) =
   in
   let name = H.name_of_ids v1 in
   G.NamedAttr (t, name, xs)
-
-and type_arguments x = list type_argument x
 
 and annotation_element = function
   | AnnotArgValue v1 ->
@@ -270,7 +273,7 @@ and expr e =
                 cbody = decls |> bracket (List.map (fun x -> G.FieldStmt x));
               }
           in
-          G.Call (G.IdSpecial (G.New, v0), (lp, G.Arg anonclass :: v2, rp)) )
+          G.Call (G.IdSpecial (G.New, v0), (lp, G.Arg anonclass :: v2, rp)))
   | NewArray (v0, v1, v2, v3, v4) -> (
       let v1 = typ v1
       and v2 = list argument v2
@@ -286,7 +289,7 @@ and expr e =
       match v4 with
       | None -> G.Call (G.IdSpecial (G.New, v0), fb (G.ArgType t :: v2))
       | Some e ->
-          G.Call (G.IdSpecial (G.New, v0), fb (G.ArgType t :: G.Arg e :: v2)) )
+          G.Call (G.IdSpecial (G.New, v0), fb (G.ArgType t :: G.Arg e :: v2)))
   (* x.new Y(...) {...} *)
   | NewQualifiedClass (v0, _tok1, _tok2, v2, v3, v4) ->
       let v0 = expr v0
@@ -296,14 +299,14 @@ and expr e =
       let any =
         [ G.E v0; G.T v2 ]
         @ (v3 |> G.unbracket |> List.map (fun arg -> G.Ar arg))
-        @ ( Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
-          |> List.map (fun st -> G.S st) )
+        @ (Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
+          |> List.map (fun st -> G.S st))
       in
       G.OtherExpr (G.OE_NewQualifiedClass, any)
   | MethodRef (v1, v2, v3, v4) ->
       let v1 = expr_or_type v1 in
       let v2 = tok v2 in
-      let _v3 = type_arguments v3 in
+      let _v3TODO = option type_arguments v3 in
       let v4 = ident v4 in
       G.OtherExpr (G.OE_Todo, [ v1; G.Tk v2; G.I v4 ])
   | Call (v1, v2) ->
@@ -597,11 +600,11 @@ and class_decl
   (ent, cdef)
 
 and class_kind (x, t) =
-  ( ( match x with
+  ( (match x with
     | ClassRegular -> G.Class
     | Interface -> G.Interface
     | AtInterface -> G.AtInterface
-    | Record -> G.RecordClass ),
+    | Record -> G.RecordClass),
     t )
 
 and decl decl =
@@ -647,7 +650,19 @@ let partial = function
       let x = decl x in
       match x.G.s with
       | G.DefStmt def -> G.PartialDef def
-      | _ -> failwith "unsupported PartialDecl" )
+      | _ -> failwith "unsupported PartialDecl")
+  | PartialIf (v1, v2) ->
+      let v2 = expr v2 in
+      G.PartialIf (v1, v2)
+  | PartialTry (v1, v2) ->
+      let v2 = stmt v2 in
+      G.PartialTry (v1, v2)
+  | PartialFinally (v1, v2) ->
+      let v2 = stmt v2 in
+      G.PartialFinally (v1, v2)
+  | PartialCatch v1 ->
+      let v1 = catch v1 in
+      G.PartialCatch v1
 
 let any = function
   | AMod v1 ->

@@ -289,18 +289,20 @@ and vof_literal = function
   | Ratio v1 ->
       let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("Ratio", [ v1 ])
-  | Atom v1 ->
+  | Atom (v0, v1) ->
+      let v0 = vof_tok v0 in
       let v1 = vof_wrap OCaml.vof_string v1 in
-      OCaml.VSum ("Atom", [ v1 ])
+      OCaml.VSum ("Atom", [ v0; v1 ])
   | Char v1 ->
       let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("Char", [ v1 ])
   | String v1 ->
       let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("String", [ v1 ])
-  | Regexp v1 ->
-      let v1 = vof_wrap OCaml.vof_string v1 in
-      OCaml.VSum ("Regexp", [ v1 ])
+  | Regexp (v1, v2) ->
+      let v1 = vof_bracket (vof_wrap OCaml.vof_string) v1 in
+      let v2 = OCaml.vof_option (vof_wrap OCaml.vof_string) v2 in
+      OCaml.VSum ("Regexp", [ v1; v2 ])
   | Null v1 ->
       let v1 = vof_tok v1 in
       OCaml.VSum ("Null", [ v1 ])
@@ -410,6 +412,7 @@ and vof_arithmetic_operator = function
   | Or -> OCaml.VSum ("Or", [])
   | Not -> OCaml.VSum ("Not", [])
   | Xor -> OCaml.VSum ("Xor", [])
+  | Pipe -> OCaml.VSum ("Pipe", [])
   | Eq -> OCaml.VSum ("Eq", [])
   | NotEq -> OCaml.VSum ("NotEq", [])
   | PhysEq -> OCaml.VSum ("PhysEq", [])
@@ -420,6 +423,7 @@ and vof_arithmetic_operator = function
   | GtE -> OCaml.VSum ("GtE", [])
   | Cmp -> OCaml.VSum ("Cmp", [])
   | Length -> OCaml.VSum ("Length", [])
+  | Background -> OCaml.VSum ("Background", [])
 
 and vof_arguments v = vof_bracket (OCaml.vof_list vof_argument) v
 
@@ -441,6 +445,7 @@ and vof_argument = function
 and vof_other_argument_operator = function
   | OA_ArgComp -> OCaml.VSum ("OA_ArgComp", [])
   | OA_ArgQuestion -> OCaml.VSum ("OA_ArgQuestion", [])
+  | OA_ArgMacro -> OCaml.VSum ("OA_ArgMacro", [])
 
 and vof_action (v1, v2) =
   let v1 = vof_pattern v1 and v2 = vof_expr v2 in
@@ -480,6 +485,7 @@ and vof_other_expr_operator = function
   | OE_MacroInvocation -> OCaml.VSum ("OE_MacroInvocation", [])
   | OE_Checked -> OCaml.VSum ("OE_Checked", [])
   | OE_Unchecked -> OCaml.VSum ("OE_Unchecked", [])
+  | OE_Subshell -> OCaml.VSum ("OE_Subshell", [])
 
 and vof_type_ = function
   | TyEllipsis v1 ->
@@ -509,9 +515,9 @@ and vof_type_ = function
   | TyFun (v1, v2) ->
       let v1 = OCaml.vof_list vof_parameter v1 and v2 = vof_type_ v2 in
       OCaml.VSum ("TyFun", [ v1; v2 ])
-  | TyNameApply (v1, v2) ->
-      let v1 = vof_dotted_ident v1 and v2 = vof_type_arguments v2 in
-      OCaml.VSum ("TyNameApply", [ v1; v2 ])
+  | TyApply (v1, v2) ->
+      let v1 = vof_type_ v1 and v2 = vof_type_arguments v2 in
+      OCaml.VSum ("TyApply", [ v1; v2 ])
   | TyN v1 ->
       let v1 = vof_name v1 in
       OCaml.VSum ("TyN", [ v1 ])
@@ -549,7 +555,7 @@ and vof_type_ = function
       let v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherType", [ v1; v2 ])
 
-and vof_type_arguments v = OCaml.vof_list vof_type_argument v
+and vof_type_arguments v = vof_bracket (OCaml.vof_list vof_type_argument) v
 
 and vof_type_argument = function
   | TypeArg v1 ->
@@ -1310,6 +1316,9 @@ and vof_any = function
   | Args v1 ->
       let v1 = OCaml.vof_list vof_argument v1 in
       OCaml.VSum ("Args", [ v1 ])
+  | Anys v1 ->
+      let v1 = OCaml.vof_list vof_any v1 in
+      OCaml.VSum ("Anys", [ v1 ])
   | Partial v1 ->
       let v1 = vof_partial v1 in
       OCaml.VSum ("Partial", [ v1 ])

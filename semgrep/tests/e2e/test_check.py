@@ -134,6 +134,33 @@ def test_sarif_output(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
+    sarif_output = json.loads(
+        run_semgrep_in_tmp("rules/eqeq-source.yml", output_format=OutputFormat.SARIF)
+    )
+
+    # rules are logically a set so the JSON list's order doesn't matter
+    # we make the order deterministic here so that snapshots match across runs
+    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
+    sarif_output["runs"][0]["tool"]["driver"]["rules"] = sorted(
+        sarif_output["runs"][0]["tool"]["driver"]["rules"],
+        key=lambda rule: str(rule["id"]),
+    )
+
+    # Semgrep version is included in sarif output. Verify this independently so
+    # snapshot does not need to be updated on version bump
+    assert sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
+    sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
+
+    snapshot.assert_match(
+        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
+    )
+
+    # Assert that each sarif rule object has a helpURI
+    for rule in sarif_output["runs"][0]["tool"]["driver"]["rules"]:
+        assert rule.get("helpUri", None) is not None
+
+
 def test_url_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(GITHUB_TEST_GIST_URL),
@@ -364,6 +391,12 @@ def test_timeout(run_semgrep_in_tmp, snapshot):
 
 def test_spacegrep_timeout(run_semgrep_in_tmp, snapshot):
     # Check that spacegrep timeouts are handled gracefully.
+    #
+    # The pattern is designed to defeat any optimization that would
+    # prevent a timeout. Both the words 'Frob' and 'Yoyodyne' occur
+    # once in the file but in a different order, preventing any match.
+    #
+    pattern = "$A ... $B ... $C ... Frob ... Yoyodyne"
     snapshot.assert_match(
         run_semgrep_in_tmp(
             config=None,
@@ -372,7 +405,7 @@ def test_spacegrep_timeout(run_semgrep_in_tmp, snapshot):
                 "--lang",
                 "generic",
                 "--pattern",
-                "$A ... $B ... $C ... foo",
+                pattern,
                 "--timeout",
                 "1",
             ],

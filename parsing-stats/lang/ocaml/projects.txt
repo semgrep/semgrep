@@ -1,0 +1,31 @@
+# Git URLs of publicly-accessible projects to be used for parsing stats,
+# one per line.
+#
+
+# r2c's ocaml projects
+https://github.com/returntocorp/semgrep.git
+https://github.com/returntocorp/pfff
+
+#
+# Projects with more than 1000 stars on GitHub.
+# (we could add more, we're looking for large amounts of handwritten
+# code rather than popularity)
+#
+https://github.com/facebook/flow.git
+https://github.com/reasonml/reason.git
+https://github.com/facebook/pyre-check.git
+https://github.com/rescript-lang/rescript-compiler.git
+https://github.com/astrada/google-drive-ocamlfuse.git
+https://github.com/batsh-dev-team/Batsh.git
+https://github.com/coq/coq.git
+https://github.com/ocaml/ocaml.git
+https://github.com/fastpack/fastpack.git
+https://github.com/bcpierce00/unison.git
+https://github.com/mirage/mirage.git
+https://github.com/mirage/irmin.git
+https://github.com/BinaryAnalysisPlatform/bap.git
+https://github.com/tomprimozic/type-systems.git
+https://github.com/ocaml/merlin.git
+https://github.com/MLstate/opalang.git
+https://github.com/airbus-seclab/bincat.git
+https://github.com/ocaml/dune.git

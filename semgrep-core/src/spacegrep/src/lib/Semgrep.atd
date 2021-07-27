@@ -1,0 +1,134 @@
+(*
+   Type definitions for json communication with semgrep.
+
+   Originally inferred from JSON_report.ml in semgrep-core, but
+   now also used in JSON_report.ml.
+   TODO: once we call spacegrep only from semgrep-core, we can move
+   this file inside semgrep-core.
+
+*)
+
+type match_results = {
+  matches: match_ list;
+  errors: error list;
+  stats: stats;
+  ?time: time option;
+}
+
+type stats = {
+  okfiles: int;
+  errorfiles: int;
+}
+
+type match_ = {
+  ?check_id: string option; (* rule ID *)
+  path: string; (* source file *)
+  start: position;
+  end_ <json name="end">: position;
+  extra: match_extra;
+}
+
+(* See Error_code in Pfff *)
+type error = {
+  ?check_id: string option;
+  path: string;
+  start: position;
+  end_ <json name="end">: position;
+  extra: error_extra;
+}
+
+type position = {
+  line: int; (* starts from 1 *)
+  col: int; (* starts from 1 *)
+  offset: int; (* byte position from the beginning of the file, starts at 0 *)
+}
+
+type match_extra = {
+  ?message: string option; (* rule.message (?) *)
+
+  (*
+     name/value map of the matched metavariables.
+     The leading '$' must be included in the metavariable name.
+  *)
+  metavars: (string * metavar_value) list <json repr="object">;
+
+  lines: string list; (* the matching region, split at lines boundaries *)
+}
+
+type error_extra = {
+  message: string;
+  line: string;
+}
+
+type metavar_value = {
+  (* for certain metavariable like $...ARGS, 'end' may be equal to 'start'
+   * to represent an empty metavariable value. The rest of the Python
+   * code (message metavariable substitution and autofix) works
+   * without change for empty ranges (when end = start).
+   *)
+  start: position;
+  end_ <json name="end">: position;
+  abstract_content: string; (* value? *)
+
+  (* The unique ID of a metavariable indicates the kind object that was
+     captured for equality purposes. In the simplest case, this is only
+     the name of the metavariable. In semgrep, it can additionally include
+     a disambiguator. For example, consider this target code:
+
+       let foo = 1;
+       {
+         let foo = 2;
+       }
+
+     The pattern '$X' would match the first 'foo' and the second 'foo'.
+     In semgrep, these two 'foo's are identified as different variables,
+     and this is done by setting the metavariable capture's unique ID to
+     something like foo-1' and 'foo-2'. Even though their contents look
+     identical, they're not the same thing.
+
+     Spacegrep doesn't make this analysis, so these two captures will
+     be considered identical, which is not as good.
+  *)
+  unique_id: unique_id;
+}
+
+(*
+   This is just the variant for type=AST.
+   In order to accommodate two record types into one variant, use
+   the atdgen feature called a json adapter.
+*)
+type unique_id = {
+  (* pad: we should use a sum type here because it's either
+     AST of md5sum | Id of sid * ... but that would require
+     to update the python side, so for now I use optional
+     fields, but really at least one of md5sum or sid should be a Some
+   *)
+  type_ <json name="type">: unique_id_type;
+  (* AST case *)
+  ?md5sum: string option;
+  (* ID case *)
+  ?sid: int option;
+}
+
+type unique_id_type = [
+  | ID <json name="id">
+  | AST
+]
+
+type time = {
+  targets: target_time list;
+  ?rule_parse_time: float option; (* not used in spacegrep *)
+}
+
+type target_time = {
+  path: string;
+
+  (* parse time for all rules *)
+  parse_time: float;
+
+  (* match time for all rules *)
+  match_time: float;
+
+  (* run time for all rules *)
+  run_time: float;
+}

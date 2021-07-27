@@ -1,16 +1,17 @@
 rules:
   - id: tainting
+    mode: taint
     languages:
       - python
     message: |
       This confirms taint mode works.
     pattern-sinks:
-      - sink(...)
-      - sink1(...)
-      - eval(...)
+      - pattern: sink(...)
+      - pattern: sink1(...)
+      - pattern: eval(...)
     pattern-sources:
-      - source1(...)
+      - pattern: source1(...)
     pattern-sanitizers:
-      - sanitize(...)
+      - pattern: sanitize(...)
     severity: ERROR
 

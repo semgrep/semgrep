@@ -390,13 +390,13 @@ and preproc_call_expression (env : env) ((v1, v2) : CST.preproc_call_expression)
 (* Int or Float ! *)
 and number_literal env tok =
   let s, t = str env tok in
-  match H.int_of_string_c_octal_opt s with
+  match Common2.int_of_string_c_octal_opt s with
   | Some i -> Int (Some i, t)
   | None -> (
       match float_of_string_opt s with
       | Some f -> Float (Some f, t)
       (* could be None because of a suffix in the string *)
-      | None -> Int (None, t) )
+      | None -> Int (None, t))
 
 and preproc_expression (env : env) (x : CST.preproc_expression) : expr =
   match x with
@@ -564,7 +564,7 @@ and anon_choice_param_decl_bdc8cc9 (env : env)
                 { p_type = f v1; p_name = Some id }
             | `Abst_decl x ->
                 let f = abstract_declarator env x in
-                { p_type = f v1; p_name = None } )
+                { p_type = f v1; p_name = None })
         | None -> { p_type = v1; p_name = None }
       in
       ParamClassic v2
@@ -1100,7 +1100,7 @@ and initializer_list (env : env) ((v1, v2, v3, v4) : CST.initializer_list) :
          | Left (designators, _tkeq, e) -> (
              match designators with
              | [ Left (_lc, idx, _rc) ] -> (Some idx, e)
-             | _TODO -> (None, e) ))
+             | _TODO -> (None, e)))
   in
   ArrayInit (v1, elems, v4)
 
@@ -1265,7 +1265,7 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
         | Some x -> (
             match x with
             | `Id tok -> [ identifier env tok ] (* pattern [a-zA-Z_]\w* *)
-            | `Prim_type tok -> [ str env tok ] (* primitive_type *) )
+            | `Prim_type tok -> [ str env tok ] (* primitive_type *))
         | None -> []
       in
       let xs = v1 @ v2 in
@@ -1680,10 +1680,10 @@ and translation_unit (env : env) (xs : CST.translation_unit) : program =
       env.struct_defs_toadd <- [];
       env.enum_defs_toadd <- [];
       env.typedefs_toadd <- [];
-      ( (structs |> List.map (fun x -> StructDef x))
-        @ (enums |> List.map (fun x -> EnumDef x))
-        @ (typedefs |> List.map (fun x -> TypeDef x))
-      |> List.map (fun x -> DefStmt x) )
+      ((structs |> List.map (fun x -> StructDef x))
+       @ (enums |> List.map (fun x -> EnumDef x))
+       @ (typedefs |> List.map (fun x -> TypeDef x))
+      |> List.map (fun x -> DefStmt x))
       @ res)
     xs
   |> List.flatten

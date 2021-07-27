@@ -95,7 +95,7 @@ let parse_json file =
             xs |> List.map (fun (s, json) -> (s, metavar_of_json s json))
           in
           (Common.hash_of_list metavars, code)
-      | _ -> failwith "wrong json format" )
+      | _ -> failwith "wrong json format")
   | _ -> failwith "wrong json format"
 
 (*****************************************************************************)
@@ -123,7 +123,7 @@ let print_result xopt =
       (* allow to abuse int to encode boolean ... ugly C tradition *)
       | Int 0 -> pr (string_of_bool false)
       | Int _ -> pr (string_of_bool true)
-      | _ -> pr "NONE" )
+      | _ -> pr "NONE")
   [@@action]
 
 (*****************************************************************************)
@@ -139,13 +139,13 @@ let rec eval env code =
       (* big integers or floats can't be evaluated (Int (None, ...)) *)
       | G.Int (Some i, _t) -> Int i
       | G.Float (Some f, _t) -> Float f
-      | _ -> raise (NotHandled code) )
+      | _ -> raise (NotHandled code))
   (* less: sanity check that s is a metavar_name? *)
   | G.N (G.Id ((s, _t), _idinfo)) -> (
       try Hashtbl.find env s
       with Not_found ->
         logger#debug "could not find a value for %s in env" s;
-        raise Not_found )
+        raise Not_found)
   | G.Call (G.N (G.Id (("int", _), _)), (_, [ Arg e ], _)) -> (
       let v = eval env e in
       match v with
@@ -153,8 +153,8 @@ let rec eval env code =
       | String s -> (
           match int_of_string_opt s with
           | None -> raise (NotHandled code)
-          | Some i -> Int i )
-      | __else__ -> raise (NotHandled code) )
+          | Some i -> Int i)
+      | __else__ -> raise (NotHandled code))
   | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
       let values =
         args
@@ -186,45 +186,62 @@ let rec eval env code =
           let v = Bool res in
           logger#info "regexp %s on %s return %s" re s (show_value v);
           v
-      | _ -> raise (NotHandled code) )
+      | _ -> raise (NotHandled code))
   | _ -> raise (NotHandled code)
 
 and eval_op op values code =
   match (op, values) with
-  | G.Gt, [ Int i1; Int i2 ] -> Bool (i1 > i2)
-  | G.GtE, [ Int i1; Int i2 ] -> Bool (i1 >= i2)
-  | G.Lt, [ Int i1; Int i2 ] -> Bool (i1 < i2)
-  | G.LtE, [ Int i1; Int i2 ] -> Bool (i1 <= i2)
-  (* todo: we should perform cast and allow to mix Float and Int *)
-  | G.Gt, [ Float i1; Float i2 ] -> Bool (i1 > i2)
-  | G.GtE, [ Float i1; Float i2 ] -> Bool (i1 >= i2)
-  | G.Lt, [ Float i1; Float i2 ] -> Bool (i1 < i2)
-  | G.LtE, [ Float i1; Float i2 ] -> Bool (i1 <= i2)
   | G.And, [ Bool b1; Bool b2 ] -> Bool (b1 && b2)
-  | G.Or, [ Bool b1; Bool b2 ] -> Bool (b1 || b2)
   | G.Not, [ Bool b1 ] -> Bool (not b1)
-  | G.Plus, [ Int i1 ] -> Int i1
-  | G.Plus, [ Int i1; Int i2 ] -> Int (i1 + i2)
-  | G.Minus, [ Int i1 ] -> Int (-i1)
-  | G.Minus, [ Int i1; Int i2 ] -> Int (i1 - i2)
-  | G.Mult, [ Int i1; Int i2 ] -> Int (i1 * i2)
+  | G.Or, [ Bool b1; Bool b2 ] -> Bool (b1 || b2)
+  | G.Gt, [ Int i1; Int i2 ] -> Bool (i1 > i2)
+  | G.Gt, [ Float i1; Float i2 ] -> Bool (i1 > i2)
+  | G.Gt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 > i2)
+  | G.Gt, [ Float i1; Int i2 ] -> Bool (i1 > float_of_int i2)
+  | G.GtE, [ Int i1; Int i2 ] -> Bool (i1 >= i2)
+  | G.GtE, [ Float i1; Float i2 ] -> Bool (i1 >= i2)
+  | G.GtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 >= i2)
+  | G.GtE, [ Float i1; Int i2 ] -> Bool (i1 >= float_of_int i2)
+  | G.Lt, [ Int i1; Int i2 ] -> Bool (i1 < i2)
+  | G.Lt, [ Float i1; Float i2 ] -> Bool (i1 < i2)
+  | G.Lt, [ Int i1; Float i2 ] -> Bool (float_of_int i1 < i2)
+  | G.Lt, [ Float i1; Int i2 ] -> Bool (i1 < float_of_int i2)
+  | G.LtE, [ Int i1; Int i2 ] -> Bool (i1 <= i2)
+  | G.LtE, [ Float i1; Float i2 ] -> Bool (i1 <= i2)
+  | G.LtE, [ Int i1; Float i2 ] -> Bool (float_of_int i1 <= i2)
+  | G.LtE, [ Float i1; Int i2 ] -> Bool (i1 <= float_of_int i2)
   | G.Div, [ Int i1; Int i2 ] -> Int (i1 / i2)
-  | G.Mod, [ Int i1; Int i2 ] -> Int (i1 mod i2)
-  (* todo: we should perform automatic cast and allow to mix Float and Int *)
-  | G.Plus, [ Float i1 ] -> Float i1
-  | G.Plus, [ Float i1; Float i2 ] -> Float (i1 +. i2)
-  | G.Minus, [ Float i1 ] -> Float (-.i1)
-  | G.Minus, [ Float i1; Float i2 ] -> Float (i1 -. i2)
-  | G.Mult, [ Float i1; Float i2 ] -> Float (i1 *. i2)
   | G.Div, [ Float i1; Float i2 ] -> Float (i1 /. i2)
-  (* abuse generic =. Not that this will prevent
-   * Int 0 to be equal to Float 0.0.
-   * Again need automatic cast.
-   *)
+  | G.Div, [ Int i1; Float i2 ] -> Float (float_of_int i1 /. i2)
+  | G.Div, [ Float i1; Int i2 ] -> Float (i1 /. float_of_int i2)
+  | G.Minus, [ Int i1 ] -> Int (-i1)
+  | G.Minus, [ Float i1 ] -> Float (-.i1)
+  | G.Minus, [ Int i1; Int i2 ] -> Int (i1 - i2)
+  | G.Minus, [ Float i1; Float i2 ] -> Float (i1 -. i2)
+  | G.Minus, [ Int i1; Float i2 ] -> Float (float_of_int i1 -. i2)
+  | G.Minus, [ Float i1; Int i2 ] -> Float (i1 -. float_of_int i2)
+  | G.Mod, [ Int i1; Int i2 ] -> Int (i1 mod i2)
+  | G.Mod, [ Float i1; Float i2 ] -> Float (Float.rem i1 i2)
+  | G.Mod, [ Int i1; Float i2 ] -> Float (Float.rem (float_of_int i1) i2)
+  | G.Mod, [ Float i1; Int i2 ] -> Float (Float.rem i1 (float_of_int i2))
+  | G.Mult, [ Int i1; Int i2 ] -> Int (i1 * i2)
+  | G.Mult, [ Float i1; Float i2 ] -> Float (i1 *. i2)
+  | G.Mult, [ Int i1; Float i2 ] -> Float (float_of_int i1 *. i2)
+  | G.Mult, [ Float i1; Int i2 ] -> Float (i1 *. float_of_int i2)
+  | G.Plus, [ Int i1 ] -> Int i1
+  | G.Plus, [ Float i1 ] -> Float i1
+  | G.Plus, [ Int i1; Int i2 ] -> Int (i1 + i2)
+  | G.Plus, [ Float i1; Float i2 ] -> Float (i1 +. i2)
+  | G.Plus, [ Int i1; Float i2 ] -> Float (float_of_int i1 +. i2)
+  | G.Plus, [ Float i1; Int i2 ] -> Float (i1 +. float_of_int i2)
+  | G.Eq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 = v2)
+  | G.Eq, [ Float v1; Int v2 ] -> Bool (v1 = float_of_int v2)
   | G.Eq, [ v1; v2 ] -> Bool (v1 = v2)
+  | G.NotEq, [ Int v1; Float v2 ] -> Bool (float_of_int v1 <> v2)
+  | G.NotEq, [ Float v1; Int v2 ] -> Bool (v1 <> float_of_int v2)
   | G.NotEq, [ v1; v2 ] -> Bool (v1 <> v2)
   | G.In, [ v1; v2 ] -> (
-      match v2 with List xs -> Bool (List.mem v1 xs) | _ -> Bool false )
+      match v2 with List xs -> Bool (List.mem v1 xs) | _ -> Bool false)
   | _ -> raise (NotHandled code)
 
 (*****************************************************************************)
@@ -268,7 +285,7 @@ let bindings_to_env xs =
              with NotHandled _e ->
                logger#debug "can't eval %s value %s" mvar (MV.show_mvalue mval);
                (* todo: if not a value, could default to AST of range *)
-               None )
+               None)
          | x ->
              logger#debug "filtering mvar %s, not an expr %s" mvar
                (MV.show_mvalue x);

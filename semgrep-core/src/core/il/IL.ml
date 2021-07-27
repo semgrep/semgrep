@@ -23,7 +23,7 @@ module G = AST_generic
 (* Intermediate Language (IL) for static analysis.
  *
  * Just like for the CST -> AST, the goal of an AST -> IL transformation
- * is to simplify things even more for program analysis purpose.
+ * is to simplify things even more for program analysis purposes.
  *
  * Here are the simplifications done compared to the generic AST:
  *  - intermediate 'instr' type (instr for instruction), for expressions with
@@ -31,17 +31,17 @@ module G = AST_generic
  *    moving Assign/Seq/Call/Conditional out of 'expr' and
  *    moving Assert out of 'stmt'
  *  - new expression type 'exp' for side-effect free expressions
- *  - intermediate 'lvalue' type; expressions are splitted in
+ *  - intermediate 'lvalue' type; expressions are split into
  *    lvalue vs regular expressions, moved Dot/Index out of expr
  *
  *  - Assign/Calls are now instructions, not expressions, and no more Seq
  *  - no AssignOp, or Decr/Incr, just Assign
  *  - Lambdas are now instructions (not nested again)
  *
- *  - no For/Foreach/DoWhile/While, converted all in Loop,
- *  - no Foreach, converted in a Loop and 2 new special
- *  - TODO no Switch, converted in Ifs
- *  - TODO no Continue/Break, converted in goto
+ *  - no For/Foreach/DoWhile/While, converted all to Loop,
+ *  - no Foreach, converted to a Loop and 2 new special
+ *  - TODO no Switch, converted to Ifs
+ *  - TODO no Continue/Break, converted to goto
  *  - less use of expr option (in Return/Assert/...), use Unit in those cases
  *
  *  - no Sgrep constructs
@@ -88,23 +88,15 @@ module G = AST_generic
 type tok = G.tok [@@deriving show]
 
 (*e: type [[IL.tok]] *)
-
-(* with tarzan *)
-
 (*s: type [[IL.wrap]] *)
 type 'a wrap = 'a G.wrap [@@deriving show]
 
 (*e: type [[IL.wrap]] *)
-
-(* with tarzan *)
-
 (*s: type [[IL.bracket]] *)
 (* useful mainly for empty containers *)
 type 'a bracket = tok * 'a * tok [@@deriving show]
 
 (*e: type [[IL.bracket]] *)
-
-(* with tarzan *)
 
 (*****************************************************************************)
 (* Names *)
@@ -114,9 +106,6 @@ type 'a bracket = tok * 'a * tok [@@deriving show]
 type ident = G.ident [@@deriving show]
 
 (*e: type [[IL.ident]] *)
-
-(* with tarzan *)
-
 (*s: type [[IL.name]] *)
 (* 'sid' below is the result of name resolution and variable disambiguation
  * using a gensym (see Naming_AST.ml). The pair is guaranteed to be
@@ -130,8 +119,6 @@ type name = ident * G.sid [@@deriving show]
 
 (*e: type [[IL.name]] *)
 
-(* with tarzan *)
-
 (*****************************************************************************)
 (* Fixme constructs *)
 (*****************************************************************************)
@@ -139,7 +126,6 @@ type name = ident * G.sid [@@deriving show]
 (* AST-to-IL translation is still a work in progress. When we encounter some
  * that we cannot handle, we insert a [FixmeExp], [FixmeInstr], or [FixmeStmt].
  *)
-
 type fixme_kind =
   | ToDo (* some construct that we still don't support *)
   | Sgrep_construct (* some Sgrep construct shows up in the code, e.g. `...' *)
@@ -150,8 +136,8 @@ type fixme_kind =
 (* Lvalue *)
 (*****************************************************************************)
 
-(* An lvalue, represented as in CIL as a pair. *)
 (*s: type [[IL.lval]] *)
+(* An lvalue, represented as in CIL as a pair. *)
 type lval = {
   base : base;
   offset : offset;
@@ -161,7 +147,6 @@ type lval = {
 }
 
 (*e: type [[IL.lval]] *)
-
 (*s: type [[IL.base]] *)
 and base =
   | Var of name
@@ -171,7 +156,6 @@ and base =
   | Mem of exp
 
 (*e: type [[IL.base]] *)
-
 (*s: type [[IL.offset]] *)
 and offset =
   | NoOffset
@@ -205,18 +189,18 @@ and var_special = This | Super | Self | Parent
 (* Expression *)
 (*****************************************************************************)
 
+(*s: type [[IL.exp]] *)
 (* We use 'exp' instead of 'expr' to accentuate the difference
  * with AST_generic.expr.
  * Here 'exp' does not contain any side effect!
+ * todo: etype: typ;
  *)
-(*s: type [[IL.exp]] *)
-and exp = { e : exp_kind; (* todo: etype: typ; *)
-                          eorig : G.expr }
+and exp = { e : exp_kind; eorig : G.expr }
 
 (*e: type [[IL.exp]] *)
 (*s: type [[IL.exp_kind]] *)
 and exp_kind =
-  | Lvalue of lval (* lvalue used in a rvalue context *)
+  | Fetch of lval (* lvalue used in a rvalue context *)
   | Literal of G.literal
   | Composite of composite_kind * exp list bracket
   (* Record could be a Composite where the arguments are CTuple with
@@ -246,23 +230,19 @@ and composite_kind =
 (*e: type [[IL.composite_kind]] *)
 [@@deriving show { with_path = false }]
 
-(* with tarzan *)
-
 (*s: type [[IL.argument]] *)
 type argument = exp [@@deriving show]
 
 (*e: type [[IL.argument]] *)
 
-(* with tarzan *)
-
 (*****************************************************************************)
 (* Instruction *)
 (*****************************************************************************)
 
-(* Easier type to compute lvalue/rvalue set of a too general 'expr', which
- * is now split in  instr vs exp vs lval.
- *)
 (*s: type [[IL.instr]] *)
+(* Easier type to compute lvalue/rvalue set of a too general 'expr', which
+ * is now split into  instr vs exp vs lval.
+ *)
 type instr = { i : instr_kind; iorig : G.expr }
 
 (*e: type [[IL.instr]] *)
@@ -317,8 +297,6 @@ and anonymous_entity =
 (*e: type [[IL.anonymous_entity]] *)
 [@@deriving show { with_path = false }]
 
-(* with tarzan *)
-
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
@@ -341,7 +319,7 @@ and stmt_kind =
   (* alt: do as in CIL and resolve that directly in 'Goto of stmt' *)
   | Goto of tok * label
   | Label of label
-  | Try of stmt list * (name * stmt list) list * stmt list
+  | Try of stmt list * (name * stmt list) list (* catches *) * stmt list (* finally *)
   | Throw of tok * exp (* less: enforce lval here? *)
   | MiscStmt of other_stmt
   | FixmeStmt of fixme_kind * G.any
@@ -361,8 +339,6 @@ and label = ident * G.sid
 (*e: type [[IL.label]] *)
 [@@deriving show { with_path = false }]
 
-(* with tarzan *)
-
 (*****************************************************************************)
 (* Defs *)
 (*****************************************************************************)
@@ -371,9 +347,9 @@ and label = ident * G.sid
 (*****************************************************************************)
 (* Control-flow graph (CFG) *)
 (*****************************************************************************)
+(*s: type [[IL.node]] *)
 (* Similar to controlflow.ml, but with a simpler node_kind.
  * See controlflow.ml for more information. *)
-(*s: type [[IL.node]] *)
 type node = {
   n : node_kind;
       (* old: there are tok in the nodes anyway
@@ -399,11 +375,9 @@ and node_kind =
 (*e: type [[IL.node_kind]] *)
 [@@deriving show { with_path = false }]
 
-(* with tarzan *)
-
 (*s: type [[IL.edge]] *)
-(* For now there is just one kind of edge. Later we may have more,
- * see the ShadowNode idea of Julia Lawall.
+(* For now there is just one kind of edge.
+ * (we may use more? the "ShadowNode" idea of Julia Lawall?)
  *)
 type edge = Direct
 
@@ -428,8 +402,6 @@ type any = L of lval | E of exp | I of instr | S of stmt | Ss of stmt list
 (*  | N of node *)
 (*e: type [[IL.any]] *)
 [@@deriving show { with_path = false }]
-
-(* with tarzan *)
 
 (*****************************************************************************)
 (* L/Rvalue helpers *)
@@ -473,7 +445,7 @@ let rexps_of_instr x =
 (* opti: could use a set *)
 let rec lvals_of_exp e =
   match e.e with
-  | Lvalue lval -> lval :: lvals_in_lval lval
+  | Fetch lval -> lval :: lvals_in_lval lval
   | Literal _ -> []
   | Cast (_, e) -> lvals_of_exp e
   | Composite (_, (_, xs, _)) | Operator (_, xs) -> lvals_of_exps xs

@@ -36,7 +36,7 @@ let test_cfg_generic file =
                let flow = Controlflow_build.cfg_of_func def in
                Controlflow.display_flow flow
              with Controlflow_build.Error err ->
-               Controlflow_build.report_error err )
+               Controlflow_build.report_error err)
          | _ -> ())
 
 (*e: function [[Test_analyze_generic.test_cfg_generic]] *)
@@ -159,7 +159,6 @@ let test_dfg_tainting file =
              let config =
                {
                  Dataflow_tainting.is_source = (fun _ -> false);
-                 is_source_exp = (fun _ -> false);
                  is_sink = (fun _ -> false);
                  is_sanitizer = (fun _ -> false);
                  found_tainted_sink = (fun _ _ -> ());

@@ -57,7 +57,7 @@ let fake_id s = (s, fake s)
 
 let fb = G.fake_bracket
 
-let mk_dotted_ident s tok = [ (s, tok) ]
+let mk_name s tok = G.Id ((s, tok), G.empty_id_info ())
 
 let ii_of_any = Lib_parsing_go.ii_of_any
 
@@ -69,12 +69,12 @@ let return_type_of_results results =
   | xs ->
       Some
         (G.TyTuple
-           ( xs
+           (xs
            |> List.map (function
                 | G.ParamClassic { G.ptype = Some t; _ } -> t
                 | G.ParamClassic { G.ptype = None; _ } -> raise Impossible
                 | _ -> raise Impossible)
-           |> fb ))
+           |> fb))
 
 let list_to_tuple_or_expr xs =
   match xs with
@@ -118,7 +118,7 @@ let top_func () =
         | Left id -> G.TyN (G.Id (id, G.empty_id_info ()))
         | Right _ ->
             G.TyN
-              (G.IdQualified (name_of_qualified_ident v1, G.empty_id_info ())) )
+              (G.IdQualified (name_of_qualified_ident v1, G.empty_id_info ())))
     | TPtr (t, v1) ->
         let v1 = type_ v1 in
         G.TyPointer (t, v1)
@@ -134,12 +134,13 @@ let top_func () =
           match ret with None -> G.TyBuiltin (fake_id "void") | Some t -> t
         in
         G.TyFun (params, ret)
-    | TMap (t, (_, v1, _), v2) ->
+    | TMap (t, (lp, v1, rp), v2) ->
         let v1 = type_ v1 and v2 = type_ v2 in
-        G.TyNameApply (mk_dotted_ident "map" t, [ G.TypeArg v1; G.TypeArg v2 ])
+        G.TyApply
+          (TyN (mk_name "map" t), (lp, [ G.TypeArg v1; G.TypeArg v2 ], rp))
     | TChan (t, v1, v2) ->
         let v1 = chan_dir v1 and v2 = type_ v2 in
-        G.TyNameApply (mk_dotted_ident "chan" t, [ G.TypeArg v1; G.TypeArg v2 ])
+        G.TyApply (TyN (mk_name "chan" t), fb [ G.TypeArg v1; G.TypeArg v2 ])
     | TStruct (t, v1) ->
         let v1 = bracket (list struct_field) v1 in
         G.TyRecordAnon (t, v1)
@@ -176,7 +177,7 @@ let top_func () =
         in
         match arg3 with
         | None -> G.ParamClassic pclassic
-        | Some tok -> G.ParamRest (tok, pclassic) )
+        | Some tok -> G.ParamRest (tok, pclassic))
   and struct_field (v1, v2) =
     let v1 = struct_field_kind v1 and _v2TODO = option tag v2 in
     v1
@@ -336,7 +337,7 @@ let top_func () =
         let _v2 = tok v2 and v3 = init v3 in
         match v1 with
         | InitExpr (Id id) -> G.ArgKwd (id, v3)
-        | _ -> G.Arg (G.Tuple (G.fake_bracket [ init v1; v3 ])) )
+        | _ -> G.Arg (G.Tuple (G.fake_bracket [ init v1; v3 ])))
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in
         G.Arg (G.Container (G.List, v1))
@@ -409,7 +410,7 @@ let top_func () =
           | None -> None
           | Some s ->
               Some
-                ( match s with
+                (match s with
                 | ExprStmt (TypeSwitchExpr (e, tok1)) ->
                     let e = expr e in
                     G.Call (G.IdSpecial (G.Typeof, tok1), fb [ G.Arg e ])
@@ -420,7 +421,7 @@ let top_func () =
                       ( list_to_tuple_or_expr xs,
                         tok1,
                         G.Call (G.IdSpecial (G.Typeof, tok2), fb [ G.Arg e ]) )
-                | s -> simple s )
+                | s -> simple s)
         and v3 = list case_clause v3 in
         wrap_init_in_block_maybe v1 (G.Switch (v0, v2, v3) |> G.s)
     | Select (v1, v2) ->
@@ -482,7 +483,7 @@ let top_func () =
             let pattern =
               G.PatTuple (xs |> List.map H.expr_to_pattern |> G.fake_bracket)
             in
-            G.ForEach (pattern, v2, v3) )
+            G.ForEach (pattern, v2, v3))
   and case_clause = function
     | CaseClause (v1, v2) ->
         let v1 = case_kind v1 and v2 = stmt v2 in
@@ -496,7 +497,7 @@ let top_func () =
     | x -> (
         match expr_or_type x with
         | Left e -> H.expr_to_pattern e
-        | Right t -> G.PatType t )
+        | Right t -> G.PatType t)
   and case_kind = function
     | CaseExprs (tok, v1) ->
         v1 |> List.map (fun x -> G.Case (tok, expr_or_type_to_pattern x))
@@ -594,7 +595,7 @@ let top_func () =
         let x = top_decl x in
         match x.G.s with
         | G.DefStmt def -> G.Partial (G.PartialDef def)
-        | _ -> failwith "partial supported only for definitions" )
+        | _ -> failwith "partial supported only for definitions")
     | PartialSingleField (v1, v2, v3) ->
         let v1 = ident v1 in
         let v3 = init v3 in

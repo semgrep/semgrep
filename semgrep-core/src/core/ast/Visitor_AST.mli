@@ -57,9 +57,16 @@ val do_visit_with_ref:
  *)
 val ii_of_any : AST_generic.any -> Parse_info.t list
 
+(* may raise NoTokenLocation *)
+val first_info_of_any : AST_generic.any -> Parse_info.t
+
 val range_of_tokens : Parse_info.t list -> Parse_info.t * Parse_info.t
 
 val range_of_any :
   AST_generic.any -> Parse_info.token_location * Parse_info.token_location
+
+val range_of_any_opt :
+  AST_generic.any ->
+  (Parse_info.token_location * Parse_info.token_location) option
 
 (*e: pfff/lang_GENERIC/parsing/Visitor_AST.mli *)

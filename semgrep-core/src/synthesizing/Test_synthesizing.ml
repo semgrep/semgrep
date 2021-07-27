@@ -37,6 +37,6 @@ let synthesize_patterns s file =
 
 let generate_pattern_choices s =
   let config = Config_semgrep.default_config in
-  let options = Synthesizer.generate_pattern_choices config s in
+  let options = Synthesizer.print_pattern_from_targets config s in
   List.iter (fun s -> pr s) options
   [@@action]

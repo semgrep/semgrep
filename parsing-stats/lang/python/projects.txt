@@ -1,0 +1,34 @@
+#
+# Top python projects from GitHub, sorted by stars.
+# Created by ./scripts/most-starred-for-language.
+#
+https://github.com/donnemartin/system-design-primer
+https://github.com/public-apis/public-apis
+https://github.com/TheAlgorithms/Python
+https://github.com/jackfrued/Python-100-Days
+https://github.com/vinta/awesome-python
+https://github.com/ytdl-org/youtube-dl
+https://github.com/tensorflow/models
+https://github.com/nvbn/thefuck
+https://github.com/django/django
+https://github.com/pallets/flask
+https://github.com/keras-team/keras
+https://github.com/httpie/httpie
+https://github.com/josephmisiti/awesome-machine-learning
+https://github.com/ansible/ansible
+https://github.com/huggingface/transformers
+https://github.com/scikit-learn/scikit-learn
+https://github.com/psf/requests
+https://github.com/home-assistant/core
+https://github.com/521xueweihan/HelloGitHub
+https://github.com/scrapy/scrapy
+https://github.com/minimaxir/big-list-of-naughty-strings
+https://github.com/soimort/you-get
+https://github.com/ageitgey/face_recognition
+https://github.com/apache/superset
+https://github.com/python/cpython
+https://github.com/deepfakes/faceswap
+https://github.com/3b1b/manim
+https://github.com/shadowsocks/shadowsocks
+https://github.com/tiangolo/fastapi
+https://github.com/fighting41love/funNLP

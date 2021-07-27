@@ -29,6 +29,8 @@ YAML_EXTENSIONS = [FileExtension(".yaml"), FileExtension(".yml")]
 ML_EXTENSIONS = [FileExtension(".mli"), FileExtension(".ml")]
 JSON_EXTENSIONS = [FileExtension(".json")]
 SCALA_EXTENSIONS = [FileExtension(".scala")]
+VUE_EXTENSIONS = [FileExtension(".vue")]
+HTML_EXTENSIONS = [FileExtension(".html"), FileExtension(".html")]
 
 # This is used to determine the set of files with known extensions,
 # i.e. those for which we have a proper parser.
@@ -46,6 +48,8 @@ ALL_EXTENSIONS = (
     + KOTLIN_EXTENSIONS
     + YAML_EXTENSIONS
     + SCALA_EXTENSIONS
+    + VUE_EXTENSIONS
+    + HTML_EXTENSIONS
 )
 
 # This is used to select the files suitable for spacegrep, which is
@@ -74,6 +78,8 @@ _LANGS_TO_EXTS: Dict[Language, List[FileExtension]] = {
     Language.REGEX: GENERIC_EXTENSIONS,
     Language.GENERIC: GENERIC_EXTENSIONS,
     Language.SCALA: SCALA_EXTENSIONS,
+    Language.VUE: VUE_EXTENSIONS,
+    Language.HTML: HTML_EXTENSIONS,
 }
 
 

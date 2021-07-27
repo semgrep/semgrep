@@ -77,7 +77,7 @@ let refactor refactorings (ast, tokens) =
                            in
                            tok_close_paren.PI.transfo <-
                              PI.AddAfter (PI.AddStr (": " ^ str));
-                           was_modifed := true );
+                           was_modifed := true);
                          k def
                      (* lambda f_name are an abstract token and so don't have
                       * any line/col position information for now
@@ -92,7 +92,7 @@ let refactor refactorings (ast, tokens) =
                      let tok = Ast.info_of_dname p.p_name in
                      if tok_pos_equal_refactor_pos tok pos_opt then (
                        tok.PI.transfo <- PI.AddBefore (PI.AddStr (str ^ " "));
-                       was_modifed := true );
+                       was_modifed := true);
                      k p);
                }
            | R.OptionizeTypeParameter ->
@@ -100,7 +100,7 @@ let refactor refactorings (ast, tokens) =
                  V.default_visitor with
                  V.kparameter =
                    (fun (k, _) p ->
-                     ( match p.p_type with
+                     (match p.p_type with
                      | None -> ()
                      | Some x ->
                          let rec leftmost_tok x =
@@ -117,7 +117,7 @@ let refactor refactorings (ast, tokens) =
                          let tok = leftmost_tok x in
                          if tok_pos_equal_refactor_pos tok pos_opt then (
                            tok.PI.transfo <- PI.AddBefore (PI.AddStr "?");
-                           was_modifed := true ) );
+                           was_modifed := true));
                      k p);
                }
            | R.AddTypeMember str ->
@@ -133,7 +133,7 @@ let refactor refactorings (ast, tokens) =
                              if tok_pos_equal_refactor_pos tok pos_opt then (
                                tok.PI.transfo <-
                                  PI.AddBefore (PI.AddStr (str ^ " "));
-                               was_modifed := true );
+                               was_modifed := true);
                              k x
                          | xs ->
                              xs |> Ast.uncomma
@@ -143,7 +143,7 @@ let refactor refactorings (ast, tokens) =
                                     then
                                       failwith
                                         "Do a SPLIT_MEMBERS refactoring first");
-                             k x )
+                             k x)
                      | _ -> k x);
                }
            | R.SplitMembers ->
@@ -178,9 +178,9 @@ let refactor refactorings (ast, tokens) =
                                  | _ -> raise Impossible
                                in
                                aux rest;
-                               was_modifed := true );
+                               was_modifed := true);
                              k x
-                         | _ -> raise Impossible )
+                         | _ -> raise Impossible)
                      | _ -> k x);
                }
            | R.AddInterface (class_opt, interface) ->
@@ -252,11 +252,11 @@ let refactor refactorings (ast, tokens) =
                                      was_modifed := true
                                  | _x :: xs -> aux xs
                                in
-                               aux xs ));
+                               aux xs));
                }
          in
          (V.mk_visitor visitor) (Program ast);
          if not !was_modifed then (
            pr2_gen (kind, pos_opt);
-           failwith "refactoring didn't apply" ));
+           failwith "refactoring didn't apply"));
   Unparse_php.string_of_program_with_comments_using_transfo (ast, tokens)

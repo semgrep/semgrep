@@ -218,9 +218,10 @@ and literal x =
   | String v1 ->
       let v1 = wrap string v1 in
       G.String v1
-  | Regexp v1 ->
-      let v1 = wrap string v1 in
-      G.Regexp v1
+  | Regexp (v1, v2) ->
+      let v1 = bracket (wrap string) v1 in
+      let v2 = option (wrap string) v2 in
+      G.Regexp (v1, v2)
 
 and expr (x : expr) =
   match x with
@@ -251,7 +252,7 @@ and expr (x : expr) =
       | SR_NeedArgs _ ->
           error (snd v1) "Impossible: should have been matched in Call first"
       | SR_Literal l -> G.L l
-      | SR_Other (x, tok) -> G.OtherExpr (x, [ G.Tk tok ]) )
+      | SR_Other (x, tok) -> G.OtherExpr (x, [ G.Tk tok ]))
   | Assign (v1, tok, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       let tok = info tok in
@@ -281,7 +282,7 @@ and expr (x : expr) =
       let t = info t in
       match v2 with
       | Left n -> G.DotAccess (v1, t, G.EN (G.Id (n, G.empty_id_info ())))
-      | Right e -> G.DotAccess (v1, t, G.EDynamic e) )
+      | Right e -> G.DotAccess (v1, t, G.EDynamic e))
   | Fun (v1, _v2TODO) ->
       let def, _more_attrs = fun_ v1 in
       (* todo? assert more_attrs = []? *)
@@ -298,7 +299,7 @@ and expr (x : expr) =
           G.Call
             ( G.OtherExpr (x, [ G.Tk tok ]),
               bracket (List.map (fun e -> G.Arg e)) v2 )
-      | SR_NeedArgs f -> f (G.unbracket v2) )
+      | SR_NeedArgs f -> f (G.unbracket v2))
   | Apply (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list expr) v2 in
       G.Call (v1, bracket (List.map (fun e -> G.Arg e)) v2)
@@ -402,7 +403,7 @@ and for_header = function
           G.ForClassic (vars, v2, v3)
       | Right e ->
           let e = expr e in
-          G.ForClassic ([ G.ForInitExpr e ], v2, v3) )
+          G.ForClassic ([ G.ForInitExpr e ], v2, v3))
   | ForIn (v1, t, v2) ->
       let v2 = expr v2 in
       let pattern =
@@ -565,7 +566,7 @@ and parameter x =
       in
       match v3 with
       | None -> G.ParamClassic pclassic
-      | Some tok -> G.ParamRest (tok, pclassic) )
+      | Some tok -> G.ParamRest (tok, pclassic))
 
 and argument x = expr x
 
@@ -580,7 +581,7 @@ and attribute = function
       G.NamedAttr (t, name, (t1, args, t2))
 
 and keyword_attribute (x, tok) =
-  ( ( match x with
+  ( (match x with
     (* methods *)
     | Get -> G.Getter
     | Set -> G.Setter
@@ -594,7 +595,7 @@ and keyword_attribute (x, tok) =
     | Readonly -> G.Const
     | Optional -> G.Optional
     | Abstract -> G.Abstract
-    | NotNull -> G.NotNull ),
+    | NotNull -> G.NotNull),
     tok )
 
 and obj_ v = bracket (list property) v
@@ -674,7 +675,7 @@ and alias v1 =
 
 and module_directive x =
   match x with
-  | ReExportNamespace (v1, _v2, _v3, v4) ->
+  | ReExportNamespace (v1, _v2, _opt_alias, _v3, v4) ->
       let v4 = filename v4 in
       G.OtherDirective (G.OI_ReExportNamespace, [ G.Tk v1; G.Str v4 ])
   | Import (t, v1, v2, v3) ->
@@ -746,7 +747,7 @@ and require_to_import_in_stmt_opt st =
             let orig = stmt st in
             Some (ys @ [ orig ])
         | _ -> raise ComplicatedCase
-      with ComplicatedCase -> None )
+      with ComplicatedCase -> None)
   | _ -> None
 
 and list_stmt xs =
@@ -799,7 +800,7 @@ and any = function
       | Some xs -> G.Ss xs
       | None ->
           let v1 = stmt v1 in
-          G.S v1 )
+          G.S v1)
   | Stmts v1 ->
       let v1 = list_stmt v1 in
       G.Ss v1

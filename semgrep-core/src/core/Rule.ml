@@ -21,41 +21,80 @@ module MV = Metavariable
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Data structure representing a semgrep rule.
+(* Data structures to represent a Semgrep rule (=~ AST of a rule).
  *
- * See also Mini_rule.ml where formula and many other features disappears.
+ * See also Mini_rule.ml where formula and many other features disappear.
  *
  * TODO:
  *  - parse equivalences
  *)
 
 (*****************************************************************************)
-(* Extended languages and patterns *)
+(* Position information *)
 (*****************************************************************************)
 
-(* less: merge with xpattern_kind? *)
+(* This is similar to what we do in AST_generic to get precise
+ * error location when a rule is malformed.
+ *)
+type tok = AST_generic.tok [@@deriving show, eq, hash]
+
+type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
+
+(*****************************************************************************)
+(* Extended languages *)
+(*****************************************************************************)
+
+(* eXtended language, stored in the languages: field in the rule.
+ * less: merge with xpattern_kind? *)
 type xlang =
   (* for "real" semgrep (the first language is used to parse the pattern) *)
   | L of Lang.t * Lang.t list
-  (* for pattern-regex (less: rename LRegex? *)
-  | LNone
+  (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)
+  | LRegex
   (* for spacegrep *)
   | LGeneric
-[@@deriving show]
+[@@deriving show, eq]
 
-type regexp = Regexp_engine.Pcre_engine.t [@@deriving show, eq]
+exception InvalidLanguage of string (* rule id *) * string (* msg *)
+
+(* coupling: Parse_mini_rule.parse_languages *)
+let xlang_of_string ?id:(id_opt = None) s =
+  match s with
+  | "none" | "regex" -> LRegex
+  | "generic" -> LGeneric
+  | _ -> (
+      match Lang.lang_of_string_opt s with
+      | None -> (
+          match id_opt with
+          | None -> failwith (Lang.unsupported_language_message s)
+          | Some id ->
+              raise
+                (InvalidLanguage (id, Common.spf "unsupported language: %s" s)))
+      | Some l -> L (l, []))
+
+let string_of_xlang = function
+  | L (l, _) -> Lang.string_of_lang l
+  | LRegex -> "regex"
+  | LGeneric -> "generic"
+
+(*****************************************************************************)
+(* Extended patterns *)
+(*****************************************************************************)
 
 type xpattern = {
   pat : xpattern_kind;
-  (* two patterns may have different indentation, we don't care. We can
-   * rely on the equality on pat, which will do the right thing (e.g., abstract
-   * away line position).
-   * TODO: right now we have some false positives because
-   * for example in Python assert(...) and assert ... are considered equal
-   * AST-wise, but it might be a bug!.
+  (* Regarding @equal below, even if two patterns have different indentation,
+   * we don't care. We rely only on the equality on pat, which will
+   * abstract away line positions.
+   * TODO: right now we have some false positives, e.g., in Python
+   * assert(...) and assert ... are considered equal AST-wise
+   * but it might be a bug!.
    *)
-  pstr : string; [@equal fun _ _ -> true]
-  (* unique id, incremented via a gensym()-like function in mk_pat() *)
+  pstr : string wrap; [@equal fun _ _ -> true]
+  (* Unique id, incremented via a gensym()-like function in mk_pat().
+   * This is used to run the patterns in a formula in a batch all-at-once
+   * and remember what was the matching results for a certain pattern id.
+   *)
   pid : pattern_id; [@equal fun _ _ -> true]
 }
 
@@ -65,8 +104,12 @@ and xpattern_kind =
   | Regexp of regexp
   | Comby of string
 
+and regexp = Regexp_engine.Pcre_engine.t
+
 (* used in the engine for rule->mini_rule and match_result gymnastic *)
 and pattern_id = int [@@deriving show, eq]
+
+(* helpers *)
 
 let count = ref 0
 
@@ -83,45 +126,49 @@ let is_regexp xpat = match xpat.pat with Regexp _ -> true | _ -> false
 (* Classic boolean-logic/set operators with text range set semantic.
  * The main complication is the handling of metavariables and especially
  * negation in the presence of metavariables.
- * TODO: add tok (Parse_info.t) for good metachecking error locations.
+ *
+ * todo? enforce invariant that Not/MetavarCond can only appear in And?
+ * move MetavarCond out of leaf in an additional element in And.
  *)
 type formula =
   | Leaf of leaf
-  | And of formula list
-  | Or of formula list
-  (* There are restrictions on where a Not can appear in a formula. It
-   * should always be inside an And to be intersected with "positive" formula.
+  | And of tok * formula list (* see Match_rules.split_and() *)
+  | Or of tok * formula list
+  (* There are currently restrictions on where a Not can appear in a formula.
+   * It must be inside an And to be intersected with "positive" formula.
+   * But this could change? If we were moving to a different range semantic?
    *)
-  | Not of formula
-
-(* todo: try to remove this at some point, but difficult. See
- * https://github.com/returntocorp/semgrep/issues/1218
- *)
-and inside = Inside
+  | Not of tok * formula
 
 and leaf =
-  (* Turn out, pattern: and pattern-inside: are slightly different so
+  (* pattern: and pattern-inside: are actually slightly different so
    * we need to keep the information around.
    * (see tests/OTHER/rules/inside.yaml)
    * The same is true for pattern-not and pattern-not-inside
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
   | P of xpattern (* a leaf pattern *) * inside option
-  | MetavarCond of metavar_cond
+  (* This can also only appear inside an And *)
+  | MetavarCond of tok * metavar_cond
+
+(* todo: try to remove this at some point, but difficult. See
+ * https://github.com/returntocorp/semgrep/issues/1218
+ *)
+and inside = Inside
 
 and metavar_cond =
-  | CondGeneric of AST_generic.expr (* see Eval_generic.ml *)
+  | CondEval of AST_generic.expr (* see Eval_generic.ml *)
   (* todo: at some point we should remove CondRegexp and have just
-   * CondGeneric, but for now there are some
+   * CondEval, but for now there are some
    * differences between using the matched text region of a metavariable
    * (which we use for MetavarRegexp) and using its actual value
    * (which we use for MetavarComparison), which translate to different
    * calls in Eval_generic.ml
-   * update: this is also useful to keep separate from CondGeneric for
+   * update: this is also useful to keep separate from CondEval for
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
   | CondRegexp of MV.mvar * regexp
-  | CondPattern of MV.mvar * formula
+  | CondNestedFormula of MV.mvar * xlang option * formula
 [@@deriving show, eq]
 
 (*****************************************************************************)
@@ -135,31 +182,31 @@ type formula_old =
   (* pattern: *)
   | Pat of xpattern
   (* pattern-not: *)
-  | PatNot of xpattern
-  | PatExtra of extra
+  | PatNot of tok * xpattern
+  | PatExtra of tok * extra
   (* pattern-inside: *)
   | PatInside of xpattern
   (* pattern-not-inside: *)
-  | PatNotInside of xpattern
+  | PatNotInside of tok * xpattern
   (* pattern-either: Or *)
-  | PatEither of formula_old list
+  | PatEither of tok * formula_old list
   (* patterns: And *)
-  | Patterns of formula_old list
+  | Patterns of tok * formula_old list
 
 (* extra conditions, usually on metavariable content *)
 and extra =
   | MetavarRegexp of MV.mvar * regexp
-  | MetavarPattern of MV.mvar * formula
+  | MetavarPattern of MV.mvar * xlang option * formula
   | MetavarComparison of metavariable_comparison
+  (* arbitrary code! dangerous! *)
   | PatWherePython of string
 
-(* arbitrary code, dangerous! *)
-
-(* See also matching/eval_generic.ml *)
+(* See also engine/Eval_generic.ml *)
 and metavariable_comparison = {
   metavariable : MV.mvar;
   comparison : AST_generic.expr;
-  (* see Eval_generic.ml *)
+  (* I don't think those are really needed; they can be inferred
+   * from the values *)
   strip : bool option;
   base : int option;
 }
@@ -172,24 +219,44 @@ type pformula = New of formula | Old of formula_old [@@deriving show, eq]
 (* The rule *)
 (*****************************************************************************)
 
+(* alt:
+ *     type common = { id : string; ... }
+ *     type search = { common : common; formula : pformula; }
+ *     type taint  = { common : common; spec : taint_spec; }
+ *     type rule   = Search of search | Taint of taint
+ *)
+
+type taint_spec = {
+  sources : pformula list;
+  sanitizers : pformula list;
+  sinks : pformula list;
+}
+[@@deriving show]
+
+type mode = Search of pformula | Taint of taint_spec [@@deriving show]
+
+(* TODO? just reuse Error_code.severity *)
+type severity = Error | Warning | Info [@@deriving show]
+
 type rule = {
-  (* mandatory fields *)
-  id : string;
-  formula : pformula;
+  (* MANDATORY fields *)
+  id : rule_id wrap;
+  mode : mode;
   message : string;
-  severity : Mini_rule.severity;
+  severity : severity;
   languages : xlang;
-  file : string;
-  (* for metachecking error location *)
-  (* optional fields *)
+  (* OPTIONAL fields *)
+  options : Config_semgrep.t option;
+  (* deprecated? todo: parse them *)
   equivalences : string list option;
-  (* TODO: parse them *)
   fix : string option;
   fix_regexp : (regexp * int option * string) option;
   paths : paths option;
   (* ex: [("owasp", "A1: Injection")] but can be anything *)
   metadata : JSON.t option;
 }
+
+and rule_id = string
 
 and paths = {
   (* not regexp but globs *)
@@ -204,18 +271,29 @@ type t = rule [@@deriving show]
 type rules = rule list [@@deriving show]
 
 (*****************************************************************************)
-(* Visitor *)
+(* Visitor/extractor *)
 (*****************************************************************************)
 (* currently used in Check_rule.ml metachecker *)
 let rec visit_new_formula f formula =
   match formula with
   | Leaf (P (p, _)) -> f p
   | Leaf (MetavarCond _) -> ()
-  | Not x -> visit_new_formula f x
-  | Or xs | And xs -> xs |> List.iter (visit_new_formula f)
+  | Not (_, x) -> visit_new_formula f x
+  | Or (_, xs) | And (_, xs) -> xs |> List.iter (visit_new_formula f)
+
+(* used by the metachecker for precise error location *)
+let tok_of_formula = function
+  | And (t, _) | Or (t, _) | Not (t, _) -> t
+  | Leaf (P (p, _)) -> snd p.pstr
+  | Leaf (MetavarCond (t, _)) -> t
+
+let kind_of_formula = function
+  | Leaf (P _) -> "pattern"
+  | Leaf (MetavarCond _) -> "condition"
+  | Or _ | And _ | Not _ -> "formula"
 
 (*****************************************************************************)
-(* Converter *)
+(* Converters *)
 (*****************************************************************************)
 
 (* Substitutes `$MVAR` with `int($MVAR)` in cond. *)
@@ -240,7 +318,8 @@ let rewrite_metavar_comparison_strip mvar cond =
 let convert_extra x =
   match x with
   | MetavarRegexp (mvar, re) -> CondRegexp (mvar, re)
-  | MetavarPattern (mvar, formula) -> CondPattern (mvar, formula)
+  | MetavarPattern (mvar, opt_xlang, formula) ->
+      CondNestedFormula (mvar, opt_xlang, formula)
   | MetavarComparison comp -> (
       match comp with
       (* do we care about strip and base? should not Eval_generic handle it?
@@ -257,7 +336,7 @@ let convert_extra x =
             | None | Some false -> comparison
             | Some true -> rewrite_metavar_comparison_strip mvar comparison
           in
-          CondGeneric cond )
+          CondEval cond)
   | PatWherePython _ ->
       (*
   logger#debug "convert_extra: %s" s;
@@ -271,17 +350,17 @@ let (convert_formula_old : formula_old -> formula) =
     match e with
     | Pat x -> Leaf (P (x, None))
     | PatInside x -> Leaf (P (x, Some Inside))
-    | PatNot x -> Not (Leaf (P (x, None)))
-    | PatNotInside x -> Not (Leaf (P (x, Some Inside)))
-    | PatEither xs ->
+    | PatNot (t, x) -> Not (t, Leaf (P (x, None)))
+    | PatNotInside (t, x) -> Not (t, Leaf (P (x, Some Inside)))
+    | PatEither (t, xs) ->
         let xs = List.map aux xs in
-        Or xs
-    | Patterns xs ->
+        Or (t, xs)
+    | Patterns (t, xs) ->
         let xs = List.map aux xs in
-        And xs
-    | PatExtra x ->
+        And (t, xs)
+    | PatExtra (t, x) ->
         let e = convert_extra x in
-        Leaf (MetavarCond e)
+        Leaf (MetavarCond (t, e))
   in
   aux e
 
@@ -289,6 +368,9 @@ let formula_of_pformula = function
   | New f -> f
   | Old oldf -> convert_formula_old oldf
 
-let formula_of_rule r = formula_of_pformula r.formula
+let partition_rules rules =
+  rules
+  |> Common.partition_either (fun r ->
+         match r.mode with Search f -> Left (r, f) | Taint s -> Right (r, s))
 
 (*e: semgrep/core/Rule.ml *)

@@ -321,18 +321,20 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Ratio v1 ->
         let v1 = map_wrap map_of_string v1 in
         Ratio v1
-    | Atom v1 ->
+    | Atom (v0, v1) ->
+        let v0 = map_tok v0 in
         let v1 = map_wrap map_of_string v1 in
-        Atom v1
+        Atom (v0, v1)
     | Char v1 ->
         let v1 = map_wrap map_of_string v1 in
         Char v1
     | String v1 ->
         let v1 = map_wrap map_of_string v1 in
         String v1
-    | Regexp v1 ->
-        let v1 = map_wrap map_of_string v1 in
-        Regexp v1
+    | Regexp (v1, v2) ->
+        let v1 = map_bracket (map_wrap map_of_string) v1 in
+        let v2 = map_of_option (map_wrap map_of_string) v2 in
+        Regexp (v1, v2)
     | Null v1 ->
         let v1 = map_tok v1 in
         Null v1
@@ -427,9 +429,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | TyFun (v1, v2) ->
         let v1 = map_of_list map_parameter v1 and v2 = map_type_ v2 in
         TyFun (v1, v2)
-    | TyNameApply (v1, v2) ->
-        let v1 = map_dotted_ident v1 and v2 = map_type_arguments v2 in
-        TyNameApply (v1, v2)
+    | TyApply (v1, v2) ->
+        let v1 = map_type_ v1 and v2 = map_type_arguments v2 in
+        TyApply (v1, v2)
     | TyN v1 ->
         let v1 = map_name v1 in
         TyN v1
@@ -465,7 +467,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | OtherType (v1, v2) ->
         let v1 = map_other_type_operator v1 and v2 = map_of_list map_any v2 in
         OtherType (v1, v2)
-  and map_type_arguments v = map_of_list map_type_argument v
+  and map_type_arguments v = map_bracket (map_of_list map_type_argument) v
   and map_type_argument = function
     | TypeArg v1 ->
         let v1 = map_type_ v1 in
@@ -1013,6 +1015,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v3 = map_expr v3 in
         PartialSingleField (v1, v2, v3)
   and map_any = function
+    | Anys v1 ->
+        let v1 = map_of_list map_any v1 in
+        Anys v1
     | Str v1 ->
         let v1 = map_wrap map_of_string v1 in
         Str v1
@@ -1097,3 +1102,21 @@ let (mk_visitor : visitor_in -> visitor_out) =
     }
   in
   all_functions
+
+(*****************************************************************************)
+(* Fix token locations *)
+(*****************************************************************************)
+
+let mk_fix_token_locations fix =
+  mk_visitor
+    {
+      default_visitor with
+      kstmt =
+        (fun (k, _) s ->
+          k
+            {
+              s with
+              s_range = Common.map_opt (fun (x, y) -> (fix x, fix y)) s.s_range;
+            });
+      kinfo = (fun (_, _) t -> Parse_info.fix_token_location fix t);
+    }

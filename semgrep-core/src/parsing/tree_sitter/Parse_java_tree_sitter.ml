@@ -44,6 +44,8 @@ let token = H.token
 
 let str = H.str
 
+let option = Common.map_opt
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -87,14 +89,14 @@ let id_extra env = function
   | `Choice_open x -> (
       match x with
       | `Open tok -> str env tok (* "open" *)
-      | `Module tok -> str env tok (* "module" *) )
+      | `Module tok -> str env tok (* "module" *))
 
 let rec qualifier_extra env = function
   | `Id tok -> [ str env tok ] (* pattern [a-zA-Z_]\w* *)
   | `Choice_open x -> (
       match x with
       | `Open tok -> [ str env tok ] (* "open" *)
-      | `Module tok -> [ str env tok ] (* "module" *) )
+      | `Module tok -> [ str env tok ] (* "module" *))
   | `Scoped_id x -> scoped_identifier env x
 
 and scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) :
@@ -121,7 +123,7 @@ let inferred_parameters (env : env) ((v1, v2, v3, v4) : CST.inferred_parameters)
 
 let int_literal env tok =
   let s, t = str env tok in
-  (H.int_of_string_c_octal_opt s, t)
+  (Common2.int_of_string_c_octal_opt s, t)
 
 let string_literal env tok =
   let s, t = str env tok in
@@ -242,7 +244,7 @@ let rec expression (env : env) (x : CST.expression) =
         | `Choice_open x -> (
             match x with
             | `Open tok -> name_of_id env tok (* "open" *)
-            | `Module tok -> name_of_id env tok (* "module" *) )
+            | `Module tok -> name_of_id env tok (* "module" *))
         | `Field_access x -> field_access env x
         | `Array_access x -> array_access env x
       in
@@ -265,7 +267,7 @@ let rec expression (env : env) (x : CST.expression) =
       let v3 = expression env v3 in
       match v2 with
       | Left (), t -> Assign (v1, t, v3)
-      | Right op, t -> AssignOp (v1, (op, t), v3) )
+      | Right op, t -> AssignOp (v1, (op, t), v3))
   | `Bin_exp x -> binary_expression env x
   | `Inst_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -465,7 +467,7 @@ and basic_type_extra env = function
   | `Bool_type tok -> TBasic (str env tok) (* "boolean" *)
   | `Id tok ->
       let x = str env tok (* pattern [a-zA-Z_]\w* *) in
-      TClass [ (x, []) ]
+      TClass [ (x, None) ]
   | `Scoped_type_id x ->
       let x = scoped_type_identifier env x in
       TClass x
@@ -497,7 +499,7 @@ and primary_expression (env : env) (x : CST.primary_expression) =
   | `Choice_open x -> (
       match x with
       | `Open tok -> name_of_id env tok (* "open" *)
-      | `Module tok -> name_of_id env tok (* "module" *) )
+      | `Module tok -> name_of_id env tok (* "module" *))
   | `Paren_exp x -> parenthesized_expression env x
   | `Obj_crea_exp x -> object_creation_expression env x
   | `Field_access x -> field_access env x
@@ -525,9 +527,7 @@ and primary_expression (env : env) (x : CST.primary_expression) =
                   fun v5 -> Dot (Dot (v1, v2, v1bis), v2bis, v5)
               | None -> fun v5 -> Dot (v1, v2, v5)
             in
-            let _v4 =
-              match v4 with Some x -> type_arguments env x | None -> []
-            in
+            let _v4TODO = option (type_arguments env) v4 in
             let v5 = id_extra env v5 in
             v3 v5
       in
@@ -544,7 +544,7 @@ and primary_expression (env : env) (x : CST.primary_expression) =
         (* "super" *)
       in
       let v2 = token env v2 (* "::" *) in
-      let v3 = match v3 with Some x -> type_arguments env x | None -> [] in
+      let v3 = option (type_arguments env) v3 in
       let v4 =
         match v4 with
         | `New tok -> new_id env tok (* "new" *)
@@ -609,7 +609,7 @@ and object_creation_expression (env : env) (x : CST.object_creation_expression)
 and unqualified_object_creation_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.unqualified_object_creation_expression) =
   let v1 = token env v1 (* "new" *) in
-  let v2 = match v2 with Some x -> type_arguments env x | None -> [] in
+  let v2 = option (type_arguments env) v2 in
   let v3 = basic_type_extra env v3 in
   let v4 = argument_list env v4 in
   let v5 = match v5 with Some x -> Some (class_body env x) | None -> None in
@@ -638,7 +638,7 @@ and field_access (env : env) ((v1, v2, v3, v4) : CST.field_access) =
     | `Choice_open x -> (
         match x with
         | `Open tok -> str env tok (* "open" *)
-        | `Module tok -> str env tok (* "module" *) )
+        | `Module tok -> str env tok (* "module" *))
     | `This tok -> str env tok
     (* "this" *)
   in
@@ -672,7 +672,7 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
   (v1, v2, v3)
 
 and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) =
-  let _v1 = token env v1 (* "<" *) in
+  let v1 = token env v1 (* "<" *) in
   let v2 =
     match v2 with
     | Some (v1, v2) ->
@@ -696,8 +696,8 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) =
         v1 :: v2
     | None -> []
   in
-  let _v3 = token env v3 (* ">" *) in
-  v2
+  let v3 = token env v3 (* ">" *) in
+  (v1, v2, v3)
 
 and wildcard (env : env) ((v1, v2, v3) : CST.wildcard) =
   let _v1 = List.map (annotation env) v1 in
@@ -1057,7 +1057,7 @@ and annotation_argument_list (env : env)
                 v2
             in
             AnnotArgPairInit (v1 :: v2)
-        | None -> EmptyAnnotArg )
+        | None -> EmptyAnnotArg)
   in
   let v3 = token env v3 (* ")" *) in
   (v1, v2, v3)
@@ -1135,7 +1135,7 @@ and declaration (env : env) (x : CST.declaration) : AST.stmt =
         | None -> (
             match List.rev v3 with
             | [] -> raise Impossible
-            | x :: xs -> ImportFrom (v1, List.rev xs, x) )
+            | x :: xs -> ImportFrom (v1, List.rev xs, x))
       in
       let _v5 = token env v5 (* ";" *) in
       DirectiveStmt (Import (v2, v4))
@@ -1368,7 +1368,7 @@ and explicit_constructor_invocation (env : env)
   let v1 =
     match v1 with
     | `Opt_type_args_choice_this (v1, v2) ->
-        let _v1 = match v1 with Some x -> type_arguments env x | None -> [] in
+        let _v1TODO = option (type_arguments env) v1 in
         let v2 =
           match v2 with
           | `This tok -> This (token env tok) (* "this" *)
@@ -1379,7 +1379,7 @@ and explicit_constructor_invocation (env : env)
     | `Choice_prim_exp_DOT_opt_type_args_super (v1, v2, v3, v4) ->
         let v1 = match v1 with `Prim_exp x -> primary_expression env x in
         let v2 = token env v2 (* "." *) in
-        let _v3 = match v3 with Some x -> type_arguments env x | None -> [] in
+        let _v3 = option (type_arguments env) v3 in
         let v4 = super_id_field env v4 (* "super" *) in
         Dot (v1, v2, v4)
   in
@@ -1579,7 +1579,7 @@ and scoped_type_identifier (env : env)
     match v1 with
     | `Id tok ->
         let id = str env tok (* pattern [a-zA-Z_]\w* *) in
-        [ (id, []) ]
+        [ (id, None) ]
     | `Scoped_type_id x -> scoped_type_identifier env x
     | `Gene_type x -> generic_type env x
   in
@@ -1587,20 +1587,20 @@ and scoped_type_identifier (env : env)
   let _v3 = List.map (annotation env) v3 in
   let v4 = identifier env v4 (* pattern [a-zA-Z_]\w* *) in
 
-  v1 @ [ (v4, []) ]
+  v1 @ [ (v4, None) ]
 
 and generic_type (env : env) ((v1, v2) : CST.generic_type) : class_type =
   let v1 =
     match v1 with
     | `Id tok ->
         let id = str env tok (* pattern [a-zA-Z_]\w* *) in
-        [ (id, []) ]
+        [ (id, None) ]
     | `Scoped_type_id x -> scoped_type_identifier env x
   in
   let v2 = type_arguments env v2 in
   match List.rev v1 with
   | [] -> raise Impossible
-  | (x, []) :: xs -> List.rev xs @ [ (x, v2) ]
+  | (x, None) :: xs -> List.rev xs @ [ (x, Some v2) ]
   | (_x, _) :: _xs -> raise Impossible
 
 and method_header (env : env) ((v1, v2, v3, v4) : CST.method_header) =

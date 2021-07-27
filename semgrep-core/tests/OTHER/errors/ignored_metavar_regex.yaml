@@ -1,0 +1,25 @@
+rules:
+- id: eslint.detect-object-injection
+  patterns:
+    - pattern: $O[$ARG]
+    - pattern-not: $O["..."]
+    - pattern-not-inside: |
+        $ARG = [$V];
+        ...
+    - pattern-not-inside: |
+        $ARG = $V;
+        ...
+    - metavariable-regex:
+        metavariable: "$V"
+        regex: "[0-9]+"
+        #ERROR: duplicate key in dictionary! Bad YAML
+        metavariable: "$ARG"
+        regex: "[^0-9]+"
+  message: "Bracket object notation with user input is present, this might allow an attacker to access all properties of the object and even it's prototype, leading to possible code execution."
+  languages:
+    - javascript
+    - typescript
+  severity: WARNING
+  metadata:
+    cwe: "CWE-94: Improper Control of Generation of Code ('Code Injection')"
+    

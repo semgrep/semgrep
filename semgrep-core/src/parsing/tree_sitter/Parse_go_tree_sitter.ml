@@ -83,7 +83,7 @@ let float_literal (env : env) (tok : CST.float_literal) =
 
 let int_literal (env : env) (tok : CST.int_literal) =
   let s, t = str env tok (* int_literal *) in
-  (H.int_of_string_c_octal_opt s, t)
+  (Common2.int_of_string_c_octal_opt s, t)
 
 let rune_literal (env : env) (tok : CST.rune_literal) = str env tok
 
@@ -158,7 +158,7 @@ let import_spec (env : env) ((v1, v2) : CST.import_spec) =
         match x with
         | `Dot tok -> ImportDot (token env tok) (* "." *)
         | `Blank_id tok -> ImportNamed (identifier env tok) (* "_" *)
-        | `Id tok -> ImportNamed (identifier env tok) (* identifier *) )
+        | `Id tok -> ImportNamed (identifier env tok) (* identifier *))
     | None -> ImportOrig
   in
   let v2 = string_literal env v2 in
@@ -213,7 +213,7 @@ and simple_statement (env : env) (x : CST.simple_statement) : simple =
       let v3 = expression_list env v3 in
       match v2 with
       | G.Eq, t -> Assign (v1, t, v3)
-      | _ -> AssignOp (expr1 v1, v2, expr1 v3) )
+      | _ -> AssignOp (expr1 v1, v2, expr1 v3))
   | `Short_var_decl (v1, v2, v3) ->
       let v1 = expression_list env v1 in
       let v2 = token env v2 (* ":=" *) in
@@ -392,7 +392,7 @@ and anon_choice_param_decl_18823e5 (env : env)
           field_name_list env x
           |> List.map (fun id ->
                  ParamClassic { pname = Some id; ptype = v2; pdots = None })
-      | None -> [ ParamClassic { pname = None; ptype = v2; pdots = None } ] )
+      | None -> [ ParamClassic { pname = None; ptype = v2; pdots = None } ])
   | `Vari_param_decl (v1, v2, v3) ->
       let v1 =
         match v1 with
@@ -522,7 +522,7 @@ and expression (env : env) (x : CST.expression) : expr =
       | `HAT tok -> Unary ((G.Xor, token env tok (* "^" *)), v2)
       | `STAR tok -> Deref (token env tok (* "*" *), v2)
       | `AMP tok -> Ref (token env tok (* "&" *), v2)
-      | `LTDASH tok -> Receive (token env tok (* "<-" *), v2) )
+      | `LTDASH tok -> Receive (token env tok (* "<-" *), v2))
   | `Bin_exp x -> binary_expression env x
   | `Sele_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -559,7 +559,7 @@ and expression (env : env) (x : CST.expression) : expr =
           let v3 = expression env v3 in
           let _v4 = token env v4 (* ":" *) in
           let v5 = expression env v5 in
-          Slice (v1top, (t1, (v1, Some v3, Some v5), t2)) )
+          Slice (v1top, (t1, (v1, Some v3, Some v5), t2)))
   | `Call_exp x -> call_expression env x
   | `Type_asse_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
@@ -710,8 +710,8 @@ and statement (env : env) (x : CST.statement) : stmt =
           | `For_clause x -> For (v1, for_clause env x, v3)
           | `Range_clause x ->
               let a, b, c = range_clause env x in
-              For (v1, ForRange (a, b, c), v3) )
-      | None -> For (v1, ForClassic (None, None, None), v3) )
+              For (v1, ForRange (a, b, c), v3))
+      | None -> For (v1, ForClassic (None, None, None), v3))
   | `Exp_switch_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "switch" *) in
       let v2 =
@@ -1135,7 +1135,7 @@ and communication_case (env : env) ((v1, v2, v3, v4) : CST.communication_case) =
         match opt with
         | None -> CaseExprs (v1, [ Left e ])
         | Some (xs, (_lr, tk)) ->
-            CaseAssign (v1, xs |> List.map (fun e -> Left e), tk, e) )
+            CaseAssign (v1, xs |> List.map (fun e -> Left e), tk, e))
   in
   let _v3 = token env v3 (* ":" *) in
   let v4 = match v4 with Some x -> statement_list env x | None -> [] in

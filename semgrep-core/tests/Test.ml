@@ -3,8 +3,8 @@ open Common
 open OUnit
 module E = Error_code
 module P = Pattern_match
-module R = Mini_rule
-module T = Tainting_rule
+module R = Rule
+module MR = Mini_rule
 
 (*****************************************************************************)
 (* Purpose *)
@@ -104,7 +104,7 @@ let regression_tests_for_lang ~with_caching files lang =
     in
     Error_code.g_errors := [];
 
-    let rule = { R.
+    let rule = { MR.
       id = "unit testing"; pattern; message = ""; 
       severity = R.Error; languages = [lang];
       pattern_string = "test: no need for pattern string";
@@ -141,7 +141,7 @@ let regression_tests_for_lang ~with_caching files lang =
 let tainting_test lang rules_file file =
   let rules =
     try
-      Parse_tainting_rules.parse rules_file
+      Parse_rule.parse rules_file
     with exn ->
       failwith (spf "fail to parse tainting rules %s (exn = %s)"
                 rules_file
@@ -160,8 +160,21 @@ let tainting_test lang rules_file file =
                   (Common.exn_to_s exn))
   in
   let rules =
-    rules |> List.filter (fun r -> List.mem lang r.T.languages) in
-  let matches = Tainting_generic.check rules file ast in
+    rules
+    |> List.filter (fun r ->
+          match r.Rule.languages with
+          | Rule.L (x, xs) -> List.mem lang (x :: xs)
+          | _ -> false)
+    in
+  let search_rules, taint_rules = Rule.partition_rules rules in
+  assert (search_rules = []);
+  let matches =
+    let equivs = [] in
+    Tainting_generic.check
+      (fun _ _ _ -> ())
+      Config_semgrep.default_config
+      taint_rules equivs file ast
+  in
   let actual =
     matches |> List.map (fun m ->
       { E.typ = SemgrepMatchFound(m.P.rule_id.id,m.P.rule_id.message);
@@ -248,6 +261,18 @@ let lang_parsing_tests =
       let dir = Filename.concat tests_path "scala/parsing" in
       let files = Common2.glob (spf "%s/*.scala" dir) in
       let lang = Lang.Scala in
+      parsing_tests_for_lang files lang
+    );
+    "HTML" >::: (
+      let dir = Filename.concat tests_path "html/parsing" in
+      let files = Common2.glob (spf "%s/*.html" dir) in
+      let lang = Lang.HTML in
+      parsing_tests_for_lang files lang
+    );
+    "Vue" >::: (
+      let dir = Filename.concat tests_path "vue/parsing" in
+      let files = Common2.glob (spf "%s/*.vue" dir) in
+      let lang = Lang.Vue in
       parsing_tests_for_lang files lang
     );
   ]
@@ -359,6 +384,18 @@ let lang_regression_tests ~with_caching =
     let lang = Lang.Scala in
     regression_tests_for_lang files lang
   );
+  "semgrep HTML" >::: (
+    let dir = Filename.concat tests_path "html" in
+    let files = Common2.glob (spf "%s/*.html" dir) in
+    let lang = Lang.HTML in
+    regression_tests_for_lang files lang
+  );
+  "semgrep Vue" >::: (
+    let dir = Filename.concat tests_path "vue" in
+    let files = Common2.glob (spf "%s/*.vue" dir) in
+    let lang = Lang.Vue in
+    regression_tests_for_lang files lang
+  );
  ]
 (*e: constant [[Test.lang_regression_tests]] *)
 
@@ -371,6 +408,12 @@ let full_rule_regression_tests =
 let lang_tainting_tests =
   let taint_tests_path = Filename.concat tests_path "tainting_rules" in
   "lang tainting rules testing" >::: [
+    "tainting Go" >::: (
+      let dir = Filename.concat taint_tests_path "go" in
+      let files = Common2.glob (spf "%s/*.go" dir) in
+      let lang = Lang.Go in
+      tainting_tests_for_lang files lang
+    );
     "tainting PHP" >::: (
       let dir = Filename.concat taint_tests_path "php" in
       let files = Common2.glob (spf "%s/*.php" dir) in
@@ -381,6 +424,12 @@ let lang_tainting_tests =
       let dir = Filename.concat taint_tests_path "python" in
       let files = Common2.glob (spf "%s/*.py" dir) in
       let lang = Lang.Python in
+      tainting_tests_for_lang files lang
+    );
+    "tainting Javascript" >::: (
+      let dir = Filename.concat taint_tests_path "js" in
+      let files = Common2.glob (spf "%s/*.js" dir) in
+      let lang = Lang.Javascript in
       tainting_tests_for_lang files lang
     );
     "tainting Typescript" >::: (
@@ -439,7 +488,7 @@ let lint_regression_tests ~with_caching =
 (*e: constant [[Test.lint_regression_tests]] *)
 
 let eval_regression_tests = 
-  "eval regression resting" >:: (fun () ->
+  "eval regression testing" >:: (fun () ->
       let dir = Filename.concat tests_path "OTHER/eval" in
       let files = Common2.glob (spf "%s/*.json" dir) in
       files |> List.iter (fun file ->
@@ -447,6 +496,45 @@ let eval_regression_tests =
         let res = Eval_generic.eval env code in
         OUnit.assert_equal ~msg:(spf "%s should evaluate to true" file)
           (Eval_generic.Bool true) res
+      )
+  )
+
+(* alt: we could split the purely-syntactical parsing error checks
+ * from the metachecker checks, but simpler to consider all of that
+ * as just errors.
+ *)
+let metachecker_regression_tests = 
+  "metachecker regression testing" >::: (
+      let dir = Filename.concat tests_path "OTHER/errors" in
+      let files = Common2.glob (spf "%s/*.yaml" dir) in
+      files |> List.map (fun file ->
+       (Filename.basename file) >:: (fun () ->
+
+        Error_code.g_errors := [];
+        E.try_with_exn_to_error file (fun () ->
+          try
+            let rules = Parse_rule.parse file in
+            rules |> List.iter (fun rule ->
+              let errs = Check_rule.check rule in
+              Error_code.g_errors := errs @ !Error_code.g_errors
+            )
+          with
+          (* convert to something handled by E.try_with_exn_to_error.
+           * coupling: JSON_report.json_of_exn
+           *)
+          | Parse_rule.InvalidRule (_, s, t)
+          | Parse_rule.InvalidYaml (s, t)
+          | Parse_rule.InvalidRegexp (_, s, t)
+          | Parse_rule.InvalidLanguage (_, s, t)
+          | Parse_rule.InvalidPattern (_, _, _, s, t)
+           ->
+              raise (Parse_info.Other_error (s, t))
+        );
+
+        let actual = !Error_code.g_errors in
+        let expected = Error_code.expected_error_lines_of_files [file] in
+        Error_code.compare_actual_to_expected actual expected; 
+       )   
       )
   )
 
@@ -465,6 +553,7 @@ let test regexp =
       (* just expression vs expression testing for one language (Python) *)
       Unit_matcher.unittest ~any_gen_of_string;
       Unit_synthesizer.unittest;
+      Unit_synthesizer_targets.unittest;
       Unit_dataflow.unittest Parse_target.parse_program;
       Unit_typing_generic.unittest 
         Parse_target.parse_program 
@@ -482,6 +571,7 @@ let test regexp =
       eval_regression_tests;
       full_rule_regression_tests;
       lang_tainting_tests;
+      metachecker_regression_tests;
     ]
   in
   let suite =

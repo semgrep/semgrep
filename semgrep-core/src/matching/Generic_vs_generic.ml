@@ -29,7 +29,7 @@ module B = AST_generic
 module MV = Metavariable
 module AST = AST_generic
 module Flag = Flag_semgrep
-module Config = Config_semgrep
+module Config = Config_semgrep_t
 module H = AST_generic_helpers
 
 (* optimisations *)
@@ -177,7 +177,7 @@ let stmts_may_match pattern_stmts (stmts : AST_generic.stmt list) =
       | stmt :: rest -> (
           match acc with
           | F.No -> pattern_in_any_stmt pat rest (pat_in_stmt pat stmt)
-          | F.Maybe -> acc )
+          | F.Maybe -> acc)
     in
     let patterns_all_in_stmts acc x =
       match acc with
@@ -273,11 +273,9 @@ let m_module_name_prefix a b =
       envf a1 (MV.E (B.L (B.String b1)))
   (* dots: '...' on string or regexp *)
   | A.FileName a, B.FileName b ->
-      m_wrap
-        (m_string_ellipsis_or_regexp_or_default
-         (* TODO figure out what prefix support means here *)
-           ~m_string_for_default:m_string_prefix)
-        a b
+      m_string_ellipsis_or_metavar_or_default
+      (* TODO figure out what prefix support means here *)
+        ~m_string_for_default:m_string_prefix a b
   | A.DottedName a1, B.DottedName b1 -> m_dotted_name_prefix_ok a1 b1
   | A.FileName _, _ | A.DottedName _, _ -> fail ()
 
@@ -369,7 +367,7 @@ and m_type_option_with_hook idb taopt tbopt =
   | Some ta, None -> (
       match !Hooks.get_type idb with
       | Some tb -> m_type_ ta tb
-      | None -> fail () )
+      | None -> fail ())
   (* less-is-ok:, like m_option_none_can_match_some *)
   | None, _ -> return ()
 
@@ -577,11 +575,11 @@ and m_expr a b =
       if_config
         (fun x -> x.Config.constant_propagation)
         ~then_:
-          ( match
-              Normalize_generic.constant_propagation_and_evaluate_literal b1
-            with
+          (match
+             Normalize_generic.constant_propagation_and_evaluate_literal b1
+           with
           | Some b1 -> m_literal_constness a1 b1
-          | None -> fail () )
+          | None -> fail ())
         ~else_:(fail ())
   (*e: [[Generic_vs_generic.m_expr()]] propagated constant case *)
   (*s: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
@@ -622,11 +620,17 @@ and m_expr a b =
         ( A.IdSpecial (A.Op aop, _toka),
           (_, [ A.Arg a1; A.Arg (A.Ellipsis _tdots) ], _) ),
       B.Call (B.IdSpecial (B.Op bop, _tokb), (_, [ B.Arg b1; B.Arg _b2 ], _)) )
-    ->
+  (* This applies to any binary operation! Associative operators (declared
+   * in AST_generic_helpers.is_associative_operator) are better handled by
+   * m_call_op below. *)
+    when (not (H.is_associative_operator aop)) || aop <> bop ->
       m_arithmetic_operator aop bop >>= fun () ->
       m_expr a1 b1 >!> fun () ->
       (* try again deeper on b1 *)
       m_expr a b1
+  | ( A.Call (A.IdSpecial (A.Op aop, toka), aargs),
+      B.Call (B.IdSpecial (B.Op bop, tokb), bargs) ) ->
+      m_call_op aop toka aargs bop tokb bargs
   (* boilerplate *)
   (* TODO: via m_name! and miss IdQualfied vs IdQualified otherwise *)
   | A.N (A.Id (a1, a2)), B.N (B.Id (b1, b2)) ->
@@ -651,7 +655,7 @@ and m_expr a b =
             match xs with [] -> fail () | x :: xs -> m_expr a x >||> aux xs
           in
           aux mult_assigns
-      | _, _ -> fail () )
+      | _, _ -> fail ())
   | A.DotAccess (a1, at, a2), B.DotAccess (b1, bt, b2) ->
       m_expr a1 b1 >>= fun () ->
       m_tok at bt >>= fun () -> m_name_or_dynamic a2 b2
@@ -787,17 +791,20 @@ and m_label_ident a b =
 and m_literal a b =
   match (a, b) with
   (*s: [[Generic_vs_generic.m_literal()]] ellipsis case *)
-  (* dots: '...' on string or regexps *)
-  | A.String a, B.String b -> m_wrap m_string_ellipsis_or_regexp_or_default a b
+  (* dots: metavar: '...' and metavars on string/regexps/atoms *)
+  | A.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
+  | A.Atom (_, a), B.Atom (_, b) -> m_ellipsis_or_metavar_or_string a b
+  | A.Regexp (a1, a2), B.Regexp (b1, b2) -> (
+      let* () = m_bracket m_ellipsis_or_metavar_or_string a1 b1 in
+      match (a2, b2) with
+      (* less_is_ok: *)
+      | None, _ -> return ()
+      | Some a, Some b -> m_ellipsis_or_metavar_or_string a b
+      | Some _, None -> fail ())
   (*x: [[Generic_vs_generic.m_literal()]] ellipsis case *)
-  | A.Regexp ("/.../", a), B.Regexp (_s, b) -> m_info a b
   (*e: [[Generic_vs_generic.m_literal()]] ellipsis case *)
   (*s: [[Generic_vs_generic.m_literal()]] regexp case *)
   (*e: [[Generic_vs_generic.m_literal()]] regexp case *)
-  | A.Atom (s, tok), B.Atom _b1
-    when s =~ "^:\\(.*\\)" && MV.is_metavar_name (Common.matched1 s) ->
-      let mvar = Common.matched1 s in
-      envf (mvar, tok) (MV.E (B.L b))
   (* boilerplate *)
   | A.Unit a1, B.Unit b1 -> m_tok a1 b1
   | A.Bool a1, B.Bool b1 -> (m_wrap m_bool) a1 b1
@@ -805,9 +812,7 @@ and m_literal a b =
   | A.Float a1, B.Float b1 -> m_wrap_m_float_opt a1 b1
   | A.Imag a1, B.Imag b1 -> (m_wrap m_string) a1 b1
   | A.Ratio a1, B.Ratio b1 -> (m_wrap m_string) a1 b1
-  | A.Atom a1, B.Atom b1 -> (m_wrap m_string) a1 b1
   | A.Char a1, B.Char b1 -> (m_wrap m_string) a1 b1
-  | A.Regexp a1, B.Regexp b1 -> (m_wrap m_string) a1 b1
   | A.Null a1, B.Null b1 -> m_tok a1 b1
   | A.Undefined a1, B.Undefined b1 -> m_tok a1 b1
   | A.Unit _, _
@@ -854,7 +859,7 @@ and m_literal_constness a b =
   match b with
   | B.Lit b1 -> m_literal a b1
   | B.Cst B.Cstr -> (
-      match a with A.String ("...", _) -> return () | ___else___ -> fail () )
+      match a with A.String ("...", _) -> return () | ___else___ -> fail ())
   | B.Cst _ | B.NotCst -> fail ()
 
 (*s: function [[Generic_vs_generic.m_action]] *)
@@ -1096,10 +1101,8 @@ and m_xml_attr_value a b =
 and m_body a b =
   match (a, b) with
   | A.XmlText a1, B.XmlText b1 ->
-      m_wrap
-        (m_string_ellipsis_or_regexp_or_default
-           ~m_string_for_default:m_string_xhp_text)
-        a1 b1
+      m_string_ellipsis_or_metavar_or_default
+        ~m_string_for_default:m_string_xhp_text a1 b1
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_body]] boilerplate cases *)
   | A.XmlExpr a1, B.XmlExpr b1 ->
@@ -1179,7 +1182,7 @@ and m_list__m_argument (xsa : A.argument list) (xsb : A.argument list) =
               m_ident ida idb >>= fun () ->
               m_expr ea eb >>= fun () -> m_list__m_argument xsa (before @ after)
           | _ -> raise Impossible
-        with Not_found -> fail () )
+        with Not_found -> fail ())
   (*e: [[Generic_vs_generic.m_list__m_argument()]] [[ArgKwd]] pattern case *)
   (* the general case *)
   | xa :: aas, xb :: bbs ->
@@ -1213,7 +1216,7 @@ and m_arguments_concat a b =
       (* interpolated, and ellipsis implicitly is                   *)
       match (xa, xb) with
       | A.Arg (A.Ellipsis _), A.Arg (A.L (A.String _)) -> fail ()
-      | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs )
+      | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs)
   | [], _ | _ :: _, _ -> fail ()
 
 (*e: function [[Generic_vs_generic.m_arguments_concat]] *)
@@ -1240,6 +1243,191 @@ and m_argument a b =
 and m_other_argument_operator = m_other_xxx
 
 (*e: function [[Generic_vs_generic.m_other_argument_operator]] *)
+
+(*---------------------------------------------------------------------------*)
+(* Associative-commutative iso *)
+(*---------------------------------------------------------------------------*)
+and m_call_op aop toka aargs bop tokb bargs tin =
+  let is_commutative_operator = function
+    | A.BitOr | A.BitAnd | A.BitXor -> true
+    (* TODO: Plus, Mult, ... ? *)
+    | A.And | A.Or -> tin.config.commutative_boolop
+    | __else__ -> false
+  in
+  let m_op_default =
+    m_arithmetic_operator aop bop >>= fun () -> m_arguments aargs bargs
+  in
+  (* If this an AC operation we try to perform AC matching, otherwise we perform
+   * regular non-AC matching. *)
+  if tin.config.ac_matching && aop =*= bop && H.is_associative_operator aop then (
+    match
+      ( H.ac_matching_nf aop (A.unbracket aargs),
+        H.ac_matching_nf bop (B.unbracket bargs) )
+    with
+    | Some aargs_ac, Some bargs_ac ->
+        if is_commutative_operator aop then
+          m_ac_op tokb aop aargs_ac bargs_ac tin
+        else m_assoc_op tokb aop aargs_ac bargs_ac tin
+    | ___else___ ->
+        logger#warning
+          "Will not perform AC-matching, something went wrong when trying to \
+           convert operands to AC normal form: %s ~ %s"
+          (A.show_expr (A.Call (A.IdSpecial (A.Op aop, toka), aargs)))
+          (B.show_expr (B.Call (B.IdSpecial (B.Op bop, tokb), bargs)));
+        m_op_default tin)
+  else m_op_default tin
+
+(* Associative-matching of operators.
+ *
+ * This is very similar to m_list__m_argument where $MVAR acts like $...$MVAR
+ * (but cannot match an empty list of arguments).
+ *
+ * NOTE: There is not need for supporting $...MVAR here, and strictly speaking
+ *   it doesn't apply either since we still see the operator as binary.
+ *)
+and m_assoc_op tok op aargs_ac bargs_ac =
+  match (aargs_ac, bargs_ac) with
+  | [], [] -> return ()
+  (* dots: ..., can also match no argument *)
+  | [ A.Ellipsis _i ], [] -> return ()
+  (* $MVAR, acting similar to $...MVAR *)
+  | (A.N (A.Id ((s, _tok), _idinfo)) as xa) :: xsa, xsb
+    when MV.is_metavar_name s ->
+      let candidates = inits_and_rest_of_list_empty_ok xsb in
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | (inits, rest) :: xs -> (
+            match H.undo_ac_matching_nf tok op inits with
+            | Some op_bs' ->
+                m_expr xa op_bs'
+                >>= (fun () -> m_assoc_op tok op xsa rest)
+                >||> aux xs
+            | None -> aux xs)
+      in
+      aux candidates
+  | A.Ellipsis i :: xsa, xb :: xsb ->
+      (* can match nothing *)
+      m_assoc_op tok op xsa (xb :: xsb)
+      >||> (* can match more *)
+      m_assoc_op tok op (A.Ellipsis i :: xsa) xsb
+  | xa :: xsa, xb :: xsb ->
+      let* () = m_expr xa xb in
+      m_assoc_op tok op xsa xsb
+  | _ :: _, [] | [], _ :: _ -> fail ()
+
+(* Associative-Commutative (AC) matching of operators.
+ *
+ * This for example, will successfully match `a && b && c` against `b && a && c`!
+ * It will also match `if (<... b && c ...>) ...` against `if (a && b && c) S`
+ * which was not matching before as `a && b && c` is parsed as `(a && b) && c`.
+ *
+ * NOTE: There is not need for supporting $...MVAR here, and strictly speaking
+ *   it doesn't apply either since we still see the operator as binary.
+ *
+ * BEHAVIOR ISSUES:
+ *
+ * Even without a deep-expr pattern, `if (b && c) ...` will also match
+ * `if (a && b && c) S`. That is, there is an implicit `op ...` added to AC
+ * operators. Why? Let's say that we want to match pattern `<... a && b ...>`
+ * against `a && (b && c)`, the sub-expressions of `a && (b && c)` are itself,
+ * `a`, `b && c`, `b`, and `c`. The only chance to match `a && b` is to do it
+ * on `a && (b && c)`, and for that to work we cannot fail when there are
+ * operands left to match. TODO: We could try to detect when the AC op-pattern
+ * occurs inside a deep-expr and only then assume an implicit `&& ...`.
+ *
+ * AC-matching of metavariables could lead to some strange behaviors given that
+ * we work with ranges. E.g. we can match `a && $X` against `b && a && c` by
+ * binding $X to `b && c`, but the range of $X will be that of the whole
+ * `b && a && c` expression. Eventually, if we switch to work with the sub-ASTs
+ * matched by patterns rather than with their ranges, this will stop being a
+ * problem. In the meantime, one can disable AC-matching per rule.
+ *
+ * Autofix will probably not work well with AC-matching either.
+ *
+ * PERFORMANCE ISSUES:
+ *
+ * Note that AC-matching is an NP-complete problem. This is a naive
+ * implementation with lots of dumb combinatorial search. We only use
+ * AC-matching when we expect it to be fast, otherwise we fall-back to
+ * regular non-AC matching.
+ *
+ * For a more efficient AC matching algorithm, see paper by Steven M. Eker:
+ *
+ *     "Associative-Commutative Matching Via Bipartite Graph Matching"
+ *)
+and m_ac_op tok op aargs_ac bargs_ac =
+  (* Partitition aargs_ac to separate metavariables and ellipsis (avars) from
+   * non-mvar-ish expressions (aapps). *)
+  let avars, aapps =
+    aargs_ac
+    |> List.partition (function
+         | A.Ellipsis _ -> true
+         | A.N (A.Id ((str, _tok), _id_info)) -> MV.is_metavar_name str
+         | ___else___ -> false)
+  in
+  (* Try to match each aapp with a different barg, this is a 1-to-1 matching.
+   * Here we don't expect perf issues on real code, because each aapp will
+   * typically only match one bargs_ac, so there should be no combinatorial
+   * explosion. Of course one can construct a synthetic example that explodes!
+   * E.g. matching a long pattern `A && B && ...` against a very long decision
+   * `A && ... && A && B && ... && B && ...` could explode.
+   *)
+  let bs_left =
+    match aapps with
+    (* if there are no aapps we don't want to fail *)
+    | [] -> m_comb_unit bargs_ac
+    | _ -> m_comb_unit bargs_ac |> m_comb_fold (m_comb_1to1 m_expr) aapps
+  in
+  (* Try to match each variable with a unique disjoint subset of the remaining
+   * bs_left, ellipsis (`...`) can match the empty set. This can easily
+   * explode so we only perform full AC matching for variables when the
+   * number of bs left to match (num_bs_left) is small. Note that an mvar will
+   * typically match all subsets of the bs left!!! *)
+  let num_bs_left = List.length bargs_ac - List.length aapps in
+  let avars_no_end_dots =
+    (* An ending ellipsis (...) can be removed without affecting the result
+     * but reducing duplicates and improving perf. *)
+    match List.rev avars with
+    | A.Ellipsis _ :: rev_avars -> List.rev rev_avars
+    | ____else____ -> avars
+  in
+  match avars_no_end_dots with
+  (* Nothing to do here, just return. *)
+  | [] -> m_comb_flatten bs_left
+  | ___many___ when num_bs_left <= 3 ->
+      (* AC matching, it explodes easily so use with care! *)
+      let m_var x bs' =
+        (* `...` can match the empty set, whereas `$MVAR` must much something. *)
+        match (x, H.undo_ac_matching_nf tok op bs') with
+        | A.Ellipsis _, None -> return ()
+        | ___mvar___, None -> fail ()
+        | ___mvar___, Some op_bs' -> m_expr x op_bs'
+      in
+      bs_left
+      |> m_comb_fold (m_comb_1toN m_var) avars_no_end_dots
+      |> m_comb_flatten
+  | ___many___ ->
+      (* FALLBACK: We add an ellipsis (`...`) at the end to make sure we match even if
+       * there are more bs left than avars, and then we do regular non-AC matching.
+       *
+       * TODO: Could we first fallback to associative-only matching? It could still
+       *       explode but not as easily
+       *)
+      (* TODO: Issue a proper warning to the user. *)
+      logger#warning
+        "Restricted AC-matching due to potential blow-up: op=%s avars#=%d \
+         bs_left#=%d\n"
+        (A.show_operator op) (List.length avars) num_bs_left;
+      m_comb_bind bs_left (fun bs' tin ->
+          let avars_dots = avars_no_end_dots @ [ A.Ellipsis (A.fake "...") ] in
+          let tout =
+            m_list__m_argument
+              (List.map A.arg avars_dots)
+              (List.map B.arg bs') tin
+          in
+          [ ([], tout) ])
+      |> m_comb_flatten
 
 (*****************************************************************************)
 (* Type *)
@@ -1281,7 +1469,7 @@ and m_type_ a b =
   (* boilerplate *)
   | A.TyBuiltin a1, B.TyBuiltin b1 -> (m_wrap m_string) a1 b1
   | A.TyFun (a1, a2), B.TyFun (b1, b2) ->
-      (m_list m_parameter) a1 b1 >>= fun () -> m_type_ a2 b2
+      m_parameters a1 b1 >>= fun () -> m_type_ a2 b2
   | A.TyArray (a1, a2), B.TyArray (b1, b2) ->
       m_bracket (m_option m_expr) a1 b1 >>= fun () -> m_type_ a2 b2
   | A.TyTuple a1, B.TyTuple b1 ->
@@ -1295,8 +1483,8 @@ and m_type_ a b =
       let* () = m_name_ a1 b1 in
       m_id_info a2 b2
   | A.TyAny a1, B.TyAny b1 -> m_tok a1 b1
-  | A.TyNameApply (a1, a2), B.TyNameApply (b1, b2) ->
-      m_dotted_name a1 b1 >>= fun () -> m_type_arguments a2 b2
+  | A.TyApply (a1, a2), B.TyApply (b1, b2) ->
+      m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2
   | A.TyVar a1, B.TyVar b1 -> m_ident a1 b1
   | A.TyPointer (a0, a1), B.TyPointer (b0, b1) ->
       m_tok a0 b0 >>= fun () -> m_type_ a1 b1
@@ -1322,7 +1510,7 @@ and m_type_ a b =
       m_other_type_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | A.TyBuiltin _, _
   | A.TyFun _, _
-  | A.TyNameApply _, _
+  | A.TyApply _, _
   | A.TyVar _, _
   | A.TyArray _, _
   | A.TyPointer _, _
@@ -1347,7 +1535,7 @@ and m_type_ a b =
 
 (*s: function [[Generic_vs_generic.m_type_arguments]] *)
 and m_type_arguments a b =
-  match (a, b) with a, b -> (m_list m_type_argument) a b
+  match (a, b) with a, b -> m_bracket (m_list m_type_argument) a b
 
 (*e: function [[Generic_vs_generic.m_type_arguments]] *)
 
@@ -1515,11 +1703,11 @@ and m_stmts_deep_uncached ~less_is_ok (xsa : A.stmt list) (xsb : A.stmt list) =
       if_config
         (fun x -> x.go_deeper_stmt)
         ~then_:
-          ( match SubAST_generic.flatten_substmts_of_stmts xsb with
+          (match SubAST_generic.flatten_substmts_of_stmts xsb with
           | None -> fail () (* was already flat *)
           | Some (xsb, last_stmt) ->
               m_list__m_stmt ~list_kind:(CK.Flattened_until last_stmt.s_id) xsa
-                xsb )
+                xsb)
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
   | ({ s = A.ExprStmt (A.N (A.Id ((s, _), _idinfo)), _); _ } :: _ as xsa), xsb
@@ -1558,9 +1746,9 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
   | Maybe -> (
       (*s: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
       logger#ldebug
-        ( lazy
+        (lazy
           (spf "m_list__m_stmt_uncached: %d vs %d" (List.length xsa)
-             (List.length xsb)) );
+             (List.length xsb)));
       (*e: [[Generic_vs_generic.m_list__m_stmt]] if [[debug]] *)
       match (xsa, xsb) with
       | [], [] -> return ()
@@ -1610,7 +1798,7 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : A.stmt list)
           m_stmt xa xb >>= fun () ->
           env_add_matched_stmt xb >>= fun () ->
           m_list__m_stmt ~list_kind aas bbs
-      | _ :: _, _ -> fail () )
+      | _ :: _, _ -> fail ())
 
 (*e: function [[Generic_vs_generic.m_list__m_stmt]] *)
 
@@ -1642,7 +1830,7 @@ and m_stmt a b =
       match b.s with
       | B.ExprStmt (subb, _) when not (Parse_info.is_fake sc) ->
           m_expr suba subb
-      | _ -> fail () )
+      | _ -> fail ())
   (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   (* dots: '...' can to match any statememt *)
@@ -1895,7 +2083,7 @@ and m_pattern a b =
         (* this can happen with PatAs in exception handler in Python *)
       with H.NotAnExpr ->
         envf (str, tok) (MV.P b2)
-        (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *) )
+        (*e: [[Generic_vs_generic.m_pattern()]] metavariable case *))
   (* dots: *)
   | A.PatEllipsis _, _ -> return ()
   (* boilerplate *)
@@ -2164,20 +2352,27 @@ and m_variable_definition a b =
  *)
 (*s: function [[Generic_vs_generic.m_fields]] *)
 and m_fields (xsa : A.field list) (xsb : A.field list) =
+  let has_ellipsis = ref false in
   (* let's filter the '...' *)
   let xsa =
+    (* TODO: Similar to has_ellipsis_and_filter_ellipsis, refactor? *)
     xsa
     |> Common.exclude (function
-         | A.FieldStmt { s = A.ExprStmt (A.Ellipsis _, _); _ } -> true
+         | A.FieldStmt { s = A.ExprStmt (A.Ellipsis _, _); _ } ->
+             has_ellipsis := true;
+             true
          | _ -> false)
   in
-  m_list__m_field xsa xsb
+  if_config
+    (fun x -> x.implicit_ellipsis)
+    ~then_:(m_list__m_field ~less_is_ok:true xsa xsb)
+    ~else_:(m_list__m_field ~less_is_ok:!has_ellipsis xsa xsb)
 
 (*e: function [[Generic_vs_generic.m_fields]] *)
 
 (* less: mix of m_list_and_dots and m_list_unordered_keys, hard to factorize *)
 (*s: function [[Generic_vs_generic.m_list__m_field]] *)
-and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
+and m_list__m_field ~less_is_ok (xsa : A.field list) (xsb : A.field list) =
   logger#ldebug
     (lazy (spf "m_list__m_field:%d vs %d" (List.length xsa) (List.length xsb)));
   match (xsa, xsb) with
@@ -2186,9 +2381,8 @@ and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
   (* less-is-ok:
    * it's ok to have fields after in the concrete code as long as we
    * matched all the fields in the pattern.
-   * TODO? should we impose to use '...' if you allow extra fields?
    *)
-  | [], _ :: _ -> return ()
+  | [], _ :: _ -> if less_is_ok then return () else fail ()
   (*e: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   | A.FieldStmt { s = A.ExprStmt (A.Ellipsis _, _); _ } :: _, _ ->
@@ -2199,63 +2393,59 @@ and m_list__m_field (xsa : A.field list) (xsb : A.field list) =
    * definitions, which allows us to optimize things a little bit
    * by using split_when below.
    * However, if the field use a metavariable, we need to use
-   * the more expensive all_elem_and_rest_of_list.
+   * the more expensive all_elem_and_rest_of_list (see "general case" below).
    *
    * bugfix: In python we used to not do this match-a-field-at-any-pos
    * for code like 'class $FOO: $VAR = 1' because those were originally
    * not parsed as DefStmt but as Assign.
    * alt: keep them as Assign, but always do the all_elem_and_rest_of_list
    *)
-  | ( ( A.FieldStmt
-          {
-            s = A.DefStmt (({ A.name = A.EN (A.Id ((s1, _), _)); _ }, _) as adef);
-            _;
-          } as a )
+  | ( A.FieldStmt
+        {
+          s = A.DefStmt (({ A.name = A.EN (A.Id ((s1, _), _)); _ }, _) as adef);
+          _;
+        }
       :: xsa,
-      xsb ) -> (
-      if MV.is_metavar_name s1 || Pattern.is_regexp_string s1 then
-        (*s: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
-        let candidates = all_elem_and_rest_of_list xsb in
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | (b, xsb) :: xs ->
-              m_field a b
-              >>= (fun () -> m_list__m_field xsa (lazy_rest_of_list xsb))
-              >||> aux xs
+      xsb )
+    when (not (MV.is_metavar_name s1)) && not (Pattern.is_regexp_string s1) -> (
+      try
+        let before, there, after =
+          xsb
+          |> Common2.split_when (function
+               | A.FieldStmt
+                   {
+                     s =
+                       A.DefStmt ({ B.name = B.EN (B.Id ((s2, _tok), _)); _ }, _);
+                     _;
+                   }
+                 when s2 = s1 ->
+                   true
+               | _ -> false)
         in
-        aux candidates
-        (*e: [[Generic_vs_generic.m_list__m_field()]] in [[DefStmt]] case if metavar field *)
-      else
-        try
-          let before, there, after =
-            xsb
-            |> Common2.split_when (function
-                 | A.FieldStmt
-                     {
-                       s =
-                         A.DefStmt
-                           ({ B.name = B.EN (B.Id ((s2, _tok), _)); _ }, _);
-                       _;
-                     }
-                   when s2 = s1 ->
-                     true
-                 | _ -> false)
-          in
-          match there with
-          | A.FieldStmt { s = A.DefStmt bdef; _ } ->
-              m_definition adef bdef >>= fun () ->
-              m_list__m_field xsa (before @ after)
-          | _ -> raise Impossible
-        with Not_found -> fail () )
+        match there with
+        | A.FieldStmt { s = A.DefStmt bdef; _ } ->
+            m_definition adef bdef >>= fun () ->
+            m_list__m_field ~less_is_ok xsa (before @ after)
+        | _ -> raise Impossible
+      with Not_found -> fail ())
   (*e: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
   (* the general case *)
-  (* todo? ideally we should never reach this part and always allow
-   * to match a field at any position.
+  (* This applies to definitions where the field name is a metavariable,
+   * and to any other non-def kind of field (e.g., FieldSpread for `...x` in JS).
    *)
-  | xa :: aas, xb :: bbs -> m_field xa xb >>= fun () -> m_list__m_field aas bbs
-  | _ :: _, _ -> fail ()
+  | a :: xsa, xsb ->
+      let candidates = all_elem_and_rest_of_list xsb in
+      (* less: could use a fold *)
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | (b, xsb) :: xs ->
+            m_field a b
+            >>= (fun () ->
+                  m_list__m_field ~less_is_ok xsa (lazy_rest_of_list xsb))
+            >||> aux xs
+      in
+      aux candidates
 
 (*e: function [[Generic_vs_generic.m_list__m_field]] *)
 
@@ -2466,7 +2656,7 @@ and m_directive a b =
       match (normal_a, normal_b) with
       | Some (a0, a1), Some (b0, b1) ->
           m_tok a0 b0 >>= fun () -> m_module_name_prefix a1 b1
-      | _ -> fail () )
+      | _ -> fail ())
   (* more complex pattern should not be normalized *)
   | A.ImportFrom _ | A.ImportAs _
   (* definitely do not normalize the pattern for ImportAll *)
@@ -2579,13 +2769,14 @@ and m_partial a b =
 (*s: function [[Generic_vs_generic.m_any]] *)
 and m_any a b =
   match (a, b) with
-  | A.Str a1, B.Str b1 -> m_wrap m_string_ellipsis_or_regexp_or_default a1 b1
+  | A.Str a1, B.Str b1 -> m_string_ellipsis_or_metavar_or_default a1 b1
   | A.Ss a1, B.Ss b1 -> m_stmts_deep ~less_is_ok:true a1 b1
   | A.E a1, B.E b1 -> m_expr a1 b1
   | A.S a1, B.S b1 -> m_stmt a1 b1
   (*s: [[Generic_vs_generic.m_any]] boilerplate cases *)
   | A.Partial a1, B.Partial b1 -> m_partial a1 b1
   | A.Args a1, B.Args b1 -> m_list m_argument a1 b1
+  | A.Anys a1, B.Anys b1 -> m_list m_any a1 b1
   (* boilerplate *)
   | A.Modn a1, B.Modn b1 -> m_module_name a1 b1
   | A.ModDk a1, B.ModDk b1 -> m_module_definition_kind a1 b1
@@ -2630,6 +2821,7 @@ and m_any a b =
   | A.TodoK _, _
   | A.Partial _, _
   | A.Args _, _
+  | A.Anys _, _
   | A.Str _, _ ->
       fail ()
 

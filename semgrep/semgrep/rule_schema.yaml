@@ -1,5 +1,6 @@
 $id: https://raw.githubusercontent.com/returntocorp/semgrep/develop/semgrep/semgrep/rule_schema.yaml
 $schema: http://json-schema.org/draft-07/schema#
+$comment: '!!if you modify this file, you probably also need to update the one in semgrep-app:server/semgrep_app/rule_schema.yaml!!'
 definitions:
   patterns-content:
     type: array
@@ -32,7 +33,86 @@ definitions:
     type: array
     items:
       anyOf:
-      - type: string
+      - type: object
+        properties:
+          pattern:
+            title: Return finding where Semgrep pattern matches exactly
+            type: string
+          pattern-regex:
+            title: Return finding where regular expression matches exactly
+            type: string
+          patterns:
+            $ref: '#/definitions/patterns-content'
+          pattern-either:
+            $ref: '#/definitions/pattern-either-content'
+        oneOf:
+          - required:
+              - pattern
+            not:
+              anyOf:
+                - required:
+                  - patterns
+                - required:
+                  - pattern-either
+                - required:
+                  - pattern-regex
+          - required:
+              - patterns
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - pattern-either
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-either
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-regex
+          - required:
+              - pattern-regex
+            not:
+              anyOf:
+                - required:
+                    - pattern
+                - required:
+                    - patterns
+                - required:
+                    - pattern-either
+  join-content:
+    type: object
+    title: "Join one or more rules together based on metavariable contents"
+    properties:
+      refs:
+        type: array
+        items:
+          type: object
+          properties:
+            rule:
+              type: string
+            renames:
+              type: array
+              items:
+                type: object
+                properties:
+                  from:
+                    type: string
+                  to:
+                    type: string
+            as:
+              type: string
+      on:
+        type: array
+        items:
+          type: string
+      additionalProperties: false
   metavariable-regex:
     type: object
     properties:
@@ -57,6 +137,14 @@ definitions:
         type: object
         properties:
           metavariable:
+            type: string
+          language:
+            type: string
+          pattern:
+            title: Return finding where Semgrep pattern matches exactly
+            type: string
+          pattern-regex:
+            title: Return finding where regular expression matches exactly
             type: string
           patterns:
             $ref: '#/definitions/patterns-content'
@@ -239,6 +327,7 @@ properties:
           enum:
           - search
           - taint
+          - join
         languages:
           title: Languages this pattern should run on
           type: array
@@ -265,6 +354,8 @@ properties:
           $ref: '#/definitions/taint-content'
         pattern-sanitizers:
           $ref: '#/definitions/taint-content'
+        join:
+          $ref: '#/definitions/join-content'
         fix:
           title: Replacement text to fix matched code. Can use matched metavariables.
           type: string
@@ -287,6 +378,9 @@ properties:
           additionalProperties: false
         metadata:
           title: Arbitrary structured data for your own reference
+          type: object
+        options:
+          title: Options object to enable/disable certain matching features in semgrep-core
           type: object
         pattern:
           title: Return finding where Semgrep pattern matches exactly
@@ -319,6 +413,27 @@ properties:
                 - pattern
               - required:
                 - patterns
+              - required:
+                - pattern-either
+              - required:
+                - pattern-regex
+              - required:
+                - join
+
+        - properties:
+            mode:
+              const: join
+          required:
+            - id
+            - message
+            - severity
+            - join
+          not:
+            anyOf:
+              - required:
+                - patterns
+              - required:
+                - pattern
               - required:
                 - pattern-either
               - required:
@@ -381,4 +496,6 @@ properties:
                 - pattern-sources
               - required:
                 - pattern-sanitizers
+              - required:
+                - join
 additionalProperties: false

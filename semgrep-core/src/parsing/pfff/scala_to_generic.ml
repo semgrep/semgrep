@@ -34,20 +34,6 @@ module H = AST_generic_helpers
 (* Helpers *)
 (*****************************************************************************)
 
-let name_of_id id = G.Id (id, G.empty_id_info ())
-
-let name_of_ids ids = H.name_of_ids ids
-
-let ids_of_name = function
-  | G.Id (id, _) -> [ id ]
-  | G.IdQualified ((id, info), _) -> (
-      match info.G.name_qualifier with
-      | None -> [ id ]
-      | Some (G.QTop _) -> [ id ]
-      | Some (G.QDots xs) -> xs @ [ id ]
-      | Some (G.QExpr _) ->
-          raise Impossible (* H.name_of_ids can't generate this *) )
-
 let fake = G.fake
 
 let fb = G.fake_bracket
@@ -69,7 +55,7 @@ let v_option = Common.map_opt
 let cases_to_lambda lb (cases : G.action list) : G.function_definition =
   let id = ("!hidden_scala_param!", lb) in
   let param = G.ParamClassic (G.param_of_id id) in
-  let body = G.exprstmt (G.MatchPattern (G.N (name_of_id id), cases)) in
+  let body = G.exprstmt (G.MatchPattern (G.N (H.name_of_id id), cases)) in
   {
     fkind = (G.BlockCases, lb);
     frettype = None;
@@ -182,7 +168,7 @@ let v_package (v1, v2) =
   (v1, v2)
 
 let rec v_literal = function
-  | Symbol (s, t) -> Left (G.Atom (s, t))
+  | Symbol (tquote, id) -> Left (G.Atom (tquote, id))
   | Int v1 ->
       let v1 = v_wrap (v_option v_int) v1 in
       Left (G.Int v1)
@@ -220,7 +206,7 @@ and v_encaps = function
       Left (G.String v1)
   | EncapsDollarIdent v1 ->
       let v1 = v_ident v1 in
-      let name = name_of_id v1 in
+      let name = H.name_of_id v1 in
       Right (G.N name)
   | EncapsExpr v1 ->
       (* always a Block *)
@@ -234,28 +220,26 @@ and v_type_ = function
       let v1 = v_literal v1 in
       match v1 with
       | Left lit -> todo_type "TyLiteralLit" [ G.E (G.L lit) ]
-      | Right e -> todo_type "TyLiteralExpr" [ G.E e ] )
+      | Right e -> todo_type "TyLiteralExpr" [ G.E e ])
   | TyName v1 ->
       let xs = v_dotted_name_of_stable_id v1 in
-      let name = name_of_ids xs in
+      let name = H.name_of_ids xs in
       G.TyN name
   | TyProj (v1, v2, v3) ->
       let v1 = v_type_ v1 and _v2 = v_tok v2 and v3 = v_ident v3 in
       todo_type "TyProj" [ G.T v1; G.I v3 ]
   | TyApplied (v1, v2) -> (
       let v1 = v_type_ v1 and v2 = v_bracket (v_list v_type_) v2 in
-      let xs = G.unbracket v2 in
+      let lp, xs, rp = v2 in
       let args = xs |> List.map (fun x -> G.TypeArg x) in
       match v1 with
-      | G.TyN n ->
-          let ids = ids_of_name n in
-          G.TyNameApply (ids, args)
+      | G.TyN n -> G.TyApply (G.TyN n, (lp, args, rp))
       | _ ->
           todo_type "TyAppliedComplex"
-            (G.T v1 :: (xs |> List.map (fun x -> G.T x))) )
+            (G.T v1 :: (xs |> List.map (fun x -> G.T x))))
   | TyInfix (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_ident v2 and v3 = v_type_ v3 in
-      G.TyNameApply ([ v2 ], [ G.TypeArg v1; G.TypeArg v3 ])
+      G.TyApply (G.TyN (H.name_of_ids [ v2 ]), fb [ G.TypeArg v1; G.TypeArg v3 ])
   | TyFunction1 (v1, v2, v3) ->
       let v1 = v_type_ v1 and _v2 = v_tok v2 and v3 = v_type_ v3 in
       G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v3)
@@ -280,8 +264,8 @@ and v_type_ = function
   | TyRefined (v1, v2) ->
       let v1 = v_option v_type_ v1 and _lb, defs, _rb = v_refinement v2 in
       todo_type "TyRefined"
-        ( (match v1 with None -> [] | Some t -> [ G.T t ])
-        @ (defs |> List.map (fun def -> G.Def def)) )
+        ((match v1 with None -> [] | Some t -> [ G.T t ])
+        @ (defs |> List.map (fun def -> G.Def def)))
   | TyExistential (v1, v2, v3) ->
       let v1 = v_type_ v1 in
       let _v2 = v_tok v2 in
@@ -325,7 +309,7 @@ and v_pattern = function
       let v1 = v_literal v1 in
       match v1 with
       | Left lit -> G.PatLiteral lit
-      | Right e -> todo_pattern "PatLiteralExpr" [ G.E e ] )
+      | Right e -> todo_pattern "PatLiteralExpr" [ G.E e ])
   | PatName v1 ->
       let ids = v_dotted_name_of_stable_id v1 in
       G.PatConstructor (ids, [])
@@ -365,18 +349,18 @@ and v_expr = function
   | DeepEllipsis v1 -> G.DeepEllipsis (v_bracket v_expr v1)
   | L v1 -> (
       let v1 = v_literal v1 in
-      match v1 with Left lit -> G.L lit | Right e -> e )
+      match v1 with Left lit -> G.L lit | Right e -> e)
   | Tuple v1 ->
       let v1 = v_bracket (v_list v_expr) v1 in
       G.Tuple v1
   | Name v1 ->
       let sref, ids = v_path v1 in
       let start =
-        match sref with Left id -> G.N (name_of_id id) | Right e -> e
+        match sref with Left id -> G.N (H.name_of_id id) | Right e -> e
       in
       ids
       |> List.fold_left
-           (fun acc fld -> G.DotAccess (acc, fake ".", G.EN (name_of_id fld)))
+           (fun acc fld -> G.DotAccess (acc, fake ".", G.EN (H.name_of_id fld)))
            start
   | ExprUnderscore v1 ->
       let v1 = v_tok v1 in
@@ -389,20 +373,20 @@ and v_expr = function
       G.Cast (v3, v1)
   | DotAccess (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ident v3 in
-      let name = name_of_id v3 in
+      let name = H.name_of_id v3 in
       G.DotAccess (v1, v2, G.EN name)
   | Apply (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_list v_arguments v2 in
       v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs)) v1
   | Infix (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_ident v2 and v3 = v_expr v3 in
-      G.Call (G.N (name_of_id v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.N (H.name_of_id v2), fb [ G.Arg v1; G.Arg v3 ])
   | Prefix (v1, v2) ->
       let v1 = v_op v1 and v2 = v_expr v2 in
-      G.Call (G.N (name_of_id v1), fb [ G.Arg v2 ])
+      G.Call (G.N (H.name_of_id v1), fb [ G.Arg v2 ])
   | Postfix (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_ident v2 in
-      G.Call (G.N (name_of_id v2), fb [ G.Arg v1 ])
+      G.Call (G.N (H.name_of_id v2), fb [ G.Arg v1 ])
   | Assign (v1, v2, v3) ->
       let v1 = v_lhs v1 and v2 = v_tok v2 and v3 = v_expr v3 in
       G.Assign (v1, v2, v3)
@@ -424,7 +408,7 @@ and v_expr = function
       let lb, kind, _rb = v_block_expr v1 in
       match kind with
       | Left stats -> expr_of_block stats
-      | Right cases -> G.Lambda (cases_to_lambda lb cases) )
+      | Right cases -> G.Lambda (cases_to_lambda lb cases))
   | S v1 ->
       let v1 = v_stmt v1 in
       G.OtherExpr (G.OE_StmtExpr, [ G.S v1 ])
@@ -720,7 +704,7 @@ and v_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let v1 = v_ident v_name in
   let v2 = v_list v_attribute v_attrs in
   let v3 = v_type_parameters v_tparams in
-  { name = G.EN (name_of_id v1); attrs = v2; tparams = v3 }
+  { name = G.EN (H.name_of_id v1); attrs = v2; tparams = v3 }
 
 and v_definition_kind = function
   | FuncDef v1 ->
@@ -761,7 +745,7 @@ and v_fbody = function
       | Left stats -> G.Block (lb, stats, rb) |> G.s
       | Right cases ->
           let def = cases_to_lambda lb cases in
-          G.exprstmt (G.Lambda def) )
+          G.exprstmt (G.Lambda def))
   | FExpr (v1, v2) ->
       let _v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
       v2
@@ -799,7 +783,7 @@ and v_binding v : G.parameter =
             }
       | Some (PTRepeatedApplication (v1, v2)) ->
           let v1 = v_type_ v1 and v2 = v_tok v2 in
-          G.ParamRest (v2, { pclassic with ptype = Some v1 }) )
+          G.ParamRest (v2, { pclassic with ptype = Some v1 }))
 
 and v_template_definition
     {
@@ -876,10 +860,10 @@ let v_any = function
   | Ex e -> (
       match v_expr_for_stmt e with
       | { G.s = G.ExprStmt (e, _); _ } -> G.E e
-      | st -> G.S st )
+      | st -> G.S st)
   | Ss b -> (
       let xs = v_block b in
-      match xs with [ s ] -> G.S s | xs -> G.Ss xs )
+      match xs with [ s ] -> G.S s | xs -> G.Ss xs)
 
 (*****************************************************************************)
 (* Entry points *)

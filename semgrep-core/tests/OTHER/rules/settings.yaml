@@ -1,0 +1,10 @@
+rules:
+- id: test-options
+  patterns:
+  - pattern: |
+        foo(1)
+  options:
+    constant_propagation: false
+  message: Working!
+  severity: WARNING
+  languages: [javascript]

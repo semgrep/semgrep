@@ -215,7 +215,7 @@ and opt_expr_to_label_ident = function
       | Id [ label ] -> G.LId label
       | _ ->
           let e = expr e in
-          G.LDynamic e )
+          G.LDynamic e)
 
 and case = function
   | Case (t, v1, v2) ->
@@ -342,7 +342,7 @@ and expr = function
       match v2 with
       | Left (op, t) ->
           G.Call (G.IdSpecial (G.Op op, t), fb [ G.Arg v1; G.Arg v3 ])
-      | Right x -> G.Call (G.IdSpecial x, fb [ G.Arg v1; G.Arg v3 ]) )
+      | Right x -> G.Call (G.IdSpecial x, fb [ G.Arg v1; G.Arg v3 ]))
   | Unop ((v1, t), v2) ->
       let v1 = unaryOp v1 and v2 = expr v2 in
       G.Call (G.IdSpecial (G.Op (H.conv_op v1), t), fb [ G.Arg v2 ])
@@ -393,7 +393,7 @@ and expr = function
               fbody = body;
               fkind = (G.LambdaKind, t);
             }
-      | _ -> error tok "TODO: Lambda" )
+      | _ -> error tok "TODO: Lambda")
 
 and argument e =
   let e = expr e in
@@ -471,11 +471,11 @@ and func_def
   (ent, def)
 
 and function_kind (kind, t) =
-  ( ( match kind with
+  ( (match kind with
     | Function -> G.Function
     | AnonLambda -> G.LambdaKind
     | ShortLambda -> G.Arrow
-    | Method -> G.Method ),
+    | Method -> G.Method),
     t )
 
 and parameters x = list parameter x
@@ -636,13 +636,6 @@ let any = function
   | Program v1 ->
       let v1 = program v1 in
       G.Ss v1
-  (* We prefer an expr-pattern over a stmt-pattern, because expr-patterns can
-   * match anywhere. Also, in the current taint-mode, sources/sanitizers/sinks
-   * must be expr-patterns; so, without this, you could not e.g. use `echo` as
-   * a sink. *)
-  | Stmt (Expr (v1, _t)) ->
-      let v1 = expr v1 in
-      G.E v1
   | Stmt v1 ->
       let v1 = stmt v1 in
       G.S v1

@@ -1,8 +1,0 @@
-(executables
-  (public_names spacegrep)
-  (names Space_main)
-  (libraries
-    spacegrep
-    cmdliner
-  )
-)

@@ -25,12 +25,24 @@ from semgrep.constants import YML_TEST_SUFFIXES
 
 T = TypeVar("T")
 
-global DEBUG
-global QUIET
 global FORCE_COLOR
-DEBUG = False
-QUIET = False
 FORCE_COLOR = False
+
+
+def is_quiet() -> bool:
+    """
+    Returns true if logging level is quiet or quieter (higher)
+    (i.e. only critical logs surfaced)
+    """
+    return logging.getLogger("semgrep").getEffectiveLevel() >= logging.CRITICAL
+
+
+def is_debug() -> bool:
+    """
+    Returns true if logging level is debug or noisier (lower)
+    (i.e. want more logs)
+    """
+    return logging.getLogger("semgrep").getEffectiveLevel() <= logging.DEBUG
 
 
 def is_url(url: str) -> bool:
@@ -42,7 +54,7 @@ def is_url(url: str) -> bool:
 
 
 def debug_tqdm_write(msg: str, file: IO = sys.stderr) -> None:
-    if DEBUG:
+    if is_debug():
         tqdm.write(msg, file=file)
 
 
@@ -53,7 +65,7 @@ def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
 
 
 def set_flags(verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
-    """Set the global DEBUG and QUIET flags"""
+    """Set the relevant logging levels"""
     # Assumes only one of verbose, debug, quiet is True
 
     logger = logging.getLogger("semgrep")
@@ -74,15 +86,7 @@ def set_flags(verbose: bool, debug: bool, quiet: bool, force_color: bool) -> Non
     logger.addHandler(handler)
     logger.setLevel(level)
 
-    # TODO move to a proper logging framework
-    global DEBUG
-    global QUIET
     global FORCE_COLOR
-    if debug:
-        DEBUG = True
-    if quiet:
-        QUIET = True
-
     if force_color:
         FORCE_COLOR = True
 
@@ -133,12 +137,11 @@ def progress_bar(
     # file.isatty() - only show bar if this is an interactive terminal
     # len(iterable) > 1 - don't show progress bar when using -e on command-line. This
     #   is a hack, so it will only show the progress bar if there is more than 1 rule to run.
-    # not DEBUG - don't show progress bar with debug
     # not QUIET - don't show progress bar with quiet
     listified = list(
         iterable
     )  # Consume iterable once so we can check length and then use in tqdm.
-    if file.isatty() and len(listified) > 1 and not DEBUG and not QUIET:
+    if file.isatty() and len(listified) > 1 and not is_quiet() and not is_debug():
         # mypy doesn't seem to want to follow tqdm imports. Do this to placate.
         wrapped: Iterable[T] = tqdm(listified, file=file, **kwargs)
         return wrapped
@@ -156,7 +159,7 @@ def sub_run(cmd: List[str], **kwargs: Any) -> Any:
 def sub_check_output(cmd: List[str], **kwargs: Any) -> Any:
     """A simple proxy function to minimize and centralize subprocess usage."""
     # fmt: off
-    if QUIET:
+    if is_quiet():
         kwargs = {**kwargs, "stderr": subprocess.DEVNULL}
     result = subprocess.check_output(cmd, **kwargs)  # nosem: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
     # fmt: on

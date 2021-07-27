@@ -324,7 +324,8 @@ and map_literal = function
   | Ratio v1 ->
       let v1 = map_wrap map_of_string v1 in
       `Ratio v1
-  | Atom v1 ->
+  (* new: TODO: v0 skipped, should use PI.combine_info *)
+  | Atom (_v0, v1) ->
       let v1 = map_wrap map_of_string v1 in
       `Atom v1
   | Char v1 ->
@@ -333,7 +334,8 @@ and map_literal = function
   | String v1 ->
       let v1 = map_wrap map_of_string v1 in
       `String v1
-  | Regexp v1 ->
+  (* new: TODO: lots of tokens skipped, should use PI.combine_info *)
+  | Regexp ((_, v1, _), _) ->
       let v1 = map_wrap map_of_string v1 in
       `Regexp v1
   | Null v1 ->
@@ -424,7 +426,8 @@ and map_arithmetic_operator = function
   | BitClear -> `BitClear
   | And -> `And
   | Or -> `Or
-  | Xor -> `Xor
+  | Xor -> `Xor (* new: *)
+  | Pipe -> `Pipe
   | Not -> `Not
   | Eq -> `Eq
   | NotEq -> `NotEq
@@ -448,7 +451,8 @@ and map_arithmetic_operator = function
   | In -> `In
   | NotIn -> `NotIn
   | Is -> `Is
-  | NotIs -> `NotIs
+  | NotIs -> `NotIs (* new: *)
+  | Background -> `Background
 
 and map_arguments v = map_bracket (map_of_list map_argument) v
 
@@ -502,9 +506,11 @@ and map_type_ = function
   | TyFun (v1, v2) ->
       let v1 = map_of_list map_parameter v1 and v2 = map_type_ v2 in
       `TyFun (v1, v2)
-  | TyNameApply (v1, v2) ->
-      let v1 = map_dotted_ident v1 and v2 = map_type_arguments v2 in
-      `TyNameApply (v1, v2)
+  (* new: TODO *)
+  | TyApply (v1, v2) ->
+      let v1 = map_type_ v1 and _v2TODO = map_type_arguments v2 in
+      (* `TyNameApply ([], v2) *)
+      v1
   | TyN v1 ->
       let v1 = map_name v1 in
       `TyN v1
@@ -540,7 +546,8 @@ and map_type_ = function
       let v1 = map_other_type_operator v1 and v2 = map_of_list map_any v2 in
       `OtherType (v1, v2)
 
-and map_type_arguments v = map_of_list map_type_argument v
+(* new: brackets *)
+and map_type_arguments (_, v, _) = map_of_list map_type_argument v
 
 and map_type_argument = function
   | TypeArg v1 ->
@@ -571,7 +578,7 @@ and map_attribute = function
       let v1 = map_wrap map_keyword_attribute v1 in
       match v1 with
       | Left v1, tok -> `KeywordAttr (v1, tok)
-      | Right s, tok -> `OtherAttribute (s, [ `Tk tok ]) )
+      | Right s, tok -> `OtherAttribute (s, [ `Tk tok ]))
   | NamedAttr (t, v1, v3) ->
       let t = map_tok t in
       let v1 = map_name v1 and v3 = map_bracket (map_of_list map_argument) v3 in
@@ -1153,6 +1160,7 @@ and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | Anys _ -> error x
   | E v1 ->
       let v1 = map_expr v1 in
       `E v1

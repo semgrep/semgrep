@@ -123,12 +123,18 @@ MEDIUM_CORPUSES = [
     Corpus("netflix", "input/rules", "input/lemur"),
     # Run our r2c-ci and r2c-security audit packs on a JS/other repo
     Corpus("draios", "input/rules", "input/sysdig-inspect"),
-    # Run our ruby rulepack on a large ruby repo
-    Corpus("rails", "input/ruby.yml", "input/rails"),
     # (Gitlab medium) Run our python and flask packs on a python repo
     Corpus("django", "input/rules", "input/django"),
     # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
     Corpus("dropwizard", "input/rules", "input/dropwizard"),
+    # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
+    Corpus("pmd", "input/rules", "input/pmd"),
+    # (Gitlab large) Run our security-audit pack on a c repo
+    Corpus("smacker", "input/r2c-security-audit.yml", "input/gotree"),
+    # (Gitlab large) Run our java pack on a java repo
+    Corpus("spring-projects", "input/java.yml", "input/spring"),
+    # Run our ruby rulepack on a large ruby repo
+    Corpus("rails", "input/ruby.yml", "input/rails"),
 ]
 
 # By default, these will not run
@@ -143,12 +149,6 @@ LARGE_CORPUSES = [
     ),
     # (Gitlab large) Run our javascript and r2c-security audit packs on a js/ruby repo
     Corpus("gitlab", "input/rules", "input/gitlab"),
-    # (Gitlab large) Run our security-audit pack on a c repo
-    Corpus("smacker", "input/r2c-security-audit.yml", "input/gotree"),
-    # (Gitlab large) Run our java pack on a java repo
-    Corpus("spring-projects", "input/java.yml", "input/spring"),
-    # (Gitlab medium) Run our r2c-ci and r2c-security audit packs on a java repo
-    Corpus("pmd", "input/rules", "input/pmd"),
 ]
 
 # For corpuses that cannot be run in CI because they use private repos

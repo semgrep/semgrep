@@ -9,5 +9,8 @@ synopsis: "OCaml development dependencies"
 
 depends: [
   "merlin"  # used by the various text editors with ocaml support
-  "ocamlformat" {= "0.15.0" }  # used by the pre-commit hook
+  #coupling: if you modify this, you probably need to update
+  # https://github.com/returntocorp/ocaml-layer/blob/master/common-config.sh
+  # and also scripts/lint-ocaml
+  "ocamlformat" {= "0.16.0" }  # used by the pre-commit hook
 ]

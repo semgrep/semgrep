@@ -5,6 +5,166 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Detect duplicate keys in YAML dictionaries in semgrep rules when parsing a rule
+  (e.g., detect multiple 'metavariable' inside one 'metavariable-regex')
+  
+### Fixed
+- C/C++: Fixed stack overflows (segmentation faults) when processing very large
+  files (#3538)
+- JS: Fixed stack overflows (segmentation faults) when processing very large
+  files (#3538)
+- JS: Detect numeric object keys `1` and `0x1` as equal (#3579)
+- taint-mode: Check nested functions
+- taint-mode: `foo.x` is now detected as tainted if `foo` is a source of taint
+- taint-mode: Do not crash when is not possible to compute range info
+
+### Changed
+- Added precise error location for the semgrep metachecker, to detect for example
+  duplicate patterns in a rule
+
+## [0.59.0](https://github.com/returntocorp/semgrep/releases/tag/v0.59.0) - 2021-07-20
+
+### Added
+- A new experimental 'join' mode. This mode runs multiple Semgrep rules
+  on a codebase and "joins" the results based on metavariable contents. This
+  lets users ask questions of codebases like "do any 3rd party
+  libraries use a dangerous function, and do I import that library directly?" or
+  "is this variable passed to an HTML template, and is it rendered in that template?"
+  with several Semgrep rules.
+
+### Fixed
+- Improve location reporting of errors
+- metavariable-pattern: `pattern-not-regex` now works (#3503)
+- Rust: correctly parse macros (#3513)
+- Python: imports are unsugared correctly (#3940)
+- Ruby: `pattern: $X` in the presence of interpolated strings now works (#3560)
+
+## [0.58.2](https://github.com/returntocorp/semgrep/releases/tag/v0.58.2) - 2021-07-15
+
+### Fixed
+- Significant speed improvements, but the binary is now 95MB (from 47MB
+  in 0.58.1, but it was 170MB in 0.58.0)
+
+## [0.58.1](https://github.com/returntocorp/semgrep/releases/tag/v0.58.1) - 2021-07-15
+
+### Fixed
+- The --debug option now displays which files are currently processed incrementally;
+  it will not wait until semgrep-core completely finishes.
+
+### Changed
+- Switch from OCaml 4.10.0 to OCaml 4.10.2 (and later to OCaml 4.12.0) resulted in 
+  smaller semgrep-core binaries (from 170MB to 47MB) and a smaller docker 
+  image (from 95MB to 40MB).
+
+## [0.58.0](https://github.com/returntocorp/semgrep/releases/tag/v0.58.0) - 2021-07-14
+
+### Added
+- New iteration of taint-mode that allows to specify sources/sanitizers/sinks
+  using arbitrary pattern formulas. This provides plenty of flexibility. Note
+  that we breaks compatibility with the previous taint-mode format, e.g.
+  `- source(...)` must now be written as `- pattern: source(...)`.
+- HTML experimental support. This does not rely on the "generic" mode
+  but instead really parses the HTML using tree-sitter-html. This allows
+  some semantic matching (e.g., matching attributes in any order).
+- Vue.js alpha support (#1751)
+- New matching option `implicit_ellipsis` that allows disabling the implicit
+  `...` that are added to record patterns, plus allow matching "spread fields"
+  (JS `...x`) at any position (#3120)
+- Support globstar (`**`) syntax in path include/exclude (#3173)
+
+### Fixed
+- Apple M1: Semgrep installed from HomeBrew no longer hangs (#2432)
+- Ruby command shells are distinguished from strings (#3343)
+- Java varargs are now correctly matched (#3455)
+- Support for partial statements (e.g., `try { ... }`) for Java (#3417)
+- Java generics are now correctly stored in the AST (#3505)
+- Constant propagation now works inside Python `with` statements (#3402)
+- Metavariable value replacement in message/autofix no longer mixes up short and long names like $X vs $X2 (#3458)
+- Fixed metavariable name collision during interpolation of message / autofix (#3483)
+  Thanks to Justin Timmons for the fix!
+- Revert `pattern: $X` optimization (#3476)
+- metavariable-pattern: Allow filtering using a single `pattern` or
+  `pattern-regex`
+- Dataflow: Translate call chains into IL
+
+### Changed
+- Faster matching times for generic mode
+
+## [0.57.0](https://github.com/returntocorp/semgrep/releases/tag/v0.57.0) - 2021-06-29
+
+### Added
+- new `options:` field in a YAML rule to enable/disable certain features
+  (e.g., constant propagation). See https://github.com/returntocorp/semgrep/blob/develop/semgrep-core/src/core/Config_semgrep.atd
+  for the list of available features one can enable/disable.
+- Capture groups in pattern-regex: in $1, $2, etc. (#3356)
+- Support metavariables inside atoms (e.g., `foo(:$ATOM)`)
+- Support metavariables and ellipsis inside regexp literals
+  (e.g., `foo(/.../)`)
+- Associative-commutative matching for bitwise OR, AND, and XOR operations
+- Add support for $...MVAR in generic patterns.
+- metavariable-pattern: Add support for nested Spacegrep/regex/Comby patterns
+- C#: support ellipsis in method parameters (#3289)
+
+### Fixed
+- C#: parse `__makeref`, `__reftype`, `__refvalue` (#3364)
+- Java: parsing of dots inside function annotations with brackets (#3389)
+- Do not pretend that short-circuit Boolean AND and OR operators are commutative (#3399)
+- metavariable-pattern: Fix crash when nesting a non-generic pattern within
+  a generic rule
+- metavariable-pattern: Fix parse info when matching content of a metavariable
+  under a different language
+- generic mode on Markdown files with very long lines will now work (#2987)
+
+### Changed
+- generic mode: files that don't look like nicely-indented programs
+  are no longer ignored, which may cause accidental slowdowns in setups
+  where excessively large files are not excluded explicitly (#3418).
+- metavariable-comparison: Fix crash when comparing integers and floats
+  Thanks to Justin Timmons for the fix!
+- Do not filter findings with the same range but different metavariable bindings (#3310)
+- Set parsing_state.have_timeout when a timeout occurs (#3438)
+- Set a timeout of 10s per file (#3434)
+- Improvements to contributing documentation (#3353)
+- Memoize getting ranges to speed up rules with large ranges
+- When anded with other patterns, `pattern: $X` will not be evaluated on its own, but will look at the context and find `$X` within the metavariables bound, which should be significantly faster
+
+## [0.56.0](https://github.com/returntocorp/semgrep/releases/tag/v0.56.0) - 2021-06-15
+
+### Added
+- Associative-commutative matching for Boolean AND and OR operations
+  (#3198)
+- Support metavariables inside strings (e.g., `foo("$VAR")`)
+- metavariable-pattern: Allow matching the content of a metavariable under
+  a different language.
+
+### Fixed
+- C#: Parse attributes for local functions (#3348)
+- Go: Recognize other common package naming conventions (#2424)
+- PHP: Support for associative-commutative matching (#3198)
+
+### Changed
+- Upgrade TypeScript parser (#3102)
+
+### Changed
+- `--debug` now prints out semgrep-core debug logs instead of having this
+  behavior with `--debugging-json`
+
+## [0.55.1](https://github.com/returntocorp/semgrep/releases/tag/v0.55.1) - 2021-06-9
+
+### Added
+- Add helpUri to sarif output if rule source metadata is defined
+
+### Fixed
+- JSON: handle correctly metavariables as field (#3279)
+- JS: support partial field definitions pattern, like in JSON
+- Fixed wrong line numbers for multi-lines match in generic mode (#3315)
+- Handle correctly ellipsis inside function types (#3119)
+- Taint mode: Allow statement-patterns when these are represented as
+  statement-expressions in the Generic AST (#3191)
+
+## [0.55.0](https://github.com/returntocorp/semgrep/releases/tag/v0.55.0) - 2021-06-8
+
+### Added
 - Added new metavariable-pattern operator (available only via --optimizations),
   thanks to Kai Zhong for the feature request (#3257).
 
@@ -19,6 +179,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Support equivalences when using optimizations (#3259)
 - PHP: Support ellipsis in include/require and echo (#3191, #3245)
 - PHP: Prefer expression patterns over statement patterns (#3191)
+- C#: Support unsafe block syntax (#3283)
+
 
 ### Changed
 - Run rules in semgrep-core (rather than patterns) by default (aka optimizations all)

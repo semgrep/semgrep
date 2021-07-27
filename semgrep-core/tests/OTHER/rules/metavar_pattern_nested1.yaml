@@ -1,0 +1,33 @@
+# python.django.security.injection.open-redirect
+rules:
+- id: test-mvp-nested-1
+  message: Working!
+  languages: [python]
+  severity: WARNING
+  patterns:
+  - pattern-inside: |
+      def $FUNC(...):
+        ...
+  - pattern-either:
+    - patterns:
+      - pattern: |
+          $DATA = $REQUEST
+          ...
+          django.shortcuts.redirect(..., $REDIRECT, ...)
+      - metavariable-pattern:
+          metavariable: $REQUEST
+          patterns:
+            - pattern-either:
+              - pattern: request.$W.get(...)
+              - pattern: request.$W(...)
+            - metavariable-regex:
+                metavariable: $W
+                regex: (?!get_full_path)
+      - metavariable-pattern:
+          metavariable: $REDIRECT
+          pattern-either:
+            - pattern: $DATA
+            - pattern: $STR.format(..., $DATA, ...)
+            - pattern: $STR % $DATA
+            - pattern: $STR + $DATA
+            - pattern: f"...{$DATA}..."

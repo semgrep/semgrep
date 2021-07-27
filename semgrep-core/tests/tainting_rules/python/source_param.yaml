@@ -1,0 +1,20 @@
+rules:
+  - id: tainting
+    mode: taint
+    languages:
+      - python
+    message: |
+      This confirms taint mode works.
+    pattern-sinks:
+      - pattern: sink1(...)
+    pattern-sources:
+      - patterns:
+        - pattern-inside: |
+            source1($SRC, ...)
+            ...
+        - patterns: # HACK to disable `pattern: $X` optim
+          - pattern: $SRC
+    pattern-sanitizers:
+      - pattern: sanitize1(...)
+    severity: ERROR
+

@@ -9,7 +9,6 @@
    tree-sitter-lang.kotlin
    tree-sitter-lang.go
    tree-sitter-lang.c-sharp
-   tree-sitter-lang.javascript
    tree-sitter-lang.typescript
    tree-sitter-lang.tsx
    tree-sitter-lang.lua
@@ -18,10 +17,15 @@
    tree-sitter-lang.rust
    tree-sitter-lang.r
    tree-sitter-lang.ocaml
+   tree-sitter-lang.hack
+   tree-sitter-lang.html
+   tree-sitter-lang.vue
+   tree-sitter-lang.bash
 
    commons
    pfff-lang_GENERIC
-
+   semgrep_core; just for Range
+   semgrep_parsing_ast
  )
  (preprocess (pps ppx_profiling ppx_sexp_conv ppx_deriving.show))
 )

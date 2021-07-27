@@ -55,7 +55,7 @@ let parse file =
                                     match Lang.lang_of_string_opt s with
                                     | None ->
                                         error (spf "unsupported language: %s" s)
-                                    | Some l -> l )
+                                    | Some l -> l)
                                 | _ ->
                                     error
                                       (spf "expecting a string for languages"))
@@ -99,11 +99,11 @@ let parse file =
                          { Eq.id; left; op; right; languages }
                      | x ->
                          pr2_gen x;
-                         error "wrong equivalence fields" )
+                         error "wrong equivalence fields")
                  | x ->
                      pr2_gen x;
                      error "wrong equivalence fields")
-      | _ -> error "missing equivalences entry" )
+      | _ -> error "missing equivalences entry")
   | Result.Error (`Msg s) ->
       failwith (spf "sgrep_equivalence: could not parse %s (error = %s)" file s)
 

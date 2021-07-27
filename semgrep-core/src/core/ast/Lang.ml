@@ -46,6 +46,7 @@ type t =
   (* mainstream with Gc *)
   | Javascript
   | Typescript
+  | Vue
   | Java
   | Kotlin
   | Csharp
@@ -56,18 +57,23 @@ type t =
   (* scripting (Python is above) *)
   | Ruby
   | PHP
+  | Hack
   | Lua
+  (* shells *)
+  | Bash
   (* data science *)
   | R
   (* config files *)
   | JSON
   | Yaml
+  (* doc files *)
+  | HTML
 
 (*e: type [[Lang.t]] *)
 [@@ocamlformat "disable"]
 [@@deriving show, eq]
 
-let is_js = function Javascript | Typescript -> true | _ -> false
+let is_js = function Javascript | Typescript | Vue -> true | _ -> false
 
 let is_python = function Python | Python2 | Python3 -> true | _ -> false
 
@@ -101,13 +107,18 @@ let list_of_lang =
     ("csharp", Csharp);
     ("c#", Csharp);
     ("php", PHP);
+    ("hack", Hack);
     ("kt", Kotlin);
+    ("kotlin", Kotlin);
     ("lua", Lua);
+    ("bash", Bash);
     ("rs", Rust);
     ("rust", Rust);
     ("r", R);
     ("yaml", Yaml);
     ("scala", Scala);
+    ("html", HTML);
+    ("vue", Vue);
   ]
 
 (*e: constant [[Lang.list_of_lang]] *)
@@ -123,13 +134,18 @@ let lang_of_string_opt x =
 
 (*e: function [[Lang.lang_of_string_opt]] *)
 
+let keys = Common2.hkeys lang_of_string_map
+
+let supported_langs : string = String.concat ", " keys
+
 (*s: function [[Lang.langs_of_filename]] *)
 let langs_of_filename filename =
   let typ = File_type.file_type_of_file filename in
   match typ with
   | FT.PL (FT.Web FT.Js) -> [ Javascript ] (* Add TypeScript too? *)
   | FT.PL (FT.Web FT.TypeScript) -> [ Typescript ]
-  | FT.PL FT.Python -> [ Python; Python2; Python2 ]
+  | FT.PL (FT.Web FT.Vue) -> [ Vue ]
+  | FT.PL FT.Python -> [ Python; Python2; Python3 ]
   (* .h could also be Cpp at some point *)
   | FT.PL (FT.C "c") -> [ C ]
   | FT.PL (FT.C "h") -> [ C; Cplusplus ]
@@ -142,11 +158,14 @@ let langs_of_filename filename =
   | FT.PL FT.Ruby -> [ Ruby ]
   | FT.PL FT.Csharp -> [ Csharp ]
   | FT.PL (FT.Web (FT.Php _)) -> [ PHP ]
+  | FT.PL (FT.Web FT.Hack) -> [ Hack ]
   | FT.PL FT.Kotlin -> [ Kotlin ]
   | FT.PL FT.Lua -> [ Lua ]
+  | FT.PL (FT.Script "bash") -> [ Bash ]
   | FT.PL FT.Rust -> [ Rust ]
   | FT.PL FT.R -> [ R ]
   | FT.PL FT.Scala -> [ Scala ]
+  | FT.PL (FT.Web FT.Html) -> [ HTML ]
   | _ -> []
 
 (*e: function [[Lang.langs_of_filename]] *)
@@ -158,6 +177,7 @@ let string_of_lang = function
   | Python3 -> "Python3"
   | Javascript -> "Javascript"
   | Typescript -> "Typescript"
+  | Vue -> "Vue"
   | JSON -> "JSON"
   | Java -> "Java"
   | C -> "C"
@@ -167,12 +187,42 @@ let string_of_lang = function
   | Ruby -> "Ruby"
   | Csharp -> "C#"
   | PHP -> "PHP"
+  | Hack -> "Hack"
   | Kotlin -> "Kotlin"
   | Lua -> "Lua"
+  | Bash -> "Bash"
   | Rust -> "Rust"
   | R -> "R"
   | Yaml -> "Yaml"
   | Scala -> "Scala"
+  | HTML -> "HTML"
+
+(* must match [a-z][a-z0-9]* *)
+let to_lowercase_alnum = function
+  | Bash -> "bash"
+  | C -> "c"
+  | Cplusplus -> "cpp"
+  | Csharp -> "csharp"
+  | Go -> "go"
+  | Hack -> "hack"
+  | JSON -> "json"
+  | Java -> "java"
+  | Javascript -> "javascript"
+  | Kotlin -> "kotlin"
+  | Lua -> "lua"
+  | OCaml -> "ocaml"
+  | PHP -> "php"
+  | Python -> "python"
+  | Python2 -> "python2"
+  | Python3 -> "python3"
+  | R -> "r"
+  | Ruby -> "ruby"
+  | Rust -> "rust"
+  | Scala -> "scala"
+  | Typescript -> "typescript"
+  | Vue -> "vue"
+  | Yaml -> "yaml"
+  | HTML -> "html"
 
 (*e: function [[Lang.string_of_lang]] *)
 
@@ -191,12 +241,16 @@ let ext_of_lang = function
   | Ruby -> [ "rb" ]
   | Csharp -> [ "cs" ]
   | PHP -> [ "php" ]
+  | Hack -> [ "hh"; "hck"; "hack" ]
   | Kotlin -> [ "kt" ]
   | Lua -> [ "lua" ]
+  | Bash -> [ "bash"; "sh" ]
   | Rust -> [ "rs" ]
   | R -> [ "r"; "R" ]
   | Yaml -> [ "yaml"; "yml" ]
   | Scala -> [ "scala" ]
+  | HTML -> [ "html"; "htm" ]
+  | Vue -> [ "vue" ]
 
 (*e: function [[Lang.ext_of_lang]] *)
 
@@ -221,4 +275,11 @@ let files_of_dirs_or_files lang xs =
   find_source lang xs
 
 (*e: function [[Lang.files_of_dirs_or_files]] *)
+
+let unsupported_language_message lang =
+  if lang = "unset" then "no language specified; use -lang"
+  else
+    Common.spf "unsupported language: %s; supported language tags are: %s" lang
+      supported_langs
+
 (*e: pfff/lang_GENERIC/parsing/Lang.ml *)

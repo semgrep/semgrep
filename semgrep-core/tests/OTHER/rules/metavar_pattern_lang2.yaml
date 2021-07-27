@@ -1,0 +1,14 @@
+rules:
+  - id: test-mvp-lang
+    languages:
+      - generic
+    message: Working!
+    patterns:
+      - pattern: |
+          <script ...>$...JS</script>
+      - metavariable-pattern:
+          metavariable: $...JS
+          language: javascript
+          pattern: |
+            console.log(...)
+    severity: WARNING

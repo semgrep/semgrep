@@ -1,0 +1,20 @@
+{% extends 'base.htm.j2' %}
+{% block content %}
+
+<div>
+    <h1>Appdata</h1>
+    <p>{{msg}}</p>
+
+    <ul>
+        <li>person_name_full is <b>{{ person_name_full }}</b></li>
+        <li>View/Route: views.py '/launch'</li>
+        <li>Template: templates/launch.htm.j2</li>
+    </ul>
+
+    <p>Note: You can see all the Appdata params in your server console.</p>
+
+    <p>Here's an example of displaying an image with Flask:</p>
+    <img src={{ url_for('static', filename='img/example.jpg') }} alt="Example image" />
+</div>
+
+{% endblock content %}

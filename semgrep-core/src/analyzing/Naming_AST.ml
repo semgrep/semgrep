@@ -217,7 +217,7 @@ let rec lookup s xxs =
   | xs :: xxs -> (
       match List.assoc_opt s xs with
       | None -> lookup s xxs
-      | Some res -> Some res )
+      | Some res -> Some res)
 
 (*e: function [[Naming_AST.lookup]] *)
 
@@ -330,7 +330,7 @@ let lookup_scope_opt (s, _) env =
              (* just look current scope! no access to nested scopes or global *)
              [xs;                            !(scopes.imported)]
         *)
-        | _ -> [ xs ] @ xxs @ [ !(scopes.global); !(scopes.imported) ] )
+        | _ -> [ xs ] @ xxs @ [ !(scopes.global); !(scopes.imported) ])
   in
   lookup s actual_scopes
 
@@ -363,7 +363,7 @@ let is_resolvable_name_ctx env lang =
       (* true for JS/TS so that we can resolve class methods *)
       | Lang.Javascript | Lang.Typescript ->
           true
-      | _ -> false )
+      | _ -> false)
 
 (*e: function [[Naming_AST.is_local_or_global_ctx]] *)
 
@@ -381,7 +381,7 @@ let resolved_name_kind env lang =
       (* true for JS/TS to resolve class methods. *)
       | Lang.Javascript | Lang.Typescript ->
           EnclosedVar
-      | _ -> raise Impossible )
+      | _ -> raise Impossible)
 
 (*e: function [[Naming_AST.resolved_name_kind]] *)
 
@@ -480,7 +480,7 @@ let resolve2 lang prog =
               declare_var env lang id id_info ~explicit:true vinit vtype
           | { name = EN (Id (id, id_info)); _ }, FuncDef _
             when is_resolvable_name_ctx env lang ->
-              ( match lang with
+              (match lang with
               (* We restrict function-name resolution to JS/TS.
                *
                * Note that this causes problems with Python rule/test:
@@ -514,7 +514,7 @@ let resolve2 lang prog =
                    *)
                   add_ident_imported_scope id resolved env.names;
                   set_resolved env id_info resolved
-              | ___else___ -> () );
+              | ___else___ -> ());
               k x
           | { name = EN (Id (id, id_info)); _ }, UseOuterDecl tok ->
               let s = Parse_info.str_of_info tok in
@@ -526,20 +526,20 @@ let resolve2 lang prog =
                     error tok (spf "unrecognized UseOuterDecl directive: %s" s);
                     lookup_global_scope
               in
-              ( match flookup id env.names with
+              (match flookup id env.names with
               | Some resolved ->
                   set_resolved env id_info resolved;
                   add_ident_current_scope id resolved env.names
               | None ->
                   error tok
                     (spf "could not find '%s' for directive %s"
-                       (H.str_of_ident id) s) );
+                       (H.str_of_ident id) s));
               k x
           | _ -> k x);
       (* sgrep: the import aliases *)
       V.kdir =
         (fun (k, _v) x ->
-          ( match x with
+          (match x with
           | ImportFrom (_, DottedName xs, id, Some (alias, id_info)) ->
               (* for python *)
               let sid = H.gensym () in
@@ -582,13 +582,24 @@ let resolve2 lang prog =
           | ImportAs (_, FileName (s, tok), Some (alias, id_info)) ->
               (* for Go *)
               let sid = H.gensym () in
-              let base = (Filename.basename s, tok) in
+              let pkgname =
+                let pkgpath, pkgbase = Common2.dirs_and_base_of_file s in
+                if pkgbase =~ "v[0-9]+" then
+                  (* e.g. google.golang.org/api/youtube/v3 *)
+                  Common2.list_last pkgpath
+                else if pkgbase =~ "\\(.+\\)-go" then
+                  (* e.g. github.com/dgrijalva/jwt-go *)
+                  matched1 pkgbase
+                else (* default convention *)
+                  pkgbase
+              in
+              let base = (pkgname, tok) in
               let resolved =
                 untyped_ent (ImportedModule (DottedName [ base ]), sid)
               in
               set_resolved env id_info resolved;
               add_ident_imported_scope alias resolved env.names
-          | _ -> () );
+          | _ -> ());
           k x);
       V.kpattern =
         (fun (k, _vout) x ->
@@ -620,7 +631,7 @@ let resolve2 lang prog =
       V.kexpr =
         (fun (k, vout) x ->
           let recurse = ref true in
-          ( match x with
+          (match x with
           (* Go: This is `x := E`, a single-variable short variable declaration.
            * When this declaration is legal, and that is when the same variable
            * has not yet been declared in the same scope, it *always* introduces
@@ -675,7 +686,7 @@ let resolve2 lang prog =
                      * currently tagged
                      *)
                     let s, tok = id in
-                    error tok (spf "could not find '%s' in environment" s) )
+                    error tok (spf "could not find '%s' in environment" s))
           | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info))) -> (
               match lookup_scope_opt id env with
               (* TODO: this is a v0 for doing naming and typing of fields.
@@ -687,30 +698,30 @@ let resolve2 lang prog =
                   set_resolved env id_info resolved
               | _ ->
                   let s, tok = id in
-                  error tok (spf "could not find '%s' field in environment" s) )
-          | _ -> () );
+                  error tok (spf "could not find '%s' field in environment" s))
+          | _ -> ());
           if !recurse then k x);
       V.kattr =
         (fun (k, _v) x ->
-          ( match x with
+          (match x with
           | NamedAttr (_, Id (id, id_info), _args) -> (
               match lookup_scope_opt id env with
               | Some resolved ->
                   (* name resolution *)
                   set_resolved env id_info resolved
-              | _ -> () )
-          | _ -> () );
+              | _ -> ())
+          | _ -> ());
           k x);
       V.ktype_ =
         (fun (k, _v) x ->
           let f x =
-            ( match x with
+            (match x with
             (* TODO: factorize in kname? *)
             | TyN (Id (id, id_info)) -> (
                 match lookup_scope_opt id env with
                 | Some resolved -> set_resolved env id_info resolved
-                | _ -> () )
-            | _ -> () );
+                | _ -> ())
+            | _ -> ());
             k x
           in
           (* when we are inside a type, especially in  (OtherType (OT_Expr)),

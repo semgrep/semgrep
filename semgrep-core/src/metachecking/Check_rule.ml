@@ -20,6 +20,7 @@ module FT = File_type
 open Rule
 module R = Rule
 module E = Error_code
+module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -41,9 +42,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * meta-rules by inspecting the pattern content, in which case
  * you have to use OCaml (a bit like in templating languages).
  *
- * TODO infra:
- *  - use our new position-aware yaml parser to parse a rule,
- *    so we can give error messages on patterns with the right location.
  * TODO rules:
  *  - detect if scope of metavariable-regexp is wrong and should be put
  *    in a AND with the relevant pattern. If used with an AND of OR,
@@ -54,26 +52,21 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-type env = Rule.t
+type env = { r : Rule.t; errors : E.error list ref }
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(* TODO: use a Parse_info.t when we switch to YAML with position info *)
-let error (env : env) s =
-  let loc = Parse_info.first_loc_of_file env.file in
-  let s = spf "%s (in ruleid: %s)" s env.id in
-  let check_id = "semgrep-metacheck-rule" in
+let error env t s =
+  let loc = Parse_info.token_location_of_info t in
+  let check_id = "semgrep-metacheck-builtin" in
   let err = E.mk_error_loc loc (E.SemgrepMatchFound (check_id, s)) in
-  pr2 (E.string_of_error err)
+  Common.push err env.errors
 
 (*****************************************************************************)
 (* Formula *)
 (*****************************************************************************)
-
-let show_formula pf =
-  match pf with Leaf (P (x, _)) -> x.pstr | _ -> R.show_formula pf
 
 let equal_formula x y = AST_utils.with_structural_equal R.equal_formula x y
 
@@ -90,8 +83,8 @@ let check_formula env lang f =
     match f with
     | Leaf (P _) -> ()
     | Leaf (MetavarCond _) -> ()
-    | Not f -> find_dupe f
-    | Or xs | And xs ->
+    | Not (_, f) -> find_dupe f
+    | Or (t, xs) | And (t, xs) ->
         let rec aux xs =
           match xs with
           | [] -> ()
@@ -99,10 +92,22 @@ let check_formula env lang f =
               (* todo: for Pat, we could also check if exist PatNot
                * in which case intersection will always be empty
                *)
-              if xs |> List.exists (equal_formula x) then
-                error env (spf "Duplicate pattern %s" (show_formula x));
-              if xs |> List.exists (equal_formula (Not x)) then
-                error env (spf "Unsatisfiable patterns %s" (show_formula x));
+              xs
+              |> List.iter (fun y ->
+                     if equal_formula x y then
+                       let tx, ty = (R.tok_of_formula x, R.tok_of_formula y) in
+                       let kind = R.kind_of_formula x in
+                       error env ty
+                         (spf "Duplicate %s of %s at line %d" kind kind
+                            (PI.line_of_info tx)));
+              xs
+              |> List.iter (fun y ->
+                     if equal_formula (Not (t, x)) y then
+                       let tx, ty = (R.tok_of_formula x, R.tok_of_formula y) in
+                       let kind = R.kind_of_formula x in
+                       error env ty
+                         (spf "Unsatisfiable formula with %s at line %d" kind
+                            (PI.line_of_info tx)));
               aux xs
         in
         (* breadth *)
@@ -121,7 +126,7 @@ let check_formula env lang f =
          | Spacegrep _spacegrep_pat, LGeneric -> ()
          | Regexp _, _ -> ()
          | _ -> raise Impossible);
-  ()
+  List.rev !(env.errors)
 
 (*****************************************************************************)
 (* Entry points *)
@@ -129,9 +134,11 @@ let check_formula env lang f =
 
 let check r =
   (* less: maybe we could also have formula_old specific checks *)
-  let f = Rule.formula_of_rule r in
-  check_formula r r.languages f;
-  ()
+  match r.mode with
+  | Rule.Search pf ->
+      let f = Rule.formula_of_pformula pf in
+      check_formula { r; errors = ref [] } r.languages f
+  | Taint _ -> (* TODO *) []
 
 (* We parse the parsing function fparser (Parser_rule.parse) to avoid
  * circular dependencies.
@@ -144,12 +151,19 @@ let check_files fparser xs =
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
+    |> Common.exclude (fun file -> file =~ ".*\\.test\\.yaml")
   in
+  if fullxs = [] then logger#error "no rules to check";
   fullxs
   |> List.iter (fun file ->
          logger#info "processing %s" file;
-         let rs = fparser file in
-         rs |> List.iter check)
+         try
+           let rs = fparser file in
+           rs
+           |> List.iter (fun file ->
+                  let errs = check file in
+                  errs |> List.iter (fun err -> pr2 (E.string_of_error err)))
+         with exn -> pr2 (E.string_of_error (E.exn_to_error file exn)))
 
 let stat_files fparser xs =
   let fullxs =
@@ -171,7 +185,9 @@ let stat_files fparser xs =
                 match res with
                 | None ->
                     incr bad;
-                    pr2 (spf "PB: no regexp prefilter for rule %s:%s" file r.id)
+                    pr2
+                      (spf "PB: no regexp prefilter for rule %s:%s" file
+                         (fst r.id))
                 | Some (s, _f) ->
                     incr good;
                     pr2 (spf "regexp: %s" s)));

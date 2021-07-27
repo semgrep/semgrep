@@ -19,6 +19,8 @@ open Common
 open AST_generic
 module M = Map_AST
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -67,6 +69,19 @@ let name_of_ids ?(name_typeargs = None) xs =
       let qualif = if xs = [] then None else Some (QDots (List.rev xs)) in
       IdQualified
         ((x, { name_qualifier = qualif; name_typeargs }), empty_id_info ())
+
+let name_of_id id = Id (id, empty_id_info ())
+
+(* TODO: you should not need to use that. This is mostly because
+ * Constructor and PatConstructor currently takes a dotted_ident instead
+ * of a name.
+ *)
+let dotted_ident_of_name (n : name) : dotted_ident =
+  match n with
+  | Id (id, _) -> [ id ]
+  | IdQualified ((id, _nameinfoTODO), _) ->
+      (* TODO, look QDots, ... *)
+      [ id ]
 
 (*s: function [[AST_generic.expr_to_pattern]] *)
 (* In Go a pattern can be a complex expressions. It is just
@@ -217,6 +232,46 @@ let abstract_for_comparison_any x =
   abstract_for_comparison_visitor (fun visitor -> visitor.M.vany x)
 
 (*****************************************************************************)
+(* Associative-Commutative (AC) matching *)
+(*****************************************************************************)
+
+let is_associative_operator op =
+  match op with
+  | Or | And | BitOr | BitAnd | BitXor -> true
+  (* TODO: Plus, Mult, ... *)
+  | __else__ -> false
+
+let ac_matching_nf op args =
+  (* yes... here we use exceptions like a "goto" to avoid the option monad *)
+  let rec nf args1 =
+    args1
+    |> List.map (function
+         | Arg e -> e
+         | ArgKwd _ | ArgType _ | ArgOther _ -> raise_notrace Exit)
+    |> List.map nf_one |> List.flatten
+  and nf_one = function
+    | Call (IdSpecial (Op op1, _tok1), (_, args1, _)) when op = op1 -> nf args1
+    | x -> [ x ]
+  in
+  if is_associative_operator op then (
+    try Some (nf args)
+    with Exit ->
+      logger#error
+        "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
+        (show_operator op) (show_arguments args);
+      None)
+  else None
+
+let undo_ac_matching_nf tok op : expr list -> expr option = function
+  | [] -> None
+  | [ arg ] -> Some arg
+  | a1 :: a2 :: args ->
+      let mk_op x y =
+        Call (IdSpecial (Op op, tok), fake_bracket [ Arg x; Arg y ])
+      in
+      Some (List.fold_left mk_op (mk_op a1 a2) args)
+
+(*****************************************************************************)
 (* Conversion *)
 (*****************************************************************************)
 
@@ -297,21 +352,21 @@ let (conv_class_kind :
       AST_generic_.class_kind * Parse_info.t ->
       AST_generic.class_kind * Parse_info.t) =
  fun (c, t) ->
-  ( ( match c with
+  ( (match c with
     | G_.Class -> G.Class
     | G_.Interface -> G.Interface
-    | G_.Trait -> G.Trait ),
+    | G_.Trait -> G.Trait),
     t )
 
 let (conv_function_kind :
       AST_generic_.function_kind * Parse_info.t ->
       AST_generic.function_kind * Parse_info.t) =
  fun (c, t) ->
-  ( ( match c with
+  ( (match c with
     | G_.Function -> G.Function
     | G_.Method -> G.Method
     | G_.LambdaKind -> G.LambdaKind
-    | G_.Arrow -> G.Arrow ),
+    | G_.Arrow -> G.Arrow),
     t )
 
 (*e: pfff/lang_GENERIC_base/AST_generic_helpers.ml *)

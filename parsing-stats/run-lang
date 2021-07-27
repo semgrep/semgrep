@@ -1,0 +1,115 @@
+#! /usr/bin/env bash
+#
+# Fetch git projects from a list and run our parser on the files for
+# a language of interest.
+#
+set -eu -o pipefail
+
+progdir=$(dirname "$0")
+progname=$(basename "$0")
+
+usage() {
+  cat <<EOF
+Usage: $progname LANG
+
+Expects:
+- lang/LANG/projects.txt: contains one git URL per line
+- semgrep-core command must be available
+
+Produces lang/LANG/stats.json.
+
+Example: $progname java
+EOF
+}
+
+error() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+projects_file=projects.txt
+lang=""
+with_upload=false
+
+while [[ $# != 0 ]]; do
+  case "$1" in
+    --help)
+      usage
+      exit 0
+      ;;
+    --upload)
+      with_upload=true
+      ;;
+    -*)
+      error "Unsupported option: '$1'"
+      ;;
+    *)
+      if [[ -n "$lang" ]]; then
+        error "Don't know what to do with extra non-optional argument: '$1'"
+      else
+        lang=$1
+      fi
+  esac
+  shift
+done
+
+if [[ -z "$lang" ]]; then
+  error "Missing language argument"
+fi
+
+fetch_project_files() {
+  # Note that project names are not unique
+  project=$(basename "${url%.git}")
+  org=$(basename $(dirname "${url%.git}"))
+  name="$org-$project"
+  project_list+=" $name"
+
+  mkdir -p tmp
+  (
+    cd tmp
+    if [[ ! -d "$name" ]]; then
+      echo "Cloning '$name' from '$url'."
+      git clone --depth 1 "$url" "$name"
+    else
+      echo "Using local git repo for '$name'."
+      origin_url=$(git -C "$name" remote get-url origin)
+      if [[ "$url" != "$origin_url" ]]; then
+        cat >&2 <<EOF
+Wrong remote URL found in cloned repository '$name':
+  found $origin_url
+  expected $url
+Check that you don't have two project URLs with the same repo name.
+EOF
+        exit 1
+      fi
+    fi
+  )
+}
+
+main() {
+  (
+    cd lang/"$lang"
+
+    url_list=$(grep -v '^ *\(#\| *$\)' "$projects_file")
+
+    # Run the stats on each git project
+    project_list=""
+    for url in $url_list; do
+      fetch_project_files
+    done
+
+    (
+      cd tmp
+      # Set memory limit to avoid killing other processes that run in parallel
+      # if this semgrep-core instance uses too much memory.
+      ulimit -v 4000000  # KiB
+      semgrep-core -lang "$lang" -parsing_stats -json $project_list
+    ) > stats.json
+  )
+
+  if [[ "$with_upload" = true ]]; then
+    ./upload-parsing-rates lang/"$lang"/stats.json
+  fi
+}
+
+main

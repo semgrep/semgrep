@@ -124,50 +124,41 @@ let eq_inout eq io1 io2 =
 
 let (varmap_union : ('a -> 'a -> 'a) -> 'a env -> 'a env -> 'a env) =
  fun union_op env1 env2 ->
-  let acc = env1 in
-  VarMap.fold
-    (fun var x acc ->
-      let x' = try union_op x (VarMap.find var acc) with Not_found -> x in
-      VarMap.add var x' acc)
-    env2 acc
+  let union _ x y = Some (union_op x y) in
+  VarMap.union union env1 env2
 
 let (varmap_diff :
       ('a -> 'a -> 'a) -> ('a -> bool) -> 'a env -> 'a env -> 'a env) =
  fun diff_op is_empty env1 env2 ->
-  let acc = env1 in
-  VarMap.fold
-    (fun var x acc ->
-      try
-        let diff = diff_op (VarMap.find var acc) x in
-        if is_empty diff then VarMap.remove var acc else VarMap.add var diff acc
-      with Not_found -> acc)
-    env2 acc
+  let merge _ opt_x opt_y =
+    match (opt_x, opt_y) with
+    | None, _ -> None
+    | Some x, None -> Some x
+    | Some x, Some y ->
+        let diff = diff_op x y in
+        if is_empty diff then None else Some diff
+  in
+  VarMap.merge merge env1 env2
 
 (* useful helpers when the environment maps to a set of Nodes, e.g.,
  * for reaching definitions.
  *)
 let (union_env : NodeiSet.t env -> NodeiSet.t env -> NodeiSet.t env) =
  fun env1 env2 ->
-  let acc = env1 in
-  VarMap.fold
-    (fun var set acc ->
-      let set2 =
-        try NodeiSet.union set (VarMap.find var acc) with Not_found -> set
-      in
-      VarMap.add var set2 acc)
-    env2 acc
+  let union _ x y = Some (NodeiSet.union x y) in
+  VarMap.union union env1 env2
 
 let (diff_env : NodeiSet.t env -> NodeiSet.t env -> NodeiSet.t env) =
  fun env1 env2 ->
-  let acc = env1 in
-  VarMap.fold
-    (fun var set acc ->
-      try
-        let diff = NodeiSet.diff (VarMap.find var acc) set in
-        if NodeiSet.is_empty diff then VarMap.remove var acc
-        else VarMap.add var diff acc
-      with Not_found -> acc)
-    env2 acc
+  let merge _ opt_x opt_y =
+    match (opt_x, opt_y) with
+    | None, _ -> None
+    | Some x, None -> Some x
+    | Some x, Some y ->
+        let diff = NodeiSet.diff x y in
+        if NodeiSet.is_empty diff then None else Some diff
+  in
+  VarMap.merge merge env1 env2
 
 let (add_var_and_nodei_to_env :
       var -> nodei -> NodeiSet.t env -> NodeiSet.t env) =
@@ -268,7 +259,7 @@ module Make (F : Flow) = struct
         if eq_inout eq old new_ then work'
         else (
           mapping.(ni) <- new_;
-          NodeiSet.union work' (succs flow ni) )
+          NodeiSet.union work' (succs flow ni))
       in
       fixpoint_worker eq mapping trans flow succs work''
 

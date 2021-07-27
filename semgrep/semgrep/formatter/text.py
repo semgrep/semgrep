@@ -163,7 +163,7 @@ class TextFormatter(BaseFormatter):
 
         yield f"Slowest {items_to_show} rules to run (excluding parse time)"
         slowest_rule_times = sorted(
-            rule_timings.items(), key=lambda x: x[1][0], reverse=True
+            rule_timings.items(), key=lambda x: float(x[1][0]), reverse=True
         )[:items_to_show]
         for rule_id, (total_time, match_time) in slowest_rule_times:
             rule_id = truncate(rule_id, col_lim) + ":"

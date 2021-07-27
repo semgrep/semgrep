@@ -133,21 +133,21 @@ let test_rules ?(ounit_context = false) xs =
          (* actual *)
          let lazy_ast_and_errors =
            lazy
-             ( match xlang with
+             (match xlang with
              | R.L (lang, _) ->
                  let { Parse_target.ast; errors; _ } =
                    Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
                      lang target
                  in
                  (ast, errors)
-             | R.LNone | R.LGeneric -> raise Impossible )
+             | R.LRegex | R.LGeneric -> raise Impossible)
          in
          E.g_errors := [];
          Flag_semgrep.with_opt_cache := false;
          let config = Config_semgrep.default_config in
          let res =
            try
-             Match_rules.check
+             Run_rules.check
                (fun _ _ _ -> ())
                config rules []
                (target, xlang, lazy_ast_and_errors)
@@ -188,5 +188,5 @@ let test_rules ?(ounit_context = false) xs =
            else failwith (spf "wrong unit failure format: %s" s));
   if not ounit_context then (
     Parse_info.print_regression_information ~ext xs newscore;
-    pr2 (spf "total mismatch: %d" !total_mismatch) );
+    pr2 (spf "total mismatch: %d" !total_mismatch));
   ()

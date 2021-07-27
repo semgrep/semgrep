@@ -1,0 +1,17 @@
+rules:
+  - id: tainting
+    mode: taint
+    languages:
+      - python
+    message: |
+      This confirms taint mode works.
+    pattern-sinks:
+      - patterns:
+        - pattern-inside: sink1($SINK, ...)
+        - pattern: $SINK
+    pattern-sources:
+      - pattern: source1(...)
+    pattern-sanitizers:
+      - pattern: sanitize1(...)
+    severity: ERROR
+

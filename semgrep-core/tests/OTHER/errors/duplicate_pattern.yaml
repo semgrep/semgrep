@@ -1,0 +1,9 @@
+rules:
+- id: test-template
+  patterns:
+  - pattern: eval(...)
+  #ERROR: duplicate pattern
+  - pattern: eval(...)
+  message: Working!
+  severity: WARNING
+  languages: [javascript]

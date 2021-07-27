@@ -33,7 +33,7 @@ let id x = x
 
 let option = Common.map_opt
 
-let list = List.map
+let list = Common.map
 
 let either f g x = match x with Left x -> Left (f x) | Right x -> Right (g x)
 
@@ -132,12 +132,10 @@ let rec type_ = function
   | TTypeName v1 ->
       let v1 = name v1 in
       G.TyN (G.Id (v1, G.empty_id_info ()))
-  | TMacroApply (v1, (_lp, v2, _rp)) ->
-      let v1 = dotted_ident_of_id v1 in
+  | TMacroApply (v1, (lp, v2, rp)) ->
+      let v1 = H.name_of_id v1 in
       let v2 = type_ v2 in
-      G.TyNameApply (v1, [ G.TypeArg v2 ])
-
-and dotted_ident_of_id id = [ id ]
+      G.TyApply (G.TyN v1, (lp, [ G.TypeArg v2 ], rp))
 
 and function_type (v1, v2) =
   let v1 = type_ v1 and v2 = list (fun x -> G.ParamClassic (parameter x)) v2 in
@@ -201,7 +199,7 @@ and expr = function
       let v1 = assignOp v1 and v2 = expr v2 and v3 = expr v3 in
       match v1 with
       | Left tok -> G.Assign (v2, tok, v3)
-      | Right (op, tok) -> G.AssignOp (v2, (op, tok), v3) )
+      | Right (op, tok) -> G.AssignOp (v2, (op, tok), v3))
   | ArrayAccess (v1, v2) ->
       let v1 = expr v1 and v2 = bracket expr v2 in
       G.ArrayAccess (v1, v2)
@@ -276,7 +274,7 @@ and argument v =
 and const_expr v = expr v
 
 let rec stmt st =
-  ( match st with
+  (match st with
   | DefStmt x -> definition x
   | DirStmt x -> directive x
   | CaseStmt x -> case_stmt x
@@ -323,7 +321,7 @@ let rec stmt st =
       (G.stmt1 (v1 |> List.map (fun v -> G.s (G.DefStmt v)))).G.s
   | Asm v1 ->
       let v1 = list expr v1 in
-      G.OtherStmt (G.OS_Asm, v1 |> List.map (fun e -> G.E e)) )
+      G.OtherStmt (G.OS_Asm, v1 |> List.map (fun e -> G.E e)))
   |> G.s
 
 and expr_or_vars v1 =

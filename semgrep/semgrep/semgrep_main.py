@@ -12,6 +12,7 @@ from typing import Tuple
 from typing import Union
 
 import attr
+from colorama import Fore
 
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
@@ -24,16 +25,20 @@ from semgrep.error import Level
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.metric_manager import metric_manager
+from semgrep.old_core_runner import OldCoreRunner
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.semgrep_types import TAINT_MODE
+from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import TargetManager
 from semgrep.util import manually_search_file
+from semgrep.util import partition
 from semgrep.util import sub_check_output
+from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
+
 
 logger = getLogger(__name__)
 
@@ -123,7 +128,6 @@ def invoke_semgrep(
 ) -> Union[Dict[str, Any], str]:
     """
     Return Semgrep results of 'config' on 'targets' as a dict|str
-
     Uses default arguments of 'semgrep_main.main' unless overwritten with 'kwargs'
     """
     if output_settings is None:
@@ -242,12 +246,8 @@ The two most popular are:
 
     # # Turn off optimizations if using features not supported yet
     if optimizations == "all":
-        # taint mode rules not yet supported
-        if any(rule.mode == TAINT_MODE for rule in filtered_rules):
-            logger.info("Running without optimizations since taint rule found")
-            optimizations = "none"
         # step by step evaluation output not yet supported
-        elif output_handler.settings.debug:
+        if output_handler.settings.debug:
             logger.info(
                 "Running without optimizations since step-by-step evaluation output desired"
             )
@@ -258,26 +258,81 @@ The two most popular are:
                 "Running without optimizations since running pattern-where-python rules"
             )
             optimizations = "none"
+        elif any(len(rule.equivalences) > 0 for rule in filtered_rules):
+            logger.info("Running without optimizations since running equivalence rules")
+            optimizations = "none"
+
+    if optimizations == "none":
+        logger.warning(
+            with_color(
+                Fore.RED,
+                "Deprecation Notice: running with `--optimizations none` will be deprecated by 0.60.0\n"
+                "This includes the following functionality:\n"
+                "- pattern-where-python\n"
+                "- taint-mode\n"
+                "- equivalences\n"
+                "- step-by-step evaluation output\n"
+                "If you are seeing this notice, without specifing `--optimizations none` it means the rules\n"
+                "you are running are using some of this functionality.",
+            )
+        )
+
+    join_rules, rest_of_the_rules = partition(
+        lambda rule: rule.mode == JOIN_MODE,
+        filtered_rules,
+    )
+    filtered_rules = rest_of_the_rules
 
     start_time = time.time()
     # actually invoke semgrep
-    (
-        rule_matches_by_rule,
-        debug_steps_by_rule,
-        semgrep_errors,
-        all_targets,
-        profiling_data,
-    ) = CoreRunner(
-        output_settings=output_handler.settings,
-        allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
-        jobs=jobs,
-        timeout=timeout,
-        max_memory=max_memory,
-        timeout_threshold=timeout_threshold,
-        optimizations=optimizations,
-    ).invoke_semgrep(
-        target_manager, profiler, filtered_rules
-    )
+    if optimizations == "none":
+        (
+            rule_matches_by_rule,
+            debug_steps_by_rule,
+            semgrep_errors,
+            all_targets,
+            profiling_data,
+        ) = OldCoreRunner(
+            output_settings=output_handler.settings,
+            allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+            jobs=jobs,
+            timeout=timeout,
+            max_memory=max_memory,
+            timeout_threshold=timeout_threshold,
+            optimizations=optimizations,
+        ).invoke_semgrep(
+            target_manager, profiler, filtered_rules
+        )
+    else:
+        (
+            rule_matches_by_rule,
+            debug_steps_by_rule,
+            semgrep_errors,
+            all_targets,
+            profiling_data,
+        ) = CoreRunner(
+            output_settings=output_handler.settings,
+            allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
+            jobs=jobs,
+            timeout=timeout,
+            max_memory=max_memory,
+            timeout_threshold=timeout_threshold,
+            optimizations=optimizations,
+        ).invoke_semgrep(
+            target_manager, profiler, filtered_rules
+        )
+
+    if join_rules:
+        import semgrep.join_rule as join_rule
+
+        for rule in join_rules:
+            join_rule_matches, join_rule_errors = join_rule.run_join_rule(
+                rule.raw, [Path(t) for t in target_manager.targets]
+            )
+            join_rule_matches_by_rule = {Rule.from_json(rule.raw): join_rule_matches}
+            rule_matches_by_rule.update(join_rule_matches_by_rule)
+            output_handler.handle_semgrep_errors(join_rule_errors)
+
     profiler.save("total_time", start_time)
 
     output_handler.handle_semgrep_errors(semgrep_errors)
@@ -336,7 +391,9 @@ The two most popular are:
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
         metric_manager.set_total_bytes_scanned(total_bytes_scanned)
         metric_manager.set_errors(list(type(e).__name__ for e in semgrep_errors))
-        metric_manager.set_run_timings(profiling_data, all_targets, filtered_rules)
+        metric_manager.set_run_timings(
+            profiling_data, list(all_targets), filtered_rules
+        )
 
     output_handler.handle_semgrep_core_output(
         rule_matches_by_rule,

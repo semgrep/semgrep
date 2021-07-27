@@ -57,7 +57,7 @@ let ebnf_to_menhir file =
              if s =~ "^[A-Z]" then lower s
              else (
                Hashtbl.replace htokens (upper s) true;
-               upper s )
+               upper s)
          | T.Int _ | T.Float _ | T.Char _ -> raise Impossible
          | T.String s ->
              Hashtbl.replace hkwd s true;

@@ -1,0 +1,11 @@
+rules:
+- id: ok
+  pattern: FOO
+  message: Working!
+  severity: WARNING
+  languages: [c]
+#ERROR: missing id field
+- languages: [c]
+  pattern: FOO
+  severity: WARNING
+  message: Working!

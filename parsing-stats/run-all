@@ -1,0 +1,113 @@
+#! /usr/bin/env bash
+#
+# Run the statistics for all the languages instead of just one, in parallel.
+# Any argument is optional and will be forwarded to the run-lang script.
+#
+set -eu -o pipefail
+
+forwarded_option_list=''
+
+usage() {
+  cat <<EOF
+Usage: ./run-all [OPTIONS]
+
+Run parsing stats for all the languages supported by semgrep-core.
+
+Options:
+  --help
+     Show this message and exit.
+  --upload
+     Upload the stats to the semgrep dashboard as soon as they're available
+     for each language.
+EOF
+}
+
+while [[ $# != 0 ]]; do
+  case "$1" in
+    --upload)
+      forwarded_option_list+=" --upload"
+      ;;
+    --help)
+      usage
+      exit 0
+      ;;
+    *)
+      error "Unsupported command-line argument: $1"
+  esac
+  shift
+done
+
+pid_map=pids
+rm -f "$pid_map"
+
+# Run the parsing jobs in parallel.
+mkdir -p logs
+pid_list=''
+for dir in lang/*; do
+  lang=$(basename "$dir")
+
+  echo "Running ${lang^} suite (see logs/$lang.log) ..."
+  ./run-lang "$lang" $forwarded_option_list &>logs/"$lang.log" &
+
+  pid=$!
+  pid_list+=" $pid"
+  echo "$pid $lang" >> "$pid_map"
+
+  # Wait a bit to avoid too many concurrent git-clone... otherwise
+  # we start getting network errors.
+  sleep 60
+done
+
+success=true
+exit_statuses=exit-statuses
+rm -f "$exit_statuses"
+
+for pid in $pid_list; do
+  # Tolerate failures so as to not block the other jobs
+  plang=$(grep "$pid" "$pid_map" | cut -f2)
+  if wait "$pid"; then
+    echo "OK $plang" >> "$exit_statuses"
+  else
+    echo "FAIL $plang" >> "$exit_statuses"
+    success=false
+  fi
+  lang=${plang##* }
+  echo "Done with ${lang^}!"
+done
+rm -f "$pid_map"
+
+# Show all the results sequentially at the end
+rm -f results.txt
+for dir in lang/*; do
+  lang=$(basename "$dir")
+  echo "------ $lang -----" >>results.txt
+  if [[ -e "$dir"/stats.json ]]; then
+    cat "$dir"/stats.json >>results.txt
+  fi
+done
+
+# Same but shorter
+for dir in lang/*; do
+  lang=$(basename "$dir")
+  jsonfile="$dir"/stats.json
+  if [[ -s "$jsonfile" ]]; then
+    echo "Language: $lang"
+    echo "Line count: $(jq .global.line_count "$jsonfile")"
+    echo "Parsing rate: $(jq .global.parsing_rate "$jsonfile")"
+  else
+    echo "Language: $lang"
+    echo "no data"
+  fi
+  echo ""
+done
+
+echo "For the long version, check results.txt."
+echo ""
+
+cat "$exit_statuses"
+rm -f "$exit_statuses"
+
+if [[ "$success" = false ]]; then
+  echo "*** Parsing stats failed for one or more languages." >&2
+  exit 1
+fi

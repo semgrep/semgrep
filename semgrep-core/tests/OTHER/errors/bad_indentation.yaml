@@ -1,0 +1,12 @@
+rules:
+- id: test-template
+  patterns:
+  - pattern: foo($X)
+  #ERROR: bad indentation below, use spaces not TAB
+  - pattern-inside: |
+        bar($Y);
+        # the TAB is below, but the error is reported earlier by the yaml parser
+	other_stuff($X);
+  message: Working!
+  severity: WARNING
+  languages: [javascript]

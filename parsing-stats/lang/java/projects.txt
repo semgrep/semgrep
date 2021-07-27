@@ -1,0 +1,13 @@
+#
+# Collection of public git repositories of java code.
+#
+https://github.com/Mohist-Community/Mohist.git
+https://github.com/elastic/elasticsearch.git
+https://github.com/spring-projects/spring-boot.git
+https://github.com/ReactiveX/RxJava.git
+https://github.com/google/guava.git
+https://github.com/square/okhttp.git
+https://github.com/square/retrofit.git
+https://github.com/PhilJay/MPAndroidChart
+https://github.com/zxing/zxing.git
+https://github.com/crossoverJie/JCSprout.git

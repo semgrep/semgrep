@@ -200,7 +200,7 @@ let unittest =
                     let pattern = Parse_pattern.parse_pattern lang pat in
 
                     (* extracting the code at the range *)
-                    let e_opt = Range_to_AST.any_at_range r code in
+                    let e_opt = Range_to_AST.any_at_range_first r code in
                     match e_opt with
                     | Some any ->
                         let code =
@@ -221,7 +221,7 @@ let unittest =
                         if matches_with_env = [] then (
                           pr2 str;
                           pr2 (AST_generic.show_any pattern);
-                          pr2 (AST_generic.show_any code) );
+                          pr2 (AST_generic.show_any code));
                         assert_bool
                           (spf "pattern:|%s| should match |%s" pat
                              (PPG.pattern_to_string lang code))
@@ -238,6 +238,6 @@ let unittest =
                     "" pats
                 in
                 assert_bool
-                  ( "Patterns do not match solution, where inferred patterns are:\n"
-                  ^ pats_str )
+                  ("Patterns do not match solution, where inferred patterns are:\n"
+                 ^ pats_str)
                   (pats = sols)))

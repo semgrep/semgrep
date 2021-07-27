@@ -85,8 +85,8 @@ let print_match ?(format = Normal) ?(str = "") ii =
     | Emacs -> pr (prefix ^ ": " ^ arr.(List.hd lines))
     | OneLine ->
         pr
-          ( prefix ^ ": "
-          ^ (ii |> List.map PI.str_of_info |> join_with_space_if_needed) )
+          (prefix ^ ": "
+          ^ (ii |> List.map PI.str_of_info |> join_with_space_if_needed))
   with Failure "get_pos: Ab or FakeTok" ->
     pr "<could not locate match, FakeTok or AbstractTok>"
 

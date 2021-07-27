@@ -1,0 +1,53 @@
+rules:
+  - id: assert-eqeq-is-ok
+    pattern: |
+      def __eq__():
+          ...
+          $X == $X
+    message: "possibly useless comparison but in eq function"
+    languages: [python]
+    severity: ERROR
+    metadata:
+      source: "https://semgrep.dev/foo/bar/assert"
+  - id: eqeq-is-bad
+    patterns:
+      - pattern-not-inside: |
+          def __eq__(...):
+              ...
+      - pattern-not-inside: assert(...)
+      - pattern-not-inside: assertTrue(...)
+      - pattern-not-inside: assertFalse(...)
+      - pattern-either:
+        - pattern: $X == $X
+        - pattern: $X != $X
+        - patterns:
+          - pattern-inside: |
+              def __init__(...):
+                  ...
+          - pattern: self.$X == self.$X
+      - pattern-not: 1 == 1
+    message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: correctness
+      source: "https://semgrep.dev/foo/bar/bad"
+  - id: python37-compatability-os-module
+    patterns:
+      - pattern-not-inside: |
+          if hasattr(os, 'pwrite'):
+              ...
+      - pattern: os.pwrite(...)
+    message: "this function is only available on Python 3.7+"
+    languages: [python]
+    severity: ERROR
+    metadata:
+      source: "https://semgrep.dev/foo/bar/compat"
+  - id: javascript-basic-eqeq-bad
+    patterns:
+      - pattern: "$X == $X"
+    message: "useless comparison"
+    languages: [js]
+    severity: ERROR
+    metadata:
+      source: "https://semgrep.dev/foo/bar/js"

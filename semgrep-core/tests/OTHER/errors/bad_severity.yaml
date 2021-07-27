@@ -1,0 +1,9 @@
+rules:
+- id: test-template
+  patterns:
+  - pattern: |
+        foo($X)
+  message: Working!
+  #ERROR: wrong severity
+  severity: BLA
+  languages: [javascript]

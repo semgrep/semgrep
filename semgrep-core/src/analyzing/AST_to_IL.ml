@@ -184,6 +184,10 @@ let mk_s s = { s }
 
 (*e: function [[AST_to_IL.mk_s]] *)
 
+let mk_unit tok eorig =
+  let unit = G.Unit tok in
+  mk_e (Literal unit) eorig
+
 (*s: function [[AST_to_IL.add_instr]] *)
 let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
 
@@ -215,8 +219,7 @@ let name_of_entity ent =
 let rec lval env eorig =
   match eorig with
   | G.N n -> name env n
-  | G.IdSpecial (G.This, tok) ->
-      { base = VarSpecial (This, tok); offset = NoOffset; constness = ref None }
+  | G.IdSpecial (G.This, tok) -> lval_of_base (VarSpecial (This, tok))
   | G.DotAccess (e1orig, tok, field) -> (
       let base, base_constness = nested_lval env tok e1orig in
       match field with
@@ -231,7 +234,7 @@ let rec lval env eorig =
           { base; offset = Index attr; constness = base_constness }
       | G.EDynamic e2orig ->
           let attr = expr env e2orig in
-          { base; offset = Index attr; constness = base_constness } )
+          { base; offset = Index attr; constness = base_constness })
   | G.ArrayAccess (e1orig, (_, e2orig, _)) ->
       let tok = G.fake "[]" in
       let base, constness = nested_lval env tok e1orig in
@@ -254,34 +257,57 @@ and name env = function
       lval
 
 and nested_lval env tok eorig =
-  let lval = lval env eorig in
-  let base =
-    match lval.offset with
-    | NoOffset -> lval.base
-    | _ ->
+  let lval =
+    match expr env eorig with
+    | { e = Fetch ({ offset = NoOffset; _ } as lval); _ } -> lval
+    | rhs ->
         let fresh = fresh_lval env tok in
-        let lvalexp = mk_e (Lvalue lval) eorig in
-        add_instr env (mk_i (Assign (fresh, lvalexp)) eorig);
-        fresh.base
+        add_instr env (mk_i (Assign (fresh, rhs)) eorig);
+        fresh
   in
-  (base, lval.constness)
+  assert (lval.offset = NoOffset);
+  (lval.base, lval.constness)
 
 (*****************************************************************************)
 (* Pattern *)
 (*****************************************************************************)
-and pattern env pat =
+
+(* TODO: This code is very similar to that of `assign`. Actually, we should not
+ * be dealing with patterns in the LHS of `Assign`, those are supposed to be
+ * `LetPattern`s. *)
+and pattern env pat eorig =
   match pat with
-  | G.PatId (id, id_info) -> Left (lval_of_id_info env id id_info)
-  | G.PatVar (_TODO, Some (id, id_info)) ->
-      Left (lval_of_id_info env id id_info)
+  | G.PatUnderscore tok ->
+      let lval = fresh_lval env tok in
+      (lval, [])
+  | G.PatId (id, id_info) | G.PatVar (_, Some (id, id_info)) ->
+      let lval = lval_of_id_info env id id_info in
+      (lval, [])
+  | G.PatTuple (tok1, pats, tok2) ->
+      (* P1, ..., Pn *)
+      let tmp = fresh_var env tok2 in
+      let tmp_lval = lval_of_base (Var tmp) in
+      (* Pi = tmp[i] *)
+      let ss =
+        pats
+        |> List.mapi (fun i pat_i ->
+               let index_i = Literal (G.Int (Some i, tok1)) in
+               let offset_i = Index { e = index_i; eorig } in
+               let lval_i =
+                 { base = Var tmp; offset = offset_i; constness = ref None }
+               in
+               pattern_assign_statements env
+                 (mk_e (Fetch lval_i) eorig)
+                 eorig pat_i)
+        |> List.concat
+      in
+      (tmp_lval, ss)
   | _ -> todo (G.P pat)
 
 and pattern_assign_statements env exp eorig pat =
   try
-    let lval =
-      match pattern env pat with Left l -> l | Right _ -> todo (G.P pat)
-    in
-    [ mk_s (Instr (mk_i (Assign (lval, exp)) eorig)) ]
+    let lval, ss = pattern env pat eorig in
+    [ mk_s (Instr (mk_i (Assign (lval, exp)) eorig)) ] @ ss
   with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
 (*****************************************************************************)
@@ -293,10 +319,10 @@ and assign env lhs _tok rhs_exp eorig =
       try
         let lval = lval env lhs in
         add_instr env (mk_i (Assign (lval, rhs_exp)) eorig);
-        mk_e (Lvalue lval) lhs
+        mk_e (Fetch lval) lhs
       with Fixme (kind, any_generic) ->
         add_instr env (fixme_instr kind any_generic eorig);
-        fixme_exp kind any_generic lhs )
+        fixme_exp kind any_generic lhs)
   | G.Tuple (tok1, lhss, tok2) ->
       (* E1, ..., En = RHS *)
       (* tmp = RHS*)
@@ -312,7 +338,7 @@ and assign env lhs _tok rhs_exp eorig =
                let lval_i =
                  { base = Var tmp; offset = offset_i; constness = ref None }
                in
-               assign env lhs_i tok1 { e = Lvalue lval_i; eorig } eorig)
+               assign env lhs_i tok1 { e = Fetch lval_i; eorig } eorig)
       in
       (* (E1, ..., En) *)
       mk_e (Composite (CTuple, (tok1, tup_elems, tok2))) eorig
@@ -347,7 +373,7 @@ and expr_aux env eorig =
       match G.unbracket args with
       | [ G.Arg e ] ->
           let lval = lval env e in
-          let lvalexp = mk_e (Lvalue lval) e in
+          let lvalexp = mk_e (Fetch lval) e in
           let op =
             ((match incdec with G.Incr -> G.Plus | G.Decr -> G.Minus), tok)
           in
@@ -356,7 +382,7 @@ and expr_aux env eorig =
           let opexp = mk_e (Operator (op, [ lvalexp; one_exp ])) eorig in
           add_instr env (mk_i (Assign (lval, opexp)) eorig);
           lvalexp
-      | _ -> impossible (G.E eorig) )
+      | _ -> impossible (G.E eorig))
   (* todo: if the xxx_to_generic forgot to generate Eval *)
   | G.Call
       ( G.N (G.Id (("eval", tok), { G.id_resolved = { contents = None }; _ })),
@@ -365,7 +391,7 @@ and expr_aux env eorig =
       let special = (Eval, tok) in
       let args = arguments env args in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
-      mk_e (Lvalue lval) eorig
+      mk_e (Fetch lval) eorig
   | G.Call (G.IdSpecial (G.InterpolatedElement, _), (_, [ G.Arg e ], _)) ->
       (* G.InterpolatedElement is useful for matching certain patterns against
        * interpolated strings, but we do not have an use for it yet during
@@ -377,14 +403,14 @@ and expr_aux env eorig =
       let special = call_special env spec in
       let args = arguments env args in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
-      mk_e (Lvalue lval) eorig
+      mk_e (Fetch lval) eorig
   | G.Call (e, args) ->
       let tok = G.fake "call" in
       call_generic env tok e args
   | G.L lit -> mk_e (Literal lit) eorig
   | G.N _ | G.DotAccess (_, _, _) | G.ArrayAccess (_, _) | G.DeRef (_, _) ->
       let lval = lval env eorig in
-      mk_e (Lvalue lval) eorig
+      mk_e (Fetch lval) eorig
   | G.Assign (e1, tok, e2) ->
       let exp = expr env e2 in
       assign env e1 tok exp eorig
@@ -396,10 +422,14 @@ and expr_aux env eorig =
   | G.AssignOp (e1, op, e2) ->
       let exp = expr env e2 in
       let lval = lval env e1 in
-      let lvalexp = mk_e (Lvalue lval) e1 in
+      let lvalexp = mk_e (Fetch lval) e1 in
       let opexp = mk_e (Operator (op, [ lvalexp; exp ])) eorig in
       add_instr env (mk_i (Assign (lval, opexp)) eorig);
       lvalexp
+  | G.LetPattern (pat, e) ->
+      let exp = expr env e in
+      add_stmts env (pattern_assign_statements env exp eorig pat);
+      mk_unit (G.fake "()") eorig
   | G.Seq xs -> (
       match List.rev xs with
       | [] -> impossible (G.E eorig)
@@ -409,7 +439,7 @@ and expr_aux env eorig =
           |> List.iter (fun e ->
                  let _eIGNORE = expr env e in
                  ());
-          expr env last )
+          expr env last)
   | G.Container (kind, xs) ->
       let xs = bracket_keep (List.map (expr env)) xs in
       let kind = composite_kind kind in
@@ -423,13 +453,13 @@ and expr_aux env eorig =
       let tok = G.fake "lambda" in
       let lval = fresh_lval env tok in
       add_instr env (mk_i (AssignAnon (lval, Lambda def)) eorig);
-      mk_e (Lvalue lval) eorig
+      mk_e (Fetch lval) eorig
   | G.AnonClass def ->
       (* TODO: should use def.ckind *)
       let tok = Common2.fst3 def.G.cbody in
       let lval = fresh_lval env tok in
       add_instr env (mk_i (AssignAnon (lval, AnonClass def)) eorig);
-      mk_e (Lvalue lval) eorig
+      mk_e (Fetch lval) eorig
   | G.IdSpecial (spec, tok) -> (
       let opt_var_special =
         match spec with
@@ -442,8 +472,8 @@ and expr_aux env eorig =
       match opt_var_special with
       | Some var_special ->
           let lval = lval_of_base (VarSpecial (var_special, tok)) in
-          mk_e (Lvalue lval) eorig
-      | None -> impossible (G.E eorig) )
+          mk_e (Fetch lval) eorig
+      | None -> impossible (G.E eorig))
   | G.SliceAccess (_, _) -> todo (G.E eorig)
   (* e1 ? e2 : e3 ==>
    *  pre: lval = e1;
@@ -453,7 +483,7 @@ and expr_aux env eorig =
   | G.Conditional (e1orig, e2orig, e3orig) ->
       let tok = G.fake "conditional" in
       let lval = fresh_lval env tok in
-      let lvalexp = mk_e (Lvalue lval) e1orig in
+      let lvalexp = mk_e (Fetch lval) e1orig in
 
       (* not sure this is correct *)
       let before = List.rev !(env.stmts) in
@@ -480,8 +510,7 @@ and expr_aux env eorig =
               )));
       lvalexp
   | G.Xml _ -> todo (G.E eorig)
-  | G.Constructor (_, _) | G.LetPattern (_, _) | G.MatchPattern (_, _) ->
-      todo (G.E eorig)
+  | G.Constructor (_, _) | G.MatchPattern (_, _) -> todo (G.E eorig)
   | G.Yield (_, _, _) | G.Await (_, _) -> todo (G.E eorig)
   | G.Cast (typ, e) ->
       let e = expr env e in
@@ -519,10 +548,10 @@ and call_generic env tok e args =
   let args = arguments env args in
   let lval = fresh_lval env tok in
   add_instr env (mk_i (Call (Some lval, e, args)) eorig);
-  mk_e (Lvalue lval) eorig
+  mk_e (Fetch lval) eorig
 
 and call_special _env (x, tok) =
-  ( ( match x with
+  ( (match x with
     | G.Op _ | G.IncrDecr _ | G.This | G.Super | G.Self | G.Parent
     | G.InterpolatedElement ->
         impossible (G.E (G.IdSpecial (x, tok)))
@@ -536,7 +565,7 @@ and call_special _env (x, tok) =
     | G.Spread -> Spread
     | G.EncodedString _ | G.Defined | G.HashSplat | G.ForOf | G.NextArrayIndex
       ->
-        todo (G.E (G.IdSpecial (x, tok))) ),
+        todo (G.E (G.IdSpecial (x, tok)))),
     tok )
 
 and composite_kind = function
@@ -638,7 +667,7 @@ let for_var_or_expr_list env xs =
                let ss, e' = expr_with_pre_stmts env e in
                let lv = lval_of_ent env ent in
                ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) e)) ]
-           | _ -> [] ))
+           | _ -> []))
   |> List.flatten
 
 (*e: function [[AST_to_IL.for_var_or_expr_list]] *)
@@ -710,9 +739,9 @@ let rec stmt_aux env st =
        * directly in next_call instead of using intermediate next_lval?
        *)
       let assign =
-        pattern_assign_statements env (mk_e (Lvalue next_lval) e) e pat
+        pattern_assign_statements env (mk_e (Fetch next_lval) e) e pat
       in
-      let cond = mk_e (Lvalue hasnext_lval) e in
+      let cond = mk_e (Fetch hasnext_lval) e in
 
       (ss @ [ hasnext_call ])
       @ [
@@ -793,12 +822,104 @@ let rec stmt_aux env st =
       let stmt2 = stmt env stmt2 in
       stmt1 @ stmt2
   | G.DisjStmt _ -> sgrep_construct (G.S st)
+  | G.OtherStmtWithStmt (G.OSWS_With, Some manager_as_pat, body) ->
+      let opt_pat, manager =
+        (* Extract <manager> and <pat> from `with <manager> as <pat>`;
+         * <manager> is an expression that evaluates to a context manager,
+         * <pat> is optional. *)
+        match manager_as_pat with
+        | G.LetPattern (pat, manager) -> (Some pat, manager)
+        | manager -> (None, manager)
+      in
+      python_with_stmt env manager opt_pat body
   | G.OtherStmt _ | G.OtherStmtWithStmt _ -> todo (G.S st)
 
 (*s: function [[AST_to_IL.stmt]] *)
 and stmt env st =
   try stmt_aux env st
   with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
+
+(*
+ *     with MANAGER as PAT:
+ *         BODY
+ *
+ * ~>
+ *
+ *     mgr = MANAGER
+ *     value = type(mgr).__enter__(mgr)
+ *     try:
+ *         PAT = value
+ *         BODY
+ *     finally:
+ *         type(mgr).__exit__(mgr)
+ *
+ * This is NOT a 100% accurate translation but works for our purposes,
+ * see https://www.python.org/dev/peps/pep-0343/.
+ *)
+and python_with_stmt env manager opt_pat body =
+  (* mgr = MANAGER *)
+  let mgr = fresh_lval env G.sc in
+  let ss_def_mgr =
+    let ss_mk_mgr, manager' = expr_with_pre_stmts env manager in
+    ss_mk_mgr @ [ mk_s (Instr (mk_i (Assign (mgr, manager')) manager)) ]
+  in
+  (* type(mgr) *)
+  let type_mgr_var = fresh_var env G.sc in
+  let mgr_class = lval_of_base (Var type_mgr_var) in
+  let ss_mgr_class =
+    [
+      mk_s
+        (Instr
+           (mk_i
+              (CallSpecial
+                 (Some mgr_class, (Typeof, G.sc), [ mk_e (Fetch mgr) manager ]))
+              manager));
+    ]
+  in
+  (* tmp = type(mgr).__method__(mgr) *)
+  let call_mgr_method method_name =
+    let tmp = fresh_lval env G.sc in
+    let mgr_method =
+      (* type(mgr).__method___ *)
+      {
+        base = Var type_mgr_var;
+        offset = Dot ((method_name, G.sc), -1);
+        constness = ref None;
+      }
+    in
+    let ss =
+      [
+        mk_s
+          (Instr
+             (mk_i
+                (Call
+                   ( Some tmp,
+                     mk_e (Fetch mgr_method) manager,
+                     [ mk_e (Fetch mgr) manager ] ))
+                manager));
+      ]
+    in
+    (ss, tmp)
+  in
+  let ss_enter, value = call_mgr_method "__enter__" in
+  let pre_try_stmts = ss_def_mgr @ ss_mgr_class @ ss_enter in
+  let try_body =
+    (* PAT = type(mgr).__enter__(mgr)
+     * BODY *)
+    let ss_def_pat =
+      match opt_pat with
+      | None -> []
+      | Some pat ->
+          pattern_assign_statements env (mk_e (Fetch value) manager) manager pat
+    in
+    ss_def_pat @ stmt env body
+  in
+  let try_catches = [] in
+  let try_finally =
+    let ss_exit, _ = call_mgr_method "__exit___" in
+    ss_exit
+  in
+  pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_finally)) ]
 
 (*e: function [[AST_to_IL.stmt]] *)
 

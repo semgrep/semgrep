@@ -1,11 +1,18 @@
-Tips for converting CST to generic AST
+Tips for converting CST to AST
 ==
 
 Once you have copied the generated `Boilerplate.ml` for your language
 `foo` into `Parse_foo_tree_sitter.ml`, you can start editing it. The
 goal is replace all the calls like `todo env x` by the construction
-of a node of the generic AST.
+of a node of the AST. The destination AST can be a language-specific
+AST or directly the generic AST. If we're mapping to a
+language-specific AST, this language-specific AST needs to be created
+first. The advantage of going through a language-specific AST is more
+visibility into which constructs are valid for the language, compared
+to the generic AST which supports many more constructs.
 
+Besides writing and updating the tree-sitter grammar, this step is
+where the most time will be spent to integrate a language in semgrep.
 This is a collection of tips to make this tedious task somewhat easier.
 
 Use editor/IDE with good OCaml support
@@ -21,19 +28,100 @@ OCaml extension or plugin which relies on merlin.
 Editing the boilerplate
 --
 
+### Study examples
+
 `Parse_foo_tree_sitter.ml` is copied from the generated file
-`Boilerplate.ml`. The `todo env x` calls are typically replaced by the
-construction of a node of the generic AST (`AST_generic`, which you
-can alias to `AST` for brevity).
-See how it's done for example in `Parse_go_tree_sitter.ml`.
-For example `TStruct (v1, v2)` constructs a node of kind `TStruct` from
-`v1` and `v2`. The type of `TStruct` is shown in the editor as `tok *
-struct_field stack bracket -> type_` which is a little strange. `stack`
-is an alias for `list`. So, `struct_field stack` is the same as
-`struct_field list`, which in Java syntax would be
-`list<struct_field>`.
-It's best to study `AST_generic.ml` a bit to get a sense of the
-different constructs that you're going to map to.
+[`Boilerplate.ml`](https://github.com/returntocorp/semgrep-go/blob/main/lib/Boilerplate.ml). The `todo env x` calls are typically replaced by the
+construction of a node of the AST.
+See how it's done for example in [`Parse_go_tree_sitter.ml`](https://github.com/returntocorp/semgrep/blob/develop/semgrep-core/src/parsing/tree_sitter/Parse_go_tree_sitter.ml).
+
+### Learn OCaml basics
+
+CST and AST type definitions make heavy use of algebraic data types to
+accommodate nodes of different kinds under the same type.
+Those are known as variants (e.g. `Expr e`) and
+polymorphic variants in OCaml jargon (e.g. `` `Expr e``).
+
+Parametrized types in OCaml are like generics in languages like Java.
+The OCaml type for a list of ints is denoted `int list`, which would
+be denoted `List<Int>` in a Java-like language.
+
+Run `utop` (`opam install utop`) and go over [this tutorial about OCaml
+types at ocaml.org](https://ocaml.org/learn//tutorials/data_types_and_matching.html).
+
+### Preserve structure, assign useful names
+
+Consider this example of typical generated code in `Boilerplate.ml` file:
+
+```ocaml
+let rec anon_choice_type_id_42c0412 (env : env) (x : CST.anon_choice_type_id_42c0412) =
+  match x with
+  | `Id tok -> [ identifier env tok ] (* identifier *)
+  | `Nested_id x -> nested_identifier env x
+```
+
+The name `anon_choice_type_id_42c0412` was generated from an anonymous
+node in the grammar and it's not meaningful. However, it's used in multiple
+spots, which is why it has its own function definition. It occurs for example
+here:
+```ocaml
+    | `Choice_id_opt_type_args (v1, v2) ->
+        let v1 = anon_choice_type_id_42c0412 env v1 in
+        let id = concat_nested_identifier v1 in
+        let _v2 =
+```
+
+Instead, it works better to give it a meaningful name like `id_or_nested_id` as
+follows:
+
+```ocaml
+let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) =
+  match x with
+  | `Id tok -> [ identifier env tok ] (* identifier *)
+  | `Nested_id x -> nested_identifier env x
+```
+
+and replace it at every point of use. Now, the snippet where it's used
+makes more sense:
+
+```ocaml
+    | `Choice_id_opt_type_args (v1, v2) ->
+        let v1 = id_or_nested_id env v1 in
+        let id = concat_nested_identifier v1 in
+        let _v2 =
+```
+
+Another helpful transformation is to assign a name to every new
+value instead of `v1`, `v2`, etc. The above snippet becomes something like
+
+```ocaml
+    | `Choice_id_opt_type_args (v1, v2) ->
+        let ids = id_or_nested_id env v1 in
+        let id = concat_nested_identifier ids in
+        let type_args =
+```
+
+Note that we're still keeping the original `v1` and `v2`, because it's
+not very useful to find names for them.
+
+Finally, it is very useful to specify the return type of the function
+so as to figure out type errors a lot more easily.
+```ocaml
+let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) =
+```
+becomes
+```ocaml
+let rec id_or_nested_id (env : env) (x : CST.anon_choice_type_id_42c0412) : ident =
+```
+
+Summary:
+
+* Replace generated function names by something meaningful.
+* Replace `let v1 =` by a meaningful name.
+* Specify the return type of functions that map CST to AST.
+* Preserve the general structure of the generated functions.
+
+This all helps with updating the code when the grammar changes.
 
 Compile regularly
 --

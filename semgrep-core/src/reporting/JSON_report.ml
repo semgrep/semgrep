@@ -131,19 +131,19 @@ let match_to_match x =
     let min_loc, max_loc = x.range_loc in
     let startp, endp = position_range min_loc max_loc in
     Left
-      ( {
-          ST.check_id = Some x.rule_id.id;
-          path = x.file;
-          start = startp;
-          end_ = endp;
-          extra =
-            {
-              message = Some x.rule_id.message;
-              metavars = x.env |> List.map (metavars startp);
-              lines = [] (* ?? spacegrep? *);
-            };
-        }
-        : ST.match_ )
+      ({
+         ST.check_id = Some x.rule_id.id;
+         path = x.file;
+         start = startp;
+         end_ = endp;
+         extra =
+           {
+             message = Some x.rule_id.message;
+             metavars = x.env |> List.map (metavars startp);
+             lines = [] (* ?? spacegrep? *);
+           };
+       }
+        : ST.match_)
     (* raised by min_max_ii_by_pos in range_of_any when the AST of the
      * pattern in x.code or the metavar does not contain any token
      *)
@@ -226,25 +226,51 @@ let json_of_profile_info profile_start =
          (k, J.Object [ ("time", J.Float !t); ("count", J.Int !cnt) ]))
   |> fun xs -> J.Object xs
 
+(*****************************************************************************)
+(* Error management *)
+(*****************************************************************************)
+
+(* This function is used for non-target related exns (e.g., parsing a rule).
+ * It is called in Main.ml as a last resort instead of returning
+ * matching results (which can also contain errors).
+
+ * The Parse_info.Parsing_error and other exns in Parse_info, which are
+ * raised during a target analysis (parsing, naming, matching, etc.), are
+ * captured in Main.ml by Error_code.exn_to_error. The function below is
+ * for all the other non-target related exns.
+ * update: we actually now use the generic AST to parse a YAML rule, so
+ * we may raise Parse_info.Other_Error in a non-target context too.
+ *
+ * invariant: every non-target related exn that has a Parse_info.t should
+ * be captured here!
+ * TODO:
+ *  - use the _posTODO below
+ *  - handle Yaml_to_generic.Parse_error
+ *  - handle more exn in Parse_rule.ml? covered everything?
+ *  - handle Parse_info.Other_error and more, which can now be raised
+ *    when parsing a rule.
+ * todo? move all non-pfff exns to a central file Error_semgrep.ml?
+ *
+ * coupling: Test.metachecker_regression_tests
+ *)
 let json_of_exn e =
-  (* if (ouptut_as_json) then *)
   match e with
-  | Parse_mini_rule.InvalidRuleException (pattern_id, msg) ->
+  | Parse_rule.InvalidRule (pattern_id, msg, _posTODO) ->
       J.Object
         [
           ("pattern_id", J.String pattern_id);
           ("error", J.String "invalid rule");
           ("message", J.String msg);
         ]
-  | Parse_mini_rule.InvalidLanguageException (pattern_id, language) ->
+  | Parse_rule.InvalidLanguage (pattern_id, language, _posTODO) ->
       J.Object
         [
           ("pattern_id", J.String pattern_id);
           ("error", J.String "invalid language");
           ("language", J.String language);
         ]
-  | Parse_mini_rule.InvalidPatternException (pattern_id, pattern, lang, message)
-    ->
+  | Parse_rule.InvalidPattern (pattern_id, pattern, xlang, message, _posTODO) ->
+      let lang = Rule.string_of_xlang xlang in
       J.Object
         [
           ("pattern_id", J.String pattern_id);
@@ -253,18 +279,21 @@ let json_of_exn e =
           ("language", J.String lang);
           ("message", J.String message);
         ]
-  | Parse_mini_rule.InvalidRegexpException (pattern_id, message) ->
+  | Parse_rule.InvalidRegexp (pattern_id, message, _posTODO) ->
       J.Object
         [
           ("pattern_id", J.String pattern_id);
           ("error", J.String "invalid regexp in rule");
           ("message", J.String message);
         ]
+  | Parse_rule.InvalidYaml (msg, _posTODO) ->
+      J.Object [ ("error", J.String "invalid yaml"); ("message", J.String msg) ]
   | Parse_mini_rule.UnparsableYamlException msg ->
       J.Object
         [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]
-  | Parse_mini_rule.InvalidYamlException msg ->
-      J.Object [ ("error", J.String "invalid yaml"); ("message", J.String msg) ]
+  (* Other exns (Failure, Timeout, etc.) without position information :(
+   * Not much we can do.
+   *)
   | exn ->
       J.Object
         [
@@ -272,9 +301,6 @@ let json_of_exn e =
           ("message", J.String (Common.exn_to_s exn));
         ]
 
-(*****************************************************************************)
-(* Error *)
-(*****************************************************************************)
 (*s: function [[JSON_report.error]] *)
 (* this is used only in the testing code, to reuse the
  * Error_code.compare_actual_to_expected

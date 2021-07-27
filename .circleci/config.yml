@@ -43,6 +43,23 @@ jobs:
             cd perf
             ./run-benchmarks --upload
 
+  # Run parsing stats and publish them to the semgrep dashboard.
+  parsing-stats:
+    docker:
+      - image: returntocorp/semgrep-dev:develop
+    steps:
+      - checkout
+      - run:
+          name: parsing stats
+          no_output_timeout: 60m
+          command: |
+            cd parsing-stats
+            ./run-all --upload
+      - store_artifacts:
+          path: parsing-stats/logs
+      - store_artifacts:
+          path: parsing-stats/results.txt
+
 workflows:
   version: 2
   semgrep:
@@ -81,3 +98,32 @@ workflows:
             branches:
               only:
                 - force-benchmarks
+
+  scheduled-parsing-stats:
+    triggers:
+      - schedule:
+          # Run at 00:00 every day, UTC.
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - develop
+                - main
+    jobs:
+      - parsing-stats:
+          # Run only on these branches
+          filters:
+            branches:
+              only:
+                - develop
+                - main
+
+  # This is for testing or for forcing a stats job. Requires pushing
+  # to a branch named 'parsing-stats'.
+  parsing-stats-on-commit:
+    jobs:
+      - parsing-stats:
+          filters:
+            branches:
+              only:
+                - parsing-stats

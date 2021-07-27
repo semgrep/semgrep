@@ -70,7 +70,7 @@ let global_lang = ref Lang.OCaml
 (* Print *)
 (*****************************************************************************)
 
-let p_any = Pretty_print_generic.pattern_to_string !global_lang
+let p_any any = Pretty_print_generic.pattern_to_string !global_lang any
 
 let stage_string = function
   | DONE -> "done"
@@ -92,10 +92,10 @@ let rec show_patterns (patterns : pattern_instrs) =
   | [] -> pr2 "---"
   | (_any, pattern, replacements) :: pats ->
       pr2
-        ( "( " (* ^ (p_any any) ^ ", " *) ^ p_any pattern
+        ("( " (* ^ (p_any any) ^ ", " *) ^ p_any pattern
         ^ ", "
         ^ show_replacements replacements
-        ^ " )" );
+        ^ " )");
       show_patterns pats
 
 let show_pattern_sets patsets =
@@ -164,8 +164,7 @@ let get_id env e =
 (* Helpers *)
 (*****************************************************************************)
 
-let replace_sk { s = _s; s_id; s_use_cache; s_backrefs; s_bf } s_kind =
-  { s = s_kind; s_id; s_use_cache; s_backrefs; s_bf }
+let replace_sk stmt s_kind = { stmt with s = s_kind }
 
 let add_pattern s pattern = Set.add (p_any pattern) s
 
@@ -175,6 +174,25 @@ let add_patterns s patterns =
 let lookup_pattern pattern s = Set.mem (p_any pattern) s
 
 let set_prev env prev' = { env with prev = prev' }
+
+(* Tranposes a list of lists, must be rectangular. *)
+let rec transpose (list : 'a list list) : 'a list list =
+  match list with
+  | [] -> []
+  | [] :: xss -> transpose xss
+  | (x :: xs) :: xss ->
+      (x :: List.map List.hd xss) :: transpose (xs :: List.map List.tl xss)
+
+(* We can't handle lists of statements of unequal size yet.
+ * Check that each target has the same number of statements.
+ *)
+let check_equal_length (targets : 'a list list) : bool =
+  match targets with
+  | [] -> true
+  | _ ->
+      let lengths = List.map List.length targets in
+      let hdlen = List.hd lengths in
+      List.for_all (( == ) hdlen) lengths
 
 (*****************************************************************************)
 (* Pattern generation *)
@@ -190,7 +208,7 @@ let pattern_from_args env args : pattern_instrs =
         | E x -> Args (Arg (Ellipsis el) :: Arg x :: xs)
         | x ->
             pr2 (show_any x);
-            raise InvalidSubstitution )
+            raise InvalidSubstitution)
     | Args (_ :: _) -> args
     | _ -> raise InvalidSubstitution
   in
@@ -205,11 +223,11 @@ let pattern_from_args env args : pattern_instrs =
     | Args (Arg (Ellipsis el) :: Arg e :: rest) -> (
         match f (Args rest) with
         | Args args' -> Args (Arg (Ellipsis el) :: Arg e :: args')
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | Args (Arg e :: rest) -> (
         match f (Args rest) with
         | Args args' -> Args (Arg e :: args')
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
   let remove_end_ellipsis _f args =
@@ -258,7 +276,7 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
     | E (Call (e, (lp, args, rp))) -> (
         match f (E e) with
         | E x -> E (Call (x, (lp, args, rp)))
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
   let replace_args f e =
@@ -266,7 +284,7 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
     | E (Call (e, (lp, args, rp))) -> (
         match f (Args args) with
         | Args x -> E (Call (e, (lp, x, rp)))
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
   [
@@ -294,11 +312,11 @@ let pattern_from_assign env (e1, tok, e2) : pattern_instrs =
     | E (Assign (e1, tok, e2)), Left -> (
         match f (E e1) with
         | E x -> E (Assign (x, tok, e2))
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | E (Assign (e1, tok, e2)), Right -> (
         match f (E e2) with
         | E x -> E (Assign (e1, tok, x))
-        | _ -> raise InvalidSubstitution )
+        | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
   [
@@ -332,7 +350,7 @@ let rec pattern_from_stmt env ({ s; _ } as stmt) : pattern_instrs =
         | S ({ s = ExprStmt (e', _); _ } as stmt) -> (
             match f (E e') with
             | E x -> S (replace_sk stmt (ExprStmt (x, sc)))
-            | _ -> raise InvalidSubstitution )
+            | _ -> raise InvalidSubstitution)
         | _ ->
             pr2 "h1";
             raise InvalidSubstitution
@@ -407,7 +425,7 @@ let get_included_patterns pattern_children =
     | [] -> (
         match holes with
         | [] -> []
-        | _ -> [ (set_prev env pattern, pattern, holes) ] )
+        | _ -> [ (set_prev env pattern, pattern, holes) ])
     | _ -> children
   in
   List.map
@@ -422,12 +440,9 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
   if false then (
     (* Set this for debug info *)
     pr2 "target patterns";
-    show_pattern_sets target_patterns );
+    show_pattern_sets target_patterns);
   let pattern_children =
-    List.map
-      (fun patterns ->
-        List.map (fun pattern -> get_one_step_replacements pattern) patterns)
-      target_patterns
+    List.map (List.map get_one_step_replacements) target_patterns
   in
   (* Keep only the patterns in each Sn that appear in every other OR *)
   (* the patterns that were included last time, don't have children, and have another replacement to try *)
@@ -438,15 +453,15 @@ let rec generate_patterns_help (target_patterns : pattern_instrs list) =
       true included_patterns
   in
   (* Call recursively on these patterns *)
-  if cont then generate_patterns_help included_patterns else target_patterns
+  if cont then generate_patterns_help included_patterns
+  else List.map List.hd target_patterns
 
-(*****************************************************************************)
-(* Entry point *)
-(*****************************************************************************)
+let extract_pattern (pats : pattern_instr) : Pattern.t =
+  (fun (_, pattern, _) -> pattern) pats
 
-let generate_patterns config s lang =
-  global_lang := lang;
-  (* Start each target node any as [$X, [ any, fun x -> x ]] *)
+(* Start each target node any as [$X, [ any, fun x -> x ]] *)
+let generate_starting_patterns config (targets : AST_generic.any list list) :
+    pattern_instrs list list =
   let starting_pattern any =
     match any with
     | E _ ->
@@ -459,8 +474,46 @@ let generate_patterns config s lang =
         [ (env, S (exprstmt (Ellipsis fk)), [ (ANY any, fun f a -> f a) ]) ]
     | _ -> raise UnsupportedTargetType
   in
-  let patterns = List.map starting_pattern s in
-  let patterns =
-    match generate_patterns_help patterns with [] -> [] | x :: _ -> x
+  List.map (List.map starting_pattern) targets
+
+(* Copies the metavar count and mapping from src pattern_instr to
+ *  each env in dsts.
+ *)
+let cp_meta_env (src : pattern_instr) (dsts : pattern_instrs) : pattern_instrs =
+  let senv, _, _ = src in
+  let cp dst =
+    let denv, dpattern, dholes = dst in
+    let denv' = { denv with count = senv.count; mapping = senv.mapping } in
+    (denv', dpattern, dholes)
   in
-  List.map (fun (_, pattern, _) -> pattern) patterns
+  List.map cp dsts
+
+(* Calls generate_patterns_help on each list of pattern_instrs, retaining
+ * the metavariable environment between calls.
+ * The environment is retained within a single target for subsequent statements,
+ * not across targets.
+ *)
+let rec generate_with_env (target_patterns : pattern_instrs list list) :
+    pattern_instrs =
+  match target_patterns with
+  | [] -> []
+  | [ cur ] -> [ List.hd (generate_patterns_help cur) ]
+  | cur :: next :: rest ->
+      let curpats = generate_patterns_help cur in
+      let next' = List.map2 cp_meta_env curpats next in
+      List.hd curpats :: generate_with_env (next' :: rest)
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
+
+let generate_patterns config targets lang =
+  global_lang := lang;
+  let split_targets = List.map Range_to_AST.split_any targets in
+  if check_equal_length split_targets then
+    split_targets
+    |> generate_starting_patterns config
+    (* Transpose to intersect across targets, not within. *)
+    |> transpose
+    |> generate_with_env |> List.map extract_pattern |> Range_to_AST.join_anys
+  else failwith "Only targets of equal length are supported."
