@@ -407,20 +407,23 @@ let cache_file_of_file filename =
 (* Timeout *)
 (*****************************************************************************)
 
-(* subtle: You have to make sure that Timeout is not intercepted, so
- * avoid exn handler such as try (...) with _ -> otherwise Timeout will
- * not bubble up enough. In such case, add a case before such as
- * with Timeout -> raise Timeout | _ -> ...
- *)
+(*
+   Locally-raised exception containing the file name.
+   Note that the actual timeout function returns an option, so we could
+   use that if it's easier.
+*)
+exception Main_timeout of string
+
 let timeout_function file f =
-  let timeout = !timeout in
-  if timeout <= 0. then f ()
-  else
-    Common.timeout_function_float ~verbose:false timeout (fun () ->
-        try f ()
-        with Timeout ->
-          logger#info "raised Timeout in timeout_function for %s" file;
-          raise Timeout)
+  let timeout = if !timeout <= 0. then None else Some !timeout in
+  match
+    Common.set_timeout_opt ~verbose:false ~name:"Main.timeout_function" timeout
+      f
+  with
+  | Some res -> res
+  | None ->
+      logger#info "Main: timeout for file %s" file;
+      raise (Main_timeout file)
 
 (*
    Fail gracefully if memory becomes insufficient.
@@ -550,7 +553,7 @@ let parse_generic lang file =
            *  However this introduces some weird regressions in CI so we focus on
            *  just Timeout for now.
            *)
-        with Timeout -> Right Timeout)
+        with Main_timeout _ as e -> Right e)
   in
   match v with Left x -> x | Right exn -> raise exn
   [@@profiling]
@@ -654,7 +657,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                 * and would generate a TimeoutError code for it, but we intercept
                 * Timeout here to give a better diagnostic.
                 *)
-               | (Timeout | Out_of_memory) as exn ->
+               | (Main_timeout _ | Out_of_memory) as exn ->
                    let str_opt =
                      match !Match_patterns.last_matched_rule with
                      | None -> None
@@ -672,7 +675,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                        [
                          Error_code.mk_error_loc loc
                            (match exn with
-                           | Timeout ->
+                           | Main_timeout file ->
                                logger#info "Timeout on %s" file;
                                Error_code.Timeout str_opt
                            | Out_of_memory ->

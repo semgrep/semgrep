@@ -185,7 +185,7 @@ let test_parse_tree_sitter lang xs =
    semgrep scans.
 *)
 let parsing_common ?(verbose = true) lang xs =
-  let timeout_seconds = 10 in
+  let timeout_seconds = 10.0 in
   let xs = List.map Common.fullpath xs in
   let fullxs =
     Lang.files_of_dirs_or_files lang xs
@@ -199,17 +199,20 @@ let parsing_common ?(verbose = true) lang xs =
               file);
          let stat =
            try
-             let res =
-               Common.timeout_function ~verbose:false timeout_seconds (fun () ->
+             match
+               Common.set_timeout ~verbose:false
+                 ~name:"Test_parsing.parsing_common" timeout_seconds (fun () ->
                    Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
                      lang file)
-             in
-             res.Parse_target.stat
-           with exn -> (
-             if verbose then pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-             match exn with
-             | Timeout -> { (PI.bad_stat file) with have_timeout = true }
-             | _else_ -> PI.bad_stat file)
+             with
+             | Some res -> res.Parse_target.stat
+             | None -> { (PI.bad_stat file) with have_timeout = true }
+           with
+           | Timeout _ -> assert false
+           | exn ->
+               if verbose then
+                 pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+               PI.bad_stat file
          in
          stat)
 

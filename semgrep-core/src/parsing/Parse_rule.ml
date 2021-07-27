@@ -273,7 +273,7 @@ let parse_metavar_cond key s =
     | AST_generic.E e -> e
     | _ -> error_at_key key "not an expression"
   with
-  | Timeout -> raise Timeout
+  | Timeout _ as e -> raise e
   | UnixExit n -> raise (UnixExit n)
   | exn -> error_at_key key ("exn: " ^ Common.exn_to_s exn)
 
@@ -350,7 +350,7 @@ let parse_pattern ~id ~lang (pattern, t) =
      *)
     any
   with
-  | Timeout -> raise Timeout
+  | Timeout _ as e -> raise e
   | UnixExit n -> raise (UnixExit n)
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
