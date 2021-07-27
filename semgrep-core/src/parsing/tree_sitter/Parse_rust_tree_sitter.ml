@@ -29,7 +29,9 @@ module G = AST_generic
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-type env = unit H.env
+type mode = Pattern | Target
+
+type env = mode H.env
 
 let token = H.token
 
@@ -409,7 +411,12 @@ let map_non_special_token (env : env) (x : CST.non_special_token) : G.any =
   | `Choice_u8 x ->
       let id = map_primitive_type_ident env x in
       G.I id
-  | `Pat_e14e5d5 tok -> G.Tk (token env tok) (*tok*)
+  | `Pat_e14e5d5 tok ->
+      let s, t = str env tok in
+      (* sgrep-ext: todo? better extend grammar.js instead? *)
+      if s = "..." && env.extra = Pattern then G.E (G.Ellipsis t)
+      else G.Tk (token env tok)
+      (*tok*)
   | `Meta tok -> G.Tk (token env tok) (* pattern \$[a-zA-Z_]\w* *)
   | `Muta_spec tok -> G.I (str env tok) (* "mut" *)
   | `Self tok -> G.I (str env tok) (* "self" *)
@@ -1910,7 +1917,13 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
   in
   let l, xs, r = map_token_tree env v3 in
   let anys = macro_items_to_anys xs in
-  G.Call (G.N name, (l, [ G.ArgOther (G.OA_ArgMacro, anys) ], r))
+  let args =
+    match anys with
+    (* look like a regular function call, just use Arg then *)
+    | [ G.E e ] -> [ G.Arg e ]
+    | xs -> [ G.ArgOther (G.OA_ArgMacro, xs) ]
+  in
+  G.Call (G.N name, (l, args, r))
 
 and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm) : G.action =
   let _outer_attrs = List.map (map_outer_attribute_item env) v1 in
@@ -3236,7 +3249,7 @@ let parse file =
       Parallel.backtrace_when_exn := false;
       Parallel.invoke Tree_sitter_rust.Parse.file file ())
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos file; extra = Target } in
       match map_source_file env cst with
       | G.Pr xs -> xs
       | _ -> failwith "not a program")
@@ -3262,7 +3275,7 @@ let parse_pattern str =
       Parallel.invoke parse_expression_or_source_file str ())
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in
       match map_source_file env cst with
       | G.Pr [ x ] -> G.S x
       | G.Pr xs -> G.Ss xs
