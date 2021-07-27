@@ -234,6 +234,7 @@ def run_semgrep(
             "semgrep",
             "-t",
             docker,
+            "--quiet",
             "--config",
             "/rules",
             "/targets",
