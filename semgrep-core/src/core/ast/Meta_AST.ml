@@ -1172,6 +1172,7 @@ and vof_type_definition_kind = function
 
 and vof_other_type_kind_operator = function
   | OTKO_AbstractType -> OCaml.VSum ("OTKO_AbstractType", [])
+  | OTKO_Todo -> OCaml.VSum ("OTKO_Todo", [])
 
 and vof_or_type_element = function
   | OrConstructor (v1, v2) ->

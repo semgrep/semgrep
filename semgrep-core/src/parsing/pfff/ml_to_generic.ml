@@ -409,7 +409,7 @@ and pattern = function
   | PatDisj (v1, v2) ->
       let v1 = pattern v1 and v2 = pattern v2 in
       G.PatDisj (v1, v2)
-  | PatTyped (v1, v2) ->
+  | PatTyped (v1, _, v2) ->
       let v1 = pattern v1 and v2 = type_ v2 in
       G.PatTyped (v1, v2)
   | PatTodo (t, xs) ->
@@ -455,20 +455,28 @@ and parameter = function
       | G.PatTyped (G.PatId (id, _idinfo), ty) ->
           G.ParamClassic { (G.param_of_id id) with G.ptype = Some ty }
       | _ -> G.ParamPattern v)
-  | ParamTodo t -> G.OtherParam (G.OPO_Todo, [ G.Tk t ])
+  | ParamTodo x -> G.OtherParam (G.OPO_Todo, [ G.TodoK x ])
 
-and type_declaration { tname; tparams; tbody } =
-  let v1 = ident tname in
-  let v2 = list type_parameter tparams in
-  let v3 = type_def_kind tbody in
-  let entity = { (G.basic_entity v1 []) with G.tparams = v2 } in
-  let def = { G.tbody = v3 } in
-  (entity, def)
+and type_declaration x =
+  match x with
+  | TyDecl { tname; tparams; tbody } ->
+      let v1 = ident tname in
+      let v2 = list type_parameter tparams in
+      let v3 = type_def_kind tbody in
+      let entity = { (G.basic_entity v1 []) with G.tparams = v2 } in
+      let def = { G.tbody = v3 } in
+      Left (entity, def)
+  | TyDeclTodo categ -> Right categ
 
-and type_parameter v = (ident v, [])
+and type_parameter v =
+  match v with
+  | TyParam v -> (ident v, [])
+  (* TODO *)
+  | TyParamTodo categ -> (categ, [])
 
 and type_def_kind = function
   | AbstractType -> G.OtherTypeKind (G.OTKO_AbstractType, [])
+  | TdTodo categ -> G.OtherTypeKind (G.OTKO_Todo, [ G.TodoK categ ])
   | CoreType v1 ->
       let v1 = type_ v1 in
       G.AliasType v1
@@ -519,17 +527,19 @@ and module_expr = function
 
 and attributes xs = list attribute xs
 
-and attribute (t1, (dotted, xs), t2) =
-  let args =
-    xs
-    |> Common.map_filter (function
-         | { i = TopExpr e; iattrs = [] } ->
-             let e = expr e in
-             Some (G.Arg e)
-         | _ -> None)
-  in
-  let name = H.name_of_ids dotted in
-  G.NamedAttr (t1, name, (t2, args, t2))
+and attribute x =
+  match x with
+  | NamedAttr (t1, (dotted, xs), t2) ->
+      let args =
+        xs
+        |> Common.map_filter (function
+             | { i = TopExpr e; iattrs = [] } ->
+                 let e = expr e in
+                 Some (G.Arg e)
+             | _ -> None)
+      in
+      let name = H.name_of_ids dotted in
+      G.NamedAttr (t1, name, (t2, args, t2))
 
 and item { i; iattrs } =
   let attrs = attributes iattrs in
@@ -540,10 +550,12 @@ and item { i; iattrs } =
   | Type (_t, v1) ->
       let xs = list type_declaration v1 in
       xs
-      |> List.map (fun (ent, def) ->
-             (* add attrs to all mutual type decls *)
-             let ent = add_attrs ent attrs in
-             G.DefStmt (ent, G.TypeDef def) |> G.s)
+      |> List.map (function
+           | Left (ent, def) ->
+               (* add attrs to all mutual type decls *)
+               let ent = add_attrs ent attrs in
+               G.DefStmt (ent, G.TypeDef def) |> G.s
+           | Right categ -> G.OtherStmt (G.OS_Todo, [ G.TodoK categ ]) |> G.s)
   | Exception (_t, v1, v2) ->
       let v1 = ident v1 and v2 = list type_ v2 in
       let ent = G.basic_entity v1 attrs in
