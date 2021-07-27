@@ -66,6 +66,19 @@ let unwrap_qualified_identifier qual = (match qual with
 )
 
 (*****************************************************************************)
+(* Outstanding macro conceptual questions *)
+(*****************************************************************************)
+(* Q: What are Records? *)
+(* Q: Can I get an example of when to use Patterns vs Expr? *)
+(* Q: How to handle shapes? Fields in shapes? Records in shapes?
+      And various initializers/assignments?*)
+(* Q: How to handle type args? And how much does missing info matter? *)
+(* Q: How to integrate Semgrep symbols? *)
+(* Q: How to handle traits and those other type things that aren't assigned? And `where` clause?
+      Really just go through `TODO` and `Q` statements... *)
+(* Q: Importance of capturing sc and brackets? And impact of fakes? *)
+
+(*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
 (* This was started by copying tree-sitter-lang/semgrep-hack/Boilerplate.ml *)
@@ -132,14 +145,12 @@ let integer (env : env) (tok : CST.integer) =
   (* integer *) token env tok
 *)
 
-(* Note: This method is considered unused because instances were replaced
-   were replaced with todos. TODO: Re-enable scope_identifier.
-*)
-let _scope_identifier (env : env) (x : CST.scope_identifier) =
+let scope_identifier (env : env) (x : CST.scope_identifier) =
   (match x with
-  | `Self tok -> (* "self" *) token env tok
-  | `Parent tok -> (* "parent" *) token env tok
-  | `Static tok -> (* "static" *) token env tok
+  | `Self tok -> (* "self" *) G.IdSpecial(Self, (token env tok))
+  | `Parent tok -> (* "parent" *) G.IdSpecial(Parent, (token env tok))
+  (* Q: Add IdSpecial? *)
+  | `Static tok -> (* "static" *) G.N(G.Id ((str env tok), G.empty_id_info()))
   )
 
 (*
@@ -426,9 +437,10 @@ let trait_select_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.trait_select
 
 let xhp_close (env : env) ((v1, v2, v3) : CST.xhp_close) =
   let v1 = (* "</" *) token env v1 in
-  let v2 = xhp_identifier_ env v2 in
-  let v3 = (* ">" *) token env v3 in
-  todo env (v1, v2, v3)
+  let v2 = [snd(xhp_identifier_ env v2)] in
+  let v3 = (* ">" *) [token env v3] in
+  (* Q: Is this the correct way to merge tokens? *)
+  PI.combine_infos v1 (v2 @ v3)
 
 let xhp_children_declaration (env : env) ((v1, v2, v3, v4) : CST.xhp_children_declaration) =
   let v1 = (* "children" *) token env v1 in
@@ -480,10 +492,15 @@ let scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) =
     (* Q: This is ugly, but is now a helper *)
     (match v1 with
     | `Qual_id x -> let qual = qualified_identifier env x in unwrap_qualified_identifier qual
-    | `Var tok -> (* variable *) todo env tok (* token env tok *)
-    | `Scope_id x -> todo env x (* scope_identifier env x *) (* TODO: Will need to break open scopes? *)
-    | `Choice_xhp_id x -> todo env x (* xhp_identifier_ env x *)
-    | `Pipe_var tok -> (* "$$" *) todo env tok (* token env tok *)
+    | `Var tok -> (* variable *) [str env tok]
+    | `Scope_id x -> (* Note: scope_identifier doesn't really work here because we need to unwrap *)
+        [(match x with
+        | `Self tok -> (* "self" *) str env tok
+        | `Parent tok -> (* "self" *) str env tok
+        | `Static tok -> (* "self" *) str env tok
+        )]
+    | `Choice_xhp_id x -> [xhp_identifier_ env x]
+    | `Pipe_var tok -> (* "$$" *) [str env tok]
     )
   in
   let v2 = (* "::" *) token env v2 in
@@ -615,11 +632,12 @@ and anon_exp_rep_COMMA_exp_0bb260c (env : env) ((v1, v2) : CST.anon_exp_rep_COMM
   let v2 =
     List.map (fun (v1, v2) ->
       let v1 = (* "," *) token env v1 in
+      (* Q: Change tree-sitter to be less permissive in what's allowed here? *)
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      v2
     ) v2
   in
-  todo env (v1, v2)
+  v1 :: v2
 
 and argument (env : env) ((v1, v2) : CST.argument) : G.argument =
   (* TODO: Add modifier support *)
@@ -924,7 +942,7 @@ and braced_expression (env : env) ((v1, v2, v3) : CST.braced_expression) =
   let v1 = (* "{" *) token env v1 in
   let v2 = expression env v2 in
   let v3 = (* "}" *) token env v3 in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and call_expression (env : env) ((v1, v2, v3) : CST.call_expression) =
   let v1 =
@@ -945,10 +963,12 @@ and catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) =
   let v1 = (* "catch" *) token env v1 in
   let v2 = (* "(" *) token env v2 in
   let v3 = type_ env v3 in
-  let v4 = (* variable *) token env v4 in
+  let v4 = (* variable *) Some(str env v4, G.empty_id_info()) in
   let v5 = (* ")" *) token env v5 in
   let v6 = compound_statement env v6 in
-  todo env (v1, v2, v3, v4, v5, v6)
+  (* Q: PatTyped vs PVal? *)
+  let pattern = G.PatVar(v3, v4) in
+  v1, pattern, v6
 
 and class_const_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_const_declaration) =
   let v1 = List.map (member_modifier env) v1 in
@@ -1537,7 +1557,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       in
       let v6 = compound_statement env v6 in
       todo env (v1, v2, v3, v4, v5, v6)
-  | `Xhp_exp x -> xhp_expression env x
+  | `Xhp_exp x -> G.Xml(xhp_expression env x)
   )
 
 and expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
@@ -1572,7 +1592,7 @@ and field_initializer (env : env) ((v1, v2, v3) : CST.field_initializer) =
 and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v1 = (* "finally" *) token env v1 in
   let v2 = compound_statement env v2 in
-  todo env (v1, v2)
+  v1, v2
 
 and function_declaration_header (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.function_declaration_header) : G.function_definition * G.label =
   let async_modifier =
@@ -1696,7 +1716,7 @@ and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) : G.par
     | Some (v1, v2) ->
         let v1 = (* "=" *) token env v1 in
         let v2 = expression env v2 in
-        todo env (v1, v2)
+        Some(v2)
     | None -> None)
   in
   (* Q: May not be ?classic?
@@ -1870,7 +1890,7 @@ and selection_expression (env : env) ((v1, v2, v3) : CST.selection_expression) =
   let v3 =
     (match v3 with
     | `Choice_var x -> variablish env x
-    | `Braced_exp x -> braced_expression env x
+    | `Braced_exp x -> G.unbracket(braced_expression env x)
     | `Choice_type x -> G.N(G.Id ((keyword env x), G.empty_id_info()))
     )
   in
@@ -1897,20 +1917,22 @@ and statement (env : env) (x : CST.statement) =
       let v1 = (* "break" *) token env v1 in
       let v2 =
         (match v2 with
-        | Some x -> expression env x
-        | None -> todo env ())
+        (* Q: Is this too permissive of typing? Losing specificity here... *)
+        | Some x -> G.LDynamic(expression env x)
+        | None -> G.LNone)
       in
       let v3 = (* ";" *) token env v3 in
-      todo env (v1, v2, v3)
+      G.Break(v1, v2, v3) |> G.s
   | `Cont_stmt (v1, v2, v3) ->
       let v1 = (* "continue" *) token env v1 in
       let v2 =
         (match v2 with
-        | Some x -> expression env x
-        | None -> todo env ())
+        (* Q: Same as above for LDynamic *)
+        | Some x -> G.LDynamic(expression env x)
+        | None -> G.LNone)
       in
       let v3 = (* ";" *) token env v3 in
-      todo env (v1, v2, v3)
+      G.Continue(v1, v2, v3) |> G.s
   | `Throw_stmt (v1, v2, v3) ->
       let v1 = (* "throw" *) token env v1 in
       let v2 = expression env v2 in
@@ -1943,17 +1965,16 @@ and statement (env : env) (x : CST.statement) =
               List.map (fun (v1, v2) ->
                 let v1 = (* "," *) token env v1 in
                 let v2 = variablish env v2 in
-                todo env (v1, v2)
+                G.E(v2)
               ) v2
             in
-            todo env (v1, v2)
-        | None -> todo env ())
+            G.E(v1) :: v2
+        | None -> [])
       in
       let v4 = (* ")" *) token env v4 in
       let v5 = (* ";" *) token env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      G.ExprStmt(G.OtherExpr(G.OE_Delete, v3), v5) |> G.s
   | `Use_stmt (v1, v2, v3) ->
-    (* Q: ImportAs vs ImportFrom? Both use alias option. *)
     (* Q: What do comma seperated use statements mean? And how do they alias? *)
       let v1 = (* "use" *) token env v1 in
       let create_directive use_clause prefix_idents =
@@ -2053,40 +2074,44 @@ and statement (env : env) (x : CST.statement) =
       let v1 = (* "while" *) token env v1 in
       let v2 = parenthesized_expression env v2 in
       let v3 = statement env v3 in
-      todo env (v1, v2, v3)
+      G.While(v1, v2, v3) |> G.s
   | `Do_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* "do" *) token env v1 in
       let v2 = statement env v2 in
       let v3 = (* "while" *) token env v3 in
       let v4 = parenthesized_expression env v4 in
       let v5 = (* ";" *) token env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      G.DoWhile(v1, v2, v4) |> G.s
   | `For_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = (* "for" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
       let v3 =
         (match v3 with
-        | Some x -> anon_exp_rep_COMMA_exp_0bb260c env x
-        | None -> todo env ())
+        (* Q: Always use ForInitExpr since that is what we get back? *)
+        | Some x -> let cast x = G.ForInitExpr(x) in List.map cast (anon_exp_rep_COMMA_exp_0bb260c env x)
+        | None -> [])
       in
       let v4 = (* ";" *) token env v4 in
       let v5 =
+        (* Q: Can we use Seq here? Or Block? How does it change those other areas?
+            Really just how to represent? *)
         (match v5 with
-        | Some x -> anon_exp_rep_COMMA_exp_0bb260c env x
-        | None -> todo env ())
+        | Some x -> Some(G.Seq(anon_exp_rep_COMMA_exp_0bb260c env x))
+        | None -> None)
       in
       let v6 = (* ";" *) token env v6 in
       let v7 =
         (match v7 with
-        | Some x -> anon_exp_rep_COMMA_exp_0bb260c env x
-        | None -> todo env ())
+        | Some x -> Some(G.Seq(anon_exp_rep_COMMA_exp_0bb260c env x))
+        | None -> None)
       in
       let v8 = (* ")" *) token env v8 in
       let v9 = statement env v9 in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+      let header = G.ForClassic(v3, v5, v7) in
+      G.For(v1, header, v9) |> G.s
   | `Switch_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* "switch" *) token env v1 in
-      let v2 = parenthesized_expression env v2 in
+      let v2 = Some(parenthesized_expression env v2) in
       let v3 = (* "{" *) token env v3 in
       let v4 =
         List.map (fun x ->
@@ -2097,41 +2122,49 @@ and statement (env : env) (x : CST.statement) =
         ) v4
       in
       let v5 = (* "}" *) token env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      G.Switch(v1, v2, v4) |> G.s
   | `Fore_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = (* "foreach" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
-      let v3 = expression env v3 in
+      (* TODO: Modify TSH to make directly to pattern? *)
+      (* TODO: Split expression to allow pattern use and expr use? *)
+      let v3 = G.OtherPat(OP_Expr, [G.E(expression env v3)]) in
       let v4 =
         (match v4 with
-        | Some tok -> (* "await" *) token env tok
-        | None -> todo env ())
+        | Some tok -> (* "await" *) Some(token env tok)
+        | None -> None)
       in
       let v5 = (* as *) token env v5 in
+      let v7 = variablish env v7 in
+      (* TODO: There's a lot going on here. Test it! *)
       let v6 =
         (match v6 with
         | Some (v1, v2) ->
             let v1 = variablish env v1 in
             let v2 = (* "=>" *) token env v2 in
-            todo env (v1, v2)
-        | None -> todo env ())
+            (* Q: Should this be variable definition? *)
+            G.Assign(v1, v2, v7)
+        | None -> v7)
       in
-      let v7 = variablish env v7 in
       let v8 = (* ")" *) token env v8 in
       let v9 = statement env v9 in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8, v9)
+      let header = G.ForEach(v3, v5, v6)
+      in
+      G.For(v1, header, v9) |> G.s
   | `Try_stmt (v1, v2, v3) ->
+    (* TODO: Make TSH more specific here! We can't have multiple finally's *)
       let v1 = (* "try" *) token env v1 in
       let v2 = compound_statement env v2 in
       let v3 =
         List.map (fun x ->
           (match x with
           | `Catch_clause x -> catch_clause env x
-          | `Fina_clause x -> finally_clause env x
+          | `Fina_clause x -> todo env x (* Some(finally_clause env x) *)
           )
         ) v3
       in
-      todo env (v1, v2, v3)
+      todo env x
+      (* G.Try(v1, v2, v3, v4) |> G.s *)
   | `Conc_stmt (v1, v2) ->
       let v1 = (* "concurrent" *) token env v1 in
       let v2 = compound_statement env v2 in
@@ -2169,13 +2202,20 @@ and switch_case (env : env) ((v1, v2, v3, v4) : CST.switch_case) =
   let v2 = expression env v2 in
   let v3 = (* ":" *) token env v3 in
   let v4 = List.map (statement env) v4 in
-  todo env (v1, v2, v3, v4)
+  (* Q: Again. Is it appropriate to use Block here? *)
+  (* Q: Also, this is terrible.... Make expression more specific to be pattern? How to handle? *)
+  (* G.CasesAndBody([Case(v1, OtherPat(OP_Expr, [G.E(v2)]))], G.Block(G.fake_bracket v4) |> G.s) *)
+  (* Well can also do this... *)
+  (* Q: Why is the case a list? To handle multiple cases with the same body?
+     We don't support this in the grammar. We just don't have a break... *)
+  G.CasesAndBody([CaseEqualExpr(v1, v2)], G.Block(G.fake_bracket v4) |> G.s)
 
 and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
   let v1 = (* "default" *) token env v1 in
   let v2 = (* ":" *) token env v2 in
   let v3 = List.map (statement env) v3 in
-  todo env (v1, v2, v3)
+  (* Q: Again. Is it appropriate to use Block here? *)
+  G.CasesAndBody([G.Default(v1)], G.Block(G.fake_bracket v3) |> G.s)
 
 and trait_use_clause (env : env) ((v1, v2, v3, v4) : CST.trait_use_clause) =
   let v1 = (* "use" *) token env v1 in
@@ -2452,7 +2492,8 @@ and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
 and variablish (env : env) (x : CST.variablish) =
   (match x with
   | `Var tok -> (* variable *) G.N (Id (str env tok, G.empty_id_info ()))
-  | `Pipe_var tok -> (* "$$" *) todo env x (* TODO: token env tok *)
+  (* Q: Not anything special for pipe? *)
+  | `Pipe_var tok -> (* "$$" *) G.N (Id (str env tok, G.empty_id_info ()))
   | `List_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 = (* "list" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
@@ -2490,13 +2531,13 @@ and variablish (env : env) (x : CST.variablish) =
       in
       let v4 = (* "]" *) token env v4 in
       G.ArrayAccess(v1, (v2, v3, v4))
-  | `Qual_id x -> G.N (qualified_identifier env x)
+  | `Qual_id x -> G.N(qualified_identifier env x)
   | `Paren_exp x -> parenthesized_expression env x
   | `Call_exp x -> call_expression env x
-  | `Scoped_id x -> G.N (scoped_identifier env x)
-  | `Scope_id x -> todo env x (* TODO: scope_identifier env x *)
+  | `Scoped_id x -> G.N(scoped_identifier env x)
+  | `Scope_id x -> scope_identifier env x
   | `Sele_exp x -> selection_expression env x
-  | `Choice_xhp_id x -> todo env x (* TODO: xhp_identifier_ env x *)
+  | `Choice_xhp_id x -> G.N(G.Id ((xhp_identifier_ env x), G.empty_id_info()))
   )
 
 and where_clause (env : env) ((v1, v2) : CST.where_clause) =
@@ -2530,21 +2571,22 @@ and xhp_attribute (env : env) (x : CST.xhp_attribute) =
   (match x with
   | `Xhp_id_EQ_choice_str (v1, v2, v3) ->
       let v1 =
-        (* pattern [a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) token env v1
+        (* pattern [a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) str env v1
       in
       let v2 = (* "=" *) token env v2 in
       let v3 =
         (match v3 with
-        | `Str tok -> (* string *) token env tok
-        | `Braced_exp x -> todo env x (* TODO: braced_expression env x *)
+        | `Str tok -> (* string *) G.L(G.String(str env tok))
+        | `Braced_exp x -> G.unbracket(braced_expression env x)
         )
       in
-      todo env (v1, v2, v3)
+      G.XmlAttr(v1, v2, v3)
   | `Choice_braced_exp x ->
-      (match x with
+      let x = (match x with
       | `Braced_exp x -> braced_expression env x
       | `Xhp_spread_exp x -> xhp_spread_expression env x
-      )
+      ) in
+      G.XmlAttrExpr(x)
   )
 
 and xhp_attribute_declaration (env : env) ((v1, v2, v3, v4) : CST.xhp_attribute_declaration) =
@@ -2592,28 +2634,37 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
   in
   todo env (v1, v2, v3, v4)
 
-and xhp_expression (env : env) (x : CST.xhp_expression) =
+and xhp_expression (env : env) (x : CST.xhp_expression) : G.xml =
   (match x with
   | `Xhp_open_close (v1, v2, v3, v4) ->
       let v1 = (* "<" *) token env v1 in
       let v2 = xhp_identifier_ env v2 in
       let v3 = List.map (xhp_attribute env) v3 in
       let v4 = (* "/>" *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      {
+        xml_kind = G.XmlSingleton(v1, v2, v4);
+        xml_attrs = v3;
+        xml_body = [];
+      }
   | `Xhp_open_rep_choice_xhp_str_xhp_close (v1, v2, v3) ->
-      let v1 = xhp_open env v1 in
+      let opening_open_tok, opening_ident, opening_attrs, opening_close_tok = xhp_open env v1 in
       let v2 =
         List.map (fun x ->
           (match x with
-          | `Xhp_str tok -> (* xhp_string *) token env tok
-          | `Xhp_comm tok -> (* xhp_comment *) token env tok
-          | `Braced_exp x -> todo env x (* TODO: braced_expression env x *)
-          | `Xhp_exp x -> todo env x (* TODO: xhp_expression env x *)
+          | `Xhp_str tok -> (* xhp_string *) G.XmlText(str env tok)
+          (* Q: No idea how to represent... *)
+          | `Xhp_comm tok -> (* xhp_comment *) let _x = token env tok in G.XmlExpr(G.fake_bracket None)
+          | `Braced_exp x -> let v1, v2, v3 = braced_expression env x in G.XmlExpr(v1, Some(v2), v3)
+          | `Xhp_exp x -> G.XmlXml(xhp_expression env x)
           )
         ) v2
       in
       let v3 = xhp_close env v3 in
-      todo env (v1, v2, v3)
+      {
+        xml_kind = G.XmlClassic(opening_open_tok, opening_ident, opening_close_tok, v3);
+        xml_attrs = opening_attrs;
+        xml_body = v2;
+      }
   )
 
 and xhp_open (env : env) ((v1, v2, v3, v4) : CST.xhp_open) =
@@ -2621,9 +2672,10 @@ and xhp_open (env : env) ((v1, v2, v3, v4) : CST.xhp_open) =
   let v2 = xhp_identifier_ env v2 in
   let v3 = List.map (xhp_attribute env) v3 in
   let v4 = (* ">" *) token env v4 in
-  todo env (v1, v2, v3, v4)
+  v1, v2, v3, v4
 
 and xhp_spread_expression (env : env) ((v1, v2, v3, v4) : CST.xhp_spread_expression) =
+  (* Q: How to differentiate this spread and Semgrep spread? Do I even need to? *)
   let v1 = (* "{" *) token env v1 in
   let v2 = (* "..." *) token env v2 in
   let v3 = expression env v3 in
@@ -2660,7 +2712,7 @@ let parse file =
         pr2 s;
         raise exn)
 
-(* todo: special mode to convert Ellipsis in the right construct! (This comment was copied from Parse_lua. *)
+(* TODO: special mode to convert Ellipsis in the right construct! (This comment was copied from Parse_lua. *)
 let parse_pattern str =
   H.wrap_parser
     (fun () ->
