@@ -1630,7 +1630,7 @@ and field =
 
 (*s: type [[AST_generic.other_type_kind_operator]] *)
 and other_type_kind_operator = (* OCaml *)
-  | OTKO_AbstractType
+  | OTKO_AbstractType | OTKO_Todo
 
 (*e: type [[AST_generic.other_type_kind_operator]] *)
 

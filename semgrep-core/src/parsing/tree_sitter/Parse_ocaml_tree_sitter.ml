@@ -594,7 +594,7 @@ let map_type_param (env : env) ((v1, v2) : CST.type_param) : type_parameter =
     | `X__ tok -> str env tok
     (* "_" *)
   in
-  v2
+  TyParam v2
 
 let map_signed_constant (env : env) (x : CST.signed_constant) : literal =
   match x with
@@ -906,9 +906,9 @@ and map_binding_pattern (env : env) (x : CST.binding_pattern) : pattern =
   | `Typed_bind_pat (v1, v2, v3, v4) ->
       let _v1 = token env v1 (* "(" *) in
       let v2 = map_binding_pattern_ext env v2 in
-      let _, v3 = map_typed env v3 in
+      let t, v3 = map_typed env v3 in
       let _v4 = token env v4 (* ")" *) in
-      PatTyped (v2, v3)
+      PatTyped (v2, t, v3)
   | `Cons_path x ->
       let x = map_constructor_path env x in
       PatConstructor (x, None)
@@ -1677,7 +1677,7 @@ and map_item_attribute (env : env) ((v1, v2, v3, v4) : CST.item_attribute) :
   let v2 = map_attribute_id env v2 in
   let v3 = map_attribute_payload_opt env v3 in
   let v4 = token env v4 (* "]" *) in
-  (v1, (v2, v3), v4)
+  NamedAttr (v1, (v2, v3), v4)
 
 and map_item_extension (env : env) (x : CST.item_extension) =
   match x with
@@ -2071,7 +2071,7 @@ and map_parameter (env : env) (x : CST.parameter) : parameter =
   | `Param_ x -> map_parameter_ env x
   | `Paren_abst_type x ->
       let l, _, _ = map_parenthesized_abstract_type env x in
-      ParamTodo l
+      ParamTodo ("Paren", l)
 
 and map_parameter_ (env : env) (x : CST.parameter_) =
   match x with
@@ -2080,12 +2080,12 @@ and map_parameter_ (env : env) (x : CST.parameter_) =
       Param x
   | `Choice_TILDE_id x ->
       let (_bool, t), _id = map_label env x in
-      ParamTodo t
+      ParamTodo ("Label", t)
   | `Label_imm_tok_COLON_simple_pat_ext (v1, v2, v3) ->
       let (_bool, t), _id = map_label env v1 in
       let _v2 = token env v2 (* ":" *) in
       let _v3 = map_simple_pattern_ext env v3 in
-      ParamTodo t
+      ParamTodo ("Label", t)
   | `Choice_TILDE_LPAR_id_opt_typed_opt_EQ_seq_exp_ext_RPAR
       (v1, v2, v3, v4, v5, v6) ->
       let _bool, t = map_anon_choice_TILDE_72781e5 env v1 in
@@ -2101,7 +2101,7 @@ and map_parameter_ (env : env) (x : CST.parameter_) =
         | None -> None
       in
       let _v6 = token env v6 (* ")" *) in
-      ParamTodo t
+      ParamTodo ("Label", t)
   | `Label_imm_tok_COLON_LPAR_pat_ext_opt_typed_EQ_seq_exp_ext_RPAR
       (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let (_bool, t), _id = map_label env v1 in
@@ -2112,7 +2112,7 @@ and map_parameter_ (env : env) (x : CST.parameter_) =
       let _v6 = token env v6 (* "=" *) in
       let _v7 = map_sequence_expression_ext env v7 in
       let _v8 = token env v8 (* ")" *) in
-      ParamTodo t
+      ParamTodo ("Label", t)
 
 and map_parenthesized_expression (env : env) (x : CST.parenthesized_expression)
     =
@@ -2621,9 +2621,9 @@ and map_simple_pattern (env : env) (x : CST.simple_pattern) : pattern =
   | `Typed_pat (v1, v2, v3, v4) ->
       let _v1 = token env v1 (* "(" *) in
       let v2 = map_pattern_ext env v2 in
-      let _, v3 = map_typed env v3 in
+      let t, v3 = map_typed env v3 in
       let _v4 = token env v4 (* ")" *) in
-      PatTyped (v2, v3)
+      PatTyped (v2, t, v3)
   | `Cons_path x ->
       let x = map_constructor_path env x in
       PatConstructor (x, None)
@@ -3018,14 +3018,13 @@ and map_type_binding (env : env) ((v1, v2, v3) : CST.type_binding) :
           | None -> AbstractType
         in
         let _v4 = List.map (map_type_constraint env) v4 in
-        { tname = v1; tparams; tbody = v3 }
+        TyDecl { tname = v1; tparams; tbody = v3 }
     | `Type_cons_path_PLUSEQ_opt_priv_vari_decl (v1, v2, v3, v4) ->
-        let v1 = map_type_constructor_path env v1 in
-        let _v2 = token env v2 (* "+=" *) in
+        let _v1 = map_type_constructor_path env v1 in
+        let v2 = token env v2 (* "+=" *) in
         let _v3 = private_opt env v3 in
-        let v4 = map_variant_declaration env v4 in
-        (* TODO: TyDeclTodo *)
-        { tname = snd v1; tparams = []; tbody = AlgebraicType v4 }
+        let _v4 = map_variant_declaration env v4 in
+        TyDeclTodo ("ExtensionType", v2)
   in
   let _v3 = List.map (map_item_attribute env) v3 in
   v2
