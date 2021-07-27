@@ -450,7 +450,7 @@ def saved_snippet_to_url(snippet_id: str) -> str:
 
 
 def resolve_config(config_str: str) -> Dict[str, YamlTree]:
-    """resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+    """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
     if config_str in RULES_REGISTRY:
         config = download_config(RULES_REGISTRY[config_str])
