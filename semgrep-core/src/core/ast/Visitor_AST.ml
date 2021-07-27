@@ -1284,10 +1284,18 @@ let extract_ranges recursor =
   in
   let vout = mk_visitor hooks in
   recursor vout;
-  match !ranges with Some range -> range | None -> failwith "no tokens found"
+  !ranges
 
 let range_of_tokens tokens =
   List.filter PI.is_origintok tokens |> PI.min_max_ii_by_pos
   [@@profiling]
 
-let range_of_any any = extract_ranges (fun visitor -> visitor any) [@@profiling]
+let range_of_any_opt any =
+  extract_ranges (fun visitor -> visitor any)
+  [@@profiling]
+
+let range_of_any any =
+  match range_of_any_opt any with
+  | Some range -> range
+  | None -> failwith "no tokens found"
+  [@@profiling]
