@@ -966,29 +966,34 @@ and scope_resolution (env : env) ((v1, v2) : CST.scope_resolution) :
 
 and anon_choice_id_5ca805c (env : env) (x : CST.anon_choice_id_5ca805c) =
   match x with
-  | `Id tok -> MethodId (str env tok, ID_Lowercase)
+  | `Id tok -> (MethodId (str env tok, ID_Lowercase), None)
   | `Op x -> (
       let op = operator env x in
       match op with
-      | Left bin, t -> MethodOperator (bin, t)
-      | Right un, t -> MethodUOperator (un, t))
-  | `Cst tok -> MethodId (str env tok, ID_Uppercase)
+      | Left bin, t -> (MethodOperator (bin, t), None)
+      | Right un, t -> (MethodUOperator (un, t), None))
+  | `Cst tok -> (MethodId (str env tok, ID_Uppercase), None)
   | `Arg_list x ->
-      (* ?? *)
-      MethodDynamic (Tuple (argument_list env x |> G.unbracket))
+      (* ex: block.(), to call the block *)
+      let l, xs, r = argument_list env x in
+      (MethodSpecialCall (l, (), r), Some (l, xs, r))
 
 and call (env : env) ((v1, v2, v3) : CST.call) =
   let v1 = primary env v1 in
   let v2 = anon_choice_DOT_5431c66 env v2 in
-  let v3 = anon_choice_id_5ca805c env v3 in
-  DotAccess (v1, v2, v3)
+  let v3, args_opt = anon_choice_id_5ca805c env v3 in
+  match args_opt with
+  | None -> DotAccess (v1, v2, v3)
+  | Some xs -> Call (DotAccess (v1, v2, v3), xs, None)
 
 and chained_command_call (env : env) ((v1, v2, v3) : CST.chained_command_call) :
     AST.expr =
   let v1 = command_call_with_block env v1 in
   let v2 = anon_choice_DOT_5431c66 env v2 in
-  let v3 = anon_choice_id_5ca805c env v3 in
-  DotAccess (v1, v2, v3)
+  let v3, args_opt = anon_choice_id_5ca805c env v3 in
+  match args_opt with
+  | None -> DotAccess (v1, v2, v3)
+  | Some xs -> Call (DotAccess (v1, v2, v3), xs, None)
 
 and command_call_with_block (env : env) (x : CST.command_call_with_block) :
     AST.expr =
