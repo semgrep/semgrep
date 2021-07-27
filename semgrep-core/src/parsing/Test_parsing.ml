@@ -220,9 +220,14 @@ let parsing_common ?(verbose = true) lang xs =
    Parse files from multiple root folders, each root being considered a
    separate project. Keeping projects separate allows us to spot
    projects with unusual results.
+
+   Timeouts are ignored.
 *)
 let parse_project ~verbose lang name files_or_dirs =
-  let stat_list = parsing_common ~verbose lang files_or_dirs in
+  let stat_list =
+    parsing_common ~verbose lang files_or_dirs
+    |> List.filter (fun stat -> not stat.PI.have_timeout)
+  in
   pr2
     (spf "%05.1fs: [%s] done parsing %s" (Sys.time ())
        (Lang.to_lowercase_alnum lang)

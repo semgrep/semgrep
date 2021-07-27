@@ -28,7 +28,7 @@ module PM = Pattern_match
  * Here we pass matcher functions that uses semgrep patterns to
  * describe the source/sink/sanitizers.
  *)
-let _logger = Logging.get_logger [ __MODULE__ ]
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -49,9 +49,15 @@ end)
 let any_in_ranges any ranges =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
-  let tok1, tok2 = Visitor_AST.range_of_any any in
-  let r = { Range.start = tok1.charpos; end_ = tok2.charpos } in
-  List.exists (Range.( $<=$ ) r) ranges
+  match Visitor_AST.range_of_any_opt any with
+  | None ->
+      logger#debug
+        "Cannot compute range, there are no real tokens in this AST: %s"
+        (AST.show_any any);
+      false
+  | Some (tok1, tok2) ->
+      let r = { Range.start = tok1.charpos; end_ = tok2.charpos } in
+      List.exists (Range.( $<=$ ) r) ranges
 
 let ranges_of_pformula config equivs file_and_more rule_id pformula =
   let file, _, _ = file_and_more in
@@ -141,14 +147,19 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
       {
         V.default_visitor with
         V.kdef =
-          (fun (k, _) ((ent, def_kind) as def) ->
+          (fun (k, _v) ((ent, def_kind) as def) ->
             match def_kind with
             | AST.FuncDef fdef ->
                 let opt_name = AST_to_IL.name_of_entity ent in
-                check_stmt opt_name fdef.AST.fbody
+                check_stmt opt_name fdef.AST.fbody;
+                (* go into nested functions *)
+                k def
             | __else__ -> k def);
         V.kfunction_definition =
-          (fun (_k, _) def -> check_stmt None def.AST.fbody);
+          (fun (k, _v) def ->
+            check_stmt None def.AST.fbody;
+            (* go into nested functions *)
+            k def);
       }
   in
   (* Check each function definition. *)
