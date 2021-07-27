@@ -94,7 +94,8 @@ let parse file =
                          let pattern =
                            PR.parse_pattern ~id ~lang
                              ( pattern_string,
-                               Parse_info.fake_info pattern_string )
+                               Parse_info.fake_info pattern_string,
+                               [] )
                          in
                          let severity =
                            PR.parse_severity ~id

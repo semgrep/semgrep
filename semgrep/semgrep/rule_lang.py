@@ -114,6 +114,9 @@ class Span:
     file: Optional[str]
     context_start: Optional[Position] = None
     context_end: Optional[Position] = None
+    config_path: Optional[Tuple[Any, ...]] = None
+    config_start: Optional[Position] = None
+    config_end: Optional[Position] = None
 
     @classmethod
     def from_node(
@@ -130,6 +133,31 @@ class Span:
         lines = s.splitlines()
         end = Position(line=len(lines), col=len(lines[-1]))
         return Span(start=start, end=end, file=filename, source_hash=src_hash)
+
+    @classmethod
+    def from_string_token(
+        cls,
+        s: str,
+        line: int,
+        col: int,
+        path: List[Dict[str, Union[int, str]]],
+        filename: Optional[str] = None,
+    ) -> "Span":
+        src_hash = SourceTracker.add_source(s)
+        start = Position(line + 1, col + 1)  # 1-index instead of 0
+        lines = s.splitlines()
+        row_diff = len(lines)
+        col_diff = len(lines[-1])
+        end = Position(line=(row_diff + line - 1), col=(col_diff + col + 1))
+        return Span(
+            start=start,
+            end=end,
+            file=filename,
+            source_hash=src_hash,
+            config_path=tuple(path),
+            config_start=Position(0, 1),
+            config_end=Position(row_diff - 1, col_diff + 1),
+        )
 
     def fix(self) -> "Span":
         # some issues in ruamel lead to bad spans
