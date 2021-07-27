@@ -100,18 +100,16 @@ let subexprs_of_expr e =
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
       e
-      ::
-      (args |> unbracket
-      |> Common.map_filter (function
-           | Arg e | ArgKwd (_, e) -> Some e
-           | ArgType _ | ArgOther _ -> None))
+      :: (args |> unbracket
+         |> Common.map_filter (function
+              | Arg e | ArgKwd (_, e) -> Some e
+              | ArgType _ | ArgOther _ -> None))
   | SliceAccess (e1, e2) ->
       e1
-      ::
-      (e2 |> unbracket
-      |> (fun (a, b, c) -> [ a; b; c ])
-      |> List.map Common.opt_to_list
-      |> List.flatten)
+      :: (e2 |> unbracket
+         |> (fun (a, b, c) -> [ a; b; c ])
+         |> List.map Common.opt_to_list
+         |> List.flatten)
   | Yield (_, eopt, _) -> Common.opt_to_list eopt
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)

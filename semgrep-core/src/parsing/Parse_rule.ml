@@ -89,6 +89,7 @@ exception
     * string (* exn *)
     * Parse_info.t
     * string list
+
 (* path *)
 
 exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
