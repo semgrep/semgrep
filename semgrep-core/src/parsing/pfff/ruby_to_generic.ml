@@ -233,7 +233,9 @@ and method_name mn =
       let s, t = variable (id, id_kind) in
       Left (s ^ "=", PI.combine_infos t [ teq ])
   | MethodUOperator (_, t) | MethodOperator (_, t) -> Left (PI.str_of_info t, t)
-  | MethodDynamic e -> Right (expr e)
+  | MethodSpecialCall (l, (), _r) ->
+      let special = ident ("call", l) in
+      Left special
   | MethodAtom (_tcolon, x) -> (
       (* todo? add ":" in name? *)
       match x with
