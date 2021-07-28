@@ -2,12 +2,16 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Changed
+- Run version check and print upgrade message after scan instead of before
+
 ## [0.60.0](https://github.com/returntocorp/semgrep/releases/tag/v0.60.0) - 2021-07-27
 
 ### Added
 - Detect duplicate keys in YAML dictionaries in semgrep rules when parsing a rule
   (e.g., detect multiple 'metavariable' inside one 'metavariable-regex')
-  
+
 ### Fixed
 - C/C++: Fixed stack overflows (segmentation faults) when processing very large
   files (#3538)
@@ -55,8 +59,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   it will not wait until semgrep-core completely finishes.
 
 ### Changed
-- Switch from OCaml 4.10.0 to OCaml 4.10.2 (and later to OCaml 4.12.0) resulted in 
-  smaller semgrep-core binaries (from 170MB to 47MB) and a smaller docker 
+- Switch from OCaml 4.10.0 to OCaml 4.10.2 (and later to OCaml 4.12.0) resulted in
+  smaller semgrep-core binaries (from 170MB to 47MB) and a smaller docker
   image (from 95MB to 40MB).
 
 ## [0.58.0](https://github.com/returntocorp/semgrep/releases/tag/v0.58.0) - 2021-07-14

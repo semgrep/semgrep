@@ -475,12 +475,6 @@ def cli() -> None:
         output_per_line_max_chars_limit=args.max_chars_per_line,
     )
 
-    if not args.disable_version_check:
-        if not is_running_latest():
-            logger.warning(
-                "A new version of Semgrep is available. Please see https://github.com/returntocorp/semgrep#upgrading for more information."
-            )
-
     if args.test:
         # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
         # uses managed_output internally
@@ -537,4 +531,10 @@ def cli() -> None:
                 skip_unknown_extensions=args.skip_unknown_extensions,
                 severity=args.severity,
                 optimizations=args.optimizations,
+            )
+
+    if not args.disable_version_check:
+        if not is_running_latest():
+            logger.warning(
+                "A new version of Semgrep is available. Please see https://github.com/returntocorp/semgrep#upgrading for more information."
             )
