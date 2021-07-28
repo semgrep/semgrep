@@ -348,7 +348,7 @@ let parse_options (key : key) value =
  * of the leading "|", so we need to recompute location by reparsing
  * the YAML file and look at the indentation there.
  *)
-let parse_pattern ~id ~lang (pattern, t, path) =
+let parse_pattern ~id ~lang { Rule.pattern; t; path } =
   try
     (* old? todo? call Normalize_ast.normalize here? *)
     let any = Parse_pattern.parse_pattern lang ~print_errors:false pattern in
@@ -386,7 +386,9 @@ let parse_xpattern env e =
   match env.languages with
   | R.L (lang, _) ->
       R.mk_xpat
-        (Sem (parse_pattern ~id:env.id ~lang (s, t, env.path), lang))
+        (Sem
+           ( parse_pattern ~id:env.id ~lang { pattern = s; t; path = env.path },
+             lang ))
         (s, t)
   | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
