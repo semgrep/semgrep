@@ -14,7 +14,7 @@ from semgrep.rule_match import RuleMatch
 class SarifFormatter(BaseFormatter):
     @staticmethod
     def _rule_match_to_sarif(rule_match: RuleMatch) -> Dict[str, Any]:
-        return {
+        rule_match_sarif = {
             "ruleId": rule_match.id,
             "message": {"text": rule_match.message},
             "locations": [
@@ -34,6 +34,9 @@ class SarifFormatter(BaseFormatter):
                 }
             ],
         }
+        if rule_match._is_ignored:
+            rule_match_sarif["suppressions"] = [{"kind": "inSource"}]
+        return rule_match_sarif
 
     @staticmethod
     def _rule_to_sarif(rule: Rule) -> Dict[str, Any]:
