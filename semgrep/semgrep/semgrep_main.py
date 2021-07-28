@@ -194,6 +194,8 @@ def main(
 
     output_handler.handle_semgrep_errors(errors)
 
+    is_sarif = output_handler.settings.output_format == OutputFormat.SARIF
+
     if errors and strict:
         raise SemgrepError(
             f"run with --strict and there were {len(errors)} errors loading configs",
@@ -359,7 +361,10 @@ The two most popular are:
                 else:
                     filtered_rule_matches.append(rule_match)
             filtered_rule_matches_by_rule[rule] = filtered_rule_matches
-        rule_matches_by_rule = filtered_rule_matches_by_rule
+        # SARIF output includes ignored findings, but labels them as suppressed.
+        # https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10541099
+        if not is_sarif:
+            rule_matches_by_rule = filtered_rule_matches_by_rule
 
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
