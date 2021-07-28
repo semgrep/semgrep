@@ -179,6 +179,8 @@ let mvars = ref ([] : Metavariable.mvar list)
 (*s: constant [[Main_semgrep_core.supported_langs]] *)
 (*e: constant [[Main_semgrep_core.supported_langs]] *)
 
+let lsp = ref false
+
 (* ------------------------------------------------------------------------- *)
 (* limits *)
 (* ------------------------------------------------------------------------- *)
@@ -1385,9 +1387,7 @@ let options () =
           logger#set_level Debug),
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
-    ( "-lsp",
-      Arg.Unit (fun () -> LSP_client.init ()),
-      " connect to LSP lang server to get type information" );
+    ("-lsp", Arg.Set lsp, " connect to LSP lang server to get type information");
   ]
   (*s: [[Main_semgrep_core.options]] concatenated flags *)
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
@@ -1476,6 +1476,8 @@ let main () =
     logger#info "Profile mode On";
     logger#info "disabling -j when in profiling mode";
     ncores := 1);
+
+  if !lsp then LSP_client.init ();
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->
