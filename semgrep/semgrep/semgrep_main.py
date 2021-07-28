@@ -177,7 +177,6 @@ def main(
     skip_unknown_extensions: bool = False,
     severity: Optional[List[str]] = None,
     optimizations: str = "none",
-    sarif_include_ignores: bool = False,
 ) -> None:
     if include is None:
         include = []
@@ -194,6 +193,8 @@ def main(
         filtered_rules = [rule for rule in all_rules if rule.severity in severity]
 
     output_handler.handle_semgrep_errors(errors)
+
+    is_sarif = output_handler.settings.output_format == OutputFormat.SARIF
 
     if errors and strict:
         raise SemgrepError(
@@ -357,12 +358,13 @@ The two most popular are:
             for rule_match in rule_matches:
                 if rule_match._is_ignored:
                     num_findings_nosem += 1
-                    if sarif_include_ignores:
-                        filtered_rule_matches.append(rule_match)
                 else:
                     filtered_rule_matches.append(rule_match)
             filtered_rule_matches_by_rule[rule] = filtered_rule_matches
-        rule_matches_by_rule = filtered_rule_matches_by_rule
+        # SARIF output includes ignored findings, but labels them as suppressed.
+        # https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10541099
+        if not is_sarif:
+            rule_matches_by_rule = filtered_rule_matches_by_rule
 
     num_findings = sum(len(v) for v in rule_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
