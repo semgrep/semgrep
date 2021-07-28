@@ -21,6 +21,8 @@ open Types
 module PI = Parse_info
 module G = AST_generic
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -28,19 +30,18 @@ module G = AST_generic
 (*****************************************************************************)
 (* Types and globals *)
 (*****************************************************************************)
-type env = { io : Io.t option; last_uri : string }
+type env = { io : Io.t option; last_uri : Uri.t }
 
-let global = ref { io = None; last_uri = "" }
-
-let debug = ref false
+let global = ref { io = None; last_uri = Uri.of_path "" }
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
 let server =
-  match 1 with
-  | 1 -> "/home/pad/.opam/4.09.1/bin/ocamllsp"
+  match 0 with
+  | 0 -> "ocamllsp"
+  | 1 -> "/home/pad/.opam/4.12.0/bin/ocamllsp"
   | 2 -> "/home/pad/go/bin/go-langserver"
   | _ -> raise Impossible
 
@@ -74,18 +75,21 @@ module Client_request2 = struct
     | _ -> assert false
 
   let params (type a) (t : a t) =
-    match t with
-    | Initialize params -> InitializeParams.yojson_of_t params
-    | ExecuteCommand params -> ExecuteCommandParams.yojson_of_t params
-    | DebugEcho params -> DebugEcho.Params.yojson_of_t params
-    | TextDocumentHover params -> HoverParams.yojson_of_t params
-    | Shutdown -> `Null
-    | _ -> assert false
+    Jsonrpc.Message.Structured.of_json
+      (match t with
+      | Initialize params -> InitializeParams.yojson_of_t params
+      | ExecuteCommand params -> ExecuteCommandParams.yojson_of_t params
+      | DebugEcho params -> DebugEcho.Params.yojson_of_t params
+      | TextDocumentHover params -> HoverParams.yojson_of_t params
+      | Shutdown -> raise Impossible
+      | _ -> assert false)
 
   let to_jsonrpc_request t ~id =
     let method_ = method_ t in
-    let params = params t in
-    Jsonrpc.Message.create ~id ~method_ ~params ()
+    if method_ = "shutdown" then Jsonrpc.Message.create ~id ~method_ ()
+    else
+      let params = params t in
+      Jsonrpc.Message.create ~id ~method_ ~params ()
 
   let response_of_json (type a) (t : a t) (json : Json.t) : a =
     match t with
@@ -94,27 +98,31 @@ module Client_request2 = struct
     | DebugEcho _ -> DebugEcho.Result.t_of_yojson json
     | TextDocumentHover _ -> Json.Option.t_of_yojson Hover.t_of_yojson json
     | x ->
-        pr2_gen ("Response TODO", x);
+        logger#error "Response TODO: %s" (Common.dump x);
         failwith "TODO"
 end
 
 let send_request req io =
   incr counter;
+  logger#info "send_request %d" !counter;
   let id = `Int !counter in
   let json_rpc = Client_request2.to_jsonrpc_request req ~id in
   let json = Jsonrpc.Message.yojson_of_request json_rpc in
   let either = Jsonrpc.Message.either_of_yojson json in
   let packet = Jsonrpc.Message either in
   Io.send io packet;
+  Io.flush io;
   id
 
 let send_notif notif io =
   let json_rpc = Client_notification.to_jsonrpc notif in
   let json_rpc = { json_rpc with Jsonrpc.Message.id = None } in
   let packet = Jsonrpc.Message json_rpc in
-  Io.send io packet
+  Io.send io packet;
+  Io.flush io
 
 let rec read_response (id, req) io =
+  logger#info "read_response %s" (Common.dump id);
   let res = Io.read io in
   match res with
   | None -> failwith "no answer"
@@ -124,7 +132,7 @@ let rec read_response (id, req) io =
           { Jsonrpc.Message.method_ = "textDocument/publishDiagnostics"; _ } ->
           read_response (id, req) io
       | Jsonrpc.Message _ ->
-          pr2_gen ("Message TODO", res);
+          logger#error "Message TODO: %s" (Common.dump res);
           failwith "got a message, not a Response"
       | Jsonrpc.Response { Jsonrpc.Response.id = id2; result } -> (
           if id2 <> id then
@@ -163,7 +171,7 @@ let final_type_string s =
 let type_at_tok tk uri io =
   let line = PI.line_of_info tk in
   let col = PI.col_of_info tk in
-  if !debug then pr2_gen (line, col);
+  logger#debug "type_at_tok: %d, %d" line col;
   (* LSP is using 0-based lines and offset (column) *)
   let line = line - 1 in
 
@@ -171,19 +179,20 @@ let type_at_tok tk uri io =
     Client_request.TextDocumentHover
       (HoverParams.create
          ~textDocument:(TextDocumentIdentifier.create ~uri)
-         ~position:(Position.create ~line ~character:col))
+         ~position:(Position.create ~line ~character:col)
+         ())
   in
   let id = send_request req io in
   let res = read_response (id, req) io in
-  if !debug then pr2_gen res;
+  logger#info "%s" (Common.dump res);
   match res with
   | None ->
-      if !debug then pr2 (spf "NO TYPE INFO for %s" (PI.string_of_info tk));
+      logger#error "NO TYPE INFO for %s" (PI.string_of_info tk);
       None
   | Some { Hover.contents = x; _ } -> (
       match x with
       | `MarkupContent { MarkupContent.value = s; kind = _ } ->
-          if !debug then pr2_gen x;
+          logger#info "%s" (Common.dump x);
           let s = final_type_string s in
           let ty =
             try
@@ -192,10 +201,10 @@ let type_at_tok tk uri io =
               | G.T ty -> ty
               | _ -> raise Impossible
             with exn ->
-              pr2_gen ("Exn Parse_ml.type_of_string TODO", s);
+              logger#error "Exn Parse_ml.type_of_string TODO: %s" s;
               raise exn
           in
-          if !debug then pr2_gen ty;
+          (* logger#info "type = %s" (G.show_type_ ty); *)
           Some ty
       | _ -> failwith "not a `MarkedContent`")
 
@@ -208,10 +217,10 @@ let connect_server () =
    * run this program from the project you want to analyze *)
   let inc, outc = Unix.open_process server in
   let io = Io.make inc outc in
-  let req = init_request "file:///" in
+  let req = init_request (Uri.of_path "") in
   let id = send_request req io in
   let res = read_response (id, req) io in
-  if !debug then pr2_gen res;
+  logger#info "connect_server: %s" (Common.dump res);
   let notif = Client_notification.Initialized in
   send_notif notif io;
   io
@@ -219,12 +228,12 @@ let connect_server () =
 let rec get_type id =
   let tok = snd id in
   let file = PI.file_of_info tok in
-  let uri = "file://" ^ file in
+  let uri = Uri.of_path file in
   match !global with
-  | { io = Some io; last_uri } when last_uri = uri -> (
+  | { io = Some io; last_uri } when Uri.equal last_uri uri -> (
       try type_at_tok tok uri io with _exn -> None)
-  | { io = Some io; last_uri } when last_uri <> uri ->
-      (if last_uri <> "" then
+  | { io = Some io; last_uri } when not (Uri.equal last_uri uri) ->
+      (if not (Uri.equal last_uri (Uri.of_path "")) then
        let notif =
          Client_notification.TextDocumentDidClose
            (DidCloseTextDocumentParams.create
@@ -241,18 +250,19 @@ let rec get_type id =
       in
       send_notif notif io;
       global := { !global with last_uri = uri };
+      logger#info "TextDocumentDidOpen for uri %s" (Uri.to_string uri);
       (* try again *)
       get_type id
   | _ -> None
 
 let init () =
-  if !debug then pr2 "LSP INIT";
+  logger#info "init";
   let io = connect_server () in
-  global := { io = Some io; last_uri = "" };
+  global := { io = Some io; last_uri = Uri.of_path "" };
   Hooks.get_type := get_type;
   Hooks.exit
   |> Common.push (fun () ->
-         if !debug then pr2 "LSP CLOSING";
+         logger#info "closing";
          send_request Client_request.Shutdown io |> ignore;
          Io.close io);
   ()
