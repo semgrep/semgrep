@@ -2151,20 +2151,19 @@ and statement (env : env) (x : CST.statement) =
       let header = G.ForEach(v3, v5, v6)
       in
       G.For(v1, header, v9) |> G.s
-  | `Try_stmt (v1, v2, v3) ->
-    (* TODO: Make TSH more specific here! We can't have multiple finally's *)
+  | `Try_stmt (v1, v2, v3, v4) ->
       let v1 = (* "try" *) token env v1 in
       let v2 = compound_statement env v2 in
-      let v3 =
-        List.map (fun x ->
-          (match x with
-          | `Catch_clause x -> catch_clause env x
-          | `Fina_clause x -> todo env x (* Some(finally_clause env x) *)
-          )
-        ) v3
+      let v3 = List.map (catch_clause env) v3 in
+      let v4 =
+        (match v4 with
+        | `Catch_clause x -> let catch = [catch_clause env x] in
+            G.Try(v1, v2, v3 @ catch, None) |> G.s
+        | `Fina_clause x -> let finally = Some(finally_clause env x) in
+            G.Try(v1, v2, v3, finally) |> G.s
+        )
       in
-      todo env x
-      (* G.Try(v1, v2, v3, v4) |> G.s *)
+      v4
   | `Conc_stmt (v1, v2) ->
       let v1 = (* "concurrent" *) token env v1 in
       let v2 = compound_statement env v2 in
