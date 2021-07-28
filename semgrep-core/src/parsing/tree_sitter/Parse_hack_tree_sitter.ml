@@ -54,6 +54,8 @@ let empty_stmt env t =
   let t = token env t (* ";" *) in
   G.Block (t, [], t) |> G.s
 
+let todo_deprecation_stmt = G.Block (G.fake_bracket [])
+
 (* TODO: How can we avoid using this? *)
 let unwrap_qualified_identifier qual = (match qual with 
   | G.Id (ident, id_info) -> [ident]
@@ -77,6 +79,8 @@ let unwrap_qualified_identifier qual = (match qual with
 (* Q: How to handle traits and those other type things that aren't assigned? And `where` clause?
       Really just go through `TODO` and `Q` statements... *)
 (* Q: Importance of capturing sc and brackets? And impact of fakes? *)
+(* Q: Can items labeled Semgrep extension cases only be used by Semgrep? *)
+(* Q: Conditionally add .php extensions to hack scan with prefix? *)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -256,11 +260,13 @@ let xhp_category_declaration (env : env) ((v1, v2, v3, v4) : CST.xhp_category_de
       let v2 =
         (* pattern %[a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) token env v2
       in
-      todo env (v1, v2)
+      v2 (* todo env (v1, v2) *)
     ) v3
   in
   let v4 = (* ";" *) token env v4 in
-  todo env (v1, v2, v3, v4)
+  (* TODO: Do we care about pre-v3 support? Not doing for now.
+     THIS DOES NOTHING *)
+  todo_deprecation_stmt
 
 let qualified_identifier (env : env) (x : CST.qualified_identifier) : G.name =
   (match x with
@@ -449,11 +455,11 @@ let xhp_children_declaration (env : env) ((v1, v2, v3, v4) : CST.xhp_children_de
     List.map (fun (v1, v2) ->
       let v1 = (* "," *) token env v1 in
       let v2 = xhp_attribute_expression env v2 in
-      todo env (v1, v2)
+      v2 (* todo env (v1, v2) *)
     ) v3
   in
   let v4 = (* ";" *) token env v4 in
-  todo env (v1, v2, v3, v4)
+  todo_deprecation_stmt
 
 let keyword (env : env) (x : CST.keyword) =
   (match x with
@@ -1108,57 +1114,77 @@ and declaration (env : env) (x : CST.declaration) =
   | `Inte_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         (match v1 with
-        | Some x -> attribute_modifier env x
-        | None -> todo env ())
+        | Some x -> [attribute_modifier env x]
+        | None -> [])
       in
       let v2 = (* "interface" *) token env v2 in
       let v3 =
-        (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env v3
+        (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
       in
       let v4 =
         (match v4 with
-        | Some x -> type_parameters env x
-        | None -> todo env ())
+        | Some x -> Some(type_parameters env x)
+        | None -> None)
       in
       let v5 =
         (match v5 with
         | Some x -> extends_clause env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v6 =
         (match v6 with
-        | Some x -> where_clause env x
-        | None -> todo env ())
+        | Some x -> where_clause env x (* TODO *)
+        | None -> None)
       in
       let v7 = member_declarations env v7 in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+      let def : G.class_definition = {
+        ckind = (G.Interface, v2);
+        cextends = v5;
+        cimplements = [];
+        cmixins = [];
+        cparams = [];
+        cbody = v7;
+      } in
+      let attrs = v1
+      in
+      G.DefStmt (G.basic_entity v3 attrs, G.ClassDef def)
   | `Trait_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         (match v1 with
-        | Some x -> attribute_modifier env x
-        | None -> todo env ())
+        | Some x -> [attribute_modifier env x]
+        | None -> [])
       in
       let v2 = (* "trait" *) token env v2 in
       let v3 =
-        (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env v3
+        (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
       in
       let v4 =
         (match v4 with
-        | Some x -> type_parameters env x
-        | None -> todo env ())
+        | Some x -> Some(type_parameters env x)
+        | None -> None)
       in
       let v5 =
         (match v5 with
         | Some x -> implements_clause env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v6 =
         (match v6 with
         | Some x -> where_clause env x
-        | None -> todo env ())
+        | None -> None)
       in
       let v7 = member_declarations env v7 in
-      todo env (v1, v2, v3, v4, v5, v6, v7)
+      let def : G.class_definition = {
+        ckind = (G.Trait, v2);
+        cextends = [];
+        cimplements = v5;
+        cmixins = [];
+        cparams = [];
+        cbody = v7;
+      } in
+      let attrs = v1
+      in
+      G.DefStmt (G.basic_entity v3 attrs, G.ClassDef def)
   | `Alias_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 =
         (match v1 with
@@ -1661,9 +1687,9 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
       | `Requ_imples_clause x ->
           require_implements_clause env x
       | `Requ_extends_clause x -> require_extends_clause env x
-      | `Xhp_attr_decl x -> G.FieldStmt(xhp_attribute_declaration env x)
-      | `Xhp_chil_decl x -> xhp_children_declaration env x
-      | `Xhp_cate_decl x -> xhp_category_declaration env x
+      | `Xhp_attr_decl x -> G.FieldStmt(xhp_attribute_declaration env x |> G.s)
+      | `Xhp_chil_decl x -> G.FieldStmt(xhp_children_declaration env x |> G.s)
+      | `Xhp_cate_decl x -> G.FieldStmt(xhp_category_declaration env x |> G.s)
       )
     ) v2
   in
@@ -2167,7 +2193,8 @@ and statement (env : env) (x : CST.statement) =
   | `Conc_stmt (v1, v2) ->
       let v1 = (* "concurrent" *) token env v1 in
       let v2 = compound_statement env v2 in
-      todo env (v1, v2)
+      (* TODO: Add support? Find keyword? *)
+      G.OtherStmt(G.OS_Todo, [G.S(v2)]) |> G.s
   | `Using_stmt (v1, v2, v3) ->
       let v1 =
         (match v1 with
@@ -2437,7 +2464,8 @@ and type_const_declaration (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : C
   | None -> G.DefStmt(G.basic_entity v5 (v1 @ v2 @ v3), G.OtherDef(G.OD_Todo, [])) |> G.s
   )
 
-and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) =
+(* TODO: THIS SHOULD BE USED! ONLY DOING TO RESOLVE COMPILATION *)
+and _type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) =
   let v1 =
     (match v1 with
     | Some x -> attribute_modifier env x
@@ -2472,21 +2500,23 @@ and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) =
 
 and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
   let v1 = (* "<" *) token env v1 in
-  let v2 = type_parameter env v2 in
+  let v2 = v2 (* type_parameter env v2 *) in
   let v3 =
     List.map (fun (v1, v2) ->
       let v1 = (* "," *) token env v1 in
-      let v2 = type_parameter env v2 in
-      todo env (v1, v2)
+      let v2 = v2 (* type_parameter env v2 *) in
+      v2 (* todo env (v1, v2) *)
     ) v3
   in
   let v4 =
     (match v4 with
-    | Some tok -> (* "," *) token env tok
-    | None -> todo env ())
+    | Some tok -> (* "," *) Some(token env tok)
+    | None -> None)
   in
   let v5 = (* ">" *) token env v5 in
-  todo env (v1, v2, v3, v4, v5)
+  (* TODO: THIS IS JUST A PLACEHOLDER TO ALLOW RELAXED FAILING *)
+  [v1]
+  (* todo env (v1, v2, v3, v4, v5) *)
 
 and variablish (env : env) (x : CST.variablish) =
   (match x with
@@ -2540,6 +2570,7 @@ and variablish (env : env) (x : CST.variablish) =
   )
 
 and where_clause (env : env) ((v1, v2) : CST.where_clause) =
+(* TODO: What keyword is this? *)
   let v1 = (* "where" *) token env v1 in
   let v2 =
     List.map (fun (v1, v2) ->
@@ -2595,13 +2626,16 @@ and xhp_attribute_declaration (env : env) ((v1, v2, v3, v4) : CST.xhp_attribute_
     List.map (fun (v1, v2) ->
       let v1 = (* "," *) token env v1 in
       let v2 = xhp_class_attribute env v2 in
-      todo env (v1, v2)
+      v2
     ) v3
   in
+  let attrs = v2 :: v3 in
   let v4 = (* ";" *) token env v4 in
-  todo env (v1, v2, v3, v4)
+  (* Q: Better way to flatten? *)
+  G.Block(G.fake_bracket attrs)
 
 and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute) =
+  (* TODO: Is TSH too permissive here with the conditions? Could we really have opt name and field? *)
   let v1 =
     (match v1 with
     | `Choice_type_spec x -> type_ env x
@@ -2611,7 +2645,7 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
   let v2 =
     (match v2 with
     | Some tok ->
-        (* pattern [a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) token env tok
+        (* pattern [a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) str env tok
     | None -> todo env ())
   in
   let v3 =
@@ -2623,14 +2657,17 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
     | None -> todo env ())
   in
   let v4 =
+    (* TODO: Split off @ token in TSH? *)
     (match v4 with
     | Some x ->
         (match x with
-        | `ATre tok -> (* "@required" *) token env tok
-        | `ATla tok -> (* "@lateinit" *) token env tok
+        | `ATre tok -> (* "@required" *) [G.NamedAttr(_fk, Id (str env tok, G.empty_id_info()), G.fake_bracket [])]
+        | `ATla tok -> (* "@lateinit" *) [G.NamedAttr(_fk, Id (str env tok, G.empty_id_info()), G.fake_bracket [])]
         )
-    | None -> todo env ())
+    | None -> [])
   in
+  let ent = G.basic_entity v2 v4 in
+  let def = v2 in
   todo env (v1, v2, v3, v4)
 
 and xhp_expression (env : env) (x : CST.xhp_expression) : G.xml =
