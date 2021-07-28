@@ -4,6 +4,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
@@ -60,8 +61,42 @@ class Rule:
         else:
             self._mode = SEARCH_MODE
 
-        # if any(language == Language.REGEX for language in self._languages):
-        #     self._validate_none_language_rule()
+        if any(language == Language.REGEX for language in self._languages):
+            self._validate_none_language_rule()
+
+    def _validate_none_language_rule(self) -> None:
+        """
+        For regex-only rules, only patterns, pattern-either, and pattern-regex is valid.
+        """
+
+        def _recursive_contains(
+            obj: Union[Dict[str, Any], List[Any], str], search_key: str
+        ) -> bool:
+            """
+            Returns true if object contains any object that contains search_key as key
+            """
+            if isinstance(obj, dict):
+                for key in obj:
+                    if key == search_key:
+                        return True
+
+                    if _recursive_contains(obj[key], search_key):
+                        return True
+
+            if isinstance(obj, list):
+                for elem in obj:
+                    if _recursive_contains(elem, search_key):
+                        return True
+
+            return False
+
+        if _recursive_contains(self._raw, "pattern"):
+            raise InvalidRuleSchemaError(
+                short_msg=f"invalid pattern clause",
+                long_msg=f"invalid pattern clause 'pattern' with regex-only rules in rule: {self.id}",
+                spans=[],
+                help=f"use only patterns, pattern-either, pattern-regex, or pattern-not-regex with regex-only rules",
+            )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, type(self)):
