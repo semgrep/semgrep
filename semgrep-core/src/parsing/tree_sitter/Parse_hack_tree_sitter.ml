@@ -81,6 +81,7 @@ let unwrap_qualified_identifier qual = (match qual with
 (* Q: Importance of capturing sc and brackets? And impact of fakes? *)
 (* Q: Can items labeled Semgrep extension cases only be used by Semgrep? *)
 (* Q: Conditionally add .php extensions to hack scan with prefix? *)
+(* Q: How to add heredocs? What are they? *)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -420,9 +421,13 @@ let rec type_constant_ (env : env) ((v1, v2, v3) : CST.type_constant_) =
   in
   let v2 = (* "::" *) token env v2 in
   let v3 =
-    (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env v3
+    (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
   in
-  todo env (v1, v2, v3)
+  let qual = G.QDots(unwrap_qualified_identifier v1) in
+  G.IdQualified(
+    (v3, {name_qualifier = Some qual; name_typeargs = None;}),
+    G.empty_id_info()
+  )
 
 let trait_select_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.trait_select_clause) =
   let v1 = qualified_identifier env v1 in
@@ -1293,31 +1298,33 @@ and declaration (env : env) (x : CST.declaration) =
 and embedded_brace_expression (env : env) ((v1, v2) : CST.embedded_brace_expression) =
   let v1 = embedded_brace_expression_ env v1 in
   let v2 = (* "}" *) token env v2 in
-  todo env (v1, v2)
+  v1
 
 and embedded_brace_expression_ (env : env) (x : CST.embedded_brace_expression_) =
+  (* TODO: TSH ISSUE -> Can't get these to work even in TSH *)
   (match x with
   | `Tok_lcur_pat_0e8e4b6 tok ->
-      (* tok_lcurldollar_pat_0e8e4b6 *) token env tok
+      (* TODO: Will this have extra leading `{`? *)
+      (* tok_lcurldollar_pat_0e8e4b6 *) G.N(Id(str env tok, G.empty_id_info()))
   | `Embe_brace_call_exp (v1, v2) ->
       let v1 = embedded_brace_expression_ env v1 in
       let v2 = arguments env v2 in
-      todo env (v1, v2)
+      G.Call(v1, v2)
   | `Embe_brace_subs_exp (v1, v2, v3, v4) ->
       let v1 = embedded_brace_expression_ env v1 in
       let v2 = (* "[" *) token env v2 in
       let v3 =
         (match v3 with
         | Some x -> expression env x
-        | None -> todo env ())
+        | None -> todo env ()) (* TODO: Should match to other subscript *)
       in
       let v4 = (* "]" *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      G.ArrayAccess(v1, (v2, v3, v4))
   | `Embe_brace_sele_exp (v1, v2, v3) ->
       let v1 = embedded_brace_expression_ env v1 in
       let v2 = anon_choice_QMARKDASHGT_ce9cc19 env v2 in
       let v3 = variablish env v3 in
-      todo env (v1, v2, v3)
+      G.DotAccess(v1, v2, G.EDynamic v3)
   )
 
 and enumerator (env : env) ((v1, v2, v3, v4) : CST.enumerator) =
@@ -1333,18 +1340,19 @@ and expression (env : env) (x : CST.expression) : G.expr =
   (match x with
   | `Here (v1, v2, v3, v4) ->
       let v1 = (* "<<<" *) token env v1 in
-      let v2 = (* heredoc_start *) token env v2 in
+      let v2 = (* heredoc_start *) PI.combine_infos (token env v2) [v1] in
       let v3 =
         List.map (fun x ->
           (match x with
-          | `Here_body tok -> (* heredoc_body *) token env tok
-          | `Var tok -> (* variable *) token env tok
+          | `Here_body tok -> (* heredoc_body *) G.L(G.String(str env tok))
+          | `Var tok -> (* variable *) G.N(Id(str env tok, G.empty_id_info()))
           | `Embe_brace_exp x -> embedded_brace_expression env x
           )
         ) v3
       in
       let v4 = (* heredoc_end *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      (* Q: How to represent concated strings? This is NOT a tuple! *)
+      G.Tuple(v2, v3, v4)
   | `Array (v1, v2, v3, v4, v5) ->
       let collection = collection_type env v1 in
       let v2 =
@@ -1426,10 +1434,13 @@ and expression (env : env) (x : CST.expression) : G.expr =
         (match v3 with
         | Some x ->
             anon_choice_exp_rep_COMMA_choice_exp_opt_COMMA_e4364bb env x
-        | None -> todo env ())
+        | None -> [])
       in
       let v4 = (* "}" *) token env v4 in
-      todo env (v1, v2, v3, v4)
+      (* TODO: Include identifier *)
+      G.Container(Dict, (v2, v3, v4))
+      (* Q: Is this the correct way to handle? Is Expr, so can't use VarDef
+         But are we actually creating a var? *)
   | `Choice_str x -> G.L (literal env x)
   | `Choice_var x -> variablish env x
   | `Pref_str (v1, v2) ->
@@ -1456,14 +1467,16 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v3 = type_ env v3 in
       G.Call (G.IdSpecial (Op Is, v2), G.fake_bracket [ G.Arg v1; G.ArgType v3; ])
   | `As_exp x -> as_expression env x
-  | `Awai_exp (v1, v2) ->
+  | `Awai_exp (v1, v2) -> (* This is awaitable block, not just await keyword *)
+      (* Q: How to handle this and concurrent? *)
       let v1 = (* "async" *) token env v1 in
-      let v2 = compound_statement env v2 in
-      todo env (v1, v2)
+      let v2 = G.OtherExpr(OE_StmtExpr, [G.S(compound_statement env v2)]) in
+      (* TODO: This can't possibly be right *)
+       G.OtherExpr(OE_StmtExpr, [G.S(G.OtherStmt(OS_Async, [G.E v2]) |> G.s)])
   | `Yield_exp (v1, v2) ->
       let v1 = (* "yield" *) token env v1 in
       let v2 = anon_choice_exp_1701d0a env v2 in
-      todo env (v1, v2)
+      G.Yield(v1, Some(v2), true); (* Q: What is this? *)
   | `Cast_exp (v1, v2, v3, v4) ->
       let v1 = (* "(" *) token env v1 in
       let v2 =
@@ -1484,7 +1497,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v3 = expression env v3 in
       let v4 = (* ":" *) token env v4 in
       let v5 = expression env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      G.Conditional(v1, v3, v5)
   | `Lambda_exp (v1, v2, v3, v4, v5) ->
       let v1 =
         (match v1 with
@@ -1541,8 +1554,10 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v4 = arguments env v4 in
       (* Q: Is the IdSpecial token the `new` or identifier? *)
       (* TODO: HIGH PRIORITY: THIS IS SO WRONG? Call within a call? *)
+      (* What about AnonClass? *)
       G.Call(G.IdSpecial(New, v1), G.fake_bracket [G.Arg (G.Call(v2, v4))])
   | `Incl_exp (v1, v2) ->
+  (* Q: See question below in Requ *)
       let v1 =
         (match v1 with
         | `Incl tok -> (* "include" *) token env tok
@@ -1550,8 +1565,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
         )
       in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      G.OtherExpr(G.OE_Require, [G.Tk(v1); G.E(v2)];)
   | `Requ_exp (v1, v2) ->
+  (* Q: What makes this an expression and not a directive statement? *)
       let v1 =
         (match v1 with
         | `Requ tok -> (* "require" *) token env tok
@@ -1559,7 +1575,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
         )
       in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      G.OtherExpr(G.OE_Require, [G.Tk(v1); G.E(v2)];)
   | `Anon_func_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 =
         (match v1 with
@@ -1817,21 +1833,26 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
       let v2 = expression env v2 in
       G.Call (G.IdSpecial (IncrDecr (Decr, Prefix), v1), G.fake_bracket [ G.Arg v2 ])
   | `Print_exp (v1, v2) ->
-      let v1 = (* "print" *) token env v1 in
+      let v1 = (* "print" *) str env v1 in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      let id = G.N(G.Id ((v1), G.empty_id_info())) in
+      (* Q: Is this the right way to handle? Same for clone *)
+      G.Call (id, G.fake_bracket [ G.Arg v2 ])
   | `Clone_exp (v1, v2) ->
-      let v1 = (* "clone" *) token env v1 in
+      let v1 = (* "clone" *) str env v1 in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      let id = G.N(G.Id ((v1), G.empty_id_info())) in
+      G.Call (id, G.fake_bracket [ G.Arg v2 ])
   | `Await_exp (v1, v2) ->
       let v1 = (* "await" *) token env v1 in
       let v2 = expression env v2 in
       Await(v1, v2)
   | `AT_exp (v1, v2) ->
+  (* Silences errors *)
       let v1 = (* "@" *) token env v1 in
       let v2 = expression env v2 in
-      todo env (v1, v2)
+      (* TODO: Is this good? *)
+      G.OtherExpr(OE_Todo, [G.Tk v1; G.E v2;])
   )
 
 and property_declaration (env : env) ((v1, v2, v3, v4, v5, v6) : CST.property_declaration) =
@@ -2197,30 +2218,33 @@ and statement (env : env) (x : CST.statement) =
       G.OtherStmt(G.OS_Todo, [G.S(v2)]) |> G.s
   | `Using_stmt (v1, v2, v3) ->
       let v1 =
+      (* Q: Where to apply await? *)
         (match v1 with
-        | Some tok -> (* "await" *) token env tok
-        | None -> todo env ())
+        | Some tok -> (* "await" *) Some(token env tok)
+        | None -> None)
       in
-      let v2 = (* "using" *) token env v2 in
+      let using_stmt = (* "using" *) token env v2 in
       let v3 =
         (match v3 with
-        | `Exp_stmt x -> expression_statement env x
+        (* Q: Last stmt is optional. How to represent? *)
+        | `Exp_stmt x -> G.WithUsingResource(using_stmt, expression_statement env x |> G.s, G.Block (G.fake_bracket []) |> G.s)
         | `LPAR_exp_rep_COMMA_exp_RPAR_choice_comp_stmt (v1, v2, v3, v4, v5) ->
             let v1 = (* "(" *) token env v1 in
-            let v2 = expression env v2 in
+            let v2 = G.ExprStmt(expression env v2, _fk) |> G.s in
             let v3 =
               List.map (fun (v1, v2) ->
                 let v1 = (* "," *) token env v1 in
-                let v2 = expression env v2 in
-                todo env (v1, v2)
+                let v2 = G.ExprStmt(expression env v2, _fk) |> G.s in
+                v2
               ) v3
             in
             let v4 = (* ")" *) token env v4 in
+            let exprs = G.Block(v1, v2 :: v3, v4) |> G.s in
             let v5 = anon_choice_comp_stmt_c6c6bb4 env v5 in
-            todo env (v1, v2, v3, v4, v5)
+            G.WithUsingResource(using_stmt, exprs, v5 )
         )
       in
-      todo env (v1, v2, v3)
+      v3 |> G.s
   )
 
 and switch_case (env : env) ((v1, v2, v3, v4) : CST.switch_case) =
@@ -2295,9 +2319,10 @@ and type_ (env : env) (x : CST.type_) : G.type_=
       in
       v2
   | `Type_cst (v1, v2) ->
+      (* TODO: What to do with modifier? *)
       let v1 = List.map (type_modifier env) v1 in
       let v2 = type_constant_ env v2 in
-      todo env (v1, v2)
+      G.TyN(v2)
   | `Shape_type_spec (v1, v2, v3, v4, v5) ->
       let v1 = List.map (type_modifier env) v1 in
       let v2 = (* "shape" *) token env v2 in
@@ -2646,7 +2671,8 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
     (match v2 with
     | Some tok ->
         (* pattern [a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) str env tok
-    | None -> todo env ())
+    (* TODO: Fix in t-s-h *)
+    | None -> raise Impossible)
   in
   let v3 =
     (match v3 with
@@ -2667,8 +2693,9 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
     | None -> [])
   in
   let ent = G.basic_entity v2 v4 in
-  let def = v2 in
-  todo env (v1, v2, v3, v4)
+  (* TODO: NOT DONE! SHOULD THIS BE VARDEF? CONTAINER? RECORD? *)
+  let def = ent, G.VarDef({vinit = None; vtype = None;}) in
+  G.DefStmt(def) |> G.s
 
 and xhp_expression (env : env) (x : CST.xhp_expression) : G.xml =
   (match x with
