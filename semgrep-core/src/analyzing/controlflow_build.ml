@@ -15,7 +15,7 @@
  *)
 open Common
 open AST_generic
-module Ast = AST_generic
+module G = AST_generic
 module F = Controlflow
 module H = AST_generic_helpers
 
@@ -161,7 +161,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
         *             |--|---------------------------------|
         *                |-> newfakelse -> <rest>
         *)
-         let node = F.WhileHeader (Ast.unparen e) in
+         let node = F.WhileHeader (G.unparen e) in
 
          let newi = state.g#add_node { F.n = node; i=i() } in
          state.g |> add_arc_opt (previ, newi);
@@ -185,7 +185,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
         *                  |--------|----------------------------------------|
         *                           |-> newfakelse -> <rest>
         *)
-         let exprs = Ast.uncomma e1 in
+         let exprs = G.uncomma e1 in
          let e1i = List.fold_left (cfg_expr state F.SpecialMaybeUnused)
            previ exprs in
 
@@ -193,7 +193,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
          let newi = state.g#add_node { F.n = node; i=i() } in
          state.g |> add_arc_opt (e1i, newi);
 
-         let exprs = Ast.uncomma e2 in
+         let exprs = G.uncomma e2 in
          let e2i = List.fold_left (cfg_expr state F.Normal)
            (Some newi) exprs in
 
@@ -211,7 +211,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
          in
          let finalthen = cfg_colon_stmt state (Some newfakethen) colon_stmt in
 
-         let exprs = Ast.uncomma e5 in
+         let exprs = G.uncomma e5 in
          let e5i = List.fold_left (cfg_expr state F.Normal) finalthen exprs in
 
          state.g |> add_arc_opt (e5i, newi);
@@ -381,9 +381,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
           |> List.exists (function
                | CasesAndBody (cases, _body) ->
                    cases
-                   |> List.exists (function
-                        | Ast.Default _ -> true
-                        | _ -> false)
+                   |> List.exists (function G.Default _ -> true | _ -> false)
                | CaseEllipsis _ -> raise Impossible))
       then state.g |> add_arc (newi, endi);
       (* let's process all cases *)
@@ -543,7 +541,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
       cfg_simple_node state previ (exprstmt (H.vardef_to_assign (ent, def)))
   (* just to factorize code, a nested func is really like a lambda *)
   | DefStmt (ent, FuncDef def) ->
-      let resolved = Some (Local, Ast.sid_TODO) in
+      let resolved = Some (Local, G.sid_TODO) in
       cfg_simple_node state previ
         (exprstmt (H.funcdef_to_lambda (ent, def) resolved))
   (* TODO: we should process lambdas! and generate an arc to its
@@ -582,7 +580,7 @@ and (cfg_cases :
       F.nodei * F.nodei ->
       state ->
       F.nodei option ->
-      Ast.case_and_body list ->
+      G.case_and_body list ->
       F.nodei option) =
  fun (switchi, endswitchi) state previ cases ->
   let state = { state with ctx = SwitchCtx endswitchi :: state.ctx } in
@@ -620,7 +618,7 @@ and (cfg_cases :
  * of the previous catch node), process the catch body, and return
  * a new False Node.
  *)
-and (cfg_catches : state -> F.nodei -> F.nodei -> Ast.catch list -> F.nodei) =
+and (cfg_catches : state -> F.nodei -> F.nodei -> G.catch list -> F.nodei) =
  fun state previ tryendi catches ->
   catches
   |> List.fold_left

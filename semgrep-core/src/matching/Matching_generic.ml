@@ -16,11 +16,10 @@
  *)
 (*e: pad/r2c copyright *)
 open Common
-module A = AST_generic
 module B = AST_generic
+module G = AST_generic
 module MV = Metavariable
 module H = AST_generic_helpers
-module AST = AST_generic
 module Flag = Flag_semgrep
 module Env = Metavariable_capture
 module PI = Parse_info
@@ -241,23 +240,23 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
      * TODO: relax even more and allow some id_resolved EnclosedVar (a field)
      * to match anything?
      *)
-    | ( MV.Id ((s1, _), Some { AST.id_resolved = { contents = None }; _ }),
+    | ( MV.Id ((s1, _), Some { G.id_resolved = { contents = None }; _ }),
         MV.Id ((s2, _), _) )
     | ( MV.Id ((s1, _), _),
-        MV.Id ((s2, _), Some { AST.id_resolved = { contents = None }; _ }) ) ->
+        MV.Id ((s2, _), Some { G.id_resolved = { contents = None }; _ }) ) ->
         s1 = s2
     (* A variable occurrence that is known to have a constant value is equal to
      * that same constant value.
      *
      * THINK: We could also equal two different variable occurrences that happen
      * to have the same constant value. *)
-    | ( MV.E (A.L a_lit),
+    | ( MV.E (G.L a_lit),
         MV.Id (_, Some { B.id_constness = { contents = Some (B.Lit b_lit) }; _ })
       )
-    | ( MV.Id (_, Some { A.id_constness = { contents = Some (A.Lit a_lit) }; _ }),
+    | ( MV.Id (_, Some { G.id_constness = { contents = Some (G.Lit a_lit) }; _ }),
         MV.E (B.L b_lit) )
       when config.constant_propagation ->
-        A.equal_literal a_lit b_lit
+        G.equal_literal a_lit b_lit
     (* general case, equality modulo-position-and-constness.
      * TODO: in theory we should use user-defined equivalence to allow
      * equality modulo-equivalence rewriting!
@@ -289,12 +288,12 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
          * - id_constness (see the special @equal for id_constness)
          *)
         MV.Structural.equal_mvalue a b
-    | MV.Id _, MV.E (A.N (A.Id (b_id, b_id_info))) ->
+    | MV.Id _, MV.E (G.N (G.Id (b_id, b_id_info))) ->
         (* TODO still needed now that we have the better MV.Id of id_info? *)
         (* TOFIX: regression if remove this code *)
         (* Allow identifier nodes to match pure identifier expressions *)
 
-        (* You should prefer to add metavar as expression (A.E), not id (A.I),
+        (* You should prefer to add metavar as expression (G.E), not id (G.I),
          * (see Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr)
          * but in some cases you have no choice and you need to match an expression
          * metavar with an id metavar.
@@ -335,7 +334,7 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
 (*e: function [[Matching_generic.check_and_add_metavar_binding]] *)
 
 (*s: function [[Matching_generic.envf]] *)
-let (envf : MV.mvar AST.wrap -> MV.mvalue -> tin -> tout) =
+let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
  fun (mvar, _imvar) any tin ->
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
@@ -367,7 +366,7 @@ let empty_environment opt_cache config =
 let has_ellipsis_stmts xs =
   xs
   |> List.exists (fun st ->
-         match st.A.s with A.ExprStmt (A.Ellipsis _, _) -> true | _ -> false)
+         match st.G.s with G.ExprStmt (G.Ellipsis _, _) -> true | _ -> false)
 
 (*e: function [[Matching_generic.has_ellipsis_stmts]] *)
 
@@ -497,7 +496,7 @@ let m_option_ellipsis_ok f a b =
   match (a, b) with
   | None, None -> return ()
   (* dots: ... can match 0 or 1 expression *)
-  | Some (A.Ellipsis _), None -> return ()
+  | Some (G.Ellipsis _), None -> return ()
   | Some xa, Some xb -> f xa xb
   | None, _ | Some _, _ -> fail ()
 

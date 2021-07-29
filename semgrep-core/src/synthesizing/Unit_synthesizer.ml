@@ -1,7 +1,7 @@
 (*s: semgrep/matching/Unit_matcher.ml *)
 open Common
 open OUnit
-module A = AST_generic
+module G = AST_generic
 module PPG = Pretty_print_generic
 
 (*****************************************************************************)
@@ -205,7 +205,7 @@ let unittest =
                     | Some any ->
                         let code =
                           match (pattern, any) with
-                          | A.E _, A.S { A.s = A.ExprStmt (e, _); _ } -> A.E e
+                          | G.E _, G.S { G.s = G.ExprStmt (e, _); _ } -> G.E e
                           | _, x -> x
                         in
                         let matches_with_env =
