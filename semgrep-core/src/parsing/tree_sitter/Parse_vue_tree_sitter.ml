@@ -103,7 +103,7 @@ let map_directive_modifiers (env : env) (xs : CST.directive_modifiers) =
     xs
 
 let map_anon_choice_attr_value_5986531 (env : env)
-    (x : CST.anon_choice_attr_value_5986531) : xml_attr_value =
+    (x : CST.anon_choice_attr_value_5986531) : a_xml_attr_value =
   match x with
   | `Attr_value tok ->
       let x = str env tok (* pattern "[^<>\"'=\\s]+" *) in

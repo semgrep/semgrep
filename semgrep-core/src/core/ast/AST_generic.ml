@@ -735,7 +735,7 @@ and xml_kind =
 
 (*s: type [[AST_generic.xml_attribute]] *)
 and xml_attribute =
-  | XmlAttr of ident * tok (* = *) * xml_attr_value
+  | XmlAttr of ident * tok (* = *) * a_xml_attr_value
   (* less: XmlAttrNoValue of ident. <foo a /> <=> <foo a=true /> *)
   (* jsx: usually a Spread operation, e.g., <foo {...bar} /> *)
   | XmlAttrExpr of expr bracket
@@ -744,7 +744,7 @@ and xml_attribute =
 
 (*e: type [[AST_generic.xml_attribute]] *)
 (* either a String or a bracketed expr, but right now we just use expr *)
-and xml_attr_value = expr
+and a_xml_attr_value = expr
 
 (*s: type [[AST_generic.xml_body]] *)
 and xml_body =

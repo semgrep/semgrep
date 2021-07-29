@@ -26,6 +26,18 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
+(* LSP client to extract type information for Semgrep (via semgrep -lsp).
+ *
+ * This currently only works for ocaml-lsp-server.
+ *
+ * If ocamllsp does not return the right information, you can debug things
+ * by compiling ocaml-lsp from source and modifying the code to display
+ * more debug information (it would be great if ocamllsp had a -verbose flag).
+ * Clone the ocaml-lsp repo, and then modify
+ * ocaml-lsp-server/src/vendor/../logger.ml with
+ *   let destination = ref (Some stderr)
+ * and use this server (target 2 below in the server global).
+ *)
 
 (*****************************************************************************)
 (* Types and globals *)
@@ -39,10 +51,13 @@ let global = ref { io = None; last_uri = Uri.of_path "" }
 (*****************************************************************************)
 
 let server =
-  match 0 with
+  match 2 with
   | 0 -> "ocamllsp"
   | 1 -> "/home/pad/.opam/4.12.0/bin/ocamllsp"
-  | 2 -> "/home/pad/go/bin/go-langserver"
+  (* when instrumenting ocamllsp to debug things server-side *)
+  | 2 ->
+      "/home/pad/work/lang-ocaml/ocaml-lsp/_build/default/ocaml-lsp-server/src/main.exe"
+  | 10 -> "/home/pad/go/bin/go-langserver"
   | _ -> raise Impossible
 
 (*****************************************************************************)
@@ -228,7 +243,13 @@ let connect_server () =
 let rec get_type id =
   let tok = snd id in
   let file = PI.file_of_info tok in
-  let uri = Uri.of_path file in
+  (* bugfix: ocamllsp use URIs to designate files, but it's impossible
+   * to use relative paths in URIs, so you need to use the absolute path,
+   * otherwise ocamlmerlin code (used internally by ocamllsp) will not
+   * find the .cmt corresponding to the file.
+   *)
+  let fullpath = Common.fullpath file in
+  let uri = Uri.of_path fullpath in
   match !global with
   | { io = Some io; last_uri } when Uri.equal last_uri uri -> (
       try type_at_tok tok uri io with _exn -> None)
@@ -245,7 +266,8 @@ let rec get_type id =
         Client_notification.TextDocumentDidOpen
           (DidOpenTextDocumentParams.create
              ~textDocument:
-               (TextDocumentItem.create ~uri ~text:(Common.read_file file)
+               (TextDocumentItem.create ~uri
+                  ~text:(Common.read_file fullpath)
                   ~version:1 ~languageId:"ocaml"))
       in
       send_notif notif io;
