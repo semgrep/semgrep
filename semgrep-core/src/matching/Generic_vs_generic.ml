@@ -274,7 +274,7 @@ let m_module_name_prefix a b =
   | G.FileName a, B.FileName b ->
       m_string_ellipsis_or_metavar_or_default
       (* TODO figure out what prefix support means here *)
-        ~m_string_for_default:m_string_prefix a b
+        ~m_string_for_default:m_filepath_prefix a b
   | G.DottedName a1, B.DottedName b1 -> m_dotted_name_prefix_ok a1 b1
   | G.FileName _, _ | G.DottedName _, _ -> fail ()
 
