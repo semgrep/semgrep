@@ -45,6 +45,8 @@ RULEID = "ruleid"
 TODOOK = "todook"
 OK = "ok"
 
+EXIT_FAILURE = 1
+
 
 def _remove_ending_comments(rule: str) -> str:
     for _, end in COMMENT_SYNTAXES:
@@ -187,23 +189,34 @@ def score_output_json(
                 continue
 
     for result in json_out["results"]:
-        reported_lines[str(Path(result["path"]).resolve())][result["check_id"]].append(
-            int(result["start"]["line"])
-        )
+        path = str(Path(result["path"]).resolve())
+        check_id = result["check_id"]
+        start_line = int(result["start"]["line"])
+        reported_lines[path][check_id].append(start_line)
 
-    reported_ids = {result["check_id"] for result in json_out["results"]}
-    test_ids = {
-        check_id for _, ruleid in ruleid_lines.items() for check_id in ruleid.keys()
-    }
-    test_ids |= {check_id for _, ok in ok_lines.items() for check_id in ok.keys()}
-    if reported_ids and test_ids.symmetric_difference(reported_ids):
-        raise Exception(
-            f"found mismatch between test and result ids - test={test_ids} result={reported_ids}"
-        )
+    test_lines: Dict[str, Set] = collections.defaultdict(set)
+    for lines in [ruleid_lines, ok_lines]:
+        for file_path, test_annotations in lines.items():
+            test_lines[file_path].update(test_annotations.keys())
+
+    rule_id_mismatch = False
+    if reported_lines:
+        for file_path, test_ids in test_lines.items():
+            reported_ids = set(reported_lines[file_path].keys())
+            if test_ids.symmetric_difference(reported_ids):
+                logger.error(
+                    f"found rule id mismatch - file={file_path} results={reported_ids} expected={test_ids}"
+                )
+                rule_id_mismatch = True
+
+    if rule_id_mismatch:
+        logger.error("failing due to rule id mismatch")
+        sys.exit(EXIT_FAILURE)
 
     def join_keys(a: Dict[str, Any], b: Dict[str, Any]) -> Set[str]:
         return set(a.keys()).union(set(b.keys()))
 
+    false_positive_lines = False
     for file_path in join_keys(ruleid_lines, reported_lines):
         for check_id in join_keys(ruleid_lines[file_path], reported_lines[file_path]):
             all_reported = set(reported_lines[file_path][check_id])
@@ -213,9 +226,10 @@ def score_output_json(
 
             reported_oked_lines = oked.intersection(all_reported)
             if reported_oked_lines:
-                raise Exception(
-                    f"found results on ok'ed lines - lines={reported_oked_lines} path={file_path}"
+                logger.error(
+                    f"found false positives on ok'ed lines - file={file_path} fps={reported_oked_lines}"
                 )
+                false_positive_lines = True
 
             reported = all_reported - todo_oked
 
@@ -228,6 +242,10 @@ def score_output_json(
             score_by_checkid[check_id] = [
                 old_cm[i] + new_cm[i] for i in range(len(new_cm))
             ]
+
+    if false_positive_lines:
+        logger.error("failing due to false positives")
+        sys.exit(EXIT_FAILURE)
 
     return (score_by_checkid, matches_by_check_id, num_todo)
 
