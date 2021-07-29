@@ -15,7 +15,7 @@
  *)
 
 open AST_generic
-module A = AST_generic
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -163,32 +163,32 @@ let short_string_of_node node = short_string_of_node_kind node.n
 (*****************************************************************************)
 let simple_node_of_stmt_opt stmt =
   match stmt.s with
-  | A.ExprStmt (e, _) -> Some (ExprStmt e)
-  | A.Assert (t, e1, e2, _sc) -> Some (Assert (t, e1, e2))
-  | A.DefStmt x -> Some (DefStmt x)
-  | A.DirectiveStmt x -> Some (DirectiveStmt x)
-  | A.OtherStmt (a, b) -> Some (OtherStmt (a, b))
-  | A.Block _
-  | A.If (_, _, _, _)
-  | A.While (_, _, _)
-  | A.DoWhile (_, _, _)
-  | A.For (_, _, _)
-  | A.Switch (_, _, _)
-  | A.Return _ | A.Continue _ | A.Break _
-  | A.Label (_, _)
-  | A.Goto _ | A.Throw _
-  | A.Try (_, _, _, _)
-  | A.WithUsingResource (_, _, _)
-  | A.OtherStmtWithStmt _ | A.DisjStmt _ ->
+  | G.ExprStmt (e, _) -> Some (ExprStmt e)
+  | G.Assert (t, e1, e2, _sc) -> Some (Assert (t, e1, e2))
+  | G.DefStmt x -> Some (DefStmt x)
+  | G.DirectiveStmt x -> Some (DirectiveStmt x)
+  | G.OtherStmt (a, b) -> Some (OtherStmt (a, b))
+  | G.Block _
+  | G.If (_, _, _, _)
+  | G.While (_, _, _)
+  | G.DoWhile (_, _, _)
+  | G.For (_, _, _)
+  | G.Switch (_, _, _)
+  | G.Return _ | G.Continue _ | G.Break _
+  | G.Label (_, _)
+  | G.Goto _ | G.Throw _
+  | G.Try (_, _, _, _)
+  | G.WithUsingResource (_, _, _)
+  | G.OtherStmtWithStmt _ | G.DisjStmt _ ->
       None
 
 let any_of_simple_node = function
-  | ExprStmt e -> A.S (A.ExprStmt (e, A.sc) |> A.s)
-  | Assert (t, e1, e2) -> A.S (A.Assert (t, e1, e2, A.sc) |> A.s)
-  | DefStmt x -> A.S (A.DefStmt x |> A.s)
-  | DirectiveStmt x -> A.S (A.DirectiveStmt x |> A.s)
-  | OtherStmt (a, b) -> A.S (A.OtherStmt (a, b) |> A.s)
-  | Parameter x -> A.Pa x
+  | ExprStmt e -> G.S (G.ExprStmt (e, G.sc) |> G.s)
+  | Assert (t, e1, e2) -> G.S (G.Assert (t, e1, e2, G.sc) |> G.s)
+  | DefStmt x -> G.S (G.DefStmt x |> G.s)
+  | DirectiveStmt x -> G.S (G.DirectiveStmt x |> G.s)
+  | OtherStmt (a, b) -> G.S (G.OtherStmt (a, b) |> G.s)
+  | Parameter x -> G.Pa x
 
 (*****************************************************************************)
 (* Accessors *)

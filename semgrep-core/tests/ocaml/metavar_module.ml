@@ -1,5 +1,5 @@
 (* ERROR: match *)
-module A = AST_generic
+module G = AST_generic
 (* ERROR: match *)
 module B = AST_generic
 
