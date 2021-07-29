@@ -14,7 +14,7 @@
  *)
 open Common
 open IL
-module AST = AST_generic
+module G = AST_generic
 module V = Visitor_AST
 module D = Datalog_fact
 
@@ -76,16 +76,16 @@ let dump_il file =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let s = AST_generic.show_any (AST.S def.AST.fbody) in
+            let s = AST_generic.show_any (G.S def.G.fbody) in
             pr2 s;
             pr2 "==>";
 
-            let xs = AST_to_IL.stmt def.AST.fbody in
+            let xs = AST_to_IL.stmt def.G.fbody in
             let s = IL.show_any (IL.Ss xs) in
             pr2 s);
       }
   in
-  v (AST.Pr ast)
+  v (G.Pr ast)
   [@@action]
 
 (*****************************************************************************)
@@ -111,8 +111,7 @@ let instr env x =
   match x.i with
   | Assign (lval, e) -> (
       match (lval, e.e) with
-      | { base = Var n; offset = NoOffset; constness = _ }, Literal (AST.Int s)
-        ->
+      | { base = Var n; offset = NoOffset; constness = _ }, Literal (G.Int s) ->
           let v = var_of_name env n in
           let h = heap_of_int env s in
           add env (D.PointTo (v, h))
@@ -122,7 +121,7 @@ let instr env x =
 let stmt env x = match x.IL.s with Instr x -> instr env x | _ -> todo (S x)
 
 let facts_of_function def =
-  let xs = AST_to_IL.stmt def.AST.fbody in
+  let xs = AST_to_IL.stmt def.G.fbody in
   let env = { facts = ref [] } in
 
   xs |> List.iter (stmt env);
@@ -149,7 +148,7 @@ let gen_facts file outdir =
           (fun (_k, _) def -> Common.push (facts_of_function def) facts);
       }
   in
-  v (AST.Pr ast);
+  v (G.Pr ast);
 
   let facts = !facts |> List.rev |> List.flatten in
   pr2 (spf "generating %d facts in %s" (List.length facts) outdir);

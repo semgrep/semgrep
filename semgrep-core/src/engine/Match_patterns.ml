@@ -16,7 +16,6 @@
  *)
 open AST_generic
 module V = Visitor_AST
-module AST = AST_generic
 module Err = Error_code
 module PI = Parse_info
 module R = Mini_rule (* TODO: rename to MR *)

@@ -13,7 +13,6 @@
  *)
 open Common
 module CST = Tree_sitter_kotlin.CST
-module AST = AST_generic
 module H = Parse_tree_sitter_helpers
 module PI = Parse_info
 open AST_generic
@@ -1291,7 +1290,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
         | v1, None -> PatId (v1, empty_id_info ())
       in
       let header = ForEach (params, v5, v6) in
-      For (v1, header, v8) |> AST.s
+      For (v1, header, v8) |> G.s
   | `While_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "while" *) in
       let _v2 = token env v2 (* "(" *) in
@@ -1302,7 +1301,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
         | `SEMI _tok -> empty_fbody
         | `Cont_stru_body x -> control_structure_body env x
       in
-      While (v1, v3, v5) |> AST.s
+      While (v1, v3, v5) |> G.s
   | `Do_while_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "do" *) in
       let v2 =
@@ -1314,7 +1313,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
       let _v4 = token env v4 (* "(" *) in
       let v5 = expression env v5 in
       let _v6 = token env v6 (* ")" *) in
-      DoWhile (v1, v2, v5) |> AST.s
+      DoWhile (v1, v2, v5) |> G.s
 
 and modifiers (env : env) (x : CST.modifiers) : attribute list =
   match x with
@@ -1581,7 +1580,7 @@ and statement (env : env) (x : CST.statement) : stmt =
   match x with
   | `Decl x ->
       let dec = declaration env x in
-      DefStmt dec |> AST.s
+      DefStmt dec |> G.s
   | `Rep_choice_label_choice_assign (_v1, v2) ->
       (*let v1 =
         List.map (fun x ->
@@ -2032,7 +2031,7 @@ let parse file =
 
       try
         match source_file env cst with
-        | AST.Pr xs -> xs
+        | G.Pr xs -> xs
         | _ -> failwith "not a program"
       with Failure "not implemented" as exn ->
         let s = Printexc.get_backtrace () in
@@ -2061,6 +2060,6 @@ let parse_pattern str =
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
       match source_file env cst with
-      | AST.Pr [ x ] -> AST.S x
-      | AST.Pr xs -> AST.Ss xs
+      | G.Pr [ x ] -> G.S x
+      | G.Pr xs -> G.Ss xs
       | x -> x)
