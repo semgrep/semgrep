@@ -1404,15 +1404,16 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | None -> []
       in
       let v5 = token env v5 (* "}" *) in
-      MatchPattern (v1, v4)
+      let st = Match (v2, v1, v4) |> G.s in
+      G.stmt_to_expr st
   | `This_exp tok ->
       let t = token env tok (* "this" *) in
       IdSpecial (This, t)
   | `Throw_exp (v1, v2) ->
       let v1 = token env v1 (* "throw" *) in
       let v2 = expression env v2 in
-      let throw = Throw (v1, v2, sc) in
-      OtherExpr (OE_StmtExpr, [ G.S (G.s throw) ])
+      let throw = Throw (v1, v2, sc) |> G.s in
+      G.stmt_to_expr throw
   | `Tuple_exp x -> tuple_expression env x
   | `Type_of_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "typeof" *) in
@@ -2271,7 +2272,8 @@ and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) =
   | Some t ->
       let ent = basic_entity v2 [] in
       let vardef = { vinit = None; vtype = Some t } in
-      OtherExpr (OE_StmtExpr, [ S (s (DefStmt (ent, VarDef vardef))) ])
+      let st = DefStmt (ent, VarDef vardef) |> G.s in
+      G.stmt_to_expr st
   | None -> N (Id (v2, empty_id_info ()))
 
 and interpolation (env : env) ((v1, v2, v3, v4, v5) : CST.interpolation) :

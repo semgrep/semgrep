@@ -460,7 +460,6 @@ and expr =
    * wrap those stmts inside an OE_StmtExpr though.
    *)
   | Conditional of expr * expr * expr
-  | MatchPattern of expr * action list
   | Yield of tok * expr option * bool (* 'from' for Python *)
   | Await of tok * expr
   (* Send/Recv of Go are currently in OtherExpr *)
@@ -710,9 +709,6 @@ and concat_string_kind =
 (*e: type [[AST_generic.field_ident]] *)
 
 (*s: type [[AST_generic.action]] *)
-(* newscope: newvar: *)
-and action = pattern * expr
-
 (*e: type [[AST_generic.action]] *)
 
 (*s: type [[AST_generic.xml]] *)
@@ -915,6 +911,10 @@ and stmt_kind =
       tok (* 'switch' or also 'select' in Go *)
       * expr option
       * case_and_body list
+  (* todo: merge with Switch.
+   * In Scala and C# the match is infix (after the expr)
+   *)
+  | Match of tok * expr * action list
   | Continue of tok * label_ident * sc
   | Break of tok * label_ident * sc
   (* todo? remove stmt argument? more symetric to Goto *)
@@ -973,6 +973,10 @@ and case =
   | CaseEqualExpr of tok * expr
 
 (*e: type [[AST_generic.case]] *)
+
+(* todo: merge with case at some point *)
+(* newscope: newvar: *)
+and action = pattern * expr
 
 (* newvar: newscope: usually a PatVar *)
 (*s: type [[AST_generic.catch]] *)
@@ -1994,6 +1998,16 @@ let unhandled_keywordattr (s, t) =
   NamedAttr (t, Id ((s, t), empty_id_info ()), fake_bracket [])
 
 let exprstmt e = s (ExprStmt (e, sc))
+
+(* The dual of exprstmt.
+ * This is mostly used for languages where the division
+ * between stmt and expr is fuzzy or nonexistent (e.g., OCaml, Scala)
+ * and where things like While, Match are expressions, but in the
+ * generic AST they are statements.
+ * See also AST_generic_helpers with expr_to_pattern, expr_to_type,
+ * pattern_to_expr, etc.
+ *)
+let stmt_to_expr st = OtherExpr (OE_StmtExpr, [ S st ])
 
 let fieldEllipsis t = FieldStmt (exprstmt (Ellipsis t))
 

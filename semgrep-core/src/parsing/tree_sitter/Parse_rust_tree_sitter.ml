@@ -43,8 +43,6 @@ let fb = G.fake_bracket
 
 let fake_id s = (s, G.fake s)
 
-let stmt_to_expr stmt = G.OtherExpr (G.OE_StmtExpr, [ G.S stmt ])
-
 let add_type_args_to_name (name : G.name) _typeargs : G.name =
   (* TODO: if Id, then need transform in IdQualified *)
   name
@@ -950,7 +948,7 @@ and map_block (env : env) ((v1, v2, v3, v4) : CST.block) : G.stmt =
 
 and map_block_expr (env : env) ((v1, v2, v3, v4) : CST.block) : G.expr =
   let block = map_block env (v1, v2, v3, v4) in
-  stmt_to_expr block
+  G.stmt_to_expr block
 
 and map_bounded_type (env : env) (x : CST.bounded_type) : G.type_ =
   match x with
@@ -1005,7 +1003,7 @@ and map_const_block (env : env) ((v1, v2) : CST.const_block) : G.expr =
   let _constTODO = token env v1 (* "const" *) in
   let block = map_block env v2 in
   let stmt = G.OtherStmtWithStmt (G.OSWS_ConstBlock, None, block) |> G.s in
-  stmt_to_expr stmt
+  G.stmt_to_expr stmt
 
 and map_const_item (env : env) ((v1, v2, v3, v4, v5, v6) : CST.const_item) :
     G.stmt =
@@ -1290,14 +1288,14 @@ and map_expression (env : env) (x : CST.expression) =
       let _exprTODO = Option.map (fun x -> map_expression env x) v3 in
       let break_stmt = G.Break (break, label, sc) |> G.s in
       (* TODO expr *)
-      stmt_to_expr break_stmt
+      G.stmt_to_expr break_stmt
   | `Cont_exp (v1, v2) ->
       let continue = token env v1 (* "continue" *) in
       let label =
         match v2 with Some x -> map_loop_label env x | None -> G.LNone
       in
       let continue_stmt = G.Continue (continue, label, sc) |> G.s in
-      stmt_to_expr continue_stmt
+      G.stmt_to_expr continue_stmt
   | `Index_exp (v1, v2, v3, v4) ->
       let expr = map_expression env v1 in
       let lbracket = token env v2 (* "[" *) in
@@ -1381,28 +1379,29 @@ and map_expression_ending_with_block (env : env)
       let _unsafeTODO = token env v1 (* "unsafe" *) in
       let block = map_block env v2 in
       let stmt = G.OtherStmtWithStmt (G.OSWS_UnsafeBlock, None, block) |> G.s in
-      stmt_to_expr stmt
+      G.stmt_to_expr stmt
   | `Async_blk (v1, v2, v3) ->
       let _asyncTODO = token env v1 (* "async" *) in
       let _moveTODO = Option.map (fun tok -> token env tok (* "move" *)) v2 in
       let block = map_block env v3 in
       let stmt = G.OtherStmtWithStmt (G.OSWS_AsyncBlock, None, block) |> G.s in
-      stmt_to_expr stmt
+      G.stmt_to_expr stmt
   | `Blk x -> map_block_expr env x
   | `If_exp x -> map_if_expression env x
   | `If_let_exp x -> map_if_let_expression env x
   | `Match_exp (v1, v2, v3) ->
-      let _match_TODO = token env v1 (* "match" *) in
+      let t = token env v1 (* "match" *) in
       let expr = map_expression env v2 in
       let actions = map_match_block env v3 in
-      G.MatchPattern (expr, actions)
+      let st = G.Match (t, expr, actions) |> G.s in
+      G.stmt_to_expr st
   | `While_exp (v1, v2, v3, v4) ->
       let _loop_labelTODO = Option.map map_loop_label_ v1 in
       let while_ = token env v2 (* "while" *) in
       let cond = map_expression env v3 in
       let body = map_block env v4 in
       let while_stmt = G.While (while_, cond, body) |> G.s in
-      stmt_to_expr while_stmt
+      G.stmt_to_expr while_stmt
   | `While_let_exp (v1, v2, v3, v4, v5, v6, v7) ->
       let _loop_labelTODO = Option.map map_loop_label_ v1 in
       let while_ = token env v2 (* "while" *) in
@@ -1421,7 +1420,7 @@ and map_expression_ending_with_block (env : env)
       (* dummy, acts as 'while true' *)
       let body = map_block env v3 in
       let loop_stmt = G.While (loop, cond, body) |> G.s in
-      stmt_to_expr loop_stmt
+      G.stmt_to_expr loop_stmt
   | `For_exp (v1, v2, v3, v4, v5, v6) ->
       let _loop_labelTODO = Option.map map_loop_label_ v1 in
       let for_ = token env v2 (* "for" *) in
@@ -1431,7 +1430,7 @@ and map_expression_ending_with_block (env : env)
       let body = map_block env v6 in
       let for_header = G.ForEach (pattern, in_, expr) in
       let for_stmt = G.For (for_, for_header, body) |> G.s in
-      stmt_to_expr for_stmt
+      G.stmt_to_expr for_stmt
   | `Const_blk x -> map_const_block env x
 
 and map_expression_statement (env : env) (x : CST.expression_statement) : G.stmt
@@ -1804,7 +1803,7 @@ and map_if_expression (env : env) ((v1, v2, v3, v4) : CST.if_expression) :
   let body = map_block env v3 in
   let else_ = Option.map (fun x -> map_else_clause env x) v4 in
   let if_stmt = G.If (if_, cond, body, else_) |> G.s in
-  stmt_to_expr if_stmt
+  G.stmt_to_expr if_stmt
 
 and map_if_let_expression (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.if_let_expression) : G.expr =
@@ -2422,7 +2421,7 @@ and map_return_expression (env : env) (x : CST.return_expression) : G.expr =
         (* "return" *)
         G.Return (return, None, sc) |> G.s
   in
-  stmt_to_expr return_stmt
+  G.stmt_to_expr return_stmt
 
 and map_scoped_identifier_name (env : env)
     ((v1, v2, v3) : CST.scoped_identifier) : G.name =

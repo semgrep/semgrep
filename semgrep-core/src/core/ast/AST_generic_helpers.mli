@@ -1,12 +1,13 @@
 val str_of_ident : AST_generic.ident -> string
 
-val expr_to_pattern : AST_generic.expr -> AST_generic.pattern
-
-val expr_to_type : AST_generic.expr -> AST_generic.type_
-
 exception NotAnExpr
 
+val expr_to_pattern : AST_generic.expr -> AST_generic.pattern
+
+(* may raise NotAnExpr *)
 val pattern_to_expr : AST_generic.pattern -> AST_generic.expr
+
+val expr_to_type : AST_generic.expr -> AST_generic.type_
 
 val name_or_dynamic_to_expr :
   AST_generic.name_or_dynamic -> AST_generic.id_info option -> AST_generic.expr

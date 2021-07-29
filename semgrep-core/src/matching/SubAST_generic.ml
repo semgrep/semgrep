@@ -43,6 +43,7 @@ let subexprs_of_stmt st =
   | If (_, e, _, _)
   | While (_, e, _)
   | DoWhile (_, _, e)
+  | Match (_, e, _)
   | DefStmt (_, VarDef { vinit = Some e; _ })
   | DefStmt (_, FieldDefColon { vinit = Some e; _ })
   | For (_, ForEach (_, _, e), _)
@@ -116,7 +117,7 @@ let subexprs_of_expr e =
       subexprs_of_any_list anys
   | Lambda def -> subexprs_of_stmt def.fbody
   (* currently skipped over but could recurse *)
-  | Constructor _ | AnonClass _ | Xml _ | LetPattern _ | MatchPattern _ -> []
+  | Constructor _ | AnonClass _ | Xml _ | LetPattern _ -> []
   | DisjExpr _ -> raise Common.Impossible
   [@@profiling]
 
@@ -173,6 +174,8 @@ let substmts_of_stmt st =
             |> Common.map_filter (function
                  | FieldStmt st -> Some st
                  | FieldSpread _ -> None))
+  (* TODO *)
+  | Match _ -> []
 
 (*e: function [[SubAST_generic.substmts_of_stmt]] *)
 
