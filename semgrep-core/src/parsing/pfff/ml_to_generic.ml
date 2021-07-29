@@ -205,8 +205,8 @@ and expr e =
       (* TODO: introduce a new construct in AST_generic instead? *)
       G.Constructor (dotted_ident, Common.opt_to_list v2)
   | Tuple v1 ->
-      let v1 = list expr v1 in
-      G.Tuple (fb v1)
+      let v1 = bracket (list expr) v1 in
+      G.Tuple v1
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)
@@ -387,8 +387,8 @@ and pattern = function
       let n = [ ("::", v2) ] in
       G.PatConstructor (n, [ v1; v3 ])
   | PatTuple v1 ->
-      let v1 = list pattern v1 in
-      G.PatTuple (fb v1)
+      let v1 = bracket (list pattern) v1 in
+      G.PatTuple v1
   | PatList v1 ->
       let v1 = bracket (list pattern) v1 in
       G.PatList v1
