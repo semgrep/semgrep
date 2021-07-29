@@ -361,8 +361,7 @@ class CoreRunner:
                     ]
                     findings = create_output(rule, pattern_matches)
 
-                    # No need for findings = dedup_output(findings)
-                    # This is handled already semgrep-core side
+                    findings = dedup_output(findings)
                     outputs[rule].extend(findings)
                     parsed_errors = [
                         CoreException.from_json(
@@ -430,3 +429,31 @@ class CoreRunner:
             all_targets,
             profiling_data,
         )
+
+
+# This will remove matches that have the same range but different
+# metavariable bindings, choosing the last one in the list. We want the
+# last because if there multiple possible bindings, they will be returned
+# by semgrep-core from largest range to smallest. For an example, see
+# tests/e2e/test_message_interpolation.py::test_message_interpolation;
+# specifically, the multi-pattern-inside test
+#
+# Another option is to not dedup, since Semgrep.ml now does its own deduping
+# otherwise, and surface both matches
+def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
+    return list({uniq_id(r): r for r in reversed(outputs)}.values())[::-1]
+
+
+def uniq_id(
+    r: RuleMatch,
+) -> Tuple[str, Path, Optional[int], Optional[int], Optional[int], Optional[int]]:
+    start = r.start
+    end = r.end
+    return (
+        r.id,
+        r.path,
+        start.get("line"),
+        start.get("col"),
+        end.get("line"),
+        end.get("col"),
+    )
