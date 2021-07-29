@@ -510,7 +510,7 @@ and expr_aux env eorig =
               )));
       lvalexp
   | G.Xml _ -> todo (G.E eorig)
-  | G.Constructor (_, _) | G.MatchPattern (_, _) -> todo (G.E eorig)
+  | G.Constructor (_, _) -> todo (G.E eorig)
   | G.Yield (_, _, _) | G.Await (_, _) -> todo (G.E eorig)
   | G.Cast (typ, e) ->
       let e = expr env e in
@@ -832,6 +832,7 @@ let rec stmt_aux env st =
         | manager -> (None, manager)
       in
       python_with_stmt env manager opt_pat body
+  | G.Match (_, _, _) -> todo (G.S st)
   | G.OtherStmt _ | G.OtherStmtWithStmt _ -> todo (G.S st)
 
 (*s: function [[AST_to_IL.stmt]] *)

@@ -153,6 +153,9 @@ and stmt e : G.stmt =
         G.ForClassic ([ G.ForInitVar (ent, var) ], Some cond, Some next)
       in
       G.For (t, header, v5) |> G.s
+  | Match (t, v1, v2) ->
+      let v1 = expr v1 and v2 = list match_case v2 in
+      G.Match (t, v1, v2) |> G.s
   | e -> (
       let e = expr e in
       (* bugfix: I was using 'G.exprstmt e' before, but then a pattern
@@ -294,8 +297,9 @@ and expr e =
       let xs = list match_case xs in
       let id = ("!_implicit_param!", t) in
       let params = [ G.ParamClassic (G.param_of_id id) ] in
-      let body_exp = G.MatchPattern (G.N (G.Id (id, G.empty_id_info ())), xs) in
-      let body_stmt = G.exprstmt body_exp in
+      let body_stmt =
+        G.Match (t, G.N (G.Id (id, G.empty_id_info ())), xs) |> G.s
+      in
       G.Lambda
         {
           G.fparams = params;
@@ -303,14 +307,11 @@ and expr e =
           fkind = (G.Function, t);
           fbody = body_stmt;
         }
-  | Match (_t, v1, v2) ->
-      let v1 = expr v1 and v2 = list match_case v2 in
-      G.MatchPattern (v1, v2)
   | ExprTodo (t, xs) ->
       let t = todo_category t in
       let xs = list expr xs in
       G.OtherExpr (G.OE_Todo, G.TodoK t :: List.map (fun x -> G.E x) xs)
-  | If _ | Try _ | For _ | While _ | Sequence _ ->
+  | If _ | Try _ | For _ | While _ | Sequence _ | Match _ ->
       let s = stmt e in
       G.OtherExpr (G.OE_StmtExpr, [ G.S s ])
 

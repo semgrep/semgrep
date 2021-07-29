@@ -127,6 +127,8 @@ let expr_to_type e =
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
   OtherType (OT_Expr, [ E e ])
 
+(* See also exprstmt, and stmt_to_expr in AST_generic.ml *)
+
 (*e: function [[AST_generic.expr_to_type]] *)
 
 (* old: there was a stmt_to_item before *)

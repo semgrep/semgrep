@@ -174,6 +174,7 @@ let simple_node_of_stmt_opt stmt =
   | G.DoWhile (_, _, _)
   | G.For (_, _, _)
   | G.Switch (_, _, _)
+  | G.Match (_, _, _)
   | G.Return _ | G.Continue _ | G.Break _
   | G.Label (_, _)
   | G.Goto _ | G.Throw _
