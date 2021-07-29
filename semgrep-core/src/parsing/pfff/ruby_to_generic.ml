@@ -126,10 +126,10 @@ let rec expr = function
       G.Lambda def
   | S x ->
       let st = stmt x in
-      G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
+      G.stmt_to_expr st
   | D x ->
       let st = definition x in
-      G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
+      G.stmt_to_expr st
   | Ellipsis x ->
       let x = info x in
       G.Ellipsis x
