@@ -555,7 +555,8 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
    * Note that DefStmt are not the only form of lambdas ... you can have
    * lambdas inside expressions too! (need a proper instr type really)
    *)
-  | DefStmt _ | ExprStmt _ | Assert _ | DirectiveStmt _ | OtherStmt _ ->
+  | DefStmt _ | ExprStmt _ | Assert _ | DirectiveStmt _ | OtherStmt _ | Match _
+    ->
       cfg_simple_node state previ stmt
   | DisjStmt _ -> raise Impossible
 

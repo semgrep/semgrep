@@ -55,7 +55,7 @@ let v_option = Common.map_opt
 let cases_to_lambda lb (cases : G.action list) : G.function_definition =
   let id = ("!hidden_scala_param!", lb) in
   let param = G.ParamClassic (G.param_of_id id) in
-  let body = G.exprstmt (G.MatchPattern (G.N (H.name_of_id id), cases)) in
+  let body = G.Match (lb, G.N (H.name_of_id id), cases) |> G.s in
   {
     fkind = (G.BlockCases, lb);
     frettype = None;
@@ -390,11 +390,6 @@ and v_expr = function
   | Assign (v1, v2, v3) ->
       let v1 = v_lhs v1 and v2 = v_tok v2 and v3 = v_expr v3 in
       G.Assign (v1, v2, v3)
-  | Match (v1, v2, v3) ->
-      let v1 = v_expr v1
-      and _v2 = v_tok v2
-      and v3 = v_bracket v_case_clauses v3 in
-      G.MatchPattern (v1, G.unbracket v3)
   | Lambda v1 ->
       let v1 = v_function_definition v1 in
       G.Lambda v1
@@ -409,9 +404,16 @@ and v_expr = function
       match kind with
       | Left stats -> expr_of_block stats
       | Right cases -> G.Lambda (cases_to_lambda lb cases))
+  (* TODO: should move Match under S in ast_scala.ml *)
+  | Match (v1, v2, v3) ->
+      let v1 = v_expr v1
+      and v2 = v_tok v2
+      and v3 = v_bracket v_case_clauses v3 in
+      let st = G.Match (v2, v1, G.unbracket v3) |> G.s in
+      G.stmt_to_expr st
   | S v1 ->
       let v1 = v_stmt v1 in
-      G.OtherExpr (G.OE_StmtExpr, [ G.S v1 ])
+      G.stmt_to_expr v1
 
 (* alt: transform in a series of Seq? *)
 and expr_of_block xs : G.expr =

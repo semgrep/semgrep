@@ -707,8 +707,6 @@ and m_expr a b =
   | G.Conditional (a1, a2, a3), B.Conditional (b1, b2, b3) ->
       m_expr a1 b1 >>= fun () ->
       m_expr a2 b2 >>= fun () -> m_expr a3 b3
-  | G.MatchPattern (a1, a2), B.MatchPattern (b1, b2) ->
-      m_expr a1 b1 >>= fun () -> (m_list m_action) a2 b2
   | G.Yield (a0, a1, a2), B.Yield (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
       m_option m_expr a1 b1 >>= fun () -> m_bool a2 b2
@@ -736,7 +734,6 @@ and m_expr a b =
   | G.ArrayAccess _, _
   | G.SliceAccess _, _
   | G.Conditional _, _
-  | G.MatchPattern _, _
   | G.Yield _, _
   | G.Await _, _
   | G.Cast _, _
@@ -1910,6 +1907,9 @@ and m_stmt a b =
   | G.Switch (at, a1, a2), B.Switch (bt, b1, b2) ->
       m_tok at bt >>= fun () ->
       m_option m_expr a1 b1 >>= fun () -> m_case_clauses a2 b2
+  | G.Match (a0, a1, a2), B.Match (b0, b1, b2) ->
+      let* () = m_tok a0 b0 in
+      m_expr a1 b1 >>= fun () -> (m_list m_action) a2 b2
   | G.Continue (a0, a1, asc), B.Continue (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_label_ident a1 b1 in
@@ -1952,6 +1952,7 @@ and m_stmt a b =
   | G.DoWhile _, _
   | G.For _, _
   | G.Switch _, _
+  | G.Match _, _
   | G.Return _, _
   | G.Continue _, _
   | G.Break _, _
