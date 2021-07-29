@@ -114,6 +114,8 @@ class Span:
     file: Optional[str]
     context_start: Optional[Position] = None
     context_end: Optional[Position] = None
+    # The path to the pattern in the yaml rule
+    # and an adjusted start/end within just the pattern
     config_path: Optional[Tuple[Any, ...]] = None
     config_start: Optional[Position] = None
     config_end: Optional[Position] = None
