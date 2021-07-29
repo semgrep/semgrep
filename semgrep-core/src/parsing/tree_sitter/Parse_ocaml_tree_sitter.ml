@@ -40,6 +40,8 @@ let token = H.token
 
 let _fake = PI.fake_info
 
+let fb = PI.fake_bracket
+
 let str = H.str
 
 (*****************************************************************************)
@@ -968,7 +970,7 @@ and map_binding_pattern (env : env) (x : CST.binding_pattern) : pattern =
       let v1 = map_binding_pattern_ext env v1 in
       let _v2 = token env v2 (* "," *) in
       let v3 = map_binding_pattern_ext env v3 in
-      PatTuple [ v1; v3 ]
+      PatTuple (fb [ v1; v3 ])
   | `Cons_bind_pat_f2d0ae9 (v1, v2, v3) ->
       let v1 = map_binding_pattern_ext env v1 in
       let v2 = token env v2 (* "::" *) in
@@ -1354,7 +1356,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v1 = map_expression_ext env v1 in
       let _v2 = token env v2 (* "," *) in
       let v3 = map_expression_ext env v3 in
-      Tuple [ v1; v3 ]
+      Tuple (fb [ v1; v3 ])
   | `Cons_exp (v1, v2, v3) ->
       let v1 = map_expression_ext env v1 in
       let v2 = str env v2 (* "::" *) in
@@ -2123,11 +2125,12 @@ and map_parenthesized_expression (env : env) (x : CST.parenthesized_expression)
       let v3 = map_sequence_expression_ext env v3 in
       let _v4 = token env v4 (* "end" *) in
       v3
-  | `LPAR_seq_exp_ext_RPAR (v1, v2, v3) ->
-      let _v1 = token env v1 (* "(" *) in
+  | `LPAR_seq_exp_ext_RPAR (v1, v2, v3) -> (
+      let v1 = token env v1 (* "(" *) in
       let v2 = map_sequence_expression_ext env v2 in
-      let _v3 = token env v3 (* ")" *) in
-      v2
+      let v3 = token env v3 (* ")" *) in
+      (* putting real tokens on Tuples *)
+      match v2 with Tuple (_, xs, _) -> Tuple (v1, xs, v3) | x -> x)
 
 and map_parenthesized_type (env : env) ((v1, v2, v3) : CST.parenthesized_type) =
   let _v1 = token env v1 (* "(" *) in
@@ -2168,7 +2171,7 @@ and map_pattern (env : env) (x : CST.pattern) : pattern =
       let v1 = map_pattern_ext env v1 in
       let _v2 = token env v2 (* "," *) in
       let v3 = map_pattern_ext env v3 in
-      PatTuple [ v1; v3 ]
+      PatTuple (fb [ v1; v3 ])
   | `Cons_pat_9b4e481 (v1, v2, v3) ->
       let v1 = map_pattern_ext env v1 in
       let v2 = token env v2 (* "::" *) in
@@ -2654,11 +2657,12 @@ and map_simple_pattern (env : env) (x : CST.simple_pattern) : pattern =
       in
       PatTodo (("LocalOpen", v2), [ v3 ])
   | `Pack_pat x -> map_package_pattern env x
-  | `Paren_pat (v1, v2, v3) ->
-      let _v1 = token env v1 (* "(" *) in
+  | `Paren_pat (v1, v2, v3) -> (
+      let v1 = token env v1 (* "(" *) in
       let v2 = map_pattern_ext env v2 in
-      let _v3 = token env v3 (* ")" *) in
-      v2
+      let v3 = token env v3 (* ")" *) in
+      (* putting real tokens on Tuples *)
+      match v2 with PatTuple (_, xs, _) -> PatTuple (v1, xs, v3) | p -> p)
 
 and map_simple_pattern_ext (env : env) (x : CST.simple_pattern_ext) : pattern =
   match x with
