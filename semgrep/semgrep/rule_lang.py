@@ -116,6 +116,7 @@ class Span:
     context_end: Optional[Position] = None
     # The path to the pattern in the yaml rule
     # and an adjusted start/end within just the pattern
+    # Used to report playground parse errors in the simpler editor
     config_path: Optional[Tuple[Any, ...]] = None
     config_start: Optional[Position] = None
     config_end: Optional[Position] = None
