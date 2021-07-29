@@ -446,7 +446,7 @@ def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
 
 def uniq_id(
     r: RuleMatch,
-) -> Tuple[str, Path, Optional[int], Optional[int], Optional[int], Optional[int]]:
+) -> Tuple[str, Path, Optional[int], Optional[int], Optional[int], Optional[int], str]:
     start = r.start
     end = r.end
     return (
@@ -456,4 +456,5 @@ def uniq_id(
         start.get("col"),
         end.get("line"),
         end.get("col"),
+        r.message,
     )

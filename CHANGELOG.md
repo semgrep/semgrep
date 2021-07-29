@@ -12,6 +12,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Detect duplicate keys in YAML dictionaries in semgrep rules when parsing a rule
   (e.g., detect multiple 'metavariable' inside one 'metavariable-regex')
 
+
+### Changed
+- Deduplicate findings that fire on the same line ranges and have the same message.
+
 ### Fixed
 - C/C++: Fixed stack overflows (segmentation faults) when processing very large
   files (#3538)
