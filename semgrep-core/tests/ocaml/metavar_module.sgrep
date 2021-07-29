@@ -1,0 +1,4 @@
+(* a bit ugly, but to match an uppercase entity (module, constructor)
+ * you need to start the metavar with one uppercase letter and an _
+ *)
+module $M_ = AST_generic
