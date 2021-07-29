@@ -285,7 +285,6 @@ class CoreRunner:
                         cmd = [SEMGREP_PATH] + [
                             "-lang",
                             language.value,
-                            "-fast",
                             "-json",
                             "-config",
                             rule_file.name,
@@ -301,6 +300,9 @@ class CoreRunner:
                             str(self._max_memory),
                             "-json_time",
                         ]
+
+                        if self._optimizations != "none":
+                            cmd.append("-fast")
 
                         stderr: Optional[int] = subprocess.PIPE
                         if is_debug():
