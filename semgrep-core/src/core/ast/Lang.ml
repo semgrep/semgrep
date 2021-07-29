@@ -150,7 +150,7 @@ let langs_of_filename filename =
   | FT.PL (FT.C "c") -> [ C ]
   | FT.PL (FT.C "h") -> [ C; Cplusplus ]
   | FT.PL (FT.Cplusplus _) -> [ Cplusplus ]
-  | FT.PL (FT.ML _) -> [ OCaml ]
+  | FT.PL (FT.OCaml ("ml" | "mli")) -> [ OCaml ]
   | FT.PL FT.Java -> [ Java ]
   | FT.PL FT.Go -> [ Go ]
   | FT.Config FT.Json -> [ JSON ]
