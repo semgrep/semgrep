@@ -603,7 +603,8 @@ let parse_pattern lang_pattern str =
            str,
            Rule.L (lang_pattern, []),
            Common.exn_to_s exn,
-           Parse_info.fake_info "no loc" ))
+           Parse_info.fake_info "no loc",
+           [] ))
   [@@profiling]
 
 (*e: function [[Main_semgrep_core.parse_pattern]] *)
