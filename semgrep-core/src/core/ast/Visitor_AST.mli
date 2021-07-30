@@ -62,9 +62,6 @@ val first_info_of_any : AST_generic.any -> Parse_info.t
 
 val range_of_tokens : Parse_info.t list -> Parse_info.t * Parse_info.t
 
-val range_of_any :
-  AST_generic.any -> Parse_info.token_location * Parse_info.token_location
-
 val range_of_any_opt :
   AST_generic.any ->
   (Parse_info.token_location * Parse_info.token_location) option

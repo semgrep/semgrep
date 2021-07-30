@@ -113,12 +113,20 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
              }
            in
            let found_tainted_sink code _env =
-             let range_loc = V.range_of_any code in
-             let tokens = lazy (V.ii_of_any code) in
-             (* todo: use env from sink matching func?  *)
-             Common.push
-               { PM.rule_id; file; range_loc; tokens; env = [] }
-               matches
+             match V.range_of_any_opt code with
+             | None ->
+                 (* TODO: Report a warning to the user? *)
+                 logger#error
+                   "Cannot report taint-mode match because we lack range info: \
+                    %s"
+                   (G.show_any code);
+                 ()
+             | Some range_loc ->
+                 let tokens = lazy (V.ii_of_any code) in
+                 (* todo: use env from sink matching func?  *)
+                 Common.push
+                   { PM.rule_id; file; range_loc; tokens; env = [] }
+                   matches
            in
            taint_config_of_rule default_config equivs file (ast, []) rule
              taint_spec found_tainted_sink)

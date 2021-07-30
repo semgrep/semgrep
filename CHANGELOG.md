@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Go: Match import module paths correctly (#3484)
+- core: Do not crash when is not possible to compute range info
 
 ## [0.60.0](https://github.com/returntocorp/semgrep/releases/tag/v0.60.0) - 2021-07-27
 
@@ -28,6 +29,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Do not crash when is not possible to compute range info
 - Rust: recognize ellipsis in macro calls patterns (#3600)
 - Ruby: represent correctly a.(b) in the AST (#3603)
+- Rust: recognize ellipsis in macro calls patterns
 
 ### Changed
 - Added precise error location for the semgrep metachecker, to detect for example

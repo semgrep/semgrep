@@ -295,12 +295,18 @@ let bindings_to_env xs =
 (* this is for metavariable-regexp *)
 let bindings_to_env_with_just_strings xs =
   xs
-  |> List.map (fun (mvar, mval) ->
+  |> Common.map_filter (fun (mvar, mval) ->
          let any = MV.mvalue_to_any mval in
-         let min, max = Visitor_AST.range_of_any any in
-         let file = min.Parse_info.file in
-         let range = Range.range_of_token_locations min max in
-         (mvar, String (Range.content_at_range file range)))
+         match Visitor_AST.range_of_any_opt any with
+         | None ->
+             (* TODO: Report a warning to the user? *)
+             logger#error "We lack range info for metavariable %s: %s" mvar
+               (G.show_any any);
+             None
+         | Some (min, max) ->
+             let file = min.Parse_info.file in
+             let range = Range.range_of_token_locations min max in
+             Some (mvar, String (Range.content_at_range file range)))
   |> Common.hash_of_list
 
 let eval_bool env e =

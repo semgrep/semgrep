@@ -1294,9 +1294,3 @@ let range_of_tokens tokens =
 let range_of_any_opt any =
   extract_ranges (fun visitor -> visitor any)
   [@@profiling]
-
-let range_of_any any =
-  match range_of_any_opt any with
-  | Some range -> range
-  | None -> failwith "no tokens found"
-  [@@profiling]
