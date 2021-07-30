@@ -270,8 +270,29 @@ let json_of_exn e =
           ("error", J.String "invalid language");
           ("language", J.String language);
         ]
-  | Parse_rule.InvalidPattern (pattern_id, pattern, xlang, message, _posTODO) ->
+  | Parse_rule.InvalidPattern (pattern_id, pattern, xlang, message, pos, path)
+    ->
       let lang = Rule.string_of_xlang xlang in
+      let range_json =
+        match pos with
+        | { token = PI.FakeTokStr (str, _); _ } -> J.String str
+        | _ ->
+            let s_loc = PI.token_location_of_info pos in
+            J.Object
+              [
+                ("file", J.String s_loc.file);
+                ("line", J.Int s_loc.line);
+                ("col", J.Int s_loc.column);
+                ( "path",
+                  J.Array
+                    (List.map
+                       (fun x ->
+                         match int_of_string_opt x with
+                         | Some i -> J.Int i
+                         | None -> J.String x)
+                       (List.rev path)) );
+              ]
+      in
       J.Object
         [
           ("pattern_id", J.String pattern_id);
@@ -279,6 +300,7 @@ let json_of_exn e =
           ("pattern", J.String pattern);
           ("language", J.String lang);
           ("message", J.String message);
+          ("range", range_json);
         ]
   | Parse_rule.InvalidRegexp (pattern_id, message, _posTODO) ->
       J.Object
