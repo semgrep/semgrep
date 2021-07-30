@@ -113,8 +113,9 @@ let program_of_mvalue : mvalue -> G.program option =
       None
 
 let range_of_mvalue mval =
-  let tok_start, tok_end = Visitor_AST.range_of_any (mvalue_to_any mval) in
-  Range.range_of_token_locations tok_start tok_end
+  let ( let* ) = Common.( >>= ) in
+  let* tok_start, tok_end = Visitor_AST.range_of_any_opt (mvalue_to_any mval) in
+  Some (Range.range_of_token_locations tok_start tok_end)
 
 let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
 

@@ -68,8 +68,13 @@ let location x =
   match x with
   | Empty -> None
   | Span { left_stmts; right_stmts } ->
-      let min_loc, _ = Visitor_AST.range_of_any (AST_generic.Ss left_stmts) in
-      let _, max_loc = Visitor_AST.range_of_any (AST_generic.Ss right_stmts) in
+      let ( let* ) = Common.( >>= ) in
+      let* min_loc, _ =
+        Visitor_AST.range_of_any_opt (AST_generic.Ss left_stmts)
+      in
+      let* _, max_loc =
+        Visitor_AST.range_of_any_opt (AST_generic.Ss right_stmts)
+      in
       Some (min_loc, max_loc)
   [@@profiling]
 
