@@ -130,7 +130,7 @@ def main() -> None:
                 f"⚠️  Potential non-blocking slowdown in benchmark {name}: "
                 f"+{perc:.1f}% (+{diff:.3f} s)"
             )
-        elif rel_dur < 0.85:
+        elif rel_dur < 0.8:
             messages.append(
                 f"🔥 Potential speedup in benchmark {name}: "
                 f"{perc:.1f}% ({diff:.3f} s)"
