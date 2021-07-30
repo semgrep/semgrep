@@ -370,11 +370,11 @@ let parse_xpattern env e =
    * the yaml parser has tabs removed). Will include a note to this effect when
    * I make my "add ranges to patterns" PR.
    *)
-  let start, end_ = Visitor_AST.range_of_any (G.E e) in
-  let _s_range =
-    (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
-    (* TODO put in *)
-  in
+  (* let start, end_ = Visitor_AST.range_of_any (G.E e) in
+     let _s_range =
+       (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
+       (* TODO put in *)
+     in *)
   match env.languages with
   | R.L (lang, _) ->
       R.mk_xpat (Sem (parse_pattern ~id:env.id ~lang (s, t), lang)) (s, t)

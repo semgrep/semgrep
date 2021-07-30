@@ -642,92 +642,107 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   (* If anything goes wrong the default is to filter out! *)
   match List.assoc_opt mvar bindings with
   | None ->
-      (* THINK: fatal error instead? *)
+      (* TODO: Report a warning to the user? *)
       logger#error "rule %s: metavariable-pattern: %s not found" env.rule_id
         mvar;
       false
   | Some mval -> (
       (* We will create a temporary file with the content of the metavariable,
        * then call evaluate_formula recursively. *)
-      let mval_range = MV.range_of_mvalue mval in
-      let r' =
-        (* Fix the range to match the content of the temporary file. *)
-        { r with r = { start = 0; end_ = mval_range.end_ - mval_range.start } }
-      in
-      match (opt_xlang, mval) with
-      | None, __any_mval__ -> (
-          (* We match wrt the same language as the rule.
-           * NOTE: A generic pattern nested inside a generic won't work because
-           *   generic mode binds metavariables to `MV.Text`, and
-           *   `MV.program_of_mvalue` does not handle `MV.Text`. So one must
-           *   specify `language: generic` (case `Some xlang` below). *)
-          match MV.program_of_mvalue mval with
-          | None ->
-              (* THINK: fatal error instead? *)
-              logger#error
-                "rule %s: metavariable-pattern: %s does not bound a sub-program"
-                env.rule_id mvar;
-              false
-          | Some mast ->
-              let content = Range.content_at_range env.file mval_range in
+      match MV.range_of_mvalue mval with
+      | None ->
+          (* TODO: Report a warning to the user? *)
+          logger#error
+            "rule %s: metavariable-pattern: we lack range info for %s: %s"
+            env.rule_id mvar (MV.show_mvalue mval);
+          false
+      | Some mval_range -> (
+          let r' =
+            (* Fix the range to match the content of the temporary file. *)
+            {
+              r with
+              r = { start = 0; end_ = mval_range.end_ - mval_range.start };
+            }
+          in
+          match (opt_xlang, mval) with
+          | None, __any_mval__ -> (
+              (* We match wrt the same language as the rule.
+               * NOTE: A generic pattern nested inside a generic won't work because
+               *   generic mode binds metavariables to `MV.Text`, and
+               *   `MV.program_of_mvalue` does not handle `MV.Text`. So one must
+               *   specify `language: generic` (case `Some xlang` below). *)
+              match MV.program_of_mvalue mval with
+              | None ->
+                  (* THINK: fatal error instead? *)
+                  logger#error
+                    "rule %s: metavariable-pattern: %s does not bound a \
+                     sub-program"
+                    env.rule_id mvar;
+                  false
+              | Some mast ->
+                  let content = Range.content_at_range env.file mval_range in
+                  Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
+                    (fun file ->
+                      (* We don't want having to re-parse `content', but then we
+                       * need to fix the token locations in `mast`. *)
+                      let mast_start_loc =
+                        mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens
+                        |> fst |> PI.token_location_of_info
+                      in
+                      let fix_loc loc =
+                        {
+                          loc with
+                          PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
+                          line = loc.line - mast_start_loc.line + 1;
+                          column = loc.column - mast_start_loc.column;
+                          file;
+                        }
+                      in
+                      let fixing_visitor =
+                        Map_AST.mk_fix_token_locations fix_loc
+                      in
+                      let mast' = fixing_visitor.Map_AST.vprogram mast in
+                      let lazy_ast_and_errors = lazy (mast', []) in
+                      nested_formula_has_matches { env with file } formula
+                        lazy_ast_and_errors
+                        (lazy content)
+                        (Some r')))
+          | Some xlang, MV.Text (content, _tok)
+          | Some xlang, MV.E (G.L (G.String (content, _tok))) ->
+              (* We re-parse the matched text as `xlang`. *)
               Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
                 (fun file ->
-                  (* We don't want having to re-parse `content', but then we
-                   * need to fix the token locations in `mast`. *)
-                  let mast_start_loc =
-                    mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens |> fst
-                    |> PI.token_location_of_info
+                  let lazy_ast_and_errors =
+                    lazy
+                      (match xlang with
+                      | R.L (lang, _) ->
+                          let { Parse_target.ast; errors; _ } =
+                            Parse_target
+                            .parse_and_resolve_name_use_pfff_or_treesitter lang
+                              file
+                          in
+                          (* TODO: If we wanted to report the parse errors then we should
+                           * fix the parse info with Parse_info.adjust_info_wrt_base! *)
+                          if errors <> [] then
+                            pr2
+                              (spf
+                                 "rule %s: metavariable-pattern: failed to \
+                                  fully parse the content of %s"
+                                 env.rule_id mvar);
+                          (ast, errors)
+                      | R.LRegex | R.LGeneric ->
+                          failwith "requesting generic AST for LRegex|LGeneric")
                   in
-                  let fix_loc loc =
-                    {
-                      loc with
-                      PI.charpos = loc.PI.charpos - mast_start_loc.charpos;
-                      line = loc.line - mast_start_loc.line + 1;
-                      column = loc.column - mast_start_loc.column;
-                      file;
-                    }
-                  in
-                  let fixing_visitor = Map_AST.mk_fix_token_locations fix_loc in
-                  let mast' = fixing_visitor.Map_AST.vprogram mast in
-                  let lazy_ast_and_errors = lazy (mast', []) in
-                  nested_formula_has_matches { env with file } formula
+                  nested_formula_has_matches { env with file; xlang } formula
                     lazy_ast_and_errors
                     (lazy content)
-                    (Some r')))
-      | Some xlang, MV.Text (content, _tok)
-      | Some xlang, MV.E (G.L (G.String (content, _tok))) ->
-          (* We re-parse the matched text as `xlang`. *)
-          Common2.with_tmp_file ~str:content ~ext:"mvar-pattern" (fun file ->
-              let lazy_ast_and_errors =
-                lazy
-                  (match xlang with
-                  | R.L (lang, _) ->
-                      let { Parse_target.ast; errors; _ } =
-                        Parse_target
-                        .parse_and_resolve_name_use_pfff_or_treesitter lang file
-                      in
-                      (* TODO: If we wanted to report the parse errors then we should
-                       * fix the parse info with Parse_info.adjust_info_wrt_base! *)
-                      if errors <> [] then
-                        pr2
-                          (spf
-                             "rule %s: metavariable-pattern: failed to fully \
-                              parse the content of %s"
-                             env.rule_id mvar);
-                      (ast, errors)
-                  | R.LRegex | R.LGeneric ->
-                      failwith "requesting generic AST for LRegex|LGeneric")
-              in
-              nested_formula_has_matches { env with file; xlang } formula
-                lazy_ast_and_errors
-                (lazy content)
-                (Some r'))
-      | Some _lang, _mval ->
-          (* THINK: fatal error instead? *)
-          logger#error
-            "rule %s: metavariable-pattern: the content of %s is not text"
-            env.rule_id mvar;
-          false)
+                    (Some r'))
+          | Some _lang, _mval ->
+              (* THINK: fatal error instead? *)
+              logger#error
+                "rule %s: metavariable-pattern: the content of %s is not text"
+                env.rule_id mvar;
+              false))
 
 and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
     opt_context =
