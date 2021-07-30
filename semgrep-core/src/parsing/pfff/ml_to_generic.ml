@@ -281,7 +281,7 @@ and expr e =
                  G.exprstmt exp)
       in
       let st = G.Block (fb (defs @ [ G.exprstmt v3 ])) |> G.s in
-      G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
+      G.stmt_to_expr st
   | Fun (t, v1, v2) ->
       let v1 = list parameter v1 and v2 = expr v2 in
       let def =
@@ -313,7 +313,7 @@ and expr e =
       G.OtherExpr (G.OE_Todo, G.TodoK t :: List.map (fun x -> G.E x) xs)
   | If _ | Try _ | For _ | While _ | Sequence _ | Match _ ->
       let s = stmt e in
-      G.OtherExpr (G.OE_StmtExpr, [ G.S s ])
+      G.stmt_to_expr s
 
 and literal = function
   | Int v1 ->

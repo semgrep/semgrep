@@ -91,8 +91,7 @@ type stmt_or_expr = Stmt of loc * G.stmt | Expr of loc * G.expr
 
 let stmt_of_expr loc (e : G.expr) : G.stmt = G.s (G.ExprStmt (e, fst loc))
 
-let expr_of_stmt loc (st : G.stmt) : G.expr =
-  G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
+let expr_of_stmt loc (st : G.stmt) : G.expr = G.stmt_to_expr st
 
 let as_stmt : stmt_or_expr -> G.stmt = function
   | Stmt (loc, st) -> st
