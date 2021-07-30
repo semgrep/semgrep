@@ -1499,7 +1499,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       in
       let v6, v7 = v5 in
       let if_stmt = If (v1, v3, v6, v7) |> G.s in
-      OtherExpr (OE_StmtExpr, [ S if_stmt ])
+      stmt_to_expr if_stmt
   | `When_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "when" *) in
       let v2 = match v2 with Some x -> when_subject env x | None -> None in
@@ -1507,7 +1507,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       let v4 = List.map (when_entry env) v4 in
       let _v5 = token env v5 (* "}" *) in
       let switch_stmt = Switch (v1, v2, v4) |> G.s in
-      OtherExpr (OE_StmtExpr, [ S switch_stmt ])
+      stmt_to_expr switch_stmt
   | `Try_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "try" *) in
       let v2 = block env v2 in
@@ -1527,10 +1527,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       in
       let catch, finally = v3 in
       let try_stmt = Try (v1, v2, catch, finally) |> G.s in
-      OtherExpr (OE_StmtExpr, [ S try_stmt ])
+      stmt_to_expr try_stmt
   | `Jump_exp x ->
       let v1 = jump_expression env x in
-      OtherExpr (OE_StmtExpr, [ S v1 ])
+      stmt_to_expr v1
 
 and property_delegate (env : env) ((v1, v2) : CST.property_delegate) =
   let _v1 = token env v1 (* "by" *) in

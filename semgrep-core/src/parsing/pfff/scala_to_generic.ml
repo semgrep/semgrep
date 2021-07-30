@@ -418,7 +418,7 @@ and v_expr = function
 (* alt: transform in a series of Seq? *)
 and expr_of_block xs : G.expr =
   let st = G.Block (fb xs) |> G.s in
-  G.OtherExpr (G.OE_StmtExpr, [ G.S st ])
+  G.stmt_to_expr st
 
 and v_lhs v = v_expr v
 

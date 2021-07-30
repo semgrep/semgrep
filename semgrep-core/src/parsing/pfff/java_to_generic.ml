@@ -368,7 +368,7 @@ and expr e =
           v2
         |> List.map (fun x -> G.CasesAndBody x)
       in
-      G.OtherExpr (G.OE_StmtExpr, [ G.S (G.Switch (v0, Some v1, v2) |> G.s) ])
+      G.stmt_to_expr (G.Switch (v0, Some v1, v2) |> G.s)
 
 and expr_or_type = function Left e -> G.E (expr e) | Right t -> G.T (typ t)
 
