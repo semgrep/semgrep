@@ -658,21 +658,29 @@ let m_string a b = if a =$= b then return () else fail ()
 
 (*e: function [[Matching_generic.m_string]] *)
 
-(*s: function [[Matching_generic.string_is_prefix]] *)
-let string_is_prefix s1 s2 =
+(*s: function [[Matching_generic.filepath_is_prefix]] *)
+(* old: Before we just checked whether `s2` was a prefix of `s1`, e.g.
+ * "foo" is a prefix of "foobar". However we use this function to check
+ * file paths, and the path "foo" is NOT a prefix of the path "foobar".
+ * We must also check that what comes after "foo", if anything, is a
+ * path separator. *)
+let filepath_is_prefix s1 s2 =
+  (* todo: can we assume that the strings are trimmed? *)
+  let is_sep c = c = '/' || c = '\\' in
   let len1 = String.length s1 and len2 = String.length s2 in
   if len1 < len2 then false
   else
     let sub = Str.first_chars s1 len2 in
-    sub = s2
+    sub = s2 && (len1 = len2 || is_sep s1.[len2])
 
-(*e: function [[Matching_generic.string_is_prefix]] *)
+(*e: function [[Matching_generic.filepath_is_prefix]] *)
 
-(*s: function [[Matching_generic.m_string_prefix]] *)
+(*s: function [[Matching_generic.m_filepath_prefix]] *)
 (* less-is-ok: *)
-let m_string_prefix a b = if string_is_prefix b a then return () else fail ()
+let m_filepath_prefix a b =
+  if filepath_is_prefix b a then return () else fail ()
 
-(*e: function [[Matching_generic.m_string_prefix]] *)
+(*e: function [[Matching_generic.m_filepath_prefix]] *)
 
 (* ---------------------------------------------------------------------- *)
 (* Token *)

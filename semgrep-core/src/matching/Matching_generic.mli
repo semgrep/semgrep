@@ -217,14 +217,14 @@ val m_int : int matcher
 val m_string : string matcher
 
 (*e: signature [[Matching_generic.m_string]] *)
-(*s: signature [[Matching_generic.string_is_prefix]] *)
-val string_is_prefix : string -> string -> bool
+(*s: signature [[Matching_generic.filepath_is_prefix]] *)
+val filepath_is_prefix : string -> string -> bool
 
-(*e: signature [[Matching_generic.string_is_prefix]] *)
-(*s: signature [[Matching_generic.m_string_prefix]] *)
-val m_string_prefix : string matcher
+(*e: signature [[Matching_generic.filepath_is_prefix]] *)
+(*s: signature [[Matching_generic.m_filepath_prefix]] *)
+val m_filepath_prefix : string matcher
 
-(*e: signature [[Matching_generic.m_string_prefix]] *)
+(*e: signature [[Matching_generic.m_filepath_prefix]] *)
 val m_string_ellipsis_or_metavar_or_default :
   ?m_string_for_default:string matcher -> string AST_generic.wrap matcher
 
