@@ -11,6 +11,9 @@
    raise an exception when running out of memory rather than getting
    a segfault, which is unrecoverable in OCaml.
 
+   'Gc.compact ()' is called before re-raising any 'Out_of_memory' exception
+   so as to reclaim some space.
+
    As of ocaml 4.12, segfaults often occur when running out of physical
    memory. Segfaults used to occur also on stack overflows, although this
    has been fixed in ocaml 4.10, at least partially.
