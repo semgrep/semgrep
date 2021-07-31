@@ -526,7 +526,7 @@ let metachecker_regression_tests =
           | Parse_rule.InvalidYaml (s, t)
           | Parse_rule.InvalidRegexp (_, s, t)
           | Parse_rule.InvalidLanguage (_, s, t)
-          | Parse_rule.InvalidPattern (_, _, _, s, t)
+          | Parse_rule.InvalidPattern (_, _, _, s, t, _)
            ->
               raise (Parse_info.Other_error (s, t))
         );

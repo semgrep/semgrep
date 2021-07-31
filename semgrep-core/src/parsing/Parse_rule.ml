@@ -83,7 +83,14 @@ exception InvalidLanguage of Rule.rule_id * string * Parse_info.t
  * start of the pattern *)
 exception
   InvalidPattern of
-    Rule.rule_id * string * Rule.xlang * string (* exn *) * Parse_info.t
+    Rule.rule_id
+    * string
+    * Rule.xlang
+    * string (* exn *)
+    * Parse_info.t
+    * string list
+
+(* path *)
 
 exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
 
@@ -341,7 +348,7 @@ let parse_options (key : key) value =
  * of the leading "|", so we need to recompute location by reparsing
  * the YAML file and look at the indentation there.
  *)
-let parse_pattern ~id ~lang (pattern, t) =
+let parse_pattern ~id ~lang { Rule.pattern; t; path } =
   try
     (* old? todo? call Normalize_ast.normalize here? *)
     let any = Parse_pattern.parse_pattern lang ~print_errors:false pattern in
@@ -355,7 +362,8 @@ let parse_pattern ~id ~lang (pattern, t) =
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       raise
-        (InvalidPattern (id, pattern, Rule.L (lang, []), Common.exn_to_s exn, t))
+        (InvalidPattern
+           (id, pattern, Rule.L (lang, []), Common.exn_to_s exn, t, path))
 
 let parse_xpattern env e =
   let s, t =
@@ -370,14 +378,18 @@ let parse_xpattern env e =
    * the yaml parser has tabs removed). Will include a note to this effect when
    * I make my "add ranges to patterns" PR.
    *)
-  let start, end_ = Visitor_AST.range_of_any (G.E e) in
-  let _s_range =
-    (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
-    (* TODO put in *)
-  in
+  (* let start, end_ = Visitor_AST.range_of_any (G.E e) in
+     let _s_range =
+       (PI.mk_info_of_loc start, PI.mk_info_of_loc end_)
+       (* TODO put in *)
+     in *)
   match env.languages with
   | R.L (lang, _) ->
-      R.mk_xpat (Sem (parse_pattern ~id:env.id ~lang (s, t), lang)) (s, t)
+      R.mk_xpat
+        (Sem
+           ( parse_pattern ~id:env.id ~lang { pattern = s; t; path = env.path },
+             lang ))
+        (s, t)
   | R.LRegex -> failwith "you should not use real pattern with language = none"
   | R.LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
@@ -385,7 +397,8 @@ let parse_xpattern env e =
       | Ok ast -> R.mk_xpat (Spacegrep ast) (s, t)
       | Error err ->
           (* TODO: adjust error pos instead of using [t] *)
-          raise (InvalidPattern (env.id, s, Rule.LGeneric, err.msg, t)))
+          raise
+            (InvalidPattern (env.id, s, Rule.LGeneric, err.msg, t, env.path)))
 
 let find_formula_old (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in

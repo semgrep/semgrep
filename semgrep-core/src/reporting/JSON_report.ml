@@ -86,42 +86,43 @@ let position_range min_loc max_loc =
 (*e: function [[JSON_report.json_range]] *)
 
 (*s: function [[JSON_report.range_of_any]] *)
-let range_of_any startp_of_match_range any =
+let range_of_any_opt startp_of_match_range any =
   let empty_range = (startp_of_match_range, startp_of_match_range) in
   match any with
   (* those are ok and we don't want to generate a NoTokenLocation for those.
    * alt: change Semgrep.atd to make optional startp/endp for metavar_value.
    *)
-  | Ss [] | Args [] -> empty_range
+  | Ss [] | Args [] -> Some empty_range
   | _ ->
-      let min_loc, max_loc = V.range_of_any any in
+      let ( let* ) = Common.( >>= ) in
+      let* min_loc, max_loc = V.range_of_any_opt any in
       let startp, endp = position_range min_loc max_loc in
-      (startp, endp)
+      Some (startp, endp)
 
 (*e: function [[JSON_report.range_of_any]] *)
 
 (*s: function [[JSON_report.json_metavar]] *)
 let metavars startp_of_match_range (s, mval) =
   let any = MV.mvalue_to_any mval in
-  let startp, endp =
-    try range_of_any startp_of_match_range any
-    with Parse_info.NoTokenLocation _exn ->
+  match range_of_any_opt startp_of_match_range any with
+  | None ->
       raise
         (Parse_info.NoTokenLocation
            (spf "NoTokenLocation with metavar %s, close location = %s" s
               (SJ.string_of_position startp_of_match_range)))
-  in
-  ( s,
-    {
-      ST.start = startp;
-      end_ = endp;
-      abstract_content =
-        any |> V.ii_of_any
-        |> List.filter PI.is_origintok
-        |> List.sort Parse_info.compare_pos
-        |> List.map PI.str_of_info |> Matching_report.join_with_space_if_needed;
-      unique_id = unique_id any;
-    } )
+  | Some (startp, endp) ->
+      ( s,
+        {
+          ST.start = startp;
+          end_ = endp;
+          abstract_content =
+            any |> V.ii_of_any
+            |> List.filter PI.is_origintok
+            |> List.sort Parse_info.compare_pos
+            |> List.map PI.str_of_info
+            |> Matching_report.join_with_space_if_needed;
+          unique_id = unique_id any;
+        } )
 
 (*e: function [[JSON_report.json_metavar]] *)
 
@@ -269,8 +270,29 @@ let json_of_exn e =
           ("error", J.String "invalid language");
           ("language", J.String language);
         ]
-  | Parse_rule.InvalidPattern (pattern_id, pattern, xlang, message, _posTODO) ->
+  | Parse_rule.InvalidPattern (pattern_id, pattern, xlang, message, pos, path)
+    ->
       let lang = Rule.string_of_xlang xlang in
+      let range_json =
+        match pos with
+        | { token = PI.FakeTokStr (str, _); _ } -> J.String str
+        | _ ->
+            let s_loc = PI.token_location_of_info pos in
+            J.Object
+              [
+                ("file", J.String s_loc.file);
+                ("line", J.Int s_loc.line);
+                ("col", J.Int s_loc.column);
+                ( "path",
+                  J.Array
+                    (List.map
+                       (fun x ->
+                         match int_of_string_opt x with
+                         | Some i -> J.Int i
+                         | None -> J.String x)
+                       (List.rev path)) );
+              ]
+      in
       J.Object
         [
           ("pattern_id", J.String pattern_id);
@@ -278,6 +300,7 @@ let json_of_exn e =
           ("pattern", J.String pattern);
           ("language", J.String lang);
           ("message", J.String message);
+          ("range", range_json);
         ]
   | Parse_rule.InvalidRegexp (pattern_id, message, _posTODO) ->
       J.Object

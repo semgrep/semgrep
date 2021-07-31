@@ -55,9 +55,7 @@ type rule = {
 (*e: type [[Rule.rule]] *)
 
 (*s: type [[Rule.rules]] *)
-and rules = rule list
-(*e: type [[Rule.rules]] *)
-
+and rules = rule list (*e: type [[Rule.rules]] *)
 (*s: type [[Rule.severity]] *)
 (*e: type [[Rule.severity]] *)
 [@@deriving show]

@@ -40,6 +40,14 @@ type tok = AST_generic.tok [@@deriving show, eq, hash]
 
 type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
 
+(* To help report pattern errors in simple mode in the playground *)
+type 'a loc = {
+  pattern : 'a;
+  t : tok;
+  path : string list; (* path to pattern in YAML rule *)
+}
+[@@deriving show, eq]
+
 (*****************************************************************************)
 (* Extended languages *)
 (*****************************************************************************)
