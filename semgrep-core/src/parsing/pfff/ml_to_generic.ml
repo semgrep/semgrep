@@ -622,6 +622,19 @@ and mk_var_or_func tlet params tret body =
 
 and program xs = List.map item xs |> List.flatten
 
+and partial = function
+  | PartialIf (t, e) ->
+      let e = expr e in
+      G.PartialIf (t, e)
+  | PartialMatch (t, e) ->
+      let e = expr e in
+      G.PartialMatch (t, e)
+  | PartialTry (t, e) -> (
+      let e = expr e in
+      match e with
+      | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.PartialTry (t, s)
+      | _ -> G.PartialTry (t, G.exprstmt e))
+
 and any = function
   | E x -> (
       let x = expr x in
@@ -645,3 +658,6 @@ and any = function
   | Pr xs ->
       let xs = program xs in
       G.Ss xs
+  | Partial x ->
+      let x = partial x in
+      G.Partial x

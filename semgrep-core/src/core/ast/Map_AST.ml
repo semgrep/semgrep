@@ -989,6 +989,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_item x = map_stmt x
   and map_program v = map_of_list map_item v
   and map_partial = function
+    | PartialMatch (v1, v2) ->
+        let v1 = map_tok v1 in
+        let v2 = map_expr v2 in
+        PartialMatch (v1, v2)
     | PartialLambdaOrFuncDef v1 ->
         let v1 = map_function_definition v1 in
         PartialLambdaOrFuncDef v1

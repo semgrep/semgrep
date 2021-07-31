@@ -603,6 +603,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
       (* todo? visit the s_id too? *)
       match x.s with
       | Match (v0, v1, v2) ->
+          v_partial ~recurse:false (PartialMatch (v0, v1));
           let v0 = v_tok v0 in
           let v1 = v_expr v1
           and v2 =
@@ -880,7 +881,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
             v_entity v1;
             v_def_kind v2);
           ()
-      | PartialIf (v1, v2) ->
+      | PartialIf (v1, v2) | PartialMatch (v1, v2) ->
           if recurse then (
             v_tok v1;
             v_expr v2)
