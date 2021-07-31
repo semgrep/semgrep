@@ -55,12 +55,12 @@ let grow_heap goal_bytes =
 *)
 let test_stack_warning () =
   Memory_limit.run_with_memory_limit ~stack_warning_mb:1 ~mem_limit_mb:0
-    (fun () -> grow_stack 1_500_000)
+    (fun () -> grow_stack 3_000_000)
 
 let test_stack_limit () =
   try
     Memory_limit.run_with_memory_limit ~stack_limit_mb:1 ~mem_limit_mb:0
-      (fun () -> grow_stack 1_500_000);
+      (fun () -> grow_stack 3_000_000);
     assert false
   with Stack_overflow -> (* success *) ()
 
