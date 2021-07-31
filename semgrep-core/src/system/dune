@@ -1,0 +1,12 @@
+;
+; OS-sensitive stuff. Might split into Unix and Windows when we get there.
+;
+
+(library
+ (name semgrep_system)
+ (wrapped false)
+ (libraries
+   unix
+   commons
+ )
+)
