@@ -437,14 +437,17 @@ let timeout_function file f =
    for detailed explanations.
 *)
 let run_with_memory_limit limit_mb f =
+  (*
   if limit_mb = 0 then f ()
-  else if limit_mb < 0 then
+  else
+*)
+  if limit_mb < 0 then
     invalid_arg (spf "run_with_memory_limit: negative argument %i" limit_mb)
   else
     let limit = limit_mb * 1024 * 1024 in
     let limit_memory () =
       let mem = (Gc.quick_stat ()).Gc.heap_words in
-      if mem > limit / (Sys.word_size / 8) then (
+      if limit > 0 && mem > limit / (Sys.word_size / 8) then (
         logger#info "maxout allocated memory: %d" (mem * (Sys.word_size / 8));
         raise Out_of_memory)
     in
