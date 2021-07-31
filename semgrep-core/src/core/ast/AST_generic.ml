@@ -1804,6 +1804,7 @@ and partial =
   | PartialTry of tok * stmt
   | PartialCatch of catch
   | PartialFinally of tok * stmt
+  | PartialMatch of tok * expr
   (* partial objects (just used in JSON and YAML patterns for now)
    * alt: todo? could be considered a full thing and use Fld?
    *)
