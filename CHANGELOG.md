@@ -26,6 +26,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - OCaml: include parenthesis tokens in the AST for tuples for better range
   matching and autofix
 - core: Do not crash when is not possible to compute range info
+- eliminate 6x slowdown when using the '--max-memory' option
 
 ## [0.60.0](https://github.com/returntocorp/semgrep/releases/tag/v0.60.0) - 2021-07-27
 
