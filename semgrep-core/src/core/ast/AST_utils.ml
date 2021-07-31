@@ -67,13 +67,13 @@ let busy_with_equal = ref Not_busy
 
 let equal_stmt_field_s equal_stmt_kind a b =
   match !busy_with_equal with
-  | Not_busy -> failwith "Call AST_generic.with_xxx_equal to avoid this error."
+  | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
   | Structural_equal -> equal_stmt_kind a b
   | Referential_equal -> true
 
 let equal_stmt_field_s_id a b =
   match !busy_with_equal with
-  | Not_busy -> failwith "Call AST_generic.with_xxx_equal to avoid this error."
+  | Not_busy -> failwith "Call AST_utils.with_xxx_equal to avoid this error."
   | Structural_equal -> true
   | Referential_equal -> Node_ID.equal a b
 
