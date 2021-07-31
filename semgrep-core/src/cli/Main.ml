@@ -452,9 +452,7 @@ let run_with_memory_limit limit_mb f =
         raise Out_of_memory)
     in
     let alarm = Gc.create_alarm limit_memory in
-    Fun.protect f ~finally:(fun () ->
-        Gc.delete_alarm alarm;
-        Gc.compact ())
+    Fun.protect f ~finally:(fun () -> Gc.delete_alarm alarm)
 
 (* Certain patterns may be too general and match too many times on big files.
  * This does not cause a Timeout during parsing or matching, but returning
