@@ -91,42 +91,39 @@ let m_string_xhp_text sa sb =
 
 (*e: function [[Generic_vs_generic.m_string_xhp_text]] *)
 
-(* less: could be made more general by taking is_dots function parameter *)
-let has_ellipsis_and_filter_ellipsis xs =
+let has_ellipsis_and_filter_ellipsis_gen f xs =
   let has_ellipsis = ref false in
   let ys =
     xs
-    |> Common.exclude (function
-         | G.Ellipsis _ ->
-             has_ellipsis := true;
-             true
-         | _ -> false)
+    |> Common.exclude (fun x ->
+           let res = f x in
+           if res then has_ellipsis := true;
+           res)
   in
   (!has_ellipsis, ys)
+
+let has_ellipsis_and_filter_ellipsis xs =
+  has_ellipsis_and_filter_ellipsis_gen
+    (function G.Ellipsis _ -> true | _ -> false)
+    xs
 
 let has_xml_ellipsis_and_filter_ellipsis xs =
-  let has_ellipsis = ref false in
-  let ys =
+  has_ellipsis_and_filter_ellipsis_gen
+    (function G.XmlEllipsis _ -> true | _ -> false)
     xs
-    |> Common.exclude (function
-         | G.XmlEllipsis _ ->
-             has_ellipsis := true;
-             true
-         | _ -> false)
-  in
-  (!has_ellipsis, ys)
 
 let has_case_ellipsis_and_filter_ellipsis xs =
-  let has_ellipsis = ref false in
-  let ys =
+  has_ellipsis_and_filter_ellipsis_gen
+    (function G.CaseEllipsis _ -> true | _ -> false)
     xs
-    |> Common.exclude (function
-         | G.CaseEllipsis _ ->
-             has_ellipsis := true;
-             true
-         | _ -> false)
-  in
-  (!has_ellipsis, ys)
+
+let has_match_case_ellipsis_and_filter_ellipsis xs =
+  has_ellipsis_and_filter_ellipsis_gen
+    (fun (pat, body) ->
+      match (pat, body) with
+      | G.PatEllipsis _, G.Ellipsis _ -> true
+      | _ -> false)
+    xs
 
 let rec obj_and_method_calls_of_expr = function
   | B.Call (B.DotAccess (e, tok, fld), args) ->
@@ -857,6 +854,10 @@ and m_literal_constness a b =
   | B.Cst B.Cstr -> (
       match a with G.String ("...", _) -> return () | ___else___ -> fail ())
   | B.Cst _ | B.NotCst -> fail ()
+
+and m_match_cases a b =
+  let has_ellipsis, a = has_match_case_ellipsis_and_filter_ellipsis a in
+  m_list_in_any_order ~less_is_ok:has_ellipsis m_action a b
 
 (*s: function [[Generic_vs_generic.m_action]] *)
 and m_action a b =
@@ -1909,7 +1910,7 @@ and m_stmt a b =
       m_option m_expr a1 b1 >>= fun () -> m_case_clauses a2 b2
   | G.Match (a0, a1, a2), B.Match (b0, b1, b2) ->
       let* () = m_tok a0 b0 in
-      m_expr a1 b1 >>= fun () -> (m_list m_action) a2 b2
+      m_expr a1 b1 >>= fun () -> m_match_cases a2 b2
   | G.Continue (a0, a1, asc), B.Continue (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_label_ident a1 b1 in

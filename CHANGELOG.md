@@ -12,6 +12,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   followed by uppercase letters or digits (e.g. `$X_`, `$F_OO`).
   Instead, `$FOO` will match everything else (lowercase identifiers,
   full expressions, types, patterns, etc.).
+- OCaml: match cases patterns are now matched in any order, and ellipsis are
+  handled correctly
 
 ### Changed
 - Run version check and print upgrade message after scan instead of before
