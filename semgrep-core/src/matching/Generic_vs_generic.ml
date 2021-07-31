@@ -2744,6 +2744,9 @@ and m_partial a b =
   | G.PartialIf (a1, a2), B.PartialIf (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_expr a2 b2
+  | G.PartialMatch (a1, a2), B.PartialMatch (b1, b2) ->
+      let* () = m_tok a1 b1 in
+      m_expr a2 b2
   | G.PartialTry (a1, a2), B.PartialTry (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_stmt a2 b2
@@ -2759,6 +2762,7 @@ and m_partial a b =
       m_function_definition a1 b1
   | G.PartialDef _, _
   | G.PartialIf _, _
+  | G.PartialMatch _, _
   | G.PartialTry _, _
   | G.PartialCatch _, _
   | G.PartialFinally _, _

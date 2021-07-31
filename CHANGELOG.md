@@ -4,11 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- OCaml: support for partial if, match, and try patterns 
+  (e.g., `if $X = $Y`)
+- OCaml: you can match uppercase identifiers (constructors, module names) by
+  using a metavariable with an uppercase letter followed by an underscore,
+  followed by uppercase letters or digits (e.g. `$X_`, `$F_OO`).
+  Instead, `$FOO` will match everything else (lowercase identifiers,
+  full expressions, types, patterns, etc.).
+
 ### Changed
 - Run version check and print upgrade message after scan instead of before
+- OCaml: skip ocamllex and ocamlyacc files. Process only .ml and .mli files.
 
 ### Fixed
 - Go: Match import module paths correctly (#3484)
+- OCaml: use latest ocamllsp 1.7.0 for the -lsp option
+- OCaml: include parenthesis tokens in the AST for tuples for better range
+  matching and autofix
 
 ## [0.60.0](https://github.com/returntocorp/semgrep/releases/tag/v0.60.0) - 2021-07-27
 

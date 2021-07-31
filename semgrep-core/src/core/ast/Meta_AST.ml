@@ -1284,6 +1284,10 @@ and vof_item x = vof_stmt x
 and vof_program v = OCaml.vof_list vof_item v
 
 and vof_partial = function
+  | PartialMatch (v1, v2) ->
+      let v1 = vof_tok v1 in
+      let v2 = vof_expr v2 in
+      OCaml.VSum ("PartialMatch", [ v1; v2 ])
   | PartialLambdaOrFuncDef v1 ->
       let v1 = vof_function_definition v1 in
       OCaml.VSum ("PartialLambdaOrFuncDef", [ v1 ])
