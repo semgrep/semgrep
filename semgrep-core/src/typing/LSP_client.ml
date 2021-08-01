@@ -51,7 +51,7 @@ let global = ref { io = None; last_uri = Uri.of_path "" }
 (*****************************************************************************)
 
 let server =
-  match 2 with
+  match 0 with
   | 0 -> "ocamllsp"
   | 1 -> "/home/pad/.opam/4.12.0/bin/ocamllsp"
   (* when instrumenting ocamllsp to debug things server-side *)

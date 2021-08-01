@@ -107,10 +107,10 @@ let map_anon_choice_attr_value_5986531 (env : env)
   match x with
   | `Attr_value tok ->
       let x = str env tok (* pattern "[^<>\"'=\\s]+" *) in
-      N (Id (x, G.empty_id_info ()))
+      N (Id (x, G.empty_id_info ())) |> G.e
   | `Quoted_attr_value x ->
       let x = map_quoted_attribute_value env x in
-      L (String x)
+      L (String x) |> G.e
 
 let map_anon_choice_dire_arg_b33821e (env : env)
     (x : CST.anon_choice_dire_arg_b33821e) =
@@ -143,7 +143,7 @@ let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
             (* <foo a /> <=> <foo a=true>? That's what we do for JSX, but should
              * we instead introduce a XmlAttrNoValue in AST_generic?
              *)
-            let v = L (Bool (true, fake "true")) in
+            let v = L (Bool (true, fake "true")) |> G.e in
             (fake "=", v)
       in
       XmlAttr (id, teq, v2)
@@ -179,7 +179,7 @@ let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
             (* <foo a /> <=> <foo a=true>? That's what we do for JSX, but should
              * we instead introduce a XmlAttrNoValue in AST_generic?
              *)
-            let v = L (Bool (true, fake "true")) in
+            let v = L (Bool (true, fake "true")) |> G.e in
             (fake "=", v)
       in
       (* TODO: XmlDynAttr? *)
@@ -272,7 +272,7 @@ and map_node (env : env) (x : CST.node) : xml_body list =
         | Some tok ->
             let x = str env tok (* interpolation_text *) in
             (* TODO: parse as JS *)
-            Some (L (String x))
+            Some (L (String x) |> G.e)
         | None -> None
       in
       let v3 = token env v3 (* "}}" *) in
@@ -325,10 +325,10 @@ let map_component (env : env) (xs : CST.component) : stmt list =
           []
       | `Elem x ->
           let xml = map_element env x in
-          [ G.exprstmt (Xml xml) ]
+          [ G.exprstmt (Xml xml |> G.e) ]
       | `Temp_elem x ->
           let xml = map_template_element env x in
-          [ G.exprstmt (Xml xml) ]
+          [ G.exprstmt (Xml xml |> G.e) ]
       (* Note that right now the AST will not contain the enclosing
        * <script>, because XmlExpr contain single expressions, not
        * full programs, so it's simpler to just lift up the
@@ -346,7 +346,7 @@ let map_component (env : env) (xs : CST.component) : stmt list =
       (* less: parse as CSS *)
       | `Style_elem x ->
           let xml = map_style_element env x in
-          [ G.exprstmt (Xml xml) ])
+          [ G.exprstmt (Xml xml |> G.e) ])
     xs
   |> List.flatten
 

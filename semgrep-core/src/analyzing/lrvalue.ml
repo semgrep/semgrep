@@ -79,7 +79,7 @@ let rec visit_expr hook lhs expr =
     v any
   in
 
-  match expr with
+  match expr.e with
   (* the leaf *)
   | N (Id (name, idinfo)) ->
       (* calling the hook! *)

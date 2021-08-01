@@ -67,7 +67,8 @@ let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
 
 let ident x = wrap string x
 
-let rec expr = function
+let rec expr e =
+  (match e with
   | Literal x -> literal x
   | Atom (tk, x) -> atom tk x
   | Id (id, kind) -> (
@@ -109,7 +110,7 @@ let rec expr = function
       G.DotAccess (e, t, fld)
   | Splat (t, eopt) ->
       let xs = option expr eopt |> Common.opt_to_list |> List.map G.arg in
-      let special = G.IdSpecial (G.Spread, t) in
+      let special = G.IdSpecial (G.Spread, t) |> G.e in
       G.Call (special, fb xs)
   | CodeBlock ((t1, _, t2), params_opt, xs) ->
       let params = match params_opt with None -> [] | Some xs -> xs in
@@ -126,10 +127,12 @@ let rec expr = function
       G.Lambda def
   | S x ->
       let st = stmt x in
-      G.stmt_to_expr st
+      let x = G.stmt_to_expr st in
+      x.G.e
   | D x ->
       let st = definition x in
-      G.stmt_to_expr st
+      let x = G.stmt_to_expr st in
+      x.G.e
   | Ellipsis x ->
       let x = info x in
       G.Ellipsis x
@@ -139,7 +142,8 @@ let rec expr = function
   | TypedMetavar (v1, v2, v3) ->
       let v1 = ident v1 in
       let v3 = type_ v3 in
-      G.TypedMetavar (v1, v2, v3)
+      G.TypedMetavar (v1, v2, v3))
+  |> G.e
 
 and formal_param = function
   | Formal_id id -> G.ParamClassic (G.param_of_id id)
@@ -245,20 +249,21 @@ and method_name mn =
           | [ StrChars (s, t2) ] ->
               let t = PI.combine_infos l [ t2; r ] in
               Left (s, t)
-          | _ -> Right (string_contents_list (l, xs, r))))
+          | _ -> Right (string_contents_list (l, xs, r) |> G.e)))
 
-and string_contents_list (t1, xs, t2) =
+and string_contents_list (t1, xs, t2) : G.expr_kind =
   let xs = list (string_contents t1) xs in
-
   G.Call
-    ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t1),
+    ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t1) |> G.e,
       (t1, xs |> List.map (fun e -> G.Arg e), t2) )
 
 and string_contents tok = function
-  | StrChars s -> G.L (G.String s)
+  | StrChars s -> G.L (G.String s) |> G.e
   | StrExpr (l, e, r) ->
       G.Call
-        (G.IdSpecial (G.InterpolatedElement, tok), (l, [ G.Arg (expr e) ], r))
+        ( G.IdSpecial (G.InterpolatedElement, tok) |> G.e,
+          (l, [ G.Arg (expr e) ], r) )
+      |> G.e
 
 and method_name_to_any mn =
   match method_name mn with Left id -> G.I id | Right e -> G.E e
@@ -293,11 +298,11 @@ and binary (op, t) e1 e2 =
   match op with
   | B msg ->
       let op = binary_msg msg in
-      G.Call (G.IdSpecial (G.Op op, t), fb [ G.Arg e1; G.Arg e2 ])
+      G.Call (G.IdSpecial (G.Op op, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
   | Op_kAND | Op_AND ->
-      G.Call (G.IdSpecial (G.Op G.And, t), fb [ G.Arg e1; G.Arg e2 ])
+      G.Call (G.IdSpecial (G.Op G.And, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
   | Op_kOR | Op_OR ->
-      G.Call (G.IdSpecial (G.Op G.Or, t), fb [ G.Arg e1; G.Arg e2 ])
+      G.Call (G.IdSpecial (G.Op G.Or, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
   | Op_ASSIGN -> G.Assign (e1, t, e2)
   | Op_OP_ASGN op ->
       let op =
@@ -312,7 +317,7 @@ and binary (op, t) e1 e2 =
   | Op_ASSOC -> G.Tuple (G.fake_bracket [ e1; e2 ])
   | Op_DOT3 ->
       (* coupling: make sure to check for the string in generic_vs_generic *)
-      G.Call (G.IdSpecial (G.Op G.Range, t), fb [ G.Arg e1; G.Arg e2 ])
+      G.Call (G.IdSpecial (G.Op G.Range, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
 
 and unary (op, t) e =
   match op with
@@ -324,10 +329,11 @@ and unary (op, t) e =
         | Op_UBang -> G.Not
         | Op_UTilde -> G.BitNot
       in
-      G.Call (G.IdSpecial (G.Op op, t), fb [ G.Arg e ])
-  | Op_UNot -> G.Call (G.IdSpecial (G.Op G.Not, t), fb [ G.Arg e ])
-  | Op_DefinedQuestion -> G.Call (G.IdSpecial (G.Defined, t), fb [ G.Arg e ])
-  | Op_UStarStar -> G.Call (G.IdSpecial (G.HashSplat, t), fb [ G.Arg e ])
+      G.Call (G.IdSpecial (G.Op op, t) |> G.e, fb [ G.Arg e ])
+  | Op_UNot -> G.Call (G.IdSpecial (G.Op G.Not, t) |> G.e, fb [ G.Arg e ])
+  | Op_DefinedQuestion ->
+      G.Call (G.IdSpecial (G.Defined, t) |> G.e, fb [ G.Arg e ])
+  | Op_UStarStar -> G.Call (G.IdSpecial (G.HashSplat, t) |> G.e, fb [ G.Arg e ])
   (* should be only in arguments, to pass procs. I abuse Ref for now *)
   | Op_UAmper -> G.Ref (t, e)
 
@@ -368,8 +374,8 @@ and literal x =
           G.L (G.String (s, t))
       (* TODO: generate interpolation Special *)
       | Double xs -> string_contents_list xs
-      | Tick xs -> G.OtherExpr (G.OE_Subshell, [ G.E (string_contents_list xs) ])
-      )
+      | Tick xs ->
+          G.OtherExpr (G.OE_Subshell, [ G.E (string_contents_list xs |> G.e) ]))
   | Regexp ((l, xs, r), opt) -> (
       match xs with
       | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))
@@ -400,16 +406,16 @@ and stmt st =
       G.While (t, e, st) |> G.s
   | Until (t, _bool, e, st) ->
       let e = expr e in
-      let special = G.IdSpecial (G.Op G.Not, t) in
-      let e = G.Call (special, fb [ G.Arg e ]) in
+      let special = G.IdSpecial (G.Op G.Not, t) |> G.e in
+      let e = G.Call (special, fb [ G.Arg e ]) |> G.e in
       let st = list_stmt1 st in
       G.While (t, e, st) |> G.s
   | Unless (t, e, st, elseopt) ->
       let e = expr e in
       let st = list_stmt1 st in
       let elseopt = option_tok_stmts elseopt in
-      let special = G.IdSpecial (G.Op G.Not, t) in
-      let e = G.Call (special, fb [ G.Arg e ]) in
+      let special = G.IdSpecial (G.Op G.Not, t) |> G.e in
+      let e = G.Call (special, fb [ G.Arg e ]) |> G.e in
       let st1 =
         match elseopt with None -> G.Block (fb []) |> G.s | Some st -> st
       in
@@ -425,7 +431,7 @@ and stmt st =
       G.Return (t, eopt, G.sc) |> G.s
   | Yield (t, es) ->
       let eopt = exprs_to_eopt es in
-      G.ExprStmt (G.Yield (t, eopt, false), fake ";") |> G.s
+      G.exprstmt (G.Yield (t, eopt, false) |> G.e)
   | Break (t, es) ->
       let lbl = exprs_to_label_ident es in
       G.Break (t, lbl, G.sc) |> G.s
@@ -465,14 +471,14 @@ and exprs_to_label_ident = function
       G.LDynamic x
   | xs ->
       let xs = list expr xs in
-      G.LDynamic (G.Tuple (G.fake_bracket xs))
+      G.LDynamic (G.Tuple (G.fake_bracket xs) |> G.e)
 
 and exprs_to_eopt = function
   | [] -> None
   | [ x ] -> Some (expr x)
   | xs ->
       let xs = list expr xs in
-      Some (G.Tuple (G.fake_bracket xs))
+      Some (G.Tuple (G.fake_bracket xs) |> G.e)
 
 and pattern pat =
   let e = expr pat in
@@ -659,7 +665,7 @@ and list_stmt1 xs =
    * in which case we remove the G.Block around it.
    * hacky ...
    *)
-  | [ ({ G.s = G.ExprStmt (G.N (G.Id ((s, _), _)), _); _ } as x) ]
+  | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _ }, _); _ } as x) ]
     when AST_generic_.is_metavar_name s ->
       x
   | xs -> G.Block (fb xs) |> G.s

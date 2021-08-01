@@ -170,10 +170,10 @@ let make_alias anchor pos env : G.name = mk_id anchor pos env
 (* Scalars must first be checked for sgrep patterns *)
 (* Then, they may need to be converted from a string to a value *)
 let make_scalar _anchor _tag pos value env : G.expr =
-  if AST_generic_.is_metavar_name value then G.N (mk_id value pos env)
+  if AST_generic_.is_metavar_name value then G.N (mk_id value pos env) |> G.e
   else
     let token = mk_tok pos value env in
-    match value with
+    (match value with
     | "__sgrep_ellipses__" -> G.Ellipsis (Parse_info.fake_info "...")
     (* TODO: emma: I will put "" back to Null and have either a warning or
      * an error when we try to parse a string and get Null in another PR.
@@ -190,28 +190,33 @@ let make_scalar _anchor _tag pos value env : G.expr =
     | ".nan" | ".NaN" | ".NAN" -> G.L (G.Float (Some nan, token))
     | _ -> (
         try G.L (G.Float (Some (float_of_string value), token))
-        with _ -> G.L (G.String (value, token)))
+        with _ -> G.L (G.String (value, token))))
+    |> G.e
 
 (* Sequences are arrays in the generic AST *)
 let make_sequence _anchor _tag start_pos (es, end_pos) env =
-  (G.Container (G.Array, mk_bracket (start_pos, end_pos) es env), end_pos)
+  (G.Container (G.Array, mk_bracket (start_pos, end_pos) es env) |> G.e, end_pos)
 
 (* Mappings are dictionaries in the generic AST *)
 let make_mappings _anchor _tag start_pos (es, end_pos) env =
   match es with
-  | [ G.Ellipsis e ] -> (G.Ellipsis e, end_pos)
-  | _ -> (G.Container (G.Dict, mk_bracket (start_pos, end_pos) es env), end_pos)
+  | [ { G.e = G.Ellipsis e; _ } ] -> (G.Ellipsis e |> G.e, end_pos)
+  | _ ->
+      ( G.Container (G.Dict, mk_bracket (start_pos, end_pos) es env) |> G.e,
+        end_pos )
 
 let make_mapping (pos1, pos2) ((key, value) : G.expr * G.expr) env =
-  match (key, value) with
-  | G.Ellipsis _, G.Ellipsis _ -> (G.Ellipsis (Parse_info.fake_info "..."), pos2)
-  | _ -> (G.Tuple (mk_bracket (pos1, pos2) [ key; value ] env), pos2)
+  match (key.G.e, value.G.e) with
+  | G.Ellipsis _, G.Ellipsis _ ->
+      (G.Ellipsis (Parse_info.fake_info "...") |> G.e, pos2)
+  | _ -> (G.Tuple (mk_bracket (pos1, pos2) [ key; value ] env) |> G.e, pos2)
 
 let make_doc start_pos (doc, end_pos) env : G.expr list =
   match doc with
   | [] -> []
   | [ x ] -> [ x ]
-  | xs -> [ G.Container (G.Array, mk_bracket (start_pos, end_pos) xs env) ]
+  | xs ->
+      [ G.Container (G.Array, mk_bracket (start_pos, end_pos) xs env) |> G.e ]
 
 let parse (env : env) : G.expr list =
   (* Parse states *)
@@ -236,7 +241,7 @@ let parse (env : env) : G.expr list =
   and read_node ?node_val:(res = None) () : G.expr * E.pos =
     let res = match res with None -> do_parse env | Some r -> r in
     match res with
-    | E.Alias { anchor }, pos -> (G.N (make_alias anchor pos env), pos)
+    | E.Alias { anchor }, pos -> (G.N (make_alias anchor pos env) |> G.e, pos)
     | E.Scalar { anchor; tag; value; _ }, pos ->
         (make_scalar anchor tag pos value env, pos)
     | E.Sequence_start { anchor; tag; _ }, pos ->
@@ -276,8 +281,8 @@ let make_pattern_expr e =
   match e with
   (* If the user creates a pattern with a single field, assume they just want *
    * to match the field, not the whole enclosing container *)
-  | [ G.Container (G.Dict, (_lp, [ x ], _rp)) ] -> G.E x
-  | [ G.Container (G.Array, (_lp, [ x ], _rp)) ] -> G.E x
+  | [ { G.e = G.Container (G.Dict, (_lp, [ x ], _rp)); _ } ] -> G.E x
+  | [ { G.e = G.Container (G.Array, (_lp, [ x ], _rp)); _ } ] -> G.E x
   | [ x ] -> G.E x
   | _ -> raise UnreachableList
 

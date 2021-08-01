@@ -217,7 +217,7 @@ let name_of_entity ent =
 (* lvalue *)
 (*****************************************************************************)
 let rec lval env eorig =
-  match eorig with
+  match eorig.G.e with
   | G.N n -> name env n
   | G.IdSpecial (G.This, tok) -> lval_of_base (VarSpecial (This, tok))
   | G.DotAccess (e1orig, tok, field) -> (
@@ -230,7 +230,7 @@ let rec lval env eorig =
             constness = idinfo.id_constness;
           }
       | G.EN name ->
-          let attr = expr env (G.N name) in
+          let attr = expr env (G.N name |> G.e) in
           { base; offset = Index attr; constness = base_constness }
       | G.EDynamic e2orig ->
           let attr = expr env e2orig in
@@ -314,7 +314,7 @@ and pattern_assign_statements env exp eorig pat =
 (* Assign *)
 (*****************************************************************************)
 and assign env lhs _tok rhs_exp eorig =
-  match lhs with
+  match lhs.G.e with
   | G.N _ | G.DotAccess _ | G.ArrayAccess _ | G.DeRef _ -> (
       try
         let lval = lval env lhs in
@@ -353,15 +353,18 @@ and assign env lhs _tok rhs_exp eorig =
  * to assign into, which would avoid creating useless fresh_var intermediates.
  *)
 and expr_aux env eorig =
-  match eorig with
-  | G.Call (G.IdSpecial (G.Op op, tok), args) ->
+  match eorig.G.e with
+  | G.Call ({ e = G.IdSpecial (G.Op op, tok); _ }, args) ->
       let args = arguments env args in
       mk_e (Operator ((op, tok), args)) eorig
   | G.Call
-      ((G.IdSpecial ((G.This | G.Super | G.Self | G.Parent), tok) as e), args)
-    ->
+      ( ({ e = G.IdSpecial ((G.This | G.Super | G.Self | G.Parent), tok); _ } as
+        e),
+        args ) ->
       call_generic env tok e args
-  | G.Call (G.IdSpecial (G.IncrDecr (incdec, _prepostIGNORE), tok), args) -> (
+  | G.Call
+      ({ e = G.IdSpecial (G.IncrDecr (incdec, _prepostIGNORE), tok); _ }, args)
+    -> (
       (* in theory in expr() we should return each time a list of pre-instr
        * and a list of post-instrs to execute before and after the use
        * of the expression. However this complicates the interface of 'expr()'.
@@ -378,26 +381,33 @@ and expr_aux env eorig =
             ((match incdec with G.Incr -> G.Plus | G.Decr -> G.Minus), tok)
           in
           let one = G.Int (Some 1, tok) in
-          let one_exp = mk_e (Literal one) (G.L one) in
+          let one_exp = mk_e (Literal one) (G.L one |> G.e) in
           let opexp = mk_e (Operator (op, [ lvalexp; one_exp ])) eorig in
           add_instr env (mk_i (Assign (lval, opexp)) eorig);
           lvalexp
       | _ -> impossible (G.E eorig))
   (* todo: if the xxx_to_generic forgot to generate Eval *)
   | G.Call
-      ( G.N (G.Id (("eval", tok), { G.id_resolved = { contents = None }; _ })),
+      ( {
+          e =
+            G.N
+              (G.Id (("eval", tok), { G.id_resolved = { contents = None }; _ }));
+          _;
+        },
         args ) ->
       let lval = fresh_lval env tok in
       let special = (Eval, tok) in
       let args = arguments env args in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
       mk_e (Fetch lval) eorig
-  | G.Call (G.IdSpecial (G.InterpolatedElement, _), (_, [ G.Arg e ], _)) ->
+  | G.Call
+      ({ e = G.IdSpecial (G.InterpolatedElement, _); _ }, (_, [ G.Arg e ], _))
+    ->
       (* G.InterpolatedElement is useful for matching certain patterns against
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
-  | G.Call (G.IdSpecial spec, args) ->
+  | G.Call ({ e = G.IdSpecial spec; _ }, args) ->
       let tok = snd spec in
       let lval = fresh_lval env tok in
       let special = call_special env spec in
@@ -530,11 +540,11 @@ and expr env eorig =
 and expr_opt env = function
   | None ->
       let void = G.Unit (G.fake "void") in
-      mk_e (Literal void) (G.L void)
+      mk_e (Literal void) (G.L void |> G.e)
   | Some e -> expr env e
 
 and call_generic env tok e args =
-  let eorig = G.Call (e, args) in
+  let eorig = G.Call (e, args) |> G.e in
   let e = expr env e in
   (* In theory, instrs in args could have side effect on the value in 'e',
    * but we will agglomerate all those instrs in the environment and
@@ -554,7 +564,7 @@ and call_special _env (x, tok) =
   ( (match x with
     | G.Op _ | G.IncrDecr _ | G.This | G.Super | G.Self | G.Parent
     | G.InterpolatedElement ->
-        impossible (G.E (G.IdSpecial (x, tok)))
+        impossible (G.E (G.IdSpecial (x, tok) |> G.e))
         (* should be intercepted before *)
     | G.Eval -> Eval
     | G.Typeof -> Typeof
@@ -565,7 +575,7 @@ and call_special _env (x, tok) =
     | G.Spread -> Spread
     | G.EncodedString _ | G.Defined | G.HashSplat | G.ForOf | G.NextArrayIndex
       ->
-        todo (G.E (G.IdSpecial (x, tok)))),
+        todo (G.E (G.IdSpecial (x, tok) |> G.e))),
     tok )
 
 and composite_kind = function
@@ -586,7 +596,7 @@ and argument env arg =
   | _ -> todo (G.Ar arg)
 
 and record env ((_tok, origfields, _) as record_def) =
-  let eorig = G.Record record_def in
+  let eorig = G.Record record_def |> G.e in
   let fields =
     origfields
     |> List.map (function
@@ -620,7 +630,7 @@ and record env ((_tok, origfields, _) as record_def) =
 let lval_of_ent env ent =
   match ent.G.name with
   | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
-  | G.EN name -> lval env (G.N name)
+  | G.EN name -> lval env (G.N name |> G.e)
   | G.EDynamic eorig -> lval env eorig
 
 (*e: function [[AST_to_IL.lval_of_ent]] *)
@@ -758,7 +768,7 @@ let rec stmt_aux env st =
         match eopt1 with
         | None ->
             let vtrue = G.Bool (true, tok) in
-            ([], mk_e (Literal vtrue) (G.L vtrue))
+            ([], mk_e (Literal vtrue) (G.L vtrue |> G.e))
         | Some e -> expr_with_pre_stmts env e
       in
       let next =
@@ -827,9 +837,9 @@ let rec stmt_aux env st =
         (* Extract <manager> and <pat> from `with <manager> as <pat>`;
          * <manager> is an expression that evaluates to a context manager,
          * <pat> is optional. *)
-        match manager_as_pat with
+        match manager_as_pat.G.e with
         | G.LetPattern (pat, manager) -> (Some pat, manager)
-        | manager -> (None, manager)
+        | _ -> (None, manager_as_pat)
       in
       python_with_stmt env manager opt_pat body
   | G.Match (_, _, _) -> todo (G.S st)

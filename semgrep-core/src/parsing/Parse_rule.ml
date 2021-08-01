@@ -119,7 +119,8 @@ let error_at_expr (e : G.expr) s =
  * the 'metadata' field in Rule.ml is JSON.
  *)
 let generic_to_json (key : key) ast =
-  let rec aux = function
+  let rec aux x =
+    match x.G.e with
     | G.L (Null _) -> J.Null
     | G.L (Bool (b, _)) -> J.Bool b
     | G.L (Float (Some f, _)) -> J.Float f
@@ -130,13 +131,14 @@ let generic_to_json (key : key) ast =
         J.Object
           (xs
           |> List.map (fun x ->
-                 match x with
-                 | G.Tuple (_, [ L (String (k, _)); v ], _) -> (k, aux v)
+                 match x.G.e with
+                 | G.Tuple (_, [ { e = L (String (k, _)); _ }; v ], _) ->
+                     (k, aux v)
                  | _ ->
                      error_at_expr x
                        ("Expected key/value pair in " ^ fst key ^ " dictionary"))
           )
-    | x -> error_at_expr x "Unexpected generic representation of yaml"
+    | _ -> error_at_expr x "Unexpected generic representation of yaml"
   in
   aux ast
 
@@ -147,7 +149,7 @@ let optlist_to_list = function None -> [] | Some xs -> xs
 (*****************************************************************************)
 
 let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
-  match rule with
+  match rule.G.e with
   (* note that the l/r are actually populated by yaml_to_generic, even
    * though there is no proper corresponding token
    *)
@@ -155,8 +157,8 @@ let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
       let dict = Hashtbl.create 10 in
       fields
       |> List.iter (fun field ->
-             match field with
-             | G.Tuple (_, [ L (String (key_str, t)); value ], _) ->
+             match field.G.e with
+             | G.Tuple (_, [ { e = L (String (key_str, t)); _ }; value ], _) ->
                  (* Those are actually silently ignored by many YAML parsers
                   * which just consider the last key/value as the final one.
                   * This was a source of bugs in semgrep rules where people
@@ -168,9 +170,9 @@ let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
                      (DuplicateYamlKey
                         (spf "duplicate key '%s' in dictionary" key_str, t));
                  Hashtbl.add dict key_str ((key_str, t), value)
-             | x -> error_at_expr x "Not a valid key value pair");
+             | _ -> error_at_expr field "Not a valid key value pair");
       { h = dict; first_tok = l }
-  | x -> error_at_expr x ("each " ^ fst enclosing ^ " should be a dictionary")
+  | _ -> error_at_expr rule ("each " ^ fst enclosing ^ " should be a dictionary")
 
 (* Mutates the Hashtbl! *)
 let (take_opt : dict -> (key -> G.expr -> 'a) -> string -> 'a option) =
@@ -194,24 +196,27 @@ let (take : dict -> (key -> G.expr -> 'a) -> string -> 'a) =
 (*****************************************************************************)
 
 (* TODO: delete at some point, should use parse_string_wrap instead *)
-let parse_string (key : key) = function
+let parse_string (key : key) x =
+  match x.G.e with
   | G.L (String (value, _)) -> value
   | G.N (Id ((value, _), _)) -> value
   | _ -> error_at_key key ("Expected a string value for " ^ fst key)
 
-let parse_string_wrap (key : key) = function
+let parse_string_wrap (key : key) x =
+  match x.G.e with
   | G.L (String (value, t)) -> (value, t)
   | G.N (Id ((value, t), _)) -> (value, t)
   | _ -> error_at_key key ("Expected a string value for " ^ fst key)
 
-let parse_list (key : key) f = function
+let parse_list (key : key) f x =
+  match x.G.e with
   | G.Container (Array, (_, xs, _)) -> List.map f xs
   | _ -> error_at_key key ("Expected a list for " ^ fst key)
 
 (* TODO: delete at some point, should use parse_string_wrap_list *)
 let parse_string_list (key : key) e =
   let extract_string = function
-    | G.L (String (value, _)) -> value
+    | { G.e = G.L (String (value, _)); _ } -> value
     | _ ->
         error_at_key key
           ("Expected all values in the list to be strings for " ^ fst key)
@@ -220,24 +225,27 @@ let parse_string_list (key : key) e =
 
 let parse_string_wrap_list (key : key) e =
   let extract_string = function
-    | G.L (String (value, t)) -> (value, t)
+    | { G.e = G.L (String (value, t)); _ } -> (value, t)
     | _ ->
         error_at_key key
           ("Expected all values in the list to be strings for " ^ fst key)
   in
   parse_list key extract_string e
 
-let parse_listi (key : key) f = function
+let parse_listi (key : key) f x =
+  match x.G.e with
   | G.Container (Array, (_, xs, _)) -> List.mapi f xs
   | _ -> error_at_key key ("Expected a list for " ^ fst key)
 
-let parse_bool (key : key) = function
+let parse_bool (key : key) x =
+  match x.G.e with
   | G.L (String ("true", _)) -> true
   | G.L (String ("false", _)) -> false
   | G.L (Bool (b, _)) -> b
   | _x -> error_at_key key (spf "parse_bool for %s" (fst key))
 
-let parse_int (key : key) = function
+let parse_int (key : key) x =
+  match x.G.e with
   | G.L (Int (Some i, _)) -> i
   | G.L (String (s, _)) -> (
       try int_of_string s
@@ -298,14 +306,22 @@ let parse_fix_regex (env : env) (key : key) fields =
 
 let parse_equivalences key value =
   let parse_equivalence equiv =
-    match equiv with
+    match equiv.G.e with
     | G.Container
         ( Dict,
-          (_, [ Tuple (_, [ L (String ("equivalence", t)); value ], _) ], _) )
-      ->
+          ( _,
+            [
+              {
+                e =
+                  Tuple
+                    (_, [ { e = L (String ("equivalence", t)); _ }; value ], _);
+                _;
+              };
+            ],
+            _ ) ) ->
         parse_string ("equivalence", t) value
-    | x ->
-        error_at_expr x
+    | _ ->
+        error_at_expr equiv
           "Expected `equivalence: $X` for each equivalences list item"
   in
   parse_list key parse_equivalence value
@@ -367,10 +383,10 @@ let parse_pattern ~id ~lang { Rule.pattern; t; path } =
 
 let parse_xpattern env e =
   let s, t =
-    match e with
+    match e.G.e with
     | G.L (String (s, t)) -> (s, t)
     | G.N (Id ((s, t), _)) -> (s, t)
-    | x -> error_at_expr x ("Expected a string value for " ^ env.id)
+    | _ -> error_at_expr e ("Expected a string value for " ^ env.id)
   in
   (* emma: This is for later, but note that start and end_ are currently the same
    * (each pattern is only associated with one token). This might be really annoying
@@ -434,10 +450,14 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   let get_pattern str_e = parse_xpattern env str_e in
   let get_nested_formula i x =
     let env = { env with path = string_of_int i :: env.path } in
-    match x with
-    | G.Container (Dict, (_, [ Tuple (_, [ L (String key); value ], _) ], _)) ->
+    match x.G.e with
+    | G.Container
+        ( Dict,
+          ( _,
+            [ { e = Tuple (_, [ { e = L (String key); _ }; value ], _); _ } ],
+            _ ) ) ->
         parse_formula_old env (key, value)
-    | x -> error_at_expr x "Wrong parse_formula fields"
+    | _ -> error_at_expr x "Wrong parse_formula fields"
   in
   let s, t = key in
   match s with
@@ -471,8 +491,11 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
 (* let extra = parse_extra env x in
    R.PatExtra extra *)
 and parse_formula_new env (x : G.expr) : R.formula =
-  match x with
-  | G.Container (Dict, (_, [ Tuple (_, [ L (String key); value ], _) ], _)) -> (
+  match x.G.e with
+  | G.Container
+      ( Dict,
+        (_, [ { e = Tuple (_, [ { e = L (String key); _ }; value ], _); _ } ], _)
+      ) -> (
       let s, t = key in
 
       match s with
@@ -492,13 +515,13 @@ and parse_formula_new env (x : G.expr) : R.formula =
           let s = parse_string key value in
           R.Leaf (R.MetavarCond (t, R.CondEval (parse_metavar_cond key s)))
       | "metavariable_regex" -> (
-          match value with
+          match value.G.e with
           | G.Container (Array, (_, [ mvar; re ], _)) ->
               let mvar = parse_string key mvar in
               let x = parse_string_wrap key re in
               R.Leaf
                 (R.MetavarCond (t, R.CondRegexp (mvar, parse_regexp env x)))
-          | x -> error_at_expr x "Expected a metavariable and regex")
+          | _ -> error_at_expr value "Expected a metavariable and regex")
       | _ -> error_at_key key ("Invalid key for formula_new " ^ fst key))
   | _ -> R.Leaf (R.P (parse_xpattern env x, None))
 
@@ -618,9 +641,24 @@ let parse_generic file ast =
      {
        G.s =
          G.ExprStmt
-           ( Container
-               ( Dict,
-                 (_, [ Tuple (_, [ L (String ("rules", _)); rules ], _) ], _) ),
+           ( {
+               e =
+                 Container
+                   ( Dict,
+                     ( _,
+                       [
+                         {
+                           e =
+                             Tuple
+                               ( _,
+                                 [ { e = L (String ("rules", _)); _ }; rules ],
+                                 _ );
+                           _;
+                         };
+                       ],
+                       _ ) );
+               _;
+             },
              _ );
        _;
      };
@@ -631,9 +669,10 @@ let parse_generic file ast =
         error (PI.mk_info_of_loc loc) "missing rules entry as top-level key"
   in
   let t, rules =
-    match rules_block with
+    match rules_block.G.e with
     | Container (Array, (l, rules, _r)) -> (l, rules)
-    | x -> error_at_expr x "expected a list of rules following `rules:`"
+    | _ ->
+        error_at_expr rules_block "expected a list of rules following `rules:`"
   in
   rules
   |> List.mapi (fun i rule ->

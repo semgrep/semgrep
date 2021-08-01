@@ -66,7 +66,7 @@ let extract_strings_and_mvars ?lang any =
             | _ -> ());
         V.kexpr =
           (fun (k, _) x ->
-            match x with
+            match x.e with
             (* less: we could extract strings for the other literals too?
              * atoms, chars, even int?
              * We do now semantic equivance on integers between values so

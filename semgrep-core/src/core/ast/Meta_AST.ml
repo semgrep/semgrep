@@ -157,7 +157,9 @@ and vof_name = function
       let v1 = vof_name_ v1 and v2 = vof_id_info v2 in
       OCaml.VSum ("IdQualified", [ v1; v2 ])
 
-and vof_expr = function
+and vof_expr e =
+  (* TODO: also dump e_id? *)
+  match e.e with
   | DotAccessEllipsis (v1, v2) ->
       let v1 = vof_expr v1 in
       let v2 = vof_tok v2 in
