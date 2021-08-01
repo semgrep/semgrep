@@ -38,9 +38,10 @@ let string = id
 
 let bool = id
 
-let int = id
-
-let error = G.error
+(*
+let _int = id
+let _error = G.error
+ *)
 
 (* TODO: each use of this is usually the sign of a todo to improve
  * AST_generic.ml or ast_ml.ml *)
