@@ -82,7 +82,8 @@ let print_match ?(format = Normal) ?(str = "") ii =
         lines
         |> List.map (fun i -> arr.(i))
         |> List.iter (fun s -> pr (" " ^ s))
-    | Emacs -> pr (prefix ^ ": " ^ arr.(List.hd lines))
+    (* bugfix: do not add extra space after ':', otherwise M-x wgrep will not work *)
+    | Emacs -> pr (prefix ^ ":" ^ arr.(List.hd lines))
     | OneLine ->
         pr
           (prefix ^ ": "
