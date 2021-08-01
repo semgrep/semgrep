@@ -6,7 +6,7 @@ module PM = Pattern_match
 module RP = Report
 
 type selector = {
-  mvar : M.mvar;
+  pattern : G.any;
   pid : int;
   pstr : string R.wrap;
   lazy_matches : RP.times RP.match_result Lazy.t;
@@ -38,7 +38,7 @@ let match_selector ?err:(msg = "no match") (sel_opt : selector option) :
       List.map RM.match_result_to_range
         (get_match (Lazy.force selector.lazy_matches))
 
-let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
+(* let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
     RM.ranges =
   let pattern_match_from_binding selector (mvar, mval) =
     {
@@ -66,9 +66,9 @@ let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
                 (pattern_match_from_binding selector binding);
             ])
   in
-  List.flatten (List.map select_from_range ranges)
+  List.flatten (List.map select_from_range ranges) *)
 
-let selector_equal s1 s2 = s1.mvar = s2.mvar
+let selector_equal s1 s2 = s1.pattern = s2.pattern
 
 (*****************************************************************************)
 (* Converter *)
@@ -76,17 +76,14 @@ let selector_equal s1 s2 = s1.mvar = s2.mvar
 
 let selector_from_formula match_func f =
   match f with
-  | R.Leaf (R.P ({ pat = Sem (pattern, _); pid; pstr }, None)) -> (
-      match pattern with
-      | G.E (G.N (G.Id ((mvar, _), _))) ->
-          Some
-            {
-              mvar;
-              pid;
-              pstr;
-              lazy_matches = lazy (match_func [ (pattern, pid, fst pstr) ]);
-            }
-      | _ -> None)
+  | R.Leaf (R.P ({ pat = Sem (pattern, _); pid; pstr }, None)) ->
+      Some
+        {
+          pattern;
+          pid;
+          pstr;
+          lazy_matches = lazy (match_func [ (pattern, pid, fst pstr) ]);
+        }
   | _ -> None
 
 let formula_to_sformula match_func formula =
@@ -106,7 +103,7 @@ let formula_to_sformula match_func formula =
           in
           remove_selectors (selector, acc) xs
     in
-    let _convert_and_formulas fs =
+    let convert_and_formulas fs =
       (* TODO put back this function *)
       let selector, fs = remove_selectors (None, []) fs in
       (selector, List.map formula_to_sformula fs)
@@ -114,7 +111,7 @@ let formula_to_sformula match_func formula =
     (* Visit formula and convert *)
     match formula with
     | R.Leaf leaf -> Leaf leaf
-    | R.And (_, fs) -> And (None, List.map formula_to_sformula fs)
+    | R.And (_, fs) -> And (convert_and_formulas fs)
     | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
   in

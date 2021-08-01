@@ -729,12 +729,62 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
             env.rule_id mvar;
           false)
 
-and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
+and run_metavariable_on_ranges env ranges selector_opt =
+  let run_metavariable_on_range range =
+    match selector_opt with
+    | None -> [ range ]
+    | Some { S.pattern; pid; pstr; _ } ->
+        let content = Range.content_at_range env.file range.RM.r in
+        let r' =
+          (* Fix the range to match the content of the temporary file. *)
+          { range with r = { start = 0; end_ = range.r.end_ - range.r.start } }
+        in
+        let lang =
+          match env.xlang with
+          | R.L (lang, _) -> lang
+          | R.LRegex | R.LGeneric ->
+              failwith
+                "should not be possible to have generic AST with pattern: $X"
+        in
+        let formula =
+          R.Leaf (P ({ pat = Sem (pattern, lang); pid; pstr }, None))
+        in
+        (* We re-parse the successfully matched range *)
+        Common2.with_tmp_file ~str:content ~ext:"selector" (fun file ->
+            let lazy_ast_and_errors =
+              lazy
+                (let { Parse_target.ast; errors; _ } =
+                   Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
+                     lang file
+                 in
+                 if errors <> [] then
+                   pr2
+                     (spf
+                        "rule %s: selector: failed to fully parse the content \
+                         of %s"
+                        env.rule_id content);
+                 (ast, errors))
+            in
+            match_nested_formula { env with file } formula lazy_ast_and_errors
+              (lazy content)
+              (Some r'))
+  in
+  List.flatten (List.map run_metavariable_on_range ranges)
+
+and match_nested_formula env formula lazy_ast_and_errors lazy_content
     opt_context =
   let _, final_ranges =
     let file_and_more = (env.file, env.xlang, lazy_ast_and_errors) in
     matches_of_formula env.config env.equivalences env.rule_id file_and_more
       lazy_content formula opt_context
+  in
+  final_ranges
+
+and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
+    opt_context =
+  let final_ranges =
+    match_nested_formula env formula lazy_ast_and_errors lazy_content
+      opt_context
   in
   match final_ranges with [] -> false | _ :: _ -> true
 
@@ -843,7 +893,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
             conds
             |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res
           in
-          S.select_from_ranges env.file selector_opt res)
+          run_metavariable_on_ranges env res selector_opt)
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
   | S.Leaf (R.MetavarCond _) ->
       failwith "Invalid MetavarCond; you can MetavarCond only inside an And"

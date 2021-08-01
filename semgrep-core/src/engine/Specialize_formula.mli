@@ -5,7 +5,7 @@
 (* of that metavariable. *)
 
 type selector = {
-  mvar : Metavariable.mvar;
+  pattern : AST_generic.any;
   pid : int;
   pstr : string Rule.wrap;
   (* lazy_matches necessary in case `$X` is the only pattern *)
@@ -27,11 +27,11 @@ val fake_rule_id : int * string -> Pattern_match.rule_id
 val match_selector :
   ?err:string -> selector option -> Range_with_metavars.ranges
 
-val select_from_ranges :
+(* val select_from_ranges :
   string ->
   selector option ->
   Range_with_metavars.ranges ->
-  Range_with_metavars.ranges
+  Range_with_metavars.ranges *)
 
 val selector_equal : selector -> selector -> bool
 
