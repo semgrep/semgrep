@@ -14,6 +14,7 @@
  *)
 open OCaml
 open AST_generic
+module G = AST_generic
 module H = AST_generic_helpers
 module PI = Parse_info
 
@@ -220,7 +221,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         (* subtle: old: let v1 = v_xml v1 in ()
          * We want a simple Expr (Xml ...) pattern to also be matched
          * against nested XmlXml elements *)
-        v_expr (Xml v1)
+        v_expr (Xml v1 |> G.e)
   and v_name x =
     let k x =
       match x with
@@ -234,7 +235,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     vin.kname (k, all_functions) x
   and v_expr x =
     let k x =
-      match x with
+      match x.e with
       | DotAccessEllipsis (v1, v2) ->
           v_expr v1;
           v_tok v2
@@ -255,16 +256,18 @@ let (mk_visitor : visitor_in -> visitor_out) =
           (match v1 with
           | Dict ->
               v2 |> unbracket
-              |> List.iter (function
-                   | Tuple (_, [ L (String id); e ], _) ->
+              |> List.iter (fun e ->
+                   match e.e with
+                   | Tuple (_, [ { e = L (String id); _}; e ], _) ->
                        let t = PI.fake_info ":" in
                        v_partial ~recurse:false (PartialSingleField (id, t, e))
                    | _ -> ())
           (* for Go where we use List for composite literals *)
           | List ->
               v2 |> unbracket
-              |> List.iter (function
-                   | Tuple (_, [ N (Id (id, _)); e ], _) ->
+              |> List.iter (fun e ->
+                   match e.e with
+                   | Tuple (_, [ {e = N (Id (id, _)); _}; e ], _) ->
                        let t = PI.fake_info ":" in
                        v_partial ~recurse:false (PartialSingleField (id, t, e))
                    | _ -> ())

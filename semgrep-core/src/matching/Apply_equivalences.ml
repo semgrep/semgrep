@@ -56,7 +56,7 @@ let subst_e (env : Env.t) e =
         M.default_visitor with
         M.kexpr =
           (fun (k, _) x ->
-            match x with
+            match x.e with
             | N (Id ((str, _tok), _id_info)) when MV.is_metavar_name str -> (
                 match List.assoc_opt str bindings with
                 | Some (MV.Id (id, Some idinfo)) ->

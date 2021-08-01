@@ -111,7 +111,7 @@ let list_expr_to_opt xs =
   match xs with
   | [] -> None
   | [ e ] -> Some e
-  | x :: xs -> Some (G.Seq (x :: xs))
+  | x :: xs -> Some (G.Seq (x :: xs) |> G.e)
 
 let for_var xs = xs |> List.map (fun e -> G.ForInitExpr e)
 
@@ -237,7 +237,8 @@ and finally (v : finally list) =
   | [] -> None
   | (t, x) :: xs -> Some (t, G.stmt1 (x :: List.map snd xs))
 
-and expr = function
+and expr e : G.expr =
+  (match e with
   | DeepEllipsis x -> G.DeepEllipsis (bracket expr x)
   | Ellipsis t -> G.Ellipsis t
   | Int v1 ->
@@ -284,15 +285,15 @@ and expr = function
       G.DotAccess (v1, t, G.EDynamic v2)
   | New (t, v1, v2) ->
       let v1 = expr v1 and v2 = list expr v2 in
-      G.Call (G.IdSpecial (G.New, t), fb (v1 :: v2 |> List.map G.arg))
+      G.Call (G.IdSpecial (G.New, t) |> G.e, fb (v1 :: v2 |> List.map G.arg))
   | NewAnonClass (t, args, cdef) ->
       let _ent, cdef = class_def cdef in
       let args = list expr args in
-      let anon_class = G.AnonClass cdef in
-      G.Call (G.IdSpecial (G.New, t), fb (anon_class :: args |> List.map G.arg))
+      let anon_class = G.AnonClass cdef |> G.e in
+      G.Call (G.IdSpecial (G.New, t) |> G.e, fb (anon_class :: args |> List.map G.arg))
   | InstanceOf (t, v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Instanceof, t), fb ([ v1; v2 ] |> List.map G.arg))
+      G.Call (G.IdSpecial (G.Instanceof, t) |> G.e, fb ([ v1; v2 ] |> List.map G.arg))
   (* v[] = 1 --> v <append>= 1.
    * update: because we must generate an OE_ArrayAppend in other contexts,
    * this prevents the simple pattern '$x[]' to be matched in an Assign
@@ -314,14 +315,14 @@ and expr = function
       | Right (special, t) ->
           (* todo: should introduce intermediate var *)
           G.Assign
-            (v1, t, G.Call (G.IdSpecial (special, t), fb [ G.Arg v1; G.Arg v3 ]))
+            (v1, t, G.Call (G.IdSpecial (special, t) |> G.e, fb [ G.Arg v1; G.Arg v3 ]) |> G.e)
       )
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)
   | Arrow (v1, _t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.Tuple (G.fake_bracket [ v1; v2 ])
+      G.Tuple (fb [ v1; v2 ])
   | Ref (t, v1) ->
       let v1 = expr v1 in
       G.Ref (t, v1)
@@ -333,23 +334,23 @@ and expr = function
       G.Call (v1, v2)
   | Infix ((v1, t), v2) ->
       let v1 = fixOp v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v1, G.Prefix), t), fb [ G.Arg v2 ])
+      G.Call (G.IdSpecial (G.IncrDecr (v1, G.Prefix), t) |> G.e, fb [ G.Arg v2 ])
   | Postfix ((v1, t), v2) ->
       let v1 = fixOp v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v1, G.Postfix), t), fb [ G.Arg v2 ])
+      G.Call (G.IdSpecial (G.IncrDecr (v1, G.Postfix), t) |> G.e, fb [ G.Arg v2 ])
   | Binop (v1, v2, v3) -> (
       let v2 = binaryOp v2 and v1 = expr v1 and v3 = expr v3 in
       match v2 with
       | Left (op, t) ->
-          G.Call (G.IdSpecial (G.Op op, t), fb [ G.Arg v1; G.Arg v3 ])
-      | Right x -> G.Call (G.IdSpecial x, fb [ G.Arg v1; G.Arg v3 ]))
+          G.Call (G.IdSpecial (G.Op op, t) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+      | Right x -> G.Call (G.IdSpecial x |> G.e, fb [ G.Arg v1; G.Arg v3 ]))
   | Unop ((v1, t), v2) ->
       let v1 = unaryOp v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Op (H.conv_op v1), t), fb [ G.Arg v2 ])
+      G.Call (G.IdSpecial (G.Op (H.conv_op v1), t) |> G.e, fb [ G.Arg v2 ])
   | Guil (t, v1, _) ->
       let v1 = list expr v1 in
       G.Call
-        ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t),
+        ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, t) |> G.e,
           fb (v1 |> List.map G.arg) )
   | ConsArray v1 ->
       let v1 = bracket (list array_value) v1 in
@@ -394,6 +395,7 @@ and expr = function
               fkind = (G.LambdaKind, t);
             }
       | _ -> error tok "TODO: Lambda")
+  ) |> G.e
 
 and argument e =
   let e = expr e in

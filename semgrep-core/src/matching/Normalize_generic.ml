@@ -76,7 +76,7 @@ let normalize_import_opt is_pattern i =
  * the code below and rely only on Constant_propagation.ml
  *)
 let rec eval x : constness option =
-  match x with
+  match x.e with
   | L x -> Some (Lit x)
   | N (Id (_, { id_constness = { contents = Some x }; _ }))
   | DotAccess

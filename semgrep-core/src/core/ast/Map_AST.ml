@@ -14,6 +14,7 @@
  *)
 open OCaml
 open AST_generic
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -186,7 +187,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
         IdQualified (v1, v2)
   and map_expr x =
     let k x =
-      match x with
+      let ekind =
+      match x.e with
       | N v1 ->
           let v1 = map_name v1 in
           N v1
@@ -290,6 +292,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
       | OtherExpr (v1, v2) ->
           let v1 = map_other_expr_operator v1 and v2 = map_of_list map_any v2 in
           OtherExpr (v1, v2)
+      in
+      (* TODO? reuse the e_id or create a new one? *)
+      G.e ekind
     in
     vin.kexpr (k, all_functions) x
   and map_name_or_dynamic = function

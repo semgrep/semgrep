@@ -55,7 +55,7 @@ let v_option = Common.map_opt
 let cases_to_lambda lb (cases : G.action list) : G.function_definition =
   let id = ("!hidden_scala_param!", lb) in
   let param = G.ParamClassic (G.param_of_id id) in
-  let body = G.Match (lb, G.N (H.name_of_id id), cases) |> G.s in
+  let body = G.Match (lb, G.N (H.name_of_id id) |> G.e, cases) |> G.s in
   {
     fkind = (G.BlockCases, lb);
     frettype = None;
@@ -103,14 +103,14 @@ let v_simple_ref = function
       Left v1
   | This (v1, v2) ->
       let _v1TODO = v_option v_ident v1 and v2 = v_tok v2 in
-      Right (G.IdSpecial (G.This, v2))
+      Right (G.IdSpecial (G.This, v2) |> G.e)
   | Super (v1, v2, v3, v4) ->
       let _v1TODO = v_option v_ident v1
       and v2 = v_tok v2
       and _v3TODO = v_option (v_bracket v_ident) v3
       and v4 = v_ident v4 in
       let fld = G.EN (G.Id (v4, G.empty_id_info ())) in
-      Right (G.DotAccess (G.IdSpecial (G.Super, v2), fake ".", fld))
+      Right (G.DotAccess (G.IdSpecial (G.Super, v2) |> G.e, fake ".", fld) |> G.e)
 
 (* TODO: should not use *)
 let id_of_simple_ref = function
@@ -189,16 +189,16 @@ let rec v_literal = function
       Left (G.Null v1)
   | Interpolated (v1, v2, v3) ->
       let v1 = v_ident v1 and v2 = v_list v_encaps v2 and v3 = v_tok v3 in
-      let special = G.IdSpecial (G.ConcatString G.FString, snd v1) in
+      let special = G.IdSpecial (G.ConcatString G.FString, snd v1) |> G.e in
       let args =
         v2
         |> List.map (function
-             | Left lit -> G.Arg (G.L lit)
+             | Left lit -> G.Arg (G.L lit |> G.e)
              | Right e ->
-                 let special = G.IdSpecial (G.InterpolatedElement, fake "") in
-                 G.Arg (G.Call (special, fb [ G.Arg e ])))
+                 let special = G.IdSpecial (G.InterpolatedElement, fake "") |> G.e in
+                 G.Arg (G.Call (special, fb [ G.Arg e ])|> G.e))
       in
-      Right (G.Call (special, (snd v1, args, v3)))
+      Right (G.Call (special, (snd v1, args, v3)) |> G.e)
 
 and v_encaps = function
   | EncapsStr v1 ->
@@ -207,7 +207,7 @@ and v_encaps = function
   | EncapsDollarIdent v1 ->
       let v1 = v_ident v1 in
       let name = H.name_of_id v1 in
-      Right (G.N name)
+      Right (G.N name |> G.e)
   | EncapsExpr v1 ->
       (* always a Block *)
       let v1 = v_expr v1 in
@@ -219,7 +219,7 @@ and v_type_ = function
   | TyLiteral v1 -> (
       let v1 = v_literal v1 in
       match v1 with
-      | Left lit -> todo_type "TyLiteralLit" [ G.E (G.L lit) ]
+      | Left lit -> todo_type "TyLiteralLit" [ G.E (G.L lit |> G.e) ]
       | Right e -> todo_type "TyLiteralExpr" [ G.E e ])
   | TyName v1 ->
       let xs = v_dotted_name_of_stable_id v1 in
@@ -344,23 +344,24 @@ and v_pattern = function
 
 and todo_expr msg any = G.OtherExpr (G.OE_Todo, G.TodoK (msg, fake msg) :: any)
 
-and v_expr = function
+and v_expr e =
+  (match e with
   | Ellipsis v1 -> G.Ellipsis v1
   | DeepEllipsis v1 -> G.DeepEllipsis (v_bracket v_expr v1)
   | L v1 -> (
       let v1 = v_literal v1 in
-      match v1 with Left lit -> G.L lit | Right e -> e)
+      match v1 with Left lit -> G.L lit | Right e -> e.G.e)
   | Tuple v1 ->
       let v1 = v_bracket (v_list v_expr) v1 in
       G.Tuple v1
   | Name v1 ->
       let sref, ids = v_path v1 in
       let start =
-        match sref with Left id -> G.N (H.name_of_id id) | Right e -> e
+        match sref with Left id -> G.N (H.name_of_id id) | Right e -> e.G.e
       in
       ids
       |> List.fold_left
-           (fun acc fld -> G.DotAccess (acc, fake ".", G.EN (H.name_of_id fld)))
+           (fun acc fld -> G.DotAccess (acc |> G.e, fake ".", G.EN (H.name_of_id fld)))
            start
   | ExprUnderscore v1 ->
       let v1 = v_tok v1 in
@@ -377,16 +378,17 @@ and v_expr = function
       G.DotAccess (v1, v2, G.EN name)
   | Apply (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_list v_arguments v2 in
-      v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs)) v1
+      let x = v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs) |> G.e) v1 in
+      x.G.e
   | Infix (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_ident v2 and v3 = v_expr v3 in
-      G.Call (G.N (H.name_of_id v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.N (H.name_of_id v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | Prefix (v1, v2) ->
       let v1 = v_op v1 and v2 = v_expr v2 in
-      G.Call (G.N (H.name_of_id v1), fb [ G.Arg v2 ])
+      G.Call (G.N (H.name_of_id v1) |> G.e, fb [ G.Arg v2 ])
   | Postfix (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_ident v2 in
-      G.Call (G.N (H.name_of_id v2), fb [ G.Arg v1 ])
+      G.Call (G.N (H.name_of_id v2) |> G.e, fb [ G.Arg v1 ])
   | Assign (v1, v2, v3) ->
       let v1 = v_lhs v1 and v2 = v_tok v2 and v3 = v_expr v3 in
       G.Assign (v1, v2, v3)
@@ -395,14 +397,14 @@ and v_expr = function
       G.Lambda v1
   | New (v1, v2) ->
       let v1 = v_tok v1 and v2, argss = v_template_definition v2 in
-      let cl = G.AnonClass v2 in
-      let special = G.IdSpecial (G.New, v1) in
+      let cl = G.AnonClass v2 |> G.e in
+      let special = G.IdSpecial (G.New, v1) |> G.e in
       let start = G.Call (special, fb [ G.Arg cl ]) in
-      argss |> List.fold_left (fun acc args -> G.Call (acc, args)) start
+      argss |> List.fold_left (fun acc args -> G.Call (acc |> G.e, args)) start
   | BlockExpr v1 -> (
       let lb, kind, _rb = v_block_expr v1 in
       match kind with
-      | Left stats -> expr_of_block stats
+      | Left stats -> let x = expr_of_block stats in x.G.e
       | Right cases -> G.Lambda (cases_to_lambda lb cases))
   (* TODO: should move Match under S in ast_scala.ml *)
   | Match (v1, v2, v3) ->
@@ -410,10 +412,13 @@ and v_expr = function
       and v2 = v_tok v2
       and v3 = v_bracket v_case_clauses v3 in
       let st = G.Match (v2, v1, G.unbracket v3) |> G.s in
-      G.stmt_to_expr st
+      let x = G.stmt_to_expr st in
+      x.G.e
   | S v1 ->
       let v1 = v_stmt v1 in
-      G.stmt_to_expr v1
+      let x = G.stmt_to_expr v1 in
+      x.G.e
+  ) |> G.e
 
 (* alt: transform in a series of Seq? *)
 and expr_of_block xs : G.expr =
@@ -430,7 +435,7 @@ and v_arguments = function
       let lb, kind, rb = v_block_expr v1 in
       match kind with
       | Left stats -> (lb, [ G.Arg (expr_of_block stats) ], rb)
-      | Right cases -> (lb, [ G.Arg (G.Lambda (cases_to_lambda lb cases)) ], rb)
+      | Right cases -> (lb, [ G.Arg (G.Lambda (cases_to_lambda lb cases) |> G.e) ], rb)
       )
 
 and v_argument v =
@@ -556,7 +561,7 @@ and v_generator
 and v_for_body = function
   | Yield (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_expr v2 in
-      let e = G.Yield (v1, Some v2, false) in
+      let e = G.Yield (v1, Some v2, false) |> G.e in
       G.exprstmt e
   | NoYield v1 ->
       let v1 = v_expr_for_stmt v1 in
@@ -747,7 +752,7 @@ and v_fbody = function
       | Left stats -> G.Block (lb, stats, rb) |> G.s
       | Right cases ->
           let def = cases_to_lambda lb cases in
-          G.exprstmt (G.Lambda def))
+          G.exprstmt (G.Lambda def |> G.e))
   | FExpr (v1, v2) ->
       let _v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
       v2

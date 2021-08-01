@@ -28,7 +28,7 @@ let expr x =
           (fun (k, _) e ->
             (* apply on children *)
             let e = k e in
-            match e with
+            match e.G.e with
             | Record (lp, xs, rp) ->
                 let ys =
                   xs
@@ -42,7 +42,7 @@ let expr x =
                              _;
                            } ->
                            Left (id, e)
-                       | G.FieldStmt { s = ExprStmt (Ellipsis t, _); _ } ->
+                       | G.FieldStmt { s = ExprStmt ({ e = Ellipsis (t); _}, _); _ } ->
                            Right t
                        | x ->
                            failwith
@@ -57,14 +57,14 @@ let expr x =
                               * in "$FLD" : 1, which currently would not match
                               * anything in Semgrep (this may change though) *)
                              if AST_generic_.is_metavar_name (fst id) then
-                               G.N (G.Id (id, G.empty_id_info ()))
-                             else G.L (G.String id)
+                               G.N (G.Id (id, G.empty_id_info ())) |> G.e
+                             else G.L (G.String id) |> G.e
                            in
-                           G.Tuple (G.fake_bracket [ key; e ])
-                       | Right t -> G.Ellipsis t)
+                           G.Tuple (G.fake_bracket [ key; e ]) |> G.e
+                       | Right t -> G.Ellipsis t |> G.e)
                 in
-                G.Container (G.Dict, (lp, zs, rp))
-            | x -> x);
+                G.Container (G.Dict, (lp, zs, rp)) |> G.e
+            | _ -> e);
       }
   in
   visitor.M.vexpr e

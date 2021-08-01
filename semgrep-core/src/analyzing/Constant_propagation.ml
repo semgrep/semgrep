@@ -141,24 +141,24 @@ let var_stats prog : var_stats =
           | _ -> k x);
       V.kexpr =
         (fun (k, vout) x ->
-          match x with
+          match x.e with
           (* TODO: very incomplete, what if Assign (Tuple?) *)
           | Assign
-              ( N
+              ( { e = N
                   (Id
-                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ })),
+                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ })); _},
                 _,
                 e2 )
           | AssignOp
-              ( N
+              ( { e = N
                   (Id
-                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ })),
+                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ })); _},
                 _,
                 e2 ) ->
               let var = (H.str_of_ident id, sid) in
               let stat = get_stat_or_create var h in
               incr stat.lvalue;
-              (match x with AssignOp _ -> incr stat.rvalue | _ -> ());
+              (match x.e with AssignOp _ -> incr stat.rvalue | _ -> ());
               vout (E e2)
           | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
             ->
@@ -212,16 +212,17 @@ let string_of_literal = function String (s, _) -> Some s | __else__ -> None
 let eval_bop_string op s1 s2 =
   match op with Plus -> Some (s1 ^ s2) | __else__ -> None
 
-let rec eval_expr env = function
+let rec eval_expr env e =
+  match e.e with
   | L literal -> Some literal
   | N (Id (id, id_info)) -> find_id env id id_info
   (* TODO: do what we do in Normalize_generic.ml.
    * | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->
    *)
-  | Call (IdSpecial (Op op, _), (_, args, _)) -> eval_op env op args
-  | Call (IdSpecial (ConcatString _, _), (_, args, _)) ->
+  | Call ({ e = IdSpecial (Op op, _); _}, (_, args, _)) -> eval_op env op args
+  | Call ({ e = IdSpecial (ConcatString _, _); _}, (_, args, _)) ->
       eval_concat_string env args
-  | Call (IdSpecial (InterpolatedElement, _), (_, [ Arg e ], _)) ->
+  | Call ({ e = IdSpecial (InterpolatedElement, _); _}, (_, [ Arg e ], _)) ->
       eval_expr env e
   | __else__ -> None
 
@@ -299,7 +300,7 @@ let propagate_basic lang prog =
                 attrs;
                 _;
               },
-              VarDef { vinit = Some (L literal); _ } )
+              VarDef { vinit = Some ({ e = L (literal); _}); _ } )
           (* note that some languages such as Python do not have VarDef.
            * todo? should add those somewhere instead of in_lvalue detection?*)
             ->
@@ -318,12 +319,12 @@ let propagate_basic lang prog =
       (* the uses (and also defs for Python Assign) *)
       V.kexpr =
         (fun (k, v) x ->
-          match x with
+          match x.e with
           | N (Id (id, id_info)) when not !(env.in_lvalue) -> (
               match find_id env id id_info with
               | Some literal -> id_info.id_constness := Some (Lit literal)
               | _ -> ())
-          | DotAccess (IdSpecial (This, _), _, EN (Id (id, id_info)))
+          | DotAccess ({ e = IdSpecial (This, _); _}, _, EN (Id (id, id_info)))
             when not !(env.in_lvalue) -> (
               match find_id env id id_info with
               | Some literal -> id_info.id_constness := Some (Lit literal)
@@ -333,7 +334,7 @@ let propagate_basic lang prog =
               Common.save_excursion env.in_lvalue false (fun () -> v (E e2))
               (* Assign that is really a hidden VarDef (e.g., in Python) *)
           | Assign
-              ( N (Id (id, { id_resolved = { contents = Some (kind, sid) }; _ })),
+              ( { e = N (Id (id, { id_resolved = { contents = Some (kind, sid) }; _ })); _},
                 _,
                 rexp ) ->
               eval_expr env rexp

@@ -66,10 +66,10 @@ let rec unaryOp (a, tok) =
   match a with
   | GetRef -> fun e -> G.Ref (tok, e)
   | DeRef -> fun e -> G.DeRef (tok, e)
-  | UnPlus -> fun e -> G.Call (G.IdSpecial (G.Op G.Plus, tok), fb [ G.Arg e ])
-  | UnMinus -> fun e -> G.Call (G.IdSpecial (G.Op G.Minus, tok), fb [ G.Arg e ])
-  | Tilde -> fun e -> G.Call (G.IdSpecial (G.Op G.BitNot, tok), fb [ G.Arg e ])
-  | Not -> fun e -> G.Call (G.IdSpecial (G.Op G.Not, tok), fb [ G.Arg e ])
+  | UnPlus -> fun e -> G.Call (G.IdSpecial (G.Op G.Plus, tok) |> G.e, fb [ G.Arg e ])
+  | UnMinus -> fun e -> G.Call (G.IdSpecial (G.Op G.Minus, tok) |> G.e, fb [ G.Arg e ])
+  | Tilde -> fun e -> G.Call (G.IdSpecial (G.Op G.BitNot, tok) |> G.e, fb [ G.Arg e ])
+  | Not -> fun e -> G.Call (G.IdSpecial (G.Op G.Not, tok) |> G.e, fb [ G.Arg e ])
   | GetRefLabel -> fun e -> G.OtherExpr (G.OE_GetRefLabel, [ G.E e ])
 
 and assignOp = function
@@ -159,7 +159,8 @@ and parameter_classic { p_type; p_name } =
 
 and struct_kind = function Struct -> G.OT_StructName | Union -> G.OT_UnionName
 
-and expr = function
+and expr e =
+  (match e with
   | Int v1 ->
       let v1 = wrap id v1 in
       G.L (G.Int v1)
@@ -178,11 +179,11 @@ and expr = function
   | Null v1 -> G.L (G.Null v1)
   | ConcatString xs ->
       G.Call
-        ( G.IdSpecial (G.ConcatString G.SequenceConcat, fake " "),
-          fb (xs |> List.map (fun x -> G.Arg (G.L (G.String x)))) )
+        ( G.IdSpecial (G.ConcatString G.SequenceConcat, fake " ") |> G.e,
+          fb (xs |> List.map (fun x -> G.Arg (G.L (G.String x) |> G.e))) )
   | Defined (t, id) ->
-      let e = G.N (G.Id (id, G.empty_id_info ())) in
-      G.Call (G.IdSpecial (G.Defined, t), fb [ G.Arg e ])
+      let e = G.N (G.Id (id, G.empty_id_info ())) |> G.e in
+      G.Call (G.IdSpecial (G.Defined, t) |> G.e, fb [ G.Arg e ])
   | Id v1 ->
       let v1 = name v1 in
       G.N (G.Id (v1, G.empty_id_info ()))
@@ -205,22 +206,22 @@ and expr = function
       G.ArrayAccess (v1, v2)
   | RecordPtAccess (v1, t, v2) ->
       let v1 = expr v1 and t = info t and v2 = name v2 in
-      G.DotAccess (G.DeRef (t, v1), t, G.EN (Id (v2, G.empty_id_info ())))
+      G.DotAccess (G.DeRef (t, v1) |> G.e, t, G.EN (Id (v2, G.empty_id_info ())))
   | Cast (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
       G.Cast (v1, v2)
   | Postfix (v1, (v2, v3)) ->
       let v1 = expr v1 and v2 = fixOp v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v2, G.Postfix), v3), fb [ G.Arg v1 ])
+      G.Call (G.IdSpecial (G.IncrDecr (v2, G.Postfix), v3) |> G.e, fb [ G.Arg v1 ])
   | Infix (v1, (v2, v3)) ->
       let v1 = expr v1 and v2 = fixOp v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v2, G.Prefix), v3), fb [ G.Arg v1 ])
+      G.Call (G.IdSpecial (G.IncrDecr (v2, G.Prefix), v3) |> G.e, fb [ G.Arg v1 ])
   | Unary (v1, v2) ->
       let v1 = expr v1 and v2 = unaryOp v2 in
       v2 v1
   | Binary (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = binaryOp v2 and v3 = expr v3 in
-      G.Call (G.IdSpecial (G.Op v2, tok), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op v2, tok) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | CondExpr (v1, v2, v3) ->
       let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
       G.Conditional (v1, v2, v3)
@@ -230,7 +231,7 @@ and expr = function
   | SizeOf (t, v1) ->
       let v1 = either expr type_ v1 in
       G.Call
-        ( G.IdSpecial (G.Sizeof, t),
+        ( G.IdSpecial (G.Sizeof, t) |> G.e,
           match v1 with
           | Left e -> fb [ G.Arg e ]
           | Right t -> fb [ G.ArgType t ] )
@@ -242,7 +243,7 @@ and expr = function
                match v1 with
                | None -> v2
                | Some e ->
-                   G.OtherExpr (G.OE_ArrayInitDesignator, [ G.E e; G.E v2 ])))
+                   G.OtherExpr (G.OE_ArrayInitDesignator, [ G.E e; G.E v2 ]) |> G.e))
           v1
       in
       G.Container (G.Array, v1)
@@ -258,12 +259,13 @@ and expr = function
   | GccConstructor (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
       G.Call
-        ( G.IdSpecial (G.New, fake "new"),
+        ( G.IdSpecial (G.New, fake "new") |> G.e,
           fb (G.ArgType v1 :: ([ v2 ] |> List.map G.arg)) )
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in
       G.TypedMetavar (v1, Parse_info.fake_info " ", v2)
+  ) |> G.e
 
 and argument v =
   match v with
@@ -443,7 +445,7 @@ and directive = function
   | OtherDirective (v1, v2) ->
       let v1 = name v1 in
       let v2 =
-        match v2 with None -> [] | Some s -> [ G.E (G.L (G.String s)) ]
+        match v2 with None -> [] | Some s -> [ G.E (G.L (G.String s) |> G.e) ]
       in
       G.DirectiveStmt (G.Pragma (v1, v2))
 

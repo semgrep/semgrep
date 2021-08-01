@@ -1204,7 +1204,7 @@ and map_expression (env : env) (x : CST.expression) =
       | `Scoped_id x ->
           let id_qualified = map_scoped_identifier env x in
           let ident, name_qualifier =
-            match id_qualified with
+            match id.G.e_qualified with
             | G.N
                 (G.IdQualified
                   ((ident, { name_qualifier; name_typeargs = None; _ }), _)) ->

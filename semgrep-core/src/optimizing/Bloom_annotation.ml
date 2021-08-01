@@ -80,7 +80,7 @@ let rec statement_strings stmt =
         V.kident = (fun (_k, _) (str, _tok) -> push str res);
         V.kexpr =
           (fun (k, _) x ->
-            match x with
+            match x.e with
             (* less: we could extract strings for the other literals too?
              * atoms, chars, even int?
              *)

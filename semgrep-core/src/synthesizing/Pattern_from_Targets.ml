@@ -331,7 +331,7 @@ let pattern_from_assign env (e1, tok, e2) : pattern_instrs =
   ]
 
 let pattern_from_expr env e : pattern_instrs =
-  match e with
+  match e.e with
   | Call (e', (lp, args, rp)) -> pattern_from_call env (e', (lp, args, rp))
   | L l -> pattern_from_literal env l
   | Assign (e1, tok, e2) -> pattern_from_assign env (e1, tok, e2)

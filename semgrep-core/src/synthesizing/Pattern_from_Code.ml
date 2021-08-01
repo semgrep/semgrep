@@ -97,7 +97,7 @@ let get_id ?(with_type = false) env e =
       let has_type = env.has_type in
       let new_id, new_has_type =
         if with_type then
-          match e with
+          match e.e with
           | N (Id (_, { id_type; _ })) -> (
               match !id_type with
               | None -> (notype_id, has_type)
@@ -105,7 +105,7 @@ let get_id ?(with_type = false) env e =
           | L (String (_, tag)) -> (L (String ("...", tag)), false)
           | _ -> (notype_id, has_type)
         else
-          match e with
+          match e.e with
           | L (String (_, tag)) -> (L (String ("...", tag)), false)
           | _ -> (notype_id, has_type)
       in
@@ -160,7 +160,7 @@ let rec deep_mv_call (e, (lp, es, rp)) with_type env =
 and deep_mv_args with_type env args =
   let get_new_arg (e, xs) =
     let env', new_e =
-      match e with
+      match e.e with
       | Call (e, (lp, es, rp)) -> deep_mv_call (e, (lp, es, rp)) with_type env
       | _ -> get_id ~with_type env e
     in
@@ -199,7 +199,7 @@ let generalize_call env = function
         | None -> d_mvar
         | Some e' -> e' :: d_mvar
       in
-      match e with
+      match e.e with
       | IdSpecial _ -> exact_metavar (e, (lp, es, rp)) env :: optional
       | _ ->
           shallow_dots (e, (lp, rp))
@@ -210,7 +210,7 @@ let generalize_call env = function
 
 (* Id *)
 let generalize_id env e =
-  match e with
+  match e.e with
   | G.N (Id _) ->
       let _, id = get_id env e in
       let env', id_t = get_id ~with_type:true env e in
@@ -226,7 +226,7 @@ let rec include_e2_patterns env (e1, tok, e2) =
     env'
 
 and generalize_assign env e =
-  match e with
+  match e.e with
   | Assign (e1, tok, e2) ->
       let env1, id1 = get_id env e1 in
       let _, id2 = get_id env1 e2 in
@@ -245,7 +245,7 @@ and generalize_assign env e =
 
 (* All expressions *)
 and generalize_exp e env =
-  match e with
+  match e.e with
   | Call _ -> generalize_call env e
   | N (Id _) -> generalize_id env e
   | L _ ->

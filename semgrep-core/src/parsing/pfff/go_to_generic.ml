@@ -80,7 +80,7 @@ let list_to_tuple_or_expr xs =
   match xs with
   | [] -> raise Impossible
   | [ x ] -> x
-  | xs -> G.Tuple (G.fake_bracket xs)
+  | xs -> G.Tuple (G.fake_bracket xs) |> G.e
 
 let mk_func_def fkind params ret st =
   { G.fparams = params; frettype = ret; fbody = st; fkind }
@@ -189,7 +189,7 @@ let top_func () =
         let _v1TODO = option tok v1 and v2 = qualified_ident v2 in
         let name = name_of_qualified_ident v2 in
         G.FieldSpread
-          (fake "...", G.N (G.IdQualified (name, G.empty_id_info ())))
+          (fake "...", G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e)
     | FieldEllipsis t -> G.fieldEllipsis t
   and tag v = wrap string v
   and interface_field = function
@@ -208,10 +208,11 @@ let top_func () =
         let v1 = qualified_ident v1 in
         let name = name_of_qualified_ident v1 in
         G.FieldSpread
-          (fake "...", G.N (G.IdQualified (name, G.empty_id_info ())))
+          (fake "...", G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e)
     | FieldEllipsis2 t -> G.fieldEllipsis t
   and expr_or_type v = either expr type_ v
-  and expr = function
+  and expr e =
+    (match e with
     | BasicLit v1 ->
         let v1 = literal v1 in
         G.L v1
@@ -238,18 +239,18 @@ let top_func () =
         G.Ref (v1, v2)
     | Unary (v1, v2) ->
         let v1, tok = wrap arithmetic_operator v1 and v2 = expr v2 in
-        G.Call (G.IdSpecial (G.Op (H.conv_op v1), tok), fb [ G.arg v2 ])
+        G.Call (G.IdSpecial (G.Op (H.conv_op v1), tok) |> G.e, fb [ G.arg v2 ])
     | Binary (v1, v2, v3) ->
         let v1 = expr v1
         and v2, tok = wrap arithmetic_operator v2
         and v3 = expr v3 in
         G.Call
-          ( G.IdSpecial (G.Op (H.conv_op v2), tok),
+          ( G.IdSpecial (G.Op (H.conv_op v2), tok) |> G.e,
             fb ([ v1; v3 ] |> List.map G.arg) )
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1
         and _t1, v2, _t2 = bracket (list init_for_composite_lit) v2 in
-        G.Call (G.IdSpecial (G.New, fake "new"), fb (G.ArgType v1 :: v2))
+        G.Call (G.IdSpecial (G.New, fake "new") |> G.e, fb (G.ArgType v1 :: v2))
     | Slice (v1, (t1, v2, t2)) ->
         let e = expr v1 in
         let v1, v2, v3 = v2 in
@@ -260,7 +261,7 @@ let top_func () =
     | TypeAssert (v1, (lp, v2, rp)) ->
         let v1 = expr v1 and v2 = type_ v2 in
         G.Call
-          ( G.IdSpecial (G.Instanceof, fake "instanceof"),
+          ( G.IdSpecial (G.Instanceof, fake "instanceof") |> G.e,
             (lp, [ G.Arg v1; G.ArgType v2 ], rp) )
     | Ellipsis v1 ->
         let v1 = tok v1 in
@@ -289,6 +290,8 @@ let top_func () =
         error
           (ii_of_any (T v1) |> List.hd)
           ("ParenType should disappear" ^ Common.dump v1)
+    ) |> G.e
+
   and literal = function
     | Int v1 ->
         let v1 = wrap id v1 in
@@ -317,7 +320,7 @@ let top_func () =
     | ArgDots (v1, v2) ->
         let v1 = expr v1 in
         let v2 = tok v2 in
-        let special = G.Call (G.IdSpecial (G.Spread, v2), fb [ G.arg v1 ]) in
+        let special = G.Call (G.IdSpecial (G.Spread, v2) |> G.e, fb [ G.arg v1 ]) |> G.e in
         G.Arg special
   and init = function
     | InitExpr v1 ->
@@ -325,10 +328,11 @@ let top_func () =
         v1
     | InitKeyValue (v1, v2, v3) ->
         let v1 = init v1 and _v2 = tok v2 and v3 = init v3 in
-        G.Tuple (G.fake_bracket [ v1; v3 ])
+        G.Tuple (G.fake_bracket [ v1; v3 ]) |> G.e
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in
-        G.Container (G.List, v1)
+        G.Container (G.List, v1) |> G.e
+
   and init_for_composite_lit = function
     | InitExpr v1 ->
         let v1 = expr v1 in
@@ -337,10 +341,10 @@ let top_func () =
         let _v2 = tok v2 and v3 = init v3 in
         match v1 with
         | InitExpr (Id id) -> G.ArgKwd (id, v3)
-        | _ -> G.Arg (G.Tuple (G.fake_bracket [ init v1; v3 ])))
+        | _ -> G.Arg (G.Tuple (G.fake_bracket [ init v1; v3 ]) |> G.e))
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in
-        G.Arg (G.Container (G.List, v1))
+        G.Arg (G.Container (G.List, v1) |> G.e)
   and constant_expr v = expr v
   and simple = function
     | ExprStmt v1 ->
@@ -349,7 +353,7 @@ let top_func () =
     (* nice language! Assigns are at statement level! *)
     | Assign (v1, v2, v3) ->
         let v1 = list expr v1 and v2 = tok v2 and v3 = list expr v3 in
-        G.Assign (list_to_tuple_or_expr v1, v2, list_to_tuple_or_expr v3)
+        G.Assign (list_to_tuple_or_expr v1, v2, list_to_tuple_or_expr v3) |> G.e
     | DShortVars (v1, v2, v3) ->
         let v1 = list expr v1 and v2 = tok v2 and v3 = list expr v3 in
         (* people don't want '=' assign pattern to match ':=' short var decls,
@@ -357,18 +361,18 @@ let top_func () =
          * less: could define a ColonEq operator in AST_generic.ml
          *)
         G.AssignOp
-          (list_to_tuple_or_expr v1, (G.Eq, v2), list_to_tuple_or_expr v3)
+          (list_to_tuple_or_expr v1, (G.Eq, v2), list_to_tuple_or_expr v3) |> G.e
     | AssignOp (v1, v2, v3) ->
         let v1 = expr v1
         and v2, tok = wrap arithmetic_operator v2
         and v3 = expr v3 in
-        G.AssignOp (v1, (H.conv_op v2, tok), v3)
+        G.AssignOp (v1, (H.conv_op v2, tok), v3) |> G.e
     | IncDec (v1, v2, v3) ->
         let v1 = expr v1
         and v2, tok = wrap incr_decr v2
         and v3 = prefix_postfix v3 in
         G.Call
-          (G.IdSpecial (G.IncrDecr (H.conv_incr v2, v3), tok), fb [ G.Arg v1 ])
+          (G.IdSpecial (G.IncrDecr (H.conv_incr v2, v3), tok) |> G.e, fb [ G.Arg v1 ]) |> G.e
   (* invariant: you should not use 'list stmt', but instead always
    * use list stmt_aux ... |> List.flatten
    *)
@@ -413,14 +417,14 @@ let top_func () =
                 (match s with
                 | ExprStmt (TypeSwitchExpr (e, tok1)) ->
                     let e = expr e in
-                    G.Call (G.IdSpecial (G.Typeof, tok1), fb [ G.Arg e ])
+                    G.Call (G.IdSpecial (G.Typeof, tok1) |> G.e, fb [ G.Arg e ]) |> G.e
                 | DShortVars (xs, tok1, [ TypeSwitchExpr (e, tok2) ]) ->
                     let xs = list expr xs in
                     let e = expr e in
                     G.Assign
                       ( list_to_tuple_or_expr xs,
                         tok1,
-                        G.Call (G.IdSpecial (G.Typeof, tok2), fb [ G.Arg e ]) )
+                        G.Call (G.IdSpecial (G.Typeof, tok2) |> G.e, fb [ G.Arg e ]) |> G.e ) |> G.e
                 | s -> simple s)
         and v3 = list case_clause v3 in
         wrap_init_in_block_maybe v1 (G.Switch (v0, v2, v3) |> G.s)
@@ -453,10 +457,10 @@ let top_func () =
         [ G.Label (v1, v2) |> G.s ]
     | Go (v1, v2) ->
         let _v1 = tok v1 and e, args = call_expr v2 in
-        [ G.OtherStmt (G.OS_Go, [ G.E (G.Call (e, args)) ]) |> G.s ]
+        [ G.OtherStmt (G.OS_Go, [ G.E (G.Call (e, args) |> G.e) ]) |> G.s ]
     | Defer (v1, v2) ->
         let _v1 = tok v1 and e, args = call_expr v2 in
-        [ G.OtherStmt (G.OS_Defer, [ G.E (G.Call (e, args)) ]) |> G.s ]
+        [ G.OtherStmt (G.OS_Defer, [ G.E (G.Call (e, args) |> G.e) ]) |> G.s ]
   and for_header = function
     | ForEllipsis t -> G.ForEllipsis t
     | ForClassic (v1, v2, v3) ->
@@ -509,7 +513,7 @@ let top_func () =
                | Left e -> e
                | Right _ -> error tok "TODO: Case Assign with Type?")
         in
-        [ G.CaseEqualExpr (tok, G.Assign (list_to_tuple_or_expr v1, v2, v3)) ]
+        [ G.CaseEqualExpr (tok, G.Assign (list_to_tuple_or_expr v1, v2, v3) |> G.e) ]
     | CaseDefault v1 ->
         let v1 = tok v1 in
         [ G.Default v1 ]
@@ -602,7 +606,7 @@ let top_func () =
         G.Partial (G.PartialSingleField (v1, v2, v3))
     | PartialInitBraces v1 ->
         let v1 = bracket (list init) v1 in
-        let e = G.Container (G.List, v1) in
+        let e = G.Container (G.List, v1) |> G.e in
         G.E e
   and any x =
     let res =

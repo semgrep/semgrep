@@ -145,10 +145,10 @@ and stmt e : G.stmt =
       and v5 = stmt v5 in
       let ent = G.basic_entity v1 [] in
       let var = { G.vinit = Some v2; vtype = None } in
-      let n = G.N (G.Id (v1, G.empty_id_info ())) in
-      let next = G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1, tok))) in
+      let n = G.N (G.Id (v1, G.empty_id_info ())) |> G.e in
+      let next = G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1, tok)) |> G.e) |> G.e in
       let cond =
-        G.Call (G.IdSpecial (G.Op condop, tok), fb [ G.Arg n; G.Arg v4 ])
+        G.Call (G.IdSpecial (G.Op condop, tok) |> G.e, fb [ G.Arg n; G.Arg v4 ]) |> G.e
       in
       let header =
         G.ForClassic ([ G.ForInitVar (ent, var) ], Some cond, Some next)
@@ -171,16 +171,16 @@ and stmt e : G.stmt =
        * update: there are cases though where we want to generate an
        * ExprStmt for Ellipsis otherwise Generic_vs_generic will not work.
        *)
-      match e with
+      match e.G.e with
       | G.Ellipsis _ | G.DeepEllipsis _ -> G.exprstmt e
       | _ -> G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) |> G.s)
 
 and expr e =
-  match e with
+  (match e with
   | TypedExpr (v1, v2, v3) -> (
       let v1 = expr v1 in
       let v3 = type_ v3 in
-      match v1 with
+      match v1.G.e with
       | G.N (G.Id (id, _idinfo)) when AST_generic_.is_metavar_name (fst id) ->
           G.TypedMetavar (id, v2, v3)
       | _ -> G.Cast (v3, v1))
@@ -213,11 +213,11 @@ and expr e =
       G.Container (G.List, v1)
   | Prefix (v1, v2) ->
       let v1 = wrap string v1 and v2 = expr v2 in
-      G.Call (G.N (G.Id (v1, G.empty_id_info ())), fb [ G.Arg v2 ])
+      G.Call (G.N (G.Id (v1, G.empty_id_info ())) |> G.e, fb [ G.Arg v2 ])
   (* todo? convert some v2 in IdSpecial Op? *)
   | Infix (v1, v2, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
-      G.Call (G.N (G.Id (v2, G.empty_id_info ())), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.N (G.Id (v2, G.empty_id_info ())) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = list argument v2 in
       G.Call (v1, fb v2)
@@ -226,7 +226,7 @@ and expr e =
       G.DeRef (v1, v2)
   | RefAssign (v1, v2, v3) ->
       let v1 = expr v1 and v2 = tok v2 and v3 = expr v3 in
-      G.Assign (G.DeRef (v2, v1), v2, v3)
+      G.Assign (G.DeRef (v2, v1) |> G.e, v2, v3)
   | FieldAccess (v1, vtok, v2) ->
       let v1 = expr v1 in
       let vtok = tok vtok in
@@ -237,7 +237,7 @@ and expr e =
       let t1 = tok t1 in
       let t2 = tok t2 in
       let v2 = name v2 in
-      G.Assign (G.DotAccess (v1, t1, G.EN v2), t2, v3)
+      G.Assign (G.DotAccess (v1, t1, G.EN v2) |> G.e, t2, v3)
   | Record (v1, v2) -> (
       let v1 = option expr v1
       and v2 =
@@ -251,7 +251,7 @@ and expr e =
                | _ ->
                    let v1 = dotted_ident_of_name v1 in
                    let e =
-                     G.OtherExpr (G.OE_RecordFieldName, [ G.Di v1; G.E v2 ])
+                     G.OtherExpr (G.OE_RecordFieldName, [ G.Di v1; G.E v2 ]) |> G.e
                    in
                    let st = G.exprstmt e in
                    G.FieldStmt st))
@@ -260,10 +260,10 @@ and expr e =
       let obj = G.Record v2 in
       match v1 with
       | None -> obj
-      | Some e -> G.OtherExpr (G.OE_RecordWith, [ G.E e; G.E obj ]))
+      | Some e -> G.OtherExpr (G.OE_RecordWith, [ G.E e; G.E (obj |> G.e) ]))
   | New (v1, v2) ->
       let v1 = tok v1 and v2 = name v2 in
-      G.Call (G.IdSpecial (G.New, v1), fb [ G.Arg (G.N v2) ])
+      G.Call (G.IdSpecial (G.New, v1) |> G.e, fb [ G.Arg (G.N v2 |> G.e) ])
   | ObjAccess (v1, t, v2) ->
       let v1 = expr v1 and v2 = ident v2 in
       let t = tok t in
@@ -278,11 +278,12 @@ and expr e =
              | Left (ent, params, tret, body) ->
                  G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
              | Right (pat, e) ->
-                 let exp = G.LetPattern (pat, e) in
+                 let exp = G.LetPattern (pat, e) |> G.e in
                  G.exprstmt exp)
       in
       let st = G.Block (fb (defs @ [ G.exprstmt v3 ])) |> G.s in
-      G.stmt_to_expr st
+      let x = G.stmt_to_expr st in
+      x.G.e
   | Fun (t, v1, v2) ->
       let v1 = list parameter v1 and v2 = expr v2 in
       let def =
@@ -299,7 +300,7 @@ and expr e =
       let id = ("!_implicit_param!", t) in
       let params = [ G.ParamClassic (G.param_of_id id) ] in
       let body_stmt =
-        G.Match (t, G.N (G.Id (id, G.empty_id_info ())), xs) |> G.s
+        G.Match (t, G.N (G.Id (id, G.empty_id_info ())) |> G.e, xs) |> G.s
       in
       G.Lambda
         {
@@ -314,7 +315,9 @@ and expr e =
       G.OtherExpr (G.OE_Todo, G.TodoK t :: List.map (fun x -> G.E x) xs)
   | If _ | Try _ | For _ | While _ | Sequence _ | Match _ ->
       let s = stmt e in
-      G.stmt_to_expr s
+      let x = G.stmt_to_expr s in
+      x.G.e
+  ) |> G.e
 
 and literal = function
   | Int v1 ->
@@ -588,7 +591,7 @@ and item { i; iattrs } =
                G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
            | Right (pat, e) ->
                (* TODO no attrs *)
-               let exp = G.LetPattern (pat, e) in
+               let exp = G.LetPattern (pat, e) |> G.e in
                G.exprstmt exp)
   | Module (_t, v1) ->
       let ent, def = module_declaration v1 in
@@ -609,7 +612,7 @@ and item { i; iattrs } =
 and mk_var_or_func tlet params tret body =
   (* coupling: with stmt() and what is generated for simple expressions *)
   match (params, body.G.s) with
-  | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E (G.Lambda def) ]) -> G.FuncDef def
+  | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E ({ e = G.Lambda (def); _}) ]) -> G.FuncDef def
   | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) ->
       G.VarDef { G.vinit = Some e; vtype = None }
   | _ ->
@@ -632,14 +635,14 @@ and partial = function
       G.PartialMatch (t, e)
   | PartialTry (t, e) -> (
       let e = expr e in
-      match e with
+      match e.G.e with
       | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.PartialTry (t, s)
       | _ -> G.PartialTry (t, G.exprstmt e))
 
 and any = function
   | E x -> (
       let x = expr x in
-      match x with
+      match x.G.e with
       | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.S s
       | _ -> G.E x)
   | I x -> (

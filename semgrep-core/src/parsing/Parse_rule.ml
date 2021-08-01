@@ -130,7 +130,7 @@ let generic_to_json (key : key) ast =
         J.Object
           (xs
           |> List.map (fun x ->
-                 match x with
+                 match x.G.e with
                  | G.Tuple (_, [ L (String (k, _)); v ], _) -> (k, aux v)
                  | _ ->
                      error_at_expr x
@@ -147,7 +147,7 @@ let optlist_to_list = function None -> [] | Some xs -> xs
 (*****************************************************************************)
 
 let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
-  match rule with
+  match rule.G.e with
   (* note that the l/r are actually populated by yaml_to_generic, even
    * though there is no proper corresponding token
    *)
@@ -155,7 +155,7 @@ let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
       let dict = Hashtbl.create 10 in
       fields
       |> List.iter (fun field ->
-             match field with
+             match field.G.e with
              | G.Tuple (_, [ L (String (key_str, t)); value ], _) ->
                  (* Those are actually silently ignored by many YAML parsers
                   * which just consider the last key/value as the final one.
@@ -298,7 +298,7 @@ let parse_fix_regex (env : env) (key : key) fields =
 
 let parse_equivalences key value =
   let parse_equivalence equiv =
-    match equiv with
+    match equiv.G.e with
     | G.Container
         ( Dict,
           (_, [ Tuple (_, [ L (String ("equivalence", t)); value ], _) ], _) )
@@ -367,7 +367,7 @@ let parse_pattern ~id ~lang { Rule.pattern; t; path } =
 
 let parse_xpattern env e =
   let s, t =
-    match e with
+    match e.G.e with
     | G.L (String (s, t)) -> (s, t)
     | G.N (Id ((s, t), _)) -> (s, t)
     | x -> error_at_expr x ("Expected a string value for " ^ env.id)
@@ -434,7 +434,7 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   let get_pattern str_e = parse_xpattern env str_e in
   let get_nested_formula i x =
     let env = { env with path = string_of_int i :: env.path } in
-    match x with
+    match x.G.e with
     | G.Container (Dict, (_, [ Tuple (_, [ L (String key); value ], _) ], _)) ->
         parse_formula_old env (key, value)
     | x -> error_at_expr x "Wrong parse_formula fields"
@@ -471,7 +471,7 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
 (* let extra = parse_extra env x in
    R.PatExtra extra *)
 and parse_formula_new env (x : G.expr) : R.formula =
-  match x with
+  match x.G.e with
   | G.Container (Dict, (_, [ Tuple (_, [ L (String key); value ], _) ], _)) -> (
       let s, t = key in
 
@@ -492,7 +492,7 @@ and parse_formula_new env (x : G.expr) : R.formula =
           let s = parse_string key value in
           R.Leaf (R.MetavarCond (t, R.CondEval (parse_metavar_cond key s)))
       | "metavariable_regex" -> (
-          match value with
+          match value.G.e with
           | G.Container (Array, (_, [ mvar; re ], _)) ->
               let mvar = parse_string key mvar in
               let x = parse_string_wrap key re in
@@ -631,7 +631,7 @@ let parse_generic file ast =
         error (PI.mk_info_of_loc loc) "missing rules entry as top-level key"
   in
   let t, rules =
-    match rules_block with
+    match rules.G.e_block with
     | Container (Array, (l, rules, _r)) -> (l, rules)
     | x -> error_at_expr x "expected a list of rules following `rules:`"
   in

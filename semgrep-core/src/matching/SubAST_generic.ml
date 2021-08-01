@@ -75,7 +75,7 @@ let subexprs_of_stmt st =
 (*s: function [[SubAST_generic.subexprs_of_expr]] *)
 (* used for deep expression matching *)
 let subexprs_of_expr e =
-  match e with
+  match e.e with
   | L _ | N _ | IdSpecial _ | Ellipsis _ | TypedMetavar _ -> []
   | DotAccess (e, _, _)
   | Await (_, e)
@@ -201,7 +201,7 @@ let lambdas_in_expr e =
         V.default_visitor with
         V.kexpr =
           (fun (k, _) e ->
-            match e with Lambda def -> Common.push def aref | _ -> k e);
+            match e.e with Lambda def -> Common.push def aref | _ -> k e);
       })
     (E e)
   [@@profiling]

@@ -381,7 +381,8 @@ and id_info = {
  * e.g., type information, or constant evaluation, or range, but it
  * would be a bigger refactoring than for stmt.
  *)
-and expr =
+and expr = { e: expr_kind; e_id: int }
+and expr_kind =
   (* basic (atomic) values *)
   | L of literal
   (* composite values *)
@@ -1961,6 +1962,8 @@ let s skind =
     s_range = None;
   }
 
+let e ekind = { e = ekind; e_id = 0 }
+
 (*s: function [[AST_generic.basic_field]] *)
 let basic_field id vopt typeopt =
   let entity = basic_entity id [] in
@@ -2008,9 +2011,9 @@ let exprstmt e = s (ExprStmt (e, sc))
  * See also AST_generic_helpers with expr_to_pattern, expr_to_type,
  * pattern_to_expr, etc.
  *)
-let stmt_to_expr st = OtherExpr (OE_StmtExpr, [ S st ])
+let stmt_to_expr st = e (OtherExpr (OE_StmtExpr, [ S st ]))
 
-let fieldEllipsis t = FieldStmt (exprstmt (Ellipsis t))
+let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))
 
 let empty_fbody = s (Block (fake_bracket []))
 
