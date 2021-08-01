@@ -42,7 +42,8 @@ let expr x =
                              _;
                            } ->
                            Left (id, e)
-                       | G.FieldStmt { s = ExprStmt ({ e = Ellipsis (t); _}, _); _ } ->
+                       | G.FieldStmt
+                           { s = ExprStmt ({ e = Ellipsis t; _ }, _); _ } ->
                            Right t
                        | x ->
                            failwith

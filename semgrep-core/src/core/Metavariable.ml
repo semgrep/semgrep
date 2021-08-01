@@ -105,7 +105,8 @@ let program_of_mvalue : mvalue -> G.program option =
   | E expr -> Some [ G.exprstmt expr ]
   | S stmt -> Some [ stmt ]
   | Id (id, Some idinfo) -> Some [ G.exprstmt (G.N (G.Id (id, idinfo)) |> G.e) ]
-  | Id (id, None) -> Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ())) |> G.e) ]
+  | Id (id, None) ->
+      Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ())) |> G.e) ]
   | N x -> Some [ G.exprstmt (G.N x |> G.e) ]
   | Ss stmts -> Some stmts
   | Args _ | T _ | P _ | Text _ ->

@@ -140,7 +140,8 @@ let create_lambda lambda_params expr =
       fparams;
       frettype = None;
       fbody = exprstmt expr;
-    } |> G.e
+    }
+  |> G.e
 
 (* create lambda (lambda_params, ident) -> (lambda_params..., ident) *)
 let create_join_result_lambda lambda_params ident =
@@ -158,7 +159,8 @@ let create_join_result_lambda lambda_params ident =
       fparams;
       frettype = None;
       fbody = exprstmt expr;
-    } |> G.e
+    }
+  |> G.e
 
 (* create a new lambda in the form
  * base_expr.funcname(lambda_params => expr)
@@ -167,7 +169,9 @@ let call_lambda base_expr funcname tok funcs =
   (* let funcs = exprs |> List.map (fun expr -> create_lambda lambda_params expr) in *)
   let args = funcs |> List.map (fun func -> Arg func) in
   let idinfo = empty_id_info () in
-  let method_ = DotAccess (base_expr, tok, EN (Id ((funcname, tok), idinfo))) |> G.e in
+  let method_ =
+    DotAccess (base_expr, tok, EN (Id ((funcname, tok), idinfo))) |> G.e
+  in
   Call (method_, fake_bracket args) |> G.e
 
 let rec call_orderby base_expr lambda_params tok orderings =
@@ -203,7 +207,9 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
            * and add ident to lambda_params
            *)
           let ids =
-            List.map (fun id -> N (Id (id, empty_id_info ())) |> G.e) lambda_params
+            List.map
+              (fun id -> N (Id (id, empty_id_info ())) |> G.e)
+              lambda_params
           in
           let expr = Tuple (fake_bracket (ids @ [ expr ])) |> G.e in
           let func = create_lambda lambda_params expr in
@@ -284,7 +290,9 @@ let new_index_from_end tok expr =
   Call
     ( IdSpecial (New, tok) |> G.e,
       fake_bracket
-        [ ArgType index; Arg expr; Arg (L (Bool (true, fake "true")) |> G.e) ] ) |> G.e
+        [ ArgType index; Arg expr; Arg (L (Bool (true, fake "true")) |> G.e) ]
+    )
+  |> G.e
 
 module List = struct
   include List
@@ -675,11 +683,15 @@ and postfix_unary_expression (env : env) (x : CST.postfix_unary_expression) =
   | `Exp_PLUSPLUS (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "++" *) in
-      Call (IdSpecial (IncrDecr (Incr, Postfix), v2) |> G.e, fake_bracket [ Arg v1 ])
+      Call
+        ( IdSpecial (IncrDecr (Incr, Postfix), v2) |> G.e,
+          fake_bracket [ Arg v1 ] )
   | `Exp_DASHDASH (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "--" *) in
-      Call (IdSpecial (IncrDecr (Decr, Postfix), v2) |> G.e, fake_bracket [ Arg v1 ])
+      Call
+        ( IdSpecial (IncrDecr (Decr, Postfix), v2) |> G.e,
+          fake_bracket [ Arg v1 ] )
   | `Exp_BANG (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "!" *) in
@@ -890,7 +902,8 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `PLUSPLUS_exp (v1, v2) ->
       let v1 = token env v1 (* "++" *) in
       let v2 = expression env v2 in
-      Call (IdSpecial (IncrDecr (Incr, Prefix), v1) |> G.e, fake_bracket [ Arg v2 ])
+      Call
+        (IdSpecial (IncrDecr (Incr, Prefix), v1) |> G.e, fake_bracket [ Arg v2 ])
   | `DASH_exp (v1, v2) ->
       let v1 = token env v1 (* "-" *) in
       let v2 = expression env v2 in
@@ -898,7 +911,8 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
   | `DASHDASH_exp (v1, v2) ->
       let v1 = token env v1 (* "--" *) in
       let v2 = expression env v2 in
-      Call (IdSpecial (IncrDecr (Decr, Prefix), v1) |> G.e, fake_bracket [ Arg v2 ])
+      Call
+        (IdSpecial (IncrDecr (Decr, Prefix), v1) |> G.e, fake_bracket [ Arg v2 ])
   | `HAT_exp (v1, v2) ->
       let v1 = token env v1 (* "^" *) in
       let v2 = expression env v2 in
@@ -1195,7 +1209,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let fake_null = L (Null (fake "null")) |> G.e in
       let is_null =
         Call
-          (IdSpecial (Op Eq, fake "=") |> G.e, fake_bracket [ Arg fake_null; Arg v1 ]) |> G.e
+          ( IdSpecial (Op Eq, fake "=") |> G.e,
+            fake_bracket [ Arg fake_null; Arg v1 ] )
+        |> G.e
       in
       let access =
         match v3 with
@@ -1270,7 +1286,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v1 = expression env v1 in
       let v2 = token env v2 (* "is" *) in
       let v3 = type_ env v3 in
-      Call (IdSpecial (Instanceof, v2) |> G.e, fake_bracket [ Arg v1; ArgType v3 ])
+      Call
+        (IdSpecial (Instanceof, v2) |> G.e, fake_bracket [ Arg v1; ArgType v3 ])
   | `Is_pat_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = token env v2 (* "is" *) in
@@ -1336,7 +1353,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let lp, v3', rp = v3 in
       let args = (lp, (ArgType v2 :: v3') @ [ Arg (Tuple v4 |> G.e) ], rp) in
       Call (IdSpecial (New, v1) |> G.e, args)
-  | `Paren_exp x -> let x = parenthesized_expression env x in x.G.e
+  | `Paren_exp x ->
+      let x = parenthesized_expression env x in
+      x.G.e
   | `Post_un_exp x -> postfix_unary_expression env x
   | `Prefix_un_exp x -> prefix_unary_expression env x
   | `Query_exp (v1, v2) ->
@@ -1363,7 +1382,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v2 = token env v2 (* "(" *) in
       let v3 = expression env v3 in
       let v4 = token env v4 (* ")" *) in
-      Call (IdSpecial (Typeof, v1) |> G.e, (v2, [ Arg (DeRef (v1, v3) |> G.e) ], v4))
+      Call
+        ( IdSpecial (Typeof, v1) |> G.e,
+          (v2, [ Arg (DeRef (v1, v3) |> G.e) ], v4) )
   | `Ref_value_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "__refvalue" *) in
       let _v2 = token env v2 (* "(" *) in
@@ -1420,7 +1441,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let throw = Throw (v1, v2, sc) |> G.s in
       let x = G.stmt_to_expr throw in
       x.G.e
-  | `Tuple_exp x -> let x = tuple_expression env x in x.G.e
+  | `Tuple_exp x ->
+      let x = tuple_expression env x in
+      x.G.e
   | `Type_of_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "typeof" *) in
       let v2 = token env v2 (* "(" *) in
@@ -1444,8 +1467,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
   | `Simple_name x -> N (simple_name env x)
   | `Lit x ->
       let x = literal env x in
-      G.L x
-  ) |> G.e
+      G.L x)
+  |> G.e
 
 and simple_assignment_expression (env : env)
     ((v1, v2, v3) : CST.simple_assignment_expression) : G.field =
@@ -1620,7 +1643,9 @@ and statement (env : env) (x : CST.statement) =
       let v5 = token env v5 (* "in" *) in
       let v6 = expression env v6 in
       let v6 =
-        match v1 with Some tok -> Await (tok, v6) (* "await" *) |> G.e | None -> v6
+        match v1 with
+        | Some tok -> Await (tok, v6) (* "await" *) |> G.e
+        | None -> v6
       in
       let v7 = token env v7 (* ")" *) in
       let v8 = statement env v8 in

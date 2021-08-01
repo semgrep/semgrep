@@ -154,7 +154,8 @@ let todo_tokens ((start, end_) : loc) =
 let todo_stmt (loc : loc) : G.stmt =
   G.s (G.OtherStmt (G.OS_Todo, todo_tokens loc))
 
-let todo_expr (loc : loc) : G.expr_kind = G.OtherExpr (G.OE_Todo, todo_tokens loc)
+let todo_expr (loc : loc) : G.expr_kind =
+  G.OtherExpr (G.OE_Todo, todo_tokens loc)
 
 let todo_stmt2 (loc : loc) : stmt_or_expr = Stmt (loc, todo_stmt loc)
 
@@ -277,7 +278,9 @@ and expression (e : expression) : G.expr =
   | String_fragment (loc, frag) -> (
       match frag with
       | String_content ((_, tok) as wrap) -> G.L (G.Atom (tok, wrap))
-      | Expansion (loc, ex) -> let x = expansion ex in x.G.e
+      | Expansion (loc, ex) ->
+          let x = expansion ex in
+          x.G.e
       | Command_substitution (open_, _, close) ->
           let loc = (open_, close) in
           todo_expr loc)
@@ -292,8 +295,8 @@ and expression (e : expression) : G.expr =
   | Empty_expression loc ->
       let start, _ = loc in
       G.L (G.Atom (start, ("", start)))
-  | Expression_TODO loc -> todo_expr loc
-  ) |> G.e
+  | Expression_TODO loc -> todo_expr loc)
+  |> G.e
 
 (*
    '$' followed by a variable to transform and expand into a list.

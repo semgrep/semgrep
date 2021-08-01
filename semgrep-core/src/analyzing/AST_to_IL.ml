@@ -354,14 +354,17 @@ and assign env lhs _tok rhs_exp eorig =
  *)
 and expr_aux env eorig =
   match eorig.G.e with
-  | G.Call ({ e = G.IdSpecial (G.Op op, tok); _}, args) ->
+  | G.Call ({ e = G.IdSpecial (G.Op op, tok); _ }, args) ->
       let args = arguments env args in
       mk_e (Operator ((op, tok), args)) eorig
   | G.Call
-      (({ e = G.IdSpecial ((G.This | G.Super | G.Self | G.Parent), tok); _} as e), args)
-    ->
+      ( ({ e = G.IdSpecial ((G.This | G.Super | G.Self | G.Parent), tok); _ } as
+        e),
+        args ) ->
       call_generic env tok e args
-  | G.Call ({ e = G.IdSpecial (G.IncrDecr (incdec, _prepostIGNORE), tok); _}, args) -> (
+  | G.Call
+      ({ e = G.IdSpecial (G.IncrDecr (incdec, _prepostIGNORE), tok); _ }, args)
+    -> (
       (* in theory in expr() we should return each time a list of pre-instr
        * and a list of post-instrs to execute before and after the use
        * of the expression. However this complicates the interface of 'expr()'.
@@ -385,19 +388,26 @@ and expr_aux env eorig =
       | _ -> impossible (G.E eorig))
   (* todo: if the xxx_to_generic forgot to generate Eval *)
   | G.Call
-      ( { e = G.N (G.Id (("eval", tok), { G.id_resolved = { contents = None }; _ })); _},
+      ( {
+          e =
+            G.N
+              (G.Id (("eval", tok), { G.id_resolved = { contents = None }; _ }));
+          _;
+        },
         args ) ->
       let lval = fresh_lval env tok in
       let special = (Eval, tok) in
       let args = arguments env args in
       add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
       mk_e (Fetch lval) eorig
-  | G.Call ({ e = G.IdSpecial (G.InterpolatedElement, _); _}, (_, [ G.Arg e ], _)) ->
+  | G.Call
+      ({ e = G.IdSpecial (G.InterpolatedElement, _); _ }, (_, [ G.Arg e ], _))
+    ->
       (* G.InterpolatedElement is useful for matching certain patterns against
        * interpolated strings, but we do not have an use for it yet during
        * semantic analysis, so in the IL we just unwrap the expression. *)
       expr env e
-  | G.Call ({ e = G.IdSpecial (spec); _}, args) ->
+  | G.Call ({ e = G.IdSpecial spec; _ }, args) ->
       let tok = snd spec in
       let lval = fresh_lval env tok in
       let special = call_special env spec in

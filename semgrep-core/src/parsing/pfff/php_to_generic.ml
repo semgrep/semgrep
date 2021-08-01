@@ -290,10 +290,13 @@ and expr e : G.expr =
       let _ent, cdef = class_def cdef in
       let args = list expr args in
       let anon_class = G.AnonClass cdef |> G.e in
-      G.Call (G.IdSpecial (G.New, t) |> G.e, fb (anon_class :: args |> List.map G.arg))
+      G.Call
+        ( G.IdSpecial (G.New, t) |> G.e,
+          fb (anon_class :: args |> List.map G.arg) )
   | InstanceOf (t, v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Instanceof, t) |> G.e, fb ([ v1; v2 ] |> List.map G.arg))
+      G.Call
+        (G.IdSpecial (G.Instanceof, t) |> G.e, fb ([ v1; v2 ] |> List.map G.arg))
   (* v[] = 1 --> v <append>= 1.
    * update: because we must generate an OE_ArrayAppend in other contexts,
    * this prevents the simple pattern '$x[]' to be matched in an Assign
@@ -315,8 +318,10 @@ and expr e : G.expr =
       | Right (special, t) ->
           (* todo: should introduce intermediate var *)
           G.Assign
-            (v1, t, G.Call (G.IdSpecial (special, t) |> G.e, fb [ G.Arg v1; G.Arg v3 ]) |> G.e)
-      )
+            ( v1,
+              t,
+              G.Call (G.IdSpecial (special, t) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+              |> G.e ))
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)
@@ -337,7 +342,8 @@ and expr e : G.expr =
       G.Call (G.IdSpecial (G.IncrDecr (v1, G.Prefix), t) |> G.e, fb [ G.Arg v2 ])
   | Postfix ((v1, t), v2) ->
       let v1 = fixOp v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v1, G.Postfix), t) |> G.e, fb [ G.Arg v2 ])
+      G.Call
+        (G.IdSpecial (G.IncrDecr (v1, G.Postfix), t) |> G.e, fb [ G.Arg v2 ])
   | Binop (v1, v2, v3) -> (
       let v2 = binaryOp v2 and v1 = expr v1 and v3 = expr v3 in
       match v2 with
@@ -394,8 +400,8 @@ and expr e : G.expr =
               fbody = body;
               fkind = (G.LambdaKind, t);
             }
-      | _ -> error tok "TODO: Lambda")
-  ) |> G.e
+      | _ -> error tok "TODO: Lambda"))
+  |> G.e
 
 and argument e =
   let e = expr e in

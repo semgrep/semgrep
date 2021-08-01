@@ -188,110 +188,111 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_expr x =
     let k x =
       let ekind =
-      match x.e with
-      | N v1 ->
-          let v1 = map_name v1 in
-          N v1
-      | DotAccessEllipsis (v1, v2) ->
-          let v1 = map_expr v1 in
-          let v2 = map_tok v2 in
-          DotAccessEllipsis (v1, v2)
-      | DisjExpr (v1, v2) ->
-          let v1 = map_expr v1 in
-          let v2 = map_expr v2 in
-          DisjExpr (v1, v2)
-      | L v1 ->
-          let v1 = map_literal v1 in
-          L v1
-      | Container (v1, v2) ->
-          let v1 = map_container_operator v1
-          and v2 = map_bracket (map_of_list map_expr) v2 in
-          Container (v1, v2)
-      | Tuple v1 ->
-          let v1 = map_bracket (map_of_list map_expr) v1 in
-          Tuple v1
-      | Record v1 ->
-          let v1 = map_bracket (map_of_list map_field) v1 in
-          Record v1
-      | Constructor (v1, v2) ->
-          let v1 = map_dotted_ident v1 and v2 = map_of_list map_expr v2 in
-          Constructor (v1, v2)
-      | Lambda v1 ->
-          let v1 = map_function_definition v1 in
-          Lambda v1
-      | AnonClass v1 ->
-          let v1 = map_class_definition v1 in
-          AnonClass v1
-      | Xml v1 ->
-          let v1 = map_xml v1 in
-          Xml v1
-      | IdSpecial v1 ->
-          let v1 = map_wrap map_special v1 in
-          IdSpecial v1
-      | Call (v1, v2) ->
-          let v1 = map_expr v1 and v2 = map_arguments v2 in
-          Call (v1, v2)
-      | Assign (v1, v2, v3) ->
-          let v1 = map_expr v1 and v2 = map_tok v2 and v3 = map_expr v3 in
-          Assign (v1, v2, v3)
-      | AssignOp (v1, v2, v3) ->
-          let v1 = map_expr v1
-          and v2 = map_wrap map_arithmetic_operator v2
-          and v3 = map_expr v3 in
-          AssignOp (v1, v2, v3)
-      | LetPattern (v1, v2) ->
-          let v1 = map_pattern v1 and v2 = map_expr v2 in
-          LetPattern (v1, v2)
-      | DotAccess (v1, t, v2) ->
-          let v1 = map_expr v1
-          and t = map_tok t
-          and v2 = map_name_or_dynamic v2 in
-          DotAccess (v1, t, v2)
-      | ArrayAccess (v1, v2) ->
-          let v1 = map_expr v1 and v2 = map_bracket map_expr v2 in
-          ArrayAccess (v1, v2)
-      | SliceAccess (v1, v2) ->
-          let f = map_of_option map_expr in
-          let v1 = map_expr v1
-          and v2 = map_bracket (OCaml.map_of_all3 f f f) v2 in
-          SliceAccess (v1, v2)
-      | Conditional (v1, v2, v3) ->
-          let v1 = map_expr v1 and v2 = map_expr v2 and v3 = map_expr v3 in
-          Conditional (v1, v2, v3)
-      | TypedMetavar (v1, v2, v3) ->
-          let v1 = map_ident v1 and v2 = map_tok v2 and v3 = map_type_ v3 in
-          TypedMetavar (v1, v2, v3)
-      | Yield (t, v1, v2) ->
-          let t = map_tok t in
-          let v1 = map_of_option map_expr v1 and v2 = map_of_bool v2 in
-          Yield (t, v1, v2)
-      | Await (t, v1) ->
-          let t = map_tok t in
-          let v1 = map_expr v1 in
-          Await (t, v1)
-      | Cast (v1, v2) ->
-          let v1 = map_type_ v1 and v2 = map_expr v2 in
-          Cast (v1, v2)
-      | Seq v1 ->
-          let v1 = map_of_list map_expr v1 in
-          Seq v1
-      | Ref (t, v1) ->
-          let t = map_tok t in
-          let v1 = map_expr v1 in
-          Ref (t, v1)
-      | DeRef (t, v1) ->
-          let t = map_tok t in
-          let v1 = map_expr v1 in
-          DeRef (t, v1)
-      | Ellipsis v1 ->
-          let v1 = map_tok v1 in
-          Ellipsis v1
-      | DeepEllipsis v1 ->
-          let v1 = map_bracket map_expr v1 in
-          DeepEllipsis v1
-      | OtherExpr (v1, v2) ->
-          let v1 = map_other_expr_operator v1 and v2 = map_of_list map_any v2 in
-          OtherExpr (v1, v2)
+        match x.e with
+        | N v1 ->
+            let v1 = map_name v1 in
+            N v1
+        | DotAccessEllipsis (v1, v2) ->
+            let v1 = map_expr v1 in
+            let v2 = map_tok v2 in
+            DotAccessEllipsis (v1, v2)
+        | DisjExpr (v1, v2) ->
+            let v1 = map_expr v1 in
+            let v2 = map_expr v2 in
+            DisjExpr (v1, v2)
+        | L v1 ->
+            let v1 = map_literal v1 in
+            L v1
+        | Container (v1, v2) ->
+            let v1 = map_container_operator v1
+            and v2 = map_bracket (map_of_list map_expr) v2 in
+            Container (v1, v2)
+        | Tuple v1 ->
+            let v1 = map_bracket (map_of_list map_expr) v1 in
+            Tuple v1
+        | Record v1 ->
+            let v1 = map_bracket (map_of_list map_field) v1 in
+            Record v1
+        | Constructor (v1, v2) ->
+            let v1 = map_dotted_ident v1 and v2 = map_of_list map_expr v2 in
+            Constructor (v1, v2)
+        | Lambda v1 ->
+            let v1 = map_function_definition v1 in
+            Lambda v1
+        | AnonClass v1 ->
+            let v1 = map_class_definition v1 in
+            AnonClass v1
+        | Xml v1 ->
+            let v1 = map_xml v1 in
+            Xml v1
+        | IdSpecial v1 ->
+            let v1 = map_wrap map_special v1 in
+            IdSpecial v1
+        | Call (v1, v2) ->
+            let v1 = map_expr v1 and v2 = map_arguments v2 in
+            Call (v1, v2)
+        | Assign (v1, v2, v3) ->
+            let v1 = map_expr v1 and v2 = map_tok v2 and v3 = map_expr v3 in
+            Assign (v1, v2, v3)
+        | AssignOp (v1, v2, v3) ->
+            let v1 = map_expr v1
+            and v2 = map_wrap map_arithmetic_operator v2
+            and v3 = map_expr v3 in
+            AssignOp (v1, v2, v3)
+        | LetPattern (v1, v2) ->
+            let v1 = map_pattern v1 and v2 = map_expr v2 in
+            LetPattern (v1, v2)
+        | DotAccess (v1, t, v2) ->
+            let v1 = map_expr v1
+            and t = map_tok t
+            and v2 = map_name_or_dynamic v2 in
+            DotAccess (v1, t, v2)
+        | ArrayAccess (v1, v2) ->
+            let v1 = map_expr v1 and v2 = map_bracket map_expr v2 in
+            ArrayAccess (v1, v2)
+        | SliceAccess (v1, v2) ->
+            let f = map_of_option map_expr in
+            let v1 = map_expr v1
+            and v2 = map_bracket (OCaml.map_of_all3 f f f) v2 in
+            SliceAccess (v1, v2)
+        | Conditional (v1, v2, v3) ->
+            let v1 = map_expr v1 and v2 = map_expr v2 and v3 = map_expr v3 in
+            Conditional (v1, v2, v3)
+        | TypedMetavar (v1, v2, v3) ->
+            let v1 = map_ident v1 and v2 = map_tok v2 and v3 = map_type_ v3 in
+            TypedMetavar (v1, v2, v3)
+        | Yield (t, v1, v2) ->
+            let t = map_tok t in
+            let v1 = map_of_option map_expr v1 and v2 = map_of_bool v2 in
+            Yield (t, v1, v2)
+        | Await (t, v1) ->
+            let t = map_tok t in
+            let v1 = map_expr v1 in
+            Await (t, v1)
+        | Cast (v1, v2) ->
+            let v1 = map_type_ v1 and v2 = map_expr v2 in
+            Cast (v1, v2)
+        | Seq v1 ->
+            let v1 = map_of_list map_expr v1 in
+            Seq v1
+        | Ref (t, v1) ->
+            let t = map_tok t in
+            let v1 = map_expr v1 in
+            Ref (t, v1)
+        | DeRef (t, v1) ->
+            let t = map_tok t in
+            let v1 = map_expr v1 in
+            DeRef (t, v1)
+        | Ellipsis v1 ->
+            let v1 = map_tok v1 in
+            Ellipsis v1
+        | DeepEllipsis v1 ->
+            let v1 = map_bracket map_expr v1 in
+            DeepEllipsis v1
+        | OtherExpr (v1, v2) ->
+            let v1 = map_other_expr_operator v1
+            and v2 = map_of_list map_any v2 in
+            OtherExpr (v1, v2)
       in
       (* TODO? reuse the e_id or create a new one? *)
       G.e ekind

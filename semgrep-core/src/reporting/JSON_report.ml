@@ -42,7 +42,8 @@ module SJ = Spacegrep.Semgrep_j (* JSON conversions *)
  *)
 let unique_id any =
   match any with
-  | E ({ e = N (Id (_, { id_resolved = { contents = Some (_, sid) }; _ })); _}) ->
+  | E { e = N (Id (_, { id_resolved = { contents = Some (_, sid) }; _ })); _ }
+    ->
       { ST.type_ = `ID; md5sum = None; sid = Some sid }
   (* not an Id, return a md5sum of its AST as a "single unique id" *)
   | _ ->

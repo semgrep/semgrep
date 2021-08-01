@@ -79,7 +79,7 @@ let selector_from_formula match_func f =
   match f with
   | R.Leaf (R.P ({ pat = Sem (pattern, _); pid; pstr }, None)) -> (
       match pattern with
-      | G.E ({ e = G.N (G.Id ((mvar, _), _)); _}) ->
+      | G.E { e = G.N (G.Id ((mvar, _), _)); _ } ->
           Some
             {
               mvar;

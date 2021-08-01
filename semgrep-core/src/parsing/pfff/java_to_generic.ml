@@ -260,7 +260,8 @@ and expr e =
       and v2 = list argument v2
       and v3 = option (bracket decls) v3 in
       match v3 with
-      | None -> G.Call (G.IdSpecial (G.New, v0) |> G.e, (lp, G.ArgType v1 :: v2, rp))
+      | None ->
+          G.Call (G.IdSpecial (G.New, v0) |> G.e, (lp, G.ArgType v1 :: v2, rp))
       | Some decls ->
           let anonclass =
             G.AnonClass
@@ -271,9 +272,11 @@ and expr e =
                 cmixins = [];
                 cparams = [];
                 cbody = decls |> bracket (List.map (fun x -> G.FieldStmt x));
-              } |> G.e
+              }
+            |> G.e
           in
-          G.Call (G.IdSpecial (G.New, v0) |> G.e, (lp, G.Arg anonclass :: v2, rp)))
+          G.Call
+            (G.IdSpecial (G.New, v0) |> G.e, (lp, G.Arg anonclass :: v2, rp)))
   | NewArray (v0, v1, v2, v3, v4) -> (
       let v1 = typ v1
       and v2 = list argument v2
@@ -289,7 +292,8 @@ and expr e =
       match v4 with
       | None -> G.Call (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: v2))
       | Some e ->
-          G.Call (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: G.Arg e :: v2)))
+          G.Call
+            (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: G.Arg e :: v2)))
   (* x.new Y(...) {...} *)
   | NewQualifiedClass (v0, _tok1, _tok2, v2, v3, v4) ->
       let v0 = expr v0
@@ -320,16 +324,20 @@ and expr e =
       G.ArrayAccess (v1, v2)
   | Postfix (v1, (v2, tok)) ->
       let v1 = expr v1 and v2 = fix_op v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v2, G.Postfix), tok) |> G.e, fb [ G.Arg v1 ])
+      G.Call
+        (G.IdSpecial (G.IncrDecr (v2, G.Postfix), tok) |> G.e, fb [ G.Arg v1 ])
   | Prefix ((v1, tok), v2) ->
       let v1 = fix_op v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v1, G.Prefix), tok) |> G.e, fb [ G.Arg v2 ])
+      G.Call
+        (G.IdSpecial (G.IncrDecr (v1, G.Prefix), tok) |> G.e, fb [ G.Arg v2 ])
   | Unary (v1, v2) ->
       let v1, tok = v1 and v2 = expr v2 in
       G.Call (G.IdSpecial (G.Op (H.conv_op v1), tok) |> G.e, fb [ G.Arg v2 ])
   | Infix (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = v2 and v3 = expr v3 in
-      G.Call (G.IdSpecial (G.Op (H.conv_op v2), tok) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+      G.Call
+        ( G.IdSpecial (G.Op (H.conv_op v2), tok) |> G.e,
+          fb [ G.Arg v1; G.Arg v3 ] )
   | Cast ((_, v1, _), v2) ->
       let v1 = list typ v1 and v2 = expr v2 in
       let t = Common2.foldl1 (fun acc e -> G.TyAnd (acc, fake "&", e)) v1 in
@@ -369,8 +377,8 @@ and expr e =
         |> List.map (fun x -> G.CasesAndBody x)
       in
       let x = G.stmt_to_expr (G.Switch (v0, Some v1, v2) |> G.s) in
-      x.G.e
-  ) |> G.e
+      x.G.e)
+  |> G.e
 
 and expr_or_type = function Left e -> G.E (expr e) | Right t -> G.T (typ t)
 

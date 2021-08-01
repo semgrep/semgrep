@@ -262,7 +262,8 @@ let parse_pattern str =
       let xs = map_fragment env cst in
       match xs with
       (* todo: not sure why the parser adds thos enclosing XmlText "" *)
-      | [ XmlText ("", _); XmlXml xml; XmlText ("", _) ] -> G.E (G.Xml xml |> G.e)
+      | [ XmlText ("", _); XmlXml xml; XmlText ("", _) ] ->
+          G.E (G.Xml xml |> G.e)
       | [ XmlXml xml ] -> G.E (G.Xml xml |> G.e)
       | _ ->
           let xml =

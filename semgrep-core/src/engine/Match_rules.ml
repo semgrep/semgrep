@@ -623,13 +623,15 @@ let rec filter_ranges env xs cond =
                  ( G.DotAccess
                      ( G.N (G.Id (("re", fk), fki)) |> G.e,
                        fk,
-                       EN (Id (("match", fk), fki)) ) |> G.e,
+                       EN (Id (("match", fk), fki)) )
+                   |> G.e,
                    ( fk,
                      [
                        G.Arg (G.N (G.Id ((mvar, fk), fki)) |> G.e);
                        G.Arg (G.L (G.String (re_str, fk)) |> G.e);
                      ],
-                     fk ) ) |> G.e
+                     fk ) )
+               |> G.e
              in
 
              let env =
@@ -708,7 +710,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                         (lazy content)
                         (Some r')))
           | Some xlang, MV.Text (content, _tok)
-          | Some xlang, MV.E ({ e = G.L (G.String (content, _tok)); _}) ->
+          | Some xlang, MV.E { e = G.L (G.String (content, _tok)); _ } ->
               (* We re-parse the matched text as `xlang`. *)
               Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
                 (fun file ->

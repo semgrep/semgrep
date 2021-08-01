@@ -142,8 +142,8 @@ let rec expr e =
   | TypedMetavar (v1, v2, v3) ->
       let v1 = ident v1 in
       let v3 = type_ v3 in
-      G.TypedMetavar (v1, v2, v3)
-  ) |> G.e
+      G.TypedMetavar (v1, v2, v3))
+  |> G.e
 
 and formal_param = function
   | Formal_id id -> G.ParamClassic (G.param_of_id id)
@@ -261,7 +261,9 @@ and string_contents tok = function
   | StrChars s -> G.L (G.String s) |> G.e
   | StrExpr (l, e, r) ->
       G.Call
-        (G.IdSpecial (G.InterpolatedElement, tok) |> G.e, (l, [ G.Arg (expr e) ], r)) |> G.e
+        ( G.IdSpecial (G.InterpolatedElement, tok) |> G.e,
+          (l, [ G.Arg (expr e) ], r) )
+      |> G.e
 
 and method_name_to_any mn =
   match method_name mn with Left id -> G.I id | Right e -> G.E e
@@ -329,7 +331,8 @@ and unary (op, t) e =
       in
       G.Call (G.IdSpecial (G.Op op, t) |> G.e, fb [ G.Arg e ])
   | Op_UNot -> G.Call (G.IdSpecial (G.Op G.Not, t) |> G.e, fb [ G.Arg e ])
-  | Op_DefinedQuestion -> G.Call (G.IdSpecial (G.Defined, t) |> G.e, fb [ G.Arg e ])
+  | Op_DefinedQuestion ->
+      G.Call (G.IdSpecial (G.Defined, t) |> G.e, fb [ G.Arg e ])
   | Op_UStarStar -> G.Call (G.IdSpecial (G.HashSplat, t) |> G.e, fb [ G.Arg e ])
   (* should be only in arguments, to pass procs. I abuse Ref for now *)
   | Op_UAmper -> G.Ref (t, e)
@@ -371,8 +374,8 @@ and literal x =
           G.L (G.String (s, t))
       (* TODO: generate interpolation Special *)
       | Double xs -> string_contents_list xs
-      | Tick xs -> G.OtherExpr (G.OE_Subshell, [ G.E (string_contents_list xs |> G.e) ])
-      )
+      | Tick xs ->
+          G.OtherExpr (G.OE_Subshell, [ G.E (string_contents_list xs |> G.e) ]))
   | Regexp ((l, xs, r), opt) -> (
       match xs with
       | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))
@@ -662,7 +665,7 @@ and list_stmt1 xs =
    * in which case we remove the G.Block around it.
    * hacky ...
    *)
-  | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _}, _); _ } as x) ]
+  | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _ }, _); _ } as x) ]
     when AST_generic_.is_metavar_name s ->
       x
   | xs -> G.Block (fb xs) |> G.s

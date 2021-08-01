@@ -266,18 +266,21 @@ let rec expr (x : expr) =
       G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb (v2 |> List.map G.arg))
   | BinOp (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = operator v2 and v3 = expr v3 in
-      G.Call (G.IdSpecial (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List.map G.arg))
+      G.Call
+        (G.IdSpecial (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List.map G.arg))
   | UnaryOp ((v1, tok), v2) -> (
       let v1 = unaryop v1 and v2 = expr v2 in
       match v1 with
       | Left op ->
-          G.Call (G.IdSpecial (G.Op op, tok) |> G.e, fb ([ v2 ] |> List.map G.arg))
+          G.Call
+            (G.IdSpecial (G.Op op, tok) |> G.e, fb ([ v2 ] |> List.map G.arg))
       | Right oe -> G.OtherExpr (oe, [ G.E v2 ]))
   | Compare (v1, v2, v3) -> (
       let v1 = expr v1 and v2 = list cmpop v2 and v3 = list expr v3 in
       match (v2, v3) with
       | [ (op, tok) ], [ e ] ->
-          G.Call (G.IdSpecial (G.Op op, tok) |> G.e, fb ([ v1; e ] |> List.map G.arg))
+          G.Call
+            (G.IdSpecial (G.Op op, tok) |> G.e, fb ([ v1; e ] |> List.map G.arg))
       | _ ->
           let anyops =
             v2
@@ -311,8 +314,8 @@ let rec expr (x : expr) =
   | Repr v1 ->
       let _, v1, _ = bracket expr v1 in
       G.OtherExpr (G.OE_Repr, [ G.E v1 ])
-  | NamedExpr (v, t, e) -> G.Assign (expr v, t, expr e)
-  ) |> G.e
+  | NamedExpr (v, t, e) -> G.Assign (expr v, t, expr e))
+  |> G.e
 
 (*e: function [[Python_to_generic.expr]] *)
 
@@ -360,7 +363,8 @@ and dictorset_elt = function
       v1
   | PowInline v1 ->
       let v1 = expr v1 in
-      G.Call (G.IdSpecial (G.Spread, fake "spread") |> G.e, fb [ G.arg v1 ]) |> G.e
+      G.Call (G.IdSpecial (G.Spread, fake "spread") |> G.e, fb [ G.arg v1 ])
+      |> G.e
 
 (*e: function [[Python_to_generic.dictorset_elt]] *)
 
@@ -546,7 +550,7 @@ and list_stmt1 xs =
    * in which case we remove the G.Block around it.
    * hacky ...
    *)
-  | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _}, _); _ } as x) ]
+  | [ ({ G.s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _)); _ }, _); _ } as x) ]
     when AST_generic_.is_metavar_name s ->
       x
   | xs -> G.Block (fb xs) |> G.s
@@ -573,7 +577,10 @@ and list_stmt xs = list stmt_aux xs |> List.flatten
  *)
 and fieldstmt x =
   match x with
-  | { G.s = G.ExprStmt ({ e = G.Assign ({ e = G.N (name); _}, _teq, e); _}, _sc); _ } ->
+  | {
+   G.s = G.ExprStmt ({ e = G.Assign ({ e = G.N name; _ }, _teq, e); _ }, _sc);
+   _;
+  } ->
       let vdef = { G.vinit = Some e; vtype = None } in
       let ent = { G.name = G.EN name; attrs = []; tparams = [] } in
       G.FieldStmt (G.DefStmt (ent, G.VarDef vdef) |> G.s)
@@ -617,7 +624,7 @@ and stmt_aux x =
       | [ a ] -> (
           match a.G.e with
           (* x: t = ... is definitely a VarDef *)
-          | G.Cast (t, { e = G.N (G.Id (id, idinfo)); _}) ->
+          | G.Cast (t, { e = G.N (G.Id (id, idinfo)); _ }) ->
               let ent =
                 { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
               in
@@ -629,7 +636,11 @@ and stmt_aux x =
            * Vardef back in Assign in Generic_vs_generic.
            *)
           | _ -> [ G.exprstmt (G.Assign (a, v2, v3) |> G.e) ])
-      | xs -> [ G.exprstmt (G.Assign (G.Tuple (G.fake_bracket xs) |> G.e, v2, v3) |> G.e) ])
+      | xs ->
+          [
+            G.exprstmt
+              (G.Assign (G.Tuple (G.fake_bracket xs) |> G.e, v2, v3) |> G.e);
+          ])
   | AugAssign (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = operator v2 and v3 = expr v3 in
       [ G.exprstmt (G.AssignOp (v1, (v2, tok), v3) |> G.e) ]
@@ -814,7 +825,8 @@ and excepthandler = function
             | G.Ellipsis tok -> G.PatEllipsis tok
             | G.Tuple _ -> G.PatVar (H.expr_to_type e, None)
             | _ ->
-                G.PatVar (H.expr_to_type (G.Tuple (G.fake_bracket [ e ]) |> G.e), None)
+                G.PatVar
+                  (H.expr_to_type (G.Tuple (G.fake_bracket [ e ]) |> G.e), None)
             )
         | None, None -> G.PatUnderscore (fake "_")
         | None, Some _ -> raise Impossible (* see the grammar *)

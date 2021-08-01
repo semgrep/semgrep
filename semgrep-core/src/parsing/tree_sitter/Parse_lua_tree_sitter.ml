@@ -334,7 +334,8 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "//" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.FloorDiv, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+      G.Call
+        (G.IdSpecial (G.Op G.FloorDiv, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_PERC_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "%" *) in
@@ -392,12 +393,16 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   (match x with
   | `Next tok -> G.OtherExpr (G.OE_Todo, [ G.TodoK ("next", token env tok) ])
   | `Spread tok -> G.Ellipsis (token env tok) (* "..." *)
-  | `Prefix x -> let x = map_prefix env x in x.G.e
+  | `Prefix x ->
+      let x = map_prefix env x in
+      x.G.e
   | `Func_defi (v1, v2) ->
       let _t = token env v1 (* "function" *) in
       let v2 = map_function_body env v2 v1 in
       G.Lambda v2
-  | `Table x -> let x = map_table env x in x.G.e
+  | `Table x ->
+      let x = map_table env x in
+      x.G.e
   | `Bin_oper x -> map_binary_operation env x
   | `Un_oper (v1, v2) ->
       let op, tok =
@@ -410,7 +415,9 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
       in
       let v2 = map_expression env v2 in
       G.Call (G.IdSpecial (G.Op op, token env tok) |> G.e, fb [ G.Arg v2 ])
-  | `Str tok -> let x = string_literal env tok (* string *) in x.G.e
+  | `Str tok ->
+      let x = string_literal env tok (* string *) in
+      x.G.e
   | `Num tok ->
       let s, tok = str env tok in
       G.L (G.Float (float_of_string_opt s, tok))
@@ -418,8 +425,8 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   | `Nil tok -> G.L (G.Null (token env tok)) (* "nil" *)
   | `True tok -> G.L (G.Bool (true, token env tok)) (* "true" *)
   | `False tok -> G.L (G.Bool (false, token env tok)) (* "false" *)
-  | `Id tok -> G.N (ident env tok)
-  ) |> G.e
+  | `Id tok -> G.N (ident env tok))
+  |> G.e
 
 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
 and map_field (env : env) (x : CST.field) : G.expr =
@@ -439,7 +446,9 @@ and map_field (env : env) (x : CST.field) : G.expr =
         (G.N (G.Id (v1, G.empty_id_info ())) |> G.e, v2, v3)
     | `Exp x ->
         let expr = map_expression env x in
-        let ident = G.IdSpecial (G.NextArrayIndex, G.fake "next_array_index") |> G.e in
+        let ident =
+          G.IdSpecial (G.NextArrayIndex, G.fake "next_array_index") |> G.e
+        in
         (ident, G.fake "=", expr)
   in
   G.Assign (ent, tok, def) |> G.e
@@ -489,7 +498,8 @@ and map_function_call_expr (env : env) (x : CST.function_call_statement) :
           } )
       in
       let args = map_arguments env v4 in
-      G.Call (G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e, args) |> G.e
+      G.Call (G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e, args)
+      |> G.e
 
 and map_function_call_statement (env : env) (x : CST.function_call_statement) :
     G.stmt =
@@ -545,7 +555,8 @@ and map_loop_expression (env : env)
 and map_global_variable (env : env) (x : CST.global_variable) : G.expr =
   match x with
   | `X__G t -> G.N (G.Id (("_G", token env t), G.empty_id_info ())) |> G.e
-  | `X__VERSION t -> G.N (G.Id (("_VERSION", token env t), G.empty_id_info ())) |> G.e
+  | `X__VERSION t ->
+      G.N (G.Id (("_VERSION", token env t), G.empty_id_info ())) |> G.e
 
 and map_prefix (env : env) (x : CST.prefix) : G.expr =
   match x with
@@ -740,7 +751,8 @@ and map_variable_declarator (env : env) (x : CST.variable_declarator) : G.expr =
       let dot = token env v2 (* "." *) in
       let ident = identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
       G.DotAccess
-        (G.N (G.Id (ident, G.empty_id_info ())) |> G.e, dot, G.EDynamic prefix) |> G.e
+        (G.N (G.Id (ident, G.empty_id_info ())) |> G.e, dot, G.EDynamic prefix)
+      |> G.e
 
 let map_program (env : env) ((v1, v2) : CST.program) : G.program =
   map_statements_and_return env (v1, v2)

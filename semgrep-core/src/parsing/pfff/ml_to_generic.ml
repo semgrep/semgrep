@@ -146,9 +146,12 @@ and stmt e : G.stmt =
       let ent = G.basic_entity v1 [] in
       let var = { G.vinit = Some v2; vtype = None } in
       let n = G.N (G.Id (v1, G.empty_id_info ())) |> G.e in
-      let next = G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1, tok)) |> G.e) |> G.e in
+      let next =
+        G.AssignOp (n, (nextop, tok), G.L (G.Int (Some 1, tok)) |> G.e) |> G.e
+      in
       let cond =
-        G.Call (G.IdSpecial (G.Op condop, tok) |> G.e, fb [ G.Arg n; G.Arg v4 ]) |> G.e
+        G.Call (G.IdSpecial (G.Op condop, tok) |> G.e, fb [ G.Arg n; G.Arg v4 ])
+        |> G.e
       in
       let header =
         G.ForClassic ([ G.ForInitVar (ent, var) ], Some cond, Some next)
@@ -217,7 +220,8 @@ and expr e =
   (* todo? convert some v2 in IdSpecial Op? *)
   | Infix (v1, v2, v3) ->
       let v1 = expr v1 and v3 = expr v3 in
-      G.Call (G.N (G.Id (v2, G.empty_id_info ())) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+      G.Call
+        (G.N (G.Id (v2, G.empty_id_info ())) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = list argument v2 in
       G.Call (v1, fb v2)
@@ -251,7 +255,8 @@ and expr e =
                | _ ->
                    let v1 = dotted_ident_of_name v1 in
                    let e =
-                     G.OtherExpr (G.OE_RecordFieldName, [ G.Di v1; G.E v2 ]) |> G.e
+                     G.OtherExpr (G.OE_RecordFieldName, [ G.Di v1; G.E v2 ])
+                     |> G.e
                    in
                    let st = G.exprstmt e in
                    G.FieldStmt st))
@@ -316,8 +321,8 @@ and expr e =
   | If _ | Try _ | For _ | While _ | Sequence _ | Match _ ->
       let s = stmt e in
       let x = G.stmt_to_expr s in
-      x.G.e
-  ) |> G.e
+      x.G.e)
+  |> G.e
 
 and literal = function
   | Int v1 ->
@@ -612,7 +617,8 @@ and item { i; iattrs } =
 and mk_var_or_func tlet params tret body =
   (* coupling: with stmt() and what is generated for simple expressions *)
   match (params, body.G.s) with
-  | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E ({ e = G.Lambda (def); _}) ]) -> G.FuncDef def
+  | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E { e = G.Lambda def; _ } ]) ->
+      G.FuncDef def
   | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) ->
       G.VarDef { G.vinit = Some e; vtype = None }
   | _ ->

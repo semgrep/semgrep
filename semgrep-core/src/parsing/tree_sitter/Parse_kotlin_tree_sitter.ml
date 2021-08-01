@@ -1000,8 +1000,8 @@ and expression (env : env) (x : CST.expression) : expr =
       let x1 = token env x1 in
       let x2 = expression env x2 in
       let x3 = token env x3 in
-      G.DeepEllipsis (x1, x2, x3)
-  ) |> G.e
+      G.DeepEllipsis (x1, x2, x3))
+  |> G.e
 
 and finally_block (env : env) ((v1, v2) : CST.finally_block) =
   let v1 = token env v1 (* "finally" *) in
@@ -1399,8 +1399,8 @@ and primary_constructor (env : env) ((v1, v2) : CST.primary_constructor) =
 and primary_expression (env : env) (x : CST.primary_expression) : expr_kind =
   match x with
   | `Paren_exp x ->
-     let x = parenthesized_expression env x in
-     x.G.e
+      let x = parenthesized_expression env x in
+      x.G.e
   | `Simple_id x ->
       let id = simple_identifier env x in
       G.N (Id (id, empty_id_info ()))
@@ -1795,8 +1795,10 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       let v2, v3 = postfix_unary_operator env v2 in
       match v2 with
       | Left incr_decr ->
-          Call (IdSpecial (IncrDecr (incr_decr, Postfix), v3) |> G.e, fb [ Arg v1 ])
-      | Right operator -> Call (IdSpecial (Op operator, v3) |> G.e, fb [ Arg v1 ]))
+          Call
+            (IdSpecial (IncrDecr (incr_decr, Postfix), v3) |> G.e, fb [ Arg v1 ])
+      | Right operator ->
+          Call (IdSpecial (Op operator, v3) |> G.e, fb [ Arg v1 ]))
   | `Call_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = call_suffix env v2 in
@@ -1824,7 +1826,9 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       match v1 with
       | None -> v2.G.e
       | Some (Left incr_decr, tok) ->
-          Call (IdSpecial (IncrDecr (incr_decr, Postfix), tok) |> G.e, fb [ Arg v2 ])
+          Call
+            ( IdSpecial (IncrDecr (incr_decr, Postfix), tok) |> G.e,
+              fb [ Arg v2 ] )
       | Some (Right operator, tok) ->
           Call (IdSpecial (Op operator, tok) |> G.e, fb [ Arg v2 ]))
   | `As_exp (v1, v2, v3) ->

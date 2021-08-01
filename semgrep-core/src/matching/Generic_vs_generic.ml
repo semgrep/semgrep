@@ -104,7 +104,7 @@ let has_ellipsis_and_filter_ellipsis_gen f xs =
 
 let has_ellipsis_and_filter_ellipsis xs =
   has_ellipsis_and_filter_ellipsis_gen
-    (function { G.e = G.Ellipsis (_); _} -> true | _ -> false)
+    (function { G.e = G.Ellipsis _; _ } -> true | _ -> false)
     xs
 
 let has_xml_ellipsis_and_filter_ellipsis xs =
@@ -121,13 +121,13 @@ let has_match_case_ellipsis_and_filter_ellipsis xs =
   has_ellipsis_and_filter_ellipsis_gen
     (fun (pat, body) ->
       match (pat, body) with
-      | G.PatEllipsis _, { G.e = G.Ellipsis (_); _} -> true
+      | G.PatEllipsis _, { G.e = G.Ellipsis _; _ } -> true
       | _ -> false)
     xs
 
 let rec obj_and_method_calls_of_expr e =
   match e.G.e with
-  | B.Call ({ e = B.DotAccess (e, tok, fld); _}, args) ->
+  | B.Call ({ e = B.DotAccess (e, tok, fld); _ }, args) ->
       let o, xs = obj_and_method_calls_of_expr e in
       (o, (fld, tok, args) :: xs)
   | _ -> (e, [])
@@ -527,8 +527,8 @@ and m_expr a b =
    * bugfix: note that we must forbid that only in a Call context; we want
    * $THIS to match IdSpecial (This) for example.
    *)
-  | ( G.Call ({ e = G.N (G.Id ((str, _tok), _id_info)); _}, _argsa),
-      B.Call ({ e = B.IdSpecial (_); _}, _argsb) )
+  | ( G.Call ({ e = G.N (G.Id ((str, _tok), _id_info)); _ }, _argsa),
+      B.Call ({ e = B.IdSpecial _; _ }, _argsb) )
     when MV.is_metavar_name str ->
       fail ()
   (* metavar: *)
@@ -601,8 +601,8 @@ and m_expr a b =
    * otherwise regular call patterns like foo("...") would match code like
    * foo().
    *)
-  | ( G.Call ({ e = G.IdSpecial (G.ConcatString akind, _a1); _}, a2),
-      B.Call ({ e = B.IdSpecial (B.ConcatString bkind, _b1); _}, b2) ) ->
+  | ( G.Call ({ e = G.IdSpecial (G.ConcatString akind, _a1); _ }, a2),
+      B.Call ({ e = B.IdSpecial (B.ConcatString bkind, _b1); _ }, b2) ) ->
       m_concat_string_kind akind bkind >>= fun () ->
       m_bracket m_arguments_concat a2 b2
   (*e: [[Generic_vs_generic.m_expr()]] interpolated strings case *)
@@ -614,9 +614,11 @@ and m_expr a b =
    * in Call() means we need to go deeper.
    *)
   | ( G.Call
-        ( { e = G.IdSpecial (G.Op aop, _toka); _},
-          (_, [ G.Arg a1; G.Arg ({ e = G.Ellipsis (_tdots); _}) ], _) ),
-      B.Call ({ e = B.IdSpecial (B.Op bop, _tokb); _}, (_, [ B.Arg b1; B.Arg _b2 ], _)) )
+        ( { e = G.IdSpecial (G.Op aop, _toka); _ },
+          (_, [ G.Arg a1; G.Arg { e = G.Ellipsis _tdots; _ } ], _) ),
+      B.Call
+        ( { e = B.IdSpecial (B.Op bop, _tokb); _ },
+          (_, [ B.Arg b1; B.Arg _b2 ], _) ) )
   (* This applies to any binary operation! Associative operators (declared
    * in AST_generic_helpers.is_associative_operator) are better handled by
    * m_call_op below. *)
@@ -625,8 +627,8 @@ and m_expr a b =
       m_expr a1 b1 >!> fun () ->
       (* try again deeper on b1 *)
       m_expr a b1
-  | ( G.Call ({ e = G.IdSpecial (G.Op aop, toka); _}, aargs),
-      B.Call ({ e = B.IdSpecial (B.Op bop, tokb); _}, bargs) ) ->
+  | ( G.Call ({ e = G.IdSpecial (G.Op aop, toka); _ }, aargs),
+      B.Call ({ e = B.IdSpecial (B.Op bop, tokb); _ }, bargs) ) ->
       m_call_op aop toka aargs bop tokb bargs
   (* boilerplate *)
   (* TODO: via m_name! and miss IdQualfied vs IdQualified otherwise *)
@@ -659,8 +661,8 @@ and m_expr a b =
   (* <a1> ... vs o.m1().m2().m3().
    * Remember than o.m1().m2().m3() is parsed as (((o.m1()).m2()).m3())
    *)
-  | G.DotAccessEllipsis (a1, _a2), (B.DotAccess _ | B.Call ({ e = B.DotAccess (_); _}, _))
-    ->
+  | ( G.DotAccessEllipsis (a1, _a2),
+      (B.DotAccess _ | B.Call ({ e = B.DotAccess _; _ }, _)) ) ->
       (* => o, [m3();m2();m1() *)
       let obj, ys = obj_and_method_calls_of_expr b in
       (* the method chain ellipsis can match 0 or more of those method calls *)
@@ -933,7 +935,8 @@ and m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2) =
   match ((a1, a2), (b1, b2)) with
   (* those rules should be applied only for python? *)
   | ((G.Dict | G.Set), []), ((G.Dict | G.Set), []) -> return ()
-  | ((G.Dict | G.Set), [ { e = G.Ellipsis (_); _} ]), ((G.Dict | G.Set), _) -> return ()
+  | ((G.Dict | G.Set), [ { e = G.Ellipsis _; _ } ]), ((G.Dict | G.Set), _) ->
+      return ()
   | (G.Set, a2), (B.Set, b2) ->
       let has_ellipsis, a2 = has_ellipsis_and_filter_ellipsis a2 in
       m_list_in_any_order ~less_is_ok:has_ellipsis m_expr a2 b2
@@ -963,7 +966,7 @@ and m_container_operator a b =
 (*s: function [[Generic_vs_generic.m_container_ordered_elements]] *)
 and m_container_ordered_elements a b =
   m_list_with_dots m_expr
-    (function { e = G.Ellipsis (_); _} -> true | _ -> false)
+    (function { e = G.Ellipsis _; _ } -> true | _ -> false)
     false (* empty list can not match non-empty list *) a b
 
 (*e: function [[Generic_vs_generic.m_container_ordered_elements]] *)
@@ -975,13 +978,16 @@ and m_other_expr_operator = m_other_xxx
 and m_compatible_type typed_mvar t e =
   match (t, e.G.e) with
   (* for Python literal checking *)
-  | ( G.OtherType (G.OT_Expr, [ G.E ({ e = G.N (G.Id (("int", _tok), _idinfo)); _}) ]),
+  | ( G.OtherType
+        (G.OT_Expr, [ G.E { e = G.N (G.Id (("int", _tok), _idinfo)); _ } ]),
       B.L (B.Int _) ) ->
       envf typed_mvar (MV.E e)
-  | ( G.OtherType (G.OT_Expr, [ G.E ({ e = G.N (G.Id (("float", _tok), _idinfo)); _}) ]),
+  | ( G.OtherType
+        (G.OT_Expr, [ G.E { e = G.N (G.Id (("float", _tok), _idinfo)); _ } ]),
       B.L (B.Float _) ) ->
       envf typed_mvar (MV.E e)
-  | ( G.OtherType (G.OT_Expr, [ G.E ({ e = G.N (G.Id (("str", _tok), _idinfo)); _}) ]),
+  | ( G.OtherType
+        (G.OT_Expr, [ G.E { e = G.N (G.Id (("str", _tok), _idinfo)); _ } ]),
       B.L (B.String _) ) ->
       envf typed_mvar (MV.E e)
   (* for java literals *)
@@ -1009,7 +1015,9 @@ and m_compatible_type typed_mvar t e =
   | ( ta,
       ( B.N (B.IdQualified ((idb, _), { B.id_type = tb; _ }))
       | B.DotAccess
-          ({ e = IdSpecial (This, _); _}, _, EN (Id (idb, { B.id_type = tb; _ }))) ) ) ->
+          ( { e = IdSpecial (This, _); _ },
+            _,
+            EN (Id (idb, { B.id_type = tb; _ })) ) ) ) ->
       m_type_option_with_hook idb (Some ta) !tb >>= fun () ->
       envf typed_mvar (MV.E e)
   | _ -> fail ()
@@ -1129,9 +1137,9 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
   | [], [] -> return ()
   (*s: [[Generic_vs_generic.m_list__m_argument()]] ellipsis cases *)
   (* dots: ..., can also match no argument *)
-  | [ G.Arg ({ e = G.Ellipsis (_i); _}) ], [] -> return ()
+  | [ G.Arg { e = G.Ellipsis _i; _ } ], [] -> return ()
   (* dots: metavars: $...ARGS *)
-  | G.Arg ({ e = G.N (G.Id ((s, tok), _idinfo)); _}) :: xsa, xsb
+  | G.Arg { e = G.N (G.Id ((s, tok), _idinfo)); _ } :: xsa, xsb
     when MV.is_metavar_ellipsis s ->
       (* can match 0 or more arguments (just like ...) *)
       let candidates = inits_and_rest_of_list_empty_ok xsb in
@@ -1144,7 +1152,7 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
             >||> aux xs
       in
       aux candidates
-  | G.Arg ({ e = G.Ellipsis (i); _}) :: xsa, xb :: xsb ->
+  | G.Arg { e = G.Ellipsis i; _ } :: xsa, xb :: xsb ->
       (* can match nothing *)
       m_list__m_argument xsa (xb :: xsb)
       >||> (* can match more *)
@@ -1199,9 +1207,9 @@ and m_arguments_concat a b =
   | [], [] -> return ()
   (*s: [[Generic_vs_generic.m_arguments_concat()]] ellipsis cases *)
   (* dots '...' for string literal, can match any number of arguments *)
-  | [ G.Arg ({ e = G.L (G.String ("...", _)); _}) ], _xsb -> return ()
+  | [ G.Arg { e = G.L (G.String ("...", _)); _ } ], _xsb -> return ()
   (* specific case: f"...{$X}..." will properly extract $X from f"foo {bar} baz" *)
-  | G.Arg ({ e = G.L (G.String ("...", a)); _}) :: xsa, B.Arg bexpr :: xsb ->
+  | G.Arg { e = G.L (G.String ("...", a)); _ } :: xsa, B.Arg bexpr :: xsb ->
       (* can match nothing *)
       m_arguments_concat xsa (B.Arg bexpr :: xsb)
       >||> (* can match more *)
@@ -1213,7 +1221,8 @@ and m_arguments_concat a b =
       (* string literals since string literals are implicitly not   *)
       (* interpolated, and ellipsis implicitly is                   *)
       match (xa, xb) with
-      | G.Arg ({ e = G.Ellipsis (_); _}), G.Arg ({ e = G.L (G.String _); _}) -> fail ()
+      | G.Arg { e = G.Ellipsis _; _ }, G.Arg { e = G.L (G.String _); _ } ->
+          fail ()
       | _ -> m_argument xa xb >>= fun () -> m_arguments_concat aas bbs)
   | [], _ | _ :: _, _ -> fail ()
 
@@ -1270,8 +1279,10 @@ and m_call_op aop toka aargs bop tokb bargs tin =
         logger#warning
           "Will not perform AC-matching, something went wrong when trying to \
            convert operands to AC normal form: %s ~ %s"
-          (G.show_expr (G.Call (G.IdSpecial (G.Op aop, toka) |> G.e, aargs) |> G.e))
-          (B.show_expr (B.Call (B.IdSpecial (B.Op bop, tokb) |> G.e, bargs) |> G.e));
+          (G.show_expr
+             (G.Call (G.IdSpecial (G.Op aop, toka) |> G.e, aargs) |> G.e))
+          (B.show_expr
+             (B.Call (B.IdSpecial (B.Op bop, tokb) |> G.e, bargs) |> G.e));
         m_op_default tin)
   else m_op_default tin
 
@@ -1287,9 +1298,9 @@ and m_assoc_op tok op aargs_ac bargs_ac =
   match (aargs_ac, bargs_ac) with
   | [], [] -> return ()
   (* dots: ..., can also match no argument *)
-  | [ { e = G.Ellipsis (_i); _} ], [] -> return ()
+  | [ { e = G.Ellipsis _i; _ } ], [] -> return ()
   (* $MVAR, acting similar to $...MVAR *)
-  | ({ e = G.N (G.Id ((s, _tok), _idinfo)); _} as xa) :: xsa, xsb
+  | ({ e = G.N (G.Id ((s, _tok), _idinfo)); _ } as xa) :: xsa, xsb
     when MV.is_metavar_name s ->
       let candidates = inits_and_rest_of_list_empty_ok xsb in
       let rec aux xs =
@@ -1304,7 +1315,7 @@ and m_assoc_op tok op aargs_ac bargs_ac =
             | None -> aux xs)
       in
       aux candidates
-  | { e = G.Ellipsis (i); _} :: xsa, xb :: xsb ->
+  | { e = G.Ellipsis i; _ } :: xsa, xb :: xsb ->
       (* can match nothing *)
       m_assoc_op tok op xsa (xb :: xsb)
       >||> (* can match more *)
@@ -1360,10 +1371,10 @@ and m_ac_op tok op aargs_ac bargs_ac =
   let avars, aapps =
     aargs_ac
     |> List.partition (fun e ->
-         match e.G.e with
-         | G.Ellipsis _ -> true
-         | G.N (G.Id ((str, _tok), _id_info)) -> MV.is_metavar_name str
-         | ___else___ -> false)
+           match e.G.e with
+           | G.Ellipsis _ -> true
+           | G.N (G.Id ((str, _tok), _id_info)) -> MV.is_metavar_name str
+           | ___else___ -> false)
   in
   (* Try to match each aapp with a different barg, this is a 1-to-1 matching.
    * Here we don't expect perf issues on real code, because each aapp will
@@ -1388,7 +1399,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
     (* An ending ellipsis (...) can be removed without affecting the result
      * but reducing duplicates and improving perf. *)
     match List.rev avars with
-    | { e = G.Ellipsis (_); _} :: rev_avars -> List.rev rev_avars
+    | { e = G.Ellipsis _; _ } :: rev_avars -> List.rev rev_avars
     | ____else____ -> avars
   in
   match avars_no_end_dots with
@@ -1399,7 +1410,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
       let m_var x bs' =
         (* `...` can match the empty set, whereas `$MVAR` must much something. *)
         match (x, H.undo_ac_matching_nf tok op bs') with
-        | { G.e = G.Ellipsis (_); _}, None -> return ()
+        | { G.e = G.Ellipsis _; _ }, None -> return ()
         | ___mvar___, None -> fail ()
         | ___mvar___, Some op_bs' -> m_expr x op_bs'
       in
@@ -1419,7 +1430,9 @@ and m_ac_op tok op aargs_ac bargs_ac =
          bs_left#=%d\n"
         (G.show_operator op) (List.length avars) num_bs_left;
       m_comb_bind bs_left (fun bs' tin ->
-          let avars_dots = avars_no_end_dots @ [ G.Ellipsis (G.fake "...") |> G.e ] in
+          let avars_dots =
+            avars_no_end_dots @ [ G.Ellipsis (G.fake "...") |> G.e ]
+          in
           let tout =
             m_list__m_argument
               (List.map G.arg avars_dots)
@@ -1695,8 +1708,9 @@ and m_stmts_deep_uncached ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
    *)
   | [], _ :: _ -> if less_is_ok then return () else fail ()
   (* dots: '...', can also match no statement *)
-  | [ { s = G.ExprStmt ({ e = G.Ellipsis (_i); _}, _); _ } ], [] -> return ()
-  | ({ s = G.ExprStmt ({ e = G.Ellipsis (_i); _}, _); _ } :: _ as xsa), (_ :: _ as xsb) ->
+  | [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], [] -> return ()
+  | ( ({ s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: _ as xsa),
+      (_ :: _ as xsb) ) ->
       (* let's first try without going deep *)
       m_list__m_stmt ~list_kind:CK.Original xsa xsb >!> fun () ->
       if_config
@@ -1709,7 +1723,9 @@ and m_stmts_deep_uncached ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
                 xsb)
         ~else_:(fail ())
   (* dots: metavars: $...BODY *)
-  | ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _}, _); _ } :: _ as xsa), xsb
+  | ( ({ s = G.ExprStmt ({ e = G.N (G.Id ((s, _), _idinfo)); _ }, _); _ } :: _
+      as xsa),
+      xsb )
     when MV.is_metavar_ellipsis s ->
       (* less: for metavariable ellipsis, does it make sense to go deep? *)
       m_list__m_stmt ~list_kind:CK.Original xsa xsb
@@ -1764,8 +1780,8 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
       (*e: [[Generic_vs_generic.m_list__m_stmt()]] empty list vs list case *)
       (*s: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
       (* dots: '...', can also match no statement *)
-      | [ { s = G.ExprStmt ({ e = G.Ellipsis (_i); _}, _); _ } ], [] -> return ()
-      | ( { s = G.ExprStmt ({ e = G.Ellipsis (_i); _}, _); _ } :: xsa_tail,
+      | [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], [] -> return ()
+      | ( { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: xsa_tail,
           (xb :: xsb_tail as xsb) ) ->
           (* can match nothing *)
           m_list__m_stmt ~list_kind xsa_tail xsb
@@ -1774,7 +1790,9 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
             m_list__m_stmt ~list_kind xsa xsb_tail )
       (*e: [[Generic_vs_generic.m_list__m_stmt()]] ellipsis cases *)
       (* dots: metavars: $...BODY *)
-      | { s = G.ExprStmt ({ e = G.N (G.Id ((s, tok), _idinfo)); _}, _); _ } :: xsa, xsb
+      | ( { s = G.ExprStmt ({ e = G.N (G.Id ((s, tok), _idinfo)); _ }, _); _ }
+          :: xsa,
+          xsb )
         when MV.is_metavar_ellipsis s ->
           (* can match 0 or more arguments *)
           let candidates = inits_and_rest_of_list_empty_ok xsb in
@@ -1822,7 +1840,7 @@ and m_stmt a b =
    * But at least we can try to match $S as a statement metavar
    * _or_ an expression metavar with >||>. below
    *)
-  | G.ExprStmt (({ e = G.N (G.Id ((str, tok), _id_info)); _} as suba), sc), _b
+  | G.ExprStmt (({ e = G.N (G.Id ((str, tok), _id_info)); _ } as suba), sc), _b
     when MV.is_metavar_name str -> (
       envf (str, tok) (MV.S b)
       >||>
@@ -1833,7 +1851,7 @@ and m_stmt a b =
   (*e: [[Generic_vs_generic.m_stmt()]] metavariable case *)
   (*s: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   (* dots: '...' can to match any statememt *)
-  | G.ExprStmt ({ e = G.Ellipsis (_i); _}, _), _b -> return ()
+  | G.ExprStmt ({ e = G.Ellipsis _i; _ }, _), _b -> return ()
   (*x: [[Generic_vs_generic.m_stmt()]] ellipsis cases *)
   | G.Return (a0, a1, asc), B.Return (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
@@ -1853,15 +1871,16 @@ and m_stmt a b =
    * some regressions (see tests/OTHER/rules/regression_uniq...) but this
    * has been fixed now.
    *)
-  | G.Block (_, [ { s = G.ExprStmt ({ e = G.Ellipsis (_i); _}, _); _ } ], _), B.Block _b1 ->
+  | ( G.Block (_, [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], _),
+      B.Block _b1 ) ->
       return ()
   (* opti: another specialization; again we should not need it *)
   | ( G.Block
         ( _,
           [
-            { s = G.ExprStmt ({ e = G.Ellipsis (_); _}, _); _ };
+            { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ };
             a;
-            { s = G.ExprStmt ({ e = G.Ellipsis (_); _}, _); _ };
+            { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ };
           ],
           _ ),
       B.Block (_, bs, _) ) ->
@@ -2361,7 +2380,7 @@ and m_fields (xsa : G.field list) (xsb : G.field list) =
     (* TODO: Similar to has_ellipsis_and_filter_ellipsis, refactor? *)
     xsa
     |> Common.exclude (function
-         | G.FieldStmt { s = G.ExprStmt ({ e = G.Ellipsis (_); _}, _); _ } ->
+         | G.FieldStmt { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ } ->
              has_ellipsis := true;
              true
          | _ -> false)
@@ -2388,7 +2407,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
   | [], _ :: _ -> if less_is_ok then return () else fail ()
   (*e: [[Generic_vs_generic.m_list__m_field()]] empty list vs list case *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
-  | G.FieldStmt { s = G.ExprStmt ({ e = G.Ellipsis (_); _}, _); _ } :: _, _ ->
+  | G.FieldStmt { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ } :: _, _ ->
       raise Impossible
   (*e: [[Generic_vs_generic.m_list__m_field()]] ellipsis cases *)
   (*s: [[Generic_vs_generic.m_list__m_field()]] [[DefStmt]] pattern case *)
@@ -2532,7 +2551,8 @@ and m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
     (* dots: '...', this is very Python Specific I think *)
       (function
-      | G.OtherType (G.OT_Arg, [ G.Ar (G.Arg ({ e = G.Ellipsis (_i); _})) ]) -> true
+      | G.OtherType (G.OT_Arg, [ G.Ar (G.Arg { e = G.Ellipsis _i; _ }) ]) ->
+          true
       | _ -> false)
     (* less-is-ok: it's ok to not specify all the parents I think *)
     true (* empty list can not match non-empty list *) xsa xsb

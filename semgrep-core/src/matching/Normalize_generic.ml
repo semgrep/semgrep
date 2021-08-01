@@ -80,11 +80,12 @@ let rec eval x : constness option =
   | L x -> Some (Lit x)
   | N (Id (_, { id_constness = { contents = Some x }; _ }))
   | DotAccess
-      ( { e = IdSpecial (This, _); _},
+      ( { e = IdSpecial (This, _); _ },
         _,
         EN (Id (_, { id_constness = { contents = Some x }; _ })) ) ->
       Some x
-  | Call ({ e = IdSpecial ((Op (Plus | Concat) | ConcatString _), _); _}, args) -> (
+  | Call ({ e = IdSpecial ((Op (Plus | Concat) | ConcatString _), _); _ }, args)
+    -> (
       let literals =
         args |> unbracket
         |> Common.map_filter (fun arg ->
@@ -103,7 +104,8 @@ let rec eval x : constness option =
       | Some (Lit (String (_s1, t1))) when all_args_are_string ->
           Some (Lit (String (concated, t1)))
       | _ -> None)
-  | Call ({ e = IdSpecial (InterpolatedElement, _); _}, (_, [ Arg e ], _)) -> eval e
+  | Call ({ e = IdSpecial (InterpolatedElement, _); _ }, (_, [ Arg e ], _)) ->
+      eval e
   (* TODO: partial evaluation for ints/floats/... *)
   | _ -> None
 

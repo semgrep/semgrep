@@ -144,10 +144,10 @@ let special (x, tok) =
                                   * here anymore, to differentiate it from
                                   * the above case.
                                   *)
-                                 (G.ConcatString G.TaggedTemplateLiteral, tok) |> G.e,
-                               rest
-                               |> List.map (fun e -> G.Arg e)
-                               |> fb ) |> G.e);
+                                 (G.ConcatString G.TaggedTemplateLiteral, tok)
+                               |> G.e,
+                               rest |> List.map (fun e -> G.Arg e) |> fb )
+                          |> G.e);
                       ] ))
   | ArithOp op -> SR_Special (G.Op (H.conv_op op), tok)
   | IncrDecr v -> SR_Special (G.IncrDecr (H.conv_incdec v), tok)
@@ -160,9 +160,7 @@ let special (x, tok) =
    TODO: see if this is an issue with other languages besides javascript.
 *)
 let as_block stmt =
-  match stmt.G.s with
-  | G.Block _ -> stmt
-  | _ -> G.Block (fb [ stmt ]) |> G.s
+  match stmt.G.s with G.Block _ -> stmt | _ -> G.Block (fb [ stmt ]) |> G.s
 
 let rec property_name = function
   | PN v1 ->
@@ -313,8 +311,8 @@ and expr (x : expr) =
       G.Conditional (v1, v2, v3)
   | Xml v1 ->
       let v1 = xml v1 in
-      G.Xml v1
-  ) |> G.e
+      G.Xml v1)
+  |> G.e
 
 and stmt x =
   match x with
@@ -430,7 +428,9 @@ and for_header = function
             let e = expr e in
             H.expr_to_pattern e
       in
-      let e = G.Call (G.IdSpecial (G.ForOf, t) |> G.e, fb [ G.Arg v2 ]) |> G.e in
+      let e =
+        G.Call (G.IdSpecial (G.ForOf, t) |> G.e, fb [ G.Arg v2 ]) |> G.e
+      in
       G.ForEach (pattern, t, e)
   | ForEllipsis v1 -> G.ForEllipsis v1
 
@@ -576,9 +576,7 @@ and argument x = expr x
 and attribute = function
   | KeywordAttr x -> G.KeywordAttr (keyword_attribute x)
   | NamedAttr (t, ids, opt) ->
-      let t1, args, t2 =
-        match opt with Some x -> x | None -> fb []
-      in
+      let t1, args, t2 = match opt with Some x -> x | None -> fb [] in
       let args = list argument args |> List.map G.arg in
       let name = H.name_of_ids ids in
       G.NamedAttr (t, name, (t1, args, t2))

@@ -41,13 +41,14 @@ module G = AST_generic
  *)
 let compatible_type t e =
   match (t, e.G.e) with
-  | OtherType (OT_Expr, [ E ({ e = N (Id (("int", _tok), _idinfo)); _}) ]), L (Int _) ->
+  | ( OtherType (OT_Expr, [ E { e = N (Id (("int", _tok), _idinfo)); _ } ]),
+      L (Int _) ) ->
       true
-  | OtherType (OT_Expr, [ E ({ e = N (Id (("float", _tok), _idinfo)); _}) ]), L (Float _)
-    ->
+  | ( OtherType (OT_Expr, [ E { e = N (Id (("float", _tok), _idinfo)); _ } ]),
+      L (Float _) ) ->
       true
-  | OtherType (OT_Expr, [ E ({ e = N (Id (("str", _tok), _idinfo)); _}) ]), L (String _)
-    ->
+  | ( OtherType (OT_Expr, [ E { e = N (Id (("str", _tok), _idinfo)); _ } ]),
+      L (String _) ) ->
       true
   | TyBuiltin (t1, _), N (Id (_, { id_type; _ })) -> (
       match !id_type with Some (TyBuiltin (t2, _)) -> t1 = t2 | _ -> false)

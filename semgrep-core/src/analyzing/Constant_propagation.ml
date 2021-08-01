@@ -144,15 +144,27 @@ let var_stats prog : var_stats =
           match x.e with
           (* TODO: very incomplete, what if Assign (Tuple?) *)
           | Assign
-              ( { e = N
-                  (Id
-                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ })); _},
+              ( {
+                  e =
+                    N
+                      (Id
+                        ( id,
+                          { id_resolved = { contents = Some (_kind, sid) }; _ }
+                        ));
+                  _;
+                },
                 _,
                 e2 )
           | AssignOp
-              ( { e = N
-                  (Id
-                    (id, { id_resolved = { contents = Some (_kind, sid) }; _ })); _},
+              ( {
+                  e =
+                    N
+                      (Id
+                        ( id,
+                          { id_resolved = { contents = Some (_kind, sid) }; _ }
+                        ));
+                  _;
+                },
                 _,
                 e2 ) ->
               let var = (H.str_of_ident id, sid) in
@@ -219,10 +231,10 @@ let rec eval_expr env e =
   (* TODO: do what we do in Normalize_generic.ml.
    * | Call(IdSpecial((Op(Plus | Concat) | ConcatString _), _), args)->
    *)
-  | Call ({ e = IdSpecial (Op op, _); _}, (_, args, _)) -> eval_op env op args
-  | Call ({ e = IdSpecial (ConcatString _, _); _}, (_, args, _)) ->
+  | Call ({ e = IdSpecial (Op op, _); _ }, (_, args, _)) -> eval_op env op args
+  | Call ({ e = IdSpecial (ConcatString _, _); _ }, (_, args, _)) ->
       eval_concat_string env args
-  | Call ({ e = IdSpecial (InterpolatedElement, _); _}, (_, [ Arg e ], _)) ->
+  | Call ({ e = IdSpecial (InterpolatedElement, _); _ }, (_, [ Arg e ], _)) ->
       eval_expr env e
   | __else__ -> None
 
@@ -300,7 +312,7 @@ let propagate_basic lang prog =
                 attrs;
                 _;
               },
-              VarDef { vinit = Some ({ e = L (literal); _}); _ } )
+              VarDef { vinit = Some { e = L literal; _ }; _ } )
           (* note that some languages such as Python do not have VarDef.
            * todo? should add those somewhere instead of in_lvalue detection?*)
             ->
@@ -324,7 +336,7 @@ let propagate_basic lang prog =
               match find_id env id id_info with
               | Some literal -> id_info.id_constness := Some (Lit literal)
               | _ -> ())
-          | DotAccess ({ e = IdSpecial (This, _); _}, _, EN (Id (id, id_info)))
+          | DotAccess ({ e = IdSpecial (This, _); _ }, _, EN (Id (id, id_info)))
             when not !(env.in_lvalue) -> (
               match find_id env id id_info with
               | Some literal -> id_info.id_constness := Some (Lit literal)
@@ -334,7 +346,15 @@ let propagate_basic lang prog =
               Common.save_excursion env.in_lvalue false (fun () -> v (E e2))
               (* Assign that is really a hidden VarDef (e.g., in Python) *)
           | Assign
-              ( { e = N (Id (id, { id_resolved = { contents = Some (kind, sid) }; _ })); _},
+              ( {
+                  e =
+                    N
+                      (Id
+                        ( id,
+                          { id_resolved = { contents = Some (kind, sid) }; _ }
+                        ));
+                  _;
+                },
                 _,
                 rexp ) ->
               eval_expr env rexp

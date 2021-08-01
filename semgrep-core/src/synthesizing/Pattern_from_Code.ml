@@ -70,7 +70,8 @@ let default_id str =
     (Id
        ( (str, fk),
          { id_resolved = ref None; id_type = ref None; id_constness = ref None }
-       )) |> G.e
+       ))
+  |> G.e
 
 let default_tyvar str typ = TypedMetavar ((str, fk), fk, typ) |> G.e
 
@@ -120,7 +121,8 @@ let get_id ?(with_type = false) env e =
       (env', new_id)
 
 let has_nested_call =
-  List.find_opt (fun x -> match x with Arg ({ e = Call (_); _}) -> true | _ -> false)
+  List.find_opt (fun x ->
+      match x with Arg { e = Call _; _ } -> true | _ -> false)
 
 (*****************************************************************************)
 (* Algorithm *)
@@ -187,7 +189,7 @@ let deep_typed_metavar (e, (lp, es, rp)) env =
 
 let generalize_call env e =
   match e.e with
-  | Call ({ e = IdSpecial (New, _); _}, _) -> []
+  | Call ({ e = IdSpecial (New, _); _ }, _) -> []
   | Call (e, (lp, es, rp)) -> (
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
       let d_mvar =
@@ -241,7 +243,8 @@ and generalize_assign env e =
           ]
         else [ ("metavars", E (Assign (id1, tok, id2) |> G.e)) ]
       in
-      ("dots", E (Assign (e1, tok, Ellipsis fk |> G.e) |> G.e)) :: (metavar_part @ e2_patterns)
+      ("dots", E (Assign (e1, tok, Ellipsis fk |> G.e) |> G.e))
+      :: (metavar_part @ e2_patterns)
   | _ -> []
 
 (* All expressions *)
@@ -294,7 +297,7 @@ and generalize_if s_in =
   let rec dots_in_cond s =
     match s.s with
     | If (tok, _, s, sopt) ->
-        If (tok, Ellipsis (fk) |> G.e, s, opt dots_in_cond sopt) |> G.s
+        If (tok, Ellipsis fk |> G.e, s, opt dots_in_cond sopt) |> G.s
     | Block (t1, [ ({ s = If _; _ } as x) ], t2) ->
         Block (t1, [ dots_in_cond x ], t2) |> G.s
     | _ -> s

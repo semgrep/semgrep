@@ -190,8 +190,8 @@ let make_scalar _anchor _tag pos value env : G.expr =
     | ".nan" | ".NaN" | ".NAN" -> G.L (G.Float (Some nan, token))
     | _ -> (
         try G.L (G.Float (Some (float_of_string value), token))
-        with _ -> G.L (G.String (value, token)))
-    ) |> G.e
+        with _ -> G.L (G.String (value, token))))
+    |> G.e
 
 (* Sequences are arrays in the generic AST *)
 let make_sequence _anchor _tag start_pos (es, end_pos) env =
@@ -200,19 +200,23 @@ let make_sequence _anchor _tag start_pos (es, end_pos) env =
 (* Mappings are dictionaries in the generic AST *)
 let make_mappings _anchor _tag start_pos (es, end_pos) env =
   match es with
-  | [ { G.e = G.Ellipsis (e); _} ] -> (G.Ellipsis e |> G.e, end_pos)
-  | _ -> (G.Container (G.Dict, mk_bracket (start_pos, end_pos) es env) |> G.e, end_pos)
+  | [ { G.e = G.Ellipsis e; _ } ] -> (G.Ellipsis e |> G.e, end_pos)
+  | _ ->
+      ( G.Container (G.Dict, mk_bracket (start_pos, end_pos) es env) |> G.e,
+        end_pos )
 
 let make_mapping (pos1, pos2) ((key, value) : G.expr * G.expr) env =
   match (key.G.e, value.G.e) with
-  | G.Ellipsis _, G.Ellipsis _ -> (G.Ellipsis (Parse_info.fake_info "...") |> G.e, pos2)
+  | G.Ellipsis _, G.Ellipsis _ ->
+      (G.Ellipsis (Parse_info.fake_info "...") |> G.e, pos2)
   | _ -> (G.Tuple (mk_bracket (pos1, pos2) [ key; value ] env) |> G.e, pos2)
 
 let make_doc start_pos (doc, end_pos) env : G.expr list =
   match doc with
   | [] -> []
   | [ x ] -> [ x ]
-  | xs -> [ G.Container (G.Array, mk_bracket (start_pos, end_pos) xs env) |> G.e ]
+  | xs ->
+      [ G.Container (G.Array, mk_bracket (start_pos, end_pos) xs env) |> G.e ]
 
 let parse (env : env) : G.expr list =
   (* Parse states *)
@@ -277,8 +281,8 @@ let make_pattern_expr e =
   match e with
   (* If the user creates a pattern with a single field, assume they just want *
    * to match the field, not the whole enclosing container *)
-  | [ { G.e = G.Container (G.Dict, (_lp, [ x ], _rp)); _} ] -> G.E x
-  | [ { G.e = G.Container (G.Array, (_lp, [ x ], _rp)); _} ] -> G.E x
+  | [ { G.e = G.Container (G.Dict, (_lp, [ x ], _rp)); _ } ] -> G.E x
+  | [ { G.e = G.Container (G.Array, (_lp, [ x ], _rp)); _ } ] -> G.E x
   | [ x ] -> G.E x
   | _ -> raise UnreachableList
 

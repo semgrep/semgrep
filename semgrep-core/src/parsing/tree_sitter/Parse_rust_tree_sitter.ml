@@ -857,7 +857,8 @@ and map_base_field_initializer (env : env)
   let rhs = map_expression env v2 in
   G.AssignOp (lhs, (G.Append, dots), rhs) |> G.e
 
-and map_binary_expression (env : env) (x : CST.binary_expression) : G.expr_kind =
+and map_binary_expression (env : env) (x : CST.binary_expression) : G.expr_kind
+    =
   match x with
   | `Exp_AMPAMP_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
@@ -1171,12 +1172,16 @@ and map_expression (env : env) (x : CST.expression) =
       let _as_ = token env v2 (* "as" *) in
       let type_ = map_type_ env v3 in
       G.Cast (type_, expr)
-  | `Range_exp x -> let x = map_range_expression env x in x.G.e
+  | `Range_exp x ->
+      let x = map_range_expression env x in
+      x.G.e
   | `Call_exp (v1, v2) ->
       let expr = map_expression env v1 in
       let args = map_arguments env v2 in
       G.Call (expr, args)
-  | `Ret_exp x -> let x = map_return_expression env x in x.G.e
+  | `Ret_exp x ->
+      let x = map_return_expression env x in
+      x.G.e
   | `Lit x -> G.L (map_literal env x)
   | `Id tok ->
       G.N (G.Id (ident env tok, G.empty_id_info ()))
@@ -1188,7 +1193,9 @@ and map_expression (env : env) (x : CST.expression) =
       let ident = map_reserved_identifier env x in
       G.N (G.Id (ident, G.empty_id_info ()))
   | `Self tok -> G.IdSpecial (G.Self, token env tok) (* "self" *)
-  | `Scoped_id x -> let x = map_scoped_identifier env x in x.G.e
+  | `Scoped_id x ->
+      let x = map_scoped_identifier env x in
+      x.G.e
   | `Gene_func (v1, v2, v3) -> (
       (* TODO: QTop *)
       let _colons = token env v2 (* "::" *) in
@@ -1216,13 +1223,17 @@ and map_expression (env : env) (x : CST.expression) =
             (ident, { G.name_qualifier; G.name_typeargs = Some typeargs })
           in
           G.N (G.IdQualified (name, G.empty_id_info ()))
-      | `Field_exp x -> let x = map_field_expression env x (Some typeargs) in x.G.e)
+      | `Field_exp x ->
+          let x = map_field_expression env x (Some typeargs) in
+          x.G.e)
   | `Await_exp (v1, v2, v3) ->
       let expr = map_expression env v1 in
       let _dot = token env v2 (* "." *) in
       let await = token env v3 (* "await" *) in
       G.Await (await, expr)
-  | `Field_exp x -> let x = map_field_expression env x None in x.G.e
+  | `Field_exp x ->
+      let x = map_field_expression env x None in
+      x.G.e
   | `Array_exp (v1, v2, v3, v4) ->
       let lbracket = token env v1 (* "[" *) in
       let _outer_attrs = List.map (map_outer_attribute_item env) v2 in
@@ -1274,12 +1285,16 @@ and map_expression (env : env) (x : CST.expression) =
       let rparen = token env v7 (* ")" *) in
       let exprs = List.concat [ [ expr_first ]; expr_rest; expr_last ] in
       G.Tuple (lparen, exprs, rparen)
-  | `Macro_invo x -> let x = map_macro_invocation env x in x.G.e
+  | `Macro_invo x ->
+      let x = map_macro_invocation env x in
+      x.G.e
   | `Unit_exp (v1, v2) ->
       let lparen = token env v1 (* "(" *) in
       let _rparen = token env v2 (* ")" *) in
       G.L (G.Unit lparen)
-  | `Choice_unsafe_blk x -> let x = map_expression_ending_with_block env x in x.G.e
+  | `Choice_unsafe_blk x ->
+      let x = map_expression_ending_with_block env x in
+      x.G.e
   | `Brk_exp (v1, v2, v3) ->
       let break = token env v1 (* "break" *) in
       let label =
@@ -1288,14 +1303,16 @@ and map_expression (env : env) (x : CST.expression) =
       let _exprTODO = Option.map (fun x -> map_expression env x) v3 in
       let break_stmt = G.Break (break, label, sc) |> G.s in
       (* TODO expr *)
-      let x = G.stmt_to_expr break_stmt in x.G.e
+      let x = G.stmt_to_expr break_stmt in
+      x.G.e
   | `Cont_exp (v1, v2) ->
       let continue = token env v1 (* "continue" *) in
       let label =
         match v2 with Some x -> map_loop_label env x | None -> G.LNone
       in
       let continue_stmt = G.Continue (continue, label, sc) |> G.s in
-      let x = G.stmt_to_expr continue_stmt in x.G.e
+      let x = G.stmt_to_expr continue_stmt in
+      x.G.e
   | `Index_exp (v1, v2, v3, v4) ->
       let expr = map_expression env v1 in
       let lbracket = token env v2 (* "[" *) in
@@ -1346,7 +1363,8 @@ and map_expression (env : env) (x : CST.expression) =
       let _lparen = token env v1 (* "(" *) in
       let expr = map_expression env v2 in
       let _rparen = token env v3 (* ")" *) in
-      let x = expr in x.G.e
+      let x = expr in
+      x.G.e
   | `Struct_exp (v1, v2) ->
       let name : G.name =
         match v1 with
@@ -1365,8 +1383,8 @@ and map_expression (env : env) (x : CST.expression) =
       let lellips = token env v1 (* "<..." *) in
       let expr = map_expression env v2 in
       let rellips = token env v3 (* "...>" *) in
-      G.DeepEllipsis (lellips, expr, rellips)
-  ) |> G.e
+      G.DeepEllipsis (lellips, expr, rellips))
+  |> G.e
 
 and map_expression_ending_with_block (env : env)
     (x : CST.expression_ending_with_block) : G.expr =
@@ -1412,7 +1430,9 @@ and map_expression_ending_with_block (env : env)
       let cond = map_expression env v6 in
       let body = map_block env v7 in
       let while_stmt = G.While (while_, cond, body) |> G.s in
-      let expr = G.OtherExpr (G.OE_StmtExpr, [ G.P pattern; G.S while_stmt ]) |> G.e in
+      let expr =
+        G.OtherExpr (G.OE_StmtExpr, [ G.P pattern; G.S while_stmt ]) |> G.e
+      in
       G.LetPattern (pattern, expr) |> G.e
   | `Loop_exp (v1, v2, v3) ->
       let _loop_labelTODO = Option.map map_loop_label_ v1 in
@@ -2383,7 +2403,8 @@ and map_range_expression (env : env) (x : CST.range_expression) : G.expr =
         (* "..." *)
       in
       let rhs = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op op, tok) |> G.e, fb [ G.Arg lhs; G.Arg rhs ]) |> G.e
+      G.Call (G.IdSpecial (G.Op op, tok) |> G.e, fb [ G.Arg lhs; G.Arg rhs ])
+      |> G.e
   | `Exp_DOTDOT (v1, v2) ->
       let lhs = map_expression env v1 in
       let dots = token env v2 (* ".." *) in
@@ -2637,7 +2658,8 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
   | `Meta tok ->
       let metavar = ident env tok in
       (* pattern \$[a-zA-Z_]\w* *)
-      G.OtherType (G.OT_Expr, [ G.E (G.N (G.Id (metavar, G.empty_id_info ())) |> G.e) ])
+      G.OtherType
+        (G.OT_Expr, [ G.E (G.N (G.Id (metavar, G.empty_id_info ())) |> G.e) ])
   | `Poin_type x -> map_pointer_type env x
   | `Gene_type x -> map_generic_type env x
   | `Scoped_type_id x -> map_scoped_type_identifier env x

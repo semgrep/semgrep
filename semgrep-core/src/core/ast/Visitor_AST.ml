@@ -257,20 +257,22 @@ let (mk_visitor : visitor_in -> visitor_out) =
           | Dict ->
               v2 |> unbracket
               |> List.iter (fun e ->
-                   match e.e with
-                   | Tuple (_, [ { e = L (String id); _}; e ], _) ->
-                       let t = PI.fake_info ":" in
-                       v_partial ~recurse:false (PartialSingleField (id, t, e))
-                   | _ -> ())
+                     match e.e with
+                     | Tuple (_, [ { e = L (String id); _ }; e ], _) ->
+                         let t = PI.fake_info ":" in
+                         v_partial ~recurse:false
+                           (PartialSingleField (id, t, e))
+                     | _ -> ())
           (* for Go where we use List for composite literals *)
           | List ->
               v2 |> unbracket
               |> List.iter (fun e ->
-                   match e.e with
-                   | Tuple (_, [ {e = N (Id (id, _)); _}; e ], _) ->
-                       let t = PI.fake_info ":" in
-                       v_partial ~recurse:false (PartialSingleField (id, t, e))
-                   | _ -> ())
+                     match e.e with
+                     | Tuple (_, [ { e = N (Id (id, _)); _ }; e ], _) ->
+                         let t = PI.fake_info ":" in
+                         v_partial ~recurse:false
+                           (PartialSingleField (id, t, e))
+                     | _ -> ())
           | _ -> ());
           let v1 = v_container_operator v1
           and v2 = v_bracket (v_list v_expr) v2 in

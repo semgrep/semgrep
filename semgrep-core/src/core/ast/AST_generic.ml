@@ -381,7 +381,8 @@ and id_info = {
  * e.g., type information, or constant evaluation, or range, but it
  * would be a bigger refactoring than for stmt.
  *)
-and expr = { e: expr_kind; e_id: int }
+and expr = { e : expr_kind; e_id : int }
+
 and expr_kind =
   (* basic (atomic) values *)
   | L of literal

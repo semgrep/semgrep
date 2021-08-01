@@ -110,7 +110,8 @@ let v_simple_ref = function
       and _v3TODO = v_option (v_bracket v_ident) v3
       and v4 = v_ident v4 in
       let fld = G.EN (G.Id (v4, G.empty_id_info ())) in
-      Right (G.DotAccess (G.IdSpecial (G.Super, v2) |> G.e, fake ".", fld) |> G.e)
+      Right
+        (G.DotAccess (G.IdSpecial (G.Super, v2) |> G.e, fake ".", fld) |> G.e)
 
 (* TODO: should not use *)
 let id_of_simple_ref = function
@@ -195,8 +196,10 @@ let rec v_literal = function
         |> List.map (function
              | Left lit -> G.Arg (G.L lit |> G.e)
              | Right e ->
-                 let special = G.IdSpecial (G.InterpolatedElement, fake "") |> G.e in
-                 G.Arg (G.Call (special, fb [ G.Arg e ])|> G.e))
+                 let special =
+                   G.IdSpecial (G.InterpolatedElement, fake "") |> G.e
+                 in
+                 G.Arg (G.Call (special, fb [ G.Arg e ]) |> G.e))
       in
       Right (G.Call (special, (snd v1, args, v3)) |> G.e)
 
@@ -361,7 +364,8 @@ and v_expr e =
       in
       ids
       |> List.fold_left
-           (fun acc fld -> G.DotAccess (acc |> G.e, fake ".", G.EN (H.name_of_id fld)))
+           (fun acc fld ->
+             G.DotAccess (acc |> G.e, fake ".", G.EN (H.name_of_id fld)))
            start
   | ExprUnderscore v1 ->
       let v1 = v_tok v1 in
@@ -404,7 +408,9 @@ and v_expr e =
   | BlockExpr v1 -> (
       let lb, kind, _rb = v_block_expr v1 in
       match kind with
-      | Left stats -> let x = expr_of_block stats in x.G.e
+      | Left stats ->
+          let x = expr_of_block stats in
+          x.G.e
       | Right cases -> G.Lambda (cases_to_lambda lb cases))
   (* TODO: should move Match under S in ast_scala.ml *)
   | Match (v1, v2, v3) ->
@@ -417,8 +423,8 @@ and v_expr e =
   | S v1 ->
       let v1 = v_stmt v1 in
       let x = G.stmt_to_expr v1 in
-      x.G.e
-  ) |> G.e
+      x.G.e)
+  |> G.e
 
 (* alt: transform in a series of Seq? *)
 and expr_of_block xs : G.expr =
@@ -435,8 +441,8 @@ and v_arguments = function
       let lb, kind, rb = v_block_expr v1 in
       match kind with
       | Left stats -> (lb, [ G.Arg (expr_of_block stats) ], rb)
-      | Right cases -> (lb, [ G.Arg (G.Lambda (cases_to_lambda lb cases) |> G.e) ], rb)
-      )
+      | Right cases ->
+          (lb, [ G.Arg (G.Lambda (cases_to_lambda lb cases) |> G.e) ], rb))
 
 and v_argument v =
   let v = v_expr v in

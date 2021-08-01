@@ -250,11 +250,11 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
      *
      * THINK: We could also equal two different variable occurrences that happen
      * to have the same constant value. *)
-    | ( MV.E ({ e = G.L (a_lit); _}),
+    | ( MV.E { e = G.L a_lit; _ },
         MV.Id (_, Some { B.id_constness = { contents = Some (B.Lit b_lit) }; _ })
       )
     | ( MV.Id (_, Some { G.id_constness = { contents = Some (G.Lit a_lit) }; _ }),
-        MV.E ({ e = B.L (b_lit); _}) )
+        MV.E { e = B.L b_lit; _ } )
       when config.constant_propagation ->
         G.equal_literal a_lit b_lit
     (* general case, equality modulo-position-and-constness.
@@ -288,7 +288,7 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
          * - id_constness (see the special @equal for id_constness)
          *)
         MV.Structural.equal_mvalue a b
-    | MV.Id _, MV.E ({ e = G.N (G.Id (b_id, b_id_info)); _}) ->
+    | MV.Id _, MV.E { e = G.N (G.Id (b_id, b_id_info)); _ } ->
         (* TODO still needed now that we have the better MV.Id of id_info? *)
         (* TOFIX: regression if remove this code *)
         (* Allow identifier nodes to match pure identifier expressions *)
@@ -366,7 +366,9 @@ let empty_environment opt_cache config =
 let has_ellipsis_stmts xs =
   xs
   |> List.exists (fun st ->
-         match st.G.s with G.ExprStmt ({ e = G.Ellipsis (_); _}, _) -> true | _ -> false)
+         match st.G.s with
+         | G.ExprStmt ({ e = G.Ellipsis _; _ }, _) -> true
+         | _ -> false)
 
 (*e: function [[Matching_generic.has_ellipsis_stmts]] *)
 
@@ -496,7 +498,7 @@ let m_option_ellipsis_ok f a b =
   match (a, b) with
   | None, None -> return ()
   (* dots: ... can match 0 or 1 expression *)
-  | Some ({ G.e = G.Ellipsis (_); _}), None -> return ()
+  | Some { G.e = G.Ellipsis _; _ }, None -> return ()
   | Some xa, Some xb -> f xa xb
   | None, _ | Some _, _ -> fail ()
 

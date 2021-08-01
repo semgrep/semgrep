@@ -13,7 +13,6 @@
  *)
 open Common
 module Set = Set_
-
 open AST_generic
 module G = AST_generic
 
@@ -134,7 +133,8 @@ let default_id str =
     (Id
        ( (str, fk),
          { id_resolved = ref None; id_type = ref None; id_constness = ref None }
-       )) |> G.e
+       ))
+  |> G.e
 
 let count_to_id count =
   let make_id ch = Format.sprintf "$%c" ch in
@@ -205,7 +205,7 @@ let metavar_pattern env e = get_id env e
 let pattern_from_args env args : pattern_instrs =
   let replace_first_arg f args =
     match args with
-    | Args (Arg ({ e = Ellipsis (el); _}) :: Arg arg :: xs) -> (
+    | Args (Arg { e = Ellipsis el; _ } :: Arg arg :: xs) -> (
         match f (E arg) with
         | E x -> Args (Arg (Ellipsis el |> G.e) :: Arg x :: xs)
         | x ->
@@ -216,13 +216,13 @@ let pattern_from_args env args : pattern_instrs =
   in
   let remove_ellipsis _f args =
     match args with
-    | Args (Arg ({ e = Ellipsis (_); _}) :: x :: xs) -> Args (x :: xs)
+    | Args (Arg { e = Ellipsis _; _ } :: x :: xs) -> Args (x :: xs)
     | Args (_ :: _) -> args
     | _ -> raise InvalidSubstitution
   in
   let replace_rest f args =
     match args with
-    | Args (Arg ({ e = Ellipsis (el); _}) :: Arg e :: rest) -> (
+    | Args (Arg { e = Ellipsis el; _ } :: Arg e :: rest) -> (
         match f (Args rest) with
         | Args args' -> Args (Arg (Ellipsis el |> G.e) :: Arg e :: args')
         | _ -> raise InvalidSubstitution)
@@ -235,7 +235,7 @@ let pattern_from_args env args : pattern_instrs =
   let remove_end_ellipsis _f args =
     let rec remove_end = function
       | [] -> []
-      | [ Arg ({ e = Ellipsis (_el); _}) ] -> []
+      | [ Arg { e = Ellipsis _el; _ } ] -> []
       | x :: xs -> x :: remove_end xs
     in
     match args with
@@ -275,7 +275,7 @@ let pattern_from_args env args : pattern_instrs =
 let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
   let replace_name f e =
     match e with
-    | E ({ e = Call (e, (lp, args, rp)); _}) -> (
+    | E { e = Call (e, (lp, args, rp)); _ } -> (
         match f (E e) with
         | E x -> E (Call (x, (lp, args, rp)) |> G.e)
         | _ -> raise InvalidSubstitution)
@@ -283,7 +283,7 @@ let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
   in
   let replace_args f e =
     match e with
-    | E ({ e = Call (e, (lp, args, rp)); _}) -> (
+    | E { e = Call (e, (lp, args, rp)); _ } -> (
         match f (Args args) with
         | Args x -> E (Call (e, (lp, x, rp)) |> G.e)
         | _ -> raise InvalidSubstitution)
@@ -311,11 +311,11 @@ type side = Left | Right
 let pattern_from_assign env (e1, tok, e2) : pattern_instrs =
   let replace_assign_ops side f e =
     match (e, side) with
-    | E ({ e = Assign (e1, tok, e2); _}), Left -> (
+    | E { e = Assign (e1, tok, e2); _ }, Left -> (
         match f (E e1) with
         | E x -> E (Assign (x, tok, e2) |> G.e)
         | _ -> raise InvalidSubstitution)
-    | E ({ e = Assign (e1, tok, e2); _}), Right -> (
+    | E { e = Assign (e1, tok, e2); _ }, Right -> (
         match f (E e2) with
         | E x -> E (Assign (e1, tok, x) |> G.e)
         | _ -> raise InvalidSubstitution)
@@ -467,13 +467,22 @@ let generate_starting_patterns config (targets : AST_generic.any list list) :
   let starting_pattern any =
     match any with
     | E _ ->
-        let env = { config; prev = E (Ellipsis fk |> G.e); count = 1; mapping = [] } in
+        let env =
+          { config; prev = E (Ellipsis fk |> G.e); count = 1; mapping = [] }
+        in
         [ (env, E (Ellipsis fk |> G.e), [ (ANY any, fun f a -> f a) ]) ]
     | S _ ->
         let env =
-          { config; prev = S (exprstmt (Ellipsis fk |> G.e)); count = 1; mapping = [] }
+          {
+            config;
+            prev = S (exprstmt (Ellipsis fk |> G.e));
+            count = 1;
+            mapping = [];
+          }
         in
-        [ (env, S (exprstmt (Ellipsis fk |> G.e)), [ (ANY any, fun f a -> f a) ]) ]
+        [
+          (env, S (exprstmt (Ellipsis fk |> G.e)), [ (ANY any, fun f a -> f a) ]);
+        ]
     | _ -> raise UnsupportedTargetType
   in
   List.map (List.map starting_pattern) targets

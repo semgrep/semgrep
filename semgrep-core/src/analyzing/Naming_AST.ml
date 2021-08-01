@@ -638,7 +638,7 @@ let resolve2 lang prog =
            * a new variable. (Quoting Go' spec, "redeclaration can only appear
            * in a multi-variable short declaration".)
            * See: https://golang.org/ref/spec#Short_variable_declarations *)
-          | AssignOp ({ e = N (Id (id, id_info)); _}, (Eq, tok), e2)
+          | AssignOp ({ e = N (Id (id, id_info)); _ }, (Eq, tok), e2)
             when lang = Lang.Go
                  && Parse_info.str_of_info tok = ":="
                  && is_resolvable_name_ctx env lang ->
@@ -647,7 +647,7 @@ let resolve2 lang prog =
               k x;
               declare_var env lang id id_info ~explicit:true (Some e2) None;
               recurse := false
-          | Assign ({ e = N (Id (id, id_info)); _}, _, e2)
+          | Assign ({ e = N (Id (id, id_info)); _ }, _, e2)
             when Option.is_none (lookup_scope_opt id env)
                  && assign_implicitly_declares lang
                  && is_resolvable_name_ctx env lang ->
@@ -687,7 +687,8 @@ let resolve2 lang prog =
                      *)
                     let s, tok = id in
                     error tok (spf "could not find '%s' in environment" s))
-          | DotAccess ({ e = IdSpecial (This, _); _}, _, EN (Id (id, id_info))) -> (
+          | DotAccess ({ e = IdSpecial (This, _); _ }, _, EN (Id (id, id_info)))
+            -> (
               match lookup_scope_opt id env with
               (* TODO: this is a v0 for doing naming and typing of fields.
                * we should really use a different lookup_scope_class, that

@@ -289,9 +289,8 @@ let top_func () =
         let _v1 = type_ v1 in
         error
           (ii_of_any (T v1) |> List.hd)
-          ("ParenType should disappear" ^ Common.dump v1)
-    ) |> G.e
-
+          ("ParenType should disappear" ^ Common.dump v1))
+    |> G.e
   and literal = function
     | Int v1 ->
         let v1 = wrap id v1 in
@@ -320,7 +319,9 @@ let top_func () =
     | ArgDots (v1, v2) ->
         let v1 = expr v1 in
         let v2 = tok v2 in
-        let special = G.Call (G.IdSpecial (G.Spread, v2) |> G.e, fb [ G.arg v1 ]) |> G.e in
+        let special =
+          G.Call (G.IdSpecial (G.Spread, v2) |> G.e, fb [ G.arg v1 ]) |> G.e
+        in
         G.Arg special
   and init = function
     | InitExpr v1 ->
@@ -332,7 +333,6 @@ let top_func () =
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in
         G.Container (G.List, v1) |> G.e
-
   and init_for_composite_lit = function
     | InitExpr v1 ->
         let v1 = expr v1 in
@@ -361,7 +361,8 @@ let top_func () =
          * less: could define a ColonEq operator in AST_generic.ml
          *)
         G.AssignOp
-          (list_to_tuple_or_expr v1, (G.Eq, v2), list_to_tuple_or_expr v3) |> G.e
+          (list_to_tuple_or_expr v1, (G.Eq, v2), list_to_tuple_or_expr v3)
+        |> G.e
     | AssignOp (v1, v2, v3) ->
         let v1 = expr v1
         and v2, tok = wrap arithmetic_operator v2
@@ -372,7 +373,9 @@ let top_func () =
         and v2, tok = wrap incr_decr v2
         and v3 = prefix_postfix v3 in
         G.Call
-          (G.IdSpecial (G.IncrDecr (H.conv_incr v2, v3), tok) |> G.e, fb [ G.Arg v1 ]) |> G.e
+          ( G.IdSpecial (G.IncrDecr (H.conv_incr v2, v3), tok) |> G.e,
+            fb [ G.Arg v1 ] )
+        |> G.e
   (* invariant: you should not use 'list stmt', but instead always
    * use list stmt_aux ... |> List.flatten
    *)
@@ -417,14 +420,18 @@ let top_func () =
                 (match s with
                 | ExprStmt (TypeSwitchExpr (e, tok1)) ->
                     let e = expr e in
-                    G.Call (G.IdSpecial (G.Typeof, tok1) |> G.e, fb [ G.Arg e ]) |> G.e
+                    G.Call (G.IdSpecial (G.Typeof, tok1) |> G.e, fb [ G.Arg e ])
+                    |> G.e
                 | DShortVars (xs, tok1, [ TypeSwitchExpr (e, tok2) ]) ->
                     let xs = list expr xs in
                     let e = expr e in
                     G.Assign
                       ( list_to_tuple_or_expr xs,
                         tok1,
-                        G.Call (G.IdSpecial (G.Typeof, tok2) |> G.e, fb [ G.Arg e ]) |> G.e ) |> G.e
+                        G.Call
+                          (G.IdSpecial (G.Typeof, tok2) |> G.e, fb [ G.Arg e ])
+                        |> G.e )
+                    |> G.e
                 | s -> simple s)
         and v3 = list case_clause v3 in
         wrap_init_in_block_maybe v1 (G.Switch (v0, v2, v3) |> G.s)
@@ -513,7 +520,10 @@ let top_func () =
                | Left e -> e
                | Right _ -> error tok "TODO: Case Assign with Type?")
         in
-        [ G.CaseEqualExpr (tok, G.Assign (list_to_tuple_or_expr v1, v2, v3) |> G.e) ]
+        [
+          G.CaseEqualExpr
+            (tok, G.Assign (list_to_tuple_or_expr v1, v2, v3) |> G.e);
+        ]
     | CaseDefault v1 ->
         let v1 = tok v1 in
         [ G.Default v1 ]

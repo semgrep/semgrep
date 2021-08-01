@@ -132,7 +132,8 @@ let generic_to_json (key : key) ast =
           (xs
           |> List.map (fun x ->
                  match x.G.e with
-                 | G.Tuple (_, [ { e = L (String (k, _)); _}; v ], _) -> (k, aux v)
+                 | G.Tuple (_, [ { e = L (String (k, _)); _ }; v ], _) ->
+                     (k, aux v)
                  | _ ->
                      error_at_expr x
                        ("Expected key/value pair in " ^ fst key ^ " dictionary"))
@@ -157,7 +158,7 @@ let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
       fields
       |> List.iter (fun field ->
              match field.G.e with
-             | G.Tuple (_, [ { e = L (String (key_str, t)); _}; value ], _) ->
+             | G.Tuple (_, [ { e = L (String (key_str, t)); _ }; value ], _) ->
                  (* Those are actually silently ignored by many YAML parsers
                   * which just consider the last key/value as the final one.
                   * This was a source of bugs in semgrep rules where people
@@ -215,7 +216,7 @@ let parse_list (key : key) f x =
 (* TODO: delete at some point, should use parse_string_wrap_list *)
 let parse_string_list (key : key) e =
   let extract_string = function
-    | { G.e = G.L (String (value, _)); _} -> value
+    | { G.e = G.L (String (value, _)); _ } -> value
     | _ ->
         error_at_key key
           ("Expected all values in the list to be strings for " ^ fst key)
@@ -224,7 +225,7 @@ let parse_string_list (key : key) e =
 
 let parse_string_wrap_list (key : key) e =
   let extract_string = function
-    | { G.e = G.L (String (value, t)); _} -> (value, t)
+    | { G.e = G.L (String (value, t)); _ } -> (value, t)
     | _ ->
         error_at_key key
           ("Expected all values in the list to be strings for " ^ fst key)
@@ -308,8 +309,16 @@ let parse_equivalences key value =
     match equiv.G.e with
     | G.Container
         ( Dict,
-          (_, [ { e = Tuple (_, [ { e = L (String ("equivalence", t)); _}; value ], _); _} ], _) )
-      ->
+          ( _,
+            [
+              {
+                e =
+                  Tuple
+                    (_, [ { e = L (String ("equivalence", t)); _ }; value ], _);
+                _;
+              };
+            ],
+            _ ) ) ->
         parse_string ("equivalence", t) value
     | _ ->
         error_at_expr equiv
@@ -442,7 +451,11 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
   let get_nested_formula i x =
     let env = { env with path = string_of_int i :: env.path } in
     match x.G.e with
-    | G.Container (Dict, (_, [ { e = Tuple (_, [ { e = L (String key); _}; value ], _); _} ], _)) ->
+    | G.Container
+        ( Dict,
+          ( _,
+            [ { e = Tuple (_, [ { e = L (String key); _ }; value ], _); _ } ],
+            _ ) ) ->
         parse_formula_old env (key, value)
     | _ -> error_at_expr x "Wrong parse_formula fields"
   in
@@ -479,7 +492,10 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
    R.PatExtra extra *)
 and parse_formula_new env (x : G.expr) : R.formula =
   match x.G.e with
-  | G.Container (Dict, (_, [ { e = Tuple (_, [ { e = L (String key); _}; value ], _); _} ], _)) -> (
+  | G.Container
+      ( Dict,
+        (_, [ { e = Tuple (_, [ { e = L (String key); _ }; value ], _); _ } ], _)
+      ) -> (
       let s, t = key in
 
       match s with
@@ -625,9 +641,24 @@ let parse_generic file ast =
      {
        G.s =
          G.ExprStmt
-           ( { e = Container
-               ( Dict,
-                 (_, [ { e = Tuple (_, [ { e = L (String ("rules", _)); _}; rules ], _); _} ], _) ); _},
+           ( {
+               e =
+                 Container
+                   ( Dict,
+                     ( _,
+                       [
+                         {
+                           e =
+                             Tuple
+                               ( _,
+                                 [ { e = L (String ("rules", _)); _ }; rules ],
+                                 _ );
+                           _;
+                         };
+                       ],
+                       _ ) );
+               _;
+             },
              _ );
        _;
      };
@@ -640,7 +671,8 @@ let parse_generic file ast =
   let t, rules =
     match rules_block.G.e with
     | Container (Array, (l, rules, _r)) -> (l, rules)
-    | _ -> error_at_expr rules_block "expected a list of rules following `rules:`"
+    | _ ->
+        error_at_expr rules_block "expected a list of rules following `rules:`"
   in
   rules
   |> List.mapi (fun i rule ->

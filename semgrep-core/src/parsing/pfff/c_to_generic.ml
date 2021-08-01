@@ -66,9 +66,12 @@ let rec unaryOp (a, tok) =
   match a with
   | GetRef -> fun e -> G.Ref (tok, e)
   | DeRef -> fun e -> G.DeRef (tok, e)
-  | UnPlus -> fun e -> G.Call (G.IdSpecial (G.Op G.Plus, tok) |> G.e, fb [ G.Arg e ])
-  | UnMinus -> fun e -> G.Call (G.IdSpecial (G.Op G.Minus, tok) |> G.e, fb [ G.Arg e ])
-  | Tilde -> fun e -> G.Call (G.IdSpecial (G.Op G.BitNot, tok) |> G.e, fb [ G.Arg e ])
+  | UnPlus ->
+      fun e -> G.Call (G.IdSpecial (G.Op G.Plus, tok) |> G.e, fb [ G.Arg e ])
+  | UnMinus ->
+      fun e -> G.Call (G.IdSpecial (G.Op G.Minus, tok) |> G.e, fb [ G.Arg e ])
+  | Tilde ->
+      fun e -> G.Call (G.IdSpecial (G.Op G.BitNot, tok) |> G.e, fb [ G.Arg e ])
   | Not -> fun e -> G.Call (G.IdSpecial (G.Op G.Not, tok) |> G.e, fb [ G.Arg e ])
   | GetRefLabel -> fun e -> G.OtherExpr (G.OE_GetRefLabel, [ G.E e ])
 
@@ -212,10 +215,12 @@ and expr e =
       G.Cast (v1, v2)
   | Postfix (v1, (v2, v3)) ->
       let v1 = expr v1 and v2 = fixOp v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v2, G.Postfix), v3) |> G.e, fb [ G.Arg v1 ])
+      G.Call
+        (G.IdSpecial (G.IncrDecr (v2, G.Postfix), v3) |> G.e, fb [ G.Arg v1 ])
   | Infix (v1, (v2, v3)) ->
       let v1 = expr v1 and v2 = fixOp v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v2, G.Prefix), v3) |> G.e, fb [ G.Arg v1 ])
+      G.Call
+        (G.IdSpecial (G.IncrDecr (v2, G.Prefix), v3) |> G.e, fb [ G.Arg v1 ])
   | Unary (v1, v2) ->
       let v1 = expr v1 and v2 = unaryOp v2 in
       v2 v1
@@ -243,7 +248,8 @@ and expr e =
                match v1 with
                | None -> v2
                | Some e ->
-                   G.OtherExpr (G.OE_ArrayInitDesignator, [ G.E e; G.E v2 ]) |> G.e))
+                   G.OtherExpr (G.OE_ArrayInitDesignator, [ G.E e; G.E v2 ])
+                   |> G.e))
           v1
       in
       G.Container (G.Array, v1)
@@ -264,8 +270,8 @@ and expr e =
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in
-      G.TypedMetavar (v1, Parse_info.fake_info " ", v2)
-  ) |> G.e
+      G.TypedMetavar (v1, Parse_info.fake_info " ", v2))
+  |> G.e
 
 and argument v =
   match v with

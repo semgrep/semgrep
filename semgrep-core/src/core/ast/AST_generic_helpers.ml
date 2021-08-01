@@ -119,7 +119,8 @@ let rec pattern_to_expr p =
       Container (List, (t1, xs |> List.map pattern_to_expr, t2))
   | OtherPat (OP_Expr, [ E e ]) -> e.e
   | PatAs _ | PatVar _ -> raise NotAnExpr
-  | _ -> raise NotAnExpr) |> G.e
+  | _ -> raise NotAnExpr)
+  |> G.e
 
 (*e: function [[AST_generic.pattern_to_expr]] *)
 
@@ -179,8 +180,8 @@ let name_or_dynamic_to_expr name idinfo_opt =
   | EN (Id (id, _idinfo)), Some idinfo -> N (Id (id, idinfo))
   | EN (IdQualified (n, idinfo)), None -> N (IdQualified (n, idinfo))
   | EN (IdQualified (n, _idinfo)), Some idinfo -> N (IdQualified (n, idinfo))
-  | EDynamic e, _ -> e.e
-  ) |> G.e
+  | EDynamic e, _ -> e.e)
+  |> G.e
 
 (*s: function [[AST_generic.vardef_to_assign]] *)
 (* used in controlflow_build and semgrep *)
@@ -189,7 +190,7 @@ let vardef_to_assign (ent, def) =
   let v =
     match def.vinit with
     | Some v -> v
-    | None -> (L (Null (Parse_info.fake_info "null"))) |> G.e
+    | None -> L (Null (Parse_info.fake_info "null")) |> G.e
   in
   Assign (name, Parse_info.fake_info "=", v) |> G.e
 
@@ -255,7 +256,9 @@ let ac_matching_nf op args =
     |> List.map nf_one |> List.flatten
   and nf_one e =
     match e.e with
-    | Call ({e = IdSpecial (Op op1, _tok1); _ }, (_, args1, _)) when op = op1 -> nf args1
+    | Call ({ e = IdSpecial (Op op1, _tok1); _ }, (_, args1, _)) when op = op1
+      ->
+        nf args1
     | _ -> [ e ]
   in
   if is_associative_operator op then (
@@ -272,7 +275,8 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
   | [ arg ] -> Some arg
   | a1 :: a2 :: args ->
       let mk_op x y =
-        Call (IdSpecial (Op op, tok) |> G.e, fake_bracket [ Arg x; Arg y ]) |> G.e
+        Call (IdSpecial (Op op, tok) |> G.e, fake_bracket [ Arg x; Arg y ])
+        |> G.e
       in
       Some (List.fold_left mk_op (mk_op a1 a2) args)
 
