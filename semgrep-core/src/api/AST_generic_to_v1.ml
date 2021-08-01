@@ -192,7 +192,7 @@ and map_name = function
       `IdQualified (v1, v2)
 
 and map_expr x : B.expr =
-  match x with
+  match x.e with
   | N v1 ->
       let v1 = map_name v1 in
       `N v1

@@ -28,7 +28,7 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
+                       match exp.G.e with
                        | G.N (G.Id (_, { G.id_type; _ })) -> (
                            match !id_type with
                            | Some (G.TyN (G.Id (("String", _), _))) -> ()
@@ -55,10 +55,11 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
+                       match exp.G.e with
                        | G.Call (_, (_, [ x; y ], _)) -> (
                            (match x with
-                           | G.Arg (G.N (G.Id (_, { G.id_type; _ }))) -> (
+                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
+                             -> (
                                match !id_type with
                                | Some (G.TyN (G.Id (("String", _), _))) -> ()
                                | _ ->
@@ -67,7 +68,8 @@ let unittest parse_program parse_pattern =
                                       expected type String")
                            | _ -> ());
                            match y with
-                           | G.Arg (G.N (G.Id (_, { G.id_type; _ }))) -> (
+                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
+                             -> (
                                match !id_type with
                                | Some (G.TyBuiltin ("int", _)) -> ()
                                | _ ->
@@ -75,7 +77,9 @@ let unittest parse_program parse_pattern =
                                      "Variable 2 referenced did not have \
                                       expected type int")
                            | _ -> ())
-                       | G.Assign (G.N (G.Id (_, { G.id_type; _ })), _, _) -> (
+                       | G.Assign
+                           ({ e = G.N (G.Id (_, { G.id_type; _ })); _ }, _, _)
+                         -> (
                            match !id_type with
                            | Some (G.TyN (G.Id (("String", _), _))) -> ()
                            | _ ->
@@ -101,10 +105,11 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
+                       match exp.G.e with
                        | G.Call (_, (_, [ x; y ], _)) -> (
                            (match x with
-                           | G.Arg (G.N (G.Id (_, { G.id_type; _ }))) -> (
+                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
+                             -> (
                                match !id_type with
                                | Some (G.TyBuiltin ("int", _)) -> ()
                                | _ ->
@@ -113,7 +118,8 @@ let unittest parse_program parse_pattern =
                                       expected type String")
                            | _ -> ());
                            match y with
-                           | G.Arg (G.N (G.Id (_, { G.id_type; _ }))) -> (
+                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
+                             -> (
                                match !id_type with
                                | Some (G.TyBuiltin ("boolean", _)) -> ()
                                | _ ->
@@ -140,7 +146,7 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
+                       match exp.G.e with
                        | G.N (G.Id (("age", _), { G.id_type; _ })) -> (
                            match !id_type with
                            | Some (G.TyBuiltin ("int", _)) -> ()
@@ -194,7 +200,7 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
+                       match exp.G.e with
                        | G.N (G.Id (_, { G.id_type; _ })) -> (
                            match !id_type with
                            | Some (G.TyN (G.Id (("int", _), _))) -> ()
@@ -221,11 +227,14 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
+                       match exp.G.e with
                        | G.Call (_, (_, [ x; y ], _)) -> (
                            (match x with
-                           | G.Arg (G.N (G.Id (("a", _), { G.id_type; _ })))
-                             -> (
+                           | G.Arg
+                               {
+                                 e = G.N (G.Id (("a", _), { G.id_type; _ }));
+                                 _;
+                               } -> (
                                match !id_type with
                                | Some (G.TyN (G.Id (("int", _), _))) -> ()
                                | _ ->
@@ -237,8 +246,11 @@ let unittest parse_program parse_pattern =
                                  "Expected function call to be with int a as \
                                   first argument");
                            match y with
-                           | G.Arg (G.N (G.Id (("c", _), { G.id_type; _ })))
-                             -> (
+                           | G.Arg
+                               {
+                                 e = G.N (G.Id (("c", _), { G.id_type; _ }));
+                                 _;
+                               } -> (
                                match !id_type with
                                | Some (G.TyN (G.Id (("bool", _), _))) -> ()
                                | _ ->
@@ -268,7 +280,7 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
+                       match exp.G.e with
                        | G.N (G.Id (("a", _), { G.id_type; _ })) -> (
                            match !id_type with
                            | Some (G.TyN (G.Id (("char", _), _))) -> ()

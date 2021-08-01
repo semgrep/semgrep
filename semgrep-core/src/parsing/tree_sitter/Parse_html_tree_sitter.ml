@@ -89,10 +89,10 @@ let map_attribute (env : env) ((v1, v2) : CST.attribute) : xml_attribute =
         | `Attr_value tok ->
             (* todo: remove quotes? *)
             let v = str env tok (* pattern "[^<>\"'=\\s]+" *) in
-            L (String v)
+            L (String v) |> G.e
         | `Quoted_attr_value x ->
             let v = map_quoted_attribute_value env x in
-            L (String v)
+            L (String v) |> G.e
       in
       XmlAttr (id, v1, v2)
   | None ->
@@ -102,7 +102,7 @@ let map_attribute (env : env) ((v1, v2) : CST.attribute) : xml_attribute =
       (* sgrep-ext: *)
       if fst id = "..." then XmlEllipsis (snd id)
       else
-        let v = L (Bool (true, fake "true")) in
+        let v = L (Bool (true, fake "true")) |> G.e in
         XmlAttr (id, fake "=", v)
 
 let map_script_start_tag (env : env) ((v1, v2, v3, v4) : CST.script_start_tag) =
@@ -238,7 +238,7 @@ let parse file =
             xml_body = xs;
           }
         in
-        let e = Xml xml in
+        let e = Xml xml |> G.e in
         let st = G.exprstmt e in
         [ st ]
       with Failure "not implemented" as exn ->
@@ -262,8 +262,9 @@ let parse_pattern str =
       let xs = map_fragment env cst in
       match xs with
       (* todo: not sure why the parser adds thos enclosing XmlText "" *)
-      | [ XmlText ("", _); XmlXml xml; XmlText ("", _) ] -> G.E (G.Xml xml)
-      | [ XmlXml xml ] -> G.E (G.Xml xml)
+      | [ XmlText ("", _); XmlXml xml; XmlText ("", _) ] ->
+          G.E (G.Xml xml |> G.e)
+      | [ XmlXml xml ] -> G.E (G.Xml xml |> G.e)
       | _ ->
           let xml =
             {
@@ -272,5 +273,5 @@ let parse_pattern str =
               xml_body = xs;
             }
           in
-          let e = Xml xml in
+          let e = Xml xml |> G.e in
           G.E e)

@@ -314,10 +314,10 @@ let rewrite_metavar_comparison_strip mvar cond =
           (fun (k, _) e ->
             (* apply on children *)
             let e = k e in
-            match e with
-            | G.N (G.Id ((s, tok), _idinfo)) as x when s = mvar ->
+            match e.G.e with
+            | G.N (G.Id ((s, tok), _idinfo)) when s = mvar ->
                 let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int, G.fake_bracket [ G.Arg x ])
+                G.Call (G.N py_int |> G.e, G.fake_bracket [ G.Arg e ]) |> G.e
             | _ -> e);
       }
   in

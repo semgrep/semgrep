@@ -75,7 +75,7 @@ let mk_assigns xs ys equal =
     match (xs, ys) with
     | [], [] -> []
     | _x :: _xs, [] -> []
-    | x :: xs, y :: ys -> G.Assign (x, equal, y) :: aux xs ys
+    | x :: xs, y :: ys -> (G.Assign (x, equal, y) |> G.e) :: aux xs ys
     | [], _y :: _ys -> []
   in
   aux xs ys
@@ -99,7 +99,7 @@ let string_literal (env : env) (tok : CST.identifier) =
         logger#warning "weird string literal: %s" s;
         s
   in
-  G.L (G.String (s, t))
+  G.L (G.String (s, t)) |> G.e
 
 let map_field_sep (env : env) (x : CST.field_sep) =
   match x with
@@ -223,7 +223,7 @@ let rec map_expression_list (env : env)
 and map_expression_tuple (env : env)
     ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : G.expr =
   let v1 = map_expression_list env (v1, v2) in
-  G.Tuple (G.fake_bracket v1)
+  G.Tuple (G.fake_bracket v1) |> G.e
 
 and map_anon_arguments (env : env)
     ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : G.arguments =
@@ -249,107 +249,108 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "or" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Or, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.Or, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_and_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "and" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.And, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.And, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_LT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "<" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Lt, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.Lt, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_LTEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "<=" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.LtE, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.LtE, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_EQEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "==" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Eq, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.Eq, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_TILDEEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "~=" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.NotEq, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.NotEq, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_GTEQ_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* ">=" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.GtE, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.GtE, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_GT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* ">" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Gt, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.Gt, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_BAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "|" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.BitOr, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.BitOr, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_TILDE_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "~" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.BitNot, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.BitNot, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_AMP_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "&" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.BitAnd, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.BitAnd, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_LTLT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "<<" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.LSL, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.LSL, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* ">>" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.LSR, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.LSR, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_PLUS_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "+" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Plus, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.Plus, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_DASH_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "-" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Minus, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.Minus, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_STAR_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "*" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Mult, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.Mult, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_SLASH_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "/" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Div, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.Div, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_SLASHSLASH_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "//" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.FloorDiv, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call
+        (G.IdSpecial (G.Op G.FloorDiv, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_PERC_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "%" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Mod, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.Mod, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_DOTDOT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* ".." *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.Concat, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.Concat, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
   | `Exp_HAT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "^" *) in
       let v3 = map_expression env v3 in
-      G.Call (G.IdSpecial (G.Op G.BitXor, v2), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.IdSpecial (G.Op G.BitXor, v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
 
 and map_statement_list (env : env) (x : CST.statement list) : G.stmt list =
   let v1 = List.map (map_statement env) x in
@@ -389,15 +390,19 @@ and map_else_ (env : env) ((v1, v2, v3) : CST.else_) : G.stmt =
  *   in
  *   todo env (v1, v2, v3, v4, v5) *)
 and map_expression (env : env) (x : CST.expression) : G.expr =
-  match x with
+  (match x with
   | `Next tok -> G.OtherExpr (G.OE_Todo, [ G.TodoK ("next", token env tok) ])
   | `Spread tok -> G.Ellipsis (token env tok) (* "..." *)
-  | `Prefix x -> map_prefix env x
+  | `Prefix x ->
+      let x = map_prefix env x in
+      x.G.e
   | `Func_defi (v1, v2) ->
       let _t = token env v1 (* "function" *) in
       let v2 = map_function_body env v2 v1 in
       G.Lambda v2
-  | `Table x -> map_table env x
+  | `Table x ->
+      let x = map_table env x in
+      x.G.e
   | `Bin_oper x -> map_binary_operation env x
   | `Un_oper (v1, v2) ->
       let op, tok =
@@ -409,8 +414,10 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
         (* "~" *)
       in
       let v2 = map_expression env v2 in
-      G.Call (G.IdSpecial (G.Op op, token env tok), fb [ G.Arg v2 ])
-  | `Str tok -> string_literal env tok (* string *)
+      G.Call (G.IdSpecial (G.Op op, token env tok) |> G.e, fb [ G.Arg v2 ])
+  | `Str tok ->
+      let x = string_literal env tok (* string *) in
+      x.G.e
   | `Num tok ->
       let s, tok = str env tok in
       G.L (G.Float (float_of_string_opt s, tok))
@@ -418,7 +425,8 @@ and map_expression (env : env) (x : CST.expression) : G.expr =
   | `Nil tok -> G.L (G.Null (token env tok)) (* "nil" *)
   | `True tok -> G.L (G.Bool (true, token env tok)) (* "true" *)
   | `False tok -> G.L (G.Bool (false, token env tok)) (* "false" *)
-  | `Id tok -> G.N (ident env tok)
+  | `Id tok -> G.N (ident env tok))
+  |> G.e
 
 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
 and map_field (env : env) (x : CST.field) : G.expr =
@@ -435,13 +443,15 @@ and map_field (env : env) (x : CST.field) : G.expr =
         let v1 = identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
         let v2 = token env v2 (* "=" *) in
         let v3 = map_expression env v3 in
-        (G.N (G.Id (v1, G.empty_id_info ())), v2, v3)
+        (G.N (G.Id (v1, G.empty_id_info ())) |> G.e, v2, v3)
     | `Exp x ->
         let expr = map_expression env x in
-        let ident = G.IdSpecial (G.NextArrayIndex, G.fake "next_array_index") in
+        let ident =
+          G.IdSpecial (G.NextArrayIndex, G.fake "next_array_index") |> G.e
+        in
         (ident, G.fake "=", expr)
   in
-  G.Assign (ent, tok, def)
+  G.Assign (ent, tok, def) |> G.e
 
 and map_field_sequence (env : env) ((v1, v2, v3) : CST.field_sequence) :
     G.expr list =
@@ -474,7 +484,7 @@ and map_function_call_expr (env : env) (x : CST.function_call_statement) :
   | `Prefix_args (v1, v2) ->
       let v1 = map_prefix env v1 in
       let v2 = map_arguments env v2 in
-      G.Call (v1, v2)
+      G.Call (v1, v2) |> G.e
   | `Prefix_COLON_id_args (v1, v2, v3, v4) ->
       let prefix = map_prefix env v1 in
       let colon = token env v2 (* ":" *) in
@@ -488,7 +498,8 @@ and map_function_call_expr (env : env) (x : CST.function_call_statement) :
           } )
       in
       let args = map_arguments env v4 in
-      G.Call (G.N (G.IdQualified (name, G.empty_id_info ())), args)
+      G.Call (G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e, args)
+      |> G.e
 
 and map_function_call_statement (env : env) (x : CST.function_call_statement) :
     G.stmt =
@@ -543,13 +554,14 @@ and map_loop_expression (env : env)
 
 and map_global_variable (env : env) (x : CST.global_variable) : G.expr =
   match x with
-  | `X__G t -> G.N (G.Id (("_G", token env t), G.empty_id_info ()))
-  | `X__VERSION t -> G.N (G.Id (("_VERSION", token env t), G.empty_id_info ()))
+  | `X__G t -> G.N (G.Id (("_G", token env t), G.empty_id_info ())) |> G.e
+  | `X__VERSION t ->
+      G.N (G.Id (("_VERSION", token env t), G.empty_id_info ())) |> G.e
 
 and map_prefix (env : env) (x : CST.prefix) : G.expr =
   match x with
   | `Global_var x -> map_global_variable env x
-  | `Self t -> G.IdSpecial (G.Self, token env t)
+  | `Self t -> G.IdSpecial (G.Self, token env t) |> G.e
   | `Var_decl x -> map_variable_declarator_expr env x
   | `Func_call_stmt x -> map_function_call_expr env x
   | `LPAR_exp_RPAR (v1, v2, v3) ->
@@ -698,19 +710,19 @@ and map_table (env : env) ((v1, v2, v3) : CST.table) : G.expr =
   let v1 = token env v1 (* "{" *) in
   let v2 = match v2 with Some x -> map_field_sequence env x | None -> [] in
   let v3 = token env v3 (* "}" *) in
-  G.Container (G.Dict, (v1, v2, v3))
+  G.Container (G.Dict, (v1, v2, v3)) |> G.e
 
 and map_variable_declarator_expr (env : env) (x : CST.variable_declarator) :
     G.expr =
   match x with
-  | `Id tok -> G.N (ident env tok) (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
+  | `Id tok -> G.N (ident env tok) |> G.e (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
   | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
       let v1 = map_prefix env v1 in
       let v2 = token env v2 (* "[" *) in
       let v3 = map_expression env v3 in
       let v4 = token env v4 (* "]" *) in
       let _qual = G.QExpr (v1, v4) in
-      let expr = G.ArrayAccess (v1, (v2, v3, v4)) in
+      let expr = G.ArrayAccess (v1, (v2, v3, v4)) |> G.e in
       expr
   | `Field_exp (v1, v2, v3) ->
       let v1 = map_prefix env v1 in
@@ -720,12 +732,12 @@ and map_variable_declarator_expr (env : env) (x : CST.variable_declarator) :
       let name =
         (v3, { G.name_qualifier = Some qual; G.name_typeargs = None })
       in
-      G.N (G.IdQualified (name, G.empty_id_info ()))
+      G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e
 
 and map_variable_declarator (env : env) (x : CST.variable_declarator) : G.expr =
   match x with
   | `Id tok ->
-      G.N (G.Id (identifier env tok, G.empty_id_info ()))
+      G.N (G.Id (identifier env tok, G.empty_id_info ())) |> G.e
       (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
   | `Prefix_LBRACK_exp_RBRACK (v1, v2, v3, v4) ->
       let v1 = map_prefix env v1 in
@@ -733,13 +745,14 @@ and map_variable_declarator (env : env) (x : CST.variable_declarator) : G.expr =
       let v3 = map_expression env v3 in
       let v4 = token env v4 (* "]" *) in
       let _qual = G.QExpr (v1, v4) in
-      G.ArrayAccess (v1, (v2, v3, v4))
+      G.ArrayAccess (v1, (v2, v3, v4)) |> G.e
   | `Field_exp (v1, v2, v3) ->
       let prefix = map_prefix env v1 in
       let dot = token env v2 (* "." *) in
       let ident = identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
       G.DotAccess
-        (G.N (G.Id (ident, G.empty_id_info ())), dot, G.EDynamic prefix)
+        (G.N (G.Id (ident, G.empty_id_info ())) |> G.e, dot, G.EDynamic prefix)
+      |> G.e
 
 let map_program (env : env) ((v1, v2) : CST.program) : G.program =
   map_statements_and_return env (v1, v2)
