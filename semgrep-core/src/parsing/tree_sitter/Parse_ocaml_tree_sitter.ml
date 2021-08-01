@@ -2130,7 +2130,7 @@ and map_parenthesized_expression (env : env) (x : CST.parenthesized_expression)
       let v2 = map_sequence_expression_ext env v2 in
       let v3 = token env v3 (* ")" *) in
       (* putting real tokens on Tuples *)
-      match v2.e with Tuple (_, xs, _) -> Tuple (v1, xs, v3) | x -> x)
+      match v2 with Tuple (_, xs, _) -> Tuple (v1, xs, v3) | x -> x)
 
 and map_parenthesized_type (env : env) ((v1, v2, v3) : CST.parenthesized_type) =
   let _v1 = token env v1 (* "(" *) in

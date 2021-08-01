@@ -114,7 +114,7 @@ module C = struct
   let mk (loc : loc) (name : string) =
     let id = "!sh_" ^ name ^ "!" in
     let id_info = G.empty_id_info () in
-    G.N (G.Id ((id, fst loc), id_info))
+    G.N (G.Id ((id, fst loc), id_info)) |> G.e
 
   (* For simple commands, e.g.
        $echo "$@"
@@ -144,7 +144,7 @@ end
    Usage: call C.cmd args
 *)
 let call loc name exprs =
-  G.Call (name loc, bracket loc (List.map (fun e -> G.Arg e) exprs))
+  G.Call (name loc, bracket loc (List.map (fun e -> G.Arg e) exprs)) |> G.e
 
 let todo_tokens ((start, end_) : loc) =
   let wrap tok = (Parse_info.string_of_info tok, tok) in
@@ -154,11 +154,11 @@ let todo_tokens ((start, end_) : loc) =
 let todo_stmt (loc : loc) : G.stmt =
   G.s (G.OtherStmt (G.OS_Todo, todo_tokens loc))
 
-let todo_expr (loc : loc) : G.expr = G.OtherExpr (G.OE_Todo, todo_tokens loc)
+let todo_expr (loc : loc) : G.expr_kind = G.OtherExpr (G.OE_Todo, todo_tokens loc)
 
 let todo_stmt2 (loc : loc) : stmt_or_expr = Stmt (loc, todo_stmt loc)
 
-let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc)
+let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc |> G.e)
 
 (*****************************************************************************)
 (* Converter from bash AST to generic AST *)
@@ -197,17 +197,17 @@ and pipeline (x : pipeline) : stmt_or_expr =
             *)
             (redirect_pipeline_stderr_to_stdout pip, tok)
       in
-      let func = G.IdSpecial (G.Op G.Pipe, bar_tok) in
+      let func = G.IdSpecial (G.Op G.Pipe, bar_tok) |> G.e in
       let left = pipeline pip |> as_expr in
       let right = command_with_redirects cmd_redir |> as_expr in
-      Expr (loc, G.Call (func, bracket loc [ G.Arg left; G.Arg right ]))
+      Expr (loc, G.Call (func, bracket loc [ G.Arg left; G.Arg right ]) |> G.e)
   | Control_operator (loc, pip, control_op) -> (
       match control_op with
       | Foreground, tok -> pipeline pip
       | Background, amp_tok ->
-          let func = G.IdSpecial (G.Op G.Pipe, amp_tok) in
+          let func = G.IdSpecial (G.Op G.Pipe, amp_tok) |> G.e in
           let arg = pipeline pip |> as_expr in
-          Expr (loc, G.Call (func, bracket loc [ G.Arg arg ])))
+          Expr (loc, G.Call (func, bracket loc [ G.Arg arg ]) |> G.e))
 
 and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
   (* TODO: don't ignore redirects *)
@@ -271,13 +271,13 @@ and stmt_group (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
   Stmt (loc, G.s (G.Block (start, stmts, end_)))
 
 and expression (e : expression) : G.expr =
-  match e with
+  (match e with
   | Word ((_, tok) as wrap) -> G.L (G.Atom (tok, wrap))
   | String x -> todo_expr (bracket_loc x)
   | String_fragment (loc, frag) -> (
       match frag with
       | String_content ((_, tok) as wrap) -> G.L (G.Atom (tok, wrap))
-      | Expansion (loc, ex) -> expansion ex
+      | Expansion (loc, ex) -> let x = expansion ex in x.G.e
       | Command_substitution (open_, _, close) ->
           let loc = (open_, close) in
           todo_expr loc)
@@ -293,6 +293,7 @@ and expression (e : expression) : G.expr =
       let start, _ = loc in
       G.L (G.Atom (start, ("", start)))
   | Expression_TODO loc -> todo_expr loc
+  ) |> G.e
 
 (*
    '$' followed by a variable to transform and expand into a list.
@@ -304,12 +305,12 @@ and expansion (x : expansion) : G.expr =
       let arg =
         match var_name with
         | Simple_variable_name name | Special_variable_name name ->
-            G.Arg (G.N (G.Id (name, G.empty_id_info ())))
+            G.Arg (G.N (G.Id (name, G.empty_id_info ())) |> G.e)
       in
-      let func = G.N (G.Id (("$", dollar_tok), G.empty_id_info ())) in
-      let e = G.Call (func, bracket loc [ arg ]) in
+      let func = G.N (G.Id (("$", dollar_tok), G.empty_id_info ())) |> G.e in
+      let e = G.Call (func, bracket loc [ arg ]) |> G.e in
       e
-  | Complex_expansion br -> todo_expr (bracket_loc br)
+  | Complex_expansion br -> todo_expr (bracket_loc br) |> G.e
 
 (*
    'a && b' and 'a || b' looks like expressions but they're really
@@ -330,7 +331,7 @@ and transpile_and (left : blist) tok_and (right : blist) : stmt_or_expr =
   let cond = blist left |> block in
   let body = blist right |> block in
   let loc = range (stmt_or_expr_loc cond) (stmt_or_expr_loc body) in
-  let fail = stmt_of_expr loc (G.L (G.Bool (false, snd loc))) in
+  let fail = stmt_of_expr loc (G.L (G.Bool (false, snd loc)) |> G.e) in
   Stmt (loc, G.s (G.If (tok_and, as_expr cond, as_stmt body, Some fail)))
 
 (*
@@ -347,8 +348,8 @@ and transpile_and (left : blist) tok_and (right : blist) : stmt_or_expr =
 and transpile_or (left : blist) tok_or (right : blist) : stmt_or_expr =
   let e = blist left |> block in
   let ((start, _) as cond_loc) = stmt_or_expr_loc e in
-  let not_ = G.IdSpecial (G.Op G.Not, tok_or) in
-  let cond = G.Call (not_, bracket cond_loc [ G.Arg (as_expr e) ]) in
+  let not_ = G.IdSpecial (G.Op G.Not, tok_or) |> G.e in
+  let cond = G.Call (not_, bracket cond_loc [ G.Arg (as_expr e) ]) |> G.e in
   let body = blist right |> block in
   let _, end_ = stmt_or_expr_loc body in
   let loc = (start, end_) in
