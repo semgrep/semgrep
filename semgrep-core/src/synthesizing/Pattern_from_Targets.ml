@@ -11,9 +11,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
  *)
-open AST_generic
 open Common
 module Set = Set_
+
+open AST_generic
+module G = AST_generic
 
 exception InvalidSubstitution
 
@@ -121,9 +123,9 @@ let lookup env e =
 
 let fk = Parse_info.fake_info "fake"
 
-let fk_stmt = ExprStmt (Ellipsis fk, fk) |> s
+let fk_stmt = ExprStmt (Ellipsis fk |> G.e, fk) |> G.s
 
-let _body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> s
+let _body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
 
 let _bk f (lp, x, rp) = (lp, f x, rp)
 
@@ -132,7 +134,7 @@ let default_id str =
     (Id
        ( (str, fk),
          { id_resolved = ref None; id_type = ref None; id_constness = ref None }
-       ))
+       )) |> G.e
 
 let count_to_id count =
   let make_id ch = Format.sprintf "$%c" ch in
@@ -203,9 +205,9 @@ let metavar_pattern env e = get_id env e
 let pattern_from_args env args : pattern_instrs =
   let replace_first_arg f args =
     match args with
-    | Args (Arg (Ellipsis el) :: Arg arg :: xs) -> (
+    | Args (Arg ({ e = Ellipsis (el); _}) :: Arg arg :: xs) -> (
         match f (E arg) with
-        | E x -> Args (Arg (Ellipsis el) :: Arg x :: xs)
+        | E x -> Args (Arg (Ellipsis el |> G.e) :: Arg x :: xs)
         | x ->
             pr2 (show_any x);
             raise InvalidSubstitution)
@@ -214,15 +216,15 @@ let pattern_from_args env args : pattern_instrs =
   in
   let remove_ellipsis _f args =
     match args with
-    | Args (Arg (Ellipsis _) :: x :: xs) -> Args (x :: xs)
+    | Args (Arg ({ e = Ellipsis (_); _}) :: x :: xs) -> Args (x :: xs)
     | Args (_ :: _) -> args
     | _ -> raise InvalidSubstitution
   in
   let replace_rest f args =
     match args with
-    | Args (Arg (Ellipsis el) :: Arg e :: rest) -> (
+    | Args (Arg ({ e = Ellipsis (el); _}) :: Arg e :: rest) -> (
         match f (Args rest) with
-        | Args args' -> Args (Arg (Ellipsis el) :: Arg e :: args')
+        | Args args' -> Args (Arg (Ellipsis el |> G.e) :: Arg e :: args')
         | _ -> raise InvalidSubstitution)
     | Args (Arg e :: rest) -> (
         match f (Args rest) with
@@ -233,7 +235,7 @@ let pattern_from_args env args : pattern_instrs =
   let remove_end_ellipsis _f args =
     let rec remove_end = function
       | [] -> []
-      | [ Arg (Ellipsis _el) ] -> []
+      | [ Arg ({ e = Ellipsis (_el); _}) ] -> []
       | x :: xs -> x :: remove_end xs
     in
     match args with
@@ -248,14 +250,14 @@ let pattern_from_args env args : pattern_instrs =
         if count = max then
           [
             (ANY (Args rest), replace_rest);
-            (ANY (E (Ellipsis fk)), remove_end_ellipsis);
+            (ANY (E (Ellipsis fk |> G.e)), remove_end_ellipsis);
           ]
         else []
       in
       (* Always try replacing the arguments *)
       let funs = (ANY (Args rest), replace_rest) :: funs in
       (* If it's the first one, try deleting the ellipses at the start *)
-      if count = 1 then (ANY (E (Ellipsis fk)), remove_ellipsis) :: funs
+      if count = 1 then (ANY (E (Ellipsis fk |> G.e)), remove_ellipsis) :: funs
       else funs
     in
     match args with
@@ -263,7 +265,7 @@ let pattern_from_args env args : pattern_instrs =
     | Arg arg :: rest ->
         (let env', id = metavar_pattern env arg in
          ( env',
-           Args [ Arg (Ellipsis fk); Arg id; Arg (Ellipsis fk) ],
+           Args [ Arg (Ellipsis fk |> G.e); Arg id; Arg (Ellipsis fk |> G.e) ],
            (ANY (E arg), replace_first_arg) :: substitute_next rest ))
         :: make_arg_subs rest (count + 1)
     | _ -> []
@@ -273,24 +275,24 @@ let pattern_from_args env args : pattern_instrs =
 let pattern_from_call env (e', (lp, args, rp)) : pattern_instrs =
   let replace_name f e =
     match e with
-    | E (Call (e, (lp, args, rp))) -> (
+    | E ({ e = Call (e, (lp, args, rp)); _}) -> (
         match f (E e) with
-        | E x -> E (Call (x, (lp, args, rp)))
+        | E x -> E (Call (x, (lp, args, rp)) |> G.e)
         | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
   let replace_args f e =
     match e with
-    | E (Call (e, (lp, args, rp))) -> (
+    | E ({ e = Call (e, (lp, args, rp)); _}) -> (
         match f (Args args) with
-        | Args x -> E (Call (e, (lp, x, rp)))
+        | Args x -> E (Call (e, (lp, x, rp)) |> G.e)
         | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
   [
     (let env', id = metavar_pattern env e' in
      ( env',
-       E (Call (id, (lp, [ Arg (Ellipsis fk) ], rp))),
+       E (Call (id, (lp, [ Arg (Ellipsis fk |> G.e) ], rp)) |> G.e),
        [ (ANY (E e'), replace_name); (ANY (Args args), replace_args) ] ));
   ]
 
@@ -299,23 +301,23 @@ let pattern_from_literal env l : pattern_instrs =
   | String (_, tok) ->
       [
         ( env,
-          E (L (String ("...", tok))),
-          [ (LN (E (L l)), fun f any -> f any) ] );
+          E (L (String ("...", tok)) |> G.e),
+          [ (LN (E (L l |> G.e)), fun f any -> f any) ] );
       ]
-  | _ -> [ (env, E (L l), [ (DONE, fun f e -> f e) ]) ]
+  | _ -> [ (env, E (L l |> G.e), [ (DONE, fun f e -> f e) ]) ]
 
 type side = Left | Right
 
 let pattern_from_assign env (e1, tok, e2) : pattern_instrs =
   let replace_assign_ops side f e =
     match (e, side) with
-    | E (Assign (e1, tok, e2)), Left -> (
+    | E ({ e = Assign (e1, tok, e2); _}), Left -> (
         match f (E e1) with
-        | E x -> E (Assign (x, tok, e2))
+        | E x -> E (Assign (x, tok, e2) |> G.e)
         | _ -> raise InvalidSubstitution)
-    | E (Assign (e1, tok, e2)), Right -> (
+    | E ({ e = Assign (e1, tok, e2); _}), Right -> (
         match f (E e2) with
-        | E x -> E (Assign (e1, tok, x))
+        | E x -> E (Assign (e1, tok, x) |> G.e)
         | _ -> raise InvalidSubstitution)
     | _ -> raise InvalidSubstitution
   in
@@ -323,7 +325,7 @@ let pattern_from_assign env (e1, tok, e2) : pattern_instrs =
     (let env, id1 = metavar_pattern env e1 in
      let env, id2 = metavar_pattern env e2 in
      ( env,
-       E (Assign (id1, tok, id2)),
+       E (Assign (id1, tok, id2) |> G.e),
        [
          (ANY (E e1), replace_assign_ops Left);
          (ANY (E e2), replace_assign_ops Right);
@@ -336,9 +338,9 @@ let pattern_from_expr env e : pattern_instrs =
   | L l -> pattern_from_literal env l
   | Assign (e1, tok, e2) -> pattern_from_assign env (e1, tok, e2)
   | N _ | DotAccess _ -> [ (env, E e, [ (DONE, fun f any -> f any) ]) ]
-  | expr ->
+  | _expr ->
       [
-        (let env', id = metavar_pattern env expr in
+        (let env', id = metavar_pattern env e in
          (env', E id, [ (DONE, fun f any -> f any) ]));
       ]
 
@@ -358,7 +360,7 @@ let rec pattern_from_stmt env ({ s; _ } as stmt) : pattern_instrs =
       let _, pattern =
         get_one_step_replacements
           ( env,
-            fill_exprstmt (fun _ -> E (Ellipsis fk)) (S stmt),
+            fill_exprstmt (fun _ -> E (Ellipsis fk |> G.e)) (S stmt),
             [ (ANY (E e), fill_exprstmt) ] )
       in
       pattern
@@ -465,13 +467,13 @@ let generate_starting_patterns config (targets : AST_generic.any list list) :
   let starting_pattern any =
     match any with
     | E _ ->
-        let env = { config; prev = E (Ellipsis fk); count = 1; mapping = [] } in
-        [ (env, E (Ellipsis fk), [ (ANY any, fun f a -> f a) ]) ]
+        let env = { config; prev = E (Ellipsis fk |> G.e); count = 1; mapping = [] } in
+        [ (env, E (Ellipsis fk |> G.e), [ (ANY any, fun f a -> f a) ]) ]
     | S _ ->
         let env =
-          { config; prev = S (exprstmt (Ellipsis fk)); count = 1; mapping = [] }
+          { config; prev = S (exprstmt (Ellipsis fk |> G.e)); count = 1; mapping = [] }
         in
-        [ (env, S (exprstmt (Ellipsis fk)), [ (ANY any, fun f a -> f a) ]) ]
+        [ (env, S (exprstmt (Ellipsis fk |> G.e)), [ (ANY any, fun f a -> f a) ]) ]
     | _ -> raise UnsupportedTargetType
   in
   List.map (List.map starting_pattern) targets

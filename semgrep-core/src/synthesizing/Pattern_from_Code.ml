@@ -59,7 +59,7 @@ let lookup env e =
 
 let fk = Parse_info.fake_info "fake"
 
-let fk_stmt = ExprStmt (Ellipsis fk, fk) |> G.s
+let fk_stmt = ExprStmt (Ellipsis fk |> G.e, fk) |> G.s
 
 let body_ellipsis t1 t2 = Block (t1, [ fk_stmt ], t2) |> G.s
 
@@ -70,9 +70,9 @@ let default_id str =
     (Id
        ( (str, fk),
          { id_resolved = ref None; id_type = ref None; id_constness = ref None }
-       ))
+       )) |> G.e
 
-let default_tyvar str typ = TypedMetavar ((str, fk), fk, typ)
+let default_tyvar str typ = TypedMetavar ((str, fk), fk, typ) |> G.e
 
 let count_to_id count =
   let make_id ch = Format.sprintf "$%c" ch in
@@ -102,11 +102,11 @@ let get_id ?(with_type = false) env e =
               match !id_type with
               | None -> (notype_id, has_type)
               | Some t -> (default_tyvar (count_to_id env.count) t, true))
-          | L (String (_, tag)) -> (L (String ("...", tag)), false)
+          | L (String (_, tag)) -> (L (String ("...", tag)) |> G.e, false)
           | _ -> (notype_id, has_type)
         else
           match e.e with
-          | L (String (_, tag)) -> (L (String ("...", tag)), false)
+          | L (String (_, tag)) -> (L (String ("...", tag)) |> G.e, false)
           | _ -> (notype_id, has_type)
       in
       let env' =
@@ -120,7 +120,7 @@ let get_id ?(with_type = false) env e =
       (env', new_id)
 
 let has_nested_call =
-  List.find_opt (fun x -> match x with Arg (Call _) -> true | _ -> false)
+  List.find_opt (fun x -> match x with Arg ({ e = Call (_); _}) -> true | _ -> false)
 
 (*****************************************************************************)
 (* Algorithm *)
@@ -128,7 +128,7 @@ let has_nested_call =
 
 (* Calls *)
 let shallow_dots (e, (lp, rp)) =
-  ("dots", E (Call (e, (lp, [ Arg (Ellipsis fk) ], rp))))
+  ("dots", E (Call (e, (lp, [ Arg (Ellipsis fk |> G.e) ], rp)) |> G.e))
 
 let rec map_args env = function
   | [] -> (env, [])
@@ -146,16 +146,16 @@ let rec map_args env = function
 
 let exact_metavar (e, (lp, es, rp)) env =
   let _, replaced_args = map_args env es in
-  ("exact metavars", E (Call (e, (lp, replaced_args, rp))))
+  ("exact metavars", E (Call (e, (lp, replaced_args, rp)) |> G.e))
 
 let shallow_metavar (e, (lp, es, rp)) env =
   let _, replaced_args = map_args env es in
-  let args' = replaced_args @ [ Arg (Ellipsis fk) ] in
-  ("metavars", E (Call (e, (lp, args', rp))))
+  let args' = replaced_args @ [ Arg (Ellipsis fk |> G.e) ] in
+  ("metavars", E (Call (e, (lp, args', rp)) |> G.e))
 
 let rec deep_mv_call (e, (lp, es, rp)) with_type env =
   let env', replaced_args = deep_mv_args with_type env es in
-  (env', Call (e, (lp, replaced_args, rp)))
+  (env', Call (e, (lp, replaced_args, rp)) |> G.e)
 
 and deep_mv_args with_type env args =
   let get_new_arg (e, xs) =
@@ -185,8 +185,9 @@ let deep_typed_metavar (e, (lp, es, rp)) env =
   let env', e' = deep_mv_call (e, (lp, es, rp)) true env in
   if env'.has_type then Some ("typed metavars", E e') else None
 
-let generalize_call env = function
-  | Call (IdSpecial (New, _), _) -> []
+let generalize_call env e =
+  match e.e with
+  | Call ({ e = IdSpecial (New, _); _}, _) -> []
   | Call (e, (lp, es, rp)) -> (
       (* only show the deep_metavar and deep_typed_metavar options if relevant *)
       let d_mvar =
@@ -222,7 +223,7 @@ let generalize_id env e =
 let rec include_e2_patterns env (e1, tok, e2) =
   let env', id = get_id env e1 in
   add_expr e2
-    (fun (s, pat) -> ("righthand " ^ s, E (Assign (id, tok, pat))))
+    (fun (s, pat) -> ("righthand " ^ s, E (Assign (id, tok, pat) |> G.e)))
     env'
 
 and generalize_assign env e =
@@ -235,12 +236,12 @@ and generalize_assign env e =
       let metavar_part =
         if env'.has_type then
           [
-            ("metavars", E (Assign (id1, tok, id2)));
-            ("typed metavars", E (Assign (id_t, tok, id2)));
+            ("metavars", E (Assign (id1, tok, id2) |> G.e));
+            ("typed metavars", E (Assign (id_t, tok, id2) |> G.e));
           ]
-        else [ ("metavars", E (Assign (id1, tok, id2))) ]
+        else [ ("metavars", E (Assign (id1, tok, id2) |> G.e)) ]
       in
-      ("dots", E (Assign (e1, tok, Ellipsis fk))) :: (metavar_part @ e2_patterns)
+      ("dots", E (Assign (e1, tok, Ellipsis fk |> G.e) |> G.e)) :: (metavar_part @ e2_patterns)
   | _ -> []
 
 (* All expressions *)
@@ -293,7 +294,7 @@ and generalize_if s_in =
   let rec dots_in_cond s =
     match s.s with
     | If (tok, _, s, sopt) ->
-        If (tok, Ellipsis fk, s, opt dots_in_cond sopt) |> G.s
+        If (tok, Ellipsis (fk) |> G.e, s, opt dots_in_cond sopt) |> G.s
     | Block (t1, [ ({ s = If _; _ } as x) ], t2) ->
         Block (t1, [ dots_in_cond x ], t2) |> G.s
     | _ -> s
@@ -308,7 +309,7 @@ and generalize_while (tok, e, s) env =
     match s.s with Block (t1, _, t2) -> body_ellipsis t1 t2 | _ -> fk_stmt
   in
   let dots_in_cond =
-    ("dots in condition", S (While (tok, Ellipsis fk, s) |> G.s))
+    ("dots in condition", S (While (tok, Ellipsis fk |> G.e, s) |> G.s))
   in
   let dots_in_body = ("dots in body", S (While (tok, e, body_dots) |> G.s)) in
   let expr_choices_in_cond =
