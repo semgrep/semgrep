@@ -358,7 +358,7 @@ let mval_of_string str t =
     (* TODO? could try float_of_string_opt? *)
     | None -> G.String (str, t)
   in
-  MV.E (G.L literal)
+  MV.E (G.L literal |> G.e)
 
 (*-------------------------------------------------------------------*)
 (* Spacegrep *)
@@ -621,15 +621,15 @@ let rec filter_ranges env xs cond =
                 *)
                G.Call
                  ( G.DotAccess
-                     ( G.N (G.Id (("re", fk), fki)),
+                     ( G.N (G.Id (("re", fk), fki)) |> G.e,
                        fk,
-                       EN (Id (("match", fk), fki)) ),
+                       EN (Id (("match", fk), fki)) ) |> G.e,
                    ( fk,
                      [
-                       G.Arg (G.N (G.Id ((mvar, fk), fki)));
-                       G.Arg (G.L (G.String (re_str, fk)));
+                       G.Arg (G.N (G.Id ((mvar, fk), fki)) |> G.e);
+                       G.Arg (G.L (G.String (re_str, fk)) |> G.e);
                      ],
-                     fk ) )
+                     fk ) ) |> G.e
              in
 
              let env =
@@ -708,7 +708,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                         (lazy content)
                         (Some r')))
           | Some xlang, MV.Text (content, _tok)
-          | Some xlang, MV.E (G.L (G.String (content, _tok))) ->
+          | Some xlang, MV.E ({ e = G.L (G.String (content, _tok)); _}) ->
               (* We re-parse the matched text as `xlang`. *)
               Common2.with_tmp_file ~str:content ~ext:"mvar-pattern"
                 (fun file ->

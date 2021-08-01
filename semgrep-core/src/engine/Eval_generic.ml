@@ -131,7 +131,7 @@ let print_result xopt =
 (*****************************************************************************)
 
 let rec eval env code =
-  match code with
+  match code.G.e with
   | G.L x -> (
       match x with
       | G.Bool (b, _t) -> Bool b
@@ -146,7 +146,7 @@ let rec eval env code =
       with Not_found ->
         logger#debug "could not find a value for %s in env" s;
         raise Not_found)
-  | G.Call (G.N (G.Id (("int", _), _)), (_, [ Arg e ], _)) -> (
+  | G.Call ({ e = G.N (G.Id (("int", _), _)); _}, (_, [ Arg e ], _)) -> (
       let v = eval env e in
       match v with
       | Int _ -> v
@@ -155,7 +155,7 @@ let rec eval env code =
           | None -> raise (NotHandled code)
           | Some i -> Int i)
       | __else__ -> raise (NotHandled code))
-  | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
+  | G.Call ({ e = G.IdSpecial (G.Op op, _t); _}, (_, args, _)) ->
       let values =
         args
         |> List.map (function
@@ -168,8 +168,8 @@ let rec eval env code =
       List vs
   (* Emulate Python re.match just enough *)
   | G.Call
-      ( G.DotAccess (G.N (G.Id (("re", _), _)), _, EN (Id (("match", _), _))),
-        (_, [ G.Arg e1; G.Arg (G.L (G.String (re, _))) ], _) ) -> (
+      ( { e = G.DotAccess ({ e = G.N (G.Id (("re", _), _)); _}, _, EN (Id (("match", _), _))); _},
+        (_, [ G.Arg e1; G.Arg ({ e = G.L (G.String (re, _)); _}) ], _) ) -> (
       (* alt: take the text range of the metavariable in the original file,
        * and enforce e1 can only be an Id metavariable.
        * alt: let s = value_to_string v in
