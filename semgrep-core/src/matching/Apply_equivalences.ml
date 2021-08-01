@@ -17,6 +17,7 @@
 (*e: pad/r2c copyright *)
 open Common
 open AST_generic
+module G = AST_generic
 module H = AST_generic_helpers
 module Flag = Flag_semgrep
 module MV = Metavariable
@@ -61,7 +62,7 @@ let subst_e (env : Env.t) e =
                 match List.assoc_opt str bindings with
                 | Some (MV.Id (id, Some idinfo)) ->
                     (* less: abstract-line? *)
-                    N (Id (id, idinfo))
+                    N (Id (id, idinfo)) |> G.e
                 | Some (MV.E e) ->
                     (* less: abstract-line? *)
                     e
@@ -126,7 +127,7 @@ let apply equivs any =
                         H.abstract_for_comparison_any (E x)
                         =*= H.abstract_for_comparison_any (E alt)
                       then x' (* disjunction (if different) *)
-                      else DisjExpr (x', alt)
+                      else DisjExpr (x', alt) |> G.e
                   (* no match yet, trying another equivalence *)
                   | [] -> aux xs)
             in
