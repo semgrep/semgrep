@@ -54,25 +54,8 @@ let grow_heap goal_bytes =
    TODO: capture the output and check that the warning is there.
 *)
 let test_stack_warning () =
-  Memory_limit.run_with_memory_limit ~stack_warning_mb:1 ~mem_limit_mb:0
+  Memory_limit.run_with_memory_limit ~stack_warning_kb:100 ~mem_limit_mb:0
     (fun () -> grow_stack 3_000_000)
-
-let test_stack_limit () =
-  try
-    Memory_limit.run_with_memory_limit ~stack_limit_mb:1 ~mem_limit_mb:0
-      (fun () -> grow_stack 3_000_000);
-    assert false
-  with Stack_overflow -> (* success *) ()
-
-let test_no_stack_limit () =
-  try
-    Memory_limit.run_with_memory_limit ~stack_limit_mb:0 ~mem_limit_mb:0
-      (fun () ->
-        (* can't exceed system limit, though, otherwise we may segfault *)
-        grow_stack 6_000_000);
-    (* success *)
-    ()
-  with Stack_overflow -> assert false
 
 let test_memory_limit_with_heap () =
   try
@@ -92,8 +75,6 @@ let unittest =
   "memory limits"
   >::: [
          "stack warning" >:: test_stack_warning;
-         "stack limit" >:: test_stack_limit;
-         "no stack limit" >:: test_no_stack_limit;
          "memory limit (heap)" >:: test_memory_limit_with_heap;
          "memory limit (stack)" >:: test_memory_limit_with_stack;
        ]

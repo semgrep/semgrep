@@ -3,9 +3,10 @@
 *)
 
 (*
-   Set approximate limits on stack size and combined heap+stack size,
-   resulting in 'Stack_overflow' and 'Out_of_memory' exceptions,
-   respectively.
+   Set an approximate limit the combined heap+stack size,
+   resulting in a 'Out_of_memory' exception. To help prevent stack overflows,
+   we also produce a warning when the stack is detected to be too large.
+
    This is done by checking the GC's stats at the end of each major GC
    cycle. It is approximate but OS-independent. The goal is to reliably
    raise an exception when running out of memory rather than getting
@@ -15,8 +16,10 @@
    so as to reclaim some space.
 
    As of ocaml 4.12, segfaults often occur when running out of physical
-   memory. Segfaults used to occur also on stack overflows, although this
-   has been fixed in ocaml 4.10, at least partially.
+   memory. Segfaults used to occur also on stack overflows on some
+   architectures and/or operating systems, although this
+   has been fixed in ocaml 4.10, at least partially. It should be fine
+   on Linux/x86_64 where we'd get a 'Stack_overflow' exception.
    See:
    - https://discuss.ocaml.org/t/is-there-any-value-in-having-a-maximum-stack-size/8214/10
    - https://github.com/returntocorp/semgrep/issues/3640
@@ -41,9 +44,8 @@
    Function parameters:
 
    - stack_size_warning_mb: a warning will be printed if the stack size
-     is found to exceed this value (in MiB).
-   - stack_size_limit_mb: a 'Stack_overflow' exception will be raised if
-     the stack size is found to exceed this value (in MiB).
+     is found to exceed this value (in MiB). This is often not detected
+     early enough or at all if there's not enough allocation (GC activity).
    - mem_limit_mb: an 'Out_of_memory' exception will be raised if the
      combined heap+stack size is found to exceed this value (in MiB).
 
@@ -52,23 +54,9 @@
 
    Default values are the minimum values we're willing to support for
    semgrep-core:
-   - default stack_size_warning_mb: 5 MiB
-   - default stack_size_limit_mb: 7 MiB (based on Linux default of 8 MiB)
-
-   Recommendations:
-   - for testing, use the lowest stack size limit that we're willing
-     to support.
-   - for production, use something like 85% of the system's maximum stack size
-     if there is one and it's known. If it's known to be unlimited,
-     something like 50% of 'mem_limit_mb' should be fine.
+   - default stack_size_warning_mb: 100 KiB
 *)
 val run_with_memory_limit :
-  ?stack_warning_mb:int ->
-  ?stack_limit_mb:int ->
-  mem_limit_mb:int ->
-  (unit -> 'a) ->
-  'a
+  ?stack_warning_kb:int -> mem_limit_mb:int -> (unit -> 'a) -> 'a
 
-val default_stack_warning_mb : int
-
-val default_stack_limit_mb : int
+val default_stack_warning_kb : int

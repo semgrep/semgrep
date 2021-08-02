@@ -189,8 +189,6 @@ let timeout = ref 0. (* in seconds; 0 or less means no timeout *)
 
 let max_memory_mb = ref 0 (* in MiB *)
 
-let max_stack_mb = ref Memory_limit.default_stack_limit_mb
-
 (* arbitrary limit *)
 let max_match_per_file = ref 10_000
 
@@ -1345,15 +1343,6 @@ let options () =
        when running out of memory. This value should be less than the actual \
        memory available because the limit will be exceeded before it gets \
        detected. Try 5% less or 15000 if you have 16 GB." );
-    ( "-max_stack",
-      Arg.Set_int max_stack_mb,
-      spf
-        "<int>  maximum stack size (in MiB) to be imposed independently from \
-         the system limit. This is meant to prevent segfaults from stack \
-         overflows in some environments, making them recoverable. Set this to \
-         just under the system limit. The default is %i MiB. A value of 0 \
-         disables the limit."
-        Memory_limit.default_stack_limit_mb );
     ( "-max_match_per_file",
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );
