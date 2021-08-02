@@ -1,0 +1,6 @@
+rules:
+  - id: duplicate
+    pattern: $X(..., $Y, ...)
+    languages: [python]
+    severity: ERROR
+    message: Error message with both metavars $Y $X
