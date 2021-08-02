@@ -572,3 +572,26 @@ def test_taint_mode(run_semgrep_in_tmp, snapshot):
         ),
         "results.json",
     )
+
+
+def test_deduplication_same_message(run_semgrep_in_tmp, snapshot):
+    """
+    With same message, should deduplicate and only have one finding
+    """
+    output = run_semgrep_in_tmp(
+        "rules/deduplication/duplication-same-message.yaml",
+        target_name="deduplication/deduplication.py",
+    )
+    snapshot.assert_match(output, "results.json")
+    json_output = json.loads(output)
+    assert len(json_output["results"]) == 1
+
+
+def test_deduplication_different_message(run_semgrep_in_tmp, snapshot):
+    output = run_semgrep_in_tmp(
+        "rules/deduplication/duplication-different-message.yaml",
+        target_name="deduplication/deduplication.py",
+    )
+    snapshot.assert_match(output, "results.json")
+    json_output = json.loads(output)
+    assert len(json_output["results"]) == 2

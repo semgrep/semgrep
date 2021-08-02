@@ -1,0 +1,60 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.deduplication.duplicate",
+      "end": {
+        "col": 9,
+        "line": 1
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "foo(1,2)",
+        "message": "Some error message with only one metavar foo",
+        "metadata": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "foo",
+            "end": {
+              "col": 4,
+              "line": 1,
+              "offset": 3
+            },
+            "start": {
+              "col": 1,
+              "line": 1,
+              "offset": 0
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          },
+          "$Y": {
+            "abstract_content": "2",
+            "end": {
+              "col": 8,
+              "line": 1,
+              "offset": 7
+            },
+            "start": {
+              "col": 7,
+              "line": 1,
+              "offset": 6
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/deduplication/deduplication.py",
+      "start": {
+        "col": 1,
+        "line": 1
+      }
+    }
+  ]
+}
