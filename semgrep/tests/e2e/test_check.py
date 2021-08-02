@@ -134,6 +134,35 @@ def test_sarif_output(run_semgrep_in_tmp, snapshot):
     )
 
 
+# If there are nosemgrep comments to ignore findings, SARIF output should include them
+# labeled as suppressed.
+def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
+    sarif_output = json.loads(
+        run_semgrep_in_tmp(
+            "rules/regex-nosemgrep.yaml",
+            target_name="basic/regex-nosemgrep.txt",
+            output_format=OutputFormat.SARIF,
+        )
+    )
+
+    # rules are logically a set so the JSON list's order doesn't matter
+    # we make the order deterministic here so that snapshots match across runs
+    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
+    sarif_output["runs"][0]["tool"]["driver"]["rules"] = sorted(
+        sarif_output["runs"][0]["tool"]["driver"]["rules"],
+        key=lambda rule: str(rule["id"]),
+    )
+
+    # Semgrep version is included in sarif output. Verify this independently so
+    # snapshot does not need to be updated on version bump
+    assert sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
+    sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
+
+    snapshot.assert_match(
+        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
+    )
+
+
 def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
         run_semgrep_in_tmp("rules/eqeq-source.yml", output_format=OutputFormat.SARIF)

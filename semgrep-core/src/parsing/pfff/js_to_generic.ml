@@ -40,6 +40,8 @@ let string = id
 
 let error = AST_generic.error
 
+let fb = G.fake_bracket
+
 (* for the require -> import translation *)
 exception ComplicatedCase
 
@@ -70,7 +72,7 @@ type special_result =
   | SR_Special of G.special wrap
   | SR_Other of G.other_expr_operator wrap
   | SR_Literal of G.literal
-  | SR_NeedArgs of (G.expr list -> G.expr)
+  | SR_NeedArgs of (G.expr list -> G.expr_kind)
 
 let special (x, tok) =
   match x with
@@ -123,8 +125,8 @@ let special (x, tok) =
         SR_NeedArgs
           (fun args ->
             G.Call
-              ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, tok),
-                args |> List.map (fun e -> G.Arg e) |> G.fake_bracket ))
+              ( G.IdSpecial (G.ConcatString G.InterpolatedConcat, tok) |> G.e,
+                args |> List.map (fun e -> G.Arg e) |> fb ))
       else
         SR_NeedArgs
           (fun args ->
@@ -133,7 +135,7 @@ let special (x, tok) =
             | tag :: rest ->
                 G.Call
                   ( tag,
-                    G.fake_bracket
+                    fb
                       [
                         G.Arg
                           (G.Call
@@ -142,10 +144,10 @@ let special (x, tok) =
                                   * here anymore, to differentiate it from
                                   * the above case.
                                   *)
-                                 (G.ConcatString G.TaggedTemplateLiteral, tok),
-                               rest
-                               |> List.map (fun e -> G.Arg e)
-                               |> G.fake_bracket ));
+                                 (G.ConcatString G.TaggedTemplateLiteral, tok)
+                               |> G.e,
+                               rest |> List.map (fun e -> G.Arg e) |> fb )
+                          |> G.e);
                       ] ))
   | ArithOp op -> SR_Special (G.Op (H.conv_op op), tok)
   | IncrDecr v -> SR_Special (G.IncrDecr (H.conv_incdec v), tok)
@@ -158,9 +160,7 @@ let special (x, tok) =
    TODO: see if this is an issue with other languages besides javascript.
 *)
 let as_block stmt =
-  match stmt.G.s with
-  | G.Block _ -> stmt
-  | _ -> G.Block (G.fake_bracket [ stmt ]) |> G.s
+  match stmt.G.s with G.Block _ -> stmt | _ -> G.Block (fb [ stmt ]) |> G.s
 
 let rec property_name = function
   | PN v1 ->
@@ -224,7 +224,7 @@ and literal x =
       G.Regexp (v1, v2)
 
 and expr (x : expr) =
-  match x with
+  (match x with
   | ObjAccessEllipsis (v1, v2) ->
       let v1 = expr v1 in
       G.DotAccessEllipsis (v1, v2)
@@ -292,12 +292,12 @@ and expr (x : expr) =
       let v2 = bracket (list expr) v2 in
       match x with
       | SR_Special v ->
-          G.Call (G.IdSpecial v, bracket (List.map (fun e -> G.Arg e)) v2)
+          G.Call (G.IdSpecial v |> G.e, bracket (List.map (fun e -> G.Arg e)) v2)
       | SR_Literal _ -> error (snd v1) "Weird: literal in call position"
       | SR_Other (x, tok) ->
           (* ex: NewTarget *)
           G.Call
-            ( G.OtherExpr (x, [ G.Tk tok ]),
+            ( G.OtherExpr (x, [ G.Tk tok ]) |> G.e,
               bracket (List.map (fun e -> G.Arg e)) v2 )
       | SR_NeedArgs f -> f (G.unbracket v2))
   | Apply (v1, v2) ->
@@ -311,7 +311,8 @@ and expr (x : expr) =
       G.Conditional (v1, v2, v3)
   | Xml v1 ->
       let v1 = xml v1 in
-      G.Xml v1
+      G.Xml v1)
+  |> G.e
 
 and stmt x =
   match x with
@@ -427,7 +428,9 @@ and for_header = function
             let e = expr e in
             H.expr_to_pattern e
       in
-      let e = G.Call (G.IdSpecial (G.ForOf, t), G.fake_bracket [ G.Arg v2 ]) in
+      let e =
+        G.Call (G.IdSpecial (G.ForOf, t) |> G.e, fb [ G.Arg v2 ]) |> G.e
+      in
       G.ForEach (pattern, t, e)
   | ForEllipsis v1 -> G.ForEllipsis v1
 
@@ -449,7 +452,7 @@ and type_ x =
   | TyLiteral l ->
       let l = literal l in
       G.OtherType
-        (G.OT_Todo, [ G.TodoK ("LitType", PI.fake_info ""); G.E (G.L l) ])
+        (G.OT_Todo, [ G.TodoK ("LitType", PI.fake_info ""); G.E (G.L l |> G.e) ])
   | TyQuestion (tok, t) ->
       let t = type_ t in
       G.TyQuestion (t, tok)
@@ -573,9 +576,7 @@ and argument x = expr x
 and attribute = function
   | KeywordAttr x -> G.KeywordAttr (keyword_attribute x)
   | NamedAttr (t, ids, opt) ->
-      let t1, args, t2 =
-        match opt with Some x -> x | None -> G.fake_bracket []
-      in
+      let t1, args, t2 = match opt with Some x -> x | None -> fb [] in
       let args = list argument args |> List.map G.arg in
       let name = H.name_of_ids ids in
       G.NamedAttr (t, name, (t1, args, t2))
@@ -659,11 +660,11 @@ and property x =
   | FieldSpread (t, v1) ->
       let v1 = expr v1 in
       G.FieldSpread (t, v1)
-  | FieldEllipsis v1 -> G.FieldStmt (G.exprstmt (G.Ellipsis v1))
+  | FieldEllipsis v1 -> G.FieldStmt (G.exprstmt (G.Ellipsis v1 |> G.e))
   | FieldPatDefault (v1, _v2, v3) ->
       let v1 = pattern v1 in
       let v3 = expr v3 in
-      G.FieldStmt (G.exprstmt (G.LetPattern (v1, v3)))
+      G.FieldStmt (G.exprstmt (G.LetPattern (v1, v3) |> G.e))
   | FieldTodo (v1, v2) ->
       let v2 = stmt v2 in
       (* hmm, should use OtherStmtWithStmt ? *)

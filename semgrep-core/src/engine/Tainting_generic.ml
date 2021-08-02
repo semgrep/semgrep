@@ -15,7 +15,7 @@
  * license.txt for more details.
  *)
 (*e: pad/r2c copyright *)
-module AST = AST_generic
+module G = AST_generic
 module V = Visitor_AST
 module R = Rule
 module PM = Pattern_match
@@ -53,7 +53,7 @@ let any_in_ranges any ranges =
   | None ->
       logger#debug
         "Cannot compute range, there are no real tokens in this AST: %s"
-        (AST.show_any any);
+        (G.show_any any);
       false
   | Some (tok1, tok2) ->
       let r = { Range.start = tok1.charpos; end_ = tok2.charpos } in
@@ -113,12 +113,20 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
              }
            in
            let found_tainted_sink code _env =
-             let range_loc = V.range_of_any code in
-             let tokens = lazy (V.ii_of_any code) in
-             (* todo: use env from sink matching func?  *)
-             Common.push
-               { PM.rule_id; file; range_loc; tokens; env = [] }
-               matches
+             match V.range_of_any_opt code with
+             | None ->
+                 (* TODO: Report a warning to the user? *)
+                 logger#error
+                   "Cannot report taint-mode match because we lack range info: \
+                    %s"
+                   (G.show_any code);
+                 ()
+             | Some range_loc ->
+                 let tokens = lazy (V.ii_of_any code) in
+                 (* todo: use env from sink matching func?  *)
+                 Common.push
+                   { PM.rule_id; file; range_loc; tokens; env = [] }
+                   matches
            in
            taint_config_of_rule default_config equivs file (ast, []) rule
              taint_spec found_tainted_sink)
@@ -149,26 +157,26 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
         V.kdef =
           (fun (k, _v) ((ent, def_kind) as def) ->
             match def_kind with
-            | AST.FuncDef fdef ->
+            | G.FuncDef fdef ->
                 let opt_name = AST_to_IL.name_of_entity ent in
-                check_stmt opt_name fdef.AST.fbody;
+                check_stmt opt_name fdef.G.fbody;
                 (* go into nested functions *)
                 k def
             | __else__ -> k def);
         V.kfunction_definition =
           (fun (k, _v) def ->
-            check_stmt None def.AST.fbody;
+            check_stmt None def.G.fbody;
             (* go into nested functions *)
             k def);
       }
   in
   (* Check each function definition. *)
-  v (AST.Pr ast);
+  v (G.Pr ast);
   (* Check the top-level statements.
    * In scripting languages it is not unusual to write code outside
    * function declarations and we want to check this too. We simply
    * treat the program itself as an anonymous function. *)
-  check_stmt None (AST.stmt1 ast);
+  check_stmt None (G.stmt1 ast);
 
   !matches
   (* same post-processing as for search-mode in Match_rules.ml *)

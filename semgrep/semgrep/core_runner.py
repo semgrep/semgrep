@@ -18,6 +18,7 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_exception import CoreException
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternErrorNoSpan
+from semgrep.error import InvalidPatternError
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
@@ -27,6 +28,7 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.rule import Rule
+from semgrep.rule_lang import Span
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
@@ -78,10 +80,25 @@ class CoreRunner:
         elif error_type == "invalid regexp in rule":
             raise SemgrepError(f'Invalid regexp in rule: {error_json["message"]}')
         elif error_type == "invalid pattern":
-            raise InvalidPatternErrorNoSpan(
-                rule_id=error_json.get("pattern_id", "<no rule_id>"),
-                pattern=error_json.get("pattern", "<no pattern>"),
-                language=error_json.get("language", "<no language>"),
+            range = error_json["range"]
+            s = error_json.get("pattern", "<no pattern>")
+            matching_span = Span.from_string_token(
+                s=s,
+                line=range.get("line", 0),
+                col=range.get("col", 0),
+                path=range.get("path", []),
+                filename="semgrep temp file",
+            )
+            if error_json["message"] == "Parsing.Parse_error":
+                long_msg = f"Pattern `{s.strip()}` could not be parsed as a {error_json['language']} semgrep pattern"
+            else:
+                long_msg = f"Error parsing {error_json['language']} pattern: {error_json['message']}"
+
+            raise InvalidPatternError(
+                short_msg=error_type,
+                long_msg=long_msg,
+                spans=[matching_span],
+                help=None,
             )
         # no special formatting ought to be required for the other types; the semgrep python should be performing
         # validation for them. So if any other type of error occurs, ask the user to file an issue

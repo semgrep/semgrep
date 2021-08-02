@@ -7,6 +7,7 @@
  (name pfff_lang_GENERIC_base)
  (wrapped false)
  (libraries
+   pcre
    commons
    bloomf
    pfff-h_program-lang

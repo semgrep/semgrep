@@ -40,6 +40,14 @@ type tok = AST_generic.tok [@@deriving show, eq, hash]
 
 type 'a wrap = 'a AST_generic.wrap [@@deriving show, eq, hash]
 
+(* To help report pattern errors in simple mode in the playground *)
+type 'a loc = {
+  pattern : 'a;
+  t : tok;
+  path : string list; (* path to pattern in YAML rule *)
+}
+[@@deriving show, eq]
+
 (*****************************************************************************)
 (* Extended languages *)
 (*****************************************************************************)
@@ -306,10 +314,10 @@ let rewrite_metavar_comparison_strip mvar cond =
           (fun (k, _) e ->
             (* apply on children *)
             let e = k e in
-            match e with
-            | G.N (G.Id ((s, tok), _idinfo)) as x when s = mvar ->
+            match e.G.e with
+            | G.N (G.Id ((s, tok), _idinfo)) when s = mvar ->
                 let py_int = G.Id (("int", tok), G.empty_id_info ()) in
-                G.Call (G.N py_int, G.fake_bracket [ G.Arg x ])
+                G.Call (G.N py_int |> G.e, G.fake_bracket [ G.Arg e ]) |> G.e
             | _ -> e);
       }
   in

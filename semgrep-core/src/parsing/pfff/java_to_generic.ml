@@ -178,16 +178,16 @@ and element_value = function
       v1
   | AnnotNestedAnnot v1 ->
       let v1 = annotation v1 in
-      G.OtherExpr (G.OE_Annot, [ G.At v1 ])
+      G.OtherExpr (G.OE_Annot, [ G.At v1 ]) |> G.e
   | AnnotArrayInit (t1, v1, t2) ->
       let v1 = list element_value v1 in
-      G.Container (G.List, (t1, v1, t2))
+      G.Container (G.List, (t1, v1, t2)) |> G.e
 
 and annotation_pair = function
   | AnnotPair (v1, v2) ->
       let v1 = ident v1 and v2 = element_value v2 in
       G.ArgKwd (v1, v2)
-  | AnnotPairEllipsis v1 -> G.Arg (G.Ellipsis v1)
+  | AnnotPairEllipsis v1 -> G.Arg (G.Ellipsis v1 |> G.e)
 
 (* id_or_name_of_qualified_ident *)
 and name v =
@@ -233,7 +233,7 @@ and literal = function
       G.Bool v1
 
 and expr e =
-  match e with
+  (match e with
   | This t -> G.IdSpecial (G.This, t)
   | ObjAccessEllipsis (v1, v2) ->
       let v1 = expr v1 in
@@ -260,7 +260,8 @@ and expr e =
       and v2 = list argument v2
       and v3 = option (bracket decls) v3 in
       match v3 with
-      | None -> G.Call (G.IdSpecial (G.New, v0), (lp, G.ArgType v1 :: v2, rp))
+      | None ->
+          G.Call (G.IdSpecial (G.New, v0) |> G.e, (lp, G.ArgType v1 :: v2, rp))
       | Some decls ->
           let anonclass =
             G.AnonClass
@@ -272,8 +273,10 @@ and expr e =
                 cparams = [];
                 cbody = decls |> bracket (List.map (fun x -> G.FieldStmt x));
               }
+            |> G.e
           in
-          G.Call (G.IdSpecial (G.New, v0), (lp, G.Arg anonclass :: v2, rp)))
+          G.Call
+            (G.IdSpecial (G.New, v0) |> G.e, (lp, G.Arg anonclass :: v2, rp)))
   | NewArray (v0, v1, v2, v3, v4) -> (
       let v1 = typ v1
       and v2 = list argument v2
@@ -287,9 +290,10 @@ and expr e =
       in
       let t = mk_array (v3 + List.length v2) in
       match v4 with
-      | None -> G.Call (G.IdSpecial (G.New, v0), fb (G.ArgType t :: v2))
+      | None -> G.Call (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: v2))
       | Some e ->
-          G.Call (G.IdSpecial (G.New, v0), fb (G.ArgType t :: G.Arg e :: v2)))
+          G.Call
+            (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: G.Arg e :: v2)))
   (* x.new Y(...) {...} *)
   | NewQualifiedClass (v0, _tok1, _tok2, v2, v3, v4) ->
       let v0 = expr v0
@@ -320,16 +324,20 @@ and expr e =
       G.ArrayAccess (v1, v2)
   | Postfix (v1, (v2, tok)) ->
       let v1 = expr v1 and v2 = fix_op v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v2, G.Postfix), tok), fb [ G.Arg v1 ])
+      G.Call
+        (G.IdSpecial (G.IncrDecr (v2, G.Postfix), tok) |> G.e, fb [ G.Arg v1 ])
   | Prefix ((v1, tok), v2) ->
       let v1 = fix_op v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.IncrDecr (v1, G.Prefix), tok), fb [ G.Arg v2 ])
+      G.Call
+        (G.IdSpecial (G.IncrDecr (v1, G.Prefix), tok) |> G.e, fb [ G.Arg v2 ])
   | Unary (v1, v2) ->
       let v1, tok = v1 and v2 = expr v2 in
-      G.Call (G.IdSpecial (G.Op (H.conv_op v1), tok), fb [ G.Arg v2 ])
+      G.Call (G.IdSpecial (G.Op (H.conv_op v1), tok) |> G.e, fb [ G.Arg v2 ])
   | Infix (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = v2 and v3 = expr v3 in
-      G.Call (G.IdSpecial (G.Op (H.conv_op v2), tok), fb [ G.Arg v1; G.Arg v3 ])
+      G.Call
+        ( G.IdSpecial (G.Op (H.conv_op v2), tok) |> G.e,
+          fb [ G.Arg v1; G.Arg v3 ] )
   | Cast ((_, v1, _), v2) ->
       let v1 = list typ v1 and v2 = expr v2 in
       let t = Common2.foldl1 (fun acc e -> G.TyAnd (acc, fake "&", e)) v1 in
@@ -337,7 +345,7 @@ and expr e =
   | InstanceOf (v1, v2) ->
       let v1 = expr v1 and v2 = ref_type v2 in
       G.Call
-        ( G.IdSpecial (G.Instanceof, fake "instanceof"),
+        ( G.IdSpecial (G.Instanceof, fake "instanceof") |> G.e,
           fb [ G.Arg v1; G.ArgType v2 ] )
   | Conditional (v1, v2, v3) ->
       let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
@@ -368,7 +376,9 @@ and expr e =
           v2
         |> List.map (fun x -> G.CasesAndBody x)
       in
-      G.OtherExpr (G.OE_StmtExpr, [ G.S (G.Switch (v0, Some v1, v2) |> G.s) ])
+      let x = G.stmt_to_expr (G.Switch (v0, Some v1, v2) |> G.s) in
+      x.G.e)
+  |> G.e
 
 and expr_or_type = function Left e -> G.E (expr e) | Right t -> G.T (typ t)
 
@@ -460,7 +470,7 @@ and cases v = list case v
 and list_to_opt_seq = function
   | [] -> None
   | [ e ] -> Some e
-  | xs -> Some (G.Seq xs)
+  | xs -> Some (G.Seq xs |> G.e)
 
 and for_control tok = function
   | ForEllipsis t -> G.ForEllipsis t
@@ -515,7 +525,7 @@ and init = function
       v1
   | ArrayInit v1 ->
       let v1 = bracket (list init) v1 in
-      G.Container (G.Array, v1)
+      G.Container (G.Array, v1) |> G.e
 
 and parameters v = List.map parameter_binding v
 
@@ -624,7 +634,7 @@ and decl decl =
   | Init (_v1TODO, v2) ->
       let v2 = stmt v2 in
       v2
-  | DeclEllipsis v1 -> G.ExprStmt (G.Ellipsis v1, G.sc) |> G.s
+  | DeclEllipsis v1 -> G.ExprStmt (G.Ellipsis v1 |> G.e, G.sc) |> G.s
   | EmptyDecl t -> G.Block (t, [], t) |> G.s
   | AnnotationTypeElementTodo t -> G.OtherStmt (G.OS_Todo, [ G.Tk t ]) |> G.s
 

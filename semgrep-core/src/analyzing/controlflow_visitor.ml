@@ -12,7 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-module Ast = AST_generic
+module G = AST_generic
 open Controlflow
 module F = Controlflow
 
@@ -58,8 +58,8 @@ let mk_visitor vin =
     | F.Throw expr
     | F.Return (Some expr)
     | F.OtherStmtWithStmtHeader (_, Some expr) ->
-        visitor (Ast.E expr)
-    | F.ForeachHeader (pat, e) -> visitor (Ast.E (Ast.LetPattern (pat, e)))
+        visitor (G.E expr)
+    | F.ForeachHeader (pat, e) -> visitor (G.E (G.LetPattern (pat, e) |> G.e))
     | F.SimpleNode x ->
         let any = F.any_of_simple_node x in
         visitor any
@@ -86,7 +86,7 @@ let exprs_of_node node =
   | Return (Some expr)
   | OtherStmtWithStmtHeader (_, Some expr) ->
       [ expr ]
-  | ForeachHeader (pat, expr) -> [ Ast.LetPattern (pat, expr) ]
+  | ForeachHeader (pat, expr) -> [ G.LetPattern (pat, expr) |> G.e ]
   | SimpleNode x -> (
       match x with
       | ExprStmt e -> [ e ]

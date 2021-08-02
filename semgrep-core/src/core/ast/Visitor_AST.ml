@@ -14,6 +14,7 @@
  *)
 open OCaml
 open AST_generic
+module G = AST_generic
 module H = AST_generic_helpers
 module PI = Parse_info
 
@@ -220,7 +221,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         (* subtle: old: let v1 = v_xml v1 in ()
          * We want a simple Expr (Xml ...) pattern to also be matched
          * against nested XmlXml elements *)
-        v_expr (Xml v1)
+        v_expr (Xml v1 |> G.e)
   and v_name x =
     let k x =
       match x with
@@ -234,7 +235,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     vin.kname (k, all_functions) x
   and v_expr x =
     let k x =
-      match x with
+      match x.e with
       | DotAccessEllipsis (v1, v2) ->
           v_expr v1;
           v_tok v2
@@ -255,19 +256,23 @@ let (mk_visitor : visitor_in -> visitor_out) =
           (match v1 with
           | Dict ->
               v2 |> unbracket
-              |> List.iter (function
-                   | Tuple (_, [ L (String id); e ], _) ->
-                       let t = PI.fake_info ":" in
-                       v_partial ~recurse:false (PartialSingleField (id, t, e))
-                   | _ -> ())
+              |> List.iter (fun e ->
+                     match e.e with
+                     | Tuple (_, [ { e = L (String id); _ }; e ], _) ->
+                         let t = PI.fake_info ":" in
+                         v_partial ~recurse:false
+                           (PartialSingleField (id, t, e))
+                     | _ -> ())
           (* for Go where we use List for composite literals *)
           | List ->
               v2 |> unbracket
-              |> List.iter (function
-                   | Tuple (_, [ N (Id (id, _)); e ], _) ->
-                       let t = PI.fake_info ":" in
-                       v_partial ~recurse:false (PartialSingleField (id, t, e))
-                   | _ -> ())
+              |> List.iter (fun e ->
+                     match e.e with
+                     | Tuple (_, [ { e = N (Id (id, _)); _ }; e ], _) ->
+                         let t = PI.fake_info ":" in
+                         v_partial ~recurse:false
+                           (PartialSingleField (id, t, e))
+                     | _ -> ())
           | _ -> ());
           let v1 = v_container_operator v1
           and v2 = v_bracket (v_list v_expr) v2 in
@@ -330,16 +335,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
           ()
       | TypedMetavar (v1, v2, v3) ->
           let v1 = v_ident v1 and v2 = v_tok v2 and v3 = v_type_ v3 in
-          ()
-      | MatchPattern (v1, v2) ->
-          let v1 = v_expr v1
-          and v2 =
-            v_list
-              (fun (v1, v2) ->
-                let v1 = v_pattern v1 and v2 = v_expr v2 in
-                ())
-              v2
-          in
           ()
       | Yield (t, v1, v2) ->
           let t = v_tok t in
@@ -612,6 +607,18 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let k x =
       (* todo? visit the s_id too? *)
       match x.s with
+      | Match (v0, v1, v2) ->
+          v_partial ~recurse:false (PartialMatch (v0, v1));
+          let v0 = v_tok v0 in
+          let v1 = v_expr v1
+          and v2 =
+            v_list
+              (fun (v1, v2) ->
+                let v1 = v_pattern v1 and v2 = v_expr v2 in
+                ())
+              v2
+          in
+          ()
       | DisjStmt (v1, v2) ->
           let v1 = v_stmt v1 in
           let v2 = v_stmt v2 in
@@ -879,7 +886,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
             v_entity v1;
             v_def_kind v2);
           ()
-      | PartialIf (v1, v2) ->
+      | PartialIf (v1, v2) | PartialMatch (v1, v2) ->
           if recurse then (
             v_tok v1;
             v_expr v2)
@@ -1292,10 +1299,4 @@ let range_of_tokens tokens =
 
 let range_of_any_opt any =
   extract_ranges (fun visitor -> visitor any)
-  [@@profiling]
-
-let range_of_any any =
-  match range_of_any_opt any with
-  | Some range -> range
-  | None -> failwith "no tokens found"
   [@@profiling]

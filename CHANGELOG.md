@@ -2,12 +2,36 @@
 
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+- OCaml: support for partial if, match, and try patterns 
+  (e.g., `if $X = $Y`)
+- OCaml: you can match uppercase identifiers (constructors, module names) by
+  using a metavariable with an uppercase letter followed by an underscore,
+  followed by uppercase letters or digits (e.g. `$X_`, `$F_OO`).
+  Instead, `$FOO` will match everything else (lowercase identifiers,
+  full expressions, types, patterns, etc.).
+- OCaml: match cases patterns are now matched in any order, and ellipsis are
+  handled correctly
+
+### Changed
+- Run version check and print upgrade message after scan instead of before
+- OCaml: skip ocamllex and ocamlyacc files. Process only .ml and .mli files.
+
+### Fixed
+- Go: Match import module paths correctly (#3484)
+- OCaml: use latest ocamllsp 1.7.0 for the -lsp option
+- OCaml: include parenthesis tokens in the AST for tuples for better range
+  matching and autofix
+- core: Do not crash when is not possible to compute range info
+
 ## [0.60.0](https://github.com/returntocorp/semgrep/releases/tag/v0.60.0) - 2021-07-27
 
 ### Added
 - Detect duplicate keys in YAML dictionaries in semgrep rules when parsing a rule
   (e.g., detect multiple 'metavariable' inside one 'metavariable-regex')
-  
+
 ### Fixed
 - C/C++: Fixed stack overflows (segmentation faults) when processing very large
   files (#3538)
@@ -20,6 +44,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Do not crash when is not possible to compute range info
 - Rust: recognize ellipsis in macro calls patterns (#3600)
 - Ruby: represent correctly a.(b) in the AST (#3603)
+- Rust: recognize ellipsis in macro calls patterns
 
 ### Changed
 - Added precise error location for the semgrep metachecker, to detect for example
@@ -55,8 +80,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   it will not wait until semgrep-core completely finishes.
 
 ### Changed
-- Switch from OCaml 4.10.0 to OCaml 4.10.2 (and later to OCaml 4.12.0) resulted in 
-  smaller semgrep-core binaries (from 170MB to 47MB) and a smaller docker 
+- Switch from OCaml 4.10.0 to OCaml 4.10.2 (and later to OCaml 4.12.0) resulted in
+  smaller semgrep-core binaries (from 170MB to 47MB) and a smaller docker
   image (from 95MB to 40MB).
 
 ## [0.58.0](https://github.com/returntocorp/semgrep/releases/tag/v0.58.0) - 2021-07-14

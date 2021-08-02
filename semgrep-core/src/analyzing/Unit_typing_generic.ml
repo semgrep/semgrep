@@ -1,7 +1,7 @@
 open Common
 open OUnit
 module V = Visitor_AST
-module A = AST_generic
+module G = AST_generic
 
 (*****************************************************************************)
 (* Unit tests *)
@@ -28,10 +28,10 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
-                       | A.N (A.Id (_, { A.id_type; _ })) -> (
+                       match exp.G.e with
+                       | G.N (G.Id (_, { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (A.TyN (A.Id (("String", _), _))) -> ()
+                           | Some (G.TyN (G.Id (("String", _), _))) -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
@@ -39,7 +39,7 @@ let unittest parse_program parse_pattern =
                        | _ -> ());
                  }
              in
-             v (A.Pr ast)
+             v (G.Pr ast)
            with Parse_info.Parsing_error _ ->
              assert_failure (spf "it should correctly parse %s" file) );
          ( "test multiple variable definitions java" >:: fun () ->
@@ -55,29 +55,33 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
-                       | A.Call (_, (_, [ x; y ], _)) -> (
+                       match exp.G.e with
+                       | G.Call (_, (_, [ x; y ], _)) -> (
                            (match x with
-                           | A.Arg (A.N (A.Id (_, { A.id_type; _ }))) -> (
+                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
+                             -> (
                                match !id_type with
-                               | Some (A.TyN (A.Id (("String", _), _))) -> ()
+                               | Some (G.TyN (G.Id (("String", _), _))) -> ()
                                | _ ->
                                    assert_failure
                                      "Variable 1 referenced did not have \
                                       expected type String")
                            | _ -> ());
                            match y with
-                           | A.Arg (A.N (A.Id (_, { A.id_type; _ }))) -> (
+                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
+                             -> (
                                match !id_type with
-                               | Some (A.TyBuiltin ("int", _)) -> ()
+                               | Some (G.TyBuiltin ("int", _)) -> ()
                                | _ ->
                                    assert_failure
                                      "Variable 2 referenced did not have \
                                       expected type int")
                            | _ -> ())
-                       | A.Assign (A.N (A.Id (_, { A.id_type; _ })), _, _) -> (
+                       | G.Assign
+                           ({ e = G.N (G.Id (_, { G.id_type; _ })); _ }, _, _)
+                         -> (
                            match !id_type with
-                           | Some (A.TyN (A.Id (("String", _), _))) -> ()
+                           | Some (G.TyN (G.Id (("String", _), _))) -> ()
                            | _ ->
                                assert_failure
                                  "Variable 1 referenced did not have expected \
@@ -85,7 +89,7 @@ let unittest parse_program parse_pattern =
                        | _ -> ());
                  }
              in
-             v (A.Pr ast)
+             v (G.Pr ast)
            with Parse_info.Parsing_error _ ->
              assert_failure (spf "it should correctly parse %s" file) );
          ( "test basic params java" >:: fun () ->
@@ -101,21 +105,23 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
-                       | A.Call (_, (_, [ x; y ], _)) -> (
+                       match exp.G.e with
+                       | G.Call (_, (_, [ x; y ], _)) -> (
                            (match x with
-                           | A.Arg (A.N (A.Id (_, { A.id_type; _ }))) -> (
+                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
+                             -> (
                                match !id_type with
-                               | Some (A.TyBuiltin ("int", _)) -> ()
+                               | Some (G.TyBuiltin ("int", _)) -> ()
                                | _ ->
                                    assert_failure
                                      "Variable 1 referenced did not have \
                                       expected type String")
                            | _ -> ());
                            match y with
-                           | A.Arg (A.N (A.Id (_, { A.id_type; _ }))) -> (
+                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
+                             -> (
                                match !id_type with
-                               | Some (A.TyBuiltin ("boolean", _)) -> ()
+                               | Some (G.TyBuiltin ("boolean", _)) -> ()
                                | _ ->
                                    assert_failure
                                      "Variable 2 referenced did not have \
@@ -124,7 +130,7 @@ let unittest parse_program parse_pattern =
                        | _ -> ());
                  }
              in
-             v (A.Pr ast)
+             v (G.Pr ast)
            with Parse_info.Parsing_error _ ->
              assert_failure (spf "it should correctly parse %s" file) );
          ( "test class field types" >:: fun () ->
@@ -140,17 +146,17 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
-                       | A.N (A.Id (("age", _), { A.id_type; _ })) -> (
+                       match exp.G.e with
+                       | G.N (G.Id (("age", _), { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (A.TyBuiltin ("int", _)) -> ()
+                           | Some (G.TyBuiltin ("int", _)) -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
                                   type int")
-                       | A.N (A.Id (("default_age", _), { A.id_type; _ })) -> (
+                       | G.N (G.Id (("default_age", _), { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (A.TyBuiltin ("int", _)) -> ()
+                           | Some (G.TyBuiltin ("int", _)) -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
@@ -158,7 +164,7 @@ let unittest parse_program parse_pattern =
                        | _ -> ());
                  }
              in
-             v (A.Pr ast)
+             v (G.Pr ast)
            with Parse_info.Parsing_error _ ->
              assert_failure (spf "it should correctly parse %s" file) );
          ( "java_pattern_files" >:: fun () ->
@@ -194,10 +200,10 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
-                       | A.N (A.Id (_, { A.id_type; _ })) -> (
+                       match exp.G.e with
+                       | G.N (G.Id (_, { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (A.TyN (A.Id (("int", _), _))) -> ()
+                           | Some (G.TyN (G.Id (("int", _), _))) -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
@@ -205,7 +211,7 @@ let unittest parse_program parse_pattern =
                        | _ -> ());
                  }
              in
-             v (A.Pr ast)
+             v (G.Pr ast)
            with Parse_info.Parsing_error _ ->
              assert_failure (spf "it should correctly parse %s" file) );
          ( "test basic function call go" >:: fun () ->
@@ -221,13 +227,16 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
-                       | A.Call (_, (_, [ x; y ], _)) -> (
+                       match exp.G.e with
+                       | G.Call (_, (_, [ x; y ], _)) -> (
                            (match x with
-                           | A.Arg (A.N (A.Id (("a", _), { A.id_type; _ })))
-                             -> (
+                           | G.Arg
+                               {
+                                 e = G.N (G.Id (("a", _), { G.id_type; _ }));
+                                 _;
+                               } -> (
                                match !id_type with
-                               | Some (A.TyN (A.Id (("int", _), _))) -> ()
+                               | Some (G.TyN (G.Id (("int", _), _))) -> ()
                                | _ ->
                                    assert_failure
                                      "Variable referenced did not have \
@@ -237,10 +246,13 @@ let unittest parse_program parse_pattern =
                                  "Expected function call to be with int a as \
                                   first argument");
                            match y with
-                           | A.Arg (A.N (A.Id (("c", _), { A.id_type; _ })))
-                             -> (
+                           | G.Arg
+                               {
+                                 e = G.N (G.Id (("c", _), { G.id_type; _ }));
+                                 _;
+                               } -> (
                                match !id_type with
-                               | Some (A.TyN (A.Id (("bool", _), _))) -> ()
+                               | Some (G.TyN (G.Id (("bool", _), _))) -> ()
                                | _ ->
                                    assert_failure
                                      "Variable referenced did not have \
@@ -252,7 +264,7 @@ let unittest parse_program parse_pattern =
                        | _ -> ());
                  }
              in
-             v (A.Pr ast)
+             v (G.Pr ast)
            with Parse_info.Parsing_error _ ->
              assert_failure (spf "it should correctly parse %s" file) );
          ( "test inferred variable definitions go" >:: fun () ->
@@ -268,24 +280,24 @@ let unittest parse_program parse_pattern =
                    V.default_visitor with
                    V.kexpr =
                      (fun (_k, _) exp ->
-                       match exp with
-                       | A.N (A.Id (("a", _), { A.id_type; _ })) -> (
+                       match exp.G.e with
+                       | G.N (G.Id (("a", _), { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (A.TyN (A.Id (("char", _), _))) -> ()
+                           | Some (G.TyN (G.Id (("char", _), _))) -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
                                   type char")
-                       | A.N (A.Id (("b", _), { A.id_type; _ })) -> (
+                       | G.N (G.Id (("b", _), { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (A.TyN (A.Id (("int", _), _))) -> ()
+                           | Some (G.TyN (G.Id (("int", _), _))) -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
                                   type int")
-                       | A.N (A.Id (("c", _), { A.id_type; _ })) -> (
+                       | G.N (G.Id (("c", _), { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (A.TyN (A.Id (("char", _), _))) -> ()
+                           | Some (G.TyN (G.Id (("char", _), _))) -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
@@ -293,7 +305,7 @@ let unittest parse_program parse_pattern =
                        | _ -> ());
                  }
              in
-             v (A.Pr ast)
+             v (G.Pr ast)
            with Parse_info.Parsing_error _ ->
              assert_failure (spf "it should correctly parse %s" file) );
        ]

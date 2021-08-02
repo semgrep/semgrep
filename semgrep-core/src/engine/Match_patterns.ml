@@ -16,7 +16,6 @@
  *)
 open AST_generic
 module V = Visitor_AST
-module AST = AST_generic
 module Err = Error_code
 module PI = Parse_info
 module R = Mini_rule (* TODO: rename to MR *)
@@ -168,13 +167,20 @@ let match_rules_and_recurse config (file, hook, matches) rules matcher k any x =
            matches_with_env
            |> List.iter (fun (env : MG.tin) ->
                   let env = env.mv.full_env in
-                  let range_loc = V.range_of_any (any x) in
-                  let tokens = lazy (V.ii_of_any (any x)) in
-                  let rule_id = rule_id_of_mini_rule rule in
-                  Common.push
-                    { PM.rule_id; file; env; range_loc; tokens }
-                    matches;
-                  hook env tokens));
+                  match V.range_of_any_opt (any x) with
+                  | None ->
+                      (* TODO: Report a warning to the user? *)
+                      logger#error
+                        "Cannot report match because we lack range info: %s"
+                        (show_any (any x));
+                      ()
+                  | Some range_loc ->
+                      let tokens = lazy (V.ii_of_any (any x)) in
+                      let rule_id = rule_id_of_mini_rule rule in
+                      Common.push
+                        { PM.rule_id; file; env; range_loc; tokens }
+                        matches;
+                      hook env tokens));
   (* try the rules on substatements and subexpressions *)
   k x
 
@@ -288,13 +294,21 @@ let check2 ~hook config rules equivs (file, lang, ast) =
                      matches_with_env
                      |> List.iter (fun (env : MG.tin) ->
                             let env = env.mv.full_env in
-                            let range_loc = V.range_of_any (E x) in
-                            let tokens = lazy (V.ii_of_any (E x)) in
-                            let rule_id = rule_id_of_mini_rule rule in
-                            Common.push
-                              { PM.rule_id; file; env; range_loc; tokens }
-                              matches;
-                            hook env tokens));
+                            match V.range_of_any_opt (E x) with
+                            | None ->
+                                (* TODO: Report a warning to the user? *)
+                                logger#error
+                                  "Cannot report match because we lack range \
+                                   info: %s"
+                                  (show_expr x);
+                                ()
+                            | Some range_loc ->
+                                let tokens = lazy (V.ii_of_any (E x)) in
+                                let rule_id = rule_id_of_mini_rule rule in
+                                Common.push
+                                  { PM.rule_id; file; env; range_loc; tokens }
+                                  matches;
+                                hook env tokens));
             (* try the rules on subexpressions *)
             (* this can recurse to find nested matching inside the
              * matched code itself *)
@@ -318,13 +332,21 @@ let check2 ~hook config rules equivs (file, lang, ast) =
                        matches_with_env
                        |> List.iter (fun (env : MG.tin) ->
                               let env = env.mv.full_env in
-                              let range_loc = V.range_of_any (S x) in
-                              let tokens = lazy (V.ii_of_any (S x)) in
-                              let rule_id = rule_id_of_mini_rule rule in
-                              Common.push
-                                { PM.rule_id; file; env; range_loc; tokens }
-                                matches;
-                              hook env tokens));
+                              match V.range_of_any_opt (S x) with
+                              | None ->
+                                  (* TODO: Report a warning to the user? *)
+                                  logger#error
+                                    "Cannot report match because we lack range \
+                                     info: %s"
+                                    (show_stmt x);
+                                  ()
+                              | Some range_loc ->
+                                  let tokens = lazy (V.ii_of_any (S x)) in
+                                  let rule_id = rule_id_of_mini_rule rule in
+                                  Common.push
+                                    { PM.rule_id; file; env; range_loc; tokens }
+                                    matches;
+                                  hook env tokens));
               k x
             in
             (* If bloom_filter is not enabled, always visit the statement *)

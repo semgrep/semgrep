@@ -17,6 +17,7 @@
 (*e: pad/r2c copyright *)
 open Common
 open AST_generic
+module G = AST_generic
 module M = Map_AST
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -92,7 +93,7 @@ let dotted_ident_of_name (n : name) : dotted_ident =
  *)
 let rec expr_to_pattern e =
   (* TODO: diconstruct e and generate the right pattern (PatLiteral, ...) *)
-  match e with
+  match e.e with
   | N (Id (id, info)) -> PatId (id, info)
   | Tuple (t1, xs, t2) -> PatTuple (t1, xs |> List.map expr_to_pattern, t2)
   | L l -> PatLiteral l
@@ -110,15 +111,16 @@ exception NotAnExpr
 (*s: function [[AST_generic.pattern_to_expr]] *)
 (* sgrep: this is to treat pattern metavars as expr metavars *)
 let rec pattern_to_expr p =
-  match p with
+  (match p with
   | PatId (id, info) -> N (Id (id, info))
   | PatTuple (t1, xs, t2) -> Tuple (t1, xs |> List.map pattern_to_expr, t2)
   | PatLiteral l -> L l
   | PatList (t1, xs, t2) ->
       Container (List, (t1, xs |> List.map pattern_to_expr, t2))
-  | OtherPat (OP_Expr, [ E e ]) -> e
+  | OtherPat (OP_Expr, [ E e ]) -> e.e
   | PatAs _ | PatVar _ -> raise NotAnExpr
-  | _ -> raise NotAnExpr
+  | _ -> raise NotAnExpr)
+  |> G.e
 
 (*e: function [[AST_generic.pattern_to_expr]] *)
 
@@ -126,6 +128,8 @@ let rec pattern_to_expr p =
 let expr_to_type e =
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
   OtherType (OT_Expr, [ E e ])
+
+(* See also exprstmt, and stmt_to_expr in AST_generic.ml *)
 
 (*e: function [[AST_generic.expr_to_type]] *)
 
@@ -170,13 +174,14 @@ let is_boolean_operator = function
 (*e: function [[AST_generic.is_boolean_operator]] *)
 
 let name_or_dynamic_to_expr name idinfo_opt =
-  match (name, idinfo_opt) with
+  (match (name, idinfo_opt) with
   (* assert idinfo = _idinfo below? *)
   | EN (Id (id, idinfo)), None -> N (Id (id, idinfo))
   | EN (Id (id, _idinfo)), Some idinfo -> N (Id (id, idinfo))
   | EN (IdQualified (n, idinfo)), None -> N (IdQualified (n, idinfo))
   | EN (IdQualified (n, _idinfo)), Some idinfo -> N (IdQualified (n, idinfo))
-  | EDynamic e, _ -> e
+  | EDynamic e, _ -> e.e)
+  |> G.e
 
 (*s: function [[AST_generic.vardef_to_assign]] *)
 (* used in controlflow_build and semgrep *)
@@ -185,9 +190,9 @@ let vardef_to_assign (ent, def) =
   let v =
     match def.vinit with
     | Some v -> v
-    | None -> L (Null (Parse_info.fake_info "null"))
+    | None -> L (Null (Parse_info.fake_info "null")) |> G.e
   in
-  Assign (name, Parse_info.fake_info "=", v)
+  Assign (name, Parse_info.fake_info "=", v) |> G.e
 
 (*e: function [[AST_generic.vardef_to_assign]] *)
 
@@ -196,8 +201,8 @@ let vardef_to_assign (ent, def) =
 let funcdef_to_lambda (ent, def) resolved =
   let idinfo = { (empty_id_info ()) with id_resolved = ref resolved } in
   let name = name_or_dynamic_to_expr ent.name (Some idinfo) in
-  let v = Lambda def in
-  Assign (name, Parse_info.fake_info "=", v)
+  let v = Lambda def |> G.e in
+  Assign (name, Parse_info.fake_info "=", v) |> G.e
 
 (*e: function [[AST_generic.funcdef_to_lambda]] *)
 
@@ -249,9 +254,12 @@ let ac_matching_nf op args =
          | Arg e -> e
          | ArgKwd _ | ArgType _ | ArgOther _ -> raise_notrace Exit)
     |> List.map nf_one |> List.flatten
-  and nf_one = function
-    | Call (IdSpecial (Op op1, _tok1), (_, args1, _)) when op = op1 -> nf args1
-    | x -> [ x ]
+  and nf_one e =
+    match e.e with
+    | Call ({ e = IdSpecial (Op op1, _tok1); _ }, (_, args1, _)) when op = op1
+      ->
+        nf args1
+    | _ -> [ e ]
   in
   if is_associative_operator op then (
     try Some (nf args)
@@ -267,7 +275,8 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
   | [ arg ] -> Some arg
   | a1 :: a2 :: args ->
       let mk_op x y =
-        Call (IdSpecial (Op op, tok), fake_bracket [ Arg x; Arg y ])
+        Call (IdSpecial (Op op, tok) |> G.e, fake_bracket [ Arg x; Arg y ])
+        |> G.e
       in
       Some (List.fold_left mk_op (mk_op a1 a2) args)
 
@@ -276,7 +285,6 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
 (*****************************************************************************)
 
 module G_ = AST_generic_
-module G = AST_generic
 
 (* This module is ugly, but it was written to allow to move AST_generic.ml
  * out of pfff/ and inside semgrep/. However there are many

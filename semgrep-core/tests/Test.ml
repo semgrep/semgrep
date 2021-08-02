@@ -526,7 +526,7 @@ let metachecker_regression_tests =
           | Parse_rule.InvalidYaml (s, t)
           | Parse_rule.InvalidRegexp (_, s, t)
           | Parse_rule.InvalidLanguage (_, s, t)
-          | Parse_rule.InvalidPattern (_, _, _, s, t)
+          | Parse_rule.InvalidPattern (_, _, _, s, t, _)
            ->
               raise (Parse_info.Other_error (s, t))
         );
@@ -559,6 +559,7 @@ let test regexp =
         Parse_target.parse_program 
         (fun lang file -> Parse_pattern.parse_pattern lang file);
       Unit_naming_generic.unittest Parse_target.parse_program;
+      Unit_guess_lang.unittest;
 
       lang_parsing_tests;
       (* full testing for many languages *)
@@ -642,6 +643,6 @@ let main () =
 (*e: function [[Test.main]] *)
 
 (*s: toplevel [[Test._1]] *)
-let _ = main ()
+let () = main ()
 (*e: toplevel [[Test._1]] *)
 (*e: semgrep/tests/Test.ml *)

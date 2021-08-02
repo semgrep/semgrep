@@ -16,7 +16,7 @@ open Common
 open OCaml (* map_of_string, ... *)
 
 open AST_generic
-module A = AST_generic
+module G = AST_generic
 module B = AST_generic_v1_t
 module PI = Parse_info
 
@@ -118,14 +118,14 @@ and map_name_ (v1, v2) =
   (v1, v2)
 
 and map_name_info
-    { A.name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs } =
+    { G.name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs } =
   let v_name_typeargs = map_of_option map_type_arguments v_name_typeargs in
   let v_name_qualifier = map_of_option map_qualifier v_name_qualifier in
   { B.name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs }
 
 and map_id_info x =
   match x with
-  | { A.id_resolved = v_id_resolved; id_type = v_id_type; id_constness = v3 } ->
+  | { G.id_resolved = v_id_resolved; id_type = v_id_type; id_constness = v3 } ->
       let v3 = map_of_ref (map_of_option map_constness) v3 in
       let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
       let v_id_resolved =
@@ -134,7 +134,7 @@ and map_id_info x =
       { B.id_resolved = v_id_resolved; id_type = v_id_type; id_constness = v3 }
 
 and map_xml
-    { A.xml_kind = v_xml_tag; xml_attrs = v_xml_attrs; xml_body = v_xml_body } :
+    { G.xml_kind = v_xml_tag; xml_attrs = v_xml_attrs; xml_body = v_xml_body } :
     B.xml =
   let v_xml_body = map_of_list map_xml_body v_xml_body in
   let v_xml_attrs = map_of_list map_xml_attribute v_xml_attrs in
@@ -158,7 +158,7 @@ and map_xml_kind = function
       let v2 = map_tok v2 in
       `XmlFragment (v1, v2)
 
-and map_xml_attribute (x : A.xml_attribute) : B.xml_attribute =
+and map_xml_attribute (x : G.xml_attribute) : B.xml_attribute =
   match x with
   | XmlAttr (v1, t, v2) ->
       let v1 = map_ident v1 and t = map_tok t and v2 = map_xml_attr v2 in
@@ -192,7 +192,7 @@ and map_name = function
       `IdQualified (v1, v2)
 
 and map_expr x : B.expr =
-  match x with
+  match x.e with
   | N v1 ->
       let v1 = map_name v1 in
       `N v1
@@ -262,9 +262,6 @@ and map_expr x : B.expr =
   | TypedMetavar (v1, v2, v3) ->
       let v1 = map_ident v1 and v2 = map_tok v2 and v3 = map_type_ v3 in
       `TypedMetavar (v1, v2, v3)
-  | MatchPattern (v1, v2) ->
-      let v1 = map_expr v1 and v2 = map_of_list map_action v2 in
-      `MatchPattern (v1, v2)
   | Yield (t, v1, v2) ->
       let t = map_tok t in
       let v1 = map_of_option map_expr v1 and v2 = map_of_bool v2 in
@@ -624,6 +621,10 @@ and map_other_attribute_operator _x = "TODO"
 and map_stmt x : B.stmt =
   let skind =
     match x.s with
+    | Match (_, v1, v2) ->
+        let v1 = map_expr v1 and v2 = map_of_list map_action v2 in
+        let e = `MatchPattern (v1, v2) in
+        `OtherStmt ("TODO", [ `E e ])
     | DisjStmt (v1, v2) ->
         let v1 = map_stmt v1 in
         let v2 = map_stmt v2 in
@@ -874,7 +875,7 @@ and map_definition (v1, v2) =
   let v1 = map_entity v1 and v2 = map_definition_kind v2 in
   (v1, v2)
 
-and map_entity { A.name = v_name; attrs = v_attrs; tparams = v_tparams } =
+and map_entity { G.name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let v_tparams = map_of_list map_type_parameter v_tparams in
   let v_attrs = map_of_list map_attribute v_attrs in
   let v_name = map_name_or_dynamic v_name in
@@ -915,7 +916,7 @@ and map_definition_kind = function
 
 and map_other_def_operator _x = "TODO"
 
-and map_module_definition { A.mbody = v_mbody } =
+and map_module_definition { G.mbody = v_mbody } =
   let v_mbody = map_module_definition_kind v_mbody in
   { B.mbody = v_mbody }
 
@@ -934,7 +935,7 @@ and map_module_definition_kind = function
 and map_other_module_operator _x = "TODO"
 
 and map_macro_definition
-    { A.macroparams = v_macroparams; macrobody = v_macrobody } =
+    { G.macroparams = v_macroparams; macrobody = v_macrobody } =
   let v_macrobody = map_of_list map_any v_macrobody in
   let v_macroparams = map_of_list map_ident v_macroparams in
   { B.macroparams = v_macroparams; macrobody = v_macrobody }
@@ -969,7 +970,7 @@ and map_function_kind = function
   | BlockCases -> `LambdaKind
 
 and map_function_definition
-    { A.fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody } =
+    { G.fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody } =
   let fkind = map_wrap map_function_kind fkind in
   let v_fbody = map_stmt v_fbody in
   let v_frettype = map_of_option map_type_ v_frettype in
@@ -1003,7 +1004,7 @@ and map_parameter = function
 
 and map_parameter_classic
     {
-      A.pname = v_pname;
+      G.pname = v_pname;
       pdefault = v_pdefault;
       ptype = v_ptype;
       pattrs = v_pattrs;
@@ -1024,7 +1025,7 @@ and map_parameter_classic
 
 and map_other_parameter_operator _x = "TODO"
 
-and map_variable_definition { A.vinit = v_vinit; vtype = v_vtype } =
+and map_variable_definition { G.vinit = v_vinit; vtype = v_vtype } =
   let v_vtype = map_of_option map_type_ v_vtype in
   let v_vinit = map_of_option map_expr v_vinit in
   { B.vinit = v_vinit; vtype = v_vtype }
@@ -1038,7 +1039,7 @@ and map_field = function
       let v1 = map_stmt v1 in
       `FieldStmt v1
 
-and map_type_definition { A.tbody = v_tbody } =
+and map_type_definition { G.tbody = v_tbody } =
   let v_tbody = map_type_definition_kind v_tbody in
   { B.tbody = v_tbody }
 
@@ -1084,7 +1085,7 @@ and map_other_or_type_element_operator _x = "TODO"
 
 and map_class_definition
     {
-      A.ckind = v_ckind;
+      G.ckind = v_ckind;
       cextends = v_cextends;
       cimplements = v_cimplements;
       cbody = v_cbody;

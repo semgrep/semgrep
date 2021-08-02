@@ -190,6 +190,9 @@ let parsing_common ?(verbose = true) lang xs =
   let fullxs =
     Lang.files_of_dirs_or_files lang xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
+    (* extra filtering excluding some extensions like '.d.ts'
+       TODO: should become part of files_of_dirs_or_files *)
+    |> List.filter (Guess_lang.is_acceptable lang)
   in
   fullxs
   |> List.rev_map (fun file ->

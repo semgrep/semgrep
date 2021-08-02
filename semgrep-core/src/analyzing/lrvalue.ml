@@ -79,7 +79,7 @@ let rec visit_expr hook lhs expr =
     v any
   in
 
-  match expr with
+  match expr.e with
   (* the leaf *)
   | N (Id (name, idinfo)) ->
       (* calling the hook! *)
@@ -168,7 +168,6 @@ let rec visit_expr hook lhs expr =
   | LetPattern (pat, e) ->
       anyhook hook Lhs (P pat);
       recr e
-  | MatchPattern (_, _) -> error_todo (E expr)
   | Seq xs -> List.iter recr xs
   (* we should not be called on a sgrep pattern *)
   | TypedMetavar (_id, _, _t) -> raise Impossible

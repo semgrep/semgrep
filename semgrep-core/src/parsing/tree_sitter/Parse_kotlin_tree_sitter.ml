@@ -13,7 +13,6 @@
  *)
 open Common
 module CST = Tree_sitter_kotlin.CST
-module AST = AST_generic
 module H = Parse_tree_sitter_helpers
 module PI = Parse_info
 open AST_generic
@@ -398,7 +397,7 @@ let directly_assignable_expression (env : env)
   match x with
   | `Simple_id x ->
       let id = simple_identifier env x in
-      N (Id (id, empty_id_info ()))
+      N (Id (id, empty_id_info ())) |> G.e
 
 let import_alias (env : env) ((v1, v2) : CST.import_alias) =
   let v1 = token env v1 (* "as" *) in
@@ -518,7 +517,7 @@ and assignment (env : env) (x : CST.assignment) : expr =
       let v1 = directly_assignable_expression env v1 in
       let v2 = assignment_and_operator env v2 in
       let v3 = expression env v3 in
-      AssignOp (v1, v2, v3)
+      AssignOp (v1, v2, v3) |> G.e
 
 and binary_expression (env : env) (x : CST.binary_expression) =
   match x with
@@ -526,28 +525,28 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       let v1 = expression env v1 in
       let v2, tok = multiplicative_operator env v2 in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op v2, tok), fb [ Arg v1; Arg v3 ])
+      Call (IdSpecial (Op v2, tok) |> G.e, fb [ Arg v1; Arg v3 ])
   | `Addi_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2, tok = additive_operator env v2 in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op v2, tok), fb [ Arg v1; Arg v3 ])
+      Call (IdSpecial (Op v2, tok) |> G.e, fb [ Arg v1; Arg v3 ])
   | `Range_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2, tok = (Range, token env v2) (* ".." *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op v2, tok), fb [ Arg v1; Arg v3 ])
+      Call (IdSpecial (Op v2, tok) |> G.e, fb [ Arg v1; Arg v3 ])
   | `Infix_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = simple_identifier env v2 in
-      let v2_id = N (Id (v2, empty_id_info ())) in
+      let v2_id = N (Id (v2, empty_id_info ())) |> G.e in
       let v3 = expression env v3 in
       Call (v2_id, fb [ Arg v1; Arg v3 ])
   | `Elvis_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2, tok = (Elvis, token env v2) (* "?:" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op v2, tok), fb [ Arg v1; Arg v3 ])
+      Call (IdSpecial (Op v2, tok) |> G.e, fb [ Arg v1; Arg v3 ])
   | `Check_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2, tok =
@@ -556,27 +555,27 @@ and binary_expression (env : env) (x : CST.binary_expression) =
         | `Is_op x -> is_operator env x
       in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op v2, tok), fb [ Arg v1; Arg v3 ])
+      Call (IdSpecial (Op v2, tok) |> G.e, fb [ Arg v1; Arg v3 ])
   | `Comp_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2, tok = comparison_operator env v2 in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op v2, tok), fb [ Arg v1; Arg v3 ])
+      Call (IdSpecial (Op v2, tok) |> G.e, fb [ Arg v1; Arg v3 ])
   | `Equa_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2, tok = equality_operator env v2 in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op v2, tok), fb [ Arg v1; Arg v3 ])
+      Call (IdSpecial (Op v2, tok) |> G.e, fb [ Arg v1; Arg v3 ])
   | `Conj_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2, tok = (And, token env v2) (* "&&" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op v2, tok), fb [ Arg v1; Arg v3 ])
+      Call (IdSpecial (Op v2, tok) |> G.e, fb [ Arg v1; Arg v3 ])
   | `Disj_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2, tok = (Or, token env v2) (* "||" *) in
       let v3 = expression env v3 in
-      Call (IdSpecial (Op v2, tok), fb [ Arg v1; Arg v3 ])
+      Call (IdSpecial (Op v2, tok) |> G.e, fb [ Arg v1; Arg v3 ])
 
 and block (env : env) ((v1, v2, v3) : CST.block) =
   let v1 = token env v1 (* "{" *) in
@@ -811,8 +810,8 @@ and constructor_delegation_call (env : env)
     (* "super" *)
   in
   let v2 = value_arguments env v2 in
-  let e = IdSpecial v1 in
-  Call (e, v2)
+  let e = IdSpecial v1 |> G.e in
+  Call (e, v2) |> G.e
 
 and constructor_invocation (env : env) ((v1, v2) : CST.constructor_invocation) =
   let v1 = user_type env v1 in
@@ -990,7 +989,7 @@ and enum_entry (env : env) ((v1, v2, v3, v4) : CST.enum_entry) =
   todo env (v1, v2, v3, v4)
 
 and expression (env : env) (x : CST.expression) : expr =
-  match x with
+  (match x with
   | `Choice_un_exp x -> (
       match x with
       | `Un_exp x -> unary_expression env x
@@ -1001,7 +1000,8 @@ and expression (env : env) (x : CST.expression) : expr =
       let x1 = token env x1 in
       let x2 = expression env x2 in
       let x3 = token env x3 in
-      G.DeepEllipsis (x1, x2, x3)
+      G.DeepEllipsis (x1, x2, x3))
+  |> G.e
 
 and finally_block (env : env) ((v1, v2) : CST.finally_block) =
   let v1 = token env v1 (* "finally" *) in
@@ -1178,7 +1178,7 @@ and interpolation (env : env) (x : CST.interpolation) : expr =
   | `DOLLAR_simple_id (v1, v2) ->
       let _v1 = token env v1 (* "$" *) in
       let v2 = simple_identifier env v2 in
-      N (Id (v2, empty_id_info ()))
+      N (Id (v2, empty_id_info ())) |> G.e
 
 and jump_expression (env : env) (x : CST.jump_expression) =
   match x with
@@ -1205,7 +1205,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
       (match id with
       | None -> Return (return_tok, v2, sc)
       | Some simple_id -> (
-          let id = N (Id (simple_id, empty_id_info ())) in
+          let id = N (Id (simple_id, empty_id_info ())) |> G.e in
           match v2 with
           | None ->
               let list = [ TodoK ("return@", return_tok); E id ] in
@@ -1291,7 +1291,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
         | v1, None -> PatId (v1, empty_id_info ())
       in
       let header = ForEach (params, v5, v6) in
-      For (v1, header, v8) |> AST.s
+      For (v1, header, v8) |> G.s
   | `While_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "while" *) in
       let _v2 = token env v2 (* "(" *) in
@@ -1302,7 +1302,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
         | `SEMI _tok -> empty_fbody
         | `Cont_stru_body x -> control_structure_body env x
       in
-      While (v1, v3, v5) |> AST.s
+      While (v1, v3, v5) |> G.s
   | `Do_while_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "do" *) in
       let v2 =
@@ -1314,7 +1314,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
       let _v4 = token env v4 (* "(" *) in
       let v5 = expression env v5 in
       let _v6 = token env v6 (* ")" *) in
-      DoWhile (v1, v2, v5) |> AST.s
+      DoWhile (v1, v2, v5) |> G.s
 
 and modifiers (env : env) (x : CST.modifiers) : attribute list =
   match x with
@@ -1327,12 +1327,12 @@ and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
     match v2 with
     | `Simple_id x ->
         let id = simple_identifier env x in
-        G.N (Id (id, empty_id_info ()))
+        G.N (Id (id, empty_id_info ())) |> G.e
     | `Paren_exp x -> parenthesized_expression env x
     | `Class tok ->
         let id = str env tok in
         (* "class" *)
-        G.N (Id (id, empty_id_info ()))
+        G.N (Id (id, empty_id_info ())) |> G.e
   in
   v2
 
@@ -1372,7 +1372,7 @@ and parameter_with_optional_type (env : env)
   (v2, v3)
 
 and parenthesized_expression (env : env)
-    ((v1, v2, v3) : CST.parenthesized_expression) =
+    ((v1, v2, v3) : CST.parenthesized_expression) : G.expr =
   let _v1 = token env v1 (* "(" *) in
   let v2 = expression env v2 in
   let _v3 = token env v3 (* ")" *) in
@@ -1396,9 +1396,11 @@ and primary_constructor (env : env) ((v1, v2) : CST.primary_constructor) =
   let v2 = class_parameters env v2 in
   todo env (v1, v2)
 
-and primary_expression (env : env) (x : CST.primary_expression) : expr =
+and primary_expression (env : env) (x : CST.primary_expression) : expr_kind =
   match x with
-  | `Paren_exp x -> parenthesized_expression env x
+  | `Paren_exp x ->
+      let x = parenthesized_expression env x in
+      x.G.e
   | `Simple_id x ->
       let id = simple_identifier env x in
       G.N (Id (id, empty_id_info ()))
@@ -1409,10 +1411,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
         match v1 with
         | Some x ->
             let id = simple_identifier env x in
-            G.N (Id (id, empty_id_info ()))
+            G.N (Id (id, empty_id_info ())) |> G.e
         | None ->
             let fake_id = ("None", fake "None") in
-            G.N (Id (fake_id, empty_id_info ()))
+            G.N (Id (fake_id, empty_id_info ())) |> G.e
       in
       let v2 = token env v2 (* "::" *) in
       let v3 =
@@ -1500,7 +1502,8 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       in
       let v6, v7 = v5 in
       let if_stmt = If (v1, v3, v6, v7) |> G.s in
-      OtherExpr (OE_StmtExpr, [ S if_stmt ])
+      let x = stmt_to_expr if_stmt in
+      x.G.e
   | `When_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "when" *) in
       let v2 = match v2 with Some x -> when_subject env x | None -> None in
@@ -1508,7 +1511,8 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       let v4 = List.map (when_entry env) v4 in
       let _v5 = token env v5 (* "}" *) in
       let switch_stmt = Switch (v1, v2, v4) |> G.s in
-      OtherExpr (OE_StmtExpr, [ S switch_stmt ])
+      let x = stmt_to_expr switch_stmt in
+      x.G.e
   | `Try_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "try" *) in
       let v2 = block env v2 in
@@ -1528,10 +1532,12 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
       in
       let catch, finally = v3 in
       let try_stmt = Try (v1, v2, catch, finally) |> G.s in
-      OtherExpr (OE_StmtExpr, [ S try_stmt ])
+      let x = stmt_to_expr try_stmt in
+      x.G.e
   | `Jump_exp x ->
       let v1 = jump_expression env x in
-      OtherExpr (OE_StmtExpr, [ S v1 ])
+      let x = stmt_to_expr v1 in
+      x.G.e
 
 and property_delegate (env : env) ((v1, v2) : CST.property_delegate) =
   let _v1 = token env v1 (* "by" *) in
@@ -1541,7 +1547,7 @@ and property_delegate (env : env) ((v1, v2) : CST.property_delegate) =
 and range_test (env : env) ((v1, v2) : CST.range_test) =
   let op, tok = in_operator env v1 in
   let v2 = expression env v2 in
-  Call (IdSpecial (Op op, tok), fb [ Arg v2 ])
+  Call (IdSpecial (Op op, tok) |> G.e, fb [ Arg v2 ]) |> G.e
 
 and setter (env : env) ((v1, v2) : CST.setter) =
   let v1 = token env v1 (* "set" *) in
@@ -1581,7 +1587,7 @@ and statement (env : env) (x : CST.statement) : stmt =
   match x with
   | `Decl x ->
       let dec = declaration env x in
-      DefStmt dec |> AST.s
+      DefStmt dec |> G.s
   | `Rep_choice_label_choice_assign (_v1, v2) ->
       (*let v1 =
         List.map (fun x ->
@@ -1780,7 +1786,7 @@ and type_reference (env : env) (x : CST.type_reference) =
 and type_test (env : env) ((v1, v2) : CST.type_test) =
   let op, tok = is_operator env v1 in
   let v2 = expression env v2 in
-  Call (IdSpecial (Op op, tok), fb [ Arg v2 ])
+  Call (IdSpecial (Op op, tok) |> G.e, fb [ Arg v2 ]) |> G.e
 
 and unary_expression (env : env) (x : CST.unary_expression) =
   match x with
@@ -1789,8 +1795,10 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       let v2, v3 = postfix_unary_operator env v2 in
       match v2 with
       | Left incr_decr ->
-          Call (IdSpecial (IncrDecr (incr_decr, Postfix), v3), fb [ Arg v1 ])
-      | Right operator -> Call (IdSpecial (Op operator, v3), fb [ Arg v1 ]))
+          Call
+            (IdSpecial (IncrDecr (incr_decr, Postfix), v3) |> G.e, fb [ Arg v1 ])
+      | Right operator ->
+          Call (IdSpecial (Op operator, v3) |> G.e, fb [ Arg v1 ]))
   | `Call_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = call_suffix env v2 in
@@ -1816,11 +1824,13 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       in
       let v2 = expression env v2 in
       match v1 with
-      | None -> v2
+      | None -> v2.G.e
       | Some (Left incr_decr, tok) ->
-          Call (IdSpecial (IncrDecr (incr_decr, Postfix), tok), fb [ Arg v2 ])
+          Call
+            ( IdSpecial (IncrDecr (incr_decr, Postfix), tok) |> G.e,
+              fb [ Arg v2 ] )
       | Some (Right operator, tok) ->
-          Call (IdSpecial (Op operator, tok), fb [ Arg v2 ]))
+          Call (IdSpecial (Op operator, tok) |> G.e, fb [ Arg v2 ]))
   | `As_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let _v2 = as_operator env v2 in
@@ -1829,7 +1839,7 @@ and unary_expression (env : env) (x : CST.unary_expression) =
   | `Spread_exp (v1, v2) ->
       let v1 = token env v1 (* "*" *) in
       let v2 = expression env v2 in
-      Call (IdSpecial (Spread, v1), fb [ Arg v2 ])
+      Call (IdSpecial (Spread, v1) |> G.e, fb [ Arg v2 ])
 
 and unescaped_annotation (env : env) (x : CST.unescaped_annotation) =
   match x with
@@ -1871,7 +1881,7 @@ and value_argument (env : env) ((v1, v2, v3, v4) : CST.value_argument) :
   let e =
     match v3 with
     | None -> v4
-    | Some t -> Call (IdSpecial (Spread, t), fb [ Arg v4 ])
+    | Some t -> Call (IdSpecial (Spread, t) |> G.e, fb [ Arg v4 ]) |> G.e
   in
   match v2 with None -> Arg e | Some (id, _t) -> ArgKwd (id, e)
 
@@ -1912,7 +1922,7 @@ and when_condition (env : env) ((v1, v2, v3) : CST.when_condition) =
   let v1 = expression env v1 in
   let v2 = range_test env v2 in
   let v3 = type_test env v3 in
-  Conditional (v1, v2, v3)
+  Conditional (v1, v2, v3) |> G.e
 
 and when_entry (env : env) ((v1, v2, v3, v4) : CST.when_entry) =
   let v1 =
@@ -2032,7 +2042,7 @@ let parse file =
 
       try
         match source_file env cst with
-        | AST.Pr xs -> xs
+        | G.Pr xs -> xs
         | _ -> failwith "not a program"
       with Failure "not implemented" as exn ->
         let s = Printexc.get_backtrace () in
@@ -2061,6 +2071,6 @@ let parse_pattern str =
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
       match source_file env cst with
-      | AST.Pr [ x ] -> AST.S x
-      | AST.Pr xs -> AST.Ss xs
+      | G.Pr [ x ] -> G.S x
+      | G.Pr xs -> G.Ss xs
       | x -> x)

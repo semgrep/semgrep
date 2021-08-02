@@ -41,32 +41,33 @@ let match_selector ?err:(msg = "no match") (sel_opt : selector option) :
 let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
     RM.ranges =
   let pattern_match_from_binding selector (mvar, mval) =
-    {
-      PM.rule_id = fake_rule_id (selector.pid, fst selector.pstr);
-      PM.file;
-      PM.range_loc = Visitor_AST.range_of_any (M.mvalue_to_any mval);
-      PM.tokens = lazy (M.ii_of_mval mval);
-      PM.env = [ (mvar, mval) ];
-    }
+    match Visitor_AST.range_of_any_opt (M.mvalue_to_any mval) with
+    | None -> None
+    | Some range_loc ->
+        Some
+          {
+            PM.rule_id = fake_rule_id (selector.pid, fst selector.pstr);
+            PM.file;
+            PM.range_loc;
+            PM.tokens = lazy (M.ii_of_mval mval);
+            PM.env = [ (mvar, mval) ];
+          }
   in
   let select_from_range range =
     match sel_opt with
-    | None -> [ range ]
+    | None -> Some range
     | Some selector -> (
         match
           List.find_opt
             (fun (mvar, _mval) -> M.equal_mvar selector.mvar mvar)
             range.RM.mvars
         with
-        | None -> []
+        | None -> None
         | Some binding ->
-            (* make a pattern match, then use RM.match_result_to_range *)
-            [
-              RM.match_result_to_range
-                (pattern_match_from_binding selector binding);
-            ])
+            pattern_match_from_binding selector binding
+            |> Common.map_opt RM.match_result_to_range)
   in
-  List.flatten (List.map select_from_range ranges)
+  Common.map_filter select_from_range ranges
 
 let selector_equal s1 s2 = s1.mvar = s2.mvar
 
@@ -78,7 +79,7 @@ let selector_from_formula match_func f =
   match f with
   | R.Leaf (R.P ({ pat = Sem (pattern, _); pid; pstr }, None)) -> (
       match pattern with
-      | G.E (G.N (G.Id ((mvar, _), _))) ->
+      | G.E { e = G.N (G.Id ((mvar, _), _)); _ } ->
           Some
             {
               mvar;

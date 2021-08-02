@@ -131,7 +131,7 @@ let print_result xopt =
 (*****************************************************************************)
 
 let rec eval env code =
-  match code with
+  match code.G.e with
   | G.L x -> (
       match x with
       | G.Bool (b, _t) -> Bool b
@@ -146,7 +146,7 @@ let rec eval env code =
       with Not_found ->
         logger#debug "could not find a value for %s in env" s;
         raise Not_found)
-  | G.Call (G.N (G.Id (("int", _), _)), (_, [ Arg e ], _)) -> (
+  | G.Call ({ e = G.N (G.Id (("int", _), _)); _ }, (_, [ Arg e ], _)) -> (
       let v = eval env e in
       match v with
       | Int _ -> v
@@ -155,7 +155,7 @@ let rec eval env code =
           | None -> raise (NotHandled code)
           | Some i -> Int i)
       | __else__ -> raise (NotHandled code))
-  | G.Call (G.IdSpecial (G.Op op, _t), (_, args, _)) ->
+  | G.Call ({ e = G.IdSpecial (G.Op op, _t); _ }, (_, args, _)) ->
       let values =
         args
         |> List.map (function
@@ -168,8 +168,15 @@ let rec eval env code =
       List vs
   (* Emulate Python re.match just enough *)
   | G.Call
-      ( G.DotAccess (G.N (G.Id (("re", _), _)), _, EN (Id (("match", _), _))),
-        (_, [ G.Arg e1; G.Arg (G.L (G.String (re, _))) ], _) ) -> (
+      ( {
+          e =
+            G.DotAccess
+              ( { e = G.N (G.Id (("re", _), _)); _ },
+                _,
+                EN (Id (("match", _), _)) );
+          _;
+        },
+        (_, [ G.Arg e1; G.Arg { e = G.L (G.String (re, _)); _ } ], _) ) -> (
       (* alt: take the text range of the metavariable in the original file,
        * and enforce e1 can only be an Id metavariable.
        * alt: let s = value_to_string v in
@@ -295,12 +302,18 @@ let bindings_to_env xs =
 (* this is for metavariable-regexp *)
 let bindings_to_env_with_just_strings xs =
   xs
-  |> List.map (fun (mvar, mval) ->
+  |> Common.map_filter (fun (mvar, mval) ->
          let any = MV.mvalue_to_any mval in
-         let min, max = Visitor_AST.range_of_any any in
-         let file = min.Parse_info.file in
-         let range = Range.range_of_token_locations min max in
-         (mvar, String (Range.content_at_range file range)))
+         match Visitor_AST.range_of_any_opt any with
+         | None ->
+             (* TODO: Report a warning to the user? *)
+             logger#error "We lack range info for metavariable %s: %s" mvar
+               (G.show_any any);
+             None
+         | Some (min, max) ->
+             let file = min.Parse_info.file in
+             let range = Range.range_of_token_locations min max in
+             Some (mvar, String (Range.content_at_range file range)))
   |> Common.hash_of_list
 
 let eval_bool env e =

@@ -88,14 +88,14 @@ let mvalue_to_any = function
    * it can be used to check if two metavars are equal and have the same
    * sid (single unique id).
    *)
-  | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)))
-  | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info ())))
-  | N x -> G.E (G.N x)
+  | Id (id, Some idinfo) -> G.E (G.N (G.Id (id, idinfo)) |> G.e)
+  | Id (id, None) -> G.E (G.N (G.Id (id, G.empty_id_info ())) |> G.e)
+  | N x -> G.E (G.N x |> G.e)
   | Ss x -> G.Ss x
   | Args x -> G.Args x
   | T x -> G.T x
   | P x -> G.P x
-  | Text (s, info) -> G.E (G.L (G.String (s, info)))
+  | Text (s, info) -> G.E (G.L (G.String (s, info)) |> G.e)
 
 (* This is used for metavariable-pattern: where we need to transform the content
  * of a metavariable into a program so we can use evaluate_formula on it *)
@@ -104,17 +104,19 @@ let program_of_mvalue : mvalue -> G.program option =
   match mval with
   | E expr -> Some [ G.exprstmt expr ]
   | S stmt -> Some [ stmt ]
-  | Id (id, Some idinfo) -> Some [ G.exprstmt (G.N (G.Id (id, idinfo))) ]
-  | Id (id, None) -> Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ()))) ]
-  | N x -> Some [ G.exprstmt (G.N x) ]
+  | Id (id, Some idinfo) -> Some [ G.exprstmt (G.N (G.Id (id, idinfo)) |> G.e) ]
+  | Id (id, None) ->
+      Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ())) |> G.e) ]
+  | N x -> Some [ G.exprstmt (G.N x |> G.e) ]
   | Ss stmts -> Some stmts
   | Args _ | T _ | P _ | Text _ ->
       logger#debug "program_of_mvalue: not handled '%s'" (show_mvalue mval);
       None
 
 let range_of_mvalue mval =
-  let tok_start, tok_end = Visitor_AST.range_of_any (mvalue_to_any mval) in
-  Range.range_of_token_locations tok_start tok_end
+  let ( let* ) = Common.( >>= ) in
+  let* tok_start, tok_end = Visitor_AST.range_of_any_opt (mvalue_to_any mval) in
+  Some (Range.range_of_token_locations tok_start tok_end)
 
 let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
 

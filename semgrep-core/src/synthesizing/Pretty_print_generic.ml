@@ -96,7 +96,7 @@ let arithop env (op, tok) =
   | Gt -> ">"
   | GtE -> ">="
   | NotEq -> "!="
-  | _ -> todo (E (IdSpecial (Op op, tok)))
+  | _ -> todo (E (IdSpecial (Op op, tok) |> G.e))
 
 (*
       | Pow | FloorDiv | MatMult (* Python *)
@@ -369,7 +369,8 @@ and continue env (tok, lbl) _sc =
   | Lang.R -> F.sprintf "%s%s" (token "next" tok) lbl_str
 
 (* expressions *)
-and expr env = function
+and expr env e =
+  match e.e with
   | N (Id ((s, _), idinfo)) -> id env (s, idinfo)
   | N (IdQualified (name, idinfo)) -> id_qualified env (name, idinfo)
   | IdSpecial (sp, tok) -> special env (sp, tok)
@@ -388,7 +389,7 @@ and expr env = function
   | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
   | OtherExpr (op, anys) -> other env (op, anys)
   | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
-  | x -> todo (E x)
+  | _x -> todo (E e)
 
 and id env (s, { id_resolved; _ }) =
   match !id_resolved with
@@ -409,11 +410,11 @@ and special env = function
   | New, _ -> "new"
   | Op op, tok -> arithop env (op, tok)
   | IncrDecr _, _ -> "" (* should be captured in the call *)
-  | sp, tok -> todo (E (IdSpecial (sp, tok)))
+  | sp, tok -> todo (E (IdSpecial (sp, tok) |> G.e))
 
 and call env (e, (_, es, _)) =
   let s1 = expr env e in
-  match (e, es) with
+  match (e.e, es) with
   | IdSpecial (Op In, _), [ e1; e2 ] ->
       F.sprintf "%s in %s" (argument env e1) (argument env e2)
   | IdSpecial (Op NotIn, _), [ e1; e2 ] ->
@@ -429,7 +430,8 @@ and call env (e, (_, es, _)) =
       | Postfix -> F.sprintf "%s%s" (argument env x) op_str)
   | _ -> F.sprintf "%s(%s)" s1 (arguments env es)
 
-and literal env = function
+and literal env l =
+  match l with
   | Bool (b, _) -> print_bool env b
   | Int (_, t) -> PI.str_of_info t
   | Float (_, t) -> PI.str_of_info t
@@ -445,7 +447,7 @@ and literal env = function
           "\"" ^ s ^ "\"")
   | Regexp ((_, (s, _), _), rmod) -> (
       "/" ^ s ^ "/" ^ match rmod with None -> "" | Some (s, _) -> s)
-  | x -> todo (E (L x))
+  | x -> todo (E (L x |> G.e))
 
 and arguments env xs =
   match xs with
@@ -478,7 +480,7 @@ and slice_access env e (o1, o2) = function
 and option env = function None -> "" | Some e -> expr env e
 
 and other _env (op, anys) =
-  match (op, anys) with _ -> todo (E (OtherExpr (op, anys)))
+  match (op, anys) with _ -> todo (E (OtherExpr (op, anys) |> G.e))
 
 and dot_access env (e, _tok, fi) =
   F.sprintf "%s.%s" (expr env e) (field_ident env fi)
@@ -504,7 +506,7 @@ and cond env (e1, e2, e3) =
   | Lang.Python -> F.sprintf "%s if %s else %s" s2 s1 s3
   | Lang.OCaml -> F.sprintf "if %s then %s else %s" s1 s2 s3
   | Lang.Java -> F.sprintf "%s ? %s : %s" s1 s2 s3
-  | _ -> todo (E (Conditional (e1, e2, e3)))
+  | _ -> todo (E (Conditional (e1, e2, e3) |> G.e))
 
 (* patterns *)
 and pattern env = function

@@ -157,7 +157,9 @@ and vof_name = function
       let v1 = vof_name_ v1 and v2 = vof_id_info v2 in
       OCaml.VSum ("IdQualified", [ v1; v2 ])
 
-and vof_expr = function
+and vof_expr e =
+  (* TODO: also dump e_id? *)
+  match e.e with
   | DotAccessEllipsis (v1, v2) ->
       let v1 = vof_expr v1 in
       let v2 = vof_tok v2 in
@@ -224,9 +226,6 @@ and vof_expr = function
   | Conditional (v1, v2, v3) ->
       let v1 = vof_expr v1 and v2 = vof_expr v2 and v3 = vof_expr v3 in
       OCaml.VSum ("Conditional", [ v1; v2; v3 ])
-  | MatchPattern (v1, v2) ->
-      let v1 = vof_expr v1 and v2 = OCaml.vof_list vof_action v2 in
-      OCaml.VSum ("MatchPattern", [ v1; v2 ])
   | Yield (t, v1, v2) ->
       let t = vof_tok t in
       let v1 = OCaml.vof_option vof_expr v1 and v2 = OCaml.vof_bool v2 in
@@ -652,6 +651,10 @@ and vof_other_attribute_operator = function
 and vof_stmt st =
   (* todo: dump also the s_id? *)
   match st.s with
+  | Match (v0, v1, v2) ->
+      let v0 = vof_tok v0 in
+      let v1 = vof_expr v1 and v2 = OCaml.vof_list vof_action v2 in
+      OCaml.VSum ("Match", [ v0; v1; v2 ])
   | DisjStmt (v1, v2) ->
       let v1 = vof_stmt v1 in
       let v2 = vof_stmt v2 in
@@ -1283,6 +1286,10 @@ and vof_item x = vof_stmt x
 and vof_program v = OCaml.vof_list vof_item v
 
 and vof_partial = function
+  | PartialMatch (v1, v2) ->
+      let v1 = vof_tok v1 in
+      let v2 = vof_expr v2 in
+      OCaml.VSum ("PartialMatch", [ v1; v2 ])
   | PartialLambdaOrFuncDef v1 ->
       let v1 = vof_function_definition v1 in
       OCaml.VSum ("PartialLambdaOrFuncDef", [ v1 ])
