@@ -1275,6 +1275,18 @@ let extract_ranges recursor =
     {
       default_visitor with
       kinfo = (fun (_k, _) i -> incorporate_token i);
+      kexpr =
+        (fun (k, _) expr ->
+          match expr.e_range with
+          | None -> (
+              let saved_ranges = !ranges in
+              ranges := None;
+              k expr;
+              expr.e_range <- !ranges;
+              match saved_ranges with
+              | None -> ()
+              | Some r -> incorporate_tokens r)
+          | Some range -> incorporate_tokens range);
       kstmt =
         (fun (k, _) stmt ->
           match stmt.s_range with
@@ -1298,5 +1310,13 @@ let range_of_tokens tokens =
   [@@profiling]
 
 let range_of_any_opt any =
-  extract_ranges (fun visitor -> visitor any)
+  (* Even if the ranges are cached, calling `extract_ranges` to get them
+   * is extremely expensive (due to `mk_visitor`). Testing taint-mode
+   * open-redirect rule on Django, we spent ~16 seconds computing range
+   * info (despite caching). If we bypass `extract_ranges` as we do here,
+   * that time drops to just ~1.5 seconds! *)
+  match any with
+  | G.E e when Option.is_some e.e_range -> e.e_range
+  | G.S s when Option.is_some s.s_range -> s.s_range
+  | _ -> extract_ranges (fun visitor -> visitor any)
   [@@profiling]
