@@ -381,7 +381,14 @@ and id_info = {
  * e.g., type information, or constant evaluation, or range, but it
  * would be a bigger refactoring than for stmt.
  *)
-and expr = { e : expr_kind; e_id : int }
+and expr = {
+  e : expr_kind;
+  e_id : int;
+  (* used to quickly get the range of an expression *)
+  mutable e_range :
+    (Parse_info.token_location * Parse_info.token_location) option;
+      [@equal fun _a _b -> true] [@hash.ignore]
+}
 
 and expr_kind =
   (* basic (atomic) values *)
@@ -886,10 +893,10 @@ and stmt = {
   (* used in semgrep to skip some AST matching *)
   mutable s_bf : Bloom_filter.t option;
       [@equal fun _a _b -> true] [@hash.ignore]
-  (* used in semgrep to quickly get the range of a matched statement *)
+  (* used to quickly get the range of a statement *)
   mutable s_range :
     (Parse_info.token_location * Parse_info.token_location) option;
-      [@hash.ignore]
+      [@equal fun _a _b -> true] [@hash.ignore]
 }
 
 and stmt_kind =
@@ -1963,7 +1970,7 @@ let s skind =
     s_range = None;
   }
 
-let e ekind = { e = ekind; e_id = 0 }
+let e ekind = { e = ekind; e_id = 0; e_range = None }
 
 (*s: function [[AST_generic.basic_field]] *)
 let basic_field id vopt typeopt =

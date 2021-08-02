@@ -1122,6 +1122,13 @@ let mk_fix_token_locations fix =
   mk_visitor
     {
       default_visitor with
+      kexpr =
+        (fun (k, _) e ->
+          k
+            {
+              e with
+              e_range = Common.map_opt (fun (x, y) -> (fix x, fix y)) e.e_range;
+            });
       kstmt =
         (fun (k, _) s ->
           k
