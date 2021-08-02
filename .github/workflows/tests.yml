@@ -133,7 +133,7 @@ jobs:
         run: |
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
-          pipenv run pytest --ignore=tests/qa/test_public_repos.py -n auto -v --tb=short --durations=0 tests/
+          pipenv run pytest --ignore=tests/qa/test_public_repos.py -n auto -vv --tb=short --durations=0 tests/
       - name: Generate test matrix data
         run: |
           cd semgrep
@@ -185,7 +185,7 @@ jobs:
         run: |
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
-          pipenv run pytest -n auto -v --tb=short --durations=0 tests/qa/test_public_repos.py
+          pipenv run pytest -n auto -vv --tb=short --durations=0 tests/qa/test_public_repos.py
         env:
           GITHUB_REPO_CACHE: ~/.cache/semgrep-cache
 
