@@ -1,5 +1,4 @@
 semgrep error: invalid pattern
-  --> semgrep temp file:4
 
 Pattern `#include<asdf><<>>><$X>` could not be parsed as a C semgrep pattern
 
