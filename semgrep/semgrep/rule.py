@@ -52,6 +52,7 @@ class Rule:
         # add typescript to languages if the rule supports javascript.
         if any(language == Language.JAVASCRIPT for language in rule_languages):
             rule_languages.add(Language.TYPESCRIPT)
+            self._raw["languages"] = [r.value for r in rule_languages]
 
         self._languages = sorted(rule_languages, key=lambda lang: lang.value)  # type: ignore
 
