@@ -1,13 +1,13 @@
 (test
  (name test)
- (libraries 
+ (libraries
     str
     dyp
     ppx_deriving.runtime
     uutf uucp
 
     commons commons_core
-    pfff-config 
+    pfff-config
     pfff-h_program-lang
     pfff-lang_python pfff-lang_python-analyze
     pfff-lang_js pfff-lang_js-analyze
@@ -22,12 +22,13 @@
     pfff-lang_lisp
     pfff-lang_skip
     pfff-lang_FUZZY
-    
+
     semgrep_core
     semgrep_parsing
     semgrep_matching
     semgrep_synthesizing
     semgrep_reporting
     semgrep_engine
+    semgrep_system
   )
 )

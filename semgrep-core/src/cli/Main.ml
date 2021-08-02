@@ -187,7 +187,7 @@ let lsp = ref false
 
 let timeout = ref 0. (* in seconds; 0 or less means no timeout *)
 
-let max_memory = ref 0 (* in MB *)
+let max_memory_mb = ref 0 (* in MiB *)
 
 (* arbitrary limit *)
 let max_match_per_file = ref 10_000
@@ -427,32 +427,6 @@ let timeout_function file f =
       logger#info "Main: timeout for file %s" file;
       raise (Main_timeout file)
 
-(*
-   Fail gracefully if memory becomes insufficient.
-
-   It raises Out_of_memory if we're over the memory limit at the end of a
-   major GC cycle.
-
-   See https://discuss.ocaml.org/t/todays-trick-memory-limits-with-gc-alarms/4431
-   for detailed explanations.
-*)
-let run_with_memory_limit limit_mb f =
-  if limit_mb = 0 then f ()
-  else if limit_mb < 0 then
-    invalid_arg (spf "run_with_memory_limit: negative argument %i" limit_mb)
-  else
-    let limit = limit_mb * 1024 * 1024 in
-    let limit_memory () =
-      let mem = (Gc.quick_stat ()).Gc.heap_words in
-      if mem > limit / (Sys.word_size / 8) then (
-        logger#info "maxout allocated memory: %d" (mem * (Sys.word_size / 8));
-        raise Out_of_memory)
-    in
-    let alarm = Gc.create_alarm limit_memory in
-    Fun.protect f ~finally:(fun () ->
-        Gc.delete_alarm alarm;
-        Gc.compact ())
-
 (* Certain patterns may be too general and match too many times on big files.
  * This does not cause a Timeout during parsing or matching, but returning
  * a huge number of matches can stress print_matches_and_errors_json
@@ -642,7 +616,8 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
          let res, run_time =
            Common.with_time (fun () ->
                try
-                 run_with_memory_limit !max_memory (fun () ->
+                 Memory_limit.run_with_memory_limit ~mem_limit_mb:!max_memory_mb
+                   (fun () ->
                      timeout_function file (fun () ->
                          f file |> fun v ->
                          (* This is just to test -max_memory, to give a chance
@@ -1363,12 +1338,11 @@ let options () =
       " <float> time limit to process one input program (in seconds); 0 \
        disables timeouts (default is 0)" );
     ( "-max_memory",
-      Arg.Set_int max_memory,
-      " <int> maximum memory available (in MB); allows for clean termination\n\
-      \     when running out of memory. This value should be less than the \
-       actual\n\
-      \     memory available because the limit will be exceeded before it gets\n\
-      \     detected. Try 5% less or 15000 if you have 16 GB." );
+      Arg.Set_int max_memory_mb,
+      "<int>  maximum memory available (in MiB); allows for clean termination \
+       when running out of memory. This value should be less than the actual \
+       memory available because the limit will be exceeded before it gets \
+       detected. Try 5% less or 15000 if you have 16 GB." );
     ( "-max_match_per_file",
       Arg.Set_int max_match_per_file,
       " <int> maximum numbers of match per file" );

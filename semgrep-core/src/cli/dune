@@ -42,6 +42,7 @@
     semgrep_engine
     semgrep_testing
     semgrep_api
+    semgrep_system
  )
  (preprocess (pps ppx_profiling))
  ; for ocamldebug

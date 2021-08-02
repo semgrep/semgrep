@@ -555,11 +555,12 @@ let test regexp =
       Unit_synthesizer.unittest;
       Unit_synthesizer_targets.unittest;
       Unit_dataflow.unittest Parse_target.parse_program;
-      Unit_typing_generic.unittest 
-        Parse_target.parse_program 
+      Unit_typing_generic.unittest
+        Parse_target.parse_program
         (fun lang file -> Parse_pattern.parse_pattern lang file);
       Unit_naming_generic.unittest Parse_target.parse_program;
       Unit_guess_lang.unittest;
+      Unit_memory_limit.unittest;
 
       lang_parsing_tests;
       (* full testing for many languages *)
