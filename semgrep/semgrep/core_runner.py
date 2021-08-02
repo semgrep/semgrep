@@ -17,7 +17,6 @@ from ruamel.yaml import YAML
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_exception import CoreException
 from semgrep.error import _UnknownLanguageError
-from semgrep.error import InvalidPatternErrorNoSpan
 from semgrep.error import InvalidPatternError
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
