@@ -87,6 +87,9 @@ let add_type_args_to_name name type_args =
                 } ),
               id_info ))
 
+let basic_typed_entity id attrs tparams : G.entity =
+  { (G.basic_entity id attrs) with tparams }
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -1029,13 +1032,15 @@ and const_declarator (env : env) ((v1, v2, v3) : CST.const_declarator) attrs
 and declaration (env : env) (x : CST.declaration) =
   match x with
   | `Func_decl (v1, v2, v3) ->
-      let v1 =
+      let attrs =
         match v1 with Some x -> [ attribute_modifier env x ] | None -> []
       in
-      let v2, identifier = function_declaration_header env v2 in
-      let v3 = inline_compound_statement env v3 in
-      let def = { v2 with fbody = v3 } in
-      let ent = G.basic_entity identifier v1 in
+      let func_def, identifier, type_params =
+        function_declaration_header env v2
+      in
+      let compound_statement = inline_compound_statement env v3 in
+      let def = { func_def with fbody = compound_statement } in
+      let ent = basic_typed_entity identifier attrs type_params in
       G.DefStmt (ent, G.FuncDef def)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) ->
       let v1 =
@@ -1058,14 +1063,14 @@ and declaration (env : env) (x : CST.declaration) =
         | None -> []
       in
       let v5 = (* "class" *) token env v5 in
-      let v6 =
+      let id =
         match v6 with
         | `Id tok ->
             (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env tok
         | `Choice_xhp_id x -> xhp_identifier_ env x
       in
-      let _v7TODO =
-        match v7 with Some x -> Some (type_parameters env x) | None -> None
+      let type_params =
+        match v7 with Some x -> type_parameters env x | None -> []
       in
       let v8 = match v8 with Some x -> extends_clause env x | None -> [] in
       let v9 = match v9 with Some x -> implements_clause env x | None -> [] in
@@ -1085,17 +1090,17 @@ and declaration (env : env) (x : CST.declaration) =
         }
       in
       let attrs = v1 @ v2 @ v3 @ v4 in
-      G.DefStmt (G.basic_entity v6 attrs, G.ClassDef def)
+      G.DefStmt (basic_typed_entity id attrs type_params, G.ClassDef def)
   | `Inte_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         match v1 with Some x -> [ attribute_modifier env x ] | None -> []
       in
       let v2 = (* "interface" *) token env v2 in
-      let v3 =
+      let id =
         (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
       in
-      let _v4TODO =
-        match v4 with Some x -> Some (type_parameters env x) | None -> None
+      let type_params =
+        match v4 with Some x -> type_parameters env x | None -> []
       in
       let v5 = match v5 with Some x -> extends_clause env x | None -> [] in
       let v6 = match v6 with Some x -> where_clause env x | None -> [] in
@@ -1111,17 +1116,17 @@ and declaration (env : env) (x : CST.declaration) =
         }
       in
       let attrs = v1 in
-      G.DefStmt (G.basic_entity v3 attrs, G.ClassDef def)
+      G.DefStmt (basic_typed_entity id attrs type_params, G.ClassDef def)
   | `Trait_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         match v1 with Some x -> [ attribute_modifier env x ] | None -> []
       in
       let v2 = (* "trait" *) token env v2 in
-      let v3 =
+      let id =
         (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
       in
-      let _v4TODO =
-        match v4 with Some x -> Some (type_parameters env x) | None -> None
+      let type_params =
+        match v4 with Some x -> type_parameters env x | None -> []
       in
       let v5 = match v5 with Some x -> implements_clause env x | None -> [] in
       let v6 = match v6 with Some x -> where_clause env x | None -> [] in
@@ -1137,7 +1142,7 @@ and declaration (env : env) (x : CST.declaration) =
         }
       in
       let attrs = v1 in
-      G.DefStmt (G.basic_entity v3 attrs, G.ClassDef def)
+      G.DefStmt (basic_typed_entity id attrs type_params, G.ClassDef def)
   | `Alias_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 =
         match v1 with Some x -> [ attribute_modifier env x ] | None -> []
@@ -1147,12 +1152,12 @@ and declaration (env : env) (x : CST.declaration) =
         | `Type tok -> (* "type" *) token env tok
         | `Newt tok -> (* "newtype" *) token env tok
       in
-      let _v4TODO =
+      let type_params =
         match v4 with Some x -> type_parameters env x | None -> []
       in
       (* Q: Type params vs type attributes in generic? Which to use here?
          Put within Name or pass to Apply?*)
-      let v3 =
+      let id =
         (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
       in
       let v5 =
@@ -1168,7 +1173,9 @@ and declaration (env : env) (x : CST.declaration) =
       let _v6 = (* "=" *) token env v6 in
       let v7 = type_ env v7 in
       let _v8 = (* ";" *) token env v8 in
-      G.DefStmt (G.basic_entity v3 (v1 @ v5), G.TypeDef { tbody = AliasType v7 })
+      G.DefStmt
+        ( basic_typed_entity id (v1 @ v5) type_params,
+          G.TypeDef { tbody = AliasType v7 } )
   | `Enum_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 =
         match v1 with Some x -> [ attribute_modifier env x ] | None -> []
@@ -1600,7 +1607,7 @@ and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
 
 and function_declaration_header (env : env)
     ((v1, v2, v3, v4, v5, v6, v7) : CST.function_declaration_header) :
-    G.function_definition * G.label =
+    G.function_definition * G.label * G.type_parameter stack =
   let _async_modifierTODO =
     match v1 with
     | Some tok -> (* "async" *) Some (G.KeywordAttr (G.Async, token env tok))
@@ -1610,7 +1617,7 @@ and function_declaration_header (env : env)
   let identifier =
     (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
   in
-  let _type_parametersTODO =
+  let type_params =
     match v4 with Some x -> type_parameters env x | None -> []
   in
   let parameters = parameters env v5 in
@@ -1638,7 +1645,8 @@ and function_declaration_header (env : env)
         G.empty_fbody
         (* To be replaced in parent with real statement. Could also replace with passthrough strategy *);
     },
-    identifier )
+    identifier,
+    type_params )
 
 and implements_clause (env : env) ((v1, v2, v3) : CST.implements_clause) =
   let _v1 = (* "implements" *) token env v1 in
@@ -1686,10 +1694,10 @@ and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
     match v1 with Some x -> [ attribute_modifier env x ] | None -> []
   in
   let v2 = List.map (member_modifier env) v2 in
-  let v3, identifier = function_declaration_header env v3 in
+  let func_def, identifier, type_args = function_declaration_header env v3 in
   let v4 = inline_compound_statement env v4 in
-  let def = { v3 with fbody = v4 } in
-  let ent = G.basic_entity identifier (v1 @ v2) in
+  let def = { func_def with fbody = v4 } in
+  let ent = basic_typed_entity identifier (v1 @ v2) type_args in
   G.DefStmt (ent, G.FuncDef def)
 
 and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) :
@@ -2433,9 +2441,9 @@ and type_const_declaration (env : env)
   let v2 = List.map (member_modifier env) v2 in
   let v3 = (* "const" *) [ G.KeywordAttr (Const, token env v3) ] in
   let _v4 = (* "type" *) token env v4 in
-  let v5 = (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v5 in
-  let _v6TODO =
-    match v6 with Some x -> Some (type_parameters env x) | None -> None
+  let id = (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v5 in
+  let type_params =
+    match v6 with Some x -> type_parameters env x | None -> []
   in
   (* Q: How to represent this `as __type__`? It is a constraint? Make an attribute?
      OTP_Constrained on type param? But then can't be builtin *)
@@ -2460,52 +2468,55 @@ and type_const_declaration (env : env)
   (* Q: AliasType vs NewType? *)
   | Some v8 ->
       G.DefStmt
-        (G.basic_entity v5 (v1 @ v2 @ v3), G.TypeDef { tbody = AliasType v8 })
+        ( basic_typed_entity id (v1 @ v2 @ v3) type_params,
+          G.TypeDef { tbody = AliasType v8 } )
       |> G.s
   (* TODO: WHAT TO DO IN THIS CASE? WHAT IS `const type T1;` doing? *)
   | None ->
-      G.DefStmt (G.basic_entity v5 (v1 @ v2 @ v3), G.OtherDef (G.OD_Todo, []))
+      G.DefStmt
+        ( basic_typed_entity id (v1 @ v2 @ v3) type_params,
+          G.OtherDef (G.OD_Todo, []) )
       |> G.s
 
-(* TODO: THIS SHOULD BE USED! ONLY DOING TO RESOLVE COMPILATION *)
-and _type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) =
-  let v1 =
-    match v1 with Some x -> attribute_modifier env x | None -> todo env ()
+and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :
+    G.type_parameter =
+  let _v1TODO =
+    match v1 with Some x -> Some (attribute_modifier env x) | None -> None
   in
-  let v2 =
+  let _v2TODO =
     match v2 with
-    | Some x -> (
-        match x with
-        | `PLUS tok -> (* "+" *) token env tok
-        | `DASH tok -> (* "-" *) token env tok
-        | `Reify tok -> (* "reify" *) token env tok)
-    | None -> todo env ()
+    | Some x ->
+        Some
+          (match x with
+          | `PLUS tok -> (* "+" *) token env tok
+          | `DASH tok -> (* "-" *) token env tok
+          | `Reify tok -> (* "reify" *) token env tok)
+    | None -> None
   in
-  let v3 =
-    (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env v3
-  in
-  let v4 =
+  let id = (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3 in
+  let constraints =
     List.map
       (fun (v1, v2) ->
-        let v1 =
+        let _v1TODO =
           match v1 with
           | `As tok -> (* "as" *) token env tok
           | `Super tok -> (* "super" *) token env tok
         in
         let v2 = type_ env v2 in
-        todo env (v1, v2))
+        (* TODO: Extends seems inaccurate here *)
+        G.Extends v2)
       v4
   in
-  todo env (v1, v2, v3, v4)
+  (id, constraints)
 
 and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
-  let v1 = (* "<" *) token env v1 in
-  let _v2TODO = v2 (* type_parameter env v2 *) in
-  let _v3TODO =
+  let _v1 = (* "<" *) token env v1 in
+  let v2 = type_parameter env v2 in
+  let v3 =
     List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
-        let v2 = v2 (* type_parameter env v2 *) in
+        let v2 = type_parameter env v2 in
         v2)
       v3
   in
@@ -2513,10 +2524,8 @@ and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
     match v4 with Some tok -> (* "," *) Some (token env tok) | None -> None
   in
   let _v5 = (* ">" *) token env v5 in
-  (* TODO: THIS IS JUST A PLACEHOLDER TO ALLOW RELAXED FAILING *)
-  [ v1 ]
+  v2 :: v3
 
-(* todo env (v1, v2, v3, v4, v5) *)
 and variablish (env : env) (x : CST.variablish) =
   match x with
   | `Var tok -> (* variable *) G.N (Id (str env tok, G.empty_id_info ())) |> G.e
