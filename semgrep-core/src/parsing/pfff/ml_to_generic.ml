@@ -51,6 +51,33 @@ let fb = G.fake_bracket
 
 let add_attrs ent attrs = { ent with G.attrs }
 
+let mk_var_or_func tlet params tret body =
+  (* coupling: with stmt() and what is generated for simple expressions *)
+  match (params, body.G.s) with
+  | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E { e = G.Lambda def; _ } ]) ->
+      G.FuncDef def
+  | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) ->
+      G.VarDef { G.vinit = Some e; vtype = None }
+  | _ ->
+      G.FuncDef
+        {
+          G.fparams = params;
+          frettype = tret;
+          fkind = (G.Function, tlet);
+          fbody = body;
+        }
+
+let defs_of_bindings tlet attrs xs =
+  xs
+  |> List.map (function
+       | Left (ent, params, tret, body) ->
+           let ent = add_attrs ent attrs in
+           G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
+       | Right (pat, e) ->
+           (* TODO no attrs *)
+           let exp = G.LetPattern (pat, e) |> G.e in
+           G.exprstmt exp)
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
@@ -277,15 +304,7 @@ and expr e =
       let _v1 = rec_opt v1 in
       let v2 = list let_binding v2 in
       let v3 = expr v3 in
-      let defs =
-        v2
-        |> List.map (function
-             | Left (ent, params, tret, body) ->
-                 G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
-             | Right (pat, e) ->
-                 let exp = G.LetPattern (pat, e) |> G.e in
-                 G.exprstmt exp)
-      in
+      let defs = defs_of_bindings tlet [] v2 in
       let st = G.Block (fb (defs @ [ G.exprstmt v3 ])) |> G.s in
       let x = G.stmt_to_expr st in
       x.G.e
@@ -589,15 +608,8 @@ and item { i; iattrs } =
       [ G.DefStmt (ent, def) |> G.s ]
   | Let (tlet, v1, v2) ->
       let _v1 = rec_opt v1 and v2 = list let_binding v2 in
-      v2
-      |> List.map (function
-           | Left (ent, params, tret, body) ->
-               let ent = add_attrs ent attrs in
-               G.DefStmt (ent, mk_var_or_func tlet params tret body) |> G.s
-           | Right (pat, e) ->
-               (* TODO no attrs *)
-               let exp = G.LetPattern (pat, e) |> G.e in
-               G.exprstmt exp)
+      let defs = defs_of_bindings tlet attrs v2 in
+      defs
   | Module (_t, v1) ->
       let ent, def = module_declaration v1 in
       let ent = add_attrs ent attrs in
@@ -614,36 +626,32 @@ and item { i; iattrs } =
         |> G.s;
       ]
 
-and mk_var_or_func tlet params tret body =
-  (* coupling: with stmt() and what is generated for simple expressions *)
-  match (params, body.G.s) with
-  | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E { e = G.Lambda def; _ } ]) ->
-      G.FuncDef def
-  | [], G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) ->
-      G.VarDef { G.vinit = Some e; vtype = None }
-  | _ ->
-      G.FuncDef
-        {
-          G.fparams = params;
-          frettype = tret;
-          fkind = (G.Function, tlet);
-          fbody = body;
-        }
-
 and program xs = List.map item xs |> List.flatten
 
 and partial = function
   | PartialIf (t, e) ->
       let e = expr e in
-      G.PartialIf (t, e)
+      G.Partial (G.PartialIf (t, e))
   | PartialMatch (t, e) ->
       let e = expr e in
-      G.PartialMatch (t, e)
-  | PartialTry (t, e) -> (
+      G.Partial (G.PartialMatch (t, e))
+  | PartialTry (t, e) ->
       let e = expr e in
-      match e.G.e with
-      | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.PartialTry (t, s)
-      | _ -> G.PartialTry (t, G.exprstmt e))
+      let res =
+        match e.G.e with
+        | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.PartialTry (t, s)
+        | _ -> G.PartialTry (t, G.exprstmt e)
+      in
+      G.Partial res
+  | PartialLetIn (tlet, recopt, xs, _tinTODO) -> (
+      let _recopt = rec_opt recopt in
+      let xs = list let_binding xs in
+      let defs = defs_of_bindings tlet [] xs in
+      (* in Ast_ml those let are partials, but in the generic AST
+       * we convert 'let x = a in b' in a sequence of VarDef and expr,
+       * so those PartialLetIn are converted in a simple statement pattern
+       *)
+      match defs with [] -> raise Impossible | [ x ] -> G.S x | xs -> G.Ss xs)
 
 and any = function
   | E x -> (
@@ -670,4 +678,4 @@ and any = function
       G.Ss xs
   | Partial x ->
       let x = partial x in
-      G.Partial x
+      x
