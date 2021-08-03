@@ -1,5 +1,19 @@
+(* David Frankel
+ *
+ * Copyright (c) 2021 ??
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License (GPL)
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * file license.txt for more details.
+ *)
 (*
-   Map a Hack CST obtained from the tree-sitter parser directly to the generic AST.
+   Map a Hack CST obtained from the tree-sitter parser directly to the generic
+   AST.
 
    This file is derived from and kept in sync with the generated
    file 'semgrep-hack/lib/Boilerplate.ml'.
@@ -15,11 +29,6 @@ module PI = Parse_info
 (* Helpers *)
 (*****************************************************************************)
 
-(*
-   Since we use the same code for handling semgrep patterns and target
-   programs, this allows us to choose how to convert ambiguous constructs
-   such as $FOO.
-*)
 type env = unit H.env
 
 let token = H.token
@@ -34,14 +43,6 @@ let fk = Parse_info.fake_info ""
 
 (* Disable warnings against unused variables *)
 [@@@warning "-26-27"]
-
-(* Disable warning against unused 'rec' *)
-[@@@warning "-39"]
-
-let () =
-  ignore pr;
-  (* from Common *)
-  ignore str
 
 (* Remove this function when everything is done *)
 let todo (env : env) _ = failwith "not implemented"
@@ -98,27 +99,6 @@ let add_type_args_to_name name type_args =
 (*****************************************************************************)
 (* This was started by copying tree-sitter-lang/semgrep-hack/Boilerplate.ml *)
 
-(* Q: The commented-out items below are in the Boilerplate.ml, but are not used.
-   So why do they exist? This comment applies to a later commented code as well.
-*)
-
-(*
-let heredoc_start (env : env) (tok : CST.heredoc_start) =
-  (* heredoc_start *) token env tok
-
-let identifier (env : env) (tok : CST.identifier) =
-  (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) token env tok
-
-let variable (env : env) (tok : CST.variable) =
-  (* variable *) token env tok
-
-let heredoc_end (env : env) (tok : CST.heredoc_end) =
-  (* heredoc_end *) token env tok
-
-let tok_lcurldollar_pat_0e8e4b6 (env : env) (tok : CST.tok_lcurldollar_pat_0e8e4b6) =
-  (* tok_lcurldollar_pat_0e8e4b6 *) token env tok
-*)
-
 let use_type (env : env) (x : CST.use_type) =
   match x with
   | `Name tok -> (* "namespace" *) token env tok
@@ -132,32 +112,6 @@ let visibility_modifier (env : env) (x : CST.visibility_modifier) =
   | `Prot tok -> (* "protected" *) G.KeywordAttr (Protected, token env tok)
   | `Priv tok -> (* "private" *) G.KeywordAttr (Private, token env tok)
 
-(*
-let xhp_category_identifier (env : env) (tok : CST.xhp_category_identifier) =
-  (* pattern %[a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) token env tok
-
-let xhp_comment (env : env) (tok : CST.xhp_comment) =
-  (* xhp_comment *) token env tok
-
-let float_ (env : env) (tok : CST.float_) =
-  (* float *) token env tok
-
-let pat_466b599 (env : env) (tok : CST.pat_466b599) =
-  (* pattern function\s*\( *) token env tok
-
-let xhp_identifier (env : env) (tok : CST.xhp_identifier) =
-  (* pattern [a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) token env tok
-
-let pat_b6fe07e (env : env) (tok : CST.pat_b6fe07e) =
-  (* pattern <\?[hH][hH] *) token env tok
-
-let heredoc_body (env : env) (tok : CST.heredoc_body) =
-  (* heredoc_body *) token env tok
-
-let integer (env : env) (tok : CST.integer) =
-  (* integer *) token env tok
-*)
-
 let scope_identifier (env : env) (x : CST.scope_identifier) =
   (match x with
   | `Self tok -> (* "self" *) G.IdSpecial (Self, token env tok)
@@ -165,14 +119,6 @@ let scope_identifier (env : env) (x : CST.scope_identifier) =
   (* Q: Add IdSpecial? *)
   | `Static tok -> (* "static" *) G.N (G.Id (str env tok, G.empty_id_info ())))
   |> G.e
-
-(*
-let xhp_string (env : env) (tok : CST.xhp_string) =
-  (* xhp_string *) token env tok
-
-let xhp_class_identifier (env : env) (tok : CST.xhp_class_identifier) =
-  (* pattern :[a-zA-Z_][a-zA-Z0-9_]*([-:][a-zA-Z0-9_]+)* *) token env tok
-*)
 
 let null (env : env) (x : CST.null) =
   match x with
@@ -200,11 +146,6 @@ let false_ (env : env) (x : CST.false_) =
   | `False_68934a3 tok -> (* "false" *) token env tok
   | `False_f8320b2 tok -> (* "False" *) token env tok
   | `FALSE tok -> (* "FALSE" *) token env tok
-
-(*
-let string_ (env : env) (tok : CST.string_) =
-  (* string *) token env tok
- *)
 
 let true_ (env : env) (x : CST.true_) =
   match x with
@@ -2629,7 +2570,7 @@ and variablish (env : env) (x : CST.variablish) =
 and where_clause (env : env) ((v1, v2) : CST.where_clause) =
   (* TODO: What keyword is this? *)
   (* TODO: I don't really know what this language feature is.... *)
-  (* TODO: This is really wrong, becuase it also needs to be part of a FuncDef *)
+  (* TODO: This is really wrong, because it also needs to be part of a FuncDef *)
   (* Q: Should this become a cmixins? *)
   let v1 = (* "where" *) token env v1 in
   let v2 =
@@ -2826,7 +2767,6 @@ let parse file =
         pr2 s;
         raise exn)
 
-(* TODO: special mode to convert Ellipsis in the right construct! (This comment was copied from Parse_lua. *)
 let parse_pattern str =
   H.wrap_parser
     (fun () ->
@@ -2834,7 +2774,12 @@ let parse_pattern str =
       Parallel.invoke Tree_sitter_hack.Parse.string str ())
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      (* TODO: do we need a special mode to convert $FOO in the
+       * right construct? Is $XXX ambiguous in a semgrep context?
+       * Imitate what we do in php_to_generic.ml?
+       *)
+      let extra = () in
+      let env = { H.file; conv = Hashtbl.create 0; extra } in
       match script env cst with
       | [ { G.s = G.ExprStmt (e, _); _ } ] -> G.E e
       | [ x ] -> G.S x
