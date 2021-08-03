@@ -1376,8 +1376,8 @@ and map_expression (env : env) (x : CST.expression) =
             map_scoped_type_identifier_in_expression_position env x
         | `Gene_type_with_turb x -> map_generic_type_with_turbofish env x
       in
-      let fields = map_field_initializer_list env v2 in
-      G.Constructor (H2.dotted_ident_of_name name, fields)
+      let l, fields, r = map_field_initializer_list env v2 in
+      G.Constructor (H2.dotted_ident_of_name name, (l, fields, r))
   | `Ellips tok -> G.Ellipsis (token env tok) (* "..." *)
   | `Deep_ellips (v1, v2, v3) ->
       let lellips = token env v1 (* "<..." *) in
@@ -1619,8 +1619,8 @@ and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression)
   G.DotAccess (expr, dot, ident_or_dyn) |> G.e
 
 and map_field_initializer_list (env : env)
-    ((v1, v2, v3, v4) : CST.field_initializer_list) : G.expr list =
-  let _lbrace = token env v1 (* "{" *) in
+    ((v1, v2, v3, v4) : CST.field_initializer_list) : G.expr list G.bracket =
+  let lbrace = token env v1 (* "{" *) in
   let fields =
     match v2 with
     | Some (v1, v2) ->
@@ -1637,8 +1637,8 @@ and map_field_initializer_list (env : env)
     | None -> []
   in
   let _comma = Option.map (fun tok -> token env tok (* "," *)) v3 in
-  let _rbrace = token env v4 (* "}" *) in
-  fields
+  let rbrace = token env v4 (* "}" *) in
+  (lbrace, fields, rbrace)
 
 and map_foreign_block_item (env : env) ((v1, v2, v3) : CST.foreign_block_item) :
     G.stmt =

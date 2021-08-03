@@ -157,9 +157,9 @@ and stmt e : G.stmt =
       and v3 = match v3 with None -> None | Some x -> Some (stmt x) in
       G.If (t, v1, v2, v3) |> G.s
   (* alt: could be a G.Seq expr *)
-  | Sequence v1 ->
+  | Sequence (l, v1, r) ->
       let v1 = list stmt v1 in
-      G.Block (fb v1) |> G.s
+      G.Block (l, v1, r) |> G.s
   | Try (t, v1, v2) ->
       let v1 = stmt v1 and v2 = list match_case v2 in
       let catches =
@@ -210,8 +210,28 @@ and stmt e : G.stmt =
       | G.Ellipsis _ | G.DeepEllipsis _ -> G.exprstmt e
       | _ -> G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) |> G.s)
 
+and option_expr_to_ctor_arguments v =
+  match v with
+  | None -> fb []
+  | Some (ParenExpr (l, Tuple xs, r)) ->
+      let xs = list expr xs in
+      (l, xs, r)
+  (* we want to keep those ParenExpr in a Constructor context *)
+  | Some (ParenExpr (l, e, r)) ->
+      let e = expr e in
+      (l, [ e ], r)
+  | Some e ->
+      let e = expr e in
+      fb [ e ]
+
 and expr e =
   (match e with
+  | ParenExpr (l, e, r) -> (
+      let e = expr e in
+      match e.G.e with
+      (* replace fake brackets with real one *)
+      | G.Tuple (_, xs, _) -> G.Tuple (l, xs, r)
+      | e -> e)
   | TypedExpr (v1, v2, v3) -> (
       let v1 = expr v1 in
       let v3 = type_ v3 in
@@ -232,17 +252,22 @@ and expr e =
       G.L v1
   | Name v1 -> G.N (name v1)
   | Constructor (v1, v2) ->
-      let v1 = dotted_ident_of_name v1 and v2 = option expr v2 in
-      G.Constructor (v1, Common.opt_to_list v2)
+      let v1 = dotted_ident_of_name v1 in
+      let v2 = option_expr_to_ctor_arguments v2 in
+      G.Constructor (v1, v2)
   | PolyVariant ((v0, v1), v2) ->
       let v0 = tok v0 in
-      let v1 = ident v1 and v2 = option expr v2 in
+      let v1 = ident v1 in
+      let v2 = option_expr_to_ctor_arguments v2 in
       let dotted_ident = [ ("`", v0); v1 ] in
       (* TODO: introduce a new construct in AST_generic instead? *)
-      G.Constructor (dotted_ident, Common.opt_to_list v2)
+      G.Constructor (dotted_ident, v2)
   | Tuple v1 ->
-      let v1 = bracket (list expr) v1 in
-      G.Tuple v1
+      let v1 = (list expr) v1 in
+      (* the fake brackets might be replaced in the caller if there
+       * was a ParenExpr around
+       *)
+      G.Tuple (fb v1)
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)
