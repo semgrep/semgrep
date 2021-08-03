@@ -215,8 +215,11 @@ class ErrorWithSpan(SemgrepError):
         header = f"{with_color(Fore.RED, 'semgrep ' + self.level.name.lower())}: {self.short_msg}"
         snippets = []
         for span in self.spans:
-            location_hint = f"  --> {span.file}:{span.start.line}"
-            snippet = [location_hint]
+            if span.file != "semgrep temp file":
+                location_hint = f"  --> {span.file}:{span.start.line}"
+                snippet = [location_hint]
+            else:
+                snippet = []
 
             # all the lines of code in the file this comes from
             source: List[str] = SourceTracker.source(span.source_hash)
@@ -249,7 +252,13 @@ class ErrorWithSpan(SemgrepError):
             help_str = f"= {with_color(Fore.CYAN, 'help', bold=True)}: {self.help}"
         else:
             help_str = ""
-        return f"{header}\n{snippet_str}\n{help_str}\n{with_color(Fore.RED, self.long_msg or '')}\n"
+
+        # TODO remove this when temp files are no longer in error messages
+        if snippet_str == "":
+            snippet_str_with_newline = ""
+        else:
+            snippet_str_with_newline = f"{snippet_str}\n"
+        return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color(Fore.RED, self.long_msg or '')}\n"
 
 
 @attr.s(frozen=True, eq=True)

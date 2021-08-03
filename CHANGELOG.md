@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   full expressions, types, patterns, etc.).
 - OCaml: match cases patterns are now matched in any order, and ellipsis are
   handled correctly
+- Improved error messages sent to the playground
 
 ### Changed
 - Run version check and print upgrade message after scan instead of before
