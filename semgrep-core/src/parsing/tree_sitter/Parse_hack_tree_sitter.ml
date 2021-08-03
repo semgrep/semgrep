@@ -2070,10 +2070,9 @@ and statement (env : env) (x : CST.statement) =
               match v1 with
               | `Elseif tok -> (* "elseif" *) token env tok
               | `Else_if (v1, v2) ->
-                  let _v1 = (* "else" *) token env v1 in
+                  let v1 = (* "else" *) token env v1 in
                   let v2 = (* "if" *) token env v2 in
-                  v2
-              (* TODO: Concat tokens somehow? *)
+                  PI.combine_infos v1 [ v2 ]
             in
             let v2 = parenthesized_expression env v2 in
             let v3 = statement env v3 in
