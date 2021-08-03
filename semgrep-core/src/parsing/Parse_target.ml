@@ -290,7 +290,7 @@ let rec just_parse_with_lang lang file =
           let ast = Ast_php_build.program cst in
           Php_to_generic.program ast)
   | Lang.Hack ->
-    run file [ TreeSitter Parse_hack_tree_sitter.parse ] (fun x -> x)
+      run file [ TreeSitter Parse_hack_tree_sitter.parse ] (fun x -> x)
   | Lang.R -> failwith "No R parser yet; improve the one in tree-sitter"
   | Lang.Yaml ->
       {
