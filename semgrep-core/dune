@@ -13,3 +13,125 @@
     (flags (:standard  -w -52-6)))
   (release
     (flags (:standard -O3))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Don't build executables for the submodules that we only use as libraries.
+; - Saves a tiny bit of build time (about 3-4%).
+; - Keeps the bin/ folder clean.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(subdir
+   src/pfff
+   (data_only_dirs cli)
+)
+
+(subdir
+   src/ocaml-tree-sitter-core/src/gen
+   (data_only_dirs bin)
+)
+
+; Unfortunately, 'subdir' doesn't expand wildcards.
+;(subdir
+;   src/tree-sitter-lang/semgrep-*
+;   (data_only_dirs bin)
+;)
+
+(subdir
+   src/tree-sitter-lang/semgrep-bash
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-c
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-cpp
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-c-sharp
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-dockerfile
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-go
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-hack
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-html
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-java
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-javascript
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-kotlin
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-lua
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-ocaml
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-r
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-ruby
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-rust
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-sqlite
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-tsx
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-typescript
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-vue
+   (data_only_dirs bin)
+)
