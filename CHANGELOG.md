@@ -27,6 +27,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - OCaml: use latest ocamllsp 1.7.0 for the -lsp option
 - OCaml: include parenthesis tokens in the AST for tuples for better range
   matching and autofix
+- OCaml: fixed many matching bugs with ellipsis
 - core: Do not crash when is not possible to compute range info
 - eliminate 6x slowdown when using the '--max-memory' option
 
