@@ -577,8 +577,6 @@ rules:
 - id: java.lang.correctness.no-string-eqeq.no-string-eqeq
   languages:
   - java
-  equivalences:
-  - equivalence: $X == $Y ==> $Y == $X
   patterns:
   - pattern-not: null == (String $Y)
   - pattern: $X == (String $Y)

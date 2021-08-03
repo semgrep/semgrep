@@ -58,12 +58,6 @@ def debug_tqdm_write(msg: str, file: IO = sys.stderr) -> None:
         tqdm.write(msg, file=file)
 
 
-def flatten(L: Iterable[Iterable[Any]]) -> Iterable[Any]:
-    for list in L:
-        for item in list:
-            yield item
-
-
 def set_flags(verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
     """Set the relevant logging levels"""
     # Assumes only one of verbose, debug, quiet is True
@@ -205,24 +199,7 @@ def compute_semgrep_path() -> str:
     return compute_executable_path("semgrep-core")
 
 
-def compute_spacegrep_path() -> str:
-    return compute_executable_path("spacegrep")
-
-
 SEMGREP_PATH = compute_semgrep_path()
-SPACEGREP_PATH = compute_spacegrep_path()
-
-
-def liststartswith(l: List[T], head: List[T]) -> bool:
-    """
-    E.g.
-        - liststartswith([1, 2, 3, 4], [1, 2]) -> True
-        - liststartswith([1, 2, 3, 4], [1, 4]) -> False
-    """
-    if len(head) > len(l):
-        return False
-
-    return all(l[i] == head[i] for i in range(len(head)))
 
 
 def listendswith(l: List[T], tail: List[T]) -> bool:

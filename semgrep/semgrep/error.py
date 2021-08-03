@@ -88,10 +88,6 @@ class SemgrepInternalError(Exception):
     pass
 
 
-class UnknownOperatorError(SemgrepError):
-    pass
-
-
 @attr.s(auto_attribs=True, frozen=True)
 class FilesNotFoundError(SemgrepError):
     level = Level.ERROR
@@ -263,27 +259,6 @@ class InvalidPatternError(ErrorWithSpan):
 
 
 @attr.s(frozen=True, eq=True)
-class InvalidPatternErrorNoSpan(SemgrepError):
-    rule_id: str = attr.ib()
-    pattern: str = attr.ib()
-    language: str = attr.ib()
-
-    code = INVALID_PATTERN_EXIT_CODE
-    level = Level.ERROR
-
-    def __str__(self) -> str:
-        msg = f"Rule id: {self.rule_id} contains a pattern that could not be parsed as a pattern for language {self.language}: `{self.pattern}`"
-        return with_color(Fore.RED, msg)
-
-    def to_dict_base(self) -> Dict[str, Any]:
-        return {
-            "rule_id": self.rule_id,
-            "pattern": self.pattern,
-            "language": self.language,
-        }
-
-
-@attr.s(frozen=True, eq=True)
 class InvalidRuleSchemaError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
     level = Level.ERROR
@@ -293,11 +268,6 @@ class InvalidRuleSchemaError(ErrorWithSpan):
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
     level = Level.ERROR
-
-
-@attr.s(frozen=True, eq=True)
-class InvalidPatternNameError(InvalidRuleSchemaError):
-    pass
 
 
 @attr.s(frozen=True, eq=True)
