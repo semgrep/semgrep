@@ -58,3 +58,6 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-bash"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-bash
 	url = https://github.com/returntocorp/semgrep-bash
+[submodule "semgrep-core/src/ocaml-tree-sitter-core"]
+	path = semgrep-core/src/ocaml-tree-sitter-core
+	url = https://github.com/returntocorp/ocaml-tree-sitter-core.git
