@@ -39,8 +39,12 @@ RUN git submodule foreach --recursive git clean -dfX
 
 RUN git submodule update --init --recursive --depth 1
 
+#coupling: if you add dependencies here, you probably also need to update:
+#  - scripts/install-alpine-semgrep-core
+#  - the setup target in Makefile
 RUN eval "$(opam env)" && ./scripts/install-tree-sitter-runtime
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/src/pfff/
+RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/src/ocaml-tree-sitter-core
 RUN eval "$(opam env)" && opam install --deps-only -y semgrep-core/
 RUN eval "$(opam env)" && make -C semgrep-core/ all
 
@@ -63,6 +67,7 @@ COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/semgrep-core /usr/local/bin/semgrep-core
 RUN semgrep-core -version
 
+#TODO: once we always use semgrep-core to run a rule, we can delete spacegrep
 COPY --from=build-semgrep-core \
      /semgrep/semgrep-core/_build/install/default/bin/spacegrep \
      /usr/local/bin/spacegrep

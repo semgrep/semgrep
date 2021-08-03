@@ -56,6 +56,7 @@ setup:
 	opam update -y
 	./scripts/install-tree-sitter-runtime
 	opam install -y --deps-only ./semgrep-core/src/pfff
+	opam install -y --deps-only ./semgrep-core/src/ocaml-tree-sitter-core
 	opam install -y --deps-only ./semgrep-core
 
 # Install development dependencies in addition to build dependencies.
