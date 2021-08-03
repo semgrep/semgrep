@@ -217,7 +217,7 @@ and map_expr x : B.expr =
   | Record v1 ->
       let v1 = map_bracket (map_of_list map_field) v1 in
       `Record v1
-  | Constructor (v1, v2) ->
+  | Constructor (v1, (_l, v2, _r)) ->
       let v1 = map_dotted_ident v1 and v2 = map_of_list map_expr v2 in
       `Constructor (v1, v2)
   | Lambda v1 ->

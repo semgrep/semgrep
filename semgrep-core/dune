@@ -20,10 +20,11 @@
 ; - Keeps the bin/ folder clean.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(subdir
-   src/pfff
-   (data_only_dirs cli)
-)
+;pad: I actually like to use the pfff/cli/Main.exe to dump specialized ASTs
+;(subdir
+;   src/pfff
+;   (data_only_dirs cli)
+;)
 
 (subdir
    src/ocaml-tree-sitter-core/src/gen

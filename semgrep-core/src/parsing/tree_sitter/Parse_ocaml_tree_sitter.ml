@@ -44,6 +44,9 @@ let fb = PI.fake_bracket
 
 let str = H.str
 
+(* like in parser_ml.mly *)
+let seq1 = function [ x ] -> x | xs -> Sequence (Parse_info.fake_bracket xs)
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -841,7 +844,7 @@ and map_array_get_expression (env : env)
     | None -> None
   in
   let _v4 = token env v4 (* "(" *) in
-  let v5 = map_sequence_expression_ext env v5 in
+  let v5 = map_sequence_expression_ext env v5 |> seq1 in
   let _v6 = token env v6 (* ")" *) in
   ExprTodo (("Array", v2), [ v1; v5 ])
 
@@ -893,7 +896,7 @@ and map_bigarray_get_expression (env : env)
     | None -> None
   in
   let _v4 = token env v4 (* "{" *) in
-  let v5 = map_sequence_expression_ext env v5 in
+  let v5 = map_sequence_expression_ext env v5 |> seq1 in
   let _v6 = token env v6 (* "}" *) in
   ExprTodo (("BigArray", v2), [ v1; v5 ])
 
@@ -1108,7 +1111,7 @@ and map_class_field (env : env) (x : CST.class_field) =
         match v7 with
         | Some (v1, v2) ->
             let _v1 = token env v1 (* "=" *) in
-            let v2 = map_sequence_expression_ext env v2 in
+            let v2 = map_sequence_expression_ext env v2 |> seq1 in
             Some v2
         | None -> None
       in
@@ -1133,7 +1136,7 @@ and map_class_field (env : env) (x : CST.class_field) =
         match v7 with
         | Some (v1, v2) ->
             let _v1 = token env v1 (* "=" *) in
-            let v2 = map_sequence_expression_ext env v2 in
+            let v2 = map_sequence_expression_ext env v2 |> seq1 in
             Some v2
         | None -> None
       in
@@ -1144,7 +1147,7 @@ and map_class_field (env : env) (x : CST.class_field) =
       ()
   | `Class_init (v1, v2, v3) ->
       let _v1 = token env v1 (* "initializer" *) in
-      let _v2 = map_sequence_expression_ext env v2 in
+      let _v2 = map_sequence_expression_ext env v2 |> seq1 in
       let _v3 = List.map (map_item_attribute env) v3 in
       ()
 
@@ -1324,13 +1327,13 @@ and map_constructor_declaration (env : env)
   (v1, v2)
 
 and map_do_clause (env : env) ((v1, v2, v3) : CST.do_clause) : expr =
-  let _v1 = token env v1 (* "do" *) in
+  let v1 = token env v1 (* "do" *) in
+  let v3 = token env v3 (* "done" *) in
   let v2 =
     match v2 with
-    | Some x -> map_sequence_expression_ext env x
-    | None -> Sequence []
+    | Some x -> Sequence (v1, map_sequence_expression_ext env x, v3)
+    | None -> Sequence (v1, [], v3)
   in
-  let _v3 = token env v3 (* "done" *) in
   v2
 
 and map_else_clause (env : env) ((v1, v2) : CST.else_clause) =
@@ -1356,7 +1359,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v1 = map_expression_ext env v1 in
       let _v2 = token env v2 (* "," *) in
       let v3 = map_expression_ext env v3 in
-      Tuple (fb [ v1; v3 ])
+      Tuple [ v1; v3 ]
   | `Cons_exp (v1, v2, v3) ->
       let v1 = map_expression_ext env v1 in
       let v2 = str env v2 (* "::" *) in
@@ -1399,7 +1402,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
   | `If_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "if" *) in
       let _v2 = map_attribute_opt env v2 in
-      let v3 = map_sequence_expression_ext env v3 in
+      let v3 = map_sequence_expression_ext env v3 |> seq1 in
       let v4 = map_then_clause env v4 in
       let v5 =
         match v5 with Some x -> Some (map_else_clause env x) | None -> None
@@ -1408,7 +1411,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
   | `While_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "while" *) in
       let _v2 = map_attribute_opt env v2 in
-      let v3 = map_sequence_expression_ext env v3 in
+      let v3 = map_sequence_expression_ext env v3 |> seq1 in
       let v4 = map_do_clause env v4 in
       While (v1, v3, v4)
   | `For_exp (v1, v2, v3, v4, v5, v6, v7, v8) ->
@@ -1416,14 +1419,14 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let _v2 = map_attribute_opt env v2 in
       let v3 = map_value_pattern env v3 in
       let _v4 = token env v4 (* "=" *) in
-      let v5 = map_sequence_expression_ext env v5 in
+      let v5 = map_sequence_expression_ext env v5 |> seq1 in
       let v6 =
         match v6 with
         | `To tok -> To (token env tok) (* "to" *)
         | `Downto tok -> Downto (token env tok)
         (* "downto" *)
       in
-      let v7 = map_sequence_expression_ext env v7 in
+      let v7 = map_sequence_expression_ext env v7 |> seq1 in
       let v8 = map_do_clause env v8 in
       For (v1, v3, v5, v6, v7, v8)
   | `Match_exp (v1, v2, v3, v4) ->
@@ -1436,7 +1439,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
         | `Match_op tok -> token env tok
         (* match_operator *)
       in
-      let v2 = map_sequence_expression_ext env v2 in
+      let v2 = map_sequence_expression_ext env v2 |> seq1 in
       let _v3 = token env v3 (* "with" *) in
       let v4 = map_match_cases env v4 in
       Match (v1, v2, v4)
@@ -1453,19 +1456,19 @@ and map_expression (env : env) (x : CST.expression) : expr =
         match v4 with Some x -> Some (map_simple_typed env x) | None -> None
       in
       let _v5 = token env v5 (* "->" *) in
-      let v6 = map_sequence_expression_ext env v6 in
+      let v6 = map_sequence_expression_ext env v6 |> seq1 in
       Fun (v1, v3, v6)
   | `Try_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "try" *) in
       let _v2 = map_attribute_opt env v2 in
-      let v3 = map_sequence_expression_ext env v3 in
+      let v3 = map_sequence_expression_ext env v3 |> seq1 in
       let _v4 = token env v4 (* "with" *) in
       let v5 = map_match_cases env v5 in
       Try (v1, v3, v5)
   | `Let_exp (v1, v2, v3) ->
       let t, rec_opt, xs = map_value_definition env v1 in
       let _v2 = token env v2 (* "in" *) in
-      let v3 = map_sequence_expression_ext env v3 in
+      let v3 = map_sequence_expression_ext env v3 |> seq1 in
       LetIn (t, rec_opt, xs, v3)
   | `Assert_exp (v1, v2, v3) ->
       let v1 = token env v1 (* "assert" *) in
@@ -1481,19 +1484,19 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v1 = token env v1 (* "let" *) in
       let _v2 = map_module_definition env v2 in
       let _v3 = token env v3 (* "in" *) in
-      let v4 = map_sequence_expression_ext env v4 in
+      let v4 = map_sequence_expression_ext env v4 |> seq1 in
       ExprTodo (("LocalModule", v1), [ v4 ])
   | `Let_open_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "let" *) in
       let _v2 = map_open_module env v2 in
       let _v3 = token env v3 (* "in" *) in
-      let v4 = map_sequence_expression_ext env v4 in
+      let v4 = map_sequence_expression_ext env v4 |> seq1 in
       ExprTodo (("LocalOpen", v1), [ v4 ])
   | `Let_exc_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "let" *) in
       let _v2 = map_exception_definition env v2 in
       let _v3 = token env v3 (* "in" *) in
-      let v4 = map_sequence_expression_ext env v4 in
+      let v4 = map_sequence_expression_ext env v4 |> seq1 in
       ExprTodo (("LocalExn", v1), [ v4 ])
   | `Obj_exp x -> map_object_expression env x
 
@@ -1505,7 +1508,7 @@ and map_expression_ext (env : env) (x : CST.expression_ext) =
       ExprTodo (t, [])
 
 and map_expression_item (env : env) ((v1, v2) : CST.expression_item) =
-  let v1 = map_sequence_expression_ext env v1 in
+  let v1 = map_sequence_expression_ext env v1 |> seq1 in
   let _v2 = List.map (map_item_attribute env) v2 in
   v1
 
@@ -1614,7 +1617,7 @@ and map_floating_attribute (env : env)
 
 and map_guard (env : env) ((v1, v2) : CST.guard) =
   let _v1 = token env v1 (* "when" *) in
-  let v2 = map_sequence_expression_ext env v2 in
+  let v2 = map_sequence_expression_ext env v2 |> seq1 in
   v2
 
 and map_infix_expression (env : env) (x : CST.infix_expression) : expr =
@@ -1742,7 +1745,7 @@ and map_let_binding (env : env) ((v1, v2, v3) : CST.let_binding) : let_binding =
           | None -> None
         in
         let v4 = token env v4 (* "=" *) in
-        let v5 = map_sequence_expression_ext env v5 in
+        let v5 = map_sequence_expression_ext env v5 |> seq1 in
         match (pat, v1, v2) with
         | PatVar id, _, _ ->
             LetClassic { lname = id; lparams = v1; lrettype = v2; lbody = v5 }
@@ -1794,7 +1797,7 @@ and map_match_case (env : env) ((v1, v2, v3, v4) : CST.match_case) : match_case
   let v3 = token env v3 (* "->" *) in
   let v4 =
     match v4 with
-    | `Seq_exp_ext x -> map_sequence_expression_ext env x
+    | `Seq_exp_ext x -> map_sequence_expression_ext env x |> seq1
     | `Refu_case tok ->
         let x = token env tok in
         ExprTodo (("RefutationCaseGADT", x), [])
@@ -2098,7 +2101,7 @@ and map_parameter_ (env : env) (x : CST.parameter_) =
         match v5 with
         | Some (v1, v2) ->
             let _v1 = token env v1 (* "=" *) in
-            let v2 = map_sequence_expression_ext env v2 in
+            let v2 = map_sequence_expression_ext env v2 |> seq1 in
             Some v2
         | None -> None
       in
@@ -2112,7 +2115,7 @@ and map_parameter_ (env : env) (x : CST.parameter_) =
       let _v4 = map_pattern_ext env v4 in
       let _v5 = map_typed_opt env v5 in
       let _v6 = token env v6 (* "=" *) in
-      let _v7 = map_sequence_expression_ext env v7 in
+      let _v7 = map_sequence_expression_ext env v7 |> seq1 in
       let _v8 = token env v8 (* ")" *) in
       ParamTodo ("Label", t)
 
@@ -2120,17 +2123,23 @@ and map_parenthesized_expression (env : env) (x : CST.parenthesized_expression)
     =
   match x with
   | `Begin_opt_attr_seq_exp_ext_end (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "begin" *) in
+      let v1 = token env v1 (* "begin" *) in
       let _v2 = map_attribute_opt env v2 in
       let v3 = map_sequence_expression_ext env v3 in
-      let _v4 = token env v4 (* "end" *) in
-      v3
+      let v4 = token env v4 (* "end" *) in
+      Sequence (v1, v3, v4)
   | `LPAR_seq_exp_ext_RPAR (v1, v2, v3) -> (
       let v1 = token env v1 (* "(" *) in
       let v2 = map_sequence_expression_ext env v2 in
       let v3 = token env v3 (* ")" *) in
-      (* putting real tokens on Tuples *)
-      match v2 with Tuple (_, xs, _) -> Tuple (v1, xs, v3) | x -> x)
+      (* like in parser_ml.mly *)
+      match v2 with
+      | [] -> Sequence (v1, [], v3)
+      (* Ml_to_generic will do the right thing if x is a tuple or
+       * if this expression is part of a Constructor call.
+       *)
+      | [ x ] -> ParenExpr (v1, x, v3)
+      | _ -> Sequence (v1, v2, v3))
 
 and map_parenthesized_type (env : env) ((v1, v2, v3) : CST.parenthesized_type) =
   let _v1 = token env v1 (* "(" *) in
@@ -2316,9 +2325,10 @@ and map_record_pattern (env : env)
   let v6 = token env v6 (* "}" *) in
   PatRecord (v1, v2 :: v3, v6)
 
-and map_sequence_expression_ (env : env) (x : CST.sequence_expression_) : expr =
+and map_sequence_expression_ (env : env) (x : CST.sequence_expression_) :
+    expr list =
   match x with
-  | `Exp x -> map_expression env x
+  | `Exp x -> [ map_expression env x ]
   | `Seq_exp (v1, v2, v3) ->
       let v1 = map_expression_ext env v1 in
       let _v2 = token env v2 (* ";" *) in
@@ -2327,18 +2337,18 @@ and map_sequence_expression_ (env : env) (x : CST.sequence_expression_) : expr =
         | Some (v1, v2) ->
             let _v1 = map_attribute_opt env v1 in
             let v2 = map_sequence_expression_ext env v2 in
-            [ v2 ]
+            v2
         | None -> []
       in
-      Sequence (v1 :: v3)
+      v1 :: v3
 
 and map_sequence_expression_ext (env : env) (x : CST.sequence_expression_ext) :
-    expr =
+    expr list =
   match x with
   | `Seq_exp_ x -> map_sequence_expression_ env x
   | `Exte x ->
       let t = map_extension env x in
-      ExprTodo (t, [])
+      [ ExprTodo (t, []) ]
 
 (*****************************************************************************)
 (* Signature *)
@@ -2490,7 +2500,7 @@ and map_simple_expression (env : env) (x : CST.simple_expression) : expr =
       L x
   | `Typed_exp (v1, v2, v3, v4) ->
       let _v1 = token env v1 (* "(" *) in
-      let v2 = map_sequence_expression_ext env v2 in
+      let v2 = map_sequence_expression_ext env v2 |> seq1 in
       let t, v3 = map_typed env v3 in
       let _v4 = token env v4 (* ")" *) in
       TypedExpr (v2, t, v3)
@@ -2520,7 +2530,7 @@ and map_simple_expression (env : env) (x : CST.simple_expression) : expr =
   | `Biga_get_exp x -> map_bigarray_get_expression env x
   | `Coer_exp (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "(" *) in
-      let v2 = map_sequence_expression_ext env v2 in
+      let v2 = map_sequence_expression_ext env v2 |> seq1 in
       let _v3 = map_typed_opt env v3 in
       let _v4 = token env v4 (* ":>" *) in
       let _v5 = map_type_ext env v5 in
@@ -2535,7 +2545,7 @@ and map_simple_expression (env : env) (x : CST.simple_expression) : expr =
             let _v1 = token env v1 (* "(" *) in
             let v2 =
               match v2 with
-              | Some x -> [ map_sequence_expression_ext env x ]
+              | Some x -> map_sequence_expression_ext env x
               | None -> []
             in
             let _v3 = token env v3 (* ")" *) in
@@ -2840,7 +2850,7 @@ and map_string_get_expression (env : env)
     | None -> None
   in
   let _v4 = token env v4 (* "[" *) in
-  let v5 = map_sequence_expression_ext env v5 in
+  let v5 = map_sequence_expression_ext env v5 |> seq1 in
   let _v6 = token env v6 (* "]" *) in
   ExprTodo (("String", v2), [ v1; v5 ])
 
