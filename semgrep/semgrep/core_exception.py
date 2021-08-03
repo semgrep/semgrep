@@ -112,7 +112,12 @@ class CoreException:
             )
             return SourceParseError(
                 short_msg="parse error",
-                long_msg=f"Could not parse {self._path.name} as {self._language}",
+                long_msg=f"Could not parse {self._path.name} as {self._language}"
+                + (
+                    f"\n\nsemgrep-core message:\n\n\t{self._extra['message']}"
+                    if self._check_id != "ParseError" and "message" in self._extra
+                    else ""
+                ),
                 spans=[error_span],
                 help="If the code appears to be valid, this may be a semgrep bug.",
             )

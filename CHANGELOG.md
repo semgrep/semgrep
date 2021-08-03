@@ -21,6 +21,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Run version check and print upgrade message after scan instead of before
 - OCaml: skip ocamllex and ocamlyacc files. Process only .ml and .mli files.
 - Memoize range computation for expressions and speed up taint mode
+- Report semgrep-core's message upon a parse error
 
 ### Fixed
 - Go: Match import module paths correctly (#3484)
