@@ -271,7 +271,13 @@ let rec just_parse_with_lang lang file =
               (Parse_json.parse_program file, Parse_info.correct_stat file));
         ]
         Json_to_generic.program
-  | Lang.Cplusplus -> failwith "TODO"
+  | Lang.Cplusplus ->
+      run file
+        [
+          Pfff (throw_tokens Parse_cpp.parse);
+          TreeSitter Parse_cpp_tree_sitter.parse;
+        ]
+        Cpp_to_generic.program
   | Lang.OCaml ->
       run file
         [
