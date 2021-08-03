@@ -5,7 +5,7 @@
 #
 set -eu
 
-cd semgrep-core/src/ocaml-tree-sitter
+cd semgrep-core/src/ocaml-tree-sitter-core
 
 # Install the C library. OCaml sources are built as part of the semgrep-core
 # dune project. See the symlinks in semgrep-core/src/ocaml-tree-sitter.
