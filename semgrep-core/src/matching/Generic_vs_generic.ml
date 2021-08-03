@@ -680,7 +680,7 @@ and m_expr a b =
   (*s: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
-      m_dotted_name a1 b1 >>= fun () -> (m_list m_expr) a2 b2
+      m_dotted_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
   | G.Lambda a1, B.Lambda b1 ->
       m_function_definition a1 b1 >>= fun () -> return ()
   | G.AnonClass a1, B.AnonClass b1 -> m_class_definition a1 b1

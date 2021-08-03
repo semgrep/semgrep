@@ -163,7 +163,7 @@ let rec visit_expr hook lhs expr =
   | Await (_, e) -> recr e
   | Record xs ->
       xs |> unbracket |> List.iter (fun field -> anyhook hook Rhs (Fld field))
-  | Constructor (_name, es) -> List.iter recr es
+  | Constructor (_name, (_, es, _)) -> List.iter recr es
   | Xml _ -> error_todo (E expr)
   | LetPattern (pat, e) ->
       anyhook hook Lhs (P pat);

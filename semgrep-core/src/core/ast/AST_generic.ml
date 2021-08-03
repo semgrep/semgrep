@@ -406,9 +406,23 @@ and expr_kind =
   (* Or-type (could be used instead of Container, Cons, Nil, etc.).
    * (ab)used also for polymorphic variants where qualifier is QTop with
    * the '`' token.
-   * todo: should probably replace dotted_ident by name here.
+   * todo: we should probably replace dotted_ident by name here.
+   *
+   * Note that in OCaml constructors do not always need brackets.
+   * For example, you can have 'let x = Foo 1'. However, you often
+   * need the parenthesis, for example when you have multiple arguments
+   * (e.g., 'let x = Foo (1,2)').
+   * In that case, we could make '(1,2)' a single Tuple argument, and
+   * that is mostly what is done in ast_ml.ml, but this is a bit ugly.
+   * Morever, even with a single argument, you need extra parenthesis
+   * if the argument is a complex expression (e.g., 'let x = Foo(1+2)').
+   * And if those parenthesis are not in the AST, then matching range
+   * or autofix on such construct may fail.
+   * Thus, it is simpler to add the bracket here, because this is mostly
+   * how user think. Finally, in some languages like Scala constructors
+   * require the parenthesis.
    *)
-  | Constructor of dotted_ident * expr list
+  | Constructor of dotted_ident * expr list bracket
   (* see also Call(IdSpecial (New,_), [ArgType _;...] for other values *)
   (*e: [[AST_generic.expr]] other composite cases *)
   | N of name
