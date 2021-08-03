@@ -166,6 +166,3 @@ TAGS
 # Do not check in compiled binaries
 semgrep/semgrep/bin/semgrep-core
 semgrep/semgrep/bin/spacegrep
-
-# Git repo that's not a submodule
-/ocaml-tree-sitter
