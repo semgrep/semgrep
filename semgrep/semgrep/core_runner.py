@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 from typing import cast
 from typing import Dict
-from typing import IO
 from typing import List
 from typing import Optional
 from typing import Set
@@ -17,15 +16,12 @@ from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_exception import CoreException
-from semgrep.equivalences import Equivalence
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
 from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.evaluation import create_output
-from semgrep.output import OutputSettings
-from semgrep.pattern import Pattern
 from semgrep.pattern_match import PatternMatch
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
@@ -55,16 +51,12 @@ class CoreRunner:
 
     def __init__(
         self,
-        output_settings: OutputSettings,
-        allow_exec: bool,
         jobs: int,
         timeout: int,
         max_memory: int,
         timeout_threshold: int,
         optimizations: str,
     ):
-        self._output_settings = output_settings
-        self._allow_exec = allow_exec
         self._jobs = jobs
         self._timeout = timeout
         self._max_memory = max_memory
@@ -74,7 +66,6 @@ class CoreRunner:
     def _raise_semgrep_error_from_json(
         self,
         error_json: Dict[str, Any],
-        patterns: List[Pattern],
         rule: Rule,
     ) -> None:
         """
@@ -88,44 +79,26 @@ class CoreRunner:
         elif error_type == "invalid regexp in rule":
             raise SemgrepError(f'Invalid regexp in rule: {error_json["message"]}')
         elif error_type == "invalid pattern":
-            if self._optimizations == "all":
-                range = error_json["range"]
-                s = error_json.get("pattern", "<no pattern>")
-                matching_span = Span.from_string_token(
-                    s=s,
-                    line=range.get("line", 0),
-                    col=range.get("col", 0),
-                    path=range.get("path", []),
-                    filename="semgrep temp file",
-                )
-                if error_json["message"] == "Parsing.Parse_error":
-                    long_msg = f"Pattern `{s.strip()}` could not be parsed as a {error_json['language']} semgrep pattern"
-                else:
-                    long_msg = f"Error parsing {error_json['language']} pattern: {error_json['message']}"
-
-                raise InvalidPatternError(
-                    short_msg=error_type,
-                    long_msg=long_msg,
-                    spans=[matching_span],
-                    help=None,
-                )
-            # no special formatting ought to be required for the other types; the semgrep python should be performing
+            range = error_json["range"]
+            s = error_json.get("pattern", "<no pattern>")
+            matching_span = Span.from_string_token(
+                s=s,
+                line=range.get("line", 0),
+                col=range.get("col", 0),
+                path=range.get("path", []),
+                filename="semgrep temp file",
+            )
+            if error_json["message"] == "Parsing.Parse_error":
+                long_msg = f"Pattern `{s.strip()}` could not be parsed as a {error_json['language']} semgrep pattern"
             else:
-                matching_pattern = next(
-                    (p for p in patterns if p._id == error_json["pattern_id"]), None
-                )
-                if matching_pattern is None or matching_pattern.span is None:
-                    raise SemgrepError(
-                        f"Pattern id from semgrep-core was missing in pattern spans. {PLEASE_FILE_ISSUE_TEXT}"
-                    )
-                matching_span = matching_pattern.span
+                long_msg = f"Error parsing {error_json['language']} pattern: {error_json['message']}"
 
-                raise InvalidPatternError(
-                    short_msg=error_type,
-                    long_msg=f"Pattern could not be parsed as a {error_json['language']} semgrep pattern",
-                    spans=[matching_span],
-                    help=None,
-                )
+            raise InvalidPatternError(
+                short_msg=error_type,
+                long_msg=long_msg,
+                spans=[matching_span],
+                help=None,
+            )
         # no special formatting ought to be required for the other types; the semgrep python should be performing
         # validation for them. So if any other type of error occurs, ask the user to file an issue
         else:
@@ -133,16 +106,8 @@ class CoreRunner:
                 f"an internal error occured while invoking semgrep-core while running rule '{rule.id}'. Consider skipping this rule and reporting this issue.\n\t{error_type}: {error_json.get('message', 'no message')}\n{PLEASE_FILE_ISSUE_TEXT}"
             )
 
-    def _write_equivalences_file(self, fp: IO, equivalences: List[Equivalence]) -> None:
-        # I don't even know why this is a thing.
-        # cf. https://stackoverflow.com/questions/51272814/python-yaml-dumping-pointer-references
-        yaml = YAML()
-        yaml.representer.ignore_aliases = lambda *data: True
-        yaml.dump({"equivalences": [e.to_json() for e in equivalences]}, fp)
-        fp.flush()
-
     def _extract_core_output(
-        self, rule: Rule, patterns: List[Pattern], core_run: subprocess.CompletedProcess
+        self, rule: Rule, core_run: subprocess.CompletedProcess
     ) -> Dict[str, Any]:
         semgrep_output = core_run.stdout.decode("utf-8", errors="replace")
 
@@ -174,7 +139,7 @@ class CoreRunner:
             )
 
             if "error" in output_json:
-                self._raise_semgrep_error_from_json(output_json, patterns, rule)
+                self._raise_semgrep_error_from_json(output_json, rule)
             else:
                 self._fail(
                     'non-zero exit status with missing "error" field in json response',
@@ -336,7 +301,6 @@ class CoreRunner:
                         cmd = [SEMGREP_PATH] + [
                             "-lang",
                             language.value,
-                            "-fast",
                             "-json",
                             "-config",
                             rule_file.name,
@@ -353,10 +317,8 @@ class CoreRunner:
                             "-json_time",
                         ]
 
-                        equivalences = rule.equivalences
-                        if equivalences:
-                            self._write_equivalences_file(equiv_file, equivalences)
-                            cmd += ["-equivalences", equiv_file.name]
+                        if self._optimizations != "none":
+                            cmd.append("-fast")
 
                         stderr: Optional[int] = subprocess.PIPE
                         if is_debug():
@@ -364,7 +326,7 @@ class CoreRunner:
                             stderr = None
 
                         core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=stderr)
-                        output_json = self._extract_core_output(rule, [], core_run)
+                        output_json = self._extract_core_output(rule, core_run)
 
                         if "time" in output_json:
                             self._add_match_times(

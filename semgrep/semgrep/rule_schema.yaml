@@ -310,13 +310,6 @@ properties:
     items:
       type: object
       properties:
-        equivalences:
-          type: array
-          items:
-            type: object
-            properties:
-              equivalence:
-                type: string
         id:
           title: Rule ID to attach to findings
           type: string
