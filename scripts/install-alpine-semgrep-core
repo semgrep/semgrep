@@ -40,6 +40,13 @@ git submodule update --init --recursive --depth 1
 echo "Install tree-sitter runtime and prepare ocaml-tree-sitter source"
 ./scripts/install-tree-sitter-runtime
 
+
+echo "Install ocaml-tree-sitter-core dependencies"
+(
+  cd semgrep-core/src/ocaml-tree-sitter-core
+  opam install --deps-only -y .
+)
+
 echo "Install pfff dependencies"
 (
   cd semgrep-core/src/pfff

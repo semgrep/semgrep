@@ -40,9 +40,6 @@ build-core:
 
 # Update and rebuild everything within the project.
 #
-# At the moment, this is useful when ocaml-tree-sitter gets updated,
-# since semgrep-core is not rebuilt automatically when it changes.
-#
 .PHONY: rebuild
 rebuild:
 	git submodule update --init
@@ -59,6 +56,7 @@ setup:
 	opam update -y
 	./scripts/install-tree-sitter-runtime
 	opam install -y --deps-only ./semgrep-core/src/pfff
+	opam install -y --deps-only ./semgrep-core/src/ocaml-tree-sitter-core
 	opam install -y --deps-only ./semgrep-core
 
 # Install development dependencies in addition to build dependencies.
@@ -74,14 +72,13 @@ dev-setup:
 #
 .PHONY: config
 config:
-	cd ocaml-tree-sitter && ./configure
+	cd semgrep-core/src/ocaml-tree-sitter-core && ./configure
 
 # Remove from the project tree everything that's not under source control
 # and was not created by 'make setup'.
 #
 .PHONY: clean
 clean:
-	-$(MAKE) -C ocaml-tree-sitter clean
 	-$(MAKE) -C semgrep-core clean
 	-$(MAKE) -C semgrep clean
 
