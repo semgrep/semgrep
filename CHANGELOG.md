@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Hack: preliminary support for hack-lang
+  thanks to David Frankel, Nicholas Lin, and more people at Slack!
 - OCaml: support for partial if, match, and try patterns 
   (e.g., `if $X = $Y`)
 - OCaml: you can match uppercase identifiers (constructors, module names) by
