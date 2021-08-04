@@ -100,8 +100,6 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: returntocorp/semgrep
           tags: ${{ steps.get_version.outputs.VERSION }}, latest
-      - name: update semgrep.dev
-        run: curl --fail -X POST https://semgrep.dev/api/admin/update-docker
 
   build-core:
     name: semgrep-core make test and semgrep make test/qa-test
