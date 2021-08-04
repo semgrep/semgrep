@@ -37,7 +37,7 @@ type 'a env = {
 
 (* mostly a copy of Parse_info.full_charpos_to_pos_large *)
 let line_col_to_pos file =
-  let chan = open_in file in
+  let chan = open_in_bin file in
   let size = Common2.filesize file + 2 in
 
   let charpos = ref 0 in
