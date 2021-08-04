@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.61.0](https://github.com/returntocorp/semgrep/releases/tag/v0.61.0) - 2021-08-04
+
 ### Added
 - Hack: preliminary support for hack-lang
   thanks to David Frankel, Nicholas Lin, and more people at Slack!
