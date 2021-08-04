@@ -202,7 +202,7 @@ let parsing_common ?(verbose = true) lang xs =
    * Seems like the Gc alarm does not trigger, maybe because there is no
    * major GC cycle triggered before reaching the 1 GB ulimit.
    *
-   * So the current workaround is to still put a limit below, but
+   * So the current workaround is to still use mem_limit_mb here, but
    * remove the 'ulimit -v' in the parsing-stat/run-lang script.
    *
    * TODO: The weird thing is that even with the 1Gb limit below, I often
