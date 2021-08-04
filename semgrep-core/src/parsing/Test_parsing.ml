@@ -186,12 +186,52 @@ let test_parse_tree_sitter lang xs =
 *)
 let parsing_common ?(verbose = true) lang xs =
   let timeout_seconds = 10.0 in
+  (* Without the use of Memory_limit below, we were getting some
+   * 'Fatal error: out of memory' errors in the parsing stat CI job,
+   * because of some ulimit -v 4000000 in the run-lang script,
+   * which then was aborting the whole job.
+   *
+   * Note that the mem_limit_mb value below must be less than the
+   * ulimit value in run-lang.
+   *
+   * In fact, it is not clear how much less it must be. For example with:
+   * $ ulimit -v 1000000
+   * $ semgrep-core -lang c -parsing_stats -json lang/c/tmp/php-php-src/ext/fileinfo/
+   * I still get a core dump with a "Fatal error: out of memory",
+   * even if I set mem_limit_mb below to 500.
+   * Seems like the Gc alarm does not trigger, maybe because there is no
+   * major GC cycle triggered before reaching the 1 GB ulimit.
+   *
+   * So the current workaround is to still put a limit below, but
+   * remove the 'ulimit -v' in the parsing-stat/run-lang script.
+   *
+   * TODO: The weird thing is that even with the 1Gb limit below, I often
+   * see with 'top' semgrep-core -parsing_stat using more than 2GB.
+   * Weird. Maybe the allocation happens in tree-sitter which are out of
+   * control of the OCaml GC.
+   *)
+  let mem_limit_mb = 1000 in
+  (* This may help a little getting more major cycle triggered.
+   * The default is 80, and Main.set_gc set it at 300. The lower it is
+   * and the more major cycles there will be.
+   *)
+  Gc.set { (Gc.get ()) with Gc.space_overhead = 30 };
+
+  logger#info "running with a timeout of %f.1s" timeout_seconds;
+  logger#info "running with a memory limit of %d MiB" mem_limit_mb;
+
   let xs = List.map Common.fullpath xs in
   let fullxs =
     Lang.files_of_dirs_or_files lang xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
     (* extra filtering excluding some extensions like '.d.ts'
-       TODO: should become part of files_of_dirs_or_files *)
+     * TODO? some source files are also really huge (> 20 MB), maybe
+     * we should skip them via Guess_lang.is_acceptable? or via another
+     * filter? and not count them in the statistics? They cause
+     * some annoying 'out of memory' errors that sometimes even the use
+     * of mem_limit_mb does not solve.
+     * TODO: should become part of files_of_dirs_or_files
+     *)
     |> List.filter (Guess_lang.is_acceptable lang)
   in
   fullxs
@@ -203,10 +243,12 @@ let parsing_common ?(verbose = true) lang xs =
          let stat =
            try
              match
-               Common.set_timeout ~verbose:false
-                 ~name:"Test_parsing.parsing_common" timeout_seconds (fun () ->
-                   Parse_target.parse_and_resolve_name_use_pfff_or_treesitter
-                     lang file)
+               Memory_limit.run_with_memory_limit ~mem_limit_mb (fun () ->
+                   Common.set_timeout ~verbose:false
+                     ~name:"Test_parsing.parsing_common" timeout_seconds
+                     (fun () ->
+                       Parse_target
+                       .parse_and_resolve_name_use_pfff_or_treesitter lang file))
              with
              | Some res -> res.Parse_target.stat
              | None -> { (PI.bad_stat file) with have_timeout = true }
@@ -225,6 +267,8 @@ let parsing_common ?(verbose = true) lang xs =
    projects with unusual results.
 
    Timeouts are ignored.
+   pad: Why are they ignored??? the should count in the parsing rate as
+    incorrect parsing.
 *)
 let parse_project ~verbose lang name files_or_dirs =
   let stat_list =

@@ -15,6 +15,11 @@
    'Gc.compact ()' is called before re-raising any 'Out_of_memory' exception
    so as to reclaim some space.
 
+   Note that tuning the GC with Gc.set may not interact well with
+   Memory_limit and its use of Gc.alarm. Indeed, the Gc.alarm triggers
+   only at major cycle, so tuning the GC may influence how frequently
+   major cycles occur.
+
    As of ocaml 4.12, segfaults often occur when running out of physical
    memory. Segfaults used to occur also on stack overflows on some
    architectures and/or operating systems, although this

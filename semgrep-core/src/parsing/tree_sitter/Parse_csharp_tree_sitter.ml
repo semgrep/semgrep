@@ -2954,18 +2954,9 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
-      try
-        match compilation_unit env cst with
-        | G.Pr xs -> xs
-        | _ -> failwith "not a program"
-      with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
-        raise exn)
+      match compilation_unit env cst with
+      | G.Pr xs -> xs
+      | _ -> failwith "not a program")
 
 let parse_pattern_aux str =
   (* ugly: coupling: see grammar.js of csharp.

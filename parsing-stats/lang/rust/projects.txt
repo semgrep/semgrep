@@ -1,4 +1,6 @@
+#TODO? skip compiler? it may contain many test files
 https://github.com/rust-lang/rust
+
 https://github.com/rust-lang/rustlings
 https://github.com/RustPython/RustPython
 https://github.com/RustScan/RustScan

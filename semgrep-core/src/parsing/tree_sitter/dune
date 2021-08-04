@@ -3,6 +3,7 @@
  (wrapped false)
  (libraries
    yaml
+   sexplib
 
    tree-sitter-lang.ruby
    tree-sitter-lang.java
