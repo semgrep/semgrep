@@ -120,6 +120,7 @@ workflows:
 
   # This is for testing or for forcing a stats job. Requires pushing
   # to a branch named 'parsing-stats'.
+  # FAKE PR to just trigger parsing-stat job
   parsing-stats-on-commit:
     jobs:
       - parsing-stats:
