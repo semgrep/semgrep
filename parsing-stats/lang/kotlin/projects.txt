@@ -1,4 +1,7 @@
-https://github.com/JetBrains/kotlin
+# we skip the compiler repository for now because it contains
+# lots of test files including test files with real parse errors
+#https://github.com/JetBrains/kotlin
+
 https://github.com/hussien89aa/KotlinUdemy
 https://github.com/git-xuhao/KotlinMvp
 https://github.com/Kotlin/kotlin-koans

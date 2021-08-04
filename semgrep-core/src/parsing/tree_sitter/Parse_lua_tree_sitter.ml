@@ -23,7 +23,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Prelude *)
 (*****************************************************************************)
 (* LUA parser using tree-sitter-lang/semgrep-lua and converting
- * directly to pfff/h_program-lang/ast_generic.ml
+ * directly to AST_generic
  *
  *)
 
@@ -35,8 +35,6 @@ type env = unit H.env
 let token = H.token
 
 let str = H.str
-
-let sc = PI.fake_info ";"
 
 let fb = G.fake_bracket
 
@@ -504,7 +502,7 @@ and map_function_call_expr (env : env) (x : CST.function_call_statement) :
 and map_function_call_statement (env : env) (x : CST.function_call_statement) :
     G.stmt =
   let expr = map_function_call_expr env x in
-  G.ExprStmt (expr, sc) |> G.s
+  G.ExprStmt (expr, G.sc) |> G.s
 
 and map_in_loop_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.in_loop_expression) =
@@ -575,12 +573,12 @@ and map_return_statement (env : env) ((v1, v2, v3) : CST.return_statement) =
   let v2 =
     match v2 with Some x -> Some (map_expression_tuple env x) | None -> None
   in
-  let v3 = match v3 with Some tok -> token env tok (* ";" *) | None -> sc in
+  let v3 = match v3 with Some tok -> token env tok (* ";" *) | None -> G.sc in
   G.Return (v1, v2, v3) |> G.s
 
 and map_statement (env : env) (x : CST.statement) : G.stmt list =
   match x with
-  | `Exp x -> [ G.ExprStmt (map_expression env x, sc) |> G.s ]
+  | `Exp x -> [ G.ExprStmt (map_expression env x, G.sc) |> G.s ]
   | `Var_decl (v1, v2, v3, v4, v5) ->
       let ident_first = map_variable_declarator env v1 in
       let ident_rest =
@@ -604,7 +602,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let assigns =
         mk_assigns (ident_first :: ident_rest) (expr_first :: expr_rest) equal
       in
-      List.map (fun x -> G.ExprStmt (x, sc) |> G.s) assigns
+      List.map (fun x -> G.ExprStmt (x, G.sc) |> G.s) assigns
   | `Local_var_decl (v1, v2, v3) ->
       let local = token env v1 (* "local" *) in
       let entities = map_local_variable_declarator env v2 local in
@@ -684,7 +682,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       [ G.Goto (v1, v2) |> G.s ]
   | `Brk_stmt tok ->
       let v1 = token env tok (* "break" *) in
-      [ G.Break (v1, LNone, sc) |> G.s ]
+      [ G.Break (v1, LNone, G.sc) |> G.s ]
   | `Label_stmt (v1, v2, v3) ->
       let _v1 = token env v1 (* "::" *) in
       let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
@@ -768,15 +766,7 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
-      try map_program env cst
-      with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
-        raise exn)
+      map_program env cst)
 
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =

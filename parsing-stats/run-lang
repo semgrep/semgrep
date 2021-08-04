@@ -10,7 +10,7 @@ progname=$(basename "$0")
 
 usage() {
   cat <<EOF
-Usage: $progname LANG
+Usage: $progname [--upload] LANG
 
 Expects:
 - lang/LANG/projects.txt: contains one git URL per line
@@ -103,9 +103,14 @@ main() {
 
     (
       cd tmp
-      # Set memory limit to avoid killing other processes that run in parallel
-      # if this semgrep-core instance uses too much memory.
-      ulimit -v 4000000  # KiB
+      # old: Set memory limit to avoid killing other processes that run in
+      # parallel if this semgrep-core instance uses too much memory.
+      ### ulimit -v 4000000  # KiB
+      # TODO: we now implement the limit in Test_parsing.parsing_common
+      # because the use of 'ulimit -v' above triggers some unrecoverable
+      # 'Fatal error: out of memory' that even Memory_limit can't intercept.
+      # See the long comment in Test_parsing.parsing_common about
+      # mem_limit_mb.
       semgrep-core -lang "$lang" -parsing_stats -json $project_list
     ) > stats.json
   )

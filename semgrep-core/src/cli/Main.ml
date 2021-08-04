@@ -30,7 +30,7 @@ module SJ = Spacegrep.Semgrep_j
  *    Javascript (and JSX), Typescript (and TSX), JSON
  *  - partial support for: C, C#, PHP, OCaml, Scala, Rust, Lua,
  *    YAML, HTML, Vue
- *  - almost support for: R, Kotlin, Bash, Docker
+ *  - almost support for: R, Kotlin, Bash, Docker, C++
  *
  * opti: git grep foo | xargs semgrep -e 'foo(...)'
  *
@@ -227,7 +227,13 @@ let version =
   spf "semgrep-core version: %s, pfff: %s" Version.version Config_pfff.version
 
 (*s: function [[Main_semgrep_core.set_gc]] *)
+(* Note that set_gc() may not interact well with Memory_limit and its use of
+ * Gc.alarm. Indeed, the Gc.alarm triggers only at major cycle
+ * and the tuning below raise significantly the major cycle trigger.
+ * This is why we call set_gc() only when max_memory_mb is unset.
+ *)
 let set_gc () =
+  logger#info "Gc tuning";
   (*
   if !Flag.debug_gc
   then Gc.set { (Gc.get()) with Gc.verbose = 0x01F };
@@ -236,6 +242,7 @@ let set_gc () =
    * which usually requires a ulimit -s 40000
    *)
   Gc.set { (Gc.get ()) with Gc.stack_limit = 1000 * 1024 * 1024 };
+
   (* see www.elehack.net/michael/blog/2010/06/ocaml-memory-tuning *)
   Gc.set { (Gc.get ()) with Gc.minor_heap_size = 4_000_000 };
   Gc.set { (Gc.get ()) with Gc.major_heap_increment = 8_000_000 };
@@ -1432,7 +1439,6 @@ let main () =
 
   (* does side effect on many global flags *)
   let args = Common.parse_options (options ()) usage_msg (Array.of_list argv) in
-  if !Flag.gc_tuning then set_gc ();
   let args = if !target_file = "" then args else Common.cat !target_file in
 
   if Sys.file_exists !log_config_file then (
@@ -1470,6 +1476,8 @@ let main () =
       (* main entry *)
       (* --------------------------------------------------------- *)
       | x :: xs -> (
+          if !Flag.gc_tuning && !max_memory_mb = 0 then set_gc ();
+
           match () with
           | _ when !config_file <> "" ->
               semgrep_with_rules_file !config_file (x :: xs)
@@ -1482,7 +1490,7 @@ let main () =
           | _ ->
               let lang = lang_of_string !lang in
               semgrep_with_one_pattern lang (x :: xs)
-              (*e: [[Main_semgrep_core.main()]] main entry match cases default case *)
+          (*e: [[Main_semgrep_core.main()]] main entry match cases default case *)
           )
       (* --------------------------------------------------------- *)
       (* empty entry *)
