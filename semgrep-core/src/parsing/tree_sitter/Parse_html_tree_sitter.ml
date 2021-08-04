@@ -11,7 +11,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
  *)
-open Common
 module CST = Tree_sitter_html.CST
 module H = Parse_tree_sitter_helpers
 open AST_generic
@@ -229,26 +228,17 @@ let parse file =
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
-      try
-        let xs = map_fragment env cst in
-        let xml =
-          {
-            xml_kind = XmlFragment (fake "", fake "");
-            xml_attrs = [];
-            xml_body = xs;
-          }
-        in
-        let e = Xml xml |> G.e in
-        let st = G.exprstmt e in
-        [ st ]
-      with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
-        raise exn)
+      let xs = map_fragment env cst in
+      let xml =
+        {
+          xml_kind = XmlFragment (fake "", fake "");
+          xml_attrs = [];
+          xml_body = xs;
+        }
+      in
+      let e = Xml xml |> G.e in
+      let st = G.exprstmt e in
+      [ st ])
 
 let parse_pattern str =
   H.wrap_parser

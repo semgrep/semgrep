@@ -11,7 +11,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * file license.txt for more details.
  *)
-open Common
 module CST = Tree_sitter_r.CST
 module H = Parse_tree_sitter_helpers
 
@@ -37,8 +36,6 @@ let token = H.token
 
 (* Disable warning against unused 'rec' *)
 [@@@warning "-39"]
-
-let blank (env : env) () = failwith "not implemented"
 
 let todo (env : env) _ = failwith "not implemented"
 
@@ -509,10 +506,5 @@ let parse file =
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       try map_program env cst
       with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
+        H.debug_sexp_cst_after_error (CST.sexp_of_program cst);
         raise exn)

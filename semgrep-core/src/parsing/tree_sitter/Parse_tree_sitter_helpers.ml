@@ -18,7 +18,7 @@ module PI = Parse_info
 (* Prelude *)
 (*****************************************************************************)
 (* A few helpers to help factorize code between the different
- * Parse_xxx_tree_sitter.ml
+ * Parse_xxx_tree_sitter.ml files.
  *)
 
 (*****************************************************************************)
@@ -35,7 +35,7 @@ type 'a env = {
 (* Helpers *)
 (*****************************************************************************)
 
-(* mostly a copy of Parse_info.full_charpos_to_pos_large *)
+(* mostly a copy-paste of Parse_info.full_charpos_to_pos_large *)
 let line_col_to_pos file =
   let chan = open_in file in
   let size = Common2.filesize file + 2 in
@@ -128,6 +128,20 @@ let combine_tokens_DEPRECATED env xs =
       let t = token env x in
       t
 
+let debug_sexp_cst_after_error sexp_cst =
+  let s = Printexc.get_backtrace () in
+  pr2 "Some constructs are not handled yet";
+  pr2 "CST was:";
+  (* bugfix: do not use CST.dump_tree because it prints on stdout
+   * and will mess up our interaction with semgrep python wrapper and
+   * also for the parsing_stat CI job.
+   *
+   * alt: Use Print_sexp.to_stderr of martin
+   *)
+  pr2 (Sexplib.Sexp.to_string_hum sexp_cst);
+  pr2 "Original backtrace:";
+  pr2 s
+
 let wrap_parser tree_sitter_parser ast_mapper =
   (* Note that because we currently use Parallel.invoke to
    * invoke the tree-sitter parser, unmarshalled exn
@@ -146,24 +160,16 @@ let wrap_parser tree_sitter_parser ast_mapper =
    let todo _env _x = failwith "not implemented"
 
    let todo_any str t any =
-   pr2 (AST.show_any any);
-   raise (Parse_info.Ast_builder_error (str, t))
+     pr2 (AST.show_any any);
+     raise (Parse_info.Ast_builder_error (str, t))
 
    let program =
    ...
    try
-   program ...
+     program ...
    with
     (Failure "not implemented") as exn ->
-      (* This debugging output is not JSON and breaks core output
-       *
-       * let s = Printexc.get_backtrace () in
-       * pr2 "Some constructs are not handled yet";
-       * pr2 "CST was:";
-       * CST.dump_tree ast;
-       * pr2 "Original backtrace:";
-       * pr2 s;
-       *)
+      H.debug_sexp_cst_after_error (CST.sexp_of_program cst);
       raise exn
 
 *)

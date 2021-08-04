@@ -1,5 +1,7 @@
+# TODO? should we skip the interpreter? it may contain lots of test files.
 https://github.com/lua/lua
-https://git.net-core.org/tome/t-engine4.git
+#RPC error at clone so skipped for now
+#https://git.net-core.org/tome/t-engine4.git
 https://github.com/EmmyLua/VSCode-EmmyLua
 https://github.com/EvandroLG/pegasus.lua
 https://github.com/Kong/kong
