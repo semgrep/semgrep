@@ -204,6 +204,8 @@ let parsing_common ?(verbose = true) lang xs =
    *
    * So the current workaround is to still use mem_limit_mb here, but
    * remove the 'ulimit -v' in the parsing-stat/run-lang script.
+   * In fact, even with that we still get some "out of memory" crash, so
+   * I also had to filter big files.
    *
    * TODO: The weird thing is that even with the 1Gb limit below, I often
    * see with 'top' semgrep-core -parsing_stat using more than 2GB.
@@ -225,15 +227,23 @@ let parsing_common ?(verbose = true) lang xs =
     Lang.files_of_dirs_or_files lang xs
     |> Skip_code.filter_files_if_skip_list ~root:xs
     (* extra filtering excluding some extensions like '.d.ts'
-     * TODO? some source files are also really huge (> 20 MB), maybe
-     * we should skip them via Guess_lang.is_acceptable? or via another
-     * filter? and not count them in the statistics? They cause
-     * some annoying 'out of memory' errors that sometimes even the use
-     * of mem_limit_mb does not solve.
      * TODO: should become part of files_of_dirs_or_files
      *)
     |> List.filter (Guess_lang.is_acceptable lang)
+    (* Some source files are really huge (> 20 MB) and they cause
+     * some annoying 'out of memory' crash that sometimes even the use
+     * of mem_limit_mb above does not solve. Maybe it's because
+     * we run lots of parsing jobs in parallel in parsing-stats/run-all
+     * TODO: we should do the parallel work OCaml side, not in run-all.
+     * TODO: improve the engine so even those huge files do not cause errors
+     * TODO: should we skip them via Guess_lang.is_acceptable?
+     *)
+    |> Common.exclude (fun file ->
+           let res = Common2.filesize file > 5_000_000 in
+           if res then pr2 (spf "skipping %s, too big" file);
+           res)
   in
+
   fullxs
   |> List.rev_map (fun file ->
          pr2
@@ -257,6 +267,10 @@ let parsing_common ?(verbose = true) lang xs =
            | exn ->
                if verbose then
                  pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+               (* bugfix: bad_stat() could actually triggering some
+                * Sys_error "Out of memory" when implemented naively,
+                * and this exn in the exn handler was stopping the whole job.
+                *)
                PI.bad_stat file
          in
          stat)
@@ -266,9 +280,22 @@ let parsing_common ?(verbose = true) lang xs =
    separate project. Keeping projects separate allows us to spot
    projects with unusual results.
 
-   Timeouts are ignored.
-   pad: Why are they ignored??? the should count in the parsing rate as
-    incorrect parsing.
+   Timeouts are ignored. Why?
+   martin: "changing the timeout or the hardware would change the stats.
+   They're meant to reflect syntax support for a language, not how slow
+   or fast we are at parsing.
+
+   I think it could be useful to have separate stats for timeouts. It could
+   be the percentage of lines of code for which we didn't time out. For the
+   reasons stated above, this may vary quite a lot from project to project,
+   depending on whether they check in weird files (generated, minified) and
+   whether we filter them out.
+
+   The specific situation that prompted me to exclude timeouts was the
+   low (~80%) parsing rate for javascript. This was only due to minified
+   files. In general it could be due to other problems, and yes, it would
+   be nice to find out about timeouts. I think the timeout threshold should
+   in seconds/MB or equivalent units, not seconds per file."
 *)
 let parse_project ~verbose lang name files_or_dirs =
   let stat_list =
