@@ -499,10 +499,42 @@ and m_expr a b =
        * (e.g., with org.foo(...)) but this is confusing for users.
        * We now allow an unqualified pattern like 'foo' to match resolved
        * entities like import org.foo; foo(), just like for attributes.
+       *
+       * bugfix: important to call with empty_id_info() below to avoid
+       * infinite recursion.
        *)
       m_expr a (B.N (B.Id (idb, B.empty_id_info ())) |> G.e)
       >||> (* try this time a match with the resolved entity *)
       m_expr a (make_dotted dotted)
+  (* equivalence: name resolving on qualified ids (for OCaml) *)
+  | ( _a,
+      B.N
+        (B.IdQualified
+          ( (idb, nameinfo),
+            {
+              B.id_resolved =
+                { contents = Some (B.ImportedEntity dotted, _sid) };
+              _;
+            } )) ) ->
+      (* try without resolving anything *)
+      m_expr a (B.N (B.IdQualified ((idb, nameinfo), B.empty_id_info ())) |> G.e)
+      >||>
+      (* try this time by replacing the qualifier by the resolved one *)
+      let new_qualifier =
+        match List.rev dotted with
+        | [] -> raise Impossible
+        | _x :: xs -> List.rev xs
+      in
+      m_expr a
+        (B.N
+           (B.IdQualified
+              ( ( idb,
+                  {
+                    nameinfo with
+                    name_qualifier = Some (B.QDots new_qualifier);
+                  } ),
+                B.empty_id_info () ))
+        |> G.e)
   (* Put this before the next case to prevent overly eager dealiasing *)
   | G.N (G.IdQualified (a1, a2)), B.N (B.IdQualified (b1, b2)) ->
       m_name_ a1 b1 >>= fun () -> m_id_info a2 b2
