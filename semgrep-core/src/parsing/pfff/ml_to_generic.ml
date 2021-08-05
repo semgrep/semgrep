@@ -252,16 +252,16 @@ and expr e =
       G.L v1
   | Name v1 -> G.N (name v1)
   | Constructor (v1, v2) ->
-      let v1 = dotted_ident_of_name v1 in
+      let v1 = name v1 in
       let v2 = option_expr_to_ctor_arguments v2 in
       G.Constructor (v1, v2)
   | PolyVariant ((v0, v1), v2) ->
       let v0 = tok v0 in
       let v1 = ident v1 in
       let v2 = option_expr_to_ctor_arguments v2 in
-      let dotted_ident = [ ("`", v0); v1 ] in
+      let name = H.name_of_ids [ ("`", v0); v1 ] in
       (* TODO: introduce a new construct in AST_generic instead? *)
-      G.Constructor (dotted_ident, v2)
+      G.Constructor (name, v2)
   | Tuple v1 ->
       let v1 = (list expr) v1 in
       (* the fake brackets might be replaced in the caller if there
@@ -432,17 +432,17 @@ and pattern = function
       let v1 = literal v1 in
       G.PatLiteral v1
   | PatConstructor (v1, v2) ->
-      let v1 = dotted_ident_of_name v1 and v2 = option pattern v2 in
+      let v1 = name v1 and v2 = option pattern v2 in
       G.PatConstructor (v1, Common.opt_to_list v2)
   | PatPolyVariant ((v0, v1), v2) ->
       let v0 = tok v0 in
       let v1 = ident v1 in
       let v2 = option pattern v2 in
-      let dotted_ident = [ ("`", v0); v1 ] in
-      G.PatConstructor (dotted_ident, Common.opt_to_list v2)
+      let name = H.name_of_ids [ ("`", v0); v1 ] in
+      G.PatConstructor (name, Common.opt_to_list v2)
   | PatConsInfix (v1, v2, v3) ->
       let v1 = pattern v1 and v2 = tok v2 and v3 = pattern v3 in
-      let n = [ ("::", v2) ] in
+      let n = H.name_of_ids [ ("::", v2) ] in
       G.PatConstructor (n, [ v1; v3 ])
   | PatTuple v1 ->
       let v1 = bracket (list pattern) v1 in

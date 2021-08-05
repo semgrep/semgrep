@@ -315,7 +315,8 @@ and v_pattern = function
       | Right e -> todo_pattern "PatLiteralExpr" [ G.E e ])
   | PatName v1 ->
       let ids = v_dotted_name_of_stable_id v1 in
-      G.PatConstructor (ids, [])
+      let name = H.name_of_ids ids in
+      G.PatConstructor (name, [])
   | PatTuple v1 ->
       let v1 = v_bracket (v_list v_pattern) v1 in
       G.PatTuple v1
@@ -334,10 +335,12 @@ and v_pattern = function
       let _v2TODO = v_option (v_bracket (v_list v_type_)) v2 in
       let v3 = v_option (v_bracket (v_list v_pattern)) v3 in
       let xs = match v3 with None -> [] | Some (_, xs, _) -> xs in
-      G.PatConstructor (ids, xs)
+      let name = H.name_of_ids ids in
+      G.PatConstructor (name, xs)
   | PatInfix (v1, v2, v3) ->
       let v1 = v_pattern v1 and v2 = v_ident v2 and v3 = v_pattern v3 in
-      G.PatConstructor ([ v2 ], [ v1; v3 ])
+      let name = H.name_of_ids [ v2 ] in
+      G.PatConstructor (name, [ v1; v3 ])
   | PatUnderscoreStar (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_tok v2 in
       todo_pattern "PatUnderscoreStar" [ G.Tk v1; G.Tk v2 ]
