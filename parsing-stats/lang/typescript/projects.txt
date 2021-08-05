@@ -44,7 +44,6 @@ https://github.com/basarat/typescript-book
 #
 https://github.com/omariosouto/lucasflix
 https://github.com/EmmaRamirez/nuzlocke-generator
-https://github.com/ant-design/ant-design
 https://github.com/FaridSafi/react-native-gifted-chat
 https://github.com/microsoft/reactxp
 https://github.com/react-component/slider
