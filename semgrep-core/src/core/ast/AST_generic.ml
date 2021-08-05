@@ -202,7 +202,10 @@ type ident = string wrap
 [@@deriving show, eq, hash]
 
 (*s: type [[AST_generic.dotted_ident]] *)
-(* usually separated by a '.', but can be used also with '::' separators *)
+(* Usually separated by a '.', but can be used also with '::' separators.
+ * TODO: we often need to get the last elt or adjust the qualifier part,
+ * so maybe we should define it as = ident list * ident
+ *)
 type dotted_ident = ident list (* at least 1 element *)
 (*e: type [[AST_generic.dotted_ident]] *)
 [@@deriving show, eq, hash]
@@ -406,7 +409,6 @@ and expr_kind =
   (* Or-type (could be used instead of Container, Cons, Nil, etc.).
    * (ab)used also for polymorphic variants where qualifier is QTop with
    * the '`' token.
-   * todo: we should probably replace dotted_ident by name here.
    *
    * Note that in OCaml constructors do not always need brackets.
    * For example, you can have 'let x = Foo 1'. However, you often
@@ -418,11 +420,12 @@ and expr_kind =
    * if the argument is a complex expression (e.g., 'let x = Foo(1+2)').
    * And if those parenthesis are not in the AST, then matching range
    * or autofix on such construct may fail.
+   * Finally, in some languages like Scala or Rust, constructors require
+   * the parenthesis.
    * Thus, it is simpler to add the bracket here, because this is mostly
-   * how user think. Finally, in some languages like Scala constructors
-   * require the parenthesis.
+   * how user think.
    *)
-  | Constructor of dotted_ident * expr list bracket
+  | Constructor of name * expr list bracket
   (* see also Call(IdSpecial (New,_), [ArgType _;...] for other values *)
   (*e: [[AST_generic.expr]] other composite cases *)
   | N of name
@@ -1118,9 +1121,8 @@ and pattern =
   | PatLiteral of literal
   (* Or-Type, used also to match OCaml exceptions.
    * Used with Rust path expressions, with an empty pattern list.
-   * todo: should probably replace dotted_ident by name here.
    *)
-  | PatConstructor of dotted_ident * pattern list
+  | PatConstructor of name * pattern list (* TODO: bracket also here *)
   (* And-Type*)
   | PatRecord of (dotted_ident * pattern) list bracket
   (* newvar:! *)

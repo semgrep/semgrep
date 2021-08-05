@@ -185,8 +185,7 @@ and vof_expr e =
       let v1 = vof_bracket (OCaml.vof_list vof_field) v1 in
       OCaml.VSum ("Record", [ v1 ])
   | Constructor (v1, v2) ->
-      let v1 = vof_dotted_ident v1
-      and v2 = vof_bracket (OCaml.vof_list vof_expr) v2 in
+      let v1 = vof_name v1 and v2 = vof_bracket (OCaml.vof_list vof_expr) v2 in
       OCaml.VSum ("Constructor", [ v1; v2 ])
   | Lambda v1 ->
       let v1 = vof_function_definition v1 in
@@ -889,7 +888,7 @@ and vof_pattern = function
       in
       OCaml.VSum ("PatRecord", [ v1 ])
   | PatConstructor (v1, v2) ->
-      let v1 = vof_dotted_ident v1 and v2 = OCaml.vof_list vof_pattern v2 in
+      let v1 = vof_name v1 and v2 = OCaml.vof_list vof_pattern v2 in
       OCaml.VSum ("PatConstructor", [ v1; v2 ])
   | PatWhen (v1, v2) ->
       let v1 = vof_pattern v1 and v2 = vof_expr v2 in

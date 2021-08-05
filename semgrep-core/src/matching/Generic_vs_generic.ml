@@ -712,7 +712,8 @@ and m_expr a b =
   (*s: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
-      m_dotted_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
+      (* TODO: handle aliasing in m_name, like we do for N in expr *)
+      m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
   | G.Lambda a1, B.Lambda b1 ->
       m_function_definition a1 b1 >>= fun () -> return ()
   | G.AnonClass a1, B.AnonClass b1 -> m_class_definition a1 b1
@@ -2147,7 +2148,8 @@ and m_pattern a b =
   | G.PatLiteral a1, B.PatLiteral b1 -> m_literal a1 b1
   | G.PatType a1, B.PatType b1 -> m_type_ a1 b1
   | G.PatConstructor (a1, a2), B.PatConstructor (b1, b2) ->
-      m_dotted_name a1 b1 >>= fun () -> (m_list m_pattern) a2 b2
+      (* TODO: handle aliasing in m_name, like we do for N in expr *)
+      m_name a1 b1 >>= fun () -> (m_list m_pattern) a2 b2
   | G.PatTuple a1, B.PatTuple b1 -> m_bracket (m_list m_pattern) a1 b1
   | G.PatList a1, B.PatList b1 -> m_bracket (m_list m_pattern) a1 b1
   | G.PatRecord a1, B.PatRecord b1 -> m_bracket (m_list m_field_pattern) a1 b1

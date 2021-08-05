@@ -19,6 +19,7 @@ open AST_generic
 module G = AST_generic
 module B = AST_generic_v1_t
 module PI = Parse_info
+module H = AST_generic_helpers
 
 exception NoInterpolatedElement
 
@@ -218,7 +219,9 @@ and map_expr x : B.expr =
       let v1 = map_bracket (map_of_list map_field) v1 in
       `Record v1
   | Constructor (v1, (_l, v2, _r)) ->
-      let v1 = map_dotted_ident v1 and v2 = map_of_list map_expr v2 in
+      let v1 = H.dotted_ident_of_name v1 in
+      let v1 = map_dotted_ident v1 in
+      let v2 = map_of_list map_expr v2 in
       `Constructor (v1, v2)
   | Lambda v1 ->
       let v1 = map_function_definition v1 in
@@ -830,6 +833,7 @@ and map_pattern = function
       let v1 = map_type_ v1 in
       `PatType v1
   | PatConstructor (v1, v2) ->
+      let v1 = H.dotted_ident_of_name v1 in
       let v1 = map_dotted_ident v1 and v2 = map_of_list map_pattern v2 in
       `PatConstructor (v1, v2)
   | PatTuple v1 ->
