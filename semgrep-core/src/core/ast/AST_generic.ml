@@ -1713,6 +1713,7 @@ and module_definition = { mbody : module_definition_kind }
 
 (*s: type [[AST_generic.module_definition_kind]] *)
 and module_definition_kind =
+  (* note that those could be converted also in ImportAs *)
   | ModuleAlias of dotted_ident
   (* newscope: *)
   | ModuleStruct of dotted_ident option * item list
