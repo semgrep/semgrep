@@ -13,7 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Hack: preliminary support for hack-lang
   thanks to David Frankel, Nicholas Lin, and more people at Slack!
-- OCaml: support for partial if, match, and try patterns 
+- OCaml: support for partial if, match, and try patterns
   (e.g., `if $X = $Y`)
 - OCaml: you can match uppercase identifiers (constructors, module names) by
   using a metavariable with an uppercase letter followed by an underscore,
@@ -34,6 +34,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - taint-mode
   - equivalences
   - step-by-step evaluation output
+- Deduplicate findings that fire on the same line ranges and have the same message.
 
 ### Fixed
 - Go: Match import module paths correctly (#3484)
@@ -49,10 +50,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Detect duplicate keys in YAML dictionaries in semgrep rules when parsing a rule
   (e.g., detect multiple 'metavariable' inside one 'metavariable-regex')
-
-
-### Changed
-- Deduplicate findings that fire on the same line ranges and have the same message.
 
 ### Fixed
 - C/C++: Fixed stack overflows (segmentation faults) when processing very large
