@@ -31,6 +31,8 @@ module PI = Parse_info
 
 type env = unit H.env
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 let token = H.token
 
 let str = H.str
@@ -89,6 +91,18 @@ let add_type_args_to_name name type_args =
 
 let basic_typed_entity id attrs tparams : G.entity =
   { (G.basic_entity id attrs) with tparams }
+
+let stringify_without_quotes str =
+  let s, t = str in
+  let s =
+    match s with
+    | s when s =~ "^\"\\(.*\\)\"$" -> Common.matched1 s
+    | s when s =~ "^\'\\(.*\\)\'$" -> Common.matched1 s
+    | _ ->
+        logger#warning "weird string literal: %s" s;
+        s
+  in
+  G.String (s, t)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -319,7 +333,7 @@ let xhp_enum_key (env : env) (x : CST.anon_choice_str_d42aa42) =
 
 let literal (env : env) (x : CST.literal) : G.literal =
   match x with
-  | `Str tok -> (* string *) G.String (str env tok)
+  | `Str tok -> (* string *) stringify_without_quotes (str env tok)
   | `Int tok ->
       (* integer *)
       let s, tok = str env tok in
@@ -1403,7 +1417,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       (* Q: This feels weird with the fst and snd *)
       G.Call
         ( G.IdSpecial (EncodedString (fst v1), snd v1) |> G.e,
-          G.fake_bracket [ G.Arg (G.L (G.String v2) |> G.e) ] )
+          G.fake_bracket [ G.Arg (G.L (stringify_without_quotes v2) |> G.e) ] )
       |> G.e
   | `Paren_exp x -> parenthesized_expression env x
   | `Bin_exp x -> binary_expression env x
@@ -2613,7 +2627,8 @@ and xhp_attribute (env : env) (x : CST.xhp_attribute) =
       let v2 = (* "=" *) token env v2 in
       let v3 =
         match v3 with
-        | `Str tok -> (* string *) G.L (G.String (str env tok)) |> G.e
+        | `Str tok ->
+            (* string *) G.L (stringify_without_quotes (str env tok)) |> G.e
         | `Braced_exp x -> G.unbracket (braced_expression env x)
       in
       G.XmlAttr (v1, v2, v3)
