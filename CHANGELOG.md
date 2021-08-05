@@ -29,6 +29,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - OCaml: skip ocamllex and ocamlyacc files. Process only .ml and .mli files.
 - Memoize range computation for expressions and speed up taint mode
 - Report semgrep-core's message upon a parse error
+- Deprecated the following experimental features:
+  - pattern-where-python
+  - taint-mode
+  - equivalences
+  - step-by-step evaluation output
 
 ### Fixed
 - Go: Match import module paths correctly (#3484)
