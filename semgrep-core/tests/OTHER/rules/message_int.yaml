@@ -1,0 +1,6 @@
+rules:
+- id: test
+  languages: [python]
+  pattern: x
+  message: 42
+  severity: ERROR
