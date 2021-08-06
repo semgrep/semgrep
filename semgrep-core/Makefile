@@ -45,7 +45,8 @@ dump:
 
 pr:
 	git push origin `git rev-parse --abbrev-ref HEAD`
-	hub pull-request -b develop -r mjambon -r IagoAbal -r emjin
+	hub pull-request -b develop -r mjambon -r IagoAbal
+#not this month: -r emjin
 
 push:
 	git push origin `git rev-parse --abbrev-ref HEAD`
