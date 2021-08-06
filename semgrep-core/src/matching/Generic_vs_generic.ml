@@ -328,15 +328,15 @@ let _m_resolved_name (a1, a2) (b1, b2) =
 (* start of recursive need *)
 (*s: function [[Generic_vs_generic.m_name]] *)
 (* TODO: factorize metavariable and aliasing logic in m_expr, m_type, m_attr
- * here, and use a new MV.N instead of MV.Id
+ * TODO: remove MV.Id and use always MV.N?
  *)
 let rec m_name a b =
   match (a, b) with
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
-  (* TODO: if Id _, IdQualified _ when is_metavarname id?? need
-   * to bind to an MV.N? *)
+  | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
+      envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) *)
   | ( G.IdQualified (_a1, _a2),
       B.IdQualified
@@ -360,6 +360,7 @@ let rec m_name a b =
                { nameinfo with name_qualifier = Some (B.QDots new_qualifier) }
              ),
              B.empty_id_info () ))
+  (* boilerplate *)
   | G.IdQualified (a1, a2), B.IdQualified (b1, b2) ->
       m_name_ a1 b1 >>= fun () -> m_id_info a2 b2
   | G.Id _, _ | G.IdQualified _, _ -> fail ()
@@ -581,6 +582,7 @@ and m_expr a b =
   (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
   (* Important to bind to MV.Id when we can, so this must be before
    * the next case where we bind to the more general MV.E.
+   * TODO: should be B.N (B.Id _ | B.IdQualified _)?
    *)
   | G.N (G.Id _ as na), B.N (B.Id _ as nb) -> m_name na nb
   | G.N (G.Id ((str, tok), _id_info)), _b when MV.is_metavar_name str ->
@@ -786,21 +788,12 @@ and m_expr a b =
 (*s: function [[Generic_vs_generic.m_field_ident]] *)
 and m_name_or_dynamic a b =
   match (a, b) with
-  (* TODO: factorize in m_name *)
-  | G.EN (G.Id ((str, tok), a2)), B.EN (B.Id (idb, b2))
+  | G.EN a1, B.EN b1 -> m_name a1 b1
+  | G.EN (G.Id ((str, tok), _idinfoa)), B.EDynamic b1
     when MV.is_metavar_name str ->
-      (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
-      let* () = m_type_option_with_hook idb !(a2.G.id_type) !(b2.B.id_type) in
-      let* () = m_id_info a2 b2 in
-      envf (str, tok) (MV.Id (idb, Some b2))
-  | G.EN (G.Id ((str, tok), _idinfoa)), b when MV.is_metavar_name str ->
-      let e = H.name_or_dynamic_to_expr b None in
-      envf (str, tok) (MV.E e)
-  | G.EN (G.Id (a, idinfoa)), B.EN (B.Id (b, idinfob)) ->
-      m_ident_and_id_info (a, idinfoa) (b, idinfob)
+      envf (str, tok) (MV.E b1)
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
-  | G.EN a, B.EN b -> m_name a b
   | G.EDynamic a, B.EDynamic b -> m_expr a b
   | G.EN _, _ | G.EDynamic _, _ -> fail ()
 
