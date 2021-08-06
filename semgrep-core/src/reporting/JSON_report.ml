@@ -257,22 +257,21 @@ let json_of_profile_info profile_start =
  *)
 let json_of_exn e =
   match e with
-  | Parse_rule.InvalidRule (pattern_id, msg, _posTODO) ->
+  | Parse_rule.InvalidRule (rule_id, msg, _posTODO) ->
       J.Object
         [
-          ("pattern_id", J.String pattern_id);
+          ("rule_id", J.String rule_id);
           ("error", J.String "invalid rule");
           ("message", J.String msg);
         ]
-  | Parse_rule.InvalidLanguage (pattern_id, language, _posTODO) ->
+  | Parse_rule.InvalidLanguage (rule_id, language, _posTODO) ->
       J.Object
         [
-          ("pattern_id", J.String pattern_id);
+          ("rule_id", J.String rule_id);
           ("error", J.String "invalid language");
           ("language", J.String language);
         ]
-  | Parse_rule.InvalidPattern (pattern_id, pattern, xlang, message, pos, path)
-    ->
+  | Parse_rule.InvalidPattern (rule_id, pattern, xlang, message, pos, path) ->
       let lang = Rule.string_of_xlang xlang in
       let range_json =
         match pos with
@@ -296,17 +295,17 @@ let json_of_exn e =
       in
       J.Object
         [
-          ("pattern_id", J.String pattern_id);
+          ("rule_id", J.String rule_id);
           ("error", J.String "invalid pattern");
           ("pattern", J.String pattern);
           ("language", J.String lang);
           ("message", J.String message);
           ("range", range_json);
         ]
-  | Parse_rule.InvalidRegexp (pattern_id, message, _posTODO) ->
+  | Parse_rule.InvalidRegexp (rule_id, message, _posTODO) ->
       J.Object
         [
-          ("pattern_id", J.String pattern_id);
+          ("rule_id", J.String rule_id);
           ("error", J.String "invalid regexp in rule");
           ("message", J.String message);
         ]
