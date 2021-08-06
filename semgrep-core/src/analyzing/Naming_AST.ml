@@ -26,14 +26,17 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* The goal of this module is to resolve names, a.k.a naming or
  * scope resolution, and to do it in a generic way on the generic AST.
  *
- * In a compiler frontend you often have those phases:
+ * In a compiler you often have those phases:
  *  - lexing
  *  - parsing
  *  - naming (the goal of this file)
  *  - typing
+ *  - intermediate code generation
+ *  - optimizing
+ *  - ...
  *
- * The goal of naming is to simplify further phases by having each
- * use of an entity clearly linked to its definition. For example,
+ * The goal of the naming phase is to simplify following phases by having
+ * each use of an entity clearly linked to its definition. For example,
  * when you see in the AST the use of the identifier 'a', this 'a'
  * could reference a local variable, or a parameter, or a global,
  * or a global defined in another module but imported in the current
@@ -41,11 +44,11 @@ let logger = Logging.get_logger [ __MODULE__ ]
  * enclosing variable with the same name.
  * By resolving once and for all all uses of an entity to its definition,
  * for example by renaming some shadow variables (see AST_generic.gensym),
- * we simpify further phases that don't have to maintain a complex environment
- * to deal with scoping issues (see the essence Of Python paper
- * "Python: The Full Monty" where they show that even complex IDEs still
- * don't correctly handle Python scoping rules and perform wrong renaming
- * refactorings).
+ * we simpify further phases, which don't have to maintain anymore a
+ * complex environment to deal with scoping issues
+ * (see the essence Of Python paper "Python: The Full Monty" where they
+ * show that even complex IDEs still do not correctly handle Python
+ * scoping rules and perform wrong renaming refactorings).
  *
  * Resolving names by tagging identifiers is also useful for
  * codemap/efuns to colorize identifiers (locals, params, globals, unknowns)
@@ -122,8 +125,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *    a variable checker (resolve_xxx.ml instead of check_variables_xxx.ml)
  *  - AST generic and its resolved_name ref
  *  - simple resolve_python.ml with variable and import resolution
- *  - separate resolve_go.ml  with import resolution
+ *  - separate resolve_go.ml with import resolution
  *  - try to unify those resolvers in one file, naming_ast.ml
+ *  - resolve names for OCaml constructs and factorize name resolution
+ *    in better 'name' type and 'kname' hook.
  *)
 
 (*****************************************************************************)
@@ -304,9 +309,16 @@ let set_resolved env id_info x =
    * lang-specific resolved found?
    *)
   id_info.id_resolved := Some x.entname;
-  (* this is defensive programming against the possibility of introducing
+  (* This is defensive programming against the possibility of introducing
    * cycles in the AST.
-   * See tests/python/naming/shadow_name_type.py for a patological case. *)
+   * Indeed, when we are inside a type, especially in  (OtherType (OT_Expr)),
+   * we don't want set_resolved to set the type on some Id because
+   * this could lead to cycle in the AST because of id_type
+   * that will reference a type, that could containi an OT_Expr, containing
+   * an Id, that could contain the same id_type, and so on.
+   * See tests/python/naming/shadow_name_type.py for a patological example
+   * See also tests/rust/parsing/misc_recursion.rs for another example.
+   *)
   if not !(env.in_type) then id_info.id_type := x.enttype
 
 (*e: function [[Naming_AST.set_resolved]] *)
@@ -338,13 +350,13 @@ let lookup_scope_opt (s, _) env =
 (* Error management *)
 (*****************************************************************************)
 (*s: constant [[Naming_AST.error_report]] *)
-let error_report = ref false
+let error_report = false
 
 (*e: constant [[Naming_AST.error_report]] *)
 
 (*s: function [[Naming_AST.error]] *)
 let error tok s =
-  if !error_report then raise (Parse_info.Other_error (s, tok))
+  if error_report then raise (Parse_info.Other_error (s, tok))
   else logger#error "%s at %s" s (Parse_info.string_of_info tok)
 
 (*e: function [[Naming_AST.error]] *)
@@ -417,26 +429,28 @@ let declare_var env lang id id_info ~explicit vinit vtype =
   add_ident_to_its_scope id resolved env.names;
   set_resolved env id_info resolved
 
+let assign_implicitly_declares lang =
+  lang = Lang.Python || lang = Lang.Ruby || lang = Lang.PHP || Lang.is_js lang
+
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let assign_implicitly_declares lang =
-  lang = Lang.Python || lang = Lang.Ruby || lang = Lang.PHP || Lang.is_js lang
-
 (*s: function [[Naming_AST.resolve]] *)
-let resolve2 lang prog =
+let resolve lang prog =
   logger#info "Naming_AST.resolve program";
   let env = default_env lang in
 
-  (* would be better to use a classic recursive-with-environment visit.
-   * coupling: we do similar things in Constant_propagation.ml so if you
+  (* coupling: we do similar things in Constant_propagation.ml so if you
    * add a feature here, you might want to add a similar thing over there too.
    *)
   let hooks =
+    (* would be better to use a classic recursive-with-environment visit *)
     {
       V.default_visitor with
-      (* the defs *)
+      (* ---------- *)
+      (* !the defs! *)
+      (* ---------- *)
       V.kfunction_definition =
         (fun (k, _v) x ->
           (* todo: add the function as a Global. In fact we should do a first
@@ -640,7 +654,39 @@ let resolve2 lang prog =
             when not (Lang.is_js lang) ->
               Common.save_excursion env.in_lvalue true (fun () -> k x)
           | _ -> k x);
-      (* the uses *)
+      (* ---------- *)
+      (* !the uses! *)
+      (* ---------- *)
+      (* kname will resolve names for Constructor/PatConstructor/NamedAttr/TyN
+       * and maybe more. For expressions, we do something special for N (Id)
+       * in kexpr do deal with languages where the first occurence of an
+       * Id could be a declaration.
+       *)
+      V.kname =
+        (fun (k, _) x ->
+          match x with
+          | Id (id, id_info) -> (
+              match lookup_scope_opt id env with
+              | Some resolved ->
+                  (* name resolution *)
+                  set_resolved env id_info resolved
+              | _ -> ())
+          | IdQualified ((id, name_info), id_info) ->
+              (match name_info with
+              (* this is quite specific to OCaml *)
+              | { name_qualifier = Some (QDots [ m ]); _ } -> (
+                  match lookup_scope_opt m env with
+                  | Some { entname = ImportedModule (DottedName xs), _sidm; _ }
+                    ->
+                      (* The entity is fully qualified, no need for sid *)
+                      let sid = 0 in
+                      let resolved =
+                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
+                      in
+                      set_resolved env id_info resolved
+                  | _ -> ())
+              | _ -> ());
+              k x);
       V.kexpr =
         (fun (k, vout) x ->
           let recurse = ref true in
@@ -679,8 +725,9 @@ let resolve2 lang prog =
               vout (E e1);
               Common.save_excursion env.in_lvalue false (fun () -> vout (E e2));
               recurse := false
-          | N (Id (id, id_info)) -> (
-              match lookup_scope_opt id env with
+          (* specialized kname case when in expr context *)
+          | N (Id (id, id_info)) ->
+              (match lookup_scope_opt id env with
               | Some resolved ->
                   (* name resolution *)
                   set_resolved env id_info resolved
@@ -699,27 +746,8 @@ let resolve2 lang prog =
                      * currently tagged
                      *)
                     let s, tok = id in
-                    error tok (spf "could not find '%s' in environment" s))
-          | N (IdQualified ((id, name_info), id_info)) ->
-              (* TODO: factorize when need to handle name in Constructor *)
-              (match name_info with
-              (* this is quite specific to OCaml *)
-              | { name_qualifier = Some (QDots [ m ]); _ } -> (
-                  match lookup_scope_opt m env with
-                  | Some
-                      {
-                        entname = ImportedModule (DottedName xs), _sidmodule;
-                        _;
-                      } ->
-                      (* The entity is fully qualified, no need for sid *)
-                      let sid = 0 in
-                      let resolved =
-                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
-                      in
-                      set_resolved env id_info resolved
-                  | _ -> ())
-              | _ -> ());
-              k x
+                    error tok (spf "could not find '%s' in environment" s));
+              recurse := false
           | DotAccess ({ e = IdSpecial (This, _); _ }, _, EN (Id (id, id_info)))
             -> (
               match lookup_scope_opt id env with
@@ -735,47 +763,16 @@ let resolve2 lang prog =
                   error tok (spf "could not find '%s' field in environment" s))
           | _ -> ());
           if !recurse then k x);
-      V.kattr =
-        (fun (k, _v) x ->
-          (match x with
-          | NamedAttr (_, Id (id, id_info), _args) -> (
-              match lookup_scope_opt id env with
-              | Some resolved ->
-                  (* name resolution *)
-                  set_resolved env id_info resolved
-              | _ -> ())
-          | _ -> ());
-          k x);
       V.ktype_ =
         (fun (k, _v) x ->
-          let f x =
-            (match x with
-            (* TODO: factorize in kname? *)
-            | TyN (Id (id, id_info)) -> (
-                match lookup_scope_opt id env with
-                | Some resolved -> set_resolved env id_info resolved
-                | _ -> ())
-            | _ -> ());
-            k x
-          in
-          (* when we are inside a type, especially in  (OtherType (OT_Expr)),
-           * we don't want set_resolved to set the type on some Id because
-           * this could lead to cycle in the AST because of id_type
-           * that will reference a type, that could containi an OT_Expr, containing
-           * an Id, that could contain the same id_type, and so on.
-           * See tests/python/naming/shadow_name_type.py for a patological example
-           * See also tests/rust/parsing/misc_recursion.rs for another example.
-           *)
-          if !(env.in_type) then f x
-          else Common.save_excursion env.in_type true (fun () -> f x));
+          if !(env.in_type) then k x
+          else Common.save_excursion env.in_type true (fun () -> k x));
     }
   in
   let visitor = V.mk_visitor hooks in
   visitor (Pr prog);
   ()
+  [@@profiling]
 
 (*e: function [[Naming_AST.resolve]] *)
-let resolve a b =
-  Common.profile_code "Naming_ast.resolve" (fun () -> resolve2 a b)
-
 (*e: pfff/lang_GENERIC/analyze/Naming_AST.ml *)
