@@ -8,6 +8,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - OCaml: support module aliasing, so looking for `List.map` will also
   find code that renamed `List` as `L` via `module L = List`.
 
+### Fixed
+- core: Fix parsing of numeric literals in rule files
+
 ## [0.61.0](https://github.com/returntocorp/semgrep/releases/tag/v0.61.0) - 2021-08-04
 
 ### Added

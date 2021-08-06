@@ -195,18 +195,22 @@ let (take : dict -> (key -> G.expr -> 'a) -> string -> 'a) =
 (* Sub parsers basic types *)
 (*****************************************************************************)
 
-(* TODO: delete at some point, should use parse_string_wrap instead *)
-let parse_string (key : key) x =
-  match x.G.e with
-  | G.L (String (value, _)) -> value
-  | G.N (Id ((value, _), _)) -> value
-  | _ -> error_at_key key ("Expected a string value for " ^ fst key)
+let read_string_wrap e =
+  match e with
+  | G.L (String (value, t)) -> Some (value, t)
+  | G.L (Float (Some n, t)) ->
+      if Float.is_integer n then Some (string_of_int (Float.to_int n), t)
+      else Some (string_of_float n, t)
+  | G.N (Id ((value, t), _)) -> Some (value, t)
+  | _ -> None
 
 let parse_string_wrap (key : key) x =
-  match x.G.e with
-  | G.L (String (value, t)) -> (value, t)
-  | G.N (Id ((value, t), _)) -> (value, t)
-  | _ -> error_at_key key ("Expected a string value for " ^ fst key)
+  match read_string_wrap x.G.e with
+  | Some (value, t) -> (value, t)
+  | None -> error_at_key key ("Expected a string value for " ^ fst key)
+
+(* TODO: delete at some point, should use parse_string_wrap instead *)
+let parse_string (key : key) x = parse_string_wrap key x |> fst
 
 let parse_list (key : key) f x =
   match x.G.e with
@@ -383,10 +387,9 @@ let parse_pattern ~id ~lang { Rule.pattern; t; path } =
 
 let parse_xpattern env e =
   let s, t =
-    match e.G.e with
-    | G.L (String (s, t)) -> (s, t)
-    | G.N (Id ((s, t), _)) -> (s, t)
-    | _ -> error_at_expr e ("Expected a string value for " ^ env.id)
+    match read_string_wrap e.G.e with
+    | Some (s, t) -> (s, t)
+    | None -> error_at_expr e ("Expected a string value for " ^ env.id)
   in
   (* emma: This is for later, but note that start and end_ are currently the same
    * (each pattern is only associated with one token). This might be really annoying
