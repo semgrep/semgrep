@@ -46,7 +46,7 @@ let to_channel oc nodes = output_string oc (to_string nodes)
 let to_stdout nodes = to_channel stdout nodes
 
 let to_file file nodes =
-  let oc = open_out file in
+  let oc = open_out_bin file in
   Fun.protect
     ~finally:(fun () -> close_out_noerr oc)
     (fun () -> to_channel oc nodes)
@@ -93,7 +93,7 @@ module Debug = struct
   let to_stdout nodes = to_channel stdout nodes
 
   let to_file file nodes =
-    let oc = open_out file in
+    let oc = open_out_bin file in
     Fun.protect
       ~finally:(fun () -> close_out_noerr oc)
       (fun () -> to_channel oc nodes)
