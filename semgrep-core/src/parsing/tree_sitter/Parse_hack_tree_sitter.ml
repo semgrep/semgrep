@@ -2757,12 +2757,7 @@ let parse file =
 
       try script env cst
       with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
+        H.debug_sexp_cst_after_error (CST.sexp_of_script cst);
         raise exn)
 
 let parse_pattern str =

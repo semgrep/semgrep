@@ -499,10 +499,42 @@ and m_expr a b =
        * (e.g., with org.foo(...)) but this is confusing for users.
        * We now allow an unqualified pattern like 'foo' to match resolved
        * entities like import org.foo; foo(), just like for attributes.
+       *
+       * bugfix: important to call with empty_id_info() below to avoid
+       * infinite recursion.
        *)
       m_expr a (B.N (B.Id (idb, B.empty_id_info ())) |> G.e)
       >||> (* try this time a match with the resolved entity *)
       m_expr a (make_dotted dotted)
+  (* equivalence: name resolving on qualified ids (for OCaml) *)
+  | ( _a,
+      B.N
+        (B.IdQualified
+          ( (idb, nameinfo),
+            {
+              B.id_resolved =
+                { contents = Some (B.ImportedEntity dotted, _sid) };
+              _;
+            } )) ) ->
+      (* try without resolving anything *)
+      m_expr a (B.N (B.IdQualified ((idb, nameinfo), B.empty_id_info ())) |> G.e)
+      >||>
+      (* try this time by replacing the qualifier by the resolved one *)
+      let new_qualifier =
+        match List.rev dotted with
+        | [] -> raise Impossible
+        | _x :: xs -> List.rev xs
+      in
+      m_expr a
+        (B.N
+           (B.IdQualified
+              ( ( idb,
+                  {
+                    nameinfo with
+                    name_qualifier = Some (B.QDots new_qualifier);
+                  } ),
+                B.empty_id_info () ))
+        |> G.e)
   (* Put this before the next case to prevent overly eager dealiasing *)
   | G.N (G.IdQualified (a1, a2)), B.N (B.IdQualified (b1, b2)) ->
       m_name_ a1 b1 >>= fun () -> m_id_info a2 b2
@@ -680,7 +712,8 @@ and m_expr a b =
   (*s: [[Generic_vs_generic.m_expr()]] boilerplate cases *)
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
-      m_dotted_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
+      (* TODO: handle aliasing in m_name, like we do for N in expr *)
+      m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
   | G.Lambda a1, B.Lambda b1 ->
       m_function_definition a1 b1 >>= fun () -> return ()
   | G.AnonClass a1, B.AnonClass b1 -> m_class_definition a1 b1
@@ -2115,7 +2148,8 @@ and m_pattern a b =
   | G.PatLiteral a1, B.PatLiteral b1 -> m_literal a1 b1
   | G.PatType a1, B.PatType b1 -> m_type_ a1 b1
   | G.PatConstructor (a1, a2), B.PatConstructor (b1, b2) ->
-      m_dotted_name a1 b1 >>= fun () -> (m_list m_pattern) a2 b2
+      (* TODO: handle aliasing in m_name, like we do for N in expr *)
+      m_name a1 b1 >>= fun () -> (m_list m_pattern) a2 b2
   | G.PatTuple a1, B.PatTuple b1 -> m_bracket (m_list m_pattern) a1 b1
   | G.PatList a1, B.PatList b1 -> m_bracket (m_list m_pattern) a1 b1
   | G.PatRecord a1, B.PatRecord b1 -> m_bracket (m_list m_field_pattern) a1 b1

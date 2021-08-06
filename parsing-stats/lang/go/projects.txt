@@ -1,3 +1,4 @@
+#TODO? skip the compiler as it may contain lots of test files?
 https://github.com/golang/go.git
 https://github.com/kubernetes/kubernetes.git
 https://github.com/moby/moby.git

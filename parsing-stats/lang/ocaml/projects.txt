@@ -11,14 +11,14 @@ https://github.com/returntocorp/pfff
 # (we could add more, we're looking for large amounts of handwritten
 # code rather than popularity)
 #
+# TODO? should we skip the compiler repo? it contains lots of test files.
+# https://github.com/ocaml/ocaml.git
 https://github.com/facebook/flow.git
 https://github.com/reasonml/reason.git
 https://github.com/facebook/pyre-check.git
-https://github.com/rescript-lang/rescript-compiler.git
 https://github.com/astrada/google-drive-ocamlfuse.git
 https://github.com/batsh-dev-team/Batsh.git
 https://github.com/coq/coq.git
-https://github.com/ocaml/ocaml.git
 https://github.com/fastpack/fastpack.git
 https://github.com/bcpierce00/unison.git
 https://github.com/mirage/mirage.git
@@ -29,3 +29,7 @@ https://github.com/ocaml/merlin.git
 https://github.com/MLstate/opalang.git
 https://github.com/airbus-seclab/bincat.git
 https://github.com/ocaml/dune.git
+
+# this contains a 22MB whole_compiler.ml file that requires 4GB
+# of memory to parse.
+https://github.com/rescript-lang/rescript-compiler.git

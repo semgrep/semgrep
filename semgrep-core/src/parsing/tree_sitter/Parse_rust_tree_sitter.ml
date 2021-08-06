@@ -664,8 +664,7 @@ and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0) :
   | `Lit_pat x -> map_literal_pattern env x
   | `Choice_self x ->
       let name = map_path_name env x in
-      let dotted = H2.dotted_ident_of_name name in
-      G.PatConstructor (dotted, [])
+      G.PatConstructor (name, [])
 
 and map_meta_argument (env : env) (x : CST.anon_choice_meta_item_fefa160) :
     rust_meta_argument =
@@ -1377,7 +1376,7 @@ and map_expression (env : env) (x : CST.expression) =
         | `Gene_type_with_turb x -> map_generic_type_with_turbofish env x
       in
       let l, fields, r = map_field_initializer_list env v2 in
-      G.Constructor (H2.dotted_ident_of_name name, (l, fields, r))
+      G.Constructor (name, (l, fields, r))
   | `Ellips tok -> G.Ellipsis (token env tok) (* "..." *)
   | `Deep_ellips (v1, v2, v3) ->
       let lellips = token env v1 (* "<..." *) in
@@ -2262,9 +2261,7 @@ and map_pattern (env : env) (x : CST.pattern) : G.pattern =
       let ident = ident env tok in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       G.PatId (ident, G.empty_id_info ())
-  | `Scoped_id x ->
-      G.PatConstructor
-        (H2.dotted_ident_of_name (map_scoped_identifier_name env x), [])
+  | `Scoped_id x -> G.PatConstructor (map_scoped_identifier_name env x, [])
   | `Tuple_pat (v1, v2, v3, v4) ->
       let lparen = token env v1 (* "(" *) in
       let items =

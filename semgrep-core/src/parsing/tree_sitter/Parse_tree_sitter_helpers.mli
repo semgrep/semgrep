@@ -18,6 +18,8 @@ val str_if_wrong_content_temporary_fix :
 val combine_tokens_DEPRECATED :
   'a env -> Tree_sitter_run.Token.t list -> Parse_info.t
 
+val debug_sexp_cst_after_error : Sexplib.Sexp.t -> unit
+
 (*
    Call a tree-sitter parser and then map the CST into an AST
    with the user-provided function. Takes care of error handling.

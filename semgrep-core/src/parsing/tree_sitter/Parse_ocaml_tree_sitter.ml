@@ -38,14 +38,10 @@ type env = unit H.env
 
 let token = H.token
 
-let _fake = PI.fake_info
-
-let fb = PI.fake_bracket
-
 let str = H.str
 
 (* like in parser_ml.mly *)
-let seq1 = function [ x ] -> x | xs -> Sequence (Parse_info.fake_bracket xs)
+let seq1 = function [ x ] -> x | xs -> Sequence (PI.fake_bracket xs)
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -973,7 +969,7 @@ and map_binding_pattern (env : env) (x : CST.binding_pattern) : pattern =
       let v1 = map_binding_pattern_ext env v1 in
       let _v2 = token env v2 (* "," *) in
       let v3 = map_binding_pattern_ext env v3 in
-      PatTuple (fb [ v1; v3 ])
+      PatTuple (PI.fake_bracket [ v1; v3 ])
   | `Cons_bind_pat_f2d0ae9 (v1, v2, v3) ->
       let v1 = map_binding_pattern_ext env v1 in
       let v2 = token env v2 (* "::" *) in
@@ -2180,7 +2176,7 @@ and map_pattern (env : env) (x : CST.pattern) : pattern =
       let v1 = map_pattern_ext env v1 in
       let _v2 = token env v2 (* "," *) in
       let v3 = map_pattern_ext env v3 in
-      PatTuple (fb [ v1; v3 ])
+      PatTuple (PI.fake_bracket [ v1; v3 ])
   | `Cons_pat_9b4e481 (v1, v2, v3) ->
       let v1 = map_pattern_ext env v1 in
       let v2 = token env v2 (* "::" *) in
@@ -3175,12 +3171,4 @@ let parse file =
       Parallel.invoke Tree_sitter_ocaml.Parse.file file ())
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try map_compilation_unit env cst
-      with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
-        raise exn)
+      map_compilation_unit env cst)

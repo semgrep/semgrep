@@ -16,6 +16,7 @@ let default_stack_warning_kb = 100
 
    See https://discuss.ocaml.org/t/todays-trick-memory-limits-with-gc-alarms/4431
    for detailed explanations.
+
 *)
 let run_with_memory_limit ?(stack_warning_kb = default_stack_warning_kb)
     ~mem_limit_mb f =

@@ -60,7 +60,9 @@ let test_stack_warning () =
 let test_memory_limit_with_heap () =
   try
     Memory_limit.run_with_memory_limit ~mem_limit_mb:10 (fun () ->
-        grow_heap 15_000_000);
+        (* note that the GC alarm may not trigger until we allocate
+         * significantly more memory than 10MB. *)
+        grow_heap 20_000_000);
     assert false
   with Out_of_memory -> (* success *) ()
 

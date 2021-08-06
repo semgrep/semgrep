@@ -1,7 +1,7 @@
 (*s: pfff/lang_GENERIC/analyze/Naming_AST.ml *)
-(* Yoann Padioleau
+(* Yoann Padioleau, Iago Abal
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020-2021 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -66,9 +66,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *    useful for complex global analysis (or at least semi-global as in
  *    OCaml where you still need to open many .cmi when you locally type a .ml)
  *    such as typing where we want to resolve every use of a global.
- *    For sgrep, where we might for quite some time restrict ourselves to
+ *    For semgrep, where we might for quite some time restrict ourselves to
  *    local analysis, maybe the ref implementation technique is good enough.
- *  - implement a resolve_xxx.ml for each language instead of doing
+ *  - implement a resolve_xxx.ml for each language instead of doing it
  *    on the generic AST. That is what I was doing previously, which
  *    has some advantages (some language-specific constructs that introduce
  *    new variables, for example Python comprehensions, are hard to analyze
@@ -535,6 +535,19 @@ let resolve2 lang prog =
                     (spf "could not find '%s' for directive %s"
                        (H.str_of_ident id) s));
               k x
+          (* module L = List, in OCaml *)
+          | ( { name = EN (Id (id, id_info)); _ },
+              ModuleDef { mbody = ModuleAlias xs } ) ->
+              (* similar to the ImportAs case *)
+              let sid = H.gensym () in
+              let resolved =
+                untyped_ent (ImportedModule (DottedName xs), sid)
+              in
+              set_resolved env id_info resolved;
+              (* difference with ImportAs, we add in local scope in OCaml *)
+              add_ident_current_scope id resolved env.names;
+              k x
+          (* general case, just recurse *)
           | _ -> k x);
       (* sgrep: the import aliases *)
       V.kdir =
@@ -687,6 +700,26 @@ let resolve2 lang prog =
                      *)
                     let s, tok = id in
                     error tok (spf "could not find '%s' in environment" s))
+          | N (IdQualified ((id, name_info), id_info)) ->
+              (* TODO: factorize when need to handle name in Constructor *)
+              (match name_info with
+              (* this is quite specific to OCaml *)
+              | { name_qualifier = Some (QDots [ m ]); _ } -> (
+                  match lookup_scope_opt m env with
+                  | Some
+                      {
+                        entname = ImportedModule (DottedName xs), _sidmodule;
+                        _;
+                      } ->
+                      (* The entity is fully qualified, no need for sid *)
+                      let sid = 0 in
+                      let resolved =
+                        untyped_ent (ImportedEntity (xs @ [ id ]), sid)
+                      in
+                      set_resolved env id_info resolved
+                  | _ -> ())
+              | _ -> ());
+              k x
           | DotAccess ({ e = IdSpecial (This, _); _ }, _, EN (Id (id, id_info)))
             -> (
               match lookup_scope_opt id env with

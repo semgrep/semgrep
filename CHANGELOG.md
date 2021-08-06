@@ -5,9 +5,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- OCaml: support module aliasing, so looking for `List.map` will also
+  find code that renamed `List` as `L` via `module L = List`.
+
+## [0.61.0](https://github.com/returntocorp/semgrep/releases/tag/v0.61.0) - 2021-08-04
+
+### Added
 - Hack: preliminary support for hack-lang
   thanks to David Frankel, Nicholas Lin, and more people at Slack!
-- OCaml: support for partial if, match, and try patterns 
+- OCaml: support for partial if, match, and try patterns
   (e.g., `if $X = $Y`)
 - OCaml: you can match uppercase identifiers (constructors, module names) by
   using a metavariable with an uppercase letter followed by an underscore,
@@ -23,6 +29,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - OCaml: skip ocamllex and ocamlyacc files. Process only .ml and .mli files.
 - Memoize range computation for expressions and speed up taint mode
 - Report semgrep-core's message upon a parse error
+- Deprecated the following experimental features:
+  - pattern-where-python
+  - taint-mode
+  - equivalences
+  - step-by-step evaluation output
+- Deduplicate findings that fire on the same line ranges and have the same message.
 
 ### Fixed
 - Go: Match import module paths correctly (#3484)
@@ -38,10 +50,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Detect duplicate keys in YAML dictionaries in semgrep rules when parsing a rule
   (e.g., detect multiple 'metavariable' inside one 'metavariable-regex')
-
-
-### Changed
-- Deduplicate findings that fire on the same line ranges and have the same message.
 
 ### Fixed
 - C/C++: Fixed stack overflows (segmentation faults) when processing very large

@@ -2045,12 +2045,7 @@ let parse file =
         | G.Pr xs -> xs
         | _ -> failwith "not a program"
       with Failure "not implemented" as exn ->
-        let s = Printexc.get_backtrace () in
-        pr2 "Some constructs are not handled yet";
-        pr2 "CST was:";
-        CST.dump_tree cst;
-        pr2 "Original backtrace:";
-        pr2 s;
+        H.debug_sexp_cst_after_error (CST.sexp_of_source_file cst);
         raise exn)
 
 let parse_expression_or_source_file str =
