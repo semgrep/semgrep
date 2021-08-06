@@ -9,9 +9,6 @@ val pattern_to_expr : AST_generic.pattern -> AST_generic.expr
 
 val expr_to_type : AST_generic.expr -> AST_generic.type_
 
-val name_or_dynamic_to_expr :
-  AST_generic.name_or_dynamic -> AST_generic.id_info option -> AST_generic.expr
-
 val vardef_to_assign :
   AST_generic.entity * AST_generic.variable_definition -> AST_generic.expr
 

@@ -190,6 +190,7 @@ let stmts_may_match pattern_stmts (stmts : AST_generic.stmt list) =
 
 (*s: function [[Generic_vs_generic.m_ident]] *)
 (* coupling: modify also m_ident_and_id_info *)
+(* You should prefer to use m_ident_and_id_info if you can *)
 let m_ident a b =
   match (a, b) with
   (*s: [[Generic_vs_generic.m_ident()]] metavariable case *)
@@ -326,12 +327,35 @@ let _m_resolved_name (a1, a2) (b1, b2) =
 
 (* start of recursive need *)
 (*s: function [[Generic_vs_generic.m_name]] *)
-(* TODO: factorize metavariable and aliasing logic in m_expr, m_type, m_attr
- * here, and use a new MV.N instead of MV.Id
+(* TODO: factorize with metavariable and aliasing logic in m_expr
+ * TODO: remove MV.Id and use always MV.N?
  *)
 let rec m_name a b =
   match (a, b) with
-  | G.Id (a1, a2), B.Id (b1, b2) -> m_ident a1 b1 >>= fun () -> m_id_info a2 b2
+  (* equivalence: aliasing (name resolving) part 1 *)
+  | ( a,
+      B.Id
+        ( idb,
+          {
+            B.id_resolved =
+              {
+                contents =
+                  Some
+                    ( ( B.ImportedEntity dotted
+                      | B.ImportedModule (B.DottedName dotted) ),
+                      _sid );
+              };
+            _;
+          } ) ) ->
+      m_name a (B.Id (idb, B.empty_id_info ()))
+      >||> (* try this time a match with the resolved entity *)
+      m_name a (H.name_of_ids dotted)
+  | G.Id (a1, a2), B.Id (b1, b2) ->
+      (* this will handle metavariables in Id *)
+      m_ident_and_id_info (a1, a2) (b1, b2)
+  | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
+      envf (str, tok) (MV.N b)
+  (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
   | ( G.IdQualified (_a1, _a2),
       B.IdQualified
         ( (idb, nameinfo),
@@ -354,6 +378,7 @@ let rec m_name a b =
                { nameinfo with name_qualifier = Some (B.QDots new_qualifier) }
              ),
              B.empty_id_info () ))
+  (* boilerplate *)
   | G.IdQualified (a1, a2), B.IdQualified (b1, b2) ->
       m_name_ a1 b1 >>= fun () -> m_id_info a2 b2
   | G.Id _, _ | G.IdQualified _, _ -> fail ()
@@ -391,6 +416,12 @@ and m_type_option_with_hook idb taopt tbopt =
   | None, _ -> return ()
 
 (*s: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
+(* This is similar to m_ident, but it will also add the id_info in
+ * the environment (via 'MV.Id (_, Some id_info)') when the pattern is
+ * a metavariable. This id_info is useful to make sure multiple
+ * occurences of the same metavariable binds to the same entity thanks
+ * to the sid stored in the id_info.
+ *)
 and m_ident_and_id_info (a1, a2) (b1, b2) =
   (* metavar: *)
   match (a1, b1) with
@@ -410,9 +441,9 @@ and m_ident_and_id_info (a1, a2) (b1, b2) =
       if re_match strb then return () else fail ()
   (*e: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* general case *)
-  (* todo: we should check m_id_info, but anyway this function is currently
-   * a nop *)
-  | a, b -> (m_wrap m_string) a b
+  | _, _ ->
+      let* () = m_wrap m_string a1 b1 in
+      m_id_info a2 b2
 
 (*e: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 and m_ident_and_empty_id_info a1 b1 =
@@ -420,7 +451,7 @@ and m_ident_and_empty_id_info a1 b1 =
   m_ident_and_id_info (a1, empty) (b1, empty)
 
 (*s: function [[Generic_vs_generic.m_id_info]] *)
-(* Currently m_id_info is a Nop because the Semgrep pattern usually
+(* Currently m_id_info is a Nop because the Semgrep pattern
  * does not have correct name resolution (see the comment below).
  * However, we do use id_info in equal_ast() to check
  * whether two $X refers to the same code. In that case we are using
@@ -529,37 +560,9 @@ and m_expr a b =
       >||> (* try this time a match with the resolved entity *)
       m_expr a (make_dotted dotted)
   (* equivalence: name resolving on qualified ids (for OCaml) *)
-  | ( _a,
-      B.N
-        (B.IdQualified
-          ( (idb, nameinfo),
-            {
-              B.id_resolved =
-                { contents = Some (B.ImportedEntity dotted, _sid) };
-              _;
-            } )) ) ->
-      (* try without resolving anything *)
-      m_expr a (B.N (B.IdQualified ((idb, nameinfo), B.empty_id_info ())) |> G.e)
-      >||>
-      (* try this time by replacing the qualifier by the resolved one *)
-      let new_qualifier =
-        match List.rev dotted with
-        | [] -> raise Impossible
-        | _x :: xs -> List.rev xs
-      in
-      m_expr a
-        (B.N
-           (B.IdQualified
-              ( ( idb,
-                  {
-                    nameinfo with
-                    name_qualifier = Some (B.QDots new_qualifier);
-                  } ),
-                B.empty_id_info () ))
-        |> G.e)
   (* Put this before the next case to prevent overly eager dealiasing *)
-  | G.N (G.IdQualified (a1, a2)), B.N (B.IdQualified (b1, b2)) ->
-      m_name_ a1 b1 >>= fun () -> m_id_info a2 b2
+  | G.N (G.IdQualified (_, _) as na), B.N (B.IdQualified (_, _) as nb) ->
+      m_name na nb
   (* Matches pattern
    *   a.b.C.x
    * to code
@@ -595,10 +598,11 @@ and m_expr a b =
     when MV.is_metavar_name str ->
       fail ()
   (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
-  (* TODO: factorize in m_name? *)
-  | G.N (G.Id ((str, tok), _id_info)), B.N (B.Id (idb, id_infob))
-    when MV.is_metavar_name str ->
-      envf (str, tok) (MV.Id (idb, Some id_infob))
+  (* Important to bind to MV.Id when we can, so this must be before
+   * the next case where we bind to the more general MV.E.
+   * TODO: should be B.N (B.Id _ | B.IdQualified _)?
+   *)
+  | G.N (G.Id _ as na), B.N (B.Id _ as nb) -> m_name na nb
   | G.N (G.Id ((str, tok), _id_info)), _b when MV.is_metavar_name str ->
       envf (str, tok) (MV.E b)
   (*e: [[Generic_vs_generic.m_expr()]] metavariable case *)
@@ -685,9 +689,6 @@ and m_expr a b =
       B.Call ({ e = B.IdSpecial (B.Op bop, tokb); _ }, bargs) ) ->
       m_call_op aop toka aargs bop tokb bargs
   (* boilerplate *)
-  (* TODO: via m_name! and miss IdQualfied vs IdQualified otherwise *)
-  | G.N (G.Id (a1, a2)), B.N (B.Id (b1, b2)) ->
-      m_ident a1 b1 >>= fun () -> m_id_info a2 b2
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
@@ -805,21 +806,12 @@ and m_expr a b =
 (*s: function [[Generic_vs_generic.m_field_ident]] *)
 and m_name_or_dynamic a b =
   match (a, b) with
-  (* TODO: factorize in m_name *)
-  | G.EN (G.Id ((str, tok), a2)), B.EN (B.Id (idb, b2))
+  | G.EN a1, B.EN b1 -> m_name a1 b1
+  | G.EN (G.Id ((str, tok), _idinfoa)), B.EDynamic b1
     when MV.is_metavar_name str ->
-      (* a bit OCaml specific, cos only ml_to_generic tags id_type in pattern *)
-      let* () = m_type_option_with_hook idb !(a2.G.id_type) !(b2.B.id_type) in
-      let* () = m_id_info a2 b2 in
-      envf (str, tok) (MV.Id (idb, Some b2))
-  | G.EN (G.Id ((str, tok), _idinfoa)), b when MV.is_metavar_name str ->
-      let e = H.name_or_dynamic_to_expr b None in
-      envf (str, tok) (MV.E e)
-  | G.EN (G.Id (a, idinfoa)), B.EN (B.Id (b, idinfob)) ->
-      m_ident_and_id_info (a, idinfoa) (b, idinfob)
+      envf (str, tok) (MV.E b1)
   (* boilerplate *)
   (*s: [[Generic_vs_generic.m_field_ident()]] boilerplate cases *)
-  | G.EN a, B.EN b -> m_name a b
   | G.EDynamic a, B.EDynamic b -> m_expr a b
   | G.EN _, _ | G.EDynamic _, _ -> fail ()
 
@@ -1502,31 +1494,10 @@ and m_ac_op tok op aargs_ac bargs_ac =
 (*s: function [[Generic_vs_generic.m_type_]] *)
 and m_type_ a b =
   match (a, b) with
-  (* equivalence: name resolving! *)
-  (* TODO: factorize in a new m_name? *)
-  | ( a,
-      B.TyN
-        (B.Id
-          ( idb,
-            {
-              B.id_resolved =
-                {
-                  contents =
-                    Some
-                      ( ( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted) ),
-                        _sid );
-                };
-              _;
-            } )) ) ->
-      m_type_ a (B.TyN (B.Id (idb, B.empty_id_info ())))
-      >||> (* try this time a match with the resolved entity *)
-      m_type_ a (B.TyN (H.name_of_ids dotted))
+  (* this must be before the next case, to prefer to bind metavars to
+   * MV.Id (or MV.N) when we can, instead of the more general MV.T below *)
+  | G.TyN a1, B.TyN b1 -> m_name a1 b1
   (*s: [[Generic_vs_generic.m_type_]] metavariable case *)
-  | G.TyN (G.Id ((str, tok), _id_info)), B.TyN (B.Id (idb, id_infob))
-    when MV.is_metavar_name str ->
-      envf (str, tok) (MV.Id (idb, Some id_infob))
-  (* TODO: TyId vs TyId => add MV.Id *)
   | G.TyN (G.Id ((str, tok), _id_info)), t2 when MV.is_metavar_name str ->
       envf (str, tok) (MV.T t2)
   (*e: [[Generic_vs_generic.m_type_]] metavariable case *)
@@ -1542,12 +1513,6 @@ and m_type_ a b =
       (*TODO: m_list__m_type_ ? *)
       (m_bracket (m_list m_type_)) a1 b1
   (*s: [[Generic_vs_generic.m_type_]] boilerplate cases *)
-  (* TODO: do via m_name *)
-  | G.TyN (G.Id (a1, a2)), B.TyN (B.Id (b1, b2)) ->
-      m_ident_and_id_info (a1, a2) (b1, b2)
-  | G.TyN (G.IdQualified (a1, a2)), B.TyN (B.IdQualified (b1, b2)) ->
-      let* () = m_name_ a1 b1 in
-      m_id_info a2 b2
   | G.TyAny a1, B.TyAny b1 -> m_tok a1 b1
   | G.TyApply (a1, a2), B.TyApply (b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2
@@ -1651,34 +1616,12 @@ and m_keyword_attribute a b =
 and m_attribute a b =
   match (a, b) with
   (*s: [[Generic_vs_generic.m_attribute]] resolving alias case *)
-  (* equivalence: name resolving! *)
-  (* TODO: factorize with m_name again *)
-  | ( a,
-      B.NamedAttr
-        ( t1,
-          B.Id
-            ( b1,
-              {
-                B.id_resolved =
-                  {
-                    contents =
-                      Some
-                        ( ( B.ImportedEntity dotted
-                          | B.ImportedModule (B.DottedName dotted) ),
-                          _sid );
-                  };
-                _;
-              } ),
-          b2 ) ) ->
-      (* We also allow an unqualified pattern like @Attr to match resolved
-       * one like import org.foo.Attr; @Attr *)
-      m_attribute a (B.NamedAttr (t1, B.Id (b1, B.empty_id_info ()), b2))
-      >||> m_attribute a (B.NamedAttr (t1, H.name_of_ids dotted, b2))
   (*e: [[Generic_vs_generic.m_attribute]] resolving alias case *)
   (* boilerplate *)
   | G.KeywordAttr a1, B.KeywordAttr b1 -> m_wrap m_keyword_attribute a1 b1
   | G.NamedAttr (a0, a1, a2), B.NamedAttr (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
+      (* 'm_name' handles aliasing for attributes! *)
       m_name a1 b1 >>= fun () -> m_bracket m_list__m_argument a2 b2
   | G.OtherAttribute (a1, a2), B.OtherAttribute (b1, b2) ->
       m_other_attribute_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
