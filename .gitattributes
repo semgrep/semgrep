@@ -4,3 +4,7 @@
 # in the changelog will show up as two lines in the merged
 # output. We should remove these duplicates at release time.
 CHANGELOG.md merge=union
+
+# https://github.com/github/linguist/blob/master/docs/overrides.md
+# Don't consider test files in language stats for the repository on Github
+semgrep-core/tests/** linguist-documentation
