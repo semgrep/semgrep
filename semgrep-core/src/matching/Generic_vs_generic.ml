@@ -190,6 +190,7 @@ let stmts_may_match pattern_stmts (stmts : AST_generic.stmt list) =
 
 (*s: function [[Generic_vs_generic.m_ident]] *)
 (* coupling: modify also m_ident_and_id_info *)
+(* You should prefer to use m_ident_and_id_info if you can *)
 let m_ident a b =
   match (a, b) with
   (*s: [[Generic_vs_generic.m_ident()]] metavariable case *)
@@ -331,7 +332,8 @@ let _m_resolved_name (a1, a2) (b1, b2) =
  *)
 let rec m_name a b =
   match (a, b) with
-  | G.Id (a1, a2), B.Id (b1, b2) -> m_ident a1 b1 >>= fun () -> m_id_info a2 b2
+  | G.Id (a1, a2), B.Id (b1, b2) -> m_ident_and_id_info (a1, a2) (b1, b2)
+  (* equivalence: aliasing (name resolving) *)
   | ( G.IdQualified (_a1, _a2),
       B.IdQualified
         ( (idb, nameinfo),
@@ -391,6 +393,12 @@ and m_type_option_with_hook idb taopt tbopt =
   | None, _ -> return ()
 
 (*s: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
+(* This is similar to m_ident, but it will also add the id_info in
+ * the environment (via 'MV.Id (_, Some id_info)') when the pattern is
+ * a metavariable. This id_info is useful to make sure multiple
+ * occurences of the same metavariable binds to the same entity thanks
+ * to the sid stored in the id_info.
+ *)
 and m_ident_and_id_info (a1, a2) (b1, b2) =
   (* metavar: *)
   match (a1, b1) with
@@ -410,9 +418,9 @@ and m_ident_and_id_info (a1, a2) (b1, b2) =
       if re_match strb then return () else fail ()
   (*e: [[Generic_vs_generic.m_ident()]] regexp case *)
   (* general case *)
-  (* todo: we should check m_id_info, but anyway this function is currently
-   * a nop *)
-  | a, b -> (m_wrap m_string) a b
+  | _, _ ->
+      let* () = m_wrap m_string a1 b1 in
+      m_id_info a2 b2
 
 (*e: function [[Generic_vs_generic.m_ident_and_id_info_add_in_env_Expr]] *)
 and m_ident_and_empty_id_info a1 b1 =
@@ -420,7 +428,7 @@ and m_ident_and_empty_id_info a1 b1 =
   m_ident_and_id_info (a1, empty) (b1, empty)
 
 (*s: function [[Generic_vs_generic.m_id_info]] *)
-(* Currently m_id_info is a Nop because the Semgrep pattern usually
+(* Currently m_id_info is a Nop because the Semgrep pattern
  * does not have correct name resolution (see the comment below).
  * However, we do use id_info in equal_ast() to check
  * whether two $X refers to the same code. In that case we are using
@@ -529,37 +537,9 @@ and m_expr a b =
       >||> (* try this time a match with the resolved entity *)
       m_expr a (make_dotted dotted)
   (* equivalence: name resolving on qualified ids (for OCaml) *)
-  | ( _a,
-      B.N
-        (B.IdQualified
-          ( (idb, nameinfo),
-            {
-              B.id_resolved =
-                { contents = Some (B.ImportedEntity dotted, _sid) };
-              _;
-            } )) ) ->
-      (* try without resolving anything *)
-      m_expr a (B.N (B.IdQualified ((idb, nameinfo), B.empty_id_info ())) |> G.e)
-      >||>
-      (* try this time by replacing the qualifier by the resolved one *)
-      let new_qualifier =
-        match List.rev dotted with
-        | [] -> raise Impossible
-        | _x :: xs -> List.rev xs
-      in
-      m_expr a
-        (B.N
-           (B.IdQualified
-              ( ( idb,
-                  {
-                    nameinfo with
-                    name_qualifier = Some (B.QDots new_qualifier);
-                  } ),
-                B.empty_id_info () ))
-        |> G.e)
   (* Put this before the next case to prevent overly eager dealiasing *)
-  | G.N (G.IdQualified (a1, a2)), B.N (B.IdQualified (b1, b2)) ->
-      m_name_ a1 b1 >>= fun () -> m_id_info a2 b2
+  | G.N (G.IdQualified (_, _) as na), B.N (B.IdQualified (_, _) as nb) ->
+      m_name na nb
   (* Matches pattern
    *   a.b.C.x
    * to code
@@ -595,10 +575,10 @@ and m_expr a b =
     when MV.is_metavar_name str ->
       fail ()
   (*e: [[Generic_vs_generic.m_expr()]] forbidden metavariable case *)
-  (* TODO: factorize in m_name? *)
-  | G.N (G.Id ((str, tok), _id_info)), B.N (B.Id (idb, id_infob))
-    when MV.is_metavar_name str ->
-      envf (str, tok) (MV.Id (idb, Some id_infob))
+  (* Important to bind to MV.Id when we can, so this must be before
+   * the next case where we bind to the more general MV.E.
+   *)
+  | G.N (G.Id _ as na), B.N (B.Id _ as nb) -> m_name na nb
   | G.N (G.Id ((str, tok), _id_info)), _b when MV.is_metavar_name str ->
       envf (str, tok) (MV.E b)
   (*e: [[Generic_vs_generic.m_expr()]] metavariable case *)
@@ -685,9 +665,6 @@ and m_expr a b =
       B.Call ({ e = B.IdSpecial (B.Op bop, tokb); _ }, bargs) ) ->
       m_call_op aop toka aargs bop tokb bargs
   (* boilerplate *)
-  (* TODO: via m_name! and miss IdQualfied vs IdQualified otherwise *)
-  | G.N (G.Id (a1, a2)), B.N (B.Id (b1, b2)) ->
-      m_ident a1 b1 >>= fun () -> m_id_info a2 b2
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
   | G.Assign (a1, at, a2), B.Assign (b1, bt, b2) -> (
