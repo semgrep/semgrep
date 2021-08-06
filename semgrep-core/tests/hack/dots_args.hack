@@ -1,10 +1,11 @@
 function foo() {
-  //MATCH:
+    //ERROR:
     foo(1,2,3,4,5);
-  //MATCH:
+    //ERROR:
     foo(5);
-  //MATCH:  
+
     $fun = 5;
+    //ERROR: 
     foo($test, $fun);
 
     foo($not_this);

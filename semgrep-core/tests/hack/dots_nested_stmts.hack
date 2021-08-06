@@ -1,12 +1,12 @@
 function foo()
 {
     $var = 10;
-
-    //MATCH
+    
     if ($var === 42) {
         echo('matched');
     }
 
+    //ERROR:
     if ($var === 42) {
         echo('matched');
     } else {
