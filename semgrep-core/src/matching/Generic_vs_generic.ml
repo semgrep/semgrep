@@ -332,7 +332,11 @@ let _m_resolved_name (a1, a2) (b1, b2) =
  *)
 let rec m_name a b =
   match (a, b) with
-  | G.Id (a1, a2), B.Id (b1, b2) -> m_ident_and_id_info (a1, a2) (b1, b2)
+  | G.Id (a1, a2), B.Id (b1, b2) ->
+      (* this will handle metavariables in Id *)
+      m_ident_and_id_info (a1, a2) (b1, b2)
+  (* TODO: if Id _, IdQualified _ when is_metavarname id?? need
+   * to bind to an MV.N? *)
   (* equivalence: aliasing (name resolving) *)
   | ( G.IdQualified (_a1, _a2),
       B.IdQualified
@@ -1519,12 +1523,7 @@ and m_type_ a b =
       (*TODO: m_list__m_type_ ? *)
       (m_bracket (m_list m_type_)) a1 b1
   (*s: [[Generic_vs_generic.m_type_]] boilerplate cases *)
-  (* TODO: do via m_name *)
-  | G.TyN (G.Id (a1, a2)), B.TyN (B.Id (b1, b2)) ->
-      m_ident_and_id_info (a1, a2) (b1, b2)
-  | G.TyN (G.IdQualified (a1, a2)), B.TyN (B.IdQualified (b1, b2)) ->
-      let* () = m_name_ a1 b1 in
-      m_id_info a2 b2
+  | G.TyN a1, B.TyN b1 -> m_name a1 b1
   | G.TyAny a1, B.TyAny b1 -> m_tok a1 b1
   | G.TyApply (a1, a2), B.TyApply (b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2
