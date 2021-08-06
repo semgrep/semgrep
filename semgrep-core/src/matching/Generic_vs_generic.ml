@@ -327,17 +327,35 @@ let _m_resolved_name (a1, a2) (b1, b2) =
 
 (* start of recursive need *)
 (*s: function [[Generic_vs_generic.m_name]] *)
-(* TODO: factorize metavariable and aliasing logic in m_expr, m_type, m_attr
+(* TODO: factorize metavariable and aliasing logic in m_expr, m_attr
  * TODO: remove MV.Id and use always MV.N?
  *)
 let rec m_name a b =
   match (a, b) with
+  (* equivalence: aliasing (name resolving) part 1 *)
+  | ( a,
+      B.Id
+        ( idb,
+          {
+            B.id_resolved =
+              {
+                contents =
+                  Some
+                    ( ( B.ImportedEntity dotted
+                      | B.ImportedModule (B.DottedName dotted) ),
+                      _sid );
+              };
+            _;
+          } ) ) ->
+      m_name a (B.Id (idb, B.empty_id_info ()))
+      >||> (* try this time a match with the resolved entity *)
+      m_name a (H.name_of_ids dotted)
   | G.Id (a1, a2), B.Id (b1, b2) ->
       (* this will handle metavariables in Id *)
       m_ident_and_id_info (a1, a2) (b1, b2)
   | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
       envf (str, tok) (MV.N b)
-  (* equivalence: aliasing (name resolving) *)
+  (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
   | ( G.IdQualified (_a1, _a2),
       B.IdQualified
         ( (idb, nameinfo),
@@ -1476,31 +1494,10 @@ and m_ac_op tok op aargs_ac bargs_ac =
 (*s: function [[Generic_vs_generic.m_type_]] *)
 and m_type_ a b =
   match (a, b) with
-  (* equivalence: name resolving! *)
-  (* TODO: factorize in a new m_name? *)
-  | ( a,
-      B.TyN
-        (B.Id
-          ( idb,
-            {
-              B.id_resolved =
-                {
-                  contents =
-                    Some
-                      ( ( B.ImportedEntity dotted
-                        | B.ImportedModule (B.DottedName dotted) ),
-                        _sid );
-                };
-              _;
-            } )) ) ->
-      m_type_ a (B.TyN (B.Id (idb, B.empty_id_info ())))
-      >||> (* try this time a match with the resolved entity *)
-      m_type_ a (B.TyN (H.name_of_ids dotted))
+  (* this must be before the next case, to prefer to bind metavars to
+   * MV.Id (or MV.N) when we can, instead of the more general MV.T below *)
+  | G.TyN a1, B.TyN b1 -> m_name a1 b1
   (*s: [[Generic_vs_generic.m_type_]] metavariable case *)
-  | G.TyN (G.Id ((str, tok), _id_info)), B.TyN (B.Id (idb, id_infob))
-    when MV.is_metavar_name str ->
-      envf (str, tok) (MV.Id (idb, Some id_infob))
-  (* TODO: TyId vs TyId => add MV.Id *)
   | G.TyN (G.Id ((str, tok), _id_info)), t2 when MV.is_metavar_name str ->
       envf (str, tok) (MV.T t2)
   (*e: [[Generic_vs_generic.m_type_]] metavariable case *)
@@ -1516,7 +1513,6 @@ and m_type_ a b =
       (*TODO: m_list__m_type_ ? *)
       (m_bracket (m_list m_type_)) a1 b1
   (*s: [[Generic_vs_generic.m_type_]] boilerplate cases *)
-  | G.TyN a1, B.TyN b1 -> m_name a1 b1
   | G.TyAny a1, B.TyAny b1 -> m_tok a1 b1
   | G.TyApply (a1, a2), B.TyApply (b1, b2) ->
       m_type_ a1 b1 >>= fun () -> m_type_arguments a2 b2
