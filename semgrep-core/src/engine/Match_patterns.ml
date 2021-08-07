@@ -309,9 +309,33 @@ let check2 ~hook config rules equivs (file, lang, ast) =
                                   { PM.rule_id; file; env; range_loc; tokens }
                                   matches;
                                 hook env tokens));
+            (* TODO: this is awful, we should instead change the InterpolatedConcat type *)
+            (* This is here because we do not want "..." to match f"str{user_input}str"  *)
+            (* Before we recurse further into the interpolated string, we remove string  *)
+            (* literal patterns *)
+            (match x.e with
+            | Call
+                ( {
+                    e =
+                      IdSpecial
+                        ( ConcatString
+                            ( InterpolatedConcat | FString
+                            | TaggedTemplateLiteral ),
+                          _ );
+                    _;
+                  },
+                  _ ) ->
+                expr_rules :=
+                  List.filter
+                    (fun (pattern, _, _, _) ->
+                      match pattern.e with
+                      | L (String ("...", _)) -> false
+                      | _ -> true)
+                    !expr_rules
+            | _ -> ());
             (* try the rules on subexpressions *)
             (* this can recurse to find nested matching inside the
-             * matched code itself *)
+               * matched code itself *)
             k x);
         (*x: [[Semgrep_generic.check2()]] visitor fields *)
         (* mostly copy paste of expr code but with the _st functions *)
