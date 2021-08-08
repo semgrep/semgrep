@@ -87,6 +87,7 @@ module Client_request2 = struct
     | ExecuteCommand _ -> "workspace/executeCommand"
     | DebugEcho _ -> "debug/echo"
     | TextDocumentHover _ -> "textDocument/hover"
+    | TextDocumentDefinition _ -> "textDocument/definition"
     | _ -> assert false
 
   let params (type a) (t : a t) =
@@ -96,6 +97,7 @@ module Client_request2 = struct
       | ExecuteCommand params -> ExecuteCommandParams.yojson_of_t params
       | DebugEcho params -> DebugEcho.Params.yojson_of_t params
       | TextDocumentHover params -> HoverParams.yojson_of_t params
+      | TextDocumentDefinition params -> DefinitionParams.yojson_of_t params
       | Shutdown -> raise Impossible
       | _ -> assert false)
 
@@ -112,6 +114,8 @@ module Client_request2 = struct
     | ExecuteCommand _ -> json
     | DebugEcho _ -> DebugEcho.Result.t_of_yojson json
     | TextDocumentHover _ -> Json.Option.t_of_yojson Hover.t_of_yojson json
+    | TextDocumentDefinition _ ->
+        Json.Option.t_of_yojson Locations.t_of_yojson json
     | x ->
         logger#error "Response TODO: %s" (Common.dump x);
         failwith "TODO"
@@ -183,6 +187,36 @@ let final_type_string s =
   in
   s
 
+let def_at_tok tk uri io =
+  let line = PI.line_of_info tk in
+  let col = PI.col_of_info tk in
+  logger#debug "def_at_tok: %d, %d" line col;
+  (* LSP is using 0-based lines and offset (column) *)
+  let line = line - 1 in
+
+  let req =
+    Client_request.TextDocumentDefinition
+      (DefinitionParams.create
+         ~textDocument:(TextDocumentIdentifier.create ~uri)
+         ~position:(Position.create ~line ~character:col)
+         ())
+  in
+  let id = send_request req io in
+  let res = read_response (id, req) io in
+  logger#info "%s" (Common.dump res);
+  match res with
+  | None ->
+      logger#error "NO TYPE INFO for %s" (PI.string_of_info tk);
+      None
+  | Some (`Location [ x ]) ->
+      let uri = x.Location.uri in
+      let path = Uri.to_path uri in
+      (* less: could also extract the range info in x.range *)
+      Some path
+  | Some (`LocationLink _ | `Location _) ->
+      logger#error "too many location for %s" (PI.string_of_info tk);
+      None
+
 let type_at_tok tk uri io =
   let line = PI.line_of_info tk in
   let col = PI.col_of_info tk in
@@ -240,7 +274,7 @@ let connect_server () =
   send_notif notif io;
   io
 
-let rec get_type id =
+let rec get_type_or_def f id =
   let tok = snd id in
   let file = PI.file_of_info tok in
   (* bugfix: ocamllsp use URIs to designate files, but it's impossible
@@ -252,7 +286,10 @@ let rec get_type id =
   let uri = Uri.of_path fullpath in
   match !global with
   | { io = Some io; last_uri } when Uri.equal last_uri uri -> (
-      try type_at_tok tok uri io with _exn -> None)
+      try f tok uri io
+      with exn ->
+        logger#info "exn: %s" (Common.exn_to_s exn);
+        None)
   | { io = Some io; last_uri } when not (Uri.equal last_uri uri) ->
       (if not (Uri.equal last_uri (Uri.of_path "")) then
        let notif =
@@ -274,14 +311,15 @@ let rec get_type id =
       global := { !global with last_uri = uri };
       logger#info "TextDocumentDidOpen for uri %s" (Uri.to_string uri);
       (* try again *)
-      get_type id
+      get_type_or_def f id
   | _ -> None
 
 let init () =
   logger#info "init";
   let io = connect_server () in
   global := { io = Some io; last_uri = Uri.of_path "" };
-  Hooks.get_type := get_type;
+  Hooks.get_type := get_type_or_def type_at_tok;
+  Hooks.get_def := get_type_or_def def_at_tok;
   Hooks.exit
   |> Common.push (fun () ->
          logger#info "closing";
