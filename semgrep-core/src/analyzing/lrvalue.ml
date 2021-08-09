@@ -134,7 +134,7 @@ let rec visit_expr hook lhs expr =
            | ArgKwd (_id, e) -> recr e
            | ArgType _ -> ()
            | ArgOther (_, anys) -> List.iter (anyhook hook Rhs) anys)
-  | Cast (_t, e) -> recr e
+  | Cast (_t, _, e) -> recr e
   (* Do some languages allow this to be part of an assign? *)
   | Conditional (e, e1, e2) ->
       recr e1;

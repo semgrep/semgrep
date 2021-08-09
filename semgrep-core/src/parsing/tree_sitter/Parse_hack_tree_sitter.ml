@@ -622,14 +622,14 @@ and arguments (env : env) ((v1, v2, v3) : CST.arguments) : G.arguments G.bracket
 
 and as_expression (env : env) ((v1, v2, v3) : CST.as_expression) =
   let v1 = expression env v1 in
-  let _v2 =
+  let v2 =
     (* MISS: Do not capture ?as vs as *)
     match v2 with
     | `As tok -> (* as *) token env tok
     | `QMARKas tok -> (* "?as" *) token env tok
   in
   let v3 = type_ env v3 in
-  G.Cast (v3, v1) |> G.e
+  G.Cast (v3, v2, v1) |> G.e
 
 and attribute_modifier (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.attribute_modifier) : G.attribute =
@@ -1438,7 +1438,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       G.Yield (v1, Some v2, true) |> G.e
       (* Q: What is this last field for? *)
   | `Cast_exp (v1, v2, v3, v4) ->
-      let _v1 = (* "(" *) token env v1 in
+      let v1 = (* "(" *) token env v1 in
       let v2 =
         match v2 with
         | `Array tok -> (* "array" *) G.TyBuiltin (str env tok)
@@ -1449,7 +1449,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       in
       let _v3 = (* ")" *) token env v3 in
       let v4 = expression env v4 in
-      G.Cast (v2, v4) |> G.e
+      G.Cast (v2, v1, v4) |> G.e
   | `Tern_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
       let _v2 = (* "?" *) token env v2 in

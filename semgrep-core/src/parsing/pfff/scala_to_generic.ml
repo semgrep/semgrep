@@ -377,8 +377,8 @@ and v_expr e =
       let v1 = v_expr v1 and _, v2, _ = v_bracket (v_list v_type_) v2 in
       todo_expr "InstanciatedExpr" (G.E v1 :: List.map (fun t -> G.T t) v2)
   | TypedExpr (v1, v2, v3) ->
-      let v1 = v_expr v1 and _v2 = v_tok v2 and v3 = v_ascription v3 in
-      G.Cast (v3, v1)
+      let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ascription v3 in
+      G.Cast (v3, v2, v1)
   | DotAccess (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ident v3 in
       let name = H.name_of_id v3 in

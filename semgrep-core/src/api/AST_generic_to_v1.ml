@@ -273,7 +273,7 @@ and map_expr x : B.expr =
       let t = map_tok t in
       let v1 = map_expr v1 in
       `Await (t, v1)
-  | Cast (v1, v2) ->
+  | Cast (v1, _t, v2) ->
       let v1 = map_type_ v1 and v2 = map_expr v2 in
       `Cast (v1, v2)
   | Seq v1 ->

@@ -103,7 +103,7 @@ let special (x, tok) =
           match args with
           | [ e ] ->
               let tvoid = G.TyBuiltin ("void", tok) in
-              G.Cast (tvoid, e)
+              G.Cast (tvoid, PI.fake_info ":", e)
           | _ -> error tok "Impossible: Too many arguments to Void")
   | Spread -> SR_Special (G.Spread, tok)
   | Yield ->
@@ -229,15 +229,15 @@ and expr (x : expr) =
       let v1 = expr v1 in
       G.DotAccessEllipsis (v1, v2)
   (* not sure this is actually a valid JS/TS construct *)
-  | Cast (v1, _v2, v3) ->
+  | Cast (v1, v2, v3) ->
       let v1 = expr v1 in
       let v3 = type_ v3 in
-      G.Cast (v3, v1)
+      G.Cast (v3, v2, v1)
   (* converting to Cast as it's mostly the same *)
-  | TypeAssert (v1, _v2, v3) ->
+  | TypeAssert (v1, v2, v3) ->
       let v1 = expr v1 in
       let v3 = type_ v3 in
-      G.Cast (v3, v1)
+      G.Cast (v3, v2, v1)
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
       G.OtherExpr (G.OE_Todo, G.TodoK v1 :: (v2 |> List.map (fun e -> G.E e)))
