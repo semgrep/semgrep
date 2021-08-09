@@ -234,11 +234,12 @@ and expr e =
       | e -> e)
   | TypedExpr (v1, v2, v3) -> (
       let v1 = expr v1 in
+      let v2 = tok v2 in
       let v3 = type_ v3 in
       match v1.G.e with
       | G.N (G.Id (id, _idinfo)) when AST_generic_.is_metavar_name (fst id) ->
           G.TypedMetavar (id, v2, v3)
-      | _ -> G.Cast (v3, v1))
+      | _ -> G.Cast (v3, v2, v1))
   | Ellipsis v1 ->
       let v1 = tok v1 in
       G.Ellipsis v1

@@ -202,7 +202,7 @@ let rec expr (x : expr) =
   | TypedExpr (v1, v2) ->
       let v1 = expr v1 in
       let v2 = type_ v2 in
-      G.Cast (v2, v1)
+      G.Cast (v2, fake ":", v1)
   | TypedMetavar (v1, v2, v3) ->
       let v1 = name v1 in
       let v3 = type_ v3 in
@@ -624,7 +624,7 @@ and stmt_aux x =
       | [ a ] -> (
           match a.G.e with
           (* x: t = ... is definitely a VarDef *)
-          | G.Cast (t, { e = G.N (G.Id (id, idinfo)); _ }) ->
+          | G.Cast (t, _, { e = G.N (G.Id (id, idinfo)); _ }) ->
               let ent =
                 { G.name = G.EN (G.Id (id, idinfo)); attrs = []; tparams = [] }
               in

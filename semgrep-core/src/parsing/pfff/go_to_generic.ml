@@ -230,7 +230,7 @@ let top_func () =
         G.Call (e, args)
     | Cast (v1, v2) ->
         let v1 = type_ v1 and v2 = expr v2 in
-        G.Cast (v1, v2)
+        G.Cast (v1, fake "(", v2)
     | Deref (v1, v2) ->
         let v1 = tok v1 and v2 = expr v2 in
         G.DeRef (v1, v2)

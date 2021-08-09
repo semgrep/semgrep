@@ -270,9 +270,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let t = map_tok t in
             let v1 = map_expr v1 in
             Await (t, v1)
-        | Cast (v1, v2) ->
-            let v1 = map_type_ v1 and v2 = map_expr v2 in
-            Cast (v1, v2)
+        | Cast (v1, t, v2) ->
+            let v1 = map_type_ v1 and t = map_tok t and v2 = map_expr v2 in
+            Cast (v1, t, v2)
         | Seq v1 ->
             let v1 = map_of_list map_expr v1 in
             Seq v1

@@ -1168,9 +1168,9 @@ and map_expression (env : env) (x : CST.expression) =
       G.AssignOp (lhs, (op, tok), rhs)
   | `Type_cast_exp (v1, v2, v3) ->
       let expr = map_expression env v1 in
-      let _as_ = token env v2 (* "as" *) in
+      let as_ = token env v2 (* "as" *) in
       let type_ = map_type_ env v3 in
-      G.Cast (type_, expr)
+      G.Cast (type_, as_, expr)
   | `Range_exp x ->
       let x = map_range_expression env x in
       x.G.e

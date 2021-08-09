@@ -146,6 +146,12 @@ let _ =
   Common2.example
     (all_suffix_of_list [ 1; 2; 3 ] = [ [ 1; 2; 3 ]; [ 2; 3 ]; [ 3 ]; [] ])
 
+(* copy paste of pfff/lang_ml/analyze/module_ml.ml *)
+let module_name_of_filename file =
+  let _d, b, _e = Common2.dbe_of_filename file in
+  let module_name = String.capitalize_ascii b in
+  module_name
+
 (*****************************************************************************)
 (* Optimisations (caching, bloom filter) *)
 (*****************************************************************************)
@@ -378,6 +384,21 @@ let rec m_name a b =
                { nameinfo with name_qualifier = Some (B.QDots new_qualifier) }
              ),
              B.empty_id_info () ))
+  (* semantic! try to handle open in OCaml by querying LSP! The
+   * target code is using an unqualified Id possibly because of some open!
+   *)
+  | G.IdQualified ((ida, _namea), _infoa), B.Id (idb, _infob)
+    when fst ida = fst idb -> (
+      match !Hooks.get_def idb with
+      | None -> fail ()
+      | Some file ->
+          let m = module_name_of_filename file in
+          let t = snd idb in
+          pr2_gen m;
+          let _n = H.name_of_ids [ (m, t); idb ] in
+          (* retry with qualified target *)
+          (* m_name a n *)
+          return ())
   (* boilerplate *)
   | G.IdQualified (a1, a2), B.IdQualified (b1, b2) ->
       m_name_ a1 b1 >>= fun () -> m_id_info a2 b2
@@ -405,6 +426,8 @@ and m_qualifier a b =
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
   | G.QDots _, _ | G.QTop _, _ | G.QExpr _, _ -> fail ()
 
+(* semantic! try to handle typed metavariables by querying LSP
+ * to get inferred type info (only for OCaml for now) *)
 and m_type_option_with_hook idb taopt tbopt =
   match (taopt, tbopt) with
   | Some ta, Some tb -> m_type_ ta tb
@@ -533,6 +556,10 @@ and m_expr a b =
   (*e: [[Generic_vs_generic.m_expr()]] disjunction case *)
   (*s: [[Generic_vs_generic.m_expr()]] resolving alias case *)
   (* equivalence: name resolving! *)
+  (* todo: it would be nice to factorize the aliasing code by just calling
+   * m_name, but below we use make_dotted, which is different from what
+   * we do in m_name.
+   *)
   | ( _a,
       B.N
         (B.Id
@@ -561,7 +588,8 @@ and m_expr a b =
       m_expr a (make_dotted dotted)
   (* equivalence: name resolving on qualified ids (for OCaml) *)
   (* Put this before the next case to prevent overly eager dealiasing *)
-  | G.N (G.IdQualified (_, _) as na), B.N (B.IdQualified (_, _) as nb) ->
+  | ( G.N (G.IdQualified (_, _) as na),
+      B.N ((B.IdQualified (_, _) | B.Id _) as nb) ) ->
       m_name na nb
   (* Matches pattern
    *   a.b.C.x
@@ -766,7 +794,9 @@ and m_expr a b =
       m_tok a0 b0 >>= fun () ->
       m_option m_expr a1 b1 >>= fun () -> m_bool a2 b2
   | G.Await (a0, a1), B.Await (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
-  | G.Cast (a1, a2), B.Cast (b1, b2) -> m_type_ a1 b1 >>= fun () -> m_expr a2 b2
+  | G.Cast (a1, at, a2), B.Cast (b1, bt, b2) ->
+      m_type_ a1 b1 >>= fun () ->
+      m_tok at bt >>= fun () -> m_expr a2 b2
   | G.Seq a1, B.Seq b1 -> (m_list m_expr) a1 b1
   | G.Ref (a0, a1), B.Ref (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.DeRef (a0, a1), B.DeRef (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
