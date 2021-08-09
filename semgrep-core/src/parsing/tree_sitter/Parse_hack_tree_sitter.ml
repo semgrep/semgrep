@@ -163,7 +163,7 @@ let true_ (env : env) (x : CST.true_) =
   | `True_f827cf4 tok -> (* "True" *) token env tok
   | `TRUE tok -> (* "TRUE" *) token env tok
 
-let anon_choice_QMARKDASHGT_ce9cc19 (env : env)
+let selection_expression_selector (env : env)
     (x : CST.anon_choice_QMARKDASHGT_ce9cc19) =
   match x with
   | `QMARKDASHGT tok -> (* "?->" *) token env tok
@@ -511,7 +511,7 @@ let use_clause (env : env) ((v1, v2, v3) : CST.use_clause) =
   let _v1TODO =
     match v1 with Some x -> Some (use_type env x) | None -> None
   in
-  let v2 = namespace_identifier env v2 in
+  let namespace_ident = namespace_identifier env v2 in
   let v3 : G.alias option =
     match v3 with
     | Some (v1, v2) ->
@@ -521,8 +521,14 @@ let use_clause (env : env) ((v1, v2, v3) : CST.use_clause) =
         in
         Some (v2, G.empty_id_info ())
     | None -> None
+    (* TODO: Enable block to enable auto-aliasing imports to their shortened versions *)
+    (* (
+        match namespace_ident with
+        | Some x ->
+            Some (List.hd (unwrap_qualified_identifier x), G.empty_id_info ())
+        | None -> None) *)
   in
-  match v2 with
+  match namespace_ident with
   | Some x -> (Some (unwrap_qualified_identifier x), v3)
   | None -> (None, v3)
 
@@ -1271,7 +1277,6 @@ and embedded_brace_expression (env : env)
 
 and embedded_brace_expression_ (env : env) (x : CST.embedded_brace_expression_)
     =
-  (* TODO: TSH ISSUE -> Can't get these to work even in TSH *)
   match x with
   | `Tok_lcur_pat_0e8e4b6 tok ->
       (* TODO: Will this have extra leading `{`? *)
@@ -1291,11 +1296,17 @@ and embedded_brace_expression_ (env : env) (x : CST.embedded_brace_expression_)
       in
       let v4 = (* "]" *) token env v4 in
       G.ArrayAccess (v1, (v2, v3, v4)) |> G.e
-  | `Embe_brace_sele_exp (v1, v2, v3) ->
+  | `Embe_brace_sele_exp (v1, v2, v3) -> (
       let v1 = embedded_brace_expression_ env v1 in
-      let v2 = anon_choice_QMARKDASHGT_ce9cc19 env v2 in
+      let v2 = selection_expression_selector env v2 in
       let v3 = variablish env v3 in
-      G.DotAccess (v1, v2, G.EDynamic v3) |> G.e
+      (* TODO: The TSH grammar improperly makes the first item in the
+         selection expression at the top level. This breaks support for ellipsis
+         because items aren't properly nested.
+         See dots_method_chaining.hack *)
+      match v3.e with
+      | G.Ellipsis dots -> G.DotAccessEllipsis (v1, dots) |> G.e
+      | _ -> G.DotAccess (v1, v2, G.EDynamic v3) |> G.e)
 
 and enumerator (env : env) ((v1, v2, v3, v4) : CST.enumerator) =
   let v1 = (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v1 in
@@ -1308,10 +1319,17 @@ and expression (env : env) (x : CST.expression) : G.expr =
   match x with
   | `Choice_here x -> (
       match x with
-      | `Here (v1, v2, v3, v4) ->
+      | `Here (v1, v2, v3, v4, v5, v6) ->
           let v1 = (* "<<<" *) token env v1 in
           let v2 = (* heredoc_start *) PI.combine_infos v1 [ token env v2 ] in
-          let v3 =
+          let heredoc_start =
+            match v3 with
+            | Some tok ->
+                (* heredoc_start_newline *)
+                PI.combine_infos v2 [ token env tok ]
+            | None -> v2
+          in
+          let v4 =
             List.map
               (fun x ->
                 G.Arg
@@ -1322,12 +1340,18 @@ and expression (env : env) (x : CST.expression) : G.expr =
                       (* variable *)
                       G.N (Id (str env tok, G.empty_id_info ())) |> G.e
                   | `Embe_brace_exp x -> embedded_brace_expression env x))
-              v3
+              v4
           in
-          let v4 = (* heredoc_end *) token env v4 in
+          let v6 = (* heredoc_end *) token env v6 in
+          let heredoc_end =
+            match v5 with
+            | Some tok ->
+                (* heredoc_end_newline *) PI.combine_infos v6 [ token env tok ]
+            | None -> v6
+          in
           G.Call
             ( G.IdSpecial (ConcatString InterpolatedConcat, fk) |> G.e,
-              (v2, v3, v4) )
+              (heredoc_start, v4, heredoc_end) )
           |> G.e
       | `Array (v1, v2, v3, v4, v5) ->
           let _collectionTODO = collection_type env v1 in
@@ -1472,7 +1496,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
           G.Yield (v1, Some v2, true) |> G.e
           (* Q: What is this last field for? *)
       | `Cast_exp (v1, v2, v3, v4) ->
-          let _v1 = (* "(" *) token env v1 in
+          (* Q: Should I really be using G.Cast here? *)
+          let v1 = (* "(" *) token env v1 in
           let v2 =
             match v2 with
             | `Array tok -> (* "array" *) G.TyBuiltin (str env tok)
@@ -1483,7 +1508,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
           in
           let _v3 = (* ")" *) token env v3 in
           let v4 = expression env v4 in
-          G.Cast (v2, v4) |> G.e
+          G.Cast (v2, v1, v4) |> G.e
       | `Tern_exp (v1, v2, v3, v4, v5) ->
           let v1 = expression env v1 in
           let _v2 = (* "?" *) token env v2 in
@@ -1723,7 +1748,13 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
             (* TODO: Figure out what this even is *)
             [ (* G.FieldStmt (xhp_children_declaration env x |> G.s) *) ]
         | `Xhp_cate_decl x ->
-            [ G.FieldStmt (xhp_category_declaration env x |> G.s) ])
+            [ G.FieldStmt (xhp_category_declaration env x |> G.s) ]
+        | `Ellips tok ->
+            (* "..." *)
+            let expr =
+              G.ExprStmt (G.Ellipsis (token env tok) |> G.e, fk) |> G.s
+            in
+            [ G.FieldStmt expr ])
       v2
   in
   let v3 = (* "}" *) token env v3 in
@@ -1952,14 +1983,16 @@ and selection_expression (env : env) ((v1, v2, v3) : CST.selection_expression) =
     | `Choice_var x -> variablish env x
     | `As_exp x -> as_expression env x
   in
-  let v2 = anon_choice_QMARKDASHGT_ce9cc19 env v2 in
+  let v2 = selection_expression_selector env v2 in
   let v3 =
     match v3 with
     | `Choice_var x -> variablish env x
     | `Braced_exp x -> G.unbracket (braced_expression env x)
     | `Choice_type x -> G.N (G.Id (keyword env x, G.empty_id_info ())) |> G.e
   in
-  G.DotAccess (v1, v2, G.EDynamic v3) |> G.e
+  match v3.e with
+  | G.Ellipsis dots -> G.DotAccessEllipsis (v1, dots) |> G.e
+  | _ -> G.DotAccess (v1, v2, G.EDynamic v3) |> G.e
 
 and statement (env : env) (x : CST.statement) =
   match x with
@@ -2566,7 +2599,7 @@ and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
   let _v5 = (* ">" *) token env v5 in
   v2 :: v3
 
-and variablish (env : env) (x : CST.variablish) =
+and variablish (env : env) (x : CST.variablish) : G.expr =
   match x with
   | `Var tok -> (* variable *) G.N (Id (str env tok, G.empty_id_info ())) |> G.e
   (* Q: Not anything special for pipe? *)
