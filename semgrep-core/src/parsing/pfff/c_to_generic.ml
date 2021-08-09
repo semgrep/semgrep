@@ -15,7 +15,7 @@
 open Common
 module G = AST_generic
 module H = AST_generic_helpers
-open Cst_cpp
+open Ast_cpp
 open Ast_c
 
 (*****************************************************************************)

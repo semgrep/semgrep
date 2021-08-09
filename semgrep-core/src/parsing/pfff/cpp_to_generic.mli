@@ -1,2 +1,2 @@
 (* may raise AST_generic.Error *)
-val program : Cst_cpp.program -> AST_generic.program
+val program : Ast_cpp.program -> AST_generic.program
