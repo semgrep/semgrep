@@ -291,10 +291,17 @@ let rec just_parse_with_lang lang file =
         Scala_to_generic.program
   | Lang.PHP ->
       run file
-        [ Pfff (throw_tokens Parse_php.parse) ]
-        (fun cst ->
-          let ast = Ast_php_build.program cst in
-          Php_to_generic.program ast)
+        [
+          Pfff
+            (fun file ->
+              (* TODO: at some point parser_php.mly should go directly
+               * to ast_php.ml and we should get rid of cst_php.ml
+               *)
+              let cst, stat = throw_tokens Parse_php.parse file in
+              (Ast_php_build.program cst, stat));
+          TreeSitter Parse_php_tree_sitter.parse;
+        ]
+        Php_to_generic.program
   | Lang.Hack ->
       run file [ TreeSitter Parse_hack_tree_sitter.parse ] (fun x -> x)
   | Lang.R -> failwith "No R parser yet; improve the one in tree-sitter"
