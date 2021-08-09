@@ -223,7 +223,7 @@ def run_semgrep(
         args = [
             "docker",
             "run",
-            "--rm", # cleanup after ourselves
+            "--rm",  # cleanup after ourselves
             "-v",
             os.path.abspath(corpus.rule_dir) + ":/rules",
             "-v",
