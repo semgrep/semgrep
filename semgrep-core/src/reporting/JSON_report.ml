@@ -16,6 +16,7 @@
  *)
 (*e: pad/r2c copyright *)
 open Common
+module StrSet = Common2.StringSet
 open AST_generic
 module V = Visitor_AST
 module PI = Parse_info
@@ -201,8 +202,13 @@ let match_results_of_matches_and_errors files res =
   let matches, new_errs =
     Common.partition_either match_to_match res.RP.matches
   in
-  let errs = new_errs @ res.RP.errors in
-  let count_errors = List.length errs in
+  let errs = !Error_code.g_errors @ new_errs @ res.RP.errors in
+  let files_with_errors =
+    List.fold_left
+      (fun acc err -> StrSet.add err.E.loc.file acc)
+      StrSet.empty errs
+  in
+  let count_errors = StrSet.cardinal files_with_errors in
   let count_ok = List.length files - count_errors in
   {
     ST.matches;
