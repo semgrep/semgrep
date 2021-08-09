@@ -1,4 +1,5 @@
 import inspect
+import re
 import sys
 from enum import Enum
 from pathlib import Path
@@ -339,6 +340,47 @@ class OutOfMemoryError(SemgrepError):
         return {
             "path": str(self.path),
             "rule_id": self.rule_id,
+        }
+
+
+@attr.s(frozen=True, eq=True)
+class CoreWarning(SemgrepError):
+    check_id: str = attr.ib()
+    msg: str = attr.ib()
+
+    code = INVALID_PATTERN_EXIT_CODE
+    level = Level.WARN
+
+    def __str__(self) -> str:
+        # "MatchingError" -> "matching error"
+        error_id = " ".join(re.sub("([A-Z]+)", r" \1", self.check_id).split()).lower()
+        return with_color(
+            Fore.YELLOW, f"semgrep-core reported a {error_id}\n  --> {self.msg}"
+        )
+
+    def to_dict_base(self) -> Dict[str, Any]:
+        return {
+            "check_id": self.check_id,
+            "msg": self.msg,
+        }
+
+
+@attr.s(frozen=True, eq=True)
+class CoreFatalError(SemgrepError):
+    msg: str = attr.ib()
+
+    code = FATAL_EXIT_CODE
+    level = Level.ERROR
+
+    def __str__(self) -> str:
+        return with_color(
+            Fore.RED,
+            f"semgrep-core reported a fatal error:\n-----\n{self.msg}-----\nPlease file a bug report at https://github.com/returntocorp/semgrep/issues/new/choose",
+        )
+
+    def to_dict_base(self) -> Dict[str, Any]:
+        return {
+            "msg": self.msg,
         }
 
 

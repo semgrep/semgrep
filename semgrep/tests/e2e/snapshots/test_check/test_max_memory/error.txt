@@ -4,4 +4,4 @@ rules:
 - rules.forcetimeout
 Warning: Semgrep exceeded memory when running rules.forcetimeout on targets/equivalence/open_redirect.py. See `--max-memory` for more info.
 ran 1 rules on 1 files: 0 findings
-1 files could not be analyzed; run with --verbose for details or run with --strict to exit non-zero if any file cannot be analyzed
+found problems analyzing 1 file; run with --verbose for details or run with --strict to exit non-zero if any file cannot be analyzed cleanly

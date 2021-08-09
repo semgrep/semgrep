@@ -25,6 +25,7 @@ module MV = Metavariable
 module RP = Report
 module S = Specialize_formula
 module RM = Range_with_metavars
+module E = Error_code
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -111,14 +112,29 @@ type env = {
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   file : Common.filename;
-  rule_id : string;
+  rule_id : R.rule_id;
   xlang : R.xlang;
   equivalences : Equivalence.equivalences;
+  (* problems found during evaluation, one day these may be caught earlier by
+   * the meta-checker *)
+  errors : E.error list ref;
 }
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+(* Report errors during evaluation to the user rather than just logging them
+ * as we did before. *)
+let error env msg =
+  (* We are not supposed to report errors in the config file for several reasons
+   * (one being that it's often a temporary file anyways), so we report them on
+   * the target file. *)
+  let loc = PI.first_loc_of_file env.file in
+  let s = Printf.sprintf "rule %s: %s" env.rule_id msg in
+  (* TODO: warning or error? MatchingError or ... ? *)
+  let err = E.mk_error_loc loc (E.MatchingError s) in
+  Common.push err env.errors
 
 let (xpatterns_in_formula : S.sformula -> R.xpattern list) =
  fun e ->
@@ -294,7 +310,7 @@ type ('target_content, 'xpattern) xpattern_matcher = {
  * expect a different location if the end part is on a different line
  * (e.g., the semgrep Python wrapper), so I now return a pair.
  *)
-and match_range = Parse_info.token_location * Parse_info.token_location
+and match_range = PI.token_location * PI.token_location
 
 (* this will be adjusted later in range_to_pattern_match_adjusted *)
 let fake_rule_id (id, str) =
@@ -612,7 +628,7 @@ let rec filter_ranges env xs cond =
           * the text representation of the metavar content.
           *)
          | R.CondRegexp (mvar, (re_str, _re)) ->
-             let fk = Parse_info.fake_info "" in
+             let fk = PI.fake_info "" in
              let fki = AST_generic.empty_id_info () in
              let e =
                (* old: spf "semgrep_re_match(%s, \"%s\")" mvar re_str
@@ -644,19 +660,22 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   (* If anything goes wrong the default is to filter out! *)
   match List.assoc_opt mvar bindings with
   | None ->
-      (* TODO: Report a warning to the user? *)
-      logger#error "rule %s: metavariable-pattern: %s not found" env.rule_id
-        mvar;
+      error env
+        (Common.spf
+           "metavariable-pattern failed because %s it not in scope, please \
+            check your rule"
+           mvar);
       false
   | Some mval -> (
       (* We will create a temporary file with the content of the metavariable,
        * then call evaluate_formula recursively. *)
       match MV.range_of_mvalue mval with
       | None ->
-          (* TODO: Report a warning to the user? *)
-          logger#error
-            "rule %s: metavariable-pattern: we lack range info for %s: %s"
-            env.rule_id mvar (MV.show_mvalue mval);
+          error env
+            (Common.spf
+               "metavariable-pattern failed because we lack range info for %s, \
+                please file a bug report"
+               mvar);
           false
       | Some mval_range -> (
           let r' =
@@ -675,11 +694,11 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                *   specify `language: generic` (case `Some xlang` below). *)
               match MV.program_of_mvalue mval with
               | None ->
-                  (* THINK: fatal error instead? *)
-                  logger#error
-                    "rule %s: metavariable-pattern: %s does not bound a \
-                     sub-program"
-                    env.rule_id mvar;
+                  error env
+                    (Common.spf
+                       "metavariable-pattern failed because %s does not bind \
+                        to a sub-program, please check your rule"
+                       mvar);
                   false
               | Some mast ->
                   let content = Range.content_at_range env.file mval_range in
@@ -739,20 +758,25 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                     lazy_ast_and_errors
                     (lazy content)
                     (Some r'))
-          | Some _lang, _mval ->
-              (* THINK: fatal error instead? *)
-              logger#error
-                "rule %s: metavariable-pattern: the content of %s is not text"
-                env.rule_id mvar;
+          | Some _lang, mval ->
+              (* This is not necessarily an error in the rule, e.g. you may be
+               * matching `$STRING + ...` and then add a metavariable-pattern on
+               * `$STRING`. This will only work when `$STRING` binds to some text
+               * but it can naturally bind to other string expressions. *)
+              logger#debug
+                "metavariable-pattern failed because the content of %s is not \
+                 text: %s"
+                mvar (MV.show_mvalue mval);
               false))
 
 and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
     opt_context =
-  let _, final_ranges =
+  let res, final_ranges =
     let file_and_more = (env.file, env.xlang, lazy_ast_and_errors) in
     matches_of_formula env.config env.equivalences env.rule_id file_and_more
       lazy_content formula opt_context
   in
+  env.errors := res.RP.errors @ !(env.errors);
   match final_ranges with [] -> false | _ :: _ -> true
 
 (* less: use Set instead of list? *)
@@ -866,7 +890,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
       failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
 
 and matches_of_formula config equivs rule_id file_and_more lazy_content formula
-    opt_context =
+    opt_context : RP.times RP.match_result * RM.ranges =
   let file, xlang, lazy_ast_and_errors = file_and_more in
   let match_func =
     matches_of_patterns config equivs (file, xlang, lazy_ast_and_errors)
@@ -890,12 +914,14 @@ and matches_of_formula config equivs rule_id file_and_more lazy_content formula
       rule_id;
       xlang;
       equivalences = equivs;
+      errors = ref [];
     }
   in
   logger#info "evaluating the formula";
   let final_ranges = evaluate_formula env opt_context formula in
   logger#info "found %d final ranges" (List.length final_ranges);
-  (res, final_ranges)
+  let res' = { res with RP.errors = res.RP.errors @ !(env.errors) } in
+  (res', final_ranges)
   [@@profiling]
 
 (*****************************************************************************)
