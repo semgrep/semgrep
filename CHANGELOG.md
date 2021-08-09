@@ -12,6 +12,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - core: Fix parsing of numeric literals in rule files
 - Java: fix the range and autofix of Cast expressions (#3669)
 
+### Changed
+- Add backtrace to fatal errors reported by semgrep-core
+- Report errors during rule evaluation to the user
+
 ## [0.61.0](https://github.com/returntocorp/semgrep/releases/tag/v0.61.0) - 2021-08-04
 
 ### Added

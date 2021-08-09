@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 
+from semgrep.error import CoreFatalError
+from semgrep.error import CoreWarning
 from semgrep.error import LexicalError
 from semgrep.error import MatchTimeoutError
 from semgrep.error import OutOfMemoryError
@@ -98,7 +100,7 @@ class CoreException:
             return TooManyMatchesError(self._path, self._rule_id)
         elif self._check_id == "LexicalError":
             return LexicalError(self._path, self._rule_id)
-        else:
+        elif self._check_id == "ParseError":
             try:
                 with open(self._path, errors="replace") as f:
                     file_hash = SourceTracker.add_source(f.read())
@@ -112,12 +114,13 @@ class CoreException:
             )
             return SourceParseError(
                 short_msg="parse error",
-                long_msg=f"Could not parse {self._path.name} as {self._language}"
-                + (
-                    f"\n\nsemgrep-core message:\n\n\t{self._extra['message']}"
-                    if self._check_id != "ParseError" and "message" in self._extra
-                    else ""
-                ),
+                long_msg=f"Could not parse {self._path.name} as {self._language}",
                 spans=[error_span],
                 help="If the code appears to be valid, this may be a semgrep bug.",
             )
+        elif self._check_id == "FatalError":
+            message = self._extra.get("message", "no message")
+            return CoreFatalError(msg=message)
+        else:
+            message = self._extra.get("message", "no message")
+            return CoreWarning(check_id=self._check_id, msg=message)

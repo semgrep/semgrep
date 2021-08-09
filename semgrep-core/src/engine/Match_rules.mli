@@ -15,7 +15,7 @@ val check :
 val matches_of_formula :
   Config_semgrep_t.t ->
   Equivalence.equivalences ->
-  string ->
+  Rule.rule_id ->
   Common.filename
   * Rule.xlang
   * (AST_generic.program * Error_code.error list) lazy_t ->
