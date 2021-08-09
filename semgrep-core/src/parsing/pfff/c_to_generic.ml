@@ -212,7 +212,7 @@ and expr e =
       G.DotAccess (G.DeRef (t, v1) |> G.e, t, G.EN (Id (v2, G.empty_id_info ())))
   | Cast (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
-      G.Cast (v1, v2)
+      G.Cast (v1, fake "(", v2)
   | Postfix (v1, (v2, v3)) ->
       let v1 = expr v1 and v2 = fixOp v2 in
       G.Call

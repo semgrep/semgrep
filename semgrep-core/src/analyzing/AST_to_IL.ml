@@ -522,7 +522,7 @@ and expr_aux env eorig =
   | G.Xml _ -> todo (G.E eorig)
   | G.Constructor (_, _) -> todo (G.E eorig)
   | G.Yield (_, _, _) | G.Await (_, _) -> todo (G.E eorig)
-  | G.Cast (typ, e) ->
+  | G.Cast (typ, _, e) ->
       let e = expr env e in
       mk_e (Cast (typ, e)) eorig
   | G.Ref (_, _) -> todo (G.E eorig)

@@ -79,7 +79,7 @@ let subexprs_of_expr e =
   | L _ | N _ | IdSpecial _ | Ellipsis _ | TypedMetavar _ -> []
   | DotAccess (e, _, _)
   | Await (_, e)
-  | Cast (_, e)
+  | Cast (_, _, e)
   | Ref (_, e)
   | DeRef (_, e)
   | DeepEllipsis (_, e, _)

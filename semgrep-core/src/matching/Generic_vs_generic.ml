@@ -794,7 +794,9 @@ and m_expr a b =
       m_tok a0 b0 >>= fun () ->
       m_option m_expr a1 b1 >>= fun () -> m_bool a2 b2
   | G.Await (a0, a1), B.Await (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
-  | G.Cast (a1, a2), B.Cast (b1, b2) -> m_type_ a1 b1 >>= fun () -> m_expr a2 b2
+  | G.Cast (a1, at, a2), B.Cast (b1, bt, b2) ->
+      m_type_ a1 b1 >>= fun () ->
+      m_tok at bt >>= fun () -> m_expr a2 b2
   | G.Seq a1, B.Seq b1 -> (m_list m_expr) a1 b1
   | G.Ref (a0, a1), B.Ref (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.DeRef (a0, a1), B.DeRef (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1

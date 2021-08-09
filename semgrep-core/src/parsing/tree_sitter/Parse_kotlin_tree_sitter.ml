@@ -1833,9 +1833,9 @@ and unary_expression (env : env) (x : CST.unary_expression) =
           Call (IdSpecial (Op operator, tok) |> G.e, fb [ Arg v2 ]))
   | `As_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
-      let _v2 = as_operator env v2 in
+      let v2 = as_operator env v2 in
       let v3 = type_ env v3 in
-      Cast (v3, v1)
+      Cast (v3, v2, v1)
   | `Spread_exp (v1, v2) ->
       let v1 = token env v1 (* "*" *) in
       let v2 = expression env v2 in
