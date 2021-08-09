@@ -338,10 +338,10 @@ and expr e =
       G.Call
         ( G.IdSpecial (G.Op (H.conv_op v2), tok) |> G.e,
           fb [ G.Arg v1; G.Arg v3 ] )
-  | Cast ((_, v1, _), v2) ->
+  | Cast ((l, v1, _), v2) ->
       let v1 = list typ v1 and v2 = expr v2 in
       let t = Common2.foldl1 (fun acc e -> G.TyAnd (acc, fake "&", e)) v1 in
-      G.Cast (t, v2)
+      G.Cast (t, l, v2)
   | InstanceOf (v1, v2) ->
       let v1 = expr v1 and v2 = ref_type v2 in
       G.Call

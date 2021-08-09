@@ -366,7 +366,7 @@ and expr e : G.expr =
       G.Conditional (v1, v2, v3)
   | Cast (v1, v2) ->
       let v1 = ptype v1 and v2 = expr v2 in
-      G.Cast (v1, v2)
+      G.Cast (v1, fake ":", v2)
   | Lambda v1 -> (
       let tok = snd v1.f_name in
       match v1 with

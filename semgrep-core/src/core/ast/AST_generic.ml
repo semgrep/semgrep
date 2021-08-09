@@ -489,7 +489,7 @@ and expr_kind =
   | Yield of tok * expr option * bool (* 'from' for Python *)
   | Await of tok * expr
   (* Send/Recv of Go are currently in OtherExpr *)
-  | Cast of type_ (* TODO: bracket or colon *) * expr
+  | Cast of type_ * tok (* ':' or leftmost '(' or 'as' *) * expr
   (* less: should be in statement *)
   | Seq of expr list (* at least 2 elements *)
   (* less: could be in Special, but pretty important so I've lifted them here*)

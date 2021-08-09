@@ -1181,7 +1181,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v2 = token env v2 (* "as" *) in
       let v3 = type_ env v3 in
       (* TODO `as` is really a conditional cast *)
-      Cast (v3, v1)
+      Cast (v3, v2, v1)
   | `Assign_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2 = assignment_operator env v2 in
@@ -1200,7 +1200,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v2 = type_constraint env v2 in
       let v3 = token env v3 (* ")" *) in
       let v4 = expression env v4 in
-      Cast (v2, v4)
+      Cast (v2, v1, v4)
   | `Chec_exp x -> checked_expression env x
   | `Cond_access_exp (v1, v2, v3) ->
       (* map `a?.b` to `null == a ? null : a.b` *)
