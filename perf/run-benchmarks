@@ -223,12 +223,18 @@ def run_semgrep(
         args = [
             "docker",
             "run",
+            "--rm",  # cleanup after ourselves
             "-v",
             os.path.abspath(corpus.rule_dir) + ":/rules",
             "-v",
             os.path.abspath(corpus.target_dir) + ":/targets",
+            # some containers use /bin/bash as the entrypoint,
+            # so we override it here
+            "--entrypoint",
+            "semgrep",
             "-t",
             docker,
+            "--quiet",
             "--config",
             "/rules",
             "/targets",
@@ -248,7 +254,9 @@ def run_semgrep(
         args.extend(["--time"])
 
     # Finally, add target
-    args.append(os.path.abspath(corpus.target_dir))
+    if not docker:
+        # We already did this for docker as /targets above.
+        args.append(os.path.abspath(corpus.target_dir))
 
     print(f"current directory: {os.getcwd()}")
     print("semgrep command: {}".format(" ".join(args)))

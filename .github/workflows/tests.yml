@@ -231,6 +231,12 @@ jobs:
           cd semgrep
           pip3 install pipenv
           pipenv install --dev
+      - name: Test dummy benchmarks in docker from run-benchmarks
+        # This uploads the results, which should happen elsewhere so we run it explicitly for now.
+        #  make dummy
+        run: |
+          docker pull returntocorp/semgrep-dev:develop
+          python3 perf/run-benchmarks --docker returntocorp/semgrep-dev:develop --dummy
       - name: Get timing for latest semgrep
         run: |
           cd semgrep
