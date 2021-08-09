@@ -1,7 +1,6 @@
 import collections
 import json
 from pathlib import Path
-import pdb
 from subprocess import CalledProcessError
 from typing import Dict
 from xml.etree import cElementTree
@@ -190,6 +189,7 @@ def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
     for rule in sarif_output["runs"][0]["tool"]["driver"]["rules"]:
         assert rule.get("helpUri", None) is not None
 
+
 def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
         run_semgrep_in_tmp("rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF)
@@ -215,6 +215,7 @@ def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
     # Assert that each sarif rule object has a helpURI
     for rule in sarif_output["runs"][0]["tool"]["driver"]["rules"]:
         assert rule.get("help", None) is not None
+
 
 def test_url_rule(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(

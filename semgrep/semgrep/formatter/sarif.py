@@ -57,11 +57,11 @@ class SarifFormatter(BaseFormatter):
 
         rule_short_description = rule.metadata.get("shortDescription")
         if rule_short_description:
-            rule_json["shortDescription"]["text"] = rule_short_description
+            rule_json["shortDescription"] = {"text": rule_short_description}
 
         rule_help_text = rule.metadata.get("help")
         if rule_help_text:
-            rule_json["help"] = { "text":  rule_help_text }
+            rule_json["help"] = {"text": rule_help_text}
 
         return rule_json
 
@@ -87,9 +87,9 @@ class SarifFormatter(BaseFormatter):
             owasp = rule.metadata["owasp"]
             result.append(f"OWASP-{owasp}")
 
-        for tags in rule.metadata.get("tags"):
+        for tags in rule.metadata.get("tags", []):
             result.append(tags)
-            
+
         return result
 
     @staticmethod
