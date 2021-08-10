@@ -95,8 +95,11 @@ def _run_semgrep(
     elif output_format == OutputFormat.SARIF:
         options.append("--sarif")
 
+    cmd = [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name]
+    print(f"current directory: {os.getcwd()}")
+    print(f"semgrep command: {cmd}")
     output = subprocess.check_output(
-        [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name],
+        cmd,
         encoding="utf-8",
         stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
         env=env,

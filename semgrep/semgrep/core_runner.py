@@ -284,7 +284,7 @@ class CoreRunner:
                         targets = [
                             target
                             for target in targets
-                            if target not in max_timeout_files and not target.is_dir()
+                            if target not in max_timeout_files
                         ]
 
                         # opti: no need to call semgrep-core if no target files

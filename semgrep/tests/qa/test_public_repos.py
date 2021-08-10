@@ -211,11 +211,27 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_object):
         for exclude in excludes:
             cmd.extend(["--exclude", exclude])
 
-    sub_output = subprocess.check_output(
+    print(f"semgrep command: {cmd}")
+
+    res = subprocess.run(
         cmd,
         encoding="utf-8",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
-    output = json.loads(sub_output)
+    returncode = res.returncode
+    print("--- semgrep error output ---")
+    print(res.stderr)
+    print("----------------------------")
+    print("--- semgrep standard output ---")
+    print(res.stdout)
+    print("-------------------------------")
+    if returncode != 0:
+        # Fail regardless of the expected status "ok" or "xfail".
+        raise subprocess.SubprocessError(
+            f"Semgrep exited with non-zero status: {returncode}"
+        )
+    output = json.loads(res.stdout)
 
     expected_results_count = len(repo_languages)
     if len(output["results"]) != expected_results_count or len(output["errors"]) != 0:
