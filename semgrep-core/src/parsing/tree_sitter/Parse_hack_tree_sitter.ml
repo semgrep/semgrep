@@ -224,42 +224,54 @@ let xhp_category_declaration (env : env)
 
 let qualified_identifier (env : env) (x : CST.qualified_identifier) : G.name =
   match x with
-  | `Opt_id_rep1_back_id (v1, v2) ->
-      let v1 =
-        match v1 with
-        | Some tok ->
-            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *)
-            [ str env tok ]
-        | None -> []
-      in
-      let v2 =
-        List.map
-          (fun (v1, v2) ->
-            let _v1 = (* "\\" *) token env v1 in
-            let v2 =
-              (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v2
-            in
-            v2)
-          v2
-      in
-      (* Q: Is it fine to ignore if the name is fully vs partially qualified? *)
-      let ids = List.rev (v1 @ v2) in
-      (* These lists must not be empty so we shouldn't crash here *)
-      let ident = List.hd ids in
-      let qual = G.QDots (List.rev (List.tl ids)) in
-      G.IdQualified
-        ( (ident, { name_qualifier = Some qual; name_typeargs = None }),
-          G.empty_id_info () )
-  | `Id tok ->
-      (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *)
-      let ident = str env tok in
-      Id (ident, G.empty_id_info ())
+  | `Choice_opt_id_rep1_back_id x -> (
+      match x with
+      | `Opt_id_rep1_back_id (v1, v2) ->
+          let v1 =
+            match v1 with
+            | Some tok ->
+                (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *)
+                [ str env tok ]
+            | None -> []
+          in
+          let v2 =
+            List.map
+              (fun (v1, v2) ->
+                let _v1 = (* "\\" *) token env v1 in
+                let v2 =
+                  (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *)
+                  str env v2
+                in
+                v2)
+              v2
+          in
+          (* Q: Is it fine to ignore if the name is fully vs partially qualified? *)
+          let ids = List.rev (v1 @ v2) in
+          (* These lists must not be empty so we shouldn't crash here *)
+          let ident = List.hd ids in
+          let qual = G.QDots (List.rev (List.tl ids)) in
+          G.IdQualified
+            ( (ident, { name_qualifier = Some qual; name_typeargs = None }),
+              G.empty_id_info () )
+      | `Id tok ->
+          (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *)
+          let ident = str env tok in
+          Id (ident, G.empty_id_info ()))
+  | `Semg_id tok ->
+      (* pattern \$[A-Z_][A-Z_0-9]* *) Id (str env tok, G.empty_id_info ())
 
 let empty_statement (env : env) (x : CST.empty_statement) =
   match x with
   | `SEMI tok -> (* ";" *) empty_stmt env tok
   | `Ellips tok ->
       (* "..." *) G.ExprStmt (G.Ellipsis (token env tok) |> G.e, fk) |> G.s
+
+let semgrep_extended_identifier (env : env)
+    (x : CST.semgrep_extended_identifier) =
+  match x with
+  | `Semg_id tok -> (* pattern \$[A-Z_][A-Z_0-9]* *) str env tok
+  | `Id tok ->
+      (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env tok
 
 let xhp_identifier_ (env : env) (x : CST.xhp_identifier_) =
   match x with
@@ -534,10 +546,9 @@ let use_clause (env : env) ((v1, v2, v3) : CST.use_clause) =
   | Some x -> (Some (unwrap_qualified_identifier x), v3)
   | None -> (None, v3)
 
-let const_declarator_id (env : env) (x : CST.anon_choice_id_0f53960) =
+let const_declarator_id (env : env) (x : CST.anon_choice_semg_exte_id_8bbc8de) =
   match x with
-  | `Id tok ->
-      (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env tok
+  | `Semg_exte_id x -> semgrep_extended_identifier env x
   | `Choice_type x -> keyword env x
 
 (* TODO: change how treesitter grammar does this? We think SEMI is empty stmt? *)
@@ -1093,8 +1104,7 @@ and declaration (env : env) (x : CST.declaration) =
       let v5 = (* "class" *) token env v5 in
       let id =
         match v6 with
-        | `Id tok ->
-            (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env tok
+        | `Semg_exte_id x -> semgrep_extended_identifier env x
         | `Choice_xhp_id x -> xhp_identifier_ env x
       in
       let type_params =
@@ -1124,9 +1134,7 @@ and declaration (env : env) (x : CST.declaration) =
         match v1 with Some x -> [ attribute_modifier env x ] | None -> []
       in
       let v2 = (* "interface" *) token env v2 in
-      let id =
-        (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
-      in
+      let id = semgrep_extended_identifier env v3 in
       let type_params =
         match v4 with Some x -> type_parameters env x | None -> []
       in
@@ -1150,9 +1158,7 @@ and declaration (env : env) (x : CST.declaration) =
         match v1 with Some x -> [ attribute_modifier env x ] | None -> []
       in
       let v2 = (* "trait" *) token env v2 in
-      let id =
-        (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
-      in
+      let id = semgrep_extended_identifier env v3 in
       let type_params =
         match v4 with Some x -> type_parameters env x | None -> []
       in
@@ -1185,9 +1191,7 @@ and declaration (env : env) (x : CST.declaration) =
       in
       (* Q: Type params vs type attributes in generic? Which to use here?
          Put within Name or pass to Apply?*)
-      let id =
-        (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
-      in
+      let id = semgrep_extended_identifier env v3 in
       let v5 =
         match v5 with
         (* TODO: Handle type constraint. Just an attr? *)
@@ -1209,9 +1213,7 @@ and declaration (env : env) (x : CST.declaration) =
         match v1 with Some x -> [ attribute_modifier env x ] | None -> []
       in
       let _v2 = (* "enum" *) token env v2 in
-      let v3 =
-        (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
-      in
+      let v3 = semgrep_extended_identifier env v3 in
       let _v4 = (* ":" *) token env v4 in
       let _v5TODO = type_ env v5 in
       let _v6 =
@@ -1311,7 +1313,7 @@ and embedded_brace_expression_ (env : env) (x : CST.embedded_brace_expression_)
       | _ -> G.DotAccess (v1, v2, G.EDynamic v3) |> G.e)
 
 and enumerator (env : env) ((v1, v2, v3, v4) : CST.enumerator) =
-  let v1 = (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v1 in
+  let v1 = semgrep_extended_identifier env v1 in
   let _v2 = (* "=" *) token env v2 in
   let v3 = expression env v3 in
   let _v4 = (* ";" *) token env v4 in
@@ -1681,9 +1683,7 @@ and function_declaration_header (env : env)
     | None -> None
   in
   let function_keyword = (* "function" *) token env v2 in
-  let identifier =
-    (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
-  in
+  let identifier = semgrep_extended_identifier env v3 in
   let type_params =
     match v4 with Some x -> type_parameters env x | None -> []
   in
@@ -2531,7 +2531,7 @@ and type_const_declaration (env : env)
   let v2 = List.map (member_modifier env) v2 in
   let v3 = (* "const" *) [ G.KeywordAttr (Const, token env v3) ] in
   let _v4 = (* "type" *) token env v4 in
-  let id = (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v5 in
+  let id = semgrep_extended_identifier env v5 in
   let type_params =
     match v6 with Some x -> type_parameters env x | None -> []
   in
