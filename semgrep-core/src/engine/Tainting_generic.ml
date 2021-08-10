@@ -56,7 +56,7 @@ let any_in_ranges any ranges =
         (G.show_any any);
       false
   | Some (tok1, tok2) ->
-      let r = { Range.start = tok1.charpos; end_ = tok2.charpos } in
+      let r = Range.range_of_token_locations tok1 tok2 in
       List.exists (Range.( $<=$ ) r) ranges
 
 let ranges_of_pformula config equivs file_and_more rule_id pformula =

@@ -112,6 +112,7 @@ type env = {
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   file : Common.filename;
+  lazy_ast_and_errors : (G.program * Error_code.error stack) lazy_t;
   rule_id : R.rule_id;
   xlang : R.xlang;
   equivalences : Equivalence.equivalences;
@@ -262,8 +263,8 @@ let debug_semgrep config mini_rules equivalences file lang ast =
 (* Evaluating Semgrep patterns *)
 (*****************************************************************************)
 
-let matches_of_patterns config equivalences (file, xlang, lazy_ast_and_errors)
-    patterns =
+let matches_of_patterns ?range_filter config equivalences
+    (file, xlang, lazy_ast_and_errors) patterns =
   match xlang with
   | R.L (lang, _) ->
       let (ast, errors), parse_time =
@@ -282,7 +283,7 @@ let matches_of_patterns config equivalences (file, xlang, lazy_ast_and_errors)
             else
               ( Match_patterns.check
                   ~hook:(fun _ _ -> ())
-                  config mini_rules equivalences (file, lang, ast),
+                  ?range_filter config mini_rules equivalences (file, lang, ast),
                 errors ))
       in
       { RP.matches; errors; profiling = { RP.parse_time; match_time } }
@@ -856,6 +857,9 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
                  res
           in
 
+          (* optimization of `pattern: $X` *)
+          let res = run_pattern_X_inside_ranges env selector_opt res in
+
           (* let's remove the negative ranges *)
           let res =
             neg
@@ -880,14 +884,31 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
            *  - distribute filter_range in intersect_range?
            * See https://github.com/returntocorp/semgrep/issues/2664
            *)
-          let res =
-            conds
-            |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res
-          in
-          S.select_from_ranges env.file selector_opt res)
+          conds
+          |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res)
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
   | S.Leaf (R.MetavarCond _) ->
       failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
+
+and run_pattern_X_inside_ranges env selector_opt ranges =
+  match selector_opt with
+  | None -> ranges
+  | Some { S.pattern; pid; pstr; _ } ->
+      let range_filter (tok1, tok2) =
+        let r = Range.range_of_token_locations tok1 tok2 in
+        List.exists (fun rwm -> Range.( $<=$ ) r rwm.RM.r) ranges
+      in
+      let patterns = [ (pattern, pid, fst pstr) ] in
+      let res =
+        matches_of_patterns ~range_filter env.config env.equivalences
+          (env.file, env.xlang, env.lazy_ast_and_errors)
+          patterns
+      in
+      logger#info "run_selector_in_ranges: found %d matches"
+        (List.length res.matches);
+      res.matches
+      |> List.map RM.match_result_to_range
+      |> RM.intersect_ranges env.config !debug_matches ranges
 
 and matches_of_formula config equivs rule_id file_and_more lazy_content formula
     opt_context : RP.times RP.match_result * RM.ranges =
@@ -911,6 +932,7 @@ and matches_of_formula config equivs rule_id file_and_more lazy_content formula
       config;
       pattern_matches = pattern_matches_per_id;
       file;
+      lazy_ast_and_errors;
       rule_id;
       xlang;
       equivalences = equivs;

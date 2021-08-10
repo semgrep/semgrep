@@ -7,6 +7,7 @@ module RP = Report
 
 type selector = {
   mvar : M.mvar;
+  pattern : AST_generic.any;
   pid : int;
   pstr : string R.wrap;
   lazy_matches : RP.times RP.match_result Lazy.t;
@@ -38,37 +39,6 @@ let match_selector ?err:(msg = "no match") (sel_opt : selector option) :
       List.map RM.match_result_to_range
         (get_match (Lazy.force selector.lazy_matches))
 
-let select_from_ranges file (sel_opt : selector option) (ranges : RM.ranges) :
-    RM.ranges =
-  let pattern_match_from_binding selector (mvar, mval) =
-    match Visitor_AST.range_of_any_opt (M.mvalue_to_any mval) with
-    | None -> None
-    | Some range_loc ->
-        Some
-          {
-            PM.rule_id = fake_rule_id (selector.pid, fst selector.pstr);
-            PM.file;
-            PM.range_loc;
-            PM.tokens = lazy (M.ii_of_mval mval);
-            PM.env = [ (mvar, mval) ];
-          }
-  in
-  let select_from_range range =
-    match sel_opt with
-    | None -> Some range
-    | Some selector -> (
-        match
-          List.find_opt
-            (fun (mvar, _mval) -> M.equal_mvar selector.mvar mvar)
-            range.RM.mvars
-        with
-        | None -> None
-        | Some binding ->
-            pattern_match_from_binding selector binding
-            |> Common.map_opt RM.match_result_to_range)
-  in
-  Common.map_filter select_from_range ranges
-
 let selector_equal s1 s2 = s1.mvar = s2.mvar
 
 (*****************************************************************************)
@@ -83,6 +53,7 @@ let selector_from_formula match_func f =
           Some
             {
               mvar;
+              pattern;
               pid;
               pstr;
               lazy_matches = lazy (match_func [ (pattern, pid, fst pstr) ]);
@@ -107,15 +78,14 @@ let formula_to_sformula match_func formula =
           in
           remove_selectors (selector, acc) xs
     in
-    let _convert_and_formulas fs =
-      (* TODO put back this function *)
+    let convert_and_formulas fs =
       let selector, fs = remove_selectors (None, []) fs in
       (selector, List.map formula_to_sformula fs)
     in
     (* Visit formula and convert *)
     match formula with
     | R.Leaf leaf -> Leaf leaf
-    | R.And (_, fs) -> And (None, List.map formula_to_sformula fs)
+    | R.And (_, fs) -> And (convert_and_formulas fs)
     | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
   in
