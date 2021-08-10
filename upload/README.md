@@ -1,7 +1,15 @@
 # Semgrep Rule Upload Script (Experimental)
 
+Users in the Team and Enterprise tier for Semgrep App can publish rules to the Semgrep Registry that are not visible to others outside their organization. This can be useful for organizations where rules may contain code-sensitive information or legal requirements prevent using a public registry.
+<br />
+<br />
+As we continue to develop and refine this feature, we welcome and appreciate all feedback via email at product@returntocorp.com or in our [Community Slack](https://r2c.dev/slack).
 
 ## Usage
+
+***DEPLOYMENT_ID*** can be found in Semgrep App [here](https://semgrep.dev/manage/settings)
+<br />
+***SEMGREP_TOKEN*** can be generated in Semgrep App [here](https://semgrep.dev/manage/settings/tokens)
 
 ### Dockerhub
 ```
