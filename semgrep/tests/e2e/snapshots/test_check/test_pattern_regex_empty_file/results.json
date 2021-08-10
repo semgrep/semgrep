@@ -1,0 +1,25 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.any-file",
+      "end": {
+        "col": 1,
+        "line": 0
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "",
+        "message": "Match any file",
+        "metadata": {},
+        "metavars": {},
+        "severity": "INFO"
+      },
+      "path": "targets/empty/totally_empty_file",
+      "start": {
+        "col": 1,
+        "line": 0
+      }
+    }
+  ]
+}
