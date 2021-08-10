@@ -837,11 +837,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
         match posrs @ posrs_inside with
         | [] -> (
             match opt_context with
-            | None ->
-                [
-                  S.match_selector ~err:"empty And; no positive terms in And"
-                    selector_opt;
-                ]
+            | None -> failwith "empty And; no positive terms in And"
             | Some r -> [ [ r ] ])
         | ps -> ps
       in
@@ -858,7 +854,7 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
           in
 
           (* optimization of `pattern: $X` *)
-          let res = run_pattern_X_inside_ranges env selector_opt res in
+          let res = run_selector_on_ranges env selector_opt res in
 
           (* let's remove the negative ranges *)
           let res =
@@ -890,10 +886,16 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
   | S.Leaf (R.MetavarCond _) ->
       failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
 
-and run_pattern_X_inside_ranges env selector_opt ranges =
-  match selector_opt with
-  | None -> ranges
-  | Some { S.pattern; pid; pstr; _ } ->
+and run_selector_on_ranges env selector_opt ranges =
+  match (selector_opt, ranges) with
+  | _, [] ->
+      (* Empty context, nothing to select from. *)
+      []
+  | None, ranges ->
+      (* Nothing to select. *)
+      ranges
+  | Some { S.pattern; pid; pstr; _ }, ranges ->
+      (* Find matches of `pattern` inside `ranges`. *)
       let range_filter (tok1, tok2) =
         let r = Range.range_of_token_locations tok1 tok2 in
         List.exists (fun rwm -> Range.( $<=$ ) r rwm.RM.r) ranges
@@ -904,7 +906,7 @@ and run_pattern_X_inside_ranges env selector_opt ranges =
           (env.file, env.xlang, env.lazy_ast_and_errors)
           patterns
       in
-      logger#info "run_selector_in_ranges: found %d matches"
+      logger#info "run_selector_on_ranges: found %d matches"
         (List.length res.matches);
       res.matches
       |> List.map RM.match_result_to_range
@@ -913,10 +915,7 @@ and run_pattern_X_inside_ranges env selector_opt ranges =
 and matches_of_formula config equivs rule_id file_and_more lazy_content formula
     opt_context : RP.times RP.match_result * RM.ranges =
   let file, xlang, lazy_ast_and_errors = file_and_more in
-  let match_func =
-    matches_of_patterns config equivs (file, xlang, lazy_ast_and_errors)
-  in
-  let formula = S.formula_to_sformula match_func formula in
+  let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
   let res =
     matches_of_xpatterns config equivs
