@@ -29,7 +29,9 @@ module PI = Parse_info
 (* Helpers *)
 (*****************************************************************************)
 
-type env = unit H.env
+type mode = Pattern | Target
+
+type env = mode H.env
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -1771,47 +1773,52 @@ and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
   let ent = basic_typed_entity identifier (v1 @ v2) type_args in
   G.DefStmt (ent, G.FuncDef def)
 
-and parameter (env : env) ((v1, v2, v3, v4, v5, v6, v7) : CST.parameter) :
-    G.parameter =
-  let v1 =
-    match v1 with Some x -> [ attribute_modifier env x ] | None -> []
-  in
-  let v2 =
-    match v2 with Some x -> [ visibility_modifier env x ] | None -> []
-  in
-  let v3 =
-    (* Q: Mutable? This is the best keyword I could think of. *)
-    match v3 with
-    | Some tok -> (* "inout" *) [ G.KeywordAttr (Mutable, token env tok) ]
-    | None -> []
-  in
-  let v4 = match v4 with Some x -> Some (type_ env x) | None -> None in
-  let v5 =
-    match v5 with Some tok -> (* "..." *) Some (token env tok) | None -> None
-  in
-  let v6 = (* variable *) str env v6 in
-  let v7 =
-    match v7 with
-    | Some (v1, v2) ->
-        let _v1 = (* "=" *) token env v1 in
-        let v2 = expression env v2 in
-        Some v2
-    | None -> None
-  in
-  let param : G.parameter_classic =
-    {
-      pname = Some v6;
-      ptype = v4;
-      pdefault = v7;
-      pattrs = v1 @ v2 @ v3;
-      pinfo =
-        G.basic_id_info (Param, G.sid_TODO)
-        (* Q: But why sid_TODO? Like what is this info? *);
-    }
-  in
-  match v5 with
-  | Some tok -> (* "..." *) G.ParamRest (tok, param)
-  | None -> G.ParamClassic param
+and parameter (env : env) (x : CST.parameter) : G.parameter =
+  match x with
+  | `Opt_attr_modi_opt_visi_modi_opt_inout_modi_opt_choice_type_spec_opt_vari_modi_var_opt_EQ_exp
+      (v1, v2, v3, v4, v5, v6, v7) -> (
+      let v1 =
+        match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+      in
+      let v2 =
+        match v2 with Some x -> [ visibility_modifier env x ] | None -> []
+      in
+      let v3 =
+        (* Q: Mutable? This is the best keyword I could think of. *)
+        match v3 with
+        | Some tok -> (* "inout" *) [ G.KeywordAttr (Mutable, token env tok) ]
+        | None -> []
+      in
+      let v4 = match v4 with Some x -> Some (type_ env x) | None -> None in
+      let v5 =
+        match v5 with
+        | Some tok -> (* "..." *) Some (token env tok)
+        | None -> None
+      in
+      let v6 = (* variable *) str env v6 in
+      let v7 =
+        match v7 with
+        | Some (v1, v2) ->
+            let _v1 = (* "=" *) token env v1 in
+            let v2 = expression env v2 in
+            Some v2
+        | None -> None
+      in
+      let param : G.parameter_classic =
+        {
+          pname = Some v6;
+          ptype = v4;
+          pdefault = v7;
+          pattrs = v1 @ v2 @ v3;
+          pinfo =
+            G.basic_id_info (Param, G.sid_TODO)
+            (* Q: But why sid_TODO? Like what is this info? *);
+        }
+      in
+      match v5 with
+      | Some tok -> (* "..." *) G.ParamRest (tok, param)
+      | None -> G.ParamClassic param)
+  | `Ellips tok -> (* "..." *) G.ParamEllipsis (token env tok)
 
 and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
   let _v1 = (* "(" *) token env v1 in
@@ -1820,9 +1827,19 @@ and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
     | Some x -> (
         match x with
         | `Vari_modi tok ->
-            (* Q: TODO: Even though not from Semgrep, can I use ParamEllipsis here? *)
             (* "..." *)
-            [ G.ParamEllipsis (token env tok) ]
+            let empty_param =
+              {
+                G.pattrs = [];
+                pinfo = G.empty_id_info ();
+                ptype = None;
+                pname = None;
+                pdefault = None;
+              }
+            in
+            if env.extra = Pattern then [ G.ParamEllipsis (token env tok) ]
+              (* Q: TODO: Even though not from Semgrep, can I use ParamEllipsis here? *)
+            else [ G.ParamRest (token env tok, empty_param) ]
         | `Param_rep_COMMA_param_opt_COMMA (v1, v2, v3) ->
             let v1 = parameter env v1 in
             let v2 =
@@ -2835,8 +2852,8 @@ let parse file =
       Parallel.backtrace_when_exn := false;
       Parallel.invoke Tree_sitter_hack.Parse.file file ())
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-
+      let extra = Target in
+      let env = { H.file; conv = H.line_col_to_pos file; extra } in
       try script env cst
       with Failure "not implemented" as exn ->
         H.debug_sexp_cst_after_error (CST.sexp_of_script cst);
@@ -2853,7 +2870,7 @@ let parse_pattern str =
        * right construct? Is $XXX ambiguous in a semgrep context?
        * Imitate what we do in php_to_generic.ml?
        *)
-      let extra = () in
+      let extra = Pattern in
       let env = { H.file; conv = Hashtbl.create 0; extra } in
       match script env cst with
       | [ { G.s = G.ExprStmt (e, _); _ } ] -> G.E e
