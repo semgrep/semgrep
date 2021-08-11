@@ -30,6 +30,7 @@ class Language(Enum):
     GO: str = "go"
     RUBY: str = "ruby"
     PHP: str = "php"
+    HACK: str = "hack"
     LUA: str = "lua"
     CSHARP: str = "csharp"
     RUST: str = "rust"
@@ -56,6 +57,7 @@ class Language_util:
         Language.GO: [Language.GO.value, "golang"],
         Language.RUBY: [Language.RUBY.value, "rb"],
         Language.PHP: [Language.PHP.value],
+        Language.HACK: [Language.HACK.value, "hacklang"],
         Language.LUA: [Language.LUA.value],
         Language.CSHARP: [Language.CSHARP.value, "cs", "C#"],
         Language.RUST: [Language.RUST.value, "Rust", "rs"],
