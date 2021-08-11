@@ -1,0 +1,4 @@
+require $A;
+include $B;
+require_once $C;
+include_once $D;
