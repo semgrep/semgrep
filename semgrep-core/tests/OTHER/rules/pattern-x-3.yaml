@@ -1,0 +1,7 @@
+rules:
+- id: test
+  languages: [python]
+  patterns:
+  - pattern: $X
+  message: Test
+  severity: ERROR
