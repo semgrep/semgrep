@@ -895,7 +895,9 @@ and run_selector_on_ranges env selector_opt ranges =
       (* Nothing to select. *)
       ranges
   | Some { S.pattern; pid; pstr; _ }, ranges ->
-      (* Find matches of `pattern` inside `ranges`. *)
+      (* Find matches of `pattern` *but* only inside `ranges`, this prevents
+       * matching and allocations that are wasteful because they are going to
+       * be thrown away later when interesecting the results. *)
       let range_filter (tok1, tok2) =
         let r = Range.range_of_token_locations tok1 tok2 in
         List.exists (fun rwm -> Range.( $<=$ ) r rwm.RM.r) ranges

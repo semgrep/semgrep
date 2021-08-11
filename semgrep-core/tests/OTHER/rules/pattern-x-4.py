@@ -1,10 +1,10 @@
 #ok:test
 bar = x
 
-def foo(x):
-  #ruleid:test
+def bar(x):
+  #ok:test
   a = x + b
-  #ruleid:test
+  #ok:test
   c = a + x
-  #ruleid:test
+  #ok:test
   return (c + x)

@@ -1,6 +1,3 @@
-#ok:test
-bar = x
-
 def foo(x):
   #ruleid:test
   a = x + b
@@ -8,3 +5,9 @@ def foo(x):
   c = a + x
   #ruleid:test
   return (c + x)
+
+#ruleid:test
+bar = x
+
+#ruleid:test
+baz = 2*bar

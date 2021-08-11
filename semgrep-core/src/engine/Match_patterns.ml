@@ -205,6 +205,14 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.check2]] *)
+(* [range_filter] is a predicate that defines "regions of interest" when matching
+ *   expressions, this is e.g. used for optimizing `pattern: $X`. Note that
+ *   traversing the Generic AST is generally fairly cheap, what could be more
+ *   expensive is to do the matching (due to combinatorics) and all the allocations
+ *   associatiated, especially when the pattern causaes a lot of matches. This
+ *   filter allows us to avoid all that expensive stuff when matching expressions
+ *   unless they fall in specific regions of the code.
+ *   See also docs for {!check} in Match_pattern.mli. *)
 let check2 ~hook range_filter config rules equivs (file, lang, ast) =
   logger#info "checking %s with %d mini rules" file (List.length rules);
 
@@ -311,7 +319,7 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
                    | Some (start_loc, end_loc) ->
                        logger#info
                          "While matching pattern %s in file %s, we skipped \
-                          expression at %d:%d-%d:%d (outside range of \
+                          expression at %d:%d-%d:%d (outside any range of \
                           interest)"
                          rule.pattern_string start_loc.file start_loc.line
                          start_loc.column end_loc.line end_loc.column;
