@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - OCaml: support module aliasing, so looking for `List.map` will also
   find code that renamed `List` as `L` via `module L = List`.
+- Add help text to sarif formatter output if defined in metadata field.
+- Update shortDescription in sarif formatter output if defined in metadata field. 
+- Add tags as defined in metadata field in addition to the existing tags.
 
 ### Fixed
 - core: Fix parsing of numeric literals in rule files
