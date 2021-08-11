@@ -21,6 +21,7 @@ C_EXTENSIONS = [FileExtension(".c")]
 GO_EXTENSIONS = [FileExtension(".go")]
 RUBY_EXTENSIONS = [FileExtension(".rb")]
 PHP_EXTENSIONS = [FileExtension(".php")]
+HACK_EXTENSIONS = [FileExtension(".hack"), FileExtension(".hck")]
 LUA_EXTENSIONS = [FileExtension(".lua")]
 CSHARP_EXTENSIONS = [FileExtension(".cs")]
 RUST_EXTENSIONS = [FileExtension(".rs")]
@@ -42,6 +43,7 @@ ALL_EXTENSIONS = (
     + C_EXTENSIONS
     + GO_EXTENSIONS
     + RUBY_EXTENSIONS
+    + HACK_EXTENSIONS
     + ML_EXTENSIONS
     + JSON_EXTENSIONS
     + RUST_EXTENSIONS
@@ -69,6 +71,7 @@ _LANGS_TO_EXTS: Dict[Language, List[FileExtension]] = {
     Language.ML: ML_EXTENSIONS,
     Language.RUBY: RUBY_EXTENSIONS,
     Language.PHP: PHP_EXTENSIONS,
+    Language.HACK: HACK_EXTENSIONS,
     Language.JSON: JSON_EXTENSIONS,
     Language.LUA: LUA_EXTENSIONS,
     Language.CSHARP: CSHARP_EXTENSIONS,

@@ -232,6 +232,12 @@ let lang_parsing_tests =
       let lang = Lang.Kotlin in
       parsing_tests_for_lang files lang
     );
+    "Hack" >::: (
+      let dir = Filename.concat (Filename.concat tests_path "hack") "parsing" in
+      let files = Common2.glob (spf "%s/*.hack" dir) in
+      let lang = Lang.Hack in
+      parsing_tests_for_lang files lang
+    );
     (* here we have both a Pfff and tree-sitter parser *)
     "Java" >::: (
       let dir= Filename.concat (Filename.concat tests_path "java") "parsing" in
@@ -352,6 +358,12 @@ let lang_regression_tests ~with_caching =
     let dir = Filename.concat tests_path "php" in
     let files = Common2.glob (spf "%s/*.php" dir) in
     let lang = Lang.PHP in
+    regression_tests_for_lang files lang
+  );
+  "semgrep Hack" >::: (
+    let dir = Filename.concat tests_path "hack" in
+    let files = Common2.glob (spf "%s/*.hack" dir) in
+    let lang = Lang.Hack in
     regression_tests_for_lang files lang
   );
   "semgrep C#" >::: (
