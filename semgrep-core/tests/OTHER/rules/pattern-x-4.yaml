@@ -1,0 +1,10 @@
+rules:
+- id: test
+  languages: [python]
+  patterns:
+  - pattern-inside: |
+      def foo($X, ...):
+          ...
+  - pattern: $X
+  message: Test
+  severity: ERROR

@@ -6,15 +6,17 @@
 
 type selector = {
   mvar : Metavariable.mvar;
+  pattern : AST_generic.any;
   pid : int;
   pstr : string Rule.wrap;
-  (* lazy_matches necessary in case `$X` is the only pattern *)
-  lazy_matches : Report.times Report.match_result Lazy.t;
 }
 
 type sformula =
   | Leaf of Rule.leaf
   | And of (selector option * sformula list)
+      (** Invariant: [And (sel_opt, fs)] satisfies
+     * [not (Option.is_some sel_opt) || fs <> []], that is,
+     * we can only select from a non-empty context. *)
   | Or of sformula list
   | Not of sformula
 
@@ -22,28 +24,13 @@ type sformula =
 (* Selecting methods *)
 (*****************************************************************************)
 
-val fake_rule_id : int * string -> Pattern_match.rule_id
-
-val match_selector :
-  ?err:string -> selector option -> Range_with_metavars.ranges
-
-val select_from_ranges :
-  string ->
-  selector option ->
-  Range_with_metavars.ranges ->
-  Range_with_metavars.ranges
-
 val selector_equal : selector -> selector -> bool
 
 (*****************************************************************************)
 (* Converter *)
 (*****************************************************************************)
 
-val formula_to_sformula :
-  ((AST_generic.any * Rule.pattern_id * string) list ->
-  Report.times Report.match_result) ->
-  Rule.formula ->
-  sformula
+val formula_to_sformula : Rule.formula -> sformula
 
 (*****************************************************************************)
 (* Visitor *)

@@ -205,7 +205,15 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
 (*****************************************************************************)
 
 (*s: function [[Semgrep_generic.check2]] *)
-let check2 ~hook config rules equivs (file, lang, ast) =
+(* [range_filter] is a predicate that defines "regions of interest" when matching
+ *   expressions, this is e.g. used for optimizing `pattern: $X`. Note that
+ *   traversing the Generic AST is generally fairly cheap, what could be more
+ *   expensive is to do the matching (due to combinatorics) and all the allocations
+ *   associatiated, especially when the pattern causaes a lot of matches. This
+ *   filter allows us to avoid all that expensive stuff when matching expressions
+ *   unless they fall in specific regions of the code.
+ *   See also docs for {!check} in Match_pattern.mli. *)
+let check2 ~hook range_filter config rules equivs (file, lang, ast) =
   logger#info "checking %s with %d mini rules" file (List.length rules);
 
   let rules =
@@ -287,28 +295,35 @@ let check2 ~hook config rules equivs (file, lang, ast) =
              *)
             !expr_rules
             |> List.iter (fun (pattern, _bf, rule, cache) ->
-                   let env = MG.empty_environment cache config in
-                   let matches_with_env = match_e_e rule pattern x env in
-                   if matches_with_env <> [] then
-                     (* Found a match *)
-                     matches_with_env
-                     |> List.iter (fun (env : MG.tin) ->
-                            let env = env.mv.full_env in
-                            match V.range_of_any_opt (E x) with
-                            | None ->
-                                (* TODO: Report a warning to the user? *)
-                                logger#error
-                                  "Cannot report match because we lack range \
-                                   info: %s"
-                                  (show_expr x);
-                                ()
-                            | Some range_loc ->
+                   match V.range_of_any_opt (E x) with
+                   | None ->
+                       (* TODO: Report a warning to the user? *)
+                       logger#error
+                         "Cannot report match because we lack range info: %s"
+                         (show_expr x);
+                       ()
+                   | Some range_loc when range_filter range_loc ->
+                       let env = MG.empty_environment cache config in
+                       let matches_with_env = match_e_e rule pattern x env in
+                       if matches_with_env <> [] then
+                         (* Found a match *)
+                         matches_with_env
+                         |> List.iter (fun (env : MG.tin) ->
+                                let env = env.mv.full_env in
                                 let tokens = lazy (V.ii_of_any (E x)) in
                                 let rule_id = rule_id_of_mini_rule rule in
                                 Common.push
                                   { PM.rule_id; file; env; range_loc; tokens }
                                   matches;
-                                hook env tokens));
+                                hook env tokens)
+                   | Some (start_loc, end_loc) ->
+                       logger#info
+                         "While matching pattern %s in file %s, we skipped \
+                          expression at %d:%d-%d:%d (outside any range of \
+                          interest)"
+                         rule.pattern_string start_loc.file start_loc.line
+                         start_loc.column end_loc.line end_loc.column;
+                       ());
             (* try the rules on subexpressions *)
             (* this can recurse to find nested matching inside the
              * matched code itself *)
@@ -472,8 +487,8 @@ let check2 ~hook config rules equivs (file, lang, ast) =
 (*e: function [[Semgrep_generic.check2]] *)
 
 (* TODO: cant use [@@profile] because it does not handle yet label params *)
-let check ~hook config a b c =
+let check ~hook ?(range_filter = fun _ -> true) config a b c =
   Common.profile_code "Semgrep_generic.check" (fun () ->
-      check2 ~hook config a b c)
+      check2 ~hook range_filter config a b c)
 
 (*e: semgrep/engine/Match_patterns.ml *)
