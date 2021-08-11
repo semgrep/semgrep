@@ -74,8 +74,26 @@ class TargetManager:
         return frozenset(resolve_targets(targets))
 
     @staticmethod
-    def _is_valid(path: Path) -> bool:
-        return os.access(path, os.R_OK) and path.exists() and not path.is_symlink()
+    def _is_valid_file_or_dir(path: Path) -> bool:
+        """Check this is a valid file or directory for semgrep scanning."""
+        return os.access(path, os.R_OK) and not path.is_symlink()
+
+    @staticmethod
+    def _is_valid_file(path: Path) -> bool:
+        """Check if file is a readable regular file.
+
+        This eliminates files that should never be semgrep targets. Among
+        others, this takes care of excluding symbolic links (because we don't
+        want to scan the target twice), directories (which may be returned by
+        globbing or by 'git ls-files' e.g. submodules), and files missing
+        the read permission.
+        """
+        return TargetManager._is_valid_file_or_dir(path) and path.is_file()
+
+    @staticmethod
+    def _filter_valid_files(paths: FrozenSet[Path]) -> FrozenSet[Path]:
+        """Keep only readable regular files"""
+        return frozenset(path for path in paths if TargetManager._is_valid_file(path))
 
     @staticmethod
     def _expand_dir(
@@ -100,7 +118,7 @@ class TargetManager:
                     for p in (
                         Path(curr_dir) / elem for elem in output.strip().split("\n")
                     )
-                    if TargetManager._is_valid(p)
+                    if TargetManager._is_valid_file(p)
                 )
             return files
 
@@ -113,7 +131,7 @@ class TargetManager:
             return frozenset(
                 p
                 for p in curr_dir.rglob(f"*{extension}")
-                if TargetManager._is_valid(p) and p.is_file()
+                if TargetManager._is_valid_file(p)
             )
 
         extensions = lang_to_exts(language)
@@ -161,12 +179,11 @@ class TargetManager:
                     expanded = expanded.union(tracked)
                     expanded = expanded.union(untracked_unignored)
                     expanded = expanded.difference(deleted)
-
             else:
                 ext_files = _find_files_with_extension(curr_dir, ext)
                 expanded = expanded.union(ext_files)
 
-        return expanded
+        return TargetManager._filter_valid_files(expanded)
 
     @staticmethod
     def expand_targets(
@@ -177,7 +194,7 @@ class TargetManager:
         """
         expanded: Set[Path] = set()
         for target in targets:
-            if not TargetManager._is_valid(target):
+            if not TargetManager._is_valid_file_or_dir(target):
                 continue
 
             if target.is_dir():
@@ -251,7 +268,7 @@ class TargetManager:
             return frozenset(
                 path
                 for path in arr
-                if TargetManager._is_valid(path)
+                if TargetManager._is_valid_file(path)
                 and os.path.getsize(path) <= max_target_bytes
             )
 
