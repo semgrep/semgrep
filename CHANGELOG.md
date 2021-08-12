@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - core: Fix parsing of numeric literals in rule files
 - Java: fix the range and autofix of Cast expressions (#3669)
 - Generic mode scanner no longer tries to open submodule folders as files (#3701)
+- `pattern-regex` with completely empty files (#3705)
 
 ### Changed
 - Add backtrace to fatal errors reported by semgrep-core

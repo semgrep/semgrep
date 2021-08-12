@@ -622,3 +622,13 @@ def test_deduplication_different_message(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(output, "results.json")
     json_output = json.loads(output)
     assert len(json_output["results"]) == 2
+
+
+def test_pattern_regex_empty_file(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/pattern-regex-empty-file.yaml",
+            target_name="empty/totally_empty_file",
+        ),
+        "results.json",
+    )

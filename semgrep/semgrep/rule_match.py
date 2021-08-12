@@ -125,6 +125,10 @@ class RuleMatch:
         start_line = self.start["line"] - 1
         end_line = self.end["line"]
 
+        if start_line == -1 and end_line == 0:
+            # Completely empty file
+            return []
+
         try:
             return self._lines_cache[(start_line, end_line)]
         except KeyError:
