@@ -142,8 +142,6 @@ let generic_to_json (key : key) ast =
   in
   aux ast
 
-let optlist_to_list = function None -> [] | Some xs -> xs
-
 (*****************************************************************************)
 (* Dict helper methods *)
 (*****************************************************************************)
