@@ -41,6 +41,23 @@ def etree_to_dict(t):
     return d
 
 
+def clean_sarif_output(output):
+    # Rules are logically a set so the JSON list's order doesn't matter
+    # we make the order deterministic here so that snapshots match across runs
+    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
+    output["runs"][0]["tool"]["driver"]["rules"] = sorted(
+        output["runs"][0]["tool"]["driver"]["rules"],
+        key=lambda rule: str(rule["id"]),
+    )
+
+    # Semgrep version is included in sarif output. Verify this independently so
+    # snapshot does not need to be updated on version bump
+    assert output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
+    output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
+
+    return output
+
+
 def test_basic_rule__local(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(run_semgrep_in_tmp("rules/eqeq.yaml"), "results.json")
 
@@ -116,18 +133,7 @@ def test_sarif_output(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp("rules/eqeq.yaml", output_format=OutputFormat.SARIF)
     )
 
-    # rules are logically a set so the JSON list's order doesn't matter
-    # we make the order deterministic here so that snapshots match across runs
-    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
-    sarif_output["runs"][0]["tool"]["driver"]["rules"] = sorted(
-        sarif_output["runs"][0]["tool"]["driver"]["rules"],
-        key=lambda rule: str(rule["id"]),
-    )
-
-    # Semgrep version is included in sarif output. Verify this independently so
-    # snapshot does not need to be updated on version bump
-    assert sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
-    sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
+    sarif_output = clean_sarif_output(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
@@ -145,18 +151,7 @@ def test_sarif_output_include_nosemgrep(run_semgrep_in_tmp, snapshot):
         )
     )
 
-    # rules are logically a set so the JSON list's order doesn't matter
-    # we make the order deterministic here so that snapshots match across runs
-    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
-    sarif_output["runs"][0]["tool"]["driver"]["rules"] = sorted(
-        sarif_output["runs"][0]["tool"]["driver"]["rules"],
-        key=lambda rule: str(rule["id"]),
-    )
-
-    # Semgrep version is included in sarif output. Verify this independently so
-    # snapshot does not need to be updated on version bump
-    assert sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
-    sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
+    sarif_output = clean_sarif_output(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
@@ -168,18 +163,7 @@ def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp("rules/eqeq-source.yml", output_format=OutputFormat.SARIF)
     )
 
-    # rules are logically a set so the JSON list's order doesn't matter
-    # we make the order deterministic here so that snapshots match across runs
-    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
-    sarif_output["runs"][0]["tool"]["driver"]["rules"] = sorted(
-        sarif_output["runs"][0]["tool"]["driver"]["rules"],
-        key=lambda rule: str(rule["id"]),
-    )
-
-    # Semgrep version is included in sarif output. Verify this independently so
-    # snapshot does not need to be updated on version bump
-    assert sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
-    sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
+    sarif_output = clean_sarif_output(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
@@ -195,18 +179,7 @@ def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp("rules/eqeq-meta.yaml", output_format=OutputFormat.SARIF)
     )
 
-    # rules are logically a set so the JSON list's order doesn't matter
-    # we make the order deterministic here so that snapshots match across runs
-    # the proper solution will be https://github.com/joseph-roitman/pytest-snapshot/issues/14
-    sarif_output["runs"][0]["tool"]["driver"]["rules"] = sorted(
-        sarif_output["runs"][0]["tool"]["driver"]["rules"],
-        key=lambda rule: str(rule["id"]),
-    )
-
-    # Semgrep version is included in sarif output. Verify this independently so
-    # snapshot does not need to be updated on version bump
-    assert sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] == __VERSION__
-    sarif_output["runs"][0]["tool"]["driver"]["semanticVersion"] = "placeholder"
+    sarif_output = clean_sarif_output(sarif_output)
 
     snapshot.assert_match(
         json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
@@ -215,6 +188,23 @@ def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
     # Assert that each sarif rule object has a helpURI
     for rule in sarif_output["runs"][0]["tool"]["driver"]["rules"]:
         assert rule.get("help", None) is not None
+
+
+def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
+    sarif_output = json.loads(
+        run_semgrep_in_tmp(
+            "rules/eqeq.yaml",
+            target_name="nosemgrep/eqeq-nosemgrep.py",
+            output_format=OutputFormat.SARIF,
+            options=["--error"],
+        )
+    )
+
+    sarif_output = clean_sarif_output(sarif_output)
+
+    snapshot.assert_match(
+        json.dumps(sarif_output, indent=2, sort_keys=True), "results.sarif"
+    )
 
 
 def test_url_rule(run_semgrep_in_tmp, snapshot):

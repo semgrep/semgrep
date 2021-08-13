@@ -298,9 +298,10 @@ class OutputHandler:
 
         final_error = None
         error_stats = None
+        any_findings_not_ignored = any(not rm.is_ignored for rm in self.rule_matches)
         if self.final_error:
             final_error = self.final_error
-        elif self.rule_matches and self.settings.error_on_findings:
+        elif any_findings_not_ignored and self.settings.error_on_findings:
             # This exception won't be visible to the user, we're just
             # using this to return a specific error code
             final_error = SemgrepError("", code=FINDINGS_EXIT_CODE)
