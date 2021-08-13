@@ -5,7 +5,7 @@
 # files, so the parsing line count is only at 8000 right now, even with
 # all those projects
 https://github.com/facebookarchive/hack-example-site.git
-https://github.com/titon/framework.git
+# https://github.com/titon/framework.git
 https://github.com/facebookarchive/oss-performance.git
 https://github.com/igorw/reasoned-php.git
 https://github.com/hacktx/nucleus.git
@@ -30,6 +30,6 @@ https://github.com/AllYarnsAreBeautiful/allyarnsarebeautiful.github.io.git
 https://github.com/fucongcong/ssos.git
 https://github.com/slashmili/fighter.git
 https://github.com/usox/hackttp.git
-# https://github.com/nazg-hack/framework.git
+https://github.com/nazg-hack/framework.git
 https://github.com/philsinatra/IDM231.git
 https://github.com/jesseschalken/hack-utils.git

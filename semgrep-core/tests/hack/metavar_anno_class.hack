@@ -1,20 +1,21 @@
 // ERROR:
 <<Deprecated>>
 class Foo {
-    int foo = 1;
+    const int foo = 1;
 }
 
 // ERROR:
 <<Entry>>
 class FooBar {
-    int foobar = 2;
+    const int foobar = 2;
 }
 
+// ERROR:
 <<Entry("With Args")>>
 class Bar {
-    int bar = 1;
+    const int bar = 1;
 }
 
 class NoAnno {
-    int noanno = 2;
+    const int noanno = 2;
 }
