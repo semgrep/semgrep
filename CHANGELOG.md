@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add help text to sarif formatter output if defined in metadata field.
 - Update shortDescription in sarif formatter output if defined in metadata field.
 - Add tags as defined in metadata field in addition to the existing tags.
+- C#: support ellipsis in declarations (#3720)
 
 ### Fixed
 - core: Fix parsing of numeric literals in rule files
