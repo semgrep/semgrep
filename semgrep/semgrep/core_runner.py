@@ -79,7 +79,7 @@ class CoreRunner:
         elif error_type == "invalid regexp in rule":
             raise SemgrepError(f'Invalid regexp in rule: {error_json["message"]}')
         elif error_type == "invalid pattern":
-            range = error_json.get("range", {})
+            range = error_json["range"]
             # If pattern is empty treat as <no pattern>
             s = error_json.get("pattern", "<no pattern>") or "<no pattern>"
             matching_span = Span.from_string_token(
