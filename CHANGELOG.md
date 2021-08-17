@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Generic mode scanner no longer tries to open submodule folders as files (#3701)
 - `pattern-regex` with completely empty files (#3705)
 - `--sarif` exit code with suppressed findings (#3680)
+- Hack: improved support for metavariables (#3716)
 - Fixed fatal errors when a pattern results in a large number of matches
 - Better error message when rule contains empty pattern
 
