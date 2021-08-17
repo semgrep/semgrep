@@ -623,18 +623,23 @@ and anon_exp_rep_COMMA_exp_0bb260c (env : env)
   in
   v1 :: v2
 
-and argument (env : env) ((v1, v2) : CST.argument) : G.argument =
-  (* TODO: Add modifier support *)
-  let _v1 =
-    match v1 with
-    | Some x -> (
-        match x with
-        | `Inout_modi tok -> (* "inout" *) Some (token env tok)
-        | `Vari_modi tok -> (* "..." *) Some (token env tok))
-    | None -> None
-  in
-  let v2 = expression env v2 in
-  G.Arg v2
+and argument (env : env) (x : CST.argument) : G.argument =
+  match x with
+  | `Opt_choice_inout_modi_exp (v1, v2) ->
+      (* TODO: Add modifier support *)
+      let _v1 =
+        match v1 with
+        | Some x -> (
+            match x with
+            | `Inout_modi tok -> (* "inout" *) Some (token env tok)
+            | `Vari_modi tok -> (* "..." *) Some (token env tok))
+        | None -> None
+      in
+      let v2 = expression env v2 in
+      G.Arg v2
+  | `Semg_vari_id tok ->
+      (* pattern \$\.\.\.[A-Z_][A-Z_0-9]* *)
+      G.Arg (G.N (G.Id (str env tok, G.empty_id_info ())) |> G.e)
 
 and arguments (env : env) ((v1, v2, v3) : CST.arguments) : G.arguments G.bracket
     =
@@ -2859,11 +2864,19 @@ let parse file =
         H.debug_sexp_cst_after_error (CST.sexp_of_script cst);
         raise exn)
 
+let parse_expression_or_source_file str =
+  let res = Tree_sitter_hack.Parse.string str in
+  match res.errors with
+  | [] -> res
+  | _ ->
+      let expr_str = str ^ ";" in
+      Tree_sitter_hack.Parse.string expr_str
+
 let parse_pattern str =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_hack.Parse.string str ())
+      Parallel.invoke parse_expression_or_source_file str ())
     (fun cst ->
       let file = "<pattern>" in
       (* TODO: do we need a special mode to convert $FOO in the
