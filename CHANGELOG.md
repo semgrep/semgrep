@@ -8,7 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - OCaml: support module aliasing, so looking for `List.map` will also
   find code that renamed `List` as `L` via `module L = List`.
 - Add help text to sarif formatter output if defined in metadata field.
-- Update shortDescription in sarif formatter output if defined in metadata field. 
+- Update shortDescription in sarif formatter output if defined in metadata field.
 - Add tags as defined in metadata field in addition to the existing tags.
 
 ### Fixed
@@ -18,6 +18,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - `pattern-regex` with completely empty files (#3705)
 - `--sarif` exit code with suppressed findings (#3680)
 - Fixed fatal errors when a pattern results in a large number of matches
+- Better error message when rule contains empty pattern
 
 ### Changed
 - Add backtrace to fatal errors reported by semgrep-core
