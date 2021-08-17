@@ -12,7 +12,25 @@
         "lines": "    nested_patterns_func('foo', 1)",
         "message": "test",
         "metadata": {},
-        "metavars": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "'foo'",
+            "end": {
+              "col": 31,
+              "line": 2,
+              "offset": 48
+            },
+            "start": {
+              "col": 26,
+              "line": 2,
+              "offset": 43
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "WARNING"
       },
       "path": "targets/basic/nested-patterns.js",
@@ -32,7 +50,25 @@
         "lines": "    nested_patterns_func('bar', 2)",
         "message": "test",
         "metadata": {},
-        "metavars": {},
+        "metavars": {
+          "$X": {
+            "abstract_content": "'bar'",
+            "end": {
+              "col": 31,
+              "line": 3,
+              "offset": 83
+            },
+            "start": {
+              "col": 26,
+              "line": 3,
+              "offset": 78
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "WARNING"
       },
       "path": "targets/basic/nested-patterns.js",

@@ -180,7 +180,7 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
 
   !matches
   (* same post-processing as for search-mode in Match_rules.ml *)
-  |> Common.uniq_by (AST_utils.with_structural_equal PM.equal)
+  |> PM.uniq
   |> Common.before_return (fun v ->
          v
          |> List.iter (fun (m : Pattern_match.t) ->
