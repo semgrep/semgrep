@@ -1,8 +1,7 @@
 from util import abort
 from util import diffs
+from util import git
 from util import release_version
-
-# from util import git
 
 
 BUMP_FILES = {"semgrep/semgrep/__init__.py", "setup.py", "CHANGELOG.md"}
@@ -17,9 +16,9 @@ def add_commit_push(version: str):
     changed_files = [d[1] for d in diffs()]
     if set(changed_files) != BUMP_FILES:
         abort(2, f"Expected diffs only in {BUMP_FILES}")
-    # git("add", *BUMP_FILES)
-    # git("commit", "-m", f"Release {version}")
-    # git("push", "origin", "HEAD")
+    git("add", *BUMP_FILES)
+    git("commit", "-m", f"Release {version}")
+    git("push", "origin", "HEAD")
 
 
 if __name__ == "__main__":
