@@ -97,7 +97,7 @@ gitclean:
 bump:
 	$(SED) 's/__VERSION__ = ".*"/__VERSION__ = "$(RELEASE)"/g' semgrep/semgrep/__init__.py
 	$(SED) 's/^    install_requires=\["semgrep==.*"\],$$/    install_requires=["semgrep==$(RELEASE)"],/g' setup.py
-	$(SED) 's/## Unreleased/## Unreleased\n\n## [$(RELEASE)](https:\/\/github.com\/returntocorp\/semgrep\/releases\/tag\/v$(RELEASE)) - $(date +'%m-%d-%Y')/g' CHANGELOG.md
+	$(SED) 's/## Unreleased/## Unreleased\n\n## [$(RELEASE)](https:\/\/github.com\/returntocorp\/semgrep\/releases\/tag\/v$(RELEASE)) - $(shell date +'%m-%d-%Y')/g' CHANGELOG.md
 
 
 .PHONY: release
