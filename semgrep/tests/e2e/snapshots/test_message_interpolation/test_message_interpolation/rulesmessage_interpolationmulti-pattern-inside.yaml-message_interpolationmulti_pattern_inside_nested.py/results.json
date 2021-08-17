@@ -10,7 +10,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "            print(\"blah\")",
-        "message": "'print(\"blah\")' detected in method 'C' in class 'A'",
+        "message": "'print(\"blah\")' detected in method 'B' in class 'A'",
         "metadata": {},
         "metavars": {
           "$CLASS": {
@@ -31,16 +31,16 @@
             }
           },
           "$FUNC": {
-            "abstract_content": "C",
+            "abstract_content": "B",
             "end": {
-              "col": 14,
-              "line": 3,
-              "offset": 37
+              "col": 10,
+              "line": 2,
+              "offset": 20
             },
             "start": {
-              "col": 13,
-              "line": 3,
-              "offset": 36
+              "col": 9,
+              "line": 2,
+              "offset": 19
             },
             "unique_id": {
               "md5sum": "<masked in tests>",
@@ -82,7 +82,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "            print(\"blah\")",
-        "message": "'print(\"blah\")' detected in method 'B' in class 'A'",
+        "message": "'print(\"blah\")' detected in method 'C' in class 'A'",
         "metadata": {},
         "metavars": {
           "$CLASS": {
@@ -103,16 +103,16 @@
             }
           },
           "$FUNC": {
-            "abstract_content": "B",
+            "abstract_content": "C",
             "end": {
-              "col": 10,
-              "line": 2,
-              "offset": 20
+              "col": 14,
+              "line": 3,
+              "offset": 37
             },
             "start": {
-              "col": 9,
-              "line": 2,
-              "offset": 19
+              "col": 13,
+              "line": 3,
+              "offset": 36
             },
             "unique_id": {
               "md5sum": "<masked in tests>",
@@ -226,7 +226,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "            print(\"asdf\")",
-        "message": "'print(\"asdf\")' detected in method 'E' in class 'A'",
+        "message": "'print(\"asdf\")' detected in method 'D' in class 'A'",
         "metadata": {},
         "metavars": {
           "$CLASS": {
@@ -247,16 +247,16 @@
             }
           },
           "$FUNC": {
-            "abstract_content": "E",
+            "abstract_content": "D",
             "end": {
-              "col": 14,
-              "line": 8,
-              "offset": 115
+              "col": 10,
+              "line": 6,
+              "offset": 77
             },
             "start": {
-              "col": 13,
-              "line": 8,
-              "offset": 114
+              "col": 9,
+              "line": 6,
+              "offset": 76
             },
             "unique_id": {
               "md5sum": "<masked in tests>",
@@ -298,7 +298,7 @@
       "extra": {
         "is_ignored": false,
         "lines": "            print(\"asdf\")",
-        "message": "'print(\"asdf\")' detected in method 'D' in class 'A'",
+        "message": "'print(\"asdf\")' detected in method 'E' in class 'A'",
         "metadata": {},
         "metavars": {
           "$CLASS": {
@@ -319,16 +319,16 @@
             }
           },
           "$FUNC": {
-            "abstract_content": "D",
+            "abstract_content": "E",
             "end": {
-              "col": 10,
-              "line": 6,
-              "offset": 77
+              "col": 14,
+              "line": 8,
+              "offset": 115
             },
             "start": {
-              "col": 9,
-              "line": 6,
-              "offset": 76
+              "col": 13,
+              "line": 8,
+              "offset": 114
             },
             "unique_id": {
               "md5sum": "<masked in tests>",
