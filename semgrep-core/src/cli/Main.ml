@@ -424,6 +424,7 @@ let cache_file_of_file filename =
 exception Main_timeout of string
 
 let timeout_function file f =
+  let saved_busy_with_equal = !AST_utils.busy_with_equal in
   let timeout = if !timeout <= 0. then None else Some !timeout in
   match
     Common.set_timeout_opt ~verbose:false ~name:"Main.timeout_function" timeout
@@ -431,6 +432,9 @@ let timeout_function file f =
   with
   | Some res -> res
   | None ->
+      (* Note that we could timeout while testing the equality of two ASTs and
+       * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
+      AST_utils.busy_with_equal := saved_busy_with_equal;
       logger#info "Main: timeout for file %s" file;
       raise (Main_timeout file)
 
