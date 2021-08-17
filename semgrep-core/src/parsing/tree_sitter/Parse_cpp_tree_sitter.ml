@@ -2,14 +2,15 @@
  *
  * Copyright (c) 2021 R2C
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 open Common
 module PI = Parse_info
@@ -1666,8 +1667,8 @@ and map_expression (env : env) (x : CST.expression) : expr =
         | Some (v1, v2) ->
             let v1 = token env v1 (* "[" *) in
             let v2 = token env v2 (* "]" *) in
-            fun tcolcol tkwd e -> DeleteArray (tcolcol, tkwd, (v1, (), v2), e)
-        | None -> fun tcolcol tkwd e -> Delete (tcolcol, tkwd, e)
+            fun tcolcol tkwd e -> Delete (tcolcol, tkwd, Some (v1, (), v2), e)
+        | None -> fun tcolcol tkwd e -> Delete (tcolcol, tkwd, None, e)
       in
       let v4 = map_expression env v4 in
       v3 v1 v2 v4
@@ -2481,12 +2482,12 @@ and map_sizeof_expression (env : env) (x : CST.sizeof_expression) : expr =
         match v2 with
         | `Exp x ->
             let x = map_expression env x in
-            SizeOfExpr (v1top, x)
+            SizeOf (v1top, Left x)
         | `LPAR_type_desc_RPAR (v1, v2, v3) ->
             let v1 = token env v1 (* "(" *) in
             let v2 = map_type_descriptor env v2 in
             let v3 = token env v3 (* ")" *) in
-            SizeOfType (v1top, (v1, v2, v3))
+            SizeOf (v1top, Right (v1, v2, v3))
       in
       v2
   | `Sizeof_DOTDOTDOT_LPAR_id_RPAR (v1, v2, v3, v4, v5) ->
