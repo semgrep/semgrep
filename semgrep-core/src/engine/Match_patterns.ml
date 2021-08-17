@@ -482,7 +482,7 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
      * old: this uniq_by was introducing regressions in semgrep!
      * See tests/OTHER/rules/regression_uniq_or_ellipsis.go but it's fixed now.
      *)
-    |> Common.uniq_by (AST_utils.with_structural_equal Pattern_match.equal)
+    |> PM.uniq
 
 (*e: function [[Semgrep_generic.check2]] *)
 

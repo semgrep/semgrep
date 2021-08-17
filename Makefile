@@ -95,5 +95,13 @@ gitclean:
 
 .PHONY: bump
 bump:
-	$(SED) 's/__VERSION__ = ".*"/__VERSION__ = "$(SEMGREP_VERSION)"/g' semgrep/semgrep/__init__.py
-	$(SED) 's/^    install_requires=\["semgrep==.*"\],$$/    install_requires=["semgrep==$(SEMGREP_VERSION)"],/g' setup.py
+	$(SED) 's/__VERSION__ = ".*"/__VERSION__ = "$(RELEASE)"/g' semgrep/semgrep/__init__.py
+	$(SED) 's/^    install_requires=\["semgrep==.*"\],$$/    install_requires=["semgrep==$(RELEASE)"],/g' setup.py
+	$(SED) 's/## Unreleased/## Unreleased\n\n## [$(RELEASE)](https:\/\/github.com\/returntocorp\/semgrep\/releases\/tag\/v$(RELEASE)) - $(shell date +'%m-%d-%Y')/g' CHANGELOG.md
+
+
+.PHONY: release
+release:
+	PIPENV_PIPFILE=scripts/release/Pipfile pipenv install --dev && PIPENV_PIPFILE=scripts/release/Pipfile pipenv run python scripts/release/cut_release_branch.py
+	$(MAKE) bump
+	PIPENV_PIPFILE=scripts/release/Pipfile pipenv run python scripts/release/bump_and_push_release.py

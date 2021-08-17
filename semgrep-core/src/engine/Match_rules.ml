@@ -992,7 +992,7 @@ let check hook default_config rules equivs file_and_more =
                    (* dedup similar findings (we do that also in Match_patterns.ml,
                     * but different mini-rules matches can now become the same match)
                     *)
-                   |> uniq_by (AST_utils.with_structural_equal PM.equal)
+                   |> PM.uniq
                    |> before_return (fun v ->
                           v
                           |> List.iter (fun (m : Pattern_match.t) ->

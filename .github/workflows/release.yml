@@ -283,27 +283,26 @@ jobs:
           password: ${{ secrets.pypi_upload_token }}
           skip_existing: true
 
-  # Homebrew autopr commented out for now since updating requires manual intervention for now
-  # sleep-before-homebrew:
-  #   name: Sleep 10 min before releasing to homebrew
-  #   # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
-  #   needs: [upload-wheels]
-  #   runs-on: ubuntu-16.04
-  #   steps:
-  #     - name: Sleep 10 min
-  #       run: sleep 10m
+  sleep-before-homebrew:
+    name: Sleep 10 min before releasing to homebrew
+    # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
+    needs: [upload-wheels]
+    runs-on: ubuntu-16.04
+    steps:
+      - name: Sleep 10 min
+        run: sleep 10m
 
-  # homebrew-core-pr:
-  #   name: Update on Homebrew-Core
-  #   needs: [sleep-before-homebrew]  # Needs to run after pypi released so brew can update pypi dependency hashes
-  #   runs-on: macos-latest
-  #   steps:
-  #     - name: Brew update
-  #       run: brew update
-  #     - name: Install pipgrip
-  #       run: brew install pipgrip
-  #     - uses: dawidd6/action-homebrew-bump-formula@v3
-  #       with:
-  #         token: ${{ secrets.HOMEBREW_PR_TOKEN }}
-  #         formula: semgrep
-  #         org: returntocorp
+  homebrew-core-pr:
+    name: Update on Homebrew-Core
+    needs: [sleep-before-homebrew]  # Needs to run after pypi released so brew can update pypi dependency hashes
+    runs-on: macos-latest
+    steps:
+      - name: Brew update
+        run: brew update
+      - name: Install pipgrip
+        run: brew install pipgrip
+      - uses: dawidd6/action-homebrew-bump-formula@v3
+        with:
+          token: ${{ secrets.HOMEBREW_PR_TOKEN }}
+          formula: semgrep
+          org: returntocorp

@@ -2,14 +2,15 @@
  *
  * Copyright (c) 2021 R2C
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License (GPL)
- * version 2 as published by the Free Software Foundation.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation, with the
+ * special exception on linking described in file license.txt.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * file license.txt for more details.
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+ * license.txt for more details.
  *)
 open Common
 module PI = Parse_info
@@ -689,7 +690,7 @@ and map_abstract_function_declarator (env : env)
             ft_params = v2;
             ft_dots = None (*TODO*);
             ft_const = None (* TODO *);
-            ft_throw = None (* TODO *);
+            ft_throw = [] (* TODO *);
           } )
 
 and map_abstract_parenthesized_declarator (env : env)
@@ -751,19 +752,21 @@ and map_anon_choice_class_name_d6703e6 (env : env)
       complicated env (v1, v2, v3, v4)
 
 and map_anon_choice_comp_stmt_be91723 (env : env)
-    (x : CST.anon_choice_comp_stmt_be91723) =
+    (x : CST.anon_choice_comp_stmt_be91723) : function_body =
   match x with
-  | `Comp_stmt x -> map_compound_statement env x
+  | `Comp_stmt x ->
+      let x = map_compound_statement env x in
+      FBDef x
   | `Defa_meth_clause (v1, v2, v3) ->
       let v1 = token env v1 (* "=" *) in
       let v2 = token env v2 (* "default" *) in
       let v3 = token env v3 (* ";" *) in
-      complicated env (v1, v2, v3)
+      FBDefault (v1, v2, v3)
   | `Delete_meth_clause (v1, v2, v3) ->
       let v1 = token env v1 (* "=" *) in
       let v2 = token env v2 (* "delete" *) in
       let v3 = token env v3 (* ";" *) in
-      complicated env (v1, v2, v3)
+      FBDelete (v1, v2, v3)
 
 and map_anon_choice_decl_f8b0ff3 (env : env) (x : CST.anon_choice_decl_f8b0ff3)
     =
@@ -966,10 +969,10 @@ and map_anon_choice_stor_class_spec_5764fed (env : env)
   match x with
   | `Stor_class_spec x ->
       let x = map_storage_class_specifier env x in
-      S x
+      ST x
   | `Type_qual x ->
       let x = map_type_qualifier env x in
-      Q x
+      TQ x
   | `Attr_spec x ->
       let x = map_attribute_specifier env x in
       A x
@@ -998,7 +1001,7 @@ and map_anon_choice_type_qual_01506e0 (env : env)
   match x with
   | `Type_qual x ->
       let x = map_type_qualifier env x in
-      Left (Q x)
+      Left (TQ x)
   | `Virt_spec x ->
       let x = map_virtual_specifier env x in
       Left (M x)
@@ -1430,10 +1433,10 @@ and map_constructor_specifiers (env : env) (xs : CST.constructor_specifiers) :
       match x with
       | `Stor_class_spec x ->
           let x = map_storage_class_specifier env x in
-          S x
+          ST x
       | `Type_qual x ->
           let x = map_type_qualifier env x in
-          Q x
+          TQ x
       | `Attr_spec x ->
           let x = map_attribute_specifier env x in
           A x
@@ -1461,7 +1464,8 @@ and map_declaration (env : env) ((v1, v2, v3, v4, v5) : CST.declaration) :
   let v5 = token env v5 (* ";" *) in
   complicated env (v1, v2, v3, v4, v5)
 
-and map_declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) =
+and map_declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) :
+    compound =
   let v1 = token env v1 (* "{" *) in
   let v2 = map_translation_unit env v2 in
   let v3 = token env v3 (* "}" *) in
@@ -1663,8 +1667,8 @@ and map_expression (env : env) (x : CST.expression) : expr =
         | Some (v1, v2) ->
             let v1 = token env v1 (* "[" *) in
             let v2 = token env v2 (* "]" *) in
-            fun tcolcol tkwd e -> DeleteArray (tcolcol, tkwd, (v1, (), v2), e)
-        | None -> fun tcolcol tkwd e -> Delete (tcolcol, tkwd, e)
+            fun tcolcol tkwd e -> Delete (tcolcol, tkwd, Some (v1, (), v2), e)
+        | None -> fun tcolcol tkwd e -> Delete (tcolcol, tkwd, None, e)
       in
       let v4 = map_expression env v4 in
       v3 v1 v2 v4
@@ -1833,10 +1837,10 @@ and map_field_declaration_list_item (env : env)
       [ X (Access (v1, v2)) ]
   | `Alias_decl x ->
       let x = map_alias_declaration env x in
-      [ X (UsingDeclInClass x) ]
+      [ X (MemberDecl (UsingDecl x)) ]
   | `Using_decl x ->
       let x = map_using_declaration env x in
-      [ X (UsingDeclInClass x) ]
+      [ X (MemberDecl (UsingDecl x)) ]
   | `Type_defi x ->
       let x = map_type_definition env x in
       complicated env x
@@ -1935,7 +1939,7 @@ and map_function_declarator (env : env)
                 ft_params = v2;
                 ft_dots = None;
                 ft_const = None;
-                ft_throw = None;
+                ft_throw = [];
               } ));
   }
 
@@ -2478,12 +2482,12 @@ and map_sizeof_expression (env : env) (x : CST.sizeof_expression) : expr =
         match v2 with
         | `Exp x ->
             let x = map_expression env x in
-            SizeOfExpr (v1top, x)
+            SizeOf (v1top, Left x)
         | `LPAR_type_desc_RPAR (v1, v2, v3) ->
             let v1 = token env v1 (* "(" *) in
             let v2 = map_type_descriptor env v2 in
             let v3 = token env v3 (* ")" *) in
-            SizeOfType (v1top, (v1, v2, v3))
+            SizeOf (v1top, Right (v1, v2, v3))
       in
       v2
   | `Sizeof_DOTDOTDOT_LPAR_id_RPAR (v1, v2, v3, v4, v5) ->
@@ -2823,7 +2827,7 @@ and map_type_declarator (env : env) (x : CST.type_declarator) : declarator =
                     ft_params = v2;
                     ft_dots = None;
                     ft_const = None;
-                    ft_throw = None;
+                    ft_throw = [];
                   } ));
       }
   | `Array_type_decl (v1, v2, v3, v4, v5) ->
