@@ -258,8 +258,8 @@ def adjust_for_docker() -> None:
             raise SemgrepError(
                 f"Detected Docker environment without a code volume, please include '-v \"${{PWD}}:{SRC_DIRECTORY}\"'"
             )
-    if SRC_DIRECTORY.exists():
-        os.chdir(SRC_DIRECTORY)
+        if SRC_DIRECTORY.exists():
+            os.chdir(SRC_DIRECTORY)
 
 
 def get_base_path() -> Path:
