@@ -1,4 +1,4 @@
-# Semgrep Rule Upload Script (Beta)
+# Semgrep Private Rules Upload Script (Beta)
 
 Users in the Team and Enterprise tier for Semgrep App can publish rules to the Semgrep Registry that are not visible to others outside their organization. This can be useful for organizations where rules may contain code-sensitive information or legal requirements prevent using a public registry.
 <br />
