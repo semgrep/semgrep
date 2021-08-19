@@ -301,7 +301,7 @@ def cli() -> None:
         ),
     )
     output.add_argument(
-        "--fix",
+        "--replacement",
         help=(
             "An autofix expression that will be applied to any matches found with --pattern. "
             "Only valid with a command-line specified pattern."
@@ -529,7 +529,7 @@ def cli() -> None:
                 max_target_bytes=args.max_target_bytes,
                 strict=args.strict,
                 autofix=args.autofix,
-                fixexpresssion=args.fix,
+                fixexpresssion=args.replacement,
                 dryrun=args.dryrun,
                 disable_nosem=args.disable_nosem,
                 dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
