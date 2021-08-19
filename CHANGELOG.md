@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Allow autofix using the command line rather than only with the fix: YAML key
 
 ### Fixed
 - Hack: improved support for metavariables (#3716)
