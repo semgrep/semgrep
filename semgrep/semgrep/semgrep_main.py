@@ -163,6 +163,7 @@ def main(
     exclude: Optional[List[str]] = None,
     strict: bool = False,
     autofix: bool = False,
+    fixexpresssion: Optional[str] = None,
     dryrun: bool = False,
     disable_nosem: bool = False,
     dangerously_allow_arbitrary_code_execution_from_rules: bool = False,
@@ -181,7 +182,7 @@ def main(
     if exclude is None:
         exclude = []
 
-    configs_obj, errors = get_config(pattern, lang, configs)
+    configs_obj, errors = get_config(pattern, lang, configs, fixexpresssion)
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
 
     if severity is None or severity == []:
