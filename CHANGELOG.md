@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Hack: improved support for metavariables (#3716)
 
 ### Changed
+- Optimize ending `...` in `pattern-inside`s to simply match anything left
 
 ## [0.62.0](https://github.com/returntocorp/semgrep/releases/tag/v0.62.0) - 2021-08-17
 

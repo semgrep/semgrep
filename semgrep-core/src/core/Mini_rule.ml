@@ -39,6 +39,8 @@
 type rule = {
   id : string;
   pattern : Pattern.t;
+  inside : bool;
+  (* originates from pattern-inside or pattern-not-inside *)
   message : string;
   severity : Rule.severity;
   languages : Lang.t list;

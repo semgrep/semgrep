@@ -105,7 +105,7 @@ let regression_tests_for_lang ~with_caching files lang =
     Error_code.g_errors := [];
 
     let rule = { MR.
-      id = "unit testing"; pattern; message = ""; 
+      id = "unit testing"; pattern; inside=false; message = ""; 
       severity = R.Error; languages = [lang];
       pattern_string = "test: no need for pattern string";
     } in

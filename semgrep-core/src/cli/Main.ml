@@ -887,6 +887,7 @@ let rule_of_pattern lang pattern_string pattern =
     MR.id = "-e/-f";
     pattern_string;
     pattern;
+    inside = false;
     message = "";
     severity = R.Error;
     languages = [ lang ];

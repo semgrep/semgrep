@@ -60,6 +60,7 @@ let ranges_matched lang file pattern : Range.t list =
     {
       Mini_rule.id = "unit testing";
       pattern;
+      inside = false;
       message = "";
       severity = R.Error;
       languages = [ lang ];
