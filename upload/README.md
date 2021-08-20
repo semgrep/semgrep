@@ -12,9 +12,10 @@ As we continue to develop and refine this feature, we welcome and appreciate all
 ***SEMGREP_TOKEN*** can be generated in Semgrep App [here](https://semgrep.dev/manage/settings/tokens)
 
 ### Dockerhub
+In a directory with the rule file RULE_YAML you want to upload run:
 ```
 docker pull returntocorp/semgrep-upload:latest
-docker run -v $(pwd):/src -e SEMGREP_UPLOAD_DEPLOYMENT=DEPLOYMENT_ID -e SEMGREP_TOKEN=SOME_TOKEN returntocorp/semgrep-upload:latest /src/RULE_YAML
+docker run -v $(pwd):/rules -e SEMGREP_UPLOAD_DEPLOYMENT=DEPLOYMENT_ID -e SEMGREP_TOKEN=SOME_TOKEN returntocorp/semgrep-upload:latest /rules/RULE_YAML
 ```
 
 ### Using different registry_url
