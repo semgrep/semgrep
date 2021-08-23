@@ -109,7 +109,7 @@ let match_sts_sts rule a b env =
             | [] -> env
             | stmt :: _ -> MG.extend_stmts_match_span stmt env
           in
-          GG.m_stmts_deep ~less_is_ok:true a b env))
+          GG.m_stmts_deep ~inside:rule.R.inside ~less_is_ok:true a b env))
   [@@profiling]
 
 (*e: function [[Semgrep_generic.match_sts_sts]] *)

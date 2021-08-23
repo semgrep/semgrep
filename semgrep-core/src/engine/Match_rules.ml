@@ -137,10 +137,10 @@ let error env msg =
   let err = E.mk_error_loc loc (E.MatchingError s) in
   Common.push err env.errors
 
-let (xpatterns_in_formula : S.sformula -> R.xpattern list) =
+let (xpatterns_in_formula : S.sformula -> (R.xpattern * R.inside option) list) =
  fun e ->
   let res = ref [] in
-  e |> S.visit_sformula (fun xpat -> Common.push xpat res);
+  e |> S.visit_sformula (fun xpat inside -> Common.push (xpat, inside) res);
   !res
 
 let partition_xpatterns xs =
@@ -149,11 +149,11 @@ let partition_xpatterns xs =
   let regexp = ref [] in
   let comby = ref [] in
   xs
-  |> List.iter (fun xpat ->
+  |> List.iter (fun (xpat, inside) ->
          let id = xpat.R.pid in
          let str = fst xpat.R.pstr in
          match xpat.R.pat with
-         | R.Sem (x, _lang) -> Common.push (x, id, str) semgrep
+         | R.Sem (x, _lang) -> Common.push (x, inside, id, str) semgrep
          | R.Spacegrep x -> Common.push (x, id, str) spacegrep
          | R.Regexp x -> Common.push (x, id, str) regexp
          | R.Comby x -> Common.push (x, id, str) comby);
@@ -210,11 +210,13 @@ let lazy_force x = Lazy.force x [@@profiling]
  * this will raise Impossible... Thus, now we have to pass the language(s) that
  * we are specifically targeting. *)
 let (mini_rule_of_pattern :
-      R.xlang -> Pattern.t * Rule.pattern_id * string -> MR.t) =
- fun xlang (pattern, id, pstr) ->
+      R.xlang -> Pattern.t * R.inside option * Rule.pattern_id * string -> MR.t)
+    =
+ fun xlang (pattern, inside, id, pstr) ->
   {
     MR.id = string_of_int id;
     pattern;
+    inside = Option.is_some inside;
     (* parts that are not really needed I think in this context, since
      * we just care about the matching result.
      *)
@@ -902,7 +904,7 @@ and run_selector_on_ranges env selector_opt ranges =
         let r = Range.range_of_token_locations tok1 tok2 in
         List.exists (fun rwm -> Range.( $<=$ ) r rwm.RM.r) ranges
       in
-      let patterns = [ (pattern, pid, fst pstr) ] in
+      let patterns = [ (pattern, None, pid, fst pstr) ] in
       let res =
         matches_of_patterns ~range_filter env.config env.equivalences
           (env.file, env.xlang, env.lazy_ast_and_errors)
