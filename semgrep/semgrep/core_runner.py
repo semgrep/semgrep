@@ -394,7 +394,7 @@ class CoreRunner:
         )
         by_severity = collections.defaultdict(list)
         for rule, findings in findings_by_rule.items():
-            by_severity[rule.severity.lower()].extend(findings)
+            by_severity[rule.severity.value.lower()].extend(findings)
 
         by_sev_strings = [
             f"{len(findings)} {sev}" for sev, findings in by_severity.items()

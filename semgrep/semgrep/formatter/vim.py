@@ -1,5 +1,6 @@
 from typing import List
 
+from semgrep.constants import RuleSeverity
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule_match import RuleMatch
 
@@ -8,9 +9,9 @@ class VimFormatter(BaseFormatter):
     @staticmethod
     def _get_parts(rule_match: RuleMatch) -> List[str]:
         severity = {
-            "INFO": "I",
-            "WARNING": "W",
-            "ERROR": "E",
+            RuleSeverity.INFO: "I",
+            RuleSeverity.WARNING: "W",
+            RuleSeverity.ERROR: "E",
         }
         return [
             str(rule_match.path),

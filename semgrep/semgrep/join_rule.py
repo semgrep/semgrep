@@ -22,6 +22,7 @@ from ruamel.yaml import YAML
 import semgrep.semgrep_main
 from semgrep.config_resolver import Config
 from semgrep.config_resolver import resolve_config
+from semgrep.constants import RuleSeverity
 from semgrep.error import ERROR_MAP
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import Level
@@ -452,7 +453,9 @@ def run_join_rule(
             metadata=join_rule.get(
                 "metadata", match.get("extra", {}).get("metadata", {})
             ),
-            severity=join_rule.get("severity", match.get("severity", "INFO")),
+            severity=join_rule.get(
+                "severity", match.get("severity", RuleSeverity.INFO.value)
+            ),
             path=Path(match.get("path", "[empty]")),
             start=match.get("start", {}),
             end=match.get("end", {}),
