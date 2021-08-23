@@ -11,7 +11,9 @@ val m_stmt : AST_generic.stmt Matching_generic.matcher
 (*e: signature [[Generic_vs_generic.m_stmt]] *)
 (*s: signature [[Generic_vs_generic.m_stmts_deep]] *)
 val m_stmts_deep :
-  less_is_ok:bool -> AST_generic.stmt list Matching_generic.matcher
+  inside:bool ->
+  less_is_ok:bool ->
+  AST_generic.stmt list Matching_generic.matcher
 
 (*e: signature [[Generic_vs_generic.m_stmts_deep]] *)
 

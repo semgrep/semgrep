@@ -86,7 +86,7 @@ let formula_to_sformula formula =
 (* currently used in Match_rules.ml to extract patterns *)
 let rec visit_sformula f formula =
   match formula with
-  | Leaf (P (p, _)) -> f p
+  | Leaf (P (p, i)) -> f p i
   | Leaf (MetavarCond _) -> ()
   | Not x -> visit_sformula f x
   | Or xs | And (_, xs) -> xs |> List.iter (visit_sformula f)

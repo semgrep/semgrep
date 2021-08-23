@@ -36,4 +36,5 @@ val formula_to_sformula : Rule.formula -> sformula
 (* Visitor *)
 (*****************************************************************************)
 
-val visit_sformula : (Rule.xpattern -> unit) -> sformula -> unit
+val visit_sformula :
+  (Rule.xpattern -> Rule.inside option -> unit) -> sformula -> unit
