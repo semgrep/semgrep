@@ -210,7 +210,7 @@ class TextFormatter(BaseFormatter):
                 }
                 severity_color = severity_colors[rule_match.severity]
                 severity_string = rule_match.severity.value.lower()
-                severity_prepend = f"{severity_color}severity:{severity_string}"
+                severity_prepend = f"{severity_color}severity:{severity_string} "
                 yield f"{severity_prepend}{YELLOW_COLOR}rule:{check_id}: {message}{RESET_COLOR}"
 
             last_file = current_file
