@@ -453,8 +453,10 @@ def run_join_rule(
             metadata=join_rule.get(
                 "metadata", match.get("extra", {}).get("metadata", {})
             ),
-            severity=join_rule.get(
-                "severity", match.get("severity", RuleSeverity.INFO.value)
+            severity=RuleSeverity(
+                join_rule.get(
+                    "severity", match.get("severity", RuleSeverity.INFO.value)
+                )
             ),
             path=Path(match.get("path", "[empty]")),
             start=match.get("start", {}),
