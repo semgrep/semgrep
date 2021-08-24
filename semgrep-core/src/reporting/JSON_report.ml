@@ -25,9 +25,9 @@ module J = JSON
 module MV = Metavariable
 module RP = Report
 open Pattern_match
-module ST = Spacegrep.Semgrep_t (* atdgen definitions *)
+module ST = Semgrep_core_response_t (* atdgen definitions *)
 
-module SJ = Spacegrep.Semgrep_j (* JSON conversions *)
+module SJ = Semgrep_core_response_j (* JSON conversions *)
 
 (*****************************************************************************)
 (* Unique ID *)

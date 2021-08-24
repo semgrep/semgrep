@@ -1,11 +1,16 @@
 (*
-   Type definitions for json communication with semgrep.
+   Type definitions for semgrep-core's json output, meant for the
+   python wrapper, 'semgrep'.
 
-   Originally inferred from JSON_report.ml in semgrep-core, but
-   now also used in JSON_report.ml.
-   TODO: once we call spacegrep only from semgrep-core, we can move
-   this file inside semgrep-core.
+   This file is translated into OCaml modules by atdgen:
+   - Core_response_t: type definitions
+   - Core_response_j: json serialization of those types
+   Look for the corresponding Core_response_t.mli, Core_response_j.mli, etc.
+   under dune's _build folder.
 
+   These types were originally inferred from JSON_report.ml for use
+   by spacegrep when it was separate from semgrep-core. It's now also used
+   in JSON_report.ml.
 *)
 
 type match_results = {

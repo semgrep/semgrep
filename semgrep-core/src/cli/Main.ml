@@ -17,7 +17,7 @@ module R = Rule
 module J = JSON
 module FT = File_type
 module RP = Report
-module SJ = Spacegrep.Semgrep_j
+module SJ = Semgrep_core_response_j
 
 (*****************************************************************************)
 (* Purpose *)
