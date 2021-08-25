@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 - Hack: improved support for metavariables (#3716)
 - Dataflow: Disregard type arguments but not the entire instruction
+- Taint mode will now benefit from semgrep-core's -filter_irrelevant_rules
 
 ### Changed
 - Optimize ending `...` in `pattern-inside`s to simply match anything left
