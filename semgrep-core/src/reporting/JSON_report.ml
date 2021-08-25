@@ -213,6 +213,7 @@ let match_results_of_matches_and_errors files res =
   {
     ST.matches;
     errors = errs |> List.map error_to_error;
+    skipped = res.RP.skipped;
     stats = { okfiles = count_ok; errorfiles = count_errors };
     time = res.RP.rule_profiling |> Common.map_opt json_time_of_profiling_data;
   }

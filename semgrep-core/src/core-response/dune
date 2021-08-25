@@ -1,0 +1,18 @@
+(library
+ (public_name semgrep-core-response)
+ (name semgrep_core_response)
+ (wrapped false)
+ (libraries
+    atdgen-runtime
+ )
+)
+
+(rule
+ (targets Semgrep_core_response_j.ml Semgrep_core_response_j.mli)
+ (deps    Semgrep_core_response.atd)
+ (action  (run atdgen -j -j-std %{deps})))
+
+(rule
+ (targets Semgrep_core_response_t.ml Semgrep_core_response_t.mli)
+ (deps    Semgrep_core_response.atd)
+ (action  (run atdgen -t %{deps})))

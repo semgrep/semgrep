@@ -26,6 +26,7 @@ module RP = Report
 module S = Specialize_formula
 module RM = Range_with_metavars
 module E = Error_code
+module Resp = Semgrep_core_response_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -288,7 +289,12 @@ let matches_of_patterns ?range_filter config equivalences
                   ?range_filter config mini_rules equivalences (file, lang, ast),
                 errors ))
       in
-      { RP.matches; errors; profiling = { RP.parse_time; match_time } }
+      {
+        RP.matches;
+        errors;
+        skipped = [];
+        profiling = { RP.parse_time; match_time };
+      }
   | _ -> RP.empty_semgrep_result
 
 (*****************************************************************************)
@@ -358,6 +364,7 @@ let (matches_of_matcher :
         {
           RP.matches = res;
           errors = [];
+          skipped = [];
           profiling = { RP.parse_time; match_time };
         }
 
@@ -962,48 +969,65 @@ let check hook default_config rules equivs file_and_more =
     lazy_force lazy_ast_and_errors |> ignore);
 
   let lazy_content = lazy (Common.read_file file) in
-  rules
-  |> List.map (fun (r, pformula) ->
-         Common.profile_code
-           (spf "real_rule:%s" (fst r.R.id))
-           (fun () ->
-             let relevant_rule =
-               if !Flag_semgrep.filter_irrelevant_rules then (
-                 match Analyze_rule.regexp_prefilter_of_rule r with
-                 | None -> true
-                 | Some (re, f) ->
-                     let content = Lazy.force lazy_content in
-                     logger#info "looking for %s in %s" re file;
-                     f content)
-               else true
-             in
-             if not relevant_rule then (
-               logger#info "skipping rule %s for %s" (fst r.R.id) file;
-               RP.empty_semgrep_result)
-             else
-               let config = r.options ||| default_config in
-               let formula = R.formula_of_pformula pformula in
-               let res, final_ranges =
-                 matches_of_formula config equivs (fst r.id) file_and_more
-                   lazy_content formula None
+  let skipped = ref [] in
+  let match_results =
+    rules
+    |> List.map (fun (r, pformula) ->
+           Common.profile_code
+             (spf "real_rule:%s" (fst r.R.id))
+             (fun () ->
+               let relevant_rule =
+                 if !Flag_semgrep.filter_irrelevant_rules then (
+                   match Analyze_rule.regexp_prefilter_of_rule r with
+                   | None -> true
+                   | Some (re, f) ->
+                       let content = Lazy.force lazy_content in
+                       logger#info "looking for %s in %s" re file;
+                       f content)
+                 else true
                in
-               {
-                 matches =
-                   final_ranges
-                   |> List.map (range_to_pattern_match_adjusted r)
-                   (* dedup similar findings (we do that also in Match_patterns.ml,
-                    * but different mini-rules matches can now become the same match)
-                    *)
-                   |> PM.uniq
-                   |> before_return (fun v ->
-                          v
-                          |> List.iter (fun (m : Pattern_match.t) ->
-                                 let str = spf "with rule %s" (fst r.R.id) in
-                                 hook str m.env m.tokens));
-                 errors = res.errors;
-                 profiling = res.profiling;
-               }))
-  |> RP.collate_semgrep_results
+               if not relevant_rule then (
+                 let rule_id = fst r.R.id in
+                 logger#info "skipping rule %s for %s" rule_id file;
+                 let skipped_rule : Resp.skipped_target =
+                   {
+                     path = file;
+                     reason = Irrelevant_rule;
+                     details =
+                       "target doesn't contain some elements required by the \
+                        rule";
+                     skipped_rule = Some rule_id;
+                   }
+                 in
+                 skipped := skipped_rule :: !skipped;
+                 RP.empty_semgrep_result)
+               else
+                 let config = r.options ||| default_config in
+                 let formula = R.formula_of_pformula pformula in
+                 let res, final_ranges =
+                   matches_of_formula config equivs (fst r.id) file_and_more
+                     lazy_content formula None
+                 in
+                 {
+                   matches =
+                     final_ranges
+                     |> List.map (range_to_pattern_match_adjusted r)
+                     (* dedup similar findings (we do that also in Match_patterns.ml,
+                      * but different mini-rules matches can now become the same match)
+                      *)
+                     |> PM.uniq
+                     |> before_return (fun v ->
+                            v
+                            |> List.iter (fun (m : Pattern_match.t) ->
+                                   let str = spf "with rule %s" (fst r.R.id) in
+                                   hook str m.env m.tokens));
+                   errors = res.errors;
+                   skipped = [];
+                   profiling = res.profiling;
+                 }))
+    |> RP.collate_semgrep_results
+  in
+  { match_results with skipped = List.rev !skipped }
   [@@profiling]
 
 (*e: semgrep/engine/Match_rules.ml *)

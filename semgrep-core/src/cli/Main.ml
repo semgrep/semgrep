@@ -448,26 +448,26 @@ let timeout_function file f =
 let filter_files_with_too_many_matches_and_transform_as_timeout matches =
   let per_files =
     matches
-    |> List.map (fun m -> (m.Pattern_match.file, m))
+    |> Common.map (fun m -> (m.Pattern_match.file, m))
     |> Common.group_assoc_bykey_eff
   in
-  let offending_files =
+  let offending_file_list =
     per_files
     |> List.filter_map (fun (file, xs) ->
            if List.length xs > !max_match_per_file then Some file else None)
-    |> Common.hashset_of_list
   in
+  let offending_files = Common.hashset_of_list offending_file_list in
   let new_matches =
     matches
     |> Common.exclude (fun m ->
            Hashtbl.mem offending_files m.Pattern_match.file)
   in
-  let new_errors =
-    offending_files |> Common.hashset_to_list
+  let new_errors, skipped =
+    offending_file_list
     |> List.map (fun file ->
            (* logging useful info for rule writers *)
            logger#info "too many matches on %s, generating exn for it" file;
-           let biggest_offending_rule =
+           let sorted_offending_rules =
              let matches = List.assoc file per_files in
              matches
              |> List.map (fun m ->
@@ -477,8 +477,11 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
                       m ))
              |> Common.group_assoc_bykey_eff
              |> List.map (fun (k, xs) -> (k, List.length xs))
-             |> Common.sort_by_val_highfirst |> List.hd
+             |> Common.sort_by_val_highfirst
              (* nosemgrep *)
+           in
+           let biggest_offending_rule =
+             match sorted_offending_rules with x :: _ -> x | _ -> assert false
            in
            let (id, pat), cnt = biggest_offending_rule in
            logger#info
@@ -487,9 +490,29 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Parse_info.first_loc_of_file file in
-           Error_code.mk_error_loc loc (Error_code.TooManyMatches pat))
+           let error =
+             Error_code.mk_error_loc loc (Error_code.TooManyMatches pat)
+           in
+           let skipped =
+             sorted_offending_rules
+             |> List.map (fun ((rule_id, _pat), n) ->
+                    let details =
+                      spf
+                        "found %i matches for rule %s, which exceeds the \
+                         maximum of %i matches."
+                        n rule_id !max_match_per_file
+                    in
+                    {
+                      Semgrep_core_response_t.path = file;
+                      reason = Too_many_matches;
+                      details;
+                      skipped_rule = Some rule_id;
+                    })
+           in
+           (error, skipped))
+    |> List.split
   in
-  (new_matches, new_errors)
+  (new_matches, new_errors, List.flatten skipped)
   [@@profiling "Main.filter_too_many_matches"]
 
 (*****************************************************************************)
@@ -672,12 +695,14 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                                Error_code.OutOfMemory str_opt
                            | _ -> raise Impossible);
                        ];
+                     skipped = [];
                      profiling = RP.empty_partial_profiling file;
                    }
                | exn when not !fail_fast ->
                    {
                      RP.matches = [];
                      errors = [ exn_to_error file exn ];
+                     skipped = [];
                      profiling = RP.empty_partial_profiling file;
                    })
          in
@@ -729,17 +754,24 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
                      (file, lang, ast),
                    errors ))
            in
-           { RP.matches; errors; profiling = { file; parse_time; match_time } })
+           {
+             RP.matches;
+             errors;
+             skipped = [];
+             profiling = { file; parse_time; match_time };
+           })
   in
   let res = RP.make_rule_result file_results !report_time rule_parse_time in
   logger#info "found %d matches and %d errors"
     (List.length res.RP.matches)
     (List.length res.RP.errors);
-  let matches, new_errors =
+  let matches, new_errors, skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout res.RP.matches
   in
   let errors = new_errors @ res.RP.errors in
-  let res = { RP.matches; errors; rule_profiling = res.RP.rule_profiling } in
+  let res =
+    { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling }
+  in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
@@ -834,11 +866,13 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
   let res = RP.make_rule_result file_results !report_time rule_parse_time in
   logger#info "found %d matches and %d errors" (List.length res.matches)
     (List.length res.errors);
-  let matches, new_errors =
+  let matches, new_errors, skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout res.matches
   in
   let errors = new_errors @ res.errors in
-  let res = { RP.matches; errors; rule_profiling = res.RP.rule_profiling } in
+  let res =
+    { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling }
+  in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";

@@ -37,7 +37,7 @@ let make_target_time (src, parse_time, match_time, run_time) :
 (*
    Convert match results to the format expected by semgrep.
 *)
-let make_semgrep_json ~with_time doc_matches pat_errors :
+let make_semgrep_json ~with_time doc_matches pat_errors skipped :
     Semgrep_core_response_t.match_results =
   let matches, match_times =
     List.map
@@ -105,10 +105,11 @@ let make_semgrep_json ~with_time doc_matches pat_errors :
   {
     matches;
     errors;
+    skipped;
     stats = { okfiles = List.length doc_matches; errorfiles = 0 };
     time;
   }
 
-let print_semgrep_json ~with_time doc_matches errors =
-  make_semgrep_json ~with_time doc_matches errors
+let print_semgrep_json ~with_time doc_matches errors skipped =
+  make_semgrep_json ~with_time doc_matches errors skipped
   |> Semgrep_core_response_j.string_of_match_results |> print_endline

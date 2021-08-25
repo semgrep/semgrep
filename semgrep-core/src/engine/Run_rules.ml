@@ -31,7 +31,12 @@ let check_taint hook default_config taint_rules equivs file_and_more =
             Tainting_generic.check hook default_config taint_rules equivs file
               ast)
       in
-      { RP.matches; errors; profiling = { RP.parse_time; match_time } }
+      {
+        RP.matches;
+        errors;
+        skipped = [];
+        profiling = { RP.parse_time; match_time };
+      }
 
 let check hook default_config rules equivs file_and_more =
   let search_rules, taint_rules = R.partition_rules rules in

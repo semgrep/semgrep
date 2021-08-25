@@ -16,6 +16,7 @@
 type match_results = {
   matches: match_ list;
   errors: error list;
+  skipped: skipped_target list;
   stats: stats;
   ?time: time option;
 }
@@ -137,3 +138,28 @@ type target_time = {
   (* run time for all rules *)
   run_time: float;
 }
+
+type rule_id = string
+
+(*
+   If the 'skipped_rule' field is missing, the target is assumed to have
+   been skipped for all the rules.
+*)
+type skipped_target = {
+  path: string;
+  reason: skip_reason;
+  details: string;
+  ?skipped_rule: rule_id option;
+}
+
+(*
+   A reason for skipping a target file or a pair (target, rule).
+*)
+type skip_reason = [
+  | Wrong_language <json name="wrong_language">
+  | Too_big <json name="too_big">
+  | Minified <json name="minified">
+  | Binary <json name="binary">
+  | Irrelevant_rule <json name="irrelevant_rule">
+  | Too_many_matches <json name="too_many_matches">
+] <ocaml repr="classic">
