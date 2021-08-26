@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Enable associative matching for string concatenation (#3741)
 
 ### Fixed
 - Hack: improved support for metavariables (#3716)

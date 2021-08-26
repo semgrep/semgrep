@@ -242,7 +242,7 @@ let abstract_for_comparison_any x =
 
 let is_associative_operator op =
   match op with
-  | Or | And | BitOr | BitAnd | BitXor -> true
+  | Or | And | BitOr | BitAnd | BitXor | Concat -> true
   (* TODO: Plus, Mult, ... *)
   | __else__ -> false
 
