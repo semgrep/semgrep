@@ -867,9 +867,10 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
   let res = RP.make_rule_result file_results !report_time rule_parse_time in
   logger#info "found %d matches and %d errors" (List.length res.matches)
     (List.length res.errors);
-  let matches, new_errors, skipped =
+  let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout res.matches
   in
+  let skipped = new_skipped @ res.skipped in
   let errors = new_errors @ res.errors in
   let res =
     { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling }
