@@ -12,6 +12,7 @@
  * file license.txt for more details.
  *)
 open Common
+module FM = File_and_more
 module FT = File_type
 module R = Rule
 module E = Error_code
@@ -142,15 +143,19 @@ let test_rules ?(ounit_context = false) xs =
                  (ast, errors)
              | R.LRegex | R.LGeneric -> raise Impossible)
          in
+         let file_and_more =
+           {
+             FM.file = target;
+             xlang;
+             lazy_content = lazy (Common.read_file target);
+             lazy_ast_and_errors;
+           }
+         in
          E.g_errors := [];
          Flag_semgrep.with_opt_cache := false;
          let config = Config_semgrep.default_config in
          let res =
-           try
-             Run_rules.check
-               (fun _ _ _ -> ())
-               config rules []
-               (target, xlang, lazy_ast_and_errors)
+           try Run_rules.check (fun _ _ _ -> ()) config rules [] file_and_more
            with exn ->
              failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
          in
