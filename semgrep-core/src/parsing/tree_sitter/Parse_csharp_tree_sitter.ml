@@ -2601,6 +2601,9 @@ and record_declaration env (_, _, v3, _, _, _, _, _, _) =
 
 and declaration (env : env) (x : CST.declaration) : stmt =
   match x with
+  | `Ellips v1 ->
+      let v1 = token env v1 in
+      G.ExprStmt (G.Ellipsis v1 |> G.e, sc) |> G.s
   | `Class_decl x -> class_interface_struct env Class x
   | `Dele_decl x -> delegate_declaration env x
   | `Enum_decl x -> enum_declaration env x

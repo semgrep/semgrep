@@ -857,10 +857,17 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
                | R.LRegex | R.LGeneric ->
                    failwith "requesting generic AST for LRegex|LGeneric")
            in
+           let file_and_more =
+             {
+               File_and_more.file;
+               xlang;
+               lazy_content = lazy (Common.read_file file);
+               lazy_ast_and_errors;
+             }
+           in
            let res =
              Run_rules.check hook Config_semgrep.default_config rules
-               (parse_equivalences ())
-               (file, xlang, lazy_ast_and_errors)
+               (parse_equivalences ()) file_and_more
            in
            RP.add_file file res)
   in

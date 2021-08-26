@@ -17,6 +17,7 @@
 (*e: pad/r2c copyright *)
 module G = AST_generic
 module V = Visitor_AST
+module F = File_and_more
 module R = Rule
 module PM = Pattern_match
 
@@ -60,11 +61,9 @@ let any_in_ranges any ranges =
       List.exists (Range.( $<=$ ) r) ranges
 
 let ranges_of_pformula config equivs file_and_more rule_id pformula =
-  let file, _, _ = file_and_more in
-  let lazy_content = lazy (Common.read_file file) in
   let formula = Rule.formula_of_pformula pformula in
-  Match_rules.matches_of_formula config equivs rule_id file_and_more
-    lazy_content formula None
+  Match_rules.matches_of_formula config equivs rule_id file_and_more formula
+    None
   |> snd
   |> List.map (fun rwm -> rwm.Range_with_metavars.r)
 
@@ -74,7 +73,14 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     (rule : R.rule) (spec : R.taint_spec) found_tainted_sink =
   let config = Common.( ||| ) rule.options default_config in
   let lazy_ast_and_errors = lazy ast_and_errors in
-  let file_and_more = (file, rule.languages, lazy_ast_and_errors) in
+  let file_and_more =
+    {
+      F.file;
+      xlang = rule.languages;
+      lazy_content = lazy (Common.read_file file);
+      lazy_ast_and_errors;
+    }
+  in
   let find_ranges pfs =
     (* if perf is a problem, we could build an interval set here *)
     pfs

@@ -5,10 +5,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Enable associative matching for string concatenation (#3741)
 
 ### Fixed
 - Hack: improved support for metavariables (#3716)
 - Dataflow: Disregard type arguments but not the entire instruction
+- Taint mode will now benefit from semgrep-core's -filter_irrelevant_rules
 
 ### Changed
 - Optimize ending `...` in `pattern-inside`s to simply match anything left
@@ -21,6 +23,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add help text to sarif formatter output if defined in metadata field.
 - Update shortDescription in sarif formatter output if defined in metadata field.
 - Add tags as defined in metadata field in addition to the existing tags.
+- C#: support ellipsis in declarations (#3720)
 
 ### Fixed
 - core: Fix parsing of numeric literals in rule files
