@@ -462,7 +462,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
     |> Common.exclude (fun m ->
            Hashtbl.mem offending_files m.Pattern_match.file)
   in
-  let new_errors, skipped =
+  let new_errors, new_skipped =
     offending_file_list
     |> List.map (fun file ->
            (* logging useful info for rule writers *)
@@ -512,7 +512,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
            (error, skipped))
     |> List.split
   in
-  (new_matches, new_errors, List.flatten skipped)
+  (new_matches, new_errors, List.flatten new_skipped)
   [@@profiling "Main.filter_too_many_matches"]
 
 (*****************************************************************************)
@@ -765,10 +765,11 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
   logger#info "found %d matches and %d errors"
     (List.length res.RP.matches)
     (List.length res.RP.errors);
-  let matches, new_errors, skipped =
+  let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout res.RP.matches
   in
   let errors = new_errors @ res.RP.errors in
+  let skipped = new_skipped @ res.RP.skipped in
   let res =
     { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling }
   in
