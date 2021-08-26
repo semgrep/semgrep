@@ -461,6 +461,18 @@ let regexp_prefilter_of_formula f =
             true )
   with GeneralPattern -> None
 
+let regexp_prefilter_of_taint_rule rule_tok taint_spec =
+  (* We must be able to match some source _and_ some sink. *)
+  let sources = taint_spec.R.sources |> Common.map R.formula_of_pformula in
+  let sinks = taint_spec.R.sinks |> Common.map R.formula_of_pformula in
+  let f =
+    (* Note that this formula would likely not yield any meaningful result
+     * if executed by search-mode, but it works for the purpose of this
+     * analysis! *)
+    R.And (rule_tok, [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ])
+  in
+  regexp_prefilter_of_formula f
+
 let hmemo = Hashtbl.create 101
 
 let regexp_prefilter_of_rule r =
@@ -471,4 +483,4 @@ let regexp_prefilter_of_rule r =
       | R.Search pf ->
           let f = R.formula_of_pformula pf in
           regexp_prefilter_of_formula f
-      | R.Taint _ -> (* TODO *) None)
+      | R.Taint spec -> regexp_prefilter_of_taint_rule t spec)
