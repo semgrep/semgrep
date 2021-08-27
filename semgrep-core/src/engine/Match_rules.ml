@@ -27,6 +27,7 @@ module S = Specialize_formula
 module RM = Range_with_metavars
 module FM = File_and_more
 module E = Error_code
+module Resp = Semgrep_core_response_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -289,7 +290,12 @@ let matches_of_patterns ?range_filter config equivalences
                   ?range_filter config mini_rules equivalences (file, lang, ast),
                 errors ))
       in
-      { RP.matches; errors; profiling = { RP.parse_time; match_time } }
+      {
+        RP.matches;
+        errors;
+        skipped = [];
+        profiling = { RP.parse_time; match_time };
+      }
   | _ -> RP.empty_semgrep_result
 
 (*****************************************************************************)
@@ -359,6 +365,7 @@ let (matches_of_matcher :
         {
           RP.matches = res;
           errors = [];
+          skipped = [];
           profiling = { RP.parse_time; match_time };
         }
 
@@ -994,6 +1001,7 @@ let check hook default_config rules equivs file_and_more =
                                let str = spf "with rule %s" (fst r.R.id) in
                                hook str m.env m.tokens));
                errors = res.errors;
+               skipped = res.skipped;
                profiling = res.profiling;
              }))
   |> RP.collate_semgrep_results

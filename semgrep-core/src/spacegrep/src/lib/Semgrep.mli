@@ -14,4 +14,5 @@ val print_semgrep_json :
   * float)
   list ->
   (Src_file.t * Parse_pattern.error) list ->
+  Semgrep_core_response_t.skipped_target list ->
   unit

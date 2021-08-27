@@ -25,6 +25,7 @@ type times = { parse_time : float; match_time : float }
 type 'a match_result = {
   matches : Pattern_match.t list;
   errors : Error_code.error list;
+  skipped : Semgrep_core_response_t.skipped_target list;
   profiling : 'a;
 }
 
@@ -35,6 +36,7 @@ type rule_profiling = { rule_parse_time : float; file_times : profiling list }
 type rule_result = {
   matches : Pattern_match.t list;
   errors : Error_code.error list;
+  skipped : Semgrep_core_response_t.skipped_target list;
   rule_profiling : rule_profiling option;
 }
 

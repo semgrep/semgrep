@@ -4,9 +4,9 @@
 *)
 
 open Match
-open Semgrep_t
+open Semgrep_core_response_t
 
-let semgrep_pos (x : Lexing.position) : Semgrep_t.position =
+let semgrep_pos (x : Lexing.position) : Semgrep_core_response_t.position =
   {
     (* both 'line' and 'pos_lnum' start from 1. *)
     line = x.pos_lnum;
@@ -31,14 +31,14 @@ let convert_capture (name, x) =
     } )
 
 let make_target_time (src, parse_time, match_time, run_time) :
-    Semgrep_t.target_time =
+    Semgrep_core_response_t.target_time =
   { path = Src_file.source_string src; parse_time; match_time; run_time }
 
 (*
    Convert match results to the format expected by semgrep.
 *)
-let make_semgrep_json ~with_time doc_matches pat_errors :
-    Semgrep_t.match_results =
+let make_semgrep_json ~with_time doc_matches pat_errors skipped :
+    Semgrep_core_response_t.match_results =
   let matches, match_times =
     List.map
       (fun (src, pat_matches, parse_time, run_time) ->
@@ -105,10 +105,11 @@ let make_semgrep_json ~with_time doc_matches pat_errors :
   {
     matches;
     errors;
+    skipped;
     stats = { okfiles = List.length doc_matches; errorfiles = 0 };
     time;
   }
 
-let print_semgrep_json ~with_time doc_matches errors =
-  make_semgrep_json ~with_time doc_matches errors
-  |> Semgrep_j.string_of_match_results |> print_endline
+let print_semgrep_json ~with_time doc_matches errors skipped =
+  make_semgrep_json ~with_time doc_matches errors skipped
+  |> Semgrep_core_response_j.string_of_match_results |> print_endline
