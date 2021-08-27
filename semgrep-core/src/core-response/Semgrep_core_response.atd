@@ -156,6 +156,7 @@ type skipped_target = {
    A reason for skipping a target file or a pair (target, rule).
 *)
 type skip_reason = [
+  | Excluded_by_config <json name="excluded_by_config">
   | Wrong_language <json name="wrong_language">
   | Too_big <json name="too_big">
   | Minified <json name="minified">

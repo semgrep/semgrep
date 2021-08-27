@@ -3,6 +3,8 @@
    programming language.
 *)
 
+open Common
+
 (*
    Evaluation will be left-to-right and lazy, using the usual (&&) and (||)
    operators.
@@ -152,7 +154,7 @@ let is_python2 = is_script Lang.Python2 [ "python"; "python2" ]
 
 let is_python3 = is_script Lang.Python3 [ "python"; "python3" ]
 
-let is_acceptable (lang : Lang.t) path =
+let inspect_file_p (lang : Lang.t) path =
   let test =
     match lang with
     | Bash -> is_script lang [ "bash"; "sh" ]
@@ -185,3 +187,23 @@ let is_acceptable (lang : Lang.t) path =
     | Yaml -> has_lang_extension lang
   in
   eval test path
+
+let wrap_with_error_message lang path bool_res :
+    (string, Semgrep_core_response_t.skipped_target) result =
+  match bool_res with
+  | true -> Ok path
+  | false ->
+      Error
+        {
+          path;
+          reason = Wrong_language;
+          details =
+            spf "target file doesn't look like language %s" (Lang.show lang);
+          skipped_rule = None;
+        }
+
+let inspect_file lang path =
+  let bool_res = inspect_file_p lang path in
+  wrap_with_error_message lang path bool_res
+
+let inspect_files lang paths = Common.partition_result (inspect_file lang) paths

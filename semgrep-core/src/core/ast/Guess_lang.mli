@@ -11,4 +11,17 @@
    readable and usually really big) or '.d.ts' (TypeScript typed interfaces
    for which we don't have a parser).
 *)
-val is_acceptable : Lang.t -> Common.filename -> bool
+val inspect_file_p : Lang.t -> Common.filename -> bool
+
+val inspect_file :
+  Lang.t ->
+  Common.filename ->
+  (Common.filename, Semgrep_core_response_t.skipped_target) result
+
+(*
+   Split selected files (left) from excluded files (right).
+*)
+val inspect_files :
+  Lang.t ->
+  Common.filename list ->
+  Common.filename list * Semgrep_core_response_t.skipped_target list

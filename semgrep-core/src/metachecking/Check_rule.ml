@@ -145,14 +145,17 @@ let check r =
  * Similar to Test_parsing.test_parse_rules.
  *)
 let check_files fparser xs =
-  let fullxs =
+  let fullxs, skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
-    |> Common.exclude (fun file -> file =~ ".*\\.test\\.yaml")
   in
+  let fullxs, more_skipped_paths =
+    List.partition (fun file -> not (file =~ ".*\\.test\\.yaml")) fullxs
+  in
+  let _skipped_paths = more_skipped_paths @ skipped_paths in
   if fullxs = [] then logger#error "no rules to check";
   fullxs
   |> List.iter (fun file ->
@@ -166,7 +169,7 @@ let check_files fparser xs =
          with exn -> pr2 (E.string_of_error (E.exn_to_error file exn)))
 
 let stat_files fparser xs =
-  let fullxs =
+  let fullxs, _skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true

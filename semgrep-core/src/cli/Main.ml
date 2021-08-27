@@ -624,20 +624,23 @@ let parse_pattern lang_pattern str =
 (*e: function [[Main_semgrep_core.filter_files]] *)
 
 (*s: function [[Main_semgrep_core.get_final_files]] *)
-(* Small wrapper around Lang.files_of_dirs_or_files to also accept
- * an explicit list of files that may not be recognized as part
- * of the language (e.g., files without an extension but that we still
- * want to process). This is especially useful when called from the
- * Python wrapper which gives us an explicit list of files to process.
- *)
+(*
+   Small wrapper around Lang.files_of_dirs_or_files to also accept
+   an explicit list of files that may not be recognized as part
+   of the language (e.g., files without an extension but that we still
+   want to process). This is especially useful when called from the
+   Python wrapper which gives us an explicit list of files to process.
+*)
 let files_of_dirs_with_lang_and_explicit_files lang xs =
   let files = Lang.files_of_dirs_or_files lang xs in
+  let files, skipped = Guess_lang.inspect_files lang files in
+
   let explicit_files =
     xs
     |> List.filter (fun file ->
            Sys.file_exists file && not (Sys.is_directory file))
   in
-  Common2.uniq_eff (files @ explicit_files)
+  (Common2.uniq_eff (files @ explicit_files), skipped)
   [@@profiling]
 
 (*e: function [[Main_semgrep_core.get_final_files]] *)
@@ -715,7 +718,7 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
        * Anyway right now the Semgrep python wrapper is
        * calling -config with an explicit list of files.
        *)
-      files_or_dirs
+      (files_or_dirs, [])
   | R.L (lang, _) ->
       files_of_dirs_with_lang_and_explicit_files lang files_or_dirs
 
@@ -735,7 +738,9 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
  *)
 (*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
 let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
-  let files = files_of_dirs_with_lang_and_explicit_files lang files_or_dirs in
+  let files, skipped =
+    files_of_dirs_with_lang_and_explicit_files lang files_or_dirs
+  in
   logger#info "processing %d files" (List.length files);
   let file_results =
     files
@@ -762,9 +767,11 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
            })
   in
   let res = RP.make_rule_result file_results !report_time rule_parse_time in
-  logger#info "found %d matches and %d errors"
+  let res = { res with skipped = skipped @ res.skipped } in
+  logger#info "found %d matches, %d errors, %d skipped targets"
     (List.length res.RP.matches)
-    (List.length res.RP.errors);
+    (List.length res.RP.errors)
+    (List.length res.RP.skipped);
   let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout res.RP.matches
   in
@@ -831,8 +838,9 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
    * For now python wrapper passes down all files that should be scanned
    *)
   let xlang = R.xlang_of_string !lang in
-  let files = xlang_files_of_dirs_or_files xlang files_or_dirs in
-  logger#info "processing %d files" (List.length files);
+  let files, skipped = xlang_files_of_dirs_or_files xlang files_or_dirs in
+  logger#info "processing %d files, skipping %d files" (List.length files)
+    (List.length skipped);
 
   let file_results =
     files
@@ -872,8 +880,9 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
            RP.add_file file res)
   in
   let res = RP.make_rule_result file_results !report_time rule_parse_time in
-  logger#info "found %d matches and %d errors" (List.length res.matches)
-    (List.length res.errors);
+  let res = { res with skipped = skipped @ res.skipped } in
+  logger#info "found %d matches, %d errors, %d skipped targets"
+    (List.length res.matches) (List.length res.errors) (List.length res.skipped);
   let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout res.matches
   in
