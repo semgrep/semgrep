@@ -198,7 +198,8 @@ let wrap_with_error_message lang path bool_res :
           path;
           reason = Wrong_language;
           details =
-            spf "target file doesn't look like language %s" (Lang.show lang);
+            spf "target file doesn't look like language %s"
+              (Lang.to_string lang);
           skipped_rule = None;
         }
 

@@ -78,7 +78,13 @@ val files_of_dirs_or_files : t -> Common.path list -> Common.filename list
 
 (*e: signature [[Lang.files_of_dirs_or_files]] *)
 
+(*
+   Produce a human-readable representation of the language e.g. "C#"
+*)
+val to_string : t -> string
+
 (*s: signature [[Lang.string_of_lang]] *)
+(* legacy alias for 'to_string' *)
 val string_of_lang : t -> string
 
 (*

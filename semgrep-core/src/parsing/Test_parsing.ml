@@ -118,14 +118,11 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_php.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
-let test_parse_tree_sitter lang xs =
-  let xs = List.map Common.fullpath xs in
-  let fullxs, _skipped_paths =
-    Lang.files_of_dirs_or_files lang xs
-    |> Skip_code.filter_files_if_skip_list ~root:xs
-  in
+let test_parse_tree_sitter lang root_paths =
+  let paths = List.map Common.fullpath root_paths in
+  let paths, _skipped_paths = Find_target.files_of_dirs_or_files lang paths in
   let stat_list = ref [] in
-  fullxs
+  paths
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
@@ -232,50 +229,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
     (* = absolute paths *)
     List.map Common.fullpath files_or_dirs
   in
-  let paths, skipped_paths =
-    Lang.files_of_dirs_or_files lang paths
-    |> Skip_code.filter_files_if_skip_list ~root:paths
-  in
-  let skipped =
-    skipped_paths
-    |> List.map (fun path ->
-           {
-             Resp.path;
-             reason = Excluded_by_config;
-             details = "excluded by config file";
-             skipped_rule = None;
-           })
-  in
-  let paths, more_skipped = Guess_lang.inspect_files lang paths in
-  let skipped = more_skipped @ skipped in
-  (*
-     Some source files are really huge (> 20 MB) and they cause
-     some annoying 'out of memory' crash that sometimes even the use
-     of mem_limit_mb above does not solve. Maybe it's because
-     we run lots of parsing jobs in parallel in parsing-stats/run-all
-     TODO: we should do the parallel work OCaml side, not in run-all.
-     TODO: improve the engine so even those huge files do not cause errors
-     TODO: should we skip them via Guess_lang.inspect_file?
-  *)
-  let max_bytes = 5_000_000 in
-  let paths, more_skipped_paths =
-    paths
-    |> List.partition (fun file ->
-           let res = Common2.filesize file > max_bytes in
-           if res then pr2 (spf "skipping %s, too big" file);
-           res)
-  in
-  let more_skipped =
-    more_skipped_paths
-    |> List.map (fun path ->
-           {
-             Resp.path;
-             reason = Too_big;
-             details = spf "target file size exceeds %i bytes" max_bytes;
-             skipped_rule = None;
-           })
-  in
-  let skipped = more_skipped @ skipped in
+  let paths, skipped = Find_target.files_of_dirs_or_files lang paths in
   let stats =
     paths
     |> List.rev_map (fun file ->
@@ -470,12 +424,11 @@ let diff_pfff_tree_sitter xs =
 (* Rule parsing *)
 (*****************************************************************************)
 
-let test_parse_rules xs =
-  let fullxs, _skipped_paths =
-    Lang.files_of_dirs_or_files Lang.Yaml xs
-    |> Skip_code.filter_files_if_skip_list ~root:xs
+let test_parse_rules roots =
+  let targets, _skipped_paths =
+    Find_target.files_of_dirs_or_files Lang.Yaml roots
   in
-  fullxs
+  targets
   |> List.iter (fun file ->
          logger#info "processing %s" file;
          let _r = Parse_rule.parse file in

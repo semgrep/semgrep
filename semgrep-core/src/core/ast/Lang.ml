@@ -171,7 +171,7 @@ let langs_of_filename filename =
 (*e: function [[Lang.langs_of_filename]] *)
 
 (*s: function [[Lang.string_of_lang]] *)
-let string_of_lang = function
+let to_string = function
   | Python -> "Python"
   | Python2 -> "Python2"
   | Python3 -> "Python3"
@@ -196,6 +196,10 @@ let string_of_lang = function
   | Yaml -> "Yaml"
   | Scala -> "Scala"
   | HTML -> "HTML"
+
+(*e: function [[Lang.string_of_lang]] *)
+
+let string_of_lang = to_string
 
 (* must match [a-z][a-z0-9]* *)
 let to_lowercase_alnum = function
@@ -223,8 +227,6 @@ let to_lowercase_alnum = function
   | Vue -> "vue"
   | Yaml -> "yaml"
   | HTML -> "html"
-
-(*e: function [[Lang.string_of_lang]] *)
 
 (*s: function [[Lang.ext_of_lang]] *)
 (* Manually pulled from file_type_of_file2 in file_type.ml *)
