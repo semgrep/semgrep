@@ -102,7 +102,12 @@ let sanitized_instr config instr =
  * When [in_a_sink] we do not report findings but wait for the finding
  * to be reported by the caller. E.g. if the pattern-sink is `sink(...)`
  * then `E` in `sink(E)` will also satisfy [config.is_sink], but we
- * want to report the finding on `sink(E)` rather than on `E`. *)
+ * want to report the finding on `sink(E)` rather than on `E`.
+ *
+ * TODO: Since we now remove duplicate submatches in Tainting_generic
+ *   we should consider removing the `in_a_sink` trick and simplify this
+ *   code.
+ *)
 let rec check_tainted_expr ~in_a_sink config fun_env env exp =
   let is_sink = config.is_sink (G.E exp.eorig) in
   let check =

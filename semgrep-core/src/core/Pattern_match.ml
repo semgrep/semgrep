@@ -93,4 +93,34 @@ let uniq pms =
   tbl |> Hashtbl.to_seq_values |> List.of_seq
   [@@profiling]
 
+let range pm =
+  let start_loc, end_loc = pm.range_loc in
+  Range.range_of_token_locations start_loc end_loc
+
+(* Is [pm1] a submatch of [pm2] ? *)
+let submatch pm1 pm2 =
+  pm1.rule_id = pm2.rule_id && pm1.file = pm2.file
+  (* THINK: && "pm1.bindings = pm2.bindings" ? *)
+  && Range.( $<=$ ) (range pm1) (range pm2)
+
+(* Remove matches that are srictly inside another match. *)
+let no_submatches pms =
+  let tbl = Hashtbl.create 1_024 in
+  pms
+  |> List.iter (fun pm ->
+         (* This is mainly for removing taint-tracking duplicates and
+          * there should not be too many matches per file; but if perf
+          * is a problem, consider using a specialized data structure. *)
+         let k = (pm.rule_id, pm.file) in
+         match Hashtbl.find_opt tbl k with
+         | None -> Hashtbl.add tbl k [ pm ]
+         | Some ys -> (
+             match List.find_opt (fun y -> submatch pm y) ys with
+             | Some _ -> ()
+             | None ->
+                 let ys' = List.filter (fun y -> not (submatch y pm)) ys in
+                 Hashtbl.replace tbl k (pm :: ys')));
+  tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
+  [@@profiling]
+
 (*e: semgrep/core/Pattern_match.ml *)
