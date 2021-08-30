@@ -23,6 +23,9 @@ from semgrep.target_manager_extensions import FileExtension
 from semgrep.target_manager_extensions import lang_to_exts
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
+from semgrep.verbose_logging import getLogger
+
+logger = getLogger(__name__)
 
 
 @contextlib.contextmanager
@@ -169,6 +172,9 @@ class TargetManager:
                         stderr=subprocess.DEVNULL,
                     )
                 except (subprocess.CalledProcessError, FileNotFoundError):
+                    logger.verbose(
+                        f"Unable to ignore files ignored by git ({curr_dir} is not a git directory or git is not installed). Running on all files instead..."
+                    )
                     # Not a git directory or git not installed. Fallback to using rglob
                     ext_files = _find_files_with_extension(curr_dir, ext)
                     expanded = expanded.union(ext_files)
