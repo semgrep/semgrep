@@ -1241,7 +1241,17 @@ and vof_ident_and_id_info (v1, v2) =
   let v2 = vof_id_info v2 in
   OCaml.VTuple [ v1; v2 ]
 
-and vof_directive = function
+and vof_directive { d; dattrs } =
+  let bnds = [] in
+  let arg = vof_directive_kind d in
+  let bnd = ("d", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_list vof_attribute dattrs in
+  let bnd = ("dattrs", arg) in
+  let bnds = bnd :: bnds in
+  OCaml.VDict bnds
+
+and vof_directive_kind = function
   | ImportFrom (t, v1, v2, v3) ->
       let t = vof_tok t in
       let v1 = vof_module_name v1 and v2, v3 = vof_alias (v2, v3) in

@@ -577,11 +577,13 @@ and definition def =
   | Alias (t, mn1, mn2) ->
       let mn1 = method_name_to_any mn1 in
       let mn2 = method_name_to_any mn2 in
-      G.DirectiveStmt (G.OtherDirective (G.OI_Alias, [ G.Tk t; mn1; mn2 ]))
+      G.DirectiveStmt
+        (G.OtherDirective (G.OI_Alias, [ G.Tk t; mn1; mn2 ]) |> G.d)
       |> G.s
   | Undef (t, mns) ->
       let mns = list method_name_to_any mns in
-      G.DirectiveStmt (G.OtherDirective (G.OI_Undef, G.Tk t :: mns)) |> G.s
+      G.DirectiveStmt (G.OtherDirective (G.OI_Undef, G.Tk t :: mns) |> G.d)
+      |> G.s
 
 and body_exn x =
   match x with

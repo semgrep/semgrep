@@ -566,7 +566,7 @@ let resolve lang prog =
       (* sgrep: the import aliases *)
       V.kdir =
         (fun (k, _v) x ->
-          (match x with
+          (match x.d with
           | ImportFrom (_, DottedName xs, id, Some (alias, id_info)) ->
               (* for python *)
               let sid = H.gensym () in
