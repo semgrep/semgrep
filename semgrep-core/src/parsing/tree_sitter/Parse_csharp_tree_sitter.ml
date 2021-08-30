@@ -2432,7 +2432,7 @@ and extern_alias_directive (env : env)
   let v3 = identifier env v3 (* identifier *) in
   let v4 = token env v4 (* ";" *) in
   let extern =
-    G.OtherDirective (G.OI_Extern, [ G.Tk v1; G.Tk v2; G.I v3; G.Tk v4 ])
+    G.OtherDirective (G.OI_Extern, [ G.Tk v1; G.Tk v2; G.I v3; G.Tk v4 ]) |> G.d
   in
   G.DirectiveStmt extern |> G.s
 
@@ -2459,7 +2459,7 @@ and using_directive (env : env) ((v1, v2, v3, v4) : CST.using_directive) =
         (* using System.IO; *)
         G.ImportAll (v1, G.DottedName (ids_of_name v3), v4)
   in
-  G.DirectiveStmt import |> G.s
+  G.DirectiveStmt (import |> G.d) |> G.s
 
 and global_attribute_list (env : env)
     ((v1, v2, v3, v4, v5) : CST.global_attribute_list) =

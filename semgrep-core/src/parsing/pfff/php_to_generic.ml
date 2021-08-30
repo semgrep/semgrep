@@ -176,12 +176,12 @@ let rec stmt_aux = function
       [ G.DefStmt (ent, G.TypeDef def) |> G.s ]
   | NamespaceDef (t, v1, (_t1, v2, t2)) ->
       let v1 = qualified_ident v1 and v2 = list stmt v2 in
-      [ G.DirectiveStmt (G.Package (t, v1)) |> G.s ]
+      [ G.DirectiveStmt (G.Package (t, v1) |> G.d) |> G.s ]
       @ v2
-      @ [ G.DirectiveStmt (G.PackageEnd t2) |> G.s ]
+      @ [ G.DirectiveStmt (G.PackageEnd t2 |> G.d) |> G.s ]
   | NamespaceUse (t, v1, v2) ->
       let v1 = qualified_ident v1 and v2 = option alias v2 in
-      [ G.DirectiveStmt (G.ImportAs (t, G.DottedName v1, v2)) |> G.s ]
+      [ G.DirectiveStmt (G.ImportAs (t, G.DottedName v1, v2) |> G.d) |> G.s ]
   | StaticVars (t, v1) ->
       v1
       |> list (fun (v1, v2) ->

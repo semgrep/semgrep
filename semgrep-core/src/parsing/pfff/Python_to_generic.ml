@@ -753,14 +753,15 @@ and stmt_aux x =
       [ G.Assert (t, v1, v2, G.sc) |> G.s ]
   | ImportAs (t, v1, v2) ->
       let mname = module_name v1 and nopt = option ident_and_id_info v2 in
-      [ G.DirectiveStmt (G.ImportAs (t, mname, nopt)) |> G.s ]
+      [ G.DirectiveStmt (G.ImportAs (t, mname, nopt) |> G.d) |> G.s ]
   | ImportAll (t, v1, v2) ->
       let mname = module_name v1 and v2 = info v2 in
-      [ G.DirectiveStmt (G.ImportAll (t, mname, v2)) |> G.s ]
+      [ G.DirectiveStmt (G.ImportAll (t, mname, v2) |> G.d) |> G.s ]
   | ImportFrom (t, v1, v2) ->
       let v1 = module_name v1 and v2 = list alias v2 in
       List.map
-        (fun (a, b) -> G.DirectiveStmt (G.ImportFrom (t, v1, a, b)) |> G.s)
+        (fun (a, b) ->
+          G.DirectiveStmt (G.ImportFrom (t, v1, a, b) |> G.d) |> G.s)
         v2
   | Global (t, v1) | NonLocal (t, v1) ->
       let v1 = list name v1 in

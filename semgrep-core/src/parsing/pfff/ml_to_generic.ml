@@ -629,8 +629,9 @@ and item { i; iattrs } =
       [ G.DefStmt (ent, def) |> G.s ]
   | Open (t, v1) ->
       let v1 = module_name v1 in
-      (* no attrs here *)
-      let dir = G.ImportAll (t, G.DottedName v1, fake "*") in
+      let dir =
+        { G.d = G.ImportAll (t, G.DottedName v1, fake "*"); dattrs = attrs }
+      in
       [ G.DirectiveStmt dir |> G.s ]
   | Val (_t, v1, v2) ->
       let v1 = ident v1 and v2 = type_ v2 in

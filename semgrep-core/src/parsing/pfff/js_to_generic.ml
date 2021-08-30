@@ -321,7 +321,7 @@ and stmt x =
       G.OtherStmt (G.OS_Todo, G.TodoK v1 :: v2) |> G.s
   | M v1 ->
       let v1 = module_directive v1 in
-      G.DirectiveStmt v1 |> G.s
+      G.DirectiveStmt (v1 |> G.d) |> G.s
   | DefStmt v1 ->
       let v1 = definition v1 in
       G.DefStmt v1 |> G.s
@@ -734,7 +734,8 @@ and require_to_import_in_stmt_opt st =
                          | _ -> Some (id2, G.empty_id_info ())
                        in
                        G.DirectiveStmt
-                         (G.ImportFrom (treq, G.FileName file, id1, alias_opt))
+                         (G.ImportFrom (treq, G.FileName file, id1, alias_opt)
+                         |> G.d)
                        |> G.s
                    | _ -> raise ComplicatedCase)
             in

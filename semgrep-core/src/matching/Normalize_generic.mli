@@ -3,7 +3,7 @@
 (*s: signature [[Normalize_generic.normalize_import_opt]] *)
 val normalize_import_opt :
   bool ->
-  AST_generic.directive ->
+  AST_generic.directive_kind ->
   (AST_generic.tok * AST_generic.module_name) option
 
 (*e: signature [[Normalize_generic.normalize_import_opt]] *)
