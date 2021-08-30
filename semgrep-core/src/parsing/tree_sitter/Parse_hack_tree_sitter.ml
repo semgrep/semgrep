@@ -1259,9 +1259,9 @@ and declaration (env : env) (x : CST.declaration) =
         | None -> None
       in
       match v2 with
-      | Some v2 -> G.DirectiveStmt (G.Package (v1, v2))
+      | Some v2 -> G.DirectiveStmt (G.Package (v1, v2) |> G.d)
       (* TODO: I think this is wrong and PackageEnd should instead be used to handle namespaces with block inside? But how? *)
-      | None -> G.DirectiveStmt (G.PackageEnd v1))
+      | None -> G.DirectiveStmt (G.PackageEnd v1 |> G.d))
   | `Const_decl (v1, v2, v3, v4, v5) ->
       let attr = (* "const" *) [ G.KeywordAttr (Const, token env v1) ] in
       let type_ = match v2 with Some x -> Some (type_ env x) | None -> None in
@@ -2106,7 +2106,8 @@ and statement (env : env) (x : CST.statement) =
         in
         G.s
           (G.DirectiveStmt
-             (G.ImportAs (v1, G.DottedName (prefix_idents @ idents), alias)))
+             (G.ImportAs (v1, G.DottedName (prefix_idents @ idents), alias)
+             |> G.d))
       in
       let v2 =
         match v2 with

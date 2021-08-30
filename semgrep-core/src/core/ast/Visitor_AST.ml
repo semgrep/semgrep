@@ -1111,7 +1111,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
     ()
   and v_directive x =
     let k x =
-      match x with
+      v_list v_attribute x.dattrs;
+      match x.d with
       | ImportFrom (t, v1, v2, v3) ->
           let t = v_tok t in
           let v1 = v_module_name v1 and _ = v_alias (v2, v3) in

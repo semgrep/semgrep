@@ -573,10 +573,10 @@ let top_func () =
     | STop v1 -> stmt v1
     | Package (t1, id) ->
         let id = ident id in
-        G.DirectiveStmt (G.Package (t1, [ id ])) |> G.s
+        G.DirectiveStmt (G.Package (t1, [ id ]) |> G.d) |> G.s
     | Import x ->
         let x = import x in
-        G.DirectiveStmt x |> G.s
+        G.DirectiveStmt (x |> G.d) |> G.s
   and import { i_path; i_kind; i_tok } =
     let module_name = G.FileName (wrap string i_path) in
     let s, tok = i_path in
@@ -601,7 +601,7 @@ let top_func () =
     | ITop x -> [ top_decl x ]
     | IImport x ->
         let x = import x in
-        [ G.DirectiveStmt x |> G.s ]
+        [ G.DirectiveStmt (x |> G.d) |> G.s ]
     | IStmt x -> stmt_aux x
   and item x = G.stmt1 (item_aux x)
   and partial = function
@@ -638,7 +638,7 @@ let top_func () =
           G.S v1
       | I v1 ->
           let v1 = import v1 in
-          G.S (G.DirectiveStmt v1 |> G.s)
+          G.S (G.DirectiveStmt (v1 |> G.d) |> G.s)
       | P v1 ->
           let v1 = program v1 in
           G.Pr v1

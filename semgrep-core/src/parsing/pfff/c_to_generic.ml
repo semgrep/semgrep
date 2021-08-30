@@ -439,7 +439,7 @@ and define_body = function
 and directive = function
   | Include (t, v1) ->
       let v1 = wrap string v1 in
-      G.DirectiveStmt (G.ImportAs (t, G.FileName v1, None))
+      G.DirectiveStmt (G.ImportAs (t, G.FileName v1, None) |> G.d)
   | Define (_t, v1, v2) ->
       let v1 = name v1 and v2 = define_body v2 in
       let ent = G.basic_entity v1 [] in
@@ -453,7 +453,7 @@ and directive = function
       let v2 =
         match v2 with None -> [] | Some s -> [ G.E (G.L (G.String s) |> G.e) ]
       in
-      G.DirectiveStmt (G.Pragma (v1, v2))
+      G.DirectiveStmt (G.Pragma (v1, v2) |> G.d)
 
 and definition = function
   | StructDef v1 ->

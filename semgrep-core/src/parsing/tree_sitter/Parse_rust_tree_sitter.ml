@@ -2736,14 +2736,17 @@ and map_use_clause (env : env) (x : CST.use_clause) use : G.directive list =
   | `Choice_self x ->
       let dots, ident = map_simple_path_ident env x in
       let modname = G.DottedName dots in
-      [ G.ImportFrom (use, modname, ident, None) ]
+      [ G.ImportFrom (use, modname, ident, None) |> G.d ]
   | `Use_as_clause (v1, v2, v3) ->
       let dots, ident_ = map_simple_path_ident env v1 in
       let modname = G.DottedName dots in
       let _as_ = token env v2 (* "as" *) in
       let alias = ident env v3 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      [ G.ImportFrom (use, modname, ident_, Some (alias, G.empty_id_info ())) ]
+      [
+        G.ImportFrom (use, modname, ident_, Some (alias, G.empty_id_info ()))
+        |> G.d;
+      ]
   | `Use_list x -> map_use_list env x use None
   | `Scoped_use_list (v1, v2, v3) ->
       let scope = Option.map (fun x -> map_simple_path env x) v1 in
@@ -2760,7 +2763,7 @@ and map_use_clause (env : env) (x : CST.use_clause) use : G.directive list =
       in
       let modname = G.DottedName dots in
       let wildcard = token env v2 (* "*" *) in
-      [ G.ImportAll (use, modname, wildcard) ]
+      [ G.ImportAll (use, modname, wildcard) |> G.d ]
 
 and prepend_module_name (scope : G.dotted_ident) (modname : G.module_name) :
     G.module_name =
@@ -2772,16 +2775,16 @@ and prepend_scope (dir : G.directive) (scope : G.dotted_ident option) :
     G.directive =
   match scope with
   | Some scope -> (
-      match dir with
+      match dir.d with
       | ImportFrom (tok, modname, id, alias) ->
           let modname = prepend_module_name scope modname in
-          G.ImportFrom (tok, modname, id, alias)
+          { dir with d = G.ImportFrom (tok, modname, id, alias) }
       | ImportAs (tok, modname, alias) ->
           let modname = prepend_module_name scope modname in
-          G.ImportAs (tok, modname, alias)
+          { dir with d = G.ImportAs (tok, modname, alias) }
       | ImportAll (tok, modname, wildcard) ->
           let modname = prepend_module_name scope modname in
-          G.ImportAll (tok, modname, wildcard)
+          { dir with d = G.ImportAll (tok, modname, wildcard) }
       | _ -> dir)
   | None -> dir
 
@@ -3199,7 +3202,7 @@ and map_item_kind (env : env) _outer_attrs _visibility (x : CST.item_kind) :
         | Some x -> [ G.I ident_; G.I x ]
         | None -> [ G.I ident_ ]
       in
-      let directive = G.OtherDirective (G.OI_Extern, any) in
+      let directive = G.OtherDirective (G.OI_Extern, any) |> G.d in
       [ G.DirectiveStmt directive |> G.s ]
   | `Static_item (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let static = token env v1 (* "static" *) in
