@@ -440,7 +440,7 @@ let package_header (env : env) ((v1, v2, v3) : CST.package_header) : directive =
   let v1 = token env v1 (* "package" *) in
   let v2 = identifier env v2 in
   let _v3 = token env v3 (* pattern [\r\n]+ *) in
-  Package (v1, v2)
+  Package (v1, v2) |> G.d
 
 let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
     =
@@ -459,7 +459,7 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
     | None -> ImportAs (v1, DottedName v2, None)
   in
   let _v4 = token env v4 (* pattern [\r\n]+ *) in
-  v3
+  v3 |> G.d
 
 let rec _annotated_lambda (env : env) (v1 : CST.annotated_lambda) =
   lambda_literal env v1

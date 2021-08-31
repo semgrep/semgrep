@@ -1119,7 +1119,12 @@ and map_class_kind = function
   | AtInterface -> `AtInterface
   | RecordClass -> `RecordClass
 
-and map_directive = function
+and map_directive { d; dattrs } =
+  let d = map_directive_kind d in
+  let _dattrsTODO = map_of_list map_attribute dattrs in
+  d
+
+and map_directive_kind = function
   | ImportFrom (t, v1, v2, v3) ->
       let t = map_tok t in
       let v1 = map_module_name v1 and v2, v3 = map_alias (v2, v3) in

@@ -143,10 +143,10 @@ let rec v_import_expr tk (v1, v2) =
 and v_import_spec = function
   | ImportId v1 ->
       let v1 = v_ident v1 in
-      fun tk path -> [ G.ImportFrom (tk, path, v1, None) ]
+      fun tk path -> [ G.ImportFrom (tk, path, v1, None) |> G.d ]
   | ImportWildcard v1 ->
       let v1 = v_tok v1 in
-      fun tk path -> [ G.ImportAll (tk, path, v1) ]
+      fun tk path -> [ G.ImportAll (tk, path, v1) |> G.d ]
   | ImportSelectors (_, v1, _) ->
       let v1 = (v_list v_import_selector) v1 in
       fun tk path ->
@@ -157,7 +157,7 @@ and v_import_spec = function
                  | None -> None
                  | Some (_, id) -> Some (id, G.empty_id_info ())
                in
-               G.ImportFrom (tk, path, id, alias))
+               G.ImportFrom (tk, path, id, alias) |> G.d)
 
 let v_import (v1, v2) : G.directive list =
   let v1 = v_tok v1 in
@@ -611,13 +611,13 @@ and v_block_stat x : G.item list =
       [ v1 ]
   | Package v1 ->
       let ipak, ids = v_package v1 in
-      [ G.DirectiveStmt (G.Package (ipak, ids)) |> G.s ]
+      [ G.DirectiveStmt (G.Package (ipak, ids) |> G.d) |> G.s ]
   | Packaging (v1, (_lb, v2, rb)) ->
       let ipak, ids = v_package v1 in
       let xxs = v_list v_top_stat v2 in
-      [ G.DirectiveStmt (G.Package (ipak, ids)) |> G.s ]
+      [ G.DirectiveStmt (G.Package (ipak, ids) |> G.d) |> G.s ]
       @ List.flatten xxs
-      @ [ G.DirectiveStmt (G.PackageEnd rb) |> G.s ]
+      @ [ G.DirectiveStmt (G.PackageEnd rb |> G.d) |> G.s ]
 
 and v_top_stat v = v_block_stat v
 

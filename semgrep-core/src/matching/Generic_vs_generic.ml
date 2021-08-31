@@ -2711,13 +2711,17 @@ and m_macro_definition a b =
 
 (*s: function [[Generic_vs_generic.m_directive]] *)
 and m_directive a b =
-  m_directive_basic a b >!> fun () ->
-  match a with
+  let* () =
+    m_list_in_any_order ~less_is_ok:true m_attribute a.dattrs b.dattrs
+  in
+
+  m_directive_basic a.d b.d >!> fun () ->
+  match a.d with
   (* normalize only if very simple import pattern (no alias) *)
   | G.ImportFrom (_, _, _, None) | G.ImportAs (_, _, None) -> (
       (* equivalence: *)
-      let normal_a = Normalize_generic.normalize_import_opt true a in
-      let normal_b = Normalize_generic.normalize_import_opt false b in
+      let normal_a = Normalize_generic.normalize_import_opt true a.d in
+      let normal_b = Normalize_generic.normalize_import_opt false b.d in
       match (normal_a, normal_b) with
       | Some (a0, a1), Some (b0, b1) ->
           m_tok a0 b0 >>= fun () -> m_module_name_prefix a1 b1

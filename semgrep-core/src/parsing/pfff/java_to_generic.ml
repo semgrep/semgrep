@@ -647,10 +647,14 @@ and import = function
       G.ImportFrom (t, G.DottedName xs, id, None)
 
 and directive = function
-  | Import (_vstatic, v2) -> G.DirectiveStmt (import v2) |> G.s
+  | Import (static, v2) ->
+      let dattrs =
+        match static with None -> [] | Some t -> [ G.attr G.Static t ]
+      in
+      G.DirectiveStmt { G.d = import v2; dattrs } |> G.s
   | Package (t, qu, _t2) ->
       let qu = qualified_ident qu in
-      G.DirectiveStmt (G.Package (t, qu)) |> G.s
+      G.DirectiveStmt (G.Package (t, qu) |> G.d) |> G.s
   | ModuleTodo t -> G.OtherStmt (G.OS_Todo, [ G.Tk t ]) |> G.s
 
 let program v = stmts v
