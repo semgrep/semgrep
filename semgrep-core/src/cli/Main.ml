@@ -930,6 +930,12 @@ let rule_of_pattern lang pattern_string pattern =
 
 (*s: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
 (* simpler code path compared to semgrep_with_rules *)
+(* FIXME: don't use a different a processing logic depending on the output
+   format:
+   - Pass a hook to semgrep_with_patterns for printing matches incrementally.
+   - Have semgrep_with_patterns return the results and errors.
+   - Print the final results (json or text) using dedicated functions.
+*)
 let semgrep_with_one_pattern lang roots =
   (* old: let xs = List.map Common.fullpath xs in
    * better no fullpath here, not our responsability.
@@ -956,8 +962,6 @@ let semgrep_with_one_pattern lang roots =
     Common.with_time (fun () -> [ rule_of_pattern lang pattern_string pattern ])
   in
 
-  (* FIXME: don't use a different a processing logic depending on the output
-     format. Pass a hook for incremental printing and that's it? *)
   let targets, skipped = Find_target.files_of_dirs_or_files lang roots in
   match !output_format with
   | Json ->

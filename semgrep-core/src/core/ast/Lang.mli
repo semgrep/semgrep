@@ -99,6 +99,17 @@ val to_lowercase_alnum : t -> string
 
 (*e: signature [[Lang.string_of_lang]] *)
 (*s: signature [[Lang.ext_of_lang]] *)
+(*
+   Return a list of extensions for a language such that a file with that
+   extension can reasonably be expected to be in that language.
+
+   Dubious extensions like '.php' for Hack files won't be returned by this
+   function because most '.php' files actually contain PHP.
+
+   Likewise, executable scripts without an extension are common for many
+   languages and we don't return <no extension> as a valid suffix
+   for these languages.
+*)
 val ext_of_lang : t -> string list
 
 (*e: signature [[Lang.ext_of_lang]] *)

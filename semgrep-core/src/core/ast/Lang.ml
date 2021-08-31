@@ -229,7 +229,11 @@ let to_lowercase_alnum = function
   | HTML -> "html"
 
 (*s: function [[Lang.ext_of_lang]] *)
-(* Manually pulled from file_type_of_file2 in file_type.ml *)
+(*
+   Exclusive file extensions for the language. See mli.
+
+   Manually pulled from file_type_of_file2 in file_type.ml.
+*)
 let ext_of_lang = function
   | Python | Python2 | Python3 -> [ "py"; "pyi" ]
   | Javascript -> [ "js"; "jsx" ]
