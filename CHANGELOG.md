@@ -4,12 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
-
 ### Added
 - Enable associative matching for string concatenation (#3741)
 
 ### Fixed
 - Java: separate import static from regular imports during matching (#3772)
+- Taint mode will now benefit from semgrep-core's -filter_irrelevant_rules
+- Taint mode should no longer report duplicate matches (#3742)
 
 ## [0.63.0](https://github.com/returntocorp/semgrep/releases/tag/v0.63.0) - 08-25-2021
 
@@ -19,7 +20,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 - Hack: improved support for metavariables (#3716)
 - Dataflow: Disregard type arguments but not the entire instruction
-- Taint mode will now benefit from semgrep-core's -filter_irrelevant_rules
 
 ### Changed
 - Optimize ending `...` in `pattern-inside`s to simply match anything left
