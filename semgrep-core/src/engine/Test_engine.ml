@@ -49,7 +49,7 @@ let first_xlang_of_rules rs =
 (*****************************************************************************)
 
 let test_rules ?(ounit_context = false) xs =
-  let fullxs =
+  let fullxs, _skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
          | FT.Config FT.Yaml -> true
