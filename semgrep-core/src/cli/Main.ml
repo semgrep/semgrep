@@ -930,7 +930,7 @@ let rule_of_pattern lang pattern_string pattern =
 
 (*s: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
 (* simpler code path compared to semgrep_with_rules *)
-(* FIXME: don't use a different a processing logic depending on the output
+(* FIXME: don't use a different processing logic depending on the output
    format:
    - Pass a hook to semgrep_with_patterns for printing matches incrementally.
    - Have semgrep_with_patterns return the results and errors.
