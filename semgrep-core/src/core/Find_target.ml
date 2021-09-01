@@ -34,7 +34,7 @@ let filter_by_size _lang paths =
   paths
   |> Common.partition_result (fun path ->
          let size = Common2.filesize path in
-         if size > max_bytes then
+         if max_bytes > 0 && size > max_bytes then
            Error
              {
                Resp.path;

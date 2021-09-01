@@ -1312,7 +1312,7 @@ let options () =
       Arg.Set_int Flag.max_target_bytes,
       " maximum size of a single target file, in bytes. This applies to \
        regular target filtering and might be overridden in some contexts. \
-       Default: 5 MB" );
+       Specify '0' to disable this filtering. Default: 5 MB" );
     ( "-no_gc_tuning",
       Arg.Clear Flag.gc_tuning,
       " use OCaml's default garbage collector settings" );
