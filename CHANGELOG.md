@@ -7,10 +7,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Enable associative matching for string concatenation (#3741)
 
+### Changed
+- Add logging on failure to git ls-files (#3777)
+
 ### Fixed
 - Java: separate import static from regular imports during matching (#3772)
 - Taint mode will now benefit from semgrep-core's -filter_irrelevant_rules
 - Taint mode should no longer report duplicate matches (#3742)
+- Only change source directory when running in docker context (#3732)
 
 ## [0.63.0](https://github.com/returntocorp/semgrep/releases/tag/v0.63.0) - 08-25-2021
 
