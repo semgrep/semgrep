@@ -17,6 +17,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Taint mode will now benefit from semgrep-core's -filter_irrelevant_rules
 - Taint mode should no longer report duplicate matches (#3742)
 - Only change source directory when running in docker context (#3732)
+- Show verbose log on git failure (#3777)
 
 ## [0.63.0](https://github.com/returntocorp/semgrep/releases/tag/v0.63.0) - 08-25-2021
 
