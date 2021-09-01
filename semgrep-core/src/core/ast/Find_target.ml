@@ -11,7 +11,7 @@ let exclude_files_in_skip_lists roots =
   in
   let skipped =
     skipped_paths
-    |> List.map (fun path ->
+    |> Common.map (fun path ->
            {
              Resp.path;
              reason = Excluded_by_config;
@@ -58,7 +58,7 @@ let files_of_dirs_or_files ?(keep_root_files = true) lang roots =
   let paths, skipped1 = exclude_files_in_skip_lists paths in
   let paths, skipped2 = Guess_lang.inspect_files lang paths in
   let paths, skipped3 = filter_by_size lang paths in
-  let skipped = List.flatten [ skipped1; skipped2; skipped3 ] in
+  let skipped = Common.flatten [ skipped1; skipped2; skipped3 ] in
   let sorted_paths = List.sort String.compare (explicit_targets @ paths) in
   let sorted_skipped =
     List.sort
