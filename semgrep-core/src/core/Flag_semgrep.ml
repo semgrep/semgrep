@@ -47,6 +47,9 @@ let with_opt_cache = ref true
 (* Improves performance on some patterns, degrades performance on others. *)
 let max_cache = ref false
 
+(* Maximum size of a single target file, in bytes (exceptions apply). *)
+let max_target_bytes = ref 5_000_000
+
 (* Disabling this lets us measure the effectiveness of our GC tuning. *)
 let gc_tuning = ref true
 

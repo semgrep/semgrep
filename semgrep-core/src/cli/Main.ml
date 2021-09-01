@@ -1308,6 +1308,11 @@ let options () =
           Flag.with_opt_cache := true;
           Flag.max_cache := true),
       " cache matches more aggressively; implies -opt_cache (experimental)" );
+    ( "-max_target_bytes",
+      Arg.Set_int Flag.max_target_bytes,
+      " maximum size of a single target file, in bytes. This applies to \
+       regular target filtering and might be overridden in some contexts. \
+       Default: 5 MB" );
     ( "-no_gc_tuning",
       Arg.Clear Flag.gc_tuning,
       " use OCaml's default garbage collector settings" );

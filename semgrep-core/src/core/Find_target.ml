@@ -30,7 +30,7 @@ let exclude_files_in_skip_lists roots =
    know that a language parser can handle larger files.
 *)
 let filter_by_size _lang paths =
-  let max_bytes = 5_000_000 in
+  let max_bytes = !Flag_semgrep.max_target_bytes in
   paths
   |> Common.partition_result (fun path ->
          let size = Common2.filesize path in
