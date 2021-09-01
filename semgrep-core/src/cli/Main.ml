@@ -623,25 +623,6 @@ let parse_pattern lang_pattern str =
 (*s: function [[Main_semgrep_core.filter_files]] *)
 (*e: function [[Main_semgrep_core.filter_files]] *)
 
-(*s: function [[Main_semgrep_core.get_final_files]] *)
-(* Small wrapper around Lang.files_of_dirs_or_files to also accept
- * an explicit list of files that may not be recognized as part
- * of the language (e.g., files without an extension but that we still
- * want to process). This is especially useful when called from the
- * Python wrapper which gives us an explicit list of files to process.
- *)
-let files_of_dirs_with_lang_and_explicit_files lang xs =
-  let files = Lang.files_of_dirs_or_files lang xs in
-  let explicit_files =
-    xs
-    |> List.filter (fun file ->
-           Sys.file_exists file && not (Sys.is_directory file))
-  in
-  Common2.uniq_eff (files @ explicit_files)
-  [@@profiling]
-
-(*e: function [[Main_semgrep_core.get_final_files]] *)
-
 (*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 let iter_files_and_get_matches_and_exn_to_errors f files =
   files
@@ -715,9 +696,8 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
        * Anyway right now the Semgrep python wrapper is
        * calling -config with an explicit list of files.
        *)
-      files_or_dirs
-  | R.L (lang, _) ->
-      files_of_dirs_with_lang_and_explicit_files lang files_or_dirs
+      (files_or_dirs, [])
+  | R.L (lang, _) -> Find_target.files_of_dirs_or_files lang files_or_dirs
 
 (*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 
@@ -734,8 +714,7 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
  * files or dirs.
  *)
 (*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
-let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
-  let files = files_of_dirs_with_lang_and_explicit_files lang files_or_dirs in
+let semgrep_with_patterns lang (rules, rule_parse_time) files skipped =
   logger#info "processing %d files" (List.length files);
   let file_results =
     files
@@ -762,9 +741,11 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
            })
   in
   let res = RP.make_rule_result file_results !report_time rule_parse_time in
-  logger#info "found %d matches and %d errors"
+  let res = { res with skipped = skipped @ res.skipped } in
+  logger#info "found %d matches, %d errors, %d skipped targets"
     (List.length res.RP.matches)
-    (List.length res.RP.errors);
+    (List.length res.RP.errors)
+    (List.length res.RP.skipped);
   let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout res.RP.matches
   in
@@ -801,7 +782,8 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files_or_dirs =
 
 (*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
 
-let semgrep_with_patterns_file lang rules_file files_or_dirs =
+let semgrep_with_patterns_file lang rules_file roots =
+  let targets, skipped = Find_target.files_of_dirs_or_files lang roots in
   try
     (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     logger#info "Parsing %s" rules_file;
@@ -809,7 +791,7 @@ let semgrep_with_patterns_file lang rules_file files_or_dirs =
     let timed_rules =
       Common.with_time (fun () -> Parse_mini_rule.parse rules_file)
     in
-    semgrep_with_patterns lang timed_rules files_or_dirs;
+    semgrep_with_patterns lang timed_rules targets skipped;
     if !profile then save_rules_file_in_tmp ()
   with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
@@ -831,8 +813,9 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
    * For now python wrapper passes down all files that should be scanned
    *)
   let xlang = R.xlang_of_string !lang in
-  let files = xlang_files_of_dirs_or_files xlang files_or_dirs in
-  logger#info "processing %d files" (List.length files);
+  let files, skipped = xlang_files_of_dirs_or_files xlang files_or_dirs in
+  logger#info "processing %d files, skipping %d files" (List.length files)
+    (List.length skipped);
 
   let file_results =
     files
@@ -872,8 +855,9 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
            RP.add_file file res)
   in
   let res = RP.make_rule_result file_results !report_time rule_parse_time in
-  logger#info "found %d matches and %d errors" (List.length res.matches)
-    (List.length res.errors);
+  let res = { res with skipped = skipped @ res.skipped } in
+  logger#info "found %d matches, %d errors, %d skipped targets"
+    (List.length res.matches) (List.length res.errors) (List.length res.skipped);
   let matches, new_errors, new_skipped =
     filter_files_with_too_many_matches_and_transform_as_timeout res.matches
   in
@@ -946,7 +930,13 @@ let rule_of_pattern lang pattern_string pattern =
 
 (*s: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
 (* simpler code path compared to semgrep_with_rules *)
-let semgrep_with_one_pattern lang xs =
+(* FIXME: don't use a different processing logic depending on the output
+   format:
+   - Pass a hook to semgrep_with_patterns for printing matches incrementally.
+   - Have semgrep_with_patterns return the results and errors.
+   - Print the final results (json or text) using dedicated functions.
+*)
+let semgrep_with_one_pattern lang roots =
   (* old: let xs = List.map Common.fullpath xs in
    * better no fullpath here, not our responsability.
    *)
@@ -972,18 +962,18 @@ let semgrep_with_one_pattern lang xs =
     Common.with_time (fun () -> [ rule_of_pattern lang pattern_string pattern ])
   in
 
+  let targets, skipped = Find_target.files_of_dirs_or_files lang roots in
   match !output_format with
   | Json ->
       (* closer to -rules_file, but no incremental match output *)
-      semgrep_with_patterns lang (rule, rule_parse_time) xs
+      semgrep_with_patterns lang (rule, rule_parse_time) targets skipped
   | Text ->
       (* simpler code path than in semgrep_with_rules *)
-      let files = Lang.files_of_dirs_or_files lang xs in
       (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
       (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
       (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
       (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
-      files
+      targets
       |> List.iter (fun file ->
              (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
              logger#info "processing: %s" file;
@@ -1011,7 +1001,8 @@ let semgrep_with_one_pattern lang xs =
       if n > 0 then pr2 (spf "error count: %d" n);
       (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] display error count *)
       (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] optional layer generation *)
-      Experiments.gen_layer_maybe _matching_tokens pattern_string xs
+      (* TODO: what's that? *)
+      Experiments.gen_layer_maybe _matching_tokens pattern_string targets
 
 (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] optional layer generation *)
 
@@ -1317,6 +1308,11 @@ let options () =
           Flag.with_opt_cache := true;
           Flag.max_cache := true),
       " cache matches more aggressively; implies -opt_cache (experimental)" );
+    ( "-max_target_bytes",
+      Arg.Set_int Flag.max_target_bytes,
+      " maximum size of a single target file, in bytes. This applies to \
+       regular target filtering and might be overridden in some contexts. \
+       Specify '0' to disable this filtering. Default: 5 MB" );
     ( "-no_gc_tuning",
       Arg.Clear Flag.gc_tuning,
       " use OCaml's default garbage collector settings" );
@@ -1523,21 +1519,21 @@ let main () =
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)
-      | x :: xs -> (
+      | _ :: _ as roots -> (
           if !Flag.gc_tuning && !max_memory_mb = 0 then set_gc ();
 
           match () with
           | _ when !config_file <> "" ->
-              semgrep_with_rules_file !config_file (x :: xs)
+              semgrep_with_rules_file !config_file roots
           (*s: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !rules_file <> "" ->
               let lang = lang_of_string !lang in
-              semgrep_with_patterns_file lang !rules_file (x :: xs)
+              semgrep_with_patterns_file lang !rules_file roots
           (*e: [[Main_semgrep_core.main()]] main entry match cases *)
           (*s: [[Main_semgrep_core.main()]] main entry match cases default case *)
           | _ ->
               let lang = lang_of_string !lang in
-              semgrep_with_one_pattern lang (x :: xs)
+              semgrep_with_one_pattern lang roots
           (*e: [[Main_semgrep_core.main()]] main entry match cases default case *)
           )
       (* --------------------------------------------------------- *)
