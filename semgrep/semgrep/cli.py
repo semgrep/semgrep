@@ -26,7 +26,7 @@ from semgrep.output import OutputSettings
 from semgrep.synthesize_patterns import synthesize_patterns
 from semgrep.target_manager import optional_stdin_target
 from semgrep.verbose_logging import getLogger
-from semgrep.version import is_running_latest
+from semgrep.version import version_check
 
 logger = getLogger(__name__)
 try:
@@ -424,6 +424,8 @@ def cli() -> None:
 
     if args.version:
         print(__VERSION__)
+        if not args.disable_version_check:
+            version_check()
         return
 
     if args.enable_metrics:
@@ -534,7 +536,4 @@ def cli() -> None:
             )
 
     if not args.disable_version_check:
-        if not is_running_latest():
-            logger.warning(
-                "A new version of Semgrep is available. Please see https://github.com/returntocorp/semgrep#upgrading for more information."
-            )
+        version_check()
