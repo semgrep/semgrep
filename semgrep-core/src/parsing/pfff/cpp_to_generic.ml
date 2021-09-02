@@ -25,6 +25,8 @@ open Cst_cpp
 (* Ast_c to AST_generic.
  *
  * See ast_generic.ml for more information.
+ *
+ * TODO: copy code from ast_c_build.ml, like the ifdef_skipper
  *)
 
 (*****************************************************************************)
