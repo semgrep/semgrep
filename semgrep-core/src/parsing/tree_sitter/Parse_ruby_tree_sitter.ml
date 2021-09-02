@@ -1520,7 +1520,7 @@ let parse file =
        *)
       | _ ->
           Parallel.backtrace_when_exn := false;
-          Parallel.invoke Tree_sitter_ruby.Parse.file file ())
+          Tree_sitter_ruby.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       (if debug then

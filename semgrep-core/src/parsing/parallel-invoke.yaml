@@ -1,0 +1,9 @@
+rules:
+- id: useless-equality
+  pattern: Parallel.invoke $X $Y ()
+  fix: $X $Y
+  message: |
+      Parallel.invoke
+  languages: [ocaml]
+  severity: WARNING
+

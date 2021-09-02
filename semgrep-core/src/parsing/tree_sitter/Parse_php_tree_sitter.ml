@@ -2063,7 +2063,7 @@ let parse file =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_php.Parse.file file ())
+      Tree_sitter_php.Parse.file file)
     (fun cst ->
       let extra = () in
       let env = { H.file; conv = H.line_col_to_pos file; extra } in

@@ -1177,7 +1177,7 @@ let parse file =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_bash.Parse.file file ())
+      Tree_sitter_bash.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       let bash_ast = program env cst in
@@ -1187,7 +1187,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_bash.Parse.string str ())
+      Tree_sitter_bash.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in

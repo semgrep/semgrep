@@ -2953,7 +2953,7 @@ let parse file =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_c_sharp.Parse.file file ())
+      Tree_sitter_c_sharp.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
@@ -2976,7 +2976,7 @@ let parse_pattern str =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
-      Parallel.invoke parse_pattern_aux str ())
+      parse_pattern_aux str)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in

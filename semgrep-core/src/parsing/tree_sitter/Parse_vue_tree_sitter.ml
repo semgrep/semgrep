@@ -375,7 +375,7 @@ let parse parse_js file =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_vue.Parse.file file ())
+      Tree_sitter_vue.Parse.file file)
     (fun cst ->
       let extra =
         {

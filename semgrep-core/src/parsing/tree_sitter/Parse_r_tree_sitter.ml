@@ -501,7 +501,7 @@ let parse file =
   H.wrap_parser
     (fun () ->
       Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_r.Parse.file file ())
+      Tree_sitter_r.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       try map_program env cst
