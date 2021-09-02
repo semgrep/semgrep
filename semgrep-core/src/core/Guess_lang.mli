@@ -25,3 +25,12 @@ val inspect_files :
   Lang.t ->
   Common.filename list ->
   Common.filename list * Semgrep_core_response_t.skipped_target list
+
+(*
+   Get the first 'block_size' bytes of the file, which is ideally obtained
+   from a single filesystem block. 'block_size' defaults to 4096.
+
+   This is intended for peeking into target file contents and finding out
+   if it looks like it's in the desired format.
+*)
+val get_first_block : ?block_size:int -> Common.filename -> string
