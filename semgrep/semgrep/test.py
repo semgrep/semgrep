@@ -334,7 +334,6 @@ def generate_file_pairs(
     config: Path,
     ignore_todo: bool,
     strict: bool,
-    unsafe: bool,
     json_output: bool,
     save_test_output_tar: bool = True,
     optimizations: str = "none",
@@ -351,7 +350,6 @@ def generate_file_pairs(
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
         strict=strict,
-        dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
         optimizations=optimizations,
     )
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
@@ -482,7 +480,6 @@ def test_main(args: argparse.Namespace) -> None:
         config,
         args.test_ignore_todo,
         args.strict,
-        args.dangerously_allow_arbitrary_code_execution_from_rules,
         args.json,
         args.save_test_output_tar,
         args.optimizations,

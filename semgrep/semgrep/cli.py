@@ -16,7 +16,6 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import OutputFormat
-from semgrep.constants import RCE_RULE_FLAG
 from semgrep.constants import SEMGREP_URL
 from semgrep.dump_ast import dump_parsed_ast
 from semgrep.error import SemgrepError
@@ -149,15 +148,6 @@ def cli() -> None:
         "--skip-unknown-extensions",
         action="store_true",
         help="Scan only known file extensions, even if unrecognized ones are explicitly targeted.",
-    )
-
-    config.add_argument(
-        RCE_RULE_FLAG,
-        action="store_true",
-        help=(
-            "WARNING: allow rules to run arbitrary code. ONLY ENABLE IF YOU "
-            "TRUST THE SOURCE OF ALL RULES IN YOUR CONFIGURATION."
-        ),
     )
 
     config.add_argument(
@@ -418,6 +408,12 @@ def cli() -> None:
         help=argparse.SUPPRESS,
         # help="Legacy pattern recommendation functionality for use in semgrep-app playground",
     )
+    config.add_argument(
+        "--dangerously-allow-arbitrary-code-execution-from-rules",
+        action="store_true",
+        help=argparse.SUPPRESS,
+        # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
+    )
 
     ### Parse and validate
     args = parser.parse_args()
@@ -523,7 +519,6 @@ def cli() -> None:
                 autofix=args.autofix,
                 dryrun=args.dryrun,
                 disable_nosem=args.disable_nosem,
-                dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
                 no_git_ignore=args.no_git_ignore,
                 timeout=args.timeout,
                 max_memory=args.max_memory,

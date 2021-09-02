@@ -5,7 +5,6 @@ from enum import Enum
 
 from semgrep import __VERSION__
 
-RCE_RULE_FLAG = "--dangerously-allow-arbitrary-code-execution-from-rules"
 RULES_KEY = "rules"
 ID_KEY = "id"
 CLI_RULE_ID = "-"

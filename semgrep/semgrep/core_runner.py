@@ -273,11 +273,7 @@ class CoreRunner:
                     debug_tqdm_write(f"Running rule {rule.id}...")
                     with tempfile.NamedTemporaryFile(
                         "w", suffix=".yaml"
-                    ) as rule_file, tempfile.NamedTemporaryFile(
-                        "w"
-                    ) as target_file, tempfile.NamedTemporaryFile(
-                        "w"
-                    ) as equiv_file:
+                    ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
                         targets = self.get_files_for_language(
                             language, rule, target_manager
                         )
