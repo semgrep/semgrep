@@ -3267,9 +3267,7 @@ let map_source_file (env : env) (x : CST.source_file) : G.any =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Tree_sitter_rust.Parse.file file)
+    (fun () -> Tree_sitter_rust.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Target } in
       match map_source_file env cst with
@@ -3292,9 +3290,7 @@ let parse_expression_or_source_file str =
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      parse_expression_or_source_file str)
+    (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in

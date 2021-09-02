@@ -1729,9 +1729,7 @@ let program (env : env) (xs : CST.program) = List.map (statement env) xs
 
 let parse file =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Tree_sitter_java.Parse.file file)
+    (fun () -> Tree_sitter_java.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       program env cst)

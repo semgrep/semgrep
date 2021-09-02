@@ -1518,9 +1518,7 @@ let parse file =
        * we allocated quite a few stuff, the probability to get a segfault
        * in the child grows
        *)
-      | _ ->
-          Parallel.backtrace_when_exn := false;
-          Tree_sitter_ruby.Parse.file file)
+      | _ -> Tree_sitter_ruby.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       (if debug then

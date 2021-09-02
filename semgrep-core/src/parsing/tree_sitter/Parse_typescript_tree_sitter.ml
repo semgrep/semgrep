@@ -2982,7 +2982,6 @@ let parse ?dialect file =
   H.wrap_parser
     (fun () ->
       let dialect = guess_dialect dialect file in
-      Parallel.backtrace_when_exn := false;
       match dialect with
       | `Typescript ->
           let cst = Tree_sitter_typescript.Parse.file file in

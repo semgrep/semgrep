@@ -2854,9 +2854,7 @@ let script (env : env) ((v1, v2) : CST.script) : G.program =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Tree_sitter_hack.Parse.file file)
+    (fun () -> Tree_sitter_hack.Parse.file file)
     (fun cst ->
       let extra = Target in
       let env = { H.file; conv = H.line_col_to_pos file; extra } in
@@ -2875,9 +2873,7 @@ let parse_expression_or_source_file str =
 
 let parse_pattern str =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      parse_expression_or_source_file str)
+    (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
       (* TODO: do we need a special mode to convert $FOO in the

@@ -373,9 +373,7 @@ let parse_string_and_adjust_wrt_base content tbase fparse =
 
 let parse parse_js file =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Tree_sitter_vue.Parse.file file)
+    (fun () -> Tree_sitter_vue.Parse.file file)
     (fun cst ->
       let extra =
         {
