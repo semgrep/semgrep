@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 - Add logging on failure to git ls-files (#3777)
 - Ignore files whose contents look minified (#3795)
+- Display semgrep-core errors in a better way (#3774)
 
 ### Fixed
 - Java: separate import static from regular imports during matching (#3772)
