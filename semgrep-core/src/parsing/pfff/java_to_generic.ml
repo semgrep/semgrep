@@ -81,7 +81,11 @@ let ident v = wrap string v
 
 let qualified_ident v = list ident v
 
-let rec typ = function
+let rec typ x =
+  let x = typ_kind x in
+  x |> G.t
+
+and typ_kind = function
   | TBasic v1 ->
       let v1 = wrap string v1 in
       G.TyBuiltin v1
@@ -105,7 +109,7 @@ and class_type v =
   match List.rev res with
   | [] -> raise Impossible (* list1 *)
   | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ()))
-  | [ (id, Some ts) ] -> G.TyApply (G.TyN (H.name_of_ids [ id ]), ts)
+  | [ (id, Some ts) ] -> G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts)
   | (id, None) :: xs ->
       let name_info =
         {
@@ -116,7 +120,8 @@ and class_type v =
       in
       G.TyN (G.IdQualified ((id, name_info), G.empty_id_info ()))
   | (id, Some ts) :: xs ->
-      G.TyApply (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))), ts)
+      G.TyApply
+        (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))) |> G.t, ts)
 
 and type_argument = function
   | TArgument v1 ->
@@ -285,8 +290,8 @@ and expr e =
       let rec mk_array n =
         if n < 1 then raise Impossible;
         (* see parser_java.mly dims | dim_exprs rules *)
-        if n = 1 then G.TyArray (fb None, v1)
-        else G.TyArray (fb None, mk_array (n - 1))
+        if n = 1 then G.TyArray (fb None, v1) |> G.t
+        else G.TyArray (fb None, mk_array (n - 1)) |> G.t
       in
       let t = mk_array (v3 + List.length v2) in
       match v4 with
@@ -340,7 +345,9 @@ and expr e =
           fb [ G.Arg v1; G.Arg v3 ] )
   | Cast ((l, v1, _), v2) ->
       let v1 = list typ v1 and v2 = expr v2 in
-      let t = Common2.foldl1 (fun acc e -> G.TyAnd (acc, fake "&", e)) v1 in
+      let t =
+        Common2.foldl1 (fun acc e -> G.TyAnd (acc, fake "&", e) |> G.t) v1
+      in
       G.Cast (t, l, v2)
   | InstanceOf (v1, v2) ->
       let v1 = expr v1 and v2 = ref_type v2 in
@@ -648,10 +655,10 @@ and import = function
 
 and directive = function
   | Import (static, v2) ->
-      let dattrs =
+      let d_attrs =
         match static with None -> [] | Some t -> [ G.attr G.Static t ]
       in
-      G.DirectiveStmt { G.d = import v2; dattrs } |> G.s
+      G.DirectiveStmt { G.d = import v2; d_attrs } |> G.s
   | Package (t, qu, _t2) ->
       let qu = qualified_ident qu in
       G.DirectiveStmt (G.Package (t, qu) |> G.d) |> G.s

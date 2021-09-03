@@ -1052,7 +1052,7 @@ and m_other_expr_operator = m_other_xxx
 
 (*e: function [[Generic_vs_generic.m_other_expr_operator]] *)
 and m_compatible_type typed_mvar t e =
-  match (t, e.G.e) with
+  match (t.G.t, e.G.e) with
   (* for Python literal checking *)
   | ( G.OtherType
         (G.OT_Expr, [ G.E { e = G.N (G.Id (("int", _tok), _idinfo)); _ } ]),
@@ -1072,7 +1072,7 @@ and m_compatible_type typed_mvar t e =
   | G.TyN (G.Id (("String", _), _)), B.L (B.String _) ->
       envf typed_mvar (MV.E e)
   (* for C specific literals *)
-  | G.TyPointer (_, TyBuiltin ("char", _)), B.L (B.String _) ->
+  | G.TyPointer (_, { t = TyBuiltin ("char", _); _ }), B.L (B.String _) ->
       envf typed_mvar (MV.E e)
   | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
   (* for go literals *)
@@ -1080,21 +1080,22 @@ and m_compatible_type typed_mvar t e =
   | G.TyN (Id (("float", _), _)), B.L (B.Float _) -> envf typed_mvar (MV.E e)
   | G.TyN (Id (("string", _), _)), B.L (B.String _) -> envf typed_mvar (MV.E e)
   (* for C strings to match metavariable pointer types *)
-  | G.TyPointer (t1, G.TyN (G.Id ((_, tok), _id_info))), B.L (B.String _) ->
-      m_type_ t (G.TyPointer (t1, TyBuiltin ("char", tok))) >>= fun () ->
-      envf typed_mvar (MV.E e)
+  | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), _id_info)); _ }),
+      B.L (B.String _) ) ->
+      m_type_ t (G.TyPointer (t1, G.TyBuiltin ("char", tok) |> G.t) |> G.t)
+      >>= fun () -> envf typed_mvar (MV.E e)
   (* for matching ids *)
-  | ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
+  | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
       (* NOTE: Name values must be represented with MV.Id! *)
-      m_type_option_with_hook idb (Some ta) !tb >>= fun () ->
+      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
       envf typed_mvar (MV.Id (idb, Some id_infob))
-  | ( ta,
+  | ( _ta,
       ( B.N (B.IdQualified ((idb, _), { B.id_type = tb; _ }))
       | B.DotAccess
           ( { e = IdSpecial (This, _); _ },
             _,
             EN (Id (idb, { B.id_type = tb; _ })) ) ) ) ->
-      m_type_option_with_hook idb (Some ta) !tb >>= fun () ->
+      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
       envf typed_mvar (MV.E e)
   | _ -> fail ()
 
@@ -1523,13 +1524,16 @@ and m_ac_op tok op aargs_ac bargs_ac =
 
 (*s: function [[Generic_vs_generic.m_type_]] *)
 and m_type_ a b =
-  match (a, b) with
+  let* () =
+    m_list_in_any_order ~less_is_ok:true m_attribute a.t_attrs b.t_attrs
+  in
+  match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
    * MV.Id (or MV.N) when we can, instead of the more general MV.T below *)
   | G.TyN a1, B.TyN b1 -> m_name a1 b1
   (*s: [[Generic_vs_generic.m_type_]] metavariable case *)
-  | G.TyN (G.Id ((str, tok), _id_info)), t2 when MV.is_metavar_name str ->
-      envf (str, tok) (MV.T t2)
+  | G.TyN (G.Id ((str, tok), _id_info)), _t2 when MV.is_metavar_name str ->
+      envf (str, tok) (MV.T b)
   (*e: [[Generic_vs_generic.m_type_]] metavariable case *)
   (* dots: *)
   | G.TyEllipsis _, _ -> return ()
@@ -2593,7 +2597,10 @@ and m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
     (* dots: '...', this is very Python Specific I think *)
       (function
-      | G.OtherType (G.OT_Arg, [ G.Ar (G.Arg { e = G.Ellipsis _i; _ }) ]) ->
+      | {
+          t = G.OtherType (G.OT_Arg, [ G.Ar (G.Arg { e = G.Ellipsis _i; _ }) ]);
+          _;
+        } ->
           true
       | _ -> false)
     (* less-is-ok: it's ok to not specify all the parents I think *)
@@ -2712,7 +2719,7 @@ and m_macro_definition a b =
 (*s: function [[Generic_vs_generic.m_directive]] *)
 and m_directive a b =
   let* () =
-    m_list_in_any_order ~less_is_ok:true m_attribute a.dattrs b.dattrs
+    m_list_in_any_order ~less_is_ok:true m_attribute a.d_attrs b.d_attrs
   in
 
   m_directive_basic a.d b.d >!> fun () ->

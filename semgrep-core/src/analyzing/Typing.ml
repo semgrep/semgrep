@@ -1,9 +1,10 @@
 open AST_generic
 open Lang
+module G = AST_generic
 
 (* should use TyBuiltin instead? *)
 let make_type type_string tok =
-  Some (TyN (Id ((type_string, tok), empty_id_info ())))
+  Some (TyN (Id ((type_string, tok), empty_id_info ())) |> G.t)
 
 let get_resolved_type lang (vinit, vtype) =
   match vtype with

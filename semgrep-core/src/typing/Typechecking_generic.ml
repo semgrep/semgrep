@@ -40,7 +40,7 @@ module G = AST_generic
  * TODO: fill AST_generic.expr_to_type at least.
  *)
 let compatible_type t e =
-  match (t, e.G.e) with
+  match (t.G.t, e.G.e) with
   | ( OtherType (OT_Expr, [ E { e = N (Id (("int", _tok), _idinfo)); _ } ]),
       L (Int _) ) ->
       true
@@ -51,12 +51,17 @@ let compatible_type t e =
       L (String _) ) ->
       true
   | TyBuiltin (t1, _), N (Id (_, { id_type; _ })) -> (
-      match !id_type with Some (TyBuiltin (t2, _)) -> t1 = t2 | _ -> false)
-  | TyN (Id ((t1, _), _)), N (Id (_, { id_type; _ })) -> (
-      match !id_type with Some (TyN (Id ((t2, _), _))) -> t1 = t2 | _ -> false)
-  | TyArray (_, TyN (Id ((t1, _), _))), N (Id (_, { id_type; _ })) -> (
       match !id_type with
-      | Some (TyArray (_, TyN (Id ((t2, _), _)))) -> t1 = t2
+      | Some { t = TyBuiltin (t2, _); _ } -> t1 = t2
+      | _ -> false)
+  | TyN (Id ((t1, _), _)), N (Id (_, { id_type; _ })) -> (
+      match !id_type with
+      | Some { t = TyN (Id ((t2, _), _)); _ } -> t1 = t2
+      | _ -> false)
+  | TyArray (_, { t = TyN (Id ((t1, _), _)); _ }), N (Id (_, { id_type; _ }))
+    -> (
+      match !id_type with
+      | Some { t = TyArray (_, { t = TyN (Id ((t2, _), _)); _ }); _ } -> t1 = t2
       | _ -> false)
   | _ -> false
 

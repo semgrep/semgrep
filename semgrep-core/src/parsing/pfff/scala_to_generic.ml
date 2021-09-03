@@ -218,7 +218,9 @@ and v_encaps = function
 
 and todo_type msg any = G.OtherType (G.OT_Todo, G.TodoK (msg, fake msg) :: any)
 
-and v_type_ = function
+and v_type_ x = v_type_kind x |> G.t
+
+and v_type_kind = function
   | TyLiteral v1 -> (
       let v1 = v_literal v1 in
       match v1 with
@@ -235,14 +237,15 @@ and v_type_ = function
       let v1 = v_type_ v1 and v2 = v_bracket (v_list v_type_) v2 in
       let lp, xs, rp = v2 in
       let args = xs |> List.map (fun x -> G.TypeArg x) in
-      match v1 with
-      | G.TyN n -> G.TyApply (G.TyN n, (lp, args, rp))
+      match v1.t with
+      | G.TyN n -> G.TyApply (G.TyN n |> G.t, (lp, args, rp))
       | _ ->
           todo_type "TyAppliedComplex"
             (G.T v1 :: (xs |> List.map (fun x -> G.T x))))
   | TyInfix (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_ident v2 and v3 = v_type_ v3 in
-      G.TyApply (G.TyN (H.name_of_ids [ v2 ]), fb [ G.TypeArg v1; G.TypeArg v3 ])
+      G.TyApply
+        (G.TyN (H.name_of_ids [ v2 ]) |> G.t, fb [ G.TypeArg v1; G.TypeArg v3 ])
   | TyFunction1 (v1, v2, v3) ->
       let v1 = v_type_ v1 and _v2 = v_tok v2 and v3 = v_type_ v3 in
       G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v3)
@@ -263,7 +266,8 @@ and v_type_ = function
       todo_type "TyRepeated" [ G.T v1; G.Tk v2 ]
   | TyAnnotated (v1, v2) ->
       let v1 = v_type_ v1 and _v2TODO = v_list v_annotation v2 in
-      v1
+      v1.t
+      (* less: losing t_attrs *)
   | TyRefined (v1, v2) ->
       let v1 = v_option v_type_ v1 and _lb, defs, _rb = v_refinement v2 in
       todo_type "TyRefined"
@@ -648,7 +652,7 @@ and v_modifier_kind = function
 and v_annotation (v1, v2, v3) : G.attribute =
   let v1 = v_tok v1 and v2 = v_type_ v2 and v3 = v_list v_arguments v3 in
   let args = v3 |> List.map G.unbracket |> List.flatten in
-  match v2 with
+  match v2.t with
   | TyN name -> G.NamedAttr (v1, name, fb args)
   | _ ->
       G.OtherAttribute
