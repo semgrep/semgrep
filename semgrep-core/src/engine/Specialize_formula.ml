@@ -15,12 +15,19 @@ type selector = {
 
 type sformula =
   | Leaf of R.leaf
-  | And of (selector option * sformula list)
+  | And of sformula_and
   | Or of sformula list
   (* There are restrictions on where a Not can appear in a formula. It
    * should always be inside an And to be intersected with "positive" formula.
    *)
   | Not of sformula
+
+and sformula_and = {
+  selector_opt : selector option;
+  positives : sformula list;
+  negatives : sformula list;
+  conditionals : R.metavar_cond list;
+}
 [@@deriving show]
 
 (*****************************************************************************)
@@ -33,9 +40,20 @@ let selector_equal s1 s2 = s1.mvar = s2.mvar
 (* Converter *)
 (*****************************************************************************)
 
+(* return list of "positive" x list of Not x list of Conds *)
+let split_and :
+    R.formula list -> R.formula list * R.formula list * R.metavar_cond list =
+ fun xs ->
+  xs
+  |> Common.partition_either3 (fun e ->
+         match e with
+         | R.Not (_, f) -> Middle3 f
+         | R.Leaf (R.MetavarCond (_, c)) -> Right3 c
+         | _ -> Left3 e)
+
 let selector_from_formula f =
   match f with
-  | R.Leaf (R.P ({ pat = Sem (pattern, _); pid; pstr }, None)) -> (
+  | Leaf (R.P ({ pat = Sem (pattern, _); pid; pstr }, None)) -> (
       match pattern with
       | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when MV.is_metavar_name mvar ->
           Some { mvar; pattern; pid; pstr }
@@ -66,19 +84,28 @@ let formula_to_sformula formula =
         remove_selectors (selector, acc) xs
   in
   let rec formula_to_sformula formula =
-    let convert_and_formulas fs =
-      let selector, fs' = remove_selectors (None, []) fs in
-      (* We only want a selector if there is something to select from. *)
-      match fs' with
-      | [] -> (None, List.map formula_to_sformula fs)
-      | _ :: _ -> (selector, List.rev_map formula_to_sformula fs')
-    in
     (* Visit formula and convert *)
     match formula with
     | R.Leaf leaf -> Leaf leaf
     | R.And (_, fs) -> And (convert_and_formulas fs)
     | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
+  and convert_and_formulas fs =
+    let pos, neg, cond = split_and fs in
+    let pos = List.map formula_to_sformula pos in
+    let neg = List.map formula_to_sformula neg in
+    let sel, pos =
+      (* We only want a selector if there is something to select from. *)
+      match remove_selectors (None, []) pos with
+      | _, [] -> (None, pos)
+      | sel, pos -> (sel, pos)
+    in
+    {
+      selector_opt = sel;
+      positives = pos;
+      negatives = neg;
+      conditionals = cond;
+    }
   in
   formula_to_sformula formula
 
@@ -91,4 +118,7 @@ let rec visit_sformula f formula =
   | Leaf (P (p, i)) -> f p i
   | Leaf (MetavarCond _) -> ()
   | Not x -> visit_sformula f x
-  | Or xs | And (_, xs) -> xs |> List.iter (visit_sformula f)
+  | Or xs -> xs |> List.iter (visit_sformula f)
+  | And fand ->
+      fand.positives |> List.iter (visit_sformula f);
+      fand.negatives |> List.iter (visit_sformula f)
