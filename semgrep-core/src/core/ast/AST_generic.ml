@@ -1166,7 +1166,13 @@ and other_pattern_operator =
 (*****************************************************************************)
 
 (*s: type [[AST_generic.type_]] *)
-and type_ =
+and type_ = {
+  t : type_kind;
+  (* used for C++ and Kotlin type qualifiers *)
+  t_attrs : attribute list;
+}
+
+and type_kind =
   (* TODO: TyLiteral, for Scala *)
   (* todo? a type_builtin = TInt | TBool | ...? see Literal.
    * or just delete and use (TyN Id) instead?
@@ -1752,7 +1758,7 @@ and directive = {
   (* Right now dattrs is used just for Static import in Java, and for
    * OCaml attributes of directives (e.g., open).
    *)
-  dattrs : attribute list;
+  d_attrs : attribute list;
 }
 
 and directive_kind =
@@ -1983,6 +1989,7 @@ let basic_entity id attrs =
 
 (*e: function [[AST_generic.basic_entity]] *)
 
+(* statements *)
 let s skind =
   {
     s = skind;
@@ -1993,9 +2000,14 @@ let s skind =
     s_range = None;
   }
 
+(* expressions *)
 let e ekind = { e = ekind; e_id = 0; e_range = None }
 
-let d dkind = { d = dkind; dattrs = [] }
+(* directives *)
+let d dkind = { d = dkind; d_attrs = [] }
+
+(* types *)
+let t tkind = { t = tkind; t_attrs = [] }
 
 (*s: function [[AST_generic.basic_field]] *)
 let basic_field id vopt typeopt =

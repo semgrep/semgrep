@@ -245,7 +245,7 @@ let map_primitive_type_ident (env : env) (x : CST.anon_choice_u8_6dad923) :
 
 let map_primitive_type (env : env) (x : CST.anon_choice_u8_6dad923) : G.type_ =
   let s, tok = map_primitive_type_ident env x in
-  G.TyBuiltin (s, tok)
+  G.TyBuiltin (s, tok) |> G.t
 
 let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
     G.literal =
@@ -375,7 +375,7 @@ let map_foreign_item_type (env : env) ((v1, v2, v3) : CST.foreign_item_type) :
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   let _semicolon = token env v3 (* ";" *) in
   let type_def =
-    { G.tbody = G.NewType (G.TyN (G.Id (ident, G.empty_id_info ()))) }
+    { G.tbody = G.NewType (G.TyN (G.Id (ident, G.empty_id_info ())) |> G.t) }
   in
   let ent =
     {
@@ -568,11 +568,11 @@ let rec map_abstract_type_trait_name (env : env)
   | `Id tok ->
       let ident = ident env tok in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      G.TyN (G.Id (ident, G.empty_id_info ()))
+      G.TyN (G.Id (ident, G.empty_id_info ())) |> G.t
   | `Scoped_type_id x -> map_scoped_type_identifier env x
   | `Gene_type x ->
       let name = map_generic_type_name env x in
-      G.TyN name
+      G.TyN name |> G.t
   | `Func_type x -> map_function_type env x
 
 and map_struct_name (env : env) (x : CST.anon_choice_type_id_2c46bcf) : G.name =
@@ -688,10 +688,10 @@ and map_anon_choice_param_2c23cdc (env : env) _outer_attrTODO
           v3
       in
       let self = ident env v4 (* "self" *) in
-      let self_type = G.TyN (G.Id (self, G.empty_id_info ())) in
+      let self_type = G.TyN (G.Id (self, G.empty_id_info ())) |> G.t in
       let type_ =
         match borrow with
-        | Some tok -> G.TyRef (tok, self_type)
+        | Some tok -> G.TyRef (tok, self_type) |> G.t
         | None -> self_type
       in
       let attrs = deoptionalize [ mutability ] in
@@ -956,17 +956,19 @@ and map_bounded_type (env : env) (x : CST.bounded_type) : G.type_ =
       let lifetime = map_lifetime env v1 in
       let plus = token env v2 (* "+" *) in
       let type_ = map_type_ env v3 in
-      G.TyOr (G.OtherType (G.OT_Lifetime, [ G.I lifetime ]), plus, type_)
+      G.TyOr (G.OtherType (G.OT_Lifetime, [ G.I lifetime ]) |> G.t, plus, type_)
+      |> G.t
   | `Type_PLUS_type (v1, v2, v3) ->
       let type_a = map_type_ env v1 in
       let plus = token env v2 (* "+" *) in
       let type_b = map_type_ env v3 in
-      G.TyOr (type_a, plus, type_b)
+      G.TyOr (type_a, plus, type_b) |> G.t
   | `Type_PLUS_life (v1, v2, v3) ->
       let type_ = map_type_ env v1 in
       let plus = token env v2 (* "+" *) in
       let lifetime = map_lifetime env v3 in
-      G.TyOr (type_, plus, G.OtherType (G.OT_Lifetime, [ G.I lifetime ]))
+      G.TyOr (type_, plus, G.OtherType (G.OT_Lifetime, [ G.I lifetime ]) |> G.t)
+      |> G.t
 
 and map_bracketed_type (env : env) ((v1, v2, v3) : CST.bracketed_type) =
   let lthan = token env v1 (* "<" *) in
@@ -1790,9 +1792,9 @@ and map_function_type (env : env) ((v1, v2, v3, v4) : CST.function_type) :
         let _arrow = token env v1 (* "->" *) in
         let ty = map_type_ env v2 in
         ty
-    | None -> G.TyBuiltin (fake_id "()")
+    | None -> G.TyBuiltin (fake_id "()") |> G.t
   in
-  G.TyFun (params, ret_type)
+  G.TyFun (params, ret_type) |> G.t
 
 (* TODO lifetimes, modifiers, traits *)
 and map_generic_type_name (env : env) ((v1, v2) : CST.generic_type) : G.name =
@@ -1802,7 +1804,7 @@ and map_generic_type_name (env : env) ((v1, v2) : CST.generic_type) : G.name =
 
 and map_generic_type (env : env) ((v1, v2) : CST.generic_type) : G.type_ =
   let name = map_generic_type_name env (v1, v2) in
-  G.TyN name
+  G.TyN name |> G.t
 
 and map_generic_type_with_turbofish (env : env)
     ((v1, v2, v3) : CST.generic_type_with_turbofish) : G.name =
@@ -1814,7 +1816,7 @@ and map_generic_type_with_turbofish (env : env)
 and map_generic_type_with_turbofish_type (env : env)
     ((v1, v2, v3) : CST.generic_type_with_turbofish) : G.type_ =
   let name = map_generic_type_with_turbofish env (v1, v2, v3) in
-  G.TyN name
+  G.TyN name |> G.t
 
 and map_if_expression (env : env) ((v1, v2, v3, v4) : CST.if_expression) :
     G.expr =
@@ -2377,7 +2379,7 @@ and map_pointer_type (env : env) ((v1, v2, v3) : CST.pointer_type) : G.type_ =
     (* "mut" *)
   in
   let type_ = map_type_ env v3 in
-  G.TyPointer (star, type_)
+  G.TyPointer (star, type_) |> G.t
 
 (* TODO constness *)
 and map_qualified_type (env : env) ((v1, v2, v3) : CST.qualified_type) : G.type_
@@ -2385,7 +2387,7 @@ and map_qualified_type (env : env) ((v1, v2, v3) : CST.qualified_type) : G.type_
   let lhs = map_type_ env v1 in
   let as_ = token env v2 (* "as" *) in
   let rhs = map_type_ env v3 in
-  G.OtherType (G.OT_Todo, [ G.T lhs; G.Tk as_; G.T rhs ])
+  G.OtherType (G.OT_Todo, [ G.T lhs; G.Tk as_; G.T rhs ]) |> G.t
 
 and map_range_expression (env : env) (x : CST.range_expression) : G.expr =
   match x with
@@ -2416,7 +2418,7 @@ and map_reference_type (env : env) ((v1, v2, v3, v4) : CST.reference_type) :
     G.type_ =
   let ref_ = token env v1 (* "&" *) in
   let _lifetime = Option.map (fun x -> map_lifetime env x) v2 in
-  let _mutability =
+  let mutability =
     Option.map
       (fun tok ->
         let tok = token env tok in
@@ -2425,8 +2427,8 @@ and map_reference_type (env : env) ((v1, v2, v3, v4) : CST.reference_type) :
       v3
   in
   let type_ = map_type_ env v4 in
-  (* TODO TyRef with lifetime/mutability *)
-  G.TyRef (ref_, type_)
+  (* TODO TyRef with lifetime *)
+  { t = G.TyRef (ref_, type_); t_attrs = mutability |> Common.opt_to_list }
 
 and map_return_expression (env : env) (x : CST.return_expression) : G.expr =
   let return_stmt =
@@ -2501,7 +2503,7 @@ and map_scoped_type_identifier_name (env : env)
 and map_scoped_type_identifier (env : env)
     ((v1, v2, v3) : CST.scoped_type_identifier) : G.type_ =
   let name = map_scoped_type_identifier_name env (v1, v2, v3) in
-  G.TyN name
+  G.TyN name |> G.t
 
 and map_scoped_type_identifier_in_expression_position (env : env)
     ((v1, v2, v3) : CST.scoped_type_identifier_in_expression_position) : G.name
@@ -2643,7 +2645,7 @@ and map_tuple_type (env : env) ((v1, v2, v3, v4, v5) : CST.tuple_type) : G.type_
   in
   let _comma = Option.map (fun tok -> token env tok) v4 in
   let rparen = token env v5 (* ")" *) in
-  G.TyTuple (lparen, ty_first :: ty_rest, rparen)
+  G.TyTuple (lparen, ty_first :: ty_rest, rparen) |> G.t
 
 and map_type_ (env : env) (x : CST.type_) : G.type_ =
   match x with
@@ -2657,6 +2659,7 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
       (* pattern \$[a-zA-Z_]\w* *)
       G.OtherType
         (G.OT_Expr, [ G.E (G.N (G.Id (metavar, G.empty_id_info ())) |> G.e) ])
+      |> G.t
   | `Poin_type x -> map_pointer_type env x
   | `Gene_type x -> map_generic_type env x
   | `Scoped_type_id x -> map_scoped_type_identifier env x
@@ -2665,7 +2668,7 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
       let lparen = str env v1 (* "(" *) in
       let rparen = str env v2 (* ")" *) in
       let str = List.map fst [ lparen; rparen ] |> String.concat "" in
-      G.TyBuiltin (str, PI.combine_infos (snd lparen) [ snd rparen ])
+      G.TyBuiltin (str, PI.combine_infos (snd lparen) [ snd rparen ]) |> G.t
   | `Array_type (v1, v2, v3, v4) ->
       let lbracket = token env v1 (* "[" *) in
       let ty = map_type_ env v2 in
@@ -2678,20 +2681,20 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
           v3
       in
       let rbracket = token env v4 (* "]" *) in
-      G.TyArray ((lbracket, default, rbracket), ty)
+      G.TyArray ((lbracket, default, rbracket), ty) |> G.t
   | `Func_type x -> map_function_type env x
   | `Id tok ->
       let ident = ident env tok in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       let id_info = G.empty_id_info () in
-      G.TyN (G.Id (ident, id_info))
+      G.TyN (G.Id (ident, id_info)) |> G.t
   | `Macro_invo x ->
       let invo = map_macro_invocation env x in
-      G.OtherType (G.OT_Expr, [ G.E invo ])
+      G.OtherType (G.OT_Expr, [ G.E invo ]) |> G.t
   | `Empty_type tok ->
       let bang = token env tok in
       (* "!" *)
-      G.TyBuiltin ("!", bang)
+      G.TyBuiltin ("!", bang) |> G.t
   | `Dyna_type (v1, v2) ->
       let _dynTODO = token env v1 (* "dyn" *) in
       let ty = map_abstract_type_trait_name env v2 in
@@ -3073,7 +3076,9 @@ and map_item_kind (env : env) _outer_attrs _visibility (x : CST.item_kind) :
       let _tyTODO = map_type_ env v5 in
       let _semicolon = token env v6 (* ";" *) in
       let type_def =
-        { G.tbody = G.NewType (G.TyN (G.Id (ident, G.empty_id_info ()))) }
+        {
+          G.tbody = G.NewType (G.TyN (G.Id (ident, G.empty_id_info ())) |> G.t);
+        }
       in
       let ent =
         {
@@ -3127,7 +3132,7 @@ and map_item_kind (env : env) _outer_attrs _visibility (x : CST.item_kind) :
               | `Id tok ->
                   let ident = ident env tok in
                   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-                  G.TyN (G.Id (ident, G.empty_id_info ()))
+                  G.TyN (G.Id (ident, G.empty_id_info ())) |> G.t
               | `Scoped_type_id x -> map_scoped_type_identifier env x
               | `Gene_type x -> map_generic_type env x
             in
@@ -3267,9 +3272,7 @@ let map_source_file (env : env) (x : CST.source_file) : G.any =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_rust.Parse.file file ())
+    (fun () -> Tree_sitter_rust.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = Target } in
       match map_source_file env cst with
@@ -3292,9 +3295,7 @@ let parse_expression_or_source_file str =
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke parse_expression_or_source_file str ())
+    (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = Pattern } in

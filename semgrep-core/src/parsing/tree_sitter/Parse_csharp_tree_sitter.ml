@@ -286,6 +286,7 @@ let new_index_from_end tok expr =
                name_typeargs = None;
              } ),
            empty_id_info () ))
+    |> G.t
   in
   Call
     ( IdSpecial (New, tok) |> G.e,
@@ -314,15 +315,15 @@ end
 (* Disable warnings against unused variables *)
 [@@@warning "-26-27-32"]
 
-let todo_expr _env tok = G.e (G.OtherExpr (G.OE_Todo, [ G.Tk tok ]))
+let todo_expr _env tok = G.OtherExpr (G.OE_Todo, [ G.Tk tok ]) |> G.e
 
-let todo_stmt _env tok = G.s (G.OtherStmt (G.OS_Todo, [ G.Tk tok ]))
+let todo_stmt _env tok = G.OtherStmt (G.OS_Todo, [ G.Tk tok ]) |> G.s
 
 let todo_pat _env tok = G.OtherPat (G.OP_Todo, [ G.Tk tok ])
 
 let todo_attr _env tok = G.OtherAttribute (G.OA_Expr, [ G.Tk tok ])
 
-let todo_type _env tok = G.OtherType (G.OT_Todo, [ G.Tk tok ])
+let todo_type _env tok = G.OtherType (G.OT_Todo, [ G.Tk tok ]) |> G.t
 
 let parameter_modifier (env : env) (x : CST.parameter_modifier) =
   match x with
@@ -364,7 +365,7 @@ let boolean_literal (env : env) (x : CST.boolean_literal) =
 (* "false" *)
 
 let predefined_type (env : env) (tok : CST.predefined_type) =
-  G.TyBuiltin (str env tok)
+  G.TyBuiltin (str env tok) |> G.t
 
 let verbatim_string_literal (env : env) (tok : CST.verbatim_string_literal) =
   G.String (str env tok)
@@ -646,7 +647,7 @@ let literal (env : env) (x : CST.literal) : literal =
 let rec return_type (env : env) (x : CST.return_type) : type_ =
   match x with
   | `Type x -> type_constraint env x
-  | `Void_kw tok -> TyBuiltin (str env tok)
+  | `Void_kw tok -> TyBuiltin (str env tok) |> G.t
 
 (* "void" *)
 and type_pattern (env : env) (x : CST.type_pattern) = type_ env x
@@ -963,7 +964,7 @@ and nullable_type (env : env) (x : CST.nullable_type) =
   | `Type_QMARK (v1, v2) ->
       let v1 = type_constraint env v1 in
       let v2 = token env v2 (* "?" *) in
-      TyQuestion (v1, v2)
+      TyQuestion (v1, v2) |> G.t
 
 and array_type (env : env) ((v1, v2) : CST.array_type) =
   let v1 = type_constraint env v1 in
@@ -971,9 +972,9 @@ and array_type (env : env) ((v1, v2) : CST.array_type) =
   let open_br, exps, close_br = v2 in
   let rec jag exps t =
     match exps with
-    | [] -> TyArray ((open_br, None, close_br), t)
-    | [ e ] -> TyArray ((open_br, e, close_br), t)
-    | e :: tl -> jag tl (TyArray ((open_br, e, close_br), t))
+    | [] -> TyArray ((open_br, None, close_br), t) |> G.t
+    | [ e ] -> TyArray ((open_br, e, close_br), t) |> G.t
+    | e :: tl -> jag tl (TyArray ((open_br, e, close_br), t) |> G.t)
   in
   (* TODO correct order? *)
   jag exps v1
@@ -1549,7 +1550,7 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
   | `Notn tok (* "notnull" *)
   | `Unma tok ->
       (* "unmanaged" *)
-      let t = TyBuiltin (str env tok) in
+      let t = TyBuiltin (str env tok) |> G.t in
       Extends t
   | `Cons_cons (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
@@ -2191,12 +2192,12 @@ and type_ (env : env) (x : CST.type_) : G.type_ =
   | `Name x ->
       let n = name env x in
       let ids = ids_of_name n in
-      TyN (H2.name_of_ids ids)
+      TyN (H2.name_of_ids ids) |> G.t
   | `Null_type x -> nullable_type env x
   | `Poin_type (v1, v2) ->
       let v1 = type_constraint env v1 in
       let v2 = token env v2 (* "*" *) in
-      TyPointer (v2, v1)
+      TyPointer (v2, v1) |> G.t
   | `Func_poin_type (v1, v2, _v3, v4, _v5, _v6, v7) ->
       let v1 = token env v1 (* "delegate" *) in
       let _v2 = token env v2 (* "*" *) in
@@ -2218,7 +2219,7 @@ and type_ (env : env) (x : CST.type_) : G.type_ =
           v5
       in
       let v6 = token env v6 (* ")" *) in
-      TyTuple (v1, v2 :: v4 :: v5, v6)
+      TyTuple (v1, v2 :: v4 :: v5, v6) |> G.t
 
 and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
   let v1 = token env v1 (* "<" *) in
@@ -2590,7 +2591,7 @@ and delegate_declaration env (v1, v2, v3, v4, v5, v6, v7, v8, v9) =
   let v8 = List.map (type_parameter_constraints_clause env) v8 in
   let v9 = token env v9 (* ";" *) in
   let tparams = type_parameters_with_constraints v6 v8 in
-  let func = TyFun (v7, v4) in
+  let func = TyFun (v7, v4) |> G.t in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v5, idinfo)); attrs = v1 @ v2; tparams } in
   DefStmt (ent, TypeDef { tbody = NewType func }) |> G.s
@@ -2951,9 +2952,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_c_sharp.Parse.file file ())
+    (fun () -> Tree_sitter_c_sharp.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
@@ -2974,9 +2973,7 @@ let parse_pattern_aux str =
 
 let parse_pattern str =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke parse_pattern_aux str ())
+    (fun () -> parse_pattern_aux str)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in

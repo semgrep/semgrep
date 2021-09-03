@@ -515,7 +515,7 @@ and type_ v =
 (*s: function [[Python_to_generic.type_parent]] *)
 and type_parent v =
   let v = argument v in
-  G.OtherType (G.OT_Arg, [ G.Ar v ])
+  G.OtherType (G.OT_Arg, [ G.Ar v ]) |> G.t
 
 (*e: function [[Python_to_generic.type_parent]] *)
 
