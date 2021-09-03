@@ -478,7 +478,12 @@ and map_action (v1, v2) =
 
 and map_other_expr_operator _x = "TODO"
 
-and map_type_ = function
+and map_type_ { t; t_attrs } =
+  let tk = map_type_kind t in
+  let _attrsTODO = map_of_list map_attribute t_attrs in
+  tk
+
+and map_type_kind = function
   | TyEllipsis v1 ->
       let v1 = map_tok v1 in
       `TyEllipsis v1
@@ -1119,9 +1124,9 @@ and map_class_kind = function
   | AtInterface -> `AtInterface
   | RecordClass -> `RecordClass
 
-and map_directive { d; dattrs } =
+and map_directive { d; d_attrs } =
   let d = map_directive_kind d in
-  let _dattrsTODO = map_of_list map_attribute dattrs in
+  let _dattrsTODO = map_of_list map_attribute d_attrs in
   d
 
 and map_directive_kind = function

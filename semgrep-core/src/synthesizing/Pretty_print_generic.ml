@@ -57,10 +57,11 @@ let opt f = function None -> "" | Some x -> f x
 let token default tok =
   try Parse_info.str_of_info tok with Parse_info.NoTokenLocation _ -> default
 
-let print_type = function
+let print_type t =
+  match t.t with
   | TyBuiltin (s, _) -> s
   | TyN (Id (id, _)) -> ident id
-  | x -> todo (T x)
+  | _ -> todo (T t)
 
 let print_bool env = function
   | true -> (

@@ -127,7 +127,7 @@ let rec pattern_to_expr p =
 (*s: function [[AST_generic.expr_to_type]] *)
 let expr_to_type e =
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
-  OtherType (OT_Expr, [ E e ])
+  OtherType (OT_Expr, [ E e ]) |> G.t
 
 (* See also exprstmt, and stmt_to_expr in AST_generic.ml *)
 
