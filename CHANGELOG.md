@@ -9,6 +9,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Add logging on failure to git ls-files (#3777)
+- Calls to `semgrep --version` now check if Semgrep is up-to-date; this can
+  cause a ~ 100 ms delay in run time; use --disable-version-check if you
+  don't want this
 
 ### Fixed
 - Java: separate import static from regular imports during matching (#3772)
