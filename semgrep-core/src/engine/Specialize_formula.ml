@@ -1,16 +1,17 @@
 module R = Rule
 module RM = Range_with_metavars
 module G = AST_generic
-module M = Metavariable
+module MV = Metavariable
 module PM = Pattern_match
 module RP = Report
 
 type selector = {
-  mvar : M.mvar;
+  mvar : MV.mvar;
   pattern : AST_generic.any;
   pid : int;
   pstr : string R.wrap;
 }
+[@@deriving show]
 
 type sformula =
   | Leaf of R.leaf
@@ -20,6 +21,7 @@ type sformula =
    * should always be inside an And to be intersected with "positive" formula.
    *)
   | Not of sformula
+[@@deriving show]
 
 (*****************************************************************************)
 (* Selecting methods *)
@@ -35,7 +37,7 @@ let selector_from_formula f =
   match f with
   | R.Leaf (R.P ({ pat = Sem (pattern, _); pid; pstr }, None)) -> (
       match pattern with
-      | G.E { e = G.N (G.Id ((mvar, _), _)); _ } ->
+      | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when MV.is_metavar_name mvar ->
           Some { mvar; pattern; pid; pstr }
       | _ -> None)
   | _ -> None
