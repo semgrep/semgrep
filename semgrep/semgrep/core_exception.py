@@ -120,7 +120,12 @@ class CoreException:
             )
         elif self._check_id == "FatalError":
             message = self._extra.get("message", "no message")
-            return CoreFatalError(msg=message)
+            return CoreFatalError(rule_id=self._rule_id, path=self._path, msg=message)
         else:
             message = self._extra.get("message", "no message")
-            return CoreWarning(check_id=self._check_id, msg=message)
+            return CoreWarning(
+                rule_id=self._rule_id,
+                path=self._path,
+                check_id=self._check_id,
+                msg=message,
+            )

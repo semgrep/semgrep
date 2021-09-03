@@ -673,7 +673,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   | None ->
       error env
         (Common.spf
-           "metavariable-pattern failed because %s it not in scope, please \
+           "metavariable-pattern failed because %s is not in scope, please \
             check your rule"
            mvar);
       false
