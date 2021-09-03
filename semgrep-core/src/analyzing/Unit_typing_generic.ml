@@ -31,7 +31,8 @@ let unittest parse_program parse_pattern =
                        match exp.G.e with
                        | G.N (G.Id (_, { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (G.TyN (G.Id (("String", _), _))) -> ()
+                           | Some { t = G.TyN (G.Id (("String", _), _)); _ } ->
+                               ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
@@ -61,7 +62,9 @@ let unittest parse_program parse_pattern =
                            | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
                              -> (
                                match !id_type with
-                               | Some (G.TyN (G.Id (("String", _), _))) -> ()
+                               | Some { t = G.TyN (G.Id (("String", _), _)); _ }
+                                 ->
+                                   ()
                                | _ ->
                                    assert_failure
                                      "Variable 1 referenced did not have \
@@ -71,7 +74,7 @@ let unittest parse_program parse_pattern =
                            | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
                              -> (
                                match !id_type with
-                               | Some (G.TyBuiltin ("int", _)) -> ()
+                               | Some { t = G.TyBuiltin ("int", _); _ } -> ()
                                | _ ->
                                    assert_failure
                                      "Variable 2 referenced did not have \
@@ -81,7 +84,8 @@ let unittest parse_program parse_pattern =
                            ({ e = G.N (G.Id (_, { G.id_type; _ })); _ }, _, _)
                          -> (
                            match !id_type with
-                           | Some (G.TyN (G.Id (("String", _), _))) -> ()
+                           | Some { t = G.TyN (G.Id (("String", _), _)); _ } ->
+                               ()
                            | _ ->
                                assert_failure
                                  "Variable 1 referenced did not have expected \
@@ -111,7 +115,7 @@ let unittest parse_program parse_pattern =
                            | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
                              -> (
                                match !id_type with
-                               | Some (G.TyBuiltin ("int", _)) -> ()
+                               | Some { t = G.TyBuiltin ("int", _); _ } -> ()
                                | _ ->
                                    assert_failure
                                      "Variable 1 referenced did not have \
@@ -121,7 +125,8 @@ let unittest parse_program parse_pattern =
                            | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
                              -> (
                                match !id_type with
-                               | Some (G.TyBuiltin ("boolean", _)) -> ()
+                               | Some { t = G.TyBuiltin ("boolean", _); _ } ->
+                                   ()
                                | _ ->
                                    assert_failure
                                      "Variable 2 referenced did not have \
@@ -149,14 +154,14 @@ let unittest parse_program parse_pattern =
                        match exp.G.e with
                        | G.N (G.Id (("age", _), { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (G.TyBuiltin ("int", _)) -> ()
+                           | Some { t = G.TyBuiltin ("int", _); _ } -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
                                   type int")
                        | G.N (G.Id (("default_age", _), { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (G.TyBuiltin ("int", _)) -> ()
+                           | Some { t = G.TyBuiltin ("int", _); _ } -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
@@ -203,7 +208,7 @@ let unittest parse_program parse_pattern =
                        match exp.G.e with
                        | G.N (G.Id (_, { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (G.TyN (G.Id (("int", _), _))) -> ()
+                           | Some { t = G.TyN (G.Id (("int", _), _)); _ } -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
@@ -236,7 +241,8 @@ let unittest parse_program parse_pattern =
                                  _;
                                } -> (
                                match !id_type with
-                               | Some (G.TyN (G.Id (("int", _), _))) -> ()
+                               | Some { t = G.TyN (G.Id (("int", _), _)); _ } ->
+                                   ()
                                | _ ->
                                    assert_failure
                                      "Variable referenced did not have \
@@ -252,7 +258,9 @@ let unittest parse_program parse_pattern =
                                  _;
                                } -> (
                                match !id_type with
-                               | Some (G.TyN (G.Id (("bool", _), _))) -> ()
+                               | Some { t = G.TyN (G.Id (("bool", _), _)); _ }
+                                 ->
+                                   ()
                                | _ ->
                                    assert_failure
                                      "Variable referenced did not have \
@@ -283,21 +291,21 @@ let unittest parse_program parse_pattern =
                        match exp.G.e with
                        | G.N (G.Id (("a", _), { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (G.TyN (G.Id (("char", _), _))) -> ()
+                           | Some { t = G.TyN (G.Id (("char", _), _)); _ } -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
                                   type char")
                        | G.N (G.Id (("b", _), { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (G.TyN (G.Id (("int", _), _))) -> ()
+                           | Some { t = G.TyN (G.Id (("int", _), _)); _ } -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \
                                   type int")
                        | G.N (G.Id (("c", _), { G.id_type; _ })) -> (
                            match !id_type with
-                           | Some (G.TyN (G.Id (("char", _), _))) -> ()
+                           | Some { t = G.TyN (G.Id (("char", _), _)); _ } -> ()
                            | _ ->
                                assert_failure
                                  "Variable referenced did not have expected \

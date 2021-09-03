@@ -469,7 +469,7 @@ let xhp_enum_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.xhp_enum_type)
     G.DefStmt (G.basic_entity ident [], TypeDef { tbody = OrType (v3 :: v4) })
     |> G.s
   in
-  G.OtherType (OT_Expr, [ G.S def ])
+  G.OtherType (OT_Expr, [ G.S def ]) |> G.t
 
 let scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) =
   let v1 =
@@ -1517,7 +1517,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
           in
           let _v3 = (* ")" *) token env v3 in
           let v4 = expression env v4 in
-          G.Cast (v2, v1, v4) |> G.e
+          G.Cast (v2 |> G.t, v1, v4) |> G.e
       | `Tern_exp (v1, v2, v3, v4, v5) ->
           let v1 = expression env v1 in
           let _v2 = (* "?" *) token env v2 in
@@ -2380,7 +2380,9 @@ and _trait_use_clause (env : env) ((v1, v2, v3, v4) : CST.trait_use_clause) =
   in
   todo env (v1, v2, v3, v4)
 
-and type_ (env : env) (x : CST.type_) : G.type_ =
+and type_ env x = type_kind env x |> G.t
+
+and type_kind (env : env) (x : CST.type_) : G.type_kind =
   match x with
   | `Type_spec (v1, v2, v3) ->
       let _v1TODO = List.map (type_modifier env) v1 in
@@ -2684,7 +2686,7 @@ and where_clause (env : env) ((v1, v2) : CST.where_clause) =
           | Some tok -> (* "," *) Some (token env tok)
           | None -> None
         in
-        G.OtherType (OT_Expr, [ G.T frst; G.TodoK snd; G.T thrd ]))
+        G.OtherType (OT_Expr, [ G.T frst; G.TodoK snd; G.T thrd ]) |> G.t)
       v2
   in
   v2

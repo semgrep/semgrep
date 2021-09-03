@@ -486,7 +486,17 @@ and vof_other_expr_operator = function
   | OE_Unchecked -> OCaml.VSum ("OE_Unchecked", [])
   | OE_Subshell -> OCaml.VSum ("OE_Subshell", [])
 
-and vof_type_ = function
+and vof_type_ { t; t_attrs } =
+  let bnds = [] in
+  let arg = vof_type_kind t in
+  let bnd = ("t", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_list vof_attribute t_attrs in
+  let bnd = ("t_attrs", arg) in
+  let bnds = bnd :: bnds in
+  OCaml.VDict bnds
+
+and vof_type_kind = function
   | TyEllipsis v1 ->
       let v1 = vof_tok v1 in
       OCaml.VSum ("TyEllipsis", [ v1 ])
@@ -1241,13 +1251,13 @@ and vof_ident_and_id_info (v1, v2) =
   let v2 = vof_id_info v2 in
   OCaml.VTuple [ v1; v2 ]
 
-and vof_directive { d; dattrs } =
+and vof_directive { d; d_attrs } =
   let bnds = [] in
   let arg = vof_directive_kind d in
   let bnd = ("d", arg) in
   let bnds = bnd :: bnds in
-  let arg = OCaml.vof_list vof_attribute dattrs in
-  let bnd = ("dattrs", arg) in
+  let arg = OCaml.vof_list vof_attribute d_attrs in
+  let bnd = ("d_attrs", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
