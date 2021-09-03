@@ -3166,9 +3166,7 @@ let map_compilation_unit (env : env) ((v1, v2) : CST.compilation_unit) =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_ocaml.Parse.file file ())
+    (fun () -> Tree_sitter_ocaml.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       map_compilation_unit env cst)
