@@ -78,15 +78,15 @@ let get_first_line path =
     (fun () -> try input_line ic with End_of_file -> (* empty file *) "")
 
 (*
-   Get the first 4096 bytes of the file, which will usually obtained from
+   Get the first N bytes of the file, which is ideally obtained from
    a single filesystem block.
 *)
-let get_first_block path =
+let get_first_block ?(block_size = 4096) path =
   let ic = open_in_bin path in
   Fun.protect
     ~finally:(fun () -> close_in_noerr ic)
     (fun () ->
-      let len = min 4096 (in_channel_length ic) in
+      let len = min block_size (in_channel_length ic) in
       really_input_string ic len)
 
 let shebang_re = lazy (Pcre.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")

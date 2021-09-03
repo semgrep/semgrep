@@ -4,11 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.64.0](https://github.com/returntocorp/semgrep/releases/tag/v0.64.0) - 09-01-2021
+
 ### Added
 - Enable associative matching for string concatenation (#3741)
 
 ### Changed
 - Add logging on failure to git ls-files (#3777)
+- Ignore files whose contents look minified (#3795)
 - Calls to `semgrep --version` now check if Semgrep is up-to-date; this can
   cause a ~ 100 ms delay in run time; use --disable-version-check if you
   don't want this

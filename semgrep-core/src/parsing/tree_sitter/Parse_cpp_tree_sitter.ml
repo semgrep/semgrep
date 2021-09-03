@@ -19,13 +19,11 @@ module H = Parse_tree_sitter_helpers
 module H2 = Parser_cpp_mly_helper
 open Ast_cpp
 
-(* module G2 = AST_generic_ *)
-
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
 (* OCaml parser using tree-sitter-lang/semgrep-cpp and converting
- * to pfff/lang_cpp/parsing/cst_cpp.ml
+ * to pfff/lang_cpp/parsing/ast_cpp.ml
  *
  * The resulting AST can then be converted to the generic AST by using
  * a future cpp_to_generic.ml
@@ -40,7 +38,7 @@ type env = unit H.env
 
 let token = H.token
 
-let _fake = PI.fake_info
+let fake = PI.fake_info
 
 let fb = PI.fake_bracket
 
@@ -52,28 +50,113 @@ let id x = x
 (* Disable warnings against unused variables *)
 [@@@warning "-26-27"]
 
-let parse_operator _env (s, t) = failwith "TODO"
+(* see tree-sitter-cpp/grammar.js *)
+let parse_operator _env (s, t) : operator * tok list =
+  let op =
+    match s with
+    | "+" -> BinaryOp (Arith Plus)
+    | "-" -> BinaryOp (Arith Minus)
+    | "*" -> BinaryOp (Arith Mul)
+    | "/" -> BinaryOp (Arith Div)
+    | "%" -> BinaryOp (Arith Mod)
+    | "^" -> BinaryOp (Arith Xor)
+    | "&" -> BinaryOp (Arith And)
+    | "|" -> BinaryOp (Arith Or)
+    | "~" -> UnaryTildeOp
+    | "!" -> UnaryNotOp
+    | "=" -> AssignOp (SimpleAssign t)
+    | "<" -> BinaryOp (Logical Inf)
+    | ">" -> BinaryOp (Logical Sup)
+    | "+=" -> AssignOp (OpAssign (Plus, t))
+    | "-=" -> AssignOp (OpAssign (Minus, t))
+    | "*=" -> AssignOp (OpAssign (Mul, t))
+    | "/=" -> AssignOp (OpAssign (Div, t))
+    | "%=" -> AssignOp (OpAssign (Mod, t))
+    | "^=" -> AssignOp (OpAssign (Xor, t))
+    | "&=" -> AssignOp (OpAssign (And, t))
+    | "|=" -> AssignOp (OpAssign (Or, t))
+    | "<<" -> BinaryOp (Arith DecLeft)
+    | ">>" -> BinaryOp (Arith DecRight)
+    | ">>=" -> AssignOp (OpAssign (DecRight, t))
+    | "<<=" -> AssignOp (OpAssign (DecLeft, t))
+    | "==" -> BinaryOp (Logical Eq)
+    | "!=" -> BinaryOp (Logical NotEq)
+    | "<=" -> BinaryOp (Logical InfEq)
+    | ">=" -> BinaryOp (Logical SupEq)
+    | "&&" -> BinaryOp (Logical AndLog)
+    | "||" -> BinaryOp (Logical OrLog)
+    | "++" -> FixOp Inc
+    | "--" -> FixOp Dec
+    | "," -> CommaOp
+    | "->*" -> PtrOpOp PtrStarOp
+    | "->" -> PtrOpOp PtrOp
+    | "()" -> AccessOp ParenOp
+    | "[]" -> AccessOp ArrayOp
+    | _ -> raise (Parse_info.Other_error (spf "unrecognized operator: %s" s, t))
+  in
+  (op, [ t ])
 
-let parse_number_literal (s, t) = failwith "TODO"
+(* like Parse_c_tree_sitter.number_literal *)
+let parse_number_literal (s, t) =
+  match Common2.int_of_string_c_octal_opt s with
+  | Some i -> Int (Some i, t)
+  | None -> (
+      match float_of_string_opt s with
+      | Some f -> Float ((Some f, t), CFloat)
+      (* could be None because of a suffix in the string *)
+      | None -> Int (None, t))
 
-let parse_primitive_type (s, t) = failwith "TODO"
+(* see tree-sitter-c/grammar.js *)
+let parse_primitive_type env (s, t) =
+  match s with
+  (* size_t, ssize_t, intptr_t, int8_t, int16_t, ... *)
+  | _ -> (nQ, TypeName (name_of_id (s, t)))
 
 (* name builder helpers *)
 
-let name_for_param name =
-  match name with
-  | None, [], IdIdent id -> id
-  | _ -> raise (Parse_info.Parsing_error (ii_of_name name))
+let id_of_dname_for_parameter dname =
+  match dname with
+  | DN (None, [], IdIdent id) -> id
+  | _ ->
+      raise
+        (Parse_info.Other_error
+           ("expecting an ident for parameter", ii_of_dname dname))
 
-let name_for_typedef name =
-  match name with
-  | None, [], IdIdent id -> id
-  | _ -> raise (Parse_info.Parsing_error (ii_of_name name))
+let id_of_dname_for_typedef dname =
+  match dname with
+  | DN (None, [], IdIdent id) -> id
+  | _ ->
+      raise
+        (Parse_info.Other_error
+           ("expecting an ident for typedef", ii_of_dname dname))
+
+let name_of_dname_for_function dn =
+  match dn with
+  | DN n -> n
+  | DNStructuredBinding (l, _, _) ->
+      raise (Parse_info.Other_error ("single name expected for a function", l))
+
+let name_of_dname_for_var dn =
+  match dn with
+  | DN n -> n
+  | DNStructuredBinding (l, _, _) ->
+      raise (Parse_info.Other_error ("single name expected for simple var", l))
 
 let name_scoped nameopt tcolcol id_or_op : name =
   match nameopt with
   | None -> (Some tcolcol, [], id_or_op)
-  | Some _nTODO -> (None, [], id_or_op)
+  | Some ((tcolcol1, xs1, id_or_op1) as name) ->
+      let lastxs =
+        match id_or_op1 with
+        | IdIdent id -> QClassname id
+        | IdTemplateId (id, args) -> QTemplateId (id, args)
+        | IdOperator _ | IdDestructor _ | IdConverter _ ->
+            raise
+              (Parse_info.Other_error
+                 ( "invalid operator/destructor/converter qualifier",
+                   ii_of_name name ))
+      in
+      (tcolcol1, xs1 @ [ lastxs ], id_or_op)
 
 let name_add_template_args name args =
   let top, qu, id_or_op = name in
@@ -83,10 +166,6 @@ let name_add_template_args name args =
     | _ -> raise Impossible
   in
   (top, qu, id_or_op)
-
-let complicated (env : env) _ = failwith "not implemented"
-
-let todo (env : env) _ = failwith "not implemented"
 
 let trailing_comma env v =
   match v with Some tok -> token env tok (* "," *) |> ignore | None -> ()
@@ -121,7 +200,9 @@ let map_anon_choice_DASHDASH_d11def2 (env : env)
 (* "++" *)
 
 let map_lambda_default_capture (env : env) (x : CST.lambda_default_capture) =
-  match x with `EQ tok -> token env tok (* "=" *) | `AMP tok -> token env tok
+  match x with
+  | `EQ tok -> CaptureEq (token env tok) (* "=" *)
+  | `AMP tok -> CaptureRef (token env tok)
 
 (* "&" *)
 
@@ -164,8 +245,8 @@ let map_storage_class_specifier (env : env) (x : CST.storage_class_specifier) :
 
 let map_anon_choice_DOT_2ad1dab (env : env) (x : CST.anon_choice_DOT_2ad1dab) =
   match x with
-  | `DOT tok -> token env tok (* "." *)
-  | `DASHGT tok -> token env tok
+  | `DOT tok -> (Dot, token env tok) (* "." *)
+  | `DASHGT tok -> (Arrow, token env tok)
 
 (* "->" *)
 
@@ -373,10 +454,10 @@ let map_sized_type_specifier (env : env) ((v1, v2) : CST.sized_type_specifier) :
     List.map
       (fun x ->
         match x with
-        | `Signed tok -> token env tok (* "signed" *)
-        | `Unsi tok -> token env tok (* "unsigned" *)
-        | `Long tok -> token env tok (* "long" *)
-        | `Short tok -> token env tok
+        | `Signed tok -> (TSigned, token env tok) (* "signed" *)
+        | `Unsi tok -> (TUnsigned, token env tok) (* "unsigned" *)
+        | `Long tok -> (TLong, token env tok) (* "long" *)
+        | `Short tok -> (TShort, token env tok)
         (* "short" *))
       v1
   in
@@ -384,11 +465,15 @@ let map_sized_type_specifier (env : env) ((v1, v2) : CST.sized_type_specifier) :
     match v2 with
     | Some x -> (
         match x with
-        | `Id tok -> token env tok (* pattern [a-zA-Z_]\w* *)
-        | `Prim_type tok -> token env tok (* primitive_type *))
-    | None -> complicated env ()
+        | `Id tok ->
+            let id = str env tok (* pattern [a-zA-Z_]\w* *) in
+            Some (nQ, TypeName (name_of_id id))
+        | `Prim_type tok ->
+            let x = str env tok (* primitive_type *) in
+            Some (parse_primitive_type env x))
+    | None -> None
   in
-  complicated env (v1, v2)
+  (nQ, TSized (v1, v2))
 
 let map_destructor_name (env : env) ((v1, v2) : CST.destructor_name) =
   let v1 = token env v1 (* "~" *) in
@@ -535,7 +620,7 @@ and map_preproc_expression (env : env) (x : CST.preproc_expression) : expr =
       Call (expr_of_id id, (l, args, r))
   | `Num_lit tok ->
       let x = str env tok (* number_literal *) in
-      parse_number_literal x
+      C (parse_number_literal x)
   | `Char_lit x ->
       let c = map_char_literal env x in
       C c
@@ -590,7 +675,7 @@ let map_anon_choice_stmt_id_efddc5b (env : env)
   | `Id tok -> IdIdent (str env tok) (* pattern [a-zA-Z_]\w* *)
   | `Op_name tok ->
       let op = str env tok (* operator_name *) in
-      IdOperator (parse_operator env op)
+      IdOperator (fake "operator", parse_operator env op)
   | `Dest_name x ->
       let x = map_destructor_name env x in
       x
@@ -606,7 +691,7 @@ let map_preproc_include (env : env) ((v1, v2, v3) : CST.preproc_include) =
   let v1 = token env v1 (* pattern #[ 	]*include *) in
   let v2 =
     match v2 with
-    (* todo: in pfff the string in the string wrap does not contain
+    (* TODO: in pfff the string in the string wrap does not contain
      * the enclosing chars *)
     | `Str_lit x ->
         let x = map_string_literal env x in
@@ -707,7 +792,9 @@ and map_abstract_function_declarator (env : env)
       ( nQ,
         TFunction
           {
-            (* override ft_ret with trailing_return_type? *)
+            (* override ft_ret with trailing_return_type as x can actually
+             * be a fake type sometimes (e.g., in lambdas)
+             *)
             ft_ret = (match v4 with None -> x | Some t -> t);
             ft_params = v2;
             ft_specs;
@@ -756,24 +843,36 @@ and map_anon_choice_arg_list_e4b6f8f (env : env)
 
 (* after a struct/union/class keyword *)
 and map_anon_choice_class_name_d6703e6 (env : env)
-    (x : CST.anon_choice_class_name_d6703e6) : type_ =
+    (x : CST.anon_choice_class_name_d6703e6) : class_key wrap -> type_ =
   match x with
   | `Class_name x ->
       let x = map_class_name env x in
-      todo env x
+      fun ckey -> (nQ, ClassName (ckey, x))
   | `Opt_class_name_opt_virt_spec_opt_base_class_clause_field_decl_list
       (v1, v2, v3, v4) ->
       let v1 =
         match v1 with Some x -> Some (map_class_name env x) | None -> None
       in
       let v2 =
-        match v2 with Some x -> [ map_virtual_specifier env x ] | None -> []
+        match v2 with
+        | Some x -> Some (map_virtual_specifier env x)
+        | None -> None
       in
       let v3 =
         match v3 with Some x -> map_base_class_clause env x | None -> []
       in
       let v4 = map_field_declaration_list env v4 in
-      todo env (v1, v2, v3, v4)
+      fun ckey ->
+        let cdef =
+          ( v1,
+            {
+              c_kind = ckey;
+              c_inherit =
+                v3 |> List.map (fun clause -> { clause with i_virtual = v2 });
+              c_members = v4;
+            } )
+        in
+        (nQ, ClassDef cdef)
 
 and map_anon_choice_comp_stmt_be91723 (env : env)
     (x : CST.anon_choice_comp_stmt_be91723) : function_body =
@@ -1035,23 +1134,23 @@ and map_anon_choice_type_desc_4d9cafa (env : env)
 
 and map_anon_choice_type_qual_01506e0 (env : env)
     (x : CST.anon_choice_type_qual_01506e0) :
-    (specifier, exn_spec) Common.either =
+    (specifier, type_, exn_spec) Common.either3 =
   match x with
   | `Type_qual x ->
       let x = map_type_qualifier env x in
-      Left (TQ x)
+      Left3 (TQ x)
   | `Virt_spec x ->
       let x = map_virtual_specifier env x in
-      Left (M x)
+      Left3 (M x)
   | `Noex x ->
       let x = map_noexcept env x in
-      Right x
+      Right3 x
   | `Throw_spec x ->
       let x = map_throw_specifier env x in
-      Right x
+      Right3 x
   | `Trai_ret_type x ->
       let x = map_trailing_return_type env x in
-      complicated env x
+      Middle3 x
 
 and map_argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
     argument list paren =
@@ -1104,7 +1203,7 @@ and map_array_field_declarator (env : env)
     | None -> None
   in
   let v5 = token env v5 (* "]" *) in
-  todo env (v1, v2, v3, v4, v5)
+  { dn = v1.dn; dt = (fun x -> v1.dt (v3, TArray ((v2, v4, v5), x))) }
 
 and map_assignment_expression (env : env)
     ((v1, v2, v3) : CST.assignment_expression) : expr =
@@ -1307,7 +1406,7 @@ and map_call_expression (env : env) (x : CST.call_expression) : expr =
       Call (v1, v2)
   | `Prim_type_arg_list (v1, v2) ->
       let v1 = str env v1 (* primitive_type *) in
-      let t = parse_primitive_type v1 in
+      let t = parse_primitive_type env v1 in
       let v2 = map_argument_list env v2 in
       ConstructedObject (t, Args v2)
 
@@ -1330,16 +1429,16 @@ and map_case_statement (env : env) ((v1, v2, v3) : CST.case_statement) : stmt =
         match x with
         | `Choice_labe_stmt x ->
             let x = map_non_case_statement env x in
-            x
+            S x
         | `Decl x ->
             let x = map_declaration env x in
-            todo env x
+            D (DeclList x)
         | `Type_defi x ->
             let x = map_type_definition env x in
-            todo env x)
+            D (DeclList x))
       v3
   in
-  todo env (v1, v2, v3)
+  v1 v2 v3
 
 and map_cast_expression (env : env) ((v1, v2, v3, v4) : CST.cast_expression) =
   let v1 = token env v1 (* "(" *) in
@@ -1419,8 +1518,8 @@ and map_condition_clause (env : env) ((v1, v2, v3) : CST.condition_clause) :
         let v2 = map_anon_choice_exp_55b4dba env v2 in
         match v1 with
         | Common2.Middle3 () -> CondClassic v2
-        | Common2.Left3 d -> todo env d
-        | Common2.Right3 e -> todo env e)
+        | Common2.Left3 d -> CondDecl (d, v2)
+        | Common2.Right3 e -> CondStmt (e, v2))
     | `Cond_decl x -> map_condition_declaration env x
   in
   let v3 = token env v3 (* ")" *) in
@@ -1429,16 +1528,24 @@ and map_condition_clause (env : env) ((v1, v2, v3) : CST.condition_clause) :
 and map_condition_declaration (env : env)
     ((v1, v2, v3) : CST.condition_declaration) =
   let t, specs = map_declaration_specifiers env v1 in
-  let v2 = map_declarator env v2 in
+  let { dn; dt } = map_declarator env v2 in
   let v3 =
     match v3 with
     | `EQ_exp (v1, v2) ->
         let v1 = token env v1 (* "=" *) in
         let v2 = map_expression env v2 in
-        todo env (v1, v2)
-    | `Init_list x -> map_initializer_list env x
+        EqInit (v1, InitExpr v2)
+    | `Init_list x -> ObjInit (Inits (map_initializer_list env x))
   in
-  todo env (v1, v2, v3)
+  let one =
+    {
+      v_namei = Some (dn, Some v3);
+      v_type = dt t;
+      v_storage = NoSto;
+      v_specs = specs;
+    }
+  in
+  CondOneDecl one
 
 and map_conditional_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.conditional_expression) =
@@ -1454,21 +1561,27 @@ and map_constructor_or_destructor_declaration (env : env)
   let v1 =
     match v1 with Some x -> map_constructor_specifiers env x | None -> []
   in
-  let v2 = map_function_declarator env v2 in
+  let { dn; dt } = map_function_declarator env v2 in
   let v3 = token env v3 (* ";" *) in
-  todo env (v1, v2, v3)
+  let n = name_of_dname_for_function dn in
+  let t = dt (nQ, TBase (Void (ii_of_name n))) in
+  let ent, def = H2.fixFunc ((n, t, NoSto), FBDecl v3) in
+  ({ ent with specs = v1 @ ent.specs }, def)
 
 and map_constructor_or_destructor_definition (env : env)
     ((v1, v2, v3, v4) : CST.constructor_or_destructor_definition) =
   let v1 =
     match v1 with Some x -> map_constructor_specifiers env x | None -> []
   in
-  let v2 = map_function_declarator env v2 in
-  let v3 =
+  let { dn; dt } = map_function_declarator env v2 in
+  let _v3TODO =
     match v3 with Some x -> map_field_initializer_list env x | None -> []
   in
+  let n = name_of_dname_for_function dn in
+  let t = dt (nQ, TBase (Void (ii_of_name n))) in
   let v4 = map_anon_choice_comp_stmt_be91723 env v4 in
-  todo env (v1, v2, v3, v4)
+  let ent, def = H2.fixFunc ((n, t, NoSto), v4) in
+  ({ ent with specs = v1 @ ent.specs }, def)
 
 and map_constructor_specifiers (env : env) (xs : CST.constructor_specifiers) :
     specifier list =
@@ -1533,38 +1646,41 @@ and map_declarator (env : env) (x : CST.declarator) : declarator =
       | `Paren_decl x -> map_parenthesized_declarator env x
       | `Id tok ->
           let x = str env tok (* pattern [a-zA-Z_]\w* *) in
-          { dn = name_of_id x; dt = id })
+          { dn = DN (name_of_id x); dt = id })
   | `Ref_decl (v1, v2) ->
       let v1 = map_anon_choice_AMP_c92c117 env v1 in
       let v2 = map_declarator env v2 in
       { dn = v2.dn; dt = (fun x -> x |> v1 |> v2.dt) }
   | `Scoped_id x ->
       let x = map_scoped_identifier env x in
-      { dn = x; dt = id }
+      { dn = DN x; dt = id }
   | `Temp_func x ->
       let x = map_template_function env x in
-      { dn = x; dt = id }
+      { dn = DN x; dt = id }
   | `Op_name tok ->
       let op = str env tok (* operator_name *) in
-      let dn = (None, noQscope, IdOperator (parse_operator env op)) in
+      let dn =
+        DN (None, noQscope, IdOperator (fake "operator", parse_operator env op))
+      in
       { dn; dt = id }
   | `Dest_name x ->
       let x = map_destructor_name env x in
-      let dn = (None, noQscope, x) in
+      let dn = DN (None, noQscope, x) in
       { dn; dt = id }
+  (* c++17: TODO complex pattern assign *)
   | `Stru_bind_decl (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "[" *) in
-      let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+      let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
       let v3 =
         List.map
           (fun (v1, v2) ->
             let _v1 = token env v1 (* "," *) in
-            let v2 = token env v2 (* pattern [a-zA-Z_]\w* *) in
+            let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
             v2)
           v3
       in
       let v4 = token env v4 (* "]" *) in
-      complicated env (v1, v2, v3, v4)
+      { dn = DNStructuredBinding (v1, v2 :: v3, v4); dt = id }
 
 and map_empty_declaration (env : env) ((v1, v2) : CST.empty_declaration) : decl
     =
@@ -1574,7 +1690,7 @@ and map_empty_declaration (env : env) ((v1, v2) : CST.empty_declaration) : decl
   DeclList ([ one ], v2)
 
 and map_enum_base_clause (env : env) ((v1, v2) : CST.enum_base_clause) =
-  let v1 = token env v1 (* ":" *) in
+  let _v1 = token env v1 (* ":" *) in
   let v2 =
     match v2 with
     | `Scoped_type_id x ->
@@ -1654,7 +1770,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
           expr_of_id x
       | `Num_lit tok ->
           let x = str env tok (* number_literal *) in
-          parse_number_literal x
+          C (parse_number_literal x)
       | `Str_lit x ->
           let x = map_string_literal env x in
           C (String (x, IsChar))
@@ -1692,16 +1808,17 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v3 =
         match v3 with Some x -> Some (map_argument_list env x) | None -> None
       in
-      let v4 = map_type_specifier env v4 in
-      let _v5 =
-        match v5 with Some x -> Some (map_new_declarator env x) | None -> None
+      let t = map_type_specifier env v4 in
+      let v5 =
+        match v5 with Some x -> map_new_declarator env x | None -> id
       in
+      let t = v5 t in
       let v6 =
         match v6 with
         | Some x -> Some (map_anon_choice_arg_list_e4b6f8f env x)
         | None -> None
       in
-      New (v1, v2, v3, v4, v6)
+      New (v1, v2, v3, t, v6)
   | `Delete_exp (v1, v2, v3, v4) ->
       let v1 =
         match v1 with
@@ -1720,14 +1837,37 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v4 = map_expression env v4 in
       v3 v1 v2 v4
   | `Lambda_exp (v1, v2, v3) ->
-      let v1 = map_lambda_capture_specifier env v1 in
+      let l, xs, r = map_lambda_capture_specifier env v1 in
       let v2 =
         match v2 with
-        | Some x -> map_abstract_function_declarator env x
-        | None -> id
+        | Some x -> Some (map_abstract_function_declarator env x)
+        | None -> None
       in
       let v3 = map_compound_statement env v3 in
-      todo env (v1, v2, v3)
+      let ft_ret = (nQ, TAuto l) in
+      let f_type =
+        match v2 with
+        | Some ft -> (
+            let t = ft ft_ret in
+            match t with
+            | _, TFunction ft -> ft
+            | _ ->
+                raise
+                  (Parse_info.Other_error
+                     ("expecting a function type for a lambda", r)))
+        | None ->
+            {
+              ft_ret;
+              ft_params = (l, [], r);
+              ft_specs = [];
+              ft_const = None;
+              ft_throw = [];
+            }
+      in
+      let fdef =
+        { f_type; f_storage = NoSto; f_body = FBDef v3; f_specs = [] }
+      in
+      Lambda ((l, xs, r), fdef)
   | `Param_pack_expa (v1, v2) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "..." *) in
@@ -1777,24 +1917,39 @@ and map_field_declaration (env : env)
         v1 :: v2
     | None -> []
   in
+  let specs = (v1 |> List.map (fun x -> A x)) @ v2 @ specs in
   let v5 =
     match v5 with
     | Some x -> (
         match x with
         | `Bitf_clause x ->
-            let x = map_bitfield_clause env x in
-            todo env x
+            let t, e = map_bitfield_clause env x in
+            Some (Bitfield (t, e))
         | `Init_list x ->
             let x = map_initializer_list env x in
-            todo env x
+            Some (ObjInit (Inits x))
         | `EQ_choice_exp (v1, v2) ->
             let v1 = token env v1 (* "=" *) in
             let v2 = map_anon_choice_exp_3078596 env v2 in
-            todo env (v1, v2))
-    | None -> todo env ()
+            Some (EqInit (v1, v2)))
+    | None -> None
   in
   let v6 = token env v6 (* ";" *) in
-  todo env (v1, v2, v3, v4, v5, v6)
+  (* TODO? v4 can be empty? *)
+  let xs =
+    v4
+    |> List.map (fun { dn; dt } ->
+           let one =
+             {
+               v_namei = Some (dn, v5);
+               v_type = dt t;
+               v_storage = NoSto;
+               v_specs = specs;
+             }
+           in
+           FieldDecl one)
+  in
+  FieldList (xs, v6)
 
 and map_field_declaration_list (env : env)
     ((v1, v2, v3) : CST.field_declaration_list) :
@@ -1838,9 +1993,19 @@ and map_field_declaration_list_item (env : env)
         | None -> []
       in
       let t, specs = map_declaration_specifiers env v3 in
-      let v4 = map_field_declarator env v4 in
+      let { dn; dt } = map_field_declarator env v4 in
       let v5 = map_anon_choice_comp_stmt_be91723 env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let n = name_of_dname_for_function dn in
+      let t = dt t in
+      let ent, def = H2.fixFunc ((n, t, NoSto), v5) in
+      let fdef =
+        ( {
+            ent with
+            specs = ent.specs @ List.map (fun x -> A x) v1 @ v2 @ specs;
+          },
+          def )
+      in
+      [ X (MemberDecl (Func fdef)) ]
   | `Cons_or_dest_defi x ->
       let x = map_constructor_or_destructor_definition env x in
       [ X (MemberDecl (Func x)) ]
@@ -1852,7 +2017,7 @@ and map_field_declaration_list_item (env : env)
       [ X (MemberDecl (Func x)) ]
   | `Op_cast_decl x ->
       let x = map_operator_cast_declaration env x in
-      [ X (MemberDecl (Func x)) ]
+      [ X (MemberDecl (DeclList x)) ]
   | `Friend_decl (v1, v2) ->
       let v1 = token env v1 (* "friend" *) in
       let v2 =
@@ -1913,17 +2078,20 @@ and map_field_declarator (env : env) (x : CST.field_declarator) : declarator =
       | `Paren_field_decl x -> map_parenthesized_field_declarator env x
       | `Id tok ->
           let x = str env tok (* pattern [a-zA-Z_]\w* *) in
-          { dn = name_of_id x; dt = id })
+          { dn = DN (name_of_id x); dt = id })
   | `Ref_field_decl (v1, v2) ->
       let v1 = map_anon_choice_AMP_c92c117 env v1 in
       let v2 = map_field_declarator env v2 in
-      todo env (v1, v2)
+      { dn = v2.dn; dt = (fun x -> x |> v1 |> v2.dt) }
   | `Temp_meth x ->
       let x = map_template_method env x in
-      todo env x
+      { dn = DN x; dt = id }
   | `Op_name tok ->
       let x = str env tok (* operator_name *) in
-      todo env x
+      {
+        dn = DN (None, [], IdOperator (fake "operator", parse_operator env x));
+        dt = id;
+      }
 
 and map_field_expression (env : env) (x : CST.field_expression) : expr =
   match x with
@@ -1931,7 +2099,7 @@ and map_field_expression (env : env) (x : CST.field_expression) : expr =
       let v1 = map_expression env v1 in
       let v2 = map_anon_choice_DOT_2ad1dab env v2 in
       let v3 = str env v3 (* pattern [a-zA-Z_]\w* *) in
-      todo env (v1, v2, v3)
+      DotAccess (v1, v2, name_of_id v3)
   | `Exp_choice_DOT_choice_dest_name (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = map_anon_choice_DOT_2ad1dab env v2 in
@@ -1939,12 +2107,12 @@ and map_field_expression (env : env) (x : CST.field_expression) : expr =
         match v3 with
         | `Dest_name x ->
             let x = map_destructor_name env x in
-            todo env x
+            (None, [], x)
         | `Temp_meth x ->
             let x = map_template_method env x in
-            todo env x
+            x
       in
-      todo env (v1, v2, v3)
+      DotAccess (v1, v2, v3)
 
 and map_field_initializer (env : env) ((v1, v2, v3) : CST.field_initializer) =
   let v1 = map_anon_choice_stmt_id_ae28a26 env v1 in
@@ -1981,8 +2149,8 @@ and map_function_declarator (env : env)
   let v1 = map_declarator env v1 in
   let v2 = map_parameter_list env v2 in
   let _v3 = List.map (map_attribute_specifier env) v3 in
-  let ft_specs, ft_throw =
-    Common.partition_either (map_anon_choice_type_qual_01506e0 env) v4
+  let ft_specs, ft_rets, ft_throw =
+    Common.partition_either3 (map_anon_choice_type_qual_01506e0 env) v4
   in
   {
     dn = v1.dn;
@@ -1992,7 +2160,7 @@ and map_function_declarator (env : env)
           ( nQ,
             TFunction
               {
-                ft_ret = x;
+                ft_ret = (match ft_rets with [] -> x | y :: _ -> y);
                 ft_params = v2;
                 ft_specs;
                 ft_const = None;
@@ -2013,16 +2181,17 @@ and map_function_definition (env : env)
   let t, specs = map_declaration_specifiers env v3 in
   let { dn; dt } = map_declarator env v4 in
   let v5 = map_compound_statement env v5 in
+  let n = name_of_dname_for_function dn in
   let t = dt t in
-  let ent, def = H2.fixFunc ((dn, t, NoSto), FBDef v5) in
+  let ent, def = H2.fixFunc ((n, t, NoSto), FBDef v5) in
   ({ ent with specs = ent.specs @ List.map (fun x -> A x) v1 @ v2 }, def)
 
 and map_function_field_declarator (env : env)
     ((v1, v2, v3) : CST.function_field_declarator) =
   let v1 = map_field_declarator env v1 in
   let v2 = map_parameter_list env v2 in
-  let ft_specs, ft_throw =
-    Common.partition_either (map_anon_choice_type_qual_01506e0 env) v3
+  let ft_specs, ft_rets, ft_throw =
+    Common.partition_either3 (map_anon_choice_type_qual_01506e0 env) v3
   in
 
   {
@@ -2033,7 +2202,7 @@ and map_function_field_declarator (env : env)
           ( nQ,
             TFunction
               {
-                ft_ret = x;
+                ft_ret = (match ft_rets with [] -> x | y :: _ -> y);
                 ft_params = v2;
                 ft_specs;
                 ft_const = None;
@@ -2084,13 +2253,14 @@ and map_initializer_list (env : env) ((v1, v2, v3, v4) : CST.initializer_list) :
   (v1, v2, v4)
 
 and map_lambda_capture_specifier (env : env)
-    ((v1, v2, v3) : CST.lambda_capture_specifier) =
+    ((v1, v2, v3) : CST.lambda_capture_specifier) : lambda_capture list bracket
+    =
   let v1 = token env v1 (* "[" *) in
   let v2 =
     match v2 with
     | `Lambda_defa_capt x ->
         let x = map_lambda_default_capture env x in
-        todo env x
+        [ x ]
     | `Opt_exp_rep_COMMA_exp opt -> (
         match opt with
         | Some (v1, v2) ->
@@ -2103,11 +2273,11 @@ and map_lambda_capture_specifier (env : env)
                   v2)
                 v2
             in
-            v1 :: v2
+            v1 :: v2 |> List.map (fun e -> CaptureOther e)
         | None -> [])
     | `Lambda_defa_capt_COMMA_exp_rep_COMMA_exp (v1, v2, v3, v4) ->
         let v1 = map_lambda_default_capture env v1 in
-        let v2 = token env v2 (* "," *) in
+        let _v2 = token env v2 (* "," *) in
         let v3 = map_expression env v3 in
         let v4 =
           List.map
@@ -2117,10 +2287,10 @@ and map_lambda_capture_specifier (env : env)
               v2)
             v4
         in
-        todo env (v1, v2, v3, v4)
+        v1 :: (v3 :: v4 |> List.map (fun e -> CaptureOther e))
   in
   let v3 = token env v3 (* "]" *) in
-  todo env (v1, v2, v3)
+  (v1, v2, v3)
 
 and map_linkage_specification (env : env)
     ((v1, v2, v3) : CST.linkage_specification) =
@@ -2145,16 +2315,17 @@ and map_ms_based_modifier (env : env) ((v1, v2) : CST.ms_based_modifier) =
   let v2 = map_argument_list env v2 in
   Based (v1, v2)
 
-and map_new_declarator (env : env) (x : CST.new_declarator) =
+and map_new_declarator (env : env) (x : CST.new_declarator) :
+    abstract_declarator =
   match x with
   | `Rectype (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "[" *) in
       let v2 = map_expression env v2 in
       let v3 = token env v3 (* "]" *) in
       let v4 =
-        match v4 with Some x -> Some (map_new_declarator env x) | None -> None
+        match v4 with Some x -> map_new_declarator env x | None -> id
       in
-      todo env (v1, v2, v3, v4)
+      fun t -> (nQ, TArray ((v1, Some v2, v3), v4 t))
 
 and map_noexcept (env : env) ((v1, v2) : CST.noexcept) : exn_spec =
   let v1 = token env v1 (* "noexcept" *) in
@@ -2258,49 +2429,66 @@ and map_non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
       let v3 = token env v3 (* ";" *) in
       Jump (Goto (v1, v2), v3)
 
-and map_operator_cast (env : env) ((v1, v2, v3, v4) : CST.operator_cast) =
+and map_operator_cast (env : env) ((v1, v2, v3, v4) : CST.operator_cast) : name
+    =
   let v1 =
     match v1 with
     | Some (v1, v2) ->
         let v1 =
           match v1 with
-          | Some x -> map_anon_choice_stmt_id_ec78ce4 env x
-          | None -> todo env ()
+          | Some x -> Some (map_anon_choice_stmt_id_ec78ce4 env x)
+          | None -> None
         in
         let v2 = token env v2 (* "::" *) in
-        todo env (v1, v2)
-    | None -> todo env ()
+        Some (v1, v2)
+    | None -> None
   in
   let v2 = token env v2 (* "operator" *) in
-  let t, specs = map_declaration_specifiers env v3 in
+  let t, _specs = map_declaration_specifiers env v3 in
   let v4 = map_abstract_declarator env v4 in
-  todo env (v1, v2, v3, v4)
+  let t = v4 t in
+  let id_or_op = IdConverter (v2, t) in
+  match v1 with
+  | None -> (None, [], id_or_op)
+  | Some (nameopt, tcolol) -> name_scoped nameopt tcolol id_or_op
 
 and map_operator_cast_declaration (env : env)
-    ((v1, v2, v3, v4) : CST.operator_cast_declaration) =
+    ((v1, v2, v3, v4) : CST.operator_cast_declaration) : vars_decl =
   let v1 =
     match v1 with Some x -> map_constructor_specifiers env x | None -> []
   in
-  let v2 = map_operator_cast env v2 in
+  let name = map_operator_cast env v2 in
   let v3 =
     match v3 with
     | Some (v1, v2) ->
         let v1 = token env v1 (* "=" *) in
         let v2 = map_expression env v2 in
-        todo env (v1, v2)
-    | None -> todo env ()
+        Some (EqInit (v1, InitExpr v2))
+    | None -> None
+  in
+  let t = (nQ, TBase (Void (ii_of_name name))) in
+  let one =
+    {
+      v_namei = Some (DN name, v3);
+      v_type = t;
+      v_storage = NoSto;
+      v_specs = v1;
+    }
   in
   let v4 = token env v4 (* ";" *) in
-  todo env (v1, v2, v3, v4)
+  ([ one ], v4)
 
 and map_operator_cast_definition (env : env)
     ((v1, v2, v3) : CST.operator_cast_definition) =
   let v1 =
     match v1 with Some x -> map_constructor_specifiers env x | None -> []
   in
-  let v2 = map_operator_cast env v2 in
+  let n = map_operator_cast env v2 in
   let v3 = map_anon_choice_comp_stmt_be91723 env v3 in
-  todo env (v1, v2, v3)
+
+  let t = (nQ, TBase (Void (ii_of_name n))) in
+  let ent, def = H2.fixFunc ((n, t, NoSto), v3) in
+  ({ ent with specs = v1 @ ent.specs }, def)
 
 and map_optional_parameter_declaration (env : env)
     ((v1, v2, v3, v4) : CST.optional_parameter_declaration) : parameter_classic
@@ -2312,7 +2500,7 @@ and map_optional_parameter_declaration (env : env)
     match v2 with
     | Some x ->
         let { dn; dt } = map_declarator env x in
-        let id = name_for_param dn in
+        let id = id_of_dname_for_parameter dn in
         { (basic_param id (dt t) specs) with p_val = Some (v3, v4) }
     | None ->
         {
@@ -2348,7 +2536,7 @@ and map_parameter_declaration (env : env)
         match x with
         | `Decl x ->
             let { dn; dt } = map_declarator env x in
-            let id = name_for_param dn in
+            let id = id_of_dname_for_parameter dn in
             basic_param id (dt t) specs
         | `Abst_decl x ->
             let dt = map_abstract_declarator env x in
@@ -2606,7 +2794,8 @@ and map_statement (env : env) (x : CST.statement) : stmt =
       let v6 = map_anon_choice_exp_3078596 env v6 in
       let v7 = token env v7 (* ")" *) in
       let v8 = map_statement env v8 in
-      let ent = { name = v4.dn; specs } in
+      let n = name_of_dname_for_var v4.dn in
+      let ent = { name = n; specs } in
       let var = { v__type = v4.dt t } in
       let for_header = ForRange ((ent, var), v5, v6) in
       For (v1, (v2, for_header, v7), v8)
@@ -2717,7 +2906,7 @@ and map_template_declaration (env : env)
         Func x
     | `Op_cast_decl x ->
         let x = map_operator_cast_declaration env x in
-        Func x
+        DeclList x
     | `Op_cast_defi x ->
         let x = map_operator_cast_definition env x in
         Func x
@@ -2854,16 +3043,19 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
       [ X (D x) ]
   | `Temp_inst (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "template" *) in
-      let v2 =
+      let t, specs =
         match v2 with
         | Some x ->
             let t, specs = map_declaration_specifiers env x in
-            todo env ()
-        | None -> todo env ()
+            (t, specs)
+        | None -> ((nQ, TBase (Void v1)), [])
       in
-      let v3 = map_declarator env v3 in
+      let { dn; dt } = map_declarator env v3 in
+      let t = dt t in
+      let n = name_of_dname_for_var dn in
+      let ent = { name = n; specs } in
       let v4 = token env v4 (* ";" *) in
-      todo env (v1, v2, v3, v4)
+      [ X (D (TemplateInstanciation (v1, (ent, { v__type = t }), v4))) ]
   | `Cons_or_dest_defi x ->
       let x = map_constructor_or_destructor_definition env x in
       [ X (D (Func x)) ]
@@ -2872,7 +3064,7 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
       [ X (D (Func x)) ]
   | `Op_cast_decl x ->
       let x = map_operator_cast_declaration env x in
-      [ X (D (Func x)) ]
+      [ X (D (DeclList x)) ]
 
 and map_trailing_return_type (env : env)
     ((v1, v2, v3, v4) : CST.trailing_return_type) : type_ =
@@ -2938,7 +3130,7 @@ and map_type_declarator (env : env) (x : CST.type_declarator) : declarator =
       { dn = v2.dn; dt = (fun x -> (nQ, ParenType (v1, v2.dt x, v3))) }
   | `Id tok ->
       let x = str env tok in
-      { dn = name_of_id x; dt = id }
+      { dn = DN (name_of_id x); dt = id }
 
 (* pattern [a-zA-Z_]\w* *)
 and map_type_definition (env : env)
@@ -2960,9 +3152,9 @@ and map_type_definition (env : env)
   let xs =
     v4 :: v5
     |> List.map (fun { dn; dt } ->
-           let id = name_for_typedef dn in
+           let id = id_of_dname_for_typedef dn in
            {
-             v_namei = Some (name_of_id id, None);
+             v_namei = Some (DN (name_of_id id), None);
              v_type = dt v3;
              v_storage = StoTypedef v1;
              v_specs = [];
@@ -2991,7 +3183,7 @@ and map_type_specifier (env : env) (x : CST.type_specifier) : type_ =
         | None -> []
       in
       let v3 = map_anon_choice_class_name_d6703e6 env v3 in
-      todo env (v1, v2, v3)
+      v3 (Struct, v1)
   | `Union_spec (v1, v2, v3) ->
       let v1 = token env v1 (* "union" *) in
       let _v2 =
@@ -3000,35 +3192,39 @@ and map_type_specifier (env : env) (x : CST.type_specifier) : type_ =
         | None -> []
       in
       let v3 = map_anon_choice_class_name_d6703e6 env v3 in
-      todo env (v1, v2, v3)
+      v3 (Union, v1)
   | `Enum_spec (v1, v2, v3) ->
-      let v1 = token env v1 (* "enum" *) in
-      let v2 =
+      let tenum = token env v1 (* "enum" *) in
+      let _v2TODO =
         match v2 with
         | Some x -> (
             match x with
-            | `Class tok -> token env tok (* "class" *)
-            | `Struct tok -> token env tok (* "struct" *))
-        | None -> todo env ()
+            | `Class tok -> Some (Class, token env tok) (* "class" *)
+            | `Struct tok -> Some (Struct, token env tok) (* "struct" *))
+        | None -> None
       in
       let v3 =
         match v3 with
         | `Class_name_opt_enum_base_clause_opt_enum_list (v1, v2, v3) ->
-            let v1 = map_class_name env v1 in
-            let v2 =
+            let n = map_class_name env v1 in
+            let _toptTODO =
               match v2 with
-              | Some x -> map_enum_base_clause env x
-              | None -> todo env ()
+              | Some x -> Some (map_enum_base_clause env x)
+              | None -> None
             in
             let v3 =
               match v3 with
-              | Some x -> map_enumerator_list env x
-              | None -> todo env ()
+              | Some x ->
+                  let enum_body = map_enumerator_list env x in
+                  EnumDef { enum_kind = tenum; enum_name = Some n; enum_body }
+              | None -> EnumName (tenum, n)
             in
-            todo env (v1, v2, v3)
-        | `Enum_list x -> map_enumerator_list env x
+            v3
+        | `Enum_list x ->
+            let enum_body = map_enumerator_list env x in
+            EnumDef { enum_kind = tenum; enum_name = None; enum_body }
       in
-      todo env (v1, v2, v3)
+      (nQ, v3)
   | `Class_spec (v1, v2, v3) ->
       let v1 = token env v1 (* "class" *) in
       let _v2 =
@@ -3037,13 +3233,13 @@ and map_type_specifier (env : env) (x : CST.type_specifier) : type_ =
         | None -> []
       in
       let v3 = map_anon_choice_class_name_d6703e6 env v3 in
-      todo env (v1, v2, v3)
+      v3 (Class, v1)
   | `Sized_type_spec x ->
       let x = map_sized_type_specifier env x in
-      complicated env x
+      x
   | `Prim_type tok ->
       let x = str env tok (* primitive_type *) in
-      parse_primitive_type x
+      parse_primitive_type env x
   | `Temp_type x ->
       let x = map_template_type env x in
       (nQ, TypeName x)
