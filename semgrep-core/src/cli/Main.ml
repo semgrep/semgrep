@@ -198,15 +198,15 @@ let map f jobs =
   if !ncores <= 1 then List.map f jobs
   else (
     (*
-       When a chunk size is specified, parmap feeds the ncores processes
-       in small chunks instead of just dividing the input list into exactly
-       ncores chunks. Parmap creates ncores children processes which listen
-       for chunks of input.
+       Parmap creates ncores children processes which listen for
+       chunks of input. When a chunk size is specified, parmap feeds
+       the ncores processes in small chunks of the specified size
+       instead of just dividing the input list into exactly ncores chunks.
 
-       Since our jobs are relatively big compared to the serialization and
-       communication overhead, setting the chunk size to 1 works fine.
-       We don't want to have two giant target files in the same chunk, so
-       this setting takes care of it.
+       Since our jobs are relatively big compared to the serialization
+       and communication overhead, setting the chunk size to 1 works
+       fine.  We don't want to have two giant target files in the same
+       chunk, so this setting takes care of it.
     *)
     (* Quoting Parmap's README:
      * > To obtain maximum speed, Parmap tries to pin the worker processes to a CPU
