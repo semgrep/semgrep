@@ -17,13 +17,23 @@
    If keep_root_files is true (the default), regular files passed directly
    to this function are considered ok and bypass the other filters.
 
+   By default files are sorted alphabetically. Setting
+   'sort_by_decr_size' will sort them be decreasing size instead.
+
    This is a replacement for Lang.files_of_dirs_or_files.
 *)
 val files_of_dirs_or_files :
   ?keep_root_files:bool ->
+  ?sort_by_decr_size:bool ->
   Lang.t ->
   Common.path list ->
   Common.filename list * Semgrep_core_response_t.skipped_target list
+
+(*
+   Sort files by decreasing size. This is meant for optimizing
+   CPU usage when processing targets in parallel on a fixed number of cores.
+*)
+val sort_by_decreasing_size : Common.filename list -> Common.filename list
 
 (* Stats used internally to detect minified files *)
 type whitespace_stat = { sample_size : int; ws_freq : float; line_freq : float }

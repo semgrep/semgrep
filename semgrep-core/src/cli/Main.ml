@@ -194,8 +194,11 @@ let set_gc () =
   Gc.set { (Gc.get ()) with Gc.space_overhead = 300 };
   ()
 
-let map f jobs =
-  if !ncores <= 1 then List.map f jobs
+(*
+   Run jobs in parallel, using number of cores specified with -j.
+*)
+let map_targets f (targets : Common.filename list) =
+  if !ncores <= 1 then List.map f targets
   else (
     (*
        Parmap creates ncores children processes which listen for
@@ -219,8 +222,17 @@ let map f jobs =
      * this issue until this is fixed in a future version of Parmap.
      *)
     Parmap.disable_core_pinning ();
+    (*
+       Sorting the targets by decreasing size is based on the assumption
+       that larger targets will take more time to process. Starting with
+       the longer jobs allows parmap to feed the workers with shorter and
+       shorter jobs, as a way of maximizing CPU usage.
+       This is a kind of greedy algorithm, which is in general not optimal
+       but hopefully good enough in practice.
+     *)
+    let targets = Find_target.sort_by_decreasing_size targets in
     assert (!ncores > 0);
-    Parmap.parmap ~ncores:!ncores ~chunksize:1 f (Parmap.L jobs))
+    Parmap.parmap ~ncores:!ncores ~chunksize:1 f (Parmap.L targets))
 
 (* for -gen_layer, see Experiments.ml *)
 let _matching_tokens = ref []
@@ -533,7 +545,7 @@ let parse_pattern lang_pattern str =
 
 let iter_files_and_get_matches_and_exn_to_errors f files =
   files
-  |> map (fun file ->
+  |> map_targets (fun file ->
          logger#info "Analyzing %s" file;
          let res, run_time =
            Common.with_time (fun () ->
