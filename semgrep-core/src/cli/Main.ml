@@ -196,22 +196,18 @@ let set_gc () =
 
 let map f jobs =
   if !ncores <= 1 then List.map f jobs
-  else
-    let n = List.length jobs in
+  else (
     (*
-       A chunk is a group of jobs that will be performed as a single task
-       by a child process.
-       - for better load balancing, we want a large number of chunks.
-       - we want each chunk to be a large enough unit of work to make up
-         for the cost of forking.
+       When a chunk size is specified, parmap feeds the ncores processes
+       in small chunks instead of just dividing the input list into exactly
+       ncores chunks. Parmap creates ncores children processes which listen
+       for chunks of input.
+
+       Since our jobs are relatively big compared to the serialization and
+       communication overhead, setting the chunk size to 1 works fine.
+       We don't want to have two giant target files in the same chunk, so
+       this setting takes care of it.
     *)
-    (*
-       Limit the number of chunks.
-       This is meant as an optimization for when we have many small jobs.
-    *)
-    let nchunks = 100 * !ncores in
-    (* A valid chunk size is at least 1. *)
-    let chunksize = match nchunks with 0 -> 1 | _ -> max 1 (n / nchunks) in
     (* Quoting Parmap's README:
      * > To obtain maximum speed, Parmap tries to pin the worker processes to a CPU
      * Unfortunately, on the new Apple M1, and depending on the number of workers,
@@ -223,8 +219,8 @@ let map f jobs =
      * this issue until this is fixed in a future version of Parmap.
      *)
     Parmap.disable_core_pinning ();
-    assert (!ncores > 0 && chunksize > 0);
-    Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L jobs)
+    assert (!ncores > 0);
+    Parmap.parmap ~ncores:!ncores ~chunksize:1 f (Parmap.L jobs))
 
 (* for -gen_layer, see Experiments.ml *)
 let _matching_tokens = ref []
