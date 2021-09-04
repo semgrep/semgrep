@@ -199,7 +199,7 @@ let map f jobs =
   else
     let n = List.length jobs in
     (*
-       A chunk is a group of jobs that will be performed as single task
+       A chunk is a group of jobs that will be performed as a single task
        by a child process.
        - for better load balancing, we want a large number of chunks.
        - we want each chunk to be a large enough unit of work to make up
