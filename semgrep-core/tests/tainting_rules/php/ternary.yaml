@@ -1,0 +1,14 @@
+rules:
+  - id: taint-not-detected
+    languages:
+      - php
+    message: Match Found!
+    mode: taint
+    pattern-sanitizers:
+      - pattern: sanitizer(...)
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: $source
+    severity: WARNING
+
