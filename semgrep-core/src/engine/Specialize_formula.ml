@@ -47,9 +47,12 @@ let split_and :
   xs
   |> Common.partition_either3 (fun e ->
          match e with
+         (* positives *)
+         | R.Leaf (R.P _) | R.And _ | R.Or _ -> Left3 e
+         (* negatives *)
          | R.Not (_, f) -> Middle3 f
-         | R.Leaf (R.MetavarCond (_, c)) -> Right3 c
-         | _ -> Left3 e)
+         (* conditionals *)
+         | R.Leaf (R.MetavarCond (_, c)) -> Right3 c)
 
 let selector_from_formula f =
   match f with
