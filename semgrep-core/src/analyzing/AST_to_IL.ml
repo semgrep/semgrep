@@ -493,7 +493,7 @@ and expr_aux env eorig =
   | G.Conditional (e1orig, e2orig, e3orig) ->
       let tok = G.fake "conditional" in
       let lval = fresh_lval env tok in
-      let lvalexp = mk_e (Fetch lval) e1orig in
+      let lvalexp = mk_e (Fetch lval) eorig in
 
       (* not sure this is correct *)
       let before = List.rev !(env.stmts) in
