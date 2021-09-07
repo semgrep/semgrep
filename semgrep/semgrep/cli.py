@@ -433,6 +433,11 @@ def cli() -> None:
     if args.dump_ast and not args.lang:
         parser.error("--dump-ast and -l/--lang must both be specified")
 
+    if args.dangerously_allow_arbitrary_code_execution_from_rules:
+        logger.warning(
+            "The '--dangerously-allow-arbitrary-code-execution-from-rules' flag is now deprecated and does nothing. It will be removed in the future."
+        )
+
     output_time = args.time or args.json_time
 
     # set the flags
