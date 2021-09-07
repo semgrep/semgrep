@@ -16,6 +16,7 @@ from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.constants import RuleSeverity
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule_match import RuleMatch
 from semgrep.util import format_bytes
@@ -190,7 +191,6 @@ class TextFormatter(BaseFormatter):
             current_file = rule_match.path
             check_id = rule_match.id
             message = rule_match.message
-            severity = rule_match.severity.lower()
             fix = rule_match.fix
             if last_file is None or last_file != current_file:
                 if last_file is not None:
@@ -203,14 +203,14 @@ class TextFormatter(BaseFormatter):
                 and check_id != CLI_RULE_ID
                 and (last_message is None or last_message != message)
             ):
-                severity_prepend = ""
-                if severity:
-                    if severity == "error":
-                        severity_prepend = f"{RED_COLOR}severity:{severity} "
-                    elif severity == "warning":
-                        severity_prepend = f"{YELLOW_COLOR}severity:{severity} "
-                    else:
-                        severity_prepend = f"severity:{severity} "
+                severity_colors = {
+                    RuleSeverity.INFO: "",
+                    RuleSeverity.WARNING: YELLOW_COLOR,
+                    RuleSeverity.ERROR: RED_COLOR,
+                }
+                severity_color = severity_colors[rule_match.severity]
+                severity_string = rule_match.severity.value.lower()
+                severity_prepend = f"{severity_color}severity:{severity_string} "
                 yield f"{severity_prepend}{YELLOW_COLOR}rule:{check_id}: {message}{RESET_COLOR}"
 
             last_file = current_file

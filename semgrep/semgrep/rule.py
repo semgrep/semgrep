@@ -6,6 +6,7 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from semgrep.constants import RuleSeverity
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import Span
@@ -129,8 +130,8 @@ class Rule:
         return self._raw.get("metadata", {})
 
     @property
-    def severity(self) -> str:
-        return str(self._raw["severity"])
+    def severity(self) -> RuleSeverity:
+        return RuleSeverity(self._raw["severity"])
 
     @property
     def mode(self) -> str:
