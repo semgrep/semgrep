@@ -25,6 +25,7 @@ from typing import Mapping
 from typing import Optional
 from typing import Set
 from typing import Tuple
+import os
 
 from semgrep.constants import BREAK_LINE
 from semgrep.semgrep_main import invoke_semgrep
@@ -294,26 +295,30 @@ def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> b
             result = result.with_suffix("")
         return result
 
-    rel1 = remove_all_suffixes(child1.relative_to(parent1))
-    rel2 = remove_all_suffixes(child2.relative_to(parent2))
+    rel1 = remove_all_suffixes(child1.relative_to(parent1)) if child1 != parent1 else remove_all_suffixes(child1)
+    rel2 = remove_all_suffixes(child2.relative_to(parent2)) if child2 != parent2 else remove_all_suffixes(child2)
     return rel1 == rel2
-
 
 def get_config_filenames(original_config: Path) -> List[Path]:
     configs = list(original_config.rglob("*"))
+    # this is the case if the config passed is a file
+    if os.path.isfile(original_config):
+        configs = [original_config]
     return [
         config
         for config in configs
-        if is_config_suffix(config)
+        if is_config_suffix(config) 
         and not config.name.startswith(".")
         and not config.parent.name.startswith(".")
     ]
-
 
 def get_config_test_filenames(
     original_config: Path, configs: List[Path], original_target: Path
 ) -> Dict[Path, List[Path]]:
     targets = list(original_target.rglob("*"))
+    # this is the case if the target passed is a file
+    if os.path.isfile(original_target):
+        targets = [original_target]
 
     def target_matches_config(target: Path, config: Path) -> bool:
         correct_suffix = is_config_test_suffix(target) or not is_config_suffix(target)
@@ -464,9 +469,10 @@ def generate_file_pairs(
 def test_main(args: argparse.Namespace) -> None:
     _test_compute_confusion_matrix()
 
-    if len(args.target) != 1:
-        raise Exception("only one target directory allowed for tests")
-    target = Path(args.target[0])
+    if len(args.target) > 2:
+        raise Exception("only one target directory or one file target pair allowed for tests")
+    elif len(args.target) == 1:
+        target = Path(args.target[0])
 
     if args.config:
         if len(args.config) != 1:
