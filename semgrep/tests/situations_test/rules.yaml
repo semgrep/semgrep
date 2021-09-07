@@ -14,3 +14,14 @@ rules:
   message: Comparing two variables
   languages: [java]
   severity: WARNING
+- id: no-token-location
+  languages:
+    - python
+  message: Semgrep found a match
+  patterns:
+    - pattern-not: |
+        @validator("...")
+        def $F(...):
+          ...
+          raise Exception(...)
+  severity: WARNING
