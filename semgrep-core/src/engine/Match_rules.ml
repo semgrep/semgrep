@@ -187,18 +187,6 @@ let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
   (* rather than the original metavariables for the match                          *)
   { m with rule_id; env = range.mvars }
 
-(* return list of "positive" x list of Not x list of Conds *)
-let (split_and :
-      S.sformula list -> S.sformula list * S.sformula list * R.metavar_cond list)
-    =
- fun xs ->
-  xs
-  |> Common.partition_either3 (fun e ->
-         match e with
-         | S.Not f -> Middle3 f
-         | S.Leaf (R.MetavarCond (_, c)) -> Right3 c
-         | _ -> Left3 e)
-
 let lazy_force x = Lazy.force x [@@profiling]
 
 (*****************************************************************************)
@@ -816,9 +804,9 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
       |> List.map RM.match_result_to_range
       |> List.map (fun r -> { r with RM.kind })
   | S.Or xs -> xs |> List.map (evaluate_formula env opt_context) |> List.flatten
-  | S.And (selector_opt, xs) -> (
-      let pos, neg, conds = split_and xs in
-
+  | S.And
+      { selector_opt; positives = pos; negatives = neg; conditionals = conds }
+    -> (
       (* we now treat pattern: and pattern-inside: differently. We first
        * process the pattern: and then the pattern-inside.
        * This fixed only one mismatch in semgrep-rules.
