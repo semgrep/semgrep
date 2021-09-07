@@ -165,7 +165,6 @@ def main(
     autofix: bool = False,
     dryrun: bool = False,
     disable_nosem: bool = False,
-    dangerously_allow_arbitrary_code_execution_from_rules: bool = False,
     no_git_ignore: bool = False,
     timeout: int = DEFAULT_TIMEOUT,
     max_memory: int = 0,
