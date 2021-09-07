@@ -295,8 +295,10 @@ def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> b
             result = result.with_suffix("")
         return result
 
-    rel1 = remove_all_suffixes(child1.relative_to(parent1)) if child1 != parent1 else remove_all_suffixes(child1)
-    rel2 = remove_all_suffixes(child2.relative_to(parent2)) if child2 != parent2 else remove_all_suffixes(child2)
+    rel1 = (remove_all_suffixes(child1.relative_to(parent1)) 
+                if child1 != parent1 else remove_all_suffixes(child1))
+    rel2 = (remove_all_suffixes(child2.relative_to(parent2)) 
+                if child2 != parent2 else remove_all_suffixes(child2))
     return rel1 == rel2
 
 def get_config_filenames(original_config: Path) -> List[Path]:
