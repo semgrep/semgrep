@@ -1,0 +1,16 @@
+rules:
+- id: console-log
+  pattern: console.log
+  message: Using console.log
+  languages: [js]
+  severity: WARNING
+- id: println
+  pattern: System.out.println(...);
+  message: Using println
+  languages: [java]
+  severity: WARNING
+- id: equality
+  pattern: $X == $Y
+  message: Comparing two variables
+  languages: [java]
+  severity: WARNING
