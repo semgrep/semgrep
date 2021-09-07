@@ -10,15 +10,23 @@ type selector = {
   pid : int;
   pstr : string Rule.wrap;
 }
+[@@deriving show]
 
 type sformula =
   | Leaf of Rule.leaf
-  | And of (selector option * sformula list)
-      (** Invariant: [And (sel_opt, fs)] satisfies
-     * [not (Option.is_some sel_opt) || fs <> []], that is,
-     * we can only select from a non-empty context. *)
+  | And of sformula_and
   | Or of sformula list
   | Not of sformula
+
+and sformula_and = {
+  selector_opt : selector option;
+      (** Invariant: [not (Option.is_some selector_opt) || positives <> []]
+          that is, we can only select from a non-empty context. *)
+  positives : sformula list;
+  negatives : sformula list;
+  conditionals : Rule.metavar_cond list;
+}
+[@@deriving show]
 
 (*****************************************************************************)
 (* Selecting methods *)

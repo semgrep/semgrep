@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Taint detection with ternary ifs (#3778)
+- Fixed corner-case crash affecting the `pattern: $X` optimization ("empty And; no positive terms in And")
 
 ## [0.64.0](https://github.com/returntocorp/semgrep/releases/tag/v0.64.0) - 09-01-2021
 

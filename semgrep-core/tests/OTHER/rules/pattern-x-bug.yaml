@@ -1,0 +1,9 @@
+rules:
+  - id: test
+    languages:
+      - py
+    message: Match Found!
+    patterns:
+    - pattern: $X
+    - pattern-not: a
+    severity: WARNING
