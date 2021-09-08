@@ -1,15 +1,15 @@
 import subprocess
-from typing import List
+from typing import Sequence
 
 import semgrep.config_resolver
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.error import SemgrepError
-from semgrep.util import SEMGREP_PATH
+from semgrep.util import SemgrepCore
 from semgrep.util import sub_check_output
 
 
-def synthesize_patterns(
-    language: str, code_to_synthesize: str, targets_str: List[str]
+def synthesize(
+    language: str, code_to_synthesize: str, targets_str: Sequence[str]
 ) -> None:
     targets = semgrep.config_resolver.resolve_targets(targets_str)
 
@@ -19,7 +19,7 @@ def synthesize_patterns(
     target = targets[0]
     args = ["-synthesize_patterns", code_to_synthesize, str(target)]
 
-    cmd = [SEMGREP_PATH] + args
+    cmd = [SemgrepCore.path()] + args
     try:
         output = sub_check_output(cmd)
     except subprocess.CalledProcessError as ex:

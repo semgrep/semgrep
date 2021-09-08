@@ -11,6 +11,7 @@ from typing import IO
 from typing import List
 from typing import NamedTuple
 from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Type
 
@@ -172,7 +173,7 @@ class OutputHandler:
 
         self.final_error: Optional[Exception] = None
 
-    def handle_semgrep_errors(self, errors: List[SemgrepError]) -> None:
+    def handle_semgrep_errors(self, errors: Sequence[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
         for err in errors:
             if isinstance(err, MatchTimeoutError) and err not in self.error_set:

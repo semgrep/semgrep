@@ -16,6 +16,7 @@ from typing import Tuple
 from typing import TypeVar
 from urllib.parse import urlparse
 
+import click
 import pkg_resources
 from colorama import Fore
 from tqdm import tqdm
@@ -58,7 +59,7 @@ def debug_tqdm_write(msg: str, file: IO = sys.stderr) -> None:
         tqdm.write(msg, file=file)
 
 
-def set_flags(verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
+def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
     """Set the relevant logging levels"""
     # Assumes only one of verbose, debug, quiet is True
 
@@ -104,6 +105,11 @@ def powerset(iterable: Iterable) -> Iterable[Tuple[Any, ...]]:
     return itertools.chain.from_iterable(
         itertools.combinations(s, r) for r in range(len(s) + 1)
     )
+
+
+def abort(message: str) -> None:
+    click.secho(message, fg="red", err=True)
+    sys.exit(1)
 
 
 def with_color(color: str, text: str, bold: bool = False) -> str:
@@ -195,11 +201,14 @@ def compute_executable_path(exec_name: str) -> str:
     raise Exception(f"Could not locate '{exec_name}' binary")
 
 
-def compute_semgrep_path() -> str:
-    return compute_executable_path("semgrep-core")
+class SemgrepCore:
+    _SEMGREP_PATH_: Optional[str] = None
 
-
-SEMGREP_PATH = compute_semgrep_path()
+    @classmethod
+    def path(cls) -> str:
+        if cls._SEMGREP_PATH_ is None:
+            cls._SEMGREP_PATH_ = compute_executable_path("semgrep-core")
+        return cls._SEMGREP_PATH_
 
 
 def listendswith(l: List[T], tail: List[T]) -> bool:

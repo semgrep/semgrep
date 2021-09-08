@@ -35,7 +35,7 @@ from semgrep.target_manager_extensions import all_supported_languages
 from semgrep.util import debug_tqdm_write
 from semgrep.util import is_debug
 from semgrep.util import progress_bar
-from semgrep.util import SEMGREP_PATH
+from semgrep.util import SemgrepCore
 from semgrep.util import sub_run
 from semgrep.verbose_logging import getLogger
 
@@ -295,7 +295,7 @@ class CoreRunner:
                         yaml.dump({"rules": [rule._raw]}, rule_file)
                         rule_file.flush()
 
-                        cmd = [SEMGREP_PATH] + [
+                        cmd = [SemgrepCore.path()] + [
                             "-lang",
                             language.value,
                             "-json",
