@@ -1,0 +1,8 @@
+(library
+ (name semgrep_testutil)
+ (public_name semgrep-testutil)
+ (wrapped false)
+ (libraries
+   alcotest
+ )
+)

@@ -6,7 +6,6 @@
 *)
 
 open Printf
-open OUnit
 
 let get_stack_size_in_bytes () =
   (Gc.quick_stat ()).stack_size * (Sys.word_size / 8)
@@ -73,10 +72,10 @@ let test_memory_limit_with_stack () =
     assert false
   with Out_of_memory -> (* success *) ()
 
-let unittest =
-  "memory limits"
-  >::: [
-         "stack warning" >:: test_stack_warning;
-         "memory limit (heap)" >:: test_memory_limit_with_heap;
-         "memory limit (stack)" >:: test_memory_limit_with_stack;
-       ]
+let tests =
+  Testutil.pack_tests "memory limits"
+    [
+      ("stack warning", test_stack_warning);
+      ("memory limit (heap)", test_memory_limit_with_heap);
+      ("memory limit (stack)", test_memory_limit_with_stack);
+    ]

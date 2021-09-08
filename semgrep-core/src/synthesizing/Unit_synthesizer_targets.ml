@@ -108,8 +108,11 @@ let run_single_test file linecols expected_pattern =
 (* Entry point *)
 (*****************************************************************************)
 
-let unittest =
-  "pattern from targets" >:: fun () ->
-  stmt_tests @ statement_list_tests
-  |> List.iter (fun (file, linecols, expected_pattern) ->
-         run_single_test (test_path ^ file) linecols expected_pattern)
+let tests =
+  [
+    ( "pattern from targets",
+      fun () ->
+        stmt_tests @ statement_list_tests
+        |> List.iter (fun (file, linecols, expected_pattern) ->
+               run_single_test (test_path ^ file) linecols expected_pattern) );
+  ]

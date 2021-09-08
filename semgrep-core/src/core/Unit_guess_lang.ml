@@ -3,7 +3,6 @@
 *)
 
 open Printf
-open OUnit
 
 type exec = Exec | Nonexec
 
@@ -121,15 +120,17 @@ let with_stack_trace f x =
 let test_inspect_file =
   List.map
     (fun (test_name, lang, path, expectation) ->
-      test_name
-      >:: with_stack_trace (fun () ->
-              test_name_only lang (fix_path path) expectation))
+      ( test_name,
+        with_stack_trace (fun () ->
+            test_name_only lang (fix_path path) expectation) ))
     name_tests
   @ List.map
       (fun (test_name, lang, file_name, contents, exec, expectation) ->
-        test_name
-        >:: with_stack_trace (fun () ->
-                test_with_contents lang file_name contents exec expectation))
+        ( test_name,
+          with_stack_trace (fun () ->
+              test_with_contents lang file_name contents exec expectation) ))
       contents_tests
 
-let unittest = "Guess_lang" >::: [ "inspect_file" >::: test_inspect_file ]
+let tests =
+  Testutil.pack_suites "Guess_lang"
+    [ Testutil.pack_tests "inspect_file" test_inspect_file ]

@@ -5,7 +5,7 @@
  * the caller (e.g. in pfff/main_test.ml ) with other testsuites and
  * run via OUnit.run_test_tt
  *)
-val unittest : any_gen_of_string:(string -> AST_generic.any) -> OUnit.test
+val tests : any_gen_of_string:(string -> AST_generic.any) -> Testutil.test list
 
 (*e: signature [[Unit_matcher.unittest]] *)
 (*e: semgrep/engine/Unit_matcher.mli *)
