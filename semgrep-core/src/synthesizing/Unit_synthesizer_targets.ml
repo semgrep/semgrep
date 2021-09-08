@@ -1,6 +1,5 @@
 (*s: semgrep/matching/Unit_matcher.ml *)
 open Common
-open OUnit
 module R = Rule
 
 let test_path = "../../../tests/OTHER/synthesizing/targets/"
@@ -98,18 +97,21 @@ let run_single_test file linecols expected_pattern =
       (fun r -> List.exists (compare_range r) ranges_actual)
       ranges_expected
   in
-  assert_bool
+  Alcotest.(check bool)
     (spf "actual pattern:\n%s\n\nexpected pattern:\n%s\n" actual_pattern
        expected_pattern)
-    pattern_correct;
-  assert_bool "ranges should match" ranges_correct
+    true pattern_correct;
+  Alcotest.(check bool) "ranges should match" true ranges_correct
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-let unittest =
-  "pattern from targets" >:: fun () ->
-  stmt_tests @ statement_list_tests
-  |> List.iter (fun (file, linecols, expected_pattern) ->
-         run_single_test (test_path ^ file) linecols expected_pattern)
+let tests =
+  [
+    ( "pattern from targets",
+      fun () ->
+        stmt_tests @ statement_list_tests
+        |> List.iter (fun (file, linecols, expected_pattern) ->
+               run_single_test (test_path ^ file) linecols expected_pattern) );
+  ]
