@@ -18,4 +18,7 @@ func foo() {
 	var e = http.Server{Addr:":8080",ReadTimeout:10}
 	//Error: match
 	e.ListenAndServe()
+
+	var f = http.Client{}
+	f.ListenAndServe()
 }
