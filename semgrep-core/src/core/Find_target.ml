@@ -147,9 +147,9 @@ let filter_by_size _lang paths =
 
 let sort_by_decreasing_size paths =
   paths
-  |> List.map (fun path -> (path, Common2.filesize path))
+  |> Common.map (fun path -> (path, Common2.filesize path))
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
-  |> List.map fst
+  |> Common.map fst
 
 let files_of_dirs_or_files ?(keep_root_files = true)
     ?(sort_by_decr_size = false) lang roots =

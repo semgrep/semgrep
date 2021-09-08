@@ -198,7 +198,7 @@ let set_gc () =
    Run jobs in parallel, using number of cores specified with -j.
 *)
 let map_targets f (targets : Common.filename list) =
-  if !ncores <= 1 then List.map f targets
+  if !ncores <= 1 then Common.map f targets
   else (
     (*
        Parmap creates ncores children processes which listen for
