@@ -34,7 +34,7 @@ let grow_stack goal_bytes =
       data :: aux ()
     else (
       (* Trigger the hook that will run the GC alarm. This is cheating. *)
-      (*Gc.full_major ();*)
+      Gc.full_major ();
       printf "grow_stack: stack reached %i bytes\n%!" stack_size;
       [])
   in
@@ -44,7 +44,15 @@ let grow_heap goal_bytes =
   let rec aux acc =
     let heap_size = get_heap_size_in_bytes () in
     if heap_size < goal_bytes then aux (42 :: acc)
-    else printf "grow_heap: heap reached %i bytes\n%!" heap_size
+    else (
+      printf "grow_heap: heap reached %i bytes\n%!" heap_size;
+      (*
+         Force-trigger the GC hook. Not great because it's cheating :-|
+         The problem is that previous tests may have left a large heap,
+         the growing the heap to 'goal_bytes' performs no allocation,
+         in which case we don't reach the end of a major cycle.
+      *)
+      Gc.full_major ())
   in
   aux []
 
@@ -57,11 +65,11 @@ let test_stack_warning () =
     (fun () -> grow_stack 3_000_000)
 
 let test_memory_limit_with_heap () =
+  Gc.full_major ();
   try
     Memory_limit.run_with_memory_limit ~mem_limit_mb:10 (fun () ->
-        (* note that the GC alarm may not trigger until we allocate
-         * significantly more memory than 10MB. *)
-        grow_heap 20_000_000);
+        (* Ensure the heap grows to over the limit. *)
+        grow_heap 11_000_000);
     assert false
   with Out_of_memory -> (* success *) ()
 
