@@ -1,22 +1,22 @@
 func foo() {
 	var a http.Server
-	//Error: match
+	//ERROR: match
 	a.ListenAndServe()
 
 	b := http.Server{}
-	//Error: match
+	//ERROR: match
 	b.ListenAndServe()
 
 	var c = http.Server{}
-	//Error: match
+	//ERROR: match
 	c.ListenAndServe()
 
 	d := http.Server{Addr:":8080"}
-	//Error: match
+	//ERROR: match
 	d.ListenAndServe()
 
 	var e = http.Server{Addr:":8080",ReadTimeout:10}
-	//Error: match
+	//ERROR: match
 	e.ListenAndServe()
 
 	var f = http.Client{}
