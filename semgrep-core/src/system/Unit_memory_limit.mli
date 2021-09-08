@@ -11,4 +11,4 @@
    Memory_limit.mli.
 *)
 
-val unittest : OUnit.test
+val tests : Testutil.test list

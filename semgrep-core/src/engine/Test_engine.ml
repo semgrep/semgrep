@@ -48,14 +48,14 @@ let first_xlang_of_rules rs =
 (* Entry point *)
 (*****************************************************************************)
 
-let test_rules ?(ounit_context = false) xs =
+let test_rules ?(unit_testing = false) xs =
   let fullxs, _skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
          | FT.Config FT.Yaml -> true
          (* old: we were allowing Jsonnet before, but better to skip
           * them for now to avoid adding a jsonnet dependency in our docker/CI
-          * FT.Config ((* | FT.Json*) FT.Jsonnet) when not ounit_context -> true
+          * FT.Config ((* | FT.Json*) FT.Jsonnet) when not unit_testing -> true
           *)
          | _ -> false)
     |> Common.exclude (fun filepath ->
@@ -180,11 +180,11 @@ let test_rules ?(ounit_context = false) xs =
            E.compare_actual_to_expected actual_errors expected_error_lines
          with
          | Ok () -> Hashtbl.add newscore file Common2.Ok
-         | Error _ ->
-             failwith
-               "waiting for \
-                https://github.com/returntocorp/semgrep/pull/3834/files");
-  if not ounit_context then (
+         | Error (num_errors, msg) ->
+             pr2 msg;
+             Hashtbl.add newscore file (Common2.Pb msg);
+             total_mismatch := !total_mismatch + num_errors;
+             if unit_testing then Alcotest.fail msg);
+  if not unit_testing then
     Parse_info.print_regression_information ~ext xs newscore;
-    pr2 (spf "total mismatch: %d" !total_mismatch));
-  ()
+  pr2 (spf "total mismatch: %d" !total_mismatch)
