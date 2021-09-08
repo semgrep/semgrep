@@ -22,11 +22,17 @@ def idfn(options):
     ids=idfn,
 )
 def test_exclude_include(run_semgrep_in_tmp, snapshot, options):
+    stdout, stderr = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        options=options,
+        target_name="exclude_include",
+        fail_on_nonzero=False,
+    )
     snapshot.assert_match(
-        run_semgrep_in_tmp(
-            "rules/eqeq.yaml",
-            options=options,
-            target_name="exclude_include",
-        ),
+        stdout,
         "results.json",
+    )
+    snapshot.assert_match(
+        stderr,
+        "err.out",
     )

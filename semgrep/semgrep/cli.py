@@ -32,9 +32,9 @@ def __get_cpu_count() -> int:
         return 1  # CPU count is not implemented on Windows
 
 
-def __validate_lang(lang: Optional[str]) -> str:
+def __validate_lang(option: str, lang: Optional[str]) -> str:
     if lang is None:
-        abort("--dump-ast and -l/--lang must both be specified")
+        abort(f"{option} and -l/--lang must both be specified")
     return cast(str, lang)
 
 
@@ -55,7 +55,7 @@ def __validate_lang(lang: Optional[str]) -> str:
     is_flag=True,
     help="Send pseudonymous usage metrics to Semgrep. If absent, uses the value of the SEMGREP_SEND_METRICS environment variable; "
     "defaults to no metrics. NOTE: THIS IS SUBJECT TO CHANGE IN A FUTURE SEMGREP RELEASE.",
-    default=os.environ.get("SEMGREP_SEND_METRICS"),
+    envvar="SEMGREP_SEND_METRICS",
 )
 @click.option(
     "--error/--no-error",
@@ -532,9 +532,15 @@ def cli(
         output_settings
     ) as output_handler:
         if dump_ast:
-            dump_parsed_ast(json, __validate_lang(lang), pattern, target_sequence)
+            dump_parsed_ast(
+                json, __validate_lang("--dump_ast", lang), pattern, target_sequence
+            )
         elif synthesize_patterns:
-            synthesize(__validate_lang(lang), synthesize_patterns, target_sequence)
+            synthesize(
+                __validate_lang("--synthesize-patterns", lang),
+                synthesize_patterns,
+                target_sequence,
+            )
         elif validate:
             configs, config_errors = semgrep.config_resolver.get_config(
                 pattern, lang, config or []

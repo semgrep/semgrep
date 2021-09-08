@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 from typing import Mapping
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
 import pytest
@@ -61,10 +62,10 @@ def _run_semgrep(
     target_name: str = "basic",
     options: Optional[List[Union[str, Path]]] = None,
     output_format: OutputFormat = OutputFormat.JSON,
-    stderr: bool = False,
     strict: bool = True,
     env: Optional[Mapping[str, str]] = None,
-) -> str:
+    fail_on_nonzero: bool = True,
+) -> Tuple[str, str]:
     """Run the semgrep CLI.
 
     :param config: what to pass as --config's value
@@ -98,17 +99,29 @@ def _run_semgrep(
     cmd = [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name]
     print(f"current directory: {os.getcwd()}")
     print(f"semgrep command: {cmd}")
-    output = subprocess.check_output(
+    output = subprocess.run(
         cmd,
         encoding="utf-8",
-        stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
         env=env,
     )
 
-    if output_format.is_json() and not stderr:
-        output = _clean_output_json(output)
+    if fail_on_nonzero and output.returncode > 0:
+        raise subprocess.CalledProcessError(
+            returncode=output.returncode,
+            cmd=cmd,
+            output=output.stdout,
+            stderr=output.stderr,
+        )
 
-    return output
+    stdout = (
+        _clean_output_json(output.stdout)
+        if output.stdout and output_format.is_json()
+        else output.stdout
+    )
+
+    return stdout, output.stderr
 
 
 @contextlib.contextmanager

@@ -1,0 +1,6 @@
+Usage: python -m semgrep [OPTIONS] [TARGET]...
+Try 'python -m semgrep --help' for help.
+
+Error: Mutually exclusive options from 'Path options' option group cannot be used at the same time:
+  '--exclude'
+  '--include'

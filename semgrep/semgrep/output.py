@@ -15,8 +15,6 @@ from typing import Sequence
 from typing import Set
 from typing import Type
 
-import colorama
-
 from semgrep import config_resolver
 from semgrep.constants import OutputFormat
 from semgrep.error import FINDINGS_EXIT_CODE
@@ -199,12 +197,12 @@ class OutputHandler:
             print_threshold_hint = print_threshold_hint or (
                 num_errs > 5 and not self.settings.timeout_threshold
             )
-            logger.error(with_color(colorama.Fore.RED, error_msg))
+            logger.error(with_color("red", error_msg))
 
         if print_threshold_hint:
             logger.error(
                 with_color(
-                    colorama.Fore.RED,
+                    "red",
                     f"You can use the `--timeout-threshold` flag to set a number of timeouts after which a file will be skipped.",
                 )
             )

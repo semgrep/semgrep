@@ -1,7 +1,7 @@
 import sys
-from collections import Iterable
 from typing import Any
 from typing import IO
+from typing import Iterable
 
 from tqdm import tqdm
 
