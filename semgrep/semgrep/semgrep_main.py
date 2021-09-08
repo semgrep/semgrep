@@ -188,7 +188,7 @@ def main(
     if not severity:
         filtered_rules = all_rules
     else:
-        filtered_rules = [rule for rule in all_rules if rule.severity in severity]
+        filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
 
     output_handler.handle_semgrep_errors(errors)
 

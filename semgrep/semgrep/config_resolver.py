@@ -20,6 +20,7 @@ from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
+from semgrep.constants import RuleSeverity
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import InvalidRuleSchemaError
@@ -30,6 +31,7 @@ from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.semgrep_types import Language
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
 from semgrep.verbose_logging import getLogger
@@ -52,8 +54,8 @@ DEFAULT_CONFIG = {
             "id": "eqeq-is-bad",
             "pattern": "$X == $X",
             "message": "$X == $X is a useless equality check",
-            "languages": ["python"],
-            "severity": "ERROR",
+            "languages": [Language.PYTHON.value],
+            "severity": RuleSeverity.ERROR.value,
         },
     ],
 }
@@ -231,7 +233,7 @@ def manual_config(pattern: str, lang: str) -> Dict[str, YamlTree]:
                         "pattern": pattern_tree,
                         "message": pattern,
                         "languages": [lang],
-                        "severity": "ERROR",
+                        "severity": RuleSeverity.ERROR.value,
                     }
                 ]
             },

@@ -4,6 +4,7 @@ from typing import Dict
 from typing import List
 
 from semgrep import __VERSION__
+from semgrep.constants import RuleSeverity
 from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
@@ -72,7 +73,11 @@ class SarifFormatter(BaseFormatter):
 
         See https://github.com/oasis-tcs/sarif-spec/blob/a6473580/Schemata/sarif-schema-2.1.0.json#L1566
         """
-        mapping = {"INFO": "note", "ERROR": "error", "WARNING": "warning"}
+        mapping = {
+            RuleSeverity.INFO: "note",
+            RuleSeverity.WARNING: "warning",
+            RuleSeverity.ERROR: "error",
+        }
         return mapping[rule.severity]
 
     @staticmethod
