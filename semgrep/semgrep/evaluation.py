@@ -1,11 +1,8 @@
 from typing import List
-from typing import Optional
-from typing import Set
 
 from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
-from semgrep.semgrep_types import Range
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -14,7 +11,6 @@ logger = getLogger(__name__)
 def create_output(
     rule: Rule,
     pattern_matches: List[PatternMatch],
-    valid_ranges_to_output: Optional[Set[Range]] = None,
 ) -> List[RuleMatch]:
     output = []
     for pattern_match in pattern_matches:
