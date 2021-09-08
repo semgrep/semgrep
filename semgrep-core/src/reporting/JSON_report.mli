@@ -6,7 +6,7 @@
  *)
 val match_to_match :
   Pattern_match.t ->
-  (Semgrep_core_response_t.match_, Error_code.error) Common.either
+  (Semgrep_core_response_t.match_, Semgrep_error_code.error) Common.either
 
 (*e: signature [[JSON_report.match_to_json]] *)
 

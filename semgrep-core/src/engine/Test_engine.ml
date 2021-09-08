@@ -15,7 +15,7 @@ open Common
 module FM = File_and_more
 module FT = File_type
 module R = Rule
-module E = Error_code
+module E = Semgrep_error_code
 module RP = Report
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -176,21 +176,14 @@ let test_rules ?(ounit_context = false) xs =
          actual_errors
          |> List.iter (fun e ->
                 logger#info "found error: %s" (E.string_of_error e));
-         try
-           E.compare_actual_to_expected actual_errors expected_error_lines;
-           Hashtbl.add newscore file Common2.Ok
-         with OUnitTest.OUnit_failure s when not ounit_context ->
-           pr2 s;
-           Hashtbl.add newscore file (Common2.Pb s);
-           (* coupling: ugly: with Error_code.compare_actual_to_expected *)
-           if
-             s
-             =~ "it should find all reported errors and no more (\\([0-9]+\\) \
-                 errors)"
-           then
-             let n = Common.matched1 s |> int_of_string in
-             total_mismatch := !total_mismatch + n
-           else failwith (spf "wrong unit failure format: %s" s));
+         match
+           E.compare_actual_to_expected actual_errors expected_error_lines
+         with
+         | Ok () -> Hashtbl.add newscore file Common2.Ok
+         | Error _ ->
+             failwith
+               "waiting for \
+                https://github.com/returntocorp/semgrep/pull/3834/files");
   if not ounit_context then (
     Parse_info.print_regression_information ~ext xs newscore;
     pr2 (spf "total mismatch: %d" !total_mismatch));

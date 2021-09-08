@@ -26,7 +26,7 @@ module RP = Report
 module S = Specialize_formula
 module RM = Range_with_metavars
 module FM = File_and_more
-module E = Error_code
+module E = Semgrep_error_code
 module Resp = Semgrep_core_response_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -114,7 +114,7 @@ type env = {
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   file : Common.filename;
-  lazy_ast_and_errors : (G.program * Error_code.error stack) lazy_t;
+  lazy_ast_and_errors : (G.program * E.error stack) lazy_t;
   rule_id : R.rule_id;
   xlang : R.xlang;
   equivalences : Equivalence.equivalences;

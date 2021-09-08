@@ -20,7 +20,7 @@ module StrSet = Common2.StringSet
 open AST_generic
 module V = Visitor_AST
 module PI = Parse_info
-module E = Error_code
+module E = Semgrep_error_code
 module J = JSON
 module MV = Metavariable
 module RP = Report
@@ -202,7 +202,7 @@ let match_results_of_matches_and_errors files res =
   let matches, new_errs =
     Common.partition_either match_to_match res.RP.matches
   in
-  let errs = !Error_code.g_errors @ new_errs @ res.RP.errors in
+  let errs = !E.g_errors @ new_errs @ res.RP.errors in
   let files_with_errors =
     List.fold_left
       (fun acc err -> StrSet.add err.E.loc.file acc)
@@ -245,7 +245,7 @@ let json_of_profile_info profile_start =
 
  * The Parse_info.Parsing_error and other exns in Parse_info, which are
  * raised during a target analysis (parsing, naming, matching, etc.), are
- * captured in Main.ml by Error_code.exn_to_error. The function below is
+ * captured in Main.ml by Semgrep_error_code.exn_to_error. The function below is
  * for all the other non-target related exns.
  * update: we actually now use the generic AST to parse a YAML rule, so
  * we may raise Parse_info.Other_Error in a non-target context too.
@@ -333,7 +333,7 @@ let json_of_exn e =
 
 (*s: function [[JSON_report.error]] *)
 (* this is used only in the testing code, to reuse the
- * Error_code.compare_actual_to_expected
+ * Semgrep_error_code.compare_actual_to_expected
  *)
 let error loc (rule : Pattern_match.rule_id) =
   E.error_loc loc (E.SemgrepMatchFound (rule.id, rule.message))

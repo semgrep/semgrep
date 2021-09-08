@@ -1,7 +1,7 @@
 (*s: semgrep/tests/Test.ml *)
 open Common
 open OUnit
-module E = Error_code
+module E = Semgrep_error_code
 module P = Pattern_match
 module R = Rule
 module MR = Mini_rule
@@ -53,7 +53,7 @@ let parsing_tests_for_lang files lang =
       let {Parse_target. errors = errs; _ } = 
          Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
       if errs <> []
-      then failwith (String.concat ";" (List.map Error_code.string_of_error errs));
+      then failwith (String.concat ";" (List.map E.string_of_error errs));
     )
   )
 
@@ -102,7 +102,7 @@ let regression_tests_for_lang ~with_caching files lang =
                     (Common.exn_to_s exn))
       )
     in
-    Error_code.g_errors := [];
+    E.g_errors := [];
 
     let rule = { MR.
       id = "unit testing"; pattern; inside=false; message = ""; 
@@ -124,15 +124,17 @@ let regression_tests_for_lang ~with_caching files lang =
          let xs = Lazy.force matched_tokens in
          let toks = xs |> List.filter Parse_info.is_origintok in
          let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
-         Error_code.error minii (Error_code.SemgrepMatchFound ("",""))
+         E.error minii (E.SemgrepMatchFound ("",""))
        )
        Config_semgrep.default_config
        [rule] equiv (file, lang, ast) 
      |> ignore;
   
-     let actual = !Error_code.g_errors in
-     let expected = Error_code.expected_error_lines_of_files [file] in
-       Error_code.compare_actual_to_expected actual expected; 
+     let actual = !E.g_errors in
+     let expected = E.expected_error_lines_of_files [file] in
+       match E.compare_actual_to_expected actual expected with
+       | Ok () -> ()
+       | Error _ -> failwith "Use Martin's PR" 
     )     
    )
  )
@@ -182,8 +184,8 @@ let tainting_test lang rules_file file =
         sev   = Error; }
       )
   in
-  let expected = Error_code.expected_error_lines_of_files [file] in
-  Error_code.compare_actual_to_expected actual expected
+  let expected = E.expected_error_lines_of_files [file] in
+  E.compare_actual_to_expected actual expected
 
 let tainting_tests_for_lang files lang =
   files |> List.map (fun file ->
@@ -195,7 +197,9 @@ let tainting_tests_for_lang files lang =
       then candidate1
       else failwith (spf "could not find tainting rules file for %s" file)
     in
-    tainting_test lang rules_file file
+    match tainting_test lang rules_file file with
+    | Ok () -> ()
+    | Error _ -> failwith "Use Martin's"
   ))
 
 (*****************************************************************************)
@@ -495,7 +499,9 @@ let lint_regression_tests ~with_caching =
   let actual_errors = !E.g_errors in
   if !verbose 
   then actual_errors |> List.iter (fun e -> pr (E.string_of_error e));
-  E.compare_actual_to_expected actual_errors expected_error_lines
+  match E.compare_actual_to_expected actual_errors expected_error_lines with
+  | Ok () -> ()
+  | Error _ -> failwith "Use Martin's"
   )
 (*e: constant [[Test.lint_regression_tests]] *)
 
@@ -522,13 +528,13 @@ let metachecker_regression_tests =
       files |> List.map (fun file ->
        (Filename.basename file) >:: (fun () ->
 
-        Error_code.g_errors := [];
+        E.g_errors := [];
         E.try_with_exn_to_error file (fun () ->
           try
             let rules = Parse_rule.parse file in
             rules |> List.iter (fun rule ->
               let errs = Check_rule.check rule in
-              Error_code.g_errors := errs @ !Error_code.g_errors
+              E.g_errors := errs @ !E.g_errors
             )
           with
           (* convert to something handled by E.try_with_exn_to_error.
@@ -543,9 +549,11 @@ let metachecker_regression_tests =
               raise (Parse_info.Other_error (s, t))
         );
 
-        let actual = !Error_code.g_errors in
-        let expected = Error_code.expected_error_lines_of_files [file] in
-        Error_code.compare_actual_to_expected actual expected; 
+        let actual = !E.g_errors in
+        let expected = E.expected_error_lines_of_files [file] in
+        match E.compare_actual_to_expected actual expected with
+        | Ok () -> ()
+        | Error _ -> failwith "Use Martin's"
        )   
       )
   )

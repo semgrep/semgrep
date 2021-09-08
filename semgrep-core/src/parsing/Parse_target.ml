@@ -19,7 +19,7 @@
 open Common
 module Flag = Flag_semgrep
 module PI = Parse_info
-module E = Error_code
+module E = Semgrep_error_code
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -36,7 +36,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 type parsing_result = {
   ast : AST_generic.program;
-  errors : Error_code.error list;
+  errors : Semgrep_error_code.error list;
   stat : Parse_info.parsing_stat;
 }
 
@@ -50,7 +50,7 @@ type 'ast parser =
 
 type 'ast internal_result =
   | Ok of ('ast * Parse_info.parsing_stat)
-  | Partial of 'ast * Error_code.error list * Parse_info.parsing_stat
+  | Partial of 'ast * Semgrep_error_code.error list * Parse_info.parsing_stat
   | Error of exn
 
 let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =

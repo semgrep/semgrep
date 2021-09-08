@@ -11,7 +11,7 @@ open Common
 module Flag = Flag_semgrep
 module PI = Parse_info
 module S = Scope_code
-module E = Error_code
+module E = Semgrep_error_code
 module MR = Mini_rule
 module R = Rule
 module J = JSON
@@ -348,7 +348,7 @@ let save_rules_file_in_tmp () =
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
-(* Small wrapper over Error_code.exn_to_error to handle also semgrep-specific
+(* Small wrapper over Semgrep_error_code.exn_to_error to handle also semgrep-specific
  * exns that have a position.
  *
  * See also JSON_report.json_of_exn for non-target related exn handling.
@@ -490,9 +490,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Parse_info.first_loc_of_file file in
-           let error =
-             Error_code.mk_error_loc loc (Error_code.TooManyMatches pat)
-           in
+           let error = E.mk_error_loc loc (E.TooManyMatches pat) in
            let skipped =
              sorted_offending_rules
              |> List.map (fun ((rule_id, _pat), n) ->
@@ -646,7 +644,7 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                          logger#info "done with %s" file;
                          v))
                with
-               (* note that Error_code.exn_to_error already handles Timeout
+               (* note that Semgrep_error_code.exn_to_error already handles Timeout
                 * and would generate a TimeoutError code for it, but we intercept
                 * Timeout here to give a better diagnostic.
                 *)
@@ -666,14 +664,14 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                      RP.matches = [];
                      errors =
                        [
-                         Error_code.mk_error_loc loc
+                         E.mk_error_loc loc
                            (match exn with
                            | Main_timeout file ->
                                logger#info "Timeout on %s" file;
-                               Error_code.Timeout str_opt
+                               E.Timeout str_opt
                            | Out_of_memory ->
                                logger#info "OutOfMemory on %s" file;
-                               Error_code.OutOfMemory str_opt
+                               E.OutOfMemory str_opt
                            | _ -> raise Impossible);
                        ];
                      skipped = [];
@@ -1436,7 +1434,7 @@ let options () =
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
   @ Meta_parse_info.cmdline_flags_precision ()
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
-  @ Error_code.options ()
+  @ Semgrep_error_code.options ()
   (*e: [[Main_semgrep_core.options]] concatenated flags *)
   (*s: [[Main_semgrep_core.options]] concatenated actions *)
   @ Common.options_of_actions action (all_actions ())

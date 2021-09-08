@@ -16,5 +16,6 @@ type t = {
   file : Common.filename;
   xlang : Rule.xlang;
   lazy_content : string lazy_t;
-  lazy_ast_and_errors : (AST_generic.program * Error_code.error list) lazy_t;
+  lazy_ast_and_errors :
+    (AST_generic.program * Semgrep_error_code.error list) lazy_t;
 }
