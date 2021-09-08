@@ -2,9 +2,6 @@
    Unit tests for Guess_lang
 *)
 
-open Printf
-open OUnit
-
 type exec = Exec | Nonexec
 
 type success = OK | XFAIL
@@ -100,36 +97,18 @@ let fix_path s =
   | "Win32" -> String.map (function '/' -> '\\' | c -> c) s
   | _ -> s
 
-(* because OUnit doesn't show a stack trace. Not sure if alcotest is any
-   better in that respect.
-   TODO: take care of this centrally for all tests
-*)
-let with_stack_trace f x =
-  try f x
-  with e ->
-    (* don't know why printing to stdout or stderr doesn't show anything
-       when using OUnit. *)
-    (*
-    printf "Exception: %s\n%!" (Printexc.to_string e);
-    Printexc.print_backtrace stdout;
-    raise e
-    *)
-    let trace = Printexc.get_backtrace () in
-    let msg = sprintf "Exception: %s\n%s" (Printexc.to_string e) trace in
-    failwith msg
-
 let test_inspect_file =
   List.map
     (fun (test_name, lang, path, expectation) ->
-      test_name
-      >:: with_stack_trace (fun () ->
-              test_name_only lang (fix_path path) expectation))
+      (test_name, fun () -> test_name_only lang (fix_path path) expectation))
     name_tests
   @ List.map
       (fun (test_name, lang, file_name, contents, exec, expectation) ->
-        test_name
-        >:: with_stack_trace (fun () ->
-                test_with_contents lang file_name contents exec expectation))
+        ( test_name,
+          fun () -> test_with_contents lang file_name contents exec expectation
+        ))
       contents_tests
 
-let unittest = "Guess_lang" >::: [ "inspect_file" >::: test_inspect_file ]
+let tests =
+  Testutil.pack_suites "Guess_lang"
+    [ Testutil.pack_tests "inspect_file" test_inspect_file ]

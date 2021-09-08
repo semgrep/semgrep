@@ -30,5 +30,6 @@
     semgrep_reporting
     semgrep_engine
     semgrep_system
+    semgrep_testutil
   )
 )
