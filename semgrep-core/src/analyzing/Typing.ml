@@ -33,4 +33,14 @@ let get_resolved_type lang (vinit, vtype) =
       | Some { e = L (Null tok); _ } -> make_type "null" tok
       | Some { e = L (Imag (_, tok)); _ } -> make_type "imag" tok
       | Some { e = N (Id (_, { id_type; _ })); _ } -> !id_type
+      | Some
+          {
+            e = Call ({ e = IdSpecial (New, _); _ }, (_, ArgType tp :: _, _));
+            _;
+          } -> (
+          match lang with
+          | Go -> Some tp
+          | _ ->
+              None
+              (* TODO: Seems like this should work in other languages too? *))
       | _ -> None)
