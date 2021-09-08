@@ -16,6 +16,7 @@ and error_kind =
    *)
   | LexicalError of string
   | ParseError (* aka SyntaxError *)
+  | SpecifiedParseError of string (* aka SyntaxError *)
   | AstBuilderError of string
   (* matching (semgrep) related *)
   | MatchingError of string (* internal error, e.g., NoTokenLocation *)
@@ -48,6 +49,7 @@ let exn_to_error file exn =
   match exn with
   | Parse_info.Lexical_error (s, tok) -> mk_error tok (LexicalError s)
   | Parse_info.Parsing_error tok -> mk_error tok ParseError
+  | Parse_info.Other_error (s, tok) -> mk_error tok (SpecifiedParseError s)
   | Common.Timeout timeout_info ->
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in
@@ -69,6 +71,7 @@ let exn_to_error file exn =
 let check_id_of_error_kind = function
   | LexicalError _ -> "LexicalError"
   | ParseError -> "ParseError"
+  | SpecifiedParseError _ -> "SpecifiedParseError"
   | AstBuilderError _ -> "AstBuilderError"
   (* semgrep *)
   | SemgrepMatchFound (check_id, _) -> spf "sgrep-lint-<%s>" check_id
@@ -90,6 +93,7 @@ let string_of_error_kind error_kind =
   | TooManyMatches s -> spf "too many matches: %s" s
   | LexicalError s -> spf "Lexical error: %s" s
   | ParseError -> "Syntax error"
+  | SpecifiedParseError s -> spf "Other syntax error: %s" s
   | AstBuilderError s -> spf "AST builder error: %s" s
   | FatalError s -> spf "Fatal Error: %s" s
   | Timeout None -> "Timeout"

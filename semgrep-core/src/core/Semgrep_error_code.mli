@@ -13,6 +13,7 @@ and error_kind =
    *)
   | LexicalError of string
   | ParseError (* aka SyntaxError *)
+  | SpecifiedParseError of string
   | AstBuilderError of string
   (* matching (semgrep) related *)
   | MatchingError of string (* internal error, e.g., NoTokenLocation *)
