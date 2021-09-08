@@ -12,6 +12,7 @@
    semgrep_core
    semgrep_matching
    semgrep_parsing semgrep_reporting ; for Test_rule.ml
+   semgrep_testutil
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )
