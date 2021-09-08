@@ -157,6 +157,10 @@ let rec stmt_aux = function
   | Break (t, v1) -> [ G.Break (t, opt_expr_to_label_ident v1, G.sc) |> G.s ]
   | Continue (t, v1) ->
       [ G.Continue (t, opt_expr_to_label_ident v1, G.sc) |> G.s ]
+  | Label (id, _, v1) ->
+      let v1 = stmt v1 in
+      [ G.Label (ident id, v1) |> G.s ]
+  | Goto (t, id) -> [ G.Goto (t, ident id) |> G.s ]
   | Throw (t, v1) ->
       let v1 = expr v1 in
       [ G.Throw (t, v1, G.sc) |> G.s ]
