@@ -26,16 +26,16 @@ from semgrep.pattern_match import PatternMatch
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
+from semgrep.progress_bar import debug_tqdm_write
+from semgrep.progress_bar import progress_bar
 from semgrep.rule import Rule
 from semgrep.rule_lang import Span
 from semgrep.rule_match import RuleMatch
+from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 from semgrep.target_manager_extensions import all_supported_languages
-from semgrep.util import debug_tqdm_write
 from semgrep.util import is_debug
-from semgrep.util import progress_bar
-from semgrep.util import SemgrepCore
 from semgrep.util import sub_run
 from semgrep.verbose_logging import getLogger
 

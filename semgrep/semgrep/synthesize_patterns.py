@@ -4,7 +4,7 @@ from typing import Sequence
 import semgrep.config_resolver
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.error import SemgrepError
-from semgrep.util import SemgrepCore
+from semgrep.semgrep_core import SemgrepCore
 from semgrep.util import sub_check_output
 
 

@@ -10,30 +10,16 @@ import click
 from click_option_group import MutuallyExclusiveOptionGroup
 from click_option_group import optgroup
 
-import semgrep.config_resolver
-import semgrep.semgrep_main
-import semgrep.test
-import semgrep.util
 from semgrep import __VERSION__
 from semgrep import bytesize
-from semgrep.constants import DEFAULT_CONFIG_FILE
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
-from semgrep.constants import OutputFormat
-from semgrep.dump_ast import dump_parsed_ast
-from semgrep.error import SemgrepError
-from semgrep.metric_manager import metric_manager
-from semgrep.output import managed_output
-from semgrep.output import OutputSettings
-from semgrep.synthesize_patterns import synthesize
-from semgrep.target_manager import optional_stdin_target
 from semgrep.util import abort
 from semgrep.verbose_logging import getLogger
-from semgrep.version import version_check
 
 
 logger = getLogger(__name__)
@@ -448,13 +434,30 @@ def cli(
 
     For more information about Semgrep, go to https://semgrep.dev.
     """
-    target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
     if version:
         print(__VERSION__)
         if enable_version_check:
+            from semgrep.version import version_check
+
             version_check()
         return
+
+    # To keep version runtime fast, we defer non-version imports until here
+    import semgrep.semgrep_main
+    import semgrep.test
+    import semgrep.config_resolver
+    from semgrep.constants import OutputFormat
+    from semgrep.constants import DEFAULT_CONFIG_FILE
+    from semgrep.dump_ast import dump_parsed_ast
+    from semgrep.error import SemgrepError
+    from semgrep.metric_manager import metric_manager
+    from semgrep.output import managed_output
+    from semgrep.output import OutputSettings
+    from semgrep.synthesize_patterns import synthesize
+    from semgrep.target_manager import optional_stdin_target
+
+    target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
     if enable_metrics:
         metric_manager.enable()
@@ -574,4 +577,6 @@ def cli(
             )
 
     if enable_version_check:
+        from semgrep.version import version_check
+
         version_check()
