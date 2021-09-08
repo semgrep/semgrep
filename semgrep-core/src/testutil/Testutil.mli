@@ -32,17 +32,28 @@
 type test = string * (unit -> unit)
 
 (*
-   This extends the name of each test by adding a prefix, using '.'
+   This extends the name of each test by adding a prefix, using '>'
    as a separator.
 
    This is because Alcotest only supports two levels of
-   nesting. Here we just support one level, but in the end we use '.'
+   nesting. Here we just support one level, but in the end we use '>'
    to split the path to each test, and do the right thing.
 
    Usage:
 
      pack_tests "Suite Name" [test1; test2]
      pack_suites "Suite Name" [suite1; suite2; suite3]
+
+   Design note: our use of '>' as a separator is much like '/' in file paths.
+   It's a little hackish. A clean alternative is to represent a test path by
+   a string list, but it makes writing individual test cases slightly
+   more awkward:
+
+     "do something", test_do_something;
+
+   would become
+
+     ["do something"], test_do_something;
 *)
 val pack_tests : string -> test list -> test list
 
@@ -51,8 +62,8 @@ val pack_suites : string -> test list list -> test list
 (*
    Sort tests by path, alphabetically:
 
-     "a.b" comes before "a.c",
-     "a.b" come before "a b".
+     "a>b" comes before "a>c",
+     "a>b" come before "a b".
 
    Non-ascii path components are sorted by byte order, possibly giving
    unexpected results.
@@ -63,7 +74,7 @@ val sort : test list -> test list
    Alcotest.test is a list of Alcotest.test_case, so we need to assign
    a test suite name to each test. This is done as follows:
 
-     "Foo.Bar.hello" -> suite name = "Foo.Bar", test name = "hello"
+     "Foo>Bar>hello" -> suite name = "Foo>Bar", test name = "hello"
 
    The speed level is set to either `Quick or `Slow for all the tests.
    The default is `Quick.
