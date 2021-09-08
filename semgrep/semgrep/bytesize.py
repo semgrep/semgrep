@@ -55,10 +55,13 @@ class ByteSizeType(click.ParamType):
         param: Optional[click.Parameter],
         ctx: Optional[click.Context],
     ) -> Optional[int]:
-        return (
-            parse_size(value)
-            if isinstance(value, str)
-            else value
-            if isinstance(value, int)
-            else None
-        )
+        try:
+            return (
+                parse_size(value)
+                if isinstance(value, str)
+                else value
+                if isinstance(value, int)
+                else None
+            )
+        except ValueError as ex:
+            raise click.exceptions.UsageError(*ex.args)
