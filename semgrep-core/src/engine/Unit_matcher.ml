@@ -1,6 +1,5 @@
 (*s: semgrep/engine/Unit_matcher.ml *)
 open Common
-open OUnit
 
 (*****************************************************************************)
 (* Semgrep Unit tests *)
@@ -123,13 +122,13 @@ let tests ~any_gen_of_string =
                    Match_patterns.match_any_any pattern code env
                  in
                  if should_match then
-                   assert_bool
+                   Alcotest.(check bool)
                      (spf "pattern:|%s| should match |%s" spattern scode)
-                     (matches_with_env <> [])
+                     true (matches_with_env <> [])
                  else
-                   assert_bool
+                   Alcotest.(check bool)
                      (spf "pattern:|%s| should not match |%s" spattern scode)
-                     (matches_with_env = [])
+                     true (matches_with_env = [])
                with Parsing.Parse_error ->
                  failwith (spf "problem parsing %s or %s" spattern scode)) );
   ]

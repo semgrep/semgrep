@@ -57,6 +57,11 @@ let parsing_tests_for_lang files lang =
     )
   )
 
+let compare_actual_to_expected actual expected =
+  match Error_code.compare_actual_to_expected actual expected with
+  | Ok () -> ()
+  | Error (_num_errors, msg) -> Alcotest.fail msg
+
 (*
    For each input file with the language's extension, locate a pattern file
    with the '.sgrep' extension.
@@ -131,7 +136,7 @@ let regression_tests_for_lang ~with_caching files lang =
       |> ignore;
       let actual = !Error_code.g_errors in
       let expected = Error_code.expected_error_lines_of_files [file] in
-      Error_code.compare_actual_to_expected actual expected; 
+      compare_actual_to_expected actual expected; 
     )
     )
   )
@@ -182,7 +187,7 @@ let tainting_test lang rules_file file =
     )
   in
   let expected = Error_code.expected_error_lines_of_files [file] in
-  Error_code.compare_actual_to_expected actual expected
+  compare_actual_to_expected actual expected
 
 let tainting_tests_for_lang files lang =
   files |> List.map (fun file ->
@@ -413,7 +418,7 @@ let lang_regression_tests ~with_caching =
 let full_rule_regression_tests = [
   "full rule", (fun () ->
     let path = Filename.concat tests_path "OTHER/rules" in
-    Test_engine.test_rules ~ounit_context:true [path]
+    Test_engine.test_rules ~unit_testing:true [path]
   )
 ]
 
@@ -496,7 +501,7 @@ let lint_regression_tests ~with_caching =
       (* compare *)
       let actual_errors = !E.g_errors in
       actual_errors |> List.iter (fun e -> pr (E.string_of_error e));
-      E.compare_actual_to_expected actual_errors expected_error_lines
+      compare_actual_to_expected actual_errors expected_error_lines
     )
   ]
 (*e: constant [[Test.lint_regression_tests]] *)
@@ -508,8 +513,8 @@ let eval_regression_tests = [
     files |> List.iter (fun file ->
       let (env, code) = Eval_generic.parse_json file in
       let res = Eval_generic.eval env code in
-      OUnit.assert_equal ~msg:(spf "%s should evaluate to true" file)
-        (Eval_generic.Bool true) res
+      Alcotest.(check bool) (spf "%s should evaluate to true" file)
+        true (Eval_generic.Bool true = res)
     )
   )
 ]
@@ -545,7 +550,7 @@ let metachecker_regression_tests =
         );
         let actual = !Error_code.g_errors in
         let expected = Error_code.expected_error_lines_of_files [file] in
-        Error_code.compare_actual_to_expected actual expected;
+        compare_actual_to_expected actual expected;
       )
     )
   )

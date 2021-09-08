@@ -1,5 +1,4 @@
 open Common
-open OUnit
 module V = Visitor_AST
 module G = AST_generic
 
@@ -35,7 +34,7 @@ let tests parse_program parse_pattern =
                           | Some { t = G.TyN (G.Id (("String", _), _)); _ } ->
                               ()
                           | _ ->
-                              assert_failure
+                              Alcotest.fail
                                 "Variable referenced did not have expected \
                                  type String")
                       | _ -> ());
@@ -43,7 +42,7 @@ let tests parse_program parse_pattern =
             in
             v (G.Pr ast)
           with Parse_info.Parsing_error _ ->
-            assert_failure (spf "it should correctly parse %s" file) );
+            Alcotest.failf "it should correctly parse %s" file );
       ( "test multiple variable definitions java",
         fun () ->
           let file = Filename.concat tests_path_typing "EqVarCmp.java" in
@@ -68,7 +67,7 @@ let tests parse_program parse_pattern =
                                 ->
                                   ()
                               | _ ->
-                                  assert_failure
+                                  Alcotest.fail
                                     "Variable 1 referenced did not have \
                                      expected type String")
                           | _ -> ());
@@ -78,7 +77,7 @@ let tests parse_program parse_pattern =
                               match !id_type with
                               | Some { t = G.TyBuiltin ("int", _); _ } -> ()
                               | _ ->
-                                  assert_failure
+                                  Alcotest.fail
                                     "Variable 2 referenced did not have \
                                      expected type int")
                           | _ -> ())
@@ -89,7 +88,7 @@ let tests parse_program parse_pattern =
                           | Some { t = G.TyN (G.Id (("String", _), _)); _ } ->
                               ()
                           | _ ->
-                              assert_failure
+                              Alcotest.fail
                                 "Variable 1 referenced did not have expected \
                                  type String")
                       | _ -> ());
@@ -97,7 +96,7 @@ let tests parse_program parse_pattern =
             in
             v (G.Pr ast)
           with Parse_info.Parsing_error _ ->
-            assert_failure (spf "it should correctly parse %s" file) );
+            Alcotest.failf "it should correctly parse %s" file );
       ( "test basic params java",
         fun () ->
           let file = Filename.concat tests_path_typing "BasicParam.java" in
@@ -120,7 +119,7 @@ let tests parse_program parse_pattern =
                               match !id_type with
                               | Some { t = G.TyBuiltin ("int", _); _ } -> ()
                               | _ ->
-                                  assert_failure
+                                  Alcotest.fail
                                     "Variable 1 referenced did not have \
                                      expected type String")
                           | _ -> ());
@@ -130,7 +129,7 @@ let tests parse_program parse_pattern =
                               match !id_type with
                               | Some { t = G.TyBuiltin ("boolean", _); _ } -> ()
                               | _ ->
-                                  assert_failure
+                                  Alcotest.fail
                                     "Variable 2 referenced did not have \
                                      expected type int")
                           | _ -> ())
@@ -139,7 +138,7 @@ let tests parse_program parse_pattern =
             in
             v (G.Pr ast)
           with Parse_info.Parsing_error _ ->
-            assert_failure (spf "it should correctly parse %s" file) );
+            Alcotest.failf "it should correctly parse %s" file );
       ( "test class field types",
         fun () ->
           let file = Filename.concat tests_path_typing "ClassFields.java" in
@@ -159,14 +158,14 @@ let tests parse_program parse_pattern =
                           match !id_type with
                           | Some { t = G.TyBuiltin ("int", _); _ } -> ()
                           | _ ->
-                              assert_failure
+                              Alcotest.fail
                                 "Variable referenced did not have expected \
                                  type int")
                       | G.N (G.Id (("default_age", _), { G.id_type; _ })) -> (
                           match !id_type with
                           | Some { t = G.TyBuiltin ("int", _); _ } -> ()
                           | _ ->
-                              assert_failure
+                              Alcotest.fail
                                 "Variable referenced did not have expected \
                                  type int")
                       | _ -> ());
@@ -174,7 +173,7 @@ let tests parse_program parse_pattern =
             in
             v (G.Pr ast)
           with Parse_info.Parsing_error _ ->
-            assert_failure (spf "it should correctly parse %s" file) );
+            Alcotest.failf "it should correctly parse %s" file );
       ( "java_pattern_files",
         fun () ->
           let dir = Filename.concat tests_path "java/semgrep" in
@@ -185,7 +184,7 @@ let tests parse_program parse_pattern =
                    let _ = parse_pattern Lang.Java (Common.read_file file) in
                    ()
                  with Parse_info.Parsing_error _ ->
-                   assert_failure (spf "it should correctly parse %s" file)) );
+                   Alcotest.failf "it should correctly parse %s" file) );
       ( "go_pattern_files",
         fun () ->
           let dir = Filename.concat tests_path "go/semgrep" in
@@ -196,7 +195,7 @@ let tests parse_program parse_pattern =
                    let _ = parse_pattern Lang.Go (Common.read_file file) in
                    ()
                  with Parse_info.Parsing_error _ ->
-                   assert_failure (spf "it should correctly parse %s" file)) );
+                   Alcotest.failf "it should correctly parse %s" file) );
       ( "test basic variable definitions go",
         fun () ->
           let file = Filename.concat tests_path_typing "StaticVarDef.go" in
@@ -216,7 +215,7 @@ let tests parse_program parse_pattern =
                           match !id_type with
                           | Some { t = G.TyN (G.Id (("int", _), _)); _ } -> ()
                           | _ ->
-                              assert_failure
+                              Alcotest.fail
                                 "Variable referenced did not have expected \
                                  type int")
                       | _ -> ());
@@ -224,7 +223,7 @@ let tests parse_program parse_pattern =
             in
             v (G.Pr ast)
           with Parse_info.Parsing_error _ ->
-            assert_failure (spf "it should correctly parse %s" file) );
+            Alcotest.failf "it should correctly parse %s" file );
       ( "test basic function call go",
         fun () ->
           let file = Filename.concat tests_path_typing "FuncParam.go" in
@@ -249,11 +248,11 @@ let tests parse_program parse_pattern =
                               | Some { t = G.TyN (G.Id (("int", _), _)); _ } ->
                                   ()
                               | _ ->
-                                  assert_failure
+                                  Alcotest.fail
                                     "Variable referenced did not have expected \
                                      type int")
                           | _ ->
-                              assert_failure
+                              Alcotest.fail
                                 "Expected function call to be with int a as \
                                  first argument");
                           match y with
@@ -264,11 +263,11 @@ let tests parse_program parse_pattern =
                               | Some { t = G.TyN (G.Id (("bool", _), _)); _ } ->
                                   ()
                               | _ ->
-                                  assert_failure
+                                  Alcotest.fail
                                     "Variable referenced did not have expected \
                                      type bool")
                           | _ ->
-                              assert_failure
+                              Alcotest.fail
                                 "Epected function call to have bool c as \
                                  second argument")
                       | _ -> ());
@@ -276,7 +275,7 @@ let tests parse_program parse_pattern =
             in
             v (G.Pr ast)
           with Parse_info.Parsing_error _ ->
-            assert_failure (spf "it should correctly parse %s" file) );
+            Alcotest.failf "it should correctly parse %s" file );
       ( "test inferred variable definitions go",
         fun () ->
           let file = Filename.concat tests_path_typing "PropVarDef.go" in
@@ -296,21 +295,21 @@ let tests parse_program parse_pattern =
                           match !id_type with
                           | Some { t = G.TyN (G.Id (("char", _), _)); _ } -> ()
                           | _ ->
-                              assert_failure
+                              Alcotest.fail
                                 "Variable referenced did not have expected \
                                  type char")
                       | G.N (G.Id (("b", _), { G.id_type; _ })) -> (
                           match !id_type with
                           | Some { t = G.TyN (G.Id (("int", _), _)); _ } -> ()
                           | _ ->
-                              assert_failure
+                              Alcotest.fail
                                 "Variable referenced did not have expected \
                                  type int")
                       | G.N (G.Id (("c", _), { G.id_type; _ })) -> (
                           match !id_type with
                           | Some { t = G.TyN (G.Id (("char", _), _)); _ } -> ()
                           | _ ->
-                              assert_failure
+                              Alcotest.fail
                                 "Variable referenced did not have expected \
                                  type char")
                       | _ -> ());
@@ -318,5 +317,5 @@ let tests parse_program parse_pattern =
             in
             v (G.Pr ast)
           with Parse_info.Parsing_error _ ->
-            assert_failure (spf "it should correctly parse %s" file) );
+            Alcotest.failf "it should correctly parse %s" file );
     ]

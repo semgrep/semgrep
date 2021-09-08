@@ -1,6 +1,5 @@
 (*s: semgrep/matching/Unit_matcher.ml *)
 open Common
-open OUnit
 module G = AST_generic
 module PPG = Pretty_print_generic
 
@@ -228,10 +227,10 @@ let tests =
                                 pr2 str;
                                 pr2 (AST_generic.show_any pattern);
                                 pr2 (AST_generic.show_any code));
-                              assert_bool
+                              Alcotest.(check bool)
                                 (spf "pattern:|%s| should match |%s" pat
                                    (PPG.pattern_to_string lang code))
-                                (matches_with_env <> [])
+                                true (matches_with_env <> [])
                           | None ->
                               failwith
                                 (spf "Couldn't find range %s in %s" range file)
@@ -244,8 +243,8 @@ let tests =
                           (fun s (s1, s2) -> s ^ s1 ^ ": " ^ s2 ^ "\n")
                           "" pats
                       in
-                      assert_bool
+                      Alcotest.(check bool)
                         ("Patterns do not match solution, where inferred \
                           patterns are:\n" ^ pats_str)
-                        (pats = sols))) );
+                        true (pats = sols))) );
   ]

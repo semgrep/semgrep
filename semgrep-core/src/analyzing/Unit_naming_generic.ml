@@ -1,5 +1,4 @@
 open Common
-open OUnit
 
 (*****************************************************************************)
 (* Unit tests *)
@@ -32,5 +31,5 @@ let tests parse_program =
                    let _v = AST_generic.show_any (AST_generic.Pr ast) in
                    ()
                  with Parse_info.Parsing_error _ ->
-                   assert_failure (spf "it should correctly parse %s" file)) );
+                   Alcotest.failf "it should correctly parse %s" file) );
     ]
