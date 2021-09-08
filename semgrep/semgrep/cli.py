@@ -19,6 +19,7 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.util import abort
+from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 
@@ -70,19 +71,6 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     "with -e/--pattern.",
 )
 @click.option(
-    "--optimizations",
-    default="all",
-    type=click.Choice(["all", "none"]),
-    help="Turn on/off optimizations. Default = 'all'. Use 'none' to turn all optimizations off.",
-)
-@click.option(
-    "--scan-unknown-extensions/--skip-unknown-extensions",
-    is_flag=True,
-    default=True,
-    help="If true, explicit files will be scanned using the language specified in --lang. If --skip-unknown-extensions, "
-    "these files will not be scanned",
-)
-@click.option(
     "--severity",
     multiple=True,
     type=click.Choice(["INFO", "WARNING", "ERROR"]),
@@ -96,21 +84,6 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     is_flag=True,
     default=False,
     help="Return a nonzero exit code when WARN level errors are encountered. Fails early if invalid configuration files are present. Defaults to --no-strict.",
-)
-@click.option(
-    "--use-git-ignore/--no-git-ignore",
-    is_flag=True,
-    default=True,
-    help="Skip files ignored by git."
-    " Scanning starts from the root folder specified on the Semgrep"
-    " command line."
-    " Normally, if the scanning root is within a git repository, "
-    " only the tracked files and the new files"
-    " would be scanned. Git submodules and git-ignored files would"
-    " normally be skipped."
-    " --no-git-ignore will disable git-aware filtering."
-    " Setting this flag does nothing if the scanning root is not"
-    " in a git repository.",
 )
 @optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
 @optgroup.option(
@@ -137,14 +110,19 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
 @optgroup.option(
     "--version", is_flag=True, default=False, help="Show the version and exit."
 )
-@optgroup.group("Path options", cls=MutuallyExclusiveOptionGroup)
+@optgroup.group(
+    "Path options",
+    help="By default, Semgrep scans all git-tracked files with extensions matching rules' languages."
+    " These options alter which files Semgrep scans.",
+)
 @optgroup.option(
     "--exclude",
     multiple=True,
     default=[],
     help="Skip any file or directory that matches this pattern; --exclude='*.py' will ignore"
     " the following: foo.py, src/foo.py, foo.py/bar.sh. --exclude='tests' will ignore tests/foo.py"
-    " as well as a/b/tests/c/foo.py. Can add multiple times.",
+    " as well as a/b/tests/c/foo.py. Can add multiple times. If present, any --include directives"
+    " are ignored.",
 )
 @optgroup.option(
     "--include",
@@ -162,6 +140,39 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     " both 'src/foo.jsx' and 'lib/bar.js'."
     " Glob-style patterns follow the syntax supported by python,"
     " which is documented at https://docs.python.org/3/library/glob.html",
+)
+@optgroup.option(
+    "--max-target-bytes",
+    type=bytesize.ByteSizeType(),
+    default=DEFAULT_MAX_TARGET_SIZE,
+    help=(
+        "Maximum size for a file to be scanned by Semgrep, e.g '1.5MB'. "
+        "Any input program larger than this will be ignored. "
+        "A zero or negative value disables this filter. "
+        f"Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes."
+    ),
+)
+@optgroup.option(
+    "--use-git-ignore/--no-git-ignore",
+    is_flag=True,
+    default=True,
+    help="Skip files ignored by git."
+    " Scanning starts from the root folder specified on the Semgrep"
+    " command line."
+    " Normally, if the scanning root is within a git repository, "
+    " only the tracked files and the new files"
+    " would be scanned. Git submodules and git-ignored files would"
+    " normally be skipped."
+    " --no-git-ignore will disable git-aware filtering."
+    " Setting this flag does nothing if the scanning root is not"
+    " in a git repository.",
+)
+@optgroup.option(
+    "--scan-unknown-extensions/--skip-unknown-extensions",
+    is_flag=True,
+    default=True,
+    help="If true, explicit files will be scanned using the language specified in --lang. If --skip-unknown-extensions, "
+    "these files will not be scanned",
 )
 @optgroup.group("Performance and memory options")
 @optgroup.option(
@@ -189,15 +200,10 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     ),
 )
 @optgroup.option(
-    "--max-target-bytes",
-    type=bytesize.ByteSizeType(),
-    default=DEFAULT_MAX_TARGET_SIZE,
-    help=(
-        "Maximum size for a file to be scanned by Semgrep, e.g '1.5MB'. "
-        "Any input program larger than this will be ignored. "
-        "A zero or negative value disables this filter. "
-        f"Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes."
-    ),
+    "--optimizations",
+    default="all",
+    type=click.Choice(["all", "none"]),
+    help="Turn on/off optimizations. Default = 'all'. Use 'none' to turn all optimizations off.",
 )
 @optgroup.option(
     "--timeout",
@@ -463,6 +469,14 @@ def cli(
         metric_manager.enable()
     else:
         metric_manager.disable()
+
+    if include and exclude:
+        logger.warning(
+            with_color(
+                "yellow",
+                "Paths that match both --include and --exclude will be skipped by Semgrep.",
+            )
+        )
 
     if pattern is not None and lang is None:
         abort("-e/--pattern and -l/--lang must both be specified")
