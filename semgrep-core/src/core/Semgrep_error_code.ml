@@ -49,20 +49,6 @@ let error tok err = Common.push (mk_error tok err) g_errors
 
 let error_loc loc err = Common.push (mk_error_loc loc err) g_errors
 
-let todo =
-  {
-    Parse_info.token =
-      Parse_info.OriginTok
-        {
-          charpos = -1;
-          str = "";
-          line = -1;
-          column = -1;
-          file = "FAKE TOKEN LOCATION";
-        };
-    transfo = NoTransfo;
-  }
-
 let exn_to_error file exn =
   match exn with
   | Parse_info.Lexical_error (s, tok) -> mk_error tok (LexicalError s)
@@ -77,7 +63,6 @@ let exn_to_error file exn =
       mk_error pos (PatternParseError message)
   | Rule.InvalidYaml (msg, pos) -> mk_error pos (InvalidYaml msg)
   | Rule.DuplicateYamlKey (s, pos) -> mk_error pos (InvalidYaml s)
-  | Rule.UnparsableYamlException msg -> mk_error todo (InvalidYaml msg)
   | Common.Timeout timeout_info ->
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in

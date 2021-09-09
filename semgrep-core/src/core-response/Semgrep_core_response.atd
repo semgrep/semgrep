@@ -53,9 +53,9 @@ type match_extra = {
 
 (* See Semgrep_error_code *)
 type error = {
-  error_type: string;
   ?rule_id: rule_id option;
-  ?location: location option;
+  error_type: string;
+  location: location;
   message: string;
   ?details: string option;
   ?yaml_path: string list option;

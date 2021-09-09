@@ -90,13 +90,12 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
              error_type = "EMMA_TODO";
              rule_id = None;
              location =
-               Some
-                 {
-                   path;
-                   start = semgrep_pos pos1;
-                   end_ = semgrep_pos pos2;
-                   lines;
-                 };
+               {
+                 path;
+                 start = semgrep_pos pos1;
+                 end_ = semgrep_pos pos2;
+                 lines;
+               };
              message = error.Parse_pattern.msg;
              details = None;
              yaml_path = None;

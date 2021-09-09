@@ -182,13 +182,12 @@ let error_to_error err =
     error_type;
     ST.rule_id = Some rule_id;
     location =
-      Some
-        {
-          path = file;
-          start = startp;
-          end_ = endp;
-          lines = (try [ lines.(line - 1) ] with _ -> [ "NO LINE" ]);
-        };
+      {
+        path = file;
+        start = startp;
+        end_ = endp;
+        lines = (try [ lines.(line - 1) ] with _ -> [ "NO LINE" ]);
+      };
     message = "EMMA_TODO";
     details = None;
     yaml_path = None;
@@ -243,98 +242,6 @@ let json_of_profile_info profile_start =
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
-
-(* This function is used for non-target related exns (e.g., parsing a rule).
- * It is called in Main.ml as a last resort instead of returning
- * matching results (which can also contain errors).
-
- * The Parse_info.Parsing_error and other exns in Parse_info, which are
- * raised during a target analysis (parsing, naming, matching, etc.), are
- * captured in Main.ml by Semgrep_error_code.exn_to_error. The function below is
- * for all the other non-target related exns.
- * update: we actually now use the generic AST to parse a YAML rule, so
- * we may raise Parse_info.Other_Error in a non-target context too.
- *
- * invariant: every non-target related exn that has a Parse_info.t should
- * be captured here!
- * TODO:
- *  - use the _posTODO below
- *  - handle Yaml_to_generic.Parse_error
- *  - handle more exn in Parse_rule.ml? covered everything?
- *  - handle Parse_info.Other_error and more, which can now be raised
- *    when parsing a rule.
- * todo? move all non-pfff exns to a central file Error_semgrep.ml?
- *
- * coupling: Test.metachecker_regression_tests
- *)
-let _json_of_exn e =
-  match e with
-  | Rule.InvalidRule (rule_id, msg, _posTODO) ->
-      J.Object
-        [
-          ("rule_id", J.String rule_id);
-          ("error", J.String "invalid rule");
-          ("message", J.String msg);
-        ]
-  | Rule.InvalidLanguage (rule_id, language, _posTODO) ->
-      J.Object
-        [
-          ("rule_id", J.String rule_id);
-          ("error", J.String "invalid language");
-          ("language", J.String language);
-        ]
-  | Rule.InvalidPattern (rule_id, pattern, xlang, message, pos, path) ->
-      let lang = Rule.string_of_xlang xlang in
-      let range_json =
-        match pos with
-        | { token = PI.FakeTokStr (str, _); _ } -> J.String str
-        | _ ->
-            let s_loc = PI.token_location_of_info pos in
-            J.Object
-              [
-                ("file", J.String s_loc.file);
-                ("line", J.Int s_loc.line);
-                ("col", J.Int s_loc.column);
-                ( "path",
-                  J.Array
-                    (List.map
-                       (fun x ->
-                         match int_of_string_opt x with
-                         | Some i -> J.Int i
-                         | None -> J.String x)
-                       (List.rev path)) );
-              ]
-      in
-      J.Object
-        [
-          ("rule_id", J.String rule_id);
-          ("error", J.String "invalid pattern");
-          ("pattern", J.String pattern);
-          ("language", J.String lang);
-          ("message", J.String message);
-          ("range", range_json);
-        ]
-  | Rule.InvalidRegexp (rule_id, message, _posTODO) ->
-      J.Object
-        [
-          ("rule_id", J.String rule_id);
-          ("error", J.String "invalid regexp in rule");
-          ("message", J.String message);
-        ]
-  | Rule.InvalidYaml (msg, _posTODO) ->
-      J.Object [ ("error", J.String "invalid yaml"); ("message", J.String msg) ]
-  | Rule.UnparsableYamlException msg ->
-      J.Object
-        [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]
-  (* Other exns (Failure, Timeout, etc.) without position information :(
-   * Not much we can do.
-   *)
-  | exn ->
-      J.Object
-        [
-          ("error", J.String "unknown exception");
-          ("message", J.String (Common.exn_to_s exn));
-        ]
 
 (*s: function [[JSON_report.error]] *)
 (* this is used only in the testing code, to reuse the
