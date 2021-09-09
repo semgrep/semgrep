@@ -50,17 +50,17 @@ type match_extra = {
 
 (* See Semgrep_error_code *)
 type error = {
-  ?rule_id: rule_id option;
   error_type: string;
+  ?rule_id: rule_id option;
+  ?location: error_location option;
   message: string;
+  details: string option;
+}
+
+type error_location = {
   path: string;
   start: position;
   end_ <json name="end">: position;
-  extra: error_extra;
-}
-
-type error_extra = {
-  details: string;
   line: string;
 }
 

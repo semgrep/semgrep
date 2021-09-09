@@ -84,15 +84,19 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
            let line =
              Src_file.list_lines_of_pos_range src pos1 pos2 |> List.hd
            in
-           let extra = { details = "EMMA_TODO"; line } in
            {
-             rule_id = None;
              error_type = "EMMA_TODO";
-             path;
-             start = semgrep_pos pos1;
-             end_ = semgrep_pos pos2;
+             rule_id = None;
+             location =
+               Some
+                 {
+                   path;
+                   start = semgrep_pos pos1;
+                   end_ = semgrep_pos pos2;
+                   line;
+                 };
              message = error.Parse_pattern.msg;
-             extra;
+             details = None;
            })
   in
   let time =

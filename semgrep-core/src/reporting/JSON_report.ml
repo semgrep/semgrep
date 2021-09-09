@@ -176,17 +176,18 @@ let error_to_error err =
   let rule_id = E.check_id_of_error_kind err.E.typ in
   let error_type = E.string_of_error_kind err.E.typ in
   {
-    ST.rule_id = Some rule_id;
     error_type;
-    path = file;
-    start = startp;
-    end_ = endp;
+    ST.rule_id = Some rule_id;
+    location =
+      Some
+        {
+          path = file;
+          start = startp;
+          end_ = endp;
+          line = (try lines.(line - 1) with _ -> "NO LINE");
+        };
     message = "EMMA_TODO";
-    extra =
-      {
-        details = "EMMA_TODO";
-        line = (try lines.(line - 1) with _ -> "NO LINE");
-      };
+    details = None;
   }
 
 let json_time_of_profiling_data profiling_data =
