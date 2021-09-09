@@ -1507,18 +1507,7 @@ let program (env : env) ((v1, _v2interpreted) : CST.program) : AST.stmts =
 let parse file =
   let debug = false in
   H.wrap_parser
-    (fun () ->
-      (* TODO: tree-sitter bindings are buggy so we cheat and fork to
-       * avoid segfaults to popup. See Main.ml test_parse_ruby function.
-       *)
-      match 2 with
-      (* segfault quite often *)
-      | 1 -> Tree_sitter_ruby.Parse.file file
-      (* segfault less, but as we fork from a more complex point where
-       * we allocated quite a few stuff, the probability to get a segfault
-       * in the child grows
-       *)
-      | _ -> Tree_sitter_ruby.Parse.file file)
+    (fun () -> Tree_sitter_ruby.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       (if debug then
