@@ -19,6 +19,7 @@ func foo() {
 	//ERROR: match
 	e.ListenAndServe()
 
+	//OK:
 	var f = http.Client{}
 	f.ListenAndServe()
 }
