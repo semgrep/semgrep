@@ -1,449 +1,505 @@
 #!/usr/bin/env python3
-import argparse
 import multiprocessing
 import os
+from typing import cast
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
 
-import semgrep.config_resolver
-import semgrep.semgrep_main
-import semgrep.test
+import click
+from click_option_group import MutuallyExclusiveOptionGroup
+from click_option_group import optgroup
+
 from semgrep import __VERSION__
-from semgrep.bytesize import parse_size
-from semgrep.constants import DEFAULT_CONFIG_FILE
+from semgrep import bytesize
 from semgrep.constants import DEFAULT_MAX_CHARS_PER_LINE
 from semgrep.constants import DEFAULT_MAX_LINES_PER_FINDING
 from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
-from semgrep.constants import OutputFormat
-from semgrep.constants import SEMGREP_URL
-from semgrep.dump_ast import dump_parsed_ast
-from semgrep.error import SemgrepError
-from semgrep.metric_manager import metric_manager
-from semgrep.output import managed_output
-from semgrep.output import OutputSettings
-from semgrep.synthesize_patterns import synthesize_patterns
-from semgrep.target_manager import optional_stdin_target
+from semgrep.util import abort
+from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
-from semgrep.version import version_check
+
 
 logger = getLogger(__name__)
-try:
-    CPU_COUNT = multiprocessing.cpu_count()
-except NotImplementedError:
-    CPU_COUNT = 1  # CPU count is not implemented on Windows
 
 
-def cli() -> None:
-    parser = argparse.ArgumentParser(
-        description=f"semgrep CLI. For more information about semgrep, go to {SEMGREP_URL}",
-        prog="semgrep",
-    )
+def __get_cpu_count() -> int:
+    try:
+        return multiprocessing.cpu_count()
+    except NotImplementedError:
+        return 1  # CPU count is not implemented on Windows
 
-    # input
-    parser.add_argument(
-        "target",
-        nargs="*",
-        default=[os.curdir],
-        help=(
-            "Search these files or directories. Defaults to entire current "
-            "working directory. Implied argument if piping to semgrep."
-        ),
-    )
 
-    # config options
-    config = parser.add_argument_group("config")
-    config_ex = config.add_mutually_exclusive_group()
-    config_ex.add_argument(
-        "-f",  # for backwards compatibility
-        "-c",
-        "--config",
-        action="append",
-        default=[],
-        help=(
-            "YAML configuration file, directory of YAML files ending in "
-            ".yml|.yaml, URL of a configuration file, or semgrep registry entry "
-            "name. See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format."
-        ),
-    )
-    config_ex.add_argument(
-        "-e",
-        "--pattern",
-        help="Code search pattern. See https://semgrep.dev/docs/writing-rules/pattern-syntax for information on pattern features.",
-    )
-    config.add_argument(
-        "-g",
-        "--generate-config",
-        action="store",
-        nargs="?",
-        const=DEFAULT_CONFIG_FILE,
-        type=argparse.FileType("x"),
-        help=f"Generate starter configuration file. Defaults to {DEFAULT_CONFIG_FILE}.",
-    )
-    config.add_argument(
-        "-l",
-        "--lang",
-        help=(
-            "Parse pattern and all files in specified language. Must be used "
-            "with -e/--pattern."
-        ),
-    )
-    config.add_argument(
-        "--validate",
-        action="store_true",
-        help="Validate configuration file(s). No search is performed.",
-    )
-    config.add_argument(
-        "--strict",
-        action="store_true",
-        help="Return a nonzero exit code when WARN level errors are encountered. Fails early if invalid configuration files are present.",
-    )
-    config.add_argument(
-        "--optimizations",
-        nargs="?",
-        default="all",
-        help="Turn on/off optimizations. Default = 'all'. Use 'none' to turn all optimizations off.",
-    )
+def __validate_lang(option: str, lang: Optional[str]) -> str:
+    if lang is None:
+        abort(f"{option} and -l/--lang must both be specified")
+    return cast(str, lang)
 
-    parser.add_argument(
-        "--exclude",
-        action="append",
-        default=[],
-        help="Skip any file or directory that matches this pattern; --exclude='*.py' will ignore"
-        " the following: foo.py, src/foo.py, foo.py/bar.sh. --exclude='tests' will ignore tests/foo.py"
-        " as well as a/b/tests/c/foo.py. Can add multiple times. Overrides includes.",
-    )
-    parser.add_argument(
-        "--include",
-        action="append",
-        default=[],
-        help="Filter files or directories by path. The argument is a"
-        " glob-style pattern such as 'foo.*' that must match the path."
-        " This is an extra filter in addition to other applicable filters."
-        " For example, specifying the language with '-l javascript' might"
-        " preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of"
-        " '--include=src', '--include=*.jsx', or '--include=src/foo.*'"
-        " will restrict the selection to the single file 'src/foo.jsx'."
-        " A choice of multiple '--include' patterns can be specified."
-        " For example, '--include=foo.* --include=bar.*' will select"
-        " both 'src/foo.jsx' and 'lib/bar.js'."
-        " Glob-style patterns follow the syntax supported by python,"
-        " which is documented at https://docs.python.org/3/library/glob.html",
-    )
-    parser.add_argument(
-        "--no-git-ignore",
-        action="store_true",
-        help="Don't skip files ignored by git."
-        " Scanning starts from the root folder specified on the semgrep"
-        " command line."
-        " Normally, if the scanning root is within a git repository, "
-        " only the tracked files and the new files"
-        " would be scanned. Git submodules and git-ignored files would"
-        " normally be skipped."
-        " This option will disable git-aware filtering."
-        " Setting this flag does nothing if the scanning root is not"
-        " in a git repository.",
-    )
-    parser.add_argument(
-        "--skip-unknown-extensions",
-        action="store_true",
-        help="Scan only known file extensions, even if unrecognized ones are explicitly targeted.",
-    )
 
-    config.add_argument(
-        "-j",
-        "--jobs",
-        action="store",
-        type=int,
-        default=CPU_COUNT,
-        help=(
-            "Number of subprocesses to use to run checks in parallel. Defaults "
-            "to the number of CPUs on the system."
-        ),
-    )
+@click.command()
+@click.argument("target", nargs=-1)
+@click.option(
+    "-a",
+    "--autofix/--no-autofix",
+    is_flag=True,
+    help=(
+        "Apply autofix patches. WARNING: data loss can occur with this "
+        "flag. Make sure your files are stored in a version control system. "
+        "Note that this mode is experimental and not guaranteed to function properly."
+    ),
+)
+@click.option(
+    "--replacement",
+    help=(
+        "An autofix expression that will be applied to any matches found with --pattern. "
+        "Only valid with a command-line specified pattern."
+    ),
+)
+@click.option(
+    "--enable-metrics/--disable-metrics",
+    is_flag=True,
+    help="Send pseudonymous usage metrics to Semgrep. If absent, uses the value of the SEMGREP_SEND_METRICS environment variable; "
+    "defaults to no metrics. NOTE: THIS IS SUBJECT TO CHANGE IN A FUTURE SEMGREP RELEASE.",
+    envvar="SEMGREP_SEND_METRICS",
+)
+@click.option(
+    "--error/--no-error",
+    "error_on_findings",
+    is_flag=True,
+    help="Exit 1 if there are findings. Useful for CI and scripts.",
+)
+@click.option(
+    "--lang",
+    "-l",
+    help="Parse pattern and all files in specified language. Must be used "
+    "with -e/--pattern.",
+)
+@click.option(
+    "--severity",
+    multiple=True,
+    type=click.Choice(["INFO", "WARNING", "ERROR"]),
+    help=(
+        "Report findings only from rules matching the supplied severity level. By default all applicable rules are run."
+        "Can add multiple times. Each should be one of INFO, WARNING, or ERROR."
+    ),
+)
+@click.option(
+    "--strict/--no-strict",
+    is_flag=True,
+    default=False,
+    help="Return a nonzero exit code when WARN level errors are encountered. Fails early if invalid configuration files are present. Defaults to --no-strict.",
+)
+@optgroup.group("Configuration options", cls=MutuallyExclusiveOptionGroup)
+@optgroup.option(
+    "--config",
+    "-c",
+    "-f",
+    multiple=True,
+    help="YAML configuration file, directory of YAML files ending in "
+    ".yml|.yaml, URL of a configuration file, or Semgrep registry entry "
+    "name. See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.",
+)
+@optgroup.option(
+    "--pattern",
+    "-e",
+    help="Code search pattern. See https://semgrep.dev/docs/writing-rules/pattern-syntax for information on pattern features.",
+)
+@optgroup.group("Alternate modes", help="No search is performed in these modes")
+@optgroup.option(
+    "--validate",
+    is_flag=True,
+    default=False,
+    help="Validate configuration file(s). No search is performed.",
+)
+@optgroup.option(
+    "--version", is_flag=True, default=False, help="Show the version and exit."
+)
+@optgroup.group(
+    "Path options",
+    help="By default, Semgrep scans all git-tracked files with extensions matching rules' languages."
+    " These options alter which files Semgrep scans.",
+)
+@optgroup.option(
+    "--exclude",
+    multiple=True,
+    default=[],
+    help="Skip any file or directory that matches this pattern; --exclude='*.py' will ignore"
+    " the following: foo.py, src/foo.py, foo.py/bar.sh. --exclude='tests' will ignore tests/foo.py"
+    " as well as a/b/tests/c/foo.py. Can add multiple times. If present, any --include directives"
+    " are ignored.",
+)
+@optgroup.option(
+    "--include",
+    multiple=True,
+    default=[],
+    help="Filter files or directories by path. The argument is a"
+    " glob-style pattern such as 'foo.*' that must match the path."
+    " This is an extra filter in addition to other applicable filters."
+    " For example, specifying the language with '-l javascript' might"
+    " preselect files 'src/foo.jsx' and 'lib/bar.js'. Specifying one of"
+    " '--include=src', '--include=*.jsx', or '--include=src/foo.*'"
+    " will restrict the selection to the single file 'src/foo.jsx'."
+    " A choice of multiple '--include' patterns can be specified."
+    " For example, '--include=foo.* --include=bar.*' will select"
+    " both 'src/foo.jsx' and 'lib/bar.js'."
+    " Glob-style patterns follow the syntax supported by python,"
+    " which is documented at https://docs.python.org/3/library/glob.html",
+)
+@optgroup.option(
+    "--max-target-bytes",
+    type=bytesize.ByteSizeType(),
+    default=DEFAULT_MAX_TARGET_SIZE,
+    help=(
+        "Maximum size for a file to be scanned by Semgrep, e.g '1.5MB'. "
+        "Any input program larger than this will be ignored. "
+        "A zero or negative value disables this filter. "
+        f"Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes."
+    ),
+)
+@optgroup.option(
+    "--use-git-ignore/--no-git-ignore",
+    is_flag=True,
+    default=True,
+    help="Skip files ignored by git."
+    " Scanning starts from the root folder specified on the Semgrep"
+    " command line."
+    " Normally, if the scanning root is within a git repository, "
+    " only the tracked files and the new files"
+    " would be scanned. Git submodules and git-ignored files would"
+    " normally be skipped."
+    " --no-git-ignore will disable git-aware filtering."
+    " Setting this flag does nothing if the scanning root is not"
+    " in a git repository.",
+)
+@optgroup.option(
+    "--scan-unknown-extensions/--skip-unknown-extensions",
+    is_flag=True,
+    default=True,
+    help="If true, explicit files will be scanned using the language specified in --lang. If --skip-unknown-extensions, "
+    "these files will not be scanned",
+)
+@optgroup.group("Performance and memory options")
+@optgroup.option(
+    "--enable-version-check/--disable-version-check",
+    is_flag=True,
+    default=True,
+    help="Checks Semgrep servers to see if the latest version is run; disabling this may reduce exit time after returning results.",
+)
+@optgroup.option(
+    "-j",
+    "--jobs",
+    type=int,
+    default=__get_cpu_count(),
+    help=(
+        "Number of subprocesses to use to run checks in parallel. Defaults "
+        "to the number of cores on the system."
+    ),
+)
+@optgroup.option(
+    "--max-memory",
+    type=int,
+    default=0,
+    help=(
+        "Maximum system memory to use running a rule on a single file in MB. If set to 0 will not have memory limit. Defaults to 0."
+    ),
+)
+@optgroup.option(
+    "--optimizations",
+    default="all",
+    type=click.Choice(["all", "none"]),
+    help="Turn on/off optimizations. Default = 'all'. Use 'none' to turn all optimizations off.",
+)
+@optgroup.option(
+    "--timeout",
+    type=int,
+    default=DEFAULT_TIMEOUT,
+    help=(
+        f"Maximum time to spend running a rule on a single file in seconds. If set to 0 will not have time limit. Defaults to {DEFAULT_TIMEOUT} s."
+    ),
+)
+@optgroup.option(
+    "--timeout-threshold",
+    type=int,
+    default=0,
+    help=(
+        "Maximum number of rules that can timeout on a file before the file is skipped. If set to 0 will not have limit. Defaults to 0."
+    ),
+)
+@optgroup.group("Display options")
+@optgroup.option(
+    "--enable-nosem/--disable-nosem",
+    is_flag=True,
+    default=True,
+    help=(
+        "--enable-nosem enables 'nosem'. Findings will not be reported on lines "
+        "containing a 'nosem' comment at the end. Enabled by default."
+    ),
+)
+@optgroup.option(
+    "--force-color/--no-force-color",
+    is_flag=True,
+    help="Always include ANSI color in the output, even if not writing to a TTY; defaults to using the TTY status",
+)
+@optgroup.option(
+    MAX_CHARS_FLAG_NAME,
+    type=int,
+    default=DEFAULT_MAX_CHARS_PER_LINE,
+    help=("Maximum number of characters to show per line."),
+)
+@optgroup.option(
+    MAX_LINES_FLAG_NAME,
+    type=int,
+    default=DEFAULT_MAX_LINES_PER_FINDING,
+    help=(
+        "Maximum number of lines of code that will be shown for each match before trimming (set to 0 for unlimited)."
+    ),
+)
+@optgroup.option(
+    "-o",
+    "--output",
+    help=(
+        "Save search results to a file or post to URL. "
+        "Default is to print to stdout."
+    ),
+)
+@optgroup.option(
+    "--rewrite-rule-ids/--no-rewrite-rule-ids",
+    is_flag=True,
+    default=True,
+    help=(
+        "Rewrite rule ids when they appear in nested sub-directories "
+        "(Rule 'foo' in test/rules.yaml will be renamed "
+        "'test.foo')."
+    ),
+)
+@optgroup.option(
+    "--time/--no-time",
+    is_flag=True,
+    default=False,
+    help=(
+        "Include a timing summary with the results"
+        "If output format is json, provides times for each pair (rule, target)."
+    ),
+)
+@optgroup.group(
+    "Output formats",
+    cls=MutuallyExclusiveOptionGroup,
+    help="Uses ASCII output if no format specified.",
+)
+@optgroup.option(
+    "--emacs",
+    is_flag=True,
+    help="Output results in Emacs single-line format.",
+)
+@optgroup.option("--json", is_flag=True, help="Output results in JSON format.")
+@optgroup.option(
+    "--junit-xml", is_flag=True, help="Output results in JUnit XML format."
+)
+@optgroup.option("--sarif", is_flag=True, help="Output results in SARIF format.")
+@optgroup.option(
+    "--vim",
+    is_flag=True,
+    help="Output results in vim single-line format.",
+)
+@optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup)
+@optgroup.option(
+    "-q",
+    "--quiet",
+    is_flag=True,
+    help=("Only output findings."),
+)
+@optgroup.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help=(
+        "Show more details about what rules are running, which files failed to parse, etc."
+    ),
+)
+@optgroup.option(
+    "--debug",
+    is_flag=True,
+    help="All of --verbose, but with additional debugging information.",
+)
+@optgroup.group("Test and debug options")
+@optgroup.option("--test", is_flag=True, default=False, help="Run test suite.")
+@optgroup.option(
+    "--test-ignore-todo/--no-test-ignore-todo",
+    is_flag=True,
+    default=False,
+    help="If --test-ignore-todo, ignores rules marked as '#todoruleid:' in test files.",
+)
+@optgroup.option(
+    "--dump-ast/--no-dump-ast",
+    is_flag=True,
+    default=False,
+    help=(
+        "If --dump-ast, shows AST of the input file or passed expression and then exit "
+        "(can use --json)."
+    ),
+)
+@optgroup.option(
+    "--dryrun/--no-dryrun",
+    is_flag=True,
+    default=False,
+    help=(
+        "If --dryrun, does not write autofixes to a file. "
+        "This will print the changes to the console. "
+        "This lets you see the changes before you commit to them. "
+        "Only works with the --autofix flag. Otherwise does nothing."
+    ),
+)
 
-    config.add_argument(
-        "--timeout",
-        type=int,
-        default=DEFAULT_TIMEOUT,
-        help=(
-            "Maximum time to spend running a rule on a single file in seconds. If set to 0 will not have time limit. Defaults to {} s.".format(
-                DEFAULT_TIMEOUT
-            )
-        ),
-    )
+# These flags are deprecated or experimental - users should not
+# rely on their existence, or their output being stable
+@click.option(
+    "--json-stats",
+    is_flag=True,
+    hidden=True
+    # help="Include statistical information about performance in JSON output (experimental).",
+)
+@click.option(
+    "--json-time",
+    is_flag=True,
+    hidden=True
+    # help="Deprecated alias for --json + --time",
+)
+@click.option(
+    "--debugging-json",
+    is_flag=True,
+    hidden=True
+    # help="Deprecated alias for --json + --debug",
+)
+@click.option(
+    "--save-test-output-tar",
+    is_flag=True,
+    hidden=True
+    # help="Save --test output for use in semgrep-app registry",
+)
+@click.option(
+    "--synthesize-patterns",
+    type=str,
+    hidden=True
+    # help="Legacy pattern recommendation functionality for use in semgrep-app playground",
+)
+@click.option("--generate-config", "-g", is_flag=True, hidden=True)
+@click.option(
+    "--dangerously-allow-arbitrary-code-execution-from-rules",
+    is_flag=True,
+    hidden=True
+    # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
+)
+def cli(
+    autofix: bool,
+    config: Optional[Tuple[str, ...]],
+    dangerously_allow_arbitrary_code_execution_from_rules: bool,
+    debug: bool,
+    debugging_json: bool,
+    dryrun: bool,
+    dump_ast: bool,
+    emacs: bool,
+    enable_metrics: bool,
+    enable_nosem: bool,
+    enable_version_check: bool,
+    error_on_findings: bool,
+    exclude: Optional[Tuple[str, ...]],
+    force_color: bool,
+    generate_config: bool,
+    include: Optional[Tuple[str, ...]],
+    jobs: int,
+    json: bool,
+    json_stats: bool,
+    json_time: bool,
+    junit_xml: bool,
+    lang: Optional[str],
+    max_chars_per_line: int,
+    max_lines_per_finding: int,
+    max_memory: int,
+    max_target_bytes: int,
+    optimizations: str,
+    output: Optional[str],
+    pattern: Optional[str],
+    quiet: bool,
+    replacement: Optional[str],
+    rewrite_rule_ids: bool,
+    sarif: bool,
+    save_test_output_tar: bool,
+    scan_unknown_extensions: bool,
+    severity: Optional[Tuple[str, ...]],
+    strict: bool,
+    synthesize_patterns: str,
+    target: Tuple[str, ...],
+    test: bool,
+    test_ignore_todo: bool,
+    time: bool,
+    timeout: int,
+    timeout_threshold: int,
+    use_git_ignore: bool,
+    validate: bool,
+    verbose: bool,
+    version: bool,
+    vim: bool,
+) -> None:
+    """
+    Semgrep CLI. Searches TARGET paths for matches to rules or patterns. Defaults to searching entire current working directory.
 
-    config.add_argument(
-        "--max-memory",
-        type=int,
-        default=0,
-        help=(
-            "Maximum memory to use running a rule on a single file in MB. If set to 0 will not have memory limit. Defaults to 0."
-        ),
-    )
+    For more information about Semgrep, go to https://semgrep.dev.
+    """
 
-    config.add_argument(
-        "--max-target-bytes",
-        type=parse_size,
-        default=DEFAULT_MAX_TARGET_SIZE,
-        help=(
-            "Maximum size for a file to be scanned by semgrep, e.g '1.5MB'. "
-            "Any input program larger than this will be ignored. "
-            "A zero or negative value disables this filter. "
-            f"Defaults to {DEFAULT_MAX_TARGET_SIZE} bytes."
-        ),
-    )
-
-    config.add_argument(
-        "--timeout-threshold",
-        type=int,
-        default=0,
-        help=(
-            "Maximum number of rules that can timeout on a file before the file is skipped. If set to 0 will not have limit. Defaults to 0."
-        ),
-    )
-
-    config.add_argument(
-        "--severity",
-        action="append",
-        default=[],
-        help=(
-            "Report findings only from rules matching the supplied severity level. By default all applicable rules are run."
-            "Can add multiple times. Each should be one of INFO, WARNING, or ERROR."
-        ),
-    )
-
-    # output options
-    output = parser.add_argument_group("output")
-
-    output.add_argument(
-        "--no-rewrite-rule-ids",
-        action="store_true",
-        help=(
-            "Do not rewrite rule ids when they appear in nested sub-directories "
-            "(by default, rule 'foo' in test/rules.yaml will be renamed "
-            "'test.foo')."
-        ),
-    )
-
-    output.add_argument(
-        "-o",
-        "--output",
-        help=(
-            "Save search results to a file or post to URL. "
-            "Default is to print to stdout."
-        ),
-    )
-    output.add_argument(
-        "--json", action="store_true", help="Output results in JSON format."
-    )
-    output.add_argument(
-        "--time",
-        action="store_true",
-        help=(
-            "Include a timing summary with the results"
-            "If output format is json, provides times for each pair (rule, target)."
-        ),
-    )
-    output.add_argument(
-        "--junit-xml", action="store_true", help="Output results in JUnit XML format."
-    )
-    output.add_argument(
-        "--sarif", action="store_true", help="Output results in SARIF format."
-    )
-    output.add_argument(
-        "--emacs",
-        action="store_true",
-        help="Output results in Emacs single-line format.",
-    )
-    output.add_argument(
-        "--vim",
-        action="store_true",
-        help="Output results in vim single-line format.",
-    )
-    output.add_argument("--test", action="store_true", help="Run test suite.")
-    parser.add_argument(
-        "--test-ignore-todo",
-        action="store_true",
-        help="Ignore rules marked as '#todoruleid:' in test files.",
-    )
-    output.add_argument(
-        "--dump-ast",
-        action="store_true",
-        help=(
-            "Show AST of the input file or passed expression and then exit "
-            "(can use --json)."
-        ),
-    )
-    output.add_argument(
-        "--error",
-        action="store_true",
-        help="Exit 1 if there are findings. Useful for CI and scripts.",
-    )
-
-    output.add_argument(
-        "-a",
-        "--autofix",
-        action="store_true",
-        help=(
-            "Apply the autofix patches. WARNING: data loss can occur with this "
-            "flag. Make sure your files are stored in a version control system."
-        ),
-    )
-    output.add_argument(
-        "--dryrun",
-        action="store_true",
-        help=(
-            "Do autofixes, but don't write them to a file. "
-            "This will print the changes to the console. "
-            "This lets you see the changes before you commit to them. "
-            "Only works with the --autofix flag. Otherwise does nothing."
-        ),
-    )
-    output.add_argument(
-        "--disable-nosem",
-        action="store_true",
-        help=(
-            "Disable the effect of 'nosem'. This will report findings on lines "
-            "containing a 'nosem' comment at the end."
-        ),
-    )
-    output.add_argument(
-        MAX_LINES_FLAG_NAME,
-        type=int,
-        default=DEFAULT_MAX_LINES_PER_FINDING,
-        help=(
-            "Maximum number of lines of code that will be shown for each match before trimming (set to 0 for unlimited)."
-        ),
-    )
-
-    output.add_argument(
-        MAX_CHARS_FLAG_NAME,
-        type=int,
-        default=DEFAULT_MAX_CHARS_PER_LINE,
-        help=("Maximum number of characters to show per line."),
-    )
-
-    # verbosity options
-    verbosity_group = parser.add_argument_group("verbosity")
-    verbosity_ex = verbosity_group.add_mutually_exclusive_group()
-    verbosity_ex.add_argument(
-        "-q",
-        "--quiet",
-        action="store_true",
-        help=("Only output findings"),
-    )
-    verbosity_ex.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help=(
-            "Show more details about what rules are running, which files failed to parse, etc."
-        ),
-    )
-    verbosity_ex.add_argument(
-        "--debug",
-        action="store_true",
-        help="Output debugging information",
-    )
-
-    parser.add_argument(
-        "--version", action="store_true", help="Show the version and exit."
-    )
-
-    metric_group = parser.add_argument_group("config")
-    metric_ex = metric_group.add_mutually_exclusive_group()
-    metric_ex.add_argument(
-        "--enable-metrics",
-        action="store_true",
-        help="Opt-in to metrics. Defaults to what SEMGREP_SEND_METRICS envvar is set to",
-        default=os.environ.get("SEMGREP_SEND_METRICS"),
-    )
-    metric_ex.add_argument(
-        "--disable-metrics",
-        action="store_false",
-        help="Opt-out of metrics.",
-        dest="enable_metrics",
-    )
-
-    parser.add_argument(
-        "--force-color",
-        action="store_true",
-        help="Always include ANSI color in the output, even if not writing to a TTY",
-    )
-    parser.add_argument(
-        "--disable-version-check",
-        action="store_true",
-        help="Disable checking for latest version.",
-    )
-
-    # These flags are deprecated or experimental - users should not
-    # rely on their existence, or their output being stable
-    output.add_argument(
-        "--json-stats",
-        action="store_true",
-        help=argparse.SUPPRESS,
-        # help="Include statistical information about performance in JSON output (experimental).",
-    )
-    output.add_argument(
-        "--json-time",
-        action="store_true",
-        help=argparse.SUPPRESS,
-        # help="Deprecated alias for --json + --time",
-    )
-    output.add_argument(
-        "--debugging-json",
-        action="store_true",
-        help=argparse.SUPPRESS,
-        # help="Deprecated alias for --json + --debug",
-    )
-    output.add_argument(
-        "--save-test-output-tar",
-        action="store_true",
-        help=argparse.SUPPRESS,
-        # help="Save --test output for use in semgrep-app registry",
-    )
-    output.add_argument(
-        "--synthesize-patterns",
-        help=argparse.SUPPRESS,
-        # help="Legacy pattern recommendation functionality for use in semgrep-app playground",
-    )
-    config.add_argument(
-        "--dangerously-allow-arbitrary-code-execution-from-rules",
-        action="store_true",
-        help=argparse.SUPPRESS,
-        # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
-    )
-
-    ### Parse and validate
-    args = parser.parse_args()
-
-    if args.version:
+    if version:
         print(__VERSION__)
-        if not args.disable_version_check:
+        if enable_version_check:
+            from semgrep.version import version_check
+
             version_check()
         return
 
-    if args.enable_metrics:
+    # To keep version runtime fast, we defer non-version imports until here
+    import semgrep.semgrep_main
+    import semgrep.test
+    import semgrep.config_resolver
+    from semgrep.constants import OutputFormat
+    from semgrep.constants import DEFAULT_CONFIG_FILE
+    from semgrep.dump_ast import dump_parsed_ast
+    from semgrep.error import SemgrepError
+    from semgrep.metric_manager import metric_manager
+    from semgrep.output import managed_output
+    from semgrep.output import OutputSettings
+    from semgrep.synthesize_patterns import synthesize
+    from semgrep.target_manager import optional_stdin_target
+
+    target_sequence: Sequence[str] = list(target) if target else [os.curdir]
+
+    if enable_metrics:
         metric_manager.enable()
     else:
         metric_manager.disable()
 
-    if args.pattern and not args.lang:
-        parser.error("-e/--pattern and -l/--lang must both be specified")
+    if include and exclude:
+        logger.warning(
+            with_color(
+                "yellow",
+                "Paths that match both --include and --exclude will be skipped by Semgrep.",
+            )
+        )
 
-    if args.dump_ast and not args.lang:
-        parser.error("--dump-ast and -l/--lang must both be specified")
+    if pattern is not None and lang is None:
+        abort("-e/--pattern and -l/--lang must both be specified")
 
-    if args.dangerously_allow_arbitrary_code_execution_from_rules:
+    if dangerously_allow_arbitrary_code_execution_from_rules:
         logger.warning(
             "The '--dangerously-allow-arbitrary-code-execution-from-rules' flag is now deprecated and does nothing. It will be removed in the future."
         )
 
-    output_time = args.time or args.json_time
+    output_time = time or json_time
 
     # set the flags
-    semgrep.util.set_flags(args.verbose, args.debug, args.quiet, args.force_color)
+    semgrep.util.set_flags(
+        verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
+    )
 
     # change cwd if using docker
     try:
@@ -453,49 +509,63 @@ def cli() -> None:
         raise e
 
     output_format = OutputFormat.TEXT
-    if args.json or args.json_time or args.debugging_json:
+    if json or json_time or debugging_json:
         output_format = OutputFormat.JSON
-    elif args.junit_xml:
+    elif junit_xml:
         output_format = OutputFormat.JUNIT_XML
-    elif args.sarif:
+    elif sarif:
         output_format = OutputFormat.SARIF
-    elif args.emacs:
+    elif emacs:
         output_format = OutputFormat.EMACS
-    elif args.vim:
+    elif vim:
         output_format = OutputFormat.VIM
 
     output_settings = OutputSettings(
         output_format=output_format,
-        output_destination=args.output,
-        error_on_findings=args.error,
-        strict=args.strict,
-        debug=args.debugging_json,
-        verbose_errors=args.verbose,
-        timeout_threshold=args.timeout_threshold,
-        json_stats=args.json_stats,
+        output_destination=output,
+        error_on_findings=error_on_findings,
+        strict=strict,
+        debug=debugging_json,
+        verbose_errors=verbose,
+        timeout_threshold=timeout_threshold,
+        json_stats=json_stats,
         output_time=output_time,
-        output_per_finding_max_lines_limit=args.max_lines_per_finding,
-        output_per_line_max_chars_limit=args.max_chars_per_line,
+        output_per_finding_max_lines_limit=max_lines_per_finding,
+        output_per_line_max_chars_limit=max_chars_per_line,
     )
 
-    if args.test:
+    if test:
         # the test code (which isn't a "test" per se but is actually machinery to evaluate semgrep performance)
         # uses managed_output internally
-        semgrep.test.test_main(args)
+        semgrep.test.test_main(
+            target=target_sequence,
+            config=config,
+            test_ignore_todo=test_ignore_todo,
+            strict=strict,
+            json=json,
+            save_test_output_tar=save_test_output_tar,
+            optimizations=optimizations,
+        )
 
     # The 'optional_stdin_target' context manager must remain before
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
-    with optional_stdin_target(args.target) as target, managed_output(
+    with optional_stdin_target(target_sequence) as target_sequence, managed_output(
         output_settings
     ) as output_handler:
-        if args.dump_ast:
-            dump_parsed_ast(args.json, args.lang, args.pattern, target)
-        elif args.synthesize_patterns:
-            synthesize_patterns(args.lang, args.synthesize_patterns, target)
-        elif args.validate:
+        if dump_ast:
+            dump_parsed_ast(
+                json, __validate_lang("--dump_ast", lang), pattern, target_sequence
+            )
+        elif synthesize_patterns:
+            synthesize(
+                __validate_lang("--synthesize-patterns", lang),
+                synthesize_patterns,
+                target_sequence,
+            )
+        elif validate:
             configs, config_errors = semgrep.config_resolver.get_config(
-                args.pattern, args.lang, args.config
+                pattern, lang, config or []
             )
             valid_str = "invalid" if config_errors else "valid"
             rule_count = len(configs.get_rules(True))
@@ -503,37 +573,39 @@ def cli() -> None:
                 f"Configuration is {valid_str} - found {len(configs.valid)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
             )
             if config_errors:
-                for error in config_errors:
-                    output_handler.handle_semgrep_error(error)
+                for err in config_errors:
+                    output_handler.handle_semgrep_error(err)
                 raise SemgrepError("Please fix the above errors and try again.")
-        elif args.generate_config:
-            semgrep.config_resolver.generate_config(
-                args.generate_config, args.lang, args.pattern
-            )
+        elif generate_config:
+            with open(DEFAULT_CONFIG_FILE, "w") as fd:
+                semgrep.config_resolver.generate_config(fd, lang, pattern)
         else:
             semgrep.semgrep_main.main(
                 output_handler=output_handler,
-                target=target,
-                pattern=args.pattern,
-                lang=args.lang,
-                configs=args.config,
-                no_rewrite_rule_ids=args.no_rewrite_rule_ids,
-                jobs=args.jobs,
-                include=args.include,
-                exclude=args.exclude,
-                max_target_bytes=args.max_target_bytes,
-                strict=args.strict,
-                autofix=args.autofix,
-                dryrun=args.dryrun,
-                disable_nosem=args.disable_nosem,
-                no_git_ignore=args.no_git_ignore,
-                timeout=args.timeout,
-                max_memory=args.max_memory,
-                timeout_threshold=args.timeout_threshold,
-                skip_unknown_extensions=args.skip_unknown_extensions,
-                severity=args.severity,
-                optimizations=args.optimizations,
+                target=target_sequence,
+                pattern=pattern,
+                lang=lang,
+                configs=(config or []),
+                no_rewrite_rule_ids=(not rewrite_rule_ids),
+                jobs=jobs,
+                include=include,
+                exclude=exclude,
+                max_target_bytes=max_target_bytes,
+                replacement=replacement,
+                strict=strict,
+                autofix=autofix,
+                dryrun=dryrun,
+                disable_nosem=(not enable_nosem),
+                no_git_ignore=(not use_git_ignore),
+                timeout=timeout,
+                max_memory=max_memory,
+                timeout_threshold=timeout_threshold,
+                skip_unknown_extensions=(not scan_unknown_extensions),
+                severity=severity,
+                optimizations=optimizations,
             )
 
-    if not args.disable_version_check:
+    if enable_version_check:
+        from semgrep.version import version_check
+
         version_check()

@@ -100,6 +100,8 @@ setuptools.setup(
     install_requires=[
         "attrs>=19.3.0",
         "colorama>=0.4.3",
+        "click>=8.0.1",
+        "click-option-group>=0.5.3",
         "requests>=2.22.0",
         "ruamel.yaml>=0.16.0,<0.18",
         "tqdm>=4.46.1",

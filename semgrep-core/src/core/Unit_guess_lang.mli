@@ -2,4 +2,4 @@
    Unit tests for the Guess_lang module
 *)
 
-val unittest : OUnit.test
+val tests : Testutil.test list

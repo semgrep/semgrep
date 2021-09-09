@@ -8,5 +8,6 @@
  (libraries
    unix
    commons
+   semgrep_testutil
  )
 )

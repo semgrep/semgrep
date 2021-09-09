@@ -21,6 +21,7 @@ from semgrep.formatter.base import BaseFormatter
 from semgrep.rule_match import RuleMatch
 from semgrep.util import format_bytes
 from semgrep.util import truncate
+from semgrep.util import with_color
 
 
 class TextFormatter(BaseFormatter):
@@ -40,9 +41,9 @@ class TextFormatter(BaseFormatter):
         end_color = max(end_color - 1, 0)
         line = (
             line[:start_color]
-            + colorama.Style.BRIGHT
-            + line[start_color : end_color + 1]  # want the color to include the end_col
-            + colorama.Style.RESET_ALL
+            + with_color(
+                "bright_black", line[start_color : end_color + 1]
+            )  # want the color to include the end_col
             + line[end_color + 1 :]
         )
         return line
@@ -76,7 +77,7 @@ class TextFormatter(BaseFormatter):
                         line = TextFormatter._color_line(
                             line, start_line + i, start_line, start_col, end_line, end_col  # type: ignore
                         )
-                        line_number = f"{colorama.Fore.GREEN}{start_line + i}{colorama.Style.RESET_ALL}"
+                        line_number = with_color("green", f"{start_line + i}")
                     else:
                         line_number = f"{start_line + i}"
 
@@ -120,9 +121,6 @@ class TextFormatter(BaseFormatter):
     ) -> Iterator[str]:
         items_to_show = 5
         col_lim = 70
-        RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
-        GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
-        YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
 
         rule_parsing_time = sum(
             parse_time for parse_time in time_data["rule_parse_info"]
@@ -160,7 +158,7 @@ class TextFormatter(BaseFormatter):
         for file_name, parse_time in slowest_file_times:
             num_bytes = f"({format_bytes(Path(file_name).resolve().stat().st_size)}):"
             file_name = truncate(file_name, col_lim)
-            yield f"{GREEN_COLOR}{file_name:<70}{RESET_COLOR} {num_bytes:<9}{parse_time:.4f}"
+            yield f"{with_color('green', f'{file_name:<70}')} {num_bytes:<9}{parse_time:.4f}"
 
         yield f"Slowest {items_to_show} rules to run (excluding parse time)"
         slowest_rule_times = sorted(
@@ -168,7 +166,7 @@ class TextFormatter(BaseFormatter):
         )[:items_to_show]
         for rule_id, (total_time, match_time) in slowest_rule_times:
             rule_id = truncate(rule_id, col_lim) + ":"
-            yield f"{YELLOW_COLOR}{rule_id:<71}{RESET_COLOR} run time {total_time:.4f}  match time {match_time:.4f}"
+            yield f"{with_color('yellow', f'{rule_id:<71}')} run time {total_time:.4f}  match time {match_time:.4f}"
 
     @staticmethod
     def _build_text_output(
@@ -177,11 +175,6 @@ class TextFormatter(BaseFormatter):
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
     ) -> Iterator[str]:
-        RESET_COLOR = colorama.Style.RESET_ALL if color_output else ""
-        GREEN_COLOR = colorama.Fore.GREEN if color_output else ""
-        YELLOW_COLOR = colorama.Fore.YELLOW if color_output else ""
-        RED_COLOR = colorama.Fore.RED if color_output else ""
-        BLUE_COLOR = colorama.Fore.BLUE if color_output else ""
 
         last_file = None
         last_message = None
@@ -195,7 +188,7 @@ class TextFormatter(BaseFormatter):
             if last_file is None or last_file != current_file:
                 if last_file is not None:
                     yield ""
-                yield f"{GREEN_COLOR}{current_file}{RESET_COLOR}"
+                yield with_color("green", str(current_file))
                 last_message = None
             # don't display the rule line if the check is empty
             if (
@@ -203,15 +196,13 @@ class TextFormatter(BaseFormatter):
                 and check_id != CLI_RULE_ID
                 and (last_message is None or last_message != message)
             ):
-                severity_colors = {
-                    RuleSeverity.INFO: "",
-                    RuleSeverity.WARNING: YELLOW_COLOR,
-                    RuleSeverity.ERROR: RED_COLOR,
-                }
-                severity_color = severity_colors[rule_match.severity]
-                severity_string = rule_match.severity.value.lower()
-                severity_prepend = f"{severity_color}severity:{severity_string} "
-                yield f"{severity_prepend}{YELLOW_COLOR}rule:{check_id}: {message}{RESET_COLOR}"
+                severity = rule_match.severity
+                severity_text = f"severity:{severity.value.lower()} "
+                if severity == RuleSeverity.WARNING:
+                    severity_text = with_color("yellow", severity_text)
+                elif severity == RuleSeverity.ERROR:
+                    severity_text = with_color("red", severity_text)
+                yield f"{severity_text}{with_color('yellow', f'rule:{check_id}: {message}')}"
 
             last_file = current_file
             last_message = message
@@ -222,10 +213,10 @@ class TextFormatter(BaseFormatter):
             )
 
             if fix:
-                yield f"{BLUE_COLOR}autofix:{RESET_COLOR} {fix}"
+                yield f"{with_color('blue', 'autofix:')} {fix}"
             elif rule_match.fix_regex:
                 fix_regex = rule_match.fix_regex
-                yield f"{BLUE_COLOR}autofix:{RESET_COLOR} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+                yield f"{with_color('blue', 'autofix:')} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
 
             is_same_file = (
                 next_rule_match.path == rule_match.path if next_rule_match else False

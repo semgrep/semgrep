@@ -1,0 +1,513 @@
+{
+  "Pr": [
+    {
+      "DefStmt": [
+        {
+          "attrs": [],
+          "name": {
+            "EN": {
+              "Id": [
+                [
+                  "foo",
+                  "()"
+                ],
+                {
+                  "id_constness": {
+                    "ref@": null
+                  },
+                  "id_resolved": {
+                    "ref@": null
+                  },
+                  "id_type": {
+                    "ref@": null
+                  }
+                }
+              ]
+            }
+          },
+          "tparams": []
+        },
+        {
+          "FuncDef": {
+            "fbody": {
+              "Block": [
+                {
+                  "Return": [
+                    "()",
+                    {
+                      "some": {
+                        "Call": [
+                          {
+                            "IdSpecial": [
+                              {
+                                "Op": "Eq"
+                              },
+                              "()"
+                            ]
+                          },
+                          [
+                            {
+                              "Arg": {
+                                "Call": [
+                                  {
+                                    "IdSpecial": [
+                                      {
+                                        "Op": "Plus"
+                                      },
+                                      "()"
+                                    ]
+                                  },
+                                  [
+                                    {
+                                      "Arg": {
+                                        "N": {
+                                          "Id": [
+                                            [
+                                              "a",
+                                              "()"
+                                            ],
+                                            {
+                                              "id_constness": {
+                                                "ref@": null
+                                              },
+                                              "id_resolved": {
+                                                "ref@": null
+                                              },
+                                              "id_type": {
+                                                "ref@": null
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "Arg": {
+                                        "N": {
+                                          "Id": [
+                                            [
+                                              "b",
+                                              "()"
+                                            ],
+                                            {
+                                              "id_constness": {
+                                                "ref@": null
+                                              },
+                                              "id_resolved": {
+                                                "ref@": null
+                                              },
+                                              "id_type": {
+                                                "ref@": null
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  ]
+                                ]
+                              }
+                            },
+                            {
+                              "Arg": {
+                                "Call": [
+                                  {
+                                    "IdSpecial": [
+                                      {
+                                        "Op": "Plus"
+                                      },
+                                      "()"
+                                    ]
+                                  },
+                                  [
+                                    {
+                                      "Arg": {
+                                        "N": {
+                                          "Id": [
+                                            [
+                                              "a",
+                                              "()"
+                                            ],
+                                            {
+                                              "id_constness": {
+                                                "ref@": null
+                                              },
+                                              "id_resolved": {
+                                                "ref@": null
+                                              },
+                                              "id_type": {
+                                                "ref@": null
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "Arg": {
+                                        "N": {
+                                          "Id": [
+                                            [
+                                              "b",
+                                              "()"
+                                            ],
+                                            {
+                                              "id_constness": {
+                                                "ref@": null
+                                              },
+                                              "id_resolved": {
+                                                "ref@": null
+                                              },
+                                              "id_type": {
+                                                "ref@": null
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  ]
+                                ]
+                              }
+                            }
+                          ]
+                        ]
+                      }
+                    },
+                    "()"
+                  ]
+                }
+              ]
+            },
+            "fkind": [
+              "Function",
+              "()"
+            ],
+            "fparams": [
+              {
+                "ParamClassic": {
+                  "pattrs": [],
+                  "pdefault": null,
+                  "pinfo": {
+                    "id_constness": {
+                      "ref@": null
+                    },
+                    "id_resolved": {
+                      "ref@": {
+                        "some": [
+                          "Param",
+                          -1
+                        ]
+                      }
+                    },
+                    "id_type": {
+                      "ref@": null
+                    }
+                  },
+                  "pname": {
+                    "some": [
+                      "a",
+                      "()"
+                    ]
+                  },
+                  "ptype": null
+                }
+              },
+              {
+                "ParamClassic": {
+                  "pattrs": [],
+                  "pdefault": null,
+                  "pinfo": {
+                    "id_constness": {
+                      "ref@": null
+                    },
+                    "id_resolved": {
+                      "ref@": {
+                        "some": [
+                          "Param",
+                          -1
+                        ]
+                      }
+                    },
+                    "id_type": {
+                      "ref@": null
+                    }
+                  },
+                  "pname": {
+                    "some": [
+                      "b",
+                      "()"
+                    ]
+                  },
+                  "ptype": null
+                }
+              }
+            ],
+            "frettype": null
+          }
+        }
+      ]
+    },
+    {
+      "DefStmt": [
+        {
+          "attrs": [],
+          "name": {
+            "EN": {
+              "Id": [
+                [
+                  "__eq__",
+                  "()"
+                ],
+                {
+                  "id_constness": {
+                    "ref@": null
+                  },
+                  "id_resolved": {
+                    "ref@": null
+                  },
+                  "id_type": {
+                    "ref@": null
+                  }
+                }
+              ]
+            }
+          },
+          "tparams": []
+        },
+        {
+          "FuncDef": {
+            "fbody": {
+              "Block": [
+                {
+                  "ExprStmt": [
+                    {
+                      "Call": [
+                        {
+                          "IdSpecial": [
+                            {
+                              "Op": "Eq"
+                            },
+                            "()"
+                          ]
+                        },
+                        [
+                          {
+                            "Arg": {
+                              "N": {
+                                "Id": [
+                                  [
+                                    "x",
+                                    "()"
+                                  ],
+                                  {
+                                    "id_constness": {
+                                      "ref@": null
+                                    },
+                                    "id_resolved": {
+                                      "ref@": null
+                                    },
+                                    "id_type": {
+                                      "ref@": null
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "Arg": {
+                              "N": {
+                                "Id": [
+                                  [
+                                    "x",
+                                    "()"
+                                  ],
+                                  {
+                                    "id_constness": {
+                                      "ref@": null
+                                    },
+                                    "id_resolved": {
+                                      "ref@": null
+                                    },
+                                    "id_type": {
+                                      "ref@": null
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      ]
+                    },
+                    "()"
+                  ]
+                }
+              ]
+            },
+            "fkind": [
+              "Function",
+              "()"
+            ],
+            "fparams": [
+              {
+                "ParamClassic": {
+                  "pattrs": [],
+                  "pdefault": null,
+                  "pinfo": {
+                    "id_constness": {
+                      "ref@": null
+                    },
+                    "id_resolved": {
+                      "ref@": {
+                        "some": [
+                          "Param",
+                          -1
+                        ]
+                      }
+                    },
+                    "id_type": {
+                      "ref@": null
+                    }
+                  },
+                  "pname": {
+                    "some": [
+                      "a",
+                      "()"
+                    ]
+                  },
+                  "ptype": null
+                }
+              },
+              {
+                "ParamClassic": {
+                  "pattrs": [],
+                  "pdefault": null,
+                  "pinfo": {
+                    "id_constness": {
+                      "ref@": null
+                    },
+                    "id_resolved": {
+                      "ref@": {
+                        "some": [
+                          "Param",
+                          -1
+                        ]
+                      }
+                    },
+                    "id_type": {
+                      "ref@": null
+                    }
+                  },
+                  "pname": {
+                    "some": [
+                      "b",
+                      "()"
+                    ]
+                  },
+                  "ptype": null
+                }
+              }
+            ],
+            "frettype": null
+          }
+        }
+      ]
+    },
+    {
+      "ExprStmt": [
+        {
+          "Call": [
+            {
+              "N": {
+                "Id": [
+                  [
+                    "assertTrue",
+                    "()"
+                  ],
+                  {
+                    "id_constness": {
+                      "ref@": null
+                    },
+                    "id_resolved": {
+                      "ref@": null
+                    },
+                    "id_type": {
+                      "ref@": null
+                    }
+                  }
+                ]
+              }
+            },
+            [
+              {
+                "Arg": {
+                  "Call": [
+                    {
+                      "IdSpecial": [
+                        {
+                          "Op": "Eq"
+                        },
+                        "()"
+                      ]
+                    },
+                    [
+                      {
+                        "Arg": {
+                          "N": {
+                            "Id": [
+                              [
+                                "x",
+                                "()"
+                              ],
+                              {
+                                "id_constness": {
+                                  "ref@": null
+                                },
+                                "id_resolved": {
+                                  "ref@": null
+                                },
+                                "id_type": {
+                                  "ref@": null
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "Arg": {
+                          "N": {
+                            "Id": [
+                              [
+                                "x",
+                                "()"
+                              ],
+                              {
+                                "id_constness": {
+                                  "ref@": null
+                                },
+                                "id_resolved": {
+                                  "ref@": null
+                                },
+                                "id_type": {
+                                  "ref@": null
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  ]
+                }
+              }
+            ]
+          ]
+        },
+        "()"
+      ]
+    }
+  ]
+}
