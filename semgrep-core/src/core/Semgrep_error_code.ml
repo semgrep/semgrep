@@ -68,14 +68,14 @@ let exn_to_error file exn =
   | Parse_info.Lexical_error (s, tok) -> mk_error tok (LexicalError s)
   | Parse_info.Parsing_error tok -> mk_error tok ParseError
   | Parse_info.Other_error (s, tok) -> mk_error tok (SpecifiedParseError s)
-  | Rule.InvalidRule (_rule_id, s, _posTODO) -> mk_error todo (RuleParseError s)
-  | Rule.InvalidLanguage (_rule_id, language, _posTODO) ->
-      mk_error todo (RuleParseError language)
-  | Rule.InvalidRegexp (_rule_id, message, _posTODO) ->
-      mk_error todo (RuleParseError message)
+  | Rule.InvalidRule (_rule_id, s, pos) -> mk_error pos (RuleParseError s)
+  | Rule.InvalidLanguage (_rule_id, language, pos) ->
+      mk_error pos (RuleParseError language)
+  | Rule.InvalidRegexp (_rule_id, message, pos) ->
+      mk_error pos (RuleParseError message)
   | Rule.InvalidPattern (_rule_id, _pattern, _xlang, message, pos, _path) ->
       mk_error pos (PatternParseError message)
-  | Rule.InvalidYaml (msg, _posTODO) -> mk_error todo (InvalidYaml msg)
+  | Rule.InvalidYaml (msg, pos) -> mk_error pos (InvalidYaml msg)
   | Rule.DuplicateYamlKey (s, pos) -> mk_error pos (InvalidYaml s)
   | Rule.UnparsableYamlException msg -> mk_error todo (InvalidYaml msg)
   | Common.Timeout timeout_info ->
