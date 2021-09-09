@@ -7,14 +7,18 @@ type error = {
 and severity = Error | Warning | Info
 
 and error_kind =
-  (* parsing related errors.
+  (* File parsing related errors.
    * See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
    * filter_maybe_parse_and_fatal_errors
    *)
   | LexicalError of string
   | ParseError (* aka SyntaxError *)
-  | SpecifiedParseError of string
+  | SpecifiedParseError of string (* aka SyntaxError *)
   | AstBuilderError of string
+  (* pattern parsing related errors *)
+  | RuleParseError of string
+  | PatternParseError of string
+  | InvalidYaml of string
   (* matching (semgrep) related *)
   | MatchingError of string (* internal error, e.g., NoTokenLocation *)
   | SemgrepMatchFound of (string (* check_id *) * string) (* msg *)

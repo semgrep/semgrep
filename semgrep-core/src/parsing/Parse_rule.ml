@@ -77,32 +77,7 @@ type dict = {
 (* Error Management *)
 (*****************************************************************************)
 
-exception InvalidLanguage of Rule.rule_id * string * Parse_info.t
-
-(* TODO: the Parse_info.t is not precise for now, it corresponds to the
- * start of the pattern *)
-exception
-  InvalidPattern of
-    Rule.rule_id
-    * string
-    * Rule.xlang
-    * string (* exn *)
-    * Parse_info.t
-    * string list
-
-(* path *)
-
-exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
-
-(* general errors *)
-exception InvalidYaml of string * Parse_info.t
-
-exception DuplicateYamlKey of string * Parse_info.t
-
-(* less: could be merged with InvalidYaml *)
-exception InvalidRule of Rule.rule_id * string * Parse_info.t
-
-let error t s = raise (InvalidYaml (s, t))
+let error t s = raise (R.InvalidYaml (s, t))
 
 let error_at_key (key : key) s = error (snd key) s
 
@@ -165,7 +140,7 @@ let yaml_to_dict (enclosing : string R.wrap) (rule : G.expr) : dict =
                   *)
                  if Hashtbl.mem dict key_str then
                    raise
-                     (DuplicateYamlKey
+                     (R.DuplicateYamlKey
                         (spf "duplicate key '%s' in dictionary" key_str, t));
                  Hashtbl.add dict key_str ((key_str, t), value)
              | _ -> error_at_expr field "Not a valid key value pair");
@@ -297,7 +272,7 @@ let parse_metavar_cond key s =
 let parse_regexp env (s, t) =
   try (s, Pcre.regexp s)
   with Pcre.Error exn ->
-    raise (InvalidRegexp (env.id, pcre_error_to_string s exn, t))
+    raise (R.InvalidRegexp (env.id, pcre_error_to_string s exn, t))
 
 let parse_fix_regex (env : env) (key : key) fields =
   let fix_regex_dict = yaml_to_dict key fields in
@@ -380,7 +355,7 @@ let parse_pattern ~id ~lang { Rule.pattern; t; path } =
   (* TODO: capture and adjust pos of parsing error exns instead of using [t] *)
   | exn ->
       raise
-        (InvalidPattern
+        (R.InvalidPattern
            (id, pattern, Rule.L (lang, []), Common.exn_to_s exn, t, path))
 
 let parse_xpattern env e =
@@ -415,7 +390,7 @@ let parse_xpattern env e =
       | Error err ->
           (* TODO: adjust error pos instead of using [t] *)
           raise
-            (InvalidPattern (env.id, s, Rule.LGeneric, err.msg, t, env.path)))
+            (R.InvalidPattern (env.id, s, Rule.LGeneric, err.msg, t, env.path)))
 
 let find_formula_old (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in
@@ -533,9 +508,9 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
   | "metavariable-regex" ->
       let mv_regex_dict =
         try yaml_to_dict key value
-        with DuplicateYamlKey (msg, t) ->
+        with R.DuplicateYamlKey (msg, t) ->
           raise
-            (InvalidYaml
+            (R.InvalidYaml
                (msg ^ ". You should use multiple metavariable-regex", t))
       in
       let metavar, regexp =
@@ -587,13 +562,14 @@ let parse_languages ~id langs =
                (match Lang.lang_of_string_opt s with
                | None ->
                    raise
-                     (InvalidLanguage
+                     (R.InvalidLanguage
                         (fst id, spf "unsupported language: %s" s, t))
                | Some l -> l))
       in
       match languages with
       | [] ->
-          raise (InvalidRule (fst id, "we need at least one language", snd id))
+          raise
+            (R.InvalidRule (fst id, "we need at least one language", snd id))
       | x :: xs -> R.L (x, xs))
 
 let parse_severity ~id (s, t) =
@@ -603,7 +579,7 @@ let parse_severity ~id (s, t) =
   | "INFO" -> R.Info
   | s ->
       raise
-        (InvalidRule
+        (R.InvalidRule
            (id, spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s, t))
 
 (*****************************************************************************)

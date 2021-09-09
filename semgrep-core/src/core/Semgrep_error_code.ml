@@ -10,7 +10,7 @@ type error = {
 and severity = Error | Warning | Info
 
 and error_kind =
-  (* parsing related errors.
+  (* File parsing related errors.
    * See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
    * filter_maybe_parse_and_fatal_errors
    *)
@@ -18,6 +18,10 @@ and error_kind =
   | ParseError (* aka SyntaxError *)
   | SpecifiedParseError of string (* aka SyntaxError *)
   | AstBuilderError of string
+  (* pattern parsing related errors *)
+  | RuleParseError of string
+  | PatternParseError of string
+  | InvalidYaml of string
   (* matching (semgrep) related *)
   | MatchingError of string (* internal error, e.g., NoTokenLocation *)
   | SemgrepMatchFound of (string (* check_id *) * string) (* msg *)
@@ -33,7 +37,7 @@ let options () = []
 
 (*****************************************************************************)
 (* Convertor functions *)
-(*****************************************************************************)
+(****************************************************************************)
 
 let mk_error tok err =
   let loc = PI.token_location_of_info tok in
@@ -45,11 +49,35 @@ let error tok err = Common.push (mk_error tok err) g_errors
 
 let error_loc loc err = Common.push (mk_error_loc loc err) g_errors
 
+let todo =
+  {
+    Parse_info.token =
+      Parse_info.OriginTok
+        {
+          charpos = -1;
+          str = "";
+          line = -1;
+          column = -1;
+          file = "FAKE TOKEN LOCATION";
+        };
+    transfo = NoTransfo;
+  }
+
 let exn_to_error file exn =
   match exn with
   | Parse_info.Lexical_error (s, tok) -> mk_error tok (LexicalError s)
   | Parse_info.Parsing_error tok -> mk_error tok ParseError
   | Parse_info.Other_error (s, tok) -> mk_error tok (SpecifiedParseError s)
+  | Rule.InvalidRule (_rule_id, s, _posTODO) -> mk_error todo (RuleParseError s)
+  | Rule.InvalidLanguage (_rule_id, language, _posTODO) ->
+      mk_error todo (RuleParseError language)
+  | Rule.InvalidRegexp (_rule_id, message, _posTODO) ->
+      mk_error todo (RuleParseError message)
+  | Rule.InvalidPattern (_rule_id, _pattern, _xlang, message, pos, _path) ->
+      mk_error pos (PatternParseError message)
+  | Rule.InvalidYaml (msg, _posTODO) -> mk_error todo (InvalidYaml msg)
+  | Rule.DuplicateYamlKey (s, pos) -> mk_error pos (InvalidYaml s)
+  | Rule.UnparsableYamlException msg -> mk_error todo (InvalidYaml msg)
   | Common.Timeout timeout_info ->
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in
@@ -73,6 +101,10 @@ let check_id_of_error_kind = function
   | ParseError -> "ParseError"
   | SpecifiedParseError _ -> "SpecifiedParseError"
   | AstBuilderError _ -> "AstBuilderError"
+  (* pattern parsing related errors *)
+  | RuleParseError _ -> "RuleParseError"
+  | PatternParseError _ -> "PatternParseError"
+  | InvalidYaml _ -> "InvalidYaml"
   (* semgrep *)
   | SemgrepMatchFound (check_id, _) -> spf "sgrep-lint-<%s>" check_id
   | MatchingError _ -> "MatchingError"
@@ -95,6 +127,9 @@ let string_of_error_kind error_kind =
   | ParseError -> "Syntax error"
   | SpecifiedParseError s -> spf "Other syntax error: %s" s
   | AstBuilderError s -> spf "AST builder error: %s" s
+  | RuleParseError s -> spf "Rule parse error: %s" s
+  | PatternParseError s -> spf "Pattern parse error: %s" s
+  | InvalidYaml s -> spf "Invalid YAML: %s" s
   | FatalError s -> spf "Fatal Error: %s" s
   | Timeout None -> "Timeout"
   | Timeout (Some s) -> "Timeout:" ^ s

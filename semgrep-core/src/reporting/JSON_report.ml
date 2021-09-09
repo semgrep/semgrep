@@ -191,6 +191,7 @@ let error_to_error err =
         };
     message = "EMMA_TODO";
     details = None;
+    yaml_path = None;
   }
 
 let json_time_of_profiling_data profiling_data =
@@ -268,21 +269,21 @@ let json_of_profile_info profile_start =
  *)
 let json_of_exn e =
   match e with
-  | Parse_rule.InvalidRule (rule_id, msg, _posTODO) ->
+  | Rule.InvalidRule (rule_id, msg, _posTODO) ->
       J.Object
         [
           ("rule_id", J.String rule_id);
           ("error", J.String "invalid rule");
           ("message", J.String msg);
         ]
-  | Parse_rule.InvalidLanguage (rule_id, language, _posTODO) ->
+  | Rule.InvalidLanguage (rule_id, language, _posTODO) ->
       J.Object
         [
           ("rule_id", J.String rule_id);
           ("error", J.String "invalid language");
           ("language", J.String language);
         ]
-  | Parse_rule.InvalidPattern (rule_id, pattern, xlang, message, pos, path) ->
+  | Rule.InvalidPattern (rule_id, pattern, xlang, message, pos, path) ->
       let lang = Rule.string_of_xlang xlang in
       let range_json =
         match pos with
@@ -313,16 +314,16 @@ let json_of_exn e =
           ("message", J.String message);
           ("range", range_json);
         ]
-  | Parse_rule.InvalidRegexp (rule_id, message, _posTODO) ->
+  | Rule.InvalidRegexp (rule_id, message, _posTODO) ->
       J.Object
         [
           ("rule_id", J.String rule_id);
           ("error", J.String "invalid regexp in rule");
           ("message", J.String message);
         ]
-  | Parse_rule.InvalidYaml (msg, _posTODO) ->
+  | Rule.InvalidYaml (msg, _posTODO) ->
       J.Object [ ("error", J.String "invalid yaml"); ("message", J.String msg) ]
-  | Parse_mini_rule.UnparsableYamlException msg ->
+  | Rule.UnparsableYamlException msg ->
       J.Object
         [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]
   (* Other exns (Failure, Timeout, etc.) without position information :(

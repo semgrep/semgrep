@@ -99,6 +99,7 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
                  };
              message = error.Parse_pattern.msg;
              details = None;
+             yaml_path = None;
            })
   in
   let time =

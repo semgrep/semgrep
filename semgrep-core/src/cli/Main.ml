@@ -604,7 +604,7 @@ let parse_pattern lang_pattern str =
         res)
   with exn ->
     raise
-      (Parse_rule.InvalidPattern
+      (Rule.InvalidPattern
          ( "no-id",
            str,
            Rule.L (lang_pattern, []),
@@ -794,7 +794,7 @@ let semgrep_with_patterns_file lang rules_file roots =
   with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     (* if !Flag.debug then save_rules_file_in_tmp (); *)
-    let json = JSON_report.json_of_exn exn in
+    let json = JSON.String "EMMA_TODO" in
     let s = J.string_of_json json in
     pr s;
     exit 2
@@ -871,16 +871,6 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
   match !output_format with
   | Json ->
       let res = JSON_report.match_results_of_matches_and_errors files res in
-      (* TODO
-         let flds =
-           if !profile then (
-             let json = JSON_report.json_of_profile_info !profile_start in
-             (* so we don't get also the profile output of Common.main_boilerplate*)
-             Common.profile := Common.ProfNone;
-             flds @ [ ("profiling", json) ] )
-           else flds
-         in
-      *)
       let s = SJ.string_of_match_results res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s
@@ -898,8 +888,16 @@ let semgrep_with_rules_file rules_file files_or_dirs =
     semgrep_with_rules timed_rules files_or_dirs
   with exn when !output_format = Json ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
-    let json = JSON_report.json_of_exn exn in
-    let s = J.string_of_json json in
+    let res =
+      {
+        RP.matches = [];
+        errors = [ E.exn_to_error "" exn ];
+        skipped = [];
+        rule_profiling = None;
+      }
+    in
+    let json = JSON_report.match_results_of_matches_and_errors [] res in
+    let s = SJ.string_of_match_results json in
     pr s;
     exit 2
 
