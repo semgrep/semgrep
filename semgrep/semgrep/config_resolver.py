@@ -71,9 +71,9 @@ class Config:
 
     @classmethod
     def from_pattern_lang(
-        cls, pattern: str, lang: str
+        cls, pattern: str, lang: str, replacement: Optional[str] = None
     ) -> Tuple["Config", List[SemgrepError]]:
-        config_dict = manual_config(pattern, lang)
+        config_dict = manual_config(pattern, lang, replacement)
         valid, errors = cls._validate(config_dict)
         return cls(valid), errors
 
@@ -217,26 +217,29 @@ def validate_single_rule(
     return Rule.from_yamltree(rule_yaml)
 
 
-def manual_config(pattern: str, lang: str) -> Dict[str, YamlTree]:
+def manual_config(
+    pattern: str, lang: str, replacement: Optional[str]
+) -> Dict[str, YamlTree]:
     # TODO remove when using sgrep -e ... -l ... instead of this hacked config
     pattern_span = Span.from_string(pattern, filename="CLI Input")
     pattern_tree = YamlTree[str](value=pattern, span=pattern_span)
     error_span = Span.from_string(
         f"Semgrep bug generating manual config {PLEASE_FILE_ISSUE_TEXT}", filename=None
     )
+    rules_key = {
+        ID_KEY: CLI_RULE_ID,
+        "pattern": pattern_tree,
+        "message": pattern,
+        "languages": [lang],
+        "severity": RuleSeverity.ERROR.value,
+    }
+
+    if replacement:
+        rules_key["fix"] = replacement
+
     return {
         "manual": YamlTree.wrap(
-            {
-                RULES_KEY: [
-                    {
-                        ID_KEY: CLI_RULE_ID,
-                        "pattern": pattern_tree,
-                        "message": pattern,
-                        "languages": [lang],
-                        "severity": RuleSeverity.ERROR.value,
-                    }
-                ]
-            },
+            {RULES_KEY: [rules_key]},
             span=error_span,
         )
     }
@@ -488,13 +491,20 @@ def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None
 
 
 def get_config(
-    pattern: Optional[str], lang: Optional[str], config_strs: Sequence[str]
+    pattern: Optional[str],
+    lang: Optional[str],
+    config_strs: Sequence[str],
+    replacement: Optional[str] = None,
 ) -> Tuple[Config, Sequence[SemgrepError]]:
     if pattern:
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")
-        config, errors = Config.from_pattern_lang(pattern, lang)
+        config, errors = Config.from_pattern_lang(pattern, lang, replacement)
     else:
+        if replacement:
+            raise SemgrepError(
+                "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
+            )
         config, errors = Config.from_config_list(config_strs)
 
     if not config:

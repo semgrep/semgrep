@@ -165,6 +165,7 @@ def main(
     exclude: Optional[Sequence[str]] = None,
     strict: bool = False,
     autofix: bool = False,
+    replacement: Optional[str] = None,
     dryrun: bool = False,
     disable_nosem: bool = False,
     no_git_ignore: bool = False,
@@ -182,7 +183,7 @@ def main(
     if exclude is None:
         exclude = []
 
-    configs_obj, errors = get_config(pattern, lang, configs)
+    configs_obj, errors = get_config(pattern, lang, configs, replacement)
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
 
     if not severity:

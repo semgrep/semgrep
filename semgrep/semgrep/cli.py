@@ -52,6 +52,13 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     ),
 )
 @click.option(
+    "--replacement",
+    help=(
+        "An autofix expression that will be applied to any matches found with --pattern. "
+        "Only valid with a command-line specified pattern."
+    ),
+)
+@click.option(
     "--enable-metrics/--disable-metrics",
     is_flag=True,
     help="Send pseudonymous usage metrics to Semgrep. If absent, uses the value of the SEMGREP_SEND_METRICS environment variable; "
@@ -416,6 +423,7 @@ def cli(
     output: Optional[str],
     pattern: Optional[str],
     quiet: bool,
+    replacement: Optional[str],
     rewrite_rule_ids: bool,
     sarif: bool,
     save_test_output_tar: bool,
@@ -583,6 +591,7 @@ def cli(
                 include=include,
                 exclude=exclude,
                 max_target_bytes=max_target_bytes,
+                replacement=replacement,
                 strict=strict,
                 autofix=autofix,
                 dryrun=dryrun,
