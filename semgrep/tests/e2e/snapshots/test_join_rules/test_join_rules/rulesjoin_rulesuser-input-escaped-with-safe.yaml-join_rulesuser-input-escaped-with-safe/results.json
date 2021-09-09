@@ -14,6 +14,25 @@
         "metadata": {
           "hi": "hi"
         },
+        "metavars": {
+          "$VAR": {
+            "abstract_content": "query",
+            "end": {
+              "col": 33,
+              "line": 19,
+              "offset": 442
+            },
+            "start": {
+              "col": 28,
+              "line": 19,
+              "offset": 437
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "ERROR"
       },
       "path": "targets/join_rules/user-input-escaped-with-safe/search.html",
