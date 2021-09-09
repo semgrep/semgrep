@@ -1,15 +1,15 @@
-[31msemgrep error[39m: Invalid rule schema
+[31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad1.yaml:4
-[94m4  | [39m      - pattern-inside:
-[94m5  | [39m        - pattern: $X == $X
-[94m6  | [39m        - pattern: $X != $X
-[94m7  | [39m        - patterns:
-[94m8  | [39m          - pattern-inside: |
-[94m9  | [39m              def __init__(...):
-[94m10 | [39m                  ...
-[94m11 | [39m          - pattern: self.$X == self.$X
-[94m12 | [39m      - pattern-not: 1 == 1
+[94m4  | [0m      - pattern-inside:
+[94m5  | [0m        - pattern: $X == $X
+[94m6  | [0m        - pattern: $X != $X
+[94m7  | [0m        - patterns:
+[94m8  | [0m          - pattern-inside: |
+[94m9  | [0m              def __init__(...):
+[94m10 | [0m                  ...
+[94m11 | [0m          - pattern: self.$X == self.$X
+[94m12 | [0m      - pattern-not: 1 == 1
 
-[31m[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\n    ...\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'[39m
+[31m[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\n    ...\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'[0m
 
 run with --strict and there were 1 errors loading configs

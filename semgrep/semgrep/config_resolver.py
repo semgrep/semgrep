@@ -7,6 +7,7 @@ from typing import Dict
 from typing import IO
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 
 from ruamel.yaml import YAML
@@ -78,7 +79,7 @@ class Config:
 
     @classmethod
     def from_config_list(
-        cls, configs: List[str]
+        cls, configs: Sequence[str]
     ) -> Tuple["Config", List[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
@@ -241,7 +242,7 @@ def manual_config(pattern: str, lang: str) -> Dict[str, YamlTree]:
     }
 
 
-def resolve_targets(targets: List[str]) -> List[Path]:
+def resolve_targets(targets: Sequence[str]) -> Sequence[Path]:
     base_path = get_base_path()
     return [
         Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
@@ -487,8 +488,8 @@ def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None
 
 
 def get_config(
-    pattern: str, lang: str, config_strs: List[str]
-) -> Tuple[Config, List[SemgrepError]]:
+    pattern: Optional[str], lang: Optional[str], config_strs: Sequence[str]
+) -> Tuple[Config, Sequence[SemgrepError]]:
     if pattern:
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")

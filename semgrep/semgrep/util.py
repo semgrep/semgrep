@@ -1,13 +1,11 @@
 import itertools
 import logging
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 from typing import Callable
-from typing import IO
 from typing import Iterable
 from typing import List
 from typing import Optional
@@ -16,9 +14,7 @@ from typing import Tuple
 from typing import TypeVar
 from urllib.parse import urlparse
 
-import pkg_resources
-from colorama import Fore
-from tqdm import tqdm
+import click
 
 from semgrep.constants import YML_SUFFIXES
 from semgrep.constants import YML_TEST_SUFFIXES
@@ -53,12 +49,7 @@ def is_url(url: str) -> bool:
         return False
 
 
-def debug_tqdm_write(msg: str, file: IO = sys.stderr) -> None:
-    if is_debug():
-        tqdm.write(msg, file=file)
-
-
-def set_flags(verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
+def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> None:
     """Set the relevant logging levels"""
     # Assumes only one of verbose, debug, quiet is True
 
@@ -106,40 +97,18 @@ def powerset(iterable: Iterable) -> Iterable[Tuple[Any, ...]]:
     )
 
 
+def abort(message: str) -> None:
+    click.secho(message, fg="red", err=True)
+    sys.exit(1)
+
+
 def with_color(color: str, text: str, bold: bool = False) -> str:
     """
     Wrap text in color & reset
     """
     if not sys.stderr.isatty() and not FORCE_COLOR:
         return text
-
-    reset = Fore.RESET
-    if bold:
-        color = color + "\033[1m"
-        reset += "\033[0m"
-    return f"{color}{text}{reset}"
-
-
-def progress_bar(
-    iterable: Iterable[T], file: IO = sys.stderr, **kwargs: Any
-) -> Iterable[T]:
-    """
-    Return tqdm-wrapped iterable if output stream is a tty;
-    else return iterable without tqdm.
-    """
-    # Conditions:
-    # file.isatty() - only show bar if this is an interactive terminal
-    # len(iterable) > 1 - don't show progress bar when using -e on command-line. This
-    #   is a hack, so it will only show the progress bar if there is more than 1 rule to run.
-    # not QUIET - don't show progress bar with quiet
-    listified = list(
-        iterable
-    )  # Consume iterable once so we can check length and then use in tqdm.
-    if file.isatty() and len(listified) > 1 and not is_quiet() and not is_debug():
-        # mypy doesn't seem to want to follow tqdm imports. Do this to placate.
-        wrapped: Iterable[T] = tqdm(listified, file=file, **kwargs)
-        return wrapped
-    return listified
+    return click.style(text, fg=color)
 
 
 def sub_run(cmd: List[str], **kwargs: Any) -> Any:
@@ -173,33 +142,6 @@ def manually_search_file(path: str, search_term: str, suffix: str) -> Optional[s
     # Find all of the individual words that contain the search_term
     matches = [w for w in words if search_term in w]
     return matches[0] + suffix if len(matches) > 0 else None
-
-
-def compute_executable_path(exec_name: str) -> str:
-    """Determine full executable path if full path is needed to run it."""
-    # First, try packaged binaries
-    pkg_exec = pkg_resources.resource_filename("semgrep.bin", exec_name)
-    if os.path.isfile(pkg_exec):
-        return pkg_exec
-
-    # Second, try system binaries
-    which_exec = shutil.which(exec_name)
-    if which_exec is not None:
-        return which_exec
-
-    # Third, look for something in the same dir as the Python interpreter
-    relative_path = os.path.join(os.path.dirname(sys.executable), exec_name)
-    if os.path.isfile(relative_path):
-        return relative_path
-
-    raise Exception(f"Could not locate '{exec_name}' binary")
-
-
-def compute_semgrep_path() -> str:
-    return compute_executable_path("semgrep-core")
-
-
-SEMGREP_PATH = compute_semgrep_path()
 
 
 def listendswith(l: List[T], tail: List[T]) -> bool:

@@ -20,6 +20,6 @@ import pytest
 )
 def test_join_rules(run_semgrep_in_tmp, snapshot, rule, target):
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target),
+        run_semgrep_in_tmp(rule, target_name=target)[0],
         "results.json",
     )

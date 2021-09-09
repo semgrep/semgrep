@@ -1,10 +1,10 @@
-[31msemgrep error[39m: null values prohibited
+[31msemgrep error[0m: null values prohibited
   --> rules/syntax/bad11.yaml:2
-[94m1 | [39mrules:
-[94m2 | [39m  - null
-[94m  | [39m    [31m^^^^[39m
-[94m3 | [39m  - id: rule-with-null-values
+[94m1 | [0mrules:
+[94m2 | [0m  - null
+[94m  | [0m    [31m^^^^[0m
+[94m3 | [0m  - id: rule-with-null-values
 
-[31mIn semgrep YAML configuration, null values are prohibited[39m
+[31mIn semgrep YAML configuration, null values are prohibited[0m
 
 run with --strict and there were 1 errors loading configs

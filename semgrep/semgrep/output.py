@@ -11,10 +11,9 @@ from typing import IO
 from typing import List
 from typing import NamedTuple
 from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Type
-
-import colorama
 
 from semgrep import config_resolver
 from semgrep.constants import OutputFormat
@@ -172,7 +171,7 @@ class OutputHandler:
 
         self.final_error: Optional[Exception] = None
 
-    def handle_semgrep_errors(self, errors: List[SemgrepError]) -> None:
+    def handle_semgrep_errors(self, errors: Sequence[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
         for err in errors:
             if isinstance(err, MatchTimeoutError) and err not in self.error_set:
@@ -198,12 +197,12 @@ class OutputHandler:
             print_threshold_hint = print_threshold_hint or (
                 num_errs > 5 and not self.settings.timeout_threshold
             )
-            logger.error(with_color(colorama.Fore.RED, error_msg))
+            logger.error(with_color("red", error_msg))
 
         if print_threshold_hint:
             logger.error(
                 with_color(
-                    colorama.Fore.RED,
+                    "red",
                     f"You can use the `--timeout-threshold` flag to set a number of timeouts after which a file will be skipped.",
                 )
             )
