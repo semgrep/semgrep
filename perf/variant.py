@@ -28,10 +28,8 @@ SEMGREP_VARIANTS = [
     SemgrepVariant("no-gc-tuning", "-no_gc_tuning"),
     # alternate optimisations
     SemgrepVariant("set_filters", "-set_filter"),
-    SemgrepVariant("experimental", "-no_filter_irrelevant_rules", "--optimizations"),
-    SemgrepVariant(
-        "experimental_and_fast", "-filter_irrelevant_rules", "--optimizations"
-    ),
+    SemgrepVariant("experimental", "-no_filter_irrelevant_rules"),
+    SemgrepVariant("experimental_and_fast", "-filter_irrelevant_rules"),
 ]
 
 # For when you just want to test a single change
@@ -39,5 +37,5 @@ STD_VARIANTS = [SemgrepVariant(STD, "")]
 
 GITLAB_VARIANTS = [
     SemgrepVariant(STD, ""),
-    SemgrepVariant("experimental", "-no_filter_irrelevant_rules", "--optimizations"),
+    SemgrepVariant("experimental", "-no_filter_irrelevant_rules"),
 ]
