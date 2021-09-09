@@ -491,10 +491,7 @@ def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None
 
 
 def get_config(
-    pattern: Optional[str],
-    lang: Optional[str],
-    config_strs: Sequence[str],
-    replacement: Optional[str] = None,
+    pattern: Optional[str], lang: Optional[str], config_strs: Sequence[str], replacement: Optional[str] = None
 ) -> Tuple[Config, Sequence[SemgrepError]]:
     if pattern:
         if not lang:
