@@ -1,9 +1,12 @@
 import collections
 import json
+from typing import Callable
 from typing import Dict
+from typing import Mapping
 from xml.etree import cElementTree
 
 import pytest
+from tests.conftest import _clean_output_json
 
 from semgrep import __VERSION__
 from semgrep.constants import OutputFormat
@@ -52,12 +55,14 @@ def _clean_sarif_output(output):
     return output
 
 
-CLEANERS = {
-    "--sarif": _clean_sarif_output,
+CLEANERS: Mapping[str, Callable[[str], str]] = {
+    "--sarif": lambda s: json.dumps(_clean_sarif_output(json.loads(s))),
+    "--json": _clean_output_json,
 }
 
 
-@pytest.mark.parametrize("format", ["--sarif", "--emacs", "--vim"])
+# junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
+@pytest.mark.parametrize("format", ["--json", "--sarif", "--emacs", "--vim"])
 def test_output_format(run_semgrep_in_tmp, snapshot, format):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
