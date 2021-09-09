@@ -1,9 +1,38 @@
+import collections
 import json
+from typing import Dict
+from xml.etree import cElementTree
 
 import pytest
 
 from semgrep import __VERSION__
 from semgrep.constants import OutputFormat
+
+
+# https://stackoverflow.com/a/10077069
+def _etree_to_dict(t):
+    """
+    A simple and sufficient XML -> dict conversion function. This function is
+    used to perform basic XML test data comparisons.
+    """
+    d: Dict[str, Dict] = {t.tag: {}}
+    children = list(t)
+    if children:
+        dd = collections.defaultdict(list)
+        for dc in map(_etree_to_dict, children):
+            for k, v in dc.items():
+                dd[k].append(v)
+        d = {t.tag: {k: v[0] if len(v) == 1 else v for k, v in dd.items()}}
+    if t.attrib:
+        d[t.tag].update(("@" + k, v) for k, v in t.attrib.items())
+    if t.text:
+        text = t.text.strip()
+        if children or t.attrib:
+            if text:
+                d[t.tag]["#text"] = text
+        else:
+            d[t.tag] = text
+    return d
 
 
 def _clean_sarif_output(output):
@@ -23,7 +52,12 @@ def _clean_sarif_output(output):
     return output
 
 
-@pytest.mark.parametrize("format", ["--sarif", "--junit-xml", "--emacs", "--vim"])
+CLEANERS = {
+    "--sarif": _clean_sarif_output,
+}
+
+
+@pytest.mark.parametrize("format", ["--sarif", "--emacs", "--vim"])
 def test_output_format(run_semgrep_in_tmp, snapshot, format):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",
@@ -31,7 +65,20 @@ def test_output_format(run_semgrep_in_tmp, snapshot, format):
         options=[format],
         output_format=OutputFormat.TEXT,  # Not the real output format; just disables JSON parsing
     )
-    snapshot.assert_match(stdout, "results.out")
+    clean = CLEANERS.get(format, lambda s: s)(stdout)
+    snapshot.assert_match(clean, "results.out")
+
+
+def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
+    output, _ = run_semgrep_in_tmp(
+        "rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML
+    )
+    result = _etree_to_dict(cElementTree.XML(output))
+
+    filename = snapshot.snapshot_dir / "results.xml"
+    expected = _etree_to_dict(cElementTree.XML(filename.read_text()))
+
+    assert expected == result
 
 
 # If there are nosemgrep comments to ignore findings, SARIF output should include them
