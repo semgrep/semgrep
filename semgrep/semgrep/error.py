@@ -11,7 +11,6 @@ from typing import Sequence
 from typing import Tuple
 
 import attr
-from colorama import Fore
 
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
@@ -180,9 +179,9 @@ class ErrorWithSpan(SemgrepError):
         if line_number is not None:
             base_str = str(line_number)
             assert len(base_str) < width
-            return with_color(Fore.LIGHTBLUE_EX, base_str.ljust(width) + "| ")
+            return with_color("bright_blue", base_str.ljust(width) + "| ")
         else:
-            return with_color(Fore.LIGHTBLUE_EX, "".ljust(width) + "| ")
+            return with_color("bright_blue", "".ljust(width) + "| ")
 
     def _format_code_segment(
         self, start: Position, end: Position, source: List[str], part_of_span: Span
@@ -213,7 +212,7 @@ class ErrorWithSpan(SemgrepError):
         """
         Format this exception into a pretty string with context and color
         """
-        header = f"{with_color(Fore.RED, 'semgrep ' + self.level.name.lower())}: {self.short_msg}"
+        header = f"{with_color('red', 'semgrep ' + self.level.name.lower())}: {self.short_msg}"
         snippets = []
         for span in self.spans:
             if span.file != "semgrep temp file":
@@ -236,7 +235,7 @@ class ErrorWithSpan(SemgrepError):
             snippet += self._format_code_segment(span.start, span.end, source, span)
             # Currently, only span highlighting if it's a one line span
             if span.start.line == span.end.line:
-                error = with_color(Fore.RED, (span.end.col - span.start.col) * "^")
+                error = with_color("red", (span.end.col - span.start.col) * "^")
                 snippet.append(
                     self._format_line_number(span, None)
                     + " " * (span.start.col - 1)
@@ -250,7 +249,7 @@ class ErrorWithSpan(SemgrepError):
             snippets.append("\n".join(snippet))
         snippet_str = "\n".join(snippets)
         if self.help:
-            help_str = f"= {with_color(Fore.CYAN, 'help', bold=True)}: {self.help}"
+            help_str = f"= {with_color('cyan', 'help', bold=True)}: {self.help}"
         else:
             help_str = ""
 
@@ -259,7 +258,7 @@ class ErrorWithSpan(SemgrepError):
             snippet_str_with_newline = ""
         else:
             snippet_str_with_newline = f"{snippet_str}\n"
-        return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color(Fore.RED, self.long_msg or '')}\n"
+        return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color('red', self.long_msg or '')}\n"
 
 
 @attr.s(frozen=True, eq=True)
@@ -296,7 +295,7 @@ class MatchTimeoutError(SemgrepError):
 
     def __str__(self) -> str:
         msg = f"Warning: Semgrep exceeded timeout when running {self.rule_id} on {self.path}. See `--timeout` for more info."
-        return with_color(Fore.RED, msg)
+        return with_color("red", msg)
 
     def to_dict_base(self) -> Dict[str, Any]:
         return {
@@ -315,7 +314,7 @@ class TooManyMatchesError(SemgrepError):
 
     def __str__(self) -> str:
         msg = f"Warning: Semgrep exceeded number of matches when running {self.rule_id} on {self.path}."
-        return with_color(Fore.RED, msg)
+        return with_color("red", msg)
 
     def to_dict_base(self) -> Dict[str, Any]:
         return {
@@ -334,7 +333,7 @@ class OutOfMemoryError(SemgrepError):
 
     def __str__(self) -> str:
         msg = f"Warning: Semgrep exceeded memory when running {self.rule_id} on {self.path}. See `--max-memory` for more info."
-        return with_color(Fore.RED, msg)
+        return with_color("red", msg)
 
     def to_dict_base(self) -> Dict[str, Any]:
         return {
@@ -345,6 +344,8 @@ class OutOfMemoryError(SemgrepError):
 
 @attr.s(frozen=True, eq=True)
 class CoreWarning(SemgrepError):
+    rule_id: str = attr.ib()
+    path: Path = attr.ib()
     check_id: str = attr.ib()
     msg: str = attr.ib()
 
@@ -355,7 +356,8 @@ class CoreWarning(SemgrepError):
         # "MatchingError" -> "matching error"
         error_id = " ".join(re.sub("([A-Z]+)", r" \1", self.check_id).split()).lower()
         return with_color(
-            Fore.YELLOW, f"semgrep-core reported a {error_id}\n  --> {self.msg}"
+            "yellow",
+            f"semgrep-core reported a {error_id} when running {self.rule_id} on {self.path}\n  --> {self.msg}",
         )
 
     def to_dict_base(self) -> Dict[str, Any]:
@@ -367,15 +369,25 @@ class CoreWarning(SemgrepError):
 
 @attr.s(frozen=True, eq=True)
 class CoreFatalError(SemgrepError):
+    rule_id: str = attr.ib()
+    path: Path = attr.ib()
     msg: str = attr.ib()
 
     code = FATAL_EXIT_CODE
     level = Level.ERROR
 
     def __str__(self) -> str:
+        msg_lines = self.msg.splitlines()
+        error_header = msg_lines[0] if msg_lines else "no message"
+        error_trace = "\n".join(msg_lines[:])
         return with_color(
-            Fore.RED,
-            f"semgrep-core reported a fatal error:\n-----\n{self.msg}-----\nPlease file a bug report at https://github.com/returntocorp/semgrep/issues/new/choose",
+            "red",
+            f"semgrep-core failed to run {self.rule_id} on {self.path}\n"
+            + f"  --> {error_header}\n"
+            + "Please file a bug report at https://github.com/returntocorp/semgrep/issues/new/choose and attach the error trace below.\n",
+        ) + with_color(
+            "white",
+            f"-----[ BEGIN error trace ]-----\n{error_trace}\n-----[ END error trace ]-----\n",
         )
 
     def to_dict_base(self) -> Dict[str, Any]:
@@ -394,7 +406,7 @@ class LexicalError(SemgrepError):
 
     def __str__(self) -> str:
         msg = f"Warning: Semgrep encountered a lexical error when running {self.rule_id} on {self.path}. Please ensure this is valid code."
-        return with_color(Fore.RED, msg)
+        return with_color("red", msg)
 
     def to_dict_base(self) -> Dict[str, Any]:
         return {

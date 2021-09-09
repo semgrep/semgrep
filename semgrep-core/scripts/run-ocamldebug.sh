@@ -42,7 +42,7 @@ ocamldebug hints:
   - Sometimes has to be placed on the preceding line to work.
 * break [<module>.]<function>: Break at function.
   - Must run program first, e.g.: "r", "break ...", "g 0", "r", "up"... .
-  - Useful breakpoint: OUnit.assert_failure
+  - Useful breakpoint: OUnit.assert_failure (or Alcotest equivalent)
 * r[un], s[tep], n[ext]: gdb-like program running.
 * bt, frame, up, down: gdb-like call stack navigation.
 * g[oto] <n>: Jump forward or backward in time.

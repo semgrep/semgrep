@@ -113,7 +113,11 @@ and logicalOp = function
   | AndLog -> G.And
   | OrLog -> G.Or
 
-let rec type_ = function
+and type_ x =
+  let tk = type_kind x in
+  tk |> G.t
+
+and type_kind = function
   | TBase v1 ->
       let v1 = name v1 in
       G.TyBuiltin v1
@@ -138,7 +142,7 @@ let rec type_ = function
   | TMacroApply (v1, (lp, v2, rp)) ->
       let v1 = H.name_of_id v1 in
       let v2 = type_ v2 in
-      G.TyApply (G.TyN v1, (lp, [ G.TypeArg v2 ], rp))
+      G.TyApply (G.TyN v1 |> G.t, (lp, [ G.TypeArg v2 ], rp))
 
 and function_type (v1, v2) =
   let v1 = type_ v1 and v2 = list (fun x -> G.ParamClassic (parameter x)) v2 in
@@ -439,7 +443,7 @@ and define_body = function
 and directive = function
   | Include (t, v1) ->
       let v1 = wrap string v1 in
-      G.DirectiveStmt (G.ImportAs (t, G.FileName v1, None))
+      G.DirectiveStmt (G.ImportAs (t, G.FileName v1, None) |> G.d)
   | Define (_t, v1, v2) ->
       let v1 = name v1 and v2 = define_body v2 in
       let ent = G.basic_entity v1 [] in
@@ -453,7 +457,7 @@ and directive = function
       let v2 =
         match v2 with None -> [] | Some s -> [ G.E (G.L (G.String s) |> G.e) ]
       in
-      G.DirectiveStmt (G.Pragma (v1, v2))
+      G.DirectiveStmt (G.Pragma (v1, v2) |> G.d)
 
 and definition = function
   | StructDef v1 ->

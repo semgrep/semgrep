@@ -1,0 +1,14 @@
+rules:
+  - id: taint-example
+    languages:
+      - go
+    message: match found
+    mode: taint
+    pattern-sanitizers:
+      - pattern: sanitizeGlobal(...)
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: getGlobal(...)
+    severity: WARNING
+

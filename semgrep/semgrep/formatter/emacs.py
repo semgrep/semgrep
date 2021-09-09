@@ -11,11 +11,8 @@ class EmacsFormatter(BaseFormatter):
         check_id = (
             rule_match.id.split(".")[-1] if rule_match.id != CLI_RULE_ID else None
         )
-        severity = (
-            rule_match.severity.lower() + f"({check_id})"
-            if check_id
-            else rule_match.severity.lower()
-        )
+        match_severity = rule_match.severity.value.lower()
+        severity = match_severity + f"({check_id})" if check_id else match_severity
         return [
             str(rule_match.path),
             str(rule_match.start["line"]),

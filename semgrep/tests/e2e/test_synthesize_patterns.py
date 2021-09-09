@@ -10,6 +10,8 @@ def test_synthesize_patterns():
             "semgrep",
             "--synthesize-patterns",
             "6:10-6:30",
+            "--lang",
+            "py",
             "tests/e2e/rules/synthesizing/ex1.py",
         ],
         encoding="utf-8",

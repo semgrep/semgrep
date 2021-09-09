@@ -38,7 +38,7 @@
  * per-language basis, many useful analysis are trivial and require just an
  * AST and a visitor. One could duplicate those analysis for each language
  * or design an AST (this file) generic enough to factorize all those
- * analysis (e.g., unused entity). We want to remain
+ * analysis (e.g., unused entity). However, we want to remain
  * as precise as possible and not lose too much information while going
  * from the specific language AST to the generic AST. We also do not want
  * to be too generic as in ast_fuzzy.ml, where we have a very general
@@ -379,10 +379,8 @@ and id_info = {
 (*****************************************************************************)
 
 (*s: type [[AST_generic.expr]] *)
-(* todo? we could do like for stmt and have 'expr' and 'expr_kind', which
- * would allow us to store more semantic information at each expr node,
- * e.g., type information, or constant evaluation, or range, but it
- * would be a bigger refactoring than for stmt.
+(* todo? we could store more semantic information at each expr node,
+ * e.g., type information, constant evaluation, range.
  *)
 and expr = {
   e : expr_kind;
@@ -1168,7 +1166,13 @@ and other_pattern_operator =
 (*****************************************************************************)
 
 (*s: type [[AST_generic.type_]] *)
-and type_ =
+and type_ = {
+  t : type_kind;
+  (* used for C++ and Kotlin type qualifiers *)
+  t_attrs : attribute list;
+}
+
+and type_kind =
   (* TODO: TyLiteral, for Scala *)
   (* todo? a type_builtin = TInt | TBool | ...? see Literal.
    * or just delete and use (TyN Id) instead?
@@ -1749,7 +1753,15 @@ and macro_definition = { macroparams : ident list; macrobody : any list }
  * entity (in this module/namespace) even though some languages such as Python
  * blur the difference.
  *)
-and directive =
+and directive = {
+  d : directive_kind;
+  (* Right now dattrs is used just for Static import in Java, and for
+   * OCaml attributes of directives (e.g., open).
+   *)
+  d_attrs : attribute list;
+}
+
+and directive_kind =
   (* newvar: *)
   | ImportFrom of
       tok (* 'import'/'from' for Python, 'include' for C *)
@@ -1977,6 +1989,7 @@ let basic_entity id attrs =
 
 (*e: function [[AST_generic.basic_entity]] *)
 
+(* statements *)
 let s skind =
   {
     s = skind;
@@ -1987,7 +2000,14 @@ let s skind =
     s_range = None;
   }
 
+(* expressions *)
 let e ekind = { e = ekind; e_id = 0; e_range = None }
+
+(* directives *)
+let d dkind = { d = dkind; d_attrs = [] }
+
+(* types *)
+let t tkind = { t = tkind; t_attrs = [] }
 
 (*s: function [[AST_generic.basic_field]] *)
 let basic_field id vopt typeopt =

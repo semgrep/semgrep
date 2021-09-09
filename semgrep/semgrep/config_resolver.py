@@ -7,6 +7,7 @@ from typing import Dict
 from typing import IO
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 
 from ruamel.yaml import YAML
@@ -19,6 +20,7 @@ from semgrep.constants import DEFAULT_SEMGREP_CONFIG_NAME
 from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
+from semgrep.constants import RuleSeverity
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import InvalidRuleSchemaError
@@ -29,6 +31,7 @@ from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.semgrep_types import Language
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
 from semgrep.verbose_logging import getLogger
@@ -51,8 +54,8 @@ DEFAULT_CONFIG = {
             "id": "eqeq-is-bad",
             "pattern": "$X == $X",
             "message": "$X == $X is a useless equality check",
-            "languages": ["python"],
-            "severity": "ERROR",
+            "languages": [Language.PYTHON.value],
+            "severity": RuleSeverity.ERROR.value,
         },
     ],
 }
@@ -76,7 +79,7 @@ class Config:
 
     @classmethod
     def from_config_list(
-        cls, configs: List[str]
+        cls, configs: Sequence[str]
     ) -> Tuple["Config", List[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
@@ -228,7 +231,7 @@ def manual_config(
         "pattern": pattern_tree,
         "message": pattern,
         "languages": [lang],
-        "severity": "ERROR",
+        "severity": RuleSeverity.ERROR.value,
     }
 
     if replacement:
@@ -242,7 +245,7 @@ def manual_config(
     }
 
 
-def resolve_targets(targets: List[str]) -> List[Path]:
+def resolve_targets(targets: Sequence[str]) -> Sequence[Path]:
     base_path = get_base_path()
     return [
         Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
@@ -261,8 +264,8 @@ def adjust_for_docker() -> None:
             raise SemgrepError(
                 f"Detected Docker environment without a code volume, please include '-v \"${{PWD}}:{SRC_DIRECTORY}\"'"
             )
-    if SRC_DIRECTORY.exists():
-        os.chdir(SRC_DIRECTORY)
+        if SRC_DIRECTORY.exists():
+            os.chdir(SRC_DIRECTORY)
 
 
 def get_base_path() -> Path:
@@ -488,16 +491,16 @@ def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None
 
 
 def get_config(
-    pattern: str, lang: str, config_strs: List[str], autofix: Optional[str] = None
-) -> Tuple[Config, List[SemgrepError]]:
+    pattern: Optional[str], lang: Optional[str], config_strs: Sequence[str], replacement: Optional[str] = None
+) -> Tuple[Config, Sequence[SemgrepError]]:
     if pattern:
         if not lang:
             raise SemgrepError("language must be specified when a pattern is passed")
-        config, errors = Config.from_pattern_lang(pattern, lang, autofix)
+        config, errors = Config.from_pattern_lang(pattern, lang, replacement)
     else:
-        if autofix:
+        if replacement:
             raise SemgrepError(
-                "command-line autofix flag can only be used with command-line pattern; when using a config file add the fix: key instead"
+                "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
             )
         config, errors = Config.from_config_list(config_strs)
 

@@ -9,7 +9,6 @@ Validate that the output is annotated in the source file with by looking for a c
  On the preceeding line.
 
  """
-import argparse
 import collections
 import functools
 import json
@@ -23,6 +22,7 @@ from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Tuple
 
@@ -330,11 +330,11 @@ def get_config_test_filenames(
 
 
 def generate_file_pairs(
+    *,
     target: Path,
     config: Path,
     ignore_todo: bool,
     strict: bool,
-    unsafe: bool,
     json_output: bool,
     save_test_output_tar: bool = True,
     optimizations: str = "none",
@@ -351,7 +351,6 @@ def generate_file_pairs(
         no_git_ignore=True,
         no_rewrite_rule_ids=True,
         strict=strict,
-        dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
         optimizations=optimizations,
     )
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
@@ -463,27 +462,35 @@ def generate_file_pairs(
     sys.exit(exit_code)
 
 
-def test_main(args: argparse.Namespace) -> None:
+def test_main(
+    *,
+    target: Sequence[str],
+    config: Optional[Sequence[str]],
+    test_ignore_todo: bool,
+    strict: bool,
+    json: bool,
+    save_test_output_tar: bool,
+    optimizations: str,
+) -> None:
     _test_compute_confusion_matrix()
 
-    if len(args.target) != 1:
+    if len(target) != 1:
         raise Exception("only one target directory allowed for tests")
-    target = Path(args.target[0])
+    target_path = Path(target[0])
 
-    if args.config:
-        if len(args.config) != 1:
+    if config:
+        if len(config) != 1:
             raise Exception("only one config directory allowed for tests")
-        config = Path(args.config[0])
+        config_path = Path(config[0])
     else:
-        config = target
+        config_path = target_path
 
     generate_file_pairs(
-        target,
-        config,
-        args.test_ignore_todo,
-        args.strict,
-        args.dangerously_allow_arbitrary_code_execution_from_rules,
-        args.json,
-        args.save_test_output_tar,
-        args.optimizations,
+        target=target_path,
+        config=config_path,
+        ignore_todo=test_ignore_todo,
+        strict=strict,
+        json_output=json,
+        save_test_output_tar=save_test_output_tar,
+        optimizations=optimizations,
     )

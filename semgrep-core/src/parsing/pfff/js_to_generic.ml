@@ -102,7 +102,7 @@ let special (x, tok) =
         (fun args ->
           match args with
           | [ e ] ->
-              let tvoid = G.TyBuiltin ("void", tok) in
+              let tvoid = G.TyBuiltin ("void", tok) |> G.t in
               G.Cast (tvoid, PI.fake_info ":", e)
           | _ -> error tok "Impossible: Too many arguments to Void")
   | Spread -> SR_Special (G.Spread, tok)
@@ -321,7 +321,7 @@ and stmt x =
       G.OtherStmt (G.OS_Todo, G.TodoK v1 :: v2) |> G.s
   | M v1 ->
       let v1 = module_directive v1 in
-      G.DirectiveStmt v1 |> G.s
+      G.DirectiveStmt (v1 |> G.d) |> G.s
   | DefStmt v1 ->
       let v1 = definition v1 in
       G.DefStmt v1 |> G.s
@@ -445,7 +445,9 @@ and case = function
 (* used to be an AST_generic.type_ with no conversion needed, but now that
  * we moved AST_generic.ml out of pfff, we need the boilerplate below
  *)
-and type_ x =
+and type_ x = type_kind x |> G.t
+
+and type_kind x =
   match x with
   | TyBuiltin id -> G.TyBuiltin (ident id)
   | TyName xs -> G.TyN (H.name_of_ids xs)
@@ -466,7 +468,7 @@ and type_ x =
       let params = List.map parameter_binding params in
       let rett =
         match typ_opt with
-        | None -> G.TyBuiltin ("void", PI.fake_info "void")
+        | None -> G.TyBuiltin ("void", PI.fake_info "void") |> G.t
         | Some t -> type_ t
       in
       G.TyFun (params, rett)
@@ -485,8 +487,8 @@ and type_ x =
 and tuple_type_member x =
   match x with
   | TyTupMember x -> type_ x
-  | TyTupOpt (x, tok) -> TyQuestion (type_ x, tok)
-  | TyTupRest (tok, x) -> TyRest (tok, type_ x)
+  | TyTupOpt (x, tok) -> G.TyQuestion (type_ x, tok) |> G.t
+  | TyTupRest (tok, x) -> G.TyRest (tok, type_ x) |> G.t
 
 and entity { name = n; attrs } =
   let n = name n in
@@ -734,7 +736,8 @@ and require_to_import_in_stmt_opt st =
                          | _ -> Some (id2, G.empty_id_info ())
                        in
                        G.DirectiveStmt
-                         (G.ImportFrom (treq, G.FileName file, id1, alias_opt))
+                         (G.ImportFrom (treq, G.FileName file, id1, alias_opt)
+                         |> G.d)
                        |> G.s
                    | _ -> raise ComplicatedCase)
             in

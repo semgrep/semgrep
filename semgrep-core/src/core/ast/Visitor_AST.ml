@@ -473,8 +473,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and v_other_argument_operator _x = ()
   and v_other_expr_operator _x = ()
   and v_type_ x =
-    let k x =
-      match x with
+    let k { t; t_attrs } =
+      v_list v_attribute t_attrs;
+      match t with
       | TyEllipsis v1 -> v_tok v1
       | TyRecordAnon (v0, v1) ->
           v_tok v0;
@@ -1110,8 +1111,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let arg = v_list v_any v_macrobody in
     ()
   and v_directive x =
-    let k x =
-      match x with
+    let k { d; d_attrs } =
+      v_list v_attribute d_attrs;
+      match d with
       | ImportFrom (t, v1, v2, v3) ->
           let t = v_tok t in
           let v1 = v_module_name v1 and _ = v_alias (v2, v3) in

@@ -6,7 +6,7 @@
  *)
 val match_to_match :
   Pattern_match.t ->
-  (Spacegrep.Semgrep_t.match_, Error_code.error) Common.either
+  (Semgrep_core_response_t.match_, Error_code.error) Common.either
 
 (*e: signature [[JSON_report.match_to_json]] *)
 
@@ -18,7 +18,7 @@ val json_of_exn : exn -> JSON.t
 val match_results_of_matches_and_errors :
   Common.filename list ->
   Report.rule_result ->
-  Spacegrep.Semgrep_t.match_results
+  Semgrep_core_response_t.match_results
 
 (*s: signature [[JSON_report.match_to_error]] *)
 (* internal *)

@@ -2982,13 +2982,12 @@ let parse ?dialect file =
   H.wrap_parser
     (fun () ->
       let dialect = guess_dialect dialect file in
-      Parallel.backtrace_when_exn := false;
       match dialect with
       | `Typescript ->
-          let cst = Parallel.invoke Tree_sitter_typescript.Parse.file file () in
+          let cst = Tree_sitter_typescript.Parse.file file in
           (cst :> cst_result)
       | `TSX ->
-          let cst = Parallel.invoke Tree_sitter_tsx.Parse.file file () in
+          let cst = Tree_sitter_tsx.Parse.file file in
           (cst :> cst_result))
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in

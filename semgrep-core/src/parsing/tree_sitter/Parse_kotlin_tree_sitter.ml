@@ -440,7 +440,7 @@ let package_header (env : env) ((v1, v2, v3) : CST.package_header) : directive =
   let v1 = token env v1 (* "package" *) in
   let v2 = identifier env v2 in
   let _v3 = token env v3 (* pattern [\r\n]+ *) in
-  Package (v1, v2)
+  Package (v1, v2) |> G.d
 
 let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
     =
@@ -459,7 +459,7 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
     | None -> ImportAs (v1, DottedName v2, None)
   in
   let _v4 = token env v4 (* pattern [\r\n]+ *) in
-  v3
+  v3 |> G.d
 
 let rec _annotated_lambda (env : env) (v1 : CST.annotated_lambda) =
   lambda_literal env v1
@@ -1060,7 +1060,7 @@ and function_type (env : env) ((v1, v2, v3, v4) : CST.function_type) =
   let v2 = function_type_parameters env v2 in
   let _v3 = token env v3 (* "->" *) in
   let v4 = type_ env v4 in
-  TyFun (v2, v4)
+  TyFun (v2, v4) |> G.t
 
 and function_type_parameters (env : env)
     ((v1, v2, v3) : CST.function_type_parameters) =
@@ -1343,7 +1343,9 @@ and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
     | `Paren_type x -> parenthesized_type env x
   in
   let v2 = List.map (token env) (* "?" *) v2 in
-  match v2 with hd :: _tl -> TyQuestion (v1, hd) | [] -> raise Impossible
+  match v2 with
+  | hd :: _tl -> TyQuestion (v1, hd) |> G.t
+  | [] -> raise Impossible
 
 (* see repeat1($._quest) in grammar.js *)
 and parameter (env : env) ((v1, v2, v3) : CST.parameter) =
@@ -1578,8 +1580,8 @@ and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) =
     | Some x ->
         let args = type_arguments env x in
         let name = H2.name_of_ids [ v1 ] in
-        TyApply (TyN name, args)
-    | None -> TyN (Id (v1, empty_id_info ()))
+        TyApply (TyN name |> G.t, args) |> G.t
+    | None -> TyN (Id (v1, empty_id_info ())) |> G.t
   in
   v2
 
@@ -1663,7 +1665,7 @@ and string_literal (env : env) (x : CST.string_literal) =
       todo env (v1, v2, v3)
 
 and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
-  let _v1 = match v1 with Some x -> type_modifiers env x | None -> [] in
+  let v1 = match v1 with Some x -> type_modifiers env x | None -> [] in
   let v2 =
     match v2 with
     | `Paren_type x -> parenthesized_type env x
@@ -1671,8 +1673,7 @@ and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
     | `Type_ref x -> type_reference env x
     | `Func_type x -> function_type env x
   in
-  (* TODO: add type_modifier info *)
-  v2
+  { v2 with t_attrs = v1 }
 
 and type_arguments (env : env) ((v1, v2, v3, v4) : CST.type_arguments) =
   let v1 = token env v1 (* "<" *) in
@@ -1770,17 +1771,17 @@ and type_projection (env : env) (x : CST.type_projection) =
       let v2 = type_ env v2 in
       let fake_token = Parse_info.fake_info "type projection" in
       let list = [ TodoK ("type projection", fake_token); T v2 ] in
-      let othertype = OtherType (OT_Todo, list) in
+      let othertype = OtherType (OT_Todo, list) |> G.t in
       TypeArg othertype
   | `STAR tok ->
       let star = str env tok in
-      let othertype = OtherType (OT_Todo, [ TodoK star ]) (* "*" *) in
+      let othertype = OtherType (OT_Todo, [ TodoK star ]) |> G.t (* "*" *) in
       TypeArg othertype
 
 and type_reference (env : env) (x : CST.type_reference) =
   match x with
   | `User_type x -> user_type env x
-  | `Dyna tok -> TyBuiltin (str env tok)
+  | `Dyna tok -> TyBuiltin (str env tok) |> G.t
 
 (* "dynamic" *)
 and type_test (env : env) ((v1, v2) : CST.type_test) =
@@ -1861,7 +1862,7 @@ and user_type (env : env) ((v1, v2) : CST.user_type) =
       v2
   in
   let list = v1 :: v2 in
-  TyTuple (fake_bracket list)
+  TyTuple (fake_bracket list) |> G.t
 
 and value_argument (env : env) ((v1, v2, v3, v4) : CST.value_argument) :
     argument =
@@ -2034,9 +2035,7 @@ let source_file (env : env) (x : CST.source_file) : any =
 (*****************************************************************************)
 let parse file =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke Tree_sitter_kotlin.Parse.file file ())
+    (fun () -> Tree_sitter_kotlin.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
 
@@ -2059,9 +2058,7 @@ let parse_expression_or_source_file str =
 (* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
   H.wrap_parser
-    (fun () ->
-      Parallel.backtrace_when_exn := false;
-      Parallel.invoke parse_expression_or_source_file str ())
+    (fun () -> parse_expression_or_source_file str)
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in

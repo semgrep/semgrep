@@ -6,7 +6,10 @@
 # https://pypi.org/project/datasize/ (documentation?)
 # or https://github.com/xolox/python-humanfriendly
 #
-import re
+from typing import Optional
+from typing import Union
+
+import click
 
 UNITS = {
     "": 1,
@@ -23,6 +26,8 @@ UNITS = {
 
 
 def parse_size(input: str) -> int:
+    import re
+
     s = input.upper()
     # note that '1e6' is a valid float and should not become '1 e6'.
     s = re.sub(r"([BKMGT][A-Z]*)", r" \1", s)
@@ -39,3 +44,24 @@ def parse_size(input: str) -> int:
         return int(float(number) * UNITS[unit])
     else:
         raise ValueError(f"Invalid representation for a number of bytes: '{input}'")
+
+
+class ByteSizeType(click.ParamType):
+    name = "BYTES"
+
+    def convert(
+        self,
+        value: Union[None, str, int],
+        param: Optional[click.Parameter],
+        ctx: Optional[click.Context],
+    ) -> Optional[int]:
+        try:
+            return (
+                parse_size(value)
+                if isinstance(value, str)
+                else value
+                if isinstance(value, int)
+                else None
+            )
+        except ValueError as ex:
+            raise click.exceptions.UsageError(*ex.args)

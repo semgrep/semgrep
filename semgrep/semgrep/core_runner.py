@@ -26,16 +26,16 @@ from semgrep.pattern_match import PatternMatch
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
+from semgrep.progress_bar import debug_tqdm_write
+from semgrep.progress_bar import progress_bar
 from semgrep.rule import Rule
 from semgrep.rule_lang import Span
 from semgrep.rule_match import RuleMatch
+from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 from semgrep.target_manager_extensions import all_supported_languages
-from semgrep.util import debug_tqdm_write
 from semgrep.util import is_debug
-from semgrep.util import progress_bar
-from semgrep.util import SEMGREP_PATH
 from semgrep.util import sub_run
 from semgrep.verbose_logging import getLogger
 
@@ -273,11 +273,7 @@ class CoreRunner:
                     debug_tqdm_write(f"Running rule {rule.id}...")
                     with tempfile.NamedTemporaryFile(
                         "w", suffix=".yaml"
-                    ) as rule_file, tempfile.NamedTemporaryFile(
-                        "w"
-                    ) as target_file, tempfile.NamedTemporaryFile(
-                        "w"
-                    ) as equiv_file:
+                    ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
                         targets = self.get_files_for_language(
                             language, rule, target_manager
                         )
@@ -299,7 +295,7 @@ class CoreRunner:
                         yaml.dump({"rules": [rule._raw]}, rule_file)
                         rule_file.flush()
 
-                        cmd = [SEMGREP_PATH] + [
+                        cmd = [SemgrepCore.path()] + [
                             "-lang",
                             language.value,
                             "-json",
@@ -394,7 +390,7 @@ class CoreRunner:
         )
         by_severity = collections.defaultdict(list)
         for rule, findings in findings_by_rule.items():
-            by_severity[rule.severity.lower()].extend(findings)
+            by_severity[rule.severity.value.lower()].extend(findings)
 
         by_sev_strings = [
             f"{len(findings)} {sev}" for sev, findings in by_severity.items()

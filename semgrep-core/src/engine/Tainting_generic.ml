@@ -17,8 +17,48 @@
 (*e: pad/r2c copyright *)
 module G = AST_generic
 module V = Visitor_AST
+module F = File_and_more
 module R = Rule
 module PM = Pattern_match
+
+(* Taint-tracking via ranges
+ * -------------------------
+ *
+ * First we run a bunch of search queries to obtain the ranges of sources,
+ * sanitizers, and sinks. The actual analysis happens in Dataflow_tainting
+ * using the IL representation. There we check whether the eorig's and iorig's
+ * are within those ranges to decide whether an expression or instruction is a
+ * source of taint, a sanitizer, or a sink. Finally we collect the results
+ * produced by the dataflow analysis and filter out duplicates.
+ *
+ * We could think of using an equality test to compare ranges, e.g., an
+ * expression would be a source of taint only if its range is exactly one of
+ * the ranges matched by `pattern-sources`. In practice, this does not work
+ * because `pattern-sources` etc can match anything, and the IL eorig's and
+ * iorig's are only expressions. For example, `pattern-sources` can match
+ * `foo(x);` but the eorig in the IL will be `foo(x)` whose range does not
+ * include the ending `;`.
+ *
+ * So, we use sub-range checks. And this actually provides some extra power,
+ * as it allows us to mark anything as a source/sanitizer/sink. For example,
+ * we could use a pattern like `if (E) { ... }` to specify that anything
+ * inside such an `if` statement should be considered sanitized. We are not
+ * limited to expressions or single statements.
+ *
+ * However, using sub-range checks leads to duplicates. For example, the PHP
+ * expression `sink("$source" . 'here')` will be transalted to IL as two
+ * instructions `tmp = "$source" . 'here'` and `sink(tmp)`. If `sink(...)`
+ * is a `pattern-sinks`, then both instructions' ranges are inside
+ * the `pattrn-sinks` ranges. If `$source` is a `pattern-sources`, then both
+ * instructions are also tainted, and Dataflow_tainting will report two matches.
+ *
+ * So, we need to remove duplicate subamtches at the end.
+ * TODO: We could perhaps do this in a cleaner way by having an intermediate
+ * step where we annotate the Generic AST, marking which statements and
+ * expressions are sources, sanitizers, or sinks. If e.g. an expression is a
+ * sink, we take care not to mark as sinks any of its subexpressions, in order
+ * to prevent duplicates.
+ *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -60,11 +100,9 @@ let any_in_ranges any ranges =
       List.exists (Range.( $<=$ ) r) ranges
 
 let ranges_of_pformula config equivs file_and_more rule_id pformula =
-  let file, _, _ = file_and_more in
-  let lazy_content = lazy (Common.read_file file) in
   let formula = Rule.formula_of_pformula pformula in
-  Match_rules.matches_of_formula config equivs rule_id file_and_more
-    lazy_content formula None
+  Match_rules.matches_of_formula config equivs rule_id file_and_more formula
+    None
   |> snd
   |> List.map (fun rwm -> rwm.Range_with_metavars.r)
 
@@ -74,8 +112,16 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     (rule : R.rule) (spec : R.taint_spec) found_tainted_sink =
   let config = Common.( ||| ) rule.options default_config in
   let lazy_ast_and_errors = lazy ast_and_errors in
-  let file_and_more = (file, rule.languages, lazy_ast_and_errors) in
+  let file_and_more =
+    {
+      F.file;
+      xlang = rule.languages;
+      lazy_content = lazy (Common.read_file file);
+      lazy_ast_and_errors;
+    }
+  in
   let find_ranges pfs =
+    (* TODO: Make an Or formula and run a single query. *)
     (* if perf is a problem, we could build an interval set here *)
     pfs
     |> List.map (ranges_of_pformula config equivs file_and_more (fst rule.id))
@@ -181,6 +227,7 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
   !matches
   (* same post-processing as for search-mode in Match_rules.ml *)
   |> PM.uniq
+  |> PM.no_submatches (* see "Taint-tracking via ranges" *)
   |> Common.before_return (fun v ->
          v
          |> List.iter (fun (m : Pattern_match.t) ->

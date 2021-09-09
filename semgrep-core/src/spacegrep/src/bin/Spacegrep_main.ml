@@ -30,6 +30,7 @@ type config = {
 type matches = {
   matches :
     (Src_file.t * (int * Match.match_ list * float) list * float * float) list;
+  skipped : Semgrep_core_response_t.skipped_target list;
   num_analyzed : int;
   num_files : int;
   num_matches : int;
@@ -51,6 +52,7 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
   let num_analyzed = ref 0 in
   let num_matching_files = ref 0 in
   let num_matches = ref 0 in
+  let skipped = ref [] in
   let matches =
     List.filter_map
       (fun (get_doc_src : ?max_len:int -> unit -> Src_file.t) ->
@@ -65,11 +67,30 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
               let partial_doc_src = get_doc_src ~max_len:peek_length () in
               let doc_type = File_type.classify partial_doc_src in
               incr num_files;
+              let path = Src_file.source_string partial_doc_src in
               match (doc_type, force) with
-              | (Minified | Binary), false ->
-                  if warn then
-                    eprintf "ignoring gibberish file: %s\n%!"
-                      (Src_file.source_string partial_doc_src);
+              | Minified, false ->
+                  if warn then eprintf "ignoring minified file: %s\n%!" path;
+                  skipped :=
+                    {
+                      Semgrep_core_response_t.path;
+                      reason = Minified;
+                      details =
+                        "not a source file: target file appears to be minified";
+                      skipped_rule = None;
+                    }
+                    :: !skipped;
+                  None
+              | Binary, false ->
+                  if warn then eprintf "ignoring gibberish file: %s\n%!" path;
+                  skipped :=
+                    {
+                      Semgrep_core_response_t.path;
+                      reason = Binary;
+                      details = "target looks like a binary file";
+                      skipped_rule = None;
+                    }
+                    :: !skipped;
                   None
               | _ -> (
                   incr num_analyzed;
@@ -116,6 +137,7 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
   in
   {
     matches;
+    skipped = List.rev !skipped;
     num_analyzed = !num_analyzed;
     num_files = !num_files;
     num_matches = !num_matches;
@@ -164,7 +186,14 @@ let run config =
   let debug = config.debug in
   if debug then Match.debug := true;
   let highlight = detect_highlight config.color stdout in
-  let { matches; num_analyzed; num_files; num_matches; num_matching_files } =
+  let {
+    matches;
+    skipped;
+    num_analyzed;
+    num_files;
+    num_matches;
+    num_matching_files;
+  } =
     run_all
       ~case_sensitive:(not config.case_insensitive)
       ~debug ~force:config.force ~warn:config.warn
@@ -174,7 +203,8 @@ let run config =
   | Text ->
       Match.print_nested_results ~with_time:config.time ~highlight matches
         errors
-  | Semgrep -> Semgrep.print_semgrep_json ~with_time:config.time matches errors);
+  | Semgrep ->
+      Semgrep.print_semgrep_json ~with_time:config.time matches errors skipped);
   if debug then (
     printf "\nanalyzed %i files out of %i\n" num_analyzed num_files;
     printf "found %i matches in %i files\n" num_matches num_matching_files)

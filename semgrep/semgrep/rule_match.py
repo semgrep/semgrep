@@ -8,6 +8,7 @@ from typing import Tuple
 
 import attr
 
+from semgrep.constants import RuleSeverity
 from semgrep.pattern_match import PatternMatch
 
 
@@ -21,7 +22,7 @@ class RuleMatch:
     _pattern_match: PatternMatch = attr.ib(repr=False)
     _message: str = attr.ib(repr=False)
     _metadata: Dict[str, Any] = attr.ib(repr=False)
-    _severity: str = attr.ib(repr=False)
+    _severity: RuleSeverity = attr.ib(repr=False)
     _fix: Optional[str] = attr.ib(repr=False)
     _fix_regex: Optional[Dict[str, Any]] = attr.ib(repr=False)
 
@@ -42,7 +43,7 @@ class RuleMatch:
         pattern_match: PatternMatch,
         message: str,
         metadata: Dict[str, Any],
-        severity: str,
+        severity: RuleSeverity,
         fix: Optional[str],
         fix_regex: Optional[Dict[str, Any]],
     ) -> "RuleMatch":
@@ -98,7 +99,7 @@ class RuleMatch:
         return self._metadata
 
     @property
-    def severity(self) -> str:
+    def severity(self) -> RuleSeverity:
         return self._severity
 
     @property

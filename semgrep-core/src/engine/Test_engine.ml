@@ -12,6 +12,7 @@
  * file license.txt for more details.
  *)
 open Common
+module FM = File_and_more
 module FT = File_type
 module R = Rule
 module E = Error_code
@@ -47,14 +48,14 @@ let first_xlang_of_rules rs =
 (* Entry point *)
 (*****************************************************************************)
 
-let test_rules ?(ounit_context = false) xs =
-  let fullxs =
+let test_rules ?(unit_testing = false) xs =
+  let fullxs, _skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
          | FT.Config FT.Yaml -> true
          (* old: we were allowing Jsonnet before, but better to skip
           * them for now to avoid adding a jsonnet dependency in our docker/CI
-          * FT.Config ((* | FT.Json*) FT.Jsonnet) when not ounit_context -> true
+          * FT.Config ((* | FT.Json*) FT.Jsonnet) when not unit_testing -> true
           *)
          | _ -> false)
     |> Common.exclude (fun filepath ->
@@ -142,15 +143,19 @@ let test_rules ?(ounit_context = false) xs =
                  (ast, errors)
              | R.LRegex | R.LGeneric -> raise Impossible)
          in
+         let file_and_more =
+           {
+             FM.file = target;
+             xlang;
+             lazy_content = lazy (Common.read_file target);
+             lazy_ast_and_errors;
+           }
+         in
          E.g_errors := [];
          Flag_semgrep.with_opt_cache := false;
          let config = Config_semgrep.default_config in
          let res =
-           try
-             Run_rules.check
-               (fun _ _ _ -> ())
-               config rules []
-               (target, xlang, lazy_ast_and_errors)
+           try Run_rules.check (fun _ _ _ -> ()) config rules [] file_and_more
            with exn ->
              failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
          in
@@ -171,22 +176,16 @@ let test_rules ?(ounit_context = false) xs =
          actual_errors
          |> List.iter (fun e ->
                 logger#info "found error: %s" (E.string_of_error e));
-         try
-           E.compare_actual_to_expected actual_errors expected_error_lines;
-           Hashtbl.add newscore file Common2.Ok
-         with OUnitTest.OUnit_failure s when not ounit_context ->
-           pr2 s;
-           Hashtbl.add newscore file (Common2.Pb s);
-           (* coupling: ugly: with Error_code.compare_actual_to_expected *)
-           if
-             s
-             =~ "it should find all reported errors and no more (\\([0-9]+\\) \
-                 errors)"
-           then
-             let n = Common.matched1 s |> int_of_string in
-             total_mismatch := !total_mismatch + n
-           else failwith (spf "wrong unit failure format: %s" s));
-  if not ounit_context then (
+
+         match
+           E.compare_actual_to_expected actual_errors expected_error_lines
+         with
+         | Ok () -> Hashtbl.add newscore file Common2.Ok
+         | Error (num_errors, msg) ->
+             pr2 msg;
+             Hashtbl.add newscore file (Common2.Pb msg);
+             total_mismatch := !total_mismatch + num_errors;
+             if unit_testing then Alcotest.fail msg);
+  if not unit_testing then
     Parse_info.print_regression_information ~ext xs newscore;
-    pr2 (spf "total mismatch: %d" !total_mismatch));
-  ()
+  pr2 (spf "total mismatch: %d" !total_mismatch)

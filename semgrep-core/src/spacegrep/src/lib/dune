@@ -4,7 +4,8 @@
   (libraries
      ANSITerminal
      unix
-     atdgen-runtime
+
+     semgrep_core_response
   )
   (preprocess
    (pps
@@ -14,13 +15,3 @@
 )
 
 (ocamllex Lexer)
-
-(rule
- (targets Semgrep_j.ml Semgrep_j.mli)
- (deps    Semgrep.atd)
- (action  (run atdgen -j -j-std %{deps})))
-
-(rule
- (targets Semgrep_t.ml Semgrep_t.mli)
- (deps    Semgrep.atd)
- (action  (run atdgen -t %{deps})))

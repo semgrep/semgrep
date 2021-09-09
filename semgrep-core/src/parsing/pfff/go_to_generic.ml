@@ -74,7 +74,8 @@ let return_type_of_results results =
                 | G.ParamClassic { G.ptype = Some t; _ } -> t
                 | G.ParamClassic { G.ptype = None; _ } -> raise Impossible
                 | _ -> raise Impossible)
-           |> fb))
+           |> fb)
+        |> G.t)
 
 let list_to_tuple_or_expr xs =
   match xs with
@@ -111,7 +112,8 @@ let qualified_ident v =
   | _ -> raise Impossible
 
 let top_func () =
-  let rec type_ = function
+  let rec type_ x = type_kind x |> G.t
+  and type_kind = function
     | TName v1 -> (
         let v1 = qualified_ident v1 in
         match v1 with
@@ -131,16 +133,20 @@ let top_func () =
     | TFunc v1 ->
         let params, ret = func_type v1 in
         let ret =
-          match ret with None -> G.TyBuiltin (fake_id "void") | Some t -> t
+          match ret with
+          | None -> G.TyBuiltin (fake_id "void") |> G.t
+          | Some t -> t
         in
         G.TyFun (params, ret)
     | TMap (t, (lp, v1, rp), v2) ->
         let v1 = type_ v1 and v2 = type_ v2 in
         G.TyApply
-          (TyN (mk_name "map" t), (lp, [ G.TypeArg v1; G.TypeArg v2 ], rp))
+          ( G.TyN (mk_name "map" t) |> G.t,
+            (lp, [ G.TypeArg v1; G.TypeArg v2 ], rp) )
     | TChan (t, v1, v2) ->
         let v1 = chan_dir v1 and v2 = type_ v2 in
-        G.TyApply (TyN (mk_name "chan" t), fb [ G.TypeArg v1; G.TypeArg v2 ])
+        G.TyApply
+          (G.TyN (mk_name "chan" t) |> G.t, fb [ G.TypeArg v1; G.TypeArg v2 ])
     | TStruct (t, v1) ->
         let v1 = bracket (list struct_field) v1 in
         G.TyRecordAnon (t, v1)
@@ -148,10 +154,10 @@ let top_func () =
         let v1 = bracket (list interface_field) v1 in
         G.TyInterfaceAnon (t, v1)
   and chan_dir = function
-    | TSend -> G.TyN (G.Id (fake_id "send", G.empty_id_info ()))
-    | TRecv -> G.TyN (G.Id (fake_id "recv", G.empty_id_info ()))
+    | TSend -> G.TyN (G.Id (fake_id "send", G.empty_id_info ())) |> G.t
+    | TRecv -> G.TyN (G.Id (fake_id "recv", G.empty_id_info ())) |> G.t
     | TBidirectional ->
-        G.TyN (G.Id (fake_id "bidirectional", G.empty_id_info ()))
+        G.TyN (G.Id (fake_id "bidirectional", G.empty_id_info ())) |> G.t
   and func_type { fparams; fresults } =
     let fparams = list parameter_binding fparams in
     let fresults = list parameter_binding fresults in
@@ -573,10 +579,10 @@ let top_func () =
     | STop v1 -> stmt v1
     | Package (t1, id) ->
         let id = ident id in
-        G.DirectiveStmt (G.Package (t1, [ id ])) |> G.s
+        G.DirectiveStmt (G.Package (t1, [ id ]) |> G.d) |> G.s
     | Import x ->
         let x = import x in
-        G.DirectiveStmt x |> G.s
+        G.DirectiveStmt (x |> G.d) |> G.s
   and import { i_path; i_kind; i_tok } =
     let module_name = G.FileName (wrap string i_path) in
     let s, tok = i_path in
@@ -601,7 +607,7 @@ let top_func () =
     | ITop x -> [ top_decl x ]
     | IImport x ->
         let x = import x in
-        [ G.DirectiveStmt x |> G.s ]
+        [ G.DirectiveStmt (x |> G.d) |> G.s ]
     | IStmt x -> stmt_aux x
   and item x = G.stmt1 (item_aux x)
   and partial = function
@@ -638,7 +644,7 @@ let top_func () =
           G.S v1
       | I v1 ->
           let v1 = import v1 in
-          G.S (G.DirectiveStmt v1 |> G.s)
+          G.S (G.DirectiveStmt (v1 |> G.d) |> G.s)
       | P v1 ->
           let v1 = program v1 in
           G.Pr v1

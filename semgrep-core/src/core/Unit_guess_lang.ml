@@ -2,8 +2,6 @@
    Unit tests for Guess_lang
 *)
 
-open OUnit
-
 type exec = Exec | Nonexec
 
 type success = OK | XFAIL
@@ -38,6 +36,26 @@ let contents_tests : (string * Lang.t * string * string * exec * success) list =
     ("bash exec env", Bash, "hello4", "#! /usr/bin/env bash\n", Exec, OK);
     ("other exec env", Bash, "hello5", "#!/usr/bin/env bashxxxx\n", Exec, XFAIL);
     ("env -S", Bash, "hello6", "#!/usr/bin/env -Sbash -eu\n", Exec, OK);
+    ("hack with .hack extension", Hack, "foo.hack", "", Nonexec, OK);
+    ( "hack without extension",
+      Hack,
+      "foo",
+      "#!/usr/bin/env hhvm\nxxxx",
+      Exec,
+      OK );
+    ( "hack with .php extension and shebang",
+      Hack,
+      "foo.php",
+      "#!/usr/bin/env hhvm\nxxxx",
+      Nonexec,
+      OK );
+    ( "hack with .php extension no shebang",
+      Hack,
+      "foo.php",
+      "<?hh\n",
+      Nonexec,
+      OK );
+    ("php", PHP, "foo.php", "", Nonexec, OK);
   ]
 
 let ( // ) = Filename.concat
@@ -63,14 +81,14 @@ let with_file name contents exec f =
       f path)
 
 let test_name_only lang path expectation =
-  match (expectation, Guess_lang.is_acceptable lang path) with
-  | OK, true | XFAIL, false -> ()
+  match (expectation, Guess_lang.inspect_file lang path) with
+  | OK, Ok _ | XFAIL, Error _ -> ()
   | _ -> assert false
 
 let test_with_contents lang name contents exec expectation =
   with_file name contents exec (fun path ->
-      match (expectation, Guess_lang.is_acceptable lang path) with
-      | OK, true | XFAIL, false -> ()
+      match (expectation, Guess_lang.inspect_file lang path) with
+      | OK, Ok _ | XFAIL, Error _ -> ()
       | _ -> assert false)
 
 (* This is necessary when running the tests on Windows. *)
@@ -79,15 +97,18 @@ let fix_path s =
   | "Win32" -> String.map (function '/' -> '\\' | c -> c) s
   | _ -> s
 
-let test_is_acceptable =
+let test_inspect_file =
   List.map
     (fun (test_name, lang, path, expectation) ->
-      test_name >:: fun () -> test_name_only lang (fix_path path) expectation)
+      (test_name, fun () -> test_name_only lang (fix_path path) expectation))
     name_tests
   @ List.map
       (fun (test_name, lang, file_name, contents, exec, expectation) ->
-        test_name >:: fun () ->
-        test_with_contents lang file_name contents exec expectation)
+        ( test_name,
+          fun () -> test_with_contents lang file_name contents exec expectation
+        ))
       contents_tests
 
-let unittest = "Guess_lang" >::: [ "is_acceptable" >::: test_is_acceptable ]
+let tests =
+  Testutil.pack_suites "Guess_lang"
+    [ Testutil.pack_tests "inspect_file" test_inspect_file ]

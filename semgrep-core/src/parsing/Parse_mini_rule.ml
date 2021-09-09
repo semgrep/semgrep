@@ -106,6 +106,7 @@ let parse file =
                          {
                            R.id;
                            pattern;
+                           inside = false;
                            message;
                            languages;
                            severity;

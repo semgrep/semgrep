@@ -98,14 +98,15 @@ let modifierbis = function
   | Async -> G.Async
 
 let ptype (x, t) =
-  match x with
+  (match x with
   | BoolTy -> G.TyBuiltin ("bool", t)
   | IntTy -> G.TyBuiltin ("int", t)
   | DoubleTy -> G.TyBuiltin ("double", t)
   | StringTy -> G.TyBuiltin ("string", t)
   (* TODO: TyArray of gen? *)
   | ArrayTy -> G.TyBuiltin ("array", t)
-  | ObjectTy -> G.TyBuiltin ("object", t)
+  | ObjectTy -> G.TyBuiltin ("object", t))
+  |> G.t
 
 let list_expr_to_opt xs =
   match xs with
@@ -156,6 +157,10 @@ let rec stmt_aux = function
   | Break (t, v1) -> [ G.Break (t, opt_expr_to_label_ident v1, G.sc) |> G.s ]
   | Continue (t, v1) ->
       [ G.Continue (t, opt_expr_to_label_ident v1, G.sc) |> G.s ]
+  | Label (id, _, v1) ->
+      let v1 = stmt v1 in
+      [ G.Label (ident id, v1) |> G.s ]
+  | Goto (t, id) -> [ G.Goto (t, ident id) |> G.s ]
   | Throw (t, v1) ->
       let v1 = expr v1 in
       [ G.Throw (t, v1, G.sc) |> G.s ]
@@ -176,12 +181,12 @@ let rec stmt_aux = function
       [ G.DefStmt (ent, G.TypeDef def) |> G.s ]
   | NamespaceDef (t, v1, (_t1, v2, t2)) ->
       let v1 = qualified_ident v1 and v2 = list stmt v2 in
-      [ G.DirectiveStmt (G.Package (t, v1)) |> G.s ]
+      [ G.DirectiveStmt (G.Package (t, v1) |> G.d) |> G.s ]
       @ v2
-      @ [ G.DirectiveStmt (G.PackageEnd t2) |> G.s ]
+      @ [ G.DirectiveStmt (G.PackageEnd t2 |> G.d) |> G.s ]
   | NamespaceUse (t, v1, v2) ->
       let v1 = qualified_ident v1 and v2 = option alias v2 in
-      [ G.DirectiveStmt (G.ImportAs (t, G.DottedName v1, v2)) |> G.s ]
+      [ G.DirectiveStmt (G.ImportAs (t, G.DottedName v1, v2) |> G.d) |> G.s ]
   | StaticVars (t, v1) ->
       v1
       |> list (fun (v1, v2) ->
@@ -415,7 +420,9 @@ and foreach_pattern v =
 
 and array_value v = expr v
 
-and hint_type = function
+and hint_type x = hint_type_kind x |> G.t
+
+and hint_type_kind = function
   | Hint v1 ->
       let v1 = name v1 in
       G.TyN (G.IdQualified (name_of_qualified_ident v1, G.empty_id_info ()))
@@ -432,7 +439,9 @@ and hint_type = function
         v1 |> List.map (fun x -> G.ParamClassic (G.param_of_type x))
       in
       let fret =
-        match v2 with Some t -> t | None -> G.TyBuiltin ("void", fake "void")
+        match v2 with
+        | Some t -> t
+        | None -> G.TyBuiltin ("void", fake "void") |> G.t
       in
       G.TyFun (params, fret)
   | HintTypeConst (_, tok, _) ->

@@ -16,6 +16,7 @@ module PI = Parse_info
 module G = AST_generic
 module J = JSON
 module FT = File_type
+module Resp = Semgrep_core_response_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -117,14 +118,11 @@ let dump_tree_sitter_cst lang file =
       |> dump_and_print_errors Tree_sitter_php.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
-let test_parse_tree_sitter lang xs =
-  let xs = List.map Common.fullpath xs in
-  let fullxs =
-    Lang.files_of_dirs_or_files lang xs
-    |> Skip_code.filter_files_if_skip_list ~root:xs
-  in
+let test_parse_tree_sitter lang root_paths =
+  let paths = List.map Common.fullpath root_paths in
+  let paths, _skipped_paths = Find_target.files_of_dirs_or_files lang paths in
   let stat_list = ref [] in
-  fullxs
+  paths
   |> Console.progress (fun k ->
          List.iter (fun file ->
              k ();
@@ -189,7 +187,7 @@ let test_parse_tree_sitter lang xs =
    This is meant to run the same parsers as semgrep-core does for normal
    semgrep scans.
 *)
-let parsing_common ?(verbose = true) lang xs =
+let parsing_common ?(verbose = true) lang files_or_dirs =
   let timeout_seconds = 10.0 in
   (* Without the use of Memory_limit below, we were getting some
    * 'Fatal error: out of memory' errors in the parsing stat CI job,
@@ -227,58 +225,45 @@ let parsing_common ?(verbose = true) lang xs =
   logger#info "running with a timeout of %f.1s" timeout_seconds;
   logger#info "running with a memory limit of %d MiB" mem_limit_mb;
 
-  let xs = List.map Common.fullpath xs in
-  let fullxs =
-    Lang.files_of_dirs_or_files lang xs
-    |> Skip_code.filter_files_if_skip_list ~root:xs
-    (* extra filtering excluding some extensions like '.d.ts'
-     * TODO: should become part of files_of_dirs_or_files
-     *)
-    |> List.filter (Guess_lang.is_acceptable lang)
-    (* Some source files are really huge (> 20 MB) and they cause
-     * some annoying 'out of memory' crash that sometimes even the use
-     * of mem_limit_mb above does not solve. Maybe it's because
-     * we run lots of parsing jobs in parallel in parsing-stats/run-all
-     * TODO: we should do the parallel work OCaml side, not in run-all.
-     * TODO: improve the engine so even those huge files do not cause errors
-     * TODO: should we skip them via Guess_lang.is_acceptable?
-     *)
-    |> Common.exclude (fun file ->
-           let res = Common2.filesize file > 5_000_000 in
-           if res then pr2 (spf "skipping %s, too big" file);
-           res)
+  let paths =
+    (* = absolute paths *)
+    List.map Common.fullpath files_or_dirs
   in
-
-  fullxs
-  |> List.rev_map (fun file ->
-         pr2
-           (spf "%05.1fs: [%s] processing %s" (Sys.time ())
-              (Lang.to_lowercase_alnum lang)
-              file);
-         let stat =
-           try
-             match
-               Memory_limit.run_with_memory_limit ~mem_limit_mb (fun () ->
-                   Common.set_timeout ~verbose:false
-                     ~name:"Test_parsing.parsing_common" timeout_seconds
-                     (fun () ->
-                       Parse_target
-                       .parse_and_resolve_name_use_pfff_or_treesitter lang file))
+  let paths, skipped = Find_target.files_of_dirs_or_files lang paths in
+  let stats =
+    paths
+    |> List.rev_map (fun file ->
+           pr2
+             (spf "%05.1fs: [%s] processing %s" (Sys.time ())
+                (Lang.to_lowercase_alnum lang)
+                file);
+           let stat =
+             try
+               match
+                 Memory_limit.run_with_memory_limit ~mem_limit_mb (fun () ->
+                     Common.set_timeout ~verbose:false
+                       ~name:"Test_parsing.parsing_common" timeout_seconds
+                       (fun () ->
+                         Parse_target
+                         .parse_and_resolve_name_use_pfff_or_treesitter lang
+                           file))
+               with
+               | Some res -> res.Parse_target.stat
+               | None -> { (PI.bad_stat file) with have_timeout = true }
              with
-             | Some res -> res.Parse_target.stat
-             | None -> { (PI.bad_stat file) with have_timeout = true }
-           with
-           | Timeout _ -> assert false
-           | exn ->
-               if verbose then
-                 pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
-               (* bugfix: bad_stat() could actually triggering some
-                * Sys_error "Out of memory" when implemented naively,
-                * and this exn in the exn handler was stopping the whole job.
-                *)
-               PI.bad_stat file
-         in
-         stat)
+             | Timeout _ -> assert false
+             | exn ->
+                 if verbose then
+                   pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+                 (* bugfix: bad_stat() could actually triggering some
+                    Sys_error "Out of memory" when implemented naively,
+                    and this exn in the exn handler was stopping the whole job.
+                 *)
+                 PI.bad_stat file
+           in
+           stat)
+  in
+  (stats, skipped)
 
 (*
    Parse files from multiple root folders, each root being considered a
@@ -303,9 +288,9 @@ let parsing_common ?(verbose = true) lang xs =
    in seconds/MB or equivalent units, not seconds per file."
 *)
 let parse_project ~verbose lang name files_or_dirs =
+  let stat_list, _skipped = parsing_common ~verbose lang files_or_dirs in
   let stat_list =
-    parsing_common ~verbose lang files_or_dirs
-    |> List.filter (fun stat -> not stat.PI.have_timeout)
+    List.filter (fun stat -> not stat.PI.have_timeout) stat_list
   in
   pr2
     (spf "%05.1fs: [%s] done parsing %s" (Sys.time ())
@@ -439,12 +424,11 @@ let diff_pfff_tree_sitter xs =
 (* Rule parsing *)
 (*****************************************************************************)
 
-let test_parse_rules xs =
-  let fullxs =
-    Lang.files_of_dirs_or_files Lang.Yaml xs
-    |> Skip_code.filter_files_if_skip_list ~root:xs
+let test_parse_rules roots =
+  let targets, _skipped_paths =
+    Find_target.files_of_dirs_or_files Lang.Yaml roots
   in
-  fullxs
+  targets
   |> List.iter (fun file ->
          logger#info "processing %s" file;
          let _r = Parse_rule.parse file in

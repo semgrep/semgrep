@@ -117,7 +117,11 @@ and qualifier v = list ident v
 
 and todo_category v = ident v
 
-and type_ = function
+and type_ x =
+  let tk = type_kind x in
+  tk |> G.t
+
+and type_kind = function
   | TyEllipsis v1 ->
       let v1 = tok v1 in
       G.TyEllipsis v1
@@ -136,7 +140,7 @@ and type_ = function
       G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
       let v1 = list type_ v1 and v2 = name v2 in
-      G.TyApply (G.TyN v2, fb (v1 |> List.map (fun t -> G.TypeArg t)))
+      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> List.map (fun t -> G.TypeArg t)))
   | TyTuple v1 ->
       let v1 = list type_ v1 in
       G.TyTuple (fb v1)
@@ -629,8 +633,9 @@ and item { i; iattrs } =
       [ G.DefStmt (ent, def) |> G.s ]
   | Open (t, v1) ->
       let v1 = module_name v1 in
-      (* no attrs here *)
-      let dir = G.ImportAll (t, G.DottedName v1, fake "*") in
+      let dir =
+        { G.d = G.ImportAll (t, G.DottedName v1, fake "*"); d_attrs = attrs }
+      in
       [ G.DirectiveStmt dir |> G.s ]
   | Val (_t, v1, v2) ->
       let v1 = ident v1 and v2 = type_ v2 in

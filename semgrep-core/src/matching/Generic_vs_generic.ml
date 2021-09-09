@@ -1052,7 +1052,7 @@ and m_other_expr_operator = m_other_xxx
 
 (*e: function [[Generic_vs_generic.m_other_expr_operator]] *)
 and m_compatible_type typed_mvar t e =
-  match (t, e.G.e) with
+  match (t.G.t, e.G.e) with
   (* for Python literal checking *)
   | ( G.OtherType
         (G.OT_Expr, [ G.E { e = G.N (G.Id (("int", _tok), _idinfo)); _ } ]),
@@ -1072,7 +1072,7 @@ and m_compatible_type typed_mvar t e =
   | G.TyN (G.Id (("String", _), _)), B.L (B.String _) ->
       envf typed_mvar (MV.E e)
   (* for C specific literals *)
-  | G.TyPointer (_, TyBuiltin ("char", _)), B.L (B.String _) ->
+  | G.TyPointer (_, { t = TyBuiltin ("char", _); _ }), B.L (B.String _) ->
       envf typed_mvar (MV.E e)
   | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
   (* for go literals *)
@@ -1080,21 +1080,22 @@ and m_compatible_type typed_mvar t e =
   | G.TyN (Id (("float", _), _)), B.L (B.Float _) -> envf typed_mvar (MV.E e)
   | G.TyN (Id (("string", _), _)), B.L (B.String _) -> envf typed_mvar (MV.E e)
   (* for C strings to match metavariable pointer types *)
-  | G.TyPointer (t1, G.TyN (G.Id ((_, tok), _id_info))), B.L (B.String _) ->
-      m_type_ t (G.TyPointer (t1, TyBuiltin ("char", tok))) >>= fun () ->
-      envf typed_mvar (MV.E e)
+  | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), _id_info)); _ }),
+      B.L (B.String _) ) ->
+      m_type_ t (G.TyPointer (t1, G.TyBuiltin ("char", tok) |> G.t) |> G.t)
+      >>= fun () -> envf typed_mvar (MV.E e)
   (* for matching ids *)
-  | ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
+  | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
       (* NOTE: Name values must be represented with MV.Id! *)
-      m_type_option_with_hook idb (Some ta) !tb >>= fun () ->
+      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
       envf typed_mvar (MV.Id (idb, Some id_infob))
-  | ( ta,
+  | ( _ta,
       ( B.N (B.IdQualified ((idb, _), { B.id_type = tb; _ }))
       | B.DotAccess
           ( { e = IdSpecial (This, _); _ },
             _,
             EN (Id (idb, { B.id_type = tb; _ })) ) ) ) ->
-      m_type_option_with_hook idb (Some ta) !tb >>= fun () ->
+      m_type_option_with_hook idb (Some t) !tb >>= fun () ->
       envf typed_mvar (MV.E e)
   | _ -> fail ()
 
@@ -1523,13 +1524,16 @@ and m_ac_op tok op aargs_ac bargs_ac =
 
 (*s: function [[Generic_vs_generic.m_type_]] *)
 and m_type_ a b =
-  match (a, b) with
+  let* () =
+    m_list_in_any_order ~less_is_ok:true m_attribute a.t_attrs b.t_attrs
+  in
+  match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
    * MV.Id (or MV.N) when we can, instead of the more general MV.T below *)
   | G.TyN a1, B.TyN b1 -> m_name a1 b1
   (*s: [[Generic_vs_generic.m_type_]] metavariable case *)
-  | G.TyN (G.Id ((str, tok), _id_info)), t2 when MV.is_metavar_name str ->
-      envf (str, tok) (MV.T t2)
+  | G.TyN (G.Id ((str, tok), _id_info)), _t2 when MV.is_metavar_name str ->
+      envf (str, tok) (MV.T b)
   (*e: [[Generic_vs_generic.m_type_]] metavariable case *)
   (* dots: *)
   | G.TyEllipsis _, _ -> return ()
@@ -1688,19 +1692,21 @@ and m_other_attribute_operator = m_other_xxx
  * todo? we could restrict ourselves to only a few forms?
  *)
 (* experimental! *)
-and m_stmts_deep ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) tin =
+and m_stmts_deep ~inside ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) tin
+    =
   (* shares the cache with m_list__m_stmt *)
   match (tin.cache, xsa, xsb) with
   | Some cache, a :: _, _ :: _ when a.s_use_cache ->
       let tin = { tin with mv = Env.update_min_env tin.mv a } in
       Caching.Cache.match_stmt_list ~access:cache_access ~cache
         ~function_id:CK.Match_deep ~list_kind:CK.Original ~less_is_ok
-        ~compute:(m_stmts_deep_uncached ~less_is_ok)
+        ~compute:(m_stmts_deep_uncached ~inside ~less_is_ok)
         ~pattern:xsa ~target:xsb tin
-  | _ -> m_stmts_deep_uncached ~less_is_ok xsa xsb tin
+  | _ -> m_stmts_deep_uncached ~inside ~less_is_ok xsa xsb tin
 
 (*s: function [[Generic_vs_generic.m_stmts_deep]] *)
-and m_stmts_deep_uncached ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
+and m_stmts_deep_uncached ~inside ~less_is_ok (xsa : G.stmt list)
+    (xsb : G.stmt list) =
   (* opti: this was the old code:
    *   if !Flag.go_deeper_stmt && (has_ellipsis_stmts xsa)
    *   then
@@ -1736,6 +1742,17 @@ and m_stmts_deep_uncached ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
   | [], _ :: _ -> if less_is_ok then return () else fail ()
   (* dots: '...', can also match no statement *)
   | [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], [] -> return ()
+  (* inside:
+   * When a pattern-inside (or pattern-not-inside) ends in ... we do not
+   * need to compute all possible endings, it's enough to return the largest
+   * one. If some other pattern P matches inside the largest match here, then
+   * that is enough to either keep P (pattern-inside) or filter it out
+   * (pattern-not-inside).
+   *)
+  | [ { s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } ], xb :: bbs
+    when inside ->
+      env_add_matched_stmt xb >>= fun () ->
+      m_stmts_deep_uncached ~inside ~less_is_ok xsa bbs
   | ( ({ s = G.ExprStmt ({ e = G.Ellipsis _i; _ }, _); _ } :: _ as xsa),
       (_ :: _ as xsb) ) ->
       (* let's first try without going deep *)
@@ -1759,7 +1776,8 @@ and m_stmts_deep_uncached ~less_is_ok (xsa : G.stmt list) (xsb : G.stmt list) =
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_stmt xa xb >>= fun () ->
-      env_add_matched_stmt xb >>= fun () -> m_stmts_deep ~less_is_ok aas bbs
+      env_add_matched_stmt xb >>= fun () ->
+      m_stmts_deep ~inside ~less_is_ok aas bbs
   | _ :: _, _ -> fail ()
 
 (*e: function [[Generic_vs_generic.m_stmts_deep]] *)
@@ -1920,7 +1938,8 @@ and m_stmt a b =
       or_list m_stmt a bs
   (* the general case *)
   (* ... will now allow a subset of stmts (less_is_ok = false here) *)
-  | G.Block a1, B.Block b1 -> m_bracket (m_stmts_deep ~less_is_ok:false) a1 b1
+  | G.Block a1, B.Block b1 ->
+      m_bracket (m_stmts_deep ~inside:false ~less_is_ok:false) a1 b1
   (*e: [[Generic_vs_generic.m_stmt()]] deep matching cases *)
   (*s: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: vardef ==> assign, and go deep *)
@@ -2578,7 +2597,10 @@ and m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
     (* dots: '...', this is very Python Specific I think *)
       (function
-      | G.OtherType (G.OT_Arg, [ G.Ar (G.Arg { e = G.Ellipsis _i; _ }) ]) ->
+      | {
+          t = G.OtherType (G.OT_Arg, [ G.Ar (G.Arg { e = G.Ellipsis _i; _ }) ]);
+          _;
+        } ->
           true
       | _ -> false)
     (* less-is-ok: it's ok to not specify all the parents I think *)
@@ -2696,13 +2718,17 @@ and m_macro_definition a b =
 
 (*s: function [[Generic_vs_generic.m_directive]] *)
 and m_directive a b =
-  m_directive_basic a b >!> fun () ->
-  match a with
+  let* () =
+    m_list_in_any_order ~less_is_ok:true m_attribute a.d_attrs b.d_attrs
+  in
+
+  m_directive_basic a.d b.d >!> fun () ->
+  match a.d with
   (* normalize only if very simple import pattern (no alias) *)
   | G.ImportFrom (_, _, _, None) | G.ImportAs (_, _, None) -> (
       (* equivalence: *)
-      let normal_a = Normalize_generic.normalize_import_opt true a in
-      let normal_b = Normalize_generic.normalize_import_opt false b in
+      let normal_a = Normalize_generic.normalize_import_opt true a.d in
+      let normal_b = Normalize_generic.normalize_import_opt false b.d in
       match (normal_a, normal_b) with
       | Some (a0, a1), Some (b0, b1) ->
           m_tok a0 b0 >>= fun () -> m_module_name_prefix a1 b1
@@ -2824,7 +2850,7 @@ and m_partial a b =
 and m_any a b =
   match (a, b) with
   | G.Str a1, B.Str b1 -> m_string_ellipsis_or_metavar_or_default a1 b1
-  | G.Ss a1, B.Ss b1 -> m_stmts_deep ~less_is_ok:true a1 b1
+  | G.Ss a1, B.Ss b1 -> m_stmts_deep ~inside:false ~less_is_ok:true a1 b1
   | G.E a1, B.E b1 -> m_expr a1 b1
   | G.S a1, B.S b1 -> m_stmt a1 b1
   (*s: [[Generic_vs_generic.m_any]] boilerplate cases *)

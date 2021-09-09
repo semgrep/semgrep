@@ -405,7 +405,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v1 = map_pattern v1 and v2 = map_expr v2 in
     (v1, v2)
   and map_other_expr_operator x = x
-  and map_type_ = function
+  and map_type_ { t; t_attrs } =
+    let t = map_type_kind t in
+    let t_attrs = map_of_list map_attribute t_attrs in
+    { t; t_attrs }
+  and map_type_kind = function
     | TyEllipsis v1 ->
         let v1 = map_tok v1 in
         TyEllipsis v1
@@ -957,7 +961,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
       cparams;
     }
   and map_class_kind (x, t) = (x, map_tok t)
-  and map_directive = function
+  and map_directive { d; d_attrs } =
+    let d = map_directive_kind d in
+    let d_attrs = map_of_list map_attribute d_attrs in
+    { d; d_attrs }
+  and map_directive_kind = function
     | ImportFrom (t, v1, v2, v3) ->
         let t = map_tok t in
         let v1 = map_module_name v1 and v2, v3 = map_alias (v2, v3) in

@@ -4,6 +4,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 from urllib.parse import urlparse
 
 from semgrep.constants import SEMGREP_USER_AGENT
@@ -67,7 +68,7 @@ class _MetricManager:
             project_hash = hashlib.sha256(sanitized_url.encode()).hexdigest()
             self._project_hash = project_hash
 
-    def set_configs_hash(self, configs: List[str]) -> None:
+    def set_configs_hash(self, configs: Sequence[str]) -> None:
         """
         Assumes configs is list of arguments passed to semgrep using --config
         """
@@ -76,7 +77,7 @@ class _MetricManager:
             m.update(c.encode())
         self._configs_hash = m.hexdigest()
 
-    def set_rules_hash(self, rules: List[Rule]) -> None:
+    def set_rules_hash(self, rules: Sequence[Rule]) -> None:
         m = hashlib.sha256()
         rule_hashes = [r.full_hash for r in rules]
         rule_hashes.sort()  # sort hashes to have a stable rules_hash

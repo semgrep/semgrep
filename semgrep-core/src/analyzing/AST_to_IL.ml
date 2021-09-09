@@ -493,7 +493,7 @@ and expr_aux env eorig =
   | G.Conditional (e1orig, e2orig, e3orig) ->
       let tok = G.fake "conditional" in
       let lval = fresh_lval env tok in
-      let lvalexp = mk_e (Fetch lval) e1orig in
+      let lvalexp = mk_e (Fetch lval) eorig in
 
       (* not sure this is correct *)
       let before = List.rev !(env.stmts) in
@@ -593,7 +593,7 @@ and argument env arg =
   | G.ArgKwd (_, e) ->
       (* TODO: Handle the keyword/label somehow (when relevant). *)
       expr env e
-  | _ -> todo (G.Ar arg)
+  | _ -> fixme_exp ToDo (G.Ar arg) (G.e (G.OtherExpr (G.OE_Todo, [ G.Ar arg ])))
 
 and record env ((_tok, origfields, _) as record_def) =
   let eorig = G.Record record_def |> G.e in

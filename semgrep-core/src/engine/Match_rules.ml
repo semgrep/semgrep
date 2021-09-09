@@ -25,7 +25,9 @@ module MV = Metavariable
 module RP = Report
 module S = Specialize_formula
 module RM = Range_with_metavars
+module FM = File_and_more
 module E = Error_code
+module Resp = Semgrep_core_response_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -137,10 +139,10 @@ let error env msg =
   let err = E.mk_error_loc loc (E.MatchingError s) in
   Common.push err env.errors
 
-let (xpatterns_in_formula : S.sformula -> R.xpattern list) =
+let (xpatterns_in_formula : S.sformula -> (R.xpattern * R.inside option) list) =
  fun e ->
   let res = ref [] in
-  e |> S.visit_sformula (fun xpat -> Common.push xpat res);
+  e |> S.visit_sformula (fun xpat inside -> Common.push (xpat, inside) res);
   !res
 
 let partition_xpatterns xs =
@@ -149,11 +151,11 @@ let partition_xpatterns xs =
   let regexp = ref [] in
   let comby = ref [] in
   xs
-  |> List.iter (fun xpat ->
+  |> List.iter (fun (xpat, inside) ->
          let id = xpat.R.pid in
          let str = fst xpat.R.pstr in
          match xpat.R.pat with
-         | R.Sem (x, _lang) -> Common.push (x, id, str) semgrep
+         | R.Sem (x, _lang) -> Common.push (x, inside, id, str) semgrep
          | R.Spacegrep x -> Common.push (x, id, str) spacegrep
          | R.Regexp x -> Common.push (x, id, str) regexp
          | R.Comby x -> Common.push (x, id, str) comby);
@@ -185,18 +187,6 @@ let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
   (* rather than the original metavariables for the match                          *)
   { m with rule_id; env = range.mvars }
 
-(* return list of "positive" x list of Not x list of Conds *)
-let (split_and :
-      S.sformula list -> S.sformula list * S.sformula list * R.metavar_cond list)
-    =
- fun xs ->
-  xs
-  |> Common.partition_either3 (fun e ->
-         match e with
-         | S.Not f -> Middle3 f
-         | S.Leaf (R.MetavarCond (_, c)) -> Right3 c
-         | _ -> Left3 e)
-
 let lazy_force x = Lazy.force x [@@profiling]
 
 (*****************************************************************************)
@@ -210,11 +200,13 @@ let lazy_force x = Lazy.force x [@@profiling]
  * this will raise Impossible... Thus, now we have to pass the language(s) that
  * we are specifically targeting. *)
 let (mini_rule_of_pattern :
-      R.xlang -> Pattern.t * Rule.pattern_id * string -> MR.t) =
- fun xlang (pattern, id, pstr) ->
+      R.xlang -> Pattern.t * R.inside option * Rule.pattern_id * string -> MR.t)
+    =
+ fun xlang (pattern, inside, id, pstr) ->
   {
     MR.id = string_of_int id;
     pattern;
+    inside = Option.is_some inside;
     (* parts that are not really needed I think in this context, since
      * we just care about the matching result.
      *)
@@ -286,7 +278,12 @@ let matches_of_patterns ?range_filter config equivalences
                   ?range_filter config mini_rules equivalences (file, lang, ast),
                 errors ))
       in
-      { RP.matches; errors; profiling = { RP.parse_time; match_time } }
+      {
+        RP.matches;
+        errors;
+        skipped = [];
+        profiling = { RP.parse_time; match_time };
+      }
   | _ -> RP.empty_semgrep_result
 
 (*****************************************************************************)
@@ -356,6 +353,7 @@ let (matches_of_matcher :
         {
           RP.matches = res;
           errors = [];
+          skipped = [];
           profiling = { RP.parse_time; match_time };
         }
 
@@ -663,7 +661,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
   | None ->
       error env
         (Common.spf
-           "metavariable-pattern failed because %s it not in scope, please \
+           "metavariable-pattern failed because %s is not in scope, please \
             check your rule"
            mvar);
       false
@@ -773,9 +771,16 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
 and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
     opt_context =
   let res, final_ranges =
-    let file_and_more = (env.file, env.xlang, lazy_ast_and_errors) in
+    let file_and_more =
+      {
+        FM.file = env.file;
+        xlang = env.xlang;
+        lazy_content;
+        lazy_ast_and_errors;
+      }
+    in
     matches_of_formula env.config env.equivalences env.rule_id file_and_more
-      lazy_content formula opt_context
+      formula opt_context
   in
   env.errors := res.RP.errors @ !(env.errors);
   match final_ranges with [] -> false | _ :: _ -> true
@@ -799,9 +804,9 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
       |> List.map RM.match_result_to_range
       |> List.map (fun r -> { r with RM.kind })
   | S.Or xs -> xs |> List.map (evaluate_formula env opt_context) |> List.flatten
-  | S.And (selector_opt, xs) -> (
-      let pos, neg, conds = split_and xs in
-
+  | S.And
+      { selector_opt; positives = pos; negatives = neg; conditionals = conds }
+    -> (
       (* we now treat pattern: and pattern-inside: differently. We first
        * process the pattern: and then the pattern-inside.
        * This fixed only one mismatch in semgrep-rules.
@@ -902,7 +907,7 @@ and run_selector_on_ranges env selector_opt ranges =
         let r = Range.range_of_token_locations tok1 tok2 in
         List.exists (fun rwm -> Range.( $<=$ ) r rwm.RM.r) ranges
       in
-      let patterns = [ (pattern, pid, fst pstr) ] in
+      let patterns = [ (pattern, None, pid, fst pstr) ] in
       let res =
         matches_of_patterns ~range_filter env.config env.equivalences
           (env.file, env.xlang, env.lazy_ast_and_errors)
@@ -914,9 +919,9 @@ and run_selector_on_ranges env selector_opt ranges =
       |> List.map RM.match_result_to_range
       |> RM.intersect_ranges env.config !debug_matches ranges
 
-and matches_of_formula config equivs rule_id file_and_more lazy_content formula
-    opt_context : RP.times RP.match_result * RM.ranges =
-  let file, xlang, lazy_ast_and_errors = file_and_more in
+and matches_of_formula config equivs rule_id file_and_more formula opt_context :
+    RP.times RP.match_result * RM.ranges =
+  let { FM.file; xlang; lazy_content; lazy_ast_and_errors } = file_and_more in
   let formula = S.formula_to_sformula formula in
   let xpatterns = xpatterns_in_formula formula in
   let res =
@@ -952,55 +957,41 @@ and matches_of_formula config equivs rule_id file_and_more lazy_content formula
 (*****************************************************************************)
 
 let check hook default_config rules equivs file_and_more =
-  let file, _xlang, lazy_ast_and_errors = file_and_more in
+  let { FM.file; lazy_ast_and_errors; _ } = file_and_more in
   logger#info "checking %s with %d rules" file (List.length rules);
   if rules = [] then logger#error "empty rules";
   if !Common.profile = Common.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
     lazy_force lazy_ast_and_errors |> ignore);
 
-  let lazy_content = lazy (Common.read_file file) in
   rules
   |> List.map (fun (r, pformula) ->
          Common.profile_code
            (spf "real_rule:%s" (fst r.R.id))
            (fun () ->
-             let relevant_rule =
-               if !Flag_semgrep.filter_irrelevant_rules then (
-                 match Analyze_rule.regexp_prefilter_of_rule r with
-                 | None -> true
-                 | Some (re, f) ->
-                     let content = Lazy.force lazy_content in
-                     logger#info "looking for %s in %s" re file;
-                     f content)
-               else true
+             let config = r.options ||| default_config in
+             let formula = R.formula_of_pformula pformula in
+             let res, final_ranges =
+               matches_of_formula config equivs (fst r.id) file_and_more formula
+                 None
              in
-             if not relevant_rule then (
-               logger#info "skipping rule %s for %s" (fst r.R.id) file;
-               RP.empty_semgrep_result)
-             else
-               let config = r.options ||| default_config in
-               let formula = R.formula_of_pformula pformula in
-               let res, final_ranges =
-                 matches_of_formula config equivs (fst r.id) file_and_more
-                   lazy_content formula None
-               in
-               {
-                 matches =
-                   final_ranges
-                   |> List.map (range_to_pattern_match_adjusted r)
-                   (* dedup similar findings (we do that also in Match_patterns.ml,
-                    * but different mini-rules matches can now become the same match)
-                    *)
-                   |> PM.uniq
-                   |> before_return (fun v ->
-                          v
-                          |> List.iter (fun (m : Pattern_match.t) ->
-                                 let str = spf "with rule %s" (fst r.R.id) in
-                                 hook str m.env m.tokens));
-                 errors = res.errors;
-                 profiling = res.profiling;
-               }))
+             {
+               RP.matches =
+                 final_ranges
+                 |> List.map (range_to_pattern_match_adjusted r)
+                 (* dedup similar findings (we do that also in Match_patterns.ml,
+                  * but different mini-rules matches can now become the same match)
+                  *)
+                 |> PM.uniq
+                 |> before_return (fun v ->
+                        v
+                        |> List.iter (fun (m : Pattern_match.t) ->
+                               let str = spf "with rule %s" (fst r.R.id) in
+                               hook str m.env m.tokens));
+               errors = res.errors;
+               skipped = res.skipped;
+               profiling = res.profiling;
+             }))
   |> RP.collate_semgrep_results
   [@@profiling]
 
