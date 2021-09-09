@@ -9,7 +9,6 @@ from typing import Tuple
 import attr
 
 from semgrep.constants import RuleSeverity
-from semgrep.pattern_match import PatternMatch
 
 
 @attr.s(frozen=True)
@@ -19,7 +18,6 @@ class RuleMatch:
     """
 
     _id: str = attr.ib()
-    _pattern_match: PatternMatch = attr.ib(repr=False)
     _message: str = attr.ib(repr=False)
     _metadata: Dict[str, Any] = attr.ib(repr=False)
     _severity: RuleSeverity = attr.ib(repr=False)
@@ -35,38 +33,6 @@ class RuleMatch:
 
     # optional attributes
     _is_ignored: Optional[bool] = attr.ib(default=None)
-
-    @classmethod
-    def from_pattern_match(
-        cls,
-        rule_id: str,
-        pattern_match: PatternMatch,
-        message: str,
-        metadata: Dict[str, Any],
-        severity: RuleSeverity,
-        fix: Optional[str],
-        fix_regex: Optional[Dict[str, Any]],
-    ) -> "RuleMatch":
-        path = pattern_match.path
-        start = pattern_match.start
-        end = pattern_match.end
-
-        # note that message in extra is still the old value defined before metavar interpolation
-        extra = pattern_match.extra
-        return cls(
-            rule_id,
-            pattern_match,
-            message,
-            metadata,
-            severity,
-            fix,
-            fix_regex,
-            path,
-            start,
-            end,
-            extra,
-            {},
-        )
 
     @property
     def id(self) -> str:

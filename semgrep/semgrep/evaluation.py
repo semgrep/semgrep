@@ -20,18 +20,22 @@ def create_output(
             if rule.fix
             else None
         )
-        rule_match = RuleMatch.from_pattern_match(
+        rule_match = RuleMatch(
             rule.id,
-            pattern_match,
             message=message,
             metadata=rule.metadata,
             severity=rule.severity,
             fix=fix,
             fix_regex=rule.fix_regex,
+            path=pattern_match.path,
+            start=pattern_match.start,
+            end=pattern_match.end,
+            extra=pattern_match.extra,
+            lines_cache={},
         )
         output.append(rule_match)
 
-    return sorted(output, key=lambda rule_match: rule_match._pattern_match.range.start)
+    return sorted(output, key=lambda rule_match: rule_match.start.get("offset", 0))
 
 
 def interpolate_string_with_metavariables(

@@ -1,4 +1,3 @@
-import copy
 import json
 from typing import Any
 from typing import Dict
@@ -10,16 +9,22 @@ from semgrep.rule_match import RuleMatch
 class JsonFormatter(BaseFormatter):
     @staticmethod
     def _rule_match_to_json(rule_match: RuleMatch) -> Dict[str, Any]:
-        json_obj = copy.deepcopy(rule_match._pattern_match._raw_json)
-
+        json_obj: Dict[str, Any] = {}
         json_obj["check_id"] = rule_match.id
-        json_obj["extra"] = json_obj.get("extra", {})
+        json_obj["extra"] = rule_match.extra
         json_obj["extra"]["message"] = rule_match.message
         json_obj["extra"]["metadata"] = rule_match.metadata
         json_obj["extra"]["severity"] = rule_match.severity.value
-        json_obj["path"] = json_obj.get("path", str(rule_match.path))
-        json_obj["start"] = rule_match.start
-        json_obj["end"] = rule_match.end
+        json_obj["path"] = str(rule_match.path)
+
+        start = rule_match.start
+        if "offset" in start:
+            del start["offset"]
+        json_obj["start"] = start
+        end = rule_match.end
+        if "offset" in end:
+            del end["offset"]
+        json_obj["end"] = end
 
         # 'lines' already contains '\n' at the end of each line
         json_obj["extra"]["lines"] = "".join(rule_match.lines).rstrip()

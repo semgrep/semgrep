@@ -64,16 +64,12 @@ class PatternMatch:
     def start(self) -> Dict[str, Any]:
         # https://docs.r2c.dev/en/latest/api/output.html does not support offset at the moment
         start = dict(self._raw_json["start"])
-        if "offset" in start:
-            del start["offset"]
         return start
 
     @property
     def end(self) -> Dict[str, Any]:
         # https://docs.r2c.dev/en/latest/api/output.html does not support offset at the moment
         end = dict(self._raw_json["end"])
-        if "offset" in end:
-            del end["offset"]
         return end
 
     def _read_metavariable_values(self) -> Dict[str, str]:
