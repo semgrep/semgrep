@@ -68,9 +68,9 @@ class Config:
 
     @classmethod
     def from_pattern_lang(
-        cls, pattern: str, lang: str, autofix: Optional[str] = None
+        cls, pattern: str, lang: str, replacement: Optional[str] = None
     ) -> Tuple["Config", List[SemgrepError]]:
-        config_dict = manual_config(pattern, lang, autofix)
+        config_dict = manual_config(pattern, lang, replacement)
         valid, errors = cls._validate(config_dict)
         return cls(valid), errors
 
@@ -215,7 +215,7 @@ def validate_single_rule(
 
 
 def manual_config(
-    pattern: str, lang: str, autofix: Optional[str]
+    pattern: str, lang: str, replacement: Optional[str]
 ) -> Dict[str, YamlTree]:
     # TODO remove when using sgrep -e ... -l ... instead of this hacked config
     pattern_span = Span.from_string(pattern, filename="CLI Input")
@@ -231,8 +231,8 @@ def manual_config(
         "severity": "ERROR",
     }
 
-    if autofix:
-        rules_key["fix"] = autofix
+    if replacement:
+        rules_key["fix"] = replacement
 
     return {
         "manual": YamlTree.wrap(
