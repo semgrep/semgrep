@@ -267,7 +267,7 @@ let json_of_profile_info profile_start =
  *
  * coupling: Test.metachecker_regression_tests
  *)
-let json_of_exn e =
+let _json_of_exn e =
   match e with
   | Rule.InvalidRule (rule_id, msg, _posTODO) ->
       J.Object

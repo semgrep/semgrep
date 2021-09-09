@@ -530,22 +530,11 @@ let metachecker_regression_tests =
       Filename.basename file, (fun () ->
         E.g_errors := [];
         E.try_with_exn_to_error file (fun () ->
-          try
             let rules = Parse_rule.parse file in
             rules |> List.iter (fun rule ->
               let errs = Check_rule.check rule in
               E.g_errors := errs @ !E.g_errors
             )
-          with
-          (* convert to something handled by E.try_with_exn_to_error.
-           * coupling: JSON_report.json_of_exn
-          *)
-          | Parse_rule.InvalidRule (_, s, t)
-          | Parse_rule.InvalidYaml (s, t)
-          | Parse_rule.InvalidRegexp (_, s, t)
-          | Parse_rule.InvalidLanguage (_, s, t)
-          | Parse_rule.InvalidPattern (_, _, _, s, t, _) ->
-              raise (Parse_info.Other_error (s, t))
         );
         let actual = !E.g_errors in
         let expected = E.expected_error_lines_of_files [file] in

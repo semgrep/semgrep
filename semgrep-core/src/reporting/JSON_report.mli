@@ -13,8 +13,6 @@ val match_to_match :
 (* takes the starting time of the program *)
 val json_of_profile_info : float -> JSON.t
 
-val json_of_exn : exn -> JSON.t
-
 val match_results_of_matches_and_errors :
   Common.filename list ->
   Report.rule_result ->
