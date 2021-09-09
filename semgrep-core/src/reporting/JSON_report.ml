@@ -136,14 +136,17 @@ let match_to_match x =
     Left
       ({
          ST.rule_id = Some x.rule_id.id;
-         path = x.file;
-         start = startp;
-         end_ = endp;
+         location =
+           {
+             path = x.file;
+             start = startp;
+             end_ = endp;
+             lines = [] (* ?? spacegrep? *);
+           };
          extra =
            {
              message = Some x.rule_id.message;
              metavars = x.env |> List.map (metavars startp);
-             lines = [] (* ?? spacegrep? *);
            };
        }
         : ST.match_)
@@ -184,7 +187,7 @@ let error_to_error err =
           path = file;
           start = startp;
           end_ = endp;
-          line = (try lines.(line - 1) with _ -> "NO LINE");
+          lines = (try [ lines.(line - 1) ] with _ -> [ "NO LINE" ]);
         };
     message = "EMMA_TODO";
     details = None;

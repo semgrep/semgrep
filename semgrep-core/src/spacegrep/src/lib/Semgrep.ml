@@ -57,12 +57,16 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
                     let lines =
                       Src_file.list_lines_of_pos_range src pos1 pos2
                     in
-                    let extra = { message = None; metavars; lines } in
+                    let extra = { message = None; metavars } in
                     ({
                        rule_id;
-                       path;
-                       start = semgrep_pos pos1;
-                       end_ = semgrep_pos pos2;
+                       location =
+                         {
+                           path;
+                           start = semgrep_pos pos1;
+                           end_ = semgrep_pos pos2;
+                           lines;
+                         };
                        extra;
                      }
                       : match_))
@@ -81,9 +85,7 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
     |> List.map (fun (src, error) ->
            let path = Src_file.source_string src in
            let pos1, pos2 = error.Parse_pattern.loc in
-           let line =
-             Src_file.list_lines_of_pos_range src pos1 pos2 |> List.hd
-           in
+           let lines = Src_file.list_lines_of_pos_range src pos1 pos2 in
            {
              error_type = "EMMA_TODO";
              rule_id = None;
@@ -93,7 +95,7 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
                    path;
                    start = semgrep_pos pos1;
                    end_ = semgrep_pos pos2;
-                   line;
+                   lines;
                  };
              message = error.Parse_pattern.msg;
              details = None;

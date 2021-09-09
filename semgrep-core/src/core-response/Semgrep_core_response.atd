@@ -28,11 +28,16 @@ type stats = {
   errorfiles: int;
 }
 
-type match_ = {
-  ?rule_id: rule_id option;
-  path: string; (* source file *)
+type location = {
+  path: string (* source file *);
   start: position;
   end_ <json name="end">: position;
+  lines: string list;
+}
+
+type match_ = {
+  ?rule_id: rule_id option;
+  location: location;
   extra: match_extra;
 }
 
@@ -44,24 +49,15 @@ type match_extra = {
      The leading '$' must be included in the metavariable name.
   *)
   metavars: (string * metavar_value) list <json repr="object">;
-
-  lines: string list; (* the matching region, split at lines boundaries *)
 }
 
 (* See Semgrep_error_code *)
 type error = {
   error_type: string;
   ?rule_id: rule_id option;
-  ?location: error_location option;
+  ?location: location option;
   message: string;
   details: string option;
-}
-
-type error_location = {
-  path: string;
-  start: position;
-  end_ <json name="end">: position;
-  line: string;
 }
 
 type position = {
