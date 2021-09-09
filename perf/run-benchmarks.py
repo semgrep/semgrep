@@ -376,6 +376,14 @@ def generate_prep_file(
     )
 
 
+def get_semgrep_version():
+    return (
+        subprocess.run(["semgrep", "--version"], capture_output=True)
+        .stdout.decode("utf-8")
+        .strip()
+    )
+
+
 def run_benchmarks(
     docker: str,
     dummy: bool,
@@ -448,7 +456,10 @@ def run_benchmarks(
             for variant in variants:
 
                 # Run variant
-                name = ".".join(["semgrep", "bench", corpus.name, variant.name])
+                semgrep_version = get_semgrep_version()
+                name = ".".join(
+                    ["semgrep", semgrep_version, "bench", corpus.name, variant.name]
+                )
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
                 try:
