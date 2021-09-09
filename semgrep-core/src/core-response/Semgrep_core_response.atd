@@ -13,6 +13,8 @@
    in JSON_report.ml.
 *)
 
+type rule_id = string
+
 type match_results = {
   matches: match_ list;
   errors: error list;
@@ -27,26 +29,11 @@ type stats = {
 }
 
 type match_ = {
-  ?check_id: string option; (* rule ID *)
+  ?rule_id: rule_id option;
   path: string; (* source file *)
   start: position;
   end_ <json name="end">: position;
   extra: match_extra;
-}
-
-(* See Error_code in Pfff *)
-type error = {
-  ?check_id: string option;
-  path: string;
-  start: position;
-  end_ <json name="end">: position;
-  extra: error_extra;
-}
-
-type position = {
-  line: int; (* starts from 1 *)
-  col: int; (* starts from 1 *)
-  offset: int; (* byte position from the beginning of the file, starts at 0 *)
 }
 
 type match_extra = {
@@ -61,9 +48,26 @@ type match_extra = {
   lines: string list; (* the matching region, split at lines boundaries *)
 }
 
-type error_extra = {
+(* See Semgrep_error_code *)
+type error = {
+  ?rule_id: rule_id option;
+  error_type: string;
   message: string;
+  path: string;
+  start: position;
+  end_ <json name="end">: position;
+  extra: error_extra;
+}
+
+type error_extra = {
+  details: string;
   line: string;
+}
+
+type position = {
+  line: int; (* starts from 1 *)
+  col: int; (* starts from 1 *)
+  offset: int; (* byte position from the beginning of the file, starts at 0 *)
 }
 
 type metavar_value = {
@@ -138,8 +142,6 @@ type target_time = {
   (* run time for all rules *)
   run_time: float;
 }
-
-type rule_id = string
 
 (*
    If the 'skipped_rule' field is missing, the target is assumed to have

@@ -135,7 +135,7 @@ let match_to_match x =
     let startp, endp = position_range min_loc max_loc in
     Left
       ({
-         ST.check_id = Some x.rule_id.id;
+         ST.rule_id = Some x.rule_id.id;
          path = x.file;
          start = startp;
          end_ = endp;
@@ -173,20 +173,20 @@ let error_to_error err =
   let lines = lines_of_file file in
   let startp, endp = position_range err.E.loc err.E.loc in
   let line = err.E.loc.PI.line in
-  let check_id = E.check_id_of_error_kind err.E.typ in
-  let message = E.string_of_error_kind err.E.typ in
-  (*
-  let extra_extra =
-    match err.E.typ with
-    | _ -> []
-  in
-*)
+  let rule_id = E.check_id_of_error_kind err.E.typ in
+  let error_type = E.string_of_error_kind err.E.typ in
   {
-    ST.check_id = Some check_id;
+    ST.rule_id = Some rule_id;
+    error_type;
     path = file;
     start = startp;
     end_ = endp;
-    extra = { message; line = (try lines.(line - 1) with _ -> "NO LINE") };
+    message = "EMMA_TODO";
+    extra =
+      {
+        details = "EMMA_TODO";
+        line = (try lines.(line - 1) with _ -> "NO LINE");
+      };
   }
 
 let json_time_of_profiling_data profiling_data =

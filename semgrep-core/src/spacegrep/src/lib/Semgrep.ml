@@ -46,7 +46,7 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
         let matches, match_time =
           List.fold_right
             (fun (pat_id, matches, match_time) (matches_acc, match_time_acc) ->
-              let check_id = Some (string_of_int pat_id) in
+              let rule_id = Some (string_of_int pat_id) in
               let matches_out =
                 List.map
                   (fun match_ ->
@@ -59,7 +59,7 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
                     in
                     let extra = { message = None; metavars; lines } in
                     ({
-                       check_id;
+                       rule_id;
                        path;
                        start = semgrep_pos pos1;
                        end_ = semgrep_pos pos2;
@@ -84,12 +84,14 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
            let line =
              Src_file.list_lines_of_pos_range src pos1 pos2 |> List.hd
            in
-           let extra = { message = error.Parse_pattern.msg; line } in
+           let extra = { details = "EMMA_TODO"; line } in
            {
-             check_id = None;
+             rule_id = None;
+             error_type = "EMMA_TODO";
              path;
              start = semgrep_pos pos1;
              end_ = semgrep_pos pos2;
+             message = error.Parse_pattern.msg;
              extra;
            })
   in
