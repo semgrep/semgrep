@@ -46,7 +46,7 @@ from corpus import INTERNAL_CORPUSES
 from corpus import LARGE_CORPUSES
 from corpus import MEDIUM_CORPUSES
 from corpus import SMALL_CORPUSES
-from RepositoryTimePerRule import RepositoryTimePerRule
+from repository_time_per_rule import RepositoryTimePerRule
 from variant import GITLAB_VARIANTS
 from variant import SEMGREP_VARIANTS
 from variant import SemgrepVariant
