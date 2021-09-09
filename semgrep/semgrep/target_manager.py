@@ -9,6 +9,7 @@ from typing import Dict
 from typing import FrozenSet
 from typing import Iterator
 from typing import List
+from typing import Sequence
 from typing import Set
 
 import attr
@@ -29,7 +30,7 @@ logger = getLogger(__name__)
 
 
 @contextlib.contextmanager
-def optional_stdin_target(target: List[str]) -> Iterator[List[str]]:
+def optional_stdin_target(target: Sequence[str]) -> Iterator[Sequence[str]]:
     """
     Read target input from stdin if "-" is specified
     """
@@ -58,10 +59,10 @@ class TargetManager:
     targets with unknown extensions
     """
 
-    includes: List[str]
-    excludes: List[str]
+    includes: Sequence[str]
+    excludes: Sequence[str]
     max_target_bytes: int
-    targets: List[str]
+    targets: Sequence[str]
     respect_git_ignore: bool
     output_handler: OutputHandler
     skip_unknown_extensions: bool
@@ -69,7 +70,7 @@ class TargetManager:
     _filtered_targets: Dict[Language, FrozenSet[Path]] = attr.ib(factory=dict)
 
     @staticmethod
-    def resolve_targets(targets: List[str]) -> FrozenSet[Path]:
+    def resolve_targets(targets: Sequence[str]) -> FrozenSet[Path]:
         """
         Return list of Path objects appropriately resolving relative paths
         (relative to cwd) if necessary
@@ -213,7 +214,7 @@ class TargetManager:
         return frozenset(expanded)
 
     @staticmethod
-    def preprocess_path_patterns(patterns: List[str]) -> List[str]:
+    def preprocess_path_patterns(patterns: Sequence[str]) -> List[str]:
         """Convert semgrep's path include/exclude patterns to wcmatch's glob patterns.
 
         In semgrep, pattern "foo/bar" should match paths "x/foo/bar", "foo/bar/x", and
@@ -230,7 +231,9 @@ class TargetManager:
         return result
 
     @staticmethod
-    def filter_includes(arr: FrozenSet[Path], includes: List[str]) -> FrozenSet[Path]:
+    def filter_includes(
+        arr: FrozenSet[Path], includes: Sequence[str]
+    ) -> FrozenSet[Path]:
         """
         Returns all elements in arr that match any includes pattern
 
@@ -304,7 +307,7 @@ class TargetManager:
 
         targets = self.expand_targets(directories, lang, self.respect_git_ignore)
         targets = self.filter_includes(targets, self.includes)
-        targets = self.filter_excludes(targets, self.excludes + [".git"])
+        targets = self.filter_excludes(targets, [*self.excludes, ".git"])
         targets = self.filter_by_size(targets, self.max_target_bytes)
 
         # Remove explicit_files with known extensions.

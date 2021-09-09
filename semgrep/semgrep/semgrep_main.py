@@ -8,6 +8,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 from typing import Union
 
@@ -41,9 +42,9 @@ logger = getLogger(__name__)
 
 
 def notify_user_of_work(
-    filtered_rules: List[Rule],
-    include: List[str],
-    exclude: List[str],
+    filtered_rules: Sequence[Rule],
+    include: Sequence[str],
+    exclude: Sequence[str],
 ) -> None:
     """
     Notify user of what semgrep is about to do, including:
@@ -152,15 +153,16 @@ def invoke_semgrep(
 
 
 def main(
+    *,
     output_handler: OutputHandler,
-    target: List[str],
-    pattern: str,
-    lang: str,
-    configs: List[str],
+    target: Sequence[str],
+    pattern: Optional[str],
+    lang: Optional[str],
+    configs: Sequence[str],
     no_rewrite_rule_ids: bool = False,
     jobs: int = 1,
-    include: Optional[List[str]] = None,
-    exclude: Optional[List[str]] = None,
+    include: Optional[Sequence[str]] = None,
+    exclude: Optional[Sequence[str]] = None,
     strict: bool = False,
     autofix: bool = False,
     dryrun: bool = False,
@@ -171,7 +173,7 @@ def main(
     max_target_bytes: int = 0,
     timeout_threshold: int = 0,
     skip_unknown_extensions: bool = False,
-    severity: Optional[List[str]] = None,
+    severity: Optional[Sequence[str]] = None,
     optimizations: str = "none",
 ) -> None:
     if include is None:
@@ -183,7 +185,7 @@ def main(
     configs_obj, errors = get_config(pattern, lang, configs)
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
 
-    if severity is None or severity == []:
+    if not severity:
         filtered_rules = all_rules
     else:
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]

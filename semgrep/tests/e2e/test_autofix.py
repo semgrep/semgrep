@@ -8,7 +8,7 @@ def test_autofix(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
             "rules/autofix/autofix.yaml", target_name="autofix/autofix.py"
-        ),
+        )[0],
         "results.json",
     )
 
@@ -49,7 +49,7 @@ def test_autofix(run_semgrep_in_tmp, snapshot):
 def test_regex_autofix(run_semgrep_in_tmp, snapshot, rule, target):
     # Yes, this is fugly. I apologize. T_T
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target),
+        run_semgrep_in_tmp(rule, target_name=target)[0],
         "results.json",
     )
     # Make a copy of the target file b/c autofixes are inline. We
