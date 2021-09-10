@@ -5,7 +5,8 @@
       "check_id": "var-in-href",
       "end": {
         "col": 27,
-        "line": 15
+        "line": 15,
+        "offset": 479
       },
       "extra": {
         "is_ignored": false,
@@ -27,7 +28,8 @@
       "path": "targets/spacegrep/nosem.html",
       "start": {
         "col": 8,
-        "line": 15
+        "line": 15,
+        "offset": 460
       }
     }
   ]

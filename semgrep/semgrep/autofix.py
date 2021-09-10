@@ -29,11 +29,11 @@ def _get_lines(path: Path) -> List[str]:
 
 def _get_match_context(rule_match: RuleMatch) -> Tuple[int, int, int, int]:
     start_obj = rule_match.start
-    start_line = start_obj.get("line", 1) - 1  # start_line is 1 indexed
-    start_col = start_obj.get("col", 1) - 1  # start_col is 1 indexed
+    start_line = start_obj.line - 1  # start_line is 1 indexed
+    start_col = start_obj.col - 1  # start_col is 1 indexed
     end_obj = rule_match.end
-    end_line = end_obj.get("line", 1) - 1  # end_line is 1 indexed
-    end_col = end_obj.get("col", 1) - 1  # end_line is 1 indexed
+    end_line = end_obj.line - 1  # end_line is 1 indexed
+    end_col = end_obj.col - 1  # end_line is 1 indexed
     return start_line, start_col, end_line, end_col
 
 

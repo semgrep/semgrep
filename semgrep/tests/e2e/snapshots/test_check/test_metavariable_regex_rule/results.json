@@ -5,7 +5,8 @@
       "check_id": "rules.metavar-test",
       "end": {
         "col": 32,
-        "line": 1
+        "line": 1,
+        "offset": 31
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/basic/metavariable-regex.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     },
     {
       "check_id": "rules.metavar-test",
       "end": {
         "col": 35,
-        "line": 2
+        "line": 2,
+        "offset": 66
       },
       "extra": {
         "is_ignored": false,
@@ -74,7 +77,8 @@
       "path": "targets/basic/metavariable-regex.py",
       "start": {
         "col": 1,
-        "line": 2
+        "line": 2,
+        "offset": 32
       }
     }
   ]

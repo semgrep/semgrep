@@ -5,7 +5,8 @@
       "check_id": "rules.detected-aws-account-id",
       "end": {
         "col": 28,
-        "line": 3
+        "line": 3,
+        "offset": 71
       },
       "extra": {
         "is_ignored": false,
@@ -89,7 +90,8 @@
       "path": "targets/basic/regex-nosemgrep.txt",
       "start": {
         "col": 1,
-        "line": 3
+        "line": 3,
+        "offset": 44
       }
     }
   ]

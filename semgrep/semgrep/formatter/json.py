@@ -18,8 +18,8 @@ class JsonFormatter(BaseFormatter):
         json_obj["extra"]["severity"] = rule_match.severity.value
         json_obj["path"] = str(rule_match.path)
 
-        json_obj["start"] = {"line": rule_match.start.line, "col": rule_match.start.col}
-        json_obj["end"] = {"line": rule_match.end.line, "col": rule_match.end.col}
+        json_obj["start"] = rule_match.start.to_dict()
+        json_obj["end"] = rule_match.end.to_dict()
 
         # 'lines' already contains '\n' at the end of each line
         json_obj["extra"]["lines"] = "".join(rule_match.lines).rstrip()

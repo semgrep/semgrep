@@ -5,7 +5,8 @@
       "check_id": "rules.spacegrep.var-in-script-tag",
       "end": {
         "col": 32,
-        "line": 24
+        "line": 24,
+        "offset": 918
       },
       "extra": {
         "is_ignored": false,
@@ -18,14 +19,16 @@
       "path": "targets/spacegrep/html.mustache",
       "start": {
         "col": 19,
-        "line": 24
+        "line": 24,
+        "offset": 905
       }
     },
     {
       "check_id": "rules.spacegrep.var-in-script-tag",
       "end": {
         "col": 32,
-        "line": 29
+        "line": 29,
+        "offset": 1033
       },
       "extra": {
         "is_ignored": false,
@@ -38,14 +41,16 @@
       "path": "targets/spacegrep/html.mustache",
       "start": {
         "col": 19,
-        "line": 29
+        "line": 29,
+        "offset": 1020
       }
     },
     {
       "check_id": "rules.spacegrep.var-in-script-tag",
       "end": {
         "col": 34,
-        "line": 32
+        "line": 32,
+        "offset": 1135
       },
       "extra": {
         "is_ignored": false,
@@ -58,7 +63,8 @@
       "path": "targets/spacegrep/html.mustache",
       "start": {
         "col": 20,
-        "line": 32
+        "line": 32,
+        "offset": 1121
       }
     }
   ]

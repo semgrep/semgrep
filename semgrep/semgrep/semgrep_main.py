@@ -83,7 +83,7 @@ def rule_match_nosem(
     ids_str = re_match.groupdict()["ids"]
     if ids_str is None:
         logger.verbose(
-            f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
+            f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start.line}"
         )
         return True, []
 
@@ -105,7 +105,7 @@ def rule_match_nosem(
     for pattern_id in pattern_ids:
         if rule_match.id == pattern_id:
             logger.verbose(
-                f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
+                f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.id}' on line {rule_match.start.line}"
             )
             result = result or True
         else:

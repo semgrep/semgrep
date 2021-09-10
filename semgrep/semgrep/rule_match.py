@@ -28,6 +28,13 @@ class CoreLocation:
     col: int
     offset: int
 
+    def to_dict(self) -> JsonObject:
+        return {
+            "line": self.line,
+            "col": self.col,
+            "offset": self.offset,
+        }
+
     @classmethod
     def parse(cls, raw_json: JsonObject) -> "CoreLocation":
         line = raw_json.get("line")

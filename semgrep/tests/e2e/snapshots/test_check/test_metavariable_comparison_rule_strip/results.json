@@ -5,7 +5,8 @@
       "check_id": "rules.metavar-comparison-test-strip",
       "end": {
         "col": 42,
-        "line": 1
+        "line": 1,
+        "offset": 41
       },
       "extra": {
         "is_ignored": false,
@@ -36,7 +37,8 @@
       "path": "targets/basic/metavariable-comparison-strip.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     }
   ]
