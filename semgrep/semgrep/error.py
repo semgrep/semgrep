@@ -89,7 +89,7 @@ class SemgrepCoreError(SemgrepError):
     def to_dict_base(self) -> Dict[str, Any]:
         return {
             "type": self.error_type,
-            "message": self.message,
+            "message": f"{self.error_type}: {self.message}",
         }
 
     def __str__(self) -> str:
