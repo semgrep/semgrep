@@ -185,7 +185,7 @@ let error_to_error err =
   let severity = severity_of_severity (E.severity_of_error err.E.typ) in
   let message = err.E.msg in
   let details = err.E.details in
-  let yaml_path = err.E.path in
+  let yaml_path = err.E.yaml_path in
   {
     ST.error_type;
     rule_id;

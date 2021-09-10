@@ -7,7 +7,7 @@ type error = {
   loc : Parse_info.token_location;
   msg : string;
   details : string option;
-  path : string list option;
+  yaml_path : string list option;
 }
 
 and error_kind =
@@ -43,14 +43,21 @@ let options () = []
 (****************************************************************************)
 
 let mk_error rule_id loc msg err =
-  { rule_id = Some rule_id; loc; typ = err; msg; details = None; path = None }
+  {
+    rule_id = Some rule_id;
+    loc;
+    typ = err;
+    msg;
+    details = None;
+    yaml_path = None;
+  }
 
 let mk_error_tok rule_id tok msg err =
   let loc = PI.token_location_of_info tok in
   mk_error rule_id loc msg err
 
 let mk_error_no_rule loc msg err =
-  { rule_id = None; loc; typ = err; msg; details = None; path = None }
+  { rule_id = None; loc; typ = err; msg; details = None; yaml_path = None }
 
 let mk_error_tok_no_rule tok msg err =
   let loc = PI.token_location_of_info tok in
@@ -83,7 +90,7 @@ let exn_to_error file exn =
         RuleParseError
   | Rule.InvalidRegexp (rule_id, message, pos) ->
       mk_error_tok rule_id pos (spf "invalid regex %s" message) RuleParseError
-  | Rule.InvalidPattern (rule_id, _pattern, xlang, message, pos, path) ->
+  | Rule.InvalidPattern (rule_id, _pattern, xlang, message, pos, yaml_path) ->
       {
         rule_id = Some rule_id;
         typ = PatternParseError;
@@ -91,7 +98,7 @@ let exn_to_error file exn =
         msg =
           spf "Invalid pattern for %s: %s" (Rule.string_of_xlang xlang) message;
         details = None;
-        path = Some path;
+        yaml_path = Some yaml_path;
       }
   | Rule.InvalidYaml (msg, pos) -> mk_error_tok_no_rule pos msg InvalidYaml
   | Rule.DuplicateYamlKey (s, pos) -> mk_error_tok_no_rule pos s InvalidYaml
@@ -113,7 +120,7 @@ let exn_to_error file exn =
         loc;
         msg = Common.exn_to_s exn;
         details = Some (Printexc.get_backtrace ());
-        path = None;
+        yaml_path = None;
       }
 
 (*****************************************************************************)

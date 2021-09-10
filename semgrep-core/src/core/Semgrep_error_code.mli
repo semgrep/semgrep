@@ -4,7 +4,7 @@ type error = {
   loc : Parse_info.token_location;
   msg : string;
   details : string option;
-  path : string list option;
+  yaml_path : string list option;
 }
 
 and error_kind =

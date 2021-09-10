@@ -186,7 +186,7 @@ let tainting_test lang rules_file file =
         loc   = fst m.range_loc;
         msg   = m.P.rule_id.message;
         details = None;
-        path = None }
+        yaml_path = None }
     )
   in
   let expected = E.expected_error_lines_of_files [file] in
