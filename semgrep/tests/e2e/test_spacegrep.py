@@ -14,7 +14,7 @@ import pytest
 )
 def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target),
+        run_semgrep_in_tmp(rule, target_name=target)[0],
         "results.json",
     )
 
@@ -27,6 +27,8 @@ def test_spacegrep(run_semgrep_in_tmp, snapshot, rule, target):
 )
 def test_spacegrep_nosem(run_semgrep_in_tmp, snapshot, rule, target):
     snapshot.assert_match(
-        run_semgrep_in_tmp(rule, target_name=target, options=["--no-rewrite-rule-ids"]),
+        run_semgrep_in_tmp(rule, target_name=target, options=["--no-rewrite-rule-ids"])[
+            0
+        ],
         "results.json",
     )

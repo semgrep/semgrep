@@ -65,7 +65,7 @@ Go · Java · JavaScript · JSX · JSON · Python · Ruby · TypeScript · TSX</
 </p>
 <h4 align="center">Beta & experimental</h4>
 <p align="center">
-See <a href="https://semgrep.dev/docs/status/">supported languages</a> for the complete list.
+See <a href="https://semgrep.dev/docs/language-support/">supported languages</a> for the complete list.
 </p>
 
 ### Getting started

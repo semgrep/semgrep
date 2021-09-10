@@ -1,19 +1,19 @@
-[31msemgrep error[39m: Invalid rule schema
+[31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/missing-field.yaml:3
-[94m3  | [39m- id: flask-secure-set-cookie
-[94m4  | [39m  languages: [python]
-[94m5  | [39m  patterns:
-[94m6  | [39m    - pattern-not: |
-[94m7  | [39m        flask.response.set_cookie(..., httponly=True, secure=True,...)
-[94m8  | [39m    - pattern: |
-[94m9  | [39m        flask.response.set_cookie(....)
-[94m10 | [39m  message: |
-[94m11 | [39m    Flask cookies should be handled securely by setting secure=True, httponly=True, and samesite='Lax' in  response.set_cookie(...). If your situation calls for different settings, explicitly disable the setting.
-[94m12 | [39m    If you want to send the cookie over http, set secure=False.  If you want to let client-side JavaScript
-[94m13 | [39m    read the cookie, set httponly=False. If you want to attach cookies to requests for external sites,
-[94m14 | [39m    set samesite=None.
+[94m3  | [0m- id: flask-secure-set-cookie
+[94m4  | [0m  languages: [python]
+[94m5  | [0m  patterns:
+[94m6  | [0m    - pattern-not: |
+[94m7  | [0m        flask.response.set_cookie(..., httponly=True, secure=True,...)
+[94m8  | [0m    - pattern: |
+[94m9  | [0m        flask.response.set_cookie(....)
+[94m10 | [0m  message: |
+[94m11 | [0m    Flask cookies should be handled securely by setting secure=True, httponly=True, and samesite='Lax' in  response.set_cookie(...). If your situation calls for different settings, explicitly disable the setting.
+[94m12 | [0m    If you want to send the cookie over http, set secure=False.  If you want to let client-side JavaScript
+[94m13 | [0m    read the cookie, set httponly=False. If you want to attach cookies to requests for external sites,
+[94m14 | [0m    set samesite=None.
 
 [31mOne of these properties may be invalid: 'patterns'
-One of these properties is missing: 'mode', 'severity'[39m
+One of these properties is missing: 'mode', 'severity'[0m
 
 run with --strict and there were 1 errors loading configs
