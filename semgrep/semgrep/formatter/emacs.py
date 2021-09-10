@@ -15,8 +15,8 @@ class EmacsFormatter(BaseFormatter):
         severity = match_severity + f"({check_id})" if check_id else match_severity
         return [
             str(rule_match.path),
-            str(rule_match.start["line"]),
-            str(rule_match.start["col"]),
+            str(rule_match.start.line),
+            str(rule_match.start.col),
             severity,
             rule_match.lines[0].rstrip(),
         ]

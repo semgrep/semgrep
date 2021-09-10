@@ -15,14 +15,13 @@ from typing import Tuple
 from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.core_exception import CoreException
+from semgrep.core_output import CoreErrorType
+from semgrep.core_output import CoreOutput
+from semgrep.core_output import RuleId
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import InvalidPatternError
-from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
-from semgrep.evaluation import create_output
-from semgrep.pattern_match import PatternMatch
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
@@ -324,6 +323,7 @@ class CoreRunner:
 
                         core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=stderr)
                         output_json = self._extract_core_output(rule, core_run)
+                        core_output = CoreOutput.parse(output_json, RuleId(rule.id))
 
                         if "time" in output_json:
                             self._add_match_times(
@@ -331,21 +331,13 @@ class CoreRunner:
                             )
 
                     # end with tempfile.NamedTemporaryFile(...) ...
-                    pattern_matches = [
-                        PatternMatch(match) for match in output_json["matches"]
-                    ]
-                    findings = create_output(rule, pattern_matches)
+                    outputs[rule].extend(core_output.rule_matches(rule))
+                    parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
+                    for err in core_output.errors:
+                        # TODO fix this
+                        if err.error_type == CoreErrorType("MatchTimeoutError"):
+                            assert err.path is not None
 
-                    findings = dedup_output(findings)
-                    outputs[rule].extend(findings)
-                    parsed_errors = [
-                        CoreException.from_json(
-                            e, language.value, rule.id
-                        ).into_semgrep_error()
-                        for e in output_json["errors"]
-                    ]
-                    for err in parsed_errors:
-                        if isinstance(err, MatchTimeoutError):
                             file_timeouts[err.path] += 1
                             if (
                                 self._timeout_threshold != 0
@@ -404,32 +396,3 @@ class CoreRunner:
             all_targets,
             profiling_data,
         )
-
-
-# This will remove matches that have the same range but different
-# metavariable bindings, choosing the last one in the list. We want the
-# last because if there multiple possible bindings, they will be returned
-# by semgrep-core from largest range to smallest. For an example, see
-# tests/e2e/test_message_interpolation.py::test_message_interpolation;
-# specifically, the multi-pattern-inside test
-#
-# Another option is to not dedup, since Semgrep.ml now does its own deduping
-# otherwise, and surface both matches
-def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
-    return list({uniq_id(r): r for r in reversed(outputs)}.values())[::-1]
-
-
-def uniq_id(
-    r: RuleMatch,
-) -> Tuple[str, Path, Optional[int], Optional[int], Optional[int], Optional[int], str]:
-    start = r.start
-    end = r.end
-    return (
-        r.id,
-        r.path,
-        start.get("line"),
-        start.get("col"),
-        end.get("line"),
-        end.get("col"),
-        r.message,
-    )
