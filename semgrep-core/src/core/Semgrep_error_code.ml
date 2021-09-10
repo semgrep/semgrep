@@ -4,7 +4,10 @@ module PI = Parse_info
 type error = {
   typ : error_kind;
   loc : Parse_info.token_location;
+  msg : string;
   sev : severity;
+  details : string option;
+  path : string list option;
 }
 
 and severity = Error | Warning | Info
@@ -14,118 +17,133 @@ and error_kind =
    * See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
    * filter_maybe_parse_and_fatal_errors
    *)
-  | LexicalError of string
+  | LexicalError
   | ParseError (* aka SyntaxError *)
-  | SpecifiedParseError of string (* aka SyntaxError *)
-  | AstBuilderError of string
+  | SpecifiedParseError
+  | AstBuilderError
   (* pattern parsing related errors *)
-  | RuleParseError of string
-  | PatternParseError of string
-  | InvalidYaml of string
+  | RuleParseError
+  | PatternParseError
+  | InvalidYaml
   (* matching (semgrep) related *)
-  | MatchingError of string (* internal error, e.g., NoTokenLocation *)
-  | SemgrepMatchFound of (string (* check_id *) * string) (* msg *)
-  | TooManyMatches of string (* can contain offending pattern *)
+  | MatchingError (* internal error, e.g., NoTokenLocation *)
+  | SemgrepMatchFound of string (* check_id *)
+  | TooManyMatches
   (* other *)
-  | FatalError of string (* missing file, OCaml errors, etc. *)
-  | Timeout of string option
-  | OutOfMemory of string option
+  | FatalError (* missing file, OCaml errors, etc. *)
+  | Timeout
+  | OutOfMemory
 
 let g_errors = ref []
 
 let options () = []
 
-(*****************************************************************************)
+(****************************************************************************)
+(* Helpers *)
+(****************************************************************************)
+
+let build_message typ msg =
+  match typ with
+  | SemgrepMatchFound _title -> msg
+  | MatchingError -> spf "Internal matching error: %s" msg
+  | TooManyMatches -> spf "Too many matches: %s" msg
+  | LexicalError -> spf "Lexical error: %s" msg
+  | ParseError -> "Syntax error"
+  | SpecifiedParseError -> spf "Other syntax error: %s" msg
+  | AstBuilderError -> spf "AST builder error: %s" msg
+  | RuleParseError -> spf "Rule parse error: %s" msg
+  | PatternParseError -> spf "Pattern parse error: %s" msg
+  | InvalidYaml -> spf "Invalid YAML: %s" msg
+  | FatalError -> spf "Fatal Error: %s" msg
+  | Timeout -> "Timeout:" ^ msg
+  | OutOfMemory -> "Out of memory:" ^ msg
+
+(****************************************************************************)
 (* Convertor functions *)
 (****************************************************************************)
 
-let mk_error tok err =
+let mk_error tok msg err =
   let loc = PI.token_location_of_info tok in
-  { loc; typ = err; sev = Error }
+  let msg = build_message err msg in
+  { loc; typ = err; msg; sev = Error; details = None; path = None }
 
-let mk_error_loc loc err = { loc; typ = err; sev = Error }
+let mk_error_loc loc msg err =
+  let msg = build_message err msg in
+  { loc; typ = err; msg; sev = Error; details = None; path = None }
 
-let error tok err = Common.push (mk_error tok err) g_errors
+let error tok msg err = Common.push (mk_error tok msg err) g_errors
 
-let error_loc loc err = Common.push (mk_error_loc loc err) g_errors
+let error_loc loc msg err = Common.push (mk_error_loc loc msg err) g_errors
 
 let exn_to_error file exn =
   match exn with
-  | Parse_info.Lexical_error (s, tok) -> mk_error tok (LexicalError s)
-  | Parse_info.Parsing_error tok -> mk_error tok ParseError
-  | Parse_info.Other_error (s, tok) -> mk_error tok (SpecifiedParseError s)
-  | Rule.InvalidRule (_rule_id, s, pos) -> mk_error pos (RuleParseError s)
+  | Parse_info.Lexical_error (s, tok) -> mk_error tok s LexicalError
+  | Parse_info.Parsing_error tok -> mk_error tok "" ParseError
+  | Parse_info.Other_error (s, tok) -> mk_error tok s SpecifiedParseError
+  | Rule.InvalidRule (_rule_id, s, pos) -> mk_error pos s RuleParseError
   | Rule.InvalidLanguage (_rule_id, language, pos) ->
-      mk_error pos (RuleParseError language)
+      mk_error pos (spf "invalid language %s" language) RuleParseError
   | Rule.InvalidRegexp (_rule_id, message, pos) ->
-      mk_error pos (RuleParseError message)
-  | Rule.InvalidPattern (_rule_id, _pattern, _xlang, message, pos, _path) ->
-      mk_error pos (PatternParseError message)
-  | Rule.InvalidYaml (msg, pos) -> mk_error pos (InvalidYaml msg)
-  | Rule.DuplicateYamlKey (s, pos) -> mk_error pos (InvalidYaml s)
+      mk_error pos (spf "invalid regex %s" message) RuleParseError
+  | Rule.InvalidPattern (_rule_id, _pattern, xlang, message, pos, path) ->
+      {
+        typ = PatternParseError;
+        loc = PI.token_location_of_info pos;
+        msg =
+          spf "Invalid pattern for %s: %s" (Rule.string_of_xlang xlang) message;
+        sev = Error;
+        details = None;
+        path = Some path;
+      }
+  | Rule.InvalidYaml (msg, pos) -> mk_error pos msg InvalidYaml
+  | Rule.DuplicateYamlKey (s, pos) -> mk_error pos s InvalidYaml
   | Common.Timeout timeout_info ->
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in
       let msg = Common.string_of_timeout_info timeout_info in
-      mk_error_loc loc (Timeout (Some msg))
+      mk_error_loc loc msg Timeout
   | Out_of_memory ->
       let loc = Parse_info.first_loc_of_file file in
-      mk_error_loc loc (OutOfMemory None)
+      mk_error_loc loc "Out of memory" OutOfMemory
   | UnixExit _ as exn -> raise exn
   (* general case, can't extract line information from it, default to line 1 *)
   | exn ->
       let loc = Parse_info.first_loc_of_file file in
-      let msg =
-        Common.spf "%s\n%s" (Common.exn_to_s exn) (Printexc.get_backtrace ())
-      in
-      mk_error_loc loc (FatalError msg)
-
-(* TODO remove this *)
-let check_id_of_error_kind = function
-  | LexicalError _ -> "LexicalError"
-  | ParseError -> "ParseError"
-  | SpecifiedParseError _ -> "SpecifiedParseError"
-  | AstBuilderError _ -> "AstBuilderError"
-  (* pattern parsing related errors *)
-  | RuleParseError _ -> "RuleParseError"
-  | PatternParseError _ -> "PatternParseError"
-  | InvalidYaml _ -> "InvalidYaml"
-  (* semgrep *)
-  | SemgrepMatchFound (check_id, _) -> spf "sgrep-lint-<%s>" check_id
-  | MatchingError _ -> "MatchingError"
-  | TooManyMatches _ -> "TooManyMatches"
-  (* other *)
-  | FatalError _ -> "FatalError"
-  | Timeout _ -> "Timeout"
-  | OutOfMemory _ -> "OutOfMemory"
+      {
+        typ = FatalError;
+        loc;
+        msg = Common.exn_to_s exn;
+        sev = Error;
+        details = Some (Printexc.get_backtrace ());
+        path = None;
+      }
 
 (*****************************************************************************)
 (* Pretty printers *)
 (*****************************************************************************)
 
-let string_of_error_kind error_kind =
-  match error_kind with
-  | SemgrepMatchFound (_title, message) -> message
-  | MatchingError s -> spf "matching internal error: %s" s
-  | TooManyMatches s -> spf "too many matches: %s" s
-  | LexicalError s -> spf "Lexical error: %s" s
-  | ParseError -> "Syntax error"
-  | SpecifiedParseError s -> spf "Other syntax error: %s" s
-  | AstBuilderError s -> spf "AST builder error: %s" s
-  | RuleParseError s -> spf "Rule parse error: %s" s
-  | PatternParseError s -> spf "Pattern parse error: %s" s
-  | InvalidYaml s -> spf "Invalid YAML: %s" s
-  | FatalError s -> spf "Fatal Error: %s" s
-  | Timeout None -> "Timeout"
-  | Timeout (Some s) -> "Timeout:" ^ s
-  | OutOfMemory None -> "Out of memory"
-  | OutOfMemory (Some s) -> "Out of memory:" ^ s
-
 let string_of_error err =
   let pos = err.loc in
   assert (pos.PI.file <> "");
-  spf "%s:%d:%d: %s" pos.PI.file pos.PI.line pos.PI.column
-    (string_of_error_kind err.typ)
+  spf "%s:%d:%d: %s" pos.PI.file pos.PI.line pos.PI.column err.msg
+
+let string_of_error_kind = function
+  | LexicalError -> "LexicalError"
+  | ParseError -> "ParseError"
+  | SpecifiedParseError -> "SpecifiedParseError"
+  | AstBuilderError -> "AstBuilderError"
+  (* pattern parsing related errors *)
+  | RuleParseError -> "RuleParseError"
+  | PatternParseError -> "PatternParseError"
+  | InvalidYaml -> "InvalidYaml"
+  (* semgrep *)
+  | SemgrepMatchFound check_id -> spf "sgrep-lint-<%s>" check_id
+  | MatchingError -> "MatchingError"
+  | TooManyMatches -> "TooManyMatches"
+  (* other *)
+  | FatalError -> "FatalError"
+  | Timeout -> "Timeout"
+  | OutOfMemory -> "OutOfMemory"
 
 (*****************************************************************************)
 (* Try with error *)

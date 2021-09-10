@@ -1,7 +1,10 @@
 type error = {
   typ : error_kind;
   loc : Parse_info.token_location;
+  msg : string;
   sev : severity;
+  details : string option;
+  path : string list option;
 }
 
 and severity = Error | Warning | Info
@@ -11,22 +14,22 @@ and error_kind =
    * See also try_with_exn_to_errors(), try_with_error_loc_and_reraise(), and
    * filter_maybe_parse_and_fatal_errors
    *)
-  | LexicalError of string
+  | LexicalError
   | ParseError (* aka SyntaxError *)
-  | SpecifiedParseError of string (* aka SyntaxError *)
-  | AstBuilderError of string
+  | SpecifiedParseError
+  | AstBuilderError
   (* pattern parsing related errors *)
-  | RuleParseError of string
-  | PatternParseError of string
-  | InvalidYaml of string
+  | RuleParseError
+  | PatternParseError
+  | InvalidYaml
   (* matching (semgrep) related *)
-  | MatchingError of string (* internal error, e.g., NoTokenLocation *)
-  | SemgrepMatchFound of (string (* check_id *) * string) (* msg *)
-  | TooManyMatches of string (* can contain offending pattern *)
+  | MatchingError (* internal error, e.g., NoTokenLocation *)
+  | SemgrepMatchFound of string (* check_id *)
+  | TooManyMatches
   (* other *)
-  | FatalError of string (* missing file, OCaml errors, etc. *)
-  | Timeout of string option
-  | OutOfMemory of string option
+  | FatalError (* missing file, OCaml errors, etc. *)
+  | Timeout
+  | OutOfMemory
 
 val g_errors : error list ref
 
@@ -36,15 +39,13 @@ val options : unit -> Common.cmdline_options
 (* Convertor functions *)
 (*****************************************************************************)
 
-val mk_error_loc : Parse_info.token_location -> error_kind -> error
+val mk_error_loc : Parse_info.token_location -> string -> error_kind -> error
 
-val error : Parse_info.t -> error_kind -> unit
+val error : Parse_info.t -> string -> error_kind -> unit
 
-val error_loc : Parse_info.token_location -> error_kind -> unit
+val error_loc : Parse_info.token_location -> string -> error_kind -> unit
 
 val exn_to_error : Common.filename -> exn -> error
-
-val check_id_of_error_kind : error_kind -> string
 
 (*****************************************************************************)
 (* Try with error *)

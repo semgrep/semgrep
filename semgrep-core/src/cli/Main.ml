@@ -362,7 +362,7 @@ let exn_to_error file exn =
   match exn with
   | AST_generic.Error (s, tok) ->
       let loc = PI.token_location_of_info tok in
-      E.mk_error_loc loc (AstBuilderError s)
+      E.mk_error_loc loc s AstBuilderError
   | _ -> E.exn_to_error file exn
 
 (*****************************************************************************)
@@ -490,7 +490,11 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
 
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Parse_info.first_loc_of_file file in
-           let error = E.mk_error_loc loc (E.TooManyMatches pat) in
+           let error =
+             E.mk_error_loc loc
+               (spf "most offending rule: %s" pat)
+               E.TooManyMatches
+           in
            let skipped =
              sorted_offending_rules
              |> List.map (fun ((rule_id, _pat), n) ->
@@ -649,29 +653,29 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                 * Timeout here to give a better diagnostic.
                 *)
                | (Main_timeout _ | Out_of_memory) as exn ->
-                   let str_opt =
+                   let str =
                      match !Match_patterns.last_matched_rule with
-                     | None -> None
+                     | None -> "Before matching"
                      | Some rule ->
                          logger#info "critical exn while matching ruleid %s"
                            rule.MR.id;
                          logger#info "full pattern is: %s"
                            rule.MR.pattern_string;
-                         Some (spf " with ruleid %s" rule.MR.id)
+                         spf " with ruleid %s" rule.MR.id
                    in
                    let loc = Parse_info.first_loc_of_file file in
                    {
                      RP.matches = [];
                      errors =
                        [
-                         E.mk_error_loc loc
+                         E.mk_error_loc loc str
                            (match exn with
                            | Main_timeout file ->
                                logger#info "Timeout on %s" file;
-                               E.Timeout str_opt
+                               E.Timeout
                            | Out_of_memory ->
                                logger#info "OutOfMemory on %s" file;
-                               E.OutOfMemory str_opt
+                               E.OutOfMemory
                            | _ -> raise Impossible);
                        ];
                      skipped = [];
