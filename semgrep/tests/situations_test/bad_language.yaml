@@ -1,9 +1,0 @@
-rules:
-- id: test-template
-  patterns:
-  - pattern: |
-        foo($X)
-  message: Working!
-  severity: WARNING
-  #ERROR: unknown language
-  languages: [intercal]
