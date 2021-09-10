@@ -7,8 +7,10 @@ from typing import Tuple
 
 import attr
 
+from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.rule import Rule
+from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.types import JsonObject
 from semgrep.verbose_logging import getLogger
@@ -20,36 +22,6 @@ CoreErrorMessage = NewType("CoreErrorMessage", str)
 CoreErrorType = NewType("CoreErrorType", str)
 SkipReason = NewType("SkipReason", str)
 SkipDetails = NewType("SkipDetails", str)
-
-
-@attr.s(auto_attribs=True, frozen=True)
-class CoreLocation:
-    """
-    parses:
-     {
-        "line": 5
-        "col": 6
-        "offset": 30
-     }
-    into an object
-    """
-
-    line: int
-    col: int
-    offset: int
-
-    @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreLocation":
-        line = raw_json.get("line")
-        col = raw_json.get("col")
-        offset = raw_json.get("offset")
-
-        # Please mypy
-        assert isinstance(line, int)
-        assert isinstance(col, int)
-        assert isinstance(offset, int)
-
-        return cls(line, col, offset)
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -97,12 +69,13 @@ class CoreMatch:
 
     @classmethod
     def parse(cls, raw_json: JsonObject) -> "CoreMatch":
-        rule_id = RuleId(raw_json["check_id"])
-        path_str = raw_json["path"]
+        rule_id = RuleId(raw_json["rule_id"])
+        location = raw_json["location"]
+        path_str = location["path"]
         assert isinstance(path_str, str)
         path = Path(path_str)
-        start = CoreLocation.parse(raw_json["start"])
-        end = CoreLocation.parse(raw_json["end"])
+        start = CoreLocation.parse(location["start"])
+        end = CoreLocation.parse(location["end"])
         extra = raw_json.get("extra", {})
         metavars = CoreMetavars.parse(extra.get("metavars"))
         return cls(rule_id, path, start, end, extra, metavars)
@@ -114,39 +87,43 @@ class CoreError:
 
     error_type: CoreErrorType
     rule_id: Optional[RuleId]
-    path: Optional[Path]
+    path: Path
     start: CoreLocation
     end: CoreLocation
     message: CoreErrorMessage
+    level: Level
 
     @classmethod
     def parse(cls, raw_json: JsonObject) -> "CoreError":
         error_type = CoreErrorType(raw_json["error_type"])
-        raw_rule_id = raw_json.get("check_id")
+        raw_rule_id = raw_json.get("rule_id")
         rule_id = RuleId(raw_rule_id) if raw_rule_id else None
-        raw_path = raw_json.get("path")
-        path = Path(raw_path) if raw_path else None
-        start = CoreLocation.parse(raw_json["start"])
-        end = CoreLocation.parse(raw_json["end"])
+        location = raw_json["location"]
+        path = Path(location["path"])
+        start = CoreLocation.parse(location["start"])
+        end = CoreLocation.parse(location["end"])
         _extra = raw_json.get("extra", {})
-        message = CoreErrorMessage(_extra.get("message", "<no error message>"))
+        message = CoreErrorMessage(raw_json.get("message", "<no error message>"))
+        level_str = raw_json["level"]
+        level = Level[level_str.upper()]
 
-        return cls(error_type, rule_id, path, start, end, message)
+        return cls(error_type, rule_id, path, start, end, message, level)
 
     def to_semgrep_error(self) -> SemgrepCoreError:
-        return SemgrepCoreError(self.error_type, self.message)
+        return SemgrepCoreError(self.level, self.error_type, self.message, self.path)
 
 
 @attr.s(auto_attribs=True, frozen=True)
 class CoreSkipped:
-    rule_id: RuleId
+    rule_id: Optional[RuleId]
     path: Path
     reason: SkipReason
     details: SkipDetails
 
     @classmethod
     def parse(cls, raw_json: JsonObject) -> "CoreSkipped":
-        rule_id = RuleId(raw_json["check_id"])
+        raw_rule_id = raw_json.get("rule_id")
+        rule_id = RuleId(raw_rule_id) if raw_rule_id else None
         path = Path(raw_json["path"])
         reason = SkipReason(raw_json["reason"])
         details = SkipDetails(raw_json["details"])
@@ -163,7 +140,7 @@ class CoreTargetTiming:
 
     @classmethod
     def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreTargetTiming":
-        # rule_id = RuleId(raw_json["check_id"])
+        # rule_id = RuleId(raw_json["rule_id"])
         path = Path(raw_json["path"])
         parse_time = raw_json["parse_time"]
         match_time = raw_json["match_time"]
@@ -178,7 +155,7 @@ class CoreRuleParseTiming:
 
     @classmethod
     def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreRuleParseTiming":
-        # rule_id = RuleId(raw_json["check_id"])
+        # rule_id = RuleId(raw_json["rule_id"])
         parse_time = float(raw_json["rule_parse_time"])
         return cls(rule_id, parse_time)
 
@@ -286,8 +263,6 @@ class CoreOutput:
 
             # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
             with open(match.path, errors="replace") as fd:
-                print(match.metavars)
-
                 for metavariable in match.metavars.keys():
                     metavariable_data = match.metavars.get(metavariable)
                     # Offsets are start inclusive and end exclusive
@@ -302,7 +277,6 @@ class CoreOutput:
 
         def convert_to_rule_match(match: CoreMatch, rule: Rule) -> RuleMatch:
             metavariables = read_metavariables(match)
-            print(metavariables)
             message = interpolate(rule.message, metavariables)
             fix = interpolate(rule.fix, metavariables) if rule.fix else None
 
@@ -332,140 +306,141 @@ class CoreOutput:
         return findings
 
 
-y = {
-    "matches": [
-        {
-            "check_id": "println",
-            "path": "./basic_equality.java",
-            "start": {"line": 6, "col": 13, "offset": 155},
-            "end": {"line": 6, "col": 46, "offset": 188},
-            "extra": {"message": "Using println", "metavars": {}, "lines": []},
-        },
-        {
-            "check_id": "equality",
-            "path": "./basic_equality.java",
-            "start": {"line": 3, "col": 13, "offset": 76},
-            "end": {"line": 3, "col": 19, "offset": 82},
-            "extra": {
-                "message": "Comparing two variables",
-                "metavars": {
-                    "$Y": {
-                        "start": {"line": 3, "col": 18, "offset": 81},
-                        "end": {"line": 3, "col": 19, "offset": 82},
-                        "abstract_content": "y",
-                        "unique_id": {"type": "id", "sid": 2},
-                    },
-                    "$X": {
-                        "start": {"line": 3, "col": 13, "offset": 76},
-                        "end": {"line": 3, "col": 14, "offset": 77},
-                        "abstract_content": "x",
-                        "unique_id": {"type": "id", "sid": 1},
-                    },
-                },
-                "lines": [],
+if __name__ == "__main__":
+    y = {
+        "matches": [
+            {
+                "rule_id": "println",
+                "path": "./basic_equality.java",
+                "start": {"line": 6, "col": 13, "offset": 155},
+                "end": {"line": 6, "col": 46, "offset": 188},
+                "extra": {"message": "Using println", "metavars": {}, "lines": []},
             },
-        },
-        {
-            "check_id": "println",
-            "path": "./hello_world.java",
-            "start": {"line": 3, "col": 9, "offset": 73},
-            "end": {"line": 3, "col": 44, "offset": 108},
-            "extra": {"message": "Using println", "metavars": {}, "lines": []},
-        },
-        {
-            "check_id": "equality",
-            "path": "./parse_error.java",
-            "start": {"line": 2, "col": 14, "offset": 57},
-            "end": {"line": 2, "col": 20, "offset": 63},
-            "extra": {
-                "message": "Comparing two variables",
-                "metavars": {
-                    "$Y": {
-                        "start": {"line": 2, "col": 19, "offset": 62},
-                        "end": {"line": 2, "col": 20, "offset": 63},
-                        "abstract_content": "y",
-                        "unique_id": {
-                            "type": "AST",
-                            "md5sum": "ce1472eb18f617c55928ddaf2c8f6b2c",
+            {
+                "rule_id": "equality",
+                "path": "./basic_equality.java",
+                "start": {"line": 3, "col": 13, "offset": 76},
+                "end": {"line": 3, "col": 19, "offset": 82},
+                "extra": {
+                    "message": "Comparing two variables",
+                    "metavars": {
+                        "$Y": {
+                            "start": {"line": 3, "col": 18, "offset": 81},
+                            "end": {"line": 3, "col": 19, "offset": 82},
+                            "abstract_content": "y",
+                            "unique_id": {"type": "id", "sid": 2},
+                        },
+                        "$X": {
+                            "start": {"line": 3, "col": 13, "offset": 76},
+                            "end": {"line": 3, "col": 14, "offset": 77},
+                            "abstract_content": "x",
+                            "unique_id": {"type": "id", "sid": 1},
                         },
                     },
-                    "$X": {
-                        "start": {"line": 2, "col": 14, "offset": 57},
-                        "end": {"line": 2, "col": 15, "offset": 58},
-                        "abstract_content": "x",
-                        "unique_id": {
-                            "type": "AST",
-                            "md5sum": "96811ca43f052adf9eeb430fe0b4ce44",
+                    "lines": [],
+                },
+            },
+            {
+                "rule_id": "println",
+                "path": "./hello_world.java",
+                "start": {"line": 3, "col": 9, "offset": 73},
+                "end": {"line": 3, "col": 44, "offset": 108},
+                "extra": {"message": "Using println", "metavars": {}, "lines": []},
+            },
+            {
+                "rule_id": "equality",
+                "path": "./parse_error.java",
+                "start": {"line": 2, "col": 14, "offset": 57},
+                "end": {"line": 2, "col": 20, "offset": 63},
+                "extra": {
+                    "message": "Comparing two variables",
+                    "metavars": {
+                        "$Y": {
+                            "start": {"line": 2, "col": 19, "offset": 62},
+                            "end": {"line": 2, "col": 20, "offset": 63},
+                            "abstract_content": "y",
+                            "unique_id": {
+                                "type": "AST",
+                                "md5sum": "ce1472eb18f617c55928ddaf2c8f6b2c",
+                            },
+                        },
+                        "$X": {
+                            "start": {"line": 2, "col": 14, "offset": 57},
+                            "end": {"line": 2, "col": 15, "offset": 58},
+                            "abstract_content": "x",
+                            "unique_id": {
+                                "type": "AST",
+                                "md5sum": "96811ca43f052adf9eeb430fe0b4ce44",
+                            },
                         },
                     },
+                    "lines": [],
                 },
-                "lines": [],
             },
-        },
-    ],
-    "errors": [
-        {
-            "error_type": "ParseError",
-            "path": "./parse_error.java",
-            "start": {"line": 1, "col": 28, "offset": 0},
-            "end": {"line": 1, "col": 42, "offset": 14},
-            "extra": {
-                "message": "Syntax error",
-                "line": "  public static bool main(int x, int y) {",
+        ],
+        "errors": [
+            {
+                "error_type": "ParseError",
+                "path": "./parse_error.java",
+                "start": {"line": 1, "col": 28, "offset": 0},
+                "end": {"line": 1, "col": 42, "offset": 14},
+                "extra": {
+                    "message": "Syntax error",
+                    "line": "  public static bool main(int x, int y) {",
+                },
             },
-        },
-        {
-            "error_type": "ParseError",
-            "path": "./parse_error.java",
-            "start": {"line": 1, "col": 28, "offset": 0},
-            "end": {"line": 1, "col": 42, "offset": 14},
-            "extra": {
-                "message": "Syntax error",
-                "line": "  public static bool main(int x, int y) {",
+            {
+                "error_type": "ParseError",
+                "path": "./parse_error.java",
+                "start": {"line": 1, "col": 28, "offset": 0},
+                "end": {"line": 1, "col": 42, "offset": 14},
+                "extra": {
+                    "message": "Syntax error",
+                    "line": "  public static bool main(int x, int y) {",
+                },
             },
-        },
-    ],
-    "skipped": [
-        {
-            "check_id": "ParseError",
-            "path": "./console_log.js",
-            "reason": "wrong_language",
-            "details": "target file doesn’t look like language Java",
-        },
-        {
-            "check_id": "ParseError",
-            "path": "./jquery-ui.min.js",
-            "reason": "wrong_language",
-            "details": "target file doesn’t look like language Java",
-        },
-        {
-            "check_id": "ParseError",
-            "path": "./rules.yaml",
-            "reason": "wrong_language",
-            "details": "target file doesn’t look like language Java",
-        },
-    ],
-    "stats": {"okfiles": 2, "errorfiles": 1},
-}
-x = CoreOutput.parse(y, RuleId("equality"))
-print(x)
-print("\n\n\n")
-test_rule_id = "equality"
-from ruamel.yaml import YAML
+        ],
+        "skipped": [
+            {
+                "rule_id": "ParseError",
+                "path": "./console_log.js",
+                "reason": "wrong_language",
+                "details": "target file doesn’t look like language Java",
+            },
+            {
+                "rule_id": "ParseError",
+                "path": "./jquery-ui.min.js",
+                "reason": "wrong_language",
+                "details": "target file doesn’t look like language Java",
+            },
+            {
+                "rule_id": "ParseError",
+                "path": "./rules.yaml",
+                "reason": "wrong_language",
+                "details": "target file doesn’t look like language Java",
+            },
+        ],
+        "stats": {"okfiles": 2, "errorfiles": 1},
+    }
+    x = CoreOutput.parse(y, RuleId("equality"))
+    print(x)
+    print("\n\n\n")
+    test_rule_id = "equality"
+    from ruamel.yaml import YAML
 
-yaml = YAML()
-import io
+    yaml = YAML()
+    import io
 
-rule_yaml_text = io.StringIO(
-    f"""
-rules:
-- id: {test_rule_id}
-  pattern: $X == $X
-  severity: INFO
-  languages: [python]
-  message: blah
-"""
-)
-rule_dict = yaml.load(rule_yaml_text).get("rules")[0]
-rule: Rule = Rule.from_json(rule_dict)
-print(x.rule_matches(rule))
+    rule_yaml_text = io.StringIO(
+        f"""
+    rules:
+    - id: {test_rule_id}
+      pattern: $X == $X
+      severity: INFO
+      languages: [python]
+      message: blah
+    """
+    )
+    rule_dict = yaml.load(rule_yaml_text).get("rules")[0]
+    rule: Rule = Rule.from_json(rule_dict)
+    print(x.rule_matches(rule))
