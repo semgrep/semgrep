@@ -42,28 +42,11 @@ let options () = []
 (* Helpers *)
 (****************************************************************************)
 
-let build_message typ msg =
-  match typ with
-  | SemgrepMatchFound _title -> msg
-  | MatchingError -> spf "Internal matching error: %s" msg
-  | TooManyMatches -> spf "Too many matches: %s" msg
-  | LexicalError -> spf "Lexical error: %s" msg
-  | ParseError -> spf "Syntax error %s" msg
-  | SpecifiedParseError -> spf "Other syntax error: %s" msg
-  | AstBuilderError -> spf "AST builder error: %s" msg
-  | RuleParseError -> spf "Rule parse error: %s" msg
-  | PatternParseError -> spf "Pattern parse error: %s" msg
-  | InvalidYaml -> spf "Invalid YAML: %s" msg
-  | FatalError -> spf "Fatal Error: %s" msg
-  | Timeout -> "Timeout:" ^ msg
-  | OutOfMemory -> "Out of memory:" ^ msg
-
 (****************************************************************************)
 (* Convertor functions *)
 (****************************************************************************)
 
 let mk_error rule_id loc msg err =
-  let msg = build_message err msg in
   { rule_id = Some rule_id; loc; typ = err; msg; details = None; path = None }
 
 let mk_error_tok rule_id tok msg err =
@@ -71,7 +54,6 @@ let mk_error_tok rule_id tok msg err =
   mk_error rule_id loc msg err
 
 let mk_error_no_rule loc msg err =
-  let msg = build_message err msg in
   { rule_id = None; loc; typ = err; msg; details = None; path = None }
 
 let mk_error_tok_no_rule tok msg err =
@@ -90,8 +72,9 @@ let exn_to_error file exn =
   | Parse_info.Parsing_error tok ->
       let msg =
         match tok with
-        | { token = PI.OriginTok { str; _ }; _ } -> spf "around `%s`" str
-        | _ -> "at unknown location"
+        | { token = PI.OriginTok { str; _ }; _ } ->
+            spf "`%s` was unexpected" str
+        | _ -> "unknown reason"
       in
       mk_error_tok_no_rule tok msg ParseError
   | Parse_info.Other_error (s, tok) ->
@@ -147,22 +130,22 @@ let string_of_error err =
   spf "%s:%d:%d: %s" pos.PI.file pos.PI.line pos.PI.column err.msg
 
 let string_of_error_kind = function
-  | LexicalError -> "LexicalError"
-  | ParseError -> "ParseError"
-  | SpecifiedParseError -> "SpecifiedParseError"
-  | AstBuilderError -> "AstBuilderError"
+  | LexicalError -> "Lexical error"
+  | ParseError -> "Syntax error"
+  | SpecifiedParseError -> "Other syntax error"
+  | AstBuilderError -> "AST builder error"
   (* pattern parsing related errors *)
-  | RuleParseError -> "RuleParseError"
-  | PatternParseError -> "PatternParseError"
-  | InvalidYaml -> "InvalidYaml"
+  | RuleParseError -> "Rule parse error"
+  | PatternParseError -> "Pattern parse error"
+  | InvalidYaml -> "Invalid YAML"
   (* semgrep *)
   | SemgrepMatchFound check_id -> spf "sgrep-lint-<%s>" check_id
-  | MatchingError -> "MatchingError"
-  | TooManyMatches -> "TooManyMatches"
+  | MatchingError -> "Internal matching error"
+  | TooManyMatches -> "Too many matches"
   (* other *)
-  | FatalError -> "FatalError"
+  | FatalError -> "Fatal error"
   | Timeout -> "Timeout"
-  | OutOfMemory -> "OutOfMemory"
+  | OutOfMemory -> "Out of memory"
 
 let severity_of_error typ =
   match typ with
