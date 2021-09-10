@@ -134,9 +134,8 @@ let error env msg =
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
   let loc = PI.first_loc_of_file env.file in
-  let s = Printf.sprintf "rule %s: %s" env.rule_id msg in
   (* TODO: warning or error? MatchingError or ... ? *)
-  let err = E.mk_error_loc loc s E.MatchingError in
+  let err = E.mk_error env.rule_id loc msg E.MatchingError in
   Common.push err env.errors
 
 let (xpatterns_in_formula : S.sformula -> (R.xpattern * R.inside option) list) =

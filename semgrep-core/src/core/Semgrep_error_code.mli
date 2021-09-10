@@ -1,4 +1,5 @@
 type error = {
+  rule_id : Rule.rule_id option;
   typ : error_kind;
   loc : Parse_info.token_location;
   msg : string;
@@ -39,11 +40,16 @@ val options : unit -> Common.cmdline_options
 (* Convertor functions *)
 (*****************************************************************************)
 
-val mk_error_loc : Parse_info.token_location -> string -> error_kind -> error
+val mk_error :
+  Rule.rule_id -> Parse_info.token_location -> string -> error_kind -> error
 
-val error : Parse_info.t -> string -> error_kind -> unit
+val mk_error_no_rule :
+  Parse_info.token_location -> string -> error_kind -> error
 
-val error_loc : Parse_info.token_location -> string -> error_kind -> unit
+val error :
+  Rule.rule_id -> Parse_info.token_location -> string -> error_kind -> unit
+
+val error_tok : Rule.rule_id -> Parse_info.t -> string -> error_kind -> unit
 
 val exn_to_error : Common.filename -> exn -> error
 

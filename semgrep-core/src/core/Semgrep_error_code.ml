@@ -2,6 +2,7 @@ open Common
 module PI = Parse_info
 
 type error = {
+  rule_id : Rule.rule_id option;
   typ : error_kind;
   loc : Parse_info.token_location;
   msg : string;
@@ -62,31 +63,61 @@ let build_message typ msg =
 (* Convertor functions *)
 (****************************************************************************)
 
-let mk_error tok msg err =
+let mk_error rule_id loc msg err =
+  let msg = build_message err msg in
+  {
+    rule_id = Some rule_id;
+    loc;
+    typ = err;
+    msg;
+    sev = Error;
+    details = None;
+    path = None;
+  }
+
+let mk_error_tok rule_id tok msg err =
   let loc = PI.token_location_of_info tok in
+  mk_error rule_id loc msg err
+
+let mk_error_no_rule loc msg err =
   let msg = build_message err msg in
-  { loc; typ = err; msg; sev = Error; details = None; path = None }
+  {
+    rule_id = None;
+    loc;
+    typ = err;
+    msg;
+    sev = Error;
+    details = None;
+    path = None;
+  }
 
-let mk_error_loc loc msg err =
-  let msg = build_message err msg in
-  { loc; typ = err; msg; sev = Error; details = None; path = None }
+let mk_error_tok_no_rule tok msg err =
+  let loc = PI.token_location_of_info tok in
+  mk_error_no_rule loc msg err
 
-let error tok msg err = Common.push (mk_error tok msg err) g_errors
+let error rule_id loc msg err =
+  Common.push (mk_error rule_id loc msg err) g_errors
 
-let error_loc loc msg err = Common.push (mk_error_loc loc msg err) g_errors
+let error_tok rule_id tok msg err =
+  Common.push (mk_error_tok rule_id tok msg err) g_errors
 
 let exn_to_error file exn =
   match exn with
-  | Parse_info.Lexical_error (s, tok) -> mk_error tok s LexicalError
-  | Parse_info.Parsing_error tok -> mk_error tok "" ParseError
-  | Parse_info.Other_error (s, tok) -> mk_error tok s SpecifiedParseError
-  | Rule.InvalidRule (_rule_id, s, pos) -> mk_error pos s RuleParseError
-  | Rule.InvalidLanguage (_rule_id, language, pos) ->
-      mk_error pos (spf "invalid language %s" language) RuleParseError
-  | Rule.InvalidRegexp (_rule_id, message, pos) ->
-      mk_error pos (spf "invalid regex %s" message) RuleParseError
-  | Rule.InvalidPattern (_rule_id, _pattern, xlang, message, pos, path) ->
+  | Parse_info.Lexical_error (s, tok) -> mk_error_tok_no_rule tok s LexicalError
+  | Parse_info.Parsing_error tok -> mk_error_tok_no_rule tok "" ParseError
+  | Parse_info.Other_error (s, tok) ->
+      mk_error_tok_no_rule tok s SpecifiedParseError
+  | Rule.InvalidRule (rule_id, s, pos) ->
+      mk_error_tok rule_id pos s RuleParseError
+  | Rule.InvalidLanguage (rule_id, language, pos) ->
+      mk_error_tok rule_id pos
+        (spf "invalid language %s" language)
+        RuleParseError
+  | Rule.InvalidRegexp (rule_id, message, pos) ->
+      mk_error_tok rule_id pos (spf "invalid regex %s" message) RuleParseError
+  | Rule.InvalidPattern (rule_id, _pattern, xlang, message, pos, path) ->
       {
+        rule_id = Some rule_id;
         typ = PatternParseError;
         loc = PI.token_location_of_info pos;
         msg =
@@ -95,21 +126,22 @@ let exn_to_error file exn =
         details = None;
         path = Some path;
       }
-  | Rule.InvalidYaml (msg, pos) -> mk_error pos msg InvalidYaml
-  | Rule.DuplicateYamlKey (s, pos) -> mk_error pos s InvalidYaml
+  | Rule.InvalidYaml (msg, pos) -> mk_error_tok_no_rule pos msg InvalidYaml
+  | Rule.DuplicateYamlKey (s, pos) -> mk_error_tok_no_rule pos s InvalidYaml
   | Common.Timeout timeout_info ->
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in
       let msg = Common.string_of_timeout_info timeout_info in
-      mk_error_loc loc msg Timeout
+      mk_error_no_rule loc msg Timeout
   | Out_of_memory ->
       let loc = Parse_info.first_loc_of_file file in
-      mk_error_loc loc "Out of memory" OutOfMemory
+      mk_error_no_rule loc "Out of memory" OutOfMemory
   | UnixExit _ as exn -> raise exn
   (* general case, can't extract line information from it, default to line 1 *)
   | exn ->
       let loc = Parse_info.first_loc_of_file file in
       {
+        rule_id = None;
         typ = FatalError;
         loc;
         msg = Common.exn_to_s exn;

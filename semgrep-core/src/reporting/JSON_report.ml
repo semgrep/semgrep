@@ -158,7 +158,7 @@ let match_to_match x =
     let s =
       spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
     in
-    let err = E.mk_error_loc loc s E.MatchingError in
+    let err = E.mk_error x.rule_id.id loc s E.MatchingError in
     Right err
   [@@profiling]
 
@@ -176,11 +176,14 @@ let error_to_error err =
   let lines = lines_of_file file in
   let startp, endp = position_range err.E.loc err.E.loc in
   let line = err.E.loc.PI.line in
-  let rule_id = E.string_of_error_kind err.E.typ in
+  let rule_id = err.E.rule_id in
   let error_type = E.string_of_error_kind err.E.typ in
+  let message = err.E.msg in
+  let details = err.E.details in
+  let yaml_path = err.E.path in
   {
-    error_type;
-    ST.rule_id = Some rule_id;
+    ST.error_type;
+    rule_id;
     location =
       {
         path = file;
@@ -188,9 +191,9 @@ let error_to_error err =
         end_ = endp;
         lines = (try [ lines.(line - 1) ] with _ -> [ "NO LINE" ]);
       };
-    message = "EMMA_TODO";
-    details = None;
-    yaml_path = None;
+    message;
+    details;
+    yaml_path;
   }
 
 let json_time_of_profiling_data profiling_data =
@@ -248,7 +251,7 @@ let json_of_profile_info profile_start =
  * Semgrep_error_code.compare_actual_to_expected
  *)
 let error loc (rule : Pattern_match.rule_id) =
-  E.error_loc loc rule.message (E.SemgrepMatchFound rule.id)
+  E.error rule.id loc rule.message (E.SemgrepMatchFound rule.id)
 
 (*e: function [[JSON_report.error]] *)
 

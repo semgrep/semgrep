@@ -128,7 +128,8 @@ let regression_tests_for_lang ~with_caching files lang =
           let xs = Lazy.force matched_tokens in
           let toks = xs |> List.filter Parse_info.is_origintok in
           let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
-          E.error minii "" (E.SemgrepMatchFound "")
+          let minii_loc = Parse_info.token_location_of_info minii in
+          E.error "test pattern" minii_loc "" (E.SemgrepMatchFound "")
         )
         Config_semgrep.default_config
         [rule] equiv (file, lang, ast) 
@@ -180,7 +181,8 @@ let tainting_test lang rules_file file =
   in
   let actual =
     matches |> List.map (fun m ->
-      { E.typ = SemgrepMatchFound m.P.rule_id.id;
+      { rule_id = Some m.P.rule_id.id;
+        E.typ = SemgrepMatchFound m.P.rule_id.id;
         loc   = fst m.range_loc;
         msg   = m.P.rule_id.message;
         sev   = Error;
