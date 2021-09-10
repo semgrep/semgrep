@@ -104,7 +104,9 @@ class CoreError:
         end = CoreLocation.parse(location["end"])
         _extra = raw_json.get("extra", {})
         message = CoreErrorMessage(raw_json.get("message", "<no error message>"))
-        level_str = raw_json["level"]
+        level_str = raw_json["severity"]
+        if level_str.upper() == "WARNING":
+            level_str = "WARN"
         level = Level[level_str.upper()]
 
         return cls(error_type, rule_id, path, start, end, message, level)
