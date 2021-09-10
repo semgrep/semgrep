@@ -5,7 +5,8 @@
       "check_id": "eqeq-is-bad",
       "end": {
         "col": 26,
-        "line": 3
+        "line": 3,
+        "offset": 69
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/basic/stupid.py",
       "start": {
         "col": 12,
-        "line": 3
+        "line": 3,
+        "offset": 55
       }
     },
     {
       "check_id": "javascript-basic-eqeq-bad",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 67
       },
       "extra": {
         "is_ignored": false,
@@ -74,7 +77,8 @@
       "path": "targets/basic/stupid.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 61
       }
     }
   ]

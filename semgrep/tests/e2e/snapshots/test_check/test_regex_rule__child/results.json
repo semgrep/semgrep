@@ -5,7 +5,8 @@
       "check_id": "rules.test-regex",
       "end": {
         "col": 35,
-        "line": 2
+        "line": 2,
+        "offset": 47
       },
       "extra": {
         "is_ignored": false,
@@ -18,7 +19,8 @@
       "path": "targets/basic/regex.py",
       "start": {
         "col": 20,
-        "line": 2
+        "line": 2,
+        "offset": 32
       }
     }
   ]

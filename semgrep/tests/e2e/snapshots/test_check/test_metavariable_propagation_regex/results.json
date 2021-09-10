@@ -5,7 +5,8 @@
       "check_id": "rules.metavariable_propagation.my_pattern_id",
       "end": {
         "col": 13,
-        "line": 2
+        "line": 2,
+        "offset": 23
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/metavariable_propagation/metavariable-regex-propagation.py",
       "start": {
         "col": 5,
-        "line": 2
+        "line": 2,
+        "offset": 15
       }
     },
     {
       "check_id": "rules.metavariable_propagation.my_pattern_id",
       "end": {
         "col": 13,
-        "line": 5
+        "line": 5,
+        "offset": 48
       },
       "extra": {
         "is_ignored": false,
@@ -74,7 +77,8 @@
       "path": "targets/metavariable_propagation/metavariable-regex-propagation.py",
       "start": {
         "col": 5,
-        "line": 5
+        "line": 5,
+        "offset": 40
       }
     }
   ]

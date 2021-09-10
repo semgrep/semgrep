@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import NewType
@@ -64,7 +65,7 @@ class CoreMatch:
     path: Path
     start: CoreLocation
     end: CoreLocation
-    extra: JsonObject
+    extra: Dict[str, Any]
     metavars: CoreMetavars
 
     @classmethod
@@ -292,7 +293,7 @@ class CoreOutput:
                 path=match.path,
                 start=match.start,
                 end=match.end,
-                extra={},
+                extra=match.extra,
                 lines_cache={},
             )
             return rule_match

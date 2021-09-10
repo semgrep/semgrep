@@ -5,7 +5,8 @@
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 18,
-        "line": 13
+        "line": 13,
+        "offset": 150
       },
       "extra": {
         "is_ignored": false,
@@ -36,7 +37,8 @@
       "path": "targets/message_interpolation/pattern_not_inside_complex.py",
       "start": {
         "col": 1,
-        "line": 12
+        "line": 12,
+        "offset": 124
       }
     }
   ]

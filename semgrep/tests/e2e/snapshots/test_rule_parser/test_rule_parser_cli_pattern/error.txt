@@ -1,4 +1,0 @@
-semgrep error: invalid pattern
-
-Pattern `#include<asdf><<>>><$X>` could not be parsed as a C semgrep pattern
-

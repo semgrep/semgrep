@@ -5,7 +5,8 @@
       "check_id": "rules.file-excluded",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/exclude_include/excluded/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.file-excluded",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -74,14 +77,16 @@
       "path": "targets/exclude_include/included/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.file-included",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -112,14 +117,16 @@
       "path": "targets/exclude_include/excluded/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.file-included",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -150,14 +157,16 @@
       "path": "targets/exclude_include/included/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.directory-excluded",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -188,14 +197,16 @@
       "path": "targets/exclude_include/included/excluded.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.directory-excluded",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -226,14 +237,16 @@
       "path": "targets/exclude_include/included/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.directory-included",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -264,14 +277,16 @@
       "path": "targets/exclude_include/included/excluded.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.directory-included",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -302,14 +317,16 @@
       "path": "targets/exclude_include/included/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.paths-excluded",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -340,14 +357,16 @@
       "path": "targets/exclude_include/excluded/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.paths-excluded",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -378,14 +397,16 @@
       "path": "targets/exclude_include/included/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.paths-included",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -416,14 +437,16 @@
       "path": "targets/exclude_include/excluded/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.paths-included",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -454,14 +477,16 @@
       "path": "targets/exclude_include/included/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.file-excluded-directory-included",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -492,14 +517,16 @@
       "path": "targets/exclude_include/included/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.directory-excluded-file-included",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -530,7 +557,8 @@
       "path": "targets/exclude_include/included/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     }
   ]
