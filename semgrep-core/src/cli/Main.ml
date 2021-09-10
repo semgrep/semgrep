@@ -402,7 +402,14 @@ let cache_computation file cache_file_of_file f =
           res)
         else
           let res = f () in
-          Common2.write_value (Version.version, file, res) file_cache;
+          (try Common2.write_value (Version.version, file, res) file_cache
+           with Sys_error err ->
+             (* We must ignore SIGXFSZ to get this exception, see
+              * note "SIGXFSZ (file size limit exceeded)". *)
+             logger#error "Could not write cache file for %s (%s): %s" file
+               file_cache err;
+             (* Make sure we don't leave corrupt cache files behind us. *)
+             if Sys.file_exists file_cache then Sys.remove file_cache);
           res)
 
 let cache_file_of_file filename =
@@ -1458,6 +1465,21 @@ let options () =
 
 (*s: function [[Main_semgrep_core.main]] *)
 let main () =
+  (* SIGXFSZ (file size limit exceeded)
+   * ----------------------------------
+   * By default this signal will kill the process, which is not good. If we
+   * would raise an exception from within the handler, the exception could
+   * appear anywhere, which is not good either if you want to recover from it
+   * gracefully. So, we ignore it, and that causes the syscalls to fail and
+   * we get a `Sys_error` or some other exception. Apparently this is standard
+   * behavior under both Linux and MacOS:
+   *
+   * > The SIGXFSZ signal is sent to the process. If the process is holding or
+   * > ignoring SIGXFSZ, continued attempts to increase the size of a file
+   * > beyond the limit will fail with errno set to EFBIG.
+   *)
+  Sys.set_signal Sys.sigxfsz Sys.Signal_ignore;
+
   profile_start := Unix.gettimeofday ();
 
   let usage_msg =
