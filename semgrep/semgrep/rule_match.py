@@ -9,7 +9,7 @@ from typing import Tuple
 import attr
 
 from semgrep.constants import RuleSeverity
-from semgrep.pattern_match import PatternMatch
+from semgrep.core_output import CoreLocation
 
 
 @attr.s(frozen=True)
@@ -19,54 +19,20 @@ class RuleMatch:
     """
 
     _id: str = attr.ib()
-    _pattern_match: PatternMatch = attr.ib(repr=False)
     _message: str = attr.ib(repr=False)
     _metadata: Dict[str, Any] = attr.ib(repr=False)
     _severity: RuleSeverity = attr.ib(repr=False)
     _fix: Optional[str] = attr.ib(repr=False)
     _fix_regex: Optional[Dict[str, Any]] = attr.ib(repr=False)
-
-    # derived attributes
     _path: Path = attr.ib(repr=str)
-    _start: Dict[str, Any] = attr.ib(repr=str)
-    _end: Dict[str, Any] = attr.ib(repr=str)
+    _start: CoreLocation = attr.ib()
+    _end: CoreLocation = attr.ib()
+
     _extra: Dict[str, Any] = attr.ib(repr=False)
-    _lines_cache: Dict[Tuple[str, str], List[str]] = attr.ib(repr=False)
+    _lines_cache: Dict[Tuple[int, int], List[str]] = attr.ib(repr=False)
 
     # optional attributes
     _is_ignored: Optional[bool] = attr.ib(default=None)
-
-    @classmethod
-    def from_pattern_match(
-        cls,
-        rule_id: str,
-        pattern_match: PatternMatch,
-        message: str,
-        metadata: Dict[str, Any],
-        severity: RuleSeverity,
-        fix: Optional[str],
-        fix_regex: Optional[Dict[str, Any]],
-    ) -> "RuleMatch":
-        path = pattern_match.path
-        start = pattern_match.start
-        end = pattern_match.end
-
-        # note that message in extra is still the old value defined before metavar interpolation
-        extra = pattern_match.extra
-        return cls(
-            rule_id,
-            pattern_match,
-            message,
-            metadata,
-            severity,
-            fix,
-            fix_regex,
-            path,
-            start,
-            end,
-            extra,
-            {},
-        )
 
     @property
     def id(self) -> str:
@@ -103,11 +69,11 @@ class RuleMatch:
         return self._severity
 
     @property
-    def start(self) -> Dict[str, Any]:
+    def start(self) -> CoreLocation:
         return self._start
 
     @property
-    def end(self) -> Dict[str, Any]:
+    def end(self) -> CoreLocation:
         return self._end
 
     @property
@@ -123,8 +89,8 @@ class RuleMatch:
         """
         # Start and end line are one-indexed, but the subsequent slice call is
         # inclusive for start and exclusive for end, so only subtract from start
-        start_line = self.start["line"] - 1
-        end_line = self.end["line"]
+        start_line = self.start.line - 1
+        end_line = self.end.line
 
         if start_line == -1 and end_line == 0:
             # Completely empty file

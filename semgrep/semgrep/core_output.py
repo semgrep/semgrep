@@ -1,17 +1,23 @@
-from collections import defaultdict
 from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import NewType
 from typing import Optional
+from typing import Tuple
 
 import attr
 
+from semgrep.error import SemgrepCoreError
+from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 from semgrep.types import JsonObject
+from semgrep.verbose_logging import getLogger
 
+logger = getLogger(__name__)
 
 RuleId = NewType("RuleId", str)
 CoreErrorMessage = NewType("CoreErrorMessage", str)
+CoreErrorType = NewType("CoreErrorType", str)
 SkipReason = NewType("SkipReason", str)
 SkipDetails = NewType("SkipDetails", str)
 
@@ -86,6 +92,7 @@ class CoreMatch:
     path: Path
     start: CoreLocation
     end: CoreLocation
+    extra: JsonObject
     metavars: CoreMetavars
 
     @classmethod
@@ -96,14 +103,16 @@ class CoreMatch:
         path = Path(path_str)
         start = CoreLocation.parse(raw_json["start"])
         end = CoreLocation.parse(raw_json["end"])
-        metavars = CoreMetavars.parse(raw_json.get("extra", {}).get("metavars"))
-        return cls(rule_id, path, start, end, metavars)
+        extra = raw_json.get("extra", {})
+        metavars = CoreMetavars.parse(extra.get("metavars"))
+        return cls(rule_id, path, start, end, extra, metavars)
 
 
 @attr.s(auto_attribs=True, frozen=True)
 class CoreError:
     """"""
 
+    error_type: CoreErrorType
     rule_id: Optional[RuleId]
     path: Optional[Path]
     start: CoreLocation
@@ -112,6 +121,7 @@ class CoreError:
 
     @classmethod
     def parse(cls, raw_json: JsonObject) -> "CoreError":
+        error_type = CoreErrorType(raw_json["error_type"])
         raw_rule_id = raw_json.get("check_id")
         rule_id = RuleId(raw_rule_id) if raw_rule_id else None
         raw_path = raw_json.get("path")
@@ -120,7 +130,11 @@ class CoreError:
         end = CoreLocation.parse(raw_json["end"])
         _extra = raw_json.get("extra", {})
         message = CoreErrorMessage(_extra.get("message", "<no error message>"))
-        return cls(rule_id, path, start, end, message)
+
+        return cls(error_type, rule_id, path, start, end, message)
+
+    def to_semgrep_error(self) -> SemgrepCoreError:
+        return SemgrepCoreError(self.error_type, self.message)
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -140,35 +154,182 @@ class CoreSkipped:
 
 
 @attr.s(auto_attribs=True, frozen=True)
+class CoreTargetTiming:
+    rule_id: RuleId
+    target: Path
+    parse_time: float
+    match_time: float
+    run_time: float
+
+    @classmethod
+    def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreTargetTiming":
+        # rule_id = RuleId(raw_json["check_id"])
+        path = Path(raw_json["path"])
+        parse_time = raw_json["parse_time"]
+        match_time = raw_json["match_time"]
+        run_time = raw_json["run_time"]
+        return cls(rule_id, path, parse_time, match_time, run_time)
+
+
+@attr.s(auto_attribs=True, frozen=True)
+class CoreRuleParseTiming:
+    rule_id: RuleId
+    parse_time: float
+
+    @classmethod
+    def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreRuleParseTiming":
+        # rule_id = RuleId(raw_json["check_id"])
+        parse_time = float(raw_json["rule_parse_time"])
+        return cls(rule_id, parse_time)
+
+
+@attr.s(auto_attribs=True, frozen=True)
+class CoreTiming:
+    target_timings: List[CoreTargetTiming]
+    rule_parse_timings: List[CoreRuleParseTiming]
+
+    @classmethod
+    def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreTiming":
+        if not raw_json:
+            return cls([], [])
+
+        target_timings = raw_json.get("targets", [])
+        parsed_target_timings = []
+        for obj in target_timings:
+            parsed_target_timings.append(CoreTargetTiming.parse(obj, rule_id))
+
+        parsed_rule_parse_timings = [CoreRuleParseTiming.parse(raw_json, rule_id)]
+
+        return cls(parsed_target_timings, parsed_rule_parse_timings)
+
+
+@attr.s(auto_attribs=True)
 class CoreOutput:
     """
     Parses output of semgrep-core
     """
 
-    matches_by_rule: Dict[RuleId, List[CoreMatch]]
+    matches: List[CoreMatch]
     errors: List[CoreError]
     skipped: List[CoreSkipped]
+    timing: CoreTiming
 
     @classmethod
-    def parse(cls, raw_json: JsonObject) -> "CoreOutput":
+    def parse(cls, raw_json: JsonObject, rule_id: RuleId) -> "CoreOutput":
         parsed_errors = []
         errors = raw_json["errors"]
         for error in errors:
             parsed_errors.append(CoreError.parse(error))
 
-        parsed_matches_by_rule = defaultdict(list)
+        parsed_matches = []
         matches = raw_json["matches"]
         for match in matches:
-            parsed_match = CoreMatch.parse(match)
-            rule_id = parsed_match.rule_id
-            parsed_matches_by_rule[rule_id].append(parsed_match)
+            parsed_matches.append(CoreMatch.parse(match))
 
         parsed_skipped = []
         skipped = raw_json["skipped"]
         for skip in skipped:
             parsed_skipped.append(CoreSkipped.parse(skip))
 
-        return cls(dict(parsed_matches_by_rule), parsed_errors, parsed_skipped)
+        timings = raw_json.get("time", {})
+        parsed_timings = CoreTiming.parse(
+            timings, rule_id
+        )  # For now assume only one rule run at a time
+
+        return cls(parsed_matches, parsed_errors, parsed_skipped, parsed_timings)
+
+    # def add(self, other: "CoreOutput") -> "CoreOutput":
+    #     self.errors.extend(other.errors)
+    #     self.skipped.extend(other.skipped)
+    #     self.matches.extend(other.matches)
+
+    def rule_matches(self, rule: Rule) -> List[RuleMatch]:
+        """
+        TODO: in the future this conversion should be handled by RuleMatch object
+        """
+        # This will remove matches that have the same range but different
+        # metavariable bindings, choosing the last one in the list. We want the
+        # last because if there multiple possible bindings, they will be returned
+        # by semgrep-core from largest range to smallest. For an example, see
+        # tests/e2e/test_message_interpolation.py::test_message_interpolation;
+        # specifically, the multi-pattern-inside test
+        #
+        # Another option is to not dedup, since Semgrep.ml now does its own deduping
+        # otherwise, and surface both matches
+        def dedup(outputs: List[RuleMatch]) -> List[RuleMatch]:
+            return list({uniq_id(r): r for r in reversed(outputs)}.values())[::-1]
+
+        def uniq_id(
+            r: RuleMatch,
+        ) -> Tuple[str, Path, int, int, str]:
+            start = r.start
+            end = r.end
+            return (
+                r.id,
+                r.path,
+                start.offset,
+                end.offset,
+                r.message,
+            )
+
+        def interpolate(text: str, metavariables: Dict[str, str]) -> str:
+            """Interpolates a string with the metavariables contained in it, returning a new string"""
+
+            # Sort by metavariable length to avoid name collisions (eg. $X2 must be handled before $X)
+            for metavariable in sorted(metavariables.keys(), key=len, reverse=True):
+                text = text.replace(metavariable, metavariables[metavariable])
+
+            return text
+
+        def read_metavariables(match: CoreMatch) -> Dict[str, str]:
+            result = {}
+
+            # open path and ignore non-utf8 bytes. https://stackoverflow.com/a/56441652
+            with open(match.path, errors="replace") as fd:
+                print(match.metavars)
+
+                for metavariable in match.metavars.keys():
+                    metavariable_data = match.metavars.get(metavariable)
+                    # Offsets are start inclusive and end exclusive
+                    start_offset = metavariable_data.start.offset
+                    end_offset = metavariable_data.end.offset
+                    length = end_offset - start_offset
+
+                    fd.seek(start_offset)
+                    result[metavariable] = fd.read(length)
+
+            return result
+
+        def convert_to_rule_match(match: CoreMatch, rule: Rule) -> RuleMatch:
+            metavariables = read_metavariables(match)
+            print(metavariables)
+            message = interpolate(rule.message, metavariables)
+            fix = interpolate(rule.fix, metavariables) if rule.fix else None
+
+            rule_match = RuleMatch(
+                rule.id,
+                message=message,
+                metadata=rule.metadata,
+                severity=rule.severity,
+                fix=fix,
+                fix_regex=rule.fix_regex,
+                path=match.path,
+                start=match.start,
+                end=match.end,
+                extra={},
+                lines_cache={},
+            )
+            return rule_match
+
+        findings = []
+        for match in self.matches:
+            rule_match = convert_to_rule_match(match, rule)
+            findings.append(rule_match)
+
+        # Before this PR was sorting, keeping but not sure why
+        findings = sorted(findings, key=lambda rule_match: rule_match.start.offset)
+        findings = dedup(findings)
+        return findings
 
 
 y = {
@@ -244,7 +405,7 @@ y = {
     ],
     "errors": [
         {
-            "check_id": "ParseError",
+            "error_type": "ParseError",
             "path": "./parse_error.java",
             "start": {"line": 1, "col": 28, "offset": 0},
             "end": {"line": 1, "col": 42, "offset": 14},
@@ -254,7 +415,7 @@ y = {
             },
         },
         {
-            "check_id": "ParseError",
+            "error_type": "ParseError",
             "path": "./parse_error.java",
             "start": {"line": 1, "col": 28, "offset": 0},
             "end": {"line": 1, "col": 42, "offset": 14},
@@ -286,5 +447,25 @@ y = {
     ],
     "stats": {"okfiles": 2, "errorfiles": 1},
 }
-x = CoreOutput.parse(y)
+x = CoreOutput.parse(y, RuleId("equality"))
 print(x)
+print("\n\n\n")
+test_rule_id = "equality"
+from ruamel.yaml import YAML
+
+yaml = YAML()
+import io
+
+rule_yaml_text = io.StringIO(
+    f"""
+rules:
+- id: {test_rule_id}
+  pattern: $X == $X
+  severity: INFO
+  languages: [python]
+  message: blah
+"""
+)
+rule_dict = yaml.load(rule_yaml_text).get("rules")[0]
+rule: Rule = Rule.from_json(rule_dict)
+print(x.rule_matches(rule))

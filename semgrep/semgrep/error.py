@@ -79,6 +79,21 @@ class SemgrepError(Exception):
         return cls(**data)
 
 
+@attr.s(auto_attribs=True, frozen=True)
+class SemgrepCoreError(SemgrepError):
+    error_type: str
+    message: str
+
+    def to_dict_base(self) -> Dict[str, Any]:
+        return {
+            "type": self.error_type,
+            "message": self.message,
+        }
+
+    def __str__(self) -> str:
+        return with_color(Fore.RED, self.message)
+
+
 class SemgrepInternalError(Exception):
     """
     Parent class of internal semgrep exceptions that should be handled internally and converted into `SemgrepError`s

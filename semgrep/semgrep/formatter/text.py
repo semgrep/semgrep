@@ -56,10 +56,10 @@ class TextFormatter(BaseFormatter):
         show_separator: bool,
     ) -> Iterator[str]:
         path = rule_match.path
-        start_line = rule_match.start.get("line")
-        end_line = rule_match.end.get("line")
-        start_col = rule_match.start.get("col")
-        end_col = rule_match.end.get("col")
+        start_line = rule_match.start.line
+        end_line = rule_match.end.line
+        start_col = rule_match.start.col
+        end_col = rule_match.end.col
         trimmed = 0
         stripped = False
         if path:
@@ -74,7 +74,12 @@ class TextFormatter(BaseFormatter):
                 if start_line:
                     if color_output:
                         line = TextFormatter._color_line(
-                            line, start_line + i, start_line, start_col, end_line, end_col  # type: ignore
+                            line,
+                            start_line + i,
+                            start_line,
+                            start_col,
+                            end_line,
+                            end_col,
                         )
                         line_number = f"{colorama.Fore.GREEN}{start_line + i}{colorama.Style.RESET_ALL}"
                     else:
@@ -89,11 +94,14 @@ class TextFormatter(BaseFormatter):
                         if is_first_line:
                             line = (
                                 line[
-                                    start_col - 1 : start_col - 1 + per_line_max_chars_limit  # type: ignore
+                                    start_col
+                                    - 1 : start_col
+                                    - 1
+                                    + per_line_max_chars_limit
                                 ]
                                 + ELLIPSIS_STRING
                             )
-                            if start_col > 1:  # type: ignore
+                            if start_col > 1:
                                 line = ELLIPSIS_STRING + line
                         else:
                             line = line[:per_line_max_chars_limit] + ELLIPSIS_STRING
