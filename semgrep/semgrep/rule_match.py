@@ -9,7 +9,37 @@ from typing import Tuple
 import attr
 
 from semgrep.constants import RuleSeverity
-from semgrep.core_output import CoreLocation
+from semgrep.types import JsonObject
+
+
+@attr.s(auto_attribs=True, frozen=True)
+class CoreLocation:
+    """
+    parses:
+     {
+        "line": 5
+        "col": 6
+        "offset": 30
+     }
+    into an object
+    """
+
+    line: int
+    col: int
+    offset: int
+
+    @classmethod
+    def parse(cls, raw_json: JsonObject) -> "CoreLocation":
+        line = raw_json.get("line")
+        col = raw_json.get("col")
+        offset = raw_json.get("offset")
+
+        # Please mypy
+        assert isinstance(line, int)
+        assert isinstance(col, int)
+        assert isinstance(offset, int)
+
+        return cls(line, col, offset)
 
 
 @attr.s(frozen=True)

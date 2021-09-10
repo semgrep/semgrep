@@ -81,8 +81,11 @@ class SemgrepError(Exception):
 
 @attr.s(auto_attribs=True, frozen=True)
 class SemgrepCoreError(SemgrepError):
+    code = FATAL_EXIT_CODE
+    level: Level
     error_type: str
     message: str
+    path: Path
 
     def to_dict_base(self) -> Dict[str, Any]:
         return {
@@ -91,7 +94,10 @@ class SemgrepCoreError(SemgrepError):
         }
 
     def __str__(self) -> str:
-        return with_color(Fore.RED, self.message)
+        return with_color(
+            Fore.RED,
+            f"Semgrep Core Warning:{self.error_type} in file {self.path}\n\t{self.message}",
+        )
 
 
 class SemgrepInternalError(Exception):
