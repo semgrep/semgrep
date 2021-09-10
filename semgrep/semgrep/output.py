@@ -34,6 +34,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
+from semgrep.types import RuleMatchMap
 from semgrep.util import is_url
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -222,7 +223,7 @@ class OutputHandler:
 
     def handle_semgrep_core_output(
         self,
-        rule_matches_by_rule: Dict[Rule, List[RuleMatch]],
+        rule_matches_by_rule: RuleMatchMap,
         debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
         stats_line: str,
         all_targets: Set[Path],

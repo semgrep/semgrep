@@ -1,13 +1,12 @@
 import re
 from pathlib import Path
-from typing import Dict
 from typing import List
 from typing import Set
 from typing import Tuple
 
 from semgrep.error import SemgrepError
-from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.types import RuleMatchMap
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -84,9 +83,7 @@ def _write_contents(path: Path, contents: str) -> None:
     path.write_text(contents)
 
 
-def apply_fixes(
-    rule_matches_by_rule: Dict[Rule, List[RuleMatch]], dryrun: bool = False
-) -> None:
+def apply_fixes(rule_matches_by_rule: RuleMatchMap, dryrun: bool = False) -> None:
     """
     Modify files in place for all files with findings from rules with an
     autofix configuration
