@@ -802,8 +802,16 @@ let semgrep_with_patterns_file lang rules_file roots =
   with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     (* if !Flag.debug then save_rules_file_in_tmp (); *)
-    let json = JSON.String "EMMA_TODO" in
-    let s = J.string_of_json json in
+    let res =
+      {
+        RP.matches = [];
+        errors = [ E.exn_to_error "" exn ];
+        skipped = [];
+        rule_profiling = None;
+      }
+    in
+    let json = JSON_report.match_results_of_matches_and_errors [] res in
+    let s = SJ.string_of_match_results json in
     pr s;
     exit 2
 

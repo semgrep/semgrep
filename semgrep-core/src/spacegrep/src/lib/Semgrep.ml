@@ -87,7 +87,7 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
            let pos1, pos2 = error.Parse_pattern.loc in
            let lines = Src_file.list_lines_of_pos_range src pos1 pos2 in
            {
-             error_type = "EMMA_TODO";
+             error_type = "Generic matching error";
              rule_id = None;
              severity = Error;
              location =
