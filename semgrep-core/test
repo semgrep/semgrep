@@ -4,5 +4,7 @@
 # This is meant for manual use, when we want to select which tests to run.
 #
 
+# TODO: merge spacegrep tests into one test executable
+
 cd _build/default/tests
 ./test.exe "$@"
