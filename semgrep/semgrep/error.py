@@ -94,7 +94,7 @@ class SemgrepCoreError(SemgrepError):
 
     def __str__(self) -> str:
         return with_color(
-            Fore.RED,
+            "red",
             f"Semgrep Core {self.level.name}: {self.error_type} in file {self.path}\n\t{self.message}",
         )
 
