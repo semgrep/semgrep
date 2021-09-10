@@ -185,7 +185,6 @@ let tainting_test lang rules_file file =
         E.typ = SemgrepMatchFound m.P.rule_id.id;
         loc   = fst m.range_loc;
         msg   = m.P.rule_id.message;
-        sev   = Error;
         details = None;
         path = None }
     )

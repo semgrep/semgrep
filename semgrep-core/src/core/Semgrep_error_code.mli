@@ -3,12 +3,9 @@ type error = {
   typ : error_kind;
   loc : Parse_info.token_location;
   msg : string;
-  sev : severity;
   details : string option;
   path : string list option;
 }
-
-and severity = Error | Warning | Info
 
 and error_kind =
   (* File parsing related errors.
@@ -31,6 +28,8 @@ and error_kind =
   | FatalError (* missing file, OCaml errors, etc. *)
   | Timeout
   | OutOfMemory
+
+type severity = Error | Warning
 
 val g_errors : error list ref
 
@@ -74,6 +73,8 @@ val try_with_print_exn_and_exit_fast : Common.filename -> (unit -> unit) -> unit
 val string_of_error : error -> string
 
 val string_of_error_kind : error_kind -> string
+
+val severity_of_error : error_kind -> severity
 
 (*****************************************************************************)
 (* Helpers for unit testing *)

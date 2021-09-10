@@ -55,6 +55,7 @@ type match_extra = {
 type error = {
   ?rule_id: rule_id option;
   error_type: string;
+  severity: severity;
   location: location;
   message: string;
   ?details: string option;
@@ -66,6 +67,11 @@ type position = {
   col: int; (* starts from 1 *)
   offset: int; (* byte position from the beginning of the file, starts at 0 *)
 }
+
+type severity = [
+  | Error <json name="error">
+  | Warning <json name="warning">
+] <ocaml repr="classic">
 
 type metavar_value = {
   (* for certain metavariable like $...ARGS, 'end' may be equal to 'start'

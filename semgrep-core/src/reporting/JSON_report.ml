@@ -172,18 +172,24 @@ let lines_of_file (file : Common.filename) : string array =
       try Common.cat file |> Array.of_list with _ -> [| "EMPTY FILE" |])
 
 let error_to_error err =
+  let severity_of_severity = function
+    | E.Error -> SJ.Error
+    | E.Warning -> SJ.Warning
+  in
   let file = err.E.loc.PI.file in
   let lines = lines_of_file file in
   let startp, endp = position_range err.E.loc err.E.loc in
   let line = err.E.loc.PI.line in
   let rule_id = err.E.rule_id in
   let error_type = E.string_of_error_kind err.E.typ in
+  let severity = severity_of_severity (E.severity_of_error err.E.typ) in
   let message = err.E.msg in
   let details = err.E.details in
   let yaml_path = err.E.path in
   {
     ST.error_type;
     rule_id;
+    severity;
     location =
       {
         path = file;

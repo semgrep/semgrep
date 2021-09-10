@@ -6,12 +6,9 @@ type error = {
   typ : error_kind;
   loc : Parse_info.token_location;
   msg : string;
-  sev : severity;
   details : string option;
   path : string list option;
 }
-
-and severity = Error | Warning | Info
 
 and error_kind =
   (* File parsing related errors.
@@ -34,6 +31,8 @@ and error_kind =
   | FatalError (* missing file, OCaml errors, etc. *)
   | Timeout
   | OutOfMemory
+
+type severity = Error | Warning
 
 let g_errors = ref []
 
@@ -65,15 +64,7 @@ let build_message typ msg =
 
 let mk_error rule_id loc msg err =
   let msg = build_message err msg in
-  {
-    rule_id = Some rule_id;
-    loc;
-    typ = err;
-    msg;
-    sev = Error;
-    details = None;
-    path = None;
-  }
+  { rule_id = Some rule_id; loc; typ = err; msg; details = None; path = None }
 
 let mk_error_tok rule_id tok msg err =
   let loc = PI.token_location_of_info tok in
@@ -81,15 +72,7 @@ let mk_error_tok rule_id tok msg err =
 
 let mk_error_no_rule loc msg err =
   let msg = build_message err msg in
-  {
-    rule_id = None;
-    loc;
-    typ = err;
-    msg;
-    sev = Error;
-    details = None;
-    path = None;
-  }
+  { rule_id = None; loc; typ = err; msg; details = None; path = None }
 
 let mk_error_tok_no_rule tok msg err =
   let loc = PI.token_location_of_info tok in
@@ -128,7 +111,6 @@ let exn_to_error file exn =
         loc = PI.token_location_of_info pos;
         msg =
           spf "Invalid pattern for %s: %s" (Rule.string_of_xlang xlang) message;
-        sev = Error;
         details = None;
         path = Some path;
       }
@@ -151,7 +133,6 @@ let exn_to_error file exn =
         typ = FatalError;
         loc;
         msg = Common.exn_to_s exn;
-        sev = Error;
         details = Some (Printexc.get_backtrace ());
         path = None;
       }
@@ -182,6 +163,22 @@ let string_of_error_kind = function
   | FatalError -> "FatalError"
   | Timeout -> "Timeout"
   | OutOfMemory -> "OutOfMemory"
+
+let severity_of_error typ =
+  match typ with
+  | SemgrepMatchFound _title -> Warning
+  | MatchingError -> Warning
+  | TooManyMatches -> Warning
+  | LexicalError -> Warning
+  | ParseError -> Warning
+  | SpecifiedParseError -> Warning
+  | AstBuilderError -> Error
+  | RuleParseError -> Error
+  | PatternParseError -> Warning
+  | InvalidYaml -> Warning
+  | FatalError -> Error
+  | Timeout -> Warning
+  | OutOfMemory -> Warning
 
 (*****************************************************************************)
 (* Try with error *)

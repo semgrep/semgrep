@@ -89,6 +89,7 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
            {
              error_type = "EMMA_TODO";
              rule_id = None;
+             severity = Error;
              location =
                {
                  path;
