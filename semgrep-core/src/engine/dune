@@ -5,6 +5,7 @@
    pcre
    comby-kernel
 
+   pfff-testutil
    pfff-lang_GENERIC pfff-lang_GENERIC-analyze
 
    spacegrep
@@ -12,7 +13,6 @@
    semgrep_core
    semgrep_matching
    semgrep_parsing semgrep_reporting ; for Test_rule.ml
-   semgrep_testutil
  )
  (preprocess (pps ppx_deriving.show ppx_profiling))
 )
