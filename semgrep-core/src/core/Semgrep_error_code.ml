@@ -49,7 +49,7 @@ let build_message typ msg =
   | MatchingError -> spf "Internal matching error: %s" msg
   | TooManyMatches -> spf "Too many matches: %s" msg
   | LexicalError -> spf "Lexical error: %s" msg
-  | ParseError -> "Syntax error"
+  | ParseError -> spf "Syntax error %s" msg
   | SpecifiedParseError -> spf "Other syntax error: %s" msg
   | AstBuilderError -> spf "AST builder error: %s" msg
   | RuleParseError -> spf "Rule parse error: %s" msg
@@ -104,7 +104,13 @@ let error_tok rule_id tok msg err =
 let exn_to_error file exn =
   match exn with
   | Parse_info.Lexical_error (s, tok) -> mk_error_tok_no_rule tok s LexicalError
-  | Parse_info.Parsing_error tok -> mk_error_tok_no_rule tok "" ParseError
+  | Parse_info.Parsing_error tok ->
+      let msg =
+        match tok with
+        | { token = PI.OriginTok { str; _ }; _ } -> spf "around `%s`" str
+        | _ -> "at unknown location"
+      in
+      mk_error_tok_no_rule tok msg ParseError
   | Parse_info.Other_error (s, tok) ->
       mk_error_tok_no_rule tok s SpecifiedParseError
   | Rule.InvalidRule (rule_id, s, pos) ->
