@@ -17,11 +17,13 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
 import urllib.request
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator
 from typing import List
@@ -46,7 +48,8 @@ from corpus import INTERNAL_CORPUSES
 from corpus import LARGE_CORPUSES
 from corpus import MEDIUM_CORPUSES
 from corpus import SMALL_CORPUSES
-from RepositoryTimePerRule import RepositoryTimePerRule
+from RepositoryTimePerRule import RepositoryRuleTimings
+from util import get_semgrep_version
 from variant import GITLAB_VARIANTS
 from variant import SEMGREP_VARIANTS
 from variant import SemgrepVariant
@@ -207,6 +210,7 @@ def run_semgrep(
     corpus: Corpus,
     variant: SemgrepVariant,
     include_time: bool,
+    single_core: bool,
     hard_timeout: int = 0,
 ) -> Tuple[float, dict]:
     args = []
@@ -216,7 +220,9 @@ def run_semgrep(
         "--timeout",
         "0",
         "--no-git-ignore",  # because files in bench/*/input/ are git-ignored
+        "--no-rewrite-rule-ids",
     ]
+    common_args += ["-j", "1"] if single_core else []
     if docker:
         # Absolute paths are required by docker for mounting volumes, otherwise
         # they end up empty inside the container.
@@ -289,7 +295,7 @@ def run_semgrep(
         logger.error("Unable to decode the Semgrep result as JSON. Exiting.")
         sys.exit(1)
 
-    return t2 - t1, semgrep_results
+    return t2 - t1, semgrep_results, args
 
 
 def prepare_rule_cache_for_this_run(
@@ -297,6 +303,9 @@ def prepare_rule_cache_for_this_run(
     clean: bool = False,
 ) -> Tuple[Path, List[Path]]:
     rule_cache_for_this_run: Path = RULE_CONFIG_CACHE_DIR / setup_data.run_name
+    if clean:
+        logger.info(f"Cleaning {rule_cache_for_this_run}")
+        shutil.rmtree(rule_cache_for_this_run)
     rule_cache_for_this_run.mkdir(parents=True, exist_ok=True)
     logger.info(
         f"Rule cache for run {setup_data.run_name} created at {rule_cache_for_this_run}"
@@ -388,31 +397,30 @@ def run_benchmarks(
     filter_corpus: str,
     filter_variant: str,
     hard_timeout: int,
-    output_time_per_rule_json: str,
+    output_rule_stats: str,
     plot_benchmarks: bool,
     upload: bool,
     include_time: bool,
     clean: bool,
+    single_core: bool,
     summary_file_path: str,
     called_dir: str,
 ) -> None:
 
     variants = SEMGREP_VARIANTS
-    if std_only or output_time_per_rule_json:
+    if std_only or output_rule_stats:
         variants = STD_VARIANTS
     if filter_variant:
         variants = [x for x in variants if re.search(filter_variant, x.name) != None]
     # TODO: make benchmarking time-per-rule data work with all variants.
-    if output_time_per_rule_json:
+    if output_rule_stats:
         logger.info("Running only the standard variants.")
         variants = STD_VARIANTS
 
     results_msgs = []
     durations = []
     results: dict = {variant.name: [] for variant in variants}
-    output_per_rule_json_results = RepositoryTimePerRule(
-        output_file=output_time_per_rule_json
-    )
+    output_per_rule_json_results = RepositoryRuleTimings(output_file=output_rule_stats)
 
     corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES
     if dummy:
@@ -452,11 +460,12 @@ def run_benchmarks(
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
                 try:
-                    duration, semgrep_results = run_semgrep(
+                    duration, semgrep_results, command_args = run_semgrep(
                         docker,
                         corpus,
                         variant,
                         include_time,
+                        single_core,
                         hard_timeout,
                     )
                 except subprocess.TimeoutExpired:
@@ -468,7 +477,7 @@ def run_benchmarks(
                     )
                     continue
 
-                if not output_time_per_rule_json is None:
+                if output_rule_stats is not None:
                     output_per_rule_json_results.times_per_file_to_times_per_rule(
                         corpus.name, semgrep_results
                     )
@@ -524,9 +533,14 @@ def run_benchmarks(
         plotdata.plot(kind="bar")
         plt.show()
 
-    if not output_time_per_rule_json is None:
+    if output_rule_stats is not None:
         with chdir(called_dir):
-            output_per_rule_json_results.print_repo_to_times_per_rule()
+            with open(output_rule_stats, "w") as fout:
+                stats = output_per_rule_json_results.to_dict()
+                stats["semgrep_version"] = get_semgrep_version()
+                stats["command"] = " ".join(command_args)
+                stats["timestamp"] = str(datetime.now())
+                json.dump(stats, fout)
 
 
 def main() -> None:
@@ -612,13 +626,19 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
-        "--output-time-per-rule-json",
+        "--output-rule-stats",
         nargs="?",
         default=None,
-        const="repo_to_rule_time.json",
+        const=f"rule-stats-{datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.json",
         help="output a json file that shows timing information for each rule.",
     )
     parser.add_argument("--no-time", help="disable time-checking", action="store_true")
+    parser.add_argument(
+        "--single-core",
+        action="store_true",
+        default=False,
+        help="Use a single core to run all benchmark jobs to prevent variances in multicore benchmarking",
+    )
     args = parser.parse_args()
 
     cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -641,11 +661,12 @@ def main() -> None:
                 filter_corpus=args.filter_corpus,
                 filter_variant=args.filter_variant,
                 hard_timeout=args.hard_timeout,
-                output_time_per_rule_json=args.output_time_per_rule_json,
+                output_rule_stats=args.output_rule_stats,
                 plot_benchmarks=args.plot_benchmarks,
                 upload=args.upload,
                 include_time=not args.no_time,
                 clean=args.clean,
+                single_core=args.single_core,
                 summary_file_path=args.save_to,
                 called_dir=called_dir,
             )
