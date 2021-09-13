@@ -3,33 +3,26 @@ import subprocess
 import time
 from io import StringIO
 from pathlib import Path
-from re import sub
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
-from typing import Tuple
 from typing import Union
-
-import attr
 
 from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
-from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import DEFAULT_TIMEOUT
-from semgrep.constants import NOSEM_INLINE_RE
 from semgrep.constants import OutputFormat
 from semgrep.core_runner import CoreRunner
-from semgrep.error import Level
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
+from semgrep.ignores import process_ignores
 from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
 from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import TargetManager
 from semgrep.util import manually_search_file
@@ -64,58 +57,6 @@ def notify_user_of_work(
     logger.verbose("rules:")
     for rule in filtered_rules:
         logger.verbose(f"- {rule.id}")
-
-
-def rule_match_nosem(
-    rule_match: RuleMatch, strict: bool
-) -> Tuple[bool, List[SemgrepError]]:
-    if not rule_match.lines:
-        return False, []
-
-    # Only consider the first line of a match. This will keep consistent
-    # behavior on where we expect a 'nosem' comment to exist. If we allow these
-    # comments on any line of a match it will get confusing as to what finding
-    # the 'nosem' is referring to.
-    re_match = NOSEM_INLINE_RE.search(rule_match.lines[0])
-    if re_match is None:
-        return False, []
-
-    ids_str = re_match.groupdict()["ids"]
-    if ids_str is None:
-        logger.verbose(
-            f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
-        )
-        return True, []
-
-    # Strip quotes to allow for use of nosem as an HTML attribute inside tags.
-    # HTML comments inside tags are not allowed by the spec.
-    pattern_ids = {
-        pattern_id.strip().strip("\"'")
-        for pattern_id in COMMA_SEPARATED_LIST_RE.split(ids_str)
-        if pattern_id.strip()
-    }
-
-    # Filter out ids that are not alphanum+dashes+underscores+periods.
-    # This removes trailing symbols from comments, such as HTML comments `-->`
-    # or C-like multiline comments `*/`.
-    pattern_ids = set(filter(lambda x: not sub(r"[\w\-\.]+", "", x), pattern_ids))
-
-    errors = []
-    result = False
-    for pattern_id in pattern_ids:
-        if rule_match.id == pattern_id:
-            logger.verbose(
-                f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
-            )
-            result = result or True
-        else:
-            message = f"found 'nosem' comment with id '{pattern_id}', but no corresponding rule trying '{rule_match.id}'"
-            if strict:
-                errors.append(SemgrepError(message, level=Level.WARN))
-            else:
-                logger.verbose(message)
-
-    return result, errors
 
 
 def invoke_semgrep(
@@ -192,8 +133,6 @@ def main(
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
 
     output_handler.handle_semgrep_errors(errors)
-
-    is_sarif = output_handler.settings.output_format == OutputFormat.SARIF
 
     if errors and strict:
         raise SemgrepError(
@@ -282,36 +221,14 @@ The two most popular are:
 
     profiler.save("total_time", start_time)
 
+    filtered_matches = process_ignores(
+        rule_matches_by_rule, output_handler, strict=strict, disable_nosem=disable_nosem
+    )
+
     output_handler.handle_semgrep_errors(semgrep_errors)
+    output_handler.handle_semgrep_errors(filtered_matches.errors)
 
-    nosem_errors = []
-    for rule, rule_matches in rule_matches_by_rule.items():
-        evolved_rule_matches = []
-        for rule_match in rule_matches:
-            ignored, returned_errors = rule_match_nosem(rule_match, strict)
-            evolved_rule_matches.append(attr.evolve(rule_match, is_ignored=ignored))
-            nosem_errors.extend(returned_errors)
-        rule_matches_by_rule[rule] = evolved_rule_matches
-
-    output_handler.handle_semgrep_errors(nosem_errors)
-
-    num_findings_nosem = 0
-    if not disable_nosem:
-        filtered_rule_matches_by_rule = {}
-        for rule, rule_matches in rule_matches_by_rule.items():
-            filtered_rule_matches = []
-            for rule_match in rule_matches:
-                if rule_match._is_ignored:
-                    num_findings_nosem += 1
-                else:
-                    filtered_rule_matches.append(rule_match)
-            filtered_rule_matches_by_rule[rule] = filtered_rule_matches
-        # SARIF output includes ignored findings, but labels them as suppressed.
-        # https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10541099
-        if not is_sarif:
-            rule_matches_by_rule = filtered_rule_matches_by_rule
-
-    num_findings = sum(len(v) for v in rule_matches_by_rule.values())
+    num_findings = sum(len(v) for v in filtered_matches.matches.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
     if metric_manager.is_enabled:
@@ -336,7 +253,7 @@ The two most popular are:
         metric_manager.set_num_rules(len(filtered_rules))
         metric_manager.set_num_targets(len(all_targets))
         metric_manager.set_num_findings(num_findings)
-        metric_manager.set_num_ignored(num_findings_nosem)
+        metric_manager.set_num_ignored(filtered_matches.num_matches)
         metric_manager.set_run_time(profiler.calls["total_time"][0])
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
         metric_manager.set_total_bytes_scanned(total_bytes_scanned)
@@ -346,7 +263,7 @@ The two most popular are:
         )
 
     output_handler.handle_semgrep_core_output(
-        rule_matches_by_rule,
+        filtered_matches.matches,
         debug_steps_by_rule,
         stats_line,
         all_targets,
@@ -356,4 +273,4 @@ The two most popular are:
     )
 
     if autofix:
-        apply_fixes(rule_matches_by_rule, dryrun)
+        apply_fixes(filtered_matches.matches, dryrun)
