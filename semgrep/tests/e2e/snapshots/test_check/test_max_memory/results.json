@@ -3,7 +3,9 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Out of memory in file targets/equivalence/open_redirect.py\n\t",
+      "message": "Semgrep Core WARN - Out of memory: When running 1 on targets/equivalence/open_redirect.py: ",
+      "path": "targets/equivalence/open_redirect.py",
+      "rule_id": "1",
       "type": "Out of memory"
     }
   ],

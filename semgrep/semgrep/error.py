@@ -93,8 +93,8 @@ class SemgrepCoreError(SemgrepError):
     def to_dict_base(self) -> Dict[str, Any]:
         base = {
             "type": self.error_type,
-            "message": self.__str__(),
-            "path": self._error_message,
+            "message": self._error_message,
+            "path": str(self.path),
         }
         if self.rule_id:
             base["rule_id"] = self.rule_id

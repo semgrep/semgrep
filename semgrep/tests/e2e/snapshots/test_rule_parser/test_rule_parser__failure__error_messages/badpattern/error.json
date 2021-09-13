@@ -3,7 +3,9 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Pattern parse error in file /tmp/tmphwaug6u3.yaml\n\tInvalid pattern for Python: Parsing.Parse_error",
+      "message": "Semgrep Core WARN - Pattern parse error: When running eqeq-is-bad on /tmp/tmpfpv3r4mz.yaml: Invalid pattern for Python: Parsing.Parse_error",
+      "path": "/tmp/tmpfpv3r4mz.yaml",
+      "rule_id": "eqeq-is-bad",
       "type": "Pattern parse error"
     }
   ],
