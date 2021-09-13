@@ -112,6 +112,12 @@ class CoreError:
 
         return cls(error_type, rule_id, path, start, end, message, level)
 
+    def is_timeout(self) -> bool:
+        """
+        Return if this error is a match timeout
+        """
+        return self.error_type == CoreErrorType("Timeout")
+
     def to_semgrep_error(self) -> SemgrepCoreError:
         return SemgrepCoreError(
             self.level,

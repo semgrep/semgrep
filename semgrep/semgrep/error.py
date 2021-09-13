@@ -107,6 +107,12 @@ class SemgrepCoreError(SemgrepError):
 
         return base
 
+    def is_timeout(self) -> bool:
+        """
+        Return if this error is a match timeout
+        """
+        return self.error_type == "Timeout"
+
     @property
     def _error_message(self) -> str:
         """

@@ -15,7 +15,6 @@ from typing import Tuple
 from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.core_output import CoreErrorType
 from semgrep.core_output import CoreOutput
 from semgrep.core_output import RuleId
 from semgrep.error import _UnknownLanguageError
@@ -299,8 +298,7 @@ class CoreRunner:
                     outputs[rule].extend(core_output.rule_matches(rule))
                     parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
                     for err in core_output.errors:
-                        # TODO fix this
-                        if err.error_type == CoreErrorType("MatchTimeoutError"):
+                        if err.is_timeout():
                             assert err.path is not None
 
                             file_timeouts[err.path] += 1
