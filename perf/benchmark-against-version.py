@@ -78,7 +78,7 @@ def run_semgrep_version(
     real_semgrep_version = r.stdout.decode("utf-8")
     logger.info(f"Using semgrep version {real_semgrep_version}")
 
-    subprocess.run(["./run-benchmarks.py"] + script_arguments)  # nosemgrep
+    subprocess.run(["./run-benchmarks"] + script_arguments)  # nosemgrep
 
     deactivate(oldenv)
 
