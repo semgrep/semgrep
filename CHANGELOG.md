@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Allow autofix using the command line rather than only with the fix: YAML key
 
 ### Changed
+- Grouped semgrep CLI options and added constraints when useful (e.g. cannot use `--vim` and `--emacs` at the same time)
 
 ### Fixed
 - Taint detection with ternary ifs (#3778)
@@ -18,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - PHP: Parse correctly constants named PUBLIC or DEFAULT (#3589)
 - Go: Added type inference for struct literals (#3622)
 - Fix semgrep-core crash when a cache file exceeds the file size limit
+- Sped up Semgrep interface with tree-sitter parsing
 
 ## [0.64.0](https://github.com/returntocorp/semgrep/releases/tag/v0.64.0) - 09-01-2021
 
