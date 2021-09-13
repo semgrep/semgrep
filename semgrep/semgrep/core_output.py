@@ -14,11 +14,11 @@ from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.types import JsonObject
+from semgrep.types import RuleId
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
 
-RuleId = NewType("RuleId", str)
 CoreErrorMessage = NewType("CoreErrorMessage", str)
 CoreErrorType = NewType("CoreErrorType", str)
 SkipReason = NewType("SkipReason", str)
