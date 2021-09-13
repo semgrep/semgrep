@@ -90,13 +90,14 @@ let exn_to_error file exn =
         RuleParseError
   | Rule.InvalidRegexp (rule_id, message, pos) ->
       mk_error_tok rule_id pos (spf "invalid regex %s" message) RuleParseError
-  | Rule.InvalidPattern (rule_id, _pattern, xlang, message, pos, yaml_path) ->
+  | Rule.InvalidPattern (rule_id, _pattern, xlang, _message, pos, yaml_path) ->
       {
         rule_id = Some rule_id;
         typ = PatternParseError;
         loc = PI.token_location_of_info pos;
         msg =
-          spf "Invalid pattern for %s: %s" (Rule.string_of_xlang xlang) message;
+          (* TODO: make message helpful *)
+          spf "Invalid pattern for %s" (Rule.string_of_xlang xlang);
         details = None;
         yaml_path = Some yaml_path;
       }
