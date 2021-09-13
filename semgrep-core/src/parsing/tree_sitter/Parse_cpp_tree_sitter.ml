@@ -393,7 +393,7 @@ let map_preproc_defined (env : env) (x : CST.preproc_defined) =
   | `Defi_id (v1, v2) ->
       let v1 = token env v1 (* "defined" *) in
       let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
-      Call (IdSpecial (Defined, v1), fb [ Arg (expr_of_id v2) ])
+      Call (IdSpecial (Defined, v1), fb v1 [ Arg (expr_of_id v2) ])
 
 let map_variadic_declarator (env : env) ((v1, v2) : CST.variadic_declarator) =
   let v1 = token env v1 (* "..." *) in
@@ -675,7 +675,7 @@ let map_anon_choice_stmt_id_efddc5b (env : env)
   | `Id tok -> IdIdent (str env tok) (* pattern [a-zA-Z_]\w* *)
   | `Op_name tok ->
       let op = str env tok (* operator_name *) in
-      IdOperator (fake "operator", parse_operator env op)
+      IdOperator (fake (snd op) "operator", parse_operator env op)
   | `Dest_name x ->
       let x = map_destructor_name env x in
       x
@@ -1660,7 +1660,10 @@ and map_declarator (env : env) (x : CST.declarator) : declarator =
   | `Op_name tok ->
       let op = str env tok (* operator_name *) in
       let dn =
-        DN (None, noQscope, IdOperator (fake "operator", parse_operator env op))
+        DN
+          ( None,
+            noQscope,
+            IdOperator (fake (snd op) "operator", parse_operator env op) )
       in
       { dn; dt = id }
   | `Dest_name x ->
@@ -2089,7 +2092,11 @@ and map_field_declarator (env : env) (x : CST.field_declarator) : declarator =
   | `Op_name tok ->
       let x = str env tok (* operator_name *) in
       {
-        dn = DN (None, [], IdOperator (fake "operator", parse_operator env x));
+        dn =
+          DN
+            ( None,
+              [],
+              IdOperator (fake (snd x) "operator", parse_operator env x) );
         dt = id;
       }
 

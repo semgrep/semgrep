@@ -2027,7 +2027,7 @@ let arg e = Arg e
 (* Try avoid using them! if you build new constructs, you should try
  * to derive the tokens in those new constructs from existing constructs.
  *)
-let fake s = Parse_info.fake_info s
+let fake s = Parse_info.unsafe_fake_info s
 
 (*e: function [[AST_generic.fake]] *)
 (*s: function [[AST_generic.fake_bracket]] *)
@@ -2041,7 +2041,7 @@ let unbracket (_, x, _) = x
 (* bugfix: I used to put ";" but now Parse_info.str_of_info prints
  * the string of a fake info
  *)
-let sc = Parse_info.fake_info ""
+let sc = Parse_info.unsafe_fake_info ""
 
 let unhandled_keywordattr (s, t) =
   NamedAttr (t, Id ((s, t), empty_id_info ()), fake_bracket [])

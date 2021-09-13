@@ -365,7 +365,7 @@ let parse_string_and_adjust_wrt_base content tbase fparse =
             Map_AST.default_visitor with
             Map_AST.kinfo =
               (fun (_, _) t ->
-                let base_loc = PI.token_location_of_info tbase in
+                let base_loc = PI.unsafe_token_location_of_info tbase in
                 PI.adjust_info_wrt_base base_loc t);
           }
       in
