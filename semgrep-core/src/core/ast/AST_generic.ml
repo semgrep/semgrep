@@ -203,7 +203,7 @@ type ident = string wrap
 
 (*s: type [[AST_generic.dotted_ident]] *)
 (* Usually separated by a '.', but can be used also with '::' separators.
- * TODO: we often need to get the last elt or adjust the qualifier part,
+ * less: we often need to get the last elt or adjust the qualifier part,
  * so maybe we should define it as = ident list * ident
  *)
 type dotted_ident = ident list (* at least 1 element *)
@@ -299,7 +299,7 @@ and resolved_name_kind =
  * but ultimately those cases should be rewritten to first introduce
  * a VarDef.
  *
- * todo: Sometimes some DotAccess should really be transformed in IdQualified
+ * DEBT? Sometimes some DotAccess should really be transformed in IdQualified
  * with a better qualifier because the obj is actually the name of a package
  * or module, but you may need advanced semantic information and global
  * analysis to disambiguate.
@@ -317,7 +317,10 @@ and name_info = {
   name_typeargs : type_arguments option; (* Java/Rust *)
 }
 
-(* todo: not enough in OCaml with functor and type args or C++ templates*)
+(* TODO: not enough in OCaml with functor and type args or C++ templates.
+ * We will need to merge name_typeargs and name_qualifier and have a
+ * qualifier list instead (with QId and QTemplateId like in ast_cpp.ml)
+ *)
 (*e: type [[AST_generic.name_info]] *)
 (*s: type [[AST_generic.qualifier]] *)
 and qualifier =
@@ -380,7 +383,7 @@ and id_info = {
 
 (*s: type [[AST_generic.expr]] *)
 (* todo? we could store more semantic information at each expr node,
- * e.g., type information, constant evaluation, range.
+ * e.g., type information, constant evaluation.
  *)
 and expr = {
   e : expr_kind;
@@ -1212,6 +1215,11 @@ and type_kind =
   (* Anonymous record type, a.k.a shape in PHP/Hack. See also AndType.
    * Most record types are defined via a TypeDef and are then referenced
    * via a TyName. Here we have flexible record types (a.k.a. rows in OCaml).
+   * TODO: just generalize as TClass of name option * class_definition
+   * for C++. Those are ugly because it would be cleaner to have
+   * definitions only at the toplevel, but C/C++/Go allow those nested
+   * class defs. We could lift them up at the top and introduce gensym'ed
+   * classnames, but it's maybe better to stay close to the code.
    *)
   | TyRecordAnon of tok (* 'struct/shape', fake in other *) * field list bracket
   (* for Go *)
@@ -1386,13 +1394,13 @@ and entity = {
 
 (*s: type [[AST_generic.definition_kind]] *)
 and definition_kind =
-  (* newvar: can be used also for methods, nested functions, lambdas.
-   * note: can have empty "body" when the def is actually a declaration
+  (* newvar: can be used also for methods or nested functions.
+   * note: can have an empty body when the def is actually a declaration
    * in a header file (called a prototype in C).
    *)
   | FuncDef of function_definition
   (* newvar: can be used also for constants.
-   * can contain special_multivardef_pattern ident in which case vinit
+   * note: can contain special_multivardef_pattern!! ident in which case vinit
    * is the pattern assignment.
    *)
   | VarDef of variable_definition
@@ -1464,25 +1472,21 @@ and other_type_parameter_operator =
 (* Function (or method) definition *)
 (* ------------------------------------------------------------------------- *)
 (*s: type [[AST_generic.function_definition]] *)
-(* less: could be merged with variable_definition *)
+(* We could merge this type with variable_definition, and use a
+ * Lambda for vinit, but it feels better to use a separate type.
+ *)
 and function_definition = {
   fkind : function_kind wrap;
   fparams : parameters;
   (* return type *)
   frettype : type_ option;
-  (* newscope:
-   * note: can be empty statement for methods in interfaces.
-   * update: can also be empty when used in a Partial.
-   * can be simple expr too for JS lambdas, so maybe fbody type?
-   * FExpr | FNothing | FBlock ?
-   * use stmt list bracket instead?
-   *)
-  fbody : stmt;
+  (* newscope: *)
+  fbody : function_body;
 }
 
 (*e: type [[AST_generic.function_definition]] *)
 (* We don't really care about the function_kind in semgrep, but who
- * knows maybe one day we will. We care about the token in the
+ * knows, maybe one day we will. We care about the token in the
  * function_kind wrap in fkind though for semgrep for accurate range.
  *)
 and function_kind =
@@ -1564,14 +1568,22 @@ and other_parameter_operator =
 
 (*e: type [[AST_generic.other_parameter_operator]] *)
 
+(* note: can be empty statement for methods in interfaces.
+ * update: can also be empty when used in a Partial.
+ * can be simple expr too for JS lambdas, so maybe fbody type?
+ * FExpr | FNothing | FBlock ?
+ * use stmt list bracket instead?
+ *)
+and function_body = stmt
+
 (* ------------------------------------------------------------------------- *)
 (* Variable definition *)
 (* ------------------------------------------------------------------------- *)
 (*s: type [[AST_generic.variable_definition]] *)
 (* Also used for constant_definition with attrs = [Const].
  * Also used for field definition in a class (and record).
- * less: could use for function_definition with vinit = Some (Lambda (...))
- *  but maybe useful to explicitely makes the difference for now?
+ * We could use it for function_definition with vinit = Some (Lambda (...))
+ * but maybe useful to explicitely makes the difference for now.
  *)
 and variable_definition = {
   (* todo? should remove vinit and transform a VarDef with init with a VarDef
@@ -1595,8 +1607,9 @@ and type_definition = { tbody : type_definition_kind }
 (*s: type [[AST_generic.type_definition_kind]] *)
 and type_definition_kind =
   | OrType of or_type_element list (* enum/ADTs *)
-  (* field.vtype should be defined here
-   * record/struct (for class see class_definition)
+  (* Record definitions (for struct/class, see class_definition).
+   * The fields will be defined via a DefStmt (VarDef variable_definition)
+   * where the field.vtype should be defined.
    *)
   | AndType of field list bracket
   (* a.k.a typedef in C (and alias type in Go) *)
@@ -1655,7 +1668,7 @@ and other_or_type_element_operator =
 and field =
   | FieldStmt of stmt
   (*s: [[AST_generic.field]] other cases *)
-  (* less: could abuse FieldStmt(ExprStmt(IdSpecial(Spread))) for that *)
+  (* DEBT? could abuse FieldStmt(ExprStmt(IdSpecial(Spread))) for that? *)
   | FieldSpread of tok (* ... *) * expr
 
 (*e: [[AST_generic.field]] other cases *)
@@ -1747,20 +1760,20 @@ and macro_definition = { macroparams : ident list; macrobody : any list }
 (* Directives (Module import/export, package) *)
 (*****************************************************************************)
 (*s: type [[AST_generic.directive]] *)
+and directive = {
+  d : directive_kind;
+  (* Right now d_attrs is used just for Static import in Java, and for
+   * OCaml attributes of directives (e.g., open).
+   *)
+  d_attrs : attribute list;
+}
+
 (* It is tempting to simplify all those ImportXxx in a simpler
  * 'Import of dotted_ident * ...', but module_name is not always a DottedName
  * so it is better to clearly separate what is module_name/namespace from an
  * entity (in this module/namespace) even though some languages such as Python
  * blur the difference.
  *)
-and directive = {
-  d : directive_kind;
-  (* Right now dattrs is used just for Static import in Java, and for
-   * OCaml attributes of directives (e.g., open).
-   *)
-  d_attrs : attribute list;
-}
-
 and directive_kind =
   (* newvar: *)
   | ImportFrom of
@@ -1817,8 +1830,8 @@ and other_directive_operator =
 (* item (a.k.a toplevel element, toplevel decl) is now equal to stmt.
  * Indeed, many languages allow nested functions, nested class definitions,
  * and even nested imports, so it is just simpler to merge item with stmt.
- * This simplifies sgrep too.
- * less: merge with field?
+ * This simplifies semgrep too.
+ * DEBT? merge with field too?
  *)
 (*s: type [[AST_generic.item]] *)
 and item = stmt
