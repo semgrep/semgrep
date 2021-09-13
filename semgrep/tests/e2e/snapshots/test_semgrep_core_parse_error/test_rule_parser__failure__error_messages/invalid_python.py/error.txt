@@ -3,7 +3,7 @@ running 2 rules...
 rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
-Semgrep Core WARN: Syntax error in file targets/bad/invalid_python.py
+Semgrep Core WARN - Syntax error in file targets/bad/invalid_python.py
 	`
     ` was unexpected
 ran 2 rules on 1 files: 0 findings

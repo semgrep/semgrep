@@ -15,6 +15,7 @@ import attr
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
+from semgrep.rule_match import CoreLocation
 from semgrep.util import with_color
 
 OK_EXIT_CODE = 0
@@ -83,20 +84,40 @@ class SemgrepCoreError(SemgrepError):
     code = FATAL_EXIT_CODE
     level: Level
     error_type: str
-    message: str
+    rule_id: Optional[str]
     path: Path
+    start: CoreLocation
+    end: CoreLocation
+    message: str
 
     def to_dict_base(self) -> Dict[str, Any]:
-        return {
+        base = {
             "type": self.error_type,
-            "message": f"{self.error_type} in file {self.path}\n\t{self.message}",
+            "message": self.__str__(),
+            "path": self._error_message,
         }
+        if self.rule_id:
+            base["rule_id"] = self.rule_id
+        return base
+
+    @property
+    def _error_message(self) -> str:
+        """
+        Generate error message exposed to user
+        """
+
+        if self.rule_id:
+            if self.error_type == "Rule parse error":
+                msg = f"Semgrep Core {self.level.name} - {self.error_type}: In rule {self.rule_id}: {self.message}"
+            else:
+                msg = f"Semgrep Core {self.level.name} - {self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
+        else:
+            msg = f"Semgrep Core {self.level.name} - {self.error_type} in file {self.path}\n\t{self.message}"
+
+        return msg
 
     def __str__(self) -> str:
-        return with_color(
-            "red",
-            f"Semgrep Core {self.level.name}: {self.error_type} in file {self.path}\n\t{self.message}",
-        )
+        return with_color("red", self._error_message)
 
 
 class SemgrepInternalError(Exception):

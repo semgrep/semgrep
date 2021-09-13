@@ -113,7 +113,15 @@ class CoreError:
         return cls(error_type, rule_id, path, start, end, message, level)
 
     def to_semgrep_error(self) -> SemgrepCoreError:
-        return SemgrepCoreError(self.level, self.error_type, self.message, self.path)
+        return SemgrepCoreError(
+            self.level,
+            self.error_type,
+            self.rule_id,
+            self.path,
+            self.start,
+            self.end,
+            self.message,
+        )
 
 
 @attr.s(auto_attribs=True, frozen=True)
