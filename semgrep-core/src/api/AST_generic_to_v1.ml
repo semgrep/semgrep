@@ -981,10 +981,12 @@ and map_function_kind = function
 and map_function_definition
     { G.fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody } =
   let fkind = map_wrap map_function_kind fkind in
-  let v_fbody = map_stmt v_fbody in
+  let v_fbody = map_function_body v_fbody in
   let v_frettype = map_of_option map_type_ v_frettype in
   let v_fparams = map_parameters v_fparams in
   { B.fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody }
+
+and map_function_body x = map_stmt (H.funcbody_to_stmt x)
 
 and map_parameters v = map_of_list map_parameter v
 

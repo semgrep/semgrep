@@ -473,7 +473,7 @@ and map_function_body (env : env) ((v1, v2, v3, v4) : CST.function_body)
     G.fparams = v1;
     frettype = None;
     fkind = (G.Function, token env name);
-    fbody = body;
+    fbody = G.FBStmt body;
   }
 
 and map_function_call_expr (env : env) (x : CST.function_call_statement) :
@@ -687,7 +687,8 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let _v1 = token env v1 (* "::" *) in
       let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
       let _v3 = token env v3 (* "::" *) in
-      [ G.Label (v2, G.empty_fbody) |> G.s ]
+      (* ??? *)
+      [ G.Label (v2, G.Block (G.fake_bracket []) |> G.s) |> G.s ]
   | `Empty_stmt _tok -> [] (* ";" *)
   | `Func_stmt (v1, v2, v3) ->
       let fn_name = map_function_name env v2 in

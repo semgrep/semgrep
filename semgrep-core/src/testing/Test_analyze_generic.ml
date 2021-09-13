@@ -1,6 +1,7 @@
 (*s: pfff/lang_GENERIC/analyze/Test_analyze_generic.ml *)
 open Common
 open AST_generic
+module H = AST_generic_helpers
 module V = Visitor_AST
 
 let test_typing_generic file =
@@ -14,11 +15,12 @@ let test_typing_generic file =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let s = AST_generic.show_any (S def.fbody) in
+            let body = H.funcbody_to_stmt def.fbody in
+            let s = AST_generic.show_any (S body) in
             pr2 s;
             pr2 "==>";
 
-            let xs = AST_to_IL.stmt def.fbody in
+            let xs = AST_to_IL.stmt body in
             let s = IL.show_any (IL.Ss xs) in
             pr2 s);
       }
@@ -101,11 +103,12 @@ let test_il_generic file =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let s = AST_generic.show_any (S def.fbody) in
+            let body = H.funcbody_to_stmt def.fbody in
+            let s = AST_generic.show_any (S body) in
             pr2 s;
             pr2 "==>";
 
-            let xs = AST_to_IL.stmt def.fbody in
+            let xs = AST_to_IL.stmt body in
             let s = IL.show_any (IL.Ss xs) in
             pr2 s);
       }
@@ -124,7 +127,7 @@ let test_cfg_il file =
   |> List.iter (fun item ->
          match item.s with
          | DefStmt (_ent, FuncDef def) ->
-             let xs = AST_to_IL.stmt def.fbody in
+             let xs = AST_to_IL.stmt (H.funcbody_to_stmt def.fbody) in
              let cfg = CFG_build.cfg_of_stmts xs in
              Display_IL.display_cfg cfg
          | _ -> ())
@@ -153,7 +156,7 @@ let test_dfg_tainting file =
   |> List.iter (fun item ->
          match item.s with
          | DefStmt (ent, FuncDef def) ->
-             let xs = AST_to_IL.stmt def.fbody in
+             let xs = AST_to_IL.stmt (H.funcbody_to_stmt def.fbody) in
              let flow = CFG_build.cfg_of_stmts xs in
              pr2 "Tainting";
              let config =
@@ -190,7 +193,7 @@ let test_dfg_constness file =
             Dataflow_constness.update_constness flow mapping;
             DataflowY.display_mapping flow mapping
               Dataflow_constness.string_of_constness;
-            let s = AST_generic.show_any (S def.fbody) in
+            let s = AST_generic.show_any (S (H.funcbody_to_stmt def.fbody)) in
             pr2 s);
       }
   in

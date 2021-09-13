@@ -475,9 +475,10 @@ and expr_kind =
         bracket
   (*e: [[AST_generic.expr]] array access cases *)
   (*s: [[AST_generic.expr]] anonymous entity cases *)
-  (* very special value *)
+  (* very special value. 'fbody' is usually an FExpr. *)
   | Lambda of function_definition
-  (* usually an argument of a New (used in Java, Javascript) *)
+  (* also a special value. Usually an argument of a New
+   * (used in Java, Javascript, etc.) *)
   | AnonClass of class_definition
   (*e: [[AST_generic.expr]] anonymous entity cases *)
   (*s: [[AST_generic.expr]] other cases *)
@@ -923,7 +924,9 @@ and stmt_kind =
   | ExprStmt of expr * sc (* fake tok in Python, but also in JS/Go with ASI *)
   (* newscope: in C++/Java/Go *)
   | Block of stmt list bracket (* can be fake {} in Python where use layout *)
-  (* EmptyStmt = Block [], or separate so can not be matched by $S? $ *)
+  (* EmptyStmt = Block [], or separate so can not be matched by $S? $
+   * see also emptystmt() at the end of this file.
+   *)
   (* newscope: for vardef in expr in C++/Go/... *)
   | If of tok (* 'if' or 'elif' *) * expr * stmt * stmt option
   | While of tok * expr * stmt
@@ -1474,6 +1477,7 @@ and other_type_parameter_operator =
 (*s: type [[AST_generic.function_definition]] *)
 (* We could merge this type with variable_definition, and use a
  * Lambda for vinit, but it feels better to use a separate type.
+ * TODO? add ctor initializer here instead of storing them in fbody?
  *)
 and function_definition = {
   fkind : function_kind wrap;
@@ -1568,13 +1572,20 @@ and other_parameter_operator =
 
 (*e: type [[AST_generic.other_parameter_operator]] *)
 
-(* note: can be empty statement for methods in interfaces.
- * update: can also be empty when used in a Partial.
- * can be simple expr too for JS lambdas, so maybe fbody type?
- * FExpr | FNothing | FBlock ?
- * use stmt list bracket instead?
+(* old: this used to be just an alias for 'stmt'; we were using
+ * fake empty Block for FBDecl of fake ExprStmt for FBExpr.
+ * However, some semgreo users may not like to treat a FBStmt
+ * pattern to match an FBExpr, hence the more explicit cases.
  *)
-and function_body = stmt
+and function_body =
+  (* usually just a Block (where the brackets are fake in Ruby/Python/...) *)
+  | FBStmt of stmt
+  (* used for short lambdas in JS/Python, or regular func in OCaml/... *)
+  | FBExpr of expr
+  (* C/C++ prototypes or interface method declarations in Go/Java/... *)
+  | FBDecl of sc
+  (* Partial *)
+  | FBNothing
 
 (* ------------------------------------------------------------------------- *)
 (* Variable definition *)
@@ -2061,6 +2072,9 @@ let unhandled_keywordattr (s, t) =
 
 let exprstmt e = s (ExprStmt (e, sc))
 
+(* alt: EmptyStmt of sc? of ExprStmt of expr option * sc *)
+let emptystmt t = s (Block (t, [], t))
+
 (* The dual of exprstmt.
  * This is mostly used for languages where the division
  * between stmt and expr is fuzzy or nonexistent (e.g., OCaml, Scala)
@@ -2072,8 +2086,6 @@ let exprstmt e = s (ExprStmt (e, sc))
 let stmt_to_expr st = e (OtherExpr (OE_StmtExpr, [ S st ]))
 
 let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))
-
-let empty_fbody = s (Block (fake_bracket []))
 
 let empty_body = fake_bracket []
 

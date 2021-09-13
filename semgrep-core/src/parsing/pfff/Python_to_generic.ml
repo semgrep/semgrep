@@ -298,7 +298,7 @@ let rec expr (x : expr) =
       G.Lambda
         {
           G.fparams = v1;
-          fbody = G.exprstmt v2;
+          fbody = G.FBExpr v2;
           frettype = None;
           fkind = (G.LambdaKind, t0);
         }
@@ -597,7 +597,12 @@ and stmt_aux x =
       and v5 = list decorator v5 in
       let ent = G.basic_entity v1 v5 in
       let def =
-        { G.fparams = v2; frettype = v3; fbody = v4; fkind = (G.Function, t) }
+        {
+          G.fparams = v2;
+          frettype = v3;
+          fbody = G.FBStmt v4;
+          fkind = (G.Function, t);
+        }
       in
       [ G.DefStmt (ent, G.FuncDef def) |> G.s ]
   | ClassDef (v0, v1, v2, v3, v4) ->

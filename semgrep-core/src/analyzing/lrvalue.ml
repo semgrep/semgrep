@@ -15,6 +15,7 @@
  *)
 open Common
 open AST_generic
+module H = AST_generic_helpers
 module V = Visitor_AST
 
 (*****************************************************************************)
@@ -157,7 +158,7 @@ let rec visit_expr hook lhs expr =
       let filter_rvalue_hook lhs name idinfo =
         if lhs = Rhs then hook lhs name idinfo
       in
-      anyhook filter_rvalue_hook Rhs (S def.fbody)
+      anyhook filter_rvalue_hook Rhs (S (H.funcbody_to_stmt def.fbody))
   | AnonClass _ -> ()
   | Yield (_, e, _is_yield_from) -> Common.do_option recr e
   | Await (_, e) -> recr e

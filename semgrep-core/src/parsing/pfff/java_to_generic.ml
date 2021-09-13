@@ -371,7 +371,12 @@ and expr e =
       let v1 = parameters v1 in
       let v2 = stmt v2 in
       G.Lambda
-        { G.fparams = v1; frettype = None; fbody = v2; fkind = (G.Arrow, t) }
+        {
+          G.fparams = v1;
+          frettype = None;
+          fbody = G.FBStmt v2;
+          fkind = (G.Arrow, t);
+        }
   | SwitchE (v0, v1, v2) ->
       let v0 = info v0 in
       let v1 = expr v1
@@ -558,7 +563,7 @@ and method_decl { m_var; m_formals; m_throws; m_body } =
     {
       G.fparams = v2;
       frettype = rett;
-      fbody = v4;
+      fbody = G.FBStmt v4;
       fkind = (G.Method, G.fake "");
     } )
 

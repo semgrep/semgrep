@@ -206,6 +206,12 @@ let funcdef_to_lambda (ent, def) resolved =
 
 (*e: function [[AST_generic.funcdef_to_lambda]] *)
 
+let funcbody_to_stmt = function
+  | FBStmt st -> st
+  | FBExpr e -> G.exprstmt e
+  | FBDecl sc -> Block (sc, [], sc) |> G.s
+  | FBNothing -> Block (G.fake_bracket []) |> G.s
+
 (*s: function [[AST_generic.has_keyword_attr]] *)
 let has_keyword_attr kwd attrs =
   attrs
