@@ -2,7 +2,7 @@
 
 type parsing_result = {
   ast : AST_generic.program;
-  errors : Error_code.error list;
+  errors : Semgrep_error_code.error list;
   stat : Parse_info.parsing_stat;
 }
 

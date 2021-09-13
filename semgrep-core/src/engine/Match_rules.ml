@@ -26,7 +26,7 @@ module RP = Report
 module S = Specialize_formula
 module RM = Range_with_metavars
 module FM = File_and_more
-module E = Error_code
+module E = Semgrep_error_code
 module Resp = Semgrep_core_response_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -114,7 +114,7 @@ type env = {
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   file : Common.filename;
-  lazy_ast_and_errors : (G.program * Error_code.error stack) lazy_t;
+  lazy_ast_and_errors : (G.program * E.error stack) lazy_t;
   rule_id : R.rule_id;
   xlang : R.xlang;
   equivalences : Equivalence.equivalences;
@@ -134,9 +134,8 @@ let error env msg =
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
   let loc = PI.first_loc_of_file env.file in
-  let s = Printf.sprintf "rule %s: %s" env.rule_id msg in
   (* TODO: warning or error? MatchingError or ... ? *)
-  let err = E.mk_error_loc loc (E.MatchingError s) in
+  let err = E.mk_error env.rule_id loc msg E.MatchingError in
   Common.push err env.errors
 
 let (xpatterns_in_formula : S.sformula -> (R.xpattern * R.inside option) list) =

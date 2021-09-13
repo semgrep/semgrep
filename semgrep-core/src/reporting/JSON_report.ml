@@ -20,7 +20,7 @@ module StrSet = Common2.StringSet
 open AST_generic
 module V = Visitor_AST
 module PI = Parse_info
-module E = Error_code
+module E = Semgrep_error_code
 module J = JSON
 module MV = Metavariable
 module RP = Report
@@ -135,15 +135,18 @@ let match_to_match x =
     let startp, endp = position_range min_loc max_loc in
     Left
       ({
-         ST.check_id = Some x.rule_id.id;
-         path = x.file;
-         start = startp;
-         end_ = endp;
+         ST.rule_id = Some x.rule_id.id;
+         location =
+           {
+             path = x.file;
+             start = startp;
+             end_ = endp;
+             lines = [] (* ?? spacegrep? *);
+           };
          extra =
            {
              message = Some x.rule_id.message;
              metavars = x.env |> List.map (metavars startp);
-             lines = [] (* ?? spacegrep? *);
            };
        }
         : ST.match_)
@@ -155,7 +158,7 @@ let match_to_match x =
     let s =
       spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
     in
-    let err = E.mk_error_loc loc (E.MatchingError s) in
+    let err = E.mk_error x.rule_id.id loc s E.MatchingError in
     Right err
   [@@profiling]
 
@@ -169,24 +172,34 @@ let lines_of_file (file : Common.filename) : string array =
       try Common.cat file |> Array.of_list with _ -> [| "EMPTY FILE" |])
 
 let error_to_error err =
+  let severity_of_severity = function
+    | E.Error -> SJ.Error
+    | E.Warning -> SJ.Warning
+  in
   let file = err.E.loc.PI.file in
   let lines = lines_of_file file in
   let startp, endp = position_range err.E.loc err.E.loc in
   let line = err.E.loc.PI.line in
-  let check_id = E.check_id_of_error_kind err.E.typ in
-  let message = E.string_of_error_kind err.E.typ in
-  (*
-  let extra_extra =
-    match err.E.typ with
-    | _ -> []
-  in
-*)
+  let rule_id = err.E.rule_id in
+  let error_type = E.string_of_error_kind err.E.typ in
+  let severity = severity_of_severity (E.severity_of_error err.E.typ) in
+  let message = err.E.msg in
+  let details = err.E.details in
+  let yaml_path = err.E.yaml_path in
   {
-    ST.check_id = Some check_id;
-    path = file;
-    start = startp;
-    end_ = endp;
-    extra = { message; line = (try lines.(line - 1) with _ -> "NO LINE") };
+    ST.error_type;
+    rule_id;
+    severity;
+    location =
+      {
+        path = file;
+        start = startp;
+        end_ = endp;
+        lines = (try [ lines.(line - 1) ] with _ -> [ "NO LINE" ]);
+      };
+    message;
+    details;
+    yaml_path;
   }
 
 let json_time_of_profiling_data profiling_data =
@@ -202,7 +215,7 @@ let match_results_of_matches_and_errors files res =
   let matches, new_errs =
     Common.partition_either match_to_match res.RP.matches
   in
-  let errs = !Error_code.g_errors @ new_errs @ res.RP.errors in
+  let errs = !E.g_errors @ new_errs @ res.RP.errors in
   let files_with_errors =
     List.fold_left
       (fun acc err -> StrSet.add err.E.loc.file acc)
@@ -239,104 +252,12 @@ let json_of_profile_info profile_start =
 (* Error management *)
 (*****************************************************************************)
 
-(* This function is used for non-target related exns (e.g., parsing a rule).
- * It is called in Main.ml as a last resort instead of returning
- * matching results (which can also contain errors).
-
- * The Parse_info.Parsing_error and other exns in Parse_info, which are
- * raised during a target analysis (parsing, naming, matching, etc.), are
- * captured in Main.ml by Error_code.exn_to_error. The function below is
- * for all the other non-target related exns.
- * update: we actually now use the generic AST to parse a YAML rule, so
- * we may raise Parse_info.Other_Error in a non-target context too.
- *
- * invariant: every non-target related exn that has a Parse_info.t should
- * be captured here!
- * TODO:
- *  - use the _posTODO below
- *  - handle Yaml_to_generic.Parse_error
- *  - handle more exn in Parse_rule.ml? covered everything?
- *  - handle Parse_info.Other_error and more, which can now be raised
- *    when parsing a rule.
- * todo? move all non-pfff exns to a central file Error_semgrep.ml?
- *
- * coupling: Test.metachecker_regression_tests
- *)
-let json_of_exn e =
-  match e with
-  | Parse_rule.InvalidRule (rule_id, msg, _posTODO) ->
-      J.Object
-        [
-          ("rule_id", J.String rule_id);
-          ("error", J.String "invalid rule");
-          ("message", J.String msg);
-        ]
-  | Parse_rule.InvalidLanguage (rule_id, language, _posTODO) ->
-      J.Object
-        [
-          ("rule_id", J.String rule_id);
-          ("error", J.String "invalid language");
-          ("language", J.String language);
-        ]
-  | Parse_rule.InvalidPattern (rule_id, pattern, xlang, message, pos, path) ->
-      let lang = Rule.string_of_xlang xlang in
-      let range_json =
-        match pos with
-        | { token = PI.FakeTokStr (str, _); _ } -> J.String str
-        | _ ->
-            let s_loc = PI.token_location_of_info pos in
-            J.Object
-              [
-                ("file", J.String s_loc.file);
-                ("line", J.Int s_loc.line);
-                ("col", J.Int s_loc.column);
-                ( "path",
-                  J.Array
-                    (List.map
-                       (fun x ->
-                         match int_of_string_opt x with
-                         | Some i -> J.Int i
-                         | None -> J.String x)
-                       (List.rev path)) );
-              ]
-      in
-      J.Object
-        [
-          ("rule_id", J.String rule_id);
-          ("error", J.String "invalid pattern");
-          ("pattern", J.String pattern);
-          ("language", J.String lang);
-          ("message", J.String message);
-          ("range", range_json);
-        ]
-  | Parse_rule.InvalidRegexp (rule_id, message, _posTODO) ->
-      J.Object
-        [
-          ("rule_id", J.String rule_id);
-          ("error", J.String "invalid regexp in rule");
-          ("message", J.String message);
-        ]
-  | Parse_rule.InvalidYaml (msg, _posTODO) ->
-      J.Object [ ("error", J.String "invalid yaml"); ("message", J.String msg) ]
-  | Parse_mini_rule.UnparsableYamlException msg ->
-      J.Object
-        [ ("error", J.String "unparsable yaml"); ("message", J.String msg) ]
-  (* Other exns (Failure, Timeout, etc.) without position information :(
-   * Not much we can do.
-   *)
-  | exn ->
-      J.Object
-        [
-          ("error", J.String "unknown exception");
-          ("message", J.String (Common.exn_to_s exn));
-        ]
-
 (*s: function [[JSON_report.error]] *)
 (* this is used only in the testing code, to reuse the
- * Error_code.compare_actual_to_expected
+ * Semgrep_error_code.compare_actual_to_expected
  *)
 let error loc (rule : Pattern_match.rule_id) =
-  E.error_loc loc (E.SemgrepMatchFound (rule.id, rule.message))
+  E.error rule.id loc rule.message (E.SemgrepMatchFound rule.id)
 
 (*e: function [[JSON_report.error]] *)
 

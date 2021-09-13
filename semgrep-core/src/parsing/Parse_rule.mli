@@ -1,18 +1,4 @@
-(*s: semgrep/parsing/Parse_rule.mli *)
-
-exception InvalidLanguage of Rule.rule_id * string * Parse_info.t
-
-exception
-  InvalidPattern of
-    Rule.rule_id * string * Rule.xlang * string * Parse_info.t * string list
-
-exception InvalidRegexp of Rule.rule_id * string * Parse_info.t
-
-exception InvalidRule of Rule.rule_id * string * Parse_info.t
-
-exception InvalidYaml of string * Parse_info.t
-
-(* may raise all the exns above *)
+(* may raise all the exns in Rule *)
 val parse : Common.filename -> Rule.rules
 
 (* used also by Convert_rule.ml *)

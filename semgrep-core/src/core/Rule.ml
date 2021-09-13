@@ -63,7 +63,7 @@ type xlang =
   | LGeneric
 [@@deriving show, eq]
 
-exception InvalidLanguage of string (* rule id *) * string (* msg *)
+exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
 
 (* coupling: Parse_mini_rule.parse_languages *)
 let xlang_of_string ?id:(id_opt = None) s =
@@ -77,7 +77,8 @@ let xlang_of_string ?id:(id_opt = None) s =
           | None -> failwith (Lang.unsupported_language_message s)
           | Some id ->
               raise
-                (InvalidLanguage (id, Common.spf "unsupported language: %s" s)))
+                (InternalInvalidLanguage
+                   (id, Common.spf "unsupported language: %s" s)))
       | Some l -> L (l, []))
 
 let string_of_xlang = function
@@ -277,6 +278,30 @@ and paths = {
 type t = rule [@@deriving show]
 
 type rules = rule list [@@deriving show]
+
+(*****************************************************************************)
+(* Error Management *)
+(*****************************************************************************)
+
+exception InvalidLanguage of rule_id * string * Parse_info.t
+
+(* TODO: the Parse_info.t is not precise for now, it corresponds to the
+ * start of the pattern *)
+exception
+  InvalidPattern of
+    rule_id * string * xlang * string (* exn *) * Parse_info.t * string list
+
+exception InvalidRegexp of rule_id * string * Parse_info.t
+
+(* general errors *)
+exception InvalidYaml of string * Parse_info.t
+
+exception DuplicateYamlKey of string * Parse_info.t
+
+(* less: could be merged with InvalidYaml *)
+exception InvalidRule of rule_id * string * Parse_info.t
+
+exception UnparsableYamlException of string
 
 (*****************************************************************************)
 (* Visitor/extractor *)

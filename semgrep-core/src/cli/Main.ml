@@ -11,7 +11,7 @@ open Common
 module Flag = Flag_semgrep
 module PI = Parse_info
 module S = Scope_code
-module E = Error_code
+module E = Semgrep_error_code
 module MR = Mini_rule
 module R = Rule
 module J = JSON
@@ -348,7 +348,7 @@ let save_rules_file_in_tmp () =
 (*****************************************************************************)
 (* Error management *)
 (*****************************************************************************)
-(* Small wrapper over Error_code.exn_to_error to handle also semgrep-specific
+(* Small wrapper over Semgrep_error_code.exn_to_error to handle also semgrep-specific
  * exns that have a position.
  *
  * See also JSON_report.json_of_exn for non-target related exn handling.
@@ -362,7 +362,7 @@ let exn_to_error file exn =
   match exn with
   | AST_generic.Error (s, tok) ->
       let loc = PI.token_location_of_info tok in
-      E.mk_error_loc loc (AstBuilderError s)
+      E.mk_error_no_rule loc s AstBuilderError
   | _ -> E.exn_to_error file exn
 
 (*****************************************************************************)
@@ -480,6 +480,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
              |> Common.sort_by_val_highfirst
              (* nosemgrep *)
            in
+           let offending_rules = List.length sorted_offending_rules in
            let biggest_offending_rule =
              match sorted_offending_rules with x :: _ -> x | _ -> assert false
            in
@@ -491,7 +492,12 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Parse_info.first_loc_of_file file in
            let error =
-             Error_code.mk_error_loc loc (Error_code.TooManyMatches pat)
+             E.mk_error id loc
+               (spf
+                  "%d rules result in too many matches, most offending rule \
+                   has %d: %s"
+                  offending_rules cnt pat)
+               E.TooManyMatches
            in
            let skipped =
              sorted_offending_rules
@@ -606,7 +612,7 @@ let parse_pattern lang_pattern str =
         res)
   with exn ->
     raise
-      (Parse_rule.InvalidPattern
+      (Rule.InvalidPattern
          ( "no-id",
            str,
            Rule.L (lang_pattern, []),
@@ -646,34 +652,34 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                          logger#info "done with %s" file;
                          v))
                with
-               (* note that Error_code.exn_to_error already handles Timeout
+               (* note that Semgrep_error_code.exn_to_error already handles Timeout
                 * and would generate a TimeoutError code for it, but we intercept
                 * Timeout here to give a better diagnostic.
                 *)
                | (Main_timeout _ | Out_of_memory) as exn ->
-                   let str_opt =
+                   let error_fun =
                      match !Match_patterns.last_matched_rule with
-                     | None -> None
+                     | None -> E.mk_error_no_rule
                      | Some rule ->
                          logger#info "critical exn while matching ruleid %s"
                            rule.MR.id;
                          logger#info "full pattern is: %s"
                            rule.MR.pattern_string;
-                         Some (spf " with ruleid %s" rule.MR.id)
+                         E.mk_error rule.MR.id
                    in
                    let loc = Parse_info.first_loc_of_file file in
                    {
                      RP.matches = [];
                      errors =
                        [
-                         Error_code.mk_error_loc loc
+                         error_fun loc ""
                            (match exn with
                            | Main_timeout file ->
                                logger#info "Timeout on %s" file;
-                               Error_code.Timeout str_opt
+                               E.Timeout
                            | Out_of_memory ->
                                logger#info "OutOfMemory on %s" file;
-                               Error_code.OutOfMemory str_opt
+                               E.OutOfMemory
                            | _ -> raise Impossible);
                        ];
                      skipped = [];
@@ -796,8 +802,16 @@ let semgrep_with_patterns_file lang rules_file roots =
   with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     (* if !Flag.debug then save_rules_file_in_tmp (); *)
-    let json = JSON_report.json_of_exn exn in
-    let s = J.string_of_json json in
+    let res =
+      {
+        RP.matches = [];
+        errors = [ E.exn_to_error "" exn ];
+        skipped = [];
+        rule_profiling = None;
+      }
+    in
+    let json = JSON_report.match_results_of_matches_and_errors [] res in
+    let s = SJ.string_of_match_results json in
     pr s;
     exit 2
 
@@ -873,16 +887,6 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
   match !output_format with
   | Json ->
       let res = JSON_report.match_results_of_matches_and_errors files res in
-      (* TODO
-         let flds =
-           if !profile then (
-             let json = JSON_report.json_of_profile_info !profile_start in
-             (* so we don't get also the profile output of Common.main_boilerplate*)
-             Common.profile := Common.ProfNone;
-             flds @ [ ("profiling", json) ] )
-           else flds
-         in
-      *)
       let s = SJ.string_of_match_results res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s
@@ -900,8 +904,16 @@ let semgrep_with_rules_file rules_file files_or_dirs =
     semgrep_with_rules timed_rules files_or_dirs
   with exn when !output_format = Json ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
-    let json = JSON_report.json_of_exn exn in
-    let s = J.string_of_json json in
+    let res =
+      {
+        RP.matches = [];
+        errors = [ E.exn_to_error "" exn ];
+        skipped = [];
+        rule_profiling = None;
+      }
+    in
+    let json = JSON_report.match_results_of_matches_and_errors [] res in
+    let s = SJ.string_of_match_results json in
     pr s;
     exit 2
 
@@ -1436,7 +1448,7 @@ let options () =
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
   @ Meta_parse_info.cmdline_flags_precision ()
   (*x: [[Main_semgrep_core.options]] concatenated flags *)
-  @ Error_code.options ()
+  @ Semgrep_error_code.options ()
   (*e: [[Main_semgrep_core.options]] concatenated flags *)
   (*s: [[Main_semgrep_core.options]] concatenated actions *)
   @ Common.options_of_actions action (all_actions ())

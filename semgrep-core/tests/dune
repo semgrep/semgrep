@@ -7,6 +7,7 @@
     uutf uucp
 
     commons commons_core
+    pfff-testutil
     pfff-config
     pfff-h_program-lang
     pfff-lang_python pfff-lang_python-analyze
@@ -30,6 +31,5 @@
     semgrep_reporting
     semgrep_engine
     semgrep_system
-    semgrep_testutil
   )
 )
