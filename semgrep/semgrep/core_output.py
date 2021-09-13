@@ -119,7 +119,14 @@ class CoreError:
         return self.error_type == CoreErrorType("Timeout")
 
     def to_semgrep_error(self) -> SemgrepCoreError:
+        # TODO benchmarking code relies on error code value right now
+        if self.error_type == CoreErrorType("Syntax error"):
+            code = 3
+        else:
+            code = 2
+
         return SemgrepCoreError(
+            code,
             self.level,
             self.error_type,
             self.rule_id,

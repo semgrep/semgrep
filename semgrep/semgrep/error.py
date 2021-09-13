@@ -81,7 +81,7 @@ class SemgrepError(Exception):
 
 @attr.s(auto_attribs=True, frozen=True)
 class SemgrepCoreError(SemgrepError):
-    code = FATAL_EXIT_CODE
+    code: int
     level: Level
     error_type: str
     rule_id: Optional[str]
