@@ -56,23 +56,28 @@ class RuleSeverity(Enum):
         raise ValueError(f"invalid rule severity value: {value}")
 
 
+RULE_ID_RE_STR = r"(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?"
+
+SEMGREP_OFF_RE = re.compile(r" semgrep-off" + RULE_ID_RE_STR, re.IGNORECASE)
+SEMGREP_ON_RE = re.compile(r" semgrep-on" + RULE_ID_RE_STR, re.IGNORECASE)
+
 # Inline 'noqa' implementation modified from flake8:
 # https://github.com/PyCQA/flake8/blob/master/src/flake8/defaults.py
+# We're looking for items that look like this:
+# ' nosem'
+# ' nosemgrep: example-pattern-id'
+# ' nosem: pattern-id1,pattern-id2'
+# ' NOSEMGREP:pattern-id1,pattern-id2'
+#
+# * We do not want to capture the ': ' that follows 'nosem'
+# * We do not care about the casing of 'nosem'
+# * We want a comma-separated list of ids
+# * We want multi-language support, so we cannot strictly look for
+#   Python comments that begin with '# '
+# * nosem and nosemgrep should be interchangeable
+#
 NOSEM_INLINE_RE = re.compile(
-    # We're looking for items that look like this:
-    # ' nosem'
-    # ' nosemgrep: example-pattern-id'
-    # ' nosem: pattern-id1,pattern-id2'
-    # ' NOSEMGREP:pattern-id1,pattern-id2'
-    #
-    # * We do not want to capture the ': ' that follows 'nosem'
-    # * We do not care about the casing of 'nosem'
-    # * We want a comma-separated list of ids
-    # * We want multi-language support, so we cannot strictly look for
-    #   Python comments that begin with '# '
-    # * nosem and nosemgrep should be interchangeable
-    #
-    r" nosem(?:grep)?(?:[:=][\s]?(?P<ids>([^,\s](?:[,\s]+)?)+))?",
+    r" nosem(?:grep)?" + RULE_ID_RE_STR,
     re.IGNORECASE,
 )
 COMMA_SEPARATED_LIST_RE = re.compile(r"[,\s]")

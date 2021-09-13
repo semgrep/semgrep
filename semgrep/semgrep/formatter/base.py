@@ -1,8 +1,8 @@
 import abc
 from typing import Any
-from typing import Dict
 from typing import FrozenSet
-from typing import List
+from typing import Mapping
+from typing import Sequence
 
 from semgrep.error import SemgrepError
 from semgrep.rule import Rule
@@ -10,18 +10,20 @@ from semgrep.rule_match import RuleMatch
 
 
 class BaseFormatter(abc.ABC):
-    def __init__(
+    @abc.abstractmethod
+    def output(
         self,
         rules: FrozenSet[Rule],
-        rule_matches: List[RuleMatch],
-        semgrep_structured_errors: List[SemgrepError],
-        extra: Dict[str, Any],
-    ) -> None:
-        self.rules = rules
-        self.rule_matches = rule_matches
-        self.semgrep_structured_errors = semgrep_structured_errors
-        self.extra = extra
-
-    @abc.abstractmethod
-    def output(self) -> str:
+        rule_matches: Sequence[RuleMatch],
+        semgrep_structured_errors: Sequence[SemgrepError],
+        extra: Mapping[str, Any],
+    ) -> str:
         raise NotImplementedError
+
+    def keep_ignores(self) -> bool:
+        """
+        Return True if ignored findings should be passed to this formatter; False otherwise.
+
+        Ignored findings can still be distinguished using their _is_ignore property.
+        """
+        return False
