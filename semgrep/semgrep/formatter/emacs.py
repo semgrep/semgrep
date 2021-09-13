@@ -19,6 +19,7 @@ class EmacsFormatter(BaseFormatter):
             str(rule_match.start["col"]),
             severity,
             rule_match.lines[0].rstrip(),
+            rule_match.message,
         ]
 
     def output(self) -> str:
