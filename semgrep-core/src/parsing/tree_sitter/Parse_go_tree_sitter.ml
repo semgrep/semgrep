@@ -175,10 +175,10 @@ let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) =
         v2)
       v3
   in
-  let _v4 = token env v4 (* ":" *) in
+  let v4 = token env v4 (* ":" *) in
   let v5 = match v5 with Some x -> statement_list env x | None -> [] in
   let xs = v2 :: v3 in
-  (CaseExprs (v1, xs |> List.map (fun x -> Right x)), stmt1 v5)
+  (CaseExprs (v1, xs |> List.map (fun x -> Right x)), stmt1 v4 v5)
 
 and simple_statement (env : env) (x : CST.simple_statement) : simple =
   match x with
@@ -488,9 +488,9 @@ and call_expression (env : env) (x : CST.call_expression) =
 
 and default_case (env : env) ((v1, v2, v3) : CST.default_case) =
   let v1 = token env v1 (* "default" *) in
-  let _v2 = token env v2 (* ":" *) in
+  let v2 = token env v2 (* ":" *) in
   let v3 = match v3 with Some x -> statement_list env x | None -> [] in
-  (CaseDefault v1, stmt1 v3)
+  (CaseDefault v1, stmt1 v2 v3)
 
 and slice_type (env : env) ((v1, v2, v3) : CST.slice_type) =
   let v1 = token env v1 (* "[" *) in
@@ -863,9 +863,9 @@ and implicit_length_array_type (env : env)
 and expression_case (env : env) ((v1, v2, v3, v4) : CST.expression_case) =
   let v1 = token env v1 (* "case" *) in
   let v2 = expression_list env v2 in
-  let _v3 = token env v3 (* ":" *) in
+  let v3 = token env v3 (* ":" *) in
   let v4 = match v4 with Some x -> statement_list env x | None -> [] in
-  (CaseExprs (v1, v2 |> List.map (fun x -> Left x)), stmt1 v4)
+  (CaseExprs (v1, v2 |> List.map (fun x -> Left x)), stmt1 v3 v4)
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
   let v1 = token env v1 (* "(" *) in
@@ -1137,9 +1137,9 @@ and communication_case (env : env) ((v1, v2, v3, v4) : CST.communication_case) =
         | Some (xs, (_lr, tk)) ->
             CaseAssign (v1, xs |> List.map (fun e -> Left e), tk, e))
   in
-  let _v3 = token env v3 (* ":" *) in
+  let v3 = token env v3 (* ":" *) in
   let v4 = match v4 with Some x -> statement_list env x | None -> [] in
-  (v2, stmt1 v4)
+  (v2, stmt1 v3 v4)
 
 and literal_value (env : env) ((v1, v2, v3) : CST.literal_value) :
     init list bracket =

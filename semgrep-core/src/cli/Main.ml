@@ -361,7 +361,7 @@ let save_rules_file_in_tmp () =
 let exn_to_error file exn =
   match exn with
   | AST_generic.Error (s, tok) ->
-      let loc = PI.token_location_of_info tok in
+      let loc = PI.unsafe_token_location_of_info tok in
       E.mk_error_loc loc (AstBuilderError s)
   | _ -> E.exn_to_error file exn
 
@@ -618,7 +618,7 @@ let parse_pattern lang_pattern str =
            str,
            Rule.L (lang_pattern, []),
            Common.exn_to_s exn,
-           Parse_info.fake_info "no loc",
+           Parse_info.unsafe_fake_info "no loc",
            [] ))
   [@@profiling]
 

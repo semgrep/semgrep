@@ -191,7 +191,7 @@ let var_stats prog : var_stats =
 
 let literal_of_bool b =
   let b_str = string_of_bool b in
-  let tok = Parse_info.fake_info b_str in
+  let tok = Parse_info.unsafe_fake_info b_str in
   Bool (b, tok)
 
 let bool_of_literal = function Bool (b, _) -> Some b | __else__ -> None
@@ -204,7 +204,7 @@ let eval_bop_bool op b1 b2 =
 
 let literal_of_int i =
   let i_str = string_of_int i in
-  let tok = Parse_info.fake_info i_str in
+  let tok = Parse_info.unsafe_fake_info i_str in
   Int (Some i, tok)
 
 let int_of_literal = function Int (Some i, _) -> Some i | __else__ -> None
@@ -216,7 +216,7 @@ let eval_bop_int op i1 i2 =
   | __else__ -> None
 
 let literal_of_string s =
-  let tok = Parse_info.fake_info s in
+  let tok = Parse_info.unsafe_fake_info s in
   String (s, tok)
 
 let string_of_literal = function String (s, _) -> Some s | __else__ -> None

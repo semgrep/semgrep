@@ -290,7 +290,7 @@ let rec expression (env : env) (x : CST.expression) =
         match v3 with
         | `Exp x ->
             let x = expression env x in
-            Expr (x, fake ";")
+            Expr (x, fake v2 ";")
         | `Blk x -> block env x
       in
       Lambda (v1, v2, v3)
@@ -718,13 +718,13 @@ and wildcard_bounds (env : env) (x : CST.wildcard_bounds) =
       let v2 = type_ env v2 in
       ((true, v1), v2)
 
-and stmt1 = function
-  | [] -> EmptyStmt (PI.fake_info ";")
+and stmt1 tok = function
+  | [] -> EmptyStmt (PI.fake_info tok ";")
   | [ x ] -> x
-  | xs -> Block (PI.fake_bracket xs)
+  | xs -> Block (PI.fake_bracket tok xs)
 
-and statement (env : env) (x : CST.statement) : Ast_java.stmt =
-  statement_aux env x |> stmt1
+and statement (env : env) ~tok (x : CST.statement) : Ast_java.stmt =
+  statement_aux env x |> stmt1 tok
 
 and statement_aux env x : Ast_java.stmt list =
   match x with
@@ -735,18 +735,18 @@ and statement_aux env x : Ast_java.stmt list =
       [ Expr (v1, v2) ]
   | `Labe_stmt (v1, v2, v3) ->
       let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
-      let _v2 = token env v2 (* ":" *) in
-      let v3 = statement env v3 in
+      let v2 = token env v2 (* ":" *) in
+      let v3 = statement env ~tok:v2 v3 in
       [ Label (v1, v3) ]
   | `If_stmt (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "if" *) in
       let v2 = parenthesized_expression env v2 in
-      let v3 = statement env v3 in
+      let v3 = statement env ~tok:v1 v3 in
       let v4 =
         match v4 with
         | Some (v1, v2) ->
-            let _v1 = token env v1 (* "else" *) in
-            let v2 = statement env v2 in
+            let v1 = token env v1 (* "else" *) in
+            let v2 = statement env ~tok:v1 v2 in
             Some v2
         | None -> None
       in
@@ -754,7 +754,7 @@ and statement_aux env x : Ast_java.stmt list =
   | `While_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "while" *) in
       let v2 = parenthesized_expression env v2 in
-      let v3 = statement env v3 in
+      let v3 = statement env ~tok:v1 v3 in
       [ While (v1, v2, v3) ]
   | `For_stmt (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 = token env v1 (* "for" *) in
@@ -800,8 +800,8 @@ and statement_aux env x : Ast_java.stmt list =
             v1 :: v2
         | None -> []
       in
-      let _v7 = token env v7 (* ")" *) in
-      let v8 = statement env v8 in
+      let v7 = token env v7 (* ")" *) in
+      let v8 = statement env ~tok:v7 v8 in
       [ For (v1, ForClassic (v3, v4, v6), v8) ]
   | `Enha_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 = token env v1 (* "for" *) in
@@ -811,8 +811,8 @@ and statement_aux env x : Ast_java.stmt list =
       let v5 = variable_declarator_id env v5 in
       let _v6 = token env v6 (* ":" *) in
       let v7 = expression env v7 in
-      let _v8 = token env v8 (* ")" *) in
-      let v9 = statement env v9 in
+      let v8 = token env v8 (* ")" *) in
+      let v9 = statement env ~tok:v8 v9 in
       let vdef = canon_var v3 (Some v4) v5 in
       [ For (v1, Foreach (vdef, v7), v9) ]
   | `Blk x -> [ block env x ]
@@ -827,7 +827,7 @@ and statement_aux env x : Ast_java.stmt list =
       [ Switch (v1, v2, v3) ]
   | `Do_stmt (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "do" *) in
-      let v2 = statement env v2 in
+      let v2 = statement env ~tok:v1 v2 in
       let _v3 = token env v3 (* "while" *) in
       let v4 = parenthesized_expression env v4 in
       let _v5 = token env v5 (* ";" *) in
@@ -900,7 +900,7 @@ and statement_aux env x : Ast_java.stmt list =
 
 and block (env : env) ((v1, v2, v3) : CST.block) =
   let v1 = token env v1 (* "{" *) in
-  let v2 = List.map (statement env) v2 in
+  let v2 = List.map (statement env ~tok:v1) v2 in
   let v3 = token env v3 (* "}" *) in
   Block (v1, v2, v3)
 
@@ -920,14 +920,14 @@ and assert_statement (env : env) (x : CST.assert_statement) =
       Assert (v1, v2, Some v4)
 
 and switch_block (env : env) ((v1, v2, v3) : CST.switch_block) =
-  let _v1 = token env v1 (* "{" *) in
+  let v1 = token env v1 (* "{" *) in
   let v2 =
     match v2 with
     | `Rep_switch_blk_stmt_group stmt_blocks ->
         List.map
           (fun (cases, stmts) ->
             ( List.flatten (List.map (fun (x, _) -> switch_label env x) cases),
-              List.map (statement env) stmts ))
+              List.map (statement env ~tok:v1) stmts ))
           stmt_blocks
     | `Rep_switch_rule rules ->
         List.map
@@ -939,7 +939,7 @@ and switch_block (env : env) ((v1, v2, v3) : CST.switch_block) =
                 | `Throw_stmt x -> `Throw_stmt x
                 | `Blk x -> `Blk x
               in
-              [ statement env s ] ))
+              [ statement env ~tok:v1 s ] ))
           rules
   in
   let _v3 = token env v3 (* "}" *) in
@@ -1359,7 +1359,7 @@ and constructor_body (env : env) ((v1, v2, v3, v4) : CST.constructor_body) =
     | Some x -> [ explicit_constructor_invocation env x ]
     | None -> []
   in
-  let v3 = List.map (statement env) v3 in
+  let v3 = List.map (statement env ~tok:v1) v3 in
   let v4 = token env v4 (* "}" *) in
   Block (v1, v2 @ v3, v4)
 
@@ -1721,7 +1721,9 @@ and method_declaration (env : env) ((v1, v2, v3) : CST.method_declaration) =
   let _tparams, t, id, params, throws = v2 in
   { (AST.method_header v1 t (IdentDecl id, params) throws) with m_body = v3 }
 
-let program (env : env) (xs : CST.program) = List.map (statement env) xs
+let program (env : env) file (xs : CST.program) =
+  let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
+  List.map (statement env ~tok) xs
 
 (*****************************************************************************)
 (* Entry point *)
@@ -1732,4 +1734,4 @@ let parse file =
     (fun () -> Tree_sitter_java.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      program env cst)
+      program env file cst)
