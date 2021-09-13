@@ -1,1 +1,1 @@
-{"errors": [{"code": 2, "level": "error", "message": "Rule parse error: invalid regex '(abc': missing ) at position 4", "type": "Rule parse error"}], "results": []}
+{"errors": [{"code": 2, "level": "error", "message": "Semgrep Core ERROR - Rule parse error: In rule test-regex: invalid regex '(abc': missing ) at position 4", "rule_id": "test-regex", "type": "Rule parse error"}], "results": []}

@@ -15,6 +15,7 @@ import attr
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
+from semgrep.rule_match import CoreLocation
 from semgrep.util import with_color
 
 OK_EXIT_CODE = 0
@@ -83,20 +84,56 @@ class SemgrepCoreError(SemgrepError):
     code = FATAL_EXIT_CODE
     level: Level
     error_type: str
-    message: str
+    rule_id: Optional[str]
     path: Path
+    start: CoreLocation
+    end: CoreLocation
+    message: str
 
     def to_dict_base(self) -> Dict[str, Any]:
-        return {
+        base = {
             "type": self.error_type,
-            "message": f"{self.error_type}: {self.message}",
+            "message": self._error_message,
         }
+        if self.rule_id:
+            base["rule_id"] = self.rule_id
+
+        # For rule errors path is a temp file so for now will just be confusing to add
+        if (
+            self.error_type != "Rule parse error"
+            and self.error_type != "Pattern parse error"
+        ):
+            base["path"] = str(self.path)
+
+        return base
+
+    def is_timeout(self) -> bool:
+        """
+        Return if this error is a match timeout
+        """
+        return self.error_type == "Timeout"
+
+    @property
+    def _error_message(self) -> str:
+        """
+        Generate error message exposed to user
+        """
+        if self.rule_id:
+            # For rule errors path is a temp file so for now will just be confusing to add
+            if (
+                self.error_type == "Rule parse error"
+                or self.error_type == "Pattern parse error"
+            ):
+                msg = f"Semgrep Core {self.level.name} - {self.error_type}: In rule {self.rule_id}: {self.message}"
+            else:
+                msg = f"Semgrep Core {self.level.name} - {self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
+        else:
+            msg = f"Semgrep Core {self.level.name} - {self.error_type} in file {self.path}\n\t{self.message}"
+
+        return msg
 
     def __str__(self) -> str:
-        return with_color(
-            "red",
-            f"Semgrep Core {self.level.name}: {self.error_type} in file {self.path}\n\t{self.message}",
-        )
+        return with_color("red", self._error_message)
 
 
 class SemgrepInternalError(Exception):
@@ -280,12 +317,6 @@ class ErrorWithSpan(SemgrepError):
         else:
             snippet_str_with_newline = f"{snippet_str}\n"
         return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color('red', self.long_msg or '')}\n"
-
-
-@attr.s(frozen=True, eq=True)
-class InvalidPatternError(ErrorWithSpan):
-    code = INVALID_PATTERN_EXIT_CODE
-    level = Level.ERROR
 
 
 @attr.s(frozen=True, eq=True)
