@@ -1,3 +1,11 @@
+"""
+Handles ignoring Semgrep findings via inline code comments
+
+Currently supports ignoring a finding on a single line by adding a
+`# nosemgrep:ruleid` comment (or `// nosemgrep:ruleid`).
+
+To use, create a RuleMatchMap, then pass it to process_ignores().
+"""
 from dataclasses import dataclass
 from re import sub
 from typing import List
@@ -18,6 +26,14 @@ from semgrep.types import RuleMatchMap
 
 @dataclass
 class IgnoreResults:
+    """
+    Holds results of calculating ignores
+
+    :param num_matches: The number of ignored findings
+    :param matches: The findings to print to the caller
+    :param errors: Any errors detected in processing ignores
+    """
+
     num_matches: int
     matches: RuleMatchMap
     errors: Sequence[SemgrepError]
@@ -30,6 +46,18 @@ def process_ignores(
     strict: bool,
     disable_nosem: bool,
 ) -> IgnoreResults:
+    """
+    Converts a mapping of findings to a mapping of findings that
+    will be shown to the caller.
+
+    :param rule_matches: The input findings (typically from a Semgrep call)
+    :param output_handler: The output handler that will be used to print output;
+                           this is used to determine if ignored findings should be
+                           kept in the output
+    :param strict: The value of the --strict flag (affects error return)
+    :param disable_nosem: The value of the --disable-nosem flag
+    :return: An IgnoreResults object
+    """
     filtered = {}
     nosem_errors: List[SemgrepError] = []
     for rule, matches in rule_matches.items():
