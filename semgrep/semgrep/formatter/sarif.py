@@ -121,6 +121,11 @@ class SarifFormatter(BaseFormatter):
             "level": level,
         }
 
+    def keep_ignores(self) -> bool:
+        # SARIF output includes ignored findings, but labels them as suppressed.
+        # https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10541099
+        return True
+
     def output(
         self,
         rules: FrozenSet[Rule],

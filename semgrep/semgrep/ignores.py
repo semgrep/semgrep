@@ -8,7 +8,6 @@ import attr
 
 from semgrep.constants import COMMA_SEPARATED_LIST_RE
 from semgrep.constants import NOSEM_INLINE_RE
-from semgrep.constants import OutputFormat
 from semgrep.error import Level
 from semgrep.error import SemgrepError
 from semgrep.output import logger
@@ -43,9 +42,7 @@ def process_ignores(
 
     num_findings_nosem = 0
     if not disable_nosem:
-        # SARIF output includes ignored findings, but labels them as suppressed.
-        # https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10541099
-        if not output_handler.settings.output_format == OutputFormat.SARIF:
+        if not output_handler.formatter.keep_ignores():
             filtered = {
                 rule: [m for m in matches if not m._is_ignored]
                 for rule, matches in filtered.items()
