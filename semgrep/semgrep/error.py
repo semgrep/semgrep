@@ -94,10 +94,17 @@ class SemgrepCoreError(SemgrepError):
         base = {
             "type": self.error_type,
             "message": self._error_message,
-            "path": str(self.path),
         }
         if self.rule_id:
             base["rule_id"] = self.rule_id
+
+        # For rule errors path is a temp file so for now will just be confusing to add
+        if (
+            self.error_type != "Rule parse error"
+            and self.error_type != "Pattern parse error"
+        ):
+            base["path"] = str(self.path)
+
         return base
 
     @property
@@ -105,9 +112,12 @@ class SemgrepCoreError(SemgrepError):
         """
         Generate error message exposed to user
         """
-
         if self.rule_id:
-            if self.error_type == "Rule parse error":
+            # For rule errors path is a temp file so for now will just be confusing to add
+            if (
+                self.error_type == "Rule parse error"
+                or self.error_type == "Pattern parse error"
+            ):
                 msg = f"Semgrep Core {self.level.name} - {self.error_type}: In rule {self.rule_id}: {self.message}"
             else:
                 msg = f"Semgrep Core {self.level.name} - {self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
@@ -301,12 +311,6 @@ class ErrorWithSpan(SemgrepError):
         else:
             snippet_str_with_newline = f"{snippet_str}\n"
         return f"{header}\n{snippet_str_with_newline}{help_str}\n{with_color('red', self.long_msg or '')}\n"
-
-
-@attr.s(frozen=True, eq=True)
-class InvalidPatternError(ErrorWithSpan):
-    code = INVALID_PATTERN_EXIT_CODE
-    level = Level.ERROR
 
 
 @attr.s(frozen=True, eq=True)

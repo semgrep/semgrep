@@ -3,8 +3,8 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Semgrep Core WARN - Pattern parse error: When running - on /tmp/tmpkx38u6bf.yaml: Invalid pattern for C: Parsing.Parse_error",
-      "path": "/tmp/tmpkx38u6bf.yaml",
+      "message": "Semgrep Core WARN - Pattern parse error: In rule -: Invalid pattern for C: Parsing.Parse_error",
+      "path": "/tmp/tmppac5im7f.yaml",
       "rule_id": "-",
       "type": "Pattern parse error"
     }
