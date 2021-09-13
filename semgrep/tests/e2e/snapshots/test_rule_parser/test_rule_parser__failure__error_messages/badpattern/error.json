@@ -2,8 +2,8 @@
   "errors": [
     {
       "code": 2,
-      "level": "warn",
-      "message": "Semgrep Core WARN - Pattern parse error: In rule eqeq-is-bad: Invalid pattern for Python: Parsing.Parse_error",
+      "level": "error",
+      "message": "Semgrep Core ERROR - Pattern parse error: In rule eqeq-is-bad: Invalid pattern for Python: Parsing.Parse_error",
       "rule_id": "eqeq-is-bad",
       "type": "Pattern parse error"
     }

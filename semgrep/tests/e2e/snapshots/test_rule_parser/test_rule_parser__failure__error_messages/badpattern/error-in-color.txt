@@ -1,12 +1,2 @@
 running 1 rules...
-semgrep-core failed: non-zero exit status with missing "error" field in json response
-rule ID: 'rules.syntax.eqeq-is-bad'
-semgrep-core exit code: 2
-semgrep-core command: /Users/brendon/ret2co/sgrep/semgrep/semgrep/bin/semgrep-core -lang python -json -config /tmp/tmpobcgm069.yaml -j 12 -target_file /tmp/tmp9sd2e3ir -use_parsing_cache /tmp/tmp264d3kaa -timeout 30 -max_memory 0 -json_time -fast
-unexpected non-json output while invoking semgrep-core:
---- semgrep-core stdout ---
-{"matches":[],"errors":[{"rule_id":"eqeq-is-bad","error_type":"Pattern parse error","severity":"warning","location":{"path":"/tmp/tmpobcgm069.yaml","start":{"line":4,"col":14,"offset":50},"end":{"line":4,"col":24,"offset":60},"lines":["  - pattern: $X == $X 3"]},"message":"Invalid pattern for Python: Parsing.Parse_error","yaml_path":["pattern","0","patterns","0","rules"]}],"skipped":[],"stats":{"okfiles":-1,"errorfiles":1}}
---- end semgrep-core stdout ---
---- semgrep-core stderr ---
---- end semgrep-core stderr ---
-An error occurred while invoking the semgrep engine; please help us fix this by creating an issue at https://github.com/returntocorp/semgrep
+[31mSemgrep Core ERROR - Pattern parse error: In rule eqeq-is-bad: Invalid pattern for Python: Parsing.Parse_error[0m

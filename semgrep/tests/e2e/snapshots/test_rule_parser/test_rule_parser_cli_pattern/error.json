@@ -2,8 +2,8 @@
   "errors": [
     {
       "code": 2,
-      "level": "warn",
-      "message": "Semgrep Core WARN - Pattern parse error: In rule -: Invalid pattern for C: Parsing.Parse_error",
+      "level": "error",
+      "message": "Semgrep Core ERROR - Pattern parse error: In rule -: Invalid pattern for C: Parsing.Parse_error",
       "rule_id": "-",
       "type": "Pattern parse error"
     }

@@ -1,0 +1,1 @@
+Semgrep Core ERROR - Pattern parse error: In rule -: Invalid pattern for C: Parsing.Parse_error
