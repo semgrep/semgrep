@@ -160,7 +160,7 @@ let severity_of_error typ =
   | SpecifiedParseError -> Warning
   | AstBuilderError -> Error
   | RuleParseError -> Error
-  | PatternParseError -> Warning
+  | PatternParseError -> Error
   | InvalidYaml -> Warning
   | FatalError -> Error
   | Timeout -> Warning
