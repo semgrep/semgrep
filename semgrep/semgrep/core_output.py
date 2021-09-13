@@ -1,3 +1,10 @@
+"""
+This file encapsulates classes necessary in parsing semgrep-core json output into a typed object
+
+The objects in this class should expose functionality that returns objects that the rest of the codebase
+interacts with (e.g. the rest of the codebase should be interacting with RuleMatch objects instead of CoreMatch
+and SemgrepCoreError instead of CoreError objects).
+"""
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -84,7 +91,10 @@ class CoreMatch:
 
 @attr.s(auto_attribs=True, frozen=True)
 class CoreError:
-    """"""
+    """
+    Encaptulates error object returned by semgrep-core
+    and handles conversion into SemgrepCoreError class that rest of codebase understands
+    """
 
     error_type: CoreErrorType
     rule_id: Optional[RuleId]
@@ -241,7 +251,10 @@ class CoreOutput:
 
     def rule_matches(self, rule: Rule) -> List[RuleMatch]:
         """
-        TODO: in the future this conversion should be handled by RuleMatch object
+        Convert core_match objects into RuleMatch objects that the rest of the codebase
+        interacts with.
+
+        For now assumes that all matches encapsulated by this object are from the same rulee
         """
         # This will remove matches that have the same range but different
         # metavariable bindings, choosing the last one in the list. We want the
