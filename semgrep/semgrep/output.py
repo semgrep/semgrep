@@ -9,6 +9,7 @@ from typing import FrozenSet
 from typing import Generator
 from typing import IO
 from typing import List
+from typing import Mapping
 from typing import NamedTuple
 from typing import Optional
 from typing import Sequence
@@ -40,6 +41,16 @@ from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
+    OutputFormat.EMACS: EmacsFormatter,
+    OutputFormat.JSON: JsonFormatter,
+    OutputFormat.JUNIT_XML: JunitXmlFormatter,
+    OutputFormat.SARIF: SarifFormatter,
+    OutputFormat.TEXT: TextFormatter,
+    OutputFormat.VIM: VimFormatter,
+}
 
 
 def get_path_str(target: Path) -> str:
@@ -171,6 +182,11 @@ class OutputHandler:
         )  # (rule, target) -> duration
 
         self.final_error: Optional[Exception] = None
+        formatter_type = FORMATTERS.get(self.settings.output_format)
+        if formatter_type is None:
+            raise RuntimeError(f"Invalid output format: {self.settings.output_format}")
+
+        self.formatter = formatter_type()
 
     def handle_semgrep_errors(self, errors: Sequence[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
@@ -348,8 +364,6 @@ class OutputHandler:
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
     ) -> str:
-        output_format = self.settings.output_format
-
         extra: Dict[str, Any] = {}
         if self.settings.debug:
             extra["debug"] = [
@@ -368,25 +382,11 @@ class OutputHandler:
                 self.profiling_data,
                 self.profiler,
             )
-        if output_format == OutputFormat.TEXT:
+        if self.settings.output_format == OutputFormat.TEXT:
             extra["color_output"] = color_output
             extra["per_finding_max_lines_limit"] = per_finding_max_lines_limit
             extra["per_line_max_chars_limit"] = per_line_max_chars_limit
 
-        formatters: Dict[OutputFormat, Type[BaseFormatter]] = {
-            OutputFormat.EMACS: EmacsFormatter,
-            OutputFormat.JSON: JsonFormatter,
-            OutputFormat.JUNIT_XML: JunitXmlFormatter,
-            OutputFormat.SARIF: SarifFormatter,
-            OutputFormat.TEXT: TextFormatter,
-            OutputFormat.VIM: VimFormatter,
-        }
-        formatter_type = formatters.get(output_format)
-
-        if formatter_type is None:
-            raise RuntimeError(f"Invalid output format: {output_format}")
-
-        formatter = formatter_type(
+        return self.formatter.output(
             self.rules, self.rule_matches, self.semgrep_structured_errors, extra
         )
-        return formatter.output()
