@@ -34,7 +34,7 @@ type env = unit H.env
 
 let token = H.token
 
-let fake = PI.fake_info ""
+let fake = PI.unsafe_fake_info ""
 
 let mk_functype (params, rett) = TyFun (params, rett)
 
@@ -42,7 +42,7 @@ let todo _env _x = failwith "internal error: not implemented"
 
 let todo_any str t any =
   pr2 (AST.show_any any);
-  raise (Parse_info.Ast_builder_error (str, t))
+  raise (PI.Ast_builder_error (str, t))
 
 (*
    We preserve the distinction between a plain identifier and a more complex
@@ -52,7 +52,7 @@ let todo_any str t any =
 let sub_pattern (id_or_pat : (a_ident, a_pattern) either) : a_pattern =
   match id_or_pat with Left id -> Id id | Right pat -> pat
 
-let fb = PI.fake_bracket
+let fb = PI.unsafe_fake_bracket
 
 let optional env opt f =
   match opt with None -> None | Some x -> Some (f env x)
@@ -95,7 +95,7 @@ let identifier_ (env : env) (x : CST.identifier_) : expr =
 
 let automatic_semicolon (_env : env) (_tok : CST.automatic_semicolon) =
   (* do like in pfff: *)
-  Parse_info.fake_info ";"
+  PI.unsafe_fake_info ";"
 
 let semicolon (env : env) (x : CST.semicolon) =
   match x with
@@ -736,9 +736,9 @@ and anon_choice_exp_9818c1b (env : env) (x : CST.anon_choice_exp_9818c1b) =
 
 and switch_default (env : env) ((v1, v2, v3) : CST.switch_default) =
   let v1 = token env v1 (* "default" *) in
-  let _v2 = token env v2 (* ":" *) in
+  let v2 = token env v2 (* ":" *) in
   let v3 = List.map (statement env) v3 |> List.flatten in
-  Default (v1, stmt1 v3)
+  Default (v1, stmt1 v2 v3)
 
 and binary_expression (env : env) (x : CST.binary_expression) : expr =
   match x with
@@ -1125,7 +1125,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
             match v4 with
             | `Exp x ->
                 let e = expression env x in
-                Return (v3, Some e, PI.sc)
+                Return (v3, Some e, PI.sc v3)
             | `Stmt_blk x -> statement_block env x
           in
           let f_kind = (G.Arrow, v3) in
@@ -1777,12 +1777,12 @@ and formal_parameter (env : env) (x : CST.formal_parameter) : parameter =
       let pat =
         match opt_type with
         | None -> pat
-        | Some type_ -> Cast (pat, Parse_info.fake_info ":", type_)
+        | Some type_ -> Cast (pat, PI.unsafe_fake_info ":", type_)
       in
       let pat =
         match opt_default with
         | None -> pat
-        | Some expr -> Assign (pat, Parse_info.fake_info "=", expr)
+        | Some expr -> Assign (pat, PI.unsafe_fake_info "=", expr)
       in
       ParamPattern pat
 
@@ -1825,7 +1825,8 @@ and mapped_type_clause (env : env) ((v1, v2, v3) : CST.mapped_type_clause) =
   let v3 = type_ env v3 in
   TypeTodo (("MappedType", v2), [ Expr (Id v1); Type v3 ])
 
-and statement1 (env : env) (x : CST.statement) : stmt = statement env x |> stmt1
+and statement1 (env : env) (x : CST.statement) : stmt =
+  statement env x |> unsafe_stmt1
 
 and statement (env : env) (x : CST.statement) : stmt list =
   match x with
@@ -2436,9 +2437,9 @@ and property_name (env : env) (x : CST.property_name) =
 and switch_case (env : env) ((v1, v2, v3, v4) : CST.switch_case) =
   let v1 = token env v1 (* "case" *) in
   let v2 = expressions env v2 in
-  let _v3 = token env v3 (* ":" *) in
+  let v3 = token env v3 (* ":" *) in
   let v4 = List.map (statement env) v4 |> List.flatten in
-  Case (v1, v2, stmt1 v4)
+  Case (v1, v2, stmt1 v3 v4)
 
 and spread_element (env : env) ((v1, v2) : CST.spread_element) =
   let v1 = token env v1 (* "..." *) in

@@ -122,20 +122,20 @@ let refine_constness_ref c_ref c' =
 let literal_of_bool b =
   let b_str = string_of_bool b in
   (* TODO: use proper token when possible? *)
-  let tok = Parse_info.fake_info b_str in
+  let tok = Parse_info.unsafe_fake_info b_str in
   G.Bool (b, tok)
 
 let literal_of_int i =
   let i_str = string_of_int i in
   (* TODO: use proper token when possible? *)
-  let tok = Parse_info.fake_info i_str in
+  let tok = Parse_info.unsafe_fake_info i_str in
   G.Int (Some i, tok)
 
 let int_of_literal = function G.Int (x, _) -> x | ___else___ -> None
 
 let literal_of_string s =
   (* TODO: use proper token when possible? *)
-  let tok = Parse_info.fake_info s in
+  let tok = Parse_info.unsafe_fake_info s in
   G.String (s, tok)
 
 let eval_unop_bool op b =

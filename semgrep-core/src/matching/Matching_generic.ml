@@ -728,7 +728,7 @@ let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
  * split strings in different tokens).
  *)
 let adjust_info_remove_enclosing_quotes (s, info) =
-  let loc = PI.token_location_of_info info in
+  let loc = PI.unsafe_token_location_of_info info in
   let raw_str = loc.PI.str in
   let re = Str.regexp_string s in
   try
