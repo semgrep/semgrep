@@ -1,1 +1,1 @@
-{"errors": [{"code": 2, "level": "error", "message": "Rule parse error: invalid regex '(abc': missing ) at position 4", "type": "Rule parse error"}], "results": []}
+{"errors": [{"code": 2, "level": "error", "message": "Rule parse error in file /tmp/tmpsqa4cixn.yaml\n\tinvalid regex '(abc': missing ) at position 4", "type": "Rule parse error"}], "results": []}

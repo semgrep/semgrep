@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Pattern parse error: Invalid pattern for C: Parsing.Parse_error",
+      "message": "Pattern parse error in file /tmp/tmp_8oxf9su.yaml\n\tInvalid pattern for C: Parsing.Parse_error",
       "type": "Pattern parse error"
     }
   ],

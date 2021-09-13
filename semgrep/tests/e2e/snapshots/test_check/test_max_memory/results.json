@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Out of memory: ",
+      "message": "Out of memory in file targets/equivalence/open_redirect.py\n\t",
       "type": "Out of memory"
     }
   ],
