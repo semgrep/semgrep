@@ -40,7 +40,7 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
 
 
 @click.command()
-@click.argument("target", nargs=-1)
+@click.argument("target", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "-a",
     "--autofix/--no-autofix",
