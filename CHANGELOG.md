@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.65.0](https://github.com/returntocorp/semgrep/releases/tag/v0.65.0) - 09-13-2021
+
 ### Added
 - Allow autofix using the command line rather than only with the fix: YAML key
 
