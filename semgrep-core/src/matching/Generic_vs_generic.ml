@@ -1945,8 +1945,12 @@ and m_stmt a b =
   (* equivalence: vardef ==> assign, and go deep *)
   | ( G.ExprStmt (a1, _),
       B.DefStmt (ent, B.VarDef ({ B.vinit = Some _; _ } as def)) ) ->
-      let b1 = H.vardef_to_assign (ent, def) in
-      m_expr_deep a1 b1
+      if_config
+        (fun x -> x.vardef_assign)
+        ~then_:
+          (let b1 = H.vardef_to_assign (ent, def) in
+           m_expr_deep a1 b1)
+        ~else_:(fail ())
   (*x: [[Generic_vs_generic.m_stmt()]] builtin equivalences cases *)
   (* equivalence: *)
   | G.ExprStmt (a1, _), B.Return (_, Some b1, _) -> m_expr_deep a1 b1

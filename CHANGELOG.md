@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Allow autofix using the command line rather than only with the fix: YAML key
+- Vardef-assign equivalence can now be disabled via rule `options:` with `vardef_assign: false`
 
 ### Changed
 

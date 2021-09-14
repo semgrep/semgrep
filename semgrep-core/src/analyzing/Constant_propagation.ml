@@ -119,7 +119,7 @@ let var_stats prog : var_stats =
     {
       V.default_visitor with
       V.kdef =
-        (fun (k, v) x ->
+        (fun (k, _v) x ->
           match x with
           | ( {
                 name =
@@ -128,16 +128,11 @@ let var_stats prog : var_stats =
                       (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
                 _;
               },
-              VarDef { vinit = Some e; _ } ) ->
+              VarDef { vinit = Some _e; _ } ) ->
               let var = (H.str_of_ident id, sid) in
               let stat = get_stat_or_create var h in
               incr stat.lvalue;
-              (* We can't do `k x` otherwise the variable-declaration itself is
-               * re-visited but now interpreted as an assignment (because of
-               * v_vardef_as_assign_expr in Visitor_AST), and we would be wrongly
-               * incrementing `stat.lvalue` a second time. Instead, we just need
-               * to visit the defining expression. *)
-              v (E e)
+              k x
           | _ -> k x);
       V.kexpr =
         (fun (k, vout) x ->
@@ -181,7 +176,7 @@ let var_stats prog : var_stats =
           | _ -> k x);
     }
   in
-  let visitor = V.mk_visitor hooks in
+  let visitor = V.mk_visitor ~vardef_assign:false hooks in
   visitor (Pr prog);
   h
 

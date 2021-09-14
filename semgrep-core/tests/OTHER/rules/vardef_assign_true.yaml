@@ -1,0 +1,10 @@
+rules:
+  - id: test
+    languages:
+      - javascript
+    message: Match Found!
+    options:
+      vardef_assign: true
+    pattern: x = 1
+    severity: WARNING
+
