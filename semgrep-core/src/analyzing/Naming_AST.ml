@@ -473,24 +473,16 @@ let resolve lang prog =
            *)
           with_new_context InClass env (fun () -> k x));
       V.kdef =
-        (fun (k, v) x ->
+        (fun (k, _v) x ->
           match x with
-          | ( ({ name = EN (Id (id, id_info)); _ } as ent),
-              VarDef { vinit; vtype } )
+          | { name = EN (Id (id, id_info)); _ }, VarDef { vinit; vtype }
           (* note that some languages such as Python do not have VarDef
            * construct
            * todo? should add those somewhere instead of in_lvalue detection? *)
             when is_resolvable_name_ctx env lang ->
               (* Need to visit expressions first so that type is populated, e.g.
                * if we do var a = 3, then var b = a, we want to propagate the type of a. *)
-              (* Note that we are careful to visit each part of the declaration
-               * separately in order to avoid the v_vardef_as_assign_expr
-               * equivalence in Visitor_AST. This is a problem for JS/TS where
-               * there are both explicit and implicit variable declarations, and
-               * it will cause the same identifier to be resolved twice. *)
-              v (En ent);
-              vinit |> do_option (fun e -> v (E e));
-              vtype |> do_option (fun t -> v (T t));
+              k x;
               declare_var env lang id id_info ~explicit:true vinit vtype
           | { name = EN (Id (id, id_info)); _ }, FuncDef _
             when is_resolvable_name_ctx env lang ->
@@ -769,7 +761,7 @@ let resolve lang prog =
           else Common.save_excursion env.in_type true (fun () -> k x));
     }
   in
-  let visitor = V.mk_visitor hooks in
+  let visitor = V.mk_visitor ~vardef_assign:false hooks in
   visitor (Pr prog);
   ()
   [@@profiling]

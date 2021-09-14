@@ -25,6 +25,7 @@ module PM = Pattern_match
 module GG = Generic_vs_generic
 module MV = Metavariable
 module Flag = Flag_semgrep
+module Config = Config_semgrep_t
 module MG = Matching_generic
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -465,7 +466,10 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
               x);
       }
     in
-    let visitor = V.mk_visitor hooks in
+    let visitor =
+      let vardef_assign = config.Config.vardef_assign in
+      V.mk_visitor ~vardef_assign hooks
+    in
     (* later: opti: dont analyze certain ASTs if they do not contain
      * certain constants that interect with the pattern?
      * But this requires to analyze the pattern to extract those
