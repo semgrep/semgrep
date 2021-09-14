@@ -16,6 +16,7 @@
  *)
 (*e: pad/r2c copyright *)
 module G = AST_generic
+module H = AST_generic_helpers
 module V = Visitor_AST
 module F = File_and_more
 module R = Rule
@@ -205,13 +206,13 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
             match def_kind with
             | G.FuncDef fdef ->
                 let opt_name = AST_to_IL.name_of_entity ent in
-                check_stmt opt_name fdef.G.fbody;
+                check_stmt opt_name (H.funcbody_to_stmt fdef.G.fbody);
                 (* go into nested functions *)
                 k def
             | __else__ -> k def);
         V.kfunction_definition =
           (fun (k, _v) def ->
-            check_stmt None def.G.fbody;
+            check_stmt None (H.funcbody_to_stmt def.G.fbody);
             (* go into nested functions *)
             k def);
       }

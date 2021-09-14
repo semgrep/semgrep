@@ -17,6 +17,7 @@
 (*e: pad/r2c copyright *)
 
 open AST_generic
+module H = AST_generic_helpers
 module V = Visitor_AST
 
 (*****************************************************************************)
@@ -115,7 +116,7 @@ let subexprs_of_expr e =
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys
-  | Lambda def -> subexprs_of_stmt def.fbody
+  | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
   (* currently skipped over but could recurse *)
   | Constructor _ | AnonClass _ | Xml _ | LetPattern _ -> []
   | DisjExpr _ -> raise Common.Impossible
@@ -168,7 +169,7 @@ let substmts_of_stmt st =
         | ModuleDef _ | OtherDef _ ->
             []
         (* this will add lots of substatements *)
-        | FuncDef def -> [ def.fbody ]
+        | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
             def.cbody |> unbracket
             |> Common.map_filter (function
@@ -246,7 +247,9 @@ let flatten_substmts_of_stmts xs =
      let es = subexprs_of_stmt x in
      (* getting deeply nested lambdas stmts *)
      let lambdas = es |> List.map lambdas_in_expr_memo |> List.flatten in
-     lambdas |> List.map (fun def -> def.fbody) |> List.iter aux);
+     lambdas
+     |> List.map (fun def -> H.funcbody_to_stmt def.fbody)
+     |> List.iter aux);
 
     let xs = substmts_of_stmt x in
     match xs with

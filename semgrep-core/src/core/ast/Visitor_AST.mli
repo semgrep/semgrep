@@ -41,7 +41,9 @@ val default_visitor : visitor_in
 (*e: signature [[Visitor_AST.default_visitor]] *)
 
 (*s: signature [[Visitor_AST.mk_visitor]] *)
-val mk_visitor : visitor_in -> visitor_out
+
+val mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out
+(** @param vardef_assign VarDef-Assign equivalence (default is [false]) *)
 
 (*e: signature [[Visitor_AST.mk_visitor]] *)
 

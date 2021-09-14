@@ -66,6 +66,7 @@ type t =
   (* config files *)
   | JSON
   | Yaml
+  | HCL (* Hashicorp language, a.k.a terraform *)
   (* doc files *)
   | HTML
 
@@ -119,6 +120,7 @@ let list_of_lang =
     ("scala", Scala);
     ("html", HTML);
     ("vue", Vue);
+    ("tf", HCL);
   ]
 
 (*e: constant [[Lang.list_of_lang]] *)
@@ -155,6 +157,7 @@ let langs_of_filename filename =
   | FT.PL FT.Go -> [ Go ]
   | FT.Config FT.Json -> [ JSON ]
   | FT.Config FT.Yaml -> [ Yaml ]
+  | FT.Config FT.HCL -> [ HCL ]
   | FT.PL FT.Ruby -> [ Ruby ]
   | FT.PL FT.Csharp -> [ Csharp ]
   | FT.PL (FT.Web (FT.Php _)) -> [ PHP ]
@@ -196,6 +199,7 @@ let to_string = function
   | Yaml -> "Yaml"
   | Scala -> "Scala"
   | HTML -> "HTML"
+  | HCL -> "HCL"
 
 (*e: function [[Lang.string_of_lang]] *)
 
@@ -227,6 +231,7 @@ let to_lowercase_alnum = function
   | Vue -> "vue"
   | Yaml -> "yaml"
   | HTML -> "html"
+  | HCL -> "hcl"
 
 (*s: function [[Lang.ext_of_lang]] *)
 (*
@@ -257,6 +262,7 @@ let ext_of_lang = function
   | Scala -> [ "scala" ]
   | HTML -> [ "html"; "htm" ]
   | Vue -> [ "vue" ]
+  | HCL -> [ "tf" ]
 
 (*e: function [[Lang.ext_of_lang]] *)
 

@@ -36,6 +36,7 @@ type t =
   (* config files *)
   | JSON
   | Yaml
+  | HCL
   (* doc files *)
   | HTML
 
