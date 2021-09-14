@@ -1,4 +1,4 @@
-running 2 rules from 1 config rules/eqeq-python.yaml_0 
+running 2 rules from 1 config rules/eqeq-python.yaml_0
 running 2 rules...
 rules:
 - rules.assert-eqeq-is-ok
