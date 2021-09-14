@@ -45,7 +45,9 @@ let bool = id
 
 let string = id
 
-let fake s = Parse_info.fake_info s
+let fake tok s = Parse_info.fake_info tok s
+
+let unsafe_fake s = Parse_info.unsafe_fake_info s
 
 let fb = G.fake_bracket
 
@@ -388,7 +390,7 @@ and expr_as_stmt = function
   | D x -> definition x
   | e ->
       let e = expr e in
-      G.ExprStmt (e, fake ";") |> G.s
+      G.ExprStmt (e, unsafe_fake ";") |> G.s
 
 and stmt st =
   match st with
@@ -511,12 +513,12 @@ and definition def =
               let ent = G.basic_entity id [] in
               G.DefStmt (ent, G.FuncDef funcdef) |> G.s
           | Right e ->
-              let ent = G.basic_entity ("", fake "") [] in
+              let ent = G.basic_entity ("", fake t "") [] in
               G.OtherStmt (G.OS_Todo, [ G.E e; G.Def (ent, G.FuncDef funcdef) ])
               |> G.s)
       | SingletonM e ->
           let e = expr e in
-          let ent = G.basic_entity ("", fake "") [] in
+          let ent = G.basic_entity ("", fake t "") [] in
           G.OtherStmt (G.OS_Todo, [ G.E e; G.Def (ent, G.FuncDef funcdef) ])
           |> G.s)
   | ClassDef (t, kind, body) -> (
@@ -607,11 +609,13 @@ and body_exn x =
       in
       match elseopt with
       | None ->
-          let try_ = G.Try (fake "try", body, catches, finally_opt) |> G.s in
+          let try_ =
+            G.Try (unsafe_fake "try", body, catches, finally_opt) |> G.s
+          in
           G.Block (fb [ try_ ]) |> G.s
-      | Some (_t, sts) ->
+      | Some (t, sts) ->
           let st = list_stmt1 sts in
-          let try_ = G.Try (fake "try", body, catches, finally_opt) |> G.s in
+          let try_ = G.Try (fake t "try", body, catches, finally_opt) |> G.s in
           let st = G.Block (fb [ try_; st ]) |> G.s in
           G.OtherStmtWithStmt (G.OSWS_Else_in_try, None, st) |> G.s)
 

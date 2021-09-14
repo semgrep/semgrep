@@ -51,9 +51,13 @@ let name_of_qualified_ident = function
   | Right (xs, id) ->
       (id, { G.name_qualifier = Some (G.QDots xs); name_typeargs = None })
 
-let fake s = Parse_info.fake_info s
+let fake tok s = Parse_info.fake_info tok s
 
-let fake_id s = (s, fake s)
+let unsafe_fake s = Parse_info.unsafe_fake_info s
+
+let _fake_id tok s = (s, fake tok s)
+
+let unsafe_fake_id s = (s, unsafe_fake s)
 
 let fb = G.fake_bracket
 
@@ -134,7 +138,7 @@ let top_func () =
         let params, ret = func_type v1 in
         let ret =
           match ret with
-          | None -> G.TyBuiltin (fake_id "void") |> G.t
+          | None -> G.TyBuiltin (unsafe_fake_id "void") |> G.t
           | Some t -> t
         in
         G.TyFun (params, ret)
@@ -154,10 +158,10 @@ let top_func () =
         let v1 = bracket (list interface_field) v1 in
         G.TyInterfaceAnon (t, v1)
   and chan_dir = function
-    | TSend -> G.TyN (G.Id (fake_id "send", G.empty_id_info ())) |> G.t
-    | TRecv -> G.TyN (G.Id (fake_id "recv", G.empty_id_info ())) |> G.t
+    | TSend -> G.TyN (G.Id (unsafe_fake_id "send", G.empty_id_info ())) |> G.t
+    | TRecv -> G.TyN (G.Id (unsafe_fake_id "recv", G.empty_id_info ())) |> G.t
     | TBidirectional ->
-        G.TyN (G.Id (fake_id "bidirectional", G.empty_id_info ())) |> G.t
+        G.TyN (G.Id (unsafe_fake_id "bidirectional", G.empty_id_info ())) |> G.t
   and func_type { fparams; fresults } =
     let fparams = list parameter_binding fparams in
     let fresults = list parameter_binding fresults in
@@ -194,8 +198,9 @@ let top_func () =
     | EmbeddedField (v1, v2) ->
         let _v1TODO = option tok v1 and v2 = qualified_ident v2 in
         let name = name_of_qualified_ident v2 in
+        let (_, tok), _ = name in
         G.FieldSpread
-          (fake "...", G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e)
+          (fake tok "...", G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e)
     | FieldEllipsis t -> G.fieldEllipsis t
   and tag v = wrap string v
   and interface_field = function
@@ -214,8 +219,9 @@ let top_func () =
     | EmbeddedInterface v1 ->
         let v1 = qualified_ident v1 in
         let name = name_of_qualified_ident v1 in
+        let (_, tok), _ = name in
         G.FieldSpread
-          (fake "...", G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e)
+          (fake tok "...", G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e)
     | FieldEllipsis2 t -> G.fieldEllipsis t
   and expr_or_type v = either expr type_ v
   and expr e =
@@ -237,7 +243,7 @@ let top_func () =
         G.Call (e, args)
     | Cast (v1, v2) ->
         let v1 = type_ v1 and v2 = expr v2 in
-        G.Cast (v1, fake "(", v2)
+        G.Cast (v1, unsafe_fake "(", v2)
     | Deref (v1, v2) ->
         let v1 = tok v1 and v2 = expr v2 in
         G.DeRef (v1, v2)
@@ -256,8 +262,9 @@ let top_func () =
             fb ([ v1; v3 ] |> List.map G.arg) )
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1
-        and _t1, v2, _t2 = bracket (list init_for_composite_lit) v2 in
-        G.Call (G.IdSpecial (G.New, fake "new") |> G.e, fb (G.ArgType v1 :: v2))
+        and t1, v2, _t2 = bracket (list init_for_composite_lit) v2 in
+        G.Call
+          (G.IdSpecial (G.New, fake t1 "new") |> G.e, fb (G.ArgType v1 :: v2))
     | Slice (v1, (t1, v2, t2)) ->
         let e = expr v1 in
         let v1, v2, v3 = v2 in
@@ -268,7 +275,7 @@ let top_func () =
     | TypeAssert (v1, (lp, v2, rp)) ->
         let v1 = expr v1 and v2 = type_ v2 in
         G.Call
-          ( G.IdSpecial (G.Instanceof, fake "instanceof") |> G.e,
+          ( G.IdSpecial (G.Instanceof, fake lp "instanceof") |> G.e,
             (lp, [ G.Arg v1; G.ArgType v2 ], rp) )
     | Ellipsis v1 ->
         let v1 = tok v1 in
@@ -496,7 +503,7 @@ let top_func () =
         and v3 = expr v3 in
         match opt with
         | None ->
-            let pattern = G.PatUnderscore (fake "_") in
+            let pattern = G.PatUnderscore (fake v2 "_") in
             G.ForEach (pattern, v2, v3)
         | Some (xs, _tokEqOrColonEqTODO) ->
             let pattern =
@@ -544,11 +551,13 @@ let top_func () =
         let v1 = ident v1
         and v2 = option type_ v2
         and v3 = option constant_expr v3 in
-        let ent = G.basic_entity v1 [ G.attr G.Const (fake "const") ] in
+        let ent =
+          G.basic_entity v1 [ G.attr G.Const (fake (snd v1) "const") ]
+        in
         G.DefStmt (ent, G.VarDef { G.vinit = v3; vtype = v2 }) |> G.s
     | DVar (v1, v2, v3) ->
         let v1 = ident v1 and v2 = option type_ v2 and v3 = option expr v3 in
-        let ent = G.basic_entity v1 [ G.attr G.Var (fake "var") ] in
+        let ent = G.basic_entity v1 [ G.attr G.Var (fake (snd v1) "var") ] in
         G.DefStmt (ent, G.VarDef { G.vinit = v3; vtype = v2 }) |> G.s
     | DTypeAlias (v1, v2, v3) ->
         let v1 = ident v1 and _v2 = tok v2 and v3 = type_ v3 in

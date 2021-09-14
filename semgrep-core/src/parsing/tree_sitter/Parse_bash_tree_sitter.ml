@@ -628,8 +628,8 @@ and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
         pat)
       v2
   in
-  let _end_pats = token env v3 (* ")" *) in
-  let case_body = program env v4 in
+  let end_pats = token env v3 (* ")" *) in
+  let case_body = program env ~tok:end_pats v4 in
   let end_tok =
     match v5 with
     | Some tok -> token env tok (* ";;" *)
@@ -700,13 +700,8 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
       let loc = (open_, close) in
       Expression_TODO loc
 
-and program (env : env) (opt : CST.program) : blist =
-  match opt with
-  | Some x -> statements env x
-  | None ->
-      (* TODO: use an empty token at the current position in the source
-         file rather than a completely fake token. *)
-      Empty fake_loc
+and program (env : env) ~tok (opt : CST.program) : blist =
+  match opt with Some x -> statements env x | None -> Empty (tok, tok)
 
 (*
    Read a statement as a list (of pipelines).
@@ -1178,7 +1173,8 @@ let parse file =
     (fun () -> Tree_sitter_bash.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      let bash_ast = program env cst in
+      let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
+      let bash_ast = program env ~tok cst in
       Bash_to_generic.program bash_ast)
 
 let parse_pattern str =
@@ -1187,5 +1183,6 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      let bash_ast = program env cst in
+      let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
+      let bash_ast = program env ~tok cst in
       Bash_to_generic.any bash_ast)

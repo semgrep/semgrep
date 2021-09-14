@@ -39,13 +39,15 @@ let either f g x = match x with Left x -> Left (f x) | Right x -> Right (g x)
 
 let string = id
 
-let fake s = Parse_info.fake_info s
+let fake tok s = Parse_info.fake_info tok s
+
+let unsafe_fake s = Parse_info.unsafe_fake_info s
 
 let fb = G.fake_bracket
 
 let opt_to_ident opt =
   match opt with
-  | None -> ("FakeNAME", Parse_info.fake_info "FakeNAME")
+  | None -> ("FakeNAME", Parse_info.unsafe_fake_info "FakeNAME")
   | Some n -> n
 
 (*****************************************************************************)
@@ -186,7 +188,7 @@ and expr e =
   | Null v1 -> G.L (G.Null v1)
   | ConcatString xs ->
       G.Call
-        ( G.IdSpecial (G.ConcatString G.SequenceConcat, fake " ") |> G.e,
+        ( G.IdSpecial (G.ConcatString G.SequenceConcat, unsafe_fake " ") |> G.e,
           fb (xs |> List.map (fun x -> G.Arg (G.L (G.String x) |> G.e))) )
   | Defined (t, id) ->
       let e = G.N (G.Id (id, G.empty_id_info ())) |> G.e in
@@ -216,7 +218,7 @@ and expr e =
       G.DotAccess (G.DeRef (t, v1) |> G.e, t, G.EN (Id (v2, G.empty_id_info ())))
   | Cast (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
-      G.Cast (v1, fake "(", v2)
+      G.Cast (v1, unsafe_fake "(", v2)
   | Postfix (v1, (v2, v3)) ->
       let v1 = expr v1 and v2 = fixOp v2 in
       G.Call
@@ -269,12 +271,12 @@ and expr e =
   | GccConstructor (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
       G.Call
-        ( G.IdSpecial (G.New, fake "new") |> G.e,
+        ( G.IdSpecial (G.New, unsafe_fake "new") |> G.e,
           fb (G.ArgType v1 :: ([ v2 ] |> List.map G.arg)) )
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in
-      G.TypedMetavar (v1, Parse_info.fake_info " ", v2))
+      G.TypedMetavar (v1, fake (snd v1) " ", v2))
   |> G.e
 
 and argument v =
@@ -365,23 +367,25 @@ and var_decl
     { v_name = xname; v_type = xtype; v_storage = xstorage; v_init = init } =
   let v1 = name xname in
   let v2 = type_ xtype in
-  let v3 = storage xstorage in
+  let v3 = storage (snd v1) xstorage in
   let v4 = option initialiser init in
   let entity = G.basic_entity v1 v3 in
   (entity, G.VarDef { G.vinit = v4; vtype = Some v2 })
 
 and initialiser v = expr v
 
-and storage = function
-  | Extern -> [ G.attr G.Extern (fake "extern") ]
-  | Static -> [ G.attr G.Static (fake "static") ]
+and storage tok = function
+  | Extern -> [ G.attr G.Extern (fake tok "extern") ]
+  | Static -> [ G.attr G.Static (fake tok "static") ]
   | DefaultStorage -> []
 
 and func_def { f_name; f_type; f_body; f_static } =
   let v1 = name f_name in
   let ret, params = function_type f_type in
   let v3 = bracket (list stmt) f_body in
-  let v4 = if f_static then [ G.attr G.Static (fake "static") ] else [] in
+  let v4 =
+    if f_static then [ G.attr G.Static (fake (snd v1) "static") ] else []
+  in
   let entity = G.basic_entity v1 v4 in
   ( entity,
     G.FuncDef

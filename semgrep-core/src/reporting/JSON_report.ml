@@ -284,7 +284,7 @@ let json_of_exn e =
         match pos with
         | { token = PI.FakeTokStr (str, _); _ } -> J.String str
         | _ ->
-            let s_loc = PI.token_location_of_info pos in
+            let s_loc = PI.unsafe_token_location_of_info pos in
             J.Object
               [
                 ("file", J.String s_loc.file);

@@ -95,13 +95,13 @@ let parse file =
                            PR.parse_pattern ~id ~lang
                              {
                                pattern = pattern_string;
-                               t = Parse_info.fake_info pattern_string;
+                               t = Parse_info.fake_info t pattern_string;
                                path = [];
                              }
                          in
                          let severity =
                            PR.parse_severity ~id
-                             (sev, Parse_info.fake_info "sev")
+                             (sev, Parse_info.fake_info t "sev")
                          in
                          {
                            R.id;

@@ -190,9 +190,9 @@ let vardef_to_assign (ent, def) =
   let v =
     match def.vinit with
     | Some v -> v
-    | None -> L (Null (Parse_info.fake_info "null")) |> G.e
+    | None -> L (Null (Parse_info.unsafe_fake_info "null")) |> G.e
   in
-  Assign (name, Parse_info.fake_info "=", v) |> G.e
+  Assign (name, Parse_info.unsafe_fake_info "=", v) |> G.e
 
 (*e: function [[AST_generic.vardef_to_assign]] *)
 
@@ -202,7 +202,7 @@ let funcdef_to_lambda (ent, def) resolved =
   let idinfo = { (empty_id_info ()) with id_resolved = ref resolved } in
   let name = name_or_dynamic_to_expr ent.name (Some idinfo) in
   let v = Lambda def |> G.e in
-  Assign (name, Parse_info.fake_info "=", v) |> G.e
+  Assign (name, Parse_info.unsafe_fake_info "=", v) |> G.e
 
 (*e: function [[AST_generic.funcdef_to_lambda]] *)
 

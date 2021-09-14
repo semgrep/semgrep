@@ -727,7 +727,7 @@ let string_of_error (error_kind, info) =
   match info with
   | None -> spf "NOLOC: FLOW %s" (string_of_error_kind error_kind)
   | Some info ->
-      let info = Parse_info.token_location_of_info info in
+      let info = Parse_info.unsafe_token_location_of_info info in
       spf "%s:%d:%d: FLOW %s" info.Parse_info.file info.Parse_info.line
         info.Parse_info.column
         (string_of_error_kind error_kind)

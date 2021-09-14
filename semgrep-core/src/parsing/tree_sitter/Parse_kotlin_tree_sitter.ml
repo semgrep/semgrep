@@ -40,7 +40,7 @@ let str = H.str
 
 let fb = fake_bracket
 
-let sc = PI.fake_info ";"
+let sc = PI.sc
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -1013,7 +1013,7 @@ and function_body (env : env) (x : CST.function_body) : G.function_body =
   match x with
   | `Blk x -> G.FBStmt (block env x)
   | `EQ_exp (v1, v2) ->
-      let _v1 = token env v1 (* "=" *) in
+      let v1 = token env v1 (* "=" *) in
       let v2 = expression env v2 in
       G.FBExpr v2
 
@@ -1186,7 +1186,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
   | `Throw_exp (v1, v2) ->
       let v1 = token env v1 (* "throw" *) in
       let v2 = expression env v2 in
-      Throw (v1, v2, sc) |> G.s
+      Throw (v1, v2, sc v1) |> G.s
   | `Choice_ret_opt_exp (v1, v2) ->
       let v1 =
         match v1 with
@@ -1204,7 +1204,7 @@ and jump_expression (env : env) (x : CST.jump_expression) =
       in
       let return_tok, id = v1 in
       (match id with
-      | None -> Return (return_tok, v2, sc)
+      | None -> Return (return_tok, v2, sc return_tok)
       | Some simple_id -> (
           let id = N (Id (simple_id, empty_id_info ())) |> G.e in
           match v2 with
@@ -1217,20 +1217,20 @@ and jump_expression (env : env) (x : CST.jump_expression) =
       |> G.s
   | `Cont tok ->
       let v1 = token env tok (* "continue" *) in
-      Continue (v1, LNone, sc) |> G.s
+      Continue (v1, LNone, sc v1) |> G.s
   | `Cont_at (v1, v2) ->
       let v1 = token env v1 (* "continue@" *) in
       let v2 = lexical_identifier env v2 in
       let ident = LId v2 in
-      Continue (v1, ident, sc) |> G.s
+      Continue (v1, ident, sc v1) |> G.s
   | `Brk tok ->
       let v1 = token env tok (* "break" *) in
-      Break (v1, LNone, sc) |> G.s
+      Break (v1, LNone, sc v1) |> G.s
   | `Brk_at (v1, v2) ->
       let v1 = token env v1 (* "break@" *) in
       let v2 = lexical_identifier env v2 in
       let ident = LId v2 in
-      Break (v1, ident, sc) |> G.s
+      Break (v1, ident, sc v1) |> G.s
 
 and lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) =
   let v1 = token env v1 (* "{" *) in
@@ -1689,12 +1689,12 @@ and type_ (env : env) ((v1, v2) : CST.type_) : type_ =
 
 and type_arguments (env : env) ((v1, v2, v3, v4) : CST.type_arguments) =
   let v1 = token env v1 (* "<" *) in
-  let v2 = type_projection env v2 in
+  let v2 = type_projection env ~tok:v1 v2 in
   let v3 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* "," *) in
-        let v2 = type_projection env v2 in
+        let v1 = token env v1 (* "," *) in
+        let v2 = type_projection env ~tok:v1 v2 in
         v2)
       v3
   in
@@ -1774,14 +1774,14 @@ and type_parameters (env : env) ((v1, v2, v3, v4) : CST.type_parameters) =
   let _v4 = token env v4 (* ">" *) in
   v2 :: v3
 
-and type_projection (env : env) (x : CST.type_projection) =
+and type_projection (env : env) ~tok (x : CST.type_projection) =
   match x with
   | `Opt_type_proj_modifs_type (v1, v2) ->
       let _v1 =
         match v1 with Some x -> type_projection_modifiers env x | None -> []
       in
       let v2 = type_ env v2 in
-      let fake_token = Parse_info.fake_info "type projection" in
+      let fake_token = Parse_info.fake_info tok "type projection" in
       let list = [ TodoK ("type projection", fake_token); T v2 ] in
       let othertype = OtherType (OT_Todo, list) |> G.t in
       TypeArg othertype

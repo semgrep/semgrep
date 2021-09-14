@@ -258,8 +258,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
               v2 |> unbracket
               |> List.iter (fun e ->
                      match e.e with
-                     | Tuple (_, [ { e = L (String id); _ }; e ], _) ->
-                         let t = PI.fake_info ":" in
+                     | Tuple (tok, [ { e = L (String id); _ }; e ], _) ->
+                         let t = PI.fake_info tok ":" in
                          v_partial ~recurse:false
                            (PartialSingleField (id, t, e))
                      | _ -> ())
@@ -268,8 +268,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
               v2 |> unbracket
               |> List.iter (fun e ->
                      match e.e with
-                     | Tuple (_, [ { e = N (Id (id, _)); _ }; e ], _) ->
-                         let t = PI.fake_info ":" in
+                     | Tuple (tok, [ { e = N (Id (id, _)); _ }; e ], _) ->
+                         let t = PI.fake_info tok ":" in
                          v_partial ~recurse:false
                            (PartialSingleField (id, t, e))
                      | _ -> ())
@@ -1032,7 +1032,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
           | DefStmt
               ( { name = EN (Id (id, _)); _ },
                 FieldDefColon { vinit = Some e; _ } ) ->
-              let t = PI.fake_info ":" in
+              let t = PI.fake_info (snd id) ":" in
               v_partial ~recurse:false (PartialSingleField (id, t, e))
           | _ -> ());
           let v1 = v_stmt v1 in
@@ -1275,7 +1275,7 @@ let extract_ranges recursor =
   in
   let incorporate_token tok =
     if PI.is_origintok tok then
-      let tok_loc = PI.token_location_of_info tok in
+      let tok_loc = PI.unsafe_token_location_of_info tok in
       incorporate_tokens (tok_loc, tok_loc)
   in
   let hooks =
