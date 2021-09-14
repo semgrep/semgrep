@@ -1,40 +1,30 @@
 {
   "errors": [
     {
-      "code": 4,
+      "code": 2,
       "level": "error",
-      "long_msg": "Pattern `#include<asdf><<>>><$X>` could not be parsed as a C semgrep pattern",
-      "short_msg": "invalid pattern",
+      "message": "Semgrep Core ERROR - Pattern parse error: In rule -: Invalid pattern for C",
+      "rule_id": "-",
       "spans": [
         {
           "config_end": {
-            "col": 24,
-            "line": 0
+            "col": 35,
+            "line": 3,
+            "offset": 51
           },
           "config_path": [
             "rules",
-            0,
+            "0",
             "pattern"
           ],
           "config_start": {
-            "col": 1,
-            "line": 0
-          },
-          "context_end": null,
-          "context_start": null,
-          "end": {
-            "col": 35,
-            "line": 3
-          },
-          "file": "semgrep temp file",
-          "source_hash": "7efe89db58e7a4017c5cd63dd547745a14f3e4c1fc32fd5e2051b53858d9e85d",
-          "start": {
             "col": 12,
-            "line": 4
+            "line": 3,
+            "offset": 28
           }
         }
       ],
-      "type": "InvalidPatternError"
+      "type": "Pattern parse error"
     }
   ],
   "results": []

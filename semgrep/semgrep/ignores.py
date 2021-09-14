@@ -21,7 +21,7 @@ from semgrep.error import SemgrepError
 from semgrep.output import logger
 from semgrep.output import OutputHandler
 from semgrep.rule_match import RuleMatch
-from semgrep.types import RuleMatchMap
+from semgrep.rule_match_map import RuleMatchMap
 
 
 @dataclass
@@ -99,7 +99,7 @@ def _rule_match_nosem(
     ids_str = re_match.groupdict()["ids"]
     if ids_str is None:
         logger.verbose(
-            f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
+            f"found 'nosem' comment, skipping rule '{rule_match.id}' on line {rule_match.start.line}"
         )
         return True, []
 
@@ -121,7 +121,7 @@ def _rule_match_nosem(
     for pattern_id in pattern_ids:
         if rule_match.id == pattern_id:
             logger.verbose(
-                f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.id}' on line {rule_match.start['line']}"
+                f"found 'nosem' comment with id '{pattern_id}', skipping rule '{rule_match.id}' on line {rule_match.start.line}"
             )
             result = result or True
         else:

@@ -5,7 +5,8 @@
       "check_id": "rules.metavar-test-multi-regex",
       "end": {
         "col": 38,
-        "line": 1
+        "line": 1,
+        "offset": 37
       },
       "extra": {
         "is_ignored": false,
@@ -53,7 +54,8 @@
       "path": "targets/basic/metavariable-regex-multi-regex.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     }
   ]

@@ -1,11 +1,12 @@
 {
   "errors": [
     {
-      "code": 10,
+      "code": 2,
       "level": "warn",
+      "message": "Semgrep Core WARN - Out of memory: When running rules.forcetimeout on targets/equivalence/open_redirect.py: ",
       "path": "targets/equivalence/open_redirect.py",
       "rule_id": "rules.forcetimeout",
-      "type": "OutOfMemoryError"
+      "type": "Out of memory"
     }
   ],
   "results": []

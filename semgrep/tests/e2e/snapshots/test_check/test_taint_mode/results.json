@@ -5,7 +5,8 @@
       "check_id": "rules.classic",
       "end": {
         "col": 13,
-        "line": 9
+        "line": 9,
+        "offset": 162
       },
       "extra": {
         "is_ignored": false,
@@ -18,7 +19,8 @@
       "path": "targets/taint/taint.py",
       "start": {
         "col": 5,
-        "line": 9
+        "line": 9,
+        "offset": 154
       }
     }
   ]

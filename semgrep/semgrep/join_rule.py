@@ -27,8 +27,8 @@ from semgrep.error import ERROR_MAP
 from semgrep.error import FATAL_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import SemgrepError
-from semgrep.pattern_match import PatternMatch
 from semgrep.rule import Rule
+from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.verbose_logging import getLogger
 
@@ -446,7 +446,6 @@ def run_join_rule(
     rule_matches = [
         RuleMatch(
             id=join_rule.get("id", match.get("check_id", "[empty]")),
-            pattern_match=PatternMatch({}),
             message=join_rule.get(
                 "message", match.get("extra", {}).get("message", "[empty]")
             ),
@@ -459,8 +458,8 @@ def run_join_rule(
                 )
             ),
             path=Path(match.get("path", "[empty]")),
-            start=match.get("start", {}),
-            end=match.get("end", {}),
+            start=CoreLocation.parse(match["start"]),
+            end=CoreLocation.parse(match["end"]),
             extra=match.get("extra", {}),
             fix=None,
             fix_regex=None,

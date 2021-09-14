@@ -5,7 +5,8 @@
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 13,
-        "line": 2
+        "line": 2,
+        "offset": 24
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/message_interpolation/pattern_either_basic.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     },
     {
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 13,
-        "line": 5
+        "line": 5,
+        "offset": 50
       },
       "extra": {
         "is_ignored": false,
@@ -74,14 +77,16 @@
       "path": "targets/message_interpolation/pattern_either_basic.py",
       "start": {
         "col": 1,
-        "line": 4
+        "line": 4,
+        "offset": 26
       }
     },
     {
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 13,
-        "line": 8
+        "line": 8,
+        "offset": 78
       },
       "extra": {
         "is_ignored": false,
@@ -112,7 +117,8 @@
       "path": "targets/message_interpolation/pattern_either_basic.py",
       "start": {
         "col": 1,
-        "line": 7
+        "line": 7,
+        "offset": 52
       }
     }
   ]

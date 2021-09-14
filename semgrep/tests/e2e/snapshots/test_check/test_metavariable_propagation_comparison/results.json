@@ -5,7 +5,8 @@
       "check_id": "rules.metavariable_propagation.my_pattern_id",
       "end": {
         "col": 11,
-        "line": 8
+        "line": 8,
+        "offset": 77
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/metavariable_propagation/metavariable-comparison-propagation.py",
       "start": {
         "col": 5,
-        "line": 8
+        "line": 8,
+        "offset": 71
       }
     },
     {
       "check_id": "rules.metavariable_propagation.my_pattern_id",
       "end": {
         "col": 11,
-        "line": 13
+        "line": 13,
+        "offset": 123
       },
       "extra": {
         "is_ignored": false,
@@ -74,7 +77,8 @@
       "path": "targets/metavariable_propagation/metavariable-comparison-propagation.py",
       "start": {
         "col": 5,
-        "line": 13
+        "line": 13,
+        "offset": 117
       }
     }
   ]

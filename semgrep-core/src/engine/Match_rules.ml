@@ -186,6 +186,9 @@ let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
   (* rather than the original metavariables for the match                          *)
   { m with rule_id; env = range.mvars }
 
+let error_with_rule_id rule_id (error : E.error) =
+  { error with rule_id = Some rule_id }
+
 let lazy_force x = Lazy.force x [@@profiling]
 
 (*****************************************************************************)
@@ -970,8 +973,9 @@ let check hook default_config rules equivs file_and_more =
            (fun () ->
              let config = r.options ||| default_config in
              let formula = R.formula_of_pformula pformula in
+             let rule_id = fst r.id in
              let res, final_ranges =
-               matches_of_formula config equivs (fst r.id) file_and_more formula
+               matches_of_formula config equivs rule_id file_and_more formula
                  None
              in
              {
@@ -985,9 +989,9 @@ let check hook default_config rules equivs file_and_more =
                  |> before_return (fun v ->
                         v
                         |> List.iter (fun (m : Pattern_match.t) ->
-                               let str = spf "with rule %s" (fst r.R.id) in
+                               let str = spf "with rule %s" rule_id in
                                hook str m.env m.tokens));
-               errors = res.errors;
+               errors = res.errors |> List.map (error_with_rule_id rule_id);
                skipped = res.skipped;
                profiling = res.profiling;
              }))

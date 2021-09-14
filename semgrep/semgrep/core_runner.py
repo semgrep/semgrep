@@ -15,21 +15,17 @@ from typing import Tuple
 from ruamel.yaml import YAML
 
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
-from semgrep.core_exception import CoreException
+from semgrep.core_output import CoreOutput
+from semgrep.core_output import RuleId
 from semgrep.error import _UnknownLanguageError
-from semgrep.error import InvalidPatternError
-from semgrep.error import MatchTimeoutError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
-from semgrep.evaluation import create_output
-from semgrep.pattern_match import PatternMatch
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
 from semgrep.progress_bar import debug_tqdm_write
 from semgrep.progress_bar import progress_bar
 from semgrep.rule import Rule
-from semgrep.rule_lang import Span
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import Language
@@ -63,50 +59,6 @@ class CoreRunner:
         self._timeout_threshold = timeout_threshold
         self._optimizations = optimizations
 
-    def _raise_semgrep_error_from_json(
-        self,
-        error_json: Dict[str, Any],
-        rule: Rule,
-    ) -> None:
-        """
-        See format_output_exception in semgrep O'Caml for details on schema
-        """
-        error_type = error_json["error"]
-        if error_type == "invalid language":
-            raise SemgrepError(
-                f'{error_json["language"]} was accepted by semgrep but rejected by semgrep-core. {PLEASE_FILE_ISSUE_TEXT}'
-            )
-        elif error_type == "invalid regexp in rule":
-            raise SemgrepError(f'Invalid regexp in rule: {error_json["message"]}')
-        elif error_type == "invalid pattern":
-            range = error_json["range"]
-            # If pattern is empty treat as <no pattern>
-            s = error_json.get("pattern", "<no pattern>") or "<no pattern>"
-            matching_span = Span.from_string_token(
-                s=s,
-                line=range.get("line", 0),
-                col=range.get("col", 0),
-                path=range.get("path", []),
-                filename="semgrep temp file",
-            )
-            if error_json["message"] == "Parsing.Parse_error":
-                long_msg = f"Pattern `{s.strip()}` could not be parsed as a {error_json['language']} semgrep pattern"
-            else:
-                long_msg = f"Error parsing {error_json['language']} pattern: {error_json['message']}"
-
-            raise InvalidPatternError(
-                short_msg=error_type,
-                long_msg=long_msg,
-                spans=[matching_span],
-                help=None,
-            )
-        # no special formatting ought to be required for the other types; the semgrep python should be performing
-        # validation for them. So if any other type of error occurs, ask the user to file an issue
-        else:
-            raise SemgrepError(
-                f"an internal error occured while invoking semgrep-core while running rule '{rule.id}'. Consider skipping this rule and reporting this issue.\n\t{error_type}: {error_json.get('message', 'no message')}\n{PLEASE_FILE_ISSUE_TEXT}"
-            )
-
     def _extract_core_output(
         self, rule: Rule, core_run: subprocess.CompletedProcess
     ) -> Dict[str, Any]:
@@ -139,11 +91,22 @@ class CoreRunner:
                 rule, core_run, semgrep_output, semgrep_error_output, returncode
             )
 
-            if "error" in output_json:
-                self._raise_semgrep_error_from_json(output_json, rule)
+            if "errors" in output_json:
+                parsed_output = CoreOutput.parse(output_json, RuleId(rule.id))
+                errors = parsed_output.errors
+                if len(errors) < 1:
+                    self._fail(
+                        "non-zero exit status errors array is empty in json response",
+                        rule,
+                        core_run,
+                        returncode,
+                        semgrep_output,
+                        semgrep_error_output,
+                    )
+                raise errors[0].to_semgrep_error(RuleId(rule.id))
             else:
                 self._fail(
-                    'non-zero exit status with missing "error" field in json response',
+                    'non-zero exit status with missing "errors" field in json response',
                     rule,
                     core_run,
                     returncode,
@@ -324,6 +287,7 @@ class CoreRunner:
 
                         core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=stderr)
                         output_json = self._extract_core_output(rule, core_run)
+                        core_output = CoreOutput.parse(output_json, RuleId(rule.id))
 
                         if "time" in output_json:
                             self._add_match_times(
@@ -331,21 +295,14 @@ class CoreRunner:
                             )
 
                     # end with tempfile.NamedTemporaryFile(...) ...
-                    pattern_matches = [
-                        PatternMatch(match) for match in output_json["matches"]
-                    ]
-                    findings = create_output(rule, pattern_matches)
-
-                    findings = dedup_output(findings)
-                    outputs[rule].extend(findings)
+                    outputs[rule].extend(core_output.rule_matches(rule))
                     parsed_errors = [
-                        CoreException.from_json(
-                            e, language.value, rule.id
-                        ).into_semgrep_error()
-                        for e in output_json["errors"]
+                        e.to_semgrep_error(RuleId(rule.id)) for e in core_output.errors
                     ]
-                    for err in parsed_errors:
-                        if isinstance(err, MatchTimeoutError):
+                    for err in core_output.errors:
+                        if err.is_timeout():
+                            assert err.path is not None
+
                             file_timeouts[err.path] += 1
                             if (
                                 self._timeout_threshold != 0
@@ -404,32 +361,3 @@ class CoreRunner:
             all_targets,
             profiling_data,
         )
-
-
-# This will remove matches that have the same range but different
-# metavariable bindings, choosing the last one in the list. We want the
-# last because if there multiple possible bindings, they will be returned
-# by semgrep-core from largest range to smallest. For an example, see
-# tests/e2e/test_message_interpolation.py::test_message_interpolation;
-# specifically, the multi-pattern-inside test
-#
-# Another option is to not dedup, since Semgrep.ml now does its own deduping
-# otherwise, and surface both matches
-def dedup_output(outputs: List[RuleMatch]) -> List[RuleMatch]:
-    return list({uniq_id(r): r for r in reversed(outputs)}.values())[::-1]
-
-
-def uniq_id(
-    r: RuleMatch,
-) -> Tuple[str, Path, Optional[int], Optional[int], Optional[int], Optional[int], str]:
-    start = r.start
-    end = r.end
-    return (
-        r.id,
-        r.path,
-        start.get("line"),
-        start.get("col"),
-        end.get("line"),
-        end.get("col"),
-        r.message,
-    )

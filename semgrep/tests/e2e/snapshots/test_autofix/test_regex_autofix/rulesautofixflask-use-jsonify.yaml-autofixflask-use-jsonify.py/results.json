@@ -5,7 +5,8 @@
       "check_id": "rules.autofix.python.flask.best-practice.use-jsonify.use-jsonify",
       "end": {
         "col": 33,
-        "line": 10
+        "line": 10,
+        "offset": 209
       },
       "extra": {
         "fix_regex": {
@@ -41,14 +42,16 @@
       "path": "targets/autofix/flask-use-jsonify.py",
       "start": {
         "col": 12,
-        "line": 10
+        "line": 10,
+        "offset": 188
       }
     },
     {
       "check_id": "rules.autofix.python.flask.best-practice.use-jsonify.use-jsonify",
       "end": {
         "col": 28,
-        "line": 18
+        "line": 18,
+        "offset": 368
       },
       "extra": {
         "fix_regex": {
@@ -84,7 +87,8 @@
       "path": "targets/autofix/flask-use-jsonify.py",
       "start": {
         "col": 12,
-        "line": 18
+        "line": 18,
+        "offset": 352
       }
     }
   ]

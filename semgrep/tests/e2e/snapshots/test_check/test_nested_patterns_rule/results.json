@@ -5,7 +5,8 @@
       "check_id": "rules.test",
       "end": {
         "col": 35,
-        "line": 2
+        "line": 2,
+        "offset": 52
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/basic/nested-patterns.js",
       "start": {
         "col": 5,
-        "line": 2
+        "line": 2,
+        "offset": 22
       }
     },
     {
       "check_id": "rules.test",
       "end": {
         "col": 35,
-        "line": 3
+        "line": 3,
+        "offset": 87
       },
       "extra": {
         "is_ignored": false,
@@ -74,7 +77,8 @@
       "path": "targets/basic/nested-patterns.js",
       "start": {
         "col": 5,
-        "line": 3
+        "line": 3,
+        "offset": 57
       }
     }
   ]

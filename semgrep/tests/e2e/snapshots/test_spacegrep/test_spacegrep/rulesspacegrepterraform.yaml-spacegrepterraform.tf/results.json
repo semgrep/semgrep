@@ -5,7 +5,8 @@
       "check_id": "rules.spacegrep.all-origins-allowed",
       "end": {
         "col": 28,
-        "line": 9
+        "line": 9,
+        "offset": 241
       },
       "extra": {
         "is_ignored": false,
@@ -18,7 +19,8 @@
       "path": "targets/spacegrep/terraform.tf",
       "start": {
         "col": 5,
-        "line": 9
+        "line": 9,
+        "offset": 218
       }
     }
   ]
