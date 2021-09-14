@@ -1013,7 +1013,7 @@ and function_body (env : env) (x : CST.function_body) : G.function_body =
   match x with
   | `Blk x -> G.FBStmt (block env x)
   | `EQ_exp (v1, v2) ->
-      let v1 = token env v1 (* "=" *) in
+      let _v1 = token env v1 (* "=" *) in
       let v2 = expression env v2 in
       G.FBExpr v2
 
