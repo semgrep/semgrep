@@ -105,6 +105,7 @@ class CoreError:
     message: CoreErrorMessage
     level: Level
     spans: Optional[Tuple[LegacySpan, ...]]
+    details: Optional[str]
 
     @classmethod
     def parse(cls, raw_json: JsonObject) -> "CoreError":
@@ -122,6 +123,8 @@ class CoreError:
             level_str = "WARN"
         level = Level[level_str.upper()]
 
+        details = raw_json.get("details")
+
         # TODO legacy support for live editor pattern parse highlighting
         spans = None
         if "yaml_path" in raw_json:
@@ -129,7 +132,9 @@ class CoreError:
             yaml_path = yaml_path[::-1]
             spans = tuple([LegacySpan(start, end, yaml_path)])  # type: ignore
 
-        return cls(error_type, rule_id, path, start, end, message, level, spans)
+        return cls(
+            error_type, rule_id, path, start, end, message, level, spans, details
+        )
 
     def is_timeout(self) -> bool:
         """
@@ -159,6 +164,7 @@ class CoreError:
             self.end,
             self.message,
             self.spans,
+            self.details,
         )
 
 

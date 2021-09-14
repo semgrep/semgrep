@@ -96,6 +96,7 @@ class SemgrepCoreError(SemgrepError):
     end: CoreLocation
     message: str
     spans: Optional[Tuple[LegacySpan, ...]]
+    details: Optional[str]
 
     def to_dict_base(self) -> Dict[str, Any]:
         base: Dict[str, Any] = {
@@ -139,6 +140,10 @@ class SemgrepCoreError(SemgrepError):
                 msg = f"Semgrep Core {self.level.name} - {self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
         else:
             msg = f"Semgrep Core {self.level.name} - {self.error_type} in file {self.path}\n\t{self.message}"
+
+        if self.error_type == "Fatal error":
+            error_trace = self.details or "<no stack trace returned>"
+            msg += f"\n-----[ BEGIN error trace ]-----\n{error_trace}\n-----[ END error trace ]-----\n"
 
         return msg
 
