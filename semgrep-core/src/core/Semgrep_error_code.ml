@@ -53,14 +53,14 @@ let mk_error rule_id loc msg err =
   }
 
 let mk_error_tok rule_id tok msg err =
-  let loc = PI.token_location_of_info tok in
+  let loc = PI.unsafe_token_location_of_info tok in
   mk_error rule_id loc msg err
 
 let mk_error_no_rule loc msg err =
   { rule_id = None; loc; typ = err; msg; details = None; yaml_path = None }
 
 let mk_error_tok_no_rule tok msg err =
-  let loc = PI.token_location_of_info tok in
+  let loc = PI.unsafe_token_location_of_info tok in
   mk_error_no_rule loc msg err
 
 let error rule_id loc msg err =
@@ -94,7 +94,7 @@ let exn_to_error file exn =
       {
         rule_id = Some rule_id;
         typ = PatternParseError;
-        loc = PI.token_location_of_info pos;
+        loc = PI.unsafe_token_location_of_info pos;
         msg =
           spf "Invalid pattern for %s: %s" (Rule.string_of_xlang xlang) message;
         details = None;

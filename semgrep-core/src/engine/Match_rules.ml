@@ -626,7 +626,7 @@ let rec filter_ranges env xs cond =
           * the text representation of the metavar content.
           *)
          | R.CondRegexp (mvar, (re_str, _re)) ->
-             let fk = PI.fake_info "" in
+             let fk = PI.unsafe_fake_info "" in
              let fki = AST_generic.empty_id_info () in
              let e =
                (* old: spf "semgrep_re_match(%s, \"%s\")" mvar re_str
@@ -706,7 +706,7 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                        * need to fix the token locations in `mast`. *)
                       let mast_start_loc =
                         mval |> MV.ii_of_mval |> Visitor_AST.range_of_tokens
-                        |> fst |> PI.token_location_of_info
+                        |> fst |> PI.unsafe_token_location_of_info
                       in
                       let fix_loc loc =
                         {

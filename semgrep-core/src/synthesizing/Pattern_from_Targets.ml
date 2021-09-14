@@ -120,7 +120,7 @@ let lookup env e =
   in
   look mapping
 
-let fk = Parse_info.fake_info "fake"
+let fk = Parse_info.unsafe_fake_info "fake"
 
 let fk_stmt = ExprStmt (Ellipsis fk |> G.e, fk) |> G.s
 

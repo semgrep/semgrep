@@ -59,7 +59,7 @@ type env = { r : Rule.t; errors : E.error list ref }
 (*****************************************************************************)
 
 let error env t s =
-  let loc = Parse_info.token_location_of_info t in
+  let loc = Parse_info.unsafe_token_location_of_info t in
   let check_id = "semgrep-metacheck-builtin" in
   let rule_id, _ = env.r.id in
   let err = E.mk_error rule_id loc s (E.SemgrepMatchFound check_id) in

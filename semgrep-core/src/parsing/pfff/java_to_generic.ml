@@ -42,7 +42,9 @@ let (int : int -> int) = id
 
 let error = AST_generic.error
 
-let fake s = Parse_info.fake_info s
+let fake tok s = Parse_info.fake_info tok s
+
+let unsafe_fake s = Parse_info.unsafe_fake_info s
 
 (* todo: to remove at some point when Ast_java includes them directly *)
 let fb = G.fake_bracket
@@ -346,13 +348,13 @@ and expr e =
   | Cast ((l, v1, _), v2) ->
       let v1 = list typ v1 and v2 = expr v2 in
       let t =
-        Common2.foldl1 (fun acc e -> G.TyAnd (acc, fake "&", e) |> G.t) v1
+        Common2.foldl1 (fun acc e -> G.TyAnd (acc, fake l "&", e) |> G.t) v1
       in
       G.Cast (t, l, v2)
   | InstanceOf (v1, v2) ->
       let v1 = expr v1 and v2 = ref_type v2 in
       G.Call
-        ( G.IdSpecial (G.Instanceof, fake "instanceof") |> G.e,
+        ( G.IdSpecial (G.Instanceof, unsafe_fake "instanceof") |> G.e,
           fb [ G.Arg v1; G.ArgType v2 ] )
   | Conditional (v1, v2, v3) ->
       let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
@@ -366,7 +368,7 @@ and expr e =
   | TypedMetavar (v1, v2) ->
       let v1 = ident v1 in
       let v2 = typ v2 in
-      G.TypedMetavar (v1, Parse_info.fake_info " ", v2)
+      G.TypedMetavar (v1, Parse_info.fake_info (snd v1) " ", v2)
   | Lambda (v1, t, v2) ->
       let v1 = parameters v1 in
       let v2 = stmt v2 in
@@ -492,7 +494,7 @@ and for_control tok = function
         | Some t -> G.PatVar (t, Some (id, G.empty_id_info ()))
         | None -> error tok "TODO: Foreach without a type"
       in
-      G.ForEach (pat, fake "in", v2)
+      G.ForEach (pat, fake (snd id) "in", v2)
 
 and for_init = function
   | ForInitVars v1 ->

@@ -39,7 +39,7 @@ let token = H.token
 
 let str = H.str
 
-let fk = Parse_info.fake_info ""
+let fk tok = Parse_info.fake_info tok ""
 
 (* Remove this function when everything is done *)
 let todo (_env : env) _ = failwith "not implemented"
@@ -264,7 +264,8 @@ let empty_statement (env : env) (x : CST.empty_statement) =
   match x with
   | `SEMI tok -> (* ";" *) empty_stmt env tok
   | `Ellips tok ->
-      (* "..." *) G.ExprStmt (G.Ellipsis (token env tok) |> G.e, fk) |> G.s
+      let tok = token env tok in
+      (* "..." *) G.ExprStmt (G.Ellipsis tok |> G.e, fk tok) |> G.s
 
 let semgrep_extended_identifier (env : env)
     (x : CST.semgrep_extended_identifier) =
@@ -681,7 +682,7 @@ and as_expression (env : env) ((v1, v2, v3) : CST.as_expression) =
 and attribute_modifier (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.attribute_modifier) : G.attribute =
   (* Attributes are actually constructors *)
-  let _v1 = (* "<<" *) token env v1 in
+  let v1 = (* "<<" *) token env v1 in
   let v2 =
     G.fake_bracket [ G.Arg (G.N (qualified_identifier env v2) |> G.e) ]
   in
@@ -689,13 +690,13 @@ and attribute_modifier (env : env)
     match v3 with Some x -> arguments env x | None -> G.fake_bracket []
   in
   let constr_call =
-    G.Call (G.Call (G.IdSpecial (New, fk) |> G.e, v2) |> G.e, v3)
+    G.Call (G.Call (G.IdSpecial (New, fk v1) |> G.e, v2) |> G.e, v3)
   in
   let first_attr_mod = G.E (constr_call |> G.e) in
   let v4 =
     List.map
       (fun (v1, v2, v3) ->
-        let _v1 = (* "," *) token env v1 in
+        let v1 = (* "," *) token env v1 in
         let v2 =
           G.fake_bracket [ G.Arg (G.N (qualified_identifier env v2) |> G.e) ]
         in
@@ -703,7 +704,8 @@ and attribute_modifier (env : env)
           match v3 with Some x -> arguments env x | None -> G.fake_bracket []
         in
         G.E
-          (G.Call (G.Call (G.IdSpecial (New, fk) |> G.e, v2) |> G.e, v3) |> G.e))
+          (G.Call (G.Call (G.IdSpecial (New, fk v1) |> G.e, v2) |> G.e, v3)
+          |> G.e))
       v4
   in
   let _v5 =
@@ -1100,9 +1102,10 @@ and declaration (env : env) (x : CST.declaration) =
         match v4 with
         | Some tok ->
             (* "xhp" *)
+            let ((_, tok) as ident) = str env tok in
             [
               G.NamedAttr
-                (fk, Id (str env tok, G.empty_id_info ()), G.fake_bracket []);
+                (fk tok, Id (ident, G.empty_id_info ()), G.fake_bracket []);
             ]
         | None -> []
       in
@@ -1359,7 +1362,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
             | None -> v6
           in
           G.Call
-            ( G.IdSpecial (ConcatString InterpolatedConcat, fk) |> G.e,
+            ( G.IdSpecial (ConcatString InterpolatedConcat, fk v6) |> G.e,
               (heredoc_start, v4, heredoc_end) )
           |> G.e
       | `Array (v1, v2, v3, v4, v5) ->
@@ -1757,10 +1760,9 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
         | `Xhp_cate_decl x ->
             [ G.FieldStmt (xhp_category_declaration env x |> G.s) ]
         | `Ellips tok ->
+            let tok = token env tok in
             (* "..." *)
-            let expr =
-              G.ExprStmt (G.Ellipsis (token env tok) |> G.e, fk) |> G.s
-            in
+            let expr = G.ExprStmt (G.Ellipsis tok |> G.e, fk tok) |> G.s in
             [ G.FieldStmt expr ])
       v2
   in
@@ -2312,12 +2314,12 @@ and statement (env : env) (x : CST.statement) =
                 G.Block (G.fake_bracket []) |> G.s )
         | `LPAR_exp_rep_COMMA_exp_RPAR_choice_comp_stmt (v1, v2, v3, v4, v5) ->
             let v1 = (* "(" *) token env v1 in
-            let v2 = G.ExprStmt (expression env v2, fk) |> G.s in
+            let v2 = G.ExprStmt (expression env v2, fk v1) |> G.s in
             let v3 =
               List.map
                 (fun (v1, v2) ->
-                  let _v1 = (* "," *) token env v1 in
-                  let v2 = G.ExprStmt (expression env v2, fk) |> G.s in
+                  let v1 = (* "," *) token env v1 in
+                  let v2 = G.ExprStmt (expression env v2, fk v1) |> G.s in
                   v2)
                 v3
             in
@@ -2726,9 +2728,10 @@ and xhp_attribute (env : env) (x : CST.xhp_attribute) =
 
 and xhp_attribute_declaration (env : env)
     ((v1, v2, v3, v4) : CST.xhp_attribute_declaration) =
+  let ((_, tok) as ident) = str env v1 in
   let attr_tok =
     (* "attribute" *)
-    G.NamedAttr (fk, G.Id (str env v1, G.empty_id_info ()), G.fake_bracket [])
+    G.NamedAttr (fk tok, G.Id (ident, G.empty_id_info ()), G.fake_bracket [])
   in
   (* Q: Is this what we want to do with the keyword? *)
   let v2 = xhp_class_attribute env v2 attr_tok in
@@ -2773,15 +2776,17 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
         match x with
         | `ATre tok ->
             (* "@required" *)
+            let ((_, tok) as ident) = str env tok in
             [
               G.NamedAttr
-                (fk, Id (str env tok, G.empty_id_info ()), G.fake_bracket []);
+                (fk tok, Id (ident, G.empty_id_info ()), G.fake_bracket []);
             ]
         | `ATla tok ->
             (* "@lateinit" *)
+            let ((_, tok) as ident) = str env tok in
             [
               G.NamedAttr
-                (fk, Id (str env tok, G.empty_id_info ()), G.fake_bracket []);
+                (fk tok, Id (ident, G.empty_id_info ()), G.fake_bracket []);
             ])
     | None -> []
   in

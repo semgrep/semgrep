@@ -37,7 +37,7 @@ type env = unit H.env
 
 let _todo (_env : env) _ = failwith "not implemented, yikes."
 
-let fb = PI.fake_bracket
+let fb = PI.unsafe_fake_bracket
 
 let list_to_maybe_tuple = function
   | [] -> raise Impossible
@@ -1443,7 +1443,7 @@ and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) : atom =
   let v1 = token2 env v1 (* symbol_start :" "*) in
   let res = match v2 with Some x -> literal_contents env x | None -> [] in
   let v3 = token2 env v3 (* string_end " "*) in
-  (Parse_info.fake_info ":", AtomFromString (v1, res, v3))
+  (Parse_info.fake_info v1 ":", AtomFromString (v1, res, v3))
 
 and literal_contents (env : env) (xs : CST.literal_contents) : AST.interp list =
   List.filter_map
