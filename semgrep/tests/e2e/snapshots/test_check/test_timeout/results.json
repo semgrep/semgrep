@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Semgrep Core WARN - Timeout: When running 1 on targets/equivalence/open_redirect.py: ",
+      "message": "Semgrep Core WARN - Timeout: When running rules.forcetimeout on targets/equivalence/open_redirect.py: ",
       "path": "targets/equivalence/open_redirect.py",
       "rule_id": "rules.forcetimeout",
       "type": "Timeout"
