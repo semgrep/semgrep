@@ -328,6 +328,7 @@ let rec just_parse_with_lang lang file =
       run file
         [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
         (fun x -> x)
+  | Lang.HCL -> failwith "No HCL parser yet; improve the one in tree-sitter"
 
 (*****************************************************************************)
 (* Entry point *)

@@ -238,6 +238,7 @@ let inspect_file_p (lang : Lang.t) path =
         And (Not (has_extension [ ".d.ts" ]), is_script lang [ "ts-node" ])
     | Vue -> has_lang_extension lang
     | Yaml -> has_lang_extension lang
+    | HCL -> has_lang_extension lang
   in
   eval test path
 
