@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "error",
-      "message": "Semgrep Core ERROR - Pattern parse error: In rule -: Invalid pattern for C: Parsing.Parse_error",
+      "message": "Semgrep Core ERROR - Pattern parse error: In rule -: Invalid pattern for C",
       "rule_id": "-",
       "type": "Pattern parse error"
     }

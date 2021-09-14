@@ -5,7 +5,7 @@
       "level": "warn",
       "message": "Semgrep Core WARN - Timeout: When running 1 on targets/equivalence/open_redirect.py: ",
       "path": "targets/equivalence/open_redirect.py",
-      "rule_id": "rules.forcetimeout",
+      "rule_id": "1",
       "type": "Timeout"
     }
   ],
