@@ -402,7 +402,7 @@ and expr e : G.expr =
             {
               G.fparams = ps;
               frettype = rett;
-              fbody = body;
+              fbody = G.FBStmt body;
               fkind = (G.LambdaKind, t);
             }
       | _ -> error tok "TODO: Lambda"))
@@ -484,7 +484,9 @@ and func_def
   let attrs = list attribute f_attrs in
   let body = stmt f_body in
   let ent = G.basic_entity id (modifiers @ attrs) in
-  let def = { G.fparams = params; frettype = fret; fbody = body; fkind } in
+  let def =
+    { G.fparams = params; frettype = fret; fbody = G.FBStmt body; fkind }
+  in
   (ent, def)
 
 and function_kind (kind, t) =

@@ -392,7 +392,7 @@ and func_def { f_name; f_type; f_body; f_static } =
       {
         G.fparams = params;
         frettype = Some ret;
-        fbody = G.s (G.Block v3);
+        fbody = G.FBStmt (G.s (G.Block v3));
         fkind = (G.Function, G.fake "");
       } )
 

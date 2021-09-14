@@ -1085,7 +1085,7 @@ and declaration (env : env) (x : CST.declaration) =
         function_declaration_header env v2
       in
       let compound_statement = inline_compound_statement env v3 in
-      let def = { func_def with fbody = compound_statement } in
+      let def = { func_def with fbody = G.FBStmt compound_statement } in
       let ent = basic_typed_entity identifier attrs type_params in
       G.DefStmt (ent, G.FuncDef def)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) ->
@@ -1558,8 +1558,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
           let v4 = (* "==>" *) token env v4 in
           let v5 =
             match v5 with
-            | `Exp x -> G.exprstmt (expression env x)
-            | `Comp_stmt x -> compound_statement env x
+            | `Exp x -> G.FBExpr (expression env x)
+            | `Comp_stmt x -> G.FBStmt (compound_statement env x)
           in
           let def : G.function_definition =
             {
@@ -1629,7 +1629,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
               fkind = (G.LambdaKind, v2);
               fparams = v3;
               frettype = v4;
-              fbody = v6;
+              fbody = G.FBStmt v6;
             }
           in
           G.Lambda def |> G.e
@@ -1717,7 +1717,7 @@ and function_declaration_header (env : env)
       fparams = parameters;
       frettype = attribute_modifier_and_return_type;
       fbody =
-        G.empty_fbody
+        G.FBDecl G.sc
         (* To be replaced in parent with real statement. Could also replace with passthrough strategy *);
     },
     identifier,
@@ -1776,7 +1776,7 @@ and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
   let v2 = List.map (member_modifier env) v2 in
   let func_def, identifier, type_args = function_declaration_header env v3 in
   let v4 = inline_compound_statement env v4 in
-  let def = { func_def with fbody = v4 } in
+  let def = { func_def with fbody = G.FBStmt v4 } in
   let ent = basic_typed_entity identifier (v1 @ v2) type_args in
   G.DefStmt (ent, G.FuncDef def)
 

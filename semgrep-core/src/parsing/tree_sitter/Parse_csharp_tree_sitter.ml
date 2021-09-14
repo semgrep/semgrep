@@ -139,7 +139,7 @@ let create_lambda lambda_params expr =
       fkind = (Arrow, fake "=>");
       fparams;
       frettype = None;
-      fbody = exprstmt expr;
+      fbody = FBExpr expr;
     }
   |> G.e
 
@@ -158,7 +158,7 @@ let create_join_result_lambda lambda_params ident =
       fkind = (Arrow, fake "=>");
       fparams;
       frettype = None;
-      fbody = exprstmt expr;
+      fbody = FBExpr expr;
     }
   |> G.e
 
@@ -1136,7 +1136,12 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v3 = match v3 with Some x -> parameter_list env x | None -> [] in
       let v4 = block env v4 in
       Lambda
-        { fkind = (LambdaKind, v2); fparams = v3; frettype = None; fbody = v4 }
+        {
+          fkind = (LambdaKind, v2);
+          fparams = v3;
+          frettype = None;
+          fbody = G.FBStmt v4;
+        }
   | `Anon_obj_crea_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = token env v2 (* "{" *) in
@@ -1312,8 +1317,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v3 = token env v3 (* "=>" *) in
       let v4 =
         match v4 with
-        | `Blk x -> block env x
-        | `Exp x -> G.ExprStmt (expression env x, v3) |> G.s
+        | `Blk x -> G.FBStmt (block env x)
+        | `Exp x -> G.FBExpr (expression env x)
       in
       Lambda { fkind = (Arrow, v3); fparams = v2; frettype = None; fbody = v4 }
   | `Make_ref_exp (v1, v2, v3, v4) ->
@@ -2100,17 +2105,17 @@ and anonymous_object_member_declarator (env : env)
       let expr = expression env x in
       FieldStmt (exprstmt expr)
 
-and function_body (env : env) (x : CST.function_body) =
+and function_body (env : env) (x : CST.function_body) : G.function_body =
   match x with
-  | `Blk x -> block env x
+  | `Blk x -> G.FBStmt (block env x)
   | `Arrow_exp_clause_SEMI (v1, v2) ->
       let v1 = arrow_expression_clause env v1 in
       let v2 = token env v2 (* ";" *) in
-      let arrow, expr = v1 in
-      ExprStmt (expr, arrow) (* TODO Or return Block? *) |> G.s
+      let _arrow, expr = v1 in
+      G.FBStmt (G.ExprStmt (expr, v2) |> G.s)
   | `SEMI tok ->
-      let _ = token env tok (* ";" *) in
-      empty_fbody
+      let t = token env tok (* ";" *) in
+      G.FBDecl t
 
 and finally_clause (env : env) ((v1, v2) : CST.finally_clause) =
   let v1 = token env v1 (* "finally" *) in
@@ -2619,9 +2624,12 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       let v4 = parameter_list env v4 in
       let v5 = map_opt constructor_initializer env v5 in
       let v6 = function_body env v6 in
+      (* TODO? separate ctor initializer from body in G.function_definition?*)
       let fbody =
         match v5 with
-        | Some init -> Block (fake_bracket [ init; v6 ]) |> G.s
+        | Some init ->
+            G.FBStmt
+              (Block (fake_bracket [ init; H2.funcbody_to_stmt v6 ]) |> G.s)
         | None -> v6
       in
       let def =
@@ -2797,7 +2805,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           let v1 = arrow_expression_clause env v1 in
           let v2 = token env v2 (* ";" *) in
           let arrow, expr = v1 in
-          let fbody = ExprStmt (expr, v2) |> G.s in
+          let fbody = G.FBStmt (ExprStmt (expr, v2) |> G.s) in
           let ent = basic_entity ("get_Item", arrow) indexer_attrs in
           let funcdef =
             FuncDef
@@ -2934,7 +2942,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                   fkind = (Arrow, arrow);
                   fparams = [];
                   frettype = Some v3;
-                  fbody = ExprStmt (expr, v2) |> G.s;
+                  fbody = G.FBStmt (ExprStmt (expr, v2) |> G.s);
                 }
             in
             let func = DefStmt (ent, funcdef) |> G.s in

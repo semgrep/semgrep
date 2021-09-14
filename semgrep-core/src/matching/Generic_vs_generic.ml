@@ -2319,9 +2319,23 @@ and m_function_definition a b =
       { B.fparams = b1; frettype = b2; fbody = b3; fkind = b4 } ) ->
       m_parameters a1 b1 >>= fun () ->
       (m_option_none_can_match_some m_type_) a2 b2 >>= fun () ->
-      m_stmt a3 b3 >>= fun () -> m_wrap m_function_kind a4 b4
+      m_function_body a3 b3 >>= fun () -> m_wrap m_function_kind a4 b4
 
 (*e: function [[Generic_vs_generic.m_function_definition]] *)
+and m_function_body a b =
+  match (a, b) with
+  | G.FBStmt a1, B.FBStmt b1 -> m_stmt a1 b1
+  (* TODO: equivalence: do magic conversion to FStmt? *)
+  | G.FBExpr a1, B.FBExpr b1 -> m_expr a1 b1
+  | G.FBDecl a1, B.FBDecl b1 -> m_tok a1 b1
+  | G.FBNothing, B.FBNothing -> return ()
+  (* DEBT: right now we still use FBStmt [] to encode an FBNothing
+   * in ast_js.ml, and other languages, so we temporary allow
+   * those empty body to match an FBNothing that was generated
+   * in Visitor_AST.v_def_as_partial of the target.
+   *)
+  | G.FBStmt { s = G.Block (_, [], _); _ }, B.FBNothing -> return ()
+  | G.FBStmt _, _ | G.FBExpr _, _ | G.FBDecl _, _ | G.FBNothing, _ -> fail ()
 
 (*s: function [[Generic_vs_generic.m_parameters]] *)
 and m_parameters a b =

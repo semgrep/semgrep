@@ -122,7 +122,7 @@ let rec expr e =
         {
           G.fparams = params;
           frettype = None;
-          fbody = st;
+          fbody = G.FBStmt st;
           fkind = (G.LambdaKind, t1);
         }
       in
@@ -502,7 +502,7 @@ and definition def =
         {
           G.fparams = params;
           frettype = None;
-          fbody = body;
+          fbody = G.FBStmt body;
           fkind = (G.Method, t);
         }
       in
