@@ -45,6 +45,9 @@ type t = {
   (* THINK: Should we merge ac_matching and commutative_boolop into a single setting? *)
   ~commutative_boolop <ocaml default="false"> : bool;
 
+  (* assign-patterns (e.g. `$X = $E`) will match var-defs (e.g. `var x = 1;`) *)
+  ~vardef_assign <ocaml default="true"> : bool;
+
   (* !experimental: a bit hacky, and may introduce big perf regressions! *)
   (* should be used with DeepEllipsis; do it implicitely has issues *)
   ~go_deeper_expr <ocaml default="true"> : bool;
