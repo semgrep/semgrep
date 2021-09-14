@@ -70,7 +70,7 @@ let print_bool env = function
       | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus | Lang.Javascript
       | Lang.JSON | Lang.Yaml | Lang.OCaml | Lang.Ruby | Lang.Typescript
       | Lang.Vue | Lang.Csharp | Lang.PHP | Lang.Hack | Lang.Kotlin | Lang.Lua
-      | Lang.Bash | Lang.Rust | Lang.Scala | Lang.HTML ->
+      | Lang.Bash | Lang.Rust | Lang.Scala | Lang.HTML | Lang.HCL ->
           "true"
       | Lang.R -> "TRUE")
   | false -> (
@@ -79,7 +79,7 @@ let print_bool env = function
       | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus | Lang.JSON | Lang.Yaml
       | Lang.Javascript | Lang.OCaml | Lang.Ruby | Lang.Typescript | Lang.Csharp
       | Lang.Vue | Lang.PHP | Lang.Hack | Lang.Kotlin | Lang.Lua | Lang.Bash
-      | Lang.Rust | Lang.Scala | Lang.HTML ->
+      | Lang.Rust | Lang.Scala | Lang.HTML | Lang.HCL ->
           "false"
       | Lang.R -> "FALSE")
 
@@ -167,7 +167,7 @@ and if_stmt env level (tok, e, s, sopt) =
   let format_cond, elseif_str, format_block =
     match env.lang with
     | Lang.Bash | Lang.Ruby | Lang.OCaml | Lang.Scala | Lang.PHP | Lang.Hack
-    | Lang.Yaml | Lang.HTML ->
+    | Lang.Yaml | Lang.HTML | Lang.HCL ->
         raise Todo
     | Lang.Python | Lang.Python2 | Lang.Python3 ->
         (no_paren_cond, "elif", colon_body)
@@ -201,7 +201,7 @@ and while_stmt env level (tok, e, s) =
   let while_format =
     match env.lang with
     | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Lua | Lang.Yaml | Lang.Scala
-    | Lang.HTML ->
+    | Lang.HTML | Lang.HCL ->
         raise Todo
     | Lang.Python | Lang.Python2 | Lang.Python3 -> python_while
     | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
@@ -219,7 +219,7 @@ and do_while stmt env level (s, e) =
   let do_while_format =
     match env.lang with
     | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Lua | Lang.Yaml | Lang.Scala
-    | Lang.HTML ->
+    | Lang.HTML | Lang.HCL ->
         raise Todo
     | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
     | Lang.Javascript | Lang.Typescript | Lang.Vue ->
@@ -235,7 +235,7 @@ and for_stmt env level (for_tok, hdr, s) =
   let for_format =
     match env.lang with
     | Lang.Bash | Lang.PHP | Lang.HTML | Lang.Hack | Lang.Lua | Lang.Yaml
-    | Lang.Scala ->
+    | Lang.Scala | Lang.HCL ->
         raise Todo
     | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin
     | Lang.Javascript | Lang.Typescript | Lang.Vue | Lang.Rust | Lang.R ->
@@ -279,7 +279,7 @@ and def_stmt env (entity, def_kind) =
     let no_val, with_val =
       match env.lang with
       | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Lua | Lang.Yaml | Lang.Scala
-      | Lang.HTML ->
+      | Lang.HTML | Lang.HCL ->
           raise Todo
       | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin ->
           ( (fun typ id _e -> F.sprintf "%s %s;" typ id),
@@ -321,7 +321,8 @@ and def_stmt env (entity, def_kind) =
 and return env (tok, eopt) _sc =
   let to_return = match eopt with None -> "" | Some e -> expr env e in
   match env.lang with
-  | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Yaml | Lang.Scala | Lang.HTML ->
+  | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Yaml | Lang.Scala | Lang.HTML
+  | Lang.HCL ->
       raise Todo
   | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin | Lang.Rust
     ->
@@ -340,7 +341,8 @@ and break env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
-  | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Yaml | Lang.Scala | Lang.HTML ->
+  | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Yaml | Lang.Scala | Lang.HTML
+  | Lang.HCL ->
       raise Todo
   | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin | Lang.Rust
     ->
@@ -359,7 +361,8 @@ and continue env (tok, lbl) _sc =
     | LDynamic e -> F.sprintf " %s" (expr env e)
   in
   match env.lang with
-  | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Yaml | Lang.Scala | Lang.HTML ->
+  | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Yaml | Lang.Scala | Lang.HTML
+  | Lang.HCL ->
       raise Todo
   | Lang.Java | Lang.C | Lang.Cplusplus | Lang.Csharp | Lang.Kotlin | Lang.Lua
   | Lang.Rust ->
@@ -439,7 +442,8 @@ and literal env l =
   | Char (s, _) -> F.sprintf "'%s'" s
   | String (s, _) -> (
       match env.lang with
-      | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Yaml | Lang.Scala | Lang.HTML ->
+      | Lang.Bash | Lang.PHP | Lang.Hack | Lang.Yaml | Lang.Scala | Lang.HTML
+      | Lang.HCL ->
           raise Todo
       | Lang.Python | Lang.Python2 | Lang.Python3 -> "'" ^ s ^ "'"
       | Lang.Java | Lang.Go | Lang.C | Lang.Cplusplus | Lang.Csharp
