@@ -1,11 +1,12 @@
 {
   "errors": [
     {
-      "code": 9,
+      "code": 2,
       "level": "warn",
+      "message": "Semgrep Core WARN - Timeout: When running rules.forcetimeout on targets/equivalence/open_redirect.py: ",
       "path": "targets/equivalence/open_redirect.py",
       "rule_id": "rules.forcetimeout",
-      "type": "MatchTimeoutError"
+      "type": "Timeout"
     }
   ],
   "results": []

@@ -5,7 +5,8 @@
       "check_id": "rules.javascript-basic-eqeq-bad",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/exclude_include/excluded/excluded.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.javascript-basic-eqeq-bad",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -74,14 +77,16 @@
       "path": "targets/exclude_include/excluded/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.javascript-basic-eqeq-bad",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -112,14 +117,16 @@
       "path": "targets/exclude_include/included/excluded.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     },
     {
       "check_id": "rules.javascript-basic-eqeq-bad",
       "end": {
         "col": 19,
-        "line": 3
+        "line": 3,
+        "offset": 30
       },
       "extra": {
         "is_ignored": false,
@@ -150,7 +157,8 @@
       "path": "targets/exclude_include/included/included.js",
       "start": {
         "col": 13,
-        "line": 3
+        "line": 3,
+        "offset": 24
       }
     }
   ]

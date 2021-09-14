@@ -5,7 +5,8 @@
       "check_id": "rules.any-file",
       "end": {
         "col": 1,
-        "line": 0
+        "line": 0,
+        "offset": 0
       },
       "extra": {
         "is_ignored": false,
@@ -18,7 +19,8 @@
       "path": "targets/empty/totally_empty_file",
       "start": {
         "col": 1,
-        "line": 0
+        "line": 0,
+        "offset": 0
       }
     }
   ]

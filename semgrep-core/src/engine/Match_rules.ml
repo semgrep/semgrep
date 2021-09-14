@@ -26,7 +26,7 @@ module RP = Report
 module S = Specialize_formula
 module RM = Range_with_metavars
 module FM = File_and_more
-module E = Error_code
+module E = Semgrep_error_code
 module Resp = Semgrep_core_response_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -114,7 +114,7 @@ type env = {
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   file : Common.filename;
-  lazy_ast_and_errors : (G.program * Error_code.error stack) lazy_t;
+  lazy_ast_and_errors : (G.program * E.error stack) lazy_t;
   rule_id : R.rule_id;
   xlang : R.xlang;
   equivalences : Equivalence.equivalences;
@@ -134,9 +134,8 @@ let error env msg =
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
   let loc = PI.first_loc_of_file env.file in
-  let s = Printf.sprintf "rule %s: %s" env.rule_id msg in
   (* TODO: warning or error? MatchingError or ... ? *)
-  let err = E.mk_error_loc loc (E.MatchingError s) in
+  let err = E.mk_error env.rule_id loc msg E.MatchingError in
   Common.push err env.errors
 
 let (xpatterns_in_formula : S.sformula -> (R.xpattern * R.inside option) list) =
@@ -186,6 +185,9 @@ let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
   (* Need env to be the result of evaluate_formula, which propagates metavariables *)
   (* rather than the original metavariables for the match                          *)
   { m with rule_id; env = range.mvars }
+
+let error_with_rule_id rule_id (error : E.error) =
+  { error with rule_id = Some rule_id }
 
 let lazy_force x = Lazy.force x [@@profiling]
 
@@ -971,8 +973,9 @@ let check hook default_config rules equivs file_and_more =
            (fun () ->
              let config = r.options ||| default_config in
              let formula = R.formula_of_pformula pformula in
+             let rule_id = fst r.id in
              let res, final_ranges =
-               matches_of_formula config equivs (fst r.id) file_and_more formula
+               matches_of_formula config equivs rule_id file_and_more formula
                  None
              in
              {
@@ -986,9 +989,9 @@ let check hook default_config rules equivs file_and_more =
                  |> before_return (fun v ->
                         v
                         |> List.iter (fun (m : Pattern_match.t) ->
-                               let str = spf "with rule %s" (fst r.R.id) in
+                               let str = spf "with rule %s" rule_id in
                                hook str m.env m.tokens));
-               errors = res.errors;
+               errors = res.errors |> List.map (error_with_rule_id rule_id);
                skipped = res.skipped;
                profiling = res.profiling;
              }))

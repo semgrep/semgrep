@@ -5,7 +5,8 @@
       "check_id": "rules.pattern-not-regex.pattern-not-regex-bug",
       "end": {
         "col": 4,
-        "line": 1
+        "line": 1,
+        "offset": 3
       },
       "extra": {
         "is_ignored": false,
@@ -18,7 +19,8 @@
       "path": "targets/pattern-not-regex/issue2465.requirements.txt",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     }
   ]
