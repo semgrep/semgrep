@@ -6,6 +6,7 @@ from typing import Any
 from typing import Dict
 from typing import IO
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -386,9 +387,7 @@ def nice_semgrep_url(url: str) -> str:
     return url
 
 
-def download_config(config_url: str) -> Dict[str, YamlTree]:
-    import requests  # here for faster startup times
-
+def download_config(config_url: str) -> Mapping[str, YamlTree]:
     metric_manager.using_server = True
 
     DOWNLOADING_MESSAGE = f"downloading config..."
@@ -397,37 +396,41 @@ def download_config(config_url: str) -> Dict[str, YamlTree]:
         f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.dev/registry to see all public rules."
     )
     logger.info(DOWNLOADING_MESSAGE)
-    headers = {"User-Agent": SEMGREP_USER_AGENT}
 
     try:
-        r = requests.get(config_url, stream=True, headers=headers, timeout=20)
-        if r.status_code == requests.codes.ok:
-            content_type = r.headers.get("Content-Type")
-            yaml_types = [
-                "text/plain",
-                "application/x-yaml",
-                "text/x-yaml",
-                "text/yaml",
-                "text/vnd.yaml",
-            ]
-            if content_type and any((ct in content_type for ct in yaml_types)):
-                return parse_config_string(
-                    "remote-url",
-                    r.content.decode("utf-8", errors="replace"),
-                    filename=f"{config_url[:20]}...",
-                )
-            else:
-                raise SemgrepError(
-                    f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
-                )
-        else:
-            raise SemgrepError(
-                f"bad status code: {r.status_code} returned by config url: {config_url}"
-            )
+        return parse_config_string(
+            "remote-url",
+            _make_config_request(config_url),
+            filename=f"{config_url[:20]}...",
+        )
     except Exception as e:
         raise SemgrepError(f"Failed to download config from {config_url}: {str(e)}")
 
-    return None
+
+def _make_config_request(config_url: str) -> str:
+    import requests  # here for faster startup times
+
+    headers = {"User-Agent": SEMGREP_USER_AGENT}
+    r = requests.get(config_url, stream=True, headers=headers, timeout=20)
+    if r.status_code == requests.codes.ok:
+        content_type = r.headers.get("Content-Type")
+        yaml_types = [
+            "text/plain",
+            "application/x-yaml",
+            "text/x-yaml",
+            "text/yaml",
+            "text/vnd.yaml",
+        ]
+        if content_type and any((ct in content_type for ct in yaml_types)):
+            return r.content.decode("utf-8", errors="replace")
+        else:
+            raise SemgrepError(
+                f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
+            )
+    else:
+        raise SemgrepError(
+            f"bad status code: {r.status_code} returned by config url: {config_url}"
+        )
 
 
 def is_registry_id(config_str: str) -> bool:
@@ -458,7 +461,7 @@ def saved_snippet_to_url(snippet_id: str) -> str:
     return registry_id_to_url(f"s/{snippet_id}")
 
 
-def resolve_config(config_str: str) -> Dict[str, YamlTree]:
+def resolve_config(config_str: str) -> Mapping[str, YamlTree]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
     if config_str in RULES_REGISTRY:
