@@ -6,7 +6,7 @@ let lang_has_no_dollar_ids =
   Lang.(
     function
     | Python | Python2 | Python3 | Java | Go | C | Cplusplus | OCaml | JSON
-    | Yaml | Csharp | Kotlin | Lua | R | HTML ->
+    | Yaml | HCL | Csharp | Kotlin | Lua | R | HTML ->
         true
     | Javascript | Typescript | Vue | Ruby | PHP | Hack | Bash | Rust | Scala ->
         false)
