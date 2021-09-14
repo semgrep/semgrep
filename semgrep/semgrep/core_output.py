@@ -128,18 +128,23 @@ class CoreError:
         """
         return self.error_type == CoreErrorType("Timeout")
 
-    def to_semgrep_error(self) -> SemgrepCoreError:
+    def to_semgrep_error(self, rule_id: RuleId) -> SemgrepCoreError:
         # TODO benchmarking code relies on error code value right now
         if self.error_type == CoreErrorType("Syntax error"):
             code = 3
         else:
             code = 2
 
+        # TODO https://github.com/returntocorp/semgrep/issues/3861
+        reported_rule_id = self.rule_id
+        if self.is_timeout() or self.error_type == CoreErrorType("Out of memory"):
+            reported_rule_id = rule_id
+
         return SemgrepCoreError(
             code,
             self.level,
             self.error_type,
-            self.rule_id,
+            reported_rule_id,
             self.path,
             self.start,
             self.end,

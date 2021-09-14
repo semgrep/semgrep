@@ -103,7 +103,7 @@ class CoreRunner:
                         semgrep_output,
                         semgrep_error_output,
                     )
-                raise errors[0].to_semgrep_error()
+                raise errors[0].to_semgrep_error(RuleId(rule.id))
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
@@ -296,7 +296,9 @@ class CoreRunner:
 
                     # end with tempfile.NamedTemporaryFile(...) ...
                     outputs[rule].extend(core_output.rule_matches(rule))
-                    parsed_errors = [e.to_semgrep_error() for e in core_output.errors]
+                    parsed_errors = [
+                        e.to_semgrep_error(RuleId(rule.id)) for e in core_output.errors
+                    ]
                     for err in core_output.errors:
                         if err.is_timeout():
                             assert err.path is not None
