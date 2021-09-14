@@ -15,6 +15,7 @@ from typing import Tuple
 
 import attr
 
+from semgrep.error import LegacySpan
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
 from semgrep.rule import Rule
@@ -103,6 +104,7 @@ class CoreError:
     end: CoreLocation
     message: CoreErrorMessage
     level: Level
+    spans: Optional[Tuple[LegacySpan, ...]]
 
     @classmethod
     def parse(cls, raw_json: JsonObject) -> "CoreError":
@@ -120,7 +122,13 @@ class CoreError:
             level_str = "WARN"
         level = Level[level_str.upper()]
 
-        return cls(error_type, rule_id, path, start, end, message, level)
+        # TODO legacy support for live editor pattern parse highlighting
+        spans = None
+        if "yaml_path" in raw_json:
+            yaml_path = tuple(raw_json["yaml_path"])
+            spans = tuple([LegacySpan(start, end, yaml_path)])  # type: ignore
+
+        return cls(error_type, rule_id, path, start, end, message, level, spans)
 
     def is_timeout(self) -> bool:
         """
@@ -149,6 +157,7 @@ class CoreError:
             self.start,
             self.end,
             self.message,
+            self.spans,
         )
 
 

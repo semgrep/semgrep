@@ -5,6 +5,25 @@
       "level": "error",
       "message": "Semgrep Core ERROR - Pattern parse error: In rule -: Invalid pattern for C",
       "rule_id": "-",
+      "spans": [
+        {
+          "config_end": {
+            "col": 35,
+            "line": 3,
+            "offset": 51
+          },
+          "config_path": [
+            "pattern",
+            "0",
+            "rules"
+          ],
+          "config_start": {
+            "col": 12,
+            "line": 3,
+            "offset": 28
+          }
+        }
+      ],
       "type": "Pattern parse error"
     }
   ],

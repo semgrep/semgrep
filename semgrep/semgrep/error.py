@@ -79,6 +79,13 @@ class SemgrepError(Exception):
 
 
 @attr.s(auto_attribs=True, frozen=True)
+class LegacySpan:
+    config_start: CoreLocation
+    config_end: CoreLocation
+    config_path: Tuple[str]
+
+
+@attr.s(auto_attribs=True, frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level
@@ -88,9 +95,10 @@ class SemgrepCoreError(SemgrepError):
     start: CoreLocation
     end: CoreLocation
     message: str
+    spans: Optional[Tuple[LegacySpan, ...]]
 
     def to_dict_base(self) -> Dict[str, Any]:
-        base = {
+        base: Dict[str, Any] = {
             "type": self.error_type,
             "message": self._error_message,
         }
@@ -103,6 +111,9 @@ class SemgrepCoreError(SemgrepError):
             and self.error_type != "Pattern parse error"
         ):
             base["path"] = str(self.path)
+
+        if self.spans:
+            base["spans"] = tuple([attr.asdict(s) for s in self.spans])
 
         return base
 

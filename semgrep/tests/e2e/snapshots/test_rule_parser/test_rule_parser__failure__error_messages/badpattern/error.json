@@ -5,6 +5,27 @@
       "level": "error",
       "message": "Semgrep Core ERROR - Pattern parse error: In rule eqeq-is-bad: Invalid pattern for Python",
       "rule_id": "eqeq-is-bad",
+      "spans": [
+        {
+          "config_end": {
+            "col": 24,
+            "line": 4,
+            "offset": 60
+          },
+          "config_path": [
+            "pattern",
+            "0",
+            "patterns",
+            "0",
+            "rules"
+          ],
+          "config_start": {
+            "col": 14,
+            "line": 4,
+            "offset": 50
+          }
+        }
+      ],
       "type": "Pattern parse error"
     }
   ],
