@@ -231,7 +231,7 @@ The two most popular are:
     num_findings = sum(len(v) for v in filtered_matches.matches.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
-    if metric_manager.is_enabled:
+    if metric_manager.is_enabled():
         project_url = None
         try:
             project_url = sub_check_output(

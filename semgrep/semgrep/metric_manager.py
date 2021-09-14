@@ -7,9 +7,12 @@ from typing import Optional
 from typing import Sequence
 from urllib.parse import urlparse
 
+import click
+
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
+from semgrep.types import MetricsState
 from semgrep.verbose_logging import getLogger
 
 METRICS_ENDPOINT = "https://metrics.semgrep.dev"
@@ -44,7 +47,28 @@ class _MetricManager:
         self._file_stats: List[Dict[str, Any]] = []
         self._rule_stats: List[Dict[str, Any]] = []
 
-        self._send_metrics = False
+        self._send_metrics: MetricsState = MetricsState.OFF
+        self.using_server = False
+
+    def configure(
+        self,
+        metrics_state: Optional[MetricsState],
+        legacy_state: Optional[MetricsState],
+    ) -> None:
+        """
+        Configures whether to always, never, or automatically send metrics (based on whether config
+        is pulled from the server).
+
+        :param metrics_state: The value of the --metrics option
+        :param legacy_state: Value of the --enable-metrics/--disable-metrics option
+        :raises click.BadParameter: if both --metrics and --enable-metrics/--disable-metrics are passed
+        """
+
+        if metrics_state is not None and legacy_state is not None:
+            raise click.BadParameter(
+                "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
+            )
+        self._send_metrics = metrics_state or legacy_state or MetricsState.AUTO
 
     def set_project_hash(self, project_url: Optional[str]) -> None:
         """
@@ -172,25 +196,35 @@ class _MetricManager:
             },
         }
 
-    def disable(self) -> None:
-        self._send_metrics = False
-
-    def enable(self) -> None:
-        self._send_metrics = True
-
-    @property
     def is_enabled(self) -> bool:
-        return self._send_metrics
+        """
+        Returns whether metrics should be sent.
+
+        If _send_metrics is:
+          - auto, sends if using_server
+          - on, sends
+          - off, doesn't send
+        """
+        res = (
+            self.using_server
+            if self._send_metrics == MetricsState.AUTO
+            else self._send_metrics == MetricsState.ON
+        )
+        return res
 
     def send(self) -> None:
         """
         Send metrics to the metrics server.
 
-        Will if _send_metrics is True
+        Will if is_enabled is True
         """
         import requests
 
-        if self._send_metrics:
+        logger.debug(
+            f"{'Sending' if self.is_enabled() else 'Not sending'} pseudonymous metrics since metrics are configured to {self._send_metrics.name} and server usage is {self.using_server}"
+        )
+
+        if self.is_enabled():
             metrics = self.as_dict()
             headers = {"User-Agent": SEMGREP_USER_AGENT}
 
@@ -199,9 +233,9 @@ class _MetricManager:
                     METRICS_ENDPOINT, json=metrics, timeout=2, headers=headers
                 )
                 r.raise_for_status()
-                logger.debug("Sent non-identifiable metrics")
+                logger.debug("Sent pseudonymous metrics")
             except Exception as e:
-                logger.debug(f"Failed to send non-identifiable metrics: {e}")
+                logger.debug(f"Failed to send pseudonymous metrics: {e}")
 
 
 metric_manager = _MetricManager()

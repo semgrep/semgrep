@@ -26,6 +26,7 @@ from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
+from semgrep.metric_manager import metric_manager
 from semgrep.rule import Rule
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
@@ -387,6 +388,8 @@ def nice_semgrep_url(url: str) -> str:
 
 def download_config(config_url: str) -> Dict[str, YamlTree]:
     import requests  # here for faster startup times
+
+    metric_manager.using_server = True
 
     DOWNLOADING_MESSAGE = f"downloading config..."
     logger.debug(f"trying to download from {config_url}")
