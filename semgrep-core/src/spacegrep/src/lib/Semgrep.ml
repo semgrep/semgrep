@@ -46,7 +46,7 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
         let matches, match_time =
           List.fold_right
             (fun (pat_id, matches, match_time) (matches_acc, match_time_acc) ->
-              let check_id = Some (string_of_int pat_id) in
+              let rule_id = Some (string_of_int pat_id) in
               let matches_out =
                 List.map
                   (fun match_ ->
@@ -57,12 +57,16 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
                     let lines =
                       Src_file.list_lines_of_pos_range src pos1 pos2
                     in
-                    let extra = { message = None; metavars; lines } in
+                    let extra = { message = None; metavars } in
                     ({
-                       check_id;
-                       path;
-                       start = semgrep_pos pos1;
-                       end_ = semgrep_pos pos2;
+                       rule_id;
+                       location =
+                         {
+                           path;
+                           start = semgrep_pos pos1;
+                           end_ = semgrep_pos pos2;
+                           lines;
+                         };
                        extra;
                      }
                       : match_))
@@ -81,16 +85,21 @@ let make_semgrep_json ~with_time doc_matches pat_errors skipped :
     |> List.map (fun (src, error) ->
            let path = Src_file.source_string src in
            let pos1, pos2 = error.Parse_pattern.loc in
-           let line =
-             Src_file.list_lines_of_pos_range src pos1 pos2 |> List.hd
-           in
-           let extra = { message = error.Parse_pattern.msg; line } in
+           let lines = Src_file.list_lines_of_pos_range src pos1 pos2 in
            {
-             check_id = None;
-             path;
-             start = semgrep_pos pos1;
-             end_ = semgrep_pos pos2;
-             extra;
+             error_type = "Generic matching error";
+             rule_id = None;
+             severity = Error;
+             location =
+               {
+                 path;
+                 start = semgrep_pos pos1;
+                 end_ = semgrep_pos pos2;
+                 lines;
+               };
+             message = error.Parse_pattern.msg;
+             details = None;
+             yaml_path = None;
            })
   in
   let time =

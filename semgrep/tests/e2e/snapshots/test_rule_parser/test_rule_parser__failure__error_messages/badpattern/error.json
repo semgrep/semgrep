@@ -1,42 +1,32 @@
 {
   "errors": [
     {
-      "code": 4,
+      "code": 2,
       "level": "error",
-      "long_msg": "Pattern `$X == $X 3` could not be parsed as a Python semgrep pattern",
-      "short_msg": "invalid pattern",
+      "message": "Semgrep Core ERROR - Pattern parse error: In rule eqeq-is-bad: Invalid pattern for Python",
+      "rule_id": "eqeq-is-bad",
       "spans": [
         {
           "config_end": {
-            "col": 11,
-            "line": 0
+            "col": 24,
+            "line": 4,
+            "offset": 60
           },
           "config_path": [
             "rules",
-            0,
+            "0",
             "patterns",
-            0,
+            "0",
             "pattern"
           ],
           "config_start": {
-            "col": 1,
-            "line": 0
-          },
-          "context_end": null,
-          "context_start": null,
-          "end": {
-            "col": 24,
-            "line": 4
-          },
-          "file": "semgrep temp file",
-          "source_hash": "061f9b00eb8d4f4c3e2b8f6a4e4484ddadb637a33b943fdaa013532f23c7b212",
-          "start": {
             "col": 14,
-            "line": 5
+            "line": 4,
+            "offset": 50
           }
         }
       ],
-      "type": "InvalidPatternError"
+      "type": "Pattern parse error"
     }
   ],
   "results": []

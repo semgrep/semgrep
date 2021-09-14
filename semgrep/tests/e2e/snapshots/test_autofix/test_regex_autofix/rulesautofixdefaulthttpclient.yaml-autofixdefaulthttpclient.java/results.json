@@ -5,7 +5,8 @@
       "check_id": "rules.autofix.java.lang.security.audit.crypto.ssl.defaulthttpclient-is-deprecated.defaulthttpclient-is-deprecated",
       "end": {
         "col": 46,
-        "line": 15
+        "line": 15,
+        "offset": 498
       },
       "extra": {
         "fix_regex": {
@@ -26,7 +27,8 @@
       "path": "targets/autofix/defaulthttpclient.java",
       "start": {
         "col": 3,
-        "line": 15
+        "line": 15,
+        "offset": 455
       }
     }
   ]

@@ -1,13 +1,9 @@
-running 2 rules from 1 config rules/eqeq-python.yaml_0 
+running 2 rules from 1 config rules/eqeq-python.yaml_0
 running 2 rules...
 rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
-semgrep warn: parse error
-  --> targets/bad/invalid_python.py:1
-1 | def foo(a)
-  |           ^^^^^
-= help: If the code appears to be valid, this may be a semgrep bug.
-Could not parse invalid_python.py as python
-
+Semgrep Core WARN - Syntax error in file targets/bad/invalid_python.py
+	`
+    ` was unexpected
 ran 2 rules on 1 files: 0 findings

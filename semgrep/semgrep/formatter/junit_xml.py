@@ -19,7 +19,7 @@ class JunitXmlFormatter(BaseFormatter):
         test_case = TestCase(
             rule_match.id,
             file=str(rule_match.path),
-            line=rule_match.start["line"],
+            line=rule_match.start.line,
             classname=str(rule_match.path),
         )
         test_case.add_failure_info(

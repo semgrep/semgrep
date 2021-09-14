@@ -5,7 +5,8 @@
       "check_id": "eqeq-is-bad",
       "end": {
         "col": 26,
-        "line": 3
+        "line": 3,
+        "offset": 69
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/basic/stupid.py",
       "start": {
         "col": 12,
-        "line": 3
+        "line": 3,
+        "offset": 55
       }
     },
     {
       "check_id": "eqeq-is-bad",
       "end": {
         "col": 11,
-        "line": 8
+        "line": 8,
+        "offset": 174
       },
       "extra": {
         "is_ignored": false,
@@ -74,14 +77,16 @@
       "path": "targets/basic/stupid.py",
       "start": {
         "col": 5,
-        "line": 8
+        "line": 8,
+        "offset": 168
       }
     },
     {
       "check_id": "eqeq-is-bad",
       "end": {
         "col": 18,
-        "line": 12
+        "line": 12,
+        "offset": 266
       },
       "extra": {
         "is_ignored": false,
@@ -112,7 +117,8 @@
       "path": "targets/basic/stupid.py",
       "start": {
         "col": 12,
-        "line": 12
+        "line": 12,
+        "offset": 260
       }
     }
   ]

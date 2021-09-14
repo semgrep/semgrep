@@ -5,7 +5,8 @@
       "check_id": "rules.\u5bff\u53f8",
       "end": {
         "col": 18,
-        "line": 6
+        "line": 6,
+        "offset": 220
       },
       "extra": {
         "is_ignored": false,
@@ -18,7 +19,8 @@
       "path": "targets/advanced_nosem/nosem-unicode.py",
       "start": {
         "col": 1,
-        "line": 6
+        "line": 6,
+        "offset": 203
       }
     }
   ]

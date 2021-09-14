@@ -17,19 +17,6 @@ open Common
 module R = Mini_rule
 module PR = Parse_rule
 
-(*s: exception [[Parse_rules.InvalidRuleException]] *)
-(*e: exception [[Parse_rules.InvalidRuleException]] *)
-(*s: exception [[Parse_rules.InvalidLanguageException]] *)
-(*e: exception [[Parse_rules.InvalidLanguageException]] *)
-(*s: exception [[Parse_rules.InvalidPatternException]] *)
-(*e: exception [[Parse_rules.InvalidPatternException]] *)
-(*s: exception [[Parse_rules.UnparsableYamlException]] *)
-exception UnparsableYamlException of string
-
-(*e: exception [[Parse_rules.UnparsableYamlException]] *)
-(*s: exception [[Parse_rules.InvalidYamlException]] *)
-(*e: exception [[Parse_rules.InvalidYamlException]] *)
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
@@ -49,15 +36,16 @@ let parse_languages ~id t langs =
              match Lang.lang_of_string_opt s with
              | None ->
                  raise
-                   (PR.InvalidLanguage (id, spf "unsupported language: %s" s, t))
+                   (Rule.InvalidLanguage
+                      (id, spf "unsupported language: %s" s, t))
              | Some l -> l)
          | _ ->
              raise
-               (PR.InvalidRule (id, spf "expecting a string for languages", t)))
+               (Rule.InvalidRule (id, spf "expecting a string for languages", t)))
   in
   let lang =
     match languages with
-    | [] -> raise (PR.InvalidRule (id, "we need at least one language", t))
+    | [] -> raise (Rule.InvalidRule (id, "we need at least one language", t))
     | x :: _xs -> x
   in
   (languages, lang)
@@ -114,12 +102,13 @@ let parse file =
                          }
                      | x ->
                          pr2_gen x;
-                         raise (PR.InvalidYaml ("wrong rule fields", t)))
+                         raise (Rule.InvalidYaml ("wrong rule fields", t)))
                  | x ->
                      pr2_gen x;
-                     raise (PR.InvalidYaml ("wrong rule fields", t)))
-      | _ -> raise (PR.InvalidYaml ("missing rules entry as top-level key", t)))
-  | Result.Error (`Msg s) -> raise (UnparsableYamlException s)
+                     raise (Rule.InvalidYaml ("wrong rule fields", t)))
+      | _ ->
+          raise (Rule.InvalidYaml ("missing rules entry as top-level key", t)))
+  | Result.Error (`Msg s) -> raise (Rule.UnparsableYamlException s)
 
 (*e: function [[Parse_rules.parse]] *)
 

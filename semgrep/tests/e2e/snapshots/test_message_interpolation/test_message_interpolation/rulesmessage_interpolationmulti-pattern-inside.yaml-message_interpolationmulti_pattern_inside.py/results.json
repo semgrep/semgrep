@@ -5,7 +5,8 @@
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 22,
-        "line": 3
+        "line": 3,
+        "offset": 45
       },
       "extra": {
         "is_ignored": false,
@@ -70,14 +71,16 @@
       "path": "targets/message_interpolation/multi_pattern_inside.py",
       "start": {
         "col": 9,
-        "line": 3
+        "line": 3,
+        "offset": 32
       }
     },
     {
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 21,
-        "line": 6
+        "line": 6,
+        "offset": 80
       },
       "extra": {
         "is_ignored": false,
@@ -142,14 +145,16 @@
       "path": "targets/message_interpolation/multi_pattern_inside.py",
       "start": {
         "col": 9,
-        "line": 6
+        "line": 6,
+        "offset": 68
       }
     },
     {
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 21,
-        "line": 9
+        "line": 9,
+        "offset": 115
       },
       "extra": {
         "is_ignored": false,
@@ -214,14 +219,16 @@
       "path": "targets/message_interpolation/multi_pattern_inside.py",
       "start": {
         "col": 9,
-        "line": 9
+        "line": 9,
+        "offset": 103
       }
     },
     {
       "check_id": "rules.message_interpolation.test_rule_id",
       "end": {
         "col": 24,
-        "line": 16
+        "line": 16,
+        "offset": 192
       },
       "extra": {
         "is_ignored": false,
@@ -286,7 +293,8 @@
       "path": "targets/message_interpolation/multi_pattern_inside.py",
       "start": {
         "col": 9,
-        "line": 16
+        "line": 16,
+        "offset": 177
       }
     }
   ]

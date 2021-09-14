@@ -20,7 +20,7 @@ from semgrep import config_resolver
 from semgrep.constants import OutputFormat
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
-from semgrep.error import MatchTimeoutError
+from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.formatter.emacs import EmacsFormatter
@@ -33,9 +33,9 @@ from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
+from semgrep.rule_match_map import RuleMatchMap
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
-from semgrep.types import RuleMatchMap
 from semgrep.util import is_url
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -191,15 +191,21 @@ class OutputHandler:
     def handle_semgrep_errors(self, errors: Sequence[SemgrepError]) -> None:
         timeout_errors = defaultdict(list)
         for err in errors:
-            if isinstance(err, MatchTimeoutError) and err not in self.error_set:
+            if (
+                isinstance(err, SemgrepCoreError)
+                and err.is_timeout()
+                and err not in self.error_set
+            ):
                 self.semgrep_structured_errors.append(err)
                 self.error_set.add(err)
+                assert err.rule_id  # Always defined for timeout errors
                 timeout_errors[err.path].append(err.rule_id)
             else:
                 self.handle_semgrep_error(err)
 
         if timeout_errors and self.settings.output_format == OutputFormat.TEXT:
-            self.handle_semgrep_timeout_errors(timeout_errors)
+            t_errors = dict(timeout_errors)  # please mypy
+            self.handle_semgrep_timeout_errors(t_errors)
 
     def handle_semgrep_timeout_errors(self, errors: Dict[Path, List[str]]) -> None:
         self.has_output = True

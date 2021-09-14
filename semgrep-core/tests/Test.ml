@@ -1,8 +1,7 @@
 (*s: semgrep/tests/Test.ml *)
 open Common
 open Testutil
-
-module E = Error_code
+module E = Semgrep_error_code
 module P = Pattern_match
 module R = Rule
 module MR = Mini_rule
@@ -53,12 +52,12 @@ let parsing_tests_for_lang files lang =
       let {Parse_target. errors = errs; _ } = 
         Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
       if errs <> []
-      then failwith (String.concat ";" (List.map Error_code.string_of_error errs));
+      then failwith (String.concat ";" (List.map E.string_of_error errs));
     )
   )
 
 let compare_actual_to_expected actual expected =
-  match Error_code.compare_actual_to_expected actual expected with
+  match E.compare_actual_to_expected actual expected with
   | Ok () -> ()
   | Error (_num_errors, msg) -> Alcotest.fail msg
 
@@ -107,7 +106,7 @@ let regression_tests_for_lang ~with_caching files lang =
                       (Common.exn_to_s exn))
       )
     in
-    Error_code.g_errors := [];
+    E.g_errors := [];
 
     let rule = { MR.
                  id = "unit testing"; pattern; inside=false; message = ""; 
@@ -129,13 +128,14 @@ let regression_tests_for_lang ~with_caching files lang =
           let xs = Lazy.force matched_tokens in
           let toks = xs |> List.filter Parse_info.is_origintok in
           let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
-          Error_code.error minii (Error_code.SemgrepMatchFound ("",""))
+          let minii_loc = Parse_info.unsafe_token_location_of_info minii in
+          E.error "test pattern" minii_loc "" (E.SemgrepMatchFound "")
         )
         Config_semgrep.default_config
         [rule] equiv (file, lang, ast) 
       |> ignore;
-      let actual = !Error_code.g_errors in
-      let expected = Error_code.expected_error_lines_of_files [file] in
+      let actual = !E.g_errors in
+      let expected = E.expected_error_lines_of_files [file] in
       compare_actual_to_expected actual expected; 
     )
     )
@@ -181,12 +181,15 @@ let tainting_test lang rules_file file =
   in
   let actual =
     matches |> List.map (fun m ->
-      { E.typ = SemgrepMatchFound(m.P.rule_id.id,m.P.rule_id.message);
+      { rule_id = Some m.P.rule_id.id;
+        E.typ = SemgrepMatchFound m.P.rule_id.id;
         loc   = fst m.range_loc;
-        sev   = Error; }
+        msg   = m.P.rule_id.message;
+        details = None;
+        yaml_path = None }
     )
   in
-  let expected = Error_code.expected_error_lines_of_files [file] in
+  let expected = E.expected_error_lines_of_files [file] in
   compare_actual_to_expected actual expected
 
 let tainting_tests_for_lang files lang =
@@ -529,27 +532,16 @@ let metachecker_regression_tests =
     let files = Common2.glob (spf "%s/*.yaml" dir) in
     files |> List.map (fun file ->
       Filename.basename file, (fun () ->
-        Error_code.g_errors := [];
+        E.g_errors := [];
         E.try_with_exn_to_error file (fun () ->
-          try
             let rules = Parse_rule.parse file in
             rules |> List.iter (fun rule ->
               let errs = Check_rule.check rule in
-              Error_code.g_errors := errs @ !Error_code.g_errors
+              E.g_errors := errs @ !E.g_errors
             )
-          with
-          (* convert to something handled by E.try_with_exn_to_error.
-           * coupling: JSON_report.json_of_exn
-          *)
-          | Parse_rule.InvalidRule (_, s, t)
-          | Parse_rule.InvalidYaml (s, t)
-          | Parse_rule.InvalidRegexp (_, s, t)
-          | Parse_rule.InvalidLanguage (_, s, t)
-          | Parse_rule.InvalidPattern (_, _, _, s, t, _) ->
-              raise (Parse_info.Other_error (s, t))
         );
-        let actual = !Error_code.g_errors in
-        let expected = Error_code.expected_error_lines_of_files [file] in
+        let actual = !E.g_errors in
+        let expected = E.expected_error_lines_of_files [file] in
         compare_actual_to_expected actual expected;
       )
     )
