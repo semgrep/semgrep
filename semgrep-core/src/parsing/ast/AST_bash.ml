@@ -371,9 +371,9 @@ let extend_left new_start_tok (_, end_) : loc = (new_start_tok, end_)
 
 let extend_right (start, _) new_end_tok : loc = (start, new_end_tok)
 
-let fake_tok = Parse_info.fake_info "fake"
+let unsafe_fake_tok = Parse_info.unsafe_fake_info "fake"
 
-let fake_loc = (fake_tok, fake_tok)
+let unsafe_fake_loc = (unsafe_fake_tok, unsafe_fake_tok)
 
 (*
    Convert a pair (loc, x) to a wrap, which uses a single token to indicate
@@ -423,7 +423,7 @@ let union_loc a b = (min_loc_tok a b, max_loc_tok a b)
 *)
 let list_loc get_loc l =
   match l with
-  | [] -> fake_loc
+  | [] -> unsafe_fake_loc
   | first :: other ->
       List.fold_left
         (fun loc x -> union_loc loc (get_loc x))
@@ -568,7 +568,7 @@ let concat_blists (x : blist list) : blist =
   | [] ->
       (* TODO: use actual location in the program rather than completely
          fake location *)
-      Empty fake_loc
+      Empty unsafe_fake_loc
   | last_blist :: blists ->
       let end_ = blist_loc last_blist in
       List.fold_left

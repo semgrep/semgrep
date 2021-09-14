@@ -103,7 +103,7 @@ let special (x, tok) =
           match args with
           | [ e ] ->
               let tvoid = G.TyBuiltin ("void", tok) |> G.t in
-              G.Cast (tvoid, PI.fake_info ":", e)
+              G.Cast (tvoid, PI.fake_info tok ":", e)
           | _ -> error tok "Impossible: Too many arguments to Void")
   | Spread -> SR_Special (G.Spread, tok)
   | Yield ->
@@ -454,7 +454,8 @@ and type_kind x =
   | TyLiteral l ->
       let l = literal l in
       G.OtherType
-        (G.OT_Todo, [ G.TodoK ("LitType", PI.fake_info ""); G.E (G.L l |> G.e) ])
+        ( G.OT_Todo,
+          [ G.TodoK ("LitType", PI.unsafe_fake_info ""); G.E (G.L l |> G.e) ] )
   | TyQuestion (tok, t) ->
       let t = type_ t in
       G.TyQuestion (t, tok)
@@ -468,11 +469,12 @@ and type_kind x =
       let params = List.map parameter_binding params in
       let rett =
         match typ_opt with
-        | None -> G.TyBuiltin ("void", PI.fake_info "void") |> G.t
+        | None -> G.TyBuiltin ("void", PI.unsafe_fake_info "void") |> G.t
         | Some t -> type_ t
       in
       G.TyFun (params, rett)
-  | TyRecordAnon (lt, (), rt) -> G.TyRecordAnon (PI.fake_info "", (lt, [], rt))
+  | TyRecordAnon (lt, (), rt) ->
+      G.TyRecordAnon (PI.fake_info lt "", (lt, [], rt))
   | TyOr (t1, tk, t2) ->
       let t1 = type_ t1 in
       let t2 = type_ t2 in

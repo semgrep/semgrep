@@ -64,9 +64,11 @@ let bool = id
 (*e: constant [[Python_to_generic.bool]] *)
 
 (*s: function [[Python_to_generic.fake]] *)
-let fake s = Parse_info.fake_info s
+let fake tok s = Parse_info.fake_info tok s
 
 (*e: function [[Python_to_generic.fake]] *)
+let unsafe_fake s = Parse_info.unsafe_fake_info s
+
 (*s: function [[Python_to_generic.fake_bracket]] *)
 let fb = AST_generic.fake_bracket
 
@@ -181,11 +183,11 @@ let rec expr (x : expr) =
        * todo: the right fix is to have EncodedStr of string wrap * string wrap
        *)
       G.Call
-        ( G.IdSpecial (G.EncodedString pre, fake "") |> G.e,
+        ( G.IdSpecial (G.EncodedString pre, fake (snd v1) "") |> G.e,
           fb [ G.Arg (G.L (G.String v1) |> G.e) ] )
   | InterpolatedString xs ->
       G.Call
-        ( G.IdSpecial (G.ConcatString G.FString, fake "concat") |> G.e,
+        ( G.IdSpecial (G.ConcatString G.FString, unsafe_fake "concat") |> G.e,
           fb
             (xs
             |> List.map (fun x ->
@@ -193,7 +195,8 @@ let rec expr (x : expr) =
                    G.Arg x)) )
   | ConcatenatedString xs ->
       G.Call
-        ( G.IdSpecial (G.ConcatString G.SequenceConcat, fake "concat") |> G.e,
+        ( G.IdSpecial (G.ConcatString G.SequenceConcat, unsafe_fake "concat")
+          |> G.e,
           fb
             (xs
             |> List.map (fun x ->
@@ -202,14 +205,15 @@ let rec expr (x : expr) =
   | TypedExpr (v1, v2) ->
       let v1 = expr v1 in
       let v2 = type_ v2 in
-      G.Cast (v2, fake ":", v1)
+      G.Cast (v2, unsafe_fake ":", v1)
   | TypedMetavar (v1, v2, v3) ->
       let v1 = name v1 in
       let v3 = type_ v3 in
       G.TypedMetavar (v1, v2, v3)
   | ExprStar v1 ->
       let v1 = expr v1 in
-      G.Call (G.IdSpecial (G.Spread, fake "spread") |> G.e, fb [ G.arg v1 ])
+      G.Call
+        (G.IdSpecial (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
   | Name (v1, v2, v3) ->
       let v1 = name v1
       and _v2TODO = expr_context v2
@@ -363,7 +367,8 @@ and dictorset_elt = function
       v1
   | PowInline v1 ->
       let v1 = expr v1 in
-      G.Call (G.IdSpecial (G.Spread, fake "spread") |> G.e, fb [ G.arg v1 ])
+      G.Call
+        (G.IdSpecial (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
       |> G.e
 
 (*e: function [[Python_to_generic.dictorset_elt]] *)
@@ -829,7 +834,7 @@ and excepthandler = function
                 G.PatVar
                   (H.expr_to_type (G.Tuple (G.fake_bracket [ e ]) |> G.e), None)
             )
-        | None, None -> G.PatUnderscore (fake "_")
+        | None, None -> G.PatUnderscore (fake t "_")
         | None, Some _ -> raise Impossible (* see the grammar *)
         | Some e, Some n ->
             G.PatVar (H.expr_to_type e, Some (n, G.empty_id_info ()))),

@@ -2,10 +2,11 @@ import functools
 import itertools
 from pathlib import Path
 from typing import Any
-from typing import Dict
+from typing import FrozenSet
 from typing import Iterator
-from typing import List
+from typing import Mapping
 from typing import Optional
+from typing import Sequence
 
 import colorama
 
@@ -17,7 +18,9 @@ from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
 from semgrep.constants import RuleSeverity
+from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
+from semgrep.rule import Rule
 from semgrep.rule_match import RuleMatch
 from semgrep.util import format_bytes
 from semgrep.util import truncate
@@ -124,7 +127,7 @@ class TextFormatter(BaseFormatter):
 
     @staticmethod
     def _build_text_timing_output(
-        time_data: Dict[str, Any],
+        time_data: Mapping[str, Any],
         color_output: bool,
     ) -> Iterator[str]:
         items_to_show = 5
@@ -178,7 +181,7 @@ class TextFormatter(BaseFormatter):
 
     @staticmethod
     def _build_text_output(
-        rule_matches: List[RuleMatch],
+        rule_matches: Sequence[RuleMatch],
         color_output: bool,
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
@@ -237,20 +240,26 @@ class TextFormatter(BaseFormatter):
                 is_same_file,
             )
 
-    def output(self) -> str:
+    def output(
+        self,
+        rules: FrozenSet[Rule],
+        rule_matches: Sequence[RuleMatch],
+        semgrep_structured_errors: Sequence[SemgrepError],
+        extra: Mapping[str, Any],
+    ) -> str:
         output = self._build_text_output(
-            self.rule_matches,
-            self.extra["color_output"],
-            self.extra["per_finding_max_lines_limit"],
-            self.extra["per_line_max_chars_limit"],
+            rule_matches,
+            extra.get("color_output", False),
+            extra["per_finding_max_lines_limit"],
+            extra["per_line_max_chars_limit"],
         )
 
         timing_output = (
             self._build_text_timing_output(
-                self.extra["time"],
-                self.extra["color_output"],
+                extra.get("time", {}),
+                extra.get("color_output", False),
             )
-            if "time" in self.extra
+            if "time" in extra
             else iter([])
         )
 

@@ -1,7 +1,8 @@
 import json
 from typing import Any
-from typing import Dict
-from typing import List
+from typing import FrozenSet
+from typing import Mapping
+from typing import Sequence
 
 from semgrep import __VERSION__
 from semgrep.constants import RuleSeverity
@@ -14,7 +15,7 @@ from semgrep.rule_match import RuleMatch
 
 class SarifFormatter(BaseFormatter):
     @staticmethod
-    def _rule_match_to_sarif(rule_match: RuleMatch) -> Dict[str, Any]:
+    def _rule_match_to_sarif(rule_match: RuleMatch) -> Mapping[str, Any]:
         rule_match_sarif = {
             "ruleId": rule_match.id,
             "message": {"text": rule_match.message},
@@ -40,7 +41,7 @@ class SarifFormatter(BaseFormatter):
         return rule_match_sarif
 
     @staticmethod
-    def _rule_to_sarif(rule: Rule) -> Dict[str, Any]:
+    def _rule_to_sarif(rule: Rule) -> Mapping[str, Any]:
         severity = SarifFormatter._rule_to_sarif_severity(rule)
         tags = SarifFormatter._rule_to_sarif_tags(rule)
         rule_json = {
@@ -81,7 +82,7 @@ class SarifFormatter(BaseFormatter):
         return mapping[rule.severity]
 
     @staticmethod
-    def _rule_to_sarif_tags(rule: Rule) -> List[str]:
+    def _rule_to_sarif_tags(rule: Rule) -> Sequence[str]:
         """
         Tags to display on SARIF-compliant UIs, such as GitHub security scans.
         """
@@ -98,7 +99,7 @@ class SarifFormatter(BaseFormatter):
         return result
 
     @staticmethod
-    def _semgrep_error_to_sarif_notification(error: SemgrepError) -> Dict[str, Any]:
+    def _semgrep_error_to_sarif_notification(error: SemgrepError) -> Mapping[str, Any]:
         error_dict = error.to_dict()
         descriptor = error_dict["type"]
 
@@ -120,7 +121,18 @@ class SarifFormatter(BaseFormatter):
             "level": level,
         }
 
-    def output(self) -> str:
+    def keep_ignores(self) -> bool:
+        # SARIF output includes ignored findings, but labels them as suppressed.
+        # https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10541099
+        return True
+
+    def output(
+        self,
+        rules: FrozenSet[Rule],
+        rule_matches: Sequence[RuleMatch],
+        semgrep_structured_errors: Sequence[SemgrepError],
+        extra: Mapping[str, Any],
+    ) -> str:
         """
         Format matches in SARIF v2.1.0 formatted JSON.
 
@@ -141,19 +153,19 @@ class SarifFormatter(BaseFormatter):
                         "driver": {
                             "name": "semgrep",
                             "semanticVersion": __VERSION__,
-                            "rules": [self._rule_to_sarif(rule) for rule in self.rules],
+                            "rules": [self._rule_to_sarif(rule) for rule in rules],
                         }
                     },
                     "results": [
                         self._rule_match_to_sarif(rule_match)
-                        for rule_match in self.rule_matches
+                        for rule_match in rule_matches
                     ],
                     "invocations": [
                         {
                             "executionSuccessful": True,
                             "toolExecutionNotifications": [
                                 self._semgrep_error_to_sarif_notification(error)
-                                for error in self.semgrep_structured_errors
+                                for error in semgrep_structured_errors
                             ],
                         }
                     ],
