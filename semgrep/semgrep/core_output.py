@@ -126,6 +126,7 @@ class CoreError:
         spans = None
         if "yaml_path" in raw_json:
             yaml_path = tuple(raw_json["yaml_path"])
+            yaml_path = yaml_path[::-1]
             spans = tuple([LegacySpan(start, end, yaml_path)])  # type: ignore
 
         return cls(error_type, rule_id, path, start, end, message, level, spans)

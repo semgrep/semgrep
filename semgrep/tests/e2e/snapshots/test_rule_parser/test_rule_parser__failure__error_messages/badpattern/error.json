@@ -13,11 +13,11 @@
             "offset": 60
           },
           "config_path": [
-            "pattern",
+            "rules",
             "0",
             "patterns",
             "0",
-            "rules"
+            "pattern"
           ],
           "config_start": {
             "col": 14,
