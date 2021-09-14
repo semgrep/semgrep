@@ -1064,7 +1064,7 @@ and vof_function_kind = function
 and vof_function_definition
     { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody } =
   let bnds = [] in
-  let arg = vof_stmt v_fbody in
+  let arg = vof_function_body v_fbody in
   let bnd = ("fbody", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_option vof_type_ v_frettype in
@@ -1128,6 +1128,18 @@ and vof_parameter_classic
   let bnd = ("pname", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
+
+and vof_function_body = function
+  | FBStmt v1 ->
+      let v1 = vof_stmt v1 in
+      OCaml.VSum ("FBStmt", [ v1 ])
+  | FBExpr v1 ->
+      let v1 = vof_expr v1 in
+      OCaml.VSum ("FBExpr", [ v1 ])
+  | FBDecl v1 ->
+      let v1 = vof_tok v1 in
+      OCaml.VSum ("FBDecl", [ v1 ])
+  | FBNothing -> OCaml.VSum ("FBNothing", [])
 
 and vof_other_parameter_operator = function
   | OPO_Todo -> OCaml.VSum ("OPO_Todo", [])

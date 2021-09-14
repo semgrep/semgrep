@@ -15,6 +15,7 @@
 open Common
 open IL
 module G = AST_generic
+module H = AST_generic_helpers
 module V = Visitor_AST
 module D = Datalog_fact
 
@@ -76,11 +77,13 @@ let dump_il file =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let s = AST_generic.show_any (G.S def.G.fbody) in
+            let s =
+              AST_generic.show_any (G.S (H.funcbody_to_stmt def.G.fbody))
+            in
             pr2 s;
             pr2 "==>";
 
-            let xs = AST_to_IL.stmt def.G.fbody in
+            let xs = AST_to_IL.stmt (H.funcbody_to_stmt def.G.fbody) in
             let s = IL.show_any (IL.Ss xs) in
             pr2 s);
       }
@@ -121,7 +124,7 @@ let instr env x =
 let stmt env x = match x.IL.s with Instr x -> instr env x | _ -> todo (S x)
 
 let facts_of_function def =
-  let xs = AST_to_IL.stmt def.G.fbody in
+  let xs = AST_to_IL.stmt (H.funcbody_to_stmt def.G.fbody) in
   let env = { facts = ref [] } in
 
   xs |> List.iter (stmt env);

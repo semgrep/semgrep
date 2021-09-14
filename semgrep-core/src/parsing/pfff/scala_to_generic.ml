@@ -60,7 +60,7 @@ let cases_to_lambda lb (cases : G.action list) : G.function_definition =
     fkind = (G.BlockCases, lb);
     frettype = None;
     fparams = [ param ];
-    fbody = body;
+    fbody = G.FBStmt body;
   }
 
 (*****************************************************************************)
@@ -753,22 +753,25 @@ and v_function_definition
     fparams = List.flatten params;
     (* TODO? *)
     frettype = tret;
-    fbody = (match fbody with None -> G.empty_fbody | Some st -> st);
+    fbody = (match fbody with None -> G.FBDecl G.sc | Some st -> st);
   }
 
 and v_function_kind = function LambdaArrow -> G.Arrow | Def -> G.Method
 
-and v_fbody = function
+and v_fbody body : G.function_body =
+  match body with
   | FBlock v1 -> (
       let lb, kind, rb = v_block_expr v1 in
       match kind with
-      | Left stats -> G.Block (lb, stats, rb) |> G.s
+      | Left stats ->
+          let st = G.Block (lb, stats, rb) |> G.s in
+          G.FBStmt st
       | Right cases ->
           let def = cases_to_lambda lb cases in
-          G.exprstmt (G.Lambda def |> G.e))
+          G.FBExpr (G.Lambda def |> G.e))
   | FExpr (v1, v2) ->
-      let _v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
-      v2
+      let _v1 = v_tok v1 and v2 = v_expr v2 in
+      G.FBExpr v2
 
 and v_bindings v = v_bracket (v_list v_binding) v |> G.unbracket
 

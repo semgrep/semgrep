@@ -850,6 +850,8 @@ and stmt env st =
   try stmt_aux env st
   with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
 
+and function_body env fbody = stmt env (H.funcbody_to_stmt fbody)
+
 (*
  *     with MANAGER as PAT:
  *         BODY
@@ -941,7 +943,7 @@ and python_with_stmt env manager opt_pat body =
 let function_definition def =
   let env = empty_env () in
   let params = parameters env def.G.fparams in
-  let body = stmt env def.G.fbody in
+  let body = function_body env def.G.fbody in
   (params, body)
 
 (*s: function [[AST_to_IL.stmt (/home/pad/pfff/lang_GENERIC/analyze/AST_to_IL.ml)]] *)

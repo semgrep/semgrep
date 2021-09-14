@@ -860,7 +860,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     (* calling kpartial with a modified def *)
     match defkind with
     | FuncDef def ->
-        let partial_def = { def with fbody = empty_fbody } in
+        let partial_def = { def with fbody = FBNothing } in
         v_partial ~recurse:false (PartialDef (ent, FuncDef partial_def))
     | ClassDef def ->
         let partial_def = { def with cbody = empty_body } in
@@ -959,7 +959,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
       v_wrap v_function_kind fkind;
       let arg = v_parameters v_fparams in
       let arg = v_option v_type_ v_frettype in
-      let arg = v_stmt v_fbody in
+      let arg = v_function_body v_fbody in
       ()
     in
     vin.kfunction_definition (k, all_functions) x
@@ -999,6 +999,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let arg = v_list v_attribute v_pattrs in
     ()
   and v_other_parameter_operator _ = ()
+  and v_function_body = function
+    | FBStmt v1 -> v_stmt v1
+    | FBExpr v1 -> v_expr v1
+    | FBDecl v1 -> v_tok v1
+    | FBNothing -> ()
   and v_variable_definition { vinit = v_vinit; vtype = v_vtype } =
     let v_vinit = v_option v_expr v_vinit in
     let v_vtype = v_option v_type_ v_vtype in

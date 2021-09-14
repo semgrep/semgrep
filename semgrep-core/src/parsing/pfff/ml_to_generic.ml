@@ -69,7 +69,8 @@ let mk_var_or_func tlet params tret body =
           G.fparams = params;
           frettype = tret;
           fkind = (G.Function, tlet);
-          fbody = body;
+          (* TODO? maybe generate FBExpr when we can? *)
+          fbody = G.FBStmt body;
         }
 
 let defs_of_bindings tlet attrs xs =
@@ -350,7 +351,7 @@ and expr e =
           G.fparams = v1;
           frettype = None;
           fkind = (G.Function, t);
-          fbody = G.exprstmt v2;
+          fbody = G.FBExpr v2;
         }
       in
       G.Lambda def
@@ -366,7 +367,7 @@ and expr e =
           G.fparams = params;
           frettype = None;
           fkind = (G.Function, t);
-          fbody = body_stmt;
+          fbody = G.FBStmt body_stmt;
         }
   | ExprTodo (t, xs) ->
       let t = todo_category t in

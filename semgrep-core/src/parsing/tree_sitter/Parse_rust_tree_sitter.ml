@@ -1346,10 +1346,10 @@ and map_expression (env : env) (x : CST.expression) =
                 v1
             in
             let body = map_block env v2 in
-            (ret_type, body)
+            (ret_type, G.FBStmt body)
         | `Exp x ->
             let expr = map_expression env x in
-            (None, G.ExprStmt (expr, sc) |> G.s)
+            (None, G.FBExpr expr)
       in
       let func_def =
         {
@@ -1733,7 +1733,7 @@ and map_function_item (env : env) ((v1, v2, v3, v4) : CST.function_item) :
       G.fparams = fn_decl.params;
       G.frettype = fn_decl.retval;
       G.fkind = (G.Function, id);
-      G.fbody = body;
+      G.fbody = G.FBStmt body;
     }
   in
   let ent =
@@ -1750,11 +1750,11 @@ and map_function_signature_with_default_item (env : env)
   let default_impl =
     match v4 with
     | `SEMI tok ->
-        let _semicolon = token env tok in
+        let t = token env tok in
         (* ";" *)
         (* No default implementation *)
-        G.Block (G.fake_bracket []) |> G.s
-    | `Blk x -> map_block env x
+        G.FBDecl t
+    | `Blk x -> G.FBStmt (map_block env x)
   in
   let fn_def =
     {
@@ -3095,15 +3095,14 @@ and map_item_kind (env : env) _outer_attrs _visibility (x : CST.item_kind) :
       in
       let fn = token env v2 (* "fn" *) in
       let fn_decl = map_function_declaration env v3 in
-      let _semicolon = token env v4 (* ";" *) in
-      let empty_block = G.Block (G.fake "{", [], G.fake "}") |> G.s in
+      let t = token env v4 (* ";" *) in
       let fn_def =
         {
           G.fparams = fn_decl.params;
           G.frettype = fn_decl.retval;
           G.fkind = (G.Function, fn);
           (* no body defined *)
-          G.fbody = empty_block;
+          G.fbody = G.FBDecl t;
         }
       in
       let ent =

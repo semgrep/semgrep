@@ -708,7 +708,7 @@ let (cfg_of_func : function_definition -> F.flow) =
  fun def ->
   let params = def.fparams in
   (* less: could create a node with function name ? *)
-  control_flow_graph_of_stmts params [ def.fbody ]
+  control_flow_graph_of_stmts params [ H.funcbody_to_stmt def.fbody ]
 
 (* alias *)
 let cfg_of_stmts = control_flow_graph_of_stmts

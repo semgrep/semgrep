@@ -54,10 +54,9 @@ let sc = PI.sc
 
 let todo (_env : env) _ = failwith "not implemented"
 
-(* less: or ExprStmt (Void)? *)
 let empty_stmt env t =
   let t = token env t (* ";" *) in
-  Block (t, [], t) |> G.s
+  G.emptystmt t
 
 let unhandled_keywordattr_to_namedattr (env : env) tok =
   NamedAttr (token env tok, Id (str env tok, empty_id_info ()), fake_bracket [])
@@ -748,7 +747,9 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
             Some (v1, v2)
         | None -> None
       in
-      let v5 = match v5 with Some x -> block env x | None -> G.empty_fbody in
+      let v5 =
+        match v5 with Some x -> G.FBStmt (block env x) | None -> G.FBDecl G.sc
+      in
       todo env (v1, v2, v3, v4, v5)
 
 and class_member_declarations (env : env) (xs : CST.class_member_declarations) :
@@ -868,7 +869,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
       in
       let _v7 = match v7 with Some x -> type_constraints env x | None -> [] in
       let v8 =
-        match v8 with Some x -> function_body env x | None -> empty_fbody
+        match v8 with Some x -> function_body env x | None -> G.FBDecl G.sc
       in
       let entity = basic_entity v4 [] in
       let func_def =
@@ -1008,13 +1009,13 @@ and finally_block (env : env) ((v1, v2) : CST.finally_block) =
   let v2 = block env v2 in
   (v1, v2)
 
-and function_body (env : env) (x : CST.function_body) =
+and function_body (env : env) (x : CST.function_body) : G.function_body =
   match x with
-  | `Blk x -> block env x
+  | `Blk x -> G.FBStmt (block env x)
   | `EQ_exp (v1, v2) ->
-      let v1 = token env v1 (* "=" *) in
+      let _v1 = token env v1 (* "=" *) in
       let v2 = expression env v2 in
-      ExprStmt (v2, sc v1) |> G.s
+      G.FBExpr v2
 
 and function_literal (env : env) (x : CST.function_literal) =
   match x with
@@ -1040,7 +1041,7 @@ and function_literal (env : env) (x : CST.function_literal) =
       let _v3 = token env v3 (* "(" *) in
       let _v4 = token env v4 (* ")" *) in
       let v5 =
-        match v5 with Some x -> function_body env x | None -> empty_fbody
+        match v5 with Some x -> function_body env x | None -> G.FBDecl G.sc
       in
       let kind = (Function, v1) in
       let func_def =
@@ -1233,29 +1234,38 @@ and jump_expression (env : env) (x : CST.jump_expression) =
 
 and lambda_literal (env : env) ((v1, v2, v3, v4) : CST.lambda_literal) =
   let v1 = token env v1 (* "{" *) in
-  let _v2 =
+  let params, lbracket =
     match v2 with
     | Some (v1, v2) ->
         let v1 =
           match v1 with Some x -> lambda_parameters env x | None -> []
         in
-        let _v2 = token env v2 (* "->" *) in
-        v1
-    | None -> []
+        (* use this to delimit the Block below. *)
+        let v2 = token env v2 (* "->" *) in
+        (v1, v2)
+    | None -> ([], v1)
   in
   let v3 = match v3 with Some x -> statements env x | None -> [] in
-  let block_v3 = Block (fake_bracket v3) |> G.s in
-  let _v4 = token env v4 (* "}" *) in
+  let v4 = token env v4 (* "}" *) in
+  let fbody = G.FBStmt (Block (lbracket, v3, v4) |> G.s) in
   let kind = (LambdaKind, v1) in
-  let func_def =
-    { fkind = kind; fparams = []; frettype = None; fbody = block_v3 }
-  in
+  let func_def = { fkind = kind; fparams = params; frettype = None; fbody } in
   Lambda func_def
 
-and lambda_parameter (env : env) (x : CST.lambda_parameter) =
-  match x with `Var_decl x -> variable_declaration env x
+and lambda_parameter (env : env) (x : CST.lambda_parameter) : G.parameter =
+  match x with
+  | `Var_decl x ->
+      let id, topt = variable_declaration env x in
+      G.ParamClassic { (G.param_of_id id) with ptype = topt }
 
-and lambda_parameters (env : env) ((v1, v2) : CST.lambda_parameters) =
+and lambda_parameter_for_loop (env : env) (x : CST.lambda_parameter) =
+  match x with
+  | `Var_decl x ->
+      let id, topt = variable_declaration env x in
+      (id, topt)
+
+and lambda_parameters (env : env) ((v1, v2) : CST.lambda_parameters) :
+    G.parameter list =
   let v1 = lambda_parameter env v1 in
   let v2 =
     List.map
@@ -1273,7 +1283,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
       let v1 = token env v1 (* "for" *) in
       let _v2 = token env v2 (* "(" *) in
       let _v3 = List.map (annotation env) v3 in
-      let v4 = lambda_parameter env v4 in
+      let v4 = lambda_parameter_for_loop env v4 in
       let _id, _type_info = v4 in
       let v5 = token env v5 (* "in" *) in
       let v6 = expression env v6 in
@@ -1281,7 +1291,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
       let v8 =
         match v8 with
         | Some x -> control_structure_body env x
-        | None -> empty_fbody
+        | None -> Block (fake_bracket []) |> G.s
       in
       let params =
         match v4 with
@@ -1299,7 +1309,9 @@ and loop_statement (env : env) (x : CST.loop_statement) =
       let _v4 = token env v4 (* ")" *) in
       let v5 =
         match v5 with
-        | `SEMI _tok -> empty_fbody
+        | `SEMI v1 ->
+            let v1 = token env v1 in
+            G.emptystmt v1
         | `Cont_stru_body x -> control_structure_body env x
       in
       While (v1, v3, v5) |> G.s
@@ -1308,7 +1320,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
       let v2 =
         match v2 with
         | Some x -> control_structure_body env x
-        | None -> empty_fbody
+        | None -> G.Block (G.fake_bracket []) |> G.s
       in
       let _v3 = token env v3 (* "while" *) in
       let _v4 = token env v4 (* "(" *) in
@@ -1486,7 +1498,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr_kind =
             let v1 =
               match v1 with
               | Some x -> control_structure_body env x
-              | None -> empty_fbody
+              | None -> G.Block (G.fake_bracket []) |> G.s
             in
             let _v2 =
               match v2 with
