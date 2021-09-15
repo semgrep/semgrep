@@ -27,7 +27,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Helpers to build or convert AST_generic elements.
  *
- * Very often used helper functions are actually in AST_generic.ml at
+ * The very often used helper functions are actually in AST_generic.ml at
  * the end (e.g., AST_generic.basic_entity).
  * This module is for the more rarely used helpers.
  *)
@@ -225,8 +225,8 @@ let has_keyword_attr kwd attrs =
 
 (* update: you should now use AST_generic.equal_any which internally
  * does not care about position information.
+ * TODO: can we remove this function now then?
  *)
-
 let abstract_for_comparison_visitor recursor =
   let hooks =
     {
@@ -287,18 +287,18 @@ let undo_ac_matching_nf tok op : expr list -> expr option = function
       Some (List.fold_left mk_op (mk_op a1 a2) args)
 
 (*****************************************************************************)
-(* Conversion *)
+(* AST_generic_ conversions *)
 (*****************************************************************************)
 
 module G_ = AST_generic_
 
-(* This module is ugly, but it was written to allow to move AST_generic.ml
- * out of pfff/ and inside semgrep/. However there are many
- * language-specific ASTs that we using AST_generic.ml to factorize
+(* This AST_generic_ module is ugly, but it was written to allow to move
+ * AST_generic.ml out of pfff/ and inside semgrep/. However there are many
+ * language-specific ASTs that were using AST_generic.ml to factorize
  * the definitions of operators. To break the dependency we had
  * to duplicate that part of AST_generic in pfff/h_program-lang/AST_generic_.ml
- * (note that underscore at the end) and we need those boilerplate functions
- * below to convert them back to AST_generic.
+ * (note the underscore at the end), but then we need those boilerplate
+ * functions below to convert them back to AST_generic.
  *
  * alt: use polymorphic variants (e.g., `Plus)
  *)

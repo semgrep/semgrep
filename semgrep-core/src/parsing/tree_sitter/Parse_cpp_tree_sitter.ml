@@ -96,7 +96,9 @@ let parse_operator _env (s, t) : operator * tok list =
   in
   (op, [ t ])
 
-(* like Parse_c_tree_sitter.number_literal *)
+(* like Parse_c_tree_sitter.number_literal and H.parse_number_literal
+ * but for ast_cpp.ml, not AST_generic.ml
+ *)
 let parse_number_literal (s, t) =
   match Common2.int_of_string_c_octal_opt s with
   | Some i -> Int (Some i, t)
