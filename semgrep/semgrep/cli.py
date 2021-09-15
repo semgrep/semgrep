@@ -19,6 +19,7 @@ from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.notifications import possibly_notify_user
 from semgrep.types import MetricsState
 from semgrep.util import abort
 from semgrep.util import with_color
@@ -506,6 +507,7 @@ def cli(
     the Semgrep registy. To learn more about how and why these metrics are collected, please see
     https://github.com/returntocorp/semgrep/PRIVACY.md. To modify this behavior, see the --metrics option below.
     """
+    possibly_notify_user()
 
     if version:
         print(__VERSION__)

@@ -15,9 +15,9 @@ from semgrep.rule import Rule
 from semgrep.types import MetricsState
 from semgrep.verbose_logging import getLogger
 
-METRICS_ENDPOINT = "https://metrics.semgrep.dev"
-
 logger = getLogger(__name__)
+
+METRICS_ENDPOINT = "https://metrics.semgrep.dev"
 
 
 class _MetricManager:

@@ -64,7 +64,7 @@ DEFAULT_CONFIG = {
 
 
 class Config:
-    def __init__(self, valid_configs: Dict[str, List[Rule]]) -> None:
+    def __init__(self, valid_configs: Mapping[str, Sequence[Rule]]) -> None:
         """
         Handles parsing and validating of config files
         and exposes ability to get all rules in parsed config files
@@ -74,7 +74,7 @@ class Config:
     @classmethod
     def from_pattern_lang(
         cls, pattern: str, lang: str, replacement: Optional[str] = None
-    ) -> Tuple["Config", List[SemgrepError]]:
+    ) -> Tuple["Config", Sequence[SemgrepError]]:
         config_dict = manual_config(pattern, lang, replacement)
         valid, errors = cls._validate(config_dict)
         return cls(valid), errors
@@ -82,7 +82,7 @@ class Config:
     @classmethod
     def from_config_list(
         cls, configs: Sequence[str]
-    ) -> Tuple["Config", List[SemgrepError]]:
+    ) -> Tuple["Config", Sequence[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
         list of errors parsing said config files
@@ -158,7 +158,7 @@ class Config:
         return prefix
 
     @staticmethod
-    def _rename_rule_ids(valid_configs: Dict[str, List[Rule]]) -> None:
+    def _rename_rule_ids(valid_configs: Mapping[str, Sequence[Rule]]) -> None:
         for config_id, rules in valid_configs.items():
             for rule in rules:
                 rule.rename_id(
@@ -168,8 +168,8 @@ class Config:
     # the mypy ignore is cause YamlTree puts an Any inside the @staticmethod decorator
     @staticmethod
     def _validate(  # type: ignore[misc]
-        config_dict: Dict[str, YamlTree]
-    ) -> Tuple[Dict[str, List[Rule]], List[SemgrepError]]:
+        config_dict: Mapping[str, YamlTree]
+    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError]]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
