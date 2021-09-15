@@ -40,17 +40,19 @@ val options : unit -> Common.cmdline_options
 (*****************************************************************************)
 
 val mk_error :
-  Rule.rule_id -> Parse_info.token_location -> string -> error_kind -> error
-
-val mk_error_no_rule :
-  Parse_info.token_location -> string -> error_kind -> error
+  ?rule_id:Rule.rule_id option ->
+  Parse_info.token_location ->
+  string ->
+  error_kind ->
+  error
 
 val error :
   Rule.rule_id -> Parse_info.token_location -> string -> error_kind -> unit
 
 val error_tok : Rule.rule_id -> Parse_info.t -> string -> error_kind -> unit
 
-val exn_to_error : Common.filename -> exn -> error
+val exn_to_error :
+  ?rule_id:Rule.rule_id option -> Common.filename -> exn -> error
 
 (*****************************************************************************)
 (* Try with error *)

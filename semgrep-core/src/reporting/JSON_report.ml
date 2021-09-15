@@ -158,7 +158,7 @@ let match_to_match x =
     let s =
       spf "NoTokenLocation with pattern %s, %s" x.rule_id.pattern_string s
     in
-    let err = E.mk_error x.rule_id.id loc s E.MatchingError in
+    let err = E.mk_error ~rule_id:(Some x.rule_id.id) loc s E.MatchingError in
     Right err
   [@@profiling]
 
