@@ -456,10 +456,7 @@ def run_benchmarks(
             for variant in variants:
 
                 # Run variant
-                semgrep_version = get_semgrep_version()
-                name = ".".join(
-                    ["semgrep", semgrep_version, "bench", corpus.name, variant.name]
-                )
+                name = ".".join(["semgrep", "bench", corpus.name, variant.name])
                 metric_name = ".".join([name, "duration"])
                 print(f"------ {name} ------")
                 try:
