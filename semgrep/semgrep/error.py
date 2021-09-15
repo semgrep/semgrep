@@ -101,7 +101,7 @@ class SemgrepCoreError(SemgrepError):
     def to_dict_base(self) -> Dict[str, Any]:
         base: Dict[str, Any] = {
             "type": self.error_type,
-            "message": self._error_message,
+            "message": self._full_error_message,
         }
         if self.rule_id:
             base["rule_id"] = self.rule_id
@@ -125,6 +125,13 @@ class SemgrepCoreError(SemgrepError):
         return self.error_type == "Timeout"
 
     @property
+    def _full_error_message(self) -> str:
+        """
+        Error message plus stack trace
+        """
+        return self._error_message + self._stack_trace
+
+    @property
     def _error_message(self) -> str:
         """
         Generate error message exposed to user
@@ -140,15 +147,23 @@ class SemgrepCoreError(SemgrepError):
                 msg = f"Semgrep Core {self.level.name} - {self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
         else:
             msg = f"Semgrep Core {self.level.name} - {self.error_type} in file {self.path}\n\t{self.message}"
-
-        if self.error_type == "Fatal error":
-            error_trace = self.details or "<no stack trace returned>"
-            msg += f"\n-----[ BEGIN error trace ]-----\n{error_trace}\n-----[ END error trace ]-----\n"
-
         return msg
 
+    @property
+    def _stack_trace(self) -> str:
+        """
+        Returns stack trace if error_type is Fatal error else returns empty strings
+        """
+        if self.error_type == "Fatal error":
+            error_trace = self.details or "<no stack trace returned>"
+            return f"\n-----[ BEGIN error trace ]-----\n{error_trace}\n-----[ END error trace ]-----\n"
+        else:
+            return ""
+
     def __str__(self) -> str:
-        return with_color("red", self._error_message)
+        return with_color("red", self._error_message) + with_color(
+            "white", self._stack_trace
+        )
 
 
 class SemgrepInternalError(Exception):
