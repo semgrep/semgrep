@@ -76,7 +76,9 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *    has some advantages (some language-specific constructs that introduce
  *    new variables, for example Python comprehensions, are hard to analyze
  *    once converted to the generic AST because they are under an
- *    Other_xxx category). However, there's potentially lots of code
+ *    Other_xxx category)
+ *    update: actually comprehensions are now a regular AST element
+ *    However, there's potentially lots of code
  *    duplication for each language and it's easy for a language to fall
  *    behind.
  *    A nice compromise might be to do most of the work in naming_ast.ml
@@ -85,6 +87,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *    See set_resolved()
  *
  * TODO:
+ *  - resolve Comprehension, which can introduce bindings locally
+ *    (kpattern might do its job, but the scope might be too big)
  *  - generalize the original "resolvers":
  *    * resolve_go.ml
  *    * resolve_python.ml

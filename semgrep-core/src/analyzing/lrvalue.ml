@@ -106,6 +106,12 @@ let rec visit_expr hook lhs expr =
       | Array | List -> xs |> unbracket |> List.iter recl
       (* never used on lhs *)
       | Set | Dict -> xs |> unbracket |> List.iter recr)
+  | Comprehension (_, (_, (e, comps), _)) ->
+      recr e;
+      comps
+      |> List.iter (function
+           | CompFor (_, _pat, _, e) -> recr e
+           | CompIf (_, e) -> recr e)
   (* composite lvalues that are actually not themselves lvalues *)
   | DotAccess (e, _, _id) ->
       (* bugfix: this is not recl here! in 'x.fld = 2', x itself is not

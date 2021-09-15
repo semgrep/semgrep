@@ -99,6 +99,12 @@ let subexprs_of_expr e =
            | FieldStmt st -> subexprs_of_stmt st
            | FieldSpread (_, e) -> [ e ])
   | Container (_, xs) -> unbracket xs
+  | Comprehension (_, (_, (e, xs), _)) ->
+      e
+      :: (xs
+         |> List.map (function
+              | CompFor (_, _pat, _, e) -> e
+              | CompIf (_, e) -> e))
   | Call (e, args) ->
       (* not sure we want to return 'e' here *)
       e

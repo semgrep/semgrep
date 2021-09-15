@@ -212,6 +212,12 @@ and map_expr x : B.expr =
       let v1 = map_container_operator v1
       and v2 = map_bracket (map_of_list map_expr) v2 in
       `Container (v1, v2)
+  | Comprehension (op, (l, (_eTODO, _xsTODO), r)) ->
+      (* TODO *)
+      let v1 = map_container_operator op in
+      let l = map_tok l in
+      let r = map_tok r in
+      `Container (v1, (l, [], r))
   | Tuple v1 ->
       let v1 = map_bracket (map_of_list map_expr) v1 in
       `Tuple v1

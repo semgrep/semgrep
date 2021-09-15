@@ -282,6 +282,10 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
           let v1 = v_container_operator v1
           and v2 = v_bracket (v_list v_expr) v2 in
           ()
+      | Comprehension (v1, v2) ->
+          let v1 = v_container_operator v1
+          and v2 = v_bracket v_comprehension v2 in
+          ()
       | Tuple v1 ->
           let v1 = v_bracket (v_list v_expr) v1 in
           ()
@@ -429,6 +433,21 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
     | List -> ()
     | Set -> ()
     | Dict -> ()
+  and v_comprehension (v1, v2) =
+    let v1 = v_expr v1 in
+    let v2 = v_list v_for_or_if_comp v2 in
+    ()
+  and v_for_or_if_comp = function
+    | CompFor (v1, v2, v3, v4) ->
+        let v1 = v_tok v1 in
+        let v2 = v_pattern v2 in
+        let v3 = v_tok v3 in
+        let v4 = v_expr v4 in
+        ()
+    | CompIf (v1, v2) ->
+        let v1 = v_tok v1 in
+        let v2 = v_expr v2 in
+        ()
   and v_special = function
     | ForOf -> ()
     | Defined -> ()

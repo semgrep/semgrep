@@ -764,6 +764,9 @@ and m_expr a b =
   | G.Record a1, B.Record b1 -> (m_bracket m_fields) a1 b1
   | G.Constructor (a1, a2), B.Constructor (b1, b2) ->
       m_name a1 b1 >>= fun () -> m_bracket (m_list m_expr) a2 b2
+  | G.Comprehension (a1, a2), B.Comprehension (b1, b2) ->
+      let* () = m_container_operator a1 b1 in
+      m_bracket m_comprehension a2 b2
   | G.Lambda a1, B.Lambda b1 ->
       m_function_definition a1 b1 >>= fun () -> return ()
   | G.AnonClass a1, B.AnonClass b1 -> m_class_definition a1 b1
@@ -803,6 +806,7 @@ and m_expr a b =
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_other_expr_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.Container _, _
+  | G.Comprehension _, _
   | G.Tuple _, _
   | G.Record _, _
   | G.Constructor _, _
@@ -858,6 +862,23 @@ and m_label_ident a b =
   | G.LNone, _ | G.LId _, _ | G.LInt _, _ | G.LDynamic _, _ -> fail ()
 
 (*e: function [[Generic_vs_generic.m_label_ident]] *)
+and m_comprehension (a1, a2) (b1, b2) =
+  let* () = m_expr a1 b1 in
+  m_list m_for_or_if_comp a2 b2
+
+and m_for_or_if_comp a b =
+  match (a, b) with
+  | G.CompFor (a1, a2, a3, a4), B.CompFor (b1, b2, b3, b4) ->
+      let* () = m_tok a1 b1 in
+      let* () = m_pattern a2 b2 in
+      let* () = m_tok a3 b3 in
+      let* () = m_expr a4 b4 in
+      return ()
+  | G.CompIf (a1, a2), B.CompIf (b1, b2) ->
+      let* () = m_tok a1 b1 in
+      let* () = m_expr a2 b2 in
+      return ()
+  | G.CompFor _, _ | G.CompIf _, _ -> fail ()
 
 (*s: function [[Generic_vs_generic.m_literal]] *)
 and m_literal a b =

@@ -404,10 +404,10 @@ and expr_kind =
   | L of literal
   (* composite values *)
   | Container of container_operator * expr list bracket
-  (* TODO: define also Comprehension for Python/HCL/... comprehensions *)
+  | Comprehension of container_operator * comprehension bracket
   (*s: [[AST_generic.expr]] other composite cases *)
   (* special case of Container, at least 2 elements (except for Python where
-   * you can actually have 1-uple, e.g., '(1,)' *)
+   * you can actually have 1-uple, e.g., '(1,)'. *)
   | Tuple of expr list bracket
   (*x: [[AST_generic.expr]] other composite cases *)
   (* And-type (field.vinit should be a Some) *)
@@ -565,6 +565,17 @@ and container_operator =
   | Dict
 
 (*e: type [[AST_generic.container_operator]] *)
+(* For Python/HCL (and Haskell later). The 'expr' is a 'Tuple' to
+ * represent a Key/Value pair (like in Container).
+ * newscope:
+ *)
+and comprehension = expr * for_or_if_comp list
+
+(* at least one element *)
+and for_or_if_comp =
+  (* newvar: *)
+  | CompFor of tok (*'for'*) * pattern * tok (* 'in' *) * expr
+  | CompIf of tok (*'if'*) * expr
 
 (* It's useful to keep track in the AST of all those special identifiers.
  * They need to be handled in a special way by certain analysis and just
@@ -816,8 +827,6 @@ and argument =
 
 (*s: type [[AST_generic.other_argument_operator]] *)
 and other_argument_operator =
-  (* Python *)
-  | OA_ArgComp (* comprehension, TODO move in 'expr' *)
   (* OCaml *)
   | OA_ArgQuestion
   (* Rust *)
@@ -842,10 +851,6 @@ and other_expr_operator =
   (* Python *)
   | OE_Invert
   | OE_Slices (* see also SliceAccess *)
-  (* todo: newvar: *)
-  | OE_CompForIf
-  | OE_CompFor
-  | OE_CompIf
   | OE_CmpOps
   | OE_Repr (* todo: move to special, special Dump *)
   (* Java *)
@@ -2017,6 +2022,11 @@ let d dkind = { d = dkind; d_attrs = [] }
 
 (* types *)
 let t tkind = { t = tkind; t_attrs = [] }
+
+(* patterns *)
+(* less: nothing yet, but at some point we may want to use a record
+ * also for patterns *)
+let p x = x
 
 (* ------------------------------------------------------------------------- *)
 (* Ident and names *)

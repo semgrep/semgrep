@@ -178,6 +178,10 @@ and vof_expr e =
       let v1 = vof_container_operator v1
       and v2 = vof_bracket (OCaml.vof_list vof_expr) v2 in
       OCaml.VSum ("Container", [ v1; v2 ])
+  | Comprehension (v1, v2) ->
+      let v1 = vof_container_operator v1
+      and v2 = vof_bracket vof_comprehension v2 in
+      OCaml.VSum ("Comprehension", [ v1; v2 ])
   | Tuple v1 ->
       let v1 = vof_bracket (OCaml.vof_list vof_expr) v1 in
       OCaml.VSum ("Tuple", [ v1 ])
@@ -330,6 +334,23 @@ and vof_container_operator = function
   | Set -> OCaml.VSum ("Set", [])
   | Dict -> OCaml.VSum ("Dict", [])
 
+and vof_comprehension (v1, v2) =
+  let v1 = vof_expr v1 in
+  let v2 = OCaml.vof_list vof_for_or_if_comp v2 in
+  OCaml.VTuple [ v1; v2 ]
+
+and vof_for_or_if_comp = function
+  | CompFor (v1, v2, v3, v4) ->
+      let v1 = vof_tok v1 in
+      let v2 = vof_pattern v2 in
+      let v3 = vof_tok v3 in
+      let v4 = vof_expr v4 in
+      OCaml.VSum ("CompFor", [ v1; v2; v3; v4 ])
+  | CompIf (v1, v2) ->
+      let v1 = vof_tok v1 in
+      let v2 = vof_expr v2 in
+      OCaml.VSum ("CompIf", [ v1; v2 ])
+
 and vof_special = function
   | ForOf -> OCaml.VSum ("ForOf", [])
   | Defined -> OCaml.VSum ("Defined", [])
@@ -442,7 +463,6 @@ and vof_argument = function
       OCaml.VSum ("ArgOther", [ v1; v2 ])
 
 and vof_other_argument_operator = function
-  | OA_ArgComp -> OCaml.VSum ("OA_ArgComp", [])
   | OA_ArgQuestion -> OCaml.VSum ("OA_ArgQuestion", [])
   | OA_ArgMacro -> OCaml.VSum ("OA_ArgMacro", [])
 
@@ -468,9 +488,6 @@ and vof_other_expr_operator = function
   | OE_UseStrict -> OCaml.VSum ("OE_UseStrict", [])
   | OE_Invert -> OCaml.VSum ("OE_Invert", [])
   | OE_Slices -> OCaml.VSum ("OE_Slices", [])
-  | OE_CompForIf -> OCaml.VSum ("OE_CompForIf", [])
-  | OE_CompFor -> OCaml.VSum ("OE_CompFor", [])
-  | OE_CompIf -> OCaml.VSum ("OE_CompIf", [])
   | OE_CmpOps -> OCaml.VSum ("OE_CmpOps", [])
   | OE_Repr -> OCaml.VSum ("OE_Repr", [])
   | OE_NameOrClassType -> OCaml.VSum ("OE_NameOrClassType", [])

@@ -225,14 +225,14 @@ let rec expr (x : expr) =
   | Tuple (CompForIf (v1, v2), v3) ->
       let e1 = comprehension expr v1 v2 in
       let _v4TODO = expr_context v3 in
-      G.Tuple (G.fake_bracket e1)
+      G.Comprehension (G.List, fb e1)
   | List (CompList v1, v2) ->
       let v1 = bracket (list expr) v1 and _v2TODO = expr_context v2 in
       G.Container (G.List, v1)
   | List (CompForIf (v1, v2), v3) ->
       let e1 = comprehension expr v1 v2 in
       let _v3TODO = expr_context v3 in
-      G.Container (G.List, fb e1)
+      G.Comprehension (G.List, fb e1)
   | Subscript (v1, v2, v3) -> (
       let e = expr v1 and _v3TODO = expr_context v3 in
       match v2 with
@@ -264,7 +264,7 @@ let rec expr (x : expr) =
       G.Container (kind, (t1, v', t2))
   | DictOrSet (CompForIf (v1, v2)) ->
       let e1 = comprehension2 dictorset_elt v1 v2 in
-      G.Container (G.Dict, fb e1)
+      G.Comprehension (G.Dict, fb e1)
   | BoolOp ((v1, tok), v2) ->
       let v1 = boolop v1 and v2 = list expr v2 in
       G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb (v2 |> List.map G.arg))
@@ -340,7 +340,7 @@ and argument = function
       G.ArgKwd (n, e)
   | ArgComp (e, xs) ->
       let e = expr e in
-      G.ArgOther (G.OA_ArgComp, G.E e :: list for_if xs)
+      G.Arg (G.Comprehension (G.List, G.fake_bracket (e, list for_if xs)) |> G.e)
 
 (*e: function [[Python_to_generic.argument]] *)
 
@@ -349,10 +349,11 @@ and for_if = function
   | CompFor (e1, e2) ->
       let e1 = expr e1 in
       let e2 = expr e2 in
-      G.E (G.OtherExpr (G.OE_CompFor, [ G.E e1; G.E e2 ]) |> G.e)
+      let p = H.expr_to_pattern e1 in
+      G.CompFor (unsafe_fake "for", p, unsafe_fake "in", e2)
   | CompIf e1 ->
       let e1 = expr e1 in
-      G.E (G.OtherExpr (G.OE_CompIf, [ G.E e1 ]) |> G.e)
+      G.CompIf (unsafe_fake "if", e1)
 
 (*e: function [[Python_to_generic.for_if]] *)
 
@@ -439,18 +440,18 @@ and cmpop (a, b) =
 (*e: function [[Python_to_generic.cmpop]] *)
 
 (*s: function [[Python_to_generic.comprehension]] *)
-and comprehension f v1 v2 =
+and comprehension f v1 v2 : G.comprehension =
   let v1 = f v1 in
   let v2 = list for_if v2 in
-  [ G.OtherExpr (G.OE_CompForIf, G.E v1 :: v2) |> G.e ]
+  (v1, v2)
 
 (*e: function [[Python_to_generic.comprehension]] *)
 
 (*s: function [[Python_to_generic.comprehension2]] *)
-and comprehension2 f v1 v2 =
+and comprehension2 f v1 v2 : G.comprehension =
   let v1 = f v1 in
   let v2 = list for_if v2 in
-  [ G.OtherExpr (G.OE_CompForIf, G.E v1 :: v2) |> G.e ]
+  (v1, v2)
 
 (*e: function [[Python_to_generic.comprehension2]] *)
 

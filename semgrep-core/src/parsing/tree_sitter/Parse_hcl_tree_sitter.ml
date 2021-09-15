@@ -40,6 +40,18 @@ let token = H.token
 
 let str = H.str
 
+(* for list/dict comprehensions *)
+let pattern_of_ids ids =
+  match ids with
+  (* actually in HCL there are either 1 or 2 elts *)
+  | [] -> raise Impossible
+  | [ id ] -> PatId (id, empty_id_info ()) |> G.p
+  | _ ->
+      let xs =
+        ids |> List.map (fun id -> PatId (id, empty_id_info ()) |> G.p)
+      in
+      PatTuple (fake_bracket xs) |> G.p
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -49,11 +61,6 @@ let str = H.str
    Boilerplate to be used as a template when mapping the hcl CST
    to another type of tree.
 *)
-
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-
-let todo (env : env) _ = failwith "not implemented"
 
 let map_bool_lit (env : env) (x : CST.bool_lit) : bool wrap =
   match x with
@@ -258,25 +265,28 @@ and map_expression (env : env) (x : CST.expression) : expr =
       let v5 = map_expression env v5 in
       Conditional (v1, v3, v5) |> G.e
 
-and map_for_cond (env : env) ((v1, v2) : CST.for_cond) =
+and map_for_cond (env : env) ((v1, v2) : CST.for_cond) : for_or_if_comp =
   let v1 = (* "if" *) token env v1 in
   let v2 = map_expression env v2 in
-  (v1, v2)
+  CompIf (v1, v2)
 
 and map_for_expr (env : env) (x : CST.for_expr) =
   match x with
   | `For_tuple_expr (v1, v2, v3, v4, v5) ->
       let v1 = (* "[" *) token env v1 in
-      let tfor, ids, tin, e, tcolon = map_for_intro env v2 in
+      let tfor, ids, tin, e, _tcolon = map_for_intro env v2 in
       let v3 = map_expression env v3 in
       let v4 = match v4 with Some x -> [ map_for_cond env x ] | None -> [] in
       let v5 = (* "]" *) token env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let pat = pattern_of_ids ids in
+      let compfor = CompFor (tfor, pat, tin, e) in
+      let xs = compfor :: v4 in
+      Comprehension (List, (v1, (v3, xs), v5)) |> G.e
   | `For_obj_expr (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 = (* "{" *) token env v1 in
-      let tfor, ids, tin, e, tcolon = map_for_intro env v2 in
+      let tfor, ids, tin, e, _tcolon = map_for_intro env v2 in
       let v3 = map_expression env v3 in
-      let v4 = (* "=>" *) token env v4 in
+      let _v4 = (* "=>" *) token env v4 in
       let v5 = map_expression env v5 in
       (* ??? *)
       let _v6TODO =
@@ -286,7 +296,11 @@ and map_for_expr (env : env) (x : CST.for_expr) =
       in
       let v7 = match v7 with Some x -> [ map_for_cond env x ] | None -> [] in
       let v8 = (* "}" *) token env v8 in
-      todo env (v1, v2, v3, v4, v5, v6, v7, v8)
+      let pat = pattern_of_ids ids in
+      let compfor = CompFor (tfor, pat, tin, e) in
+      let xs = compfor :: v7 in
+      let ekeyval = Tuple (fake_bracket [ v3; v5 ]) |> G.e in
+      Comprehension (Dict, (v1, (ekeyval, xs), v8)) |> G.e
 
 and map_for_intro (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_intro) =
   let v1 = (* "for" *) token env v1 in
@@ -462,7 +476,7 @@ and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =
 
 let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
   let v1 = (* identifier *) str env v1 in
-  let v2 = (* "=" *) token env v2 in
+  let _v2 = (* "=" *) token env v2 in
   let v3 = map_expression env v3 in
   let ent = G.basic_entity v1 [] in
   let def = { vinit = Some v3; vtype = None } in
