@@ -371,7 +371,9 @@ and map_container_operator = function
   | List -> `List
   | Set -> `Set
   | Dict -> `Dict
+  | TupleComprehension -> `List
 
+(* TODO *)
 and map_special x =
   match x with
   | ForOf -> `ForOf

@@ -675,6 +675,10 @@ and m_expr a b =
   | ( G.Container (((G.Set | G.Dict) as a1), (_, a2, _)),
       B.Container (((B.Set | B.Dict) as b1), (_, b2, _)) ) ->
       m_container_set_or_dict_unordered_elements (a1, a2) (b1, b2)
+  (* dots: equivalence: Container and Comprehension *)
+  | ( G.Container (akind, (_, [ { e = G.Ellipsis _; _ } ], _)),
+      B.Comprehension (bkind, _) ) ->
+      m_container_operator akind bkind
   (*s: [[Generic_vs_generic.m_expr()]] interpolated strings case *)
   (* dots '...' for string literal:
    * Interpolated strings are transformed into Call(Special(Concat, ...),
@@ -1056,7 +1060,9 @@ and m_container_operator a b =
   | G.List, B.List -> return ()
   | G.Set, B.Set -> return ()
   | G.Dict, B.Dict -> return ()
-  | G.Array, _ | G.List, _ | G.Set, _ | G.Dict, _ -> fail ()
+  | G.TupleComprehension, B.TupleComprehension -> return ()
+  | G.Array, _ | G.List, _ | G.Set, _ | G.Dict, _ | G.TupleComprehension, _ ->
+      fail ()
 
 (*e: function [[Generic_vs_generic.m_container_operator]] *)
 

@@ -584,6 +584,7 @@ and composite_kind = function
   | G.List -> CList
   | G.Dict -> CDict
   | G.Set -> CSet
+  | G.TupleComprehension -> CTuple
 
 (* TODO: dependency of order between arguments for instr? *)
 and arguments env xs = xs |> G.unbracket |> List.map (argument env)

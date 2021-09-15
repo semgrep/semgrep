@@ -407,7 +407,10 @@ and expr_kind =
   | Comprehension of container_operator * comprehension bracket
   (*s: [[AST_generic.expr]] other composite cases *)
   (* special case of Container, at least 2 elements (except for Python where
-   * you can actually have 1-uple, e.g., '(1,)'. *)
+   * you can actually have 1-uple, e.g., '(1,)'.
+   * TODO? merge with Container? will remove need for TupleComprehension,
+   * just like we do in IL.ml with Composite.
+   *)
   | Tuple of expr list bracket
   (*x: [[AST_generic.expr]] other composite cases *)
   (* And-type (field.vinit should be a Some) *)
@@ -556,13 +559,14 @@ and constness = Lit of literal | Cst of const_type | NotCst
 
 (*s: type [[AST_generic.container_operator]] *)
 and container_operator =
-  (* Tuple was lifted up *)
   | Array (* todo? designator? use ArrayAccess for designator? *)
   | List
   | Set
   (* a.k.a Hash or Map (combine with Tuple to get Key/value pair) *)
   (* TODO? merge with Record *)
   | Dict
+  (* Tuple was lifted up in 'expr', but is needed for Python comprehensions *)
+  | TupleComprehension
 
 (*e: type [[AST_generic.container_operator]] *)
 (* For Python/HCL (and Haskell later). The 'expr' is a 'Tuple' to

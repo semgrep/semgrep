@@ -225,7 +225,7 @@ let rec expr (x : expr) =
   | Tuple (CompForIf (v1, v2), v3) ->
       let e1 = comprehension expr v1 v2 in
       let _v4TODO = expr_context v3 in
-      G.Comprehension (G.List, fb e1)
+      G.Comprehension (G.TupleComprehension, fb e1)
   | List (CompList v1, v2) ->
       let v1 = bracket (list expr) v1 and _v2TODO = expr_context v2 in
       G.Container (G.List, v1)

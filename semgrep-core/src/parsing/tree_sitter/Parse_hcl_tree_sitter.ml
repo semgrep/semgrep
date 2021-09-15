@@ -281,7 +281,7 @@ and map_for_expr (env : env) (x : CST.for_expr) =
       let pat = pattern_of_ids ids in
       let compfor = CompFor (tfor, pat, tin, e) in
       let xs = compfor :: v4 in
-      Comprehension (List, (v1, (v3, xs), v5)) |> G.e
+      Comprehension (TupleComprehension, (v1, (v3, xs), v5)) |> G.e
   | `For_obj_expr (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 = (* "{" *) token env v1 in
       let tfor, ids, tin, e, _tcolon = map_for_intro env v2 in

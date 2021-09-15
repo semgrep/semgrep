@@ -428,11 +428,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
       | NotCst -> ()
     in
     vin.kconstness (k, all_functions) x
-  and v_container_operator = function
-    | Array -> ()
-    | List -> ()
-    | Set -> ()
-    | Dict -> ()
+  and v_container_operator _x = ()
   and v_comprehension (v1, v2) =
     let v1 = v_expr v1 in
     let v2 = v_list v_for_or_if_comp v2 in

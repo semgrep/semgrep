@@ -103,7 +103,7 @@ let rec visit_expr hook lhs expr =
   | Container (typ, xs) -> (
       match typ with
       (* used on lhs? *)
-      | Array | List -> xs |> unbracket |> List.iter recl
+      | Array | List | TupleComprehension -> xs |> unbracket |> List.iter recl
       (* never used on lhs *)
       | Set | Dict -> xs |> unbracket |> List.iter recr)
   | Comprehension (_, (_, (e, comps), _)) ->

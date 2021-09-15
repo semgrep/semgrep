@@ -377,11 +377,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_const_type v1 in
         Cst v1
     | NotCst -> NotCst
-  and map_container_operator = function
-    | Array -> Array
-    | List -> List
-    | Set -> Set
-    | Dict -> Dict
+  and map_container_operator x = x
   and map_special x =
     match x with
     | ForOf | Defined | This | Super | Self | Parent | Eval | Typeof

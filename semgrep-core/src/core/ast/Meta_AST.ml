@@ -333,6 +333,7 @@ and vof_container_operator = function
   | List -> OCaml.VSum ("List", [])
   | Set -> OCaml.VSum ("Set", [])
   | Dict -> OCaml.VSum ("Dict", [])
+  | TupleComprehension -> OCaml.VSum ("TupleComprehension", [])
 
 and vof_comprehension (v1, v2) =
   let v1 = vof_expr v1 in
