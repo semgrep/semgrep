@@ -198,6 +198,18 @@ let set_gc () =
    Run jobs in parallel, using number of cores specified with -j.
 *)
 let map_targets f (targets : Common.filename list) =
+  (*
+     Sorting the targets by decreasing size is based on the assumption
+     that larger targets will take more time to process. Starting with
+     the longer jobs allows parmap to feed the workers with shorter and
+     shorter jobs, as a way of maximizing CPU usage.
+     This is a kind of greedy algorithm, which is in general not optimal
+     but hopefully good enough in practice.
+
+     This is needed only when ncores > 1, but to reduce discrepancy between
+     the two modes, we always sort the target queue in the same way.
+  *)
+  let targets = Find_target.sort_by_decreasing_size targets in
   if !ncores <= 1 then Common.map f targets
   else (
     (*
@@ -222,15 +234,6 @@ let map_targets f (targets : Common.filename list) =
      * this issue until this is fixed in a future version of Parmap.
      *)
     Parmap.disable_core_pinning ();
-    (*
-       Sorting the targets by decreasing size is based on the assumption
-       that larger targets will take more time to process. Starting with
-       the longer jobs allows parmap to feed the workers with shorter and
-       shorter jobs, as a way of maximizing CPU usage.
-       This is a kind of greedy algorithm, which is in general not optimal
-       but hopefully good enough in practice.
-     *)
-    let targets = Find_target.sort_by_decreasing_size targets in
     assert (!ncores > 0);
     Parmap.parmap ~ncores:!ncores ~chunksize:1 f (Parmap.L targets))
 
