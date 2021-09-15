@@ -1,5 +1,4 @@
-
-
 PR checklist:
-- [ ] documentation is up to date
-- [ ] changelog is up to date
+- [ ] Documentation is up-to-date
+- [ ] Changelog is up-to-date
+- [ ] Change has security implications (if so, ping security team)
