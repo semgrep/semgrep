@@ -28,3 +28,5 @@ val wrap_parser :
   (unit -> 'cst Tree_sitter_run.Parsing_result.t) ->
   ('cst -> 'ast) ->
   'ast Tree_sitter_run.Parsing_result.t
+
+val parse_number_literal : string * Parse_info.t -> AST_generic.literal

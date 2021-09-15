@@ -19,28 +19,27 @@
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* A generic AST, to factorize similar analysis in different programming
+(* A generic AST, to factorize similar "analysis" in different programming
  * languages (e.g., naming, semantic code highlighting, semgrep).
  *
  * Right now this generic AST is mostly the factorized union of:
  *  - Python, Ruby, Lua
- *  - Javascript, JSON, and Typescript
- *  - PHP
- *  - Java, CSharp
- *  - C (and some C++)
+ *  - Javascript, Typescript
+ *  - PHP, Hack
+ *  - Java, CSharp, Kotlin
+ *  - C, C++
  *  - Go
- *  - OCaml
- *  - Scala
- *  - TODO next: Kotlin, Rust
+ *  - JSON, YAML, HCL
+ *  - OCaml, Scala, Rust
  *
  * rational: In the end, programming languages have a lot in Common.
- * Even though most interesting analysis are probably better done on a
- * per-language basis, many useful analysis are trivial and require just an
+ * Even though some interesting analysis are probably better done on a
+ * per-language basis, many analysis are simple and require just an
  * AST and a visitor. One could duplicate those analysis for each language
  * or design an AST (this file) generic enough to factorize all those
- * analysis (e.g., unused entity). However, we want to remain
+ * analysis (e.g., unused entity). Note that we want to remain
  * as precise as possible and not lose too much information while going
- * from the specific language AST to the generic AST. We also do not want
+ * from the specific language AST to the generic AST. We don't want
  * to be too generic as in ast_fuzzy.ml, where we have a very general
  * tree of nodes, but all the structure of the original AST is lost.
  *
@@ -62,6 +61,7 @@
  *    Generic_vs_generic though to let 'a=1' matches also 'a,b=1,2').
  *  - multiple ways to define a function are converted all to a
  *    'function_definition' (e.g., Javascript arrows are converted in that)
+ *    update: but we now have a more precise function_body type
  *  - we are more general and impose less restrictions on where certain
  *    constructs can appear to simplify things.
  *     * there is no special lhs/lvalue type (see IL.ml for that) and so
@@ -76,13 +76,17 @@
  *     * certain attributes are valid only for certain constructs but instead
  *       we use one attribute type (no class_attribute vs func_attribute etc.)
  *
+ * Note that this generic AST has become gradually more and more a
+ * generic CST, to fix issues in autofix in Semgrep.
+ * TODO? it may be time to rename this file CST_generic.ml
+ *
  * todo:
  *  - add C++ (argh)
- *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep.
+ *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep?
  *
  * related work:
- *  - ast_fuzzy.ml (in this directory)
- *  - github semantic
+ *  - ast_fuzzy.ml (in pfff)
+ *  - github semantic (seems dead)
  *    https://github.com/github/semantic
  *  - UAST of babelfish
  *    https://doc.bblf.sh/uast/uast-specification-v2.html
@@ -90,9 +94,10 @@
  *  - Semmle internal common representation?
  *  - Sonarcube generic language
  *    https://github.com/SonarSource/slang
- *  - Infer SIL (for C++, Java, Objective-C)
+ *  - Facebook Infer SIL (for C++, Java, Objective-C)
  *  - Dawson Engler and Fraser Brown micro-checkers for multiple languages
- *  - Lightweight Multi-language syntax transformation paper, but does not
+ *  - Comby common representation by Rijnard,
+ *    see "Lightweight Multi-language syntax transformation", but does not
  *    really operate on an AST
  *  - https://tabnine.com/ which supports multiple languages, but probably
  *    again does not operate on an AST
@@ -399,6 +404,7 @@ and expr_kind =
   | L of literal
   (* composite values *)
   | Container of container_operator * expr list bracket
+  (* TODO: define also Comprehension for Python/HCL/... comprehensions *)
   (*s: [[AST_generic.expr]] other composite cases *)
   (* special case of Container, at least 2 elements (except for Python where
    * you can actually have 1-uple, e.g., '(1,)' *)
@@ -435,6 +441,7 @@ and expr_kind =
   | IdSpecial of special wrap (*e: [[AST_generic.expr]] other identifier cases *)
   (* operators and function application *)
   | Call of expr * arguments bracket (* can be fake '()' for OCaml/Ruby *)
+  (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (*s: [[AST_generic.expr]] other call cases *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
   | Xml of xml
@@ -588,7 +595,11 @@ and special =
    * Note that 'new' by itself is not a valid expression
    *)
   | New (* usually associated with Call(New, [ArgType _;...]) *)
-  (* used for interpolated strings constructs *)
+  (* used for interpolated strings constructs
+   * TODO: move out of 'special' and make special construct InterpolatedConcat
+   * in 'expr' instead of abusing Call for that? that way can also
+   * avoid those InterpolatedElement stuff.
+   *)
   | ConcatString of concat_string_kind
   | EncodedString of string (* only for Python for now (e.g., b"foo") *)
   (* TaggedString? for Javascript, for styled.div`bla{xx}`?
@@ -599,8 +610,8 @@ and special =
    * (not all calls have parenthesis anyway, as in OCaml or Ruby).
    *)
   (* Use this to separate interpolated elements in interpolated strings
-   * but this is a bit of a hack. We should probably add InterpolatedConcat
-   * as an expression
+   * but this is a bit of a hack.
+   * TODO: We should probably add InterpolatedConcat as an expression
    *)
   | InterpolatedElement
   (* "Inline" the content of a var containing a list (a.k.a Splat in Ruby).
@@ -614,7 +625,10 @@ and special =
   | HashSplat (* **x in Python/Ruby
                * (not to confused with Pow below which is a Binary op *)
   | ForOf (* Javascript, for generators, used in ForEach *)
-  (* used for unary and binary operations *)
+  (* used for unary and binary operations
+   * TODO: move out of special too, in separate OpCall? (where can also
+   * have 1 or 2 argument (or maybe even 0 for op reference?)
+   *)
   | Op of operator
   (* less: should be lift up and transformed in Assign at stmt level *)
   | IncrDecr of (incr_decr * prefix_postfix)
@@ -650,14 +664,12 @@ and operator =
   | BitNot
   | BitClear (* Go *)
   (* And/Or are also shortcut operator.
-   * todo? rewrite in CondExpr? have special behavior
+   * todo? rewrite in CondExpr? They have a special behavior.
    *)
   | And
   | Or
   (* PHP has a xor shortcut operator ... hmmm *)
   | Xor
-  (* Shell *)
-  | Pipe
   (* unary *)
   | Not
   | Eq (* '=' in OCaml, '==' in Go/... *)
@@ -689,10 +701,10 @@ and operator =
   | NotIn (* !in *)
   (* is: checks value has type *)
   | Is
-  (* !is: *)
   | NotIs
-  (* Shell *)
-  | (* & *) Background
+  (* Shell & and | *)
+  | Background
+  | Pipe
 
 (*e: type [[AST_generic.arithmetic_operator]] *)
 (*s: type [[AST_generic.incr_decr]] *)
@@ -805,7 +817,7 @@ and argument =
 (*s: type [[AST_generic.other_argument_operator]] *)
 and other_argument_operator =
   (* Python *)
-  | OA_ArgComp (* comprehension *)
+  | OA_ArgComp (* comprehension, TODO move in 'expr' *)
   (* OCaml *)
   | OA_ArgQuestion
   (* Rust *)
@@ -958,6 +970,9 @@ and stmt_kind =
       * stmt (* newscope: block *)
   | Assert of tok * expr * expr option (* message *) * sc
   (*e: [[AST_generic.stmt]] other cases *)
+  (* TODO? move this out of stmt and have a stmt_or_def_or_dir in Block?
+   * or an item list where item is a stmt_or_def_or_dir (as well as field)
+   *)
   (*s: [[AST_generic.stmt]] toplevel and nested construct cases *)
   | DefStmt of definition
   (*x: [[AST_generic.stmt]] toplevel and nested construct cases *)
@@ -1674,6 +1689,7 @@ and other_or_type_element_operator =
  *
  * Note that not all stmt in FieldStmt are definitions. You can have also
  * a Block like in Kotlin for 'init' stmts.
+ * However ideally 'field' should really be just an alias for 'definition'.
  *)
 (*s: type [[AST_generic.field]] *)
 and field =
@@ -1919,6 +1935,10 @@ and any =
 (*e: type [[AST_generic.any]] *)
 [@@deriving show { with_path = false }, eq, hash]
 
+(*****************************************************************************)
+(* Special constants *)
+(*****************************************************************************)
+
 (*s: constant [[AST_generic.special_multivardef_pattern]] *)
 (* In JS one can do 'var {x,y} = foo();'. We used to transpile that
  * in multiple vars, but in sgrep one may want to match over those patterns.
@@ -1953,9 +1973,54 @@ let error tok msg = raise (Error (msg, tok))
 (*e: function [[AST_generic.error]] *)
 
 (*****************************************************************************)
-(* Helpers *)
+(* Fake tokens *)
+(*****************************************************************************)
+
+(* Try avoid using them! if you build new constructs, you should try
+ * to derive the tokens in those new constructs from existing constructs
+ * and use the Parse_info.fake_info variant, not the unsafe_xxx one.
+ *)
+let fake s = Parse_info.unsafe_fake_info s
+
+let fake_bracket x = (fake "(", x, fake ")")
+
+(* bugfix: I used to put ";" but now Parse_info.str_of_info prints
+ * the string of a fake info
+ *)
+let sc = Parse_info.unsafe_fake_info ""
+
+(*****************************************************************************)
+(* AST builder helpers *)
 (*****************************************************************************)
 (* see also AST_generic_helpers.ml *)
+
+(* ------------------------------------------------------------------------- *)
+(* Shortcuts *)
+(* ------------------------------------------------------------------------- *)
+
+(* statements *)
+let s skind =
+  {
+    s = skind;
+    s_id = AST_utils.Node_ID.create ();
+    s_use_cache = false;
+    s_backrefs = None;
+    s_bf = None;
+    s_range = None;
+  }
+
+(* expressions *)
+let e ekind = { e = ekind; e_id = 0; e_range = None }
+
+(* directives *)
+let d dkind = { d = dkind; d_attrs = [] }
+
+(* types *)
+let t tkind = { t = tkind; t_attrs = [] }
+
+(* ------------------------------------------------------------------------- *)
+(* Ident and names *)
+(* ------------------------------------------------------------------------- *)
 
 (*s: constant [[AST_generic.sid_TODO]] *)
 (* before Naming_AST.resolve can do its job *)
@@ -1984,6 +2049,31 @@ let basic_id_info resolved =
   }
 
 (*e: function [[AST_generic.basic_id_info]] *)
+
+(* TODO: move AST_generic_helpers.name_of_id and ids here *)
+
+(* ------------------------------------------------------------------------- *)
+(* Entities *)
+(* ------------------------------------------------------------------------- *)
+
+(*s: function [[AST_generic.basic_entity]] *)
+let basic_entity id attrs =
+  let idinfo = empty_id_info () in
+  { name = EN (Id (id, idinfo)); attrs; tparams = [] }
+
+(*e: function [[AST_generic.basic_entity]] *)
+
+(* ------------------------------------------------------------------------- *)
+(* Arguments *)
+(* ------------------------------------------------------------------------- *)
+
+(* easier to use in List.map than each time (fun e -> Arg e) *)
+let arg e = Arg e
+
+(* ------------------------------------------------------------------------- *)
+(* Parameters *)
+(* ------------------------------------------------------------------------- *)
+
 (*s: function [[AST_generic.param_of_id]] *)
 let param_of_id id =
   {
@@ -2006,69 +2096,10 @@ let param_of_type typ =
   }
 
 (*e: function [[AST_generic.param_of_type]] *)
-(*s: function [[AST_generic.basic_entity]] *)
-let basic_entity id attrs =
-  let idinfo = empty_id_info () in
-  { name = EN (Id (id, idinfo)); attrs; tparams = [] }
 
-(*e: function [[AST_generic.basic_entity]] *)
-
-(* statements *)
-let s skind =
-  {
-    s = skind;
-    s_id = AST_utils.Node_ID.create ();
-    s_use_cache = false;
-    s_backrefs = None;
-    s_bf = None;
-    s_range = None;
-  }
-
-(* expressions *)
-let e ekind = { e = ekind; e_id = 0; e_range = None }
-
-(* directives *)
-let d dkind = { d = dkind; d_attrs = [] }
-
-(* types *)
-let t tkind = { t = tkind; t_attrs = [] }
-
-(*s: function [[AST_generic.basic_field]] *)
-let basic_field id vopt typeopt =
-  let entity = basic_entity id [] in
-  FieldStmt (s (DefStmt (entity, VarDef { vinit = vopt; vtype = typeopt })))
-
-(*e: function [[AST_generic.basic_field]] *)
-(*s: function [[AST_generic.attr]] *)
-let attr kwd tok = KeywordAttr (kwd, tok)
-
-(*e: function [[AST_generic.attr]] *)
-(*s: function [[AST_generic.arg]] *)
-let arg e = Arg e
-
-(*e: function [[AST_generic.arg]] *)
-(*s: function [[AST_generic.fake]] *)
-(* Try avoid using them! if you build new constructs, you should try
- * to derive the tokens in those new constructs from existing constructs.
- *)
-let fake s = Parse_info.unsafe_fake_info s
-
-(*e: function [[AST_generic.fake]] *)
-(*s: function [[AST_generic.fake_bracket]] *)
-let fake_bracket x = (fake "(", x, fake ")")
-
-(*e: function [[AST_generic.fake_bracket]] *)
-(*s: function [[AST_generic.unbracket]] *)
-let unbracket (_, x, _) = x
-
-(*e: function [[AST_generic.unbracket]] *)
-(* bugfix: I used to put ";" but now Parse_info.str_of_info prints
- * the string of a fake info
- *)
-let sc = Parse_info.unsafe_fake_info ""
-
-let unhandled_keywordattr (s, t) =
-  NamedAttr (t, Id ((s, t), empty_id_info ()), fake_bracket [])
+(* ------------------------------------------------------------------------- *)
+(* Statements *)
+(* ------------------------------------------------------------------------- *)
 
 let exprstmt e = s (ExprStmt (e, sc))
 
@@ -2085,8 +2116,6 @@ let emptystmt t = s (Block (t, [], t))
  *)
 let stmt_to_expr st = e (OtherExpr (OE_StmtExpr, [ S st ]))
 
-let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))
-
 let empty_body = fake_bracket []
 
 (*s: function [[AST_generic.stmt1]] *)
@@ -2097,5 +2126,62 @@ let stmt1 xs =
   | xs -> s (Block (fake_bracket xs))
 
 (*e: function [[AST_generic.stmt1]] *)
+
+(* ------------------------------------------------------------------------- *)
+(* Fields *)
+(* ------------------------------------------------------------------------- *)
+
+(* this should be simpler at some point if we get rid of FieldStmt *)
+let fld (ent, def) = FieldStmt (s (DefStmt (ent, def)))
+
+(*s: function [[AST_generic.basic_field]] *)
+let basic_field id vopt typeopt =
+  let entity = basic_entity id [] in
+  fld (entity, VarDef { vinit = vopt; vtype = typeopt })
+
+(*e: function [[AST_generic.basic_field]] *)
+
+let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))
+
+(* ------------------------------------------------------------------------- *)
+(* Attributes *)
+(* ------------------------------------------------------------------------- *)
+
+let attr kwd tok = KeywordAttr (kwd, tok)
+
+let unhandled_keywordattr (s, t) =
+  NamedAttr (t, Id ((s, t), empty_id_info ()), fake_bracket [])
+
+(* ------------------------------------------------------------------------- *)
+(* Interpolated strings *)
+(* ------------------------------------------------------------------------- *)
+(* TODO: have a separate InterpolatedConcat in expr with a cleaner type
+ * instead of abusing special?
+ *)
+let interpolated (lquote, xs, rquote) =
+  let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
+  Call
+    ( special,
+      ( lquote,
+        xs
+        |> List.map (function
+             | Common.Left3 str -> Arg (L (String str) |> e)
+             | Common.Right3 (lbrace, eopt, rbrace) ->
+                 let special = IdSpecial (InterpolatedElement, lbrace) |> e in
+                 let args = eopt |> Common.opt_to_list |> List.map arg in
+                 Arg (Call (special, (lbrace, args, rbrace)) |> e)
+             | Common.Middle3 e -> Arg e),
+        rquote ) )
+  |> e
+
+(* ------------------------------------------------------------------------- *)
+(* Misc *)
+(* ------------------------------------------------------------------------- *)
+
+(*****************************************************************************)
+(* AST accessors *)
+(*****************************************************************************)
+
+let unbracket (_, x, _) = x
 
 (*e: pfff/h_program-lang/AST_generic.ml *)
