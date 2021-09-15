@@ -207,6 +207,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let v1 = map_container_operator v1
             and v2 = map_bracket (map_of_list map_expr) v2 in
             Container (v1, v2)
+        | Comprehension (v1, v2) ->
+            let v1 = map_container_operator v1
+            and v2 = map_bracket map_of_comprehension v2 in
+            Comprehension (v1, v2)
         | Tuple v1 ->
             let v1 = map_bracket (map_of_list map_expr) v1 in
             Tuple v1
@@ -299,6 +303,21 @@ let (mk_visitor : visitor_in -> visitor_out) =
       G.e ekind
     in
     vin.kexpr (k, all_functions) x
+  and map_of_comprehension (v1, v2) =
+    let v1 = map_expr v1 in
+    let v2 = map_of_list map_for_or_if_comp v2 in
+    (v1, v2)
+  and map_for_or_if_comp = function
+    | CompFor (v1, v2, v3, v4) ->
+        let v1 = map_tok v1 in
+        let v2 = map_pattern v2 in
+        let v3 = map_tok v3 in
+        let v4 = map_expr v4 in
+        CompFor (v1, v2, v3, v4)
+    | CompIf (v1, v2) ->
+        let v1 = map_tok v1 in
+        let v2 = map_expr v2 in
+        CompIf (v1, v2)
   and map_name_or_dynamic = function
     | EN v1 ->
         let v1 = map_name v1 in
@@ -358,11 +377,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_const_type v1 in
         Cst v1
     | NotCst -> NotCst
-  and map_container_operator = function
-    | Array -> Array
-    | List -> List
-    | Set -> Set
-    | Dict -> Dict
+  and map_container_operator x = x
   and map_special x =
     match x with
     | ForOf | Defined | This | Super | Self | Parent | Eval | Typeof

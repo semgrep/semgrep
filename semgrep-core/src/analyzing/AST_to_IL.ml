@@ -454,6 +454,7 @@ and expr_aux env eorig =
       let xs = bracket_keep (List.map (expr env)) xs in
       let kind = composite_kind kind in
       mk_e (Composite (kind, xs)) eorig
+  | G.Comprehension _ -> todo (G.E eorig)
   | G.Tuple xs ->
       let xs = bracket_keep (List.map (expr env)) xs in
       mk_e (Composite (CTuple, xs)) eorig
@@ -583,6 +584,7 @@ and composite_kind = function
   | G.List -> CList
   | G.Dict -> CDict
   | G.Set -> CSet
+  | G.TupleComprehension -> CTuple
 
 (* TODO: dependency of order between arguments for instr? *)
 and arguments env xs = xs |> G.unbracket |> List.map (argument env)

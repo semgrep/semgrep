@@ -99,6 +99,7 @@ let rec expr_to_pattern e =
   | L l -> PatLiteral l
   | Container (List, (t1, xs, t2)) ->
       PatList (t1, xs |> List.map expr_to_pattern, t2)
+  | Ellipsis t -> PatEllipsis t
   (* Todo:  PatKeyVal *)
   | _ -> OtherPat (OP_Expr, [ E e ])
 
