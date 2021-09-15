@@ -221,7 +221,7 @@ let rec map_expression_list (env : env)
 and map_expression_tuple (env : env)
     ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : G.expr =
   let v1 = map_expression_list env (v1, v2) in
-  G.Tuple (G.fake_bracket v1) |> G.e
+  G.Container (G.Tuple, G.fake_bracket v1) |> G.e
 
 and map_anon_arguments (env : env)
     ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : G.arguments =

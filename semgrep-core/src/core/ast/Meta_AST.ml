@@ -182,9 +182,6 @@ and vof_expr e =
       let v1 = vof_container_operator v1
       and v2 = vof_bracket vof_comprehension v2 in
       OCaml.VSum ("Comprehension", [ v1; v2 ])
-  | Tuple v1 ->
-      let v1 = vof_bracket (OCaml.vof_list vof_expr) v1 in
-      OCaml.VSum ("Tuple", [ v1 ])
   | Record v1 ->
       let v1 = vof_bracket (OCaml.vof_list vof_field) v1 in
       OCaml.VSum ("Record", [ v1 ])
@@ -333,7 +330,7 @@ and vof_container_operator = function
   | List -> OCaml.VSum ("List", [])
   | Set -> OCaml.VSum ("Set", [])
   | Dict -> OCaml.VSum ("Dict", [])
-  | TupleComprehension -> OCaml.VSum ("TupleComprehension", [])
+  | Tuple -> OCaml.VSum ("Tuple", [])
 
 and vof_comprehension (v1, v2) =
   let v1 = vof_expr v1 in

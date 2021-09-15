@@ -263,7 +263,8 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
               v2 |> unbracket
               |> List.iter (fun e ->
                      match e.e with
-                     | Tuple (tok, [ { e = L (String id); _ }; e ], _) ->
+                     | Container
+                         (Tuple, (tok, [ { e = L (String id); _ }; e ], _)) ->
                          let t = PI.fake_info tok ":" in
                          v_partial ~recurse:false
                            (PartialSingleField (id, t, e))
@@ -273,7 +274,8 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
               v2 |> unbracket
               |> List.iter (fun e ->
                      match e.e with
-                     | Tuple (tok, [ { e = N (Id (id, _)); _ }; e ], _) ->
+                     | Container
+                         (Tuple, (tok, [ { e = N (Id (id, _)); _ }; e ], _)) ->
                          let t = PI.fake_info tok ":" in
                          v_partial ~recurse:false
                            (PartialSingleField (id, t, e))
@@ -285,9 +287,6 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
       | Comprehension (v1, v2) ->
           let v1 = v_container_operator v1
           and v2 = v_bracket v_comprehension v2 in
-          ()
-      | Tuple v1 ->
-          let v1 = v_bracket (v_list v_expr) v1 in
           ()
       | Record v1 ->
           let v1 = v_bracket (v_list v_field) v1 in

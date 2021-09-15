@@ -405,14 +405,6 @@ and expr_kind =
   (* composite values *)
   | Container of container_operator * expr list bracket
   | Comprehension of container_operator * comprehension bracket
-  (*s: [[AST_generic.expr]] other composite cases *)
-  (* special case of Container, at least 2 elements (except for Python where
-   * you can actually have 1-uple, e.g., '(1,)'.
-   * TODO? merge with Container? will remove need for TupleComprehension,
-   * just like we do in IL.ml with Composite.
-   *)
-  | Tuple of expr list bracket
-  (*x: [[AST_generic.expr]] other composite cases *)
   (* And-type (field.vinit should be a Some) *)
   | Record of field list bracket
   (*x: [[AST_generic.expr]] other composite cases *)
@@ -453,7 +445,7 @@ and expr_kind =
   (*e: [[AST_generic.expr]] other call cases *)
 
   (* The left part should be an lvalue (Id, DotAccess, ArrayAccess, Deref)
-   * but it can also be a pattern (Tuple, Container, even Record), but
+   * but it can also be a pattern (Container, even Record), but
    * you should really use LetPattern for that.
    * Assign can also be abused to declare new variables, but you should use
    * variable_definition for that.
@@ -565,12 +557,14 @@ and container_operator =
   (* a.k.a Hash or Map (combine with Tuple to get Key/value pair) *)
   (* TODO? merge with Record *)
   | Dict
-  (* Tuple was lifted up in 'expr', but is needed for Python comprehensions *)
-  | TupleComprehension
+  (* Tuples usually contain at least 2 elements, except for Python where
+   * you can actually have 1-uple, e.g., '(1,)'.
+   *)
+  | Tuple
 
 (*e: type [[AST_generic.container_operator]] *)
 (* For Python/HCL (and Haskell later). The 'expr' is a 'Tuple' to
- * represent a Key/Value pair (like in Container).
+ * represent a Key/Value pair (like in Container). See keyval() below.
  * newscope:
  *)
 and comprehension = expr * for_or_if_comp list
@@ -2191,6 +2185,8 @@ let interpolated (lquote, xs, rquote) =
 (* ------------------------------------------------------------------------- *)
 (* Misc *)
 (* ------------------------------------------------------------------------- *)
+(* todo? use a special construct KeyVal valid only inside Dict? *)
+let keyval k _tarrow v = Container (Tuple, fake_bracket [ k; v ]) |> e
 
 (*****************************************************************************)
 (* AST accessors *)

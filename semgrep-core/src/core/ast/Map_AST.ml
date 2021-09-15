@@ -211,9 +211,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let v1 = map_container_operator v1
             and v2 = map_bracket map_of_comprehension v2 in
             Comprehension (v1, v2)
-        | Tuple v1 ->
-            let v1 = map_bracket (map_of_list map_expr) v1 in
-            Tuple v1
         | Record v1 ->
             let v1 = map_bracket (map_of_list map_field) v1 in
             Record v1

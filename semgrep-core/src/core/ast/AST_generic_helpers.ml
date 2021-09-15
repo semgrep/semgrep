@@ -95,7 +95,8 @@ let rec expr_to_pattern e =
   (* TODO: diconstruct e and generate the right pattern (PatLiteral, ...) *)
   match e.e with
   | N (Id (id, info)) -> PatId (id, info)
-  | Tuple (t1, xs, t2) -> PatTuple (t1, xs |> List.map expr_to_pattern, t2)
+  | Container (Tuple, (t1, xs, t2)) ->
+      PatTuple (t1, xs |> List.map expr_to_pattern, t2)
   | L l -> PatLiteral l
   | Container (List, (t1, xs, t2)) ->
       PatList (t1, xs |> List.map expr_to_pattern, t2)
@@ -114,7 +115,8 @@ exception NotAnExpr
 let rec pattern_to_expr p =
   (match p with
   | PatId (id, info) -> N (Id (id, info))
-  | PatTuple (t1, xs, t2) -> Tuple (t1, xs |> List.map pattern_to_expr, t2)
+  | PatTuple (t1, xs, t2) ->
+      Container (Tuple, (t1, xs |> List.map pattern_to_expr, t2))
   | PatLiteral l -> L l
   | PatList (t1, xs, t2) ->
       Container (List, (t1, xs |> List.map pattern_to_expr, t2))

@@ -210,7 +210,10 @@ let make_mapping (pos1, pos2) ((key, value) : G.expr * G.expr) env =
   | G.Ellipsis _, G.Ellipsis _ ->
       let tok = mk_tok pos1 "..." env in
       (G.Ellipsis (Parse_info.fake_info tok "...") |> G.e, pos2)
-  | _ -> (G.Tuple (mk_bracket (pos1, pos2) [ key; value ] env) |> G.e, pos2)
+  (* less: use G.keyval? *)
+  | _ ->
+      ( G.Container (G.Tuple, mk_bracket (pos1, pos2) [ key; value ] env) |> G.e,
+        pos2 )
 
 let make_doc start_pos (doc, end_pos) env : G.expr list =
   match doc with
