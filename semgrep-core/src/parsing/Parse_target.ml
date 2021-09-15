@@ -344,7 +344,7 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   AST_generic_helpers.gensym_counter := 0;
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
-  Constant_propagation.propagate_dataflow ast;
+  Constant_propagation.propagate_dataflow lang ast;
   if !Flag.use_bloom_filter then Bloom_annotation.annotate_program ast;
 
   logger#info "Parse_target.parse_and_resolve_name_use_pfff_or_treesitter done";

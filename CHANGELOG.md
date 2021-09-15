@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - HCL (a.k.a Terraform) experimental support
 
+### Changed
+
+### Fixed
+- Dataflow: Recognize "concat" method and interpret it in a language-dependent manner (#3316)
+
 ## [0.65.0](https://github.com/returntocorp/semgrep/releases/tag/v0.65.0) - 09-13-2021
 
 ### Added

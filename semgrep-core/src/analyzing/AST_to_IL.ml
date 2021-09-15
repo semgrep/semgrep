@@ -36,6 +36,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (*s: type [[AST_to_IL.env]] *)
 type env = {
+  lang : Lang.t;
   (* stmts hidden inside expressions that we want to move out of 'exp',
    * usually simple Instr, but can be also If when handling Conditional expr.
    *)
@@ -45,7 +46,7 @@ type env = {
 (*e: type [[AST_to_IL.env]] *)
 
 (*s: function [[AST_to_IL.empty_env]] *)
-let empty_env () = { stmts = ref [] }
+let empty_env lang = { lang; stmts = ref [] }
 
 (*e: function [[AST_to_IL.empty_env]] *)
 
@@ -386,6 +387,33 @@ and expr_aux env eorig =
           add_instr env (mk_i (Assign (lval, opexp)) eorig);
           lvalexp
       | _ -> impossible (G.E eorig))
+  | G.Call
+      ( {
+          e =
+            G.DotAccess
+              ( obj,
+                tok,
+                G.EN
+                  (G.Id
+                    (("concat", _), { G.id_resolved = { contents = None }; _ }))
+              );
+          _;
+        },
+        args ) ->
+      (* obj.concat(args) *)
+      (* NOTE: Often this will be string concatenation but not necessarily! *)
+      let obj' = lval env obj in
+      let obj_arg' = mk_e (Fetch obj') obj in
+      let args' = arguments env args in
+      let res =
+        match env.lang with
+        (* Ruby's concat method is side-effectful and updates the object. *)
+        | Lang.Ruby -> obj'
+        | _ -> fresh_lval env tok
+      in
+      add_instr env
+        (mk_i (CallSpecial (Some res, (Concat, tok), obj_arg' :: args')) eorig);
+      mk_e (Fetch res) eorig
   (* todo: if the xxx_to_generic forgot to generate Eval *)
   | G.Call
       ( {
@@ -939,15 +967,15 @@ and python_with_stmt env manager opt_pat body =
 (* Entry points *)
 (*****************************************************************************)
 
-let function_definition def =
-  let env = empty_env () in
+let function_definition lang def =
+  let env = empty_env lang in
   let params = parameters env def.G.fparams in
   let body = function_body env def.G.fbody in
   (params, body)
 
 (*s: function [[AST_to_IL.stmt (/home/pad/pfff/lang_GENERIC/analyze/AST_to_IL.ml)]] *)
-let stmt st =
-  let env = empty_env () in
+let stmt lang st =
+  let env = empty_env lang in
   stmt env st
 
 (*e: function [[AST_to_IL.stmt (/home/pad/pfff/lang_GENERIC/analyze/AST_to_IL.ml)]] *)

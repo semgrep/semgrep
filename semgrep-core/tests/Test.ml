@@ -177,7 +177,7 @@ let tainting_test lang rules_file file =
     Tainting_generic.check
       (fun _ _ _ -> ())
       Config_semgrep.default_config
-      taint_rules equivs file ast
+      taint_rules equivs file lang ast
   in
   let actual =
     matches |> List.map (fun m ->

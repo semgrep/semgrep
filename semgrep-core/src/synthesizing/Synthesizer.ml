@@ -10,7 +10,7 @@ let range_to_ast file lang s =
   let a_opt = Range_to_AST.any_at_range_all r ast in
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
-  Constant_propagation.propagate_dataflow ast;
+  Constant_propagation.propagate_dataflow lang ast;
   match a_opt with
   | None -> failwith (spf "could not find an expr at range %s in %s" s file)
   | Some a -> a
