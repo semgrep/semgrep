@@ -94,10 +94,7 @@ workflows:
   benchmarks-on-commit:
     jobs:
       - benchmarks:
-          filters:
-            branches:
-              only:
-                - force-benchmarks
+          type: approval
 
   scheduled-parsing-stats:
     triggers:
