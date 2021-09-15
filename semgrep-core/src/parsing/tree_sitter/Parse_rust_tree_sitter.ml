@@ -1285,7 +1285,7 @@ and map_expression (env : env) (x : CST.expression) =
       in
       let rparen = token env v7 (* ")" *) in
       let exprs = List.concat [ [ expr_first ]; expr_rest; expr_last ] in
-      G.Tuple (lparen, exprs, rparen)
+      G.Container (G.Tuple, (lparen, exprs, rparen))
   | `Macro_invo x ->
       let x = map_macro_invocation env x in
       x.G.e

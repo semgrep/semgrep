@@ -114,7 +114,8 @@ let generic_to_json env (key : key) ast =
           (xs
           |> List.map (fun x ->
                  match x.G.e with
-                 | G.Tuple (_, [ { e = L (String (k, _)); _ }; v ], _) ->
+                 | G.Container
+                     (G.Tuple, (_, [ { e = L (String (k, _)); _ }; v ], _)) ->
                      (k, aux v)
                  | _ ->
                      error_at_expr env x
@@ -148,7 +149,9 @@ let yaml_to_dict_helper error_fun_f error_fun_d (enclosing : string R.wrap)
       fields
       |> List.iter (fun field ->
              match field.G.e with
-             | G.Tuple (_, [ { e = L (String (key_str, t)); _ }; value ], _) ->
+             | G.Container
+                 (G.Tuple, (_, [ { e = L (String (key_str, t)); _ }; value ], _))
+               ->
                  (* Those are actually silently ignored by many YAML parsers
                   * which just consider the last key/value as the final one.
                   * This was a source of bugs in semgrep rules where people
@@ -343,8 +346,10 @@ let parse_equivalences env key value =
             [
               {
                 e =
-                  Tuple
-                    (_, [ { e = L (String ("equivalence", t)); _ }; value ], _);
+                  Container
+                    ( Tuple,
+                      (_, [ { e = L (String ("equivalence", t)); _ }; value ], _)
+                    );
                 _;
               };
             ],
@@ -483,7 +488,13 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
     | G.Container
         ( Dict,
           ( _,
-            [ { e = Tuple (_, [ { e = L (String key); _ }; value ], _); _ } ],
+            [
+              {
+                e =
+                  Container (Tuple, (_, [ { e = L (String key); _ }; value ], _));
+                _;
+              };
+            ],
             _ ) ) ->
         parse_formula_old env (key, value)
     | _ -> error_at_expr env x "Wrong parse_formula fields"
@@ -524,8 +535,14 @@ and parse_formula_new env (x : G.expr) : R.formula =
   match x.G.e with
   | G.Container
       ( Dict,
-        (_, [ { e = Tuple (_, [ { e = L (String key); _ }; value ], _); _ } ], _)
-      ) -> (
+        ( _,
+          [
+            {
+              e = Container (Tuple, (_, [ { e = L (String key); _ }; value ], _));
+              _;
+            };
+          ],
+          _ ) ) -> (
       let s, t = key in
 
       match s with
@@ -680,10 +697,11 @@ let parse_generic file ast =
                        [
                          {
                            e =
-                             Tuple
-                               ( _,
-                                 [ { e = L (String ("rules", _)); _ }; rules ],
-                                 _ );
+                             Container
+                               ( Tuple,
+                                 ( _,
+                                   [ { e = L (String ("rules", _)); _ }; rules ],
+                                   _ ) );
                            _;
                          };
                        ],

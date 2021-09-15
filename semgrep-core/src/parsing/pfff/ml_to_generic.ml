@@ -235,7 +235,7 @@ and expr e =
       let e = expr e in
       match e.G.e with
       (* replace fake brackets with real one *)
-      | G.Tuple (_, xs, _) -> G.Tuple (l, xs, r)
+      | G.Container (G.Tuple, (_, xs, _)) -> G.Container (G.Tuple, (l, xs, r))
       | e -> e)
   | TypedExpr (v1, v2, v3) -> (
       let v1 = expr v1 in
@@ -273,7 +273,7 @@ and expr e =
       (* the fake brackets might be replaced in the caller if there
        * was a ParenExpr around
        *)
-      G.Tuple (fb v1)
+      G.Container (G.Tuple, fb v1)
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)

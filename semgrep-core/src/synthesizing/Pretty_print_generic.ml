@@ -380,7 +380,7 @@ and expr env e =
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
   | L x -> literal env x
-  | Tuple (_, es, _) -> F.sprintf "(%s)" (tuple env es)
+  | Container (Tuple, (_, es, _)) -> F.sprintf "(%s)" (tuple env es)
   | ArrayAccess (e1, (_, e2, _)) ->
       F.sprintf "%s[%s]" (expr env e1) (expr env e2)
   | Assign (e1, tok, e2) ->

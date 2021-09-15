@@ -61,7 +61,8 @@ let expr x =
                                G.N (G.Id (id, G.empty_id_info ())) |> G.e
                              else G.L (G.String id) |> G.e
                            in
-                           G.Tuple (G.fake_bracket [ key; e ]) |> G.e
+                           G.Container (G.Tuple, G.fake_bracket [ key; e ])
+                           |> G.e
                        | Right t -> G.Ellipsis t |> G.e)
                 in
                 G.Container (G.Dict, (lp, zs, rp)) |> G.e

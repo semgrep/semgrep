@@ -218,9 +218,6 @@ and map_expr x : B.expr =
       let l = map_tok l in
       let r = map_tok r in
       `Container (v1, (l, [], r))
-  | Tuple v1 ->
-      let v1 = map_bracket (map_of_list map_expr) v1 in
-      `Tuple v1
   | Record v1 ->
       let v1 = map_bracket (map_of_list map_field) v1 in
       `Record v1
@@ -371,7 +368,9 @@ and map_container_operator = function
   | List -> `List
   | Set -> `Set
   | Dict -> `Dict
-  | TupleComprehension -> `List
+  | Tuple -> `List
+
+(* TODO `Tuple *)
 
 (* TODO *)
 and map_special x =
