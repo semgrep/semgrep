@@ -83,7 +83,7 @@ let rec expr e =
       G.N (G.IdQualified (name, G.empty_id_info ()))
   | Hash (_bool, xs) -> G.Container (G.Dict, bracket (list expr) xs)
   | Array xs -> G.Container (G.Array, bracket (list expr) xs)
-  | Tuple xs -> G.Tuple (G.fake_bracket (list expr xs))
+  | Tuple xs -> G.Container (G.Tuple, G.fake_bracket (list expr xs))
   | Unary (op, e) ->
       let e = expr e in
       unary op e
@@ -316,7 +316,7 @@ and binary (op, t) e1 e2 =
         | _ -> raise Impossible
       in
       G.AssignOp (e1, (op, t), e2)
-  | Op_ASSOC -> G.Tuple (G.fake_bracket [ e1; e2 ])
+  | Op_ASSOC -> (G.keyval e1 t e2).e
   | Op_DOT3 ->
       (* coupling: make sure to check for the string in generic_vs_generic *)
       G.Call (G.IdSpecial (G.Op G.Range, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
@@ -473,14 +473,14 @@ and exprs_to_label_ident = function
       G.LDynamic x
   | xs ->
       let xs = list expr xs in
-      G.LDynamic (G.Tuple (G.fake_bracket xs) |> G.e)
+      G.LDynamic (G.Container (G.Tuple, G.fake_bracket xs) |> G.e)
 
 and exprs_to_eopt = function
   | [] -> None
   | [ x ] -> Some (expr x)
   | xs ->
       let xs = list expr xs in
-      Some (G.Tuple (G.fake_bracket xs) |> G.e)
+      Some (G.Container (G.Tuple, G.fake_bracket xs) |> G.e)
 
 and pattern pat =
   let e = expr pat in

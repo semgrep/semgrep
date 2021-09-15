@@ -152,7 +152,7 @@ let create_join_result_lambda lambda_params ident =
     lambda_params @ [ ident ]
     |> List.map (fun id -> N (Id (id, empty_id_info ())) |> G.e)
   in
-  let expr = Tuple (fake_bracket ids) |> G.e in
+  let expr = G.Container (G.Tuple, fake_bracket ids) |> G.e in
   Lambda
     {
       fkind = (Arrow, fake "=>");
@@ -211,7 +211,7 @@ let rec linq_remainder_to_expr (query : linq_query_part list) (base_expr : expr)
               (fun id -> N (Id (id, empty_id_info ())) |> G.e)
               lambda_params
           in
-          let expr = Tuple (fake_bracket (ids @ [ expr ])) |> G.e in
+          let expr = Container (Tuple, fake_bracket (ids @ [ expr ])) |> G.e in
           let func = create_lambda lambda_params expr in
           let base_expr = call_lambda base_expr "Select" tok [ func ] in
           let lambda_params = lambda_params @ [ ident ] in
@@ -1055,7 +1055,7 @@ and tuple_expression (env : env) ((v1, v2, v3, v4) : CST.tuple_expression) =
   in
   let v4 = token env v4 (* ")" *) in
   let exprs = List.map arg_to_expr (v2 :: v3) in
-  Tuple (v1, exprs, v4) |> G.e
+  Container (Tuple, (v1, exprs, v4)) |> G.e
 
 and query_body (env : env) (x : CST.query_body) =
   match x with
@@ -1180,7 +1180,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | None -> fake_bracket []
       in
       let lb, _, rb = v3 in
-      let args = (lb, [ ArgType v2; Arg (G.Tuple v3 |> G.e) ], rb) in
+      let args =
+        (lb, [ ArgType v2; Arg (G.Container (G.Tuple, v3) |> G.e) ], rb)
+      in
       Call (IdSpecial (New, v1) |> G.e, args)
   | `As_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
@@ -1224,7 +1226,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | `Elem_bind_exp x ->
             let x = element_binding_expression env x in
             let open_br, _, close_br = x in
-            ArrayAccess (v1, (open_br, Tuple x |> G.e, close_br)) |> G.e
+            ArrayAccess (v1, (open_br, Container (Tuple, x) |> G.e, close_br))
+            |> G.e
         | `Member_bind_exp (x1, x2) ->
             let x1 = token env x1 (* "." *) in
             let x2 = simple_name env x2 in
@@ -1255,8 +1258,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let v2 = element_binding_expression env v2 in
       let open_br, exprs, close_br = v2 in
       (* TODO we map multidim arrays as jagged arrays when creating arrays, with as tuples here. Does that work? Should we map this as multiple nested ArrayAccess? *)
-      ArrayAccess (v1, (open_br, Tuple v2 |> G.e, close_br))
-  | `Elem_bind_exp x -> Tuple (element_binding_expression env x)
+      ArrayAccess (v1, (open_br, Container (Tuple, v2) |> G.e, close_br))
+  | `Elem_bind_exp x -> Container (Tuple, element_binding_expression env x)
   | `Impl_array_crea_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = token env v2 (* "[" *) in
@@ -1273,7 +1276,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | None -> fake_bracket []
       in
       let lp, v2', rp = v2 in
-      let args = (lp, v2' @ [ Arg (Tuple v3 |> G.e) ], rp) in
+      let args = (lp, v2' @ [ Arg (Container (Tuple, v3) |> G.e) ], rp) in
       Call (IdSpecial (New, v1) |> G.e, args)
   | `Impl_stack_alloc_array_crea_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "stackalloc" *) in
@@ -1282,7 +1285,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       let _v4 = initializer_expression env v4 in
       let x = todo_expr env v1 in
       x.G.e
-  | `Init_exp x -> Tuple (initializer_expression env x)
+  | `Init_exp x -> Container (Tuple, initializer_expression env x)
   | `Inte_str_exp x -> interpolated_string_expression env x
   | `Invo_exp (v1, v2) ->
       let v1 = expression env v1 in
@@ -1357,7 +1360,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | None -> fake_bracket []
       in
       let lp, v3', rp = v3 in
-      let args = (lp, (ArgType v2 :: v3') @ [ Arg (Tuple v4 |> G.e) ], rp) in
+      let args =
+        (lp, (ArgType v2 :: v3') @ [ Arg (Container (Tuple, v4) |> G.e) ], rp)
+      in
       Call (IdSpecial (New, v1) |> G.e, args)
   | `Paren_exp x ->
       let x = parenthesized_expression env x in
@@ -1684,7 +1689,7 @@ and statement (env : env) (x : CST.statement) =
         match v7 with
         | [] -> None
         | [ e ] -> Some e
-        | exprs -> Some (Tuple (v6, v7, v8) |> G.e)
+        | exprs -> Some (Container (Tuple, (v6, v7, v8)) |> G.e)
       in
       let for_header = ForClassic (v3, v5, next) in
       For (v1, for_header, v9) |> G.s

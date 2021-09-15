@@ -213,7 +213,7 @@ and map_collection_value (env : env) (x : CST.collection_value) : expr =
       let v1 = (* "[" *) token env v1 in
       let v2 = match v2 with Some x -> map_tuple_elems env x | None -> [] in
       let v3 = (* "]" *) token env v3 in
-      G.Tuple (v1, v2, v3) |> G.e
+      G.Container (G.Tuple, (v1, v2, v3)) |> G.e
   | `Obj x -> map_object_ env x
 
 and map_expr_term (env : env) (x : CST.expr_term) : expr =
@@ -281,12 +281,12 @@ and map_for_expr (env : env) (x : CST.for_expr) =
       let pat = pattern_of_ids ids in
       let compfor = CompFor (tfor, pat, tin, e) in
       let xs = compfor :: v4 in
-      Comprehension (TupleComprehension, (v1, (v3, xs), v5)) |> G.e
+      Comprehension (Tuple, (v1, (v3, xs), v5)) |> G.e
   | `For_obj_expr (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 = (* "{" *) token env v1 in
       let tfor, ids, tin, e, _tcolon = map_for_intro env v2 in
       let v3 = map_expression env v3 in
-      let _v4 = (* "=>" *) token env v4 in
+      let v4 = (* "=>" *) token env v4 in
       let v5 = map_expression env v5 in
       (* ??? *)
       let _v6TODO =
@@ -299,7 +299,7 @@ and map_for_expr (env : env) (x : CST.for_expr) =
       let pat = pattern_of_ids ids in
       let compfor = CompFor (tfor, pat, tin, e) in
       let xs = compfor :: v7 in
-      let ekeyval = Tuple (fake_bracket [ v3; v5 ]) |> G.e in
+      let ekeyval = G.keyval v3 v4 v5 in
       Comprehension (Dict, (v1, (ekeyval, xs), v8)) |> G.e
 
 and map_for_intro (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_intro) =

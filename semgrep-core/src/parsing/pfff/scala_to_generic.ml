@@ -363,7 +363,7 @@ and v_expr e =
       match v1 with Left lit -> G.L lit | Right e -> e.G.e)
   | Tuple v1 ->
       let v1 = v_bracket (v_list v_expr) v1 in
-      G.Tuple v1
+      G.Container (G.Tuple, v1)
   | Name v1 ->
       let sref, ids = v_path v1 in
       let start =

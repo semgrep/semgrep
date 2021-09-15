@@ -330,9 +330,9 @@ and expr e : G.expr =
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)
-  | Arrow (v1, _t, v2) ->
+  | Arrow (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.Tuple (fb [ v1; v2 ])
+      (G.keyval v1 t v2).e
   | Ref (t, v1) ->
       let v1 = expr v1 in
       G.Ref (t, v1)

@@ -221,11 +221,11 @@ let rec expr (x : expr) =
       G.N (G.Id (v1, { (G.empty_id_info ()) with G.id_resolved = v3 }))
   | Tuple (CompList v1, v2) ->
       let v1 = bracket (list expr) v1 and _v2TODO = expr_context v2 in
-      G.Tuple v1
+      G.Container (G.Tuple, v1)
   | Tuple (CompForIf (v1, v2), v3) ->
       let e1 = comprehension expr v1 v2 in
       let _v4TODO = expr_context v3 in
-      G.Comprehension (G.TupleComprehension, fb e1)
+      G.Comprehension (G.Tuple, fb e1)
   | List (CompList v1, v2) ->
       let v1 = bracket (list expr) v1 and _v2TODO = expr_context v2 in
       G.Container (G.List, v1)
@@ -362,7 +362,7 @@ and dictorset_elt = function
   | KeyVal (v1, v2) ->
       let v1 = expr v1 in
       let v2 = expr v2 in
-      G.Tuple (G.fake_bracket [ v1; v2 ]) |> G.e
+      G.keyval v1 (unsafe_fake "=>") v2
   | Key v1 ->
       let v1 = expr v1 in
       v1
@@ -650,7 +650,8 @@ and stmt_aux x =
       | xs ->
           [
             G.exprstmt
-              (G.Assign (G.Tuple (G.fake_bracket xs) |> G.e, v2, v3) |> G.e);
+              (G.Assign (G.Container (G.Tuple, G.fake_bracket xs) |> G.e, v2, v3)
+              |> G.e);
           ])
   | AugAssign (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = operator v2 and v3 = expr v3 in
@@ -835,11 +836,12 @@ and excepthandler = function
         | Some e, None -> (
             match e.G.e with
             | G.Ellipsis tok -> G.PatEllipsis tok
-            | G.Tuple _ -> G.PatVar (H.expr_to_type e, None)
+            | G.Container (G.Tuple, _) -> G.PatVar (H.expr_to_type e, None)
             | _ ->
                 G.PatVar
-                  (H.expr_to_type (G.Tuple (G.fake_bracket [ e ]) |> G.e), None)
-            )
+                  ( H.expr_to_type
+                      (G.Container (G.Tuple, G.fake_bracket [ e ]) |> G.e),
+                    None ))
         | None, None -> G.PatUnderscore (fake t "_")
         | None, Some _ -> raise Impossible (* see the grammar *)
         | Some e, Some n ->

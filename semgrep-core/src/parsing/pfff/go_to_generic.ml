@@ -85,7 +85,7 @@ let list_to_tuple_or_expr xs =
   match xs with
   | [] -> raise Impossible
   | [ x ] -> x
-  | xs -> G.Tuple (G.fake_bracket xs) |> G.e
+  | xs -> G.Container (G.Tuple, G.fake_bracket xs) |> G.e
 
 let mk_func_def fkind params ret st =
   { G.fparams = params; frettype = ret; fbody = st; fkind }
@@ -344,7 +344,7 @@ let top_func () =
         v1
     | InitKeyValue (v1, v2, v3) ->
         let v1 = init v1 and _v2 = tok v2 and v3 = init v3 in
-        G.Tuple (G.fake_bracket [ v1; v3 ]) |> G.e
+        G.Container (G.Tuple, G.fake_bracket [ v1; v3 ]) |> G.e
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in
         G.Container (G.List, v1) |> G.e
@@ -353,10 +353,10 @@ let top_func () =
         let v1 = expr v1 in
         G.Arg v1
     | InitKeyValue (v1, v2, v3) -> (
-        let _v2 = tok v2 and v3 = init v3 in
+        let v2 = tok v2 and v3 = init v3 in
         match v1 with
         | InitExpr (Id id) -> G.ArgKwd (id, v3)
-        | _ -> G.Arg (G.Tuple (G.fake_bracket [ init v1; v3 ]) |> G.e))
+        | _ -> G.Arg (G.keyval (init v1) v2 v3))
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in
         G.Arg (G.Container (G.List, v1) |> G.e)

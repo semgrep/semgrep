@@ -670,7 +670,8 @@ and m_expr a b =
       (m_bracket m_container_ordered_elements) a2 b2
   | G.Container (G.List, a2), B.Container (B.List, b2) ->
       (m_bracket m_container_ordered_elements) a2 b2
-  | G.Tuple a1, B.Tuple b1 -> (m_container_ordered_elements |> m_bracket) a1 b1
+  | G.Container (G.Tuple, a1), B.Container (B.Tuple, b1) ->
+      (m_container_ordered_elements |> m_bracket) a1 b1
   (*e: [[Generic_vs_generic.m_expr()]] sequencable container cases *)
   | ( G.Container (((G.Set | G.Dict) as a1), (_, a2, _)),
       B.Container (((B.Set | B.Dict) as b1), (_, b2, _)) ) ->
@@ -733,7 +734,7 @@ and m_expr a b =
        * variables and values are equal. *)
       >||>
       match (b1.e, b2.e) with
-      | B.Tuple (_, vars, _), B.Tuple (_, vals, _)
+      | B.Container (B.Tuple, (_, vars, _)), B.Container (B.Tuple, (_, vals, _))
         when List.length vars = List.length vals ->
           let create_assigns expr1 expr2 = B.Assign (expr1, bt, expr2) |> G.e in
           let mult_assigns = List.map2 create_assigns vars vals in
@@ -811,7 +812,6 @@ and m_expr a b =
       m_other_expr_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.Container _, _
   | G.Comprehension _, _
-  | G.Tuple _, _
   | G.Record _, _
   | G.Constructor _, _
   | G.Lambda _, _
@@ -1060,9 +1060,8 @@ and m_container_operator a b =
   | G.List, B.List -> return ()
   | G.Set, B.Set -> return ()
   | G.Dict, B.Dict -> return ()
-  | G.TupleComprehension, B.TupleComprehension -> return ()
-  | G.Array, _ | G.List, _ | G.Set, _ | G.Dict, _ | G.TupleComprehension, _ ->
-      fail ()
+  | G.Tuple, B.Tuple -> return ()
+  | G.Array, _ | G.List, _ | G.Set, _ | G.Dict, _ | G.Tuple, _ -> fail ()
 
 (*e: function [[Generic_vs_generic.m_container_operator]] *)
 

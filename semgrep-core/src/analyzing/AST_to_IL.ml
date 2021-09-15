@@ -323,7 +323,7 @@ and assign env lhs _tok rhs_exp eorig =
       with Fixme (kind, any_generic) ->
         add_instr env (fixme_instr kind any_generic eorig);
         fixme_exp kind any_generic lhs)
-  | G.Tuple (tok1, lhss, tok2) ->
+  | G.Container (G.Tuple, (tok1, lhss, tok2)) ->
       (* E1, ..., En = RHS *)
       (* tmp = RHS*)
       let tmp = fresh_var env tok2 in
@@ -455,9 +455,6 @@ and expr_aux env eorig =
       let kind = composite_kind kind in
       mk_e (Composite (kind, xs)) eorig
   | G.Comprehension _ -> todo (G.E eorig)
-  | G.Tuple xs ->
-      let xs = bracket_keep (List.map (expr env)) xs in
-      mk_e (Composite (CTuple, xs)) eorig
   | G.Record fields -> record env fields
   | G.Lambda def ->
       (* TODO: we should have a use def.f_tok *)
@@ -584,7 +581,7 @@ and composite_kind = function
   | G.List -> CList
   | G.Dict -> CDict
   | G.Set -> CSet
-  | G.TupleComprehension -> CTuple
+  | G.Tuple -> CTuple
 
 (* TODO: dependency of order between arguments for instr? *)
 and arguments env xs = xs |> G.unbracket |> List.map (argument env)

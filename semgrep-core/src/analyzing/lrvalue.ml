@@ -99,11 +99,10 @@ let rec visit_expr hook lhs expr =
       recr e;
       reclvl e
       (* possible lvalues (also rvalues, hence the call to recl, not reclvl) *)
-  | Tuple xs -> xs |> unbracket |> List.iter recl
   | Container (typ, xs) -> (
       match typ with
       (* used on lhs? *)
-      | Array | List | TupleComprehension -> xs |> unbracket |> List.iter recl
+      | Array | List | Tuple -> xs |> unbracket |> List.iter recl
       (* never used on lhs *)
       | Set | Dict -> xs |> unbracket |> List.iter recr)
   | Comprehension (_, (_, (e, comps), _)) ->

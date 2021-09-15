@@ -92,7 +92,7 @@ let subexprs_of_expr e =
   (* not sure we always want to return 'e1' here *) ->
       [ e1; e2 ]
   | Conditional (e1, e2, e3) -> [ e1; e2; e3 ]
-  | Tuple (_, xs, _) | Seq xs -> xs
+  | Seq xs -> xs
   | Record (_, flds, _) ->
       flds
       |> Common2.map_flatten (function
