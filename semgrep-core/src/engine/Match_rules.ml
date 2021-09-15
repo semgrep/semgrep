@@ -995,7 +995,6 @@ let check hook default_config rules equivs file_and_more =
   |> List.map (fun (r, pformula) ->
          let rule_id = fst r.R.id in
          Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
-             pr2 "hello";
              try check_rule r hook default_config pformula equivs file_and_more
              with exn ->
                {

@@ -66,7 +66,7 @@ let exn_to_error ?(rule_id = None) file exn =
             spf "`%s` was unexpected" str
         | _ -> "unknown reason"
       in
-      mk_error_tok ~rule_id tok msg ParseError
+      mk_error_tok tok msg ParseError
   | Parse_info.Other_error (s, tok) ->
       mk_error_tok ~rule_id tok s SpecifiedParseError
   | Rule.InvalidRule (rule_id, s, pos) ->
