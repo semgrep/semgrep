@@ -13,6 +13,7 @@
  *)
 open Common
 module PI = Parse_info
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -173,3 +174,11 @@ let wrap_parser tree_sitter_parser ast_mapper =
       raise exn
 
 *)
+
+let parse_number_literal (s, t) =
+  match Common2.int_of_string_c_octal_opt s with
+  | Some i -> G.Int (Some i, t)
+  | None -> (
+      match float_of_string_opt s with
+      | Some f -> G.Float (Some f, t)
+      | None -> G.Int (None, t))
