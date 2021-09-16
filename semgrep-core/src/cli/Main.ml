@@ -362,7 +362,7 @@ let exn_to_error file exn =
   match exn with
   | AST_generic.Error (s, tok) ->
       let loc = PI.unsafe_token_location_of_info tok in
-      E.mk_error_no_rule loc s AstBuilderError
+      E.mk_error loc s AstBuilderError
   | _ -> E.exn_to_error file exn
 
 (*****************************************************************************)
@@ -499,7 +499,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
            (* todo: we should maybe use a new error: TooManyMatches of int * string*)
            let loc = Parse_info.first_loc_of_file file in
            let error =
-             E.mk_error id loc
+             E.mk_error ~rule_id:(Some id) loc
                (spf
                   "%d rules result in too many matches, most offending rule \
                    has %d: %s"
@@ -664,22 +664,18 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
                 * Timeout here to give a better diagnostic.
                 *)
                | (Main_timeout _ | Out_of_memory) as exn ->
-                   let error_fun =
-                     match !Match_patterns.last_matched_rule with
-                     | None -> E.mk_error_no_rule
-                     | Some rule ->
-                         logger#info "critical exn while matching ruleid %s"
-                           rule.MR.id;
-                         logger#info "full pattern is: %s"
-                           rule.MR.pattern_string;
-                         E.mk_error rule.MR.id
-                   in
+                   (match !Match_patterns.last_matched_rule with
+                   | None -> ()
+                   | Some rule ->
+                       logger#info "critical exn while matching ruleid %s"
+                         rule.MR.id;
+                       logger#info "full pattern is: %s" rule.MR.pattern_string);
                    let loc = Parse_info.first_loc_of_file file in
                    {
                      RP.matches = [];
                      errors =
                        [
-                         error_fun loc ""
+                         E.mk_error loc ""
                            (match exn with
                            | Main_timeout file ->
                                logger#info "Timeout on %s" file;

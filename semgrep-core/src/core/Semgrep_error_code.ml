@@ -42,36 +42,23 @@ let options () = []
 (* Convertor functions *)
 (****************************************************************************)
 
-let mk_error rule_id loc msg err =
-  {
-    rule_id = Some rule_id;
-    loc;
-    typ = err;
-    msg;
-    details = None;
-    yaml_path = None;
-  }
+let mk_error ?(rule_id = None) loc msg err =
+  { rule_id; loc; typ = err; msg; details = None; yaml_path = None }
 
-let mk_error_tok rule_id tok msg err =
+let mk_error_tok ?(rule_id = None) tok msg err =
   let loc = PI.unsafe_token_location_of_info tok in
-  mk_error rule_id loc msg err
-
-let mk_error_no_rule loc msg err =
-  { rule_id = None; loc; typ = err; msg; details = None; yaml_path = None }
-
-let mk_error_tok_no_rule tok msg err =
-  let loc = PI.unsafe_token_location_of_info tok in
-  mk_error_no_rule loc msg err
+  mk_error ~rule_id loc msg err
 
 let error rule_id loc msg err =
-  Common.push (mk_error rule_id loc msg err) g_errors
+  Common.push (mk_error ~rule_id:(Some rule_id) loc msg err) g_errors
 
 let error_tok rule_id tok msg err =
-  Common.push (mk_error_tok rule_id tok msg err) g_errors
+  Common.push (mk_error_tok ~rule_id:(Some rule_id) tok msg err) g_errors
 
-let exn_to_error file exn =
+let exn_to_error ?(rule_id = None) file exn =
   match exn with
-  | Parse_info.Lexical_error (s, tok) -> mk_error_tok_no_rule tok s LexicalError
+  | Parse_info.Lexical_error (s, tok) ->
+      mk_error_tok ~rule_id tok s LexicalError
   | Parse_info.Parsing_error tok ->
       let msg =
         match tok with
@@ -79,17 +66,19 @@ let exn_to_error file exn =
             spf "`%s` was unexpected" str
         | _ -> "unknown reason"
       in
-      mk_error_tok_no_rule tok msg ParseError
+      mk_error_tok tok msg ParseError
   | Parse_info.Other_error (s, tok) ->
-      mk_error_tok_no_rule tok s SpecifiedParseError
+      mk_error_tok ~rule_id tok s SpecifiedParseError
   | Rule.InvalidRule (rule_id, s, pos) ->
-      mk_error_tok rule_id pos s RuleParseError
+      mk_error_tok ~rule_id:(Some rule_id) pos s RuleParseError
   | Rule.InvalidLanguage (rule_id, language, pos) ->
-      mk_error_tok rule_id pos
+      mk_error_tok ~rule_id:(Some rule_id) pos
         (spf "invalid language %s" language)
         RuleParseError
   | Rule.InvalidRegexp (rule_id, message, pos) ->
-      mk_error_tok rule_id pos (spf "invalid regex %s" message) RuleParseError
+      mk_error_tok ~rule_id:(Some rule_id) pos
+        (spf "invalid regex %s" message)
+        RuleParseError
   | Rule.InvalidPattern (rule_id, _pattern, xlang, _message, pos, yaml_path) ->
       {
         rule_id = Some rule_id;
@@ -101,22 +90,22 @@ let exn_to_error file exn =
         details = None;
         yaml_path = Some yaml_path;
       }
-  | Rule.InvalidYaml (msg, pos) -> mk_error_tok_no_rule pos msg InvalidYaml
-  | Rule.DuplicateYamlKey (s, pos) -> mk_error_tok_no_rule pos s InvalidYaml
+  | Rule.InvalidYaml (msg, pos) -> mk_error_tok ~rule_id pos msg InvalidYaml
+  | Rule.DuplicateYamlKey (s, pos) -> mk_error_tok ~rule_id pos s InvalidYaml
   | Common.Timeout timeout_info ->
       (* This exception should always be reraised. *)
       let loc = Parse_info.first_loc_of_file file in
       let msg = Common.string_of_timeout_info timeout_info in
-      mk_error_no_rule loc msg Timeout
+      mk_error ~rule_id loc msg Timeout
   | Out_of_memory ->
       let loc = Parse_info.first_loc_of_file file in
-      mk_error_no_rule loc "Out of memory" OutOfMemory
+      mk_error ~rule_id loc "Out of memory" OutOfMemory
   | UnixExit _ as exn -> raise exn
   (* general case, can't extract line information from it, default to line 1 *)
   | exn ->
       let loc = Parse_info.first_loc_of_file file in
       {
-        rule_id = None;
+        rule_id;
         typ = FatalError;
         loc;
         msg = Common.exn_to_s exn;
