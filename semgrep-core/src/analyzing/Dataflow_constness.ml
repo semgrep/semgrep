@@ -302,6 +302,12 @@ let transfer :
               args ) ->
             let cexp = eval_concat inp' args in
             D.VarMap.add (str_of_name var) cexp inp'
+        | Call (None, { e = Fetch { base = Var var; offset = Dot _; _ }; _ }, _)
+          ->
+            (* Method call `var.f(args)` that returns void, we conservatively
+             * assume that it may be updating `var`; e.g. in Ruby strings are
+             * mutable. *)
+            D.VarMap.add (str_of_name var) G.NotCst inp'
         | ___else___ -> (
             (* assume non-constant *)
             let lvar_opt = IL.lvar_of_instr_opt instr in
