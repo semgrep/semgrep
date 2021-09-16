@@ -135,7 +135,7 @@ let error env msg =
    * the target file. *)
   let loc = PI.first_loc_of_file env.file in
   (* TODO: warning or error? MatchingError or ... ? *)
-  let err = E.mk_error env.rule_id loc msg E.MatchingError in
+  let err = E.mk_error ~rule_id:(Some env.rule_id) loc msg E.MatchingError in
   Common.push err env.errors
 
 let (xpatterns_in_formula : S.sformula -> (R.xpattern * R.inside option) list) =
@@ -958,6 +958,31 @@ and matches_of_formula config equivs rule_id file_and_more formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
+let check_rule r hook default_config pformula equivs file_and_more =
+  let config = r.R.options ||| default_config in
+  let formula = R.formula_of_pformula pformula in
+  let rule_id = fst r.id in
+  let res, final_ranges =
+    matches_of_formula config equivs rule_id file_and_more formula None
+  in
+  {
+    RP.matches =
+      final_ranges
+      |> List.map (range_to_pattern_match_adjusted r)
+      (* dedup similar findings (we do that also in Match_patterns.ml,
+       * but different mini-rules matches can now become the same match)
+       *)
+      |> PM.uniq
+      |> before_return (fun v ->
+             v
+             |> List.iter (fun (m : Pattern_match.t) ->
+                    let str = spf "with rule %s" rule_id in
+                    hook str m.env m.tokens));
+    errors = res.errors |> List.map (error_with_rule_id rule_id);
+    skipped = res.skipped;
+    profiling = res.profiling;
+  }
+
 let check hook default_config rules equivs file_and_more =
   let { FM.file; lazy_ast_and_errors; _ } = file_and_more in
   logger#info "checking %s with %d rules" file (List.length rules);
@@ -968,33 +993,16 @@ let check hook default_config rules equivs file_and_more =
 
   rules
   |> List.map (fun (r, pformula) ->
-         Common.profile_code
-           (spf "real_rule:%s" (fst r.R.id))
-           (fun () ->
-             let config = r.options ||| default_config in
-             let formula = R.formula_of_pformula pformula in
-             let rule_id = fst r.id in
-             let res, final_ranges =
-               matches_of_formula config equivs rule_id file_and_more formula
-                 None
-             in
-             {
-               RP.matches =
-                 final_ranges
-                 |> List.map (range_to_pattern_match_adjusted r)
-                 (* dedup similar findings (we do that also in Match_patterns.ml,
-                  * but different mini-rules matches can now become the same match)
-                  *)
-                 |> PM.uniq
-                 |> before_return (fun v ->
-                        v
-                        |> List.iter (fun (m : Pattern_match.t) ->
-                               let str = spf "with rule %s" rule_id in
-                               hook str m.env m.tokens));
-               errors = res.errors |> List.map (error_with_rule_id rule_id);
-               skipped = res.skipped;
-               profiling = res.profiling;
-             }))
+         let rule_id = fst r.R.id in
+         Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
+             try check_rule r hook default_config pformula equivs file_and_more
+             with exn ->
+               {
+                 RP.matches = [];
+                 errors = [ E.exn_to_error ~rule_id:(Some rule_id) file exn ];
+                 skipped = [];
+                 profiling = { parse_time = -1.; match_time = -1. };
+               }))
   |> RP.collate_semgrep_results
   [@@profiling]
 
