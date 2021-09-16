@@ -542,7 +542,6 @@ and map_body (env : env) (xs : CST.body) : item list =
           G.exprstmt e)
     xs
 
-(* TODO: return an any here, but need change to semgrep-hcl/grammar.js *)
 let map_config_file (env : env) (x : CST.config_file) : any =
   match x with
   | `Opt_choice_body opt -> (
@@ -578,7 +577,7 @@ let parse_expression_or_source_file str =
   match res.errors with
   | [] -> res
   | _ ->
-      (* TODO: need hack to semgrep-hcl/grammar.js too? *)
+      (* classic semgrep parsing hack (see semgrep-hcl/grammar.js) *)
       let expr_str = "__SEMGREP_EXPRESSION " ^ str in
       Tree_sitter_hcl.Parse.string expr_str
 
