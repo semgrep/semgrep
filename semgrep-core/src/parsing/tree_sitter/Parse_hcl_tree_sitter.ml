@@ -72,11 +72,6 @@ let map_heredoc_start (env : env) (x : CST.heredoc_start) =
   | `LTLT tok -> (* "<<" *) token env tok
   | `LTLTDASH tok -> (* "<<-" *) token env tok
 
-let map_template_directive (env : env) (x : CST.template_directive) =
-  match x with
-  | `PERC_5eef7bb tok -> (* "%{if TODO" *) token env tok
-  | `PERC_58c37dd tok -> (* "%{for TODO" *) token env tok
-
 let map_numeric_lit (env : env) (x : CST.numeric_lit) : literal =
   match x with
   | `Pat_e950a1b tok ->
@@ -101,6 +96,12 @@ let map_template_literal (env : env) (xs : CST.template_literal) :
       let toks = List.map snd ys in
       Some (s1 ^ str, PI.combine_infos t1 toks)
 
+let map_identifier (env : env) (x : CST.identifier) : ident =
+  match x with
+  | `Tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc tok ->
+      (* tok_choice_pat_3e8fcfc_rep_choice_pat_71519dc *) str env tok
+  | `Semg_meta tok -> (* semgrep_metavariable *) str env tok
+
 let map_string_lit (env : env) ((v1, v2, v3) : CST.string_lit) =
   let v1 = (* quoted_template_start *) token env v1 in
   let v2 = map_template_literal env v2 in
@@ -109,9 +110,11 @@ let map_string_lit (env : env) ((v1, v2, v3) : CST.string_lit) =
   | Some (s, t) -> G.String (s, PI.combine_infos v1 [ t; v3 ])
   | None -> G.String ("", PI.combine_infos v1 [ v3 ])
 
+let map_variable_expr (env : env) (x : CST.variable_expr) = map_identifier env x
+
 let map_get_attr (env : env) ((v1, v2) : CST.get_attr) =
   let v1 = (* "." *) token env v1 in
-  let v2 = (* identifier *) str env v2 in
+  let v2 = map_variable_expr env v2 in
   fun e ->
     let n = H2.name_of_id v2 in
     G.DotAccess (e, v1, EN n) |> G.e
@@ -128,7 +131,7 @@ let rec map_anon_choice_get_attr_7bbf24f (env : env)
   match x with `Get_attr x -> map_get_attr env x | `Index x -> map_index env x
 
 and map_anon_choice_temp_lit_c764a73 (env : env)
-    (x : CST.anon_choice_temp_lit_c764a73) =
+    (x : CST.anon_choice_temp_lit_0082c06) =
   match x with
   | `Temp_lit x ->
       let sopt = map_template_literal env x in
@@ -151,9 +154,6 @@ and map_anon_choice_temp_lit_c764a73 (env : env)
       in
       let v5 = (* template_interpolation_end *) token env v5 in
       [ Right3 (v1, v3, v5) ]
-  | `Temp_dire x ->
-      let t = map_template_directive env x in
-      [ Middle3 (G.OtherExpr (OE_Todo, [ TodoK ("directive", t) ]) |> G.e) ]
 
 and map_binary_operation (env : env) (x : CST.binary_operation) =
   match x with
@@ -218,41 +218,49 @@ and map_collection_value (env : env) (x : CST.collection_value) : expr =
 
 and map_expr_term (env : env) (x : CST.expr_term) : expr =
   match x with
-  | `Lit_value x -> L (map_literal_value env x) |> G.e
-  | `Temp_expr x -> map_template_expr env x
-  | `Coll_value x -> map_collection_value env x
-  | `Var_expr tok ->
-      (* identifier *)
-      let id = str env tok in
-      N (H2.name_of_id id) |> G.e
-  | `Func_call (v1, v2, v3, v4) ->
-      let v1 = (* identifier *) str env v1 in
-      let v2 = (* "(" *) token env v2 in
-      let v3 =
-        match v3 with Some x -> map_function_arguments env x | None -> []
-      in
-      let v4 = (* ")" *) token env v4 in
-      let n = N (H2.name_of_id v1) |> G.e in
-      Call (n, (v2, v3, v4)) |> G.e
-  | `For_expr x -> map_for_expr env x
-  | `Oper x -> map_operation env x
-  | `Expr_term_index (v1, v2) ->
-      let v1 = map_expr_term env v1 in
-      let v2 = map_index env v2 in
-      v2 v1
-  | `Expr_term_get_attr (v1, v2) ->
-      let v1 = map_expr_term env v1 in
-      let v2 = map_get_attr env v2 in
-      v2 v1
-  | `Expr_term_splat (v1, v2) ->
-      let v1 = map_expr_term env v1 in
-      let v2 = map_splat env v2 in
-      v2 v1
-  | `LPAR_exp_RPAR (v1, v2, v3) ->
-      let _v1 = (* "(" *) token env v1 in
+  | `Choice_lit_value x -> (
+      match x with
+      | `Lit_value x -> L (map_literal_value env x) |> G.e
+      | `Temp_expr x -> map_template_expr env x
+      | `Coll_value x -> map_collection_value env x
+      | `Var_expr tok ->
+          (* identifier *)
+          let id = map_identifier env tok in
+          N (H2.name_of_id id) |> G.e
+      | `Func_call (v1, v2, v3, v4) ->
+          let v1 = (* identifier *) map_identifier env v1 in
+          let v2 = (* "(" *) token env v2 in
+          let v3 =
+            match v3 with Some x -> map_function_arguments env x | None -> []
+          in
+          let v4 = (* ")" *) token env v4 in
+          let n = N (H2.name_of_id v1) |> G.e in
+          Call (n, (v2, v3, v4)) |> G.e
+      | `For_expr x -> map_for_expr env x
+      | `Oper x -> map_operation env x
+      | `Expr_term_index (v1, v2) ->
+          let v1 = map_expr_term env v1 in
+          let v2 = map_index env v2 in
+          v2 v1
+      | `Expr_term_get_attr (v1, v2) ->
+          let v1 = map_expr_term env v1 in
+          let v2 = map_get_attr env v2 in
+          v2 v1
+      | `Expr_term_splat (v1, v2) ->
+          let v1 = map_expr_term env v1 in
+          let v2 = map_splat env v2 in
+          v2 v1
+      | `LPAR_exp_RPAR (v1, v2, v3) ->
+          let _v1 = (* "(" *) token env v1 in
+          let v2 = map_expression env v2 in
+          let _v3 = (* ")" *) token env v3 in
+          v2)
+  | `Semg_ellips tok -> Ellipsis ((* "..." *) token env tok) |> G.e
+  | `Deep_ellips (v1, v2, v3) ->
+      let v1 = (* "<..." *) token env v1 in
       let v2 = map_expression env v2 in
-      let _v3 = (* ")" *) token env v3 in
-      v2
+      let v3 = (* "...>" *) token env v3 in
+      DeepEllipsis (v1, v2, v3) |> G.e
 
 and map_expression (env : env) (x : CST.expression) : expr =
   match x with
@@ -304,12 +312,12 @@ and map_for_expr (env : env) (x : CST.for_expr) =
 
 and map_for_intro (env : env) ((v1, v2, v3, v4, v5, v6) : CST.for_intro) =
   let v1 = (* "for" *) token env v1 in
-  let v2 = (* identifier *) str env v2 in
+  let v2 = (* identifier *) map_identifier env v2 in
   let v3 =
     match v3 with
     | Some (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
-        let v2 = (* identifier *) str env v2 in
+        let v2 = (* identifier *) map_identifier env v2 in
         [ v2 ]
     | None -> []
   in
@@ -364,23 +372,25 @@ and map_object_ (env : env) ((v1, v2, v3) : CST.object_) =
   let v3 = (* "}" *) token env v3 in
   Record (v1, v2, v3) |> G.e
 
-and map_object_elem (env : env) ((v1, v2, v3) : CST.object_elem) : field =
-  let v1 = map_expression env v1 in
-  let v2 =
-    match v2 with
-    | `EQ tok -> (* "=" *) Left (token env tok)
-    | `COLON tok -> (* ":" *) Right (token env tok)
-  in
-  let v3 = map_expression env v3 in
-  let n_or_dyn = match v1.e with N n -> EN n | _ -> EDynamic v1 in
-  let ent = { name = n_or_dyn; attrs = []; tparams = [] } in
-  let vdef = { vinit = Some v3; vtype = None } in
-  let def =
-    match v2 with
-    | Left _teq -> VarDef vdef
-    | Right _tcolon -> FieldDefColon vdef
-  in
-  (ent, def) |> G.fld
+and map_object_elem (env : env) (x : CST.object_elem) : field =
+  match x with
+  | `Exp_choice_EQ_exp (v1, v2, v3) ->
+      let v1 = map_expression env v1 in
+      let v2 =
+        match v2 with
+        | `EQ tok -> (* "=" *) Left (token env tok)
+        | `COLON tok -> (* ":" *) Right (token env tok)
+      in
+      let v3 = map_expression env v3 in
+      let n_or_dyn = match v1.e with N n -> EN n | _ -> EDynamic v1 in
+      let ent = { name = n_or_dyn; attrs = []; tparams = [] } in
+      let vdef = { vinit = Some v3; vtype = None } in
+      let def =
+        match v2 with
+        | Left _teq -> VarDef vdef
+        | Right _tcolon -> FieldDefColon vdef
+      in
+      (ent, def) |> G.fld
 
 and map_object_elems (env : env) ((v1, v2, v3) : CST.object_elems) =
   let v1 = map_object_elem env v1 in
@@ -475,7 +485,7 @@ and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =
   v1 :: v2
 
 let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
-  let v1 = (* identifier *) str env v1 in
+  let v1 = (* identifier *) map_identifier env v1 in
   let _v2 = (* "=" *) token env v2 in
   let v3 = map_expression env v3 in
   let ent = G.basic_entity v1 [] in
@@ -485,7 +495,7 @@ let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
 (* TODO? convert to a definition? a class_def? *)
 let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   (* TODO? usually 'resource', 'locals', 'variable', other? *)
-  let v1 = (* identifier *) str env v1 in
+  let v1 = (* identifier *) map_identifier env v1 in
   let v2 =
     List.map
       (fun x ->
@@ -494,7 +504,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
             let x = map_string_lit env x in
             L x |> G.e
         | `Id tok ->
-            let id = (* identifier *) str env tok in
+            let id = (* identifier *) map_identifier env tok in
             let n = H2.name_of_id id in
             N n |> G.e)
       v2
@@ -525,20 +535,31 @@ and map_body (env : env) (xs : CST.body) : item list =
           DefStmt def |> G.s
       | `Blk x ->
           let blk = map_block env x in
-          G.exprstmt blk)
+          G.exprstmt blk
+      | `Semg_ellips tok ->
+          let t = (* "..." *) token env tok in
+          let e = Ellipsis t |> G.e in
+          G.exprstmt e)
     xs
 
-let map_config_file (env : env) (opt : CST.config_file) : program =
-  match opt with
-  | Some x -> (
-      match x with
-      | `Body x ->
-          let bd = map_body env x in
-          bd
-      | `Obj x ->
-          let x = map_object_ env x in
-          [ G.exprstmt x ])
-  | None -> []
+(* TODO: return an any here, but need change to semgrep-hcl/grammar.js *)
+let map_config_file (env : env) (x : CST.config_file) : any =
+  match x with
+  | `Opt_choice_body opt -> (
+      match opt with
+      | Some x -> (
+          match x with
+          | `Body x ->
+              let bd = map_body env x in
+              Pr bd
+          | `Obj x ->
+              let x = map_object_ env x in
+              Pr [ G.exprstmt x ])
+      | None -> Pr [])
+  | `Semg_exp (v1, v2) ->
+      let _v1 = (* "__SEMGREP_EXPRESSION" *) token env v1 in
+      let v2 = map_expression env v2 in
+      E v2
 
 (*****************************************************************************)
 (* Entry point *)
@@ -548,7 +569,27 @@ let parse file =
     (fun () -> Tree_sitter_hcl.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try map_config_file env cst
-      with Failure "not implemented" as exn ->
-        H.debug_sexp_cst_after_error (CST.sexp_of_config_file cst);
-        raise exn)
+      match map_config_file env cst with
+      | Pr xs -> xs
+      | _ -> failwith "not a program")
+
+let parse_expression_or_source_file str =
+  let res = Tree_sitter_hcl.Parse.string str in
+  match res.errors with
+  | [] -> res
+  | _ ->
+      (* TODO: need hack to semgrep-hcl/grammar.js too? *)
+      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+      Tree_sitter_hcl.Parse.string expr_str
+
+let parse_pattern str =
+  H.wrap_parser
+    (fun () -> parse_expression_or_source_file str)
+    (fun cst ->
+      let file = "<pattern>" in
+      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      match map_config_file env cst with
+      | Pr [ { s = ExprStmt (e, _); _ } ] -> G.E e
+      | Pr [ x ] -> G.S x
+      | Pr xs -> G.Ss xs
+      | x -> x)
