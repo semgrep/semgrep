@@ -72,6 +72,9 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.HTML ->
         let res = Parse_html_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
+    | Lang.HCL ->
+        let res = Parse_hcl_tree_sitter.parse_pattern str in
+        extract_pattern_from_tree_sitter_result res print_errors
     (* use pfff *)
     | Lang.Python | Lang.Python2 | Lang.Python3 ->
         let parsing_mode = Parse_target.lang_to_python_parsing_mode lang in
@@ -117,7 +120,6 @@ let parse_pattern lang ?(print_errors = false) str =
     (* not yet handled *)
     | Lang.Cplusplus -> failwith "No C++ generic parser yet"
     | Lang.R -> failwith "No R generic parser yet"
-    | Lang.HCL -> failwith "No HCL generic parser yet"
   in
 
   Caching.prepare_pattern any;
