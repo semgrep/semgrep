@@ -129,9 +129,9 @@ let fresh_var _env tok =
 
 (*e: function [[AST_to_IL.fresh_var]] *)
 (*s: function [[AST_to_IL._fresh_label]] *)
-let _fresh_label _env tok =
+let fresh_label lbl _env tok =
   let i = H.gensym () in
-  (("_label", tok), i)
+  ((lbl, tok), i)
 
 (*e: function [[AST_to_IL._fresh_label]] *)
 (*s: function [[AST_to_IL.fresh_lval]] *)
@@ -703,6 +703,23 @@ let parameters _env params =
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
+
+let mk_env_and_labels env tok _st =
+  let cont_label = fresh_label "cont" env tok in
+  let break_label = fresh_label "break" env tok in
+  let st_env =
+    {
+      env with
+      break_labels = break_label :: env.break_labels;
+      cont_label = Some cont_label;
+    }
+  in
+  let cont_label_s = [ mk_s (Label cont_label) ] @ fixme_stmt ToDo (G.S _st) in
+  let break_label_s =
+    [ mk_s (Label break_label) ] @ fixme_stmt ToDo (G.S _st)
+  in
+  (st_env, cont_label_s, break_label_s)
+
 let rec stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (e, _) ->
@@ -725,50 +742,19 @@ let rec stmt_aux env st =
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
   | G.Switch (_, _, _) -> todo (G.S st)
   | G.While (tok, e, st) ->
-      (* TODO: should these use the While tok? *)
-      let cont_label = _fresh_label env tok in
-      let break_label = _fresh_label env tok in
-      let st_env =
-        {
-          env with
-          break_labels = break_label :: env.break_labels;
-          cont_label = Some cont_label;
-        }
-      in
-      let cont_label_s = [ mk_s (Label cont_label) ] in
-      let break_label_s = [ mk_s (Label break_label) ] in
+      let st_env, cont_label_s, break_label_s = mk_env_and_labels env tok st in
       let ss, e' = expr_with_pre_stmts env e in
       let st = stmt st_env st in
       ss @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ] @ break_label_s
   | G.DoWhile (tok, st, e) ->
-      let cont_label = _fresh_label env tok in
-      let break_label = _fresh_label env tok in
-      let st_env =
-        {
-          env with
-          break_labels = break_label :: env.break_labels;
-          cont_label = Some cont_label;
-        }
-      in
-      let cont_label_s = [ mk_s (Label cont_label) ] in
-      let break_label_s = [ mk_s (Label break_label) ] in
+      let st_env, cont_label_s, break_label_s = mk_env_and_labels env tok st in
       let st = stmt st_env st in
       let ss, e' = expr_with_pre_stmts env e in
       st @ ss
       @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ]
       @ break_label_s
   | G.For (tok, G.ForEach (pat, tok2, e), st) ->
-      let cont_label = _fresh_label env tok in
-      let break_label = _fresh_label env tok in
-      let st_env =
-        {
-          env with
-          break_labels = break_label :: env.break_labels;
-          cont_label = Some cont_label;
-        }
-      in
-      let cont_label_s = [ mk_s (Label cont_label) ] in
-      let break_label_s = [ mk_s (Label break_label) ] in
+      let st_env, cont_label_s, break_label_s = mk_env_and_labels env tok st in
       let ss, e' = expr_with_pre_stmts env e in
       let st = stmt st_env st in
 
@@ -807,17 +793,7 @@ let rec stmt_aux env st =
         ]
       @ break_label_s
   | G.For (tok, G.ForClassic (xs, eopt1, eopt2), st) ->
-      let cont_label = _fresh_label env tok in
-      let break_label = _fresh_label env tok in
-      let st_env =
-        {
-          env with
-          break_labels = break_label :: env.break_labels;
-          cont_label = Some cont_label;
-        }
-      in
-      let cont_label_s = [ mk_s (Label cont_label) ] in
-      let break_label_s = [ mk_s (Label break_label) ] in
+      let st_env, cont_label_s, break_label_s = mk_env_and_labels env tok st in
       let ss1 = for_var_or_expr_list env xs in
       let st = stmt st_env st in
       let ss2, cond =
@@ -839,17 +815,7 @@ let rec stmt_aux env st =
       @ break_label_s
   | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
   | G.For (tok, G.ForIn (xs, e), st) ->
-      let cont_label = _fresh_label env tok in
-      let break_label = _fresh_label env tok in
-      let st_env =
-        {
-          env with
-          break_labels = break_label :: env.break_labels;
-          cont_label = Some cont_label;
-        }
-      in
-      let cont_label_s = [ mk_s (Label cont_label) ] in
-      let break_label_s = [ mk_s (Label break_label) ] in
+      let st_env, cont_label_s, break_label_s = mk_env_and_labels env tok st in
       let ss1 = for_var_or_expr_list env xs in
       let st = stmt st_env st in
       let ss2, cond = expr_with_pre_stmts env (List.nth e 0) (* TODO list *) in
@@ -862,7 +828,8 @@ let rec stmt_aux env st =
       | G.LNone -> (
           match env.cont_label with
           | None ->
-              todo (G.S st) (* Continue outside of loop? Should never happen *)
+              impossible (G.S st)
+              (* Continue outside of loop? Should never happen *)
           | Some lbl -> [ mk_s (Goto (tok, lbl)) ])
       | G.LId lbl -> [ mk_s (Goto (tok, label_of_label env lbl)) ]
       | G.LInt _ | G.LDynamic _ -> todo (G.S st))
@@ -870,13 +837,15 @@ let rec stmt_aux env st =
       match lbl_ident with
       | G.LNone -> (
           match env.break_labels with
-          | [] -> todo (G.S st) (* Break outside of loop? Should never happen *)
+          | [] ->
+              impossible (G.S st)
+              (* Break outside of loop? Should never happen *)
           | lbl :: _ -> [ mk_s (Goto (tok, lbl)) ])
       | G.LId lbl -> [ mk_s (Goto (tok, label_of_label env lbl)) ]
       | G.LInt (i, _) -> (
           match List.nth_opt env.break_labels i with
           | None ->
-              todo (G.S st)
+              impossible (G.S st)
               (* Breaking out of too many loops? Should never happen *)
           | Some lbl -> [ mk_s (Goto (tok, lbl)) ])
       | G.LDynamic _ -> todo (G.S st))

@@ -76,15 +76,20 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 module F2 = IL
 
-module DataflowY = Dataflow.Make (struct
+module Y = struct
   type node = F2.node
 
   type edge = F2.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = {
+    graph : (node, edge) Ograph_extended.ograph_mutable;
+    entry : int;
+  }
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
-end)
+end
+
+module DataflowY = Dataflow.Make (Y)
 
 let any_in_ranges any ranges =
   (* This is potentially slow. We may need to store range position in

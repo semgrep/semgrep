@@ -384,7 +384,7 @@ type edge = Direct
 (*e: type [[IL.edge]] *)
 
 (*s: type [[IL.cfg]] *)
-type cfg = (node, edge) Ograph_extended.ograph_mutable
+type cfg = { graph : (node, edge) Ograph_extended.ograph_mutable; entry : int }
 
 (*e: type [[IL.cfg]] *)
 

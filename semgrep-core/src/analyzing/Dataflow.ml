@@ -46,7 +46,10 @@ module type Flow = sig
 
   type edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = {
+    graph : (node, edge) Ograph_extended.ograph_mutable;
+    entry : int;
+  }
 
   val short_string_of_node : node -> string
 end
@@ -232,15 +235,15 @@ type 'a transfn = 'a mapping -> nodei -> 'a inout
 (*e: type [[Dataflow.transfn]] *)
 
 module Make (F : Flow) = struct
-  let mapping_to_str (fl : F.flow) val2str mapping =
+  let mapping_to_str (f : F.flow) val2str mapping =
     array_fold_left_idx
       (fun s ni v ->
         s
         ^ spf "%2d <- %7s: %15s %s\n" ni
-            ((fl#predecessors ni)#fold
+            ((f.graph#predecessors ni)#fold
                (fun s (ni, _) -> csv_append s (string_of_int ni))
                "")
-            (F.short_string_of_node (fl#nodes#find ni))
+            (F.short_string_of_node (f.graph#nodes#find ni))
             (inout_to_str val2str v))
       "" mapping
 
@@ -264,10 +267,24 @@ module Make (F : Flow) = struct
       fixpoint_worker eq mapping trans flow succs work''
 
   let forward_succs (f : F.flow) n =
-    (f#successors n)#fold (fun s (ni, _) -> NodeiSet.add ni s) NodeiSet.empty
+    (f.graph#successors n)#fold
+      (fun s (ni, _) -> NodeiSet.add ni s)
+      NodeiSet.empty
 
   let backward_succs (f : F.flow) n =
-    (f#predecessors n)#fold (fun s (ni, _) -> NodeiSet.add ni s) NodeiSet.empty
+    (f.graph#predecessors n)#fold
+      (fun s (ni, _) -> NodeiSet.add ni s)
+      NodeiSet.empty
+
+  let mk_worklist ({ graph; entry } : F.flow) =
+    let rec aux nodei seen =
+      if NodeiSet.mem nodei seen then seen
+      else
+        let seen = NodeiSet.add nodei seen in
+        let succs = forward_succs { graph; entry } nodei in
+        NodeiSet.fold aux succs seen
+    in
+    aux entry NodeiSet.empty
 
   let (fixpoint :
         eq:('a -> 'a -> bool) ->
@@ -278,9 +295,7 @@ module Make (F : Flow) = struct
         'a mapping) =
    fun ~eq ~init ~trans ~flow ~forward ->
     let succs = if forward then forward_succs else backward_succs in
-    let work =
-      flow#nodes#fold (fun s (ni, _) -> NodeiSet.add ni s) NodeiSet.empty
-    in
+    let work = mk_worklist flow in
     fixpoint_worker eq init trans flow succs work
 
   (*****************************************************************************)
@@ -288,10 +303,10 @@ module Make (F : Flow) = struct
   (*****************************************************************************)
 
   let new_node_array (f : F.flow) v =
-    let nb_nodes = f#nb_nodes in
+    let nb_nodes = f.graph#nb_nodes in
     let max_nodei = ref (-1) in
 
-    f#nodes#tolist
+    f.graph#nodes#tolist
     |> List.iter (fun (ni, _nod) ->
            (* actually there are some del_node done in cfg_build, for
             * switch, so sometimes ni is >= len
