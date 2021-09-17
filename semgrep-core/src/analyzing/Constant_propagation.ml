@@ -379,7 +379,7 @@ let propagate_basic lang prog =
 let propagate_basic a b =
   Common.profile_code "Constant_propagation.xxx" (fun () -> propagate_basic a b)
 
-let propagate_dataflow ast =
+let propagate_dataflow lang ast =
   logger#info "Constant_propagation.propagate_dataflow progran";
   let v =
     V.mk_visitor
@@ -387,7 +387,7 @@ let propagate_dataflow ast =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let inputs, xs = AST_to_IL.function_definition def in
+            let inputs, xs = AST_to_IL.function_definition lang def in
             let flow = CFG_build.cfg_of_stmts xs in
             let mapping = Dataflow_constness.fixpoint inputs flow in
             Dataflow_constness.update_constness flow mapping);

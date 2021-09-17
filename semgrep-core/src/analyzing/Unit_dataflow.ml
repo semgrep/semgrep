@@ -22,7 +22,7 @@ let tests parse_program =
                  match
                    set_timeout ~name:"cst_prop" timeout_secs (fun () ->
                        Constant_propagation.propagate_basic lang ast;
-                       Constant_propagation.propagate_dataflow ast)
+                       Constant_propagation.propagate_dataflow lang ast)
                  with
                  | Some res -> res
                  | None ->
