@@ -488,6 +488,7 @@ and expr_kind =
    * where 'if's are expressions, we still prefer to use the stmt 'If'
    * because it allows an optional else part. We need to sometimes
    * wrap those stmts inside an OE_StmtExpr though.
+   * TODO: add toks? TODO? in C++ the second expr can be an option
    *)
   | Conditional of expr * expr * expr
   | Yield of tok * expr option * bool (* 'from' for Python *)
@@ -582,6 +583,8 @@ and for_or_if_comp =
  * typing information. For example, Eval takes only one argument and
  * InstanceOf takes a type and an expr. This is a tradeoff to also not
  * polluate too much expr with too many constructs.
+ * TODO: split in IdSpecial of special_id and CallSpecial of special_op
+ * and then also just CallOp. And also a separate InterpolatedString.
  *)
 (*s: type [[AST_generic.special]] *)
 and special =
@@ -965,6 +968,7 @@ and stmt_kind =
   (* todo? remove stmt argument? more symetric to Goto *)
   | Label of label * stmt
   | Goto of tok * label
+  (* TODO? move in expr! in C++ the expr can be an option *)
   | Throw of tok (* 'raise' in OCaml, 'throw' in Java/PHP *) * expr * sc
   | Try of tok * stmt * catch list * finally option
   | WithUsingResource of
@@ -2079,6 +2083,36 @@ let basic_entity id attrs =
 let arg e = Arg e
 
 (* ------------------------------------------------------------------------- *)
+(* Expressions *)
+(* ------------------------------------------------------------------------- *)
+let special spec es =
+  Call (IdSpecial spec |> e, fake_bracket (es |> List.map arg)) |> e
+
+let opcall (op, t) es = special (Op op, t) es
+
+(* TODO: have a separate InterpolatedConcat in expr with a cleaner type
+ * instead of abusing special?
+ *)
+let interpolated (lquote, xs, rquote) =
+  let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
+  Call
+    ( special,
+      ( lquote,
+        xs
+        |> List.map (function
+             | Common.Left3 str -> Arg (L (String str) |> e)
+             | Common.Right3 (lbrace, eopt, rbrace) ->
+                 let special = IdSpecial (InterpolatedElement, lbrace) |> e in
+                 let args = eopt |> Common.opt_to_list |> List.map arg in
+                 Arg (Call (special, (lbrace, args, rbrace)) |> e)
+             | Common.Middle3 e -> Arg e),
+        rquote ) )
+  |> e
+
+(* todo? use a special construct KeyVal valid only inside Dict? *)
+let keyval k _tarrow v = Container (Tuple, fake_bracket [ k; v ]) |> e
+
+(* ------------------------------------------------------------------------- *)
 (* Parameters *)
 (* ------------------------------------------------------------------------- *)
 
@@ -2159,34 +2193,6 @@ let attr kwd tok = KeywordAttr (kwd, tok)
 
 let unhandled_keywordattr (s, t) =
   NamedAttr (t, Id ((s, t), empty_id_info ()), fake_bracket [])
-
-(* ------------------------------------------------------------------------- *)
-(* Interpolated strings *)
-(* ------------------------------------------------------------------------- *)
-(* TODO: have a separate InterpolatedConcat in expr with a cleaner type
- * instead of abusing special?
- *)
-let interpolated (lquote, xs, rquote) =
-  let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
-  Call
-    ( special,
-      ( lquote,
-        xs
-        |> List.map (function
-             | Common.Left3 str -> Arg (L (String str) |> e)
-             | Common.Right3 (lbrace, eopt, rbrace) ->
-                 let special = IdSpecial (InterpolatedElement, lbrace) |> e in
-                 let args = eopt |> Common.opt_to_list |> List.map arg in
-                 Arg (Call (special, (lbrace, args, rbrace)) |> e)
-             | Common.Middle3 e -> Arg e),
-        rquote ) )
-  |> e
-
-(* ------------------------------------------------------------------------- *)
-(* Misc *)
-(* ------------------------------------------------------------------------- *)
-(* todo? use a special construct KeyVal valid only inside Dict? *)
-let keyval k _tarrow v = Container (Tuple, fake_bracket [ k; v ]) |> e
 
 (*****************************************************************************)
 (* AST accessors *)
