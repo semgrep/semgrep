@@ -194,7 +194,9 @@ let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
 
 (*e: function [[AST_to_IL.add_instr]] *)
 
-let var_of_exp env tok exp =
+(* Create an auxiliary variable for an expression---unless the expression
+ * itself is already a variable! *)
+let mk_aux_var env tok exp =
   match exp.e with
   | Fetch ({ base = Var var; offset = NoOffset; _ } as lval) -> (var, lval)
   | _ ->
@@ -385,7 +387,7 @@ and expr_aux env ?(void = false) eorig =
         match args with
         | [] -> impossible (G.E eorig)
         | obj :: args' ->
-            let obj_var, _obj_lval = var_of_exp env tok obj in
+            let obj_var, _obj_lval = mk_aux_var env tok obj in
             let method_id = (Parse_info.str_of_info tok, tok) in
             let method_name = (method_id, -1) in
             let method_lval =

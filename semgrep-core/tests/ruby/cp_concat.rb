@@ -4,6 +4,9 @@ def test1(user_input)
   a = "foo"
   #ERROR:
   test(a)
+  a.concat("bar")
+  #ERROR:
+  test(a)
   a.concat(user_input)
   # a isn't a constant string anymore
   #OK:
