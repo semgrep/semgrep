@@ -49,15 +49,22 @@ module VarMap = Dataflow.VarMap
  *)
 type mapping = unit Dataflow.mapping
 
-module DataflowX = Dataflow.Make (struct
+module X = struct
   type node = F.node
 
   type edge = F.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = {
+    graph : (node, edge) Ograph_extended.ograph_mutable;
+    entry : int;
+  }
 
   let short_string_of_node = F.short_string_of_node
-end)
+end
+
+module DataflowX = Dataflow.Make (X)
+
+let cfg_to_flow ({ graph; entry } : F.flow) : X.flow = { graph; entry }
 
 (*****************************************************************************)
 (* Gen/Kill *)
@@ -70,7 +77,7 @@ end)
  *)
 let (gens : F.flow -> unit Dataflow.env array) =
  fun flow ->
-  let arr = DataflowX.new_node_array flow VarMap.empty in
+  let arr = DataflowX.new_node_array (cfg_to_flow flow) VarMap.empty in
   V.fold_on_node_and_expr
     (fun (ni, _nd) e () ->
       (* rvalues here, to get the use of variables *)
@@ -91,7 +98,9 @@ let (gens : F.flow -> unit Dataflow.env array) =
  *)
 let (kills : F.flow -> unit Dataflow.env array) =
  fun flow ->
-  let arr = DataflowX.new_node_array flow (Dataflow.empty_env ()) in
+  let arr =
+    DataflowX.new_node_array (cfg_to_flow flow) (Dataflow.empty_env ())
+  in
   V.fold_on_node_and_expr
     (fun (ni, _nd) e () ->
       let lvals = Lrvalue.lvalues_of_expr e in
@@ -125,7 +134,7 @@ let (transfer :
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   let out' =
-    (flow#successors ni)#fold
+    (flow.graph#successors ni)#fold
       (fun acc (ni_succ, _) -> union acc mapping.(ni_succ).D.in_env)
       VarMap.empty
   in
@@ -144,6 +153,7 @@ let (fixpoint : F.flow -> mapping) =
 
   DataflowX.fixpoint
     ~eq:(fun () () -> true)
-    ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
+    ~init:
+      (DataflowX.new_node_array (cfg_to_flow flow) (Dataflow.empty_inout ()))
     ~trans:(transfer ~gen ~kill ~flow) (* liveness is a backward analysis! *)
-    ~forward:false ~flow
+    ~forward:false ~flow:(cfg_to_flow flow)

@@ -89,7 +89,7 @@ let resolve_gotos state =
          | None ->
              Common.pr2
              @@ Common.spf "Could not resolve label: %s" (fst label_key)
-         | Some dsti -> state.g |> add_arc (srci, dsti));
+         | Some dsti -> state.g.graph |> add_arc (srci, dsti));
   state.gotos := []
 
 (*****************************************************************************)
@@ -132,8 +132,8 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
  fun state previ stmt ->
   match stmt.s with
   | Instr x ->
-      let newi = state.g#add_node { F.n = F.NInstr x } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = F.NInstr x } in
+      state.g.graph |> add_arc_opt (previ, newi);
       CfgFirstLast (newi, Some newi)
   | If (tok, e, st1, st2) -> (
       (* previ -> newi --->  newfakethen -> ... -> finalthen --> lasti -> <rest>
@@ -142,13 +142,13 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *
        * The lasti can be a Join when there is no return in either branch.
        *)
-      let newi = state.g#add_node { F.n = F.NCond (tok, e) } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = F.NCond (tok, e) } in
+      state.g.graph |> add_arc_opt (previ, newi);
 
-      let newfakethen = state.g#add_node { F.n = F.TrueNode } in
-      let newfakeelse = state.g#add_node { F.n = F.FalseNode } in
-      state.g |> add_arc (newi, newfakethen);
-      state.g |> add_arc (newi, newfakeelse);
+      let newfakethen = state.g.graph#add_node { F.n = F.TrueNode } in
+      let newfakeelse = state.g.graph#add_node { F.n = F.FalseNode } in
+      state.g.graph |> add_arc (newi, newfakethen);
+      state.g.graph |> add_arc (newi, newfakeelse);
 
       let finalthen = cfg_stmt_list state (Some newfakethen) st1 in
       let finalelse = cfg_stmt_list state (Some newfakeelse) st2 in
@@ -159,36 +159,36 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
           CfgFirstLast (newi, None)
       | Some nodei, None | None, Some nodei -> CfgFirstLast (newi, Some nodei)
       | Some n1, Some n2 ->
-          let lasti = state.g#add_node { F.n = F.Join } in
-          state.g |> add_arc (n1, lasti);
-          state.g |> add_arc (n2, lasti);
+          let lasti = state.g.graph#add_node { F.n = F.Join } in
+          state.g.graph |> add_arc (n1, lasti);
+          state.g.graph |> add_arc (n2, lasti);
           CfgFirstLast (newi, Some lasti))
   | Loop (tok, e, st) ->
       (* previ -> newi ---> newfakethen -> ... -> finalthen -
        *             |---|-----------------------------------|
        *                 |-> newfakelse
        *)
-      let newi = state.g#add_node { F.n = NCond (tok, e) } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = NCond (tok, e) } in
+      state.g.graph |> add_arc_opt (previ, newi);
 
-      let newfakethen = state.g#add_node { F.n = F.TrueNode } in
-      let newfakeelse = state.g#add_node { F.n = F.FalseNode } in
-      state.g |> add_arc (newi, newfakethen);
-      state.g |> add_arc (newi, newfakeelse);
+      let newfakethen = state.g.graph#add_node { F.n = F.TrueNode } in
+      let newfakeelse = state.g.graph#add_node { F.n = F.FalseNode } in
+      state.g.graph |> add_arc (newi, newfakethen);
+      state.g.graph |> add_arc (newi, newfakeelse);
 
       let finalthen = cfg_stmt_list state (Some newfakethen) st in
-      state.g |> add_arc_opt (finalthen, newi);
+      state.g.graph |> add_arc_opt (finalthen, newi);
       CfgFirstLast (newi, Some newfakeelse)
   | Label label -> CfgLabel label
   | Goto (tok, label) ->
-      let newi = state.g#add_node { F.n = F.NGoto (tok, label) } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = F.NGoto (tok, label) } in
+      state.g.graph |> add_arc_opt (previ, newi);
       add_pending_goto state newi label;
       CfgFirstLast (newi, None)
   | Return (tok, e) ->
-      let newi = state.g#add_node { F.n = F.NReturn (tok, e) } in
-      state.g |> add_arc_opt (previ, newi);
-      state.g |> add_arc (newi, state.exiti);
+      let newi = state.g.graph#add_node { F.n = F.NReturn (tok, e) } in
+      state.g.graph |> add_arc_opt (previ, newi);
+      state.g.graph |> add_arc (newi, state.exiti);
       (* the next statement if there is one will not be linked to
        * this new node *)
       CfgFirstLast (newi, None)
@@ -200,27 +200,27 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *                      |-> catchN -|
        *                      |-----------|-> newfakefinally -> finally
        *)
-      let newi = state.g#add_node { F.n = F.TrueNode } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = F.TrueNode } in
+      state.g.graph |> add_arc_opt (previ, newi);
       let finaltry = cfg_stmt_list state (Some newi) try_st in
-      let newfakefinally = state.g#add_node { F.n = F.TrueNode } in
-      state.g |> add_arc_opt (finaltry, newfakefinally);
+      let newfakefinally = state.g.graph#add_node { F.n = F.TrueNode } in
+      state.g.graph |> add_arc_opt (finaltry, newfakefinally);
       catches
       |> List.iter (fun (_, catch_st) ->
              let finalcatch = cfg_stmt_list state finaltry catch_st in
-             state.g |> add_arc_opt (finalcatch, newfakefinally));
+             state.g.graph |> add_arc_opt (finalcatch, newfakefinally));
       let finalfinally = cfg_stmt_list state (Some newfakefinally) finally_st in
       CfgFirstLast (newi, finalfinally)
   | Throw (_, _) -> cfg_todo state previ stmt
   | MiscStmt x ->
-      let newi = state.g#add_node { F.n = F.NOther x } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = F.NOther x } in
+      state.g.graph |> add_arc_opt (previ, newi);
       CfgFirstLast (newi, Some newi)
   | FixmeStmt _ -> cfg_todo state previ stmt
 
 and cfg_todo state previ stmt =
-  let newi = state.g#add_node { F.n = F.NTodo stmt } in
-  state.g |> add_arc_opt (previ, newi);
+  let newi = state.g.graph#add_node { F.n = F.NTodo stmt } in
+  state.g.graph |> add_arc_opt (previ, newi);
   CfgFirstLast (newi, Some newi)
 
 and cfg_stmt_list state previ xs =
@@ -255,7 +255,14 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
 
   let newi = enteri in
 
-  let state = { g; exiti; labels = Hashtbl.create 2; gotos = ref [] } in
+  let state =
+    {
+      g = { graph = g; entry = enteri };
+      exiti;
+      labels = Hashtbl.create 2;
+      gotos = ref [];
+    }
+  in
   let last_node_opt = cfg_stmt_list state (Some newi) xs in
   (* Must wait until all nodes have been labeled before resolving gotos. *)
   resolve_gotos state;
@@ -263,6 +270,6 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
    * connect last stmt to the exit node
    *)
   g |> add_arc_opt (last_node_opt, exiti);
-  g
+  { graph = g; entry = enteri }
 
 (*e: pfff/lang_GENERIC/analyze/CFG_build.ml *)

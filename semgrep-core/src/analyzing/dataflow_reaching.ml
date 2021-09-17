@@ -60,7 +60,7 @@ type mapping = Dataflow.NodeiSet.t Dataflow.mapping
 let (defs : F.flow -> NodeiSet.t Dataflow.env) =
  fun flow ->
   (* the long version, could use F.fold_on_expr *)
-  flow#nodes#fold
+  flow.graph#nodes#fold
     (fun env (ni, node) ->
       let xs = V.exprs_of_node node in
       xs
@@ -75,19 +75,26 @@ let (defs : F.flow -> NodeiSet.t Dataflow.env) =
            env)
     VarMap.empty
 
-module DataflowX = Dataflow.Make (struct
+module X = struct
   type node = F.node
 
   type edge = F.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = {
+    graph : (node, edge) Ograph_extended.ograph_mutable;
+    entry : int;
+  }
 
   let short_string_of_node = F.short_string_of_node
-end)
+end
+
+module DataflowX = Dataflow.Make (X)
+
+let cfg_to_flow ({ graph; entry } : F.flow) : X.flow = { graph; entry }
 
 let (gens : F.flow -> VarSet.t array) =
  fun flow ->
-  let arr = DataflowX.new_node_array flow VarSet.empty in
+  let arr = DataflowX.new_node_array (cfg_to_flow flow) VarSet.empty in
   V.fold_on_node_and_expr
     (fun (ni, _nd) e arr ->
       let lvals = Lrvalue.lvalues_of_expr e in
@@ -99,7 +106,9 @@ let (gens : F.flow -> VarSet.t array) =
 let (kills : NodeiSet.t Dataflow.env -> F.flow -> NodeiSet.t Dataflow.env array)
     =
  fun defs flow ->
-  let arr = DataflowX.new_node_array flow (Dataflow.empty_env ()) in
+  let arr =
+    DataflowX.new_node_array (cfg_to_flow flow) (Dataflow.empty_env ())
+  in
   V.fold_on_node_and_expr
     (fun (ni, _nd) e () ->
       let lvals = Lrvalue.lvalues_of_expr e in
@@ -136,7 +145,7 @@ let (transfer :
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   let in' =
-    (flow#predecessors ni)#fold
+    (flow.graph#predecessors ni)#fold
       (fun acc (ni_pred, _) -> union acc mapping.(ni_pred).D.out_env)
       VarMap.empty
   in
@@ -154,6 +163,7 @@ let (fixpoint : F.flow -> mapping) =
   let kill = kills (defs flow) flow in
 
   DataflowX.fixpoint ~eq:NodeiSet.equal
-    ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
+    ~init:
+      (DataflowX.new_node_array (cfg_to_flow flow) (Dataflow.empty_inout ()))
     ~trans:(transfer ~gen ~kill ~flow)
-    ~forward:true ~flow
+    ~forward:true ~flow:(cfg_to_flow flow)

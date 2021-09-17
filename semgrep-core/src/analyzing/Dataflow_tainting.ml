@@ -58,15 +58,21 @@ type config = {
 (*e: type [[Dataflow_tainting.config]] *)
 
 (*s: module [[Dataflow.Make(Il)]] *)
-module DataflowX = Dataflow.Make (struct
+
+module X = struct
   type node = F.node
 
   type edge = F.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = {
+    graph : (node, edge) Ograph_extended.ograph_mutable;
+    entry : int;
+  }
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
-end)
+end
+
+module DataflowX = Dataflow.Make (X)
 
 (*e: module [[Dataflow.Make(Il)]] *)
 
@@ -199,11 +205,11 @@ let (transfer :
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   let in' =
-    (flow#predecessors ni)#fold
+    (flow.graph#predecessors ni)#fold
       (fun acc (ni_pred, _) -> union acc mapping.(ni_pred).D.out_env)
       VarMap.empty
   in
-  let node = flow#nodes#assoc ni in
+  let node = flow.graph#nodes#assoc ni in
 
   let gen_ni_opt =
     match node.F.n with
@@ -249,16 +255,23 @@ let (transfer :
 (* Entry point *)
 (*****************************************************************************)
 
+(* Very silly function. We previously relied on the fact that F.cfg and X.flow were equal types,
+   but because OCaml does not have first class records, this equivalence no longer holds definitionally.
+   Instead we have to manually convert between the types even though they are technically the same
+*)
+let cfg_to_flow ({ graph; entry } : F.cfg) : X.flow = { graph; entry }
+
 (*s: function [[Dataflow_tainting.fixpoint]] *)
 let (fixpoint : config -> fun_env -> IL.name option -> F.cfg -> mapping) =
  fun config fun_env opt_name flow ->
   DataflowX.fixpoint
     ~eq:(fun () () -> true)
-    ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
+    ~init:
+      (DataflowX.new_node_array (cfg_to_flow flow) (Dataflow.empty_inout ()))
     ~trans:
       (transfer config fun_env opt_name ~flow)
       (* tainting is a forward analysis! *)
-    ~forward:true ~flow
+    ~forward:true ~flow:(cfg_to_flow flow)
 
 (*e: function [[Dataflow_tainting.fixpoint]] *)
 

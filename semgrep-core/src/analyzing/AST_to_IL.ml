@@ -122,9 +122,9 @@ let fresh_var _env tok =
 
 (*e: function [[AST_to_IL.fresh_var]] *)
 (*s: function [[AST_to_IL._fresh_label]] *)
-let _fresh_label _env tok =
+let fresh_label lbl _env tok =
   let i = H.gensym () in
-  (("_label", tok), i)
+  ((lbl, tok), i)
 
 (*e: function [[AST_to_IL._fresh_label]] *)
 (*s: function [[AST_to_IL.fresh_lval]] *)
@@ -695,6 +695,23 @@ let parameters _env params =
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
+
+let mk_env_and_labels env tok _st =
+  let cont_label = fresh_label "cont" env tok in
+  let break_label = fresh_label "break" env tok in
+  let st_env =
+    {
+      env with
+      break_labels = break_label :: env.break_labels;
+      cont_label = Some cont_label;
+    }
+  in
+  let cont_label_s = [ mk_s (Label cont_label) ] @ fixme_stmt ToDo (G.S _st) in
+  let break_label_s =
+    [ mk_s (Label break_label) ] @ fixme_stmt ToDo (G.S _st)
+  in
+  (st_env, cont_label_s, break_label_s)
+
 let rec stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (e, _) ->

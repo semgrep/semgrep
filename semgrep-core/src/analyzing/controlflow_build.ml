@@ -140,19 +140,21 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
         | _ -> raise Impossible
       in
 
-      let newi = state.g#add_node { F.n = node; i = i () } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = node; i = i () } in
+      state.g.graph |> add_arc_opt (previ, newi);
 
-      let newfakethen = state.g#add_node { F.n = F.TrueNode; i = None } in
-      let newfakeelse = state.g#add_node { F.n = F.FalseNode; i = None } in
-      state.g |> add_arc (newi, newfakethen);
-      state.g |> add_arc (newi, newfakeelse);
+      let newfakethen = state.g.graph#add_node { F.n = F.TrueNode; i = None } in
+      let newfakeelse =
+        state.g.graph#add_node { F.n = F.FalseNode; i = None }
+      in
+      state.g.graph |> add_arc (newi, newfakethen);
+      state.g.graph |> add_arc (newi, newfakeelse);
 
       let state =
         { state with ctx = LoopCtx (newi, newfakeelse) :: state.ctx }
       in
       let finalthen = cfg_stmt state (Some newfakethen) stmt in
-      state.g |> add_arc_opt (finalthen, newi);
+      state.g.graph |> add_arc_opt (finalthen, newi);
       Some newfakeelse
   (* this was a tentative by jiao to work with dataflow_php.ml but it
      has some regression so I've commented it out
@@ -163,13 +165,13 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
         *)
          let node = F.WhileHeader (G.unparen e) in
 
-         let newi = state.g#add_node { F.n = node; i=i() } in
-         state.g |> add_arc_opt (previ, newi);
+         let newi = state.g.graph#add_node { F.n = node; i=i() } in
+         state.g.graph |> add_arc_opt (previ, newi);
 
-         let newfakethen = state.g#add_node { F.n = F.TrueNode;i=None } in
-         let newfakeelse = state.g#add_node { F.n = F.FalseNode;i=None } in
-         state.g |> add_arc (newi, newfakethen);
-         state.g |> add_arc (newi, newfakeelse);
+         let newfakethen = state.g.graph#add_node { F.n = F.TrueNode;i=None } in
+         let newfakeelse = state.g.graph#add_node { F.n = F.FalseNode;i=None } in
+         state.g.graph |> add_arc (newi, newfakethen);
+         state.g.graph |> add_arc (newi, newfakeelse);
 
          let state = { state with
            ctx = LoopCtx (newi, newfakeelse)::state.ctx;
@@ -177,7 +179,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
          in
          let finalthen = cfg_colon_stmt state (Some newfakethen) colon_stmt in
          (* let's loop *)
-         state.g |> add_arc_opt (finalthen, newi);
+         state.g.graph |> add_arc_opt (finalthen, newi);
          Some newfakeelse
 
      | For (t1, t2, e1, t3, e2, t4, e5, t6, colon_stmt) ->
@@ -190,17 +192,17 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
            previ exprs in
 
          let node = F.ForHeader in
-         let newi = state.g#add_node { F.n = node; i=i() } in
-         state.g |> add_arc_opt (e1i, newi);
+         let newi = state.g.graph#add_node { F.n = node; i=i() } in
+         state.g.graph |> add_arc_opt (e1i, newi);
 
          let exprs = G.uncomma e2 in
          let e2i = List.fold_left (cfg_expr state F.Normal)
            (Some newi) exprs in
 
-         let newfakethen = state.g#add_node { F.n = F.TrueNode;i=None } in
-         let newfakeelse = state.g#add_node { F.n = F.FalseNode;i=None } in
-         state.g |> add_arc_opt (e2i, newfakethen);
-         state.g |> add_arc_opt (e2i, newfakeelse);
+         let newfakethen = state.g.graph#add_node { F.n = F.TrueNode;i=None } in
+         let newfakeelse = state.g.graph#add_node { F.n = F.FalseNode;i=None } in
+         state.g.graph |> add_arc_opt (e2i, newfakethen);
+         state.g.graph |> add_arc_opt (e2i, newfakeelse);
 
          (* todo: the head should not be newi but the node just before
           * the increment, see tests/php/controlflow/continue_for.php
@@ -214,7 +216,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
          let exprs = G.uncomma e5 in
          let e5i = List.fold_left (cfg_expr state F.Normal) finalthen exprs in
 
-         state.g |> add_arc_opt (e5i, newi);
+         state.g.graph |> add_arc_opt (e5i, newi);
          Some newfakeelse
 
      | Foreach (t1, t2, e1, t3, v_arrow_opt, t4, colon_stmt) ->
@@ -233,13 +235,13 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
              failwith "Warning: list foreach"
          in
          let node = F.ForeachHeader names in
-         let newi = state.g#add_node { F.n = node; i=i() } in
-         state.g |> add_arc_opt (e1i, newi);
+         let newi = state.g.graph#add_node { F.n = node; i=i() } in
+         state.g.graph |> add_arc_opt (e1i, newi);
 
-         let newfakethen = state.g#add_node { F.n = F.TrueNode;i=None } in
-         let newfakeelse = state.g#add_node { F.n = F.FalseNode;i=None } in
-         state.g |> add_arc (newi, newfakethen);
-         state.g |> add_arc (newi, newfakeelse);
+         let newfakethen = state.g.graph#add_node { F.n = F.TrueNode;i=None } in
+         let newfakeelse = state.g.graph#add_node { F.n = F.FalseNode;i=None } in
+         state.g.graph |> add_arc (newi, newfakethen);
+         state.g.graph |> add_arc (newi, newfakeelse);
 
          let state = { state with
            ctx = LoopCtx (newi, newfakeelse)::state.ctx;
@@ -248,7 +250,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
          let finalthen =
            cfg_colon_stmt state (Some newfakethen) colon_stmt
          in
-         state.g |> add_arc_opt (finalthen, newi);
+         state.g.graph |> add_arc_opt (finalthen, newi);
          Some newfakeelse
   *)
   (* This time, we may return None, for instance if return in body of dowhile
@@ -259,15 +261,17 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
       (* previ -> doi ---> ... ---> finalthen (opt) ---> taili
        *          |--------- newfakethen ----------------| |-> newfakelse <rest>
        *)
-      let doi = state.g#add_node { F.n = F.DoHeader; i = i () } in
-      state.g |> add_arc_opt (previ, doi);
+      let doi = state.g.graph#add_node { F.n = F.DoHeader; i = i () } in
+      state.g.graph |> add_arc_opt (previ, doi);
 
-      let taili = state.g#add_node { F.n = F.DoWhileTail e; i = None } in
-      let newfakethen = state.g#add_node { F.n = F.TrueNode; i = None } in
-      let newfakeelse = state.g#add_node { F.n = F.FalseNode; i = None } in
-      state.g |> add_arc (taili, newfakethen);
-      state.g |> add_arc (taili, newfakeelse);
-      state.g |> add_arc (newfakethen, doi);
+      let taili = state.g.graph#add_node { F.n = F.DoWhileTail e; i = None } in
+      let newfakethen = state.g.graph#add_node { F.n = F.TrueNode; i = None } in
+      let newfakeelse =
+        state.g.graph#add_node { F.n = F.FalseNode; i = None }
+      in
+      state.g.graph |> add_arc (taili, newfakethen);
+      state.g.graph |> add_arc (taili, newfakeelse);
+      state.g.graph |> add_arc (newfakethen, doi);
 
       let state =
         { state with ctx = LoopCtx (taili, newfakeelse) :: state.ctx }
@@ -278,7 +282,7 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
           (* weird, probably wrong code *)
           None
       | Some finalthen ->
-          state.g |> add_arc (finalthen, taili);
+          state.g.graph |> add_arc (finalthen, taili);
           Some newfakeelse)
   | If (_, e, st_then, st_else) -> (
       (* previ -> newi --->  newfakethen -> ... -> finalthen --> lasti -> <rest>
@@ -290,13 +294,15 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
        * is what I do for now.
        * The lasti can be a Join when there is no return in either branch.
        *)
-      let newi = state.g#add_node { F.n = F.IfHeader e; i = i () } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = F.IfHeader e; i = i () } in
+      state.g.graph |> add_arc_opt (previ, newi);
 
-      let newfakethen = state.g#add_node { F.n = F.TrueNode; i = None } in
-      let newfakeelse = state.g#add_node { F.n = F.FalseNode; i = None } in
-      state.g |> add_arc (newi, newfakethen);
-      state.g |> add_arc (newi, newfakeelse);
+      let newfakethen = state.g.graph#add_node { F.n = F.TrueNode; i = None } in
+      let newfakeelse =
+        state.g.graph#add_node { F.n = F.FalseNode; i = None }
+      in
+      state.g.graph |> add_arc (newi, newfakethen);
+      state.g.graph |> add_arc (newi, newfakeelse);
 
       let finalthen = cfg_stmt state (Some newfakethen) st_then in
       let finalelse =
@@ -311,14 +317,14 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
           None
       | Some nodei, None | None, Some nodei -> Some nodei
       | Some n1, Some n2 ->
-          let lasti = state.g#add_node { F.n = F.Join; i = None } in
-          state.g |> add_arc (n1, lasti);
-          state.g |> add_arc (n2, lasti);
+          let lasti = state.g.graph#add_node { F.n = F.Join; i = None } in
+          state.g.graph |> add_arc (n1, lasti);
+          state.g.graph |> add_arc (n2, lasti);
           Some lasti)
   | Return (_, e, _) ->
-      let newi = state.g#add_node { F.n = F.Return e; i = i () } in
-      state.g |> add_arc_opt (previ, newi);
-      state.g |> add_arc (newi, state.exiti);
+      let newi = state.g.graph#add_node { F.n = F.Return e; i = i () } in
+      state.g.graph |> add_arc_opt (previ, newi);
+      state.g.graph |> add_arc (newi, state.exiti);
       (* the next statement if there is one will not be linked to
        * this new node *)
       None
@@ -343,8 +349,8 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
              )
        in
 *)
-      let newi = state.g#add_node { F.n = node; i = i () } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = node; i = i () } in
+      state.g.graph |> add_arc_opt (previ, newi);
 
       let nodei_to_jump_to =
         state.ctx
@@ -360,17 +366,17 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
              | TryCtx _ | NoCtx -> None)
       in
       (match nodei_to_jump_to with
-      | Some nodei -> state.g |> add_arc (newi, nodei)
+      | Some nodei -> state.g.graph |> add_arc (newi, nodei)
       | None -> raise (Error (NoEnclosingLoop, i ())));
       None
   | Switch (_, e, cases_and_body) ->
-      let newi = state.g#add_node { F.n = F.SwitchHeader e; i = i () } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = F.SwitchHeader e; i = i () } in
+      state.g.graph |> add_arc_opt (previ, newi);
 
       (* note that if all cases have return, then we will remove
        * this endswitch node later.
        *)
-      let endi = state.g#add_node { F.n = F.SwitchEnd; i = None } in
+      let endi = state.g.graph#add_node { F.n = F.SwitchEnd; i = None } in
 
       (* if no default: then must add path from start to end directly
        * todo? except if the cases cover the full spectrum ?
@@ -383,15 +389,15 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
                    cases
                    |> List.exists (function G.Default _ -> true | _ -> false)
                | CaseEllipsis _ -> raise Impossible))
-      then state.g |> add_arc (newi, endi);
+      then state.g.graph |> add_arc (newi, endi);
       (* let's process all cases *)
       let last_stmt_opt = cfg_cases (newi, endi) state None cases_and_body in
-      state.g |> add_arc_opt (last_stmt_opt, endi);
+      state.g.graph |> add_arc_opt (last_stmt_opt, endi);
 
       (* remove endi if for instance all branches contained a return *)
-      if (state.g#predecessors endi)#null then (
+      if (state.g.graph#predecessors endi)#null then (
         (* coupling: make sure Dataflow.new_node_array handle that case *)
-        state.g#del_node endi;
+        state.g.graph#del_node endi;
         None)
       else Some endi
   (*
@@ -447,12 +453,12 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
   | Try (_, body, catches, _finallys) ->
       (* TODO Task #3622443: Update the logic below to account for "finally"
          clauses *)
-      let newi = state.g#add_node { F.n = F.TryHeader; i = i () } in
-      let catchi = state.g#add_node { F.n = F.CatchStart; i = None } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = F.TryHeader; i = i () } in
+      let catchi = state.g.graph#add_node { F.n = F.CatchStart; i = None } in
+      state.g.graph |> add_arc_opt (previ, newi);
 
       (* may have to delete it later if nobody connected to it *)
-      let endi = state.g#add_node { F.n = F.TryEnd; i = None } in
+      let endi = state.g.graph#add_node { F.n = F.TryEnd; i = None } in
 
       (* for now we add a direct edge between the try and catch,
        * as even the first statement in the body of the try could
@@ -463,12 +469,12 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
        * the catch nodes to have at least one parent. So I am
        * kind of conservative.
        *)
-      state.g |> add_arc (newi, catchi);
+      state.g.graph |> add_arc (newi, catchi);
 
       let state' = { state with ctx = TryCtx catchi :: state.ctx } in
 
       let last_stmt_opt = cfg_stmt state' (Some newi) body in
-      state.g |> add_arc_opt (last_stmt_opt, endi);
+      state.g.graph |> add_arc_opt (last_stmt_opt, endi);
 
       (* note that we use state, not state' here, as we want the possible
        * throws inside catches to be themselves link to a possible surrounding
@@ -487,14 +493,14 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
              | LoopCtx _ | SwitchCtx _ | NoCtx -> None)
       in
       (match nodei_to_jump_to with
-      | Some nextcatchi -> state.g |> add_arc (last_false_node, nextcatchi)
-      | None -> state.g |> add_arc (last_false_node, state.exiti));
+      | Some nextcatchi -> state.g.graph |> add_arc (last_false_node, nextcatchi)
+      | None -> state.g.graph |> add_arc (last_false_node, state.exiti));
 
       (* if nobody connected to endi erase the node. For instance
        * if have only return in the try body.
        *)
-      if (state.g#predecessors endi)#null then (
-        state.g#del_node endi;
+      if (state.g.graph#predecessors endi)#null then (
+        state.g.graph#del_node endi;
         None)
       else Some endi
   (*
@@ -510,8 +516,8 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
    * certain edges)
    *)
   | Throw (_, e, _) ->
-      let newi = state.g#add_node { F.n = F.Throw e; i = i () } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = F.Throw e; i = i () } in
+      state.g.graph |> add_arc_opt (previ, newi);
 
       let nodei_to_jump_to =
         state.ctx
@@ -520,16 +526,16 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
              | LoopCtx _ | SwitchCtx _ | NoCtx -> None)
       in
       (match nodei_to_jump_to with
-      | Some catchi -> state.g |> add_arc (newi, catchi)
+      | Some catchi -> state.g.graph |> add_arc (newi, catchi)
       | None ->
           (* no enclosing handler, branch to exit node of the function *)
-          state.g |> add_arc (newi, state.exiti));
+          state.g.graph |> add_arc (newi, state.exiti));
       None
   (* TODO? should create a OtherStmtWithStmtFooter and arc to it? *)
   | OtherStmtWithStmt (op, eopt, st) ->
       let header = F.OtherStmtWithStmtHeader (op, eopt) in
-      let newi = state.g#add_node { F.n = header; i = i () } in
-      state.g |> add_arc_opt (previ, newi);
+      let newi = state.g.graph#add_node { F.n = header; i = i () } in
+      state.g.graph |> add_arc_opt (previ, newi);
       cfg_stmt state (Some newi) st
   | WithUsingResource (_, stmts1, stmts2) ->
       cfg_stmt_list state previ [ stmts1; stmts2 ]
@@ -598,10 +604,10 @@ and (cfg_cases :
 
              let i () = info_opt (S stmt) in
 
-             let newi = state.g#add_node { F.n = node; i = i () } in
-             state.g |> add_arc_opt (previ, newi);
+             let newi = state.g.graph#add_node { F.n = node; i = i () } in
+             state.g.graph |> add_arc_opt (previ, newi);
              (* connect SwitchHeader to Case node *)
-             state.g |> add_arc (switchi, newi);
+             state.g.graph |> add_arc (switchi, newi);
 
              (* the stmts can contain 'break' that will be linked to the endswitch *)
              cfg_stmt state (Some newi) stmt
@@ -628,23 +634,23 @@ and (cfg_catches : state -> F.nodei -> F.nodei -> G.catch list -> F.nodei) =
 
          let i () = info_opt (S stmt) in
 
-         let newi = state.g#add_node { F.n = F.Catch; i = i () } in
-         state.g |> add_arc (previ, newi);
+         let newi = state.g.graph#add_node { F.n = F.Catch; i = i () } in
+         state.g.graph |> add_arc (previ, newi);
          (*
      let ei = cfg_var_def state (Some newi) name in
 *)
          let ei = Some newi in
 
-         let truei = state.g#add_node { F.n = F.TrueNode; i = None } in
-         let falsei = state.g#add_node { F.n = F.FalseNode; i = None } in
+         let truei = state.g.graph#add_node { F.n = F.TrueNode; i = None } in
+         let falsei = state.g.graph#add_node { F.n = F.FalseNode; i = None } in
 
-         state.g |> add_arc_opt (ei, truei);
-         state.g |> add_arc_opt (ei, falsei);
+         state.g.graph |> add_arc_opt (ei, truei);
+         state.g.graph |> add_arc_opt (ei, falsei);
 
          (* the stmts can contain 'throw' that will be linked to an upper try or
           * exit node *)
          let last_stmt_opt = cfg_stmt state (Some truei) stmt in
-         state.g |> add_arc_opt (last_stmt_opt, tryendi);
+         state.g.graph |> add_arc_opt (last_stmt_opt, tryendi);
 
          (* we chain the catches together, like elseifs *)
          falsei)
@@ -662,8 +668,8 @@ and cfg_simple_node state previ stmt =
     | None -> raise Impossible
     (* see caller of cfg_simple_node *)
   in
-  let newi = state.g#add_node { F.n = F.SimpleNode simple_node; i } in
-  state.g |> add_arc_opt (previ, newi);
+  let newi = state.g.graph#add_node { F.n = F.SimpleNode simple_node; i } in
+  state.g.graph |> add_arc_opt (previ, newi);
   Some newi
 
 (*****************************************************************************)
@@ -692,7 +698,7 @@ let (control_flow_graph_of_stmts : parameter list -> stmt list -> F.flow) =
 
   let state =
     {
-      g;
+      g = { graph = g; entry = enteri };
       exiti;
       ctx = [ NoCtx ] (* could also remove NoCtx and use an empty list *);
     }
@@ -702,7 +708,7 @@ let (control_flow_graph_of_stmts : parameter list -> stmt list -> F.flow) =
    * connect last stmt to the exit node
    *)
   g |> add_arc_opt (last_node_opt, exiti);
-  g
+  { graph = g; entry = enteri }
 
 let (cfg_of_func : function_definition -> F.flow) =
  fun def ->
