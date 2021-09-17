@@ -20,7 +20,7 @@ let test_typing_generic file =
             pr2 s;
             pr2 "==>";
 
-            let xs = AST_to_IL.stmt body in
+            let xs = AST_to_IL.stmt lang body in
             let s = IL.show_any (IL.Ss xs) in
             pr2 s);
       }
@@ -108,7 +108,7 @@ let test_il_generic file =
             pr2 s;
             pr2 "==>";
 
-            let xs = AST_to_IL.stmt body in
+            let xs = AST_to_IL.stmt lang body in
             let s = IL.show_any (IL.Ss xs) in
             pr2 s);
       }
@@ -127,7 +127,7 @@ let test_cfg_il file =
   |> List.iter (fun item ->
          match item.s with
          | DefStmt (_ent, FuncDef def) ->
-             let xs = AST_to_IL.stmt (H.funcbody_to_stmt def.fbody) in
+             let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
              let cfg = CFG_build.cfg_of_stmts xs in
              Display_IL.display_cfg cfg
          | _ -> ())
@@ -156,7 +156,7 @@ let test_dfg_tainting file =
   |> List.iter (fun item ->
          match item.s with
          | DefStmt (ent, FuncDef def) ->
-             let xs = AST_to_IL.stmt (H.funcbody_to_stmt def.fbody) in
+             let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
              let flow = CFG_build.cfg_of_stmts xs in
              pr2 "Tainting";
              let config =
@@ -186,7 +186,7 @@ let test_dfg_constness file =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let inputs, xs = AST_to_IL.function_definition def in
+            let inputs, xs = AST_to_IL.function_definition lang def in
             let flow = CFG_build.cfg_of_stmts xs in
             pr2 "Constness";
             let mapping = Dataflow_constness.fixpoint inputs flow in

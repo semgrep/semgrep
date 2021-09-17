@@ -36,6 +36,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (*s: type [[AST_to_IL.env]] *)
 type env = {
+  lang : Lang.t;
   (* stmts hidden inside expressions that we want to move out of 'exp',
    * usually simple Instr, but can be also If when handling Conditional expr.
    *)
@@ -45,7 +46,7 @@ type env = {
 (*e: type [[AST_to_IL.env]] *)
 
 (*s: function [[AST_to_IL.empty_env]] *)
-let empty_env () = { stmts = ref [] }
+let empty_env lang = { lang; stmts = ref [] }
 
 (*e: function [[AST_to_IL.empty_env]] *)
 
@@ -192,6 +193,27 @@ let mk_unit tok eorig =
 let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
 
 (*e: function [[AST_to_IL.add_instr]] *)
+
+(* Create an auxiliary variable for an expression---unless the expression
+ * itself is already a variable! *)
+let mk_aux_var env tok exp =
+  match exp.e with
+  | Fetch ({ base = Var var; offset = NoOffset; _ } as lval) -> (var, lval)
+  | _ ->
+      let var = fresh_var env tok in
+      let lval = lval_of_base (Var var) in
+      add_instr env (mk_i (Assign (lval, exp)) exp.eorig);
+      (var, lval)
+
+let add_call env tok eorig ~void mk_call =
+  if void then (
+    add_instr env (mk_i (mk_call None) eorig);
+    mk_unit tok eorig)
+  else
+    let lval = fresh_lval env tok in
+    add_instr env (mk_i (mk_call (Some lval)) eorig);
+    mk_e (Fetch lval) eorig
+
 (*s: function [[AST_to_IL.add_stmt]] *)
 let add_stmt env st = Common.push st env.stmts
 
@@ -352,16 +374,37 @@ and assign env lhs _tok rhs_exp eorig =
 (* less: we could pass in an optional lval that we know the caller want
  * to assign into, which would avoid creating useless fresh_var intermediates.
  *)
-and expr_aux env eorig =
+and expr_aux env ?(void = false) eorig =
   match eorig.G.e with
-  | G.Call ({ e = G.IdSpecial (G.Op op, tok); _ }, args) ->
+  | G.Call ({ e = G.IdSpecial (G.Op op, tok); _ }, args) -> (
       let args = arguments env args in
-      mk_e (Operator ((op, tok), args)) eorig
+      if not void then mk_e (Operator ((op, tok), args)) eorig
+      else
+        (* The operation's result is not being used, so it may have side-effects.
+         * We then assume this is just syntax sugar for a method call. E.g. in
+         * Ruby `s << "hello"` is syntax sugar for `s.<<("hello")` and it mutates
+         * the string `s` appending "hello" to it. *)
+        match args with
+        | [] -> impossible (G.E eorig)
+        | obj :: args' ->
+            let obj_var, _obj_lval = mk_aux_var env tok obj in
+            let method_id = (Parse_info.str_of_info tok, tok) in
+            let method_name = (method_id, -1) in
+            let method_lval =
+              {
+                base = Var obj_var;
+                offset = Dot method_name;
+                constness = ref None;
+              }
+            in
+            let method_ = { e = Fetch method_lval; eorig } in
+            add_call env tok eorig ~void (fun res -> Call (res, method_, args'))
+      )
   | G.Call
       ( ({ e = G.IdSpecial ((G.This | G.Super | G.Self | G.Parent), tok); _ } as
         e),
         args ) ->
-      call_generic env tok e args
+      call_generic env ~void tok e args
   | G.Call
       ({ e = G.IdSpecial (G.IncrDecr (incdec, _prepostIGNORE), tok); _ }, args)
     -> (
@@ -386,6 +429,33 @@ and expr_aux env eorig =
           add_instr env (mk_i (Assign (lval, opexp)) eorig);
           lvalexp
       | _ -> impossible (G.E eorig))
+  | G.Call
+      ( {
+          e =
+            G.DotAccess
+              ( obj,
+                tok,
+                G.EN
+                  (G.Id
+                    (("concat", _), { G.id_resolved = { contents = None }; _ }))
+              );
+          _;
+        },
+        args ) ->
+      (* obj.concat(args) *)
+      (* NOTE: Often this will be string concatenation but not necessarily! *)
+      let obj' = lval env obj in
+      let obj_arg' = mk_e (Fetch obj') obj in
+      let args' = arguments env args in
+      let res =
+        match env.lang with
+        (* Ruby's concat method is side-effectful and updates the object. *)
+        | Lang.Ruby -> obj'
+        | _ -> fresh_lval env tok
+      in
+      add_instr env
+        (mk_i (CallSpecial (Some res, (Concat, tok), obj_arg' :: args')) eorig);
+      mk_e (Fetch res) eorig
   (* todo: if the xxx_to_generic forgot to generate Eval *)
   | G.Call
       ( {
@@ -409,14 +479,12 @@ and expr_aux env eorig =
       expr env e
   | G.Call ({ e = G.IdSpecial spec; _ }, args) ->
       let tok = snd spec in
-      let lval = fresh_lval env tok in
       let special = call_special env spec in
       let args = arguments env args in
-      add_instr env (mk_i (CallSpecial (Some lval, special, args)) eorig);
-      mk_e (Fetch lval) eorig
+      add_call env tok eorig ~void (fun res -> CallSpecial (res, special, args))
   | G.Call (e, args) ->
       let tok = G.fake "call" in
-      call_generic env tok e args
+      call_generic env ~void tok e args
   | G.L lit -> mk_e (Literal lit) eorig
   | G.N _ | G.DotAccess (_, _, _) | G.ArrayAccess (_, _) | G.DeRef (_, _) ->
       let lval = lval env eorig in
@@ -531,8 +599,8 @@ and expr_aux env eorig =
       sgrep_construct (G.E eorig)
   | G.OtherExpr (_, _) -> todo (G.E eorig)
 
-and expr env eorig =
-  try expr_aux env eorig
+and expr env ?void eorig =
+  try expr_aux env ?void eorig
   with Fixme (kind, any_generic) -> fixme_exp kind any_generic eorig
 
 and expr_opt env = function
@@ -541,7 +609,7 @@ and expr_opt env = function
       mk_e (Literal void) (G.L void |> G.e)
   | Some e -> expr env e
 
-and call_generic env tok e args =
+and call_generic env ?(void = false) tok e args =
   let eorig = G.Call (e, args) |> G.e in
   let e = expr env e in
   (* In theory, instrs in args could have side effect on the value in 'e',
@@ -554,9 +622,7 @@ and call_generic env tok e args =
    * worth it.
    *)
   let args = arguments env args in
-  let lval = fresh_lval env tok in
-  add_instr env (mk_i (Call (Some lval, e, args)) eorig);
-  mk_e (Fetch lval) eorig
+  add_call env tok eorig ~void (fun res -> Call (res, e, args))
 
 and call_special _env (x, tok) =
   ( (match x with
@@ -645,9 +711,9 @@ let expr () = ()
 (*e: function [[AST_to_IL.expr]] *)
 
 (*s: function [[AST_to_IL.expr_with_pre_stmts]] *)
-let expr_with_pre_stmts env e =
+let expr_with_pre_stmts env ?void e =
   ignore (expr ());
-  let e = expr_orig env e in
+  let e = expr_orig env ?void e in
   let xs = List.rev !(env.stmts) in
   env.stmts := [];
   (xs, e)
@@ -699,7 +765,7 @@ let rec stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (e, _) ->
       (* optimize? pass context to expr when no need for return value? *)
-      let ss, _eIGNORE = expr_with_pre_stmts env e in
+      let ss, _eIGNORE = expr_with_pre_stmts ~void:true env e in
       ss
   | G.DefStmt (ent, G.VarDef { G.vinit = Some e; vtype = _typTODO }) ->
       let ss, e' = expr_with_pre_stmts env e in
@@ -939,15 +1005,15 @@ and python_with_stmt env manager opt_pat body =
 (* Entry points *)
 (*****************************************************************************)
 
-let function_definition def =
-  let env = empty_env () in
+let function_definition lang def =
+  let env = empty_env lang in
   let params = parameters env def.G.fparams in
   let body = function_body env def.G.fbody in
   (params, body)
 
 (*s: function [[AST_to_IL.stmt (/home/pad/pfff/lang_GENERIC/analyze/AST_to_IL.ml)]] *)
-let stmt st =
-  let env = empty_env () in
+let stmt lang st =
+  let env = empty_env lang in
   stmt env st
 
 (*e: function [[AST_to_IL.stmt (/home/pad/pfff/lang_GENERIC/analyze/AST_to_IL.ml)]] *)

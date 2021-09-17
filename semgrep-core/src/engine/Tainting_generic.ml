@@ -146,7 +146,7 @@ let taint_config_of_rule default_config equivs file ast_and_errors
 
 (*s: function [[Tainting_generic.check2]] *)
 let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
-    equivs file ast =
+    equivs file lang ast =
   let matches = ref [] in
 
   let taint_configs =
@@ -182,7 +182,7 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
   let fun_env = Hashtbl.create 8 in
 
   let check_stmt opt_name def_body =
-    let xs = AST_to_IL.stmt def_body in
+    let xs = AST_to_IL.stmt lang def_body in
     let flow = CFG_build.cfg_of_stmts xs in
 
     taint_configs

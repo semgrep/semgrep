@@ -6,6 +6,7 @@ val check :
   (Rule.rule * Rule.taint_spec) list ->
   Equivalence.equivalences ->
   Common.filename ->
+  Lang.t ->
   Target.t ->
   Pattern_match.t list
 
