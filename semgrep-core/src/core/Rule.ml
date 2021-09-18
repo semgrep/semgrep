@@ -68,7 +68,9 @@ exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
 (* coupling: Parse_mini_rule.parse_languages *)
 let xlang_of_string ?id:(id_opt = None) s =
   match s with
-  | "none" | "regex" -> LRegex
+  | "none"
+  | "regex" ->
+      LRegex
   | "generic" -> LGeneric
   | _ -> (
       match Lang.lang_of_string_opt s with
@@ -126,7 +128,10 @@ let mk_xpat pat pstr =
   incr count;
   { pat; pstr; pid = !count }
 
-let is_regexp xpat = match xpat.pat with Regexp _ -> true | _ -> false
+let is_regexp xpat =
+  match xpat.pat with
+  | Regexp _ -> true
+  | _ -> false
 
 (*****************************************************************************)
 (* Formula (patterns boolean composition) *)
@@ -312,18 +317,26 @@ let rec visit_new_formula f formula =
   | Leaf (P (p, _)) -> f p
   | Leaf (MetavarCond _) -> ()
   | Not (_, x) -> visit_new_formula f x
-  | Or (_, xs) | And (_, xs) -> xs |> List.iter (visit_new_formula f)
+  | Or (_, xs)
+  | And (_, xs) ->
+      xs |> List.iter (visit_new_formula f)
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And (t, _) | Or (t, _) | Not (t, _) -> t
+  | And (t, _)
+  | Or (t, _)
+  | Not (t, _) ->
+      t
   | Leaf (P (p, _)) -> snd p.pstr
   | Leaf (MetavarCond (t, _)) -> t
 
 let kind_of_formula = function
   | Leaf (P _) -> "pattern"
   | Leaf (MetavarCond _) -> "condition"
-  | Or _ | And _ | Not _ -> "formula"
+  | Or _
+  | And _
+  | Not _ ->
+      "formula"
 
 (*****************************************************************************)
 (* Converters *)
@@ -366,7 +379,9 @@ let convert_extra x =
             (* if strip=true we rewrite the condition and insert Python's `int`
              * function to parse the integer value of mvar. *)
             match strip with
-            | None | Some false -> comparison
+            | None
+            | Some false ->
+                comparison
             | Some true -> rewrite_metavar_comparison_strip mvar comparison
           in
           CondEval cond)
@@ -404,6 +419,8 @@ let formula_of_pformula = function
 let partition_rules rules =
   rules
   |> Common.partition_either (fun r ->
-         match r.mode with Search f -> Left (r, f) | Taint s -> Right (r, s))
+         match r.mode with
+         | Search f -> Left (r, f)
+         | Taint s -> Right (r, s))
 
 (*e: semgrep/core/Rule.ml *)

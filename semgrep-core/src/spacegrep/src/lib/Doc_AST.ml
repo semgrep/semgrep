@@ -78,7 +78,10 @@ and to_pat_node (node : node) : Pattern_AST.node =
   | List nodes -> List (to_pattern nodes)
 
 and to_pat_atom (atom : atom) : Pattern_AST.atom =
-  match atom with Word s -> Word s | Punct c -> Punct c | Byte c -> Byte c
+  match atom with
+  | Word s -> Word s
+  | Punct c -> Punct c
+  | Byte c -> Byte c
 
 (* Equality function that disregards location. Meant for unit tests. *)
 let eq a b = Pattern_AST.eq (to_pattern a) (to_pattern b)

@@ -113,10 +113,14 @@ let anon_choice_int_e7b97da (env : env) (x : CST.anon_choice_int_e7b97da) =
    )? *)
 
 let anon_choice_DOT_5431c66 (env : env) (x : CST.anon_choice_DOT_5431c66) =
-  match x with `DOT tok -> token2 env tok | `AMPDOT tok -> token2 env tok
+  match x with
+  | `DOT tok -> token2 env tok
+  | `AMPDOT tok -> token2 env tok
 
 let terminator (_env : env) (x : CST.terminator) : unit =
-  match x with `Line_brk _tok -> () | `SEMI _tok -> ()
+  match x with
+  | `Line_brk _tok -> ()
+  | `SEMI _tok -> ()
 
 let variable (env : env) (x : CST.variable) : AST.variable =
   match x with
@@ -144,7 +148,11 @@ let rec statements (env : env) (x : CST.statements) : AST.stmts =
                | `Empty_stmt _tok -> [])
         |> List.flatten
       in
-      let v2 = match v2 with Some x -> [ statement env x ] | None -> [] in
+      let v2 =
+        match v2 with
+        | Some x -> [ statement env x ]
+        | None -> []
+      in
       v1 @ v2
   | `Stmt x -> [ statement env x ]
 
@@ -204,13 +212,21 @@ and statement (env : env) (x : CST.statement) :
   | `Begin_blk (v1, v2, v3, v4) ->
       let v1 = token2 env v1 in
       let v2 = token2 env v2 in
-      let v3 = match v3 with Some x -> statements env x | None -> [] in
+      let v3 =
+        match v3 with
+        | Some x -> statements env x
+        | None -> []
+      in
       let v4 = token2 env v4 in
       D (BeginBlock (v1, (v2, v3, v4)))
   | `End_blk (v1, v2, v3, v4) ->
       let v1 = token2 env v1 in
       let v2 = token2 env v2 in
-      let v3 = match v3 with Some x -> statements env x | None -> [] in
+      let v3 =
+        match v3 with
+        | Some x -> statements env x
+        | None -> []
+      in
       let v4 = token2 env v4 in
       D (EndBlock (v1, (v2, v3, v4)))
   | `Exp x -> expression env x
@@ -221,10 +237,18 @@ and method_rest (env : env) ((v1, v2, v3) : CST.method_rest) =
     match v2 with
     | `Params_opt_term (v1, v2) ->
         let v1 = parameters env v1 |> G.unbracket in
-        let _v2 = match v2 with Some x -> terminator env x | None -> () in
+        let _v2 =
+          match v2 with
+          | Some x -> terminator env x
+          | None -> ()
+        in
         v1
     | `Opt_bare_params_term (v1, v2) ->
-        let v1 = match v1 with Some x -> bare_parameters env x | None -> [] in
+        let v1 =
+          match v1 with
+          | Some x -> bare_parameters env x
+          | None -> []
+        in
         let _v2 = terminator env v2 in
         v1
   in
@@ -283,7 +307,11 @@ and block_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.block_parameters) :
         v1 :: v2
     | None -> []
   in
-  let _v3 = match v3 with Some _tok -> () | None -> () in
+  let _v3 =
+    match v3 with
+    | Some _tok -> ()
+    | None -> ()
+  in
   let _v4SEMICOLONPARAMS =
     match v4 with
     | Some (v1, v2, v3) ->
@@ -325,7 +353,11 @@ and simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) :
       | None -> Formal_rest v1)
   | `Hash_splat_param (v1, v2) ->
       let v1 = token2 env v1 in
-      let v2 = match v2 with Some tok -> Some (str env tok) | None -> None in
+      let v2 =
+        match v2 with
+        | Some tok -> Some (str env tok)
+        | None -> None
+      in
       Formal_hash_splat (v1, v2)
   | `Blk_param (v1, v2) ->
       let v1 = token2 env v1 in
@@ -334,7 +366,11 @@ and simple_formal_parameter (env : env) (x : CST.simple_formal_parameter) :
   | `Kw_param (v1, v2, v3) ->
       let v1 = str env v1 in
       let v2 = token2 env v2 in
-      let v3 = match v3 with Some x -> Some (arg env x) | None -> None in
+      let v3 =
+        match v3 with
+        | Some x -> Some (arg env x)
+        | None -> None
+      in
       Formal_kwd (v1, v2, v3)
   | `Opt_param (v1, v2, v3) ->
       let v1 = str env v1 in
@@ -373,7 +409,9 @@ and when_ (env : env) ((v1, v2, v3, v4) : CST.when_) =
   (twhen, v2 :: v3, v4)
 
 and pattern (env : env) (x : CST.pattern) : AST.pattern =
-  match x with `Arg x -> arg env x | `Splat_arg x -> splat_argument env x
+  match x with
+  | `Arg x -> arg env x
+  | `Splat_arg x -> splat_argument env x
 
 and elsif (env : env) ((v1, v2, v3, v4) : CST.elsif) : AST.tok * AST.stmt =
   let v1 = token2 env v1 in
@@ -400,8 +438,16 @@ and elsif (env : env) ((v1, v2, v3, v4) : CST.elsif) : AST.tok * AST.stmt =
 
 and else_ (env : env) ((v1, v2, v3) : CST.else_) : AST.tok * AST.stmts =
   let v1 = token2 env v1 in
-  let _v2 = match v2 with Some x -> terminator env x | None -> () in
-  let v3 = match v3 with Some x -> statements env x | None -> [] in
+  let _v2 =
+    match v2 with
+    | Some x -> terminator env x
+    | None -> ()
+  in
+  let v3 =
+    match v3 with
+    | Some x -> statements env x
+    | None -> []
+  in
   (v1, v3)
 
 and then_ (env : env) (x : CST.then_) : AST.stmts =
@@ -411,21 +457,39 @@ and then_ (env : env) (x : CST.then_) : AST.stmts =
       let v2 = statements env v2 in
       v2
   | `Opt_term_then_opt_stmts (v1, v2, v3) ->
-      let _v1 = match v1 with Some x -> terminator env x | None -> () in
+      let _v1 =
+        match v1 with
+        | Some x -> terminator env x
+        | None -> ()
+      in
       let _v2 = token2 env v2 in
-      let v3 = match v3 with Some x -> statements env x | None -> [] in
+      let v3 =
+        match v3 with
+        | Some x -> statements env x
+        | None -> []
+      in
       v3
 
 and ensure (env : env) ((v1, v2) : CST.ensure) =
   let v1 = token2 env v1 in
-  let v2 = match v2 with Some x -> statements env x | None -> [] in
+  let v2 =
+    match v2 with
+    | Some x -> statements env x
+    | None -> []
+  in
   (v1, v2)
 
 and rescue (env : env) ((v1, v2, v3, v4) : CST.rescue) =
   let v1 = token2 env v1 in
-  let v2 = match v2 with Some x -> exceptions env x | None -> [] in
+  let v2 =
+    match v2 with
+    | Some x -> exceptions env x
+    | None -> []
+  in
   let v3 =
-    match v3 with Some x -> Some (exception_variable env x) | None -> None
+    match v3 with
+    | Some x -> Some (exception_variable env x)
+    | None -> None
   in
   let v4 =
     match v4 with
@@ -438,7 +502,9 @@ and rescue (env : env) ((v1, v2, v3, v4) : CST.rescue) =
 
 and exceptions (env : env) ((v1, v2) : CST.exceptions) : AST.expr list =
   let v1 =
-    match v1 with `Arg x -> arg env x | `Splat_arg x -> splat_argument env x
+    match v1 with
+    | `Arg x -> arg env x
+    | `Splat_arg x -> splat_argument env x
   in
   let v2 =
     List.map
@@ -461,7 +527,11 @@ and exception_variable (env : env) ((v1, v2) : CST.exception_variable) =
 
 and body_statement (env : env) ((v1, v2, v3) : CST.body_statement) :
     AST.body_exn * AST.tok =
-  let v1 = match v1 with Some x -> statements env x | None -> [] in
+  let v1 =
+    match v1 with
+    | Some x -> statements env x
+    | None -> []
+  in
   let rescue_exprs, else_expr, ensure_expr =
     Common2.partition_either3
       (fun x ->
@@ -475,11 +545,17 @@ and body_statement (env : env) ((v1, v2, v3) : CST.body_statement) :
   in
   let tend = token2 env v3 in
   let ensure_expr =
-    match ensure_expr with [] -> None | [ x ] -> Some x | x :: _ -> Some x
+    match ensure_expr with
+    | [] -> None
+    | [ x ] -> Some x
+    | x :: _ -> Some x
     (* TODO: weird, should have only one no? *)
   in
   let else_expr =
-    match else_expr with [] -> None | [ x ] -> Some x | x :: _ -> Some x
+    match else_expr with
+    | [] -> None
+    | [ x ] -> Some x
+    | x :: _ -> Some x
     (* TODO: weird, should have only one no? *)
   in
   ({ body_exprs = v1; rescue_exprs; else_expr; ensure_expr }, tend)
@@ -626,14 +702,18 @@ and primary (env : env) (x : CST.primary) : AST.expr =
         | None -> []
       in
       let _v4 =
-        match v4 with Some tok -> Some (token2 env tok) | None -> None
+        match v4 with
+        | Some tok -> Some (token2 env tok)
+        | None -> None
       in
       let v5 = token2 env v5 (* string_end *) in
       Literal (String (Double (v1, v3 |> List.flatten, v5)))
   | `Symb_array (v1, v2, v3, v4, v5) ->
       let v1 = token2 env v1 (* %i( *) in
       let _v2 =
-        match v2 with Some tok -> Some (token2 env tok) | None -> None
+        match v2 with
+        | Some tok -> Some (token2 env tok)
+        | None -> None
       in
       let v3 =
         match v3 with
@@ -641,7 +721,9 @@ and primary (env : env) (x : CST.primary) : AST.expr =
         | None -> []
       in
       let _v4 =
-        match v4 with Some tok -> Some (token2 env tok) | None -> None
+        match v4 with
+        | Some tok -> Some (token2 env tok)
+        | None -> None
       in
       let v5 = token2 env v5 (* ) *) in
       Atom (v1, AtomFromString (v1, v3 |> List.flatten, v5))
@@ -667,7 +749,11 @@ and primary (env : env) (x : CST.primary) : AST.expr =
                   v2)
                 v2
             in
-            let _v3 = match v3 with Some _tok -> () | None -> () in
+            let _v3 =
+              match v3 with
+              | Some _tok -> ()
+              | None -> ()
+            in
             v1 :: v2
         | None -> []
       in
@@ -675,7 +761,11 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       Hash (true, (v1, v2, v3))
   | `Subs (v1, v2, v3) ->
       let v1 = token2 env v1 in
-      let v2 = match v2 with Some x -> literal_contents env x | None -> [] in
+      let v2 =
+        match v2 with
+        | Some x -> literal_contents env x
+        | None -> []
+      in
       let v3 = token2 env v3 in
       Literal (String (Tick (v1, v2, v3)))
   | `Simple_symb tok -> Atom (simple_symbol env tok)
@@ -703,7 +793,11 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       Literal (String (Double (l, v1 @ v2, r)))
   | `Regex (v1, v2, v3) ->
       let v1 = token2 env v1 in
-      let v2 = match v2 with Some x -> literal_contents env x | None -> [] in
+      let v2 =
+        match v2 with
+        | Some x -> literal_contents env x
+        | None -> []
+      in
       let v3 = token2 env v3 in
       (* TODO: no modifier in Ruby grammar.js? *)
       Literal (Regexp ((v1, v2, v3), None))
@@ -719,7 +813,9 @@ and primary (env : env) (x : CST.primary) : AST.expr =
         | None -> None
       in
       let v3 =
-        match v3 with `Blk x -> block env x | `Do_blk x -> do_block env x
+        match v3 with
+        | `Blk x -> block env x
+        | `Do_blk x -> do_block env x
       in
       let b = false in
       (* should have a third option for lambdas *)
@@ -756,7 +852,9 @@ and primary (env : env) (x : CST.primary) : AST.expr =
         | `Scope_resol x -> NameScope (scope_resolution env x)
       in
       let v3 =
-        match v3 with Some x -> Some (superclass env x) | None -> None
+        match v3 with
+        | Some x -> Some (superclass env x)
+        | None -> None
       in
       let _v4 = terminator env v4 in
       let v5, _tend = body_statement env v5 in
@@ -786,7 +884,11 @@ and primary (env : env) (x : CST.primary) : AST.expr =
       D (ModuleDef (v1, v2, v3))
   | `Begin (v1, v2, v3) ->
       let tbegin = token2 env v1 in
-      let _v2 = match v2 with Some x -> terminator env x | None -> () in
+      let _v2 =
+        match v2 with
+        | Some x -> terminator env x
+        | None -> ()
+      in
       let v3, tend = body_statement env v3 in
       S (Block (tbegin, [ S (ExnBlock v3) ], tend))
   | `While (v1, v2, v3) ->
@@ -858,13 +960,21 @@ and primary (env : env) (x : CST.primary) : AST.expr =
   | `Case (v1, v2, v3, v5, v6, v7) ->
       let v1 = token2 env v1 in
       let v2 =
-        match v2 with Some x -> Some (statement env x) | None -> None
+        match v2 with
+        | Some x -> Some (statement env x)
+        | None -> None
       in
       let _v3 =
-        match v3 with Some x -> Some (terminator env x) | None -> None
+        match v3 with
+        | Some x -> Some (terminator env x)
+        | None -> None
       in
       let v5 = List.map (when_ env) v5 in
-      let v6 = match v6 with Some x -> Some (else_ env x) | None -> None in
+      let v6 =
+        match v6 with
+        | Some x -> Some (else_ env x)
+        | None -> None
+      in
       let _v7 = token2 env v7 in
       S (Case (v1, { case_guard = v2; case_whens = v5; case_else = v6 }))
   | `Ret (v1, v2) ->
@@ -943,7 +1053,11 @@ and primary (env : env) (x : CST.primary) : AST.expr =
 and parenthesized_statements (env : env)
     ((v1, v2, v3) : CST.parenthesized_statements) =
   let v1 = token2 env v1 in
-  let v2 = match v2 with Some x -> statements env x | None -> [] in
+  let v2 =
+    match v2 with
+    | Some x -> statements env x
+    | None -> []
+  in
   let v3 = token2 env v3 in
   (v1, v2, v3)
 
@@ -1079,7 +1193,11 @@ and argument_list_with_trailing_comma (env : env)
         v2)
       v2
   in
-  let _v3 = match v3 with Some _tok -> () | None -> () in
+  let _v3 =
+    match v3 with
+    | Some _tok -> ()
+    | None -> ()
+  in
   v1 :: v2
 
 and argument (env : env) (x : CST.argument) : AST.expr =
@@ -1104,19 +1222,33 @@ and hash_splat_argument (env : env) ((v1, v2) : CST.hash_splat_argument) =
   Unary ((Op_UStarStar, v1), v2)
 
 and do_ (env : env) ((v1, v2, v3) : CST.do_) : AST.expr list =
-  (match v1 with `Do _tok (* "do" *) -> () | `Term x -> terminator env x);
-  let v2 = match v2 with Some x -> statements env x | None -> [] in
+  (match v1 with
+  | `Do _tok (* "do" *) -> ()
+  | `Term x -> terminator env x);
+  let v2 =
+    match v2 with
+    | Some x -> statements env x
+    | None -> []
+  in
   let _v3 = token2 env v3 (* "end" *) in
   v2
 
 and do_block (env : env) ((v1, v2, v3, v4) : CST.do_block) : AST.expr =
   let tdo = token2 env v1 in
-  let _v2 = match v2 with Some x -> terminator env x | None -> () in
+  let _v2 =
+    match v2 with
+    | Some x -> terminator env x
+    | None -> ()
+  in
   let params_opt =
     match v3 with
     | Some (v1, v2) ->
         let v1 = block_parameters env v1 |> G.unbracket in
-        let _v2 = match v2 with Some x -> terminator env x | None -> () in
+        let _v2 =
+          match v2 with
+          | Some x -> terminator env x
+          | None -> ()
+        in
         Some v1
     | None -> None
   in
@@ -1131,7 +1263,11 @@ and block (env : env) ((v1, v2, v3, v4) : CST.block) =
     | Some x -> Some (block_parameters env x |> G.unbracket)
     | None -> None
   in
-  let v3 = match v3 with Some x -> statements env x | None -> [] in
+  let v3 =
+    match v3 with
+    | Some x -> statements env x
+    | None -> []
+  in
   let rb = token2 env v4 in
   CodeBlock ((lb, true, rb), params_opt, v3)
 
@@ -1340,7 +1476,9 @@ and range (env : env) (x : CST.range) : AST.expr =
 and right_assignment_list (env : env) ((v1, v2) : CST.right_assignment_list) :
     AST.expr list =
   let v1 =
-    match v1 with `Arg x -> arg env x | `Splat_arg x -> splat_argument env x
+    match v1 with
+    | `Arg x -> arg env x
+    | `Splat_arg x -> splat_argument env x
   in
   let v2 =
     List.map
@@ -1374,7 +1512,11 @@ and destructured_left_assignment (env : env)
 
 and rest_assignment (env : env) ((v1, v2) : CST.rest_assignment) =
   let v1 = token2 env v1 (* "*" *) in
-  let v2 = match v2 with Some x -> Some (lhs env x) | None -> None in
+  let v2 =
+    match v2 with
+    | Some x -> Some (lhs env x)
+    | None -> None
+  in
   Splat (v1, v2)
 
 and lhs (env : env) (x : CST.lhs) : AST.expr =
@@ -1421,12 +1563,18 @@ and interpolation (env : env) ((v1, v2, v3) : CST.interpolation) :
     AST.expr AST.bracket option =
   let lb = token2 env v1 (* "#{" *) in
   let rb = token2 env v3 (* "}" *) in
-  match v2 with Some x -> Some (lb, statement env x, rb) | None -> None
+  match v2 with
+  | Some x -> Some (lb, statement env x, rb)
+  | None -> None
 
 and string_ (env : env) ((v1, v2, v3) : CST.string_) : AST.interp list bracket =
   let v1 = token2 env v1 in
   (* single or double quote *)
-  let v2 = match v2 with Some x -> literal_contents env x | None -> [] in
+  let v2 =
+    match v2 with
+    | Some x -> literal_contents env x
+    | None -> []
+  in
   let v3 = token2 env v3 in
   (* single or double quote *)
   (v1, v2, v3)
@@ -1441,7 +1589,11 @@ and simple_symbol (env : env) (tok : CST.simple_symbol) : atom =
 and delimited_symbol (env : env) ((v1, v2, v3) : CST.delimited_symbol) : atom =
   (* TODO: split v1 *)
   let v1 = token2 env v1 (* symbol_start :" "*) in
-  let res = match v2 with Some x -> literal_contents env x | None -> [] in
+  let res =
+    match v2 with
+    | Some x -> literal_contents env x
+    | None -> []
+  in
   let v3 = token2 env v3 (* string_end " "*) in
   (Parse_info.fake_info v1 ":", AtomFromString (v1, res, v3))
 
@@ -1471,7 +1623,11 @@ and mlhs (env : env) ((v1, v2, v3) : CST.mlhs) : AST.expr list =
         v2)
       v2
   in
-  let _v3 = match v3 with Some _tok -> () | None -> () in
+  let _v3 =
+    match v3 with
+    | Some _tok -> ()
+    | None -> ()
+  in
   v1 :: v2
 
 and pair (env : env) (x : CST.pair) =
@@ -1498,7 +1654,9 @@ and pair (env : env) (x : CST.pair) =
       | _ -> Binop (v1, (Op_ASSOC, v2), v3))
 
 let program (env : env) ((v1, _v2interpreted) : CST.program) : AST.stmts =
-  match v1 with Some x -> statements env x | None -> []
+  match v1 with
+  | Some x -> statements env x
+  | None -> []
 
 (*****************************************************************************)
 (* Entry point *)

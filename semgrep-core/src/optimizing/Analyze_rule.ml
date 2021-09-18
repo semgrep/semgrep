@@ -130,7 +130,9 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
   | R.Leaf x -> Some (R.Leaf x)
 
 let remove_not_final f =
-  match remove_not f with Some f -> f | None -> failwith "no formula"
+  match remove_not f with
+  | Some f -> f
+  | None -> failwith "no formula"
 
 type step0 = L of Rule.leaf
 (*old: does not work: | Not of Rule.leaf | Pos of Rule.leaf *)
@@ -226,7 +228,9 @@ and leaf_step1 f =
 *)
 
 let rec (and_step1 : cnf_step0 -> cnf_step1) =
- fun cnf -> match cnf with And xs -> And (xs |> Common.map_filter or_step1)
+ fun cnf ->
+  match cnf with
+  | And xs -> And (xs |> Common.map_filter or_step1)
 
 and or_step1 cnf =
   match cnf with
@@ -457,8 +461,9 @@ let regexp_prefilter_of_formula f =
             (* run_cnf_step2 (And [Or [Idents ["jsonwebtoken"]]]) big_str *)
           with
           (* can happen in spacegrep rules as we don't extract anything from t *)
-          | EmptyAnd | EmptyOr ->
-            true )
+          | EmptyAnd
+          | EmptyOr ->
+              true )
   with GeneralPattern -> None
 
 let regexp_prefilter_of_taint_rule rule_tok taint_spec =

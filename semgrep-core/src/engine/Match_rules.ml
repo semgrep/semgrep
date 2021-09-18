@@ -217,7 +217,9 @@ let (mini_rule_of_pattern :
     languages =
       (match xlang with
       | R.L (x, xs) -> x :: xs
-      | R.LRegex | R.LGeneric -> raise Impossible);
+      | R.LRegex
+      | R.LGeneric ->
+          raise Impossible);
     (* useful for debugging timeout *)
     pattern_string = pstr;
   }
@@ -431,7 +433,8 @@ let matches_of_spacegrep spacegreps file =
           in
           let doc_type = Spacegrep.File_type.classify partial_doc_src in
           match doc_type with
-          | Minified | Binary ->
+          | Minified
+          | Binary ->
               logger#info "ignoring gibberish file: %s\n%!" file;
               None
           | _ ->
@@ -752,7 +755,8 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                                   fully parse the content of %s"
                                  env.rule_id mvar);
                           (ast, errors)
-                      | R.LRegex | R.LGeneric ->
+                      | R.LRegex
+                      | R.LGeneric ->
                           failwith "requesting generic AST for LRegex|LGeneric")
                   in
                   nested_formula_has_matches { env with file; xlang } formula
@@ -785,7 +789,9 @@ and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
       formula opt_context
   in
   env.errors := res.RP.errors @ !(env.errors);
-  match final_ranges with [] -> false | _ :: _ -> true
+  match final_ranges with
+  | [] -> false
+  | _ :: _ -> true
 
 (* less: use Set instead of list? *)
 and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =

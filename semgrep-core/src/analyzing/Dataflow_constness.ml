@@ -92,11 +92,14 @@ let union_ctype t1 t2 = if eq_ctype t1 t2 then t1 else G.Cany
 let union c1 c2 =
   match (c1, c2) with
   | _ when eq c1 c2 -> c1
-  | _any, G.NotCst | G.NotCst, _any -> G.NotCst
+  | _any, G.NotCst
+  | G.NotCst, _any ->
+      G.NotCst
   | G.Lit l1, G.Lit l2 ->
       let t1 = ctype_of_literal l1 and t2 = ctype_of_literal l2 in
       G.Cst (union_ctype t1 t2)
-  | G.Lit l1, G.Cst t2 | G.Cst t2, G.Lit l1 ->
+  | G.Lit l1, G.Cst t2
+  | G.Cst t2, G.Lit l1 ->
       let t1 = ctype_of_literal l1 in
       G.Cst (union_ctype t1 t2)
   | G.Cst t1, G.Cst t2 -> G.Cst (union_ctype t1 t2)
@@ -106,8 +109,12 @@ let union c1 c2 =
 let refine c1 c2 =
   match (c1, c2) with
   | _ when eq c1 c2 -> c1
-  | c, G.NotCst | G.NotCst, c -> c
-  | G.Lit _, _ | G.Cst _, G.Cst _ -> c1
+  | c, G.NotCst
+  | G.NotCst, c ->
+      c
+  | G.Lit _, _
+  | G.Cst _, G.Cst _ ->
+      c1
   | G.Cst _, G.Lit _ -> c2
 
 let refine_constness_ref c_ref c' =
@@ -131,7 +138,9 @@ let literal_of_int i =
   let tok = Parse_info.unsafe_fake_info i_str in
   G.Int (Some i, tok)
 
-let int_of_literal = function G.Int (x, _) -> x | ___else___ -> None
+let int_of_literal = function
+  | G.Int (x, _) -> x
+  | ___else___ -> None
 
 let literal_of_string s =
   (* TODO: use proper token when possible? *)
@@ -193,7 +202,9 @@ let eval_binop_int tok op opt_i1 opt_i2 =
 
 let eval_binop_string op s1 s2 =
   match op with
-  | G.Plus | G.Concat -> G.Lit (literal_of_string (s1 ^ s2))
+  | G.Plus
+  | G.Concat ->
+      G.Lit (literal_of_string (s1 ^ s2))
   | __else__ -> G.Cst G.Cstr
 
 let rec eval (env : G.constness D.env) exp : G.constness =
@@ -201,7 +212,11 @@ let rec eval (env : G.constness D.env) exp : G.constness =
   | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
   | Operator (op, args) -> eval_op env op args
-  | Composite _ | Record _ | Cast _ | FixmeExp _ -> G.NotCst
+  | Composite _
+  | Record _
+  | Cast _
+  | FixmeExp _ ->
+      G.NotCst
 
 and eval_lval env lval =
   match lval with
@@ -209,7 +224,9 @@ and eval_lval env lval =
       let opt_c = D.VarMap.find_opt (str_of_name x) env in
       match (!constness, opt_c) with
       | None, None -> G.NotCst
-      | Some c, None | None, Some c -> c
+      | Some c, None
+      | None, Some c ->
+          c
       | Some c1, Some c2 -> refine c1 c2)
   | ___else___ -> G.NotCst
 
@@ -228,7 +245,8 @@ and eval_op env wop args =
       eval_binop_string op s1 s2
   | _op, [ (G.Cst _ as c1) ] -> c1
   | _op, [ G.Cst t1; G.Cst t2 ] -> G.Cst (union_ctype t1 t2)
-  | _op, [ G.Lit l1; G.Cst t2 ] | _op, [ G.Cst t2; G.Lit l1 ] ->
+  | _op, [ G.Lit l1; G.Cst t2 ]
+  | _op, [ G.Cst t2; G.Lit l1 ] ->
       let t1 = ctype_of_literal l1 in
       G.Cst (union_ctype t1 t2)
   | ___else___ -> G.NotCst
@@ -287,8 +305,17 @@ let transfer :
 
   let out' =
     match node.F.n with
-    | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
-    | NThrow _ | NOther _ | NTodo _ ->
+    | Enter
+    | Exit
+    | TrueNode
+    | FalseNode
+    | Join
+    | NCond _
+    | NGoto _
+    | NReturn _
+    | NThrow _
+    | NOther _
+    | NTodo _ ->
         inp'
     | NInstr instr -> (
         match instr.i with

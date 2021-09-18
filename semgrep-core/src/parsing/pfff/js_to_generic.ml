@@ -160,7 +160,9 @@ let special (x, tok) =
    TODO: see if this is an issue with other languages besides javascript.
 *)
 let as_block stmt =
-  match stmt.G.s with G.Block _ -> stmt | _ -> G.Block (fb [ stmt ]) |> G.s
+  match stmt.G.s with
+  | G.Block _ -> stmt
+  | _ -> G.Block (fb [ stmt ]) |> G.s
 
 let rec property_name = function
   | PN v1 ->
@@ -580,7 +582,11 @@ and argument x = expr x
 and attribute = function
   | KeywordAttr x -> G.KeywordAttr (keyword_attribute x)
   | NamedAttr (t, ids, opt) ->
-      let t1, args, t2 = match opt with Some x -> x | None -> fb [] in
+      let t1, args, t2 =
+        match opt with
+        | Some x -> x
+        | None -> fb []
+      in
       let args = list argument args |> List.map G.arg in
       let name = H.name_of_ids ids in
       G.NamedAttr (t, name, (t1, args, t2))

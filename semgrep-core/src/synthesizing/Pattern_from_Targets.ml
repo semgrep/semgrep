@@ -337,7 +337,9 @@ let pattern_from_expr env e : pattern_instrs =
   | Call (e', (lp, args, rp)) -> pattern_from_call env (e', (lp, args, rp))
   | L l -> pattern_from_literal env l
   | Assign (e1, tok, e2) -> pattern_from_assign env (e1, tok, e2)
-  | N _ | DotAccess _ -> [ (env, E e, [ (DONE, fun f any -> f any) ]) ]
+  | N _
+  | DotAccess _ ->
+      [ (env, E e, [ (DONE, fun f any -> f any) ]) ]
   | _expr ->
       [
         (let env', id = metavar_pattern env e in

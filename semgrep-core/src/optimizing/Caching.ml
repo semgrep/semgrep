@@ -119,7 +119,9 @@ let add_one k name_counts =
   | Some n -> Name_counts.add k (n + 1) name_counts
 
 let get_count k name_counts =
-  match Name_counts.find_opt k name_counts with None -> 0 | Some n -> n
+  match Name_counts.find_opt k name_counts with
+  | None -> 0
+  | Some n -> n
 
 let diff_count k ~new_counts ~old_counts =
   let n = get_count k new_counts - get_count k old_counts in
@@ -134,13 +136,17 @@ let diff_backrefs bound_metavars ~new_backref_counts ~old_backref_counts =
           diff_count k ~new_counts:new_backref_counts
             ~old_counts:old_backref_counts
         in
-        match added_backref_count with 0 -> Set_.add k acc | _ -> acc)
+        match added_backref_count with
+        | 0 -> Set_.add k acc
+        | _ -> acc)
       bound_metavars Set_.empty
   in
   Set_.diff bound_metavars not_backrefs_in_rest_of_pattern
 
 let is_ellipsis_stmt (x : stmt) =
-  match x.s with ExprStmt ({ e = Ellipsis _; _ }, _) -> true | _ -> false
+  match x.s with
+  | ExprStmt ({ e = Ellipsis _; _ }, _) -> true
+  | _ -> false
 
 (*
    Decorate a pattern and target ASTs to make the suitable for memoization
@@ -324,7 +330,9 @@ module Cache_key = struct
 
   let show_compact k =
     sprintf "%s %s %s %B %i %i" (show_env k.min_env)
-      (match k.function_id with Match_deep -> "deep" | Match_list -> "list")
+      (match k.function_id with
+      | Match_deep -> "deep"
+      | Match_list -> "list")
       (match k.list_kind with
       | Original -> "orig"
       | Flattened_until last_id ->
@@ -443,13 +451,17 @@ module Cache = struct
 
   let print_cache_access k opt_res =
     printf "access %s %s\n"
-      (match opt_res with None -> "*" | Some _ -> " ")
+      (match opt_res with
+      | None -> "*"
+      | Some _ -> " ")
       (Cache_key.show_compact k)
 
   let match_stmt_list ~access ~(cache : _ list t) ~function_id ~list_kind
       ~less_is_ok ~compute ~(pattern : pattern) ~(target : target) acc =
     match (pattern, target) with
-    | [], _ | _, [] -> compute pattern target acc
+    | [], _
+    | _, [] ->
+        compute pattern target acc
     | a :: _, b :: _ -> (
         let mv : Env.t = access.get_mv_field acc in
         let key : Cache_key.t =
@@ -468,7 +480,9 @@ module Cache = struct
         | Some res -> (
             incr cache_hits;
             let backrefs =
-              match a.s_backrefs with None -> assert false | Some x -> x
+              match a.s_backrefs with
+              | None -> assert false
+              | Some x -> x
             in
             match res with
             | [] -> []

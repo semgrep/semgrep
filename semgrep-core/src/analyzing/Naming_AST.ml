@@ -303,7 +303,9 @@ let with_new_context ctx env f =
 
 (*s: function [[Naming_AST.top_context]] *)
 let top_context env =
-  match !(env.ctx) with [] -> raise Impossible | x :: _xs -> x
+  match !(env.ctx) with
+  | [] -> raise Impossible
+  | x :: _xs -> x
 
 (*e: function [[Naming_AST.top_context]] *)
 
@@ -371,13 +373,16 @@ let error tok s =
 (*s: function [[Naming_AST.is_local_or_global_ctx]] *)
 let is_resolvable_name_ctx env lang =
   match top_context env with
-  | AtToplevel | InFunction -> true
+  | AtToplevel
+  | InFunction ->
+      true
   | InClass -> (
       match lang with
       (* true for Java so that we can type class fields *)
       | Lang.Java
       (* true for JS/TS so that we can resolve class methods *)
-      | Lang.Javascript | Lang.Typescript ->
+      | Lang.Javascript
+      | Lang.Typescript ->
           true
       | _ -> false)
 
@@ -395,7 +400,8 @@ let resolved_name_kind env lang =
        *)
       | Lang.Java
       (* true for JS/TS to resolve class methods. *)
-      | Lang.Javascript | Lang.Typescript ->
+      | Lang.Javascript
+      | Lang.Typescript ->
           EnclosedVar
       | _ -> raise Impossible)
 
@@ -506,7 +512,8 @@ let resolve lang prog =
                *
                *     https://github.com/returntocorp/semgrep/issues/2787.
                *)
-              | Lang.Javascript | Lang.Typescript ->
+              | Lang.Javascript
+              | Lang.Typescript ->
                   let sid = H.gensym () in
                   let resolved =
                     untyped_ent (resolved_name_kind env lang, sid)
@@ -713,7 +720,8 @@ let resolve lang prog =
           (* todo: see lrvalue.ml
            * alternative? extra id_info tag?
            *)
-          | Assign (e1, _, e2) | AssignOp (e1, _, e2) ->
+          | Assign (e1, _, e2)
+          | AssignOp (e1, _, e2) ->
               Common.save_excursion env.in_lvalue true (fun () -> vout (E e1));
               vout (E e2);
               recurse := false
