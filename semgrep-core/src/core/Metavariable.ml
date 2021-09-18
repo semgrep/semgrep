@@ -1,5 +1,3 @@
-(*s: semgrep/core/Metavariable.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 module G = AST_generic
 module H = AST_generic_helpers
@@ -37,10 +34,7 @@ let debug = false
 (* less: could want to remember the position in the pattern of the metavar
  * for error reporting on pattern itself? so use a 'string AST_generic.wrap'?
  *)
-(*s: type [[Metavars_generic.mvar]] *)
 type mvar = string [@@deriving show, eq, hash]
-
-(*e: type [[Metavars_generic.mvar]] *)
 
 (* 'mvalue' below used to be just an alias to AST_generic.any, but it is more
  * precise to have a type just for the metavariable values; we do not
@@ -125,7 +119,6 @@ let ii_of_mval x = x |> mvalue_to_any |> Visitor_AST.ii_of_any
 
 let str_of_mval x = show_mvalue x
 
-(*s: type [[Metavars_generic.metavars_binding]] *)
 (* note that the mvalue acts as the value of the metavar and also
    as its concrete code "witness". You can get position information from it,
    it is not Parse_info.Ab(stractPos)
@@ -138,9 +131,6 @@ let str_of_mval x = show_mvalue x
 type bindings = (mvar * mvalue) list (* = Common.assoc *)
 [@@deriving show, eq, hash]
 
-(*e: type [[Metavars_generic.metavars_binding]] *)
-
-(*s: constant [[Metavars_generic.metavar_regexp_string]] *)
 (* ex: $X, $FAIL, $VAR2, $_
  * Note that some languages such as PHP or Javascript allows '$' in identifier
  * names, so forcing metavariables to have uppercase letters at least allow
@@ -155,9 +145,6 @@ type bindings = (mvar * mvalue) list (* = Common.assoc *)
  *)
 let metavar_regexp_string = "^\\(\\$[A-Z_][A-Z_0-9]*\\)$"
 
-(*e: constant [[Metavars_generic.metavar_regexp_string]] *)
-
-(*s: function [[Metavars_generic.is_metavar_name]] *)
 (*
  * Hacks abusing existing constructs to encode extra constructions.
  * One day we will have a pattern_ast.ml that mimics mostly
@@ -183,8 +170,6 @@ let is_metavar_name s =
       false
   | _ -> s =~ metavar_regexp_string
 
-(*e: function [[Metavars_generic.is_metavar_name]] *)
-
 (* $...XXX multivariadic metavariables. Note that I initially chose
  * $X... but this leads to parsing conflicts in Javascript.
  *)
@@ -205,5 +190,3 @@ module Referential = struct
 
   let hash_bindings = hash_bindings
 end
-
-(*e: semgrep/core/Metavariable.ml *)

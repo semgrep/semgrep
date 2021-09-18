@@ -1,5 +1,3 @@
-(*s: semgrep/matching/SubAST_generic.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 
 open AST_generic
 module H = AST_generic_helpers
@@ -86,7 +83,6 @@ let subexprs_of_stmt st =
   | WithUsingResource _ ->
       []
 
-(*s: function [[SubAST_generic.subexprs_of_expr]] *)
 (* used for deep expression matching *)
 let subexprs_of_expr e =
   match e.e with
@@ -154,12 +150,6 @@ let subexprs_of_expr e =
   | DisjExpr _ -> raise Common.Impossible
   [@@profiling]
 
-(*e: function [[SubAST_generic.subexprs_of_expr]] *)
-
-(*s: function [[SubAST_generic.subexprs_of_stmt]] *)
-(*e: function [[SubAST_generic.subexprs_of_stmt]] *)
-
-(*s: function [[SubAST_generic.substmts_of_stmt]] *)
 (* used for deep statement matching *)
 let substmts_of_stmt st =
   match st.s with
@@ -225,12 +215,9 @@ let substmts_of_stmt st =
   (* TODO *)
   | Match _ -> []
 
-(*e: function [[SubAST_generic.substmts_of_stmt]] *)
-
 (*****************************************************************************)
 (* Visitors  *)
 (*****************************************************************************)
-(*s: function [[SubAST_generic.do_visit_with_ref]] *)
 (* TODO: move in pfff at some point *)
 let do_visit_with_ref mk_hooks any =
   let res = ref [] in
@@ -239,9 +226,6 @@ let do_visit_with_ref mk_hooks any =
   vout any;
   List.rev !res
 
-(*e: function [[SubAST_generic.do_visit_with_ref]] *)
-
-(*s: function [[SubAST_generic.lambdas_in_expr]] *)
 let lambdas_in_expr e =
   do_visit_with_ref
     (fun aref ->
@@ -255,8 +239,6 @@ let lambdas_in_expr e =
       })
     (E e)
   [@@profiling]
-
-(*e: function [[SubAST_generic.lambdas_in_expr]] *)
 
 (* opti: using memoization speed things up a bit too
  * (but again, this is still slow when called many many times).
@@ -275,7 +257,6 @@ let lambdas_in_expr_memo a =
 (* Really substmts_of_stmts *)
 (*****************************************************************************)
 
-(*s: function [[SubAST_generic.flatten_substmts_of_stmts]] *)
 let flatten_substmts_of_stmts xs =
   (* opti: using a ref, List.iter, and Common.push instead of a mix of
    * List.map, List.flatten and @ below speed things up
@@ -317,7 +298,3 @@ let flatten_substmts_of_stmts xs =
         Some (List.rev !res, last)
   else None
   [@@profiling]
-
-(*e: function [[SubAST_generic.flatten_substmts_of_stmts]] *)
-
-(*e: semgrep/matching/SubAST_generic.ml *)

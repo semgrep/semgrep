@@ -1,5 +1,3 @@
-(*s: pfff/lang_GENERIC/analyze/IL.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 module G = AST_generic
 
 (*****************************************************************************)
@@ -83,30 +80,20 @@ module G = AST_generic
 (* Token (leaf) *)
 (*****************************************************************************)
 
-(*s: type [[IL.tok]] *)
 (* the classic *)
 type tok = G.tok [@@deriving show]
 
-(*e: type [[IL.tok]] *)
-(*s: type [[IL.wrap]] *)
 type 'a wrap = 'a G.wrap [@@deriving show]
 
-(*e: type [[IL.wrap]] *)
-(*s: type [[IL.bracket]] *)
 (* useful mainly for empty containers *)
 type 'a bracket = tok * 'a * tok [@@deriving show]
-
-(*e: type [[IL.bracket]] *)
 
 (*****************************************************************************)
 (* Names *)
 (*****************************************************************************)
 
-(*s: type [[IL.ident]] *)
 type ident = G.ident [@@deriving show]
 
-(*e: type [[IL.ident]] *)
-(*s: type [[IL.name]] *)
 (* 'sid' below is the result of name resolution and variable disambiguation
  * using a gensym (see Naming_AST.ml). The pair is guaranteed to be
  * global and unique (no need to handle variable shadowing, block scoping,
@@ -116,8 +103,6 @@ type ident = G.ident [@@deriving show]
  *
  *)
 type name = ident * G.sid [@@deriving show]
-
-(*e: type [[IL.name]] *)
 
 (*****************************************************************************)
 (* Fixme constructs *)
@@ -136,7 +121,6 @@ type fixme_kind =
 (* Lvalue *)
 (*****************************************************************************)
 
-(*s: type [[IL.lval]] *)
 (* An lvalue, represented as in CIL as a pair. *)
 type lval = {
   base : base;
@@ -146,8 +130,6 @@ type lval = {
       (* todo: ltype: typ; *)
 }
 
-(*e: type [[IL.lval]] *)
-(*s: type [[IL.base]] *)
 and base =
   | Var of name
   | VarSpecial of var_special wrap
@@ -155,8 +137,6 @@ and base =
   (* THINK: Mem of exp -> Deref of name *)
   | Mem of exp
 
-(*e: type [[IL.base]] *)
-(*s: type [[IL.offset]] *)
 and offset =
   | NoOffset
   (* What about nested field access? foo.x.y?
@@ -177,19 +157,13 @@ and offset =
   | Dot of name
   | Index of exp
 
-(*e: type [[IL.offset]] *)
-
 (* transpile at some point? *)
-(*s: type [[IL.var_special]] *)
 and var_special = This | Super | Self | Parent
-
-(*e: type [[IL.var_special]] *)
 
 (*****************************************************************************)
 (* Expression *)
 (*****************************************************************************)
 
-(*s: type [[IL.exp]] *)
 (* We use 'exp' instead of 'expr' to accentuate the difference
  * with AST_generic.expr.
  * Here 'exp' does not contain any side effect!
@@ -197,8 +171,6 @@ and var_special = This | Super | Self | Parent
  *)
 and exp = { e : exp_kind; eorig : G.expr }
 
-(*e: type [[IL.exp]] *)
-(*s: type [[IL.exp_kind]] *)
 and exp_kind =
   | Fetch of lval (* lvalue used in a rvalue context *)
   | Literal of G.literal
@@ -217,9 +189,6 @@ and exp_kind =
   | Operator of G.operator wrap * exp list
   | FixmeExp of fixme_kind * G.any
 
-(*e: type [[IL.exp_kind]] *)
-
-(*s: type [[IL.composite_kind]] *)
 and composite_kind =
   | CTuple
   | CArray
@@ -227,26 +196,19 @@ and composite_kind =
   | CSet
   | CDict (* could be merged with Record *)
   | Constructor of name (* OCaml *)
-(*e: type [[IL.composite_kind]] *)
 [@@deriving show { with_path = false }]
 
-(*s: type [[IL.argument]] *)
 type argument = exp [@@deriving show]
-
-(*e: type [[IL.argument]] *)
 
 (*****************************************************************************)
 (* Instruction *)
 (*****************************************************************************)
 
-(*s: type [[IL.instr]] *)
 (* Easier type to compute lvalue/rvalue set of a too general 'expr', which
  * is now split into  instr vs exp vs lval.
  *)
 type instr = { i : instr_kind; iorig : G.expr }
 
-(*e: type [[IL.instr]] *)
-(*s: type [[IL.instr_kind]] *)
 and instr_kind =
   (* was called Set in CIL, but a bit ambiguous with Set module *)
   | Assign of lval * exp
@@ -256,9 +218,6 @@ and instr_kind =
   (* todo: PhiSSA! *)
   | FixmeInstr of fixme_kind * G.any
 
-(*e: type [[IL.instr_kind]] *)
-
-(*s: type [[IL.call_special]] *)
 and call_special =
   | Eval
   (* Note that in some languages (e.g., Python) some regular calls are
@@ -285,26 +244,19 @@ and call_special =
 
 (* primitives called under the hood *)
 
-(*e: type [[IL.call_special]] *)
 (* | IntAccess of composite_kind * int (* for tuples/array/list *)
    | StringAccess of string (* for records/hashes *)
 *)
-
-(*s: type [[IL.anonymous_entity]] *)
 and anonymous_entity =
   | Lambda of G.function_definition
   | AnonClass of G.class_definition
-(*e: type [[IL.anonymous_entity]] *)
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
-(*s: type [[IL.stmt]] *)
 type stmt = { s : stmt_kind (* sorig: G.stmt; ?*) }
 
-(*e: type [[IL.stmt]] *)
-(*s: type [[IL.stmt_kind]] *)
 and stmt_kind =
   | Instr of instr
   (* Switch are converted to a series of If *)
@@ -324,20 +276,12 @@ and stmt_kind =
   | MiscStmt of other_stmt
   | FixmeStmt of fixme_kind * G.any
 
-(*e: type [[IL.stmt_kind]] *)
-
-(*s: type [[IL.other_stmt]] *)
 and other_stmt =
   (* everything except VarDef (which is transformed in a Set instr) *)
   | DefStmt of G.definition
   | DirectiveStmt of G.directive
 
-(*e: type [[IL.other_stmt]] *)
-
-(*s: type [[IL.label]] *)
-and label = ident * G.sid
-(*e: type [[IL.label]] *)
-[@@deriving show { with_path = false }]
+and label = ident * G.sid [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
 (* Defs *)
@@ -347,7 +291,6 @@ and label = ident * G.sid
 (*****************************************************************************)
 (* Control-flow graph (CFG) *)
 (*****************************************************************************)
-(*s: type [[IL.node]] *)
 (* Similar to controlflow.ml, but with a simpler node_kind.
  * See controlflow.ml for more information. *)
 type node = {
@@ -357,8 +300,6 @@ type node = {
        *)
 }
 
-(*e: type [[IL.node]] *)
-(*s: type [[IL.node_kind]] *)
 and node_kind =
   | Enter
   | Exit
@@ -372,35 +313,23 @@ and node_kind =
   | NThrow of tok * exp
   | NOther of other_stmt
   | NTodo of stmt
-(*e: type [[IL.node_kind]] *)
 [@@deriving show { with_path = false }]
 
-(*s: type [[IL.edge]] *)
 (* For now there is just one kind of edge.
  * (we may use more? the "ShadowNode" idea of Julia Lawall?)
  *)
 type edge = Direct
 
-(*e: type [[IL.edge]] *)
-
-(*s: type [[IL.cfg]] *)
 type cfg = (node, edge) Ograph_extended.ograph_mutable
 
-(*e: type [[IL.cfg]] *)
-
-(*s: type [[IL.nodei]] *)
 (* an int representing the index of a node in the graph *)
 type nodei = Ograph_extended.nodei
-
-(*e: type [[IL.nodei]] *)
 
 (*****************************************************************************)
 (* Any *)
 (*****************************************************************************)
-(*s: type [[IL.any]] *)
 type any = L of lval | E of exp | I of instr | S of stmt | Ss of stmt list
 (*  | N of node *)
-(*e: type [[IL.any]] *)
 [@@deriving show { with_path = false }]
 
 (*****************************************************************************)
@@ -418,7 +347,6 @@ let lval_of_instr_opt x =
       None
   | FixmeInstr _ -> None
 
-(*s: function [[IL.lvar_of_instr_opt]] *)
 let lvar_of_instr_opt x =
   let open Common in
   lval_of_instr_opt x >>= fun lval ->
@@ -428,9 +356,6 @@ let lvar_of_instr_opt x =
   | Mem _ ->
       None
 
-(*e: function [[IL.lvar_of_instr_opt]] *)
-
-(*s: function [[IL.exps_of_instr]] *)
 let exps_of_instr x =
   match x.i with
   | Assign (_, exp) -> [ exp ]
@@ -439,7 +364,6 @@ let exps_of_instr x =
   | CallSpecial (_, _, args) -> args
   | FixmeInstr _ -> []
 
-(*e: function [[IL.exps_of_instr]] *)
 let rexps_of_instr x =
   match x.i with
   | Assign (_, exp) -> [ exp ]
@@ -521,25 +445,12 @@ let lval_of_node_opt = function
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-(*s: function [[IL.str_of_name]] *)
 let str_of_name ((s, _tok), _sid) = s
 
-(*e: function [[IL.str_of_name]] *)
-
-(*s: function [[IL.find_node]] *)
 let find_node f cfg =
   cfg#nodes#tolist
   |> Common.find_some (fun (nodei, node) -> if f node then Some nodei else None)
 
-(*e: function [[IL.find_node]] *)
-
-(*s: function [[IL.find_exit]] *)
 let find_exit cfg = find_node (fun node -> node.n = Exit) cfg
 
-(*e: function [[IL.find_exit]] *)
-(*s: function [[IL.find_enter]] *)
 let find_enter cfg = find_node (fun node -> node.n = Enter) cfg
-
-(*e: function [[IL.find_enter]] *)
-
-(*e: pfff/lang_GENERIC/analyze/IL.ml *)
