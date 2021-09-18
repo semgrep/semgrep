@@ -173,7 +173,9 @@ let (( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout) =
 (*s: function [[Matching_generic.monadic_if_fail]] *)
 (* the if-fail combinator *)
 let ( >!> ) m1 else_cont tin =
-  match m1 tin with [] -> (else_cont ()) tin | xs -> xs
+  match m1 tin with
+  | [] -> (else_cont ()) tin
+  | xs -> xs
 
 (*e: function [[Matching_generic.monadic_if_fail]] *)
 
@@ -195,7 +197,11 @@ let (fail : tin -> tout) =
 (*e: function [[Matching_generic.fail]] *)
 
 let or_list m a bs =
-  let rec aux xs = match xs with [] -> fail | b :: bs -> m a b >||> aux bs in
+  let rec aux xs =
+    match xs with
+    | [] -> fail
+    | b :: bs -> m a b >||> aux bs
+  in
   aux bs
 
 (* Since OCaml 4.08 you can define your own let operators!
@@ -488,7 +494,9 @@ let (m_option : 'a matcher -> 'a option matcher) =
   match (a, b) with
   | None, None -> return ()
   | Some xa, Some xb -> f xa xb
-  | None, _ | Some _, _ -> fail ()
+  | None, _
+  | Some _, _ ->
+      fail ()
 
 (*e: function [[Matching_generic.m_option]] *)
 
@@ -500,7 +508,9 @@ let m_option_ellipsis_ok f a b =
   (* dots: ... can match 0 or 1 expression *)
   | Some { G.e = G.Ellipsis _; _ }, None -> return ()
   | Some xa, Some xb -> f xa xb
-  | None, _ | Some _, _ -> fail ()
+  | None, _
+  | Some _, _ ->
+      fail ()
 
 (*e: function [[Matching_generic.m_option_ellipsis_ok]] *)
 
@@ -521,7 +531,8 @@ let m_option_none_can_match_some f a b =
 (*s: function [[Matching_generic.m_ref]] *)
 let (m_ref : 'a matcher -> 'a ref matcher) =
  fun f a b ->
-  match (a, b) with { contents = xa }, { contents = xb } -> f xa xb
+  match (a, b) with
+  | { contents = xa }, { contents = xb } -> f xa xb
 
 (*e: function [[Matching_generic.m_ref]] *)
 
@@ -534,7 +545,9 @@ let rec m_list f a b =
   match (a, b) with
   | [], [] -> return ()
   | xa :: aas, xb :: bbs -> f xa xb >>= fun () -> m_list f aas bbs
-  | [], _ | _ :: _, _ -> fail ()
+  | [], _
+  | _ :: _, _ ->
+      fail ()
 
 (*e: function [[Matching_generic.m_list]] *)
 
@@ -569,7 +582,9 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       f xa xb >>= fun () -> m_list_with_dots f is_dots less_is_ok aas bbs
-  | [], _ | _ :: _, _ -> fail ()
+  | [], _
+  | _ :: _, _ ->
+      fail ()
 
 (*e: function [[Matching_generic.m_list_with_dots]] *)
 
@@ -637,7 +652,9 @@ let m_comb_1toN m_1toN a bs : _ comb_result =
  fun tin ->
   bs |> all_splits
   |> List.filter_map (fun (l, r) ->
-         match m_1toN a l tin with [] -> None | tout -> Some (r, tout))
+         match m_1toN a l tin with
+         | [] -> None
+         | tout -> Some (r, tout))
 
 (* ---------------------------------------------------------------------- *)
 (* stdlib: bool/int/string/... *)
@@ -776,7 +793,9 @@ let m_ellipsis_or_metavar_or_string a b =
 
 (*s: function [[Matching_generic.m_other_xxx]] *)
 let m_other_xxx a b =
-  match (a, b) with a, b when a =*= b -> return () | _ -> fail ()
+  match (a, b) with
+  | a, b when a =*= b -> return ()
+  | _ -> fail ()
 
 (*e: function [[Matching_generic.m_other_xxx]] *)
 (*e: semgrep/matching/Matching_generic.ml *)

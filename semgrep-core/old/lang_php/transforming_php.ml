@@ -195,7 +195,9 @@ module XMATCH = struct
    *)
   let adjust_transfo_with_env env transfo =
     match transfo with
-    | PI.NoTransfo | PI.Remove -> transfo
+    | PI.NoTransfo
+    | PI.Remove ->
+        transfo
     | PI.AddBefore add -> PI.AddBefore (subst_metavars env add)
     | PI.AddAfter add -> PI.AddAfter (subst_metavars env add)
     | PI.Replace add -> PI.Replace (subst_metavars env add)

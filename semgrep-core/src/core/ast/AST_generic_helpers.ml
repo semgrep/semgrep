@@ -43,7 +43,9 @@ let str_of_ident = fst
 
 let name_of_entity ent =
   match ent.name with
-  | EN (Id (i, pinfo)) | EN (IdQualified ((i, _), pinfo)) -> Some (i, pinfo)
+  | EN (Id (i, pinfo))
+  | EN (IdQualified ((i, _), pinfo)) ->
+      Some (i, pinfo)
   | EDynamic _ -> None
 
 (*s: constant [[AST_generic.gensym_counter]] *)
@@ -121,7 +123,9 @@ let rec pattern_to_expr p =
   | PatList (t1, xs, t2) ->
       Container (List, (t1, xs |> List.map pattern_to_expr, t2))
   | OtherPat (OP_Expr, [ E e ]) -> e.e
-  | PatAs _ | PatVar _ -> raise NotAnExpr
+  | PatAs _
+  | PatVar _ ->
+      raise NotAnExpr
   | _ -> raise NotAnExpr)
   |> G.e
 
@@ -148,7 +152,9 @@ let expr_to_type e =
 (*e: function [[AST_generic.opt_to_empty]] *)
 
 (*s: function [[AST_generic.opt_to_label_ident]] *)
-let opt_to_label_ident = function None -> LNone | Some id -> LId id
+let opt_to_label_ident = function
+  | None -> LNone
+  | Some id -> LId id
 
 (*e: function [[AST_generic.opt_to_label_ident]] *)
 
@@ -218,7 +224,9 @@ let funcbody_to_stmt = function
 (*s: function [[AST_generic.has_keyword_attr]] *)
 let has_keyword_attr kwd attrs =
   attrs
-  |> List.exists (function KeywordAttr (kwd2, _) -> kwd =*= kwd2 | _ -> false)
+  |> List.exists (function
+       | KeywordAttr (kwd2, _) -> kwd =*= kwd2
+       | _ -> false)
 
 (*e: function [[AST_generic.has_keyword_attr]] *)
 
@@ -251,7 +259,13 @@ let abstract_for_comparison_any x =
 
 let is_associative_operator op =
   match op with
-  | Or | And | BitOr | BitAnd | BitXor | Concat -> true
+  | Or
+  | And
+  | BitOr
+  | BitAnd
+  | BitXor
+  | Concat ->
+      true
   (* TODO: Plus, Mult, ... *)
   | __else__ -> false
 
@@ -261,7 +275,10 @@ let ac_matching_nf op args =
     args1
     |> List.map (function
          | Arg e -> e
-         | ArgKwd _ | ArgType _ | ArgOther _ -> raise_notrace Exit)
+         | ArgKwd _
+         | ArgType _
+         | ArgOther _ ->
+             raise_notrace Exit)
     |> List.map nf_one |> List.flatten
   and nf_one e =
     match e.e with

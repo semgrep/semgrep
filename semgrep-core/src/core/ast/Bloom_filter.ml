@@ -83,7 +83,11 @@ let mem elt bf =
   if is_in then Maybe else No
 
 let is_subset pattern_list bf =
-  let patterns_in_bf b x = match b with No -> No | Maybe -> mem x bf in
+  let patterns_in_bf b x =
+    match b with
+    | No -> No
+    | Maybe -> mem x bf
+  in
   List.fold_left patterns_in_bf Maybe pattern_list
 
 let make_bloom_from_set set_instead_of_bloom ids =

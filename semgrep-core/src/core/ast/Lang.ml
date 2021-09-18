@@ -74,9 +74,19 @@ type t =
 [@@ocamlformat "disable"]
 [@@deriving show, eq]
 
-let is_js = function Javascript | Typescript | Vue -> true | _ -> false
+let is_js = function
+  | Javascript
+  | Typescript
+  | Vue ->
+      true
+  | _ -> false
 
-let is_python = function Python | Python2 | Python3 -> true | _ -> false
+let is_python = function
+  | Python
+  | Python2
+  | Python3 ->
+      true
+  | _ -> false
 
 (*****************************************************************************)
 (* Helpers *)
@@ -240,7 +250,10 @@ let to_lowercase_alnum = function
    Manually pulled from file_type_of_file2 in file_type.ml.
 *)
 let ext_of_lang = function
-  | Python | Python2 | Python3 -> [ "py"; "pyi" ]
+  | Python
+  | Python2
+  | Python3 ->
+      [ "py"; "pyi" ]
   | Javascript -> [ "js"; "jsx" ]
   | Typescript -> [ "ts"; "tsx" ]
   | JSON -> [ "json" ]

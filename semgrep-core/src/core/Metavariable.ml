@@ -109,7 +109,10 @@ let program_of_mvalue : mvalue -> G.program option =
       Some [ G.exprstmt (G.N (G.Id (id, G.empty_id_info ())) |> G.e) ]
   | N x -> Some [ G.exprstmt (G.N x |> G.e) ]
   | Ss stmts -> Some stmts
-  | Args _ | T _ | P _ | Text _ ->
+  | Args _
+  | T _
+  | P _
+  | Text _ ->
       logger#debug "program_of_mvalue: not handled '%s'" (show_mvalue mval);
       None
 
@@ -167,8 +170,14 @@ let is_metavar_name s =
    * now we have this special case for PHP superglobals.
    * ref: https://www.php.net/manual/en/language.variables.superglobals.php
    *)
-  | "$_SERVER" | "$_GET" | "$_POST" | "$_FILES" | "$_COOKIE" | "$_SESSION"
-  | "$_REQUEST" | "$_ENV"
+  | "$_SERVER"
+  | "$_GET"
+  | "$_POST"
+  | "$_FILES"
+  | "$_COOKIE"
+  | "$_SESSION"
+  | "$_REQUEST"
+  | "$_ENV"
   (* todo: there's also "$GLOBALS" but this may interface with existing rules*)
     ->
       false

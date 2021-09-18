@@ -50,7 +50,9 @@ let normalize2 any lang =
               when lang <> Lang.Python -> (
                 (* != can be a method call in Python *)
                 let rewrite_opt =
-                  match op with NotEq -> Some (Not, Eq) | _ -> None
+                  match op with
+                  | NotEq -> Some (Not, Eq)
+                  | _ -> None
                 in
                 match rewrite_opt with
                 | None -> e

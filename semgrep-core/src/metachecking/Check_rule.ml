@@ -87,7 +87,8 @@ let check_formula env lang f =
     | Leaf (P _) -> ()
     | Leaf (MetavarCond _) -> ()
     | Not (_, f) -> find_dupe f
-    | Or (t, xs) | And (t, xs) ->
+    | Or (t, xs)
+    | And (t, xs) ->
         let rec aux xs =
           match xs with
           | [] -> ()

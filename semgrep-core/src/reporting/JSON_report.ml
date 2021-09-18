@@ -94,7 +94,9 @@ let range_of_any_opt startp_of_match_range any =
   (* those are ok and we don't want to generate a NoTokenLocation for those.
    * alt: change Semgrep.atd to make optional startp/endp for metavar_value.
    *)
-  | Ss [] | Args [] -> Some empty_range
+  | Ss []
+  | Args [] ->
+      Some empty_range
   | _ ->
       let ( let* ) = Common.( >>= ) in
       let* min_loc, max_loc = V.range_of_any_opt any in

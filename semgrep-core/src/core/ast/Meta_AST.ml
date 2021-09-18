@@ -17,7 +17,9 @@ let vof_bracket of_a (t1, x, t2) =
   let v1 = vof_tok t1 in
   let v2 = vof_tok t2 in
   let v = of_a x in
-  match v1 with OCaml.VUnit -> v | _ -> OCaml.VTuple [ v1; v; v2 ]
+  match v1 with
+  | OCaml.VUnit -> v
+  | _ -> OCaml.VTuple [ v1; v; v2 ]
 
 let vof_ident v = vof_wrap OCaml.vof_string v
 
@@ -1007,7 +1009,8 @@ and vof_definition_kind = function
       let v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherDef", [ v1; v2 ])
 
-and vof_other_def_operator = function OD_Todo -> OCaml.VSum ("OD_Todo", [])
+and vof_other_def_operator = function
+  | OD_Todo -> OCaml.VSum ("OD_Todo", [])
 
 and vof_module_definition { mbody = v_mbody } =
   let bnds = [] in

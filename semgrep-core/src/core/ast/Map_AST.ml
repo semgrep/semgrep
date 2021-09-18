@@ -377,8 +377,20 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_container_operator x = x
   and map_special x =
     match x with
-    | ForOf | Defined | This | Super | Self | Parent | Eval | Typeof
-    | Instanceof | Sizeof | New | Spread | HashSplat | NextArrayIndex
+    | ForOf
+    | Defined
+    | This
+    | Super
+    | Self
+    | Parent
+    | Eval
+    | Typeof
+    | Instanceof
+    | Sizeof
+    | New
+    | Spread
+    | HashSplat
+    | NextArrayIndex
     | InterpolatedElement ->
         x
     | Op v1 ->

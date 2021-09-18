@@ -175,12 +175,16 @@ let simple_node_of_stmt_opt stmt =
   | G.For (_, _, _)
   | G.Switch (_, _, _)
   | G.Match (_, _, _)
-  | G.Return _ | G.Continue _ | G.Break _
+  | G.Return _
+  | G.Continue _
+  | G.Break _
   | G.Label (_, _)
-  | G.Goto _ | G.Throw _
+  | G.Goto _
+  | G.Throw _
   | G.Try (_, _, _, _)
   | G.WithUsingResource (_, _, _)
-  | G.OtherStmtWithStmt _ | G.DisjStmt _ ->
+  | G.OtherStmtWithStmt _
+  | G.DisjStmt _ ->
       None
 
 let any_of_simple_node = function

@@ -157,7 +157,9 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       | None, None ->
           (* probably a return in both branches *)
           CfgFirstLast (newi, None)
-      | Some nodei, None | None, Some nodei -> CfgFirstLast (newi, Some nodei)
+      | Some nodei, None
+      | None, Some nodei ->
+          CfgFirstLast (newi, Some nodei)
       | Some n1, Some n2 ->
           let lasti = state.g#add_node { F.n = F.Join } in
           state.g |> add_arc (n1, lasti);

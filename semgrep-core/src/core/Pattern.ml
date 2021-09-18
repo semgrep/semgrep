@@ -54,7 +54,10 @@ let is_special_string_literal str =
   (* TODO: deprecate this *)
   || is_regexp_string str
 
-let is_js lang = match lang with Some x -> Lang.is_js x | None -> true
+let is_js lang =
+  match lang with
+  | Some x -> Lang.is_js x
+  | None -> true
 
 (* This is used in Analyze_pattern.ml to skip
  * semgrep special identifiers.

@@ -165,7 +165,9 @@ let var_stats prog : var_stats =
               let var = (H.str_of_ident id, sid) in
               let stat = get_stat_or_create var h in
               incr stat.lvalue;
-              (match x.e with AssignOp _ -> incr stat.rvalue | _ -> ());
+              (match x.e with
+              | AssignOp _ -> incr stat.rvalue
+              | _ -> ());
               vout (E e2)
           | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
             ->
@@ -189,7 +191,9 @@ let literal_of_bool b =
   let tok = Parse_info.unsafe_fake_info b_str in
   Bool (b, tok)
 
-let bool_of_literal = function Bool (b, _) -> Some b | __else__ -> None
+let bool_of_literal = function
+  | Bool (b, _) -> Some b
+  | __else__ -> None
 
 let eval_bop_bool op b1 b2 =
   match op with
@@ -202,7 +206,9 @@ let literal_of_int i =
   let tok = Parse_info.unsafe_fake_info i_str in
   Int (Some i, tok)
 
-let int_of_literal = function Int (Some i, _) -> Some i | __else__ -> None
+let int_of_literal = function
+  | Int (Some i, _) -> Some i
+  | __else__ -> None
 
 let eval_bop_int op i1 i2 =
   match op with
@@ -214,10 +220,14 @@ let literal_of_string s =
   let tok = Parse_info.unsafe_fake_info s in
   String (s, tok)
 
-let string_of_literal = function String (s, _) -> Some s | __else__ -> None
+let string_of_literal = function
+  | String (s, _) -> Some s
+  | __else__ -> None
 
 let eval_bop_string op s1 s2 =
-  match op with Plus -> Some (s1 ^ s2) | __else__ -> None
+  match op with
+  | Plus -> Some (s1 ^ s2)
+  | __else__ -> None
 
 let rec eval_expr env e =
   match e.e with
@@ -366,7 +376,8 @@ let propagate_basic lang prog =
                        && kind = Global
                      then add_constant_env id (sid, literal) env);
               v (E rexp)
-          | Assign (e1, _, e2) | AssignOp (e1, _, e2) ->
+          | Assign (e1, _, e2)
+          | AssignOp (e1, _, e2) ->
               Common.save_excursion env.in_lvalue true (fun () -> v (E e1));
               v (E e2)
           | _ -> k x);

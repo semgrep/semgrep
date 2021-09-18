@@ -128,7 +128,9 @@ let map_literal_value (env : env) (x : CST.literal_value) : literal =
 
 let rec map_anon_choice_get_attr_7bbf24f (env : env)
     (x : CST.anon_choice_get_attr_7bbf24f) =
-  match x with `Get_attr x -> map_get_attr env x | `Index x -> map_index env x
+  match x with
+  | `Get_attr x -> map_get_attr env x
+  | `Index x -> map_index env x
 
 and map_anon_choice_temp_lit_c764a73 (env : env)
     (x : CST.anon_choice_temp_lit_0082c06) =
@@ -145,7 +147,9 @@ and map_anon_choice_temp_lit_c764a73 (env : env)
         | None -> None
       in
       let v3 =
-        match v3 with Some x -> Some (map_expression env x) | None -> None
+        match v3 with
+        | Some x -> Some (map_expression env x)
+        | None -> None
       in
       let _v4TODO =
         match v4 with
@@ -198,12 +202,18 @@ and map_binary_operation (env : env) (x : CST.binary_operation) =
       (v1, v2, v3)
   | `Expr_term_choice_AMPAMP_expr_term (v1, v2, v3) ->
       let v1 = map_expr_term env v1 in
-      let v2 = match v2 with `AMPAMP tok -> (* "&&" *) (And, token env tok) in
+      let v2 =
+        match v2 with
+        | `AMPAMP tok -> (* "&&" *) (And, token env tok)
+      in
       let v3 = map_expr_term env v3 in
       (v1, v2, v3)
   | `Expr_term_choice_BARBAR_expr_term (v1, v2, v3) ->
       let v1 = map_expr_term env v1 in
-      let v2 = match v2 with `BARBAR tok -> (* "||" *) (Or, token env tok) in
+      let v2 =
+        match v2 with
+        | `BARBAR tok -> (* "||" *) (Or, token env tok)
+      in
       let v3 = map_expr_term env v3 in
       (v1, v2, v3)
 
@@ -211,7 +221,11 @@ and map_collection_value (env : env) (x : CST.collection_value) : expr =
   match x with
   | `Tuple (v1, v2, v3) ->
       let v1 = (* "[" *) token env v1 in
-      let v2 = match v2 with Some x -> map_tuple_elems env x | None -> [] in
+      let v2 =
+        match v2 with
+        | Some x -> map_tuple_elems env x
+        | None -> []
+      in
       let v3 = (* "]" *) token env v3 in
       G.Container (G.Tuple, (v1, v2, v3)) |> G.e
   | `Obj x -> map_object_ env x
@@ -231,7 +245,9 @@ and map_expr_term (env : env) (x : CST.expr_term) : expr =
           let v1 = (* identifier *) map_identifier env v1 in
           let v2 = (* "(" *) token env v2 in
           let v3 =
-            match v3 with Some x -> map_function_arguments env x | None -> []
+            match v3 with
+            | Some x -> map_function_arguments env x
+            | None -> []
           in
           let v4 = (* ")" *) token env v4 in
           let n = N (H2.name_of_id v1) |> G.e in
@@ -284,7 +300,11 @@ and map_for_expr (env : env) (x : CST.for_expr) =
       let v1 = (* "[" *) token env v1 in
       let tfor, ids, tin, e, _tcolon = map_for_intro env v2 in
       let v3 = map_expression env v3 in
-      let v4 = match v4 with Some x -> [ map_for_cond env x ] | None -> [] in
+      let v4 =
+        match v4 with
+        | Some x -> [ map_for_cond env x ]
+        | None -> []
+      in
       let v5 = (* "]" *) token env v5 in
       let pat = pattern_of_ids ids in
       let compfor = CompFor (tfor, pat, tin, e) in
@@ -302,7 +322,11 @@ and map_for_expr (env : env) (x : CST.for_expr) =
         | Some tok -> (* ellipsis *) Some (token env tok)
         | None -> None
       in
-      let v7 = match v7 with Some x -> [ map_for_cond env x ] | None -> [] in
+      let v7 =
+        match v7 with
+        | Some x -> [ map_for_cond env x ]
+        | None -> []
+      in
       let v8 = (* "}" *) token env v8 in
       let pat = pattern_of_ids ids in
       let compfor = CompFor (tfor, pat, tin, e) in
@@ -368,7 +392,11 @@ and map_index (env : env) (x : CST.index) =
 
 and map_object_ (env : env) ((v1, v2, v3) : CST.object_) =
   let v1 = (* "{" *) token env v1 in
-  let v2 = match v2 with Some x -> map_object_elems env x | None -> [] in
+  let v2 =
+    match v2 with
+    | Some x -> map_object_elems env x
+    | None -> []
+  in
   let v3 = (* "}" *) token env v3 in
   Record (v1, v2, v3) |> G.e
 
@@ -382,7 +410,11 @@ and map_object_elem (env : env) (x : CST.object_elem) : field =
         | `COLON tok -> (* ":" *) Right (token env tok)
       in
       let v3 = map_expression env v3 in
-      let n_or_dyn = match v1.e with N n -> EN n | _ -> EDynamic v1 in
+      let n_or_dyn =
+        match v1.e with
+        | N n -> EN n
+        | _ -> EDynamic v1
+      in
       let ent = { name = n_or_dyn; attrs = []; tparams = [] } in
       let vdef = { vinit = Some v3; vtype = None } in
       let def =
@@ -407,7 +439,9 @@ and map_object_elems (env : env) ((v1, v2, v3) : CST.object_elems) =
       v2
   in
   let _v3 =
-    match v3 with Some tok -> (* "," *) Some (token env tok) | None -> None
+    match v3 with
+    | Some tok -> (* "," *) Some (token env tok)
+    | None -> None
   in
   v1 :: v2
 
@@ -480,7 +514,9 @@ and map_tuple_elems (env : env) ((v1, v2, v3) : CST.tuple_elems) : expr list =
       v2
   in
   let _v3 =
-    match v3 with Some tok -> (* "," *) Some (token env tok) | None -> None
+    match v3 with
+    | Some tok -> (* "," *) Some (token env tok)
+    | None -> None
   in
   v1 :: v2
 
@@ -510,7 +546,11 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
       v2
   in
   let v3 = (* "{" *) token env v3 in
-  let v4 = match v4 with Some x -> map_body env x | None -> [] in
+  let v4 =
+    match v4 with
+    | Some x -> map_body env x
+    | None -> []
+  in
   let v5 = (* "}" *) token env v5 in
 
   let n = H2.name_of_id v1 in

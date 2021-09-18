@@ -413,14 +413,20 @@ let lval_of_instr_opt x =
   | Call (Some lval, _, _)
   | CallSpecial (Some lval, _, _) ->
       Some lval
-  | Call _ | CallSpecial _ -> None
+  | Call _
+  | CallSpecial _ ->
+      None
   | FixmeInstr _ -> None
 
 (*s: function [[IL.lvar_of_instr_opt]] *)
 let lvar_of_instr_opt x =
   let open Common in
   lval_of_instr_opt x >>= fun lval ->
-  match lval.base with Var n -> Some n | VarSpecial _ | Mem _ -> None
+  match lval.base with
+  | Var n -> Some n
+  | VarSpecial _
+  | Mem _ ->
+      None
 
 (*e: function [[IL.lvar_of_instr_opt]] *)
 
@@ -448,16 +454,22 @@ let rec lvals_of_exp e =
   | Fetch lval -> lval :: lvals_in_lval lval
   | Literal _ -> []
   | Cast (_, e) -> lvals_of_exp e
-  | Composite (_, (_, xs, _)) | Operator (_, xs) -> lvals_of_exps xs
+  | Composite (_, (_, xs, _))
+  | Operator (_, xs) ->
+      lvals_of_exps xs
   | Record ys -> lvals_of_exps (ys |> List.map snd)
   | FixmeExp _ -> []
 
 and lvals_in_lval lval =
   let base_lvals =
-    match lval.base with Mem e -> lvals_of_exp e | _else_ -> []
+    match lval.base with
+    | Mem e -> lvals_of_exp e
+    | _else_ -> []
   in
   let offset_lvals =
-    match lval.offset with Index e -> lvals_of_exp e | __else_ -> []
+    match lval.offset with
+    | Index e -> lvals_of_exp e
+    | __else_ -> []
   in
   base_lvals @ offset_lvals
 
@@ -475,15 +487,35 @@ let rvars_of_instr x =
        | ___else___ -> None)
 
 let rlvals_of_node = function
-  | Enter | Exit | TrueNode | FalseNode | NGoto _ | Join -> []
+  | Enter
+  | Exit
+  | TrueNode
+  | FalseNode
+  | NGoto _
+  | Join ->
+      []
   | NInstr x -> rlvals_of_instr x
-  | NCond (_, e) | NReturn (_, e) | NThrow (_, e) -> lvals_of_exp e
-  | NOther _ | NTodo _ -> []
+  | NCond (_, e)
+  | NReturn (_, e)
+  | NThrow (_, e) ->
+      lvals_of_exp e
+  | NOther _
+  | NTodo _ ->
+      []
 
 let lval_of_node_opt = function
   | NInstr x -> lval_of_instr_opt x
-  | Enter | Exit | TrueNode | FalseNode | NGoto _ | Join | NCond _ | NReturn _
-  | NThrow _ | NOther _ | NTodo _ ->
+  | Enter
+  | Exit
+  | TrueNode
+  | FalseNode
+  | NGoto _
+  | Join
+  | NCond _
+  | NReturn _
+  | NThrow _
+  | NOther _
+  | NTodo _ ->
       None
 
 (*****************************************************************************)
