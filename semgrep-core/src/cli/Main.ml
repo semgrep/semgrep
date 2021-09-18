@@ -489,7 +489,9 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
            in
            let offending_rules = List.length sorted_offending_rules in
            let biggest_offending_rule =
-             match sorted_offending_rules with x :: _ -> x | _ -> assert false
+             match sorted_offending_rules with
+             | x :: _ -> x
+             | _ -> assert false
            in
            let (id, pat), cnt = biggest_offending_rule in
            logger#info
@@ -578,7 +580,9 @@ let parse_generic lang file =
            *)
         with Main_timeout _ as e -> Right e)
   in
-  match v with Left x -> x | Right exn -> raise exn
+  match v with
+  | Left x -> x
+  | Right exn -> raise exn
   [@@profiling]
 
 (*e: function [[Main_semgrep_core.parse_generic]] *)
@@ -700,7 +704,8 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
 
 let xlang_files_of_dirs_or_files xlang files_or_dirs =
   match xlang with
-  | R.LRegex | R.LGeneric ->
+  | R.LRegex
+  | R.LGeneric ->
       (* TODO: assert is_file ? spacegrep filter files?
        * Anyway right now the Semgrep python wrapper is
        * calling -config with an explicit list of files.
@@ -842,7 +847,9 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
              |> List.filter (fun r ->
                     match (r.R.languages, xlang) with
                     | R.L (x, xs), R.L (lang, _) -> List.mem lang (x :: xs)
-                    | R.LRegex, R.LRegex | R.LGeneric, R.LGeneric -> true
+                    | R.LRegex, R.LRegex
+                    | R.LGeneric, R.LGeneric ->
+                        true
                     | _ -> false)
            in
            let hook str env matched_tokens =
@@ -854,7 +861,8 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
              lazy
                (match xlang with
                | R.L (lang, _) -> parse_generic lang file
-               | R.LRegex | R.LGeneric ->
+               | R.LRegex
+               | R.LGeneric ->
                    failwith "requesting generic AST for LRegex|LGeneric")
            in
            let file_and_more =

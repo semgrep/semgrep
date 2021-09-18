@@ -83,7 +83,9 @@ let locate opt_tok s =
     try map_opt Parse_info.string_of_info opt_tok
     with Parse_info.NoTokenLocation _ -> None
   in
-  match opt_loc with Some loc -> spf "%s: %s" loc s | None -> s
+  match opt_loc with
+  | Some loc -> spf "%s: %s" loc s
+  | None -> s
 
 let log_warning opt_tok msg = logger#warning "%s" (locate opt_tok msg)
 
@@ -302,7 +304,8 @@ and pattern env pat eorig =
   | G.PatUnderscore tok ->
       let lval = fresh_lval env tok in
       (lval, [])
-  | G.PatId (id, id_info) | G.PatVar (_, Some (id, id_info)) ->
+  | G.PatId (id, id_info)
+  | G.PatVar (_, Some (id, id_info)) ->
       let lval = lval_of_id_info env id id_info in
       (lval, [])
   | G.PatTuple (tok1, pats, tok2) ->
@@ -337,7 +340,10 @@ and pattern_assign_statements env exp eorig pat =
 (*****************************************************************************)
 and assign env lhs _tok rhs_exp eorig =
   match lhs.G.e with
-  | G.N _ | G.DotAccess _ | G.ArrayAccess _ | G.DeRef _ -> (
+  | G.N _
+  | G.DotAccess _
+  | G.ArrayAccess _
+  | G.DeRef _ -> (
       try
         let lval = lval env lhs in
         add_instr env (mk_i (Assign (lval, rhs_exp)) eorig);
@@ -421,7 +427,10 @@ and expr_aux env ?(void = false) eorig =
           let lval = lval env e in
           let lvalexp = mk_e (Fetch lval) e in
           let op =
-            ((match incdec with G.Incr -> G.Plus | G.Decr -> G.Minus), tok)
+            ( (match incdec with
+              | G.Incr -> G.Plus
+              | G.Decr -> G.Minus),
+              tok )
           in
           let one = G.Int (Some 1, tok) in
           let one_exp = mk_e (Literal one) (G.L one |> G.e) in
@@ -486,7 +495,10 @@ and expr_aux env ?(void = false) eorig =
       let tok = G.fake "call" in
       call_generic env ~void tok e args
   | G.L lit -> mk_e (Literal lit) eorig
-  | G.N _ | G.DotAccess (_, _, _) | G.ArrayAccess (_, _) | G.DeRef (_, _) ->
+  | G.N _
+  | G.DotAccess (_, _, _)
+  | G.ArrayAccess (_, _)
+  | G.DeRef (_, _) ->
       let lval = lval env eorig in
       mk_e (Fetch lval) eorig
   | G.Assign (e1, tok, e2) ->
@@ -587,7 +599,9 @@ and expr_aux env ?(void = false) eorig =
       lvalexp
   | G.Xml _ -> todo (G.E eorig)
   | G.Constructor (_, _) -> todo (G.E eorig)
-  | G.Yield (_, _, _) | G.Await (_, _) -> todo (G.E eorig)
+  | G.Yield (_, _, _)
+  | G.Await (_, _) ->
+      todo (G.E eorig)
   | G.Cast (typ, _, e) ->
       let e = expr env e in
       mk_e (Cast (typ, e)) eorig
@@ -595,7 +609,8 @@ and expr_aux env ?(void = false) eorig =
   | G.Ellipsis _
   | G.TypedMetavar (_, _, _)
   | G.DisjExpr (_, _)
-  | G.DeepEllipsis _ | G.DotAccessEllipsis _ ->
+  | G.DeepEllipsis _
+  | G.DotAccessEllipsis _ ->
       sgrep_construct (G.E eorig)
   | G.OtherExpr (_, _) -> todo (G.E eorig)
 
@@ -626,7 +641,12 @@ and call_generic env ?(void = false) tok e args =
 
 and call_special _env (x, tok) =
   ( (match x with
-    | G.Op _ | G.IncrDecr _ | G.This | G.Super | G.Self | G.Parent
+    | G.Op _
+    | G.IncrDecr _
+    | G.This
+    | G.Super
+    | G.Self
+    | G.Parent
     | G.InterpolatedElement ->
         impossible (G.E (G.IdSpecial (x, tok) |> G.e))
         (* should be intercepted before *)
@@ -637,8 +657,11 @@ and call_special _env (x, tok) =
     | G.New -> New
     | G.ConcatString _kindopt -> Concat
     | G.Spread -> Spread
-    | G.EncodedString _ | G.Defined | G.HashSplat | G.ForOf | G.NextArrayIndex
-      ->
+    | G.EncodedString _
+    | G.Defined
+    | G.HashSplat
+    | G.ForOf
+    | G.NextArrayIndex ->
         todo (G.E (G.IdSpecial (x, tok) |> G.e))),
     tok )
 
@@ -851,7 +874,9 @@ let rec stmt_aux env st =
       let ss2, cond = expr_with_pre_stmts env (List.nth e 0) (* TODO list *) in
       ss1 @ ss2 @ [ mk_s (Loop (tok, cond, st @ ss2)) ]
   (* TODO: repeat env work of controlflow_build.ml *)
-  | G.Continue _ | G.Break _ -> todo (G.S st)
+  | G.Continue _
+  | G.Break _ ->
+      todo (G.S st)
   | G.Label (lbl, st) ->
       let lbl = label_of_label env lbl in
       let st = stmt env st in
@@ -908,7 +933,9 @@ let rec stmt_aux env st =
       in
       python_with_stmt env manager opt_pat body
   | G.Match (_, _, _) -> todo (G.S st)
-  | G.OtherStmt _ | G.OtherStmtWithStmt _ -> todo (G.S st)
+  | G.OtherStmt _
+  | G.OtherStmtWithStmt _ ->
+      todo (G.S st)
 
 (*s: function [[AST_to_IL.stmt]] *)
 and stmt env st =

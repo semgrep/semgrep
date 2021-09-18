@@ -122,7 +122,9 @@ let get_id ?(with_type = false) env e =
 
 let has_nested_call =
   List.find_opt (fun x ->
-      match x with Arg { e = Call _; _ } -> true | _ -> false)
+      match x with
+      | Arg { e = Call _; _ } -> true
+      | _ -> false)
 
 (*****************************************************************************)
 (* Algorithm *)
@@ -284,7 +286,11 @@ and generalize_exprstmt (e, tok) env =
   add_expr e (fun (str, e') -> (str, S (ExprStmt (e', tok) |> G.s))) env
 
 and generalize_if s_in =
-  let opt f so = match so with None -> None | Some x -> Some (f x) in
+  let opt f so =
+    match so with
+    | None -> None
+    | Some x -> Some (f x)
+  in
   let rec dots_in_body s =
     match s.s with
     | If (tok, e, s, sopt) ->
@@ -309,7 +315,9 @@ and generalize_if s_in =
 
 and generalize_while (tok, e, s) env =
   let body_dots =
-    match s.s with Block (t1, _, t2) -> body_ellipsis t1 t2 | _ -> fk_stmt
+    match s.s with
+    | Block (t1, _, t2) -> body_ellipsis t1 t2
+    | _ -> fk_stmt
   in
   let dots_in_cond =
     ("dots in condition", S (While (tok, Ellipsis fk |> G.e, s) |> G.s))
@@ -325,7 +333,9 @@ and generalize_while (tok, e, s) env =
 
 and generalize_for (tok, hdr, s) =
   let body_dots =
-    match s.s with Block (t1, _, t2) -> body_ellipsis t1 t2 | _ -> fk_stmt
+    match s.s with
+    | Block (t1, _, t2) -> body_ellipsis t1 t2
+    | _ -> fk_stmt
   in
   let dots_in_body = ("dots in body", S (For (tok, hdr, body_dots) |> G.s)) in
   let dots_in_cond =

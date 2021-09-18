@@ -96,10 +96,14 @@ let rec is_concat_of_strings e =
   | _ -> false
 
 let is_NoTransfo tok =
-  match tok.Parse_info.transfo with Parse_info.NoTransfo -> true | _ -> false
+  match tok.Parse_info.transfo with
+  | Parse_info.NoTransfo -> true
+  | _ -> false
 
 let is_Remove tok =
-  match tok.Parse_info.transfo with Parse_info.Remove -> true | _ -> false
+  match tok.Parse_info.transfo with
+  | Parse_info.Remove -> true
+  | _ -> false
 
 (*****************************************************************************)
 (* Functor parameter combinators *)
@@ -196,7 +200,9 @@ functor
       match (a, b) with
       | None, None -> return (None, None)
       | Some xa, Some xb -> f xa xb >>= fun (xa, xb) -> return (Some xa, Some xb)
-      | None, _ | Some _, _ -> fail ()
+      | None, _
+      | Some _, _ ->
+          fail ()
 
     let (m_ref : ('a, 'b) matcher -> ('a ref, 'b ref) matcher) =
      fun f a b ->
@@ -211,13 +217,17 @@ functor
       | xa :: aas, xb :: bbs ->
           f xa xb >>= fun (xa, xb) ->
           m_list f aas bbs >>= fun (aas, bbs) -> return (xa :: aas, xb :: bbs)
-      | [], _ | _ :: _, _ -> fail ()
+      | [], _
+      | _ :: _, _ ->
+          fail ()
 
     let m_either f g a b =
       match (a, b) with
       | Left a, Left b -> f a b >>= fun (a, b) -> return (Left a, Left b)
       | Right a, Right b -> g a b >>= fun (a, b) -> return (Right a, Right b)
-      | Left _, Right _ | Right _, Left _ -> fail ()
+      | Left _, Right _
+      | Right _, Left _ ->
+          fail ()
 
     let m_either3 f g h a b =
       match (a, b) with
@@ -225,7 +235,10 @@ functor
       | Right3 a, Right3 b -> h a b >>= fun (a, b) -> return (Right3 a, Right3 b)
       | Middle3 a, Middle3 b ->
           g a b >>= fun (a, b) -> return (Middle3 a, Middle3 b)
-      | Left3 _, _ | Right3 _, _ | Middle3 _, _ -> fail ()
+      | Left3 _, _
+      | Right3 _, _
+      | Middle3 _, _ ->
+          fail ()
 
     let m_unit a b = return (a, b)
 
@@ -308,7 +321,9 @@ functor
       | A.XhpName a1, B.XhpName b1 ->
           (m_wrap (m_list m_string)) a1 b1 >>= fun (a1, b1) ->
           return (A.XhpName a1, B.XhpName b1)
-      | A.Name _, _ | A.XhpName _, _ -> fail ()
+      | A.Name _, _
+      | A.XhpName _, _ ->
+          fail ()
 
     let m_name_metavar_ok a b =
       match (a, b) with
@@ -330,7 +345,9 @@ functor
       | A.XhpName a1, B.XhpName b1 ->
           (m_wrap (m_list m_string)) a1 b1 >>= fun (a1, b1) ->
           return (A.XhpName a1, B.XhpName b1)
-      | A.Name _, _ | A.XhpName _, _ -> fail ()
+      | A.Name _, _
+      | A.XhpName _, _ ->
+          fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* operators *)
@@ -395,7 +412,11 @@ functor
       | A.UnMinus, B.UnMinus -> return (A.UnMinus, B.UnMinus)
       | A.UnBang, B.UnBang -> return (A.UnBang, B.UnBang)
       | A.UnTilde, B.UnTilde -> return (A.UnTilde, B.UnTilde)
-      | A.UnPlus, _ | A.UnMinus, _ | A.UnBang, _ | A.UnTilde, _ -> fail ()
+      | A.UnPlus, _
+      | A.UnMinus, _
+      | A.UnBang, _
+      | A.UnTilde, _ ->
+          fail ()
 
     let m_binaryOp a b =
       match (a, b) with
@@ -421,10 +442,14 @@ functor
           m_arithOp a1 b1 >>= fun (a1, b1) ->
           return (A.AssignOpArith a1, B.AssignOpArith b1)
       | A.AssignConcat, B.AssignConcat -> return (A.AssignConcat, B.AssignConcat)
-      | A.AssignOpArith _, _ | A.AssignConcat, _ -> fail ()
+      | A.AssignOpArith _, _
+      | A.AssignConcat, _ ->
+          fail ()
 
     let m_fixOp a b =
-      match (a, b) with _ when a =*= b -> return (a, b) | _ -> fail ()
+      match (a, b) with
+      | _ when a =*= b -> return (a, b)
+      | _ -> fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* cast, cpp directives  *)
@@ -490,7 +515,10 @@ functor
       | A.LateStatic a1, B.LateStatic b1 ->
           m_tok a1 b1 >>= fun (a1, b1) ->
           return (A.LateStatic a1, B.LateStatic b1)
-      | A.XName _, _ | A.Self _, _ | A.Parent _, _ | A.LateStatic _, _ ->
+      | A.XName _, _
+      | A.Self _, _
+      | A.Parent _, _
+      | A.LateStatic _, _ ->
           fail ()
 
     and m_type_args a b =
@@ -511,7 +539,10 @@ functor
           m_name_metavar_ok a b >>= fun (a, b) ->
           m_fully_qualified_class_name xs ys >>= fun (xs, ys) ->
           return (A.QI a :: xs, B.QI b :: ys)
-      | A.QI _ :: _, _ | A.QITok _ :: _, _ | [], _ -> fail ()
+      | A.QI _ :: _, _
+      | A.QITok _ :: _, _
+      | [], _ ->
+          fail ()
 
     (*---------------------------------------------------------------------------*)
     (* argument *)
@@ -549,7 +580,10 @@ functor
           m_tok a1 b1 >>= fun (a1, b1) ->
           m_w_variable a2 b2 >>= fun (a2, b2) ->
           return (A.ArgUnpack (a1, a2), B.ArgUnpack (b1, b2))
-      | A.Arg _, _ | A.ArgRef _, _ | A.ArgUnpack _, _ -> fail ()
+      | A.Arg _, _
+      | A.ArgRef _, _
+      | A.ArgUnpack _, _ ->
+          fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* expr *)
@@ -844,7 +878,9 @@ functor
     (* ---------------------------------------------------------------------- *)
     (* xhp (and a few xhp isos) *)
     (* ---------------------------------------------------------------------- *)
-    and m_xhp_tag a b = match (a, b) with a, b -> (m_list m_string) a b
+    and m_xhp_tag a b =
+      match (a, b) with
+      | a, b -> (m_list m_string) a b
 
     and m_wrap_m_xhp_tag a b =
       m_name_metavar_ok (A.XhpName a) (B.XhpName b) >>= function
@@ -860,13 +896,17 @@ functor
           >>= fun ((a1, toka), (b1, tokb)) ->
           return ((Some a1, toka), (Some b1, tokb))
       (* todo: should be ok to use </> instead of explicit tag *)
-      | None, Some _ | Some _, None -> fail ()
+      | None, Some _
+      | Some _, None ->
+          fail ()
 
     and iso_m_list_m_xhp_body a b =
       match a with
       (* iso-by-absence: it's ok to have an empty body in the pattern *)
       | [] -> return (a, b)
-      | [ A.XhpText ("\n", _) ] | [ A.XhpText ("\n\n", _) ] -> return (a, b)
+      | [ A.XhpText ("\n", _) ]
+      | [ A.XhpText ("\n\n", _) ] ->
+          return (a, b)
       | _ -> (m_list m_xhp_body) a b
 
     and sort_xhp_attributes xs =
@@ -928,7 +968,9 @@ functor
           iso_m_list_m_xhp_attribute a2 b2 >>= fun (a2, b2) ->
           m_tok a3 b3 >>= fun (a3, b3) ->
           return (A.XhpSingleton (a1, a2, a3), B.XhpSingleton (b1, b2, b3))
-      | A.Xhp _, _ | A.XhpSingleton _, _ -> fail ()
+      | A.Xhp _, _
+      | A.XhpSingleton _, _ ->
+          fail ()
 
     and m_xhp_attribute a b =
       match (a, b) with
@@ -959,8 +1001,9 @@ functor
       | A.XhpAttrExpr a1, B.XhpAttrExpr b1 ->
           (m_brace m_expr) a1 b1 >>= fun (a1, b1) ->
           return (A.XhpAttrExpr a1, B.XhpAttrExpr b1)
-      | A.XhpAttrString _, _ | A.XhpAttrExpr _, _ | A.SgrepXhpAttrValueMvar _, _
-        ->
+      | A.XhpAttrString _, _
+      | A.XhpAttrExpr _, _
+      | A.SgrepXhpAttrValueMvar _, _ ->
           fail ()
 
     and m_xhp_body a b =
@@ -974,7 +1017,10 @@ functor
       | A.XhpNested a1, B.XhpNested b1 ->
           m_xhp_html a1 b1 >>= fun (a1, b1) ->
           return (A.XhpNested a1, B.XhpNested b1)
-      | A.XhpText _, _ | A.XhpExpr _, _ | A.XhpNested _, _ -> fail ()
+      | A.XhpText _, _
+      | A.XhpExpr _, _
+      | A.XhpNested _, _ ->
+          fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* scalar and other expr *)
@@ -993,7 +1039,10 @@ functor
           m_list m_encaps a2 b2 >>= fun (a2, b2) ->
           m_tok a3 b3 >>= fun (a3, b3) ->
           return (A.HereDoc (a1, a2, a3), B.HereDoc (b1, b2, b3))
-      | A.C _, _ | A.Guil _, _ | A.HereDoc _, _ -> fail ()
+      | A.C _, _
+      | A.Guil _, _
+      | A.HereDoc _, _ ->
+          fail ()
 
     and m_list_assign a b =
       match (a, b) with
@@ -1004,7 +1053,10 @@ functor
           (m_paren (m_comma_list m_list_assign)) a2 b2 >>= fun (a2, b2) ->
           return (A.ListList (a1, a2), B.ListList (b1, b2))
       | A.ListEmpty, B.ListEmpty -> return (A.ListEmpty, B.ListEmpty)
-      | A.ListVar _, _ | A.ListList _, _ | A.ListEmpty, _ -> fail ()
+      | A.ListVar _, _
+      | A.ListList _, _
+      | A.ListEmpty, _ ->
+          fail ()
 
     and m_array_pair a b =
       match (a, b) with
@@ -1219,7 +1271,9 @@ functor
           (m_either m_argument m_info) xa xb >>= fun (xa, xb) ->
           m_list__m_argument aas bbs >>= fun (aas, bbs) ->
           return (xa :: aas, xb :: bbs)
-      | [], _ | _ :: _, _ -> fail ()
+      | [], _
+      | _ :: _, _ ->
+          fail ()
 
     (* iso: new Foo(...) can match new X; *)
     and m_option__m_paren__m_list__m_argument a b =
@@ -1254,7 +1308,9 @@ functor
           (m_either m_array_pair m_info) xa xb >>= fun (xa, xb) ->
           m_list__m_array_pair aas bbs >>= fun (aas, bbs) ->
           return (xa :: aas, xb :: bbs)
-      | [], _ | _ :: _, _ -> fail ()
+      | [], _
+      | _ :: _, _ ->
+          fail ()
 
     (*---------------------------------------------------------------------------*)
     (* comma list dots iso *)
@@ -1281,7 +1337,9 @@ functor
           (m_either3 f m_info m_info) xa xb >>= fun (xa, xb) ->
           m_comma_list_dots f aas bbs >>= fun (aas, bbs) ->
           return (xa :: aas, xb :: bbs)
-      | [], _ | _ :: _, _ -> fail ()
+      | [], _
+      | _ :: _, _ ->
+          fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* stmt *)
@@ -1463,7 +1521,9 @@ functor
           m_tok a3 b3 >>= fun (a3, b3) ->
           m_tok a4 b4 >>= fun (a4, b4) ->
           return (A.ColonStmt (a1, a2, a3, a4), B.ColonStmt (b1, b2, b3, b4))
-      | A.SingleStmt _, _ | A.ColonStmt _, _ -> fail ()
+      | A.SingleStmt _, _
+      | A.ColonStmt _, _ ->
+          fail ()
 
     (* ---------------------------------------------------------------------- *)
     (* stmt auxilaries *)
@@ -1651,7 +1711,8 @@ functor
 
     and m_trait_constraint_kind a b =
       match (a, b) with
-      | A.MustExtend, B.MustExtend | A.MustImplement, B.MustImplement ->
+      | A.MustExtend, B.MustExtend
+      | A.MustImplement, B.MustImplement ->
           return (a, b)
       | _ -> fail ()
 
@@ -1688,7 +1749,9 @@ functor
       | A.VModifiers a1, B.VModifiers b1 ->
           (m_list (m_wrap m_modifier)) a1 b1 >>= fun (a1, b1) ->
           return (A.VModifiers a1, B.VModifiers b1)
-      | A.NoModifiers _, _ | A.VModifiers _, _ -> fail ()
+      | A.NoModifiers _, _
+      | A.VModifiers _, _ ->
+          fail ()
 
     (* ------------------------------------------------------------------------- *)
     (* Other declarations *)

@@ -35,7 +35,10 @@ let option = Common.map_opt
 
 let list = Common.map
 
-let either f g x = match x with Left x -> Left (f x) | Right x -> Right (g x)
+let either f g x =
+  match x with
+  | Left x -> Left (f x)
+  | Right x -> Right (g x)
 
 let string = id
 
@@ -83,7 +86,9 @@ and assignOp = function
       let v1 = arithOp v1 in
       Right (v1, tok)
 
-and fixOp = function Dec -> G.Decr | Inc -> G.Incr
+and fixOp = function
+  | Dec -> G.Decr
+  | Inc -> G.Incr
 
 and binaryOp = function
   | Arith v1 ->
@@ -166,7 +171,9 @@ and parameter_classic { p_type; p_name } =
     pinfo = G.empty_id_info ();
   }
 
-and struct_kind = function Struct -> G.OT_StructName | Union -> G.OT_UnionName
+and struct_kind = function
+  | Struct -> G.OT_StructName
+  | Union -> G.OT_UnionName
 
 and expr e =
   (match e with
@@ -459,7 +466,9 @@ and directive = function
   | OtherDirective (v1, v2) ->
       let v1 = name v1 in
       let v2 =
-        match v2 with None -> [] | Some s -> [ G.E (G.L (G.String s) |> G.e) ]
+        match v2 with
+        | None -> []
+        | Some s -> [ G.E (G.L (G.String s) |> G.e) ]
       in
       G.DirectiveStmt (G.Pragma (v1, v2) |> G.d)
 

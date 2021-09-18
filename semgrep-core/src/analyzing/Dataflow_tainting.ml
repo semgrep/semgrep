@@ -126,15 +126,21 @@ let rec check_tainted_expr ~in_a_sink config fun_env env exp =
     | Mem e -> check e
   in
   let check_offset = function
-    | NoOffset | Dot _ -> false
+    | NoOffset
+    | Dot _ ->
+        false
     | Index e -> check e
   in
   let check_subexpr = function
     | Fetch { base = VarSpecial (This, _); offset = Dot fld; _ } ->
         Hashtbl.mem fun_env (str_of_name fld)
     | Fetch { base; offset; _ } -> check_base base || check_offset offset
-    | Literal _ | FixmeExp _ -> false
-    | Composite (_, (_, es, _)) | Operator (_, es) -> List.exists check es
+    | Literal _
+    | FixmeExp _ ->
+        false
+    | Composite (_, (_, es, _))
+    | Operator (_, es) ->
+        List.exists check es
     | Record fields -> List.exists (fun (_, e) -> check e) fields
     | Cast (_, e) -> check e
   in
@@ -216,8 +222,17 @@ let (transfer :
         | Some var -> Hashtbl.add fun_env (str_of_name var) ()
         | None -> ());
         None
-    | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
-    | NThrow _ | NOther _ | NTodo _ ->
+    | Enter
+    | Exit
+    | TrueNode
+    | FalseNode
+    | Join
+    | NCond _
+    | NGoto _
+    | NReturn _
+    | NThrow _
+    | NOther _
+    | NTodo _ ->
         None
   in
   let kill_ni_opt =
@@ -233,8 +248,17 @@ let (transfer :
         else
           (* all clean arguments should reset the taint *)
           IL.lvar_of_instr_opt x
-    | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
-    | NThrow _ | NOther _ | NTodo _ ->
+    | Enter
+    | Exit
+    | TrueNode
+    | FalseNode
+    | Join
+    | NCond _
+    | NGoto _
+    | NReturn _
+    | NThrow _
+    | NOther _
+    | NTodo _ ->
         None
   in
   let gen_ni = option_to_varmap gen_ni_opt in

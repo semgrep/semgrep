@@ -68,7 +68,9 @@ let refactor refactorings (ast, tokens) =
                  V.kfunc_def =
                    (fun (k, _) def ->
                      match def.f_type with
-                     | FunctionRegular | MethodRegular | MethodAbstract ->
+                     | FunctionRegular
+                     | MethodRegular
+                     | MethodAbstract ->
                          let tok = Ast.info_of_ident def.f_name in
                          if tok_pos_equal_refactor_pos tok pos_opt then (
                            let tok_close_paren =

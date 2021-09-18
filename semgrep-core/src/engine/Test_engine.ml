@@ -42,7 +42,9 @@ let (xlangs_of_rules : Rule.t list -> Rule.xlang list) =
  fun rs -> rs |> List.map (fun r -> r.R.languages) |> List.sort_uniq compare
 
 let first_xlang_of_rules rs =
-  match rs with [] -> failwith "no rules" | { R.languages = x; _ } :: _ -> x
+  match rs with
+  | [] -> failwith "no rules"
+  | { R.languages = x; _ } :: _ -> x
 
 (*****************************************************************************)
 (* Entry point *)
@@ -141,7 +143,9 @@ let test_rules ?(unit_testing = false) xs =
                      lang target
                  in
                  (ast, errors)
-             | R.LRegex | R.LGeneric -> raise Impossible)
+             | R.LRegex
+             | R.LGeneric ->
+                 raise Impossible)
          in
          let file_and_more =
            {

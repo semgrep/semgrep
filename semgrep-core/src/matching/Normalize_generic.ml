@@ -67,7 +67,11 @@ let normalize_import_opt is_pattern i =
       full_module_name is_pattern module_name None >>= fun x -> Some (t, x)
   | ImportAll (t, module_name, _t2) ->
       full_module_name is_pattern module_name None >>= fun x -> Some (t, x)
-  | Package _ | PackageEnd _ | Pragma _ | OtherDirective _ -> None
+  | Package _
+  | PackageEnd _
+  | Pragma _
+  | OtherDirective _ ->
+      None
 
 (*e: function [[Normalize_generic.normalize_import_opt]] *)
 
@@ -89,12 +93,16 @@ let rec eval x : constness option =
       let literals =
         args |> unbracket
         |> Common.map_filter (fun arg ->
-               match arg with Arg e -> eval e | _ -> None)
+               match arg with
+               | Arg e -> eval e
+               | _ -> None)
       in
       let strs =
         literals
         |> Common.map_filter (fun lit ->
-               match lit with Lit (String (s1, _)) -> Some s1 | _ -> None)
+               match lit with
+               | Lit (String (s1, _)) -> Some s1
+               | _ -> None)
       in
       let concated = String.concat "" strs in
       let all_args_are_string =

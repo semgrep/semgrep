@@ -392,7 +392,9 @@ and number = function
 (*e: function [[Python_to_generic.number]] *)
 
 (*s: function [[Python_to_generic.boolop]] *)
-and boolop = function And -> G.And | Or -> G.Or
+and boolop = function
+  | And -> G.And
+  | Or -> G.Or
 
 (*e: function [[Python_to_generic.boolop]] *)
 
@@ -775,7 +777,8 @@ and stmt_aux x =
         (fun (a, b) ->
           G.DirectiveStmt (G.ImportFrom (t, v1, a, b) |> G.d) |> G.s)
         v2
-  | Global (t, v1) | NonLocal (t, v1) ->
+  | Global (t, v1)
+  | NonLocal (t, v1) ->
       let v1 = list name v1 in
       v1
       |> List.map (fun x ->
@@ -858,7 +861,9 @@ and decorator (t, v1, v2) =
   let v1 = dotted_name v1 in
   let v2 = option (bracket (list argument)) v2 in
   let args =
-    match v2 with Some (t1, x, t2) -> (t1, x, t2) | None -> G.fake_bracket []
+    match v2 with
+    | Some (t1, x, t2) -> (t1, x, t2)
+    | None -> G.fake_bracket []
   in
   let name = H.name_of_ids v1 in
   G.NamedAttr (t, name, args)
@@ -887,7 +892,9 @@ let any = function
   | Stmt v1 -> (
       let v1 = stmt v1 in
       (* in Python Assign is a stmt but in the generic AST it's an expression*)
-      match v1.G.s with G.ExprStmt (x, _t) -> G.E x | _ -> G.S v1)
+      match v1.G.s with
+      | G.ExprStmt (x, _t) -> G.E x
+      | _ -> G.S v1)
   | Stmts v1 ->
       let v1 = list_stmt v1 in
       G.Ss v1

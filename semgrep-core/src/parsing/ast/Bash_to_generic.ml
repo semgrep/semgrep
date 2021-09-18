@@ -101,7 +101,10 @@ let as_expr : stmt_or_expr -> G.expr = function
   | Stmt (loc, st) -> expr_of_stmt loc st
   | Expr (loc, e) -> e
 
-let stmt_or_expr_loc = function Stmt (loc, _) | Expr (loc, _) -> loc
+let stmt_or_expr_loc = function
+  | Stmt (loc, _)
+  | Expr (loc, _) ->
+      loc
 
 let block : stmt_or_expr list -> stmt_or_expr = function
   | [ x ] -> x
@@ -307,7 +310,8 @@ and expansion (x : expansion) : G.expr =
   | Simple_expansion (loc, dollar_tok, var_name) ->
       let arg =
         match var_name with
-        | Simple_variable_name name | Special_variable_name name ->
+        | Simple_variable_name name
+        | Special_variable_name name ->
             G.Arg (G.N (G.Id (name, G.empty_id_info ())) |> G.e)
       in
       let func = G.N (G.Id (("$", dollar_tok), G.empty_id_info ())) |> G.e in

@@ -242,7 +242,9 @@ and map_base env = function
   | CLong -> CLong
   | CLongLong -> CLongLong
 
-and map_sign env = function Signed -> Signed | UnSigned -> UnSigned
+and map_sign env = function
+  | Signed -> Signed
+  | UnSigned -> UnSigned
 
 and map_floatType env = function
   | CFloat -> CFloat
@@ -396,7 +398,9 @@ and map_expr env x : G.expr =
 
 and map_ident_info env { i_scope = _v_i_scope } = todo env ()
 
-and map_special env = function This -> This | Defined -> Defined
+and map_special env = function
+  | This -> This
+  | Defined -> Defined
 
 and map_argument env x : G.argument =
   match x with
@@ -460,7 +464,9 @@ and map_constant env x : G.literal =
       let v1 = map_tok env v1 in
       todo env v1
 
-and map_isWchar env = function IsWchar -> IsWchar | IsChar -> IsChar
+and map_isWchar env = function
+  | IsWchar -> IsWchar
+  | IsChar -> IsChar
 
 and map_unaryOp env = function
   | UnPlus -> UnPlus
@@ -479,9 +485,13 @@ and map_assignOp env = function
       let v1 = map_wrap env (map_arithOp env) v1 in
       todo env v1
 
-and map_fixOp env = function Dec -> Dec | Inc -> Inc
+and map_fixOp env = function
+  | Dec -> Dec
+  | Inc -> Inc
 
-and map_dotOp env = function Dot -> Dot | Arrow -> Arrow
+and map_dotOp env = function
+  | Dot -> Dot
+  | Arrow -> Arrow
 
 and map_binaryOp env = function
   | Arith v1 ->
@@ -513,7 +523,9 @@ and map_logicalOp env = function
   | AndLog -> AndLog
   | OrLog -> OrLog
 
-and map_ptrOp env = function PtrStarOp -> PtrStarOp | PtrOp -> PtrOp
+and map_ptrOp env = function
+  | PtrStarOp -> PtrStarOp
+  | PtrOp -> PtrOp
 
 and map_allocOp env = function
   | NewOp -> NewOp
@@ -521,7 +533,9 @@ and map_allocOp env = function
   | NewArrayOp -> NewArrayOp
   | DeleteArrayOp -> DeleteArrayOp
 
-and map_accessop env = function ParenOp -> ParenOp | ArrayOp -> ArrayOp
+and map_accessop env = function
+  | ParenOp -> ParenOp
+  | ArrayOp -> ArrayOp
 
 and map_operator env = function
   | BinaryOp v1 ->

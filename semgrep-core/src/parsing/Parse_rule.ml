@@ -520,7 +520,9 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
       let x = parse_string_wrap env key value in
       let xpat = R.mk_xpat (Comby (fst x)) x in
       R.Pat xpat
-  | "metavariable-regex" | "metavariable-pattern" | "metavariable-comparison"
+  | "metavariable-regex"
+  | "metavariable-pattern"
+  | "metavariable-comparison"
   | "pattern-where-python" ->
       R.PatExtra (t, parse_extra env key value)
   (* fix suggestions *)
@@ -659,7 +661,8 @@ let parse_severity ~id (s, t) =
 
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   match mode_opt with
-  | None | Some ("search", _) ->
+  | None
+  | Some ("search", _) ->
       let formula = parse_formula env rule_dict in
       R.Search formula
   | Some ("taint", _) ->
