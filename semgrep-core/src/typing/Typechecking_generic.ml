@@ -1,5 +1,3 @@
-(*s: semgrep/typing/Typechecking_generic.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open AST_generic
 module G = AST_generic
 
@@ -35,7 +32,6 @@ module G = AST_generic
 (* Entry point *)
 (*****************************************************************************)
 
-(*s: function [[Typechecking_generic.compatible_type]] *)
 (* very Python specific for now where the type is currently an OT_Expr
  * TODO: fill AST_generic.expr_to_type at least.
  *)
@@ -64,6 +60,3 @@ let compatible_type t e =
       | Some { t = TyArray (_, { t = TyN (Id ((t2, _), _)); _ }); _ } -> t1 = t2
       | _ -> false)
   | _ -> false
-
-(*e: function [[Typechecking_generic.compatible_type]] *)
-(*e: semgrep/typing/Typechecking_generic.ml *)

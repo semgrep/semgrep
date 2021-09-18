@@ -1,6 +1,3 @@
-(*s: semgrep/parsing/Check_pattern.ml *)
-
-(*s: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
 (* for these languages, we are sure that $x is an error *)
 let lang_has_no_dollar_ids =
   Lang.(
@@ -33,9 +30,6 @@ let lang_has_no_dollar_ids =
     | Scala ->
         false)
 
-(*e: constant [[Check_semgrep.lang_has_no_dollar_ids]] *)
-
-(*s: function [[Check_semgrep.check_pattern_metavars]] *)
 let check_pattern_metavars error lang ast =
   let kident_metavar (k, _out) ((str, _tok) as ident) =
     if
@@ -53,13 +47,6 @@ let check_pattern_metavars error lang ast =
     Visitor_AST.(
       mk_visitor { default_visitor with kident = kident_metavar } ast)
 
-(*e: function [[Check_semgrep.check_pattern_metavars]] *)
-
-(*s: function [[Check_semgrep.check_pattern]] *)
 let check lang ast =
   let error s = failwith s in
   check_pattern_metavars error lang ast
-
-(*e: function [[Check_semgrep.check_pattern]] *)
-
-(*e: semgrep/parsing/Check_pattern.ml *)

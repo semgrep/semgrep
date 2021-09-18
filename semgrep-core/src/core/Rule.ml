@@ -1,5 +1,3 @@
-(*s: semgrep/core/Rule.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 module G = AST_generic
 module MV = Metavariable
 
@@ -422,5 +419,3 @@ let partition_rules rules =
          match r.mode with
          | Search f -> Left (r, f)
          | Taint s -> Right (r, s))
-
-(*e: semgrep/core/Rule.ml *)

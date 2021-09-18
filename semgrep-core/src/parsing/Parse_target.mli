@@ -1,5 +1,3 @@
-(*s: semgrep/parsing/Parse_target.mli *)
-
 type parsing_result = {
   ast : AST_generic.program;
   errors : Semgrep_error_code.error list;
@@ -19,5 +17,3 @@ val parse_program : Common.filename -> AST_generic.program
 
 (* used by Parse_pattern *)
 val lang_to_python_parsing_mode : Lang.t -> Parse_python.parsing_mode
-
-(*e: semgrep/parsing/Parse_target.mli *)

@@ -1,4 +1,3 @@
-(*s: pfff/lang_GENERIC/analyze/CFG_build.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2009, 2010, 2011 Facebook
@@ -39,7 +38,6 @@ module F = IL (* to be even more similar to controlflow_build.ml *)
  *)
 type label_key = string * G.sid
 
-(*s: type [[CFG_build.state]] *)
 (* Information passed recursively in stmt or stmt_list below.
  * The graph g is mutable, so most of the work is done by side effects on it.
  * No need to return a new state.
@@ -54,23 +52,15 @@ type state = {
   gotos : (nodei * label_key) list ref;
 }
 
-(*e: type [[CFG_build.state]] *)
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(*s: function [[CFG_build.add_arc]] *)
 let add_arc (starti, nodei) g = g#add_arc ((starti, nodei), F.Direct)
 
-(*e: function [[CFG_build.add_arc]] *)
-
-(*s: function [[CFG_build.add_arc_opt]] *)
 let add_arc_opt (starti_opt, nodei) g =
   starti_opt
   |> Common.do_option (fun starti -> g#add_arc ((starti, nodei), F.Direct))
-
-(*e: function [[CFG_build.add_arc_opt]] *)
 
 let key_of_label ((str, _tok), sid) : label_key = (str, sid)
 
@@ -266,5 +256,3 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
    *)
   g |> add_arc_opt (last_node_opt, exiti);
   g
-
-(*e: pfff/lang_GENERIC/analyze/CFG_build.ml *)

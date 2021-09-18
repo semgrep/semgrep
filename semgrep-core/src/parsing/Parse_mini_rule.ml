@@ -1,4 +1,3 @@
-(*s: semgrep/parsing/Parse_mini_rule.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
@@ -21,13 +20,6 @@ module PR = Parse_rule
 (* Helpers *)
 (*****************************************************************************)
 
-(*s: function [[Parse_rules.parse_severity]] *)
-(*e: function [[Parse_rules.parse_severity]] *)
-
-(*s: function [[Parse_rules.parse_pattern]] *)
-(*e: function [[Parse_rules.parse_pattern]] *)
-
-(*s: function [[Parse_rules.parse_languages]] *)
 let parse_languages ~id t langs =
   let languages =
     langs
@@ -50,13 +42,10 @@ let parse_languages ~id t langs =
   in
   (languages, lang)
 
-(*e: function [[Parse_rules.parse_languages]] *)
-
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-(*s: function [[Parse_rules.parse]] *)
 let parse file =
   let str = Common.read_file file in
   let loc = Parse_info.first_loc_of_file file in
@@ -110,8 +99,6 @@ let parse file =
           raise (Rule.InvalidYaml ("missing rules entry as top-level key", t)))
   | Result.Error (`Msg s) -> raise (Rule.UnparsableYamlException s)
 
-(*e: function [[Parse_rules.parse]] *)
-
 (*
       let sgrep_string = Common.matched1 s in
       let title, msg = match group with
@@ -132,4 +119,3 @@ let parse file =
     else raise Impossible
   )
 *)
-(*e: semgrep/parsing/Parse_mini_rule.ml *)

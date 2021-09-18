@@ -1,6 +1,3 @@
-(*s: semgrep/engine/Match_patterns.mli *)
-
-(*s: signature [[Semgrep_generic.check]] *)
 val check :
   hook:(Metavariable.bindings -> Parse_info.t list Lazy.t -> unit) ->
   ?range_filter:(Parse_info.token_location * Parse_info.token_location -> bool) ->
@@ -18,24 +15,11 @@ val check :
   *    your area(s) of interest, no need to worry about sub-expressions, they will be
   *    visited regardless. *)
 
-(*e: signature [[Semgrep_generic.check]] *)
-
 val last_matched_rule : Mini_rule.t option ref
-
-(*s: type [[Semgrep_generic.matcher]] *)
-(*e: type [[Semgrep_generic.matcher]] *)
 
 (* used by tainting *)
 
-(*s: signature [[Semgrep_generic.match_e_e]] *)
 val match_e_e : Mini_rule.t -> AST_generic.expr Matching_generic.matcher
 
-(*e: signature [[Semgrep_generic.match_e_e]] *)
-
-(*s: signature [[Semgrep_generic.match_any_any]] *)
 (* for unit testing *)
 val match_any_any : AST_generic.any Matching_generic.matcher
-
-(*e: signature [[Semgrep_generic.match_any_any]] *)
-
-(*e: semgrep/engine/Match_patterns.mli *)

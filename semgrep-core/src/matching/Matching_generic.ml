@@ -1,5 +1,3 @@
-(*s: semgrep/matching/Matching_generic.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 module B = AST_generic
 module G = AST_generic
@@ -75,7 +72,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *   type ('a, 'b) matcher = 'a -> 'b -> tin -> tout
  *)
 
-(*s: type [[Matching_generic.tin]] *)
 (* tin is for 'type in' and tout for 'type out' *)
 (* incoming environment *)
 type tin = {
@@ -86,14 +82,9 @@ type tin = {
   config : Config_semgrep.t;
 }
 
-(*e: type [[Matching_generic.tin]] *)
-(*s: type [[Matching_generic.tout]] *)
 (* list of possible outcoming matching environments *)
 and tout = tin list
 
-(*e: type [[Matching_generic.tout]] *)
-
-(*s: type [[Matching_generic.matcher]] *)
 (* A matcher is something taking an element A and an element B
  * (for this module A will be the AST of the pattern and B
  * the AST of the program we want to match over), then some environment
@@ -109,8 +100,6 @@ type 'a comb_result = tin -> ('a * tout) list
 
 type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
 
-(*e: type [[Matching_generic.matcher]] *)
-
 (*****************************************************************************)
 (* Globals *)
 (*****************************************************************************)
@@ -118,8 +107,6 @@ type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
 (*****************************************************************************)
 (* Debugging *)
 (*****************************************************************************)
-(*s: function [[Matching_generic.str_of_any]] *)
-(*e: function [[Matching_generic.str_of_any]] *)
 
 (*****************************************************************************)
 (* Monadic operators *)
@@ -141,7 +128,6 @@ type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
  * https://www.cs.cornell.edu/courses/cs3110/2019sp/textbook/ads/ex_maybe_monad.html
  *)
 
-(*s: function [[Matching_generic.monadic_bind]] *)
 let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
  fun m1 m2 tin ->
   (* let's get a list of possible environment match (could be
@@ -153,9 +139,6 @@ let (( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout) =
   let xxs = xs |> List.map (fun binding -> m2 () binding) in
   List.flatten xxs
 
-(*e: function [[Matching_generic.monadic_bind]] *)
-
-(*s: function [[Matching_generic.monadic_or]] *)
 (* the disjunctive combinator *)
 let (( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout) =
  fun m1 m2 tin ->
@@ -168,33 +151,22 @@ let (( >||> ) : (tin -> tout) -> (tin -> tout) -> tin -> tout) =
   (* opti? use set instead of list *)
   m1 tin @ m2 tin
 
-(*e: function [[Matching_generic.monadic_or]] *)
-
-(*s: function [[Matching_generic.monadic_if_fail]] *)
 (* the if-fail combinator *)
 let ( >!> ) m1 else_cont tin =
   match m1 tin with
   | [] -> (else_cont ()) tin
   | xs -> xs
 
-(*e: function [[Matching_generic.monadic_if_fail]] *)
-
 let if_config f ~then_ ~else_ tin =
   if f tin.config then then_ tin else else_ tin
 
-(*s: function [[Matching_generic.return]] *)
 (* The classical monad combinators *)
 let (return : tin -> tout) = fun tin -> [ tin ]
 
-(*e: function [[Matching_generic.return]] *)
-
-(*s: function [[Matching_generic.fail]] *)
 let (fail : tin -> tout) =
  fun _tin ->
   if !Flag.debug_matching then failwith "Generic_vs_generic.fail: Match failure";
   []
-
-(*e: function [[Matching_generic.fail]] *)
 
 let or_list m a bs =
   let rec aux xs =
@@ -226,7 +198,6 @@ let extend_stmts_match_span rightmost_stmt (env : tin) =
   in
   { env with stmts_match_span }
 
-(*s: function [[Matching_generic.equal_ast_binded_code]] *)
 (* pre: both 'a' and 'b' contains only regular code; there are no
  * metavariables inside them.
  *)
@@ -315,9 +286,6 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
       (lazy (spf "A = %s\nB = %s\n" (MV.str_of_mval a) (MV.str_of_mval b)));
   res
 
-(*e: function [[Matching_generic.equal_ast_binded_code]] *)
-
-(*s: function [[Matching_generic.check_and_add_metavar_binding]] *)
 let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
   match Common2.assoc_opt mvar tin.mv.full_env with
   | Some valu' ->
@@ -337,37 +305,24 @@ let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
       (* first time the metavar is bound, just add it to the environment *)
       Some (add_mv_capture mvar valu tin)
 
-(*e: function [[Matching_generic.check_and_add_metavar_binding]] *)
-
-(*s: function [[Matching_generic.envf]] *)
 let (envf : MV.mvar G.wrap -> MV.mvalue -> tin -> tout) =
  fun (mvar, _imvar) any tin ->
   match check_and_add_metavar_binding (mvar, any) tin with
   | None ->
-      (*s: [[Matching_generic.envf]] if [[verbose]] when fail *)
       logger#ldebug (lazy (spf "envf: fail, %s (%s)" mvar (MV.str_of_mval any)));
-      (*e: [[Matching_generic.envf]] if [[verbose]] when fail *)
       fail tin
   | Some new_binding ->
-      (*s: [[Matching_generic.envf]] if [[verbose]] when success *)
       logger#ldebug
         (lazy (spf "envf: success, %s (%s)" mvar (MV.str_of_mval any)));
-      (*e: [[Matching_generic.envf]] if [[verbose]] when success *)
       return new_binding
 
-(*e: function [[Matching_generic.envf]] *)
-
-(*s: function [[Matching_generic.empty_environment]] *)
 let empty_environment opt_cache config =
   { mv = Env.empty; stmts_match_span = Empty; cache = opt_cache; config }
-
-(*e: function [[Matching_generic.empty_environment]] *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(*s: function [[Matching_generic.has_ellipsis_stmts]] *)
 (* guard for deep stmt matching *)
 let has_ellipsis_stmts xs =
   xs
@@ -375,8 +330,6 @@ let has_ellipsis_stmts xs =
          match st.G.s with
          | G.ExprStmt ({ e = G.Ellipsis _; _ }, _) -> true
          | _ -> false)
-
-(*e: function [[Matching_generic.has_ellipsis_stmts]] *)
 
 let rec inits_and_rest_of_list = function
   | [] -> failwith "inits_1 requires a non-empty list"
@@ -406,7 +359,6 @@ let _ =
         ([ 'a'; 'b'; 'c' ], []);
       ])
 
-(*s: function [[Matching_generic.all_elem_and_rest_of_list]] *)
 (* todo? optimize, probably not the optimal version ... *)
 let all_elem_and_rest_of_list xs =
   let rec loop acc prev_xs = function
@@ -427,13 +379,9 @@ let rec all_splits = function
       |> List.map (function ls, rs -> [ (x :: ls, rs); (ls, x :: rs) ])
       |> List.flatten
 
-(*e: function [[Matching_generic.all_elem_and_rest_of_list]] *)
-
-(*s: toplevel [[Matching_generic._1]] *)
 (* let _ = Common2.example
     (all_elem_and_rest_of_list ['a';'b';'c'] =
      [('a', ['b';'c']); ('b', ['a';'c']); ('c', ['a';'b'])]) *)
-(*e: toplevel [[Matching_generic._1]] *)
 
 (* Since all_elem_and_rest_of_list computes the rest of list lazily,
  * we want to still keep track of how much time we're spending on
@@ -442,24 +390,13 @@ let lazy_rest_of_list v =
   Common.profile_code "Matching_generic.eval_rest_of_list" (fun () ->
       Lazy.force v)
 
-(*s: function [[Matching_generic.return_bis]] *)
 let return () = return
 
-(*e: function [[Matching_generic.return_bis]] *)
-(*s: function [[Matching_generic.fail_bis]] *)
 let fail () = fail
-
-(*e: function [[Matching_generic.fail_bis]] *)
-
-(*s: constant [[Matching_generic.regexp_regexp_string]] *)
-(*e: constant [[Matching_generic.regexp_regexp_string]] *)
-(*s: function [[Matching_generic.is_regexp_string]] *)
-(*e: function [[Matching_generic.is_regexp_string]] *)
 
 (* TODO: deprecate *)
 type regexp = Re.re (* old: Str.regexp *)
 
-(*s: function [[Matching_generic.regexp_of_regexp_string]] *)
 let regexp_matcher_of_regexp_string s =
   if s =~ Pattern.regexp_regexp_string then (
     let x, flags = Common.matched2 s in
@@ -479,8 +416,6 @@ let regexp_matcher_of_regexp_string s =
       b)
   else failwith (spf "This is not a PCRE-compatible regexp: " ^ s)
 
-(*e: function [[Matching_generic.regexp_of_regexp_string]] *)
-
 (*****************************************************************************)
 (* Generic matchers *)
 (*****************************************************************************)
@@ -488,7 +423,6 @@ let regexp_matcher_of_regexp_string s =
 (* ---------------------------------------------------------------------- *)
 (* stdlib: option *)
 (* ---------------------------------------------------------------------- *)
-(*s: function [[Matching_generic.m_option]] *)
 let (m_option : 'a matcher -> 'a option matcher) =
  fun f a b ->
   match (a, b) with
@@ -498,9 +432,6 @@ let (m_option : 'a matcher -> 'a option matcher) =
   | Some _, _ ->
       fail ()
 
-(*e: function [[Matching_generic.m_option]] *)
-
-(*s: function [[Matching_generic.m_option_ellipsis_ok]] *)
 (* dots: *)
 let m_option_ellipsis_ok f a b =
   match (a, b) with
@@ -512,9 +443,6 @@ let m_option_ellipsis_ok f a b =
   | Some _, _ ->
       fail ()
 
-(*e: function [[Matching_generic.m_option_ellipsis_ok]] *)
-
-(*s: function [[Matching_generic.m_option_none_can_match_some]] *)
 (* less-is-ok: *)
 let m_option_none_can_match_some f a b =
   match (a, b) with
@@ -523,24 +451,18 @@ let m_option_none_can_match_some f a b =
   | Some xa, Some xb -> f xa xb
   | Some _, _ -> fail ()
 
-(*e: function [[Matching_generic.m_option_none_can_match_some]] *)
-
 (* ---------------------------------------------------------------------- *)
 (* stdlib: ref *)
 (* ---------------------------------------------------------------------- *)
-(*s: function [[Matching_generic.m_ref]] *)
 let (m_ref : 'a matcher -> 'a ref matcher) =
  fun f a b ->
   match (a, b) with
   | { contents = xa }, { contents = xb } -> f xa xb
 
-(*e: function [[Matching_generic.m_ref]] *)
-
 (* ---------------------------------------------------------------------- *)
 (* stdlib: list *)
 (* ---------------------------------------------------------------------- *)
 
-(*s: function [[Matching_generic.m_list]] *)
 let rec m_list f a b =
   match (a, b) with
   | [], [] -> return ()
@@ -549,9 +471,6 @@ let rec m_list f a b =
   | _ :: _, _ ->
       fail ()
 
-(*e: function [[Matching_generic.m_list]] *)
-
-(*s: function [[Matching_generic.m_list_prefix]] *)
 let rec m_list_prefix f a b =
   match (a, b) with
   | [], [] -> return ()
@@ -560,17 +479,11 @@ let rec m_list_prefix f a b =
   | [], _ -> return ()
   | _ :: _, _ -> fail ()
 
-(*e: function [[Matching_generic.m_list_prefix]] *)
-
-(*s: function [[Matching_generic.m_list_with_dots]] *)
 let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
   match (xsa, xsb) with
   | [], [] -> return ()
-  (*s: [[Matching_generic.m_list_with_dots()]]> empty list vs list case *)
   (* less-is-ok: empty list can sometimes match non-empty list *)
   | [], _ :: _ when less_is_ok -> return ()
-  (*e: [[Matching_generic.m_list_with_dots()]]> empty list vs list case *)
-  (*s: [[Matching_generic.m_list_with_dots()]]> ellipsis cases *)
   (* dots: '...', can also match no argument *)
   | [ a ], [] when is_dots a -> return ()
   | a :: xsa, xb :: xsb when is_dots a ->
@@ -578,15 +491,12 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
       m_list_with_dots f is_dots less_is_ok xsa (xb :: xsb)
       >||> (* can match more *)
       m_list_with_dots f is_dots less_is_ok (a :: xsa) xsb
-  (*e: [[Matching_generic.m_list_with_dots()]]> ellipsis cases *)
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       f xa xb >>= fun () -> m_list_with_dots f is_dots less_is_ok aas bbs
   | [], _
   | _ :: _, _ ->
       fail ()
-
-(*e: function [[Matching_generic.m_list_with_dots]] *)
 
 (* todo? opti? try to go faster to the one with split_when?
  * need reflect tin so we can call the matcher and query whether there
@@ -662,22 +572,12 @@ let m_comb_1toN m_1toN a bs : _ comb_result =
 
 let m_eq a b = if a = b then return () else fail ()
 
-(*s: function [[Matching_generic.m_bool]] *)
 let m_bool a b = if a = b then return () else fail ()
 
-(*e: function [[Matching_generic.m_bool]] *)
-
-(*s: function [[Matching_generic.m_int]] *)
 let m_int a b = if a =|= b then return () else fail ()
 
-(*e: function [[Matching_generic.m_int]] *)
-
-(*s: function [[Matching_generic.m_string]] *)
 let m_string a b = if a =$= b then return () else fail ()
 
-(*e: function [[Matching_generic.m_string]] *)
-
-(*s: function [[Matching_generic.filepath_is_prefix]] *)
 (* old: Before we just checked whether `s2` was a prefix of `s1`, e.g.
  * "foo" is a prefix of "foobar". However we use this function to check
  * file paths, and the path "foo" is NOT a prefix of the path "foobar".
@@ -692,45 +592,28 @@ let filepath_is_prefix s1 s2 =
     let sub = Str.first_chars s1 len2 in
     sub = s2 && (len1 = len2 || is_sep s1.[len2])
 
-(*e: function [[Matching_generic.filepath_is_prefix]] *)
-
-(*s: function [[Matching_generic.m_filepath_prefix]] *)
 (* less-is-ok: *)
 let m_filepath_prefix a b =
   if filepath_is_prefix b a then return () else fail ()
-
-(*e: function [[Matching_generic.m_filepath_prefix]] *)
 
 (* ---------------------------------------------------------------------- *)
 (* Token *)
 (* ---------------------------------------------------------------------- *)
 
-(*s: function [[Matching_generic.m_info]] *)
 (* we do not care about position! or differences in space/indent/comment!
  * so we can just  'return ()'
  *)
 let m_info _a _b = return ()
 
-(*e: function [[Matching_generic.m_info]] *)
-
-(*s: function [[Matching_generic.m_tok]] *)
 let m_tok a b = m_info a b
 
-(*e: function [[Matching_generic.m_tok]] *)
-
-(*s: function [[Matching_generic.m_wrap]] *)
 let m_wrap f a b =
   match (a, b) with
   | (xaa, ainfo), (xbb, binfo) -> f xaa xbb >>= fun () -> m_info ainfo binfo
 
-(*e: function [[Matching_generic.m_wrap]] *)
-
-(*s: function [[Matching_generic.m_bracket]] *)
 let m_bracket f (a1, a2, a3) (b1, b2, b3) =
   m_info a1 b1 >>= fun () ->
   f a2 b2 >>= fun () -> m_info a3 b3
-
-(*e: function [[Matching_generic.m_bracket]] *)
 
 let m_tuple3 m_a m_b m_c (a1, b1, c1) (a2, b2, c2) =
   (m_a a1 a2 >>= fun () -> m_b b1 b2) >>= fun () -> m_c c1 c2
@@ -791,11 +674,7 @@ let m_ellipsis_or_metavar_or_string a b =
   | s when MV.is_metavar_name s -> envf a (MV.Text b)
   | _ -> m_wrap m_string a b
 
-(*s: function [[Matching_generic.m_other_xxx]] *)
 let m_other_xxx a b =
   match (a, b) with
   | a, b when a =*= b -> return ()
   | _ -> fail ()
-
-(*e: function [[Matching_generic.m_other_xxx]] *)
-(*e: semgrep/matching/Matching_generic.ml *)
