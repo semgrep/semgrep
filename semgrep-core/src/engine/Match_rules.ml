@@ -1,5 +1,3 @@
-(*s: semgrep/engine/Match_rules.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 module R = Rule
 module MR = Mini_rule
@@ -1011,5 +1008,3 @@ let check hook default_config rules equivs file_and_more =
                }))
   |> RP.collate_semgrep_results
   [@@profiling]
-
-(*e: semgrep/engine/Match_rules.ml *)

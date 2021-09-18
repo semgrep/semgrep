@@ -1,5 +1,3 @@
-(*s: semgrep/parsing/Parse_pattern.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 
 (*****************************************************************************)
@@ -145,5 +142,3 @@ let dump_tree_sitter_pattern_cst lang file =
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
   | _ -> ()
-
-(*e: semgrep/parsing/Parse_pattern.ml *)

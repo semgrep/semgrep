@@ -1,5 +1,3 @@
-(*s: semgrep/reporting/JSON_report.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 module StrSet = Common2.StringSet
 open AST_generic
@@ -32,10 +29,7 @@ module SJ = Semgrep_core_response_j (* JSON conversions *)
 (*****************************************************************************)
 (* Unique ID *)
 (*****************************************************************************)
-(*s: function [[JSON_report.string_of_resolved]] *)
-(*e: function [[JSON_report.string_of_resolved]] *)
 
-(*s: function [[JSON_report.unique_id]] *)
 (* Returning scoping-aware information about a metavariable, so that
  * the callers of semgrep (semgrep python) can check if multiple metavariables
  * reference the same entity, or reference exactly the same code.
@@ -62,13 +56,10 @@ let unique_id any =
       let md5 = Digest.string s in
       { ST.type_ = `AST; md5sum = Some (Digest.to_hex md5); sid = None }
 
-(*e: function [[JSON_report.unique_id]] *)
-
 (*****************************************************************************)
 (* JSON *)
 (*****************************************************************************)
 
-(*s: function [[JSON_report.json_range]] *)
 let position_range min_loc max_loc =
   (* pfff (and Emacs) have the first column at index 0, but not r2c *)
   let adjust_column x = x + 1 in
@@ -85,9 +76,6 @@ let position_range min_loc max_loc =
       offset = max_loc.PI.charpos + len_max;
     } )
 
-(*e: function [[JSON_report.json_range]] *)
-
-(*s: function [[JSON_report.range_of_any]] *)
 let range_of_any_opt startp_of_match_range any =
   let empty_range = (startp_of_match_range, startp_of_match_range) in
   match any with
@@ -103,9 +91,6 @@ let range_of_any_opt startp_of_match_range any =
       let startp, endp = position_range min_loc max_loc in
       Some (startp, endp)
 
-(*e: function [[JSON_report.range_of_any]] *)
-
-(*s: function [[JSON_report.json_metavar]] *)
 let metavars startp_of_match_range (s, mval) =
   let any = MV.mvalue_to_any mval in
   match range_of_any_opt startp_of_match_range any with
@@ -128,9 +113,6 @@ let metavars startp_of_match_range (s, mval) =
           unique_id = unique_id any;
         } )
 
-(*e: function [[JSON_report.json_metavar]] *)
-
-(*s: function [[JSON_report.match_to_json]] *)
 let match_to_match x =
   try
     let min_loc, max_loc = x.range_loc in
@@ -163,8 +145,6 @@ let match_to_match x =
     let err = E.mk_error ~rule_id:(Some x.rule_id.id) loc s E.MatchingError in
     Right err
   [@@profiling]
-
-(*e: function [[JSON_report.match_to_json]] *)
 
 (* was in pfff/h_program-lang/R2c.ml becore *)
 let hcache = Hashtbl.create 101
@@ -254,19 +234,12 @@ let json_of_profile_info profile_start =
 (* Error management *)
 (*****************************************************************************)
 
-(*s: function [[JSON_report.error]] *)
 (* this is used only in the testing code, to reuse the
  * Semgrep_error_code.compare_actual_to_expected
  *)
 let error loc (rule : Pattern_match.rule_id) =
   E.error rule.id loc rule.message (E.SemgrepMatchFound rule.id)
 
-(*e: function [[JSON_report.error]] *)
-
-(*s: function [[JSON_report.match_to_error]] *)
 let match_to_error x =
   let min_loc, _max_loc = x.range_loc in
   error min_loc x.rule_id
-
-(*e: function [[JSON_report.match_to_error]] *)
-(*e: semgrep/reporting/JSON_report.ml *)

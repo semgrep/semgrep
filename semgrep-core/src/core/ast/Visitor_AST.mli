@@ -1,8 +1,6 @@
-(*s: pfff/lang_GENERIC/parsing/Visitor_AST.mli *)
 open AST_generic
 
 (* the hooks *)
-(*s: type [[Visitor_AST.visitor_in]] *)
 type visitor_in = {
   (* those are the one used by semgrep *)
   kexpr : (expr -> unit) * visitor_out -> expr -> unit;
@@ -28,24 +26,13 @@ type visitor_in = {
   kconstness : (constness -> unit) * visitor_out -> constness -> unit;
 }
 
-(*e: type [[Visitor_AST.visitor_in]] *)
 (* note that internally the visitor uses OCaml.v_ref_do_not_visit *)
-(*s: type [[Visitor_AST.visitor_out]] *)
 and visitor_out = any -> unit
 
-(*e: type [[Visitor_AST.visitor_out]] *)
-
-(*s: signature [[Visitor_AST.default_visitor]] *)
 val default_visitor : visitor_in
-
-(*e: signature [[Visitor_AST.default_visitor]] *)
-
-(*s: signature [[Visitor_AST.mk_visitor]] *)
 
 val mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out
 (** @param vardef_assign VarDef-Assign equivalence (default is [false]) *)
-
-(*e: signature [[Visitor_AST.mk_visitor]] *)
 
 (* poor's man fold *)
 (*
@@ -67,5 +54,3 @@ val range_of_tokens : Parse_info.t list -> Parse_info.t * Parse_info.t
 val range_of_any_opt :
   AST_generic.any ->
   (Parse_info.token_location * Parse_info.token_location) option
-
-(*e: pfff/lang_GENERIC/parsing/Visitor_AST.mli *)

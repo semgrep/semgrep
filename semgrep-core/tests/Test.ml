@@ -1,4 +1,3 @@
-(*s: semgrep/tests/Test.ml *)
 open Common
 open Testutil
 module E = Semgrep_error_code
@@ -14,37 +13,23 @@ module MR = Mini_rule
 (*****************************************************************************)
 (* Flags *)
 (*****************************************************************************)
-(*s: constant [[Test.verbose]] *)
-(*e: constant [[Test.verbose]] *)
 
-(*s: constant [[Test.dump_ast]] *)
-(*e: constant [[Test.dump_ast]] *)
 
-(*s: constant [[Test.tests_path]] *)
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
-(*e: constant [[Test.tests_path]] *)
-(*s: constant [[Test.data_path]] *)
 let data_path = "../../../data"
-(*e: constant [[Test.data_path]] *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(*s: function [[Test.ast_fuzzy_of_string]] *)
-(*e: function [[Test.ast_fuzzy_of_string]] *)
 
-(*s: function [[Test.any_gen_of_string]] *)
 let any_gen_of_string str =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
   let any = Parse_python.any_of_string str in
   Python_to_generic.any any
   )
-(*e: function [[Test.any_gen_of_string]] *)
 
-(*s: function [[Test.parse_generic]] *)
-(*e: function [[Test.parse_generic]] *)
 
 let parsing_tests_for_lang files lang =
   files |> List.map (fun file ->
@@ -67,7 +52,6 @@ let compare_actual_to_expected actual expected =
 
    If foo/bar.sgrep is not found, POLYGLOT/bar.sgrep is used instead.
 *)
-(*s: function [[Test.regression_tests_for_lang]] *)
 let regression_tests_for_lang ~with_caching files lang =
   files |> List.map (fun file ->
     Filename.basename file, (fun () ->
@@ -140,7 +124,6 @@ let regression_tests_for_lang ~with_caching files lang =
     )
     )
   )
-(*e: function [[Test.regression_tests_for_lang]] *)
 
 let tainting_test lang rules_file file =
   let rules =
@@ -290,7 +273,6 @@ let lang_parsing_tests =
     );
   ]
 
-(*s: constant [[Test.lang_regression_tests]] *)
 let lang_regression_tests ~with_caching =
   let regression_tests_for_lang files lang =
     regression_tests_for_lang ~with_caching files lang
@@ -422,7 +404,6 @@ let lang_regression_tests ~with_caching =
     regression_tests_for_lang files lang
   );
  ]
-(*e: constant [[Test.lang_regression_tests]] *)
 
 let full_rule_regression_tests = [
   "full rule", (fun () ->
@@ -466,7 +447,6 @@ let lang_tainting_tests =
     );
   ]
 
-(*s: constant [[Test.lint_regression_tests]] *)
 (* mostly a copy paste of pfff/linter/unit_linter.ml *)
 let lint_regression_tests ~with_caching =
   let name =
@@ -513,7 +493,6 @@ let lint_regression_tests ~with_caching =
       compare_actual_to_expected actual_errors expected_error_lines
     )
   ]
-(*e: constant [[Test.lint_regression_tests]] *)
 
 let eval_regression_tests = [
   "eval regression testing", (fun () ->

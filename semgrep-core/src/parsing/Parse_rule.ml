@@ -1,5 +1,3 @@
-(*s: semgrep/parsing/Parse_rule.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau, Emma Jin
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 module J = JSON
 module FT = File_type
@@ -791,5 +788,3 @@ let parse file =
           (spf "wrong rule format, only JSON/YAML/JSONNET are valid:%s:" file)
   in
   parse_generic file ast
-
-(*e: semgrep/parsing/Parse_rule.ml *)

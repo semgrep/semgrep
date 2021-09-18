@@ -1,5 +1,3 @@
-(*s: semgrep/matching/Apply_equivalences.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 open AST_generic
 module G = AST_generic
@@ -29,7 +26,6 @@ module Env = Metavariable_capture
 (* Matchers for code equivalence mode *)
 (*****************************************************************************)
 
-(*s: function [[Apply_equivalences.match_e_e_for_equivalences]] *)
 let match_e_e_for_equivalences _ruleid a b =
   Common.save_excursion Flag.equivalence_mode true (fun () ->
       let config =
@@ -43,12 +39,9 @@ let match_e_e_for_equivalences _ruleid a b =
       let env = Matching_generic.empty_environment cache config in
       Generic_vs_generic.m_expr a b env)
 
-(*e: function [[Apply_equivalences.match_e_e_for_equivalences]] *)
-
 (*****************************************************************************)
 (* Substituters *)
 (*****************************************************************************)
-(*s: function [[Apply_equivalences.subst_e]] *)
 let subst_e (env : Env.t) e =
   let bindings = env.full_env in
   let visitor =
@@ -77,9 +70,6 @@ let subst_e (env : Env.t) e =
   in
   visitor.M.vexpr e
 
-(*e: function [[Apply_equivalences.subst_e]] *)
-
-(*s: function [[Apply_equivalences.apply]] *)
 let apply equivs any =
   let expr_rules = ref [] in
   let stmt_rules = ref [] in
@@ -137,7 +127,3 @@ let apply equivs any =
   in
   visitor.M.vany any
   [@@profiling]
-
-(*e: function [[Apply_equivalences.apply]] *)
-
-(*e: semgrep/matching/Apply_equivalences.ml *)
