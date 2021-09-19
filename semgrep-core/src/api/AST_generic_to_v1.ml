@@ -410,9 +410,13 @@ and map_of_interpolated_kind = function
   (* new: *)
   | TaggedTemplateLiteral -> `InterpolatedConcat
 
-and map_of_incdec = function Incr -> `Incr | Decr -> `Decr
+and map_of_incdec = function
+  | Incr -> `Incr
+  | Decr -> `Decr
 
-and map_of_prepost = function Prefix -> `Prefix | Postfix -> `Postfix
+and map_of_prepost = function
+  | Prefix -> `Prefix
+  | Postfix -> `Postfix
 
 and map_arithmetic_operator = function
   | Plus -> `Plus

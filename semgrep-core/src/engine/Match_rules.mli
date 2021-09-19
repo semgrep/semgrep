@@ -1,5 +1,3 @@
-(*s: semgrep/engine/Match_rules.mli *)
-
 (*
    Check search-mode rules.
    Return matches, errors, match time.
@@ -24,5 +22,3 @@ val matches_of_formula :
   Rule.formula ->
   Range_with_metavars.t option ->
   Report.times Report.match_result * Range_with_metavars.ranges
-
-(*e: semgrep/engine/Match_rules.mli *)

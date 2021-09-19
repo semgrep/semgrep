@@ -45,7 +45,9 @@ type env = unit
 let _id x = x
 
 let map_either _env f g x =
-  match x with Left x -> Left (f x) | Right x -> Right (g x)
+  match x with
+  | Left x -> Left (f x)
+  | Right x -> Right (g x)
 
 let todo _env _x = failwith "TODO"
 
@@ -53,7 +55,9 @@ let complicated _env _x = failwith "TODO"
 
 (* TODO? change AST_generic.ml instead to take more expr option? *)
 let expr_option t eopt =
-  match eopt with Some e -> e | None -> G.L (G.Unit t) |> G.e
+  match eopt with
+  | Some e -> e
+  | None -> G.L (G.Unit t) |> G.e
 
 (*****************************************************************************)
 (* Conversions *)
@@ -253,8 +257,9 @@ and map_base env = function
   | CLong -> CLong
   | CLongLong -> CLongLong
 
-(* deprecated *)
-and map_sign env = function Signed -> Signed | UnSigned -> UnSigned
+and map_sign env = function
+  | Signed -> Signed
+  | UnSigned -> UnSigned
 
 (* deprecated *)
 and map_floatType env = function
@@ -327,7 +332,9 @@ and map_expr env x : G.expr =
   | Unary (v1, v2) -> (
       let either, t = map_wrap env (map_unaryOp env) v1
       and v2 = map_expr env v2 in
-      match either with Left op -> G.opcall (op, t) [ v2 ] | Right f -> f t v2)
+      match either with
+      | Left op -> G.opcall (op, t) [ v2 ]
+      | Right f -> f t v2)
   | Binary (v1, v2, v3) ->
       let v1 = map_expr env v1
       and v2 = map_wrap env (map_binaryOp env) v2
@@ -356,7 +363,9 @@ and map_expr env x : G.expr =
         map_either env (map_expr env) (map_paren env (map_type_ env)) v2
       in
       let arg =
-        match v2 with Left e -> G.Arg e | Right (_l, t, _r) -> G.ArgType t
+        match v2 with
+        | Left e -> G.Arg e
+        | Right (_l, t, _r) -> G.ArgType t
       in
       let special = G.IdSpecial (G.Sizeof, v1) |> G.e in
       G.Call (special, G.fake_bracket [ arg ]) |> G.e
@@ -435,7 +444,9 @@ and map_expr env x : G.expr =
 
 and map_ident_info env { i_scope = _v_i_scope } = ()
 
-and map_special env = function This -> G.This | Defined -> G.Defined
+and map_special env = function
+  | This -> G.This
+  | Defined -> G.Defined
 
 and map_argument env x : G.argument =
   match x with
@@ -500,7 +511,9 @@ and map_constant env x : G.literal =
       let v1 = map_tok env v1 in
       G.Null v1
 
-and map_isWchar env = function IsWchar -> () | IsChar -> ()
+and map_isWchar env = function
+  | IsWchar -> ()
+  | IsChar -> ()
 
 and map_unaryOp env = function
   | UnPlus -> Left G.Plus
@@ -522,9 +535,13 @@ and map_assignOp env = function
       let v1 = map_wrap env (map_arithOp env) v1 in
       Right v1
 
-and map_fixOp env = function Dec -> G.Decr | Inc -> G.Incr
+and map_fixOp env = function
+  | Dec -> G.Decr
+  | Inc -> G.Incr
 
-and map_dotOp env = function Dot -> Left () | Arrow -> Right ()
+and map_dotOp env = function
+  | Dot -> Left ()
+  | Arrow -> Right ()
 
 and map_binaryOp env x : G.operator =
   match x with
@@ -557,7 +574,9 @@ and map_logicalOp env = function
   | AndLog -> G.And
   | OrLog -> G.Or
 
-and map_ptrOp env = function PtrStarOp -> PtrStarOp | PtrOp -> PtrOp
+and map_ptrOp env = function
+  | PtrStarOp -> PtrStarOp
+  | PtrOp -> PtrOp
 
 and map_allocOp env = function
   | NewOp -> NewOp
@@ -565,7 +584,9 @@ and map_allocOp env = function
   | NewArrayOp -> NewArrayOp
   | DeleteArrayOp -> DeleteArrayOp
 
-and map_accessop env = function ParenOp -> ParenOp | ArrayOp -> ArrayOp
+and map_accessop env = function
+  | ParenOp -> ParenOp
+  | ArrayOp -> ArrayOp
 
 and map_operator env = function
   | BinaryOp v1 ->
@@ -1438,7 +1459,9 @@ let map_any env x : G.any =
       G.Ss v1
   | Toplevel v1 -> (
       let v1 = map_toplevel env v1 in
-      match v1 with [ x ] -> G.S x | xs -> G.Ss xs)
+      match v1 with
+      | [ x ] -> G.S x
+      | xs -> G.Ss xs)
   | Toplevels v1 ->
       let v1 = map_of_list (map_toplevel env) v1 |> List.flatten in
       G.Ss v1

@@ -121,7 +121,10 @@ let instr env x =
       | _ -> todo (I x))
   | _ -> todo (I x)
 
-let stmt env x = match x.IL.s with Instr x -> instr env x | _ -> todo (S x)
+let stmt env x =
+  match x.IL.s with
+  | Instr x -> instr env x
+  | _ -> todo (S x)
 
 let facts_of_function lang def =
   let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.G.fbody) in

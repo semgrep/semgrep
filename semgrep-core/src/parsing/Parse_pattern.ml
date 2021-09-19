@@ -1,5 +1,3 @@
-(*s: semgrep/parsing/Parse_pattern.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 
 (*****************************************************************************)
@@ -76,12 +73,16 @@ let parse_pattern lang ?(print_errors = false) str =
         let res = Parse_hcl_tree_sitter.parse_pattern str in
         extract_pattern_from_tree_sitter_result res print_errors
     (* use pfff *)
-    | Lang.Python | Lang.Python2 | Lang.Python3 ->
+    | Lang.Python
+    | Lang.Python2
+    | Lang.Python3 ->
         let parsing_mode = Parse_target.lang_to_python_parsing_mode lang in
         let any = Parse_python.any_of_string ~parsing_mode str in
         Python_to_generic.any any
     (* abusing JS parser so no need extend tree-sitter grammar*)
-    | Lang.Typescript | Lang.Javascript | Lang.Vue ->
+    | Lang.Typescript
+    | Lang.Javascript
+    | Lang.Vue ->
         let any = Parse_js.any_of_string str in
         Js_to_generic.any any
     | Lang.JSON ->
@@ -141,5 +142,3 @@ let dump_tree_sitter_pattern_cst lang file =
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
   | _ -> ()
-
-(*e: semgrep/parsing/Parse_pattern.ml *)

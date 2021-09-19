@@ -1,5 +1,3 @@
-(*s: semgrep/parsing/Parse_target.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 
 open Common
 module Flag = Flag_semgrep
@@ -165,9 +162,15 @@ let (run :
   let xs =
     match () with
     | _ when !Flag.tree_sitter_only ->
-        xs |> Common.exclude (function Pfff _ -> true | _ -> false)
+        xs
+        |> Common.exclude (function
+             | Pfff _ -> true
+             | _ -> false)
     | _ when !Flag.pfff_only ->
-        xs |> Common.exclude (function TreeSitter _ -> true | _ -> false)
+        xs
+        |> Common.exclude (function
+             | TreeSitter _ -> true
+             | _ -> false)
     | _ -> xs
   in
   match run_either file xs with
@@ -255,7 +258,9 @@ let rec just_parse_with_lang lang file =
         ]
         C_to_generic.program
   (* use pfff *)
-  | Lang.Python | Lang.Python2 | Lang.Python3 ->
+  | Lang.Python
+  | Lang.Python2
+  | Lang.Python3 ->
       let parsing_mode = lang_to_python_parsing_mode lang in
       run file
         [ Pfff (throw_tokens (Parse_python.parse ~parsing_mode)) ]
@@ -358,5 +363,3 @@ let parse_program file =
   let lang = List.hd (Lang.langs_of_filename file) in
   let res = just_parse_with_lang lang file in
   res.ast
-
-(*e: semgrep/parsing/Parse_target.ml *)

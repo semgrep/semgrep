@@ -233,4 +233,6 @@ let compare_actual_to_expected actual_errors expected_error_lines =
   let msg =
     spf "it should find all reported errors and no more (%d errors)" num_errors
   in
-  match num_errors with 0 -> Stdlib.Ok () | n -> Error (n, msg)
+  match num_errors with
+  | 0 -> Stdlib.Ok ()
+  | n -> Error (n, msg)

@@ -94,7 +94,9 @@ let any_at_range_first r1 ast =
 
   try
     visitor (G.Pr ast);
-    match expr_at_range r1 ast with None -> None | Some e -> Some (G.E e)
+    match expr_at_range r1 ast with
+    | None -> None
+    | Some e -> Some (G.E e)
   with Found a -> Some a
 
 let any_to_stmt (any : G.any) : G.stmt =
@@ -116,7 +118,9 @@ let join_anys (anys : AST_generic.any list) : AST_generic.any option =
          contain a single expression or one-or-more statements."
 
 let split_any (any : G.any) : G.any list =
-  match any with G.Ss stmts -> List.map (fun s -> G.S s) stmts | x -> [ x ]
+  match any with
+  | G.Ss stmts -> List.map (fun s -> G.S s) stmts
+  | x -> [ x ]
 
 let any_at_range_all r1 ast : AST_generic.any option =
   let rec any_at_range_list r1 ast : AST_generic.any list =

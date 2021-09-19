@@ -797,7 +797,9 @@ and declarator (env : env) (x : CST.declarator) : name * (type_ -> type_) =
   match x with
   | `Poin_decl (v1, v2, v3, v4, v5) ->
       let _v1 =
-        match v1 with Some x -> Some (ms_based_modifier env x) | None -> None
+        match v1 with
+        | Some x -> Some (ms_based_modifier env x)
+        | None -> None
       in
       let v2 = token env v2 (* "*" *) in
       let _v3 = List.map (ms_pointer_modifier env) v3 in
@@ -859,7 +861,9 @@ and enumerator_list (env : env) ((v1, v2, v3, v4) : CST.enumerator_list) =
     | None -> []
   in
   let _v3 =
-    match v3 with Some tok -> Some (token env tok) (* "," *) | None -> None
+    match v3 with
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None
   in
   let _v4 = token env v4 (* "}" *) in
   v2
@@ -979,7 +983,9 @@ and field_declaration_list_item (env : env)
         | None -> []
       in
       let _v3 =
-        match v3 with Some x -> Some (bitfield_clause env x) | None -> None
+        match v3 with
+        | Some x -> Some (bitfield_clause env x)
+        | None -> None
       in
       let _v4 = token env v4 (* ";" *) in
       v2 |> List.map (fun (id, f) -> { fld_name = Some id; fld_type = f v1 })
@@ -1026,7 +1032,9 @@ and field_declarator (env : env) (x : CST.field_declarator) :
   match x with
   | `Poin_field_decl (v1, v2, v3, v4, v5) ->
       let _v1 =
-        match v1 with Some x -> Some (ms_based_modifier env x) | None -> None
+        match v1 with
+        | Some x -> Some (ms_based_modifier env x)
+        | None -> None
       in
       let v2 = token env v2 (* "*" *) in
       let _v3 = List.map (ms_pointer_modifier env) v3 in
@@ -1089,7 +1097,9 @@ and initializer_list (env : env) ((v1, v2, v3, v4) : CST.initializer_list) :
     | None -> []
   in
   let _v3 =
-    match v3 with Some tok -> Some (token env tok) (* "," *) | None -> None
+    match v3 with
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None
   in
   let v4 = token env v4 (* "}" *) in
   (* TODO: can be RecordInit too! *)
@@ -1167,7 +1177,9 @@ and type_descriptor (env : env) ((v1, v2, v3, v4) : CST.type_descriptor) : type_
   let v2 = type_specifier env v2 in
   let _v3 = List.map (type_qualifier env) v3 in
   let v4 =
-    match v4 with Some x -> (abstract_declarator env x) v2 | None -> v2
+    match v4 with
+    | Some x -> (abstract_declarator env x) v2
+    | None -> v2
   in
   v4
 
@@ -1224,7 +1236,9 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
         | `Id_opt_enum_list (v1, v2) ->
             let v1 = identifier env v1 (* pattern [a-zA-Z_]\w* *) in
             let v2 =
-              match v2 with Some x -> enumerator_list env x | None -> []
+              match v2 with
+              | Some x -> enumerator_list env x
+              | None -> []
             in
             (Some v1, v2)
         | `Enum_list x -> (None, enumerator_list env x)
@@ -1299,7 +1313,9 @@ let expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
     | None -> None
   in
   let v2 = token env v2 (* ";" *) in
-  match v1 with Some e -> (e, v2) | None -> (Null v2, v2)
+  match v1 with
+  | Some e -> (e, v2)
+  | None -> (Null v2, v2)
 
 (* diff with declarator? *)
 let rec type_declarator (env : env) (x : CST.type_declarator) :
@@ -1307,7 +1323,9 @@ let rec type_declarator (env : env) (x : CST.type_declarator) :
   match x with
   | `Poin_type_decl (v1, v2, v3, v4, v5) ->
       let _v1 =
-        match v1 with Some x -> Some (ms_based_modifier env x) | None -> None
+        match v1 with
+        | Some x -> Some (ms_based_modifier env x)
+        | None -> None
       in
       let v2 = token env v2 (* "*" *) in
       let _v3 = List.map (ms_pointer_modifier env) v3 in
@@ -1441,7 +1459,9 @@ and declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) =
 and function_definition (env : env) ((v1, v2, v3, v4) : CST.function_definition)
     : func_def =
   let _v1 =
-    match v1 with Some x -> Some (ms_call_modifier env x) | None -> None
+    match v1 with
+    | Some x -> Some (ms_call_modifier env x)
+    | None -> None
   in
   let v2 = declaration_specifiers env v2 in
   let id, f = declarator env v3 in
@@ -1513,7 +1533,9 @@ and non_case_statement (env : env) (x : CST.non_case_statement) : stmt =
             Right e
       in
       let v4 =
-        match v4 with Some x -> Some (expression env x) | None -> None
+        match v4 with
+        | Some x -> Some (expression env x)
+        | None -> None
       in
       let _v5 = token env v5 (* ";" *) in
       let v6 =

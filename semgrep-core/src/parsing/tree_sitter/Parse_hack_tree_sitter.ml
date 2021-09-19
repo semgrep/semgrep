@@ -460,7 +460,9 @@ let xhp_enum_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.xhp_enum_type)
       v4
   in
   let _v5 =
-    match v5 with Some tok -> (* "," *) Some (token env tok) | None -> None
+    match v5 with
+    | Some tok -> (* "," *) Some (token env tok)
+    | None -> None
   in
   let _v6 = (* "}" *) token env v6 in
   (* This pass-down is really wrong. Need anon type name. *)
@@ -516,7 +518,9 @@ let _anonymous_function_use_clause (env : env)
       v4
   in
   let v5 =
-    match v5 with Some tok -> (* "," *) token env tok | None -> todo env ()
+    match v5 with
+    | Some tok -> (* "," *) token env tok
+    | None -> todo env ()
   in
   let v6 = (* ")" *) token env v6 in
   todo env (v1, v2, v3, v4, v5, v6)
@@ -524,7 +528,9 @@ let _anonymous_function_use_clause (env : env)
 let use_clause (env : env) ((v1, v2, v3) : CST.use_clause) =
   (* Q: How to represent `use` type? *)
   let _v1TODO =
-    match v1 with Some x -> Some (use_type env x) | None -> None
+    match v1 with
+    | Some x -> Some (use_type env x)
+    | None -> None
   in
   let namespace_ident = namespace_identifier env v2 in
   let v3 : G.alias option =
@@ -581,7 +587,9 @@ and anon_choice_exp_rep_COMMA_choice_exp_opt_COMMA_e4364bb (env : env)
       v2
   in
   let _v3 =
-    match v3 with Some tok -> (* "," *) Some (token env tok) | None -> None
+    match v3 with
+    | Some tok -> (* "," *) Some (token env tok)
+    | None -> None
   in
   v1 :: v2
 
@@ -687,7 +695,9 @@ and attribute_modifier (env : env)
     G.fake_bracket [ G.Arg (G.N (qualified_identifier env v2) |> G.e) ]
   in
   let v3 =
-    match v3 with Some x -> arguments env x | None -> G.fake_bracket []
+    match v3 with
+    | Some x -> arguments env x
+    | None -> G.fake_bracket []
   in
   let constr_call =
     G.Call (G.Call (G.IdSpecial (New, fk v1) |> G.e, v2) |> G.e, v3)
@@ -701,7 +711,9 @@ and attribute_modifier (env : env)
           G.fake_bracket [ G.Arg (G.N (qualified_identifier env v2) |> G.e) ]
         in
         let v3 =
-          match v3 with Some x -> arguments env x | None -> G.fake_bracket []
+          match v3 with
+          | Some x -> arguments env x
+          | None -> G.fake_bracket []
         in
         G.E
           (G.Call (G.Call (G.IdSpecial (New, fk v1) |> G.e, v2) |> G.e, v3)
@@ -709,7 +721,9 @@ and attribute_modifier (env : env)
       v4
   in
   let _v5 =
-    match v5 with Some tok -> (* "," *) Some (token env tok) | None -> None
+    match v5 with
+    | Some tok -> (* "," *) Some (token env tok)
+    | None -> None
   in
   let _v6 = (* ">>" *) token env v6 in
   G.OtherAttribute (G.OA_Expr, first_attr_mod :: v4)
@@ -1012,7 +1026,11 @@ and call_expression (env : env) ((v1, v2, v3) : CST.call_expression) =
     | `Choice_array x ->
         G.N (G.Id (collection_type env x, G.empty_id_info ())) |> G.e
   in
-  let _v2TODO = match v2 with Some x -> type_arguments env x | None -> None in
+  let _v2TODO =
+    match v2 with
+    | Some x -> type_arguments env x
+    | None -> None
+  in
   let v3 = arguments env v3 in
   G.Call (v1, v3) |> G.e
 
@@ -1032,7 +1050,11 @@ and class_const_declaration (env : env)
   let v1 = List.map (member_modifier env) v1 in
   let v2 = (* "const" *) [ G.KeywordAttr (Const, token env v2) ] in
   let attrs = v1 @ v2 in
-  let type_ = match v3 with Some x -> Some (type_ env x) | None -> None in
+  let type_ =
+    match v3 with
+    | Some x -> Some (type_ env x)
+    | None -> None
+  in
   let _v6 = (* ";" *) token env v6 in
   let v4 = G.FieldStmt (class_const_declarator env v4 attrs type_) in
   let v5 =
@@ -1079,7 +1101,9 @@ and declaration (env : env) (x : CST.declaration) =
   match x with
   | `Func_decl (v1, v2, v3) ->
       let attrs =
-        match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+        match v1 with
+        | Some x -> [ attribute_modifier env x ]
+        | None -> []
       in
       let func_def, identifier, type_params =
         function_declaration_header env v2
@@ -1090,13 +1114,19 @@ and declaration (env : env) (x : CST.declaration) =
       G.DefStmt (ent, G.FuncDef def)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) ->
       let v1 =
-        match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+        match v1 with
+        | Some x -> [ attribute_modifier env x ]
+        | None -> []
       in
       let v2 =
-        match v2 with Some x -> [ class_modifier env x ] | None -> []
+        match v2 with
+        | Some x -> [ class_modifier env x ]
+        | None -> []
       in
       let v3 =
-        match v3 with Some x -> [ class_modifier env x ] | None -> []
+        match v3 with
+        | Some x -> [ class_modifier env x ]
+        | None -> []
       in
       let v4 =
         match v4 with
@@ -1116,13 +1146,25 @@ and declaration (env : env) (x : CST.declaration) =
         | `Choice_xhp_id x -> xhp_identifier_ env x
       in
       let type_params =
-        match v7 with Some x -> type_parameters env x | None -> []
+        match v7 with
+        | Some x -> type_parameters env x
+        | None -> []
       in
-      let v8 = match v8 with Some x -> extends_clause env x | None -> [] in
-      let v9 = match v9 with Some x -> implements_clause env x | None -> [] in
+      let v8 =
+        match v8 with
+        | Some x -> extends_clause env x
+        | None -> []
+      in
+      let v9 =
+        match v9 with
+        | Some x -> implements_clause env x
+        | None -> []
+      in
       let v10 =
         (* Q: What does this even do? *)
-        match v10 with Some x -> where_clause env x | None -> []
+        match v10 with
+        | Some x -> where_clause env x
+        | None -> []
       in
       let v11 = member_declarations env v11 in
       let def : G.class_definition =
@@ -1139,15 +1181,27 @@ and declaration (env : env) (x : CST.declaration) =
       G.DefStmt (basic_typed_entity id attrs type_params, G.ClassDef def)
   | `Inte_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
-        match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+        match v1 with
+        | Some x -> [ attribute_modifier env x ]
+        | None -> []
       in
       let v2 = (* "interface" *) token env v2 in
       let id = semgrep_extended_identifier env v3 in
       let type_params =
-        match v4 with Some x -> type_parameters env x | None -> []
+        match v4 with
+        | Some x -> type_parameters env x
+        | None -> []
       in
-      let v5 = match v5 with Some x -> extends_clause env x | None -> [] in
-      let v6 = match v6 with Some x -> where_clause env x | None -> [] in
+      let v5 =
+        match v5 with
+        | Some x -> extends_clause env x
+        | None -> []
+      in
+      let v6 =
+        match v6 with
+        | Some x -> where_clause env x
+        | None -> []
+      in
       let v7 = member_declarations env v7 in
       let def : G.class_definition =
         {
@@ -1163,15 +1217,27 @@ and declaration (env : env) (x : CST.declaration) =
       G.DefStmt (basic_typed_entity id attrs type_params, G.ClassDef def)
   | `Trait_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
-        match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+        match v1 with
+        | Some x -> [ attribute_modifier env x ]
+        | None -> []
       in
       let v2 = (* "trait" *) token env v2 in
       let id = semgrep_extended_identifier env v3 in
       let type_params =
-        match v4 with Some x -> type_parameters env x | None -> []
+        match v4 with
+        | Some x -> type_parameters env x
+        | None -> []
       in
-      let v5 = match v5 with Some x -> implements_clause env x | None -> [] in
-      let v6 = match v6 with Some x -> where_clause env x | None -> [] in
+      let v5 =
+        match v5 with
+        | Some x -> implements_clause env x
+        | None -> []
+      in
+      let v6 =
+        match v6 with
+        | Some x -> where_clause env x
+        | None -> []
+      in
       let v7 = member_declarations env v7 in
       let def : G.class_definition =
         {
@@ -1187,7 +1253,9 @@ and declaration (env : env) (x : CST.declaration) =
       G.DefStmt (basic_typed_entity id attrs type_params, G.ClassDef def)
   | `Alias_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 =
-        match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+        match v1 with
+        | Some x -> [ attribute_modifier env x ]
+        | None -> []
       in
       let _v2 =
         match v2 with
@@ -1195,7 +1263,9 @@ and declaration (env : env) (x : CST.declaration) =
         | `Newt tok -> (* "newtype" *) token env tok
       in
       let type_params =
-        match v4 with Some x -> type_parameters env x | None -> []
+        match v4 with
+        | Some x -> type_parameters env x
+        | None -> []
       in
       (* Q: Type params vs type attributes in generic? Which to use here?
          Put within Name or pass to Apply?*)
@@ -1218,7 +1288,9 @@ and declaration (env : env) (x : CST.declaration) =
           G.TypeDef { tbody = AliasType v7 } )
   | `Enum_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 =
-        match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+        match v1 with
+        | Some x -> [ attribute_modifier env x ]
+        | None -> []
       in
       let _v2 = (* "enum" *) token env v2 in
       let v3 = semgrep_extended_identifier env v3 in
@@ -1267,7 +1339,11 @@ and declaration (env : env) (x : CST.declaration) =
       | None -> G.DirectiveStmt (G.PackageEnd v1 |> G.d))
   | `Const_decl (v1, v2, v3, v4, v5) ->
       let attr = (* "const" *) [ G.KeywordAttr (Const, token env v1) ] in
-      let type_ = match v2 with Some x -> Some (type_ env x) | None -> None in
+      let type_ =
+        match v2 with
+        | Some x -> Some (type_ env x)
+        | None -> None
+      in
       let v3 = const_declarator env v3 attr type_ |> G.s in
       let v4 =
         List.map
@@ -1368,7 +1444,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
       | `Array (v1, v2, v3, v4, v5) ->
           let _collectionTODO = collection_type env v1 in
           let _v2TODO =
-            match v2 with Some x -> type_arguments env x | None -> None
+            match v2 with
+            | Some x -> type_arguments env x
+            | None -> None
           in
           let v3 = (* "[" *) token env v3 in
           let v4 =
@@ -1530,7 +1608,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
           G.Conditional (v1, v3, v5) |> G.e
       | `Lambda_exp (v1, v2, v3, v4, v5) ->
           let _v1TODO =
-            match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+            match v1 with
+            | Some x -> [ attribute_modifier env x ]
+            | None -> []
           in
           let _v2TODO =
             match v2 with
@@ -1577,7 +1657,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
           let v1 = (* "new" *) token env v1 in
           let v2 = G.fake_bracket [ G.Arg (variablish env v2) ] in
           let _v3TODO =
-            match v3 with Some x -> type_arguments env x | None -> None
+            match v3 with
+            | Some x -> type_arguments env x
+            | None -> None
           in
           let v4 = arguments env v4 in
           G.Call (G.Call (G.IdSpecial (New, v1) |> G.e, v2) |> G.e, v4) |> G.e
@@ -1693,7 +1775,9 @@ and function_declaration_header (env : env)
   let function_keyword = (* "function" *) token env v2 in
   let identifier = semgrep_extended_identifier env v3 in
   let type_params =
-    match v4 with Some x -> type_parameters env x | None -> []
+    match v4 with
+    | Some x -> type_parameters env x
+    | None -> []
   in
   let parameters = parameters env v5 in
   let attribute_modifier_and_return_type =
@@ -1710,7 +1794,9 @@ and function_declaration_header (env : env)
     | None -> None
   in
   let _where_clauseTODO =
-    match v7 with Some x -> where_clause env x | None -> []
+    match v7 with
+    | Some x -> where_clause env x
+    | None -> []
   in
   ( {
       fkind = (G.Function, function_keyword);
@@ -1771,7 +1857,9 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
 
 and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
   let v1 =
-    match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+    match v1 with
+    | Some x -> [ attribute_modifier env x ]
+    | None -> []
   in
   let v2 = List.map (member_modifier env) v2 in
   let func_def, identifier, type_args = function_declaration_header env v3 in
@@ -1785,10 +1873,14 @@ and parameter (env : env) (x : CST.parameter) : G.parameter =
   | `Opt_attr_modi_opt_visi_modi_opt_inout_modi_opt_choice_type_spec_opt_vari_modi_var_opt_EQ_exp
       (v1, v2, v3, v4, v5, v6, v7) -> (
       let v1 =
-        match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+        match v1 with
+        | Some x -> [ attribute_modifier env x ]
+        | None -> []
       in
       let v2 =
-        match v2 with Some x -> [ visibility_modifier env x ] | None -> []
+        match v2 with
+        | Some x -> [ visibility_modifier env x ]
+        | None -> []
       in
       let v3 =
         (* Q: Mutable? This is the best keyword I could think of. *)
@@ -1796,7 +1888,11 @@ and parameter (env : env) (x : CST.parameter) : G.parameter =
         | Some tok -> (* "inout" *) [ G.KeywordAttr (Mutable, token env tok) ]
         | None -> []
       in
-      let v4 = match v4 with Some x -> Some (type_ env x) | None -> None in
+      let v4 =
+        match v4 with
+        | Some x -> Some (type_ env x)
+        | None -> None
+      in
       let v5 =
         match v5 with
         | Some tok -> (* "..." *) Some (token env tok)
@@ -1937,11 +2033,17 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
 and property_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.property_declaration) =
   let v1 =
-    match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+    match v1 with
+    | Some x -> [ attribute_modifier env x ]
+    | None -> []
   in
   let v2 = List.map (member_modifier env) v2 in
   let attrs = v1 @ v2 in
-  let type_ = match v3 with Some x -> Some (type_ env x) | None -> None in
+  let type_ =
+    match v3 with
+    | Some x -> Some (type_ env x)
+    | None -> None
+  in
   let v4 = G.FieldStmt (property_declarator env v4 attrs type_) in
   let v5 =
     List.map
@@ -2104,7 +2206,9 @@ and statement (env : env) (x : CST.statement) =
       let create_directive use_clause prefix_idents =
         let idents, alias = use_clause in
         let idents =
-          match idents with Some x -> x | None -> raise Impossible
+          match idents with
+          | Some x -> x
+          | None -> raise Impossible
         in
         G.s
           (G.DirectiveStmt
@@ -2136,7 +2240,9 @@ and statement (env : env) (x : CST.statement) =
             (v1, v2, v3, v4, v5, v6, v7) ->
             (* Q: How to represent `use` type? We are also possibly passed it up from use_clause. *)
             let _v1TODO =
-              match v1 with Some x -> Some (use_type env x) | None -> None
+              match v1 with
+              | Some x -> Some (use_type env x)
+              | None -> None
             in
             let v2 = namespace_identifier env v2 in
             let ident_prefix =
@@ -2388,7 +2494,11 @@ and type_kind (env : env) (x : CST.type_) : G.type_kind =
   match x with
   | `Type_spec (v1, v2, v3) ->
       let _v1TODO = List.map (type_modifier env) v1 in
-      let v3 = match v3 with Some x -> type_arguments env x | None -> None in
+      let v3 =
+        match v3 with
+        | Some x -> type_arguments env x
+        | None -> None
+      in
       let v2 =
         match v2 with
         | `Choice_bool x -> G.TyBuiltin (primitive_type env x)
@@ -2531,19 +2641,25 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) :
     | None -> None
   in
   let v3 = (* ">" *) token env v3 in
-  match v2 with Some v2 -> Some (v1, v2, v3) | None -> None
+  match v2 with
+  | Some v2 -> Some (v1, v2, v3)
+  | None -> None
 
 and type_const_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.type_const_declaration) =
   let v1 =
-    match v1 with Some x -> [ attribute_modifier env x ] | None -> []
+    match v1 with
+    | Some x -> [ attribute_modifier env x ]
+    | None -> []
   in
   let v2 = List.map (member_modifier env) v2 in
   let v3 = (* "const" *) [ G.KeywordAttr (Const, token env v3) ] in
   let _v4 = (* "type" *) token env v4 in
   let id = semgrep_extended_identifier env v5 in
   let type_params =
-    match v6 with Some x -> type_parameters env x | None -> []
+    match v6 with
+    | Some x -> type_parameters env x
+    | None -> []
   in
   (* Q: How to represent this `as __type__`? It is a constraint? Make an attribute?
      OTP_Constrained on type param? But then can't be builtin *)
@@ -2581,7 +2697,9 @@ and type_const_declaration (env : env)
 and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :
     G.type_parameter =
   let _v1TODO =
-    match v1 with Some x -> Some (attribute_modifier env x) | None -> None
+    match v1 with
+    | Some x -> Some (attribute_modifier env x)
+    | None -> None
   in
   let _v2TODO =
     match v2 with
@@ -2621,7 +2739,9 @@ and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
       v3
   in
   let _v4 =
-    match v4 with Some tok -> (* "," *) Some (token env tok) | None -> None
+    match v4 with
+    | Some tok -> (* "," *) Some (token env tok)
+    | None -> None
   in
   let _v5 = (* ">" *) token env v5 in
   v2 :: v3
@@ -2635,13 +2755,19 @@ and variablish (env : env) (x : CST.variablish) : G.expr =
   | `List_exp (v1, v2, v3, v4, v5, v6) ->
       let _v1TODO = (* "list" *) token env v1 in
       let v2 = (* "(" *) token env v2 in
-      let v3 = match v3 with Some x -> [ expression env x ] | None -> [] in
+      let v3 =
+        match v3 with
+        | Some x -> [ expression env x ]
+        | None -> []
+      in
       let v4 =
         List.map
           (fun (v1, v2) ->
             let _v1 = (* "," *) token env v1 in
             let v2 =
-              match v2 with Some x -> [ expression env x ] | None -> []
+              match v2 with
+              | Some x -> [ expression env x ]
+              | None -> []
             in
             v2)
           v4

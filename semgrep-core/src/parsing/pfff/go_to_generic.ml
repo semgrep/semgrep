@@ -68,7 +68,9 @@ let ii_of_any = Lib_parsing_go.ii_of_any
 (* TODO? do results "parameters" can have names? *)
 let return_type_of_results results =
   match results with
-  | [] | [ G.ParamClassic { G.ptype = None; _ } ] -> None
+  | []
+  | [ G.ParamClassic { G.ptype = None; _ } ] ->
+      None
   | [ G.ParamClassic { G.ptype = Some t; _ } ] -> Some t
   | xs ->
       Some
@@ -490,7 +492,11 @@ let top_func () =
         let v2 = option expr v2 in
         let v3 = option simple v3 in
         (* TODO: some of v1 are really ForInitVar *)
-        let init = match v1 with None -> [] | Some e -> [ G.ForInitExpr e ] in
+        let init =
+          match v1 with
+          | None -> []
+          | Some e -> [ G.ForInitExpr e ]
+        in
         G.ForClassic (init, v2, v3)
     | ForRange (v1, v2, v3) -> (
         let opt =

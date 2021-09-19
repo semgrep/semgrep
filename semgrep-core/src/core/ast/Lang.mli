@@ -1,14 +1,10 @@
-(*s: pfff/lang_GENERIC/parsing/Lang.mli *)
-(*s: type [[Lang.t]] *)
 type t =
   | Python
-  (*s: [[Lang.t]] extra Python cases *)
   (* Python will start with Python3 mode and fall back to Python2 in case
    * of error. Python2 and Python3 are for specific version of Python
    * (no fallback) *)
   | Python2
   | Python3
-  (*e: [[Lang.t]] extra Python cases *)
   (* system *)
   | C
   | Cplusplus
@@ -40,8 +36,6 @@ type t =
   (* doc files *)
   | HTML
 
-(*e: type [[Lang.t]] *)
-
 (* from deriving eq *)
 val pp : Format.formatter -> t -> unit
 
@@ -54,14 +48,9 @@ val is_js : t -> bool
 
 val is_python : t -> bool
 
-(*s: signature [[Lang.lang_of_string_map]] *)
 val lang_of_string_map : (string, t) Hashtbl.t
 
-(*e: signature [[Lang.lang_of_string_map]] *)
-(*s: signature [[Lang.lang_of_string_opt]] *)
 val lang_of_string_opt : string -> t option
-
-(*e: signature [[Lang.lang_of_string_opt]] *)
 
 (* list of languages *)
 val keys : string list
@@ -69,22 +58,15 @@ val keys : string list
 (* list of languages comma separated *)
 val supported_langs : string
 
-(*s: signature [[Lang.langs_of_filename]] *)
 val langs_of_filename : Common.filename -> t list
 
-(*e: signature [[Lang.langs_of_filename]] *)
-
-(*s: signature [[Lang.files_of_dirs_or_files]] *)
 val files_of_dirs_or_files : t -> Common.path list -> Common.filename list
-
-(*e: signature [[Lang.files_of_dirs_or_files]] *)
 
 (*
    Produce a human-readable representation of the language e.g. "C#"
 *)
 val to_string : t -> string
 
-(*s: signature [[Lang.string_of_lang]] *)
 (* legacy alias for 'to_string' *)
 val string_of_lang : t -> string
 
@@ -98,8 +80,6 @@ val string_of_lang : t -> string
 *)
 val to_lowercase_alnum : t -> string
 
-(*e: signature [[Lang.string_of_lang]] *)
-(*s: signature [[Lang.ext_of_lang]] *)
 (*
    Return a list of extensions for a language such that a file with that
    extension can reasonably be expected to be in that language.
@@ -113,8 +93,6 @@ val to_lowercase_alnum : t -> string
 *)
 val ext_of_lang : t -> string list
 
-(*e: signature [[Lang.ext_of_lang]] *)
-
 (* unsupported_language_message [lang] takes the language as a string and
  * returns an error message.
  *
@@ -123,5 +101,3 @@ val ext_of_lang : t -> string list
  * Otherwise it returns an error with the list of supported languages.
  *)
 val unsupported_language_message : string -> string
-
-(*e: pfff/lang_GENERIC/parsing/Lang.mli *)

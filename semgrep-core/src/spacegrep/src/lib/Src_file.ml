@@ -62,7 +62,11 @@ let of_channel ?(source = Channel) ?max_len ic =
 let of_stdin ?(source = Stdin) () = of_channel ~source stdin
 
 let of_file ?source ?max_len file =
-  let source = match source with None -> File file | Some x -> x in
+  let source =
+    match source with
+    | None -> File file
+    | Some x -> x
+  in
   let ic = open_in_bin file in
   Fun.protect
     ~finally:(fun () -> close_in_noerr ic)
@@ -74,7 +78,10 @@ let to_lexbuf x = Lexing.from_string x.contents
    right after the end of the current line. *)
 let rec find_end_of_line s i =
   if i >= String.length s then i
-  else match s.[i] with '\n' -> i + 1 | _ -> find_end_of_line s (i + 1)
+  else
+    match s.[i] with
+    | '\n' -> i + 1
+    | _ -> find_end_of_line s (i + 1)
 
 (* Remove the trailing newline character if there is one. *)
 let remove_trailing_newline s =

@@ -1,5 +1,3 @@
-(*s: pfff/lang_GENERIC/parsing/Lang.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 module FT = File_type
 
 (*****************************************************************************)
@@ -29,16 +26,13 @@ module FT = File_type
  * you probably still need to add also special code in list_of_lang and
  * langs_of_filename below.
  *)
-(*s: type [[Lang.t]] *)
 type t =
   | Python
-  (*s: [[Lang.t]] extra Python cases *)
   (* Python will start with Python3 mode and fall back to Python2 in case
    * of error. Python2 and Python3 are for specific version of Python
    * (no fallback) *)
   | Python2
   | Python3
-  (*e: [[Lang.t]] extra Python cases *)
   (* system *)
   | C
   | Cplusplus
@@ -70,19 +64,27 @@ type t =
   (* doc files *)
   | HTML
 
-(*e: type [[Lang.t]] *)
 [@@ocamlformat "disable"]
 [@@deriving show, eq]
 
-let is_js = function Javascript | Typescript | Vue -> true | _ -> false
+let is_js = function
+  | Javascript
+  | Typescript
+  | Vue ->
+      true
+  | _ -> false
 
-let is_python = function Python | Python2 | Python3 -> true | _ -> false
+let is_python = function
+  | Python
+  | Python2
+  | Python3 ->
+      true
+  | _ -> false
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(*s: constant [[Lang.list_of_lang]] *)
 let list_of_lang =
   [
     ("py", Python);
@@ -123,24 +125,15 @@ let list_of_lang =
     ("tf", HCL);
   ]
 
-(*e: constant [[Lang.list_of_lang]] *)
-
-(*s: constant [[Lang.lang_of_string_map]] *)
 let lang_of_string_map = Common.hash_of_list list_of_lang
 
-(*e: constant [[Lang.lang_of_string_map]] *)
-
-(*s: function [[Lang.lang_of_string_opt]] *)
 let lang_of_string_opt x =
   Hashtbl.find_opt lang_of_string_map (String.lowercase_ascii x)
-
-(*e: function [[Lang.lang_of_string_opt]] *)
 
 let keys = Common2.hkeys lang_of_string_map
 
 let supported_langs : string = String.concat ", " keys
 
-(*s: function [[Lang.langs_of_filename]] *)
 let langs_of_filename filename =
   let typ = File_type.file_type_of_file filename in
   match typ with
@@ -171,9 +164,6 @@ let langs_of_filename filename =
   | FT.PL (FT.Web FT.Html) -> [ HTML ]
   | _ -> []
 
-(*e: function [[Lang.langs_of_filename]] *)
-
-(*s: function [[Lang.string_of_lang]] *)
 let to_string = function
   | Python -> "Python"
   | Python2 -> "Python2"
@@ -200,8 +190,6 @@ let to_string = function
   | Scala -> "Scala"
   | HTML -> "HTML"
   | HCL -> "HCL"
-
-(*e: function [[Lang.string_of_lang]] *)
 
 let string_of_lang = to_string
 
@@ -233,14 +221,16 @@ let to_lowercase_alnum = function
   | HTML -> "html"
   | HCL -> "hcl"
 
-(*s: function [[Lang.ext_of_lang]] *)
 (*
    Exclusive file extensions for the language. See mli.
 
    Manually pulled from file_type_of_file2 in file_type.ml.
 *)
 let ext_of_lang = function
-  | Python | Python2 | Python3 -> [ "py"; "pyi" ]
+  | Python
+  | Python2
+  | Python3 ->
+      [ "py"; "pyi" ]
   | Javascript -> [ "js"; "jsx" ]
   | Typescript -> [ "ts"; "tsx" ]
   | JSON -> [ "json" ]
@@ -264,17 +254,11 @@ let ext_of_lang = function
   | Vue -> [ "vue" ]
   | HCL -> [ "tf" ]
 
-(*e: function [[Lang.ext_of_lang]] *)
-
-(*s: function [[Lang.find_source]] *)
 let find_source lang xs =
   Common.files_of_dir_or_files_no_vcs_nofilter xs
   |> List.filter (fun filename -> List.mem lang (langs_of_filename filename))
   |> Common.sort
 
-(*e: function [[Lang.find_source]] *)
-
-(*s: function [[Lang.files_of_dirs_or_files]] *)
 (* this is used by sgrep, so it is probably better to keep the logic
  * simple and not perform any Skip_code filtering (bento already does that)
  *)
@@ -286,12 +270,8 @@ let files_of_dirs_or_files lang xs =
    *)
   find_source lang xs
 
-(*e: function [[Lang.files_of_dirs_or_files]] *)
-
 let unsupported_language_message lang =
   if lang = "unset" then "no language specified; use -lang"
   else
     Common.spf "unsupported language: %s; supported language tags are: %s" lang
       supported_langs
-
-(*e: pfff/lang_GENERIC/parsing/Lang.ml *)

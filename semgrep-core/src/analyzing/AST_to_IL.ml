@@ -1,4 +1,3 @@
-(*s: pfff/lang_GENERIC/analyze/AST_to_IL.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2020 r2c
@@ -34,7 +33,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
-(*s: type [[AST_to_IL.env]] *)
 type env = {
   lang : Lang.t;
   (* stmts hidden inside expressions that we want to move out of 'exp',
@@ -43,12 +41,7 @@ type env = {
   stmts : stmt list ref;
 }
 
-(*e: type [[AST_to_IL.env]] *)
-
-(*s: function [[AST_to_IL.empty_env]] *)
 let empty_env lang = { lang; stmts = ref [] }
-
-(*e: function [[AST_to_IL.empty_env]] *)
 
 (*****************************************************************************)
 (* Error management *)
@@ -56,34 +49,20 @@ let empty_env lang = { lang; stmts = ref [] }
 
 exception Fixme of fixme_kind * G.any
 
-(*s: function [[AST_to_IL.error]] *)
-(*e: function [[AST_to_IL.error]] *)
-(*s: function [[AST_to_IL.warning]] *)
-(*e: function [[AST_to_IL.warning]] *)
-(*s: function [[AST_to_IL.error_any]] *)
-(*e: function [[AST_to_IL.error_any]] *)
-
-(*s: function [[AST_to_IL.sgrep_construct]] *)
 let sgrep_construct any_generic = raise (Fixme (Sgrep_construct, any_generic))
 
-(*e: function [[AST_to_IL.sgrep_construct]] *)
-
-(*s: function [[AST_to_IL.todo]] *)
 let todo any_generic = raise (Fixme (ToDo, any_generic))
 
-(*e: function [[AST_to_IL.todo]] *)
-
-(*s: function [[AST_to_IL.impossible]] *)
 let impossible any_generic = raise (Fixme (Impossible, any_generic))
-
-(*e: function [[AST_to_IL.impossible]] *)
 
 let locate opt_tok s =
   let opt_loc =
     try map_opt Parse_info.string_of_info opt_tok
     with Parse_info.NoTokenLocation _ -> None
   in
-  match opt_loc with Some loc -> spf "%s: %s" loc s | None -> s
+  match opt_loc with
+  | Some loc -> spf "%s: %s" loc s
+  | None -> s
 
 let log_warning opt_tok msg = logger#warning "%s" (locate opt_tok msg)
 
@@ -116,24 +95,17 @@ let fixme_stmt kind gany =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-(*s: function [[AST_to_IL.fresh_var]] *)
 let fresh_var _env tok =
   let i = H.gensym () in
   (("_tmp", tok), i)
 
-(*e: function [[AST_to_IL.fresh_var]] *)
-(*s: function [[AST_to_IL._fresh_label]] *)
 let _fresh_label _env tok =
   let i = H.gensym () in
   (("_label", tok), i)
 
-(*e: function [[AST_to_IL._fresh_label]] *)
-(*s: function [[AST_to_IL.fresh_lval]] *)
 let fresh_lval env tok =
   let var = fresh_var env tok in
   { base = Var var; offset = NoOffset; constness = ref None }
-
-(*e: function [[AST_to_IL.fresh_lval]] *)
 
 let var_of_id_info id id_info =
   let sid =
@@ -147,12 +119,9 @@ let var_of_id_info id id_info =
   in
   (id, sid)
 
-(*s: function [[AST_to_IL.lval_of_id_info]] *)
 let lval_of_id_info _env id id_info =
   let var = var_of_id_info id id_info in
   { base = Var var; offset = NoOffset; constness = id_info.id_constness }
-
-(*e: function [[AST_to_IL.lval_of_id_info]] *)
 
 let lval_of_id_qualified env name id_info =
   let id, _ = name in
@@ -160,39 +129,24 @@ let lval_of_id_qualified env name id_info =
 
 let lval_of_base base = { base; offset = NoOffset; constness = ref None }
 
-(*s: function [[AST_to_IL.label_of_label]] *)
 (* TODO: should do first pass on body to get all labels and assign
  * a gensym to each.
  *)
 let label_of_label _env lbl = (lbl, -1)
 
-(*e: function [[AST_to_IL.label_of_label]] *)
-(*s: function [[AST_to_IL.lookup_label]] *)
 let lookup_label _env lbl = (lbl, -1)
 
-(*e: function [[AST_to_IL.lookup_label]] *)
-
-(*s: function [[AST_to_IL.mk_e]] *)
 let mk_e e eorig = { e; eorig }
 
-(*e: function [[AST_to_IL.mk_e]] *)
-(*s: function [[AST_to_IL.mk_i]] *)
 let mk_i i iorig = { i; iorig }
 
-(*e: function [[AST_to_IL.mk_i]] *)
-(*s: function [[AST_to_IL.mk_s]] *)
 let mk_s s = { s }
-
-(*e: function [[AST_to_IL.mk_s]] *)
 
 let mk_unit tok eorig =
   let unit = G.Unit tok in
   mk_e (Literal unit) eorig
 
-(*s: function [[AST_to_IL.add_instr]] *)
 let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
-
-(*e: function [[AST_to_IL.add_instr]] *)
 
 (* Create an auxiliary variable for an expression---unless the expression
  * itself is already a variable! *)
@@ -214,19 +168,11 @@ let add_call env tok eorig ~void mk_call =
     add_instr env (mk_i (mk_call (Some lval)) eorig);
     mk_e (Fetch lval) eorig
 
-(*s: function [[AST_to_IL.add_stmt]] *)
 let add_stmt env st = Common.push st env.stmts
 
-(*e: function [[AST_to_IL.add_stmt]] *)
-(*s: function [[AST_to_IL.add_stmts]] *)
 let add_stmts env xs = xs |> List.iter (add_stmt env)
 
-(*e: function [[AST_to_IL.add_stmts]] *)
-
-(*s: function [[AST_to_IL.bracket_keep]] *)
 let bracket_keep f (t1, x, t2) = (t1, f x, t2)
-
-(*e: function [[AST_to_IL.bracket_keep]] *)
 
 let name_of_entity ent =
   match AST_generic_helpers.name_of_entity ent with
@@ -302,7 +248,8 @@ and pattern env pat eorig =
   | G.PatUnderscore tok ->
       let lval = fresh_lval env tok in
       (lval, [])
-  | G.PatId (id, id_info) | G.PatVar (_, Some (id, id_info)) ->
+  | G.PatId (id, id_info)
+  | G.PatVar (_, Some (id, id_info)) ->
       let lval = lval_of_id_info env id id_info in
       (lval, [])
   | G.PatTuple (tok1, pats, tok2) ->
@@ -337,7 +284,10 @@ and pattern_assign_statements env exp eorig pat =
 (*****************************************************************************)
 and assign env lhs _tok rhs_exp eorig =
   match lhs.G.e with
-  | G.N _ | G.DotAccess _ | G.ArrayAccess _ | G.DeRef _ -> (
+  | G.N _
+  | G.DotAccess _
+  | G.ArrayAccess _
+  | G.DeRef _ -> (
       try
         let lval = lval env lhs in
         add_instr env (mk_i (Assign (lval, rhs_exp)) eorig);
@@ -421,7 +371,10 @@ and expr_aux env ?(void = false) eorig =
           let lval = lval env e in
           let lvalexp = mk_e (Fetch lval) e in
           let op =
-            ((match incdec with G.Incr -> G.Plus | G.Decr -> G.Minus), tok)
+            ( (match incdec with
+              | G.Incr -> G.Plus
+              | G.Decr -> G.Minus),
+              tok )
           in
           let one = G.Int (Some 1, tok) in
           let one_exp = mk_e (Literal one) (G.L one |> G.e) in
@@ -486,7 +439,10 @@ and expr_aux env ?(void = false) eorig =
       let tok = G.fake "call" in
       call_generic env ~void tok e args
   | G.L lit -> mk_e (Literal lit) eorig
-  | G.N _ | G.DotAccess (_, _, _) | G.ArrayAccess (_, _) | G.DeRef (_, _) ->
+  | G.N _
+  | G.DotAccess (_, _, _)
+  | G.ArrayAccess (_, _)
+  | G.DeRef (_, _) ->
       let lval = lval env eorig in
       mk_e (Fetch lval) eorig
   | G.Assign (e1, tok, e2) ->
@@ -587,7 +543,9 @@ and expr_aux env ?(void = false) eorig =
       lvalexp
   | G.Xml _ -> todo (G.E eorig)
   | G.Constructor (_, _) -> todo (G.E eorig)
-  | G.Yield (_, _, _) | G.Await (_, _) -> todo (G.E eorig)
+  | G.Yield (_, _, _)
+  | G.Await (_, _) ->
+      todo (G.E eorig)
   | G.Cast (typ, _, e) ->
       let e = expr env e in
       mk_e (Cast (typ, e)) eorig
@@ -595,7 +553,8 @@ and expr_aux env ?(void = false) eorig =
   | G.Ellipsis _
   | G.TypedMetavar (_, _, _)
   | G.DisjExpr (_, _)
-  | G.DeepEllipsis _ | G.DotAccessEllipsis _ ->
+  | G.DeepEllipsis _
+  | G.DotAccessEllipsis _ ->
       sgrep_construct (G.E eorig)
   | G.OtherExpr (_, _) -> todo (G.E eorig)
 
@@ -626,7 +585,12 @@ and call_generic env ?(void = false) tok e args =
 
 and call_special _env (x, tok) =
   ( (match x with
-    | G.Op _ | G.IncrDecr _ | G.This | G.Super | G.Self | G.Parent
+    | G.Op _
+    | G.IncrDecr _
+    | G.This
+    | G.Super
+    | G.Self
+    | G.Parent
     | G.InterpolatedElement ->
         impossible (G.E (G.IdSpecial (x, tok) |> G.e))
         (* should be intercepted before *)
@@ -637,8 +601,11 @@ and call_special _env (x, tok) =
     | G.New -> New
     | G.ConcatString _kindopt -> Concat
     | G.Spread -> Spread
-    | G.EncodedString _ | G.Defined | G.HashSplat | G.ForOf | G.NextArrayIndex
-      ->
+    | G.EncodedString _
+    | G.Defined
+    | G.HashSplat
+    | G.ForOf
+    | G.NextArrayIndex ->
         todo (G.E (G.IdSpecial (x, tok) |> G.e))),
     tok )
 
@@ -691,26 +658,17 @@ and record env ((_tok, origfields, _) as record_def) =
 (* Exprs and instrs *)
 (*****************************************************************************)
 
-(*s: function [[AST_to_IL.lval_of_ent]] *)
 let lval_of_ent env ent =
   match ent.G.name with
   | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
   | G.EN name -> lval env (G.N name |> G.e)
   | G.EDynamic eorig -> lval env eorig
 
-(*e: function [[AST_to_IL.lval_of_ent]] *)
-
-(*s: constant [[AST_to_IL.expr_orig]] *)
 (* just to ensure the code after does not call expr directly *)
 let expr_orig = expr
 
-(*e: constant [[AST_to_IL.expr_orig]] *)
-(*s: function [[AST_to_IL.expr]] *)
 let expr () = ()
 
-(*e: function [[AST_to_IL.expr]] *)
-
-(*s: function [[AST_to_IL.expr_with_pre_stmts]] *)
 let expr_with_pre_stmts env ?void e =
   ignore (expr ());
   let e = expr_orig env ?void e in
@@ -718,17 +676,11 @@ let expr_with_pre_stmts env ?void e =
   env.stmts := [];
   (xs, e)
 
-(*e: function [[AST_to_IL.expr_with_pre_stmts]] *)
-
-(*s: function [[AST_to_IL.expr_with_pre_stmts_opt]] *)
 let expr_with_pre_stmts_opt env eopt =
   match eopt with
   | None -> ([], expr_opt env None)
   | Some e -> expr_with_pre_stmts env e
 
-(*e: function [[AST_to_IL.expr_with_pre_stmts_opt]] *)
-
-(*s: function [[AST_to_IL.for_var_or_expr_list]] *)
 let for_var_or_expr_list env xs =
   xs
   |> List.map (function
@@ -744,8 +696,6 @@ let for_var_or_expr_list env xs =
                ss @ [ mk_s (Instr (mk_i (Assign (lv, e')) e)) ]
            | _ -> []))
   |> List.flatten
-
-(*e: function [[AST_to_IL.for_var_or_expr_list]] *)
 
 (*****************************************************************************)
 (* Parameters *)
@@ -851,7 +801,9 @@ let rec stmt_aux env st =
       let ss2, cond = expr_with_pre_stmts env (List.nth e 0) (* TODO list *) in
       ss1 @ ss2 @ [ mk_s (Loop (tok, cond, st @ ss2)) ]
   (* TODO: repeat env work of controlflow_build.ml *)
-  | G.Continue _ | G.Break _ -> todo (G.S st)
+  | G.Continue _
+  | G.Break _ ->
+      todo (G.S st)
   | G.Label (lbl, st) ->
       let lbl = label_of_label env lbl in
       let st = stmt env st in
@@ -908,9 +860,10 @@ let rec stmt_aux env st =
       in
       python_with_stmt env manager opt_pat body
   | G.Match (_, _, _) -> todo (G.S st)
-  | G.OtherStmt _ | G.OtherStmtWithStmt _ -> todo (G.S st)
+  | G.OtherStmt _
+  | G.OtherStmtWithStmt _ ->
+      todo (G.S st)
 
-(*s: function [[AST_to_IL.stmt]] *)
 and stmt env st =
   try stmt_aux env st
   with Fixme (kind, any_generic) -> fixme_stmt kind any_generic
@@ -999,8 +952,6 @@ and python_with_stmt env manager opt_pat body =
   in
   pre_try_stmts @ [ mk_s (Try (try_body, try_catches, try_finally)) ]
 
-(*e: function [[AST_to_IL.stmt]] *)
-
 (*****************************************************************************)
 (* Entry points *)
 (*****************************************************************************)
@@ -1011,10 +962,6 @@ let function_definition lang def =
   let body = function_body env def.G.fbody in
   (params, body)
 
-(*s: function [[AST_to_IL.stmt (/home/pad/pfff/lang_GENERIC/analyze/AST_to_IL.ml)]] *)
 let stmt lang st =
   let env = empty_env lang in
   stmt env st
-
-(*e: function [[AST_to_IL.stmt (/home/pad/pfff/lang_GENERIC/analyze/AST_to_IL.ml)]] *)
-(*e: pfff/lang_GENERIC/analyze/AST_to_IL.ml *)

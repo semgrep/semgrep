@@ -1,4 +1,3 @@
-(*s: semgrep/engine/Unit_matcher.ml *)
 open Common
 
 (*****************************************************************************)
@@ -9,7 +8,6 @@ open Common
  *  - we could add unit tests for the code dealing with equivalences
  *)
 
-(*s: function [[Unit_matcher.unittest]] *)
 let tests ~any_gen_of_string =
   [
     ( "sgrep(generic) features",
@@ -132,6 +130,3 @@ let tests ~any_gen_of_string =
                with Parsing.Parse_error ->
                  failwith (spf "problem parsing %s or %s" spattern scode)) );
   ]
-
-(*e: function [[Unit_matcher.unittest]] *)
-(*e: semgrep/engine/Unit_matcher.ml *)
