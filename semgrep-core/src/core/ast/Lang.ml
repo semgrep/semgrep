@@ -123,6 +123,8 @@ let list_of_lang =
     ("html", HTML);
     ("vue", Vue);
     ("tf", HCL);
+    ("terraform", HCL);
+    ("hcl", HCL);
   ]
 
 let lang_of_string_map = Common.hash_of_list list_of_lang
