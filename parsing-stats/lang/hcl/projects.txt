@@ -9,3 +9,6 @@ https://github.com/hashicorp/terraform-provider-google
 https://github.com/hashicorp/terraform-google-vault
 https://github.com/hashicorp/terraform-google-consul
 https://github.com/hashicorp/terraform-google-nomad
+
+# in example/real_world_stuff/
+https://github.com/MichaHoffmann/tree-sitter-hcl
