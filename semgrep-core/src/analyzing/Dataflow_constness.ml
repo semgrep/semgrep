@@ -26,20 +26,15 @@ module VarMap = Dataflow.VarMap
 (* map for each node/var whether a variable is constant *)
 type mapping = G.constness Dataflow.mapping
 
-module X = struct
+module DataflowX = Dataflow.Make (struct
   type node = F.node
 
   type edge = F.edge
 
-  type flow = {
-    graph : (node, edge) Ograph_extended.ograph_mutable;
-    entry : int;
-  }
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
-end
-
-module DataflowX = Dataflow.Make (X)
+end)
 
 (*****************************************************************************)
 (* Error management *)
@@ -321,8 +316,6 @@ let transfer :
 (* Entry point *)
 (*****************************************************************************)
 
-let cfg_to_flow ({ graph; entry } : F.cfg) : X.flow = { graph; entry }
-
 let (fixpoint : IL.name list -> F.cfg -> mapping) =
  fun inputs flow ->
   let enter_env =
@@ -331,10 +324,9 @@ let (fixpoint : IL.name list -> F.cfg -> mapping) =
     |> D.VarMap.of_seq
   in
   DataflowX.fixpoint ~eq
-    ~init:
-      (DataflowX.new_node_array (cfg_to_flow flow) (Dataflow.empty_inout ()))
+    ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
     ~trans:(transfer ~enter_env ~flow) (* constness is a forward analysis! *)
-    ~forward:true ~flow:(cfg_to_flow flow)
+    ~forward:true ~flow
 
 let update_constness (flow : F.cfg) mapping =
   flow.graph#nodes#keys

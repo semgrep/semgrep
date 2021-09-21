@@ -59,20 +59,15 @@ type config = {
 
 (*s: module [[Dataflow.Make(Il)]] *)
 
-module X = struct
+module DataflowX = Dataflow.Make (struct
   type node = F.node
 
   type edge = F.edge
 
-  type flow = {
-    graph : (node, edge) Ograph_extended.ograph_mutable;
-    entry : int;
-  }
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
-end
-
-module DataflowX = Dataflow.Make (X)
+end)
 
 (*e: module [[Dataflow.Make(Il)]] *)
 
@@ -255,23 +250,16 @@ let (transfer :
 (* Entry point *)
 (*****************************************************************************)
 
-(* Very silly function. We previously relied on the fact that F.cfg and X.flow were equal types,
-   but because OCaml does not have first class records, this equivalence no longer holds definitionally.
-   Instead we have to manually convert between the types even though they are technically the same
-*)
-let cfg_to_flow ({ graph; entry } : F.cfg) : X.flow = { graph; entry }
-
 (*s: function [[Dataflow_tainting.fixpoint]] *)
 let (fixpoint : config -> fun_env -> IL.name option -> F.cfg -> mapping) =
  fun config fun_env opt_name flow ->
   DataflowX.fixpoint
     ~eq:(fun () () -> true)
-    ~init:
-      (DataflowX.new_node_array (cfg_to_flow flow) (Dataflow.empty_inout ()))
+    ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
     ~trans:
       (transfer config fun_env opt_name ~flow)
       (* tainting is a forward analysis! *)
-    ~forward:true ~flow:(cfg_to_flow flow)
+    ~forward:true ~flow
 
 (*e: function [[Dataflow_tainting.fixpoint]] *)
 

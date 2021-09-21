@@ -48,7 +48,7 @@ and simple_node =
  *)
 type edge = Direct
 
-type flow = { graph : (node, edge) Ograph_extended.ograph_mutable; entry : int }
+type flow = (node, edge) CFG.t
 
 (* an int representing the index of a node in the graph *)
 type nodei = Ograph_extended.nodei

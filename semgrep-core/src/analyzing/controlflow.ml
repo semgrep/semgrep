@@ -110,7 +110,7 @@ and simple_node =
  *)
 type edge = Direct
 
-type flow = { graph : (node, edge) Ograph_extended.ograph_mutable; entry : int }
+type flow = (node, edge) CFG.t
 
 type nodei = Ograph_extended.nodei
 
@@ -195,7 +195,7 @@ let any_of_simple_node = function
 (* Accessors *)
 (*****************************************************************************)
 
-let find_node f cfg =
+let find_node f (cfg : flow) =
   cfg.graph#nodes#tolist
   |> Common.find_some (fun (nodei, node) -> if f node then Some nodei else None)
 

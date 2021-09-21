@@ -49,22 +49,15 @@ module VarMap = Dataflow.VarMap
  *)
 type mapping = unit Dataflow.mapping
 
-module X = struct
+module DataflowX = Dataflow.Make (struct
   type node = F.node
 
   type edge = F.edge
 
-  type flow = {
-    graph : (node, edge) Ograph_extended.ograph_mutable;
-    entry : int;
-  }
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node = F.short_string_of_node
-end
-
-module DataflowX = Dataflow.Make (X)
-
-let cfg_to_flow ({ graph; entry } : F.flow) : X.flow = { graph; entry }
+end)
 
 (*****************************************************************************)
 (* Gen/Kill *)
@@ -77,7 +70,7 @@ let cfg_to_flow ({ graph; entry } : F.flow) : X.flow = { graph; entry }
  *)
 let (gens : F.flow -> unit Dataflow.env array) =
  fun flow ->
-  let arr = DataflowX.new_node_array (cfg_to_flow flow) VarMap.empty in
+  let arr = DataflowX.new_node_array flow VarMap.empty in
   V.fold_on_node_and_expr
     (fun (ni, _nd) e () ->
       (* rvalues here, to get the use of variables *)
@@ -98,9 +91,7 @@ let (gens : F.flow -> unit Dataflow.env array) =
  *)
 let (kills : F.flow -> unit Dataflow.env array) =
  fun flow ->
-  let arr =
-    DataflowX.new_node_array (cfg_to_flow flow) (Dataflow.empty_env ())
-  in
+  let arr = DataflowX.new_node_array flow (Dataflow.empty_env ()) in
   V.fold_on_node_and_expr
     (fun (ni, _nd) e () ->
       let lvals = Lrvalue.lvalues_of_expr e in
@@ -153,7 +144,6 @@ let (fixpoint : F.flow -> mapping) =
 
   DataflowX.fixpoint
     ~eq:(fun () () -> true)
-    ~init:
-      (DataflowX.new_node_array (cfg_to_flow flow) (Dataflow.empty_inout ()))
+    ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
     ~trans:(transfer ~gen ~kill ~flow) (* liveness is a backward analysis! *)
-    ~forward:false ~flow:(cfg_to_flow flow)
+    ~forward:false ~flow

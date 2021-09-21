@@ -14,6 +14,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+
+type nodei = int
+
+type ('node, 'edge) t = {
+  graph : ('node, 'edge) Ograph_extended.ograph_mutable;
+  entry : nodei;
+}
+
+type ('node, 'edge) cfg = ('node, 'edge) t
+
 (*e: pad/r2c copyright *)
 
 (*e: pfff/lang_GENERIC/analyze/CFG.ml *)

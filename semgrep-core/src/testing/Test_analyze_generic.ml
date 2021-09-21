@@ -45,22 +45,15 @@ let test_cfg_generic file =
 
 module F = Controlflow
 
-module X = struct
+module DataflowX = Dataflow.Make (struct
   type node = F.node
 
   type edge = F.edge
 
-  type flow = {
-    graph : (node, edge) Ograph_extended.ograph_mutable;
-    entry : int;
-  }
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node = F.short_string_of_node
-end
-
-module DataflowX = Dataflow.Make (X)
-
-let cfg_to_flow ({ graph; entry } : F.flow) : X.flow = { graph; entry }
+end)
 
 (*s: function [[Test_analyze_generic.test_dfg_generic]] *)
 let test_dfg_generic file =
@@ -72,12 +65,10 @@ let test_dfg_generic file =
              let flow = Controlflow_build.cfg_of_func def in
              pr2 "Reaching definitions";
              let mapping = Dataflow_reaching.fixpoint flow in
-             DataflowX.display_mapping (cfg_to_flow flow) mapping
-               Dataflow.ns_to_str;
+             DataflowX.display_mapping flow mapping Dataflow.ns_to_str;
              pr2 "Liveness";
              let mapping = Dataflow_liveness.fixpoint flow in
-             DataflowX.display_mapping (cfg_to_flow flow) mapping (fun () ->
-                 "()")
+             DataflowX.display_mapping flow mapping (fun () -> "()")
          | _ -> ())
 
 (*e: function [[Test_analyze_generic.test_dfg_generic]] *)
@@ -145,22 +136,15 @@ let test_cfg_il file =
 
 module F2 = IL
 
-module Y = struct
+module DataflowY = Dataflow.Make (struct
   type node = F2.node
 
   type edge = F2.edge
 
-  type flow = {
-    graph : (node, edge) Ograph_extended.ograph_mutable;
-    entry : int;
-  }
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
-end
-
-module DataflowY = Dataflow.Make (Y)
-
-let cfg_to_flow2 ({ graph; entry } : F2.cfg) : Y.flow = { graph; entry }
+end)
 
 (*s: function [[Test_analyze_generic.test_dfg_tainting]] *)
 let test_dfg_tainting file =
@@ -187,8 +171,7 @@ let test_dfg_tainting file =
              let mapping =
                Dataflow_tainting.fixpoint config fun_env opt_name flow
              in
-             DataflowY.display_mapping (cfg_to_flow2 flow) mapping (fun () ->
-                 "()")
+             DataflowY.display_mapping flow mapping (fun () -> "()")
          | _ -> ())
 
 (*e: function [[Test_analyze_generic.test_dfg_tainting]] *)
@@ -208,7 +191,7 @@ let test_dfg_constness file =
             pr2 "Constness";
             let mapping = Dataflow_constness.fixpoint inputs flow in
             Dataflow_constness.update_constness flow mapping;
-            DataflowY.display_mapping (cfg_to_flow2 flow) mapping
+            DataflowY.display_mapping flow mapping
               Dataflow_constness.string_of_constness;
             let s = AST_generic.show_any (S (H.funcbody_to_stmt def.fbody)) in
             pr2 s);
