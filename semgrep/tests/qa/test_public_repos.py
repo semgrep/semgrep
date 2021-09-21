@@ -175,7 +175,7 @@ def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path):
 #
 # This test runs [which checks?] against one public git repo.
 # See the list of repos in public_repos.py.
-# Those repos, once downloaded are cached locally (where?).
+# Those repos, once downloaded are cached locally in ~/.cache.
 # You may have to clear the cache manually if some tests start failing.
 #
 # A repo_object is a GitHub URL, a list of applicable languages, and whether
