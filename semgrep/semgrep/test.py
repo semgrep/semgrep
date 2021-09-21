@@ -301,6 +301,7 @@ def relatively_eq(parent1: Path, child1: Path, parent2: Path, child2: Path) -> b
 
 def get_config_filenames(original_config: Path) -> List[Path]:
     configs = list(original_config.rglob("*"))
+    logger.debug(f"get_config_filenames: {configs}")
     return [
         config
         for config in configs
@@ -314,6 +315,7 @@ def get_config_test_filenames(
     original_config: Path, configs: List[Path], original_target: Path
 ) -> Dict[Path, List[Path]]:
     targets = list(original_target.rglob("*"))
+    logger.debug(f"get_config_test_filenames: {targets}")
 
     def target_matches_config(target: Path, config: Path) -> bool:
         correct_suffix = is_config_test_suffix(target) or not is_config_suffix(target)
