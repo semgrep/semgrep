@@ -8,6 +8,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - HCL (a.k.a Terraform) experimental support
 
 ### Changed
+- **METRICS COLLECTION CHANGES**: In order to target development of Semgrep features, performance improvements,
+  and language support, we have changed how metrics are collected by default
+  - Metrics collection is now controlled with the `--metrics` option, with possible values: `auto`, `on`, or `off`
+  - `auto` will send metrics only when rules are pulled from the Semgrep Registry, but not send
+    metrics when rules are read from a local file or a pattern is used
+  - `auto` is now the default metrics collection state
+  - `on` forces metrics collection on every run
+  - `off` disables metrics collection entirely
+  - Metrics collection may still alternatively be controlled with the `SEMGREP_SEND_METRICS` environment variable,
+    with the same possible values as the `--metrics` option
+  - See `PRIVACY.md` for more information
 - Constant propagation now assumes that void methods may update the callee (#3316)
 
 ### Fixed
