@@ -92,6 +92,15 @@ if not SEMGREP_SKIP_BIN:
     for binary_env, binary_name in binaries:
         src = find_executable(binary_env, binary_name)
         dst = os.path.join(PACKAGE_BIN_DIR, binary_name)
+        # The semgrep-core executable doesn't have the write
+        # permission (because of something dune does?), and copyfile
+        # doesn't remove the destination file if it already exists
+        # but tries to truncate it, resulting in an error.
+        # So we remove the destination file first if it exists.
+        try:
+            os.remove(dst)
+        except OSError:
+            pass
         shutil.copyfile(src, dst)
         os.chmod(dst, os.stat(dst).st_mode | stat.S_IEXEC)
 
