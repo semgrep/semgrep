@@ -5,9 +5,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-- Allow autofix using the command line rather than only with the fix: YAML key
+- HCL (a.k.a Terraform) experimental support
 
 ### Changed
+- Constant propagation now assumes that void methods may update the callee (#3316)
+
+### Fixed
+- Dataflow: Recognize "concat" method and interpret it in a language-dependent manner (#3316)
+- PHP: allows certain keywords as valid field names (#3907)
+
+## [0.65.0](https://github.com/returntocorp/semgrep/releases/tag/v0.65.0) - 09-13-2021
+
+### Added
+- Allow autofix using the command line rather than only with the fix: YAML key
+- Vardef-assign equivalence can now be disabled via rule `options:` with `vardef_assign: false`
+
+### Changed
+- Grouped semgrep CLI options and added constraints when useful (e.g. cannot use `--vim` and `--emacs` at the same time)
 
 ### Fixed
 - Taint detection with ternary ifs (#3778)
@@ -16,6 +30,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - PHP: Parse correctly constants named PUBLIC or DEFAULT (#3589)
 - Go: Added type inference for struct literals (#3622)
 - Fix semgrep-core crash when a cache file exceeds the file size limit
+- Sped up Semgrep interface with tree-sitter parsing
 
 ## [0.64.0](https://github.com/returntocorp/semgrep/releases/tag/v0.64.0) - 09-01-2021
 

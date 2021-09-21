@@ -1,5 +1,3 @@
-(*s: semgrep/engine/Match_rules.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 module R = Rule
 module MR = Mini_rule
@@ -26,7 +23,7 @@ module RP = Report
 module S = Specialize_formula
 module RM = Range_with_metavars
 module FM = File_and_more
-module E = Error_code
+module E = Semgrep_error_code
 module Resp = Semgrep_core_response_t
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -114,7 +111,7 @@ type env = {
   pattern_matches : id_to_match_results;
   (* used by metavariable-pattern to recursively call evaluate_formula *)
   file : Common.filename;
-  lazy_ast_and_errors : (G.program * Error_code.error stack) lazy_t;
+  lazy_ast_and_errors : (G.program * E.error stack) lazy_t;
   rule_id : R.rule_id;
   xlang : R.xlang;
   equivalences : Equivalence.equivalences;
@@ -134,9 +131,8 @@ let error env msg =
    * (one being that it's often a temporary file anyways), so we report them on
    * the target file. *)
   let loc = PI.first_loc_of_file env.file in
-  let s = Printf.sprintf "rule %s: %s" env.rule_id msg in
   (* TODO: warning or error? MatchingError or ... ? *)
-  let err = E.mk_error_loc loc (E.MatchingError s) in
+  let err = E.mk_error ~rule_id:(Some env.rule_id) loc msg E.MatchingError in
   Common.push err env.errors
 
 let (xpatterns_in_formula : S.sformula -> (R.xpattern * R.inside option) list) =
@@ -187,6 +183,9 @@ let (range_to_pattern_match_adjusted : Rule.t -> RM.t -> Pattern_match.t) =
   (* rather than the original metavariables for the match                          *)
   { m with rule_id; env = range.mvars }
 
+let error_with_rule_id rule_id (error : E.error) =
+  { error with rule_id = Some rule_id }
+
 let lazy_force x = Lazy.force x [@@profiling]
 
 (*****************************************************************************)
@@ -215,7 +214,9 @@ let (mini_rule_of_pattern :
     languages =
       (match xlang with
       | R.L (x, xs) -> x :: xs
-      | R.LRegex | R.LGeneric -> raise Impossible);
+      | R.LRegex
+      | R.LGeneric ->
+          raise Impossible);
     (* useful for debugging timeout *)
     pattern_string = pstr;
   }
@@ -429,7 +430,8 @@ let matches_of_spacegrep spacegreps file =
           in
           let doc_type = Spacegrep.File_type.classify partial_doc_src in
           match doc_type with
-          | Minified | Binary ->
+          | Minified
+          | Binary ->
               logger#info "ignoring gibberish file: %s\n%!" file;
               None
           | _ ->
@@ -750,7 +752,8 @@ and satisfies_metavar_pattern_condition env r mvar opt_xlang formula =
                                   fully parse the content of %s"
                                  env.rule_id mvar);
                           (ast, errors)
-                      | R.LRegex | R.LGeneric ->
+                      | R.LRegex
+                      | R.LGeneric ->
                           failwith "requesting generic AST for LRegex|LGeneric")
                   in
                   nested_formula_has_matches { env with file; xlang } formula
@@ -783,7 +786,9 @@ and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
       formula opt_context
   in
   env.errors := res.RP.errors @ !(env.errors);
-  match final_ranges with [] -> false | _ :: _ -> true
+  match final_ranges with
+  | [] -> false
+  | _ :: _ -> true
 
 (* less: use Set instead of list? *)
 and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
@@ -956,6 +961,31 @@ and matches_of_formula config equivs rule_id file_and_more formula opt_context :
 (* Main entry point *)
 (*****************************************************************************)
 
+let check_rule r hook default_config pformula equivs file_and_more =
+  let config = r.R.options ||| default_config in
+  let formula = R.formula_of_pformula pformula in
+  let rule_id = fst r.id in
+  let res, final_ranges =
+    matches_of_formula config equivs rule_id file_and_more formula None
+  in
+  {
+    RP.matches =
+      final_ranges
+      |> List.map (range_to_pattern_match_adjusted r)
+      (* dedup similar findings (we do that also in Match_patterns.ml,
+       * but different mini-rules matches can now become the same match)
+       *)
+      |> PM.uniq
+      |> before_return (fun v ->
+             v
+             |> List.iter (fun (m : Pattern_match.t) ->
+                    let str = spf "with rule %s" rule_id in
+                    hook str m.env m.tokens));
+    errors = res.errors |> List.map (error_with_rule_id rule_id);
+    skipped = res.skipped;
+    profiling = res.profiling;
+  }
+
 let check hook default_config rules equivs file_and_more =
   let { FM.file; lazy_ast_and_errors; _ } = file_and_more in
   logger#info "checking %s with %d rules" file (List.length rules);
@@ -966,33 +996,15 @@ let check hook default_config rules equivs file_and_more =
 
   rules
   |> List.map (fun (r, pformula) ->
-         Common.profile_code
-           (spf "real_rule:%s" (fst r.R.id))
-           (fun () ->
-             let config = r.options ||| default_config in
-             let formula = R.formula_of_pformula pformula in
-             let res, final_ranges =
-               matches_of_formula config equivs (fst r.id) file_and_more formula
-                 None
-             in
-             {
-               RP.matches =
-                 final_ranges
-                 |> List.map (range_to_pattern_match_adjusted r)
-                 (* dedup similar findings (we do that also in Match_patterns.ml,
-                  * but different mini-rules matches can now become the same match)
-                  *)
-                 |> PM.uniq
-                 |> before_return (fun v ->
-                        v
-                        |> List.iter (fun (m : Pattern_match.t) ->
-                               let str = spf "with rule %s" (fst r.R.id) in
-                               hook str m.env m.tokens));
-               errors = res.errors;
-               skipped = res.skipped;
-               profiling = res.profiling;
-             }))
+         let rule_id = fst r.R.id in
+         Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
+             try check_rule r hook default_config pformula equivs file_and_more
+             with exn ->
+               {
+                 RP.matches = [];
+                 errors = [ E.exn_to_error ~rule_id:(Some rule_id) file exn ];
+                 skipped = [];
+                 profiling = { parse_time = -1.; match_time = -1. };
+               }))
   |> RP.collate_semgrep_results
   [@@profiling]
-
-(*e: semgrep/engine/Match_rules.ml *)

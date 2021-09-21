@@ -1,8 +1,6 @@
-(*s: semgrep/tests/Test.ml *)
 open Common
 open Testutil
-
-module E = Error_code
+module E = Semgrep_error_code
 module P = Pattern_match
 module R = Rule
 module MR = Mini_rule
@@ -15,37 +13,23 @@ module MR = Mini_rule
 (*****************************************************************************)
 (* Flags *)
 (*****************************************************************************)
-(*s: constant [[Test.verbose]] *)
-(*e: constant [[Test.verbose]] *)
 
-(*s: constant [[Test.dump_ast]] *)
-(*e: constant [[Test.dump_ast]] *)
 
-(*s: constant [[Test.tests_path]] *)
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
-(*e: constant [[Test.tests_path]] *)
-(*s: constant [[Test.data_path]] *)
 let data_path = "../../../data"
-(*e: constant [[Test.data_path]] *)
 
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(*s: function [[Test.ast_fuzzy_of_string]] *)
-(*e: function [[Test.ast_fuzzy_of_string]] *)
 
-(*s: function [[Test.any_gen_of_string]] *)
 let any_gen_of_string str =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
   let any = Parse_python.any_of_string str in
   Python_to_generic.any any
   )
-(*e: function [[Test.any_gen_of_string]] *)
 
-(*s: function [[Test.parse_generic]] *)
-(*e: function [[Test.parse_generic]] *)
 
 let parsing_tests_for_lang files lang =
   files |> List.map (fun file ->
@@ -53,12 +37,12 @@ let parsing_tests_for_lang files lang =
       let {Parse_target. errors = errs; _ } = 
         Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
       if errs <> []
-      then failwith (String.concat ";" (List.map Error_code.string_of_error errs));
+      then failwith (String.concat ";" (List.map E.string_of_error errs));
     )
   )
 
 let compare_actual_to_expected actual expected =
-  match Error_code.compare_actual_to_expected actual expected with
+  match E.compare_actual_to_expected actual expected with
   | Ok () -> ()
   | Error (_num_errors, msg) -> Alcotest.fail msg
 
@@ -68,7 +52,6 @@ let compare_actual_to_expected actual expected =
 
    If foo/bar.sgrep is not found, POLYGLOT/bar.sgrep is used instead.
 *)
-(*s: function [[Test.regression_tests_for_lang]] *)
 let regression_tests_for_lang ~with_caching files lang =
   files |> List.map (fun file ->
     Filename.basename file, (fun () ->
@@ -107,7 +90,7 @@ let regression_tests_for_lang ~with_caching files lang =
                       (Common.exn_to_s exn))
       )
     in
-    Error_code.g_errors := [];
+    E.g_errors := [];
 
     let rule = { MR.
                  id = "unit testing"; pattern; inside=false; message = ""; 
@@ -129,18 +112,18 @@ let regression_tests_for_lang ~with_caching files lang =
           let xs = Lazy.force matched_tokens in
           let toks = xs |> List.filter Parse_info.is_origintok in
           let (minii, _maxii) = Parse_info.min_max_ii_by_pos toks in
-          Error_code.error minii (Error_code.SemgrepMatchFound ("",""))
+          let minii_loc = Parse_info.unsafe_token_location_of_info minii in
+          E.error "test pattern" minii_loc "" (E.SemgrepMatchFound "")
         )
         Config_semgrep.default_config
         [rule] equiv (file, lang, ast) 
       |> ignore;
-      let actual = !Error_code.g_errors in
-      let expected = Error_code.expected_error_lines_of_files [file] in
+      let actual = !E.g_errors in
+      let expected = E.expected_error_lines_of_files [file] in
       compare_actual_to_expected actual expected; 
     )
     )
   )
-(*e: function [[Test.regression_tests_for_lang]] *)
 
 let tainting_test lang rules_file file =
   let rules =
@@ -177,16 +160,19 @@ let tainting_test lang rules_file file =
     Tainting_generic.check
       (fun _ _ _ -> ())
       Config_semgrep.default_config
-      taint_rules equivs file ast
+      taint_rules equivs file lang ast
   in
   let actual =
     matches |> List.map (fun m ->
-      { E.typ = SemgrepMatchFound(m.P.rule_id.id,m.P.rule_id.message);
+      { rule_id = Some m.P.rule_id.id;
+        E.typ = SemgrepMatchFound m.P.rule_id.id;
         loc   = fst m.range_loc;
-        sev   = Error; }
+        msg   = m.P.rule_id.message;
+        details = None;
+        yaml_path = None }
     )
   in
-  let expected = Error_code.expected_error_lines_of_files [file] in
+  let expected = E.expected_error_lines_of_files [file] in
   compare_actual_to_expected actual expected
 
 let tainting_tests_for_lang files lang =
@@ -287,7 +273,6 @@ let lang_parsing_tests =
     );
   ]
 
-(*s: constant [[Test.lang_regression_tests]] *)
 let lang_regression_tests ~with_caching =
   let regression_tests_for_lang files lang =
     regression_tests_for_lang ~with_caching files lang
@@ -412,8 +397,13 @@ let lang_regression_tests ~with_caching =
     let lang = Lang.Vue in
     regression_tests_for_lang files lang
   );
+  pack_tests "semgrep HCL" (
+    let dir = Filename.concat tests_path "terraform" in
+    let files = Common2.glob (spf "%s/*.tf" dir) in
+    let lang = Lang.HCL in
+    regression_tests_for_lang files lang
+  );
  ]
-(*e: constant [[Test.lang_regression_tests]] *)
 
 let full_rule_regression_tests = [
   "full rule", (fun () ->
@@ -457,7 +447,6 @@ let lang_tainting_tests =
     );
   ]
 
-(*s: constant [[Test.lint_regression_tests]] *)
 (* mostly a copy paste of pfff/linter/unit_linter.ml *)
 let lint_regression_tests ~with_caching =
   let name =
@@ -504,7 +493,6 @@ let lint_regression_tests ~with_caching =
       compare_actual_to_expected actual_errors expected_error_lines
     )
   ]
-(*e: constant [[Test.lint_regression_tests]] *)
 
 let eval_regression_tests = [
   "eval regression testing", (fun () ->
@@ -529,27 +517,16 @@ let metachecker_regression_tests =
     let files = Common2.glob (spf "%s/*.yaml" dir) in
     files |> List.map (fun file ->
       Filename.basename file, (fun () ->
-        Error_code.g_errors := [];
+        E.g_errors := [];
         E.try_with_exn_to_error file (fun () ->
-          try
             let rules = Parse_rule.parse file in
             rules |> List.iter (fun rule ->
               let errs = Check_rule.check rule in
-              Error_code.g_errors := errs @ !Error_code.g_errors
+              E.g_errors := errs @ !E.g_errors
             )
-          with
-          (* convert to something handled by E.try_with_exn_to_error.
-           * coupling: JSON_report.json_of_exn
-          *)
-          | Parse_rule.InvalidRule (_, s, t)
-          | Parse_rule.InvalidYaml (s, t)
-          | Parse_rule.InvalidRegexp (_, s, t)
-          | Parse_rule.InvalidLanguage (_, s, t)
-          | Parse_rule.InvalidPattern (_, _, _, s, t, _) ->
-              raise (Parse_info.Other_error (s, t))
         );
-        let actual = !Error_code.g_errors in
-        let expected = Error_code.expected_error_lines_of_files [file] in
+        let actual = !E.g_errors in
+        let expected = E.expected_error_lines_of_files [file] in
         compare_actual_to_expected actual expected;
       )
     )

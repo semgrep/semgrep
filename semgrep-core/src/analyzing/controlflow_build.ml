@@ -94,7 +94,9 @@ let (lookup_some_ctx :
   aux 1 xs
 
 let info_opt any =
-  match Visitor_AST.ii_of_any any with [] -> None | x :: _xs -> Some x
+  match Visitor_AST.ii_of_any any with
+  | [] -> None
+  | x :: _xs -> Some x
 
 (*****************************************************************************)
 (* Algorithm *)
@@ -120,9 +122,12 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
   let i () = info_opt (S stmt) in
 
   match stmt.s with
-  | Label _ | Goto _ -> raise Todo
+  | Label _
+  | Goto _ ->
+      raise Todo
   | Block (_, stmts, _) -> cfg_stmt_list state previ stmts
-  | For _ | While _ ->
+  | For _
+  | While _ ->
       (* previ -> newi ---> newfakethen -> ... -> finalthen -
        *             |---|-----------------------------------|
        *                 |-> newfakelse
@@ -309,7 +314,9 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
       | None, None ->
           (* probably a return in both branches *)
           None
-      | Some nodei, None | None, Some nodei -> Some nodei
+      | Some nodei, None
+      | None, Some nodei ->
+          Some nodei
       | Some n1, Some n2 ->
           let lasti = state.g#add_node { F.n = F.Join; i = None } in
           state.g |> add_arc (n1, lasti);
@@ -322,7 +329,8 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
       (* the next statement if there is one will not be linked to
        * this new node *)
       None
-  | Continue (_, _TODOlabelid, _) | Break (_, _TODOlabelid, _) ->
+  | Continue (_, _TODOlabelid, _)
+  | Break (_, _TODOlabelid, _) ->
       let is_continue, node =
         match stmt.s with
         | Continue _ -> (true, F.Continue)
@@ -357,7 +365,9 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
                   * it has the same semantic than 'break'.
                   *)
                  Some endi
-             | TryCtx _ | NoCtx -> None)
+             | TryCtx _
+             | NoCtx ->
+                 None)
       in
       (match nodei_to_jump_to with
       | Some nodei -> state.g |> add_arc (newi, nodei)
@@ -381,7 +391,9 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
           |> List.exists (function
                | CasesAndBody (cases, _body) ->
                    cases
-                   |> List.exists (function G.Default _ -> true | _ -> false)
+                   |> List.exists (function
+                        | G.Default _ -> true
+                        | _ -> false)
                | CaseEllipsis _ -> raise Impossible))
       then state.g |> add_arc (newi, endi);
       (* let's process all cases *)
@@ -484,7 +496,10 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
         state.ctx
         |> lookup_some_ctx ~ctx_filter:(function
              | TryCtx nextcatchi -> Some nextcatchi
-             | LoopCtx _ | SwitchCtx _ | NoCtx -> None)
+             | LoopCtx _
+             | SwitchCtx _
+             | NoCtx ->
+                 None)
       in
       (match nodei_to_jump_to with
       | Some nextcatchi -> state.g |> add_arc (last_false_node, nextcatchi)
@@ -517,7 +532,10 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
         state.ctx
         |> lookup_some_ctx ~ctx_filter:(function
              | TryCtx catchi -> Some catchi
-             | LoopCtx _ | SwitchCtx _ | NoCtx -> None)
+             | LoopCtx _
+             | SwitchCtx _
+             | NoCtx ->
+                 None)
       in
       (match nodei_to_jump_to with
       | Some catchi -> state.g |> add_arc (newi, catchi)
@@ -555,8 +573,12 @@ let rec (cfg_stmt : state -> F.nodei option -> stmt -> F.nodei option) =
    * Note that DefStmt are not the only form of lambdas ... you can have
    * lambdas inside expressions too! (need a proper instr type really)
    *)
-  | DefStmt _ | ExprStmt _ | Assert _ | DirectiveStmt _ | OtherStmt _ | Match _
-    ->
+  | DefStmt _
+  | ExprStmt _
+  | Assert _
+  | DirectiveStmt _
+  | OtherStmt _
+  | Match _ ->
       cfg_simple_node state previ stmt
   | DisjStmt _ -> raise Impossible
 
@@ -593,7 +615,9 @@ and (cfg_cases :
          | CasesAndBody (cases, stmt) ->
              let node =
                (* TODO: attach expressions there!!! *)
-               match cases with [ Default _ ] -> F.Default | _ -> F.Case
+               match cases with
+               | [ Default _ ] -> F.Default
+               | _ -> F.Case
              in
 
              let i () = info_opt (S stmt) in
@@ -708,7 +732,7 @@ let (cfg_of_func : function_definition -> F.flow) =
  fun def ->
   let params = def.fparams in
   (* less: could create a node with function name ? *)
-  control_flow_graph_of_stmts params [ def.fbody ]
+  control_flow_graph_of_stmts params [ H.funcbody_to_stmt def.fbody ]
 
 (* alias *)
 let cfg_of_stmts = control_flow_graph_of_stmts

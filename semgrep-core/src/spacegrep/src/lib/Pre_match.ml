@@ -18,9 +18,16 @@ let pattern_has_bytes (pat : Pattern_AST.t) =
   let open Pattern_AST in
   let rec has_bytes = function
     | Atom (_, atom) -> (
-        match atom with Byte _ -> true | Word _ | Punct _ | Metavar _ -> false)
+        match atom with
+        | Byte _ -> true
+        | Word _
+        | Punct _
+        | Metavar _ ->
+            false)
     | List nodes -> List.exists has_bytes nodes
-    | Dots _ | End -> false
+    | Dots _
+    | End ->
+        false
   in
   List.exists has_bytes pat
 
@@ -40,12 +47,16 @@ let build_atom_table ~case_sensitive (pat : Pattern_AST.t) =
   and index_node = function
     | Atom (_, atom) -> index_atom atom
     | List nodes -> index nodes
-    | Dots _ | End -> ()
+    | Dots _
+    | End ->
+        ()
   and index_atom = function
     | Word word ->
         let k = if case_sensitive then word else lowercase word in
         Hashtbl.replace words k ()
-    | Punct k | Byte k -> Hashtbl.replace chars k ()
+    | Punct k
+    | Byte k ->
+        Hashtbl.replace chars k ()
     | Metavar _ -> ()
   in
   index pat;

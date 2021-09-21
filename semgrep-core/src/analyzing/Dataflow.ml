@@ -1,4 +1,3 @@
-(*s: pfff/lang_GENERIC/analyze/Dataflow.ml *)
 (* Iain Proctor, Yoann Padioleau, Jiao Li
  *
  * Copyright (C) 2009-2010 Facebook
@@ -51,19 +50,13 @@ module type Flow = sig
   val short_string_of_node : node -> string
 end
 
-(*s: type [[Dataflow.nodei]] *)
 type nodei = int
 
-(*e: type [[Dataflow.nodei]] *)
-
-(*s: type [[Dataflow.var]] *)
 (* The comparison function uses only the name of a variable (a string), so
  * two variables at different positions in the code will be agglomerated
  * correctly in the Set or Map.
  *)
 type var = string
-
-(*e: type [[Dataflow.var]] *)
 
 (* convenient aliases *)
 module VarMap = Map.Make (String)
@@ -77,46 +70,27 @@ module NodeiSet = Set.Make (Int)
  * are always int and array gives a 6x speedup according to Iain
  * so let's use array.
  *)
-(*s: type [[Dataflow.mapping]] *)
 type 'a mapping = 'a inout array
 
-(*e: type [[Dataflow.mapping]] *)
-
 (* the In and Out sets, as in Appel Modern Compiler in ML book *)
-(*s: type [[Dataflow.inout]] *)
 and 'a inout = { in_env : 'a env; out_env : 'a env }
 
-(*e: type [[Dataflow.inout]] *)
-(*s: type [[Dataflow.env]] *)
 and 'a env = 'a VarMap.t
 
-(*e: type [[Dataflow.env]] *)
-
-(*s: function [[Dataflow.empty_env]] *)
 let empty_env () = VarMap.empty
 
-(*e: function [[Dataflow.empty_env]] *)
-(*s: function [[Dataflow.empty_inout]] *)
 let empty_inout () = { in_env = empty_env (); out_env = empty_env () }
-
-(*e: function [[Dataflow.empty_inout]] *)
 
 (*****************************************************************************)
 (* Equality *)
 (*****************************************************************************)
 
-(*s: function [[Dataflow.eq_env]] *)
 (* the environment is polymorphic, so we require to pass an eq for 'a *)
 let eq_env eq env1 env2 = VarMap.equal eq env1 env2
 
-(*e: function [[Dataflow.eq_env]] *)
-
-(*s: function [[Dataflow.eq_inout]] *)
 let eq_inout eq io1 io2 =
   let eqe = eq_env eq in
   eqe io1.in_env io2.in_env && eqe io1.out_env io2.out_env
-
-(*e: function [[Dataflow.eq_inout]] *)
 
 (*****************************************************************************)
 (* Env manipulation *)
@@ -179,12 +153,8 @@ let (add_vars_and_nodei_to_env :
 (* Debugging support *)
 (*****************************************************************************)
 
-(*s: function [[Dataflow.csv_append]] *)
 let csv_append s v = if String.length s = 0 then v else s ^ "," ^ v
 
-(*e: function [[Dataflow.csv_append]] *)
-
-(*s: function [[Dataflow.array_fold_left_idx]] *)
 let array_fold_left_idx f =
   let idx = ref 0 in
   Array.fold_left (fun v e ->
@@ -192,13 +162,8 @@ let array_fold_left_idx f =
       incr idx;
       r)
 
-(*e: function [[Dataflow.array_fold_left_idx]] *)
-
-(*s: function [[Dataflow.ns_to_str]] *)
 let ns_to_str ns =
   "{" ^ NodeiSet.fold (fun n s -> csv_append s (string_of_int n)) ns "" ^ "}"
-
-(*e: function [[Dataflow.ns_to_str]] *)
 
 let (env_to_str : ('a -> string) -> 'a env -> string) =
  fun val2str env ->
@@ -214,7 +179,6 @@ let (inout_to_str : ('a -> string) -> 'a inout -> string) =
 (* Main generic entry point *)
 (*****************************************************************************)
 
-(*s: type [[Dataflow.transfn]] *)
 (* The transition/transfer function. It is usually made from the
  * gens and kills.
  *
@@ -228,8 +192,6 @@ let (inout_to_str : ('a -> string) -> 'a inout -> string) =
  * the update.
  *)
 type 'a transfn = 'a mapping -> nodei -> 'a inout
-
-(*e: type [[Dataflow.transfn]] *)
 
 module Make (F : Flow) = struct
   let mapping_to_str (fl : F.flow) val2str mapping =
@@ -315,4 +277,3 @@ module X1 = Make (struct
 end
 )
 *)
-(*e: pfff/lang_GENERIC/analyze/Dataflow.ml *)

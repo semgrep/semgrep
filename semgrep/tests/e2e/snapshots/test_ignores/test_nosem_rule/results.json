@@ -5,7 +5,8 @@
       "check_id": "rules.test-nosem",
       "end": {
         "col": 22,
-        "line": 3
+        "line": 3,
+        "offset": 84
       },
       "extra": {
         "is_ignored": false,
@@ -18,14 +19,16 @@
       "path": "targets/basic/nosem.c",
       "start": {
         "col": 5,
-        "line": 3
+        "line": 3,
+        "offset": 67
       }
     },
     {
       "check_id": "rules.test-nosem",
       "end": {
         "col": 19,
-        "line": 5
+        "line": 5,
+        "offset": 92
       },
       "extra": {
         "is_ignored": false,
@@ -38,14 +41,16 @@
       "path": "targets/basic/nosem.go",
       "start": {
         "col": 2,
-        "line": 5
+        "line": 5,
+        "offset": 75
       }
     },
     {
       "check_id": "rules.test-nosem",
       "end": {
         "col": 26,
-        "line": 4
+        "line": 4,
+        "offset": 138
       },
       "extra": {
         "is_ignored": false,
@@ -58,14 +63,16 @@
       "path": "targets/basic/nosem.java",
       "start": {
         "col": 9,
-        "line": 4
+        "line": 4,
+        "offset": 121
       }
     },
     {
       "check_id": "rules.test-nosem",
       "end": {
         "col": 2,
-        "line": 7
+        "line": 7,
+        "offset": 180
       },
       "extra": {
         "is_ignored": false,
@@ -78,14 +85,16 @@
       "path": "targets/basic/nosem.js",
       "start": {
         "col": 1,
-        "line": 5
+        "line": 5,
+        "offset": 118
       }
     },
     {
       "check_id": "rules.test-nosem",
       "end": {
         "col": 18,
-        "line": 9
+        "line": 9,
+        "offset": 199
       },
       "extra": {
         "is_ignored": false,
@@ -98,14 +107,16 @@
       "path": "targets/basic/nosem.js",
       "start": {
         "col": 1,
-        "line": 9
+        "line": 9,
+        "offset": 182
       }
     },
     {
       "check_id": "rules.test-nosem",
       "end": {
         "col": 18,
-        "line": 6
+        "line": 6,
+        "offset": 236
       },
       "extra": {
         "is_ignored": false,
@@ -118,7 +129,8 @@
       "path": "targets/basic/nosem.py",
       "start": {
         "col": 1,
-        "line": 6
+        "line": 6,
+        "offset": 219
       }
     }
   ]

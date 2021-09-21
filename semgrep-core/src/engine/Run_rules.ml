@@ -26,14 +26,21 @@ let check_taint hook default_config taint_rules equivs file_and_more =
   match taint_rules with
   | [] -> RP.empty_semgrep_result
   | __else__ ->
-      let { FM.file; lazy_ast_and_errors; _ } = file_and_more in
+      let { FM.file; xlang; lazy_ast_and_errors; _ } = file_and_more in
+      let lang =
+        match xlang with
+        | R.L (lang, _) -> lang
+        | R.LGeneric
+        | R.LRegex ->
+            failwith "taint-mode and generic/regex matching are incompatible"
+      in
       let (ast, errors), parse_time =
         Common.with_time (fun () -> lazy_force lazy_ast_and_errors)
       in
       let matches, match_time =
         Common.with_time (fun () ->
             Tainting_generic.check hook default_config taint_rules equivs file
-              ast)
+              lang ast)
       in
       {
         RP.matches;

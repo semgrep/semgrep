@@ -5,7 +5,8 @@
       "check_id": "rules.spacegrep.header-2",
       "end": {
         "col": 11,
-        "line": 62
+        "line": 62,
+        "offset": 2591
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/spacegrep/markdown.md",
       "start": {
         "col": 1,
-        "line": 62
+        "line": 62,
+        "offset": 2581
       }
     },
     {
       "check_id": "rules.spacegrep.header-2",
       "end": {
         "col": 12,
-        "line": 97
+        "line": 97,
+        "offset": 3702
       },
       "extra": {
         "is_ignored": false,
@@ -74,14 +77,16 @@
       "path": "targets/spacegrep/markdown.md",
       "start": {
         "col": 1,
-        "line": 97
+        "line": 97,
+        "offset": 3691
       }
     },
     {
       "check_id": "rules.spacegrep.header-2",
       "end": {
         "col": 13,
-        "line": 145
+        "line": 145,
+        "offset": 8847
       },
       "extra": {
         "is_ignored": false,
@@ -112,14 +117,16 @@
       "path": "targets/spacegrep/markdown.md",
       "start": {
         "col": 1,
-        "line": 145
+        "line": 145,
+        "offset": 8835
       }
     },
     {
       "check_id": "rules.spacegrep.header-2",
       "end": {
         "col": 9,
-        "line": 159
+        "line": 159,
+        "offset": 9242
       },
       "extra": {
         "is_ignored": false,
@@ -150,14 +157,16 @@
       "path": "targets/spacegrep/markdown.md",
       "start": {
         "col": 1,
-        "line": 159
+        "line": 159,
+        "offset": 9234
       }
     },
     {
       "check_id": "rules.spacegrep.header-2",
       "end": {
         "col": 16,
-        "line": 188
+        "line": 188,
+        "offset": 9805
       },
       "extra": {
         "is_ignored": false,
@@ -188,14 +197,16 @@
       "path": "targets/spacegrep/markdown.md",
       "start": {
         "col": 1,
-        "line": 188
+        "line": 188,
+        "offset": 9790
       }
     },
     {
       "check_id": "rules.spacegrep.header-2",
       "end": {
         "col": 14,
-        "line": 203
+        "line": 203,
+        "offset": 10946
       },
       "extra": {
         "is_ignored": false,
@@ -226,7 +237,8 @@
       "path": "targets/spacegrep/markdown.md",
       "start": {
         "col": 1,
-        "line": 203
+        "line": 203,
+        "offset": 10933
       }
     }
   ]

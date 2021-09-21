@@ -42,7 +42,9 @@ let has_suffix suffixes =
   Test_path f
 
 let prepend_period_if_needed s =
-  match s with "" -> "." | s -> if s.[0] <> '.' then "." ^ s else s
+  match s with
+  | "" -> "."
+  | s -> if s.[0] <> '.' then "." ^ s else s
 
 (*
    Both '.d.ts' and '.ts' are considered extensions of 'hello.d.ts'.
@@ -238,6 +240,7 @@ let inspect_file_p (lang : Lang.t) path =
         And (Not (has_extension [ ".d.ts" ]), is_script lang [ "ts-node" ])
     | Vue -> has_lang_extension lang
     | Yaml -> has_lang_extension lang
+    | HCL -> has_lang_extension lang
   in
   eval test path
 

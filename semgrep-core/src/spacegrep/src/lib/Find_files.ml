@@ -39,10 +39,14 @@ let create_visit_tracker () =
   let tbl = Hashtbl.create 100 in
   let get_id path = try Some (stat path).st_ino with _ -> None in
   let was_visited path =
-    match get_id path with None -> true | Some id -> Hashtbl.mem tbl id
+    match get_id path with
+    | None -> true
+    | Some id -> Hashtbl.mem tbl id
   in
   let mark_visited path =
-    match get_id path with None -> () | Some id -> Hashtbl.replace tbl id ()
+    match get_id path with
+    | None -> ()
+    | Some id -> Hashtbl.replace tbl id ()
   in
   { was_visited; mark_visited }
 
@@ -71,7 +75,8 @@ let fold_one ~accept_file_name ~accept_dir_name visit_tracker f acc root =
             in
             List.fold_left fold acc children
       | Some Unix.S_REG -> if accept_file_name name then f acc path else acc
-      | None | Some _ ->
+      | None
+      | Some _ ->
           (* leave broken symlinks and special files alone *)
           acc)
   in

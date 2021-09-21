@@ -5,7 +5,8 @@
       "check_id": "user-input-escaped-with-safe",
       "end": {
         "col": 38,
-        "line": 19
+        "line": 19,
+        "offset": 447
       },
       "extra": {
         "is_ignored": false,
@@ -14,12 +15,32 @@
         "metadata": {
           "hi": "hi"
         },
+        "metavars": {
+          "$VAR": {
+            "abstract_content": "query",
+            "end": {
+              "col": 33,
+              "line": 19,
+              "offset": 442
+            },
+            "start": {
+              "col": 28,
+              "line": 19,
+              "offset": 437
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
         "severity": "ERROR"
       },
       "path": "targets/join_rules/user-input-escaped-with-safe/search.html",
       "start": {
         "col": 28,
-        "line": 19
+        "line": 19,
+        "offset": 437
       }
     }
   ]

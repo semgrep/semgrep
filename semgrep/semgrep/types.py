@@ -2,14 +2,19 @@ from enum import auto
 from enum import Enum
 from typing import Any
 from typing import Mapping
+from typing import NewType
 from typing import Sequence
+from typing import TYPE_CHECKING
 
-from semgrep.rule import Rule
-from semgrep.rule_match import RuleMatch
+if TYPE_CHECKING:
+    from semgrep.rule import Rule
+    from semgrep.rule_match import RuleMatch
 
 JsonObject = Mapping[str, Any]
 
-RuleMatchMap = Mapping[Rule, Sequence[RuleMatch]]
+RuleId = NewType("RuleId", str)
+
+RuleMatchMap = Mapping["Rule", Sequence["RuleMatch"]]
 
 
 class MetricsState(Enum):

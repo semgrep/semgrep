@@ -1,5 +1,3 @@
-(*s: semgrep/parsing/Parse_target.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,12 +12,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 
 open Common
 module Flag = Flag_semgrep
 module PI = Parse_info
-module E = Error_code
+module E = Semgrep_error_code
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -36,7 +33,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 type parsing_result = {
   ast : AST_generic.program;
-  errors : Error_code.error list;
+  errors : Semgrep_error_code.error list;
   stat : Parse_info.parsing_stat;
 }
 
@@ -50,7 +47,7 @@ type 'ast parser =
 
 type 'ast internal_result =
   | Ok of ('ast * Parse_info.parsing_stat)
-  | Partial of 'ast * Error_code.error list * Parse_info.parsing_stat
+  | Partial of 'ast * Semgrep_error_code.error list * Parse_info.parsing_stat
   | Error of exn
 
 let error_of_tree_sitter_error (err : Tree_sitter_run.Tree_sitter_error.t) =
@@ -165,9 +162,15 @@ let (run :
   let xs =
     match () with
     | _ when !Flag.tree_sitter_only ->
-        xs |> Common.exclude (function Pfff _ -> true | _ -> false)
+        xs
+        |> Common.exclude (function
+             | Pfff _ -> true
+             | _ -> false)
     | _ when !Flag.pfff_only ->
-        xs |> Common.exclude (function TreeSitter _ -> true | _ -> false)
+        xs
+        |> Common.exclude (function
+             | TreeSitter _ -> true
+             | _ -> false)
     | _ -> xs
   in
   match run_either file xs with
@@ -255,7 +258,9 @@ let rec just_parse_with_lang lang file =
         ]
         C_to_generic.program
   (* use pfff *)
-  | Lang.Python | Lang.Python2 | Lang.Python3 ->
+  | Lang.Python
+  | Lang.Python2
+  | Lang.Python3 ->
       let parsing_mode = lang_to_python_parsing_mode lang in
       run file
         [ Pfff (throw_tokens (Parse_python.parse ~parsing_mode)) ]
@@ -328,6 +333,7 @@ let rec just_parse_with_lang lang file =
       run file
         [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
         (fun x -> x)
+  | Lang.HCL -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
 
 (*****************************************************************************)
 (* Entry point *)
@@ -343,7 +349,7 @@ let parse_and_resolve_name_use_pfff_or_treesitter lang file =
   AST_generic_helpers.gensym_counter := 0;
   Naming_AST.resolve lang ast;
   Constant_propagation.propagate_basic lang ast;
-  Constant_propagation.propagate_dataflow ast;
+  Constant_propagation.propagate_dataflow lang ast;
   if !Flag.use_bloom_filter then Bloom_annotation.annotate_program ast;
 
   logger#info "Parse_target.parse_and_resolve_name_use_pfff_or_treesitter done";
@@ -357,5 +363,3 @@ let parse_program file =
   let lang = List.hd (Lang.langs_of_filename file) in
   let res = just_parse_with_lang lang file in
   res.ast
-
-(*e: semgrep/parsing/Parse_target.ml *)

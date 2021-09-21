@@ -33,7 +33,9 @@ and find_word_locations_in_node word node =
 let loc_of_word word input =
   let lexbuf = Lexing.from_string input in
   let ast = Parse_doc.of_lexbuf lexbuf in
-  match find_word_locations word ast with [ loc ] -> loc | _ -> assert false
+  match find_word_locations word ast with
+  | [ loc ] -> loc
+  | _ -> assert false
 
 (*
    Obtain correct token locations by parsing a document and searching

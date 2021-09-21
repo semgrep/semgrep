@@ -5,7 +5,8 @@
       "check_id": "rules.eqeq-is-bad",
       "end": {
         "col": 26,
-        "line": 3
+        "line": 3,
+        "offset": 69
       },
       "extra": {
         "is_ignored": false,
@@ -36,7 +37,8 @@
       "path": "targets/basic/stupid_no_extension",
       "start": {
         "col": 12,
-        "line": 3
+        "line": 3,
+        "offset": 55
       }
     }
   ]

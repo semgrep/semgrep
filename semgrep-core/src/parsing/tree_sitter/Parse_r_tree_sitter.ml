@@ -158,14 +158,18 @@ let rec map_argument (env : env) (x : CST.argument) =
       let v1 = map_anon_choice_id_c711a0e env v1 in
       let v2 = token env v2 (* "=" *) in
       let v3 =
-        match v3 with Some x -> map_expression env x | None -> todo env ()
+        match v3 with
+        | Some x -> map_expression env x
+        | None -> todo env ()
       in
       todo env (v1, v2, v3)
 
 and map_arguments (env : env) (xs : CST.arguments) =
   List.map
     (fun x ->
-      match x with `Arg x -> map_argument env x | `COMMA tok -> token env tok
+      match x with
+      | `Arg x -> map_argument env x
+      | `COMMA tok -> token env tok
       (* "," *))
     xs
 
@@ -304,7 +308,9 @@ and map_expression (env : env) (x : CST.expression) =
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "(" *) in
       let v3 =
-        match v3 with Some x -> map_arguments env x | None -> todo env ()
+        match v3 with
+        | Some x -> map_arguments env x
+        | None -> todo env ()
       in
       let v4 = token env v4 (* ")" *) in
       todo env (v1, v2, v3, v4)
@@ -326,7 +332,9 @@ and map_expression (env : env) (x : CST.expression) =
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "[" *) in
       let v3 =
-        match v3 with Some x -> map_arguments env x | None -> todo env ()
+        match v3 with
+        | Some x -> map_arguments env x
+        | None -> todo env ()
       in
       let v4 = token env v4 (* "]" *) in
       todo env (v1, v2, v3, v4)
@@ -334,7 +342,9 @@ and map_expression (env : env) (x : CST.expression) =
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "[[" *) in
       let v3 =
-        match v3 with Some x -> map_arguments env x | None -> todo env ()
+        match v3 with
+        | Some x -> map_arguments env x
+        | None -> todo env ()
       in
       let v4 = token env v4 (* "]]" *) in
       todo env (v1, v2, v3, v4)

@@ -6,7 +6,7 @@ from typing import Tuple
 
 from semgrep.error import SemgrepError
 from semgrep.rule_match import RuleMatch
-from semgrep.types import RuleMatchMap
+from semgrep.rule_match_map import RuleMatchMap
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -28,11 +28,11 @@ def _get_lines(path: Path) -> List[str]:
 
 def _get_match_context(rule_match: RuleMatch) -> Tuple[int, int, int, int]:
     start_obj = rule_match.start
-    start_line = start_obj.get("line", 1) - 1  # start_line is 1 indexed
-    start_col = start_obj.get("col", 1) - 1  # start_col is 1 indexed
+    start_line = start_obj.line - 1  # start_line is 1 indexed
+    start_col = start_obj.col - 1  # start_col is 1 indexed
     end_obj = rule_match.end
-    end_line = end_obj.get("line", 1) - 1  # end_line is 1 indexed
-    end_col = end_obj.get("col", 1) - 1  # end_line is 1 indexed
+    end_line = end_obj.line - 1  # end_line is 1 indexed
+    end_col = end_obj.col - 1  # end_line is 1 indexed
     return start_line, start_col, end_line, end_col
 
 

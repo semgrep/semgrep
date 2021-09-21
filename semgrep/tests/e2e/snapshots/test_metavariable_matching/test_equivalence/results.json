@@ -5,7 +5,8 @@
       "check_id": "rules.open-from-request",
       "end": {
         "col": 15,
-        "line": 4
+        "line": 4,
+        "offset": 96
       },
       "extra": {
         "is_ignored": false,
@@ -36,14 +37,16 @@
       "path": "targets/basic/inside.py",
       "start": {
         "col": 5,
-        "line": 4
+        "line": 4,
+        "offset": 86
       }
     },
     {
       "check_id": "rules.open-from-request",
       "end": {
         "col": 12,
-        "line": 14
+        "line": 14,
+        "offset": 262
       },
       "extra": {
         "is_ignored": false,
@@ -74,7 +77,8 @@
       "path": "targets/basic/inside.py",
       "start": {
         "col": 5,
-        "line": 14
+        "line": 14,
+        "offset": 255
       }
     }
   ]

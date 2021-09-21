@@ -207,9 +207,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let v1 = map_container_operator v1
             and v2 = map_bracket (map_of_list map_expr) v2 in
             Container (v1, v2)
-        | Tuple v1 ->
-            let v1 = map_bracket (map_of_list map_expr) v1 in
-            Tuple v1
+        | Comprehension (v1, v2) ->
+            let v1 = map_container_operator v1
+            and v2 = map_bracket map_of_comprehension v2 in
+            Comprehension (v1, v2)
         | Record v1 ->
             let v1 = map_bracket (map_of_list map_field) v1 in
             Record v1
@@ -299,6 +300,21 @@ let (mk_visitor : visitor_in -> visitor_out) =
       G.e ekind
     in
     vin.kexpr (k, all_functions) x
+  and map_of_comprehension (v1, v2) =
+    let v1 = map_expr v1 in
+    let v2 = map_of_list map_for_or_if_comp v2 in
+    (v1, v2)
+  and map_for_or_if_comp = function
+    | CompFor (v1, v2, v3, v4) ->
+        let v1 = map_tok v1 in
+        let v2 = map_pattern v2 in
+        let v3 = map_tok v3 in
+        let v4 = map_expr v4 in
+        CompFor (v1, v2, v3, v4)
+    | CompIf (v1, v2) ->
+        let v1 = map_tok v1 in
+        let v2 = map_expr v2 in
+        CompIf (v1, v2)
   and map_name_or_dynamic = function
     | EN v1 ->
         let v1 = map_name v1 in
@@ -358,15 +374,23 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_const_type v1 in
         Cst v1
     | NotCst -> NotCst
-  and map_container_operator = function
-    | Array -> Array
-    | List -> List
-    | Set -> Set
-    | Dict -> Dict
+  and map_container_operator x = x
   and map_special x =
     match x with
-    | ForOf | Defined | This | Super | Self | Parent | Eval | Typeof
-    | Instanceof | Sizeof | New | Spread | HashSplat | NextArrayIndex
+    | ForOf
+    | Defined
+    | This
+    | Super
+    | Self
+    | Parent
+    | Eval
+    | Typeof
+    | Instanceof
+    | Sizeof
+    | New
+    | Spread
+    | HashSplat
+    | NextArrayIndex
     | InterpolatedElement ->
         x
     | Op v1 ->
@@ -838,7 +862,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_function_definition
       { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody } =
     let fkind = map_wrap map_function_kind fkind in
-    let v_fbody = map_stmt v_fbody in
+    let v_fbody = map_function_body v_fbody in
     let v_frettype = map_of_option map_type_ v_frettype in
     let v_fparams = map_parameters v_fparams in
     { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody }
@@ -886,6 +910,17 @@ let (mk_visitor : visitor_in -> visitor_out) =
       pinfo = v_pinfo;
     }
   and map_other_parameter_operator x = x
+  and map_function_body = function
+    | FBStmt v1 ->
+        let v1 = map_stmt v1 in
+        FBStmt v1
+    | FBExpr v1 ->
+        let v1 = map_expr v1 in
+        FBExpr v1
+    | FBDecl v1 ->
+        let v1 = map_tok v1 in
+        FBDecl v1
+    | FBNothing -> FBNothing
   and map_variable_definition { vinit = v_vinit; vtype = v_vtype } =
     let v_vtype = map_of_option map_type_ v_vtype in
     let v_vinit = map_of_option map_expr v_vinit in

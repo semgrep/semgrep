@@ -43,7 +43,10 @@ let whitespace_stat_of_string s =
   let other = ref 0 in
   for i = 0 to String.length s - 1 do
     match s.[i] with
-    | ' ' | '\t' | '\r' -> incr whitespace
+    | ' '
+    | '\t'
+    | '\r' ->
+        incr whitespace
     | '\n' ->
         incr whitespace;
         incr lines

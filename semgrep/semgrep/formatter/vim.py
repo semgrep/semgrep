@@ -20,8 +20,8 @@ class VimFormatter(BaseFormatter):
         }
         return [
             str(rule_match.path),
-            str(rule_match.start["line"]),
-            str(rule_match.start["col"]),
+            str(rule_match.start.line),
+            str(rule_match.start.col),
             severity[rule_match.severity],
             rule_match.id,
             rule_match.message,

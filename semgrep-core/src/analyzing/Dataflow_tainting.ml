@@ -1,5 +1,3 @@
-(*s: pfff/lang_GENERIC/analyze/Dataflow_tainting.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 open IL
 module G = AST_generic
@@ -36,16 +33,12 @@ module VarMap = Dataflow.VarMap
 (* Types *)
 (*****************************************************************************)
 
-(*s: type [[Dataflow_tainting.mapping]] *)
 type mapping = unit Dataflow.mapping
 (** Map for each node/var whether a variable is "tainted" *)
-
-(*e: type [[Dataflow_tainting.mapping]] *)
 
 (* Tracks tainted functions. *)
 type fun_env = (Dataflow.var, unit) Hashtbl.t
 
-(*s: type [[Dataflow_tainting.config]] *)
 type config = {
   is_source : G.any -> bool;
   is_sink : G.any -> bool;
@@ -55,9 +48,6 @@ type config = {
 (** This can use semgrep patterns under the hood. Note that a source can be an
   * instruction but also an expression. *)
 
-(*e: type [[Dataflow_tainting.config]] *)
-
-(*s: module [[Dataflow.Make(Il)]] *)
 module DataflowX = Dataflow.Make (struct
   type node = F.node
 
@@ -68,23 +58,15 @@ module DataflowX = Dataflow.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
 
-(*e: module [[Dataflow.Make(Il)]] *)
-
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
 
-(*s: function [[Dataflow_tainting.str_of_name]] *)
 let str_of_name ((s, _tok), sid) = spf "%s:%d" s sid
 
-(*e: function [[Dataflow_tainting.str_of_name]] *)
-
-(*s: function [[Dataflow_tainting.option_to_varmap]] *)
 let option_to_varmap = function
   | None -> VarMap.empty
   | Some lvar -> VarMap.singleton (str_of_name lvar) ()
-
-(*e: function [[Dataflow_tainting.option_to_varmap]] *)
 
 (*****************************************************************************)
 (* Tainted *)
@@ -126,15 +108,21 @@ let rec check_tainted_expr ~in_a_sink config fun_env env exp =
     | Mem e -> check e
   in
   let check_offset = function
-    | NoOffset | Dot _ -> false
+    | NoOffset
+    | Dot _ ->
+        false
     | Index e -> check e
   in
   let check_subexpr = function
     | Fetch { base = VarSpecial (This, _); offset = Dot fld; _ } ->
         Hashtbl.mem fun_env (str_of_name fld)
     | Fetch { base; offset; _ } -> check_base base || check_offset offset
-    | Literal _ | FixmeExp _ -> false
-    | Composite (_, (_, es, _)) | Operator (_, es) -> List.exists check es
+    | Literal _
+    | FixmeExp _ ->
+        false
+    | Composite (_, (_, es, _))
+    | Operator (_, es) ->
+        List.exists check es
     | Record fields -> List.exists (fun (_, e) -> check e) fields
     | Cast (_, e) -> check e
   in
@@ -182,16 +170,10 @@ let check_tainted_return config fun_env env tok e =
 (* Not sure we can use the Gen/Kill framework here.
 *)
 
-(*s: constant [[Dataflow_tainting.union]] *)
 let union = Dataflow.varmap_union (fun () () -> ())
 
-(*e: constant [[Dataflow_tainting.union]] *)
-(*s: constant [[Dataflow_tainting.diff]] *)
 let diff = Dataflow.varmap_diff (fun () () -> ()) (fun () -> true)
 
-(*e: constant [[Dataflow_tainting.diff]] *)
-
-(*s: function [[Dataflow_tainting.transfer]] *)
 let (transfer :
       config -> fun_env -> IL.name option -> flow:F.cfg -> unit Dataflow.transfn)
     =
@@ -216,8 +198,17 @@ let (transfer :
         | Some var -> Hashtbl.add fun_env (str_of_name var) ()
         | None -> ());
         None
-    | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
-    | NThrow _ | NOther _ | NTodo _ ->
+    | Enter
+    | Exit
+    | TrueNode
+    | FalseNode
+    | Join
+    | NCond _
+    | NGoto _
+    | NReturn _
+    | NThrow _
+    | NOther _
+    | NTodo _ ->
         None
   in
   let kill_ni_opt =
@@ -233,8 +224,17 @@ let (transfer :
         else
           (* all clean arguments should reset the taint *)
           IL.lvar_of_instr_opt x
-    | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
-    | NThrow _ | NOther _ | NTodo _ ->
+    | Enter
+    | Exit
+    | TrueNode
+    | FalseNode
+    | Join
+    | NCond _
+    | NGoto _
+    | NReturn _
+    | NThrow _
+    | NOther _
+    | NTodo _ ->
         None
   in
   let gen_ni = option_to_varmap gen_ni_opt in
@@ -243,13 +243,10 @@ let (transfer :
   let out' = diff (union in' gen_ni) kill_ni in
   { D.in_env = in'; out_env = out' }
 
-(*e: function [[Dataflow_tainting.transfer]] *)
-
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
-(*s: function [[Dataflow_tainting.fixpoint]] *)
 let (fixpoint : config -> fun_env -> IL.name option -> F.cfg -> mapping) =
  fun config fun_env opt_name flow ->
   DataflowX.fixpoint
@@ -259,7 +256,3 @@ let (fixpoint : config -> fun_env -> IL.name option -> F.cfg -> mapping) =
       (transfer config fun_env opt_name ~flow)
       (* tainting is a forward analysis! *)
     ~forward:true ~flow
-
-(*e: function [[Dataflow_tainting.fixpoint]] *)
-
-(*e: pfff/lang_GENERIC/analyze/Dataflow_tainting.ml *)

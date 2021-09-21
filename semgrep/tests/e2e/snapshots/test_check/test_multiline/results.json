@@ -5,7 +5,8 @@
       "check_id": "rules.eqeq-is-bad",
       "end": {
         "col": 55,
-        "line": 8
+        "line": 8,
+        "offset": 213
       },
       "extra": {
         "is_ignored": false,
@@ -36,7 +37,8 @@
       "path": "targets/multiline/stupid.py",
       "start": {
         "col": 9,
-        "line": 7
+        "line": 7,
+        "offset": 115
       }
     }
   ]

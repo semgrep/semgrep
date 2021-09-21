@@ -1,5 +1,3 @@
-(*s: semgrep/matching/Normalize_generic.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common (* >>= *)
 
 open AST_generic
@@ -32,7 +29,6 @@ open AST_generic
 (* Entry points *)
 (*****************************************************************************)
 
-(*s: function [[Normalize_generic.full_module_name]] *)
 (* Normalize imports for matching purposes.
  * Examples (for Python):
  *   from foo import bar -> import foo.bar
@@ -56,9 +52,6 @@ let full_module_name is_pattern from_module_name import_opt =
       Some (FileName s)
   | FileName _, Some _ -> None
 
-(*e: function [[Normalize_generic.full_module_name]] *)
-
-(*s: function [[Normalize_generic.normalize_import_opt]] *)
 let normalize_import_opt is_pattern i =
   match i with
   | ImportFrom (t, module_name, m, _alias_opt) ->
@@ -67,11 +60,12 @@ let normalize_import_opt is_pattern i =
       full_module_name is_pattern module_name None >>= fun x -> Some (t, x)
   | ImportAll (t, module_name, _t2) ->
       full_module_name is_pattern module_name None >>= fun x -> Some (t, x)
-  | Package _ | PackageEnd _ | Pragma _ | OtherDirective _ -> None
+  | Package _
+  | PackageEnd _
+  | Pragma _
+  | OtherDirective _ ->
+      None
 
-(*e: function [[Normalize_generic.normalize_import_opt]] *)
-
-(*s: function [[Normalize_generic.eval]] *)
 (* see also Constant_propagation.ml. At some point we should remove
  * the code below and rely only on Constant_propagation.ml
  *)
@@ -89,12 +83,16 @@ let rec eval x : constness option =
       let literals =
         args |> unbracket
         |> Common.map_filter (fun arg ->
-               match arg with Arg e -> eval e | _ -> None)
+               match arg with
+               | Arg e -> eval e
+               | _ -> None)
       in
       let strs =
         literals
         |> Common.map_filter (fun lit ->
-               match lit with Lit (String (s1, _)) -> Some s1 | _ -> None)
+               match lit with
+               | Lit (String (s1, _)) -> Some s1
+               | _ -> None)
       in
       let concated = String.concat "" strs in
       let all_args_are_string =
@@ -109,11 +107,4 @@ let rec eval x : constness option =
   (* TODO: partial evaluation for ints/floats/... *)
   | _ -> None
 
-(*e: function [[Normalize_generic.eval]] *)
-
-(*s: constant [[Normalize_generic.constant_propagation_and_evaluate_literal]] *)
 let constant_propagation_and_evaluate_literal = eval
-
-(*e: constant [[Normalize_generic.constant_propagation_and_evaluate_literal]] *)
-
-(*e: semgrep/matching/Normalize_generic.ml *)

@@ -149,7 +149,7 @@ def main(
             f"({len(errors)} config files were invalid)" if len(errors) else ""
         )
         logger.verbose(
-            f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}"
+            f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}".strip()
         )
 
         if len(configs_obj.valid) == 0:

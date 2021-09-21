@@ -5,4 +5,4 @@
 (* !Note that this assumes Naming_AST.resolve has been called before! *)
 val propagate_basic : Lang.t -> AST_generic.program -> unit
 
-val propagate_dataflow : AST_generic.program -> unit
+val propagate_dataflow : Lang.t -> AST_generic.program -> unit

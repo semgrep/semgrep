@@ -13,6 +13,8 @@
    in JSON_report.ml.
 *)
 
+type rule_id = string
+
 type match_results = {
   matches: match_ list;
   errors: error list;
@@ -26,27 +28,17 @@ type stats = {
   errorfiles: int;
 }
 
+type location = {
+  path: string (* source file *);
+  start: position;
+  end_ <json name="end">: position;
+  lines: string list;
+}
+
 type match_ = {
-  ?check_id: string option; (* rule ID *)
-  path: string; (* source file *)
-  start: position;
-  end_ <json name="end">: position;
+  ?rule_id: rule_id option;
+  location: location;
   extra: match_extra;
-}
-
-(* See Error_code in Pfff *)
-type error = {
-  ?check_id: string option;
-  path: string;
-  start: position;
-  end_ <json name="end">: position;
-  extra: error_extra;
-}
-
-type position = {
-  line: int; (* starts from 1 *)
-  col: int; (* starts from 1 *)
-  offset: int; (* byte position from the beginning of the file, starts at 0 *)
 }
 
 type match_extra = {
@@ -57,14 +49,29 @@ type match_extra = {
      The leading '$' must be included in the metavariable name.
   *)
   metavars: (string * metavar_value) list <json repr="object">;
-
-  lines: string list; (* the matching region, split at lines boundaries *)
 }
 
-type error_extra = {
+(* See Semgrep_error_code *)
+type error = {
+  ?rule_id: rule_id option;
+  error_type: string;
+  severity: severity;
+  location: location;
   message: string;
-  line: string;
+  ?details: string option;
+  ?yaml_path: string list option;
 }
+
+type position = {
+  line: int; (* starts from 1 *)
+  col: int; (* starts from 1 *)
+  offset: int; (* byte position from the beginning of the file, starts at 0 *)
+}
+
+type severity = [
+  | Error <json name="error">
+  | Warning <json name="warning">
+] <ocaml repr="classic">
 
 type metavar_value = {
   (* for certain metavariable like $...ARGS, 'end' may be equal to 'start'
@@ -138,8 +145,6 @@ type target_time = {
   (* run time for all rules *)
   run_time: float;
 }
-
-type rule_id = string
 
 (*
    If the 'skipped_rule' field is missing, the target is assumed to have

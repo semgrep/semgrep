@@ -142,7 +142,9 @@ let extend_dots_matched ~dots:opt_dots (end_ : Loc.Pos.t) =
 
 let close_dots conf ~dots:opt_dots env =
   match opt_dots with
-  | None | Some { opt_mvar = None; _ } -> Some env
+  | None
+  | Some { opt_mvar = None; _ } ->
+      Some env
   | Some { matched; opt_mvar = Some name; _ } -> (
       let name = "..." ^ name in
       let start_pos, end_pos = matched in
@@ -154,7 +156,9 @@ let close_dots conf ~dots:opt_dots env =
           if String.equal value value0 then Some env else None)
 
 let close_dots_or_fail conf ~dots env f =
-  match close_dots conf ~dots env with None -> Fail | Some env' -> f env'
+  match close_dots conf ~dots env with
+  | None -> Fail
+  | Some env' -> f env'
 
 let complete_dots conf ~dots env last_loc =
   let _, last_end = last_loc in
@@ -190,7 +194,9 @@ let doc_matches_dots ~dots:opt_dots last_loc doc =
 
 let rec pat_matches_empty_doc pat =
   match pat with
-  | [] | End :: _ -> true
+  | []
+  | End :: _ ->
+      true
   | Atom _ :: _ -> false
   | Dots _ :: pat -> pat_matches_empty_doc pat
   | List pat1 :: pat2 ->
@@ -383,7 +389,9 @@ let fold_block_starts acc (doc : Doc_AST.node list) f =
   fold ~is_block_start:true acc doc
 
 let starts_with_dots (pat : Pattern_AST.node list) =
-  match pat with Dots _ :: _ -> true | _ -> false
+  match pat with
+  | Dots _ :: _ -> true
+  | _ -> false
 
 let convert_named_captures env =
   Env.bindings env
@@ -490,7 +498,9 @@ let timed_search ~no_skip_search ~case_sensitive src pat doc =
   timef (fun () -> search ~no_skip_search ~case_sensitive src pat doc)
 
 let ansi_highlight s =
-  match s with "" -> s | s -> ANSITerminal.(sprintf [ Bold; green ] "%s" s)
+  match s with
+  | "" -> s
+  | s -> ANSITerminal.(sprintf [ Bold; green ] "%s" s)
 
 let make_separator_printer () =
   let is_first = ref true in
@@ -502,7 +512,10 @@ let print ?(highlight = false)
   let line_prefix =
     match Src_file.source src with
     | File path -> sprintf "%s:" path
-    | Stdin | String | Channel -> ""
+    | Stdin
+    | String
+    | Channel ->
+        ""
   in
   List.iter
     (fun match_ ->
@@ -525,7 +538,10 @@ let print_errors ?(highlight = false) errors =
       let src_prefix =
         match Src_file.source src with
         | File path -> sprintf "%s: " path
-        | Stdin | String | Channel -> ""
+        | Stdin
+        | String
+        | Channel ->
+            ""
       in
       eprintf "%s %s%s\n" error_prefix src_prefix error.Parse_pattern.msg)
     errors

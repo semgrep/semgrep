@@ -5,7 +5,8 @@
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
         "col": 22,
-        "line": 6
+        "line": 6,
+        "offset": 84
       },
       "extra": {
         "fix_regex": {
@@ -22,14 +23,16 @@
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
         "col": 5,
-        "line": 6
+        "line": 6,
+        "offset": 67
       }
     },
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
         "col": 23,
-        "line": 9
+        "line": 9,
+        "offset": 130
       },
       "extra": {
         "fix_regex": {
@@ -46,14 +49,16 @@
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
         "col": 5,
-        "line": 9
+        "line": 9,
+        "offset": 112
       }
     },
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
         "col": 33,
-        "line": 12
+        "line": 12,
+        "offset": 186
       },
       "extra": {
         "fix_regex": {
@@ -70,14 +75,16 @@
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
         "col": 5,
-        "line": 12
+        "line": 12,
+        "offset": 158
       }
     },
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
         "col": 42,
-        "line": 18
+        "line": 18,
+        "offset": 285
       },
       "extra": {
         "fix_regex": {
@@ -94,14 +101,16 @@
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
         "col": 5,
-        "line": 18
+        "line": 18,
+        "offset": 248
       }
     },
     {
       "check_id": "rules.autofix.python.requests.best-practice.use-timeout.use-timeout",
       "end": {
         "col": 18,
-        "line": 29
+        "line": 29,
+        "offset": 471
       },
       "extra": {
         "fix_regex": {
@@ -118,7 +127,8 @@
       "path": "targets/autofix/requests-use-timeout.py",
       "start": {
         "col": 9,
-        "line": 29
+        "line": 29,
+        "offset": 462
       }
     }
   ]

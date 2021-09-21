@@ -58,7 +58,10 @@ let ebnf_to_menhir file =
              else (
                Hashtbl.replace htokens (upper s) true;
                upper s)
-         | T.Int _ | T.Float _ | T.Char _ -> raise Impossible
+         | T.Int _
+         | T.Float _
+         | T.Char _ ->
+             raise Impossible
          | T.String s ->
              Hashtbl.replace hkwd s true;
              spf "\"%s\"" s)

@@ -1,5 +1,2 @@
 running 1 rules...
-[31msemgrep error[0m: invalid pattern
-
-[31mPattern `$X == $X 3` could not be parsed as a Python semgrep pattern[0m
-
+[31mSemgrep Core ERROR - Pattern parse error: In rule eqeq-is-bad: Invalid pattern for Python[0m[37m[0m

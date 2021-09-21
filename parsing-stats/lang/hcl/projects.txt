@@ -1,0 +1,14 @@
+# Git URLs of publicly-accessible projects to be used for parsing stats,
+# one per line.
+#
+https://github.com/hashicorp/terraform-provider-aws
+https://github.com/hashicorp/terraform-aws-vault
+https://github.com/hashicorp/terraform-aws-consul
+https://github.com/hashicorp/terraform-aws-nomad
+https://github.com/hashicorp/terraform-provider-google
+https://github.com/hashicorp/terraform-google-vault
+https://github.com/hashicorp/terraform-google-consul
+https://github.com/hashicorp/terraform-google-nomad
+
+# in example/real_world_stuff/
+https://github.com/MichaHoffmann/tree-sitter-hcl

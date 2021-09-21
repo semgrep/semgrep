@@ -68,7 +68,9 @@ let ii_of_any = Lib_parsing_go.ii_of_any
 (* TODO? do results "parameters" can have names? *)
 let return_type_of_results results =
   match results with
-  | [] | [ G.ParamClassic { G.ptype = None; _ } ] -> None
+  | []
+  | [ G.ParamClassic { G.ptype = None; _ } ] ->
+      None
   | [ G.ParamClassic { G.ptype = Some t; _ } ] -> Some t
   | xs ->
       Some
@@ -85,7 +87,7 @@ let list_to_tuple_or_expr xs =
   match xs with
   | [] -> raise Impossible
   | [ x ] -> x
-  | xs -> G.Tuple (G.fake_bracket xs) |> G.e
+  | xs -> G.Container (G.Tuple, G.fake_bracket xs) |> G.e
 
 let mk_func_def fkind params ret st =
   { G.fparams = params; frettype = ret; fbody = st; fkind }
@@ -213,8 +215,9 @@ let top_func () =
              (G.DefStmt
                 ( ent,
                   G.FuncDef
-                    (mk_func_def (G.Method, G.fake "") params ret G.empty_fbody)
-                )))
+                    (mk_func_def
+                       (G.Method, G.fake "")
+                       params ret (G.FBDecl G.sc)) )))
     | EmbeddedInterface v1 ->
         let v1 = qualified_ident v1 in
         let name = name_of_qualified_ident v1 in
@@ -288,7 +291,8 @@ let top_func () =
         G.TypedMetavar (v1, v2, v3)
     | FuncLit (v1, v2) ->
         let params, ret = func_type v1 and v2 = stmt v2 in
-        G.Lambda (mk_func_def (G.LambdaKind, G.fake "") params ret v2)
+        G.Lambda
+          (mk_func_def (G.LambdaKind, G.fake "") params ret (G.FBStmt v2))
     | Receive (v1, v2) ->
         let _v1 = tok v1 and v2 = expr v2 in
         G.OtherExpr (G.OE_Recv, [ G.E v2 ])
@@ -342,7 +346,7 @@ let top_func () =
         v1
     | InitKeyValue (v1, v2, v3) ->
         let v1 = init v1 and _v2 = tok v2 and v3 = init v3 in
-        G.Tuple (G.fake_bracket [ v1; v3 ]) |> G.e
+        G.Container (G.Tuple, G.fake_bracket [ v1; v3 ]) |> G.e
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in
         G.Container (G.List, v1) |> G.e
@@ -351,10 +355,10 @@ let top_func () =
         let v1 = expr v1 in
         G.Arg v1
     | InitKeyValue (v1, v2, v3) -> (
-        let _v2 = tok v2 and v3 = init v3 in
+        let v2 = tok v2 and v3 = init v3 in
         match v1 with
         | InitExpr (Id id) -> G.ArgKwd (id, v3)
-        | _ -> G.Arg (G.Tuple (G.fake_bracket [ init v1; v3 ]) |> G.e))
+        | _ -> G.Arg (G.keyval (init v1) v2 v3))
     | InitBraces v1 ->
         let v1 = bracket (list init) v1 in
         G.Arg (G.Container (G.List, v1) |> G.e)
@@ -488,7 +492,11 @@ let top_func () =
         let v2 = option expr v2 in
         let v3 = option simple v3 in
         (* TODO: some of v1 are really ForInitVar *)
-        let init = match v1 with None -> [] | Some e -> [ G.ForInitExpr e ] in
+        let init =
+          match v1 with
+          | None -> []
+          | Some e -> [ G.ForInitExpr e ]
+        in
         G.ForClassic (init, v2, v3)
     | ForRange (v1, v2, v3) -> (
         let opt =
@@ -569,7 +577,8 @@ let top_func () =
     | DFunc (t, v1, (v2, v3)) ->
         let v1 = ident v1 and params, ret = func_type v2 and v3 = stmt v3 in
         let ent = G.basic_entity v1 [] in
-        G.DefStmt (ent, G.FuncDef (mk_func_def (G.Function, t) params ret v3))
+        G.DefStmt
+          (ent, G.FuncDef (mk_func_def (G.Function, t) params ret (G.FBStmt v3)))
         |> G.s
     | DMethod (t, v1, v2, (v3, v4)) ->
         let v1 = ident v1
@@ -577,7 +586,7 @@ let top_func () =
         and params, ret = func_type v3
         and v4 = stmt v4 in
         let ent = G.basic_entity v1 [] in
-        let def = mk_func_def (G.Method, t) params ret v4 in
+        let def = mk_func_def (G.Method, t) params ret (G.FBStmt v4) in
         let receiver = G.OtherParam (G.OPO_Receiver, [ G.Pa v2 ]) in
         G.DefStmt
           (ent, G.FuncDef { def with G.fparams = receiver :: def.G.fparams })

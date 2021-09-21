@@ -15,7 +15,7 @@ open Common
 module FM = File_and_more
 module FT = File_type
 module R = Rule
-module E = Error_code
+module E = Semgrep_error_code
 module RP = Report
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -42,7 +42,9 @@ let (xlangs_of_rules : Rule.t list -> Rule.xlang list) =
  fun rs -> rs |> List.map (fun r -> r.R.languages) |> List.sort_uniq compare
 
 let first_xlang_of_rules rs =
-  match rs with [] -> failwith "no rules" | { R.languages = x; _ } :: _ -> x
+  match rs with
+  | [] -> failwith "no rules"
+  | { R.languages = x; _ } :: _ -> x
 
 (*****************************************************************************)
 (* Entry point *)
@@ -141,7 +143,9 @@ let test_rules ?(unit_testing = false) xs =
                      lang target
                  in
                  (ast, errors)
-             | R.LRegex | R.LGeneric -> raise Impossible)
+             | R.LRegex
+             | R.LGeneric ->
+                 raise Impossible)
          in
          let file_and_more =
            {
@@ -176,7 +180,6 @@ let test_rules ?(unit_testing = false) xs =
          actual_errors
          |> List.iter (fun e ->
                 logger#info "found error: %s" (E.string_of_error e));
-
          match
            E.compare_actual_to_expected actual_errors expected_error_lines
          with
