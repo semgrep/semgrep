@@ -3,7 +3,7 @@
     {
       "code": 2,
       "level": "warn",
-      "message": "Semgrep Core WARN - Out of memory: When running rules.forcetimeout on targets/equivalence/open_redirect.py: Out of memory",
+      "message": "Semgrep Core WARN - Out of memory: When running rules.forcetimeout on targets/equivalence/open_redirect.py: Exceeded memory limit (13.30 mb > 1 mb)",
       "path": "targets/equivalence/open_redirect.py",
       "rule_id": "rules.forcetimeout",
       "type": "Out of memory"
