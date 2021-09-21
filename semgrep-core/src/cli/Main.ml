@@ -194,23 +194,35 @@ let set_gc () =
   Gc.set { (Gc.get ()) with Gc.space_overhead = 300 };
   ()
 
-let map f xs =
-  if !ncores <= 1 then List.map f xs
-  else
-    let n = List.length xs in
-    (* Heuristic. Note that if you don't set a chunksize, Parmap
-     * will evenly split the list xs, which does not provide any load
-     * balancing.
-     *)
-    let chunksize =
-      match n with
-      | _ when n > 1000 -> 10
-      | _ when n > 100 -> 5
-      | _ when n = 0 -> 1
-      | _ when n <= !ncores -> 1
-      | _ -> n / !ncores
-    in
-    assert (!ncores > 0 && chunksize > 0);
+(*
+   Run jobs in parallel, using number of cores specified with -j.
+*)
+let map_targets f (targets : Common.filename list) =
+  (*
+     Sorting the targets by decreasing size is based on the assumption
+     that larger targets will take more time to process. Starting with
+     the longer jobs allows parmap to feed the workers with shorter and
+     shorter jobs, as a way of maximizing CPU usage.
+     This is a kind of greedy algorithm, which is in general not optimal
+     but hopefully good enough in practice.
+
+     This is needed only when ncores > 1, but to reduce discrepancy between
+     the two modes, we always sort the target queue in the same way.
+  *)
+  let targets = Find_target.sort_by_decreasing_size targets in
+  if !ncores <= 1 then Common.map f targets
+  else (
+    (*
+       Parmap creates ncores children processes which listen for
+       chunks of input. When a chunk size is specified, parmap feeds
+       the ncores processes in small chunks of the specified size
+       instead of just dividing the input list into exactly ncores chunks.
+
+       Since our jobs are relatively big compared to the serialization
+       and communication overhead, setting the chunk size to 1 works
+       fine.  We don't want to have two giant target files in the same
+       chunk, so this setting takes care of it.
+    *)
     (* Quoting Parmap's README:
      * > To obtain maximum speed, Parmap tries to pin the worker processes to a CPU
      * Unfortunately, on the new Apple M1, and depending on the number of workers,
@@ -222,7 +234,8 @@ let map f xs =
      * this issue until this is fixed in a future version of Parmap.
      *)
     Parmap.disable_core_pinning ();
-    Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
+    assert (!ncores > 0);
+    Parmap.parmap ~ncores:!ncores ~chunksize:1 f (Parmap.L targets))
 
 (* for -gen_layer, see Experiments.ml *)
 let _matching_tokens = ref []
@@ -535,7 +548,7 @@ let parse_pattern lang_pattern str =
 
 let iter_files_and_get_matches_and_exn_to_errors f files =
   files
-  |> map (fun file ->
+  |> map_targets (fun file ->
          logger#info "Analyzing %s" file;
          let res, run_time =
            Common.with_time (fun () ->
