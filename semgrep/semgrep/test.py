@@ -339,8 +339,11 @@ def generate_file_pairs(
     save_test_output_tar: bool = True,
     optimizations: str = "none",
 ) -> None:
+    logger.debug(f"Generating file pairs for {config} on {target}")
     config_filenames = get_config_filenames(config)
+    logger.debug(f"Config filenames:  {config_filenames}")
     config_test_filenames = get_config_test_filenames(config, config_filenames, target)
+    logger.debug(f"Config test filenames: {config_test_filenames}")
     config_with_tests, config_without_tests = partition(
         lambda c: c[1], config_test_filenames.items()
     )
@@ -355,8 +358,12 @@ def generate_file_pairs(
     )
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         results = pool.starmap(invoke_semgrep_fn, config_with_tests)
+        logger.debug(results)
 
     config_with_errors, config_without_errors = partition(lambda r: r[1], results)
+    logger.debug(f"With Errors: {config_with_errors}")
+    logger.debug(f"Without Erorrs: {config_without_errors}")
+
     config_with_errors_output = [
         {"filename": str(filename), "error": str(error), "output": output}
         for filename, error, output in config_with_errors
