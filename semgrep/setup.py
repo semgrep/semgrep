@@ -83,6 +83,17 @@ def find_executable(env_name, exec_name):
     )
 
 
+#
+# The default behavior is to copy the semgrep-core and spacegrep binaries
+# into some other folder known to the semgrep wrapper. If somebody knows why,
+# please explain why we do this.
+#
+# It makes testing of semgrep-core error-prone since recompiling
+# semgrep-core won't perform this copy. If we can't get rid of this, can
+# we use a symlink instead?
+#
+# The environment variable SEMGREP_SKIP_BIN bypasses this copy. What is it for?
+#
 if not SEMGREP_SKIP_BIN:
     binaries = [
         (SEMGREP_CORE_BIN_ENV, SEMGREP_CORE_BIN),
@@ -92,6 +103,15 @@ if not SEMGREP_SKIP_BIN:
     for binary_env, binary_name in binaries:
         src = find_executable(binary_env, binary_name)
         dst = os.path.join(PACKAGE_BIN_DIR, binary_name)
+        # The semgrep-core executable doesn't have the write
+        # permission (because of something dune does?), and copyfile
+        # doesn't remove the destination file if it already exists
+        # but tries to truncate it, resulting in an error.
+        # So we remove the destination file first if it exists.
+        try:
+            os.remove(dst)
+        except OSError:
+            pass
         shutil.copyfile(src, dst)
         os.chmod(dst, os.stat(dst).st_mode | stat.S_IEXEC)
 

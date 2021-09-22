@@ -353,7 +353,11 @@ class CoreOutput:
             rule_match = convert_to_rule_match(match, rule)
             findings.append(rule_match)
 
-        # Before this PR was sorting, keeping but not sure why
-        findings = sorted(findings, key=lambda rule_match: rule_match.start.offset)
+        # Sort results so as to guarantee the same results across different
+        # runs. Results may arrive in a different order due to parallelism
+        # (-j option).
+        findings = sorted(
+            findings, key=lambda rule_match: [rule_match.path, rule_match.start.offset]
+        )
         findings = dedup(findings)
         return findings

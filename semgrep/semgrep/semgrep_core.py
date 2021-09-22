@@ -13,7 +13,12 @@ def compute_executable_path(exec_name: str) -> str:
     if os.path.isfile(pkg_exec):
         return pkg_exec
 
-    # Second, try system binaries
+    # Second, try system binaries in PATH.
+    #
+    # Environment variables, including PATH, are not inherited by the pytest
+    # jobs (at least by default), so this won't work when running pytest
+    # tests.
+    #
     which_exec = shutil.which(exec_name)
     if which_exec is not None:
         return which_exec
