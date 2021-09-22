@@ -164,6 +164,8 @@ let use_parsing_cache = ref ""
 (* take the list of files in a file (given by semgrep-python) *)
 let target_file = ref ""
 
+let filterable_target_file = ref ""
+
 (* action mode *)
 let action = ref ""
 
@@ -1144,6 +1146,12 @@ let options () =
       Arg.Set_string lang,
       spf " <str> choose language (valid choices:\n     %s)"
         Lang.supported_langs );
+    ( "-filterable_target_file",
+      Arg.Set_string filterable_target_file,
+      " <file> file containing a list of targets to run patterns on. One path \
+       per line. The targets are handled similarly to the anonymous arguments, \
+       i.e. they're subject to filtering based on file extension, file size, \
+       etc." );
     ( "-target",
       Arg.String (fun path -> explicit_targets := path :: !explicit_targets),
       " <file> explicit target file, not subject to filtering regardless of \
@@ -1151,7 +1159,9 @@ let options () =
        contain will still be subject to filtering." );
     ( "-target_file",
       Arg.Set_string target_file,
-      " <file> obtain list of targets to run patterns on" );
+      " <file> file containing a list of explicit targets to run patterns on. \
+       One path per line. The targets are handled similarly to -target without \
+       filtering." );
     ( "-equivalences",
       Arg.Set_string equivalences_file,
       " <file> obtain list of code equivalences from YAML file" );
@@ -1296,6 +1306,39 @@ let options () =
         "  guess what" );
     ]
 
+(*
+   Reads values set after parsing the command line, collecting
+   the list of targets from the different allowed sources.
+
+   Returns a list of paths which are scanning roots (folders) or simple
+   files, with the attributes expected by Find_target.
+*)
+let get_scan_roots_from_command_line ~anon_args =
+  let filterable_targets_from_argv = anon_args in
+  let filterable_targets_from_file =
+    match !filterable_target_file with
+    | "" -> []
+    | path -> Common.cat path
+  in
+  let explicit_targets_from_argv = !explicit_targets in
+  let explicit_targets_from_file =
+    match !target_file with
+    | "" -> []
+    | path -> Common.cat path
+  in
+  (match (filterable_targets_from_argv, filterable_targets_from_file) with
+  | _ :: _, _ :: _ ->
+      failwith
+        "Cannot use -filterable_target_file option together with a list of \
+         target files specified on the command line."
+  | _ -> ());
+  (match (explicit_targets_from_argv, explicit_targets_from_file) with
+  | _ :: _, _ :: _ ->
+      failwith "Cannot use -target_file option together with -target."
+  | _ -> ());
+  Common.map (fun path -> (path, Find_target.Filterable)) paths
+  @ Common.map (fun path -> (path, Find_target.Explicit)) !explicit_targets
+
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
@@ -1340,9 +1383,9 @@ let main () =
   in
 
   (* does side effect on many global flags *)
-  let args = Common.parse_options (options ()) usage_msg (Array.of_list argv) in
-  let args = if !target_file = "" then args else Common.cat !target_file in
-
+  let anon_args =
+    Common.parse_options (options ()) usage_msg (Array.of_list argv)
+  in
   if Sys.file_exists !log_config_file then (
     Logging.load_config_file !log_config_file;
     logger#info "loaded %s" !log_config_file);
@@ -1364,7 +1407,7 @@ let main () =
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->
-      match args with
+      match anon_args with
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)
       (* --------------------------------------------------------- *)
@@ -1375,32 +1418,17 @@ let main () =
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)
-      | _ :: _ as paths -> (
+      | anon_args ->
+          let scan_roots = get_scan_roots_from_command_line anon_args in
           if !Flag.gc_tuning && !max_memory_mb = 0 then set_gc ();
-
-          let roots =
-            Common.map (fun path -> (path, Find_target.Filterable)) paths
-            @ Common.map
-                (fun path -> (path, Find_target.Explicit))
-                !explicit_targets
-          in
-          match () with
-          | _ when !config_file <> "" ->
-              semgrep_with_rules_file !config_file roots
-          | _ when !rules_file <> "" ->
-              let lang = lang_of_string !lang in
-              semgrep_with_patterns_file lang !rules_file roots
-          | _ ->
-              let lang = lang_of_string !lang in
-              semgrep_with_one_pattern lang roots)
-      (* --------------------------------------------------------- *)
-      (* empty entry *)
-      (* --------------------------------------------------------- *)
-      (* TODO: should not need that, semgrep should not call us when there
-       * are no files to process. *)
-      | [] when !target_file <> "" && !config_file <> "" ->
-          semgrep_with_rules_file !config_file []
-      | [] -> Common.usage usage_msg (options ()))
+          if !config_file <> "" then
+            semgrep_with_rules_file !config_file scan_roots
+          else if !rules_file <> "" then
+            let lang = lang_of_string !lang in
+            semgrep_with_patterns_file lang !rules_file scan_roots
+          else
+            let lang = lang_of_string !lang in
+            semgrep_with_one_pattern lang scan_roots)
 
 (*****************************************************************************)
 let () =
