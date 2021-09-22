@@ -53,7 +53,7 @@ module DataflowX = Dataflow.Make (struct
 
   type edge = F.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
@@ -181,11 +181,11 @@ let (transfer :
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   let in' =
-    (flow#predecessors ni)#fold
+    (flow.graph#predecessors ni)#fold
       (fun acc (ni_pred, _) -> union acc mapping.(ni_pred).D.out_env)
       VarMap.empty
   in
-  let node = flow#nodes#assoc ni in
+  let node = flow.graph#nodes#assoc ni in
 
   let gen_ni_opt =
     match node.F.n with

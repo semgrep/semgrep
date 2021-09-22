@@ -5,6 +5,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+
+### Changed
+- Taint no longer analyzes dead/unreachable code
+
+### Fixed
+
+## Unreleased
+
+### Added
 - HCL (a.k.a Terraform) experimental support
 
 ### Changed

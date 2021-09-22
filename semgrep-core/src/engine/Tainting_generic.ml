@@ -82,7 +82,7 @@ module DataflowY = Dataflow.Make (struct
 
   type edge = F2.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)

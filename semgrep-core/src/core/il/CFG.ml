@@ -12,3 +12,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
+
+type nodei = Ograph_extended.nodei
+
+(* We include the entry point because the Datafslow engine uses this, and works using an abstract node type,
+   which prevent it from searching for an entry node.
+*)
+type ('node, 'edge) t = {
+  graph : ('node, 'edge) Ograph_extended.ograph_mutable;
+  entry : nodei;
+}
+
+type ('node, 'edge) cfg = ('node, 'edge) t
