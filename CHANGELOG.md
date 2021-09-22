@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add rule message to emacs output (#3851)
 - Show stack trace on fatal errors (#3876)
 - Various changes to error messages (#3827)
+- Taint no longer analyzes dead/unreachable code 
 
 ### Fixed
 - Dataflow: Recognize "concat" method and interpret it in a language-dependent manner (#3316)
@@ -25,7 +26,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Grouped semgrep CLI options and added constraints when useful (e.g. cannot use `--vim` and `--emacs` at the same time)
-- Taint no longer analyzes dead/unreachable code 
 
 ### Fixed
 - Taint detection with ternary ifs (#3778)
