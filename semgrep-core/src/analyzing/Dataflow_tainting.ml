@@ -48,7 +48,6 @@ type config = {
 (** This can use semgrep patterns under the hood. Note that a source can be an
   * instruction but also an expression. *)
 
-
 module DataflowX = Dataflow.Make (struct
   type node = F.node
 
