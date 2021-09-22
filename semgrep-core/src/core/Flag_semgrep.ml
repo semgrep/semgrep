@@ -1,17 +1,8 @@
-(*s: semgrep/core/Flag_semgrep.ml *)
-(*s: constant [[Flag_semgrep.verbose]] *)
-(*e: constant [[Flag_semgrep.verbose]] *)
-
 (* debugging flags *)
 
-(*s: constant [[Flag_semgrep.debug]] *)
 (* note that this will stop at the first fail(), but if you restrict
  * enough your pattern, this can help you debug your problem.*)
 let debug_matching = ref false
-
-(*e: constant [[Flag_semgrep.debug]] *)
-(*s: constant [[Flag_semgrep.debug_with_full_position]] *)
-(*e: constant [[Flag_semgrep.debug_with_full_position]] *)
 
 (* we usually try first with the pfff parser and then with the tree-sitter
  * parser if pfff fails. Here you can force to only use tree-sitter.
@@ -21,13 +12,6 @@ let tree_sitter_only = ref false
 let pfff_only = ref false
 
 (* optimization flags *)
-
-(*s: constant [[Flag_semgrep.go_deeper_expr]] *)
-(*e: constant [[Flag_semgrep.go_deeper_expr]] *)
-(*s: constant [[Flag_semgrep.go_deeper_stmt]] *)
-(*e: constant [[Flag_semgrep.go_deeper_stmt]] *)
-(*s: constant [[Flag_semgrep.go_really_deeper_stmt]] *)
-(*e: constant [[Flag_semgrep.go_really_deeper_stmt]] *)
 
 (* look if identifiers in pattern intersect with file using simple regexps *)
 let filter_irrelevant_patterns = ref false
@@ -53,12 +37,7 @@ let max_target_bytes = ref 5_000_000
 (* Disabling this lets us measure the effectiveness of our GC tuning. *)
 let gc_tuning = ref true
 
-(*s: constant [[Flag_semgrep.equivalence_mode]] *)
 (* special mode to set before using generic_vs_generic to match
  * code equivalences.
  *)
 let equivalence_mode = ref false
-
-(*e: constant [[Flag_semgrep.equivalence_mode]] *)
-
-(*e: semgrep/core/Flag_semgrep.ml *)

@@ -1,5 +1,3 @@
-(*s: semgrep/parsing/Parse_rule.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau, Emma Jin
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 module J = JSON
 module FT = File_type
@@ -520,7 +517,9 @@ and parse_formula_old env ((key, value) : key * G.expr) : R.formula_old =
       let x = parse_string_wrap env key value in
       let xpat = R.mk_xpat (Comby (fst x)) x in
       R.Pat xpat
-  | "metavariable-regex" | "metavariable-pattern" | "metavariable-comparison"
+  | "metavariable-regex"
+  | "metavariable-pattern"
+  | "metavariable-comparison"
   | "pattern-where-python" ->
       R.PatExtra (t, parse_extra env key value)
   (* fix suggestions *)
@@ -659,7 +658,8 @@ let parse_severity ~id (s, t) =
 
 let parse_mode env mode_opt (rule_dict : dict) : R.mode =
   match mode_opt with
-  | None | Some ("search", _) ->
+  | None
+  | Some ("search", _) ->
       let formula = parse_formula env rule_dict in
       R.Search formula
   | Some ("taint", _) ->
@@ -788,5 +788,3 @@ let parse file =
           (spf "wrong rule format, only JSON/YAML/JSONNET are valid:%s:" file)
   in
   parse_generic file ast
-
-(*e: semgrep/parsing/Parse_rule.ml *)

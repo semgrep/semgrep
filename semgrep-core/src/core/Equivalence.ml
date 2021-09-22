@@ -1,5 +1,3 @@
-(*s: semgrep/core/Equivalence.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -58,13 +55,9 @@
 (* Types *)
 (*****************************************************************************)
 
-(*s: type [[Equivalence.pattern]] *)
 (* right now only Expr is supported *)
 type pattern = Pattern.t
 
-(*e: type [[Equivalence.pattern]] *)
-
-(*s: type [[Equivalence.equivalence_kind]] *)
 type equivalence_kind =
   | Equiv
   (* <==> *)
@@ -72,9 +65,6 @@ type equivalence_kind =
 
 (* ==> *)
 
-(*e: type [[Equivalence.equivalence_kind]] *)
-
-(*s: type [[Equivalence.equivalence]] *)
 type equivalence = {
   id : string;
   (* useful? to be able to disable some selectively by name? *)
@@ -84,16 +74,7 @@ type equivalence = {
   languages : Lang.t list; (* at least one element *)
 }
 
-(*e: type [[Equivalence.equivalence]] *)
-
-(*s: type [[Equivalence.equivalences]] *)
 and equivalences = equivalence list
 
-(*e: type [[Equivalence.equivalences]] *)
-
-(*s: type [[Equivalence.t]] *)
 (* alias *)
 type t = equivalence
-
-(*e: type [[Equivalence.t]] *)
-(*e: semgrep/core/Equivalence.ml *)

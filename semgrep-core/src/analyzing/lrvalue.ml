@@ -102,9 +102,14 @@ let rec visit_expr hook lhs expr =
   | Container (typ, xs) -> (
       match typ with
       (* used on lhs? *)
-      | Array | List | Tuple -> xs |> unbracket |> List.iter recl
+      | Array
+      | List
+      | Tuple ->
+          xs |> unbracket |> List.iter recl
       (* never used on lhs *)
-      | Set | Dict -> xs |> unbracket |> List.iter recr)
+      | Set
+      | Dict ->
+          xs |> unbracket |> List.iter recr)
   | Comprehension (_, (_, (e, comps), _)) ->
       recr e;
       comps
@@ -178,7 +183,9 @@ let rec visit_expr hook lhs expr =
   (* we should not be called on a sgrep pattern *)
   | TypedMetavar (_id, _, _t) -> raise Impossible
   | DisjExpr _ -> raise Impossible
-  | DeepEllipsis _ | DotAccessEllipsis _ -> raise Impossible
+  | DeepEllipsis _
+  | DotAccessEllipsis _ ->
+      raise Impossible
   | Ellipsis _tok -> ()
   | OtherExpr (_other_xxx, anys) -> List.iter (anyhook hook Rhs) anys
 

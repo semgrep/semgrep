@@ -1,5 +1,3 @@
-(*s: pfff/lang_GENERIC_base/AST_generic_helpers.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 open AST_generic
 module G = AST_generic
@@ -36,31 +33,26 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Helpers *)
 (*****************************************************************************)
 
-(*s: constant [[AST_generic.str_of_ident]] *)
 let str_of_ident = fst
-
-(*e: constant [[AST_generic.str_of_ident]] *)
 
 let name_of_entity ent =
   match ent.name with
-  | EN (Id (i, pinfo)) | EN (IdQualified ((i, _), pinfo)) -> Some (i, pinfo)
+  | EN (Id (i, pinfo))
+  | EN (IdQualified ((i, _), pinfo)) ->
+      Some (i, pinfo)
   | EDynamic _ -> None
 
-(*s: constant [[AST_generic.gensym_counter]] *)
 (* You can use 0 for globals, even though this will work only on a single
  * file. Any global analysis will need to set a unique ID for globals too. *)
 let gensym_counter = ref 0
 
 (* see sid type in resolved_name *)
-(*e: constant [[AST_generic.gensym_counter]] *)
-(*s: function [[AST_generic.gensym]] *)
 (* see sid type in resolved_name *)
 let gensym () =
   incr gensym_counter;
   !gensym_counter
 
 (* before Naming_AST.resolve can do its job *)
-(*e: function [[AST_generic.gensym]] *)
 
 let name_of_ids ?(name_typeargs = None) xs =
   match List.rev xs with
@@ -84,7 +76,6 @@ let dotted_ident_of_name (n : name) : dotted_ident =
       (* TODO, look QDots, ... *)
       [ id ]
 
-(*s: function [[AST_generic.expr_to_pattern]] *)
 (* In Go a pattern can be a complex expressions. It is just
  * matched for equality with the thing it's matched against, so in that
  * case it should be a pattern like | _ when expr = x.
@@ -104,13 +95,8 @@ let rec expr_to_pattern e =
   (* Todo:  PatKeyVal *)
   | _ -> OtherPat (OP_Expr, [ E e ])
 
-(*e: function [[AST_generic.expr_to_pattern]] *)
-
-(*s: exception [[AST_generic.NotAnExpr]] *)
 exception NotAnExpr
 
-(*e: exception [[AST_generic.NotAnExpr]] *)
-(*s: function [[AST_generic.pattern_to_expr]] *)
 (* sgrep: this is to treat pattern metavars as expr metavars *)
 let rec pattern_to_expr p =
   (match p with
@@ -121,20 +107,17 @@ let rec pattern_to_expr p =
   | PatList (t1, xs, t2) ->
       Container (List, (t1, xs |> List.map pattern_to_expr, t2))
   | OtherPat (OP_Expr, [ E e ]) -> e.e
-  | PatAs _ | PatVar _ -> raise NotAnExpr
+  | PatAs _
+  | PatVar _ ->
+      raise NotAnExpr
   | _ -> raise NotAnExpr)
   |> G.e
 
-(*e: function [[AST_generic.pattern_to_expr]] *)
-
-(*s: function [[AST_generic.expr_to_type]] *)
 let expr_to_type e =
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
   OtherType (OT_Expr, [ E e ]) |> G.t
 
 (* See also exprstmt, and stmt_to_expr in AST_generic.ml *)
-
-(*e: function [[AST_generic.expr_to_type]] *)
 
 (* old: there was a stmt_to_item before *)
 (* old: there was a stmt_to_field before *)
@@ -144,15 +127,10 @@ let expr_to_type e =
 (* see also Php_generic.list_expr_to_opt *)
 (* see also Php_generic.name_of_qualified_ident (also in Java) *)
 
-(*s: function [[AST_generic.opt_to_empty]] *)
-(*e: function [[AST_generic.opt_to_empty]] *)
+let opt_to_label_ident = function
+  | None -> LNone
+  | Some id -> LId id
 
-(*s: function [[AST_generic.opt_to_label_ident]] *)
-let opt_to_label_ident = function None -> LNone | Some id -> LId id
-
-(*e: function [[AST_generic.opt_to_label_ident]] *)
-
-(*s: function [[AST_generic.is_boolean_operator]] *)
 (* used in abstract interpreter and type for PHP where we now reuse
  * 'AST_generic.arithmetic_operator' above *)
 (*
@@ -174,7 +152,6 @@ let is_boolean_operator = function
   | In | NotIn | Is | NotIs
     -> true
 *)
-(*e: function [[AST_generic.is_boolean_operator]] *)
 
 let name_or_dynamic_to_expr name idinfo_opt =
   (match (name, idinfo_opt) with
@@ -186,7 +163,6 @@ let name_or_dynamic_to_expr name idinfo_opt =
   | EDynamic e, _ -> e.e)
   |> G.e
 
-(*s: function [[AST_generic.vardef_to_assign]] *)
 (* used in controlflow_build and semgrep *)
 let vardef_to_assign (ent, def) =
   let name = name_or_dynamic_to_expr ent.name None in
@@ -197,9 +173,6 @@ let vardef_to_assign (ent, def) =
   in
   Assign (name, Parse_info.unsafe_fake_info "=", v) |> G.e
 
-(*e: function [[AST_generic.vardef_to_assign]] *)
-
-(*s: function [[AST_generic.funcdef_to_lambda]] *)
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
   let idinfo = { (empty_id_info ()) with id_resolved = ref resolved } in
@@ -207,20 +180,17 @@ let funcdef_to_lambda (ent, def) resolved =
   let v = Lambda def |> G.e in
   Assign (name, Parse_info.unsafe_fake_info "=", v) |> G.e
 
-(*e: function [[AST_generic.funcdef_to_lambda]] *)
-
 let funcbody_to_stmt = function
   | FBStmt st -> st
   | FBExpr e -> G.exprstmt e
   | FBDecl sc -> Block (sc, [], sc) |> G.s
   | FBNothing -> Block (G.fake_bracket []) |> G.s
 
-(*s: function [[AST_generic.has_keyword_attr]] *)
 let has_keyword_attr kwd attrs =
   attrs
-  |> List.exists (function KeywordAttr (kwd2, _) -> kwd =*= kwd2 | _ -> false)
-
-(*e: function [[AST_generic.has_keyword_attr]] *)
+  |> List.exists (function
+       | KeywordAttr (kwd2, _) -> kwd =*= kwd2
+       | _ -> false)
 
 (*****************************************************************************)
 (* Abstract position and constness for comparison *)
@@ -251,7 +221,13 @@ let abstract_for_comparison_any x =
 
 let is_associative_operator op =
   match op with
-  | Or | And | BitOr | BitAnd | BitXor | Concat -> true
+  | Or
+  | And
+  | BitOr
+  | BitAnd
+  | BitXor
+  | Concat ->
+      true
   (* TODO: Plus, Mult, ... *)
   | __else__ -> false
 
@@ -261,7 +237,10 @@ let ac_matching_nf op args =
     args1
     |> List.map (function
          | Arg e -> e
-         | ArgKwd _ | ArgType _ | ArgOther _ -> raise_notrace Exit)
+         | ArgKwd _
+         | ArgType _
+         | ArgOther _ ->
+             raise_notrace Exit)
     |> List.map nf_one |> List.flatten
   and nf_one e =
     match e.e with
@@ -385,5 +364,3 @@ let (conv_function_kind :
     | G_.LambdaKind -> G.LambdaKind
     | G_.Arrow -> G.Arrow),
     t )
-
-(*e: pfff/lang_GENERIC_base/AST_generic_helpers.ml *)

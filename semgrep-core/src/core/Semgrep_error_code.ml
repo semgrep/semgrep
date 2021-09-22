@@ -117,11 +117,6 @@ let exn_to_error ?(rule_id = None) file exn =
 (* Pretty printers *)
 (*****************************************************************************)
 
-let string_of_error err =
-  let pos = err.loc in
-  assert (pos.PI.file <> "");
-  spf "%s:%d:%d: %s" pos.PI.file pos.PI.line pos.PI.column err.msg
-
 let string_of_error_kind = function
   | LexicalError -> "Lexical error"
   | ParseError -> "Syntax error"
@@ -139,6 +134,18 @@ let string_of_error_kind = function
   | FatalError -> "Fatal error"
   | Timeout -> "Timeout"
   | OutOfMemory -> "Out of memory"
+
+let string_of_error err =
+  let pos = err.loc in
+  assert (pos.PI.file <> "");
+  let details =
+    match err.details with
+    | None -> ""
+    | Some s -> spf "\n%s" s
+  in
+  spf "%s:%d:%d: %s: %s%s" pos.PI.file pos.PI.line pos.PI.column
+    (string_of_error_kind err.typ)
+    err.msg details
 
 let severity_of_error typ =
   match typ with
@@ -233,4 +240,6 @@ let compare_actual_to_expected actual_errors expected_error_lines =
   let msg =
     spf "it should find all reported errors and no more (%d errors)" num_errors
   in
-  match num_errors with 0 -> Stdlib.Ok () | n -> Error (n, msg)
+  match num_errors with
+  | 0 -> Stdlib.Ok ()
+  | n -> Error (n, msg)

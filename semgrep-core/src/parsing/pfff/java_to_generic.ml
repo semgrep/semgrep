@@ -51,7 +51,9 @@ let fb = G.fake_bracket
 
 let id_of_entname = function
   | G.EN (Id (id, idinfo)) -> (id, idinfo)
-  | G.EN _ | G.EDynamic _ -> raise Impossible
+  | G.EN _
+  | G.EDynamic _ ->
+      raise Impossible
 
 let entity_to_param { G.name; attrs; tparams = _unused } t =
   let id, info = id_of_entname name in
@@ -167,7 +169,9 @@ and modifiers v = list modifier v
 and annotation (t, v1, v2) =
   let v1 = qualified_ident v1 in
   let xs =
-    match v2 with None -> fb [] | Some x -> bracket annotation_element x
+    match v2 with
+    | None -> fb []
+    | Some x -> bracket annotation_element x
   in
   let name = H.name_of_ids v1 in
   G.NamedAttr (t, name, xs)
@@ -394,7 +398,9 @@ and expr e =
       x.G.e)
   |> G.e
 
-and expr_or_type = function Left e -> G.E (expr e) | Right t -> G.T (typ t)
+and expr_or_type = function
+  | Left e -> G.E (expr e)
+  | Right t -> G.T (typ t)
 
 and argument v =
   let v = expr v in
@@ -544,7 +550,8 @@ and init = function
 and parameters v = List.map parameter_binding v
 
 and parameter_binding = function
-  | ParamClassic v | ParamReceiver v ->
+  | ParamClassic v
+  | ParamReceiver v ->
       let ent, t = var v in
       G.ParamClassic (entity_to_param ent t)
   | ParamSpread (tk, v) ->
@@ -663,7 +670,9 @@ and import = function
 and directive = function
   | Import (static, v2) ->
       let d_attrs =
-        match static with None -> [] | Some t -> [ G.attr G.Static t ]
+        match static with
+        | None -> []
+        | Some t -> [ G.attr G.Static t ]
       in
       G.DirectiveStmt { G.d = import v2; d_attrs } |> G.s
   | Package (t, qu, _t2) ->

@@ -248,7 +248,9 @@ and eval_op op values code =
   | G.NotEq, [ Float v1; Int v2 ] -> Bool (v1 <> float_of_int v2)
   | G.NotEq, [ v1; v2 ] -> Bool (v1 <> v2)
   | G.In, [ v1; v2 ] -> (
-      match v2 with List xs -> Bool (List.mem v1 xs) | _ -> Bool false)
+      match v2 with
+      | List xs -> Bool (List.mem v1 xs)
+      | _ -> Bool false)
   | _ -> raise (NotHandled code)
 
 (*****************************************************************************)
