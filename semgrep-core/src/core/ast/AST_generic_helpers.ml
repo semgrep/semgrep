@@ -65,6 +65,18 @@ let name_of_ids ?(name_typeargs = None) xs =
 
 let name_of_id id = Id (id, empty_id_info ())
 
+let name_of_dot_access e =
+  let ( let* ) = Option.bind in
+  let rec fetch_ids = function
+    | G.N (G.Id (x, _)) -> Some [ x ]
+    | G.DotAccess (e1, _, G.EN (G.Id (x, _))) ->
+        let* xs = fetch_ids e1.e in
+        Some (xs @ [ x ])
+    | ___else___ -> None
+  in
+  let* xs = fetch_ids e.e in
+  Some (name_of_ids xs)
+
 (* TODO: you should not need to use that. This is mostly because
  * Constructor and PatConstructor currently takes a dotted_ident instead
  * of a name.

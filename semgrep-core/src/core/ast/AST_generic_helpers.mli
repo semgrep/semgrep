@@ -29,6 +29,9 @@ val name_of_ids :
   AST_generic.dotted_ident ->
   AST_generic.name
 
+(* Tries to re-interpreted a DotAccess expression a.b.c as an IdQualified. *)
+val name_of_dot_access : AST_generic.expr -> AST_generic.name option
+
 (* You should avoid this function! *)
 val dotted_ident_of_name : AST_generic.name -> AST_generic.dotted_ident
 
