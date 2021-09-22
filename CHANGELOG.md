@@ -17,6 +17,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+
+### Changed
+- Attribute-expression equivalence that allows matching expression patterns against
+  attributes, it is enabled by default but can be disabled via rule `options:` with
+  `attr_expr: false` (#3489)
+
+### Fixed
+
+## Unreleased
+
+### Added
 - HCL (a.k.a Terraform) experimental support
 
 ### Changed

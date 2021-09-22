@@ -1,0 +1,12 @@
+rules:
+- id: test
+  options:
+    attr_expr: true
+  patterns:
+    - pattern: |
+        "bad string"
+    - pattern-not-inside: function_that_makes_it_okay(...)
+  message: test
+  languages: [python]
+  severity: ERROR
+

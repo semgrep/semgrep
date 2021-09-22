@@ -34,8 +34,10 @@ and visitor_out = any -> unit
 
 val default_visitor : visitor_in
 
-val mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out
-(** @param vardef_assign VarDef-Assign equivalence (default is [false]) *)
+val mk_visitor :
+  ?vardef_assign:bool -> ?attr_expr:bool -> visitor_in -> visitor_out
+(** @param vardef_assign VarDef-Assign equivalence (default is [false])
+    @param attr_expr Attribute-expression equivalence (default is [false]) *)
 
 (* Note that ii_of_any relies on Visitor_AST which itself
  * uses OCaml.v_ref_do_not_visit, so no need to worry about
