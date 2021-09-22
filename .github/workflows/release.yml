@@ -202,7 +202,7 @@ jobs:
           path: semgrep/dist.zip
 
   build-wheels-manylinux:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
     needs: [build-core]
     steps:
@@ -235,7 +235,7 @@ jobs:
           path: semgrep/dist.zip
 
   test-wheels-manylinux:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
     container: quay.io/pypa/manylinux1_x86_64
     needs: [build-wheels-manylinux]
     steps:
