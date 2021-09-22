@@ -12,7 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Grouped semgrep CLI options and added constraints when useful (e.g. cannot use `--vim` and `--emacs` at the same time)
-- CFGs now track their entry point, and dataflow uses this to build a workset by DFS
+- Taint no longer analyzes dead/unreachable code 
 
 ### Fixed
 - Taint detection with ternary ifs (#3778)
