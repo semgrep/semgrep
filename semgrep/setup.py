@@ -135,8 +135,6 @@ install_requires = [
     # version.
     "setuptools",
 ]
-if is_python_before_3_7():
-    install_requires.append("dataclasses~=0.8")
 
 setuptools.setup(
     name="semgrep",
