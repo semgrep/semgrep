@@ -5,6 +5,8 @@
 open Common
 module Resp = Semgrep_core_response_t
 
+type target_kind = Explicit | Filterable
+
 (*
    The 7% threshold works well for javascript files based on looking at
    .min.js files and other .js found in various github repos.
@@ -151,14 +153,17 @@ let sort_by_decreasing_size paths =
   |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
   |> Common.map fst
 
-let files_of_dirs_or_files ?(keep_root_files = true)
-    ?(sort_by_decr_size = false) lang roots =
+let files_of_dirs_or_files ?(sort_by_decr_size = false) lang roots =
   let explicit_targets, paths =
-    if keep_root_files then
+    Common.partition_either
+      (fun (path, kind) ->
+        match kind with
+        | Explicit when Sys.file_exists path && not (Sys.is_directory path) ->
+            Left path
+        | Filterable
+        | Explicit ->
+            Right path)
       roots
-      |> List.partition (fun path ->
-             Sys.file_exists path && not (Sys.is_directory path))
-    else (roots, [])
   in
   let paths = Common.files_of_dir_or_files_no_vcs_nofilter paths in
   let paths, skipped1 = exclude_files_in_skip_lists paths in

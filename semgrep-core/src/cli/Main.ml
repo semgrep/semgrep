@@ -133,6 +133,8 @@ let mvars = ref ([] : Metavariable.mvar list)
 
 let lsp = ref false
 
+let explicit_targets = ref ([] : Common.filename list)
+
 (* ------------------------------------------------------------------------- *)
 (* limits *)
 (* ------------------------------------------------------------------------- *)
@@ -607,7 +609,8 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
          in
          RP.add_run_time run_time res)
 
-let xlang_files_of_dirs_or_files xlang files_or_dirs =
+let xlang_files_of_dirs_or_files xlang
+    (files_or_dirs : (Common.filename * Find_target.target_kind) list) =
   match xlang with
   | R.LRegex
   | R.LGeneric ->
@@ -615,7 +618,8 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
        * Anyway right now the Semgrep python wrapper is
        * calling -config with an explicit list of files.
        *)
-      (files_or_dirs, [])
+      let paths = List.map fst files_or_dirs in
+      (paths, [])
   | R.L (lang, _) -> Find_target.files_of_dirs_or_files lang files_or_dirs
 
 (*****************************************************************************)
@@ -1140,6 +1144,11 @@ let options () =
       Arg.Set_string lang,
       spf " <str> choose language (valid choices:\n     %s)"
         Lang.supported_langs );
+    ( "-target",
+      Arg.String (fun path -> explicit_targets := path :: !explicit_targets),
+      " <file> explicit target file, not subject to filtering regardless of \
+       extension, file size, etc. Directories are accepted but the files they \
+       contain will still be subject to filtering." );
     ( "-target_file",
       Arg.Set_string target_file,
       " <file> obtain list of targets to run patterns on" );
@@ -1366,9 +1375,15 @@ let main () =
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)
-      | _ :: _ as roots -> (
+      | _ :: _ as paths -> (
           if !Flag.gc_tuning && !max_memory_mb = 0 then set_gc ();
 
+          let roots =
+            Common.map (fun path -> (path, Find_target.Filterable)) paths
+            @ Common.map
+                (fun path -> (path, Find_target.Explicit))
+                !explicit_targets
+          in
           match () with
           | _ when !config_file <> "" ->
               semgrep_with_rules_file !config_file roots
