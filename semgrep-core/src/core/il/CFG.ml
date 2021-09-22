@@ -15,7 +15,7 @@
  * license.txt for more details.
  *)
 
-type nodei = int
+type nodei = Ograph_extended.nodei
 
 (* We include the entry point because the Dataflow engine uses this, and works using an abstract node type,
    which prevent it from searching for an entry node.
