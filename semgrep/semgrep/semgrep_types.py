@@ -13,7 +13,8 @@ FileExtension = NewType("FileExtension", str)
 JOIN_MODE = Mode("join")
 SEARCH_MODE = DEFAULT_MODE = Mode("search")
 
-
+# coupling: if you add a new language here, you probably need to modify
+# also target_manager_extensions.py
 class Language(Enum):
     PYTHON: str = "python"
     PYTHON2: str = "python2"
@@ -36,6 +37,7 @@ class Language(Enum):
     VUE: str = "vue"
     HTML: str = "html"
     JSON: str = "json"
+    HCL: str = "hcl"
     REGEX: str = "regex"
     GENERIC: str = "generic"
 
@@ -63,6 +65,7 @@ class Language_util:
         Language.HTML: [Language.HTML.value],
         Language.ML: [Language.ML.value, "ocaml"],
         Language.JSON: [Language.JSON.value, "JSON", "Json"],
+        Language.HCL: [Language.HCL.value, "tf", "terraform", "HCL"],
         Language.REGEX: [Language.REGEX.value, "none"],
         Language.GENERIC: [Language.GENERIC.value],
     }

@@ -43,7 +43,10 @@ let whitespace_stat_of_string s =
   let other = ref 0 in
   for i = 0 to String.length s - 1 do
     match s.[i] with
-    | ' ' | '\t' | '\r' -> incr whitespace
+    | ' '
+    | '\t'
+    | '\r' ->
+        incr whitespace
     | '\n' ->
         incr whitespace;
         incr lines
@@ -142,7 +145,14 @@ let filter_by_size _lang paths =
              }
          else Ok path)
 
-let files_of_dirs_or_files ?(keep_root_files = true) lang roots =
+let sort_by_decreasing_size paths =
+  paths
+  |> Common.map (fun path -> (path, Common2.filesize path))
+  |> List.sort (fun (_, (a : int)) (_, b) -> compare b a)
+  |> Common.map fst
+
+let files_of_dirs_or_files ?(keep_root_files = true)
+    ?(sort_by_decr_size = false) lang roots =
   let explicit_targets, paths =
     if keep_root_files then
       roots
@@ -156,7 +166,11 @@ let files_of_dirs_or_files ?(keep_root_files = true) lang roots =
   let paths, skipped3 = filter_by_size lang paths in
   let paths, skipped4 = exclude_minified_files lang paths in
   let skipped = Common.flatten [ skipped1; skipped2; skipped3; skipped4 ] in
-  let sorted_paths = List.sort String.compare (explicit_targets @ paths) in
+  let paths = explicit_targets @ paths in
+  let sorted_paths =
+    if sort_by_decr_size then sort_by_decreasing_size paths
+    else List.sort String.compare paths
+  in
   let sorted_skipped =
     List.sort
       (fun (a : Resp.skipped_target) b -> String.compare a.path b.path)

@@ -7,5 +7,3 @@ val parse_severity : id:Rule.rule_id -> string Rule.wrap -> Rule.severity
 
 val parse_pattern :
   id:Rule.rule_id -> lang:Lang.t -> string Rule.loc -> Pattern.t
-
-(*e: semgrep/parsing/Parse_rule.mli *)

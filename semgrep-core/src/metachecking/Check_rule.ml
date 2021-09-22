@@ -1,5 +1,3 @@
-(*s: semgrep/metachecking/Check_rule.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 module FT = File_type
 open Rule
@@ -87,7 +84,8 @@ let check_formula env lang f =
     | Leaf (P _) -> ()
     | Leaf (MetavarCond _) -> ()
     | Not (_, f) -> find_dupe f
-    | Or (t, xs) | And (t, xs) ->
+    | Or (t, xs)
+    | And (t, xs) ->
         let rec aux xs =
           match xs with
           | [] -> ()
@@ -198,5 +196,3 @@ let stat_files fparser xs =
                     incr good;
                     pr2 (spf "regexp: %s" s)));
   pr2 (spf "good = %d, no regexp found = %d" !good !bad)
-
-(*e: semgrep/metachecking/Check_rule.ml *)

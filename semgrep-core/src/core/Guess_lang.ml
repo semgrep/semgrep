@@ -42,7 +42,9 @@ let has_suffix suffixes =
   Test_path f
 
 let prepend_period_if_needed s =
-  match s with "" -> "." | s -> if s.[0] <> '.' then "." ^ s else s
+  match s with
+  | "" -> "."
+  | s -> if s.[0] <> '.' then "." ^ s else s
 
 (*
    Both '.d.ts' and '.ts' are considered extensions of 'hello.d.ts'.

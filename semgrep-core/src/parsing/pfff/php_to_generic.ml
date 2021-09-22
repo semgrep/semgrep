@@ -412,7 +412,9 @@ and argument e =
   let e = expr e in
   G.arg e
 
-and special = function This -> G.This | Eval -> G.Eval
+and special = function
+  | This -> G.This
+  | Eval -> G.Eval
 
 and foreach_pattern v =
   let v = expr v in

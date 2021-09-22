@@ -29,7 +29,7 @@ clean:
 # the cached file under _build/.../tests/ is still the old one.
 test: all
 	$(MAKE) -C src/spacegrep test
-	dune runtest -f
+	dune runtest -f --no-buffer
 e2etest:
 	python3 tests/e2e/test_target_file.py
 install:

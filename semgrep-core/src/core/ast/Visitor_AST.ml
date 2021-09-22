@@ -371,7 +371,9 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
           ()
     in
     vin.kexpr (k, all_functions) x
-  and v_name_or_dynamic = function EN v1 -> v_name v1 | EDynamic e -> v_expr e
+  and v_name_or_dynamic = function
+    | EN v1 -> v_name v1
+    | EDynamic e -> v_expr e
   and v_literal = function
     | Unit v1 ->
         let v1 = v_tok v1 in
@@ -906,7 +908,8 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
             v_entity v1;
             v_def_kind v2);
           ()
-      | PartialIf (v1, v2) | PartialMatch (v1, v2) ->
+      | PartialIf (v1, v2)
+      | PartialMatch (v1, v2) ->
           if recurse then (
             v_tok v1;
             v_expr v2)
@@ -969,7 +972,12 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
         v_list v_any v2
   and v_other_def_operator _ = ()
   and v_function_kind = function
-    | Function | Method | Arrow | LambdaKind | BlockCases -> ()
+    | Function
+    | Method
+    | Arrow
+    | LambdaKind
+    | BlockCases ->
+        ()
   and v_function_definition x =
     let k { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody }
         =
@@ -989,7 +997,8 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
       | ParamClassic v1 ->
           let v1 = v_parameter_classic v1 in
           ()
-      | ParamRest (v1, v2) | ParamHashSplat (v1, v2) ->
+      | ParamRest (v1, v2)
+      | ParamHashSplat (v1, v2) ->
           v_tok v1;
           v_parameter_classic v2
       | ParamPattern v1 ->

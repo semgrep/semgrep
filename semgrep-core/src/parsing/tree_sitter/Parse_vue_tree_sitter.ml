@@ -167,7 +167,9 @@ let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
             v1
       in
       let _v2TODO =
-        match v2 with Some x -> map_directive_modifiers env x | None -> []
+        match v2 with
+        | Some x -> map_directive_modifiers env x
+        | None -> []
       in
       let teq, v3 =
         match v3 with

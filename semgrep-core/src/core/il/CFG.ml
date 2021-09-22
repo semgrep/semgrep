@@ -1,5 +1,3 @@
-(*s: pfff/lang_GENERIC/analyze/CFG.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -27,6 +25,3 @@ type ('node, 'edge) t = {
 
 type ('node, 'edge) cfg = ('node, 'edge) t
 
-(*e: pad/r2c copyright *)
-
-(*e: pfff/lang_GENERIC/analyze/CFG.ml *)

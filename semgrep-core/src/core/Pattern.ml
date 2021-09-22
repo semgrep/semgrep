@@ -1,5 +1,3 @@
-(*s: semgrep/core/Pattern.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 
 (*****************************************************************************)
@@ -35,12 +32,9 @@ open Common
 (* Types *)
 (*****************************************************************************)
 
-(*s: type [[Pattern.t]] *)
 (* right now Expr/Stmt/Stmts/Types/Patterns/Partial and probably
  * more are supported *)
 type t = AST_generic.any [@@deriving show, eq]
-
-(*e: type [[Pattern.t]] *)
 
 (* TODO: deprecate this *)
 let regexp_regexp_string = "^=~/\\(.*\\)/\\([mi]?\\)$"
@@ -54,7 +48,10 @@ let is_special_string_literal str =
   (* TODO: deprecate this *)
   || is_regexp_string str
 
-let is_js lang = match lang with Some x -> Lang.is_js x | None -> true
+let is_js lang =
+  match lang with
+  | Some x -> Lang.is_js x
+  | None -> true
 
 (* This is used in Analyze_pattern.ml to skip
  * semgrep special identifiers.
@@ -73,5 +70,3 @@ let is_special_identifier ?lang str =
   || (lang = Some Lang.Java && str = "this")
   || (* TODO: PHP converts some Eval in __builtin *)
   (lang = Some Lang.PHP && str =~ "__builtin__*")
-
-(*e: semgrep/core/Pattern.ml *)

@@ -173,7 +173,9 @@ let check_pattern pat0 =
   let rec check = function
     | [] -> None
     | List pat1 :: pat2 -> (
-        match check pat1 with Some err -> Some err | None -> check pat2)
+        match check pat1 with
+        | Some err -> Some err
+        | None -> check pat2)
     | Dots (_, opt_mvar1) :: Dots (loc, Some mvar2) :: _ ->
         let msg =
           Printf.sprintf "Invalid pattern sequence: %s $...%s"
@@ -191,6 +193,9 @@ let of_lexbuf ?(is_doc = false) lexbuf =
   let lines = Lexer.lines lexbuf in
   let pat = parse_root ~is_doc lines in
   if is_doc then Ok pat
-  else match check_pattern pat with None -> Ok pat | Some err -> Error err
+  else
+    match check_pattern pat with
+    | None -> Ok pat
+    | Some err -> Error err
 
 let of_src ?is_doc src = Src_file.to_lexbuf src |> of_lexbuf ?is_doc

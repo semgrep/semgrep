@@ -1,4 +1,3 @@
-(*s: pfff/lang_GENERIC/analyze/Test_analyze_generic.ml *)
 open Common
 open AST_generic
 module H = AST_generic_helpers
@@ -20,14 +19,13 @@ let test_typing_generic file =
             pr2 s;
             pr2 "==>";
 
-            let xs = AST_to_IL.stmt body in
+            let xs = AST_to_IL.stmt lang body in
             let s = IL.show_any (IL.Ss xs) in
             pr2 s);
       }
   in
   v (Pr ast)
 
-(*s: function [[Test_analyze_generic.test_cfg_generic]] *)
 let test_cfg_generic file =
   let ast = Parse_target.parse_program file in
   ast
@@ -41,8 +39,6 @@ let test_cfg_generic file =
                Controlflow_build.report_error err)
          | _ -> ())
 
-(*e: function [[Test_analyze_generic.test_cfg_generic]] *)
-
 module F = Controlflow
 
 module DataflowX = Dataflow.Make (struct
@@ -55,7 +51,6 @@ module DataflowX = Dataflow.Make (struct
   let short_string_of_node = F.short_string_of_node
 end)
 
-(*s: function [[Test_analyze_generic.test_dfg_generic]] *)
 let test_dfg_generic file =
   let ast = Parse_target.parse_program file in
   ast
@@ -71,17 +66,12 @@ let test_dfg_generic file =
              DataflowX.display_mapping flow mapping (fun () -> "()")
          | _ -> ())
 
-(*e: function [[Test_analyze_generic.test_dfg_generic]] *)
-
-(*s: function [[Test_analyze_generic.test_naming_generic]] *)
 let test_naming_generic file =
   let ast = Parse_target.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
   let s = AST_generic.show_any (AST_generic.Pr ast) in
   pr2 s
-
-(*e: function [[Test_analyze_generic.test_naming_generic]] *)
 
 let test_constant_propagation file =
   let ast = Parse_target.parse_program file in
@@ -91,7 +81,6 @@ let test_constant_propagation file =
   let s = AST_generic.show_any (AST_generic.Pr ast) in
   pr2 s
 
-(*s: function [[Test_analyze_generic.test_il_generic]] *)
 let test_il_generic file =
   let ast = Parse_target.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
@@ -108,16 +97,13 @@ let test_il_generic file =
             pr2 s;
             pr2 "==>";
 
-            let xs = AST_to_IL.stmt body in
+            let xs = AST_to_IL.stmt lang body in
             let s = IL.show_any (IL.Ss xs) in
             pr2 s);
       }
   in
   v (Pr ast)
 
-(*e: function [[Test_analyze_generic.test_il_generic]] *)
-
-(*s: function [[Test_analyze_generic.test_cfg_il]] *)
 let test_cfg_il file =
   let ast = Parse_target.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
@@ -127,12 +113,10 @@ let test_cfg_il file =
   |> List.iter (fun item ->
          match item.s with
          | DefStmt (_ent, FuncDef def) ->
-             let xs = AST_to_IL.stmt (H.funcbody_to_stmt def.fbody) in
+             let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
              let cfg = CFG_build.cfg_of_stmts xs in
              Display_IL.display_cfg cfg
          | _ -> ())
-
-(*e: function [[Test_analyze_generic.test_cfg_il]] *)
 
 module F2 = IL
 
@@ -146,7 +130,6 @@ module DataflowY = Dataflow.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
-(*s: function [[Test_analyze_generic.test_dfg_tainting]] *)
 let test_dfg_tainting file =
   let ast = Parse_target.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
@@ -156,7 +139,7 @@ let test_dfg_tainting file =
   |> List.iter (fun item ->
          match item.s with
          | DefStmt (ent, FuncDef def) ->
-             let xs = AST_to_IL.stmt (H.funcbody_to_stmt def.fbody) in
+             let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
              let flow = CFG_build.cfg_of_stmts xs in
              pr2 "Tainting";
              let config =
@@ -174,8 +157,6 @@ let test_dfg_tainting file =
              DataflowY.display_mapping flow mapping (fun () -> "()")
          | _ -> ())
 
-(*e: function [[Test_analyze_generic.test_dfg_tainting]] *)
-
 let test_dfg_constness file =
   let ast = Parse_target.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
@@ -186,7 +167,7 @@ let test_dfg_constness file =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let inputs, xs = AST_to_IL.function_definition def in
+            let inputs, xs = AST_to_IL.function_definition lang def in
             let flow = CFG_build.cfg_of_stmts xs in
             pr2 "Constness";
             let mapping = Dataflow_constness.fixpoint inputs flow in
@@ -199,7 +180,6 @@ let test_dfg_constness file =
   in
   v (Pr ast)
 
-(*s: function [[Test_analyze_generic.actions]] *)
 let actions () =
   [
     ("-typing_generic", " <file>", Common.mk_action_1_arg test_typing_generic);
@@ -214,6 +194,3 @@ let actions () =
     ("-dfg_tainting", " <file>", Common.mk_action_1_arg test_dfg_tainting);
     ("-dfg_constness", " <file>", Common.mk_action_1_arg test_dfg_constness);
   ]
-
-(*e: function [[Test_analyze_generic.actions]] *)
-(*e: pfff/lang_GENERIC/analyze/Test_analyze_generic.ml *)

@@ -1,5 +1,3 @@
-(*s: semgrep/matching/SubAST_generic.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 
 open AST_generic
 module H = AST_generic_helpers
@@ -34,7 +31,12 @@ let go_really_deeper_stmt = ref true
 (*****************************************************************************)
 
 let subexprs_of_any_list xs =
-  xs |> List.fold_left (fun x -> function E e -> e :: x | _ -> x) []
+  xs
+  |> List.fold_left
+       (fun x -> function
+         | E e -> e :: x
+         | _ -> x)
+       []
 
 (* used for really deep statement matching *)
 let subexprs_of_stmt st =
@@ -53,8 +55,9 @@ let subexprs_of_stmt st =
   | Throw (_, e, _) ->
       [ e ]
   (* opt *)
-  | Switch (_, eopt, _) | Return (_, eopt, _) | OtherStmtWithStmt (_, eopt, _)
-    ->
+  | Switch (_, eopt, _)
+  | Return (_, eopt, _)
+  | OtherStmtWithStmt (_, eopt, _) ->
       Common.opt_to_list eopt
   (* n *)
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
@@ -67,17 +70,28 @@ let subexprs_of_stmt st =
   | For (_, ForIn (_, es), _) -> es
   | OtherStmt (_op, xs) -> subexprs_of_any_list xs
   (* 0 *)
-  | DirectiveStmt _ | Block _
+  | DirectiveStmt _
+  | Block _
   | For (_, ForEllipsis _, _)
-  | Continue _ | Break _ | Label _ | Goto _ | Try _ | DisjStmt _ | DefStmt _
+  | Continue _
+  | Break _
+  | Label _
+  | Goto _
+  | Try _
+  | DisjStmt _
+  | DefStmt _
   | WithUsingResource _ ->
       []
 
-(*s: function [[SubAST_generic.subexprs_of_expr]] *)
 (* used for deep expression matching *)
 let subexprs_of_expr e =
   match e.e with
-  | L _ | N _ | IdSpecial _ | Ellipsis _ | TypedMetavar _ -> []
+  | L _
+  | N _
+  | IdSpecial _
+  | Ellipsis _
+  | TypedMetavar _ ->
+      []
   | DotAccess (e, _, _)
   | Await (_, e)
   | Cast (_, _, e)
@@ -110,8 +124,12 @@ let subexprs_of_expr e =
       e
       :: (args |> unbracket
          |> Common.map_filter (function
-              | Arg e | ArgKwd (_, e) -> Some e
-              | ArgType _ | ArgOther _ -> None))
+              | Arg e
+              | ArgKwd (_, e) ->
+                  Some e
+              | ArgType _
+              | ArgOther _ ->
+                  None))
   | SliceAccess (e1, e2) ->
       e1
       :: (e2 |> unbracket
@@ -124,22 +142,27 @@ let subexprs_of_expr e =
       subexprs_of_any_list anys
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
   (* currently skipped over but could recurse *)
-  | Constructor _ | AnonClass _ | Xml _ | LetPattern _ -> []
+  | Constructor _
+  | AnonClass _
+  | Xml _
+  | LetPattern _ ->
+      []
   | DisjExpr _ -> raise Common.Impossible
   [@@profiling]
 
-(*e: function [[SubAST_generic.subexprs_of_expr]] *)
-
-(*s: function [[SubAST_generic.subexprs_of_stmt]] *)
-(*e: function [[SubAST_generic.subexprs_of_stmt]] *)
-
-(*s: function [[SubAST_generic.substmts_of_stmt]] *)
 (* used for deep statement matching *)
 let substmts_of_stmt st =
   match st.s with
   (* 0 *)
-  | DirectiveStmt _ | ExprStmt _ | Return _ | Continue _ | Break _ | Goto _
-  | Throw _ | Assert _ | OtherStmt _ ->
+  | DirectiveStmt _
+  | ExprStmt _
+  | Return _
+  | Continue _
+  | Break _
+  | Goto _
+  | Throw _
+  | Assert _
+  | OtherStmt _ ->
       []
   (* 1 *)
   | While (_, _, st)
@@ -162,17 +185,25 @@ let substmts_of_stmt st =
   | Try (_, st, xs, opt) -> (
       [ st ]
       @ (xs |> List.map Common2.thd3)
-      @ match opt with None -> [] | Some (_, st) -> [ st ])
+      @
+      match opt with
+      | None -> []
+      | Some (_, st) -> [ st ])
   | DisjStmt _ -> raise Common.Impossible
   (* this may slow down things quite a bit *)
   | DefStmt (_ent, def) -> (
       if not !go_really_deeper_stmt then []
       else
         match def with
-        | VarDef _ | FieldDefColon _ | TypeDef _ | MacroDef _ | Signature _
+        | VarDef _
+        | FieldDefColon _
+        | TypeDef _
+        | MacroDef _
+        | Signature _
         | UseOuterDecl _
         (* recurse? *)
-        | ModuleDef _ | OtherDef _ ->
+        | ModuleDef _
+        | OtherDef _ ->
             []
         (* this will add lots of substatements *)
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
@@ -184,12 +215,9 @@ let substmts_of_stmt st =
   (* TODO *)
   | Match _ -> []
 
-(*e: function [[SubAST_generic.substmts_of_stmt]] *)
-
 (*****************************************************************************)
 (* Visitors  *)
 (*****************************************************************************)
-(*s: function [[SubAST_generic.do_visit_with_ref]] *)
 (* TODO: move in pfff at some point *)
 let do_visit_with_ref mk_hooks any =
   let res = ref [] in
@@ -198,9 +226,6 @@ let do_visit_with_ref mk_hooks any =
   vout any;
   List.rev !res
 
-(*e: function [[SubAST_generic.do_visit_with_ref]] *)
-
-(*s: function [[SubAST_generic.lambdas_in_expr]] *)
 let lambdas_in_expr e =
   do_visit_with_ref
     (fun aref ->
@@ -208,12 +233,12 @@ let lambdas_in_expr e =
         V.default_visitor with
         V.kexpr =
           (fun (k, _) e ->
-            match e.e with Lambda def -> Common.push def aref | _ -> k e);
+            match e.e with
+            | Lambda def -> Common.push def aref
+            | _ -> k e);
       })
     (E e)
   [@@profiling]
-
-(*e: function [[SubAST_generic.lambdas_in_expr]] *)
 
 (* opti: using memoization speed things up a bit too
  * (but again, this is still slow when called many many times).
@@ -232,7 +257,6 @@ let lambdas_in_expr_memo a =
 (* Really substmts_of_stmts *)
 (*****************************************************************************)
 
-(*s: function [[SubAST_generic.flatten_substmts_of_stmts]] *)
 let flatten_substmts_of_stmts xs =
   (* opti: using a ref, List.iter, and Common.push instead of a mix of
    * List.map, List.flatten and @ below speed things up
@@ -274,7 +298,3 @@ let flatten_substmts_of_stmts xs =
         Some (List.rev !res, last)
   else None
   [@@profiling]
-
-(*e: function [[SubAST_generic.flatten_substmts_of_stmts]] *)
-
-(*e: semgrep/matching/SubAST_generic.ml *)

@@ -1,4 +1,3 @@
-(*s: semgrep/CLI/Main.ml *)
 (*
  * The author disclaims copyright to this source code.  In place of
  * a legal notice, here is a blessing:
@@ -82,24 +81,18 @@ let log_config_file = ref "log_config.json"
 (* to test things *)
 let test = ref false
 
-(*s: constant [[Main_semgrep_core.verbose]] *)
-(*e: constant [[Main_semgrep_core.verbose]] *)
-(*s: constant [[Main_semgrep_core.debug]] *)
 let debug = ref false
 
-(*e: constant [[Main_semgrep_core.debug]] *)
 let profile = ref false
 
 (* report matching times per file *)
 let report_time = ref false
 
-(*s: constant [[Main_semgrep_core.error_recovery]] *)
 (* try to continue processing files, even if one has a parse error with -e/f.
  * note that -rules_file does its own error recovery.
  *)
 let error_recovery = ref false
 
-(*e: constant [[Main_semgrep_core.error_recovery]] *)
 (* related: Flag_semgrep.debug_matching *)
 let fail_fast = ref false
 
@@ -113,71 +106,30 @@ let profile_start = ref 0.
 (* main flags *)
 (* ------------------------------------------------------------------------- *)
 
-(*s: constant [[Main_semgrep_core.pattern_string]] *)
 (* -e *)
 let pattern_string = ref ""
 
-(*e: constant [[Main_semgrep_core.pattern_string]] *)
-(*s: constant [[Main_semgrep_core.pattern_file]] *)
 (* -f *)
 let pattern_file = ref ""
 
-(*e: constant [[Main_semgrep_core.pattern_file]] *)
-(*s: constant [[Main_semgrep_core.rules_file]] *)
 (* -rules_file (mini rules) *)
 let rules_file = ref ""
-
-(*e: constant [[Main_semgrep_core.rules_file]] *)
-(*s: constant [[Main_semgrep_core.tainting_rules_file]] *)
-(*e: constant [[Main_semgrep_core.tainting_rules_file]] *)
 
 (* -config *)
 let config_file = ref ""
 
-(*s: constant [[Main_semgrep_core.equivalences_file]] *)
 let equivalences_file = ref ""
 
-(*e: constant [[Main_semgrep_core.equivalences_file]] *)
-
 (* todo: infer from basename argv(0) ? *)
-(*s: constant [[Main_semgrep_core.lang]] *)
 let lang = ref "unset"
-
-(*e: constant [[Main_semgrep_core.lang]] *)
-
-(*s: constant [[Main_semgrep_core.excludes]] *)
-(*e: constant [[Main_semgrep_core.excludes]] *)
-(*s: constant [[Main_semgrep_core.includes]] *)
-(*e: constant [[Main_semgrep_core.includes]] *)
-(*s: constant [[Main_semgrep_core.exclude_dirs]] *)
-(*e: constant [[Main_semgrep_core.exclude_dirs]] *)
-(*s: constant [[Main_semgrep_core.include_dirs]] *)
-(*e: constant [[Main_semgrep_core.include_dirs]] *)
 
 type output_format = Text | Json
 
-(*s: constant [[Main_semgrep_core.output_format_json]] *)
 let output_format = ref Text
 
-(*e: constant [[Main_semgrep_core.output_format_json]] *)
-
-(*s: constant [[Main_semgrep_core.match_format]] *)
 let match_format = ref Matching_report.Normal
 
-(*e: constant [[Main_semgrep_core.match_format]] *)
-
-(*s: constant [[Main_semgrep_core.mvars]] *)
 let mvars = ref ([] : Metavariable.mvar list)
-
-(*e: constant [[Main_semgrep_core.mvars]] *)
-
-(*s: constant [[Main_semgrep_core.layer_file]] *)
-(*e: constant [[Main_semgrep_core.layer_file]] *)
-
-(*s: constant [[Main_semgrep_core.keys]] *)
-(*e: constant [[Main_semgrep_core.keys]] *)
-(*s: constant [[Main_semgrep_core.supported_langs]] *)
-(*e: constant [[Main_semgrep_core.supported_langs]] *)
 
 let lsp = ref false
 
@@ -192,11 +144,8 @@ let max_memory_mb = ref 0 (* in MiB *)
 (* arbitrary limit *)
 let max_match_per_file = ref 10_000
 
-(*s: constant [[Main_semgrep_core.ncores]] *)
 (* -j *)
 let ncores = ref 1
-
-(*e: constant [[Main_semgrep_core.ncores]] *)
 
 (* ------------------------------------------------------------------------- *)
 (* optional optimizations *)
@@ -213,11 +162,8 @@ let use_parsing_cache = ref ""
 (* take the list of files in a file (given by semgrep-python) *)
 let target_file = ref ""
 
-(*s: constant [[Main_semgrep_core.action]] *)
 (* action mode *)
 let action = ref ""
-
-(*e: constant [[Main_semgrep_core.action]] *)
 
 (*****************************************************************************)
 (* Helpers *)
@@ -226,7 +172,6 @@ let action = ref ""
 let version =
   spf "semgrep-core version: %s, pfff: %s" Version.version Config_pfff.version
 
-(*s: function [[Main_semgrep_core.set_gc]] *)
 (* Note that set_gc() may not interact well with Memory_limit and its use of
  * Gc.alarm. Indeed, the Gc.alarm triggers only at major cycle
  * and the tuning below raise significantly the major cycle trigger.
@@ -249,26 +194,35 @@ let set_gc () =
   Gc.set { (Gc.get ()) with Gc.space_overhead = 300 };
   ()
 
-(*e: function [[Main_semgrep_core.set_gc]] *)
+(*
+   Run jobs in parallel, using number of cores specified with -j.
+*)
+let map_targets f (targets : Common.filename list) =
+  (*
+     Sorting the targets by decreasing size is based on the assumption
+     that larger targets will take more time to process. Starting with
+     the longer jobs allows parmap to feed the workers with shorter and
+     shorter jobs, as a way of maximizing CPU usage.
+     This is a kind of greedy algorithm, which is in general not optimal
+     but hopefully good enough in practice.
 
-(*s: function [[Main_semgrep_core.map]] *)
-let map f xs =
-  if !ncores <= 1 then List.map f xs
-  else
-    let n = List.length xs in
-    (* Heuristic. Note that if you don't set a chunksize, Parmap
-     * will evenly split the list xs, which does not provide any load
-     * balancing.
-     *)
-    let chunksize =
-      match n with
-      | _ when n > 1000 -> 10
-      | _ when n > 100 -> 5
-      | _ when n = 0 -> 1
-      | _ when n <= !ncores -> 1
-      | _ -> n / !ncores
-    in
-    assert (!ncores > 0 && chunksize > 0);
+     This is needed only when ncores > 1, but to reduce discrepancy between
+     the two modes, we always sort the target queue in the same way.
+  *)
+  let targets = Find_target.sort_by_decreasing_size targets in
+  if !ncores <= 1 then Common.map f targets
+  else (
+    (*
+       Parmap creates ncores children processes which listen for
+       chunks of input. When a chunk size is specified, parmap feeds
+       the ncores processes in small chunks of the specified size
+       instead of just dividing the input list into exactly ncores chunks.
+
+       Since our jobs are relatively big compared to the serialization
+       and communication overhead, setting the chunk size to 1 works
+       fine.  We don't want to have two giant target files in the same
+       chunk, so this setting takes care of it.
+    *)
     (* Quoting Parmap's README:
      * > To obtain maximum speed, Parmap tries to pin the worker processes to a CPU
      * Unfortunately, on the new Apple M1, and depending on the number of workers,
@@ -280,17 +234,12 @@ let map f xs =
      * this issue until this is fixed in a future version of Parmap.
      *)
     Parmap.disable_core_pinning ();
-    Parmap.parmap ~ncores:!ncores ~chunksize f (Parmap.L xs)
+    assert (!ncores > 0);
+    Parmap.parmap ~ncores:!ncores ~chunksize:1 f (Parmap.L targets))
 
-(*e: function [[Main_semgrep_core.map]] *)
-
-(*s: constant [[Main_semgrep_core._matching_tokens]] *)
 (* for -gen_layer, see Experiments.ml *)
 let _matching_tokens = ref []
 
-(*e: constant [[Main_semgrep_core._matching_tokens]] *)
-
-(*s: function [[Main_semgrep_core.print_match]] *)
 let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
   (* there are a few fake tokens in the generic ASTs now (e.g.,
    * for DotAccess generated outside the grammar) *)
@@ -298,7 +247,6 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
   (if mvars = [] then
    Matching_report.print_match ?str ~format:!match_format toks
   else
-    (*s: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
     (* similar to the code of Lib_matcher.print_match, maybe could
      * factorize code a bit.
      *)
@@ -317,18 +265,8 @@ let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
              | None -> failwith (spf "the metavariable '%s' was not binded" x))
     in
     pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
-    (*e: [[Main_semgrep_core.print_match()]] when non empty [[mvars]] *)
     ());
-  (*s: [[Main_semgrep_core.print_match()]] hook *)
   toks |> List.iter (fun x -> Common.push x _matching_tokens)
-
-(*e: [[Main_semgrep_core.print_match()]] hook *)
-(*e: function [[Main_semgrep_core.print_match]] *)
-(*s: function [[Main_semgrep_core.gen_layer]] *)
-(*e: function [[Main_semgrep_core.gen_layer]] *)
-
-(*s: function [[Main_semgrep_core.unsupported_language_message]] *)
-(*e: function [[Main_semgrep_core.unsupported_language_message]] *)
 
 let lang_of_string s =
   match Lang.lang_of_string_opt s with
@@ -489,7 +427,9 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
            in
            let offending_rules = List.length sorted_offending_rules in
            let biggest_offending_rule =
-             match sorted_offending_rules with x :: _ -> x | _ -> assert false
+             match sorted_offending_rules with
+             | x :: _ -> x
+             | _ -> assert false
            in
            let (id, pat), cnt = biggest_offending_rule in
            logger#info
@@ -532,17 +472,14 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
 (* Parsing *)
 (*****************************************************************************)
 
-(*s: function [[Main_semgrep_core.parse_generic]] *)
 (* It should really be just a call to Parse_target.parse_and_resolve...
  * but the semgrep python wrapper calls semgrep-core separately for each
  * rule, so we need to cache parsed AST to avoid extra work.
  *)
 let parse_generic lang file =
-  (*s: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h then
     Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
 
-  (*e: [[Main_semgrep_core.parse_generic()]] use standard macros if parsing C *)
   let v =
     cache_computation file
       (fun file ->
@@ -562,8 +499,6 @@ let parse_generic lang file =
           let { Parse_target.ast; errors; _ } =
             Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
           in
-          (*s: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
-          (*e: [[Main_semgrep_core.parse_generic()]] resolve names in the AST *)
           Left (ast, errors)
           (* This is a bit subtle, but we now store in the cache whether we had
            * an exception on this file, especially Timeout. Indeed, semgrep now calls
@@ -578,44 +513,23 @@ let parse_generic lang file =
            *)
         with Main_timeout _ as e -> Right e)
   in
-  match v with Left x -> x | Right exn -> raise exn
+  match v with
+  | Left x -> x
+  | Right exn -> raise exn
   [@@profiling]
 
-(*e: function [[Main_semgrep_core.parse_generic]] *)
-
-(*s: function [[Main_semgrep_core.parse_equivalences]] *)
 let parse_equivalences () =
   match !equivalences_file with
   | "" -> []
   | file -> Parse_equivalences.parse file
   [@@profiling]
 
-(*e: function [[Main_semgrep_core.parse_equivalences]] *)
-
-(*s: type [[Main_semgrep_core.ast]] *)
-(*s: [[Main_semgrep_core.ast]] other cases *)
-(*e: [[Main_semgrep_core.ast]] other cases *)
-(*e: type [[Main_semgrep_core.ast]] *)
-
-(*s: function [[Main_semgrep_core.create_ast]] *)
-(*s: [[Main_semgrep_core.create_ast()]] when not a supported language *)
-(*e: [[Main_semgrep_core.create_ast()]] when not a supported language *)
-(*e: function [[Main_semgrep_core.create_ast]] *)
-
-(*s: type [[Main_semgrep_core.pattern]] *)
-(*s: [[Main_semgrep_core.pattern]] other cases *)
-(*e: [[Main_semgrep_core.pattern]] other cases *)
-(*e: type [[Main_semgrep_core.pattern]] *)
-
-(*s: function [[Main_semgrep_core.parse_pattern]] *)
 let parse_pattern lang_pattern str =
   try
     Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
         let res =
           Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
         in
-        (*s: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
-        (*e: [[Main_semgrep_core.parse_pattern()]] when not a supported language *)
         res)
   with exn ->
     raise
@@ -628,18 +542,13 @@ let parse_pattern lang_pattern str =
            [] ))
   [@@profiling]
 
-(*e: function [[Main_semgrep_core.parse_pattern]] *)
-
 (*****************************************************************************)
 (* Iteration helpers *)
 (*****************************************************************************)
-(*s: function [[Main_semgrep_core.filter_files]] *)
-(*e: function [[Main_semgrep_core.filter_files]] *)
 
-(*s: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
 let iter_files_and_get_matches_and_exn_to_errors f files =
   files
-  |> map (fun file ->
+  |> map_targets (fun file ->
          logger#info "Analyzing %s" file;
          let res, run_time =
            Common.with_time (fun () ->
@@ -700,7 +609,8 @@ let iter_files_and_get_matches_and_exn_to_errors f files =
 
 let xlang_files_of_dirs_or_files xlang files_or_dirs =
   match xlang with
-  | R.LRegex | R.LGeneric ->
+  | R.LRegex
+  | R.LGeneric ->
       (* TODO: assert is_file ? spacegrep filter files?
        * Anyway right now the Semgrep python wrapper is
        * calling -config with an explicit list of files.
@@ -708,12 +618,6 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
       (files_or_dirs, [])
   | R.L (lang, _) -> Find_target.files_of_dirs_or_files lang files_or_dirs
 
-(*e: function [[Main_semgrep_core.iter_generic_ast_of_files_and_get_matches_and_exn_to_errors]] *)
-
-(*s: function [[Main_semgrep_core.print_matches_and_errors]] *)
-(*e: function [[Main_semgrep_core.print_matches_and_errors]] *)
-(*s: function [[Main_semgrep_core.format_output_exception]] *)
-(*e: function [[Main_semgrep_core.format_output_exception]] *)
 (*****************************************************************************)
 (* Semgrep -rules_file *)
 (*****************************************************************************)
@@ -722,7 +626,6 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
  * no formula) and a set of files or dirs and recursively process those
  * files or dirs.
  *)
-(*s: function [[Main_semgrep_core.semgrep_with_rules]] *)
 let semgrep_with_patterns lang (rules, rule_parse_time) files skipped =
   logger#info "processing %d files" (List.length files);
   let file_results =
@@ -789,14 +692,10 @@ let semgrep_with_patterns lang (rules, rule_parse_time) files skipped =
   logger#info "size of returned JSON string: %d" (String.length s);
   pr s
 
-(*e: function [[Main_semgrep_core.semgrep_with_rules]] *)
-
 let semgrep_with_patterns_file lang rules_file roots =
   let targets, skipped = Find_target.files_of_dirs_or_files lang roots in
   try
-    (*s: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     logger#info "Parsing %s" rules_file;
-    (*e: [[Main_semgrep_core.semgrep_with_rules()]] if [[verbose]] *)
     let timed_rules =
       Common.with_time (fun () -> Parse_mini_rule.parse rules_file)
     in
@@ -842,7 +741,9 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
              |> List.filter (fun r ->
                     match (r.R.languages, xlang) with
                     | R.L (x, xs), R.L (lang, _) -> List.mem lang (x :: xs)
-                    | R.LRegex, R.LRegex | R.LGeneric, R.LGeneric -> true
+                    | R.LRegex, R.LRegex
+                    | R.LGeneric, R.LGeneric ->
+                        true
                     | _ -> false)
            in
            let hook str env matched_tokens =
@@ -854,7 +755,8 @@ let semgrep_with_rules (rules, rule_parse_time) files_or_dirs =
              lazy
                (match xlang with
                | R.L (lang, _) -> parse_generic lang file
-               | R.LRegex | R.LGeneric ->
+               | R.LRegex
+               | R.LGeneric ->
                    failwith "requesting generic AST for LRegex|LGeneric")
            in
            let file_and_more =
@@ -935,15 +837,6 @@ let rule_of_pattern lang pattern_string pattern =
     languages = [ lang ];
   }
 
-(*s: function [[Main_semgrep_core.sgrep_ast]] *)
-(*s: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
-(*e: [[Main_semgrep_core.sgrep_ast()]] [[hook]] argument to [[check]] *)
-(*s: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
-(*e: [[Main_semgrep_core.sgrep_ast()]] match [[pattern]] and [[any_ast]] other cases *)
-
-(*e: function [[Main_semgrep_core.sgrep_ast]] *)
-
-(*s: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
 (* simpler code path compared to semgrep_with_rules *)
 (* FIXME: don't use a different processing logic depending on the output
    format:
@@ -957,16 +850,12 @@ let semgrep_with_one_pattern lang roots =
    *)
   let pattern, pattern_string =
     match (!pattern_file, !pattern_string) with
-    (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] sanity check cases *)
     | "", "" -> failwith "I need a pattern; use -f or -e"
     | s1, s2 when s1 <> "" && s2 <> "" ->
         failwith "I need just one pattern; use -f OR -e (not both)"
-    (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] sanity check cases *)
-    (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] pattern file case *)
     | file, _ when file <> "" ->
         let s = Common.read_file file in
         (parse_pattern lang s, s)
-    (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] pattern file case *)
     (* this is for Emma, who often confuses -e with -f :) *)
     | _, s when s =~ ".*\\.sgrep$" ->
         failwith "you probably want -f with a .sgrep file, not -e"
@@ -984,15 +873,9 @@ let semgrep_with_one_pattern lang roots =
       semgrep_with_patterns lang (rule, rule_parse_time) targets skipped
   | Text ->
       (* simpler code path than in semgrep_with_rules *)
-      (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
-      (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] no [[lang]] specified *)
-      (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
-      (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] filter [[files]] *)
       targets
       |> List.iter (fun file ->
-             (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
              logger#info "processing: %s" file;
-             (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] if [[verbose]] *)
              let process file =
                timeout_function file (fun () ->
                    let ast, errors = parse_generic lang file in
@@ -1011,22 +894,14 @@ let semgrep_with_one_pattern lang roots =
                E.try_with_print_exn_and_reraise file (fun () -> process file)
              else E.try_with_exn_to_error file (fun () -> process file));
 
-      (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] display error count *)
       let n = List.length !E.g_errors in
       if n > 0 then pr2 (spf "error count: %d" n);
-      (*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] display error count *)
-      (*s: [[Main_semgrep_core.semgrep_with_one_pattern()]] optional layer generation *)
       (* TODO: what's that? *)
       Experiments.gen_layer_maybe _matching_tokens pattern_string targets
-
-(*e: [[Main_semgrep_core.semgrep_with_one_pattern()]] optional layer generation *)
-
-(*e: function [[Main_semgrep_core.semgrep_with_one_pattern]] *)
 
 (*****************************************************************************)
 (* Checker *)
 (*****************************************************************************)
-(*s: function [[Main_semgrep_core.read_all]] *)
 (* We do not use the easier Stdlib.input_line here because this function
  * does remove newlines (and may do other clever things), but
  * newlines have a special meaning in some languages
@@ -1040,9 +915,6 @@ let rec read_all chan =
     let rest = read_all chan in
     Bytes.sub_string buf 0 len ^ rest
 
-(*e: function [[Main_semgrep_core.read_all]] *)
-
-(*s: function [[Main_semgrep_core.validate_pattern]] *)
 (* works with -lang *)
 let validate_pattern () =
   let chan = stdin in
@@ -1053,8 +925,6 @@ let validate_pattern () =
     exit 0
   with _exn -> exit 1
 
-(*e: function [[Main_semgrep_core.validate_pattern]] *)
-
 (* See also Check_rule.check_files *)
 
 (*****************************************************************************)
@@ -1062,7 +932,6 @@ let validate_pattern () =
 (*****************************************************************************)
 
 (* used for the Dump AST in semgrep.live *)
-(*s: function [[Main_semgrep_core.json_of_v]] *)
 let json_of_v (v : OCaml.v) =
   let rec aux v =
     match v with
@@ -1089,17 +958,11 @@ let json_of_v (v : OCaml.v) =
   in
   aux v
 
-(*e: function [[Main_semgrep_core.json_of_v]] *)
-
-(*s: function [[Main_semgrep_core.dump_v_to_format]] *)
 let dump_v_to_format (v : OCaml.v) =
   match !output_format with
   | Text -> OCaml.string_of_v v
   | Json -> J.string_of_json (json_of_v v)
 
-(*e: function [[Main_semgrep_core.dump_v_to_format]] *)
-
-(*s: function [[Main_semgrep_core.dump_pattern]] *)
 (* works with -lang *)
 let dump_pattern (file : Common.filename) =
   let s = Common.read_file file in
@@ -1111,9 +974,6 @@ let dump_pattern (file : Common.filename) =
       let s = dump_v_to_format v in
       pr s)
 
-(*e: function [[Main_semgrep_core.dump_pattern]] *)
-
-(*s: function [[Main_semgrep_core.dump_ast]] *)
 let dump_ast ?(naming = false) lang file =
   E.try_with_print_exn_and_exit_fast file (fun () ->
       let { Parse_target.ast; errors; _ } =
@@ -1128,7 +988,6 @@ let dump_ast ?(naming = false) lang file =
         pr2 (spf "WARNING: fail to fully parse %s" file);
         exit 1))
 
-(*e: function [[Main_semgrep_core.dump_ast]] *)
 let dump_v1_json file =
   match Lang.langs_of_filename file with
   | lang :: _ ->
@@ -1142,7 +1001,6 @@ let dump_v1_json file =
           if errors <> [] then pr2 (spf "WARNING: fail to fully parse %s" file))
   | [] -> failwith (spf "unsupported language for %s" file)
 
-(*s: function [[Main_semgrep_core.dump_ext_of_lang]] *)
 let dump_ext_of_lang () =
   let lang_to_exts =
     Lang.keys
@@ -1156,14 +1014,9 @@ let dump_ext_of_lang () =
     (spf "Language to supported file extension mappings:\n %s"
        (String.concat "\n" lang_to_exts))
 
-(*e: function [[Main_semgrep_core.dump_ext_of_lang]] *)
-
-(*s: function [[Main_semgrep_core.dump_equivalences]] *)
 let dump_equivalences file =
   let xs = Parse_equivalences.parse file in
   pr2_gen xs
-
-(*e: function [[Main_semgrep_core.dump_equivalences]] *)
 
 let dump_rule file =
   let rules = Parse_rule.parse file in
@@ -1178,16 +1031,12 @@ let dump_rule file =
 (* The options *)
 (*****************************************************************************)
 
-(*s: function [[Main_semgrep_core.all_actions]] *)
 let all_actions () =
   [
-    (*s: [[Main_semgrep_core.all_actions]] dumper cases *)
     ( "-dump_extensions",
       " print file extension to language mapping",
       Common.mk_action_0_arg dump_ext_of_lang );
-    (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
     ("-dump_pattern", " <file>", Common.mk_action_1_arg dump_pattern);
-    (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
     ( "-dump_ast",
       " <file>",
       fun file ->
@@ -1201,9 +1050,7 @@ let all_actions () =
           (dump_ast ~naming:true (lang_of_string !lang))
           file );
     ("-dump_v1_json", " <file>", Common.mk_action_1_arg dump_v1_json);
-    (*x: [[Main_semgrep_core.all_actions]] dumper cases *)
     ("-dump_equivalences", " <file>", Common.mk_action_1_arg dump_equivalences);
-    (*e: [[Main_semgrep_core.all_actions]] dumper cases *)
     ("-dump_rule", " <file>", Common.mk_action_1_arg dump_rule);
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
@@ -1222,11 +1069,9 @@ let all_actions () =
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Common.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
-    (*s: [[Main_semgrep_core.all_actions]] other cases *)
     ( "--validate-pattern-stdin",
       " check the syntax of a pattern ",
       Common.mk_action_0_arg validate_pattern );
-    (*e: [[Main_semgrep_core.all_actions]] other cases *)
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
       Common.mk_action_2_arg Test_synthesizing.expr_at_range );
@@ -1279,9 +1124,6 @@ let all_actions () =
   ]
   @ Test_analyze_generic.actions ()
 
-(*e: function [[Main_semgrep_core.all_actions]] *)
-
-(*s: function [[Main_semgrep_core.options]] *)
 let options () =
   [
     ("-e", Arg.Set_string pattern_string, " <str> use the string as the pattern");
@@ -1301,16 +1143,10 @@ let options () =
     ( "-target_file",
       Arg.Set_string target_file,
       " <file> obtain list of targets to run patterns on" );
-    (*s: [[Main_semgrep_core.options]] user-defined equivalences case *)
     ( "-equivalences",
       Arg.Set_string equivalences_file,
       " <file> obtain list of code equivalences from YAML file" );
-    (*e: [[Main_semgrep_core.options]] user-defined equivalences case *)
-    (*s: [[Main_semgrep_core.options]] file filters cases *)
-    (*e: [[Main_semgrep_core.options]] file filters cases *)
-    (*s: [[Main_semgrep_core.options]] [[-j]] case *)
     ("-j", Arg.Set_int ncores, " <int> number of cores to use (default = 1)");
-    (*e: [[Main_semgrep_core.options]] [[-j]] case *)
     ( "-opt_cache",
       Arg.Set Flag.with_opt_cache,
       " enable caching optimization during matching" );
@@ -1331,14 +1167,12 @@ let options () =
     ( "-no_gc_tuning",
       Arg.Clear Flag.gc_tuning,
       " use OCaml's default garbage collector settings" );
-    (*s: [[Main_semgrep_core.options]] report match mode cases *)
     ( "-emacs",
       Arg.Unit (fun () -> match_format := Matching_report.Emacs),
       " print matches on the same line than the match position" );
     ( "-oneline",
       Arg.Unit (fun () -> match_format := Matching_report.OneLine),
       " print matches on one line, in normalized form" );
-    (*x: [[Main_semgrep_core.options]] report match mode cases *)
     ("-json", Arg.Unit (fun () -> output_format := Json), " output JSON format");
     ( "-json_time",
       Arg.Unit
@@ -1347,16 +1181,12 @@ let options () =
           report_time := true),
       " report detailed matching times as part of the JSON response. Implies \
        '-json'." );
-    (*e: [[Main_semgrep_core.options]] report match mode cases *)
-    (*s: [[Main_semgrep_core.options]] other cases *)
     ( "-pvar",
       Arg.String (fun s -> mvars := Common.split "," s),
       " <metavars> print the metavariables, not the matched code" );
-    (*x: [[Main_semgrep_core.options]] other cases *)
     ( "-gen_layer",
       Arg.String (fun s -> Experiments.layer_file := Some s),
       " <file> save result in a codemap layer file" );
-    (*x: [[Main_semgrep_core.options]] other cases *)
     ( "-error_recovery",
       Arg.Unit
         (fun () ->
@@ -1366,7 +1196,6 @@ let options () =
     ( "-fail_fast",
       Arg.Set fail_fast,
       " stop at first exception (and get a backtrace)" );
-    (*e: [[Main_semgrep_core.options]] other cases *)
     ( "-use_parsing_cache",
       Arg.Set_string use_parsing_cache,
       " <dir> save and use parsed ASTs in a cache at given directory.\n\
@@ -1430,9 +1259,7 @@ let options () =
     ("-test", Arg.Set test, " (internal) set test context");
     ("-lsp", Arg.Set lsp, " connect to LSP lang server to get type information");
   ]
-  (*s: [[Main_semgrep_core.options]] concatenated flags *)
   @ Flag_parsing_cpp.cmdline_flags_macrofile ()
-  (*x: [[Main_semgrep_core.options]] concatenated flags *)
   (* inlining of: Common2.cmdline_flags_devel () @ *)
   @ [
       ( "-debugger",
@@ -1448,14 +1275,9 @@ let options () =
         Arg.Set Common.save_tmp_files,
         " keep temporary generated files" );
     ]
-  (*x: [[Main_semgrep_core.options]] concatenated flags *)
   @ Meta_parse_info.cmdline_flags_precision ()
-  (*x: [[Main_semgrep_core.options]] concatenated flags *)
   @ Semgrep_error_code.options ()
-  (*e: [[Main_semgrep_core.options]] concatenated flags *)
-  (*s: [[Main_semgrep_core.options]] concatenated actions *)
   @ Common.options_of_actions action (all_actions ())
-  (*e: [[Main_semgrep_core.options]] concatenated actions *)
   @ [
       ( "-version",
         Arg.Unit
@@ -1465,13 +1287,10 @@ let options () =
         "  guess what" );
     ]
 
-(*e: function [[Main_semgrep_core.options]] *)
-
 (*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
-(*s: function [[Main_semgrep_core.main]] *)
 let main () =
   (* SIGXFSZ (file size limit exceeded)
    * ----------------------------------
@@ -1537,7 +1356,6 @@ let main () =
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->
       match args with
-      (*s: [[Main_semgrep_core.main()]] match [[args]] actions *)
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)
       (* --------------------------------------------------------- *)
@@ -1545,7 +1363,6 @@ let main () =
           Common.do_action !action xs (all_actions ())
       | _ when not (Common.null_string !action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
-      (*e: [[Main_semgrep_core.main()]] match [[args]] actions *)
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)
@@ -1555,17 +1372,12 @@ let main () =
           match () with
           | _ when !config_file <> "" ->
               semgrep_with_rules_file !config_file roots
-          (*s: [[Main_semgrep_core.main()]] main entry match cases *)
           | _ when !rules_file <> "" ->
               let lang = lang_of_string !lang in
               semgrep_with_patterns_file lang !rules_file roots
-          (*e: [[Main_semgrep_core.main()]] main entry match cases *)
-          (*s: [[Main_semgrep_core.main()]] main entry match cases default case *)
           | _ ->
               let lang = lang_of_string !lang in
-              semgrep_with_one_pattern lang roots
-          (*e: [[Main_semgrep_core.main()]] main entry match cases default case *)
-          )
+              semgrep_with_one_pattern lang roots)
       (* --------------------------------------------------------- *)
       (* empty entry *)
       (* --------------------------------------------------------- *)
@@ -1575,15 +1387,9 @@ let main () =
           semgrep_with_rules_file !config_file []
       | [] -> Common.usage usage_msg (options ()))
 
-(*e: function [[Main_semgrep_core.main]] *)
-
 (*****************************************************************************)
-(*s: toplevel [[Main_semgrep_core._1]] *)
 let () =
   Common.main_boilerplate (fun () ->
       Common.finalize
         (fun () -> main ())
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))
-
-(*e: toplevel [[Main_semgrep_core._1]] *)
-(*e: semgrep/CLI/Main.ml *)

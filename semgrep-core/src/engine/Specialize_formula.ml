@@ -48,7 +48,10 @@ let split_and :
   |> Common.partition_either3 (fun e ->
          match e with
          (* positives *)
-         | R.Leaf (R.P _) | R.And _ | R.Or _ -> Left3 e
+         | R.Leaf (R.P _)
+         | R.And _
+         | R.Or _ ->
+             Left3 e
          (* negatives *)
          | R.Not (_, f) -> Middle3 f
          (* conditionals *)

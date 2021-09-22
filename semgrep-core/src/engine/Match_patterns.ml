@@ -1,4 +1,3 @@
-(*s: semgrep/engine/Match_patterns.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
@@ -49,9 +48,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Types *)
 (*****************************************************************************)
 
-(*s: type [[Semgrep_generic.matcher]] *)
-(*e: type [[Semgrep_generic.matcher]] *)
-
 (*****************************************************************************)
 (* Debugging *)
 (*****************************************************************************)
@@ -74,23 +70,16 @@ let set_last_matched_rule rule f =
 (* Matchers *)
 (*****************************************************************************)
 
-(*s: function [[Semgrep_generic.match_e_e]] *)
 let match_e_e rule a b env =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_expr a b env))
   [@@profiling]
 
-(*e: function [[Semgrep_generic.match_e_e]] *)
-
-(*s: function [[Semgrep_generic.match_st_st]] *)
 let match_st_st rule a b env =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_stmt a b env))
   [@@profiling]
 
-(*e: function [[Semgrep_generic.match_st_st]] *)
-
-(*s: function [[Semgrep_generic.match_sts_sts]] *)
 let match_sts_sts rule a b env =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
       set_last_matched_rule rule (fun () ->
@@ -113,13 +102,8 @@ let match_sts_sts rule a b env =
           GG.m_stmts_deep ~inside:rule.R.inside ~less_is_ok:true a b env))
   [@@profiling]
 
-(*e: function [[Semgrep_generic.match_sts_sts]] *)
-
-(*s: function [[Semgrep_generic.match_any_any]] *)
 (* for unit testing *)
 let match_any_any pattern e env = GG.m_any pattern e env
-
-(*e: function [[Semgrep_generic.match_any_any]] *)
 
 let match_t_t rule a b env =
   Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
@@ -205,7 +189,6 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
 (* Main entry point *)
 (*****************************************************************************)
 
-(*s: function [[Semgrep_generic.check2]] *)
 (* [range_filter] is a predicate that defines "regions of interest" when matching
  *   expressions, this is e.g. used for optimizing `pattern: $X`. Note that
  *   traversing the Generic AST is generally fairly cheap, what could be more
@@ -249,14 +232,11 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
     let attribute_rules = ref [] in
     let fld_rules = ref [] in
     let partial_rules = ref [] in
-    (*s: [[Semgrep_generic.check2()]] populate [[expr_rules]] and other *)
     rules
     |> List.iter (fun rule ->
            (* less: normalize the pattern? *)
            let any = rule.R.pattern in
-           (*s: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
            let any = Apply_equivalences.apply equivs any in
-           (*e: [[Semgrep_generic.check2()]] apply equivalences to rule pattern [[any]] *)
            let cache =
              if !Flag.with_opt_cache then Some (Caching.Cache.create ())
              else None
@@ -284,11 +264,9 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
                  "only expr/stmt/stmts/type/pattern/annotation/field/partial \
                   patterns are supported");
 
-    (*e: [[Semgrep_generic.check2()]] populate [[expr_rules]] and other *)
     let hooks =
       {
         V.default_visitor with
-        (*s: [[Semgrep_generic.check2()]] visitor fields *)
         V.kexpr =
           (fun (k, _) x ->
             (* this could be quite slow ... we match many sgrep patterns
@@ -329,7 +307,6 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
             (* this can recurse to find nested matching inside the
              * matched code itself *)
             k x);
-        (*x: [[Semgrep_generic.check2()]] visitor fields *)
         (* mostly copy paste of expr code but with the _st functions *)
         V.kstmt =
           (fun (k, _) x ->
@@ -388,7 +365,6 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
                   Common.save_excursion stmts_rules new_stmts_rules (fun () ->
                       Common.save_excursion expr_rules new_expr_rules (fun () ->
                           visit_stmt ()))));
-        (*x: [[Semgrep_generic.check2()]] visitor fields *)
         V.kstmts =
           (fun (k, _) x ->
             (* this is potentially slower than what we did in Coccinelle with
@@ -433,7 +409,6 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
                                       matches;
                                     hook env tokens)));
             k x);
-        (*e: [[Semgrep_generic.check2()]] visitor fields *)
         V.ktype_ =
           (fun (k, _) x ->
             match_rules_and_recurse config (file, hook, matches) !type_rules
@@ -488,11 +463,7 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
      *)
     |> PM.uniq
 
-(*e: function [[Semgrep_generic.check2]] *)
-
 (* TODO: cant use [@@profile] because it does not handle yet label params *)
 let check ~hook ?(range_filter = fun _ -> true) config a b c =
   Common.profile_code "Semgrep_generic.check" (fun () ->
       check2 ~hook range_filter config a b c)
-
-(*e: semgrep/engine/Match_patterns.ml *)

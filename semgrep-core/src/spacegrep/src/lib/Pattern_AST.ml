@@ -81,7 +81,8 @@ let rec eq a b =
       | List a, List b -> eq a b
       | Dots (_, None), Dots (_, None) -> true
       | Dots (_, Some mva), Dots (_, Some mvb) -> mva = mvb
-      | Dots (_, None), Dots (_, Some _) | Dots (_, Some _), Dots (_, None) ->
+      | Dots (_, None), Dots (_, Some _)
+      | Dots (_, Some _), Dots (_, None) ->
           false
       | End, End -> true
       | _ -> false)
