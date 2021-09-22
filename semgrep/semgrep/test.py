@@ -13,6 +13,7 @@ import collections
 import functools
 import json
 import multiprocessing
+import os
 import sys
 import tarfile
 from itertools import product
@@ -341,6 +342,7 @@ def generate_file_pairs(
     save_test_output_tar: bool = True,
     optimizations: str = "none",
 ) -> None:
+    logger.debug(f"Current Working Directory: {os.getcwd()}")
     logger.debug(f"Generating file pairs for {config} on {target}")
     config_filenames = get_config_filenames(config)
     logger.debug(f"Config filenames:  {config_filenames}")
