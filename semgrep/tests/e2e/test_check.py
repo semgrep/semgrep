@@ -85,6 +85,11 @@ def test_registry_rule(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_auto_config(run_semgrep_in_tmp, snapshot):
+    # TODO: Implement a test here after semgrep.dev supports the c/auto endpoint
+    pass
+
+
 def test_hidden_rule__explicit(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(run_semgrep_in_tmp("rules/hidden/.hidden")[0], "results.json")
 

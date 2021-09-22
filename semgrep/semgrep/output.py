@@ -37,6 +37,7 @@ from semgrep.rule_match_map import RuleMatchMap
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.util import is_url
+from semgrep.util import terminal_wrap
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -130,7 +131,7 @@ class OutputSettings(NamedTuple):
 
 
 @contextlib.contextmanager
-def managed_output(output_settings: OutputSettings) -> Generator:  # type: ignore
+def managed_output(output_settings: OutputSettings) -> Generator:
     """
     Context manager to capture uncaught exceptions &
     """
@@ -220,7 +221,7 @@ class OutputHandler:
             print_threshold_hint = print_threshold_hint or (
                 num_errs > 5 and not self.settings.timeout_threshold
             )
-            logger.error(with_color("red", error_msg))
+            logger.error(with_color("red", terminal_wrap(error_msg)))
 
         if print_threshold_hint:
             logger.error(
@@ -241,7 +242,7 @@ class OutputHandler:
             if self.settings.output_format == OutputFormat.TEXT and (
                 error.level != Level.WARN or self.settings.verbose_errors
             ):
-                logger.error(str(error))
+                logger.error(with_color("red", str(error)))
 
     def handle_semgrep_core_output(
         self,
@@ -287,7 +288,9 @@ class OutputHandler:
                 if self.settings.strict:
                     raise ex
                 logger.info(
-                    f"{error_stats}; run with --verbose for details or run with --strict to exit non-zero if any file cannot be analyzed cleanly"
+                    terminal_wrap(
+                        f"{error_stats}; run with --verbose for details or run with --strict to exit non-zero if any file cannot be analyzed cleanly"
+                    )
                 )
         else:
             raise ex

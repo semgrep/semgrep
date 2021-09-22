@@ -248,7 +248,9 @@ class TargetManager:
         )
 
     @staticmethod
-    def filter_excludes(arr: FrozenSet[Path], excludes: List[str]) -> FrozenSet[Path]:
+    def filter_excludes(
+        arr: FrozenSet[Path], excludes: Sequence[str]
+    ) -> FrozenSet[Path]:
         """
         Returns all elements in arr that do not match any excludes pattern
 
@@ -330,7 +332,7 @@ class TargetManager:
         return self._filtered_targets[lang]
 
     def get_files(
-        self, lang: Language, includes: List[str], excludes: List[str]
+        self, lang: Language, includes: Sequence[str], excludes: Sequence[str]
     ) -> FrozenSet[Path]:
         """
         Returns list of files that should be analyzed for a LANG

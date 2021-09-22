@@ -1,4 +1,4 @@
-[31msemgrep error[0m: invalid language: intercal
+[31m[31msemgrep error[0m: invalid language: intercal
   --> rules/syntax/badlanguage.yaml:7
 [94m6 | [0m    message: "$X is being assigned to one or two"
 [94m7 | [0m    languages: [intercal]
@@ -6,4 +6,4 @@
 [94m8 | [0m    severity: WARNING
 
 [31munsupported language: intercal. supported languages are: C#, HCL, JSON, Json, Kotlin, Rust, Yaml, c, cs, csharp, generic, go, golang, hack, hacklang, hcl, html, java, javascript, js, json, kotlin, kt, lua, ml, none, ocaml, php, py, python, python2, python3, rb, regex, rs, ruby, rust, scala, terraform, tf, ts, typescript, vue, yaml[0m
-
+[0m

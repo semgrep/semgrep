@@ -6,10 +6,12 @@ from typing import Any
 from typing import Dict
 from typing import IO
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
+import attr
 from ruamel.yaml import YAML
 from ruamel.yaml import YAMLError
 
@@ -34,6 +36,8 @@ from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import Language
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
+from semgrep.util import terminal_wrap
+from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -44,7 +48,9 @@ IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 SRC_DIRECTORY = Path(os.environ.get("SEMGREP_SRC_DIRECTORY", Path("/") / "src"))
 OLD_SRC_DIRECTORY = Path("/") / "home" / "repo"
 
-RULES_REGISTRY = {"r2c": "https://semgrep.dev/c/p/r2c"}
+AUTO_CONFIG_KEY = "auto"
+AUTO_CONFIG_LOCATION = "c/auto"
+RULES_REGISTRY = {"r2c": "c/p/r2c"}
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -79,7 +85,7 @@ class Config:
 
     @classmethod
     def from_config_list(
-        cls, configs: Sequence[str]
+        cls, configs: Sequence[str], project_url: Optional[str]
     ) -> Tuple["Config", List[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
@@ -89,6 +95,7 @@ class Config:
         """
         config_dict: Dict[str, YamlTree] = {}
         errors: List[SemgrepError] = []
+        resolver = ConfigResolver(project_url)
 
         if not configs:
             try:
@@ -99,7 +106,7 @@ class Config:
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
-                resolved_config = resolve_config(config)
+                resolved_config = resolver.resolve_config(config)
                 if not resolved_config:
                     logger.verbose(f"Could not resolve config for {config}. Skipping.")
                     continue
@@ -163,9 +170,8 @@ class Config:
                     f"{Config._convert_config_id_to_prefix(config_id)}{rule.id or MISSING_RULE_ID}"
                 )
 
-    # the mypy ignore is cause YamlTree puts an Any inside the @staticmethod decorator
     @staticmethod
-    def _validate(  # type: ignore[misc]
+    def _validate(
         config_dict: Dict[str, YamlTree]
     ) -> Tuple[Dict[str, List[Rule]], List[SemgrepError]]:
         """
@@ -202,6 +208,118 @@ class Config:
             if valid_rules:
                 valid[config_id] = valid_rules
         return valid, errors
+
+
+@attr.s(auto_attribs=True)
+class ConfigResolver:
+    project_url: Optional[str]
+
+    def _download_config(
+        self, config_url: str, *, extra_headers: Optional[Mapping[str, str]] = None
+    ) -> Dict[str, YamlTree]:
+        import requests  # here for faster startup times
+
+        logger.debug(f"trying to download from {config_url}")
+        logger.info(
+            terminal_wrap(
+                f"Using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.dev/registry to see all public rules."
+            )
+        )
+        logger.info("\nDownloading config...")
+        headers = {"User-Agent": SEMGREP_USER_AGENT, **(extra_headers or {})}
+
+        try:
+            r = requests.get(config_url, stream=True, headers=headers, timeout=20)
+            if r.status_code == requests.codes.ok:
+                content_type = r.headers.get("Content-Type")
+                yaml_types = [
+                    "text/plain",
+                    "application/x-yaml",
+                    "text/x-yaml",
+                    "text/yaml",
+                    "text/vnd.yaml",
+                ]
+                if content_type and any((ct in content_type for ct in yaml_types)):
+                    return parse_config_string(
+                        "remote-url",
+                        r.content.decode("utf-8", errors="replace"),
+                        filename=f"{config_url[:20]}...",
+                    )
+                else:
+                    raise SemgrepError(
+                        f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
+                    )
+            else:
+                raise SemgrepError(
+                    f"bad status code: {r.status_code} returned by config url: {config_url}"
+                )
+        except Exception as e:
+            raise SemgrepError(
+                terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
+            )
+
+    @staticmethod
+    def _load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
+        """
+        Return config file(s) as dictionary object
+        """
+        base_path = get_base_path()
+        loc = base_path.joinpath(location)
+        if loc.exists():
+            if loc.is_file():
+                return parse_config_at_path(loc)
+            elif loc.is_dir():
+                return parse_config_folder(loc)
+            else:
+                raise SemgrepError(f"config location `{loc}` is not a file or folder!")
+        else:
+            addendum = ""
+            if IN_DOCKER:
+                addendum = " (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
+            raise SemgrepError(
+                terminal_wrap(
+                    f"Unable to find a config; path `{loc}` does not exist{addendum}"
+                )
+            )
+
+    def resolve_config(self, config_str: str) -> Dict[str, YamlTree]:
+        """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+        start_t = time.time()
+        extra_headers: Dict[str, str] = {}
+        if config_str == AUTO_CONFIG_KEY:
+            logger.warning(
+                terminal_wrap(
+                    "Auto config mode will use semgrep rules to scan your codebase and uses the Semgrep Registry"
+                    " to generate recommended rules based on your languages and frameworks."
+                    "\n"
+                ),
+            )
+            if self.project_url is not None:
+                extra_headers["X-Semgrep-Project"] = self.project_url
+                logger.warning(
+                    with_color(
+                        "green",
+                        terminal_wrap(
+                            f"Logging in to the Semgrep Registry as project '{self.project_url}'...\n"
+                        ),
+                    )
+                )
+            config = self._download_config(
+                f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}", extra_headers=extra_headers
+            )
+        elif config_str in RULES_REGISTRY:
+            config = self._download_config(f"{SEMGREP_URL}{RULES_REGISTRY[config_str]}")
+        elif is_url(config_str):
+            config = self._download_config(config_str)
+        elif is_registry_id(config_str):
+            config = self._download_config(registry_id_to_url(config_str))
+        elif is_saved_snippet(config_str):
+            config = self._download_config(saved_snippet_to_url(config_str))
+        else:
+            config = self._load_config_from_local_path(config_str)
+        if config:
+            logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
+        return config
 
 
 def validate_single_rule(
@@ -348,28 +466,6 @@ def load_default_config() -> Dict[str, YamlTree]:
         return {}
 
 
-def load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
-    """
-    Return config file(s) as dictionary object
-    """
-    base_path = get_base_path()
-    loc = base_path.joinpath(location)
-    if loc.exists():
-        if loc.is_file():
-            return parse_config_at_path(loc)
-        elif loc.is_dir():
-            return parse_config_folder(loc)
-        else:
-            raise SemgrepError(f"config location `{loc}` is not a file or folder!")
-    else:
-        addendum = ""
-        if IN_DOCKER:
-            addendum = " (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
-        raise SemgrepError(
-            f"unable to find a config; path `{loc}` does not exist{addendum}"
-        )
-
-
 def nice_semgrep_url(url: str) -> str:
     """
     Alters semgrep.dev urls to let user
@@ -383,48 +479,6 @@ def nice_semgrep_url(url: str) -> str:
     if "semgrep.dev" in parsed.netloc and parsed.path.startswith("/c"):
         return url.replace("/c/", "/")
     return url
-
-
-def download_config(config_url: str) -> Dict[str, YamlTree]:
-    import requests  # here for faster startup times
-
-    DOWNLOADING_MESSAGE = f"downloading config..."
-    logger.debug(f"trying to download from {config_url}")
-    logger.info(
-        f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.dev/registry to see all public rules."
-    )
-    logger.info(DOWNLOADING_MESSAGE)
-    headers = {"User-Agent": SEMGREP_USER_AGENT}
-
-    try:
-        r = requests.get(config_url, stream=True, headers=headers, timeout=20)
-        if r.status_code == requests.codes.ok:
-            content_type = r.headers.get("Content-Type")
-            yaml_types = [
-                "text/plain",
-                "application/x-yaml",
-                "text/x-yaml",
-                "text/yaml",
-                "text/vnd.yaml",
-            ]
-            if content_type and any((ct in content_type for ct in yaml_types)):
-                return parse_config_string(
-                    "remote-url",
-                    r.content.decode("utf-8", errors="replace"),
-                    filename=f"{config_url[:20]}...",
-                )
-            else:
-                raise SemgrepError(
-                    f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
-                )
-        else:
-            raise SemgrepError(
-                f"bad status code: {r.status_code} returned by config url: {config_url}"
-            )
-    except Exception as e:
-        raise SemgrepError(f"Failed to download config from {config_url}: {str(e)}")
-
-    return None
 
 
 def is_registry_id(config_str: str) -> bool:
@@ -455,24 +509,6 @@ def saved_snippet_to_url(snippet_id: str) -> str:
     return registry_id_to_url(f"s/{snippet_id}")
 
 
-def resolve_config(config_str: str) -> Dict[str, YamlTree]:
-    """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
-    start_t = time.time()
-    if config_str in RULES_REGISTRY:
-        config = download_config(RULES_REGISTRY[config_str])
-    elif is_url(config_str):
-        config = download_config(config_str)
-    elif is_registry_id(config_str):
-        config = download_config(registry_id_to_url(config_str))
-    elif is_saved_snippet(config_str):
-        config = download_config(saved_snippet_to_url(config_str))
-    else:
-        config = load_config_from_local_path(config_str)
-    if config:
-        logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
-    return config
-
-
 def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None:
     config = DEFAULT_CONFIG
 
@@ -494,6 +530,8 @@ def get_config(
     pattern: Optional[str],
     lang: Optional[str],
     config_strs: Sequence[str],
+    *,
+    project_url: Optional[str],
     replacement: Optional[str] = None,
 ) -> Tuple[Config, Sequence[SemgrepError]]:
     if pattern:
@@ -505,7 +543,7 @@ def get_config(
             raise SemgrepError(
                 "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
             )
-        config, errors = Config.from_config_list(config_strs)
+        config, errors = Config.from_config_list(config_strs, project_url)
 
     if not config:
         raise SemgrepError(

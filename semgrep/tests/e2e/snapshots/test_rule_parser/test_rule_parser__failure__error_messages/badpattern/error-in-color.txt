@@ -1,2 +1,2 @@
 running 1 rules...
-[31mSemgrep Core ERROR - Pattern parse error: In rule eqeq-is-bad: Invalid pattern for Python[0m[37m[0m
+[31m[31mSemgrep Core ERROR - Pattern parse error: In rule eqeq-is-bad: Invalid pattern for Python[0m[37m[0m[0m

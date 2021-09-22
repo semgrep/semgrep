@@ -4,7 +4,10 @@ rules:
 - rules.forcetimeout
 - rules.forcetimeout2
 - rules.forcetimeout3
-Warning: 2 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules: [rules.forcetimeout, rules.forcetimeout2]
-Semgrep stopped running rules on targets/equivalence/open_redirect.py after 2 timeout error(s). See `--timeout-threshold` for more info.
+Warning: 2 timeout error(s) in targets/equivalence/open_redirect.py when running the following rules:
+[rules.forcetimeout, rules.forcetimeout2]
+Semgrep stopped running rules on targets/equivalence/open_redirect.py after 2 timeout error(s). See `--timeout-
+threshold` for more info.
 ran 3 rules on 1 files: 0 findings
-found problems analyzing 2 files; run with --verbose for details or run with --strict to exit non-zero if any file cannot be analyzed cleanly
+found problems analyzing 2 files; run with --verbose for details or run with --strict to exit non-zero if any file
+cannot be analyzed cleanly

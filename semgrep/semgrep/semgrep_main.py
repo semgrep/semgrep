@@ -1,5 +1,4 @@
 import json
-import subprocess
 import time
 from io import StringIO
 from pathlib import Path
@@ -22,12 +21,11 @@ from semgrep.metric_manager import metric_manager
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
+from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import TargetManager
-from semgrep.util import manually_search_file
 from semgrep.util import partition
-from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
 
@@ -124,7 +122,10 @@ def main(
     if exclude is None:
         exclude = []
 
-    configs_obj, errors = get_config(pattern, lang, configs, replacement)
+    project_url = get_project_url()
+    configs_obj, errors = get_config(
+        pattern, lang, configs, replacement=replacement, project_url=project_url
+    )
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
 
     if not severity:
@@ -232,21 +233,6 @@ The two most popular are:
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
     if metric_manager.is_enabled:
-        project_url = None
-        try:
-            project_url = sub_check_output(
-                ["git", "ls-remote", "--get-url"],
-                encoding="utf-8",
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception as e:
-            logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
-            try:
-                # add \n to match urls from git ls-remote (backwards compatability)
-                project_url = manually_search_file(".git/config", ".com", "\n")
-            except Exception as e:
-                logger.debug(f"Failed to get project url from .git/config: {e}")
-
         metric_manager.set_project_hash(project_url)
         metric_manager.set_configs_hash(configs)
         metric_manager.set_rules_hash(filtered_rules)
