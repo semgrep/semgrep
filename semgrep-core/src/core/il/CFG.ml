@@ -1,3 +1,5 @@
+(*s: pfff/lang_GENERIC/analyze/CFG.ml *)
+(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -15,7 +17,7 @@
 
 type nodei = Ograph_extended.nodei
 
-(* We include the entry point because the Dataflow engine uses this, and works using an abstract node type,
+(* We include the entry point because the Datafslow engine uses this, and works using an abstract node type,
    which prevent it from searching for an entry node.
 *)
 type ('node, 'edge) t = {
@@ -24,4 +26,3 @@ type ('node, 'edge) t = {
 }
 
 type ('node, 'edge) cfg = ('node, 'edge) t
-
