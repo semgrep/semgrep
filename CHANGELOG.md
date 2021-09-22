@@ -20,7 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Constant propagation now assumes that void methods may update the callee (#3316)
 - Add rule message to emacs output (#3851)
 - Show stack trace on fatal errors (#3876)
-- Various changes to error messages (#3827) 
+- Various changes to error messages (#3827)
 
 ### Fixed
 - Dataflow: Recognize "concat" method and interpret it in a language-dependent manner (#3316)
