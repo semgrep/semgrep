@@ -42,11 +42,7 @@ let run_with_memory_limit ?(stack_warning_kb = default_stack_warning_kb)
       logger#info
         "exceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
         mem_bytes stack_bytes heap_bytes;
-      raise
-        (ExceededMemoryLimit
-           (spf "Exceeded memory limit (%.2f mb > %d mb)"
-              (Float.div (float_of_int mem_bytes) (float_of_int mb))
-              mem_limit_mb)))
+      raise (ExceededMemoryLimit "Exceeded memory limit"))
     else if
       stack_warning > 0
       && stack_bytes > stack_warning
