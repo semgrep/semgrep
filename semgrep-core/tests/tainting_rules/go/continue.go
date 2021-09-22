@@ -6,4 +6,6 @@ func f() {
 		//OK:
 		sink(source)
 	}
+	//ERROR:
+	sink(source)
 }

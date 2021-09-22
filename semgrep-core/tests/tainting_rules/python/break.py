@@ -2,7 +2,7 @@ def f():
     i = 0
     while (i < 0):
         if i == 4:
-            #OK:
+            #ERROR:
             sink(source)
             break
             #OK:
