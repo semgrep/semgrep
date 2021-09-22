@@ -236,6 +236,7 @@ module Make (F : Flow) = struct
       (fun s (ni, _) -> NodeiSet.add ni s)
       NodeiSet.empty
 
+  (* Computes the set of reachable nodes in the CFG. This prevents dead code from getting analyzed *)
   let mk_worklist ({ graph; entry } : F.flow) =
     let rec aux nodei seen =
       if NodeiSet.mem nodei seen then seen
