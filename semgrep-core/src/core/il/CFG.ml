@@ -17,6 +17,9 @@
 
 type nodei = int
 
+(* We include the entry point because the Dataflow engine uses this, and works using an abstract node type,
+   which prevent it from searching for an entry node.
+*)
 type ('node, 'edge) t = {
   graph : ('node, 'edge) Ograph_extended.ograph_mutable;
   entry : nodei;
