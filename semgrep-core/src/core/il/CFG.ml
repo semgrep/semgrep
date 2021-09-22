@@ -1,5 +1,3 @@
-(*s: pfff/lang_GENERIC/analyze/CFG.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,6 +12,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 
-(*e: pfff/lang_GENERIC/analyze/CFG.ml *)
+type nodei = Ograph_extended.nodei
+
+(* We include the entry point because the Datafslow engine uses this, and works using an abstract node type,
+   which prevent it from searching for an entry node.
+*)
+type ('node, 'edge) t = {
+  graph : ('node, 'edge) Ograph_extended.ograph_mutable;
+  entry : nodei;
+}
+
+type ('node, 'edge) cfg = ('node, 'edge) t

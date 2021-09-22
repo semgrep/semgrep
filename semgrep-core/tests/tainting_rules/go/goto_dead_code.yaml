@@ -1,0 +1,12 @@
+rules:
+  - id: test-dead-code
+    languages:
+      - go
+    message: Match Found!
+    mode: taint
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: source
+    severity: WARNING
+

@@ -5,7 +5,8 @@
       "check_id": "rules.deduplication.duplicate",
       "end": {
         "col": 9,
-        "line": 1
+        "line": 1,
+        "offset": 8
       },
       "extra": {
         "is_ignored": false,
@@ -53,7 +54,8 @@
       "path": "targets/deduplication/deduplication.py",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     }
   ]

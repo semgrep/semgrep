@@ -60,7 +60,7 @@ let cases_to_lambda lb (cases : G.action list) : G.function_definition =
     fkind = (G.BlockCases, lb);
     frettype = None;
     fparams = [ param ];
-    fbody = body;
+    fbody = G.FBStmt body;
   }
 
 (*****************************************************************************)
@@ -271,7 +271,9 @@ and v_type_kind = function
   | TyRefined (v1, v2) ->
       let v1 = v_option v_type_ v1 and _lb, defs, _rb = v_refinement v2 in
       todo_type "TyRefined"
-        ((match v1 with None -> [] | Some t -> [ G.T t ])
+        ((match v1 with
+         | None -> []
+         | Some t -> [ G.T t ])
         @ (defs |> List.map (fun def -> G.Def def)))
   | TyExistential (v1, v2, v3) ->
       let v1 = v_type_ v1 in
@@ -338,7 +340,11 @@ and v_pattern = function
       let ids = v_dotted_name_of_stable_id v1 in
       let _v2TODO = v_option (v_bracket (v_list v_type_)) v2 in
       let v3 = v_option (v_bracket (v_list v_pattern)) v3 in
-      let xs = match v3 with None -> [] | Some (_, xs, _) -> xs in
+      let xs =
+        match v3 with
+        | None -> []
+        | Some (_, xs, _) -> xs
+      in
       let name = H.name_of_ids ids in
       G.PatConstructor (name, xs)
   | PatInfix (v1, v2, v3) ->
@@ -360,14 +366,18 @@ and v_expr e =
   | DeepEllipsis v1 -> G.DeepEllipsis (v_bracket v_expr v1)
   | L v1 -> (
       let v1 = v_literal v1 in
-      match v1 with Left lit -> G.L lit | Right e -> e.G.e)
+      match v1 with
+      | Left lit -> G.L lit
+      | Right e -> e.G.e)
   | Tuple v1 ->
       let v1 = v_bracket (v_list v_expr) v1 in
-      G.Tuple v1
+      G.Container (G.Tuple, v1)
   | Name v1 ->
       let sref, ids = v_path v1 in
       let start =
-        match sref with Left id -> G.N (H.name_of_id id) | Right e -> e.G.e
+        match sref with
+        | Left id -> G.N (H.name_of_id id)
+        | Right e -> e.G.e
       in
       ids
       |> List.fold_left
@@ -474,7 +484,9 @@ and v_case_clause
   let guardopt = v_option v_guard v_caseguard in
   let block = v_block v_casebody in
   let pat =
-    match guardopt with None -> pat | Some (_t, e) -> PatWhen (pat, e)
+    match guardopt with
+    | None -> pat
+    | Some (_t, e) -> PatWhen (pat, e)
   in
   (pat, expr_of_block block)
 
@@ -542,7 +554,11 @@ and v_stmt = function
       and v2 = v_expr_for_stmt v2
       and v3 = v_option v_catch_clause v3
       and v4 = v_option v_finally_clause v4 in
-      let catches = match v3 with None -> [] | Some xs -> xs in
+      let catches =
+        match v3 with
+        | None -> []
+        | Some xs -> xs
+      in
       G.Try (v1, v2, catches, v4) |> G.s
   | Throw (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_expr v2 in
@@ -687,10 +703,14 @@ and v_type_parameter
   let constraints = [] in
   (id, constraints)
 
-and v_variance = function Covariant -> () | Contravariant -> ()
+and v_variance = function
+  | Covariant -> ()
+  | Contravariant -> ()
 
 and v_type_parameters v : G.type_parameter list =
-  match v with None -> [] | Some (_lb, xs, _rb) -> v_list v_type_parameter xs
+  match v with
+  | None -> []
+  | Some (_lb, xs, _rb) -> v_list v_type_parameter xs
 
 and v_definition x : G.definition list =
   match x with
@@ -712,7 +732,8 @@ and v_variable_definitions
   v_vpatterns
   |> Common.map_filter (fun pat ->
          match pat with
-         | PatVarid id | PatName (Id id, []) ->
+         | PatVarid id
+         | PatName (Id id, []) ->
              let ent = G.basic_entity id attrs in
              let vdef = { G.vinit = eopt; vtype = topt } in
              Some (ent, G.VarDef vdef)
@@ -753,22 +774,30 @@ and v_function_definition
     fparams = List.flatten params;
     (* TODO? *)
     frettype = tret;
-    fbody = (match fbody with None -> G.empty_fbody | Some st -> st);
+    fbody =
+      (match fbody with
+      | None -> G.FBDecl G.sc
+      | Some st -> st);
   }
 
-and v_function_kind = function LambdaArrow -> G.Arrow | Def -> G.Method
+and v_function_kind = function
+  | LambdaArrow -> G.Arrow
+  | Def -> G.Method
 
-and v_fbody = function
+and v_fbody body : G.function_body =
+  match body with
   | FBlock v1 -> (
       let lb, kind, rb = v_block_expr v1 in
       match kind with
-      | Left stats -> G.Block (lb, stats, rb) |> G.s
+      | Left stats ->
+          let st = G.Block (lb, stats, rb) |> G.s in
+          G.FBStmt st
       | Right cases ->
           let def = cases_to_lambda lb cases in
-          G.exprstmt (G.Lambda def |> G.e))
+          G.FBExpr (G.Lambda def |> G.e))
   | FExpr (v1, v2) ->
-      let _v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in
-      v2
+      let _v1 = v_tok v1 and v2 = v_expr v2 in
+      G.FBExpr v2
 
 and v_bindings v = v_bracket (v_list v_binding) v |> G.unbracket
 
@@ -883,7 +912,9 @@ let v_any = function
       | st -> G.S st)
   | Ss b -> (
       let xs = v_block b in
-      match xs with [ s ] -> G.S s | xs -> G.Ss xs)
+      match xs with
+      | [ s ] -> G.S s
+      | xs -> G.Ss xs)
 
 (*****************************************************************************)
 (* Entry points *)

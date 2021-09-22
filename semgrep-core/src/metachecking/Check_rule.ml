@@ -1,5 +1,3 @@
-(*s: semgrep/metachecking/Check_rule.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,12 +12,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 open Common
 module FT = File_type
 open Rule
 module R = Rule
-module E = Error_code
+module E = Semgrep_error_code
 module PI = Parse_info
 
 let logger = Logging.get_logger [ __MODULE__ ]
@@ -59,9 +56,12 @@ type env = { r : Rule.t; errors : E.error list ref }
 (*****************************************************************************)
 
 let error env t s =
-  let loc = Parse_info.token_location_of_info t in
+  let loc = Parse_info.unsafe_token_location_of_info t in
   let check_id = "semgrep-metacheck-builtin" in
-  let err = E.mk_error_loc loc (E.SemgrepMatchFound (check_id, s)) in
+  let rule_id, _ = env.r.id in
+  let err =
+    E.mk_error ~rule_id:(Some rule_id) loc s (E.SemgrepMatchFound check_id)
+  in
   Common.push err env.errors
 
 (*****************************************************************************)
@@ -84,7 +84,8 @@ let check_formula env lang f =
     | Leaf (P _) -> ()
     | Leaf (MetavarCond _) -> ()
     | Not (_, f) -> find_dupe f
-    | Or (t, xs) | And (t, xs) ->
+    | Or (t, xs)
+    | And (t, xs) ->
         let rec aux xs =
           match xs with
           | [] -> ()
@@ -195,5 +196,3 @@ let stat_files fparser xs =
                     incr good;
                     pr2 (spf "regexp: %s" s)));
   pr2 (spf "good = %d, no regexp found = %d" !good !bad)
-
-(*e: semgrep/metachecking/Check_rule.ml *)

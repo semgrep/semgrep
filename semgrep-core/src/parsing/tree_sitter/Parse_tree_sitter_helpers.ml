@@ -13,6 +13,7 @@
  *)
 open Common
 module PI = Parse_info
+module G = AST_generic
 
 (*****************************************************************************)
 (* Prelude *)
@@ -152,7 +153,9 @@ let wrap_parser tree_sitter_parser ast_mapper =
    *)
   let res : 'a Tree_sitter_run.Parsing_result.t = tree_sitter_parser () in
   let program =
-    match res.program with Some cst -> Some (ast_mapper cst) | None -> None
+    match res.program with
+    | Some cst -> Some (ast_mapper cst)
+    | None -> None
   in
   { res with program }
 
@@ -173,3 +176,11 @@ let wrap_parser tree_sitter_parser ast_mapper =
       raise exn
 
 *)
+
+let parse_number_literal (s, t) =
+  match Common2.int_of_string_c_octal_opt s with
+  | Some i -> G.Int (Some i, t)
+  | None -> (
+      match float_of_string_opt s with
+      | Some f -> G.Float (Some f, t)
+      | None -> G.Int (None, t))

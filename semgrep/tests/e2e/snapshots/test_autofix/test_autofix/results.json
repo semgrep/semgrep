@@ -5,7 +5,8 @@
       "check_id": "rules.autofix.use-dict-get",
       "end": {
         "col": 12,
-        "line": 5
+        "line": 5,
+        "offset": 54
       },
       "extra": {
         "fix": "inputs.get(x)",
@@ -54,14 +55,16 @@
       "path": "targets/autofix/autofix.py",
       "start": {
         "col": 3,
-        "line": 5
+        "line": 5,
+        "offset": 45
       }
     },
     {
       "check_id": "rules.autofix.use-dict-get",
       "end": {
         "col": 19,
-        "line": 6
+        "line": 6,
+        "offset": 77
       },
       "extra": {
         "fix": "inputs.get(x + 1)",
@@ -110,7 +113,8 @@
       "path": "targets/autofix/autofix.py",
       "start": {
         "col": 6,
-        "line": 6
+        "line": 6,
+        "offset": 64
       }
     }
   ]

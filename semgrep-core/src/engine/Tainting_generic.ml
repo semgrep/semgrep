@@ -16,6 +16,7 @@
  *)
 (*e: pad/r2c copyright *)
 module G = AST_generic
+module H = AST_generic_helpers
 module V = Visitor_AST
 module F = File_and_more
 module R = Rule
@@ -81,7 +82,7 @@ module DataflowY = Dataflow.Make (struct
 
   type edge = F2.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
@@ -145,7 +146,7 @@ let taint_config_of_rule default_config equivs file ast_and_errors
 
 (*s: function [[Tainting_generic.check2]] *)
 let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
-    equivs file ast =
+    equivs file lang ast =
   let matches = ref [] in
 
   let taint_configs =
@@ -181,7 +182,7 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
   let fun_env = Hashtbl.create 8 in
 
   let check_stmt opt_name def_body =
-    let xs = AST_to_IL.stmt def_body in
+    let xs = AST_to_IL.stmt lang def_body in
     let flow = CFG_build.cfg_of_stmts xs in
 
     taint_configs
@@ -205,13 +206,13 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
             match def_kind with
             | G.FuncDef fdef ->
                 let opt_name = AST_to_IL.name_of_entity ent in
-                check_stmt opt_name fdef.G.fbody;
+                check_stmt opt_name (H.funcbody_to_stmt fdef.G.fbody);
                 (* go into nested functions *)
                 k def
             | __else__ -> k def);
         V.kfunction_definition =
           (fun (k, _v) def ->
-            check_stmt None def.G.fbody;
+            check_stmt None (H.funcbody_to_stmt def.G.fbody);
             (* go into nested functions *)
             k def);
       }

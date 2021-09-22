@@ -212,9 +212,12 @@ and map_expr x : B.expr =
       let v1 = map_container_operator v1
       and v2 = map_bracket (map_of_list map_expr) v2 in
       `Container (v1, v2)
-  | Tuple v1 ->
-      let v1 = map_bracket (map_of_list map_expr) v1 in
-      `Tuple v1
+  | Comprehension (op, (l, (_eTODO, _xsTODO), r)) ->
+      (* TODO *)
+      let v1 = map_container_operator op in
+      let l = map_tok l in
+      let r = map_tok r in
+      `Container (v1, (l, [], r))
   | Record v1 ->
       let v1 = map_bracket (map_of_list map_field) v1 in
       `Record v1
@@ -365,7 +368,11 @@ and map_container_operator = function
   | List -> `List
   | Set -> `Set
   | Dict -> `Dict
+  | Tuple -> `List
 
+(* TODO `Tuple *)
+
+(* TODO *)
 and map_special x =
   match x with
   | ForOf -> `ForOf
@@ -403,9 +410,13 @@ and map_of_interpolated_kind = function
   (* new: *)
   | TaggedTemplateLiteral -> `InterpolatedConcat
 
-and map_of_incdec = function Incr -> `Incr | Decr -> `Decr
+and map_of_incdec = function
+  | Incr -> `Incr
+  | Decr -> `Decr
 
-and map_of_prepost = function Prefix -> `Prefix | Postfix -> `Postfix
+and map_of_prepost = function
+  | Prefix -> `Prefix
+  | Postfix -> `Postfix
 
 and map_arithmetic_operator = function
   | Plus -> `Plus
@@ -981,10 +992,12 @@ and map_function_kind = function
 and map_function_definition
     { G.fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody } =
   let fkind = map_wrap map_function_kind fkind in
-  let v_fbody = map_stmt v_fbody in
+  let v_fbody = map_function_body v_fbody in
   let v_frettype = map_of_option map_type_ v_frettype in
   let v_fparams = map_parameters v_fparams in
   { B.fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody }
+
+and map_function_body x = map_stmt (H.funcbody_to_stmt x)
 
 and map_parameters v = map_of_list map_parameter v
 

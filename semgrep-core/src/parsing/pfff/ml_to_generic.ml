@@ -69,7 +69,8 @@ let mk_var_or_func tlet params tret body =
           G.fparams = params;
           frettype = tret;
           fkind = (G.Function, tlet);
-          fbody = body;
+          (* TODO? maybe generate FBExpr when we can? *)
+          fbody = G.FBStmt body;
         }
 
 let defs_of_bindings tlet attrs xs =
@@ -158,7 +159,11 @@ and stmt e : G.stmt =
   | If (t, v1, v2, v3) ->
       let v1 = expr v1
       and v2 = stmt v2
-      and v3 = match v3 with None -> None | Some x -> Some (stmt x) in
+      and v3 =
+        match v3 with
+        | None -> None
+        | Some x -> Some (stmt x)
+      in
       G.If (t, v1, v2, v3) |> G.s
   (* alt: could be a G.Seq expr *)
   | Sequence (l, v1, r) ->
@@ -211,7 +216,9 @@ and stmt e : G.stmt =
        * ExprStmt for Ellipsis otherwise Generic_vs_generic will not work.
        *)
       match e.G.e with
-      | G.Ellipsis _ | G.DeepEllipsis _ -> G.exprstmt e
+      | G.Ellipsis _
+      | G.DeepEllipsis _ ->
+          G.exprstmt e
       | _ -> G.OtherStmt (G.OS_ExprStmt2, [ G.E e ]) |> G.s)
 
 and option_expr_to_ctor_arguments v =
@@ -234,7 +241,7 @@ and expr e =
       let e = expr e in
       match e.G.e with
       (* replace fake brackets with real one *)
-      | G.Tuple (_, xs, _) -> G.Tuple (l, xs, r)
+      | G.Container (G.Tuple, (_, xs, _)) -> G.Container (G.Tuple, (l, xs, r))
       | e -> e)
   | TypedExpr (v1, v2, v3) -> (
       let v1 = expr v1 in
@@ -272,7 +279,7 @@ and expr e =
       (* the fake brackets might be replaced in the caller if there
        * was a ParenExpr around
        *)
-      G.Tuple (fb v1)
+      G.Container (G.Tuple, fb v1)
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)
@@ -350,7 +357,7 @@ and expr e =
           G.fparams = v1;
           frettype = None;
           fkind = (G.Function, t);
-          fbody = G.exprstmt v2;
+          fbody = G.FBExpr v2;
         }
       in
       G.Lambda def
@@ -366,13 +373,18 @@ and expr e =
           G.fparams = params;
           frettype = None;
           fkind = (G.Function, t);
-          fbody = body_stmt;
+          fbody = G.FBStmt body_stmt;
         }
   | ExprTodo (t, xs) ->
       let t = todo_category t in
       let xs = list expr xs in
       G.OtherExpr (G.OE_Todo, G.TodoK t :: List.map (fun x -> G.E x) xs)
-  | If _ | Try _ | For _ | While _ | Sequence _ | Match _ ->
+  | If _
+  | Try _
+  | For _
+  | While _
+  | Sequence _
+  | Match _ ->
       let s = stmt e in
       let x = G.stmt_to_expr s in
       x.G.e)
@@ -413,7 +425,9 @@ and argument = function
 
 and match_case (v1, (v3, _t, v2)) =
   let v1 = pattern v1 and v2 = expr v2 and v3 = option expr v3 in
-  match v3 with None -> (v1, v2) | Some x -> (G.PatWhen (v1, x), v2)
+  match v3 with
+  | None -> (v1, v2)
+  | Some x -> (G.PatWhen (v1, x), v2)
 
 and for_direction = function
   | To v1 ->
@@ -424,7 +438,9 @@ and for_direction = function
       (v1, G.Minus, G.GtE)
 
 and rec_opt v =
-  match v with None -> [] | Some t -> [ G.KeywordAttr (G.Recursive, t) ]
+  match v with
+  | None -> []
+  | Some t -> [ G.KeywordAttr (G.Recursive, t) ]
 
 and pattern = function
   | PatEllipsis v1 ->
@@ -687,7 +703,10 @@ and partial = function
        * we convert 'let x = a in b' in a sequence of VarDef and expr,
        * so those PartialLetIn are converted in a simple statement pattern
        *)
-      match defs with [] -> raise Impossible | [ x ] -> G.S x | xs -> G.Ss xs)
+      match defs with
+      | [] -> raise Impossible
+      | [ x ] -> G.S x
+      | xs -> G.Ss xs)
 
 and any = function
   | E x -> (

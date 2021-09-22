@@ -42,14 +42,18 @@ let (int : int -> int) = id
 
 let error = AST_generic.error
 
-let fake s = Parse_info.fake_info s
+let fake tok s = Parse_info.fake_info tok s
+
+let unsafe_fake s = Parse_info.unsafe_fake_info s
 
 (* todo: to remove at some point when Ast_java includes them directly *)
 let fb = G.fake_bracket
 
 let id_of_entname = function
   | G.EN (Id (id, idinfo)) -> (id, idinfo)
-  | G.EN _ | G.EDynamic _ -> raise Impossible
+  | G.EN _
+  | G.EDynamic _ ->
+      raise Impossible
 
 let entity_to_param { G.name; attrs; tparams = _unused } t =
   let id, info = id_of_entname name in
@@ -165,7 +169,9 @@ and modifiers v = list modifier v
 and annotation (t, v1, v2) =
   let v1 = qualified_ident v1 in
   let xs =
-    match v2 with None -> fb [] | Some x -> bracket annotation_element x
+    match v2 with
+    | None -> fb []
+    | Some x -> bracket annotation_element x
   in
   let name = H.name_of_ids v1 in
   G.NamedAttr (t, name, xs)
@@ -346,13 +352,13 @@ and expr e =
   | Cast ((l, v1, _), v2) ->
       let v1 = list typ v1 and v2 = expr v2 in
       let t =
-        Common2.foldl1 (fun acc e -> G.TyAnd (acc, fake "&", e) |> G.t) v1
+        Common2.foldl1 (fun acc e -> G.TyAnd (acc, fake l "&", e) |> G.t) v1
       in
       G.Cast (t, l, v2)
   | InstanceOf (v1, v2) ->
       let v1 = expr v1 and v2 = ref_type v2 in
       G.Call
-        ( G.IdSpecial (G.Instanceof, fake "instanceof") |> G.e,
+        ( G.IdSpecial (G.Instanceof, unsafe_fake "instanceof") |> G.e,
           fb [ G.Arg v1; G.ArgType v2 ] )
   | Conditional (v1, v2, v3) ->
       let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
@@ -366,12 +372,17 @@ and expr e =
   | TypedMetavar (v1, v2) ->
       let v1 = ident v1 in
       let v2 = typ v2 in
-      G.TypedMetavar (v1, Parse_info.fake_info " ", v2)
+      G.TypedMetavar (v1, Parse_info.fake_info (snd v1) " ", v2)
   | Lambda (v1, t, v2) ->
       let v1 = parameters v1 in
       let v2 = stmt v2 in
       G.Lambda
-        { G.fparams = v1; frettype = None; fbody = v2; fkind = (G.Arrow, t) }
+        {
+          G.fparams = v1;
+          frettype = None;
+          fbody = G.FBStmt v2;
+          fkind = (G.Arrow, t);
+        }
   | SwitchE (v0, v1, v2) ->
       let v0 = info v0 in
       let v1 = expr v1
@@ -387,7 +398,9 @@ and expr e =
       x.G.e)
   |> G.e
 
-and expr_or_type = function Left e -> G.E (expr e) | Right t -> G.T (typ t)
+and expr_or_type = function
+  | Left e -> G.E (expr e)
+  | Right t -> G.T (typ t)
 
 and argument v =
   let v = expr v in
@@ -492,7 +505,7 @@ and for_control tok = function
         | Some t -> G.PatVar (t, Some (id, G.empty_id_info ()))
         | None -> error tok "TODO: Foreach without a type"
       in
-      G.ForEach (pat, fake "in", v2)
+      G.ForEach (pat, fake (snd id) "in", v2)
 
 and for_init = function
   | ForInitVars v1 ->
@@ -537,7 +550,8 @@ and init = function
 and parameters v = List.map parameter_binding v
 
 and parameter_binding = function
-  | ParamClassic v | ParamReceiver v ->
+  | ParamClassic v
+  | ParamReceiver v ->
       let ent, t = var v in
       G.ParamClassic (entity_to_param ent t)
   | ParamSpread (tk, v) ->
@@ -558,7 +572,7 @@ and method_decl { m_var; m_formals; m_throws; m_body } =
     {
       G.fparams = v2;
       frettype = rett;
-      fbody = v4;
+      fbody = G.FBStmt v4;
       fkind = (G.Method, G.fake "");
     } )
 
@@ -656,7 +670,9 @@ and import = function
 and directive = function
   | Import (static, v2) ->
       let d_attrs =
-        match static with None -> [] | Some t -> [ G.attr G.Static t ]
+        match static with
+        | None -> []
+        | Some t -> [ G.attr G.Static t ]
       in
       G.DirectiveStmt { G.d = import v2; d_attrs } |> G.s
   | Package (t, qu, _t2) ->

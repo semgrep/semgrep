@@ -174,20 +174,45 @@ let make_scalar _anchor _tag pos value env : G.expr =
   else
     let token = mk_tok pos value env in
     (match value with
-    | "__sgrep_ellipses__" -> G.Ellipsis (Parse_info.fake_info "...")
+    | "__sgrep_ellipses__" -> G.Ellipsis (Parse_info.fake_info token "...")
     (* TODO: emma: I will put "" back to Null and have either a warning or
      * an error when we try to parse a string and get Null in another PR.
      *)
-    | "null" | "NULL" | "Null" | "~" -> G.L (G.Null token)
-    | "y" | "Y" | "yes" | "Yes" | "YES" | "true" | "True" | "TRUE" | "on" | "On"
+    | "null"
+    | "NULL"
+    | "Null"
+    | "~" ->
+        G.L (G.Null token)
+    | "y"
+    | "Y"
+    | "yes"
+    | "Yes"
+    | "YES"
+    | "true"
+    | "True"
+    | "TRUE"
+    | "on"
+    | "On"
     | "ON" ->
         G.L (G.Bool (true, token))
-    | "n" | "N" | "no" | "No" | "NO" | "false" | "False" | "FALSE" | "off"
-    | "Off" | "OFF" ->
+    | "n"
+    | "N"
+    | "no"
+    | "No"
+    | "NO"
+    | "false"
+    | "False"
+    | "FALSE"
+    | "off"
+    | "Off"
+    | "OFF" ->
         G.L (G.Bool (false, token))
     | "-.inf" -> G.L (G.Float (Some neg_infinity, token))
     | ".inf" -> G.L (G.Float (Some neg_infinity, token))
-    | ".nan" | ".NaN" | ".NAN" -> G.L (G.Float (Some nan, token))
+    | ".nan"
+    | ".NaN"
+    | ".NAN" ->
+        G.L (G.Float (Some nan, token))
     | _ -> (
         try G.L (G.Float (Some (float_of_string value), token))
         with _ -> G.L (G.String (value, token))))
@@ -208,8 +233,12 @@ let make_mappings _anchor _tag start_pos (es, end_pos) env =
 let make_mapping (pos1, pos2) ((key, value) : G.expr * G.expr) env =
   match (key.G.e, value.G.e) with
   | G.Ellipsis _, G.Ellipsis _ ->
-      (G.Ellipsis (Parse_info.fake_info "...") |> G.e, pos2)
-  | _ -> (G.Tuple (mk_bracket (pos1, pos2) [ key; value ] env) |> G.e, pos2)
+      let tok = mk_tok pos1 "..." env in
+      (G.Ellipsis (Parse_info.fake_info tok "...") |> G.e, pos2)
+  (* less: use G.keyval? *)
+  | _ ->
+      ( G.Container (G.Tuple, mk_bracket (pos1, pos2) [ key; value ] env) |> G.e,
+        pos2 )
 
 let make_doc start_pos (doc, end_pos) env : G.expr list =
   match doc with
@@ -239,7 +268,11 @@ let parse (env : env) : G.expr list =
     | E.Document_end _, pos -> (node_ast, pos)
     | v, pos -> error "Expected end of document, got" v pos env
   and read_node ?node_val:(res = None) () : G.expr * E.pos =
-    let res = match res with None -> do_parse env | Some r -> r in
+    let res =
+      match res with
+      | None -> do_parse env
+      | Some r -> r
+    in
     match res with
     | E.Alias { anchor }, pos -> (G.N (make_alias anchor pos env) |> G.e, pos)
     | E.Scalar { anchor; tag; value; _ }, pos ->
@@ -311,7 +344,11 @@ let last_same_whitespace whitespace context =
 let union_whitespace e_sp w_sp =
   let esp_len = String.length e_sp in
   let check_esp i c =
-    if i < esp_len then match e_sp.[i] with ' ' -> c | c1 -> c1 else c
+    if i < esp_len then
+      match e_sp.[i] with
+      | ' ' -> c
+      | c1 -> c1
+    else c
   in
   String.mapi check_esp w_sp
 
@@ -355,7 +392,10 @@ let split_whitespace line =
     if i = line_len then (line, "")
     else
       match line.[i] with
-      | ' ' | '\t' | '-' -> read_string (i + 1)
+      | ' '
+      | '\t'
+      | '-' ->
+          read_string (i + 1)
       | _ -> (substring line 0 i, substring line i line_len)
   in
   let whitespace, line = read_string 0 in

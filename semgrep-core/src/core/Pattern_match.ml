@@ -1,5 +1,3 @@
-(*s: semgrep/core/Pattern_match.ml *)
-(*s: pad/r2c copyright *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2019-2021 r2c
@@ -14,7 +12,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
  * license.txt for more details.
  *)
-(*e: pad/r2c copyright *)
 
 (*****************************************************************************)
 (* Prelude *)
@@ -39,7 +36,6 @@
  * from a pattern:, we should not merge them!
  *)
 
-(*s: type [[Match_result.t]] *)
 type t = {
   (* rule (or mini rule) responsible for the pattern match found *)
   rule_id : rule_id; [@equal fun a b -> a.id = b.id]
@@ -77,8 +73,6 @@ and rule_id = {
   pattern_string : string;
 }
 [@@deriving show, eq]
-
-(*e: type [[Match_result.t]] *)
 
 let uniq pms =
   let eq = AST_utils.with_structural_equal equal in
@@ -122,5 +116,3 @@ let no_submatches pms =
                  Hashtbl.replace tbl k (pm :: ys')));
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
   [@@profiling]
-
-(*e: semgrep/core/Pattern_match.ml *)

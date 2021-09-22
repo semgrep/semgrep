@@ -17,7 +17,9 @@ let vof_bracket of_a (t1, x, t2) =
   let v1 = vof_tok t1 in
   let v2 = vof_tok t2 in
   let v = of_a x in
-  match v1 with OCaml.VUnit -> v | _ -> OCaml.VTuple [ v1; v; v2 ]
+  match v1 with
+  | OCaml.VUnit -> v
+  | _ -> OCaml.VTuple [ v1; v; v2 ]
 
 let vof_ident v = vof_wrap OCaml.vof_string v
 
@@ -178,9 +180,10 @@ and vof_expr e =
       let v1 = vof_container_operator v1
       and v2 = vof_bracket (OCaml.vof_list vof_expr) v2 in
       OCaml.VSum ("Container", [ v1; v2 ])
-  | Tuple v1 ->
-      let v1 = vof_bracket (OCaml.vof_list vof_expr) v1 in
-      OCaml.VSum ("Tuple", [ v1 ])
+  | Comprehension (v1, v2) ->
+      let v1 = vof_container_operator v1
+      and v2 = vof_bracket vof_comprehension v2 in
+      OCaml.VSum ("Comprehension", [ v1; v2 ])
   | Record v1 ->
       let v1 = vof_bracket (OCaml.vof_list vof_field) v1 in
       OCaml.VSum ("Record", [ v1 ])
@@ -329,6 +332,24 @@ and vof_container_operator = function
   | List -> OCaml.VSum ("List", [])
   | Set -> OCaml.VSum ("Set", [])
   | Dict -> OCaml.VSum ("Dict", [])
+  | Tuple -> OCaml.VSum ("Tuple", [])
+
+and vof_comprehension (v1, v2) =
+  let v1 = vof_expr v1 in
+  let v2 = OCaml.vof_list vof_for_or_if_comp v2 in
+  OCaml.VTuple [ v1; v2 ]
+
+and vof_for_or_if_comp = function
+  | CompFor (v1, v2, v3, v4) ->
+      let v1 = vof_tok v1 in
+      let v2 = vof_pattern v2 in
+      let v3 = vof_tok v3 in
+      let v4 = vof_expr v4 in
+      OCaml.VSum ("CompFor", [ v1; v2; v3; v4 ])
+  | CompIf (v1, v2) ->
+      let v1 = vof_tok v1 in
+      let v2 = vof_expr v2 in
+      OCaml.VSum ("CompIf", [ v1; v2 ])
 
 and vof_special = function
   | ForOf -> OCaml.VSum ("ForOf", [])
@@ -442,7 +463,6 @@ and vof_argument = function
       OCaml.VSum ("ArgOther", [ v1; v2 ])
 
 and vof_other_argument_operator = function
-  | OA_ArgComp -> OCaml.VSum ("OA_ArgComp", [])
   | OA_ArgQuestion -> OCaml.VSum ("OA_ArgQuestion", [])
   | OA_ArgMacro -> OCaml.VSum ("OA_ArgMacro", [])
 
@@ -468,9 +488,6 @@ and vof_other_expr_operator = function
   | OE_UseStrict -> OCaml.VSum ("OE_UseStrict", [])
   | OE_Invert -> OCaml.VSum ("OE_Invert", [])
   | OE_Slices -> OCaml.VSum ("OE_Slices", [])
-  | OE_CompForIf -> OCaml.VSum ("OE_CompForIf", [])
-  | OE_CompFor -> OCaml.VSum ("OE_CompFor", [])
-  | OE_CompIf -> OCaml.VSum ("OE_CompIf", [])
   | OE_CmpOps -> OCaml.VSum ("OE_CmpOps", [])
   | OE_Repr -> OCaml.VSum ("OE_Repr", [])
   | OE_NameOrClassType -> OCaml.VSum ("OE_NameOrClassType", [])
@@ -992,7 +1009,8 @@ and vof_definition_kind = function
       let v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherDef", [ v1; v2 ])
 
-and vof_other_def_operator = function OD_Todo -> OCaml.VSum ("OD_Todo", [])
+and vof_other_def_operator = function
+  | OD_Todo -> OCaml.VSum ("OD_Todo", [])
 
 and vof_module_definition { mbody = v_mbody } =
   let bnds = [] in
@@ -1064,7 +1082,7 @@ and vof_function_kind = function
 and vof_function_definition
     { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody } =
   let bnds = [] in
-  let arg = vof_stmt v_fbody in
+  let arg = vof_function_body v_fbody in
   let bnd = ("fbody", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_option vof_type_ v_frettype in
@@ -1128,6 +1146,18 @@ and vof_parameter_classic
   let bnd = ("pname", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
+
+and vof_function_body = function
+  | FBStmt v1 ->
+      let v1 = vof_stmt v1 in
+      OCaml.VSum ("FBStmt", [ v1 ])
+  | FBExpr v1 ->
+      let v1 = vof_expr v1 in
+      OCaml.VSum ("FBExpr", [ v1 ])
+  | FBDecl v1 ->
+      let v1 = vof_tok v1 in
+      OCaml.VSum ("FBDecl", [ v1 ])
+  | FBNothing -> OCaml.VSum ("FBNothing", [])
 
 and vof_other_parameter_operator = function
   | OPO_Todo -> OCaml.VSum ("OPO_Todo", [])

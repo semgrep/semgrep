@@ -1,5 +1,4 @@
 import inspect
-import re
 import sys
 from enum import Enum
 from pathlib import Path
@@ -15,6 +14,7 @@ import attr
 from semgrep.rule_lang import Position
 from semgrep.rule_lang import SourceTracker
 from semgrep.rule_lang import Span
+from semgrep.rule_match import CoreLocation
 from semgrep.util import with_color
 
 OK_EXIT_CODE = 0
@@ -76,6 +76,94 @@ class SemgrepError(Exception):
         Instantiates class from dict representation
         """
         return cls(**data)
+
+
+@attr.s(auto_attribs=True, frozen=True)
+class LegacySpan:
+    config_start: CoreLocation
+    config_end: CoreLocation
+    config_path: Tuple[str]
+
+
+@attr.s(auto_attribs=True, frozen=True)
+class SemgrepCoreError(SemgrepError):
+    code: int
+    level: Level
+    error_type: str
+    rule_id: Optional[str]
+    path: Path
+    start: CoreLocation
+    end: CoreLocation
+    message: str
+    spans: Optional[Tuple[LegacySpan, ...]]
+    details: Optional[str]
+
+    def to_dict_base(self) -> Dict[str, Any]:
+        base: Dict[str, Any] = {
+            "type": self.error_type,
+            "message": self._full_error_message,
+        }
+        if self.rule_id:
+            base["rule_id"] = self.rule_id
+
+        # For rule errors path is a temp file so for now will just be confusing to add
+        if (
+            self.error_type != "Rule parse error"
+            and self.error_type != "Pattern parse error"
+        ):
+            base["path"] = str(self.path)
+
+        if self.spans:
+            base["spans"] = tuple([attr.asdict(s) for s in self.spans])
+
+        return base
+
+    def is_timeout(self) -> bool:
+        """
+        Return if this error is a match timeout
+        """
+        return self.error_type == "Timeout"
+
+    @property
+    def _full_error_message(self) -> str:
+        """
+        Error message plus stack trace
+        """
+        return self._error_message + self._stack_trace
+
+    @property
+    def _error_message(self) -> str:
+        """
+        Generate error message exposed to user
+        """
+        if self.rule_id:
+            # For rule errors path is a temp file so for now will just be confusing to add
+            if (
+                self.error_type == "Rule parse error"
+                or self.error_type == "Pattern parse error"
+            ):
+                msg = f"Semgrep Core {self.level.name} - {self.error_type}: In rule {self.rule_id}: {self.message}"
+            else:
+                msg = f"Semgrep Core {self.level.name} - {self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
+        else:
+            msg = f"Semgrep Core {self.level.name} - {self.error_type} in file {self.path}\n\t{self.message}"
+        return msg
+
+    @property
+    def _stack_trace(self) -> str:
+        """
+        Returns stack trace if error_type is Fatal error else returns empty strings
+        """
+        if self.error_type == "Fatal error":
+            error_trace = self.details or "<no stack trace returned>"
+            return f"\n-----[ BEGIN error trace ]-----\n{error_trace}\n-----[ END error trace ]-----\n"
+        else:
+            return ""
+
+    def __str__(self) -> str:
+        return with_color("red", self._error_message) + with_color(
+            "white", self._stack_trace
+        )
 
 
 class SemgrepInternalError(Exception):
@@ -262,12 +350,6 @@ class ErrorWithSpan(SemgrepError):
 
 
 @attr.s(frozen=True, eq=True)
-class InvalidPatternError(ErrorWithSpan):
-    code = INVALID_PATTERN_EXIT_CODE
-    level = Level.ERROR
-
-
-@attr.s(frozen=True, eq=True)
 class InvalidRuleSchemaError(ErrorWithSpan):
     code = INVALID_PATTERN_EXIT_CODE
     level = Level.ERROR
@@ -277,142 +359,6 @@ class InvalidRuleSchemaError(ErrorWithSpan):
 class UnknownLanguageError(ErrorWithSpan):
     code = INVALID_LANGUAGE_EXIT_CODE
     level = Level.ERROR
-
-
-@attr.s(frozen=True, eq=True)
-class SourceParseError(ErrorWithSpan):
-    code = INVALID_CODE_EXIT_CODE
-    level = Level.WARN
-
-
-@attr.s(frozen=True, eq=True)
-class MatchTimeoutError(SemgrepError):
-    path: Path = attr.ib()
-    rule_id: str = attr.ib()
-
-    code = MATCH_TIMEOUT_EXIT_CODE
-    level = Level.WARN
-
-    def __str__(self) -> str:
-        msg = f"Warning: Semgrep exceeded timeout when running {self.rule_id} on {self.path}. See `--timeout` for more info."
-        return with_color("red", msg)
-
-    def to_dict_base(self) -> Dict[str, Any]:
-        return {
-            "path": str(self.path),
-            "rule_id": self.rule_id,
-        }
-
-
-@attr.s(frozen=True, eq=True)
-class TooManyMatchesError(SemgrepError):
-    path: Path = attr.ib()
-    rule_id: str = attr.ib()
-
-    code = TOO_MANY_MATCHES_EXIT_CODE
-    level = Level.WARN
-
-    def __str__(self) -> str:
-        msg = f"Warning: Semgrep exceeded number of matches when running {self.rule_id} on {self.path}."
-        return with_color("red", msg)
-
-    def to_dict_base(self) -> Dict[str, Any]:
-        return {
-            "path": str(self.path),
-            "rule_id": self.rule_id,
-        }
-
-
-@attr.s(frozen=True, eq=True)
-class OutOfMemoryError(SemgrepError):
-    path: Path = attr.ib()
-    rule_id: str = attr.ib()
-
-    code = MATCH_MAX_MEMORY_EXIT_CODE
-    level = Level.WARN
-
-    def __str__(self) -> str:
-        msg = f"Warning: Semgrep exceeded memory when running {self.rule_id} on {self.path}. See `--max-memory` for more info."
-        return with_color("red", msg)
-
-    def to_dict_base(self) -> Dict[str, Any]:
-        return {
-            "path": str(self.path),
-            "rule_id": self.rule_id,
-        }
-
-
-@attr.s(frozen=True, eq=True)
-class CoreWarning(SemgrepError):
-    rule_id: str = attr.ib()
-    path: Path = attr.ib()
-    check_id: str = attr.ib()
-    msg: str = attr.ib()
-
-    code = INVALID_PATTERN_EXIT_CODE
-    level = Level.WARN
-
-    def __str__(self) -> str:
-        # "MatchingError" -> "matching error"
-        error_id = " ".join(re.sub("([A-Z]+)", r" \1", self.check_id).split()).lower()
-        return with_color(
-            "yellow",
-            f"semgrep-core reported a {error_id} when running {self.rule_id} on {self.path}\n  --> {self.msg}",
-        )
-
-    def to_dict_base(self) -> Dict[str, Any]:
-        return {
-            "check_id": self.check_id,
-            "msg": self.msg,
-        }
-
-
-@attr.s(frozen=True, eq=True)
-class CoreFatalError(SemgrepError):
-    rule_id: str = attr.ib()
-    path: Path = attr.ib()
-    msg: str = attr.ib()
-
-    code = FATAL_EXIT_CODE
-    level = Level.ERROR
-
-    def __str__(self) -> str:
-        msg_lines = self.msg.splitlines()
-        error_header = msg_lines[0] if msg_lines else "no message"
-        error_trace = "\n".join(msg_lines[:])
-        return with_color(
-            "red",
-            f"semgrep-core failed to run {self.rule_id} on {self.path}\n"
-            + f"  --> {error_header}\n"
-            + "Please file a bug report at https://github.com/returntocorp/semgrep/issues/new/choose and attach the error trace below.\n",
-        ) + with_color(
-            "white",
-            f"-----[ BEGIN error trace ]-----\n{error_trace}\n-----[ END error trace ]-----\n",
-        )
-
-    def to_dict_base(self) -> Dict[str, Any]:
-        return {
-            "msg": self.msg,
-        }
-
-
-@attr.s(frozen=True, eq=True)
-class LexicalError(SemgrepError):
-    path: Path = attr.ib()
-    rule_id: str = attr.ib()
-
-    code = LEXICAL_ERROR_EXIT_CODE
-    level = Level.WARN
-
-    def __str__(self) -> str:
-        msg = f"Warning: Semgrep encountered a lexical error when running {self.rule_id} on {self.path}. Please ensure this is valid code."
-        return with_color("red", msg)
-
-    def to_dict_base(self) -> Dict[str, Any]:
-        return {
-            "path": str(self.path),
-            "rule_id": self.rule_id,
-        }
 
 
 class _UnknownLanguageError(SemgrepInternalError):

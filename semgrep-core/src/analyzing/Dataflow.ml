@@ -1,4 +1,3 @@
-(*s: pfff/lang_GENERIC/analyze/Dataflow.ml *)
 (* Iain Proctor, Yoann Padioleau, Jiao Li
  *
  * Copyright (C) 2009-2010 Facebook
@@ -41,29 +40,24 @@ open Common
 (* I was using directly Controlflow.xxx before, but now that we have both
  * Controlflow.flow and Il.cfg, we need to functorize things.
  *)
+
 module type Flow = sig
   type node
 
   type edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = (node, edge) CFG.t
 
   val short_string_of_node : node -> string
 end
 
-(*s: type [[Dataflow.nodei]] *)
 type nodei = int
 
-(*e: type [[Dataflow.nodei]] *)
-
-(*s: type [[Dataflow.var]] *)
 (* The comparison function uses only the name of a variable (a string), so
  * two variables at different positions in the code will be agglomerated
  * correctly in the Set or Map.
  *)
 type var = string
-
-(*e: type [[Dataflow.var]] *)
 
 (* convenient aliases *)
 module VarMap = Map.Make (String)
@@ -77,46 +71,27 @@ module NodeiSet = Set.Make (Int)
  * are always int and array gives a 6x speedup according to Iain
  * so let's use array.
  *)
-(*s: type [[Dataflow.mapping]] *)
 type 'a mapping = 'a inout array
 
-(*e: type [[Dataflow.mapping]] *)
-
 (* the In and Out sets, as in Appel Modern Compiler in ML book *)
-(*s: type [[Dataflow.inout]] *)
 and 'a inout = { in_env : 'a env; out_env : 'a env }
 
-(*e: type [[Dataflow.inout]] *)
-(*s: type [[Dataflow.env]] *)
 and 'a env = 'a VarMap.t
 
-(*e: type [[Dataflow.env]] *)
-
-(*s: function [[Dataflow.empty_env]] *)
 let empty_env () = VarMap.empty
 
-(*e: function [[Dataflow.empty_env]] *)
-(*s: function [[Dataflow.empty_inout]] *)
 let empty_inout () = { in_env = empty_env (); out_env = empty_env () }
-
-(*e: function [[Dataflow.empty_inout]] *)
 
 (*****************************************************************************)
 (* Equality *)
 (*****************************************************************************)
 
-(*s: function [[Dataflow.eq_env]] *)
 (* the environment is polymorphic, so we require to pass an eq for 'a *)
 let eq_env eq env1 env2 = VarMap.equal eq env1 env2
 
-(*e: function [[Dataflow.eq_env]] *)
-
-(*s: function [[Dataflow.eq_inout]] *)
 let eq_inout eq io1 io2 =
   let eqe = eq_env eq in
   eqe io1.in_env io2.in_env && eqe io1.out_env io2.out_env
-
-(*e: function [[Dataflow.eq_inout]] *)
 
 (*****************************************************************************)
 (* Env manipulation *)
@@ -179,12 +154,8 @@ let (add_vars_and_nodei_to_env :
 (* Debugging support *)
 (*****************************************************************************)
 
-(*s: function [[Dataflow.csv_append]] *)
 let csv_append s v = if String.length s = 0 then v else s ^ "," ^ v
 
-(*e: function [[Dataflow.csv_append]] *)
-
-(*s: function [[Dataflow.array_fold_left_idx]] *)
 let array_fold_left_idx f =
   let idx = ref 0 in
   Array.fold_left (fun v e ->
@@ -192,13 +163,8 @@ let array_fold_left_idx f =
       incr idx;
       r)
 
-(*e: function [[Dataflow.array_fold_left_idx]] *)
-
-(*s: function [[Dataflow.ns_to_str]] *)
 let ns_to_str ns =
   "{" ^ NodeiSet.fold (fun n s -> csv_append s (string_of_int n)) ns "" ^ "}"
-
-(*e: function [[Dataflow.ns_to_str]] *)
 
 let (env_to_str : ('a -> string) -> 'a env -> string) =
  fun val2str env ->
@@ -214,7 +180,6 @@ let (inout_to_str : ('a -> string) -> 'a inout -> string) =
 (* Main generic entry point *)
 (*****************************************************************************)
 
-(*s: type [[Dataflow.transfn]] *)
 (* The transition/transfer function. It is usually made from the
  * gens and kills.
  *
@@ -229,18 +194,16 @@ let (inout_to_str : ('a -> string) -> 'a inout -> string) =
  *)
 type 'a transfn = 'a mapping -> nodei -> 'a inout
 
-(*e: type [[Dataflow.transfn]] *)
-
 module Make (F : Flow) = struct
-  let mapping_to_str (fl : F.flow) val2str mapping =
+  let mapping_to_str (f : F.flow) val2str mapping =
     array_fold_left_idx
       (fun s ni v ->
         s
         ^ spf "%2d <- %7s: %15s %s\n" ni
-            ((fl#predecessors ni)#fold
+            ((f.graph#predecessors ni)#fold
                (fun s (ni, _) -> csv_append s (string_of_int ni))
                "")
-            (F.short_string_of_node (fl#nodes#find ni))
+            (F.short_string_of_node (f.graph#nodes#find ni))
             (inout_to_str val2str v))
       "" mapping
 
@@ -264,10 +227,25 @@ module Make (F : Flow) = struct
       fixpoint_worker eq mapping trans flow succs work''
 
   let forward_succs (f : F.flow) n =
-    (f#successors n)#fold (fun s (ni, _) -> NodeiSet.add ni s) NodeiSet.empty
+    (f.graph#successors n)#fold
+      (fun s (ni, _) -> NodeiSet.add ni s)
+      NodeiSet.empty
 
   let backward_succs (f : F.flow) n =
-    (f#predecessors n)#fold (fun s (ni, _) -> NodeiSet.add ni s) NodeiSet.empty
+    (f.graph#predecessors n)#fold
+      (fun s (ni, _) -> NodeiSet.add ni s)
+      NodeiSet.empty
+
+  (* Computes the set of reachable nodes in the CFG. This prevents dead code from getting analyzed *)
+  let mk_worklist ({ graph; entry } : F.flow) =
+    let rec aux nodei seen =
+      if NodeiSet.mem nodei seen then seen
+      else
+        let seen = NodeiSet.add nodei seen in
+        let succs = forward_succs { graph; entry } nodei in
+        NodeiSet.fold aux succs seen
+    in
+    aux entry NodeiSet.empty
 
   let (fixpoint :
         eq:('a -> 'a -> bool) ->
@@ -278,9 +256,7 @@ module Make (F : Flow) = struct
         'a mapping) =
    fun ~eq ~init ~trans ~flow ~forward ->
     let succs = if forward then forward_succs else backward_succs in
-    let work =
-      flow#nodes#fold (fun s (ni, _) -> NodeiSet.add ni s) NodeiSet.empty
-    in
+    let work = mk_worklist flow in
     fixpoint_worker eq init trans flow succs work
 
   (*****************************************************************************)
@@ -288,10 +264,10 @@ module Make (F : Flow) = struct
   (*****************************************************************************)
 
   let new_node_array (f : F.flow) v =
-    let nb_nodes = f#nb_nodes in
+    let nb_nodes = f.graph#nb_nodes in
     let max_nodei = ref (-1) in
 
-    f#nodes#tolist
+    f.graph#nodes#tolist
     |> List.iter (fun (ni, _nod) ->
            (* actually there are some del_node done in cfg_build, for
             * switch, so sometimes ni is >= len
@@ -315,4 +291,3 @@ module X1 = Make (struct
 end
 )
 *)
-(*e: pfff/lang_GENERIC/analyze/Dataflow.ml *)

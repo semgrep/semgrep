@@ -12,7 +12,9 @@ let string_of_lval x =
   | Index _ -> "[...]"
 
 let string_of_exp e =
-  match e.e with Fetch l -> string_of_lval l | _ -> "<EXP>"
+  match e.e with
+  | Fetch l -> string_of_lval l
+  | _ -> "<EXP>"
 
 let short_string_of_node_kind nkind =
   match nkind with
@@ -38,7 +40,7 @@ let short_string_of_node_kind nkind =
 (* using internally graphviz dot and ghostview on X11 *)
 let (display_cfg : cfg -> unit) =
  fun flow ->
-  flow
+  flow.graph
   |> Ograph_extended.print_ograph_mutable_generic
        ~s_of_node:(fun (_nodei, node) ->
          (short_string_of_node_kind node.n, None, None))

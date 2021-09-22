@@ -5,7 +5,8 @@
       "check_id": "rules.metavar-comparison-test",
       "end": {
         "col": 34,
-        "line": 2
+        "line": 2,
+        "offset": 66
       },
       "extra": {
         "is_ignored": false,
@@ -36,7 +37,8 @@
       "path": "targets/basic/metavariable-comparison.py",
       "start": {
         "col": 1,
-        "line": 2
+        "line": 2,
+        "offset": 33
       }
     }
   ]

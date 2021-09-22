@@ -23,6 +23,14 @@ SEMGREP_FORCE_INSTALL = "SEMGREP_FORCE_INSTALL" in os.environ
 IS_WINDOWS = platform.system() == "Windows"
 WHEEL_CMD = "bdist_wheel"
 
+
+def is_python_before_3_7():
+    """Can't user packaging.version on old systems so use this hack"""
+    current = sys.version.split(" ")[0]
+    major, minor, sub = current.split(".")
+    return int(major) < 3 or int(minor) < 7
+
+
 if WHEEL_CMD in sys.argv:
     try:
         from wheel.bdist_wheel import bdist_wheel
@@ -75,6 +83,17 @@ def find_executable(env_name, exec_name):
     )
 
 
+#
+# The default behavior is to copy the semgrep-core and spacegrep binaries
+# into some other folder known to the semgrep wrapper. If somebody knows why,
+# please explain why we do this.
+#
+# It makes testing of semgrep-core error-prone since recompiling
+# semgrep-core won't perform this copy. If we can't get rid of this, can
+# we use a symlink instead?
+#
+# The environment variable SEMGREP_SKIP_BIN bypasses this copy. What is it for?
+#
 if not SEMGREP_SKIP_BIN:
     binaries = [
         (SEMGREP_CORE_BIN_ENV, SEMGREP_CORE_BIN),
@@ -84,8 +103,40 @@ if not SEMGREP_SKIP_BIN:
     for binary_env, binary_name in binaries:
         src = find_executable(binary_env, binary_name)
         dst = os.path.join(PACKAGE_BIN_DIR, binary_name)
+        # The semgrep-core executable doesn't have the write
+        # permission (because of something dune does?), and copyfile
+        # doesn't remove the destination file if it already exists
+        # but tries to truncate it, resulting in an error.
+        # So we remove the destination file first if it exists.
+        try:
+            os.remove(dst)
+        except OSError:
+            pass
         shutil.copyfile(src, dst)
         os.chmod(dst, os.stat(dst).st_mode | stat.S_IEXEC)
+
+install_requires = [
+    "attrs>=19.3.0",
+    "colorama>=0.4.3",
+    "click>=8.0.1",
+    "click-option-group>=0.5.3",
+    "requests>=2.22.0",
+    "ruamel.yaml>=0.16.0,<0.18",
+    "tqdm>=4.46.1",
+    "packaging>=20.4",
+    "jsonschema~=3.2.0",
+    "wcmatch==8.2",
+    "peewee~=3.14.4",
+    # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
+    # overly prescriptive and pin the version for two reasons: 1) because
+    # it may interfere with other 'setuptools' installs on the system,
+    # and 2) our 'pkg_resources' API usage appears to have been available
+    # in 'setuptools' for a very long time, so we don't need a recent
+    # version.
+    "setuptools",
+]
+if is_python_before_3_7():
+    install_requires.append("dataclasses~=0.8")
 
 setuptools.setup(
     name="semgrep",
@@ -94,29 +145,10 @@ setuptools.setup(
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
     cmdclass=cmdclass,
+    install_requires=install_requires,
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/returntocorp/semgrep",
-    install_requires=[
-        "attrs>=19.3.0",
-        "colorama>=0.4.3",
-        "click>=8.0.1",
-        "click-option-group>=0.5.3",
-        "requests>=2.22.0",
-        "ruamel.yaml>=0.16.0,<0.18",
-        "tqdm>=4.46.1",
-        "packaging>=20.4",
-        "jsonschema~=3.2.0",
-        "wcmatch==8.2",
-        "peewee~=3.14.4",
-        # Include 'setuptools' for 'pkg_resources' usage. We shouldn't be
-        # overly prescriptive and pin the version for two reasons: 1) because
-        # it may interfere with other 'setuptools' installs on the system,
-        # and 2) our 'pkg_resources' API usage appears to have been available
-        # in 'setuptools' for a very long time, so we don't need a recent
-        # version.
-        "setuptools",
-    ],
     entry_points={"console_scripts": ["semgrep=semgrep.__main__:main"]},
     packages=setuptools.find_packages(),
     package_data={"semgrep": [os.path.join(BIN_DIR, "*")]},

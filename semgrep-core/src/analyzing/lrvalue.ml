@@ -15,6 +15,7 @@
  *)
 open Common
 open AST_generic
+module H = AST_generic_helpers
 module V = Visitor_AST
 
 (*****************************************************************************)
@@ -98,13 +99,23 @@ let rec visit_expr hook lhs expr =
       recr e;
       reclvl e
       (* possible lvalues (also rvalues, hence the call to recl, not reclvl) *)
-  | Tuple xs -> xs |> unbracket |> List.iter recl
   | Container (typ, xs) -> (
       match typ with
       (* used on lhs? *)
-      | Array | List -> xs |> unbracket |> List.iter recl
+      | Array
+      | List
+      | Tuple ->
+          xs |> unbracket |> List.iter recl
       (* never used on lhs *)
-      | Set | Dict -> xs |> unbracket |> List.iter recr)
+      | Set
+      | Dict ->
+          xs |> unbracket |> List.iter recr)
+  | Comprehension (_, (_, (e, comps), _)) ->
+      recr e;
+      comps
+      |> List.iter (function
+           | CompFor (_, _pat, _, e) -> recr e
+           | CompIf (_, e) -> recr e)
   (* composite lvalues that are actually not themselves lvalues *)
   | DotAccess (e, _, _id) ->
       (* bugfix: this is not recl here! in 'x.fld = 2', x itself is not
@@ -157,7 +168,7 @@ let rec visit_expr hook lhs expr =
       let filter_rvalue_hook lhs name idinfo =
         if lhs = Rhs then hook lhs name idinfo
       in
-      anyhook filter_rvalue_hook Rhs (S def.fbody)
+      anyhook filter_rvalue_hook Rhs (S (H.funcbody_to_stmt def.fbody))
   | AnonClass _ -> ()
   | Yield (_, e, _is_yield_from) -> Common.do_option recr e
   | Await (_, e) -> recr e
@@ -172,7 +183,9 @@ let rec visit_expr hook lhs expr =
   (* we should not be called on a sgrep pattern *)
   | TypedMetavar (_id, _, _t) -> raise Impossible
   | DisjExpr _ -> raise Impossible
-  | DeepEllipsis _ | DotAccessEllipsis _ -> raise Impossible
+  | DeepEllipsis _
+  | DotAccessEllipsis _ ->
+      raise Impossible
   | Ellipsis _tok -> ()
   | OtherExpr (_other_xxx, anys) -> List.iter (anyhook hook Rhs) anys
 

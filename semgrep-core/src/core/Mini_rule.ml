@@ -1,4 +1,3 @@
-(*s: semgrep/core/Mini_rule.ml *)
 (* Yoann Padioleau
  *
  * Copyright (C) 2011 Facebook
@@ -32,10 +31,6 @@
 (* Types *)
 (*****************************************************************************)
 
-(*s: type [[Rule.pattern]] *)
-(*e: type [[Rule.pattern]] *)
-
-(*s: type [[Rule.rule]] *)
 type rule = {
   id : string;
   pattern : Pattern.t;
@@ -54,17 +49,7 @@ type rule = {
   pattern_string : string;
 }
 
-(*e: type [[Rule.rule]] *)
+and rules = rule list (*e: type [[Rule.rules]] *) [@@deriving show]
 
-(*s: type [[Rule.rules]] *)
-and rules = rule list (*e: type [[Rule.rules]] *)
-(*s: type [[Rule.severity]] *)
-(*e: type [[Rule.severity]] *)
-[@@deriving show]
-
-(*s: type [[Rule.t]] *)
 (* alias *)
 type t = rule [@@deriving show]
-
-(*e: type [[Rule.t]] *)
-(*e: semgrep/core/Mini_rule.ml *)

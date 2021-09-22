@@ -103,7 +103,7 @@ let special (x, tok) =
           match args with
           | [ e ] ->
               let tvoid = G.TyBuiltin ("void", tok) |> G.t in
-              G.Cast (tvoid, PI.fake_info ":", e)
+              G.Cast (tvoid, PI.fake_info tok ":", e)
           | _ -> error tok "Impossible: Too many arguments to Void")
   | Spread -> SR_Special (G.Spread, tok)
   | Yield ->
@@ -160,7 +160,9 @@ let special (x, tok) =
    TODO: see if this is an issue with other languages besides javascript.
 *)
 let as_block stmt =
-  match stmt.G.s with G.Block _ -> stmt | _ -> G.Block (fb [ stmt ]) |> G.s
+  match stmt.G.s with
+  | G.Block _ -> stmt
+  | _ -> G.Block (fb [ stmt ]) |> G.s
 
 let rec property_name = function
   | PN v1 ->
@@ -454,7 +456,8 @@ and type_kind x =
   | TyLiteral l ->
       let l = literal l in
       G.OtherType
-        (G.OT_Todo, [ G.TodoK ("LitType", PI.fake_info ""); G.E (G.L l |> G.e) ])
+        ( G.OT_Todo,
+          [ G.TodoK ("LitType", PI.unsafe_fake_info ""); G.E (G.L l |> G.e) ] )
   | TyQuestion (tok, t) ->
       let t = type_ t in
       G.TyQuestion (t, tok)
@@ -468,11 +471,12 @@ and type_kind x =
       let params = List.map parameter_binding params in
       let rett =
         match typ_opt with
-        | None -> G.TyBuiltin ("void", PI.fake_info "void") |> G.t
+        | None -> G.TyBuiltin ("void", PI.unsafe_fake_info "void") |> G.t
         | Some t -> type_ t
       in
       G.TyFun (params, rett)
-  | TyRecordAnon (lt, (), rt) -> G.TyRecordAnon (PI.fake_info "", (lt, [], rt))
+  | TyRecordAnon (lt, (), rt) ->
+      G.TyRecordAnon (PI.fake_info lt "", (lt, [], rt))
   | TyOr (t1, tk, t2) ->
       let t1 = type_ t1 in
       let t2 = type_ t2 in
@@ -541,7 +545,7 @@ and fun_ { f_kind; f_attrs = f_props; f_params; f_body; f_rettype } =
   let v2 = list parameter_binding f_params in
   let v3 = stmt f_body |> as_block in
   let frettype = option type_ f_rettype in
-  ({ G.fparams = v2; frettype; fbody = v3; fkind }, v1)
+  ({ G.fparams = v2; frettype; fbody = G.FBStmt v3; fkind }, v1)
 
 and parameter_binding = function
   | ParamClassic x -> parameter x
@@ -578,7 +582,11 @@ and argument x = expr x
 and attribute = function
   | KeywordAttr x -> G.KeywordAttr (keyword_attribute x)
   | NamedAttr (t, ids, opt) ->
-      let t1, args, t2 = match opt with Some x -> x | None -> fb [] in
+      let t1, args, t2 =
+        match opt with
+        | Some x -> x
+        | None -> fb []
+      in
       let args = list argument args |> List.map G.arg in
       let name = H.name_of_ids ids in
       G.NamedAttr (t, name, (t1, args, t2))

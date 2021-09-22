@@ -167,7 +167,9 @@ let map_anon_choice_attr_a1991da (env : env) (x : CST.anon_choice_attr_a1991da)
             v1
       in
       let _v2TODO =
-        match v2 with Some x -> map_directive_modifiers env x | None -> []
+        match v2 with
+        | Some x -> map_directive_modifiers env x
+        | None -> []
       in
       let teq, v3 =
         match v3 with
@@ -365,7 +367,7 @@ let parse_string_and_adjust_wrt_base content tbase fparse =
             Map_AST.default_visitor with
             Map_AST.kinfo =
               (fun (_, _) t ->
-                let base_loc = PI.token_location_of_info tbase in
+                let base_loc = PI.unsafe_token_location_of_info tbase in
                 PI.adjust_info_wrt_base base_loc t);
           }
       in

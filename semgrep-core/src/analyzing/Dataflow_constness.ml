@@ -31,7 +31,7 @@ module DataflowX = Dataflow.Make (struct
 
   type edge = F.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
@@ -92,11 +92,14 @@ let union_ctype t1 t2 = if eq_ctype t1 t2 then t1 else G.Cany
 let union c1 c2 =
   match (c1, c2) with
   | _ when eq c1 c2 -> c1
-  | _any, G.NotCst | G.NotCst, _any -> G.NotCst
+  | _any, G.NotCst
+  | G.NotCst, _any ->
+      G.NotCst
   | G.Lit l1, G.Lit l2 ->
       let t1 = ctype_of_literal l1 and t2 = ctype_of_literal l2 in
       G.Cst (union_ctype t1 t2)
-  | G.Lit l1, G.Cst t2 | G.Cst t2, G.Lit l1 ->
+  | G.Lit l1, G.Cst t2
+  | G.Cst t2, G.Lit l1 ->
       let t1 = ctype_of_literal l1 in
       G.Cst (union_ctype t1 t2)
   | G.Cst t1, G.Cst t2 -> G.Cst (union_ctype t1 t2)
@@ -106,8 +109,12 @@ let union c1 c2 =
 let refine c1 c2 =
   match (c1, c2) with
   | _ when eq c1 c2 -> c1
-  | c, G.NotCst | G.NotCst, c -> c
-  | G.Lit _, _ | G.Cst _, G.Cst _ -> c1
+  | c, G.NotCst
+  | G.NotCst, c ->
+      c
+  | G.Lit _, _
+  | G.Cst _, G.Cst _ ->
+      c1
   | G.Cst _, G.Lit _ -> c2
 
 let refine_constness_ref c_ref c' =
@@ -122,20 +129,22 @@ let refine_constness_ref c_ref c' =
 let literal_of_bool b =
   let b_str = string_of_bool b in
   (* TODO: use proper token when possible? *)
-  let tok = Parse_info.fake_info b_str in
+  let tok = Parse_info.unsafe_fake_info b_str in
   G.Bool (b, tok)
 
 let literal_of_int i =
   let i_str = string_of_int i in
   (* TODO: use proper token when possible? *)
-  let tok = Parse_info.fake_info i_str in
+  let tok = Parse_info.unsafe_fake_info i_str in
   G.Int (Some i, tok)
 
-let int_of_literal = function G.Int (x, _) -> x | ___else___ -> None
+let int_of_literal = function
+  | G.Int (x, _) -> x
+  | ___else___ -> None
 
 let literal_of_string s =
   (* TODO: use proper token when possible? *)
-  let tok = Parse_info.fake_info s in
+  let tok = Parse_info.unsafe_fake_info s in
   G.String (s, tok)
 
 let eval_unop_bool op b =
@@ -193,7 +202,9 @@ let eval_binop_int tok op opt_i1 opt_i2 =
 
 let eval_binop_string op s1 s2 =
   match op with
-  | G.Plus | G.Concat -> G.Lit (literal_of_string (s1 ^ s2))
+  | G.Plus
+  | G.Concat ->
+      G.Lit (literal_of_string (s1 ^ s2))
   | __else__ -> G.Cst G.Cstr
 
 let rec eval (env : G.constness D.env) exp : G.constness =
@@ -201,7 +212,11 @@ let rec eval (env : G.constness D.env) exp : G.constness =
   | Fetch lval -> eval_lval env lval
   | Literal li -> G.Lit li
   | Operator (op, args) -> eval_op env op args
-  | Composite _ | Record _ | Cast _ | FixmeExp _ -> G.NotCst
+  | Composite _
+  | Record _
+  | Cast _
+  | FixmeExp _ ->
+      G.NotCst
 
 and eval_lval env lval =
   match lval with
@@ -209,7 +224,9 @@ and eval_lval env lval =
       let opt_c = D.VarMap.find_opt (str_of_name x) env in
       match (!constness, opt_c) with
       | None, None -> G.NotCst
-      | Some c, None | None, Some c -> c
+      | Some c, None
+      | None, Some c ->
+          c
       | Some c1, Some c2 -> refine c1 c2)
   | ___else___ -> G.NotCst
 
@@ -228,7 +245,8 @@ and eval_op env wop args =
       eval_binop_string op s1 s2
   | _op, [ (G.Cst _ as c1) ] -> c1
   | _op, [ G.Cst t1; G.Cst t2 ] -> G.Cst (union_ctype t1 t2)
-  | _op, [ G.Lit l1; G.Cst t2 ] | _op, [ G.Cst t2; G.Lit l1 ] ->
+  | _op, [ G.Lit l1; G.Cst t2 ]
+  | _op, [ G.Cst t2; G.Lit l1 ] ->
       let t1 = ctype_of_literal l1 in
       G.Cst (union_ctype t1 t2)
   | ___else___ -> G.NotCst
@@ -273,22 +291,31 @@ let transfer :
  fun ~enter_env ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
-  let node = flow#nodes#assoc ni in
+  let node = flow.graph#nodes#assoc ni in
 
   let inp' =
     (* input mapping *)
     match node.F.n with
     | Enter -> enter_env
     | _else ->
-        (flow#predecessors ni)#fold
+        (flow.graph#predecessors ni)#fold
           (fun acc (ni_pred, _) -> union_env acc mapping.(ni_pred).D.out_env)
           VarMap.empty
   in
 
   let out' =
     match node.F.n with
-    | Enter | Exit | TrueNode | FalseNode | Join | NCond _ | NGoto _ | NReturn _
-    | NThrow _ | NOther _ | NTodo _ ->
+    | Enter
+    | Exit
+    | TrueNode
+    | FalseNode
+    | Join
+    | NCond _
+    | NGoto _
+    | NReturn _
+    | NThrow _
+    | NOther _
+    | NTodo _ ->
         inp'
     | NInstr instr -> (
         match instr.i with
@@ -302,6 +329,12 @@ let transfer :
               args ) ->
             let cexp = eval_concat inp' args in
             D.VarMap.add (str_of_name var) cexp inp'
+        | Call (None, { e = Fetch { base = Var var; offset = Dot _; _ }; _ }, _)
+          ->
+            (* Method call `var.f(args)` that returns void, we conservatively
+             * assume that it may be updating `var`; e.g. in Ruby strings are
+             * mutable. *)
+            D.VarMap.add (str_of_name var) G.NotCst inp'
         | ___else___ -> (
             (* assume non-constant *)
             let lvar_opt = IL.lvar_of_instr_opt instr in
@@ -329,11 +362,11 @@ let (fixpoint : IL.name list -> F.cfg -> mapping) =
     ~forward:true ~flow
 
 let update_constness (flow : F.cfg) mapping =
-  flow#nodes#keys
+  flow.graph#nodes#keys
   |> List.iter (fun ni ->
          let ni_info = mapping.(ni) in
 
-         let node = flow#nodes#assoc ni in
+         let node = flow.graph#nodes#assoc ni in
 
          (* Update RHS constness according to the input env. *)
          rlvals_of_node node.n

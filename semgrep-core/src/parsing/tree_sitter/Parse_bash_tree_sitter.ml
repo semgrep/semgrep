@@ -29,7 +29,9 @@ let str = H.str
    This is usually a sign that something wasn't done right.
 *)
 let map_last l f =
-  match List.rev l with [] -> [] | last :: other -> List.rev (f last :: other)
+  match List.rev l with
+  | [] -> []
+  | last :: other -> List.rev (f last :: other)
 
 (*
    The 'statement' rule returns one of 3 possible levels of constructs:
@@ -66,13 +68,17 @@ let unary_test_operator (env : env) (tok : ts_tok) : unary_test_operator wrap =
     | "-R" -> Is_shell_variable_a_name_ref
     | "-z" -> Is_empty_string
     | "-n" -> Is_nonempty_string
-    | "-a" | "-e " -> File_exists
+    | "-a"
+    | "-e " ->
+        File_exists
     | "-b" -> Is_block_special_file
     | "-c" -> Is_character_special_file
     | "-d" -> Is_directory
     | "-f" -> Is_regular_file
     | "-g" -> Has_SGID_bit
-    | "-h" | "-L" -> Is_symlink
+    | "-h"
+    | "-L" ->
+        Is_symlink
     | "-k" -> Has_sticky_bit
     | "-p" -> Is_named_pipe
     | "-r" -> Is_readable
@@ -381,7 +387,11 @@ and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) :
   let open_ = token env v1 (* "{" *) in
   let close = token env v3 (* "}" *) in
   let loc = (open_, close) in
-  let blist = match v2 with Some x -> statements2 env x | None -> Empty loc in
+  let blist =
+    match v2 with
+    | Some x -> statements2 env x
+    | None -> Empty loc
+  in
   (open_, blist, close)
 
 and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
@@ -409,7 +419,9 @@ and do_group (env : env) ((v1, v2, v3) : CST.do_group) : blist bracket =
   let do_ = token env v1 (* "do" *) in
   let done_ = token env v3 (* "done" *) in
   let blist =
-    match v2 with Some x -> statements2 env x | None -> Empty (do_, done_)
+    match v2 with
+    | Some x -> statements2 env x
+    | None -> Empty (do_, done_)
   in
   (do_, blist, done_)
 
@@ -418,7 +430,9 @@ and elif_clause (env : env) ((v1, v2, v3, v4) : CST.elif_clause) : elif =
   let cond = terminated_statement env v2 |> blist_of_pipeline in
   let then_ = token env v3 (* "then" *) in
   let body =
-    match v4 with Some x -> statements2 env x | None -> Empty (then_, then_)
+    match v4 with
+    | Some x -> statements2 env x
+    | None -> Empty (then_, then_)
   in
   let loc = (elif, snd (blist_loc body)) in
   (loc, elif, cond, then_, body)
@@ -426,7 +440,9 @@ and elif_clause (env : env) ((v1, v2, v3, v4) : CST.elif_clause) : elif =
 and else_clause (env : env) ((v1, v2) : CST.else_clause) : else_ =
   let else_ = token env v1 (* "else" *) in
   let body =
-    match v2 with Some x -> statements2 env x | None -> Empty (else_, else_)
+    match v2 with
+    | Some x -> statements2 env x
+    | None -> Empty (else_, else_)
   in
   let loc = (else_, snd (blist_loc body)) in
   (loc, else_, body)
@@ -453,7 +469,9 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
             let _v1 = token env v1 (* variable_name *) in
             let _v2 = token env v2 (* "=" *) in
             let _v3 =
-              match v3 with Some x -> Some (literal env x) | None -> None
+              match v3 with
+              | Some x -> Some (literal env x)
+              | None -> None
             in
             None
         | `Choice_subs_opt_SLASH_opt_regex_rep_choice_choice_conc (v1, v2, v3)
@@ -585,7 +603,11 @@ and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : todo =
   in
   (* TODO: dst_fd is missing e.g. the '2' in '>&2' *)
   let file = literal env v3 in
-  let start = match src_fd with None -> op_tok | Some tok -> tok in
+  let start =
+    match src_fd with
+    | None -> op_tok
+    | Some tok -> tok
+  in
   let _, end_ = expression_loc file in
   let loc = (start, end_) in
   TODO loc
@@ -628,8 +650,8 @@ and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
         pat)
       v2
   in
-  let _end_pats = token env v3 (* ")" *) in
-  let case_body = program env v4 in
+  let end_pats = token env v3 (* ")" *) in
+  let case_body = program env ~tok:end_pats v4 in
   let end_tok =
     match v5 with
     | Some tok -> token env tok (* ";;" *)
@@ -700,13 +722,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
       let loc = (open_, close) in
       Expression_TODO loc
 
-and program (env : env) (opt : CST.program) : blist =
+and program (env : env) ~tok (opt : CST.program) : blist =
   match opt with
   | Some x -> statements env x
-  | None ->
-      (* TODO: use an empty token at the current position in the source
-         file rather than a completely fake token. *)
-      Empty fake_loc
+  | None -> Empty (tok, tok)
 
 (*
    Read a statement as a list (of pipelines).
@@ -874,15 +893,21 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let for_ = token env v1 (* "for" *) in
       let header_open_ = token env v2 (* "((" *) in
       let _x () =
-        match v3 with Some x -> expression env x | None -> todo env ()
+        match v3 with
+        | Some x -> expression env x
+        | None -> todo env ()
       in
       let _x () = terminator env v4 in
       let _x () =
-        match v5 with Some x -> expression env x | None -> todo env ()
+        match v5 with
+        | Some x -> expression env x
+        | None -> todo env ()
       in
       let _x () = terminator env v6 in
       let _x () =
-        match v7 with Some x -> expression env x | None -> todo env ()
+        match v7 with
+        | Some x -> expression env x
+        | None -> todo env ()
       in
       let header_close = token env v8 (* "))" *) in
       let _x () =
@@ -916,7 +941,9 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       let elif_branches = List.map (elif_clause env) v5 in
       let else_branch =
-        match v6 with Some x -> Some (else_clause env x) | None -> None
+        match v6 with
+        | Some x -> Some (else_clause env x)
+        | None -> None
       in
       let fi = token env v7 (* "fi" *) in
       let loc = (if_, fi) in
@@ -928,7 +955,9 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let case = token env v1 (* "case" *) in
       let subject = literal env v2 in
       let _term =
-        match v3 with Some x -> Some (terminator env x) | None -> None
+        match v3 with
+        | Some x -> Some (terminator env x)
+        | None -> None
       in
       let in_ = token env v4 (* "in" *) in
       let _term = terminator env v5 in
@@ -1048,7 +1077,9 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
     | None -> ()
   in
   let _trailing_newline =
-    match v4 with Some x -> Some (terminator env x) | None -> None
+    match v4 with
+    | Some x -> Some (terminator env x)
+    | None -> None
   in
   let loc = range (blist_loc blist) (blist_loc last_blist) in
   Seq (loc, blist, last_blist)
@@ -1083,7 +1114,11 @@ and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
               [ Expansion (loc, Simple_expansion (loc, dollar, e)) ]
           | `Cmd_subs x -> [ Command_substitution (command_substitution env x) ]
         in
-        let _concat = match v2 with Some _tok -> () | None -> () in
+        let _concat =
+          match v2 with
+          | Some _tok -> ()
+          | None -> ()
+        in
         fragments)
       v2
     |> List.flatten
@@ -1101,9 +1136,17 @@ and subscript (env : env) ((v1, v2, v3, v4, v5, v6) : CST.subscript) :
   let var = str env v1 (* variable_name *) in
   let open_ = token env v2 (* "[" *) in
   let index = literal env v3 in
-  let _concat = match v4 with Some _tok -> () (* concat *) | None -> () in
+  let _concat =
+    match v4 with
+    | Some _tok -> () (* concat *)
+    | None -> ()
+  in
   let close = token env v5 (* "]" *) in
-  let _concat = match v6 with Some _tok -> () (* concat *) | None -> () in
+  let _concat =
+    match v6 with
+    | Some _tok -> () (* concat *)
+    | None -> ()
+  in
   (var, open_, index, close)
 
 and subshell (env : env) ((v1, v2, v3) : CST.subshell) : blist bracket =
@@ -1178,7 +1221,8 @@ let parse file =
     (fun () -> Tree_sitter_bash.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      let bash_ast = program env cst in
+      let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
+      let bash_ast = program env ~tok cst in
       Bash_to_generic.program bash_ast)
 
 let parse_pattern str =
@@ -1187,5 +1231,6 @@ let parse_pattern str =
     (fun cst ->
       let file = "<pattern>" in
       let env = { H.file; conv = Hashtbl.create 0; extra = () } in
-      let bash_ast = program env cst in
+      let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
+      let bash_ast = program env ~tok cst in
       Bash_to_generic.any bash_ast)

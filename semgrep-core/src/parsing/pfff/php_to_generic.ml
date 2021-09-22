@@ -330,9 +330,9 @@ and expr e : G.expr =
   | List v1 ->
       let v1 = bracket (list expr) v1 in
       G.Container (G.List, v1)
-  | Arrow (v1, _t, v2) ->
+  | Arrow (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.Tuple (fb [ v1; v2 ])
+      (G.keyval v1 t v2).e
   | Ref (t, v1) ->
       let v1 = expr v1 in
       G.Ref (t, v1)
@@ -402,7 +402,7 @@ and expr e : G.expr =
             {
               G.fparams = ps;
               frettype = rett;
-              fbody = body;
+              fbody = G.FBStmt body;
               fkind = (G.LambdaKind, t);
             }
       | _ -> error tok "TODO: Lambda"))
@@ -412,7 +412,9 @@ and argument e =
   let e = expr e in
   G.arg e
 
-and special = function This -> G.This | Eval -> G.Eval
+and special = function
+  | This -> G.This
+  | Eval -> G.Eval
 
 and foreach_pattern v =
   let v = expr v in
@@ -484,7 +486,9 @@ and func_def
   let attrs = list attribute f_attrs in
   let body = stmt f_body in
   let ent = G.basic_entity id (modifiers @ attrs) in
-  let def = { G.fparams = params; frettype = fret; fbody = body; fkind } in
+  let def =
+    { G.fparams = params; frettype = fret; fbody = G.FBStmt body; fkind }
+  in
   (ent, def)
 
 and function_kind (kind, t) =

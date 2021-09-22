@@ -69,7 +69,9 @@ let identifier (env : env) (tok : CST.identifier) = str env tok
 (* identifier *)
 
 let anon_choice_new_0342769 (env : env) (x : CST.anon_choice_new_0342769) =
-  match x with `New tok -> str env tok (* "new" *) | `Make tok -> str env tok
+  match x with
+  | `New tok -> str env tok (* "new" *)
+  | `Make tok -> str env tok
 
 (* "make" *)
 
@@ -175,10 +177,14 @@ let rec type_case (env : env) ((v1, v2, v3, v4, v5) : CST.type_case) =
         v2)
       v3
   in
-  let _v4 = token env v4 (* ":" *) in
-  let v5 = match v5 with Some x -> statement_list env x | None -> [] in
+  let v4 = token env v4 (* ":" *) in
+  let v5 =
+    match v5 with
+    | Some x -> statement_list env x
+    | None -> []
+  in
   let xs = v2 :: v3 in
-  (CaseExprs (v1, xs |> List.map (fun x -> Right x)), stmt1 v5)
+  (CaseExprs (v1, xs |> List.map (fun x -> Right x)), stmt1 v4 v5)
 
 and simple_statement (env : env) (x : CST.simple_statement) : simple =
   match x with
@@ -299,7 +305,11 @@ and anon_choice_field_id_ccb7464 (env : env)
 
 and block (env : env) ((v1, v2, v3) : CST.block) =
   let v1 = token env v1 (* "{" *) in
-  let v2 = match v2 with Some x -> statement_list env x | None -> [] in
+  let v2 =
+    match v2 with
+    | Some x -> statement_list env x
+    | None -> []
+  in
   let v3 = token env v3 (* "}" *) in
   Block (v1, v2, v3)
 
@@ -346,7 +356,9 @@ and field_declaration (env : env) ((v1, v2) : CST.field_declaration) :
         [ EmbeddedField (v1, v2) ]
   in
   let v2 =
-    match v2 with Some x -> Some (string_literal env x) | None -> None
+    match v2 with
+    | Some x -> Some (string_literal env x)
+    | None -> None
   in
   v1 |> List.map (fun x -> (x, v2))
 
@@ -363,7 +375,9 @@ and special_argument_list (env : env)
       v3
   in
   let _v4 =
-    match v4 with Some tok -> Some (token env tok) (* "," *) | None -> None
+    match v4 with
+    | Some tok -> Some (token env tok) (* "," *)
+    | None -> None
   in
   let v5 = token env v5 (* ")" *) in
   let args = ArgType v2 :: v3 in
@@ -371,13 +385,21 @@ and special_argument_list (env : env)
 
 and for_clause (env : env) ((v1, v2, v3, v4, v5) : CST.for_clause) =
   let v1 =
-    match v1 with Some x -> Some (simple_statement env x) | None -> None
+    match v1 with
+    | Some x -> Some (simple_statement env x)
+    | None -> None
   in
   let _v2 = token env v2 (* ";" *) in
-  let v3 = match v3 with Some x -> Some (expression env x) | None -> None in
+  let v3 =
+    match v3 with
+    | Some x -> Some (expression env x)
+    | None -> None
+  in
   let _v4 = token env v4 (* ";" *) in
   let v5 =
-    match v5 with Some x -> Some (simple_statement env x) | None -> None
+    match v5 with
+    | Some x -> Some (simple_statement env x)
+    | None -> None
   in
   ForClassic (v1, v3, v5)
 
@@ -488,9 +510,13 @@ and call_expression (env : env) (x : CST.call_expression) =
 
 and default_case (env : env) ((v1, v2, v3) : CST.default_case) =
   let v1 = token env v1 (* "default" *) in
-  let _v2 = token env v2 (* ":" *) in
-  let v3 = match v3 with Some x -> statement_list env x | None -> [] in
-  (CaseDefault v1, stmt1 v3)
+  let v2 = token env v2 (* ":" *) in
+  let v3 =
+    match v3 with
+    | Some x -> statement_list env x
+    | None -> []
+  in
+  (CaseDefault v1, stmt1 v2 v3)
 
 and slice_type (env : env) ((v1, v2, v3) : CST.slice_type) =
   let v1 = token env v1 (* "[" *) in
@@ -544,16 +570,22 @@ and expression (env : env) (x : CST.expression) : expr =
       match v3 with
       | `Opt_exp_COLON_opt_exp (v1, v2, v3) ->
           let v1 =
-            match v1 with Some x -> Some (expression env x) | None -> None
+            match v1 with
+            | Some x -> Some (expression env x)
+            | None -> None
           in
           let _v2 = token env v2 (* ":" *) in
           let v3 =
-            match v3 with Some x -> Some (expression env x) | None -> None
+            match v3 with
+            | Some x -> Some (expression env x)
+            | None -> None
           in
           Slice (v1top, (t1, (v1, v3, None), t2))
       | `Opt_exp_COLON_exp_COLON_exp (v1, v2, v3, v4, v5) ->
           let v1 =
-            match v1 with Some x -> Some (expression env x) | None -> None
+            match v1 with
+            | Some x -> Some (expression env x)
+            | None -> None
           in
           let _v2 = token env v2 (* ":" *) in
           let v3 = expression env v3 in
@@ -685,7 +717,9 @@ and statement (env : env) (x : CST.statement) : stmt =
   | `Ret_stmt (v1, v2) ->
       let v1 = token env v1 (* "return" *) in
       let v2 =
-        match v2 with Some x -> Some (expression_list env x) | None -> None
+        match v2 with
+        | Some x -> Some (expression_list env x)
+        | None -> None
       in
       Return (v1, v2)
   | `Go_stmt (v1, v2) ->
@@ -863,9 +897,13 @@ and implicit_length_array_type (env : env)
 and expression_case (env : env) ((v1, v2, v3, v4) : CST.expression_case) =
   let v1 = token env v1 (* "case" *) in
   let v2 = expression_list env v2 in
-  let _v3 = token env v3 (* ":" *) in
-  let v4 = match v4 with Some x -> statement_list env x | None -> [] in
-  (CaseExprs (v1, v2 |> List.map (fun x -> Left x)), stmt1 v4)
+  let v3 = token env v3 (* ":" *) in
+  let v4 =
+    match v4 with
+    | Some x -> statement_list env x
+    | None -> []
+  in
+  (CaseExprs (v1, v2 |> List.map (fun x -> Left x)), stmt1 v3 v4)
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) =
   let v1 = token env v1 (* "(" *) in
@@ -914,7 +952,11 @@ and const_spec (env : env) ((v1, v2, v3) : CST.const_spec) =
   let xs = v1 :: v2 in
   match v3 with
   | Some (v1, v2, v3) ->
-      let v1 = match v1 with Some x -> Some (type_ env x) | None -> None in
+      let v1 =
+        match v1 with
+        | Some x -> Some (type_ env x)
+        | None -> None
+      in
       let _v2 = token env v2 (* "=" *) in
       let v3 = expression_list env v3 in
       mk_consts ~rev xs v1 (Some v3)
@@ -1137,9 +1179,13 @@ and communication_case (env : env) ((v1, v2, v3, v4) : CST.communication_case) =
         | Some (xs, (_lr, tk)) ->
             CaseAssign (v1, xs |> List.map (fun e -> Left e), tk, e))
   in
-  let _v3 = token env v3 (* ":" *) in
-  let v4 = match v4 with Some x -> statement_list env x | None -> [] in
-  (v2, stmt1 v4)
+  let v3 = token env v3 (* ":" *) in
+  let v4 =
+    match v4 with
+    | Some x -> statement_list env x
+    | None -> []
+  in
+  (v2, stmt1 v3 v4)
 
 and literal_value (env : env) ((v1, v2, v3) : CST.literal_value) :
     init list bracket =
@@ -1196,7 +1242,11 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration) :
         | Some x -> anon_choice_param_list_29faba4 env x
         | None -> []
       in
-      let v5 = match v5 with Some x -> block env x | None -> Empty in
+      let v5 =
+        match v5 with
+        | Some x -> block env x
+        | None -> Empty
+      in
       [ DFunc (v1, v2, ({ fparams = v3; fresults = v4 }, v5)) ]
   | `Meth_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "func" *) in
@@ -1208,7 +1258,11 @@ let top_level_declaration (env : env) (x : CST.top_level_declaration) :
         | Some x -> anon_choice_param_list_29faba4 env x
         | None -> []
       in
-      let v6 = match v6 with Some x -> block env x | None -> Empty in
+      let v6 =
+        match v6 with
+        | Some x -> block env x
+        | None -> Empty
+      in
       let receiver =
         match v2 with
         | [] -> raise Impossible

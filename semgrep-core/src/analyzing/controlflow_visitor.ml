@@ -43,9 +43,22 @@ let mk_visitor vin =
   fun node ->
     match node.F.n with
     (* Nothing is needed if the node has no expr information*)
-    | F.Enter | F.Exit | F.TrueNode | F.FalseNode | F.DoHeader | F.ForHeader
-    | F.SwitchEnd | F.Case | F.Default | F.TryHeader | F.CatchStart | F.Catch
-    | F.TryEnd | F.Join | F.Continue | F.Break
+    | F.Enter
+    | F.Exit
+    | F.TrueNode
+    | F.FalseNode
+    | F.DoHeader
+    | F.ForHeader
+    | F.SwitchEnd
+    | F.Case
+    | F.Default
+    | F.TryHeader
+    | F.CatchStart
+    | F.Catch
+    | F.TryEnd
+    | F.Join
+    | F.Continue
+    | F.Break
     | F.Return None
     | F.SwitchHeader None
     | F.OtherStmtWithStmtHeader (_, None) ->
@@ -70,8 +83,21 @@ let mk_visitor vin =
 
 let exprs_of_node node =
   match node.n with
-  | Enter | Exit | TrueNode | FalseNode | DoHeader | ForHeader | SwitchEnd
-  | Case | Default | TryHeader | CatchStart | Catch | TryEnd | Join | Continue
+  | Enter
+  | Exit
+  | TrueNode
+  | FalseNode
+  | DoHeader
+  | ForHeader
+  | SwitchEnd
+  | Case
+  | Default
+  | TryHeader
+  | CatchStart
+  | Catch
+  | TryEnd
+  | Join
+  | Continue
   | Break
   | Return None
   | SwitchHeader None
@@ -101,7 +127,7 @@ let exprs_of_node node =
 
 (* this can also be used as an iter; just pass () to acc *)
 let fold_on_node_and_expr hook (flow : flow) acc =
-  flow#nodes#fold
+  flow.graph#nodes#fold
     (fun acc (ni, node) ->
       let xs = exprs_of_node node in
       xs |> List.fold_left (fun acc e -> hook (ni, node) e acc) acc)

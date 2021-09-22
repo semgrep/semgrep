@@ -45,7 +45,9 @@ let bool = id
 
 let string = id
 
-let fake s = Parse_info.fake_info s
+let fake tok s = Parse_info.fake_info tok s
+
+let unsafe_fake s = Parse_info.unsafe_fake_info s
 
 let fb = G.fake_bracket
 
@@ -81,7 +83,7 @@ let rec expr e =
       G.N (G.IdQualified (name, G.empty_id_info ()))
   | Hash (_bool, xs) -> G.Container (G.Dict, bracket (list expr) xs)
   | Array xs -> G.Container (G.Array, bracket (list expr) xs)
-  | Tuple xs -> G.Tuple (G.fake_bracket (list expr xs))
+  | Tuple xs -> G.Container (G.Tuple, G.fake_bracket (list expr xs))
   | Unary (op, e) ->
       let e = expr e in
       unary op e
@@ -113,14 +115,18 @@ let rec expr e =
       let special = G.IdSpecial (G.Spread, t) |> G.e in
       G.Call (special, fb xs)
   | CodeBlock ((t1, _, t2), params_opt, xs) ->
-      let params = match params_opt with None -> [] | Some xs -> xs in
+      let params =
+        match params_opt with
+        | None -> []
+        | Some xs -> xs
+      in
       let params = list formal_param params in
       let st = G.Block (t1, list_stmts xs, t2) |> G.s in
       let def =
         {
           G.fparams = params;
           frettype = None;
-          fbody = st;
+          fbody = G.FBStmt st;
           fkind = (G.LambdaKind, t1);
         }
       in
@@ -236,7 +242,9 @@ and method_name mn =
   | MethodIdAssign (id, teq, id_kind) ->
       let s, t = variable (id, id_kind) in
       Left (s ^ "=", PI.combine_infos t [ teq ])
-  | MethodUOperator (_, t) | MethodOperator (_, t) -> Left (PI.str_of_info t, t)
+  | MethodUOperator (_, t)
+  | MethodOperator (_, t) ->
+      Left (PI.str_of_info t, t)
   | MethodSpecialCall (l, (), _r) ->
       let special = ident ("call", l) in
       Left special
@@ -266,7 +274,9 @@ and string_contents tok = function
       |> G.e
 
 and method_name_to_any mn =
-  match method_name mn with Left id -> G.I id | Right e -> G.E e
+  match method_name mn with
+  | Left id -> G.I id
+  | Right e -> G.E e
 
 and binary_msg = function
   | Op_PLUS -> G.Plus
@@ -292,16 +302,20 @@ and binary_msg = function
   | Op_NMATCH -> G.NotMatch
   | Op_DOT2 -> G.Range
   (* never in Binop, only in DotAccess or MethodDef *)
-  | Op_AREF | Op_ASET -> raise Impossible
+  | Op_AREF
+  | Op_ASET ->
+      raise Impossible
 
 and binary (op, t) e1 e2 =
   match op with
   | B msg ->
       let op = binary_msg msg in
       G.Call (G.IdSpecial (G.Op op, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
-  | Op_kAND | Op_AND ->
+  | Op_kAND
+  | Op_AND ->
       G.Call (G.IdSpecial (G.Op G.And, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
-  | Op_kOR | Op_OR ->
+  | Op_kOR
+  | Op_OR ->
       G.Call (G.IdSpecial (G.Op G.Or, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
   | Op_ASSIGN -> G.Assign (e1, t, e2)
   | Op_OP_ASGN op ->
@@ -314,7 +328,7 @@ and binary (op, t) e1 e2 =
         | _ -> raise Impossible
       in
       G.AssignOp (e1, (op, t), e2)
-  | Op_ASSOC -> G.Tuple (G.fake_bracket [ e1; e2 ])
+  | Op_ASSOC -> (G.keyval e1 t e2).e
   | Op_DOT3 ->
       (* coupling: make sure to check for the string in generic_vs_generic *)
       G.Call (G.IdSpecial (G.Op G.Range, t) |> G.e, fb [ G.Arg e1; G.Arg e2 ])
@@ -388,7 +402,7 @@ and expr_as_stmt = function
   | D x -> definition x
   | e ->
       let e = expr e in
-      G.ExprStmt (e, fake ";") |> G.s
+      G.ExprStmt (e, unsafe_fake ";") |> G.s
 
 and stmt st =
   match st with
@@ -417,7 +431,9 @@ and stmt st =
       let special = G.IdSpecial (G.Op G.Not, t) |> G.e in
       let e = G.Call (special, fb [ G.Arg e ]) |> G.e in
       let st1 =
-        match elseopt with None -> G.Block (fb []) |> G.s | Some st -> st
+        match elseopt with
+        | None -> G.Block (fb []) |> G.s
+        | Some st -> st
       in
       G.If (t, e, st1, Some st) |> G.s
   | For (t1, pat, t2, e, st) ->
@@ -471,14 +487,14 @@ and exprs_to_label_ident = function
       G.LDynamic x
   | xs ->
       let xs = list expr xs in
-      G.LDynamic (G.Tuple (G.fake_bracket xs) |> G.e)
+      G.LDynamic (G.Container (G.Tuple, G.fake_bracket xs) |> G.e)
 
 and exprs_to_eopt = function
   | [] -> None
   | [ x ] -> Some (expr x)
   | xs ->
       let xs = list expr xs in
-      Some (G.Tuple (G.fake_bracket xs) |> G.e)
+      Some (G.Container (G.Tuple, G.fake_bracket xs) |> G.e)
 
 and pattern pat =
   let e = expr pat in
@@ -489,7 +505,9 @@ and type_ e =
   H.expr_to_type e
 
 and option_tok_stmts x =
-  match x with None -> None | Some (_t, xs) -> Some (list_stmt1 xs)
+  match x with
+  | None -> None
+  | Some (_t, xs) -> Some (list_stmt1 xs)
 
 and definition def =
   match def with
@@ -500,7 +518,7 @@ and definition def =
         {
           G.fparams = params;
           frettype = None;
-          fbody = body;
+          fbody = G.FBStmt body;
           fkind = (G.Method, t);
         }
       in
@@ -511,12 +529,12 @@ and definition def =
               let ent = G.basic_entity id [] in
               G.DefStmt (ent, G.FuncDef funcdef) |> G.s
           | Right e ->
-              let ent = G.basic_entity ("", fake "") [] in
+              let ent = G.basic_entity ("", fake t "") [] in
               G.OtherStmt (G.OS_Todo, [ G.E e; G.Def (ent, G.FuncDef funcdef) ])
               |> G.s)
       | SingletonM e ->
           let e = expr e in
-          let ent = G.basic_entity ("", fake "") [] in
+          let ent = G.basic_entity ("", fake t "") [] in
           G.OtherStmt (G.OS_Todo, [ G.E e; G.Def (ent, G.FuncDef funcdef) ])
           |> G.s)
   | ClassDef (t, kind, body) -> (
@@ -607,11 +625,13 @@ and body_exn x =
       in
       match elseopt with
       | None ->
-          let try_ = G.Try (fake "try", body, catches, finally_opt) |> G.s in
+          let try_ =
+            G.Try (unsafe_fake "try", body, catches, finally_opt) |> G.s
+          in
           G.Block (fb [ try_ ]) |> G.s
-      | Some (_t, sts) ->
+      | Some (t, sts) ->
           let st = list_stmt1 sts in
-          let try_ = G.Try (fake "try", body, catches, finally_opt) |> G.s in
+          let try_ = G.Try (fake t "try", body, catches, finally_opt) |> G.s in
           let st = G.Block (fb [ try_; st ]) |> G.s in
           G.OtherStmtWithStmt (G.OSWS_Else_in_try, None, st) |> G.s)
 

@@ -119,7 +119,7 @@ let var_stats prog : var_stats =
     {
       V.default_visitor with
       V.kdef =
-        (fun (k, v) x ->
+        (fun (k, _v) x ->
           match x with
           | ( {
                 name =
@@ -128,16 +128,11 @@ let var_stats prog : var_stats =
                       (id, { id_resolved = { contents = Some (_kind, sid) }; _ }));
                 _;
               },
-              VarDef { vinit = Some e; _ } ) ->
+              VarDef { vinit = Some _e; _ } ) ->
               let var = (H.str_of_ident id, sid) in
               let stat = get_stat_or_create var h in
               incr stat.lvalue;
-              (* We can't do `k x` otherwise the variable-declaration itself is
-               * re-visited but now interpreted as an assignment (because of
-               * v_vardef_as_assign_expr in Visitor_AST), and we would be wrongly
-               * incrementing `stat.lvalue` a second time. Instead, we just need
-               * to visit the defining expression. *)
-              v (E e)
+              k x
           | _ -> k x);
       V.kexpr =
         (fun (k, vout) x ->
@@ -170,7 +165,9 @@ let var_stats prog : var_stats =
               let var = (H.str_of_ident id, sid) in
               let stat = get_stat_or_create var h in
               incr stat.lvalue;
-              (match x.e with AssignOp _ -> incr stat.rvalue | _ -> ());
+              (match x.e with
+              | AssignOp _ -> incr stat.rvalue
+              | _ -> ());
               vout (E e2)
           | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
             ->
@@ -181,7 +178,7 @@ let var_stats prog : var_stats =
           | _ -> k x);
     }
   in
-  let visitor = V.mk_visitor hooks in
+  let visitor = V.mk_visitor ~vardef_assign:false hooks in
   visitor (Pr prog);
   h
 
@@ -191,10 +188,12 @@ let var_stats prog : var_stats =
 
 let literal_of_bool b =
   let b_str = string_of_bool b in
-  let tok = Parse_info.fake_info b_str in
+  let tok = Parse_info.unsafe_fake_info b_str in
   Bool (b, tok)
 
-let bool_of_literal = function Bool (b, _) -> Some b | __else__ -> None
+let bool_of_literal = function
+  | Bool (b, _) -> Some b
+  | __else__ -> None
 
 let eval_bop_bool op b1 b2 =
   match op with
@@ -204,10 +203,12 @@ let eval_bop_bool op b1 b2 =
 
 let literal_of_int i =
   let i_str = string_of_int i in
-  let tok = Parse_info.fake_info i_str in
+  let tok = Parse_info.unsafe_fake_info i_str in
   Int (Some i, tok)
 
-let int_of_literal = function Int (Some i, _) -> Some i | __else__ -> None
+let int_of_literal = function
+  | Int (Some i, _) -> Some i
+  | __else__ -> None
 
 let eval_bop_int op i1 i2 =
   match op with
@@ -216,13 +217,17 @@ let eval_bop_int op i1 i2 =
   | __else__ -> None
 
 let literal_of_string s =
-  let tok = Parse_info.fake_info s in
+  let tok = Parse_info.unsafe_fake_info s in
   String (s, tok)
 
-let string_of_literal = function String (s, _) -> Some s | __else__ -> None
+let string_of_literal = function
+  | String (s, _) -> Some s
+  | __else__ -> None
 
 let eval_bop_string op s1 s2 =
-  match op with Plus -> Some (s1 ^ s2) | __else__ -> None
+  match op with
+  | Plus -> Some (s1 ^ s2)
+  | __else__ -> None
 
 let rec eval_expr env e =
   match e.e with
@@ -371,7 +376,8 @@ let propagate_basic lang prog =
                        && kind = Global
                      then add_constant_env id (sid, literal) env);
               v (E rexp)
-          | Assign (e1, _, e2) | AssignOp (e1, _, e2) ->
+          | Assign (e1, _, e2)
+          | AssignOp (e1, _, e2) ->
               Common.save_excursion env.in_lvalue true (fun () -> v (E e1));
               v (E e2)
           | _ -> k x);
@@ -384,7 +390,7 @@ let propagate_basic lang prog =
 let propagate_basic a b =
   Common.profile_code "Constant_propagation.xxx" (fun () -> propagate_basic a b)
 
-let propagate_dataflow ast =
+let propagate_dataflow lang ast =
   logger#info "Constant_propagation.propagate_dataflow progran";
   let v =
     V.mk_visitor
@@ -392,7 +398,7 @@ let propagate_dataflow ast =
         V.default_visitor with
         V.kfunction_definition =
           (fun (_k, _) def ->
-            let inputs, xs = AST_to_IL.function_definition def in
+            let inputs, xs = AST_to_IL.function_definition lang def in
             let flow = CFG_build.cfg_of_stmts xs in
             let mapping = Dataflow_constness.fixpoint inputs flow in
             Dataflow_constness.update_constness flow mapping);

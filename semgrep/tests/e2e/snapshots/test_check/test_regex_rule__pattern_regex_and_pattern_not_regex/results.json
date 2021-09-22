@@ -5,7 +5,8 @@
       "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 5,
-        "line": 1
+        "line": 1,
+        "offset": 4
       },
       "extra": {
         "is_ignored": false,
@@ -18,14 +19,16 @@
       "path": "targets/basic/regex-any-language.html",
       "start": {
         "col": 1,
-        "line": 1
+        "line": 1,
+        "offset": 0
       }
     },
     {
       "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 32,
-        "line": 1
+        "line": 1,
+        "offset": 31
       },
       "extra": {
         "is_ignored": false,
@@ -38,14 +41,16 @@
       "path": "targets/basic/regex-any-language.html",
       "start": {
         "col": 27,
-        "line": 1
+        "line": 1,
+        "offset": 26
       }
     },
     {
       "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 5,
-        "line": 2
+        "line": 2,
+        "offset": 36
       },
       "extra": {
         "is_ignored": false,
@@ -58,14 +63,16 @@
       "path": "targets/basic/regex-any-language.html",
       "start": {
         "col": 1,
-        "line": 2
+        "line": 2,
+        "offset": 32
       }
     },
     {
       "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 6,
-        "line": 6
+        "line": 6,
+        "offset": 126
       },
       "extra": {
         "is_ignored": false,
@@ -78,14 +85,16 @@
       "path": "targets/basic/regex-any-language.html",
       "start": {
         "col": 1,
-        "line": 6
+        "line": 6,
+        "offset": 121
       }
     },
     {
       "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 5,
-        "line": 7
+        "line": 7,
+        "offset": 131
       },
       "extra": {
         "is_ignored": false,
@@ -98,14 +107,16 @@
       "path": "targets/basic/regex-any-language.html",
       "start": {
         "col": 1,
-        "line": 7
+        "line": 7,
+        "offset": 127
       }
     },
     {
       "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 30,
-        "line": 7
+        "line": 7,
+        "offset": 156
       },
       "extra": {
         "is_ignored": false,
@@ -118,14 +129,16 @@
       "path": "targets/basic/regex-any-language.html",
       "start": {
         "col": 25,
-        "line": 7
+        "line": 7,
+        "offset": 151
       }
     },
     {
       "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 10,
-        "line": 14
+        "line": 14,
+        "offset": 342
       },
       "extra": {
         "is_ignored": false,
@@ -138,14 +151,16 @@
       "path": "targets/basic/regex-any-language.html",
       "start": {
         "col": 5,
-        "line": 14
+        "line": 14,
+        "offset": 337
       }
     },
     {
       "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 26,
-        "line": 14
+        "line": 14,
+        "offset": 358
       },
       "extra": {
         "is_ignored": false,
@@ -158,14 +173,16 @@
       "path": "targets/basic/regex-any-language.html",
       "start": {
         "col": 20,
-        "line": 14
+        "line": 14,
+        "offset": 352
       }
     },
     {
       "check_id": "rules.pattern-not-regex.test-regex",
       "end": {
         "col": 5,
-        "line": 16
+        "line": 16,
+        "offset": 370
       },
       "extra": {
         "is_ignored": false,
@@ -178,7 +195,8 @@
       "path": "targets/basic/regex-any-language.html",
       "start": {
         "col": 1,
-        "line": 16
+        "line": 16,
+        "offset": 366
       }
     }
   ]

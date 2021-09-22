@@ -23,6 +23,7 @@
    tree-sitter-lang.vue
    tree-sitter-lang.bash
    tree-sitter-lang.php
+   tree-sitter-lang.hcl
 
    commons
    pfff-lang_GENERIC

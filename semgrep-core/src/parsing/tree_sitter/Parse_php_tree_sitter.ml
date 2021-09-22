@@ -205,7 +205,9 @@ let map_anonymous_function_use_clause (env : env)
   let v1 = (* pattern [uU][sS][eE] *) token env v1 in
   let v2 = (* "(" *) token env v2 in
   let v3 =
-    match v3 with Some tok -> (* "&" *) token env tok | None -> todo env ()
+    match v3 with
+    | Some tok -> (* "&" *) token env tok
+    | None -> todo env ()
   in
   let v4 = map_variable_name env v4 in
   let v5 =
@@ -222,7 +224,9 @@ let map_anonymous_function_use_clause (env : env)
       v5
   in
   let v6 =
-    match v6 with Some tok -> (* "," *) token env tok | None -> todo env ()
+    match v6 with
+    | Some tok -> (* "," *) token env tok
+    | None -> todo env ()
   in
   let v7 = (* ")" *) token env v7 in
   todo env (v1, v2, v3, v4, v5, v6, v7)
@@ -504,10 +508,14 @@ and map_anon_choice_simple_param_5af5eb3 (env : env)
   match x with
   | `Simple_param (v1, v2, v3, v4, v5) ->
       let v1 =
-        match v1 with Some x -> map_attribute_list env x | None -> todo env ()
+        match v1 with
+        | Some x -> map_attribute_list env x
+        | None -> todo env ()
       in
       let v2 =
-        match v2 with Some x -> map_type_ env x | None -> todo env ()
+        match v2 with
+        | Some x -> map_type_ env x
+        | None -> todo env ()
       in
       let v3 =
         match v3 with
@@ -523,10 +531,14 @@ and map_anon_choice_simple_param_5af5eb3 (env : env)
       todo env (v1, v2, v3, v4, v5)
   | `Vari_param (v1, v2, v3, v4, v5) ->
       let v1 =
-        match v1 with Some x -> map_attribute_list env x | None -> todo env ()
+        match v1 with
+        | Some x -> map_attribute_list env x
+        | None -> todo env ()
       in
       let v2 =
-        match v2 with Some x -> map_type_ env x | None -> todo env ()
+        match v2 with
+        | Some x -> map_type_ env x
+        | None -> todo env ()
       in
       let v3 =
         match v3 with
@@ -539,7 +551,9 @@ and map_anon_choice_simple_param_5af5eb3 (env : env)
   | `Prop_prom_param (v1, v2, v3, v4) ->
       let v1 = map_visibility_modifier env v1 in
       let v2 =
-        match v2 with Some x -> map_type_ env x | None -> todo env ()
+        match v2 with
+        | Some x -> map_type_ env x
+        | None -> todo env ()
       in
       let v3 = map_variable_name env v3 in
       let v4 =
@@ -580,7 +594,9 @@ and map_arguments (env : env) ((v1, v2, v3, v4) : CST.arguments) =
     | None -> todo env ()
   in
   let v3 =
-    match v3 with Some tok -> (* "," *) token env tok | None -> todo env ()
+    match v3 with
+    | Some tok -> (* "," *) token env tok
+    | None -> todo env ()
   in
   let v4 = (* ")" *) token env v4 in
   todo env (v1, v2, v3, v4)
@@ -671,7 +687,9 @@ and map_array_element_initializer (env : env)
 and map_attribute (env : env) ((v1, v2) : CST.attribute) =
   let v1 = map_anon_choice_name_062e4f2 env v1 in
   let v2 =
-    match v2 with Some x -> map_arguments env x | None -> todo env ()
+    match v2 with
+    | Some x -> map_arguments env x
+    | None -> todo env ()
   in
   todo env (v1, v2)
 
@@ -884,7 +902,9 @@ and map_catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) =
   let v2 = (* "(" *) token env v2 in
   let v3 = map_type_list env v3 in
   let v4 =
-    match v4 with Some x -> map_variable_name env x | None -> todo env ()
+    match v4 with
+    | Some x -> map_variable_name env x
+    | None -> todo env ()
   in
   let v5 = (* ")" *) token env v5 in
   let v6 = map_compound_statement env v6 in
@@ -1021,7 +1041,9 @@ and map_enum_member_declaration (env : env) (x : CST.enum_member_declaration) =
   match x with
   | `Enum_case (v1, v2, v3, v4, v5) ->
       let v1 =
-        match v1 with Some x -> map_attribute_list env x | None -> todo env ()
+        match v1 with
+        | Some x -> map_attribute_list env x
+        | None -> todo env ()
       in
       let v2 = (* "case" *) token env v2 in
       let v3 =
@@ -1067,7 +1089,9 @@ and map_expression (env : env) (x : CST.expression) =
       let v1 = map_expression env v1 in
       let v2 = (* "?" *) token env v2 in
       let v3 =
-        match v3 with Some x -> map_expression env x | None -> todo env ()
+        match v3 with
+        | Some x -> map_expression env x
+        | None -> todo env ()
       in
       let v4 = (* ":" *) token env v4 in
       let v5 = map_expression env v5 in
@@ -1197,7 +1221,9 @@ and map_formal_parameters (env : env) ((v1, v2, v3, v4) : CST.formal_parameters)
     | None -> todo env ()
   in
   let v3 =
-    match v3 with Some tok -> (* "," *) token env tok | None -> todo env ()
+    match v3 with
+    | Some tok -> (* "," *) token env tok
+    | None -> todo env ()
   in
   let v4 = (* ")" *) token env v4 in
   todo env (v1, v2, v3, v4)
@@ -1206,12 +1232,16 @@ and map_function_definition_header (env : env)
     ((v1, v2, v3, v4, v5) : CST.function_definition_header) =
   let v1 = (* pattern [fF][uU][nN][cC][tT][iI][oO][nN] *) token env v1 in
   let v2 =
-    match v2 with Some tok -> (* "&" *) token env tok | None -> todo env ()
+    match v2 with
+    | Some tok -> (* "&" *) token env tok
+    | None -> todo env ()
   in
   let v3 = map_anon_choice_name_9dd129a env v3 in
   let v4 = map_formal_parameters env v4 in
   let v5 =
-    match v5 with Some x -> map_return_type env x | None -> todo env ()
+    match v5 with
+    | Some x -> map_return_type env x
+    | None -> todo env ()
   in
   todo env (v1, v2, v3, v4, v5)
 
@@ -1256,7 +1286,9 @@ and map_match_block (env : env) ((v1, v2, v3, v4, v5) : CST.match_block) =
       v3
   in
   let v4 =
-    match v4 with Some tok -> (* "," *) token env tok | None -> todo env ()
+    match v4 with
+    | Some tok -> (* "," *) token env tok
+    | None -> todo env ()
   in
   let v5 = (* "}" *) token env v5 in
   todo env (v1, v2, v3, v4, v5)
@@ -1284,7 +1316,9 @@ and map_member_declaration (env : env) (x : CST.member_declaration) =
   match x with
   | `Class_const_decl (v1, v2, v3) ->
       let v1 =
-        match v1 with Some x -> map_attribute_list env x | None -> todo env ()
+        match v1 with
+        | Some x -> map_attribute_list env x
+        | None -> todo env ()
       in
       let v2 =
         match v2 with
@@ -1295,11 +1329,15 @@ and map_member_declaration (env : env) (x : CST.member_declaration) =
       todo env (v1, v2, v3)
   | `Prop_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 =
-        match v1 with Some x -> map_attribute_list env x | None -> todo env ()
+        match v1 with
+        | Some x -> map_attribute_list env x
+        | None -> todo env ()
       in
       let v2 = List.map (map_modifier env) v2 in
       let v3 =
-        match v3 with Some x -> map_type_ env x | None -> todo env ()
+        match v3 with
+        | Some x -> map_type_ env x
+        | None -> todo env ()
       in
       let v4 = map_property_element env v4 in
       let v5 =
@@ -1333,7 +1371,9 @@ and map_member_name (env : env) (x : CST.member_name) =
 and map_method_declaration (env : env)
     ((v1, v2, v3, v4) : CST.method_declaration) =
   let v1 =
-    match v1 with Some x -> map_attribute_list env x | None -> todo env ()
+    match v1 with
+    | Some x -> map_attribute_list env x
+    | None -> todo env ()
   in
   let v2 = List.map (map_modifier env) v2 in
   let v3 = map_function_definition_header env v3 in
@@ -1358,7 +1398,9 @@ and map_object_creation_expression (env : env)
       let v1 = (* "new" *) token env v1 in
       let v2 = map_class_type_designator env v2 in
       let v3 =
-        match v3 with Some x -> map_arguments env x | None -> todo env ()
+        match v3 with
+        | Some x -> map_arguments env x
+        | None -> todo env ()
       in
       todo env (v1, v2, v3)
   | `New_pat_a7a1629_opt_args_opt_base_clause_opt_class_inte_clause_decl_list
@@ -1366,10 +1408,14 @@ and map_object_creation_expression (env : env)
       let v1 = (* "new" *) token env v1 in
       let v2 = (* pattern [cC][lL][aA][sS][sS] *) token env v2 in
       let v3 =
-        match v3 with Some x -> map_arguments env x | None -> todo env ()
+        match v3 with
+        | Some x -> map_arguments env x
+        | None -> todo env ()
       in
       let v4 =
-        match v4 with Some x -> map_base_clause env x | None -> todo env ()
+        match v4 with
+        | Some x -> map_base_clause env x
+        | None -> todo env ()
       in
       let v5 =
         match v5 with
@@ -1419,7 +1465,9 @@ and map_primary_expression (env : env) (x : CST.primary_expression) =
         | None -> todo env ()
       in
       let v6 =
-        match v6 with Some x -> map_return_type env x | None -> todo env ()
+        match v6 with
+        | Some x -> map_return_type env x
+        | None -> todo env ()
       in
       let v7 = map_compound_statement env v7 in
       todo env (v1, v2, v3, v4, v5, v6, v7)
@@ -1437,7 +1485,9 @@ and map_primary_expression (env : env) (x : CST.primary_expression) =
       in
       let v4 = map_formal_parameters env v4 in
       let v5 =
-        match v5 with Some x -> map_return_type env x | None -> todo env ()
+        match v5 with
+        | Some x -> map_return_type env x
+        | None -> todo env ()
       in
       let v6 = (* "=>" *) token env v6 in
       let v7 = map_expression env v7 in
@@ -1562,15 +1612,21 @@ and map_statement (env : env) (x : CST.statement) =
       let v1 = (* pattern [fF][oO][rR] *) token env v1 in
       let v2 = (* "(" *) token env v2 in
       let v3 =
-        match v3 with Some x -> map_expressions env x | None -> todo env ()
+        match v3 with
+        | Some x -> map_expressions env x
+        | None -> todo env ()
       in
       let v4 = (* ";" *) token env v4 in
       let v5 =
-        match v5 with Some x -> map_expressions env x | None -> todo env ()
+        match v5 with
+        | Some x -> map_expressions env x
+        | None -> todo env ()
       in
       let v6 = (* ";" *) token env v6 in
       let v7 =
-        match v7 with Some x -> map_expressions env x | None -> todo env ()
+        match v7 with
+        | Some x -> map_expressions env x
+        | None -> todo env ()
       in
       let v8 = (* ")" *) token env v8 in
       let v9 =
@@ -1622,21 +1678,27 @@ and map_statement (env : env) (x : CST.statement) =
   | `Cont_stmt (v1, v2, v3) ->
       let v1 = (* pattern [cC][oO][nN][tT][iI][nN][uU][eE] *) token env v1 in
       let v2 =
-        match v2 with Some x -> map_expression env x | None -> todo env ()
+        match v2 with
+        | Some x -> map_expression env x
+        | None -> todo env ()
       in
       let v3 = map_semicolon env v3 in
       todo env (v1, v2, v3)
   | `Brk_stmt (v1, v2, v3) ->
       let v1 = (* pattern [bB][rR][eE][aA][kK] *) token env v1 in
       let v2 =
-        match v2 with Some x -> map_expression env x | None -> todo env ()
+        match v2 with
+        | Some x -> map_expression env x
+        | None -> todo env ()
       in
       let v3 = map_semicolon env v3 in
       todo env (v1, v2, v3)
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = (* pattern [rR][eE][tT][uU][rR][nN] *) token env v1 in
       let v2 =
-        match v2 with Some x -> map_expression env x | None -> todo env ()
+        match v2 with
+        | Some x -> map_expression env x
+        | None -> todo env ()
       in
       let v3 = map_semicolon env v3 in
       todo env (v1, v2, v3)
@@ -1696,14 +1758,18 @@ and map_statement (env : env) (x : CST.statement) =
   | `Const_decl x -> map_const_declaration env x
   | `Func_defi (v1, v2, v3) ->
       let v1 =
-        match v1 with Some x -> map_attribute_list env x | None -> todo env ()
+        match v1 with
+        | Some x -> map_attribute_list env x
+        | None -> todo env ()
       in
       let v2 = map_function_definition_header env v2 in
       let v3 = map_compound_statement env v3 in
       todo env (v1, v2, v3)
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 =
-        match v1 with Some x -> map_attribute_list env x | None -> todo env ()
+        match v1 with
+        | Some x -> map_attribute_list env x
+        | None -> todo env ()
       in
       let v2 =
         match v2 with
@@ -1721,7 +1787,9 @@ and map_statement (env : env) (x : CST.statement) =
         token env v4
       in
       let v5 =
-        match v5 with Some x -> map_base_clause env x | None -> todo env ()
+        match v5 with
+        | Some x -> map_base_clause env x
+        | None -> todo env ()
       in
       let v6 =
         match v6 with
@@ -1730,7 +1798,9 @@ and map_statement (env : env) (x : CST.statement) =
       in
       let v7 = map_declaration_list env v7 in
       let v8 =
-        match v8 with Some x -> map_semicolon env x | None -> todo env ()
+        match v8 with
+        | Some x -> map_semicolon env x
+        | None -> todo env ()
       in
       todo env (v1, v2, v3, v4, v5, v6, v7, v8)
   | `Inte_decl (v1, v2, v3, v4) ->
@@ -1742,7 +1812,9 @@ and map_statement (env : env) (x : CST.statement) =
         token env v2
       in
       let v3 =
-        match v3 with Some x -> map_base_clause env x | None -> todo env ()
+        match v3 with
+        | Some x -> map_base_clause env x
+        | None -> todo env ()
       in
       let v4 = map_declaration_list env v4 in
       todo env (v1, v2, v3, v4)
@@ -1756,7 +1828,9 @@ and map_statement (env : env) (x : CST.statement) =
       todo env (v1, v2, v3)
   | `Enum_decl (v1, v2, v3, v4, v5, v6) ->
       let v1 =
-        match v1 with Some x -> map_attribute_list env x | None -> todo env ()
+        match v1 with
+        | Some x -> map_attribute_list env x
+        | None -> todo env ()
       in
       let v2 = (* pattern [eE][nN][uU][mM] *) token env v2 in
       let v3 =
@@ -1764,7 +1838,9 @@ and map_statement (env : env) (x : CST.statement) =
         token env v3
       in
       let v4 =
-        match v4 with Some x -> map_return_type env x | None -> todo env ()
+        match v4 with
+        | Some x -> map_return_type env x
+        | None -> todo env ()
       in
       let v5 =
         match v5 with
@@ -1870,7 +1946,9 @@ and map_subscript_expression (env : env) ((v1, v2) : CST.subscript_expression) =
     | `LBRACK_opt_exp_RBRACK (v1, v2, v3) ->
         let v1 = (* "[" *) token env v1 in
         let v2 =
-          match v2 with Some x -> map_expression env x | None -> todo env ()
+          match v2 with
+          | Some x -> map_expression env x
+          | None -> todo env ()
         in
         let v3 = (* "]" *) token env v3 in
         todo env (v1, v2, v3)
@@ -2044,7 +2122,11 @@ and map_variadic_unpacking (env : env) ((v1, v2) : CST.variadic_unpacking) =
   todo env (v1, v2)
 
 let map_program (env : env) ((v1, v2) : CST.program) =
-  let v1 = match v1 with Some x -> map_text env x | None -> todo env () in
+  let v1 =
+    match v1 with
+    | Some x -> map_text env x
+    | None -> todo env ()
+  in
   let v2 =
     match v2 with
     | Some (v1, v2) ->
