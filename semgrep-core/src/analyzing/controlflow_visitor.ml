@@ -127,7 +127,7 @@ let exprs_of_node node =
 
 (* this can also be used as an iter; just pass () to acc *)
 let fold_on_node_and_expr hook (flow : flow) acc =
-  flow#nodes#fold
+  flow.graph#nodes#fold
     (fun acc (ni, node) ->
       let xs = exprs_of_node node in
       xs |> List.fold_left (fun acc e -> hook (ni, node) e acc) acc)

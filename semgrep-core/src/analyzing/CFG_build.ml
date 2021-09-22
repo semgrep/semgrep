@@ -43,7 +43,7 @@ type label_key = string * G.sid
  * No need to return a new state.
  *)
 type state = {
-  g : F.cfg;
+  g : (F.node, F.edge) Ograph_extended.ograph_mutable;
   (* When there is a 'return' we need to know the exit node to link to *)
   exiti : F.nodei;
   (* Attaches labels to nodes. *)
@@ -255,4 +255,4 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
    * connect last stmt to the exit node
    *)
   g |> add_arc_opt (last_node_opt, exiti);
-  g
+  { graph = g; entry = enteri }

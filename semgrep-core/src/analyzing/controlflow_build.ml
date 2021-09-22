@@ -32,7 +32,7 @@ module H = AST_generic_helpers
  * No need to return a new state.
  *)
 type state = {
-  g : F.flow;
+  g : (F.node, F.edge) Ograph_extended.ograph_mutable;
   (* When there is a 'return' we need to know the exit node to link to *)
   exiti : F.nodei;
   (* Sometimes when there is a 'continue' or 'break' we must know where
@@ -726,7 +726,7 @@ let (control_flow_graph_of_stmts : parameter list -> stmt list -> F.flow) =
    * connect last stmt to the exit node
    *)
   g |> add_arc_opt (last_node_opt, exiti);
-  g
+  { graph = g; entry = enteri }
 
 let (cfg_of_func : function_definition -> F.flow) =
  fun def ->
