@@ -5,6 +5,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+
+### Changed
+- Taint no longer analyzes dead/unreachable code
+
+### Fixed
+
+## Unreleased
+
+### Added
 - HCL (a.k.a Terraform) experimental support
 
 ### Changed
@@ -12,7 +21,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add rule message to emacs output (#3851)
 - Show stack trace on fatal errors (#3876)
 - Various changes to error messages (#3827)
-- Taint no longer analyzes dead/unreachable code 
 
 ### Fixed
 - Dataflow: Recognize "concat" method and interpret it in a language-dependent manner (#3316)
