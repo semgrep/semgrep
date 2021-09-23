@@ -18,5 +18,7 @@ val m_partial : AST_generic.partial Matching_generic.matcher
 
 val m_field : AST_generic.field Matching_generic.matcher
 
+val m_fields : AST_generic.field list Matching_generic.matcher
+
 (* used only for unit testing *)
 val m_any : AST_generic.any Matching_generic.matcher

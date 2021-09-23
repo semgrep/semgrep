@@ -1429,37 +1429,40 @@ and other_or_type_element_operator =
   | OOTEO_EnumWithMethods
   | OOTEO_EnumWithArguments
 
+and other_type_kind_operator = (* OCaml *)
+  | OTKO_AbstractType | OTKO_Todo
+
 (* ------------------------------------------------------------------------- *)
 (* Object/struct/record/class field definition *)
 (* ------------------------------------------------------------------------- *)
 
 (* Field definition and use, for classes, objects, and records.
+ *
  * note: I don't call it field_definition because it's used both to
  * define the shape of a field (a definition), and when creating
  * an actual field (a value).
+ * note: It is tempting to want to 'field' be just an alias for 'stmt',
+ * but fields can be matched in any order, so it is probably better
+ * to keep them separate.
+ * note: not all stmt in FieldStmt are definitions. You can have also
+ * a Block like in Kotlin for 'init' stmts.
+ * However ideally 'field' should really be just an alias for 'definition'.
  *
  * old: there used to be a FieldVar and FieldMethod similar to
  * VarDef and FuncDef but they are now converted into a FieldStmt(DefStmt).
  * This simplifies semgrep so that a function pattern can match
  * toplevel functions, nested functions, and methods.
- * Note that for FieldVar we sometimes converts it to a FieldDefColon
+ * Note that for FieldVar, we sometimes converts it to a FieldDefColon
  * (which is very similar to a VarDef) because some people don't want a VarDef
  * to match a field definition in certain languages (e.g., Javascript) where
  * the variable declaration and field definition have a different syntax.
  * Note: the FieldStmt(DefStmt(FuncDef(...))) can have empty body
  * for interface methods.
- *
- * Note that not all stmt in FieldStmt are definitions. You can have also
- * a Block like in Kotlin for 'init' stmts.
- * However ideally 'field' should really be just an alias for 'definition'.
  *)
 and field =
   | FieldStmt of stmt
   (* DEBT? could abuse FieldStmt(ExprStmt(IdSpecial(Spread))) for that? *)
   | FieldSpread of tok (* ... *) * expr
-
-and other_type_kind_operator = (* OCaml *)
-  | OTKO_AbstractType | OTKO_Todo
 
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
@@ -1581,7 +1584,7 @@ and other_directive_operator =
  * Indeed, many languages allow nested functions, nested class definitions,
  * and even nested imports, so it is just simpler to merge item with stmt.
  * This simplifies semgrep too.
- * DEBT? merge with field too?
+ * TODO? make it an alias to stmt_or_def_or_dir instead?
  *)
 and item = stmt
 
@@ -1621,6 +1624,7 @@ and any =
   | P of pattern
   | At of attribute
   | Fld of field
+  | Flds of field list
   | Args of argument list
   | Partial of partial
   (* misc *)
