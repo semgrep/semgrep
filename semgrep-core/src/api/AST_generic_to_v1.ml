@@ -1198,6 +1198,10 @@ and map_any x : B.any =
   | Ss v1 ->
       let v1 = map_of_list map_stmt v1 in
       `Ss v1
+  | Flds v1 ->
+      let _v1 = map_of_list map_field v1 in
+      (* TODO *)
+      error x
   | T v1 ->
       let v1 = map_type_ v1 in
       `T v1

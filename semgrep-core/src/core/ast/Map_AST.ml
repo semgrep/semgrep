@@ -1079,6 +1079,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Args v1 ->
         let v1 = map_of_list map_argument v1 in
         Args v1
+    | Flds v1 ->
+        let v1 = map_of_list map_field v1 in
+        Flds v1
     | Partial v1 ->
         let v1 = map_partial v1 in
         Partial v1

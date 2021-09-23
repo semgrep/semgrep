@@ -34,6 +34,7 @@ type visitor_in = {
   ktype_ : (type_ -> unit) * visitor_out -> type_ -> unit;
   kpattern : (pattern -> unit) * visitor_out -> pattern -> unit;
   kfield : (field -> unit) * visitor_out -> field -> unit;
+  kfields : (field list -> unit) * visitor_out -> field list -> unit;
   kattr : (attribute -> unit) * visitor_out -> attribute -> unit;
   kpartial : (partial -> unit) * visitor_out -> partial -> unit;
   kdef : (definition -> unit) * visitor_out -> definition -> unit;
@@ -60,6 +61,7 @@ let default_visitor =
     ktype_ = (fun (k, _) x -> k x);
     kpattern = (fun (k, _) x -> k x);
     kfield = (fun (k, _) x -> k x);
+    kfields = (fun (k, _) x -> k x);
     kpartial = (fun (k, _) x -> k x);
     kdef = (fun (k, _) x -> k x);
     kdir = (fun (k, _) x -> k x);
@@ -289,7 +291,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
           and v2 = v_bracket v_comprehension v2 in
           ()
       | Record v1 ->
-          let v1 = v_bracket (v_list v_field) v1 in
+          let v1 = v_bracket v_fields v1 in
           ()
       | Constructor (v1, v2) ->
           let v1 = v_name v1 and v2 = v_bracket (v_list v_expr) v2 in
@@ -500,11 +502,11 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
       | TyEllipsis v1 -> v_tok v1
       | TyRecordAnon (v0, v1) ->
           v_tok v0;
-          let v1 = v_bracket (v_list v_field) v1 in
+          let v1 = v_bracket v_fields v1 in
           ()
       | TyInterfaceAnon (v0, v1) ->
           v_tok v0;
-          let v1 = v_bracket (v_list v_field) v1 in
+          let v1 = v_bracket v_fields v1 in
           ()
       | TyOr (v1, v2, v3) ->
           v_type_ v1;
@@ -616,6 +618,8 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
       | [] -> ()
       | x :: xs ->
           v_stmt x;
+          (* we will call the visitor also on subsequences. This is useful
+           * for semgrep *)
           v_stmts xs
     in
     vin.kstmts (k, all_functions) xs
@@ -1067,6 +1071,14 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
           ()
     in
     vin.kfield (k, all_functions) x
+  and v_fields xs =
+    (* As opposed to kstmts, we don't call the visitor for sublists
+     * of xs. Indeed, in semgrep, fields are matched in any order
+     * so calling the visitor and matcher on the entire list of fields
+     * should also work.
+     *)
+    let k xs = v_list v_field xs in
+    vin.kfields (k, all_functions) xs
   and v_type_definition { tbody = v_tbody } =
     let arg = v_type_definition_kind v_tbody in
     ()
@@ -1075,7 +1087,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
         let v1 = v_list v_or_type_element v1 in
         ()
     | AndType v1 ->
-        let v1 = v_bracket (v_list v_field) v1 in
+        let v1 = v_bracket v_fields v1 in
         ()
     | AliasType v1 ->
         let v1 = v_type_ v1 in
@@ -1119,7 +1131,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
       let arg = v_list v_type_ v_cimplements in
       let arg = v_list v_type_ v_mixins in
       v_parameters cparams;
-      let arg = v_bracket (v_list v_field) v_cbody in
+      let arg = v_bracket v_fields v_cbody in
       ()
     in
     vin.kclass_definition (k, all_functions) x
@@ -1185,6 +1197,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
   and v_any = function
     | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
+    | Flds v1 -> v_fields v1
     | Anys v1 -> v_list v_any v1
     | Partial v1 -> v_partial ~recurse:true v1
     | TodoK v1 -> v_ident v1
