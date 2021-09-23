@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - HCL (a.k.a Terraform) experimental support
-- Break and Continue support in IL
+- Break and Continue support in taint mode
 
 ### Changed
 - Constant propagation now assumes that void methods may update the callee (#3316)
