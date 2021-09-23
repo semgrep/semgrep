@@ -39,11 +39,10 @@ type env = {
    * usually simple Instr, but can be also If when handling Conditional expr.
    *)
   stmts : stmt list ref;
-  (* When entering a loop, we create a two labels, one to jump to if a Continue stmt is found
-     and another to jump to if a Goto stmt is found. Since PHP supports breaking an arbitrary
+  (* When entering a loop, we create two labels, one to jump to if a Continue stmt is found
+     and another to jump to if a Break stmt is found. Since PHP supports breaking an arbitrary
      number of loops up, we keep a stack of break labels instead of just one
   *)
-  (* TODO: Bad to mix mutable + unmutable fields? *)
   break_labels : label list;
   cont_label : label option;
 }
