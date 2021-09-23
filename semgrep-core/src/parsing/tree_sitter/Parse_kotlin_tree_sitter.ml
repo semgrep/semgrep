@@ -467,7 +467,7 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
 let rec _annotated_lambda (env : env) (v1 : CST.annotated_lambda) =
   lambda_literal env v1
 
-and annotation (env : env) (x : CST.annotation) : attribute list =
+and annotation (env : env) (x : CST.annotation) : attribute =
   match x with
   | `Single_anno (origv1, v2, v3) ->
       let v1 = token env origv1 (* "@" *) in
@@ -484,7 +484,7 @@ and annotation (env : env) (x : CST.annotation) : attribute list =
             NamedAttr
               (v1, Id (str env origv1, empty_id_info ()), fake_bracket [ v3 ])
       in
-      [ v2 ]
+      v2
   | `Multi_anno (origv1, v2, v3, v4, v5) ->
       let v1 = token env origv1 (* "@" *) in
       let _v3 = token env v3 (* "[" *) in
@@ -502,7 +502,7 @@ and annotation (env : env) (x : CST.annotation) : attribute list =
             NamedAttr
               (v1, Id (str env origv1, empty_id_info ()), fake_bracket v4)
       in
-      [ v2 ]
+      v2
 
 and anon_choice_param_b77c1d8 (env : env) (x : CST.anon_choice_param_b77c1d8) =
   match x with
@@ -1452,10 +1452,11 @@ and loop_statement (env : env) (x : CST.loop_statement) =
       let _v6 = token env v6 (* ")" *) in
       DoWhile (v1, v2, v5) |> G.s
 
-and modifiers (env : env) (x : CST.modifiers) : attribute list =
-  match x with
-  | `Anno x -> annotation env x
-  | `Rep1_modi xs -> List.map (modifier env) xs
+and modifiers (env : env) (xs : CST.modifiers) : attribute list =
+  xs
+  |> List.map (function
+       | `Anno x -> annotation env x
+       | `Modi x -> modifier env x)
 
 and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
   let _v1 = member_access_operator env v1 in
@@ -1490,10 +1491,11 @@ and parameter (env : env) ((v1, v2, v3) : CST.parameter) =
   let v3 = type_ env v3 in
   (v1, v3)
 
-and parameter_modifiers (env : env) (x : CST.parameter_modifiers) =
-  match x with
-  | `Anno x -> annotation env x
-  | `Rep1_param_modi xs -> List.map (parameter_modifier env) xs
+and parameter_modifiers (env : env) (xs : CST.parameter_modifiers) =
+  xs
+  |> List.map (function
+       | `Anno x -> annotation env x
+       | `Param_modi x -> parameter_modifier env x)
 
 and parameter_with_optional_type (env : env)
     ((v1, v2, v3) : CST.parameter_with_optional_type) : ident * type_ option =
@@ -1694,11 +1696,6 @@ and property_delegate (env : env) ((v1, v2) : CST.property_delegate) =
   let v2 = expression env v2 in
   Some v2
 
-and range_test (env : env) ((v1, v2) : CST.range_test) =
-  let op, tok = in_operator env v1 in
-  let v2 = expression env v2 in
-  Call (IdSpecial (Op op, tok) |> G.e, fb [ Arg v2 ]) |> G.e
-
 and setter (env : env) ((v1, v2) : CST.setter) =
   let v1 = token env v1 (* "set" *) in
   let v2 =
@@ -1862,15 +1859,15 @@ and type_constraints (env : env) ((v1, v2, v3) : CST.type_constraints) =
   in
   v2 :: v3
 
-and type_modifier (env : env) (x : CST.type_modifier) : attribute list =
+and type_modifier (env : env) (x : CST.type_modifier) : attribute =
   match x with
   | `Anno x -> annotation env x
   | `Susp tok ->
       let x = str env tok (* "suspend" *) in
-      [ G.unhandled_keywordattr x ]
+      G.unhandled_keywordattr x
 
 and type_modifiers (env : env) (xs : CST.type_modifiers) : attribute list =
-  List.map (type_modifier env) xs |> List.flatten
+  List.map (type_modifier env) xs
 
 and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
   let _v1 =
@@ -1937,13 +1934,7 @@ and type_projection (env : env) ~tok (x : CST.type_projection) =
 and type_reference (env : env) (x : CST.type_reference) =
   match x with
   | `User_type x -> user_type env x
-  | `Dyna tok -> TyBuiltin (str env tok) |> G.t
-
-(* "dynamic" *)
-and type_test (env : env) ((v1, v2) : CST.type_test) =
-  let op, tok = is_operator env v1 in
-  let v2 = expression env v2 in
-  Call (IdSpecial (Op op, tok) |> G.e, fb [ Arg v2 ]) |> G.e
+  | `Dyna tok (* "dynamic" *) -> TyBuiltin (str env tok) |> G.t
 
 and unary_expression (env : env) (x : CST.unary_expression) =
   match x with
@@ -2024,7 +2015,7 @@ and value_argument (env : env) ((v1, v2, v3, v4) : CST.value_argument) :
     argument =
   let _v1 =
     match v1 with
-    | Some x -> annotation env x
+    | Some x -> [ annotation env x ]
     | None -> []
   in
   let v2 =
@@ -2083,11 +2074,17 @@ and variable_declaration (env : env) ((v1, v2) : CST.variable_declaration) =
   in
   (v1, v2)
 
-and when_condition (env : env) ((v1, v2, v3) : CST.when_condition) =
-  let v1 = expression env v1 in
-  let v2 = range_test env v2 in
-  let v3 = type_test env v3 in
-  Conditional (v1, v2, v3) |> G.e
+and when_condition (env : env) (x : CST.when_condition) : G.expr =
+  match x with
+  | `Exp v1 -> expression env v1
+  | `Range_test (v1, v2) ->
+      let op, tok = in_operator env v1 in
+      let v2 = expression env v2 in
+      Call (IdSpecial (Op op, tok) |> G.e, fb [ Arg v2 ]) |> G.e
+  | `Type_test (v1, v2) ->
+      let op, tok = is_operator env v1 in
+      let v2 = expression env v2 in
+      Call (IdSpecial (Op op, tok) |> G.e, fb [ Arg v2 ]) |> G.e
 
 and when_entry (env : env) ((v1, v2, v3, v4) : CST.when_entry) =
   let v1 =
