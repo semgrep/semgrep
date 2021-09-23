@@ -2634,6 +2634,7 @@ and m_any a b =
   match (a, b) with
   | G.Str a1, B.Str b1 -> m_string_ellipsis_or_metavar_or_default a1 b1
   | G.Ss a1, B.Ss b1 -> m_stmts_deep ~inside:false ~less_is_ok:true a1 b1
+  | G.Flds a1, B.Flds b1 -> m_fields a1 b1
   | G.E a1, B.E b1 -> m_expr a1 b1
   | G.S a1, B.S b1 -> m_stmt a1 b1
   | G.Partial a1, B.Partial b1 -> m_partial a1 b1
@@ -2676,6 +2677,7 @@ and m_any a b =
   | G.Pr _, _
   | G.Fld _, _
   | G.Ss _, _
+  | G.Flds _, _
   | G.Tk _, _
   | G.Lbli _, _
   | G.NoD _, _

@@ -17,8 +17,7 @@ open AST_generic
 module V = Visitor_AST
 module Err = Error_code
 module PI = Parse_info
-module R = Mini_rule (* TODO: rename to MR *)
-
+module MR = Mini_rule
 module Eq = Equivalence
 module PM = Pattern_match
 module GG = Generic_vs_generic
@@ -32,16 +31,8 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
-(* Main matching engine behind sgrep. This module implements mainly
- * the expr/stmt visitor, while generic_vs_generic does the matching.
- *
- * history: this file was split in sgrep_generic.ml for -e/-f and
- * sgrep_lint_generic.ml for -rules_file. The -e/-f returns results as
- * it goes and takes a single pattern while -rules_file applies a list
- * of patterns and return a result just at the end. We have now factorized
- * the two files because of many bugs and discrepancies between the
- * two operating modes. It was easy to forget to add a new feature in
- * one of the file. Now -rules_file and -e/-f work mostly the same.
+(* Main matching engine behind semgrep. This module implements mainly
+ * the expr/stmt/... visitor, while generic_vs_generic does the matching.
  *)
 
 (*****************************************************************************)
@@ -71,17 +62,17 @@ let set_last_matched_rule rule f =
 (*****************************************************************************)
 
 let match_e_e rule a b env =
-  Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_expr a b env))
   [@@profiling]
 
 let match_st_st rule a b env =
-  Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_stmt a b env))
   [@@profiling]
 
 let match_sts_sts rule a b env =
-  Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () ->
           (* When matching statements, we need not only to report whether
            * there is match, but also the actual statements that were matched.
@@ -99,35 +90,40 @@ let match_sts_sts rule a b env =
             | [] -> env
             | stmt :: _ -> MG.extend_stmts_match_span stmt env
           in
-          GG.m_stmts_deep ~inside:rule.R.inside ~less_is_ok:true a b env))
+          GG.m_stmts_deep ~inside:rule.MR.inside ~less_is_ok:true a b env))
   [@@profiling]
 
 (* for unit testing *)
 let match_any_any pattern e env = GG.m_any pattern e env
 
 let match_t_t rule a b env =
-  Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_type_ a b env))
   [@@profiling]
 
 let match_p_p rule a b env =
-  Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_pattern a b env))
   [@@profiling]
 
 let match_partial_partial rule a b env =
-  Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_partial a b env))
   [@@profiling]
 
 let match_at_at rule a b env =
-  Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_attribute a b env))
   [@@profiling]
 
 let match_fld_fld rule a b env =
-  Common.profile_code ("rule:" ^ rule.R.id) (fun () ->
+  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
       set_last_matched_rule rule (fun () -> GG.m_field a b env))
+  [@@profiling]
+
+let match_flds_flds rule a b env =
+  Common.profile_code ("rule:" ^ rule.MR.id) (fun () ->
+      set_last_matched_rule rule (fun () -> GG.m_fields a b env))
   [@@profiling]
 
 (*****************************************************************************)
@@ -231,11 +227,12 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
     let pattern_rules = ref [] in
     let attribute_rules = ref [] in
     let fld_rules = ref [] in
+    let flds_rules = ref [] in
     let partial_rules = ref [] in
     rules
     |> List.iter (fun rule ->
            (* less: normalize the pattern? *)
-           let any = rule.R.pattern in
+           let any = rule.MR.pattern in
            let any = Apply_equivalences.apply equivs any in
            let cache =
              if !Flag.with_opt_cache then Some (Caching.Cache.create ())
@@ -258,10 +255,11 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
            | P pattern -> Common.push (pattern, rule, cache) pattern_rules
            | At pattern -> Common.push (pattern, rule, cache) attribute_rules
            | Fld pattern -> Common.push (pattern, rule, cache) fld_rules
+           | Flds pattern -> Common.push (pattern, rule, cache) flds_rules
            | Partial pattern -> Common.push (pattern, rule, cache) partial_rules
            | _ ->
                failwith
-                 "only expr/stmt/stmts/type/pattern/annotation/field/partial \
+                 "only expr/stmt(s)/type/pattern/annotation/field(s)/partial \
                   patterns are supported");
 
     let hooks =
@@ -432,6 +430,12 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
             match_rules_and_recurse config (file, hook, matches) !fld_rules
               match_fld_fld k
               (fun x -> Fld x)
+              x);
+        V.kfields =
+          (fun (k, _) x ->
+            match_rules_and_recurse config (file, hook, matches) !flds_rules
+              match_flds_flds k
+              (fun x -> Flds x)
               x);
         V.kpartial =
           (fun (k, _) x ->
