@@ -1,0 +1,11 @@
+rules:
+- id: test
+  # attr_expr equivalence is enabled by default !
+  patterns:
+    - pattern: $VAR.func(...)
+    - pattern-inside: |
+        from foo.bar import $VAR
+        ...
+  message: Semgrep found a match
+  languages: [python]
+  severity: WARNING

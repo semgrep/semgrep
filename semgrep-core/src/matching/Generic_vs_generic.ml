@@ -573,6 +573,15 @@ and m_expr a b =
       _b ) ->
       let full = names @ [ alabel ] in
       m_expr (make_dotted full) b
+  | G.DotAccess (_, _, _), B.N b1 -> (
+      (* Reinterprets a DotAccess expression such as a.b.c as a name, when
+       * a,b,c are all identifiers. Note that something like a.b.c could get
+       * parsed as either DotAccess or IdQualified depending on the context
+       * (e.g., in Python it is always a DotAccess *except* when it occurs
+       * in an attribute). *)
+      match H.name_of_dot_access a with
+      | None -> fail ()
+      | Some a1 -> m_name a1 b1)
   (* $X should not match an IdSpecial in a call context,
    * otherwise $X(...) would match a+b because this is transformed in a
    * Call(IdSpecial Plus, ...).
