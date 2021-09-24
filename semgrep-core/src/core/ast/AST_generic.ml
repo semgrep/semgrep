@@ -839,7 +839,7 @@ and stmt_kind =
    * see also emptystmt() at the end of this file.
    *)
   (* newscope: for vardef in expr in C++/Go/... *)
-  | If of tok (* 'if' or 'elif' *) * expr * stmt * stmt option
+  | If of tok (* 'if' or 'elif' *) * condition * stmt * stmt option
   | While of tok * expr * stmt
   | Return of tok * expr option * sc
   | DoWhile of tok * stmt * expr
@@ -849,7 +849,7 @@ and stmt_kind =
    * less: could be merged with ExprStmt (MatchPattern ...) *)
   | Switch of
       tok (* 'switch' or also 'select' in Go *)
-      * expr option
+      * condition option
       * case_and_body list
   (* todo: merge with Switch.
    * In Scala and C# the match is infix (after the expr)
@@ -883,6 +883,9 @@ and stmt_kind =
    * of relying that the any list contains at least one token
    *)
   | OtherStmt of other_stmt_operator * any list
+
+(* TODO: can also introduce var in some languages *)
+and condition = expr
 
 (* newscope: *)
 (* less: could merge even more with pattern
@@ -1778,20 +1781,26 @@ let opcall (op, t) es = special (Op op, t) es
  * instead of abusing special?
  *)
 let interpolated (lquote, xs, rquote) =
-  let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
-  Call
-    ( special,
-      ( lquote,
-        xs
-        |> List.map (function
-             | Common.Left3 str -> Arg (L (String str) |> e)
-             | Common.Right3 (lbrace, eopt, rbrace) ->
-                 let special = IdSpecial (InterpolatedElement, lbrace) |> e in
-                 let args = eopt |> Common.opt_to_list |> List.map arg in
-                 Arg (Call (special, (lbrace, args, rbrace)) |> e)
-             | Common.Middle3 e -> Arg e),
-        rquote ) )
-  |> e
+  match xs with
+  | [ Common.Left3 (str, tstr) ] ->
+      L (String (str, Parse_info.combine_infos lquote [ tstr; rquote ])) |> e
+  | _ ->
+      let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
+      Call
+        ( special,
+          ( lquote,
+            xs
+            |> List.map (function
+                 | Common.Left3 str -> Arg (L (String str) |> e)
+                 | Common.Right3 (lbrace, eopt, rbrace) ->
+                     let special =
+                       IdSpecial (InterpolatedElement, lbrace) |> e
+                     in
+                     let args = eopt |> Common.opt_to_list |> List.map arg in
+                     Arg (Call (special, (lbrace, args, rbrace)) |> e)
+                 | Common.Middle3 e -> Arg e),
+            rquote ) )
+      |> e
 
 (* todo? use a special construct KeyVal valid only inside Dict? *)
 let keyval k _tarrow v = Container (Tuple, fake_bracket [ k; v ]) |> e
