@@ -729,10 +729,6 @@ let mk_break_continue_labels env tok =
       cont_label = Some cont_label;
     }
   in
-  (* We add a dummy fixme stmt after each label in case the label ends up
-     up with no stmt following it, because the CFG builder assumes all labels
-     are followed by a stmt and will complain otherwise
-  *)
   let cont_label_s = [ mk_s (Label cont_label) ] in
   let break_label_s = [ mk_s (Label break_label) ] in
   (cont_label_s, break_label_s, st_env)
