@@ -232,6 +232,9 @@ and cfg_stmt_list state previ xs =
   in
   match (lasti_opt, labels) with
   | Some lasti, l :: ls ->
+      (* If we had labels at the end of our stmt list, we create a dummy node to assign them to,
+         and connect it to the last node we looked at
+      *)
       let dummyi = state.g#add_node { n = NOther Noop } in
       label_node state (l :: ls) dummyi;
       add_arc (lasti, dummyi) state.g;
