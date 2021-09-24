@@ -280,7 +280,9 @@ and resolved_name_kind =
  * DEBT? Sometimes some DotAccess should really be transformed in IdQualified
  * with a better qualifier because the obj is actually the name of a package
  * or module, but you may need advanced semantic information and global
- * analysis to disambiguate.
+ * analysis to disambiguate. In the meantime, you can use
+ * AST_generic_helpers.name_of_dot_access to convert a DotAccess of idents
+ * into an IdQualified name.
  *
  * less: factorize the id_info in both and inline maybe name_info
  *)
