@@ -5,7 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-- Added break continue support for taint mode
+- Added support for break and continue in the dataflow engine
 
 ### Changed
 - Taint no longer analyzes dead/unreachable code

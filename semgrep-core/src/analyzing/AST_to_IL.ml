@@ -719,7 +719,7 @@ let parameters _env params =
 (* Statement *)
 (*****************************************************************************)
 
-let mk_st_env_and_labels env tok =
+let mk_break_continue_labels env tok =
   let cont_label = fresh_label env tok in
   let break_label = fresh_label env tok in
   let st_env =
@@ -759,19 +759,25 @@ let rec stmt_aux env st =
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
   | G.Switch (_, _, _) -> todo (G.S st)
   | G.While (tok, e, st) ->
-      let cont_label_s, break_label_s, st_env = mk_st_env_and_labels env tok in
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss, e' = expr_with_pre_stmts env e in
       let st = stmt st_env st in
       ss @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ] @ break_label_s
   | G.DoWhile (tok, st, e) ->
-      let cont_label_s, break_label_s, st_env = mk_st_env_and_labels env tok in
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let st = stmt st_env st in
       let ss, e' = expr_with_pre_stmts env e in
       st @ ss
       @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ]
       @ break_label_s
   | G.For (tok, G.ForEach (pat, tok2, e), st) ->
-      let cont_label_s, break_label_s, st_env = mk_st_env_and_labels env tok in
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss, e' = expr_with_pre_stmts env e in
       let st = stmt st_env st in
 
@@ -810,7 +816,9 @@ let rec stmt_aux env st =
         ]
       @ break_label_s
   | G.For (tok, G.ForClassic (xs, eopt1, eopt2), st) ->
-      let cont_label_s, break_label_s, st_env = mk_st_env_and_labels env tok in
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss1 = for_var_or_expr_list env xs in
       let st = stmt st_env st in
       let ss2, cond =
@@ -832,7 +840,9 @@ let rec stmt_aux env st =
       @ break_label_s
   | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
   | G.For (tok, G.ForIn (xs, e), st) ->
-      let cont_label_s, break_label_s, st_env = mk_st_env_and_labels env tok in
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss1 = for_var_or_expr_list env xs in
       let st = stmt st_env st in
       let ss2, cond = expr_with_pre_stmts env (List.nth e 0) (* TODO list *) in
@@ -844,8 +854,7 @@ let rec stmt_aux env st =
       match lbl_ident with
       | G.LNone -> (
           match env.cont_label with
-          | None ->
-              todo (G.S st) (* Continue outside of loop? Should never happen *)
+          | None -> impossible (G.Tk tok)
           | Some lbl -> [ mk_s (Goto (tok, lbl)) ])
       | G.LId lbl -> [ mk_s (Goto (tok, label_of_label env lbl)) ]
       | G.LInt _
@@ -855,16 +864,14 @@ let rec stmt_aux env st =
       match lbl_ident with
       | G.LNone -> (
           match env.break_labels with
-          | [] -> todo (G.S st) (* Break outside of loop? Should never happen *)
+          | [] -> impossible (G.Tk tok)
           | lbl :: _ -> [ mk_s (Goto (tok, lbl)) ])
       | G.LId lbl -> [ mk_s (Goto (tok, label_of_label env lbl)) ]
       | G.LInt (i, _) -> (
           match List.nth_opt env.break_labels i with
-          | None ->
-              todo (G.S st)
-              (* Breaking out of too many loops? Should never happen *)
+          | None -> impossible (G.Tk tok)
           | Some lbl -> [ mk_s (Goto (tok, lbl)) ])
-      | G.LDynamic _ -> todo (G.S st))
+      | G.LDynamic _ -> impossible (G.Tk tok))
   | G.Label (lbl, st) ->
       let lbl = label_of_label env lbl in
       let st = stmt env st in
