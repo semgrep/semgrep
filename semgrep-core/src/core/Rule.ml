@@ -305,6 +305,8 @@ exception InvalidRule of rule_id * string * Parse_info.t
 
 exception UnparsableYamlException of string
 
+exception ExceededMemoryLimit of string
+
 (*****************************************************************************)
 (* Visitor/extractor *)
 (*****************************************************************************)
