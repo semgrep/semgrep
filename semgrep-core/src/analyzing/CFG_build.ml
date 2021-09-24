@@ -216,7 +216,7 @@ and cfg_todo state previ stmt =
   CfgFirstLast (newi, Some newi)
 
 and cfg_stmt_list state previ xs =
-  let lasti_opt =
+  let lasti_opt, labels =
     xs
     |> List.fold_left
          (fun (previ, labels) stmt ->
@@ -229,9 +229,14 @@ and cfg_stmt_list state previ xs =
                (lasti, [])
            | CfgLabel label -> (previ, label :: labels))
          (previ, [])
-    |> fst
   in
-  lasti_opt
+  match (lasti_opt, labels) with
+  | Some lasti, l :: ls ->
+      let dummyi = state.g#add_node { n = NOther Noop } in
+      label_node state (l :: ls) dummyi;
+      add_arc (lasti, dummyi) state.g;
+      lasti_opt
+  | _ -> lasti_opt
 
 (*****************************************************************************)
 (* Main entry point *)
