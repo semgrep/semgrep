@@ -92,8 +92,9 @@ let default_visitor =
 
 let v_id _ = ()
 
-let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
- fun ?(vardef_assign = false) vin ->
+let (mk_visitor :
+      ?vardef_assign:bool -> ?attr_expr:bool -> visitor_in -> visitor_out) =
+ fun ?(vardef_assign = false) ?(attr_expr = false) vin ->
   (* start of auto generation *)
   (* NOTE: we do a few subtle things at a few places now for semgrep
    * to trigger a few more artificial visits:
@@ -602,6 +603,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
           let v1 = v_wrap v_keyword_attribute v1 in
           ()
       | NamedAttr (t, v1, v3) ->
+          let _ = v_named_attr_as_expr v1 v3 in
           let t = v_tok t in
           let v1 = v_name v1 and v3 = v_bracket (v_list v_argument) v3 in
           ()
@@ -611,6 +613,12 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
     in
     vin.kattr (k, all_functions) x
   and v_keyword_attribute _ = ()
+  and v_named_attr_as_expr name args =
+    (* A named attribute is essentially a function call, but this is not
+     * explicit in Generic so we cannot match expression patterns against
+     * attributes. This equivalence enables exactly that, and we can e.g.
+     * match `@f(a)` with `f($X)`. *)
+    if attr_expr then v_expr (e (Call (e (N name), args))) else ()
   and v_other_attribute_operator _ = ()
   and v_stmts xs =
     let k xs =
