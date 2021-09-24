@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Taint no longer analyzes dead/unreachable code
+- Improve error message for segmentation faults/stack overflows
 
 ### Fixed
 
