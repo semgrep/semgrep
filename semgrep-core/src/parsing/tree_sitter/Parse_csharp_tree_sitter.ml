@@ -76,22 +76,25 @@ let prepend_qualifier_to_name (qualifier : qualifier) (name : name) : name =
       let name_info = { name_info with name_qualifier = Some new_qualifier } in
       IdQualified ((ident, name_info), id_info)
 
-let type_parameters_with_constraints params constraints : type_parameter list =
-  List.map
-    (fun param ->
-      let with_constraints =
-        List.find_opt
-          (fun p ->
-            let id, _ = p in
-            let id, _ = id in
-            let param, _ = param in
-            id = param)
-          constraints
-      in
-      match with_constraints with
-      | Some x -> x
-      | None -> (param, []))
-    params
+(* less: we should check we consume all constraints *)
+let type_parameters_with_constraints tparams constraints : type_parameter list =
+  tparams
+  |> List.map (fun tparam ->
+         let with_constraints =
+           constraints
+           |> List.find_opt (fun (id, _xs) -> fst id = fst tparam.tp_id)
+         in
+         match with_constraints with
+         | Some (_id, xs) ->
+             let more_constraints, more_bounds =
+               xs |> Common.partition_either (fun x -> x)
+             in
+             {
+               tparam with
+               tp_constraints = more_constraints @ tparam.tp_constraints;
+               tp_bounds = more_bounds @ tparam.tp_bounds;
+             }
+         | None -> tparam)
 
 let arg_to_expr (a : argument) =
   match a with
@@ -946,19 +949,19 @@ and name (env : env) (x : CST.name) : G.name =
       prepend_qualifier_to_name qualifier v3
   | `Simple_name x -> simple_name env x
 
-and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
+and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) :
+    G.type_parameter =
   let v1 = List.concat_map (attribute_list env) v1 in
   let v2 =
     match v2 with
     | Some x -> (
         match x with
-        | `In tok -> Some (token env tok) (* "in" *)
-        | `Out tok -> Some (token env tok) (* "out" *))
+        | `In tok -> Some (Contravariant, token env tok) (* "in" *)
+        | `Out tok -> Some (Covariant, token env tok) (* "out" *))
     | None -> None
   in
   let v3 = identifier env v3 (* identifier *) in
-  (* TODO can we throw away v1 and v2? *)
-  v3
+  { (G.tparam_of_id v3 v1) with tp_variance = v2 }
 
 and element_binding_expression (env : env) (x : CST.element_binding_expression)
     =
@@ -1562,7 +1565,7 @@ and anon_opt_cst_pat_rep_interp_alig_clause_080fdff (env : env)
   | None -> []
 
 and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
-    =
+    : G.type_parameter list =
   let v1 = token env v1 (* "<" *) in
   let v2 = type_parameter env v2 in
   let v3 =
@@ -1576,7 +1579,8 @@ and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
   let v4 = token env v4 (* ">" *) in
   v2 :: v3
 
-and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
+and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) :
+    (G.type_parameter_constraint, type_) Common.either =
   match x with
   | `Class_opt_QMARK (tok, _)
   (* "class" *)
@@ -1586,14 +1590,14 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
   | `Unma tok ->
       (* "unmanaged" *)
       let t = TyBuiltin (str env tok) |> G.t in
-      Extends t
+      Right t
   | `Cons_cons (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = token env v2 (* "(" *) in
       let v3 = token env v3 (* ")" *) in
       let tok = PI.combine_infos v1 [ v2; v3 ] in
-      HasConstructor tok
-  | `Type_cons x -> Extends (type_constraint env x)
+      Left (HasConstructor tok)
+  | `Type_cons x -> Right (type_constraint env x)
 
 and type_constraint (env : env) (x : CST.type_constraint) : type_ =
   (* can't be `var` *)
@@ -2294,7 +2298,7 @@ and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
 
 and type_parameter_constraints_clause (env : env)
     ((v1, v2, v3, v4, v5) : CST.type_parameter_constraints_clause) =
-  let v1 = token env v1 (* "where" *) in
+  let _v1 = token env v1 (* "where" *) in
   let v2 = identifier_or_global env v2 in
   let v3 = token env v3 (* ":" *) in
   let v4 = type_parameter_constraint env v4 in

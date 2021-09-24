@@ -1470,9 +1470,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
 (* Type *)
 (*****************************************************************************)
 and m_type_ a b =
-  let* () =
-    m_list_in_any_order ~less_is_ok:true m_attribute a.t_attrs b.t_attrs
-  in
+  let* () = m_attributes a.t_attrs b.t_attrs in
   match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
    * MV.Id (or MV.N) when we can, instead of the more general MV.T below *)
@@ -1585,6 +1583,8 @@ and m_attribute a b =
   | G.NamedAttr _, _
   | G.OtherAttribute _, _ ->
       fail ()
+
+and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
 
 and m_other_attribute_operator = m_other_xxx
 
@@ -2104,8 +2104,7 @@ and m_entity a b =
   | ( { G.name = a1; attrs = a2; tparams = a4 },
       { B.name = b1; attrs = b2; tparams = b4 } ) ->
       m_name_or_dynamic a1 b1 >>= fun () ->
-      m_list_in_any_order ~less_is_ok:true m_attribute a2 b2 >>= fun () ->
-      (m_list m_type_parameter) a4 b4
+      m_attributes a2 b2 >>= fun () -> (m_list m_type_parameter) a4 b4
 
 and m_definition_kind a b =
   match (a, b) with
@@ -2133,11 +2132,9 @@ and m_definition_kind a b =
 
 and m_type_parameter_constraint a b =
   match (a, b) with
-  | G.Extends a1, B.Extends b1 -> m_type_ a1 b1
   | G.HasConstructor a1, B.HasConstructor b1 -> m_tok a1 b1
   | G.OtherTypeParam (a1, a2), B.OtherTypeParam (b1, b2) ->
       m_other_type_parameter_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.Extends _, _
   | G.HasConstructor _, _
   | G.OtherTypeParam _, _ ->
       fail ()
@@ -2150,8 +2147,38 @@ and m_type_parameter_constraints a b =
 
 and m_type_parameter a b =
   match (a, b) with
-  | (a1, a2), (b1, b2) ->
-      m_ident a1 b1 >>= fun () -> m_type_parameter_constraints a2 b2
+  | ( {
+        G.tp_id = a1;
+        tp_attrs = a2;
+        tp_bounds = a3;
+        tp_default = a4;
+        tp_variance = a5;
+        tp_constraints = a6;
+      },
+      {
+        B.tp_id = b1;
+        tp_attrs = b2;
+        tp_bounds = b3;
+        tp_default = b4;
+        tp_variance = b5;
+        tp_constraints = b6;
+      } ) ->
+      let* () = m_ident a1 b1 in
+      let* () = m_attributes a2 b2 in
+      m_list__m_type_any_order a3 b3 >>= fun () ->
+      (m_option m_type_) a4 b4 >>= fun () ->
+      (* less-is-more: *)
+      let* () = m_option_none_can_match_some (m_wrap m_variance) a5 b5 in
+      let* () = m_type_parameter_constraints a6 b6 in
+      return ()
+
+and m_variance a b =
+  match (a, b) with
+  | Covariant, Covariant -> return ()
+  | Contravariant, Contravariant -> return ()
+  | Covariant, _
+  | Contravariant, _ ->
+      fail ()
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)

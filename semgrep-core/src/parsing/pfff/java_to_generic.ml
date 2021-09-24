@@ -146,7 +146,7 @@ and ref_type v = typ v
 let type_parameter = function
   | TParam (v1, v2) ->
       let v1 = ident v1 and v2 = list ref_type v2 in
-      (v1, v2 |> List.map (fun t -> G.Extends t))
+      { (G.tparam_of_id v1 []) with G.tp_bounds = v2 }
 
 let rec modifier (x, tok) =
   match x with

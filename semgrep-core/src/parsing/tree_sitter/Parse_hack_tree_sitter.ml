@@ -2696,23 +2696,28 @@ and type_const_declaration (env : env)
 
 and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :
     G.type_parameter =
-  let _v1TODO =
+  let tp_attrs =
     match v1 with
-    | Some x -> Some (attribute_modifier env x)
-    | None -> None
+    | Some x -> [ attribute_modifier env x ]
+    | None -> []
   in
-  let _v2TODO =
+  let tp_variance =
     match v2 with
-    | Some x ->
-        Some
-          (match x with
-          | `PLUS tok -> (* "+" *) token env tok
-          | `DASH tok -> (* "-" *) token env tok
-          | `Reify tok -> (* "reify" *) token env tok)
+    | Some x -> (
+        match x with
+        | `PLUS tok -> (* "+" *) Some (G.Covariant, token env tok)
+        | `DASH tok -> (* "-" *) Some (G.Contravariant, token env tok)
+        | `Reify tok ->
+            (* TODO? what is that? *)
+            let _t = token env tok in
+            (* "reify" *)
+            None)
     | None -> None
   in
-  let id = (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3 in
-  let constraints =
+  let tp_id =
+    (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
+  in
+  let tp_bounds =
     List.map
       (fun (v1, v2) ->
         let _v1TODO =
@@ -2721,11 +2726,12 @@ and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :
           | `Super tok -> (* "super" *) token env tok
         in
         let v2 = type_ env v2 in
-        (* TODO: Extends seems inaccurate here *)
-        G.Extends v2)
+        v2)
       v4
   in
-  (id, constraints)
+  let tp_constraints = [] in
+  let tp_default = None in
+  { G.tp_id; tp_attrs; tp_bounds; tp_variance; tp_default; tp_constraints }
 
 and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
   let _v1 = (* "<" *) token env v1 in

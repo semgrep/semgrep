@@ -1846,22 +1846,21 @@ and type_modifiers (env : env) (xs : CST.type_modifiers) : attribute list =
   List.map (type_modifier env) xs
 
 and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
-  let _v1 =
+  let tp_attrs =
     match v1 with
     | Some x -> type_parameter_modifiers env x
     | None -> []
   in
-  let origv2 = simple_identifier env v2 in
-  let v3 =
+  let tp_id = simple_identifier env v2 in
+  let tp_bounds =
     match v3 with
     | Some (v1, v2) ->
-        let v1 = token env v1 (* ":" *) in
+        let _v1 = token env v1 (* ":" *) in
         let v2 = type_ env v2 in
-        let type_parameter_constraints = [ HasConstructor v1; Extends v2 ] in
-        (origv2, type_parameter_constraints)
-    | None -> (origv2, [])
+        [ v2 ]
+    | None -> []
   in
-  v3
+  { (G.tparam_of_id tp_id tp_attrs) with tp_bounds }
 
 and type_parameter_modifier (env : env) (x : CST.type_parameter_modifier) =
   match x with

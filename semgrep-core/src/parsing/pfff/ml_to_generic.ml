@@ -550,9 +550,14 @@ and type_declaration x =
 
 and type_parameter v =
   match v with
-  | TyParam v -> (ident v, [])
+  | TyParam v -> G.tparam_of_id (ident v) []
   (* TODO *)
-  | TyParamTodo categ -> (categ, [])
+  | TyParamTodo (s, t) ->
+      let id = ("TyParamTodo", fake "TyParamTodo") in
+      {
+        (G.tparam_of_id id []) with
+        tp_constraints = [ G.OtherTypeParam (OTP_Todo, [ TodoK (s, t) ]) ];
+      }
 
 and type_def_kind = function
   | AbstractType -> G.OtherTypeKind (G.OTKO_AbstractType, [])
