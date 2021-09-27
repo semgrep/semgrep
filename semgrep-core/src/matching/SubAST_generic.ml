@@ -197,6 +197,7 @@ let substmts_of_stmt st =
         match def with
         | VarDef _
         | FieldDefColon _
+        | EnumEntryDef _
         | TypeDef _
         | MacroDef _
         | Signature _

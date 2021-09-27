@@ -516,7 +516,7 @@ and definition (ent, def) =
       ({ ent with G.attrs = ent.G.attrs @ more_attrs }, G.ClassDef def)
   | DefTodo (v1, v2) ->
       let v2 = list any v2 in
-      (ent, G.OtherDef (G.OD_Todo, G.TodoK v1 :: v2))
+      (ent, G.OtherDef (v1, v2))
 
 and var_of_var
     ({ name = x_name; attrs }, { v_kind = x_kind; v_init = x_init; v_type }) =

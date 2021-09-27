@@ -56,8 +56,7 @@ let empty_stmt env t =
 
 let unhandled_keywordattr_to_namedattr (env : env) tok =
   let id = str env tok in
-  let name = H2.name_of_id id in
-  NamedAttr (token env tok, name, fake_bracket [])
+  G.unhandled_keywordattr id
 
 let visibility_modifier (env : env) (x : CST.visibility_modifier) =
   match x with
@@ -663,8 +662,8 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         | Some x -> modifiers env x
         | None -> []
       in
-      let _v2 = token env v2 (* "enum" *) in
-      let v3 = (Class, token env v3) (* "class" *) in
+      let v2 = token env v2 (* "enum" *) in
+      let _v3 = token env v3 (* "class" *) in
       let v4 = simple_identifier env v4 in
       let v5 =
         match v5 with
@@ -694,10 +693,10 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         | Some x -> enum_class_body env x
         | None -> fb []
       in
-      let ent = { (G.basic_entity v4 ~attrs:v1) with tparams = v5 } in
+      let ent = G.basic_entity v4 ~attrs:v1 ~tparams:v5 in
       let cdef =
         {
-          ckind = v3;
+          ckind = (EnumClass, v2);
           cextends = v7;
           cimplements = [];
           cmixins = [];
@@ -1025,7 +1024,7 @@ and delegation_specifiers (env : env) ((v1, v2) : CST.delegation_specifiers) :
 
 and enum_class_body (env : env) ((v1, v2, v3, v4) : CST.enum_class_body) =
   let v1 = token env v1 (* "{" *) in
-  let _v2TODO =
+  let v2 =
     match v2 with
     | Some x -> enum_entries env x
     | None -> []
@@ -1043,9 +1042,9 @@ and enum_class_body (env : env) ((v1, v2, v3, v4) : CST.enum_class_body) =
     | None -> []
   in
   let v4 = token env v4 (* "}" *) in
-  (v1, v3, v4)
+  (v1, v2 @ v3, v4)
 
-and enum_entries (env : env) ((v1, v2, v3) : CST.enum_entries) =
+and enum_entries (env : env) ((v1, v2, v3) : CST.enum_entries) : field list =
   let v1 = enum_entry env v1 in
   let v2 =
     List.map
@@ -1062,7 +1061,7 @@ and enum_entries (env : env) ((v1, v2, v3) : CST.enum_entries) =
   in
   v1 :: v2
 
-and enum_entry (env : env) ((v1, v2, v3, v4) : CST.enum_entry) =
+and enum_entry (env : env) ((v1, v2, v3, v4) : CST.enum_entry) : field =
   let v1 =
     match v1 with
     | Some x -> modifiers env x
@@ -1079,7 +1078,9 @@ and enum_entry (env : env) ((v1, v2, v3, v4) : CST.enum_entry) =
     | Some x -> Some (class_body env x)
     | None -> None
   in
-  (v1, v2, v3, v4)
+  let ent = G.basic_entity v2 ~attrs:v1 in
+  let def = EnumEntryDef { ee_args = v3; ee_body = v4 } in
+  (ent, def) |> G.fld
 
 and expression (env : env) (x : CST.expression) : expr =
   match x with
@@ -2209,7 +2210,6 @@ let parse_expression_or_source_file str =
       let expr_str = "__SEMGREP_EXPRESSION " ^ str in
       Tree_sitter_kotlin.Parse.string expr_str
 
-(* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)
