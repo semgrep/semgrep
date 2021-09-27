@@ -9,11 +9,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Taint no longer analyzes dead/unreachable code
+- Improve error message for segmentation faults/stack overflows
 - Attribute-expression equivalence that allows matching expression patterns against
   attributes, it is enabled by default but can be disabled via rule `options:` with
   `attr_expr: false` (#3489)
 
 ### Fixed
+- Fix CFG dummy nodes to always connect to exit node
+
 
 ## [0.66.0](https://github.com/returntocorp/semgrep/releases/tag/v0.66.0) - 09-22-2021
 
