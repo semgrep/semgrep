@@ -336,7 +336,7 @@ let map_extern_modifier (env : env) ((v1, v2) : CST.extern_modifier) :
     Option.map
       (fun x ->
         let str = map_string_literal env x in
-        G.OtherAttribute (G.OA_Expr, [ G.E (G.L str |> G.e) ]))
+        G.OtherAttribute (("Extern", extern), [ G.E (G.L str |> G.e) ]))
       v2
   in
 
@@ -2891,9 +2891,9 @@ and map_visibility_quantifier (env : env) (v1, v2, v3) : G.attribute =
     | `Super tok -> G.KeywordAttr (G.Private, token env tok) (* "super" *)
     | `Crate tok -> G.KeywordAttr (G.Protected, token env tok) (* "crate" *)
     | `In_choice_self (v1, v2) ->
-        let _in_ = token env v1 (* "in" *) in
+        let in_ = token env v1 (* "in" *) in
         let path = map_simple_path env v2 in
-        G.OtherAttribute (G.OA_Expr, [ G.Di path ])
+        G.OtherAttribute (("In", in_), [ G.Di path ])
   in
   let _rparen = token env v3 (* ")" *) in
   attribute

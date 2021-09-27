@@ -657,19 +657,8 @@ and vof_attribute = function
       and v3 = vof_bracket (OCaml.vof_list vof_argument) v3 in
       OCaml.VSum ("NamedAttr", [ t; v1; v3 ])
   | OtherAttribute (v1, v2) ->
-      let v1 = vof_other_attribute_operator v1
-      and v2 = OCaml.vof_list vof_any v2 in
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherAttribute", [ v1; v2 ])
-
-and vof_other_attribute_operator = function
-  | OA_Todo -> OCaml.VSum ("OA_Todo", [])
-  | OA_StrictFP -> OCaml.VSum ("OA_StrictFP", [])
-  | OA_Transient -> OCaml.VSum ("OA_Transient", [])
-  | OA_Synchronized -> OCaml.VSum ("OA_Synchronized", [])
-  | OA_Native -> OCaml.VSum ("OA_Native", [])
-  | OA_AnnotThrow -> OCaml.VSum ("OA_AnnotThrow", [])
-  | OA_Expr -> OCaml.VSum ("OA_Expr", [])
-  | OA_Default -> OCaml.VSum ("OA_Default", [])
 
 and vof_stmt st =
   (* todo: dump also the s_id? *)

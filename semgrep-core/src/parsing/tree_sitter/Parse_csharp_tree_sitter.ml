@@ -331,7 +331,7 @@ let todo_stmt _env tok = G.OtherStmt (G.OS_Todo, [ G.Tk tok ]) |> G.s
 
 let todo_pat _env tok = G.OtherPat (("Todo", tok), [])
 
-let todo_attr _env tok = G.OtherAttribute (G.OA_Expr, [ G.Tk tok ])
+let todo_attr _env tok = G.OtherAttribute (("Todo", tok), [])
 
 let todo_type _env tok = G.OtherType (G.OT_Todo, [ G.Tk tok ]) |> G.t
 

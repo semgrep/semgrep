@@ -1135,7 +1135,9 @@ and attribute =
   | KeywordAttr of keyword_attribute wrap
   (* a.k.a decorators, annotations *)
   | NamedAttr of tok (* @ *) * name * arguments bracket
-  | OtherAttribute of other_attribute_operator * any list
+  (* per-language specific keywords like 'transient', 'synchronized' *)
+  (* todo: Expr used for Python, but should transform in NamedAttr when can *)
+  | OtherAttribute of todo_kind * any list
 
 and keyword_attribute =
   (* the classic C modifiers *)
@@ -1176,19 +1178,6 @@ and keyword_attribute =
   (* Scala *)
   | Lazy (* By name application in Scala, via => T, in parameter *)
   | CaseClass
-
-and other_attribute_operator =
-  (* Java *)
-  | OA_StrictFP
-  | OA_Transient
-  | OA_Synchronized
-  | OA_Native
-  | OA_Default
-  | OA_AnnotThrow
-  (* Other *)
-  (* todo: used for Python, but should transform in NamedAttr when can *)
-  | OA_Expr
-  | OA_Todo
 
 (*****************************************************************************)
 (* Definitions *)
@@ -1308,6 +1297,7 @@ and function_definition = {
   fparams : parameters;
   (* return type *)
   frettype : type_ option;
+  (* TODO: fthrow *)
   (* newscope: *)
   fbody : function_body;
 }
@@ -1893,6 +1883,7 @@ let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))
 let attr kwd tok = KeywordAttr (kwd, tok)
 
 let unhandled_keywordattr (s, t) =
+  (* TODO? or use OtherAttribue? *)
   NamedAttr (t, Id ((s, t), empty_id_info ()), fake_bracket [])
 
 (*****************************************************************************)

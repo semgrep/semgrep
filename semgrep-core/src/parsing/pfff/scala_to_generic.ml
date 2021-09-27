@@ -644,7 +644,7 @@ and v_modifier v : G.attribute =
   let kind, tok = v_wrap v_modifier_kind v in
   match kind with
   | Left kwd -> G.KeywordAttr (kwd, tok)
-  | Right s -> G.OtherAttribute (G.OA_Todo, [ G.TodoK (s, tok) ])
+  | Right s -> G.OtherAttribute ((s, tok), [])
 
 and v_modifier_kind = function
   | Abstract -> Left G.Abstract
@@ -670,8 +670,7 @@ and v_annotation (v1, v2, v3) : G.attribute =
   match v2.t with
   | TyN name -> G.NamedAttr (v1, name, fb args)
   | _ ->
-      G.OtherAttribute
-        (OA_Todo, [ G.TodoK ("AnnotationComplexType", v1); G.T v2; G.Args args ])
+      G.OtherAttribute (("AnnotationComplexType", v1), [ G.T v2; G.Args args ])
 
 and v_attribute x : G.attribute =
   match x with
