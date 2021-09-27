@@ -851,11 +851,11 @@ and map_associated_type (env : env)
         ty)
       v5
   in
-  let _semicolon = token env v6 (* ";" *) in
+  let semicolon = token env v6 (* ";" *) in
   let type_def_kind =
     match ty with
     | Some ty -> G.AliasType ty
-    | None -> G.OtherTypeKind (G.OTKO_AbstractType, [])
+    | None -> G.AbstractType semicolon
   in
   let type_def = { G.tbody = type_def_kind } in
   let ent =

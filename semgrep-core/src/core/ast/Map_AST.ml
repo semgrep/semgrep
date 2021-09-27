@@ -788,7 +788,14 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_attrs = map_of_list map_attribute v_attrs in
     let v_name = map_name_or_dynamic v_name in
     { name = v_name; attrs = v_attrs; tparams = v_tparams }
+  and map_enum_entry_definition { ee_args; ee_body } =
+    let ee_args = map_of_option map_arguments ee_args in
+    let ee_body = map_of_option (map_bracket (map_of_list map_field)) ee_body in
+    { ee_args; ee_body }
   and map_definition_kind = function
+    | EnumEntryDef v1 ->
+        let v1 = map_enum_entry_definition v1 in
+        EnumEntryDef v1
     | FuncDef v1 ->
         let v1 = map_function_definition v1 in
         FuncDef v1
@@ -972,6 +979,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Exception (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_of_list map_type_ v2 in
         Exception (v1, v2)
+    | AbstractType v1 ->
+        let v1 = map_tok v1 in
+        AbstractType v1
     | OtherTypeKind (v1, v2) ->
         let v1 = map_other_type_kind_operator v1
         and v2 = map_of_list map_any v2 in
@@ -987,11 +997,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | OrUnion (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_type_ v2 in
         OrUnion (v1, v2)
-    | OtherOr (v1, v2) ->
-        let v1 = map_other_or_type_element_operator v1
-        and v2 = map_of_list map_any v2 in
-        OtherOr (v1, v2)
-  and map_other_or_type_element_operator x = x
   and map_class_definition
       {
         ckind = v_ckind;
