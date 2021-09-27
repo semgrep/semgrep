@@ -1105,9 +1105,11 @@ and type_kind =
 (* <> in Java/C#/C++/Kotlin/Rust/..., [] in Scala and Go (for Map) *)
 and type_arguments = type_argument list bracket
 
+(* TODO? make a record also? *)
 and type_argument =
   | TypeArg of type_
   (* Java only *)
+  (* use-site variance *)
   | TypeWildcard of
       tok (* '?' *) * (bool wrap (* extends|super, true=super *) * type_) option
   (* Rust *)
@@ -1275,19 +1277,39 @@ and definition_kind =
 and other_def_operator = OD_Todo
 
 (* template/generics/polymorphic-type *)
-and type_parameter = ident * type_parameter_constraint list
+and type_parameter = {
+  (* alt: we could reuse entity here.
+   * note: in Scala the ident can be a wildcard.
+   *)
+  tp_id : ident;
+  tp_attrs : attribute list;
+  (* upper type bounds (must-be-a-subtype-of)
+     alt: we could just use 'type_' and TyAnd to represent intersection types *)
+  tp_bounds : type_ list;
+  (* for Rust/C++. Similar to parameter_classic, but with type here. *)
+  tp_default : type_ option;
+  (* declaration-site variance (Kotlin/Hack/Scala) *)
+  tp_variance : variance wrap option;
+  (* everything else that does not fit *)
+  tp_constraints : type_parameter_constraint list;
+}
 
+and variance =
+  | Covariant (* '+' in Scala/Hack, 'out' in C#/Kotlin *)
+  | Contravariant
+
+(* '-' in Scala/Hack, 'in' in C#/Kotlin *)
+
+(* less: Invariant? *)
 and type_parameter_constraint =
-  | Extends of type_
+  (* C# *)
   | HasConstructor of tok
   | OtherTypeParam of other_type_parameter_operator * any list
 
+(* TODO: get rid of *)
 and other_type_parameter_operator =
   (* Rust *)
   | OTP_Lifetime
-  | OTP_Ident
-  | OTP_Constrained
-  | OTP_Const
   (* Other *)
   | OTP_Todo
 
@@ -1760,9 +1782,9 @@ let basic_id_info resolved =
 (* Entities *)
 (* ------------------------------------------------------------------------- *)
 
-let basic_entity id attrs =
+let basic_entity ?(attrs = []) ?(tparams = []) id =
   let idinfo = empty_id_info () in
-  { name = EN (Id (id, idinfo)); attrs; tparams = [] }
+  { name = EN (Id (id, idinfo)); attrs; tparams }
 
 (* ------------------------------------------------------------------------- *)
 (* Arguments *)
@@ -1830,6 +1852,13 @@ let param_of_type typ =
   }
 
 (* ------------------------------------------------------------------------- *)
+(* Type parameters *)
+(* ------------------------------------------------------------------------- *)
+let tparam_of_id ?(tp_attrs = []) ?(tp_variance = None) ?(tp_bounds = [])
+    ?(tp_default = None) ?(tp_constraints = []) tp_id =
+  { tp_id; tp_attrs; tp_variance; tp_bounds; tp_default; tp_constraints }
+
+(* ------------------------------------------------------------------------- *)
 (* Statements *)
 (* ------------------------------------------------------------------------- *)
 
@@ -1864,7 +1893,7 @@ let stmt1 xs =
 let fld (ent, def) = FieldStmt (s (DefStmt (ent, def)))
 
 let basic_field id vopt typeopt =
-  let entity = basic_entity id [] in
+  let entity = basic_entity id in
   fld (entity, VarDef { vinit = vopt; vtype = typeopt })
 
 let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))

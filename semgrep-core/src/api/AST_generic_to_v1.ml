@@ -960,17 +960,13 @@ and map_macro_definition
   let v_macroparams = map_of_list map_ident v_macroparams in
   { B.macroparams = v_macroparams; macrobody = v_macrobody }
 
-and map_type_parameter (v1, v2) =
-  let v1 = map_ident v1 and v2 = map_type_parameter_constraints v2 in
-  (v1, v2)
+and map_type_parameter _tp = failwith "TODO"
 
-and map_type_parameter_constraints v =
+(*
+and _map_type_parameter_constraints v =
   map_of_list map_type_parameter_constraint v
 
 and map_type_parameter_constraint = function
-  | Extends v1 ->
-      let v1 = map_type_ v1 in
-      `Extends v1
   | HasConstructor t ->
       let t = map_tok t in
       `HasConstructor t
@@ -980,7 +976,7 @@ and map_type_parameter_constraint = function
       `OtherTypeParam (t, xs)
 
 and map_other_type_parameter_operator _x = "TODO"
-
+*)
 and map_function_kind = function
   | Function -> `Function
   | Method -> `Method
