@@ -1541,11 +1541,8 @@ and module_definition_kind =
   | ModuleAlias of dotted_ident
   (* newscope: *)
   | ModuleStruct of dotted_ident option * item list
-  | OtherModule of other_module_operator * any list
-
-and other_module_operator =
-  (* OCaml (functors and their applications) *)
-  | OMO_Todo
+  (* TODO: OCaml (functors and their applications) *)
+  | OtherModule of todo_kind * any list
 
 (* ------------------------------------------------------------------------- *)
 (* Macro definition *)

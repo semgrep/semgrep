@@ -607,7 +607,7 @@ and module_expr = function
   | ModuleTodo (t, xs) ->
       let t = todo_category t in
       let xs = list module_expr xs in
-      G.OtherModule (G.OMO_Todo, G.TodoK t :: List.map (fun x -> G.ModDk x) xs)
+      G.OtherModule (t, List.map (fun x -> G.ModDk x) xs)
 
 and attributes xs = list attribute xs
 

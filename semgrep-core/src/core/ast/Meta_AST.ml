@@ -1035,12 +1035,8 @@ and vof_module_definition_kind = function
       and v2 = OCaml.vof_list vof_item v2 in
       OCaml.VSum ("ModuleStruct", [ v1; v2 ])
   | OtherModule (v1, v2) ->
-      let v1 = vof_other_module_operator v1
-      and v2 = OCaml.vof_list vof_any v2 in
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherModule", [ v1; v2 ])
-
-and vof_other_module_operator = function
-  | OMO_Todo -> OCaml.VSum ("OMO_Todo", [])
 
 and vof_macro_definition
     { macroparams = v_macroparams; macrobody = v_macrobody } =
