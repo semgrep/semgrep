@@ -238,7 +238,7 @@ and cfg_stmt_list state previ xs =
       let dummyi = state.g#add_node { n = NOther Noop } in
       label_node state (l :: ls) dummyi;
       add_arc (lasti, dummyi) state.g;
-      lasti_opt
+      Some dummyi
   | _ -> lasti_opt
 
 (*****************************************************************************)
