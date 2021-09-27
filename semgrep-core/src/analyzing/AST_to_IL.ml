@@ -733,6 +733,13 @@ let mk_break_continue_labels env tok =
   let break_label_s = [ mk_s (Label break_label) ] in
   (cont_label_s, break_label_s, st_env)
 
+let mk_switch_break_label env tok =
+  let break_label = fresh_label env tok in
+  let switch_env =
+    { env with break_labels = break_label :: env.break_labels }
+  in
+  ([ mk_s (Label break_label) ], switch_env)
+
 let rec stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (e, _) ->
@@ -753,7 +760,51 @@ let rec stmt_aux env st =
         List.map (stmt env) (st2 |> Common.opt_to_list) |> List.flatten
       in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
-  | G.Switch (_, _, _) -> todo (G.S st)
+  | G.Switch (_, None, _) -> todo (G.S st)
+  | G.Switch (tok, Some e, case_and_bodies) ->
+      let ss, e' = expr_with_pre_stmts env e in
+      let break_label_s, switch_env = mk_switch_break_label env tok in
+      let cases_to_exp cs =
+        {
+          e =
+            Operator
+              ( (G.Or, tok),
+                List.map
+                  (function
+                    (* TODO: using e as eorig seems questionable but I'm not sure what to use *)
+                    | G.Case (tok, G.PatLiteral l) ->
+                        {
+                          e =
+                            Operator
+                              ((G.Eq, tok), [ { e = Literal l; eorig = e }; e' ]);
+                          eorig = e;
+                        }
+                    | G.Default tok ->
+                        { e = Literal (G.Bool (true, tok)); eorig = e }
+                    | G.Case (tok, _)
+                    | G.CaseEqualExpr (tok, _) ->
+                        fixme_exp ToDo (G.Tk tok) e)
+                  cs );
+          eorig = e;
+        }
+      in
+      let rec f : G.case_and_body stack -> IL.stmt list * IL.stmt list =
+        function
+        | [] -> ([], [])
+        | G.CaseEllipsis _ :: _ -> failwith ""
+        | G.CasesAndBody (cases, body) :: xs ->
+            let jumps, bodies = f xs in
+            let label = fresh_label env tok in
+            let jump =
+              mk_s
+                (IL.If
+                   (tok, cases_to_exp cases, [ mk_s (Goto (tok, label)) ], jumps))
+            in
+            let body = mk_s (Label label) :: stmt switch_env body in
+            ([ jump ], body @ bodies)
+      in
+      let jumps, bodies = f case_and_bodies in
+      ss @ jumps @ bodies @ break_label_s
   | G.While (tok, e, st) ->
       let cont_label_s, break_label_s, st_env =
         mk_break_continue_labels env tok
