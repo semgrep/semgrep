@@ -904,7 +904,8 @@ and v_type_definition_kind = function
       G.NewType v2
   | TDcl v1 ->
       let _v1TODO = v_type_bounds v1 in
-      G.OtherTypeKind (G.OTKO_AbstractType, [])
+      (* abstract type with constraints? *)
+      G.AbstractType (fake "")
 
 let v_program v = v_list v_top_stat v |> List.flatten
 

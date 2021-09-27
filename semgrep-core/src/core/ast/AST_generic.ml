@@ -1260,6 +1260,8 @@ and definition_kind =
    *)
   | FieldDefColon of (* todo: tok (*':'*) * *) variable_definition
   | ClassDef of class_definition
+  (* just inside a ClassDef of EnumClass *)
+  | EnumEntryDef of enum_entry_definition
   | TypeDef of type_definition
   | ModuleDef of module_definition
   | MacroDef of macro_definition
@@ -1272,9 +1274,7 @@ and definition_kind =
    * local.
    *)
   | UseOuterDecl of tok (* 'global' or 'nonlocal' in Python, 'use' in PHP *)
-  | OtherDef of other_def_operator * any list
-
-and other_def_operator = OD_Todo
+  | OtherDef of todo_kind * any list
 
 (* template/generics/polymorphic-type *)
 and type_parameter = {
@@ -1429,7 +1429,9 @@ and variable_definition = {
 and type_definition = { tbody : type_definition_kind }
 
 and type_definition_kind =
-  | OrType of or_type_element list (* enum/ADTs *)
+  (* Algrebraic data types (ADTs), and basic enums.
+   * For enum class see class_definition *)
+  | OrType of or_type_element list
   (* Record definitions (for struct/class, see class_definition).
    * The fields will be defined via a DefStmt (VarDef variable_definition)
    * where the field.vtype should be defined.
@@ -1439,25 +1441,18 @@ and type_definition_kind =
   | AliasType of type_
   (* Haskell/Hack/Go ('type x foo' vs 'type x = foo' in Go) *)
   | NewType of type_
+  (* OCaml/Rust *)
+  | AbstractType of tok (* usually a fake token *)
   | Exception of ident (* same name than entity *) * type_ list
-  | OtherTypeKind of other_type_kind_operator * any list
+  | OtherTypeKind of todo_kind * any list
 
 and or_type_element =
   (* OCaml *)
   | OrConstructor of ident * type_ list
-  (* C *)
+  (* C enums (for enum class in Java/Kotlin, see EnumClass and EnumEntryDef *)
   | OrEnum of ident * expr option
-  (* Java? *)
+  (* C union *)
   | OrUnion of ident * type_
-  | OtherOr of other_or_type_element_operator * any list
-
-and other_or_type_element_operator =
-  (* Java, Kotlin *)
-  | OOTEO_EnumWithMethods
-  | OOTEO_EnumWithArguments
-
-and other_type_kind_operator = (* OCaml *)
-  | OTKO_AbstractType | OTKO_Todo
 
 (* ------------------------------------------------------------------------- *)
 (* Object/struct/record/class field definition *)
@@ -1507,7 +1502,7 @@ and class_definition = {
   (* the class_kind in type_ are usually Trait *)
   (* PHP 'uses' *)
   cmixins : type_ list;
-  (* for Java Record or Scala Classes (we could transpile them into fields) *)
+  (* for Java Record and Kotlin/Scala (we could transpile them into fields) *)
   cparams : parameters;
   (* newscope:
    * note: this can be an empty fake bracket when used in Partial.
@@ -1521,12 +1516,24 @@ and class_kind =
   | Class
   | Interface
   | Trait
-  (* Kotlin, Scala *)
+  (* Kotlin/Scala *)
   | Object
   (* Java 'record', Scala 'case class' *)
   | RecordClass
+  (* Java/Kotlin *)
+  | EnumClass
   (* Java @interface, a.k.a annotation type declaration *)
   | AtInterface
+
+(* ------------------------------------------------------------------------- *)
+(* Enum entry  *)
+(* ------------------------------------------------------------------------- *)
+(* for EnumClass, complex enums-as-classes in Java/Kotlin/Scala? *)
+and enum_entry_definition = {
+  (* the enum identifier is in the corresponding entity *)
+  ee_args : arguments bracket option;
+  ee_body : field list bracket option;
+}
 
 (* ------------------------------------------------------------------------- *)
 (* Module definition  *)
@@ -1782,6 +1789,7 @@ let basic_id_info resolved =
 (* Entities *)
 (* ------------------------------------------------------------------------- *)
 
+(* alt: could use @@deriving make *)
 let basic_entity ?(attrs = []) ?(tparams = []) id =
   let idinfo = empty_id_info () in
   { name = EN (Id (id, idinfo)); attrs; tparams }

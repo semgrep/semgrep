@@ -2679,7 +2679,7 @@ and type_const_declaration (env : env)
         Some v2
     | None -> None
   in
-  let _v9 = (* ";" *) token env v9 in
+  let v9 = (* ";" *) token env v9 in
   match v8 with
   (* Q: AliasType vs NewType? *)
   | Some v8 ->
@@ -2691,7 +2691,7 @@ and type_const_declaration (env : env)
   | None ->
       G.DefStmt
         ( basic_typed_entity id (v1 @ v2 @ v3) type_params,
-          G.OtherDef (G.OD_Todo, []) )
+          G.TypeDef { tbody = AbstractType v9 } )
       |> G.s
 
 and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :

@@ -902,6 +902,7 @@ and map_entity { G.name = v_name; attrs = v_attrs; tparams = v_tparams } =
   { B.name = v_name; attrs = v_attrs; tparams = v_tparams }
 
 and map_definition_kind = function
+  | EnumEntryDef _v -> failwith "TODO"
   | FuncDef v1 ->
       let v1 = map_function_definition v1 in
       `FuncDef v1
@@ -1062,6 +1063,7 @@ and map_type_definition { G.tbody = v_tbody } =
   { B.tbody = v_tbody }
 
 and map_type_definition_kind = function
+  | AbstractType _v1 -> failwith "TODO"
   | OrType v1 ->
       let v1 = map_of_list map_or_type_element v1 in
       `OrType v1
@@ -1094,12 +1096,6 @@ and map_or_type_element = function
   | OrUnion (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_type_ v2 in
       `OrUnion (v1, v2)
-  | OtherOr (v1, v2) ->
-      let v1 = map_other_or_type_element_operator v1
-      and v2 = map_of_list map_any v2 in
-      `OtherOr (v1, v2)
-
-and map_other_or_type_element_operator _x = "TODO"
 
 and map_class_definition
     {
@@ -1132,6 +1128,7 @@ and map_class_kind = function
   | Object -> `Object
   | AtInterface -> `AtInterface
   | RecordClass -> `RecordClass
+  | EnumClass -> failwith "TODO"
 
 and map_directive { d; d_attrs } =
   let d = map_directive_kind d in

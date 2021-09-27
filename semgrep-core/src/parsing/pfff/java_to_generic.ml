@@ -581,21 +581,35 @@ and field v = var_with_init v
 and enum_decl { en_name; en_mods; en_impls; en_body } =
   let v1 = ident en_name in
   let v2 = modifiers en_mods in
-  let _v3TODO = list ref_type en_impls in
+  let v3 = list ref_type en_impls in
   let v4, v5 = en_body in
-  let v4 = list enum_constant v4 in
-  let _v5TODO = decls v5 in
+  let v4 = list enum_constant v4 |> List.map G.fld in
+  let v5 = decls v5 |> List.map (fun st -> G.FieldStmt st) in
   let ent = G.basic_entity v1 ~attrs:v2 in
-  let tdef = { G.tbody = G.OrType v4 } in
-  (ent, tdef)
+  let cbody = fb (v4 @ v5) in
+  let cdef =
+    {
+      G.ckind = (G.EnumClass, snd v1);
+      cextends = v3;
+      cmixins = [];
+      cimplements = [];
+      cparams = [];
+      cbody;
+    }
+  in
+  (ent, cdef)
 
 and enum_constant (v1, v2, v3) =
-  let v1 = ident v1 in
-  let _v2TODO = option arguments v2 in
-  let _v3TODO = option class_body v3 in
-  G.OrConstructor (v1, [])
+  let id = ident v1 in
+  let v2 = option arguments v2 in
+  let v3 = option class_body v3 in
+  let ent = G.basic_entity id in
+  let def = { G.ee_args = v2; ee_body = v3 } in
+  (ent, G.EnumEntryDef def)
 
-and class_body x = bracket decls x
+and class_body (l, xs, r) : G.field list G.bracket =
+  let xs = decls xs |> List.map (fun x -> G.FieldStmt x) in
+  (l, xs, r)
 
 and class_decl
     {
@@ -615,9 +629,8 @@ and class_decl
   let v5 = option typ cl_extends in
   let v6 = list ref_type cl_impls in
   let cparams = parameters cl_formals in
-  let v7 = class_body cl_body in
-  let fields = v7 |> bracket (List.map (fun x -> G.FieldStmt x)) in
-  let ent = { (G.basic_entity v1 ~attrs:v4) with G.tparams = v3 } in
+  let fields = class_body cl_body in
+  let ent = G.basic_entity v1 ~attrs:v4 ~tparams:v3 in
   let cdef =
     {
       G.ckind = v2;
@@ -638,7 +651,7 @@ and class_kind (x, t) =
     | Record -> G.RecordClass),
     t )
 
-and decl decl =
+and decl decl : G.stmt =
   match decl with
   | Class v1 ->
       let ent, def = class_decl v1 in
@@ -651,7 +664,7 @@ and decl decl =
       G.DefStmt (ent, G.VarDef def) |> G.s
   | Enum v1 ->
       let ent, def = enum_decl v1 in
-      G.DefStmt (ent, G.TypeDef def) |> G.s
+      G.DefStmt (ent, G.ClassDef def) |> G.s
   | Init (_v1TODO, v2) ->
       let v2 = stmt v2 in
       v2
@@ -659,7 +672,7 @@ and decl decl =
   | EmptyDecl t -> G.Block (t, [], t) |> G.s
   | AnnotationTypeElementTodo t -> G.OtherStmt (G.OS_Todo, [ G.Tk t ]) |> G.s
 
-and decls v = list decl v
+and decls v : G.stmt list = list decl v
 
 and import = function
   | ImportAll (t, xs, tok) -> G.ImportAll (t, G.DottedName xs, tok)

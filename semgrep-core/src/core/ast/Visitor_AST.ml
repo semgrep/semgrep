@@ -962,7 +962,13 @@ let (mk_visitor :
       ()
     in
     vin.kentity (k, all_functions) x
+  and v_enum_entry_definition { ee_args; ee_body } =
+    v_option v_arguments ee_args;
+    v_option (v_bracket (v_list v_field)) ee_body
   and v_def_kind = function
+    | EnumEntryDef v1 ->
+        let v1 = v_enum_entry_definition v1 in
+        ()
     | FuncDef v1 ->
         let v1 = v_function_definition v1 in
         ()
@@ -1117,6 +1123,7 @@ let (mk_visitor :
     | Exception (v1, v2) ->
         let v1 = v_ident v1 and v2 = v_list v_type_ v2 in
         ()
+    | AbstractType v1 -> v_tok v1
     | OtherTypeKind (v1, v2) ->
         let v1 = v_other_type_kind_operator v1 and v2 = v_list v_any v2 in
         ()
@@ -1131,10 +1138,6 @@ let (mk_visitor :
     | OrUnion (v1, v2) ->
         let v1 = v_ident v1 and v2 = v_type_ v2 in
         ()
-    | OtherOr (v1, v2) ->
-        let v1 = v_other_or_type_element_operator v1 and v2 = v_list v_any v2 in
-        ()
-  and v_other_or_type_element_operator _x = ()
   and v_class_definition x =
     let k
         {

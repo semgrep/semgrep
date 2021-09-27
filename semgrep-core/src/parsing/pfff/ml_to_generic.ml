@@ -558,8 +558,8 @@ and type_parameter v =
         ~tp_constraints:[ G.OtherTypeParam (OTP_Todo, [ TodoK (s, t) ]) ]
 
 and type_def_kind = function
-  | AbstractType -> G.OtherTypeKind (G.OTKO_AbstractType, [])
-  | TdTodo categ -> G.OtherTypeKind (G.OTKO_Todo, [ G.TodoK categ ])
+  | AbstractType -> G.AbstractType (fake "")
+  | TdTodo categ -> G.OtherTypeKind (categ, [])
   | CoreType v1 ->
       let v1 = type_ v1 in
       G.AliasType v1

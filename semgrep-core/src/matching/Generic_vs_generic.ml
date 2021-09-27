@@ -2118,6 +2118,7 @@ and m_entity a b =
 and m_definition_kind a b =
   match (a, b) with
   (* boilerplate *)
+  | G.EnumEntryDef a1, B.EnumEntryDef b1 -> m_enum_entry_definition a1 b1
   | G.FuncDef a1, B.FuncDef b1 -> m_function_definition a1 b1
   | G.VarDef a1, B.VarDef b1 -> m_variable_definition a1 b1
   | G.FieldDefColon a1, B.FieldDefColon b1 -> m_variable_definition a1 b1
@@ -2136,8 +2137,16 @@ and m_definition_kind a b =
   | G.Signature _, _
   | G.UseOuterDecl _, _
   | G.FieldDefColon _, _
+  | G.EnumEntryDef _, _
   | G.OtherDef _, _ ->
       fail ()
+
+and m_enum_entry_definition a b =
+  match (a, b) with
+  | { G.ee_args = a1; ee_body = a2 }, { B.ee_args = b1; ee_body = b2 } ->
+      let* () = m_option m_arguments a1 b1 in
+      let* () = m_option (m_bracket m_fields) a2 b2 in
+      return ()
 
 and m_type_parameter_constraint a b =
   match (a, b) with
@@ -2416,11 +2425,13 @@ and m_type_definition_kind a b =
       (m_list m_type_) a2 b2
   | G.OtherTypeKind (a1, a2), B.OtherTypeKind (b1, b2) ->
       m_other_type_kind_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.AbstractType a1, B.AbstractType b1 -> m_tok a1 b1
   | G.OrType _, _
   | G.AndType _, _
   | G.AliasType _, _
   | G.Exception _, _
   | G.NewType _, _
+  | G.AbstractType _, _
   | G.OtherTypeKind _, _ ->
       fail ()
 
@@ -2434,17 +2445,12 @@ and m_or_type a b =
       m_ident a1 b1 >>= fun () -> m_option m_expr a2 b2
   | G.OrUnion (a1, a2), B.OrUnion (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_type_ a2 b2
-  | G.OtherOr (a1, a2), B.OtherOr (b1, b2) ->
-      m_other_or_type_element_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.OrConstructor _, _
   | G.OrEnum _, _
-  | G.OrUnion _, _
-  | G.OtherOr _, _ ->
+  | G.OrUnion _, _ ->
       fail ()
 
 and m_other_type_kind_operator = m_other_xxx
-
-and m_other_or_type_element_operator = m_other_xxx
 
 and m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
@@ -2506,6 +2512,7 @@ and m_class_kind_bis a b =
   | G.Trait, B.Trait
   | G.AtInterface, B.AtInterface
   | G.Object, B.Object
+  | G.EnumClass, B.EnumClass
   | G.RecordClass, B.RecordClass ->
       return ()
   | G.Class, _
@@ -2513,6 +2520,7 @@ and m_class_kind_bis a b =
   | G.Trait, _
   | G.AtInterface, _
   | G.Object, _
+  | G.EnumClass, _
   | G.RecordClass, _ ->
       fail ()
 
