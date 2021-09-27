@@ -527,7 +527,7 @@ let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
   let v1 = (* identifier *) map_identifier env v1 in
   let _v2 = (* "=" *) token env v2 in
   let v3 = map_expression env v3 in
-  let ent = G.basic_entity v1 [] in
+  let ent = G.basic_entity v1 in
   let def = { vinit = Some v3; vtype = None } in
   (ent, VarDef def)
 

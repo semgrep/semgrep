@@ -788,7 +788,14 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_attrs = map_of_list map_attribute v_attrs in
     let v_name = map_name_or_dynamic v_name in
     { name = v_name; attrs = v_attrs; tparams = v_tparams }
+  and map_enum_entry_definition { ee_args; ee_body } =
+    let ee_args = map_of_option map_arguments ee_args in
+    let ee_body = map_of_option (map_bracket (map_of_list map_field)) ee_body in
+    { ee_args; ee_body }
   and map_definition_kind = function
+    | EnumEntryDef v1 ->
+        let v1 = map_enum_entry_definition v1 in
+        EnumEntryDef v1
     | FuncDef v1 ->
         let v1 = map_function_definition v1 in
         FuncDef v1
@@ -841,15 +848,35 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_macrobody = map_of_list map_any v_macrobody in
     let v_macroparams = map_of_list map_ident v_macroparams in
     { macroparams = v_macroparams; macrobody = v_macrobody }
-  and map_type_parameter (v1, v2) =
-    let v1 = map_ident v1 and v2 = map_type_parameter_constraints v2 in
-    (v1, v2)
+  and map_type_parameter
+      {
+        tp_id = v1;
+        tp_attrs = v2;
+        tp_bounds = v3;
+        tp_default = v4;
+        tp_variance = v5;
+        tp_constraints = v6;
+      } =
+    let v1 = map_ident v1 in
+    let v2 = map_of_list map_attribute v2 in
+    let v3 = map_of_list map_type_ v3 in
+    let v4 = map_of_option map_type_ v4 in
+    let v5 = map_of_option (map_wrap map_variance) v5 in
+    let v6 = map_type_parameter_constraints v6 in
+    {
+      tp_id = v1;
+      tp_attrs = v2;
+      tp_bounds = v3;
+      tp_default = v4;
+      tp_variance = v5;
+      tp_constraints = v6;
+    }
+  and map_variance = function
+    | Covariant -> Covariant
+    | Contravariant -> Contravariant
   and map_type_parameter_constraints v =
     map_of_list map_type_parameter_constraint v
   and map_type_parameter_constraint = function
-    | Extends v1 ->
-        let v1 = map_type_ v1 in
-        Extends v1
     | HasConstructor t ->
         let t = map_tok t in
         HasConstructor t
@@ -952,6 +979,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Exception (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_of_list map_type_ v2 in
         Exception (v1, v2)
+    | AbstractType v1 ->
+        let v1 = map_tok v1 in
+        AbstractType v1
     | OtherTypeKind (v1, v2) ->
         let v1 = map_other_type_kind_operator v1
         and v2 = map_of_list map_any v2 in
@@ -967,11 +997,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | OrUnion (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_type_ v2 in
         OrUnion (v1, v2)
-    | OtherOr (v1, v2) ->
-        let v1 = map_other_or_type_element_operator v1
-        and v2 = map_of_list map_any v2 in
-        OtherOr (v1, v2)
-  and map_other_or_type_element_operator x = x
   and map_class_definition
       {
         ckind = v_ckind;

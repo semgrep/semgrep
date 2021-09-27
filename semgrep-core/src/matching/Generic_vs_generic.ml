@@ -573,6 +573,15 @@ and m_expr a b =
       _b ) ->
       let full = names @ [ alabel ] in
       m_expr (make_dotted full) b
+  | G.DotAccess (_, _, _), B.N b1 -> (
+      (* Reinterprets a DotAccess expression such as a.b.c as a name, when
+       * a,b,c are all identifiers. Note that something like a.b.c could get
+       * parsed as either DotAccess or IdQualified depending on the context
+       * (e.g., in Python it is always a DotAccess *except* when it occurs
+       * in an attribute). *)
+      match H.name_of_dot_access a with
+      | None -> fail ()
+      | Some a1 -> m_name a1 b1)
   (* $X should not match an IdSpecial in a call context,
    * otherwise $X(...) would match a+b because this is transformed in a
    * Call(IdSpecial Plus, ...).
@@ -1470,9 +1479,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
 (* Type *)
 (*****************************************************************************)
 and m_type_ a b =
-  let* () =
-    m_list_in_any_order ~less_is_ok:true m_attribute a.t_attrs b.t_attrs
-  in
+  let* () = m_attributes a.t_attrs b.t_attrs in
   match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
    * MV.Id (or MV.N) when we can, instead of the more general MV.T below *)
@@ -1585,6 +1592,8 @@ and m_attribute a b =
   | G.NamedAttr _, _
   | G.OtherAttribute _, _ ->
       fail ()
+
+and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
 
 and m_other_attribute_operator = m_other_xxx
 
@@ -2104,12 +2113,12 @@ and m_entity a b =
   | ( { G.name = a1; attrs = a2; tparams = a4 },
       { B.name = b1; attrs = b2; tparams = b4 } ) ->
       m_name_or_dynamic a1 b1 >>= fun () ->
-      m_list_in_any_order ~less_is_ok:true m_attribute a2 b2 >>= fun () ->
-      (m_list m_type_parameter) a4 b4
+      m_attributes a2 b2 >>= fun () -> (m_list m_type_parameter) a4 b4
 
 and m_definition_kind a b =
   match (a, b) with
   (* boilerplate *)
+  | G.EnumEntryDef a1, B.EnumEntryDef b1 -> m_enum_entry_definition a1 b1
   | G.FuncDef a1, B.FuncDef b1 -> m_function_definition a1 b1
   | G.VarDef a1, B.VarDef b1 -> m_variable_definition a1 b1
   | G.FieldDefColon a1, B.FieldDefColon b1 -> m_variable_definition a1 b1
@@ -2128,16 +2137,22 @@ and m_definition_kind a b =
   | G.Signature _, _
   | G.UseOuterDecl _, _
   | G.FieldDefColon _, _
+  | G.EnumEntryDef _, _
   | G.OtherDef _, _ ->
       fail ()
 
+and m_enum_entry_definition a b =
+  match (a, b) with
+  | { G.ee_args = a1; ee_body = a2 }, { B.ee_args = b1; ee_body = b2 } ->
+      let* () = m_option m_arguments a1 b1 in
+      let* () = m_option (m_bracket m_fields) a2 b2 in
+      return ()
+
 and m_type_parameter_constraint a b =
   match (a, b) with
-  | G.Extends a1, B.Extends b1 -> m_type_ a1 b1
   | G.HasConstructor a1, B.HasConstructor b1 -> m_tok a1 b1
   | G.OtherTypeParam (a1, a2), B.OtherTypeParam (b1, b2) ->
       m_other_type_parameter_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.Extends _, _
   | G.HasConstructor _, _
   | G.OtherTypeParam _, _ ->
       fail ()
@@ -2150,8 +2165,38 @@ and m_type_parameter_constraints a b =
 
 and m_type_parameter a b =
   match (a, b) with
-  | (a1, a2), (b1, b2) ->
-      m_ident a1 b1 >>= fun () -> m_type_parameter_constraints a2 b2
+  | ( {
+        G.tp_id = a1;
+        tp_attrs = a2;
+        tp_bounds = a3;
+        tp_default = a4;
+        tp_variance = a5;
+        tp_constraints = a6;
+      },
+      {
+        B.tp_id = b1;
+        tp_attrs = b2;
+        tp_bounds = b3;
+        tp_default = b4;
+        tp_variance = b5;
+        tp_constraints = b6;
+      } ) ->
+      let* () = m_ident a1 b1 in
+      let* () = m_attributes a2 b2 in
+      m_list__m_type_any_order a3 b3 >>= fun () ->
+      (m_option m_type_) a4 b4 >>= fun () ->
+      (* less-is-more: *)
+      let* () = m_option_none_can_match_some (m_wrap m_variance) a5 b5 in
+      let* () = m_type_parameter_constraints a6 b6 in
+      return ()
+
+and m_variance a b =
+  match (a, b) with
+  | Covariant, Covariant -> return ()
+  | Contravariant, Contravariant -> return ()
+  | Covariant, _
+  | Contravariant, _ ->
+      fail ()
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -2380,11 +2425,13 @@ and m_type_definition_kind a b =
       (m_list m_type_) a2 b2
   | G.OtherTypeKind (a1, a2), B.OtherTypeKind (b1, b2) ->
       m_other_type_kind_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.AbstractType a1, B.AbstractType b1 -> m_tok a1 b1
   | G.OrType _, _
   | G.AndType _, _
   | G.AliasType _, _
   | G.Exception _, _
   | G.NewType _, _
+  | G.AbstractType _, _
   | G.OtherTypeKind _, _ ->
       fail ()
 
@@ -2398,17 +2445,12 @@ and m_or_type a b =
       m_ident a1 b1 >>= fun () -> m_option m_expr a2 b2
   | G.OrUnion (a1, a2), B.OrUnion (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_type_ a2 b2
-  | G.OtherOr (a1, a2), B.OtherOr (b1, b2) ->
-      m_other_or_type_element_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.OrConstructor _, _
   | G.OrEnum _, _
-  | G.OrUnion _, _
-  | G.OtherOr _, _ ->
+  | G.OrUnion _, _ ->
       fail ()
 
 and m_other_type_kind_operator = m_other_xxx
-
-and m_other_or_type_element_operator = m_other_xxx
 
 and m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
@@ -2470,6 +2512,7 @@ and m_class_kind_bis a b =
   | G.Trait, B.Trait
   | G.AtInterface, B.AtInterface
   | G.Object, B.Object
+  | G.EnumClass, B.EnumClass
   | G.RecordClass, B.RecordClass ->
       return ()
   | G.Class, _
@@ -2477,6 +2520,7 @@ and m_class_kind_bis a b =
   | G.Trait, _
   | G.AtInterface, _
   | G.Object, _
+  | G.EnumClass, _
   | G.RecordClass, _ ->
       fail ()
 

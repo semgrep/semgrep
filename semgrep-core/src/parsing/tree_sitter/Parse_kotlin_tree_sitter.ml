@@ -56,8 +56,7 @@ let empty_stmt env t =
 
 let unhandled_keywordattr_to_namedattr (env : env) tok =
   let id = str env tok in
-  let name = H2.name_of_id id in
-  NamedAttr (token env tok, name, fake_bracket [])
+  G.unhandled_keywordattr id
 
 let visibility_modifier (env : env) (x : CST.visibility_modifier) =
   match x with
@@ -131,10 +130,10 @@ let postfix_unary_operator (env : env) (x : CST.postfix_unary_operator) =
 
 (* "!!" *)
 
-let variance_modifier (env : env) (x : CST.variance_modifier) =
+let variance_modifier (env : env) (x : CST.variance_modifier) : variance wrap =
   match x with
-  | `In tok -> token env tok (* "in" *)
-  | `Out tok -> token env tok
+  | `In tok -> (Contravariant, token env tok) (* "in" *)
+  | `Out tok -> (Covariant, token env tok)
 
 (* "out" *)
 
@@ -270,8 +269,8 @@ let uni_character_literal (env : env) ((v1, v2, v3) : CST.uni_character_literal)
   (fst v3, PI.combine_infos (snd v1) [ snd v3 ])
 
 let type_projection_modifier (env : env) (x : CST.type_projection_modifier) =
-  let _ = variance_modifier env x in
-  raise Todo
+  let x = variance_modifier env x in
+  x
 
 (* ignore, treat as a comment *)
 let shebang_line (env : env) ((v1, v2) : CST.shebang_line) =
@@ -616,7 +615,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         (* "interface" *)
       in
       let v3 = simple_identifier env v3 in
-      let _v4 =
+      let v4 =
         match v4 with
         | Some x -> type_parameters env x
         | None -> []
@@ -644,7 +643,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         | Some x -> class_body env x
         | None -> fb []
       in
-      let ent = G.basic_entity v3 v1 in
+      let ent = G.basic_entity v3 ~attrs:v1 ~tparams:v4 in
       let cdef =
         {
           ckind = v2;
@@ -663,8 +662,8 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         | Some x -> modifiers env x
         | None -> []
       in
-      let _v2 = token env v2 (* "enum" *) in
-      let v3 = (Class, token env v3) (* "class" *) in
+      let v2 = token env v2 (* "enum" *) in
+      let _v3 = token env v3 (* "class" *) in
       let v4 = simple_identifier env v4 in
       let v5 =
         match v5 with
@@ -694,10 +693,10 @@ and class_declaration (env : env) (x : CST.class_declaration) :
         | Some x -> enum_class_body env x
         | None -> fb []
       in
-      let ent = { (G.basic_entity v4 v1) with tparams = v5 } in
+      let ent = G.basic_entity v4 ~attrs:v1 ~tparams:v5 in
       let cdef =
         {
-          ckind = v3;
+          ckind = (EnumClass, v2);
           cextends = v7;
           cimplements = [];
           cmixins = [];
@@ -739,7 +738,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
         | Some x -> class_body env x
         | None -> fb []
       in
-      let ent = G.basic_entity v4 v1 in
+      let ent = G.basic_entity v4 ~attrs:v1 in
       let cdef =
         {
           ckind = (Object, v3);
@@ -776,7 +775,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
         | Some x -> G.FBStmt (block env x)
         | None -> G.FBDecl G.sc
       in
-      let ent = G.basic_entity v2 v1 in
+      let ent = G.basic_entity v2 ~attrs:v1 in
       let def =
         { fkind = (Method, snd v2); fparams = v3; frettype = None; fbody = v5 }
       in
@@ -888,7 +887,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
         | Some x -> class_body env x
         | None -> fb []
       in
-      let ent = G.basic_entity v3 v1 in
+      let ent = G.basic_entity v3 ~attrs:v1 in
       let cdef =
         {
           ckind = (Object, v2);
@@ -901,12 +900,12 @@ and declaration (env : env) (x : CST.declaration) : definition =
       in
       (ent, ClassDef cdef)
   | `Func_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
-      let _v1 =
+      let v1 =
         match v1 with
         | Some x -> modifiers env x
         | None -> []
       in
-      let _v2 =
+      let v2 =
         match v2 with
         | Some x -> type_parameters env x
         | None -> []
@@ -932,20 +931,20 @@ and declaration (env : env) (x : CST.declaration) : definition =
         | Some x -> function_body env x
         | None -> G.FBDecl G.sc
       in
-      let entity = basic_entity v4 [] in
+      let entity = basic_entity v4 ~attrs:v1 ~tparams:v2 in
       let func_def =
         { fkind = (Function, v3); fparams = v5; frettype = v6; fbody = v8 }
       in
       let def_kind = FuncDef func_def in
       (entity, def_kind)
   | `Prop_decl (v1, v2, v3, v4, v5, v6, v7) ->
-      let _v1 =
+      let v1 =
         match v1 with
         | Some x -> modifiers env x
         | None -> []
       in
       let _v2 = anon_choice_val_2833752 env v2 in
-      let _v3 =
+      let v3 =
         match v3 with
         | Some x -> type_parameters env x
         | None -> []
@@ -984,14 +983,14 @@ and declaration (env : env) (x : CST.declaration) : definition =
             | None -> None)
       in
       let vdef = { vinit = v6; vtype = type_info } in
-      let ent = basic_entity tok [] in
+      let ent = basic_entity tok ~attrs:v1 ~tparams:v3 in
       (ent, VarDef vdef)
   | `Type_alias (v1, v2, v3, v4) ->
       let _v1 = token env v1 (* "typealias" *) in
       let v2 = simple_identifier env v2 in
       let _v3 = token env v3 (* "=" *) in
       let v4 = type_ env v4 in
-      let ent = basic_entity v2 [] in
+      let ent = basic_entity v2 in
       let tdef = { tbody = AliasType v4 } in
       (ent, TypeDef tdef)
 
@@ -1025,7 +1024,7 @@ and delegation_specifiers (env : env) ((v1, v2) : CST.delegation_specifiers) :
 
 and enum_class_body (env : env) ((v1, v2, v3, v4) : CST.enum_class_body) =
   let v1 = token env v1 (* "{" *) in
-  let _v2TODO =
+  let v2 =
     match v2 with
     | Some x -> enum_entries env x
     | None -> []
@@ -1043,9 +1042,9 @@ and enum_class_body (env : env) ((v1, v2, v3, v4) : CST.enum_class_body) =
     | None -> []
   in
   let v4 = token env v4 (* "}" *) in
-  (v1, v3, v4)
+  (v1, v2 @ v3, v4)
 
-and enum_entries (env : env) ((v1, v2, v3) : CST.enum_entries) =
+and enum_entries (env : env) ((v1, v2, v3) : CST.enum_entries) : field list =
   let v1 = enum_entry env v1 in
   let v2 =
     List.map
@@ -1062,7 +1061,7 @@ and enum_entries (env : env) ((v1, v2, v3) : CST.enum_entries) =
   in
   v1 :: v2
 
-and enum_entry (env : env) ((v1, v2, v3, v4) : CST.enum_entry) =
+and enum_entry (env : env) ((v1, v2, v3, v4) : CST.enum_entry) : field =
   let v1 =
     match v1 with
     | Some x -> modifiers env x
@@ -1079,7 +1078,9 @@ and enum_entry (env : env) ((v1, v2, v3, v4) : CST.enum_entry) =
     | Some x -> Some (class_body env x)
     | None -> None
   in
-  (v1, v2, v3, v4)
+  let ent = G.basic_entity v2 ~attrs:v1 in
+  let def = EnumEntryDef { ee_args = v3; ee_body = v4 } in
+  (ent, def) |> G.fld
 
 and expression (env : env) (x : CST.expression) : expr =
   match x with
@@ -1846,31 +1847,37 @@ and type_modifiers (env : env) (xs : CST.type_modifiers) : attribute list =
   List.map (type_modifier env) xs
 
 and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
-  let _v1 =
+  let tp_modifiers =
     match v1 with
     | Some x -> type_parameter_modifiers env x
     | None -> []
   in
-  let origv2 = simple_identifier env v2 in
-  let v3 =
+  let tp_id = simple_identifier env v2 in
+  let tp_bounds =
     match v3 with
     | Some (v1, v2) ->
-        let v1 = token env v1 (* ":" *) in
+        let _v1 = token env v1 (* ":" *) in
         let v2 = type_ env v2 in
-        let type_parameter_constraints = [ HasConstructor v1; Extends v2 ] in
-        (origv2, type_parameter_constraints)
-    | None -> (origv2, [])
+        [ v2 ]
+    | None -> []
   in
-  v3
+  let tp_attrs, variances = Common.partition_either (fun x -> x) tp_modifiers in
+  let tp_variance =
+    match variances with
+    | [] -> None
+    (* can have multiple variance? I just keep the first one *)
+    | x :: _ -> Some x
+  in
+  G.tparam_of_id tp_id ~tp_attrs ~tp_bounds ~tp_variance
 
 and type_parameter_modifier (env : env) (x : CST.type_parameter_modifier) =
   match x with
   | `Reif_modi tok ->
-      let _t = token env tok in
+      let x = str env tok in
       (* "reified" *)
-      raise Todo
-  | `Vari_modi x -> type_projection_modifier env x
-  | `Anno x -> annotation env x
+      Left (unhandled_keywordattr x)
+  | `Vari_modi x -> Right (type_projection_modifier env x)
+  | `Anno x -> Left (annotation env x)
 
 and type_parameter_modifiers (env : env) (xs : CST.type_parameter_modifiers) =
   List.map (type_parameter_modifier env) xs
@@ -2203,7 +2210,6 @@ let parse_expression_or_source_file str =
       let expr_str = "__SEMGREP_EXPRESSION " ^ str in
       Tree_sitter_kotlin.Parse.string expr_str
 
-(* todo: special mode to convert Ellipsis in the right construct! *)
 let parse_pattern str =
   H.wrap_parser
     (fun () -> parse_expression_or_source_file str)

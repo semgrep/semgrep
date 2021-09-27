@@ -526,15 +526,15 @@ and definition def =
       | M mn -> (
           match method_name mn with
           | Left id ->
-              let ent = G.basic_entity id [] in
+              let ent = G.basic_entity id in
               G.DefStmt (ent, G.FuncDef funcdef) |> G.s
           | Right e ->
-              let ent = G.basic_entity ("", fake t "") [] in
+              let ent = G.basic_entity ("", fake t "") in
               G.OtherStmt (G.OS_Todo, [ G.E e; G.Def (ent, G.FuncDef funcdef) ])
               |> G.s)
       | SingletonM e ->
           let e = expr e in
-          let ent = G.basic_entity ("", fake t "") [] in
+          let ent = G.basic_entity ("", fake t "") in
           G.OtherStmt (G.OS_Todo, [ G.E e; G.Def (ent, G.FuncDef funcdef) ])
           |> G.s)
   | ClassDef (t, kind, body) -> (
@@ -550,7 +550,7 @@ and definition def =
           in
           let ent =
             match name with
-            | NameConstant id -> G.basic_entity id []
+            | NameConstant id -> G.basic_entity id
             | NameScope x ->
                 let name_ = scope_resolution x in
                 let name = G.IdQualified (name_, G.empty_id_info ()) in
@@ -575,7 +575,7 @@ and definition def =
       let body = body_exn body in
       let ent =
         match name with
-        | NameConstant id -> G.basic_entity id []
+        | NameConstant id -> G.basic_entity id
         | NameScope x ->
             let name_ = scope_resolution x in
             let name = G.IdQualified (name_, G.empty_id_info ()) in

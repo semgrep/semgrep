@@ -23,6 +23,8 @@ let vof_bracket of_a (t1, x, t2) =
 
 let vof_ident v = vof_wrap OCaml.vof_string v
 
+let vof_todo_kind v = vof_wrap OCaml.vof_string v
+
 let vof_dotted_name v = OCaml.vof_list vof_ident v
 
 let vof_module_name = function
@@ -632,7 +634,7 @@ and vof_keyword_attribute = function
   | Protected -> OCaml.VSum ("Protected", [])
   | Abstract -> OCaml.VSum ("Abstract", [])
   | Final -> OCaml.VSum ("Final", [])
-  | Override -> OCaml.VSum ("Over", [])
+  | Override -> OCaml.VSum ("Override", [])
   | Var -> OCaml.VSum ("Var", [])
   | Let -> OCaml.VSum ("Let", [])
   | Const -> OCaml.VSum ("Const", [])
@@ -976,7 +978,20 @@ and vof_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
+and vof_enum_entry_definition { ee_args; ee_body } =
+  let bnds = [] in
+  let arg = OCaml.vof_option (vof_bracket (OCaml.vof_list vof_field)) ee_body in
+  let bnd = ("ee_body", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_option vof_arguments ee_args in
+  let bnd = ("ee_args", arg) in
+  let bnds = bnd :: bnds in
+  OCaml.VDict bnds
+
 and vof_definition_kind = function
+  | EnumEntryDef v1 ->
+      let v1 = vof_enum_entry_definition v1 in
+      OCaml.VSum ("EnumEntryDef", [ v1 ])
   | FuncDef v1 ->
       let v1 = vof_function_definition v1 in
       OCaml.VSum ("FuncDef", [ v1 ])
@@ -1005,12 +1020,9 @@ and vof_definition_kind = function
       let v1 = vof_tok v1 in
       OCaml.VSum ("UseOuterDecl", [ v1 ])
   | OtherDef (v1, v2) ->
-      let v1 = vof_other_def_operator v1 in
+      let v1 = vof_todo_kind v1 in
       let v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherDef", [ v1; v2 ])
-
-and vof_other_def_operator = function
-  | OD_Todo -> OCaml.VSum ("OD_Todo", [])
 
 and vof_module_definition { mbody = v_mbody } =
   let bnds = [] in
@@ -1046,17 +1058,44 @@ and vof_macro_definition
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
-and vof_type_parameter (v1, v2) =
-  let v1 = vof_ident v1 and v2 = vof_type_parameter_constraints v2 in
-  OCaml.VTuple [ v1; v2 ]
+and vof_type_parameter
+    {
+      tp_id = v1;
+      tp_attrs = v2;
+      tp_bounds = v3;
+      tp_default = v4;
+      tp_variance = v5;
+      tp_constraints = v6;
+    } =
+  let bnds = [] in
+  let arg = vof_type_parameter_constraints v6 in
+  let bnd = ("tp_constraints", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_option (vof_wrap vof_variance) v5 in
+  let bnd = ("tp_variance", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_option vof_type_ v4 in
+  let bnd = ("tp_default", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_list vof_type_ v3 in
+  let bnd = ("tp_bounds", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_list vof_attribute v2 in
+  let bnd = ("tp_attrs", arg) in
+  let bnds = bnd :: bnds in
+  let arg = vof_ident v1 in
+  let bnd = ("tp_id", arg) in
+  let bnds = bnd :: bnds in
+  OCaml.VDict bnds
+
+and vof_variance = function
+  | Covariant -> OCaml.VSum ("Covariant", [])
+  | Contravariant -> OCaml.VSum ("Contravariant", [])
 
 and vof_type_parameter_constraints v =
   OCaml.vof_list vof_type_parameter_constraint v
 
 and vof_type_parameter_constraint = function
-  | Extends v1 ->
-      let v1 = vof_type_ v1 in
-      OCaml.VSum ("Extends", [ v1 ])
   | HasConstructor t ->
       let t = vof_tok t in
       OCaml.VSum ("HasConstructor", [ t ])
@@ -1068,9 +1107,6 @@ and vof_type_parameter_constraint = function
 and vof_other_type_parameter_operator = function
   | OTP_Todo -> OCaml.VSum ("OTP_Todo", [])
   | OTP_Lifetime -> OCaml.VSum ("OTP_Lifetime", [])
-  | OTP_Ident -> OCaml.VSum ("OTP_Ident", [])
-  | OTP_Constrained -> OCaml.VSum ("OTP_Constrained", [])
-  | OTP_Const -> OCaml.VSum ("OTP_Const", [])
 
 and vof_function_kind = function
   | Function -> OCaml.VSum ("Function", [])
@@ -1208,14 +1244,12 @@ and vof_type_definition_kind = function
   | Exception (v1, v2) ->
       let v1 = vof_ident v1 and v2 = OCaml.vof_list vof_type_ v2 in
       OCaml.VSum ("Exception", [ v1; v2 ])
+  | AbstractType v1 ->
+      let v1 = vof_tok v1 in
+      OCaml.VSum ("AbstractType", [ v1 ])
   | OtherTypeKind (v1, v2) ->
-      let v1 = vof_other_type_kind_operator v1
-      and v2 = OCaml.vof_list vof_any v2 in
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherTypeKind", [ v1; v2 ])
-
-and vof_other_type_kind_operator = function
-  | OTKO_AbstractType -> OCaml.VSum ("OTKO_AbstractType", [])
-  | OTKO_Todo -> OCaml.VSum ("OTKO_Todo", [])
 
 and vof_or_type_element = function
   | OrConstructor (v1, v2) ->
@@ -1227,14 +1261,6 @@ and vof_or_type_element = function
   | OrUnion (v1, v2) ->
       let v1 = vof_ident v1 and v2 = vof_type_ v2 in
       OCaml.VSum ("OrUnion", [ v1; v2 ])
-  | OtherOr (v1, v2) ->
-      let v1 = vof_other_or_type_element_operator v1
-      and v2 = OCaml.vof_list vof_any v2 in
-      OCaml.VSum ("OtherOr", [ v1; v2 ])
-
-and vof_other_or_type_element_operator = function
-  | OOTEO_EnumWithMethods -> OCaml.VSum ("OOTEO_EnumWithMethods", [])
-  | OOTEO_EnumWithArguments -> OCaml.VSum ("OOTEO_EnumWithArguments", [])
 
 and vof_class_definition
     {
@@ -1275,6 +1301,7 @@ and vof_class_kind_bis = function
   | AtInterface -> OCaml.VSum ("AtInterface", [])
   | Object -> OCaml.VSum ("Object", [])
   | RecordClass -> OCaml.VSum ("RecordClass", [])
+  | EnumClass -> OCaml.VSum ("EnumClass", [])
 
 and vof_ident_and_id_info (v1, v2) =
   let v1 = vof_ident v1 in
