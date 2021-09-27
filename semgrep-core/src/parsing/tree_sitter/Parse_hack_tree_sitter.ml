@@ -2361,7 +2361,9 @@ and statement (env : env) (x : CST.statement) =
       let _v2 = (* "(" *) token env v2 in
       (* TODO: Modify TSH to make directly to pattern? *)
       (* TODO: Split expression to allow pattern use and expr use? *)
-      let v3 = G.OtherPat (OP_Expr, [ G.E (expression env v3) ]) in
+      let v3 =
+        G.OtherPat (("ExprToPattern", v1), [ G.E (expression env v3) ])
+      in
       let _v4TODO =
         match v4 with
         | Some tok -> (* "await" *) Some (token env tok)

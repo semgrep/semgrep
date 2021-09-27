@@ -1034,12 +1034,8 @@ and pattern =
   (* sgrep: *)
   | PatEllipsis of tok
   | DisjPat of pattern * pattern
-  | OtherPat of other_pattern_operator * any list
-
-and other_pattern_operator =
-  (* Other *)
-  | OP_Expr (* todo: Python should transform via expr_to_pattern() below *)
-  | OP_Todo
+  (* todo: Python should transform expr pattern via expr_to_pattern() *)
+  | OtherPat of todo_kind * any list
 
 (*****************************************************************************)
 (* Type *)

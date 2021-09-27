@@ -311,7 +311,7 @@ and v_type_bounds { supertype = v_supertype; subtype = v_subtype } =
 
 and v_ascription v = v_type_ v
 
-and todo_pattern msg any = G.OtherPat (G.OP_Todo, G.TodoK (msg, fake msg) :: any)
+and todo_pattern msg any = G.OtherPat ((msg, fake msg), any)
 
 and v_pattern = function
   | PatLiteral v1 -> (

@@ -637,7 +637,7 @@ and map_struct_pattern_field (env : env) (x : CST.anon_choice_field_pat_8e757e8)
       let ident = ident env tok in
       (* ".." *)
       let name = [ ident ] in
-      (name, G.OtherPat (G.OP_Todo, [ G.Tk (token env tok) ]))
+      (name, G.OtherPat (("..", token env tok), []))
 
 and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
     G.type_parameter =
@@ -2005,7 +2005,7 @@ and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm) : G.action =
     match v2 with
     | `Macro_invo x ->
         let invo = map_macro_invocation env x in
-        G.OtherPat (G.OP_Todo, [ G.E invo ])
+        G.OtherPat (("Macro", G.fake ""), [ G.E invo ])
     | `Match_pat x -> map_match_pattern env x
   in
   let _arrow = token env v3 (* "=>" *) in
@@ -2429,7 +2429,7 @@ and map_pattern (env : env) (x : CST.pattern) : G.pattern =
       G.DisjPat (pattern_lhs, pattern_rhs)
   | `Const_blk x ->
       let block = map_const_block env x in
-      G.OtherPat (G.OP_Expr, [ G.E block ])
+      G.OtherPat (("ConstBlock", G.fake ""), [ G.E block ])
   | `X__ tok -> G.PatUnderscore (token env tok)
 
 (* "_" *)

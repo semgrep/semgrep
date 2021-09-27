@@ -953,13 +953,8 @@ and vof_pattern = function
       let v1 = vof_pattern v1 and v2 = vof_pattern v2 in
       OCaml.VSum ("DisjPat", [ v1; v2 ])
   | OtherPat (v1, v2) ->
-      let v1 = vof_other_pattern_operator v1
-      and v2 = OCaml.vof_list vof_any v2 in
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherPat", [ v1; v2 ])
-
-and vof_other_pattern_operator = function
-  | OP_Todo -> OCaml.VSum ("OP_Todo", [])
-  | OP_Expr -> OCaml.VSum ("OP_Expr", [])
 
 and vof_definition (v1, v2) =
   let v1 = vof_entity v1 and v2 = vof_definition_kind v2 in

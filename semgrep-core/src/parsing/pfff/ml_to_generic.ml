@@ -495,7 +495,7 @@ and pattern = function
   | PatTodo (t, xs) ->
       let t = todo_category t in
       let xs = list pattern xs in
-      G.OtherPat (G.OP_Todo, G.TodoK t :: List.map (fun x -> G.P x) xs)
+      G.OtherPat (t, List.map (fun x -> G.P x) xs)
 
 and let_binding = function
   | LetClassic v1 ->
