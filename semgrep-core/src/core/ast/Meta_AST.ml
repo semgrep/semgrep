@@ -1085,13 +1085,8 @@ and vof_type_parameter_constraint = function
       let t = vof_tok t in
       OCaml.VSum ("HasConstructor", [ t ])
   | OtherTypeParam (t, xs) ->
-      let t = vof_other_type_parameter_operator t
-      and xs = OCaml.vof_list vof_any xs in
+      let t = vof_todo_kind t and xs = OCaml.vof_list vof_any xs in
       OCaml.VSum ("OtherTypeParam", [ t; xs ])
-
-and vof_other_type_parameter_operator = function
-  | OTP_Todo -> OCaml.VSum ("OTP_Todo", [])
-  | OTP_Lifetime -> OCaml.VSum ("OTP_Lifetime", [])
 
 and vof_function_kind = function
   | Function -> OCaml.VSum ("Function", [])

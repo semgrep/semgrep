@@ -554,8 +554,7 @@ and type_parameter v =
   (* TODO *)
   | TyParamTodo (s, t) ->
       let id = ("TyParamTodo", fake "TyParamTodo") in
-      G.tparam_of_id id
-        ~tp_constraints:[ G.OtherTypeParam (OTP_Todo, [ TodoK (s, t) ]) ]
+      G.tparam_of_id id ~tp_constraints:[ G.OtherTypeParam ((s, t), []) ]
 
 and type_def_kind = function
   | AbstractType -> G.AbstractType (fake "")

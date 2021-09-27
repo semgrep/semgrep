@@ -645,7 +645,7 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
   | `Life x ->
       let id = map_lifetime env x in
       G.tparam_of_id id
-        ~tp_constraints:[ G.OtherTypeParam (G.OTP_Lifetime, []) ]
+        ~tp_constraints:[ G.OtherTypeParam (("LifeTime", snd id), []) ]
   | `Meta tok ->
       let meta = ident env tok in
       (* pattern \$[a-zA-Z_]\w* *)

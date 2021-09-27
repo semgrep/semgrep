@@ -1109,7 +1109,7 @@ and type_argument =
       tok (* '?' *) * (bool wrap (* extends|super, true=super *) * type_) option
   (* C++/Rust (Rust restrict expr to literals and ConstBlock) *)
   | TAExpr of expr
-  (* Rust Lifetime 'x, Kotlin use-site variance *)
+  (* TODO? Rust Lifetime 'x, Kotlin use-site variance *)
   | OtherTypeArg of todo_kind * any list
 
 and other_type_operator =
@@ -1293,14 +1293,8 @@ and variance =
 and type_parameter_constraint =
   (* C# *)
   | HasConstructor of tok
-  | OtherTypeParam of other_type_parameter_operator * any list
-
-(* TODO: get rid of *)
-and other_type_parameter_operator =
-  (* Rust *)
-  | OTP_Lifetime
-  (* Other *)
-  | OTP_Todo
+  (* TODO? Lifetime Rust? *)
+  | OtherTypeParam of todo_kind * any list
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
