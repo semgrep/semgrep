@@ -775,21 +775,20 @@ and map_field_initializer (env : env)
 and map_type_argument (env : env) (x : CST.anon_choice_type_39799c3) :
     G.type_argument =
   match x with
-  | `Type x -> G.TypeArg (map_type_ env x)
+  | `Type x -> G.TA (map_type_ env x)
   | `Type_bind (v1, v2, v3) ->
-      (* TODO *)
       let _identTODO = ident env v1 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      let _equals = token env v2 (* "=" *) in
+      let equals = token env v2 (* "=" *) in
       let ty = map_type_ env v3 in
-      G.TypeArg ty
-  | `Life x -> G.TypeLifetime (map_lifetime env x)
+      G.OtherTypeArg (("TypeBind", equals), [ T ty ])
+  | `Life x -> G.OtherTypeArg (map_lifetime env x, [])
   | `Lit x ->
       let lit = map_literal env x in
-      G.OtherTypeArg (G.OTA_Literal, [ G.E (G.L lit |> G.e) ])
+      G.TAExpr (G.L lit |> G.e)
   | `Blk x ->
       let block_expr = map_block_expr env x in
-      G.OtherTypeArg (G.OTA_ConstBlock, [ G.E block_expr ])
+      G.TAExpr block_expr
 
 and map_tuple_pattern_list (env : env)
     ((v1, v2) : CST.anon_pat_rep_COMMA_pat_2a80f16) : G.pattern list =
@@ -2527,7 +2526,7 @@ and map_scoped_identifier_name (env : env)
   let ident = ident env v3 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   let qualifier = Option.map (fun x -> G.QExpr (x, colons)) qualifier_expr in
-  let typeargs = Option.map (fun x -> fb [ G.TypeArg x ]) type_ in
+  let typeargs = Option.map (fun x -> fb [ G.TA x ]) type_ in
   G.IdQualified
     ( (ident, { G.name_qualifier = qualifier; G.name_typeargs = typeargs }),
       G.empty_id_info () )
@@ -2548,13 +2547,13 @@ and map_scoped_type_identifier_name (env : env)
             (Some (G.QExpr (ident, colons)), None)
         | `Gene_type_with_turb x ->
             let ty = map_generic_type_with_turbofish_type env x in
-            (None, Some (fb [ G.TypeArg ty ]))
+            (None, Some (fb [ G.TA ty ]))
         | `Brac_type x ->
             let _, ty, _ = map_bracketed_type env x in
-            (None, Some (fb [ G.TypeArg ty ]))
+            (None, Some (fb [ G.TA ty ]))
         | `Gene_type x ->
             let ty = map_generic_type env x in
-            (None, Some (fb [ G.TypeArg ty ])))
+            (None, Some (fb [ G.TA ty ])))
     | None -> (None, None)
   in
   let ident = ident env v3 in
@@ -2582,7 +2581,7 @@ and map_scoped_type_identifier_in_expression_position (env : env)
             (Some (G.QExpr (ident, colons)), None)
         | `Gene_type_with_turb x ->
             let ty = map_generic_type_with_turbofish_type env x in
-            (None, Some (fb [ G.TypeArg ty ])))
+            (None, Some (fb [ G.TA ty ])))
     | None -> (None, None)
   in
   let ident = ident env v3 in

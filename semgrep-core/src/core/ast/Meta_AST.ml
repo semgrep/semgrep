@@ -586,10 +586,10 @@ and vof_type_kind = function
 and vof_type_arguments v = vof_bracket (OCaml.vof_list vof_type_argument) v
 
 and vof_type_argument = function
-  | TypeArg v1 ->
+  | TA v1 ->
       let v1 = vof_type_ v1 in
-      OCaml.VSum ("TypeArg", [ v1 ])
-  | TypeWildcard (v1, v2) ->
+      OCaml.VSum ("TA", [ v1 ])
+  | TAWildcard (v1, v2) ->
       let v1 = vof_tok v1 in
       let v2 =
         OCaml.vof_option
@@ -599,13 +599,12 @@ and vof_type_argument = function
             OCaml.VTuple [ v1; v2 ])
           v2
       in
-      OCaml.VSum ("TypeWildcard", [ v1; v2 ])
-  | TypeLifetime v1 ->
-      let v1 = vof_ident v1 in
-      OCaml.VSum ("TypeLifetime", [ v1 ])
+      OCaml.VSum ("AWildcard", [ v1; v2 ])
+  | TAExpr v1 ->
+      let v1 = vof_expr v1 in
+      OCaml.VSum ("TAExpr", [ v1 ])
   | OtherTypeArg (v1, v2) ->
-      let v1 = vof_other_type_argument_operator v1
-      and v2 = OCaml.vof_list vof_any v2 in
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherTypeArg", [ v1; v2 ])
 
 and vof_other_type_operator = function
@@ -617,11 +616,6 @@ and vof_other_type_operator = function
   | OT_EnumName -> OCaml.VSum ("OT_EnumName", [])
   | OT_Variadic -> OCaml.VSum ("OT_Variadic", [])
   | OT_Lifetime -> OCaml.VSum ("OT_Lifetime", [])
-
-and vof_other_type_argument_operator = function
-  | OTA_Todo -> OCaml.VSum ("OTA_Todo", [])
-  | OTA_Literal -> OCaml.VSum ("OTA_Literal", [])
-  | OTA_ConstBlock -> OCaml.VSum ("OTA_ConstBlock", [])
 
 and vof_keyword_attribute = function
   | CaseClass -> OCaml.VSum ("CaseClass", [])

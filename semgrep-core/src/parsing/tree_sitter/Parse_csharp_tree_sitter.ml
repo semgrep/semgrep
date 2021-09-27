@@ -2294,7 +2294,7 @@ and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
         v1 :: v2
   in
   let v3 = token env v3 (* ">" *) in
-  (v1, List.map (fun t -> TypeArg t) v2, v3)
+  (v1, List.map (fun t -> TA t) v2, v3)
 
 and type_parameter_constraints_clause (env : env)
     ((v1, v2, v3, v4, v5) : CST.type_parameter_constraints_clause) =

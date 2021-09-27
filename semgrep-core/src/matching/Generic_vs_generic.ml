@@ -1548,26 +1548,26 @@ and m_type_arguments a b =
 
 and m_type_argument a b =
   match (a, b) with
-  | G.TypeArg a1, B.TypeArg b1 -> m_type_ a1 b1
-  | G.TypeWildcard (a1, a2), B.TypeWildcard (b1, b2) ->
+  | G.TA a1, B.TA b1 -> m_type_ a1 b1
+  | G.TAWildcard (a1, a2), B.TAWildcard (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_option m_wildcard a2 b2
-  | G.TypeLifetime a1, B.TypeLifetime b1 -> m_ident a1 b1
+  | G.TAExpr a1, B.TAExpr b1 -> m_expr a1 b1
   | G.OtherTypeArg (a1, a2), B.OtherTypeArg (b1, b2) ->
-      m_other_type_argument_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.TypeArg _, _
-  | G.TypeWildcard _, _
-  | G.TypeLifetime _, _
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.TA _, _
+  | G.TAWildcard _, _
+  | G.TAExpr _, _
   | G.OtherTypeArg _, _ ->
       fail ()
+
+and m_todo_kind a b = m_ident a b
 
 and m_wildcard (a1, a2) (b1, b2) =
   let* () = m_wrap m_bool a1 b1 in
   m_type_ a2 b2
 
 and m_other_type_operator = m_other_xxx
-
-and m_other_type_argument_operator = m_other_xxx
 
 (*****************************************************************************)
 (* Attribute *)
@@ -2688,7 +2688,7 @@ and m_any a b =
   | G.Modn a1, B.Modn b1 -> m_module_name a1 b1
   | G.ModDk a1, B.ModDk b1 -> m_module_definition_kind a1 b1
   | G.Tk a1, B.Tk b1 -> m_tok a1 b1
-  | G.TodoK a1, B.TodoK b1 -> m_ident a1 b1
+  | G.TodoK a1, B.TodoK b1 -> m_todo_kind a1 b1
   | G.Di a1, B.Di b1 -> m_dotted_name a1 b1
   | G.En a1, B.En b1 -> m_entity a1 b1
   | G.T a1, B.T b1 -> m_type_ a1 b1

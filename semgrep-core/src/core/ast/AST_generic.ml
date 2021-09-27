@@ -1103,14 +1103,14 @@ and type_arguments = type_argument list bracket
 
 (* TODO? make a record also? *)
 and type_argument =
-  | TypeArg of type_
-  (* Java only *)
-  (* use-site variance *)
-  | TypeWildcard of
+  | TA of type_
+  (* Java use-site variance *)
+  | TAWildcard of
       tok (* '?' *) * (bool wrap (* extends|super, true=super *) * type_) option
-  (* Rust *)
-  | TypeLifetime of ident
-  | OtherTypeArg of other_type_argument_operator * any list
+  (* C++/Rust (Rust restrict expr to literals and ConstBlock) *)
+  | TAExpr of expr
+  (* Rust Lifetime 'x, Kotlin use-site variance *)
+  | OtherTypeArg of todo_kind * any list
 
 and other_type_operator =
   (* C *)
@@ -1126,13 +1126,6 @@ and other_type_operator =
   | OT_Expr
   | OT_Arg (* Python: todo: should use expr_to_type() when can *)
   | OT_Todo
-
-and other_type_argument_operator =
-  (* Rust *)
-  | OTA_Literal
-  | OTA_ConstBlock
-  (* Other *)
-  | OTA_Todo
 
 (*****************************************************************************)
 (* Attribute *)

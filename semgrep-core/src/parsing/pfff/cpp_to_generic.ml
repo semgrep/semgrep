@@ -138,10 +138,10 @@ and map_template_argument env v : G.type_argument =
   match v with
   | Left t ->
       let t = map_type_ env t in
-      G.TypeArg t
+      G.TA t
   | Right e ->
       let e = map_expr env e in
-      complicated env e
+      G.TAExpr e
 
 and map_qualifier env = function
   | QClassname v1 ->

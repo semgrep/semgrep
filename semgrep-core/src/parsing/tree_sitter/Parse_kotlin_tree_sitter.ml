@@ -1905,14 +1905,10 @@ and type_projection (env : env) ~tok (x : CST.type_projection) =
         | None -> []
       in
       let v2 = type_ env v2 in
-      let fake_token = Parse_info.fake_info tok "type projection" in
-      let list = [ TodoK ("type projection", fake_token); T v2 ] in
-      let othertype = OtherType (OT_Todo, list) |> G.t in
-      TypeArg othertype
+      OtherTypeArg (("Projection", tok), [ T v2 ])
   | `STAR tok ->
-      let star = str env tok in
-      let othertype = OtherType (OT_Todo, [ TodoK star ]) |> G.t (* "*" *) in
-      TypeArg othertype
+      let star = str env tok (* "*" *) in
+      OtherTypeArg (star, [])
 
 and type_reference (env : env) (x : CST.type_reference) =
   match x with

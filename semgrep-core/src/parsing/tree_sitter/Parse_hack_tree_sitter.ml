@@ -2625,12 +2625,12 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) :
   let v2 =
     match v2 with
     | Some (v1, v2, v3) ->
-        let v1 = G.TypeArg (type_ env v1) in
+        let v1 = G.TA (type_ env v1) in
         let v2 =
           List.map
             (fun (v1, v2) ->
               let _v1 = (* "," *) token env v1 in
-              let v2 = G.TypeArg (type_ env v2) in
+              let v2 = G.TA (type_ env v2) in
               v2)
             v2
         in

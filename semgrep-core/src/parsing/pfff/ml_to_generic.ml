@@ -141,7 +141,7 @@ and type_kind = function
       G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
       let v1 = list type_ v1 and v2 = name v2 in
-      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> List.map (fun t -> G.TypeArg t)))
+      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> List.map (fun t -> G.TA t)))
   | TyTuple v1 ->
       let v1 = list type_ v1 in
       G.TyTuple (fb v1)

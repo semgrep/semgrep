@@ -130,7 +130,7 @@ and class_type v =
 and type_argument = function
   | TArgument v1 ->
       let v1 = ref_type v1 in
-      G.TypeArg v1
+      G.TA v1
   | TWildCard (v1, v2) ->
       let v2 =
         option
@@ -139,7 +139,7 @@ and type_argument = function
             (v1, v2))
           v2
       in
-      G.TypeWildcard (v1, v2)
+      G.TAWildcard (v1, v2)
 
 and ref_type v = typ v
 
