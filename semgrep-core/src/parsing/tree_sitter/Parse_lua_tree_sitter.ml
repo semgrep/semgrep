@@ -162,7 +162,7 @@ let map_local_variable_declarator (env : env)
       v2
   in
   List.map
-    (fun x -> G.basic_entity x [ G.KeywordAttr (G.Static, local) ])
+    (fun x -> G.basic_entity x ~attrs:[ G.KeywordAttr (G.Static, local) ])
     (ident_first :: ident_rest)
 
 (* TODO: return a G.name *)
@@ -514,14 +514,14 @@ and map_in_loop_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.in_loop_expression) =
   let v1 = identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
   let var : G.variable_definition = { vinit = None; vtype = None } in
-  let for_init_var = G.ForInitVar (G.basic_entity v1 [], var) in
+  let for_init_var = G.ForInitVar (G.basic_entity v1, var) in
   let v2 =
     List.map
       (fun (v1, v2) ->
         let _v1 = token env v1 (* "," *) in
         let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
         let var : G.variable_definition = { vinit = None; vtype = None } in
-        G.ForInitVar (G.basic_entity v2 [], var))
+        G.ForInitVar (G.basic_entity v2, var))
       v2
   in
   (* TODO *)
@@ -543,7 +543,7 @@ and map_loop_expression (env : env)
   let _v2 = token env v2 (* "=" *) in
   let _v3 = map_expression env v3 in
   let var : G.variable_definition = { vinit = None; vtype = None } in
-  let for_init_var = G.ForInitVar (G.basic_entity v1 [], var) in
+  let for_init_var = G.ForInitVar (G.basic_entity v1, var) in
   let _v4 = token env v4 (* "," *) in
   let v5 = map_expression env v5 in
   let v6 =
@@ -715,7 +715,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let _tok = token env v2 (* "function" *) in
       let v3 = identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
       let v4 = map_function_body env v4 v2 in
-      let ent = G.basic_entity v3 [ G.KeywordAttr (G.Static, v1) ] in
+      let ent = G.basic_entity v3 ~attrs:[ G.KeywordAttr (G.Static, v1) ] in
       [ G.DefStmt (ent, G.FuncDef v4) |> G.s ]
   | `Func_call_stmt x -> [ map_function_call_statement env x ]
 

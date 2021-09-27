@@ -841,15 +841,35 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_macrobody = map_of_list map_any v_macrobody in
     let v_macroparams = map_of_list map_ident v_macroparams in
     { macroparams = v_macroparams; macrobody = v_macrobody }
-  and map_type_parameter (v1, v2) =
-    let v1 = map_ident v1 and v2 = map_type_parameter_constraints v2 in
-    (v1, v2)
+  and map_type_parameter
+      {
+        tp_id = v1;
+        tp_attrs = v2;
+        tp_bounds = v3;
+        tp_default = v4;
+        tp_variance = v5;
+        tp_constraints = v6;
+      } =
+    let v1 = map_ident v1 in
+    let v2 = map_of_list map_attribute v2 in
+    let v3 = map_of_list map_type_ v3 in
+    let v4 = map_of_option map_type_ v4 in
+    let v5 = map_of_option (map_wrap map_variance) v5 in
+    let v6 = map_type_parameter_constraints v6 in
+    {
+      tp_id = v1;
+      tp_attrs = v2;
+      tp_bounds = v3;
+      tp_default = v4;
+      tp_variance = v5;
+      tp_constraints = v6;
+    }
+  and map_variance = function
+    | Covariant -> Covariant
+    | Contravariant -> Contravariant
   and map_type_parameter_constraints v =
     map_of_list map_type_parameter_constraint v
   and map_type_parameter_constraint = function
-    | Extends v1 ->
-        let v1 = map_type_ v1 in
-        Extends v1
     | HasConstructor t ->
         let t = map_tok t in
         HasConstructor t

@@ -405,7 +405,7 @@ let map_foreign_item_type (env : env) ((v1, v2, v3) : CST.foreign_item_type) :
   G.DefStmt (ent, G.TypeDef type_def) |> G.s
 
 let map_lifetime (env : env) ((v1, v2) : CST.lifetime) : lifetime =
-  let _apostropheTODO = token env v1 (* "'" *) in
+  let _tTODO = token env v1 (* "'" *) in
   let id = ident env v2 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   id
@@ -643,16 +643,17 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
     G.type_parameter =
   match x with
   | `Life x ->
-      let lt = map_lifetime env x in
-      (lt, [ G.OtherTypeParam (G.OTP_Lifetime, []) ])
+      let id = map_lifetime env x in
+      G.tparam_of_id id
+        ~tp_constraints:[ G.OtherTypeParam (G.OTP_Lifetime, []) ]
   | `Meta tok ->
       let meta = ident env tok in
       (* pattern \$[a-zA-Z_]\w* *)
-      (meta, [ G.OtherTypeParam (G.OTP_Ident, []) ])
+      G.tparam_of_id meta
   | `Id tok ->
       let ident = ident env tok in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      (ident, [ G.OtherTypeParam (G.OTP_Ident, []) ])
+      G.tparam_of_id ident
   | `Cons_type_param x -> map_constrained_type_parameter env x
   | `Opt_type_param (v1, v2, v3) ->
       let type_param =
@@ -660,21 +661,23 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
         | `Id tok ->
             let ident = ident env tok in
             (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-            (ident, [ G.OtherTypeParam (G.OTP_Ident, []) ])
+            G.tparam_of_id ident
         | `Cons_type_param x -> map_constrained_type_parameter env x
       in
       let _equal = token env v2 (* "=" *) in
-      let _default_ty = map_type_ env v3 in
-      type_param
+      let tp_default = Some (map_type_ env v3) in
+      { type_param with G.tp_default }
   | `Const_param (v1, v2, v3, v4) ->
-      let _const = token env v1 in
+      let const = token env v1 in
       (* "const" *)
       let ident = ident env v2 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       let _colon = token env v3 in
       (* ":" *)
       let ty = map_type_ env v4 in
-      (ident, [ G.OtherTypeParam (G.OTP_Const, [ G.T ty ]) ])
+      G.tparam_of_id ident
+        ~tp_attrs:[ G.KeywordAttr (G.Const, const) ]
+        ~tp_bounds:[ ty ]
 
 and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0) :
     G.pattern =
@@ -1065,7 +1068,7 @@ and map_constrained_type_parameter (env : env)
     (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   in
   let _boundsTODO = map_trait_bounds env v2 in
-  (ident, [ G.OtherTypeParam (G.OTP_Constrained, []) ])
+  G.tparam_of_id ident
 
 and map_else_clause (env : env) ((v1, v2) : CST.else_clause) : G.stmt =
   let _else_ = token env v1 (* "else" *) in

@@ -191,8 +191,8 @@ let rec stmt_aux = function
       v1
       |> list (fun (v1, v2) ->
              let v1 = var v1 and v2 = option expr v2 in
-             let attr = [ G.KeywordAttr (G.Static, t) ] in
-             let ent = G.basic_entity v1 attr in
+             let attrs = [ G.KeywordAttr (G.Static, t) ] in
+             let ent = G.basic_entity v1 ~attrs in
              let def = { G.vinit = v2; vtype = None } in
              G.DefStmt (ent, G.VarDef def) |> G.s)
   | Global (t, v1) ->
@@ -200,7 +200,7 @@ let rec stmt_aux = function
       |> List.map (fun e ->
              match e with
              | Id [ id ] ->
-                 let ent = G.basic_entity id [] in
+                 let ent = G.basic_entity id in
                  G.DefStmt (ent, G.UseOuterDecl t) |> G.s
              | _ ->
                  let e = expr e in
@@ -485,7 +485,7 @@ and func_def
   in
   let attrs = list attribute f_attrs in
   let body = stmt f_body in
-  let ent = G.basic_entity id (modifiers @ attrs) in
+  let ent = G.basic_entity id ~attrs:(modifiers @ attrs) in
   let def =
     { G.fparams = params; frettype = fret; fbody = G.FBStmt body; fkind }
   in
@@ -544,7 +544,7 @@ and constant_def { cst_name; cst_body; cst_tok = tok } =
   let id = ident cst_name in
   let body = expr cst_body in
   let attr = [ G.KeywordAttr (G.Const, tok) ] in
-  let ent = G.basic_entity id attr in
+  let ent = G.basic_entity id ~attrs:attr in
   (ent, { G.vinit = Some body; vtype = None })
 
 and enum_type tok { e_base; e_constraint } =
@@ -592,7 +592,7 @@ and class_def
     @ (methods |> List.map (fun (ent, var) -> (ent, G.FuncDef var)))
   in
 
-  let ent = G.basic_entity id (attrs @ modifiers) in
+  let ent = G.basic_entity id ~attrs:(attrs @ modifiers) in
   let def =
     {
       G.ckind = kind;
@@ -628,7 +628,7 @@ and class_var
   let modifiers =
     list modifier cmodifiers |> List.map (fun m -> G.KeywordAttr m)
   in
-  let ent = G.basic_entity id modifiers in
+  let ent = G.basic_entity id ~attrs:modifiers in
   let def = { G.vtype = typ; vinit = value } in
   (ent, def)
 
@@ -637,7 +637,7 @@ and method_def v = func_def v
 and type_def { t_name; t_kind } =
   let id = ident t_name in
   let kind = type_def_kind (snd t_name) t_kind in
-  let ent = G.basic_entity id [] in
+  let ent = G.basic_entity id in
   (ent, { G.tbody = kind })
 
 and type_def_kind _tok = function

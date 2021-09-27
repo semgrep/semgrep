@@ -580,14 +580,24 @@ let (mk_visitor :
         ()
   and v_other_type_operator _ = ()
   and v_other_type_argument_operator _ = ()
-  and v_type_parameter (v1, v2) =
-    let v1 = v_ident v1 and v2 = v_type_parameter_constraints v2 in
+  and v_type_parameter
+      {
+        tp_id = v1;
+        tp_attrs = v2;
+        tp_bounds = v3;
+        tp_default = v4;
+        tp_variance = v5;
+        tp_constraints = v6;
+      } =
+    v_ident v1;
+    v_list v_attribute v2;
+    v_list v_type_ v3;
+    v_option v_type_ v4;
+    v_option (v_wrap v_variance) v5;
+    v_type_parameter_constraints v6;
     ()
   and v_type_parameter_constraints v = v_list v_type_parameter_constraint v
   and v_type_parameter_constraint = function
-    | Extends v1 ->
-        let v1 = v_type_ v1 in
-        ()
     | HasConstructor t ->
         let t = v_tok t in
         ()
@@ -596,6 +606,7 @@ let (mk_visitor :
         let xs = v_list v_any xs in
         ()
   and v_other_type_parameter_operator _ = ()
+  and v_variance _ = ()
   and v_attribute x =
     let k x =
       match x with

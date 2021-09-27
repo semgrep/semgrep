@@ -693,19 +693,28 @@ and v_type_parameter
       tpviewbounds = v_tpviewbounds;
       tpcolons = v_tpcolons;
     } : G.type_parameter =
-  let id = v_ident_or_wildcard v_tpname in
-  let _argTODO = v_option (v_wrap v_variance) v_tpvariance in
-  let _argTODO = v_list v_annotation v_tpannots in
+  let tp_id = v_ident_or_wildcard v_tpname in
+  let tp_variance = v_option (v_wrap v_variance) v_tpvariance in
+  let tp_attrs = v_list v_annotation v_tpannots in
   let _argTODO = v_type_parameters v_tpparams in
   let _argTODO = v_type_bounds v_tpbounds in
   let _argTODO = v_list v_type_ v_tpviewbounds in
   let _argTODO = v_list v_type_ v_tpcolons in
-  let constraints = [] in
-  (id, constraints)
+  let tp_constraints = [] in
+  let tp_bounds = [] in
+  (* TODO *)
+  {
+    G.tp_id;
+    tp_variance;
+    tp_attrs;
+    tp_constraints;
+    tp_bounds;
+    tp_default = None;
+  }
 
 and v_variance = function
-  | Covariant -> ()
-  | Contravariant -> ()
+  | Covariant -> G.Covariant
+  | Contravariant -> G.Contravariant
 
 and v_type_parameters v : G.type_parameter list =
   match v with
@@ -734,7 +743,7 @@ and v_variable_definitions
          match pat with
          | PatVarid id
          | PatName (Id id, []) ->
-             let ent = G.basic_entity id attrs in
+             let ent = G.basic_entity id ~attrs in
              let vdef = { G.vinit = eopt; vtype = topt } in
              Some (ent, G.VarDef vdef)
          | _ ->
