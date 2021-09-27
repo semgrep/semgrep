@@ -509,7 +509,7 @@ and stmt_aux x =
       and v3 = option type_ v3
       and v4 = list_stmt1 v4
       and v5 = list decorator v5 in
-      let ent = G.basic_entity v1 v5 in
+      let ent = G.basic_entity v1 ~attrs:v5 in
       let def =
         {
           G.fparams = v2;
@@ -524,7 +524,7 @@ and stmt_aux x =
       and v2 = list type_parent v2
       and v3 = list_stmt v3
       and v4 = list decorator v4 in
-      let ent = G.basic_entity v1 v4 in
+      let ent = G.basic_entity v1 ~attrs:v4 in
       let def =
         {
           G.ckind = (G.Class, v0);
@@ -688,7 +688,7 @@ and stmt_aux x =
       let v1 = list name v1 in
       v1
       |> List.map (fun x ->
-             let ent = G.basic_entity x [] in
+             let ent = G.basic_entity x in
              G.DefStmt (ent, G.UseOuterDecl t) |> G.s)
   | ExprStmt v1 ->
       let v1 = expr v1 in

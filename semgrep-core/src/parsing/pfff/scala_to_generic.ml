@@ -743,7 +743,7 @@ and v_variable_definitions
          match pat with
          | PatVarid id
          | PatName (Id id, []) ->
-             let ent = G.basic_entity id attrs in
+             let ent = G.basic_entity id ~attrs in
              let vdef = { G.vinit = eopt; vtype = topt } in
              Some (ent, G.VarDef vdef)
          | _ ->

@@ -209,7 +209,7 @@ let top_func () =
     | Method (v1, v2) ->
         let v1 = ident v1 in
         let params, ret = func_type v2 in
-        let ent = G.basic_entity v1 [] in
+        let ent = G.basic_entity v1 in
         G.FieldStmt
           (G.s
              (G.DefStmt
@@ -558,25 +558,27 @@ let top_func () =
         and v2 = option type_ v2
         and v3 = option constant_expr v3 in
         let ent =
-          G.basic_entity v1 [ G.attr G.Const (fake (snd v1) "const") ]
+          G.basic_entity v1 ~attrs:[ G.attr G.Const (fake (snd v1) "const") ]
         in
         G.DefStmt (ent, G.VarDef { G.vinit = v3; vtype = v2 }) |> G.s
     | DVar (v1, v2, v3) ->
         let v1 = ident v1 and v2 = option type_ v2 and v3 = option expr v3 in
-        let ent = G.basic_entity v1 [ G.attr G.Var (fake (snd v1) "var") ] in
+        let ent =
+          G.basic_entity v1 ~attrs:[ G.attr G.Var (fake (snd v1) "var") ]
+        in
         G.DefStmt (ent, G.VarDef { G.vinit = v3; vtype = v2 }) |> G.s
     | DTypeAlias (v1, v2, v3) ->
         let v1 = ident v1 and _v2 = tok v2 and v3 = type_ v3 in
-        let ent = G.basic_entity v1 [] in
+        let ent = G.basic_entity v1 in
         G.DefStmt (ent, G.TypeDef { G.tbody = G.AliasType v3 }) |> G.s
     | DTypeDef (v1, v2) ->
         let v1 = ident v1 and v2 = type_ v2 in
-        let ent = G.basic_entity v1 [] in
+        let ent = G.basic_entity v1 in
         G.DefStmt (ent, G.TypeDef { G.tbody = G.NewType v2 }) |> G.s
   and top_decl = function
     | DFunc (t, v1, (v2, v3)) ->
         let v1 = ident v1 and params, ret = func_type v2 and v3 = stmt v3 in
-        let ent = G.basic_entity v1 [] in
+        let ent = G.basic_entity v1 in
         G.DefStmt
           (ent, G.FuncDef (mk_func_def (G.Function, t) params ret (G.FBStmt v3)))
         |> G.s
@@ -585,7 +587,7 @@ let top_func () =
         and v2 = parameter v2
         and params, ret = func_type v3
         and v4 = stmt v4 in
-        let ent = G.basic_entity v1 [] in
+        let ent = G.basic_entity v1 in
         let def = mk_func_def (G.Method, t) params ret (G.FBStmt v4) in
         let receiver = G.OtherParam (G.OPO_Receiver, [ G.Pa v2 ]) in
         G.DefStmt

@@ -497,7 +497,7 @@ and tuple_type_member x =
 and entity { name = n; attrs } =
   let n = name n in
   let attrs = list attribute attrs in
-  G.basic_entity n attrs
+  G.basic_entity n ~attrs
 
 and definition (ent, def) =
   let ent = entity ent in
@@ -523,7 +523,7 @@ and var_of_var
   let v1 = name x_name in
   let attrs = list attribute attrs in
   let v2 = var_kind x_kind in
-  let ent = G.basic_entity v1 (v2 :: attrs) in
+  let ent = G.basic_entity v1 ~attrs:(v2 :: attrs) in
   let v3 = option expr x_init in
   let v_type = option type_ v_type in
   (ent, { G.vinit = v3; vtype = v_type })
@@ -639,7 +639,7 @@ and field_classic
   let vt = option type_ vt in
   let ent =
     match v1 with
-    | Left n -> G.basic_entity n v2
+    | Left n -> G.basic_entity n ~attrs:v2
     | Right e -> { G.name = G.EDynamic e; attrs = v2; tparams = [] }
   in
   match v3 with

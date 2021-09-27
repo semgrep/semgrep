@@ -1780,9 +1780,9 @@ let basic_id_info resolved =
 (* Entities *)
 (* ------------------------------------------------------------------------- *)
 
-let basic_entity id attrs =
+let basic_entity ?(attrs = []) ?(tparams = []) id =
   let idinfo = empty_id_info () in
-  { name = EN (Id (id, idinfo)); attrs; tparams = [] }
+  { name = EN (Id (id, idinfo)); attrs; tparams }
 
 (* ------------------------------------------------------------------------- *)
 (* Arguments *)
@@ -1852,15 +1852,9 @@ let param_of_type typ =
 (* ------------------------------------------------------------------------- *)
 (* Type parameters *)
 (* ------------------------------------------------------------------------- *)
-let tparam_of_id tp_id tp_attrs =
-  {
-    tp_id;
-    tp_attrs;
-    tp_variance = None;
-    tp_bounds = [];
-    tp_default = None;
-    tp_constraints = [];
-  }
+let tparam_of_id ?(tp_attrs = []) ?(tp_variance = None) ?(tp_bounds = [])
+    ?(tp_default = None) ?(tp_constraints = []) tp_id =
+  { tp_id; tp_attrs; tp_variance; tp_bounds; tp_default; tp_constraints }
 
 (* ------------------------------------------------------------------------- *)
 (* Statements *)
@@ -1897,7 +1891,7 @@ let stmt1 xs =
 let fld (ent, def) = FieldStmt (s (DefStmt (ent, def)))
 
 let basic_field id vopt typeopt =
-  let entity = basic_entity id [] in
+  let entity = basic_entity id in
   fld (entity, VarDef { vinit = vopt; vtype = typeopt })
 
 let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))

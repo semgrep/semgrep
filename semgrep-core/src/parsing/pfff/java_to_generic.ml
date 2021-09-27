@@ -146,7 +146,7 @@ and ref_type v = typ v
 let type_parameter = function
   | TParam (v1, v2) ->
       let v1 = ident v1 and v2 = list ref_type v2 in
-      { (G.tparam_of_id v1 []) with G.tp_bounds = v2 }
+      G.tparam_of_id v1 ~tp_bounds:v2
 
 let rec modifier (x, tok) =
   match x with
@@ -519,7 +519,7 @@ and var { name; mods; type_ = xtyp } =
   let v1 = ident name in
   let v2 = modifiers mods in
   let v3 = option typ xtyp in
-  (G.basic_entity v1 v2, v3)
+  (G.basic_entity v1 ~attrs:v2, v3)
 
 and catch (tok, (v1, _union_types), v2) =
   let ent, typ = var v1 in
@@ -585,7 +585,7 @@ and enum_decl { en_name; en_mods; en_impls; en_body } =
   let v4, v5 = en_body in
   let v4 = list enum_constant v4 in
   let _v5TODO = decls v5 in
-  let ent = G.basic_entity v1 v2 in
+  let ent = G.basic_entity v1 ~attrs:v2 in
   let tdef = { G.tbody = G.OrType v4 } in
   (ent, tdef)
 
@@ -617,7 +617,7 @@ and class_decl
   let cparams = parameters cl_formals in
   let v7 = class_body cl_body in
   let fields = v7 |> bracket (List.map (fun x -> G.FieldStmt x)) in
-  let ent = { (G.basic_entity v1 v4) with G.tparams = v3 } in
+  let ent = { (G.basic_entity v1 ~attrs:v4) with G.tparams = v3 } in
   let cdef =
     {
       G.ckind = v2;

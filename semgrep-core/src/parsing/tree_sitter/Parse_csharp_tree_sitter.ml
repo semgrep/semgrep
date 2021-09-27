@@ -875,7 +875,7 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
     | Some pat, Some init -> Some (LetPattern (pat, init) |> G.e)
     | _ -> v3
   in
-  let ent = basic_entity v1 [] in
+  let ent = basic_entity v1 in
   let vardef = { vinit; vtype = None } in
   (ent, vardef)
 
@@ -961,7 +961,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) :
     | None -> None
   in
   let v3 = identifier env v3 (* identifier *) in
-  { (G.tparam_of_id v3 v1) with tp_variance = v2 }
+  G.tparam_of_id v3 ~tp_attrs:v1 ~tp_variance:v2
 
 and element_binding_expression (env : env) (x : CST.element_binding_expression)
     =
@@ -2362,7 +2362,7 @@ and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) =
   let v2 = identifier env v2 (* identifier *) in
   match v1 with
   | Some t ->
-      let ent = basic_entity v2 [] in
+      let ent = basic_entity v2 in
       let vardef = { vinit = None; vtype = Some t } in
       let st = DefStmt (ent, VarDef vardef) |> G.s in
       G.stmt_to_expr st
@@ -2708,7 +2708,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       in
       let ctor = KeywordAttr (Ctor, tok) in
       let attrs = (ctor :: v1) @ v2 in
-      let ent = basic_entity v3 attrs in
+      let ent = basic_entity v3 ~attrs in
       G.DefStmt (ent, def) |> G.s
   | `Conv_op_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.concat_map (attribute_list env) v1 in
@@ -2754,7 +2754,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           { fkind = (G.Method, v3); fparams = v5; frettype = None; fbody = v6 }
       in
       let dtor = KeywordAttr (Dtor, v3) in
-      let ent = basic_entity name ((dtor :: v1) @ v2) in
+      let ent = basic_entity name ~attrs:((dtor :: v1) @ v2) in
       G.DefStmt (ent, def) |> G.s
   | `Event_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.concat_map (attribute_list env) v1 in
@@ -2772,7 +2772,9 @@ and declaration (env : env) (x : CST.declaration) : stmt =
               accs
               |> List.map (fun (attrs, id, fbody) ->
                      let iname, itok = id in
-                     let ent = basic_entity (iname ^ "_" ^ fname, itok) attrs in
+                     let ent =
+                       basic_entity (iname ^ "_" ^ fname, itok) ~attrs
+                     in
                      let valparam =
                        ParamClassic
                          {
@@ -2800,7 +2802,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let tok = token env tok (* ";" *) in
             fake_bracket [ todo_stmt env tok ]
       in
-      let ent = basic_entity v6 (v1 @ v1 @ [ v3 ]) in
+      let ent = basic_entity v6 ~attrs:(v1 @ v1 @ [ v3 ]) in
       let vardef = { vinit = None; vtype = Some v4 } in
       let open_br, funcs, close_br = v7 in
       Block (open_br, (DefStmt (ent, VarDef vardef) |> G.s) :: funcs, close_br)
@@ -2835,7 +2837,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                    let iname, itok = id in
                    match iname with
                    | "get" ->
-                       let ent = basic_entity ("get_Item", itok) attrs in
+                       let ent = basic_entity ("get_Item", itok) ~attrs in
                        let funcdef =
                          FuncDef
                            {
@@ -2857,7 +2859,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                              pinfo = empty_id_info ();
                            }
                        in
-                       let ent = basic_entity ("set_Item", itok) attrs in
+                       let ent = basic_entity ("set_Item", itok) ~attrs in
                        let funcdef =
                          FuncDef
                            {
@@ -2876,7 +2878,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           let v2 = token env v2 (* ";" *) in
           let arrow, expr = v1 in
           let fbody = G.FBStmt (ExprStmt (expr, v2) |> G.s) in
-          let ent = basic_entity ("get_Item", arrow) indexer_attrs in
+          let ent = basic_entity ("get_Item", arrow) ~attrs:indexer_attrs in
           let funcdef =
             FuncDef
               {
@@ -2973,7 +2975,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                   let iname, itok = id in
                   let has_params = iname <> "get" in
                   let has_return = iname = "get" in
-                  let ent = basic_entity (iname ^ "_" ^ fname, itok) attrs in
+                  let ent = basic_entity (iname ^ "_" ^ fname, itok) ~attrs in
                   let funcdef =
                     FuncDef
                       {
@@ -3007,7 +3009,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let v1 = arrow_expression_clause env v1 in
             let v2 = token env v2 (* ";" *) in
             let arrow, expr = v1 in
-            let ent = basic_entity ("get_" ^ fname, arrow) [] in
+            let ent = basic_entity ("get_" ^ fname, arrow) in
             let funcdef =
               FuncDef
                 {
@@ -3020,7 +3022,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let func = DefStmt (ent, funcdef) |> G.s in
             ((arrow, [ func ], v2), None)
       in
-      let ent = basic_entity v5 (v1 @ v2) in
+      let ent = basic_entity v5 ~attrs:(v1 @ v2) in
       let vardef = { vinit; vtype = Some v3 } in
       let open_br, funcs, close_br = accessors in
       Block (open_br, (DefStmt (ent, VarDef vardef) |> G.s) :: funcs, close_br)

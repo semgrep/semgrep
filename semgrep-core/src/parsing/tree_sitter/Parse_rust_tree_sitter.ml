@@ -644,18 +644,16 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
   match x with
   | `Life x ->
       let id = map_lifetime env x in
-      {
-        (G.tparam_of_id id []) with
-        G.tp_constraints = [ G.OtherTypeParam (G.OTP_Lifetime, []) ];
-      }
+      G.tparam_of_id id
+        ~tp_constraints:[ G.OtherTypeParam (G.OTP_Lifetime, []) ]
   | `Meta tok ->
       let meta = ident env tok in
       (* pattern \$[a-zA-Z_]\w* *)
-      G.tparam_of_id meta []
+      G.tparam_of_id meta
   | `Id tok ->
       let ident = ident env tok in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      G.tparam_of_id ident []
+      G.tparam_of_id ident
   | `Cons_type_param x -> map_constrained_type_parameter env x
   | `Opt_type_param (v1, v2, v3) ->
       let type_param =
@@ -663,7 +661,7 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
         | `Id tok ->
             let ident = ident env tok in
             (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-            G.tparam_of_id ident []
+            G.tparam_of_id ident
         | `Cons_type_param x -> map_constrained_type_parameter env x
       in
       let _equal = token env v2 (* "=" *) in
@@ -677,10 +675,9 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
       let _colon = token env v3 in
       (* ":" *)
       let ty = map_type_ env v4 in
-      {
-        (G.tparam_of_id ident [ G.KeywordAttr (G.Const, const) ]) with
-        tp_bounds = [ ty ];
-      }
+      G.tparam_of_id ident
+        ~tp_attrs:[ G.KeywordAttr (G.Const, const) ]
+        ~tp_bounds:[ ty ]
 
 and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0) :
     G.pattern =
@@ -1071,7 +1068,7 @@ and map_constrained_type_parameter (env : env)
     (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   in
   let _boundsTODO = map_trait_bounds env v2 in
-  G.tparam_of_id ident []
+  G.tparam_of_id ident
 
 and map_else_clause (env : env) ((v1, v2) : CST.else_clause) : G.stmt =
   let _else_ = token env v1 (* "else" *) in
