@@ -1994,7 +1994,7 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
     match anys with
     (* look like a regular function call, just use Arg then *)
     | [ G.E e ] -> [ G.Arg e ]
-    | xs -> [ G.ArgOther (G.OA_ArgMacro, xs) ]
+    | xs -> [ G.ArgOther (("ArgMacro", G.fake ""), xs) ]
   in
   G.Call (G.N name |> G.e, (l, args, r)) |> G.e
 

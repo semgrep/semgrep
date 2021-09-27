@@ -458,7 +458,7 @@ and map_argument env x : G.argument =
       G.ArgType v1
   | ArgAction v1 ->
       let v1 = map_action_macro env v1 in
-      G.ArgOther (G.OA_ArgMacro, v1)
+      G.ArgOther (("ArgMacro", G.fake ""), v1)
   | ArgInits v1 ->
       let l, xs, r = map_brace env (map_of_list (map_initialiser env)) v1 in
       G.Arg (G.Container (G.Dict, (l, xs, r)) |> G.e)

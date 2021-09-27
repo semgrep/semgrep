@@ -726,13 +726,8 @@ and argument =
   | ArgKwd of ident * expr
   (* type argument for New, instanceof/sizeof/typeof, C macros *)
   | ArgType of type_
-  | ArgOther of other_argument_operator * any list
-
-and other_argument_operator =
-  (* OCaml *)
-  | OA_ArgQuestion
-  (* Rust *)
-  | OA_ArgMacro
+  (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml *)
+  | ArgOther of todo_kind * any list
 
 (* todo: reduce, or move in other_special? *)
 and other_expr_operator =
