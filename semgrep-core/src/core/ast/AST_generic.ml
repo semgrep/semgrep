@@ -280,7 +280,9 @@ and resolved_name_kind =
  * DEBT? Sometimes some DotAccess should really be transformed in IdQualified
  * with a better qualifier because the obj is actually the name of a package
  * or module, but you may need advanced semantic information and global
- * analysis to disambiguate.
+ * analysis to disambiguate. In the meantime, you can use
+ * AST_generic_helpers.name_of_dot_access to convert a DotAccess of idents
+ * into an IdQualified name.
  *
  * less: factorize the id_info in both and inline maybe name_info
  *)
@@ -839,7 +841,7 @@ and stmt_kind =
    * see also emptystmt() at the end of this file.
    *)
   (* newscope: for vardef in expr in C++/Go/... *)
-  | If of tok (* 'if' or 'elif' *) * expr * stmt * stmt option
+  | If of tok (* 'if' or 'elif' *) * condition * stmt * stmt option
   | While of tok * expr * stmt
   | Return of tok * expr option * sc
   | DoWhile of tok * stmt * expr
@@ -849,7 +851,7 @@ and stmt_kind =
    * less: could be merged with ExprStmt (MatchPattern ...) *)
   | Switch of
       tok (* 'switch' or also 'select' in Go *)
-      * expr option
+      * condition option
       * case_and_body list
   (* todo: merge with Switch.
    * In Scala and C# the match is infix (after the expr)
@@ -883,6 +885,9 @@ and stmt_kind =
    * of relying that the any list contains at least one token
    *)
   | OtherStmt of other_stmt_operator * any list
+
+(* TODO: can also introduce var in some languages *)
+and condition = expr
 
 (* newscope: *)
 (* less: could merge even more with pattern
@@ -1100,9 +1105,11 @@ and type_kind =
 (* <> in Java/C#/C++/Kotlin/Rust/..., [] in Scala and Go (for Map) *)
 and type_arguments = type_argument list bracket
 
+(* TODO? make a record also? *)
 and type_argument =
   | TypeArg of type_
   (* Java only *)
+  (* use-site variance *)
   | TypeWildcard of
       tok (* '?' *) * (bool wrap (* extends|super, true=super *) * type_) option
   (* Rust *)
@@ -1253,6 +1260,8 @@ and definition_kind =
    *)
   | FieldDefColon of (* todo: tok (*':'*) * *) variable_definition
   | ClassDef of class_definition
+  (* just inside a ClassDef of EnumClass *)
+  | EnumEntryDef of enum_entry_definition
   | TypeDef of type_definition
   | ModuleDef of module_definition
   | MacroDef of macro_definition
@@ -1265,24 +1274,42 @@ and definition_kind =
    * local.
    *)
   | UseOuterDecl of tok (* 'global' or 'nonlocal' in Python, 'use' in PHP *)
-  | OtherDef of other_def_operator * any list
-
-and other_def_operator = OD_Todo
+  | OtherDef of todo_kind * any list
 
 (* template/generics/polymorphic-type *)
-and type_parameter = ident * type_parameter_constraint list
+and type_parameter = {
+  (* alt: we could reuse entity here.
+   * note: in Scala the ident can be a wildcard.
+   *)
+  tp_id : ident;
+  tp_attrs : attribute list;
+  (* upper type bounds (must-be-a-subtype-of)
+     alt: we could just use 'type_' and TyAnd to represent intersection types *)
+  tp_bounds : type_ list;
+  (* for Rust/C++. Similar to parameter_classic, but with type here. *)
+  tp_default : type_ option;
+  (* declaration-site variance (Kotlin/Hack/Scala) *)
+  tp_variance : variance wrap option;
+  (* everything else that does not fit *)
+  tp_constraints : type_parameter_constraint list;
+}
 
+and variance =
+  | Covariant (* '+' in Scala/Hack, 'out' in C#/Kotlin *)
+  | Contravariant
+
+(* '-' in Scala/Hack, 'in' in C#/Kotlin *)
+
+(* less: Invariant? *)
 and type_parameter_constraint =
-  | Extends of type_
+  (* C# *)
   | HasConstructor of tok
   | OtherTypeParam of other_type_parameter_operator * any list
 
+(* TODO: get rid of *)
 and other_type_parameter_operator =
   (* Rust *)
   | OTP_Lifetime
-  | OTP_Ident
-  | OTP_Constrained
-  | OTP_Const
   (* Other *)
   | OTP_Todo
 
@@ -1402,7 +1429,9 @@ and variable_definition = {
 and type_definition = { tbody : type_definition_kind }
 
 and type_definition_kind =
-  | OrType of or_type_element list (* enum/ADTs *)
+  (* Algrebraic data types (ADTs), and basic enums.
+   * For enum class see class_definition *)
+  | OrType of or_type_element list
   (* Record definitions (for struct/class, see class_definition).
    * The fields will be defined via a DefStmt (VarDef variable_definition)
    * where the field.vtype should be defined.
@@ -1412,54 +1441,50 @@ and type_definition_kind =
   | AliasType of type_
   (* Haskell/Hack/Go ('type x foo' vs 'type x = foo' in Go) *)
   | NewType of type_
+  (* OCaml/Rust *)
+  | AbstractType of tok (* usually a fake token *)
   | Exception of ident (* same name than entity *) * type_ list
-  | OtherTypeKind of other_type_kind_operator * any list
+  | OtherTypeKind of todo_kind * any list
 
 and or_type_element =
   (* OCaml *)
   | OrConstructor of ident * type_ list
-  (* C *)
+  (* C enums (for enum class in Java/Kotlin, see EnumClass and EnumEntryDef *)
   | OrEnum of ident * expr option
-  (* Java? *)
+  (* C union *)
   | OrUnion of ident * type_
-  | OtherOr of other_or_type_element_operator * any list
-
-and other_or_type_element_operator =
-  (* Java, Kotlin *)
-  | OOTEO_EnumWithMethods
-  | OOTEO_EnumWithArguments
 
 (* ------------------------------------------------------------------------- *)
 (* Object/struct/record/class field definition *)
 (* ------------------------------------------------------------------------- *)
 
 (* Field definition and use, for classes, objects, and records.
+ *
  * note: I don't call it field_definition because it's used both to
  * define the shape of a field (a definition), and when creating
  * an actual field (a value).
+ * note: It is tempting to want to 'field' be just an alias for 'stmt',
+ * but fields can be matched in any order, so it is probably better
+ * to keep them separate.
+ * note: not all stmt in FieldStmt are definitions. You can have also
+ * a Block like in Kotlin for 'init' stmts.
+ * However ideally 'field' should really be just an alias for 'definition'.
  *
  * old: there used to be a FieldVar and FieldMethod similar to
  * VarDef and FuncDef but they are now converted into a FieldStmt(DefStmt).
  * This simplifies semgrep so that a function pattern can match
  * toplevel functions, nested functions, and methods.
- * Note that for FieldVar we sometimes converts it to a FieldDefColon
+ * Note that for FieldVar, we sometimes converts it to a FieldDefColon
  * (which is very similar to a VarDef) because some people don't want a VarDef
  * to match a field definition in certain languages (e.g., Javascript) where
  * the variable declaration and field definition have a different syntax.
  * Note: the FieldStmt(DefStmt(FuncDef(...))) can have empty body
  * for interface methods.
- *
- * Note that not all stmt in FieldStmt are definitions. You can have also
- * a Block like in Kotlin for 'init' stmts.
- * However ideally 'field' should really be just an alias for 'definition'.
  *)
 and field =
   | FieldStmt of stmt
   (* DEBT? could abuse FieldStmt(ExprStmt(IdSpecial(Spread))) for that? *)
   | FieldSpread of tok (* ... *) * expr
-
-and other_type_kind_operator = (* OCaml *)
-  | OTKO_AbstractType | OTKO_Todo
 
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
@@ -1477,7 +1502,7 @@ and class_definition = {
   (* the class_kind in type_ are usually Trait *)
   (* PHP 'uses' *)
   cmixins : type_ list;
-  (* for Java Record or Scala Classes (we could transpile them into fields) *)
+  (* for Java Record and Kotlin/Scala (we could transpile them into fields) *)
   cparams : parameters;
   (* newscope:
    * note: this can be an empty fake bracket when used in Partial.
@@ -1491,12 +1516,24 @@ and class_kind =
   | Class
   | Interface
   | Trait
-  (* Kotlin, Scala *)
+  (* Kotlin/Scala *)
   | Object
   (* Java 'record', Scala 'case class' *)
   | RecordClass
+  (* Java/Kotlin *)
+  | EnumClass
   (* Java @interface, a.k.a annotation type declaration *)
   | AtInterface
+
+(* ------------------------------------------------------------------------- *)
+(* Enum entry  *)
+(* ------------------------------------------------------------------------- *)
+(* for EnumClass, complex enums-as-classes in Java/Kotlin/Scala? *)
+and enum_entry_definition = {
+  (* the enum identifier is in the corresponding entity *)
+  ee_args : arguments bracket option;
+  ee_body : field list bracket option;
+}
 
 (* ------------------------------------------------------------------------- *)
 (* Module definition  *)
@@ -1581,7 +1618,7 @@ and other_directive_operator =
  * Indeed, many languages allow nested functions, nested class definitions,
  * and even nested imports, so it is just simpler to merge item with stmt.
  * This simplifies semgrep too.
- * DEBT? merge with field too?
+ * TODO? make it an alias to stmt_or_def_or_dir instead?
  *)
 and item = stmt
 
@@ -1621,6 +1658,7 @@ and any =
   | P of pattern
   | At of attribute
   | Fld of field
+  | Flds of field list
   | Args of argument list
   | Partial of partial
   (* misc *)
@@ -1751,9 +1789,10 @@ let basic_id_info resolved =
 (* Entities *)
 (* ------------------------------------------------------------------------- *)
 
-let basic_entity id attrs =
+(* alt: could use @@deriving make *)
+let basic_entity ?(attrs = []) ?(tparams = []) id =
   let idinfo = empty_id_info () in
-  { name = EN (Id (id, idinfo)); attrs; tparams = [] }
+  { name = EN (Id (id, idinfo)); attrs; tparams }
 
 (* ------------------------------------------------------------------------- *)
 (* Arguments *)
@@ -1774,20 +1813,26 @@ let opcall (op, t) es = special (Op op, t) es
  * instead of abusing special?
  *)
 let interpolated (lquote, xs, rquote) =
-  let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
-  Call
-    ( special,
-      ( lquote,
-        xs
-        |> List.map (function
-             | Common.Left3 str -> Arg (L (String str) |> e)
-             | Common.Right3 (lbrace, eopt, rbrace) ->
-                 let special = IdSpecial (InterpolatedElement, lbrace) |> e in
-                 let args = eopt |> Common.opt_to_list |> List.map arg in
-                 Arg (Call (special, (lbrace, args, rbrace)) |> e)
-             | Common.Middle3 e -> Arg e),
-        rquote ) )
-  |> e
+  match xs with
+  | [ Common.Left3 (str, tstr) ] ->
+      L (String (str, Parse_info.combine_infos lquote [ tstr; rquote ])) |> e
+  | _ ->
+      let special = IdSpecial (ConcatString InterpolatedConcat, lquote) |> e in
+      Call
+        ( special,
+          ( lquote,
+            xs
+            |> List.map (function
+                 | Common.Left3 str -> Arg (L (String str) |> e)
+                 | Common.Right3 (lbrace, eopt, rbrace) ->
+                     let special =
+                       IdSpecial (InterpolatedElement, lbrace) |> e
+                     in
+                     let args = eopt |> Common.opt_to_list |> List.map arg in
+                     Arg (Call (special, (lbrace, args, rbrace)) |> e)
+                 | Common.Middle3 e -> Arg e),
+            rquote ) )
+      |> e
 
 (* todo? use a special construct KeyVal valid only inside Dict? *)
 let keyval k _tarrow v = Container (Tuple, fake_bracket [ k; v ]) |> e
@@ -1813,6 +1858,13 @@ let param_of_type typ =
     pattrs = [];
     pinfo = empty_id_info ();
   }
+
+(* ------------------------------------------------------------------------- *)
+(* Type parameters *)
+(* ------------------------------------------------------------------------- *)
+let tparam_of_id ?(tp_attrs = []) ?(tp_variance = None) ?(tp_bounds = [])
+    ?(tp_default = None) ?(tp_constraints = []) tp_id =
+  { tp_id; tp_attrs; tp_variance; tp_bounds; tp_default; tp_constraints }
 
 (* ------------------------------------------------------------------------- *)
 (* Statements *)
@@ -1849,7 +1901,7 @@ let stmt1 xs =
 let fld (ent, def) = FieldStmt (s (DefStmt (ent, def)))
 
 let basic_field id vopt typeopt =
-  let entity = basic_entity id [] in
+  let entity = basic_entity id in
   fld (entity, VarDef { vinit = vopt; vtype = typeopt })
 
 let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))

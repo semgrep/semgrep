@@ -423,6 +423,9 @@ and map_object_elem (env : env) (x : CST.object_elem) : field =
         | Right _tcolon -> FieldDefColon vdef
       in
       (ent, def) |> G.fld
+  | `Semg_ellips v1 ->
+      let v1 = token env v1 in
+      G.fieldEllipsis v1
 
 and map_object_elems (env : env) ((v1, v2, v3) : CST.object_elems) =
   let v1 = map_object_elem env v1 in
@@ -524,7 +527,7 @@ let map_attribute (env : env) ((v1, v2, v3) : CST.attribute) : definition =
   let v1 = (* identifier *) map_identifier env v1 in
   let _v2 = (* "=" *) token env v2 in
   let v3 = map_expression env v3 in
-  let ent = G.basic_entity v1 [] in
+  let ent = G.basic_entity v1 in
   let def = { vinit = Some v3; vtype = None } in
   (ent, VarDef def)
 
@@ -555,7 +558,7 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
 
   let n = H2.name_of_id v1 in
   (* convert in a Record like map_object *)
-  let flds = v4 |> List.map (fun st -> FieldStmt st) in
+  let flds = v4 in
   let body = Record (v3, flds, v5) |> G.e in
   let es = [ N n |> G.e ] @ v2 @ [ body ] in
   let args = es |> List.map G.arg in
@@ -563,23 +566,22 @@ let rec map_block (env : env) ((v1, v2, v3, v4, v5) : CST.block) : G.expr =
   let special = IdSpecial (New, snd v1) |> G.e in
   G.Call (special, fake_bracket args) |> G.e
 
-(* TODO? convert to a field, to be similar to map_object_, so maybe some
- * object semgrep pattern can also match block body.
+(* We convert to a field, to be similar to map_object_, so some
+ * patterns like 'a=1 ... b=2' can match block body as well as objects.
  *)
-and map_body (env : env) (xs : CST.body) : item list =
+and map_body (env : env) (xs : CST.body) : field list =
   List.map
     (fun x ->
       match x with
       | `Attr x ->
           let def = map_attribute env x in
-          DefStmt def |> G.s
+          def |> G.fld
       | `Blk x ->
           let blk = map_block env x in
-          G.exprstmt blk
+          FieldStmt (G.exprstmt blk)
       | `Semg_ellips tok ->
           let t = (* "..." *) token env tok in
-          let e = Ellipsis t |> G.e in
-          G.exprstmt e)
+          G.fieldEllipsis t)
     xs
 
 let map_config_file (env : env) (x : CST.config_file) : any =
@@ -590,7 +592,7 @@ let map_config_file (env : env) (x : CST.config_file) : any =
           match x with
           | `Body x ->
               let bd = map_body env x in
-              Pr bd
+              Flds bd
           | `Obj x ->
               let x = map_object_ env x in
               Pr [ G.exprstmt x ])
@@ -610,6 +612,11 @@ let parse file =
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_config_file env cst with
       | Pr xs -> xs
+      | Flds xs ->
+          xs
+          |> List.map (function
+               | FieldStmt x -> x
+               | FieldSpread _ -> raise Impossible)
       | _ -> failwith "not a program")
 
 let parse_expression_or_source_file str =
@@ -631,4 +638,6 @@ let parse_pattern str =
       | Pr [ { s = ExprStmt (e, _); _ } ] -> G.E e
       | Pr [ x ] -> G.S x
       | Pr xs -> G.Ss xs
+      | Flds [ FieldStmt { s = ExprStmt (e, _); _ } ] -> G.E e
+      | Flds [ FieldStmt x ] -> G.S x
       | x -> x)

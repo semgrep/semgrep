@@ -6,7 +6,6 @@ Currently supports ignoring a finding on a single line by adding a
 
 To use, create a RuleMatchMap, then pass it to process_ignores().
 """
-from dataclasses import dataclass
 from re import sub
 from typing import List
 from typing import Sequence
@@ -24,7 +23,7 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match_map import RuleMatchMap
 
 
-@dataclass
+@attr.s(auto_attribs=True, frozen=True)
 class IgnoreResults:
     """
     Holds results of calculating ignores

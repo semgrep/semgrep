@@ -5,6 +5,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Added support for break and continue in the dataflow engine
+
+### Changed
+- Taint no longer analyzes dead/unreachable code
+- Improve error message for segmentation faults/stack overflows
+- Attribute-expression equivalence that allows matching expression patterns against
+  attributes, it is enabled by default but can be disabled via rule `options:` with
+  `attr_expr: false` (#3489)
+
+### Fixed
+
+## [0.66.0](https://github.com/returntocorp/semgrep/releases/tag/v0.66.0) - 09-22-2021
+
+### Added
 - HCL (a.k.a Terraform) experimental support
 - Added "automatic configuration" (`--config auto`), which collaborates with
   the Semgrep Registry to customize rules to a project; to support this, we
@@ -14,6 +28,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Changed
 - Constant propagation now assumes that void methods may update the callee (#3316)
+- Add rule message to emacs output (#3851)
+- Show stack trace on fatal errors (#3876)
+- Various changes to error messages (#3827)
 
 ### Fixed
 - Dataflow: Recognize "concat" method and interpret it in a language-dependent manner (#3316)

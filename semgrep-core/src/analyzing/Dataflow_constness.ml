@@ -31,7 +31,7 @@ module DataflowX = Dataflow.Make (struct
 
   type edge = F.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F.n
 end)
@@ -291,14 +291,14 @@ let transfer :
  fun ~enter_env ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
-  let node = flow#nodes#assoc ni in
+  let node = flow.graph#nodes#assoc ni in
 
   let inp' =
     (* input mapping *)
     match node.F.n with
     | Enter -> enter_env
     | _else ->
-        (flow#predecessors ni)#fold
+        (flow.graph#predecessors ni)#fold
           (fun acc (ni_pred, _) -> union_env acc mapping.(ni_pred).D.out_env)
           VarMap.empty
   in
@@ -362,11 +362,11 @@ let (fixpoint : IL.name list -> F.cfg -> mapping) =
     ~forward:true ~flow
 
 let update_constness (flow : F.cfg) mapping =
-  flow#nodes#keys
+  flow.graph#nodes#keys
   |> List.iter (fun ni ->
          let ni_info = mapping.(ni) in
 
-         let node = flow#nodes#assoc ni in
+         let node = flow.graph#nodes#assoc ni in
 
          (* Update RHS constness according to the input env. *)
          rlvals_of_node node.n

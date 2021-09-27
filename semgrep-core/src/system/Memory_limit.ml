@@ -29,7 +29,8 @@ let run_with_memory_limit ?(stack_warning_kb = default_stack_warning_kb)
       (spf "run_with_memory_limit: negative argument mem_limit_mb %i"
          mem_limit_mb);
 
-  let mem_limit = mem_limit_mb * 1024 * 1024 in
+  let mb = 1024 * 1024 in
+  let mem_limit = mem_limit_mb * mb in
   let stack_warning = stack_warning_kb * 1024 in
   let stack_already_warned = ref false in
   let limit_memory () =
@@ -41,7 +42,7 @@ let run_with_memory_limit ?(stack_warning_kb = default_stack_warning_kb)
       logger#info
         "exceeded heap+stack memory limit: %d bytes (stack=%d, heap=%d)"
         mem_bytes stack_bytes heap_bytes;
-      raise Out_of_memory)
+      raise (ExceededMemoryLimit "Exceeded memory limit"))
     else if
       stack_warning > 0
       && stack_bytes > stack_warning

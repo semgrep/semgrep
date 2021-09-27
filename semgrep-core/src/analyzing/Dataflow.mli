@@ -66,7 +66,7 @@ module type Flow = sig
 
   type edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = (node, edge) CFG.t
 
   val short_string_of_node : node -> string
 end

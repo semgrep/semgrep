@@ -1,0 +1,9 @@
+resource $TYPE "..." {
+           ...
+	   # dots in object_elem
+           policy = jsonencode({
+	     ...
+           })
+           ...
+         }
+	 

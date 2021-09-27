@@ -1,0 +1,12 @@
+rules:
+  - id: test-multi-break
+    languages:
+      - php
+    message: Match Found!
+    mode: taint
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: $source
+    severity: WARNING
+

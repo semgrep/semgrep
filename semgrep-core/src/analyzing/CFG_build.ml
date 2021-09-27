@@ -43,7 +43,7 @@ type label_key = string * G.sid
  * No need to return a new state.
  *)
 type state = {
-  g : F.cfg;
+  g : (F.node, F.edge) Ograph_extended.ograph_mutable;
   (* When there is a 'return' we need to know the exit node to link to *)
   exiti : F.nodei;
   (* Attaches labels to nodes. *)
@@ -216,7 +216,7 @@ and cfg_todo state previ stmt =
   CfgFirstLast (newi, Some newi)
 
 and cfg_stmt_list state previ xs =
-  let lasti_opt =
+  let lasti_opt, labels =
     xs
     |> List.fold_left
          (fun (previ, labels) stmt ->
@@ -229,9 +229,17 @@ and cfg_stmt_list state previ xs =
                (lasti, [])
            | CfgLabel label -> (previ, label :: labels))
          (previ, [])
-    |> fst
   in
-  lasti_opt
+  match (lasti_opt, labels) with
+  | Some lasti, l :: ls ->
+      (* If we had labels at the end of our stmt list, we create a dummy node to assign them to,
+         and connect it to the last node we looked at
+      *)
+      let dummyi = state.g#add_node { n = NOther Noop } in
+      label_node state (l :: ls) dummyi;
+      add_arc (lasti, dummyi) state.g;
+      lasti_opt
+  | _ -> lasti_opt
 
 (*****************************************************************************)
 (* Main entry point *)
@@ -255,4 +263,4 @@ let (cfg_of_stmts : stmt list -> F.cfg) =
    * connect last stmt to the exit node
    *)
   g |> add_arc_opt (last_node_opt, exiti);
-  g
+  { graph = g; entry = enteri }

@@ -202,7 +202,7 @@ jobs:
           path: semgrep/dist.zip
 
   build-wheels-manylinux:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
     container: returntocorp/sgrep-build:ubuntu-16.04
     needs: [build-core]
     steps:
@@ -235,7 +235,7 @@ jobs:
           path: semgrep/dist.zip
 
   test-wheels-manylinux:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
     container: quay.io/pypa/manylinux1_x86_64
     needs: [build-wheels-manylinux]
     steps:
@@ -258,7 +258,7 @@ jobs:
         run: echo '1 == 1' | ./semgrep -l generic -e '$X == $X' -
 
   upload-wheels:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
     needs: [test-wheels-manylinux, build-wheels-osx]
     steps:
       - name: Download Artifact
@@ -287,7 +287,7 @@ jobs:
     name: Sleep 10 min before releasing to homebrew
     # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
     needs: [upload-wheels]
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
     steps:
       - name: Sleep 10 min
         run: sleep 10m

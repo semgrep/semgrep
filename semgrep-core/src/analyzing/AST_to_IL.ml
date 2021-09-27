@@ -39,9 +39,16 @@ type env = {
    * usually simple Instr, but can be also If when handling Conditional expr.
    *)
   stmts : stmt list ref;
+  (* When entering a loop, we create two labels, one to jump to if a Continue stmt is found
+     and another to jump to if a Break stmt is found. Since PHP supports breaking an arbitrary
+     number of loops up, we keep a stack of break labels instead of just one
+  *)
+  break_labels : label list;
+  cont_label : label option;
 }
 
-let empty_env lang = { lang; stmts = ref [] }
+let empty_env lang =
+  { stmts = ref []; break_labels = []; cont_label = None; lang }
 
 (*****************************************************************************)
 (* Error management *)
@@ -99,7 +106,7 @@ let fresh_var _env tok =
   let i = H.gensym () in
   (("_tmp", tok), i)
 
-let _fresh_label _env tok =
+let fresh_label _env tok =
   let i = H.gensym () in
   (("_label", tok), i)
 
@@ -711,6 +718,21 @@ let parameters _env params =
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
+
+let mk_break_continue_labels env tok =
+  let cont_label = fresh_label env tok in
+  let break_label = fresh_label env tok in
+  let st_env =
+    {
+      env with
+      break_labels = break_label :: env.break_labels;
+      cont_label = Some cont_label;
+    }
+  in
+  let cont_label_s = [ mk_s (Label cont_label) ] in
+  let break_label_s = [ mk_s (Label break_label) ] in
+  (cont_label_s, break_label_s, st_env)
+
 let rec stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (e, _) ->
@@ -733,16 +755,27 @@ let rec stmt_aux env st =
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
   | G.Switch (_, _, _) -> todo (G.S st)
   | G.While (tok, e, st) ->
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss, e' = expr_with_pre_stmts env e in
-      let st = stmt env st in
-      ss @ [ mk_s (Loop (tok, e', st @ ss)) ]
+      let st = stmt st_env st in
+      ss @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ] @ break_label_s
   | G.DoWhile (tok, st, e) ->
-      let st = stmt env st in
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
+      let st = stmt st_env st in
       let ss, e' = expr_with_pre_stmts env e in
-      st @ ss @ [ mk_s (Loop (tok, e', st @ ss)) ]
+      st @ ss
+      @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ]
+      @ break_label_s
   | G.For (tok, G.ForEach (pat, tok2, e), st) ->
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss, e' = expr_with_pre_stmts env e in
-      let st = stmt env st in
+      let st = stmt st_env st in
 
       let next_lval = fresh_lval env tok2 in
       let hasnext_lval = fresh_lval env tok2 in
@@ -774,11 +807,16 @@ let rec stmt_aux env st =
             (Loop
                ( tok,
                  cond,
-                 [ next_call ] @ assign @ st @ [ (* ss @ ?*) hasnext_call ] ));
+                 [ next_call ] @ assign @ st @ cont_label_s
+                 @ [ (* ss @ ?*) hasnext_call ] ));
         ]
+      @ break_label_s
   | G.For (tok, G.ForClassic (xs, eopt1, eopt2), st) ->
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss1 = for_var_or_expr_list env xs in
-      let st = stmt env st in
+      let st = stmt st_env st in
       let ss2, cond =
         match eopt1 with
         | None ->
@@ -793,17 +831,43 @@ let rec stmt_aux env st =
             let ss, _eIGNORE = expr_with_pre_stmts env e in
             ss
       in
-      ss1 @ ss2 @ [ mk_s (Loop (tok, cond, st @ next @ ss2)) ]
+      ss1 @ ss2
+      @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ next @ ss2)) ]
+      @ break_label_s
   | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
   | G.For (tok, G.ForIn (xs, e), st) ->
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss1 = for_var_or_expr_list env xs in
-      let st = stmt env st in
+      let st = stmt st_env st in
       let ss2, cond = expr_with_pre_stmts env (List.nth e 0) (* TODO list *) in
-      ss1 @ ss2 @ [ mk_s (Loop (tok, cond, st @ ss2)) ]
+      ss1 @ ss2
+      @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ ss2)) ]
+      @ break_label_s
   (* TODO: repeat env work of controlflow_build.ml *)
-  | G.Continue _
-  | G.Break _ ->
-      todo (G.S st)
+  | G.Continue (tok, lbl_ident, _) -> (
+      match lbl_ident with
+      | G.LNone -> (
+          match env.cont_label with
+          | None -> impossible (G.Tk tok)
+          | Some lbl -> [ mk_s (Goto (tok, lbl)) ])
+      | G.LId lbl -> [ mk_s (Goto (tok, label_of_label env lbl)) ]
+      | G.LInt _
+      | G.LDynamic _ ->
+          todo (G.S st))
+  | G.Break (tok, lbl_ident, _) -> (
+      match lbl_ident with
+      | G.LNone -> (
+          match env.break_labels with
+          | [] -> impossible (G.Tk tok)
+          | lbl :: _ -> [ mk_s (Goto (tok, lbl)) ])
+      | G.LId lbl -> [ mk_s (Goto (tok, label_of_label env lbl)) ]
+      | G.LInt (i, _) -> (
+          match List.nth_opt env.break_labels i with
+          | None -> impossible (G.Tk tok)
+          | Some lbl -> [ mk_s (Goto (tok, lbl)) ])
+      | G.LDynamic _ -> impossible (G.Tk tok))
   | G.Label (lbl, st) ->
       let lbl = label_of_label env lbl in
       let st = stmt env st in

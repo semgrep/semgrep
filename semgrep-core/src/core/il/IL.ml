@@ -280,6 +280,7 @@ and other_stmt =
   (* everything except VarDef (which is transformed in a Set instr) *)
   | DefStmt of G.definition
   | DirectiveStmt of G.directive
+  | Noop
 
 and label = ident * G.sid [@@deriving show { with_path = false }]
 
@@ -320,7 +321,7 @@ and node_kind =
  *)
 type edge = Direct
 
-type cfg = (node, edge) Ograph_extended.ograph_mutable
+type cfg = (node, edge) CFG.t
 
 (* an int representing the index of a node in the graph *)
 type nodei = Ograph_extended.nodei
