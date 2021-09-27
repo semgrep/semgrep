@@ -738,7 +738,7 @@ let mk_switch_break_label env tok =
   let switch_env =
     { env with break_labels = break_label :: env.break_labels }
   in
-  ([ mk_s (Label break_label) ], switch_env)
+  (break_label, [ mk_s (Label break_label) ], switch_env)
 
 let rec stmt_aux env st =
   match st.G.s with
@@ -763,7 +763,9 @@ let rec stmt_aux env st =
   | G.Switch (_, None, _) -> todo (G.S st)
   | G.Switch (tok, Some e, case_and_bodies) ->
       let ss, e' = expr_with_pre_stmts env e in
-      let break_label_s, switch_env = mk_switch_break_label env tok in
+      let break_label, break_label_s, switch_env =
+        mk_switch_break_label env tok
+      in
       let cases_to_exp cs =
         {
           e =
@@ -790,7 +792,7 @@ let rec stmt_aux env st =
       in
       let rec f : G.case_and_body stack -> IL.stmt list * IL.stmt list =
         function
-        | [] -> ([], [])
+        | [] -> ([ mk_s (Goto (tok, break_label)) ], [])
         | G.CaseEllipsis _ :: _ -> failwith ""
         | G.CasesAndBody (cases, body) :: xs ->
             let jumps, bodies = f xs in
