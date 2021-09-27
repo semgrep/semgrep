@@ -20,6 +20,7 @@ from semgrep.core_output import RuleId
 from semgrep.error import _UnknownLanguageError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
+from semgrep.error import with_color
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
@@ -132,7 +133,7 @@ class CoreRunner:
             return cast(Dict[str, Any], json.loads(semgrep_output))
         except ValueError:
             self._fail(
-                "unparseable json output",
+                "Semgrep encountered an internal error. This may be a stack overflow. Try increasing your stack size via `ulimit -s 50000`",
                 rule,
                 core_run,
                 returncode,
@@ -153,9 +154,8 @@ class CoreRunner:
         # Once we require python >= 3.8, switch to using shlex.join instead
         # for proper quoting of the command line.
         shell_command = " ".join(core_run.args)
-        raise SemgrepError(
-            f"semgrep-core failed: {reason}\n"
-            f"rule ID: '{rule.id}'\n"
+        details = with_color(
+            "white",
             f"semgrep-core exit code: {returncode}\n"
             f"semgrep-core command: {shell_command}\n"
             f"unexpected non-json output while invoking semgrep-core:\n"
@@ -164,7 +164,10 @@ class CoreRunner:
             "--- end semgrep-core stdout ---\n"
             "--- semgrep-core stderr ---\n"
             f"{semgrep_error_output}"
-            "--- end semgrep-core stderr ---\n"
+            "--- end semgrep-core stderr ---\n",
+        )
+        raise SemgrepError(
+            f"Error running `{rule.id}`: {reason}\n{details}"
             f"{PLEASE_FILE_ISSUE_TEXT}"
         )
 
