@@ -209,7 +209,7 @@ and formal_param_pattern = function
   | ( Formal_amp _ | Formal_star _ | Formal_rest _ | Formal_default _
     | Formal_hash_splat _ | Formal_kwd _ | ParamEllipsis _ ) as x ->
       let x = formal_param x in
-      G.OtherPat (G.OP_Todo, [ G.Pa x ])
+      G.OtherPat (("ParamPattern", PI.unsafe_fake_info ""), [ G.Pa x ])
 
 (* less: return a G.name *)
 and scope_resolution = function
@@ -642,14 +642,14 @@ and rescue_clause (t, exns, exnvaropt, sts) =
   | [], None -> (t, G.PatUnderscore t, st)
   | [], Some (t, lhs) ->
       let e = expr lhs in
-      (t, G.OtherPat (G.OP_Todo, [ G.Tk t; G.E e ]), st)
+      (t, G.OtherPat (("Rescue", t), [ G.E e ]), st)
   | x :: xs, None ->
       let disjs = List.fold_left (fun e acc -> G.PatDisj (e, acc)) x xs in
       (t, disjs, st)
   | x :: xs, Some (t, lhs) ->
       let disjs = List.fold_left (fun e acc -> G.PatDisj (e, acc)) x xs in
       let e = expr lhs in
-      (t, G.OtherPat (G.OP_Todo, [ G.Tk t; G.E e; G.P disjs ]), st)
+      (t, G.OtherPat (("RescueDisj", t), [ G.E e; G.P disjs ]), st)
 
 and exception_ e =
   let t = type_ e in
