@@ -46,12 +46,18 @@ class SarifFormatter(BaseFormatter):
         tags = SarifFormatter._rule_to_sarif_tags(rule)
         rule_json = {
             "id": rule.id,
-            "name": rule.id,
             "shortDescription": {"text": rule.message},
             "fullDescription": {"text": rule.message},
             "defaultConfiguration": {"level": severity},
             "properties": {"precision": "very-high", "tags": tags},
         }
+
+        rule_name = rule.metadata.get("name")
+        if rule_name is not None:
+            rule_json["name"] = rule_name
+            rule_json["deprecatedNames"] = [rule.id]
+        else:
+            rule_json["name"] = rule.id
 
         rule_url = rule.metadata.get("source")
         if rule_url is not None:

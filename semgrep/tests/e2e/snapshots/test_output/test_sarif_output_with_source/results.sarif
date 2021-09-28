@@ -80,12 +80,15 @@
               "defaultConfiguration": {
                 "level": "error"
               },
+              "deprecatedNames": [
+                "rules.eqeq-is-bad"
+              ],
               "fullDescription": {
                 "text": "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
               },
               "helpUri": "https://semgrep.dev/foo/bar/bad",
               "id": "rules.eqeq-is-bad",
-              "name": "rules.eqeq-is-bad",
+              "name": "Self-referential comparison",
               "properties": {
                 "precision": "very-high",
                 "tags": []
@@ -98,12 +101,15 @@
               "defaultConfiguration": {
                 "level": "error"
               },
+              "deprecatedNames": [
+                "rules.javascript-basic-eqeq-bad"
+              ],
               "fullDescription": {
                 "text": "useless comparison"
               },
               "helpUri": "https://semgrep.dev/foo/bar/js",
               "id": "rules.javascript-basic-eqeq-bad",
-              "name": "rules.javascript-basic-eqeq-bad",
+              "name": "Self-referential comparison",
               "properties": {
                 "precision": "very-high",
                 "tags": []

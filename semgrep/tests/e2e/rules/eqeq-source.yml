@@ -30,6 +30,7 @@ rules:
     languages: [python]
     severity: ERROR
     metadata:
+      name: "Self-referential comparison"
       category: correctness
       source: "https://semgrep.dev/foo/bar/bad"
   - id: python37-compatability-os-module
@@ -50,4 +51,5 @@ rules:
     languages: [js]
     severity: ERROR
     metadata:
+      name: "Self-referential comparison"
       source: "https://semgrep.dev/foo/bar/js"

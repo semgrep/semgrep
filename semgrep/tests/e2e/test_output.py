@@ -119,6 +119,10 @@ def test_sarif_output_with_source(run_semgrep_in_tmp, snapshot):
     for rule in sarif_output["runs"][0]["tool"]["driver"]["rules"]:
         assert rule.get("helpUri", None) is not None
 
+    # Assert that each sarif rule object has a name
+    for rule in sarif_output["runs"][0]["tool"]["driver"]["rules"]:
+        assert rule.get("name") is not None
+
 
 def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
     sarif_output = json.loads(
@@ -134,6 +138,10 @@ def test_sarif_output_with_source_edit(run_semgrep_in_tmp, snapshot):
     # Assert that each sarif rule object has a helpURI
     for rule in sarif_output["runs"][0]["tool"]["driver"]["rules"]:
         assert rule.get("help", None) is not None
+
+    # Assert that each sarif rule object has a name
+    for rule in sarif_output["runs"][0]["tool"]["driver"]["rules"]:
+        assert rule.get("name") is not None
 
 
 def test_sarif_output_with_nosemgrep_and_error(run_semgrep_in_tmp, snapshot):
