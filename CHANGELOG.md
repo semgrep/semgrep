@@ -13,6 +13,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Attribute-expression equivalence that allows matching expression patterns against
   attributes, it is enabled by default but can be disabled via rule `options:` with
   `attr_expr: false` (#3489)
+- The `name` field of rules in the SARIF output is now set by a rule's `name`
+  metadata, if such metadata is provided.
 
 ### Fixed
 - Fix CFG dummy nodes to always connect to exit node
