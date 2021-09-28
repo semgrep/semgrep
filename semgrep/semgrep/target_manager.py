@@ -9,80 +9,24 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import NamedTuple
-from typing import NewType
 from typing import Sequence
 from typing import Set
 
 import attr
+from wcmatch import glob as wcglob
 
-from semgrep.error import _UnknownLanguageError
+from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import Language
+from semgrep.target_manager_extensions import ALL_EXTENSIONS
+from semgrep.target_manager_extensions import FileExtension
+from semgrep.target_manager_extensions import lang_to_exts
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
+from semgrep.verbose_logging import getLogger
 
-FileExtension = NewType("FileExtension", str)
-
-
-PYTHON_EXTENSIONS = [FileExtension("py"), FileExtension("pyi")]
-JAVASCRIPT_EXTENSIONS = [FileExtension("js"), FileExtension("jsx")]
-TYPESCRIPT_EXTENSIONS = [FileExtension("ts"), FileExtension("tsx")]
-JAVA_EXTENSIONS = [FileExtension("java")]
-C_EXTENSIONS = [FileExtension("c")]
-GO_EXTENSIONS = [FileExtension("go")]
-RUBY_EXTENSIONS = [FileExtension("rb")]
-PHP_EXTENSIONS = [FileExtension("php")]
-ML_EXTENSIONS = [
-    FileExtension("mli"),
-    FileExtension("ml"),
-]
-JSON_EXTENSIONS = [FileExtension("json")]
-ALL_EXTENSIONS = (
-    PYTHON_EXTENSIONS
-    + JAVASCRIPT_EXTENSIONS
-    + TYPESCRIPT_EXTENSIONS
-    + JAVA_EXTENSIONS
-    + C_EXTENSIONS
-    + GO_EXTENSIONS
-    + RUBY_EXTENSIONS
-    + ML_EXTENSIONS
-    + JSON_EXTENSIONS
-)
-
-
-def lang_to_exts(language: Language) -> List[FileExtension]:
-    """
-    Convert language to expected file extensions
-
-    If language is not a supported semgrep language then
-    raises _UnknownLanguageError
-    """
-    lang = language.value
-    if lang in {"python", "python2", "python3", "py"}:
-        return PYTHON_EXTENSIONS
-    elif lang in {"js", "jsx", "javascript"}:
-        return JAVASCRIPT_EXTENSIONS
-    elif lang in {"ts", "tsx", "typescript"}:
-        return TYPESCRIPT_EXTENSIONS
-    elif lang in {"java"}:
-        return JAVA_EXTENSIONS
-    elif lang in {"c"}:
-        return C_EXTENSIONS
-    elif lang in {"go", "golang"}:
-        return GO_EXTENSIONS
-    elif lang in {"ml", "ocaml"}:
-        return ML_EXTENSIONS
-    elif lang in {"rb", "ruby"}:
-        return RUBY_EXTENSIONS
-    elif lang in {"php"}:
-        return PHP_EXTENSIONS
-    elif lang in {"json", "JSON", "Json"}:
-        return JSON_EXTENSIONS
-    elif lang in {"none", "generic"}:
-        return [FileExtension("*")]
-    else:
-        raise _UnknownLanguageError(f"Unsupported Language: {lang}")
+logger = getLogger(__name__)
 
 
 @contextlib.contextmanager
@@ -152,11 +96,29 @@ class TargetManager:
         Return list of Path objects appropriately resolving relative paths
         (relative to cwd) if necessary
         """
-        base_path = Path(".")
-        return set(
-            Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
-            for target in targets
-        )
+        return set(resolve_targets(targets))
+
+    @staticmethod
+    def _is_valid_file_or_dir(path: Path) -> bool:
+        """Check this is a valid file or directory for semgrep scanning."""
+        return os.access(path, os.R_OK) and not path.is_symlink()
+
+    @staticmethod
+    def _is_valid_file(path: Path) -> bool:
+        """Check if file is a readable regular file.
+
+        This eliminates files that should never be semgrep targets. Among
+        others, this takes care of excluding symbolic links (because we don't
+        want to scan the target twice), directories (which may be returned by
+        globbing or by 'git ls-files' e.g. submodules), and files missing
+        the read permission.
+        """
+        return TargetManager._is_valid_file_or_dir(path) and path.is_file()
+
+    @staticmethod
+    def _filter_valid_files(paths: Set[Path]) -> Set[Path]:
+        """Keep only readable regular files"""
+        return set(path for path in paths if TargetManager._is_valid_file(path))
 
     @staticmethod
     def _expand_dir(
@@ -177,7 +139,11 @@ class TargetManager:
             files: Set[Path] = set()
             if output:
                 files = set(
-                    Path(curr_dir) / elem for elem in output.strip().split("\n")
+                    p
+                    for p in (
+                        Path(curr_dir) / elem for elem in output.strip().split("\n")
+                    )
+                    if TargetManager._is_valid_file(p)
                 )
             return files
 
@@ -187,7 +153,11 @@ class TargetManager:
             """
             Return set of all files in curr_dir with given extension
             """
-            return set(p for p in curr_dir.rglob(f"*.{extension}") if p.is_file())
+            return set(
+                p
+                for p in curr_dir.rglob(f"*{extension}")
+                if TargetManager._is_valid_file(p)
+            )
 
         extensions = lang_to_exts(language)
         expanded: Set[Path] = set()
@@ -197,7 +167,7 @@ class TargetManager:
                 try:
                     # Tracked files
                     tracked_output = sub_check_output(
-                        ["git", "ls-files", f"*.{ext}"],
+                        ["git", "ls-files", f"*{ext}"],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
@@ -210,7 +180,7 @@ class TargetManager:
                             "ls-files",
                             "--other",
                             "--exclude-standard",
-                            f"*.{ext}",
+                            f"*{ext}",
                         ],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
@@ -218,12 +188,15 @@ class TargetManager:
                     )
 
                     deleted_output = sub_check_output(
-                        ["git", "ls-files", "--deleted", f"*.{ext}"],
+                        ["git", "ls-files", "--deleted", f"*{ext}"],
                         cwd=curr_dir.resolve(),
                         encoding="utf-8",
                         stderr=subprocess.DEVNULL,
                     )
                 except (subprocess.CalledProcessError, FileNotFoundError):
+                    logger.verbose(
+                        f"Unable to ignore files ignored by git ({curr_dir} is not a git directory or git is not installed). Running on all files instead..."
+                    )
                     # Not a git directory or git not installed. Fallback to using rglob
                     ext_files = _find_files_with_extension(curr_dir, ext)
                     expanded = expanded.union(ext_files)
@@ -239,7 +212,7 @@ class TargetManager:
                 ext_files = _find_files_with_extension(curr_dir, ext)
                 expanded = expanded.union(ext_files)
 
-        return expanded
+        return TargetManager._filter_valid_files(expanded)
 
     @staticmethod
     def expand_targets(
@@ -248,11 +221,11 @@ class TargetManager:
         """Explore all directories."""
         expanded: Set[Path] = set()
         for target in targets:
-            if not target.exists():
+            if not TargetManager._is_valid_file_or_dir(target):
                 continue
 
             if target.is_dir():
-                expanded = expanded.union(
+                expanded.update(
                     TargetManager._expand_dir(target, lang, respect_git_ignore)
                 )
             else:
@@ -261,12 +234,21 @@ class TargetManager:
         return expanded
 
     @staticmethod
-    def match_glob(path: Path, globs: Sequence[str]) -> bool:
+    def preprocess_path_patterns(patterns: Sequence[str]) -> List[str]:
+        """Convert semgrep's path include/exclude patterns to wcmatch's glob patterns.
+
+        In semgrep, pattern "foo/bar" should match paths "x/foo/bar", "foo/bar/x", and
+        "x/foo/bar/x". It implicitly matches zero or more directories at the beginning and the end
+        of the pattern. In contrast, we have to explicitly specify the globstar (**) patterns in
+        wcmatch. This function will converts a pattern "foo/bar" into "**/foo/bar" and
+        "**/foo/bar/**". We need the pattern without the trailing "/**" because "foo/bar.py/**"
+        won't match "foo/bar.py".
         """
-        Return true if path or any parent of path matches any glob in globs
-        """
-        subpaths = [path, *path.parents]
-        return any(p.match(glob) for p in subpaths for glob in globs)
+        result = []
+        for pattern in patterns:
+            result.append("**/" + pattern)
+            result.append("**/" + pattern + "/**")
+        return result
 
     @staticmethod
     def filter_includes(arr: Set[Path], includes: Sequence[str]) -> Set[Path]:
@@ -277,15 +259,25 @@ class TargetManager:
         """
         if not includes:
             return arr
-
-        return set(elem for elem in arr if TargetManager.match_glob(elem, includes))
+        includes = TargetManager.preprocess_path_patterns(includes)
+        return set(
+            wcglob.globfilter(arr, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
+        )
 
     @staticmethod
     def filter_excludes(arr: Set[Path], excludes: Sequence[str]) -> Set[Path]:
         """
-        Returns all elements in arr that do not match any excludes excludes
+        Returns all elements in arr that do not match any excludes pattern
+
+        If excludes is empty, returns arr unchanged
         """
-        return set(elem for elem in arr if not TargetManager.match_glob(elem, excludes))
+        if not excludes:
+            return arr
+
+        excludes = TargetManager.preprocess_path_patterns(excludes)
+        return arr - set(
+            wcglob.globfilter(arr, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
+        )
 
     def filtered_files(self, lang: Language) -> TargetFiles:
         """Return files that should be analyzed for a language.
@@ -322,7 +314,7 @@ class TargetManager:
 
         # Filter based on custom glob patterns.
         targets = self.filter_includes(targets, self.includes)
-        targets = self.filter_excludes(targets, self.excludes)
+        targets = self.filter_excludes(targets, [*self.excludes, ".git"])
 
         # Avoid duplicates (e.g. foo/bar can be both an explicit file and
         # discovered in folder foo/)
