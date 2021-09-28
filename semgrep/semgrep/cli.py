@@ -178,8 +178,11 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     "--scan-unknown-extensions/--skip-unknown-extensions",
     is_flag=True,
     default=True,
-    help="If true, explicit files will be scanned using the language specified in --lang. If --skip-unknown-extensions, "
-    "these files will not be scanned",
+    help="By default or with --scan-unknown-extensions,"
+    " explicit files will be scanned using the language"
+    " specified in --lang regardless of their extension."
+    " If --skip-unknown-extensions, these files will not be scanned if they"
+    " have a wrong extension for the language.",
 )
 @optgroup.group("Performance and memory options")
 @optgroup.option(

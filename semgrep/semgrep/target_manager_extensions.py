@@ -13,47 +13,59 @@ from semgrep.semgrep_types import Language_util
 # and Language_util classes.
 # You may also have to regenerate some test snapshots with
 # pipenv run pytest tests/e2e/test_rule_parser.py --snapshot-update
-PYTHON_EXTENSIONS = [FileExtension(".py"), FileExtension(".pyi")]
-JAVASCRIPT_EXTENSIONS = [FileExtension(".js"), FileExtension(".jsx")]
-TYPESCRIPT_EXTENSIONS = [FileExtension(".ts"), FileExtension(".tsx")]
-JAVA_EXTENSIONS = [FileExtension(".java")]
+#
+# Extensions that are permissible for a given language. Semgrep-core will
+# perform its own filtering to check that the file is indeed in the correct
+# language before attempting full parsing. Additionally, all executable
+# files without an extension will also be passed to semgrep-core.
+#
+CSHARP_EXTENSIONS = [FileExtension(".cs")]
 C_EXTENSIONS = [FileExtension(".c")]
 GO_EXTENSIONS = [FileExtension(".go")]
-RUBY_EXTENSIONS = [FileExtension(".rb")]
-PHP_EXTENSIONS = [FileExtension(".php")]
-HACK_EXTENSIONS = [FileExtension(".hack"), FileExtension(".hck")]
-LUA_EXTENSIONS = [FileExtension(".lua")]
-CSHARP_EXTENSIONS = [FileExtension(".cs")]
-RUST_EXTENSIONS = [FileExtension(".rs")]
-KOTLIN_EXTENSIONS = [FileExtension(".kt"), FileExtension(".kts"), FileExtension(".ktm")]
-YAML_EXTENSIONS = [FileExtension(".yaml"), FileExtension(".yml")]
-ML_EXTENSIONS = [FileExtension(".mli"), FileExtension(".ml")]
-JSON_EXTENSIONS = [FileExtension(".json")]
-SCALA_EXTENSIONS = [FileExtension(".scala")]
-VUE_EXTENSIONS = [FileExtension(".vue")]
-HTML_EXTENSIONS = [FileExtension(".html"), FileExtension(".html")]
+HACK_EXTENSIONS = [
+    FileExtension(".hack"),
+    FileExtension(".hck"),
+    FileExtension(".hh"),
+    FileExtension(".php"),
+]
 HCL_EXTENSIONS = [FileExtension(".tf")]
+HTML_EXTENSIONS = [FileExtension(".html"), FileExtension(".html")]
+JAVASCRIPT_EXTENSIONS = [FileExtension(".js"), FileExtension(".jsx")]
+JAVA_EXTENSIONS = [FileExtension(".java")]
+JSON_EXTENSIONS = [FileExtension(".json")]
+KOTLIN_EXTENSIONS = [FileExtension(".kt"), FileExtension(".kts"), FileExtension(".ktm")]
+LUA_EXTENSIONS = [FileExtension(".lua")]
+ML_EXTENSIONS = [FileExtension(".mli"), FileExtension(".ml")]
+PHP_EXTENSIONS = [FileExtension(".php")]
+PYTHON_EXTENSIONS = [FileExtension(".py"), FileExtension(".pyi")]
+RUBY_EXTENSIONS = [FileExtension(".rb")]
+RUST_EXTENSIONS = [FileExtension(".rs")]
+SCALA_EXTENSIONS = [FileExtension(".scala")]
+TYPESCRIPT_EXTENSIONS = [FileExtension(".ts"), FileExtension(".tsx")]
+VUE_EXTENSIONS = [FileExtension(".vue")]
+YAML_EXTENSIONS = [FileExtension(".yaml"), FileExtension(".yml")]
 
 # This is used to determine the set of files with known extensions,
 # i.e. those for which we have a proper parser.
 ALL_EXTENSIONS = (
-    PYTHON_EXTENSIONS
-    + JAVASCRIPT_EXTENSIONS
-    + TYPESCRIPT_EXTENSIONS
-    + JAVA_EXTENSIONS
-    + C_EXTENSIONS
+    C_EXTENSIONS
     + GO_EXTENSIONS
-    + RUBY_EXTENSIONS
     + HACK_EXTENSIONS
-    + ML_EXTENSIONS
-    + JSON_EXTENSIONS
-    + RUST_EXTENSIONS
-    + KOTLIN_EXTENSIONS
-    + YAML_EXTENSIONS
-    + SCALA_EXTENSIONS
-    + VUE_EXTENSIONS
-    + HTML_EXTENSIONS
     + HCL_EXTENSIONS
+    + HTML_EXTENSIONS
+    + HTML_EXTENSIONS
+    + JAVASCRIPT_EXTENSIONS
+    + JAVA_EXTENSIONS
+    + JSON_EXTENSIONS
+    + KOTLIN_EXTENSIONS
+    + ML_EXTENSIONS
+    + PYTHON_EXTENSIONS
+    + RUBY_EXTENSIONS
+    + RUST_EXTENSIONS
+    + SCALA_EXTENSIONS
+    + TYPESCRIPT_EXTENSIONS
+    + VUE_EXTENSIONS
+    + YAML_EXTENSIONS
 )
 
 # This is used to select the files suitable for spacegrep, which is
@@ -62,30 +74,65 @@ ALL_EXTENSIONS = (
 GENERIC_EXTENSIONS = [FileExtension("")]
 
 _LANGS_TO_EXTS: Dict[Language, List[FileExtension]] = {
-    Language.PYTHON: PYTHON_EXTENSIONS,
+    Language.C: C_EXTENSIONS,
+    Language.CSHARP: CSHARP_EXTENSIONS,
+    Language.GENERIC: GENERIC_EXTENSIONS,
+    Language.GO: GO_EXTENSIONS,
+    Language.HACK: HACK_EXTENSIONS,
+    Language.HCL: HCL_EXTENSIONS,
+    Language.HTML: HTML_EXTENSIONS,
+    Language.HTML: HTML_EXTENSIONS,
+    Language.JAVA: JAVA_EXTENSIONS,
+    Language.JAVASCRIPT: JAVASCRIPT_EXTENSIONS,
+    Language.JSON: JSON_EXTENSIONS,
+    Language.KOTLIN: KOTLIN_EXTENSIONS,
+    Language.LUA: LUA_EXTENSIONS,
+    Language.ML: ML_EXTENSIONS,
+    Language.PHP: PHP_EXTENSIONS,
     Language.PYTHON2: PYTHON_EXTENSIONS,
     Language.PYTHON3: PYTHON_EXTENSIONS,
-    Language.JAVASCRIPT: JAVASCRIPT_EXTENSIONS,
-    Language.TYPESCRIPT: TYPESCRIPT_EXTENSIONS,
-    Language.JAVA: JAVA_EXTENSIONS,
-    Language.C: C_EXTENSIONS,
-    Language.GO: GO_EXTENSIONS,
-    Language.ML: ML_EXTENSIONS,
-    Language.RUBY: RUBY_EXTENSIONS,
-    Language.PHP: PHP_EXTENSIONS,
-    Language.HACK: HACK_EXTENSIONS,
-    Language.JSON: JSON_EXTENSIONS,
-    Language.LUA: LUA_EXTENSIONS,
-    Language.CSHARP: CSHARP_EXTENSIONS,
-    Language.RUST: RUST_EXTENSIONS,
-    Language.KOTLIN: KOTLIN_EXTENSIONS,
-    Language.YAML: YAML_EXTENSIONS,
+    Language.PYTHON: PYTHON_EXTENSIONS,
     Language.REGEX: GENERIC_EXTENSIONS,
-    Language.GENERIC: GENERIC_EXTENSIONS,
+    Language.RUBY: RUBY_EXTENSIONS,
+    Language.RUST: RUST_EXTENSIONS,
     Language.SCALA: SCALA_EXTENSIONS,
+    Language.TYPESCRIPT: TYPESCRIPT_EXTENSIONS,
     Language.VUE: VUE_EXTENSIONS,
-    Language.HTML: HTML_EXTENSIONS,
-    Language.HCL: HCL_EXTENSIONS,
+    Language.YAML: YAML_EXTENSIONS,
+}
+
+#
+# Define for which languages we allow executable, extensionless files to
+# be passed to semgrep-core. Semgrep-core will inspect the beginning of
+# the file to determine if it's the requested language.
+#
+# Language.GENERIC is special. Semgrep-core will accept all the files if
+# the language is 'generic'.
+#
+_LANG_IS_SCRIPT: Dict[Language, bool] = {
+    Language.C: False,
+    Language.CSHARP: False,
+    Language.GENERIC: False,  # important/special
+    Language.GO: False,
+    Language.HACK: True,
+    Language.HTML: False,
+    Language.JAVA: False,
+    Language.JAVASCRIPT: True,
+    Language.JSON: False,
+    Language.KOTLIN: False,
+    Language.LUA: True,
+    Language.ML: True,
+    Language.PHP: True,
+    Language.PYTHON2: True,
+    Language.PYTHON3: True,
+    Language.PYTHON: True,
+    Language.REGEX: False,  # special
+    Language.RUBY: True,
+    Language.RUST: True,
+    Language.SCALA: True,
+    Language.TYPESCRIPT: True,
+    Language.VUE: False,
+    Language.YAML: False,
 }
 
 
@@ -122,5 +169,14 @@ def lang_to_exts(language: Language) -> List[FileExtension]:
     """
     extensions = _LANGS_TO_EXTS.get(language)
     if extensions is None:
-        raise _UnknownLanguageError(f"Unsupported Language: {language}")
+        raise _UnknownLanguageError(f"Unsupported language: {language}")
     return extensions
+
+
+def lang_is_script(language: Language) -> bool:
+    is_script = _LANG_IS_SCRIPT.get(language)
+    if is_script is None:
+        raise _UnknownLanguageError(
+            f"Unsupported language: {language} (allows executable scripts?)"
+        )
+    return is_script

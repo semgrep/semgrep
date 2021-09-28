@@ -1336,8 +1336,16 @@ let get_scan_roots_from_command_line ~anon_args =
   | _ :: _, _ :: _ ->
       failwith "Cannot use -target_file option together with -target."
   | _ -> ());
-  Common.map (fun path -> (path, Find_target.Filterable)) paths
-  @ Common.map (fun path -> (path, Find_target.Explicit)) !explicit_targets
+  let tag targets filterable_or_explicit =
+    Common.map (fun path -> (path, filterable_or_explicit)) targets
+  in
+  Common.flatten
+    [
+      tag filterable_targets_from_argv Find_target.Filterable;
+      tag filterable_targets_from_file Find_target.Filterable;
+      tag explicit_targets_from_argv Find_target.Explicit;
+      tag explicit_targets_from_file Find_target.Explicit;
+    ]
 
 (*****************************************************************************)
 (* Main entry point *)
