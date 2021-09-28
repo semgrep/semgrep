@@ -54,7 +54,7 @@ def test_rules_hash() -> None:
     with NamedTemporaryFile() as tf1:
         tf1.write(config1.encode("utf-8"))
         tf1.flush()
-        config, errors = Config.from_config_list([tf1.name])
+        config, errors = Config.from_config_list([tf1.name], None)
         assert not errors
         rules = config.get_rules(True)
         assert len(rules) == 3
@@ -122,7 +122,7 @@ def test_timings(snapshot) -> None:
     with NamedTemporaryFile() as tf1:
         tf1.write(config1.encode("utf-8"))
         tf1.flush()
-        config, errors = Config.from_config_list([tf1.name])
+        config, errors = Config.from_config_list([tf1.name], None)
         assert not errors
         rules = config.get_rules(True)
         assert len(rules) == 3

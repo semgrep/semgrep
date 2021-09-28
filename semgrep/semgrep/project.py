@@ -1,3 +1,6 @@
+"""
+Utility for identifying the URL of the current git project
+"""
 import subprocess
 from typing import cast
 from typing import Optional
@@ -10,6 +13,9 @@ logger = getLogger(__name__)
 
 
 def get_project_url() -> Optional[str]:
+    """
+    Returns the current git project's default remote URL, or None if not a git project / no remote
+    """
     try:
         return cast(
             str,
