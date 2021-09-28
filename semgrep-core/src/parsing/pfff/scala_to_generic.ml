@@ -236,7 +236,7 @@ and v_type_kind = function
   | TyApplied (v1, v2) -> (
       let v1 = v_type_ v1 and v2 = v_bracket (v_list v_type_) v2 in
       let lp, xs, rp = v2 in
-      let args = xs |> List.map (fun x -> G.TypeArg x) in
+      let args = xs |> List.map (fun x -> G.TA x) in
       match v1.t with
       | G.TyN n -> G.TyApply (G.TyN n |> G.t, (lp, args, rp))
       | _ ->
@@ -244,8 +244,7 @@ and v_type_kind = function
             (G.T v1 :: (xs |> List.map (fun x -> G.T x))))
   | TyInfix (v1, v2, v3) ->
       let v1 = v_type_ v1 and v2 = v_ident v2 and v3 = v_type_ v3 in
-      G.TyApply
-        (G.TyN (H.name_of_ids [ v2 ]) |> G.t, fb [ G.TypeArg v1; G.TypeArg v3 ])
+      G.TyApply (G.TyN (H.name_of_ids [ v2 ]) |> G.t, fb [ G.TA v1; G.TA v3 ])
   | TyFunction1 (v1, v2, v3) ->
       let v1 = v_type_ v1 and _v2 = v_tok v2 and v3 = v_type_ v3 in
       G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v3)
@@ -311,7 +310,7 @@ and v_type_bounds { supertype = v_supertype; subtype = v_subtype } =
 
 and v_ascription v = v_type_ v
 
-and todo_pattern msg any = G.OtherPat (G.OP_Todo, G.TodoK (msg, fake msg) :: any)
+and todo_pattern msg any = G.OtherPat ((msg, fake msg), any)
 
 and v_pattern = function
   | PatLiteral v1 -> (
@@ -645,7 +644,7 @@ and v_modifier v : G.attribute =
   let kind, tok = v_wrap v_modifier_kind v in
   match kind with
   | Left kwd -> G.KeywordAttr (kwd, tok)
-  | Right s -> G.OtherAttribute (G.OA_Todo, [ G.TodoK (s, tok) ])
+  | Right s -> G.OtherAttribute ((s, tok), [])
 
 and v_modifier_kind = function
   | Abstract -> Left G.Abstract
@@ -671,8 +670,7 @@ and v_annotation (v1, v2, v3) : G.attribute =
   match v2.t with
   | TyN name -> G.NamedAttr (v1, name, fb args)
   | _ ->
-      G.OtherAttribute
-        (OA_Todo, [ G.TodoK ("AnnotationComplexType", v1); G.T v2; G.Args args ])
+      G.OtherAttribute (("AnnotationComplexType", v1), [ G.T v2; G.Args args ])
 
 and v_attribute x : G.attribute =
   match x with

@@ -130,7 +130,7 @@ and class_type v =
 and type_argument = function
   | TArgument v1 ->
       let v1 = ref_type v1 in
-      G.TypeArg v1
+      G.TA v1
   | TWildCard (v1, v2) ->
       let v2 =
         option
@@ -139,7 +139,7 @@ and type_argument = function
             (v1, v2))
           v2
       in
-      G.TypeWildcard (v1, v2)
+      G.TAWildcard (v1, v2)
 
 and ref_type v = typ v
 
@@ -149,6 +149,7 @@ let type_parameter = function
       G.tparam_of_id v1 ~tp_bounds:v2
 
 let rec modifier (x, tok) =
+  let s = Parse_info.str_of_info tok in
   match x with
   | Public -> G.attr G.Public tok
   | Protected -> G.attr G.Protected tok
@@ -156,12 +157,12 @@ let rec modifier (x, tok) =
   | Abstract -> G.attr G.Abstract tok
   | Static -> G.attr G.Static tok
   | Final -> G.attr G.Final tok
-  | StrictFP -> G.OtherAttribute (G.OA_StrictFP, [])
-  | Transient -> G.OtherAttribute (G.OA_Transient, [])
+  | StrictFP -> G.unhandled_keywordattr (s, tok)
+  | Transient -> G.unhandled_keywordattr (s, tok)
   | Volatile -> G.attr G.Volatile tok
-  | Synchronized -> G.OtherAttribute (G.OA_Synchronized, [])
-  | Native -> G.OtherAttribute (G.OA_Native, [])
-  | DefaultModifier -> G.OtherAttribute (G.OA_Default, [])
+  | Synchronized -> G.unhandled_keywordattr (s, tok)
+  | Native -> G.unhandled_keywordattr (s, tok)
+  | DefaultModifier -> G.unhandled_keywordattr (s, tok)
   | Annotation v1 -> annotation v1
 
 and modifiers v = list modifier v
@@ -565,8 +566,9 @@ and method_decl { m_var; m_formals; m_throws; m_body } =
   let v2 = parameters m_formals in
   let v3 = list typ m_throws in
   let v4 = stmt m_body in
+  (* TODO: use fthrow field instead *)
   let throws =
-    v3 |> List.map (fun t -> G.OtherAttribute (G.OA_AnnotThrow, [ G.T t ]))
+    v3 |> List.map (fun t -> G.OtherAttribute (("Throw", G.fake ""), [ G.T t ]))
   in
   ( { ent with G.attrs = ent.G.attrs @ throws },
     {
