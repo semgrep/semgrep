@@ -761,51 +761,61 @@ let rec stmt_aux env st =
       in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
   | G.Switch (_, None, _) -> todo (G.S st)
-  | G.Switch (tok, Some e, case_and_bodies) ->
+  | G.Switch (tok, Some e, cases_and_bodies) ->
       let ss, e' = expr_with_pre_stmts env e in
       let break_label, break_label_s, switch_env =
         mk_switch_break_label env tok
       in
       let cases_to_exp cs =
-        {
-          e =
-            Operator
-              ( (G.Or, tok),
-                List.map
-                  (function
-                    (* TODO: using e as eorig seems questionable but I'm not sure what to use *)
-                    | G.Case (tok, G.PatLiteral l) ->
-                        {
-                          e =
-                            Operator
-                              ((G.Eq, tok), [ { e = Literal l; eorig = e }; e' ]);
-                          eorig = e;
-                        }
-                    | G.Default tok ->
-                        { e = Literal (G.Bool (true, tok)); eorig = e }
-                    | G.Case (tok, _)
-                    | G.CaseEqualExpr (tok, _) ->
-                        fixme_exp ToDo (G.Tk tok) e)
-                  cs );
-          eorig = e;
-        }
+        let ss, es =
+          List.fold_right
+            (fun case (ss, es) ->
+              match case with
+              (* TODO: using e as eorig seems questionable but I'm not sure what to use *)
+              | G.Case (tok, G.PatLiteral l) ->
+                  ( ss,
+                    {
+                      e =
+                        Operator
+                          ((G.Eq, tok), [ { e = Literal l; eorig = e }; e' ]);
+                      eorig = e;
+                    }
+                    :: es )
+              | G.Case (tok, G.OtherPat (OP_Expr, [ E c ]))
+              | G.CaseEqualExpr (tok, c) ->
+                  let c_ss, c' = expr_with_pre_stmts env c in
+                  ( ss @ c_ss,
+                    { e = Operator ((G.Eq, tok), [ c'; e' ]); eorig = e } :: es
+                  )
+              | G.Default tok ->
+                  (* Default should only ever be the final case, and cannot be part of a list of
+                     `Or`ed together cases. It's handled specially in cases_and_bodies_to_stmts
+                  *)
+                  impossible (G.Tk tok)
+              | G.Case (tok, _) -> (ss, fixme_exp ToDo (G.Tk tok) e :: es))
+            cs ([], [])
+        in
+        (ss, { e = Operator ((Or, tok), es); eorig = e })
       in
-      let rec f : G.case_and_body stack -> IL.stmt list * IL.stmt list =
-        function
+      let rec cases_and_bodies_to_stmts :
+          G.case_and_body stack -> IL.stmt list * IL.stmt list = function
         | [] -> ([ mk_s (Goto (tok, break_label)) ], [])
-        | G.CaseEllipsis _ :: _ -> failwith ""
-        | G.CasesAndBody (cases, body) :: xs ->
-            let jumps, bodies = f xs in
+        | G.CaseEllipsis tok :: _ -> sgrep_construct (G.Tk tok)
+        | [ G.CasesAndBody ([ G.Default dtok ], body) ] ->
             let label = fresh_label env tok in
+            ( [ mk_s (Goto (dtok, label)) ],
+              mk_s (Label label) :: stmt switch_env body )
+        | G.CasesAndBody (cases, body) :: xs ->
+            let jumps, bodies = cases_and_bodies_to_stmts xs in
+            let label = fresh_label env tok in
+            let case_ss, case = cases_to_exp cases in
             let jump =
-              mk_s
-                (IL.If
-                   (tok, cases_to_exp cases, [ mk_s (Goto (tok, label)) ], jumps))
+              mk_s (IL.If (tok, case, [ mk_s (Goto (tok, label)) ], jumps))
             in
             let body = mk_s (Label label) :: stmt switch_env body in
-            ([ jump ], body @ bodies)
+            (case_ss @ [ jump ], body @ bodies)
       in
-      let jumps, bodies = f case_and_bodies in
+      let jumps, bodies = cases_and_bodies_to_stmts cases_and_bodies in
       ss @ jumps @ bodies @ break_label_s
   | G.While (tok, e, st) ->
       let cont_label_s, break_label_s, st_env =
