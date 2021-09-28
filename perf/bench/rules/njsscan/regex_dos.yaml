@@ -1,0 +1,67 @@
+rules:
+  - id: regex_dos
+    patterns:
+      - pattern-either:
+        - pattern-inside: function ($REQ, $RES, ...) {...}
+        - pattern-inside: function $FUNC($REQ, $RES, ...) {...}
+        - pattern-inside: $X = function $FUNC($REQ, $RES, ...) {...}
+        - pattern-inside: var $X = function $FUNC($REQ, $RES, ...) {...};
+        - pattern-inside: $APP.$METHOD(..., function $FUNC($REQ, $RES, ...) {...})
+      - pattern-either:
+          - pattern: |
+              $REGEX.test(<... $REQ ...>)
+          - pattern: |
+              $REGEX.test(<... $REQ.$QUERY ...>)
+          - pattern: |
+              $REGEX.test(<... $REQ.$BODY.$PARAM ...>)
+          - pattern: |
+              $INP = <... $REQ ...>;
+              ...
+              $REGEX.test(<... $INP ...>)
+          - pattern: |
+              $INP = <... $REQ.$QUERY ...>;
+              ...
+              $REGEX.test(<... $INP ...>)
+          - pattern: |
+              $INP = <... $REQ.$BODY.$PARAM ...>;
+              ...
+              $REGEX.test(<... $INP ...>)
+          - pattern: |
+              /.../g.exec(<... $REQ ...>)
+          - pattern: |
+              /.../g.exec(<... $REQ.$QUERY ...>)
+          - pattern: |
+              /.../.exec(<... $REQ.$BODY.$PARAM ...>)
+          - pattern: |
+              $INP = <... $REQ ...>;
+              ...
+              /.../.exec(<... $INP ...>)
+          - pattern: |
+              $INP = <... $REQ.$QUERY ...>;
+              ...
+              /.../.exec(<... $INP ...>)
+          - pattern: |
+              $INP = <... $REQ.$BODY.$PARAM ...>;
+              ...
+              /.../.exec(<... $INP ...>)
+          - pattern: |
+              $RE = /.../;
+              ...
+              $RE.exec(<... $REQ ...>)
+          - pattern: |
+              $RE = /.../;
+              ...
+              $RE.exec(<... $REQ.$QUERY ...>)
+          - pattern: |
+              $RE = /.../;
+              ...
+              $RE.exec(<... $REQ.$BODY.$PARAM ...>)
+    message: >-
+      Ensure that the regex used to compare with user supplied input is safe
+      from regular expression denial of service.
+    languages:
+      - javascript
+    severity: WARNING
+    metadata:
+      owasp: 'A6: Security Misconfiguration'
+      cwe: 'CWE-185: Incorrect Regular Expression'

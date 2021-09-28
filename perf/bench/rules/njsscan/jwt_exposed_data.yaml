@@ -1,0 +1,27 @@
+rules:
+  - id: jwt_exposed_data
+    patterns:
+      - pattern-inside: |
+          ...
+          require('jose')
+          ...
+      - pattern-either:
+          - patterns:
+              - pattern-inside: 'function (...,$INPUT,...) {...}'
+              - pattern-either:
+                  - pattern: '$JOSE.JWT.sign($INPUT,...)'
+                  - pattern: '$JWT.sign($INPUT,...)'
+          - patterns:
+              - pattern-inside: 'function $F(...,$INPUT,...) {...}'
+              - pattern-either:
+                  - pattern: '$JOSE.JWT.sign($INPUT,...)'
+                  - pattern: '$JWT.sign($INPUT,...)'
+    message: >-
+      The object is passed strictly to jose.JWT.sign(...). Make sure
+      that sensitive information is not exposed through JWT token payload.
+    severity: WARNING
+    metadata:
+      owasp: 'A3:2017-Sensitive Data Exposure'
+      cwe: 'CWE-522: Insufficiently Protected Credentials'
+    languages:
+      - javascript

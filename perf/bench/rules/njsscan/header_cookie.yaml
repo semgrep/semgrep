@@ -1,0 +1,382 @@
+rules:
+  - id: cookie_session_default
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $SESSION = require('cookie-session')
+              ...
+          - pattern-inside: |
+              $SESSION = require('express-session')
+              ...
+      - pattern: $SESSION(...)
+      - pattern-not-inside: '$SESSION(<... {name:...} ...>,...)'
+      - pattern-not-inside: |
+          $OPTS = <... {name:...} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.name = ...;
+          ...
+          $SESSION($OPTS,...)
+    message: >-
+      Consider changing the default session cookie name. An attacker can use it
+      to fingerprint the server and target attacks accordingly.
+    severity: INFO
+    languages:
+      - javascript
+    metadata:
+      cwe: 'CWE-522: Insufficiently Protected Credentials'
+      owasp: 'A2: Broken Authentication'
+  - id: cookie_session_no_secure
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $SESSION = require('cookie-session')
+              ...
+          - pattern-inside: |
+              $SESSION = require('express-session')
+              ...
+      - pattern: $SESSION(...)
+      - pattern-not-inside: '$SESSION(<... {cookie:{secure:true}} ...>,...)'
+      - pattern-not-inside: |
+          $OPTS = <... {cookie:{secure:true}} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE = <... {secure:true} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie = <... {secure:true} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE.secure = true;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie.secure = true;
+          ...
+          $SESSION($OPTS,...)
+    message: >-
+      Default session middleware settings: `secure` not set. It ensures the
+      browser only sends the cookie over HTTPS.
+    severity: WARNING
+    languages:
+      - javascript
+    metadata:
+      cwe: 'CWE-614: Sensitive Cookie in HTTPS Session Without ''Secure'' Attribute'
+      owasp: 'A2: Broken Authentication'
+  - id: cookie_session_no_samesite
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $SESSION = require('cookie-session')
+              ...
+          - pattern-inside: |
+              $SESSION = require('express-session')
+              ...
+      - pattern: $SESSION(...)
+      - pattern-not-inside: '$SESSION(<... {cookie:{sameSite:true}} ...>,...)'
+      - pattern-not-inside: '$SESSION(<... {cookie:{sameSite:''lax''}} ...>,...)'
+      - pattern-not-inside: '$SESSION(<... {cookie:{sameSite:''strict''}} ...>,...)'
+      - pattern-not-inside: |
+          $OPTS = <... {cookie:{sameSite:true}} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE = <... {sameSite:true} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie = <... {sameSite:true} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE.sameSite = true;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie.sameSite = true;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = <... {cookie:{sameSite:'strict'}} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE = <... {sameSite:'strict'} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie = <... {sameSite:'strict'} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE.sameSite = 'strict';
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie.sameSite = 'strict';
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = <... {cookie:{sameSite:'strict'}} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE = <... {sameSite:'strict'} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie = <... {sameSite:'strict'} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE.sameSite = 'strict';
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie.sameSite = 'strict';
+          ...
+          $SESSION($OPTS,...)
+    message: >-
+      Default session middleware settings: `sameSite` attribute is not
+      configured to strict or lax. These configurations provides protection
+      against Cross Site Request Forgery attacks.
+    severity: WARNING
+    languages:
+      - javascript
+    metadata:
+      cwe: 'CWE-1275: Sensitive Cookie with Improper SameSite Attribute'
+      owasp: 'A2: Broken Authentication'
+  - id: cookie_session_no_httponly
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $SESSION = require('cookie-session')
+              ...
+          - pattern-inside: |
+              $SESSION = require('express-session')
+              ...
+      - pattern-either:
+          - pattern-inside: '$SESSION(<... {cookie:{httpOnly:false}} ...>,...)'
+          - pattern-inside: |
+              $OPTS = <... {cookie:{httpOnly:false}} ...>;
+              ...
+              $SESSION($OPTS,...)
+          - pattern-inside: |
+              $OPTS = ...;
+              ...
+              $COOKIE = <... {httpOnly:false} ...>;
+              ...
+              $SESSION($OPTS,...)
+          - pattern-inside: |
+              $OPTS = ...;
+              ...
+              $OPTS.cookie = <... {httpOnly:false} ...>;
+              ...
+              $SESSION($OPTS,...)
+          - pattern-inside: |
+              $OPTS = ...;
+              ...
+              $COOKIE.httpOnly = false;
+              ...
+              $SESSION($OPTS,...)
+          - pattern-inside: |
+              $OPTS = ...;
+              ...
+              $OPTS.cookie.httpOnly = false;
+              ...
+              $SESSION($OPTS,...)
+    message: >-
+      Session middleware settings: `httpOnly` is explicitly set to false.
+      It ensures that sensitive cookies cannot be accessed by client side
+      JavaScript and helps to protect against cross-site scripting attacks.
+    severity: WARNING
+    languages:
+      - javascript
+    metadata:
+      cwe: 'CWE-1004: Sensitive Cookie Without ''HttpOnly'' Flag'
+      owasp: 'A2: Broken Authentication'
+  - id: cookie_session_no_domain
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $SESSION = require('cookie-session')
+              ...
+          - pattern-inside: |
+              $SESSION = require('express-session')
+              ...
+      - pattern: $SESSION(...)
+      - pattern-not-inside: '$SESSION(<... {cookie:{domain:...}} ...>,...)'
+      - pattern-not-inside: |
+          $OPTS = <... {cookie:{domain:...}} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE = <... {domain:...} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie = <... {domain:...} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE.domain = ...;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie.domain = ...;
+          ...
+          $SESSION($OPTS,...)
+    message: >-
+      Default session middleware settings: `domain` not set. It indicates the
+      domain of the cookie; use it to compare against the domain of the server
+      in which the URL is being requested. If they match, then check the path
+      attribute next.
+    severity: INFO
+    languages:
+      - javascript
+    metadata:
+      cwe: 'CWE-522: Insufficiently Protected Credentials'
+      owasp: 'A2: Broken Authentication'
+  - id: cookie_session_no_path
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $SESSION = require('cookie-session')
+              ...
+          - pattern-inside: |
+              $SESSION = require('express-session')
+              ...
+      - pattern: $SESSION(...)
+      - pattern-not-inside: '$SESSION(<... {cookie:{path:...}} ...>,...)'
+      - pattern-not-inside: |
+          $OPTS = <... {cookie:{path:...}} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE = <... {path:...} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie = <... {path:...} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE.path = ...;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie.path = ...;
+          ...
+          $SESSION($OPTS,...)
+    message: >-
+      Default session middleware settings: `path` not set. It indicates the path
+      of the cookie; use it to compare against the request path. If this and
+      domain match, then send the cookie in the request.
+    severity: INFO
+    languages:
+      - javascript
+    metadata:
+      cwe: 'CWE-522: Insufficiently Protected Credentials'
+      owasp: 'A2: Broken Authentication'
+  - id: cookie_session_no_maxage
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $SESSION = require('cookie-session')
+              ...
+          - pattern-inside: |
+              $SESSION = require('express-session')
+              ...
+      - pattern: $SESSION(...)
+      - pattern-not-inside: '$SESSION(<... {cookie:{maxAge:...}} ...>,...)'
+      - pattern-not-inside: |
+          $OPTS = <... {cookie:{maxAge:...}} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE = <... {maxAge:...} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $OPTS.cookie = <... {maxAge:...} ...>;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |
+          $OPTS = ...;
+          ...
+          $COOKIE.maxAge = ...;
+          ...
+          $SESSION($OPTS,...)
+      - pattern-not-inside: |-
+          $OPTS = ...;
+          ...
+          $OPTS.cookie.maxAge = ...;
+          ...
+          $SESSION($OPTS,...)
+    message: >-
+      Session middleware settings: `maxAge` not set. Use it to set
+      expiration date for cookies.
+    severity: INFO
+    languages:
+      - javascript
+    metadata:
+      cwe: 'CWE-613: Insufficient Session Expiration'
+      owasp: 'A2: Broken Authentication'

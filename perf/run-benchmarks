@@ -4,13 +4,6 @@
 # and report the time it takes. Optionally upload the results to the semgrep
 # dashboard.
 #
-# With the --semgrep_core option, instead run semgrep-core on a series of
-# pairs (rules, repo) with options chosen to test semgrep-core performance.
-# Note that semgrep-core can currently be run for one language only, so
-# these benchmarks only include corpuses that are primarily one language.
-# This allows them to be compared to the semgrep runtimes. Can also upload
-# the results to the dashboard, and use a dummy set instead
-#
 import argparse
 import copy
 import json
@@ -29,7 +22,6 @@ from typing import Optional
 from typing import Tuple
 
 import requests
-import semgrep_core_benchmark
 from config import BenchmarkRunSetupData
 from config import SemgrepBenchmarkConfig
 from constants import BPS_ENDPOINT
@@ -344,7 +336,7 @@ def prepare_benchmark_run(
             )
             corpuses.append(
                 Corpus(
-                    repo_name,
+                    setup_data.run_name,
                     rule_cache_dir.absolute(),
                     Path("input") / repo_name,
                 )
@@ -633,30 +625,27 @@ def main() -> None:
     called_dir = os.getcwd()
 
     with chdir(cur_dir + "/bench"):
-        if args.semgrep_core:
-            semgrep_core_benchmark.run_benchmarks(args.dummy, args.upload)
-        else:
-            config_file = (Path(called_dir) / args.config) if args.config else None
-            run_benchmarks(
-                docker=args.docker,
-                dummy=args.dummy,
-                small_only=args.small_only,
-                all=args.all,
-                internal=args.internal,
-                gitlab=args.gitlab,
-                std_only=args.std_only,
-                config_file=config_file,
-                filter_corpus=args.filter_corpus,
-                filter_variant=args.filter_variant,
-                hard_timeout=args.hard_timeout,
-                output_time_per_rule_json=args.output_time_per_rule_json,
-                plot_benchmarks=args.plot_benchmarks,
-                upload=args.upload,
-                include_time=not args.no_time,
-                clean=args.clean,
-                summary_file_path=args.save_to,
-                called_dir=called_dir,
-            )
+        config_file = (Path(called_dir) / args.config) if args.config else None
+        run_benchmarks(
+            docker=args.docker,
+            dummy=args.dummy,
+            small_only=args.small_only,
+            all=args.all,
+            internal=args.internal,
+            gitlab=args.gitlab,
+            std_only=args.std_only,
+            config_file=config_file,
+            filter_corpus=args.filter_corpus,
+            filter_variant=args.filter_variant,
+            hard_timeout=args.hard_timeout,
+            output_time_per_rule_json=args.output_time_per_rule_json,
+            plot_benchmarks=args.plot_benchmarks,
+            upload=args.upload,
+            include_time=not args.no_time,
+            clean=args.clean,
+            summary_file_path=args.save_to,
+            called_dir=called_dir,
+        )
 
 
 if __name__ == "__main__":
