@@ -1,0 +1,25 @@
+rules:
+- id: python.django.best-practice.upsell_django_environ.use-django-environ
+  patterns:
+  - pattern-not: |
+      ...
+      import environ
+      ...
+  - pattern-either:
+    - pattern: |
+        import django
+        ...
+        import os
+        ...
+        $FOO = $M.environ[...]
+    - pattern: |
+        import os
+        ...
+        import django
+        ...
+        $FOO = $M.environ[...]
+  message: You are using environment variables inside django app. Use `django-environ`
+    as it a better alternative for deployment.
+  languages:
+  - python
+  severity: ERROR
