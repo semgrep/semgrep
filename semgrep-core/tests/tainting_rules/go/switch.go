@@ -5,11 +5,11 @@ func f(x) {
 			a := 0;
 		case 1,2,3:
 			b := 0;
-		//ERROR:
-		case sink(source):
+		case sink(souce):
 			c := "oh no";
 		default:
-			c := 
+			d :=  0;
 	}
+
 
 }

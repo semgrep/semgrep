@@ -765,41 +765,16 @@ let rec stmt_aux env st =
         List.map (stmt env) (st2 |> Common.opt_to_list) |> List.flatten
       in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
-  | G.Switch (_, None, _) -> todo (G.S st)
-  | G.Switch (tok, Some e, cases_and_bodies) ->
-      let ss, e' = expr_with_pre_stmts env e in
+  | G.Switch (tok, scrut_opt, cases_and_bodies) ->
+      let ss, translate_cases =
+        match scrut_opt with
+        | Some scrut ->
+            let ss, scrut' = expr_with_pre_stmts env scrut in
+            (ss, scrut_and_cases_to_exp env tok scrut scrut')
+        | None -> ([], cases_to_exp env tok)
+      in
       let break_label, break_label_s, switch_env =
         mk_switch_break_label env tok
-      in
-      let cases_to_exp cs =
-        let ss, es =
-          List.fold_right
-            (fun case (ss, es) ->
-              match case with
-              | G.Case (tok, G.PatLiteral l) ->
-                  ( ss,
-                    {
-                      e =
-                        Operator
-                          ((G.Eq, tok), [ { e = Literal l; eorig = e }; e' ]);
-                      eorig = e;
-                    }
-                    :: es )
-              | G.Case (tok, G.OtherPat (OP_Expr, [ E c ]))
-              | G.CaseEqualExpr (tok, c) ->
-                  let c_ss, c' = expr_with_pre_stmts env c in
-                  ( ss @ c_ss,
-                    { e = Operator ((G.Eq, tok), [ c'; e' ]); eorig = c } :: es
-                  )
-              | G.Default tok ->
-                  (* Default should only ever be the final case, and cannot be part of a list of
-                     `Or`ed together cases. It's handled specially in cases_and_bodies_to_stmts
-                  *)
-                  impossible (G.Tk tok)
-              | G.Case (tok, _) -> (ss, fixme_exp ToDo (G.Tk tok) e :: es))
-            cs ([], [])
-        in
-        (ss, { e = Operator ((Or, tok), es); eorig = e })
       in
       let rec cases_and_bodies_to_stmts = function
         | [] -> ([ mk_s (Goto (tok, break_label)) ], [])
@@ -811,7 +786,7 @@ let rec stmt_aux env st =
         | G.CasesAndBody (cases, body) :: xs ->
             let jumps, bodies = cases_and_bodies_to_stmts xs in
             let label = fresh_label env tok in
-            let case_ss, case = cases_to_exp cases in
+            let case_ss, case = translate_cases cases in
             let jump =
               mk_s (IL.If (tok, case, [ mk_s (Goto (tok, label)) ], jumps))
             in
@@ -997,6 +972,66 @@ let rec stmt_aux env st =
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)
+
+(* TODO: Maybe this and the following function could be merged *)
+and scrut_and_cases_to_exp env tok scrut_orig scrut cases =
+  (* If there is a scrutinee, the cases are expressions we need to check for equality with the scrutinee  *)
+  let ss, es =
+    List.fold_right
+      (fun case (ss, es) ->
+        match case with
+        | G.Case (tok, G.PatLiteral l) ->
+            ( ss,
+              {
+                e =
+                  Operator
+                    ( (G.Eq, tok),
+                      [ { e = Literal l; eorig = scrut_orig }; scrut ] );
+                eorig = scrut_orig;
+              }
+              :: es )
+        | G.Case (tok, G.OtherPat (OP_Expr, [ E c ]))
+        | G.CaseEqualExpr (tok, c) ->
+            let c_ss, c' = expr_with_pre_stmts env c in
+            ( ss @ c_ss,
+              { e = Operator ((G.Eq, tok), [ c'; scrut ]); eorig = c } :: es )
+        | G.Default tok ->
+            (* Default should only ever be the final case, and cannot be part of a list of
+               `Or`ed together cases. It's handled specially in cases_and_bodies_to_stmts
+            *)
+            impossible (G.Tk tok)
+        | G.Case (tok, _) -> (ss, fixme_exp ToDo (G.Tk tok) scrut_orig :: es))
+      cases ([], [])
+  in
+  (ss, { e = Operator ((Or, tok), es); eorig = scrut_orig })
+
+and cases_to_exp env tok cases =
+  (* If we have no scrutinee, the cases are boolean expressions, so we Or them together *)
+  let ss, es =
+    List.fold_right
+      (fun case (ss, es) ->
+        match case with
+        | G.Case (_, G.PatLiteral l) ->
+            ( ss,
+              (* TODO: seems bad to make an artificial eorig, but seems to be nothing to use  *)
+              { e = Literal l; eorig = G.e (G.L l) } :: es )
+        | G.Case (_, G.OtherPat (OP_Expr, [ E c ]))
+        | G.CaseEqualExpr (_, c) ->
+            let c_ss, c' = expr_with_pre_stmts env c in
+            (ss @ c_ss, c' :: es)
+        | G.Default tok ->
+            (* Default should only ever be the final case, and cannot be part of a list of
+               `Or`ed together cases. It's handled specially in cases_and_bodies_to_stmts
+            *)
+            impossible (G.Tk tok)
+        | G.Case (tok, _) ->
+            (ss, fixme_exp ToDo (G.Tk tok) (failwith "bruh") :: es))
+      cases ([], [])
+  in
+  (* TODO: even more artificial eorig, once again nothing to use *)
+  ( ss,
+    { e = Operator ((Or, tok), es); eorig = G.e (G.L (G.Unit (G.fake "void"))) }
+  )
 
 and stmt env st =
   try stmt_aux env st
