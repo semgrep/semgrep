@@ -491,4 +491,3 @@ properties:
                 - pattern-sanitizers
               - required:
                 - join
-additionalProperties: false
