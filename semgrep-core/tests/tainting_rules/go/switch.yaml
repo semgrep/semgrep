@@ -1,0 +1,12 @@
+rules:
+  - id: test-switch
+    languages:
+      - go
+    message: Match Found!
+    mode: taint
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: source
+    severity: WARNING
+
