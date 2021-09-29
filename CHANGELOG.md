@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ruby: treat 'foo' as a function call when alone on its line (#3811)
 - Fixed bug in semgrep-core's `-filter_irrelevant_rules` causing Semgrep to
   incorrectly skip a file (#3755)
+- PHP: allows more keywords as valid field names (#3954)
 
 ## [0.66.0](https://github.com/returntocorp/semgrep/releases/tag/v0.66.0) - 09-22-2021
 
