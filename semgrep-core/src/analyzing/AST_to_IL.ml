@@ -1025,12 +1025,15 @@ and cases_to_exp env tok cases =
             *)
             impossible (G.Tk tok)
         | G.Case (tok, _) ->
-            (ss, fixme_exp ToDo (G.Tk tok) (failwith "bruh") :: es))
+            (* TODO: what eorig to use for the fixme_exp? *)
+            ( ss,
+              fixme_exp ToDo (G.Tk tok) (G.e (G.L (G.Unit (G.fake "case"))))
+              :: es ))
       cases ([], [])
   in
   (* TODO: even more artificial eorig, once again nothing to use *)
   ( ss,
-    { e = Operator ((Or, tok), es); eorig = G.e (G.L (G.Unit (G.fake "void"))) }
+    { e = Operator ((Or, tok), es); eorig = G.e (G.L (G.Unit (G.fake "case"))) }
   )
 
 and stmt env st =
