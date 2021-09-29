@@ -1,0 +1,16 @@
+# https://github.com/returntocorp/semgrep/issues/3755
+rules:
+  - id: insecure-crypto-usage
+    languages:
+      - java
+    message: Found insecure crypto usage
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: $X.sha1("$RE")
+              - metavariable-regex:
+                  metavariable: $RE
+                  regex: (?i)md2
+          - patterns:
+              - pattern: $X.getMd2Digest(...)
+    severity: ERROR
