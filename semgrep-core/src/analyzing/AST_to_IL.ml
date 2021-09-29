@@ -719,8 +719,8 @@ let parameters _env params =
 (* Statement *)
 (*****************************************************************************)
 
-(* TODO: What other langauges have no fallthrough? *)
-let no_fallthrough : Lang.t -> bool = function
+(* TODO: What other languages have no fallthrough? *)
+let no_switch_fallthrough : Lang.t -> bool = function
   | Go -> true
   | _ -> false
 
@@ -776,28 +776,10 @@ let rec stmt_aux env st =
       let break_label, break_label_s, switch_env =
         mk_switch_break_label env tok
       in
-      let rec cases_and_bodies_to_stmts = function
-        | [] -> ([ mk_s (Goto (tok, break_label)) ], [])
-        | G.CaseEllipsis tok :: _ -> sgrep_construct (G.Tk tok)
-        | [ G.CasesAndBody ([ G.Default dtok ], body) ] ->
-            let label = fresh_label env tok in
-            ( [ mk_s (Goto (dtok, label)) ],
-              mk_s (Label label) :: stmt switch_env body )
-        | G.CasesAndBody (cases, body) :: xs ->
-            let jumps, bodies = cases_and_bodies_to_stmts xs in
-            let label = fresh_label env tok in
-            let case_ss, case = translate_cases cases in
-            let jump =
-              mk_s (IL.If (tok, case, [ mk_s (Goto (tok, label)) ], jumps))
-            in
-            let body = mk_s (Label label) :: stmt switch_env body in
-            let break_if_no_fallthrough =
-              if no_fallthrough env.lang then [ mk_s (Goto (tok, break_label)) ]
-              else []
-            in
-            (case_ss @ [ jump ], body @ break_if_no_fallthrough @ bodies)
+      let jumps, bodies =
+        cases_and_bodies_to_stmts switch_env tok break_label translate_cases
+          cases_and_bodies
       in
-      let jumps, bodies = cases_and_bodies_to_stmts cases_and_bodies in
       ss @ jumps @ bodies @ break_label_s
   | G.While (tok, e, st) ->
       let cont_label_s, break_label_s, st_env =
@@ -977,9 +959,8 @@ let rec stmt_aux env st =
 and scrut_and_cases_to_exp env tok scrut_orig scrut cases =
   (* If there is a scrutinee, the cases are expressions we need to check for equality with the scrutinee  *)
   let ss, es =
-    List.fold_right
-      (fun case (ss, es) ->
-        match case with
+    List.fold_left
+      (fun (ss, es) -> function
         | G.Case (tok, G.PatLiteral l) ->
             ( ss,
               {
@@ -1001,16 +982,15 @@ and scrut_and_cases_to_exp env tok scrut_orig scrut cases =
             *)
             impossible (G.Tk tok)
         | G.Case (tok, _) -> (ss, fixme_exp ToDo (G.Tk tok) scrut_orig :: es))
-      cases ([], [])
+      ([], []) cases
   in
   (ss, { e = Operator ((Or, tok), es); eorig = scrut_orig })
 
 and cases_to_exp env tok cases =
   (* If we have no scrutinee, the cases are boolean expressions, so we Or them together *)
   let ss, es =
-    List.fold_right
-      (fun case (ss, es) ->
-        match case with
+    List.fold_left
+      (fun (ss, es) -> function
         | G.Case (_, G.PatLiteral l) ->
             ( ss,
               (* TODO: seems bad to make an artificial eorig, but seems to be nothing to use  *)
@@ -1029,12 +1009,35 @@ and cases_to_exp env tok cases =
             ( ss,
               fixme_exp ToDo (G.Tk tok) (G.e (G.L (G.Unit (G.fake "case"))))
               :: es ))
-      cases ([], [])
+      ([], []) cases
   in
   (* TODO: even more artificial eorig, once again nothing to use *)
   ( ss,
     { e = Operator ((Or, tok), es); eorig = G.e (G.L (G.Unit (G.fake "case"))) }
   )
+
+and cases_and_bodies_to_stmts env tok break_label translate_cases = function
+  | [] -> ([ mk_s (Goto (tok, break_label)) ], [])
+  | G.CaseEllipsis tok :: _ -> sgrep_construct (G.Tk tok)
+  | [ G.CasesAndBody ([ G.Default dtok ], body) ] ->
+      let label = fresh_label env tok in
+      ([ mk_s (Goto (dtok, label)) ], mk_s (Label label) :: stmt env body)
+  | G.CasesAndBody (cases, body) :: xs ->
+      let jumps, bodies =
+        cases_and_bodies_to_stmts env tok break_label translate_cases xs
+      in
+      let label = fresh_label env tok in
+      let case_ss, case = translate_cases cases in
+      let jump =
+        mk_s (IL.If (tok, case, [ mk_s (Goto (tok, label)) ], jumps))
+      in
+      let body = mk_s (Label label) :: stmt env body in
+      let break_if_no_fallthrough =
+        if no_switch_fallthrough env.lang then
+          [ mk_s (Goto (tok, break_label)) ]
+        else []
+      in
+      (case_ss @ [ jump ], body @ break_if_no_fallthrough @ bodies)
 
 and stmt env st =
   try stmt_aux env st
