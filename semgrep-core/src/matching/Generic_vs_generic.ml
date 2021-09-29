@@ -313,6 +313,37 @@ let _m_resolved_name (a1, a2) (b1, b2) =
   let* () = m_resolved_name_kind a1 b1 in
   m_sid a2 b2
 
+(* Supports deep expression matching, either when done explicitly (e.g. with deep ellipsis) or implicitly
+ *
+ * If "go_deeper_expr" is not enabled, reduces to `first_fun a b`.
+ * If "go_deeper_expr" is enabled, will first check `first_fun a b`, then, if that match fails, will
+ * match against all sub-expressions of b.
+ *
+ * See m_expr_deep for an example of usage.
+ *
+ * deep_fun: Matching function to use when matching sub-expressions
+ * first_fun: Matching function to use when matching the whole (top-level) expression
+ * sub_fun: Function to use to extract sub-expressions from b
+ * a: Pattern expression
+ * b: Target node
+ * 't: Type of the target node
+ *)
+let m_deep (deep_fun: G.expr Matching_generic.matcher) (first_fun: G.expr -> 't -> tin -> tout) (sub_fun: 't -> G.expr list) (a: G.expr) (b: 't) =
+  if_config
+    (fun x -> not x.go_deeper_expr)
+    ~then_:(first_fun a b)
+    ~else_: (first_fun a b >!> fun() ->
+      (* less: could use a fold *)
+      let rec aux xs =
+        match xs with
+        | [] -> fail ()
+        | x :: xs -> (
+             deep_fun a x >||> aux xs
+            )
+      in
+      b |> sub_fun |> aux
+    )
+
 (* start of recursive need *)
 (* TODO: factorize with metavariable and aliasing logic in m_expr
  * TODO: remove MV.Id and use always MV.N?
@@ -502,20 +533,9 @@ and m_id_info a b =
  *   - <call>(<exprs).
  *)
 (* experimental! *)
+
 and m_expr_deep a b =
-  if_config
-    (fun x -> not x.go_deeper_expr)
-    ~then_:(m_expr a b)
-    ~else_:
-      ( m_expr a b >!> fun () ->
-        let subs = SubAST_generic.subexprs_of_expr b in
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | x :: xs -> m_expr_deep a x >||> aux xs
-        in
-        aux subs )
+  m_deep m_expr_deep m_expr SubAST_generic.subexprs_of_expr a b
 
 (* coupling: if you add special sgrep hooks here, you should probably
  * also add them in m_pattern
@@ -1808,6 +1828,10 @@ and m_stmt a b =
       | _ -> fail ())
   (* dots: '...' can to match any statememt *)
   | G.ExprStmt ({ e = G.Ellipsis _i; _ }, _), _b -> return ()
+  (* deep ellipsis as a statement should match any exprs in stmt *)
+  | G.ExprStmt({ e = G.DeepEllipsis (_, a, _); _}, _), b ->
+      let no_match _ _ = fail() in
+      m_deep m_expr_deep no_match SubAST_generic.subexprs_of_stmt_kind a b
   | G.Return (a0, a1, asc), B.Return (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_option_ellipsis_ok m_expr a1 b1 in

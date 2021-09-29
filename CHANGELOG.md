@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Fix CFG dummy nodes to always connect to exit node
+- Deep ellipsis `<... x ...>` now matches sub-expressions of statements
 
 
 ## [0.66.0](https://github.com/returntocorp/semgrep/releases/tag/v0.66.0) - 09-22-2021
