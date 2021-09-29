@@ -719,6 +719,11 @@ let parameters _env params =
 (* Statement *)
 (*****************************************************************************)
 
+(* TODO: What other langauges have no fallthrough? *)
+let no_fallthrough : Lang.t -> bool = function
+  | Go -> true
+  | _ -> false
+
 let mk_break_continue_labels env tok =
   let cont_label = fresh_label env tok in
   let break_label = fresh_label env tok in
@@ -771,7 +776,6 @@ let rec stmt_aux env st =
           List.fold_right
             (fun case (ss, es) ->
               match case with
-              (* TODO: using e as eorig seems questionable but I'm not sure what to use *)
               | G.Case (tok, G.PatLiteral l) ->
                   ( ss,
                     {
@@ -785,7 +789,7 @@ let rec stmt_aux env st =
               | G.CaseEqualExpr (tok, c) ->
                   let c_ss, c' = expr_with_pre_stmts env c in
                   ( ss @ c_ss,
-                    { e = Operator ((G.Eq, tok), [ c'; e' ]); eorig = e } :: es
+                    { e = Operator ((G.Eq, tok), [ c'; e' ]); eorig = c } :: es
                   )
               | G.Default tok ->
                   (* Default should only ever be the final case, and cannot be part of a list of
@@ -797,8 +801,7 @@ let rec stmt_aux env st =
         in
         (ss, { e = Operator ((Or, tok), es); eorig = e })
       in
-      let rec cases_and_bodies_to_stmts :
-          G.case_and_body stack -> IL.stmt list * IL.stmt list = function
+      let rec cases_and_bodies_to_stmts = function
         | [] -> ([ mk_s (Goto (tok, break_label)) ], [])
         | G.CaseEllipsis tok :: _ -> sgrep_construct (G.Tk tok)
         | [ G.CasesAndBody ([ G.Default dtok ], body) ] ->
@@ -813,7 +816,11 @@ let rec stmt_aux env st =
               mk_s (IL.If (tok, case, [ mk_s (Goto (tok, label)) ], jumps))
             in
             let body = mk_s (Label label) :: stmt switch_env body in
-            (case_ss @ [ jump ], body @ bodies)
+            let break_if_no_fallthrough =
+              if no_fallthrough env.lang then [ mk_s (Goto (tok, break_label)) ]
+              else []
+            in
+            (case_ss @ [ jump ], body @ break_if_no_fallthrough @ bodies)
       in
       let jumps, bodies = cases_and_bodies_to_stmts cases_and_bodies in
       ss @ jumps @ bodies @ break_label_s
