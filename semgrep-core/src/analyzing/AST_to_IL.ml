@@ -765,12 +765,12 @@ let rec stmt_aux env st =
         List.map (stmt env) (st2 |> Common.opt_to_list) |> List.flatten
       in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
-  | G.Switch (tok, scrut_opt, cases_and_bodies) ->
+  | G.Switch (tok, switch_expr_opt, cases_and_bodies) ->
       let ss, translate_cases =
-        match scrut_opt with
-        | Some scrut ->
-            let ss, scrut' = expr_with_pre_stmts env scrut in
-            (ss, scrut_and_cases_to_exp env tok scrut scrut')
+        match switch_expr_opt with
+        | Some switch_expr ->
+            let ss, switch_expr' = expr_with_pre_stmts env switch_expr in
+            (ss, switch_expr_and_cases_to_exp env tok switch_expr switch_expr')
         | None -> ([], cases_to_exp env tok)
       in
       let break_label, break_label_s, switch_env =
@@ -956,7 +956,7 @@ let rec stmt_aux env st =
       todo (G.S st)
 
 (* TODO: Maybe this and the following function could be merged *)
-and scrut_and_cases_to_exp env tok scrut_orig scrut cases =
+and switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases =
   (* If there is a scrutinee, the cases are expressions we need to check for equality with the scrutinee  *)
   let ss, es =
     List.fold_left
@@ -967,24 +967,28 @@ and scrut_and_cases_to_exp env tok scrut_orig scrut cases =
                 e =
                   Operator
                     ( (G.Eq, tok),
-                      [ { e = Literal l; eorig = scrut_orig }; scrut ] );
-                eorig = scrut_orig;
+                      [
+                        { e = Literal l; eorig = switch_expr_orig }; switch_expr;
+                      ] );
+                eorig = switch_expr_orig;
               }
               :: es )
         | G.Case (tok, G.OtherPat (_, [ E c ]))
         | G.CaseEqualExpr (tok, c) ->
             let c_ss, c' = expr_with_pre_stmts env c in
             ( ss @ c_ss,
-              { e = Operator ((G.Eq, tok), [ c'; scrut ]); eorig = c } :: es )
+              { e = Operator ((G.Eq, tok), [ c'; switch_expr ]); eorig = c }
+              :: es )
         | G.Default tok ->
             (* Default should only ever be the final case, and cannot be part of a list of
                `Or`ed together cases. It's handled specially in cases_and_bodies_to_stmts
             *)
             impossible (G.Tk tok)
-        | G.Case (tok, _) -> (ss, fixme_exp ToDo (G.Tk tok) scrut_orig :: es))
+        | G.Case (tok, _) ->
+            (ss, fixme_exp ToDo (G.Tk tok) switch_expr_orig :: es))
       ([], []) cases
   in
-  (ss, { e = Operator ((Or, tok), es); eorig = scrut_orig })
+  (ss, { e = Operator ((Or, tok), es); eorig = switch_expr_orig })
 
 and cases_to_exp env tok cases =
   (* If we have no scrutinee, the cases are boolean expressions, so we Or them together *)
