@@ -16,7 +16,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Fix CFG dummy nodes to always connect to exit node
-
+- Fixed bug in semgrep-core's `-filter_irrelevant_rules` causing Semgrep to
+  incorrectly skip a file (#3755)
 
 ## [0.66.0](https://github.com/returntocorp/semgrep/releases/tag/v0.66.0) - 09-22-2021
 
