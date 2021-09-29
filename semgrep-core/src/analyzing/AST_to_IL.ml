@@ -990,7 +990,7 @@ and scrut_and_cases_to_exp env tok scrut_orig scrut cases =
                 eorig = scrut_orig;
               }
               :: es )
-        | G.Case (tok, G.OtherPat (OP_Expr, [ E c ]))
+        | G.Case (tok, G.OtherPat (_, [ E c ]))
         | G.CaseEqualExpr (tok, c) ->
             let c_ss, c' = expr_with_pre_stmts env c in
             ( ss @ c_ss,
@@ -1015,7 +1015,7 @@ and cases_to_exp env tok cases =
             ( ss,
               (* TODO: seems bad to make an artificial eorig, but seems to be nothing to use  *)
               { e = Literal l; eorig = G.e (G.L l) } :: es )
-        | G.Case (_, G.OtherPat (OP_Expr, [ E c ]))
+        | G.Case (_, G.OtherPat (_, [ E c ]))
         | G.CaseEqualExpr (_, c) ->
             let c_ss, c' = expr_with_pre_stmts env c in
             (ss @ c_ss, c' :: es)
