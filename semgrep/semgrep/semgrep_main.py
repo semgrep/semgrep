@@ -53,7 +53,7 @@ def notify_user_of_work(
         logger.info(f"excluding files:")
         for exc in exclude:
             logger.info(f"- {exc}")
-    logger.info(f"running {len(filtered_rules)} rules...")
+    logger.info(f"Running {len(filtered_rules)} rules...")
     logger.verbose("rules:")
     for rule in filtered_rules:
         logger.verbose(f"- {rule.id}")

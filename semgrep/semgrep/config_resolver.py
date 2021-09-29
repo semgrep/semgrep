@@ -72,6 +72,14 @@ class Config:
         self.valid = valid_configs
 
     @classmethod
+    def notify_user_about_registry(cls, configs: Sequence[str]) -> None:
+        if any(registry_url(config) for config in configs):
+            logger.info(
+                f"Fetching rules from Registry (https://semgrep.dev/registry)..."
+            )
+        metric_manager.notify_user_of_metrics()
+
+    @classmethod
     def from_pattern_lang(
         cls, pattern: str, lang: str, replacement: Optional[str] = None
     ) -> Tuple["Config", Sequence[SemgrepError]]:
@@ -98,6 +106,7 @@ class Config:
             except SemgrepError as e:
                 errors.append(e)
 
+        cls.notify_user_about_registry(configs)
         for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
@@ -356,6 +365,8 @@ def load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
     """
     base_path = get_base_path()
     loc = base_path.joinpath(location)
+
+    logger.info(f"Loading local config from {loc}")
     if loc.exists():
         if loc.is_file():
             return parse_config_at_path(loc)
@@ -388,14 +399,8 @@ def nice_semgrep_url(url: str) -> str:
 
 
 def download_config(config_url: str) -> Mapping[str, YamlTree]:
-    metric_manager.using_server = True
-
-    DOWNLOADING_MESSAGE = f"downloading config..."
     logger.debug(f"trying to download from {config_url}")
-    logger.info(
-        f"using config from {nice_semgrep_url(config_url)}. Visit https://semgrep.dev/registry to see all public rules."
-    )
-    logger.info(DOWNLOADING_MESSAGE)
+    logger.info(f"Downloading config from {nice_semgrep_url(config_url)}...")
 
     try:
         return parse_config_string(
@@ -461,19 +466,34 @@ def saved_snippet_to_url(snippet_id: str) -> str:
     return registry_id_to_url(f"s/{snippet_id}")
 
 
+def registry_url(config_str: str) -> Optional[str]:
+    """ returns the registry url for the config_str, if it is a registry entry """
+    if config_str in RULES_REGISTRY:
+        metric_manager.using_server = True
+        return RULES_REGISTRY[config_str]
+    elif is_url(config_str):
+        metric_manager.using_server = True
+        return config_str
+    elif is_registry_id(config_str):
+        metric_manager.using_server = True
+        return registry_id_to_url(config_str)
+    elif is_saved_snippet(config_str):
+        metric_manager.using_server = True
+        return saved_snippet_to_url(config_str)
+    else:
+        return None
+
+
 def resolve_config(config_str: str) -> Mapping[str, YamlTree]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
-    if config_str in RULES_REGISTRY:
-        config = download_config(RULES_REGISTRY[config_str])
-    elif is_url(config_str):
-        config = download_config(config_str)
-    elif is_registry_id(config_str):
-        config = download_config(registry_id_to_url(config_str))
-    elif is_saved_snippet(config_str):
-        config = download_config(saved_snippet_to_url(config_str))
+
+    config_url = registry_url(config_str)
+    if config_url:
+        config = download_config(config_url)
     else:
         config = load_config_from_local_path(config_str)
+
     if config:
         logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
     return config
