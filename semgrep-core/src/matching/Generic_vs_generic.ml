@@ -328,21 +328,21 @@ let _m_resolved_name (a1, a2) (b1, b2) =
  * b: Target node
  * 't: Type of the target node
  *)
-let m_deep (deep_fun: G.expr Matching_generic.matcher) (first_fun: G.expr -> 't -> tin -> tout) (sub_fun: 't -> G.expr list) (a: G.expr) (b: 't) =
+let m_deep (deep_fun : G.expr Matching_generic.matcher)
+    (first_fun : G.expr -> 't -> tin -> tout) (sub_fun : 't -> G.expr list)
+    (a : G.expr) (b : 't) =
   if_config
     (fun x -> not x.go_deeper_expr)
     ~then_:(first_fun a b)
-    ~else_: (first_fun a b >!> fun() ->
-      (* less: could use a fold *)
-      let rec aux xs =
-        match xs with
-        | [] -> fail ()
-        | x :: xs -> (
-             deep_fun a x >||> aux xs
-            )
-      in
-      b |> sub_fun |> aux
-    )
+    ~else_:
+      ( first_fun a b >!> fun () ->
+        (* less: could use a fold *)
+        let rec aux xs =
+          match xs with
+          | [] -> fail ()
+          | x :: xs -> deep_fun a x >||> aux xs
+        in
+        b |> sub_fun |> aux )
 
 (* start of recursive need *)
 (* TODO: factorize with metavariable and aliasing logic in m_expr
@@ -1243,7 +1243,8 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
               m_ident ida idb >>= fun () ->
               m_expr ea eb >>= fun () -> m_list__m_argument xsa (before @ after)
           | _ -> raise Impossible
-        with Not_found -> fail ())
+        with
+        | Not_found -> fail ())
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_argument xa xb >>= fun () -> m_list__m_argument aas bbs
@@ -1829,8 +1830,8 @@ and m_stmt a b =
   (* dots: '...' can to match any statememt *)
   | G.ExprStmt ({ e = G.Ellipsis _i; _ }, _), _b -> return ()
   (* deep ellipsis as a statement should match any exprs in stmt *)
-  | G.ExprStmt({ e = G.DeepEllipsis (_, a, _); _}, _), b ->
-      let no_match _ _ = fail() in
+  | G.ExprStmt ({ e = G.DeepEllipsis (_, a, _); _ }, _), b ->
+      let no_match _ _ = fail () in
       m_deep m_expr_deep no_match SubAST_generic.subexprs_of_stmt_kind a b
   | G.Return (a0, a1, asc), B.Return (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
@@ -2058,7 +2059,8 @@ and m_pattern a b =
         let e2 = H.pattern_to_expr b2 in
         envf (str, tok) (MV.E e2)
         (* this can happen with PatAs in exception handler in Python *)
-      with H.NotAnExpr -> envf (str, tok) (MV.P b2))
+      with
+      | H.NotAnExpr -> envf (str, tok) (MV.P b2))
   (* dots: *)
   | G.PatEllipsis _, _ -> return ()
   (* boilerplate *)
@@ -2401,7 +2403,8 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
             m_definition adef bdef >>= fun () ->
             m_list__m_field ~less_is_ok xsa (before @ after)
         | _ -> raise Impossible
-      with Not_found -> fail ())
+      with
+      | Not_found -> fail ())
   (* the general case *)
   (* This applies to definitions where the field name is a metavariable,
    * and to any other non-def kind of field (e.g., FieldSpread for `...x` in JS).
