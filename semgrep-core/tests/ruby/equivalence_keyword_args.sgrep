@@ -1,0 +1,1 @@
+example(..., a: :foo, ..., b: :bar, ...)
