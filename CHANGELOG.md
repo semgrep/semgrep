@@ -13,11 +13,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Attribute-expression equivalence that allows matching expression patterns against
   attributes, it is enabled by default but can be disabled via rule `options:` with
   `attr_expr: false` (#3489)
+- Improved Kotlin parsing from 35% to 77% on our Kotlin corpus.
 
 ### Fixed
 - Fix CFG dummy nodes to always connect to exit node
 - Deep ellipsis `<... x ...>` now matches sub-expressions of statements
-
+- Ruby: treat 'foo' as a function call when alone on its line (#3811)
+- Fixed bug in semgrep-core's `-filter_irrelevant_rules` causing Semgrep to
+  incorrectly skip a file (#3755)
+- PHP: allows more keywords as valid field names (#3954)
 
 ## [0.66.0](https://github.com/returntocorp/semgrep/releases/tag/v0.66.0) - 09-22-2021
 
