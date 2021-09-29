@@ -400,9 +400,18 @@ and literal x =
 and expr_as_stmt = function
   | S x -> stmt x
   | D x -> definition x
-  | e ->
+  | e -> (
       let e = expr e in
-      G.ExprStmt (e, unsafe_fake ";") |> G.s
+      match e.G.e with
+      (* a single name on its own line is probably an hidden fun call,
+       * unless it's a metavariable
+       *)
+      | G.N (G.Id ((s, _), _)) ->
+          if AST_generic_.is_metavar_name s then G.exprstmt e
+          else
+            let call = G.Call (e, fb []) |> G.e in
+            G.exprstmt call
+      | _ -> G.exprstmt e)
 
 and stmt st =
   match st with
