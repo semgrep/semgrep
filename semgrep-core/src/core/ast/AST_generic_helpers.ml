@@ -105,7 +105,7 @@ let rec expr_to_pattern e =
       PatList (t1, xs |> List.map expr_to_pattern, t2)
   | Ellipsis t -> PatEllipsis t
   (* Todo:  PatKeyVal *)
-  | _ -> OtherPat (OP_Expr, [ E e ])
+  | _ -> OtherPat (("ExprToPattern", fake ""), [ E e ])
 
 exception NotAnExpr
 
@@ -118,7 +118,7 @@ let rec pattern_to_expr p =
   | PatLiteral l -> L l
   | PatList (t1, xs, t2) ->
       Container (List, (t1, xs |> List.map pattern_to_expr, t2))
-  | OtherPat (OP_Expr, [ E e ]) -> e.e
+  | OtherPat (("ExprToPattern", _), [ E e ]) -> e.e
   | PatAs _
   | PatVar _ ->
       raise NotAnExpr

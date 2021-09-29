@@ -138,10 +138,10 @@ and map_template_argument env v : G.type_argument =
   match v with
   | Left t ->
       let t = map_type_ env t in
-      G.TypeArg t
+      G.TA t
   | Right e ->
       let e = map_expr env e in
-      complicated env e
+      G.TAExpr e
 
 and map_qualifier env = function
   | QClassname v1 ->
@@ -458,7 +458,7 @@ and map_argument env x : G.argument =
       G.ArgType v1
   | ArgAction v1 ->
       let v1 = map_action_macro env v1 in
-      G.ArgOther (G.OA_ArgMacro, v1)
+      G.ArgOther (("ArgMacro", G.fake ""), v1)
   | ArgInits v1 ->
       let l, xs, r = map_brace env (map_of_list (map_initialiser env)) v1 in
       G.Arg (G.Container (G.Dict, (l, xs, r)) |> G.e)

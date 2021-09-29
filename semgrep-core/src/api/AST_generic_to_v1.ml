@@ -566,10 +566,10 @@ and map_type_kind = function
 and map_type_arguments (_, v, _) = map_of_list map_type_argument v
 
 and map_type_argument = function
-  | TypeArg v1 ->
+  | TA v1 ->
       let v1 = map_type_ v1 in
       `TypeArg v1
-  | TypeWildcard (v1, v2) ->
+  | TAWildcard (v1, v2) ->
       let v1 = map_tok v1 in
       let v2 =
         map_of_option
@@ -577,17 +577,15 @@ and map_type_argument = function
           v2
       in
       `TypeWildcard (v1, v2)
-  | TypeLifetime v1 ->
-      let v1 = map_ident v1 in
-      `TypeLifetime v1
+  | TAExpr _ -> failwith "TODO"
   | OtherTypeArg (v1, v2) ->
-      let v1 = map_other_type_argument_operator v1 in
+      let v1 = map_todo_kind v1 in
       let v2 = map_of_list map_any v2 in
       `OtherTypeArg (v1, v2)
 
-and map_other_type_operator _x = "TODO"
+and map_todo_kind _x = "TODO"
 
-and map_other_type_argument_operator _x = "TODO"
+and map_other_type_operator _x = "TODO"
 
 and map_attribute = function
   | KeywordAttr v1 -> (

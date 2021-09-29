@@ -149,7 +149,7 @@ and type_kind = function
   | TMacroApply (v1, (lp, v2, rp)) ->
       let v1 = H.name_of_id v1 in
       let v2 = type_ v2 in
-      G.TyApply (G.TyN v1 |> G.t, (lp, [ G.TypeArg v2 ], rp))
+      G.TyApply (G.TyN v1 |> G.t, (lp, [ G.TA v2 ], rp))
 
 and function_type (v1, v2) =
   let v1 = type_ v1 and v2 = list (fun x -> G.ParamClassic (parameter x)) v2 in
