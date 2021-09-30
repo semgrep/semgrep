@@ -5,8 +5,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+
+### Changed
+- taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
+  making it possible to use `- pattern: $F(...)` for declaring that any other
+  function is a sanitizer
+
+### Fixed
+
+## [0.67.0](https://github.com/returntocorp/semgrep/releases/tag/v0.67.0) - 09-29-2021
+
+### Added
 - Added support for break and continue in the dataflow engine
-- Input can be derived from subshells: `semgrep -f ... <(...)`
+- Input can be derived from subshells: `semgrep --config ... <(...)`
+- Added support for switch statements in the dataflow engine
 
 ### Changed
 - Taint no longer analyzes dead/unreachable code
@@ -18,6 +30,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Fix CFG dummy nodes to always connect to exit node
+- Deep ellipsis `<... x ...>` now matches sub-expressions of statements
 - Ruby: treat 'foo' as a function call when alone on its line (#3811)
 - Fixed bug in semgrep-core's `-filter_irrelevant_rules` causing Semgrep to
   incorrectly skip a file (#3755)
