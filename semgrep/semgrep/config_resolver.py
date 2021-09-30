@@ -91,9 +91,9 @@ class ConfigPath:
         start_t = time.time()
 
         if self.from_registry:
-            config = self._download_config(self.config_path)
+            config = self._download_config()
         else:
-            config = load_config_from_local_path(self.config_path)
+            config = self._load_config_from_local_path()
 
         if config:
             logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
@@ -113,7 +113,8 @@ class ConfigPath:
             return url.replace("/c/", "/")
         return url
 
-    def _download_config(self, config_url: str) -> Mapping[str, YamlTree]:
+    def _download_config(self) -> Mapping[str, YamlTree]:
+        config_url = self.config_path
         downloading_msg = (
             f"Downloading config from {self._nice_semgrep_url(config_url)}..."
         )
@@ -130,6 +131,33 @@ class ConfigPath:
             return config
         except Exception as e:
             raise SemgrepError(f"Failed to download config from {config_url}: {str(e)}")
+
+    def _load_config_from_local_path(self) -> Dict[str, YamlTree]:
+        """
+        Return config file(s) as dictionary object
+        """
+        location = self.config_path
+        base_path = get_base_path()
+        loc = base_path.joinpath(location)
+
+        local_config_msg = f"Loading local config from {loc}..."
+        logger.info(local_config_msg)
+        if loc.exists():
+            if loc.is_file():
+                config = parse_config_at_path(loc)
+            elif loc.is_dir():
+                config = parse_config_folder(loc)
+            else:
+                raise SemgrepError(f"config location `{loc}` is not a file or folder!")
+        else:
+            addendum = ""
+            if IN_DOCKER:
+                addendum = " (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
+            raise SemgrepError(
+                f"WARNING: unable to find a config; path `{loc}` does not exist{addendum}"
+            )
+        logger.info(message_with_done(local_config_msg, overwrite=True))
+        return config
 
     def _make_config_request(self, config_url: str) -> str:
         import requests  # here for faster startup times
@@ -462,33 +490,6 @@ def load_default_config() -> Dict[str, YamlTree]:
         return parse_config_folder(default_folder, relative=True)
     else:
         return {}
-
-
-def load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
-    """
-    Return config file(s) as dictionary object
-    """
-    base_path = get_base_path()
-    loc = base_path.joinpath(location)
-
-    local_config_msg = f"Loading local config from {loc}..."
-    logger.info(local_config_msg)
-    if loc.exists():
-        if loc.is_file():
-            config = parse_config_at_path(loc)
-        elif loc.is_dir():
-            config = parse_config_folder(loc)
-        else:
-            raise SemgrepError(f"config location `{loc}` is not a file or folder!")
-    else:
-        addendum = ""
-        if IN_DOCKER:
-            addendum = " (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
-        raise SemgrepError(
-            f"WARNING: unable to find a config; path `{loc}` does not exist{addendum}"
-        )
-    logger.info(message_with_done(local_config_msg, overwrite=True))
-    return config
 
 
 def is_registry_id(config_str: str) -> bool:
