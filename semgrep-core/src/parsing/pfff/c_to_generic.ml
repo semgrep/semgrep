@@ -149,7 +149,7 @@ and type_kind = function
   | TMacroApply (v1, (lp, v2, rp)) ->
       let v1 = H.name_of_id v1 in
       let v2 = type_ v2 in
-      G.TyApply (G.TyN v1 |> G.t, (lp, [ G.TypeArg v2 ], rp))
+      G.TyApply (G.TyN v1 |> G.t, (lp, [ G.TA v2 ], rp))
 
 and function_type (v1, v2) =
   let v1 = type_ v1 and v2 = list (fun x -> G.ParamClassic (parameter x)) v2 in
@@ -376,7 +376,7 @@ and var_decl
   let v2 = type_ xtype in
   let v3 = storage (snd v1) xstorage in
   let v4 = option initialiser init in
-  let entity = G.basic_entity v1 v3 in
+  let entity = G.basic_entity v1 ~attrs:v3 in
   (entity, G.VarDef { G.vinit = v4; vtype = Some v2 })
 
 and initialiser v = expr v
@@ -393,7 +393,7 @@ and func_def { f_name; f_type; f_body; f_static } =
   let v4 =
     if f_static then [ G.attr G.Static (fake (snd v1) "static") ] else []
   in
-  let entity = G.basic_entity v1 v4 in
+  let entity = G.basic_entity v1 ~attrs:v4 in
   ( entity,
     G.FuncDef
       {
@@ -406,7 +406,7 @@ and func_def { f_name; f_type; f_body; f_static } =
 and struct_def { s_name; s_kind; s_flds } =
   let v1 = name s_name in
   let v3 = bracket (list field_def) s_flds in
-  let entity = G.basic_entity v1 [] in
+  let entity = G.basic_entity v1 in
   match s_kind with
   | Struct ->
       let fields =
@@ -433,13 +433,13 @@ and enum_def { e_name = v1; e_consts = v2 } =
         (v1, v2))
       v2
   in
-  let entity = G.basic_entity v1 [] in
+  let entity = G.basic_entity v1 in
   let ors = v2 |> List.map (fun (n, eopt) -> G.OrEnum (n, eopt)) in
   (entity, G.TypeDef { G.tbody = G.OrType ors })
 
 and type_def { t_name = v1; t_type = v2 } =
   let v1 = name v1 and v2 = type_ v2 in
-  let entity = G.basic_entity v1 [] in
+  let entity = G.basic_entity v1 in
   (entity, G.TypeDef { G.tbody = G.AliasType v2 })
 
 and define_body = function
@@ -457,11 +457,11 @@ and directive = function
       G.DirectiveStmt (G.ImportAs (t, G.FileName v1, None) |> G.d)
   | Define (_t, v1, v2) ->
       let v1 = name v1 and v2 = define_body v2 in
-      let ent = G.basic_entity v1 [] in
+      let ent = G.basic_entity v1 in
       G.DefStmt (ent, G.MacroDef { G.macroparams = []; G.macrobody = v2 })
   | Macro (_t, v1, v2, v3) ->
       let v1 = name v1 and v2 = list name v2 and v3 = define_body v3 in
-      let ent = G.basic_entity v1 [] in
+      let ent = G.basic_entity v1 in
       G.DefStmt (ent, G.MacroDef { G.macroparams = v2; G.macrobody = v3 })
   | OtherDirective (v1, v2) ->
       let v1 = name v1 in

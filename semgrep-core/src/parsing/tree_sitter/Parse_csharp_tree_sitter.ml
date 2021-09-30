@@ -76,22 +76,25 @@ let prepend_qualifier_to_name (qualifier : qualifier) (name : name) : name =
       let name_info = { name_info with name_qualifier = Some new_qualifier } in
       IdQualified ((ident, name_info), id_info)
 
-let type_parameters_with_constraints params constraints : type_parameter list =
-  List.map
-    (fun param ->
-      let with_constraints =
-        List.find_opt
-          (fun p ->
-            let id, _ = p in
-            let id, _ = id in
-            let param, _ = param in
-            id = param)
-          constraints
-      in
-      match with_constraints with
-      | Some x -> x
-      | None -> (param, []))
-    params
+(* less: we should check we consume all constraints *)
+let type_parameters_with_constraints tparams constraints : type_parameter list =
+  tparams
+  |> List.map (fun tparam ->
+         let with_constraints =
+           constraints
+           |> List.find_opt (fun (id, _xs) -> fst id = fst tparam.tp_id)
+         in
+         match with_constraints with
+         | Some (_id, xs) ->
+             let more_constraints, more_bounds =
+               xs |> Common.partition_either (fun x -> x)
+             in
+             {
+               tparam with
+               tp_constraints = more_constraints @ tparam.tp_constraints;
+               tp_bounds = more_bounds @ tparam.tp_bounds;
+             }
+         | None -> tparam)
 
 let arg_to_expr (a : argument) =
   match a with
@@ -326,9 +329,9 @@ let todo_expr _env tok = G.OtherExpr (G.OE_Todo, [ G.Tk tok ]) |> G.e
 
 let todo_stmt _env tok = G.OtherStmt (G.OS_Todo, [ G.Tk tok ]) |> G.s
 
-let todo_pat _env tok = G.OtherPat (G.OP_Todo, [ G.Tk tok ])
+let todo_pat _env tok = G.OtherPat (("Todo", tok), [])
 
-let todo_attr _env tok = G.OtherAttribute (G.OA_Expr, [ G.Tk tok ])
+let todo_attr _env tok = G.OtherAttribute (("Todo", tok), [])
 
 let todo_type _env tok = G.OtherType (G.OT_Todo, [ G.Tk tok ]) |> G.t
 
@@ -872,7 +875,7 @@ and variable_declarator (env : env) ((v1, v2, v3) : CST.variable_declarator) =
     | Some pat, Some init -> Some (LetPattern (pat, init) |> G.e)
     | _ -> v3
   in
-  let ent = basic_entity v1 [] in
+  let ent = basic_entity v1 in
   let vardef = { vinit; vtype = None } in
   (ent, vardef)
 
@@ -946,19 +949,19 @@ and name (env : env) (x : CST.name) : G.name =
       prepend_qualifier_to_name qualifier v3
   | `Simple_name x -> simple_name env x
 
-and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) =
+and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) :
+    G.type_parameter =
   let v1 = List.concat_map (attribute_list env) v1 in
   let v2 =
     match v2 with
     | Some x -> (
         match x with
-        | `In tok -> Some (token env tok) (* "in" *)
-        | `Out tok -> Some (token env tok) (* "out" *))
+        | `In tok -> Some (Contravariant, token env tok) (* "in" *)
+        | `Out tok -> Some (Covariant, token env tok) (* "out" *))
     | None -> None
   in
   let v3 = identifier env v3 (* identifier *) in
-  (* TODO can we throw away v1 and v2? *)
-  v3
+  G.tparam_of_id v3 ~tp_attrs:v1 ~tp_variance:v2
 
 and element_binding_expression (env : env) (x : CST.element_binding_expression)
     =
@@ -1562,7 +1565,7 @@ and anon_opt_cst_pat_rep_interp_alig_clause_080fdff (env : env)
   | None -> []
 
 and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
-    =
+    : G.type_parameter list =
   let v1 = token env v1 (* "<" *) in
   let v2 = type_parameter env v2 in
   let v3 =
@@ -1576,7 +1579,8 @@ and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
   let v4 = token env v4 (* ">" *) in
   v2 :: v3
 
-and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
+and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) :
+    (G.type_parameter_constraint, type_) Common.either =
   match x with
   | `Class_opt_QMARK (tok, _)
   (* "class" *)
@@ -1586,14 +1590,14 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) =
   | `Unma tok ->
       (* "unmanaged" *)
       let t = TyBuiltin (str env tok) |> G.t in
-      Extends t
+      Right t
   | `Cons_cons (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = token env v2 (* "(" *) in
       let v3 = token env v3 (* ")" *) in
       let tok = PI.combine_infos v1 [ v2; v3 ] in
-      HasConstructor tok
-  | `Type_cons x -> Extends (type_constraint env x)
+      Left (HasConstructor tok)
+  | `Type_cons x -> Right (type_constraint env x)
 
 and type_constraint (env : env) (x : CST.type_constraint) : type_ =
   (* can't be `var` *)
@@ -2290,11 +2294,11 @@ and type_argument_list (env : env) ((v1, v2, v3) : CST.type_argument_list) =
         v1 :: v2
   in
   let v3 = token env v3 (* ">" *) in
-  (v1, List.map (fun t -> TypeArg t) v2, v3)
+  (v1, List.map (fun t -> TA t) v2, v3)
 
 and type_parameter_constraints_clause (env : env)
     ((v1, v2, v3, v4, v5) : CST.type_parameter_constraints_clause) =
-  let v1 = token env v1 (* "where" *) in
+  let _v1 = token env v1 (* "where" *) in
   let v2 = identifier_or_global env v2 in
   let v3 = token env v3 (* ":" *) in
   let v4 = type_parameter_constraint env v4 in
@@ -2358,7 +2362,7 @@ and declaration_expression (env : env) ((v1, v2) : CST.declaration_expression) =
   let v2 = identifier env v2 (* identifier *) in
   match v1 with
   | Some t ->
-      let ent = basic_entity v2 [] in
+      let ent = basic_entity v2 in
       let vardef = { vinit = None; vtype = Some t } in
       let st = DefStmt (ent, VarDef vardef) |> G.s in
       G.stmt_to_expr st
@@ -2704,7 +2708,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
       in
       let ctor = KeywordAttr (Ctor, tok) in
       let attrs = (ctor :: v1) @ v2 in
-      let ent = basic_entity v3 attrs in
+      let ent = basic_entity v3 ~attrs in
       G.DefStmt (ent, def) |> G.s
   | `Conv_op_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.concat_map (attribute_list env) v1 in
@@ -2750,7 +2754,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           { fkind = (G.Method, v3); fparams = v5; frettype = None; fbody = v6 }
       in
       let dtor = KeywordAttr (Dtor, v3) in
-      let ent = basic_entity name ((dtor :: v1) @ v2) in
+      let ent = basic_entity name ~attrs:((dtor :: v1) @ v2) in
       G.DefStmt (ent, def) |> G.s
   | `Event_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 = List.concat_map (attribute_list env) v1 in
@@ -2768,7 +2772,9 @@ and declaration (env : env) (x : CST.declaration) : stmt =
               accs
               |> List.map (fun (attrs, id, fbody) ->
                      let iname, itok = id in
-                     let ent = basic_entity (iname ^ "_" ^ fname, itok) attrs in
+                     let ent =
+                       basic_entity (iname ^ "_" ^ fname, itok) ~attrs
+                     in
                      let valparam =
                        ParamClassic
                          {
@@ -2796,7 +2802,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let tok = token env tok (* ";" *) in
             fake_bracket [ todo_stmt env tok ]
       in
-      let ent = basic_entity v6 (v1 @ v1 @ [ v3 ]) in
+      let ent = basic_entity v6 ~attrs:(v1 @ v1 @ [ v3 ]) in
       let vardef = { vinit = None; vtype = Some v4 } in
       let open_br, funcs, close_br = v7 in
       Block (open_br, (DefStmt (ent, VarDef vardef) |> G.s) :: funcs, close_br)
@@ -2831,7 +2837,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                    let iname, itok = id in
                    match iname with
                    | "get" ->
-                       let ent = basic_entity ("get_Item", itok) attrs in
+                       let ent = basic_entity ("get_Item", itok) ~attrs in
                        let funcdef =
                          FuncDef
                            {
@@ -2853,7 +2859,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                              pinfo = empty_id_info ();
                            }
                        in
-                       let ent = basic_entity ("set_Item", itok) attrs in
+                       let ent = basic_entity ("set_Item", itok) ~attrs in
                        let funcdef =
                          FuncDef
                            {
@@ -2872,7 +2878,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
           let v2 = token env v2 (* ";" *) in
           let arrow, expr = v1 in
           let fbody = G.FBStmt (ExprStmt (expr, v2) |> G.s) in
-          let ent = basic_entity ("get_Item", arrow) indexer_attrs in
+          let ent = basic_entity ("get_Item", arrow) ~attrs:indexer_attrs in
           let funcdef =
             FuncDef
               {
@@ -2969,7 +2975,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                   let iname, itok = id in
                   let has_params = iname <> "get" in
                   let has_return = iname = "get" in
-                  let ent = basic_entity (iname ^ "_" ^ fname, itok) attrs in
+                  let ent = basic_entity (iname ^ "_" ^ fname, itok) ~attrs in
                   let funcdef =
                     FuncDef
                       {
@@ -3003,7 +3009,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let v1 = arrow_expression_clause env v1 in
             let v2 = token env v2 (* ";" *) in
             let arrow, expr = v1 in
-            let ent = basic_entity ("get_" ^ fname, arrow) [] in
+            let ent = basic_entity ("get_" ^ fname, arrow) in
             let funcdef =
               FuncDef
                 {
@@ -3016,7 +3022,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
             let func = DefStmt (ent, funcdef) |> G.s in
             ((arrow, [ func ], v2), None)
       in
-      let ent = basic_entity v5 (v1 @ v2) in
+      let ent = basic_entity v5 ~attrs:(v1 @ v2) in
       let vardef = { vinit; vtype = Some v3 } in
       let open_br, funcs, close_br = accessors in
       Block (open_br, (DefStmt (ent, VarDef vardef) |> G.s) :: funcs, close_br)

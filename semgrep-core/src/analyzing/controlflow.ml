@@ -110,7 +110,7 @@ and simple_node =
  *)
 type edge = Direct
 
-type flow = (node, edge) Ograph_extended.ograph_mutable
+type flow = (node, edge) CFG.t
 
 type nodei = Ograph_extended.nodei
 
@@ -199,8 +199,8 @@ let any_of_simple_node = function
 (* Accessors *)
 (*****************************************************************************)
 
-let find_node f cfg =
-  cfg#nodes#tolist
+let find_node f (cfg : flow) =
+  cfg.graph#nodes#tolist
   |> Common.find_some (fun (nodei, node) -> if f node then Some nodei else None)
 
 let find_exit cfg = find_node (fun node -> node.n = Exit) cfg
@@ -210,7 +210,7 @@ let find_enter cfg = find_node (fun node -> node.n = Enter) cfg
 (* using internally graphviz dot and ghostview on X11 *)
 let (display_flow : flow -> unit) =
  fun flow ->
-  flow
+  flow.graph
   |> Ograph_extended.print_ograph_mutable_generic
        ~s_of_node:(fun (_nodei, node) ->
          (short_string_of_node_kind node.n, None, None))

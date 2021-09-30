@@ -39,9 +39,16 @@ type env = {
    * usually simple Instr, but can be also If when handling Conditional expr.
    *)
   stmts : stmt list ref;
+  (* When entering a loop, we create two labels, one to jump to if a Continue stmt is found
+     and another to jump to if a Break stmt is found. Since PHP supports breaking an arbitrary
+     number of loops up, we keep a stack of break labels instead of just one
+  *)
+  break_labels : label list;
+  cont_label : label option;
 }
 
-let empty_env lang = { lang; stmts = ref [] }
+let empty_env lang =
+  { stmts = ref []; break_labels = []; cont_label = None; lang }
 
 (*****************************************************************************)
 (* Error management *)
@@ -99,7 +106,7 @@ let fresh_var _env tok =
   let i = H.gensym () in
   (("_tmp", tok), i)
 
-let _fresh_label _env tok =
+let fresh_label _env tok =
   let i = H.gensym () in
   (("_label", tok), i)
 
@@ -711,6 +718,33 @@ let parameters _env params =
 (*****************************************************************************)
 (* Statement *)
 (*****************************************************************************)
+
+(* TODO: What other languages have no fallthrough? *)
+let no_switch_fallthrough : Lang.t -> bool = function
+  | Go -> true
+  | _ -> false
+
+let mk_break_continue_labels env tok =
+  let cont_label = fresh_label env tok in
+  let break_label = fresh_label env tok in
+  let st_env =
+    {
+      env with
+      break_labels = break_label :: env.break_labels;
+      cont_label = Some cont_label;
+    }
+  in
+  let cont_label_s = [ mk_s (Label cont_label) ] in
+  let break_label_s = [ mk_s (Label break_label) ] in
+  (cont_label_s, break_label_s, st_env)
+
+let mk_switch_break_label env tok =
+  let break_label = fresh_label env tok in
+  let switch_env =
+    { env with break_labels = break_label :: env.break_labels }
+  in
+  (break_label, [ mk_s (Label break_label) ], switch_env)
+
 let rec stmt_aux env st =
   match st.G.s with
   | G.ExprStmt (e, _) ->
@@ -731,18 +765,44 @@ let rec stmt_aux env st =
         List.map (stmt env) (st2 |> Common.opt_to_list) |> List.flatten
       in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
-  | G.Switch (_, _, _) -> todo (G.S st)
+  | G.Switch (tok, switch_expr_opt, cases_and_bodies) ->
+      let ss, translate_cases =
+        match switch_expr_opt with
+        | Some switch_expr ->
+            let ss, switch_expr' = expr_with_pre_stmts env switch_expr in
+            (ss, switch_expr_and_cases_to_exp env tok switch_expr switch_expr')
+        | None -> ([], cases_to_exp env tok)
+      in
+      let break_label, break_label_s, switch_env =
+        mk_switch_break_label env tok
+      in
+      let jumps, bodies =
+        cases_and_bodies_to_stmts switch_env tok break_label translate_cases
+          cases_and_bodies
+      in
+      ss @ jumps @ bodies @ break_label_s
   | G.While (tok, e, st) ->
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss, e' = expr_with_pre_stmts env e in
-      let st = stmt env st in
-      ss @ [ mk_s (Loop (tok, e', st @ ss)) ]
+      let st = stmt st_env st in
+      ss @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ] @ break_label_s
   | G.DoWhile (tok, st, e) ->
-      let st = stmt env st in
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
+      let st = stmt st_env st in
       let ss, e' = expr_with_pre_stmts env e in
-      st @ ss @ [ mk_s (Loop (tok, e', st @ ss)) ]
+      st @ ss
+      @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ]
+      @ break_label_s
   | G.For (tok, G.ForEach (pat, tok2, e), st) ->
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss, e' = expr_with_pre_stmts env e in
-      let st = stmt env st in
+      let st = stmt st_env st in
 
       let next_lval = fresh_lval env tok2 in
       let hasnext_lval = fresh_lval env tok2 in
@@ -774,11 +834,16 @@ let rec stmt_aux env st =
             (Loop
                ( tok,
                  cond,
-                 [ next_call ] @ assign @ st @ [ (* ss @ ?*) hasnext_call ] ));
+                 [ next_call ] @ assign @ st @ cont_label_s
+                 @ [ (* ss @ ?*) hasnext_call ] ));
         ]
+      @ break_label_s
   | G.For (tok, G.ForClassic (xs, eopt1, eopt2), st) ->
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss1 = for_var_or_expr_list env xs in
-      let st = stmt env st in
+      let st = stmt st_env st in
       let ss2, cond =
         match eopt1 with
         | None ->
@@ -793,17 +858,43 @@ let rec stmt_aux env st =
             let ss, _eIGNORE = expr_with_pre_stmts env e in
             ss
       in
-      ss1 @ ss2 @ [ mk_s (Loop (tok, cond, st @ next @ ss2)) ]
+      ss1 @ ss2
+      @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ next @ ss2)) ]
+      @ break_label_s
   | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
   | G.For (tok, G.ForIn (xs, e), st) ->
+      let cont_label_s, break_label_s, st_env =
+        mk_break_continue_labels env tok
+      in
       let ss1 = for_var_or_expr_list env xs in
-      let st = stmt env st in
+      let st = stmt st_env st in
       let ss2, cond = expr_with_pre_stmts env (List.nth e 0) (* TODO list *) in
-      ss1 @ ss2 @ [ mk_s (Loop (tok, cond, st @ ss2)) ]
+      ss1 @ ss2
+      @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ ss2)) ]
+      @ break_label_s
   (* TODO: repeat env work of controlflow_build.ml *)
-  | G.Continue _
-  | G.Break _ ->
-      todo (G.S st)
+  | G.Continue (tok, lbl_ident, _) -> (
+      match lbl_ident with
+      | G.LNone -> (
+          match env.cont_label with
+          | None -> impossible (G.Tk tok)
+          | Some lbl -> [ mk_s (Goto (tok, lbl)) ])
+      | G.LId lbl -> [ mk_s (Goto (tok, label_of_label env lbl)) ]
+      | G.LInt _
+      | G.LDynamic _ ->
+          todo (G.S st))
+  | G.Break (tok, lbl_ident, _) -> (
+      match lbl_ident with
+      | G.LNone -> (
+          match env.break_labels with
+          | [] -> impossible (G.Tk tok)
+          | lbl :: _ -> [ mk_s (Goto (tok, lbl)) ])
+      | G.LId lbl -> [ mk_s (Goto (tok, label_of_label env lbl)) ]
+      | G.LInt (i, _) -> (
+          match List.nth_opt env.break_labels i with
+          | None -> impossible (G.Tk tok)
+          | Some lbl -> [ mk_s (Goto (tok, lbl)) ])
+      | G.LDynamic _ -> impossible (G.Tk tok))
   | G.Label (lbl, st) ->
       let lbl = label_of_label env lbl in
       let st = stmt env st in
@@ -863,6 +954,94 @@ let rec stmt_aux env st =
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)
+
+(* TODO: Maybe this and the following function could be merged *)
+and switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases =
+  (* If there is a scrutinee, the cases are expressions we need to check for equality with the scrutinee  *)
+  let ss, es =
+    List.fold_left
+      (fun (ss, es) -> function
+        | G.Case (tok, G.PatLiteral l) ->
+            ( ss,
+              {
+                e =
+                  Operator
+                    ( (G.Eq, tok),
+                      [
+                        { e = Literal l; eorig = switch_expr_orig }; switch_expr;
+                      ] );
+                eorig = switch_expr_orig;
+              }
+              :: es )
+        | G.Case (tok, G.OtherPat (_, [ E c ]))
+        | G.CaseEqualExpr (tok, c) ->
+            let c_ss, c' = expr_with_pre_stmts env c in
+            ( ss @ c_ss,
+              { e = Operator ((G.Eq, tok), [ c'; switch_expr ]); eorig = c }
+              :: es )
+        | G.Default tok ->
+            (* Default should only ever be the final case, and cannot be part of a list of
+               `Or`ed together cases. It's handled specially in cases_and_bodies_to_stmts
+            *)
+            impossible (G.Tk tok)
+        | G.Case (tok, _) ->
+            (ss, fixme_exp ToDo (G.Tk tok) switch_expr_orig :: es))
+      ([], []) cases
+  in
+  (ss, { e = Operator ((Or, tok), es); eorig = switch_expr_orig })
+
+and cases_to_exp env tok cases =
+  (* If we have no scrutinee, the cases are boolean expressions, so we Or them together *)
+  let ss, es =
+    List.fold_left
+      (fun (ss, es) -> function
+        | G.Case (_, G.PatLiteral l) ->
+            ( ss,
+              (* TODO: seems bad to make an artificial eorig, but seems to be nothing to use  *)
+              { e = Literal l; eorig = G.e (G.L l) } :: es )
+        | G.Case (_, G.OtherPat (_, [ E c ]))
+        | G.CaseEqualExpr (_, c) ->
+            let c_ss, c' = expr_with_pre_stmts env c in
+            (ss @ c_ss, c' :: es)
+        | G.Default tok ->
+            (* Default should only ever be the final case, and cannot be part of a list of
+               `Or`ed together cases. It's handled specially in cases_and_bodies_to_stmts
+            *)
+            impossible (G.Tk tok)
+        | G.Case (tok, _) ->
+            (* TODO: what eorig to use for the fixme_exp? *)
+            ( ss,
+              fixme_exp ToDo (G.Tk tok) (G.e (G.L (G.Unit (G.fake "case"))))
+              :: es ))
+      ([], []) cases
+  in
+  (* TODO: even more artificial eorig, once again nothing to use *)
+  ( ss,
+    { e = Operator ((Or, tok), es); eorig = G.e (G.L (G.Unit (G.fake "case"))) }
+  )
+
+and cases_and_bodies_to_stmts env tok break_label translate_cases = function
+  | [] -> ([ mk_s (Goto (tok, break_label)) ], [])
+  | G.CaseEllipsis tok :: _ -> sgrep_construct (G.Tk tok)
+  | [ G.CasesAndBody ([ G.Default dtok ], body) ] ->
+      let label = fresh_label env tok in
+      ([ mk_s (Goto (dtok, label)) ], mk_s (Label label) :: stmt env body)
+  | G.CasesAndBody (cases, body) :: xs ->
+      let jumps, bodies =
+        cases_and_bodies_to_stmts env tok break_label translate_cases xs
+      in
+      let label = fresh_label env tok in
+      let case_ss, case = translate_cases cases in
+      let jump =
+        mk_s (IL.If (tok, case, [ mk_s (Goto (tok, label)) ], jumps))
+      in
+      let body = mk_s (Label label) :: stmt env body in
+      let break_if_no_fallthrough =
+        if no_switch_fallthrough env.lang then
+          [ mk_s (Goto (tok, break_label)) ]
+        else []
+      in
+      (case_ss @ [ jump ], body @ break_if_no_fallthrough @ bodies)
 
 and stmt env st =
   try stmt_aux env st

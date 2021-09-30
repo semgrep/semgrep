@@ -34,6 +34,7 @@ type visitor_in = {
   ktype_ : (type_ -> unit) * visitor_out -> type_ -> unit;
   kpattern : (pattern -> unit) * visitor_out -> pattern -> unit;
   kfield : (field -> unit) * visitor_out -> field -> unit;
+  kfields : (field list -> unit) * visitor_out -> field list -> unit;
   kattr : (attribute -> unit) * visitor_out -> attribute -> unit;
   kpartial : (partial -> unit) * visitor_out -> partial -> unit;
   kdef : (definition -> unit) * visitor_out -> definition -> unit;
@@ -60,6 +61,7 @@ let default_visitor =
     ktype_ = (fun (k, _) x -> k x);
     kpattern = (fun (k, _) x -> k x);
     kfield = (fun (k, _) x -> k x);
+    kfields = (fun (k, _) x -> k x);
     kpartial = (fun (k, _) x -> k x);
     kdef = (fun (k, _) x -> k x);
     kdir = (fun (k, _) x -> k x);
@@ -90,8 +92,9 @@ let default_visitor =
 
 let v_id _ = ()
 
-let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
- fun ?(vardef_assign = false) vin ->
+let (mk_visitor :
+      ?vardef_assign:bool -> ?attr_expr:bool -> visitor_in -> visitor_out) =
+ fun ?(vardef_assign = false) ?(attr_expr = false) vin ->
   (* start of auto generation *)
   (* NOTE: we do a few subtle things at a few places now for semgrep
    * to trigger a few more artificial visits:
@@ -289,7 +292,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
           and v2 = v_bracket v_comprehension v2 in
           ()
       | Record v1 ->
-          let v1 = v_bracket (v_list v_field) v1 in
+          let v1 = v_bracket v_fields v1 in
           ()
       | Constructor (v1, v2) ->
           let v1 = v_name v1 and v2 = v_bracket (v_list v_expr) v2 in
@@ -500,11 +503,11 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
       | TyEllipsis v1 -> v_tok v1
       | TyRecordAnon (v0, v1) ->
           v_tok v0;
-          let v1 = v_bracket (v_list v_field) v1 in
+          let v1 = v_bracket v_fields v1 in
           ()
       | TyInterfaceAnon (v0, v1) ->
           v_tok v0;
-          let v1 = v_bracket (v_list v_field) v1 in
+          let v1 = v_bracket v_fields v1 in
           ()
       | TyOr (v1, v2, v3) ->
           v_type_ v1;
@@ -559,32 +562,42 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
     vin.ktype_ (k, all_functions) x
   and v_type_arguments v = v_bracket (v_list v_type_argument) v
   and v_type_argument = function
-    | TypeArg v1 ->
+    | TA v1 ->
         let v1 = v_type_ v1 in
         ()
-    | TypeWildcard (v1, v2) -> (
+    | TAWildcard (v1, v2) -> (
         v_tok v1;
         match v2 with
         | None -> ()
         | Some (v1, v2) ->
             v_wrap v_bool v1;
             v_type_ v2)
-    | TypeLifetime v1 ->
-        let v1 = v_ident v1 in
+    | TAExpr v1 ->
+        let v1 = v_expr v1 in
         ()
     | OtherTypeArg (v1, v2) ->
-        let v1 = v_other_type_argument_operator v1 and v2 = v_list v_any v2 in
+        let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
         ()
+  and v_todo_kind x = v_ident x
   and v_other_type_operator _ = ()
-  and v_other_type_argument_operator _ = ()
-  and v_type_parameter (v1, v2) =
-    let v1 = v_ident v1 and v2 = v_type_parameter_constraints v2 in
+  and v_type_parameter
+      {
+        tp_id = v1;
+        tp_attrs = v2;
+        tp_bounds = v3;
+        tp_default = v4;
+        tp_variance = v5;
+        tp_constraints = v6;
+      } =
+    v_ident v1;
+    v_list v_attribute v2;
+    v_list v_type_ v3;
+    v_option v_type_ v4;
+    v_option (v_wrap v_variance) v5;
+    v_type_parameter_constraints v6;
     ()
   and v_type_parameter_constraints v = v_list v_type_parameter_constraint v
   and v_type_parameter_constraint = function
-    | Extends v1 ->
-        let v1 = v_type_ v1 in
-        ()
     | HasConstructor t ->
         let t = v_tok t in
         ()
@@ -593,6 +606,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
         let xs = v_list v_any xs in
         ()
   and v_other_type_parameter_operator _ = ()
+  and v_variance _ = ()
   and v_attribute x =
     let k x =
       match x with
@@ -600,6 +614,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
           let v1 = v_wrap v_keyword_attribute v1 in
           ()
       | NamedAttr (t, v1, v3) ->
+          let _ = v_named_attr_as_expr v1 v3 in
           let t = v_tok t in
           let v1 = v_name v1 and v3 = v_bracket (v_list v_argument) v3 in
           ()
@@ -609,6 +624,12 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
     in
     vin.kattr (k, all_functions) x
   and v_keyword_attribute _ = ()
+  and v_named_attr_as_expr name args =
+    (* A named attribute is essentially a function call, but this is not
+     * explicit in Generic so we cannot match expression patterns against
+     * attributes. This equivalence enables exactly that, and we can e.g.
+     * match `@f(a)` with `f($X)`. *)
+    if attr_expr then v_expr (e (Call (e (N name), args))) else ()
   and v_other_attribute_operator _ = ()
   and v_stmts xs =
     let k xs =
@@ -616,6 +637,8 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
       | [] -> ()
       | x :: xs ->
           v_stmt x;
+          (* we will call the visitor also on subsequences. This is useful
+           * for semgrep *)
           v_stmts xs
     in
     vin.kstmts (k, all_functions) xs
@@ -939,7 +962,13 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
       ()
     in
     vin.kentity (k, all_functions) x
+  and v_enum_entry_definition { ee_args; ee_body } =
+    v_option v_arguments ee_args;
+    v_option (v_bracket (v_list v_field)) ee_body
   and v_def_kind = function
+    | EnumEntryDef v1 ->
+        let v1 = v_enum_entry_definition v1 in
+        ()
     | FuncDef v1 ->
         let v1 = v_function_definition v1 in
         ()
@@ -1067,6 +1096,14 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
           ()
     in
     vin.kfield (k, all_functions) x
+  and v_fields xs =
+    (* As opposed to kstmts, we don't call the visitor for sublists
+     * of xs. Indeed, in semgrep, fields are matched in any order
+     * so calling the visitor and matcher on the entire list of fields
+     * should also work.
+     *)
+    let k xs = v_list v_field xs in
+    vin.kfields (k, all_functions) xs
   and v_type_definition { tbody = v_tbody } =
     let arg = v_type_definition_kind v_tbody in
     ()
@@ -1075,7 +1112,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
         let v1 = v_list v_or_type_element v1 in
         ()
     | AndType v1 ->
-        let v1 = v_bracket (v_list v_field) v1 in
+        let v1 = v_bracket v_fields v1 in
         ()
     | AliasType v1 ->
         let v1 = v_type_ v1 in
@@ -1086,6 +1123,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
     | Exception (v1, v2) ->
         let v1 = v_ident v1 and v2 = v_list v_type_ v2 in
         ()
+    | AbstractType v1 -> v_tok v1
     | OtherTypeKind (v1, v2) ->
         let v1 = v_other_type_kind_operator v1 and v2 = v_list v_any v2 in
         ()
@@ -1100,10 +1138,6 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
     | OrUnion (v1, v2) ->
         let v1 = v_ident v1 and v2 = v_type_ v2 in
         ()
-    | OtherOr (v1, v2) ->
-        let v1 = v_other_or_type_element_operator v1 and v2 = v_list v_any v2 in
-        ()
-  and v_other_or_type_element_operator _x = ()
   and v_class_definition x =
     let k
         {
@@ -1119,7 +1153,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
       let arg = v_list v_type_ v_cimplements in
       let arg = v_list v_type_ v_mixins in
       v_parameters cparams;
-      let arg = v_bracket (v_list v_field) v_cbody in
+      let arg = v_bracket v_fields v_cbody in
       ()
     in
     vin.kclass_definition (k, all_functions) x
@@ -1185,6 +1219,7 @@ let (mk_visitor : ?vardef_assign:bool -> visitor_in -> visitor_out) =
   and v_any = function
     | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
+    | Flds v1 -> v_fields v1
     | Anys v1 -> v_list v_any v1
     | Partial v1 -> v_partial ~recurse:true v1
     | TodoK v1 -> v_ident v1

@@ -82,7 +82,9 @@ let rec expr e =
       let name = scope_resolution x in
       G.N (G.IdQualified (name, G.empty_id_info ()))
   | Hash (_bool, xs) -> G.Container (G.Dict, bracket (list expr) xs)
-  | Array xs -> G.Container (G.Array, bracket (list expr) xs)
+  | Array (l, xs, r) ->
+      let xs = args_to_exprs xs in
+      G.Container (G.Array, (l, list expr xs, r))
   | Tuple xs -> G.Container (G.Tuple, G.fake_bracket (list expr xs))
   | Unary (op, e) ->
       let e = expr e in
@@ -98,10 +100,10 @@ let rec expr e =
       G.Conditional (e1, e2, e3)
   | Call (e, xs, bopt) ->
       let e = expr e in
-      let lb, xs, rb = bracket (list expr) xs in
+      let lb, xs, rb = bracket (list argument) xs in
       (* TODO: maybe make an extra separate Call for the block? *)
       let last = option expr bopt |> Common.opt_to_list in
-      G.Call (e, (lb, xs @ last |> List.map G.arg, rb))
+      G.Call (e, (lb, xs @ (last |> List.map G.arg), rb))
   | DotAccess (e, t, m) ->
       let e = expr e in
       let fld =
@@ -150,6 +152,14 @@ let rec expr e =
       let v3 = type_ v3 in
       G.TypedMetavar (v1, v2, v3))
   |> G.e
+
+and argument arg : G.argument =
+  match arg with
+  | Arg e -> G.Arg (expr e)
+  | ArgKwd (id, _tk, arg) ->
+      let id = ident id in
+      let arg = expr arg in
+      G.ArgKwd (id, arg)
 
 and formal_param = function
   | Formal_id id -> G.ParamClassic (G.param_of_id id)
@@ -209,7 +219,7 @@ and formal_param_pattern = function
   | ( Formal_amp _ | Formal_star _ | Formal_rest _ | Formal_default _
     | Formal_hash_splat _ | Formal_kwd _ | ParamEllipsis _ ) as x ->
       let x = formal_param x in
-      G.OtherPat (G.OP_Todo, [ G.Pa x ])
+      G.OtherPat (("ParamPattern", PI.unsafe_fake_info ""), [ G.Pa x ])
 
 (* less: return a G.name *)
 and scope_resolution = function
@@ -400,9 +410,18 @@ and literal x =
 and expr_as_stmt = function
   | S x -> stmt x
   | D x -> definition x
-  | e ->
+  | e -> (
       let e = expr e in
-      G.ExprStmt (e, unsafe_fake ";") |> G.s
+      match e.G.e with
+      (* a single name on its own line is probably an hidden fun call,
+       * unless it's a metavariable
+       *)
+      | G.N (G.Id ((s, _), _)) ->
+          if AST_generic_.is_metavar_name s then G.exprstmt e
+          else
+            let call = G.Call (e, fb []) |> G.e in
+            G.exprstmt call
+      | _ -> G.exprstmt e)
 
 and stmt st =
   match st with
@@ -443,22 +462,22 @@ and stmt st =
       let header = G.ForEach (pat, t2, e) in
       G.For (t1, header, st) |> G.s
   | Return (t, es) ->
-      let eopt = exprs_to_eopt es in
+      let eopt = args_to_eopt es in
       G.Return (t, eopt, G.sc) |> G.s
   | Yield (t, es) ->
-      let eopt = exprs_to_eopt es in
+      let eopt = args_to_eopt es in
       G.exprstmt (G.Yield (t, eopt, false) |> G.e)
   | Break (t, es) ->
-      let lbl = exprs_to_label_ident es in
+      let lbl = args_to_label_ident es in
       G.Break (t, lbl, G.sc) |> G.s
   | Next (t, es) ->
-      let lbl = exprs_to_label_ident es in
+      let lbl = args_to_label_ident es in
       G.Continue (t, lbl, G.sc) |> G.s
   | Redo (t, es) ->
-      let lbl = exprs_to_label_ident es in
+      let lbl = args_to_label_ident es in
       G.OtherStmt (G.OS_Redo, [ G.Tk t; G.Lbli lbl ]) |> G.s
   | Retry (t, es) ->
-      let lbl = exprs_to_label_ident es in
+      let lbl = args_to_label_ident es in
       G.OtherStmt (G.OS_Retry, [ G.Tk t; G.Lbli lbl ]) |> G.s
   | Case (t, { case_guard = eopt; case_whens = whens; case_else = stopt }) ->
       let eopt = option expr eopt in
@@ -479,6 +498,8 @@ and when_clause (t, pats, sts) =
   let st = list_stmt1 sts in
   (pats |> List.map (fun pat -> G.Case (t, pat)), st)
 
+and args_to_label_ident xs = xs |> args_to_exprs |> exprs_to_label_ident
+
 and exprs_to_label_ident = function
   | [] -> G.LNone
   (* TODO: check if x is an Int or label? *)
@@ -488,6 +509,8 @@ and exprs_to_label_ident = function
   | xs ->
       let xs = list expr xs in
       G.LDynamic (G.Container (G.Tuple, G.fake_bracket xs) |> G.e)
+
+and args_to_eopt xs = xs |> args_to_exprs |> exprs_to_eopt
 
 and exprs_to_eopt = function
   | [] -> None
@@ -526,15 +549,15 @@ and definition def =
       | M mn -> (
           match method_name mn with
           | Left id ->
-              let ent = G.basic_entity id [] in
+              let ent = G.basic_entity id in
               G.DefStmt (ent, G.FuncDef funcdef) |> G.s
           | Right e ->
-              let ent = G.basic_entity ("", fake t "") [] in
+              let ent = G.basic_entity ("", fake t "") in
               G.OtherStmt (G.OS_Todo, [ G.E e; G.Def (ent, G.FuncDef funcdef) ])
               |> G.s)
       | SingletonM e ->
           let e = expr e in
-          let ent = G.basic_entity ("", fake t "") [] in
+          let ent = G.basic_entity ("", fake t "") in
           G.OtherStmt (G.OS_Todo, [ G.E e; G.Def (ent, G.FuncDef funcdef) ])
           |> G.s)
   | ClassDef (t, kind, body) -> (
@@ -550,7 +573,7 @@ and definition def =
           in
           let ent =
             match name with
-            | NameConstant id -> G.basic_entity id []
+            | NameConstant id -> G.basic_entity id
             | NameScope x ->
                 let name_ = scope_resolution x in
                 let name = G.IdQualified (name_, G.empty_id_info ()) in
@@ -575,7 +598,7 @@ and definition def =
       let body = body_exn body in
       let ent =
         match name with
-        | NameConstant id -> G.basic_entity id []
+        | NameConstant id -> G.basic_entity id
         | NameScope x ->
             let name_ = scope_resolution x in
             let name = G.IdQualified (name_, G.empty_id_info ()) in
@@ -642,14 +665,14 @@ and rescue_clause (t, exns, exnvaropt, sts) =
   | [], None -> (t, G.PatUnderscore t, st)
   | [], Some (t, lhs) ->
       let e = expr lhs in
-      (t, G.OtherPat (G.OP_Todo, [ G.Tk t; G.E e ]), st)
+      (t, G.OtherPat (("Rescue", t), [ G.E e ]), st)
   | x :: xs, None ->
       let disjs = List.fold_left (fun e acc -> G.PatDisj (e, acc)) x xs in
       (t, disjs, st)
   | x :: xs, Some (t, lhs) ->
       let disjs = List.fold_left (fun e acc -> G.PatDisj (e, acc)) x xs in
       let e = expr lhs in
-      (t, G.OtherPat (G.OP_Todo, [ G.Tk t; G.E e; G.P disjs ]), st)
+      (t, G.OtherPat (("RescueDisj", t), [ G.E e; G.P disjs ]), st)
 
 and exception_ e =
   let t = type_ e in

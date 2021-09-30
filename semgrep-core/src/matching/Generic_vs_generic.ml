@@ -313,6 +313,37 @@ let _m_resolved_name (a1, a2) (b1, b2) =
   let* () = m_resolved_name_kind a1 b1 in
   m_sid a2 b2
 
+(* Supports deep expression matching, either when done explicitly (e.g. with deep ellipsis) or implicitly
+ *
+ * If "go_deeper_expr" is not enabled, reduces to `first_fun a b`.
+ * If "go_deeper_expr" is enabled, will first check `first_fun a b`, then, if that match fails, will
+ * match against all sub-expressions of b.
+ *
+ * See m_expr_deep for an example of usage.
+ *
+ * deep_fun: Matching function to use when matching sub-expressions
+ * first_fun: Matching function to use when matching the whole (top-level) expression
+ * sub_fun: Function to use to extract sub-expressions from b
+ * a: Pattern expression
+ * b: Target node
+ * 't: Type of the target node
+ *)
+let m_deep (deep_fun : G.expr Matching_generic.matcher)
+    (first_fun : G.expr -> 't -> tin -> tout) (sub_fun : 't -> G.expr list)
+    (a : G.expr) (b : 't) =
+  if_config
+    (fun x -> not x.go_deeper_expr)
+    ~then_:(first_fun a b)
+    ~else_:
+      ( first_fun a b >!> fun () ->
+        (* less: could use a fold *)
+        let rec aux xs =
+          match xs with
+          | [] -> fail ()
+          | x :: xs -> deep_fun a x >||> aux xs
+        in
+        b |> sub_fun |> aux )
+
 (* start of recursive need *)
 (* TODO: factorize with metavariable and aliasing logic in m_expr
  * TODO: remove MV.Id and use always MV.N?
@@ -503,19 +534,7 @@ and m_id_info a b =
  *)
 (* experimental! *)
 and m_expr_deep a b =
-  if_config
-    (fun x -> not x.go_deeper_expr)
-    ~then_:(m_expr a b)
-    ~else_:
-      ( m_expr a b >!> fun () ->
-        let subs = SubAST_generic.subexprs_of_expr b in
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | x :: xs -> m_expr_deep a x >||> aux xs
-        in
-        aux subs )
+  m_deep m_expr_deep m_expr SubAST_generic.subexprs_of_expr a b
 
 (* coupling: if you add special sgrep hooks here, you should probably
  * also add them in m_pattern
@@ -573,6 +592,15 @@ and m_expr a b =
       _b ) ->
       let full = names @ [ alabel ] in
       m_expr (make_dotted full) b
+  | G.DotAccess (_, _, _), B.N b1 -> (
+      (* Reinterprets a DotAccess expression such as a.b.c as a name, when
+       * a,b,c are all identifiers. Note that something like a.b.c could get
+       * parsed as either DotAccess or IdQualified depending on the context
+       * (e.g., in Python it is always a DotAccess *except* when it occurs
+       * in an attribute). *)
+      match H.name_of_dot_access a with
+      | None -> fail ()
+      | Some a1 -> m_name a1 b1)
   (* $X should not match an IdSpecial in a call context,
    * otherwise $X(...) would match a+b because this is transformed in a
    * Call(IdSpecial Plus, ...).
@@ -1470,9 +1498,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
 (* Type *)
 (*****************************************************************************)
 and m_type_ a b =
-  let* () =
-    m_list_in_any_order ~less_is_ok:true m_attribute a.t_attrs b.t_attrs
-  in
+  let* () = m_attributes a.t_attrs b.t_attrs in
   match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
    * MV.Id (or MV.N) when we can, instead of the more general MV.T below *)
@@ -1541,26 +1567,26 @@ and m_type_arguments a b =
 
 and m_type_argument a b =
   match (a, b) with
-  | G.TypeArg a1, B.TypeArg b1 -> m_type_ a1 b1
-  | G.TypeWildcard (a1, a2), B.TypeWildcard (b1, b2) ->
+  | G.TA a1, B.TA b1 -> m_type_ a1 b1
+  | G.TAWildcard (a1, a2), B.TAWildcard (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_option m_wildcard a2 b2
-  | G.TypeLifetime a1, B.TypeLifetime b1 -> m_ident a1 b1
+  | G.TAExpr a1, B.TAExpr b1 -> m_expr a1 b1
   | G.OtherTypeArg (a1, a2), B.OtherTypeArg (b1, b2) ->
-      m_other_type_argument_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.TypeArg _, _
-  | G.TypeWildcard _, _
-  | G.TypeLifetime _, _
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.TA _, _
+  | G.TAWildcard _, _
+  | G.TAExpr _, _
   | G.OtherTypeArg _, _ ->
       fail ()
+
+and m_todo_kind a b = m_ident a b
 
 and m_wildcard (a1, a2) (b1, b2) =
   let* () = m_wrap m_bool a1 b1 in
   m_type_ a2 b2
 
 and m_other_type_operator = m_other_xxx
-
-and m_other_type_argument_operator = m_other_xxx
 
 (*****************************************************************************)
 (* Attribute *)
@@ -1585,6 +1611,8 @@ and m_attribute a b =
   | G.NamedAttr _, _
   | G.OtherAttribute _, _ ->
       fail ()
+
+and m_attributes a b = m_list_in_any_order ~less_is_ok:true m_attribute a b
 
 and m_other_attribute_operator = m_other_xxx
 
@@ -1799,6 +1827,10 @@ and m_stmt a b =
       | _ -> fail ())
   (* dots: '...' can to match any statememt *)
   | G.ExprStmt ({ e = G.Ellipsis _i; _ }, _), _b -> return ()
+  (* deep ellipsis as a statement should match any exprs in stmt *)
+  | G.ExprStmt ({ e = G.DeepEllipsis (_, a, _); _ }, _), b ->
+      let no_match _ _ = fail () in
+      m_deep m_expr_deep no_match SubAST_generic.subexprs_of_stmt_kind a b
   | G.Return (a0, a1, asc), B.Return (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_option_ellipsis_ok m_expr a1 b1 in
@@ -2104,12 +2136,12 @@ and m_entity a b =
   | ( { G.name = a1; attrs = a2; tparams = a4 },
       { B.name = b1; attrs = b2; tparams = b4 } ) ->
       m_name_or_dynamic a1 b1 >>= fun () ->
-      m_list_in_any_order ~less_is_ok:true m_attribute a2 b2 >>= fun () ->
-      (m_list m_type_parameter) a4 b4
+      m_attributes a2 b2 >>= fun () -> (m_list m_type_parameter) a4 b4
 
 and m_definition_kind a b =
   match (a, b) with
   (* boilerplate *)
+  | G.EnumEntryDef a1, B.EnumEntryDef b1 -> m_enum_entry_definition a1 b1
   | G.FuncDef a1, B.FuncDef b1 -> m_function_definition a1 b1
   | G.VarDef a1, B.VarDef b1 -> m_variable_definition a1 b1
   | G.FieldDefColon a1, B.FieldDefColon b1 -> m_variable_definition a1 b1
@@ -2128,16 +2160,22 @@ and m_definition_kind a b =
   | G.Signature _, _
   | G.UseOuterDecl _, _
   | G.FieldDefColon _, _
+  | G.EnumEntryDef _, _
   | G.OtherDef _, _ ->
       fail ()
 
+and m_enum_entry_definition a b =
+  match (a, b) with
+  | { G.ee_args = a1; ee_body = a2 }, { B.ee_args = b1; ee_body = b2 } ->
+      let* () = m_option m_arguments a1 b1 in
+      let* () = m_option (m_bracket m_fields) a2 b2 in
+      return ()
+
 and m_type_parameter_constraint a b =
   match (a, b) with
-  | G.Extends a1, B.Extends b1 -> m_type_ a1 b1
   | G.HasConstructor a1, B.HasConstructor b1 -> m_tok a1 b1
   | G.OtherTypeParam (a1, a2), B.OtherTypeParam (b1, b2) ->
       m_other_type_parameter_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.Extends _, _
   | G.HasConstructor _, _
   | G.OtherTypeParam _, _ ->
       fail ()
@@ -2150,8 +2188,38 @@ and m_type_parameter_constraints a b =
 
 and m_type_parameter a b =
   match (a, b) with
-  | (a1, a2), (b1, b2) ->
-      m_ident a1 b1 >>= fun () -> m_type_parameter_constraints a2 b2
+  | ( {
+        G.tp_id = a1;
+        tp_attrs = a2;
+        tp_bounds = a3;
+        tp_default = a4;
+        tp_variance = a5;
+        tp_constraints = a6;
+      },
+      {
+        B.tp_id = b1;
+        tp_attrs = b2;
+        tp_bounds = b3;
+        tp_default = b4;
+        tp_variance = b5;
+        tp_constraints = b6;
+      } ) ->
+      let* () = m_ident a1 b1 in
+      let* () = m_attributes a2 b2 in
+      m_list__m_type_any_order a3 b3 >>= fun () ->
+      (m_option m_type_) a4 b4 >>= fun () ->
+      (* less-is-more: *)
+      let* () = m_option_none_can_match_some (m_wrap m_variance) a5 b5 in
+      let* () = m_type_parameter_constraints a6 b6 in
+      return ()
+
+and m_variance a b =
+  match (a, b) with
+  | Covariant, Covariant -> return ()
+  | Contravariant, Contravariant -> return ()
+  | Covariant, _
+  | Contravariant, _ ->
+      fail ()
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -2380,11 +2448,13 @@ and m_type_definition_kind a b =
       (m_list m_type_) a2 b2
   | G.OtherTypeKind (a1, a2), B.OtherTypeKind (b1, b2) ->
       m_other_type_kind_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.AbstractType a1, B.AbstractType b1 -> m_tok a1 b1
   | G.OrType _, _
   | G.AndType _, _
   | G.AliasType _, _
   | G.Exception _, _
   | G.NewType _, _
+  | G.AbstractType _, _
   | G.OtherTypeKind _, _ ->
       fail ()
 
@@ -2398,17 +2468,12 @@ and m_or_type a b =
       m_ident a1 b1 >>= fun () -> m_option m_expr a2 b2
   | G.OrUnion (a1, a2), B.OrUnion (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_type_ a2 b2
-  | G.OtherOr (a1, a2), B.OtherOr (b1, b2) ->
-      m_other_or_type_element_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.OrConstructor _, _
   | G.OrEnum _, _
-  | G.OrUnion _, _
-  | G.OtherOr _, _ ->
+  | G.OrUnion _, _ ->
       fail ()
 
 and m_other_type_kind_operator = m_other_xxx
-
-and m_other_or_type_element_operator = m_other_xxx
 
 and m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
@@ -2470,6 +2535,7 @@ and m_class_kind_bis a b =
   | G.Trait, B.Trait
   | G.AtInterface, B.AtInterface
   | G.Object, B.Object
+  | G.EnumClass, B.EnumClass
   | G.RecordClass, B.RecordClass ->
       return ()
   | G.Class, _
@@ -2477,6 +2543,7 @@ and m_class_kind_bis a b =
   | G.Trait, _
   | G.AtInterface, _
   | G.Object, _
+  | G.EnumClass, _
   | G.RecordClass, _ ->
       fail ()
 
@@ -2634,6 +2701,7 @@ and m_any a b =
   match (a, b) with
   | G.Str a1, B.Str b1 -> m_string_ellipsis_or_metavar_or_default a1 b1
   | G.Ss a1, B.Ss b1 -> m_stmts_deep ~inside:false ~less_is_ok:true a1 b1
+  | G.Flds a1, B.Flds b1 -> m_fields a1 b1
   | G.E a1, B.E b1 -> m_expr a1 b1
   | G.S a1, B.S b1 -> m_stmt a1 b1
   | G.Partial a1, B.Partial b1 -> m_partial a1 b1
@@ -2643,7 +2711,7 @@ and m_any a b =
   | G.Modn a1, B.Modn b1 -> m_module_name a1 b1
   | G.ModDk a1, B.ModDk b1 -> m_module_definition_kind a1 b1
   | G.Tk a1, B.Tk b1 -> m_tok a1 b1
-  | G.TodoK a1, B.TodoK b1 -> m_ident a1 b1
+  | G.TodoK a1, B.TodoK b1 -> m_todo_kind a1 b1
   | G.Di a1, B.Di b1 -> m_dotted_name a1 b1
   | G.En a1, B.En b1 -> m_entity a1 b1
   | G.T a1, B.T b1 -> m_type_ a1 b1
@@ -2676,6 +2744,7 @@ and m_any a b =
   | G.Pr _, _
   | G.Fld _, _
   | G.Ss _, _
+  | G.Flds _, _
   | G.Tk _, _
   | G.Lbli _, _
   | G.NoD _, _

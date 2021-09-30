@@ -99,7 +99,10 @@ let exn_to_error ?(rule_id = None) file exn =
       mk_error ~rule_id loc msg Timeout
   | Out_of_memory ->
       let loc = Parse_info.first_loc_of_file file in
-      mk_error ~rule_id loc "Out of memory" OutOfMemory
+      mk_error ~rule_id loc "Heap space exceeded" OutOfMemory
+  | ExceededMemoryLimit msg ->
+      let loc = Parse_info.first_loc_of_file file in
+      mk_error ~rule_id loc msg OutOfMemory
   | UnixExit _ as exn -> raise exn
   (* general case, can't extract line information from it, default to line 1 *)
   | exn ->

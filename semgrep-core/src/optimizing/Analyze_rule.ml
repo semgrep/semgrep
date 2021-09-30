@@ -90,6 +90,27 @@ exception EmptyAnd
 exception EmptyOr
 
 (*****************************************************************************)
+(* Utils *)
+(*****************************************************************************)
+
+let ( let* ) = Common.( >>= )
+
+(* NOTE "AND vs OR and map_filter":
+ * We cannot use `Common.map_filter` for `R.Or`, because it has the wrong
+ * semantics. We use `None` to say "we can't handle this", or in other words,
+ * "we assume this pattern can match", or just "true"! So in an AND we can
+ * remove those "true" terms, but in an OR we need to reduce the entire OR to
+ * "true". Therefore, `Common.map_filter` works for AND-semantics, but for
+ * OR-semantics we need `option_map`. *)
+let option_map f xs =
+  List.fold_left
+    (fun acc x ->
+      let* ys = acc in
+      let* y = f x in
+      Some (y :: ys))
+    (Some []) xs
+
+(*****************************************************************************)
 (* Step0: a complex formula to a CNF *)
 (*****************************************************************************)
 (* Transforming a complex formula to a simple CNF formula.
@@ -113,11 +134,16 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
   match f with
   | R.And (t, xs) ->
       let ys = Common.map_filter remove_not xs in
-      if null ys then failwith "null And after remove_not"
+      if null ys then (
+        logger#warning "null And after remove_not";
+        None)
       else Some (R.And (t, ys))
   | R.Or (t, xs) ->
-      let ys = Common.map_filter remove_not xs in
-      if null ys then failwith "null Or after remove_not"
+      (* See NOTE "AND vs OR and map_filter". *)
+      let* ys = option_map remove_not xs in
+      if null ys then (
+        logger#warning "null Or after remove_not";
+        None)
       else Some (R.Or (t, ys))
   | R.Not (_, f) -> (
       match f with
@@ -125,14 +151,18 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
       (* double negation *)
       | R.Not (_, f) -> remove_not f
       (* todo? apply De Morgan's law? *)
-      | R.Or (_, _xs) -> failwith "Not Or"
-      | R.And (_, _xs) -> failwith "Not And")
+      | R.Or (_, _xs) ->
+          logger#warning "Not Or";
+          None
+      | R.And (_, _xs) ->
+          logger#warning "Not And";
+          None)
   | R.Leaf x -> Some (R.Leaf x)
 
 let remove_not_final f =
-  match remove_not f with
-  | Some f -> f
-  | None -> failwith "no formula"
+  let final_opt = remove_not f in
+  if Option.is_none final_opt then logger#error "no formula";
+  final_opt
 
 type step0 = L of Rule.leaf
 (*old: does not work: | Not of Rule.leaf | Pos of Rule.leaf *)
@@ -235,7 +265,9 @@ let rec (and_step1 : cnf_step0 -> cnf_step1) =
 and or_step1 cnf =
   match cnf with
   | Or xs ->
-      let ys = xs |> Common.map_filter leaf_step1 in
+      (* old: We had `Common.map_filter` here before, but that gives the wrong
+       * semantics. See NOTE "AND vs OR and map_filter". *)
+      let* ys = option_map leaf_step1 xs in
       if null ys then None else Some (Or ys)
 
 and leaf_step1 f =
@@ -433,7 +465,7 @@ let run_cnf_step2 cnf big_str =
 (*****************************************************************************)
 
 let compute_final_cnf f =
-  let f = remove_not_final f in
+  let* f = remove_not_final f in
   let cnf = cnf f in
   logger#ldebug (lazy (spf "cnf0 = %s" (show_cnf_step0 cnf)));
   (* let cnf = and_step1 f in *)
@@ -445,14 +477,14 @@ let compute_final_cnf f =
   *)
   let cnf = and_step2 cnf in
   logger#ldebug (lazy (spf "cnf2 = %s" (show_cnf_step2 cnf)));
-  cnf
+  Some cnf
   [@@profiling]
 
 let str_final final = show_cnf_step2 final [@@profiling]
 
 let regexp_prefilter_of_formula f =
   try
-    let final = compute_final_cnf f in
+    let* final = compute_final_cnf f in
     Some
       ( str_final final,
         fun big_str ->

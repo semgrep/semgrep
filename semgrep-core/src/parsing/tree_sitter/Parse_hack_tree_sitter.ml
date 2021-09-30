@@ -92,7 +92,7 @@ let add_type_args_to_name name type_args =
               id_info ))
 
 let basic_typed_entity id attrs tparams : G.entity =
-  { (G.basic_entity id attrs) with tparams }
+  G.basic_entity id ~attrs ~tparams
 
 let stringify_without_quotes str =
   let s, t = str in
@@ -469,7 +469,7 @@ let xhp_enum_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.xhp_enum_type)
   (* Could also make type via nested TyOr of names but that's also wrong... *)
   (* Q: Just want type, so can't do def stmt... Should really be TypeDef in parent? *)
   let def =
-    G.DefStmt (G.basic_entity ident [], TypeDef { tbody = OrType (v3 :: v4) })
+    G.DefStmt (G.basic_entity ident, TypeDef { tbody = OrType (v3 :: v4) })
     |> G.s
   in
   G.OtherType (OT_Expr, [ G.S def ]) |> G.t
@@ -688,36 +688,27 @@ and as_expression (env : env) ((v1, v2, v3) : CST.as_expression) =
   G.Cast (v3, v2, v1) |> G.e
 
 and attribute_modifier (env : env)
-    ((v1, v2, v3, v4, v5, v6) : CST.attribute_modifier) : G.attribute =
+    ((v1, v2, v3, v4, v5, v6) : CST.attribute_modifier) : G.attribute list =
   (* Attributes are actually constructors *)
   let v1 = (* "<<" *) token env v1 in
-  let v2 =
-    G.fake_bracket [ G.Arg (G.N (qualified_identifier env v2) |> G.e) ]
-  in
+  let v2 = qualified_identifier env v2 in
   let v3 =
     match v3 with
     | Some x -> arguments env x
     | None -> G.fake_bracket []
   in
-  let constr_call =
-    G.Call (G.Call (G.IdSpecial (New, fk v1) |> G.e, v2) |> G.e, v3)
-  in
-  let first_attr_mod = G.E (constr_call |> G.e) in
+  let attr1 = G.NamedAttr (v1, v2, v3) in
   let v4 =
     List.map
       (fun (v1, v2, v3) ->
         let v1 = (* "," *) token env v1 in
-        let v2 =
-          G.fake_bracket [ G.Arg (G.N (qualified_identifier env v2) |> G.e) ]
-        in
+        let v2 = qualified_identifier env v2 in
         let v3 =
           match v3 with
           | Some x -> arguments env x
           | None -> G.fake_bracket []
         in
-        G.E
-          (G.Call (G.Call (G.IdSpecial (New, fk v1) |> G.e, v2) |> G.e, v3)
-          |> G.e))
+        G.NamedAttr (v1, v2, v3))
       v4
   in
   let _v5 =
@@ -726,7 +717,7 @@ and attribute_modifier (env : env)
     | None -> None
   in
   let _v6 = (* ">>" *) token env v6 in
-  G.OtherAttribute (G.OA_Expr, first_attr_mod :: v4)
+  attr1 :: v4
 
 and binary_expression (env : env) (x : CST.binary_expression) : G.expr =
   match x with
@@ -1079,7 +1070,7 @@ and class_const_declarator (env : env) ((v1, v2) : CST.class_const_declarator)
         Some v2
     | None -> None
   in
-  let ent = G.basic_entity v1 attrs in
+  let ent = G.basic_entity v1 ~attrs in
   let def : G.variable_definition = { vinit = v2; vtype } in
   G.DefStmt (ent, G.VarDef def) |> G.s
 
@@ -1095,14 +1086,14 @@ and const_declarator (env : env) ((v1, v2, v3) : CST.const_declarator) attrs
   let v1 = const_declarator_id env v1 in
   let _v2 = (* "=" *) token env v2 in
   let v3 = expression env v3 in
-  G.DefStmt (G.basic_entity v1 attrs, VarDef { vinit = Some v3; vtype })
+  G.DefStmt (G.basic_entity v1 ~attrs, VarDef { vinit = Some v3; vtype })
 
 and declaration (env : env) (x : CST.declaration) =
   match x with
   | `Func_decl (v1, v2, v3) ->
       let attrs =
         match v1 with
-        | Some x -> [ attribute_modifier env x ]
+        | Some x -> attribute_modifier env x
         | None -> []
       in
       let func_def, identifier, type_params =
@@ -1115,7 +1106,7 @@ and declaration (env : env) (x : CST.declaration) =
   | `Class_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11) ->
       let v1 =
         match v1 with
-        | Some x -> [ attribute_modifier env x ]
+        | Some x -> attribute_modifier env x
         | None -> []
       in
       let v2 =
@@ -1182,7 +1173,7 @@ and declaration (env : env) (x : CST.declaration) =
   | `Inte_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         match v1 with
-        | Some x -> [ attribute_modifier env x ]
+        | Some x -> attribute_modifier env x
         | None -> []
       in
       let v2 = (* "interface" *) token env v2 in
@@ -1218,7 +1209,7 @@ and declaration (env : env) (x : CST.declaration) =
   | `Trait_decl (v1, v2, v3, v4, v5, v6, v7) ->
       let v1 =
         match v1 with
-        | Some x -> [ attribute_modifier env x ]
+        | Some x -> attribute_modifier env x
         | None -> []
       in
       let v2 = (* "trait" *) token env v2 in
@@ -1254,7 +1245,7 @@ and declaration (env : env) (x : CST.declaration) =
   | `Alias_decl (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let v1 =
         match v1 with
-        | Some x -> [ attribute_modifier env x ]
+        | Some x -> attribute_modifier env x
         | None -> []
       in
       let _v2 =
@@ -1276,7 +1267,7 @@ and declaration (env : env) (x : CST.declaration) =
         | Some (v1, v2) ->
             let v1 = (* "as" *) str env v1 in
             let v2 = type_ env v2 in
-            [ G.OtherAttribute (OA_Todo, [ G.TodoK v1; G.T v2 ]) ]
+            [ G.OtherAttribute (v1, [ G.T v2 ]) ]
         | None -> []
       in
       (* Q: AliasType vs NewType? *)
@@ -1289,7 +1280,7 @@ and declaration (env : env) (x : CST.declaration) =
   | `Enum_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
       let v1 =
         match v1 with
-        | Some x -> [ attribute_modifier env x ]
+        | Some x -> attribute_modifier env x
         | None -> []
       in
       let _v2 = (* "enum" *) token env v2 in
@@ -1308,7 +1299,7 @@ and declaration (env : env) (x : CST.declaration) =
       let _v7 = (* "{" *) token env v7 in
       let v8 = List.map (enumerator env) v8 in
       let _v9 = (* "}" *) token env v9 in
-      G.DefStmt (G.basic_entity v3 v1, TypeDef { tbody = G.OrType v8 })
+      G.DefStmt (G.basic_entity v3 ~attrs:v1, TypeDef { tbody = G.OrType v8 })
   | `Name_decl (v1, v2) -> (
       let v1 = (* "namespace" *) token env v1 in
       let v2 =
@@ -1609,7 +1600,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       | `Lambda_exp (v1, v2, v3, v4, v5) ->
           let _v1TODO =
             match v1 with
-            | Some x -> [ attribute_modifier env x ]
+            | Some x -> attribute_modifier env x
             | None -> []
           in
           let _v2TODO =
@@ -1744,7 +1735,7 @@ and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) =
 and field_initializer (env : env) ((v1, v2, v3) : CST.field_initializer) =
   let v1 =
     match v1 with
-    | `Str tok -> (* string *) G.basic_entity (str env tok) []
+    | `Str tok -> (* string *) G.basic_entity (str env tok)
     | `Scoped_id x ->
         { name = G.EN (scoped_identifier env x); attrs = []; tparams = [] }
   in
@@ -1786,8 +1777,8 @@ and function_declaration_header (env : env)
         let _v1 = (* ":" *) token env v1 in
         let _v2TODO =
           match v2 with
-          | Some x -> Some (attribute_modifier env x)
-          | None -> None
+          | Some x -> attribute_modifier env x
+          | None -> []
         in
         let v3 = type_ env v3 in
         Some v3
@@ -1858,7 +1849,7 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
 and method_declaration (env : env) ((v1, v2, v3, v4) : CST.method_declaration) =
   let v1 =
     match v1 with
-    | Some x -> [ attribute_modifier env x ]
+    | Some x -> attribute_modifier env x
     | None -> []
   in
   let v2 = List.map (member_modifier env) v2 in
@@ -1874,7 +1865,7 @@ and parameter (env : env) (x : CST.parameter) : G.parameter =
       (v1, v2, v3, v4, v5, v6, v7) -> (
       let v1 =
         match v1 with
-        | Some x -> [ attribute_modifier env x ]
+        | Some x -> attribute_modifier env x
         | None -> []
       in
       let v2 =
@@ -2034,7 +2025,7 @@ and property_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.property_declaration) =
   let v1 =
     match v1 with
-    | Some x -> [ attribute_modifier env x ]
+    | Some x -> attribute_modifier env x
     | None -> []
   in
   let v2 = List.map (member_modifier env) v2 in
@@ -2067,7 +2058,7 @@ and property_declarator (env : env) ((v1, v2) : CST.property_declarator) attrs
         Some v2
     | None -> None
   in
-  let ent = G.basic_entity v1 attrs in
+  let ent = G.basic_entity v1 ~attrs in
   let def : G.variable_definition = { vinit = v2; vtype } in
   G.DefStmt (ent, G.VarDef def) |> G.s
 
@@ -2361,7 +2352,9 @@ and statement (env : env) (x : CST.statement) =
       let _v2 = (* "(" *) token env v2 in
       (* TODO: Modify TSH to make directly to pattern? *)
       (* TODO: Split expression to allow pattern use and expr use? *)
-      let v3 = G.OtherPat (OP_Expr, [ G.E (expression env v3) ]) in
+      let v3 =
+        G.OtherPat (("ExprToPattern", v1), [ G.E (expression env v3) ])
+      in
       let _v4TODO =
         match v4 with
         | Some tok -> (* "await" *) Some (token env tok)
@@ -2623,12 +2616,12 @@ and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) :
   let v2 =
     match v2 with
     | Some (v1, v2, v3) ->
-        let v1 = G.TypeArg (type_ env v1) in
+        let v1 = G.TA (type_ env v1) in
         let v2 =
           List.map
             (fun (v1, v2) ->
               let _v1 = (* "," *) token env v1 in
-              let v2 = G.TypeArg (type_ env v2) in
+              let v2 = G.TA (type_ env v2) in
               v2)
             v2
         in
@@ -2649,7 +2642,7 @@ and type_const_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6, v7, v8, v9) : CST.type_const_declaration) =
   let v1 =
     match v1 with
-    | Some x -> [ attribute_modifier env x ]
+    | Some x -> attribute_modifier env x
     | None -> []
   in
   let v2 = List.map (member_modifier env) v2 in
@@ -2679,7 +2672,7 @@ and type_const_declaration (env : env)
         Some v2
     | None -> None
   in
-  let _v9 = (* ";" *) token env v9 in
+  let v9 = (* ";" *) token env v9 in
   match v8 with
   (* Q: AliasType vs NewType? *)
   | Some v8 ->
@@ -2691,28 +2684,33 @@ and type_const_declaration (env : env)
   | None ->
       G.DefStmt
         ( basic_typed_entity id (v1 @ v2 @ v3) type_params,
-          G.OtherDef (G.OD_Todo, []) )
+          G.TypeDef { tbody = AbstractType v9 } )
       |> G.s
 
 and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :
     G.type_parameter =
-  let _v1TODO =
+  let tp_attrs =
     match v1 with
-    | Some x -> Some (attribute_modifier env x)
-    | None -> None
+    | Some x -> attribute_modifier env x
+    | None -> []
   in
-  let _v2TODO =
+  let tp_variance =
     match v2 with
-    | Some x ->
-        Some
-          (match x with
-          | `PLUS tok -> (* "+" *) token env tok
-          | `DASH tok -> (* "-" *) token env tok
-          | `Reify tok -> (* "reify" *) token env tok)
+    | Some x -> (
+        match x with
+        | `PLUS tok -> (* "+" *) Some (G.Covariant, token env tok)
+        | `DASH tok -> (* "-" *) Some (G.Contravariant, token env tok)
+        | `Reify tok ->
+            (* TODO? what is that? *)
+            let _t = token env tok in
+            (* "reify" *)
+            None)
     | None -> None
   in
-  let id = (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3 in
-  let constraints =
+  let tp_id =
+    (* pattern [a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]* *) str env v3
+  in
+  let tp_bounds =
     List.map
       (fun (v1, v2) ->
         let _v1TODO =
@@ -2721,11 +2719,12 @@ and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :
           | `Super tok -> (* "super" *) token env tok
         in
         let v2 = type_ env v2 in
-        (* TODO: Extends seems inaccurate here *)
-        G.Extends v2)
+        v2)
       v4
   in
-  (id, constraints)
+  let tp_constraints = [] in
+  let tp_default = None in
+  { G.tp_id; tp_attrs; tp_bounds; tp_variance; tp_default; tp_constraints }
 
 and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
   let _v1 = (* "<" *) token env v1 in
@@ -2918,7 +2917,7 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
   in
   (* Q: Something feels off here... Originally did VarDef with init...*)
   (* But then it had to be enum... So did TypeDef, but then went back... *)
-  let ent = G.basic_entity v2 (attr_tok :: v4) in
+  let ent = G.basic_entity v2 ~attrs:(attr_tok :: v4) in
   let def = (ent, G.VarDef { vinit = v3; vtype = Some v1 }) in
   G.FieldStmt (G.DefStmt def |> G.s)
 

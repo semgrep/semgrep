@@ -566,10 +566,10 @@ and map_type_kind = function
 and map_type_arguments (_, v, _) = map_of_list map_type_argument v
 
 and map_type_argument = function
-  | TypeArg v1 ->
+  | TA v1 ->
       let v1 = map_type_ v1 in
       `TypeArg v1
-  | TypeWildcard (v1, v2) ->
+  | TAWildcard (v1, v2) ->
       let v1 = map_tok v1 in
       let v2 =
         map_of_option
@@ -577,17 +577,15 @@ and map_type_argument = function
           v2
       in
       `TypeWildcard (v1, v2)
-  | TypeLifetime v1 ->
-      let v1 = map_ident v1 in
-      `TypeLifetime v1
+  | TAExpr _ -> failwith "TODO"
   | OtherTypeArg (v1, v2) ->
-      let v1 = map_other_type_argument_operator v1 in
+      let v1 = map_todo_kind v1 in
       let v2 = map_of_list map_any v2 in
       `OtherTypeArg (v1, v2)
 
-and map_other_type_operator _x = "TODO"
+and map_todo_kind _x = "TODO"
 
-and map_other_type_argument_operator _x = "TODO"
+and map_other_type_operator _x = "TODO"
 
 and map_attribute = function
   | KeywordAttr v1 -> (
@@ -902,6 +900,7 @@ and map_entity { G.name = v_name; attrs = v_attrs; tparams = v_tparams } =
   { B.name = v_name; attrs = v_attrs; tparams = v_tparams }
 
 and map_definition_kind = function
+  | EnumEntryDef _v -> failwith "TODO"
   | FuncDef v1 ->
       let v1 = map_function_definition v1 in
       `FuncDef v1
@@ -960,17 +959,13 @@ and map_macro_definition
   let v_macroparams = map_of_list map_ident v_macroparams in
   { B.macroparams = v_macroparams; macrobody = v_macrobody }
 
-and map_type_parameter (v1, v2) =
-  let v1 = map_ident v1 and v2 = map_type_parameter_constraints v2 in
-  (v1, v2)
+and map_type_parameter _tp = failwith "TODO"
 
-and map_type_parameter_constraints v =
+(*
+and _map_type_parameter_constraints v =
   map_of_list map_type_parameter_constraint v
 
 and map_type_parameter_constraint = function
-  | Extends v1 ->
-      let v1 = map_type_ v1 in
-      `Extends v1
   | HasConstructor t ->
       let t = map_tok t in
       `HasConstructor t
@@ -980,7 +975,7 @@ and map_type_parameter_constraint = function
       `OtherTypeParam (t, xs)
 
 and map_other_type_parameter_operator _x = "TODO"
-
+*)
 and map_function_kind = function
   | Function -> `Function
   | Method -> `Method
@@ -1066,6 +1061,7 @@ and map_type_definition { G.tbody = v_tbody } =
   { B.tbody = v_tbody }
 
 and map_type_definition_kind = function
+  | AbstractType _v1 -> failwith "TODO"
   | OrType v1 ->
       let v1 = map_of_list map_or_type_element v1 in
       `OrType v1
@@ -1098,12 +1094,6 @@ and map_or_type_element = function
   | OrUnion (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_type_ v2 in
       `OrUnion (v1, v2)
-  | OtherOr (v1, v2) ->
-      let v1 = map_other_or_type_element_operator v1
-      and v2 = map_of_list map_any v2 in
-      `OtherOr (v1, v2)
-
-and map_other_or_type_element_operator _x = "TODO"
 
 and map_class_definition
     {
@@ -1136,6 +1126,7 @@ and map_class_kind = function
   | Object -> `Object
   | AtInterface -> `AtInterface
   | RecordClass -> `RecordClass
+  | EnumClass -> failwith "TODO"
 
 and map_directive { d; d_attrs } =
   let d = map_directive_kind d in
@@ -1198,6 +1189,10 @@ and map_any x : B.any =
   | Ss v1 ->
       let v1 = map_of_list map_stmt v1 in
       `Ss v1
+  | Flds v1 ->
+      let _v1 = map_of_list map_field v1 in
+      (* TODO *)
+      error x
   | T v1 ->
       let v1 = map_type_ v1 in
       `T v1

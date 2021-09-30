@@ -1,3 +1,6 @@
+#
+# TODO: explain what these tests are for if you happen to know.
+#
 import json
 import os
 import shutil
@@ -14,7 +17,8 @@ from ..conftest import TESTS_PATH
 from ..public_repos import ALL_LANGUAGES
 from ..public_repos import ALL_REPOS
 
-
+# Some improbable string that was implanted in test targets [how?] [why?].
+#
 SENTINEL_VALUE = 87518275812375164
 
 LANGUAGE_SENTINELS = {
@@ -168,7 +172,16 @@ def _github_repo(repo_url: str, sha: Optional[str], repo_destination: Path):
 
 
 @pytest.mark.parametrize("repo_object", ALL_REPOS)
-# public_repo_url is a fancy dynamic parameterization defined in conftest.
+#
+# This test runs [which checks?] against one public git repo.
+# See the list of repos in public_repos.py.
+# Those repos, once downloaded are cached locally in ~/.cache.
+# You may have to clear the cache manually if some tests start failing.
+#
+# A repo_object is a GitHub URL, a list of applicable languages, and whether
+# the test is supposed to pass or fail. The expectation ok/xfail is
+# consulted outside of this function. [where?]
+#
 def test_semgrep_on_repo(monkeypatch, tmp_path, repo_object):
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "qa" / "rules").resolve())
 

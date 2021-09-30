@@ -39,8 +39,8 @@ let subexprs_of_any_list xs =
        []
 
 (* used for really deep statement matching *)
-let subexprs_of_stmt st =
-  match st.s with
+
+let subexprs_of_stmt_kind = function
   (* 1 *)
   | ExprStmt (e, _)
   | If (_, e, _, _)
@@ -82,6 +82,8 @@ let subexprs_of_stmt st =
   | DefStmt _
   | WithUsingResource _ ->
       []
+
+let subexprs_of_stmt st = subexprs_of_stmt_kind st.s
 
 (* used for deep expression matching *)
 let subexprs_of_expr e =
@@ -197,6 +199,7 @@ let substmts_of_stmt st =
         match def with
         | VarDef _
         | FieldDefColon _
+        | EnumEntryDef _
         | TypeDef _
         | MacroDef _
         | Signature _

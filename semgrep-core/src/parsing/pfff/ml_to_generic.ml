@@ -141,7 +141,7 @@ and type_kind = function
       G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
       let v1 = list type_ v1 and v2 = name v2 in
-      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> List.map (fun t -> G.TypeArg t)))
+      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> List.map (fun t -> G.TA t)))
   | TyTuple v1 ->
       let v1 = list type_ v1 in
       G.TyTuple (fb v1)
@@ -184,7 +184,7 @@ and stmt e : G.stmt =
       and tok, nextop, condop = for_direction v3
       and v4 = expr v4
       and v5 = stmt v5 in
-      let ent = G.basic_entity v1 [] in
+      let ent = G.basic_entity v1 in
       let var = { G.vinit = Some v2; vtype = None } in
       let n = G.N (G.Id (v1, G.empty_id_info ())) |> G.e in
       let next =
@@ -421,7 +421,7 @@ and argument = function
       G.ArgKwd (v1, v2)
   | ArgQuestion (v1, v2) ->
       let v1 = ident v1 and v2 = expr v2 in
-      G.ArgOther (G.OA_ArgQuestion, [ G.I v1; G.E v2 ])
+      G.ArgOther (("ArgQuestion", snd v1), [ G.I v1; G.E v2 ])
 
 and match_case (v1, (v3, _t, v2)) =
   let v1 = pattern v1 and v2 = expr v2 and v3 = option expr v3 in
@@ -495,7 +495,7 @@ and pattern = function
   | PatTodo (t, xs) ->
       let t = todo_category t in
       let xs = list pattern xs in
-      G.OtherPat (G.OP_Todo, G.TodoK t :: List.map (fun x -> G.P x) xs)
+      G.OtherPat (t, List.map (fun x -> G.P x) xs)
 
 and let_binding = function
   | LetClassic v1 ->
@@ -505,7 +505,7 @@ and let_binding = function
       let v1 = pattern v1 and v2 = expr v2 in
       match v1 with
       | G.PatTyped (G.PatId (id, _idinfo), ty) ->
-          let ent = G.basic_entity id [] in
+          let ent = G.basic_entity id in
           (match ent.G.name with
           | G.EN (G.Id (_, idinfo)) ->
               (* less: abusing id_type? Do we asume id_info is populated
@@ -523,7 +523,7 @@ and let_def { lname; lparams; lrettype; lbody } =
   let v2 = list parameter lparams in
   let v3 = option type_ lrettype in
   let (v4 : G.stmt) = expr_body lbody in
-  let ent = G.basic_entity v1 [] in
+  let ent = G.basic_entity v1 in
   (ent, v2, v3, v4)
 
 and parameter = function
@@ -543,20 +543,22 @@ and type_declaration x =
       let v1 = ident tname in
       let v2 = list type_parameter tparams in
       let v3 = type_def_kind tbody in
-      let entity = { (G.basic_entity v1 []) with G.tparams = v2 } in
+      let entity = { (G.basic_entity v1) with G.tparams = v2 } in
       let def = { G.tbody = v3 } in
       Left (entity, def)
   | TyDeclTodo categ -> Right categ
 
 and type_parameter v =
   match v with
-  | TyParam v -> (ident v, [])
+  | TyParam v -> G.tparam_of_id (ident v)
   (* TODO *)
-  | TyParamTodo categ -> (categ, [])
+  | TyParamTodo (s, t) ->
+      let id = ("TyParamTodo", fake "TyParamTodo") in
+      G.tparam_of_id id ~tp_constraints:[ G.OtherTypeParam ((s, t), []) ]
 
 and type_def_kind = function
-  | AbstractType -> G.OtherTypeKind (G.OTKO_AbstractType, [])
-  | TdTodo categ -> G.OtherTypeKind (G.OTKO_Todo, [ G.TodoK categ ])
+  | AbstractType -> G.AbstractType (fake "")
+  | TdTodo categ -> G.OtherTypeKind (categ, [])
   | CoreType v1 ->
       let v1 = type_ v1 in
       G.AliasType v1
@@ -576,9 +578,10 @@ and type_def_kind = function
                let v1 = ident v1 and v2 = type_ v2 and v3 = option tok v3 in
                let ent =
                  G.basic_entity v1
-                   (match v3 with
-                   | Some tok -> [ G.attr G.Mutable tok ]
-                   | None -> [])
+                   ~attrs:
+                     (match v3 with
+                     | Some tok -> [ G.attr G.Mutable tok ]
+                     | None -> [])
                in
                G.FieldStmt
                  (G.DefStmt
@@ -591,7 +594,7 @@ and type_def_kind = function
 and module_declaration { mname; mbody } =
   let v1 = ident mname in
   let v2 = module_expr mbody in
-  (G.basic_entity v1 [], { G.mbody = v2 })
+  (G.basic_entity v1, { G.mbody = v2 })
 
 and module_expr = function
   | ModuleName v1 ->
@@ -603,7 +606,7 @@ and module_expr = function
   | ModuleTodo (t, xs) ->
       let t = todo_category t in
       let xs = list module_expr xs in
-      G.OtherModule (G.OMO_Todo, G.TodoK t :: List.map (fun x -> G.ModDk x) xs)
+      G.OtherModule (t, List.map (fun x -> G.ModDk x) xs)
 
 and attributes xs = list attribute xs
 
@@ -638,13 +641,13 @@ and item { i; iattrs } =
            | Right categ -> G.OtherStmt (G.OS_Todo, [ G.TodoK categ ]) |> G.s)
   | Exception (_t, v1, v2) ->
       let v1 = ident v1 and v2 = list type_ v2 in
-      let ent = G.basic_entity v1 attrs in
+      let ent = G.basic_entity v1 ~attrs in
       let def = G.Exception (v1, v2) in
       [ G.DefStmt (ent, G.TypeDef { G.tbody = def }) |> G.s ]
   | External (t, v1, v2, v3) ->
       let v1 = ident v1 and v2 = type_ v2 and _v3 = list (wrap string) v3 in
       let attrs = [ G.KeywordAttr (G.Extern, t) ] @ attrs in
-      let ent = G.basic_entity v1 attrs in
+      let ent = G.basic_entity v1 ~attrs in
       let def = G.Signature v2 in
       [ G.DefStmt (ent, def) |> G.s ]
   | Open (t, v1) ->
@@ -655,7 +658,7 @@ and item { i; iattrs } =
       [ G.DirectiveStmt dir |> G.s ]
   | Val (_t, v1, v2) ->
       let v1 = ident v1 and v2 = type_ v2 in
-      let ent = G.basic_entity v1 attrs in
+      let ent = G.basic_entity v1 ~attrs in
       let def = G.Signature v2 in
       [ G.DefStmt (ent, def) |> G.s ]
   | Let (tlet, v1, v2) ->

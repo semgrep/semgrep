@@ -82,7 +82,7 @@ module DataflowY = Dataflow.Make (struct
 
   type edge = F2.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
@@ -129,8 +129,18 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     |> List.concat
   in
   let sources_ranges = find_ranges spec.sources
-  and sanitizers_ranges = find_ranges spec.sanitizers
   and sinks_ranges = find_ranges spec.sinks in
+  let sanitizers_ranges =
+    find_ranges spec.sanitizers
+    (* A sanitizer cannot conflict with a sink or a source, otherwise it is
+     * filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
+     * to assume that any other function will handle tainted data safely.
+     * Without this, `$F(...)` will automatically sanitize any other function
+     * call acting as a sink or a source. *)
+    |> List.filter (fun r ->
+           (* TODO: Warn user when we filter out a sanitizer? *)
+           not (List.mem r sinks_ranges || List.mem r sources_ranges))
+  in
   {
     Dataflow_tainting.is_source = (fun x -> any_in_ranges x sources_ranges);
     is_sanitizer = (fun x -> any_in_ranges x sanitizers_ranges);

@@ -60,7 +60,7 @@ type mapping = Dataflow.NodeiSet.t Dataflow.mapping
 let (defs : F.flow -> NodeiSet.t Dataflow.env) =
  fun flow ->
   (* the long version, could use F.fold_on_expr *)
-  flow#nodes#fold
+  flow.graph#nodes#fold
     (fun env (ni, node) ->
       let xs = V.exprs_of_node node in
       xs
@@ -80,7 +80,7 @@ module DataflowX = Dataflow.Make (struct
 
   type edge = F.edge
 
-  type flow = (node, edge) Ograph_extended.ograph_mutable
+  type flow = (node, edge) CFG.t
 
   let short_string_of_node = F.short_string_of_node
 end)
@@ -136,7 +136,7 @@ let (transfer :
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
   let in' =
-    (flow#predecessors ni)#fold
+    (flow.graph#predecessors ni)#fold
       (fun acc (ni_pred, _) -> union acc mapping.(ni_pred).D.out_env)
       VarMap.empty
   in

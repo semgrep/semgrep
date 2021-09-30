@@ -5,6 +5,39 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+
+### Changed
+- taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
+  making it possible to use `- pattern: $F(...)` for declaring that any other
+  function is a sanitizer
+
+### Fixed
+
+## [0.67.0](https://github.com/returntocorp/semgrep/releases/tag/v0.67.0) - 09-29-2021
+
+### Added
+- Added support for break and continue in the dataflow engine
+- Added support for switch statements in the dataflow engine
+
+### Changed
+- Taint no longer analyzes dead/unreachable code
+- Improve error message for segmentation faults/stack overflows
+- Attribute-expression equivalence that allows matching expression patterns against
+  attributes, it is enabled by default but can be disabled via rule `options:` with
+  `attr_expr: false` (#3489)
+- Improved Kotlin parsing from 35% to 77% on our Kotlin corpus.
+
+### Fixed
+- Fix CFG dummy nodes to always connect to exit node
+- Deep ellipsis `<... x ...>` now matches sub-expressions of statements
+- Ruby: treat 'foo' as a function call when alone on its line (#3811)
+- Fixed bug in semgrep-core's `-filter_irrelevant_rules` causing Semgrep to
+  incorrectly skip a file (#3755)
+- PHP: allows more keywords as valid field names (#3954)
+
+## [0.66.0](https://github.com/returntocorp/semgrep/releases/tag/v0.66.0) - 09-22-2021
+
+### Added
 - HCL (a.k.a Terraform) experimental support
 
 ### Changed
@@ -20,6 +53,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
     with the same possible values as the `--metrics` option
   - See `PRIVACY.md` for more information
 - Constant propagation now assumes that void methods may update the callee (#3316)
+- Add rule message to emacs output (#3851)
+- Show stack trace on fatal errors (#3876)
+- Various changes to error messages (#3827)
 
 ### Fixed
 - Dataflow: Recognize "concat" method and interpret it in a language-dependent manner (#3316)

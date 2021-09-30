@@ -336,7 +336,7 @@ let map_extern_modifier (env : env) ((v1, v2) : CST.extern_modifier) :
     Option.map
       (fun x ->
         let str = map_string_literal env x in
-        G.OtherAttribute (G.OA_Expr, [ G.E (G.L str |> G.e) ]))
+        G.OtherAttribute (("Extern", extern), [ G.E (G.L str |> G.e) ]))
       v2
   in
 
@@ -405,7 +405,7 @@ let map_foreign_item_type (env : env) ((v1, v2, v3) : CST.foreign_item_type) :
   G.DefStmt (ent, G.TypeDef type_def) |> G.s
 
 let map_lifetime (env : env) ((v1, v2) : CST.lifetime) : lifetime =
-  let _apostropheTODO = token env v1 (* "'" *) in
+  let _tTODO = token env v1 (* "'" *) in
   let id = ident env v2 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   id
@@ -637,22 +637,23 @@ and map_struct_pattern_field (env : env) (x : CST.anon_choice_field_pat_8e757e8)
       let ident = ident env tok in
       (* ".." *)
       let name = [ ident ] in
-      (name, G.OtherPat (G.OP_Todo, [ G.Tk (token env tok) ]))
+      (name, G.OtherPat (("..", token env tok), []))
 
 and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
     G.type_parameter =
   match x with
   | `Life x ->
-      let lt = map_lifetime env x in
-      (lt, [ G.OtherTypeParam (G.OTP_Lifetime, []) ])
+      let id = map_lifetime env x in
+      G.tparam_of_id id
+        ~tp_constraints:[ G.OtherTypeParam (("LifeTime", snd id), []) ]
   | `Meta tok ->
       let meta = ident env tok in
       (* pattern \$[a-zA-Z_]\w* *)
-      (meta, [ G.OtherTypeParam (G.OTP_Ident, []) ])
+      G.tparam_of_id meta
   | `Id tok ->
       let ident = ident env tok in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      (ident, [ G.OtherTypeParam (G.OTP_Ident, []) ])
+      G.tparam_of_id ident
   | `Cons_type_param x -> map_constrained_type_parameter env x
   | `Opt_type_param (v1, v2, v3) ->
       let type_param =
@@ -660,21 +661,23 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
         | `Id tok ->
             let ident = ident env tok in
             (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-            (ident, [ G.OtherTypeParam (G.OTP_Ident, []) ])
+            G.tparam_of_id ident
         | `Cons_type_param x -> map_constrained_type_parameter env x
       in
       let _equal = token env v2 (* "=" *) in
-      let _default_ty = map_type_ env v3 in
-      type_param
+      let tp_default = Some (map_type_ env v3) in
+      { type_param with G.tp_default }
   | `Const_param (v1, v2, v3, v4) ->
-      let _const = token env v1 in
+      let const = token env v1 in
       (* "const" *)
       let ident = ident env v2 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       let _colon = token env v3 in
       (* ":" *)
       let ty = map_type_ env v4 in
-      (ident, [ G.OtherTypeParam (G.OTP_Const, [ G.T ty ]) ])
+      G.tparam_of_id ident
+        ~tp_attrs:[ G.KeywordAttr (G.Const, const) ]
+        ~tp_bounds:[ ty ]
 
 and map_range_pattern_bound (env : env) (x : CST.anon_choice_lit_pat_0884ef0) :
     G.pattern =
@@ -772,21 +775,20 @@ and map_field_initializer (env : env)
 and map_type_argument (env : env) (x : CST.anon_choice_type_39799c3) :
     G.type_argument =
   match x with
-  | `Type x -> G.TypeArg (map_type_ env x)
+  | `Type x -> G.TA (map_type_ env x)
   | `Type_bind (v1, v2, v3) ->
-      (* TODO *)
       let _identTODO = ident env v1 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-      let _equals = token env v2 (* "=" *) in
+      let equals = token env v2 (* "=" *) in
       let ty = map_type_ env v3 in
-      G.TypeArg ty
-  | `Life x -> G.TypeLifetime (map_lifetime env x)
+      G.OtherTypeArg (("TypeBind", equals), [ T ty ])
+  | `Life x -> G.OtherTypeArg (map_lifetime env x, [])
   | `Lit x ->
       let lit = map_literal env x in
-      G.OtherTypeArg (G.OTA_Literal, [ G.E (G.L lit |> G.e) ])
+      G.TAExpr (G.L lit |> G.e)
   | `Blk x ->
       let block_expr = map_block_expr env x in
-      G.OtherTypeArg (G.OTA_ConstBlock, [ G.E block_expr ])
+      G.TAExpr block_expr
 
 and map_tuple_pattern_list (env : env)
     ((v1, v2) : CST.anon_pat_rep_COMMA_pat_2a80f16) : G.pattern list =
@@ -848,11 +850,11 @@ and map_associated_type (env : env)
         ty)
       v5
   in
-  let _semicolon = token env v6 (* ";" *) in
+  let semicolon = token env v6 (* ";" *) in
   let type_def_kind =
     match ty with
     | Some ty -> G.AliasType ty
-    | None -> G.OtherTypeKind (G.OTKO_AbstractType, [])
+    | None -> G.AbstractType semicolon
   in
   let type_def = { G.tbody = type_def_kind } in
   let ent =
@@ -1065,7 +1067,7 @@ and map_constrained_type_parameter (env : env)
     (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   in
   let _boundsTODO = map_trait_bounds env v2 in
-  (ident, [ G.OtherTypeParam (G.OTP_Constrained, []) ])
+  G.tparam_of_id ident
 
 and map_else_clause (env : env) ((v1, v2) : CST.else_clause) : G.stmt =
   let _else_ = token env v1 (* "else" *) in
@@ -1992,7 +1994,7 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
     match anys with
     (* look like a regular function call, just use Arg then *)
     | [ G.E e ] -> [ G.Arg e ]
-    | xs -> [ G.ArgOther (G.OA_ArgMacro, xs) ]
+    | xs -> [ G.ArgOther (("ArgMacro", G.fake ""), xs) ]
   in
   G.Call (G.N name |> G.e, (l, args, r)) |> G.e
 
@@ -2002,7 +2004,7 @@ and map_match_arm (env : env) ((v1, v2, v3, v4) : CST.match_arm) : G.action =
     match v2 with
     | `Macro_invo x ->
         let invo = map_macro_invocation env x in
-        G.OtherPat (G.OP_Todo, [ G.E invo ])
+        G.OtherPat (("Macro", G.fake ""), [ G.E invo ])
     | `Match_pat x -> map_match_pattern env x
   in
   let _arrow = token env v3 (* "=>" *) in
@@ -2426,7 +2428,7 @@ and map_pattern (env : env) (x : CST.pattern) : G.pattern =
       G.DisjPat (pattern_lhs, pattern_rhs)
   | `Const_blk x ->
       let block = map_const_block env x in
-      G.OtherPat (G.OP_Expr, [ G.E block ])
+      G.OtherPat (("ConstBlock", G.fake ""), [ G.E block ])
   | `X__ tok -> G.PatUnderscore (token env tok)
 
 (* "_" *)
@@ -2524,7 +2526,7 @@ and map_scoped_identifier_name (env : env)
   let ident = ident env v3 in
   (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
   let qualifier = Option.map (fun x -> G.QExpr (x, colons)) qualifier_expr in
-  let typeargs = Option.map (fun x -> fb [ G.TypeArg x ]) type_ in
+  let typeargs = Option.map (fun x -> fb [ G.TA x ]) type_ in
   G.IdQualified
     ( (ident, { G.name_qualifier = qualifier; G.name_typeargs = typeargs }),
       G.empty_id_info () )
@@ -2545,13 +2547,13 @@ and map_scoped_type_identifier_name (env : env)
             (Some (G.QExpr (ident, colons)), None)
         | `Gene_type_with_turb x ->
             let ty = map_generic_type_with_turbofish_type env x in
-            (None, Some (fb [ G.TypeArg ty ]))
+            (None, Some (fb [ G.TA ty ]))
         | `Brac_type x ->
             let _, ty, _ = map_bracketed_type env x in
-            (None, Some (fb [ G.TypeArg ty ]))
+            (None, Some (fb [ G.TA ty ]))
         | `Gene_type x ->
             let ty = map_generic_type env x in
-            (None, Some (fb [ G.TypeArg ty ])))
+            (None, Some (fb [ G.TA ty ])))
     | None -> (None, None)
   in
   let ident = ident env v3 in
@@ -2579,7 +2581,7 @@ and map_scoped_type_identifier_in_expression_position (env : env)
             (Some (G.QExpr (ident, colons)), None)
         | `Gene_type_with_turb x ->
             let ty = map_generic_type_with_turbofish_type env x in
-            (None, Some (fb [ G.TypeArg ty ])))
+            (None, Some (fb [ G.TA ty ])))
     | None -> (None, None)
   in
   let ident = ident env v3 in
@@ -2889,9 +2891,9 @@ and map_visibility_quantifier (env : env) (v1, v2, v3) : G.attribute =
     | `Super tok -> G.KeywordAttr (G.Private, token env tok) (* "super" *)
     | `Crate tok -> G.KeywordAttr (G.Protected, token env tok) (* "crate" *)
     | `In_choice_self (v1, v2) ->
-        let _in_ = token env v1 (* "in" *) in
+        let in_ = token env v1 (* "in" *) in
         let path = map_simple_path env v2 in
-        G.OtherAttribute (G.OA_Expr, [ G.Di path ])
+        G.OtherAttribute (("In", in_), [ G.Di path ])
   in
   let _rparen = token env v3 (* ")" *) in
   attribute
