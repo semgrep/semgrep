@@ -533,7 +533,6 @@ and m_id_info a b =
  *   - <call>(<exprs).
  *)
 (* experimental! *)
-
 and m_expr_deep a b =
   m_deep m_expr_deep m_expr SubAST_generic.subexprs_of_expr a b
 
@@ -1243,8 +1242,7 @@ and m_list__m_argument (xsa : G.argument list) (xsb : G.argument list) =
               m_ident ida idb >>= fun () ->
               m_expr ea eb >>= fun () -> m_list__m_argument xsa (before @ after)
           | _ -> raise Impossible
-        with
-        | Not_found -> fail ())
+        with Not_found -> fail ())
   (* the general case *)
   | xa :: aas, xb :: bbs ->
       m_argument xa xb >>= fun () -> m_list__m_argument aas bbs
@@ -2059,8 +2057,7 @@ and m_pattern a b =
         let e2 = H.pattern_to_expr b2 in
         envf (str, tok) (MV.E e2)
         (* this can happen with PatAs in exception handler in Python *)
-      with
-      | H.NotAnExpr -> envf (str, tok) (MV.P b2))
+      with H.NotAnExpr -> envf (str, tok) (MV.P b2))
   (* dots: *)
   | G.PatEllipsis _, _ -> return ()
   (* boilerplate *)
@@ -2403,8 +2400,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
             m_definition adef bdef >>= fun () ->
             m_list__m_field ~less_is_ok xsa (before @ after)
         | _ -> raise Impossible
-      with
-      | Not_found -> fail ())
+      with Not_found -> fail ())
   (* the general case *)
   (* This applies to definitions where the field name is a metavariable,
    * and to any other non-def kind of field (e.g., FieldSpread for `...x` in JS).
