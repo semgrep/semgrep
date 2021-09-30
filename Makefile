@@ -94,7 +94,7 @@ gitclean:
 	git submodule foreach --recursive git clean -dfX
 
 # Replace semgrep version where needed, prior to a release.
-# Check result with 'git diff'.
+# Check result with 'git diff': it should replace the version ID in 3 spots.
 #
 .PHONY: bump
 bump:
