@@ -1,5 +1,8 @@
+Metrics turned off. No information will be sent about this run
+Loading local config from rules/eqeq.yaml...
+[80D[1A[KLoading local config from rules/eqeq.yaml...................................done
 excluding files:
 - excluded
 - included
-running 4 rules...
+Running 4 rules...
 ran 4 rules on 0 files: 0 findings

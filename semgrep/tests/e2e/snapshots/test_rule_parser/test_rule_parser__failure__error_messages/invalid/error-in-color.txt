@@ -1,3 +1,5 @@
+Metrics turned off. No information will be sent about this run
+Loading local config from rules/syntax/invalid.yaml...
 Invalid YAML file rules/syntax/invalid.yaml:
 	mapping values are not allowed here
 	  in "<file>", line 2, column 7

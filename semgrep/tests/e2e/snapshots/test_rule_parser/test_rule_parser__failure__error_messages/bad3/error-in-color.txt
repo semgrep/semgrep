@@ -1,3 +1,5 @@
+Metrics turned off. No information will be sent about this run
+Loading local config from rules/syntax/bad3.yaml...
 [31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad3.yaml:4
 [94m4 | [0m        - pattern: "$D = {}"

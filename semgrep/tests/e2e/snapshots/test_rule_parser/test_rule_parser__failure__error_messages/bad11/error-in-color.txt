@@ -1,3 +1,5 @@
+Metrics turned off. No information will be sent about this run
+Loading local config from rules/syntax/bad11.yaml...
 [31msemgrep error[0m: null values prohibited
   --> rules/syntax/bad11.yaml:2
 [94m1 | [0mrules:

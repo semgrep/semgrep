@@ -1,5 +1,8 @@
+Metrics turned off. No information will be sent about this run
+Loading local config from rules/long.yaml...
+[80D[1A[KLoading local config from rules/long.yaml...................................done
 running 1 rules from 1 config rules/long.yaml_0
-running 1 rules...
+Running 1 rules...
 rules:
 - rules.forcetimeout
 ran 1 rules on 1 files: 0 findings
