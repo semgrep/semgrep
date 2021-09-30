@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Any
 from typing import cast
 from typing import Optional
@@ -51,3 +52,13 @@ def getLogger(name: Optional[str]) -> VerboseLogging:
     detects verbose() function
     """
     return cast(VerboseLogging, logging.getLogger(name))
+
+
+def message_with_done(msg: str, overwrite: bool = False) -> str:
+    DONE = "done"
+    used_len = len(msg) + len(DONE)
+    console_wid = os.get_terminal_size()[0]
+    dots = "." * (console_wid - used_len)
+    return (
+        f"\x1b[80D\x1b[1A\x1b[K{msg}{dots}{DONE}" if overwrite else f"{msg}{dots}{DONE}"
+    )

@@ -37,6 +37,7 @@ from semgrep.semgrep_types import Language
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
 from semgrep.verbose_logging import getLogger
+from semgrep.verbose_logging import message_with_done
 
 logger = getLogger(__name__)
 
@@ -113,15 +114,20 @@ class ConfigPath:
         return url
 
     def _download_config(self, config_url: str) -> Mapping[str, YamlTree]:
+        downloading_msg = (
+            f"Downloading config from {self._nice_semgrep_url(config_url)}..."
+        )
         logger.debug(f"trying to download from {config_url}")
-        logger.info(f"Downloading config from {self._nice_semgrep_url(config_url)}...")
+        logger.info(downloading_msg.rstrip("\n"))
 
         try:
-            return parse_config_string(
+            config = parse_config_string(
                 "remote-url",
                 self._make_config_request(config_url),
                 filename=f"{config_url[:20]}...",
             )
+            logger.info(message_with_done(downloading_msg, overwrite=True))
+            return config
         except Exception as e:
             raise SemgrepError(f"Failed to download config from {config_url}: {str(e)}")
 
@@ -169,7 +175,9 @@ class Config:
     def notify_user_about_registry(cls, configs: List[ConfigPath]) -> None:
         if any(config.is_registry_url() for config in configs):
             logger.info(
-                f"Fetching rules from Registry (https://semgrep.dev/registry)..."
+                message_with_done(
+                    "Fetching rules from Registry (https://semgrep.dev/registry)"
+                )
             )
         metric_manager.notify_user_of_metrics()
 
@@ -463,12 +471,13 @@ def load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
     base_path = get_base_path()
     loc = base_path.joinpath(location)
 
-    logger.info(f"Loading local config from {loc}")
+    local_config_msg = f"Loading local config from {loc}..."
+    logger.info(local_config_msg)
     if loc.exists():
         if loc.is_file():
-            return parse_config_at_path(loc)
+            config = parse_config_at_path(loc)
         elif loc.is_dir():
-            return parse_config_folder(loc)
+            config = parse_config_folder(loc)
         else:
             raise SemgrepError(f"config location `{loc}` is not a file or folder!")
     else:
@@ -476,8 +485,10 @@ def load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
         if IN_DOCKER:
             addendum = " (since you are running in docker, you cannot specify arbitrary paths on the host; they must be mounted into the container)"
         raise SemgrepError(
-            f"unable to find a config; path `{loc}` does not exist{addendum}"
+            f"WARNING: unable to find a config; path `{loc}` does not exist{addendum}"
         )
+    logger.info(message_with_done(local_config_msg, overwrite=True))
+    return config
 
 
 def is_registry_id(config_str: str) -> bool:

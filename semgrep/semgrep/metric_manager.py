@@ -14,6 +14,7 @@ from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
 from semgrep.types import MetricsState
 from semgrep.verbose_logging import getLogger
+from semgrep.verbose_logging import message_with_done
 
 logger = getLogger(__name__)
 
@@ -216,11 +217,15 @@ class _MetricManager:
         if self.is_enabled():
             if self._send_metrics == MetricsState.AUTO:
                 logger.info(
-                    f"Enabling pseudonymous metrics for Semgrep registry access..."
+                    message_with_done(
+                        "Enabling pseudonymous metrics for Semgrep registry access"
+                    )
                 )
             elif self._send_metrics == MetricsState.ON:
                 logger.info(
-                    f"Thanks for opting in to improve Semgrep! Enabling pseudonymous metrics..."
+                    message_with_done(
+                        "Thanks for opting in to improve Semgrep! Enabling pseudonymous metrics"
+                    )
                 )
             else:
                 raise Exception("Metrics enabled despite user setting them off")
