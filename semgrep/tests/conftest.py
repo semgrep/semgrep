@@ -53,6 +53,13 @@ def _clean_output_json(output_json: str) -> str:
     for path in MASKED_KEYS:
         mark_masked(output, path)
 
+    # Remove temp file paths
+    if "results" in output:
+        for r in output["results"]:
+            p = r.get("path")
+            if p and "/tmp" in p:
+                del r["path"]
+
     return json.dumps(output, indent=2, sort_keys=True)
 
 

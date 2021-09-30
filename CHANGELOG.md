@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Added support for break and continue in the dataflow engine
+- Input can be derived from subshells: `semgrep -f ... <(...)`
 
 ### Changed
 - Taint no longer analyzes dead/unreachable code
