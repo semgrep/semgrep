@@ -1,3 +1,6 @@
+#
+# Make a release branch. Called from the root makefile.
+#
 from util import abort
 from util import diffs
 from util import git
@@ -11,7 +14,7 @@ def cut(release_branch: str):
             f"Git checkout is not clean. Please stash all changes and retry. Changes:\n{diffs()}",
         )
     git("checkout", "develop")
-    git("pull", "--ff-only")
+    git("pull", "origin", "develop", "--ff-only")
     git("submodule", "update", "--recursive")
     git("checkout", "-b", release_branch)
     git("push", "origin", "HEAD")
