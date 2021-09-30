@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 from typing import Mapping
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 from typing import Union
 
@@ -54,8 +55,9 @@ def _clean_output_json(output_json: str) -> str:
         mark_masked(output, path)
 
     # Remove temp file paths
-    if "results" in output:
-        for r in output["results"]:
+    results = output.get("results")
+    if isinstance(results, Sequence):
+        for r in results:
             p = r.get("path")
             if p and "/tmp" in p:
                 del r["path"]
