@@ -124,7 +124,7 @@ class ConfigPath:
         try:
             config = parse_config_string(
                 "remote-url",
-                self._make_config_request(config_url),
+                self._make_config_request(),
                 filename=f"{config_url[:20]}...",
             )
             logger.info(message_with_done(downloading_msg, overwrite=True))
@@ -159,8 +159,10 @@ class ConfigPath:
         logger.info(message_with_done(local_config_msg, overwrite=True))
         return config
 
-    def _make_config_request(self, config_url: str) -> str:
+    def _make_config_request(self) -> str:
         import requests  # here for faster startup times
+
+        config_url = self.config_path
 
         headers = {"User-Agent": SEMGREP_USER_AGENT}
         r = requests.get(config_url, stream=True, headers=headers, timeout=20)
