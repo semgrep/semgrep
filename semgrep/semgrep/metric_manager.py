@@ -216,14 +216,18 @@ class _MetricManager:
         if self.is_enabled():
             if self._send_metrics == MetricsState.AUTO:
                 logger.info(
-                    f"Enabling anonymous metrics for Semgrep registry access..."
+                    f"Enabling pseudonymous metrics for Semgrep registry access..."
                 )
             elif self._send_metrics == MetricsState.ON:
                 logger.info(
-                    f"Thanks for opting in to improve Semgrep! Enabling anonymous metrics..."
+                    f"Thanks for opting in to improve Semgrep! Enabling pseudonymous metrics..."
                 )
             else:
                 raise Exception("Metrics enabled despite user setting them off")
+        else:
+            logger.info(
+                f"Metrics turned off. No information will be sent about this run"
+            )
 
     def send(self) -> None:
         """

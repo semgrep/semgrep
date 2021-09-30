@@ -63,6 +63,100 @@ DEFAULT_CONFIG = {
 }
 
 
+class ConfigPath:
+    def __init__(self, config_str: str) -> None:
+        """ returns the registry url for the config_str, if it is a registry entry """
+        if config_str in RULES_REGISTRY:
+            self.from_registry = True
+            self.config_path = RULES_REGISTRY[config_str]
+        elif is_url(config_str):
+            self.from_registry = True
+            self.config_path = config_str
+        elif is_registry_id(config_str):
+            self.from_registry = True
+            self.config_path = registry_id_to_url(config_str)
+        elif is_saved_snippet(config_str):
+            self.from_registry = True
+            self.config_path = saved_snippet_to_url(config_str)
+        else:
+            self.from_registry = False
+            self.config_path = config_str
+
+        if self.from_registry:
+            metric_manager.using_server = True
+
+    def resolve_config(self) -> Mapping[str, YamlTree]:
+        """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
+        start_t = time.time()
+
+        if self.from_registry:
+            config = self._download_config(self.config_path)
+        else:
+            config = load_config_from_local_path(self.config_path)
+
+        if config:
+            logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
+        return config
+
+    def _nice_semgrep_url(self, url: str) -> str:
+        """
+        Alters semgrep.dev urls to let user
+        click through to the nice display page instead
+        of raw YAML.
+        Replaces '/c/' in semgrep urls with '/'.
+        """
+        import urllib
+
+        parsed = urllib.parse.urlparse(url)
+        if "semgrep.dev" in parsed.netloc and parsed.path.startswith("/c"):
+            return url.replace("/c/", "/")
+        return url
+
+    def _download_config(self, config_url: str) -> Mapping[str, YamlTree]:
+        logger.debug(f"trying to download from {config_url}")
+        logger.info(f"Downloading config from {self._nice_semgrep_url(config_url)}...")
+
+        try:
+            return parse_config_string(
+                "remote-url",
+                self._make_config_request(config_url),
+                filename=f"{config_url[:20]}...",
+            )
+        except Exception as e:
+            raise SemgrepError(f"Failed to download config from {config_url}: {str(e)}")
+
+    def _make_config_request(self, config_url: str) -> str:
+        import requests  # here for faster startup times
+
+        headers = {"User-Agent": SEMGREP_USER_AGENT}
+        r = requests.get(config_url, stream=True, headers=headers, timeout=20)
+        if r.status_code == requests.codes.ok:
+            content_type = r.headers.get("Content-Type")
+            yaml_types = [
+                "text/plain",
+                "application/x-yaml",
+                "text/x-yaml",
+                "text/yaml",
+                "text/vnd.yaml",
+            ]
+            if content_type and any((ct in content_type for ct in yaml_types)):
+                return r.content.decode("utf-8", errors="replace")
+            else:
+                raise SemgrepError(
+                    f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
+                )
+        else:
+            raise SemgrepError(
+                f"bad status code: {r.status_code} returned by config url: {config_url}"
+            )
+
+    def is_registry_url(self) -> bool:
+        return self.from_registry
+
+    def __str__(self) -> str:
+        return self.config_path
+
+
 class Config:
     def __init__(self, valid_configs: Mapping[str, Sequence[Rule]]) -> None:
         """
@@ -72,8 +166,8 @@ class Config:
         self.valid = valid_configs
 
     @classmethod
-    def notify_user_about_registry(cls, configs: Sequence[str]) -> None:
-        if any(registry_url(config) for config in configs):
+    def notify_user_about_registry(cls, configs: List[ConfigPath]) -> None:
+        if any(config.is_registry_url() for config in configs):
             logger.info(
                 f"Fetching rules from Registry (https://semgrep.dev/registry)..."
             )
@@ -106,13 +200,16 @@ class Config:
             except SemgrepError as e:
                 errors.append(e)
 
-        cls.notify_user_about_registry(configs)
-        for i, config in enumerate(configs):
+        config_paths = [ConfigPath(config) for config in configs]
+        cls.notify_user_about_registry(config_paths)
+        for i, config_path in enumerate(config_paths):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
-                resolved_config = resolve_config(config)
+                resolved_config = config_path.resolve_config()
                 if not resolved_config:
-                    logger.verbose(f"Could not resolve config for {config}. Skipping.")
+                    logger.verbose(
+                        f"Could not resolve config for {config_path}. Skipping."
+                    )
                     continue
 
                 for (
@@ -383,61 +480,6 @@ def load_config_from_local_path(location: str) -> Dict[str, YamlTree]:
         )
 
 
-def nice_semgrep_url(url: str) -> str:
-    """
-    Alters semgrep.dev urls to let user
-    click through to the nice display page instead
-    of raw YAML.
-    Replaces '/c/' in semgrep urls with '/'.
-    """
-    import urllib
-
-    parsed = urllib.parse.urlparse(url)
-    if "semgrep.dev" in parsed.netloc and parsed.path.startswith("/c"):
-        return url.replace("/c/", "/")
-    return url
-
-
-def download_config(config_url: str) -> Mapping[str, YamlTree]:
-    logger.debug(f"trying to download from {config_url}")
-    logger.info(f"Downloading config from {nice_semgrep_url(config_url)}...")
-
-    try:
-        return parse_config_string(
-            "remote-url",
-            _make_config_request(config_url),
-            filename=f"{config_url[:20]}...",
-        )
-    except Exception as e:
-        raise SemgrepError(f"Failed to download config from {config_url}: {str(e)}")
-
-
-def _make_config_request(config_url: str) -> str:
-    import requests  # here for faster startup times
-
-    headers = {"User-Agent": SEMGREP_USER_AGENT}
-    r = requests.get(config_url, stream=True, headers=headers, timeout=20)
-    if r.status_code == requests.codes.ok:
-        content_type = r.headers.get("Content-Type")
-        yaml_types = [
-            "text/plain",
-            "application/x-yaml",
-            "text/x-yaml",
-            "text/yaml",
-            "text/vnd.yaml",
-        ]
-        if content_type and any((ct in content_type for ct in yaml_types)):
-            return r.content.decode("utf-8", errors="replace")
-        else:
-            raise SemgrepError(
-                f"unknown content-type: {content_type} returned by config url: {config_url}. Can not parse"
-            )
-    else:
-        raise SemgrepError(
-            f"bad status code: {r.status_code} returned by config url: {config_url}"
-        )
-
-
 def is_registry_id(config_str: str) -> bool:
     """
     Starts with r/, p/, s/ for registry, pack, and snippet respectively
@@ -464,39 +506,6 @@ def saved_snippet_to_url(snippet_id: str) -> str:
     Convert from username:snippetname to semgrep.dev url
     """
     return registry_id_to_url(f"s/{snippet_id}")
-
-
-def registry_url(config_str: str) -> Optional[str]:
-    """ returns the registry url for the config_str, if it is a registry entry """
-    if config_str in RULES_REGISTRY:
-        metric_manager.using_server = True
-        return RULES_REGISTRY[config_str]
-    elif is_url(config_str):
-        metric_manager.using_server = True
-        return config_str
-    elif is_registry_id(config_str):
-        metric_manager.using_server = True
-        return registry_id_to_url(config_str)
-    elif is_saved_snippet(config_str):
-        metric_manager.using_server = True
-        return saved_snippet_to_url(config_str)
-    else:
-        return None
-
-
-def resolve_config(config_str: str) -> Mapping[str, YamlTree]:
-    """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
-    start_t = time.time()
-
-    config_url = registry_url(config_str)
-    if config_url:
-        config = download_config(config_url)
-    else:
-        config = load_config_from_local_path(config_str)
-
-    if config:
-        logger.debug(f"loaded {len(config)} configs in {time.time() - start_t}")
-    return config
 
 
 def generate_config(fd: IO, lang: Optional[str], pattern: Optional[str]) -> None:
