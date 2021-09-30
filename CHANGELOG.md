@@ -5,6 +5,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+
+### Changed
+- taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
+  making it possible to use `- pattern: $F(...)` for declaring that any other
+  function is a sanitizer
+
+### Fixed
+
+## [0.67.0](https://github.com/returntocorp/semgrep/releases/tag/v0.67.0) - 09-29-2021
+
+### Added
 - Added support for break and continue in the dataflow engine
 - Added support for switch statements in the dataflow engine
 
