@@ -1,3 +1,6 @@
+#
+# Commit files modified by 'make bump' as part of make a release branch.
+#
 from util import abort
 from util import diffs
 from util import git
