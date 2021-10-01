@@ -1130,7 +1130,7 @@ and attribute =
   (* a.k.a modifiers *)
   | KeywordAttr of keyword_attribute wrap
   (* a.k.a decorators, annotations *)
-  | NamedAttr of tok (* @ *) * name * arguments bracket
+  | NamedAttr of tok (* '@' *) * name * arguments bracket (* less: option *)
   (* per-language specific keywords like 'transient', 'synchronized' *)
   (* todo: Expr used for Python, but should transform in NamedAttr when can *)
   | OtherAttribute of todo_kind * any list
