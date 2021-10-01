@@ -562,24 +562,24 @@ let (mk_visitor :
     vin.ktype_ (k, all_functions) x
   and v_type_arguments v = v_bracket (v_list v_type_argument) v
   and v_type_argument = function
-    | TypeArg v1 ->
+    | TA v1 ->
         let v1 = v_type_ v1 in
         ()
-    | TypeWildcard (v1, v2) -> (
+    | TAWildcard (v1, v2) -> (
         v_tok v1;
         match v2 with
         | None -> ()
         | Some (v1, v2) ->
             v_wrap v_bool v1;
             v_type_ v2)
-    | TypeLifetime v1 ->
-        let v1 = v_ident v1 in
+    | TAExpr v1 ->
+        let v1 = v_expr v1 in
         ()
     | OtherTypeArg (v1, v2) ->
-        let v1 = v_other_type_argument_operator v1 and v2 = v_list v_any v2 in
+        let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
         ()
+  and v_todo_kind x = v_ident x
   and v_other_type_operator _ = ()
-  and v_other_type_argument_operator _ = ()
   and v_type_parameter
       {
         tp_id = v1;

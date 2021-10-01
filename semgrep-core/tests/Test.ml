@@ -408,7 +408,8 @@ let lang_regression_tests ~with_caching =
 let full_rule_regression_tests = [
   "full rule", (fun () ->
     let path = Filename.concat tests_path "OTHER/rules" in
-    Test_engine.test_rules ~unit_testing:true [path]
+    Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules (fun () ->
+    Test_engine.test_rules ~unit_testing:true [path])
   )
 ]
 
@@ -532,6 +533,42 @@ let metachecker_regression_tests =
     )
   )
 
+let test_irrelevant_rule rule_file target_file =
+  let rules = Parse_rule.parse rule_file in
+  rules |> List.iter (fun rule ->
+    match Analyze_rule.regexp_prefilter_of_rule rule with
+    | None -> Alcotest.fail (spf "Rule %s: no regex prefilter formula" (fst rule.id))
+    | Some (re, f) ->
+      let content = read_file target_file in
+      if f content then
+        Alcotest.fail (spf "Rule %s considered relevant by regex prefilter: %s" (fst rule.id) re)
+  )
+
+let test_irrelevant_rule_file rule_file =
+  Filename.basename rule_file, (fun () ->
+    let target_file =
+      let (d,b,_e) = Common2.dbe_of_filename rule_file in
+      (* TODO: Support other extensions, note that we don't need
+       * to parse the target files! *)
+      let candidate1 = Common2.filename_of_dbe (d,b,"py") in
+      if Sys.file_exists candidate1
+      then candidate1
+      else failwith (spf "could not find target file for irrelevant rule %s" rule_file)
+    in
+    test_irrelevant_rule rule_file target_file
+  )
+
+let filter_irrelevant_rules_tests =
+  pack_tests "filter irrelevant rules testing" (
+    let dir = Filename.concat tests_path "OTHER/irrelevant_rules" in
+    let files = Common2.glob (spf "%s/*.yaml" dir) in
+    files |> List.map (fun file ->
+      test_irrelevant_rule_file file
+    )
+  )
+
+(*                 *)
+
 let tests = List.flatten [
   (* just expression vs expression testing for one language (Python) *)
   Unit_matcher.tests ~any_gen_of_string;
@@ -557,6 +594,7 @@ let tests = List.flatten [
   full_rule_regression_tests;
   lang_tainting_tests;
   metachecker_regression_tests;
+  filter_irrelevant_rules_tests;
 ]
 
 let main () =

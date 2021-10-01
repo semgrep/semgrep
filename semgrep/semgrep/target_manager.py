@@ -30,20 +30,41 @@ logger = getLogger(__name__)
 
 
 @contextlib.contextmanager
-def optional_stdin_target(target: Sequence[str]) -> Iterator[Sequence[str]]:
+def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
     """
-    Read target input from stdin if "-" is specified
+    Provides a context in which FIFOs have been copied into temp files
+
+    This is necessary as we can not easily rewire these pipes into the called semgrep-core
+    process.
+
+    :param targets: Input target specifiers
+    :return: A sequence of non-pipe specifiers (Path(t).is_file() returns true)
     """
-    if target == ["-"]:
-        try:
-            with tempfile.NamedTemporaryFile(delete=False) as fd:
-                fd.write(sys.stdin.buffer.read())
-                fname = fd.name
-            yield [fname]
-        finally:
-            os.remove(fname)
-    else:
-        yield target
+
+    def helper(remaining: Sequence[str]) -> Iterator[List[str]]:
+        if len(remaining) == 0:
+            yield []
+        target = remaining[0]
+        rest = remaining[1:]
+        if target == "-":
+            try:
+                with tempfile.NamedTemporaryFile(delete=False) as fd:
+                    fd.write(sys.stdin.buffer.read())
+                yield [fd.name] + next(helper(rest), [])
+            finally:
+                os.remove(fd.name)
+        elif Path(target).is_fifo():
+            try:
+                with tempfile.NamedTemporaryFile(delete=False) as fd:
+                    with Path(target).open("rb") as td:
+                        fd.write(td.read())
+                yield [fd.name] + next(helper(rest), [])
+            finally:
+                os.remove(fd.name)
+        else:
+            yield [target] + next(helper(rest), [])
+
+    return helper(targets)
 
 
 @attr.s(auto_attribs=True)

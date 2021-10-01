@@ -147,12 +147,10 @@ let top_func () =
     | TMap (t, (lp, v1, rp), v2) ->
         let v1 = type_ v1 and v2 = type_ v2 in
         G.TyApply
-          ( G.TyN (mk_name "map" t) |> G.t,
-            (lp, [ G.TypeArg v1; G.TypeArg v2 ], rp) )
+          (G.TyN (mk_name "map" t) |> G.t, (lp, [ G.TA v1; G.TA v2 ], rp))
     | TChan (t, v1, v2) ->
         let v1 = chan_dir v1 and v2 = type_ v2 in
-        G.TyApply
-          (G.TyN (mk_name "chan" t) |> G.t, fb [ G.TypeArg v1; G.TypeArg v2 ])
+        G.TyApply (G.TyN (mk_name "chan" t) |> G.t, fb [ G.TA v1; G.TA v2 ])
     | TStruct (t, v1) ->
         let v1 = bracket (list struct_field) v1 in
         G.TyRecordAnon (t, v1)

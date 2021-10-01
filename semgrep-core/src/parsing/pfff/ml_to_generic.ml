@@ -141,7 +141,7 @@ and type_kind = function
       G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
       let v1 = list type_ v1 and v2 = name v2 in
-      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> List.map (fun t -> G.TypeArg t)))
+      G.TyApply (G.TyN v2 |> G.t, fb (v1 |> List.map (fun t -> G.TA t)))
   | TyTuple v1 ->
       let v1 = list type_ v1 in
       G.TyTuple (fb v1)
@@ -421,7 +421,7 @@ and argument = function
       G.ArgKwd (v1, v2)
   | ArgQuestion (v1, v2) ->
       let v1 = ident v1 and v2 = expr v2 in
-      G.ArgOther (G.OA_ArgQuestion, [ G.I v1; G.E v2 ])
+      G.ArgOther (("ArgQuestion", snd v1), [ G.I v1; G.E v2 ])
 
 and match_case (v1, (v3, _t, v2)) =
   let v1 = pattern v1 and v2 = expr v2 and v3 = option expr v3 in
@@ -495,7 +495,7 @@ and pattern = function
   | PatTodo (t, xs) ->
       let t = todo_category t in
       let xs = list pattern xs in
-      G.OtherPat (G.OP_Todo, G.TodoK t :: List.map (fun x -> G.P x) xs)
+      G.OtherPat (t, List.map (fun x -> G.P x) xs)
 
 and let_binding = function
   | LetClassic v1 ->
@@ -554,8 +554,7 @@ and type_parameter v =
   (* TODO *)
   | TyParamTodo (s, t) ->
       let id = ("TyParamTodo", fake "TyParamTodo") in
-      G.tparam_of_id id
-        ~tp_constraints:[ G.OtherTypeParam (OTP_Todo, [ TodoK (s, t) ]) ]
+      G.tparam_of_id id ~tp_constraints:[ G.OtherTypeParam ((s, t), []) ]
 
 and type_def_kind = function
   | AbstractType -> G.AbstractType (fake "")
@@ -607,7 +606,7 @@ and module_expr = function
   | ModuleTodo (t, xs) ->
       let t = todo_category t in
       let xs = list module_expr xs in
-      G.OtherModule (G.OMO_Todo, G.TodoK t :: List.map (fun x -> G.ModDk x) xs)
+      G.OtherModule (t, List.map (fun x -> G.ModDk x) xs)
 
 and attributes xs = list attribute xs
 

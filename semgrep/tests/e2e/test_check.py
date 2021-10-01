@@ -1,8 +1,10 @@
 import json
+import subprocess
 from pathlib import Path
 from subprocess import CalledProcessError
 
 import pytest
+from tests.conftest import _clean_output_json
 
 from semgrep.constants import OutputFormat
 
@@ -62,6 +64,25 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp("rules/eqeq.yaml", output_format=OutputFormat.TEXT)[0],
         "output.txt",
     )
+
+
+def test_stdin_input(snapshot):
+    process = subprocess.Popen(
+        ["python3", "-m", "semgrep", "--json", "-e", "a", "--lang", "js", "-"],
+        encoding="utf-8",
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
+    stdout, _ = process.communicate("a")
+    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+
+
+def test_subshell_input(snapshot):
+    stdout = subprocess.check_output(
+        ["bash", "-c", "python3 -m semgrep --json -e 'a' --lang js <(echo 'a')"],
+        encoding="utf-8",
+    )
+    snapshot.assert_match(_clean_output_json(stdout), "results.json")
 
 
 def test_multiline(run_semgrep_in_tmp, snapshot):

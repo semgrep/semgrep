@@ -485,7 +485,7 @@ def cli(
     from semgrep.output import OutputSettings
     from semgrep.project import get_project_url
     from semgrep.synthesize_patterns import synthesize
-    from semgrep.target_manager import optional_stdin_target
+    from semgrep.target_manager import converted_pipe_targets
 
     target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
@@ -566,7 +566,7 @@ def cli(
     # The 'optional_stdin_target' context manager must remain before
     # 'managed_output'. Output depends on file contents so we cannot have
     # already deleted the temporary stdin file.
-    with optional_stdin_target(target_sequence) as target_sequence, managed_output(
+    with converted_pipe_targets(target_sequence) as target_sequence, managed_output(
         output_settings
     ) as output_handler:
         if dump_ast:

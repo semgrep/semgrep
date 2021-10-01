@@ -726,13 +726,8 @@ and argument =
   | ArgKwd of ident * expr
   (* type argument for New, instanceof/sizeof/typeof, C macros *)
   | ArgType of type_
-  | ArgOther of other_argument_operator * any list
-
-and other_argument_operator =
-  (* OCaml *)
-  | OA_ArgQuestion
-  (* Rust *)
-  | OA_ArgMacro
+  (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml *)
+  | ArgOther of todo_kind * any list
 
 (* todo: reduce, or move in other_special? *)
 and other_expr_operator =
@@ -1034,12 +1029,8 @@ and pattern =
   (* sgrep: *)
   | PatEllipsis of tok
   | DisjPat of pattern * pattern
-  | OtherPat of other_pattern_operator * any list
-
-and other_pattern_operator =
-  (* Other *)
-  | OP_Expr (* todo: Python should transform via expr_to_pattern() below *)
-  | OP_Todo
+  (* todo: Python should transform expr pattern via expr_to_pattern() *)
+  | OtherPat of todo_kind * any list
 
 (*****************************************************************************)
 (* Type *)
@@ -1107,14 +1098,14 @@ and type_arguments = type_argument list bracket
 
 (* TODO? make a record also? *)
 and type_argument =
-  | TypeArg of type_
-  (* Java only *)
-  (* use-site variance *)
-  | TypeWildcard of
+  | TA of type_
+  (* Java use-site variance *)
+  | TAWildcard of
       tok (* '?' *) * (bool wrap (* extends|super, true=super *) * type_) option
-  (* Rust *)
-  | TypeLifetime of ident
-  | OtherTypeArg of other_type_argument_operator * any list
+  (* C++/Rust (Rust restrict expr to literals and ConstBlock) *)
+  | TAExpr of expr
+  (* TODO? Rust Lifetime 'x, Kotlin use-site variance *)
+  | OtherTypeArg of todo_kind * any list
 
 and other_type_operator =
   (* C *)
@@ -1131,13 +1122,6 @@ and other_type_operator =
   | OT_Arg (* Python: todo: should use expr_to_type() when can *)
   | OT_Todo
 
-and other_type_argument_operator =
-  (* Rust *)
-  | OTA_Literal
-  | OTA_ConstBlock
-  (* Other *)
-  | OTA_Todo
-
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
@@ -1146,7 +1130,9 @@ and attribute =
   | KeywordAttr of keyword_attribute wrap
   (* a.k.a decorators, annotations *)
   | NamedAttr of tok (* @ *) * name * arguments bracket
-  | OtherAttribute of other_attribute_operator * any list
+  (* per-language specific keywords like 'transient', 'synchronized' *)
+  (* todo: Expr used for Python, but should transform in NamedAttr when can *)
+  | OtherAttribute of todo_kind * any list
 
 and keyword_attribute =
   (* the classic C modifiers *)
@@ -1187,19 +1173,6 @@ and keyword_attribute =
   (* Scala *)
   | Lazy (* By name application in Scala, via => T, in parameter *)
   | CaseClass
-
-and other_attribute_operator =
-  (* Java *)
-  | OA_StrictFP
-  | OA_Transient
-  | OA_Synchronized
-  | OA_Native
-  | OA_Default
-  | OA_AnnotThrow
-  (* Other *)
-  (* todo: used for Python, but should transform in NamedAttr when can *)
-  | OA_Expr
-  | OA_Todo
 
 (*****************************************************************************)
 (* Definitions *)
@@ -1304,14 +1277,8 @@ and variance =
 and type_parameter_constraint =
   (* C# *)
   | HasConstructor of tok
-  | OtherTypeParam of other_type_parameter_operator * any list
-
-(* TODO: get rid of *)
-and other_type_parameter_operator =
-  (* Rust *)
-  | OTP_Lifetime
-  (* Other *)
-  | OTP_Todo
+  (* TODO? Lifetime Rust? *)
+  | OtherTypeParam of todo_kind * any list
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -1325,6 +1292,7 @@ and function_definition = {
   fparams : parameters;
   (* return type *)
   frettype : type_ option;
+  (* TODO: fthrow *)
   (* newscope: *)
   fbody : function_body;
 }
@@ -1545,11 +1513,8 @@ and module_definition_kind =
   | ModuleAlias of dotted_ident
   (* newscope: *)
   | ModuleStruct of dotted_ident option * item list
-  | OtherModule of other_module_operator * any list
-
-and other_module_operator =
-  (* OCaml (functors and their applications) *)
-  | OMO_Todo
+  (* TODO: OCaml (functors and their applications) *)
+  | OtherModule of todo_kind * any list
 
 (* ------------------------------------------------------------------------- *)
 (* Macro definition *)
@@ -1913,6 +1878,7 @@ let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))
 let attr kwd tok = KeywordAttr (kwd, tok)
 
 let unhandled_keywordattr (s, t) =
+  (* TODO? or use OtherAttribue? *)
   NamedAttr (t, Id ((s, t), empty_id_info ()), fake_bracket [])
 
 (*****************************************************************************)
