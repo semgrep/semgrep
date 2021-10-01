@@ -558,13 +558,12 @@ and catch_block (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.catch_block)
     =
   let v1 = token env v1 (* "catch" *) in
   let _v2 = token env v2 (* "(" *) in
-  let v3 = List.map (annotation env) v3 in
+  let _v3TODO = List.map (annotation env) v3 in
   let v4 = simple_identifier env v4 in
   let _v5 = token env v5 (* ":" *) in
   let v6 = type_ env v6 in
   let _v7 = token env v7 (* ")" *) in
   let v8 = block env v8 in
-  let _list = [ v3 ] in
   let id = Some (v4, empty_id_info ()) in
   let pattern = PatVar (v6, id) in
   (v1, pattern, v8)
@@ -708,13 +707,13 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
         | Some x -> simple_identifier env x
         | None -> ("!companion!", v2)
       in
-      let _v5TODO =
+      let v5 =
         match v5 with
         | Some (v1, v2) ->
-            let v1 = token env v1 (* ":" *) in
+            let _v1 = token env v1 (* ":" *) in
             let v2 = delegation_specifiers env v2 in
-            Some (v1, v2)
-        | None -> None
+            v2
+        | None -> []
       in
       let v6 =
         match v6 with
@@ -725,7 +724,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
       let cdef =
         {
           ckind = (Object, v3);
-          cextends = [];
+          cextends = v5;
           cimplements = [];
           cmixins = [];
           cparams = [];
@@ -798,7 +797,7 @@ and class_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_parameter)
     | None -> None
   in
   ParamClassic
-    { (param_of_id v3) with pdefault = v6; ptype = Some v5; pattrs = v1 @ v2 }
+    (G.param_of_id v3 ~pdefault:v6 ~ptype:(Some v5) ~pattrs:(v1 @ v2))
 
 and class_parameters (env : env) ((v1, v2, v3) : CST.class_parameters) :
     parameters =
@@ -856,13 +855,13 @@ and declaration (env : env) (x : CST.declaration) : definition =
       in
       let v2 = token env v2 (* "object" *) in
       let v3 = simple_identifier env v3 in
-      let _v4TODO =
+      let v4 =
         match v4 with
         | Some (v1, v2) ->
-            let v1 = token env v1 (* ":" *) in
+            let _v1 = token env v1 (* ":" *) in
             let v2 = delegation_specifiers env v2 in
-            Some (v1, v2)
-        | None -> None
+            v2
+        | None -> []
       in
       let v5 =
         match v5 with
@@ -873,7 +872,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
       let cdef =
         {
           ckind = (Object, v2);
-          cextends = [];
+          cextends = v4;
           cimplements = [];
           cmixins = [];
           cparams = [];
@@ -903,7 +902,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
             Some v2
         | None -> None
       in
-      let _v7 =
+      let _v7TODO =
         match v7 with
         | Some x -> type_constraints env x
         | None -> []
@@ -925,7 +924,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
         | Some x -> modifiers env x
         | None -> []
       in
-      let _v2 = anon_choice_val_2833752 env v2 in
+      let v2 = KeywordAttr (anon_choice_val_2833752 env v2) in
       let v3 =
         match v3 with
         | Some x -> type_parameters env x
@@ -933,7 +932,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
       in
       let v4 = variable_declaration env v4 in
       let tok, type_info = v4 in
-      let _v5 =
+      let _v5TODO =
         match v5 with
         | Some x -> type_constraints env x
         | None -> []
@@ -965,7 +964,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
             | None -> None)
       in
       let vdef = { vinit = v6; vtype = type_info } in
-      let ent = basic_entity tok ~attrs:v1 ~tparams:v3 in
+      let ent = basic_entity tok ~attrs:(v2 :: v1) ~tparams:v3 in
       (ent, VarDef vdef)
   | `Type_alias (v1, v2, v3, v4) ->
       let _v1 = token env v1 (* "typealias" *) in
@@ -979,8 +978,8 @@ and declaration (env : env) (x : CST.declaration) : definition =
 and delegation_specifier (env : env) (x : CST.delegation_specifier) : type_ =
   match x with
   | `Cons_invo x ->
-      let _n, _args = constructor_invocation env x in
-      failwith "TODO"
+      let n, _argsTODO = constructor_invocation env x in
+      TyN n |> G.t
   | `Expl_dele (v1, v2, v3) ->
       let v1 =
         match v1 with
@@ -1692,17 +1691,17 @@ and setter (env : env) ((v1, v2) : CST.setter) =
   in
   Some (v1, v2)
 
-and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) =
+and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) :
+    ident * type_arguments option =
   let v1 = simple_identifier env v1 in
   let v2 =
     match v2 with
     | Some x ->
         let args = type_arguments env x in
-        let name = H2.name_of_ids [ v1 ] in
-        TyApply (TyN name |> G.t, args) |> G.t
-    | None -> TyN (Id (v1, empty_id_info ())) |> G.t
+        Some args
+    | None -> None
   in
-  v2
+  (v1, v2)
 
 and statement (env : env) (x : CST.statement) : stmt =
   match x with
@@ -1981,8 +1980,7 @@ and user_type (env : env) ((v1, v2) : CST.user_type) : name =
         v2)
       v2
   in
-  let _list = v1 :: v2 in
-  failwith "TODO"
+  H2.name_of_ids_with_opt_typeargs (v1 :: v2)
 
 and value_argument (env : env) ((v1, v2, v3, v4) : CST.value_argument) :
     argument =

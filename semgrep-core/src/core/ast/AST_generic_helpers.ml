@@ -63,6 +63,25 @@ let name_of_ids ?(name_typeargs = None) xs =
       IdQualified
         ((x, { name_qualifier = qualif; name_typeargs }), empty_id_info ())
 
+(* TODO: refactor name_qualifier and correctly handle this,
+ * and factorize code in name_of_ids by calling this function.
+ *)
+let name_of_ids_with_opt_typeargs xs =
+  match List.rev xs with
+  | [] -> failwith "name_of_ids_with_opt_typeargs: empty ids"
+  | [ (x, None) ] -> Id (x, empty_id_info ())
+  | (x, _toptTODO) :: xs ->
+      let qualif =
+        if xs = [] then None
+        else
+          Some
+            (QDots
+               (xs |> List.rev |> List.map fst (* TODO use typeargs in xs!! *)))
+      in
+      IdQualified
+        ( (x, { name_qualifier = qualif; name_typeargs = None (*TODO*) }),
+          empty_id_info () )
+
 let name_of_id id = Id (id, empty_id_info ())
 
 let name_of_dot_access e =

@@ -29,6 +29,10 @@ val name_of_ids :
   AST_generic.dotted_ident ->
   AST_generic.name
 
+val name_of_ids_with_opt_typeargs :
+  (AST_generic.ident * AST_generic.type_arguments option) list ->
+  AST_generic.name
+
 (* Tries to re-interpreted a DotAccess expression a.b.c as an IdQualified. *)
 val name_of_dot_access : AST_generic.expr -> AST_generic.name option
 
