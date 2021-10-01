@@ -85,6 +85,18 @@ def test_subshell_input(snapshot):
     snapshot.assert_match(_clean_output_json(stdout), "results.json")
 
 
+def test_multi_subshell_input(snapshot):
+    stdout = subprocess.check_output(
+        [
+            "bash",
+            "-c",
+            "python3 -m semgrep --json -e 'a' --lang js <(echo 'a') <(echo 'b + a')",
+        ],
+        encoding="utf-8",
+    )
+    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+
+
 def test_multiline(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/eqeq.yaml", target_name="multiline")[0],
