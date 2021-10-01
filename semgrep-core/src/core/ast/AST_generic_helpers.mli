@@ -54,7 +54,9 @@ val is_associative_operator : AST_generic.operator -> bool
 (** Test whether an operator is suitable for associative-matching.  *)
 
 val ac_matching_nf :
-  AST_generic.operator -> AST_generic.arguments -> AST_generic.expr list option
+  AST_generic.operator ->
+  AST_generic.argument list ->
+  AST_generic.expr list option
 (** [ac_matching_nf op args] converts the operands [args] of an
  * AC-operator [op] to a normal form (NF) better suited for AC-matching.
  * Essentially, we flatten out all [op]-operations. Note that this is not

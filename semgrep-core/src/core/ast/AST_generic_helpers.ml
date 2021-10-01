@@ -276,7 +276,8 @@ let ac_matching_nf op args =
     with Exit ->
       logger#error
         "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
-        (show_operator op) (show_arguments args);
+        (show_operator op)
+        (show_arguments (fake_bracket args));
       None)
   else None
 

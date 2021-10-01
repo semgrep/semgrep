@@ -847,7 +847,7 @@ and v_template_definition
       cparams = v_cparams;
       cparents = v_cparents;
       cbody = v_cbody;
-    } : G.class_definition * G.arguments bracket list =
+    } : G.class_definition * G.arguments list =
   let ckind = v_wrap v_template_kind v_ckind in
   (* TODO? flatten? *)
   let cparams = v_list v_bindings v_cparams |> List.flatten in

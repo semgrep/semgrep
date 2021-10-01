@@ -2216,8 +2216,7 @@ and attribute (env : env) ((v1, v2) : CST.attribute) =
   (* TODO get the first [ as token here? *)
   G.NamedAttr (fake "[", v1, v2)
 
-and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
-    G.arguments bracket =
+and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) : G.arguments =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with
@@ -2324,7 +2323,7 @@ and parameter_list (env : env) ((v1, v2, v3) : CST.parameter_list) :
   v2
 
 and attribute_argument_list (env : env)
-    ((v1, v2, v3) : CST.attribute_argument_list) : arguments bracket =
+    ((v1, v2, v3) : CST.attribute_argument_list) : arguments =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with

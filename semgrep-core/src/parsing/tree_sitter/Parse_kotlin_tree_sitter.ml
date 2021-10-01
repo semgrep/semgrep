@@ -1961,7 +1961,7 @@ and unary_expression (env : env) (x : CST.unary_expression) =
       G.special (Spread, v1) [ v2 ]
 
 and unescaped_annotation (env : env) (x : CST.unescaped_annotation) :
-    name * arguments bracket =
+    name * arguments =
   match x with
   | `Cons_invo x ->
       let v1 = constructor_invocation env x in
@@ -2012,8 +2012,8 @@ and value_argument (env : env) ((v1, v2, v3, v4) : CST.value_argument) :
   | None -> Arg e
   | Some (id, _t) -> ArgKwd (id, e)
 
-and value_arguments (env : env) ((v1, v2, v3) : CST.value_arguments) :
-    arguments bracket =
+and value_arguments (env : env) ((v1, v2, v3) : CST.value_arguments) : arguments
+    =
   let v1 = token env v1 (* "(" *) in
   let v2 =
     match v2 with

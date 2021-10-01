@@ -395,7 +395,7 @@ and expr_kind =
   | N of name
   | IdSpecial of special wrap (*e: [[AST_generic.expr]] other identifier cases *)
   (* operators and function application *)
-  | Call of expr * arguments bracket (* can be fake '()' for OCaml/Ruby *)
+  | Call of expr * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
   | Xml of xml
@@ -718,7 +718,8 @@ and xml_body =
   | XmlExpr of expr option bracket
   | XmlXml of xml
 
-and arguments = argument list
+(* brackets can be fake '()' for OCaml/Ruby *)
+and arguments = argument list bracket
 
 and argument =
   (* regular argument *)
@@ -1131,7 +1132,7 @@ and attribute =
   (* a.k.a modifiers *)
   | KeywordAttr of keyword_attribute wrap
   (* a.k.a decorators, annotations *)
-  | NamedAttr of tok (* '@' *) * name * arguments bracket (* less: option *)
+  | NamedAttr of tok (* '@' *) * name * arguments (* less: option *)
   (* per-language specific keywords like 'transient', 'synchronized' *)
   (* todo: Expr used for Python, but should transform in NamedAttr when can *)
   | OtherAttribute of todo_kind * any list
@@ -1474,7 +1475,7 @@ and class_definition = {
    * This parent can have arguments, as in Scala/Java/Kotlin, to call super
    * or when used inside a New.
    *)
-  cextends : type_ list;
+  cextends : type_ (* * arguments option*) list;
   (* the class_kind in type_ must be Interface *)
   cimplements : type_ list;
   (* the class_kind in type_ are usually Trait *)
@@ -1505,7 +1506,7 @@ and class_kind =
 (* for EnumClass, complex enums-as-classes in Java/Kotlin/Scala? *)
 and enum_entry_definition = {
   (* the enum identifier is in the corresponding entity *)
-  ee_args : arguments bracket option;
+  ee_args : arguments option;
   ee_body : field list bracket option;
 }
 
