@@ -7,8 +7,6 @@ import pytest
 from pytest import mark
 from pytest import MonkeyPatch
 
-import semgrep.config_resolver
-
 
 # Test data to avoid making web calls in test code
 USELESS_EQEQ = """rules:
@@ -44,7 +42,8 @@ USELESS_EQEQ = """rules:
 @pytest.fixture(scope="function")
 def mock_config_request(monkeypatch: MonkeyPatch) -> Iterator[None]:
     monkeypatch.setattr(
-        semgrep.config_resolver, "_make_config_request", lambda s: USELESS_EQEQ
+        "semgrep.config_resolver.ConfigPath._make_config_request",
+        lambda s: USELESS_EQEQ,
     )
     yield
 
