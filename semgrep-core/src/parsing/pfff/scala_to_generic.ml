@@ -649,7 +649,7 @@ and v_modifier v : G.attribute =
 and v_modifier_kind = function
   | Abstract -> Left G.Abstract
   | Final -> Left G.Final
-  | Sealed -> Right "sealed"
+  | Sealed -> Left G.SealedClass
   | Implicit -> Right "implicit"
   | Lazy -> Left G.Lazy
   | Private v1 ->
@@ -659,7 +659,7 @@ and v_modifier_kind = function
       let _v1TODO = v_option (v_bracket v_ident_or_this) v1 in
       Left G.Protected
   | Override -> Left G.Override
-  | CaseClassOrObject -> Left G.CaseClass
+  | CaseClassOrObject -> Left G.RecordClass
   | PackageObject -> Right "PackageObject"
   | Val -> Left G.Const
   | Var -> Left G.Mutable

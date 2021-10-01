@@ -420,6 +420,7 @@ and expr_kind =
   (* can be used for Record, Class, or Module access depending on expr.
    * In the last case it should be rewritten as a (N IdQualified) with a
    * qualifier though.
+   * TODO? have a dot_operator to differentiate ., .?, and :: in Kotlin?
    *)
   | DotAccess of expr * tok (* ., ::, ->, # *) * name_or_dynamic
   (* in Js ArrayAccess is also abused to perform DotAccess (..., FDynamic) *)
@@ -1135,28 +1136,35 @@ and attribute =
   | OtherAttribute of todo_kind * any list
 
 and keyword_attribute =
-  (* the classic C modifiers *)
+  (* the classic C modifiers (except Auto) *)
   | Static
-  | Volatile
   | Extern
-  (* for class fields/methods *)
+  | Volatile
+  (* the classic C++ modifiers for fields/methods *)
   | Public
   | Private
   | Protected
-  | Abstract
+  | Abstract (* a.k.a virtual in C++ *)
+  (* for fields/methods in classes and also classes *)
   | Final
   | Override
+  | Mutable (* 'var' in Scala *)
+  | Const (* 'readonly' in Typescript, 'val' in Scala *)
+  (* for classes (mostly for JVM languages) *)
+  (* Scala 'case class', Java 'record', Kotlin 'data class' *)
+  | RecordClass
+  (* '@interface' in Java, 'annotation class' in Kotlin *)
+  | AnnotationClass
+  | EnumClass
+  | SealedClass
   (* for variables (JS) *)
   | Var
   | Let
-  (* for fields (kinda types) *)
-  | Mutable (* 'var' in Scala *)
-  | Const (* 'readonly' in Typescript, 'val' in Scala *)
   (* less: should be part of the type? *)
   | Optional
   (* Typescript '?' *)
   | NotNull (* Typescript '!' *)
-  (* for functions/methods *)
+  (* for functions and methods *)
   | Recursive
   | MutuallyRecursive
   | Generator (* '*' in JS *)
@@ -1171,8 +1179,9 @@ and keyword_attribute =
   | Unsafe
   | DefaultImpl (* Rust unstable, RFC 1210 *)
   (* Scala *)
-  | Lazy (* By name application in Scala, via => T, in parameter *)
-  | CaseClass
+  | Lazy
+
+(* By name application in Scala, via => T, in parameter *)
 
 (*****************************************************************************)
 (* Definitions *)
@@ -1233,7 +1242,7 @@ and definition_kind =
    *)
   | FieldDefColon of (* todo: tok (*':'*) * *) variable_definition
   | ClassDef of class_definition
-  (* just inside a ClassDef of EnumClass *)
+  (* just inside a ClassDef with EnumClass *)
   | EnumEntryDef of enum_entry_definition
   | TypeDef of type_definition
   | ModuleDef of module_definition
@@ -1486,12 +1495,8 @@ and class_kind =
   | Trait
   (* Kotlin/Scala *)
   | Object
-  (* Java 'record', Scala 'case class' *)
-  | RecordClass
-  (* Java/Kotlin *)
-  | EnumClass
-  (* Java @interface, a.k.a annotation type declaration *)
-  | AtInterface
+
+(* for EnumClass/AnnotationClass/etc. see keyword_attribute *)
 
 (* ------------------------------------------------------------------------- *)
 (* Enum entry  *)
@@ -1806,22 +1811,23 @@ let keyval k _tarrow v = Container (Tuple, fake_bracket [ k; v ]) |> e
 (* Parameters *)
 (* ------------------------------------------------------------------------- *)
 
-let param_of_id id =
+(* alt: could use @@deriving make *)
+let param_of_id ?(pattrs = []) ?(ptype = None) ?(pdefault = None) id =
   {
     pname = Some id;
-    pdefault = None;
-    ptype = None;
-    pattrs = [];
+    pdefault;
+    ptype;
+    pattrs;
     pinfo = basic_id_info (Param, sid_TODO);
   }
 
-let param_of_type typ =
+let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
   {
     ptype = Some typ;
-    pname = None;
-    pdefault = None;
-    pattrs = [];
-    pinfo = empty_id_info ();
+    pname;
+    pdefault;
+    pattrs;
+    pinfo = basic_id_info (Param, sid_TODO);
   }
 
 (* ------------------------------------------------------------------------- *)
