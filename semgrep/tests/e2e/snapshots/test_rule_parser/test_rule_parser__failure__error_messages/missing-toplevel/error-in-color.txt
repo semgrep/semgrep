@@ -1,6 +1,7 @@
 Metrics turned off. No information will be sent about this run
 Loading local config from rules/syntax/missing-toplevel.yaml...
-[31msemgrep error[0m: Invalid rule schema
+[80D[1A[KLoading local config from rules/syntax/missing-toplevel.yaml................done
+[31msemgrep error[0m: missing keys
   --> rules/syntax/missing-toplevel.yaml:2
 [94m2 | [0mrule:
 [94m3 | [0m- id: flask-secure-set-cookie
