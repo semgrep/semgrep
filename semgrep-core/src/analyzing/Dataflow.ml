@@ -139,8 +139,8 @@ let (add_var_and_nodei_to_env :
       var -> nodei -> NodeiSet.t env -> NodeiSet.t env) =
  fun var ni env ->
   let set =
-    try NodeiSet.add ni (VarMap.find var env)
-    with Not_found -> NodeiSet.singleton ni
+    try NodeiSet.add ni (VarMap.find var env) with
+    | Not_found -> NodeiSet.singleton ni
   in
   VarMap.add var set env
 
@@ -236,17 +236,6 @@ module Make (F : Flow) = struct
       (fun s (ni, _) -> NodeiSet.add ni s)
       NodeiSet.empty
 
-  (* Computes the set of reachable nodes in the CFG. This prevents dead code from getting analyzed *)
-  let mk_worklist ({ graph; entry } : F.flow) =
-    let rec aux nodei seen =
-      if NodeiSet.mem nodei seen then seen
-      else
-        let seen = NodeiSet.add nodei seen in
-        let succs = forward_succs { graph; entry } nodei in
-        NodeiSet.fold aux succs seen
-    in
-    aux entry NodeiSet.empty
-
   let (fixpoint :
         eq:('a -> 'a -> bool) ->
         init:'a mapping ->
@@ -256,7 +245,9 @@ module Make (F : Flow) = struct
         'a mapping) =
    fun ~eq ~init ~trans ~flow ~forward ->
     let succs = if forward then forward_succs else backward_succs in
-    let work = mk_worklist flow in
+    let work =
+      flow.graph#nodes#fold (fun s (ni, _) -> NodeiSet.add ni s) NodeiSet.empty
+    in
     fixpoint_worker eq init trans flow succs work
 
   (*****************************************************************************)
