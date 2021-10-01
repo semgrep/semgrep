@@ -1066,6 +1066,7 @@ and type_kind =
    * note: the type_ should always be a TyN, so really it's a TyNameApply
    * but it's simpler to not repeat TyN to factorize code in semgrep regarding
    * aliasing.
+   * TODO: could merge with TyN when name has proper qualifiers?
    *)
   | TyApply of type_ * type_arguments
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
@@ -1469,8 +1470,8 @@ and field =
 (* less: could be a special kind of type_definition *)
 and class_definition = {
   ckind : class_kind wrap;
-  (* cextends contains usually just one parent, and type_ should be TyApply *)
-  (* TODO? the parent can have arguments, as in Scala, to call super
+  (* 'cextends' contains usually 0 or 1 parent, and type_ should be TyN.
+   * This parent can have arguments, as in Scala/Java/Kotlin, to call super
    * or when used inside a New.
    *)
   cextends : type_ list;
@@ -1479,7 +1480,7 @@ and class_definition = {
   (* the class_kind in type_ are usually Trait *)
   (* PHP 'uses' *)
   cmixins : type_ list;
-  (* for Java Record and Kotlin/Scala (we could transpile them into fields) *)
+  (* for Java/Kotlin/Scala RecordClass (we could transpile them into fields) *)
   cparams : parameters;
   (* newscope:
    * note: this can be an empty fake bracket when used in Partial.

@@ -19,9 +19,6 @@ val funcdef_to_lambda :
 
 val funcbody_to_stmt : AST_generic.function_body -> AST_generic.stmt
 
-val name_of_entity :
-  AST_generic.entity -> (AST_generic.ident * AST_generic.id_info) option
-
 val name_of_id : AST_generic.ident -> AST_generic.name
 
 val name_of_ids :

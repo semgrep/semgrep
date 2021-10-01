@@ -35,13 +35,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let str_of_ident = fst
 
-let name_of_entity ent =
-  match ent.name with
-  | EN (Id (i, pinfo))
-  | EN (IdQualified ((i, _), pinfo)) ->
-      Some (i, pinfo)
-  | EDynamic _ -> None
-
 (* You can use 0 for globals, even though this will work only on a single
  * file. Any global analysis will need to set a unique ID for globals too. *)
 let gensym_counter = ref 0
@@ -51,17 +44,6 @@ let gensym_counter = ref 0
 let gensym () =
   incr gensym_counter;
   !gensym_counter
-
-(* before Naming_AST.resolve can do its job *)
-
-let name_of_ids ?(name_typeargs = None) xs =
-  match List.rev xs with
-  | [] -> failwith "name_of_ids: empty ids"
-  | [ x ] -> Id (x, empty_id_info ())
-  | x :: xs ->
-      let qualif = if xs = [] then None else Some (QDots (List.rev xs)) in
-      IdQualified
-        ((x, { name_qualifier = qualif; name_typeargs }), empty_id_info ())
 
 (* TODO: refactor name_qualifier and correctly handle this,
  * and factorize code in name_of_ids by calling this function.
@@ -81,6 +63,15 @@ let name_of_ids_with_opt_typeargs xs =
       IdQualified
         ( (x, { name_qualifier = qualif; name_typeargs = None (*TODO*) }),
           empty_id_info () )
+
+let name_of_ids ?(name_typeargs = None) xs =
+  match List.rev xs with
+  | [] -> failwith "name_of_ids: empty ids"
+  | [ x ] -> Id (x, empty_id_info ())
+  | x :: xs ->
+      let qualif = if xs = [] then None else Some (QDots (List.rev xs)) in
+      IdQualified
+        ((x, { name_qualifier = qualif; name_typeargs }), empty_id_info ())
 
 let name_of_id id = Id (id, empty_id_info ())
 
