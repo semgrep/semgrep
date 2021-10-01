@@ -17,7 +17,7 @@
 (* Prelude *)
 (*****************************************************************************)
 (* A generic AST, to factorize similar "analysis" in different programming
- * languages (e.g., naming, semantic code highlighting, semgrep).
+ * languages (e.g., naming, semantic code highlighting, semgrep!).
  *
  * Right now this generic AST is mostly the factorized union of:
  *  - Python, Ruby, Lua
@@ -78,7 +78,7 @@
  * TODO? it may be time to rename this file CST_generic.ml
  *
  * todo:
- *  - add C++ (argh)
+ *  - add C++ (argh) and improve things for Kotlin/Scala/Rust
  *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep?
  *
  * related work:
@@ -182,7 +182,7 @@ type 'a bracket = tok * 'a * tok [@@deriving show, eq, hash]
  *)
 type sc = tok [@@deriving show, eq, hash]
 
-(* an AST element not yet handled; works with the Xx_Todo and Todo in any *)
+(* an AST element not yet handled *)
 type todo_kind = string wrap [@@deriving show, eq, hash]
 
 (*****************************************************************************)
@@ -1471,11 +1471,8 @@ and field =
 (* less: could be a special kind of type_definition *)
 and class_definition = {
   ckind : class_kind wrap;
-  (* 'cextends' contains usually 0 or 1 parent, and type_ should be TyN.
-   * This parent can have arguments, as in Scala/Java/Kotlin, to call super
-   * or when used inside a New.
-   *)
-  cextends : type_ (* * arguments option*) list;
+  (* 'cextends' contains usually 0 or 1 parent, and type_ should be TyN *)
+  cextends : class_parent list;
   (* the class_kind in type_ must be Interface *)
   cimplements : type_ list;
   (* the class_kind in type_ are usually Trait *)
@@ -1490,7 +1487,9 @@ and class_definition = {
   cbody : field list bracket;
 }
 
-(* invariant: this must remain a simple enum; Map_AST relies on it *)
+(* invariant: this must remain a simple enum; Map_AST relies on it.
+ * for EnumClass/AnnotationClass/etc. see keyword_attribute.
+ *)
 and class_kind =
   | Class
   | Interface
@@ -1498,7 +1497,14 @@ and class_kind =
   (* Kotlin/Scala *)
   | Object
 
-(* for EnumClass/AnnotationClass/etc. see keyword_attribute *)
+(* A parent can have arguments in Scala/Java/Kotlin (because constructors
+ * can be defined in the class header via cparams and then this class
+ * header can call its parent constructor using those cparams).
+ * alt: keep just 'type_' and add constructor calls in cbody.
+ *)
+and class_parent = type_
+
+(* TODO: * arguments option *)
 
 (* ------------------------------------------------------------------------- *)
 (* Enum entry  *)
