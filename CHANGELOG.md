@@ -4,9 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
-## [0.67.0](https://github.com/returntocorp/semgrep/releases/tag/v0.67.0) - 09-29-2021
-
 ### Added
+- Input can be derived from subshells: `semgrep --config ... <(...)`
 
 ### Changed
 - taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
@@ -19,7 +18,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Added support for break and continue in the dataflow engine
-- Input can be derived from subshells: `semgrep --config ... <(...)`
 - Added support for switch statements in the dataflow engine
 
 ### Changed
