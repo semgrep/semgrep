@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from collections import OrderedDict
@@ -32,6 +33,7 @@ from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import Language
+from semgrep.types import JsonObject
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
 from semgrep.verbose_logging import getLogger
@@ -472,6 +474,129 @@ def saved_snippet_to_url(snippet_id: str) -> str:
     return registry_id_to_url(f"s/{snippet_id}")
 
 
+def download_pack_config(pack_id: str) -> Dict[str, YamlTree]:
+    import requests  # here for faster startup times
+
+    from semantic_version import Version
+
+    CDN_BASE_URL = "https://dev-cdn.semgrep.dev"
+    config_url_base = f"{CDN_BASE_URL}/ruleset/{pack_id}"
+    config_versions_url = f"{config_url_base}/versions"
+    headers = {"User-Agent": SEMGREP_USER_AGENT}
+
+    logger.debug(f"Retrieving versions file of {pack_id} at {config_versions_url}")
+
+    try:
+        r = requests.get(config_versions_url, headers=headers, timeout=20)
+    except Exception as e:
+        raise SemgrepError(f"Failed to get available versions of {pack_id}: {str(e)}")
+
+    if r.status_code == requests.codes.ok:
+        logger.debug(f"Avalabile versions for {pack_id}: {r.text}")
+        try:
+            versions_json = json.loads(r.text)
+        except json.decoder.JSONDecodeError as e:
+            raise SemgrepError(
+                f"Failed to parse versions file of pack {pack_id}: Invalid Json"
+            )
+        versions_parsed = []
+        for version_string in versions_json:
+            try:
+                versions_parsed.append(Version(version_string))
+            except ValueError as e:
+                logger.debug(
+                    f"Could not parse {version_string} in versions of {pack_id} pack as valid semver"
+                )
+        latest_version = max(versions_parsed)
+        logger.debug(f"Lastest version of {pack_id} is {latest_version}")
+    else:
+        raise SemgrepError(
+            f"Bad status code: {r.status_code} returned by url: {config_versions_url}"
+        )
+
+    config_full_url = f"{config_url_base}/{latest_version}"
+    try:
+        r = requests.get(config_full_url, headers=headers, timeout=20)
+    except Exception as e:
+        raise SemgrepError(
+            f"Failed to download config for {pack_id}/{latest_version}: {str(e)}"
+        )
+
+    if r.status_code == requests.codes.ok:
+        logger.debug(f"Retrieved ruleset definition: {r.text}")
+        try:
+            ruleset_json = json.loads(
+                r.text
+            )  # TODO parse into object so no need to handle json
+        except json.decoder.JSONDecodeError as e:
+            raise SemgrepError(
+                f"Failed to parse ruleset {pack_id}/{latest_version} as valid json"
+            )
+
+        import time
+        import concurrent.futures
+
+        def get_rule_helper(rule_id: str, version: str) -> JsonObject:
+            try:
+                r = requests.get(
+                    f"{CDN_BASE_URL}/rule/{rule_id}/{version}",
+                    headers=headers,
+                    timeout=20,
+                )
+            except Exception as e:
+                raise SemgrepError(f"TODO")
+
+            if r.status_code != requests.codes.ok:
+                # TODO
+                pass
+            try:
+                yaml = YAML()
+                rules = yaml.load(r.text)
+            except Exception as e:
+                # TODO
+                raise e
+            return rules["rules"][0]  # type:ignore
+
+        hydrated = []
+        start = time.time()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for rule in ruleset_json["rules"]:
+                futures.append(
+                    executor.submit(
+                        get_rule_helper,
+                        rule_id=rule["rule_id"],
+                        version=rule["version"],
+                    )
+                )
+
+            for future in concurrent.futures.as_completed(futures):
+                hydrated.append(future.result())
+        logger.info(
+            f"Retrieved ruleset {pack_id}/{latest_version} in {time.time()- start}s"
+        )
+        hydrated_ruleset = {"rules": hydrated}
+    else:
+        raise SemgrepError(
+            f"Bad status code: {r.status_code} returned by url: {config_full_url}"
+        )
+
+    yaml = YAML()
+    from io import StringIO
+
+    string_stream = StringIO()
+    yaml.dump(hydrated_ruleset, string_stream)
+    return parse_config_string(
+        "remote-url",
+        string_stream.getvalue(),
+        filename=f"{pack_id[:20]}...",
+    )
+
+
+def is_pack_id(config_str: str) -> bool:
+    return config_str[:2] == "p/"
+
+
 def resolve_config(config_str: str) -> Dict[str, YamlTree]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
@@ -479,6 +604,8 @@ def resolve_config(config_str: str) -> Dict[str, YamlTree]:
         config = download_config(RULES_REGISTRY[config_str])
     elif is_url(config_str):
         config = download_config(config_str)
+    elif is_pack_id(config_str):
+        config = download_pack_config(config_str[2:])
     elif is_registry_id(config_str):
         config = download_config(registry_id_to_url(config_str))
     elif is_saved_snippet(config_str):
