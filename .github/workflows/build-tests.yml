@@ -42,7 +42,7 @@ jobs:
 
   mac-build:
     name: Check builds for macOS
-    runs-on: macos-latest
+    runs-on: macos-10.15
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -60,7 +60,7 @@ jobs:
 
   mac-build-linking-test:
     name: Check that semgrep-core runs
-    runs-on: macos-latest
+    runs-on: macos-10.15
     needs: [mac-build]
     steps:
       - name: Download artifacts
