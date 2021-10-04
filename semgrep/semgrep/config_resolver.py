@@ -69,7 +69,12 @@ class ConfigPath:
     _config_path = ""
 
     def __init__(self, config_str: str) -> None:
-        """ returns the registry url for the config_str, if it is a registry entry """
+        """
+        Mutates MetricManager state!
+        Takes a user's inputted config_str and transforms it into the appropriate
+        path, checking whether the config string is a registry url or not. If it
+        is, also set the appropriate MetricManager flag
+        """
         if config_str in RULES_REGISTRY:
             self._from_registry = True
             self._config_path = RULES_REGISTRY[config_str]
@@ -205,7 +210,12 @@ class Config:
         self.valid = valid_configs
 
     @classmethod
-    def notify_user_about_registry(cls, configs: List[ConfigPath]) -> None:
+    def check_and_notify_about_metrics(cls, configs: List[ConfigPath]) -> None:
+        """
+        Checks if metrics need to be sent and notifies users if they do
+        Argument MUST be a ConfigPath list because the creation of ConfigPath
+        objects sets the metric manager flag for the presence of registry paths
+        """
         if any(config.is_registry_url() for config in configs):
             logger.info(
                 message_with_done(
@@ -242,7 +252,7 @@ class Config:
                 errors.append(e)
 
         config_paths = [ConfigPath(config) for config in configs]
-        cls.notify_user_about_registry(config_paths)
+        cls.check_and_notify_about_metrics(config_paths)
         for i, config_path in enumerate(config_paths):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
