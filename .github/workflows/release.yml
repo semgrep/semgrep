@@ -130,7 +130,7 @@ jobs:
 
   build-core-osx:
     name: Build the OSX binaries
-    runs-on: macos-latest
+    runs-on: macos-10.15
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -171,7 +171,7 @@ jobs:
           path: artifacts.tar.gz
 
   build-wheels-osx:
-    runs-on: macos-latest
+    runs-on: macos-10.15
     needs: [build-core-osx]
     steps:
       - name: Checkout
@@ -295,7 +295,7 @@ jobs:
   homebrew-core-pr:
     name: Update on Homebrew-Core
     needs: [sleep-before-homebrew]  # Needs to run after pypi released so brew can update pypi dependency hashes
-    runs-on: macos-latest
+    runs-on: macos-10.15
     steps:
       - name: Brew update
         run: brew update
