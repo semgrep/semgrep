@@ -10,9 +10,13 @@ git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"
 
+file /Users/runner/.opam/4.12.0/bin/ocamlopt.opt
+
 # Remove pcre dynamically linked to force MacOS to use static
 # This needs to be done before make setup since it is used there
 rm /usr/local/opt/pcre/lib/libpcre.1.dylib
+
+file /Users/runner/.opam/4.12.0/bin/ocamlopt.opt
 
 make setup
 make config
