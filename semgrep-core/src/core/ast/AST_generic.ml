@@ -919,7 +919,7 @@ and label = ident
 
 and label_ident =
   | LNone (* C/Python *)
-  | LId of label (* Java/Go *)
+  | LId of label (* Java/Go/Kotlin *)
   | LInt of int wrap (* PHP *)
   (* PHP, woohoo, dynamic break! bailout for CFG *)
   | LDynamic of expr
@@ -1049,10 +1049,10 @@ and type_kind =
    * or just delete and use (TyN Id) instead?
    *)
   | TyBuiltin of string wrap (* int, bool, etc. could be TApply with no args *)
-  (* old: was 'type_ list * type*' , but languages such as C and
+  (* old: was 'TyFun of type_ list * type*' , but languages such as C and
    * Go allow also to name those parameters, and Go even allow ParamRest
    * parameters so we need at least 'type_ * attributes', at which point
-   * it's better to just use parameter.
+   * it's simpler to just reuse parameter.
    *)
   | TyFun of parameter list * type_ (* return type *)
   (* a special case of TApply, also a special case of TPointer *)
@@ -1071,7 +1071,9 @@ and type_kind =
    *)
   | TyApply of type_ * type_arguments
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
-  | TyAny of tok (* anonymous type, '_' in OCaml, TODO: type bounds Scala? *)
+  (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin
+   * TODO: type bounds Scala? *)
+  | TyAny of tok
   | TyPointer of tok * type_
   | TyRef of tok * type_ (* C++/Rust *)
   | TyQuestion of type_ * tok (* a.k.a option type *)
