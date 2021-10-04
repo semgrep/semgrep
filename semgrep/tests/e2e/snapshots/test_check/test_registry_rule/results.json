@@ -15,7 +15,10 @@
         "metadata": {
           "category": "correctness",
           "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
-          "source": "https://semgrep.dev/r/javascript.lang.correctness.useless-eqeq.eqeq-is-bad"
+          "source": "https://semgrep.dev/r/javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
+          "technology": [
+            "javascript"
+          ]
         },
         "metavars": {
           "$X": {
@@ -59,7 +62,10 @@
         "metadata": {
           "category": "correctness",
           "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
-          "source": "https://semgrep.dev/r/python.lang.correctness.useless-eqeq.useless-eqeq"
+          "source": "https://semgrep.dev/r/python.lang.correctness.useless-eqeq.useless-eqeq",
+          "technology": [
+            "python"
+          ]
         },
         "metavars": {
           "$X": {
