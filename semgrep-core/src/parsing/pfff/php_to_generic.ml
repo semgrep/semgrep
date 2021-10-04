@@ -571,7 +571,7 @@ and class_def
 
   let id = ident c_name in
   let kind = class_kind c_kind in
-  let extends = option class_name c_extends in
+  let extends = option class_parent c_extends in
   let implements = list class_name c_implements in
   let uses = list class_name c_uses in
 
@@ -607,6 +607,10 @@ and class_def
     }
   in
   (ent, def)
+
+and class_parent x : G.class_parent =
+  let x = class_name x in
+  (x, None)
 
 and class_kind (x, t) =
   match x with

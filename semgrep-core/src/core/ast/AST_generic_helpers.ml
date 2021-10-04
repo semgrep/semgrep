@@ -139,6 +139,10 @@ let expr_to_type e =
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
   OtherType (OT_Expr, [ E e ]) |> G.t
 
+(* TODO: recognize foo(args)? like in Kotlin/Java *)
+let expr_to_class_parent e : class_parent =
+  (OtherType (OT_Expr, [ E e ]) |> G.t, None)
+
 (* See also exprstmt, and stmt_to_expr in AST_generic.ml *)
 
 (* old: there was a stmt_to_item before *)

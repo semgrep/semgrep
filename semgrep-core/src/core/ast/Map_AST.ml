@@ -1009,7 +1009,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_cbody = map_bracket (map_of_list map_field) v_cbody in
     let v_cmixins = map_of_list map_type_ v_cmixins in
     let v_cimplements = map_of_list map_type_ v_cimplements in
-    let v_cextends = map_of_list map_type_ v_cextends in
+    let v_cextends = map_of_list map_class_parent v_cextends in
     let v_ckind = map_class_kind v_ckind in
     let cparams = map_parameters cparams in
     {
@@ -1021,6 +1021,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
       cparams;
     }
   and map_class_kind (x, t) = (x, map_tok t)
+  and map_class_parent (v1, v2) =
+    let v1 = map_type_ v1 in
+    let v2 = map_of_option map_arguments v2 in
+    (v1, v2)
   and map_directive { d; d_attrs } =
     let d = map_directive_kind d in
     let d_attrs = map_of_list map_attribute d_attrs in

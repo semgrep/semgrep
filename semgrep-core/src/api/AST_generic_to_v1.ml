@@ -1111,7 +1111,7 @@ and map_class_definition
   let v_cparams = map_parameters v_cparams in
   let v_cmixins = map_of_list map_type_ v_cmixins in
   let v_cimplements = map_of_list map_type_ v_cimplements in
-  let v_cextends = map_of_list map_type_ v_cextends in
+  let v_cextends = map_of_list map_class_parent v_cextends in
   let v_ckind = map_wrap map_class_kind v_ckind in
   {
     B.ckind = v_ckind;
@@ -1121,6 +1121,8 @@ and map_class_definition
     cmixins = v_cmixins;
     cparams = v_cparams;
   }
+
+and map_class_parent (_v1, _v2) = failwith "TODO"
 
 and map_class_kind = function
   | Class -> `Class
