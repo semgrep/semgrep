@@ -49,7 +49,7 @@ class _MetricManager:
         self._rule_stats: List[Dict[str, Any]] = []
 
         self._send_metrics: MetricsState = MetricsState.OFF
-        self.using_server = False
+        self._using_server = False
 
     def configure(
         self,
@@ -70,6 +70,9 @@ class _MetricManager:
                 "--enable-metrics/--disable-metrics can not be used with either --metrics or SEMGREP_SEND_METRICS"
             )
         self._send_metrics = metrics_state or legacy_state or MetricsState.AUTO
+
+    def set_using_server_true(self) -> None:
+        self._using_server = True
 
     def set_project_hash(self, project_url: Optional[str]) -> None:
         """
@@ -207,7 +210,7 @@ class _MetricManager:
           - off, doesn't send
         """
         res = (
-            self.using_server
+            self._using_server
             if self._send_metrics == MetricsState.AUTO
             else self._send_metrics == MetricsState.ON
         )
@@ -243,7 +246,7 @@ class _MetricManager:
         import requests
 
         logger.debug(
-            f"{'Sending' if self.is_enabled() else 'Not sending'} pseudonymous metrics since metrics are configured to {self._send_metrics.name} and server usage is {self.using_server}"
+            f"{'Sending' if self.is_enabled() else 'Not sending'} pseudonymous metrics since metrics are configured to {self._send_metrics.name} and server usage is {self._using_server}"
         )
 
         if self.is_enabled():

@@ -84,7 +84,7 @@ class ConfigPath:
             self.config_path = config_str
 
         if self.from_registry:
-            metric_manager.using_server = True
+            metric_manager.set_using_server_true()
 
     def resolve_config(self) -> Mapping[str, YamlTree]:
         """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
