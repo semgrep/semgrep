@@ -65,32 +65,35 @@ DEFAULT_CONFIG = {
 
 
 class ConfigPath:
+    _from_registry = False
+    _config_path = ""
+
     def __init__(self, config_str: str) -> None:
         """ returns the registry url for the config_str, if it is a registry entry """
         if config_str in RULES_REGISTRY:
-            self.from_registry = True
-            self.config_path = RULES_REGISTRY[config_str]
+            self._from_registry = True
+            self._config_path = RULES_REGISTRY[config_str]
         elif is_url(config_str):
-            self.from_registry = True
-            self.config_path = config_str
+            self._from_registry = True
+            self._config_path = config_str
         elif is_registry_id(config_str):
-            self.from_registry = True
-            self.config_path = registry_id_to_url(config_str)
+            self._from_registry = True
+            self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
-            self.from_registry = True
-            self.config_path = saved_snippet_to_url(config_str)
+            self._from_registry = True
+            self._config_path = saved_snippet_to_url(config_str)
         else:
-            self.from_registry = False
-            self.config_path = config_str
+            self._from_registry = False
+            self._config_path = config_str
 
-        if self.from_registry:
+        if self._from_registry:
             metric_manager.set_using_server_true()
 
     def resolve_config(self) -> Mapping[str, YamlTree]:
         """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
         start_t = time.time()
 
-        if self.from_registry:
+        if self._from_registry:
             config = self._download_config()
         else:
             config = self._load_config_from_local_path()
@@ -114,7 +117,7 @@ class ConfigPath:
         return url
 
     def _download_config(self) -> Mapping[str, YamlTree]:
-        config_url = self.config_path
+        config_url = self._config_path
         downloading_msg = (
             f"Downloading config from {self._nice_semgrep_url(config_url)}..."
         )
@@ -136,7 +139,7 @@ class ConfigPath:
         """
         Return config file(s) as dictionary object
         """
-        location = self.config_path
+        location = self._config_path
         base_path = get_base_path()
         loc = base_path.joinpath(location)
 
@@ -162,7 +165,7 @@ class ConfigPath:
     def _make_config_request(self) -> str:
         import requests  # here for faster startup times
 
-        config_url = self.config_path
+        config_url = self._config_path
 
         headers = {"User-Agent": SEMGREP_USER_AGENT}
         r = requests.get(config_url, stream=True, headers=headers, timeout=20)
@@ -187,10 +190,10 @@ class ConfigPath:
             )
 
     def is_registry_url(self) -> bool:
-        return self.from_registry
+        return self._from_registry
 
     def __str__(self) -> str:
-        return self.config_path
+        return self._config_path
 
 
 class Config:
