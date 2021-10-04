@@ -181,8 +181,15 @@ let add_stmts env xs = xs |> List.iter (add_stmt env)
 
 let bracket_keep f (t1, x, t2) = (t1, f x, t2)
 
+let ident_of_entity_opt ent =
+  match ent.G.name with
+  | G.EN (G.Id (i, pinfo))
+  | G.EN (G.IdQualified ((i, _), pinfo)) ->
+      Some (i, pinfo)
+  | G.EDynamic _ -> None
+
 let name_of_entity ent =
-  match AST_generic_helpers.name_of_entity ent with
+  match ident_of_entity_opt ent with
   | Some (i, pinfo) ->
       let name = var_of_id_info i pinfo in
       Some name

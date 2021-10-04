@@ -631,7 +631,10 @@ and map_keyword_attribute = function
   | DefaultImpl -> Left `DefaultImpl
   (* new: *)
   | Lazy -> Right "lazy"
-  | CaseClass -> Right "CaseClass"
+  | RecordClass -> Right "RecordClass"
+  | AnnotationClass -> Right "AnnotationClass"
+  | EnumClass -> Right "EnumClass"
+  | SealedClass -> Right "SealedClass"
 
 and map_other_attribute_operator _x = "TODO"
 
@@ -1124,9 +1127,6 @@ and map_class_kind = function
   | Interface -> `Interface
   | Trait -> `Trait
   | Object -> `Object
-  | AtInterface -> `AtInterface
-  | RecordClass -> `RecordClass
-  | EnumClass -> failwith "TODO"
 
 and map_directive { d; d_attrs } =
   let d = map_directive_kind d in
