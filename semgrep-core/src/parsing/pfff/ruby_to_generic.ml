@@ -569,7 +569,7 @@ and definition def =
             | None -> []
             | Some (_t2, e) ->
                 let e = expr e in
-                [ H.expr_to_type e ]
+                [ H.expr_to_class_parent e ]
           in
           let ent =
             match name with

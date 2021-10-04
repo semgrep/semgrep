@@ -433,9 +433,10 @@ and type_ v =
   let v = expr v in
   H.expr_to_type v
 
-and type_parent v =
+(* TODO: recognize idioms? *)
+and type_parent v : G.class_parent =
   let v = argument v in
-  G.OtherType (G.OT_Arg, [ G.Ar v ]) |> G.t
+  (G.OtherType (G.OT_Arg, [ G.Ar v ]) |> G.t, None)
 
 and list_stmt1 xs =
   match list stmt xs with

@@ -2438,7 +2438,7 @@ let enum_member_declaration (env : env)
   let v3 = map_opt equals_value_clause env v3 in
   OrEnum (v2, v3)
 
-let base_list (env : env) ((v1, v2, v3) : CST.base_list) =
+let base_list (env : env) ((v1, v2, v3) : CST.base_list) : G.class_parent list =
   let v1 = token env v1 (* ":" *) in
   let v2 = type_constraint env v2 in
   let v3 =
@@ -2449,7 +2449,7 @@ let base_list (env : env) ((v1, v2, v3) : CST.base_list) =
         v2)
       v3
   in
-  v2 :: v3
+  v2 :: v3 |> List.map (fun t -> (t, None))
 
 let accessor_list (env : env) ((v1, v2, v3) : CST.accessor_list) =
   let v1 = token env v1 (* "{" *) in
@@ -2639,7 +2639,7 @@ and enum_declaration env (v1, v2, v3, v4, v5, v6, v7) =
   let v2 = List.map (modifier env) v2 in
   let v3 = token env v3 (* "enum" *) in
   let v4 = identifier env v4 (* identifier *) in
-  let v5 =
+  let v5TODO =
     match v5 with
     | Some x -> base_list env x
     | None -> []

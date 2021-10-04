@@ -36,17 +36,9 @@ let token = H.token
 
 let str = H.str
 
-let fb = fake_bracket
+let fb = G.fake_bracket
 
-let sc = PI.sc
-
-let empty_stmt env t =
-  let t = token env t (* ";" *) in
-  G.emptystmt t
-
-let unhandled_keywordattr_to_namedattr (env : env) tok =
-  let id = str env tok in
-  G.unhandled_keywordattr id
+let sc tok = PI.sc tok
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -57,7 +49,7 @@ let visibility_modifier (env : env) (x : CST.visibility_modifier) =
   match x with
   | `Public tok -> KeywordAttr (Public, token env tok) (* "public" *)
   | `Priv tok -> KeywordAttr (Private, token env tok) (* "private" *)
-  | `Inte tok -> unhandled_keywordattr_to_namedattr env tok (* "internal" *)
+  | `Inte tok -> G.unhandled_keywordattr (str env tok) (* "internal" *)
   | `Prot tok -> KeywordAttr (Protected, token env tok)
 
 (* "protected" *)
@@ -80,8 +72,8 @@ let anon_choice_val_2833752 (env : env) (x : CST.anon_choice_val_2833752) =
 
 let platform_modifier (env : env) (x : CST.platform_modifier) =
   match x with
-  | `Expect tok -> unhandled_keywordattr_to_namedattr env tok (* "expect" *)
-  | `Actual tok -> unhandled_keywordattr_to_namedattr env tok
+  | `Expect tok -> G.unhandled_keywordattr (str env tok) (* "expect" *)
+  | `Actual tok -> G.unhandled_keywordattr (str env tok)
 
 (* "actual" *)
 
@@ -113,7 +105,7 @@ let inheritance_modifier (env : env) (x : CST.inheritance_modifier) =
   match x with
   | `Abst tok -> KeywordAttr (Abstract, token env tok) (* "abstract" *)
   | `Final tok -> KeywordAttr (Final, token env tok) (* "final" *)
-  | `Open tok -> unhandled_keywordattr_to_namedattr env tok
+  | `Open tok -> G.unhandled_keywordattr (str env tok)
 
 (* "open" *)
 
@@ -135,7 +127,7 @@ let variance_modifier (env : env) (x : CST.variance_modifier) : variance wrap =
 let member_modifier (env : env) (x : CST.member_modifier) =
   match x with
   | `Over tok -> KeywordAttr (Override, token env tok) (* "override" *)
-  | `Late tok -> unhandled_keywordattr_to_namedattr env tok
+  | `Late tok -> G.unhandled_keywordattr (str env tok)
 
 (* "lateinit" *)
 
@@ -144,7 +136,7 @@ let class_modifier (env : env) (x : CST.class_modifier) =
   | `Sealed tok -> G.attr SealedClass (token env tok) (* "sealed" *)
   | `Anno tok -> G.attr AnnotationClass (token env tok) (* "annotation" *)
   | `Data tok -> G.attr RecordClass (token env tok) (* "data" *)
-  | `Inner tok -> unhandled_keywordattr_to_namedattr env tok
+  | `Inner tok -> G.unhandled_keywordattr (str env tok)
 
 (* "inner" *)
 
@@ -198,12 +190,12 @@ let as_operator (env : env) (x : CST.as_operator) =
 
 let function_modifier (env : env) (x : CST.function_modifier) =
   match x with
-  | `Tail tok -> unhandled_keywordattr_to_namedattr env tok (* "tailrec" *)
-  | `Op tok -> unhandled_keywordattr_to_namedattr env tok (* "operator" *)
-  | `Infix tok -> unhandled_keywordattr_to_namedattr env tok (* "infix" *)
+  | `Tail tok -> G.unhandled_keywordattr (str env tok) (* "tailrec" *)
+  | `Op tok -> G.unhandled_keywordattr (str env tok) (* "operator" *)
+  | `Infix tok -> G.unhandled_keywordattr (str env tok) (* "infix" *)
   | `Inline tok -> KeywordAttr (Inline, token env tok) (* "inline" *)
   | `Exte tok -> KeywordAttr (Extern, token env tok) (* "external" *)
-  | `Susp tok -> unhandled_keywordattr_to_namedattr env tok
+  | `Susp tok -> G.unhandled_keywordattr (str env tok)
 
 (* "suspend" *)
 
@@ -234,9 +226,9 @@ let multiplicative_operator (env : env) (x : CST.multiplicative_operator) =
 
 let parameter_modifier (env : env) (x : CST.parameter_modifier) =
   match x with
-  | `Vararg tok -> unhandled_keywordattr_to_namedattr env tok (* "vararg" *)
-  | `Noin tok -> unhandled_keywordattr_to_namedattr env tok (* "noinline" *)
-  | `Cros tok -> unhandled_keywordattr_to_namedattr env tok
+  | `Vararg tok -> G.unhandled_keywordattr (str env tok) (* "vararg" *)
+  | `Noin tok -> G.unhandled_keywordattr (str env tok) (* "noinline" *)
+  | `Cros tok -> G.unhandled_keywordattr (str env tok)
 
 (* "crossinline" *)
 
@@ -975,11 +967,12 @@ and declaration (env : env) (x : CST.declaration) : definition =
       let tdef = { tbody = AliasType v4 } in
       (ent, TypeDef tdef)
 
-and delegation_specifier (env : env) (x : CST.delegation_specifier) : type_ =
+and delegation_specifier (env : env) (x : CST.delegation_specifier) :
+    class_parent =
   match x with
   | `Cons_invo x ->
-      let n, _argsTODO = constructor_invocation env x in
-      TyN n |> G.t
+      let n, args = constructor_invocation env x in
+      (TyN n |> G.t, Some args)
   | `Expl_dele (v1, v2, v3) ->
       let v1 =
         match v1 with
@@ -990,14 +983,15 @@ and delegation_specifier (env : env) (x : CST.delegation_specifier) : type_ =
       in
       let v2 = token env v2 (* "by" *) in
       let v3 = expression env v3 in
-      OtherType (OT_Todo, [ TodoK ("ByDelagation", v2); G.T v1; G.E v3 ]) |> G.t
+      ( OtherType (OT_Todo, [ TodoK ("ByDelagation", v2); G.T v1 ]) |> G.t,
+        Some (fb [ G.Arg v3 ]) )
   | `User_type x ->
       let n = user_type env x in
-      TyN n |> G.t
-  | `Func_type x -> function_type env x
+      (TyN n |> G.t, None)
+  | `Func_type x -> (function_type env x, None)
 
 and delegation_specifiers (env : env) ((v1, v2) : CST.delegation_specifiers) :
-    type_ list =
+    class_parent list =
   let v1 = delegation_specifier env v1 in
   let v2 =
     List.map
@@ -1603,7 +1597,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
         | `Cont_stru_body x ->
             let v1 = control_structure_body env x in
             (v1, None)
-        | `SEMI t -> (empty_stmt env t, None)
+        | `SEMI t -> (G.emptystmt (token env t), None)
         | `Opt_cont_stru_body_opt_SEMI_else_choice_cont_stru_body
             (v1, v2, v3, v4) ->
             let v1 =
@@ -1613,14 +1607,14 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
             in
             let _v2 =
               match v2 with
-              | Some t -> Some (empty_stmt env t) (* ";" *)
+              | Some t -> Some (G.emptystmt (token env t)) (* ";" *)
               | None -> None
             in
             let _v3 = token env v3 (* "else" *) in
             let v4 =
               match v4 with
               | `Cont_stru_body x -> control_structure_body env x
-              | `SEMI tok -> empty_stmt env tok
+              | `SEMI tok -> G.emptystmt (token env tok)
               (* ";" *)
             in
             (v1, Some v4)

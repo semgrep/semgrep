@@ -1502,9 +1502,7 @@ and class_kind =
  * header can call its parent constructor using those cparams).
  * alt: keep just 'type_' and add constructor calls in cbody.
  *)
-and class_parent = type_
-
-(* TODO: * arguments option *)
+and class_parent = type_ * arguments option
 
 (* ------------------------------------------------------------------------- *)
 (* Enum entry  *)

@@ -2475,7 +2475,7 @@ and m_or_type a b =
 
 and m_other_type_kind_operator = m_other_xxx
 
-and m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
+and _m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
     (* dots: '...', this is very Python Specific I think *)
       (function
@@ -2493,6 +2493,31 @@ and m_list__m_type_any_order (xsa : G.type_ list) (xsb : G.type_ list) =
    * let _has_ellipsis, xsb = has_ellipsis_and_filter_ellipsis xsb in *)
   (* always implicit ... *)
   m_list_in_any_order ~less_is_ok:true m_type_ xsa xsb
+
+and m_list__m_class_parent (xsa : G.class_parent list)
+    (xsb : G.class_parent list) =
+  (* TODO: m_list_in_any_order ~less_is_ok:true m_class_parent xsa xsb
+   * but regressions for python?
+   *)
+  m_list_with_dots m_class_parent
+    (* dots: '...', this is very Python Specific I think *)
+      (function
+      | ( {
+            G.t =
+              G.OtherType (G.OT_Arg, [ G.Ar (G.Arg { e = G.Ellipsis _i; _ }) ]);
+            _;
+          },
+          None ) ->
+          true
+      | _ -> false)
+    (* less-is-ok: it's ok to not specify all the parents I think *)
+    true (* empty list can not match non-empty list *) xsa xsb
+
+and m_class_parent (a1, a2) (b1, b2) =
+  let* () = m_type_ a1 b1 in
+  (* less: m_option_none_can_match_some? *)
+  let* () = m_option m_arguments a2 b2 in
+  return ()
 
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
@@ -2520,8 +2545,7 @@ and m_class_definition a b =
         cparams = b6;
       } ) ->
       m_class_kind a1 b1 >>= fun () ->
-      (* TODO: use also m_list_in_any_order? regressions for python? *)
-      m_list__m_type_ a2 b2 >>= fun () ->
+      m_list__m_class_parent a2 b2 >>= fun () ->
       m_list__m_type_any_order a3 b3 >>= fun () ->
       m_list__m_type_any_order a5 b5 >>= fun () ->
       m_parameters a6 b6 >>= fun () -> m_bracket m_fields a4 b4
