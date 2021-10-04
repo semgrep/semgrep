@@ -34,6 +34,7 @@ module SJ = Semgrep_core_response_j (* JSON conversions *)
  * the callers of semgrep (semgrep python) can check if multiple metavariables
  * reference the same entity, or reference exactly the same code.
  * See Naming_AST.ml for more information.
+ * TODO: can we delete now that the boolean logic is done in semgrep-core?
  *)
 let unique_id any =
   match any with

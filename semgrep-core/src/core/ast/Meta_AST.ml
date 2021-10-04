@@ -613,7 +613,10 @@ and vof_other_type_operator = function
   | OT_Lifetime -> OCaml.VSum ("OT_Lifetime", [])
 
 and vof_keyword_attribute = function
-  | CaseClass -> OCaml.VSum ("CaseClass", [])
+  | SealedClass -> OCaml.VSum ("SealedClass", [])
+  | AnnotationClass -> OCaml.VSum ("AnnotationClass", [])
+  | RecordClass -> OCaml.VSum ("RecordClass", [])
+  | EnumClass -> OCaml.VSum ("EnumClass", [])
   | Lazy -> OCaml.VSum ("Lazy", [])
   | Static -> OCaml.VSum ("Static", [])
   | Volatile -> OCaml.VSum ("Volatile", [])
@@ -1262,10 +1265,7 @@ and vof_class_kind_bis = function
   | Class -> OCaml.VSum ("Class", [])
   | Interface -> OCaml.VSum ("Interface", [])
   | Trait -> OCaml.VSum ("Trait", [])
-  | AtInterface -> OCaml.VSum ("AtInterface", [])
   | Object -> OCaml.VSum ("Object", [])
-  | RecordClass -> OCaml.VSum ("RecordClass", [])
-  | EnumClass -> OCaml.VSum ("EnumClass", [])
 
 and vof_ident_and_id_info (v1, v2) =
   let v1 = vof_ident v1 in

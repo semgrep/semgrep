@@ -2533,18 +2533,12 @@ and m_class_kind_bis a b =
   | G.Class, B.Class
   | G.Interface, B.Interface
   | G.Trait, B.Trait
-  | G.AtInterface, B.AtInterface
-  | G.Object, B.Object
-  | G.EnumClass, B.EnumClass
-  | G.RecordClass, B.RecordClass ->
+  | G.Object, B.Object ->
       return ()
   | G.Class, _
   | G.Interface, _
   | G.Trait, _
-  | G.AtInterface, _
-  | G.Object, _
-  | G.EnumClass, _
-  | G.RecordClass, _ ->
+  | G.Object, _ ->
       fail ()
 
 (* ------------------------------------------------------------------------- *)

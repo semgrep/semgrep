@@ -650,8 +650,7 @@ and argument (env : env) (x : CST.argument) : G.argument =
       (* pattern \$\.\.\.[A-Z_][A-Z_0-9]* *)
       G.Arg (G.N (G.Id (str env tok, G.empty_id_info ())) |> G.e)
 
-and arguments (env : env) ((v1, v2, v3) : CST.arguments) : G.arguments G.bracket
-    =
+and arguments (env : env) ((v1, v2, v3) : CST.arguments) : G.arguments =
   let v1 = (* "(" *) token env v1 in
   let v2 =
     match v2 with
