@@ -4,8 +4,8 @@ brew update # Needed to sidestep bintray brownout
 brew install opam pkg-config coreutils
 opam init --no-setup --bare;
 #coupling: this should be the same version than in our Dockerfile
-opam switch create 4.12.0;
-opam switch 4.12.0;
+opam switch create 4.13.0~rc1;
+opam switch 4.13.0~rc1;
 git submodule update --init --recursive --depth 1
 
 eval "$(opam env)"
