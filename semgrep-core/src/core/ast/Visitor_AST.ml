@@ -1149,7 +1149,7 @@ let (mk_visitor :
           cparams;
         } =
       let arg = v_class_kind v_ckind in
-      let arg = v_list v_type_ v_cextends in
+      let arg = v_list v_class_parent v_cextends in
       let arg = v_list v_type_ v_cimplements in
       let arg = v_list v_type_ v_mixins in
       v_parameters cparams;
@@ -1158,6 +1158,9 @@ let (mk_visitor :
     in
     vin.kclass_definition (k, all_functions) x
   and v_class_kind (_x, t) = v_tok t
+  and v_class_parent (v1, v2) =
+    v_type_ v1;
+    v_option v_arguments v2
   and v_module_definition { mbody = v_mbody } =
     let arg = v_module_definition_kind v_mbody in
     ()

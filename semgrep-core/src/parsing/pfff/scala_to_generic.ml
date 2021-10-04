@@ -357,31 +357,32 @@ and v_pattern = function
       let v1 = v_pattern v1 and _v2 = v_tok v2 and v3 = v_pattern v3 in
       G.PatDisj (v1, v3)
 
-and todo_expr msg any = G.OtherExpr (G.OE_Todo, G.TodoK (msg, fake msg) :: any)
+and todo_expr msg any =
+  G.OtherExpr (G.OE_Todo, G.TodoK (msg, fake msg) :: any) |> G.e
 
-and v_expr e =
-  (match e with
-  | Ellipsis v1 -> G.Ellipsis v1
-  | DeepEllipsis v1 -> G.DeepEllipsis (v_bracket v_expr v1)
+and v_expr e : G.expr =
+  match e with
+  | Ellipsis v1 -> G.Ellipsis v1 |> G.e
+  | DeepEllipsis v1 -> G.DeepEllipsis (v_bracket v_expr v1) |> G.e
   | L v1 -> (
       let v1 = v_literal v1 in
       match v1 with
-      | Left lit -> G.L lit
-      | Right e -> e.G.e)
+      | Left lit -> G.L lit |> G.e
+      | Right e -> e)
   | Tuple v1 ->
       let v1 = v_bracket (v_list v_expr) v1 in
-      G.Container (G.Tuple, v1)
+      G.Container (G.Tuple, v1) |> G.e
   | Name v1 ->
       let sref, ids = v_path v1 in
       let start =
         match sref with
-        | Left id -> G.N (H.name_of_id id)
-        | Right e -> e.G.e
+        | Left id -> G.N (H.name_of_id id) |> G.e
+        | Right e -> e
       in
       ids
       |> List.fold_left
            (fun acc fld ->
-             G.DotAccess (acc |> G.e, fake ".", G.EN (H.name_of_id fld)))
+             G.DotAccess (acc, fake ".", G.EN (H.name_of_id fld)) |> G.e)
            start
   | ExprUnderscore v1 ->
       let v1 = v_tok v1 in
@@ -391,56 +392,48 @@ and v_expr e =
       todo_expr "InstanciatedExpr" (G.E v1 :: List.map (fun t -> G.T t) v2)
   | TypedExpr (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ascription v3 in
-      G.Cast (v3, v2, v1)
+      G.Cast (v3, v2, v1) |> G.e
   | DotAccess (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ident v3 in
       let name = H.name_of_id v3 in
-      G.DotAccess (v1, v2, G.EN name)
+      G.DotAccess (v1, v2, G.EN name) |> G.e
   | Apply (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_list v_arguments v2 in
-      let x = v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs) |> G.e) v1 in
-      x.G.e
+      v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs) |> G.e) v1
   | Infix (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_ident v2 and v3 = v_expr v3 in
-      G.Call (G.N (H.name_of_id v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+      G.Call (G.N (H.name_of_id v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ]) |> G.e
   | Prefix (v1, v2) ->
       let v1 = v_op v1 and v2 = v_expr v2 in
-      G.Call (G.N (H.name_of_id v1) |> G.e, fb [ G.Arg v2 ])
+      G.Call (G.N (H.name_of_id v1) |> G.e, fb [ G.Arg v2 ]) |> G.e
   | Postfix (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_ident v2 in
-      G.Call (G.N (H.name_of_id v2) |> G.e, fb [ G.Arg v1 ])
+      G.Call (G.N (H.name_of_id v2) |> G.e, fb [ G.Arg v1 ]) |> G.e
   | Assign (v1, v2, v3) ->
       let v1 = v_lhs v1 and v2 = v_tok v2 and v3 = v_expr v3 in
-      G.Assign (v1, v2, v3)
+      G.Assign (v1, v2, v3) |> G.e
   | Lambda v1 ->
       let v1 = v_function_definition v1 in
-      G.Lambda v1
+      G.Lambda v1 |> G.e
   | New (v1, v2) ->
-      let v1 = v_tok v1 and v2, argss = v_template_definition v2 in
+      let v1 = v_tok v1 and v2 = v_template_definition v2 in
       let cl = G.AnonClass v2 |> G.e in
-      let special = G.IdSpecial (G.New, v1) |> G.e in
-      let start = G.Call (special, fb [ G.Arg cl ]) in
-      argss |> List.fold_left (fun acc args -> G.Call (acc |> G.e, args)) start
+      G.special (G.New, v1) [ cl ]
   | BlockExpr v1 -> (
       let lb, kind, _rb = v_block_expr v1 in
       match kind with
-      | Left stats ->
-          let x = expr_of_block stats in
-          x.G.e
-      | Right cases -> G.Lambda (cases_to_lambda lb cases))
+      | Left stats -> expr_of_block stats
+      | Right cases -> G.Lambda (cases_to_lambda lb cases) |> G.e)
   (* TODO: should move Match under S in ast_scala.ml *)
   | Match (v1, v2, v3) ->
       let v1 = v_expr v1
       and v2 = v_tok v2
       and v3 = v_bracket v_case_clauses v3 in
       let st = G.Match (v2, v1, G.unbracket v3) |> G.s in
-      let x = G.stmt_to_expr st in
-      x.G.e
+      G.stmt_to_expr st
   | S v1 ->
       let v1 = v_stmt v1 in
-      let x = G.stmt_to_expr v1 in
-      x.G.e)
-  |> G.e
+      G.stmt_to_expr v1
 
 (* alt: transform in a series of Seq? *)
 and expr_of_block xs : G.expr =
@@ -762,7 +755,7 @@ and v_definition_kind = function
       let v1 = v_type_definition v1 in
       G.TypeDef v1
   | Template v1 ->
-      let v1, _argssTODO = v_template_definition v1 in
+      let v1 = v_template_definition v1 in
       G.ClassDef v1
 
 and v_function_definition
@@ -847,30 +840,36 @@ and v_template_definition
       cparams = v_cparams;
       cparents = v_cparents;
       cbody = v_cbody;
-    } : G.class_definition * G.arguments list =
+    } : G.class_definition =
   let ckind = v_wrap v_template_kind v_ckind in
   (* TODO? flatten? *)
   let cparams = v_list v_bindings v_cparams |> List.flatten in
-  let (cextends, cmixins), argss = v_template_parents v_cparents in
+  let cextends, cmixins = v_template_parents v_cparents in
   let body = v_option v_template_body v_cbody in
   let cbody =
     match body with
     | None -> G.empty_body
     | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.FieldStmt st), rb)
   in
-  ({ G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }, argss)
+  { G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }
 
 and v_template_parents { cextends = v_cextends; cwith = v_cwith } =
-  let parent, argss =
+  let parents =
     match v_cextends with
-    | None -> ([], [])
+    | None -> []
     | Some (v1, v2) ->
         let v1 = v_type_ v1 in
         let v2 = v_list v_arguments v2 in
-        ([ v1 ], v2)
+        let parent =
+          match v2 with
+          | [] -> (v1, None)
+          | [ args ] -> (v1, Some args)
+          | args :: _otherargsTODO -> (v1, Some args)
+        in
+        [ parent ]
   in
   let v2 = v_list v_type_ v_cwith in
-  ((parent, v2), argss)
+  (parents, v2)
 
 and v_template_body v =
   v_bracket
