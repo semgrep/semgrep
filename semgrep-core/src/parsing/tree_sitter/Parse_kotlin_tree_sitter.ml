@@ -111,11 +111,14 @@ let inheritance_modifier (env : env) (x : CST.inheritance_modifier) =
 
 let postfix_unary_operator (env : env) (x : CST.postfix_unary_operator) =
   match x with
-  | `PLUSPLUS tok -> (Left Incr, token env tok) (* "++" *)
-  | `DASHDASH tok -> (Left Decr, token env tok) (* "--" *)
-  | `BANGBANG tok -> (Right NotNullPostfix, token env tok)
-
-(* "!!" *)
+  | `PLUSPLUS tok ->
+      fun e ->
+        G.special (IncrDecr (Incr, Postfix), token env tok (* "++" *)) [ e ]
+  | `DASHDASH tok ->
+      fun e ->
+        G.special (IncrDecr (Decr, Postfix), token env tok (* "--" *)) [ e ]
+  | `BANGBANG tok ->
+      fun e -> G.special (Op NotNullPostfix, token env tok (*!!*)) [ e ]
 
 let variance_modifier (env : env) (x : CST.variance_modifier) : variance wrap =
   match x with
@@ -320,7 +323,8 @@ let type_projection_modifiers (env : env) (xs : CST.type_projection_modifiers) =
 
 let simple_identifier (env : env) (x : CST.simple_identifier) : ident =
   match x with
-  | `Lexi_id x -> lexical_identifier env x
+  | `Choice_lexi_id (`Lexi_id x) -> lexical_identifier env x
+  | `Choice_lexi_id (`Expect x) -> str env x
   | `Pat_831065d x -> str env x
 
 (* pattern \$[a-zA-Z_][a-zA-Z_0-9]* *)
@@ -346,13 +350,6 @@ let identifier (env : env) ((v1, v2) : CST.identifier) : dotted_ident =
       v2
   in
   v1 :: v2
-
-let directly_assignable_expression (env : env)
-    (x : CST.directly_assignable_expression) : expr =
-  match x with
-  | `Simple_id x ->
-      let id = simple_identifier env x in
-      N (H2.name_of_id id) |> G.e
 
 let import_alias (env : env) ((v1, v2) : CST.import_alias) =
   let v1 = token env v1 (* "as" *) in
@@ -465,6 +462,27 @@ and assignment (env : env) (x : CST.assignment) : expr =
       let v2 = assignment_and_operator env v2 in
       let v3 = expression env v3 in
       AssignOp (v1, v2, v3) |> G.e
+  | `Dire_assi_exp_EQ_exp (v1, v2, v3) ->
+      let v1 = directly_assignable_expression env v1 in
+      let v2 = token env v2 (* = *) in
+      let v3 = expression env v3 in
+      Assign (v1, v2, v3) |> G.e
+
+and directly_assignable_expression (env : env)
+    (x : CST.directly_assignable_expression) : expr =
+  match x with
+  | `Simple_id x ->
+      let id = simple_identifier env x in
+      N (H2.name_of_id id) |> G.e
+  | `Post_un_exp (v1, v2) ->
+      let v1 = primary_expression env v1 in
+      let v2 = List.map (postfix_unary_suffix env) v2 in
+      v2 |> List.fold_left (fun acc f -> f acc) v1
+
+and postfix_unary_suffix (env : env) (x : CST.postfix_unary_suffix) =
+  match x with
+  | `Post_un_op x -> postfix_unary_operator env x
+  | `Navi_suffix x -> navigation_suffix env x
 
 and binary_expression (env : env) (x : CST.binary_expression) =
   match x with
@@ -534,17 +552,21 @@ and block (env : env) ((v1, v2, v3) : CST.block) =
   let v3 = token env v3 (* "}" *) in
   Block (v1, v2, v3) |> G.s
 
-and call_suffix (env : env) (v1 : CST.call_suffix) =
-  match v1 with
-  | `Opt_value_args_anno_lambda (v1, _v2) ->
-      let v1 =
-        match v1 with
-        | Some x -> value_arguments env x
-        | None -> fake_bracket []
-      in
-      (*TODO let v2 = annotated_lambda env v2 in*)
-      v1
-  | `Value_args x -> value_arguments env x
+and call_suffix (env : env) ((v1, v2) : CST.call_suffix) : G.arguments =
+  let _v1TODO = Common.map_opt (type_arguments env) v1 in
+  let v2 =
+    match v2 with
+    | `Opt_value_args_anno_lambda (v1, _v2) ->
+        let v1 =
+          match v1 with
+          | Some x -> value_arguments env x
+          | None -> fake_bracket []
+        in
+        (*TODO let v2 = annotated_lambda env v2 in*)
+        v1
+    | `Value_args x -> value_arguments env x
+  in
+  v2
 
 and catch_block (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.catch_block)
     =
@@ -1906,12 +1928,10 @@ and type_reference (env : env) (x : CST.type_reference) : G.type_ =
 
 and unary_expression (env : env) (x : CST.unary_expression) =
   match x with
-  | `Post_exp (v1, v2) -> (
+  | `Post_exp (v1, v2) ->
       let v1 = expression env v1 in
-      let v2, v3 = postfix_unary_operator env v2 in
-      match v2 with
-      | Left incr_decr -> G.special (IncrDecr (incr_decr, Postfix), v3) []
-      | Right operator -> G.special (Op operator, v3) [ v1 ])
+      let v2 = postfix_unary_operator env v2 in
+      v2 v1
   | `Call_exp (v1, v2) ->
       let v1 = expression env v1 in
       let v2 = call_suffix env v2 in
