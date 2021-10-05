@@ -581,6 +581,7 @@ let tests = List.flatten [
   Unit_naming_generic.tests Parse_target.parse_program;
   Unit_guess_lang.tests;
   Unit_memory_limit.tests;
+  Unit_pcre_settings.tests;
 
   lang_parsing_tests;
   (* full testing for many languages *)
