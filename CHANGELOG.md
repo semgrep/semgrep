@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   add support for logging-in to the Registry using the project URL; in
   a future release, this will also perform project analysis to determine
   project languages and frameworks
+- Input can be derived from subshells: `semgrep --config ... <(...)`
 
 ### Changed
 - taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
@@ -22,7 +23,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Added support for break and continue in the dataflow engine
-- Input can be derived from subshells: `semgrep --config ... <(...)`
 - Added support for switch statements in the dataflow engine
 
 ### Changed

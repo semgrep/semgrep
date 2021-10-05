@@ -650,8 +650,7 @@ and argument (env : env) (x : CST.argument) : G.argument =
       (* pattern \$\.\.\.[A-Z_][A-Z_0-9]* *)
       G.Arg (G.N (G.Id (str env tok, G.empty_id_info ())) |> G.e)
 
-and arguments (env : env) ((v1, v2, v3) : CST.arguments) : G.arguments G.bracket
-    =
+and arguments (env : env) ((v1, v2, v3) : CST.arguments) : G.arguments =
   let v1 = (* "(" *) token env v1 in
   let v2 =
     match v2 with
@@ -1719,7 +1718,8 @@ and expression_statement (env : env) ((v1, v2) : CST.expression_statement) =
   let v2 = (* ";" *) token env v2 in
   G.ExprStmt (v1, v2)
 
-and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) =
+and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) :
+    G.class_parent list =
   let _v1 = (* "extends" *) token env v1 in
   let v2 = type_ env v2 in
   let v3 =
@@ -1730,7 +1730,7 @@ and extends_clause (env : env) ((v1, v2, v3) : CST.extends_clause) =
         v2)
       v3
   in
-  v2 :: v3
+  v2 :: v3 |> List.map (fun ty -> (ty, None))
 
 and field_initializer (env : env) ((v1, v2, v3) : CST.field_initializer) =
   let v1 =

@@ -41,30 +41,21 @@ def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
     :return: A sequence of non-pipe specifiers (Path(t).is_file() returns true)
     """
 
-    def helper(remaining: Sequence[str]) -> Iterator[List[str]]:
-        if len(remaining) == 0:
-            yield []
-        target = remaining[0]
-        rest = remaining[1:]
-        if target == "-":
-            try:
-                with tempfile.NamedTemporaryFile(delete=False) as fd:
+    out_targets = []
+    with tempfile.TemporaryDirectory() as temp_dir:
+        for t in targets:
+            if t == "-":
+                with (Path(temp_dir) / "stdin").open("wb") as fd:
                     fd.write(sys.stdin.buffer.read())
-                yield [fd.name] + next(helper(rest), [])
-            finally:
-                os.remove(fd.name)
-        elif Path(target).is_fifo():
-            try:
-                with tempfile.NamedTemporaryFile(delete=False) as fd:
-                    with Path(target).open("rb") as td:
+                out_targets.append(fd.name)
+            elif Path(t).is_fifo():
+                with (Path(temp_dir) / t[1:].replace("/", "_")).open("wb") as fd:
+                    with Path(t).open("rb") as td:
                         fd.write(td.read())
-                yield [fd.name] + next(helper(rest), [])
-            finally:
-                os.remove(fd.name)
-        else:
-            yield [target] + next(helper(rest), [])
-
-    return helper(targets)
+                out_targets.append(fd.name)
+            else:
+                out_targets.append(t)
+        yield out_targets
 
 
 @attr.s(auto_attribs=True)

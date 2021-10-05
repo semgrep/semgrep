@@ -35,13 +35,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 let str_of_ident = fst
 
-let name_of_entity ent =
-  match ent.name with
-  | EN (Id (i, pinfo))
-  | EN (IdQualified ((i, _), pinfo)) ->
-      Some (i, pinfo)
-  | EDynamic _ -> None
-
 (* You can use 0 for globals, even though this will work only on a single
  * file. Any global analysis will need to set a unique ID for globals too. *)
 let gensym_counter = ref 0
@@ -52,7 +45,24 @@ let gensym () =
   incr gensym_counter;
   !gensym_counter
 
-(* before Naming_AST.resolve can do its job *)
+(* TODO: refactor name_qualifier and correctly handle this,
+ * and factorize code in name_of_ids by calling this function.
+ *)
+let name_of_ids_with_opt_typeargs xs =
+  match List.rev xs with
+  | [] -> failwith "name_of_ids_with_opt_typeargs: empty ids"
+  | [ (x, None) ] -> Id (x, empty_id_info ())
+  | (x, _toptTODO) :: xs ->
+      let qualif =
+        if xs = [] then None
+        else
+          Some
+            (QDots
+               (xs |> List.rev |> List.map fst (* TODO use typeargs in xs!! *)))
+      in
+      IdQualified
+        ( (x, { name_qualifier = qualif; name_typeargs = None (*TODO*) }),
+          empty_id_info () )
 
 let name_of_ids ?(name_typeargs = None) xs =
   match List.rev xs with
@@ -128,6 +138,10 @@ let rec pattern_to_expr p =
 let expr_to_type e =
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
   OtherType (OT_Expr, [ E e ]) |> G.t
+
+(* TODO: recognize foo(args)? like in Kotlin/Java *)
+let expr_to_class_parent e : class_parent =
+  (OtherType (OT_Expr, [ E e ]) |> G.t, None)
 
 (* See also exprstmt, and stmt_to_expr in AST_generic.ml *)
 
@@ -266,7 +280,8 @@ let ac_matching_nf op args =
     with Exit ->
       logger#error
         "ac_matching_nf: %s(%s): unexpected ArgKwd | ArgType | ArgOther"
-        (show_operator op) (show_arguments args);
+        (show_operator op)
+        (show_arguments (fake_bracket args));
       None)
   else None
 

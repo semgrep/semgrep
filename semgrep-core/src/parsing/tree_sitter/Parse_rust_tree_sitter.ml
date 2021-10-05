@@ -804,7 +804,7 @@ and map_tuple_pattern_list (env : env)
   pattern_first :: pattern_rest
 
 and map_arguments (env : env) ((v1, v2, _v3TODO, v4) : CST.arguments) :
-    G.arguments G.bracket =
+    G.arguments =
   let lparen = token env v1 (* "(" *) in
   let args =
     match v2 with

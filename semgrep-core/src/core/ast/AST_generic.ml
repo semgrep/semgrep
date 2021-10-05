@@ -17,7 +17,7 @@
 (* Prelude *)
 (*****************************************************************************)
 (* A generic AST, to factorize similar "analysis" in different programming
- * languages (e.g., naming, semantic code highlighting, semgrep).
+ * languages (e.g., naming, semantic code highlighting, semgrep!).
  *
  * Right now this generic AST is mostly the factorized union of:
  *  - Python, Ruby, Lua
@@ -78,7 +78,7 @@
  * TODO? it may be time to rename this file CST_generic.ml
  *
  * todo:
- *  - add C++ (argh)
+ *  - add C++ (argh) and improve things for Kotlin/Scala/Rust
  *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep?
  *
  * related work:
@@ -182,7 +182,7 @@ type 'a bracket = tok * 'a * tok [@@deriving show, eq, hash]
  *)
 type sc = tok [@@deriving show, eq, hash]
 
-(* an AST element not yet handled; works with the Xx_Todo and Todo in any *)
+(* an AST element not yet handled *)
 type todo_kind = string wrap [@@deriving show, eq, hash]
 
 (*****************************************************************************)
@@ -395,7 +395,7 @@ and expr_kind =
   | N of name
   | IdSpecial of special wrap (*e: [[AST_generic.expr]] other identifier cases *)
   (* operators and function application *)
-  | Call of expr * arguments bracket (* can be fake '()' for OCaml/Ruby *)
+  | Call of expr * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
   | Xml of xml
@@ -420,6 +420,7 @@ and expr_kind =
   (* can be used for Record, Class, or Module access depending on expr.
    * In the last case it should be rewritten as a (N IdQualified) with a
    * qualifier though.
+   * TODO? have a dot_operator to differentiate ., .?, and :: in Kotlin?
    *)
   | DotAccess of expr * tok (* ., ::, ->, # *) * name_or_dynamic
   (* in Js ArrayAccess is also abused to perform DotAccess (..., FDynamic) *)
@@ -717,7 +718,8 @@ and xml_body =
   | XmlExpr of expr option bracket
   | XmlXml of xml
 
-and arguments = argument list
+(* brackets can be fake '()' for OCaml/Ruby *)
+and arguments = argument list bracket
 
 and argument =
   (* regular argument *)
@@ -917,7 +919,7 @@ and label = ident
 
 and label_ident =
   | LNone (* C/Python *)
-  | LId of label (* Java/Go *)
+  | LId of label (* Java/Go/Kotlin *)
   | LInt of int wrap (* PHP *)
   (* PHP, woohoo, dynamic break! bailout for CFG *)
   | LDynamic of expr
@@ -1047,10 +1049,10 @@ and type_kind =
    * or just delete and use (TyN Id) instead?
    *)
   | TyBuiltin of string wrap (* int, bool, etc. could be TApply with no args *)
-  (* old: was 'type_ list * type*' , but languages such as C and
+  (* old: was 'TyFun of type_ list * type*' , but languages such as C and
    * Go allow also to name those parameters, and Go even allow ParamRest
    * parameters so we need at least 'type_ * attributes', at which point
-   * it's better to just use parameter.
+   * it's simpler to just reuse parameter.
    *)
   | TyFun of parameter list * type_ (* return type *)
   (* a special case of TApply, also a special case of TPointer *)
@@ -1065,10 +1067,13 @@ and type_kind =
    * note: the type_ should always be a TyN, so really it's a TyNameApply
    * but it's simpler to not repeat TyN to factorize code in semgrep regarding
    * aliasing.
+   * TODO: could merge with TyN when name has proper qualifiers?
    *)
   | TyApply of type_ * type_arguments
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
-  | TyAny of tok (* anonymous type, '_' in OCaml, TODO: type bounds Scala? *)
+  (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin
+   * TODO: type bounds Scala? *)
+  | TyAny of tok
   | TyPointer of tok * type_
   | TyRef of tok * type_ (* C++/Rust *)
   | TyQuestion of type_ * tok (* a.k.a option type *)
@@ -1129,34 +1134,41 @@ and attribute =
   (* a.k.a modifiers *)
   | KeywordAttr of keyword_attribute wrap
   (* a.k.a decorators, annotations *)
-  | NamedAttr of tok (* @ *) * name * arguments bracket
+  | NamedAttr of tok (* '@' *) * name * arguments (* less: option *)
   (* per-language specific keywords like 'transient', 'synchronized' *)
   (* todo: Expr used for Python, but should transform in NamedAttr when can *)
   | OtherAttribute of todo_kind * any list
 
 and keyword_attribute =
-  (* the classic C modifiers *)
+  (* the classic C modifiers (except Auto) *)
   | Static
-  | Volatile
   | Extern
-  (* for class fields/methods *)
+  | Volatile
+  (* the classic C++ modifiers for fields/methods *)
   | Public
   | Private
   | Protected
-  | Abstract
+  | Abstract (* a.k.a virtual in C++ *)
+  (* for fields/methods in classes and also classes *)
   | Final
   | Override
+  | Mutable (* 'var' in Scala *)
+  | Const (* 'readonly' in Typescript, 'val' in Scala *)
+  (* for classes (mostly for JVM languages) *)
+  (* Scala 'case class', Java 'record', Kotlin 'data class' *)
+  | RecordClass
+  (* '@interface' in Java, 'annotation class' in Kotlin *)
+  | AnnotationClass
+  | EnumClass
+  | SealedClass
   (* for variables (JS) *)
   | Var
   | Let
-  (* for fields (kinda types) *)
-  | Mutable (* 'var' in Scala *)
-  | Const (* 'readonly' in Typescript, 'val' in Scala *)
   (* less: should be part of the type? *)
   | Optional
   (* Typescript '?' *)
   | NotNull (* Typescript '!' *)
-  (* for functions/methods *)
+  (* for functions and methods *)
   | Recursive
   | MutuallyRecursive
   | Generator (* '*' in JS *)
@@ -1171,8 +1183,9 @@ and keyword_attribute =
   | Unsafe
   | DefaultImpl (* Rust unstable, RFC 1210 *)
   (* Scala *)
-  | Lazy (* By name application in Scala, via => T, in parameter *)
-  | CaseClass
+  | Lazy
+
+(* By name application in Scala, via => T, in parameter *)
 
 (*****************************************************************************)
 (* Definitions *)
@@ -1233,7 +1246,7 @@ and definition_kind =
    *)
   | FieldDefColon of (* todo: tok (*':'*) * *) variable_definition
   | ClassDef of class_definition
-  (* just inside a ClassDef of EnumClass *)
+  (* just inside a ClassDef with EnumClass *)
   | EnumEntryDef of enum_entry_definition
   | TypeDef of type_definition
   | ModuleDef of module_definition
@@ -1460,17 +1473,14 @@ and field =
 (* less: could be a special kind of type_definition *)
 and class_definition = {
   ckind : class_kind wrap;
-  (* cextends contains usually just one parent, and type_ should be TyApply *)
-  (* TODO? the parent can have arguments, as in Scala, to call super
-   * or when used inside a New.
-   *)
-  cextends : type_ list;
+  (* 'cextends' contains usually 0 or 1 parent, and type_ should be TyN *)
+  cextends : class_parent list;
   (* the class_kind in type_ must be Interface *)
   cimplements : type_ list;
   (* the class_kind in type_ are usually Trait *)
   (* PHP 'uses' *)
   cmixins : type_ list;
-  (* for Java Record and Kotlin/Scala (we could transpile them into fields) *)
+  (* for Java/Kotlin/Scala RecordClass (we could transpile them into fields) *)
   cparams : parameters;
   (* newscope:
    * note: this can be an empty fake bracket when used in Partial.
@@ -1479,19 +1489,22 @@ and class_definition = {
   cbody : field list bracket;
 }
 
-(* invariant: this must remain a simple enum; Map_AST relies on it *)
+(* invariant: this must remain a simple enum; Map_AST relies on it.
+ * for EnumClass/AnnotationClass/etc. see keyword_attribute.
+ *)
 and class_kind =
   | Class
   | Interface
   | Trait
   (* Kotlin/Scala *)
   | Object
-  (* Java 'record', Scala 'case class' *)
-  | RecordClass
-  (* Java/Kotlin *)
-  | EnumClass
-  (* Java @interface, a.k.a annotation type declaration *)
-  | AtInterface
+
+(* A parent can have arguments in Scala/Java/Kotlin (because constructors
+ * can be defined in the class header via cparams and then this class
+ * header can call its parent constructor using those cparams).
+ * alt: keep just 'type_' and add constructor calls in cbody.
+ *)
+and class_parent = type_ * arguments option
 
 (* ------------------------------------------------------------------------- *)
 (* Enum entry  *)
@@ -1499,7 +1512,7 @@ and class_kind =
 (* for EnumClass, complex enums-as-classes in Java/Kotlin/Scala? *)
 and enum_entry_definition = {
   (* the enum identifier is in the corresponding entity *)
-  ee_args : arguments bracket option;
+  ee_args : arguments option;
   ee_body : field list bracket option;
 }
 
@@ -1806,22 +1819,23 @@ let keyval k _tarrow v = Container (Tuple, fake_bracket [ k; v ]) |> e
 (* Parameters *)
 (* ------------------------------------------------------------------------- *)
 
-let param_of_id id =
+(* alt: could use @@deriving make *)
+let param_of_id ?(pattrs = []) ?(ptype = None) ?(pdefault = None) id =
   {
     pname = Some id;
-    pdefault = None;
-    ptype = None;
-    pattrs = [];
+    pdefault;
+    ptype;
+    pattrs;
     pinfo = basic_id_info (Param, sid_TODO);
   }
 
-let param_of_type typ =
+let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
   {
     ptype = Some typ;
-    pname = None;
-    pdefault = None;
-    pattrs = [];
-    pinfo = empty_id_info ();
+    pname;
+    pdefault;
+    pattrs;
+    pinfo = basic_id_info (Param, sid_TODO);
   }
 
 (* ------------------------------------------------------------------------- *)
