@@ -1,5 +1,5 @@
 Metrics turned off. No information will be sent about this run
-Loading local config from rules/syntax/bad7.yaml...
+Loading local config from rules/syntax/bad7.yaml ...
 [31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad7.yaml:3
 [94m3 | [0m  - id: 123

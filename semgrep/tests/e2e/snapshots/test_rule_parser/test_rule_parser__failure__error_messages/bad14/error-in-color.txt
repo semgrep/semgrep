@@ -1,5 +1,5 @@
 Metrics turned off. No information will be sent about this run
-Loading local config from rules/syntax/bad14.yaml...
+Loading local config from rules/syntax/bad14.yaml ...
 [31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad14.yaml:2
 [94m2  | [0m  - id: tainty

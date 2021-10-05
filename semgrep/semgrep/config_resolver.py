@@ -124,7 +124,7 @@ class ConfigPath:
     def _download_config(self) -> Mapping[str, YamlTree]:
         config_url = self._config_path
         downloading_msg = (
-            f"Downloading config from {self._nice_semgrep_url(config_url)}..."
+            f"Downloading config from {self._nice_semgrep_url(config_url)} ..."
         )
         logger.debug(f"trying to download from {config_url}")
         logger.info(downloading_msg.rstrip("\n"))
@@ -148,7 +148,7 @@ class ConfigPath:
         base_path = get_base_path()
         loc = base_path.joinpath(location)
 
-        local_config_msg = f"Loading local config from {loc}..."
+        local_config_msg = f"Loading local config from {loc} ..."
         logger.info(local_config_msg)
         if loc.exists():
             if loc.is_file():
@@ -219,7 +219,7 @@ class Config:
         if any(config.is_registry_url() for config in configs):
             logger.info(
                 message_with_done(
-                    "Fetching rules from Registry (https://semgrep.dev/registry)"
+                    "Fetching rules from Registry: https://semgrep.dev/registry "
                 )
             )
         metric_manager.notify_user_of_metrics()

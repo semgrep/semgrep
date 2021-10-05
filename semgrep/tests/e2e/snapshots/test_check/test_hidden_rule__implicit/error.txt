@@ -1,6 +1,6 @@
 Metrics turned off. No information will be sent about this run
-Loading local config from rules/hidden...
-[80D[1A[KLoading local config from rules/hidden......................................done
+Loading local config from rules/hidden ...
+[80D[1A[KLoading local config from rules/hidden .....................................done
 You need to specify a config with --config=<semgrep.dev config name|localfile|localdirectory|url>.
 If you're looking for a config to start with, there are thousands at: https://semgrep.dev
 The two most popular are:
