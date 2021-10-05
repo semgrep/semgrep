@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Collection
 from typing import Dict
 from typing import Iterator
 from typing import List
@@ -236,7 +237,7 @@ class TargetManager:
 
     @staticmethod
     def expand_targets(
-        root_paths: Set[Path], lang: Language, respect_git_ignore: bool
+        root_paths: Collection[Path], lang: Language, respect_git_ignore: bool
     ) -> Set[Path]:
         """Explore all directories."""
         expanded: Set[Path] = set()
@@ -250,8 +251,6 @@ class TargetManager:
                 )
             else:
                 expanded.add(target)
-
-        print(f"expand_targets returns: {expanded}")
         return expanded
 
     @staticmethod
@@ -378,8 +377,6 @@ class TargetManager:
                 explicit_targets_without_standard_extension
             )
         targets = TargetFiles(explicit=explicit_targets, filterable=filterable_targets)
-
-        print_target_files(f"filtered_targets[{lang.value}]", targets)
         self._filtered_targets[lang] = targets
         return targets
 

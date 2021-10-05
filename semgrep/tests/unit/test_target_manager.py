@@ -705,7 +705,7 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
     )
     defaulthandler = OutputHandler(output_settings)
     assert cmp_targets(
-        TargetManager([], [], [foo], True, defaulthandler, False).get_files(
+        TargetManager([], [], [str(foo)], True, defaulthandler, False).get_files(
             language, [], []
         ),
         explicit={},
