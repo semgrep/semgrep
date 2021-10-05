@@ -7,7 +7,8 @@ let test_register_exception_printer () =
   Pcre_settings.register_exception_printer ();
 
   let msg =
-    try Pcre.pmatch ~pat:"(a+)+$" "aaaaaaaaaaaaaaaaaaaaaaaaaa!" |> assert false
+    let rex = Pcre_settings.regexp "(a+)+$" in
+    try Pcre.pmatch ~rex "aaaaaaaaaaaaaaaaaaaaaaaaaa!" |> assert false
     with e -> Printexc.to_string e
   in
   Alcotest.(check string) "equal" "Pcre.Error(MatchLimit)" msg
