@@ -602,10 +602,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | Label (v1, v2) ->
             let v1 = map_label v1 and v2 = map_stmt v2 in
             Label (v1, v2)
-        | Goto (t, v1) ->
+        | Goto (t, v1, sc) ->
             let t = map_tok t in
             let v1 = map_label v1 in
-            Goto (t, v1)
+            let sc = map_tok sc in
+            Goto (t, v1, sc)
         | Throw (t, v1, sc) ->
             let t = map_tok t in
             let v1 = map_expr v1 in

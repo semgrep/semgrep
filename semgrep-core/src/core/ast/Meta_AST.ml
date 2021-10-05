@@ -723,10 +723,11 @@ and vof_stmt st =
   | Label (v1, v2) ->
       let v1 = vof_label v1 and v2 = vof_stmt v2 in
       OCaml.VSum ("Label", [ v1; v2 ])
-  | Goto (t, v1) ->
+  | Goto (t, v1, sc) ->
       let t = vof_tok t in
       let v1 = vof_label v1 in
-      OCaml.VSum ("Goto", [ t; v1 ])
+      let sc = vof_tok sc in
+      OCaml.VSum ("Goto", [ t; v1; sc ])
   | Throw (t, v1, sc) ->
       let t = vof_tok t in
       let v1 = vof_expr v1 in
