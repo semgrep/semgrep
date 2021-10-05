@@ -289,7 +289,7 @@ and pattern env pat eorig =
 and _catch_exn env exn eorig =
   match exn with
   | G.CatchPattern pat -> pattern env pat eorig
-  | G.CatchParam (_, Some (id, id_info)) ->
+  | G.CatchParam { pname = Some id; pinfo = id_info; _ } ->
       let lval = lval_of_id_info env id id_info in
       (lval, [])
   | _ -> todo (G.Ce exn)
