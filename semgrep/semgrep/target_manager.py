@@ -4,7 +4,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Collection
 from typing import Dict
 from typing import Iterator
 from typing import List
@@ -67,6 +66,13 @@ class TargetFiles(NamedTuple):
     filterable: Set[Path]
 
 
+def print_target_files(msg: str, targets: TargetFiles) -> None:
+    """ Print target files for debugging purposes."""
+    print(f"{msg}:")
+    print(f"  filterable targets = {targets.filterable}")
+    print(f"  explicit targets = {targets.explicit}")
+
+
 @attr.s(auto_attribs=True)
 class TargetManager:
     """
@@ -116,6 +122,10 @@ class TargetManager:
         return TargetManager._is_valid_file_or_dir(path) and path.is_file()
 
     @staticmethod
+    def _is_executable_file(path: Path) -> bool:
+        return TargetManager._is_valid_file(path) and os.access(path, os.X_OK)
+
+    @staticmethod
     def _filter_valid_files(paths: Set[Path]) -> Set[Path]:
         """Keep only readable regular files"""
         return set(path for path in paths if TargetManager._is_valid_file(path))
@@ -150,17 +160,27 @@ class TargetManager:
         def _find_files_with_extension(
             curr_dir: Path, extension: FileExtension
         ) -> Set[Path]:
-            """
-            Return set of all files in curr_dir with given extension
-            """
+            """Return set of all files in curr_dir with given extension."""
             return set(
                 p
                 for p in curr_dir.rglob(f"*{extension}")
                 if TargetManager._is_valid_file(p)
             )
 
+        def _find_executable_files(curr_dir: Path) -> Set[Path]:
+            """Return set of all executable files without an extension in curr_dir."""
+            return set(
+                p
+                for p in curr_dir.rglob(f"*")
+                if TargetManager._is_executable_file(p) and not p.match("*.*")
+            )
+
         extensions = lang_to_exts(language)
         expanded: Set[Path] = set()
+
+        # Include all executables without an extension
+        exec_files = _find_executable_files(curr_dir)
+        expanded = expanded.union(exec_files)
 
         for ext in extensions:
             if respect_git_ignore:
@@ -216,11 +236,11 @@ class TargetManager:
 
     @staticmethod
     def expand_targets(
-        targets: Collection[Path], lang: Language, respect_git_ignore: bool
+        root_paths: Set[Path], lang: Language, respect_git_ignore: bool
     ) -> Set[Path]:
         """Explore all directories."""
         expanded: Set[Path] = set()
-        for target in targets:
+        for target in root_paths:
             if not TargetManager._is_valid_file_or_dir(target):
                 continue
 
@@ -231,6 +251,7 @@ class TargetManager:
             else:
                 expanded.add(target)
 
+        print(f"expand_targets returns: {expanded}")
         return expanded
 
     @staticmethod
@@ -251,33 +272,26 @@ class TargetManager:
         return result
 
     @staticmethod
-    def filter_includes(arr: Set[Path], includes: Sequence[str]) -> Set[Path]:
-        """
-        Returns all elements in arr that match any includes pattern
-
-        If includes is empty, returns arr unchanged
-        """
+    def filter_includes(paths: Set[Path], includes: Sequence[str]) -> Set[Path]:
+        """Restrict the set to the files matching the 'includes' pattern, if specified."""
         if not includes:
-            return arr
+            return paths
         includes = TargetManager.preprocess_path_patterns(includes)
-        return set(
-            wcglob.globfilter(arr, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
+        paths = set(
+            wcglob.globfilter(paths, includes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
         )
+        return paths
 
     @staticmethod
-    def filter_excludes(arr: Set[Path], excludes: Sequence[str]) -> Set[Path]:
-        """
-        Returns all elements in arr that do not match any excludes pattern
-
-        If excludes is empty, returns arr unchanged
-        """
-        if not excludes:
-            return arr
-
+    def filter_excludes(paths: Set[Path], excludes: Sequence[str]) -> Set[Path]:
+        """Restrict the set to the files not matching the 'excludes' pattern."""
+        if not excludes:  # just an optimization
+            return paths
         excludes = TargetManager.preprocess_path_patterns(excludes)
-        return arr - set(
-            wcglob.globfilter(arr, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
+        paths = paths - set(
+            wcglob.globfilter(paths, excludes, flags=wcglob.GLOBSTAR | wcglob.DOTGLOB)
         )
+        return paths
 
     def filtered_files(self, lang: Language) -> TargetFiles:
         """Return files that should be analyzed for a language.
@@ -298,9 +312,9 @@ class TargetManager:
         if lang in self._filtered_targets:
             return self._filtered_targets[lang]
 
-        targets = self.resolve_targets(self.targets)
+        root_targets = self.resolve_targets(self.targets)
 
-        files, directories = partition_set(lambda p: not p.is_dir(), targets)
+        files, directories = partition_set(lambda p: not p.is_dir(), root_targets)
 
         # Error on non-existent files
         explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
@@ -310,15 +324,20 @@ class TargetManager:
             )
 
         # Scan file system and filter for language lang.
-        targets = self.expand_targets(directories, lang, self.respect_git_ignore)
-
-        # Filter based on custom glob patterns.
-        targets = self.filter_includes(targets, self.includes)
-        targets = self.filter_excludes(targets, [*self.excludes, ".git"])
+        filterable_targets = self.expand_targets(
+            directories, lang, self.respect_git_ignore
+        )
+        explicit_targets = explicit_files
 
         # Avoid duplicates (e.g. foo/bar can be both an explicit file and
         # discovered in folder foo/)
-        targets = targets.difference(explicit_files)
+        filterable_targets = filterable_targets - explicit_targets
+
+        # Filter based on custom glob patterns.
+        filterable_targets = self.filter_includes(filterable_targets, self.includes)
+        filterable_targets = self.filter_excludes(
+            filterable_targets, [*self.excludes, ".git"]
+        )
 
         # Remove explicit targets with *known* extensions.
         # This violates "process all target files explicitly passed on the
@@ -337,31 +356,32 @@ class TargetManager:
         # if needed, which would avoid duplicate matches and would avoid
         # reporting a parsing error if parsing was successful with one language.
         #
-        explicit_files_without_standard_extension = set(
+        explicit_targets_without_standard_extension = set(
             f
-            for f in explicit_files
-            if not any(f.match(f"*{ext}") for ext in ALL_EXTENSIONS)
+            for f in explicit_targets
+            if f.match(f"*.*") and not any(f.match(f"*{ext}") for ext in ALL_EXTENSIONS)
         )
 
-        explicit_files_with_expected_extension = set(
+        explicit_targets_with_expected_extension = set(
             f
-            for f in explicit_files
-            if any(f.match(f"*{ext}") for ext in lang_to_exts(lang))
+            for f in explicit_targets
+            if not f.match(f"*.*")
+            or any(f.match(f"*{ext}") for ext in lang_to_exts(lang))
         )
 
         # Optionally ignore explicit files with incorrect extensions for the
         # language (CLI option --skip-unknown-extensions).
         if self.skip_unknown_extensions:
-            explicit_files = explicit_files_with_expected_extension
+            explicit_targets = explicit_targets_with_expected_extension
         else:  # default
-            explicit_files = explicit_files_with_expected_extension.union(
-                explicit_files_without_standard_extension
+            explicit_targets = explicit_targets_with_expected_extension.union(
+                explicit_targets_without_standard_extension
             )
+        targets = TargetFiles(explicit=explicit_targets, filterable=filterable_targets)
 
-        self._filtered_targets[lang] = TargetFiles(
-            explicit=explicit_files, filterable=targets
-        )
-        return self._filtered_targets[lang]
+        print_target_files(f"filtered_targets[{lang.value}]", targets)
+        self._filtered_targets[lang] = targets
+        return targets
 
     def get_files(
         self, lang: Language, extra_includes: List[str], extra_excludes: List[str]
@@ -371,7 +391,8 @@ class TargetManager:
         This is meant for adding or removing target files from the default
         set on a rule-specific basis.
         """
-        explicit_targets, filterable_targets = self.filtered_files(lang)
-        filterable_targets = self.filter_includes(filterable_targets, extra_includes)
+        targets = self.filtered_files(lang)
+        filterable_targets = self.filter_includes(targets.filterable, extra_includes)
         filterable_targets = self.filter_excludes(filterable_targets, extra_excludes)
-        return TargetFiles(explicit=explicit_targets, filterable=filterable_targets)
+        targets = TargetFiles(explicit=targets.explicit, filterable=filterable_targets)
+        return targets
