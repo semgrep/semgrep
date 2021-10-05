@@ -5,6 +5,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Added "automatic configuration" (`--config auto`), which collaborates with
+  the Semgrep Registry to customize rules to a project; to support this, we
+  add support for logging-in to the Registry using the project URL; in
+  a future release, this will also perform project analysis to determine
+  project languages and frameworks
 
 ### Changed
 - taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
@@ -40,11 +45,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - HCL (a.k.a Terraform) experimental support
-- Added "automatic configuration" (`--config auto`), which collaborates with
-  the Semgrep Registry to customize rules to a project; to support this, we
-  add support for logging-in to the Registry using the project URL; in
-  a future release, this will also perform project analysis to determine
-  project languages and frameworks
 
 ### Changed
 - Constant propagation now assumes that void methods may update the callee (#3316)
