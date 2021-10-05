@@ -40,6 +40,7 @@ type visitor_in = {
   kdef : (definition -> unit) * visitor_out -> definition -> unit;
   kdir : (directive -> unit) * visitor_out -> directive -> unit;
   kparam : (parameter -> unit) * visitor_out -> parameter -> unit;
+  kcatch : (catch -> unit) * visitor_out -> catch -> unit;
   kident : (ident -> unit) * visitor_out -> ident -> unit;
   kname : (name -> unit) * visitor_out -> name -> unit;
   kentity : (entity -> unit) * visitor_out -> entity -> unit;
@@ -67,6 +68,7 @@ let default_visitor =
     kdir = (fun (k, _) x -> k x);
     kattr = (fun (k, _) x -> k x);
     kparam = (fun (k, _) x -> k x);
+    kcatch = (fun (k, _) x -> k x);
     kident = (fun (k, _) x -> k x);
     kname = (fun (k, _) x -> k x);
     kentity = (fun (k, _) x -> k x);
@@ -774,11 +776,26 @@ let (mk_visitor :
     | Default t ->
         let t = v_tok t in
         ()
-  and v_catch (t, v1, v2) =
-    v_partial ~recurse:false (PartialCatch (t, v1, v2));
-    let t = v_tok t in
-    let v1 = v_pattern v1 and v2 = v_stmt v2 in
-    ()
+  and v_catch x =
+    let k (t, v1, v2) =
+      v_partial ~recurse:false (PartialCatch (t, v1, v2));
+      let t = v_tok t in
+      let v1 = v_catch_exn v1 and v2 = v_stmt v2 in
+      ()
+    in
+    vin.kcatch (k, all_functions) x
+  and v_catch_exn = function
+    | CatchPattern p -> v_pattern p
+    | CatchParam (v1, v2) ->
+        let v1 = v_type_ v1
+        and v2 =
+          v_option
+            (fun (v1, v2) ->
+              let v1 = v_ident v1 and v2 = v_id_info v2 in
+              ())
+            v2
+        in
+        ()
   and v_finally (t, v) =
     v_partial ~recurse:false (PartialFinally (t, v));
     let t = v_tok t in
@@ -821,16 +838,6 @@ let (mk_visitor :
           ()
       | PatId (v1, v2) ->
           let v1 = v_ident v1 and v2 = v_id_info v2 in
-          ()
-      | PatVar (v1, v2) ->
-          let v1 = v_type_ v1
-          and v2 =
-            v_option
-              (fun (v1, v2) ->
-                let v1 = v_ident v1 and v2 = v_id_info v2 in
-                ())
-              v2
-          in
           ()
       | PatLiteral v1 ->
           let v1 = v_literal v1 in
@@ -1267,6 +1274,9 @@ let (mk_visitor :
         ()
     | Pa v1 ->
         let v1 = v_parameter v1 in
+        ()
+    | Ce v1 ->
+        let v1 = v_catch_exn v1 in
         ()
     | Ar v1 ->
         let v1 = v_argument v1 in

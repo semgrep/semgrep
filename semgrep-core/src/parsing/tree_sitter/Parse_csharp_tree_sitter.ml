@@ -1072,17 +1072,17 @@ and catch_clause (env : env) ((v1, v2, v3, v4) : CST.catch_clause) =
   let v2 =
     match v2 with
     | Some x -> catch_declaration env x
-    | None -> PatUnderscore (fake "_")
+    | None -> CatchPattern (PatUnderscore (fake "_"))
   in
-  let pat =
+  let exn =
     match v3 with
     | Some x ->
-        let filter = catch_filter_clause env x in
-        PatWhen (v2, filter)
+        let _filterTODO = catch_filter_clause env x in
+        v2
     | None -> v2
   in
   let v4 = block env v4 in
-  (v1, pat, v4)
+  (v1, exn, v4)
 
 and ordering (env : env) ((v1, v2) : CST.ordering) =
   let v1 = expression env v1 in
@@ -1884,7 +1884,8 @@ and tuple_element (env : env) ((v1, v2) : CST.tuple_element) =
 and constant_pattern (env : env) (x : CST.constant_pattern) =
   H2.expr_to_pattern (expression env x)
 
-and catch_declaration (env : env) ((v1, v2, v3, v4) : CST.catch_declaration) =
+and catch_declaration (env : env) ((v1, v2, v3, v4) : CST.catch_declaration) :
+    G.catch_exn =
   let _v1 = token env v1 (* "(" *) in
   let v2 = type_constraint env v2 in
   let v3 = Common.map_opt (identifier env) v3 (* identifier *) in
@@ -1894,7 +1895,7 @@ and catch_declaration (env : env) ((v1, v2, v3, v4) : CST.catch_declaration) =
     | Some ident -> Some (ident, empty_id_info ())
     | None -> None
   in
-  PatVar (v2, var)
+  CatchParam (v2, var)
 
 and case_pattern_switch_label (env : env)
     ((v1, v2, v3, v4) : CST.case_pattern_switch_label) =

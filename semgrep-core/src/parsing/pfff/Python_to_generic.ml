@@ -733,22 +733,23 @@ and excepthandler = function
       let v1 = option expr v1 (* a type actually, even tuple of types *)
       and v2 = option name v2
       and v3 = list_stmt1 v3 in
-      ( t,
-        (match (v1, v2) with
+      let exn : G.catch_exn =
+        match (v1, v2) with
         | Some e, None -> (
             match e.G.e with
-            | G.Ellipsis tok -> G.PatEllipsis tok
-            | G.Container (G.Tuple, _) -> G.PatVar (H.expr_to_type e, None)
+            | G.Ellipsis tok -> G.CatchPattern (G.PatEllipsis tok)
+            | G.Container (G.Tuple, _) -> G.CatchParam (H.expr_to_type e, None)
             | _ ->
-                G.PatVar
+                G.CatchParam
                   ( H.expr_to_type
                       (G.Container (G.Tuple, G.fake_bracket [ e ]) |> G.e),
                     None ))
-        | None, None -> G.PatUnderscore (fake t "_")
+        | None, None -> G.CatchPattern (G.PatUnderscore (fake t "_"))
         | None, Some _ -> raise Impossible (* see the grammar *)
         | Some e, Some n ->
-            G.PatVar (H.expr_to_type e, Some (n, G.empty_id_info ()))),
-        v3 )
+            G.CatchParam (H.expr_to_type e, Some (n, G.empty_id_info ()))
+      in
+      (t, exn, v3)
 
 and decorator (t, v1, v2) =
   let v1 = dotted_name v1 in

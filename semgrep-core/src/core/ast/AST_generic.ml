@@ -910,7 +910,17 @@ and case =
 and action = pattern * expr
 
 (* newvar: newscope: usually a PatVar *)
-and catch = tok (* 'catch', 'except' in Python *) * pattern * stmt
+and catch = tok (* 'catch', 'except' in Python *) * catch_exn * stmt
+
+and catch_exn =
+  | CatchPattern of pattern
+  (* for Java/C++/PHP/etc.
+   * less: do instead PatAs (PatType(TyApply, var))?
+   *       or even    PatAs (PatConstructor(id, []), var)?
+   * old: PatVar of type_ * (ident * id_info) option
+   * was in pattern as PatVar, but better to move out of pattern.
+   *)
+  | CatchParam of (* TODO parameter_classic *) type_ * (ident * id_info) option
 
 (* newscope: *)
 and finally = tok (* 'finally' *) * stmt
@@ -995,7 +1005,7 @@ and other_stmt_operator =
 (*****************************************************************************)
 (* This is quite similar to expr. A few constructs in expr have
  * equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
- * maybe factorize with expr, and this may help sgrep, but I think it's
+ * maybe factorize with expr, and this may help semgrep, but I think it's
  * cleaner to have a separate type because the scoping rules for a pattern and
  * an expr are quite different and not any expr is allowed here.
  *)
@@ -1023,12 +1033,6 @@ and pattern =
   | PatAs of pattern * (ident * id_info)
   (* For Go also in switch x.(type) { case int: ... } *)
   | PatType of type_
-  (* In catch for Java/PHP, and foreach in Java.
-   * less: do instead PatAs (PatType(TyApply, var))?
-   *       or even    PatAs (PatConstructor(id, []), var)?
-   * or move out of pattern and improve the 'catch' type?
-   *)
-  | PatVar of type_ * (ident * id_info) option
   (* sgrep: *)
   | PatEllipsis of tok
   | DisjPat of pattern * pattern
@@ -1657,6 +1661,7 @@ and any =
   | ModDk of module_definition_kind
   | En of entity
   | Pa of parameter
+  | Ce of catch_exn
   | Dk of definition_kind
   | Di of dotted_ident
   | Lbli of label_ident

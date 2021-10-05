@@ -1031,9 +1031,8 @@ and catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) =
   let v4 = (* variable *) Some (str env v4, G.empty_id_info ()) in
   let _v5 = (* ")" *) token env v5 in
   let v6 = compound_statement env v6 in
-  (* Q: PatTyped vs PVal? *)
-  let pattern = G.PatVar (v3, v4) in
-  (v1, pattern, v6)
+  let exn = G.CatchParam (v3, v4) in
+  (v1, exn, v6)
 
 and class_const_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.class_const_declaration) =

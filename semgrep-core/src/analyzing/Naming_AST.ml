@@ -555,6 +555,15 @@ let resolve lang prog =
               add_ident_imported_scope alias resolved env.names
           | _ -> ());
           k x);
+      V.kcatch =
+        (fun (k, _vout) x ->
+          let _t, exn, _st = x in
+          (match exn with
+          | CatchParam (_e, Some (id, id_info))
+            when is_resolvable_name_ctx env lang ->
+              declare_var env lang id id_info ~explicit:true None None
+          | _ -> ());
+          k x);
       V.kpattern =
         (fun (k, _vout) x ->
           match x with
@@ -564,10 +573,6 @@ let resolve lang prog =
                * Also inside a PatAs(PatId x,b), the 'x' is actually
                * the name of a class, not a newly introduced local.
                *)
-              declare_var env lang id id_info ~explicit:true None None;
-              k x
-          | PatVar (_e, Some (id, id_info)) when is_resolvable_name_ctx env lang
-            ->
               declare_var env lang id id_info ~explicit:true None None;
               k x
           | OtherPat _
