@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from urllib.parse import urlparse
@@ -10,6 +11,7 @@ from urllib.parse import urlparse
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
+from semgrep.rule_match import RuleMatch
 from semgrep.verbose_logging import getLogger
 
 METRICS_ENDPOINT = "https://metrics.semgrep.dev"
@@ -43,6 +45,7 @@ class _MetricManager:
         self._errors: List[str] = []
         self._file_stats: List[Dict[str, Any]] = []
         self._rule_stats: List[Dict[str, Any]] = []
+        self._rules_with_findings: Sequence[str] = []
 
         self._send_metrics = False
 
@@ -112,6 +115,11 @@ class _MetricManager:
     def set_errors(self, error_types: List[str]) -> None:
         self._errors = error_types
 
+    def set_rules_with_findings(
+        self, findings: Mapping[Rule, Sequence[RuleMatch]]
+    ) -> None:
+        self._rules_with_findings = [r.full_hash for r in findings.keys()]
+
     def set_run_timings(
         self, profiling_data: ProfilingData, targets: List[Path], rules: List[Rule]
     ) -> None:
@@ -169,6 +177,7 @@ class _MetricManager:
             "value": {
                 "numFindings": self._num_findings,
                 "numIgnored": self._num_ignored,
+                "ruleHashesWithFindings": self._rules_with_findings,
             },
         }
 

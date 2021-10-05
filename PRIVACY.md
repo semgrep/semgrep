@@ -118,6 +118,7 @@ r2c will:
 |   |Warnings   |Array of Warning Classes (compile-time-constant)   |Understand most common warnings users encounter    |`["TimeoutExceeded"]`    |WarningClass[] |
 |   |   |   |   |   |   |
 |Value  |   |   |   |   |   |
+|   |Rule hashes with findings|Array of rule hashes that triggered on this run|Understand which rules are providing value to the user |`["7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166"]` |String[]   |
 |   |Total Findings |Count of all findings  |Understand if rules are super noisy for the user   |7  |Number |
 |   |Total Nosems   |Count of all `nosem` annotations that tell semgrep to ignore a finding |Understand if rules are super noisy for the user   |3  |Number |
 
@@ -161,6 +162,7 @@ This is a sample blob of the aggregate metrics described above:
         "warnings": ["MaxFileSizeExceeded", "TimeoutExceeded"]
     },
     "value": {
+        "ruleHashesWithFindings": ["7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166"],
         "numFindings": 7,
         "numIgnored": 3
     }
