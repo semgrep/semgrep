@@ -755,7 +755,7 @@ and other_expr_operator =
   | OE_NewQualifiedClass
   | OE_Annot
   (* C *)
-  | OE_GetRefLabel
+  | OE_GetRefLabel (* TODO DELETE? just LDynamic? *)
   | OE_ArrayInitDesignator (* [x] = ... todo? use ArrayAccess in container?*)
   (* PHP *)
   | OE_Unpack
@@ -858,7 +858,7 @@ and stmt_kind =
   | Break of tok * label_ident * sc
   (* todo? remove stmt argument? more symetric to Goto *)
   | Label of label * stmt
-  | Goto of tok * label
+  | Goto of tok * label * sc (* less: use label_ident for computed goto in C*)
   (* TODO? move in expr! in C++ the expr can be an option *)
   | Throw of tok (* 'raise' in OCaml, 'throw' in Java/PHP *) * expr * sc
   | Try of tok * stmt * catch list * finally option
@@ -1026,6 +1026,7 @@ and pattern =
   (* In catch for Java/PHP, and foreach in Java.
    * less: do instead PatAs (PatType(TyApply, var))?
    *       or even    PatAs (PatConstructor(id, []), var)?
+   * or move out of pattern and improve the 'catch' type?
    *)
   | PatVar of type_ * (ident * id_info) option
   (* sgrep: *)

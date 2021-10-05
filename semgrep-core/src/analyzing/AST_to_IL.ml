@@ -906,7 +906,7 @@ let rec stmt_aux env st =
       let lbl = label_of_label env lbl in
       let st = stmt env st in
       [ mk_s (Label lbl) ] @ st
-  | G.Goto (tok, lbl) ->
+  | G.Goto (tok, lbl, _sc) ->
       let lbl = lookup_label env lbl in
       [ mk_s (Goto (tok, lbl)) ]
   | G.Return (tok, eopt, _) ->
