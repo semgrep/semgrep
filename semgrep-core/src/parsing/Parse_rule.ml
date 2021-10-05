@@ -271,9 +271,8 @@ let parse_int env (key : key) x =
   match x.G.e with
   | G.L (Int (Some i, _)) -> i
   | G.L (String (s, _)) -> (
-      try int_of_string s
-      with Failure _ ->
-        error_at_key env key (spf "parse_int for %s" (fst key)))
+      try int_of_string s with
+      | Failure _ -> error_at_key env key (spf "parse_int for %s" (fst key)))
   | G.L (Float (Some f, _)) ->
       let i = int_of_float f in
       if float_of_int i = f then i else error_at_key env key "not an int"
@@ -317,9 +316,9 @@ let parse_metavar_cond env key s =
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_regexp env (s, t) =
-  try (s, Pcre.regexp s)
-  with Pcre.Error exn ->
-    raise (R.InvalidRegexp (env.id, pcre_error_to_string s exn, t))
+  try (s, Pcre.regexp s) with
+  | Pcre.Error exn ->
+      raise (R.InvalidRegexp (env.id, pcre_error_to_string s exn, t))
 
 let parse_fix_regex (env : env) (key : key) fields =
   let fix_regex_dict = yaml_to_dict env key fields in
@@ -577,11 +576,13 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
   match fst key with
   | "metavariable-regex" ->
       let mv_regex_dict =
-        try yaml_to_dict env key value
-        with R.DuplicateYamlKey (msg, t) ->
-          raise
-            (R.InvalidRule
-               (env.id, msg ^ ". You should use multiple metavariable-regex", t))
+        try yaml_to_dict env key value with
+        | R.DuplicateYamlKey (msg, t) ->
+            raise
+              (R.InvalidRule
+                 ( env.id,
+                   msg ^ ". You should use multiple metavariable-regex",
+                   t ))
       in
       let metavar, regexp =
         ( take mv_regex_dict env parse_string "metavariable",
@@ -647,6 +648,7 @@ let parse_severity ~id (s, t) =
   | "ERROR" -> R.Error
   | "WARNING" -> R.Warning
   | "INFO" -> R.Info
+  | "INVENTORY" -> R.Inventory
   | s ->
       raise
         (R.InvalidRule

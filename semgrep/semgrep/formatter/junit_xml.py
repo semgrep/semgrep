@@ -1,6 +1,6 @@
 from typing import Any
 from typing import cast
-from typing import FrozenSet
+from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
@@ -29,10 +29,10 @@ class JunitXmlFormatter(BaseFormatter):
         )
         return test_case
 
-    def output(
+    def format(
         self,
-        rules: FrozenSet[Rule],
-        rule_matches: Sequence[RuleMatch],
+        rules: Iterable[Rule],
+        rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
         extra: Mapping[str, Any],
     ) -> str:

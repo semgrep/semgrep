@@ -74,6 +74,13 @@ def test_output_format(run_semgrep_in_tmp, snapshot, format):
     snapshot.assert_match(clean, "results.out")
 
 
+def test_omit_inventory(run_semgrep_in_tmp, snapshot):
+    stdout, _ = run_semgrep_in_tmp(
+        "rules/inventory/invent.yaml", target_name="inventory/invent.py"
+    )
+    snapshot.assert_match(stdout, "results.out")
+
+
 def test_junit_xml_output(run_semgrep_in_tmp, snapshot):
     output, _ = run_semgrep_in_tmp(
         "rules/eqeq.yaml", output_format=OutputFormat.JUNIT_XML
