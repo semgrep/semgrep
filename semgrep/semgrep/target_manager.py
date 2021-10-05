@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Collection
 from typing import Dict
@@ -148,37 +149,56 @@ class TargetManager:
             """
             if not os.access(str(f), os.X_OK | os.R_OK):
                 return False
-            with f.open("r") as fd:
-                hline = fd.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
-            return any(hline.endswith(s) for s in shebangs)
+            try:
+                with f.open("r") as fd:
+                    hline = fd.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+                return any(hline.endswith(s) for s in shebangs)
+            except UnicodeDecodeError:
+                logger.debug(
+                    f"Encountered likely binary file {f} while reading shebang; skipping this file"
+                )
+                return False
 
         def _find_files_with_extension_or_shebang(
-            curr_dir: Path, extensions: Iterable[FileExtension], shebangs: Set[Shebang]
+            paths: Iterable[Path],
+            extensions: Iterable[FileExtension],
+            shebangs: Set[Shebang],
         ) -> FrozenSet[Path]:
             """
-            Finds all files in a directory that either:
+            Finds all files in a collection of paths that either:
             - end with one of a set of extensions
             - is a script that executes with one of a set of programs
 
-            Takes ~ 50 ms to execute on a Mac PowerBook on a repo with 1000 files.
+            Takes ~ 100 ms to execute on a Mac PowerBook on a repo with 3000 files.
             """
-            with_extensions = (
-                p for ext in extensions for p in curr_dir.rglob(f"*{ext}")
+            res: Set[Path] = set()
+            before = time.time()
+            for path in paths:
+                if path.is_dir():
+                    res.update(p for ext in extensions for p in path.rglob(f"*{ext}"))
+                    res.update(
+                        Path(root) / f
+                        for root, _, files in os.walk(str(curr_dir))
+                        for f in files
+                        if _executes_with_shebang(Path(root) / f, shebangs)
+                    )
+                else:
+                    if any(str(path).endswith(ext) for ext in extensions):
+                        res.add(path)
+                    if _executes_with_shebang(path, shebangs):
+                        res.add(path)
+            logger.debug(
+                f"Scanned file system for matching files in {time.time() - before} s"
             )
-            with_shebangs = (
-                Path(root) / f
-                for root, _, files in os.walk(str(curr_dir))
-                for f in files
-                if _executes_with_shebang(Path(root) / f, shebangs)
-            )
-            return frozenset({*with_extensions, *with_shebangs})
+            return frozenset(res)
 
         extensions, shebangs = lang_to_exts_and_shebangs(language)
 
-        results = _find_files_with_extension_or_shebang(curr_dir, extensions, shebangs)
-
         if respect_git_ignore:
             try:
+                # git ls-files is significantly faster than os.walk when performed on a git project,
+                # so identify the git files first, then filter those
+
                 # Tracked files
                 tracked_output = sub_check_output(
                     ["git", "ls-files"],
@@ -209,8 +229,9 @@ class TargetManager:
                 tracked = _parse_output(tracked_output, curr_dir)
                 untracked_unignored = _parse_output(untracked_output, curr_dir)
                 deleted = _parse_output(deleted_output, curr_dir)
-                results = results.intersection(
-                    tracked.union(untracked_unignored).union(deleted)
+                paths = tracked.union(untracked_unignored).union(deleted)
+                results = _find_files_with_extension_or_shebang(
+                    paths, extensions, shebangs
                 )
 
             except (subprocess.CalledProcessError, FileNotFoundError):
@@ -218,6 +239,13 @@ class TargetManager:
                     f"Unable to ignore files ignored by git ({curr_dir} is not a git directory or git is not installed). Running on all files instead..."
                 )
                 # Not a git directory or git not installed. Fallback to using rglob
+                results = _find_files_with_extension_or_shebang(
+                    [curr_dir], extensions, shebangs
+                )
+        else:
+            results = _find_files_with_extension_or_shebang(
+                [curr_dir], extensions, shebangs
+            )
 
         return TargetManager._filter_valid_files(results)
 
