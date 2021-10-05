@@ -658,26 +658,27 @@ and body_exn x =
           let st = G.Block (fb [ try_; st ]) |> G.s in
           G.OtherStmtWithStmt (G.OSWS_Else_in_try, None, st) |> G.s)
 
-and rescue_clause (t, exns, exnvaropt, sts) =
+and rescue_clause (t, exns, exnvaropt, sts) : G.catch =
   let st = list_stmt1 sts in
   let exns = list exception_ exns in
   match (exns, exnvaropt) with
-  | [], None -> (t, G.PatUnderscore t, st)
+  | [], None -> (t, G.CatchPattern (G.PatUnderscore t), st)
   | [], Some (t, lhs) ->
       let e = expr lhs in
-      (t, G.OtherPat (("Rescue", t), [ G.E e ]), st)
+      (t, G.CatchPattern (G.OtherPat (("Rescue", t), [ G.E e ])), st)
   | x :: xs, None ->
       let disjs = List.fold_left (fun e acc -> G.PatDisj (e, acc)) x xs in
-      (t, disjs, st)
+      (t, G.CatchPattern disjs, st)
   | x :: xs, Some (t, lhs) ->
       let disjs = List.fold_left (fun e acc -> G.PatDisj (e, acc)) x xs in
       let e = expr lhs in
-      (t, G.OtherPat (("RescueDisj", t), [ G.E e; G.P disjs ]), st)
+      ( t,
+        G.CatchPattern (G.OtherPat (("RescueDisj", t), [ G.E e; G.P disjs ])),
+        st )
 
-and exception_ e =
+and exception_ e : G.pattern =
   let t = type_ e in
-  (* TODO: should pass the possible id in exnvaropt above here? *)
-  G.PatVar (t, None)
+  G.OtherPat (("Exn", unsafe_fake ""), [ G.T t ])
 
 (* similar to Python_to_generic.list_stmt1 *)
 and list_stmt1 xs =

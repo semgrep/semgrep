@@ -129,9 +129,6 @@ let rec pattern_to_expr p =
   | PatList (t1, xs, t2) ->
       Container (List, (t1, xs |> List.map pattern_to_expr, t2))
   | OtherPat (("ExprToPattern", _), [ E e ]) -> e.e
-  | PatAs _
-  | PatVar _ ->
-      raise NotAnExpr
   | _ -> raise NotAnExpr)
   |> G.e
 

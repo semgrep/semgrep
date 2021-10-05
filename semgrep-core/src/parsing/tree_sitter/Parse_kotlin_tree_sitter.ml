@@ -579,8 +579,8 @@ and catch_block (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.catch_block)
   let _v7 = token env v7 (* ")" *) in
   let v8 = block env v8 in
   let id = Some (v4, empty_id_info ()) in
-  let pattern = PatVar (v6, id) in
-  (v1, pattern, v8)
+  let exn = CatchParam (v6, id) in
+  (v1, exn, v8)
 
 and class_body (env : env) ((v1, v2, v3) : CST.class_body) =
   let v1 = token env v1 (* "{" *) in

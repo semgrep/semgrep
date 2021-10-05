@@ -777,8 +777,23 @@ and map_case = function
 
 and map_catch (t, v1, v2) =
   let t = map_tok t in
-  let v1 = map_pattern v1 and v2 = map_stmt v2 in
+  let v1 = map_catch_condition v1 and v2 = map_stmt v2 in
   (t, v1, v2)
+
+and map_catch_condition = function
+  | CatchPattern v1 ->
+      let v1 = map_pattern v1 in
+      v1
+  | CatchParam (v1, v2) ->
+      let v1 = map_type_ v1
+      and v2 =
+        map_of_option
+          (fun (v1, v2) ->
+            let v1 = map_ident v1 and v2 = map_id_info v2 in
+            (v1, v2))
+          v2
+      in
+      `PatVar (v1, v2)
 
 and map_finally v = map_tok_and_stmt v
 
@@ -833,16 +848,6 @@ and map_pattern = function
   | PatId (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_id_info v2 in
       `PatId (v1, v2)
-  | PatVar (v1, v2) ->
-      let v1 = map_type_ v1
-      and v2 =
-        map_of_option
-          (fun (v1, v2) ->
-            let v1 = map_ident v1 and v2 = map_id_info v2 in
-            (v1, v2))
-          v2
-      in
-      `PatVar (v1, v2)
   | PatLiteral v1 ->
       let v1 = map_literal v1 in
       `PatLiteral v1
@@ -1181,6 +1186,7 @@ and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | Ce _ -> failwith "TODO"
   | Anys _ -> error x
   | E v1 ->
       let v1 = map_expr v1 in

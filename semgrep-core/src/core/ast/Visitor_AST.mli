@@ -17,6 +17,7 @@ type visitor_in = {
   kdef : (definition -> unit) * visitor_out -> definition -> unit;
   kdir : (directive -> unit) * visitor_out -> directive -> unit;
   kparam : (parameter -> unit) * visitor_out -> parameter -> unit;
+  kcatch : (catch -> unit) * visitor_out -> catch -> unit;
   kident : (ident -> unit) * visitor_out -> ident -> unit;
   kname : (name -> unit) * visitor_out -> name -> unit;
   kentity : (entity -> unit) * visitor_out -> entity -> unit;
