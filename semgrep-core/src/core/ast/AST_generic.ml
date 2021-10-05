@@ -1213,7 +1213,7 @@ and entity = {
    *)
   name : name_or_dynamic;
   attrs : attribute list;
-  tparams : type_parameter list;
+  tparams : type_parameters;
 }
 
 and definition_kind =
@@ -1280,6 +1280,9 @@ and type_parameter = {
   tp_constraints : type_parameter_constraint list;
 }
 
+and type_parameters = type_parameter list
+
+(* TODO bracket *)
 and variance =
   | Covariant (* '+' in Scala/Hack, 'out' in C#/Kotlin *)
   | Contravariant
