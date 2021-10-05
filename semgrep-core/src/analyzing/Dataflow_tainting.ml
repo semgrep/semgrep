@@ -144,7 +144,12 @@ let check_tainted_instr config fun_env env instr =
     | AssignAnon _ -> false (* TODO *)
     | Call (_, { e = Fetch { base = Var (("source", _), _); _ }; _ }, []) ->
         true
-    | Call (_, e, args) -> check_expr e || List.exists check_expr args
+    | Call (_, e, args) ->
+        let e_tainted = check_expr e in
+        (* We must always go into the arguments regardless of whether `e` is
+         * tainted, because one of the arguments could be a sink! *)
+        let args_tainted = List.exists check_expr args in
+        e_tainted || args_tainted
     | CallSpecial (_, _, args) -> List.exists check_expr args
     | FixmeInstr _ -> false
   in

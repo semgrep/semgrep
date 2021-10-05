@@ -434,6 +434,12 @@ let lang_tainting_tests =
       let lang = Lang.Python in
       tainting_tests_for_lang files lang
     );
+    pack_tests "tainting Java" (
+      let dir = Filename.concat taint_tests_path "java" in
+      let files = Common2.glob (spf "%s/*.java" dir) in
+      let lang = Lang.Java in
+      tainting_tests_for_lang files lang
+    );
     pack_tests "tainting Javascript" (
       let dir = Filename.concat taint_tests_path "js" in
       let files = Common2.glob (spf "%s/*.js" dir) in

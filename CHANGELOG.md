@@ -13,6 +13,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   function is a sanitizer
 
 ### Fixed
+- taint-mode: Fixed bug where a tainted sink could go unreported when the sink is
+  a specific argument in a function call
 
 ## [0.67.0](https://github.com/returntocorp/semgrep/releases/tag/v0.67.0) - 09-29-2021
 
