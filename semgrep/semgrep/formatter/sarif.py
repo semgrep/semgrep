@@ -1,6 +1,6 @@
 import json
-from collections import Iterable
 from typing import Any
+from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
