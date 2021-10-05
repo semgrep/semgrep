@@ -17,3 +17,12 @@ val regexp :
   ?chtables:Pcre.chtables ->
   string ->
   Pcre.regexp
+
+(*
+   Register printers for the Pcre module/library so that exceptions show up
+   nicely with 'Printexc.to_string' e.g. 'Pcre.Error(RecursionLimit)'
+   instead of 'Pcre.Error(5)'.
+
+   See issue https://github.com/mmottl/pcre-ocaml/issues/24
+*)
+val register_exception_printer : unit -> unit

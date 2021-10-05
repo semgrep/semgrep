@@ -1390,6 +1390,8 @@ let main () =
 (*****************************************************************************)
 let () =
   Common.main_boilerplate (fun () ->
+      (* semgrep-specific initializations. Move to a dedicated module? *)
+      Pcre_settings.register_exception_printer ();
       Common.finalize
         (fun () -> main ())
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))
