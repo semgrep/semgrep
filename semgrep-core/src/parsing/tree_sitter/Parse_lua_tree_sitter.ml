@@ -224,11 +224,11 @@ and map_expression_tuple (env : env)
   G.Container (G.Tuple, G.fake_bracket v1) |> G.e
 
 and map_anon_arguments (env : env)
-    ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : G.arguments =
+    ((v1, v2) : CST.anon_exp_rep_COMMA_exp_0bb260c) : G.argument list =
   let v1 = map_expression_list env (v1, v2) in
   List.map (fun (v1 : G.expr) -> G.Arg v1) v1
 
-and map_arguments (env : env) (x : CST.arguments) : G.arguments G.bracket =
+and map_arguments (env : env) (x : CST.arguments) : G.arguments =
   match x with
   | `LPAR_opt_exp_rep_COMMA_exp_RPAR (v1, v2, v3) ->
       let v1 = token env v1 (* "(" *) in

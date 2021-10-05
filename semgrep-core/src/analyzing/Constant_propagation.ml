@@ -275,7 +275,7 @@ and eval_op env op args =
   | __else__ -> None
 
 and eval_concat_string env args : literal option =
-  let go_concat : arguments -> string option =
+  let go_concat : argument list -> string option =
     List.fold_left
       (fun res arg ->
         match arg with

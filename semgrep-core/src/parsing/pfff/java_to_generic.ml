@@ -279,7 +279,7 @@ and expr e =
             G.AnonClass
               {
                 G.ckind = (G.Class, v0);
-                cextends = [ v1 ];
+                cextends = [ (v1, None) ];
                 cimplements = [];
                 cmixins = [];
                 cparams = [];
@@ -398,6 +398,10 @@ and expr e =
       let x = G.stmt_to_expr (G.Switch (v0, Some v1, v2) |> G.s) in
       x.G.e)
   |> G.e
+
+and class_parent v : G.class_parent =
+  let v = ref_type v in
+  (v, None)
 
 and expr_or_type = function
   | Left e -> G.E (expr e)
@@ -583,15 +587,15 @@ and field v = var_with_init v
 and enum_decl { en_name; en_mods; en_impls; en_body } =
   let v1 = ident en_name in
   let v2 = modifiers en_mods in
-  let v3 = list ref_type en_impls in
+  let v3 = list class_parent en_impls in
   let v4, v5 = en_body in
   let v4 = list enum_constant v4 |> List.map G.fld in
   let v5 = decls v5 |> List.map (fun st -> G.FieldStmt st) in
-  let ent = G.basic_entity v1 ~attrs:v2 in
+  let ent = G.basic_entity v1 ~attrs:(G.attr EnumClass (snd v1) :: v2) in
   let cbody = fb (v4 @ v5) in
   let cdef =
     {
-      G.ckind = (G.EnumClass, snd v1);
+      G.ckind = (G.Class, snd v1);
       cextends = v3;
       cmixins = [];
       cimplements = [];
@@ -625,14 +629,14 @@ and class_decl
       cl_formals;
     } =
   let v1 = ident cl_name in
-  let v2 = class_kind cl_kind in
+  let v2, more_attrs = class_kind_and_more cl_kind in
   let v3 = list type_parameter cl_tparams in
   let v4 = modifiers cl_mods in
-  let v5 = option typ cl_extends in
+  let v5 = option class_parent cl_extends in
   let v6 = list ref_type cl_impls in
   let cparams = parameters cl_formals in
   let fields = class_body cl_body in
-  let ent = G.basic_entity v1 ~attrs:v4 ~tparams:v3 in
+  let ent = G.basic_entity v1 ~attrs:(more_attrs @ v4) ~tparams:v3 in
   let cdef =
     {
       G.ckind = v2;
@@ -645,13 +649,12 @@ and class_decl
   in
   (ent, cdef)
 
-and class_kind (x, t) =
-  ( (match x with
-    | ClassRegular -> G.Class
-    | Interface -> G.Interface
-    | AtInterface -> G.AtInterface
-    | Record -> G.RecordClass),
-    t )
+and class_kind_and_more (x, t) =
+  match x with
+  | ClassRegular -> ((G.Class, t), [])
+  | Interface -> ((G.Interface, t), [])
+  | AtInterface -> ((G.Interface, t), [ G.attr AnnotationClass t ])
+  | Record -> ((G.Class, t), [ G.attr RecordClass t ])
 
 and decl decl : G.stmt =
   match decl with

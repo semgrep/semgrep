@@ -614,8 +614,8 @@ and obj_ v = bracket (list property) v
 and parent = function
   | Left e ->
       let e = expr e in
-      H.expr_to_type e
-  | Right t -> type_ t
+      H.expr_to_class_parent e
+  | Right t -> (type_ t, None)
 
 and class_ { c_extends; c_implements; c_body; c_kind; c_attrs } =
   let cextends = list parent c_extends in

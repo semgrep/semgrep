@@ -613,7 +613,10 @@ and vof_other_type_operator = function
   | OT_Lifetime -> OCaml.VSum ("OT_Lifetime", [])
 
 and vof_keyword_attribute = function
-  | CaseClass -> OCaml.VSum ("CaseClass", [])
+  | SealedClass -> OCaml.VSum ("SealedClass", [])
+  | AnnotationClass -> OCaml.VSum ("AnnotationClass", [])
+  | RecordClass -> OCaml.VSum ("RecordClass", [])
+  | EnumClass -> OCaml.VSum ("EnumClass", [])
   | Lazy -> OCaml.VSum ("Lazy", [])
   | Static -> OCaml.VSum ("Static", [])
   | Volatile -> OCaml.VSum ("Volatile", [])
@@ -1248,7 +1251,7 @@ and vof_class_definition
   let arg = OCaml.vof_list vof_type_ v_cimplements in
   let bnd = ("cimplements", arg) in
   let bnds = bnd :: bnds in
-  let arg = OCaml.vof_list vof_type_ v_cextends in
+  let arg = OCaml.vof_list vof_class_parent v_cextends in
   let bnd = ("cextends", arg) in
   let bnds = bnd :: bnds in
   let arg = vof_class_kind v_ckind in
@@ -1256,16 +1259,18 @@ and vof_class_definition
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
+and vof_class_parent (v1, v2) =
+  let v1 = vof_type_ v1 in
+  let v2 = OCaml.vof_option vof_arguments v2 in
+  OCaml.VTuple [ v1; v2 ]
+
 and vof_class_kind x = vof_wrap vof_class_kind_bis x
 
 and vof_class_kind_bis = function
   | Class -> OCaml.VSum ("Class", [])
   | Interface -> OCaml.VSum ("Interface", [])
   | Trait -> OCaml.VSum ("Trait", [])
-  | AtInterface -> OCaml.VSum ("AtInterface", [])
   | Object -> OCaml.VSum ("Object", [])
-  | RecordClass -> OCaml.VSum ("RecordClass", [])
-  | EnumClass -> OCaml.VSum ("EnumClass", [])
 
 and vof_ident_and_id_info (v1, v2) =
   let v1 = vof_ident v1 in

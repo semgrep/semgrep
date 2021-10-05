@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 from typing import Mapping
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 from typing import Union
 
@@ -53,6 +54,14 @@ def _clean_output_json(output_json: str) -> str:
     output = json.loads(output_json)
     for path in MASKED_KEYS:
         mark_masked(output, path)
+
+    # Remove temp file paths
+    results = output.get("results")
+    if isinstance(results, Sequence):
+        for r in results:
+            p = r.get("path")
+            if p and "/tmp" in p:
+                del r["path"]
 
     return json.dumps(output, indent=2, sort_keys=True)
 

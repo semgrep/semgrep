@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Input can be derived from subshells: `semgrep --config ... <(...)`
 
 ### Changed
 - taint-mode: Sanitizers that match exactly a source or a sink are filtered out,

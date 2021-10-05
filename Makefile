@@ -103,6 +103,10 @@ bump:
 	$(SED) 's/^    install_requires=\["semgrep==.*"\],$$/    install_requires=["semgrep==$(RELEASE)"],/g' setup.py
 	$(SED) 's/## Unreleased/## Unreleased\n\n## [$(RELEASE)](https:\/\/github.com\/returntocorp\/semgrep\/releases\/tag\/v$(RELEASE)) - $(shell date +'%m-%d-%Y')/g' CHANGELOG.md
 
+# Prepare a release branch. Must run as:
+#
+#  RELEASE=X.X.X make release
+#
 .PHONY: release
 release:
 	PIPENV_PIPFILE=scripts/release/Pipfile pipenv install --dev

@@ -9,6 +9,8 @@ val pattern_to_expr : AST_generic.pattern -> AST_generic.expr
 
 val expr_to_type : AST_generic.expr -> AST_generic.type_
 
+val expr_to_class_parent : AST_generic.expr -> AST_generic.class_parent
+
 val vardef_to_assign :
   AST_generic.entity * AST_generic.variable_definition -> AST_generic.expr
 
@@ -19,14 +21,15 @@ val funcdef_to_lambda :
 
 val funcbody_to_stmt : AST_generic.function_body -> AST_generic.stmt
 
-val name_of_entity :
-  AST_generic.entity -> (AST_generic.ident * AST_generic.id_info) option
-
 val name_of_id : AST_generic.ident -> AST_generic.name
 
 val name_of_ids :
   ?name_typeargs:AST_generic.type_arguments option ->
   AST_generic.dotted_ident ->
+  AST_generic.name
+
+val name_of_ids_with_opt_typeargs :
+  (AST_generic.ident * AST_generic.type_arguments option) list ->
   AST_generic.name
 
 (* Tries to re-interpreted a DotAccess expression a.b.c as an IdQualified. *)
@@ -53,7 +56,9 @@ val is_associative_operator : AST_generic.operator -> bool
 (** Test whether an operator is suitable for associative-matching.  *)
 
 val ac_matching_nf :
-  AST_generic.operator -> AST_generic.arguments -> AST_generic.expr list option
+  AST_generic.operator ->
+  AST_generic.argument list ->
+  AST_generic.expr list option
 (** [ac_matching_nf op args] converts the operands [args] of an
  * AC-operator [op] to a normal form (NF) better suited for AC-matching.
  * Essentially, we flatten out all [op]-operations. Note that this is not
