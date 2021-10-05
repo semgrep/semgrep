@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""
+E.g.
+
+  pipenv run scripts/hash-project.py $(git ls-remote --get-url)
+"""
 from sys import argv
 
 from semgrep.metric_manager import metric_manager
