@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Collection
 from typing import Dict
 from typing import FrozenSet
+from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Sequence
@@ -19,14 +20,17 @@ from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import Shebang
 from semgrep.target_manager_extensions import ALL_EXTENSIONS
 from semgrep.target_manager_extensions import FileExtension
-from semgrep.target_manager_extensions import lang_to_exts
+from semgrep.target_manager_extensions import lang_to_exts_and_shebangs
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+MAX_CHARS_TO_READ_FOR_SHEBANG = 255
 
 
 @contextlib.contextmanager
@@ -92,7 +96,7 @@ class TargetManager:
     @staticmethod
     def _is_valid_file_or_dir(path: Path) -> bool:
         """Check this is a valid file or directory for semgrep scanning."""
-        return os.access(path, os.R_OK) and not path.is_symlink()
+        return os.access(str(path), os.R_OK) and not path.is_symlink()
 
     @staticmethod
     def _is_valid_file(path: Path) -> bool:
@@ -138,71 +142,84 @@ class TargetManager:
                 )
             return files
 
-        def _find_files_with_extension(
-            curr_dir: Path, extension: FileExtension
+        def _executes_with_shebang(f: Path, shebangs: Set[Shebang]) -> bool:
+            """
+            Returns if a path is executable and executes with one of a set of programs
+            """
+            if not os.access(str(f), os.X_OK):
+                return False
+            with f.open("r") as fd:
+                hline = fd.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
+            return any(hline.endswith(s) for s in shebangs)
+
+        def _find_files_with_extension_or_shebang(
+            curr_dir: Path, extensions: Iterable[FileExtension], shebangs: Set[Shebang]
         ) -> FrozenSet[Path]:
             """
-            Return set of all files in curr_dir with given extension
+            Finds all files in a directory that either:
+            - end with one of a set of extensions
+            - is a script that executes with one of a set of programs
+
+            Takes ~ 50 ms to execute on a Mac PowerBook on a repo with 1000 files.
             """
-            return frozenset(
-                p
-                for p in curr_dir.rglob(f"*{extension}")
-                if TargetManager._is_valid_file(p)
+            with_extensions = (
+                p for ext in extensions for p in curr_dir.rglob(f"*{ext}")
             )
+            with_shebangs = (
+                Path(root) / f
+                for root, _, files in os.walk(str(curr_dir))
+                for f in files
+                if _executes_with_shebang(Path(root) / f, shebangs)
+            )
+            return frozenset({*with_extensions, *with_shebangs})
 
-        extensions = lang_to_exts(language)
-        expanded: FrozenSet[Path] = frozenset()
+        extensions, shebangs = lang_to_exts_and_shebangs(language)
 
-        for ext in extensions:
-            if respect_git_ignore:
-                try:
-                    # Tracked files
-                    tracked_output = sub_check_output(
-                        ["git", "ls-files", f"*{ext}"],
-                        cwd=curr_dir.resolve(),
-                        encoding="utf-8",
-                        stderr=subprocess.DEVNULL,
-                    )
+        results = _find_files_with_extension_or_shebang(curr_dir, extensions, shebangs)
 
-                    # Untracked but not ignored files
-                    untracked_output = sub_check_output(
-                        [
-                            "git",
-                            "ls-files",
-                            "--other",
-                            "--exclude-standard",
-                            f"*{ext}",
-                        ],
-                        cwd=curr_dir.resolve(),
-                        encoding="utf-8",
-                        stderr=subprocess.DEVNULL,
-                    )
+        if respect_git_ignore:
+            try:
+                # Tracked files
+                tracked_output = sub_check_output(
+                    ["git", "ls-files"],
+                    cwd=curr_dir.resolve(),
+                    encoding="utf-8",
+                    stderr=subprocess.DEVNULL,
+                )
 
-                    deleted_output = sub_check_output(
-                        ["git", "ls-files", "--deleted", f"*{ext}"],
-                        cwd=curr_dir.resolve(),
-                        encoding="utf-8",
-                        stderr=subprocess.DEVNULL,
-                    )
-                except (subprocess.CalledProcessError, FileNotFoundError):
-                    logger.verbose(
-                        f"Unable to ignore files ignored by git ({curr_dir} is not a git directory or git is not installed). Running on all files instead..."
-                    )
-                    # Not a git directory or git not installed. Fallback to using rglob
-                    ext_files = _find_files_with_extension(curr_dir, ext)
-                    expanded = expanded.union(ext_files)
-                else:
-                    tracked = _parse_output(tracked_output, curr_dir)
-                    untracked_unignored = _parse_output(untracked_output, curr_dir)
-                    deleted = _parse_output(deleted_output, curr_dir)
-                    expanded = expanded.union(tracked)
-                    expanded = expanded.union(untracked_unignored)
-                    expanded = expanded.difference(deleted)
-            else:
-                ext_files = _find_files_with_extension(curr_dir, ext)
-                expanded = expanded.union(ext_files)
+                # Untracked but not ignored files
+                untracked_output = sub_check_output(
+                    [
+                        "git",
+                        "ls-files",
+                        "--other",
+                        "--exclude-standard",
+                    ],
+                    cwd=curr_dir.resolve(),
+                    encoding="utf-8",
+                    stderr=subprocess.DEVNULL,
+                )
 
-        return TargetManager._filter_valid_files(expanded)
+                deleted_output = sub_check_output(
+                    ["git", "ls-files", "--deleted"],
+                    cwd=curr_dir.resolve(),
+                    encoding="utf-8",
+                    stderr=subprocess.DEVNULL,
+                )
+                tracked = _parse_output(tracked_output, curr_dir)
+                untracked_unignored = _parse_output(untracked_output, curr_dir)
+                deleted = _parse_output(deleted_output, curr_dir)
+                results = results.intersection(
+                    tracked.union(untracked_unignored).union(deleted)
+                )
+
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                logger.verbose(
+                    f"Unable to ignore files ignored by git ({curr_dir} is not a git directory or git is not installed). Running on all files instead..."
+                )
+                # Not a git directory or git not installed. Fallback to using rglob
+
+        return TargetManager._filter_valid_files(results)
 
     @staticmethod
     def expand_targets(
@@ -326,7 +343,7 @@ class TargetManager:
         explicit_files_with_lang_extension = frozenset(
             f
             for f in explicit_files
-            if (any(f.match(f"*{ext}") for ext in lang_to_exts(lang)))
+            if (any(f.match(f"*{ext}") for ext in lang_to_exts_and_shebangs(lang)[0]))
         )
         targets = targets.union(explicit_files_with_lang_extension)
 

@@ -9,6 +9,7 @@ from semgrep.rule_lang import Span
 
 Mode = NewType("Mode", str)
 FileExtension = NewType("FileExtension", str)
+Shebang = str
 
 JOIN_MODE = Mode("join")
 SEARCH_MODE = DEFAULT_MODE = Mode("search")
