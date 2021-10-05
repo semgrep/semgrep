@@ -88,13 +88,6 @@ let type_parameters_with_constraints tparams constraints : type_parameter list =
              }
          | None -> tparam)
 
-let arg_to_expr (a : argument) =
-  match a with
-  | Arg e -> e
-  (* TODO: should create a G.keyval *)
-  | ArgKwd (_, e) -> e
-  | _ -> raise Impossible
-
 let var_def_stmt (decls : (entity * variable_definition) list)
     (attrs : attribute list) =
   let stmts =
@@ -957,7 +950,7 @@ and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) :
 and element_binding_expression (env : env) (x : CST.element_binding_expression)
     =
   let open_br, args, close_br = bracketed_argument_list env x in
-  let exprs = List.map arg_to_expr args in
+  let exprs = List.map H2.argument_to_expr args in
   (open_br, exprs, close_br)
 
 and nullable_type (env : env) (x : CST.nullable_type) =
@@ -1059,7 +1052,7 @@ and tuple_expression (env : env) ((v1, v2, v3, v4) : CST.tuple_expression) =
       v3
   in
   let v4 = token env v4 (* ")" *) in
-  let exprs = List.map arg_to_expr (v2 :: v3) in
+  let exprs = List.map H2.argument_to_expr (v2 :: v3) in
   Container (Tuple, (v1, exprs, v4)) |> G.e
 
 and query_body (env : env) (x : CST.query_body) =
@@ -1720,11 +1713,11 @@ and statement (env : env) (x : CST.statement) =
       For (v1, for_header, v9) |> G.s
   | `Goto_stmt (v1, v2, v3) -> (
       let v1 = token env v1 (* "goto" *) in
-      let _v3 = token env v3 (* ";" *) in
+      let v3 = token env v3 (* ";" *) in
       match v2 with
       | `Id tok ->
           let label = identifier env tok (* identifier *) in
-          Goto (v1, label) |> G.s
+          Goto (v1, label, v3) |> G.s
       | `Case_exp (v1, v2) ->
           let v1 = token env v1 (* "case" *) in
           let _v2 = expression env v2 in

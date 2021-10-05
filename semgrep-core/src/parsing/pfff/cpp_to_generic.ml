@@ -13,10 +13,7 @@
  * license.txt for more details.
  *)
 open Common
-
-(*
 module H = AST_generic_helpers
- *)
 open Ast_cpp
 open OCaml (* for the map_of_xxx *)
 
@@ -625,67 +622,68 @@ and map_stmt env x : G.stmt =
   match x with
   | Compound v1 ->
       let v1 = map_compound env v1 in
-      todo env v1
+      G.Block v1 |> G.s
   | ExprStmt v1 ->
-      let v1 = map_expr_stmt env v1 in
-      todo env v1
+      let eopt, sc = map_expr_stmt env v1 in
+      let e = expr_option sc eopt in
+      G.ExprStmt (e, sc) |> G.s
   | MacroStmt v1 ->
       let v1 = map_tok env v1 in
-      todo env v1
+      complicated env v1
   | If (v1, v2, v3, v4, v5) ->
       let v1 = map_tok env v1
-      and v2 = map_of_option (map_tok env) v2
-      and v3 = map_paren env (map_condition_clause env) v3
+      and _v2TODO = map_of_option (map_tok env) v2 (* constexpr *)
+      and _, cond, _ = map_paren env (map_condition_clause env) v3
       and v4 = map_stmt env v4
       and v5 =
         map_of_option
           (fun (v1, v2) ->
-            let v1 = map_tok env v1 and v2 = map_stmt env v2 in
-            (v1, v2))
+            let _else = map_tok env v1 and v2 = map_stmt env v2 in
+            v2)
           v5
       in
-      todo env (v1, v2, v3, v4, v5)
+      G.If (v1, cond, v4, v5) |> G.s
   | Switch (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_paren env (map_condition_clause env) v2
       and v3 = map_stmt env v3 in
-      todo env (v1, v2, v3)
+      complicated env (v1, v2, v3)
   | While (v1, v2, v3) ->
       let v1 = map_tok env v1
-      and v2 = map_paren env (map_condition_clause env) v2
+      and _, cond, _ = map_paren env (map_condition_clause env) v2
       and v3 = map_stmt env v3 in
-      todo env (v1, v2, v3)
+      G.While (v1, cond, v3) |> G.s
   | DoWhile (v1, v2, v3, v4, v5) ->
       let v1 = map_tok env v1
       and v2 = map_stmt env v2
       and v3 = map_tok env v3
-      and v4 = map_paren env (map_expr env) v4
+      and _, cond, _ = map_paren env (map_expr env) v4
       and v5 = map_sc env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      G.DoWhile (v1, v2, cond) |> G.s
   | For (v1, v2, v3) ->
       let v1 = map_tok env v1
-      and v2 = map_paren env (map_for_header env) v2
+      and _, header, _ = map_paren env (map_for_header env) v2
       and v3 = map_stmt env v3 in
-      todo env (v1, v2, v3)
+      G.For (v1, header, v3) |> G.s
   | MacroIteration (v1, v2, v3) ->
       let v1 = map_ident env v1
       and v2 = map_paren env (map_of_list (map_argument env)) v2
       and v3 = map_stmt env v3 in
-      todo env (v1, v2, v3)
+      complicated env (v1, v2, v3)
   | Jump (v1, v2) ->
       let v1 = map_jump env v1 and v2 = map_sc env v2 in
-      todo env (v1, v2)
+      v1 v2
   | Label (v1, v2, v3) ->
       let v1 = map_a_label env v1
-      and v2 = map_tok env v2
+      and _v2 = map_tok env v2
       and v3 = map_stmt env v3 in
-      todo env (v1, v2, v3)
+      G.Label (v1, v3) |> G.s
   | Case (v1, v2, v3, v4) ->
       let v1 = map_tok env v1
       and v2 = map_expr env v2
       and v3 = map_tok env v3
       and v4 = map_case_body env v4 in
-      todo env (v1, v2, v3, v4)
+      complicated env (v1, v2, v3, v4)
   | CaseRange (v1, v2, v3, v4, v5, v6) ->
       let v1 = map_tok env v1
       and v2 = map_expr env v2
@@ -693,83 +691,99 @@ and map_stmt env x : G.stmt =
       and v4 = map_expr env v4
       and v5 = map_tok env v5
       and v6 = map_case_body env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
+      complicated env (v1, v2, v3, v4, v5, v6)
   | Default (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_tok env v2
       and v3 = map_case_body env v3 in
-      todo env (v1, v2, v3)
+      complicated env (v1, v2, v3)
   | Try (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_compound env v2
       and v3 = map_of_list (map_handler env) v3 in
-      todo env (v1, v2, v3)
+      G.Try (v1, G.Block v2 |> G.s, v3, None) |> G.s
   | StmtTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_stmt env) v2 in
-      todo env (v1, v2)
+      complicated env (v1, v2)
 
 and map_expr_stmt env (v1, v2) =
   let v1 = map_of_option (map_expr env) v1 and v2 = map_sc env v2 in
   (v1, v2)
 
-and map_condition_clause env = function
+and map_condition_clause env x : G.condition =
+  match x with
   | CondClassic v1 ->
       let v1 = map_expr env v1 in
-      todo env v1
+      v1
   | CondDecl (v1, v2) ->
-      let v1 = map_vars_decl env v1 and v2 = map_expr env v2 in
-      todo env (v1, v2)
+      let _v1TODO = map_vars_decl env v1 and v2 = map_expr env v2 in
+      v2
   | CondStmt (v1, v2) ->
-      let v1 = map_expr_stmt env v1 and v2 = map_expr env v2 in
-      todo env (v1, v2)
+      let _v1TODO = map_expr_stmt env v1 and v2 = map_expr env v2 in
+      v2
   | CondOneDecl v1 ->
       let v1 = map_onedecl env v1 in
-      todo env v1
+      complicated env v1
 
 and map_for_header env = function
   | ForClassic (v1, v2, v3) ->
       let v1 = map_a_expr_or_vars env v1
       and v2 = map_of_option (map_expr env) v2
       and v3 = map_of_option (map_expr env) v3 in
-      todo env (v1, v2, v3)
+      G.ForClassic (v1, v2, v3)
   | ForRange (v1, v2, v3) ->
-      let v1 = map_var env v1
+      let ent, vardef = map_var env v1
       and v2 = map_tok env v2
       and v3 = map_initialiser env v3 in
-      todo env (v1, v2, v3)
+      (* less: or ForEach? *)
+      G.ForIn ([ G.ForInitVar (ent, vardef) ], [ v3 ])
 
 and map_a_expr_or_vars env v =
-  map_either env (map_expr_stmt env) (map_vars_decl env) v
+  match v with
+  | Left (Some e, _sc) ->
+      let e = map_expr env e in
+      [ ForInitExpr e ]
+  | Left (None, _) -> []
+  | Right xs ->
+      let xs = map_vars_decl env xs in
+      xs
+      |> List.map (fun onedecl ->
+             let ent, vardef = complicated env onedecl in
+             G.ForInitVar (ent, vardef))
 
 and map_a_label env v = map_wrap env map_of_string v
 
 and map_jump env = function
   | Goto (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_a_label env v2 in
-      todo env (v1, v2)
+      fun sc -> G.Goto (v1, v2, sc) |> G.s
   | Continue v1 ->
       let v1 = map_tok env v1 in
-      todo env v1
+      fun sc -> G.Continue (v1, G.LNone, sc) |> G.s
   | Break v1 ->
       let v1 = map_tok env v1 in
-      todo env v1
+      fun sc -> G.Break (v1, G.LNone, sc) |> G.s
   | Return (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_of_option (map_argument env) v2 in
-      todo env (v1, v2)
+      let v2 = Common.map_opt H.argument_to_expr v2 in
+      fun sc -> G.Return (v1, v2, sc) |> G.s
   | GotoComputed (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_tok env v2
       and v3 = map_expr env v3 in
-      todo env (v1, v2, v3)
+      (* less: could change G.Goto to take a label instead of label_ident? *)
+      fun _sc ->
+        G.OtherStmt (G.OS_Todo, [ G.TodoK ("GotoComputed", v1); G.E v3 ]) |> G.s
 
 and map_case_body env v = map_of_list (map_stmt_or_decl env) v
 
-and map_handler env (v1, v2, v3) =
+and map_handler env (v1, v2, v3) : G.catch =
   let v1 = map_tok env v1
-  and v2 = map_paren env (map_of_list (map_exception_declaration env)) v2
+  and _, xs, _ = map_paren env (map_of_list (map_exception_declaration env)) v2
   and v3 = map_compound env v3 in
-  (v1, v2, v3)
+  let pat : G.pattern = complicated env xs in
+  (v1, pat, G.Block v3 |> G.s)
 
 and map_exception_declaration env = function
   | ExnDecl v1 ->
@@ -874,8 +888,8 @@ and map_decl env x : G.stmt list =
       todo env v1
 
 and map_vars_decl env (v1, v2) =
-  let v1 = map_of_list (map_onedecl env) v1 and v2 = map_sc env v2 in
-  (v1, v2)
+  let v1 = map_of_list (map_onedecl env) v1 and _v2 = map_sc env v2 in
+  v1
 
 and map_asmbody env (v1, v2) =
   let v1 = map_of_list (map_wrap env map_of_string) v1
@@ -896,7 +910,7 @@ and map_colon_option env = function
       let v1 = map_of_list (map_tok env) v1 in
       todo env v1
 
-and map_var env (v1, v2) =
+and map_var env (v1, v2) : G.entity * G.variable_definition =
   let v1 = map_entity env v1 and v2 = map_var_decl env v2 in
   (v1, v2)
 

@@ -189,6 +189,17 @@ let name_or_dynamic_to_expr name idinfo_opt =
   | EDynamic e, _ -> e.e)
   |> G.e
 
+let argument_to_expr arg =
+  match arg with
+  | Arg e -> e
+  | ArgKwd (id, e) ->
+      let n = name_of_id id in
+      let k = N n |> G.e in
+      G.keyval k (fake "") e
+  | ArgType _
+  | ArgOther _ ->
+      raise NotAnExpr
+
 (* used in controlflow_build and semgrep *)
 let vardef_to_assign (ent, def) =
   let name = name_or_dynamic_to_expr ent.name None in

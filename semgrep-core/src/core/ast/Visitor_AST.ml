@@ -717,10 +717,10 @@ let (mk_visitor :
       | Label (v1, v2) ->
           let v1 = v_label v1 and v2 = v_stmt v2 in
           ()
-      | Goto (t, v1) ->
+      | Goto (t, v1, sc) ->
           let t = v_tok t in
           let v1 = v_label v1 in
-          ()
+          v_tok sc
       | Throw (t, v1, sc) ->
           let t = v_tok t in
           let v1 = v_expr v1 in

@@ -1916,7 +1916,10 @@ and m_stmt a b =
       m_tok asc bsc
   | G.Label (a1, a2), B.Label (b1, b2) ->
       m_label a1 b1 >>= fun () -> m_stmt a2 b2
-  | G.Goto (a0, a1), B.Goto (b0, b1) -> m_tok a0 b0 >>= fun () -> m_label a1 b1
+  | G.Goto (a0, a1, asc), B.Goto (b0, b1, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_label a1 b1 in
+      m_tok asc bsc
   | G.Throw (a0, a1, asc), B.Throw (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_expr a1 b1 in

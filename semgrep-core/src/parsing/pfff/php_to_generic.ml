@@ -160,7 +160,7 @@ let rec stmt_aux = function
   | Label (id, _, v1) ->
       let v1 = stmt v1 in
       [ G.Label (ident id, v1) |> G.s ]
-  | Goto (t, id) -> [ G.Goto (t, ident id) |> G.s ]
+  | Goto (t, id) -> [ G.Goto (t, ident id, G.sc) |> G.s ]
   | Throw (t, v1) ->
       let v1 = expr v1 in
       [ G.Throw (t, v1, G.sc) |> G.s ]
