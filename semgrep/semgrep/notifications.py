@@ -11,7 +11,7 @@ def possibly_notify_user() -> None:
 
     has_shown = False
     try:
-        has_shown = SETTINGS.value.get(HAS_SHOWN_SETTINGS_KEY, False)
+        has_shown = SETTINGS.get_setting(HAS_SHOWN_SETTINGS_KEY, default=False)
     except PermissionError:
         logger.debug("Semgrep does not have access to user settings file")
 
@@ -27,4 +27,4 @@ def possibly_notify_user() -> None:
                 "\n",
             )
         )
-        SETTINGS.value = {**SETTINGS.value, HAS_SHOWN_SETTINGS_KEY: True}
+        SETTINGS.add_setting(HAS_SHOWN_SETTINGS_KEY, True)

@@ -12,59 +12,52 @@ If the process does not have permission to the settings path, a PermissionError 
 callers should handle this gracefully.
 """
 from pathlib import Path
+from typing import Any
 from typing import cast
+from typing import Dict
 from typing import Mapping
-from typing import Optional
 
 from ruamel.yaml import YAML
 
 from semgrep.constants import SETTINGS_FILE
 from semgrep.constants import USER_DATA_FOLDER
-from semgrep.types import JsonObject
 
 
-DEFAULT_SETTINGS: JsonObject = {}
+DEFAULT_SETTINGS: Dict[str, Any] = {}
 
 
 class Settings:
     def __init__(self) -> None:
-        self._loaded: Optional[JsonObject] = None
         self._yaml = YAML()
         self._yaml.default_flow_style = False
         self._path = Path("~").expanduser() / USER_DATA_FOLDER / SETTINGS_FILE
 
-    @property
-    def value(self) -> JsonObject:
-        """
-        Retrieve this system's settings object
+        # If file exists, read file. Otherwise use default
+        if self._path.exists():
+            with self._path.open("r") as fd:
+                yaml_file = self._yaml.load(fd)
+            if not isinstance(yaml_file, Mapping):
+                raise TypeError(
+                    f"Bad settings format; please check or remove {self._path}"
+                )
+            self._value = cast(Dict[str, Any], yaml_file)
+        else:
+            self._value = DEFAULT_SETTINGS
 
-        :raise PermissionError: if the process does not have access to the settings file
-        """
-        if self._loaded is None:
-            if self._path.exists():
-                with self._path.open("r") as fd:
-                    self._loaded = self._yaml.load(fd)
-                if not isinstance(self._loaded, Mapping):
-                    raise TypeError(
-                        f"Bad settings format; please check or remove {self._path}"
-                    )
-            else:
-                self.value = DEFAULT_SETTINGS
-        return cast(JsonObject, self._loaded)  # Above logic guarantees type
-
-    @value.setter
-    def value(self, value: JsonObject) -> None:
+    def add_setting(self, key: str, value: Any) -> None:
         """
         Update and save this system's settings object
 
         :param value: The settings object
         """
+        self._value[key] = value
         if not self._path.parent.exists():
             self._path.parent.mkdir(parents=True, exist_ok=True)
         with self._path.open("w") as fd:
-            self._yaml.dump(value, fd)
-        # Make sure we've written the file successfully before altering the data structure
-        self._loaded = value
+            self._yaml.dump(self._value, fd)
+
+    def get_setting(self, key: str, *, default: Any) -> Any:
+        return self._value.get(key, default)
 
 
 SETTINGS = Settings()
