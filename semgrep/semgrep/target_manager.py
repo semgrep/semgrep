@@ -146,7 +146,7 @@ class TargetManager:
             """
             Returns if a path is executable and executes with one of a set of programs
             """
-            if not os.access(str(f), os.X_OK):
+            if not os.access(str(f), os.X_OK | os.R_OK):
                 return False
             with f.open("r") as fd:
                 hline = fd.readline(MAX_CHARS_TO_READ_FOR_SHEBANG).rstrip()
