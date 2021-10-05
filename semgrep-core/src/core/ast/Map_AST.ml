@@ -675,8 +675,22 @@ let (mk_visitor : visitor_in -> visitor_out) =
         Default t
   and map_catch (t, v1, v2) =
     let t = map_tok t in
-    let v1 = map_pattern v1 and v2 = map_stmt v2 in
+    let v1 = map_catch_exn v1 and v2 = map_stmt v2 in
     (t, v1, v2)
+  and map_catch_exn = function
+    | CatchPattern v1 ->
+        let v1 = map_pattern v1 in
+        CatchPattern v1
+    | CatchParam (v1, v2) ->
+        let v1 = map_type_ v1
+        and v2 =
+          map_of_option
+            (fun (v1, v2) ->
+              let v1 = map_ident v1 and v2 = map_id_info v2 in
+              (v1, v2))
+            v2
+        in
+        CatchParam (v1, v2)
   and map_finally v = map_tok_and_stmt v
   and map_tok_and_stmt (t, v) =
     let t = map_tok t in
@@ -724,16 +738,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | PatId (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_id_info v2 in
         PatId (v1, v2)
-    | PatVar (v1, v2) ->
-        let v1 = map_type_ v1
-        and v2 =
-          map_of_option
-            (fun (v1, v2) ->
-              let v1 = map_ident v1 and v2 = map_id_info v2 in
-              (v1, v2))
-            v2
-        in
-        PatVar (v1, v2)
     | PatLiteral v1 ->
         let v1 = map_literal v1 in
         PatLiteral v1
@@ -1163,6 +1167,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Pa v1 ->
         let v1 = map_parameter v1 in
         Pa v1
+    | Ce v1 ->
+        let v1 = map_catch_exn v1 in
+        Ce v1
     | Ar v1 ->
         let v1 = map_argument v1 in
         Ar v1

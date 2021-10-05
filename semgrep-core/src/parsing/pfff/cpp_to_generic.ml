@@ -782,16 +782,17 @@ and map_handler env (v1, v2, v3) : G.catch =
   let v1 = map_tok env v1
   and _, xs, _ = map_paren env (map_of_list (map_exception_declaration env)) v2
   and v3 = map_compound env v3 in
-  let pat : G.pattern = complicated env xs in
+  let pat : G.catch_exn = complicated env xs in
   (v1, pat, G.Block v3 |> G.s)
 
-and map_exception_declaration env = function
+and map_exception_declaration env x : G.catch_exn =
+  match x with
   | ExnDecl v1 ->
       let v1 = map_parameter env v1 in
-      todo env v1
+      complicated env v1
   | ExnDeclEllipsis v1 ->
       let v1 = map_tok env v1 in
-      todo env v1
+      G.CatchPattern (G.PatEllipsis v1)
 
 and map_stmt_or_decl env x : G.stmt list =
   match x with
