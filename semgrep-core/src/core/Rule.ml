@@ -247,7 +247,7 @@ type taint_spec = {
 type mode = Search of pformula | Taint of taint_spec [@@deriving show]
 
 (* TODO? just reuse Error_code.severity *)
-type severity = Error | Warning | Info [@@deriving show]
+type severity = Error | Warning | Info | Inventory [@@deriving show]
 
 type rule = {
   (* MANDATORY fields *)
