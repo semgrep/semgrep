@@ -15,8 +15,13 @@ def cmp_path_sets(
     paths: Collection[Path],
     expected_paths: Collection[Path],
 ) -> bool:
-    """Check that two sets of paths are identical."""
-    return set(paths) == set(expected_paths)  # type: ignore
+    """Check that two sets of paths point to the same files.
+
+    For example, Path('.') and Path(os.cwd()) are considered equal.
+    """
+    abs_paths = set(elem.resolve() for elem in paths)
+    abs_expected_paths = set(elem.resolve() for elem in expected_paths)
+    return set(abs_paths) == set(abs_expected_paths)  # type: ignore
 
 
 def cmp_targets(
