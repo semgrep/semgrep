@@ -175,7 +175,6 @@ The two most popular are:
     target_manager = TargetManager(
         includes=include,
         excludes=exclude,
-        max_target_bytes=max_target_bytes,
         targets=target,
         respect_git_ignore=respect_git_ignore,
         output_handler=output_handler,
@@ -202,6 +201,7 @@ The two most popular are:
         jobs=jobs,
         timeout=timeout,
         max_memory=max_memory,
+        max_target_bytes=max_target_bytes,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
     ).invoke_semgrep(
