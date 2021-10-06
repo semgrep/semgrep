@@ -29,6 +29,7 @@ from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
+from semgrep.formatter.github import GitHubFormatter
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule
@@ -50,6 +51,7 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.SARIF: SarifFormatter,
     OutputFormat.TEXT: TextFormatter,
     OutputFormat.VIM: VimFormatter,
+    OutputFormat.GITHUB: GitHubFormatter,
 }
 
 

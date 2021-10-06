@@ -304,6 +304,11 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     is_flag=True,
     help="Output results in vim single-line format.",
 )
+@optgroup.option(
+    "--github",
+    is_flag=True,
+    help="Output results in github annotation format.",
+)
 @optgroup.group("Verbosity options", cls=MutuallyExclusiveOptionGroup)
 @optgroup.option(
     "-q",
@@ -408,6 +413,7 @@ def cli(
     exclude: Optional[Tuple[str, ...]],
     force_color: bool,
     generate_config: bool,
+    github: bool,
     include: Optional[Tuple[str, ...]],
     jobs: int,
     json: bool,
@@ -519,6 +525,8 @@ def cli(
         output_format = OutputFormat.EMACS
     elif vim:
         output_format = OutputFormat.VIM
+    elif github:
+        output_format = OutputFormat.GITHUB
 
     output_settings = OutputSettings(
         output_format=output_format,
