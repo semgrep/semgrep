@@ -22,6 +22,7 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.constants import RuleSeverity
+from semgrep.constants import SEMGREP_CDN_BASE_URL
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import InvalidRuleSchemaError
@@ -474,89 +475,121 @@ def saved_snippet_to_url(snippet_id: str) -> str:
     return registry_id_to_url(f"s/{snippet_id}")
 
 
-def download_pack_config(pack_id: str) -> Dict[str, YamlTree]:
+def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
     import requests  # here for faster startup times
-
     from semantic_version import Version
+    import time
+    import concurrent.futures
+    from io import StringIO
 
-    CDN_BASE_URL = "https://dev-cdn.semgrep.dev"
-    config_url_base = f"{CDN_BASE_URL}/ruleset/{pack_id}"
+    config_url_base = f"{SEMGREP_CDN_BASE_URL}/ruleset/{ruleset_name}"
     config_versions_url = f"{config_url_base}/versions"
     headers = {"User-Agent": SEMGREP_USER_AGENT}
 
-    logger.debug(f"Retrieving versions file of {pack_id} at {config_versions_url}")
+    def get_latest_version(ruleset_name: str) -> Version:
+        """
+        Get the latest version of ruleset_name by getting all existing versions
+        and returning max semver
+        """
+        logger.debug(
+            f"Retrieving versions file of {ruleset_name} at {config_versions_url}"
+        )
+        try:
+            r = requests.get(config_versions_url, headers=headers, timeout=20)
+        except Exception as e:
+            raise SemgrepError(
+                f"Failed to get available versions of {ruleset_name}: {str(e)}"
+            )
 
-    try:
-        r = requests.get(config_versions_url, headers=headers, timeout=20)
-    except Exception as e:
-        raise SemgrepError(f"Failed to get available versions of {pack_id}: {str(e)}")
+        if not r.ok:
+            raise SemgrepError(
+                f"Bad status code: {r.status_code} returned by url: {config_versions_url}"
+            )
 
-    if r.status_code == requests.codes.ok:
-        logger.debug(f"Avalabile versions for {pack_id}: {r.text}")
+        logger.debug(f"Avalabile versions for {ruleset_name}: {r.text}")
         try:
             versions_json = json.loads(r.text)
         except json.decoder.JSONDecodeError as e:
             raise SemgrepError(
-                f"Failed to parse versions file of pack {pack_id}: Invalid Json"
+                f"Failed to parse versions file of pack {ruleset_name}: Invalid Json"
             )
+
         versions_parsed = []
         for version_string in versions_json:
             try:
                 versions_parsed.append(Version(version_string))
             except ValueError as e:
-                logger.debug(
-                    f"Could not parse {version_string} in versions of {pack_id} pack as valid semver"
+                logger.info(
+                    f"Could not parse {version_string} in versions of {ruleset_name} pack as valid semver. Ignoring that version string."
                 )
         latest_version = max(versions_parsed)
-        logger.debug(f"Lastest version of {pack_id} is {latest_version}")
-    else:
-        raise SemgrepError(
-            f"Bad status code: {r.status_code} returned by url: {config_versions_url}"
-        )
+        logger.debug(f"Lastest version of {ruleset_name} is {latest_version}")
 
-    config_full_url = f"{config_url_base}/{latest_version}"
-    try:
-        r = requests.get(config_full_url, headers=headers, timeout=20)
-    except Exception as e:
-        raise SemgrepError(
-            f"Failed to download config for {pack_id}/{latest_version}: {str(e)}"
-        )
+        return latest_version
 
-    if r.status_code == requests.codes.ok:
-        logger.debug(f"Retrieved ruleset definition: {r.text}")
+    def get_ruleset(ruleset_name: str, version: Version) -> JsonObject:
+        """
+        Returns json blop of given ruleset_name/version
+        """
+        config_full_url = f"{config_url_base}/{version}"
         try:
-            ruleset_json = json.loads(
-                r.text
-            )  # TODO parse into object so no need to handle json
-        except json.decoder.JSONDecodeError as e:
+            r = requests.get(config_full_url, headers=headers, timeout=20)
+        except Exception as e:
             raise SemgrepError(
-                f"Failed to parse ruleset {pack_id}/{latest_version} as valid json"
+                f"Failed to download config for {ruleset_name}/{version}: {str(e)}"
             )
 
-        import time
-        import concurrent.futures
+        if not r.ok:
+            raise SemgrepError(
+                f"Bad status code: {r.status_code} returned by url: {config_full_url}"
+            )
 
-        def get_rule_helper(rule_id: str, version: str) -> JsonObject:
-            try:
-                r = requests.get(
-                    f"{CDN_BASE_URL}/rule/{rule_id}/{version}",
-                    headers=headers,
-                    timeout=20,
-                )
-            except Exception as e:
-                raise SemgrepError(f"TODO")
+        logger.debug(f"Retrieved ruleset definition: {r.text}")
+        try:
+            ruleset_json = json.loads(r.text)
+        except json.decoder.JSONDecodeError as e:
+            raise SemgrepError(
+                f"Failed to parse ruleset {ruleset_name}/{version} as valid json"
+            )
 
-            if r.status_code != requests.codes.ok:
-                # TODO
-                pass
-            try:
-                yaml = YAML()
-                rules = yaml.load(r.text)
-            except Exception as e:
-                # TODO
-                raise e
-            return rules["rules"][0]  # type:ignore
+        return ruleset_json  # type: ignore
 
+    def get_rule(rule_id: str, version: str) -> JsonObject:
+        """
+        Returns yaml rule definition of rule_id/version
+        """
+        rule_url = f"{SEMGREP_CDN_BASE_URL}/public/rule/{rule_id}/{version}"
+        try:
+            r = requests.get(
+                rule_url,
+                headers=headers,
+                timeout=20,
+            )
+        except Exception as e:
+            raise SemgrepError(
+                f"Failed to download rule {rule_id}/{version} from {rule_url}: {e}"
+            )
+
+        if r.status_code != requests.codes.ok:
+            raise SemgrepError(
+                f"Bad status code: {r.status_code} returned by url: {rule_url}"
+            )
+
+        try:
+            yaml = YAML()
+            rules = yaml.load(r.text)
+        except Exception as e:
+            raise SemgrepError(
+                f"Could not parse yaml for {rule_id}/{version} as valid yaml {e}"
+            )
+
+        return rules["rules"][0]  # type:ignore
+
+    def hydrate_ruleset(ruleset_json: JsonObject) -> JsonObject:
+        """
+        Takes ruleset json object and expands the rules key list
+        to be a list of rules instead of a list of rule identifiers
+        """
         hydrated = []
         start = time.time()
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -564,32 +597,39 @@ def download_pack_config(pack_id: str) -> Dict[str, YamlTree]:
             for rule in ruleset_json["rules"]:
                 futures.append(
                     executor.submit(
-                        get_rule_helper,
+                        get_rule,
                         rule_id=rule["rule_id"],
                         version=rule["version"],
                     )
                 )
 
             for future in concurrent.futures.as_completed(futures):
-                hydrated.append(future.result())
-        logger.info(
-            f"Retrieved ruleset {pack_id}/{latest_version} in {time.time()- start}s"
-        )
-        hydrated_ruleset = {"rules": hydrated}
-    else:
-        raise SemgrepError(
-            f"Bad status code: {r.status_code} returned by url: {config_full_url}"
-        )
+                try:
+                    hydrated_rule = future.result()
+                except Exception as e:
+                    raise SemgrepError(f"Error resolving rule in ruleset: {e}")
 
+                hydrated.append(hydrated_rule)
+        logger.debug(
+            f"Retrieved ruleset {ruleset_name}/{latest_version} in {time.time()- start}s"
+        )
+        return {"rules": hydrated}
+
+    DOWNLOADING_MESSAGE = f"downloading config ..."
+    logger.info(DOWNLOADING_MESSAGE)
+    logger.debug(f"Resolving latest version of {ruleset_name}")
+    latest_version = get_latest_version(ruleset_name)
+    ruleset_definition = get_ruleset(ruleset_name, latest_version)
+    hydrated_ruleset = hydrate_ruleset(ruleset_definition)
+
+    # Hack for now to get config in format expected by rest of codebase
     yaml = YAML()
-    from io import StringIO
-
     string_stream = StringIO()
     yaml.dump(hydrated_ruleset, string_stream)
     return parse_config_string(
         "remote-url",
         string_stream.getvalue(),
-        filename=f"{pack_id[:20]}...",
+        filename=f"{ruleset_name[:20]}...",
     )
 
 
