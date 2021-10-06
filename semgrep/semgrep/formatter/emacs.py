@@ -1,5 +1,5 @@
 from typing import Any
-from typing import FrozenSet
+from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
@@ -27,12 +27,12 @@ class EmacsFormatter(BaseFormatter):
             rule_match.message,
         ]
 
-    def output(
+    def format(
         self,
-        rules: FrozenSet[Rule],
-        rule_matches: Sequence[RuleMatch],
+        rules: Iterable[Rule],
+        rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
         extra: Mapping[str, Any],
     ) -> str:
-        rule_matches = sorted(rule_matches, key=lambda r: (r.path, r.id))
-        return "\n".join(":".join(self._get_parts(rm)) for rm in rule_matches)
+        sorted_matches = sorted(rule_matches, key=lambda r: (r.path, r.id))
+        return "\n".join(":".join(self._get_parts(rm)) for rm in sorted_matches)

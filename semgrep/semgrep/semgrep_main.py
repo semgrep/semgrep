@@ -14,11 +14,13 @@ from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
+from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.ignores import process_ignores
 from semgrep.metric_manager import metric_manager
+from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
@@ -128,8 +130,10 @@ def main(
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
 
     if not severity:
+        shown_severities = DEFAULT_SHOWN_SEVERITIES
         filtered_rules = all_rules
     else:
+        shown_severities = {RuleSeverity(s) for s in severity}
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
 
     output_handler.handle_semgrep_errors(errors)
@@ -264,12 +268,13 @@ The two most popular are:
 
     output_handler.handle_semgrep_core_output(
         filtered_matches.matches,
-        debug_steps_by_rule,
-        stats_line,
-        all_targets,
-        profiler,
-        filtered_rules,
-        profiling_data,
+        debug_steps_by_rule=debug_steps_by_rule,
+        stats_line=stats_line,
+        all_targets=all_targets,
+        profiler=profiler,
+        filtered_rules=filtered_rules,
+        profiling_data=profiling_data,
+        severities=shown_severities,
     )
 
     if autofix:
