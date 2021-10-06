@@ -615,7 +615,7 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
         )
         return {"rules": hydrated}
 
-    DOWNLOADING_MESSAGE = f"downloading config ..."
+    DOWNLOADING_MESSAGE = f"downloading config from {SEMGREP_CDN_BASE_URL}..."
     logger.info(DOWNLOADING_MESSAGE)
     logger.debug(f"Resolving latest version of {ruleset_name}")
     latest_version = get_latest_version(ruleset_name)
@@ -644,7 +644,7 @@ def resolve_config(config_str: str) -> Dict[str, YamlTree]:
         config = download_config(RULES_REGISTRY[config_str])
     elif is_url(config_str):
         config = download_config(config_str)
-    elif is_pack_id(config_str):
+    elif is_pack_id(config_str) and SEMGREP_CDN_BASE_URL:
         config = download_pack_config(config_str[2:])
     elif is_registry_id(config_str):
         config = download_config(registry_id_to_url(config_str))
