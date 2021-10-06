@@ -912,15 +912,17 @@ and action = pattern * expr
 (* newvar: newscope: usually a PatVar *)
 and catch = tok (* 'catch', 'except' in Python *) * catch_exn * stmt
 
+(* alt: we could reuse parameter, which has a ParamPattern and ParamClassic *)
 and catch_exn =
   | CatchPattern of pattern
   (* for Java/C++/PHP/etc.
-   * less: do instead PatAs (PatType(TyApply, var))?
-   *       or even    PatAs (PatConstructor(id, []), var)?
    * old: PatVar of type_ * (ident * id_info) option
-   * was in pattern as PatVar, but better to move out of pattern.
+   * and was in pattern as PatVar, but better to move out of pattern.
+   * alt: we could abuse pattern and use PatTyped, but ugly.
    *)
-  | CatchParam of (* TODO parameter_classic *) type_ * (ident * id_info) option
+  | CatchParam of parameter_classic
+
+(* ptype should never be None *)
 
 (* newscope: *)
 and finally = tok (* 'finally' *) * stmt

@@ -232,7 +232,7 @@ and case = function
 
 and catch (t, v1, v2, v3) =
   let v1 = hint_type v1 and v2 = var v2 and v3 = stmt v3 in
-  let exn = G.CatchParam (v1, Some (v2, G.empty_id_info ())) in
+  let exn = G.CatchParam (G.param_of_type v1 ~pname:(Some v2)) in
   (t, exn, v3)
 
 (* a list of finally??? php ... *)

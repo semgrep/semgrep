@@ -738,16 +738,17 @@ and excepthandler = function
         | Some e, None -> (
             match e.G.e with
             | G.Ellipsis tok -> G.CatchPattern (G.PatEllipsis tok)
-            | G.Container (G.Tuple, _) -> G.CatchParam (H.expr_to_type e, None)
+            | G.Container (G.Tuple, _) ->
+                G.CatchParam (G.param_of_type (H.expr_to_type e))
             | _ ->
                 G.CatchParam
-                  ( H.expr_to_type
-                      (G.Container (G.Tuple, G.fake_bracket [ e ]) |> G.e),
-                    None ))
+                  (G.param_of_type
+                     (H.expr_to_type
+                        (G.Container (G.Tuple, G.fake_bracket [ e ]) |> G.e))))
         | None, None -> G.CatchPattern (G.PatUnderscore (fake t "_"))
         | None, Some _ -> raise Impossible (* see the grammar *)
         | Some e, Some n ->
-            G.CatchParam (H.expr_to_type e, Some (n, G.empty_id_info ()))
+            G.CatchParam (G.param_of_type (H.expr_to_type e) ~pname:(Some n))
       in
       (t, exn, v3)
 

@@ -533,7 +533,7 @@ and catch (tok, (v1, _union_types), v2) =
   let v2 = stmt v2 in
   let exn =
     match typ with
-    | Some t -> G.CatchParam (t, Some (id, G.empty_id_info ()))
+    | Some t -> G.CatchParam (G.param_of_type t ~pname:(Some id))
     | None -> error tok "TODO: Catch without a type"
   in
   (tok, exn, v2)
