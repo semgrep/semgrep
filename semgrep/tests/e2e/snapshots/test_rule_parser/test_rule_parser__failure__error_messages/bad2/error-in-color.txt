@@ -7,6 +7,7 @@
 [94m6 | [0m    languages: [python]
 [94m7 | [0m    severit: ERROR
 
-[31mAdditional properties are not allowed ('severit' was unexpected)[0m
+[31mOne of these properties may be invalid: 'patterns'
+One of these properties is missing: 'mode', 'severity'[0m
 
 run with --strict and there were 1 errors loading configs
