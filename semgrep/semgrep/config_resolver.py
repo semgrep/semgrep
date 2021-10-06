@@ -254,7 +254,7 @@ def resolve_targets(targets: Sequence[str]) -> Sequence[Path]:
     The current implementation doesn't fully resolve all the paths,
     e.g. Path('/foo/../bar') remains as is.
     """
-    base_path = get_base_path()
+    base_path = get_absolute_base_path()
     return [
         Path(target) if Path(target).is_absolute() else base_path / target
         for target in targets
@@ -276,9 +276,17 @@ def adjust_for_docker() -> None:
             os.chdir(SRC_DIRECTORY)
 
 
-def get_base_path() -> Path:
+def get_absolute_base_path() -> Path:
     """Return the current directory as an absolute path."""
     return Path(os.getcwd())
+
+
+def get_base_path() -> Path:
+    """Return the current directory.
+
+    This may be a relative or absolute path.
+    """
+    return Path(os.curdir)
 
 
 def indent(msg: str) -> str:
