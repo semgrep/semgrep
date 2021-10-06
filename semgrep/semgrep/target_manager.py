@@ -180,8 +180,8 @@ class TargetManager:
         expanded: Set[Path] = set()
 
         # Include all executables without an extension
-        exec_files = _find_executable_files(curr_dir)
-        expanded = expanded.union(exec_files)
+        # exec_files = _find_executable_files(curr_dir)
+        # expanded = expanded.union(exec_files)
 
         for ext in extensions:
             if respect_git_ignore:
