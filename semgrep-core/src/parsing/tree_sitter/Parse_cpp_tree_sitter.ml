@@ -2554,7 +2554,7 @@ and map_operator_cast_definition (env : env)
 and map_optional_parameter_declaration (env : env)
     ((v1, v2, v3, v4) : CST.optional_parameter_declaration) : parameter_classic
     =
-  let t, specs = map_declaration_specifiers env v1 in
+  let t, p_specs = map_declaration_specifiers env v1 in
   let v3 = token env v3 (* "=" *) in
   let v4 = map_expression env v4 in
   let v2 =
@@ -2562,15 +2562,8 @@ and map_optional_parameter_declaration (env : env)
     | Some x ->
         let { dn; dt } = map_declarator env x in
         let id = id_of_dname_for_parameter dn in
-        { (basic_param id (dt t) specs) with p_val = Some (v3, v4) }
-    | None ->
-        {
-          p_name = None;
-          p_type = t;
-          p_register = None;
-          p_specs = specs;
-          p_val = Some (v3, v4);
-        }
+        make_param (dt t) ~p_name:(Some id) ~p_specs ~p_val:(Some (v3, v4))
+    | None -> make_param t ~p_specs ~p_val:(Some (v3, v4))
   in
   v2
 
@@ -2590,7 +2583,7 @@ and map_parameter_declaration (env : env)
     ((v1, v2, v3) : CST.parameter_declaration) : parameter_classic =
   let v1 = List.map (map_attribute env) v1 in
   let t, specs = map_declaration_specifiers env v2 in
-  let specs = (v1 |> List.map (fun x -> A x)) @ specs in
+  let p_specs = (v1 |> List.map (fun x -> A x)) @ specs in
   let v3 =
     match v3 with
     | Some x -> (
@@ -2598,24 +2591,11 @@ and map_parameter_declaration (env : env)
         | `Decl x ->
             let { dn; dt } = map_declarator env x in
             let id = id_of_dname_for_parameter dn in
-            basic_param id (dt t) specs
+            make_param (dt t) ~p_name:(Some id) ~p_specs
         | `Abst_decl x ->
             let dt = map_abstract_declarator env x in
-            {
-              p_name = None;
-              p_type = dt t;
-              p_specs = specs;
-              p_register = None;
-              p_val = None;
-            })
-    | None ->
-        {
-          p_name = None;
-          p_type = t;
-          p_specs = specs;
-          p_register = None;
-          p_val = None;
-        }
+            make_param (dt t) ~p_specs)
+    | None -> make_param t ~p_specs
   in
   v3
 
@@ -3373,34 +3353,18 @@ and map_using_declaration (env : env) ((v1, v2, v3, v4) : CST.using_declaration)
 
 and map_variadic_parameter_declaration (env : env)
     ((v1, v2) : CST.variadic_parameter_declaration) =
-  let t, specs = map_declaration_specifiers env v1 in
+  let t, p_specs = map_declaration_specifiers env v1 in
   let v2 =
     match v2 with
     | `Vari_decl x ->
-        let tdots, idopt = map_variadic_declarator env x in
-        let p =
-          {
-            p_name = idopt;
-            p_type = t;
-            p_specs = specs;
-            p_val = None;
-            p_register = None;
-          }
-        in
+        let tdots, p_name = map_variadic_declarator env x in
+        let p = make_param t ~p_name ~p_specs in
         ParamVariadic (None, tdots, p)
     | `Vari_ref_decl x ->
-        let ampersand, (tdots, idopt) =
+        let ampersand, (tdots, p_name) =
           map_variadic_reference_declarator env x
         in
-        let p =
-          {
-            p_name = idopt;
-            p_type = t;
-            p_specs = specs;
-            p_val = None;
-            p_register = None;
-          }
-        in
+        let p = make_param t ~p_name ~p_specs in
         ParamVariadic (Some ampersand, tdots, p)
   in
   v2
