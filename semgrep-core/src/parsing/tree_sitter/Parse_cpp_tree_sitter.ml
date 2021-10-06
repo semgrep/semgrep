@@ -121,14 +121,6 @@ let id_of_dname_for_parameter dname =
         (Parse_info.Other_error
            ("expecting an ident for parameter", ii_of_dname dname))
 
-let id_of_dname_for_typedef dname =
-  match dname with
-  | DN (None, [], IdIdent id) -> id
-  | _ ->
-      raise
-        (Parse_info.Other_error
-           ("expecting an ident for typedef", ii_of_dname dname))
-
 let name_of_dname_for_function dn =
   match dn with
   | DN n -> n
@@ -920,18 +912,18 @@ and map_anon_choice_decl_f8b0ff3 (env : env) (x : CST.anon_choice_decl_f8b0ff3)
       let x = map_declarator env x in
       fun attrs t specs ->
         {
-          v_namei = Some (x.dn, None);
+          v_name = x.dn;
+          v_init = None;
           v_type = x.dt t;
-          v_storage = NoSto;
           v_specs = List.map (fun x -> A x) attrs @ specs;
         }
   | `Init_decl x ->
       let x, init = map_init_declarator env x in
       fun attrs t specs ->
         {
-          v_namei = Some (x.dn, Some init);
+          v_name = x.dn;
+          v_init = Some init;
           v_type = x.dt t;
-          v_storage = NoSto;
           v_specs = List.map (fun x -> A x) attrs @ specs;
         }
 
@@ -1561,12 +1553,7 @@ and map_condition_declaration (env : env)
     | `Init_list x -> ObjInit (Inits (map_initializer_list env x))
   in
   let one =
-    {
-      v_namei = Some (dn, Some v3);
-      v_type = dt t;
-      v_storage = NoSto;
-      v_specs = specs;
-    }
+    V { v_name = dn; v_init = Some v3; v_type = dt t; v_specs = specs }
   in
   CondOneDecl one
 
@@ -1590,7 +1577,7 @@ and map_constructor_or_destructor_declaration (env : env)
   let v3 = token env v3 (* ";" *) in
   let n = name_of_dname_for_function dn in
   let t = dt (nQ, TBase (Void (ii_of_name n))) in
-  let ent, def = H2.fixFunc ((n, t, NoSto), FBDecl v3) in
+  let ent, def = H2.fixFunc ((n, t, []), FBDecl v3) in
   ({ ent with specs = v1 @ ent.specs }, def)
 
 and map_constructor_or_destructor_definition (env : env)
@@ -1609,7 +1596,7 @@ and map_constructor_or_destructor_definition (env : env)
   let n = name_of_dname_for_function dn in
   let t = dt (nQ, TBase (Void (ii_of_name n))) in
   let v4 = map_anon_choice_comp_stmt_be91723 env v4 in
-  let ent, def = H2.fixFunc ((n, t, NoSto), v4) in
+  let ent, def = H2.fixFunc ((n, t, []), v4) in
   ({ ent with specs = v1 @ ent.specs }, def)
 
 and map_constructor_specifiers (env : env) (xs : CST.constructor_specifiers) :
@@ -1648,7 +1635,7 @@ and map_declaration (env : env) ((v1, v2, v3, v4, v5) : CST.declaration) :
       v4
   in
   let v5 = token env v5 (* ";" *) in
-  let xs = v3 :: v4 |> List.map (fun f -> f v1 t specs) in
+  let xs = v3 :: v4 |> List.map (fun f -> V (f v1 t specs)) in
   (xs, v5)
 
 and map_declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) :
@@ -1718,7 +1705,7 @@ and map_empty_declaration (env : env) ((v1, v2) : CST.empty_declaration) : decl
     =
   let v1 = map_type_specifier env v1 in
   let v2 = token env v2 (* ";" *) in
-  let one = { v_namei = None; v_type = v1; v_storage = NoSto; v_specs = [] } in
+  let one = EmptyDecl v1 in
   DeclList ([ one ], v2)
 
 and map_enum_base_clause (env : env) ((v1, v2) : CST.enum_base_clause) =
@@ -1900,9 +1887,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
               ft_throw = [];
             }
       in
-      let fdef =
-        { f_type; f_storage = NoSto; f_body = FBDef v3; f_specs = [] }
-      in
+      let fdef = { f_type; f_body = FBDef v3; f_specs = [] } in
       Lambda ((l, xs, r), fdef)
   | `Param_pack_expa (v1, v2) ->
       let v1 = map_expression env v1 in
@@ -1976,12 +1961,7 @@ and map_field_declaration (env : env)
     v4
     |> List.map (fun { dn; dt } ->
            let one =
-             {
-               v_namei = Some (dn, v5);
-               v_type = dt t;
-               v_storage = NoSto;
-               v_specs = specs;
-             }
+             V { v_name = dn; v_init = v5; v_type = dt t; v_specs = specs }
            in
            FieldDecl one)
   in
@@ -2033,7 +2013,7 @@ and map_field_declaration_list_item (env : env)
       let v5 = map_anon_choice_comp_stmt_be91723 env v5 in
       let n = name_of_dname_for_function dn in
       let t = dt t in
-      let ent, def = H2.fixFunc ((n, t, NoSto), v5) in
+      let ent, def = H2.fixFunc ((n, t, []), v5) in
       let fdef =
         ( {
             ent with
@@ -2081,9 +2061,7 @@ and map_field_declaration_list_item (env : env)
               | None -> (nQ, TypeName v2)
               | Some class_key -> (nQ, ClassName (class_key, v2))
             in
-            let one =
-              { v_namei = None; v_type = t; v_storage = NoSto; v_specs = [] }
-            in
+            let one = EmptyDecl t in
             DeclList ([ one ], v3)
       in
       [ X (Friend (v1, v2)) ]
@@ -2228,7 +2206,7 @@ and map_function_definition (env : env)
   let v5 = map_compound_statement env v5 in
   let n = name_of_dname_for_function dn in
   let t = dt t in
-  let ent, def = H2.fixFunc ((n, t, NoSto), FBDef v5) in
+  let ent, def = H2.fixFunc ((n, t, []), FBDef v5) in
   ({ ent with specs = ent.specs @ specs @ List.map (fun x -> A x) v1 @ v2 }, def)
 
 and map_function_field_declarator (env : env)
@@ -2523,14 +2501,7 @@ and map_operator_cast_declaration (env : env)
     | None -> None
   in
   let t = (nQ, TBase (Void (ii_of_name name))) in
-  let one =
-    {
-      v_namei = Some (DN name, v3);
-      v_type = t;
-      v_storage = NoSto;
-      v_specs = v1;
-    }
-  in
+  let one = V { v_name = DN name; v_init = v3; v_type = t; v_specs = v1 } in
   let v4 = token env v4 (* ";" *) in
   ([ one ], v4)
 
@@ -2545,7 +2516,7 @@ and map_operator_cast_definition (env : env)
   let v3 = map_anon_choice_comp_stmt_be91723 env v3 in
 
   let t = (nQ, TBase (Void (ii_of_name n))) in
-  let ent, def = H2.fixFunc ((n, t, NoSto), v3) in
+  let ent, def = H2.fixFunc ((n, t, []), v3) in
   ({ ent with specs = v1 @ ent.specs }, def)
 
 and map_optional_parameter_declaration (env : env)
@@ -3202,13 +3173,8 @@ and map_type_definition (env : env)
   let xs =
     v4 :: v5
     |> List.map (fun { dn; dt } ->
-           let id = id_of_dname_for_typedef dn in
-           {
-             v_namei = Some (DN (name_of_id id), None);
-             v_type = dt v3;
-             v_storage = StoTypedef v1;
-             v_specs = [];
-           })
+           let id = H2.id_of_dname_for_typedef dn in
+           TypedefDecl (v1, dt v3, id))
   in
   (xs, v6)
 
