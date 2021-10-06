@@ -45,7 +45,7 @@ class _MetricManager:
         self._errors: List[str] = []
         self._file_stats: List[Dict[str, Any]] = []
         self._rule_stats: List[Dict[str, Any]] = []
-        self._rules_with_findings: Sequence[str] = []
+        self._rules_with_findings: Mapping[str, int] = {}
 
         self._send_metrics = False
 
@@ -118,7 +118,7 @@ class _MetricManager:
     def set_rules_with_findings(
         self, findings: Mapping[Rule, Sequence[RuleMatch]]
     ) -> None:
-        self._rules_with_findings = [r.full_hash for r in findings.keys()]
+        self._rules_with_findings = {r.full_hash: len(f) for r, f in findings.items()}
 
     def set_run_timings(
         self, profiling_data: ProfilingData, targets: List[Path], rules: List[Rule]
