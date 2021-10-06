@@ -312,7 +312,15 @@ class TargetManager:
         if lang in self._filtered_targets:
             return self._filtered_targets[lang]
 
-        root_targets = self.resolve_targets(self.targets)
+        # Turn all targets into absolute paths. Not doing this because
+        # of complications during testing. Absolute target paths such
+        # as '/home/yourname/whatever/...` differ from one user to another.
+        # If we're ok permanently with relative paths, let's remove the
+        # resolve_targets() code rather than making it not do what it's
+        # supposed to do (it was previously prepending './' and then
+        # removing it, which was misleading).
+        # root_targets = self.resolve_targets(self.targets)
+        root_targets = set(Path(path_str) for path_str in self.targets)
 
         files, directories = partition_set(lambda p: not p.is_dir(), root_targets)
 
