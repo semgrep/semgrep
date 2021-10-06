@@ -1076,7 +1076,6 @@ and map_parameter_classic env
     {
       p_name = v_p_name;
       p_type = v_p_type;
-      p_register = v_p_register;
       p_specs = v_p_specs;
       p_val = v_p_val;
     } : G.parameter_classic =
@@ -1088,7 +1087,6 @@ and map_parameter_classic env
       v_p_val
   in
   let v_p_specs = map_of_list (map_specifier env) v_p_specs in
-  let v_p_register = map_of_option (map_tok env) v_p_register in
   let v_p_type = map_type_ env v_p_type in
   let v_p_name = map_of_option (map_ident env) v_p_name in
   todo env ()
