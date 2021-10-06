@@ -914,31 +914,36 @@ and map_colon_option env = function
       (v1, None)
 
 and map_var env (v1, v2) : G.entity * G.variable_definition =
-  let v1 = map_entity env v1 and v2 = map_var_decl env v2 in
+  let v1 = map_entity env v1 and v2 = map_var_decl_range env v2 in
   (v1, v2)
 
-and map_var_decl env { v__type = v_v__type } : G.variable_definition =
+and map_var_decl_range env { v__type = v_v__type } : G.variable_definition =
   let v_v__type = map_type_ env v_v__type in
   { G.vinit = None; vtype = Some v_v__type }
 
-and map_onedecl env
+and map_onedecl env x =
+  match x with
+  | EmptyDecl t ->
+      let t = map_type_ env t in
+      todo env t
+  | TypedefDecl (tk, ty, id) ->
+      let tk = map_tok env tk in
+      let ty = map_type_ env ty in
+      let id = map_ident env id in
+      todo env (tk, ty, id)
+  | V v1 -> map_var_decl env v1
+
+and map_var_decl env
     {
-      v_namei = v_v_namei;
+      v_name = v_v_name;
+      v_init = v_v_init;
       v_type = v_v_type;
-      v_storage = v_v_storage;
       v_specs = v_v_specs;
     } =
   let v_v_specs = map_of_list (map_specifier env) v_v_specs in
-  let v_v_storage = map_storage_opt env v_v_storage in
   let v_v_type = map_type_ env v_v_type in
-  let v_v_namei =
-    map_of_option
-      (fun (v1, v2) ->
-        let v1 = map_declarator_name env v1
-        and v2 = map_of_option (map_init env) v2 in
-        (v1, v2))
-      v_v_namei
-  in
+  let v_v_name = map_declarator_name env v_v_name in
+  let v_v_init = map_of_option (map_init env) v_v_init in
   complicated env ()
 
 and map_declarator_name env = function
@@ -948,16 +953,6 @@ and map_declarator_name env = function
   | DNStructuredBinding v1 ->
       let v1 = map_bracket env (map_of_list (map_ident env)) v1 in
       complicated env v1
-
-and map_storage_opt env x : G.attribute list =
-  match x with
-  | NoSto -> []
-  | StoTypedef v1 ->
-      let v1 = map_tok env v1 in
-      complicated env v1
-  | Sto v1 ->
-      let v1 = map_storage env v1 in
-      [ v1 ]
 
 and map_init env = function
   | EqInit (v1, v2) ->
@@ -1028,15 +1023,10 @@ and map_func_definition env (v1, v2) : G.definition =
   (v1, FuncDef v2)
 
 and map_function_definition env
-    {
-      f_type = v_f_type;
-      f_storage = v_f_storage;
-      f_body = v_f_body;
-      f_specs = v_f_specs;
-    } : G.function_definition =
+    { f_type = v_f_type; f_body = v_f_body; f_specs = v_f_specs } :
+    G.function_definition =
   let _v_f_specsTODO = map_of_list (map_specifier env) v_f_specs in
   let fbody = map_function_body env v_f_body in
-  let _v_f_storageTODO = map_storage_opt env v_f_storage in
   let fparams, fret = map_functionType env v_f_type in
   { G.fkind = (G.Function, G.fake ""); fparams; frettype = Some fret; fbody }
 
