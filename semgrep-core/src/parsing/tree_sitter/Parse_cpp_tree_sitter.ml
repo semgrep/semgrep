@@ -47,9 +47,6 @@ let str = H.str
 (* for declarators *)
 let id x = x
 
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-
 (* see tree-sitter-cpp/grammar.js *)
 let parse_operator _env (s, t) : operator * tok list =
   let op =
@@ -109,7 +106,7 @@ let parse_number_literal (s, t) =
       | None -> Int (None, t))
 
 (* see tree-sitter-c/grammar.js *)
-let parse_primitive_type env (s, t) =
+let parse_primitive_type _env (s, t) =
   match s with
   (* size_t, ssize_t, intptr_t, int8_t, int16_t, ... *)
   | _ -> (nQ, TypeName (name_of_id (s, t)))
@@ -1293,7 +1290,7 @@ and map_attribute_specifier (env : env)
 
 and map_base_class_clause (env : env)
     ((v1, v2, v3, v4, v5) : CST.base_class_clause) : base_clause list =
-  let v1 = token env v1 (* ":" *) in
+  let _v1 = token env v1 (* ":" *) in
   let v2 =
     match v2 with
     | Some x -> Some (map_anon_choice_public_c9638d9 env x)
@@ -2232,7 +2229,7 @@ and map_function_definition (env : env)
   let n = name_of_dname_for_function dn in
   let t = dt t in
   let ent, def = H2.fixFunc ((n, t, NoSto), FBDef v5) in
-  ({ ent with specs = ent.specs @ List.map (fun x -> A x) v1 @ v2 }, def)
+  ({ ent with specs = ent.specs @ specs @ List.map (fun x -> A x) v1 @ v2 }, def)
 
 and map_function_field_declarator (env : env)
     ((v1, v2, v3) : CST.function_field_declarator) =
@@ -2685,7 +2682,7 @@ and map_preproc_if (env : env) ((v1, v2, v3, v4, v5, v6) : CST.preproc_if) :
   (* TODO: IfIf *)
   let v1 = token env v1 (* pattern #[ 	]*if *) in
   let _v2TODO = map_preproc_expression env v2 in
-  let v3 = token env v3 (* "\n" *) in
+  let _v3 = token env v3 (* "\n" *) in
   let dir1 = Ifdef v1 in
   let v4 = map_translation_unit env v4 in
   let v5 =
@@ -2703,7 +2700,7 @@ and map_preproc_if_in_field_declaration_list (env : env)
   (* TODO: IfIf *)
   let v1 = token env v1 (* pattern #[ 	]*if *) in
   let _v2TODO = map_preproc_expression env v2 in
-  let v3 = token env v3 (* "\n" *) in
+  let _v3 = token env v3 (* "\n" *) in
   let dir1 = Ifdef v1 in
   let v4 = List.map (map_field_declaration_list_item env) v4 in
   let v5 =
@@ -2814,10 +2811,10 @@ and map_sizeof_expression (env : env) (x : CST.sizeof_expression) : expr =
       v2
   | `Sizeof_DOTDOTDOT_LPAR_id_RPAR (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "sizeof" *) in
-      let v2 = token env v2 (* "..." *) in
-      let v3 = token env v3 (* "(" *) in
-      let v4 = str env v4 (* pattern [a-zA-Z_]\w* *) in
-      let v5 = token env v5 (* ")" *) in
+      let _v2 = token env v2 (* "..." *) in
+      let _v3 = token env v3 (* "(" *) in
+      let _v4 = str env v4 (* pattern [a-zA-Z_]\w* *) in
+      let _v5 = token env v5 (* ")" *) in
       ExprTodo (("SizeofDots", v1), [])
 
 and map_statement (env : env) (x : CST.statement) : stmt =
@@ -2884,7 +2881,7 @@ and map_static_assert_declaration (env : env)
     | None -> []
   in
   let v5 = token env v5 (* ")" *) in
-  let v6 = token env v6 (* ";" *) in
+  let _v6 = token env v6 (* ";" *) in
   let args = (v2, Arg v3 :: v4, v5) in
   StaticAssert (v1, args)
 
@@ -3115,7 +3112,7 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
 
 and map_trailing_return_type (env : env)
     ((v1, v2, v3, v4) : CST.trailing_return_type) : type_ =
-  let v1 = token env v1 (* "->" *) in
+  let _v1 = token env v1 (* "->" *) in
   let _v2TODO =
     match v2 with
     | Some x -> [ map_type_qualifier env x ]
