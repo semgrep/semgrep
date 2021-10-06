@@ -99,9 +99,10 @@ class TargetManager:
 
     @staticmethod
     def resolve_targets(targets: Sequence[str]) -> Set[Path]:
-        """
+        """Turn all paths to absolute paths.
+
         Return list of Path objects appropriately resolving relative paths
-        (relative to cwd) if necessary
+        (relative to cwd) if necessary.
         """
         return set(resolve_targets(targets))
 

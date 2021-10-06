@@ -269,7 +269,8 @@ def adjust_for_docker() -> None:
 
 
 def get_base_path() -> Path:
-    return Path(os.curdir)
+    """Return the current directory as an absolute path."""
+    return Path(os.getcwd())
 
 
 def indent(msg: str) -> str:
