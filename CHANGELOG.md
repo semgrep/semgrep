@@ -12,6 +12,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
   making it possible to use `- pattern: $F(...)` for declaring that any other
   function is a sanitizer
+- taint-mode: Remove built-in source `source(...)` and built-in sanitizer
+  `sanitize(...)` used for convenience during early development, this was causing
+  some unexpected behavior in real code that e.g. had a function called `source`!
 - Improved Kotlin parsing from 77% to 90% on our Kotlin corpus.
 
 ### Fixed

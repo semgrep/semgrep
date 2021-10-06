@@ -1,0 +1,12 @@
+rules:
+  - id: test
+    languages:
+      - go
+    message: Test
+    severity: INFO
+    mode: taint
+    pattern-sources:
+      - pattern: do_not_match_anything
+    pattern-sinks:
+      - pattern: $ANYTHING(...)
+
