@@ -1028,10 +1028,10 @@ and catch_clause (env : env) ((v1, v2, v3, v4, v5, v6) : CST.catch_clause) =
   let v1 = (* "catch" *) token env v1 in
   let _v2 = (* "(" *) token env v2 in
   let v3 = type_ env v3 in
-  let v4 = (* variable *) Some (str env v4, G.empty_id_info ()) in
+  let v4 = (* variable *) Some (str env v4) in
   let _v5 = (* ")" *) token env v5 in
   let v6 = compound_statement env v6 in
-  let exn = G.CatchParam (v3, v4) in
+  let exn = G.CatchParam (G.param_of_type v3 ~pname:v4) in
   (v1, exn, v6)
 
 and class_const_declaration (env : env)
