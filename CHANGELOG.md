@@ -6,11 +6,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Input can be derived from subshells: `semgrep --config ... <(...)`
+- Java: support '...' in catch (#4002)
 
 ### Changed
 - taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
   making it possible to use `- pattern: $F(...)` for declaring that any other
   function is a sanitizer
+- Improved Kotlin parsing from 77% to 90% on our Kotlin corpus.
 
 ### Fixed
 
