@@ -72,11 +72,7 @@ let option_to_varmap = function
 (* Tainted *)
 (*****************************************************************************)
 
-let sanitized_instr config instr =
-  match instr.i with
-  | Call (_, { e = Fetch { base = Var (("sanitize", _), _); _ }; _ }, []) ->
-      true
-  | ___else___ -> config.is_sanitizer (G.E instr.iorig)
+let sanitized_instr config instr = config.is_sanitizer (G.E instr.iorig)
 
 (* Test whether an expression is tainted, and if it is also a sink,
  * report the finding too (by side effect).
@@ -142,8 +138,6 @@ let check_tainted_instr config fun_env env instr =
   let tainted_args = function
     | Assign (_, e) -> check_expr e
     | AssignAnon _ -> false (* TODO *)
-    | Call (_, { e = Fetch { base = Var (("source", _), _); _ }; _ }, []) ->
-        true
     | Call (_, e, args) ->
         let e_tainted = check_expr e in
         (* We must always go into the arguments regardless of whether `e` is
