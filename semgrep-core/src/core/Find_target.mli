@@ -4,6 +4,18 @@
 *)
 
 (*
+   A target file marked as Filterable can be skipped if they
+   don't have the right extension or if they don't look like a proper
+   source file (not human-readable, wrong format, etc.).
+   A target file marked as Explicit may not be skipped. Those are normally
+   files requested directly by the user on the semgrep command line.
+
+   This property is ignored if the target is a folder. Files discovered
+   in a folder are always considered filterable.
+*)
+type target_kind = Explicit | Filterable
+
+(*
    Scan a list of folders or files recursively and return a list of files
    in the requested language. This takes care of ignoring undesirable
    files, which are returned in the semgrep-core response format.
@@ -14,19 +26,15 @@
      skip_list.ml in pfff).
    - files over a certain size.
 
-   If keep_root_files is true (the default), regular files passed directly
-   to this function are considered ok and bypass the other filters.
-
    By default files are sorted alphabetically. Setting
    'sort_by_decr_size' will sort them be decreasing size instead.
 
    This is a replacement for Lang.files_of_dirs_or_files.
 *)
 val files_of_dirs_or_files :
-  ?keep_root_files:bool ->
   ?sort_by_decr_size:bool ->
   Lang.t ->
-  Common.path list ->
+  (Common.path * target_kind) list ->
   Common.filename list * Semgrep_core_response_t.skipped_target list
 
 (*
