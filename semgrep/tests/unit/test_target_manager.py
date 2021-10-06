@@ -1,6 +1,7 @@
 import subprocess
 from pathlib import Path
 from typing import Collection
+from typing import Set
 
 from semgrep.constants import OutputFormat
 from semgrep.output import OutputHandler
@@ -11,6 +12,19 @@ from semgrep.target_manager import TargetFiles
 from semgrep.target_manager import TargetManager
 
 
+def resolve_paths(paths: Collection[Path]) -> Set[Path]:
+    """Normalize paths for comparison purposes."""
+    return set(elem.resolve() for elem in paths)
+
+
+def resolve_targets(targets: TargetFiles) -> TargetFiles:
+    """Normalize targets paths for comparison purposes."""
+    return TargetFiles(
+        explicit=resolve_paths(targets.explicit),
+        filterable=resolve_paths(targets.filterable),
+    )
+
+
 def cmp_path_sets(
     paths: Collection[Path],
     expected_paths: Collection[Path],
@@ -19,9 +33,7 @@ def cmp_path_sets(
 
     For example, Path('.') and Path(os.cwd()) are considered equal.
     """
-    abs_paths = set(elem.resolve() for elem in paths)
-    abs_expected_paths = set(elem.resolve() for elem in expected_paths)
-    return set(abs_paths) == set(abs_expected_paths)  # type: ignore
+    return resolve_paths(paths) == resolve_paths(expected_paths)  # type: ignore
 
 
 def cmp_targets(
@@ -30,7 +42,10 @@ def cmp_targets(
     filterable: Collection[Path] = frozenset(),
 ) -> bool:
     """Check that two sets of target paths are identical."""
-    return targets.explicit == set(explicit) and targets.filterable == set(filterable)  # type: ignore
+    targets = resolve_targets(targets)
+    explicit = resolve_paths(explicit)
+    filterable = resolve_paths(filterable)
+    return targets.explicit == explicit and targets.filterable == filterable  # type: ignore
 
 
 def empty_targets(targets: TargetFiles) -> bool:
@@ -725,6 +740,8 @@ def test_explicit_path(tmp_path, monkeypatch):
     (foo / "b.go").touch()
     foo_noext = foo / "noext"
     foo_noext.touch()
+    foo_unknownext = foo / "unknownext.fleeb"
+    foo_unknownext.touch()
     foo_a = foo / "a.py"
     foo_a.touch()
     foo_b = foo / "b.py"
@@ -774,7 +791,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     assert foo_a in targets.explicit
     assert foo_a not in targets.filterable
 
-    # Should ignore expliclty passed .go file when requesting python
+    # Should ignore explicitly passed .go file when requesting python
     assert cmp_targets(
         TargetManager([], [], ["foo/a.go"], False, defaulthandler, False).get_files(
             python_language, [], []
@@ -792,20 +809,34 @@ def test_explicit_path(tmp_path, monkeypatch):
         filterable={},
     )
 
-    # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
+    # Shouldn't include explicitly passed file with unknown extension if skip_unknown_extensions=True
+    assert cmp_targets(
+        TargetManager(
+            [], [], ["foo/unknownext.fleeb"], False, defaulthandler, True
+        ).get_files(python_language, [], []),
+        explicit={},
+        filterable={},
+    )
+
+    # Should include explicitly passed file with no extension if skip_unknown_extensions=True
     assert cmp_targets(
         TargetManager([], [], ["foo/noext"], False, defaulthandler, True).get_files(
             python_language, [], []
         ),
-        explicit={},
+        explicit={foo_noext},
         filterable={},
     )
 
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
     assert cmp_targets(
         TargetManager(
-            [], [], ["foo/noext", "foo/a.py"], False, defaulthandler, True
+            [],
+            [],
+            ["foo/noext", "foo/unknownext.fleeb", "foo/a.py"],
+            False,
+            defaulthandler,
+            True,
         ).get_files(python_language, [], []),
-        explicit={foo_a},
+        explicit={foo_noext, foo_a},
         filterable={},
     )
