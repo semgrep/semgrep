@@ -209,7 +209,7 @@ and pipeline (x : pipeline) : stmt_or_expr =
       match control_op with
       | Foreground, tok -> pipeline pip
       | Background, amp_tok ->
-          let func = G.IdSpecial (G.Op G.Pipe, amp_tok) |> G.e in
+          let func = G.IdSpecial (G.Op G.Background, amp_tok) |> G.e in
           let arg = pipeline pip |> as_expr in
           Expr (loc, G.Call (func, bracket loc [ G.Arg arg ]) |> G.e))
 

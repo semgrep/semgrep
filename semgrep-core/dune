@@ -37,10 +37,10 @@
 ;   (data_only_dirs bin)
 ;)
 
-(subdir
-   src/tree-sitter-lang/semgrep-bash
-   (data_only_dirs bin)
-)
+;(subdir
+;   src/tree-sitter-lang/semgrep-bash
+;   (data_only_dirs bin)
+;)
 
 (subdir
    src/tree-sitter-lang/semgrep-c
@@ -73,6 +73,11 @@
 )
 
 (subdir
+   src/tree-sitter-lang/semgrep-hcl
+   (data_only_dirs bin)
+)
+
+(subdir
    src/tree-sitter-lang/semgrep-html
    (data_only_dirs bin)
 )
@@ -99,6 +104,11 @@
 
 (subdir
    src/tree-sitter-lang/semgrep-ocaml
+   (data_only_dirs bin)
+)
+
+(subdir
+   src/tree-sitter-lang/semgrep-php
    (data_only_dirs bin)
 )
 
