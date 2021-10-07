@@ -31,6 +31,10 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 SourceFileHash = NewType("SourceFileHash", str)
 
 
+class EmptyYamlException(Exception):
+    pass
+
+
 class RuleSchema:
     _schema: Dict[str, Any] = {}
 
@@ -414,6 +418,9 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     yaml = YAML()
     yaml.Constructor = SpanPreservingRuamelConstructor
     data = yaml.load(StringIO(contents))
+
+    if not data:
+        raise EmptyYamlException()
 
     validate_yaml(data)
 
