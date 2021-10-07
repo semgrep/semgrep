@@ -313,6 +313,9 @@ properties:
         id:
           title: Rule ID to attach to findings
           type: string
+        version:
+          title: Version of rule
+          type: string
         message:
           title: Description to attach to findings
           type: string
@@ -386,7 +389,6 @@ properties:
           $ref: '#/definitions/patterns-content'
         pattern-either:
           $ref: '#/definitions/pattern-either-content'
-
       additionalProperties: false
 
       oneOf:
