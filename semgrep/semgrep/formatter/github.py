@@ -28,7 +28,7 @@ class GitHubFormatter(BaseFormatter):
             file=str(rule_match.path),
             start=str(rule_match.start.line),
             end=str(rule_match.end.line),
-            message=str(rule_match.extra["message"]),
+            message=str(rule_match.extra["message"]).replace("\n", " "),
         )
 
     def output(
