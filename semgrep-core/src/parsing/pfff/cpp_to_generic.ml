@@ -725,7 +725,7 @@ and map_condition_clause env x : G.condition =
       let _v1TODO = map_expr_stmt env v1 and v2 = map_expr env v2 in
       v2
   | CondOneDecl v1 ->
-      let v1 = map_onedecl env v1 in
+      let v1 = map_var_decl env v1 in
       complicated env v1
 
 and map_for_header env = function
@@ -853,11 +853,6 @@ and map_decl env x : G.stmt list =
       and v2 = map_template_parameters env v2
       and v3 = map_decl env v3 in
       complicated env (v1, v2, v3)
-  | TemplateSpecialization (v1, v2, v3) ->
-      let v1 = map_tok env v1
-      and v2 = map_angle env map_of_unit v2
-      and v3 = map_decl env v3 in
-      complicated env (v1, v2, v3)
   | TemplateInstanciation (v1, v2, v3) ->
       let v1 = map_tok env v1 and v2 = map_var env v2 and v3 = map_sc env v3 in
       complicated env (v1, v2, v3)
@@ -932,6 +927,11 @@ and map_onedecl env x =
       let id = map_ident env id in
       todo env (tk, ty, id)
   | V v1 -> map_var_decl env v1
+  | StructuredBinding (v1, v2, v3) ->
+      let v1 = map_type_ env v1 in
+      let v2 = map_bracket env (map_of_list (map_ident env)) v2 in
+      let v3 = map_init env v3 in
+      todo env (v1, v2, v3)
 
 and map_var_decl env
     {
@@ -942,17 +942,9 @@ and map_var_decl env
     } =
   let v_v_specs = map_of_list (map_specifier env) v_v_specs in
   let v_v_type = map_type_ env v_v_type in
-  let v_v_name = map_declarator_name env v_v_name in
+  let v_v_name = map_name env v_v_name in
   let v_v_init = map_of_option (map_init env) v_v_init in
   complicated env ()
-
-and map_declarator_name env = function
-  | DN v1 ->
-      let v1 = map_name env v1 in
-      v1
-  | DNStructuredBinding v1 ->
-      let v1 = map_bracket env (map_of_list (map_ident env)) v1 in
-      complicated env v1
 
 and map_init env = function
   | EqInit (v1, v2) ->

@@ -165,6 +165,15 @@ let trailing_comma env v =
   | Some tok -> token env tok (* "," *) |> ignore
   | None -> ()
 
+let make_onedecl ~v_name ~v_type ~v_init ~v_specs =
+  match (v_name, v_init) with
+  | DN n, _ -> V { v_name = n; v_type; v_init; v_specs }
+  | DNStructuredBinding ids, Some ini -> StructuredBinding (v_type, ids, ini)
+  | DNStructuredBinding _, None ->
+      raise
+        (Parse_info.Other_error
+           ("expecting an init for structured_binding", ii_of_dname v_name))
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -911,21 +920,13 @@ and map_anon_choice_decl_f8b0ff3 (env : env) (x : CST.anon_choice_decl_f8b0ff3)
   | `Decl x ->
       let x = map_declarator env x in
       fun attrs t specs ->
-        {
-          v_name = x.dn;
-          v_init = None;
-          v_type = x.dt t;
-          v_specs = List.map (fun x -> A x) attrs @ specs;
-        }
+        let v_specs = List.map (fun x -> A x) attrs @ specs in
+        make_onedecl ~v_name:x.dn ~v_type:(x.dt t) ~v_init:None ~v_specs
   | `Init_decl x ->
       let x, init = map_init_declarator env x in
       fun attrs t specs ->
-        {
-          v_name = x.dn;
-          v_init = Some init;
-          v_type = x.dt t;
-          v_specs = List.map (fun x -> A x) attrs @ specs;
-        }
+        let v_specs = List.map (fun x -> A x) attrs @ specs in
+        make_onedecl ~v_name:x.dn ~v_type:(x.dt t) ~v_init:(Some init) ~v_specs
 
 and map_anon_choice_exp_3078596 (env : env) (x : CST.anon_choice_exp_3078596) :
     initialiser =
@@ -1552,10 +1553,16 @@ and map_condition_declaration (env : env)
         EqInit (v1, InitExpr v2)
     | `Init_list x -> ObjInit (Inits (map_initializer_list env x))
   in
-  let one =
-    V { v_name = dn; v_init = Some v3; v_type = dt t; v_specs = specs }
+  let var =
+    match dn with
+    | DN n -> { v_name = n; v_init = Some v3; v_type = dt t; v_specs = specs }
+    | DNStructuredBinding _ ->
+        raise
+          (Parse_info.Other_error
+             ( "not expecting a structured_binding in a condition",
+               ii_of_dname dn ))
   in
-  CondOneDecl one
+  CondOneDecl var
 
 and map_conditional_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.conditional_expression) =
@@ -1635,7 +1642,7 @@ and map_declaration (env : env) ((v1, v2, v3, v4, v5) : CST.declaration) :
       v4
   in
   let v5 = token env v5 (* ";" *) in
-  let xs = v3 :: v4 |> List.map (fun f -> V (f v1 t specs)) in
+  let xs = v3 :: v4 |> List.map (fun f -> f v1 t specs) in
   (xs, v5)
 
 and map_declaration_list (env : env) ((v1, v2, v3) : CST.declaration_list) :
@@ -1961,7 +1968,7 @@ and map_field_declaration (env : env)
     v4
     |> List.map (fun { dn; dt } ->
            let one =
-             V { v_name = dn; v_init = v5; v_type = dt t; v_specs = specs }
+             make_onedecl ~v_name:dn ~v_init:v5 ~v_type:(dt t) ~v_specs:specs
            in
            FieldDecl one)
   in
@@ -2501,7 +2508,7 @@ and map_operator_cast_declaration (env : env)
     | None -> None
   in
   let t = (nQ, TBase (Void (ii_of_name name))) in
-  let one = V { v_name = DN name; v_init = v3; v_type = t; v_specs = v1 } in
+  let one = V { v_name = name; v_init = v3; v_type = t; v_specs = v1 } in
   let v4 = token env v4 (* ";" *) in
   ([ one ], v4)
 
