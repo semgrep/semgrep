@@ -917,6 +917,12 @@ and map_onedecl env x =
       let v2 = map_bracket env (map_of_list (map_ident env)) v2 in
       let v3 = map_init env v3 in
       todo env (v1, v2, v3)
+  | BitField (v1, v2, v3, v4) ->
+      let v1 = map_of_option (map_ident env) v1
+      and v2 = map_tok env v2
+      and v3 = map_type_ env v3
+      and v4 = map_a_const_expr env v4 in
+      todo env (v1, v2, v3, v4)
 
 and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
   let ent = map_entity env ent in
@@ -1156,29 +1162,15 @@ and map_class_member env x (* : G.field list *) =
   | Access (v1, v2) ->
       let v1 = map_wrap env (map_access_spec env) v1 and v2 = map_tok env v2 in
       todo env (v1, v2)
-  | FieldList (v1, v2) ->
-      let v1 = map_of_list (map_fieldkind env) v1 and v2 = map_sc env v2 in
-      todo env (v1, v2)
   | Friend (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_decl env v2 in
       todo env (v1, v2)
   | QualifiedIdInClass (v1, v2) ->
       let v1 = map_name env v1 and v2 = map_sc env v2 in
       todo env (v1, v2)
-  | MemberDecl v1 ->
+  | F v1 ->
       let v1 = map_decl env v1 in
       todo env v1
-
-and map_fieldkind env = function
-  | FieldDecl v1 ->
-      let v1 = map_onedecl env v1 in
-      todo env v1
-  | BitField (v1, v2, v3, v4) ->
-      let v1 = map_of_option (map_ident env) v1
-      and v2 = map_tok env v2
-      and v3 = map_type_ env v3
-      and v4 = map_a_const_expr env v4 in
-      todo env (v1, v2, v3, v4)
 
 and map_template_parameter env x : G.type_parameter =
   match x with

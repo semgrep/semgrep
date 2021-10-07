@@ -1967,12 +1967,9 @@ and map_field_declaration (env : env)
   let xs =
     v4
     |> List.map (fun { dn; dt } ->
-           let one =
-             make_onedecl ~v_name:dn ~v_init:v5 ~v_type:(dt t) ~v_specs:specs
-           in
-           FieldDecl one)
+           make_onedecl ~v_name:dn ~v_init:v5 ~v_type:(dt t) ~v_specs:specs)
   in
-  FieldList (xs, v6)
+  F (DeclList (xs, v6))
 
 and map_field_declaration_list (env : env)
     ((v1, v2, v3) : CST.field_declaration_list) :
@@ -2007,7 +2004,7 @@ and map_field_declaration_list_item (env : env)
           x)
   | `Temp_decl x ->
       let x = map_template_declaration env x in
-      [ X (MemberDecl x) ]
+      [ X (F x) ]
   | `Inline_meth_defi (v1, v2, v3, v4, v5) ->
       let v1 = List.map (map_attribute env) v1 in
       let v2 =
@@ -2028,19 +2025,19 @@ and map_field_declaration_list_item (env : env)
           },
           def )
       in
-      [ X (MemberDecl (Func fdef)) ]
+      [ X (F (Func fdef)) ]
   | `Cons_or_dest_defi x ->
       let x = map_constructor_or_destructor_definition env x in
-      [ X (MemberDecl (Func x)) ]
+      [ X (F (Func x)) ]
   | `Cons_or_dest_decl x ->
       let x = map_constructor_or_destructor_declaration env x in
-      [ X (MemberDecl (Func x)) ]
+      [ X (F (Func x)) ]
   | `Op_cast_defi x ->
       let x = map_operator_cast_definition env x in
-      [ X (MemberDecl (Func x)) ]
+      [ X (F (Func x)) ]
   | `Op_cast_decl x ->
       let x = map_operator_cast_declaration env x in
-      [ X (MemberDecl (DeclList x)) ]
+      [ X (F (DeclList x)) ]
   | `Friend_decl (v1, v2) ->
       let v1 = token env v1 (* "friend" *) in
       let v2 =
@@ -2078,16 +2075,16 @@ and map_field_declaration_list_item (env : env)
       [ X (Access (v1, v2)) ]
   | `Alias_decl x ->
       let x = map_alias_declaration env x in
-      [ X (MemberDecl (UsingDecl x)) ]
+      [ X (F (UsingDecl x)) ]
   | `Using_decl x ->
       let x = map_using_declaration env x in
-      [ X (MemberDecl (UsingDecl x)) ]
+      [ X (F (UsingDecl x)) ]
   | `Type_defi x ->
       let x = map_type_definition env x in
-      [ X (MemberDecl (DeclList x)) ]
+      [ X (F (DeclList x)) ]
   | `Static_assert_decl x ->
       let x = map_static_assert_declaration env x in
-      [ X (MemberDecl x) ]
+      [ X (F x) ]
 
 and map_field_declarator (env : env) (x : CST.field_declarator) : declarator =
   match x with
