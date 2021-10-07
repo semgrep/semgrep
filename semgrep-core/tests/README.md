@@ -20,7 +20,7 @@ faster. It is recommended to run `./test` when editing language files
 (`.sgrep` files and targets) because they will be picked up
 automatically without having to rebuild the test program.
 
-Matching test case specification
+Matching tests
 --
 
 This folder contains pairs (pattern, target). A pattern must be a file with
@@ -66,7 +66,7 @@ eval(s)
 eval(read_line())
 ```
 
-Parsing test case specification
+Parsing tests
 --
 
 Tests for just parsing are specified by placing source files into the
