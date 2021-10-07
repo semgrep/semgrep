@@ -791,6 +791,15 @@ def test_explicit_path(tmp_path, monkeypatch):
     assert foo_a in targets.explicit
     assert foo_a not in targets.filterable
 
+    # Should respect includes/excludes passed to get_files even if target explicitly passed
+    assert cmp_targets(
+        TargetManager(
+            [], [], ["foo/a.py", "foo/b.py"], False, defaulthandler, False
+        ).get_files(python_language, ["a.py"], []),
+        explicit={foo_a},
+        filterable={},
+    )
+
     # Should ignore explicitly passed .go file when requesting python
     assert cmp_targets(
         TargetManager([], [], ["foo/a.go"], False, defaulthandler, False).get_files(
