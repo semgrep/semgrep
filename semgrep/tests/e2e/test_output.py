@@ -62,7 +62,9 @@ CLEANERS: Mapping[str, Callable[[str], str]] = {
 
 
 # junit-xml is tested in a test_junit_xml_output due to ambiguous XML attribute ordering
-@pytest.mark.parametrize("format", ["--json", "--sarif", "--emacs", "--vim"])
+@pytest.mark.parametrize(
+    "format", ["--json", "--sarif", "--emacs", "--github", "--vim"]
+)
 def test_output_format(run_semgrep_in_tmp, snapshot, format):
     stdout, stderr = run_semgrep_in_tmp(
         "rules/eqeq.yaml",

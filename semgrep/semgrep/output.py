@@ -24,12 +24,12 @@ from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.formatter.emacs import EmacsFormatter
+from semgrep.formatter.github import GitHubFormatter
 from semgrep.formatter.json import JsonFormatter
 from semgrep.formatter.junit_xml import JunitXmlFormatter
 from semgrep.formatter.sarif import SarifFormatter
 from semgrep.formatter.text import TextFormatter
 from semgrep.formatter.vim import VimFormatter
-from semgrep.formatter.github import GitHubFormatter
 from semgrep.profile_manager import ProfileManager
 from semgrep.profiling import ProfilingData
 from semgrep.rule import Rule

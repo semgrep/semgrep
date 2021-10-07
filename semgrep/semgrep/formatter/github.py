@@ -3,7 +3,7 @@ from typing import FrozenSet
 from typing import Mapping
 from typing import Sequence
 
-from semgrep.constants import CLI_RULE_ID
+from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -13,13 +13,22 @@ from semgrep.rule_match import RuleMatch
 class GitHubFormatter(BaseFormatter):
     @staticmethod
     def _rule_match_to_github(rule_match: RuleMatch) -> str:
-        return '::{level} file={file},line={start},endLine={end},title={title}::{message}'.format(
-            level   = str(rule_match.severity.value.lower()), # FIXME: this needs to be filtered?
-            title   = str(rule_match.id),
-            file    = str(rule_match.path),
-            start   = str(rule_match.start.line),
-            end     = str(rule_match.end.line),
-            message = str(rule_match.extra["message"]), # FIXME: This could be prettier
+        # Normalize the severity to match what github can handle. Default to notice
+        severity_text = "notice"
+        if rule_match.severity == RuleSeverity.INFO:
+            pass
+        elif rule_match.severity == RuleSeverity.WARNING:
+            severity_text = "warning"
+        elif rule_match.severity == RuleSeverity.ERROR:
+            severity_text = "error"
+
+        return "::{level} file={file},line={start},endLine={end},title={title}::{message}".format(
+            level=severity_text,
+            title=f"semgrep rule:{str(rule_match.id)}",
+            file=str(rule_match.path),
+            start=str(rule_match.start.line),
+            end=str(rule_match.end.line),
+            message=str(rule_match.extra["message"]),
         )
 
     def output(
