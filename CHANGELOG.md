@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `sanitize(...)` used for convenience during early development, this was causing
   some unexpected behavior in real code that e.g. had a function called `source`!
 - Improved Kotlin parsing from 77% to 90% on our Kotlin corpus.
+- Resolution of rulesets (i.e. `p/ci`) use new rule cdn and do client-side hydration
 
 ### Fixed
 - taint-mode: Fixed bug where a tainted sink could go unreported when the sink is
