@@ -812,12 +812,6 @@ and map_decl env x : G.stmt list =
   | DeclList v1 ->
       let v1 = map_vars_decl env v1 in
       v1 |> List.map (fun def -> G.DefStmt def |> G.s)
-  | MacroDecl (v1, v2, v3, v4) ->
-      let v1 = map_of_list (map_tok env) v1
-      and v2 = map_ident env v2
-      and v3 = map_paren env (map_of_list (map_argument env)) v3
-      and v4 = map_tok env v4 in
-      complicated env (v1, v2, v3, v4)
   | UsingDecl v1 ->
       let v1 = map_using env v1 in
       complicated env v1
@@ -1387,12 +1381,13 @@ and map_sequencable :
   | CppIfdef v1 ->
       let v1 = map_ifdef_directive env v1 in
       todo env v1
-  | MacroTop (v1, v2, v3) ->
-      let v1 = map_ident env v1
-      and v2 = map_paren env (map_of_list (map_argument env)) v2
-      and v3 = map_of_option (map_tok env) v3 in
-      todo env (v1, v2, v3)
-  | MacroVarTop (v1, v2) ->
+  | MacroDecl (v1, v2, v3, v4) ->
+      let v1 = map_of_list (map_specifier env) v1
+      and v2 = map_ident env v2
+      and v3 = map_paren env (map_of_list (map_argument env)) v3
+      and v4 = map_tok env v4 in
+      complicated env (v1, v2, v3, v4)
+  | MacroVar (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_sc env v2 in
       todo env (v1, v2)
 
