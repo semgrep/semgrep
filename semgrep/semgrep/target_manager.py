@@ -396,9 +396,16 @@ class TargetManager:
 
         This is meant for adding or removing target files from the default
         set on a rule-specific basis.
+
+        Explicitly targeted files are still subject to filtering by the rule includes/excludes
+        but will not be further filtered by semgrep-core
         """
         targets = self.filtered_files(lang)
         filterable_targets = self.filter_includes(targets.filterable, extra_includes)
         filterable_targets = self.filter_excludes(filterable_targets, extra_excludes)
-        targets = TargetFiles(explicit=targets.explicit, filterable=filterable_targets)
+
+        explicit_targets = self.filter_includes(targets.explicit, extra_includes)
+        explicit_targets = self.filter_excludes(explicit_targets, extra_excludes)
+
+        targets = TargetFiles(explicit=explicit_targets, filterable=filterable_targets)
         return targets
