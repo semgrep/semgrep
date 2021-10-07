@@ -4,13 +4,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- Added support for `raise`/`throw` expressions in the dataflow engine and improved
+  existing support for `try-catch-finally`
+
+### Changed
+
+### Fixed
+
 ## [0.68.0](https://github.com/returntocorp/semgrep/releases/tag/v0.68.0) - 10-06-2021
 
 ### Added
 - Input can be derived from subshells: `semgrep --config ... <(...)`
 - Java: support '...' in catch (#4002)
-- Added support for `raise`/`throw` expressions in the dataflow engine and improved
-  existing support for `try-catch-finally`
 
 ### Changed
 - taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
