@@ -22,7 +22,7 @@ and error_kind =
   | InvalidYaml
   (* matching (semgrep) related *)
   | MatchingError (* internal error, e.g., NoTokenLocation *)
-  | SemgrepMatchFound of string (* check_id *)
+  | SemgrepMatchFound of string (* check_id TODO: what is this for? *)
   | TooManyMatches
   (* other *)
   | FatalError (* missing file, OCaml errors, etc. *)
