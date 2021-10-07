@@ -477,7 +477,7 @@ def saved_snippet_to_url(snippet_id: str) -> str:
 
 def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
     import requests  # here for faster startup times
-    from semantic_version import Version
+    from packaging.version import Version
     import time
     import concurrent.futures
     from io import StringIO

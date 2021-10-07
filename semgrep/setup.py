@@ -122,7 +122,6 @@ install_requires = [
     "click-option-group>=0.5.3",
     "requests>=2.22.0",
     "ruamel.yaml>=0.16.0,<0.18",
-    "semantic_version~=2.8.5",
     "tqdm>=4.46.1",
     "packaging>=20.4",
     "jsonschema~=3.2.0",
