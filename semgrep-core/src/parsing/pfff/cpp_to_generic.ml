@@ -98,28 +98,17 @@ let rec map_name env (v1, v2, v3) : G.name =
   and v3 = map_ident_or_op env v3 in
   complicated env (v1, v2, v3)
 
-and map_ident_or_op env = function
+and map_ident_or_op (env : env) = function
   | IdIdent v1 ->
       let v1 = map_ident env v1 in
       complicated env v1
   | IdTemplateId (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_template_arguments env v2 in
       complicated env (v1, v2)
-  | IdOperator v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_tok env v1
-            and v2 =
-              match v2 with
-              | v1, v2 ->
-                  let v1 = map_operator env v1
-                  and v2 = map_of_list (map_tok env) v2 in
-                  (v1, v2)
-            in
-            (v1, v2)
-      in
-      complicated env v1
+  | IdOperator (v1, v2) ->
+      let v1 = map_tok env v1 in
+      let v2 = map_wrap env (map_operator env) v2 in
+      complicated env (v1, v2)
   | IdDestructor (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_ident env v2 in
       complicated env (v1, v2)
@@ -587,7 +576,7 @@ and map_accessop env = function
   | ParenOp -> ParenOp
   | ArrayOp -> ArrayOp
 
-and map_operator env = function
+and map_operator (env : env) = function
   | BinaryOp v1 ->
       let v1 = map_binaryOp env v1 in
       complicated env v1

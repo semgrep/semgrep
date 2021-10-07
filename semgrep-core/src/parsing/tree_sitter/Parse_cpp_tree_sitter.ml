@@ -48,7 +48,7 @@ let str = H.str
 let id x = x
 
 (* see tree-sitter-cpp/grammar.js *)
-let parse_operator _env (s, t) : operator * tok list =
+let parse_operator _env (s, t) : operator wrap =
   let op =
     match s with
     | "+" -> BinaryOp (Arith Plus)
@@ -91,7 +91,7 @@ let parse_operator _env (s, t) : operator * tok list =
     | "[]" -> AccessOp ArrayOp
     | _ -> raise (Parse_info.Other_error (spf "unrecognized operator: %s" s, t))
   in
-  (op, [ t ])
+  (op, t)
 
 (* like Parse_c_tree_sitter.number_literal and H.parse_number_literal
  * but for ast_cpp.ml, not AST_generic.ml
