@@ -8,9 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Added support for `raise`/`throw` expressions in the dataflow engine and improved
   existing support for `try-catch-finally`
 
-### Changed
-
 ### Fixed
+- Respect rule level path filtering
 
 ## [0.68.0](https://github.com/returntocorp/semgrep/releases/tag/v0.68.0) - 10-06-2021
 
