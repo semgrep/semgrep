@@ -933,16 +933,9 @@ and map_onedecl env x =
       let v3 = map_init env v3 in
       todo env (v1, v2, v3)
 
-and map_var_decl env
-    {
-      v_name = v_v_name;
-      v_init = v_v_init;
-      v_type = v_v_type;
-      v_specs = v_v_specs;
-    } =
-  let v_v_specs = map_of_list (map_specifier env) v_v_specs in
+and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
+  let ent = map_entity env ent in
   let v_v_type = map_type_ env v_v_type in
-  let v_v_name = map_name env v_v_name in
   let v_v_init = map_of_option (map_init env) v_v_init in
   complicated env ()
 

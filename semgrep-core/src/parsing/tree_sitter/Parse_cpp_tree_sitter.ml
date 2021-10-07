@@ -167,7 +167,7 @@ let trailing_comma env v =
 
 let make_onedecl ~v_name ~v_type ~v_init ~v_specs =
   match (v_name, v_init) with
-  | DN n, _ -> V { v_name = n; v_type; v_init; v_specs }
+  | DN n, _ -> V ({ name = n; specs = v_specs }, { v_type; v_init })
   | DNStructuredBinding ids, Some ini -> StructuredBinding (v_type, ids, ini)
   | DNStructuredBinding _, None ->
       raise
@@ -1555,7 +1555,7 @@ and map_condition_declaration (env : env)
   in
   let var =
     match dn with
-    | DN n -> { v_name = n; v_init = Some v3; v_type = dt t; v_specs = specs }
+    | DN n -> ({ name = n; specs }, { v_init = Some v3; v_type = dt t })
     | DNStructuredBinding _ ->
         raise
           (Parse_info.Other_error
@@ -2508,7 +2508,7 @@ and map_operator_cast_declaration (env : env)
     | None -> None
   in
   let t = (nQ, TBase (Void (ii_of_name name))) in
-  let one = V { v_name = name; v_init = v3; v_type = t; v_specs = v1 } in
+  let one = V ({ name; specs = v1 }, { v_init = v3; v_type = t }) in
   let v4 = token env v4 (* ";" *) in
   ([ one ], v4)
 
