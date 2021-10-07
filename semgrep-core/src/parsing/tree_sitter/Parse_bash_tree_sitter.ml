@@ -51,6 +51,45 @@ let blist_of_pipeline (pip : pipeline) =
   let loc = pipeline_loc pip in
   Pipelines (loc, [ pip ])
 
+let rec is_empty_blist (blist : blist) =
+  match blist with
+  | Seq (_loc, a, b) -> is_empty_blist a && is_empty_blist b
+  | And (_loc, a, and_tok, b) -> false
+  | Or (_loc, a, or_tok, b) -> false
+  | Pipelines (_loc, []) -> true
+  | Pipelines (_loc, _ :: _) -> false
+  | Empty _loc -> true
+
+(*
+   A generic list function for inspecting and replacing the last element.
+   Does nothing is the list is empty.
+*)
+let replace_last l replace =
+  match List.rev l with
+  | last :: rest -> List.rev_append (replace last) rest |> List.rev
+  | [] -> []
+
+(* Add a terminator e.g. '&' to the last pipeline of the blist. *)
+let add_terminator_to_blist (blist : blist) (term : unary_control_operator wrap)
+    =
+  let term_loc = wrap_loc term in
+  let rec add_to blist : blist =
+    match blist with
+    | Seq (loc, a, b) -> if is_empty_blist b then add_to a else blist
+    | And (loc, a, and_tok, b) -> And (loc, a, and_tok, add_to b)
+    | Or (loc, a, or_tok, b) -> Or (loc, a, or_tok, add_to b)
+    | Pipelines (loc, pipelines) ->
+        let pipelines =
+          replace_last pipelines (fun pip ->
+              let loc = range (pipeline_loc pip) term_loc in
+              [ Control_operator (loc, pip, term) ])
+        in
+        let loc = range loc term_loc in
+        Pipelines (loc, pipelines)
+    | Empty _ as blist -> blist
+  in
+  add_to blist
+
 (*****************************************************************************)
 (* Boilerplate converter *)
 (*****************************************************************************)
@@ -1076,10 +1115,15 @@ and statements (env : env) ((v1, v2, v3, v4) : CST.statements) : blist =
         ()
     | None -> ()
   in
-  let _trailing_newline =
+  let opt_terminator =
     match v4 with
     | Some x -> Some (terminator env x)
     | None -> None
+  in
+  let last_blist =
+    match opt_terminator with
+    | None -> last_blist
+    | Some term -> add_terminator_to_blist last_blist term
   in
   let loc = range (blist_loc blist) (blist_loc last_blist) in
   Seq (loc, blist, last_blist)
