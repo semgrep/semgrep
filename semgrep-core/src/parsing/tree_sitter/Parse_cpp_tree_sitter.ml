@@ -2816,7 +2816,7 @@ and map_statement (env : env) (x : CST.statement) : stmt =
       let v8 = map_statement env v8 in
       let n = name_of_dname_for_var v4.dn in
       let ent = { name = n; specs } in
-      let var = { v__type = v4.dt t } in
+      let var = { v_type = v4.dt t; v_init = None } in
       let for_header = ForRange ((ent, var), v5, v6) in
       For (v1, (v2, for_header, v7), v8)
   | `Try_stmt (v1, v2, v3) ->
@@ -3077,7 +3077,12 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
       let n = name_of_dname_for_var dn in
       let ent = { name = n; specs } in
       let v4 = token env v4 (* ";" *) in
-      [ X (D (TemplateInstanciation (v1, (ent, { v__type = t }), v4))) ]
+      [
+        X
+          (D
+             (TemplateInstanciation
+                (v1, (ent, { v_type = t; v_init = None }), v4)));
+      ]
   | `Cons_or_dest_defi x ->
       let x = map_constructor_or_destructor_definition env x in
       [ X (D (Func x)) ]

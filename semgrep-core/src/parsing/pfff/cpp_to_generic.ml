@@ -735,7 +735,7 @@ and map_for_header env = function
       and v3 = map_of_option (map_expr env) v3 in
       G.ForClassic (v1, v2, v3)
   | ForRange (v1, v2, v3) ->
-      let ent, vardef = map_var env v1
+      let ent, vardef = map_var_decl env v1
       and v2 = map_tok env v2
       and v3 = map_initialiser env v3 in
       (* less: or ForEach? *)
@@ -854,8 +854,10 @@ and map_decl env x : G.stmt list =
       and v3 = map_decl env v3 in
       complicated env (v1, v2, v3)
   | TemplateInstanciation (v1, v2, v3) ->
-      let v1 = map_tok env v1 and v2 = map_var env v2 and v3 = map_sc env v3 in
-      complicated env (v1, v2, v3)
+      let v1 = map_tok env v1
+      and ent, vardef = map_var_decl env v2
+      and v3 = map_sc env v3 in
+      complicated env (v1, ent, vardef, v3)
   | ExternDecl (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_wrap env map_of_string v2
@@ -908,14 +910,6 @@ and map_colon_option env = function
       let v1 = map_of_list (map_tok env) v1 in
       (v1, None)
 
-and map_var env (v1, v2) : G.entity * G.variable_definition =
-  let v1 = map_entity env v1 and v2 = map_var_decl_range env v2 in
-  (v1, v2)
-
-and map_var_decl_range env { v__type = v_v__type } : G.variable_definition =
-  let v_v__type = map_type_ env v_v__type in
-  { G.vinit = None; vtype = Some v_v__type }
-
 and map_onedecl env x =
   match x with
   | EmptyDecl t ->
@@ -926,7 +920,9 @@ and map_onedecl env x =
       let ty = map_type_ env ty in
       let id = map_ident env id in
       todo env (tk, ty, id)
-  | V v1 -> map_var_decl env v1
+  | V v1 ->
+      let ent, vardef = map_var_decl env v1 in
+      todo env (ent, vardef)
   | StructuredBinding (v1, v2, v3) ->
       let v1 = map_type_ env v1 in
       let v2 = map_bracket env (map_of_list (map_ident env)) v2 in
