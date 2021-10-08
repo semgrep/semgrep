@@ -824,15 +824,6 @@ def test_explicit_path(tmp_path, monkeypatch):
         filterable={},
     )
 
-    # Should include explicitly passed file with no extension if skip_unknown_extensions=True
-    assert cmp_targets(
-        TargetManager([], [], ["foo/noext"], False, defaulthandler, True).get_files(
-            python_language, [], []
-        ),
-        explicit={foo_noext},
-        filterable={},
-    )
-
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
     assert cmp_targets(
         TargetManager(
@@ -843,6 +834,6 @@ def test_explicit_path(tmp_path, monkeypatch):
             defaulthandler,
             True,
         ).get_files(python_language, [], []),
-        explicit={foo_noext, foo_a},
+        explicit={foo_a},
         filterable={},
     )
