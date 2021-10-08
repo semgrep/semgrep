@@ -81,7 +81,7 @@ let check_formula env lang f =
    *)
   let rec find_dupe f =
     match f with
-    | Leaf (P _) -> ()
+    | P _ -> ()
     | Not (_, f) -> find_dupe f
     | Or (t, xs)
     | And (t, xs, _) ->

@@ -794,7 +794,7 @@ and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
 and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
  fun env opt_context e ->
   match e with
-  | S.Leaf (R.P (xpat, inside)) ->
+  | S.Leaf (xpat, inside) ->
       let id = xpat.R.pid in
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with Not_found -> []

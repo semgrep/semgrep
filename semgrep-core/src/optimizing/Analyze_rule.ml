@@ -147,7 +147,7 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
       else Some (R.Or (t, ys))
   | R.Not (_, f) -> (
       match f with
-      | R.Leaf _ -> None
+      | R.P _ -> None
       (* double negation *)
       | R.Not (_, f) -> remove_not f
       (* todo? apply De Morgan's law? *)
@@ -157,14 +157,14 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
       | R.And (_, _xs, _conds) ->
           logger#warning "Not And";
           None)
-  | R.Leaf x -> Some (R.Leaf x)
+  | R.P (pat, inside) -> Some (P (pat, inside))
 
 let remove_not_final f =
   let final_opt = remove_not f in
   if Option.is_none final_opt then logger#error "no formula";
   final_opt
 
-type step0 = LPat of Rule.leaf | LCond of Rule.metavar_cond
+type step0 = LPat of Rule.xpattern | LCond of Rule.metavar_cond
 (*old: does not work: | Not of Rule.leaf | Pos of Rule.leaf *)
 [@@deriving show]
 
@@ -174,7 +174,7 @@ type cnf_step0 = step0 cnf [@@deriving show]
 let rec (cnf : Rule.formula -> cnf_step0) =
  fun f ->
   match f with
-  | R.Leaf x -> And [ Or [ LPat x ] ]
+  | R.P (pat, _inside) -> And [ Or [ LPat pat ] ]
   | R.Not (_, _f) ->
       (* should be filtered by remove_not *)
       failwith "call remove_not before cnf"
@@ -275,7 +275,7 @@ and leaf_step1 f =
   match f with
   (* old: we can't filter now; too late, see comment above on step0 *)
   (*  | Not _ -> None *)
-  | LPat (R.P (pat, _inside)) -> xpat_step1 pat
+  | LPat pat -> xpat_step1 pat
   | LCond x -> metavarcond_step1 x
 
 and xpat_step1 pat =

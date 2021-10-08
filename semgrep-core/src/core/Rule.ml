@@ -92,7 +92,8 @@ let string_of_xlang = function
 type xpattern = {
   pat : xpattern_kind;
   (* Regarding @equal below, even if two patterns have different indentation,
-   * we don't care. We rely only on the equality on pat, which will
+   * we still consider them equal in the metachecker context.
+   * We rely only on the equality on pat, which will
    * abstract away line positions.
    * TODO: right now we have some false positives, e.g., in Python
    * assert(...) and assert ... are considered equal AST-wise
@@ -141,7 +142,13 @@ let is_regexp xpat =
  * less? enforce invariant that Not can only appear in And?
  *)
 type formula =
-  | Leaf of leaf
+  (* pattern: and pattern-inside: are actually slightly different so
+   * we need to keep the information around.
+   * (see tests/OTHER/rules/inside.yaml)
+   * The same is true for pattern-not and pattern-not-inside
+   * (see tests/OTHER/rules/negation_exact.yaml)
+   *)
+  | P of xpattern (* a leaf pattern *) * inside option
   (* see Match_rules.split_and() *)
   | And of tok * formula list * (tok * metavar_cond) list
   | Or of tok * formula list
@@ -150,15 +157,6 @@ type formula =
    * But this could change? If we were moving to a different range semantic?
    *)
   | Not of tok * formula
-
-and leaf =
-  (* pattern: and pattern-inside: are actually slightly different so
-   * we need to keep the information around.
-   * (see tests/OTHER/rules/inside.yaml)
-   * The same is true for pattern-not and pattern-not-inside
-   * (see tests/OTHER/rules/negation_exact.yaml)
-   *)
-  | P of xpattern (* a leaf pattern *) * inside option
 
 (* todo: try to remove this at some point, but difficult. See
  * https://github.com/returntocorp/semgrep/issues/1218
@@ -311,7 +309,7 @@ exception ExceededMemoryLimit of string
 (* currently used in Check_rule.ml metachecker *)
 let rec visit_new_formula f formula =
   match formula with
-  | Leaf (P (p, _)) -> f p
+  | P (p, _) -> f p
   | Not (_, x) -> visit_new_formula f x
   | Or (_, xs)
   | And (_, xs, _) ->
@@ -323,10 +321,10 @@ let tok_of_formula = function
   | Or (t, _)
   | Not (t, _) ->
       t
-  | Leaf (P (p, _)) -> snd p.pstr
+  | P (p, _) -> snd p.pstr
 
 let kind_of_formula = function
-  | Leaf (P _) -> "pattern"
+  | P _ -> "pattern"
   | Or _
   | And _
   | Not _ ->
@@ -390,10 +388,10 @@ let (convert_formula_old : formula_old -> formula) =
  fun e ->
   let rec aux e =
     match e with
-    | Pat x -> Leaf (P (x, None))
-    | PatInside x -> Leaf (P (x, Some Inside))
-    | PatNot (t, x) -> Not (t, Leaf (P (x, None)))
-    | PatNotInside (t, x) -> Not (t, Leaf (P (x, Some Inside)))
+    | Pat x -> P (x, None)
+    | PatInside x -> P (x, Some Inside)
+    | PatNot (t, x) -> Not (t, P (x, None))
+    | PatNotInside (t, x) -> Not (t, P (x, Some Inside))
     | PatEither (t, xs) ->
         let xs = List.map aux xs in
         Or (t, xs)

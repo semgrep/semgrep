@@ -14,7 +14,7 @@ type selector = {
 [@@deriving show]
 
 type sformula =
-  | Leaf of R.leaf
+  | Leaf of R.xpattern * R.inside option
   | And of sformula_and
   | Or of sformula list
   (* There are restrictions on where a Not can appear in a formula. It
@@ -47,7 +47,7 @@ let split_and : R.formula list -> R.formula list * R.formula list =
   |> Common.partition_either (fun e ->
          match e with
          (* positives *)
-         | R.Leaf (R.P _)
+         | R.P _
          | R.And _
          | R.Or _ ->
              Left e
@@ -56,7 +56,7 @@ let split_and : R.formula list -> R.formula list * R.formula list =
 
 let selector_from_formula f =
   match f with
-  | Leaf (R.P ({ pat = Sem (pattern, _); pid; pstr }, None)) -> (
+  | Leaf ({ pat = Sem (pattern, _); pid; pstr }, None) -> (
       match pattern with
       | G.E { e = G.N (G.Id ((mvar, _), _)); _ } when MV.is_metavar_name mvar ->
           Some { mvar; pattern; pid; pstr }
@@ -89,7 +89,7 @@ let formula_to_sformula formula =
   let rec formula_to_sformula formula =
     (* Visit formula and convert *)
     match formula with
-    | R.Leaf leaf -> Leaf leaf
+    | R.P (p, inside) -> Leaf (p, inside)
     | R.And (_, fs, conds) -> And (convert_and_formulas fs conds)
     | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
@@ -118,7 +118,7 @@ let formula_to_sformula formula =
 (* currently used in Match_rules.ml to extract patterns *)
 let rec visit_sformula f formula =
   match formula with
-  | Leaf (P (p, i)) -> f p i
+  | Leaf (p, i) -> f p i
   | Not x -> visit_sformula f x
   | Or xs -> xs |> List.iter (visit_sformula f)
   | And fand ->

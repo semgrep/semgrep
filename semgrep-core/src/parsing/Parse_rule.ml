@@ -551,17 +551,17 @@ and parse_formula_new env (x : G.expr) : R.formula =
           R.And (t, fs, conds)
       | "or" -> R.Or (t, parse_list env key parse_formula_new value)
       | "not" -> R.Not (t, parse_formula_new env value)
-      | "inside" -> R.Leaf (R.P (parse_xpattern env value, Some Inside))
+      | "inside" -> R.P (parse_xpattern env value, Some Inside)
       | "regex" ->
           let x = parse_string_wrap env key value in
           let xpat = R.mk_xpat (R.Regexp (parse_regexp env x)) x in
-          R.Leaf (R.P (xpat, None))
+          R.P (xpat, None)
       | "comby" ->
           let x = parse_string_wrap env key value in
           let xpat = R.mk_xpat (R.Comby (fst x)) x in
-          R.Leaf (R.P (xpat, None))
+          R.P (xpat, None)
       | _ -> error_at_key env key ("Invalid key for formula_new " ^ fst key))
-  | _ -> R.Leaf (R.P (parse_xpattern env x, None))
+  | _ -> R.P (parse_xpattern env x, None)
 
 and parse_formula_and_new env (x : G.expr) :
     (R.formula, R.tok * R.metavar_cond) Common.either =
@@ -590,7 +590,7 @@ and parse_formula_and_new env (x : G.expr) :
               Right (t, R.CondRegexp (mvar, parse_regexp env x))
           | _ -> error_at_expr env value "Expected a metavariable and regex")
       | _ -> Left (parse_formula_new env x))
-  | _ -> Left (R.Leaf (R.P (parse_xpattern env x, None)))
+  | _ -> Left (R.P (parse_xpattern env x, None))
 
 (* This is now mutually recursive because of metavariable-pattern: which can
  * contain itself a formula! *)
