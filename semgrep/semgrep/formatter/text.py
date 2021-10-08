@@ -159,10 +159,10 @@ class TextFormatter(BaseFormatter):
         total_matching_time = sum(i[1] for i in rule_timings.values())
 
         # Output information
-        yield f"\nSemgrep-core timing summary:"
+        yield f"\nSemgrep timing summary:"
         yield f"Total CPU time: {all_total_time:.4f}  File parse time: {file_parsing_time:.4f}" f"  Rule parse time: {rule_parsing_time:.4f}  Match time: {total_matching_time:.4f}"
 
-        yield f"Slowest {items_to_show}/{len(file_timings)} files"
+        yield f"\nSlowest {items_to_show}/{len(file_timings)} files"
         slowest_file_times = sorted(
             file_timings.items(), key=lambda x: x[1], reverse=True
         )[:items_to_show]
@@ -171,13 +171,18 @@ class TextFormatter(BaseFormatter):
             file_name = truncate(file_name, col_lim)
             yield f"{with_color('green', f'{file_name:<70}')} {num_bytes:<9}{parse_time:.4f}"
 
-        yield f"Slowest {items_to_show} rules to run (excluding parse time)"
+        yield f"\nSlowest {items_to_show} rules to run (excluding parse time)"
         slowest_rule_times = sorted(
             rule_timings.items(), key=lambda x: float(x[1][0]), reverse=True
         )[:items_to_show]
         for rule_id, (total_time, match_time) in slowest_rule_times:
             rule_id = truncate(rule_id, col_lim) + ":"
             yield f"{with_color('yellow', f'{rule_id:<71}')} run time {total_time:.4f}  match time {match_time:.4f}"
+
+        yield ""
+        yield f'{with_color("blue", "• To skip a file, run Semgrep with --exclude")}'
+        yield f'{with_color("blue", "• To skip a rule, remove it from your config")}'
+        yield ""
 
     @staticmethod
     def _build_text_output(

@@ -9,6 +9,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 (treat no extension as an unknown extension)
 - taint-mode: Fixed (another) bug where a tainted sink could go unreported when
   the sink is a specific argument in a function call
+  
+## Changed
+- Improved --time output for better user serviceability
 
 ## [0.68.1](https://github.com/returntocorp/semgrep/releases/tag/v0.68.1) - 10-07-2021
 
