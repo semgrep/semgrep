@@ -72,57 +72,6 @@ let logger = Logging.get_logger [ __MODULE__ ]
  *)
 
 (*****************************************************************************)
-(* Tracing *)
-(*****************************************************************************)
-
-(*
-   Use as:
-
-     let trace_matching = true (* set temporarily while debugging *)
-     ...
-     if trace_matching then
-       print_expr_pair a b;
-
-   Performance: if 'trace_matching' is constant and false, ocamlopt will
-   remove the 'if' statement.
-*)
-let trace_matching = false
-
-(*
-   Print a pair of nodes being matched against one another.
-   See examples below.
-*)
-let print_pair name vof a b =
-  (* Print the nodes just deep enough to see something useful. *)
-  let max_depth = 3 in
-  Printf.printf "----- m_%s -----\n%s pattern:\n%s\n~~~~~\n%s target:\n%s\n\n"
-    name name
-    (vof a |> OCaml.string_of_v ~max_depth)
-    name
-    (vof b |> OCaml.string_of_v ~max_depth)
-
-let print_literal_pair = print_pair "literal" Meta_AST.vof_literal
-
-let print_type_pair = print_pair "type" Meta_AST.vof_type_
-
-let print_arithmetic_operator_pair =
-  print_pair "arithmetic_operator" Meta_AST.vof_arithmetic_operator
-
-let print_function_definition_pair =
-  print_pair "function_definition" Meta_AST.vof_function_definition
-
-let print_class_definition_pair =
-  print_pair "class_definition" Meta_AST.vof_class_definition
-
-let print_definition_pair = print_pair "definition" Meta_AST.vof_definition
-
-let print_directive_pair = print_pair "directive" Meta_AST.vof_directive
-
-let print_expr_pair = print_pair "expr" Meta_AST.vof_expr
-
-let print_stmt_pair = print_pair "stmt" Meta_AST.vof_stmt
-
-(*****************************************************************************)
 (* Extra Helpers *)
 (*****************************************************************************)
 
@@ -591,7 +540,7 @@ and m_expr_deep a b =
  * also add them in m_pattern
  *)
 and m_expr a b =
-  if trace_matching then print_expr_pair a b;
+  Trace_matching.(if on then print_expr_pair a b);
   match (a.G.e, b.G.e) with
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
@@ -919,7 +868,7 @@ and m_for_or_if_comp a b =
       fail ()
 
 and m_literal a b =
-  if trace_matching then print_literal_pair a b;
+  Trace_matching.(if on then print_literal_pair a b);
   match (a, b) with
   (* dots: metavar: '...' and metavars on string/regexps/atoms *)
   | G.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
@@ -1000,7 +949,7 @@ and m_action (a : G.action) (b : G.action) =
   | (a1, a2), (b1, b2) -> m_pattern a1 b1 >>= fun () -> m_expr a2 b2
 
 and m_arithmetic_operator a b =
-  if trace_matching then print_arithmetic_operator_pair a b;
+  Trace_matching.(if on then print_arithmetic_operator_pair a b);
   match (a, b) with
   | _ when a =*= b -> return ()
   | _ -> fail ()
@@ -1552,7 +1501,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
 (* Type *)
 (*****************************************************************************)
 and m_type_ a b =
-  if trace_matching then print_type_pair a b;
+  Trace_matching.(if on then print_type_pair a b);
   let* () = m_attributes a.t_attrs b.t_attrs in
   match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
@@ -1860,7 +1809,7 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
 (* Statement *)
 (*****************************************************************************)
 and m_stmt a b =
-  if trace_matching then print_stmt_pair a b;
+  Trace_matching.(if on then print_stmt_pair a b);
   match (a.s, b.s) with
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
@@ -2179,7 +2128,7 @@ and m_other_pattern_operator = m_other_xxx
 (* Definitions *)
 (*****************************************************************************)
 and m_definition a b =
-  if trace_matching then print_definition_pair a b;
+  Trace_matching.(if on then print_definition_pair a b);
   match (a, b) with
   | (a1, a2), (b1, b2) ->
       (* subtle: if you change the order here, so that we execute m_entity
@@ -2297,7 +2246,7 @@ and m_variance a b =
 and m_function_kind _ _ = return ()
 
 and m_function_definition a b =
-  if trace_matching then print_function_definition_pair a b;
+  Trace_matching.(if on then print_function_definition_pair a b);
   match (a, b) with
   | ( { G.fparams = a1; frettype = a2; fbody = a3; fkind = a4 },
       { B.fparams = b1; frettype = b2; fbody = b3; fkind = b4 } ) ->
@@ -2596,7 +2545,7 @@ and m_class_parent (a1, a2) (b1, b2) =
  * but maybe quite different from list of types in inheritance
  *)
 and m_class_definition a b =
-  if trace_matching then print_class_definition_pair a b;
+  Trace_matching.(if on then print_class_definition_pair a b);
   match (a, b) with
   | ( {
         G.ckind = a1;
@@ -2669,7 +2618,7 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (*****************************************************************************)
 and m_directive a b =
-  if trace_matching then print_directive_pair a b;
+  Trace_matching.(if on then print_directive_pair a b);
   let* () =
     m_list_in_any_order ~less_is_ok:true m_attribute a.d_attrs b.d_attrs
   in
