@@ -138,12 +138,12 @@ let is_regexp xpat =
  * The main complication is the handling of metavariables and especially
  * negation in the presence of metavariables.
  *
- * todo? enforce invariant that Not/MetavarCond can only appear in And?
- * move MetavarCond out of leaf in an additional element in And.
+ * less? enforce invariant that Not can only appear in And?
  *)
 type formula =
   | Leaf of leaf
-  | And of tok * formula list (* see Match_rules.split_and() *)
+  (* see Match_rules.split_and() *)
+  | And of tok * formula list * (tok * metavar_cond) list
   | Or of tok * formula list
   (* There are currently restrictions on where a Not can appear in a formula.
    * It must be inside an And to be intersected with "positive" formula.
@@ -159,8 +159,6 @@ and leaf =
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
   | P of xpattern (* a leaf pattern *) * inside option
-  (* This can also only appear inside an And *)
-  | MetavarCond of tok * metavar_cond
 
 (* todo: try to remove this at some point, but difficult. See
  * https://github.com/returntocorp/semgrep/issues/1218
@@ -314,24 +312,21 @@ exception ExceededMemoryLimit of string
 let rec visit_new_formula f formula =
   match formula with
   | Leaf (P (p, _)) -> f p
-  | Leaf (MetavarCond _) -> ()
   | Not (_, x) -> visit_new_formula f x
   | Or (_, xs)
-  | And (_, xs) ->
+  | And (_, xs, _) ->
       xs |> List.iter (visit_new_formula f)
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And (t, _)
+  | And (t, _, _)
   | Or (t, _)
   | Not (t, _) ->
       t
   | Leaf (P (p, _)) -> snd p.pstr
-  | Leaf (MetavarCond (t, _)) -> t
 
 let kind_of_formula = function
   | Leaf (P _) -> "pattern"
-  | Leaf (MetavarCond _) -> "condition"
   | Or _
   | And _
   | Not _ ->
@@ -404,10 +399,11 @@ let (convert_formula_old : formula_old -> formula) =
         Or (t, xs)
     | Patterns (t, xs) ->
         let xs = List.map aux xs in
-        And (t, xs)
-    | PatExtra (t, x) ->
-        let e = convert_extra x in
-        Leaf (MetavarCond (t, e))
+        let conds = failwith "TODO" in
+        And (t, xs, conds)
+    | PatExtra (_t, x) ->
+        let _e = convert_extra x in
+        failwith "TODO"
   in
   aux e
 

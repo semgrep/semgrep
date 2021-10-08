@@ -893,8 +893,6 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
           conds
           |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res)
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
-  | S.Leaf (R.MetavarCond _) ->
-      failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
 
 and run_selector_on_ranges env selector_opt ranges =
   match (selector_opt, ranges) with

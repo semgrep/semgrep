@@ -40,22 +40,19 @@ let selector_equal s1 s2 = s1.mvar = s2.mvar
 (* Converter *)
 (*****************************************************************************)
 
-(* return list of "positive" x list of Not x list of Conds *)
-let split_and :
-    R.formula list -> R.formula list * R.formula list * R.metavar_cond list =
+(* return list of "positive" x list of Not *)
+let split_and : R.formula list -> R.formula list * R.formula list =
  fun xs ->
   xs
-  |> Common.partition_either3 (fun e ->
+  |> Common.partition_either (fun e ->
          match e with
          (* positives *)
          | R.Leaf (R.P _)
          | R.And _
          | R.Or _ ->
-             Left3 e
+             Left e
          (* negatives *)
-         | R.Not (_, f) -> Middle3 f
-         (* conditionals *)
-         | R.Leaf (R.MetavarCond (_, c)) -> Right3 c)
+         | R.Not (_, f) -> Right f)
 
 let selector_from_formula f =
   match f with
@@ -93,11 +90,11 @@ let formula_to_sformula formula =
     (* Visit formula and convert *)
     match formula with
     | R.Leaf leaf -> Leaf leaf
-    | R.And (_, fs) -> And (convert_and_formulas fs)
+    | R.And (_, fs, conds) -> And (convert_and_formulas fs conds)
     | R.Or (_, fs) -> Or (List.map formula_to_sformula fs)
     | R.Not (_, f) -> Not (formula_to_sformula f)
-  and convert_and_formulas fs =
-    let pos, neg, cond = split_and fs in
+  and convert_and_formulas fs cond =
+    let pos, neg = split_and fs in
     let pos = List.map formula_to_sformula pos in
     let neg = List.map formula_to_sformula neg in
     let sel, pos =
@@ -110,7 +107,7 @@ let formula_to_sformula formula =
       selector_opt = sel;
       positives = pos;
       negatives = neg;
-      conditionals = cond;
+      conditionals = cond |> List.map snd;
     }
   in
   formula_to_sformula formula
@@ -122,7 +119,6 @@ let formula_to_sformula formula =
 let rec visit_sformula f formula =
   match formula with
   | Leaf (P (p, i)) -> f p i
-  | Leaf (MetavarCond _) -> ()
   | Not x -> visit_sformula f x
   | Or xs -> xs |> List.iter (visit_sformula f)
   | And fand ->

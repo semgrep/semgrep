@@ -132,12 +132,12 @@ let option_map f xs =
 let rec (remove_not : Rule.formula -> Rule.formula option) =
  fun f ->
   match f with
-  | R.And (t, xs) ->
+  | R.And (t, xs, conds) ->
       let ys = Common.map_filter remove_not xs in
       if null ys then (
         logger#warning "null And after remove_not";
         None)
-      else Some (R.And (t, ys))
+      else Some (R.And (t, ys, conds))
   | R.Or (t, xs) ->
       (* See NOTE "AND vs OR and map_filter". *)
       let* ys = option_map remove_not xs in
@@ -154,7 +154,7 @@ let rec (remove_not : Rule.formula -> Rule.formula option) =
       | R.Or (_, _xs) ->
           logger#warning "Not Or";
           None
-      | R.And (_, _xs) ->
+      | R.And (_, _xs, _conds) ->
           logger#warning "Not And";
           None)
   | R.Leaf x -> Some (R.Leaf x)
@@ -188,7 +188,7 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * | R.And _xs -> failwith "Not And"
    * )
    *)
-  | R.And (_, xs) ->
+  | R.And (_, xs, _condsTODO) ->
       let ys = List.map cnf xs in
       And (ys |> List.map (function And ors -> ors) |> List.flatten)
   | R.Or (_, xs) ->
@@ -275,8 +275,10 @@ and leaf_step1 f =
   (* old: we can't filter now; too late, see comment above on step0 *)
   (*  | Not _ -> None *)
   | L (R.P (pat, _inside)) -> xpat_step1 pat
-  | L (R.MetavarCond (_, x)) -> metavarcond_step1 x
 
+(* TODO
+  | L (R.MetavarCond (_, x)) -> metavarcond_step1 x
+*)
 and xpat_step1 pat =
   match pat.R.pat with
   | R.Sem (pat, lang) ->
@@ -506,7 +508,7 @@ let regexp_prefilter_of_taint_rule rule_tok taint_spec =
     (* Note that this formula would likely not yield any meaningful result
      * if executed by search-mode, but it works for the purpose of this
      * analysis! *)
-    R.And (rule_tok, [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ])
+    R.And (rule_tok, [ R.Or (rule_tok, sources); R.Or (rule_tok, sinks) ], [])
   in
   regexp_prefilter_of_formula f
 
