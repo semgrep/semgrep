@@ -7,6 +7,10 @@ module Resp = Semgrep_core_response_t
 
 type target_kind = Explicit | Filterable
 
+let string_of_kind = function
+  | Explicit -> "explicit"
+  | Filterable -> "filterable"
+
 (*
    The 7% threshold works well for javascript files based on looking at
    .min.js files and other .js found in various github repos.

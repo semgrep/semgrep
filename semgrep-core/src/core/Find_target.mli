@@ -15,6 +15,9 @@
 *)
 type target_kind = Explicit | Filterable
 
+(* Show target kind as lowercase, English words. *)
+val string_of_kind : target_kind -> string
+
 (*
    Scan a list of folders or files recursively and return a list of files
    in the requested language. This takes care of ignoring undesirable
