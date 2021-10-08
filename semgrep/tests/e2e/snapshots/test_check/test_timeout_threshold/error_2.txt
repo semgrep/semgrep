@@ -1,6 +1,3 @@
-Metrics turned off. No information will be sent about this run
-Loading local config from rules/multiple-long.yaml ...
-[80D[1A[KLoading local config from rules/multiple-long.yaml .........................done
 running 3 rules from 1 config rules/multiple-long.yaml_0
 Running 3 rules...
 rules:

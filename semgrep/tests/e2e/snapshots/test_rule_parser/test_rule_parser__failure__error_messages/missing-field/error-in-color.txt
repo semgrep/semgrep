@@ -1,5 +1,3 @@
-Metrics turned off. No information will be sent about this run
-Loading local config from rules/syntax/missing-field.yaml ...
 [31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/missing-field.yaml:3
 [94m3  | [0m- id: flask-secure-set-cookie

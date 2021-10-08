@@ -1,5 +1,3 @@
-Metrics turned off. No information will be sent about this run
-Loading local config from rules/syntax/badpaths1.yaml ...
 [31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/badpaths1.yaml:8
 [94m8  | [0m      - "*.py"

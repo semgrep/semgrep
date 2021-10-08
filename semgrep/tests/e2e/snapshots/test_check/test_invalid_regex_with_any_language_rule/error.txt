@@ -1,3 +1,0 @@
-Metrics turned off. No information will be sent about this run
-Loading local config from rules/regex-any-language-invalid.yaml ...
-[80D[1A[KLoading local config from rules/regex-any-language-invalid.yaml ............done
