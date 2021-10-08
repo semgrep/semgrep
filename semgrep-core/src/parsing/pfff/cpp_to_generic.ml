@@ -147,9 +147,6 @@ and map_type_ env (v1, v2) : G.type_ =
 
 and map_typeC env x : G.type_ =
   match x with
-  | TBase v1 ->
-      let v1 = map_baseType env v1 in
-      complicated env v1
   | TPrimitive v1 ->
       let v1 = map_wrap env (map_primitive_type env) v1 in
       G.TyBuiltin v1 |> G.t
@@ -211,48 +208,6 @@ and map_typeC env x : G.type_ =
       and v2 = map_of_list (map_type_ env) v2 in
       G.OtherType (G.OT_Todo, G.TodoK v1 :: (v2 |> List.map (fun t -> G.T t)))
       |> G.t
-
-(* deprecated *)
-and map_baseType env = function
-  | Void v1 ->
-      let v1 = map_tok env v1 in
-      complicated env v1
-  | IntType (v1, v2) ->
-      let v1 = map_intType env v1 and v2 = map_tok env v2 in
-      complicated env (v1, v2)
-  | FloatType (v1, v2) ->
-      let v1 = map_floatType env v1 and v2 = map_tok env v2 in
-      complicated env (v1, v2)
-
-and map_intType env = function
-  | CChar -> CChar
-  | Si v1 ->
-      let v1 = map_signed env v1 in
-      complicated env v1
-  | CBool -> CBool
-  | WChar_t -> WChar_t
-
-and map_signed env (v1, v2) =
-  let v1 = map_sign env v1 and v2 = map_base env v2 in
-  (v1, v2)
-
-(* deprecated *)
-and map_base env = function
-  | CChar2 -> CChar2
-  | CShort -> CShort
-  | CInt -> CInt
-  | CLong -> CLong
-  | CLongLong -> CLongLong
-
-and map_sign env = function
-  | Signed -> Signed
-  | UnSigned -> UnSigned
-
-(* deprecated *)
-and map_floatType env = function
-  | CFloat -> CFloat
-  | CDouble -> CDouble
-  | CLongDouble -> CLongDouble
 
 and map_primitive_type env = function
   | TVoid -> "void"
@@ -463,31 +418,13 @@ and map_constant env x : G.literal =
       let v1 = map_wrap env (map_of_option map_of_int) v1 in
       G.Int v1
   | Float v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_wrap env (map_of_option map_of_float) v1
-            and _v2 = map_floatType env v2 in
-            v1
-      in
+      let v1 = map_wrap env (map_of_option map_of_float) v1 in
       G.Float v1
   | Char v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_wrap env map_of_string v1
-            and _v2 = map_isWchar env v2 in
-            v1
-      in
+      let v1 = map_wrap env map_of_string v1 in
       G.Char v1
   | String v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_wrap env map_of_string v1
-            and _v2 = map_isWchar env v2 in
-            v1
-      in
+      let v1 = map_wrap env map_of_string v1 in
       G.String v1
   | MultiString v1 ->
       let v1 = map_of_list (map_wrap env map_of_string) v1 in
@@ -498,10 +435,6 @@ and map_constant env x : G.literal =
   | Nullptr v1 ->
       let v1 = map_tok env v1 in
       G.Null v1
-
-and map_isWchar env = function
-  | IsWchar -> ()
-  | IsChar -> ()
 
 and map_unaryOp env = function
   | UnPlus -> Left G.Plus

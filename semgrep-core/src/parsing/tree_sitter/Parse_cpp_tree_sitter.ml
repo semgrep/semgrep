@@ -101,7 +101,7 @@ let parse_number_literal (s, t) =
   | Some i -> Int (Some i, t)
   | None -> (
       match float_of_string_opt s with
-      | Some f -> Float ((Some f, t), CFloat)
+      | Some f -> Float (Some f, t)
       (* could be None because of a suffix in the string *)
       | None -> Int (None, t))
 
@@ -309,13 +309,13 @@ let map_anon_choice_pat_25b90ba_4a37f8c (env : env)
 (* pattern #[ 	]*ifndef *)
 
 let map_char_literal (env : env) ((v1, v2, v3) : CST.char_literal) =
-  let iswchar, v1 =
+  let v1 =
     match v1 with
-    | `LSQUOT tok -> (IsWchar, token env tok) (* "L'" *)
-    | `USQUOT_d861d39 tok -> (IsWchar, token env tok) (* "u'" *)
-    | `USQUOT_2701bdc tok -> (IsWchar, token env tok) (* "U'" *)
-    | `U8SQUOT tok -> (IsChar, token env tok) (* "u8'" *)
-    | `SQUOT tok -> (IsChar, token env tok)
+    | `LSQUOT tok -> token env tok (* "L'" *)
+    | `USQUOT_d861d39 tok -> token env tok (* "u'" *)
+    | `USQUOT_2701bdc tok -> token env tok (* "U'" *)
+    | `U8SQUOT tok -> token env tok (* "u8'" *)
+    | `SQUOT tok -> token env tok
     (* "'" *)
   in
   let s, v2 =
@@ -326,7 +326,7 @@ let map_char_literal (env : env) ((v1, v2, v3) : CST.char_literal) =
   in
   let v3 = token env v3 (* "'" *) in
   let t = PI.combine_infos v1 [ v2; v3 ] in
-  Char ((s, t), iswchar)
+  Char (s, t)
 
 let map_preproc_call (env : env) ((v1, v2, v3) : CST.preproc_call) =
   let v1 = token env v1 (* pattern #[ \t]*[a-zA-Z]\w* *) in
@@ -349,13 +349,13 @@ let map_ms_pointer_modifier (env : env) (x : CST.ms_pointer_modifier) =
 
 let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
     string wrap =
-  let _isWchar, v1 =
+  let v1 =
     match v1 with
-    | `LDQUOT tok -> (IsWchar, token env tok) (* "L\"" *)
-    | `UDQUOT_c163aae tok -> (IsWchar, token env tok) (* "u\"" *)
-    | `UDQUOT_df3447d tok -> (IsWchar, token env tok) (* "U\"" *)
-    | `U8DQUOT tok -> (IsChar, token env tok) (* "u8\"" *)
-    | `DQUOT tok -> (IsChar, token env tok)
+    | `LDQUOT tok -> token env tok (* "L\"" *)
+    | `UDQUOT_c163aae tok -> token env tok (* "u\"" *)
+    | `UDQUOT_df3447d tok -> token env tok (* "U\"" *)
+    | `U8DQUOT tok -> token env tok (* "u8\"" *)
+    | `DQUOT tok -> token env tok
     (* "\"" *)
   in
   let v2 =
@@ -688,10 +688,8 @@ let map_anon_choice_stmt_id_efddc5b (env : env)
 let map_concatenated_string (env : env) ((v1, v2) : CST.concatenated_string) =
   let v1 = map_anon_choice_raw_str_lit_28125b5 env v1 in
   let v2 = List.map (map_anon_choice_raw_str_lit_28125b5 env) v2 in
-  (* TODO: grab it from v1? *)
-  let isWchar = IsChar in
   match v2 with
-  | [] -> String (v1, isWchar)
+  | [] -> String v1
   | _ -> MultiString (v1 :: v2)
 
 let map_preproc_include (env : env) ((v1, v2, v3) : CST.preproc_include) =
@@ -1583,7 +1581,7 @@ and map_constructor_or_destructor_declaration (env : env)
   let { dn; dt } = map_function_declarator env v2 in
   let v3 = token env v3 (* ";" *) in
   let n = name_of_dname_for_function dn in
-  let t = dt (nQ, TBase (Void (ii_of_name n))) in
+  let t = dt (tvoid (ii_of_name n)) in
   let ent, def = H2.fixFunc ((n, t, []), FBDecl v3) in
   ({ ent with specs = v1 @ ent.specs }, def)
 
@@ -1601,7 +1599,7 @@ and map_constructor_or_destructor_definition (env : env)
     | None -> []
   in
   let n = name_of_dname_for_function dn in
-  let t = dt (nQ, TBase (Void (ii_of_name n))) in
+  let t = dt (tvoid (ii_of_name n)) in
   let v4 = map_anon_choice_comp_stmt_be91723 env v4 in
   let ent, def = H2.fixFunc ((n, t, []), v4) in
   ({ ent with specs = v1 @ ent.specs }, def)
@@ -1799,7 +1797,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
           C (parse_number_literal x)
       | `Str_lit x ->
           let x = map_string_literal env x in
-          C (String (x, IsChar))
+          C (String x)
       | `True tok ->
           let x = token env tok (* true *) in
           C (Bool (true, x))
@@ -1908,7 +1906,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       IdSpecial (This, x)
   | `Raw_str_lit tok ->
       let x = str env tok in
-      C (String (x, IsChar))
+      C (String x)
 
 (* raw_string_literal *)
 and map_expression_statement (env : env) ((v1, v2) : CST.expression_statement) :
@@ -2504,7 +2502,7 @@ and map_operator_cast_declaration (env : env)
         Some (EqInit (v1, InitExpr v2))
     | None -> None
   in
-  let t = (nQ, TBase (Void (ii_of_name name))) in
+  let t = tvoid (ii_of_name name) in
   let one = V ({ name; specs = v1 }, { v_init = v3; v_type = t }) in
   let v4 = token env v4 (* ";" *) in
   ([ one ], v4)
@@ -2519,7 +2517,7 @@ and map_operator_cast_definition (env : env)
   let n = map_operator_cast env v2 in
   let v3 = map_anon_choice_comp_stmt_be91723 env v3 in
 
-  let t = (nQ, TBase (Void (ii_of_name n))) in
+  let t = tvoid (ii_of_name n) in
   let ent, def = H2.fixFunc ((n, t, []), v3) in
   ({ ent with specs = v1 @ ent.specs }, def)
 
@@ -2844,10 +2842,10 @@ and map_static_assert_declaration (env : env)
           match v2 with
           | `Str_lit x ->
               let x = map_string_literal env x in
-              String (x, IsChar)
+              String x
           | `Raw_str_lit tok ->
               let x = str env tok (* raw_string_literal *) in
-              String (x, IsChar)
+              String x
           | `Conc_str x ->
               let x = map_concatenated_string env x in
               x
@@ -3067,7 +3065,7 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
         | Some x ->
             let t, specs = map_declaration_specifiers env x in
             (t, specs)
-        | None -> ((nQ, TBase (Void v1)), [])
+        | None -> (tvoid v1, [])
       in
       let { dn; dt } = map_declarator env v3 in
       let t = dt t in
