@@ -378,14 +378,14 @@ and stmt x =
 and catch_block = function
   | BoundCatch (t, v1, v2) ->
       let v1 = H.expr_to_pattern (expr v1) and v2 = stmt v2 in
-      (t, v1, v2)
+      (t, G.CatchPattern v1, v2)
   | UnboundCatch (t, v1) ->
       let v1 =
         stmt v1
         (* bugfix: reusing 't' to avoid NoTokenLocation error when
          * a semgrep patter like catch($ERR) matches an UnboundCatch. *)
       in
-      (t, G.PatUnderscore t, v1)
+      (t, G.CatchPattern (G.PatUnderscore t), v1)
 
 and tok_and_stmt (t, v) =
   let v = stmt v in

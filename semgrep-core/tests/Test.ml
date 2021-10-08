@@ -198,6 +198,12 @@ let tainting_tests_for_lang files lang =
 let lang_parsing_tests =
   pack_suites "lang parsing testing" [
    (* languages with only a tree-sitter parser *)
+    pack_tests "Bash" (
+      let dir = Filename.concat (Filename.concat tests_path "bash") "parsing" in
+      let files = Common2.glob (spf "%s/*.bash" dir) in
+      let lang = Lang.Bash in
+      parsing_tests_for_lang files lang
+    );
     pack_tests "C#" (
       let dir = Filename.concat (Filename.concat tests_path "csharp") "parsing" in
       let files = Common2.glob (spf "%s/*.cs" dir) in
@@ -279,9 +285,15 @@ let lang_regression_tests ~with_caching =
   in
   let name_suffix =
     if with_caching then " with caching"
-    else " without caching"
+    else " no caching"
   in
-  pack_suites ("lang regression testing" ^ name_suffix) [
+  pack_suites ("lang testing" ^ name_suffix) [
+  pack_tests "semgrep Bash" (
+    let dir = Filename.concat tests_path "bash" in
+    let files = Common2.glob (spf "%s/*.bash" dir) in
+    let lang = Lang.Bash in
+    regression_tests_for_lang files lang
+  );
   pack_tests "semgrep Python" (
     let dir = Filename.concat tests_path "python" in
     let files = Common2.glob (spf "%s/*.py" dir) in
@@ -434,6 +446,12 @@ let lang_tainting_tests =
       let lang = Lang.Python in
       tainting_tests_for_lang files lang
     );
+    pack_tests "tainting Java" (
+      let dir = Filename.concat taint_tests_path "java" in
+      let files = Common2.glob (spf "%s/*.java" dir) in
+      let lang = Lang.Java in
+      tainting_tests_for_lang files lang
+    );
     pack_tests "tainting Javascript" (
       let dir = Filename.concat taint_tests_path "js" in
       let files = Common2.glob (spf "%s/*.js" dir) in
@@ -581,6 +599,7 @@ let tests = List.flatten [
   Unit_naming_generic.tests Parse_target.parse_program;
   Unit_guess_lang.tests;
   Unit_memory_limit.tests;
+  Unit_pcre_settings.tests;
 
   lang_parsing_tests;
   (* full testing for many languages *)

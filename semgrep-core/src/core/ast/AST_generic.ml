@@ -755,7 +755,7 @@ and other_expr_operator =
   | OE_NewQualifiedClass
   | OE_Annot
   (* C *)
-  | OE_GetRefLabel
+  | OE_GetRefLabel (* TODO DELETE? just LDynamic? *)
   | OE_ArrayInitDesignator (* [x] = ... todo? use ArrayAccess in container?*)
   (* PHP *)
   | OE_Unpack
@@ -858,7 +858,7 @@ and stmt_kind =
   | Break of tok * label_ident * sc
   (* todo? remove stmt argument? more symetric to Goto *)
   | Label of label * stmt
-  | Goto of tok * label
+  | Goto of tok * label * sc (* less: use label_ident for computed goto in C*)
   (* TODO? move in expr! in C++ the expr can be an option *)
   | Throw of tok (* 'raise' in OCaml, 'throw' in Java/PHP *) * expr * sc
   | Try of tok * stmt * catch list * finally option
@@ -910,7 +910,19 @@ and case =
 and action = pattern * expr
 
 (* newvar: newscope: usually a PatVar *)
-and catch = tok (* 'catch', 'except' in Python *) * pattern * stmt
+and catch = tok (* 'catch', 'except' in Python *) * catch_exn * stmt
+
+(* alt: we could reuse parameter, which has a ParamPattern and ParamClassic *)
+and catch_exn =
+  | CatchPattern of pattern
+  (* for Java/C++/PHP/etc.
+   * old: PatVar of type_ * (ident * id_info) option
+   * and was in pattern as PatVar, but better to move out of pattern.
+   * alt: we could abuse pattern and use PatTyped, but ugly.
+   *)
+  | CatchParam of parameter_classic
+
+(* ptype should never be None *)
 
 (* newscope: *)
 and finally = tok (* 'finally' *) * stmt
@@ -995,7 +1007,7 @@ and other_stmt_operator =
 (*****************************************************************************)
 (* This is quite similar to expr. A few constructs in expr have
  * equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
- * maybe factorize with expr, and this may help sgrep, but I think it's
+ * maybe factorize with expr, and this may help semgrep, but I think it's
  * cleaner to have a separate type because the scoping rules for a pattern and
  * an expr are quite different and not any expr is allowed here.
  *)
@@ -1023,11 +1035,6 @@ and pattern =
   | PatAs of pattern * (ident * id_info)
   (* For Go also in switch x.(type) { case int: ... } *)
   | PatType of type_
-  (* In catch for Java/PHP, and foreach in Java.
-   * less: do instead PatAs (PatType(TyApply, var))?
-   *       or even    PatAs (PatConstructor(id, []), var)?
-   *)
-  | PatVar of type_ * (ident * id_info) option
   (* sgrep: *)
   | PatEllipsis of tok
   | DisjPat of pattern * pattern
@@ -1213,7 +1220,7 @@ and entity = {
    *)
   name : name_or_dynamic;
   attrs : attribute list;
-  tparams : type_parameter list;
+  tparams : type_parameters;
 }
 
 and definition_kind =
@@ -1280,6 +1287,9 @@ and type_parameter = {
   tp_constraints : type_parameter_constraint list;
 }
 
+and type_parameters = type_parameter list
+
+(* TODO bracket *)
 and variance =
   | Covariant (* '+' in Scala/Hack, 'out' in C#/Kotlin *)
   | Contravariant
@@ -1653,6 +1663,7 @@ and any =
   | ModDk of module_definition_kind
   | En of entity
   | Pa of parameter
+  | Ce of catch_exn
   | Dk of definition_kind
   | Di of dotted_ident
   | Lbli of label_ident

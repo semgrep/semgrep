@@ -262,8 +262,7 @@ and pattern env pat eorig =
   | G.PatUnderscore tok ->
       let lval = fresh_lval env tok in
       (lval, [])
-  | G.PatId (id, id_info)
-  | G.PatVar (_, Some (id, id_info)) ->
+  | G.PatId (id, id_info) ->
       let lval = lval_of_id_info env id id_info in
       (lval, [])
   | G.PatTuple (tok1, pats, tok2) ->
@@ -286,6 +285,14 @@ and pattern env pat eorig =
       in
       (tmp_lval, ss)
   | _ -> todo (G.P pat)
+
+and _catch_exn env exn eorig =
+  match exn with
+  | G.CatchPattern pat -> pattern env pat eorig
+  | G.CatchParam { pname = Some id; pinfo = id_info; _ } ->
+      let lval = lval_of_id_info env id id_info in
+      (lval, [])
+  | _ -> todo (G.Ce exn)
 
 and pattern_assign_statements env exp eorig pat =
   try
@@ -906,7 +913,7 @@ let rec stmt_aux env st =
       let lbl = label_of_label env lbl in
       let st = stmt env st in
       [ mk_s (Label lbl) ] @ st
-  | G.Goto (tok, lbl) ->
+  | G.Goto (tok, lbl, _sc) ->
       let lbl = lookup_label env lbl in
       [ mk_s (Goto (tok, lbl)) ]
   | G.Return (tok, eopt, _) ->
@@ -924,14 +931,25 @@ let rec stmt_aux env st =
   | G.Throw (tok, e, _) ->
       let ss, e = expr_with_pre_stmts env e in
       ss @ [ mk_s (Throw (tok, e)) ]
+  | G.OtherStmt (G.OS_ThrowNothing, [ G.Tk tok ]) ->
+      (* Python's `raise` without arguments *)
+      let fake_eorig = G.e (G.L (G.Unit tok)) in
+      let todo_exp = fixme_exp ToDo (G.Tk tok) fake_eorig in
+      [ mk_s (Throw (tok, todo_exp)) ]
+  | G.OtherStmt
+      (G.OS_ThrowFrom, [ G.E from; G.S ({ s = G.Throw _; _ } as throw_stmt) ])
+    ->
+      (* Python's `raise E1 from E2` *)
+      let todo_stmt = fixme_stmt ToDo (G.E from) in
+      todo_stmt @ stmt_aux env throw_stmt
   | G.Try (_tok, try_st, catches, opt_finally) ->
       let try_stmt = stmt env try_st in
       let catches_stmt_rev =
         List.fold_left
-          (fun acc (ctok, pattern, catch_st) ->
-            (* TODO: Handle pattern properly. *)
+          (fun acc (ctok, exn, catch_st) ->
+            (* TODO: Handle exn properly. *)
             let name = fresh_var env ctok in
-            let todo_pattern = fixme_stmt ToDo (G.P pattern) in
+            let todo_pattern = fixme_stmt ToDo (G.Ce exn) in
             let catch_stmt = stmt env catch_st in
             (name, todo_pattern @ catch_stmt) :: acc)
           [] catches

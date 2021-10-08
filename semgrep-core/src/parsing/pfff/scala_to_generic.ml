@@ -598,11 +598,11 @@ and v_catch_clause (v1, v2) : G.catch list =
              (* todo? e was the result of expr_of_block, so maybe we
               * should revert because we want a stmt here with block_of_expr
               *)
-             (fake "case", pat, G.exprstmt e))
+             (fake "case", G.CatchPattern pat, G.exprstmt e))
   | CatchExpr e ->
       let e = v_expr e in
       let pat = G.PatUnderscore v1 in
-      [ (v1, pat, G.exprstmt e) ]
+      [ (v1, G.CatchPattern pat, G.exprstmt e) ]
 
 and v_finally_clause (v1, v2) =
   let v1 = v_tok v1 and v2 = v_expr_for_stmt v2 in

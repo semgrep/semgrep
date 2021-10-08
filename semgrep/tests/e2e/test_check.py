@@ -472,3 +472,10 @@ def test_pattern_regex_empty_file(run_semgrep_in_tmp, snapshot):
         )[0],
         "results.json",
     )
+
+
+def test_cdn_ruleset_resolution(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("p/ci")[0],
+        "results.json",
+    )

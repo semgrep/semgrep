@@ -470,7 +470,7 @@ let top_func () =
         [ G.Continue (v1, H.opt_to_label_ident v2, G.sc) |> G.s ]
     | Goto (v1, v2) ->
         let v1 = tok v1 and v2 = ident v2 in
-        [ G.Goto (v1, v2) |> G.s ]
+        [ G.Goto (v1, v2, G.sc) |> G.s ]
     | Fallthrough v1 ->
         let v1 = tok v1 in
         [ G.OtherStmt (G.OS_Fallthrough, [ G.Tk v1 ]) |> G.s ]

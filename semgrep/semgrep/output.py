@@ -4,6 +4,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from typing import Collection
 from typing import Dict
 from typing import FrozenSet
 from typing import Generator
@@ -18,6 +19,7 @@ from typing import Type
 
 from semgrep import config_resolver
 from semgrep.constants import OutputFormat
+from semgrep.constants import RuleSeverity
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
@@ -51,6 +53,10 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.TEXT: TextFormatter,
     OutputFormat.VIM: VimFormatter,
 }
+
+DEFAULT_SHOWN_SEVERITIES: Collection[RuleSeverity] = frozenset(
+    {RuleSeverity.INFO, RuleSeverity.WARNING, RuleSeverity.ERROR}
+)
 
 
 def get_path_str(target: Path) -> str:
@@ -180,6 +186,7 @@ class OutputHandler:
         self.profiling_data: ProfilingData = (
             ProfilingData()
         )  # (rule, target) -> duration
+        self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
 
         self.final_error: Optional[Exception] = None
         formatter_type = FORMATTERS.get(self.settings.output_format)
@@ -246,12 +253,14 @@ class OutputHandler:
     def handle_semgrep_core_output(
         self,
         rule_matches_by_rule: RuleMatchMap,
+        *,
         debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
         stats_line: str,
         all_targets: Set[Path],
         profiler: ProfileManager,
         filtered_rules: List[Rule],
         profiling_data: ProfilingData,  # (rule, target) -> duration
+        severities: Optional[Collection[RuleSeverity]],
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -266,6 +275,8 @@ class OutputHandler:
         self.debug_steps_by_rule.update(debug_steps_by_rule)
         self.filtered_rules = filtered_rules
         self.profiling_data = profiling_data
+        if severities:
+            self.severities = severities
 
     def handle_unhandled_exception(self, ex: Exception) -> None:
         """
@@ -394,5 +405,9 @@ class OutputHandler:
             extra["per_line_max_chars_limit"] = per_line_max_chars_limit
 
         return self.formatter.output(
-            self.rules, self.rule_matches, self.semgrep_structured_errors, extra
+            self.rules,
+            self.rule_matches,
+            self.semgrep_structured_errors,
+            extra,
+            self.severities,
         )

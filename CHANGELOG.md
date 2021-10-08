@@ -4,15 +4,45 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.68.2](https://github.com/returntocorp/semgrep/releases/tag/v0.68.2) - 10-07-2021
+
+## Fixed
+- Respect --skip-unknown-extensions even for files with no extension
+(treat no extension as an unknown extension)
+- taint-mode: Fixed (another) bug where a tainted sink could go unreported when
+  the sink is a specific argument in a function call
+
+## [0.68.1](https://github.com/returntocorp/semgrep/releases/tag/v0.68.1) - 10-07-2021
+
+### Added
+- Added support for `raise`/`throw` expressions in the dataflow engine and improved
+  existing support for `try-catch-finally`
+
+### Fixed
+- Respect rule level path filtering
+
+## [0.68.0](https://github.com/returntocorp/semgrep/releases/tag/v0.68.0) - 10-06-2021
+
 ### Added
 - Input can be derived from subshells: `semgrep --config ... <(...)`
+- Java: support '...' in catch (#4002)
 
 ### Changed
 - taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
   making it possible to use `- pattern: $F(...)` for declaring that any other
   function is a sanitizer
+- taint-mode: Remove built-in source `source(...)` and built-in sanitizer
+  `sanitize(...)` used for convenience during early development, this was causing
+  some unexpected behavior in real code that e.g. had a function called `source`!
+- Improved Kotlin parsing from 77% to 90% on our Kotlin corpus.
+- Resolution of rulesets (i.e. `p/ci`) use new rule cdn and do client-side hydration
+- Set pcre recursion limit so it will not vary with different installations of pcre
+- Better pcre error handling in semgrep-core
 
 ### Fixed
+- taint-mode: Fixed bug where a tainted sink could go unreported when the sink is
+  a specific argument in a function call
+- PHP: allows more keywords as valid field names (#3954)
 
 ## [0.67.0](https://github.com/returntocorp/semgrep/releases/tag/v0.67.0) - 09-29-2021
 
@@ -34,7 +64,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Ruby: treat 'foo' as a function call when alone on its line (#3811)
 - Fixed bug in semgrep-core's `-filter_irrelevant_rules` causing Semgrep to
   incorrectly skip a file (#3755)
-- PHP: allows more keywords as valid field names (#3954)
 
 ## [0.66.0](https://github.com/returntocorp/semgrep/releases/tag/v0.66.0) - 09-22-2021
 
@@ -59,6 +88,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add rule message to emacs output (#3851)
 - Show stack trace on fatal errors (#3876)
 - Various changes to error messages (#3827)
+- Minified files are now automatically excluded from the scan, which
+  may result in shorter scanning times for some projects.
 
 ### Fixed
 - Dataflow: Recognize "concat" method and interpret it in a language-dependent manner (#3316)

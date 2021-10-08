@@ -55,13 +55,15 @@ def _clean_output_json(output_json: str) -> str:
     for path in MASKED_KEYS:
         mark_masked(output, path)
 
-    # Remove temp file paths
+    # Remove variable parts of temp file paths.
+    # It's better than deleting the field, which makes it hard to figure out
+    # why the field is missing.
     results = output.get("results")
     if isinstance(results, Sequence):
         for r in results:
             p = r.get("path")
             if p and "/tmp" in p:
-                del r["path"]
+                r["path"] = "<tmp path>/" + Path(p).name
 
     return json.dumps(output, indent=2, sort_keys=True)
 
@@ -108,7 +110,13 @@ def _run_semgrep(
     elif output_format == OutputFormat.SARIF:
         options.append("--sarif")
 
-    cmd = [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name]
+    cmd = [
+        sys.executable,
+        "-m",
+        "semgrep",
+        *options,
+        str(Path("targets") / target_name),
+    ]
     print(f"current directory: {os.getcwd()}")
     print(f"semgrep command: {cmd}")
     output = subprocess.run(

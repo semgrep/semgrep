@@ -2,7 +2,7 @@ import functools
 import itertools
 from pathlib import Path
 from typing import Any
-from typing import FrozenSet
+from typing import Iterable
 from typing import Iterator
 from typing import Mapping
 from typing import Optional
@@ -181,7 +181,7 @@ class TextFormatter(BaseFormatter):
 
     @staticmethod
     def _build_text_output(
-        rule_matches: Sequence[RuleMatch],
+        rule_matches: Iterable[RuleMatch],
         color_output: bool,
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
@@ -240,10 +240,10 @@ class TextFormatter(BaseFormatter):
                 is_same_file,
             )
 
-    def output(
+    def format(
         self,
-        rules: FrozenSet[Rule],
-        rule_matches: Sequence[RuleMatch],
+        rules: Iterable[Rule],
+        rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
         extra: Mapping[str, Any],
     ) -> str:

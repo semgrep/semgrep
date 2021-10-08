@@ -693,7 +693,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
   | `Goto_stmt (v1, v2) ->
       let v1 = token env v1 (* "goto" *) in
       let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
-      [ G.Goto (v1, v2) |> G.s ]
+      [ G.Goto (v1, v2, G.sc) |> G.s ]
   | `Brk_stmt tok ->
       let v1 = token env tok (* "break" *) in
       [ G.Break (v1, LNone, G.sc) |> G.s ]

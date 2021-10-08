@@ -1916,7 +1916,10 @@ and m_stmt a b =
       m_tok asc bsc
   | G.Label (a1, a2), B.Label (b1, b2) ->
       m_label a1 b1 >>= fun () -> m_stmt a2 b2
-  | G.Goto (a0, a1), B.Goto (b0, b1) -> m_tok a0 b0 >>= fun () -> m_label a1 b1
+  | G.Goto (a0, a1, asc), B.Goto (b0, b1, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_label a1 b1 in
+      m_tok asc bsc
   | G.Throw (a0, a1, asc), B.Throw (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_expr a1 b1 in
@@ -2012,7 +2015,18 @@ and m_catch a b =
   match (a, b) with
   | (at, a1, a2), (bt, b1, b2) ->
       m_tok at bt >>= fun () ->
-      m_pattern a1 b1 >>= fun () -> m_stmt a2 b2
+      m_catch_exn a1 b1 >>= fun () -> m_stmt a2 b2
+
+and m_catch_exn a b =
+  match (a, b) with
+  (* dots: *)
+  | G.CatchPattern (G.PatEllipsis _), _ -> return ()
+  (* boilerplate *)
+  | G.CatchPattern a, CatchPattern b -> m_pattern a b
+  | G.CatchParam a, B.CatchParam b -> m_parameter_classic a b
+  | G.CatchPattern _, _
+  | G.CatchParam _, _ ->
+      fail ()
 
 and m_finally a b =
   match (a, b) with
@@ -2079,8 +2093,6 @@ and m_pattern a b =
       m_pattern a1 b1 >>= fun () -> m_ident_and_id_info (a2, a3) (b2, b3)
   | G.PatTyped (a1, a2), B.PatTyped (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_type_ a2 b2
-  | G.PatVar (a1, a2), B.PatVar (b1, b2) ->
-      m_type_ a1 b1 >>= fun () -> m_option m_ident_and_id_info a2 b2
   | G.PatWhen (a1, a2), B.PatWhen (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_expr a2 b2
   | G.OtherPat (a1, a2), B.OtherPat (b1, b2) ->
@@ -2098,8 +2110,7 @@ and m_pattern a b =
   | G.PatAs _, _
   | G.PatTyped _, _
   | G.OtherPat _, _
-  | G.PatType _, _
-  | G.PatVar _, _ ->
+  | G.PatType _, _ ->
       fail ()
 
 and m_field_pattern a b =
@@ -2738,6 +2749,7 @@ and m_any a b =
   | G.Dir a1, B.Dir b1 -> m_directive a1 b1
   | G.Fld a1, B.Fld b1 -> m_field a1 b1
   | G.Pa a1, B.Pa b1 -> m_parameter a1 b1
+  | G.Ce a1, B.Ce b1 -> m_catch_exn a1 b1
   | G.Ar a1, B.Ar b1 -> m_argument a1 b1
   | G.At a1, B.At b1 -> m_attribute a1 b1
   | G.Dk a1, B.Dk b1 -> m_definition_kind a1 b1
@@ -2756,6 +2768,7 @@ and m_any a b =
   | G.Def _, _
   | G.Dir _, _
   | G.Pa _, _
+  | G.Ce _, _
   | G.Ar _, _
   | G.At _, _
   | G.Dk _, _

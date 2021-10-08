@@ -160,7 +160,7 @@ let rec stmt_aux = function
   | Label (id, _, v1) ->
       let v1 = stmt v1 in
       [ G.Label (ident id, v1) |> G.s ]
-  | Goto (t, id) -> [ G.Goto (t, ident id) |> G.s ]
+  | Goto (t, id) -> [ G.Goto (t, ident id, G.sc) |> G.s ]
   | Throw (t, v1) ->
       let v1 = expr v1 in
       [ G.Throw (t, v1, G.sc) |> G.s ]
@@ -232,8 +232,8 @@ and case = function
 
 and catch (t, v1, v2, v3) =
   let v1 = hint_type v1 and v2 = var v2 and v3 = stmt v3 in
-  let pat = G.PatVar (v1, Some (v2, G.empty_id_info ())) in
-  (t, pat, v3)
+  let exn = G.CatchParam (G.param_of_type v1 ~pname:(Some v2)) in
+  (t, exn, v3)
 
 (* a list of finally??? php ... *)
 and finally (v : finally list) =
