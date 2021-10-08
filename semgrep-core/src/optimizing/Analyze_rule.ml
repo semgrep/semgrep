@@ -164,7 +164,7 @@ let remove_not_final f =
   if Option.is_none final_opt then logger#error "no formula";
   final_opt
 
-type step0 = L of Rule.leaf
+type step0 = LPat of Rule.leaf | LCond of Rule.metavar_cond
 (*old: does not work: | Not of Rule.leaf | Pos of Rule.leaf *)
 [@@deriving show]
 
@@ -174,7 +174,7 @@ type cnf_step0 = step0 cnf [@@deriving show]
 let rec (cnf : Rule.formula -> cnf_step0) =
  fun f ->
   match f with
-  | R.Leaf x -> And [ Or [ L x ] ]
+  | R.Leaf x -> And [ Or [ LPat x ] ]
   | R.Not (_, _f) ->
       (* should be filtered by remove_not *)
       failwith "call remove_not before cnf"
@@ -188,9 +188,10 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * | R.And _xs -> failwith "Not And"
    * )
    *)
-  | R.And (_, xs, _condsTODO) ->
+  | R.And (_, xs, conds) ->
       let ys = List.map cnf xs in
-      And (ys |> List.map (function And ors -> ors) |> List.flatten)
+      let zs = List.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
+      And (ys @ zs |> List.map (function And ors -> ors) |> List.flatten)
   | R.Or (_, xs) ->
       let ys = List.map cnf xs in
       let rec aux ys =
@@ -274,11 +275,9 @@ and leaf_step1 f =
   match f with
   (* old: we can't filter now; too late, see comment above on step0 *)
   (*  | Not _ -> None *)
-  | L (R.P (pat, _inside)) -> xpat_step1 pat
+  | LPat (R.P (pat, _inside)) -> xpat_step1 pat
+  | LCond x -> metavarcond_step1 x
 
-(* TODO
-  | L (R.MetavarCond (_, x)) -> metavarcond_step1 x
-*)
 and xpat_step1 pat =
   match pat.R.pat with
   | R.Sem (pat, lang) ->

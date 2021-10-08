@@ -398,12 +398,18 @@ let (convert_formula_old : formula_old -> formula) =
         let xs = List.map aux xs in
         Or (t, xs)
     | Patterns (t, xs) ->
-        let xs = List.map aux xs in
-        let conds = failwith "TODO" in
-        And (t, xs, conds)
-    | PatExtra (_t, x) ->
-        let _e = convert_extra x in
-        failwith "TODO"
+        let fs, conds = Common.partition_either aux_and xs in
+        And (t, fs, conds)
+    | PatExtra (t, _x) ->
+        raise
+          (InvalidYaml
+             ("metavariable conditions must be inside a 'patterns:'", t))
+  and aux_and e =
+    match e with
+    | PatExtra (t, x) ->
+        let e = convert_extra x in
+        Right (t, e)
+    | _ -> Left (aux e)
   in
   aux e
 
