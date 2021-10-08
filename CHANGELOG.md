@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## Fixed
+- Respect --skip-unknown-extensions even for files with no extension
+(treat no extension as an unknown extension)
+
 ## [0.68.1](https://github.com/returntocorp/semgrep/releases/tag/v0.68.1) - 10-07-2021
 
 ### Added
