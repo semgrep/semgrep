@@ -40,7 +40,6 @@ from semgrep.types import JsonObject
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
 from semgrep.verbose_logging import getLogger
-from semgrep.verbose_logging import message_with_done
 
 logger = getLogger(__name__)
 
@@ -126,11 +125,7 @@ class ConfigPath:
 
     def _download_config(self) -> Mapping[str, YamlTree]:
         config_url = self._config_path
-        downloading_msg = (
-            f"Downloading config from {self._nice_semgrep_url(config_url)} ..."
-        )
         logger.debug(f"trying to download from {config_url}")
-        logger.info(downloading_msg.rstrip("\n"))
 
         try:
             config = parse_config_string(
@@ -138,7 +133,7 @@ class ConfigPath:
                 self._make_config_request(),
                 filename=f"{config_url[:20]}...",
             )
-            logger.info(message_with_done(downloading_msg, overwrite=True))
+            logger.debug(f"finished downloading from {config_url}")
             return config
         except Exception as e:
             raise SemgrepError(f"Failed to download config from {config_url}: {str(e)}")
@@ -151,8 +146,7 @@ class ConfigPath:
         base_path = get_base_path()
         loc = base_path.joinpath(location)
 
-        local_config_msg = f"Loading local config from {loc} ..."
-        logger.info(local_config_msg)
+        logger.debug(f"Loading local config from {loc}")
         if loc.exists():
             if loc.is_file():
                 config = parse_config_at_path(loc)
@@ -167,7 +161,7 @@ class ConfigPath:
             raise SemgrepError(
                 f"WARNING: unable to find a config; path `{loc}` does not exist{addendum}"
             )
-        logger.info(message_with_done(local_config_msg, overwrite=True))
+        logger.debug(f"Done loading local config from {loc}")
         return config
 
     def _make_config_request(self) -> str:
@@ -220,12 +214,8 @@ class Config:
         objects sets the metric manager flag for the presence of registry paths
         """
         if any(config.is_registry_url() for config in configs):
-            logger.info(
-                message_with_done(
-                    "Fetching rules from Registry: https://semgrep.dev/registry "
-                )
-            )
-        metric_manager.notify_user_of_metrics()
+            # Space before ... so that the url can be copied
+            logger.info("Fetching rules from https://semgrep.dev/registry ...")
 
     @classmethod
     def from_pattern_lang(
