@@ -92,7 +92,8 @@ let string_of_xlang = function
 type xpattern = {
   pat : xpattern_kind;
   (* Regarding @equal below, even if two patterns have different indentation,
-   * we don't care. We rely only on the equality on pat, which will
+   * we still consider them equal in the metachecker context.
+   * We rely only on the equality on pat, which will
    * abstract away line positions.
    * TODO: right now we have some false positives, e.g., in Python
    * assert(...) and assert ... are considered equal AST-wise
@@ -138,20 +139,9 @@ let is_regexp xpat =
  * The main complication is the handling of metavariables and especially
  * negation in the presence of metavariables.
  *
- * todo? enforce invariant that Not/MetavarCond can only appear in And?
- * move MetavarCond out of leaf in an additional element in And.
+ * less? enforce invariant that Not can only appear in And?
  *)
 type formula =
-  | Leaf of leaf
-  | And of tok * formula list (* see Match_rules.split_and() *)
-  | Or of tok * formula list
-  (* There are currently restrictions on where a Not can appear in a formula.
-   * It must be inside an And to be intersected with "positive" formula.
-   * But this could change? If we were moving to a different range semantic?
-   *)
-  | Not of tok * formula
-
-and leaf =
   (* pattern: and pattern-inside: are actually slightly different so
    * we need to keep the information around.
    * (see tests/OTHER/rules/inside.yaml)
@@ -159,8 +149,14 @@ and leaf =
    * (see tests/OTHER/rules/negation_exact.yaml)
    *)
   | P of xpattern (* a leaf pattern *) * inside option
-  (* This can also only appear inside an And *)
-  | MetavarCond of tok * metavar_cond
+  (* see Match_rules.split_and() *)
+  | And of tok * formula list * (tok * metavar_cond) list
+  | Or of tok * formula list
+  (* There are currently restrictions on where a Not can appear in a formula.
+   * It must be inside an And to be intersected with "positive" formula.
+   * But this could change? If we were moving to a different range semantic?
+   *)
+  | Not of tok * formula
 
 (* todo: try to remove this at some point, but difficult. See
  * https://github.com/returntocorp/semgrep/issues/1218
@@ -313,25 +309,22 @@ exception ExceededMemoryLimit of string
 (* currently used in Check_rule.ml metachecker *)
 let rec visit_new_formula f formula =
   match formula with
-  | Leaf (P (p, _)) -> f p
-  | Leaf (MetavarCond _) -> ()
+  | P (p, _) -> f p
   | Not (_, x) -> visit_new_formula f x
   | Or (_, xs)
-  | And (_, xs) ->
+  | And (_, xs, _) ->
       xs |> List.iter (visit_new_formula f)
 
 (* used by the metachecker for precise error location *)
 let tok_of_formula = function
-  | And (t, _)
+  | And (t, _, _)
   | Or (t, _)
   | Not (t, _) ->
       t
-  | Leaf (P (p, _)) -> snd p.pstr
-  | Leaf (MetavarCond (t, _)) -> t
+  | P (p, _) -> snd p.pstr
 
 let kind_of_formula = function
-  | Leaf (P _) -> "pattern"
-  | Leaf (MetavarCond _) -> "condition"
+  | P _ -> "pattern"
   | Or _
   | And _
   | Not _ ->
@@ -395,19 +388,26 @@ let (convert_formula_old : formula_old -> formula) =
  fun e ->
   let rec aux e =
     match e with
-    | Pat x -> Leaf (P (x, None))
-    | PatInside x -> Leaf (P (x, Some Inside))
-    | PatNot (t, x) -> Not (t, Leaf (P (x, None)))
-    | PatNotInside (t, x) -> Not (t, Leaf (P (x, Some Inside)))
+    | Pat x -> P (x, None)
+    | PatInside x -> P (x, Some Inside)
+    | PatNot (t, x) -> Not (t, P (x, None))
+    | PatNotInside (t, x) -> Not (t, P (x, Some Inside))
     | PatEither (t, xs) ->
         let xs = List.map aux xs in
         Or (t, xs)
     | Patterns (t, xs) ->
-        let xs = List.map aux xs in
-        And (t, xs)
+        let fs, conds = Common.partition_either aux_and xs in
+        And (t, fs, conds)
+    | PatExtra (t, _x) ->
+        raise
+          (InvalidYaml
+             ("metavariable conditions must be inside a 'patterns:'", t))
+  and aux_and e =
+    match e with
     | PatExtra (t, x) ->
         let e = convert_extra x in
-        Leaf (MetavarCond (t, e))
+        Right (t, e)
+    | _ -> Left (aux e)
   in
   aux e
 
