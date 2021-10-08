@@ -801,38 +801,26 @@ def test_explicit_path(tmp_path, monkeypatch):
     )
 
     # Should ignore explicitly passed .go file when requesting python
-    assert cmp_targets(
-        TargetManager([], [], ["foo/a.go"], False, defaulthandler, False).get_files(
-            python_language, [], []
-        ),
-        explicit={},
-        filterable={},
-    )
-
-    # Should include explicitly passed file with unknown extension if skip_unknown_extensions=False
-    assert cmp_targets(
-        TargetManager([], [], ["foo/noext"], False, defaulthandler, False).get_files(
-            python_language, [], []
-        ),
-        explicit={foo_noext},
-        filterable={},
-    )
-
-    # Shouldn't include explicitly passed file with unknown extension if skip_unknown_extensions=True
+    # But should include unknown extension file and noextension file
     assert cmp_targets(
         TargetManager(
-            [], [], ["foo/unknownext.fleeb"], False, defaulthandler, True
+            [],
+            [],
+            ["foo/a.go", "foo/noext", "foo/unknownext.fleeb"],
+            False,
+            defaulthandler,
+            False,
         ).get_files(python_language, [], []),
-        explicit={},
+        explicit={foo_noext, foo_unknownext},
         filterable={},
     )
 
-    # Should include explicitly passed file with no extension if skip_unknown_extensions=True
+    # Shouldn't include explicitly passed file with unknown extension or no extension if skip_unknown_extensions=True
     assert cmp_targets(
-        TargetManager([], [], ["foo/noext"], False, defaulthandler, True).get_files(
-            python_language, [], []
-        ),
-        explicit={foo_noext},
+        TargetManager(
+            [], [], ["foo/unknownext.fleeb", "foo/noext"], False, defaulthandler, True
+        ).get_files(python_language, [], []),
+        explicit={},
         filterable={},
     )
 
@@ -846,6 +834,6 @@ def test_explicit_path(tmp_path, monkeypatch):
             defaulthandler,
             True,
         ).get_files(python_language, [], []),
-        explicit={foo_noext, foo_a},
+        explicit={foo_a},
         filterable={},
     )

@@ -367,14 +367,13 @@ class TargetManager:
         explicit_targets_without_standard_extension = set(
             f
             for f in explicit_targets
-            if f.match(f"*.*") and not any(f.match(f"*{ext}") for ext in ALL_EXTENSIONS)
+            if not any(f.match(f"*{ext}") for ext in ALL_EXTENSIONS)
         )
 
         explicit_targets_with_expected_extension = set(
             f
             for f in explicit_targets
-            if not f.match(f"*.*")
-            or any(f.match(f"*{ext}") for ext in lang_to_exts(lang))
+            if any(f.match(f"*{ext}") for ext in lang_to_exts(lang))
         )
 
         # Optionally ignore explicit files with incorrect extensions for the
