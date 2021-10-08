@@ -106,12 +106,15 @@ let stmt_or_expr_loc = function
   | Expr (loc, _) ->
       loc
 
-let block : stmt_or_expr list -> stmt_or_expr = function
-  | [ x ] -> x
-  | several ->
-      let loc = list_loc stmt_or_expr_loc several in
-      let stmts = List.map as_stmt several in
-      Stmt (loc, G.s (G.Block (bracket loc stmts)))
+(*
+   Important: do not optimize a singleton [stmt] into just stmt, because
+   it could no longer be matched by semgrep if the pattern is a list
+   of statements.
+*)
+let block (l : stmt_or_expr list) : stmt_or_expr =
+  let loc = list_loc stmt_or_expr_loc l in
+  let stmts = List.map as_stmt l in
+  Stmt (loc, G.s (G.Block (bracket loc stmts)))
 
 module C = struct
   let mk (loc : loc) (name : string) =
