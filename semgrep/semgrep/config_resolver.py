@@ -615,8 +615,7 @@ def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
         )
         return {"rules": hydrated}
 
-    DOWNLOADING_MESSAGE = f"downloading config from {SEMGREP_CDN_BASE_URL}..."
-    logger.info(DOWNLOADING_MESSAGE)
+    logger.info("downloading config from semgrep registry cdn...")
     logger.debug(f"Resolving latest version of {ruleset_name}")
     latest_version = get_latest_version(ruleset_name)
     ruleset_definition = get_ruleset(ruleset_name, latest_version)
