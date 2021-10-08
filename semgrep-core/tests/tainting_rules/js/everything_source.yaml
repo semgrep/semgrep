@@ -1,0 +1,15 @@
+rules:
+  - id: test
+    languages:
+      - javascript
+      - typescript
+    message: Test
+    mode: taint
+    pattern-sinks:
+      - patterns:
+          - pattern: $JWT.decode($TOKEN, ...)
+          - pattern: $TOKEN
+    pattern-sources:
+      - pattern: $TOKEN
+    severity: WARNING
+
