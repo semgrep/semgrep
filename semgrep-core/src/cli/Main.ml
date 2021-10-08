@@ -1307,6 +1307,34 @@ let options () =
     ]
 
 (*
+   If the target is a named pipe, copy it into a regular file and return
+   that. This allows multiple reads on the file.
+
+   This is intended to support one or a small number of targets created
+   manually on the command line with e.g. <(echo 'eval(x)') which the
+   shell replaces by a named pipe like '/dev/fd/63'.
+*)
+let replace_named_pipe_by_regular_file path =
+  match (Unix.stat path).st_kind with
+  | Unix.S_FIFO ->
+      let data = Common.read_file path in
+      let prefix = spf "semgrep-core-" in
+      let suffix = spf "-%s" (Filename.basename path) in
+      let tmp_path, oc =
+        Filename.open_temp_file
+          ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
+          prefix suffix
+      in
+      let remove () = if Sys.file_exists tmp_path then Sys.remove tmp_path in
+      (* Try to remove temporary file when program exits. *)
+      at_exit remove;
+      Fun.protect
+        ~finally:(fun () -> close_out_noerr oc)
+        (fun () -> output_string oc data);
+      tmp_path
+  | _ -> path
+
+(*
    Reads values set after parsing the command line, collecting
    the list of targets from the different allowed sources.
 
@@ -1339,13 +1367,21 @@ let get_scan_roots_from_command_line ~anon_args =
   let tag targets filterable_or_explicit =
     Common.map (fun path -> (path, filterable_or_explicit)) targets
   in
-  Common.flatten
-    [
-      tag filterable_targets_from_argv Find_target.Filterable;
-      tag filterable_targets_from_file Find_target.Filterable;
-      tag explicit_targets_from_argv Find_target.Explicit;
-      tag explicit_targets_from_file Find_target.Explicit;
-    ]
+  let roots =
+    Common.flatten
+      [
+        tag filterable_targets_from_argv Find_target.Filterable;
+        tag filterable_targets_from_file Find_target.Filterable;
+        tag explicit_targets_from_argv Find_target.Explicit;
+        tag explicit_targets_from_file Find_target.Explicit;
+      ]
+  in
+  let roots =
+    Common.map
+      (fun (path, kind) -> (replace_named_pipe_by_regular_file path, kind))
+      roots
+  in
+  roots
 
 (*****************************************************************************)
 (* Main entry point *)
