@@ -2023,8 +2023,7 @@ and m_catch_exn a b =
   | G.CatchPattern (G.PatEllipsis _), _ -> return ()
   (* boilerplate *)
   | G.CatchPattern a, CatchPattern b -> m_pattern a b
-  | G.CatchParam (a1, a2), B.CatchParam (b1, b2) ->
-      m_type_ a1 b1 >>= fun () -> m_option m_ident_and_id_info a2 b2
+  | G.CatchParam a, B.CatchParam b -> m_parameter_classic a b
   | G.CatchPattern _, _
   | G.CatchParam _, _ ->
       fail ()

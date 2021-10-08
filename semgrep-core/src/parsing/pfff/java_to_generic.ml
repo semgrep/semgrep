@@ -527,14 +527,17 @@ and var { name; mods; type_ = xtyp } =
   let v3 = option typ xtyp in
   (G.basic_entity v1 ~attrs:v2, v3)
 
-and catch (tok, (v1, _union_types), v2) =
-  let ent, typ = var v1 in
-  let id, _idinfo = id_of_entname ent.G.name in
+and catch (tok, catch_exn, v2) =
   let v2 = stmt v2 in
   let exn =
-    match typ with
-    | Some t -> G.CatchParam (t, Some (id, G.empty_id_info ()))
-    | None -> error tok "TODO: Catch without a type"
+    match catch_exn with
+    | CatchParam (v1, _union_types) -> (
+        let ent, typ = var v1 in
+        let id, _idinfo = id_of_entname ent.G.name in
+        match typ with
+        | Some t -> G.CatchParam (G.param_of_type t ~pname:(Some id))
+        | None -> error tok "TODO: Catch without a type")
+    | CatchEllipsis t -> G.CatchPattern (G.PatEllipsis t)
   in
   (tok, exn, v2)
 

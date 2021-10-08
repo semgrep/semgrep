@@ -1890,12 +1890,7 @@ and catch_declaration (env : env) ((v1, v2, v3, v4) : CST.catch_declaration) :
   let v2 = type_constraint env v2 in
   let v3 = Common.map_opt (identifier env) v3 (* identifier *) in
   let _v4 = token env v4 (* ")" *) in
-  let var =
-    match v3 with
-    | Some ident -> Some (ident, empty_id_info ())
-    | None -> None
-  in
-  CatchParam (v2, var)
+  CatchParam (G.param_of_type v2 ~pname:v3)
 
 and case_pattern_switch_label (env : env)
     ((v1, v2, v3, v4) : CST.case_pattern_switch_label) =

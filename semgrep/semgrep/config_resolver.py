@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from collections import OrderedDict
@@ -21,6 +22,7 @@ from semgrep.constants import ID_KEY
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.constants import RULES_KEY
 from semgrep.constants import RuleSeverity
+from semgrep.constants import SEMGREP_CDN_BASE_URL
 from semgrep.constants import SEMGREP_URL
 from semgrep.constants import SEMGREP_USER_AGENT
 from semgrep.error import InvalidRuleSchemaError
@@ -32,6 +34,7 @@ from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import Language
+from semgrep.types import JsonObject
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
 from semgrep.verbose_logging import getLogger
@@ -245,10 +248,18 @@ def manual_config(
     }
 
 
+# TODO: explain why/if this any better than just [ Path(target).resolve() for target in targets ] ?
+# maybe because a path like '/foo/../bar' wouldn't be preserved with .resolve() ?
+# or maybe because .resolve() is too slow because it accesses the file system?
 def resolve_targets(targets: Sequence[str]) -> Sequence[Path]:
-    base_path = get_base_path()
+    """Return absolute paths from a collection of paths.
+
+    The current implementation doesn't fully resolve all the paths,
+    e.g. Path('/foo/../bar') remains as is.
+    """
+    base_path = get_absolute_base_path()
     return [
-        Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
+        Path(target) if Path(target).is_absolute() else base_path / target
         for target in targets
     ]
 
@@ -268,7 +279,16 @@ def adjust_for_docker() -> None:
             os.chdir(SRC_DIRECTORY)
 
 
+def get_absolute_base_path() -> Path:
+    """Return the current directory as an absolute path."""
+    return Path(os.getcwd())
+
+
 def get_base_path() -> Path:
+    """Return the current directory.
+
+    This may be a relative or absolute path.
+    """
     return Path(os.curdir)
 
 
@@ -455,6 +475,168 @@ def saved_snippet_to_url(snippet_id: str) -> str:
     return registry_id_to_url(f"s/{snippet_id}")
 
 
+def download_pack_config(ruleset_name: str) -> Dict[str, YamlTree]:
+    import requests  # here for faster startup times
+    from packaging.version import Version
+    import time
+    import concurrent.futures
+    from io import StringIO
+
+    config_url_base = f"{SEMGREP_CDN_BASE_URL}/ruleset/{ruleset_name}"
+    config_versions_url = f"{config_url_base}/versions"
+    headers = {"User-Agent": SEMGREP_USER_AGENT}
+
+    def get_latest_version(ruleset_name: str) -> Version:
+        """
+        Get the latest version of ruleset_name by getting all existing versions
+        and returning max semver
+        """
+        logger.debug(
+            f"Retrieving versions file of {ruleset_name} at {config_versions_url}"
+        )
+        try:
+            r = requests.get(config_versions_url, headers=headers, timeout=20)
+        except Exception as e:
+            raise SemgrepError(
+                f"Failed to get available versions of {ruleset_name}: {str(e)}"
+            )
+
+        if not r.ok:
+            raise SemgrepError(
+                f"Bad status code: {r.status_code} returned by url: {config_versions_url}"
+            )
+
+        logger.debug(f"Avalabile versions for {ruleset_name}: {r.text}")
+        try:
+            versions_json = json.loads(r.text)
+        except json.decoder.JSONDecodeError as e:
+            raise SemgrepError(
+                f"Failed to parse versions file of pack {ruleset_name}: Invalid Json"
+            )
+
+        versions_parsed = []
+        for version_string in versions_json:
+            try:
+                versions_parsed.append(Version(version_string))
+            except ValueError as e:
+                logger.info(
+                    f"Could not parse {version_string} in versions of {ruleset_name} pack as valid semver. Ignoring that version string."
+                )
+        latest_version = max(versions_parsed)
+        logger.debug(f"Lastest version of {ruleset_name} is {latest_version}")
+
+        return latest_version
+
+    def get_ruleset(ruleset_name: str, version: Version) -> JsonObject:
+        """
+        Returns json blop of given ruleset_name/version
+        """
+        config_full_url = f"{config_url_base}/{version}"
+        try:
+            r = requests.get(config_full_url, headers=headers, timeout=20)
+        except Exception as e:
+            raise SemgrepError(
+                f"Failed to download config for {ruleset_name}/{version}: {str(e)}"
+            )
+
+        if not r.ok:
+            raise SemgrepError(
+                f"Bad status code: {r.status_code} returned by url: {config_full_url}"
+            )
+
+        logger.debug(f"Retrieved ruleset definition: {r.text}")
+        try:
+            ruleset_json = json.loads(r.text)
+        except json.decoder.JSONDecodeError as e:
+            raise SemgrepError(
+                f"Failed to parse ruleset {ruleset_name}/{version} as valid json"
+            )
+
+        return ruleset_json  # type: ignore
+
+    def get_rule(rule_id: str, version: str) -> JsonObject:
+        """
+        Returns yaml rule definition of rule_id/version
+        """
+        rule_url = f"{SEMGREP_CDN_BASE_URL}/public/rule/{rule_id}/{version}"
+        try:
+            r = requests.get(
+                rule_url,
+                headers=headers,
+                timeout=20,
+            )
+        except Exception as e:
+            raise SemgrepError(
+                f"Failed to download rule {rule_id}/{version} from {rule_url}: {e}"
+            )
+
+        if r.status_code != requests.codes.ok:
+            raise SemgrepError(
+                f"Bad status code: {r.status_code} returned by url: {rule_url}"
+            )
+
+        try:
+            yaml = YAML()
+            rules = yaml.load(r.text)
+        except Exception as e:
+            raise SemgrepError(
+                f"Could not parse yaml for {rule_id}/{version} as valid yaml {e}"
+            )
+
+        return rules["rules"][0]  # type:ignore
+
+    def hydrate_ruleset(ruleset_json: JsonObject) -> JsonObject:
+        """
+        Takes ruleset json object and expands the rules key list
+        to be a list of rules instead of a list of rule identifiers
+        """
+        hydrated = []
+        start = time.time()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for rule in ruleset_json["rules"]:
+                futures.append(
+                    executor.submit(
+                        get_rule,
+                        rule_id=rule["rule_id"],
+                        version=rule["version"],
+                    )
+                )
+
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    hydrated_rule = future.result()
+                except Exception as e:
+                    raise SemgrepError(f"Error resolving rule in ruleset: {e}")
+
+                hydrated.append(hydrated_rule)
+        logger.debug(
+            f"Retrieved ruleset {ruleset_name}/{latest_version} in {time.time()- start}s"
+        )
+        return {"rules": hydrated}
+
+    DOWNLOADING_MESSAGE = f"downloading config from {SEMGREP_CDN_BASE_URL}..."
+    logger.info(DOWNLOADING_MESSAGE)
+    logger.debug(f"Resolving latest version of {ruleset_name}")
+    latest_version = get_latest_version(ruleset_name)
+    ruleset_definition = get_ruleset(ruleset_name, latest_version)
+    hydrated_ruleset = hydrate_ruleset(ruleset_definition)
+
+    # Hack for now to get config in format expected by rest of codebase
+    yaml = YAML()
+    string_stream = StringIO()
+    yaml.dump(hydrated_ruleset, string_stream)
+    return parse_config_string(
+        "remote-url",
+        string_stream.getvalue(),
+        filename=f"{ruleset_name[:20]}...",
+    )
+
+
+def is_pack_id(config_str: str) -> bool:
+    return config_str[:2] == "p/"
+
+
 def resolve_config(config_str: str) -> Dict[str, YamlTree]:
     """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
     start_t = time.time()
@@ -462,6 +644,8 @@ def resolve_config(config_str: str) -> Dict[str, YamlTree]:
         config = download_config(RULES_REGISTRY[config_str])
     elif is_url(config_str):
         config = download_config(config_str)
+    elif is_pack_id(config_str) and SEMGREP_CDN_BASE_URL:
+        config = download_pack_config(config_str[2:])
     elif is_registry_id(config_str):
         config = download_config(registry_id_to_url(config_str))
     elif is_saved_snippet(config_str):

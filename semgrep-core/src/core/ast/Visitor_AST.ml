@@ -786,16 +786,7 @@ let (mk_visitor :
     vin.kcatch (k, all_functions) x
   and v_catch_exn = function
     | CatchPattern p -> v_pattern p
-    | CatchParam (v1, v2) ->
-        let v1 = v_type_ v1
-        and v2 =
-          v_option
-            (fun (v1, v2) ->
-              let v1 = v_ident v1 and v2 = v_id_info v2 in
-              ())
-            v2
-        in
-        ()
+    | CatchParam p -> v_parameter_classic p
   and v_finally (t, v) =
     v_partial ~recurse:false (PartialFinally (t, v));
     let t = v_tok t in

@@ -88,7 +88,7 @@ let map_angle_keep env _of_a (v1, v2, v3) =
 
 let map_sc env v = map_tok env v
 
-let map_todo_category env v : G.any = G.TodoK (map_wrap env map_of_string v)
+let map_todo_category env v : G.todo_kind = map_wrap env map_of_string v
 
 let map_ident env v = map_wrap env map_of_string v
 
@@ -98,28 +98,17 @@ let rec map_name env (v1, v2, v3) : G.name =
   and v3 = map_ident_or_op env v3 in
   complicated env (v1, v2, v3)
 
-and map_ident_or_op env = function
+and map_ident_or_op (env : env) = function
   | IdIdent v1 ->
       let v1 = map_ident env v1 in
       complicated env v1
   | IdTemplateId (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_template_arguments env v2 in
       complicated env (v1, v2)
-  | IdOperator v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_tok env v1
-            and v2 =
-              match v2 with
-              | v1, v2 ->
-                  let v1 = map_operator env v1
-                  and v2 = map_of_list (map_tok env) v2 in
-                  (v1, v2)
-            in
-            (v1, v2)
-      in
-      complicated env v1
+  | IdOperator (v1, v2) ->
+      let v1 = map_tok env v1 in
+      let v2 = map_wrap env (map_operator env) v2 in
+      complicated env (v1, v2)
   | IdDestructor (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_ident env v2 in
       complicated env (v1, v2)
@@ -158,9 +147,6 @@ and map_type_ env (v1, v2) : G.type_ =
 
 and map_typeC env x : G.type_ =
   match x with
-  | TBase v1 ->
-      let v1 = map_baseType env v1 in
-      complicated env v1
   | TPrimitive v1 ->
       let v1 = map_wrap env (map_primitive_type env) v1 in
       G.TyBuiltin v1 |> G.t
@@ -220,49 +206,8 @@ and map_typeC env x : G.type_ =
   | TypeTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_type_ env) v2 in
-      G.OtherType (G.OT_Todo, v1 :: (v2 |> List.map (fun t -> G.T t))) |> G.t
-
-(* deprecated *)
-and map_baseType env = function
-  | Void v1 ->
-      let v1 = map_tok env v1 in
-      complicated env v1
-  | IntType (v1, v2) ->
-      let v1 = map_intType env v1 and v2 = map_tok env v2 in
-      complicated env (v1, v2)
-  | FloatType (v1, v2) ->
-      let v1 = map_floatType env v1 and v2 = map_tok env v2 in
-      complicated env (v1, v2)
-
-and map_intType env = function
-  | CChar -> CChar
-  | Si v1 ->
-      let v1 = map_signed env v1 in
-      complicated env v1
-  | CBool -> CBool
-  | WChar_t -> WChar_t
-
-and map_signed env (v1, v2) =
-  let v1 = map_sign env v1 and v2 = map_base env v2 in
-  (v1, v2)
-
-(* deprecated *)
-and map_base env = function
-  | CChar2 -> CChar2
-  | CShort -> CShort
-  | CInt -> CInt
-  | CLong -> CLong
-  | CLongLong -> CLongLong
-
-and map_sign env = function
-  | Signed -> Signed
-  | UnSigned -> UnSigned
-
-(* deprecated *)
-and map_floatType env = function
-  | CFloat -> CFloat
-  | CDouble -> CDouble
-  | CLongDouble -> CLongDouble
+      G.OtherType (G.OT_Todo, G.TodoK v1 :: (v2 |> List.map (fun t -> G.T t)))
+      |> G.t
 
 and map_primitive_type env = function
   | TVoid -> "void"
@@ -437,7 +382,8 @@ and map_expr env x : G.expr =
   | ExprTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_expr env) v2 in
-      G.OtherExpr (G.OE_Todo, v1 :: (v2 |> List.map (fun e -> G.E e))) |> G.e
+      G.OtherExpr (G.OE_Todo, G.TodoK v1 :: (v2 |> List.map (fun e -> G.E e)))
+      |> G.e
 
 and map_ident_info env { i_scope = _v_i_scope } = ()
 
@@ -472,31 +418,13 @@ and map_constant env x : G.literal =
       let v1 = map_wrap env (map_of_option map_of_int) v1 in
       G.Int v1
   | Float v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_wrap env (map_of_option map_of_float) v1
-            and _v2 = map_floatType env v2 in
-            v1
-      in
+      let v1 = map_wrap env (map_of_option map_of_float) v1 in
       G.Float v1
   | Char v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_wrap env map_of_string v1
-            and _v2 = map_isWchar env v2 in
-            v1
-      in
+      let v1 = map_wrap env map_of_string v1 in
       G.Char v1
   | String v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_wrap env map_of_string v1
-            and _v2 = map_isWchar env v2 in
-            v1
-      in
+      let v1 = map_wrap env map_of_string v1 in
       G.String v1
   | MultiString v1 ->
       let v1 = map_of_list (map_wrap env map_of_string) v1 in
@@ -507,10 +435,6 @@ and map_constant env x : G.literal =
   | Nullptr v1 ->
       let v1 = map_tok env v1 in
       G.Null v1
-
-and map_isWchar env = function
-  | IsWchar -> ()
-  | IsChar -> ()
 
 and map_unaryOp env = function
   | UnPlus -> Left G.Plus
@@ -585,7 +509,7 @@ and map_accessop env = function
   | ParenOp -> ParenOp
   | ArrayOp -> ArrayOp
 
-and map_operator env = function
+and map_operator (env : env) = function
   | BinaryOp v1 ->
       let v1 = map_binaryOp env v1 in
       complicated env v1
@@ -723,7 +647,7 @@ and map_condition_clause env x : G.condition =
       let _v1TODO = map_expr_stmt env v1 and v2 = map_expr env v2 in
       v2
   | CondOneDecl v1 ->
-      let v1 = map_onedecl env v1 in
+      let v1 = map_var_decl env v1 in
       complicated env v1
 
 and map_for_header env = function
@@ -733,7 +657,7 @@ and map_for_header env = function
       and v3 = map_of_option (map_expr env) v3 in
       G.ForClassic (v1, v2, v3)
   | ForRange (v1, v2, v3) ->
-      let ent, vardef = map_var env v1
+      let ent, vardef = map_var_decl env v1
       and v2 = map_tok env v2
       and v3 = map_initialiser env v3 in
       (* less: or ForEach? *)
@@ -798,10 +722,10 @@ and map_stmt_or_decl env x : G.stmt list =
   match x with
   | S v1 ->
       let v1 = map_stmt env v1 in
-      todo env v1
+      [ v1 ]
   | D v1 ->
       let v1 = map_decl env v1 in
-      todo env v1
+      v1
 
 and map_compound env (l, v, r) : G.stmt list bracket =
   let xs = map_of_list (map_sequencable env (map_stmt_or_decl env)) v in
@@ -814,81 +738,72 @@ and map_declarations env (l, v, r) : G.stmt list bracket =
 and map_entity env { name = v_name; specs = v_specs } : G.entity =
   let v_specs = map_of_list (map_specifier env) v_specs in
   let v_name = map_name env v_name in
-  todo env ()
+  { G.name = G.EN v_name; attrs = v_specs; tparams = [] }
 
 and map_decl env x : G.stmt list =
   match x with
   | DeclList v1 ->
       let v1 = map_vars_decl env v1 in
-      todo env v1
-  | MacroDecl (v1, v2, v3, v4) ->
-      let v1 = map_of_list (map_tok env) v1
-      and v2 = map_ident env v2
-      and v3 = map_paren env (map_of_list (map_argument env)) v3
-      and v4 = map_tok env v4 in
-      todo env (v1, v2, v3, v4)
+      v1 |> List.map (fun def -> G.DefStmt def |> G.s)
   | UsingDecl v1 ->
       let v1 = map_using env v1 in
-      todo env v1
+      complicated env v1
   | NameSpaceAlias (v1, v2, v3, v4, v5) ->
       let v1 = map_tok env v1
       and v2 = map_ident env v2
       and v3 = map_tok env v3
       and v4 = map_type_ env v4
       and v5 = map_sc env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      complicated env (v1, v2, v3, v4, v5)
   | Asm (v1, v2, v3, v4) ->
       let v1 = map_tok env v1
       and v2 = map_of_option (map_tok env) v2
       and v3 = map_paren env (map_asmbody env) v3
       and v4 = map_sc env v4 in
-      todo env (v1, v2, v3, v4)
+      complicated env (v1, v2, v3, v4)
   | Func v1 ->
       let v1 = map_func_definition env v1 in
-      todo env v1
+      [ G.DefStmt v1 |> G.s ]
   | TemplateDecl (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_template_parameters env v2
       and v3 = map_decl env v3 in
-      todo env (v1, v2, v3)
-  | TemplateSpecialization (v1, v2, v3) ->
-      let v1 = map_tok env v1
-      and v2 = map_angle env map_of_unit v2
-      and v3 = map_decl env v3 in
-      todo env (v1, v2, v3)
+      complicated env (v1, v2, v3)
   | TemplateInstanciation (v1, v2, v3) ->
-      let v1 = map_tok env v1 and v2 = map_var env v2 and v3 = map_sc env v3 in
-      todo env (v1, v2, v3)
+      let v1 = map_tok env v1
+      and ent, vardef = map_var_decl env v2
+      and v3 = map_sc env v3 in
+      complicated env (v1, ent, vardef, v3)
   | ExternDecl (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_wrap env map_of_string v2
       and v3 = map_decl env v3 in
-      todo env (v1, v2, v3)
+      complicated env (v1, v2, v3)
   | ExternList (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_wrap env map_of_string v2
       and v3 = map_declarations env v3 in
-      todo env (v1, v2, v3)
+      complicated env (v1, v2, v3)
   | NameSpace (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_of_option (map_ident env) v2
       and v3 = map_declarations env v3 in
-      todo env (v1, v2, v3)
+      complicated env (v1, v2, v3)
   | StaticAssert (v1, v2) ->
       let v1 = map_tok env v1
       and v2 = map_paren env (map_of_list (map_argument env)) v2 in
-      todo env (v1, v2)
+      complicated env (v1, v2)
   | EmptyDef v1 ->
       let v1 = map_sc env v1 in
-      todo env v1
+      [ G.emptystmt v1 ]
   | NotParsedCorrectly v1 ->
       let v1 = map_of_list (map_tok env) v1 in
-      todo env v1
+      complicated env v1
   | DeclTodo v1 ->
       let v1 = map_todo_category env v1 in
-      todo env v1
+      [ G.OtherStmt (G.OS_Todo, [ G.TodoK v1 ]) |> G.s ]
 
-and map_vars_decl env (v1, v2) =
+and map_vars_decl env (v1, v2) : G.definition list =
   let v1 = map_of_list (map_onedecl env) v1 and _v2 = map_sc env v2 in
   v1
 
@@ -900,72 +815,58 @@ and map_asmbody env (v1, v2) =
 and map_colon env = function
   | Colon (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_of_list (map_colon_option env) v2 in
-      todo env (v1, v2)
+      (v1, v2)
 
 and map_colon_option env = function
   | ColonExpr (v1, v2) ->
       let v1 = map_of_list (map_tok env) v1
       and v2 = map_paren env (map_expr env) v2 in
-      todo env (v1, v2)
+      (v1, Some v2)
   | ColonMisc v1 ->
       let v1 = map_of_list (map_tok env) v1 in
-      todo env v1
+      (v1, None)
 
-and map_var env (v1, v2) : G.entity * G.variable_definition =
-  let v1 = map_entity env v1 and v2 = map_var_decl env v2 in
-  (v1, v2)
+and map_onedecl env x =
+  match x with
+  | EmptyDecl t ->
+      let t = map_type_ env t in
+      todo env t
+  | TypedefDecl (tk, ty, id) ->
+      let tk = map_tok env tk in
+      let ty = map_type_ env ty in
+      let id = map_ident env id in
+      todo env (tk, ty, id)
+  | V v1 ->
+      let ent, vardef = map_var_decl env v1 in
+      todo env (ent, vardef)
+  | StructuredBinding (v1, v2, v3) ->
+      let v1 = map_type_ env v1 in
+      let v2 = map_bracket env (map_of_list (map_ident env)) v2 in
+      let v3 = map_init env v3 in
+      todo env (v1, v2, v3)
+  | BitField (v1, v2, v3, v4) ->
+      let v1 = map_of_option (map_ident env) v1
+      and v2 = map_tok env v2
+      and v3 = map_type_ env v3
+      and v4 = map_a_const_expr env v4 in
+      todo env (v1, v2, v3, v4)
 
-and map_var_decl env { v__type = v_v__type } =
-  let v_v__type = map_type_ env v_v__type in
-  todo env ()
-
-and map_onedecl env
-    {
-      v_namei = v_v_namei;
-      v_type = v_v_type;
-      v_storage = v_v_storage;
-      v_specs = v_v_specs;
-    } =
-  let v_v_specs = map_of_list (map_specifier env) v_v_specs in
-  let v_v_storage = map_storage_opt env v_v_storage in
+and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
+  let ent = map_entity env ent in
   let v_v_type = map_type_ env v_v_type in
-  let v_v_namei =
-    map_of_option
-      (fun (v1, v2) ->
-        let v1 = map_declarator_name env v1
-        and v2 = map_of_option (map_init env) v2 in
-        (v1, v2))
-      v_v_namei
-  in
-  todo env ()
-
-and map_declarator_name env = function
-  | DN v1 ->
-      let v1 = map_name env v1 in
-      todo env v1
-  | DNStructuredBinding v1 ->
-      let v1 = map_bracket env (map_of_list (map_ident env)) v1 in
-      todo env v1
-
-and map_storage_opt env = function
-  | NoSto -> NoSto
-  | StoTypedef v1 ->
-      let v1 = map_tok env v1 in
-      todo env v1
-  | Sto v1 ->
-      let v1 = map_wrap env (map_storage env) v1 in
-      todo env v1
+  let v_v_init = map_of_option (map_init env) v_v_init in
+  complicated env ()
 
 and map_init env = function
   | EqInit (v1, v2) ->
-      let v1 = map_tok env v1 and v2 = map_initialiser env v2 in
-      todo env (v1, v2)
+      let _v1 = map_tok env v1 and v2 = map_initialiser env v2 in
+      v2
   | ObjInit v1 ->
       let v1 = map_obj_init env v1 in
-      todo env v1
+      complicated env v1
   | Bitfield (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_a_const_expr env v2 in
-      todo env (v1, v2)
+      complicated env (v1, v2)
 
 and map_obj_init env x : G.argument list bracket =
   match x with
@@ -985,29 +886,29 @@ and map_initialiser env x : G.expr =
       v1
   | InitList v1 ->
       let v1 = map_brace env (map_of_list (map_initialiser env)) v1 in
-      todo env v1
+      G.Container (G.List, v1) |> G.e
   | InitDesignators (v1, v2, v3) ->
       let v1 = map_of_list (map_designator env) v1
       and v2 = map_tok env v2
       and v3 = map_initialiser env v3 in
-      todo env (v1, v2, v3)
+      complicated env (v1, v2, v3)
   | InitFieldOld (v1, v2, v3) ->
       let v1 = map_ident env v1
       and v2 = map_tok env v2
       and v3 = map_initialiser env v3 in
-      todo env (v1, v2, v3)
+      complicated env (v1, v2, v3)
   | InitIndexOld (v1, v2) ->
       let v1 = map_bracket env (map_expr env) v1
       and v2 = map_initialiser env v2 in
-      todo env (v1, v2)
+      complicated env (v1, v2)
 
 and map_designator env = function
   | DesignatorField (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_ident env v2 in
-      todo env (v1, v2)
+      complicated env (v1, v2)
   | DesignatorIndex v1 ->
       let v1 = map_bracket env (map_expr env) v1 in
-      todo env v1
+      complicated env v1
   | DesignatorRange v1 ->
       let v1 =
         map_bracket env
@@ -1018,24 +919,19 @@ and map_designator env = function
             (v1, v2, v3))
           v1
       in
-      todo env v1
+      complicated env v1
 
 and map_func_definition env (v1, v2) : G.definition =
   let v1 = map_entity env v1 and v2 = map_function_definition env v2 in
   (v1, FuncDef v2)
 
 and map_function_definition env
-    {
-      f_type = v_f_type;
-      f_storage = v_f_storage;
-      f_body = v_f_body;
-      f_specs = v_f_specs;
-    } : G.function_definition =
-  let v_f_specs = map_of_list (map_specifier env) v_f_specs in
-  let v_f_body = map_function_body env v_f_body in
-  let v_f_storage = map_storage_opt env v_f_storage in
-  let v_f_type = map_functionType env v_f_type in
-  todo env ()
+    { f_type = v_f_type; f_body = v_f_body; f_specs = v_f_specs } :
+    G.function_definition =
+  let _v_f_specsTODO = map_of_list (map_specifier env) v_f_specs in
+  let fbody = map_function_body env v_f_body in
+  let fparams, fret = map_functionType env v_f_type in
+  { G.fkind = (G.Function, G.fake ""); fparams; frettype = Some fret; fbody }
 
 and map_functionType env x : G.parameter list * G.type_ =
   match x with
@@ -1046,14 +942,14 @@ and map_functionType env x : G.parameter list * G.type_ =
    ft_const = v_ft_const;
    ft_throw = v_ft_throw;
   } ->
-      let v_ft_throw = map_of_list (map_exn_spec env) v_ft_throw in
-      let v_ft_const = map_of_option (map_tok env) v_ft_const in
-      let v_ft_specs = map_of_list (map_specifier env) v_ft_specs in
-      let v_ft_params =
+      let _v_ft_throwTODO = map_of_list (map_exn_spec env) v_ft_throw in
+      let _v_ft_constTODO = map_of_option (map_tok env) v_ft_const in
+      let _v_ft_specsTODO = map_of_list (map_specifier env) v_ft_specs in
+      let _, params, _ =
         map_paren env (map_of_list (map_parameter env)) v_ft_params
       in
-      let v_ft_ret = map_type_ env v_ft_ret in
-      todo env ()
+      let tret = map_type_ env v_ft_ret in
+      (params, tret)
 
 and map_parameter env x : G.parameter =
   match x with
@@ -1061,10 +957,10 @@ and map_parameter env x : G.parameter =
       let v1 = map_parameter_classic env v1 in
       G.ParamClassic v1
   | ParamVariadic (v1, v2, v3) ->
-      let v1 = map_of_option (map_tok env) v1
+      let _v1TODO = map_of_option (map_tok env) v1
       and v2 = map_tok env v2
       and v3 = map_parameter_classic env v3 in
-      todo env (v1, v2, v3)
+      G.ParamRest (v2, v3)
   | ParamDots v1 ->
       let v1 = map_tok env v1 in
       G.ParamEllipsis v1
@@ -1073,7 +969,6 @@ and map_parameter_classic env
     {
       p_name = v_p_name;
       p_type = v_p_type;
-      p_register = v_p_register;
       p_specs = v_p_specs;
       p_val = v_p_val;
     } : G.parameter_classic =
@@ -1085,7 +980,6 @@ and map_parameter_classic env
       v_p_val
   in
   let v_p_specs = map_of_list (map_specifier env) v_p_specs in
-  let v_p_register = map_of_option (map_tok env) v_p_register in
   let v_p_type = map_type_ env v_p_type in
   let v_p_name = map_of_option (map_ident env) v_p_name in
   todo env ()
@@ -1195,29 +1089,15 @@ and map_class_member env x (* : G.field list *) =
   | Access (v1, v2) ->
       let v1 = map_wrap env (map_access_spec env) v1 and v2 = map_tok env v2 in
       todo env (v1, v2)
-  | FieldList (v1, v2) ->
-      let v1 = map_of_list (map_fieldkind env) v1 and v2 = map_sc env v2 in
-      todo env (v1, v2)
   | Friend (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_decl env v2 in
       todo env (v1, v2)
   | QualifiedIdInClass (v1, v2) ->
       let v1 = map_name env v1 and v2 = map_sc env v2 in
       todo env (v1, v2)
-  | MemberDecl v1 ->
+  | F v1 ->
       let v1 = map_decl env v1 in
       todo env v1
-
-and map_fieldkind env = function
-  | FieldDecl v1 ->
-      let v1 = map_onedecl env v1 in
-      todo env v1
-  | BitField (v1, v2, v3, v4) ->
-      let v1 = map_of_option (map_ident env) v1
-      and v2 = map_tok env v2
-      and v3 = map_type_ env v3
-      and v4 = map_a_const_expr env v4 in
-      todo env (v1, v2, v3, v4)
 
 and map_template_parameter env x : G.type_parameter =
   match x with
@@ -1255,7 +1135,7 @@ and map_specifier env x : G.attribute =
       let v1 = map_wrap env (map_type_qualifier env) v1 in
       todo env v1
   | ST v1 ->
-      let v1 = map_wrap env (map_storage env) v1 in
+      let v1 = map_storage env v1 in
       todo env v1
 
 and map_attribute env = function
@@ -1307,12 +1187,13 @@ and map_type_qualifier env x =
   | Mutable -> todo env x
   | Constexpr -> todo env x
 
-and map_storage env = function
-  | Auto -> Auto
-  | Static -> Static
-  | Register -> Register
-  | Extern -> Extern
-  | StoInline -> StoInline
+and map_storage env (x, t) : G.attribute =
+  match x with
+  | Auto -> G.unhandled_keywordattr ("auto", t)
+  | Static -> G.attr G.Static t
+  | Register -> G.unhandled_keywordattr ("register", t)
+  | Extern -> G.attr G.Extern t
+  | StoInline -> G.attr G.Inline t
 
 and map_pointer_modifier env x : G.attribute =
   match x with
@@ -1433,12 +1314,13 @@ and map_sequencable :
   | CppIfdef v1 ->
       let v1 = map_ifdef_directive env v1 in
       todo env v1
-  | MacroTop (v1, v2, v3) ->
-      let v1 = map_ident env v1
-      and v2 = map_paren env (map_of_list (map_argument env)) v2
-      and v3 = map_of_option (map_tok env) v3 in
-      todo env (v1, v2, v3)
-  | MacroVarTop (v1, v2) ->
+  | MacroDecl (v1, v2, v3, v4) ->
+      let v1 = map_of_list (map_specifier env) v1
+      and v2 = map_ident env v2
+      and v3 = map_paren env (map_of_list (map_argument env)) v3
+      and v4 = map_tok env v4 in
+      complicated env (v1, v2, v3, v4)
+  | MacroVar (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_sc env v2 in
       todo env (v1, v2)
 

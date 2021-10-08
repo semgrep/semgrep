@@ -317,7 +317,7 @@ let parse_metavar_cond env key s =
   | exn -> error_at_key env key ("exn: " ^ Common.exn_to_s exn)
 
 let parse_regexp env (s, t) =
-  try (s, Pcre.regexp s)
+  try (s, Pcre_settings.regexp s)
   with Pcre.Error exn ->
     raise (R.InvalidRegexp (env.id, pcre_error_to_string s exn, t))
 
@@ -647,6 +647,7 @@ let parse_severity ~id (s, t) =
   | "ERROR" -> R.Error
   | "WARNING" -> R.Warning
   | "INFO" -> R.Info
+  | "INVENTORY" -> R.Inventory
   | s ->
       raise
         (R.InvalidRule

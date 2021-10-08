@@ -814,16 +814,9 @@ and vof_catch_exn = function
   | CatchPattern v ->
       let v = vof_pattern v in
       OCaml.VSum ("CatchPattern", [ v ])
-  | CatchParam (v1, v2) ->
-      let v1 = vof_type_ v1
-      and v2 =
-        OCaml.vof_option
-          (fun (v1, v2) ->
-            let v1 = vof_ident v1 and v2 = vof_id_info v2 in
-            OCaml.VTuple [ v1; v2 ])
-          v2
-      in
-      OCaml.VSum ("CatchParam", [ v1; v2 ])
+  | CatchParam v1 ->
+      let v1 = vof_parameter_classic v1 in
+      OCaml.VSum ("CatchParam", [ v1 ])
 
 and vof_finally v = vof_tok_and_stmt v
 

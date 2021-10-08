@@ -23,6 +23,8 @@ SEMGREP_USER_AGENT_APPEND = os.environ.get("SEMGREP_USER_AGENT_APPEND")
 if SEMGREP_USER_AGENT_APPEND is not None:
     SEMGREP_USER_AGENT = f"{SEMGREP_USER_AGENT} {SEMGREP_USER_AGENT_APPEND}"
 
+SEMGREP_CDN_BASE_URL = os.environ.get("SEMGREP_CDN_BASE_URL", "https://cdn.semgrep.dev")
+
 YML_EXTENSIONS = {".yml", ".yaml"}
 YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
 YML_TEST_SUFFIXES = [[".test", ext] for ext in YML_EXTENSIONS]
@@ -45,6 +47,7 @@ class RuleSeverity(Enum):
     INFO = "INFO"
     WARNING = "WARNING"
     ERROR = "ERROR"
+    INVENTORY = "INVENTORY"
 
     @classmethod
     def _missing_(cls: Type[Enum], value: object) -> Enum:

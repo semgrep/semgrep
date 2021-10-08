@@ -289,7 +289,7 @@ and pattern env pat eorig =
 and _catch_exn env exn eorig =
   match exn with
   | G.CatchPattern pat -> pattern env pat eorig
-  | G.CatchParam (_, Some (id, id_info)) ->
+  | G.CatchParam { pname = Some id; pinfo = id_info; _ } ->
       let lval = lval_of_id_info env id id_info in
       (lval, [])
   | _ -> todo (G.Ce exn)
@@ -931,6 +931,17 @@ let rec stmt_aux env st =
   | G.Throw (tok, e, _) ->
       let ss, e = expr_with_pre_stmts env e in
       ss @ [ mk_s (Throw (tok, e)) ]
+  | G.OtherStmt (G.OS_ThrowNothing, [ G.Tk tok ]) ->
+      (* Python's `raise` without arguments *)
+      let fake_eorig = G.e (G.L (G.Unit tok)) in
+      let todo_exp = fixme_exp ToDo (G.Tk tok) fake_eorig in
+      [ mk_s (Throw (tok, todo_exp)) ]
+  | G.OtherStmt
+      (G.OS_ThrowFrom, [ G.E from; G.S ({ s = G.Throw _; _ } as throw_stmt) ])
+    ->
+      (* Python's `raise E1 from E2` *)
+      let todo_stmt = fixme_stmt ToDo (G.E from) in
+      todo_stmt @ stmt_aux env throw_stmt
   | G.Try (_tok, try_st, catches, opt_finally) ->
       let try_stmt = stmt env try_st in
       let catches_stmt_rev =

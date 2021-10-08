@@ -578,8 +578,7 @@ and catch_block (env : env) ((v1, v2, v3, v4, v5, v6, v7, v8) : CST.catch_block)
   let v6 = type_ env v6 in
   let _v7 = token env v7 (* ")" *) in
   let v8 = block env v8 in
-  let id = Some (v4, empty_id_info ()) in
-  let exn = CatchParam (v6, id) in
+  let exn = CatchParam (G.param_of_type v6 ~pname:(Some v4)) in
   (v1, exn, v8)
 
 and class_body (env : env) ((v1, v2, v3) : CST.class_body) =

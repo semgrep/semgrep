@@ -559,7 +559,7 @@ let resolve lang prog =
         (fun (k, _vout) x ->
           let _t, exn, _st = x in
           (match exn with
-          | CatchParam (_e, Some (id, id_info))
+          | CatchParam { pname = Some id; pinfo = id_info; _ }
             when is_resolvable_name_ctx env lang ->
               declare_var env lang id id_info ~explicit:true None None
           | _ -> ());
