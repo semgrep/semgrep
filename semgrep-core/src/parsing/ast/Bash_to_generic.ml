@@ -242,7 +242,27 @@ and command (cmd : command) : stmt_or_expr =
   | For_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
   | For_loop_c_style (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
   | Select (loc, _) -> todo_expr2 loc
-  | Case (loc, _) -> todo_stmt2 loc
+  | Case (_loc, (loc, case, subject, in_, clauses, esac)) ->
+      let subject = expression subject in
+      let clauses =
+        List.map
+          (fun (loc, patterns, paren, stmts, _opt_term) ->
+            (* TODO: handle the different kinds of terminators. Insert breaks. *)
+            let patterns =
+              List.map
+                (fun e ->
+                  let tok, _ = expression_loc e in
+                  let pat =
+                    (* TODO: convert bash expression to generic pattern *)
+                    G.OtherPat (("", tok), [ G.E (expression e) ])
+                  in
+                  G.Case (tok, pat))
+                patterns
+            in
+            G.CasesAndBody (patterns, blist stmts |> block |> as_stmt))
+          clauses
+      in
+      Stmt (loc, G.Switch (case, Some subject, clauses) |> G.s)
   | If (loc, if_, cond, then_, body, elifs, else_, fi) ->
       let ifs = (loc, if_, cond, then_, body) :: elifs in
       let else_stmt =

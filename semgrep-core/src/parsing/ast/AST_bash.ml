@@ -270,7 +270,27 @@ and for_loop_c_style = blist
 
 and select = todo
 
-and case = todo
+(* A whole "switch" statement introduced by the 'case' keyword. *)
+and case =
+  loc
+  * (* case *) tok
+  * expression
+  * (* in *) tok
+  * case_clause list
+  * (* esac *) tok
+
+(* Only the last clause may not have a terminator. *)
+and case_clause =
+  loc
+  * expression list
+  * (* paren *) tok
+  * blist
+  * case_clause_terminator option
+
+and case_clause_terminator =
+  | Break of (* ;; *) tok
+  | Fallthrough of (* ;& *) tok
+  | Try_next of (* ;;& *) tok
 
 and elif = loc * (* elif *) tok * blist * (* then *) tok * blist
 
@@ -489,7 +509,19 @@ let arithmetic_expression_loc (x : arithmetic_expression) =
 
 let select_loc (x : select) = todo_loc x
 
-let case_loc (x : case) = todo_loc x
+let case_loc ((loc, _, _, _, _, _) : case) = loc
+
+let case_clause_loc ((loc, _, _, _, _) : case_clause) = loc
+
+let case_clause_terminator_tok = function
+  | Break tok
+  | Fallthrough tok
+  | Try_next tok ->
+      tok
+
+let case_clause_terminator_loc x =
+  let tok = case_clause_terminator_tok x in
+  (tok, tok)
 
 let elif_loc (x : elif) =
   let loc, _elif, _cond, _then, _body = x in
