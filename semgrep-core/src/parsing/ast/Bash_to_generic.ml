@@ -363,4 +363,7 @@ and transpile_or (left : blist) tok_or (right : blist) : stmt_or_expr =
 
 let program x = blist x |> List.map as_stmt
 
-let any x = G.Ss (program x)
+let any x =
+  match program x with
+  | [ stmt ] -> G.S stmt
+  | stmts -> G.Ss stmts
