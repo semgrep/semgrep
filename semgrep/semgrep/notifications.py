@@ -19,11 +19,11 @@ def possibly_notify_user() -> None:
         logger.warning(
             with_color(
                 "yellow",
-                "METRICS: Using configs from Registry (like --config=p/ci) reports pseudonymous rule metrics to semgrep.dev."
-                "\nLocal config runs (like --config=xyz.yml) do not enable metrics."
-                "\nTo enable or disable Registry rule metrics, use --metrics [on/off]"
+                "METRICS: Using configs from the Registry (like --config=p/ci) reports pseudonymous rule metrics to semgrep.dev."
+                """\nTo disable Registry rule metrics, use "--metrics=off"."""
+                "\nUsing configs from local files (like --config=xyz.yml) does not enable metrics."
                 "\n"
-                "\nFor more information: https://semgrep.dev/docs/metrics"
+                "\nMore information: https://semgrep.dev/docs/metrics"
                 "\n",
             )
         )
