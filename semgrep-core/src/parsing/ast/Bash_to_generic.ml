@@ -113,6 +113,10 @@ let block : stmt_or_expr list -> stmt_or_expr = function
       let stmts = List.map as_stmt several in
       Stmt (loc, G.s (G.Block (bracket loc stmts)))
 
+let mk_name (str_wrap : string wrap) : G.name =
+  let id_info = G.empty_id_info () in
+  G.Id (str_wrap, id_info)
+
 module C = struct
   let mk (loc : loc) (name : string) =
     let id = "!sh_" ^ name ^ "!" in
@@ -266,7 +270,11 @@ and command (cmd : command) : stmt_or_expr =
   | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command cmd
   | Assignment (loc, _) -> todo_expr2 loc
   | Declaration (loc, _) -> todo_stmt2 loc
-  | Negated_command (loc, _, _) -> todo_expr2 loc
+  | Negated_command (loc, excl_tok, cmd) ->
+      let func = G.IdSpecial (G.Op G.Not, excl_tok) |> G.e in
+      let args = [ G.Arg (command cmd |> as_expr) ] in
+      let e = G.Call (func, bracket (command_loc cmd) args) |> G.e in
+      Expr (loc, e)
   | Function_definition (loc, _) -> todo_stmt2 loc
 
 and stmt_group (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
