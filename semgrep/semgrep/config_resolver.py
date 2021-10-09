@@ -289,7 +289,7 @@ class ConfigResolver:
         if config_str == AUTO_CONFIG_KEY:
             logger.warning(
                 terminal_wrap(
-                    "Auto config mode will use semgrep rules to scan your codebase and uses the Semgrep Registry"
+                    "Auto config uses Semgrep rules to scan your codebase and the Semgrep Registry"
                     " to generate recommended rules based on your languages and frameworks."
                     "\n"
                 ),
