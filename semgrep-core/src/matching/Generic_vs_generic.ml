@@ -540,6 +540,7 @@ and m_expr_deep a b =
  * also add them in m_pattern
  *)
 and m_expr a b =
+  Trace_matching.(if on then print_expr_pair a b);
   match (a.G.e, b.G.e) with
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
@@ -867,6 +868,7 @@ and m_for_or_if_comp a b =
       fail ()
 
 and m_literal a b =
+  Trace_matching.(if on then print_literal_pair a b);
   match (a, b) with
   (* dots: metavar: '...' and metavars on string/regexps/atoms *)
   | G.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
@@ -947,6 +949,7 @@ and m_action (a : G.action) (b : G.action) =
   | (a1, a2), (b1, b2) -> m_pattern a1 b1 >>= fun () -> m_expr a2 b2
 
 and m_arithmetic_operator a b =
+  Trace_matching.(if on then print_arithmetic_operator_pair a b);
   match (a, b) with
   | _ when a =*= b -> return ()
   | _ -> fail ()
@@ -1498,6 +1501,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
 (* Type *)
 (*****************************************************************************)
 and m_type_ a b =
+  Trace_matching.(if on then print_type_pair a b);
   let* () = m_attributes a.t_attrs b.t_attrs in
   match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
@@ -1805,6 +1809,7 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
 (* Statement *)
 (*****************************************************************************)
 and m_stmt a b =
+  Trace_matching.(if on then print_stmt_pair a b);
   match (a.s, b.s) with
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
@@ -2123,6 +2128,7 @@ and m_other_pattern_operator = m_other_xxx
 (* Definitions *)
 (*****************************************************************************)
 and m_definition a b =
+  Trace_matching.(if on then print_definition_pair a b);
   match (a, b) with
   | (a1, a2), (b1, b2) ->
       (* subtle: if you change the order here, so that we execute m_entity
@@ -2240,6 +2246,7 @@ and m_variance a b =
 and m_function_kind _ _ = return ()
 
 and m_function_definition a b =
+  Trace_matching.(if on then print_function_definition_pair a b);
   match (a, b) with
   | ( { G.fparams = a1; frettype = a2; fbody = a3; fkind = a4 },
       { B.fparams = b1; frettype = b2; fbody = b3; fkind = b4 } ) ->
@@ -2538,6 +2545,7 @@ and m_class_parent (a1, a2) (b1, b2) =
  * but maybe quite different from list of types in inheritance
  *)
 and m_class_definition a b =
+  Trace_matching.(if on then print_class_definition_pair a b);
   match (a, b) with
   | ( {
         G.ckind = a1;
@@ -2610,6 +2618,7 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (*****************************************************************************)
 and m_directive a b =
+  Trace_matching.(if on then print_directive_pair a b);
   let* () =
     m_list_in_any_order ~less_is_ok:true m_attribute a.d_attrs b.d_attrs
   in
