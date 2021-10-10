@@ -145,10 +145,35 @@ and command =
   | Sh_test of loc * sh_test
   | Bash_test of loc * bash_test
   | Arithmetic_expression of loc * arithmetic_expression
-  | For_loop of loc * for_loop
+  | For_loop of
+      loc
+      * (* for *) tok
+      * (* loop variable *)
+      string wrap
+      * (* in *)
+      (tok * expression list) option
+      * (* do *) tok
+      * blist
+      * (* done *) tok
   | For_loop_c_style of loc * for_loop_c_style
-  | Select of loc * select
-  | Case of loc * case
+  | Select
+      (* same syntax as For_loop *) of
+      loc
+      * (* select *) tok
+      * (* loop variable *)
+      string wrap
+      * (* in *)
+      (tok * expression list) option
+      * (* do *) tok
+      * blist
+      * (* done *) tok
+  | Case of
+      loc
+      * (* case *) tok
+      * expression
+      * (* in *) tok
+      * case_clause list
+      * (* esac *) tok
   | If of
       loc
       * (* if *) tok
@@ -267,17 +292,6 @@ and for_loop = blist
 
 (* TODO: represent the loop header: for (( ... )); *)
 and for_loop_c_style = blist
-
-and select = todo
-
-(* A whole "switch" statement introduced by the 'case' keyword. *)
-and case =
-  loc
-  * (* case *) tok
-  * expression
-  * (* in *) tok
-  * case_clause list
-  * (* esac *) tok
 
 (* Only the last clause may not have a terminator. *)
 and case_clause =
@@ -466,10 +480,10 @@ let command_loc = function
   | Sh_test (loc, _) -> loc
   | Bash_test (loc, _) -> loc
   | Arithmetic_expression (loc, _) -> loc
-  | For_loop (loc, _) -> loc
+  | For_loop (loc, _, _, _, _, _, _) -> loc
   | For_loop_c_style (loc, _) -> loc
-  | Select (loc, _) -> loc
-  | Case (loc, _) -> loc
+  | Select (loc, _, _, _, _, _, _) -> loc
+  | Case (loc, _, _, _, _, _) -> loc
   | If (loc, _, _, _, _, _, _, _) -> loc
   | While_loop (loc, _) -> loc
   | Until_loop (loc, _) -> loc
@@ -506,10 +520,6 @@ let bash_test_loc (x : bash_test) =
 let arithmetic_expression_loc (x : arithmetic_expression) =
   let open_, _, close = x in
   (open_, close)
-
-let select_loc (x : select) = todo_loc x
-
-let case_loc ((loc, _, _, _, _, _) : case) = loc
 
 let case_clause_loc ((loc, _, _, _, _) : case_clause) = loc
 
