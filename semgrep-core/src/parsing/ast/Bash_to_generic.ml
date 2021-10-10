@@ -163,6 +163,9 @@ module C = struct
        foo"$bar"
   *)
   let concat loc = mk loc "concat"
+
+  (* Command substitution: $(...) *)
+  let cmd_subst loc = mk loc "cmd_subst"
 end
 
 (*
@@ -348,9 +351,10 @@ and expression (e : expression) : G.expr =
       | Expansion (loc, ex) ->
           let x = expansion ex in
           G.e x.e
-      | Command_substitution (open_, _, close) ->
+      | Command_substitution (open_, x, close) ->
           let loc = (open_, close) in
-          todo_expr loc)
+          let arg = blist x |> block |> as_expr in
+          call loc C.cmd_subst [ arg ])
   | Raw_string x -> todo_expr (wrap_loc x)
   | Ansii_c_string x -> todo_expr (wrap_loc x)
   | Special_character x -> todo_expr (wrap_loc x)
