@@ -251,7 +251,7 @@ class Config:
     @classmethod
     def from_config_list(
         cls, configs: Sequence[str], project_url: Optional[str]
-    ) -> Tuple["Config", List[SemgrepError]]:
+    ) -> Tuple["Config", Sequence[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
         list of errors parsing said config files
@@ -337,7 +337,7 @@ class Config:
     @staticmethod
     def _validate(
         config_dict: Mapping[str, YamlTree]
-    ) -> Tuple[Dict[str, List[Rule]], List[SemgrepError]]:
+    ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError]]:
         """
         Take configs and separate into valid and list of errors parsing the invalid ones
         """
