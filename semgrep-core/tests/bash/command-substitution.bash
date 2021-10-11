@@ -1,0 +1,2 @@
+# MATCH:
+echo $(ls)

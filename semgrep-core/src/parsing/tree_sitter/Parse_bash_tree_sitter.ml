@@ -324,27 +324,35 @@ and binary_expression (env : env) (x : CST.binary_expression) : test_expression
       let right = token env v3 (* regex *) in
       T_todo (fst (test_expression_loc left), right)
 
-and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) =
-  let _v1 = literal env v1 in
-  let _v2 () =
+and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) : case_clause =
+  let first_pattern = literal env v1 in
+  let more_patterns =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* "|" *) in
-        let v2 = literal env v2 in
-        ())
+        let _bar = token env v1 (* "|" *) in
+        let pat = literal env v2 in
+        pat)
       v2
   in
-  let _v3 = token env v3 (* ")" *) in
-  let _v4 = program env v4 in
-  let _v5 =
+  let patterns = first_pattern :: more_patterns in
+  let paren = token env v3 (* ")" *) in
+  let case_body = program ~tok:paren env v4 in
+  let terminator, end_tok =
     match v5 with
-    | `SEMISEMI tok -> token env tok (* ";;" *)
+    | `SEMISEMI tok ->
+        let tok = token env tok (* ";;" *) in
+        (Break tok, tok)
     | `Choice_SEMIAMP x -> (
         match x with
-        | `SEMIAMP tok -> token env tok (* ";&" *)
-        | `SEMISEMIAMP tok -> token env tok (* ";;&" *))
+        | `SEMIAMP tok ->
+            let tok = token env tok (* ";&" *) in
+            (Fallthrough tok, tok)
+        | `SEMISEMIAMP tok ->
+            let tok = token env tok (* ";;&" *) in
+            (Try_next tok, tok))
   in
-  ()
+  let loc = (fst (expression_loc first_pattern), end_tok) in
+  (loc, patterns, paren, case_body, Some terminator)
 
 and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
   let assignments, redirects =
@@ -679,9 +687,10 @@ and herestring_redirect (env : env) ((v1, v2) : CST.herestring_redirect) =
   let loc = (op, snd (expression_loc e)) in
   TODO loc
 
+(* This is the same as case_item except for the optional terminator. *)
 and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
-  let pat = literal env v1 in
-  let pats =
+  let first_pattern = literal env v1 in
+  let more_patterns =
     List.map
       (fun (v1, v2) ->
         let _bar = token env v1 (* "|" *) in
@@ -689,15 +698,18 @@ and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
         pat)
       v2
   in
-  let end_pats = token env v3 (* ")" *) in
-  let case_body = program env ~tok:end_pats v4 in
-  let end_tok =
+  let patterns = first_pattern :: more_patterns in
+  let paren = token env v3 (* ")" *) in
+  let case_body = program env ~tok:paren v4 in
+  let opt_terminator, end_tok =
     match v5 with
-    | Some tok -> token env tok (* ";;" *)
-    | None -> snd (blist_loc case_body)
+    | Some tok ->
+        let tok = token env tok (* ";;" *) in
+        (Some (Break tok), tok)
+    | None -> (None, snd (blist_loc case_body))
   in
-  let loc = (fst (expression_loc pat), end_tok) in
-  TODO loc
+  let loc = (fst (expression_loc first_pattern), end_tok) in
+  (loc, patterns, paren, case_body, opt_terminator)
 
 and literal (env : env) (x : CST.literal) : expression =
   match x with
@@ -761,6 +773,8 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
       let loc = (open_, close) in
       Expression_TODO loc
 
+(* The token tok is needed to indicate the location of the list of statements
+   in case it's empty. *)
 and program (env : env) ~tok (opt : CST.program) : blist =
   match opt with
   | Some x -> statements env x
@@ -911,22 +925,23 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command ({ loc; command; redirects }, None)
   | `For_stmt (v1, v2, v3, v4, v5) ->
       let for_ = token env v1 (* "for" *) in
-      let _loop_var = token env v2 (* pattern \w+ *) in
-      let _loop_vals =
-        (* TODO *)
+      let loop_var = str env v2 (* pattern \w+ *) in
+      let opt_loop_vals =
         match v3 with
         | Some (v1, v2) ->
-            let _in = token env v1 (* "in" *) in
-            let _values = List.map (literal env) v2 in
-            ()
+            let in_ = token env v1 (* "in" *) in
+            let values = List.map (literal env) v2 in
+            Some (in_, values)
         | None ->
             (* iterate over $1, $2, ..., $# *)
-            ()
+            None
       in
       let _semi = terminator env v4 in
       let do_, body, done_ = do_group env v5 in
       let loc = (for_, done_) in
-      let command = For_loop (loc, body) in
+      let command =
+        For_loop (loc, for_, loop_var, opt_loop_vals, do_, body, done_)
+      in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `C_style_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
       let for_ = token env v1 (* "for" *) in
@@ -1000,18 +1015,17 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       let in_ = token env v4 (* "in" *) in
       let _term = terminator env v5 in
-      let cases =
+      let case_clauses =
         match v6 with
         | Some (v1, v2) ->
-            (* TODO *)
             let cases = List.map (case_item env) v1 in
             let last_case = last_case_item env v2 in
-            []
+            cases @ [ last_case ]
         | None -> []
       in
       let esac = token env v7 (* "esac" *) in
       let loc = (case, esac) in
-      let command = Case (loc, TODO loc) in
+      let command = Case (loc, case, subject, in_, case_clauses, esac) in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Pipe (v1, v2, v3) ->
       (*

@@ -1,0 +1,2 @@
+# MATCH:
+something $(echo hello)
