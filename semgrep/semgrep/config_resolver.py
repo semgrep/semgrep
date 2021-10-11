@@ -2,6 +2,7 @@ import json
 import os
 import time
 from collections import OrderedDict
+from enum import auto
 from enum import Enum
 from pathlib import Path
 from typing import Any
