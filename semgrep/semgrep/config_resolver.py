@@ -71,9 +71,9 @@ DEFAULT_CONFIG = {
 
 
 class ConfigType(Enum):
-    REGISTRY = 1
-    CDN = 2
-    LOCAL = 3
+    REGISTRY = auto()
+    CDN = auto()
+    LOCAL = auto()
 
 
 class ConfigPath:
