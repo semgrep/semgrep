@@ -17,9 +17,14 @@ These principles inform our decisions around data collection:
 
 ## Automatic collection, opt-in, and opt-out
 
+```sh
+$ semgrep --config=myrule.yaml  # → no metrics (fetching local file)
+$ semgrep --config=p/python     # → metrics enabled (fetching Registry)
+```
+
 Semgrep does **not** enable metrics when running with local configuration files or command-line search patterns.
 
-Semgrep will enable metrics if you load rules from the [Semgrep Registry](https://semgrep.dev/r). This helps the
+Semgrep does enable metrics if rules are loaded from the [Semgrep Registry](https://semgrep.dev/r). This helps 
 maintainers improve the correctness and performance of registry rules.
 
 Metrics may also be configured to be sent on every run, or never sent.
@@ -36,7 +41,7 @@ Note that certain Semgrep integrators turn on metrics for every run. For example
 
 ## Data NOT collected
 
-We strive to balance our desire to collect data for improving Semgrep with our users' need for privacy and security. After all, we are a security tool! The following don't leave your environment and are not sent or shared with anyone.
+We strive to balance our desire to collect data for improving Semgrep with our users' need for privacy and security. After all, we are a security tool! The following never leave your environment and are not sent or shared with anyone.
 
 * Source code
 * Raw repository names, filenames, file contents, or commit hashes
