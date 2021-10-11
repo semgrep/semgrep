@@ -254,9 +254,12 @@ and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
 *)
 and command (cmd : command) : stmt_or_expr =
   match cmd with
-  | Simple_command { loc; assignments = _; arguments } ->
-      let args = List.map expression arguments in
-      Expr (loc, call loc C.cmd args)
+  | Simple_command { loc; assignments = _; arguments } -> (
+      match arguments with
+      | [ (Semgrep_ellipsis tok as e) ] -> Expr ((tok, tok), expression e)
+      | arguments ->
+          let args = List.map expression arguments in
+          Expr (loc, call loc C.cmd args))
   | Subshell (loc, (open_, bl, close)) ->
       (* TODO: subshell *) stmt_group loc (blist bl)
   | Command_group (loc, (open_, bl, close)) -> stmt_group loc (blist bl)
