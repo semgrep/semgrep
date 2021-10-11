@@ -90,24 +90,17 @@ class ConfigPath:
         is, also set the appropriate MetricManager flag
         """
         self._project_url = project_url
+        self._origin = ConfigType.REGISTRY
 
         if config_str in RULES_REGISTRY:
-            self._origin = ConfigType.REGISTRY
             self._config_path = RULES_REGISTRY[config_str]
         elif is_url(config_str):
-            self._origin = ConfigType.REGISTRY
             self._config_path = config_str
-        elif is_pack_id(config_str) and SEMGREP_CDN_BASE_URL:
-            self._origin = ConfigType.CDN
-            self._config_path = config_str[2:]
         elif is_registry_id(config_str):
-            self._origin = ConfigType.REGISTRY
             self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
-            self._origin = ConfigType.REGISTRY
             self._config_path = saved_snippet_to_url(config_str)
         elif config_str == AUTO_CONFIG_KEY:
-            self._origin = ConfigType.REGISTRY
             logger.warning(
                 terminal_wrap(
                     "Auto config uses Semgrep rules to scan your codebase and the Semgrep Registry"
@@ -122,6 +115,9 @@ class ConfigPath:
                     )
                 )
             self._config_path = f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}"
+        elif is_pack_id(config_str) and SEMGREP_CDN_BASE_URL:
+            self._origin = ConfigType.CDN
+            self._config_path = config_str[2:]
         else:
             self._origin = ConfigType.LOCAL
             self._config_path = config_str
