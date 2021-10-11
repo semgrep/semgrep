@@ -847,7 +847,7 @@ and stmt_kind =
   (* The expr can be None for Go and Ruby.
    * less: could be merged with ExprStmt (MatchPattern ...) *)
   | Switch of
-      tok (* 'switch' or also 'select' in Go *)
+      tok (* 'switch', also 'select' in Go, or 'case' in Bash *)
       * condition option
       * case_and_body list
   (* todo: merge with Switch.

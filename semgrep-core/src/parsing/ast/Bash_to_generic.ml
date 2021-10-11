@@ -69,6 +69,21 @@
    are represented preferentially as expressions (simple commands, pipelines),
    and we wrap expressions in statements and vice-versa as required by
    the context.
+
+   Shell variables and semgrep metavariables:
+
+   - In a pattern, '$XXX' is interpreted as a semgrep metavariable,
+     at matching time.
+   - In a program, '$XXX' is interpreted as the dereferencing of a
+     shell variable, at matching time.
+   - '${XXX}' is always interpreted as the dereferencing of a shell variable
+     and should be used in a semgrep pattern to disambiguate from the
+     metavariable '$XXX'.
+
+   A shell variable is represented in the generic AST with a leading '$'.
+   For example, 'XXX=42' assigns 42 to the variable whose name is '$XXX'.
+   This is a hack to avoid having to decide what's a metavariable at parsing
+   time.
 *)
 
 (* Disable warnings against unused variables *)
@@ -113,6 +128,16 @@ let block : stmt_or_expr list -> stmt_or_expr = function
       let stmts = List.map as_stmt several in
       Stmt (loc, G.s (G.Block (bracket loc stmts)))
 
+let mk_name (str_wrap : string wrap) : G.name =
+  let id_info = G.empty_id_info () in
+  G.Id (str_wrap, id_info)
+
+(* Hackish solution to avoid deciding now if the variable is a metavariable:
+   All shell variables must start with a '$' in the generic AST.
+*)
+let prepend_dollar ((name, tok) : string wrap) : string wrap =
+  ("$" ^ name, (* TODO: include the $ in tok *) tok)
+
 module C = struct
   let mk (loc : loc) (name : string) =
     let id = "!sh_" ^ name ^ "!" in
@@ -138,6 +163,9 @@ module C = struct
        foo"$bar"
   *)
   let concat loc = mk loc "concat"
+
+  (* Command substitution: $(...) *)
+  let cmd_subst loc = mk loc "cmd_subst"
 end
 
 (*
@@ -235,10 +263,45 @@ and command (cmd : command) : stmt_or_expr =
   | Sh_test (loc, _) -> todo_expr2 loc
   | Bash_test (loc, _) -> todo_expr2 loc
   | Arithmetic_expression (loc, _) -> todo_expr2 loc
-  | For_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
+  | For_loop (loc, for_, loop_var, opt_in, do_, body, done_) ->
+      let header =
+        let values : G.expr list =
+          match opt_in with
+          | Some (_in, vals) -> List.map (fun x -> expression x) vals
+          | None ->
+              (* TODO/FIXME: transpile implicit "$@" or make this optional *)
+              []
+        in
+        let entity = G.basic_entity (prepend_dollar loop_var) in
+        G.ForIn ([ ForInitVar (entity, G.empty_var) ], values)
+      in
+      let body = stmt_group loc (blist body) |> as_stmt in
+      Stmt (loc, G.For (for_, header, body) |> G.s)
   | For_loop_c_style (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
-  | Select (loc, _) -> todo_expr2 loc
-  | Case (loc, _) -> todo_stmt2 loc
+  | Select (loc, _select, _loop_var, _opt_in, _do_, body, _done_) ->
+      (* TODO *)
+      stmt_group loc (blist body)
+  | Case (loc, case, subject, in_, clauses, esac) ->
+      let subject = expression subject in
+      let clauses =
+        List.map
+          (fun (loc, patterns, paren, stmts, _opt_term) ->
+            (* TODO: handle the different kinds of terminators. Insert breaks. *)
+            let patterns =
+              List.map
+                (fun e ->
+                  let tok, _ = expression_loc e in
+                  let pat =
+                    (* TODO: convert bash expression to generic pattern *)
+                    G.OtherPat (("", tok), [ G.E (expression e) ])
+                  in
+                  G.Case (tok, pat))
+                patterns
+            in
+            G.CasesAndBody (patterns, blist stmts |> block |> as_stmt))
+          clauses
+      in
+      Stmt (loc, G.Switch (case, Some subject, clauses) |> G.s)
   | If (loc, if_, cond, then_, body, elifs, else_, fi) ->
       let ifs = (loc, if_, cond, then_, body) :: elifs in
       let else_stmt =
@@ -266,7 +329,11 @@ and command (cmd : command) : stmt_or_expr =
   | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command cmd
   | Assignment (loc, _) -> todo_expr2 loc
   | Declaration (loc, _) -> todo_stmt2 loc
-  | Negated_command (loc, _, _) -> todo_expr2 loc
+  | Negated_command (loc, excl_tok, cmd) ->
+      let func = G.IdSpecial (G.Op G.Not, excl_tok) |> G.e in
+      let args = [ G.Arg (command cmd |> as_expr) ] in
+      let e = G.Call (func, bracket (command_loc cmd) args) |> G.e in
+      Expr (loc, e)
   | Function_definition (loc, _) -> todo_stmt2 loc
 
 and stmt_group (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
@@ -284,9 +351,10 @@ and expression (e : expression) : G.expr =
       | Expansion (loc, ex) ->
           let x = expansion ex in
           G.e x.e
-      | Command_substitution (open_, _, close) ->
+      | Command_substitution (open_, x, close) ->
           let loc = (open_, close) in
-          todo_expr loc)
+          let arg = blist x |> block |> as_expr in
+          call loc C.cmd_subst [ arg ])
   | Raw_string x -> todo_expr (wrap_loc x)
   | Ansii_c_string x -> todo_expr (wrap_loc x)
   | Special_character x -> todo_expr (wrap_loc x)
@@ -306,16 +374,11 @@ and expression (e : expression) : G.expr =
 *)
 and expansion (x : expansion) : G.expr =
   match x with
-  | Simple_expansion (loc, dollar_tok, var_name) ->
-      let arg =
-        match var_name with
-        | Simple_variable_name name
-        | Special_variable_name name ->
-            G.Arg (G.N (G.Id (name, G.empty_id_info ())) |> G.e)
-      in
-      let func = G.N (G.Id (("$", dollar_tok), G.empty_id_info ())) |> G.e in
-      let e = G.Call (func, bracket loc [ arg ]) |> G.e in
-      e
+  | Simple_expansion (loc, dollar_tok, var_name) -> (
+      match var_name with
+      | Simple_variable_name name
+      | Special_variable_name name ->
+          G.N (G.Id (prepend_dollar name, G.empty_id_info ())) |> G.e)
   | Complex_expansion br -> todo_expr (bracket_loc br)
 
 (*
