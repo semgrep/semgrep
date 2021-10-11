@@ -540,6 +540,7 @@ and m_expr_deep a b =
  * also add them in m_pattern
  *)
 and m_expr a b =
+  Trace_matching.(if on then print_expr_pair a b);
   match (a.G.e, b.G.e) with
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
@@ -867,6 +868,7 @@ and m_for_or_if_comp a b =
       fail ()
 
 and m_literal a b =
+  Trace_matching.(if on then print_literal_pair a b);
   match (a, b) with
   (* dots: metavar: '...' and metavars on string/regexps/atoms *)
   | G.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
@@ -947,6 +949,7 @@ and m_action (a : G.action) (b : G.action) =
   | (a1, a2), (b1, b2) -> m_pattern a1 b1 >>= fun () -> m_expr a2 b2
 
 and m_arithmetic_operator a b =
+  Trace_matching.(if on then print_arithmetic_operator_pair a b);
   match (a, b) with
   | _ when a =*= b -> return ()
   | _ -> fail ()
@@ -1498,6 +1501,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
 (* Type *)
 (*****************************************************************************)
 and m_type_ a b =
+  Trace_matching.(if on then print_type_pair a b);
   let* () = m_attributes a.t_attrs b.t_attrs in
   match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
@@ -1805,6 +1809,7 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
 (* Statement *)
 (*****************************************************************************)
 and m_stmt a b =
+  Trace_matching.(if on then print_stmt_pair a b);
   match (a.s, b.s) with
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
@@ -1916,7 +1921,10 @@ and m_stmt a b =
       m_tok asc bsc
   | G.Label (a1, a2), B.Label (b1, b2) ->
       m_label a1 b1 >>= fun () -> m_stmt a2 b2
-  | G.Goto (a0, a1), B.Goto (b0, b1) -> m_tok a0 b0 >>= fun () -> m_label a1 b1
+  | G.Goto (a0, a1, asc), B.Goto (b0, b1, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_label a1 b1 in
+      m_tok asc bsc
   | G.Throw (a0, a1, asc), B.Throw (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_expr a1 b1 in
@@ -2012,7 +2020,18 @@ and m_catch a b =
   match (a, b) with
   | (at, a1, a2), (bt, b1, b2) ->
       m_tok at bt >>= fun () ->
-      m_pattern a1 b1 >>= fun () -> m_stmt a2 b2
+      m_catch_exn a1 b1 >>= fun () -> m_stmt a2 b2
+
+and m_catch_exn a b =
+  match (a, b) with
+  (* dots: *)
+  | G.CatchPattern (G.PatEllipsis _), _ -> return ()
+  (* boilerplate *)
+  | G.CatchPattern a, CatchPattern b -> m_pattern a b
+  | G.CatchParam a, B.CatchParam b -> m_parameter_classic a b
+  | G.CatchPattern _, _
+  | G.CatchParam _, _ ->
+      fail ()
 
 and m_finally a b =
   match (a, b) with
@@ -2079,8 +2098,6 @@ and m_pattern a b =
       m_pattern a1 b1 >>= fun () -> m_ident_and_id_info (a2, a3) (b2, b3)
   | G.PatTyped (a1, a2), B.PatTyped (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_type_ a2 b2
-  | G.PatVar (a1, a2), B.PatVar (b1, b2) ->
-      m_type_ a1 b1 >>= fun () -> m_option m_ident_and_id_info a2 b2
   | G.PatWhen (a1, a2), B.PatWhen (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_expr a2 b2
   | G.OtherPat (a1, a2), B.OtherPat (b1, b2) ->
@@ -2098,8 +2115,7 @@ and m_pattern a b =
   | G.PatAs _, _
   | G.PatTyped _, _
   | G.OtherPat _, _
-  | G.PatType _, _
-  | G.PatVar _, _ ->
+  | G.PatType _, _ ->
       fail ()
 
 and m_field_pattern a b =
@@ -2112,6 +2128,7 @@ and m_other_pattern_operator = m_other_xxx
 (* Definitions *)
 (*****************************************************************************)
 and m_definition a b =
+  Trace_matching.(if on then print_definition_pair a b);
   match (a, b) with
   | (a1, a2), (b1, b2) ->
       (* subtle: if you change the order here, so that we execute m_entity
@@ -2229,6 +2246,7 @@ and m_variance a b =
 and m_function_kind _ _ = return ()
 
 and m_function_definition a b =
+  Trace_matching.(if on then print_function_definition_pair a b);
   match (a, b) with
   | ( { G.fparams = a1; frettype = a2; fbody = a3; fkind = a4 },
       { B.fparams = b1; frettype = b2; fbody = b3; fkind = b4 } ) ->
@@ -2527,6 +2545,7 @@ and m_class_parent (a1, a2) (b1, b2) =
  * but maybe quite different from list of types in inheritance
  *)
 and m_class_definition a b =
+  Trace_matching.(if on then print_class_definition_pair a b);
   match (a, b) with
   | ( {
         G.ckind = a1;
@@ -2599,6 +2618,7 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (*****************************************************************************)
 and m_directive a b =
+  Trace_matching.(if on then print_directive_pair a b);
   let* () =
     m_list_in_any_order ~less_is_ok:true m_attribute a.d_attrs b.d_attrs
   in
@@ -2738,6 +2758,7 @@ and m_any a b =
   | G.Dir a1, B.Dir b1 -> m_directive a1 b1
   | G.Fld a1, B.Fld b1 -> m_field a1 b1
   | G.Pa a1, B.Pa b1 -> m_parameter a1 b1
+  | G.Ce a1, B.Ce b1 -> m_catch_exn a1 b1
   | G.Ar a1, B.Ar b1 -> m_argument a1 b1
   | G.At a1, B.At b1 -> m_attribute a1 b1
   | G.Dk a1, B.Dk b1 -> m_definition_kind a1 b1
@@ -2756,6 +2777,7 @@ and m_any a b =
   | G.Def _, _
   | G.Dir _, _
   | G.Pa _, _
+  | G.Ce _, _
   | G.Ar _, _
   | G.At _, _
   | G.Dk _, _

@@ -7,6 +7,9 @@ val expr_to_pattern : AST_generic.expr -> AST_generic.pattern
 (* may raise NotAnExpr *)
 val pattern_to_expr : AST_generic.pattern -> AST_generic.expr
 
+(* may raise NotAnExpr *)
+val argument_to_expr : AST_generic.argument -> AST_generic.expr
+
 val expr_to_type : AST_generic.expr -> AST_generic.type_
 
 val expr_to_class_parent : AST_generic.expr -> AST_generic.class_parent

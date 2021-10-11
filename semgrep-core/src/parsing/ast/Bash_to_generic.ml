@@ -157,12 +157,12 @@ let todo_tokens ((start, end_) : loc) =
 let todo_stmt (loc : loc) : G.stmt =
   G.s (G.OtherStmt (G.OS_Todo, todo_tokens loc))
 
-let todo_expr (loc : loc) : G.expr_kind =
-  G.OtherExpr (G.OE_Todo, todo_tokens loc)
+let todo_expr (loc : loc) : G.expr =
+  G.e (G.OtherExpr (G.OE_Todo, todo_tokens loc))
 
 let todo_stmt2 (loc : loc) : stmt_or_expr = Stmt (loc, todo_stmt loc)
 
-let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc |> G.e)
+let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc)
 
 (*****************************************************************************)
 (* Converter from bash AST to generic AST *)
@@ -209,7 +209,7 @@ and pipeline (x : pipeline) : stmt_or_expr =
       match control_op with
       | Foreground, tok -> pipeline pip
       | Background, amp_tok ->
-          let func = G.IdSpecial (G.Op G.Pipe, amp_tok) |> G.e in
+          let func = G.IdSpecial (G.Op G.Background, amp_tok) |> G.e in
           let arg = pipeline pip |> as_expr in
           Expr (loc, G.Call (func, bracket loc [ G.Arg arg ]) |> G.e))
 
@@ -275,15 +275,15 @@ and stmt_group (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
   Stmt (loc, G.s (G.Block (start, stmts, end_)))
 
 and expression (e : expression) : G.expr =
-  (match e with
-  | Word ((_, tok) as wrap) -> G.L (G.Atom (tok, wrap))
+  match e with
+  | Word ((_, tok) as wrap) -> G.e (G.L (G.String wrap))
   | String x -> todo_expr (bracket_loc x)
   | String_fragment (loc, frag) -> (
       match frag with
-      | String_content ((_, tok) as wrap) -> G.L (G.Atom (tok, wrap))
+      | String_content ((_, tok) as wrap) -> G.e (G.L (G.String wrap))
       | Expansion (loc, ex) ->
           let x = expansion ex in
-          x.G.e
+          G.e x.e
       | Command_substitution (open_, _, close) ->
           let loc = (open_, close) in
           todo_expr loc)
@@ -292,14 +292,13 @@ and expression (e : expression) : G.expr =
   | Special_character x -> todo_expr (wrap_loc x)
   | String_expansion x -> todo_expr (wrap_loc x)
   | Concatenation (loc, _) -> todo_expr loc
-  | Semgrep_ellipsis tok -> G.Ellipsis tok
+  | Semgrep_ellipsis tok -> G.e (G.Ellipsis tok)
   | Semgrep_metavariable x -> todo_expr (wrap_loc x)
   | Equality_test (loc, _, _) -> todo_expr loc
   | Empty_expression loc ->
-      let start, _ = loc in
-      G.L (G.Atom (start, ("", start)))
-  | Expression_TODO loc -> todo_expr loc)
-  |> G.e
+      (* not to be confused with the empty string *)
+      call loc C.cmd []
+  | Expression_TODO loc -> todo_expr loc
 
 (*
    '$' followed by a variable to transform and expand into a list.
@@ -317,7 +316,7 @@ and expansion (x : expansion) : G.expr =
       let func = G.N (G.Id (("$", dollar_tok), G.empty_id_info ())) |> G.e in
       let e = G.Call (func, bracket loc [ arg ]) |> G.e in
       e
-  | Complex_expansion br -> todo_expr (bracket_loc br) |> G.e
+  | Complex_expansion br -> todo_expr (bracket_loc br)
 
 (*
    'a && b' and 'a || b' looks like expressions but they're really
@@ -364,4 +363,7 @@ and transpile_or (left : blist) tok_or (right : blist) : stmt_or_expr =
 
 let program x = blist x |> List.map as_stmt
 
-let any x = G.Ss (program x)
+let any x =
+  match program x with
+  | [ stmt ] -> G.S stmt
+  | stmts -> G.Ss stmts

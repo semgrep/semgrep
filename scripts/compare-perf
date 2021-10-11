@@ -112,6 +112,14 @@ def main() -> None:
         min_rel_dur = min(min_rel_dur, rel_dur)
         max_rel_dur = max(max_rel_dur, rel_dur)
 
+        # Our benchmarks are small and we run them in GitHub-hosted runners,
+        # so we cannot distinguish between small perf deviations and noise.
+        # Without this filter, the warnings fire all the time with a very high
+        # false positive rate.
+        probably_noise = (
+            0.7 <= rel_dur and rel_dur <= 1.3 and abs(latest_time - baseline_time) < 2
+        )
+
         print(
             f"[{name}] {rel_dur:.3f}x "
             f"Baseline: {baseline_time:.3f}, Latest: {latest_time:.3f}"
@@ -125,12 +133,12 @@ def main() -> None:
             messages.append(
                 f"🚫 Benchmark {name} is too slow: " f"+{perc:.1f}% (+{diff:.3f} s)"
             )
-        elif rel_dur > 1.2:
+        elif rel_dur > 1.2 and not probably_noise:
             messages.append(
                 f"⚠️  Potential non-blocking slowdown in benchmark {name}: "
                 f"+{perc:.1f}% (+{diff:.3f} s)"
             )
-        elif rel_dur < 0.8:
+        elif rel_dur < 0.8 and not probably_noise:
             messages.append(
                 f"🔥 Potential speedup in benchmark {name}: "
                 f"{perc:.1f}% ({diff:.3f} s)"

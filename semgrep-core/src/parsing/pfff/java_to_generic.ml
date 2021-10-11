@@ -505,9 +505,10 @@ and for_control tok = function
   | Foreach (v1, v2) ->
       let ent, typ = var v1 and v2 = expr v2 in
       let id, _idinfo = id_of_entname ent.G.name in
+      let patid = G.PatId (id, G.empty_id_info ()) in
       let pat =
         match typ with
-        | Some t -> G.PatVar (t, Some (id, G.empty_id_info ()))
+        | Some t -> G.PatTyped (patid, t)
         | None -> error tok "TODO: Foreach without a type"
       in
       G.ForEach (pat, fake (snd id) "in", v2)
@@ -526,16 +527,19 @@ and var { name; mods; type_ = xtyp } =
   let v3 = option typ xtyp in
   (G.basic_entity v1 ~attrs:v2, v3)
 
-and catch (tok, (v1, _union_types), v2) =
-  let ent, typ = var v1 in
-  let id, _idinfo = id_of_entname ent.G.name in
+and catch (tok, catch_exn, v2) =
   let v2 = stmt v2 in
-  let pat =
-    match typ with
-    | Some t -> G.PatVar (t, Some (id, G.empty_id_info ()))
-    | None -> error tok "TODO: Catch without a type"
+  let exn =
+    match catch_exn with
+    | CatchParam (v1, _union_types) -> (
+        let ent, typ = var v1 in
+        let id, _idinfo = id_of_entname ent.G.name in
+        match typ with
+        | Some t -> G.CatchParam (G.param_of_type t ~pname:(Some id))
+        | None -> error tok "TODO: Catch without a type")
+    | CatchEllipsis t -> G.CatchPattern (G.PatEllipsis t)
   in
-  (tok, pat, v2)
+  (tok, exn, v2)
 
 and catches v = list catch v
 

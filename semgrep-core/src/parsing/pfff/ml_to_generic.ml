@@ -172,7 +172,9 @@ and stmt e : G.stmt =
   | Try (t, v1, v2) ->
       let v1 = stmt v1 and v2 = list match_case v2 in
       let catches =
-        v2 |> List.map (fun (pat, e) -> (fake "catch", pat, G.exprstmt e))
+        v2
+        |> List.map (fun (pat, e) ->
+               (fake "catch", G.CatchPattern pat, G.exprstmt e))
       in
       G.Try (t, v1, catches, None) |> G.s
   | While (t, v1, v2) ->

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import multiprocessing
 import os
+from typing import Any
 from typing import cast
 from typing import Optional
 from typing import Sequence
@@ -18,6 +19,8 @@ from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.notifications import possibly_notify_user
+from semgrep.types import MetricsState
 from semgrep.util import abort
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -37,6 +40,35 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     if lang is None:
         abort(f"{option} and -l/--lang must both be specified")
     return cast(str, lang)
+
+
+class MetricsStateType(click.ParamType):
+    name = "metrics_state"
+
+    def get_metavar(self, param: click.Parameter) -> str:
+        return "[auto|on|off]"
+
+    def convert(
+        self,
+        value: Any,
+        param: Optional["click.Parameter"],
+        ctx: Optional["click.Context"],
+    ) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            lower = value.lower()
+            if lower == "auto":
+                return MetricsState.AUTO
+            # Support setting via old environment variable values 0/1/true/false
+            if lower == "on" or lower == "1" or lower == "true":
+                return MetricsState.ON
+            if lower == "off" or lower == "0" or lower == "false":
+                return MetricsState.OFF
+        self.fail("expected 'auto', 'on', or 'off'")
+
+
+METRICS_STATE_TYPE = MetricsStateType()
 
 
 # Slightly increase the help width from default 80 characters, to improve readability
@@ -63,13 +95,6 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     ),
 )
 @click.option(
-    "--enable-metrics/--disable-metrics",
-    is_flag=True,
-    help="Send pseudonymous usage metrics to Semgrep. If absent, uses the value of the SEMGREP_SEND_METRICS environment variable; "
-    "defaults to no metrics. NOTE: THIS IS SUBJECT TO CHANGE IN A FUTURE SEMGREP RELEASE.",
-    envvar="SEMGREP_SEND_METRICS",
-)
-@click.option(
     "--error/--no-error",
     "error_on_findings",
     is_flag=True,
@@ -80,6 +105,34 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     "-l",
     help="Parse pattern and all files in specified language. Must be used "
     "with -e/--pattern.",
+)
+@click.option(
+    "--metrics",
+    "metrics",
+    type=METRICS_STATE_TYPE,
+    help="Configures how usage metrics are sent to the Semgrep server."
+    " If 'auto', metrics are sent whenever the --config value pulls from the Semgrep server."
+    " If 'on', metrics are always sent."
+    " If 'off', metrics are disabled altogether and not sent."
+    " If absent, the SEMGREP_SEND_METRICS environment variable value will be used."
+    " If no environment variable, defaults to 'auto'.",
+    envvar="SEMGREP_SEND_METRICS",
+)
+@click.option(
+    "--disable-metrics",
+    "metrics_legacy",
+    is_flag=False,
+    type=METRICS_STATE_TYPE,
+    flag_value="on",  # click inverts the flag for some reason?
+    hidden=True,
+)
+@click.option(
+    "--enable-metrics",
+    "metrics_legacy",
+    is_flag=False,
+    type=METRICS_STATE_TYPE,
+    flag_value="off",  # click inverts the flag for some reason?
+    hidden=True,
 )
 @click.option(
     "--severity",
@@ -186,8 +239,11 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     "--scan-unknown-extensions/--skip-unknown-extensions",
     is_flag=True,
     default=True,
-    help="If true, explicit files will be scanned using the language specified in --lang. If --skip-unknown-extensions, "
-    "these files will not be scanned",
+    help="By default or with --scan-unknown-extensions,"
+    " explicit files will be scanned using the language"
+    " specified in --lang regardless of their extension."
+    " If --skip-unknown-extensions, these files will not be scanned if they"
+    " have a wrong extension for the language.",
 )
 @optgroup.group("Performance and memory options")
 @optgroup.option(
@@ -401,6 +457,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
 )
 def cli(
+    *,
     autofix: bool,
     config: Optional[Tuple[str, ...]],
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
@@ -409,7 +466,6 @@ def cli(
     dryrun: bool,
     dump_ast: bool,
     emacs: bool,
-    enable_metrics: bool,
     enable_nosem: bool,
     enable_version_check: bool,
     error_on_findings: bool,
@@ -427,6 +483,8 @@ def cli(
     max_lines_per_finding: int,
     max_memory: int,
     max_target_bytes: int,
+    metrics: Optional[MetricsState],
+    metrics_legacy: Optional[MetricsState],
     optimizations: str,
     output: Optional[str],
     pattern: Optional[str],
@@ -462,7 +520,12 @@ def cli(
     log in to the Semgrep Registry with your project URL.
 
     For more information about Semgrep, go to https://semgrep.dev.
+
+    NOTE: By default, Semgrep will report pseudonymous usage metrics to its server if you pull your configuration from
+    the Semgrep registy. To learn more about how and why these metrics are collected, please see
+    https://github.com/returntocorp/semgrep/PRIVACY.md. To modify this behavior, see the --metrics option below.
     """
+    possibly_notify_user()
 
     if version:
         print(__VERSION__)
@@ -489,10 +552,7 @@ def cli(
 
     target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
-    if enable_metrics:
-        metric_manager.enable()
-    else:
-        metric_manager.disable()
+    metric_manager.configure(metrics, metrics_legacy)
 
     if include and exclude:
         logger.warning(

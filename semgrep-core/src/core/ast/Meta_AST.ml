@@ -723,10 +723,11 @@ and vof_stmt st =
   | Label (v1, v2) ->
       let v1 = vof_label v1 and v2 = vof_stmt v2 in
       OCaml.VSum ("Label", [ v1; v2 ])
-  | Goto (t, v1) ->
+  | Goto (t, v1, sc) ->
       let t = vof_tok t in
       let v1 = vof_label v1 in
-      OCaml.VSum ("Goto", [ t; v1 ])
+      let sc = vof_tok sc in
+      OCaml.VSum ("Goto", [ t; v1; sc ])
   | Throw (t, v1, sc) ->
       let t = vof_tok t in
       let v1 = vof_expr v1 in
@@ -806,8 +807,16 @@ and vof_case = function
 
 and vof_catch (t, v1, v2) =
   let t = vof_tok t in
-  let v1 = vof_pattern v1 and v2 = vof_stmt v2 in
+  let v1 = vof_catch_exn v1 and v2 = vof_stmt v2 in
   OCaml.VTuple [ t; v1; v2 ]
+
+and vof_catch_exn = function
+  | CatchPattern v ->
+      let v = vof_pattern v in
+      OCaml.VSum ("CatchPattern", [ v ])
+  | CatchParam v1 ->
+      let v1 = vof_parameter_classic v1 in
+      OCaml.VSum ("CatchParam", [ v1 ])
 
 and vof_finally v = vof_tok_and_stmt v
 
@@ -872,16 +881,6 @@ and vof_pattern = function
   | PatId (v1, v2) ->
       let v1 = vof_ident v1 and v2 = vof_id_info v2 in
       OCaml.VSum ("PatId", [ v1; v2 ])
-  | PatVar (v1, v2) ->
-      let v1 = vof_type_ v1
-      and v2 =
-        OCaml.vof_option
-          (fun (v1, v2) ->
-            let v1 = vof_ident v1 and v2 = vof_id_info v2 in
-            OCaml.VTuple [ v1; v2 ])
-          v2
-      in
-      OCaml.VSum ("PatVar", [ v1; v2 ])
   | PatLiteral v1 ->
       let v1 = vof_literal v1 in
       OCaml.VSum ("PatLiteral", [ v1 ])
@@ -1427,6 +1426,9 @@ and vof_any = function
   | Pa v1 ->
       let v1 = vof_parameter v1 in
       OCaml.VSum ("Pa", [ v1 ])
+  | Ce v1 ->
+      let v1 = vof_catch_exn v1 in
+      OCaml.VSum ("Ce", [ v1 ])
   | Ar v1 ->
       let v1 = vof_argument v1 in
       OCaml.VSum ("Ar", [ v1 ])

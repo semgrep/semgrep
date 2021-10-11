@@ -1,0 +1,99 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
+      "end": {
+        "col": 19,
+        "line": 3,
+        "offset": 67
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "console.log(x == x)",
+        "message": "Detected a useless comparison operation `x == x` or `x != x`. This operation is always true. If testing for floating point NaN, use `math.isnan`, or `cmath.isnan` if the number is complex.",
+        "metadata": {
+          "category": "correctness",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+          "source": "https://semgrep.dev/r/javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
+          "technology": [
+            "javascript"
+          ]
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "x",
+            "end": {
+              "col": 14,
+              "line": 3,
+              "offset": 62
+            },
+            "start": {
+              "col": 13,
+              "line": 3,
+              "offset": 61
+            },
+            "unique_id": {
+              "sid": 1,
+              "type": "id"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/stupid.js",
+      "start": {
+        "col": 13,
+        "line": 3,
+        "offset": 61
+      }
+    },
+    {
+      "check_id": "python.lang.correctness.useless-eqeq.useless-eqeq",
+      "end": {
+        "col": 26,
+        "line": 3,
+        "offset": 69
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "    return a + b == a + b",
+        "message": "This expression is always True: `a + b == a + b` or `a + b != a + b`. If testing for floating point NaN, use `math.isnan(a + b)`, or `cmath.isnan(a + b)` if the number is complex.",
+        "metadata": {
+          "category": "correctness",
+          "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
+          "source": "https://semgrep.dev/r/python.lang.correctness.useless-eqeq.useless-eqeq",
+          "technology": [
+            "python"
+          ]
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "a+b",
+            "end": {
+              "col": 17,
+              "line": 3,
+              "offset": 60
+            },
+            "start": {
+              "col": 12,
+              "line": 3,
+              "offset": 55
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/stupid.py",
+      "start": {
+        "col": 12,
+        "line": 3,
+        "offset": 55
+      }
+    }
+  ]
+}

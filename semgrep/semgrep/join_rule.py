@@ -21,7 +21,7 @@ from ruamel.yaml import YAML
 
 import semgrep.semgrep_main
 from semgrep.config_resolver import Config
-from semgrep.config_resolver import ConfigResolver
+from semgrep.config_resolver import ConfigPath
 from semgrep.constants import RuleSeverity
 from semgrep.error import ERROR_MAP
 from semgrep.error import FATAL_EXIT_CODE
@@ -225,7 +225,7 @@ def create_config_map(semgrep_config_strings: List[str]) -> Dict[str, Rule]:
     """
     config = {}
     for config_string in semgrep_config_strings:
-        resolved = ConfigResolver(get_project_url()).resolve_config(config_string)
+        resolved = ConfigPath(config_string, get_project_url()).resolve_config()
         # Some code-fu to get single rules
         config.update(
             {config_string: list(Config._validate(resolved)[0].values())[0][0]}

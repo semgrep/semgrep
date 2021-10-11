@@ -336,7 +336,7 @@ let rec stmt st =
       G.Label (v1, v2)
   | Goto (t, v1) ->
       let v1 = name v1 in
-      G.Goto (t, v1)
+      G.Goto (t, v1, G.sc)
   | Vars v1 ->
       let v1 = list var_decl v1 in
       (G.stmt1 (v1 |> List.map (fun v -> G.s (G.DefStmt v)))).G.s

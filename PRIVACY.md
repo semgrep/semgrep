@@ -3,7 +3,7 @@
 Semgrep may collect aggregate metrics to help improve the product. This document describes:
 
 * the principles that guide our data-collection decisions
-* how to opt-in to Semgrep’s metrics
+* how to change when Semgrep sends metrics
 * the breakdown of the data that are and are not collected
 * how we use the data to make Semgrep better
 
@@ -15,11 +15,25 @@ These principles inform our decisions around data collection:
 2. **User control**: Put users in control of their data at all times
 3. **Limited data**: Collect what is needed, pseduoanonymize where possible, and delete when no longer necessary
 
-## Opt-in behavior
+## Automatic collection, opt-in, and opt-out
 
-Semgrep’s opt-in aggregate metrics are only sent when the environment variable `SEMGREP_SEND_METRICS` is set or when the flag `--enable-metrics` is set. If this environment variable is not set or if the flag is not set, the aggregate metrics are not sent anywhere.
+By default, Semgrep will collect metrics whenever you load Semgrep's rules from the Semgrep Registry. This helps the
+Semgrep maintainers:
+- improve the correctness of our registry rules over time
+- improve the performance of Semgrep over time
+- determine which features to add to Semgrep
 
-Note that certain Semgrep integrators set this environment variable by default. For example, both the [Semgrep CI agent](https://github.com/returntocorp/semgrep-action) and [GitLab's Semgrep SAST analyzer](https://gitlab.com/gitlab-org/security-products/analyzers/semgrep) enable aggregate-metrics collection by default.
+Metrics may also be configured to be sent on every run, or never sent.
+
+To configure metrics, pass the `--metrics` option to Semgrep:
+- `--metrics auto`: (default) metrics are sent whenever rules are pulled from the Semgrep registry
+- `--metrics on`: metrics are sent on every Semgrep run
+- `--metrics off`: metrics are never sent
+
+Instead of the `--metrics` option, collection can also be controlled by setting the `SEMGREP_SEND_METRICS`
+environment variable to any of `auto`, `on`, or `off`.
+
+Note that certain Semgrep integrators turn on metrics for every run. For example, both the [Semgrep CI agent](https://github.com/returntocorp/semgrep-action) and [GitLab's Semgrep SAST analyzer](https://gitlab.com/gitlab-org/security-products/analyzers/semgrep) use `--metrics on` by default.
 
 ## Collected data
 

@@ -129,9 +129,6 @@ let rec pattern_to_expr p =
   | PatList (t1, xs, t2) ->
       Container (List, (t1, xs |> List.map pattern_to_expr, t2))
   | OtherPat (("ExprToPattern", _), [ E e ]) -> e.e
-  | PatAs _
-  | PatVar _ ->
-      raise NotAnExpr
   | _ -> raise NotAnExpr)
   |> G.e
 
@@ -188,6 +185,17 @@ let name_or_dynamic_to_expr name idinfo_opt =
   | EN (IdQualified (n, _idinfo)), Some idinfo -> N (IdQualified (n, idinfo))
   | EDynamic e, _ -> e.e)
   |> G.e
+
+let argument_to_expr arg =
+  match arg with
+  | Arg e -> e
+  | ArgKwd (id, e) ->
+      let n = name_of_id id in
+      let k = N n |> G.e in
+      G.keyval k (fake "") e
+  | ArgType _
+  | ArgOther _ ->
+      raise NotAnExpr
 
 (* used in controlflow_build and semgrep *)
 let vardef_to_assign (ent, def) =
