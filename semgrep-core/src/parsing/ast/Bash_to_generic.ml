@@ -426,7 +426,16 @@ and transpile_or (left : blist) tok_or (right : blist) : stmt_or_expr =
 
 let program x = blist x |> List.map as_stmt
 
+(*
+   Unwrap the tree as much as possible to maximize matches.
+
+   For example 'echo' is parsed as a list of statements but occurs
+   in the target program as a single stmt ('If' branch) or as an expr
+   ('If' condition). Unwrapping into an expr allows the expr to match those
+   cases.
+*)
 let any x =
   match program x with
+  | [ { G.s = G.ExprStmt (e, _semicolon); _ } ] -> G.E e
   | [ stmt ] -> G.S stmt
   | stmts -> G.Ss stmts
