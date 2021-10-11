@@ -101,14 +101,13 @@ class ConfigPath:
                 terminal_wrap(
                     "Auto config uses Semgrep rules to scan your codebase and the Semgrep Registry"
                     " to generate recommended rules based on your languages and frameworks."
-                    "\n"
                 ),
             )
             if self._project_url is not None:
                 self._extra_headers["X-Semgrep-Project"] = self._project_url
                 logger.warning(
                     terminal_wrap(
-                        f"Logging in to the Semgrep Registry as project '{self._project_url}'...\n"
+                        f"Logging in to the Semgrep Registry as project '{self._project_url}'..."
                     )
                 )
             self._from_registry = True
