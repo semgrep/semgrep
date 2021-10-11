@@ -55,7 +55,7 @@ def notify_user_of_work(
         logger.info(f"excluding files:")
         for exc in exclude:
             logger.info(f"- {exc}")
-    logger.info(f"running {len(filtered_rules)} rules...")
+    logger.info(f"Running {len(filtered_rules)} rules...")
     logger.verbose("rules:")
     for rule in filtered_rules:
         logger.verbose(f"- {rule.id}")
@@ -235,7 +235,7 @@ The two most popular are:
     num_findings = sum(len(v) for v in filtered_matches.matches.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
-    if metric_manager.is_enabled:
+    if metric_manager.is_enabled():
         project_url = None
         try:
             project_url = sub_check_output(

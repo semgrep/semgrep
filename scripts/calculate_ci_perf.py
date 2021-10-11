@@ -130,6 +130,8 @@ def test_perf() -> None:
             "semgrep",
             "--config",
             njsscan_rules_path,
+            "--metrics",
+            "off",
             str(target_path),
         ]
         for ex in excludes:
