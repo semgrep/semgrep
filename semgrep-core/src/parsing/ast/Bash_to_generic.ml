@@ -138,6 +138,10 @@ let mk_name (str_wrap : string wrap) : G.name =
 let prepend_dollar ((name, tok) : string wrap) : string wrap =
   ("$" ^ name, (* TODO: include the $ in tok *) tok)
 
+(* Use this to create a variable name for the generic AST. *)
+let mk_var_name (orig_name : string wrap) : G.name =
+  prepend_dollar orig_name |> mk_name
+
 module C = struct
   let mk (loc : loc) (name : string) =
     let id = "!sh_" ^ name ^ "!" in
@@ -330,7 +334,15 @@ and command (cmd : command) : stmt_or_expr =
   | While_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
   | Until_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
   | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command cmd
-  | Assignment (loc, _) -> todo_expr2 loc
+  | Assignment (loc, ass) ->
+      let var = G.N (mk_var_name ass.lhs) |> G.e in
+      let value = expression ass.rhs in
+      let e =
+        match ass.assign_op with
+        | Set, tok -> G.Assign (var, tok, value)
+        | Add, tok -> G.AssignOp (var, (G.Plus, tok), value)
+      in
+      Expr (loc, G.e e)
   | Declaration (loc, _) -> todo_stmt2 loc
   | Negated_command (loc, excl_tok, cmd) ->
       let func = G.IdSpecial (G.Op G.Not, excl_tok) |> G.e in
@@ -381,7 +393,7 @@ and expansion (x : expansion) : G.expr =
       match var_name with
       | Simple_variable_name name
       | Special_variable_name name ->
-          G.N (G.Id (prepend_dollar name, G.empty_id_info ())) |> G.e)
+          G.N (mk_var_name name) |> G.e)
   | Complex_expansion br -> todo_expr (bracket_loc br)
 
 (*
