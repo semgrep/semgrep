@@ -107,6 +107,7 @@ class ConfigPath:
             self._origin = ConfigType.REGISTRY
             self._config_path = saved_snippet_to_url(config_str)
         elif config_str == AUTO_CONFIG_KEY:
+            self._origin = ConfigType.REGISTRY
             logger.warning(
                 terminal_wrap(
                     "Auto config uses Semgrep rules to scan your codebase and the Semgrep Registry"
@@ -120,13 +121,12 @@ class ConfigPath:
                         f"Logging in to the Semgrep Registry as project '{self._project_url}'..."
                     )
                 )
-            self._from_registry = True
             self._config_path = f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}"
         else:
             self._origin = ConfigType.LOCAL
             self._config_path = config_str
 
-        if self._origin == ConfigType.REGISTRY or self._origin == ConfigType.CDN:
+        if self.is_registry_url():
             metric_manager.set_using_server_true()
 
     def resolve_config(self) -> Mapping[str, YamlTree]:
@@ -229,7 +229,7 @@ class ConfigPath:
             )
 
     def is_registry_url(self) -> bool:
-        return self._from_registry
+        return self._origin == ConfigType.REGISTRY or self._origin == ConfigType.CDN
 
     def __str__(self) -> str:
         return self._config_path
