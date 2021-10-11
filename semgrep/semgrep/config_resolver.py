@@ -2,6 +2,7 @@ import json
 import os
 import time
 from collections import OrderedDict
+from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -52,7 +53,7 @@ OLD_SRC_DIRECTORY = Path("/") / "home" / "repo"
 
 AUTO_CONFIG_KEY = "auto"
 AUTO_CONFIG_LOCATION = "c/auto"
-RULES_REGISTRY = {"r2c": "c/p/r2c"}
+RULES_REGISTRY = {"r2c": "https://semgrep.dev/c/p/r2c"}
 
 MISSING_RULE_ID = "no-rule-id"
 
@@ -69,8 +70,14 @@ DEFAULT_CONFIG = {
 }
 
 
+class ConfigType(Enum):
+    REGISTRY = 1
+    CDN = 2
+    LOCAL = 3
+
+
 class ConfigPath:
-    _from_registry = False
+    _origin = ConfigType.LOCAL
     _config_path = ""
     _project_url = None
     _extra_headers: Dict[str, str] = {}
@@ -85,16 +92,19 @@ class ConfigPath:
         self._project_url = project_url
 
         if config_str in RULES_REGISTRY:
-            self._from_registry = True
+            self._origin = ConfigType.REGISTRY
             self._config_path = RULES_REGISTRY[config_str]
         elif is_url(config_str):
-            self._from_registry = True
+            self._origin = ConfigType.REGISTRY
             self._config_path = config_str
+        elif is_pack_id(config_str) and SEMGREP_CDN_BASE_URL:
+            self._origin = ConfigType.CDN
+            self._config_path = config_str[2:]
         elif is_registry_id(config_str):
-            self._from_registry = True
+            self._origin = ConfigType.REGISTRY
             self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
-            self._from_registry = True
+            self._origin = ConfigType.REGISTRY
             self._config_path = saved_snippet_to_url(config_str)
         elif config_str == AUTO_CONFIG_KEY:
             logger.warning(
@@ -113,18 +123,20 @@ class ConfigPath:
             self._from_registry = True
             self._config_path = f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}"
         else:
-            self._from_registry = False
+            self._origin = ConfigType.LOCAL
             self._config_path = config_str
 
-        if self._from_registry:
+        if self._origin == ConfigType.REGISTRY or self._origin == ConfigType.CDN:
             metric_manager.set_using_server_true()
 
     def resolve_config(self) -> Mapping[str, YamlTree]:
         """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
         start_t = time.time()
 
-        if self._from_registry:
+        if self._origin == ConfigType.REGISTRY:
             config = self._download_config()
+        elif self._origin == ConfigType.CDN:
+            config = download_pack_config(self._config_path)
         else:
             config = self._load_config_from_local_path()
 
