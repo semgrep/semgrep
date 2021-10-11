@@ -215,6 +215,7 @@ def run_semgrep(
         "--json",
         "--timeout",
         "0",
+        "--disable-metrics",
         "--no-git-ignore",  # because files in bench/*/input/ are git-ignored
     ]
     if docker:
