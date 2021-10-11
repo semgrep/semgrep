@@ -122,11 +122,13 @@ Browse the full Semgrep [documentation on the website](https://semgrep.dev/docs)
 
 ### Metrics
 
-Semgrep collects opt-in non-identifiable aggregate metrics for improving the user experience, guiding Semgrep feature development, and identifying regressions.
+Using remote configuration from the [Registry](https://semgrep.dev/r) (like `--config=p/ci`) reports pseudonymous rule metrics to semgrep.dev.
 
-The [PRIVACY.md](PRIVACY.md) file describes the principles that guide data-collection decisions, the breakdown of the data that are and are not collected when the metrics are enabled, and how to opt into Semgrep’s metrics.
+Using configs from local files (like `--config=xyz.yml`) does **not** enable metrics.
 
-> Semgrep CI never sends your source code anywhere.
+To disable Registry rule metrics, use `--metrics=off`. 
+
+[PRIVACY.md](PRIVACY.md) describes the principles that guide data-collection decisions and the breakdown of the data that are and are not collected when the metrics are enabled.
 
 ### More
 
