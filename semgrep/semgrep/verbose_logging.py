@@ -1,4 +1,5 @@
 import logging
+import sys
 from typing import Any
 from typing import cast
 from typing import Optional
@@ -40,6 +41,8 @@ def install_verbose_logging() -> None:
         VerboseLogging.VERBOSE_LOG_LEVEL, "VERBOSE"
     )  # Register VERBOSE as a logging level
     logging.setLoggerClass(VerboseLogging)
+
+    logging.basicConfig(stream=sys.stderr, level=logging.WARNING)
 
 
 install_verbose_logging()
