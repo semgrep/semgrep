@@ -71,6 +71,9 @@ class _MetricManager:
         self._send_metrics = metrics_state or legacy_state or MetricsState.AUTO
 
     def set_using_server_true(self) -> None:
+        if not self._using_server:
+            logger.info("Fetching rules from https://semgrep.dev/registry ...")
+
         self._using_server = True
 
     def set_project_hash(self, project_url: Optional[str]) -> None:

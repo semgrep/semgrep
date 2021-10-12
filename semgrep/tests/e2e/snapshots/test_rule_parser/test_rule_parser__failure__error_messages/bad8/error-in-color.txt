@@ -1,4 +1,4 @@
-[31msemgrep error[0m: Invalid rule schema
+[31m[31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad8.yaml:2
 [94m2 | [0m  - id: arg-reassign
 [94m3 | [0m    # missing a pattern
@@ -7,5 +7,5 @@
 [94m6 | [0m    severity: WARNING
 
 [31mOne of these properties is missing: 'pattern', 'pattern-either', 'pattern-regex', 'patterns'[0m
-
-run with --strict and there were 1 errors loading configs
+[0m
+[31mrun with --strict and there were 1 errors loading configs[0m

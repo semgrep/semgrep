@@ -35,7 +35,7 @@ class RuleSchema:
     _schema: Dict[str, Any] = {}
 
     @classmethod
-    def get(cls) -> Dict[str, Any]:  # type: ignore
+    def get(cls) -> Dict[str, Any]:
         """
         Returns the rule schema
 
@@ -285,7 +285,7 @@ class YamlTree(Generic[T]):
             )
 
     @classmethod
-    def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":  # type: ignore
+    def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":
         """
         Wraps a value in a YamlTree and attaches the span everywhere.
         This exists so you can take generate a datastructure from user input, but track all the errors within that
