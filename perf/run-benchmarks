@@ -233,7 +233,6 @@ def run_semgrep(
             # so we override it here
             "--entrypoint",
             "semgrep",
-            "-t",
             docker,
             "--quiet",
             "--config",
