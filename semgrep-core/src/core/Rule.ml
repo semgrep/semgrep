@@ -233,9 +233,21 @@ type pformula = New of formula | Old of formula_old [@@deriving show, eq]
  *     type rule   = Search of search | Taint of taint
  *)
 
+type sanitizer_spec = {
+  not_conflicting : bool;
+      (** If [not_conflicting] is enabled, the sanitizer cannot conflict with
+    a sink or a source (i.e., match the exact same range) otherwise
+    it is filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
+    to assume that any other function will handle tainted data safely.
+    Without this, `$F(...)` would automatically sanitize any other function
+    call acting as a sink or a source. *)
+  pformula : pformula;
+}
+[@@deriving show]
+
 type taint_spec = {
   sources : pformula list;
-  sanitizers : pformula list;
+  sanitizers : sanitizer_spec list;
   sinks : pformula list;
 }
 [@@deriving show]
