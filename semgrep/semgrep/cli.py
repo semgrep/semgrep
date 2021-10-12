@@ -571,6 +571,11 @@ def cli(
             "The '--dangerously-allow-arbitrary-code-execution-from-rules' flag is now deprecated and does nothing. It will be removed in the future."
         )
 
+    if (config and "auto" in config) and metrics == MetricsState.OFF:
+        abort(
+            "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
+        )
+
     output_time = time or json_time
 
     # set the flags
