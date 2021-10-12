@@ -22,7 +22,7 @@ $ semgrep --config=myrule.yaml  # → no metrics (loading rules from local file)
 $ semgrep --config=p/python     # → metrics enabled (fetching Registry)
 ```
 
-Semgrep does **not** enable metrics when running with local configuration files or command-line search patterns.
+Semgrep does **not** enable metrics when running with only local configuration files or command-line search patterns.
 
 Semgrep does enable metrics if rules are loaded from the [Semgrep Registry](https://semgrep.dev/r). This helps 
 maintainers improve the correctness and performance of registry rules.
