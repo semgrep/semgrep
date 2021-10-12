@@ -5,8 +5,8 @@ rules:
     message: Match
     mode: taint
     pattern-sanitizers:
-      - not_conflicting: true
-        pattern: $F(...)
+      - pattern: $F(...)
+        # not_conflicting: true
     pattern-sinks:
       - pattern: sink(...)
     pattern-sources:
