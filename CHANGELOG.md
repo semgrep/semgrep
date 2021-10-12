@@ -40,6 +40,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.68.0](https://github.com/returntocorp/semgrep/releases/tag/v0.68.0) - 10-06-2021
 
 ### Added
+- Added "automatic configuration" (`--config auto`), which collaborates with
+  the Semgrep Registry to customize rules to a project; to support this, we
+  add support for logging-in to the Registry using the project URL; in
+  a future release, this will also perform project analysis to determine
+  project languages and frameworks
 - Input can be derived from subshells: `semgrep --config ... <(...)`
 - Java: support '...' in catch (#4002)
 
