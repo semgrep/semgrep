@@ -675,6 +675,19 @@ let parse_severity ~id (s, t) =
            (id, spf "Bad severity: %s (expected ERROR, WARNING or INFO)" s, t))
 
 (*****************************************************************************)
+(* Sub parsers taint *)
+(*****************************************************************************)
+
+let parse_sanitizer env (key : key) (value : G.expr) =
+  let sanitizer_dict = yaml_to_dict env key value in
+  let not_conflicting =
+    take_opt sanitizer_dict env parse_bool "not_conflicting"
+    |> Option.value ~default:false
+  in
+  let pformula = parse_formula env sanitizer_dict in
+  { R.not_conflicting; pformula }
+
+(*****************************************************************************)
 (* Main entry point *)
 (*****************************************************************************)
 
@@ -685,18 +698,20 @@ let parse_mode env mode_opt (rule_dict : dict) : R.mode =
       let formula = parse_formula env rule_dict in
       R.Search formula
   | Some ("taint", _) ->
-      let parse_sub_patterns env key patterns =
-        let parse_sub_pattern name env pattern =
-          parse_formula env (yaml_to_dict env name pattern)
-        in
+      let parse_sub_formula env name pattern =
+        parse_formula env (yaml_to_dict env name pattern)
+      in
+      let parse_specs parse_spec env key x =
         parse_list env key
-          (parse_sub_pattern (fst key ^ "list item", snd key))
-          patterns
+          (fun env -> parse_spec env (fst key ^ "list item", snd key))
+          x
       in
       let sources, sanitizers_opt, sinks =
-        ( take rule_dict env parse_sub_patterns "pattern-sources",
-          take_opt rule_dict env parse_sub_patterns "pattern-sanitizers",
-          take rule_dict env parse_sub_patterns "pattern-sinks" )
+        ( take rule_dict env (parse_specs parse_sub_formula) "pattern-sources",
+          take_opt rule_dict env
+            (parse_specs parse_sanitizer)
+            "pattern-sanitizers",
+          take rule_dict env (parse_specs parse_sub_formula) "pattern-sinks" )
       in
       R.Taint { sources; sanitizers = optlist_to_list sanitizers_opt; sinks }
   | Some key ->
