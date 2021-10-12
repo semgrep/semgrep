@@ -61,8 +61,86 @@ let name_of_ids_with_opt_typeargs xs =
                (xs |> List.rev |> List.map fst (* TODO use typeargs in xs!! *)))
       in
       IdQualified
-        ( (x, { name_qualifier = qualif; name_typeargs = None (*TODO*) }),
-          empty_id_info () )
+        {
+          name_id = x;
+          name_qualifier = qualif;
+          name_typeargs = None (*TODO*);
+          name_info = empty_id_info ();
+        }
+
+(* used for Parse_csharp_tree_sitter.ml
+ * less: could move there? *)
+let add_id_opt_type_args_to_name (_id, _topt) _name = failwith "TODO"
+
+(* used for Parse_hack_tree_sitter.ml
+ * less: could move there? *)
+let add_type_args_to_name _name _t = failwith "TODO"
+
+(*
+let add_type_args_to_name name type_args =
+  match name with
+  | G.Id (ident, id_info) ->
+      (* Only IdQualified supports typeargs *)
+      G.IdQualified
+        ((ident, { name_qualifier = None; name_typeargs = type_args }), id_info)
+  | IdQualified ((ident, name_info), id_info) -> (
+      match name_info.name_typeargs with
+      | Some _x ->
+          IdQualified ((ident, name_info), id_info)
+          (* TODO: Enable raise Impossible *)
+          (* raise Impossible *)
+          (* Never should have to overwrite type args, but also doesn't make sense to merge *)
+      | None ->
+          G.IdQualified
+            ( ( ident,
+                {
+                  name_qualifier = name_info.name_qualifier;
+                  name_typeargs = type_args;
+                } ),
+              id_info ))
+
+
+other
+
+          let ident, name_qualifier =
+            match id_qualified.G.e with
+            | G.N
+                (G.IdQualified
+                  ((ident, { name_qualifier; name_typeargs = None; _ }), _)) ->
+                (ident, name_qualifier)
+            | _ -> raise Impossible
+          in
+          (* TODO is this correct? *)
+          let name =
+            (ident, { G.name_qualifier; G.name_typeargs = Some typeargs })
+          in
+          G.N (G.IdQualified (name, G.empty_id_info ()))
+
+*)
+
+let add_type_args_opt_to_name _name _topt = failwith "TODO"
+
+(*
+let prepend_qualifier_to_name (qualifier : qualifier) (name : name) : name =
+  match name with
+  | Id (ident, id_info) ->
+      let name_info =
+        { name_qualifier = Some qualifier; name_typeargs = None }
+      in
+      IdQualified ((ident, name_info), id_info)
+  | IdQualified ((ident, name_info), id_info) ->
+      let new_qualifier =
+        match (name_info.name_qualifier, qualifier) with
+        | None, q -> q
+        | Some (QTop _), QTop t2 -> QTop t2
+        | Some (QDots t1), QTop _ -> QDots t1
+        | Some (QTop _), QDots t2 -> QDots t2
+        | Some (QDots t1), QDots t2 -> QDots (t2 @ t1)
+        | _ -> failwith "qualifier not supported"
+      in
+      let name_info = { name_info with name_qualifier = Some new_qualifier } in
+      IdQualified ((ident, name_info), id_info)
+*)
 
 let name_of_ids ?(name_typeargs = None) xs =
   match List.rev xs with
@@ -71,7 +149,12 @@ let name_of_ids ?(name_typeargs = None) xs =
   | x :: xs ->
       let qualif = if xs = [] then None else Some (QDots (List.rev xs)) in
       IdQualified
-        ((x, { name_qualifier = qualif; name_typeargs }), empty_id_info ())
+        {
+          name_id = x;
+          name_qualifier = qualif;
+          name_typeargs;
+          name_info = empty_id_info ();
+        }
 
 let name_of_id id = Id (id, empty_id_info ())
 
@@ -89,14 +172,21 @@ let name_of_dot_access e =
 
 (* TODO: you should not need to use that. This is mostly because
  * Constructor and PatConstructor currently takes a dotted_ident instead
- * of a name.
+ * of a name, and because module_name accepts only DottedName
+ * but C# allows name.
  *)
 let dotted_ident_of_name (n : name) : dotted_ident =
   match n with
   | Id (id, _) -> [ id ]
-  | IdQualified ((id, _nameinfoTODO), _) ->
-      (* TODO, look QDots, ... *)
-      [ id ]
+  | IdQualified { name_id = ident; name_qualifier; _ } -> (
+      match name_qualifier with
+      | Some q -> (
+          match q with
+          | QDots ds -> ds @ [ ident ]
+          | _ ->
+              logger#error "unexpected qualifier type";
+              [ ident ])
+      | None -> [ ident ])
 
 (* In Go a pattern can be a complex expressions. It is just
  * matched for equality with the thing it's matched against, so in that
@@ -181,8 +271,9 @@ let name_or_dynamic_to_expr name idinfo_opt =
   (* assert idinfo = _idinfo below? *)
   | EN (Id (id, idinfo)), None -> N (Id (id, idinfo))
   | EN (Id (id, _idinfo)), Some idinfo -> N (Id (id, idinfo))
-  | EN (IdQualified (n, idinfo)), None -> N (IdQualified (n, idinfo))
-  | EN (IdQualified (n, _idinfo)), Some idinfo -> N (IdQualified (n, idinfo))
+  | EN (IdQualified n), None -> N (IdQualified n)
+  | EN (IdQualified n), Some idinfo ->
+      N (IdQualified { n with name_info = idinfo })
   | EDynamic e, _ -> e.e)
   |> G.e
 

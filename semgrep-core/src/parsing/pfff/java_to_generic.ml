@@ -112,20 +112,7 @@ and class_type v =
   in
   match List.rev res with
   | [] -> raise Impossible (* list1 *)
-  | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ()))
-  | [ (id, Some ts) ] -> G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts)
-  | (id, None) :: xs ->
-      let name_info =
-        {
-          G.name_typeargs = None;
-          (* could be v1TODO above *)
-          name_qualifier = Some (G.QDots (List.rev (List.map fst xs)));
-        }
-      in
-      G.TyN (G.IdQualified ((id, name_info), G.empty_id_info ()))
-  | (id, Some ts) :: xs ->
-      G.TyApply
-        (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))) |> G.t, ts)
+  | xs -> G.TyN (H.name_of_ids_with_opt_typeargs xs)
 
 and type_argument = function
   | TArgument v1 ->
