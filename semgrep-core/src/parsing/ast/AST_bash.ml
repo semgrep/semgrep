@@ -145,10 +145,35 @@ and command =
   | Sh_test of loc * sh_test
   | Bash_test of loc * bash_test
   | Arithmetic_expression of loc * arithmetic_expression
-  | For_loop of loc * for_loop
+  | For_loop of
+      loc
+      * (* for *) tok
+      * (* loop variable *)
+      string wrap
+      * (* in *)
+      (tok * expression list) option
+      * (* do *) tok
+      * blist
+      * (* done *) tok
   | For_loop_c_style of loc * for_loop_c_style
-  | Select of loc * select
-  | Case of loc * case
+  | Select
+      (* same syntax as For_loop *) of
+      loc
+      * (* select *) tok
+      * (* loop variable *)
+      string wrap
+      * (* in *)
+      (tok * expression list) option
+      * (* do *) tok
+      * blist
+      * (* done *) tok
+  | Case of
+      loc
+      * (* case *) tok
+      * expression
+      * (* in *) tok
+      * case_clause list
+      * (* esac *) tok
   | If of
       loc
       * (* if *) tok
@@ -268,9 +293,18 @@ and for_loop = blist
 (* TODO: represent the loop header: for (( ... )); *)
 and for_loop_c_style = blist
 
-and select = todo
+(* Only the last clause may not have a terminator. *)
+and case_clause =
+  loc
+  * expression list
+  * (* paren *) tok
+  * blist
+  * case_clause_terminator option
 
-and case = todo
+and case_clause_terminator =
+  | Break of (* ;; *) tok
+  | Fallthrough of (* ;& *) tok
+  | Try_next of (* ;;& *) tok
 
 and elif = loc * (* elif *) tok * blist * (* then *) tok * blist
 
@@ -296,24 +330,24 @@ and assign_rhs = expression
 and declaration = todo
 
 and expression =
-  | Word of string wrap
-  | String of string_fragment list bracket
-  | String_fragment of loc * string_fragment
-  | Raw_string of string wrap
-  | Ansii_c_string of string wrap
-  | Special_character of string wrap
-  | String_expansion of string wrap
+  | Word of (* unquoted string *) string wrap
+  | Special_character of (* unquoted string *) string wrap
+  | String of (* "..." *) string_fragment list bracket
+  | String_fragment of (* $x ${...} $(...) `...` ... *) loc * string_fragment
+  | Raw_string of (* '...' *) string wrap
+  | Ansii_c_string of (* $'...' *) string wrap
   | Concatenation of loc * expression list
   | Semgrep_ellipsis of tok
-  | Semgrep_metavariable of string wrap
+  | Semgrep_metavariable of (* ${{ ... }} *) string wrap
   | Equality_test of loc * eq_op * right_eq_operand (* should it be here? *)
   | Empty_expression of loc
-  | Expression_TODO of loc
+  | Array of (* ( ... ) *) loc * expression list bracket
+  | Process_substitution of (* <( ... ) *) loc * blist bracket
 
 (* Fragment of a double-quoted string *)
 and string_fragment =
   | String_content of string wrap
-  | Expansion of loc * expansion
+  | Expansion of (* $X ${X} ${X ... } *) loc * expansion
   | Command_substitution of (* $(foo; bar) or `foo; bar` *) blist bracket
 
 (* $foo or something like ${foo ...} *)
@@ -446,10 +480,10 @@ let command_loc = function
   | Sh_test (loc, _) -> loc
   | Bash_test (loc, _) -> loc
   | Arithmetic_expression (loc, _) -> loc
-  | For_loop (loc, _) -> loc
+  | For_loop (loc, _, _, _, _, _, _) -> loc
   | For_loop_c_style (loc, _) -> loc
-  | Select (loc, _) -> loc
-  | Case (loc, _) -> loc
+  | Select (loc, _, _, _, _, _, _) -> loc
+  | Case (loc, _, _, _, _, _) -> loc
   | If (loc, _, _, _, _, _, _, _) -> loc
   | While_loop (loc, _) -> loc
   | Until_loop (loc, _) -> loc
@@ -487,9 +521,17 @@ let arithmetic_expression_loc (x : arithmetic_expression) =
   let open_, _, close = x in
   (open_, close)
 
-let select_loc (x : select) = todo_loc x
+let case_clause_loc ((loc, _, _, _, _) : case_clause) = loc
 
-let case_loc (x : case) = todo_loc x
+let case_clause_terminator_tok = function
+  | Break tok
+  | Fallthrough tok
+  | Try_next tok ->
+      tok
+
+let case_clause_terminator_loc x =
+  let tok = case_clause_terminator_tok x in
+  (tok, tok)
 
 let elif_loc (x : elif) =
   let loc, _elif, _cond, _then, _body = x in
@@ -512,13 +554,13 @@ let expression_loc = function
   | Raw_string x -> wrap_loc x
   | Ansii_c_string x -> wrap_loc x
   | Special_character x -> wrap_loc x
-  | String_expansion x -> wrap_loc x
   | Concatenation (loc, _) -> loc
   | Semgrep_ellipsis tok -> (tok, tok)
   | Semgrep_metavariable x -> wrap_loc x
   | Equality_test (loc, _, _) -> loc
   | Empty_expression loc -> loc
-  | Expression_TODO loc -> loc
+  | Array (loc, _) -> loc
+  | Process_substitution (loc, _) -> loc
 
 let assign_rhs_loc (x : assign_rhs) = expression_loc x
 

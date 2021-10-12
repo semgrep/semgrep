@@ -4,7 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
-## Fixed
+### Added
+- C: support ... in parameters and sizeof arguments (#4037)
+- C: support declaration and function patterns
+- Java: support @interface pattern (#4030)
+
+### Fixed
+
+### Changed
+- taint-mode: Introduce a new kind of _not conflicting_ sanitizer that must be
+  declared with `not_conflicting: true`. This affects the change made in 0.68.0
+  that allowed a sanitizer like `- pattern: $F(...)` to work, but turned out to
+  affect our ability to specify sanitization by side-effect. Now the default
+  semantics of sanitizers is reverted back to the same as before 0.68.0, and
+  `- pattern: $F(...)` is supported via the new not-conflicting sanitizers.
+
+## [0.68.2](https://github.com/returntocorp/semgrep/releases/tag/v0.68.2) - 10-07-2021
+
+### Fixed
 - Respect --skip-unknown-extensions even for files with no extension
 (treat no extension as an unknown extension)
 - taint-mode: Fixed (another) bug where a tainted sink could go unreported when
@@ -13,8 +30,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.68.1](https://github.com/returntocorp/semgrep/releases/tag/v0.68.1) - 10-07-2021
 
 ### Added
-- Added support for `raise`/`throw` expressions in the dataflow engine and improved
-  existing support for `try-catch-finally`
+- Added support for `raise`/`throw` expressions in the dataflow engine and
+  improved existing support for `try-catch-finally`
 
 ### Fixed
 - Respect rule level path filtering
@@ -22,6 +39,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.68.0](https://github.com/returntocorp/semgrep/releases/tag/v0.68.0) - 10-06-2021
 
 ### Added
+- Added "automatic configuration" (`--config auto`), which collaborates with
+  the Semgrep Registry to customize rules to a project; to support this, we
+  add support for logging-in to the Registry using the project URL; in
+  a future release, this will also perform project analysis to determine
+  project languages and frameworks
 - Input can be derived from subshells: `semgrep --config ... <(...)`
 - Java: support '...' in catch (#4002)
 
@@ -72,6 +94,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - HCL (a.k.a Terraform) experimental support
 
 ### Changed
+- **METRICS COLLECTION CHANGES**: In order to target development of Semgrep features, performance improvements,
+  and language support, we have changed how metrics are collected by default
+  - Metrics collection is now controlled with the `--metrics` option, with possible values: `auto`, `on`, or `off`
+  - `auto` will send metrics only on runs that include rules are pulled from the Semgrep Registry.
+    It will not send metrics when rules are only read from local files or passed directly as
+    strings
+  - `auto` is now the default metrics collection state
+  - `on` forces metrics collection on every run
+  - `off` disables metrics collection entirely
+  - Metrics collection may still alternatively be controlled with the `SEMGREP_SEND_METRICS`
+    environment variable, with the same possible values as the `--metrics` option. If both
+    are set, `--metrics` overrides `SEMGREP_SEND_METRICS` 
+  - See `PRIVACY.md` for more information
 - Constant propagation now assumes that void methods may update the callee (#3316)
 - Add rule message to emacs output (#3851)
 - Show stack trace on fatal errors (#3876)

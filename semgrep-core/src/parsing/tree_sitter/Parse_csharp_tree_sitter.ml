@@ -36,38 +36,6 @@ let token = H.token
 
 let str = H.str
 
-(* TODO: need extend G.module_name to accept name in addition to DottedName? *)
-let ids_of_name (name : name) : dotted_ident =
-  match name with
-  | Id (ident, _) -> [ ident ]
-  | IdQualified ((ident, name_info), _) -> (
-      match name_info.name_qualifier with
-      | Some q -> (
-          match q with
-          | QDots ds -> ds @ [ ident ]
-          | _ -> failwith "unexpected qualifier type")
-      | None -> [ ident ])
-
-let prepend_qualifier_to_name (qualifier : qualifier) (name : name) : name =
-  match name with
-  | Id (ident, id_info) ->
-      let name_info =
-        { name_qualifier = Some qualifier; name_typeargs = None }
-      in
-      IdQualified ((ident, name_info), id_info)
-  | IdQualified ((ident, name_info), id_info) ->
-      let new_qualifier =
-        match (name_info.name_qualifier, qualifier) with
-        | None, q -> q
-        | Some (QTop _), QTop t2 -> QTop t2
-        | Some (QDots t1), QTop _ -> QDots t1
-        | Some (QTop _), QDots t2 -> QDots t2
-        | Some (QDots t1), QDots t2 -> QDots (t2 @ t1)
-        | _ -> failwith "qualifier not supported"
-      in
-      let name_info = { name_info with name_qualifier = Some new_qualifier } in
-      IdQualified ((ident, name_info), id_info)
-
 (* less: we should check we consume all constraints *)
 let type_parameters_with_constraints tparams constraints : type_parameter list =
   tparams
@@ -274,17 +242,10 @@ let linq_to_expr (from : linq_query_part) (body : linq_query_part list) =
   | _ -> raise Impossible
 
 let new_index_from_end tok expr =
-  let index =
-    TyN
-      (IdQualified
-         ( ( ("Index", fake "Index"),
-             {
-               name_qualifier = Some (QDots [ ("System", fake "System") ]);
-               name_typeargs = None;
-             } ),
-           empty_id_info () ))
-    |> G.t
+  let name =
+    H2.name_of_ids [ ("System", fake "System"); ("Index", fake "Index") ]
   in
+  let index = TyN name |> G.t in
   Call
     ( IdSpecial (New, tok) |> G.e,
       fake_bracket
@@ -561,10 +522,12 @@ let identifier_or_global (env : env) (x : CST.identifier_or_global) =
 
 (* identifier *)
 
-let identifier_or_global_qualifier (env : env) (x : CST.identifier_or_global) =
+let identifier_or_global_qualifier (env : env) (x : CST.identifier_or_global) :
+    G.ident =
   match x with
-  | `Global tok -> QTop (token env tok) (* "global" *)
-  | `Id tok -> QDots [ identifier env tok ]
+  (* old: was QTop, but simpler to just return an ident for H2.name_of_ids *)
+  | `Global tok -> str env tok (* "global" *)
+  | `Id tok -> identifier env tok
 
 (* identifier *)
 
@@ -924,14 +887,13 @@ and name (env : env) (x : CST.name) : G.name =
       let v1 = identifier_or_global_qualifier env v1 in
       let _v2 = token env v2 (* "::" *) in
       let v3 = simple_name env v3 in
-      prepend_qualifier_to_name v1 v3
+      H2.name_of_ids_with_opt_typeargs [ (v1, None); v3 ]
   | `Qual_name (v1, v2, v3) ->
       let v1 = name env v1 in
       let _v2 = token env v2 (* "." *) in
       let v3 = simple_name env v3 in
-      let qualifier = QDots (ids_of_name v1) in
-      prepend_qualifier_to_name qualifier v3
-  | `Simple_name x -> simple_name env x
+      H2.add_id_opt_type_args_to_name v1 v3
+  | `Simple_name x -> H2.name_of_ids_with_opt_typeargs [ simple_name env x ]
 
 and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) :
     G.type_parameter =
@@ -1235,7 +1197,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | `Member_bind_exp (x1, x2) ->
             let x1 = token env x1 (* "." *) in
             let x2 = simple_name env x2 in
-            DotAccess (v1, x1, EN x2) |> G.e
+            let n = H2.name_of_ids_with_opt_typeargs [ x2 ] in
+            DotAccess (v1, x1, EN n) |> G.e
       in
       Conditional (is_null, fake_null, access)
   | `Cond_exp (v1, v2, v3, v4, v5) ->
@@ -1351,7 +1314,8 @@ and expression (env : env) (x : CST.expression) : G.expr =
         (* "->" *)
       in
       let v3 = simple_name env v3 in
-      G.DotAccess (v1, v2, G.EN v3)
+      let n = H2.name_of_ids_with_opt_typeargs [ v3 ] in
+      G.DotAccess (v1, v2, G.EN n)
   | `Obj_crea_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = type_constraint env v2 in
@@ -1488,7 +1452,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
        * - record patterns perhaps should match with-expressions
        *)
       G.OtherExpr (G.OE_RecordWith, [ G.E v1; G.E with_fields ])
-  | `Simple_name x -> N (simple_name env x)
+  | `Simple_name x ->
+      let x = simple_name env x in
+      N (H2.name_of_ids_with_opt_typeargs [ x ])
   | `Lit x ->
       let x = literal env x in
       G.L x)
@@ -1501,15 +1467,14 @@ and simple_assignment_expression (env : env)
   let v3 = expression env v3 in
   G.basic_field v1 (Some v3) None
 
-and simple_name (env : env) (x : CST.simple_name) : G.name =
+and simple_name (env : env) (x : CST.simple_name) :
+    G.ident * G.type_arguments option =
   match x with
   | `Gene_name (v1, v2) ->
       let v1 = identifier env v1 (* identifier *) in
       let v2 = type_argument_list env v2 in
-      IdQualified
-        ( (v1, { name_qualifier = None; name_typeargs = Some v2 }),
-          empty_id_info () )
-  | `Choice_global x -> Id (identifier_or_global env x, empty_id_info ())
+      (v1, Some v2)
+  | `Choice_global x -> (identifier_or_global env x, None)
 
 and switch_body (env : env) ((v1, v2, v3) : CST.switch_body) :
     case_and_body list =
@@ -2486,16 +2451,17 @@ and using_directive (env : env) ((v1, v2, v3, v4) : CST.using_directive) =
             (* "static" *)
             (* using static System.Math; *)
             (* THINK: The generic AST is undistinguishable from that of `using Foo`. *)
-            G.ImportAll (v1, G.DottedName (ids_of_name v3), v4)
+            G.ImportAll (v1, G.DottedName (H2.dotted_ident_of_name v3), v4)
         | `Name_equals x ->
             (* using Foo = System.Text; *)
             let alias = name_equals env x in
             G.ImportAs
-              (v1, G.DottedName (ids_of_name v3), Some (alias, empty_id_info ()))
-        )
+              ( v1,
+                G.DottedName (H2.dotted_ident_of_name v3),
+                Some (alias, empty_id_info ()) ))
     | None ->
         (* using System.IO; *)
-        G.ImportAll (v1, G.DottedName (ids_of_name v3), v4)
+        G.ImportAll (v1, G.DottedName (H2.dotted_ident_of_name v3), v4)
   in
   G.DirectiveStmt (import |> G.d) |> G.s
 

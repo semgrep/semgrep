@@ -9,7 +9,7 @@ from semgrep import __VERSION__
 RULES_KEY = "rules"
 ID_KEY = "id"
 CLI_RULE_ID = "-"
-SEMGREP_URL = "https://semgrep.dev/"
+SEMGREP_URL = os.environ.get("SEMGREP_URL", "https://semgrep.dev/")
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the semgrep engine; please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
@@ -17,6 +17,9 @@ DEFAULT_CONFIG_FILE = f".{DEFAULT_SEMGREP_CONFIG_NAME}.yml"
 DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 DEFAULT_TIMEOUT = 30  # seconds
+
+USER_DATA_FOLDER = ".semgrep"
+SETTINGS_FILE = "settings.yml"
 
 SEMGREP_USER_AGENT = f"Semgrep/{__VERSION__}"
 SEMGREP_USER_AGENT_APPEND = os.environ.get("SEMGREP_USER_AGENT_APPEND")

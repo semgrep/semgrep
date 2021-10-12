@@ -14,6 +14,7 @@ from typing import Union
 import pytest
 
 from semgrep.constants import OutputFormat
+from semgrep.notifications import possibly_notify_user
 
 TESTS_PATH = Path(__file__).parent
 
@@ -85,6 +86,8 @@ def _run_semgrep(
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
     """
+    possibly_notify_user()
+
     if options is None:
         options = []
 

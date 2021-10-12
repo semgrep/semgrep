@@ -85,7 +85,7 @@ def test_multiple_configs():
         tf1.flush()
         tf2.flush()
         config_list = [tf1.name, tf2.name]
-        config, errors = Config.from_config_list(config_list)
+        config, errors = Config.from_config_list(config_list, None)
         assert not errors
         rules = config.get_rules(True)
         assert len(rules) == 3

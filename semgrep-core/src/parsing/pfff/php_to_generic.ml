@@ -64,17 +64,9 @@ let var v = wrap string v
 
 let qualified_ident v = list ident v
 
-(* TODO: generate Left id or Right name *)
 let name_of_qualified_ident xs =
-  match List.rev (qualified_ident xs) with
-  | [] -> raise Impossible
-  | [ x ] -> (x, { G.name_qualifier = None; name_typeargs = None })
-  | x :: y :: xs ->
-      ( x,
-        {
-          G.name_qualifier = Some (G.QDots (List.rev (y :: xs)));
-          name_typeargs = None;
-        } )
+  let xs = qualified_ident xs in
+  H.name_of_ids xs
 
 let name v = qualified_ident v
 
@@ -255,10 +247,9 @@ and expr e : G.expr =
   | String v1 ->
       let v1 = wrap string v1 in
       G.L (G.String v1)
-  | Id [ v1 ] -> G.N (G.Id (v1, G.empty_id_info ()))
   | Id v1 ->
       let v1 = name_of_qualified_ident v1 in
-      G.N (G.IdQualified (v1, G.empty_id_info ()))
+      G.N v1
   | IdSpecial v1 ->
       let v1 = wrap special v1 in
       G.IdSpecial v1
@@ -427,7 +418,7 @@ and hint_type x = hint_type_kind x |> G.t
 and hint_type_kind = function
   | Hint v1 ->
       let v1 = name v1 in
-      G.TyN (G.IdQualified (name_of_qualified_ident v1, G.empty_id_info ()))
+      G.TyN (name_of_qualified_ident v1)
   | HintArray t -> G.TyBuiltin ("array", t)
   | HintQuestion (t, v1) ->
       let v1 = hint_type v1 in

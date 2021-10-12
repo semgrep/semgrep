@@ -374,15 +374,19 @@ let rec m_name a b =
   | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
       envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
-  | ( G.IdQualified (_a1, _a2),
+  | ( G.IdQualified _a1,
       B.IdQualified
-        ( (idb, nameinfo),
-          {
-            B.id_resolved = { contents = Some (B.ImportedEntity dotted, _sid) };
-            _;
-          } ) ) ->
+        ({
+           name_info =
+             {
+               B.id_resolved =
+                 { contents = Some (B.ImportedEntity dotted, _sid) };
+               _;
+             };
+           _;
+         } as nameinfo) ) ->
       (* try without resolving anything *)
-      m_name a (B.IdQualified ((idb, nameinfo), B.empty_id_info ()))
+      m_name a (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
       >||>
       (* try this time by replacing the qualifier by the resolved one *)
       let new_qualifier =
@@ -392,14 +396,15 @@ let rec m_name a b =
       in
       m_name a
         (B.IdQualified
-           ( ( idb,
-               { nameinfo with name_qualifier = Some (B.QDots new_qualifier) }
-             ),
-             B.empty_id_info () ))
+           {
+             nameinfo with
+             name_qualifier = Some (B.QDots new_qualifier);
+             name_info = B.empty_id_info ();
+           })
   (* semantic! try to handle open in OCaml by querying LSP! The
    * target code is using an unqualified Id possibly because of some open!
    *)
-  | G.IdQualified ((ida, _namea), _infoa), B.Id (idb, _infob)
+  | G.IdQualified { name_id = ida; _ }, B.Id (idb, _infob)
     when fst ida = fst idb -> (
       match !Hooks.get_def idb with
       | None -> fail ()
@@ -412,22 +417,25 @@ let rec m_name a b =
           (* m_name a n *)
           return ())
   (* boilerplate *)
-  | G.IdQualified (a1, a2), B.IdQualified (b1, b2) ->
-      m_name_ a1 b1 >>= fun () -> m_id_info a2 b2
+  | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
   | G.Id _, _
   | G.IdQualified _, _ ->
       fail ()
 
-and m_name_ a b =
-  match (a, b) with
-  | (a1, a2), (b1, b2) -> m_ident a1 b1 >>= fun () -> m_name_info a2 b2
-
 and m_name_info a b =
   match (a, b) with
-  | ( { G.name_qualifier = a1; name_typeargs = a2 },
-      { B.name_qualifier = b1; name_typeargs = b2 } ) ->
-      (m_option m_qualifier) a1 b1 >>= fun () ->
-      (m_option m_type_arguments) a2 b2
+  | ( { G.name_id = a0; name_qualifier = a1; name_typeargs = a2; name_info = a3 },
+      {
+        B.name_id = b0;
+        name_qualifier = b1;
+        name_typeargs = b2;
+        name_info = b3;
+      } ) ->
+      let* () = m_ident a0 b0 in
+      let* () = (m_option m_qualifier) a1 b1 in
+      let* () = (m_option m_type_arguments) a2 b2 in
+      let* () = m_id_info a3 b3 in
+      return ()
 
 and m_qualifier a b =
   match (a, b) with
@@ -540,6 +548,7 @@ and m_expr_deep a b =
  * also add them in m_pattern
  *)
 and m_expr a b =
+  Trace_matching.(if on then print_expr_pair a b);
   match (a.G.e, b.G.e) with
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
@@ -577,8 +586,7 @@ and m_expr a b =
       m_expr a (make_dotted dotted)
   (* equivalence: name resolving on qualified ids (for OCaml) *)
   (* Put this before the next case to prevent overly eager dealiasing *)
-  | ( G.N (G.IdQualified (_, _) as na),
-      B.N ((B.IdQualified (_, _) | B.Id _) as nb) ) ->
+  | G.N (G.IdQualified _ as na), B.N ((B.IdQualified _ | B.Id _) as nb) ->
       m_name na nb
   (* Matches pattern
    *   a.b.C.x
@@ -588,7 +596,7 @@ and m_expr a b =
    *)
   | ( G.N
         (G.IdQualified
-          ((alabel, { G.name_qualifier = Some (G.QDots names); _ }), _id_info)),
+          { G.name_id = alabel; G.name_qualifier = Some (G.QDots names); _ }),
       _b ) ->
       let full = names @ [ alabel ] in
       m_expr (make_dotted full) b
@@ -867,6 +875,7 @@ and m_for_or_if_comp a b =
       fail ()
 
 and m_literal a b =
+  Trace_matching.(if on then print_literal_pair a b);
   match (a, b) with
   (* dots: metavar: '...' and metavars on string/regexps/atoms *)
   | G.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
@@ -947,6 +956,7 @@ and m_action (a : G.action) (b : G.action) =
   | (a1, a2), (b1, b2) -> m_pattern a1 b1 >>= fun () -> m_expr a2 b2
 
 and m_arithmetic_operator a b =
+  Trace_matching.(if on then print_arithmetic_operator_pair a b);
   match (a, b) with
   | _ when a =*= b -> return ()
   | _ -> fail ()
@@ -1090,7 +1100,9 @@ and m_compatible_type typed_mvar t e =
       m_type_option_with_hook idb (Some t) !tb >>= fun () ->
       envf typed_mvar (MV.Id (idb, Some id_infob))
   | ( _ta,
-      ( B.N (B.IdQualified ((idb, _), { B.id_type = tb; _ }))
+      ( B.N
+          (B.IdQualified
+            { name_id = idb; name_info = { B.id_type = tb; _ }; _ })
       | B.DotAccess
           ( { e = IdSpecial (This, _); _ },
             _,
@@ -1498,6 +1510,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
 (* Type *)
 (*****************************************************************************)
 and m_type_ a b =
+  Trace_matching.(if on then print_type_pair a b);
   let* () = m_attributes a.t_attrs b.t_attrs in
   match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
@@ -1805,6 +1818,7 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
 (* Statement *)
 (*****************************************************************************)
 and m_stmt a b =
+  Trace_matching.(if on then print_stmt_pair a b);
   match (a.s, b.s) with
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
@@ -2123,6 +2137,7 @@ and m_other_pattern_operator = m_other_xxx
 (* Definitions *)
 (*****************************************************************************)
 and m_definition a b =
+  Trace_matching.(if on then print_definition_pair a b);
   match (a, b) with
   | (a1, a2), (b1, b2) ->
       (* subtle: if you change the order here, so that we execute m_entity
@@ -2240,6 +2255,7 @@ and m_variance a b =
 and m_function_kind _ _ = return ()
 
 and m_function_definition a b =
+  Trace_matching.(if on then print_function_definition_pair a b);
   match (a, b) with
   | ( { G.fparams = a1; frettype = a2; fbody = a3; fkind = a4 },
       { B.fparams = b1; frettype = b2; fbody = b3; fkind = b4 } ) ->
@@ -2538,6 +2554,7 @@ and m_class_parent (a1, a2) (b1, b2) =
  * but maybe quite different from list of types in inheritance
  *)
 and m_class_definition a b =
+  Trace_matching.(if on then print_class_definition_pair a b);
   match (a, b) with
   | ( {
         G.ckind = a1;
@@ -2610,6 +2627,7 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (*****************************************************************************)
 and m_directive a b =
+  Trace_matching.(if on then print_directive_pair a b);
   let* () =
     m_list_in_any_order ~less_is_ok:true m_attribute a.d_attrs b.d_attrs
   in

@@ -1,4 +1,4 @@
-[31msemgrep error[0m: Invalid rule schema
+[31m[31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad1.yaml:4
 [94m4  | [0m      - pattern-inside:
 [94m5  | [0m        - pattern: $X == $X
@@ -11,5 +11,5 @@
 [94m12 | [0m      - pattern-not: 1 == 1
 
 [31m[{'pattern': '$X == $X'}, {'pattern': '$X != $X'}, {'patterns': [{'pattern-inside': 'def __init__(...):\n    ...\n'}, {'pattern': 'self.$X == self.$X'}]}] is not of type 'string'[0m
-
-run with --strict and there were 1 errors loading configs
+[0m
+[31mrun with --strict and there were 1 errors loading configs[0m
