@@ -130,16 +130,21 @@ let taint_config_of_rule default_config equivs file ast_and_errors
   in
   let sources_ranges = find_ranges spec.sources
   and sinks_ranges = find_ranges spec.sinks in
+  let not_conflicting_sanitizers, regular_sanitizers =
+    spec.sanitizers
+    |> List.partition_map (fun { R.not_conflicting; pformula } ->
+           if not_conflicting then Either.left pformula
+           else Either.right pformula)
+  in
   let sanitizers_ranges =
-    find_ranges spec.sanitizers
-    (* A sanitizer cannot conflict with a sink or a source, otherwise it is
-     * filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
-     * to assume that any other function will handle tainted data safely.
-     * Without this, `$F(...)` will automatically sanitize any other function
-     * call acting as a sink or a source. *)
+    (find_ranges not_conflicting_sanitizers
+    (* These sanitizers cannot conflict with a sink or a source. This allows to
+     * e.g. declare `$F(...)` as a sanitizer without sanitizing every other
+     * function call acting as a sink or a source. See [Rule.sanitizer_spec]. *)
     |> List.filter (fun r ->
            (* TODO: Warn user when we filter out a sanitizer? *)
-           not (List.mem r sinks_ranges || List.mem r sources_ranges))
+           not (List.mem r sinks_ranges || List.mem r sources_ranges)))
+    @ find_ranges regular_sanitizers
   in
   {
     Dataflow_tainting.is_source = (fun x -> any_in_ranges x sources_ranges);

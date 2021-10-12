@@ -11,6 +11,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 ### Changed
+### Changed
+- taint-mode: Introduce a new kind of _not conflicting_ sanitizer that must be
+  declared with `not_conflicting: true`. This affects the change made in 0.68.0
+  that allowed a sanitizer like `- pattern: $F(...)` to work, but turned out to
+  affect our ability to specify sanitization by side-effect. Now the default
+  semantics of sanitizers is reverted back to the same as before 0.68.0, and
+  `- pattern: $F(...)` is supported via the new not-conflicting sanitizers.
 
 ## [0.68.2](https://github.com/returntocorp/semgrep/releases/tag/v0.68.2) - 10-07-2021
 
