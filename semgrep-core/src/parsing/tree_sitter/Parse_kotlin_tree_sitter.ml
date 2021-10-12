@@ -1539,14 +1539,12 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
   | `Lit_cst x -> L (literal_constant env x) |> G.e
   | `Str_lit x -> string_literal env x
   | `Call_ref (v1, v2, v3) ->
-      let _v1TODO =
+      let v1 =
         match v1 with
         | Some x ->
             let id = simple_identifier env x in
-            G.N (H2.name_of_id id) |> G.e
-        | None ->
-            let fake_id = ("None", fake "None") in
-            G.N (H2.name_of_id fake_id) |> G.e
+            Some id
+        | None -> None
       in
       let v2 = token env v2 (* "::" *) in
       let v3 =
@@ -1556,12 +1554,18 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
         | `Class tok -> str env tok
         (* "class" *)
       in
-      (* TODO use qualifiers, with v1TODO above *)
-      let nameinfo =
-        { name_qualifier = Some (G.QTop v2); name_typeargs = None }
+      let name_info =
+        match (v1, v2, v3) with
+        | _ ->
+            {
+              name_id = v3;
+              name_qualifier = None (* TODO*);
+              name_typeargs = None;
+              name_info = empty_id_info ();
+            }
+        (* TODO use qualifiers, with v1TODO above *)
       in
-      let n = IdQualified ((v3, nameinfo), empty_id_info ()) in
-      G.N n |> G.e
+      G.N (IdQualified name_info) |> G.e
   | `Func_lit x -> function_literal env x
   | `Obj_lit (v1, v2, v3) ->
       let v1 = token env v1 (* "object" *) in
