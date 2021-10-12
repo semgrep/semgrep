@@ -892,7 +892,7 @@ and name (env : env) (x : CST.name) : G.name =
       let v1 = name env v1 in
       let _v2 = token env v2 (* "." *) in
       let v3 = simple_name env v3 in
-      H2.add_id_opt_type_args_to_name v3 v1
+      H2.add_id_opt_type_args_to_name v1 v3
   | `Simple_name x -> H2.name_of_ids_with_opt_typeargs [ simple_name env x ]
 
 and type_parameter (env : env) ((v1, v2, v3) : CST.type_parameter) :

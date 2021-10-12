@@ -42,8 +42,8 @@ val name_of_ids_with_opt_typeargs :
   AST_generic.name
 
 val add_id_opt_type_args_to_name :
-  AST_generic.ident * AST_generic.type_arguments option ->
   AST_generic.name ->
+  AST_generic.ident * AST_generic.type_arguments option ->
   AST_generic.name
 
 val add_type_args_to_name :

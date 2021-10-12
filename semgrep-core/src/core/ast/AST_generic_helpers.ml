@@ -45,9 +45,7 @@ let gensym () =
   incr gensym_counter;
   !gensym_counter
 
-(* TODO: refactor name_qualifier and correctly handle this,
- * and factorize code in name_of_ids by calling this function.
- *)
+(* TODO: refactor name_qualifier and correctly handle this *)
 let name_of_ids_with_opt_typeargs xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids_with_opt_typeargs: empty ids"
@@ -68,79 +66,57 @@ let name_of_ids_with_opt_typeargs xs =
           name_info = empty_id_info ();
         }
 
+let name_to_qualifier = function
+  | Id (id, _) -> [ id ]
+  | IdQualified { name_id = id; name_qualifier = qu; _ } ->
+      let rest =
+        match qu with
+        | None -> []
+        | Some (QDots xs) -> xs
+        (* TODO *)
+        | Some _ -> []
+      in
+      rest @ [ id ]
+
 (* used for Parse_csharp_tree_sitter.ml
  * less: could move there? *)
-let add_id_opt_type_args_to_name (_id, _topt) _name = failwith "TODO"
+let add_id_opt_type_args_to_name name (id, topt) =
+  let qdots = name_to_qualifier name in
+  IdQualified
+    {
+      name_id = id;
+      name_qualifier = Some (QDots qdots);
+      name_typeargs = topt;
+      name_info = empty_id_info () (* TODO reuse from name?*);
+    }
 
 (* used for Parse_hack_tree_sitter.ml
  * less: could move there? *)
-let add_type_args_to_name _name _t = failwith "TODO"
-
-(*
 let add_type_args_to_name name type_args =
   match name with
-  | G.Id (ident, id_info) ->
+  | Id (ident, id_info) ->
       (* Only IdQualified supports typeargs *)
-      G.IdQualified
-        ((ident, { name_qualifier = None; name_typeargs = type_args }), id_info)
-  | IdQualified ((ident, name_info), id_info) -> (
-      match name_info.name_typeargs with
+      IdQualified
+        {
+          name_id = ident;
+          name_qualifier = None;
+          name_typeargs = Some type_args;
+          name_info = id_info;
+        }
+  | IdQualified qualified_info -> (
+      match qualified_info.name_typeargs with
       | Some _x ->
-          IdQualified ((ident, name_info), id_info)
+          IdQualified qualified_info
           (* TODO: Enable raise Impossible *)
           (* raise Impossible *)
           (* Never should have to overwrite type args, but also doesn't make sense to merge *)
       | None ->
-          G.IdQualified
-            ( ( ident,
-                {
-                  name_qualifier = name_info.name_qualifier;
-                  name_typeargs = type_args;
-                } ),
-              id_info ))
+          IdQualified { qualified_info with name_typeargs = Some type_args })
 
-
-other
-
-          let ident, name_qualifier =
-            match id_qualified.G.e with
-            | G.N
-                (G.IdQualified
-                  ((ident, { name_qualifier; name_typeargs = None; _ }), _)) ->
-                (ident, name_qualifier)
-            | _ -> raise Impossible
-          in
-          (* TODO is this correct? *)
-          let name =
-            (ident, { G.name_qualifier; G.name_typeargs = Some typeargs })
-          in
-          G.N (G.IdQualified (name, G.empty_id_info ()))
-
-*)
-
-let add_type_args_opt_to_name _name _topt = failwith "TODO"
-
-(*
-let prepend_qualifier_to_name (qualifier : qualifier) (name : name) : name =
-  match name with
-  | Id (ident, id_info) ->
-      let name_info =
-        { name_qualifier = Some qualifier; name_typeargs = None }
-      in
-      IdQualified ((ident, name_info), id_info)
-  | IdQualified ((ident, name_info), id_info) ->
-      let new_qualifier =
-        match (name_info.name_qualifier, qualifier) with
-        | None, q -> q
-        | Some (QTop _), QTop t2 -> QTop t2
-        | Some (QDots t1), QTop _ -> QDots t1
-        | Some (QTop _), QDots t2 -> QDots t2
-        | Some (QDots t1), QDots t2 -> QDots (t2 @ t1)
-        | _ -> failwith "qualifier not supported"
-      in
-      let name_info = { name_info with name_qualifier = Some new_qualifier } in
-      IdQualified ((ident, name_info), id_info)
-*)
+let add_type_args_opt_to_name name topt =
+  match topt with
+  | None -> name
+  | Some t -> add_type_args_to_name name t
 
 let name_of_ids ?(name_typeargs = None) xs =
   match List.rev xs with

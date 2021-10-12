@@ -110,7 +110,7 @@ and class_type v =
         (v1, v2))
       v
   in
-  match List.rev res with
+  match res with
   | [] -> raise Impossible (* list1 *)
   | xs -> G.TyN (H.name_of_ids_with_opt_typeargs xs)
 
