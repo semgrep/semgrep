@@ -18,7 +18,7 @@ These principles inform our decisions around data collection:
 ## Automatic collection, opt-in, and opt-out
 
 ```sh
-$ semgrep --config=myrule.yaml  # → no metrics (fetching local file)
+$ semgrep --config=myrule.yaml  # → no metrics (loading rules from local file)
 $ semgrep --config=p/python     # → metrics enabled (fetching Registry)
 ```
 
