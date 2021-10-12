@@ -235,7 +235,7 @@ class _MetricManager:
         """
         import requests
 
-        logger.debug(
+        logger.verbose(
             f"{'Sending' if self.is_enabled() else 'Not sending'} pseudonymous metrics since metrics are configured to {self._send_metrics.name} and server usage is {self._using_server}"
         )
 
