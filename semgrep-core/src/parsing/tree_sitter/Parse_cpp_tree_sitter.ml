@@ -1027,7 +1027,7 @@ and map_anon_choice_param_decl_d9083af (env : env)
       x
   | `DOTDOTDOT tok ->
       let x = token env tok in
-      ParamDots x
+      ParamEllipsis x
 
 (* "..." *)
 and map_anon_choice_prep_else_8b52b0f (env : env)
