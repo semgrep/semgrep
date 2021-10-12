@@ -138,6 +138,10 @@ let mk_name (str_wrap : string wrap) : G.name =
 let prepend_dollar ((name, tok) : string wrap) : string wrap =
   ("$" ^ name, (* TODO: include the $ in tok *) tok)
 
+(* Use this to create a variable name for the generic AST. *)
+let mk_var_name (orig_name : string wrap) : G.name =
+  prepend_dollar orig_name |> mk_name
+
 module C = struct
   let mk (loc : loc) (name : string) =
     let id = "!sh_" ^ name ^ "!" in
@@ -254,9 +258,12 @@ and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
 *)
 and command (cmd : command) : stmt_or_expr =
   match cmd with
-  | Simple_command { loc; assignments = _; arguments } ->
-      let args = List.map expression arguments in
-      Expr (loc, call loc C.cmd args)
+  | Simple_command { loc; assignments = _; arguments } -> (
+      match arguments with
+      | [ (Semgrep_ellipsis tok as e) ] -> Expr ((tok, tok), expression e)
+      | arguments ->
+          let args = List.map expression arguments in
+          Expr (loc, call loc C.cmd args))
   | Subshell (loc, (open_, bl, close)) ->
       (* TODO: subshell *) stmt_group loc (blist bl)
   | Command_group (loc, (open_, bl, close)) -> stmt_group loc (blist bl)
@@ -327,14 +334,41 @@ and command (cmd : command) : stmt_or_expr =
   | While_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
   | Until_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
   | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command cmd
-  | Assignment (loc, _) -> todo_expr2 loc
+  | Assignment (loc, ass) ->
+      let var = G.N (mk_var_name ass.lhs) |> G.e in
+      let value = expression ass.rhs in
+      let e =
+        match ass.assign_op with
+        | Set, tok -> G.Assign (var, tok, value)
+        | Add, tok -> G.AssignOp (var, (G.Plus, tok), value)
+      in
+      Expr (loc, G.e e)
   | Declaration (loc, _) -> todo_stmt2 loc
   | Negated_command (loc, excl_tok, cmd) ->
       let func = G.IdSpecial (G.Op G.Not, excl_tok) |> G.e in
       let args = [ G.Arg (command cmd |> as_expr) ] in
       let e = G.Call (func, bracket (command_loc cmd) args) |> G.e in
       Expr (loc, e)
-  | Function_definition (loc, _) -> todo_stmt2 loc
+  | Function_definition (loc, def) ->
+      let first_tok =
+        match def.function_ with
+        | Some function_tok -> function_tok
+        | None -> snd def.name
+      in
+      let def_kind =
+        G.FuncDef
+          {
+            G.fkind = (G.Function, first_tok);
+            fparams = [];
+            frettype = None;
+            fbody = G.FBStmt (command def.body |> as_stmt);
+          }
+      in
+      (* Function names are in another namespace than ordinary variables.
+         They can't be accessed with the '$' notation. No need to prepend
+         a '$' to the name like for variables. *)
+      let def = (G.basic_entity def.name, def_kind) in
+      Stmt (loc, G.DefStmt def |> G.s)
 
 and stmt_group (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
   let stmts = List.map as_stmt l in
@@ -358,7 +392,6 @@ and expression (e : expression) : G.expr =
   | Raw_string x -> todo_expr (wrap_loc x)
   | Ansii_c_string x -> todo_expr (wrap_loc x)
   | Special_character x -> todo_expr (wrap_loc x)
-  | String_expansion x -> todo_expr (wrap_loc x)
   | Concatenation (loc, _) -> todo_expr loc
   | Semgrep_ellipsis tok -> G.e (G.Ellipsis tok)
   | Semgrep_metavariable x -> todo_expr (wrap_loc x)
@@ -366,7 +399,10 @@ and expression (e : expression) : G.expr =
   | Empty_expression loc ->
       (* not to be confused with the empty string *)
       call loc C.cmd []
-  | Expression_TODO loc -> todo_expr loc
+  | Array (loc, (open_, elts, close)) ->
+      let elts = List.map expression elts in
+      G.Container (G.Array, (open_, elts, close)) |> G.e
+  | Process_substitution (loc, _) -> todo_expr loc
 
 (*
    '$' followed by a variable to transform and expand into a list.
@@ -378,7 +414,7 @@ and expansion (x : expansion) : G.expr =
       match var_name with
       | Simple_variable_name name
       | Special_variable_name name ->
-          G.N (G.Id (prepend_dollar name, G.empty_id_info ())) |> G.e)
+          G.N (mk_var_name name) |> G.e)
   | Complex_expansion br -> todo_expr (bracket_loc br)
 
 (*
@@ -426,7 +462,16 @@ and transpile_or (left : blist) tok_or (right : blist) : stmt_or_expr =
 
 let program x = blist x |> List.map as_stmt
 
+(*
+   Unwrap the tree as much as possible to maximize matches.
+
+   For example 'echo' is parsed as a list of statements but occurs
+   in the target program as a single stmt ('If' branch) or as an expr
+   ('If' condition). Unwrapping into an expr allows the expr to match those
+   cases.
+*)
 let any x =
   match program x with
+  | [ { G.s = G.ExprStmt (e, _semicolon); _ } ] -> G.E e
   | [ stmt ] -> G.S stmt
   | stmts -> G.Ss stmts

@@ -330,24 +330,24 @@ and assign_rhs = expression
 and declaration = todo
 
 and expression =
-  | Word of string wrap
-  | String of string_fragment list bracket
-  | String_fragment of loc * string_fragment
-  | Raw_string of string wrap
-  | Ansii_c_string of string wrap
-  | Special_character of string wrap
-  | String_expansion of string wrap
+  | Word of (* unquoted string *) string wrap
+  | Special_character of (* unquoted string *) string wrap
+  | String of (* "..." *) string_fragment list bracket
+  | String_fragment of (* $x ${...} $(...) `...` ... *) loc * string_fragment
+  | Raw_string of (* '...' *) string wrap
+  | Ansii_c_string of (* $'...' *) string wrap
   | Concatenation of loc * expression list
   | Semgrep_ellipsis of tok
-  | Semgrep_metavariable of string wrap
+  | Semgrep_metavariable of (* ${{ ... }} *) string wrap
   | Equality_test of loc * eq_op * right_eq_operand (* should it be here? *)
   | Empty_expression of loc
-  | Expression_TODO of loc
+  | Array of (* ( ... ) *) loc * expression list bracket
+  | Process_substitution of (* <( ... ) *) loc * blist bracket
 
 (* Fragment of a double-quoted string *)
 and string_fragment =
   | String_content of string wrap
-  | Expansion of loc * expansion
+  | Expansion of (* $X ${X} ${X ... } *) loc * expansion
   | Command_substitution of (* $(foo; bar) or `foo; bar` *) blist bracket
 
 (* $foo or something like ${foo ...} *)
@@ -554,13 +554,13 @@ let expression_loc = function
   | Raw_string x -> wrap_loc x
   | Ansii_c_string x -> wrap_loc x
   | Special_character x -> wrap_loc x
-  | String_expansion x -> wrap_loc x
   | Concatenation (loc, _) -> loc
   | Semgrep_ellipsis tok -> (tok, tok)
   | Semgrep_metavariable x -> wrap_loc x
   | Equality_test (loc, _, _) -> loc
   | Empty_expression loc -> loc
-  | Expression_TODO loc -> loc
+  | Array (loc, _) -> loc
+  | Process_substitution (loc, _) -> loc
 
 let assign_rhs_loc (x : assign_rhs) = expression_loc x
 
