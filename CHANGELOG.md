@@ -5,6 +5,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 - Textual output will now output a shortlink to the registry for rules from semgrep.dev
 
+### Added
+- C: support ... in parameters and sizeof arguments (#4037)
+- C: support declaration and function patterns
+
+### Fixed
+
 ### Changed
 - taint-mode: Introduce a new kind of _not conflicting_ sanitizer that must be
   declared with `not_conflicting: true`. This affects the change made in 0.68.0
@@ -15,7 +21,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## [0.68.2](https://github.com/returntocorp/semgrep/releases/tag/v0.68.2) - 10-07-2021
 
-## Fixed
+### Fixed
 - Respect --skip-unknown-extensions even for files with no extension
 (treat no extension as an unknown extension)
 - taint-mode: Fixed (another) bug where a tainted sink could go unreported when
@@ -24,8 +30,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.68.1](https://github.com/returntocorp/semgrep/releases/tag/v0.68.1) - 10-07-2021
 
 ### Added
-- Added support for `raise`/`throw` expressions in the dataflow engine and improved
-  existing support for `try-catch-finally`
+- Added support for `raise`/`throw` expressions in the dataflow engine and
+  improved existing support for `try-catch-finally`
 
 ### Fixed
 - Respect rule level path filtering
