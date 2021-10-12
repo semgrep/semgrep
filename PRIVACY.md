@@ -118,6 +118,7 @@ r2c will:
 |Environment    |   |   |   |   |   |
 |   |Timestamp  |Time when the event fired                              |Understanding tool usage over time                     |2021-05-10T21:05:06+00:00  |String |
 |   |Version    |Semgrep version being used                             |Reproduce and debug issues with specific versions      |0.51.0 |String |
+|   |Project URL | Project URL **(sent only if config=auto)**            | Fetch pre-configured rules for the org or project by name      |`git@github.com:returntocorp/semgrep.git`|String |
 |   |Project hash |One-way hash of the project URL                      |Understand performance and accuracy improvements      |`c65437265631ab2566802d4d90797b27fbe0f608dceeb9451b979d1671c4bc1a`|String |
 |   |Rules hash |One-way hash of the rule definitions                   |Understand performance improvements                    |`b03e452f389e5a86e56426c735afef13686b3e396499fc3c42561f36f6281c43`|String |
 |   |Config hash|One-way hash of the config argument                    |Understand performance and accuracy improvements       |`ede96c41b57de3e857090fb3c486e69ad8efae3267bac4ac5fbc19dde7161094`|String |
