@@ -349,7 +349,26 @@ and command (cmd : command) : stmt_or_expr =
       let args = [ G.Arg (command cmd |> as_expr) ] in
       let e = G.Call (func, bracket (command_loc cmd) args) |> G.e in
       Expr (loc, e)
-  | Function_definition (loc, _) -> todo_stmt2 loc
+  | Function_definition (loc, def) ->
+      let first_tok =
+        match def.function_ with
+        | Some function_tok -> function_tok
+        | None -> snd def.name
+      in
+      let def_kind =
+        G.FuncDef
+          {
+            G.fkind = (G.Function, first_tok);
+            fparams = [];
+            frettype = None;
+            fbody = G.FBStmt (command def.body |> as_stmt);
+          }
+      in
+      (* Function names are in another namespace than ordinary variables.
+         They can't be accessed with the '$' notation. No need to prepend
+         a '$' to the name like for variables. *)
+      let def = (G.basic_entity def.name, def_kind) in
+      Stmt (loc, G.DefStmt def |> G.s)
 
 and stmt_group (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
   let stmts = List.map as_stmt l in

@@ -1,0 +1,4 @@
+# MATCH:
+f() {
+  echo hello
+}
