@@ -373,7 +373,6 @@ and expression (e : expression) : G.expr =
   | Raw_string x -> todo_expr (wrap_loc x)
   | Ansii_c_string x -> todo_expr (wrap_loc x)
   | Special_character x -> todo_expr (wrap_loc x)
-  | String_expansion x -> todo_expr (wrap_loc x)
   | Concatenation (loc, _) -> todo_expr loc
   | Semgrep_ellipsis tok -> G.e (G.Ellipsis tok)
   | Semgrep_metavariable x -> todo_expr (wrap_loc x)
@@ -381,7 +380,10 @@ and expression (e : expression) : G.expr =
   | Empty_expression loc ->
       (* not to be confused with the empty string *)
       call loc C.cmd []
-  | Expression_TODO loc -> todo_expr loc
+  | Array (loc, (open_, elts, close)) ->
+      let elts = List.map expression elts in
+      G.Container (G.Array, (open_, elts, close)) |> G.e
+  | Process_substitution (loc, _) -> todo_expr loc
 
 (*
    '$' followed by a variable to transform and expand into a list.

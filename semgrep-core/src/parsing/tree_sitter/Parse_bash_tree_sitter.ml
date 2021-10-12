@@ -284,9 +284,10 @@ and stmt_with_opt_heredoc (env : env)
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let open_ = token env v1 (* "(" *) in
-  let _v2 = List.map (literal env) v2 in
+  let elements = List.map (literal env) v2 in
   let close = token env v3 (* ")" *) in
-  Expression_TODO (open_, close)
+  let loc = (open_, close) in
+  Array (loc, (open_, elements, close))
 
 and binary_expression (env : env) (x : CST.binary_expression) : test_expression
     =
@@ -713,15 +714,19 @@ and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
 
 and literal (env : env) (x : CST.literal) : expression =
   match x with
-  | `Conc x ->
+  | `Conc x -> (
       let el = concatenation env x in
       let loc = list_loc expression_loc el in
-      Concatenation (loc, el)
+      match el with
+      | [ e ] -> e
+      | _ -> Concatenation (loc, el))
   | `Choice_semg_ellips x -> primary_expression env x
-  | `Rep1_spec_char xs ->
+  | `Rep1_spec_char xs -> (
       let el = List.map (fun tok -> Special_character (str env tok)) xs in
       let loc = list_loc expression_loc el in
-      Concatenation (loc, el)
+      match el with
+      | [ e ] -> e
+      | _ -> Concatenation (loc, el))
 
 and primary_expression (env : env) (x : CST.primary_expression) : expression =
   match x with
@@ -768,10 +773,10 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
         | `LTLPAR tok -> token env tok (* "<(" *)
         | `GTLPAR tok -> (* ">(" *) token env tok
       in
-      let _body = statements env v2 in
+      let body = statements env v2 in
       let close = token env v3 (* ")" *) in
       let loc = (open_, close) in
-      Expression_TODO loc
+      Process_substitution (loc, (open_, body, close))
 
 (* The token tok is needed to indicate the location of the list of statements
    in case it's empty. *)
@@ -1258,10 +1263,7 @@ and variable_assignment (env : env) ((v1, v2, v3) : CST.variable_assignment) :
   let rhs =
     match v3 with
     | `Choice_conc x -> literal env x
-    | `Array x ->
-        let array_literal = array_ env x in
-        let loc = expression_loc array_literal in
-        Expression_TODO loc
+    | `Array x -> array_ env x
     | `Empty_value tok ->
         let empty = token env tok in
         let loc = (empty, empty) in
