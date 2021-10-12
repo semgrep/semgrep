@@ -370,7 +370,7 @@ and map_expr env x : G.expr =
   | ParenExpr v1 ->
       let _l, v1, _r = map_paren env (map_expr env) v1 in
       v1
-  | Ellipses v1 ->
+  | Ellipsis v1 ->
       let v1 = map_tok env v1 in
       G.Ellipsis v1 |> G.e
   | DeepEllipsis v1 ->
@@ -713,10 +713,8 @@ and map_exception_declaration env x : G.catch_exn =
   match x with
   | ExnDecl v1 ->
       let v1 = map_parameter env v1 in
+      (* TODO G.CatchPattern (G.PatEllipsis v1) if ellipsis *)
       complicated env v1
-  | ExnDeclEllipsis v1 ->
-      let v1 = map_tok env v1 in
-      G.CatchPattern (G.PatEllipsis v1)
 
 and map_stmt_or_decl env x : G.stmt list =
   match x with
@@ -961,7 +959,7 @@ and map_parameter env x : G.parameter =
       and v2 = map_tok env v2
       and v3 = map_parameter_classic env v3 in
       G.ParamRest (v2, v3)
-  | ParamDots v1 ->
+  | ParamEllipsis v1 ->
       let v1 = map_tok env v1 in
       G.ParamEllipsis v1
 
