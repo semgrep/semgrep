@@ -525,7 +525,6 @@ def cli(
     the Semgrep registy. To learn more about how and why these metrics are collected, please see
     https://github.com/returntocorp/semgrep/PRIVACY.md. To modify this behavior, see the --metrics option below.
     """
-    possibly_notify_user()
 
     if version:
         print(__VERSION__)
@@ -549,6 +548,8 @@ def cli(
     from semgrep.project import get_project_url
     from semgrep.synthesize_patterns import synthesize
     from semgrep.target_manager import converted_pipe_targets
+
+    possibly_notify_user()
 
     target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
