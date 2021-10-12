@@ -54,6 +54,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Remove built-in source `source(...)` and built-in sanitizer
   `sanitize(...)` used for convenience during early development, this was causing
   some unexpected behavior in real code that e.g. had a function called `source`!
+- When enabled, metrics now send the hashes of rules that yielded findings;
+  these will be used to tailor rules on a per-project basis, and also will be
+  used to improve rules over time
 - Improved Kotlin parsing from 77% to 90% on our Kotlin corpus.
 - Resolution of rulesets (i.e. `p/ci`) use new rule cdn and do client-side hydration
 - Set pcre recursion limit so it will not vary with different installations of pcre
