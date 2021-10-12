@@ -167,12 +167,15 @@ let (mk_visitor :
     | Macro -> ()
     | EnumConstant -> ()
     | TypeName -> ()
-  and v_name_ x =
-    let v1, v2 = x in
-    let v1 = v_ident v1 and v2 = v_name_info v2 in
-    ()
   and v_name_info
-      { name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs } =
+      {
+        name_qualifier = v_name_qualifier;
+        name_typeargs = v_name_typeargs;
+        name_id = v1;
+        name_info = v2;
+      } =
+    let v1 = v_ident v1 in
+    let v2 = v_id_info v2 in
     let arg = v_option v_qualifier v_name_qualifier in
     let arg = v_option v_type_arguments v_name_typeargs in
     ()
@@ -238,8 +241,8 @@ let (mk_visitor :
       | Id (v1, v2) ->
           let v1 = v_ident v1 and v2 = v_id_info v2 in
           ()
-      | IdQualified (v1, v2) ->
-          let v1 = v_name_ v1 and v2 = v_id_info v2 in
+      | IdQualified v1 ->
+          let v1 = v_name_info v1 in
           ()
     in
     vin.kname (k, all_functions) x

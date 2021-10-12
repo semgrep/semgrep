@@ -110,14 +110,23 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Macro -> Macro
     | EnumConstant -> EnumConstant
     | TypeName -> TypeName
-  and map_name_ (v1, v2) =
-    let v1 = map_ident v1 and v2 = map_name_info v2 in
-    (v1, v2)
   and map_name_info
-      { name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs } =
+      {
+        name_id = v1;
+        name_qualifier = v_name_qualifier;
+        name_typeargs = v_name_typeargs;
+        name_info = v2;
+      } =
+    let v1 = map_ident v1 in
+    let v2 = map_id_info v2 in
     let v_name_typeargs = map_of_option map_type_arguments v_name_typeargs in
     let v_name_qualifier = map_of_option map_qualifier v_name_qualifier in
-    { name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs }
+    {
+      name_id = v1;
+      name_info = v2;
+      name_qualifier = v_name_qualifier;
+      name_typeargs = v_name_typeargs;
+    }
   and map_id_info v =
     let k x =
       match x with
@@ -182,9 +191,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Id (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_id_info v2 in
         Id (v1, v2)
-    | IdQualified (v1, v2) ->
-        let v1 = map_name_ v1 and v2 = map_id_info v2 in
-        IdQualified (v1, v2)
+    | IdQualified v1 ->
+        let v1 = map_name_info v1 in
+        IdQualified v1
   and map_expr x =
     let k x =
       let ekind =

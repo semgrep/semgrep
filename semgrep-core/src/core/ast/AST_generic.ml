@@ -283,14 +283,13 @@ and resolved_name_kind =
  * analysis to disambiguate. In the meantime, you can use
  * AST_generic_helpers.name_of_dot_access to convert a DotAccess of idents
  * into an IdQualified name.
- *
- * less: factorize the id_info in both and inline maybe name_info
  *)
-type name =
-  | Id of ident * id_info
-  | IdQualified of (ident * name_info) * id_info
+type name = Id of ident * id_info | IdQualified of qualified_info
 
-and name_info = {
+and qualified_info = {
+  (* TODO just qualifier list (reversed?) *)
+  name_id : ident;
+  name_info : id_info;
   name_qualifier : qualifier option;
   name_typeargs : type_arguments option; (* Java/Rust *)
 }
@@ -847,7 +846,7 @@ and stmt_kind =
   (* The expr can be None for Go and Ruby.
    * less: could be merged with ExprStmt (MatchPattern ...) *)
   | Switch of
-      tok (* 'switch' or also 'select' in Go *)
+      tok (* 'switch', also 'select' in Go, or 'case' in Bash *)
       * condition option
       * case_and_body list
   (* todo: merge with Switch.
@@ -1757,8 +1756,6 @@ let p x = x
 
 (* before Naming_AST.resolve can do its job *)
 let sid_TODO = -1
-
-let empty_name_info = { name_qualifier = None; name_typeargs = None }
 
 let empty_var = { vinit = None; vtype = None }
 

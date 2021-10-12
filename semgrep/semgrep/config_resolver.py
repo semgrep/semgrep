@@ -2,6 +2,8 @@ import json
 import os
 import time
 from collections import OrderedDict
+from enum import auto
+from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -39,6 +41,7 @@ from semgrep.semgrep_types import Language
 from semgrep.types import JsonObject
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
+from semgrep.util import terminal_wrap
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
@@ -49,6 +52,8 @@ IN_GH_ACTION = "GITHUB_WORKSPACE" in os.environ
 SRC_DIRECTORY = Path(os.environ.get("SEMGREP_SRC_DIRECTORY", Path("/") / "src"))
 OLD_SRC_DIRECTORY = Path("/") / "home" / "repo"
 
+AUTO_CONFIG_KEY = "auto"
+AUTO_CONFIG_LOCATION = "c/auto"
 RULES_REGISTRY = {"r2c": "https://semgrep.dev/c/p/r2c"}
 
 MISSING_RULE_ID = "no-rule-id"
@@ -66,42 +71,69 @@ DEFAULT_CONFIG = {
 }
 
 
-class ConfigPath:
-    _from_registry = False
-    _config_path = ""
+class ConfigType(Enum):
+    REGISTRY = auto()
+    CDN = auto()
+    LOCAL = auto()
 
-    def __init__(self, config_str: str) -> None:
+
+class ConfigPath:
+    _origin = ConfigType.LOCAL
+    _config_path = ""
+    _project_url = None
+    _extra_headers: Dict[str, str] = {}
+
+    def __init__(self, config_str: str, project_url: Optional[str]) -> None:
         """
         Mutates MetricManager state!
         Takes a user's inputted config_str and transforms it into the appropriate
         path, checking whether the config string is a registry url or not. If it
         is, also set the appropriate MetricManager flag
         """
+        self._project_url = project_url
+        self._origin = ConfigType.REGISTRY
+
         if config_str in RULES_REGISTRY:
-            self._from_registry = True
             self._config_path = RULES_REGISTRY[config_str]
         elif is_url(config_str):
-            self._from_registry = True
             self._config_path = config_str
         elif is_registry_id(config_str):
-            self._from_registry = True
             self._config_path = registry_id_to_url(config_str)
         elif is_saved_snippet(config_str):
-            self._from_registry = True
             self._config_path = saved_snippet_to_url(config_str)
+        elif config_str == AUTO_CONFIG_KEY:
+            logger.warning(
+                terminal_wrap(
+                    "Auto config uses Semgrep rules to scan your codebase and the Semgrep Registry"
+                    " to generate recommended rules based on your languages and frameworks."
+                ),
+            )
+            if self._project_url is not None:
+                self._extra_headers["X-Semgrep-Project"] = self._project_url
+                logger.warning(
+                    terminal_wrap(
+                        f"Logging in to the Semgrep Registry as project '{self._project_url}'..."
+                    )
+                )
+            self._config_path = f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}"
+        elif is_pack_id(config_str) and SEMGREP_CDN_BASE_URL:
+            self._origin = ConfigType.CDN
+            self._config_path = config_str[2:]
         else:
-            self._from_registry = False
+            self._origin = ConfigType.LOCAL
             self._config_path = config_str
 
-        if self._from_registry:
+        if self.is_registry_url():
             metric_manager.set_using_server_true()
 
     def resolve_config(self) -> Mapping[str, YamlTree]:
         """ resolves if config arg is a registry entry, a url, or a file, folder, or loads from defaults if None"""
         start_t = time.time()
 
-        if self._from_registry:
+        if self._origin == ConfigType.REGISTRY:
             config = self._download_config()
+        elif self._origin == ConfigType.CDN:
+            config = download_pack_config(self._config_path)
         else:
             config = self._load_config_from_local_path()
 
@@ -125,7 +157,7 @@ class ConfigPath:
 
     def _download_config(self) -> Mapping[str, YamlTree]:
         config_url = self._config_path
-        logger.debug(f"trying to download from {config_url}")
+        logger.debug(f"trying to download from {self._nice_semgrep_url(config_url)}")
 
         try:
             config = parse_config_string(
@@ -136,7 +168,9 @@ class ConfigPath:
             logger.debug(f"finished downloading from {config_url}")
             return config
         except Exception as e:
-            raise SemgrepError(f"Failed to download config from {config_url}: {str(e)}")
+            raise SemgrepError(
+                terminal_wrap(f"Failed to download config from {config_url}: {str(e)}")
+            )
 
     def _load_config_from_local_path(self) -> Dict[str, YamlTree]:
         """
@@ -169,7 +203,7 @@ class ConfigPath:
 
         config_url = self._config_path
 
-        headers = {"User-Agent": SEMGREP_USER_AGENT}
+        headers = {"User-Agent": SEMGREP_USER_AGENT, **(self._extra_headers or {})}
         r = requests.get(config_url, stream=True, headers=headers, timeout=20)
         if r.status_code == requests.codes.ok:
             content_type = r.headers.get("Content-Type")
@@ -192,7 +226,7 @@ class ConfigPath:
             )
 
     def is_registry_url(self) -> bool:
-        return self._from_registry
+        return self._origin == ConfigType.REGISTRY or self._origin == ConfigType.CDN
 
     def __str__(self) -> str:
         return self._config_path
@@ -207,17 +241,6 @@ class Config:
         self.valid = valid_configs
 
     @classmethod
-    def check_and_notify_about_metrics(cls, configs: List[ConfigPath]) -> None:
-        """
-        Checks if metrics need to be sent and notifies users if they do
-        Argument MUST be a ConfigPath list because the creation of ConfigPath
-        objects sets the metric manager flag for the presence of registry paths
-        """
-        if any(config.is_registry_url() for config in configs):
-            # Space before ... so that the url can be copied
-            logger.info("Fetching rules from https://semgrep.dev/registry ...")
-
-    @classmethod
     def from_pattern_lang(
         cls, pattern: str, lang: str, replacement: Optional[str] = None
     ) -> Tuple["Config", Sequence[SemgrepError]]:
@@ -227,7 +250,7 @@ class Config:
 
     @classmethod
     def from_config_list(
-        cls, configs: Sequence[str]
+        cls, configs: Sequence[str], project_url: Optional[str]
     ) -> Tuple["Config", Sequence[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
@@ -244,16 +267,12 @@ class Config:
             except SemgrepError as e:
                 errors.append(e)
 
-        config_paths = [ConfigPath(config) for config in configs]
-        cls.check_and_notify_about_metrics(config_paths)
-        for i, config_path in enumerate(config_paths):
+        for i, config in enumerate(configs):
             try:
                 # Patch config_id to fix https://github.com/returntocorp/semgrep/issues/1912
-                resolved_config = config_path.resolve_config()
+                resolved_config = ConfigPath(config, project_url).resolve_config()
                 if not resolved_config:
-                    logger.verbose(
-                        f"Could not resolve config for {config_path}. Skipping."
-                    )
+                    logger.verbose(f"Could not resolve config for {config}. Skipping.")
                     continue
 
                 for (
@@ -315,9 +334,8 @@ class Config:
                     f"{Config._convert_config_id_to_prefix(config_id)}{rule.id or MISSING_RULE_ID}"
                 )
 
-    # the mypy ignore is cause YamlTree puts an Any inside the @staticmethod decorator
     @staticmethod
-    def _validate(  # type: ignore[misc]
+    def _validate(
         config_dict: Mapping[str, YamlTree]
     ) -> Tuple[Mapping[str, Sequence[Rule]], Sequence[SemgrepError]]:
         """
@@ -728,6 +746,8 @@ def get_config(
     pattern: Optional[str],
     lang: Optional[str],
     config_strs: Sequence[str],
+    *,
+    project_url: Optional[str],
     replacement: Optional[str] = None,
 ) -> Tuple[Config, Sequence[SemgrepError]]:
     if pattern:
@@ -739,7 +759,7 @@ def get_config(
             raise SemgrepError(
                 "command-line replacement flag can only be used with command-line pattern; when using a config file add the fix: key instead"
             )
-        config, errors = Config.from_config_list(config_strs)
+        config, errors = Config.from_config_list(config_strs, project_url)
 
     if not config:
         raise SemgrepError(

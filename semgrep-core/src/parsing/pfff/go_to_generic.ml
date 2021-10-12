@@ -46,10 +46,13 @@ let prefix_postfix x = H.conv_prepost x
 
 let error = AST_generic.error
 
-let name_of_qualified_ident = function
-  | Left id -> (id, G.empty_name_info)
-  | Right (xs, id) ->
-      (id, { G.name_qualifier = Some (G.QDots xs); name_typeargs = None })
+let name_of_qualified_ident x =
+  let xs =
+    match x with
+    | Left id -> [ id ]
+    | Right (xs, id) -> xs @ [ id ]
+  in
+  H.name_of_ids xs
 
 let fake tok s = Parse_info.fake_info tok s
 
@@ -120,13 +123,10 @@ let qualified_ident v =
 let top_func () =
   let rec type_ x = type_kind x |> G.t
   and type_kind = function
-    | TName v1 -> (
+    | TName v1 ->
         let v1 = qualified_ident v1 in
-        match v1 with
-        | Left id -> G.TyN (G.Id (id, G.empty_id_info ()))
-        | Right _ ->
-            G.TyN
-              (G.IdQualified (name_of_qualified_ident v1, G.empty_id_info ())))
+        let name = name_of_qualified_ident v1 in
+        G.TyN name
     | TPtr (t, v1) ->
         let v1 = type_ v1 in
         G.TyPointer (t, v1)
@@ -198,9 +198,7 @@ let top_func () =
     | EmbeddedField (v1, v2) ->
         let _v1TODO = option tok v1 and v2 = qualified_ident v2 in
         let name = name_of_qualified_ident v2 in
-        let (_, tok), _ = name in
-        G.FieldSpread
-          (fake tok "...", G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e)
+        G.FieldSpread (unsafe_fake "...", G.N name |> G.e)
     | FieldEllipsis t -> G.fieldEllipsis t
   and tag v = wrap string v
   and interface_field = function
@@ -219,9 +217,7 @@ let top_func () =
     | EmbeddedInterface v1 ->
         let v1 = qualified_ident v1 in
         let name = name_of_qualified_ident v1 in
-        let (_, tok), _ = name in
-        G.FieldSpread
-          (fake tok "...", G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e)
+        G.FieldSpread (unsafe_fake "...", G.N name |> G.e)
     | FieldEllipsis2 t -> G.fieldEllipsis t
   and expr_or_type v = either expr type_ v
   and expr e =

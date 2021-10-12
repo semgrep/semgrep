@@ -4,9 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- C: support ... in parameters and sizeof arguments (#4037)
+- C: support declaration and function patterns
+- Java: support @interface pattern (#4030)
+
+### Fixed
+
+### Changed
+- taint-mode: Introduce a new kind of _not conflicting_ sanitizer that must be
+  declared with `not_conflicting: true`. This affects the change made in 0.68.0
+  that allowed a sanitizer like `- pattern: $F(...)` to work, but turned out to
+  affect our ability to specify sanitization by side-effect. Now the default
+  semantics of sanitizers is reverted back to the same as before 0.68.0, and
+  `- pattern: $F(...)` is supported via the new not-conflicting sanitizers.
+
 ## [0.68.2](https://github.com/returntocorp/semgrep/releases/tag/v0.68.2) - 10-07-2021
 
-## Fixed
+### Fixed
 - Respect --skip-unknown-extensions even for files with no extension
 (treat no extension as an unknown extension)
 - taint-mode: Fixed (another) bug where a tainted sink could go unreported when
@@ -15,8 +30,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.68.1](https://github.com/returntocorp/semgrep/releases/tag/v0.68.1) - 10-07-2021
 
 ### Added
-- Added support for `raise`/`throw` expressions in the dataflow engine and improved
-  existing support for `try-catch-finally`
+- Added support for `raise`/`throw` expressions in the dataflow engine and
+  improved existing support for `try-catch-finally`
 
 ### Fixed
 - Respect rule level path filtering
@@ -24,6 +39,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.68.0](https://github.com/returntocorp/semgrep/releases/tag/v0.68.0) - 10-06-2021
 
 ### Added
+- Added "automatic configuration" (`--config auto`), which collaborates with
+  the Semgrep Registry to customize rules to a project; to support this, we
+  add support for logging-in to the Registry using the project URL; in
+  a future release, this will also perform project analysis to determine
+  project languages and frameworks
 - Input can be derived from subshells: `semgrep --config ... <(...)`
 - Java: support '...' in catch (#4002)
 
@@ -34,6 +54,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Remove built-in source `source(...)` and built-in sanitizer
   `sanitize(...)` used for convenience during early development, this was causing
   some unexpected behavior in real code that e.g. had a function called `source`!
+- When enabled, metrics now send the hashes of rules that yielded findings;
+  these will be used to tailor rules on a per-project basis, and also will be
+  used to improve rules over time
 - Improved Kotlin parsing from 77% to 90% on our Kotlin corpus.
 - Resolution of rulesets (i.e. `p/ci`) use new rule cdn and do client-side hydration
 - Set pcre recursion limit so it will not vary with different installations of pcre

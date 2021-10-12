@@ -71,7 +71,11 @@ class MetricsStateType(click.ParamType):
 METRICS_STATE_TYPE = MetricsStateType()
 
 
-@click.command()
+# Slightly increase the help width from default 80 characters, to improve readability
+CONTEXT_SETTINGS = {"max_content_width": 90}
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("target", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "-a",
@@ -152,8 +156,12 @@ METRICS_STATE_TYPE = MetricsStateType()
     "-f",
     multiple=True,
     help="YAML configuration file, directory of YAML files ending in "
-    ".yml|.yaml, URL of a configuration file, or Semgrep registry entry "
-    "name. See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.",
+    ".yml|.yaml, URL of a configuration file, or Semgrep registry entry name."
+    "\n\n"
+    "Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in"
+    " to the Semgrep registry."
+    "\n\n"
+    "See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.",
 )
 @optgroup.option(
     "--pattern",
@@ -504,13 +512,19 @@ def cli(
     """
     Semgrep CLI. Searches TARGET paths for matches to rules or patterns. Defaults to searching entire current working directory.
 
+    To get started quickly, run
+
+        semgrep --config auto .
+
+    This will automatically fetch rules for your project from the Semgrep Registry. NOTE: Using `--config auto` will
+    log in to the Semgrep Registry with your project URL.
+
     For more information about Semgrep, go to https://semgrep.dev.
 
     NOTE: By default, Semgrep will report pseudonymous usage metrics to its server if you pull your configuration from
     the Semgrep registy. To learn more about how and why these metrics are collected, please see
     https://github.com/returntocorp/semgrep/PRIVACY.md. To modify this behavior, see the --metrics option below.
     """
-    possibly_notify_user()
 
     if version:
         print(__VERSION__)
@@ -531,8 +545,11 @@ def cli(
     from semgrep.metric_manager import metric_manager
     from semgrep.output import managed_output
     from semgrep.output import OutputSettings
+    from semgrep.project import get_project_url
     from semgrep.synthesize_patterns import synthesize
     from semgrep.target_manager import converted_pipe_targets
+
+    possibly_notify_user()
 
     target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
@@ -625,7 +642,7 @@ def cli(
             )
         elif validate:
             configs, config_errors = semgrep.config_resolver.get_config(
-                pattern, lang, config or []
+                pattern, lang, config or [], project_url=get_project_url()
             )
             valid_str = "invalid" if config_errors else "valid"
             rule_count = len(configs.get_rules(True))

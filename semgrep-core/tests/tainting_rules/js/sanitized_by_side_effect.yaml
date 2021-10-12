@@ -1,0 +1,42 @@
+rules:
+  - id: jwt-decode-without-verify
+    languages:
+      - javascript
+      - typescript
+    message: Detected the decoding of a JWT token without a verify step. JWT tokens
+      must be verified before use, otherwise the token's integrity is unknown.
+      This means a malicious actor could forge a JWT token with any claims. Call
+      '.verify()' before using the token.
+    metadata:
+      asvs:
+        control_id: 3.5.3 Insecue Stateless Session Tokens
+        control_url: https://github.com/OWASP/ASVS/blob/master/4.0/en/0x12-V3-Session-management.md#v35-token-based-session-management
+        section: "V3: Session Management Verification Requirements"
+        version: "4"
+      category: security
+      cwe: "CWE-345: Insufficient Verification of Data Authenticity"
+      owasp: "A2: Broken Authentication"
+      source-rule-url: https://r2c.dev/blog/2020/hardcoded-secrets-unverified-tokens-and-other-common-jwt-mistakes/
+      technology:
+        - jwt
+    mode: taint
+    pattern-sanitizers:
+      - patterns:
+          - pattern-inside: |
+              $JWT = require('jsonwebtoken');
+              ...
+          - pattern-inside: |
+              $JWT.verify($TOKEN, ...)
+              ...
+          - pattern: $TOKEN
+    pattern-sinks:
+      - patterns:
+          - pattern-inside: |
+              $JWT = require('jsonwebtoken');
+              ...
+          - pattern: $JWT.decode($TOKEN, ...)
+          - pattern: $TOKEN
+    pattern-sources:
+      - pattern: $TOKEN
+    severity: WARNING
+

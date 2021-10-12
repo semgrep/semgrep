@@ -43,8 +43,10 @@ Note that certain Semgrep integrators turn on metrics for every run. For example
 
 We strive to balance our desire to collect data for improving Semgrep with our users' need for privacy and security. After all, we are a security tool! The following never leave your environment and are not sent or shared with anyone.
 
+
 * Source code
 * Raw repository names, filenames, file contents, or commit hashes
+  * *Except* the raw repository name is sent to Semgrep when using `--config=auto`
 * User-identifiable data about Semgrep’s findings in your code, including finding messages
 * Private rules
 
@@ -106,7 +108,7 @@ r2c will:
   * Encryption during transit and rest
   * Strict access control to data-storage systems
   * Application-security-policy requirements for third parties (e.g. cloud-service providers; see "data sharing" below)
-* Only correlate hashed data to input data when these inputs are publicly known (e.g. publicly available project URLs for open-source projects)
+* Only correlate hashed data to input data when these inputs are already known to r2c (e.g. publicly available project URLs for open-source projects, or projects that log in to the Semgrep Registry)
 
 
 ## Description of fields
@@ -137,6 +139,7 @@ r2c will:
 |   |Warnings   |Array of Warning Classes (compile-time-constant)   |Understand most common warnings users encounter    |`["TimeoutExceeded"]`    |WarningClass[] |
 |   |   |   |   |   |   |
 |Value  |   |   |   |   |   |
+|   |Rule hashes with findings|Map of rule hashes to number of findings|Understand which rules are providing value to the user; diagnose high false-positive rates |`{"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4}` |Object   |
 |   |Total Findings |Count of all findings  |Understand if rules are super noisy for the user   |7  |Number |
 |   |Total Nosems   |Count of all `nosem` annotations that tell semgrep to ignore a finding |Understand if rules are super noisy for the user   |3  |Number |
 
@@ -180,12 +183,18 @@ This is a sample blob of the aggregate metrics described above:
         "warnings": ["MaxFileSizeExceeded", "TimeoutExceeded"]
     },
     "value": {
+        "ruleHashesWithFindings": {"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4},
         "numFindings": 7,
         "numIgnored": 3
     }
 }
 ```
 
+## Registry fetches
+
+Certain Registry resources require log-in to the Semgrep Registry. Log in may be performed
+using your project URL, or a Semgrep.dev API token. When using these resources, your project's
+identity will be recorded by the Semgrep Registry servers.
 
 ## Data sharing
 
