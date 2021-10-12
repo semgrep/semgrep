@@ -11,7 +11,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 
 ### Changed
-### Changed
 - taint-mode: Introduce a new kind of _not conflicting_ sanitizer that must be
   declared with `not_conflicting: true`. This affects the change made in 0.68.0
   that allowed a sanitizer like `- pattern: $F(...)` to work, but turned out to
@@ -30,8 +29,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.68.1](https://github.com/returntocorp/semgrep/releases/tag/v0.68.1) - 10-07-2021
 
 ### Added
-- Added support for `raise`/`throw` expressions in the dataflow engine and improved
-  existing support for `try-catch-finally`
+- Added support for `raise`/`throw` expressions in the dataflow engine and
+  improved existing support for `try-catch-finally`
 
 ### Fixed
 - Respect rule level path filtering
