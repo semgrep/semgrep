@@ -213,7 +213,6 @@ def run_semgrep(
     common_args = [
         "--strict",
         "--json",
-        "--quiet",
         "--timeout",
         "0",
         "--disable-metrics",
@@ -234,7 +233,6 @@ def run_semgrep(
             # so we override it here
             "--entrypoint",
             "semgrep",
-            "-t",
             docker,
             "--quiet",
             "--config",
