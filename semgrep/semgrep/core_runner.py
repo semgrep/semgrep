@@ -51,14 +51,12 @@ class CoreRunner:
         jobs: int,
         timeout: int,
         max_memory: int,
-        max_target_bytes: int,
         timeout_threshold: int,
         optimizations: str,
     ):
         self._jobs = jobs
         self._timeout = timeout
         self._max_memory = max_memory
-        self._max_target_bytes = max_target_bytes
         self._timeout_threshold = timeout_threshold
         self._optimizations = optimizations
 
@@ -200,30 +198,16 @@ class CoreRunner:
     @staticmethod
     def get_files_for_language(
         language: Language, rule: Rule, target_manager: TargetManager
-    ) -> Tuple[Set[Path], Set[Path]]:
-        """Obtain target files from files or folders specified by the user.
-
-        Returns the pair (explicit targets, filterable targets).
-
-        A target file specified on the command line is called an explicit
-        target and will be analyzed by semgrep and semgrep-core regardless of
-        its name or contents.
-
-        Target files discovered by scanning folders are considered filterable,
-        i.e. both this program and semgrep-core will decide whether a target
-        file is suitable for the selected language.
-        """
+    ) -> List[Path]:
         try:
-            explicit_targets, filterable_targets = target_manager.get_files(
-                language, rule.includes, rule.excludes
-            )
+            targets = target_manager.get_files(language, rule.includes, rule.excludes)
         except _UnknownLanguageError as ex:
             raise UnknownLanguageError(
-                short_msg=f"invalid language: {language.value}",
-                long_msg=f"unsupported language: {language.value}. supported languages are: {', '.join(all_supported_languages())}",
+                short_msg=f"invalid language: {language}",
+                long_msg=f"unsupported language: {language}. supported languages are: {', '.join(all_supported_languages())}",
                 spans=[rule.languages_span.with_context(before=1, after=1)],
             ) from ex
-        return explicit_targets, filterable_targets
+        return list(targets)
 
     def _run_rules_direct_to_semgrep_core(
         self,
@@ -234,16 +218,13 @@ class CoreRunner:
         Dict[Rule, List[RuleMatch]],
         Dict[Rule, List[Any]],
         List[SemgrepError],
-        Set[Path],  # all targets (filterable and explicit)
+        Set[Path],
         ProfilingData,
     ]:
         logger.debug(f"Passing whole rules directly to semgrep_core")
 
         outputs: Dict[Rule, List[RuleMatch]] = collections.defaultdict(list)
         errors: List[SemgrepError] = []
-        # all_targets is the union of all target files that were passed
-        # to semgrep-core. Includes explicit and filterable targets, the
-        # latter being subject to filtering by semgrep-core.
         all_targets: Set[Path] = set()
         file_timeouts: Dict[Path, int] = collections.defaultdict(lambda: 0)
         max_timeout_files: Set[Path] = set()
@@ -258,35 +239,24 @@ class CoreRunner:
                     debug_tqdm_write(f"Running rule {rule.id}...")
                     with tempfile.NamedTemporaryFile(
                         "w", suffix=".yaml"
-                    ) as rule_file, tempfile.NamedTemporaryFile(
-                        "w", suffix="-explicit.list"
-                    ) as explicit_target_file, tempfile.NamedTemporaryFile(
-                        "w", suffix="-filterable.list"
-                    ) as filterable_target_file:
-                        (
-                            explicit_targets,
-                            filterable_targets,
-                        ) = self.get_files_for_language(language, rule, target_manager)
-
-                        filterable_targets = set(
-                            target
-                            for target in filterable_targets
-                            if target not in max_timeout_files
+                    ) as rule_file, tempfile.NamedTemporaryFile("w") as target_file:
+                        targets = self.get_files_for_language(
+                            language, rule, target_manager
                         )
+
+                        targets = [
+                            target
+                            for target in targets
+                            if target not in max_timeout_files
+                        ]
 
                         # opti: no need to call semgrep-core if no target files
-                        if not explicit_targets and not filterable_targets:
+                        if not targets:
                             continue
-                        all_targets = explicit_targets.union(filterable_targets)
+                        all_targets = all_targets.union(targets)
 
-                        explicit_target_file.write(
-                            "\n".join(map(lambda p: str(p), explicit_targets))
-                        )
-                        explicit_target_file.flush()
-                        filterable_target_file.write(
-                            "\n".join(map(lambda p: str(p), filterable_targets))
-                        )
-                        filterable_target_file.flush()
+                        target_file.write("\n".join(map(lambda p: str(p), targets)))
+                        target_file.flush()
                         yaml = YAML()
                         yaml.dump({"rules": [rule._raw]}, rule_file)
                         rule_file.flush()
@@ -300,17 +270,13 @@ class CoreRunner:
                             "-j",
                             str(self._jobs),
                             "-target_file",
-                            explicit_target_file.name,
-                            "-filterable_target_file",
-                            filterable_target_file.name,
+                            target_file.name,
                             "-use_parsing_cache",
                             semgrep_core_ast_cache_dir,
                             "-timeout",
                             str(self._timeout),
                             "-max_memory",
                             str(self._max_memory),
-                            "-max_target_bytes",
-                            str(self._max_target_bytes),
                             "-json_time",
                         ]
 

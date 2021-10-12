@@ -122,9 +122,8 @@ let dump_tree_sitter_cst lang file =
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
 
 let test_parse_tree_sitter lang root_paths =
-  let paths = Common.map Common.fullpath root_paths in
-  let targets = Common.map (fun path -> (path, Find_target.Filterable)) paths in
-  let paths, _skipped_paths = Find_target.files_of_dirs_or_files lang targets in
+  let paths = List.map Common.fullpath root_paths in
+  let paths, _skipped_paths = Find_target.files_of_dirs_or_files lang paths in
   let stat_list = ref [] in
   paths
   |> Console.progress (fun k ->
@@ -233,9 +232,8 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
 
   let paths =
     (* = absolute paths *)
-    Common.map Common.fullpath files_or_dirs
+    List.map Common.fullpath files_or_dirs
   in
-  let paths = Common.map (fun path -> (path, Find_target.Filterable)) paths in
   let paths, skipped = Find_target.files_of_dirs_or_files lang paths in
   let stats =
     paths
@@ -321,7 +319,7 @@ let update_parsing_rate (acc : Parsing_stats_t.project_stats) :
 *)
 let aggregate_file_stats (results : (string * PI.parsing_stat list) list) :
     Parsing_stats_t.project_stats list =
-  Common.map
+  List.map
     (fun (project_name, file_stats) ->
       let acc =
         {
@@ -388,7 +386,7 @@ let print_json lang results =
   print_endline (Yojson.Safe.prettify s)
 
 let parse_projects ~verbose lang project_dirs =
-  Common.map
+  List.map
     (fun dir ->
       let name = dir in
       parse_project ~verbose lang name [ dir ])
@@ -398,7 +396,7 @@ let parsing_stats lang json project_dirs =
   let stat_list = parse_projects ~verbose:(not json) lang project_dirs in
   if json then print_json lang stat_list
   else
-    let flat_stat = Common.map snd stat_list |> List.flatten in
+    let flat_stat = List.map snd stat_list |> List.flatten in
     Parse_info.print_parsing_stat_list flat_stat
 
 let parsing_regressions lang files_or_dirs =
@@ -432,9 +430,8 @@ let diff_pfff_tree_sitter xs =
 (*****************************************************************************)
 
 let test_parse_rules roots =
-  let targets = Common.map (fun path -> (path, Find_target.Filterable)) roots in
   let targets, _skipped_paths =
-    Find_target.files_of_dirs_or_files Lang.Yaml targets
+    Find_target.files_of_dirs_or_files Lang.Yaml roots
   in
   targets
   |> List.iter (fun file ->

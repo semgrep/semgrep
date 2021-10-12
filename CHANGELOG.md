@@ -111,8 +111,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Add rule message to emacs output (#3851)
 - Show stack trace on fatal errors (#3876)
 - Various changes to error messages (#3827)
-- Minified files are now automatically excluded from the scan, which
-  may result in shorter scanning times for some projects.
 
 ### Fixed
 - Dataflow: Recognize "concat" method and interpret it in a language-dependent manner (#3316)
