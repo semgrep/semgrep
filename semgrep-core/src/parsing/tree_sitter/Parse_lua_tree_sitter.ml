@@ -16,6 +16,7 @@ module CST = Tree_sitter_lua.CST
 module H = Parse_tree_sitter_helpers
 module PI = Parse_info
 module G = AST_generic
+module H2 = AST_generic_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -165,9 +166,8 @@ let map_local_variable_declarator (env : env)
     (fun x -> G.basic_entity x ~attrs:[ G.KeywordAttr (G.Static, local) ])
     (ident_first :: ident_rest)
 
-(* TODO: return a G.name *)
 let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field)
-    colon_and_ident : G.ident * G.name_info =
+    colon_and_ident : G.name =
   let v1 = identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
   let v2 =
     List.map
@@ -182,27 +182,17 @@ let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field)
     | Some (colon, colon_ident) ->
         let _colon = token env colon (* ":" *) in
         let colon_ident = identifier env colon_ident in
-        List.flatten [ [ v1 ]; v2; [ colon_ident ] ]
+        (v1 :: v2) @ [ colon_ident ]
     | None -> v1 :: v2
   in
-  match List.rev list with
-  | [] -> raise Impossible (* list1 *)
-  | [ ident ] -> (ident, { G.name_qualifier = None; G.name_typeargs = None })
-  | ident :: xs ->
-      ( ident,
-        {
-          G.name_qualifier = Some (G.QDots (List.rev xs));
-          G.name_typeargs = None;
-        } )
+  H2.name_of_ids list
 
-(* TODO: return a G.name *)
-let map_function_name (env : env) ((v1, v2) : CST.function_name) :
-    G.ident * G.name_info =
+let map_function_name (env : env) ((v1, v2) : CST.function_name) : G.name =
   match v1 with
   | `Id tok ->
       let ident = identifier env tok in
       (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-      (ident, { G.name_qualifier = None; G.name_typeargs = None })
+      H2.name_of_id ident
   | `Func_name_field x -> map_function_name_field env x v2
 
 let rec map_expression_list (env : env)
@@ -494,16 +484,16 @@ and map_function_call_expr (env : env) (x : CST.function_call_statement) :
       let colon = token env v2 (* ":" *) in
       let fn_name = identifier env v3 in
       (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-      let name =
-        ( fn_name,
-          {
-            G.name_qualifier = Some (G.QExpr (prefix, colon));
-            G.name_typeargs = None;
-          } )
+      let qualified_info =
+        {
+          G.name_id = fn_name;
+          G.name_qualifier = Some (G.QExpr (prefix, colon));
+          G.name_typeargs = None;
+          G.name_info = G.empty_id_info ();
+        }
       in
       let args = map_arguments env v4 in
-      G.Call (G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e, args)
-      |> G.e
+      G.Call (G.N (G.IdQualified qualified_info) |> G.e, args) |> G.e
 
 and map_function_call_statement (env : env) (x : CST.function_call_statement) :
     G.stmt =
@@ -705,8 +695,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       [ G.Label (v2, G.Block (G.fake_bracket []) |> G.s) |> G.s ]
   | `Empty_stmt _tok -> [] (* ";" *)
   | `Func_stmt (v1, v2, v3) ->
-      let fn_name = map_function_name env v2 in
-      let name = G.IdQualified (fn_name, G.empty_id_info ()) in
+      let name = map_function_name env v2 in
       let v3 = map_function_body env v3 v1 in
       let ent = { G.name = G.EN name; G.attrs = []; G.tparams = [] } in
       [ G.DefStmt (ent, G.FuncDef v3) |> G.s ]
@@ -746,10 +735,15 @@ and map_variable_declarator_expr (env : env) (x : CST.variable_declarator) :
       let v2 = token env v2 (* "." *) in
       let v3 = identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
       let qual = G.QExpr (v1, v2) in
-      let name =
-        (v3, { G.name_qualifier = Some qual; G.name_typeargs = None })
+      let qualified_info =
+        {
+          G.name_id = v3;
+          name_qualifier = Some qual;
+          name_typeargs = None;
+          name_info = G.empty_id_info ();
+        }
       in
-      G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e
+      G.N (G.IdQualified qualified_info) |> G.e
 
 and map_variable_declarator (env : env) (x : CST.variable_declarator) : G.expr =
   match x with
