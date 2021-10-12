@@ -110,9 +110,28 @@ and class_type v =
         (v1, v2))
       v
   in
-  match res with
+
+  (* TODO: would like simply
+   * G.TyN (H.name_of_ids_with_opt_typeargs res)
+   * but got regressions on aliasing_type.java and misc_generic.java
+   *)
+  match List.rev res with
   | [] -> raise Impossible (* list1 *)
-  | xs -> G.TyN (H.name_of_ids_with_opt_typeargs xs)
+  | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ()))
+  | [ (id, Some ts) ] -> G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts)
+  | (id, None) :: xs ->
+      G.TyN
+        (G.IdQualified
+           {
+             G.name_id = id;
+             name_typeargs = None;
+             (* could be v1TODO above *)
+             name_qualifier = Some (G.QDots (List.rev (List.map fst xs)));
+             name_info = G.empty_id_info ();
+           })
+  | (id, Some ts) :: xs ->
+      G.TyApply
+        (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))) |> G.t, ts)
 
 and type_argument = function
   | TArgument v1 ->
