@@ -244,6 +244,7 @@ def main(
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
         metric_manager.set_total_bytes_scanned(total_bytes_scanned)
         metric_manager.set_errors(list(type(e).__name__ for e in semgrep_errors))
+        metric_manager.set_rules_with_findings(filtered_matches.matches)
         metric_manager.set_run_timings(
             profiling_data, list(all_targets), filtered_rules
         )
