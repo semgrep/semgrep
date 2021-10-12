@@ -80,6 +80,8 @@ We strive to balance our desire to collect data for improving Semgrep with our u
 
 * Source code
 * Raw repository names, filenames, file contents, or commit hashes
+  * *Except* the raw repository name is sent to Semgrep when using `--config
+    auto`
 * User-identifiable data about Semgrep’s findings in your code, including finding messages
 * Private rules
 
@@ -101,7 +103,7 @@ r2c will:
   * Encryption during transit and rest
   * Strict access control to data-storage systems
   * Application-security-policy requirements for third parties (e.g. cloud-service providers; see "data sharing" below)
-* Only correlate hashed data to input data when these inputs are publicly known (e.g. publicly available project URLs for open-source projects)
+* Only correlate hashed data to input data when these inputs are already known to r2c (e.g. publicly available project URLs for open-source projects, or projects that log in to the Semgrep Registry)
 
 
 ## Description of fields
@@ -181,7 +183,11 @@ This is a sample blob of the aggregate metrics described above:
 }
 ```
 
+## Registry fetches
 
+Certain Registry resources require log-in to the Semgrep Registry. Log in may be performed
+using your project URL, or a Semgrep.dev API token. When using these resources, your project's
+identity will be recorded by the Semgrep Registry servers.
 
 ## Data sharing
 

@@ -286,7 +286,9 @@ def run_semgrep(
         stdout_decoded = res.stdout.decode("utf-8")
         semgrep_results = json.loads(stdout_decoded)
     except (ValueError, json.JSONDecodeError):
-        logger.error("Unable to decode the Semgrep result as JSON. Exiting.")
+        logger.error(
+            f"Unable to decode the Semgrep result as JSON. Exiting.\n******\n{res.stdout}"
+        )
         sys.exit(1)
 
     return t2 - t1, semgrep_results

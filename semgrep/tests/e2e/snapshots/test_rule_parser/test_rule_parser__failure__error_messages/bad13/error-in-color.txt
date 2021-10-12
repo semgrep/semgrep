@@ -1,4 +1,4 @@
-[31msemgrep error[0m: Invalid rule schema
+[31m[31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad13.yaml:2
 [94m2 | [0m  - id: tainty
 [94m3 | [0m    message: Hi
@@ -9,5 +9,5 @@
 [94m8 | [0m    pattern: $X == $X
 
 [31mOne of these properties may be invalid: 'pattern'[0m
-
-run with --strict and there were 1 errors loading configs
+[0m
+[31mrun with --strict and there were 1 errors loading configs[0m

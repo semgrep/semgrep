@@ -389,7 +389,10 @@ class TargetManager:
         return targets
 
     def get_files(
-        self, lang: Language, extra_includes: List[str], extra_excludes: List[str]
+        self,
+        lang: Language,
+        extra_includes: Sequence[str],
+        extra_excludes: Sequence[str],
     ) -> TargetFiles:
         """Return target files with extra glob patterns to include or exclude.
 

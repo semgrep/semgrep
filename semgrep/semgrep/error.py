@@ -71,7 +71,7 @@ class SemgrepError(Exception):
         return {"message": str(self)}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SemgrepError":  # type: ignore
+    def from_dict(cls, data: Dict[str, Any]) -> "SemgrepError":
         """
         Instantiates class from dict representation
         """
