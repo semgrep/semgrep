@@ -1292,7 +1292,11 @@ and m_arguments_concat a b =
 
 and m_argument a b =
   match (a, b) with
-  (* TODO: iso on keyword argument, keyword is optional in pattern *)
+  (* TODO: iso on keyword argument, keyword is optional in pattern.
+   * TODO: maybe Arg (N (Id "$S")) should be allowed to match
+   * an ArgType or ArgOther (especially for C/C++ where typedef
+   * inference is sometimes wrong when we get an ArgType instead of Arg.
+   *)
 
   (* boilerplate *)
   | G.Arg a1, B.Arg b1 -> m_expr a1 b1

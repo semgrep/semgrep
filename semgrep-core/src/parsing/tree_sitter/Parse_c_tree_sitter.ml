@@ -1293,7 +1293,7 @@ and type_specifier (env : env) (x : CST.type_specifier) : type_ =
       TBase t
   | `Id tok ->
       let id = identifier env tok (* pattern [a-zA-Z_]\w* *) in
-      TBase id
+      TTypeName id
 
 and update_expression (env : env) (x : CST.update_expression) =
   match x with
