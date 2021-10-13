@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.69.0](https://github.com/returntocorp/semgrep/releases/tag/v0.69.0) - 10-13-2021
+
 ### Added
 - C: support ... in parameters and sizeof arguments (#4037)
 - C: support declaration and function patterns
