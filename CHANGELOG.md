@@ -12,9 +12,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Reverted change to exclude minified files from the scan (see changelog for
+  0.66.0)
+- Java: Fixed equality of metavariables bounded to imported classes (#3748)
 - Python: fix range of tuples (#3832)
 - C: fix some wrong typedef inference
-  0.66.0)
 - Ruby: put back equivalence on old syntax for keyword arguments (#3981)
 
 ### Changed
