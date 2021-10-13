@@ -2,7 +2,7 @@ rules:
   - id: test-metavar-eq
     languages:
       - javascript
-    message: Test
+    message: Match found
     mode: taint
     pattern-sinks:
       - pattern: sink($X,...)
