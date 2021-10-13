@@ -127,8 +127,8 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.t list VarMap.t)
         let (_,tok),_ = var in
         if Parse_info.is_origintok tok then config.is_source (G.Tk tok) else None
       in
-      let env_tainted = list_opt_to_list (VarMap.find_opt (str_of_name var) env) in
-      if env_tainted = [] then print_endline "not env tainted";
+      (* let env_tainted = list_opt_to_list (VarMap.find_opt (str_of_name var) env) in
+      if env_tainted = [] then print_endline "not env tainted"; *)
       opt_to_list var_tok_pm_opt @ 
       list_opt_to_list (VarMap.find_opt (str_of_name var) env) @ 
       list_opt_to_list (Hashtbl.find_opt fun_env (str_of_name var))
@@ -158,10 +158,10 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.t list VarMap.t)
     | Some _ -> []
     | None ->
       let tainted_pms = check_subexpr exp.e @ opt_to_list (config.is_source (G.E exp.eorig)) in
-      if tainted_pms = [] then print_endline "expr not tainted";
+      (* if tainted_pms = [] then print_endline "expr not tainted"; *)
       match sink_pm_opt <&> tainted_pms with
-        | [] -> print_endline "nothing after unification";tainted_pms
-        | found -> print_endline "something after unification";config.found_tainted_sink found env; tainted_pms
+        | [] -> (*print_endline "nothing after unification";*)tainted_pms
+        | found -> (*print_endline "something after unification";*)config.found_tainted_sink found env; tainted_pms
 
 (* let rec check_tainted_expr ~in_a_sink config fun_env env exp =
   let is_sink = config.is_sink (G.E exp.eorig) in
@@ -299,14 +299,14 @@ let (transfer :
   let node = flow.graph#nodes#assoc ni in
   let out' = match node.F.n with
     | NInstr x ->
-      Printf.printf "at node %i\n" ni;
+      (* Printf.printf "at node %i\n" ni; *)
       (match check_tainted_instr config fun_env in' x, IL.lvar_of_instr_opt x with
-        | [], Some var -> Printf.printf "untainted!\n\n";VarMap.remove (str_of_name var) in'
-        | pms, Some var -> Printf.printf "tainted!\n\n";varmap_update in' (str_of_name var) pms ((@) pms) 
+        | [], Some var -> (*Printf.printf "untainted!\n\n";*)VarMap.remove (str_of_name var) in'
+        | pms, Some var -> (*Printf.printf "tainted!\n\n";*)varmap_update in' (str_of_name var) pms ((@) pms) 
         | _ -> in'
       )
     | NReturn (tok,e) ->
-      print_endline "return?";
+      (* print_endline "return?"; *)
       (match check_tainted_return config fun_env in' tok e,opt_name with
         | pms, Some var -> hashtbl_update fun_env (str_of_name var) pms((@) pms) ; in'
         | _ -> in'
