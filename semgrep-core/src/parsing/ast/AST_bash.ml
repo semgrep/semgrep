@@ -11,6 +11,9 @@
 *)
 [@@@warning "-30"]
 
+(* The type of input. Each results in a slightly different generic AST. *)
+type input_kind = Pattern | Program
+
 (*****************************************************************************)
 (* Token info *)
 (*****************************************************************************)
@@ -149,7 +152,7 @@ and command =
       loc
       * (* for *) tok
       * (* loop variable *)
-      string wrap
+        variable_name
       * (* in *)
       (tok * expression list) option
       * (* do *) tok
@@ -161,7 +164,7 @@ and command =
       loc
       * (* select *) tok
       * (* loop variable *)
-      string wrap
+        variable_name
       * (* in *)
       (tok * expression list) option
       * (* do *) tok
@@ -183,7 +186,8 @@ and command =
       * elif list
       * else_ option
       * (* fi *) tok
-  | While_loop of loc * while_
+  | While_loop of
+      loc * (* while *) tok * blist * (* do *) tok * blist * (* done *) tok
   | Until_loop of loc * until_
   (* Other commands *)
   | Coprocess of loc * string option * (* simple or compound *) command
@@ -268,7 +272,7 @@ and blist =
 and function_definition = {
   loc : loc;
   function_ : tok option;
-  name : string wrap;
+  name : variable_name;
   body : command;
 }
 
@@ -337,8 +341,8 @@ and expression =
   | Raw_string of (* '...' *) string wrap
   | Ansii_c_string of (* $'...' *) string wrap
   | Concatenation of loc * expression list
-  | Semgrep_ellipsis of tok
-  | Semgrep_metavariable of (* ${{ ... }} *) string wrap
+  | Expr_ellipsis of (* ... *) tok
+  | Expr_metavar of (* $X in pattern mode *) string wrap
   | Equality_test of loc * eq_op * right_eq_operand (* should it be here? *)
   | Empty_expression of loc
   | Array of (* ( ... ) *) loc * expression list bracket
@@ -347,17 +351,19 @@ and expression =
 (* Fragment of a double-quoted string *)
 and string_fragment =
   | String_content of string wrap
-  | Expansion of (* $X ${X} ${X ... } *) loc * expansion
+  | Expansion of (* $X in program mode, ${X}, ${X ... } *) loc * expansion
   | Command_substitution of (* $(foo; bar) or `foo; bar` *) blist bracket
+  | Frag_metavar of (* $X in pattern mode *) string wrap
 
 (* $foo or something like ${foo ...} *)
 and expansion =
-  | Simple_expansion of loc * tok * variable_name
+  | Simple_expansion of loc * variable_name
   | Complex_expansion of complex_expansion bracket
 
 and variable_name =
   | Simple_variable_name of string wrap
   | Special_variable_name of string wrap
+  | Var_metavar of string wrap
 
 and complex_expansion =
   | Variable of loc * variable_name
@@ -463,6 +469,8 @@ let list_loc get_loc l =
         (fun loc x -> union_loc loc (get_loc x))
         (get_loc first) other
 
+let wrap_tok (_, tok) : tok = tok
+
 let wrap_loc (_, tok) : loc = (tok, tok)
 
 let bracket_loc (start_tok, _, end_tok) : loc = (start_tok, end_tok)
@@ -485,7 +493,7 @@ let command_loc = function
   | Select (loc, _, _, _, _, _, _) -> loc
   | Case (loc, _, _, _, _, _) -> loc
   | If (loc, _, _, _, _, _, _, _) -> loc
-  | While_loop (loc, _) -> loc
+  | While_loop (loc, _, _, _, _, _) -> loc
   | Until_loop (loc, _) -> loc
   | Coprocess (loc, _, _) -> loc
   | Assignment (loc, _) -> loc
@@ -555,8 +563,8 @@ let expression_loc = function
   | Ansii_c_string x -> wrap_loc x
   | Special_character x -> wrap_loc x
   | Concatenation (loc, _) -> loc
-  | Semgrep_ellipsis tok -> (tok, tok)
-  | Semgrep_metavariable x -> wrap_loc x
+  | Expr_ellipsis tok -> (tok, tok)
+  | Expr_metavar x -> wrap_loc x
   | Equality_test (loc, _, _) -> loc
   | Empty_expression loc -> loc
   | Array (loc, _) -> loc
@@ -568,14 +576,19 @@ let string_fragment_loc = function
   | String_content x -> wrap_loc x
   | Expansion (loc, _) -> loc
   | Command_substitution x -> bracket_loc x
+  | Frag_metavar x -> wrap_loc x
 
 let expansion_loc = function
-  | Simple_expansion (loc, _, _) -> loc
+  | Simple_expansion (loc, _) -> loc
   | Complex_expansion x -> bracket_loc x
 
-let variable_name_loc = function
-  | Simple_variable_name x -> wrap_loc x
-  | Special_variable_name x -> wrap_loc x
+let variable_name_wrap = function
+  | Simple_variable_name x
+  | Special_variable_name x
+  | Var_metavar x ->
+      x
+
+let variable_name_loc x = variable_name_wrap x |> wrap_loc
 
 let complex_expansion_loc = function
   | Variable (loc, _) -> loc
