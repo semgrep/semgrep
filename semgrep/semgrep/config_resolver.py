@@ -415,18 +415,10 @@ def manual_config(
     }
 
 
-# TODO: explain why/if this any better than just [ Path(target).resolve() for target in targets ] ?
-# maybe because a path like '/foo/../bar' wouldn't be preserved with .resolve() ?
-# or maybe because .resolve() is too slow because it accesses the file system?
 def resolve_targets(targets: Sequence[str]) -> Sequence[Path]:
-    """Return absolute paths from a collection of paths.
-
-    The current implementation doesn't fully resolve all the paths,
-    e.g. Path('/foo/../bar') remains as is.
-    """
-    base_path = get_absolute_base_path()
+    base_path = get_base_path()
     return [
-        Path(target) if Path(target).is_absolute() else base_path / target
+        Path(target) if Path(target).is_absolute() else base_path.joinpath(target)
         for target in targets
     ]
 
@@ -446,16 +438,7 @@ def adjust_for_docker() -> None:
             os.chdir(SRC_DIRECTORY)
 
 
-def get_absolute_base_path() -> Path:
-    """Return the current directory as an absolute path."""
-    return Path(os.getcwd())
-
-
 def get_base_path() -> Path:
-    """Return the current directory.
-
-    This may be a relative or absolute path.
-    """
     return Path(os.curdir)
 
 

@@ -11,6 +11,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Java: support @interface pattern (#4030)
 
 ### Fixed
+- Reverted change to exclude minified files from the scan (see changelog for
+  0.66.0)
 
 ### Changed
 - taint-mode: Introduce a new kind of _not conflicting_ sanitizer that must be
