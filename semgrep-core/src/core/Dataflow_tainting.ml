@@ -91,14 +91,14 @@ let (<&>) (o1 : PM.t option) (o2 : PM.t list) : PM.t list =
         Some {pm1 with env})) 
         pms
 
-let varmap_update f x env =
+let varmap_update env x data f =
   match VarMap.find_opt x env with
-    | None -> env
+    | None -> VarMap.add x data env
     | Some y -> VarMap.add x (f y) env
 
-let hashtbl_update f x env =
+let hashtbl_update env x data f =
   match Hashtbl.find_opt env x with
-    | None -> ()
+    | None -> Hashtbl.add env x data
     | Some y -> Hashtbl.add env x (f y)
 (*****************************************************************************)
 (* Tainted *)
@@ -127,6 +127,8 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.t list VarMap.t)
         let (_,tok),_ = var in
         if Parse_info.is_origintok tok then config.is_source (G.Tk tok) else None
       in
+      let env_tainted = list_opt_to_list (VarMap.find_opt (str_of_name var) env) in
+      if env_tainted = [] then print_endline "not env tainted";
       opt_to_list var_tok_pm_opt @ 
       list_opt_to_list (VarMap.find_opt (str_of_name var) env) @ 
       list_opt_to_list (Hashtbl.find_opt fun_env (str_of_name var))
@@ -156,6 +158,7 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.t list VarMap.t)
     | Some _ -> []
     | None ->
       let tainted_pms = check_subexpr exp.e @ opt_to_list (config.is_source (G.E exp.eorig)) in
+      if tainted_pms = [] then print_endline "expr not tainted";
       match sink_pm_opt <&> tainted_pms with
         | [] -> print_endline "nothing after unification";tainted_pms
         | found -> print_endline "something after unification";config.found_tainted_sink found env; tainted_pms
@@ -299,12 +302,13 @@ let (transfer :
       Printf.printf "at node %i\n" ni;
       (match check_tainted_instr config fun_env in' x, IL.lvar_of_instr_opt x with
         | [], Some var -> Printf.printf "untainted!\n\n";VarMap.remove (str_of_name var) in'
-        | pms, Some var -> Printf.printf "tainted!\n\n";varmap_update ((@) pms) (str_of_name var) in'
+        | pms, Some var -> Printf.printf "tainted!\n\n";varmap_update in' (str_of_name var) pms ((@) pms) 
         | _ -> in'
       )
     | NReturn (tok,e) ->
+      print_endline "return?";
       (match check_tainted_return config fun_env in' tok e,opt_name with
-        | pms, Some var -> hashtbl_update ((@) pms) (str_of_name var) fun_env; in'
+        | pms, Some var -> hashtbl_update fun_env (str_of_name var) pms((@) pms) ; in'
         | _ -> in'
       )
     | _ -> in'
@@ -315,10 +319,16 @@ let (transfer :
 (* Entry point *)
 (*****************************************************************************)
 
+
+module PMSet = Set.Make(struct 
+  type t = PM.t
+  let compare pm1 pm2 = if PM.equal pm1 pm2 then 0 else String.compare pm1.rule_id.id pm2.rule_id.id
+end)
+
 let (fixpoint : config -> fun_env -> IL.name option -> F.cfg -> mapping) =
  fun config fun_env opt_name flow ->
   DataflowX.fixpoint
-    ~eq:(List.equal PM.equal)
+    ~eq:(fun a b -> PMSet.equal (PMSet.of_list a) (PMSet.of_list b))
     ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
     ~trans:
       (transfer config fun_env opt_name ~flow)
