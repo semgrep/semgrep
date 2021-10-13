@@ -17,6 +17,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Python: fix range of tuples (#3832)
 - C: fix some wrong typedef inference
 - Ruby: put back equivalence on old syntax for keyword arguments (#3981)
+- OCaml: add body of functor in AST (#3821)
 
 ### Changed
 - taint-mode: Introduce a new kind of _not conflicting_ sanitizer that must be
