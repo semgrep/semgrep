@@ -4,7 +4,7 @@ runs:
   - url: https://github.com/zulip/zulip
     commit_hash: 829f9272d2c4299a0c0a37a09802248d8136c0a8
   rule_configs:
-  - zulip/semgrep.yml
+  - rules/zulip/semgrep.yml
   opts: []
 - name: dropbox  # flask rulepack on a python repo
   repos:
@@ -48,9 +48,9 @@ runs:
   - url: https://github.com/appsecco/dvna
     commit_hash: c637437d6515bd4c732e91c58e62d38e88260d3c
   rule_configs:
-  - njsscan/regex_dos.yaml
-  - njsscan/header_cookie.yaml
-  - njsscan/jwt_exposed_data.yaml
+  - rules/njsscan/regex_dos.yaml
+  - rules/njsscan/header_cookie.yaml
+  - rules/njsscan/jwt_exposed_data.yaml
   opts: []
 # See https://owasp.org/www-project-vulnerable-web-applications-directory/
 # for a full list of vulnerable apps

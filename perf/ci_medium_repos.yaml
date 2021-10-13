@@ -4,18 +4,18 @@ runs:
   - url: https://github.com/dropbox/dropbox-sdk-js
     commit_hash: 268887672a0d7be58ffbfaf832731698e31d792d
   rule_configs:
-  - njsscan/regex_dos.yaml
-  - njsscan/header_cookie.yaml
-  - njsscan/jwt_exposed_data.yaml
+  - rules/njsscan/regex_dos.yaml
+  - rules/njsscan/header_cookie.yaml
+  - rules/njsscan/jwt_exposed_data.yaml
   opts: []
 - name: njs-old-juice  # Run old nodejsscan rules on vulnerable app
   repos:
   - url: https://github.com/bkimminich/juice-shop
     commit_hash: 98633f5ef242bf943608324a562058b22eca6dfe
   rule_configs:
-  - njsscan/regex_dos.yaml
-  - njsscan/header_cookie.yaml
-  - njsscan/jwt_exposed_data.yaml
+  - rules/njsscan/regex_dos.yaml
+  - rules/njsscan/header_cookie.yaml
+  - rules/njsscan/jwt_exposed_data.yaml
   opts: []
 - name: netflix  # r2c-ci and r2c-security audit packs on a python/JS repo
   repos:

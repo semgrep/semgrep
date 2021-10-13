@@ -329,6 +329,7 @@ def prepare_benchmark_run(
         for repository in setup_data.repositories:
             repo_name = repository.url.split("/")[-1]
             generate_prep_file(
+                setup_data.run_name,
                 repo_name,
                 rule_cache_dir.absolute(),
                 repository.url,
@@ -347,6 +348,7 @@ def prepare_benchmark_run(
 
 def generate_prep_file(
     name: str,
+    repo_name: str,
     rule_cache_dir: Path,
     url: str,
     commit_hash: str,
@@ -360,7 +362,7 @@ def generate_prep_file(
     prep_file.touch(0o755, exist_ok=True)
     prep_file.write_text(
         PREP_FILE_TEMPLATE.format(
-            name=name,
+            name=repo_name,
             rule_cache_dir=rule_cache_dir,
             url=url,
             commit_hash=commit_hash,
