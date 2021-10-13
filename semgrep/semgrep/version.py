@@ -120,12 +120,6 @@ def _get_latest_version(version_cache_path: Path) -> Optional[JsonObject]:
     return latest_version
 
 
-# TODO: something's wrong in CI, causing the following error:
-#   Argument 1 to "_show_banners" becomes "Any" due to an unfollowed import  [no-any-unimported]
-#
-# Adding '# type: ignore' works in CI but not locally (for Martin), giving another error:
-#   error: unused 'type: ignore' comment
-#
 def _show_banners(current_version: Version, latest_version_object: JsonObject) -> None:
     banners = latest_version_object.get("banners", [])
     for b in banners:
