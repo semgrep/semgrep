@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - C: support declaration and function patterns
 - Java: support @interface pattern (#4030)
 - Python: fix range of tuples (#3832)
+- C: fix some wrong typedef inference
 
 ### Fixed
 - Reverted change to exclude minified files from the scan (see changelog for
