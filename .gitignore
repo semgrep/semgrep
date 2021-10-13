@@ -168,10 +168,10 @@ semgrep/semgrep/bin/semgrep-core
 semgrep/semgrep/bin/spacegrep
 
 # Ignore bench files
-semgrep/perf/bench
-!semgrep/perf/bench/dogfood
-!semgrep/perf/bench/gitlab
-!semgrep/perf/bench/dummy
-!semgrep/perf/bench/njs-juice
-!semgrep/perf/bench/r2c-rules
-!semgrep/perf/bench/rules
+perf/bench
+!perf/bench/dogfood
+!perf/bench/gitlab
+!perf/bench/dummy
+!perf/bench/njs-juice
+!perf/bench/r2c-rules
+!perf/bench/rules
