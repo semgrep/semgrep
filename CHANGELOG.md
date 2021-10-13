@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.69.0](https://github.com/returntocorp/semgrep/releases/tag/v0.69.0) - 10-13-2021
+
 ### Added
 - C: support ... in parameters and sizeof arguments (#4037)
 - C: support declaration and function patterns
@@ -14,7 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   0.66.0)
 - Java: Fixed equality of metavariables bounded to imported classes (#3748)
 - Python: fix range of tuples (#3832)
-- C: fix some wrong typedef inference
+- C: fix some wrong typedef inference (#4054)
 - Ruby: put back equivalence on old syntax for keyword arguments (#3981)
 - OCaml: add body of functor in AST (#3821)
 
