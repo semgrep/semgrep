@@ -144,9 +144,9 @@ let test_dfg_tainting file =
              pr2 "Tainting";
              let config =
                {
-                 Dataflow_tainting.is_source = (fun _ -> false);
-                 is_sink = (fun _ -> false);
-                 is_sanitizer = (fun _ -> false);
+                 Dataflow_tainting.is_source = (fun _ -> None);
+                 is_sink = (fun _ -> None);
+                 is_sanitizer = (fun _ -> None);
                  found_tainted_sink = (fun _ _ -> ());
                }
              in
@@ -154,7 +154,7 @@ let test_dfg_tainting file =
              let mapping =
                Dataflow_tainting.fixpoint config fun_env opt_name flow
              in
-             DataflowY.display_mapping flow mapping (fun () -> "()")
+             DataflowY.display_mapping flow mapping (fun _ -> "<pattern matches>")
          | _ -> ())
 
 let test_dfg_constness file =
