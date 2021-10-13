@@ -240,6 +240,7 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
      * TODO? missing MV.Ss _, MV.Ss _ ??
      *)
     | MV.Id _, MV.Id _
+    | MV.N _, MV.N _
     | MV.E _, MV.E _
     | MV.S _, MV.S _
     | MV.P _, MV.P _
@@ -283,7 +284,8 @@ let rec equal_ast_binded_code (config : Config_semgrep.t) (a : MV.mvalue)
 
   if not res then
     logger#ldebug
-      (lazy (spf "A = %s\nB = %s\n" (MV.str_of_mval a) (MV.str_of_mval b)));
+      (lazy
+        (spf "A != B\nA = %s\nB = %s\n" (MV.str_of_mval a) (MV.str_of_mval b)));
   res
 
 let check_and_add_metavar_binding ((mvar : MV.mvar), valu) (tin : tin) =
