@@ -1637,6 +1637,7 @@ and pair (env : env) (x : CST.pair) =
       let v2 = token2 env v2 in
       (* => *)
       let v3 = arg env v3 in
+      (* will be converted to ArgKwd in ruby_to_generic.ml if needed *)
       Left (Binop (v1, (Op_ASSOC, v2), v3))
   | `Choice_hash_key_symb_imm_tok_COLON_arg (v1, v2, v3) -> (
       let v1 =
