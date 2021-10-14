@@ -124,6 +124,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     is_flag=False,
     type=METRICS_STATE_TYPE,
     flag_value="on",  # click inverts the flag for some reason?
+    nargs=0,
     hidden=True,
 )
 @click.option(
@@ -132,6 +133,7 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
     is_flag=False,
     type=METRICS_STATE_TYPE,
     flag_value="off",  # click inverts the flag for some reason?
+    nargs=0,
     hidden=True,
 )
 @click.option(
