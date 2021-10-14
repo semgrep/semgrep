@@ -116,3 +116,10 @@ let no_submatches pms =
                  Hashtbl.replace tbl k (pm :: ys')));
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
   [@@profiling]
+
+(* Silly, but we have to because type declarations are automatically recursive so [type t = t] doesn't work *)
+type pm = t
+module Set = Set.Make(struct 
+  type t = pm
+  let compare pm1 pm2 = if equal pm1 pm2 then 0 else String.compare pm1.rule_id.id pm2.rule_id.id
+end)

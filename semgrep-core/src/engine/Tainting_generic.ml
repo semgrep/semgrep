@@ -163,7 +163,7 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
     taint_rules
     |> List.map (fun (rule, taint_spec) ->
            let found_tainted_sink pms _env =
-              List.iter (fun pm -> Common.push pm matches) pms
+              PM.Set.iter (fun pm -> Common.push pm matches) pms
            in
            taint_config_of_rule default_config equivs file (ast, []) rule
              taint_spec found_tainted_sink)
