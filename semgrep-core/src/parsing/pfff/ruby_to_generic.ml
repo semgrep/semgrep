@@ -80,7 +80,7 @@ let rec expr e =
       | _ -> G.N (G.Id (ident id, G.empty_id_info ())))
   | ScopedId x ->
       let name = scope_resolution x in
-      G.N (G.IdQualified (name, G.empty_id_info ()))
+      G.N name
   | Hash (_bool, xs) -> G.Container (G.Dict, bracket (list expr) xs)
   | Array (l, xs, r) ->
       let xs = args_to_exprs xs in
@@ -155,6 +155,10 @@ let rec expr e =
 
 and argument arg : G.argument =
   match arg with
+  (* sgrep: equivalence between different keyword argument syntax *)
+  | Arg (Binop (Atom (_tk, AtomSimple id), (Op_ASSOC, _v2), v3)) ->
+      let e3 = expr v3 in
+      G.ArgKwd (id, e3)
   | Arg e -> G.Arg (expr e)
   | ArgKwd (id, _tk, arg) ->
       let id = ident id in
@@ -221,12 +225,18 @@ and formal_param_pattern = function
       let x = formal_param x in
       G.OtherPat (("ParamPattern", PI.unsafe_fake_info ""), [ G.Pa x ])
 
-(* less: return a G.name *)
-and scope_resolution = function
+and scope_resolution x : G.name =
+  match x with
   | TopScope (t, v) ->
       let id = variable v in
       let qualif = G.QTop t in
-      (id, { G.name_qualifier = Some qualif; name_typeargs = None })
+      IdQualified
+        {
+          G.name_id = id;
+          name_qualifier = Some qualif;
+          name_typeargs = None;
+          name_info = G.empty_id_info ();
+        }
   | Scope (e, t, v_or_m) ->
       let id = variable_or_method_name v_or_m in
       (* TODO: use an 'expr_for_scope' instead of 'expr' below, because
@@ -235,7 +245,13 @@ and scope_resolution = function
        *)
       let e = expr e in
       let qualif = G.QExpr (e, t) in
-      (id, { G.name_qualifier = Some qualif; name_typeargs = None })
+      IdQualified
+        {
+          G.name_id = id;
+          name_qualifier = Some qualif;
+          name_typeargs = None;
+          name_info = G.empty_id_info ();
+        }
 
 and variable (id, _kind) = ident id
 
@@ -575,8 +591,7 @@ and definition def =
             match name with
             | NameConstant id -> G.basic_entity id
             | NameScope x ->
-                let name_ = scope_resolution x in
-                let name = G.IdQualified (name_, G.empty_id_info ()) in
+                let name = scope_resolution x in
                 nonbasic_entity (G.EN name)
           in
           let def =
@@ -600,8 +615,7 @@ and definition def =
         match name with
         | NameConstant id -> G.basic_entity id
         | NameScope x ->
-            let name_ = scope_resolution x in
-            let name = G.IdQualified (name_, G.empty_id_info ()) in
+            let name = scope_resolution x in
             nonbasic_entity (G.EN name)
       in
       let mkind = G.ModuleStruct (None, [ body ]) in

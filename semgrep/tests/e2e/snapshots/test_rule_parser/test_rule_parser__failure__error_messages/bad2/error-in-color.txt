@@ -1,4 +1,4 @@
-[31msemgrep error[0m: Invalid rule schema
+[31m[31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/bad2.yaml:2
 [94m2 | [0m  - id: eqeq-is-bad
 [94m3 | [0m    patterns:
@@ -8,5 +8,5 @@
 [94m7 | [0m    severit: ERROR
 
 [31mAdditional properties are not allowed ('severit' was unexpected)[0m
-
-run with --strict and there were 1 errors loading configs
+[0m
+[31mrun with --strict and there were 1 errors loading configs[0m

@@ -152,13 +152,13 @@ and type_kind = function
       G.TyApply (G.TyN v1 |> G.t, (lp, [ G.TA v2 ], rp))
 
 and function_type (v1, v2) =
-  let v1 = type_ v1 and v2 = list (fun x -> G.ParamClassic (parameter x)) v2 in
+  let v1 = type_ v1 and v2 = list (fun x -> parameter x) v2 in
   (v1, v2)
 
 and parameter x =
   match x with
-  | ParamClassic x -> parameter_classic x
-  | ParamDots _ -> raise Todo
+  | ParamClassic x -> G.ParamClassic (parameter_classic x)
+  | ParamDots t -> G.ParamEllipsis t
 
 and parameter_classic { p_type; p_name } =
   let arg1 = type_ p_type in

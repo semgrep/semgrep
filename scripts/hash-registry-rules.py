@@ -24,7 +24,7 @@ if __name__ == "__main__":
         logger.setLevel(logging.DEBUG)
 
     logger.info(f"Fetching '{args.config}'")
-    config = Config.from_config_list([args.config])[0]
+    config = Config.from_config_list([args.config], None)[0]
     rules = config.get_rules(True)
     for rule in rules:
         logger.debug(f"Hashing '{rule.id}'")

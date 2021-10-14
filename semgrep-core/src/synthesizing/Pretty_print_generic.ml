@@ -575,7 +575,7 @@ and continue env (tok, lbl) _sc =
 and expr env e =
   match e.e with
   | N (Id ((s, _), idinfo)) -> id env (s, idinfo)
-  | N (IdQualified (name, idinfo)) -> id_qualified env (name, idinfo)
+  | N (IdQualified qualified_info) -> id_qualified env qualified_info
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
   | L x -> literal env x
@@ -600,7 +600,7 @@ and id env (s, { id_resolved; _ }) =
   | Some (ImportedModule (DottedName ents), _) -> dotted_access env ents
   | _ -> s
 
-and id_qualified env ((id, { name_qualifier; _ }), _idinfo) =
+and id_qualified env { name_id = id; name_qualifier; _ } =
   match name_qualifier with
   | Some (QDots dot_ids) ->
       F.sprintf "%s.%s" (dotted_access env dot_ids) (ident id)
@@ -723,8 +723,7 @@ and dot_access env (e, _tok, fi) =
 and field_ident env fi =
   match fi with
   | EN (Id (id, _idinfo)) -> ident id
-  (* TODO: use name_info *)
-  | EN (IdQualified ((id, _name_infoTODO), _)) -> ident id
+  | EN (IdQualified qualified_info) -> id_qualified env qualified_info
   | EDynamic e -> expr env e
 
 and tyvar env (id, typ) =

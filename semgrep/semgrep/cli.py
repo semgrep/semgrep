@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import multiprocessing
 import os
+from typing import Any
 from typing import cast
 from typing import Optional
 from typing import Sequence
@@ -18,6 +19,8 @@ from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.notifications import possibly_notify_user
+from semgrep.types import MetricsState
 from semgrep.util import abort
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
@@ -39,7 +42,40 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     return cast(str, lang)
 
 
-@click.command()
+class MetricsStateType(click.ParamType):
+    name = "metrics_state"
+
+    def get_metavar(self, param: click.Parameter) -> str:
+        return "[auto|on|off]"
+
+    def convert(
+        self,
+        value: Any,
+        param: Optional["click.Parameter"],
+        ctx: Optional["click.Context"],
+    ) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            lower = value.lower()
+            if lower == "auto":
+                return MetricsState.AUTO
+            # Support setting via old environment variable values 0/1/true/false
+            if lower == "on" or lower == "1" or lower == "true":
+                return MetricsState.ON
+            if lower == "off" or lower == "0" or lower == "false":
+                return MetricsState.OFF
+        self.fail("expected 'auto', 'on', or 'off'")
+
+
+METRICS_STATE_TYPE = MetricsStateType()
+
+
+# Slightly increase the help width from default 80 characters, to improve readability
+CONTEXT_SETTINGS = {"max_content_width": 90}
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
 @click.argument("target", nargs=-1, type=click.Path(allow_dash=True))
 @click.option(
     "-a",
@@ -59,13 +95,6 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     ),
 )
 @click.option(
-    "--enable-metrics/--disable-metrics",
-    is_flag=True,
-    help="Send pseudonymous usage metrics to Semgrep. If absent, uses the value of the SEMGREP_SEND_METRICS environment variable; "
-    "defaults to no metrics. NOTE: THIS IS SUBJECT TO CHANGE IN A FUTURE SEMGREP RELEASE.",
-    envvar="SEMGREP_SEND_METRICS",
-)
-@click.option(
     "--error/--no-error",
     "error_on_findings",
     is_flag=True,
@@ -76,6 +105,34 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     "-l",
     help="Parse pattern and all files in specified language. Must be used "
     "with -e/--pattern.",
+)
+@click.option(
+    "--metrics",
+    "metrics",
+    type=METRICS_STATE_TYPE,
+    help="Configures how usage metrics are sent to the Semgrep server."
+    " If 'auto', metrics are sent whenever the --config value pulls from the Semgrep server."
+    " If 'on', metrics are always sent."
+    " If 'off', metrics are disabled altogether and not sent."
+    " If absent, the SEMGREP_SEND_METRICS environment variable value will be used."
+    " If no environment variable, defaults to 'auto'.",
+    envvar="SEMGREP_SEND_METRICS",
+)
+@click.option(
+    "--disable-metrics",
+    "metrics_legacy",
+    is_flag=True,
+    type=METRICS_STATE_TYPE,
+    flag_value="off",
+    hidden=True,
+)
+@click.option(
+    "--enable-metrics",
+    "metrics_legacy",
+    is_flag=True,
+    type=METRICS_STATE_TYPE,
+    flag_value="on",
+    hidden=True,
 )
 @click.option(
     "--severity",
@@ -99,8 +156,12 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     "-f",
     multiple=True,
     help="YAML configuration file, directory of YAML files ending in "
-    ".yml|.yaml, URL of a configuration file, or Semgrep registry entry "
-    "name. See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.",
+    ".yml|.yaml, URL of a configuration file, or Semgrep registry entry name."
+    "\n\n"
+    "Use --config auto to automatically obtain rules tailored to this project; your project URL will be used to log in"
+    " to the Semgrep registry."
+    "\n\n"
+    "See https://semgrep.dev/docs/writing-rules/rule-syntax for information on configuration file format.",
 )
 @optgroup.option(
     "--pattern",
@@ -178,11 +239,8 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     "--scan-unknown-extensions/--skip-unknown-extensions",
     is_flag=True,
     default=True,
-    help="By default or with --scan-unknown-extensions,"
-    " explicit files will be scanned using the language"
-    " specified in --lang regardless of their extension."
-    " If --skip-unknown-extensions, these files will not be scanned if they"
-    " have a wrong extension for the language.",
+    help="If true, explicit files will be scanned using the language specified in --lang. If --skip-unknown-extensions, "
+    "these files will not be scanned",
 )
 @optgroup.group("Performance and memory options")
 @optgroup.option(
@@ -396,6 +454,7 @@ def __validate_lang(option: str, lang: Optional[str]) -> str:
     # help="WARNING: allow rules to run arbitrary code (pattern-where-python)",
 )
 def cli(
+    *,
     autofix: bool,
     config: Optional[Tuple[str, ...]],
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
@@ -404,7 +463,6 @@ def cli(
     dryrun: bool,
     dump_ast: bool,
     emacs: bool,
-    enable_metrics: bool,
     enable_nosem: bool,
     enable_version_check: bool,
     error_on_findings: bool,
@@ -422,6 +480,8 @@ def cli(
     max_lines_per_finding: int,
     max_memory: int,
     max_target_bytes: int,
+    metrics: Optional[MetricsState],
+    metrics_legacy: Optional[MetricsState],
     optimizations: str,
     output: Optional[str],
     pattern: Optional[str],
@@ -449,7 +509,18 @@ def cli(
     """
     Semgrep CLI. Searches TARGET paths for matches to rules or patterns. Defaults to searching entire current working directory.
 
+    To get started quickly, run
+
+        semgrep --config auto .
+
+    This will automatically fetch rules for your project from the Semgrep Registry. NOTE: Using `--config auto` will
+    log in to the Semgrep Registry with your project URL.
+
     For more information about Semgrep, go to https://semgrep.dev.
+
+    NOTE: By default, Semgrep will report pseudonymous usage metrics to its server if you pull your configuration from
+    the Semgrep registy. To learn more about how and why these metrics are collected, please see
+    https://github.com/returntocorp/semgrep/PRIVACY.md. To modify this behavior, see the --metrics option below.
     """
 
     if version:
@@ -471,15 +542,15 @@ def cli(
     from semgrep.metric_manager import metric_manager
     from semgrep.output import managed_output
     from semgrep.output import OutputSettings
+    from semgrep.project import get_project_url
     from semgrep.synthesize_patterns import synthesize
     from semgrep.target_manager import converted_pipe_targets
 
+    possibly_notify_user()
+
     target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
-    if enable_metrics:
-        metric_manager.enable()
-    else:
-        metric_manager.disable()
+    metric_manager.configure(metrics, metrics_legacy)
 
     if include and exclude:
         logger.warning(
@@ -495,6 +566,11 @@ def cli(
     if dangerously_allow_arbitrary_code_execution_from_rules:
         logger.warning(
             "The '--dangerously-allow-arbitrary-code-execution-from-rules' flag is now deprecated and does nothing. It will be removed in the future."
+        )
+
+    if (config and "auto" in config) and metrics == MetricsState.OFF:
+        abort(
+            "Cannot create auto config when metrics are off. Please allow metrics or run with a specific config."
         )
 
     output_time = time or json_time
@@ -568,7 +644,7 @@ def cli(
             )
         elif validate:
             configs, config_errors = semgrep.config_resolver.get_config(
-                pattern, lang, config or []
+                pattern, lang, config or [], project_url=get_project_url()
             )
             valid_str = "invalid" if config_errors else "valid"
             rule_count = len(configs.get_rules(True))

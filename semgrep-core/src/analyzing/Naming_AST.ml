@@ -603,10 +603,11 @@ let resolve lang prog =
                   (* name resolution *)
                   set_resolved env id_info resolved
               | _ -> ())
-          | IdQualified ((id, name_info), id_info) ->
-              (match name_info with
+          | IdQualified { name_id = id; name_qualifier; name_info = id_info; _ }
+            ->
+              (match name_qualifier with
               (* this is quite specific to OCaml *)
-              | { name_qualifier = Some (QDots [ m ]); _ } -> (
+              | Some (QDots [ m ]) -> (
                   match lookup_scope_opt m env with
                   | Some { entname = ImportedModule (DottedName xs), _sidm; _ }
                     ->

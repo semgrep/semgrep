@@ -16,7 +16,6 @@
         "metavars": {},
         "severity": "ERROR"
       },
-      "path": "<tmp path>/dev_fd_63",
       "start": {
         "col": 1,
         "line": 1,
@@ -38,7 +37,6 @@
         "metavars": {},
         "severity": "ERROR"
       },
-      "path": "<tmp path>/dev_fd_63",
       "start": {
         "col": 1,
         "line": 1,
