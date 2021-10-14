@@ -253,7 +253,7 @@ class OutputHandler:
                 logger.error(str(error))
 
     def _add_shortlink(self, rule_match: RuleMatch) -> RuleMatch:
-        source_url = rule_match._metadata.get("source")
+        source_url = rule_match._metadata.get("shortlink")
         if source_url:
             new_message = f"{rule_match.message} (details: {source_url})"
             return attr.evolve(rule_match, message=new_message)
