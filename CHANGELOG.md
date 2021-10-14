@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## Added
+- Metavariable equality is enforced across sources/sanitizers/sinks in taint mode, and 
+these metavariables correctly appear in match messages
+
 ## Fixed
 - Respect --skip-unknown-extensions even for files with no extension
 (treat no extension as an unknown extension)
