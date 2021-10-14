@@ -6,6 +6,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## [0.69.1](https://github.com/returntocorp/semgrep/releases/tag/v0.69.1) - 10-14-2021
 
+### Fixed
+- The `--enable-metrics` flag is now always a flag, does not optionally take an argument
+
 ## [0.69.0](https://github.com/returntocorp/semgrep/releases/tag/v0.69.0) - 10-13-2021
 
 ### Added
@@ -21,7 +24,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - C: fix some wrong typedef inference (#4054)
 - Ruby: put back equivalence on old syntax for keyword arguments (#3981)
 - OCaml: add body of functor in AST (#3821)
-- The `--enable-metrics` flag is now always a flag, does not optionally take an argument
 
 ### Changed
 - taint-mode: Introduce a new kind of _not conflicting_ sanitizer that must be
