@@ -125,30 +125,42 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     (* TODO: Make an Or formula and run a single query. *)
     (* if perf is a problem, we could build an interval set here *)
     pfs
-    |> List.map
+    |> List.concat_map
          (range_w_metas_of_pformula config equivs file_and_more (fst rule.id))
-    |> List.concat
+  in
+  let find_range_w_metas_santizers specs =
+    specs
+    |> List.concat_map (fun spec ->
+           List.map
+             (fun pf -> (spec.Rule.not_conflicting, pf))
+             (range_w_metas_of_pformula config equivs file_and_more
+                (fst rule.id) spec.pformula))
   in
   let sources_ranges = find_range_w_metas spec.sources
   and sinks_ranges = find_range_w_metas spec.sinks in
   let sanitizers_ranges =
-    find_range_w_metas spec.sanitizers
+    find_range_w_metas_santizers spec.sanitizers
     (* A sanitizer cannot conflict with a sink or a source, otherwise it is
      * filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
      * to assume that any other function will handle tainted data safely.
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
-    |> List.filter (fun rng ->
+    |> List.filter_map (fun (not_conflicting, rng) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
-           not
-             (List.exists
-                (fun rng' ->
-                  rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
-                sinks_ranges
-             || List.exists
-                  (fun rng' ->
-                    rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
-                  sources_ranges))
+           if not_conflicting then
+             if
+               not
+                 (List.exists
+                    (fun rng' ->
+                      rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
+                    sinks_ranges
+                 || List.exists
+                      (fun rng' ->
+                        rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
+                      sources_ranges)
+             then Some rng
+             else None
+           else Some rng)
   in
   {
     Dataflow_tainting.is_source = (fun x -> any_in_ranges x sources_ranges);
