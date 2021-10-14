@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - C: fix some wrong typedef inference (#4054)
 - Ruby: put back equivalence on old syntax for keyword arguments (#3981)
 - OCaml: add body of functor in AST (#3821)
+- The `--enable-metrics` flag is now always a flag, does not optionally take an argument
 
 ### Changed
 - taint-mode: Introduce a new kind of _not conflicting_ sanitizer that must be
