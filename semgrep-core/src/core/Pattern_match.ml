@@ -74,6 +74,7 @@ and rule_id = {
 }
 [@@deriving show, eq]
 
+
 let uniq pms =
   let eq = AST_utils.with_structural_equal equal in
   let tbl = Hashtbl.create 1_024 in
@@ -117,9 +118,15 @@ let no_submatches pms =
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
   [@@profiling]
 
+
+type int_range = int * int * int * int
+  [@@deriving ord]
+
+let int_range_of_range_loc ((tl1 , tl2) : Parse_info.token_location * Parse_info.token_location) = (tl1.line,tl1.column,tl2.line,tl2.column)
+
 (* Silly, but we have to because type declarations are automatically recursive so [type t = t] doesn't work *)
 type pm = t
 module Set = Set.Make(struct 
   type t = pm
-  let compare pm1 pm2 = if equal pm1 pm2 then 0 else String.compare pm1.rule_id.id pm2.rule_id.id
+  let compare pm1 pm2 = compare_int_range (int_range_of_range_loc pm1.range_loc) (int_range_of_range_loc pm2.range_loc) 
 end)

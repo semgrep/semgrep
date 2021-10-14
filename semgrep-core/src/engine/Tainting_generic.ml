@@ -137,9 +137,10 @@ let taint_config_of_rule default_config equivs file ast_and_errors
      * to assume that any other function will handle tainted data safely.
      * Without this, `$F(...)` will automatically sanitize any other function
      * call acting as a sink or a source. *)
-    |> List.filter (fun r ->
+    |> List.filter (fun rng ->
            (* TODO: Warn user when we filter out a sanitizer? *)
-           not (List.mem r sinks_ranges || List.mem r sources_ranges))
+           not (List.exists (fun rng' -> rng'.Range_with_metavars.r = rng.Range_with_metavars.r) sinks_ranges || 
+                List.exists (fun rng' -> rng'.Range_with_metavars.r = rng.Range_with_metavars.r) sources_ranges))
   in
   {
     Dataflow_tainting.is_source = (fun x -> any_in_ranges x sources_ranges);
