@@ -121,19 +121,17 @@ CONTEXT_SETTINGS = {"max_content_width": 90}
 @click.option(
     "--disable-metrics",
     "metrics_legacy",
-    is_flag=False,
+    is_flag=True,
     type=METRICS_STATE_TYPE,
-    flag_value="on",  # click inverts the flag for some reason?
-    nargs=0,
+    flag_value="off",
     hidden=True,
 )
 @click.option(
     "--enable-metrics",
     "metrics_legacy",
-    is_flag=False,
+    is_flag=True,
     type=METRICS_STATE_TYPE,
-    flag_value="off",  # click inverts the flag for some reason?
-    nargs=0,
+    flag_value="on",
     hidden=True,
 )
 @click.option(
