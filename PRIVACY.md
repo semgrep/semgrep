@@ -45,8 +45,7 @@ We strive to balance our desire to collect data for improving Semgrep with our u
 
 
 * Source code
-* Raw repository names, filenames, file contents, or commit hashes
-  * *Except* the raw repository name is sent to Semgrep when using `--config=auto`
+* Filenames, file contents, or commit hashes
 * User-identifiable data about Semgrep’s findings in your code, including finding messages
 * Private rules
 
