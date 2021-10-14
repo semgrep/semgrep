@@ -98,8 +98,8 @@ let any_in_ranges any rwms =
       None
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
-      List.find_opt (fun rwm -> Range.( $<=$ ) r rwm.Range_with_metavars.r) rwms |>
-      Option.map (fun rwm -> rwm.Range_with_metavars.origin)
+      List.find_opt (fun rwm -> Range.( $<=$ ) r rwm.Range_with_metavars.r) rwms
+      |> Option.map (fun rwm -> rwm.Range_with_metavars.origin)
 
 let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
@@ -125,7 +125,8 @@ let taint_config_of_rule default_config equivs file ast_and_errors
     (* TODO: Make an Or formula and run a single query. *)
     (* if perf is a problem, we could build an interval set here *)
     pfs
-    |> List.map (range_w_metas_of_pformula config equivs file_and_more (fst rule.id))
+    |> List.map
+         (range_w_metas_of_pformula config equivs file_and_more (fst rule.id))
     |> List.concat
   in
   let sources_ranges = find_range_w_metas spec.sources
@@ -139,8 +140,15 @@ let taint_config_of_rule default_config equivs file ast_and_errors
      * call acting as a sink or a source. *)
     |> List.filter (fun rng ->
            (* TODO: Warn user when we filter out a sanitizer? *)
-           not (List.exists (fun rng' -> rng'.Range_with_metavars.r = rng.Range_with_metavars.r) sinks_ranges || 
-                List.exists (fun rng' -> rng'.Range_with_metavars.r = rng.Range_with_metavars.r) sources_ranges))
+           not
+             (List.exists
+                (fun rng' ->
+                  rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
+                sinks_ranges
+             || List.exists
+                  (fun rng' ->
+                    rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
+                  sources_ranges))
   in
   {
     Dataflow_tainting.is_source = (fun x -> any_in_ranges x sources_ranges);
@@ -164,7 +172,7 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
     taint_rules
     |> List.map (fun (rule, taint_spec) ->
            let found_tainted_sink pms _env =
-              PM.Set.iter (fun pm -> Common.push pm matches) pms
+             PM.Set.iter (fun pm -> Common.push pm matches) pms
            in
            taint_config_of_rule default_config equivs file (ast, []) rule
              taint_spec found_tainted_sink)

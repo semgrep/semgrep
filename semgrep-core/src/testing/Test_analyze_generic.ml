@@ -154,7 +154,8 @@ let test_dfg_tainting file =
              let mapping =
                Dataflow_tainting.fixpoint config fun_env opt_name flow
              in
-             DataflowY.display_mapping flow mapping (fun _ -> "<pattern matches>")
+             DataflowY.display_mapping flow mapping (fun _ ->
+                 "<pattern matches>")
          | _ -> ())
 
 let test_dfg_constness file =

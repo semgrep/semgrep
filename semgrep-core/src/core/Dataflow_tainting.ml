@@ -19,6 +19,7 @@ module F = IL
 module D = Dataflow
 module VarMap = Dataflow.VarMap
 module PM = Pattern_match
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -64,7 +65,6 @@ end)
 
 let str_of_name ((s, _tok), sid) = spf "%s:%d" s sid
 
-
 let opt_to_set = function
   | None -> PM.Set.empty
   | Some x -> PM.Set.singleton x
@@ -73,44 +73,58 @@ let set_opt_to_set = function
   | None -> PM.Set.empty
   | Some x -> x
 
-let (<::>) x = Option.map (fun xs -> x::xs)
+let ( <::> ) x = Option.map (fun xs -> x :: xs)
 
 let unify_meta_envs env1 env2 =
-  let xs = List.fold_left (fun xs (mvar,mval) -> 
-    match List.assoc_opt mvar env2 with
-      | None -> (mvar,mval) <::> xs
-      | Some mval' -> if Metavariable.equal_mvalue mval mval' then (mvar,mval) <::> xs else None
-    ) (Some []) env1
+  let xs =
+    List.fold_left
+      (fun xs (mvar, mval) ->
+        match List.assoc_opt mvar env2 with
+        | None -> (mvar, mval) <::> xs
+        | Some mval' ->
+            if Metavariable.equal_mvalue mval mval' then (mvar, mval) <::> xs
+            else None)
+      (Some []) env1
   in
-  let ys = List.filter (fun (mvar,_) -> not @@ List.mem_assoc mvar env1) env2 in
+  let ys =
+    List.filter (fun (mvar, _) -> not @@ List.mem_assoc mvar env1) env2
+  in
   Option.map (fun xs -> xs @ ys) xs
 
-let set_concat_map f xs = xs |> List.map f |> List.fold_left PM.Set.union PM.Set.empty
-let set_filter_map f pm_set = 
-  PM.Set.fold (fun pm pm_set -> match f pm with Some pm' -> PM.Set.add pm' pm_set | None -> pm_set) 
-  pm_set PM.Set.empty
+let set_concat_map f xs =
+  xs |> List.map f |> List.fold_left PM.Set.union PM.Set.empty
 
+let set_filter_map f pm_set =
+  PM.Set.fold
+    (fun pm pm_set ->
+      match f pm with
+      | Some pm' -> PM.Set.add pm' pm_set
+      | None -> pm_set)
+    pm_set PM.Set.empty
 
 (* TODO: Maybe better names? Was trying to make it look like boolean logic *)
-let (<|>) = PM.Set.union
-let (<&>) (o1 : PM.t option) (o2 : PM.Set.t) : PM.Set.t =
+let ( <|> ) = PM.Set.union
+
+let ( <&> ) (o1 : PM.t option) (o2 : PM.Set.t) : PM.Set.t =
   match o1 with
-    | None  -> PM.Set.empty
-    | Some pm1 ->
-      set_filter_map (fun (pm2 : PM.t) -> 
-        Option.bind (unify_meta_envs pm1.env pm2.env) (fun env ->
-        Some {pm1 with env})) 
+  | None -> PM.Set.empty
+  | Some pm1 ->
+      set_filter_map
+        (fun (pm2 : PM.t) ->
+          Option.bind (unify_meta_envs pm1.env pm2.env) (fun env ->
+              Some { pm1 with env }))
         o2
 
 let varmap_update env x data f =
   match VarMap.find_opt x env with
-    | None -> VarMap.add x data env
-    | Some data' -> VarMap.add x (f data') env
+  | None -> VarMap.add x data env
+  | Some data' -> VarMap.add x (f data') env
 
 let hashtbl_update env x data f =
   match Hashtbl.find_opt env x with
-    | None -> Hashtbl.add env x data
-    | Some data' -> Hashtbl.add env x (f data')
+  | None -> Hashtbl.add env x data
+  | Some data' -> Hashtbl.add env x (f data')
+
 (*****************************************************************************)
 (* Tainted *)
 (*****************************************************************************)
@@ -128,28 +142,30 @@ let hashtbl_update env x data f =
  *   code.
  *)
 
-
-let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t) exp =
+let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
+    exp =
   let check = check_tainted_expr config fun_env env in
   let sink_pm_opt = config.is_sink (G.E exp.eorig) in
   let check_base = function
     | Var var ->
-      let var_tok_pm_opt =
-        let (_,tok),_ = var in
-        if Parse_info.is_origintok tok then config.is_source (G.Tk tok) else None
-      in
-      (* let env_tainted = list_opt_to_list (VarMap.find_opt (str_of_name var) env) in
-      if env_tainted = [] then print_endline "not env tainted"; *)
-      opt_to_set var_tok_pm_opt <|>
-      set_opt_to_set (VarMap.find_opt (str_of_name var) env) <|>
-      set_opt_to_set (Hashtbl.find_opt fun_env (str_of_name var))
+        let var_tok_pm_opt =
+          let (_, tok), _ = var in
+          if Parse_info.is_origintok tok then config.is_source (G.Tk tok)
+          else None
+        in
+        (* let env_tainted = list_opt_to_list (VarMap.find_opt (str_of_name var) env) in
+           if env_tainted = [] then print_endline "not env tainted"; *)
+        opt_to_set var_tok_pm_opt
+        <|> set_opt_to_set (VarMap.find_opt (str_of_name var) env)
+        <|> set_opt_to_set (Hashtbl.find_opt fun_env (str_of_name var))
     | VarSpecial _ -> PM.Set.empty
     | Mem e -> check e
   in
   let check_offset = function
     | Index e -> check e
     | NoOffset
-    | Dot _ -> PM.Set.empty
+    | Dot _ ->
+        PM.Set.empty
   in
   let check_subexpr = function
     | Fetch { base = VarSpecial (This, _); offset = Dot fld; _ } ->
@@ -166,13 +182,16 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t) 
   in
   let sanitized_pm_opt = config.is_sanitizer (G.E exp.eorig) in
   match sanitized_pm_opt with
-    | Some _ -> PM.Set.empty
-    | None ->
-      let tainted_pms = check_subexpr exp.e <|> opt_to_set (config.is_source (G.E exp.eorig)) in
+  | Some _ -> PM.Set.empty
+  | None ->
+      let tainted_pms =
+        check_subexpr exp.e <|> opt_to_set (config.is_source (G.E exp.eorig))
+      in
       let found = sink_pm_opt <&> tainted_pms in
       if PM.Set.is_empty found then tainted_pms
-      else (config.found_tainted_sink found env; tainted_pms)
-
+      else (
+        config.found_tainted_sink found env;
+        tainted_pms)
 
 (* let rec check_tainted_expr ~in_a_sink config fun_env env exp =
   let is_sink = config.is_sink (G.E exp.eorig) in
@@ -227,24 +246,28 @@ let check_tainted_instr config fun_env env instr : PM.Set.t =
   let sink_pm_opt = config.is_sink (G.E instr.iorig) in
   let check_expr = check_tainted_expr config fun_env env in
   let tainted_args = function
-    | Assign (_,e) -> check_expr e
+    | Assign (_, e) -> check_expr e
     | AssignAnon _ -> PM.Set.empty (* TODO *)
-    | Call (_,e,args) ->
-      let e_tainted_pm_opt = check_expr e in
-      let args_tainted_pm_opt = set_concat_map check_expr args in
-      e_tainted_pm_opt <|> args_tainted_pm_opt
-    | CallSpecial (_,_,args) -> set_concat_map check_expr args
+    | Call (_, e, args) ->
+        let e_tainted_pm_opt = check_expr e in
+        let args_tainted_pm_opt = set_concat_map check_expr args in
+        e_tainted_pm_opt <|> args_tainted_pm_opt
+    | CallSpecial (_, _, args) -> set_concat_map check_expr args
     | FixmeInstr _ -> PM.Set.empty
   in
   let sanitized_pm_opt = config.is_sanitizer (G.E instr.iorig) in
   match sanitized_pm_opt with
-    | Some _ -> PM.Set.empty
-    | None ->
-      let tainted_pms = tainted_args instr.i <|> opt_to_set (config.is_source (G.E instr.iorig)) in
+  | Some _ -> PM.Set.empty
+  | None ->
+      let tainted_pms =
+        tainted_args instr.i <|> opt_to_set (config.is_source (G.E instr.iorig))
+      in
       let found = sink_pm_opt <&> tainted_pms in
       if PM.Set.is_empty found then tainted_pms
-      else (config.found_tainted_sink found env; tainted_pms)
-      
+      else (
+        config.found_tainted_sink found env;
+        tainted_pms)
+
 (* let check_tainted_instr config fun_env env instr =
   let is_sink = config.is_sink (G.E instr.iorig) in
   let check_expr = check_tainted_expr ~in_a_sink:is_sink config fun_env env in
@@ -273,12 +296,13 @@ let check_tainted_instr config fun_env env instr : PM.Set.t =
  * report the finding too (by side effect). *)
 let check_tainted_return config fun_env env tok e =
   let orig_return = G.s (G.Return (tok, Some e.eorig, tok)) in
-  let sink_pm_opt = config.is_sink (G.S orig_return) in 
+  let sink_pm_opt = config.is_sink (G.S orig_return) in
   let e_tainted_pms = check_tainted_expr config fun_env env e in
   let found = sink_pm_opt <&> e_tainted_pms in
   if PM.Set.is_empty found then e_tainted_pms
-  else (config.found_tainted_sink found env; e_tainted_pms)
-
+  else (
+    config.found_tainted_sink found env;
+    e_tainted_pms)
 
 (* let check_tainted_return config fun_env env tok e =
   let orig_return = G.s (G.Return (tok, Some e.eorig, tok)) in
@@ -297,8 +321,11 @@ let union = Dataflow.varmap_union PM.Set.union
 (* TODO: Ask about this *)
 (* let diff = Dataflow.varmap_diff (fun x _ -> x) (fun _ -> true) *)
 let (transfer :
-      config -> fun_env -> IL.name option -> flow:F.cfg -> PM.Set.t Dataflow.transfn)
-    =
+      config ->
+      fun_env ->
+      IL.name option ->
+      flow:F.cfg ->
+      PM.Set.t Dataflow.transfn) =
  fun config fun_env opt_name ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
@@ -308,22 +335,28 @@ let (transfer :
       VarMap.empty
   in
   let node = flow.graph#nodes#assoc ni in
-  let out' = match node.F.n with
-    | NInstr x ->
-      (* Printf.printf "at node %i\n" ni; *)
-      let tainted = check_tainted_instr config fun_env in' x in
-      (match PM.Set.is_empty tainted, IL.lvar_of_instr_opt x with
-        | true, Some var -> (*Printf.printf "untainted!\n\n";*)VarMap.remove (str_of_name var) in'
-        | _, Some var -> (*Printf.printf "tainted!\n\n";*)varmap_update in' (str_of_name var) tainted (PM.Set.union tainted) 
-        | _ -> in'
-      )
-    | NReturn (tok,e) ->
-      (* print_endline "return?"; *)
-      let tainted = check_tainted_return config fun_env in' tok e in
-      (match opt_name with
-        | Some var -> hashtbl_update fun_env (str_of_name var) tainted (PM.Set.union tainted) ; in'
-        | _ -> in'
-      )
+  let out' =
+    match node.F.n with
+    | NInstr x -> (
+        (* Printf.printf "at node %i\n" ni; *)
+        let tainted = check_tainted_instr config fun_env in' x in
+        match (PM.Set.is_empty tainted, IL.lvar_of_instr_opt x) with
+        | true, Some var ->
+            (*Printf.printf "untainted!\n\n";*)
+            VarMap.remove (str_of_name var) in'
+        | _, Some var ->
+            (*Printf.printf "tainted!\n\n";*)
+            varmap_update in' (str_of_name var) tainted (PM.Set.union tainted)
+        | _ -> in')
+    | NReturn (tok, e) -> (
+        (* print_endline "return?"; *)
+        let tainted = check_tainted_return config fun_env in' tok e in
+        match opt_name with
+        | Some var ->
+            hashtbl_update fun_env (str_of_name var) tainted
+              (PM.Set.union tainted);
+            in'
+        | _ -> in')
     | _ -> in'
   in
   { D.in_env = in'; out_env = out' }
@@ -334,8 +367,7 @@ let (transfer :
 
 let (fixpoint : config -> fun_env -> IL.name option -> F.cfg -> mapping) =
  fun config fun_env opt_name flow ->
-  DataflowX.fixpoint
-    ~eq:PM.Set.equal
+  DataflowX.fixpoint ~eq:PM.Set.equal
     ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
     ~trans:
       (transfer config fun_env opt_name ~flow)

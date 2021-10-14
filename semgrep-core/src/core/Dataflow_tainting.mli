@@ -1,4 +1,3 @@
-
 type mapping = Pattern_match.Set.t Dataflow.mapping
 (** Map for each node/var whether a variable is "tainted" *)
 
@@ -10,7 +9,8 @@ type config = {
   is_source : AST_generic.any -> Pattern_match.t option;
   is_sink : AST_generic.any -> Pattern_match.t option;
   is_sanitizer : AST_generic.any -> Pattern_match.t option;
-  found_tainted_sink : Pattern_match.Set.t -> Pattern_match.Set.t Dataflow.env -> unit;
+  found_tainted_sink :
+    Pattern_match.Set.t -> Pattern_match.Set.t Dataflow.env -> unit;
 }
 (** This can use semgrep patterns under the hood. Note that a source can be an
   * instruction but also an expression. *)
