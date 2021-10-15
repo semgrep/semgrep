@@ -176,8 +176,16 @@ module C = struct
   *)
   let concat loc = mk loc "concat"
 
+  (* Concatenate two string fragments within double-quotes e.g.
+       "foo $bar"
+  *)
+  let quoted_concat loc = mk loc "quoted_concat"
+
   (* Command substitution: $(...) *)
   let cmd_subst loc = mk loc "cmd_subst"
+
+  (* Process substitution: <(...) *)
+  let proc_subst loc = mk loc "proc_subst"
 end
 
 (*
@@ -394,33 +402,38 @@ and stmt_group (env : env) (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
 
 and expression (env : env) (e : expression) : G.expr =
   match e with
-  | Word ((_, tok) as wrap) -> G.e (G.L (G.String wrap))
-  | String x -> todo_expr (bracket_loc x)
-  | String_fragment (loc, frag) -> (
-      match frag with
-      | String_content ((_, tok) as wrap) -> G.e (G.L (G.String wrap))
-      | Expansion (loc, ex) ->
-          let x = expansion env ex in
-          G.e x.e
-      | Command_substitution (open_, x, close) ->
-          let loc = (open_, close) in
-          let arg = blist env x |> block |> as_expr in
-          call loc C.cmd_subst [ arg ]
-      | Frag_metavar mv -> G.N (mk_name mv) |> G.e)
-  | Raw_string x -> todo_expr (wrap_loc x)
-  | Ansii_c_string x -> todo_expr (wrap_loc x)
-  | Special_character x -> todo_expr (wrap_loc x)
-  | Concatenation (loc, _) -> todo_expr loc
-  | Expr_ellipsis tok -> G.e (G.Ellipsis tok)
-  | Expr_metavar x -> todo_expr (wrap_loc x)
-  | Equality_test (loc, _, _) -> todo_expr loc
-  | Empty_expression loc ->
-      (* not to be confused with the empty string *)
-      call loc C.cmd []
+  | Word str -> G.L (G.String str) |> G.e
+  | String (open_, frags, close) ->
+      let loc = (open_, close) in
+      List.map (string_fragment env) frags |> call loc C.quoted_concat
+  | String_fragment (loc, frag) -> string_fragment env frag
+  | Raw_string str -> G.L (G.String str) |> G.e
+  | Ansii_c_string str -> G.L (G.String str) |> G.e
+  | Special_character str -> G.L (G.String str) |> G.e
+  | Concatenation (loc, el) -> List.map (expression env) el |> call loc C.concat
+  | Expr_ellipsis tok -> G.Ellipsis tok |> G.e
+  | Expr_metavar mv -> G.N (mk_name mv) |> G.e
+  | Equality_test (loc, _, _) -> (* don't know what this is *) todo_expr loc
+  | Empty_expression loc -> G.L (G.String ("", fst loc)) |> G.e
   | Array (loc, (open_, elts, close)) ->
       let elts = List.map (expression env) elts in
       G.Container (G.Array, (open_, elts, close)) |> G.e
-  | Process_substitution (loc, _) -> todo_expr loc
+  | Process_substitution (loc, (open_, x, close)) ->
+      let arg = blist env x |> block |> as_expr in
+      call loc C.proc_subst [ arg ]
+
+and string_fragment (env : env) (frag : string_fragment) : G.expr =
+  match frag with
+  | String_content (("...", tok) as wrap) when env = Pattern ->
+      (* convert the '...' in '"${foo}...${bar}"' into an ellipsis *)
+      G.Ellipsis tok |> G.e
+  | String_content ((_, tok) as wrap) -> G.e (G.L (G.String wrap))
+  | Expansion (loc, ex) -> expansion env ex
+  | Command_substitution (open_, x, close) ->
+      let loc = (open_, close) in
+      let arg = blist env x |> block |> as_expr in
+      call loc C.cmd_subst [ arg ]
+  | Frag_metavar mv -> G.N (mk_name mv) |> G.e
 
 (*
    '$' followed by a variable to transform and expand into a list.
@@ -429,7 +442,10 @@ and expression (env : env) (e : expression) : G.expr =
 and expansion (env : env) (x : expansion) : G.expr =
   match x with
   | Simple_expansion (loc, var_name) -> mk_var_expr var_name
-  | Complex_expansion br -> todo_expr (bracket_loc br)
+  | Complex_expansion (open_, x, close) -> (
+      match x with
+      | Variable (_loc, var) -> mk_var_expr var
+      | Complex_expansion_TODO loc -> todo_expr loc)
 
 (*
    'a && b' and 'a || b' looks like expressions but they're really
