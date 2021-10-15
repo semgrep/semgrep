@@ -8,7 +8,7 @@ set -eu
 eval $(opam env)
 
 if $(ocamlformat --version > /dev/null 2>&1); then
-  ocamlformat --version
+  #to debug: ocamlformat --version
   #TODO: we should require a specific version, like the one in dev.opam
   ocamlformat --inplace --enable-outside-detected-project "$@"
 else
@@ -24,4 +24,4 @@ For now, let's pretend everything is fine.
 EOF
 fi
 
-git diff
+#to debug: git diff
