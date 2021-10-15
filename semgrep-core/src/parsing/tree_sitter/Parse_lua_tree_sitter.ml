@@ -486,9 +486,9 @@ and map_function_call_expr (env : env) (x : CST.function_call_statement) :
       (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
       let qualified_info =
         {
-          G.name_id = fn_name;
-          G.name_qualifier = Some (G.QExpr (prefix, colon));
-          G.name_typeargs = None;
+          G.name_last = (fn_name, None);
+          G.name_middle = Some (G.QExpr (prefix, colon));
+          G.name_top = None;
           G.name_info = G.empty_id_info ();
         }
       in
@@ -737,9 +737,9 @@ and map_variable_declarator_expr (env : env) (x : CST.variable_declarator) :
       let qual = G.QExpr (v1, v2) in
       let qualified_info =
         {
-          G.name_id = v3;
-          name_qualifier = Some qual;
-          name_typeargs = None;
+          G.name_last = (v3, None);
+          name_middle = Some qual;
+          name_top = None;
           name_info = G.empty_id_info ();
         }
       in

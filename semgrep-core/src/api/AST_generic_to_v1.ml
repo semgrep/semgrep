@@ -79,8 +79,7 @@ let map_ident (v : ident) : B.ident = map_wrap map_of_string v
 let map_dotted_ident v : B.dotted_ident = map_of_list map_ident v
 
 let rec _map_qualifier = function
-  | QDots v -> `QDots (map_dotted_ident v)
-  | QTop t -> `QTop (map_tok t)
+  | QDots _ -> failwith "TODO"
   | QExpr (e, t) ->
       let e = map_expr e in
       let t = map_tok t in

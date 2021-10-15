@@ -58,33 +58,38 @@ and vof_resolved_name_kind = function
   | TypeName -> OCaml.VSum ("TypeName", [])
 
 let rec vof_qualifier = function
-  | QTop v1 ->
-      let v1 = vof_tok v1 in
-      OCaml.VSum ("QTop", [ v1 ])
   | QDots v1 ->
-      let v1 = vof_dotted_name v1 in
+      let v1 = OCaml.vof_list vof_ident_and_targs_opt v1 in
       OCaml.VSum ("QDots", [ v1 ])
   | QExpr (v1, v2) ->
       let v1 = vof_expr v1 in
       let v2 = vof_tok v2 in
       OCaml.VSum ("QExpr", [ v1; v2 ])
 
+and vof_ident_and_targs_opt (v1, v2) =
+  let v1 = vof_ident v1 in
+  let v2 = OCaml.vof_option vof_type_arguments v2 in
+  OCaml.VTuple [ v1; v2 ]
+
 and vof_name_info
     {
-      name_qualifier = v_name_qualifier;
-      name_typeargs = v_name_typeargs;
-      name_id = v1;
+      name_middle = v_name_qualifier;
+      name_top = v_top;
+      name_last = v1;
       name_info = v2;
     } =
-  let _v1TODO = vof_ident v1 in
-  let _v2 = vof_id_info v2 in
-
   let bnds = [] in
-  let arg = OCaml.vof_option vof_type_arguments v_name_typeargs in
-  let bnd = ("name_typeargs", arg) in
+  let arg = vof_id_info v2 in
+  let bnd = ("name_info", arg) in
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_option vof_qualifier v_name_qualifier in
-  let bnd = ("name_qualifier", arg) in
+  let bnd = ("name_middle", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_option vof_tok v_top in
+  let bnd = ("name_top", arg) in
+  let bnds = bnd :: bnds in
+  let arg = vof_ident_and_targs_opt v1 in
+  let bnd = ("name_last", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
