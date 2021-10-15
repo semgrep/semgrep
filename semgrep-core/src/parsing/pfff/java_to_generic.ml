@@ -123,10 +123,9 @@ and class_type v =
       G.TyN
         (G.IdQualified
            {
-             G.name_id = id;
-             name_typeargs = None;
-             (* could be v1TODO above *)
-             name_qualifier = Some (G.QDots (List.rev (List.map fst xs)));
+             G.name_last = (id, None);
+             name_top = None;
+             name_middle = Some (G.QDots (List.rev xs));
              name_info = G.empty_id_info ();
            })
   | (id, Some ts) :: xs ->

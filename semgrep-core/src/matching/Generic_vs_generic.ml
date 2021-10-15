@@ -392,19 +392,19 @@ let rec m_name a b =
       let new_qualifier =
         match List.rev dotted with
         | [] -> raise Impossible
-        | _x :: xs -> List.rev xs
+        | _x :: xs -> List.rev xs |> List.map (fun id -> (id, None))
       in
       m_name a
         (B.IdQualified
            {
              nameinfo with
-             name_qualifier = Some (B.QDots new_qualifier);
+             name_middle = Some (B.QDots new_qualifier);
              name_info = B.empty_id_info ();
            })
   (* semantic! try to handle open in OCaml by querying LSP! The
    * target code is using an unqualified Id possibly because of some open!
    *)
-  | G.IdQualified { name_id = ida; _ }, B.Id (idb, _infob)
+  | G.IdQualified { name_last = ida, None; _ }, B.Id (idb, _infob)
     when fst ida = fst idb -> (
       match !Hooks.get_def idb with
       | None -> fail ()
@@ -424,26 +424,26 @@ let rec m_name a b =
 
 and m_name_info a b =
   match (a, b) with
-  | ( { G.name_id = a0; name_qualifier = a1; name_typeargs = a2; name_info = a3 },
-      {
-        B.name_id = b0;
-        name_qualifier = b1;
-        name_typeargs = b2;
-        name_info = b3;
-      } ) ->
-      let* () = m_ident a0 b0 in
+  | ( { G.name_last = a0; name_middle = a1; name_top = a2; name_info = a3 },
+      { B.name_last = b0; name_middle = b1; name_top = b2; name_info = b3 } ) ->
+      let* () = m_ident_and_type_arguments a0 b0 in
       let* () = (m_option m_qualifier) a1 b1 in
-      let* () = (m_option m_type_arguments) a2 b2 in
+      let* () = (m_option m_tok) a2 b2 in
       let* () = m_id_info a3 b3 in
       return ()
 
+and m_ident_and_type_arguments (a1, a2) (b1, b2) =
+  let* () = m_ident a1 b1 in
+  let* () = m_option m_type_arguments a2 b2 in
+  return ()
+
 and m_qualifier a b =
   match (a, b) with
-  | G.QDots a, B.QDots b -> m_dotted_name a b
-  | G.QTop a, B.QTop b -> m_tok a b
+  | G.QDots a, B.QDots b ->
+      (* TODO? like for m_dotted_name, [$X] should match anything? *)
+      m_list m_ident_and_type_arguments a b
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
   | G.QDots _, _
-  | G.QTop _, _
   | G.QExpr _, _ ->
       fail ()
 
@@ -596,9 +596,15 @@ and m_expr a b =
    *)
   | ( G.N
         (G.IdQualified
-          { G.name_id = alabel; G.name_qualifier = Some (G.QDots names); _ }),
+          {
+            G.name_last = alabel, None;
+            name_middle = Some (G.QDots names);
+            name_top = None;
+            _;
+          }),
       _b ) ->
-      let full = names @ [ alabel ] in
+      (* TODO: double check names does not have any type_args *)
+      let full = (names |> List.map fst) @ [ alabel ] in
       m_expr (make_dotted full) b
   | G.DotAccess (_, _, _), B.N b1 -> (
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
@@ -1102,7 +1108,7 @@ and m_compatible_type typed_mvar t e =
   | ( _ta,
       ( B.N
           (B.IdQualified
-            { name_id = idb; name_info = { B.id_type = tb; _ }; _ })
+            { name_last = idb, None; name_info = { B.id_type = tb; _ }; _ })
       | B.DotAccess
           ( { e = IdSpecial (This, _); _ },
             _,
