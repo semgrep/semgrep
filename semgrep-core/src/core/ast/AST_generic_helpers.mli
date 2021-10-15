@@ -32,10 +32,7 @@ val funcbody_to_stmt : AST_generic.function_body -> AST_generic.stmt
 
 val name_of_id : AST_generic.ident -> AST_generic.name
 
-val name_of_ids :
-  ?name_typeargs:AST_generic.type_arguments option ->
-  AST_generic.dotted_ident ->
-  AST_generic.name
+val name_of_ids : AST_generic.dotted_ident -> AST_generic.name
 
 val name_of_ids_with_opt_typeargs :
   (AST_generic.ident * AST_generic.type_arguments option) list ->
