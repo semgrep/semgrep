@@ -275,7 +275,7 @@ let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) :
       | Simple_variable_name (name_s, name_tok)
         when Metavariable.is_metavar_name ("$" ^ name_s) ->
           let mv_s = "$" ^ name_s in
-          let mv_tok = Parse_info.combine_infos dollar_tok [ name_tok ] in
+          let mv_tok = PI.combine_infos dollar_tok [ name_tok ] in
           Frag_metavar (mv_s, mv_tok)
       | _ -> Expansion (loc, Simple_expansion (loc, var_name)))
   | Program -> Expansion (loc, Simple_expansion (loc, var_name))
@@ -1287,32 +1287,63 @@ and test_command (env : env) (v1 : CST.test_command) : command =
       let loc = (open_, close) in
       Arithmetic_expression (loc, (open_, TODO loc, close))
 
-and variable_assignment (env : env) ((v1, v2, v3) : CST.variable_assignment) :
-    assignment =
-  let lhs =
-    match v1 with
-    | `Var_name tok -> str env tok (* variable_name *)
-    | `Subs x ->
-        (* TODO: assignment to array cell *)
-        let var, _open, _index, _close = subscript env x in
-        var
+and variable_assignment (env : env) (x : CST.variable_assignment) : assignment =
+  let lhs, assign_op, rhs =
+    match x with
+    | `Choice_semg_meta_eq_choice_choice_semg_ellips (v1, v2) ->
+        let mv_tok, assign_op =
+          match v1 with
+          | `Semg_meta_eq tok ->
+              (* pattern \$[A-Z_][A-Z_0-9]*= *)
+              let mv_eq_tok = token env tok in
+              let len = String.length (PI.str_of_info mv_eq_tok) in
+              let mv_tok, eq_tok = PI.split_info_at_pos (len - 1) mv_eq_tok in
+              let assign_op = (Set, eq_tok (* "=" *)) in
+              (mv_tok, assign_op)
+          | `Semg_meta_pluseq tok ->
+              (* pattern \$[A-Z_][A-Z_0-9]*\+= *)
+              let mv_eq_tok = token env tok in
+              let len = String.length (Parse_info.str_of_info mv_eq_tok) in
+              let mv_tok, pluseq_tok =
+                Parse_info.split_info_at_pos (len - 2) mv_eq_tok
+              in
+              let assign_op = (Add, pluseq_tok (* "+=" *)) in
+              (mv_tok, assign_op)
+        in
+        (* TODO: this returns a metavariable even when parsing a program
+           in which metavariables shouldn't exist.
+           In such case, we should not return an assignment but convert
+           $X=42 to a variable expansion and concatenation. *)
+        let mv = (PI.str_of_info mv_tok, mv_tok) in
+        (mv, assign_op, v2)
+    | `Choice_var_name_choice_EQ_choice_choice_semg_ellips (v1, v2, v3) ->
+        let var =
+          match v1 with
+          | `Var_name tok -> str env tok (* variable_name *)
+          | `Subs x ->
+              (* TODO: assignment to array cell *)
+              let var, _open, _index, _close = subscript env x in
+              var
+        in
+        let assign_op =
+          match v2 with
+          | `EQ tok -> (Set, token env tok (* "=" *))
+          | `PLUSEQ tok -> (Add, token env tok (* "+=" *))
+        in
+        (var, assign_op, v3)
   in
-  let assign_op =
-    match v2 with
-    | `EQ tok -> (Set, token env tok (* "=" *))
-    | `PLUSEQ tok -> (Add, token env tok (* "+=" *))
-  in
-  let rhs =
-    match v3 with
-    | `Choice_semg_ellips x -> literal env x
-    | `Array x -> array_ env x
-    | `Empty_value tok ->
-        let empty = token env tok in
-        let loc = (empty, empty) in
-        Empty_expression loc
-  in
+  let rhs = right_hand_side env rhs in
   let loc = (snd lhs, snd (expression_loc rhs)) in
   { loc; lhs; assign_op; rhs }
+
+and right_hand_side (env : env) (x : CST.anon_choice_lit_748c1d0) : expression =
+  match x with
+  | `Choice_semg_ellips x -> literal env x
+  | `Array x -> array_ env x
+  | `Empty_value tok ->
+      let empty = token env tok in
+      let loc = (empty, empty) in
+      Empty_expression loc
 
 (*****************************************************************************)
 (* Entry point *)
