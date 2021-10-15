@@ -130,7 +130,9 @@ let lval_of_id_info _env id id_info =
   let var = var_of_id_info id id_info in
   { base = Var var; offset = NoOffset; constness = id_info.id_constness }
 
-let lval_of_id_qualified env { G.name_id = id; name_info = id_info; _ } =
+(* TODO: use also qualifiers? *)
+let lval_of_id_qualified env
+    { G.name_last = id, _typeargsTODO; name_info = id_info; _ } =
   lval_of_id_info env id id_info
 
 let lval_of_base base = { base; offset = NoOffset; constness = ref None }
@@ -182,8 +184,9 @@ let bracket_keep f (t1, x, t2) = (t1, f x, t2)
 
 let ident_of_entity_opt ent =
   match ent.G.name with
-  | G.EN (G.Id (i, pinfo))
-  | G.EN (G.IdQualified { name_id = i; name_info = pinfo; _ }) ->
+  | G.EN (G.Id (i, pinfo)) -> Some (i, pinfo)
+  (* TODO: use name_middle? name_top? *)
+  | G.EN (G.IdQualified { name_last = i, _topt; name_info = pinfo; _ }) ->
       Some (i, pinfo)
   | G.EDynamic _ -> None
 

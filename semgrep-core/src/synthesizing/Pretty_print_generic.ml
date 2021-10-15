@@ -600,11 +600,16 @@ and id env (s, { id_resolved; _ }) =
   | Some (ImportedModule (DottedName ents), _) -> dotted_access env ents
   | _ -> s
 
-and id_qualified env { name_id = id; name_qualifier; _ } =
-  match name_qualifier with
+(* TODO: look at name_top too *)
+and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
+  (match name_top with
+  | None -> ""
+  | Some _t -> "::")
+  ^
+  match name_middle with
   | Some (QDots dot_ids) ->
-      F.sprintf "%s.%s" (dotted_access env dot_ids) (ident id)
-  | Some (QTop _t) -> F.sprintf "::"
+      (* TODO: do not do fst, look also at type qualification *)
+      F.sprintf "%s.%s" (dotted_access env (List.map fst dot_ids)) (ident id)
   | Some (QExpr (e, _t)) -> expr env e ^ "::"
   | None -> ident id
 

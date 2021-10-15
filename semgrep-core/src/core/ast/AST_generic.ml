@@ -286,24 +286,26 @@ and resolved_name_kind =
  *)
 type name = Id of ident * id_info | IdQualified of qualified_info
 
+(* A qualified (via type arguments or module/namespace/package) id.
+ * The type should be enough to represent Java/Rust/C++ generics.
+ * less: it is still not enough to represent OCaml functors applications.
+ *
+ * invariant: you can't have name_top = None, name_middle = QNone, and
+ * name_last = (id * None) at the same time. If that's the case, then we
+ * build an Id, not an Idqualified
+ *)
 and qualified_info = {
-  (* TODO just qualifier list (reversed?) *)
-  name_id : ident;
+  name_last : ident * type_arguments option;
+  name_middle : qualifier option;
+  (* ::, Ruby, C++, also '`' abuse for PolyVariant in OCaml *)
+  name_top : tok option;
   name_info : id_info;
-  name_qualifier : qualifier option;
-  name_typeargs : type_arguments option; (* Java/Rust *)
 }
 
-(* TODO: not enough in OCaml with functor and type args or C++ templates.
- * We will need to merge name_typeargs and name_qualifier and have a
- * qualifier list instead (with QId and QTemplateId like in ast_cpp.ml)
- *)
 and qualifier =
-  (* ::, Ruby, C++, also '`' abuse for PolyVariant in OCaml *)
-  | QTop of tok
-  (* Java, OCaml *)
-  | QDots of dotted_ident
-  (* Ruby *)
+  (* Java/C++/Rust *)
+  | QDots of (ident * type_arguments option) list
+  (* Ruby/Lua *)
   | QExpr of expr * tok
 
 (* This is used to represent field names, where sometimes the name

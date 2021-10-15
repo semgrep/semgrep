@@ -229,12 +229,11 @@ and scope_resolution x : G.name =
   match x with
   | TopScope (t, v) ->
       let id = variable v in
-      let qualif = G.QTop t in
       IdQualified
         {
-          G.name_id = id;
-          name_qualifier = Some qualif;
-          name_typeargs = None;
+          G.name_last = (id, None);
+          name_middle = None;
+          name_top = Some t;
           name_info = G.empty_id_info ();
         }
   | Scope (e, t, v_or_m) ->
@@ -247,9 +246,9 @@ and scope_resolution x : G.name =
       let qualif = G.QExpr (e, t) in
       IdQualified
         {
-          G.name_id = id;
-          name_qualifier = Some qualif;
-          name_typeargs = None;
+          G.name_last = (id, None);
+          name_middle = Some qualif;
+          name_top = None;
           name_info = G.empty_id_info ();
         }
 

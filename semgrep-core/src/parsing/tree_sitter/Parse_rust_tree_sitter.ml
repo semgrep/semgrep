@@ -1951,9 +1951,9 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
     match name with
     | G.Id ((s, i1), info) ->
         G.Id ((s ^ "!", PI.combine_infos i1 [ bang ]), info)
-    | G.IdQualified ({ name_id = s, i1; _ } as qualified_info) ->
+    | G.IdQualified ({ name_last = (s, i1), topt; _ } as qualified_info) ->
         let s, t = (s ^ "!", PI.combine_infos i1 [ bang ]) in
-        G.IdQualified { qualified_info with name_id = (s, t) }
+        G.IdQualified { qualified_info with name_last = ((s, t), topt) }
   in
   let l, xs, r = map_token_tree env v3 in
   let anys = macro_items_to_anys xs in
