@@ -5,6 +5,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 - Textual output will now output a shortlink to the registry for rules from semgrep.dev
 
+### Fixed
+- Go: support ... in import list (#4067)
+
 ## [0.69.1](https://github.com/returntocorp/semgrep/releases/tag/v0.69.1) - 10-14-2021
 
 ### Fixed
