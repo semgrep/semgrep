@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+- Go: support ... in import list (#4067)
+
 ## [0.69.1](https://github.com/returntocorp/semgrep/releases/tag/v0.69.1) - 10-14-2021
 
 ### Fixed
