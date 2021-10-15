@@ -6,10 +6,9 @@
 set -eu
 
 eval $(opam env)
-echo HERE
-echo "$@"
 
 if $(ocamlformat --version > /dev/null 2>&1); then
+  ocamlformat --version
   #TODO: we should require a specific version, like the one in dev.opam
   ocamlformat --inplace --enable-outside-detected-project "$@"
 else
