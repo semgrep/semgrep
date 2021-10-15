@@ -108,6 +108,8 @@ let add_terminator_to_blist (blist : blist) (term : unary_control_operator wrap)
 (* Boilerplate converter *)
 (*****************************************************************************)
 
+(* This is to satisfy the type system. Make sure it never gets called
+   on any input. *)
 let todo (_env : env) _ =
   failwith "Parse_bash_tree_sitter: feature not implemented"
 

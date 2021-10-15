@@ -73,17 +73,12 @@
    Shell variables and semgrep metavariables:
 
    - In a pattern, '$XXX' is interpreted as a semgrep metavariable,
-     at matching time.
+     at matching time, represented as '$XXX'.
    - In a program, '$XXX' is interpreted as the dereferencing of a
-     shell variable, at matching time.
+     shell variable, at matching time, represented as 'XXX'.
    - '${XXX}' is always interpreted as the dereferencing of a shell variable
-     and should be used in a semgrep pattern to disambiguate from the
+     and should be used in semgrep patterns to disambiguate from the
      metavariable '$XXX'.
-
-   A shell variable is represented in the generic AST with a leading '$'.
-   For example, 'XXX=42' assigns 42 to the variable whose name is '$XXX'.
-   This is a hack to avoid having to decide what's a metavariable at parsing
-   time.
 *)
 
 (* Disable warnings against unused variables *)
