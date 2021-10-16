@@ -403,11 +403,26 @@ and stmt_group (env : env) (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
 and expression (env : env) (e : expression) : G.expr =
   match e with
   | Word str -> G.L (G.String str) |> G.e
-  | String (open_, frags, close) ->
-      let loc = (open_, close) in
-      List.map (string_fragment env) frags |> call loc C.quoted_concat
+  | String (* "foo" *) (open_, frags, close) -> (
+      match frags with
+      | [ String_content ((str, _) as wrap) ]
+        when not (env = Pattern && str = "...") ->
+          (* normalization to enable matching of e.g. "foo" against foo *)
+          G.L (G.String wrap) |> G.e
+      | _ ->
+          let loc = (open_, close) in
+          List.map (string_fragment env) frags |> call loc C.quoted_concat)
   | String_fragment (loc, frag) -> string_fragment env frag
-  | Raw_string str -> G.L (G.String str) |> G.e
+  | Raw_string (* 'foo' *) (str, tok) ->
+      (* normalization to enable matching of e.g. 'foo' against foo *)
+      let without_quotes =
+        let len = String.length str in
+        if len >= 2 && str.[0] = '\'' && str.[len - 1] = '\'' then
+          String.sub str 1 (len - 2)
+        else (* it's a bug but let's not fail *)
+          str
+      in
+      G.L (G.String (without_quotes, tok)) |> G.e
   | Ansii_c_string str -> G.L (G.String str) |> G.e
   | Special_character str -> G.L (G.String str) |> G.e
   | Concatenation (loc, el) -> List.map (expression env) el |> call loc C.concat
