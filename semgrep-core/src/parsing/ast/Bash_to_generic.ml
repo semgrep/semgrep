@@ -171,6 +171,14 @@ module C = struct
   *)
   let split loc = mk loc "split"
 
+  (*
+     Expand a variable X referenced as $X or ${X} in a program.
+     In a pattern, $X is a metavariable that stands for anything
+     (no expansion necessary), whereas ${$X} in a pattern is the expansion
+     of any variable represented by the metavariable $X.
+  *)
+  let expand loc = mk loc "expand"
+
   (* Concatenate two string fragments e.g.
        foo"$bar"
   *)
@@ -198,7 +206,7 @@ let call loc name exprs =
   G.Call (name loc, bracket loc (List.map (fun e -> G.Arg e) exprs)) |> G.e
 
 let todo_tokens ((start, end_) : loc) =
-  let wrap tok = (Parse_info.string_of_info tok, tok) in
+  let wrap tok = (Parse_info.str_of_info tok, tok) in
   if start = end_ then [ G.TodoK (wrap start) ]
   else [ G.TodoK (wrap start); G.TodoK (wrap end_) ]
 
@@ -456,11 +464,13 @@ and string_fragment (env : env) (frag : string_fragment) : G.expr =
 *)
 and expansion (env : env) (x : expansion) : G.expr =
   match x with
-  | Simple_expansion (loc, var_name) -> mk_var_expr var_name
+  | Simple_expansion (loc, var_name) -> expand loc (mk_var_expr var_name)
   | Complex_expansion (open_, x, close) -> (
       match x with
-      | Variable (_loc, var) -> mk_var_expr var
+      | Variable (loc, var) -> expand loc (mk_var_expr var)
       | Complex_expansion_TODO loc -> todo_expr loc)
+
+and expand loc (var_expr : G.expr) : G.expr = call loc C.expand [ var_expr ]
 
 (*
    'a && b' and 'a || b' looks like expressions but they're really
