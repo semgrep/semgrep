@@ -73,17 +73,12 @@
    Shell variables and semgrep metavariables:
 
    - In a pattern, '$XXX' is interpreted as a semgrep metavariable,
-     at matching time.
+     at matching time, represented as '$XXX'.
    - In a program, '$XXX' is interpreted as the dereferencing of a
-     shell variable, at matching time.
+     shell variable, at matching time, represented as 'XXX'.
    - '${XXX}' is always interpreted as the dereferencing of a shell variable
-     and should be used in a semgrep pattern to disambiguate from the
+     and should be used in semgrep patterns to disambiguate from the
      metavariable '$XXX'.
-
-   A shell variable is represented in the generic AST with a leading '$'.
-   For example, 'XXX=42' assigns 42 to the variable whose name is '$XXX'.
-   This is a hack to avoid having to decide what's a metavariable at parsing
-   time.
 *)
 
 (* Disable warnings against unused variables *)
@@ -98,6 +93,18 @@ module G = AST_generic
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
+
+(* We apply a different mapping whether we're parsing a pattern or target
+   program. *)
+type env = AST_bash.input_kind
+
+let is_pattern = function
+  | Pattern -> true
+  | Program -> false
+
+let is_program = function
+  | Program -> true
+  | Pattern -> false
 
 (* Temporary representation.
    Avoids superfluous early wrapping of expressions in statements and
@@ -132,15 +139,16 @@ let mk_name (str_wrap : string wrap) : G.name =
   let id_info = G.empty_id_info () in
   G.Id (str_wrap, id_info)
 
-(* Hackish solution to avoid deciding now if the variable is a metavariable:
-   All shell variables must start with a '$' in the generic AST.
-*)
-let prepend_dollar ((name, tok) : string wrap) : string wrap =
-  ("$" ^ name, (* TODO: include the $ in tok *) tok)
+let get_var_name (var : variable_name) : string wrap =
+  match var with
+  | Simple_variable_name name
+  | Special_variable_name name
+  | Var_metavar name ->
+      name
 
-(* Use this to create a variable name for the generic AST. *)
-let mk_var_name (orig_name : string wrap) : G.name =
-  prepend_dollar orig_name |> mk_name
+let mk_var_expr (var : variable_name) : G.expr =
+  let name = get_var_name var in
+  G.N (mk_name name) |> G.e
 
 module C = struct
   let mk (loc : loc) (name : string) =
@@ -168,8 +176,16 @@ module C = struct
   *)
   let concat loc = mk loc "concat"
 
+  (* Concatenate two string fragments within double-quotes e.g.
+       "foo $bar"
+  *)
+  let quoted_concat loc = mk loc "quoted_concat"
+
   (* Command substitution: $(...) *)
   let cmd_subst loc = mk loc "cmd_subst"
+
+  (* Process substitution: <(...) *)
+  let proc_subst loc = mk loc "proc_subst"
 end
 
 (*
@@ -207,17 +223,17 @@ let redirect_pipeline_stderr_to_stdout pip =
   (* TODO: don't ignore redirects *)
   pip
 
-let rec blist (l : blist) : stmt_or_expr list =
+let rec blist (env : env) (l : blist) : stmt_or_expr list =
   match l with
-  | Seq (_loc, left, right) -> blist left @ blist right
-  | And (_loc, left, and_tok, right) -> [ transpile_and left and_tok right ]
-  | Or (_loc, left, or_tok, right) -> [ transpile_or left or_tok right ]
-  | Pipelines (_loc, pl) -> List.map (fun x -> pipeline x) pl
+  | Seq (_loc, left, right) -> blist env left @ blist env right
+  | And (_loc, left, and_tok, right) -> [ transpile_and env left and_tok right ]
+  | Or (_loc, left, or_tok, right) -> [ transpile_or env left or_tok right ]
+  | Pipelines (_loc, pl) -> List.map (fun x -> pipeline env x) pl
   | Empty _loc -> []
 
-and pipeline (x : pipeline) : stmt_or_expr =
+and pipeline (env : env) (x : pipeline) : stmt_or_expr =
   match x with
-  | Command (loc, cmd_redir) -> command_with_redirects cmd_redir
+  | Command (loc, cmd_redir) -> command_with_redirects env cmd_redir
   | Pipeline (loc, pip, pipe_op, cmd_redir) ->
       let pip, bar_tok =
         match pipe_op with
@@ -234,39 +250,40 @@ and pipeline (x : pipeline) : stmt_or_expr =
             (redirect_pipeline_stderr_to_stdout pip, tok)
       in
       let func = G.IdSpecial (G.Op G.Pipe, bar_tok) |> G.e in
-      let left = pipeline pip |> as_expr in
-      let right = command_with_redirects cmd_redir |> as_expr in
+      let left = pipeline env pip |> as_expr in
+      let right = command_with_redirects env cmd_redir |> as_expr in
       Expr (loc, G.Call (func, bracket loc [ G.Arg left; G.Arg right ]) |> G.e)
   | Control_operator (loc, pip, control_op) -> (
       match control_op with
-      | Foreground, tok -> pipeline pip
+      | Foreground, tok -> pipeline env pip
       | Background, amp_tok ->
           let func = G.IdSpecial (G.Op G.Background, amp_tok) |> G.e in
-          let arg = pipeline pip |> as_expr in
+          let arg = pipeline env pip |> as_expr in
           Expr (loc, G.Call (func, bracket loc [ G.Arg arg ]) |> G.e))
 
-and command_with_redirects (x : command_with_redirects) : stmt_or_expr =
+and command_with_redirects (env : env) (x : command_with_redirects) :
+    stmt_or_expr =
   (* TODO: don't ignore redirects *)
   let { loc; command = cmd; redirects } = x in
   ignore redirects;
-  command cmd
+  command env cmd
 
 (*
   The preference between stmt or expr depends on whether the most fitting
   construct of the generic AST is an stmt or an expr. For the todos, it
   may be little arbitrary.
 *)
-and command (cmd : command) : stmt_or_expr =
+and command (env : env) (cmd : command) : stmt_or_expr =
   match cmd with
   | Simple_command { loc; assignments = _; arguments } -> (
       match arguments with
-      | [ (Semgrep_ellipsis tok as e) ] -> Expr ((tok, tok), expression e)
+      | [ (Expr_ellipsis tok as e) ] -> Expr ((tok, tok), expression env e)
       | arguments ->
-          let args = List.map expression arguments in
+          let args = List.map (expression env) arguments in
           Expr (loc, call loc C.cmd args))
   | Subshell (loc, (open_, bl, close)) ->
-      (* TODO: subshell *) stmt_group loc (blist bl)
-  | Command_group (loc, (open_, bl, close)) -> stmt_group loc (blist bl)
+      (* TODO: subshell *) stmt_group env loc (blist env bl)
+  | Command_group (loc, (open_, bl, close)) -> stmt_group env loc (blist env bl)
   | Sh_test (loc, _) -> todo_expr2 loc
   | Bash_test (loc, _) -> todo_expr2 loc
   | Arithmetic_expression (loc, _) -> todo_expr2 loc
@@ -274,22 +291,27 @@ and command (cmd : command) : stmt_or_expr =
       let header =
         let values : G.expr list =
           match opt_in with
-          | Some (_in, vals) -> List.map (fun x -> expression x) vals
+          | Some (_in, vals) -> List.map (fun x -> expression env x) vals
           | None ->
               (* TODO/FIXME: transpile implicit "$@" or make this optional *)
               []
         in
-        let entity = G.basic_entity (prepend_dollar loop_var) in
-        G.ForIn ([ ForInitVar (entity, G.empty_var) ], values)
+        match loop_var with
+        | Simple_variable_name var
+        | Special_variable_name var
+        | Var_metavar var ->
+            let entity = G.basic_entity var in
+            G.ForIn ([ ForInitVar (entity, G.empty_var) ], values)
       in
-      let body = stmt_group loc (blist body) |> as_stmt in
+      let body = stmt_group env loc (blist env body) |> as_stmt in
       Stmt (loc, G.For (for_, header, body) |> G.s)
-  | For_loop_c_style (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
+  | For_loop_c_style (loc, bl) ->
+      (* TODO: loop *) stmt_group env loc (blist env bl)
   | Select (loc, _select, _loop_var, _opt_in, _do_, body, _done_) ->
       (* TODO *)
-      stmt_group loc (blist body)
+      stmt_group env loc (blist env body)
   | Case (loc, case, subject, in_, clauses, esac) ->
-      let subject = expression subject in
+      let subject = expression env subject in
       let clauses =
         List.map
           (fun (loc, patterns, paren, stmts, _opt_term) ->
@@ -300,12 +322,12 @@ and command (cmd : command) : stmt_or_expr =
                   let tok, _ = expression_loc e in
                   let pat =
                     (* TODO: convert bash expression to generic pattern *)
-                    G.OtherPat (("", tok), [ G.E (expression e) ])
+                    G.OtherPat (("", tok), [ G.E (expression env e) ])
                   in
                   G.Case (tok, pat))
                 patterns
             in
-            G.CasesAndBody (patterns, blist stmts |> block |> as_stmt))
+            G.CasesAndBody (patterns, blist env stmts |> block |> as_stmt))
           clauses
       in
       Stmt (loc, G.Switch (case, Some subject, clauses) |> G.s)
@@ -314,14 +336,14 @@ and command (cmd : command) : stmt_or_expr =
       let else_stmt =
         match else_ with
         | None -> None
-        | Some (loc, else_tok, body) -> Some (blist body |> block |> as_stmt)
+        | Some (loc, else_tok, body) -> Some (blist env body |> block |> as_stmt)
       in
       let opt_stmt =
         List.fold_right
           (fun if_ (else_stmt : G.stmt option) ->
             let loc1, if_, cond, then_, body = if_ in
-            let cond_expr = blist cond |> block |> as_expr in
-            let body_stmt = blist body |> block |> as_stmt in
+            let cond_expr = blist env cond |> block |> as_expr in
+            let body_stmt = blist env body |> block |> as_stmt in
             Some (G.s (G.If (if_, cond_expr, body_stmt, else_stmt))))
           ifs else_stmt
       in
@@ -331,12 +353,15 @@ and command (cmd : command) : stmt_or_expr =
         | Some stmt -> stmt
       in
       Stmt (loc, stmt)
-  | While_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
-  | Until_loop (loc, bl) -> (* TODO: loop *) stmt_group loc (blist bl)
-  | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command cmd
+  | While_loop (loc, while_, cond, do_, body, done_) ->
+      let cond = stmt_group env loc (blist env cond) |> as_expr in
+      let body = stmt_group env loc (blist env body) |> as_stmt in
+      Stmt (loc, G.While (while_, cond, body) |> G.s)
+  | Until_loop (loc, bl) -> (* TODO: loop *) stmt_group env loc (blist env bl)
+  | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command env cmd
   | Assignment (loc, ass) ->
-      let var = G.N (mk_var_name ass.lhs) |> G.e in
-      let value = expression ass.rhs in
+      let var = G.N (mk_name ass.lhs) |> G.e in
+      let value = expression env ass.rhs in
       let e =
         match ass.assign_op with
         | Set, tok -> G.Assign (var, tok, value)
@@ -346,14 +371,14 @@ and command (cmd : command) : stmt_or_expr =
   | Declaration (loc, _) -> todo_stmt2 loc
   | Negated_command (loc, excl_tok, cmd) ->
       let func = G.IdSpecial (G.Op G.Not, excl_tok) |> G.e in
-      let args = [ G.Arg (command cmd |> as_expr) ] in
+      let args = [ G.Arg (command env cmd |> as_expr) ] in
       let e = G.Call (func, bracket (command_loc cmd) args) |> G.e in
       Expr (loc, e)
   | Function_definition (loc, def) ->
       let first_tok =
         match def.function_ with
         | Some function_tok -> function_tok
-        | None -> snd def.name
+        | None -> fst (variable_name_loc def.name)
       in
       let def_kind =
         G.FuncDef
@@ -361,61 +386,66 @@ and command (cmd : command) : stmt_or_expr =
             G.fkind = (G.Function, first_tok);
             fparams = [];
             frettype = None;
-            fbody = G.FBStmt (command def.body |> as_stmt);
+            fbody = G.FBStmt (command env def.body |> as_stmt);
           }
       in
       (* Function names are in another namespace than ordinary variables.
          They can't be accessed with the '$' notation. No need to prepend
          a '$' to the name like for variables. *)
-      let def = (G.basic_entity def.name, def_kind) in
+      let def = (G.basic_entity (get_var_name def.name), def_kind) in
       Stmt (loc, G.DefStmt def |> G.s)
 
-and stmt_group (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
+and stmt_group (env : env) (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
   let stmts = List.map as_stmt l in
   let start, end_ = loc in
   Stmt (loc, G.s (G.Block (start, stmts, end_)))
 
-and expression (e : expression) : G.expr =
+and expression (env : env) (e : expression) : G.expr =
   match e with
-  | Word ((_, tok) as wrap) -> G.e (G.L (G.String wrap))
-  | String x -> todo_expr (bracket_loc x)
-  | String_fragment (loc, frag) -> (
-      match frag with
-      | String_content ((_, tok) as wrap) -> G.e (G.L (G.String wrap))
-      | Expansion (loc, ex) ->
-          let x = expansion ex in
-          G.e x.e
-      | Command_substitution (open_, x, close) ->
-          let loc = (open_, close) in
-          let arg = blist x |> block |> as_expr in
-          call loc C.cmd_subst [ arg ])
-  | Raw_string x -> todo_expr (wrap_loc x)
-  | Ansii_c_string x -> todo_expr (wrap_loc x)
-  | Special_character x -> todo_expr (wrap_loc x)
-  | Concatenation (loc, _) -> todo_expr loc
-  | Semgrep_ellipsis tok -> G.e (G.Ellipsis tok)
-  | Semgrep_metavariable x -> todo_expr (wrap_loc x)
-  | Equality_test (loc, _, _) -> todo_expr loc
-  | Empty_expression loc ->
-      (* not to be confused with the empty string *)
-      call loc C.cmd []
+  | Word str -> G.L (G.String str) |> G.e
+  | String (open_, frags, close) ->
+      let loc = (open_, close) in
+      List.map (string_fragment env) frags |> call loc C.quoted_concat
+  | String_fragment (loc, frag) -> string_fragment env frag
+  | Raw_string str -> G.L (G.String str) |> G.e
+  | Ansii_c_string str -> G.L (G.String str) |> G.e
+  | Special_character str -> G.L (G.String str) |> G.e
+  | Concatenation (loc, el) -> List.map (expression env) el |> call loc C.concat
+  | Expr_ellipsis tok -> G.Ellipsis tok |> G.e
+  | Expr_metavar mv -> G.N (mk_name mv) |> G.e
+  | Equality_test (loc, _, _) -> (* don't know what this is *) todo_expr loc
+  | Empty_expression loc -> G.L (G.String ("", fst loc)) |> G.e
   | Array (loc, (open_, elts, close)) ->
-      let elts = List.map expression elts in
+      let elts = List.map (expression env) elts in
       G.Container (G.Array, (open_, elts, close)) |> G.e
-  | Process_substitution (loc, _) -> todo_expr loc
+  | Process_substitution (loc, (open_, x, close)) ->
+      let arg = blist env x |> block |> as_expr in
+      call loc C.proc_subst [ arg ]
+
+and string_fragment (env : env) (frag : string_fragment) : G.expr =
+  match frag with
+  | String_content (("...", tok) as wrap) when env = Pattern ->
+      (* convert the '...' in '"${foo}...${bar}"' into an ellipsis *)
+      G.Ellipsis tok |> G.e
+  | String_content ((_, tok) as wrap) -> G.e (G.L (G.String wrap))
+  | Expansion (loc, ex) -> expansion env ex
+  | Command_substitution (open_, x, close) ->
+      let loc = (open_, close) in
+      let arg = blist env x |> block |> as_expr in
+      call loc C.cmd_subst [ arg ]
+  | Frag_metavar mv -> G.N (mk_name mv) |> G.e
 
 (*
    '$' followed by a variable to transform and expand into a list.
    We treat this as a function call.
 *)
-and expansion (x : expansion) : G.expr =
+and expansion (env : env) (x : expansion) : G.expr =
   match x with
-  | Simple_expansion (loc, dollar_tok, var_name) -> (
-      match var_name with
-      | Simple_variable_name name
-      | Special_variable_name name ->
-          G.N (mk_var_name name) |> G.e)
-  | Complex_expansion br -> todo_expr (bracket_loc br)
+  | Simple_expansion (loc, var_name) -> mk_var_expr var_name
+  | Complex_expansion (open_, x, close) -> (
+      match x with
+      | Variable (_loc, var) -> mk_var_expr var
+      | Complex_expansion_TODO loc -> todo_expr loc)
 
 (*
    'a && b' and 'a || b' looks like expressions but they're really
@@ -432,9 +462,10 @@ and expansion (x : expansion) : G.expr =
        false
      fi
 *)
-and transpile_and (left : blist) tok_and (right : blist) : stmt_or_expr =
-  let cond = blist left |> block in
-  let body = blist right |> block in
+and transpile_and (env : env) (left : blist) tok_and (right : blist) :
+    stmt_or_expr =
+  let cond = blist env left |> block in
+  let body = blist env right |> block in
   let loc = range (stmt_or_expr_loc cond) (stmt_or_expr_loc body) in
   let fail = stmt_of_expr loc (G.L (G.Bool (false, snd loc)) |> G.e) in
   Stmt (loc, G.s (G.If (tok_and, as_expr cond, as_stmt body, Some fail)))
@@ -450,17 +481,18 @@ and transpile_and (left : blist) tok_and (right : blist) : stmt_or_expr =
        b
      fi
 *)
-and transpile_or (left : blist) tok_or (right : blist) : stmt_or_expr =
-  let e = blist left |> block in
+and transpile_or (env : env) (left : blist) tok_or (right : blist) :
+    stmt_or_expr =
+  let e = blist env left |> block in
   let ((start, _) as cond_loc) = stmt_or_expr_loc e in
   let not_ = G.IdSpecial (G.Op G.Not, tok_or) |> G.e in
   let cond = G.Call (not_, bracket cond_loc [ G.Arg (as_expr e) ]) |> G.e in
-  let body = blist right |> block in
+  let body = blist env right |> block in
   let _, end_ = stmt_or_expr_loc body in
   let loc = (start, end_) in
   Stmt (loc, G.s (G.If (tok_or, cond, as_stmt body, None)))
 
-let program x = blist x |> List.map as_stmt
+let program (env : env) x = blist (env : env) x |> List.map as_stmt
 
 (*
    Unwrap the tree as much as possible to maximize matches.
@@ -470,8 +502,8 @@ let program x = blist x |> List.map as_stmt
    ('If' condition). Unwrapping into an expr allows the expr to match those
    cases.
 *)
-let any x =
-  match program x with
+let any (env : env) x =
+  match program env x with
   | [ { G.s = G.ExprStmt (e, _semicolon); _ } ] -> G.E e
   | [ stmt ] -> G.S stmt
   | stmts -> G.Ss stmts
