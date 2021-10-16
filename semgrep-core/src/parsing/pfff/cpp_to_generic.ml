@@ -96,15 +96,24 @@ let rec map_name env (v1, v2, v3) : G.name =
   let v1 = map_of_option (map_tok env) v1
   and v2 = map_of_list (map_qualifier env) v2
   and v3 = map_ident_or_op env v3 in
-  complicated env (v1, v2, v3)
+  match (v1, v2, v3) with
+  | None, [], (id, None) -> H.name_of_id id
+  | _ ->
+      G.IdQualified
+        {
+          G.name_last = v3;
+          name_top = v1;
+          name_middle = (if v2 = [] then None else Some (QDots v2));
+          name_info = G.empty_id_info ();
+        }
 
 and map_ident_or_op (env : env) = function
   | IdIdent v1 ->
       let v1 = map_ident env v1 in
-      complicated env v1
+      (v1, None)
   | IdTemplateId (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_template_arguments env v2 in
-      complicated env (v1, v2)
+      (v1, Some v2)
   | IdOperator (v1, v2) ->
       let v1 = map_tok env v1 in
       let v2 = map_wrap env (map_operator env) v2 in
@@ -132,10 +141,10 @@ and map_template_argument env v : G.type_argument =
 and map_qualifier env = function
   | QClassname v1 ->
       let v1 = map_ident env v1 in
-      complicated env v1
+      (v1, None)
   | QTemplateId (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_template_arguments env v2 in
-      complicated env (v1, v2)
+      (v1, Some v2)
 
 and map_a_class_name env v = map_name env v
 
@@ -998,10 +1007,10 @@ and map_function_body env x : G.function_body =
   match x with
   | FBDef v1 ->
       let v1 = map_compound env v1 in
-      todo env v1
+      G.FBStmt (G.Block v1 |> G.s)
   | FBDecl v1 ->
       let v1 = map_sc env v1 in
-      todo env v1
+      G.FBDecl v1
   | FBZero (v1, v2, v3) ->
       let v1 = map_tok env v1 and v2 = map_tok env v2 and v3 = map_sc env v3 in
       todo env (v1, v2, v3)
@@ -1239,15 +1248,20 @@ and map_cpp_directive env x : (G.directive, G.definition) either =
       and v3 = map_define_kind env v3
       and v4 = map_define_val env v4 in
       todo env (v1, v2, v3, v4)
-  | Include (v1, v2) ->
+  | Include (v1, v2) -> (
       let v1 = map_tok env v1 and v2 = map_include_kind env v2 in
-      todo env (v1, v2)
+      match v2 with
+      | Left file ->
+          let dir = G.ImportAll (v1, G.FileName file, v1) |> G.d in
+          Left dir
+      | Right e -> complicated env e)
   | Undef v1 ->
       let v1 = map_ident env v1 in
       todo env v1
   | PragmaAndCo v1 ->
       let v1 = map_tok env v1 in
-      todo env v1
+      let dir = G.Pragma (("TODO", v1), []) |> G.d in
+      Left dir
 
 and map_define_kind env = function
   | DefineVar -> DefineVar
@@ -1290,25 +1304,29 @@ and map_define_val env = function
 and map_include_kind env = function
   | IncLocal v1 ->
       let v1 = map_wrap env map_of_string v1 in
-      todo env v1
+      Left v1
   | IncSystem v1 ->
       let v1 = map_wrap env map_of_string v1 in
-      todo env v1
+      Left v1
   | IncOther v1 ->
       let v1 = map_a_cppExpr env v1 in
-      todo env v1
+      Right v1
 
 and map_a_cppExpr env v = map_expr env v
+
+and def_or_dir_either_to_stmt = function
+  | Left dir -> G.DirectiveStmt dir |> G.s
+  | Right def -> G.DefStmt def |> G.s
 
 and map_sequencable :
       'a. env -> ('a -> G.stmt list) -> 'a sequencable -> G.stmt list =
  fun env _of_a -> function
   | X v1 ->
       let v1 = _of_a v1 in
-      todo env v1
+      v1
   | CppDirective v1 ->
       let v1 = map_cpp_directive env v1 in
-      todo env v1
+      [ def_or_dir_either_to_stmt v1 ]
   | CppIfdef v1 ->
       let v1 = map_ifdef_directive env v1 in
       todo env v1
@@ -1403,8 +1421,10 @@ let map_any env x : G.any =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let any _x =
-  ignore map_any;
-  failwith "TODO"
+let any x =
+  let env = () in
+  map_any env x
 
-let program _cst = failwith "TODO"
+let program cst =
+  let env = () in
+  map_program env cst
