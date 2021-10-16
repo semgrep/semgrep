@@ -18,11 +18,25 @@ module H = Parse_tree_sitter_helpers
 (*****************************************************************************)
 type ts_tok = Tree_sitter_run.Token.t
 
-type env = unit H.env
+(* The 'extra' field indicates if we're parsing a pattern or a program. *)
+type env = AST_bash.input_kind H.env
 
 let token = H.token
 
 let str = H.str
+
+(* This is used where we incorrectly support an ellipsis instead of
+   just a metavariable. *)
+let fresh_metavariable_name =
+  let counter = ref 0 in
+  let get () =
+    let n =
+      incr counter;
+      !counter
+    in
+    spf "$__SEMGREP_METAVAR%i" n
+  in
+  get
 
 (*
    Replace the last element of a list.
@@ -94,6 +108,8 @@ let add_terminator_to_blist (blist : blist) (term : unary_control_operator wrap)
 (* Boilerplate converter *)
 (*****************************************************************************)
 
+(* This is to satisfy the type system. Make sure it never gets called
+   on any input. *)
 let todo (_env : env) _ =
   failwith "Parse_bash_tree_sitter: feature not implemented"
 
@@ -184,35 +200,37 @@ let file_descriptor (env : env) (tok : CST.file_descriptor) = token env tok
 
 let concat (_env : env) (_tok : CST.concat) : unit = ()
 
-let semgrep_metavariable_name (env : env) (tok : CST.semgrep_metavariable_name)
-    =
-  (* pattern [A-Z_][A-Z_0-9]* *)
-  str env tok
-
 (* -e, -z, etc. *)
 let test_operator (env : env) (tok : CST.test_operator) : string wrap =
   str env tok
 
-let simple_variable_name (env : env) (tok : CST.simple_variable_name) :
-    string wrap =
-  (* pattern \w+ *)
-  str env tok
+let simple_variable_name (env : env) (x : CST.simple_variable_name) :
+    variable_name =
+  match x with
+  | `Semg_meta tok -> (* pattern \$[A-Z_][A-Z_0-9]* *) Var_metavar (str env tok)
+  | `Pat_42e353e tok -> (* pattern \w+ *) Simple_variable_name (str env tok)
 
 let special_variable_name (env : env) (x : CST.special_variable_name) :
-    string wrap =
-  match x with
-  | `STAR tok -> str env tok (* "*" *)
-  | `AT tok -> str env tok (* "@" *)
-  | `QMARK tok -> str env tok (* "?" *)
-  | `DASH tok -> str env tok (* "-" *)
-  | `DOLLAR tok -> str env tok (* "$" *)
-  | `X_0 tok -> str env tok (* "0" *)
-  | `X__ tok -> (* "_" *) str env tok
+    variable_name =
+  Special_variable_name
+    (match x with
+    | `STAR tok -> str env tok (* "*" *)
+    | `AT tok -> str env tok (* "@" *)
+    | `QMARK tok -> str env tok (* "?" *)
+    | `DASH tok -> str env tok (* "-" *)
+    | `DOLLAR tok -> str env tok (* "$" *)
+    | `X_0 tok -> str env tok (* "0" *)
+    | `X__ tok -> (* "_" *) str env tok)
 
 let heredoc_body_beginning (env : env) (tok : CST.heredoc_body_beginning) =
   token env tok
 
-let word (env : env) (tok : CST.word) = token env tok
+let word (env : env) (tok : CST.word) = str env tok
+
+let extended_word (env : env) (x : CST.extended_word) =
+  match x with
+  | `Semg_meta tok -> Var_metavar (str env tok)
+  | `Word tok -> Simple_variable_name (word env tok)
 
 let heredoc_start (env : env) (tok : CST.heredoc_start) = token env tok
 
@@ -240,22 +258,34 @@ let heredoc_redirect (env : env) ((v1, v2) : CST.heredoc_redirect) : todo =
   let heredoc_start = token env v2 (* heredoc_start *) in
   TODO (start_, heredoc_start)
 
-let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) =
-  let dollar = token env v1 (* "$" *) in
-  let variable_name =
+let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) :
+    string_fragment =
+  let dollar_tok = token env v1 (* "$" *) in
+  let var_name =
     match v2 with
-    | `Pat_42e353e tok -> Simple_variable_name (simple_variable_name env tok)
-    | `Choice_STAR x -> Special_variable_name (special_variable_name env x)
+    | `Choice_semg_meta x -> simple_variable_name env x
+    | `Choice_STAR x -> special_variable_name env x
     | `BANG tok -> Special_variable_name (str env tok (* "!" *))
     | `HASH tok -> Special_variable_name (str env tok (* "#" *))
   in
-  let loc = (dollar, snd (variable_name_loc variable_name)) in
-  (loc, dollar, variable_name)
+  let name_s, name_tok = variable_name_wrap var_name in
+  let loc = (dollar_tok, name_tok) in
+  match env.extra with
+  | Pattern -> (
+      (* Interpret $X as either "metavariable $X" or "expand X" *)
+      match var_name with
+      | Simple_variable_name (name_s, name_tok)
+        when Metavariable.is_metavar_name ("$" ^ name_s) ->
+          let mv_s = "$" ^ name_s in
+          let mv_tok = PI.combine_infos dollar_tok [ name_tok ] in
+          Frag_metavar (mv_s, mv_tok)
+      | _ -> Expansion (loc, Simple_expansion (loc, var_name)))
+  | Program -> Expansion (loc, Simple_expansion (loc, var_name))
 
 let rec prim_exp_or_special_char (env : env)
-    (x : CST.anon_choice_prim_exp_618725a) : expression =
+    (x : CST.anon_choice_prim_exp_9700637) : expression =
   match x with
-  | `Choice_semg_ellips x -> primary_expression env x
+  | `Choice_word x -> primary_expression env x
   | `Spec_char tok -> Special_character (str env tok)
 
 and stmt_with_opt_heredoc (env : env)
@@ -369,8 +399,8 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
     List.map
       (fun x ->
         match x with
-        | `Choice_conc x -> literal env x
-        | `Choice_EQTILDE_choice_choice_conc (v1, v2) ->
+        | `Choice_semg_ellips x -> literal env x
+        | `Choice_EQTILDE_choice_choice_semg_ellips (v1, v2) ->
             (* Not sure why we have this here. Should be only within
                test commands [[ ... ]]. *)
             let eq =
@@ -380,7 +410,7 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
             in
             let right =
               match v2 with
-              | `Choice_conc x ->
+              | `Choice_semg_ellips x ->
                   let e = literal env x in
                   Literal (expression_loc e, e)
               | `Regex tok -> (* regex *) Regexp (str env tok)
@@ -400,11 +430,12 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
 
 and command_name (env : env) (x : CST.command_name) : expression =
   match x with
+  | `Semg_ellips tok -> Expr_ellipsis (token env tok)
   | `Conc x ->
       let el = concatenation env x in
       let loc = list_loc expression_loc el in
       Concatenation (loc, el)
-  | `Choice_semg_ellips x -> primary_expression env x
+  | `Choice_word x -> primary_expression env x
   | `Rep1_spec_char xs ->
       let el = List.map (fun tok -> Special_character (str env tok)) xs in
       let loc = list_loc expression_loc el in
@@ -495,83 +526,93 @@ and else_clause (env : env) ((v1, v2) : CST.else_clause) : else_ =
   let loc = (else_, snd (blist_loc body)) in
   (loc, else_, body)
 
-and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
-    complex_expansion bracket =
-  let open_ = token env v1 (* "${" *) in
-  let _v2_TODO =
-    match v2 with
-    | Some x -> (
-        match x with
-        | `HASH tok -> Some (token env tok (* "#" *))
-        | `BANG tok -> Some (token env tok (* "!" *)))
-    | None -> None
-  in
-  (* TODO: need to handle all the cases other than just a variable
-     like ${foo} *)
-  let opt_variable =
-    match v3 with
-    | Some x -> (
-        match x with
-        | `Var_name_EQ_opt_choice_conc (v1, v2, v3) ->
-            (* TODO *)
-            let _v1 = token env v1 (* variable_name *) in
-            let _v2 = token env v2 (* "=" *) in
-            let _v3 =
-              match v3 with
-              | Some x -> Some (literal env x)
-              | None -> None
-            in
-            None
-        | `Choice_subs_opt_SLASH_opt_regex_rep_choice_choice_conc (v1, v2, v3)
-          ->
-            let opt_variable =
-              match v1 with
-              | `Subs _x -> (* TODO: subscript env x *) None
-              | `Pat_42e353e tok ->
-                  Some (Simple_variable_name (simple_variable_name env tok))
-              | `Choice_STAR x ->
-                  Some (Special_variable_name (special_variable_name env x))
-            in
-            let _v2_TODO () =
-              match v2 with
-              | Some (v1, v2) ->
-                  let v1 = token env v1 (* / *) in
-                  let v2 =
-                    match v2 with
-                    | Some tok -> token env tok (* regex *)
-                    | None -> todo env ()
-                  in
-                  todo env (v1, v2)
-              | None -> todo env ()
-            in
-            let _v3_TODO () =
-              List.map
-                (fun x ->
-                  match x with
-                  | `Choice_conc x -> literal env x
-                  | `COLON tok -> todo env tok (* ":" *)
-                  | `COLONQMARK tok -> todo env tok (* ":?" *)
-                  | `EQ tok -> todo env tok (* "=" *)
-                  | `COLONDASH tok -> todo env tok (* ":-" *)
-                  | `PERC tok -> todo env tok (* "%" *)
-                  | `DASH tok -> todo env tok (* "-" *)
-                  | `HASH tok -> (* "#" *) todo env tok)
-                v3
-            in
-            opt_variable)
-    | None -> None
-  in
-  let close = token env v4 (* "}" *) in
-  let complex_expansion =
-    match opt_variable with
-    | Some varname ->
-        let loc = variable_name_loc varname in
-        Variable (loc, varname)
-    | None ->
-        let loc = (open_, close) in
-        Complex_expansion_TODO loc
-  in
-  (open_, complex_expansion, close)
+and expansion (env : env) (x : CST.expansion) : complex_expansion bracket =
+  match x with
+  | `DOLLARLCURL_semg_ellips_RCURL (v1, v2, v3) ->
+      (* hmm, maybe we shouldn't allow this construct. A metavariable
+         like ${$X} should suffice to match whatever is within ${}. *)
+      let open_ = token env v1 in
+      let dots = token env v2 in
+      let close = token env v3 in
+      let loc = (open_, close) in
+      ( open_,
+        Variable (loc, Var_metavar (fresh_metavariable_name (), dots)),
+        close )
+  | `DOLLARLCURL_opt_choice_HASH_opt_choice_var_name_EQ_opt_choice_semg_ellips_RCURL
+      (v1, v2, v3, v4) ->
+      let open_ = token env v1 (* "${" *) in
+      let _v2_TODO =
+        match v2 with
+        | Some x -> (
+            match x with
+            | `HASH tok -> Some (token env tok (* "#" *))
+            | `BANG tok -> Some (token env tok (* "!" *)))
+        | None -> None
+      in
+      (* TODO: need to handle all the cases other than just a variable
+         like ${foo} *)
+      let opt_variable =
+        match v3 with
+        | Some x -> (
+            match x with
+            | `Var_name_EQ_opt_choice_semg_ellips (v1, v2, v3) ->
+                (* TODO *)
+                let var_name = Simple_variable_name (str env v1) in
+                let _v2 = token env v2 (* "=" *) in
+                let _v3 =
+                  match v3 with
+                  | Some x -> Some (literal env x)
+                  | None -> None
+                in
+                Some var_name
+            | `Choice_subs_opt_SLASH_opt_regex_rep_choice_choice_semg_ellips
+                (v1, v2, v3) ->
+                let opt_variable =
+                  match v1 with
+                  | `Subs _x -> (* TODO: subscript env x *) None
+                  | `Choice_semg_meta x -> Some (simple_variable_name env x)
+                  | `Choice_STAR x -> Some (special_variable_name env x)
+                in
+                let _v2_TODO () =
+                  match v2 with
+                  | Some (v1, v2) ->
+                      let v1 = token env v1 (* / *) in
+                      let v2 =
+                        match v2 with
+                        | Some tok -> token env tok (* regex *)
+                        | None -> todo env ()
+                      in
+                      todo env (v1, v2)
+                  | None -> todo env ()
+                in
+                let _v3_TODO () =
+                  List.map
+                    (fun x ->
+                      match x with
+                      | `Choice_semg_ellips x -> literal env x
+                      | `COLON tok -> todo env tok (* ":" *)
+                      | `COLONQMARK tok -> todo env tok (* ":?" *)
+                      | `EQ tok -> todo env tok (* "=" *)
+                      | `COLONDASH tok -> todo env tok (* ":-" *)
+                      | `PERC tok -> todo env tok (* "%" *)
+                      | `DASH tok -> todo env tok (* "-" *)
+                      | `HASH tok -> (* "#" *) todo env tok)
+                    v3
+                in
+                opt_variable)
+        | None -> None
+      in
+      let close = token env v4 (* "}" *) in
+      let complex_expansion =
+        match opt_variable with
+        | Some var ->
+            let loc = variable_name_loc var in
+            Variable (loc, var)
+        | None ->
+            let loc = (open_, close) in
+            Complex_expansion_TODO loc
+      in
+      (open_, complex_expansion, close)
 
 (* This covers
    - sh test commands: [ ... ]
@@ -582,7 +623,7 @@ and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
 *)
 and expression (env : env) (x : CST.expression) : test_expression =
   match x with
-  | `Choice_conc x ->
+  | `Choice_semg_ellips x ->
       let e = literal env x in
       T_expr (expression_loc e, e)
   | `Un_exp (v1, v2) -> (
@@ -714,13 +755,14 @@ and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
 
 and literal (env : env) (x : CST.literal) : expression =
   match x with
+  | `Semg_ellips tok -> Expr_ellipsis (token env tok)
   | `Conc x -> (
       let el = concatenation env x in
       let loc = list_loc expression_loc el in
       match el with
       | [ e ] -> e
       | _ -> Concatenation (loc, el))
-  | `Choice_semg_ellips x -> primary_expression env x
+  | `Choice_word x -> primary_expression env x
   | `Rep1_spec_char xs -> (
       let el = List.map (fun tok -> Special_character (str env tok)) xs in
       let loc = list_loc expression_loc el in
@@ -730,12 +772,6 @@ and literal (env : env) (x : CST.literal) : expression =
 
 and primary_expression (env : env) (x : CST.primary_expression) : expression =
   match x with
-  | `Semg_ellips tok -> Semgrep_ellipsis (token env tok (* "..." *))
-  | `Semg_double_curl_meta (v1, v2, v3) ->
-      let _open_ = token env v1 (* "${{" *) in
-      let name = str env v2 (* pattern [A-Z_][A-Z_0-9]* *) in
-      let _close = token env v3 (* "}}" *) in
-      Semgrep_metavariable name
   | `Word tok -> Word (str env tok (* word *))
   | `Str x -> String (string_ env x)
   | `Raw_str tok -> Raw_string (str env tok (* pattern "'[^']*'" *))
@@ -746,9 +782,9 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
       let loc = bracket_loc e in
       String_fragment (loc, Expansion (loc, Complex_expansion e))
   | `Simple_expa x ->
-      let loc, dollar, varname = simple_expansion env x in
-      String_fragment
-        (loc, Expansion (loc, Simple_expansion (loc, dollar, varname)))
+      let frag = simple_expansion env x in
+      let loc = string_fragment_loc frag in
+      String_fragment (loc, frag)
   | `Str_expa (v1, v2) ->
       let dollar = token env v1 (* "$" *) in
       let e =
@@ -929,8 +965,12 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       let command = Negated_command (loc, excl, command) in
       Tmp_command ({ loc; command; redirects }, None)
   | `For_stmt (v1, v2, v3, v4, v5) ->
-      let for_ = token env v1 (* "for" *) in
-      let loop_var = str env v2 (* pattern \w+ *) in
+      let for_tok, is_for =
+        match v1 with
+        | `For tok -> (* "for" *) (token env tok, true)
+        | `Select tok -> (* "select" *) (token env tok, false)
+      in
+      let loop_var = simple_variable_name env v2 in
       let opt_loop_vals =
         match v3 with
         | Some (v1, v2) ->
@@ -943,9 +983,11 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       let _semi = terminator env v4 in
       let do_, body, done_ = do_group env v5 in
-      let loc = (for_, done_) in
+      let loc = (for_tok, done_) in
       let command =
-        For_loop (loc, for_, loop_var, opt_loop_vals, do_, body, done_)
+        if is_for then
+          For_loop (loc, for_tok, loop_var, opt_loop_vals, do_, body, done_)
+        else Select (loc, for_tok, loop_var, opt_loop_vals, do_, body, done_)
       in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `C_style_for_stmt (v1, v2, v3, v4, v5, v6, v7, v8, v9, v10) ->
@@ -984,10 +1026,12 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `While_stmt (v1, v2, v3) ->
       let while_ = token env v1 (* "while" *) in
-      let _header () = terminated_statement env v2 in
+      let cond = terminated_statement env v2 |> blist_of_pipeline in
       let open_body, body, close_body = do_group env v3 in
       let loc = (while_, close_body) in
-      let command = While_loop (loc, body) in
+      let command =
+        While_loop (loc, while_, cond, open_body, body, close_body)
+      in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `If_stmt (v1, v2, v3, v4, v5, v6, v7) ->
       let if_ = token env v1 (* "if" *) in
@@ -1088,9 +1132,9 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
   | `Func_defi (v1, v2) ->
       let start, function_, name =
         match v1 with
-        | `Func_word_opt_LPAR_RPAR (v1, v2, v3) ->
+        | `Func_exte_word_opt_LPAR_RPAR (v1, v2, v3) ->
             let function_ = token env v1 (* "function" *) in
-            let name = str env v2 (* word *) in
+            let name = extended_word env v2 in
             let _empty_parens =
               match v3 with
               | Some (v1, v2) ->
@@ -1104,7 +1148,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
             let name = str env v1 (* word *) in
             let _v2 = token env v2 (* "(" *) in
             let _v3 = token env v3 (* ")" *) in
-            (snd name, None, name)
+            (snd name, None, Simple_variable_name name)
       in
       let body =
         match v2 with
@@ -1173,8 +1217,8 @@ and string_ (env : env) ((v1, v2, v3, v4) : CST.string_) :
               let loc = bracket_loc e in
               [ Expansion (loc, Complex_expansion e) ]
           | `Simple_expa x ->
-              let loc, dollar, e = simple_expansion env x in
-              [ Expansion (loc, Simple_expansion (loc, dollar, e)) ]
+              let frag = simple_expansion env x in
+              [ frag ]
           | `Cmd_subs x -> [ Command_substitution (command_substitution env x) ]
         in
         let _concat =
@@ -1245,52 +1289,85 @@ and test_command (env : env) (v1 : CST.test_command) : command =
       let loc = (open_, close) in
       Arithmetic_expression (loc, (open_, TODO loc, close))
 
-and variable_assignment (env : env) ((v1, v2, v3) : CST.variable_assignment) :
-    assignment =
-  let lhs =
-    match v1 with
-    | `Var_name tok -> str env tok (* variable_name *)
-    | `Subs x ->
-        (* TODO: assignment to array cell *)
-        let var, _open, _index, _close = subscript env x in
-        var
+and variable_assignment (env : env) (x : CST.variable_assignment) : assignment =
+  let lhs, assign_op, rhs =
+    match x with
+    | `Choice_semg_meta_eq_choice_choice_semg_ellips (v1, v2) ->
+        let mv_tok, assign_op =
+          match v1 with
+          | `Semg_meta_eq tok ->
+              (* pattern \$[A-Z_][A-Z_0-9]*= *)
+              let mv_eq_tok = token env tok in
+              let len = String.length (PI.str_of_info mv_eq_tok) in
+              let mv_tok, eq_tok = PI.split_info_at_pos (len - 1) mv_eq_tok in
+              let assign_op = (Set, eq_tok (* "=" *)) in
+              (mv_tok, assign_op)
+          | `Semg_meta_pluseq tok ->
+              (* pattern \$[A-Z_][A-Z_0-9]*\+= *)
+              let mv_eq_tok = token env tok in
+              let len = String.length (Parse_info.str_of_info mv_eq_tok) in
+              let mv_tok, pluseq_tok =
+                Parse_info.split_info_at_pos (len - 2) mv_eq_tok
+              in
+              let assign_op = (Add, pluseq_tok (* "+=" *)) in
+              (mv_tok, assign_op)
+        in
+        (* TODO: this returns a metavariable even when parsing a program
+           in which metavariables shouldn't exist.
+           In such case, we should not return an assignment but convert
+           $X=42 to a variable expansion and concatenation. *)
+        let mv = (PI.str_of_info mv_tok, mv_tok) in
+        (mv, assign_op, v2)
+    | `Choice_var_name_choice_EQ_choice_choice_semg_ellips (v1, v2, v3) ->
+        let var =
+          match v1 with
+          | `Var_name tok -> str env tok (* variable_name *)
+          | `Subs x ->
+              (* TODO: assignment to array cell *)
+              let var, _open, _index, _close = subscript env x in
+              var
+        in
+        let assign_op =
+          match v2 with
+          | `EQ tok -> (Set, token env tok (* "=" *))
+          | `PLUSEQ tok -> (Add, token env tok (* "+=" *))
+        in
+        (var, assign_op, v3)
   in
-  let assign_op =
-    match v2 with
-    | `EQ tok -> (Set, token env tok (* "=" *))
-    | `PLUSEQ tok -> (Add, token env tok (* "+=" *))
-  in
-  let rhs =
-    match v3 with
-    | `Choice_conc x -> literal env x
-    | `Array x -> array_ env x
-    | `Empty_value tok ->
-        let empty = token env tok in
-        let loc = (empty, empty) in
-        Empty_expression loc
-  in
+  let rhs = right_hand_side env rhs in
   let loc = (snd lhs, snd (expression_loc rhs)) in
   { loc; lhs; assign_op; rhs }
+
+and right_hand_side (env : env) (x : CST.anon_choice_lit_748c1d0) : expression =
+  match x with
+  | `Choice_semg_ellips x -> literal env x
+  | `Array x -> array_ env x
+  | `Empty_value tok ->
+      let empty = token env tok in
+      let loc = (empty, empty) in
+      Empty_expression loc
 
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
 
 let parse file =
+  let input_kind = AST_bash.Program in
   H.wrap_parser
     (fun () -> Tree_sitter_bash.Parse.file file)
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
+      let env = { H.file; conv = H.line_col_to_pos file; extra = input_kind } in
       let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
       let bash_ast = program env ~tok cst in
-      Bash_to_generic.program bash_ast)
+      Bash_to_generic.(program Program bash_ast))
 
 let parse_pattern str =
+  let input_kind = AST_bash.Pattern in
   H.wrap_parser
     (fun () -> Tree_sitter_bash.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = () } in
+      let env = { H.file; conv = Hashtbl.create 0; extra = input_kind } in
       let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
       let bash_ast = program env ~tok cst in
-      Bash_to_generic.any bash_ast)
+      Bash_to_generic.(any input_kind bash_ast))
