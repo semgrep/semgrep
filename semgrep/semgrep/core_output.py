@@ -182,6 +182,7 @@ class CoreSkipped:
         path = Path(raw_json["path"])
         reason = SkipReason(raw_json["reason"])
         details = SkipDetails(raw_json["details"])
+        logger.verbose(f"skipped '{path}': {reason}: {details}")
         return cls(rule_id, path, reason, details)
 
 
