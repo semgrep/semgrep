@@ -224,6 +224,11 @@ let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc)
 (* Converter from bash AST to generic AST *)
 (*****************************************************************************)
 
+let negate_expr (neg_tok : tok) (cmd_loc : loc) (cmd : G.expr) : G.expr =
+  let func = G.IdSpecial (G.Op G.Not, neg_tok) |> G.e in
+  let args = [ G.Arg cmd ] in
+  G.Call (func, bracket cmd_loc args) |> G.e
+
 (*
    Redirect stderr in the last command of the pipeline.
 *)
@@ -365,7 +370,14 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       let cond = stmt_group env loc (blist env cond) |> as_expr in
       let body = stmt_group env loc (blist env body) |> as_stmt in
       Stmt (loc, G.While (while_, cond, body) |> G.s)
-  | Until_loop (loc, bl) -> (* TODO: loop *) stmt_group env loc (blist env bl)
+  | Until_loop (loc, until, cond, do_, body, done_) ->
+      let cond_loc = blist_loc cond in
+      let neg_cond =
+        blist env cond |> stmt_group env loc |> as_expr
+        |> negate_expr until cond_loc
+      in
+      let body = stmt_group env loc (blist env body) |> as_stmt in
+      Stmt (loc, G.While (until, neg_cond, body) |> G.s)
   | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command env cmd
   | Assignment (loc, ass) ->
       let var = G.N (mk_name ass.lhs) |> G.e in
@@ -378,9 +390,9 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       Expr (loc, G.e e)
   | Declaration (loc, _) -> todo_stmt2 loc
   | Negated_command (loc, excl_tok, cmd) ->
-      let func = G.IdSpecial (G.Op G.Not, excl_tok) |> G.e in
-      let args = [ G.Arg (command env cmd |> as_expr) ] in
-      let e = G.Call (func, bracket (command_loc cmd) args) |> G.e in
+      let cmd_loc = command_loc cmd in
+      let cmd = command env cmd |> as_expr in
+      let e = negate_expr excl_tok cmd_loc cmd in
       Expr (loc, e)
   | Function_definition (loc, def) ->
       let first_tok =
