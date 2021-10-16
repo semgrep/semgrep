@@ -2009,7 +2009,12 @@ and m_for_header a b =
       m_pattern a1 b1 >>= fun () ->
       m_tok at bt >>= fun () -> m_expr a2 b2
   | G.ForIn (a1, a2), B.ForIn (b1, b2) ->
-      (m_list m_for_var_or_expr) a1 b1 >>= fun () -> m_list m_expr a2 b2
+      (m_list m_for_var_or_expr) a1 b1 >>= fun () ->
+      m_list_with_dots m_expr
+        (function
+          | { e = G.Ellipsis _; _ } -> true
+          | _ -> false)
+        false a2 b2
   | G.ForClassic _, _
   | G.ForEach _, _
   | G.ForIn _, _ ->

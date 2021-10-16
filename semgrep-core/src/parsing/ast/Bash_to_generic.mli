@@ -3,6 +3,6 @@
 *)
 
 (* may raise AST_generic.Error *)
-val program : AST_bash.program -> AST_generic.program
+val program : AST_bash.input_kind -> AST_bash.program -> AST_generic.program
 
-val any : AST_bash.program -> AST_generic.any
+val any : AST_bash.input_kind -> AST_bash.program -> AST_generic.any
