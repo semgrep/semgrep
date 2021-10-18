@@ -448,7 +448,8 @@ def run_benchmarks(
 
     # Multithread here. Dedicate one core to each benchmark
     for corpus in corpuses:
-        with chdir(f"bench/{corpus.name}"):
+        cur_dir = os.path.dirname(os.path.abspath(__file__))
+        with chdir(f"{cur_dir}/bench/{corpus.name}"):
             try:
                 corpus.prep()
             except Exception as e:
