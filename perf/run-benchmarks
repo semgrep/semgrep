@@ -402,9 +402,10 @@ def run_benchmarks(
 ) -> None:
     def get_corpuses(config_file: Path) -> List[Corpus]:
         cur_dir = os.path.dirname(os.path.abspath(__file__))
+        config_file_path = config_file.absolute()
         with chdir(f"{cur_dir}/bench"):
             return prepare_benchmark_run(
-                SemgrepBenchmarkConfig.parse_config(config_file.absolute()), clean
+                SemgrepBenchmarkConfig.parse_config(config_file_path), clean
             )
 
     variants = SEMGREP_VARIANTS
