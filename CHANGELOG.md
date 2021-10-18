@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Java: ... in method chain calls can now match also 0 elements, to be
   consistent with other use of ... (#4082), so `o. ... .foo()` will now
   also match just `o.foo()`.
+- Config files with only a comment give bad error message (#3773)
 
 ## [0.69.1](https://github.com/returntocorp/semgrep/releases/tag/v0.69.1) - 10-14-2021
 
@@ -57,7 +58,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Respect rule level path filtering
-- Config files with only a comment give bad error message (#3773)
 
 ## [0.68.0](https://github.com/returntocorp/semgrep/releases/tag/v0.68.0) - 10-06-2021
 
