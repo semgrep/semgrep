@@ -6,15 +6,13 @@ runs:
   rule_configs:
   - njsscan
   opts: []
-- name: njs-old-juice  # Run old nodejsscan rules on vulnerable app
-  repos:
-  - url: https://github.com/bkimminich/juice-shop
-    commit_hash: 98633f5ef242bf943608324a562058b22eca6dfe
-  rule_configs:
-  - rules/njsscan/regex_dos.yaml
-  - rules/njsscan/header_cookie.yaml
-  - rules/njsscan/jwt_exposed_data.yaml
-  opts: []
+# - name: njs-old-juice  # Run old nodejsscan rules on vulnerable app
+#  repos:
+#  - url: https://github.com/bkimminich/juice-shop
+#    commit_hash: 98633f5ef242bf943608324a562058b22eca6dfe
+#  rule_configs:
+#  - njsscan
+#  opts: []
 - name: netflix  # r2c-ci and r2c-security audit packs on a python/JS repo
   repos:
   - url: https://github.com/Netflix/lemur
@@ -64,14 +62,21 @@ runs:
   - r2c-rules/r2c-ci.yml
   - r2c-rules/r2c-security-audit.yml
   opts: []
-# Gitlab large repos (not currently working)
-# - name: spring-projects  # java pack on a java repo
-#  repos:
-#  - url: https://github.com/spring-projects/spring-framework
-#    commit_hash: 58e40d1aa2c23f6d9c41d4289f5b5debc10868f6
-#  rule_configs:
-#  - r2c-rules/java.yml
-#  opts: []
+# Gitlab large repos
+- name: smacker # security-audit pack on a c repo
+  repos:
+  - url: https://github.com/spring-projects/spring-framework
+    commit_hash: 58e40d1aa2c23f6d9c41d4289f5b5debc10868f6
+  rule_configs:
+  - r2c-rules/java.yml
+  opts: []
+- name: gotree  # java pack on a java repo
+  repos:
+  - url: https://github.com/smacker/go-tree-sitter
+    commit_hash: 4a66a1484ecdc0b980f6317d8235e1f611529ab3
+  rule_configs:
+  - r2c-rules/r2c-security-audit.yml
+  opts: []
 # Currently don't work in CI
 #- name: big-js  # single rule bench at the origin of the --filter-irrelevant-rules opti
 #  repos:

@@ -81,9 +81,13 @@ class RuleConfig(object):
         njs_subdir = f"{njs_tempdir}/njsscan/rules/semantic_grep"
 
         # Clone njsscan and move relevant rules to njsscan, then remove rest of repo
-        os.chdir(cache_path)
-        os.system(f"git clone {repo} {njs_tempdir}")
-        os.system(f"cd {njs_tempdir} && git checkout {commit_id} && cd ..")
+        os.mkdir(cache_path / njs_tempdir)
+        os.chdir(cache_path / njs_tempdir)
+        os.system("git init")
+        os.system(f"git remote add origin {repo}")
+        os.system(f"git fetch --depth 1 origin ${commit_id}")
+        os.system("git checkout FETCH_HEAD -b tmp")
+        os.chdir("..")
         os.replace(njs_subdir, "njsscan")
         shutil.rmtree(njs_tempdir)
 

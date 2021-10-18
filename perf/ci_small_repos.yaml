@@ -75,7 +75,7 @@ runs:
   rule_configs:
   - r2c-rules/r2c-ci.yml
   opts: []
-# Gitlab repo, small
+# Gitlab small repos
 - name: pallets  # python and flask rules on a python repo
   repos:
   - url: https://github.com/pallets/flask
@@ -83,6 +83,13 @@ runs:
   rule_configs:
   - r2c-rules/python.yml
   - r2c-rules/flask.yml
+  opts: []
+- name: socket  # javascript rules on a JS repo
+  repos:
+  - url: https://github.com/socketio/socket.io
+    commit_hash: 1faa7e3aea1414ec814aa935021356e8ed2b054c
+  rule_configs:
+  - r2c-rules/javascript.yml
   opts: []
 # For more comprehensive rule timing information
 - name: coolMenu  # small java corpus
