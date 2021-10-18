@@ -1,9 +1,11 @@
 import hashlib
 import json
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Union
 
 from semgrep.constants import RuleSeverity
@@ -43,8 +45,8 @@ class Rule:
                     help=help_str,
                 )
             path_dict = paths_tree.unroll_dict()
-        self._includes = path_dict.get("include", [])
-        self._excludes = path_dict.get("exclude", [])
+        self._includes = cast(Sequence[str], path_dict.get("include", []))
+        self._excludes = cast(Sequence[str], path_dict.get("exclude", []))
         rule_languages = {
             Language_util.resolve(l, self.languages_span)
             for l in self._raw.get("languages", [])
@@ -110,12 +112,12 @@ class Rule:
         return hash(self.id)
 
     @property
-    def includes(self) -> List[str]:
-        return self._includes  # type: ignore
+    def includes(self) -> Sequence[str]:
+        return self._includes
 
     @property
-    def excludes(self) -> List[str]:
-        return self._excludes  # type: ignore
+    def excludes(self) -> Sequence[str]:
+        return self._excludes
 
     @property
     def id(self) -> str:
@@ -126,7 +128,7 @@ class Rule:
         return str(self._raw["message"])
 
     @property
-    def metadata(self) -> Dict[str, Any]:  # type: ignore
+    def metadata(self) -> Dict[str, Any]:
         return self._raw.get("metadata", {})
 
     @property
@@ -146,7 +148,7 @@ class Rule:
         return self._yaml.value["languages"].span
 
     @property
-    def raw(self) -> Dict[str, Any]:  # type: ignore
+    def raw(self) -> Dict[str, Any]:
         return self._raw
 
     @property
@@ -154,11 +156,11 @@ class Rule:
         return self._raw.get("fix")
 
     @property
-    def fix_regex(self) -> Optional[Dict[str, Any]]:  # type: ignore
+    def fix_regex(self) -> Optional[Dict[str, Any]]:
         return self._raw.get("fix-regex")
 
     @classmethod
-    def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":  # type: ignore
+    def from_json(cls, rule_json: Dict[str, Any]) -> "Rule":
         yaml = YamlTree.wrap(rule_json, EmptySpan)
         return cls(yaml)
 

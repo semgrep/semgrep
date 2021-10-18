@@ -78,9 +78,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
     (v1, v2, v3)
   and map_ident v = map_wrap map_of_string v
   and map_dotted_ident v = map_of_list map_ident v
+  and map_ident_and_targs_opt (id, topt) =
+    let id = map_ident id in
+    let topt = map_of_option map_type_arguments topt in
+    (id, topt)
   and map_qualifier = function
-    | QDots v -> QDots (map_dotted_ident v)
-    | QTop t -> QTop (map_tok t)
+    | QDots v -> QDots (map_of_list map_ident_and_targs_opt v)
     | QExpr (e, t) ->
         let e = map_expr e in
         let t = map_tok t in
@@ -110,14 +113,23 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Macro -> Macro
     | EnumConstant -> EnumConstant
     | TypeName -> TypeName
-  and map_name_ (v1, v2) =
-    let v1 = map_ident v1 and v2 = map_name_info v2 in
-    (v1, v2)
   and map_name_info
-      { name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs } =
-    let v_name_typeargs = map_of_option map_type_arguments v_name_typeargs in
+      {
+        name_last = v1;
+        name_middle = v_name_qualifier;
+        name_top = v_top;
+        name_info = v2;
+      } =
+    let v1 = map_ident_and_targs_opt v1 in
+    let v2 = map_id_info v2 in
+    let v_top = map_of_option map_tok v_top in
     let v_name_qualifier = map_of_option map_qualifier v_name_qualifier in
-    { name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs }
+    {
+      name_last = v1;
+      name_info = v2;
+      name_middle = v_name_qualifier;
+      name_top = v_top;
+    }
   and map_id_info v =
     let k x =
       match x with
@@ -182,9 +194,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Id (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_id_info v2 in
         Id (v1, v2)
-    | IdQualified (v1, v2) ->
-        let v1 = map_name_ v1 and v2 = map_id_info v2 in
-        IdQualified (v1, v2)
+    | IdQualified v1 ->
+        let v1 = map_name_info v1 in
+        IdQualified v1
   and map_expr x =
     let k x =
       let ekind =

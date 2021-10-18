@@ -14,6 +14,7 @@ from typing import Union
 import pytest
 
 from semgrep.constants import OutputFormat
+from semgrep.notifications import possibly_notify_user
 
 TESTS_PATH = Path(__file__).parent
 
@@ -54,15 +55,13 @@ def _clean_output_json(output_json: str) -> str:
     for path in MASKED_KEYS:
         mark_masked(output, path)
 
-    # Remove variable parts of temp file paths.
-    # It's better than deleting the field, which makes it hard to figure out
-    # why the field is missing.
+    # Remove temp file paths
     results = output.get("results")
     if isinstance(results, Sequence):
         for r in results:
             p = r.get("path")
             if p and "/tmp" in p:
-                r["path"] = "<tmp path>/" + Path(p).name
+                del r["path"]
 
     return json.dumps(output, indent=2, sort_keys=True)
 
@@ -85,6 +84,8 @@ def _run_semgrep(
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
     """
+    possibly_notify_user()
+
     if options is None:
         options = []
 
@@ -107,13 +108,7 @@ def _run_semgrep(
     elif output_format == OutputFormat.SARIF:
         options.append("--sarif")
 
-    cmd = [
-        sys.executable,
-        "-m",
-        "semgrep",
-        *options,
-        str(Path("targets") / target_name),
-    ]
+    cmd = [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name]
     print(f"current directory: {os.getcwd()}")
     print(f"semgrep command: {cmd}")
     output = subprocess.run(

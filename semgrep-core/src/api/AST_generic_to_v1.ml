@@ -78,9 +78,8 @@ let map_ident (v : ident) : B.ident = map_wrap map_of_string v
 
 let map_dotted_ident v : B.dotted_ident = map_of_list map_ident v
 
-let rec map_qualifier = function
-  | QDots v -> `QDots (map_dotted_ident v)
-  | QTop t -> `QTop (map_tok t)
+let rec _map_qualifier = function
+  | QDots _ -> failwith "TODO"
   | QExpr (e, t) ->
       let e = map_expr e in
       let t = map_tok t in
@@ -113,16 +112,6 @@ and map_resolved_name_kind = function
   | Macro -> `Macro
   | EnumConstant -> `EnumConstant
   | TypeName -> `TypeName
-
-and map_name_ (v1, v2) =
-  let v1 = map_ident v1 and v2 = map_name_info v2 in
-  (v1, v2)
-
-and map_name_info
-    { G.name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs } =
-  let v_name_typeargs = map_of_option map_type_arguments v_name_typeargs in
-  let v_name_qualifier = map_of_option map_qualifier v_name_qualifier in
-  { B.name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs }
 
 and map_id_info x =
   match x with
@@ -188,9 +177,7 @@ and map_name = function
   | Id (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_id_info v2 in
       `Id (v1, v2)
-  | IdQualified (v1, v2) ->
-      let v1 = map_name_ v1 and v2 = map_id_info v2 in
-      `IdQualified (v1, v2)
+  | IdQualified _v1 -> failwith "TODO"
 
 and map_expr x : B.expr =
   match x.e with

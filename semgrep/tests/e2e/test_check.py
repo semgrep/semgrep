@@ -118,6 +118,13 @@ def test_registry_rule(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_auto_config(run_semgrep_in_tmp):
+    # --config auto will change over time, so lets just make sure this doesn't error out
+    # TODO: Mock config response for more detailed testing
+    run_semgrep_in_tmp("auto")
+    assert True
+
+
 def test_hidden_rule__explicit(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(run_semgrep_in_tmp("rules/hidden/.hidden")[0], "results.json")
 

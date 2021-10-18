@@ -306,3 +306,4 @@ jobs:
           token: ${{ secrets.HOMEBREW_PR_TOKEN }}
           formula: semgrep
           org: returntocorp
+          force: true

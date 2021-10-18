@@ -96,15 +96,24 @@ let rec map_name env (v1, v2, v3) : G.name =
   let v1 = map_of_option (map_tok env) v1
   and v2 = map_of_list (map_qualifier env) v2
   and v3 = map_ident_or_op env v3 in
-  complicated env (v1, v2, v3)
+  match (v1, v2, v3) with
+  | None, [], (id, None) -> H.name_of_id id
+  | _ ->
+      G.IdQualified
+        {
+          G.name_last = v3;
+          name_top = v1;
+          name_middle = (if v2 = [] then None else Some (QDots v2));
+          name_info = G.empty_id_info ();
+        }
 
 and map_ident_or_op (env : env) = function
   | IdIdent v1 ->
       let v1 = map_ident env v1 in
-      complicated env v1
+      (v1, None)
   | IdTemplateId (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_template_arguments env v2 in
-      complicated env (v1, v2)
+      (v1, Some v2)
   | IdOperator (v1, v2) ->
       let v1 = map_tok env v1 in
       let v2 = map_wrap env (map_operator env) v2 in
@@ -132,10 +141,10 @@ and map_template_argument env v : G.type_argument =
 and map_qualifier env = function
   | QClassname v1 ->
       let v1 = map_ident env v1 in
-      complicated env v1
+      (v1, None)
   | QTemplateId (v1, v2) ->
       let v1 = map_ident env v1 and v2 = map_template_arguments env v2 in
-      complicated env (v1, v2)
+      (v1, Some v2)
 
 and map_a_class_name env v = map_name env v
 
@@ -147,9 +156,6 @@ and map_type_ env (v1, v2) : G.type_ =
 
 and map_typeC env x : G.type_ =
   match x with
-  | TBase v1 ->
-      let v1 = map_baseType env v1 in
-      complicated env v1
   | TPrimitive v1 ->
       let v1 = map_wrap env (map_primitive_type env) v1 in
       G.TyBuiltin v1 |> G.t
@@ -211,48 +217,6 @@ and map_typeC env x : G.type_ =
       and v2 = map_of_list (map_type_ env) v2 in
       G.OtherType (G.OT_Todo, G.TodoK v1 :: (v2 |> List.map (fun t -> G.T t)))
       |> G.t
-
-(* deprecated *)
-and map_baseType env = function
-  | Void v1 ->
-      let v1 = map_tok env v1 in
-      complicated env v1
-  | IntType (v1, v2) ->
-      let v1 = map_intType env v1 and v2 = map_tok env v2 in
-      complicated env (v1, v2)
-  | FloatType (v1, v2) ->
-      let v1 = map_floatType env v1 and v2 = map_tok env v2 in
-      complicated env (v1, v2)
-
-and map_intType env = function
-  | CChar -> CChar
-  | Si v1 ->
-      let v1 = map_signed env v1 in
-      complicated env v1
-  | CBool -> CBool
-  | WChar_t -> WChar_t
-
-and map_signed env (v1, v2) =
-  let v1 = map_sign env v1 and v2 = map_base env v2 in
-  (v1, v2)
-
-(* deprecated *)
-and map_base env = function
-  | CChar2 -> CChar2
-  | CShort -> CShort
-  | CInt -> CInt
-  | CLong -> CLong
-  | CLongLong -> CLongLong
-
-and map_sign env = function
-  | Signed -> Signed
-  | UnSigned -> UnSigned
-
-(* deprecated *)
-and map_floatType env = function
-  | CFloat -> CFloat
-  | CDouble -> CDouble
-  | CLongDouble -> CLongDouble
 
 and map_primitive_type env = function
   | TVoid -> "void"
@@ -415,7 +379,7 @@ and map_expr env x : G.expr =
   | ParenExpr v1 ->
       let _l, v1, _r = map_paren env (map_expr env) v1 in
       v1
-  | Ellipses v1 ->
+  | Ellipsis v1 ->
       let v1 = map_tok env v1 in
       G.Ellipsis v1 |> G.e
   | DeepEllipsis v1 ->
@@ -463,31 +427,13 @@ and map_constant env x : G.literal =
       let v1 = map_wrap env (map_of_option map_of_int) v1 in
       G.Int v1
   | Float v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_wrap env (map_of_option map_of_float) v1
-            and _v2 = map_floatType env v2 in
-            v1
-      in
+      let v1 = map_wrap env (map_of_option map_of_float) v1 in
       G.Float v1
   | Char v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_wrap env map_of_string v1
-            and _v2 = map_isWchar env v2 in
-            v1
-      in
+      let v1 = map_wrap env map_of_string v1 in
       G.Char v1
   | String v1 ->
-      let v1 =
-        match v1 with
-        | v1, v2 ->
-            let v1 = map_wrap env map_of_string v1
-            and _v2 = map_isWchar env v2 in
-            v1
-      in
+      let v1 = map_wrap env map_of_string v1 in
       G.String v1
   | MultiString v1 ->
       let v1 = map_of_list (map_wrap env map_of_string) v1 in
@@ -498,10 +444,6 @@ and map_constant env x : G.literal =
   | Nullptr v1 ->
       let v1 = map_tok env v1 in
       G.Null v1
-
-and map_isWchar env = function
-  | IsWchar -> ()
-  | IsChar -> ()
 
 and map_unaryOp env = function
   | UnPlus -> Left G.Plus
@@ -780,10 +722,8 @@ and map_exception_declaration env x : G.catch_exn =
   match x with
   | ExnDecl v1 ->
       let v1 = map_parameter env v1 in
+      (* TODO G.CatchPattern (G.PatEllipsis v1) if ellipsis *)
       complicated env v1
-  | ExnDeclEllipsis v1 ->
-      let v1 = map_tok env v1 in
-      G.CatchPattern (G.PatEllipsis v1)
 
 and map_stmt_or_decl env x : G.stmt list =
   match x with
@@ -1028,7 +968,7 @@ and map_parameter env x : G.parameter =
       and v2 = map_tok env v2
       and v3 = map_parameter_classic env v3 in
       G.ParamRest (v2, v3)
-  | ParamDots v1 ->
+  | ParamEllipsis v1 ->
       let v1 = map_tok env v1 in
       G.ParamEllipsis v1
 
@@ -1067,10 +1007,10 @@ and map_function_body env x : G.function_body =
   match x with
   | FBDef v1 ->
       let v1 = map_compound env v1 in
-      todo env v1
+      G.FBStmt (G.Block v1 |> G.s)
   | FBDecl v1 ->
       let v1 = map_sc env v1 in
-      todo env v1
+      G.FBDecl v1
   | FBZero (v1, v2, v3) ->
       let v1 = map_tok env v1 and v2 = map_tok env v2 and v3 = map_sc env v3 in
       todo env (v1, v2, v3)
@@ -1308,15 +1248,20 @@ and map_cpp_directive env x : (G.directive, G.definition) either =
       and v3 = map_define_kind env v3
       and v4 = map_define_val env v4 in
       todo env (v1, v2, v3, v4)
-  | Include (v1, v2) ->
+  | Include (v1, v2) -> (
       let v1 = map_tok env v1 and v2 = map_include_kind env v2 in
-      todo env (v1, v2)
+      match v2 with
+      | Left file ->
+          let dir = G.ImportAll (v1, G.FileName file, v1) |> G.d in
+          Left dir
+      | Right e -> complicated env e)
   | Undef v1 ->
       let v1 = map_ident env v1 in
       todo env v1
   | PragmaAndCo v1 ->
       let v1 = map_tok env v1 in
-      todo env v1
+      let dir = G.Pragma (("TODO", v1), []) |> G.d in
+      Left dir
 
 and map_define_kind env = function
   | DefineVar -> DefineVar
@@ -1359,25 +1304,29 @@ and map_define_val env = function
 and map_include_kind env = function
   | IncLocal v1 ->
       let v1 = map_wrap env map_of_string v1 in
-      todo env v1
+      Left v1
   | IncSystem v1 ->
       let v1 = map_wrap env map_of_string v1 in
-      todo env v1
+      Left v1
   | IncOther v1 ->
       let v1 = map_a_cppExpr env v1 in
-      todo env v1
+      Right v1
 
 and map_a_cppExpr env v = map_expr env v
+
+and def_or_dir_either_to_stmt = function
+  | Left dir -> G.DirectiveStmt dir |> G.s
+  | Right def -> G.DefStmt def |> G.s
 
 and map_sequencable :
       'a. env -> ('a -> G.stmt list) -> 'a sequencable -> G.stmt list =
  fun env _of_a -> function
   | X v1 ->
       let v1 = _of_a v1 in
-      todo env v1
+      v1
   | CppDirective v1 ->
       let v1 = map_cpp_directive env v1 in
-      todo env v1
+      [ def_or_dir_either_to_stmt v1 ]
   | CppIfdef v1 ->
       let v1 = map_ifdef_directive env v1 in
       todo env v1
@@ -1472,8 +1421,10 @@ let map_any env x : G.any =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
-let any _x =
-  ignore map_any;
-  failwith "TODO"
+let any x =
+  let env = () in
+  map_any env x
 
-let program _cst = failwith "TODO"
+let program cst =
+  let env = () in
+  map_program env cst

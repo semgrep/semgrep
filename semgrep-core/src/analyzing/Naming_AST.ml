@@ -603,10 +603,16 @@ let resolve lang prog =
                   (* name resolution *)
                   set_resolved env id_info resolved
               | _ -> ())
-          | IdQualified ((id, name_info), id_info) ->
-              (match name_info with
+          | IdQualified
+              {
+                name_last = id, None;
+                name_middle;
+                name_info = id_info;
+                name_top = None;
+              } ->
+              (match name_middle with
               (* this is quite specific to OCaml *)
-              | { name_qualifier = Some (QDots [ m ]); _ } -> (
+              | Some (QDots [ (m, None) ]) -> (
                   match lookup_scope_opt m env with
                   | Some { entname = ImportedModule (DottedName xs), _sidm; _ }
                     ->
@@ -618,7 +624,8 @@ let resolve lang prog =
                       set_resolved env id_info resolved
                   | _ -> ())
               | _ -> ());
-              k x);
+              k x
+          | IdQualified _ -> ());
       V.kexpr =
         (fun (k, vout) x ->
           let recurse = ref true in

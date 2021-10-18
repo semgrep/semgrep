@@ -100,11 +100,11 @@ let bracket of_a (t1, x, t2) = (info t1, of_a x, info t2)
 
 let rec ident v = wrap string v
 
+and name (v1, v2) = H.name_of_ids (v1 @ [ v2 ])
+
 and name_ (v1, v2) =
   let v1 = qualifier v1 and v2 = ident v2 in
-  (v2, { G.empty_name_info with G.name_qualifier = Some (G.QDots v1) })
-
-and name (v1, v2) = H.name_of_ids (v1 @ [ v2 ])
+  name (v1, v2)
 
 and dotted_ident_of_name (v1, v2) =
   let v1 = qualifier v1 and v2 = ident v2 in
@@ -129,7 +129,7 @@ and type_kind = function
   (* TODO *)
   | TyName v1 ->
       let v1 = name_ v1 in
-      G.TyN (G.IdQualified (v1, G.empty_id_info ()))
+      G.TyN v1
   | TyVar v1 ->
       let v1 = ident v1 in
       G.TyVar v1

@@ -5,9 +5,23 @@
 #
 set -eu
 
+# Note that if the version of ocamlformat you use locally and the one
+# used in CI differ, you will get your PR rejected by CI and it will
+# be hard to fix, because different versions of ocamlformat have conflicting
+# indentation rules. That is why we need to pin and use everywhere the
+# same exact version.
+
+# Note that sometimes we use the same ocamlformat version, and there
+# are still problems ... go figure.
+# In case of problems in CI, uncomment the #to debug: lines below.
+# That way you can know which files were reformated in CI.
+# Note however that the pre-commit CI action may loop forever if
+# you leave those commands uncommented (no idea why, go figure again).
+
 eval $(opam env)
 
 if $(ocamlformat --version > /dev/null 2>&1); then
+  #to debug: ocamlformat --version
   #TODO: we should require a specific version, like the one in dev.opam
   ocamlformat --inplace --enable-outside-detected-project "$@"
 else
@@ -22,3 +36,5 @@ normally done with the following command:
 For now, let's pretend everything is fine.
 EOF
 fi
+
+#to debug: git diff

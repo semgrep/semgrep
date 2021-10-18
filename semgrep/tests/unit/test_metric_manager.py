@@ -11,6 +11,7 @@ from semgrep.config_resolver import Config
 from semgrep.metric_manager import metric_manager
 from semgrep.profiling import ProfilingData
 from semgrep.profiling import Times
+from semgrep.types import MetricsState
 
 
 def test_configs_hash() -> None:
@@ -54,7 +55,7 @@ def test_rules_hash() -> None:
     with NamedTemporaryFile() as tf1:
         tf1.write(config1.encode("utf-8"))
         tf1.flush()
-        config, errors = Config.from_config_list([tf1.name])
+        config, errors = Config.from_config_list([tf1.name], None)
         assert not errors
         rules = config.get_rules(True)
         assert len(rules) == 3
@@ -93,7 +94,7 @@ def test_send() -> None:
             timeout=2,
         )
 
-    metric_manager.enable()
+    metric_manager.configure(MetricsState.ON, None)
     metric_manager.send()
 
 
@@ -122,7 +123,7 @@ def test_timings(snapshot) -> None:
     with NamedTemporaryFile() as tf1:
         tf1.write(config1.encode("utf-8"))
         tf1.flush()
-        config, errors = Config.from_config_list([tf1.name])
+        config, errors = Config.from_config_list([tf1.name], None)
         assert not errors
         rules = config.get_rules(True)
         assert len(rules) == 3

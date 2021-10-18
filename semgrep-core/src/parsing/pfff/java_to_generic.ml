@@ -110,19 +110,24 @@ and class_type v =
         (v1, v2))
       v
   in
+
+  (* TODO: would like simply
+   * G.TyN (H.name_of_ids_with_opt_typeargs res)
+   * but got regressions on aliasing_type.java and misc_generic.java
+   *)
   match List.rev res with
   | [] -> raise Impossible (* list1 *)
   | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ()))
   | [ (id, Some ts) ] -> G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts)
   | (id, None) :: xs ->
-      let name_info =
-        {
-          G.name_typeargs = None;
-          (* could be v1TODO above *)
-          name_qualifier = Some (G.QDots (List.rev (List.map fst xs)));
-        }
-      in
-      G.TyN (G.IdQualified ((id, name_info), G.empty_id_info ()))
+      G.TyN
+        (G.IdQualified
+           {
+             G.name_last = (id, None);
+             name_top = None;
+             name_middle = Some (G.QDots (List.rev xs));
+             name_info = G.empty_id_info ();
+           })
   | (id, Some ts) :: xs ->
       G.TyApply
         (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))) |> G.t, ts)

@@ -209,7 +209,8 @@ module Make (F : Flow) = struct
 
   let (display_mapping : F.flow -> 'a mapping -> ('a -> string) -> unit) =
    fun flow mapping string_of_val ->
-    pr (mapping_to_str flow string_of_val mapping)
+    pr (* nosemgrep: no-print-in-semgrep *)
+      (mapping_to_str flow string_of_val mapping)
 
   let rec fixpoint_worker eq mapping trans flow succs workset =
     if NodeiSet.is_empty workset then mapping
