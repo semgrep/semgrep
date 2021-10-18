@@ -4,9 +4,7 @@ runs:
   - url: https://github.com/dropbox/dropbox-sdk-js
     commit_hash: 268887672a0d7be58ffbfaf832731698e31d792d
   rule_configs:
-  - rules/njsscan/regex_dos.yaml
-  - rules/njsscan/header_cookie.yaml
-  - rules/njsscan/jwt_exposed_data.yaml
+  - njsscan
   opts: []
 - name: njs-old-juice  # Run old nodejsscan rules on vulnerable app
   repos:
