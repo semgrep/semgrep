@@ -171,6 +171,14 @@ module C = struct
   *)
   let split loc = mk loc "split"
 
+  (*
+     Expand a variable X referenced as $X or ${X} in a program.
+     In a pattern, $X is a metavariable that stands for anything
+     (no expansion necessary), whereas ${$X} in a pattern is the expansion
+     of any variable represented by the metavariable $X.
+  *)
+  let expand loc = mk loc "expand"
+
   (* Concatenate two string fragments e.g.
        foo"$bar"
   *)
@@ -198,7 +206,7 @@ let call loc name exprs =
   G.Call (name loc, bracket loc (List.map (fun e -> G.Arg e) exprs)) |> G.e
 
 let todo_tokens ((start, end_) : loc) =
-  let wrap tok = (Parse_info.string_of_info tok, tok) in
+  let wrap tok = (Parse_info.str_of_info tok, tok) in
   if start = end_ then [ G.TodoK (wrap start) ]
   else [ G.TodoK (wrap start); G.TodoK (wrap end_) ]
 
@@ -215,6 +223,11 @@ let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc)
 (*****************************************************************************)
 (* Converter from bash AST to generic AST *)
 (*****************************************************************************)
+
+let negate_expr (neg_tok : tok) (cmd_loc : loc) (cmd : G.expr) : G.expr =
+  let func = G.IdSpecial (G.Op G.Not, neg_tok) |> G.e in
+  let args = [ G.Arg cmd ] in
+  G.Call (func, bracket cmd_loc args) |> G.e
 
 (*
    Redirect stderr in the last command of the pipeline.
@@ -357,7 +370,14 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       let cond = stmt_group env loc (blist env cond) |> as_expr in
       let body = stmt_group env loc (blist env body) |> as_stmt in
       Stmt (loc, G.While (while_, cond, body) |> G.s)
-  | Until_loop (loc, bl) -> (* TODO: loop *) stmt_group env loc (blist env bl)
+  | Until_loop (loc, until, cond, do_, body, done_) ->
+      let cond_loc = blist_loc cond in
+      let neg_cond =
+        blist env cond |> stmt_group env loc |> as_expr
+        |> negate_expr until cond_loc
+      in
+      let body = stmt_group env loc (blist env body) |> as_stmt in
+      Stmt (loc, G.While (until, neg_cond, body) |> G.s)
   | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command env cmd
   | Assignment (loc, ass) ->
       let var = G.N (mk_name ass.lhs) |> G.e in
@@ -370,9 +390,9 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       Expr (loc, G.e e)
   | Declaration (loc, _) -> todo_stmt2 loc
   | Negated_command (loc, excl_tok, cmd) ->
-      let func = G.IdSpecial (G.Op G.Not, excl_tok) |> G.e in
-      let args = [ G.Arg (command env cmd |> as_expr) ] in
-      let e = G.Call (func, bracket (command_loc cmd) args) |> G.e in
+      let cmd_loc = command_loc cmd in
+      let cmd = command env cmd |> as_expr in
+      let e = negate_expr excl_tok cmd_loc cmd in
       Expr (loc, e)
   | Function_definition (loc, def) ->
       let first_tok =
@@ -403,11 +423,26 @@ and stmt_group (env : env) (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
 and expression (env : env) (e : expression) : G.expr =
   match e with
   | Word str -> G.L (G.String str) |> G.e
-  | String (open_, frags, close) ->
-      let loc = (open_, close) in
-      List.map (string_fragment env) frags |> call loc C.quoted_concat
+  | String (* "foo" *) (open_, frags, close) -> (
+      match frags with
+      | [ String_content ((str, _) as wrap) ]
+        when not (env = Pattern && str = "...") ->
+          (* normalization to enable matching of e.g. "foo" against foo *)
+          G.L (G.String wrap) |> G.e
+      | _ ->
+          let loc = (open_, close) in
+          List.map (string_fragment env) frags |> call loc C.quoted_concat)
   | String_fragment (loc, frag) -> string_fragment env frag
-  | Raw_string str -> G.L (G.String str) |> G.e
+  | Raw_string (* 'foo' *) (str, tok) ->
+      (* normalization to enable matching of e.g. 'foo' against foo *)
+      let without_quotes =
+        let len = String.length str in
+        if len >= 2 && str.[0] = '\'' && str.[len - 1] = '\'' then
+          String.sub str 1 (len - 2)
+        else (* it's a bug but let's not fail *)
+          str
+      in
+      G.L (G.String (without_quotes, tok)) |> G.e
   | Ansii_c_string str -> G.L (G.String str) |> G.e
   | Special_character str -> G.L (G.String str) |> G.e
   | Concatenation (loc, el) -> List.map (expression env) el |> call loc C.concat
@@ -441,11 +476,13 @@ and string_fragment (env : env) (frag : string_fragment) : G.expr =
 *)
 and expansion (env : env) (x : expansion) : G.expr =
   match x with
-  | Simple_expansion (loc, var_name) -> mk_var_expr var_name
+  | Simple_expansion (loc, var_name) -> expand loc (mk_var_expr var_name)
   | Complex_expansion (open_, x, close) -> (
       match x with
-      | Variable (_loc, var) -> mk_var_expr var
+      | Variable (loc, var) -> expand loc (mk_var_expr var)
       | Complex_expansion_TODO loc -> todo_expr loc)
+
+and expand loc (var_expr : G.expr) : G.expr = call loc C.expand [ var_expr ]
 
 (*
    'a && b' and 'a || b' looks like expressions but they're really
