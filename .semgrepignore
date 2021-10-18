@@ -37,3 +37,5 @@ pfff/
 semgrep/tests/e2e/targets/
 semgrep/tests/performance/targets/
 semgrep/tests/e2e/snapshots/
+
+perf/configs
