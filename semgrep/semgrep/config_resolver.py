@@ -33,6 +33,7 @@ from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.metric_manager import metric_manager
 from semgrep.rule import Rule
+from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
@@ -471,6 +472,11 @@ def parse_config_string(
     try:
         data = parse_yaml_preserve_spans(contents, filename)
         return {config_id: data}
+    except EmptyYamlException as se:
+        raise SemgrepError(
+            f"Empty configuration file {filename}",
+            code=UNPARSEABLE_YAML_EXIT_CODE,
+        )
     except YAMLError as se:
         raise SemgrepError(
             f"Invalid YAML file {config_id}:\n{indent(str(se))}",
