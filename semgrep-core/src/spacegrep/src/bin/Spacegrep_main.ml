@@ -77,7 +77,7 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
                       reason = Minified;
                       details =
                         "not a source file: target file appears to be minified";
-                      skipped_rule = None;
+                      rule_id = None;
                     }
                     :: !skipped;
                   None
@@ -88,7 +88,7 @@ let run_all ~case_sensitive ~debug ~force ~warn ~no_skip_search patterns docs :
                       Semgrep_core_response_t.path;
                       reason = Binary;
                       details = "target looks like a binary file";
-                      skipped_rule = None;
+                      rule_id = None;
                     }
                     :: !skipped;
                   None

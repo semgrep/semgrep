@@ -487,7 +487,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout matches =
                       Semgrep_core_response_t.path = file;
                       reason = Too_many_matches;
                       details;
-                      skipped_rule = Some rule_id;
+                      rule_id = Some rule_id;
                     })
            in
            (error, skipped))
