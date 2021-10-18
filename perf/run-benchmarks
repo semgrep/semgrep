@@ -639,27 +639,28 @@ def main() -> None:
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     called_dir = os.getcwd()
 
-    config_file = (Path(called_dir) / args.config) if args.config else None
-    run_benchmarks(
-        docker=args.docker,
-        dummy=args.dummy,
-        small_only=args.small_only,
-        all=args.all,
-        internal=args.internal,
-        gitlab=args.gitlab,
-        std_only=args.std_only,
-        config_file=config_file,
-        filter_corpus=args.filter_corpus,
-        filter_variant=args.filter_variant,
-        hard_timeout=args.hard_timeout,
-        output_time_per_rule_json=args.output_time_per_rule_json,
-        plot_benchmarks=args.plot_benchmarks,
-        upload=args.upload,
-        include_time=not args.no_time,
-        clean=args.clean,
-        summary_file_path=args.save_to,
-        called_dir=called_dir,
-    )
+    with chdir(cur_dir):
+        config_file = (Path(called_dir) / args.config) if args.config else None
+        run_benchmarks(
+            docker=args.docker,
+            dummy=args.dummy,
+            small_only=args.small_only,
+            all=args.all,
+            internal=args.internal,
+            gitlab=args.gitlab,
+            std_only=args.std_only,
+            config_file=config_file,
+            filter_corpus=args.filter_corpus,
+            filter_variant=args.filter_variant,
+            hard_timeout=args.hard_timeout,
+            output_time_per_rule_json=args.output_time_per_rule_json,
+            plot_benchmarks=args.plot_benchmarks,
+            upload=args.upload,
+            include_time=not args.no_time,
+            clean=args.clean,
+            summary_file_path=args.save_to,
+            called_dir=called_dir,
+        )
 
 
 if __name__ == "__main__":
