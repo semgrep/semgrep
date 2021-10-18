@@ -133,17 +133,23 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_id_info v =
     let k x =
       match x with
-      | { id_resolved = v_id_resolved; id_type = v_id_type; id_constness = v3 }
-        ->
+      | {
+       id_resolved = v_id_resolved;
+       id_type = v_id_type;
+       id_constness = v3;
+       id_hidden;
+      } ->
           let v3 = map_of_ref (map_of_option map_constness) v3 in
           let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
           let v_id_resolved =
             map_of_ref (map_of_option map_resolved_name) v_id_resolved
           in
+          let id_hidden = map_of_bool id_hidden in
           {
             id_resolved = v_id_resolved;
             id_type = v_id_type;
             id_constness = v3;
+            id_hidden;
           }
     in
     vin.kidinfo (k, all_functions) v

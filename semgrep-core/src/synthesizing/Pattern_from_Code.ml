@@ -69,8 +69,12 @@ let default_id str =
   G.N
     (Id
        ( (str, fk),
-         { id_resolved = ref None; id_type = ref None; id_constness = ref None }
-       ))
+         {
+           id_resolved = ref None;
+           id_type = ref None;
+           id_constness = ref None;
+           id_hidden = false;
+         } ))
   |> G.e
 
 let default_tyvar str typ = TypedMetavar ((str, fk), fk, typ) |> G.e

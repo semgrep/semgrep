@@ -94,7 +94,12 @@ and vof_name_info
   OCaml.VDict bnds
 
 and vof_id_info
-    { id_resolved = v_id_resolved; id_type = v_id_type; id_constness = v3 } =
+    {
+      id_resolved = v_id_resolved;
+      id_type = v_id_type;
+      id_constness = v3;
+      id_hidden;
+    } =
   let bnds = [] in
   let arg = OCaml.vof_ref (OCaml.vof_option vof_constness) v3 in
   let bnd = ("id_constness", arg) in
@@ -104,6 +109,9 @@ and vof_id_info
   let bnds = bnd :: bnds in
   let arg = OCaml.vof_ref (OCaml.vof_option vof_resolved_name) v_id_resolved in
   let bnd = ("id_resolved", arg) in
+  let bnds = bnd :: bnds in
+  let arg = OCaml.vof_bool id_hidden in
+  let bnd = ("id_hidden", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
