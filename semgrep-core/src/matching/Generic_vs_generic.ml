@@ -742,6 +742,15 @@ and m_expr a b =
           in
           aux mult_assigns
       | _, _ -> fail ())
+  (* bugfix: we also want o. ... .foo() to match o.foo(), but
+   * o. ... would be matched against just 'o', so we need this
+   * extra case.
+   *)
+  | ( G.DotAccess (({ e = G.DotAccessEllipsis (a1_1, _a1_2); _ } as a1), at, a2),
+      B.DotAccess (b1, bt, b2) ) ->
+      let* () = m_expr a1 b1 >||> m_expr a1_1 b1 in
+      let* () = m_tok at bt in
+      m_name_or_dynamic a2 b2
   | G.DotAccess (a1, at, a2), B.DotAccess (b1, bt, b2) ->
       m_expr a1 b1 >>= fun () ->
       m_tok at bt >>= fun () -> m_name_or_dynamic a2 b2
