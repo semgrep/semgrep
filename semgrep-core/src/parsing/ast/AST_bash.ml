@@ -158,7 +158,9 @@ and command =
       * (* do *) tok
       * blist
       * (* done *) tok
-  | For_loop_c_style of loc * for_loop_c_style
+  | For_loop_c_style of
+      (* TODO: represent the loop header: for (( ... )); *)
+      loc * blist
   | Select
       (* same syntax as For_loop *) of
       loc
@@ -188,7 +190,8 @@ and command =
       * (* fi *) tok
   | While_loop of
       loc * (* while *) tok * blist * (* do *) tok * blist * (* done *) tok
-  | Until_loop of loc * until_
+  | Until_loop of
+      loc * (* until *) tok * blist * (* do *) tok * blist * (* done *) tok
   (* Other commands *)
   | Coprocess of loc * string option * (* simple or compound *) command
   | Assignment of loc * assignment
@@ -291,12 +294,6 @@ and bash_test = test_expression bracket
 *)
 and arithmetic_expression = todo bracket
 
-(* TODO: represent the loop header: for ... in ...; *)
-and for_loop = blist
-
-(* TODO: represent the loop header: for (( ... )); *)
-and for_loop_c_style = blist
-
 (* Only the last clause may not have a terminator. *)
 and case_clause =
   loc
@@ -313,12 +310,6 @@ and case_clause_terminator =
 and elif = loc * (* elif *) tok * blist * (* then *) tok * blist
 
 and else_ = loc * (* else *) tok * blist
-
-(* TODO: represent the loop header *)
-and while_ = blist
-
-(* TODO: represent the loop header *)
-and until_ = blist
 
 (* TODO: add support for assigning to an array cell
    TODO: add support for assigning an array literal *)
@@ -494,7 +485,7 @@ let command_loc = function
   | Case (loc, _, _, _, _, _) -> loc
   | If (loc, _, _, _, _, _, _, _) -> loc
   | While_loop (loc, _, _, _, _, _) -> loc
-  | Until_loop (loc, _) -> loc
+  | Until_loop (loc, _, _, _, _, _) -> loc
   | Coprocess (loc, _, _) -> loc
   | Assignment (loc, _) -> loc
   | Declaration (loc, _) -> loc
