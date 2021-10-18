@@ -172,6 +172,3 @@ perf/bench
 !perf/bench/dogfood
 !perf/bench/gitlab
 !perf/bench/dummy
-!perf/bench/njs-juice
-!perf/bench/r2c-rules
-!perf/bench/rules

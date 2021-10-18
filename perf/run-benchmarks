@@ -400,6 +400,11 @@ def run_benchmarks(
     summary_file_path: str,
     called_dir: str,
 ) -> None:
+    def get_corpuses(config_file: Path) -> List[Corpus]:
+        with chdir("bench"):
+            return prepare_benchmark_run(
+                SemgrepBenchmarkConfig.parse_config(config_file.absolute()), clean
+            )
 
     variants = SEMGREP_VARIANTS
     if std_only or output_time_per_rule_json:
@@ -418,7 +423,6 @@ def run_benchmarks(
         output_file=output_time_per_rule_json
     )
 
-    corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
     elif internal:
@@ -427,19 +431,23 @@ def run_benchmarks(
         corpuses = GITLAB_CORPUSES
         variants = GITLAB_VARIANTS
     elif small_only:
-        corpuses = SMALL_CORPUSES
+        corpuses = get_corpuses(SMALL_CORPUSES)
     elif all:
-        corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES + LARGE_CORPUSES
-    elif config_file:
-        corpuses = prepare_benchmark_run(
-            SemgrepBenchmarkConfig.parse_config(config_file.absolute()), clean
+        corpuses = (
+            get_corpuses(SMALL_CORPUSES)
+            + get_corpuses(MEDIUM_CORPUSES)
+            + LARGE_CORPUSES
         )
+    elif config_file:
+        corpuses = get_corpuses(config_file)
+    else:
+        corpuses = get_corpuses(SMALL_CORPUSES) + get_corpuses(MEDIUM_CORPUSES)
     if filter_corpus:
         corpuses = [x for x in corpuses if re.search(filter_corpus, x.name) != None]
 
     # Multithread here. Dedicate one core to each benchmark
     for corpus in corpuses:
-        with chdir(corpus.name):
+        with chdir(f"bench/{corpus.name}"):
             try:
                 corpus.prep()
             except Exception as e:
@@ -628,28 +636,27 @@ def main() -> None:
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     called_dir = os.getcwd()
 
-    with chdir(cur_dir + "/bench"):
-        config_file = (Path(called_dir) / args.config) if args.config else None
-        run_benchmarks(
-            docker=args.docker,
-            dummy=args.dummy,
-            small_only=args.small_only,
-            all=args.all,
-            internal=args.internal,
-            gitlab=args.gitlab,
-            std_only=args.std_only,
-            config_file=config_file,
-            filter_corpus=args.filter_corpus,
-            filter_variant=args.filter_variant,
-            hard_timeout=args.hard_timeout,
-            output_time_per_rule_json=args.output_time_per_rule_json,
-            plot_benchmarks=args.plot_benchmarks,
-            upload=args.upload,
-            include_time=not args.no_time,
-            clean=args.clean,
-            summary_file_path=args.save_to,
-            called_dir=called_dir,
-        )
+    config_file = (Path(called_dir) / args.config) if args.config else None
+    run_benchmarks(
+        docker=args.docker,
+        dummy=args.dummy,
+        small_only=args.small_only,
+        all=args.all,
+        internal=args.internal,
+        gitlab=args.gitlab,
+        std_only=args.std_only,
+        config_file=config_file,
+        filter_corpus=args.filter_corpus,
+        filter_variant=args.filter_variant,
+        hard_timeout=args.hard_timeout,
+        output_time_per_rule_json=args.output_time_per_rule_json,
+        plot_benchmarks=args.plot_benchmarks,
+        upload=args.upload,
+        include_time=not args.no_time,
+        clean=args.clean,
+        summary_file_path=args.save_to,
+        called_dir=called_dir,
+    )
 
 
 if __name__ == "__main__":
