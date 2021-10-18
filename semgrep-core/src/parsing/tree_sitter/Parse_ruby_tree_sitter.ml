@@ -734,7 +734,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
         | Some (v1, v2, v3) ->
             let v1 =
               match v1 with
-              | `Pair x -> pair env x
+              | `Pair x -> pair_for_hash env x
               | `Hash_splat_arg x -> hash_splat_argument env x
             in
             let v2 =
@@ -743,7 +743,7 @@ and primary (env : env) (x : CST.primary) : AST.expr =
                   let _v1 = token2 env v1 in
                   let v2 =
                     match v2 with
-                    | `Pair x -> pair env x
+                    | `Pair x -> pair_for_hash env x
                     | `Hash_splat_arg x -> hash_splat_argument env x
                   in
                   v2)
@@ -1159,7 +1159,7 @@ and call_ (env : env) (x : CST.call_) : AST.expr =
       Call (v1, fb [], Some v2)
 
 and command_argument_list (env : env) ((v1, v2) : CST.command_argument_list) :
-    AST.expr list =
+    AST.argument list =
   let v1 = argument env v1 in
   let v2 =
     List.map
@@ -1172,7 +1172,7 @@ and command_argument_list (env : env) ((v1, v2) : CST.command_argument_list) :
   v1 :: v2
 
 and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
-    AST.expr list AST.bracket =
+    AST.argument list AST.bracket =
   let lp = token2 env v1 in
   let v2 =
     match v2 with
@@ -1183,7 +1183,7 @@ and argument_list (env : env) ((v1, v2, v3) : CST.argument_list) :
   (lp, v2, rp)
 
 and argument_list_with_trailing_comma (env : env)
-    ((v1, v2, v3) : CST.argument_list_with_trailing_comma) : AST.expr list =
+    ((v1, v2, v3) : CST.argument_list_with_trailing_comma) : AST.argument list =
   let v1 = argument env v1 in
   let v2 =
     List.map
@@ -1200,16 +1200,16 @@ and argument_list_with_trailing_comma (env : env)
   in
   v1 :: v2
 
-and argument (env : env) (x : CST.argument) : AST.expr =
+and argument (env : env) (x : CST.argument) : AST.argument =
   match x with
-  | `Exp x -> expression env x
-  | `Splat_arg x -> splat_argument env x
-  | `Hash_splat_arg x -> hash_splat_argument env x
+  | `Exp x -> Arg (expression env x)
+  | `Splat_arg x -> Arg (splat_argument env x)
+  | `Hash_splat_arg x -> Arg (hash_splat_argument env x)
   | `Blk_arg (v1, v2) ->
       let v1 = token2 env v1 in
       let v2 = arg env v2 in
-      Unary ((Op_UAmper, v1), v2)
-  | `Pair x -> pair env x
+      Arg (Unary ((Op_UAmper, v1), v2))
+  | `Pair x -> pair_for_argument env x
 
 and splat_argument (env : env) ((v1, v2) : CST.splat_argument) =
   let v1 = token2 env v1 in
@@ -1637,7 +1637,8 @@ and pair (env : env) (x : CST.pair) =
       let v2 = token2 env v2 in
       (* => *)
       let v3 = arg env v3 in
-      Binop (v1, (Op_ASSOC, v2), v3)
+      (* will be converted to ArgKwd in ruby_to_generic.ml if needed *)
+      Left (Binop (v1, (Op_ASSOC, v2), v3))
   | `Choice_hash_key_symb_imm_tok_COLON_arg (v1, v2, v3) -> (
       let v1 =
         match v1 with
@@ -1650,8 +1651,18 @@ and pair (env : env) (x : CST.pair) =
       (* : *)
       let v3 = arg env v3 in
       match v1 with
-      | Id (x, _) -> AST.keyword_arg_to_expr x v2 v3
-      | _ -> Binop (v1, (Op_ASSOC, v2), v3))
+      | Id (x, _) -> Right (x, v2, v3)
+      | _ -> Left (Binop (v1, (Op_ASSOC, v2), v3)))
+
+and pair_for_hash env x : AST.expr =
+  match pair env x with
+  | Left e -> e
+  | Right (a, b, c) -> AST.keyword_arg_to_expr a b c
+
+and pair_for_argument env x : AST.argument =
+  match pair env x with
+  | Left e -> Arg e
+  | Right (a, b, c) -> ArgKwd (a, b, c)
 
 let program (env : env) ((v1, _v2interpreted) : CST.program) : AST.stmts =
   match v1 with

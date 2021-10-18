@@ -313,6 +313,37 @@ let _m_resolved_name (a1, a2) (b1, b2) =
   let* () = m_resolved_name_kind a1 b1 in
   m_sid a2 b2
 
+(* Supports deep expression matching, either when done explicitly (e.g. with deep ellipsis) or implicitly
+ *
+ * If "go_deeper_expr" is not enabled, reduces to `first_fun a b`.
+ * If "go_deeper_expr" is enabled, will first check `first_fun a b`, then, if that match fails, will
+ * match against all sub-expressions of b.
+ *
+ * See m_expr_deep for an example of usage.
+ *
+ * deep_fun: Matching function to use when matching sub-expressions
+ * first_fun: Matching function to use when matching the whole (top-level) expression
+ * sub_fun: Function to use to extract sub-expressions from b
+ * a: Pattern expression
+ * b: Target node
+ * 't: Type of the target node
+ *)
+let m_deep (deep_fun : G.expr Matching_generic.matcher)
+    (first_fun : G.expr -> 't -> tin -> tout) (sub_fun : 't -> G.expr list)
+    (a : G.expr) (b : 't) =
+  if_config
+    (fun x -> not x.go_deeper_expr)
+    ~then_:(first_fun a b)
+    ~else_:
+      ( first_fun a b >!> fun () ->
+        (* less: could use a fold *)
+        let rec aux xs =
+          match xs with
+          | [] -> fail ()
+          | x :: xs -> deep_fun a x >||> aux xs
+        in
+        b |> sub_fun |> aux )
+
 (* start of recursive need *)
 (* TODO: factorize with metavariable and aliasing logic in m_expr
  * TODO: remove MV.Id and use always MV.N?
@@ -343,32 +374,37 @@ let rec m_name a b =
   | G.Id ((str, tok), _info), G.IdQualified _ when MV.is_metavar_name str ->
       envf (str, tok) (MV.N b)
   (* equivalence: aliasing (name resolving) part 2 (mostly for OCaml) *)
-  | ( G.IdQualified (_a1, _a2),
+  | ( G.IdQualified _a1,
       B.IdQualified
-        ( (idb, nameinfo),
-          {
-            B.id_resolved = { contents = Some (B.ImportedEntity dotted, _sid) };
-            _;
-          } ) ) ->
+        ({
+           name_info =
+             {
+               B.id_resolved =
+                 { contents = Some (B.ImportedEntity dotted, _sid) };
+               _;
+             };
+           _;
+         } as nameinfo) ) ->
       (* try without resolving anything *)
-      m_name a (B.IdQualified ((idb, nameinfo), B.empty_id_info ()))
+      m_name a (B.IdQualified { nameinfo with name_info = B.empty_id_info () })
       >||>
       (* try this time by replacing the qualifier by the resolved one *)
       let new_qualifier =
         match List.rev dotted with
         | [] -> raise Impossible
-        | _x :: xs -> List.rev xs
+        | _x :: xs -> List.rev xs |> List.map (fun id -> (id, None))
       in
       m_name a
         (B.IdQualified
-           ( ( idb,
-               { nameinfo with name_qualifier = Some (B.QDots new_qualifier) }
-             ),
-             B.empty_id_info () ))
+           {
+             nameinfo with
+             name_middle = Some (B.QDots new_qualifier);
+             name_info = B.empty_id_info ();
+           })
   (* semantic! try to handle open in OCaml by querying LSP! The
    * target code is using an unqualified Id possibly because of some open!
    *)
-  | G.IdQualified ((ida, _namea), _infoa), B.Id (idb, _infob)
+  | G.IdQualified { name_last = ida, None; _ }, B.Id (idb, _infob)
     when fst ida = fst idb -> (
       match !Hooks.get_def idb with
       | None -> fail ()
@@ -381,30 +417,33 @@ let rec m_name a b =
           (* m_name a n *)
           return ())
   (* boilerplate *)
-  | G.IdQualified (a1, a2), B.IdQualified (b1, b2) ->
-      m_name_ a1 b1 >>= fun () -> m_id_info a2 b2
+  | G.IdQualified a1, B.IdQualified b1 -> m_name_info a1 b1
   | G.Id _, _
   | G.IdQualified _, _ ->
       fail ()
 
-and m_name_ a b =
-  match (a, b) with
-  | (a1, a2), (b1, b2) -> m_ident a1 b1 >>= fun () -> m_name_info a2 b2
-
 and m_name_info a b =
   match (a, b) with
-  | ( { G.name_qualifier = a1; name_typeargs = a2 },
-      { B.name_qualifier = b1; name_typeargs = b2 } ) ->
-      (m_option m_qualifier) a1 b1 >>= fun () ->
-      (m_option m_type_arguments) a2 b2
+  | ( { G.name_last = a0; name_middle = a1; name_top = a2; name_info = a3 },
+      { B.name_last = b0; name_middle = b1; name_top = b2; name_info = b3 } ) ->
+      let* () = m_ident_and_type_arguments a0 b0 in
+      let* () = (m_option m_qualifier) a1 b1 in
+      let* () = (m_option m_tok) a2 b2 in
+      let* () = m_id_info a3 b3 in
+      return ()
+
+and m_ident_and_type_arguments (a1, a2) (b1, b2) =
+  let* () = m_ident a1 b1 in
+  let* () = m_option m_type_arguments a2 b2 in
+  return ()
 
 and m_qualifier a b =
   match (a, b) with
-  | G.QDots a, B.QDots b -> m_dotted_name a b
-  | G.QTop a, B.QTop b -> m_tok a b
+  | G.QDots a, B.QDots b ->
+      (* TODO? like for m_dotted_name, [$X] should match anything? *)
+      m_list m_ident_and_type_arguments a b
   | G.QExpr (a1, a2), B.QExpr (b1, b2) -> m_expr a1 b1 >>= fun () -> m_tok a2 b2
   | G.QDots _, _
-  | G.QTop _, _
   | G.QExpr _, _ ->
       fail ()
 
@@ -503,24 +542,13 @@ and m_id_info a b =
  *)
 (* experimental! *)
 and m_expr_deep a b =
-  if_config
-    (fun x -> not x.go_deeper_expr)
-    ~then_:(m_expr a b)
-    ~else_:
-      ( m_expr a b >!> fun () ->
-        let subs = SubAST_generic.subexprs_of_expr b in
-        (* less: could use a fold *)
-        let rec aux xs =
-          match xs with
-          | [] -> fail ()
-          | x :: xs -> m_expr_deep a x >||> aux xs
-        in
-        aux subs )
+  m_deep m_expr_deep m_expr SubAST_generic.subexprs_of_expr a b
 
 (* coupling: if you add special sgrep hooks here, you should probably
  * also add them in m_pattern
  *)
 and m_expr a b =
+  Trace_matching.(if on then print_expr_pair a b);
   match (a.G.e, b.G.e) with
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
@@ -558,8 +586,7 @@ and m_expr a b =
       m_expr a (make_dotted dotted)
   (* equivalence: name resolving on qualified ids (for OCaml) *)
   (* Put this before the next case to prevent overly eager dealiasing *)
-  | ( G.N (G.IdQualified (_, _) as na),
-      B.N ((B.IdQualified (_, _) | B.Id _) as nb) ) ->
+  | G.N (G.IdQualified _ as na), B.N ((B.IdQualified _ | B.Id _) as nb) ->
       m_name na nb
   (* Matches pattern
    *   a.b.C.x
@@ -569,9 +596,15 @@ and m_expr a b =
    *)
   | ( G.N
         (G.IdQualified
-          ((alabel, { G.name_qualifier = Some (G.QDots names); _ }), _id_info)),
+          {
+            G.name_last = alabel, None;
+            name_middle = Some (G.QDots names);
+            name_top = None;
+            _;
+          }),
       _b ) ->
-      let full = names @ [ alabel ] in
+      (* TODO: double check names does not have any type_args *)
+      let full = (names |> List.map fst) @ [ alabel ] in
       m_expr (make_dotted full) b
   | G.DotAccess (_, _, _), B.N b1 -> (
       (* Reinterprets a DotAccess expression such as a.b.c as a name, when
@@ -709,6 +742,15 @@ and m_expr a b =
           in
           aux mult_assigns
       | _, _ -> fail ())
+  (* bugfix: we also want o. ... .foo() to match o.foo(), but
+   * o. ... would be matched against just 'o', so we need this
+   * extra case.
+   *)
+  | ( G.DotAccess (({ e = G.DotAccessEllipsis (a1_1, _a1_2); _ } as a1), at, a2),
+      B.DotAccess (b1, bt, b2) ) ->
+      let* () = m_expr a1 b1 >||> m_expr a1_1 b1 in
+      let* () = m_tok at bt in
+      m_name_or_dynamic a2 b2
   | G.DotAccess (a1, at, a2), B.DotAccess (b1, bt, b2) ->
       m_expr a1 b1 >>= fun () ->
       m_tok at bt >>= fun () -> m_name_or_dynamic a2 b2
@@ -848,6 +890,7 @@ and m_for_or_if_comp a b =
       fail ()
 
 and m_literal a b =
+  Trace_matching.(if on then print_literal_pair a b);
   match (a, b) with
   (* dots: metavar: '...' and metavars on string/regexps/atoms *)
   | G.String a, B.String b -> m_string_ellipsis_or_metavar_or_default a b
@@ -928,6 +971,7 @@ and m_action (a : G.action) (b : G.action) =
   | (a1, a2), (b1, b2) -> m_pattern a1 b1 >>= fun () -> m_expr a2 b2
 
 and m_arithmetic_operator a b =
+  Trace_matching.(if on then print_arithmetic_operator_pair a b);
   match (a, b) with
   | _ when a =*= b -> return ()
   | _ -> fail ()
@@ -1071,7 +1115,9 @@ and m_compatible_type typed_mvar t e =
       m_type_option_with_hook idb (Some t) !tb >>= fun () ->
       envf typed_mvar (MV.Id (idb, Some id_infob))
   | ( _ta,
-      ( B.N (B.IdQualified ((idb, _), { B.id_type = tb; _ }))
+      ( B.N
+          (B.IdQualified
+            { name_last = idb, None; name_info = { B.id_type = tb; _ }; _ })
       | B.DotAccess
           ( { e = IdSpecial (This, _); _ },
             _,
@@ -1261,7 +1307,11 @@ and m_arguments_concat a b =
 
 and m_argument a b =
   match (a, b) with
-  (* TODO: iso on keyword argument, keyword is optional in pattern *)
+  (* TODO: iso on keyword argument, keyword is optional in pattern.
+   * TODO: maybe Arg (N (Id "$S")) should be allowed to match
+   * an ArgType or ArgOther (especially for C/C++ where typedef
+   * inference is sometimes wrong when we get an ArgType instead of Arg.
+   *)
 
   (* boilerplate *)
   | G.Arg a1, B.Arg b1 -> m_expr a1 b1
@@ -1479,6 +1529,7 @@ and m_ac_op tok op aargs_ac bargs_ac =
 (* Type *)
 (*****************************************************************************)
 and m_type_ a b =
+  Trace_matching.(if on then print_type_pair a b);
   let* () = m_attributes a.t_attrs b.t_attrs in
   match (a.t, b.t) with
   (* this must be before the next case, to prefer to bind metavars to
@@ -1548,26 +1599,26 @@ and m_type_arguments a b =
 
 and m_type_argument a b =
   match (a, b) with
-  | G.TypeArg a1, B.TypeArg b1 -> m_type_ a1 b1
-  | G.TypeWildcard (a1, a2), B.TypeWildcard (b1, b2) ->
+  | G.TA a1, B.TA b1 -> m_type_ a1 b1
+  | G.TAWildcard (a1, a2), B.TAWildcard (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_option m_wildcard a2 b2
-  | G.TypeLifetime a1, B.TypeLifetime b1 -> m_ident a1 b1
+  | G.TAExpr a1, B.TAExpr b1 -> m_expr a1 b1
   | G.OtherTypeArg (a1, a2), B.OtherTypeArg (b1, b2) ->
-      m_other_type_argument_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.TypeArg _, _
-  | G.TypeWildcard _, _
-  | G.TypeLifetime _, _
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.TA _, _
+  | G.TAWildcard _, _
+  | G.TAExpr _, _
   | G.OtherTypeArg _, _ ->
       fail ()
+
+and m_todo_kind a b = m_ident a b
 
 and m_wildcard (a1, a2) (b1, b2) =
   let* () = m_wrap m_bool a1 b1 in
   m_type_ a2 b2
 
 and m_other_type_operator = m_other_xxx
-
-and m_other_type_argument_operator = m_other_xxx
 
 (*****************************************************************************)
 (* Attribute *)
@@ -1786,6 +1837,7 @@ and m_list__m_stmt_uncached ?(less_is_ok = true) ~list_kind (xsa : G.stmt list)
 (* Statement *)
 (*****************************************************************************)
 and m_stmt a b =
+  Trace_matching.(if on then print_stmt_pair a b);
   match (a.s, b.s) with
   (* the order of the matches matters! take care! *)
   (* equivalence: user-defined equivalence! *)
@@ -1808,6 +1860,10 @@ and m_stmt a b =
       | _ -> fail ())
   (* dots: '...' can to match any statememt *)
   | G.ExprStmt ({ e = G.Ellipsis _i; _ }, _), _b -> return ()
+  (* deep ellipsis as a statement should match any exprs in stmt *)
+  | G.ExprStmt ({ e = G.DeepEllipsis (_, a, _); _ }, _), b ->
+      let no_match _ _ = fail () in
+      m_deep m_expr_deep no_match SubAST_generic.subexprs_of_stmt_kind a b
   | G.Return (a0, a1, asc), B.Return (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_option_ellipsis_ok m_expr a1 b1 in
@@ -1893,7 +1949,10 @@ and m_stmt a b =
       m_tok asc bsc
   | G.Label (a1, a2), B.Label (b1, b2) ->
       m_label a1 b1 >>= fun () -> m_stmt a2 b2
-  | G.Goto (a0, a1), B.Goto (b0, b1) -> m_tok a0 b0 >>= fun () -> m_label a1 b1
+  | G.Goto (a0, a1, asc), B.Goto (b0, b1, bsc) ->
+      let* () = m_tok a0 b0 in
+      let* () = m_label a1 b1 in
+      m_tok asc bsc
   | G.Throw (a0, a1, asc), B.Throw (b0, b1, bsc) ->
       let* () = m_tok a0 b0 in
       let* () = m_expr a1 b1 in
@@ -1959,7 +2018,12 @@ and m_for_header a b =
       m_pattern a1 b1 >>= fun () ->
       m_tok at bt >>= fun () -> m_expr a2 b2
   | G.ForIn (a1, a2), B.ForIn (b1, b2) ->
-      (m_list m_for_var_or_expr) a1 b1 >>= fun () -> m_list m_expr a2 b2
+      (m_list m_for_var_or_expr) a1 b1 >>= fun () ->
+      m_list_with_dots m_expr
+        (function
+          | { e = G.Ellipsis _; _ } -> true
+          | _ -> false)
+        false a2 b2
   | G.ForClassic _, _
   | G.ForEach _, _
   | G.ForIn _, _ ->
@@ -1989,7 +2053,18 @@ and m_catch a b =
   match (a, b) with
   | (at, a1, a2), (bt, b1, b2) ->
       m_tok at bt >>= fun () ->
-      m_pattern a1 b1 >>= fun () -> m_stmt a2 b2
+      m_catch_exn a1 b1 >>= fun () -> m_stmt a2 b2
+
+and m_catch_exn a b =
+  match (a, b) with
+  (* dots: *)
+  | G.CatchPattern (G.PatEllipsis _), _ -> return ()
+  (* boilerplate *)
+  | G.CatchPattern a, CatchPattern b -> m_pattern a b
+  | G.CatchParam a, B.CatchParam b -> m_parameter_classic a b
+  | G.CatchPattern _, _
+  | G.CatchParam _, _ ->
+      fail ()
 
 and m_finally a b =
   match (a, b) with
@@ -2056,8 +2131,6 @@ and m_pattern a b =
       m_pattern a1 b1 >>= fun () -> m_ident_and_id_info (a2, a3) (b2, b3)
   | G.PatTyped (a1, a2), B.PatTyped (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_type_ a2 b2
-  | G.PatVar (a1, a2), B.PatVar (b1, b2) ->
-      m_type_ a1 b1 >>= fun () -> m_option m_ident_and_id_info a2 b2
   | G.PatWhen (a1, a2), B.PatWhen (b1, b2) ->
       m_pattern a1 b1 >>= fun () -> m_expr a2 b2
   | G.OtherPat (a1, a2), B.OtherPat (b1, b2) ->
@@ -2075,8 +2148,7 @@ and m_pattern a b =
   | G.PatAs _, _
   | G.PatTyped _, _
   | G.OtherPat _, _
-  | G.PatType _, _
-  | G.PatVar _, _ ->
+  | G.PatType _, _ ->
       fail ()
 
 and m_field_pattern a b =
@@ -2089,6 +2161,7 @@ and m_other_pattern_operator = m_other_xxx
 (* Definitions *)
 (*****************************************************************************)
 and m_definition a b =
+  Trace_matching.(if on then print_definition_pair a b);
   match (a, b) with
   | (a1, a2), (b1, b2) ->
       (* subtle: if you change the order here, so that we execute m_entity
@@ -2206,6 +2279,7 @@ and m_variance a b =
 and m_function_kind _ _ = return ()
 
 and m_function_definition a b =
+  Trace_matching.(if on then print_function_definition_pair a b);
   match (a, b) with
   | ( { G.fparams = a1; frettype = a2; fbody = a3; fkind = a4 },
       { B.fparams = b1; frettype = b2; fbody = b3; fkind = b4 } ) ->
@@ -2452,7 +2526,7 @@ and m_or_type a b =
 
 and m_other_type_kind_operator = m_other_xxx
 
-and m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
+and _m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
     (* dots: '...', this is very Python Specific I think *)
       (function
@@ -2471,6 +2545,31 @@ and m_list__m_type_any_order (xsa : G.type_ list) (xsb : G.type_ list) =
   (* always implicit ... *)
   m_list_in_any_order ~less_is_ok:true m_type_ xsa xsb
 
+and m_list__m_class_parent (xsa : G.class_parent list)
+    (xsb : G.class_parent list) =
+  (* TODO: m_list_in_any_order ~less_is_ok:true m_class_parent xsa xsb
+   * but regressions for python?
+   *)
+  m_list_with_dots m_class_parent
+    (* dots: '...', this is very Python Specific I think *)
+      (function
+      | ( {
+            G.t =
+              G.OtherType (G.OT_Arg, [ G.Ar (G.Arg { e = G.Ellipsis _i; _ }) ]);
+            _;
+          },
+          None ) ->
+          true
+      | _ -> false)
+    (* less-is-ok: it's ok to not specify all the parents I think *)
+    true (* empty list can not match non-empty list *) xsa xsb
+
+and m_class_parent (a1, a2) (b1, b2) =
+  let* () = m_type_ a1 b1 in
+  (* less: m_option_none_can_match_some? *)
+  let* () = m_option m_arguments a2 b2 in
+  return ()
+
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
 (* ------------------------------------------------------------------------- *)
@@ -2479,6 +2578,7 @@ and m_list__m_type_any_order (xsa : G.type_ list) (xsb : G.type_ list) =
  * but maybe quite different from list of types in inheritance
  *)
 and m_class_definition a b =
+  Trace_matching.(if on then print_class_definition_pair a b);
   match (a, b) with
   | ( {
         G.ckind = a1;
@@ -2497,8 +2597,7 @@ and m_class_definition a b =
         cparams = b6;
       } ) ->
       m_class_kind a1 b1 >>= fun () ->
-      (* TODO: use also m_list_in_any_order? regressions for python? *)
-      m_list__m_type_ a2 b2 >>= fun () ->
+      m_list__m_class_parent a2 b2 >>= fun () ->
       m_list__m_type_any_order a3 b3 >>= fun () ->
       m_list__m_type_any_order a5 b5 >>= fun () ->
       m_parameters a6 b6 >>= fun () -> m_bracket m_fields a4 b4
@@ -2510,18 +2609,12 @@ and m_class_kind_bis a b =
   | G.Class, B.Class
   | G.Interface, B.Interface
   | G.Trait, B.Trait
-  | G.AtInterface, B.AtInterface
-  | G.Object, B.Object
-  | G.EnumClass, B.EnumClass
-  | G.RecordClass, B.RecordClass ->
+  | G.Object, B.Object ->
       return ()
   | G.Class, _
   | G.Interface, _
   | G.Trait, _
-  | G.AtInterface, _
-  | G.Object, _
-  | G.EnumClass, _
-  | G.RecordClass, _ ->
+  | G.Object, _ ->
       fail ()
 
 (* ------------------------------------------------------------------------- *)
@@ -2558,6 +2651,7 @@ and m_macro_definition a b =
 (* Directives (Module import/export, macros) *)
 (*****************************************************************************)
 and m_directive a b =
+  Trace_matching.(if on then print_directive_pair a b);
   let* () =
     m_list_in_any_order ~less_is_ok:true m_attribute a.d_attrs b.d_attrs
   in
@@ -2688,7 +2782,7 @@ and m_any a b =
   | G.Modn a1, B.Modn b1 -> m_module_name a1 b1
   | G.ModDk a1, B.ModDk b1 -> m_module_definition_kind a1 b1
   | G.Tk a1, B.Tk b1 -> m_tok a1 b1
-  | G.TodoK a1, B.TodoK b1 -> m_ident a1 b1
+  | G.TodoK a1, B.TodoK b1 -> m_todo_kind a1 b1
   | G.Di a1, B.Di b1 -> m_dotted_name a1 b1
   | G.En a1, B.En b1 -> m_entity a1 b1
   | G.T a1, B.T b1 -> m_type_ a1 b1
@@ -2697,6 +2791,7 @@ and m_any a b =
   | G.Dir a1, B.Dir b1 -> m_directive a1 b1
   | G.Fld a1, B.Fld b1 -> m_field a1 b1
   | G.Pa a1, B.Pa b1 -> m_parameter a1 b1
+  | G.Ce a1, B.Ce b1 -> m_catch_exn a1 b1
   | G.Ar a1, B.Ar b1 -> m_argument a1 b1
   | G.At a1, B.At b1 -> m_attribute a1 b1
   | G.Dk a1, B.Dk b1 -> m_definition_kind a1 b1
@@ -2715,6 +2810,7 @@ and m_any a b =
   | G.Def _, _
   | G.Dir _, _
   | G.Pa _, _
+  | G.Ce _, _
   | G.Ar _, _
   | G.At _, _
   | G.Dk _, _

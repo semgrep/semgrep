@@ -1,5 +1,7 @@
 val str_of_ident : AST_generic.ident -> string
 
+(* expr conversions *)
+
 exception NotAnExpr
 
 val expr_to_pattern : AST_generic.expr -> AST_generic.pattern
@@ -7,7 +9,14 @@ val expr_to_pattern : AST_generic.expr -> AST_generic.pattern
 (* may raise NotAnExpr *)
 val pattern_to_expr : AST_generic.pattern -> AST_generic.expr
 
+(* may raise NotAnExpr *)
+val argument_to_expr : AST_generic.argument -> AST_generic.expr
+
 val expr_to_type : AST_generic.expr -> AST_generic.type_
+
+val expr_to_class_parent : AST_generic.expr -> AST_generic.class_parent
+
+(* stmt conversions *)
 
 val vardef_to_assign :
   AST_generic.entity * AST_generic.variable_definition -> AST_generic.expr
@@ -19,21 +28,36 @@ val funcdef_to_lambda :
 
 val funcbody_to_stmt : AST_generic.function_body -> AST_generic.stmt
 
-val name_of_entity :
-  AST_generic.entity -> (AST_generic.ident * AST_generic.id_info) option
+(* name building *)
 
 val name_of_id : AST_generic.ident -> AST_generic.name
 
-val name_of_ids :
-  ?name_typeargs:AST_generic.type_arguments option ->
-  AST_generic.dotted_ident ->
+val name_of_ids : AST_generic.dotted_ident -> AST_generic.name
+
+val name_of_ids_with_opt_typeargs :
+  (AST_generic.ident * AST_generic.type_arguments option) list ->
   AST_generic.name
+
+val add_id_opt_type_args_to_name :
+  AST_generic.name ->
+  AST_generic.ident * AST_generic.type_arguments option ->
+  AST_generic.name
+
+val add_type_args_to_name :
+  AST_generic.name -> AST_generic.type_arguments -> AST_generic.name
+
+val add_type_args_opt_to_name :
+  AST_generic.name -> AST_generic.type_arguments option -> AST_generic.name
 
 (* Tries to re-interpreted a DotAccess expression a.b.c as an IdQualified. *)
 val name_of_dot_access : AST_generic.expr -> AST_generic.name option
 
+(* name conversions *)
+
 (* You should avoid this function! *)
 val dotted_ident_of_name : AST_generic.name -> AST_generic.dotted_ident
+
+(* misc *)
 
 val opt_to_label_ident : AST_generic.ident option -> AST_generic.label_ident
 
@@ -53,7 +77,9 @@ val is_associative_operator : AST_generic.operator -> bool
 (** Test whether an operator is suitable for associative-matching.  *)
 
 val ac_matching_nf :
-  AST_generic.operator -> AST_generic.arguments -> AST_generic.expr list option
+  AST_generic.operator ->
+  AST_generic.argument list ->
+  AST_generic.expr list option
 (** [ac_matching_nf op args] converts the operands [args] of an
  * AC-operator [op] to a normal form (NF) better suited for AC-matching.
  * Essentially, we flatten out all [op]-operations. Note that this is not
@@ -77,6 +103,8 @@ val undo_ac_matching_nf :
  * E.g.
  *    undo_ac_matching_nf tok And [a; b; c] = Call(Op And, [Call(Op And, [a; b]); c])
  *)
+
+(* AST_generic_ conversions *)
 
 val conv_op : AST_generic_.operator -> AST_generic.operator
 

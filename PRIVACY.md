@@ -2,10 +2,10 @@
 
 Semgrep may collect aggregate metrics to help improve the product. This document describes:
 
-* the principles that guide our data-collection decisions
-* how to opt-in to Semgrep’s metrics
-* the breakdown of the data that are and are not collected
-* how we use the data to make Semgrep better
+* [the principles that guide our data-collection decisions](#principles)
+* [how to change when Semgrep sends metrics](#automatic-collection-opt-in-and-opt-out)
+* [what data is not collected](#data-not-collected)
+* [what data is collected](#data-collected)
 
 ## Principles
 
@@ -15,13 +15,42 @@ These principles inform our decisions around data collection:
 2. **User control**: Put users in control of their data at all times
 3. **Limited data**: Collect what is needed, pseduoanonymize where possible, and delete when no longer necessary
 
-## Opt-in behavior
+## Automatic collection, opt-in, and opt-out
 
-Semgrep’s opt-in aggregate metrics are only sent when the environment variable `SEMGREP_SEND_METRICS` is set or when the flag `--enable-metrics` is set. If this environment variable is not set or if the flag is not set, the aggregate metrics are not sent anywhere.
+```sh
+$ semgrep --config=myrule.yaml  # → no metrics (loading rules from local file)
+$ semgrep --config=p/python     # → metrics enabled (fetching Registry)
+```
 
-Note that certain Semgrep integrators set this environment variable by default. For example, both the [Semgrep CI agent](https://github.com/returntocorp/semgrep-action) and [GitLab's Semgrep SAST analyzer](https://gitlab.com/gitlab-org/security-products/analyzers/semgrep) enable aggregate-metrics collection by default.
+Semgrep does **not** enable metrics when running with only local configuration files or command-line search patterns.
 
-## Collected data
+Semgrep does enable metrics if rules are loaded from the [Semgrep Registry](https://semgrep.dev/r). This helps 
+maintainers improve the correctness and performance of registry rules.
+
+Metrics may also be configured to be sent on every run, or never sent.
+
+To configure metrics, pass the `--metrics` option to Semgrep:
+- `--metrics auto`: (default) metrics are sent whenever rules are pulled from the [Semgrep Registry](https://semgrep.dev/r)
+- `--metrics on`: metrics are sent on every Semgrep run
+- `--metrics off`: metrics are never sent
+
+Instead of the `--metrics` option, collection can also be controlled by setting the `SEMGREP_SEND_METRICS`
+environment variable to any of `auto`, `on`, or `off`.
+
+Note that certain Semgrep integrators turn on metrics for every run. For example, both the [Semgrep CI agent](https://github.com/returntocorp/semgrep-action) and [GitLab's Semgrep SAST analyzer](https://gitlab.com/gitlab-org/security-products/analyzers/semgrep) use `--metrics on` by default.
+
+## Data NOT collected
+
+We strive to balance our desire to collect data for improving Semgrep with our users' need for privacy and security. After all, we are a security tool! The following never leave your environment and are not sent or shared with anyone.
+
+
+* Source code
+* Filenames, file contents, or commit hashes
+* User-identifiable data about Semgrep’s findings in your code, including finding messages
+* Private rules
+
+
+## Data collected
 
 Semgrep collects data to improve the user experience. Four types of data are collected:
 
@@ -60,15 +89,6 @@ Semgrep reports data that indicate how useful a run is for the end user; e.g.
 * Number of ignored findings
 * Pseudoanonymized hashes of the rule definitions that yield findings
 
-### Data NOT collected
-
-We strive to balance our desire to collect data for improving Semgrep with our users' need for privacy. The following items don't leave your environment and are not sent or shared with anyone.
-
-* Source code
-* Raw repository names, filenames, file contents, or commit hashes
-* User-identifiable data about Semgrep’s findings in your code, including finding messages
-* Private rules
-
 ### Pseudoanonymization
 
 Certain identifying data (e.g. project URLs) are pseudoanonymized before being sent to the r2c backend.
@@ -87,7 +107,7 @@ r2c will:
   * Encryption during transit and rest
   * Strict access control to data-storage systems
   * Application-security-policy requirements for third parties (e.g. cloud-service providers; see "data sharing" below)
-* Only correlate hashed data to input data when these inputs are publicly known (e.g. publicly available project URLs for open-source projects)
+* Only correlate hashed data to input data when these inputs are already known to r2c (e.g. publicly available project URLs for open-source projects, or projects that log in to the Semgrep Registry)
 
 
 ## Description of fields
@@ -97,6 +117,7 @@ r2c will:
 |Environment    |   |   |   |   |   |
 |   |Timestamp  |Time when the event fired                              |Understanding tool usage over time                     |2021-05-10T21:05:06+00:00  |String |
 |   |Version    |Semgrep version being used                             |Reproduce and debug issues with specific versions      |0.51.0 |String |
+|   |Project URL | Project URL **(sent only if config=auto)**            | Fetch pre-configured rules for the org or project by name      |`git@github.com:returntocorp/semgrep.git`|String |
 |   |Project hash |One-way hash of the project URL                      |Understand performance and accuracy improvements      |`c65437265631ab2566802d4d90797b27fbe0f608dceeb9451b979d1671c4bc1a`|String |
 |   |Rules hash |One-way hash of the rule definitions                   |Understand performance improvements                    |`b03e452f389e5a86e56426c735afef13686b3e396499fc3c42561f36f6281c43`|String |
 |   |Config hash|One-way hash of the config argument                    |Understand performance and accuracy improvements       |`ede96c41b57de3e857090fb3c486e69ad8efae3267bac4ac5fbc19dde7161094`|String |
@@ -118,6 +139,7 @@ r2c will:
 |   |Warnings   |Array of Warning Classes (compile-time-constant)   |Understand most common warnings users encounter    |`["TimeoutExceeded"]`    |WarningClass[] |
 |   |   |   |   |   |   |
 |Value  |   |   |   |   |   |
+|   |Rule hashes with findings|Map of rule hashes to number of findings|Understand which rules are providing value to the user; diagnose high false-positive rates |`{"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4}` |Object   |
 |   |Total Findings |Count of all findings  |Understand if rules are super noisy for the user   |7  |Number |
 |   |Total Nosems   |Count of all `nosem` annotations that tell semgrep to ignore a finding |Understand if rules are super noisy for the user   |3  |Number |
 
@@ -161,13 +183,18 @@ This is a sample blob of the aggregate metrics described above:
         "warnings": ["MaxFileSizeExceeded", "TimeoutExceeded"]
     },
     "value": {
+        "ruleHashesWithFindings": {"7c43c962dfdbc52882f80021e4d0ef2396e6a950867e81e5f61e68390ee9e166": 4},
         "numFindings": 7,
         "numIgnored": 3
     }
 }
 ```
 
+## Registry fetches
 
+Certain Registry resources require log-in to the Semgrep Registry. Log in may be performed
+using your project URL, or a Semgrep.dev API token. When using these resources, your project's
+identity will be recorded by the Semgrep Registry servers.
 
 ## Data sharing
 

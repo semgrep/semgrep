@@ -72,11 +72,7 @@ let option_to_varmap = function
 (* Tainted *)
 (*****************************************************************************)
 
-let sanitized_instr config instr =
-  match instr.i with
-  | Call (_, { e = Fetch { base = Var (("sanitize", _), _); _ }; _ }, []) ->
-      true
-  | ___else___ -> config.is_sanitizer (G.E instr.iorig)
+let sanitized_instr config instr = config.is_sanitizer (G.E instr.iorig)
 
 (* Test whether an expression is tainted, and if it is also a sink,
  * report the finding too (by side effect).
@@ -129,7 +125,10 @@ let rec check_tainted_expr ~in_a_sink config fun_env env exp =
   let is_sanitized = config.is_sanitizer (G.E exp.eorig) in
   (not is_sanitized)
   &&
-  let is_tainted = config.is_source (G.E exp.eorig) || check_subexpr exp.e in
+  let is_tainted =
+    (* Must always check sub-expressions because they may be sinks! *)
+    check_subexpr exp.e || config.is_source (G.E exp.eorig)
+  in
   if is_tainted && is_sink && not in_a_sink then
     config.found_tainted_sink (G.E exp.eorig) env;
   is_tainted
@@ -142,16 +141,21 @@ let check_tainted_instr config fun_env env instr =
   let tainted_args = function
     | Assign (_, e) -> check_expr e
     | AssignAnon _ -> false (* TODO *)
-    | Call (_, { e = Fetch { base = Var (("source", _), _); _ }; _ }, []) ->
-        true
-    | Call (_, e, args) -> check_expr e || List.exists check_expr args
+    | Call (_, e, args) ->
+        let e_tainted = check_expr e in
+        (* Must always check arguments because they may be sinks! *)
+        let args_tainted = List.exists check_expr args in
+        e_tainted || args_tainted
     | CallSpecial (_, _, args) -> List.exists check_expr args
     | FixmeInstr _ -> false
   in
   let is_sanitized = sanitized_instr config instr in
   (not is_sanitized)
   &&
-  let is_tainted = config.is_source (G.E instr.iorig) || tainted_args instr.i in
+  let is_tainted =
+    (* Must always check arguments because they may be sinks! *)
+    tainted_args instr.i || config.is_source (G.E instr.iorig)
+  in
   if is_tainted && is_sink then config.found_tainted_sink (G.E instr.iorig) env;
   is_tainted
 

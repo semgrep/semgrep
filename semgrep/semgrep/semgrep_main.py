@@ -1,5 +1,4 @@
 import json
-import subprocess
 import time
 from io import StringIO
 from pathlib import Path
@@ -14,20 +13,21 @@ from semgrep.autofix import apply_fixes
 from semgrep.config_resolver import get_config
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
+from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.ignores import process_ignores
 from semgrep.metric_manager import metric_manager
+from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
 from semgrep.profile_manager import ProfileManager
+from semgrep.project import get_project_url
 from semgrep.rule import Rule
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.target_manager import TargetManager
-from semgrep.util import manually_search_file
 from semgrep.util import partition
-from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
 
 
@@ -53,7 +53,7 @@ def notify_user_of_work(
         logger.info(f"excluding files:")
         for exc in exclude:
             logger.info(f"- {exc}")
-    logger.info(f"running {len(filtered_rules)} rules...")
+    logger.info(f"Running {len(filtered_rules)} rules...")
     logger.verbose("rules:")
     for rule in filtered_rules:
         logger.verbose(f"- {rule.id}")
@@ -124,12 +124,17 @@ def main(
     if exclude is None:
         exclude = []
 
-    configs_obj, errors = get_config(pattern, lang, configs, replacement)
+    project_url = get_project_url()
+    configs_obj, errors = get_config(
+        pattern, lang, configs, replacement=replacement, project_url=project_url
+    )
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
 
     if not severity:
+        shown_severities = DEFAULT_SHOWN_SEVERITIES
         filtered_rules = all_rules
     else:
+        shown_severities = {RuleSeverity(s) for s in severity}
         filtered_rules = [rule for rule in all_rules if rule.severity.value in severity]
 
     output_handler.handle_semgrep_errors(errors)
@@ -160,11 +165,7 @@ def main(
                 )
             else:
                 raise SemgrepError(
-                    """You need to specify a config with --config=<semgrep.dev config name|localfile|localdirectory|url>.
-If you're looking for a config to start with, there are thousands at: https://semgrep.dev
-The two most popular are:
-    --config=p/ci # find logic bugs, and high-confidence security vulnerabilities; recommended for CI
-    --config=p/security-audit # find security audit points; noisy, not recommended for CI
+                    """No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config
 """,
                     code=MISSING_CONFIG_EXIT_CODE,
                 )
@@ -231,22 +232,7 @@ The two most popular are:
     num_findings = sum(len(v) for v in filtered_matches.matches.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
-    if metric_manager.is_enabled:
-        project_url = None
-        try:
-            project_url = sub_check_output(
-                ["git", "ls-remote", "--get-url"],
-                encoding="utf-8",
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception as e:
-            logger.debug(f"Failed to get project url from 'git ls-remote': {e}")
-            try:
-                # add \n to match urls from git ls-remote (backwards compatability)
-                project_url = manually_search_file(".git/config", ".com", "\n")
-            except Exception as e:
-                logger.debug(f"Failed to get project url from .git/config: {e}")
-
+    if metric_manager.is_enabled():
         metric_manager.set_project_hash(project_url)
         metric_manager.set_configs_hash(configs)
         metric_manager.set_rules_hash(filtered_rules)
@@ -258,18 +244,20 @@ The two most popular are:
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
         metric_manager.set_total_bytes_scanned(total_bytes_scanned)
         metric_manager.set_errors(list(type(e).__name__ for e in semgrep_errors))
+        metric_manager.set_rules_with_findings(filtered_matches.matches)
         metric_manager.set_run_timings(
             profiling_data, list(all_targets), filtered_rules
         )
 
     output_handler.handle_semgrep_core_output(
         filtered_matches.matches,
-        debug_steps_by_rule,
-        stats_line,
-        all_targets,
-        profiler,
-        filtered_rules,
-        profiling_data,
+        debug_steps_by_rule=debug_steps_by_rule,
+        stats_line=stats_line,
+        all_targets=all_targets,
+        profiler=profiler,
+        filtered_rules=filtered_rules,
+        profiling_data=profiling_data,
+        severities=shown_severities,
     )
 
     if autofix:

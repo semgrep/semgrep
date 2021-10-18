@@ -130,8 +130,9 @@ let lval_of_id_info _env id id_info =
   let var = var_of_id_info id id_info in
   { base = Var var; offset = NoOffset; constness = id_info.id_constness }
 
-let lval_of_id_qualified env name id_info =
-  let id, _ = name in
+(* TODO: use also qualifiers? *)
+let lval_of_id_qualified env
+    { G.name_last = id, _typeargsTODO; name_info = id_info; _ } =
   lval_of_id_info env id id_info
 
 let lval_of_base base = { base; offset = NoOffset; constness = ref None }
@@ -181,8 +182,16 @@ let add_stmts env xs = xs |> List.iter (add_stmt env)
 
 let bracket_keep f (t1, x, t2) = (t1, f x, t2)
 
+let ident_of_entity_opt ent =
+  match ent.G.name with
+  | G.EN (G.Id (i, pinfo)) -> Some (i, pinfo)
+  (* TODO: use name_middle? name_top? *)
+  | G.EN (G.IdQualified { name_last = i, _topt; name_info = pinfo; _ }) ->
+      Some (i, pinfo)
+  | G.EDynamic _ -> None
+
 let name_of_entity ent =
-  match AST_generic_helpers.name_of_entity ent with
+  match ident_of_entity_opt ent with
   | Some (i, pinfo) ->
       let name = var_of_id_info i pinfo in
       Some name
@@ -227,8 +236,8 @@ and name env = function
   | G.Id (id, id_info) ->
       let lval = lval_of_id_info env id id_info in
       lval
-  | G.IdQualified (name, id_info) ->
-      let lval = lval_of_id_qualified env name id_info in
+  | G.IdQualified qualified_info ->
+      let lval = lval_of_id_qualified env qualified_info in
       lval
 
 and nested_lval env tok eorig =
@@ -255,8 +264,7 @@ and pattern env pat eorig =
   | G.PatUnderscore tok ->
       let lval = fresh_lval env tok in
       (lval, [])
-  | G.PatId (id, id_info)
-  | G.PatVar (_, Some (id, id_info)) ->
+  | G.PatId (id, id_info) ->
       let lval = lval_of_id_info env id id_info in
       (lval, [])
   | G.PatTuple (tok1, pats, tok2) ->
@@ -279,6 +287,14 @@ and pattern env pat eorig =
       in
       (tmp_lval, ss)
   | _ -> todo (G.P pat)
+
+and _catch_exn env exn eorig =
+  match exn with
+  | G.CatchPattern pat -> pattern env pat eorig
+  | G.CatchParam { pname = Some id; pinfo = id_info; _ } ->
+      let lval = lval_of_id_info env id id_info in
+      (lval, [])
+  | _ -> todo (G.Ce exn)
 
 and pattern_assign_statements env exp eorig pat =
   try
@@ -719,6 +735,11 @@ let parameters _env params =
 (* Statement *)
 (*****************************************************************************)
 
+(* TODO: What other languages have no fallthrough? *)
+let no_switch_fallthrough : Lang.t -> bool = function
+  | Go -> true
+  | _ -> false
+
 let mk_break_continue_labels env tok =
   let cont_label = fresh_label env tok in
   let break_label = fresh_label env tok in
@@ -732,6 +753,13 @@ let mk_break_continue_labels env tok =
   let cont_label_s = [ mk_s (Label cont_label) ] in
   let break_label_s = [ mk_s (Label break_label) ] in
   (cont_label_s, break_label_s, st_env)
+
+let mk_switch_break_label env tok =
+  let break_label = fresh_label env tok in
+  let switch_env =
+    { env with break_labels = break_label :: env.break_labels }
+  in
+  (break_label, [ mk_s (Label break_label) ], switch_env)
 
 let rec stmt_aux env st =
   match st.G.s with
@@ -753,7 +781,22 @@ let rec stmt_aux env st =
         List.map (stmt env) (st2 |> Common.opt_to_list) |> List.flatten
       in
       ss @ [ mk_s (If (tok, e', st1, st2)) ]
-  | G.Switch (_, _, _) -> todo (G.S st)
+  | G.Switch (tok, switch_expr_opt, cases_and_bodies) ->
+      let ss, translate_cases =
+        match switch_expr_opt with
+        | Some switch_expr ->
+            let ss, switch_expr' = expr_with_pre_stmts env switch_expr in
+            (ss, switch_expr_and_cases_to_exp env tok switch_expr switch_expr')
+        | None -> ([], cases_to_exp env tok)
+      in
+      let break_label, break_label_s, switch_env =
+        mk_switch_break_label env tok
+      in
+      let jumps, bodies =
+        cases_and_bodies_to_stmts switch_env tok break_label translate_cases
+          cases_and_bodies
+      in
+      ss @ jumps @ bodies @ break_label_s
   | G.While (tok, e, st) ->
       let cont_label_s, break_label_s, st_env =
         mk_break_continue_labels env tok
@@ -872,7 +915,7 @@ let rec stmt_aux env st =
       let lbl = label_of_label env lbl in
       let st = stmt env st in
       [ mk_s (Label lbl) ] @ st
-  | G.Goto (tok, lbl) ->
+  | G.Goto (tok, lbl, _sc) ->
       let lbl = lookup_label env lbl in
       [ mk_s (Goto (tok, lbl)) ]
   | G.Return (tok, eopt, _) ->
@@ -890,14 +933,25 @@ let rec stmt_aux env st =
   | G.Throw (tok, e, _) ->
       let ss, e = expr_with_pre_stmts env e in
       ss @ [ mk_s (Throw (tok, e)) ]
+  | G.OtherStmt (G.OS_ThrowNothing, [ G.Tk tok ]) ->
+      (* Python's `raise` without arguments *)
+      let fake_eorig = G.e (G.L (G.Unit tok)) in
+      let todo_exp = fixme_exp ToDo (G.Tk tok) fake_eorig in
+      [ mk_s (Throw (tok, todo_exp)) ]
+  | G.OtherStmt
+      (G.OS_ThrowFrom, [ G.E from; G.S ({ s = G.Throw _; _ } as throw_stmt) ])
+    ->
+      (* Python's `raise E1 from E2` *)
+      let todo_stmt = fixme_stmt ToDo (G.E from) in
+      todo_stmt @ stmt_aux env throw_stmt
   | G.Try (_tok, try_st, catches, opt_finally) ->
       let try_stmt = stmt env try_st in
       let catches_stmt_rev =
         List.fold_left
-          (fun acc (ctok, pattern, catch_st) ->
-            (* TODO: Handle pattern properly. *)
+          (fun acc (ctok, exn, catch_st) ->
+            (* TODO: Handle exn properly. *)
             let name = fresh_var env ctok in
-            let todo_pattern = fixme_stmt ToDo (G.P pattern) in
+            let todo_pattern = fixme_stmt ToDo (G.Ce exn) in
             let catch_stmt = stmt env catch_st in
             (name, todo_pattern @ catch_stmt) :: acc)
           [] catches
@@ -927,6 +981,94 @@ let rec stmt_aux env st =
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
       todo (G.S st)
+
+(* TODO: Maybe this and the following function could be merged *)
+and switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases =
+  (* If there is a scrutinee, the cases are expressions we need to check for equality with the scrutinee  *)
+  let ss, es =
+    List.fold_left
+      (fun (ss, es) -> function
+        | G.Case (tok, G.PatLiteral l) ->
+            ( ss,
+              {
+                e =
+                  Operator
+                    ( (G.Eq, tok),
+                      [
+                        { e = Literal l; eorig = switch_expr_orig }; switch_expr;
+                      ] );
+                eorig = switch_expr_orig;
+              }
+              :: es )
+        | G.Case (tok, G.OtherPat (_, [ E c ]))
+        | G.CaseEqualExpr (tok, c) ->
+            let c_ss, c' = expr_with_pre_stmts env c in
+            ( ss @ c_ss,
+              { e = Operator ((G.Eq, tok), [ c'; switch_expr ]); eorig = c }
+              :: es )
+        | G.Default tok ->
+            (* Default should only ever be the final case, and cannot be part of a list of
+               `Or`ed together cases. It's handled specially in cases_and_bodies_to_stmts
+            *)
+            impossible (G.Tk tok)
+        | G.Case (tok, _) ->
+            (ss, fixme_exp ToDo (G.Tk tok) switch_expr_orig :: es))
+      ([], []) cases
+  in
+  (ss, { e = Operator ((Or, tok), es); eorig = switch_expr_orig })
+
+and cases_to_exp env tok cases =
+  (* If we have no scrutinee, the cases are boolean expressions, so we Or them together *)
+  let ss, es =
+    List.fold_left
+      (fun (ss, es) -> function
+        | G.Case (_, G.PatLiteral l) ->
+            ( ss,
+              (* TODO: seems bad to make an artificial eorig, but seems to be nothing to use  *)
+              { e = Literal l; eorig = G.e (G.L l) } :: es )
+        | G.Case (_, G.OtherPat (_, [ E c ]))
+        | G.CaseEqualExpr (_, c) ->
+            let c_ss, c' = expr_with_pre_stmts env c in
+            (ss @ c_ss, c' :: es)
+        | G.Default tok ->
+            (* Default should only ever be the final case, and cannot be part of a list of
+               `Or`ed together cases. It's handled specially in cases_and_bodies_to_stmts
+            *)
+            impossible (G.Tk tok)
+        | G.Case (tok, _) ->
+            (* TODO: what eorig to use for the fixme_exp? *)
+            ( ss,
+              fixme_exp ToDo (G.Tk tok) (G.e (G.L (G.Unit (G.fake "case"))))
+              :: es ))
+      ([], []) cases
+  in
+  (* TODO: even more artificial eorig, once again nothing to use *)
+  ( ss,
+    { e = Operator ((Or, tok), es); eorig = G.e (G.L (G.Unit (G.fake "case"))) }
+  )
+
+and cases_and_bodies_to_stmts env tok break_label translate_cases = function
+  | [] -> ([ mk_s (Goto (tok, break_label)) ], [])
+  | G.CaseEllipsis tok :: _ -> sgrep_construct (G.Tk tok)
+  | [ G.CasesAndBody ([ G.Default dtok ], body) ] ->
+      let label = fresh_label env tok in
+      ([ mk_s (Goto (dtok, label)) ], mk_s (Label label) :: stmt env body)
+  | G.CasesAndBody (cases, body) :: xs ->
+      let jumps, bodies =
+        cases_and_bodies_to_stmts env tok break_label translate_cases xs
+      in
+      let label = fresh_label env tok in
+      let case_ss, case = translate_cases cases in
+      let jump =
+        mk_s (IL.If (tok, case, [ mk_s (Goto (tok, label)) ], jumps))
+      in
+      let body = mk_s (Label label) :: stmt env body in
+      let break_if_no_fallthrough =
+        if no_switch_fallthrough env.lang then
+          [ mk_s (Goto (tok, break_label)) ]
+        else []
+      in
+      (case_ss @ [ jump ], body @ break_if_no_fallthrough @ bodies)
 
 and stmt env st =
   try stmt_aux env st

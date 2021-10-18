@@ -762,3 +762,11 @@ def test_explicit_path(tmp_path, monkeypatch):
         ).get_files(python_language, [], []),
         {foo_a},
     )
+
+    # Should respect includes/excludes passed to get_files even if target explicitly passed
+    assert cmp_path_sets(
+        TargetManager(
+            [], [], 0, ["foo/a.py", "foo/b.py"], False, defaulthandler, False
+        ).get_files(python_language, ["a.py"], []),
+        {foo_a},
+    )

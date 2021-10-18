@@ -27,6 +27,7 @@ let short_string_of_node_kind nkind =
   | NGoto (_, n) -> "goto " ^ str_of_name n
   | NReturn _ -> "return ...;"
   | NThrow _ -> "throw ...;"
+  | NOther Noop -> "<noop>"
   | NOther _ -> "<other>"
   | NInstr x -> (
       match x.i with

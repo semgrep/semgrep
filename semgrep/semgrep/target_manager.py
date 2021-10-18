@@ -30,20 +30,32 @@ logger = getLogger(__name__)
 
 
 @contextlib.contextmanager
-def optional_stdin_target(target: Sequence[str]) -> Iterator[Sequence[str]]:
+def converted_pipe_targets(targets: Sequence[str]) -> Iterator[Sequence[str]]:
     """
-    Read target input from stdin if "-" is specified
+    Provides a context in which FIFOs have been copied into temp files
+
+    This is necessary as we can not easily rewire these pipes into the called semgrep-core
+    process.
+
+    :param targets: Input target specifiers
+    :return: A sequence of non-pipe specifiers (Path(t).is_file() returns true)
     """
-    if target == ["-"]:
-        try:
-            with tempfile.NamedTemporaryFile(delete=False) as fd:
-                fd.write(sys.stdin.buffer.read())
-                fname = fd.name
-            yield [fname]
-        finally:
-            os.remove(fname)
-    else:
-        yield target
+
+    out_targets = []
+    with tempfile.TemporaryDirectory() as temp_dir:
+        for t in targets:
+            if t == "-":
+                with (Path(temp_dir) / "stdin").open("wb") as fd:
+                    fd.write(sys.stdin.buffer.read())
+                out_targets.append(fd.name)
+            elif Path(t).is_fifo():
+                with (Path(temp_dir) / t[1:].replace("/", "_")).open("wb") as fd:
+                    with Path(t).open("rb") as td:
+                        fd.write(td.read())
+                out_targets.append(fd.name)
+            else:
+                out_targets.append(t)
+        yield out_targets
 
 
 @attr.s(auto_attribs=True)
@@ -248,7 +260,9 @@ class TargetManager:
         )
 
     @staticmethod
-    def filter_excludes(arr: FrozenSet[Path], excludes: List[str]) -> FrozenSet[Path]:
+    def filter_excludes(
+        arr: FrozenSet[Path], excludes: Sequence[str]
+    ) -> FrozenSet[Path]:
         """
         Returns all elements in arr that do not match any excludes pattern
 
@@ -330,7 +344,7 @@ class TargetManager:
         return self._filtered_targets[lang]
 
     def get_files(
-        self, lang: Language, includes: List[str], excludes: List[str]
+        self, lang: Language, includes: Sequence[str], excludes: Sequence[str]
     ) -> FrozenSet[Path]:
         """
         Returns list of files that should be analyzed for a LANG

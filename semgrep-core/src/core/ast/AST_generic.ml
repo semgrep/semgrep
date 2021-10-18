@@ -17,7 +17,7 @@
 (* Prelude *)
 (*****************************************************************************)
 (* A generic AST, to factorize similar "analysis" in different programming
- * languages (e.g., naming, semantic code highlighting, semgrep).
+ * languages (e.g., naming, semantic code highlighting, semgrep!).
  *
  * Right now this generic AST is mostly the factorized union of:
  *  - Python, Ruby, Lua
@@ -78,7 +78,7 @@
  * TODO? it may be time to rename this file CST_generic.ml
  *
  * todo:
- *  - add C++ (argh)
+ *  - add C++ (argh) and improve things for Kotlin/Scala/Rust
  *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep?
  *
  * related work:
@@ -182,7 +182,7 @@ type 'a bracket = tok * 'a * tok [@@deriving show, eq, hash]
  *)
 type sc = tok [@@deriving show, eq, hash]
 
-(* an AST element not yet handled; works with the Xx_Todo and Todo in any *)
+(* an AST element not yet handled *)
 type todo_kind = string wrap [@@deriving show, eq, hash]
 
 (*****************************************************************************)
@@ -283,28 +283,29 @@ and resolved_name_kind =
  * analysis to disambiguate. In the meantime, you can use
  * AST_generic_helpers.name_of_dot_access to convert a DotAccess of idents
  * into an IdQualified name.
- *
- * less: factorize the id_info in both and inline maybe name_info
  *)
-type name =
-  | Id of ident * id_info
-  | IdQualified of (ident * name_info) * id_info
+type name = Id of ident * id_info | IdQualified of qualified_info
 
-and name_info = {
-  name_qualifier : qualifier option;
-  name_typeargs : type_arguments option; (* Java/Rust *)
+(* A qualified (via type arguments or module/namespace/package) id.
+ * The type should be enough to represent Java/Rust/C++ generics.
+ * less: it is still not enough to represent OCaml functors applications.
+ *
+ * invariant: you can't have name_top = None, name_middle = QNone, and
+ * name_last = (id * None) at the same time. If that's the case, then we
+ * build an Id, not an Idqualified
+ *)
+and qualified_info = {
+  name_last : ident * type_arguments option;
+  name_middle : qualifier option;
+  (* ::, Ruby, C++, also '`' abuse for PolyVariant in OCaml *)
+  name_top : tok option;
+  name_info : id_info;
 }
 
-(* TODO: not enough in OCaml with functor and type args or C++ templates.
- * We will need to merge name_typeargs and name_qualifier and have a
- * qualifier list instead (with QId and QTemplateId like in ast_cpp.ml)
- *)
 and qualifier =
-  (* ::, Ruby, C++, also '`' abuse for PolyVariant in OCaml *)
-  | QTop of tok
-  (* Java, OCaml *)
-  | QDots of dotted_ident
-  (* Ruby *)
+  (* Java/C++/Rust *)
+  | QDots of (ident * type_arguments option) list
+  (* Ruby/Lua *)
   | QExpr of expr * tok
 
 (* This is used to represent field names, where sometimes the name
@@ -395,7 +396,7 @@ and expr_kind =
   | N of name
   | IdSpecial of special wrap (*e: [[AST_generic.expr]] other identifier cases *)
   (* operators and function application *)
-  | Call of expr * arguments bracket (* can be fake '()' for OCaml/Ruby *)
+  | Call of expr * arguments
   (* TODO? Separate regular Calls from OpCalls where no need bracket and Arg *)
   (* (XHP, JSX, TSX), could be transpiled also (done in IL.ml?) *)
   | Xml of xml
@@ -420,6 +421,7 @@ and expr_kind =
   (* can be used for Record, Class, or Module access depending on expr.
    * In the last case it should be rewritten as a (N IdQualified) with a
    * qualifier though.
+   * TODO? have a dot_operator to differentiate ., .?, and :: in Kotlin?
    *)
   | DotAccess of expr * tok (* ., ::, ->, # *) * name_or_dynamic
   (* in Js ArrayAccess is also abused to perform DotAccess (..., FDynamic) *)
@@ -717,7 +719,8 @@ and xml_body =
   | XmlExpr of expr option bracket
   | XmlXml of xml
 
-and arguments = argument list
+(* brackets can be fake '()' for OCaml/Ruby *)
+and arguments = argument list bracket
 
 and argument =
   (* regular argument *)
@@ -726,13 +729,8 @@ and argument =
   | ArgKwd of ident * expr
   (* type argument for New, instanceof/sizeof/typeof, C macros *)
   | ArgType of type_
-  | ArgOther of other_argument_operator * any list
-
-and other_argument_operator =
-  (* OCaml *)
-  | OA_ArgQuestion
-  (* Rust *)
-  | OA_ArgMacro
+  (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml *)
+  | ArgOther of todo_kind * any list
 
 (* todo: reduce, or move in other_special? *)
 and other_expr_operator =
@@ -758,7 +756,7 @@ and other_expr_operator =
   | OE_NewQualifiedClass
   | OE_Annot
   (* C *)
-  | OE_GetRefLabel
+  | OE_GetRefLabel (* TODO DELETE? just LDynamic? *)
   | OE_ArrayInitDesignator (* [x] = ... todo? use ArrayAccess in container?*)
   (* PHP *)
   | OE_Unpack
@@ -850,7 +848,7 @@ and stmt_kind =
   (* The expr can be None for Go and Ruby.
    * less: could be merged with ExprStmt (MatchPattern ...) *)
   | Switch of
-      tok (* 'switch' or also 'select' in Go *)
+      tok (* 'switch', also 'select' in Go, or 'case' in Bash *)
       * condition option
       * case_and_body list
   (* todo: merge with Switch.
@@ -861,7 +859,7 @@ and stmt_kind =
   | Break of tok * label_ident * sc
   (* todo? remove stmt argument? more symetric to Goto *)
   | Label of label * stmt
-  | Goto of tok * label
+  | Goto of tok * label * sc (* less: use label_ident for computed goto in C*)
   (* TODO? move in expr! in C++ the expr can be an option *)
   | Throw of tok (* 'raise' in OCaml, 'throw' in Java/PHP *) * expr * sc
   | Try of tok * stmt * catch list * finally option
@@ -913,7 +911,19 @@ and case =
 and action = pattern * expr
 
 (* newvar: newscope: usually a PatVar *)
-and catch = tok (* 'catch', 'except' in Python *) * pattern * stmt
+and catch = tok (* 'catch', 'except' in Python *) * catch_exn * stmt
+
+(* alt: we could reuse parameter, which has a ParamPattern and ParamClassic *)
+and catch_exn =
+  | CatchPattern of pattern
+  (* for Java/C++/PHP/etc.
+   * old: PatVar of type_ * (ident * id_info) option
+   * and was in pattern as PatVar, but better to move out of pattern.
+   * alt: we could abuse pattern and use PatTyped, but ugly.
+   *)
+  | CatchParam of parameter_classic
+
+(* ptype should never be None *)
 
 (* newscope: *)
 and finally = tok (* 'finally' *) * stmt
@@ -922,7 +932,7 @@ and label = ident
 
 and label_ident =
   | LNone (* C/Python *)
-  | LId of label (* Java/Go *)
+  | LId of label (* Java/Go/Kotlin *)
   | LInt of int wrap (* PHP *)
   (* PHP, woohoo, dynamic break! bailout for CFG *)
   | LDynamic of expr
@@ -998,7 +1008,7 @@ and other_stmt_operator =
 (*****************************************************************************)
 (* This is quite similar to expr. A few constructs in expr have
  * equivalent here prefixed with Pat (e.g., PaLiteral, PatId). We could
- * maybe factorize with expr, and this may help sgrep, but I think it's
+ * maybe factorize with expr, and this may help semgrep, but I think it's
  * cleaner to have a separate type because the scoping rules for a pattern and
  * an expr are quite different and not any expr is allowed here.
  *)
@@ -1026,20 +1036,11 @@ and pattern =
   | PatAs of pattern * (ident * id_info)
   (* For Go also in switch x.(type) { case int: ... } *)
   | PatType of type_
-  (* In catch for Java/PHP, and foreach in Java.
-   * less: do instead PatAs (PatType(TyApply, var))?
-   *       or even    PatAs (PatConstructor(id, []), var)?
-   *)
-  | PatVar of type_ * (ident * id_info) option
   (* sgrep: *)
   | PatEllipsis of tok
   | DisjPat of pattern * pattern
-  | OtherPat of other_pattern_operator * any list
-
-and other_pattern_operator =
-  (* Other *)
-  | OP_Expr (* todo: Python should transform via expr_to_pattern() below *)
-  | OP_Todo
+  (* todo: Python should transform expr pattern via expr_to_pattern() *)
+  | OtherPat of todo_kind * any list
 
 (*****************************************************************************)
 (* Type *)
@@ -1056,10 +1057,10 @@ and type_kind =
    * or just delete and use (TyN Id) instead?
    *)
   | TyBuiltin of string wrap (* int, bool, etc. could be TApply with no args *)
-  (* old: was 'type_ list * type*' , but languages such as C and
+  (* old: was 'TyFun of type_ list * type*' , but languages such as C and
    * Go allow also to name those parameters, and Go even allow ParamRest
    * parameters so we need at least 'type_ * attributes', at which point
-   * it's better to just use parameter.
+   * it's simpler to just reuse parameter.
    *)
   | TyFun of parameter list * type_ (* return type *)
   (* a special case of TApply, also a special case of TPointer *)
@@ -1074,10 +1075,13 @@ and type_kind =
    * note: the type_ should always be a TyN, so really it's a TyNameApply
    * but it's simpler to not repeat TyN to factorize code in semgrep regarding
    * aliasing.
+   * TODO: could merge with TyN when name has proper qualifiers?
    *)
   | TyApply of type_ * type_arguments
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
-  | TyAny of tok (* anonymous type, '_' in OCaml, TODO: type bounds Scala? *)
+  (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin
+   * TODO: type bounds Scala? *)
+  | TyAny of tok
   | TyPointer of tok * type_
   | TyRef of tok * type_ (* C++/Rust *)
   | TyQuestion of type_ * tok (* a.k.a option type *)
@@ -1107,14 +1111,14 @@ and type_arguments = type_argument list bracket
 
 (* TODO? make a record also? *)
 and type_argument =
-  | TypeArg of type_
-  (* Java only *)
-  (* use-site variance *)
-  | TypeWildcard of
+  | TA of type_
+  (* Java use-site variance *)
+  | TAWildcard of
       tok (* '?' *) * (bool wrap (* extends|super, true=super *) * type_) option
-  (* Rust *)
-  | TypeLifetime of ident
-  | OtherTypeArg of other_type_argument_operator * any list
+  (* C++/Rust (Rust restrict expr to literals and ConstBlock) *)
+  | TAExpr of expr
+  (* TODO? Rust Lifetime 'x, Kotlin use-site variance *)
+  | OtherTypeArg of todo_kind * any list
 
 and other_type_operator =
   (* C *)
@@ -1131,13 +1135,6 @@ and other_type_operator =
   | OT_Arg (* Python: todo: should use expr_to_type() when can *)
   | OT_Todo
 
-and other_type_argument_operator =
-  (* Rust *)
-  | OTA_Literal
-  | OTA_ConstBlock
-  (* Other *)
-  | OTA_Todo
-
 (*****************************************************************************)
 (* Attribute *)
 (*****************************************************************************)
@@ -1145,32 +1142,41 @@ and attribute =
   (* a.k.a modifiers *)
   | KeywordAttr of keyword_attribute wrap
   (* a.k.a decorators, annotations *)
-  | NamedAttr of tok (* @ *) * name * arguments bracket
-  | OtherAttribute of other_attribute_operator * any list
+  | NamedAttr of tok (* '@' *) * name * arguments (* less: option *)
+  (* per-language specific keywords like 'transient', 'synchronized' *)
+  (* todo: Expr used for Python, but should transform in NamedAttr when can *)
+  | OtherAttribute of todo_kind * any list
 
 and keyword_attribute =
-  (* the classic C modifiers *)
+  (* the classic C modifiers (except Auto) *)
   | Static
-  | Volatile
   | Extern
-  (* for class fields/methods *)
+  | Volatile
+  (* the classic C++ modifiers for fields/methods *)
   | Public
   | Private
   | Protected
-  | Abstract
+  | Abstract (* a.k.a virtual in C++ *)
+  (* for fields/methods in classes and also classes *)
   | Final
   | Override
+  | Mutable (* 'var' in Scala *)
+  | Const (* 'readonly' in Typescript, 'val' in Scala *)
+  (* for classes (mostly for JVM languages) *)
+  (* Scala 'case class', Java 'record', Kotlin 'data class' *)
+  | RecordClass
+  (* '@interface' in Java, 'annotation class' in Kotlin *)
+  | AnnotationClass
+  | EnumClass
+  | SealedClass
   (* for variables (JS) *)
   | Var
   | Let
-  (* for fields (kinda types) *)
-  | Mutable (* 'var' in Scala *)
-  | Const (* 'readonly' in Typescript, 'val' in Scala *)
   (* less: should be part of the type? *)
   | Optional
   (* Typescript '?' *)
   | NotNull (* Typescript '!' *)
-  (* for functions/methods *)
+  (* for functions and methods *)
   | Recursive
   | MutuallyRecursive
   | Generator (* '*' in JS *)
@@ -1185,21 +1191,9 @@ and keyword_attribute =
   | Unsafe
   | DefaultImpl (* Rust unstable, RFC 1210 *)
   (* Scala *)
-  | Lazy (* By name application in Scala, via => T, in parameter *)
-  | CaseClass
+  | Lazy
 
-and other_attribute_operator =
-  (* Java *)
-  | OA_StrictFP
-  | OA_Transient
-  | OA_Synchronized
-  | OA_Native
-  | OA_Default
-  | OA_AnnotThrow
-  (* Other *)
-  (* todo: used for Python, but should transform in NamedAttr when can *)
-  | OA_Expr
-  | OA_Todo
+(* By name application in Scala, via => T, in parameter *)
 
 (*****************************************************************************)
 (* Definitions *)
@@ -1227,7 +1221,7 @@ and entity = {
    *)
   name : name_or_dynamic;
   attrs : attribute list;
-  tparams : type_parameter list;
+  tparams : type_parameters;
 }
 
 and definition_kind =
@@ -1260,7 +1254,7 @@ and definition_kind =
    *)
   | FieldDefColon of (* todo: tok (*':'*) * *) variable_definition
   | ClassDef of class_definition
-  (* just inside a ClassDef of EnumClass *)
+  (* just inside a ClassDef with EnumClass *)
   | EnumEntryDef of enum_entry_definition
   | TypeDef of type_definition
   | ModuleDef of module_definition
@@ -1294,6 +1288,9 @@ and type_parameter = {
   tp_constraints : type_parameter_constraint list;
 }
 
+and type_parameters = type_parameter list
+
+(* TODO bracket *)
 and variance =
   | Covariant (* '+' in Scala/Hack, 'out' in C#/Kotlin *)
   | Contravariant
@@ -1304,14 +1301,8 @@ and variance =
 and type_parameter_constraint =
   (* C# *)
   | HasConstructor of tok
-  | OtherTypeParam of other_type_parameter_operator * any list
-
-(* TODO: get rid of *)
-and other_type_parameter_operator =
-  (* Rust *)
-  | OTP_Lifetime
-  (* Other *)
-  | OTP_Todo
+  (* TODO? Lifetime Rust? *)
+  | OtherTypeParam of todo_kind * any list
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -1325,6 +1316,7 @@ and function_definition = {
   fparams : parameters;
   (* return type *)
   frettype : type_ option;
+  (* TODO: fthrow *)
   (* newscope: *)
   fbody : function_body;
 }
@@ -1492,17 +1484,14 @@ and field =
 (* less: could be a special kind of type_definition *)
 and class_definition = {
   ckind : class_kind wrap;
-  (* cextends contains usually just one parent, and type_ should be TyApply *)
-  (* TODO? the parent can have arguments, as in Scala, to call super
-   * or when used inside a New.
-   *)
-  cextends : type_ list;
+  (* 'cextends' contains usually 0 or 1 parent, and type_ should be TyN *)
+  cextends : class_parent list;
   (* the class_kind in type_ must be Interface *)
   cimplements : type_ list;
   (* the class_kind in type_ are usually Trait *)
   (* PHP 'uses' *)
   cmixins : type_ list;
-  (* for Java Record and Kotlin/Scala (we could transpile them into fields) *)
+  (* for Java/Kotlin/Scala RecordClass (we could transpile them into fields) *)
   cparams : parameters;
   (* newscope:
    * note: this can be an empty fake bracket when used in Partial.
@@ -1511,19 +1500,22 @@ and class_definition = {
   cbody : field list bracket;
 }
 
-(* invariant: this must remain a simple enum; Map_AST relies on it *)
+(* invariant: this must remain a simple enum; Map_AST relies on it.
+ * for EnumClass/AnnotationClass/etc. see keyword_attribute.
+ *)
 and class_kind =
   | Class
   | Interface
   | Trait
   (* Kotlin/Scala *)
   | Object
-  (* Java 'record', Scala 'case class' *)
-  | RecordClass
-  (* Java/Kotlin *)
-  | EnumClass
-  (* Java @interface, a.k.a annotation type declaration *)
-  | AtInterface
+
+(* A parent can have arguments in Scala/Java/Kotlin (because constructors
+ * can be defined in the class header via cparams and then this class
+ * header can call its parent constructor using those cparams).
+ * alt: keep just 'type_' and add constructor calls in cbody.
+ *)
+and class_parent = type_ * arguments option
 
 (* ------------------------------------------------------------------------- *)
 (* Enum entry  *)
@@ -1531,7 +1523,7 @@ and class_kind =
 (* for EnumClass, complex enums-as-classes in Java/Kotlin/Scala? *)
 and enum_entry_definition = {
   (* the enum identifier is in the corresponding entity *)
-  ee_args : arguments bracket option;
+  ee_args : arguments option;
   ee_body : field list bracket option;
 }
 
@@ -1545,11 +1537,8 @@ and module_definition_kind =
   | ModuleAlias of dotted_ident
   (* newscope: *)
   | ModuleStruct of dotted_ident option * item list
-  | OtherModule of other_module_operator * any list
-
-and other_module_operator =
-  (* OCaml (functors and their applications) *)
-  | OMO_Todo
+  (* TODO: OCaml (functors and their applications) *)
+  | OtherModule of todo_kind * any list
 
 (* ------------------------------------------------------------------------- *)
 (* Macro definition *)
@@ -1675,6 +1664,7 @@ and any =
   | ModDk of module_definition_kind
   | En of entity
   | Pa of parameter
+  | Ce of catch_exn
   | Dk of definition_kind
   | Di of dotted_ident
   | Lbli of label_ident
@@ -1769,8 +1759,6 @@ let p x = x
 (* before Naming_AST.resolve can do its job *)
 let sid_TODO = -1
 
-let empty_name_info = { name_qualifier = None; name_typeargs = None }
-
 let empty_var = { vinit = None; vtype = None }
 
 let empty_id_info () =
@@ -1841,22 +1829,23 @@ let keyval k _tarrow v = Container (Tuple, fake_bracket [ k; v ]) |> e
 (* Parameters *)
 (* ------------------------------------------------------------------------- *)
 
-let param_of_id id =
+(* alt: could use @@deriving make *)
+let param_of_id ?(pattrs = []) ?(ptype = None) ?(pdefault = None) id =
   {
     pname = Some id;
-    pdefault = None;
-    ptype = None;
-    pattrs = [];
+    pdefault;
+    ptype;
+    pattrs;
     pinfo = basic_id_info (Param, sid_TODO);
   }
 
-let param_of_type typ =
+let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
   {
     ptype = Some typ;
-    pname = None;
-    pdefault = None;
-    pattrs = [];
-    pinfo = empty_id_info ();
+    pname;
+    pdefault;
+    pattrs;
+    pinfo = basic_id_info (Param, sid_TODO);
   }
 
 (* ------------------------------------------------------------------------- *)
@@ -1913,6 +1902,7 @@ let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))
 let attr kwd tok = KeywordAttr (kwd, tok)
 
 let unhandled_keywordattr (s, t) =
+  (* TODO? or use OtherAttribue? *)
   NamedAttr (t, Id ((s, t), empty_id_info ()), fake_bracket [])
 
 (*****************************************************************************)

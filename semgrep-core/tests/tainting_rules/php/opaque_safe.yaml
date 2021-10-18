@@ -1,0 +1,15 @@
+rules:
+  - id: tainted
+    languages:
+      - php
+    message: Match
+    mode: taint
+    pattern-sanitizers:
+      - not_conflicting: true
+        pattern: $F(...)
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: tainted(...)
+    severity: WARNING
+

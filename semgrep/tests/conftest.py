@@ -7,12 +7,14 @@ from pathlib import Path
 from typing import List
 from typing import Mapping
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 from typing import Union
 
 import pytest
 
 from semgrep.constants import OutputFormat
+from semgrep.notifications import possibly_notify_user
 
 TESTS_PATH = Path(__file__).parent
 
@@ -53,6 +55,14 @@ def _clean_output_json(output_json: str) -> str:
     for path in MASKED_KEYS:
         mark_masked(output, path)
 
+    # Remove temp file paths
+    results = output.get("results")
+    if isinstance(results, Sequence):
+        for r in results:
+            p = r.get("path")
+            if p and "/tmp" in p:
+                del r["path"]
+
     return json.dumps(output, indent=2, sort_keys=True)
 
 
@@ -74,6 +84,8 @@ def _run_semgrep(
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
     """
+    possibly_notify_user()
+
     if options is None:
         options = []
 

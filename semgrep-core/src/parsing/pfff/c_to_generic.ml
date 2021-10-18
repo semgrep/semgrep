@@ -149,16 +149,16 @@ and type_kind = function
   | TMacroApply (v1, (lp, v2, rp)) ->
       let v1 = H.name_of_id v1 in
       let v2 = type_ v2 in
-      G.TyApply (G.TyN v1 |> G.t, (lp, [ G.TypeArg v2 ], rp))
+      G.TyApply (G.TyN v1 |> G.t, (lp, [ G.TA v2 ], rp))
 
 and function_type (v1, v2) =
-  let v1 = type_ v1 and v2 = list (fun x -> G.ParamClassic (parameter x)) v2 in
+  let v1 = type_ v1 and v2 = list (fun x -> parameter x) v2 in
   (v1, v2)
 
 and parameter x =
   match x with
-  | ParamClassic x -> parameter_classic x
-  | ParamDots _ -> raise Todo
+  | ParamClassic x -> G.ParamClassic (parameter_classic x)
+  | ParamDots t -> G.ParamEllipsis t
 
 and parameter_classic { p_type; p_name } =
   let arg1 = type_ p_type in
@@ -336,7 +336,7 @@ let rec stmt st =
       G.Label (v1, v2)
   | Goto (t, v1) ->
       let v1 = name v1 in
-      G.Goto (t, v1)
+      G.Goto (t, v1, G.sc)
   | Vars v1 ->
       let v1 = list var_decl v1 in
       (G.stmt1 (v1 |> List.map (fun v -> G.s (G.DefStmt v)))).G.s

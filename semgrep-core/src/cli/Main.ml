@@ -195,6 +195,34 @@ let set_gc () =
   ()
 
 (*
+   If the target is a named pipe, copy it into a regular file and return
+   that. This allows multiple reads on the file.
+
+   This is intended to support one or a small number of targets created
+   manually on the command line with e.g. <(echo 'eval(x)') which the
+   shell replaces by a named pipe like '/dev/fd/63'.
+*)
+let replace_named_pipe_by_regular_file path =
+  match (Unix.stat path).st_kind with
+  | Unix.S_FIFO ->
+      let data = Common.read_file path in
+      let prefix = spf "semgrep-core-" in
+      let suffix = spf "-%s" (Filename.basename path) in
+      let tmp_path, oc =
+        Filename.open_temp_file
+          ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
+          prefix suffix
+      in
+      let remove () = if Sys.file_exists tmp_path then Sys.remove tmp_path in
+      (* Try to remove temporary file when program exits. *)
+      at_exit remove;
+      Fun.protect
+        ~finally:(fun () -> close_out_noerr oc)
+        (fun () -> output_string oc data);
+      tmp_path
+  | _ -> path
+
+(*
    Run jobs in parallel, using number of cores specified with -j.
 *)
 let map_targets f (targets : Common.filename list) =
@@ -867,6 +895,7 @@ let semgrep_with_one_pattern lang roots =
   in
 
   let targets, skipped = Find_target.files_of_dirs_or_files lang roots in
+  let targets = Common.map replace_named_pipe_by_regular_file targets in
   match !output_format with
   | Json ->
       (* closer to -rules_file, but no incremental match output *)
@@ -1390,6 +1419,8 @@ let main () =
 (*****************************************************************************)
 let () =
   Common.main_boilerplate (fun () ->
+      (* semgrep-specific initializations. Move to a dedicated module? *)
+      Pcre_settings.register_exception_printer ();
       Common.finalize
         (fun () -> main ())
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))

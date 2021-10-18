@@ -64,17 +64,9 @@ let var v = wrap string v
 
 let qualified_ident v = list ident v
 
-(* TODO: generate Left id or Right name *)
 let name_of_qualified_ident xs =
-  match List.rev (qualified_ident xs) with
-  | [] -> raise Impossible
-  | [ x ] -> (x, { G.name_qualifier = None; name_typeargs = None })
-  | x :: y :: xs ->
-      ( x,
-        {
-          G.name_qualifier = Some (G.QDots (List.rev (y :: xs)));
-          name_typeargs = None;
-        } )
+  let xs = qualified_ident xs in
+  H.name_of_ids xs
 
 let name v = qualified_ident v
 
@@ -160,7 +152,7 @@ let rec stmt_aux = function
   | Label (id, _, v1) ->
       let v1 = stmt v1 in
       [ G.Label (ident id, v1) |> G.s ]
-  | Goto (t, id) -> [ G.Goto (t, ident id) |> G.s ]
+  | Goto (t, id) -> [ G.Goto (t, ident id, G.sc) |> G.s ]
   | Throw (t, v1) ->
       let v1 = expr v1 in
       [ G.Throw (t, v1, G.sc) |> G.s ]
@@ -232,8 +224,8 @@ and case = function
 
 and catch (t, v1, v2, v3) =
   let v1 = hint_type v1 and v2 = var v2 and v3 = stmt v3 in
-  let pat = G.PatVar (v1, Some (v2, G.empty_id_info ())) in
-  (t, pat, v3)
+  let exn = G.CatchParam (G.param_of_type v1 ~pname:(Some v2)) in
+  (t, exn, v3)
 
 (* a list of finally??? php ... *)
 and finally (v : finally list) =
@@ -255,10 +247,9 @@ and expr e : G.expr =
   | String v1 ->
       let v1 = wrap string v1 in
       G.L (G.String v1)
-  | Id [ v1 ] -> G.N (G.Id (v1, G.empty_id_info ()))
   | Id v1 ->
       let v1 = name_of_qualified_ident v1 in
-      G.N (G.IdQualified (v1, G.empty_id_info ()))
+      G.N v1
   | IdSpecial v1 ->
       let v1 = wrap special v1 in
       G.IdSpecial v1
@@ -427,7 +418,7 @@ and hint_type x = hint_type_kind x |> G.t
 and hint_type_kind = function
   | Hint v1 ->
       let v1 = name v1 in
-      G.TyN (G.IdQualified (name_of_qualified_ident v1, G.empty_id_info ()))
+      G.TyN (name_of_qualified_ident v1)
   | HintArray t -> G.TyBuiltin ("array", t)
   | HintQuestion (t, v1) ->
       let v1 = hint_type v1 in
@@ -571,7 +562,7 @@ and class_def
 
   let id = ident c_name in
   let kind = class_kind c_kind in
-  let extends = option class_name c_extends in
+  let extends = option class_parent c_extends in
   let implements = list class_name c_implements in
   let uses = list class_name c_uses in
 
@@ -607,6 +598,10 @@ and class_def
     }
   in
   (ent, def)
+
+and class_parent x : G.class_parent =
+  let x = class_name x in
+  (x, None)
 
 and class_kind (x, t) =
   match x with

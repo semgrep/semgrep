@@ -78,9 +78,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
     (v1, v2, v3)
   and map_ident v = map_wrap map_of_string v
   and map_dotted_ident v = map_of_list map_ident v
+  and map_ident_and_targs_opt (id, topt) =
+    let id = map_ident id in
+    let topt = map_of_option map_type_arguments topt in
+    (id, topt)
   and map_qualifier = function
-    | QDots v -> QDots (map_dotted_ident v)
-    | QTop t -> QTop (map_tok t)
+    | QDots v -> QDots (map_of_list map_ident_and_targs_opt v)
     | QExpr (e, t) ->
         let e = map_expr e in
         let t = map_tok t in
@@ -110,14 +113,23 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Macro -> Macro
     | EnumConstant -> EnumConstant
     | TypeName -> TypeName
-  and map_name_ (v1, v2) =
-    let v1 = map_ident v1 and v2 = map_name_info v2 in
-    (v1, v2)
   and map_name_info
-      { name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs } =
-    let v_name_typeargs = map_of_option map_type_arguments v_name_typeargs in
+      {
+        name_last = v1;
+        name_middle = v_name_qualifier;
+        name_top = v_top;
+        name_info = v2;
+      } =
+    let v1 = map_ident_and_targs_opt v1 in
+    let v2 = map_id_info v2 in
+    let v_top = map_of_option map_tok v_top in
     let v_name_qualifier = map_of_option map_qualifier v_name_qualifier in
-    { name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs }
+    {
+      name_last = v1;
+      name_info = v2;
+      name_middle = v_name_qualifier;
+      name_top = v_top;
+    }
   and map_id_info v =
     let k x =
       match x with
@@ -182,9 +194,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Id (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_id_info v2 in
         Id (v1, v2)
-    | IdQualified (v1, v2) ->
-        let v1 = map_name_ v1 and v2 = map_id_info v2 in
-        IdQualified (v1, v2)
+    | IdQualified v1 ->
+        let v1 = map_name_info v1 in
+        IdQualified v1
   and map_expr x =
     let k x =
       let ekind =
@@ -501,26 +513,26 @@ let (mk_visitor : visitor_in -> visitor_out) =
         OtherType (v1, v2)
   and map_type_arguments v = map_bracket (map_of_list map_type_argument) v
   and map_type_argument = function
-    | TypeArg v1 ->
+    | TA v1 ->
         let v1 = map_type_ v1 in
-        TypeArg v1
-    | TypeWildcard (v1, v2) ->
+        TA v1
+    | TAWildcard (v1, v2) ->
         let v1 = map_tok v1 in
         let v2 =
           map_of_option
             (fun (v1, v2) -> (map_wrap map_of_bool v1, map_type_ v2))
             v2
         in
-        TypeWildcard (v1, v2)
-    | TypeLifetime v1 ->
-        let v1 = map_ident v1 in
-        TypeLifetime v1
+        TAWildcard (v1, v2)
+    | TAExpr v1 ->
+        let v1 = map_expr v1 in
+        TAExpr v1
     | OtherTypeArg (v1, v2) ->
-        let v1 = map_other_type_argument_operator v1 in
+        let v1 = map_todo_kind v1 in
         let v2 = map_of_list map_any v2 in
         OtherTypeArg (v1, v2)
+  and map_todo_kind x = x
   and map_other_type_operator x = x
-  and map_other_type_argument_operator x = x
   and map_attribute = function
     | KeywordAttr v1 ->
         let v1 = map_wrap map_keyword_attribute v1 in
@@ -602,10 +614,11 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | Label (v1, v2) ->
             let v1 = map_label v1 and v2 = map_stmt v2 in
             Label (v1, v2)
-        | Goto (t, v1) ->
+        | Goto (t, v1, sc) ->
             let t = map_tok t in
             let v1 = map_label v1 in
-            Goto (t, v1)
+            let sc = map_tok sc in
+            Goto (t, v1, sc)
         | Throw (t, v1, sc) ->
             let t = map_tok t in
             let v1 = map_expr v1 in
@@ -674,8 +687,15 @@ let (mk_visitor : visitor_in -> visitor_out) =
         Default t
   and map_catch (t, v1, v2) =
     let t = map_tok t in
-    let v1 = map_pattern v1 and v2 = map_stmt v2 in
+    let v1 = map_catch_exn v1 and v2 = map_stmt v2 in
     (t, v1, v2)
+  and map_catch_exn = function
+    | CatchPattern v1 ->
+        let v1 = map_pattern v1 in
+        CatchPattern v1
+    | CatchParam p ->
+        let p = map_parameter_classic p in
+        CatchParam p
   and map_finally v = map_tok_and_stmt v
   and map_tok_and_stmt (t, v) =
     let t = map_tok t in
@@ -723,16 +743,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | PatId (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_id_info v2 in
         PatId (v1, v2)
-    | PatVar (v1, v2) ->
-        let v1 = map_type_ v1
-        and v2 =
-          map_of_option
-            (fun (v1, v2) ->
-              let v1 = map_ident v1 and v2 = map_id_info v2 in
-              (v1, v2))
-            v2
-        in
-        PatVar (v1, v2)
     | PatLiteral v1 ->
         let v1 = map_literal v1 in
         PatLiteral v1
@@ -1009,7 +1019,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_cbody = map_bracket (map_of_list map_field) v_cbody in
     let v_cmixins = map_of_list map_type_ v_cmixins in
     let v_cimplements = map_of_list map_type_ v_cimplements in
-    let v_cextends = map_of_list map_type_ v_cextends in
+    let v_cextends = map_of_list map_class_parent v_cextends in
     let v_ckind = map_class_kind v_ckind in
     let cparams = map_parameters cparams in
     {
@@ -1021,6 +1031,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
       cparams;
     }
   and map_class_kind (x, t) = (x, map_tok t)
+  and map_class_parent (v1, v2) =
+    let v1 = map_type_ v1 in
+    let v2 = map_of_option map_arguments v2 in
+    (v1, v2)
   and map_directive { d; d_attrs } =
     let d = map_directive_kind d in
     let d_attrs = map_of_list map_attribute d_attrs in
@@ -1158,6 +1172,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Pa v1 ->
         let v1 = map_parameter v1 in
         Pa v1
+    | Ce v1 ->
+        let v1 = map_catch_exn v1 in
+        Ce v1
     | Ar v1 ->
         let v1 = map_argument v1 in
         Ar v1

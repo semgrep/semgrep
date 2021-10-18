@@ -110,19 +110,24 @@ and class_type v =
         (v1, v2))
       v
   in
+
+  (* TODO: would like simply
+   * G.TyN (H.name_of_ids_with_opt_typeargs res)
+   * but got regressions on aliasing_type.java and misc_generic.java
+   *)
   match List.rev res with
   | [] -> raise Impossible (* list1 *)
   | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ()))
   | [ (id, Some ts) ] -> G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts)
   | (id, None) :: xs ->
-      let name_info =
-        {
-          G.name_typeargs = None;
-          (* could be v1TODO above *)
-          name_qualifier = Some (G.QDots (List.rev (List.map fst xs)));
-        }
-      in
-      G.TyN (G.IdQualified ((id, name_info), G.empty_id_info ()))
+      G.TyN
+        (G.IdQualified
+           {
+             G.name_last = (id, None);
+             name_top = None;
+             name_middle = Some (G.QDots (List.rev xs));
+             name_info = G.empty_id_info ();
+           })
   | (id, Some ts) :: xs ->
       G.TyApply
         (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))) |> G.t, ts)
@@ -130,7 +135,7 @@ and class_type v =
 and type_argument = function
   | TArgument v1 ->
       let v1 = ref_type v1 in
-      G.TypeArg v1
+      G.TA v1
   | TWildCard (v1, v2) ->
       let v2 =
         option
@@ -139,7 +144,7 @@ and type_argument = function
             (v1, v2))
           v2
       in
-      G.TypeWildcard (v1, v2)
+      G.TAWildcard (v1, v2)
 
 and ref_type v = typ v
 
@@ -149,6 +154,7 @@ let type_parameter = function
       G.tparam_of_id v1 ~tp_bounds:v2
 
 let rec modifier (x, tok) =
+  let s = Parse_info.str_of_info tok in
   match x with
   | Public -> G.attr G.Public tok
   | Protected -> G.attr G.Protected tok
@@ -156,12 +162,12 @@ let rec modifier (x, tok) =
   | Abstract -> G.attr G.Abstract tok
   | Static -> G.attr G.Static tok
   | Final -> G.attr G.Final tok
-  | StrictFP -> G.OtherAttribute (G.OA_StrictFP, [])
-  | Transient -> G.OtherAttribute (G.OA_Transient, [])
+  | StrictFP -> G.unhandled_keywordattr (s, tok)
+  | Transient -> G.unhandled_keywordattr (s, tok)
   | Volatile -> G.attr G.Volatile tok
-  | Synchronized -> G.OtherAttribute (G.OA_Synchronized, [])
-  | Native -> G.OtherAttribute (G.OA_Native, [])
-  | DefaultModifier -> G.OtherAttribute (G.OA_Default, [])
+  | Synchronized -> G.unhandled_keywordattr (s, tok)
+  | Native -> G.unhandled_keywordattr (s, tok)
+  | DefaultModifier -> G.unhandled_keywordattr (s, tok)
   | Annotation v1 -> annotation v1
 
 and modifiers v = list modifier v
@@ -278,7 +284,7 @@ and expr e =
             G.AnonClass
               {
                 G.ckind = (G.Class, v0);
-                cextends = [ v1 ];
+                cextends = [ (v1, None) ];
                 cimplements = [];
                 cmixins = [];
                 cparams = [];
@@ -398,6 +404,10 @@ and expr e =
       x.G.e)
   |> G.e
 
+and class_parent v : G.class_parent =
+  let v = ref_type v in
+  (v, None)
+
 and expr_or_type = function
   | Left e -> G.E (expr e)
   | Right t -> G.T (typ t)
@@ -500,9 +510,10 @@ and for_control tok = function
   | Foreach (v1, v2) ->
       let ent, typ = var v1 and v2 = expr v2 in
       let id, _idinfo = id_of_entname ent.G.name in
+      let patid = G.PatId (id, G.empty_id_info ()) in
       let pat =
         match typ with
-        | Some t -> G.PatVar (t, Some (id, G.empty_id_info ()))
+        | Some t -> G.PatTyped (patid, t)
         | None -> error tok "TODO: Foreach without a type"
       in
       G.ForEach (pat, fake (snd id) "in", v2)
@@ -521,16 +532,19 @@ and var { name; mods; type_ = xtyp } =
   let v3 = option typ xtyp in
   (G.basic_entity v1 ~attrs:v2, v3)
 
-and catch (tok, (v1, _union_types), v2) =
-  let ent, typ = var v1 in
-  let id, _idinfo = id_of_entname ent.G.name in
+and catch (tok, catch_exn, v2) =
   let v2 = stmt v2 in
-  let pat =
-    match typ with
-    | Some t -> G.PatVar (t, Some (id, G.empty_id_info ()))
-    | None -> error tok "TODO: Catch without a type"
+  let exn =
+    match catch_exn with
+    | CatchParam (v1, _union_types) -> (
+        let ent, typ = var v1 in
+        let id, _idinfo = id_of_entname ent.G.name in
+        match typ with
+        | Some t -> G.CatchParam (G.param_of_type t ~pname:(Some id))
+        | None -> error tok "TODO: Catch without a type")
+    | CatchEllipsis t -> G.CatchPattern (G.PatEllipsis t)
   in
-  (tok, pat, v2)
+  (tok, exn, v2)
 
 and catches v = list catch v
 
@@ -565,8 +579,9 @@ and method_decl { m_var; m_formals; m_throws; m_body } =
   let v2 = parameters m_formals in
   let v3 = list typ m_throws in
   let v4 = stmt m_body in
+  (* TODO: use fthrow field instead *)
   let throws =
-    v3 |> List.map (fun t -> G.OtherAttribute (G.OA_AnnotThrow, [ G.T t ]))
+    v3 |> List.map (fun t -> G.OtherAttribute (("Throw", G.fake ""), [ G.T t ]))
   in
   ( { ent with G.attrs = ent.G.attrs @ throws },
     {
@@ -581,15 +596,15 @@ and field v = var_with_init v
 and enum_decl { en_name; en_mods; en_impls; en_body } =
   let v1 = ident en_name in
   let v2 = modifiers en_mods in
-  let v3 = list ref_type en_impls in
+  let v3 = list class_parent en_impls in
   let v4, v5 = en_body in
   let v4 = list enum_constant v4 |> List.map G.fld in
   let v5 = decls v5 |> List.map (fun st -> G.FieldStmt st) in
-  let ent = G.basic_entity v1 ~attrs:v2 in
+  let ent = G.basic_entity v1 ~attrs:(G.attr EnumClass (snd v1) :: v2) in
   let cbody = fb (v4 @ v5) in
   let cdef =
     {
-      G.ckind = (G.EnumClass, snd v1);
+      G.ckind = (G.Class, snd v1);
       cextends = v3;
       cmixins = [];
       cimplements = [];
@@ -623,14 +638,14 @@ and class_decl
       cl_formals;
     } =
   let v1 = ident cl_name in
-  let v2 = class_kind cl_kind in
+  let v2, more_attrs = class_kind_and_more cl_kind in
   let v3 = list type_parameter cl_tparams in
   let v4 = modifiers cl_mods in
-  let v5 = option typ cl_extends in
+  let v5 = option class_parent cl_extends in
   let v6 = list ref_type cl_impls in
   let cparams = parameters cl_formals in
   let fields = class_body cl_body in
-  let ent = G.basic_entity v1 ~attrs:v4 ~tparams:v3 in
+  let ent = G.basic_entity v1 ~attrs:(more_attrs @ v4) ~tparams:v3 in
   let cdef =
     {
       G.ckind = v2;
@@ -643,13 +658,12 @@ and class_decl
   in
   (ent, cdef)
 
-and class_kind (x, t) =
-  ( (match x with
-    | ClassRegular -> G.Class
-    | Interface -> G.Interface
-    | AtInterface -> G.AtInterface
-    | Record -> G.RecordClass),
-    t )
+and class_kind_and_more (x, t) =
+  match x with
+  | ClassRegular -> ((G.Class, t), [])
+  | Interface -> ((G.Interface, t), [])
+  | AtInterface -> ((G.Interface, t), [ G.attr AnnotationClass t ])
+  | Record -> ((G.Class, t), [ G.attr RecordClass t ])
 
 and decl decl : G.stmt =
   match decl with

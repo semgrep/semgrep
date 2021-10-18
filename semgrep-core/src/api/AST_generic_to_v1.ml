@@ -78,9 +78,8 @@ let map_ident (v : ident) : B.ident = map_wrap map_of_string v
 
 let map_dotted_ident v : B.dotted_ident = map_of_list map_ident v
 
-let rec map_qualifier = function
-  | QDots v -> `QDots (map_dotted_ident v)
-  | QTop t -> `QTop (map_tok t)
+let rec _map_qualifier = function
+  | QDots _ -> failwith "TODO"
   | QExpr (e, t) ->
       let e = map_expr e in
       let t = map_tok t in
@@ -113,16 +112,6 @@ and map_resolved_name_kind = function
   | Macro -> `Macro
   | EnumConstant -> `EnumConstant
   | TypeName -> `TypeName
-
-and map_name_ (v1, v2) =
-  let v1 = map_ident v1 and v2 = map_name_info v2 in
-  (v1, v2)
-
-and map_name_info
-    { G.name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs } =
-  let v_name_typeargs = map_of_option map_type_arguments v_name_typeargs in
-  let v_name_qualifier = map_of_option map_qualifier v_name_qualifier in
-  { B.name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs }
 
 and map_id_info x =
   match x with
@@ -188,9 +177,7 @@ and map_name = function
   | Id (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_id_info v2 in
       `Id (v1, v2)
-  | IdQualified (v1, v2) ->
-      let v1 = map_name_ v1 and v2 = map_id_info v2 in
-      `IdQualified (v1, v2)
+  | IdQualified _v1 -> failwith "TODO"
 
 and map_expr x : B.expr =
   match x.e with
@@ -566,10 +553,10 @@ and map_type_kind = function
 and map_type_arguments (_, v, _) = map_of_list map_type_argument v
 
 and map_type_argument = function
-  | TypeArg v1 ->
+  | TA v1 ->
       let v1 = map_type_ v1 in
       `TypeArg v1
-  | TypeWildcard (v1, v2) ->
+  | TAWildcard (v1, v2) ->
       let v1 = map_tok v1 in
       let v2 =
         map_of_option
@@ -577,17 +564,15 @@ and map_type_argument = function
           v2
       in
       `TypeWildcard (v1, v2)
-  | TypeLifetime v1 ->
-      let v1 = map_ident v1 in
-      `TypeLifetime v1
+  | TAExpr _ -> failwith "TODO"
   | OtherTypeArg (v1, v2) ->
-      let v1 = map_other_type_argument_operator v1 in
+      let v1 = map_todo_kind v1 in
       let v2 = map_of_list map_any v2 in
       `OtherTypeArg (v1, v2)
 
-and map_other_type_operator _x = "TODO"
+and map_todo_kind _x = "TODO"
 
-and map_other_type_argument_operator _x = "TODO"
+and map_other_type_operator _x = "TODO"
 
 and map_attribute = function
   | KeywordAttr v1 -> (
@@ -633,7 +618,10 @@ and map_keyword_attribute = function
   | DefaultImpl -> Left `DefaultImpl
   (* new: *)
   | Lazy -> Right "lazy"
-  | CaseClass -> Right "CaseClass"
+  | RecordClass -> Right "RecordClass"
+  | AnnotationClass -> Right "AnnotationClass"
+  | EnumClass -> Right "EnumClass"
+  | SealedClass -> Right "SealedClass"
 
 and map_other_attribute_operator _x = "TODO"
 
@@ -702,7 +690,7 @@ and map_stmt x : B.stmt =
     | Label (v1, v2) ->
         let v1 = map_label v1 and v2 = map_stmt v2 in
         `Label (v1, v2)
-    | Goto (t, v1) ->
+    | Goto (t, v1, _sc) ->
         let t = map_tok t in
         let v1 = map_label v1 in
         `Goto (t, v1)
@@ -776,8 +764,16 @@ and map_case = function
 
 and map_catch (t, v1, v2) =
   let t = map_tok t in
-  let v1 = map_pattern v1 and v2 = map_stmt v2 in
+  let v1 = map_catch_condition v1 and v2 = map_stmt v2 in
   (t, v1, v2)
+
+and map_catch_condition = function
+  | CatchPattern v1 ->
+      let v1 = map_pattern v1 in
+      v1
+  | CatchParam p ->
+      let _p = map_parameter_classic p in
+      failwith "TODO"
 
 and map_finally v = map_tok_and_stmt v
 
@@ -832,16 +828,6 @@ and map_pattern = function
   | PatId (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_id_info v2 in
       `PatId (v1, v2)
-  | PatVar (v1, v2) ->
-      let v1 = map_type_ v1
-      and v2 =
-        map_of_option
-          (fun (v1, v2) ->
-            let v1 = map_ident v1 and v2 = map_id_info v2 in
-            (v1, v2))
-          v2
-      in
-      `PatVar (v1, v2)
   | PatLiteral v1 ->
       let v1 = map_literal v1 in
       `PatLiteral v1
@@ -1110,7 +1096,7 @@ and map_class_definition
   let v_cparams = map_parameters v_cparams in
   let v_cmixins = map_of_list map_type_ v_cmixins in
   let v_cimplements = map_of_list map_type_ v_cimplements in
-  let v_cextends = map_of_list map_type_ v_cextends in
+  let v_cextends = map_of_list map_class_parent v_cextends in
   let v_ckind = map_wrap map_class_kind v_ckind in
   {
     B.ckind = v_ckind;
@@ -1121,14 +1107,13 @@ and map_class_definition
     cparams = v_cparams;
   }
 
+and map_class_parent (_v1, _v2) = failwith "TODO"
+
 and map_class_kind = function
   | Class -> `Class
   | Interface -> `Interface
   | Trait -> `Trait
   | Object -> `Object
-  | AtInterface -> `AtInterface
-  | RecordClass -> `RecordClass
-  | EnumClass -> failwith "TODO"
 
 and map_directive { d; d_attrs } =
   let d = map_directive_kind d in
@@ -1181,6 +1166,7 @@ and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | Ce _ -> failwith "TODO"
   | Anys _ -> error x
   | E v1 ->
       let v1 = map_expr v1 in

@@ -1,0 +1,1 @@
+$this->trace->$TRACE_FUNC(...,$TRACE_CODE,[...,$DATA=>$this->data,...]);

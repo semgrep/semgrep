@@ -1,8 +1,10 @@
 import json
+import subprocess
 from pathlib import Path
 from subprocess import CalledProcessError
 
 import pytest
+from tests.conftest import _clean_output_json
 
 from semgrep.constants import OutputFormat
 
@@ -64,6 +66,37 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_stdin_input(snapshot):
+    process = subprocess.Popen(
+        ["python3", "-m", "semgrep", "--json", "-e", "a", "--lang", "js", "-"],
+        encoding="utf-8",
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
+    stdout, _ = process.communicate("a")
+    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+
+
+def test_subshell_input(snapshot):
+    stdout = subprocess.check_output(
+        ["bash", "-c", "python3 -m semgrep --json -e 'a' --lang js <(echo 'a')"],
+        encoding="utf-8",
+    )
+    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+
+
+def test_multi_subshell_input(snapshot):
+    stdout = subprocess.check_output(
+        [
+            "bash",
+            "-c",
+            "python3 -m semgrep --json -e 'a' --lang js <(echo 'a') <(echo 'b + a')",
+        ],
+        encoding="utf-8",
+    )
+    snapshot.assert_match(_clean_output_json(stdout), "results.json")
+
+
 def test_multiline(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/eqeq.yaml", target_name="multiline")[0],
@@ -83,6 +116,13 @@ def test_registry_rule(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp("r2c")[0],
         "results.json",
     )
+
+
+def test_auto_config(run_semgrep_in_tmp):
+    # --config auto will change over time, so lets just make sure this doesn't error out
+    # TODO: Mock config response for more detailed testing
+    run_semgrep_in_tmp("auto")
+    assert True
 
 
 def test_hidden_rule__explicit(run_semgrep_in_tmp, snapshot):
@@ -437,5 +477,12 @@ def test_pattern_regex_empty_file(run_semgrep_in_tmp, snapshot):
             "rules/pattern-regex-empty-file.yaml",
             target_name="empty/totally_empty_file",
         )[0],
+        "results.json",
+    )
+
+
+def test_cdn_ruleset_resolution(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("p/ci")[0],
         "results.json",
     )

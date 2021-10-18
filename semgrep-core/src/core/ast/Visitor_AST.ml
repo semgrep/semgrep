@@ -40,6 +40,7 @@ type visitor_in = {
   kdef : (definition -> unit) * visitor_out -> definition -> unit;
   kdir : (directive -> unit) * visitor_out -> directive -> unit;
   kparam : (parameter -> unit) * visitor_out -> parameter -> unit;
+  kcatch : (catch -> unit) * visitor_out -> catch -> unit;
   kident : (ident -> unit) * visitor_out -> ident -> unit;
   kname : (name -> unit) * visitor_out -> name -> unit;
   kentity : (entity -> unit) * visitor_out -> entity -> unit;
@@ -67,6 +68,7 @@ let default_visitor =
     kdir = (fun (k, _) x -> k x);
     kattr = (fun (k, _) x -> k x);
     kparam = (fun (k, _) x -> k x);
+    kcatch = (fun (k, _) x -> k x);
     kident = (fun (k, _) x -> k x);
     kname = (fun (k, _) x -> k x);
     kentity = (fun (k, _) x -> k x);
@@ -135,9 +137,11 @@ let (mk_visitor :
     let k x = v_wrap v_string x in
     vin.kident (k, all_functions) v
   and v_dotted_ident v = v_list v_ident v
+  and v_ident_and_targs (v1, v2) =
+    v_ident v1;
+    v_option v_type_arguments v2
   and v_qualifier = function
-    | QDots v -> v_dotted_ident v
-    | QTop t -> v_tok t
+    | QDots v -> v_list v_ident_and_targs v
     | QExpr (e, t) ->
         v_expr e;
         v_tok t
@@ -165,14 +169,12 @@ let (mk_visitor :
     | Macro -> ()
     | EnumConstant -> ()
     | TypeName -> ()
-  and v_name_ x =
-    let v1, v2 = x in
-    let v1 = v_ident v1 and v2 = v_name_info v2 in
-    ()
   and v_name_info
-      { name_qualifier = v_name_qualifier; name_typeargs = v_name_typeargs } =
-    let arg = v_option v_qualifier v_name_qualifier in
-    let arg = v_option v_type_arguments v_name_typeargs in
+      { name_middle = v4; name_top = v3; name_last = v1; name_info = v2 } =
+    let v1 = v_ident_and_targs v1 in
+    let v2 = v_id_info v2 in
+    let arg = v_option v_qualifier v4 in
+    let arg = v_option v_tok v3 in
     ()
   and v_id_info x =
     let k x =
@@ -236,8 +238,8 @@ let (mk_visitor :
       | Id (v1, v2) ->
           let v1 = v_ident v1 and v2 = v_id_info v2 in
           ()
-      | IdQualified (v1, v2) ->
-          let v1 = v_name_ v1 and v2 = v_id_info v2 in
+      | IdQualified v1 ->
+          let v1 = v_name_info v1 in
           ()
     in
     vin.kname (k, all_functions) x
@@ -562,24 +564,24 @@ let (mk_visitor :
     vin.ktype_ (k, all_functions) x
   and v_type_arguments v = v_bracket (v_list v_type_argument) v
   and v_type_argument = function
-    | TypeArg v1 ->
+    | TA v1 ->
         let v1 = v_type_ v1 in
         ()
-    | TypeWildcard (v1, v2) -> (
+    | TAWildcard (v1, v2) -> (
         v_tok v1;
         match v2 with
         | None -> ()
         | Some (v1, v2) ->
             v_wrap v_bool v1;
             v_type_ v2)
-    | TypeLifetime v1 ->
-        let v1 = v_ident v1 in
+    | TAExpr v1 ->
+        let v1 = v_expr v1 in
         ()
     | OtherTypeArg (v1, v2) ->
-        let v1 = v_other_type_argument_operator v1 and v2 = v_list v_any v2 in
+        let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
         ()
+  and v_todo_kind x = v_ident x
   and v_other_type_operator _ = ()
-  and v_other_type_argument_operator _ = ()
   and v_type_parameter
       {
         tp_id = v1;
@@ -717,10 +719,10 @@ let (mk_visitor :
       | Label (v1, v2) ->
           let v1 = v_label v1 and v2 = v_stmt v2 in
           ()
-      | Goto (t, v1) ->
+      | Goto (t, v1, sc) ->
           let t = v_tok t in
           let v1 = v_label v1 in
-          ()
+          v_tok sc
       | Throw (t, v1, sc) ->
           let t = v_tok t in
           let v1 = v_expr v1 in
@@ -774,11 +776,17 @@ let (mk_visitor :
     | Default t ->
         let t = v_tok t in
         ()
-  and v_catch (t, v1, v2) =
-    v_partial ~recurse:false (PartialCatch (t, v1, v2));
-    let t = v_tok t in
-    let v1 = v_pattern v1 and v2 = v_stmt v2 in
-    ()
+  and v_catch x =
+    let k (t, v1, v2) =
+      v_partial ~recurse:false (PartialCatch (t, v1, v2));
+      let t = v_tok t in
+      let v1 = v_catch_exn v1 and v2 = v_stmt v2 in
+      ()
+    in
+    vin.kcatch (k, all_functions) x
+  and v_catch_exn = function
+    | CatchPattern p -> v_pattern p
+    | CatchParam p -> v_parameter_classic p
   and v_finally (t, v) =
     v_partial ~recurse:false (PartialFinally (t, v));
     let t = v_tok t in
@@ -821,16 +829,6 @@ let (mk_visitor :
           ()
       | PatId (v1, v2) ->
           let v1 = v_ident v1 and v2 = v_id_info v2 in
-          ()
-      | PatVar (v1, v2) ->
-          let v1 = v_type_ v1
-          and v2 =
-            v_option
-              (fun (v1, v2) ->
-                let v1 = v_ident v1 and v2 = v_id_info v2 in
-                ())
-              v2
-          in
           ()
       | PatLiteral v1 ->
           let v1 = v_literal v1 in
@@ -1149,7 +1147,7 @@ let (mk_visitor :
           cparams;
         } =
       let arg = v_class_kind v_ckind in
-      let arg = v_list v_type_ v_cextends in
+      let arg = v_list v_class_parent v_cextends in
       let arg = v_list v_type_ v_cimplements in
       let arg = v_list v_type_ v_mixins in
       v_parameters cparams;
@@ -1158,6 +1156,9 @@ let (mk_visitor :
     in
     vin.kclass_definition (k, all_functions) x
   and v_class_kind (_x, t) = v_tok t
+  and v_class_parent (v1, v2) =
+    v_type_ v1;
+    v_option v_arguments v2
   and v_module_definition { mbody = v_mbody } =
     let arg = v_module_definition_kind v_mbody in
     ()
@@ -1264,6 +1265,9 @@ let (mk_visitor :
         ()
     | Pa v1 ->
         let v1 = v_parameter v1 in
+        ()
+    | Ce v1 ->
+        let v1 = v_catch_exn v1 in
         ()
     | Ar v1 ->
         let v1 = v_argument v1 in
