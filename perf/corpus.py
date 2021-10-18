@@ -8,6 +8,9 @@ def cmd(*args: str) -> None:
     subprocess.run(args, check=True)  # nosem
 
 
+CORPUS_LOCATION = "bench"
+
+
 class Corpus:
     def __init__(
         self,

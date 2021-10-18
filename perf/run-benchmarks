@@ -44,6 +44,8 @@ from variant import SEMGREP_VARIANTS
 from variant import SemgrepVariant
 from variant import STD_VARIANTS
 
+from perf.corpus import CORPUS_LOCATION
+
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler(stream=sys.stderr)
@@ -356,7 +358,7 @@ def generate_prep_file(
     commit_hash: str,
 ) -> None:
     # make dirs
-    benchdir = Path(name)
+    benchdir = Path(f"{CORPUS_LOCATION}/{name}")
     benchdir.mkdir(parents=True, exist_ok=True)
     prep_file = benchdir / "prep"
     # generate prep file
@@ -402,10 +404,9 @@ def run_benchmarks(
 ) -> None:
     def get_corpuses(config_file: Path) -> List[Corpus]:
         config_file_path = config_file.absolute()
-        with chdir(f"bench"):
-            return prepare_benchmark_run(
-                SemgrepBenchmarkConfig.parse_config(config_file_path), clean
-            )
+        return prepare_benchmark_run(
+            SemgrepBenchmarkConfig.parse_config(config_file_path), clean
+        )
 
     variants = SEMGREP_VARIANTS
     if std_only or output_time_per_rule_json:
@@ -448,7 +449,7 @@ def run_benchmarks(
 
     # Multithread here. Dedicate one core to each benchmark
     for corpus in corpuses:
-        with chdir(f"bench/{corpus.name}"):
+        with chdir(f"{CORPUS_LOCATION}/{corpus.name}"):
             try:
                 corpus.prep()
             except Exception as e:
