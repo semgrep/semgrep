@@ -5,12 +5,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Fixed
-- Go: support ... in import list (#4067)
+- Go: support ... in import list (#4067),
+  for example `import (... "error" ...)`
+- Java: ... in method chain calls can now match also 0 elements, to be
+  consistent with other use of ... (#4082), so `o. ... .foo()` will now
+  also match just `o.foo()`.
 
 ## [0.69.1](https://github.com/returntocorp/semgrep/releases/tag/v0.69.1) - 10-14-2021
 
 ### Fixed
-- The `--enable-metrics` flag is now always a flag, does not optionally take an argument
+- The `--enable-metrics` flag is now always a flag, does not optionally
+  take an argument
 
 ## [0.69.0](https://github.com/returntocorp/semgrep/releases/tag/v0.69.0) - 10-13-2021
 
