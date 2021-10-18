@@ -13,6 +13,7 @@
  * license.txt for more details.
  *)
 
+open Common
 module R = Rule
 module RP = Report
 module FM = File_and_more
@@ -73,11 +74,15 @@ let filter_and_partition_rules rules file_and_more =
 
 let skipped_target_of_rule (file_and_more : FM.t) (rule : R.rule) :
     Resp.skipped_target =
+  let rule_id, _ = rule.id in
+  let details =
+    spf "target doesn't contain some elements required by rule '%s'" rule_id
+  in
   {
     path = file_and_more.file;
     reason = Irrelevant_rule;
-    details = "target doesn't contain some elements required by the rule";
-    skipped_rule = Some (fst rule.id);
+    details;
+    rule_id = Some rule_id;
   }
 
 let check hook default_config rules equivs file_and_more =
