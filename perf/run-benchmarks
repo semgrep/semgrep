@@ -32,6 +32,7 @@ from constants import RULE_CONFIG_CACHE_DIR
 from constants import STATS_URL
 from constants import STD
 from corpus import Corpus
+from corpus import CORPUS_LOCATION
 from corpus import DUMMY_CORPUSES
 from corpus import GITLAB_CORPUSES
 from corpus import INTERNAL_CORPUSES
@@ -43,8 +44,6 @@ from variant import GITLAB_VARIANTS
 from variant import SEMGREP_VARIANTS
 from variant import SemgrepVariant
 from variant import STD_VARIANTS
-
-from perf.corpus import CORPUS_LOCATION
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.INFO)
