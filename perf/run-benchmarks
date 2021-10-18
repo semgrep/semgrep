@@ -401,7 +401,8 @@ def run_benchmarks(
     called_dir: str,
 ) -> None:
     def get_corpuses(config_file: Path) -> List[Corpus]:
-        with chdir("bench"):
+        cur_dir = os.path.dirname(os.path.abspath(__file__))
+        with chdir(f"{cur_dir}/bench"):
             return prepare_benchmark_run(
                 SemgrepBenchmarkConfig.parse_config(config_file.absolute()), clean
             )
