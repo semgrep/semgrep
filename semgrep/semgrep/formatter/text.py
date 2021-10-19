@@ -126,6 +126,14 @@ class TextFormatter(BaseFormatter):
                     yield BREAK_LINE
 
     @staticmethod
+    def _message_with_shortlink(rule_match: RuleMatch) -> str:
+        source_url = rule_match._metadata.get("shortlink")
+        if source_url:
+            new_message = f"{rule_match.message} (details: {source_url})"
+            return new_message
+        return rule_match.message
+
+    @staticmethod
     def _build_text_timing_output(
         time_data: Mapping[str, Any],
         color_output: bool,
@@ -207,13 +215,16 @@ class TextFormatter(BaseFormatter):
                 and check_id != CLI_RULE_ID
                 and (last_message is None or last_message != message)
             ):
+                message_with_shortlink = TextFormatter._message_with_shortlink(
+                    rule_match
+                )
                 severity = rule_match.severity
                 severity_text = f"severity:{severity.value.lower()} "
                 if severity == RuleSeverity.WARNING:
                     severity_text = with_color("yellow", severity_text)
                 elif severity == RuleSeverity.ERROR:
                     severity_text = with_color("red", severity_text)
-                yield f"{severity_text}{with_color('yellow', f'rule:{check_id}: {message}')}"
+                yield f"{severity_text}{with_color('yellow', f'rule:{check_id}: {message_with_shortlink}')}"
 
             last_file = current_file
             last_message = message
