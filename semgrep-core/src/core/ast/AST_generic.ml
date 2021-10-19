@@ -1292,7 +1292,8 @@ and definition_kind =
 
 (* template/generics/polymorphic-type *)
 and type_parameter = {
-  (* alt: we could reuse entity here.
+  (* it would be nice to reuse entity here, but then the types would be
+   * mutually recursive.
    * note: in Scala the ident can be a wildcard.
    *)
   tp_id : ident;
@@ -1308,16 +1309,16 @@ and type_parameter = {
   tp_constraints : type_parameter_constraint list;
 }
 
+(* TODO bracket *)
 and type_parameters = type_parameter list
 
-(* TODO bracket *)
+(* less: have also Invariant? *)
 and variance =
-  | Covariant (* '+' in Scala/Hack, 'out' in C#/Kotlin *)
+  (* '+' in Scala/Hack, 'out' in C#/Kotlin *)
+  | Covariant
+  (* '-' in Scala/Hack, 'in' in C#/Kotlin *)
   | Contravariant
 
-(* '-' in Scala/Hack, 'in' in C#/Kotlin *)
-
-(* less: Invariant? *)
 and type_parameter_constraint =
   (* C# *)
   | HasConstructor of tok
@@ -1534,6 +1535,7 @@ and class_kind =
  * can be defined in the class header via cparams and then this class
  * header can call its parent constructor using those cparams).
  * alt: keep just 'type_' and add constructor calls in cbody.
+ * TODO: also can have visibility modifier in C++ or virtual
  *)
 and class_parent = type_ * arguments option
 
@@ -1563,7 +1565,10 @@ and module_definition_kind =
 (* ------------------------------------------------------------------------- *)
 (* Macro definition *)
 (* ------------------------------------------------------------------------- *)
-(* Used by cpp in C/C++ *)
+(* Used by cpp in C/C++
+ * todo? differentiate MacroVar from MacroDef? some macro can take
+ * an empty list of parameters, but they are not MacroVar
+ *)
 and macro_definition = { macroparams : ident list; macrobody : any list }
 
 (*****************************************************************************)
@@ -1616,7 +1621,7 @@ and other_directive_operator =
   (* TODO: Declare, move OE_UseStrict here for JS? *)
   (* Ruby *)
   | OI_Alias
-  | OI_Undef
+  | OI_Undef (* also C/C++ *)
   (* Rust *)
   | OI_Extern
 
