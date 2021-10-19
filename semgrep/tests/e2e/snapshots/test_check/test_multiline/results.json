@@ -11,7 +11,11 @@
       "extra": {
         "is_ignored": false,
         "lines": "        SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK\n        == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK",
+<<<<<<< HEAD
         "message": "useless comparison operation `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK` or `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK != SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK`; possible bug?",
+=======
+        "message": "useless comparison operation `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK == SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK` or `SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK != SUPER_LONG_CONSTANT_TO_TRIGGER_A_LINE_BREAK`; possible bug? (details: https://sg.run/xyz1)",
+>>>>>>> 36f5a1fb (update tests)
         "metadata": {
           "shortlink": "https://sg.run/xyz1"
         },
