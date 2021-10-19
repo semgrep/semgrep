@@ -33,7 +33,3 @@ SEMGREP_VARIANTS = [
 
 # For when you just want to test a single change
 STD_VARIANTS = [SemgrepVariant(STD, "")]
-
-GITLAB_VARIANTS = [
-    SemgrepVariant(STD, ""),
-]

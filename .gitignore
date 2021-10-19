@@ -166,3 +166,9 @@ TAGS
 # Do not check in compiled binaries
 semgrep/semgrep/bin/semgrep-core
 semgrep/semgrep/bin/spacegrep
+
+# Ignore bench files
+perf/bench
+!perf/bench/dogfood
+!perf/bench/gitlab
+!perf/bench/dummy
