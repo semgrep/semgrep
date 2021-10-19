@@ -17,8 +17,6 @@ from typing import Sequence
 from typing import Set
 from typing import Type
 
-import attr
-
 from semgrep import config_resolver
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
@@ -253,13 +251,6 @@ class OutputHandler:
             ):
                 logger.error(with_color("red", str(error)))
 
-    def _add_shortlink(self, rule_match: RuleMatch) -> RuleMatch:
-        source_url = rule_match._metadata.get("shortlink")
-        if source_url:
-            new_message = f"{rule_match.message} (details: {source_url})"
-            return attr.evolve(rule_match, message=new_message)
-        return rule_match
-
     def handle_semgrep_core_output(
         self,
         rule_matches_by_rule: RuleMatchMap,
@@ -275,7 +266,7 @@ class OutputHandler:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
         self.rule_matches += [
-            self._add_shortlink(match)
+            match
             for matches_of_one_rule in rule_matches_by_rule.values()
             for match in matches_of_one_rule
         ]
