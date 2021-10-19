@@ -1,0 +1,107 @@
+runs:
+- name: zulip  # zulip rules on zulip
+  repos:
+  - url: https://github.com/zulip/zulip
+    commit_hash: 829f9272d2c4299a0c0a37a09802248d8136c0a8
+  rule_configs:
+  - rules/zulip/semgrep.yml
+  opts: []
+- name: dropbox  # flask rulepack on a python repo
+  repos:
+  - url: https://github.com/dropbox/pytest-flakefinder
+    commit_hash: a502101f4bc3c65cc32931218addc315b876cecb
+  rule_configs:
+  - r2c-rules/flask.yml
+  opts: []
+- name: coinbase  # r2c-ci and r2c-security-audit packs on a go/ruby repo
+  repos:
+  - url: https://github.com/coinbase/bifrost
+    commit_hash: d5adc9ba09898d0776277125892ee3ec84d7055f
+  rule_configs:
+  - r2c-rules/r2c-ci.yml
+  - r2c-rules/r2c-security-audit.yml
+  opts: []
+- name: apache  # django rulepack on a large python repo
+  repos:
+  - url: https://github.com/apache/libcloud
+    commit_hash: cc5987b5f79d4bca9c9139f24878686224b75425
+  rule_configs:
+  - r2c-rules/django.yml
+  opts: []
+- name: 0c34  # golang rulepack on a go/html repo
+  repos:
+  - url: https://github.com/0c34/govwa
+    commit_hash: 59c1b725bc562aea279b8eeb9af440c6ad41d69d
+  rule_configs:
+  - r2c-rules/golang.yml
+  opts: []
+- name: lodash  # javascript and eslint-plugin-security packs on a large JS repo
+  repos:
+  - url: https://github.com/lodash/lodash
+    commit_hash: 2f79053d7bc7c9c9561a30dda202b3dcd2b72b90
+  rule_configs:
+  - r2c-rules/javascript.yml
+  - r2c-rules/eslint-plugin-security.yml
+  opts: []
+# See https://owasp.org/www-project-vulnerable-web-applications-directory/
+# for a full list of vulnerable apps
+- name: DVWA  # r2c-ci packs (but not r2c-security-audit) on a vulnerable app
+  repos:
+  - url: https://github.com/digininja/DVWA
+    commit_hash: e645a31a7bb7d775d4a89baf3a86d807a0992a6c
+  rule_configs:
+  - r2c-rules/r2c-ci.yml
+  opts: []
+- name: juice-shop  # r2c-ci packs (but not r2c-security-audit) on a vulnerable app
+  repos:
+  - url: https://github.com/bkimminich/juice-shop
+    commit_hash: aa4bfe15c55a01008e033ddab4d2532b3e2c9760
+  rule_configs:
+  - r2c-rules/r2c-ci.yml
+  opts: []
+- name: Vulnerable-Flask-App  # r2c-ci packs (but not r2c-security-audit) on a vulnerable app
+  repos:
+  - url: https://github.com/we45/Vulnerable-Flask-App
+    commit_hash: aa415e4e9557469772b1a07ea7cb3b331ce6bd60
+  rule_configs:
+  - r2c-rules/r2c-ci.yml
+  opts: []
+# Gitlab small repos
+- name: pallets  # python and flask rules on a python repo
+  repos:
+  - url: https://github.com/pallets/flask
+    commit_hash: ecb3450f19d3d817b4b857bb5831b309131b37e1
+  rule_configs:
+  - r2c-rules/python.yml
+  - r2c-rules/flask.yml
+  opts: []
+- name: socket  # javascript rules on a JS repo
+  repos:
+  - url: https://github.com/socketio/socket.io
+    commit_hash: 1faa7e3aea1414ec814aa935021356e8ed2b054c
+  rule_configs:
+  - r2c-rules/javascript.yml
+  opts: []
+# For more comprehensive rule timing information
+- name: coolMenu  # small java corpus
+  repos:
+  - url: https://github.com/notice501/coolMenu
+    commit_hash: 9a58c821583b7e54c08901e810e7eb779152c55b
+  rule_configs:
+  - r2c-rules/java.yml
+  opts: []
+- name: t00sh  # small c corpus
+  repos:
+  - url: https://github.com/t00sh/rop-tool
+    commit_hash: b7988d9c96f9e637be0c85b4ad97cc648b2302cb
+  rule_configs:
+  - r2c-rules/r2c-ci.yml
+  - r2c-rules/r2c-security-audit.yml
+  opts: []
+- name: grpc  # small repository of dockerfiles
+  repos:
+  - url: https://github.com/grpc/grpc-docker-library
+    commit_hash: 2ef4dc22614a5e82fad25ae33e5a8520773eca10
+  rule_configs:
+  - r2c-rules/docker.yml
+  opts: []
