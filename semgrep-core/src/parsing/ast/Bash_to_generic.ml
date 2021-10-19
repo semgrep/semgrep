@@ -379,15 +379,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       let body = stmt_group env loc (blist env body) |> as_stmt in
       Stmt (loc, G.While (until, neg_cond, body) |> G.s)
   | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command env cmd
-  | Assignment ass ->
-      let var = G.N (mk_name ass.lhs) |> G.e in
-      let value = expression env ass.rhs in
-      let e =
-        match ass.assign_op with
-        | Set, tok -> G.Assign (var, tok, value)
-        | Add, tok -> G.AssignOp (var, (G.Plus, tok), value)
-      in
-      Expr (ass.loc, G.e e)
+  | Assignment ass -> assignment env ass
   | Declaration x ->
       let loc = x.loc in
       let assignments = Common.map (assignment env) x.assignments in
