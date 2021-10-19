@@ -43,13 +43,6 @@ runs:
   - r2c-rules/javascript.yml
   - r2c-rules/eslint-plugin-security.yml
   opts: []
-- name: njs-old-dvna  # selected nodejsscan rules on vulnerable app
-  repos:
-  - url: https://github.com/appsecco/dvna
-    commit_hash: c637437d6515bd4c732e91c58e62d38e88260d3c
-  rule_configs:
-  - njsscan
-  opts: []
 # See https://owasp.org/www-project-vulnerable-web-applications-directory/
 # for a full list of vulnerable apps
 - name: DVWA  # r2c-ci packs (but not r2c-security-audit) on a vulnerable app

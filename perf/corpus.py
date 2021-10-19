@@ -37,23 +37,8 @@ class Corpus:
 
 
 SMALL_CORPUSES = Path("configs/ci_small_repos.yaml")
-MEDIUM_CORPUSES = Path("configs/ci_small_repos.yaml")
-
-# Naming conventions:
-
-# By default, these will not run
-LARGE_CORPUSES = [
-    #
-    # Run Ajin's nodejsscan rules on some repo containing javascript files.
-    # This takes something like 4 hours or more. Maybe we could run it
-    # on fewer targets.
-    #
-    Corpus(
-        "njs-juice", "input/njsscan/njsscan/rules/semantic_grep", "input/juice-shop"
-    ),
-    # (Gitlab large) Run our javascript and r2c-security audit packs on a js/ruby repo
-    Corpus("gitlab", "input/rules", "input/gitlab"),
-]
+MEDIUM_CORPUSES = Path("configs/ci_medium_repos.yaml")
+LARGE_CORPUSES = Path("configs/ci_large_repos.yaml")
 
 # For corpuses that cannot be run in CI because they use private repos
 INTERNAL_CORPUSES = [

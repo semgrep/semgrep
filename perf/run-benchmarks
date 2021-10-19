@@ -437,7 +437,7 @@ def run_benchmarks(
         corpuses = (
             get_corpuses(SMALL_CORPUSES)
             + get_corpuses(MEDIUM_CORPUSES)
-            + LARGE_CORPUSES
+            + get_corpuses(LARGE_CORPUSES)
         )
     elif config_file:
         corpuses = get_corpuses(config_file)

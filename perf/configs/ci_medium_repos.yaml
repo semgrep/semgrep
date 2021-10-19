@@ -6,13 +6,13 @@ runs:
   rule_configs:
   - njsscan
   opts: []
-# - name: njs-old-juice  # Run old nodejsscan rules on vulnerable app
-#  repos:
-#  - url: https://github.com/bkimminich/juice-shop
-#    commit_hash: 98633f5ef242bf943608324a562058b22eca6dfe
-#  rule_configs:
-#  - njsscan
-#  opts: []
+- name: njs-old-dvna  # nodejsscan rules on vulnerable app
+  repos:
+  - url: https://github.com/appsecco/dvna
+    commit_hash: c637437d6515bd4c732e91c58e62d38e88260d3c
+  rule_configs:
+  - njsscan
+  opts: []
 - name: netflix  # r2c-ci and r2c-security audit packs on a python/JS repo
   repos:
   - url: https://github.com/Netflix/lemur

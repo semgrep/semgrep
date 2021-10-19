@@ -1,8 +1,0 @@
-runs:
-- name: zulip  # zulip rules on zulip
-  repos:
-  - url: https://github.com/zulip/zulip
-    commit_hash: 829f9272d2c4299a0c0a37a09802248d8136c0a8
-  rule_configs:
-  - rules/zulip/semgrep.yml
-  opts: []
