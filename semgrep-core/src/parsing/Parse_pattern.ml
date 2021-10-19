@@ -91,6 +91,10 @@ let parse_pattern lang ?(print_errors = false) str =
     | Lang.C ->
         let any = Parse_c.any_of_string str in
         C_to_generic.any any
+    | Lang.Cplusplus ->
+        (* TODO: use tree-sitter-cpp at some point, probably more robust *)
+        let any = Parse_cpp.any_of_string Flag_parsing_cpp.Cplusplus str in
+        Cpp_to_generic.any any
     | Lang.Java ->
         let any = Parse_java.any_of_string str in
         Java_to_generic.any any
@@ -119,7 +123,6 @@ let parse_pattern lang ?(print_errors = false) str =
     (* use adhoc parser (neither pfff nor tree-sitter) *)
     | Lang.Yaml -> Yaml_to_generic.any str
     (* not yet handled *)
-    | Lang.Cplusplus -> failwith "No C++ generic parser yet"
     | Lang.R -> failwith "No R generic parser yet"
   in
 
