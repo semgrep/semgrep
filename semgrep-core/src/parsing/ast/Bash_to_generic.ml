@@ -288,6 +288,11 @@ and command_with_redirects (env : env) (x : command_with_redirects) :
 *)
 and command (env : env) (cmd : command) : stmt_or_expr =
   match cmd with
+  | Simple_command { loc; assignments; arguments = [] | [ Word ("", _) ] } ->
+      (* TODO: fix the tree-sitter grammar so it doesn't insert a "MISSING"
+         node set to the empty string when there's no command following
+         multiple assignments. *)
+      Common.map (assignment env) assignments |> block
   | Simple_command { loc; assignments = _; arguments } -> (
       match arguments with
       | [ (Expr_ellipsis tok as e) ] -> Expr ((tok, tok), expression env e)
