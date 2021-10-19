@@ -117,9 +117,6 @@ class ConfigPath:
                     )
                 )
             self._config_path = f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}"
-        elif is_pack_id(config_str) and SEMGREP_CDN_BASE_URL:
-            self._origin = ConfigType.CDN
-            self._config_path = config_str[2:]
         else:
             self._origin = ConfigType.LOCAL
             self._config_path = config_str
