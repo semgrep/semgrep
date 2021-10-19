@@ -12,10 +12,14 @@
         "is_ignored": false,
         "lines": "    return a + b == a + b",
 <<<<<<< HEAD
+<<<<<<< HEAD
         "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
 =======
         "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug? (details: https://sg.run/xyz1)",
 >>>>>>> 36f5a1fb (update tests)
+=======
+        "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
+>>>>>>> 8551f983 (other half of tests)
         "metadata": {
           "shortlink": "https://sg.run/xyz1"
         },
