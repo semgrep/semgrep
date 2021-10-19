@@ -3,5 +3,5 @@ severity:error rule:rules.javascript-basic-eqeq-bad: useless comparison
 3:console.log(x == x)
 
 targets/basic/stupid.py
-severity:error rule:rules.eqeq-is-bad: useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?
+severity:error rule:rules.eqeq-is-bad: useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug? (details: https://sg.run/xyz1)
 3:    return a + b == a + b

@@ -11,8 +11,10 @@
       "extra": {
         "is_ignored": false,
         "lines": "    return a + b == a + b",
-        "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug?",
-        "metadata": {},
+        "message": "useless comparison operation `a + b == a + b` or `a + b != a + b`; possible bug? (details: https://sg.run/xyz1)",
+        "metadata": {
+          "shortlink": "https://sg.run/xyz1"
+        },
         "metavars": {
           "$X": {
             "abstract_content": "a+b",
