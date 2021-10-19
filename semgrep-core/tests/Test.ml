@@ -277,6 +277,12 @@ let lang_parsing_tests =
       let lang = Lang.Vue in
       parsing_tests_for_lang files lang
     );
+    pack_tests "C++" (
+      let dir = Filename.concat tests_path "cpp/parsing" in
+      let files = Common2.glob (spf "%s/*.cpp" dir) in
+      let lang = Lang.Cplusplus in
+      parsing_tests_for_lang files lang
+    );
   ]
 
 let lang_regression_tests ~with_caching =
