@@ -34,13 +34,11 @@ from constants import STD
 from corpus import Corpus
 from corpus import CORPUS_LOCATION
 from corpus import DUMMY_CORPUSES
-from corpus import GITLAB_CORPUSES
 from corpus import INTERNAL_CORPUSES
 from corpus import LARGE_CORPUSES
 from corpus import MEDIUM_CORPUSES
 from corpus import SMALL_CORPUSES
 from repository_time_per_rule import RepositoryTimePerRule
-from variant import GITLAB_VARIANTS
 from variant import SEMGREP_VARIANTS
 from variant import SemgrepVariant
 from variant import STD_VARIANTS
@@ -387,7 +385,6 @@ def run_benchmarks(
     small_only: bool,
     all: bool,
     internal: bool,
-    gitlab: bool,
     std_only: bool,
     config_file: Optional[Path],
     filter_corpus: str,
@@ -428,9 +425,6 @@ def run_benchmarks(
         corpuses = DUMMY_CORPUSES
     elif internal:
         corpuses = INTERNAL_CORPUSES
-    elif gitlab:
-        corpuses = GITLAB_CORPUSES
-        variants = GITLAB_VARIANTS
     elif small_only:
         corpuses = get_corpuses(SMALL_CORPUSES)
     elif all:
@@ -561,11 +555,6 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
-        "--gitlab",
-        help="run gitlab benchmarks for development purposes",
-        action="store_true",
-    )
-    parser.add_argument(
         "--small-only",
         help="only run small benchmarks (20s per run or less)",
         action="store_true",
@@ -645,7 +634,6 @@ def main() -> None:
             small_only=args.small_only,
             all=args.all,
             internal=args.internal,
-            gitlab=args.gitlab,
             std_only=args.std_only,
             config_file=config_file,
             filter_corpus=args.filter_corpus,

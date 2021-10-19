@@ -45,27 +45,4 @@ INTERNAL_CORPUSES = [
     Corpus("dogfood", "input/semgrep.yml", "input/"),
 ]
 
-# Due to the semgrep-gitlab partnership, we want to benchmark the
-# speed of the rules gitlab runs on repos they have suggested
-GITLAB_CORPUSES = [
-    # Semgrep-app
-    Corpus("semgrep-app", "../gitlab-rules", "input/semgrep-app"),
-    # Gitlab small
-    Corpus("pallets", "../gitlab-rules", "input/flask"),
-    # Gitlab small
-    Corpus("socketio", "../gitlab-rules", "input/socket"),
-    # (Gitlab medium) python repo
-    Corpus("django", "../gitlab-rules", "input/django"),
-    # (Gitlab medium) java repo
-    Corpus("dropwizard", "../gitlab-rules", "input/dropwizard"),
-    # (Gitlab large) js/ruby repo
-    Corpus("gitlab", "../gitlab-rules", "input/gitlab"),
-    # (Gitlab large) c repo
-    Corpus("smacker", "../gitlab-rules", "input/gotree"),
-    # (Gitlab large) java repo
-    Corpus("spring-projects", "../gitlab-rules", "input/spring"),
-    # (Gitlab medium) java repo
-    Corpus("pmd", "../gitlab-rules", "input/pmd"),
-]
-
 DUMMY_CORPUSES = [Corpus("dummy", "input/dummy/rules", "input/dummy/targets", "js")]
