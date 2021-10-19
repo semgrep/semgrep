@@ -9,7 +9,7 @@ LPS_ENDPOINT = "semgrep.perf.lps"
 STD = "std"
 
 SEMGREP_USER_AGENT = "Semgrep/0.0.0-benchmark"
-RULE_CONFIG_CACHE_DIR = Path("rules_cache")
+RULE_CONFIG_CACHE_DIR = Path("bench/rules_cache")
 PREP_FILE_TEMPLATE = """#! /bin/sh
 #
 # Fetch rules and targets prior for the "r2c" benchmark.

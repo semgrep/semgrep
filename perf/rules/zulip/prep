@@ -3,7 +3,7 @@
 # Fetch rules and targets prior for the "r2c" benchmark.
 #
 # rule_dir: input/rules
-# target_dir: input/lemur
+# target_dir: input/socket.io
 #
 # See ../r2c-rules for centralized copy of the rule
 # Uses sh because bash is not installed within the semgrep docker container.
@@ -13,8 +13,7 @@ set -eu
 mkdir -p input
 mkdir -p input/rules
 
-cp ../r2c-rules/r2c-ci.yml input/rules
-#cp ../r2c-rules/r2c-security-audit.yml input/rules
+cp -r /Users/emma/workspace/semgrep/perf/bench/rules_cache/zulip input/rules
 cd input
 
 # Obtain a shallow clone of a git repo for a specific commit
@@ -35,7 +34,7 @@ shallow_clone() {
 }
 
 # Targets using other repos we run in CI
-name="juice-shop"
-url="https://github.com/bkimminich/juice-shop"
-commit="aa4bfe15c55a01008e033ddab4d2532b3e2c9760"
+name="zulip"
+url="https://github.com/zulip/zulip"
+commit="829f9272d2c4299a0c0a37a09802248d8136c0a8"
 shallow_clone
