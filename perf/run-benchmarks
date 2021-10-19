@@ -626,7 +626,7 @@ def main() -> None:
         nargs="?",
         default=None,
         const="repo_to_rule_time.json",
-        help="output a json file that shows timing information for each rule.",
+        help="output a json a change file that shows timing information for each rule.",
     )
     parser.add_argument("--no-time", help="disable time-checking", action="store_true")
     args = parser.parse_args()
