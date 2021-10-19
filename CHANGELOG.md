@@ -12,6 +12,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   also match just `o.foo()`.
 - Config files with only a comment give bad error message (#3773)
 
+### Changed
+- Resulution of rulesets use legacy registry instead of cdn registry
+
 ## [0.69.1](https://github.com/returntocorp/semgrep/releases/tag/v0.69.1) - 10-14-2021
 
 ### Fixed
