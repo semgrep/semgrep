@@ -3,6 +3,7 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+- Textual output will now output a shortlink to the registry for rules from semgrep.dev
 
 ## [0.68.2](https://github.com/returntocorp/semgrep/releases/tag/v0.68.2) - 10-07-2021
 
