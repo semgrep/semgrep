@@ -379,7 +379,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       let body = stmt_group env loc (blist env body) |> as_stmt in
       Stmt (loc, G.While (until, neg_cond, body) |> G.s)
   | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command env cmd
-  | Assignment (loc, ass) ->
+  | Assignment ass ->
       let var = G.N (mk_name ass.lhs) |> G.e in
       let value = expression env ass.rhs in
       let e =
@@ -387,8 +387,13 @@ and command (env : env) (cmd : command) : stmt_or_expr =
         | Set, tok -> G.Assign (var, tok, value)
         | Add, tok -> G.AssignOp (var, (G.Plus, tok), value)
       in
-      Expr (loc, G.e e)
-  | Declaration (loc, _) -> todo_stmt2 loc
+      Expr (ass.loc, G.e e)
+  | Declaration x ->
+      let loc = x.loc in
+      let assignments = Common.map (assignment env) x.assignments in
+      (* TODO: don't ignore the "unknown" arguments that contain variables
+         and such. *)
+      assignments |> block
   | Negated_command (loc, excl_tok, cmd) ->
       let cmd_loc = command_loc cmd in
       let cmd = command env cmd |> as_expr in
@@ -414,6 +419,16 @@ and command (env : env) (cmd : command) : stmt_or_expr =
          a '$' to the name like for variables. *)
       let def = (G.basic_entity (get_var_name def.name), def_kind) in
       Stmt (loc, G.DefStmt def |> G.s)
+
+and assignment (env : env) ass =
+  let var = G.N (mk_name ass.lhs) |> G.e in
+  let value = expression env ass.rhs in
+  let e =
+    match ass.assign_op with
+    | Set, tok -> G.Assign (var, tok, value)
+    | Add, tok -> G.AssignOp (var, (G.Plus, tok), value)
+  in
+  Expr (ass.loc, G.e e)
 
 and stmt_group (env : env) (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
   let stmts = List.map as_stmt l in
