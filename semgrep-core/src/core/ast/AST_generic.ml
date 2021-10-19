@@ -345,7 +345,27 @@ and id_info = {
    * depending where it is used.
    *)
   id_constness : constness option ref; [@equal fun _a _b -> true]
-      (* THINK: Drop option? *)
+  (* THINK: Drop option? *)
+  (* id_hidden=true must be set for any artificial identifier that never
+     appears in source code but is introduced in the AST after parsing.
+
+     Don't use this for syntax desugaring or transpilation because the
+     resulting function name might exist in some source code. Consider the
+     following normalization:
+
+       !foo -> foo.contents
+                   ^^^^^^^^
+                 should not be marked as hidden because it could appear
+                 in target source code.
+
+     However, an artificial identifier like "!sh_quoted_expand!" should
+     be marked as hidden in bash.
+
+     This allows not breaking the -fast/-filter_irrelevant_rules optimization
+     that skips a target file if some identifier in the pattern AST doesn't
+     exist in the source of the target.
+  *)
+  id_hidden : bool;
 }
 
 (*****************************************************************************)
@@ -1761,14 +1781,20 @@ let sid_TODO = -1
 
 let empty_var = { vinit = None; vtype = None }
 
-let empty_id_info () =
-  { id_resolved = ref None; id_type = ref None; id_constness = ref None }
+let empty_id_info ?(hidden = false) () =
+  {
+    id_resolved = ref None;
+    id_type = ref None;
+    id_constness = ref None;
+    id_hidden = hidden;
+  }
 
-let basic_id_info resolved =
+let basic_id_info ?(hidden = false) resolved =
   {
     id_resolved = ref (Some resolved);
     id_type = ref None;
     id_constness = ref None;
+    id_hidden = hidden;
   }
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
@@ -1778,8 +1804,8 @@ let basic_id_info resolved =
 (* ------------------------------------------------------------------------- *)
 
 (* alt: could use @@deriving make *)
-let basic_entity ?(attrs = []) ?(tparams = []) id =
-  let idinfo = empty_id_info () in
+let basic_entity ?hidden ?(attrs = []) ?(tparams = []) id =
+  let idinfo = empty_id_info ?hidden () in
   { name = EN (Id (id, idinfo)); attrs; tparams }
 
 (* ------------------------------------------------------------------------- *)

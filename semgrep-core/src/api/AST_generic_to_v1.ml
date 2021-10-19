@@ -115,7 +115,12 @@ and map_resolved_name_kind = function
 
 and map_id_info x =
   match x with
-  | { G.id_resolved = v_id_resolved; id_type = v_id_type; id_constness = v3 } ->
+  | {
+   G.id_resolved = v_id_resolved;
+   id_type = v_id_type;
+   id_constness = v3;
+   id_hidden = _not_available_in_v1;
+  } ->
       let v3 = map_of_ref (map_of_option map_constness) v3 in
       let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
       let v_id_resolved =

@@ -75,6 +75,11 @@ let extract_strings_and_mvars ?lang any =
             | L (String (str, _tok)) ->
                 if not (Pattern.is_special_string_literal str) then
                   Common.push str strings
+            | N (Id (_id, { id_hidden = true; _ })) ->
+                (* This identifier is not present in the pattern source.
+                   We assume a match is possible without the identifier
+                   being present in the target source, so we ignore it. *)
+                ()
             | IdSpecial (Eval, t) ->
                 if Parse_info.is_origintok t then
                   Common.push (Parse_info.str_of_info t) strings

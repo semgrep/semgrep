@@ -83,6 +83,7 @@ let default_visitor =
           id_resolved = v_id_resolved;
           id_type = v_id_type;
           id_constness = _IGNORED;
+          id_hidden = _IGNORED2;
         } =
           x
         in
@@ -182,12 +183,14 @@ let (mk_visitor :
         id_resolved = v_id_resolved;
         id_type = v_id_type;
         id_constness = v_id_constness;
+        id_hidden = v_id_hidden;
       } =
         x
       in
       let arg = v_ref_do_visit (v_option v_resolved_name) v_id_resolved in
       let arg = v_ref_do_visit (v_option v_type_) v_id_type in
       let arg = v_ref_do_visit (v_option v_constness) v_id_constness in
+      let arg = v_hidden v_id_hidden in
       ()
     in
     vin.kid_info (k, all_functions) x
@@ -434,6 +437,7 @@ let (mk_visitor :
       | NotCst -> ()
     in
     vin.kconstness (k, all_functions) x
+  and v_hidden _is_hidden = ()
   and v_container_operator _x = ()
   and v_comprehension (v1, v2) =
     let v1 = v_expr v1 in

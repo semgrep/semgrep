@@ -153,7 +153,7 @@ let mk_var_expr (var : variable_name) : G.expr =
 module C = struct
   let mk (loc : loc) (name : string) =
     let id = "!sh_" ^ name ^ "!" in
-    let id_info = G.empty_id_info () in
+    let id_info = G.empty_id_info ~hidden:true () in
     G.N (G.Id ((id, fst loc), id_info)) |> G.e
 
   (* For simple commands, e.g.
