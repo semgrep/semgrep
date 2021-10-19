@@ -299,15 +299,20 @@ and map_expr env x : G.expr =
       and either, tdot = map_wrap env (map_dotOp env) v2
       and v3 = map_name env v3 in
       match either with
-      | Left _dot -> G.DotAccess (v1, tdot, G.EN v3) |> G.e
-      | Right _arrow -> complicated env tdot)
+      | Dot -> G.DotAccess (v1, tdot, G.EN v3) |> G.e
+      | Arrow ->
+          let v1 = G.DeRef (tdot, v1) |> G.e in
+          G.DotAccess (v1, tdot, G.EN v3) |> G.e)
   | DotStarAccess (v1, v2, v3) -> (
       let v1 = map_expr env v1
       and either, tdot = map_wrap env (map_dotOp env) v2
       and v3 = map_expr env v3 in
+      let e = G.DeRef (tdot, v3) |> G.e in
       match either with
-      | Left _dot -> complicated env tdot
-      | Right _arrow -> complicated env tdot)
+      | Dot -> G.DotAccess (v1, tdot, G.EDynamic e) |> G.e
+      | Arrow ->
+          let v1 = G.DeRef (tdot, v1) |> G.e in
+          G.DotAccess (v1, tdot, G.EDynamic e) |> G.e)
   | SizeOf (v1, v2) ->
       let v1 = map_tok env v1
       and v2 =
@@ -470,8 +475,8 @@ and map_fixOp env = function
   | Inc -> G.Incr
 
 and map_dotOp env = function
-  | Dot -> Left ()
-  | Arrow -> Right ()
+  | Dot -> Dot
+  | Arrow -> Arrow
 
 and map_binaryOp env x : G.operator =
   match x with
@@ -833,7 +838,7 @@ and map_colon_option env = function
       let v1 = map_of_list (map_tok env) v1 in
       (v1, None)
 
-and map_onedecl env x =
+and map_onedecl env x : G.definition =
   match x with
   | EmptyDecl t ->
       let t = map_type_ env t in
@@ -845,7 +850,7 @@ and map_onedecl env x =
       todo env (tk, ty, id)
   | V v1 ->
       let ent, vardef = map_var_decl env v1 in
-      todo env (ent, vardef)
+      (ent, G.VarDef vardef)
   | StructuredBinding (v1, v2, v3) ->
       let v1 = map_type_ env v1 in
       let v2 = map_bracket env (map_of_list (map_ident env)) v2 in
@@ -862,7 +867,7 @@ and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
   let ent = map_entity env ent in
   let v_v_type = map_type_ env v_v_type in
   let v_v_init = map_of_option (map_init env) v_v_init in
-  complicated env ()
+  (ent, { G.vtype = Some v_v_type; vinit = v_v_init })
 
 and map_init env = function
   | EqInit (v1, v2) ->
@@ -982,14 +987,20 @@ and map_parameter_classic env
   let v_p_val =
     map_of_option
       (fun (v1, v2) ->
-        let v1 = map_tok env v1 and v2 = map_expr env v2 in
-        (v1, v2))
+        let _v1 = map_tok env v1 and v2 = map_expr env v2 in
+        v2)
       v_p_val
   in
   let v_p_specs = map_of_list (map_specifier env) v_p_specs in
   let v_p_type = map_type_ env v_p_type in
   let v_p_name = map_of_option (map_ident env) v_p_name in
-  todo env ()
+  {
+    G.pname = v_p_name;
+    ptype = Some v_p_type;
+    pattrs = v_p_specs;
+    pdefault = v_p_val;
+    pinfo = G.empty_id_info ();
+  }
 
 and map_exn_spec env = function
   | ThrowSpec (v1, v2) ->
