@@ -64,6 +64,11 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(text_output[0], "output.txt")
     snapshot.assert_match(text_output[1], "error.txt")
 
+    # Metric message should not appear in second output
+    text_output = run_semgrep_in_tmp("rules/eqeq.yaml", output_format=OutputFormat.TEXT)
+    snapshot.assert_match(text_output[0], "output_second.txt")
+    snapshot.assert_match(text_output[1], "error_second.txt")
+
 
 def test_terminal_output_quiet(run_semgrep_in_tmp, snapshot):
     text_output = run_semgrep_in_tmp(
