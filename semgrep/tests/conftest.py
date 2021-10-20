@@ -14,7 +14,7 @@ from typing import Union
 import pytest
 
 from semgrep.constants import OutputFormat
-from semgrep.notifications import possibly_notify_user
+from semgrep.settings import Settings
 
 TESTS_PATH = Path(__file__).parent
 
@@ -73,6 +73,7 @@ def _run_semgrep(
     options: Optional[List[Union[str, Path]]] = None,
     output_format: OutputFormat = OutputFormat.JSON,
     strict: bool = True,
+    quiet: bool = False,
     env: Optional[Mapping[str, str]] = None,
     fail_on_nonzero: bool = True,
 ) -> Tuple[str, str]:
@@ -84,13 +85,14 @@ def _run_semgrep(
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
     """
-    possibly_notify_user()
-
     if options is None:
         options = []
 
     if strict:
         options.append("--strict")
+
+    if quiet:
+        options.append("--quiet")
 
     options.append("--disable-version-check")
 
@@ -152,7 +154,10 @@ def chdir(dirname=None):
 def run_semgrep_in_tmp(monkeypatch, tmp_path):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
-
     monkeypatch.chdir(tmp_path)
+
+    # remove the settings folder between every run
+    if Settings.get_path_to_settings().exists():
+        Settings.get_path_to_settings().unlink()
 
     yield _run_semgrep
