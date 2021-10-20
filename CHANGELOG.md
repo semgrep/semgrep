@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Changed
+- Report CI environment variable in metrics for better environment
+  determination
+
 ### Fixed
 - Go: support ... in import list (#4067),
   for example `import (... "error" ...)`
