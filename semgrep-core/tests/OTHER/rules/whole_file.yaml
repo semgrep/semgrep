@@ -1,0 +1,15 @@
+rules:
+- id: http-client
+  patterns:
+    - pattern: variable "..." { ... }
+    - pattern-not: variable "name_tag" { ... }
+    - pattern-not: variable "environment_tag" { ... }
+    - pattern-not-inside: |
+        ...
+        variable "environment_tag" { ... }
+        ...
+        variable "name_tag" { ... }
+        ...
+  message: test
+  languages: [hcl]
+  severity: WARNING
