@@ -15,7 +15,6 @@
         "metadata": {
           "category": "correctness",
           "license": "Commons Clause License Condition v1.0[LGPL-2.1-only]",
-          "shortlink": "https://sg.run/Kl6n",
           "source": "https://semgrep.dev/r/javascript.lang.correctness.useless-eqeq.eqeq-is-bad",
           "technology": [
             "javascript"
