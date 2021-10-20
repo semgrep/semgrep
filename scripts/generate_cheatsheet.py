@@ -658,7 +658,7 @@ def main() -> None:
 
     if args.json:
         output = json.dumps(
-            cheatsheet, indent=4, separators=(",", ": "), sort_keys=True
+            cheatsheet, indent=2, separators=(",", ": "), sort_keys=True
         )
     elif args.html:
         output = cheatsheet_to_html(cheatsheet)
