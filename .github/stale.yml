@@ -17,5 +17,6 @@ issues:
     - tech-debt
     - new-language
     - bug
+    - planned-project
   markComment: >
     This issue is being marked `stale` because there hasn't been any activity in 30 days. Please leave a comment if you think this issue is still relevant and should be prioritized, otherwise it will be automatically closed in 7 days (you can always reopen it later).
