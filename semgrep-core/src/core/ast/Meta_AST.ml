@@ -1343,6 +1343,7 @@ and vof_other_directive_operator = function
   | OI_Alias -> OCaml.VSum ("OI_Alias", [])
   | OI_Undef -> OCaml.VSum ("OI_Undef", [])
   | OI_Extern -> OCaml.VSum ("OI_Extern", [])
+  | OI_Todo -> OCaml.VSum ("OI_Todo", [])
 
 and vof_item x = vof_stmt x
 
