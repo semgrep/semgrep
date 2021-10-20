@@ -206,9 +206,9 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python }}
-      - name: Run 0.65.0 Timing Benchmark
+      - name: Run 0.69.1 Timing Benchmark
         run: |
-          pip3 install semgrep==0.65.0
+          pip3 install semgrep==0.69.1
           semgrep --version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH
