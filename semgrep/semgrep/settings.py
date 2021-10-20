@@ -30,7 +30,7 @@ class Settings:
     def __init__(self) -> None:
         self._yaml = YAML()
         self._yaml.default_flow_style = False
-        self._path = Path("~").expanduser() / USER_DATA_FOLDER / SETTINGS_FILE
+        self._path = Settings.get_path_to_settings()
 
         # If file exists, read file. Otherwise use default
         if self._path.exists():
@@ -43,6 +43,10 @@ class Settings:
             self._value = cast(Dict[str, Any], yaml_file)
         else:
             self._value = DEFAULT_SETTINGS
+
+    @staticmethod
+    def get_path_to_settings() -> Path:
+        return Path("~").expanduser() / USER_DATA_FOLDER / SETTINGS_FILE
 
     def add_setting(self, key: str, value: Any) -> None:
         """

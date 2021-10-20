@@ -546,7 +546,7 @@ def cli(
     from semgrep.synthesize_patterns import synthesize
     from semgrep.target_manager import converted_pipe_targets
 
-    possibly_notify_user()
+    possibly_notify_user(quiet=quiet)
 
     target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
