@@ -221,7 +221,11 @@ def run_semgrep_on_example(
         config.flush()
         cmd = ["semgrep", "--strict", "--json", f"--config={config.name}", code_path]
         print(">>> " + " ".join(cmd))
-        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
         if output.returncode == 0:
             print(output.stderr.decode("utf-8"))
             return json.loads(output.stdout.decode("utf-8"))
