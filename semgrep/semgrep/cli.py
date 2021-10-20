@@ -546,8 +546,6 @@ def cli(
     from semgrep.synthesize_patterns import synthesize
     from semgrep.target_manager import converted_pipe_targets
 
-    possibly_notify_user()
-
     target_sequence: Sequence[str] = list(target) if target else [os.curdir]
 
     metric_manager.configure(metrics, metrics_legacy)
@@ -579,6 +577,8 @@ def cli(
     semgrep.util.set_flags(
         verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
     )
+
+    possibly_notify_user()
 
     # change cwd if using docker
     try:
