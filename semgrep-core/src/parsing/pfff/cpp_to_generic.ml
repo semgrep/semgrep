@@ -39,6 +39,8 @@ module G = AST_generic
 
 type env = unit
 
+let error = AST_generic.error
+
 let _id x = x
 
 let map_either _env f g x =
@@ -48,7 +50,9 @@ let map_either _env f g x =
 
 let todo _env _x = failwith "TODO"
 
-(* TODO? change AST_generic.ml instead to take more expr option? *)
+let complicated _env _x = failwith "TODO"
+
+(* alt: change AST_generic.ml instead to take more expr option? *)
 let expr_option t eopt =
   match eopt with
   | Some e -> e
@@ -84,6 +88,22 @@ let def_or_dir_either_to_stmt = function
   | Left dir -> G.DirectiveStmt dir |> G.s
   | Right def -> G.DefStmt def |> G.s
 
+let any_of_either_type_expr = function
+  | Left t -> G.T t
+  | Right e -> G.E e
+
+let arg_of_either_expr_type = function
+  | Left e -> G.Arg e
+  | Right t -> G.ArgType t
+
+let map_def_in_stmt f st =
+  match st.G.s with
+  | DefStmt (ent, def) ->
+      let ent, def = f (ent, def) in
+      { st with s = DefStmt (ent, def) }
+  (* less: raise an error? *)
+  | _ -> st
+
 (*****************************************************************************)
 (* Conversions *)
 (*****************************************************************************)
@@ -99,6 +119,8 @@ let map_wrap env _of_a (v1, v2) =
 let map_paren env _of_a (v1, v2, v3) =
   let v1 = map_tok env v1 and v2 = _of_a v2 and v3 = map_tok env v3 in
   (v1, v2, v3)
+
+let map_paren_skip env _of_a (v1, v2, v3) = _of_a v2
 
 let map_brace env _of_a (v1, v2, v3) =
   let v1 = map_tok env v1 and v2 = _of_a v2 and v3 = map_tok env v3 in
@@ -143,15 +165,23 @@ and map_ident_or_op (env : env) = function
       let v1 = map_ident env v1 and v2 = map_template_arguments env v2 in
       (v1, Some v2)
   | IdOperator (v1, v2) ->
-      let v1 = map_tok env v1 in
-      let v2 = map_wrap env (map_operator env) v2 in
-      todo env (v1, v2)
+      let t1 = map_tok env v1 in
+      let _op, t2 = map_wrap env (map_operator env) v2 in
+      let id =
+        (PI.str_of_info t1 ^ " " ^ PI.str_of_info t2, PI.combine_infos t1 [ t2 ])
+      in
+      (id, None)
   | IdDestructor (v1, v2) ->
-      let v1 = map_tok env v1 and v2 = map_ident env v2 in
-      todo env (v1, v2)
+      let t1 = map_tok env v1 and s, t2 = map_ident env v2 in
+      let id = (PI.str_of_info t1 ^ s, PI.combine_infos t1 [ t2 ]) in
+      (id, None)
   | IdConverter (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_type_ env v2 in
-      todo env (v1, v2)
+      let ii = Visitor_AST.ii_of_any (G.T v2) in
+      let s = v1 :: ii |> List.map PI.str_of_info |> String.concat "" in
+      let t = PI.combine_infos v1 ii in
+      let id = (s, t) in
+      (id, None)
 
 and map_template_arguments env (l, v, r) : G.type_arguments =
   let xs = (map_of_list (map_template_argument env)) v in
@@ -190,7 +220,7 @@ and map_typeC env x : G.type_ =
   | TSized (v1, v2) ->
       let v1 = map_of_list (map_wrap env (map_sized_type env)) v1
       and v2 = map_of_option (map_type_ env) v2 in
-      todo env (v1, v2)
+      complicated env (v1, v2)
   | TPointer (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_type_ env v2
@@ -209,36 +239,39 @@ and map_typeC env x : G.type_ =
   | TFunction v1 ->
       let ps, tret = map_functionType env v1 in
       G.TyFun (ps, tret) |> G.t
+  (* alt: use OT_EnumName *)
   | EnumName (v1, v2) ->
-      let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
-      todo env (v1, v2)
+      let _v1TODO = map_tok env v1 and v2 = map_a_ident_name env v2 in
+      G.TyN v2 |> G.t
+  (* alt: use OT_StructName and OT_UnionName which I use in c_to_generic.ml *)
   | ClassName (v1, v2) ->
-      let v1 = map_class_key env v1 and v2 = map_a_class_name env v2 in
-      todo env (v1, v2)
+      let _v1TODO = map_class_key env v1 and v2 = map_a_class_name env v2 in
+      G.TyN v2 |> G.t
   | TypeName v1 ->
       let v1 = map_a_ident_name env v1 in
       G.TyN v1 |> G.t
   | TypenameKwd (v1, v2) ->
-      let v1 = map_tok env v1 and v2 = map_type_ env v2 in
-      todo env (v1, v2)
+      let _v1 = map_tok env v1 and v2 = map_type_ env v2 in
+      v2
   | EnumDef v1 ->
       let nopt, tdef = map_enum_definition env v1 in
-      todo env v1
+      complicated env v1
   | ClassDef v1 ->
       let nopt, cdef = map_class_definition env v1 in
-      todo env v1
+      complicated env v1
   | TypeOf (v1, v2) ->
       let v1 = map_tok env v1
-      and v2 =
+      and _l, v2, _r =
         map_paren env (map_either env (map_type_ env) (map_expr env)) v2
       in
-      todo env (v1, v2)
+      let any = any_of_either_type_expr v2 in
+      G.OtherType (G.OT_Todo, [ G.TodoK ("Typeof", v1); any ]) |> G.t
   | TAuto v1 ->
       let v1 = map_tok env v1 in
-      todo env v1
+      G.TyAny v1 |> G.t
   | ParenType v1 ->
-      let v1 = map_paren env (map_type_ env) v1 in
-      todo env v1
+      let _l, v1, _r = map_paren env (map_type_ env) v1 in
+      v1
   | TypeTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_type_ env) v2 in
@@ -283,7 +316,7 @@ and map_expr env x : G.expr =
       G.L v1 |> G.e
   | IdSpecial v1 ->
       let v1 = map_wrap env (map_special env) v1 in
-      todo env v1
+      G.IdSpecial v1 |> G.e
   | Call (v1, v2) ->
       let v1 = map_expr env v1
       and v2 = map_paren env (map_of_list (map_argument env)) v2 in
@@ -349,13 +382,9 @@ and map_expr env x : G.expr =
   | SizeOf (v1, v2) ->
       let v1 = map_tok env v1
       and v2 =
-        map_either env (map_expr env) (map_paren env (map_type_ env)) v2
+        map_either env (map_expr env) (map_paren_skip env (map_type_ env)) v2
       in
-      let arg =
-        match v2 with
-        | Left e -> G.Arg e
-        | Right (_l, t, _r) -> G.ArgType t
-      in
+      let arg = arg_of_either_expr_type v2 in
       let special = G.IdSpecial (G.Sizeof, v1) |> G.e in
       G.Call (special, G.fake_bracket [ arg ]) |> G.e
   | Cast (v1, v2) ->
@@ -383,7 +412,8 @@ and map_expr env x : G.expr =
       and l, either, r =
         map_paren env (map_either env (map_type_ env) (map_expr env)) v2
       in
-      todo env (v1, v2)
+      let any = any_of_either_type_expr either in
+      G.OtherExpr (G.OE_Todo, [ G.TodoK ("TypeId", v1); any ]) |> G.e
   | CplusplusCast (v1, v2, v3) ->
       let optodo, t = map_wrap env (map_cast_operator env) v1
       and langle, typ, rangle = map_angle_keep env (map_type_ env) v2
@@ -391,18 +421,30 @@ and map_expr env x : G.expr =
       let e = G.OtherExpr (G.OE_Todo, [ G.TodoK (optodo, t) ]) |> G.e in
       G.Call (e, (langle, [ G.ArgType typ; G.Arg e ], rpar)) |> G.e
   | New (v1, v2, v3, v4, v5) ->
-      let v1 = map_of_option (map_tok env) v1
+      let _topqualifierTODO = map_of_option (map_tok env) v1
       and v2 = map_tok env v2
-      and v3 = map_of_option (map_paren env (map_of_list (map_argument env))) v3
+      and _placementTODO =
+        map_of_option (map_paren env (map_of_list (map_argument env))) v3
       and v4 = map_type_ env v4
       and v5 = map_of_option (map_obj_init env) v5 in
-      todo env (v1, v2, v3, v4, v5)
+      let special = G.IdSpecial (G.New, v2) |> G.e in
+      let l, args, r =
+        match v5 with
+        | None -> G.fake_bracket [ G.ArgType v4 ]
+        | Some (l, args, r) -> (l, G.ArgType v4 :: args, r)
+      in
+      G.Call (special, (l, args, r)) |> G.e
   | Delete (v1, v2, v3, v4) ->
-      let v1 = map_of_option (map_tok env) v1
+      let _topqualifierTODO = map_of_option (map_tok env) v1
       and v2 = map_tok env v2
       and v3 = map_of_option (map_bracket env map_of_unit) v3
       and v4 = map_expr env v4 in
-      todo env (v1, v2, v3, v4)
+      let categ =
+        match v3 with
+        | None -> G.TodoK ("Delete", v2)
+        | Some (_l, (), _r) -> G.TodoK ("Delete[]", v2)
+      in
+      G.OtherExpr (G.OE_Todo, [ categ; G.E v4 ]) |> G.e
   | Throw (v1, v2) ->
       let v1 = map_tok env v1
       and v2 = expr_option v1 (map_of_option (map_expr env) v2) in
@@ -475,7 +517,13 @@ and map_constant env x : G.literal =
       G.String v1
   | MultiString v1 ->
       let v1 = map_of_list (map_wrap env map_of_string) v1 in
-      todo env v1
+      let s = v1 |> List.map fst |> String.concat "" in
+      let t =
+        match v1 |> List.map snd with
+        | [] -> raise Impossible
+        | x :: xs -> PI.combine_infos x xs
+      in
+      G.String (s, t)
   | Bool v1 ->
       let v1 = map_wrap env map_of_bool v1 in
       G.Bool v1
@@ -558,26 +606,26 @@ and map_accessop env = function
 
 and map_operator (env : env) = function
   | BinaryOp v1 ->
-      let v1 = map_binaryOp env v1 in
-      todo env v1
+      let _v1 = map_binaryOp env v1 in
+      ()
   | AssignOp v1 ->
-      let v1 = map_assignOp env v1 in
-      todo env v1
+      let _v1 = map_assignOp env v1 in
+      ()
   | FixOp v1 ->
-      let v1 = map_fixOp env v1 in
-      todo env v1
+      let _v1 = map_fixOp env v1 in
+      ()
   | PtrOpOp v1 ->
-      let v1 = map_ptrOp env v1 in
-      todo env v1
+      let _v1 = map_ptrOp env v1 in
+      ()
   | AccessOp v1 ->
-      let v1 = map_accessop env v1 in
-      todo env v1
+      let _v1 = map_accessop env v1 in
+      ()
   | AllocOp v1 ->
-      let v1 = map_allocOp env v1 in
-      todo env v1
-  | UnaryTildeOp -> todo env ()
-  | UnaryNotOp -> todo env ()
-  | CommaOp -> todo env ()
+      let _v1 = map_allocOp env v1 in
+      ()
+  | UnaryTildeOp -> ()
+  | UnaryNotOp -> ()
+  | CommaOp -> ()
 
 and map_cast_operator env = function
   | Static_cast -> "Static_cast"
@@ -600,7 +648,7 @@ and map_stmt env x : G.stmt =
       G.ExprStmt (e, sc) |> G.s
   | MacroStmt v1 ->
       let v1 = map_tok env v1 in
-      todo env v1
+      G.OtherStmt (G.OS_Todo, [ G.TodoK ("MacroStmt", v1) ]) |> G.s
   | If (v1, v2, v3, v4, v5) ->
       let v1 = map_tok env v1
       and _v2TODO = map_of_option (map_tok env) v2 (* constexpr *)
@@ -616,9 +664,9 @@ and map_stmt env x : G.stmt =
       G.If (v1, cond, v4, v5) |> G.s
   | Switch (v1, v2, v3) ->
       let v1 = map_tok env v1
-      and v2 = map_paren env (map_condition_clause env) v2
-      and v3 = map_stmt env v3 in
-      todo env (v1, v2, v3)
+      and v2 = map_paren_skip env (map_condition_clause env) v2
+      and v3 = map_cases env v3 in
+      G.Switch (v1, Some v2, v3) |> G.s
   | While (v1, v2, v3) ->
       let v1 = map_tok env v1
       and _, cond, _ = map_paren env (map_condition_clause env) v2
@@ -638,9 +686,10 @@ and map_stmt env x : G.stmt =
       G.For (v1, header, v3) |> G.s
   | MacroIteration (v1, v2, v3) ->
       let v1 = map_ident env v1
-      and v2 = map_paren env (map_of_list (map_argument env)) v2
+      and v2 = map_paren_skip env (map_of_list (map_argument env)) v2
       and v3 = map_stmt env v3 in
-      todo env (v1, v2, v3)
+      let anys = [ G.I v1; G.Args v2 ] in
+      G.OtherStmtWithStmt (G.OSWS_Iterator, anys, v3) |> G.s
   | Jump (v1, v2) ->
       let v1 = map_jump env v1 and v2 = map_sc env v2 in
       v1 v2
@@ -649,12 +698,13 @@ and map_stmt env x : G.stmt =
       and _v2 = map_tok env v2
       and v3 = map_stmt env v3 in
       G.Label (v1, v3) |> G.s
+  (* should be handled in map_cases *)
   | Case (v1, v2, v3, v4) ->
       let v1 = map_tok env v1
       and v2 = map_expr env v2
       and v3 = map_tok env v3
       and v4 = map_case_body env v4 in
-      todo env (v1, v2, v3, v4)
+      complicated env (v1, v2, v3, v4)
   | CaseRange (v1, v2, v3, v4, v5, v6) ->
       let v1 = map_tok env v1
       and v2 = map_expr env v2
@@ -662,12 +712,12 @@ and map_stmt env x : G.stmt =
       and v4 = map_expr env v4
       and v5 = map_tok env v5
       and v6 = map_case_body env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
+      complicated env (v1, v2, v3, v4, v5, v6)
   | Default (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_tok env v2
       and v3 = map_case_body env v3 in
-      todo env (v1, v2, v3)
+      complicated env (v1, v2, v3)
   | Try (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_compound env v2
@@ -676,7 +726,10 @@ and map_stmt env x : G.stmt =
   | StmtTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_stmt env) v2 in
-      todo env (v1, v2)
+      let st = G.Block (G.fake_bracket v2) |> G.s in
+      G.OtherStmtWithStmt (OSWS_Todo, [ G.TodoK v1 ], st) |> G.s
+
+and map_cases env st : G.case_and_body list = failwith "TODO"
 
 and map_expr_stmt env (v1, v2) =
   let v1 = map_of_option (map_expr env) v1 and v2 = map_sc env v2 in
@@ -695,7 +748,7 @@ and map_condition_clause env x : G.condition =
       v2
   | CondOneDecl v1 ->
       let v1 = map_var_decl env v1 in
-      todo env v1
+      complicated env v1
 
 and map_for_header env = function
   | ForClassic (v1, v2, v3) ->
@@ -720,7 +773,7 @@ and map_a_expr_or_vars env v =
       let xs = map_vars_decl env xs in
       xs
       |> List.map (fun onedecl ->
-             let ent, vardef = todo env onedecl in
+             let ent, vardef = complicated env onedecl in
              G.ForInitVar (ent, vardef))
 
 and map_a_label env v = map_wrap env map_of_string v
@@ -751,17 +804,20 @@ and map_case_body env v = map_of_list (map_stmt_or_decl env) v
 
 and map_handler env (v1, v2, v3) : G.catch =
   let v1 = map_tok env v1
-  and _, xs, _ = map_paren env (map_of_list (map_exception_declaration env)) v2
+  and _, xs, _ =
+    map_paren env (map_of_list (map_exception_declaration v1 env)) v2
   and v3 = map_compound env v3 in
-  let pat : G.catch_exn = todo env xs in
+  let pat : G.catch_exn = complicated env xs in
   (v1, pat, G.Block v3 |> G.s)
 
-and map_exception_declaration env x : G.catch_exn =
+and map_exception_declaration tok env x : G.catch_exn =
   match x with
-  | ExnDecl v1 ->
+  | ExnDecl v1 -> (
       let v1 = map_parameter env v1 in
-      (* TODO G.CatchPattern (G.PatEllipsis v1) if ellipsis *)
-      todo env v1
+      match H.parameter_to_catch_exn_opt v1 with
+      | Some x -> x
+      | None ->
+          error tok "could not convert a parameter into a catch exn handler")
 
 and map_stmt_or_decl env x : G.stmt list =
   match x with
@@ -792,20 +848,24 @@ and map_decl env x : G.stmt list =
       v1 |> List.map (fun def -> G.DefStmt def |> G.s)
   | UsingDecl v1 ->
       let v1 = map_using env v1 in
-      todo env v1
+      complicated env v1
   | NameSpaceAlias (v1, v2, v3, v4, v5) ->
       let v1 = map_tok env v1
       and v2 = map_ident env v2
       and v3 = map_tok env v3
       and v4 = map_type_ env v4
       and v5 = map_sc env v5 in
-      todo env (v1, v2, v3, v4, v5)
+      complicated env (v1, v2, v3, v4, v5)
   | Asm (v1, v2, v3, v4) ->
       let v1 = map_tok env v1
-      and v2 = map_of_option (map_tok env) v2
-      and v3 = map_paren env (map_asmbody env) v3
+      and _volatileTODO = map_of_option (map_tok env) v2
+      and v3 = map_paren_skip env (map_asmbody env) v3
       and v4 = map_sc env v4 in
-      todo env (v1, v2, v3, v4)
+      let anys = v3 in
+      [
+        G.OtherStmt (OS_Asm, [ G.TodoK ("Asm", v1) ] @ anys @ [ G.Tk v4 ])
+        |> G.s;
+      ]
   | Func v1 ->
       let v1 = map_func_definition env v1 in
       [ G.DefStmt v1 |> G.s ]
@@ -813,37 +873,49 @@ and map_decl env x : G.stmt list =
       let v1 = map_tok env v1
       and v2 = map_template_parameters env v2
       and v3 = map_decl env v3 in
-      todo env (v1, v2, v3)
+      v3
+      |> List.map
+           (map_def_in_stmt (fun (ent, def) -> ({ ent with tparams = v2 }, def)))
   | TemplateInstanciation (v1, v2, v3) ->
       let v1 = map_tok env v1
       and ent, vardef = map_var_decl env v2
       and v3 = map_sc env v3 in
-      todo env (v1, ent, vardef, v3)
+      complicated env (v1, ent, vardef, v3)
   | ExternDecl (v1, v2, v3) ->
       let v1 = map_tok env v1
-      and v2 = map_wrap env map_of_string v2
+      and _v2TODO = map_wrap env map_of_string v2
       and v3 = map_decl env v3 in
-      todo env (v1, v2, v3)
+      v3
+      |> List.map
+           (map_def_in_stmt (fun (ent, def) ->
+                let extern = G.attr Extern v1 in
+                ({ ent with attrs = extern :: ent.attrs }, def)))
   | ExternList (v1, v2, v3) ->
       let v1 = map_tok env v1
-      and v2 = map_wrap env map_of_string v2
-      and v3 = map_declarations env v3 in
-      todo env (v1, v2, v3)
+      and _v2TODO = map_wrap env map_of_string v2
+      and _l, v3, _r = map_declarations env v3 in
+      v3
+      |> List.map
+           (map_def_in_stmt (fun (ent, def) ->
+                let extern = G.attr Extern v1 in
+                ({ ent with attrs = extern :: ent.attrs }, def)))
   | NameSpace (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_of_option (map_ident env) v2
-      and v3 = map_declarations env v3 in
-      todo env (v1, v2, v3)
+      and _l, v3, r = map_declarations env v3 in
+      let dir1 = G.Package (v1, opt_to_list v2) |> G.d in
+      let dir2 = G.PackageEnd r |> G.d in
+      [ G.DirectiveStmt dir1 |> G.s ] @ v3 @ [ G.DirectiveStmt dir2 |> G.s ]
   | StaticAssert (v1, v2) ->
       let v1 = map_tok env v1
       and v2 = map_paren env (map_of_list (map_argument env)) v2 in
-      todo env (v1, v2)
+      [ G.Assert (v1, v2, G.sc) |> G.s ]
   | EmptyDef v1 ->
       let v1 = map_sc env v1 in
       [ G.emptystmt v1 ]
   | NotParsedCorrectly v1 ->
       let v1 = map_of_list (map_tok env) v1 in
-      todo env v1
+      [ G.OtherStmt (G.OS_Todo, v1 |> List.map (fun tk -> G.Tk tk)) |> G.s ]
   | DeclTodo v1 ->
       let v1 = map_todo_category env v1 in
       [ G.OtherStmt (G.OS_Todo, [ G.TodoK v1 ]) |> G.s ]
@@ -852,10 +924,10 @@ and map_vars_decl env (v1, v2) : G.definition list =
   let v1 = map_of_list (map_onedecl env) v1 and _v2 = map_sc env v2 in
   v1
 
-and map_asmbody env (v1, v2) =
+and map_asmbody env (v1, v2) : G.any list =
   let v1 = map_of_list (map_wrap env map_of_string) v1
   and v2 = map_of_list (map_colon env) v2 in
-  (v1, v2)
+  todo env (v1, v2)
 
 and map_colon env = function
   | Colon (v1, v2) ->

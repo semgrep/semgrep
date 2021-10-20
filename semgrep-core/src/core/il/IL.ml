@@ -37,8 +37,8 @@ module G = AST_generic
  *
  *  - no For/Foreach/DoWhile/While, converted all to Loop,
  *  - no Foreach, converted to a Loop and 2 new special
- *  - TODO no Switch, converted to Ifs
- *  - TODO no Continue/Break, converted to goto
+ *  - no Switch, converted to Ifs
+ *  - no Continue/Break, converted to goto
  *  - less use of expr option (in Return/Assert/...), use Unit in those cases
  *
  *  - no Sgrep constructs

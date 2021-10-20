@@ -742,13 +742,13 @@ let (mk_visitor :
           let t = v_tok t in
           let v1 = v_stmt v1 and v2 = v_stmt v2 in
           ()
-      | Assert (t, v1, v2, sc) ->
+      | Assert (t, args, sc) ->
           let t = v_tok t in
-          let v1 = v_expr v1 and v2 = v_option v_expr v2 in
+          let _ = v_arguments args in
           v_tok sc
       | OtherStmtWithStmt (v1, v2, v3) ->
           let v1 = v_other_stmt_with_stmt_operator v1
-          and v2 = v_option v_expr v2
+          and v2 = v_list v_any v2
           and v3 = v_stmt v3 in
           ()
       | OtherStmt (v1, v2) ->

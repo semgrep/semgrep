@@ -481,7 +481,9 @@ and stmt st =
   | DirectiveStmt v1 -> directive v1
   | Assert (t, v1, v2) ->
       let v1 = expr v1 and v2 = option expr v2 in
-      G.Assert (t, v1, v2, G.sc) |> G.s
+      let es = v1 :: Common.opt_to_list v2 in
+      let args = es |> List.map G.arg in
+      G.Assert (t, fb args, G.sc) |> G.s
 
 and tok_and_stmt (t, v) =
   let v = stmt v in

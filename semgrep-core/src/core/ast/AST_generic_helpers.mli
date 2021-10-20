@@ -59,6 +59,9 @@ val dotted_ident_of_name : AST_generic.name -> AST_generic.dotted_ident
 
 (* misc *)
 
+val parameter_to_catch_exn_opt :
+  AST_generic.parameter -> AST_generic.catch_exn option
+
 val opt_to_label_ident : AST_generic.ident option -> AST_generic.label_ident
 
 val gensym_counter : int ref

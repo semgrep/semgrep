@@ -116,7 +116,11 @@ let exprs_of_node node =
   | SimpleNode x -> (
       match x with
       | ExprStmt e -> [ e ]
-      | Assert (_, e, eopt) -> e :: Common.opt_to_list eopt
+      | Assert (_, (_, args, _)) ->
+          args
+          |> Common.map_filter (function
+               | G.Arg e -> Some e
+               | _ -> None)
       (* TODO: should transform VarDef in it in Assign *)
       | DefStmt _ -> []
       | DirectiveStmt _ -> []
