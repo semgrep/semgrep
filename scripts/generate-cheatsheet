@@ -5,16 +5,32 @@
 set -euo pipefail
 
 repo_root=$(git rev-parse --show-toplevel)
-out=$(pwd)/cheatsheet.json
+input=$repo_root/semgrep-core/tests
+output=$(pwd)/cheatsheet.json
+
+if [[ $# -gt 0 ]]; then
+  cat >&2 <<EOF
+Usage: $0
+Must run from the semgrep git repository.
+
+Generate a json file $(basename "$output") containing semgrep examples to
+be shown on the semgrep website, for each language supported by semgrep.
+
+These files are read from $input, which is also where regression tests
+for each language are located. For information on how to populate the
+cheatsheet for a specific language, look into the python script
+'generate_cheatsheet.py'.
+EOF
+fi
 
 (
   cd "$repo_root"/semgrep
 
-  pipenv run python3 ../scripts/generate_cheatsheet.py --json --directory \
-    ../semgrep-core/tests \
-    --output-file "$out"
+  pipenv run python3 ../scripts/generate_cheatsheet.py --json \
+    --directory "$input" \
+    --output-file "$output"
   cat <<EOF
-Created $out.
+Created $output.
 Copy that file to the semgrep-app repo: /frontend/src/assets/cheatsheet.json
 EOF
 )
