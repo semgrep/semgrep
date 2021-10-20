@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Fixed
+- Constant propagation: Tuple/Array destructuring assignments now correctly prevent constant propagation
+
 ## [0.70.0](https://github.com/returntocorp/semgrep/releases/tag/v0.70.0) - 10-19-2021
 
 ### Added
