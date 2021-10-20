@@ -1,0 +1,17 @@
+#! /usr/bin/env bash
+#
+# Wrapper for generating the cheatsheets from the semgrep repo.
+#
+set -euo pipefail
+
+repo_root=$(git rev-parse --show-toplevel)
+out=$(pwd)/test-matrix.json
+
+(
+  cd "$repo_root"/semgrep
+
+  pipenv run ../scripts/generate_test_matrix.py --json --directory \
+    ../semgrep-core/tests \
+    --output-file "$out"
+  echo "Created $out."
+)

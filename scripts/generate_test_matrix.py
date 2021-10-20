@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+#
+# Generate cheatsheets displayed next to the live editor, for each language.
+#
+# Usage:
+#   cd semgrep
+#   pipenv run ../scripts/generate_test_matrix.py --json --directory \
+#     ../semgrep-core/tests --output-file test-matrix.json
+#
 import argparse
 import collections
 import glob
