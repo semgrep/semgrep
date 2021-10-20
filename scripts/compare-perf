@@ -201,11 +201,11 @@ def main() -> None:
         )
         msg = "\n\n".join(messages)
         print(f"Sending warnings and errors as a PR comment:\n{msg}")
-        # send_comment(
-        #    msg,
-        #    github_token,
-        #    pull_request_number,
-        # )
+        send_comment(
+            msg,
+            github_token,
+            pull_request_number,
+        )
 
     # Fail only after printing and sending all messages
     assert not errors
