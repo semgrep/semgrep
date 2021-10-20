@@ -387,7 +387,10 @@ and expr = {
 and expr_kind =
   (* basic (atomic) values *)
   | L of literal
-  (* composite values *)
+  (* composite values
+   * TODO? element list bracket, so can encode KeyVal, Designator,
+   * IndexArray for C++.
+   *)
   | Container of container_operator * expr list bracket
   | Comprehension of container_operator * comprehension bracket
   (* And-type (field.vinit should be a Some) *)
@@ -1635,6 +1638,8 @@ and other_directive_operator =
   | OI_Undef (* also C/C++ *)
   (* Rust *)
   | OI_Extern
+  (* Other *)
+  | OI_Todo
 
 (*****************************************************************************)
 (* Toplevel *)
