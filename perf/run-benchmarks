@@ -175,6 +175,18 @@ def standardize_findings(findings: dict, include_time: bool) -> Tuple[dict, dict
     return results, timings
 
 
+def jsonify_findings(findings: dict) -> dict:
+    """
+    Turn findings into a jsonifiable dictionary.
+    This will later be used in scripts/compare_perf to confirm correctness of benchmarks.
+    Important that the results are sorted, so that the results are order-independent
+    """
+    return {
+        "errors": findings["errors"],
+        "results": sorted(finding.str for finding in findings["results"]),
+    }
+
+
 def output_differences(
     findings: set, std_findings: set, variant: str
 ) -> Tuple[int, int]:
@@ -415,7 +427,7 @@ def run_benchmarks(
         variants = STD_VARIANTS
 
     results_msgs = []
-    durations = []
+    benchmark_results = []
     results: dict = {variant.name: [] for variant in variants}
     output_per_rule_json_results = RepositoryTimePerRule(
         output_file=output_time_per_rule_json
@@ -484,15 +496,16 @@ def run_benchmarks(
                 msg = f"{metric_name} = {duration:.3f} s"
                 print(msg)
                 results_msgs.append(msg)
-                durations.append(
+
+                findings, timings = standardize_findings(semgrep_results, include_time)
+                benchmark_results.append(
                     {
                         "name": name,
                         "time": duration,
+                        "findings": jsonify_findings(findings),
                     }
                 )
                 results[variant.name].append(duration)
-
-                findings, timings = standardize_findings(semgrep_results, include_time)
 
                 if upload:
                     upload_result(variant.name, metric_name, duration, timings)
@@ -520,7 +533,7 @@ def run_benchmarks(
     if summary_file_path:
         with chdir(called_dir):
             with open(summary_file_path, "w") as f:
-                json.dump(durations, f)
+                json.dump(benchmark_results, f)
 
     if plot_benchmarks:
         import matplotlib.pyplot as plt
