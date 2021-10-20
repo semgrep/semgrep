@@ -584,6 +584,22 @@ and map_body (env : env) (xs : CST.body) : field list =
           G.fieldEllipsis t)
     xs
 
+(* almost copy-paste of map_body above, but returing statements *)
+and map_body_top (env : env) (xs : CST.body) : stmt list =
+  List.map
+    (fun x ->
+      match x with
+      | `Attr x ->
+          let def = map_attribute env x in
+          DefStmt def |> G.s
+      | `Blk x ->
+          let blk = map_block env x in
+          G.exprstmt blk
+      | `Semg_ellips tok ->
+          let t = (* "..." *) token env tok in
+          G.exprstmt (G.Ellipsis t |> G.e))
+    xs
+
 let map_config_file (env : env) (x : CST.config_file) : any =
   match x with
   | `Opt_choice_body opt -> (
@@ -591,8 +607,8 @@ let map_config_file (env : env) (x : CST.config_file) : any =
       | Some x -> (
           match x with
           | `Body x ->
-              let bd = map_body env x in
-              Flds bd
+              let bd = map_body_top env x in
+              Pr bd
           | `Obj x ->
               let x = map_object_ env x in
               Pr [ G.exprstmt x ])
@@ -612,11 +628,6 @@ let parse file =
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
       match map_config_file env cst with
       | Pr xs -> xs
-      | Flds xs ->
-          xs
-          |> List.map (function
-               | FieldStmt x -> x
-               | FieldSpread _ -> raise Impossible)
       | _ -> failwith "not a program")
 
 let parse_expression_or_source_file str =
@@ -637,7 +648,13 @@ let parse_pattern str =
       match map_config_file env cst with
       | Pr [ { s = ExprStmt (e, _); _ } ] -> G.E e
       | Pr [ x ] -> G.S x
+      (* TODO? depending on the shape of xs, we should sometimes return
+       * a Flds instead of Ss?
+       * With a = "foo" ... b = "bar", we should return a Flds, but
+       * with variable "foo" { } ... variable "bar" { } we should
+       * probably return an Ss?
+       * Or maybe we should require the user to use curly braces
+       * to disambiguate with '{ a = "foo" ... b = "bar" }'?
+       *)
       | Pr xs -> G.Ss xs
-      | Flds [ FieldStmt { s = ExprStmt (e, _); _ } ] -> G.E e
-      | Flds [ FieldStmt x ] -> G.S x
       | x -> x)
