@@ -715,17 +715,18 @@ and map_stmt x : B.stmt =
         let v1 = map_stmt v1 in
         let v2 = map_stmt v2 in
         `WithUsingResource (t, v1, v2)
-    | Assert (t, v1, v2, sc) ->
-        let t = map_tok t in
-        let v1 = map_expr v1 in
-        let v2 = map_of_option map_expr v2 in
-        let sc = map_tok sc in
-        `Assert (t, v1, v2, sc)
+    | Assert (t, args, sc) ->
+        let _t = map_tok t in
+        let _args = map_arguments args in
+        let _sc = map_tok sc in
+        failwith "TODO"
+        (* `Assert (t, v1, v2, sc) *)
     | OtherStmtWithStmt (v1, v2, v3) ->
-        let v1 = map_other_stmt_with_stmt_operator v1
-        and v2 = map_of_option map_expr v2
-        and v3 = map_stmt v3 in
-        `OtherStmtWithStmt (v1, v2, v3)
+        let _v1 = map_other_stmt_with_stmt_operator v1
+        and _v2 = map_of_list map_any v2
+        and _v3 = map_stmt v3 in
+        (*`OtherStmtWithStmt (v1, v2, v3)*)
+        failwith "TODO"
     | OtherStmt (v1, v2) ->
         let v1 = map_other_stmt_operator v1 and v2 = map_of_list map_any v2 in
         `OtherStmt (v1, v2)

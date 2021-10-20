@@ -36,7 +36,7 @@ and simple_node =
   | ExprStmt of expr
   | DefStmt of definition
   | DirectiveStmt of directive
-  | Assert of tok * expr * expr option
+  | Assert of tok * arguments
   (* The 'any' below should not containt stmts, otherwise the CFG will
    * be incomplete. Use other_stmt_with_stmt_operator instead.
    *)

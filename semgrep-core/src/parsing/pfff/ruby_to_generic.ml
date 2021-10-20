@@ -623,11 +623,11 @@ and definition def =
   | BeginBlock (_t, (t1, st, t2)) ->
       let st = list_stmts st in
       let st = G.Block (t1, st, t2) |> G.s in
-      G.OtherStmtWithStmt (G.OSWS_BEGIN, None, st) |> G.s
+      G.OtherStmtWithStmt (G.OSWS_BEGIN, [], st) |> G.s
   | EndBlock (_t, (t1, st, t2)) ->
       let st = list_stmts st in
       let st = G.Block (t1, st, t2) |> G.s in
-      G.OtherStmtWithStmt (G.OSWS_END, None, st) |> G.s
+      G.OtherStmtWithStmt (G.OSWS_END, [], st) |> G.s
   | Alias (t, mn1, mn2) ->
       let mn1 = method_name_to_any mn1 in
       let mn2 = method_name_to_any mn2 in
@@ -669,7 +669,7 @@ and body_exn x =
           let st = list_stmt1 sts in
           let try_ = G.Try (fake t "try", body, catches, finally_opt) |> G.s in
           let st = G.Block (fb [ try_; st ]) |> G.s in
-          G.OtherStmtWithStmt (G.OSWS_Else_in_try, None, st) |> G.s)
+          G.OtherStmtWithStmt (G.OSWS_Else_in_try, [], st) |> G.s)
 
 and rescue_clause (t, exns, exnvaropt, sts) : G.catch =
   let st = list_stmt1 sts in
