@@ -40,12 +40,10 @@ let str_of_ident = fst
 let gensym_counter = ref 0
 
 (* see sid type in resolved_name *)
-(* see sid type in resolved_name *)
 let gensym () =
   incr gensym_counter;
   !gensym_counter
 
-(* TODO: refactor name_qualifier and correctly handle this *)
 let name_of_ids_with_opt_typeargs xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids_with_opt_typeargs: empty ids"
@@ -291,6 +289,18 @@ let has_keyword_attr kwd attrs =
   |> List.exists (function
        | KeywordAttr (kwd2, _) -> kwd =*= kwd2
        | _ -> false)
+
+(* just used in cpp_to_generic.ml for now, could be moved there *)
+let parameter_to_catch_exn_opt p =
+  match p with
+  | ParamClassic p -> Some (CatchParam p)
+  | ParamEllipsis t -> Some (CatchPattern (PatEllipsis t))
+  | ParamPattern p -> Some (G.CatchPattern p)
+  (* TODO: valid in exn spec? *)
+  | ParamRest (_, _p)
+  | ParamHashSplat (_, _p) ->
+      None
+  | OtherParam _ -> None
 
 (*****************************************************************************)
 (* Abstract position and constness for comparison *)

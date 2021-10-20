@@ -699,6 +699,12 @@ let expr_with_pre_stmts env ?void e =
   env.stmts := [];
   (xs, e)
 
+let args_with_pre_stmts env args =
+  let args = arguments env args in
+  let xs = List.rev !(env.stmts) in
+  env.stmts := [];
+  (xs, args)
+
 let expr_with_pre_stmts_opt env eopt =
   match eopt with
   | None -> ([], expr_opt env None)
@@ -921,15 +927,17 @@ let rec stmt_aux env st =
   | G.Return (tok, eopt, _) ->
       let ss, e = expr_with_pre_stmts_opt env eopt in
       ss @ [ mk_s (Return (tok, e)) ]
-  | G.Assert (tok, e, eopt, _) ->
-      let ss1, e' = expr_with_pre_stmts env e in
-      let ss2, eopt' = expr_with_pre_stmts_opt env eopt in
+  | G.Assert (tok, args, _) ->
+      let e =
+        let id = H.name_of_id ("assert", tok) in
+        G.Call (G.N id |> G.e, args) |> G.e
+      in
+      let ss, args = args_with_pre_stmts env args in
       let special = (Assert, tok) in
       (* less: wrong e? would not be able to match on Assert, or
        * need add sorig:
        *)
-      ss1 @ ss2
-      @ [ mk_s (Instr (mk_i (CallSpecial (None, special, [ e'; eopt' ])) e)) ]
+      ss @ [ mk_s (Instr (mk_i (CallSpecial (None, special, args)) e)) ]
   | G.Throw (tok, e, _) ->
       let ss, e = expr_with_pre_stmts env e in
       ss @ [ mk_s (Throw (tok, e)) ]
@@ -967,7 +975,7 @@ let rec stmt_aux env st =
       let stmt2 = stmt env stmt2 in
       stmt1 @ stmt2
   | G.DisjStmt _ -> sgrep_construct (G.S st)
-  | G.OtherStmtWithStmt (G.OSWS_With, Some manager_as_pat, body) ->
+  | G.OtherStmtWithStmt (G.OSWS_With, [ G.E manager_as_pat ], body) ->
       let opt_pat, manager =
         (* Extract <manager> and <pat> from `with <manager> as <pat>`;
          * <manager> is an expression that evaluates to a context manager,

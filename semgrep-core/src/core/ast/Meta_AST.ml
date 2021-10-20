@@ -761,15 +761,14 @@ and vof_stmt st =
       let v1 = vof_stmt v1 in
       let v2 = vof_stmt v2 in
       OCaml.VSum ("WithUsingResource", [ t; v1; v2 ])
-  | Assert (t, v1, v2, sc) ->
+  | Assert (t, args, sc) ->
       let t = vof_tok t in
-      let v1 = vof_expr v1 in
-      let v2 = OCaml.vof_option vof_expr v2 in
+      let args = vof_arguments args in
       let sc = vof_tok sc in
-      OCaml.VSum ("Assert", [ t; v1; v2; sc ])
+      OCaml.VSum ("Assert", [ t; args; sc ])
   | OtherStmtWithStmt (v1, v2, v3) ->
       let v1 = vof_other_stmt_with_stmt_operator v1
-      and v2 = OCaml.vof_option vof_expr v2
+      and v2 = OCaml.vof_list vof_any v2
       and v3 = vof_stmt v3 in
       OCaml.VSum ("OtherStmtWithStmt", [ v1; v2; v3 ])
   | OtherStmt (v1, v2) ->
@@ -788,6 +787,8 @@ and vof_other_stmt_with_stmt_operator = function
   | OSWS_ImplBlock -> OCaml.VSum ("OSWS_ImplBlock", [])
   | OSWS_CheckedBlock -> OCaml.VSum ("OSWS_CheckedBlock", [])
   | OSWS_UncheckedBlock -> OCaml.VSum ("OSWS_UncheckedBlock", [])
+  | OSWS_Iterator -> OCaml.VSum ("OSWS_Iterator", [])
+  | OSWS_Todo -> OCaml.VSum ("OSWS_Todo", [])
 
 and vof_label_ident = function
   | LNone -> OCaml.VSum ("LNone", [])

@@ -56,8 +56,7 @@ let subexprs_of_stmt_kind = function
       [ e ]
   (* opt *)
   | Switch (_, eopt, _)
-  | Return (_, eopt, _)
-  | OtherStmtWithStmt (_, eopt, _) ->
+  | Return (_, eopt, _) ->
       Common.opt_to_list eopt
   (* n *)
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
@@ -66,9 +65,14 @@ let subexprs_of_stmt_kind = function
            | ForInitExpr e -> Some e
            | ForInitVar (_, vdef) -> vdef.vinit))
       @ Common.opt_to_list eopt1 @ Common.opt_to_list eopt2
-  | Assert (_, e1, e2opt, _) -> e1 :: Common.opt_to_list e2opt
+  | Assert (_, (_, args, _), _) ->
+      args
+      |> Common.map_filter (function
+           | Arg e -> Some e
+           | _ -> None)
   | For (_, ForIn (_, es), _) -> es
   | OtherStmt (_op, xs) -> subexprs_of_any_list xs
+  | OtherStmtWithStmt (_, xs, _) -> subexprs_of_any_list xs
   (* 0 *)
   | DirectiveStmt _
   | Block _

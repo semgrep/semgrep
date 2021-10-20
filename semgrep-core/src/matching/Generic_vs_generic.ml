@@ -1967,16 +1967,15 @@ and m_stmt a b =
       let* () = m_stmt a1 b1 in
       let* () = (m_list m_catch) a2 b2 in
       (m_option m_finally) a3 b3
-  | G.Assert (a0, a1, a2, asc), B.Assert (b0, b1, b2, bsc) ->
+  | G.Assert (a0, aargs, asc), B.Assert (b0, bargs, bsc) ->
       let* () = m_tok a0 b0 in
-      let* () = m_expr a1 b1 in
-      let* () = (m_option m_expr) a2 b2 in
+      let* () = m_arguments aargs bargs in
       m_tok asc bsc
   | G.OtherStmt (a1, a2), B.OtherStmt (b1, b2) ->
       m_other_stmt_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.OtherStmtWithStmt (a1, a2, a3), B.OtherStmtWithStmt (b1, b2, b3) ->
       m_other_stmt_with_stmt_operator a1 b1 >>= fun () ->
-      m_option m_expr a2 b2 >>= fun () -> m_stmt a3 b3
+      m_list m_any a2 b2 >>= fun () -> m_stmt a3 b3
   | G.WithUsingResource (a1, a2, a3), B.WithUsingResource (b1, b2, b3) ->
       m_tok a1 b1 >>= fun () ->
       m_stmt a2 b2 >>= fun () -> m_stmt a3 b3

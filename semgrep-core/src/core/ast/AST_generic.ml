@@ -887,7 +887,10 @@ and stmt_kind =
       tok (* 'with' in Python, 'using' in C# *)
       * stmt (* resource acquisition *)
       * stmt (* newscope: block *)
-  | Assert of tok * expr * expr option (* message *) * sc
+  (* old: was 'expr * expr option' for Python/Java, but better to generalize.
+   * alt: could move in expr and have Assert be an IdSpecial
+   *)
+  | Assert of tok * arguments * sc
   (* TODO? move this out of stmt and have a stmt_or_def_or_dir in Block?
    * or an item list where item is a stmt_or_def_or_dir (as well as field)
    *)
@@ -895,8 +898,9 @@ and stmt_kind =
   | DirectiveStmt of directive
   (* sgrep: *)
   | DisjStmt of stmt * stmt
-  (* this is important to correctly compute a CFG *)
-  | OtherStmtWithStmt of other_stmt_with_stmt_operator * expr option * stmt
+  (* This is important to correctly compute a CFG. The any should not
+   * contain any stmt! *)
+  | OtherStmtWithStmt of other_stmt_with_stmt_operator * any list * stmt
   (* any here should not contain any statement! otherwise the CFG will be
    * incorrect and some analysis (e.g., liveness) will be incorrect.
    * TODO: other_stmt_operator wrap, so enforce at least one token instead
@@ -957,6 +961,7 @@ and label_ident =
   (* PHP, woohoo, dynamic break! bailout for CFG *)
   | LDynamic of expr
 
+(* todo? put also user-defined iterators here? like MacroIteration in C++ *)
 and for_header =
   (* todo? copy Go and have 'of simple option * expr * simple option'? *)
   | ForClassic of
@@ -992,6 +997,10 @@ and other_stmt_with_stmt_operator =
   (* C# *)
   | OSWS_CheckedBlock
   | OSWS_UncheckedBlock
+  (* C/C++/cpp *)
+  | OSWS_Iterator
+  (* Other *)
+  | OSWS_Todo
 
 and other_stmt_operator =
   (* Python *)
@@ -1007,7 +1016,7 @@ and other_stmt_operator =
   | OS_Async
   (* Java *)
   | OS_Sync
-  (* C *)
+  (* C/C++ *)
   | OS_Asm
   (* Go *)
   | OS_Go
@@ -1099,7 +1108,7 @@ and type_kind =
    *)
   | TyApply of type_ * type_arguments
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
-  (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin
+  (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++.
    * TODO: type bounds Scala? *)
   | TyAny of tok
   | TyPointer of tok * type_
@@ -1153,6 +1162,7 @@ and other_type_operator =
   (* Other *)
   | OT_Expr
   | OT_Arg (* Python: todo: should use expr_to_type() when can *)
+  (* TypeOf, etc. *)
   | OT_Todo
 
 (*****************************************************************************)
@@ -1599,7 +1609,8 @@ and directive_kind =
   (* bad practice! hard to resolve name locally *)
   | ImportAll of tok * module_name * tok (* '.' in Go, '*' in Java/Python, '_' in Scala *)
   (* packages are different from modules in that multiple files can reuse
-   * the same package name; they are agglomerated in the same package
+   * the same package name; they are agglomerated in the same package.
+   * The list can be empty in C++.
    *)
   | Package of tok * dotted_ident (* a.k.a namespace *)
   (* This is used for languages such as C++/PHP/Scala with scoped namespaces.

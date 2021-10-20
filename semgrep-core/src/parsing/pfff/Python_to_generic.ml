@@ -616,12 +616,12 @@ and stmt_aux x =
   (* TODO: unsugar in sequence? *)
   | With (_t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = option expr v2 and v3 = list_stmt1 v3 in
-      let e =
+      let anys =
         match v2 with
-        | None -> v1
-        | Some e2 -> G.LetPattern (H.expr_to_pattern e2, v1) |> G.e
+        | None -> []
+        | Some e2 -> [ G.E (G.LetPattern (H.expr_to_pattern e2, v1) |> G.e) ]
       in
-      [ G.OtherStmtWithStmt (G.OSWS_With, Some e, v3) |> G.s ]
+      [ G.OtherStmtWithStmt (G.OSWS_With, anys, v3) |> G.s ]
   | Raise (t, v1) -> (
       match v1 with
       | Some (e, None) ->
@@ -671,7 +671,9 @@ and stmt_aux x =
       [ G.Try (t, v1, [], Some (t2, v2)) |> G.s ]
   | Assert (t, v1, v2) ->
       let v1 = expr v1 and v2 = option expr v2 in
-      [ G.Assert (t, v1, v2, G.sc) |> G.s ]
+      let es = v1 :: Common.opt_to_list v2 in
+      let args = es |> List.map G.arg in
+      [ G.Assert (t, fb args, G.sc) |> G.s ]
   | ImportAs (t, v1, v2) ->
       let mname = module_name v1 and nopt = option ident_and_id_info v2 in
       [ G.DirectiveStmt (G.ImportAs (t, mname, nopt) |> G.d) |> G.s ]
