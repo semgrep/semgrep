@@ -36,6 +36,7 @@ class Settings:
         if self._path.exists():
             with self._path.open("r") as fd:
                 yaml_file = self._yaml.load(fd)
+                print(yaml_file)
             if not isinstance(yaml_file, Mapping):
                 raise TypeError(
                     f"Bad settings format; please check or remove {self._path}"
