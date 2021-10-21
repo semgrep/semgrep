@@ -198,7 +198,9 @@ type ident = string wrap [@@deriving show, eq, hash]
 type dotted_ident = ident list (* at least 1 element *)
 [@@deriving show, eq, hash]
 
-(* module_name can also be used for a package name or a namespace *)
+(* module_name can also be used for a package name or a namespace.
+ * TODO? prefix with M and add MQualifiedName for C++?
+ *)
 type module_name =
   | DottedName of dotted_ident (* ex: Python *)
   (* in FileName the '/' is similar to the '.' in DottedName *)
@@ -1604,16 +1606,17 @@ and directive = {
 and directive_kind =
   (* newvar: *)
   | ImportFrom of
-      tok (* 'import'/'from' for Python, 'include' for C *)
-      * module_name
-      * ident
-      * alias option (* as name alias *)
+      tok (* 'import'/'from' for Python *) * module_name * ident * alias option (* as name alias *)
   | ImportAs of tok * module_name * alias option (* as name *)
-  (* bad practice! hard to resolve name locally *)
-  | ImportAll of tok * module_name * tok (* '.' in Go, '*' in Java/Python, '_' in Scala *)
+  (* Bad practice! hard to resolve name locally.
+   * We use ImportAll for C/C++ #include and C++ 'using namespace'.
+   * The last tok is '.' in Go, '*' in Java/Python, '_' in Scala, and a fake
+   * token in C++ 'using namespace std;'.
+   *)
+  | ImportAll of tok * module_name * tok
   (* packages are different from modules in that multiple files can reuse
    * the same package name; they are agglomerated in the same package.
-   * The list can be empty in C++.
+   * The dotted_ident can be empty in C++.
    *)
   | Package of tok * dotted_ident (* a.k.a namespace *)
   (* This is used for languages such as C++/PHP/Scala with scoped namespaces.

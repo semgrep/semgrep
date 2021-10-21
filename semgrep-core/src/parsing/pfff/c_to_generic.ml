@@ -454,7 +454,7 @@ and define_body = function
 and directive = function
   | Include (t, v1) ->
       let v1 = wrap string v1 in
-      G.DirectiveStmt (G.ImportAs (t, G.FileName v1, None) |> G.d)
+      G.DirectiveStmt (G.ImportAll (t, G.FileName v1, fake t "") |> G.d)
   | Define (_t, v1, v2) ->
       let v1 = name v1 and v2 = define_body v2 in
       let ent = G.basic_entity v1 in
