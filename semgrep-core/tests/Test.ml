@@ -416,7 +416,7 @@ let lang_regression_tests ~with_caching =
     regression_tests_for_lang files lang
   );
   pack_tests "semgrep HCL" (
-    let dir = Filename.concat tests_path "terraform" in
+    let dir = Filename.concat tests_path "hcl" in
     let files = Common2.glob (spf "%s/*.tf" dir) in
     let lang = Lang.HCL in
     regression_tests_for_lang files lang
