@@ -119,7 +119,10 @@ def terminal_wrap(text: str) -> str:
     import textwrap
 
     paras = text.split("\n")
-    width = min(MAX_TEXT_WIDTH, get_terminal_size((MAX_TEXT_WIDTH, 1))[0])
+    terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
+    if terminal_size <= 0:
+        terminal_size = MAX_TEXT_WIDTH
+    width = min(MAX_TEXT_WIDTH, terminal_size)
     wrapped_paras = ["\n".join(textwrap.wrap(p, width)) for p in paras]
     return "\n".join(wrapped_paras)
 
