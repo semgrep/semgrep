@@ -895,51 +895,111 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       Tmp_command cmd_redir_ctrl
   | `Var_assign x ->
       let a = variable_assignment env x in
-      let loc = assignment_loc a in
-      let command = Assignment (loc, a) in
-      Tmp_command ({ loc; command; redirects = [] }, None)
+      let command = Assignment a in
+      Tmp_command ({ loc = assignment_loc a; command; redirects = [] }, None)
   | `Cmd x -> Tmp_command (command env x, None)
-  | `Decl_cmd (v1, _v2) ->
-      let start =
+  | `Decl_cmd (v1, v2) ->
+      let (attrs1 : declaration_attribute wrap list), tok =
         match v1 with
-        | `Decl tok -> token env tok (* "declare" *)
-        | `Type tok -> token env tok (* "typeset" *)
-        | `Export tok -> token env tok (* "export" *)
-        | `Read tok -> token env tok (* "readonly" *)
-        | `Local tok -> (* "local" *) token env tok
+        | `Decl tok -> (* "declare" *) ([], tok)
+        | `Type tok -> (* "typeset" synonym for "declare" *) ([], tok)
+        | `Export tok -> (* "export" *) ([ (Export, token env tok) ], tok)
+        | `Read tok -> (* "readonly" *) ([ (Readonly, token env tok) ], tok)
+        | `Local tok -> (* "local" *) ([ (Local, token env tok) ], tok)
       in
-      (*
-      let _v2 () =
-        List.map
-          (fun x ->
-            match x with
-            | `Choice_conc x -> literal env x
-            | `Pat_42e353e tok -> simple_variable_name env tok
-            | `Var_assign x -> variable_assignment env x)
-          v2
+      let first_tok = token env tok in
+      let last_tok = ref first_tok in
+      let decls = ref [] in
+      let assigns = ref [] in
+      let attrs2 = ref [] in
+      let unknowns = ref [] in
+      let push_attr tok attr = Common.push (attr, tok) attrs2 in
+      v2
+      |> List.iter (fun x ->
+             match x with
+             | `Choice_semg_ellips x -> (
+                 match literal env x with
+                 | Word (s, tok) as expr ->
+                     (match s with
+                     | "-a" -> push_attr tok (Array : declaration_attribute)
+                     | "-A" -> push_attr tok Associative_array
+                     | "-f" -> push_attr tok Function
+                     | "-F" -> push_attr tok Function_short
+                     | "-g" -> push_attr tok Global
+                     | "-i" -> push_attr tok Integer
+                     | "-l" -> push_attr tok Lowercase
+                     | "-n" -> push_attr tok Nameref
+                     | "-p" -> push_attr tok Print
+                     | "-r" -> push_attr tok Readonly
+                     | "-t" -> push_attr tok Trace
+                     | "-u" -> push_attr tok Uppercase
+                     | "-x" -> push_attr tok Export
+                     | _ -> Common.push expr unknowns);
+                     last_tok := tok
+                 | e ->
+                     Common.push e unknowns;
+                     last_tok := snd (expression_loc e))
+             | `Choice_semg_meta x ->
+                 (* x, $X *)
+                 let var = simple_variable_name env x in
+                 last_tok := variable_name_loc var |> snd;
+                 Common.push var decls
+             | `Var_assign x ->
+                 (* x=42, $X=42 *)
+                 let assign = variable_assignment env x in
+                 last_tok := assignment_loc assign |> snd;
+                 Common.push assign assigns);
+      let decls = List.rev !decls in
+      let assigns = List.rev !assigns in
+      let attrs = attrs1 @ List.rev !attrs2 in
+      let unknowns = List.rev !unknowns in
+      let loc = (first_tok, !last_tok) in
+      let decl : declaration =
+        {
+          loc;
+          declarations = decls;
+          assignments = assigns;
+          attributes = attrs;
+          unknowns;
+        }
       in
-*)
-      let loc = (start, start) (* TODO *) in
-      let command = Declaration (loc, TODO loc) in
+      let command = Declaration decl in
       Tmp_command ({ loc; command; redirects = [] }, None)
-  | `Unset_cmd (v1, _v2) ->
-      let start =
+  | `Unset_cmd (v1, v2) ->
+      let ((_, first_tok) as attr) =
         match v1 with
-        | `Unset tok -> token env tok (* "unset" *)
-        | `Unse tok -> (* "unsetenv" *) token env tok
+        | `Unset tok (* "unset" *) ->
+            let tok = token env tok in
+            (Unset, tok)
+        | `Unse tok (* "unsetenv" *) ->
+            let tok = token env tok in
+            (Unsetenv, tok)
       in
-      (*
-      let v2 =
-        List.map
-          (fun x ->
-            match x with
-            | `Choice_conc x -> literal env x
-            | `Pat_42e353e tok -> simple_variable_name env tok)
-          v2
+      let decls = ref [] in
+      let unknowns = ref [] in
+      let last_tok = ref first_tok in
+      v2
+      |> List.iter (fun x ->
+             match x with
+             | `Choice_semg_ellips x ->
+                 let e = literal env x in
+                 Common.push e unknowns;
+                 last_tok := expression_loc e |> snd
+             | `Choice_semg_meta tok ->
+                 let var = simple_variable_name env tok in
+                 Common.push var decls;
+                 last_tok := variable_name_tok var);
+      let loc = (first_tok, !last_tok) (* TODO *) in
+      let command =
+        Declaration
+          {
+            loc;
+            declarations = List.rev !decls;
+            assignments = [];
+            attributes = [ attr ];
+            unknowns = List.rev !unknowns;
+          }
       in
-*)
-      let loc = (start, start) (* TODO *) in
-      let command = Declaration (loc, TODO loc) in
       Tmp_command ({ loc; command; redirects = [] }, None)
   | `Test_cmd x ->
       let command = test_command env x in
