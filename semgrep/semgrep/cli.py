@@ -578,7 +578,7 @@ def cli(
         verbose=verbose, debug=debug, quiet=quiet, force_color=force_color
     )
 
-    # Note this should be after flags set to verbosity is respected
+    # Note this must be after the call to `set_flags` so that verbosity is respected
     possibly_notify_user()
 
     # change cwd if using docker
