@@ -679,6 +679,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_tok v1 in
         CaseEllipsis v1
   and map_case = function
+    | OtherCase (v1, v2) ->
+        let v1 = map_todo_kind v1 in
+        let v2 = map_of_list map_any v2 in
+        OtherCase (v1, v2)
     | Case (t, v1) ->
         let t = map_tok t in
         let v1 = map_pattern v1 in
@@ -1114,6 +1118,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v3 = map_expr v3 in
         PartialSingleField (v1, v2, v3)
   and map_any = function
+    | Cs v1 ->
+        let v1 = map_case v1 in
+        Cs v1
     | Anys v1 ->
         let v1 = map_of_list map_any v1 in
         Anys v1

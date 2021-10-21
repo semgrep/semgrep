@@ -3045,7 +3045,7 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
         | None -> None
       in
       let v3 = map_declaration_list env v3 in
-      [ X (D (NameSpace (v1, v2, v3))) ]
+      [ X (D (Namespace (v1, v2, v3))) ]
   | `Using_decl x ->
       let x = map_using_declaration env x in
       [ X (D (UsingDecl x)) ]

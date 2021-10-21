@@ -84,3 +84,14 @@ go
 ```
 
 The expectation is that each file will be parsed without an error.
+
+JSON/Web cheatsheet
+--
+
+The semgrep.dev live editor displays a cheatsheet for the selected
+language. This cheatsheet reuses some of the examples found in the
+language's folder. For details on what goes into the cheatsheet and
+how to generate it, look into the scripts:
+
+- `/scripts/generate-cheatsheet`
+- `/scripts/generate_cheatsheet.py`

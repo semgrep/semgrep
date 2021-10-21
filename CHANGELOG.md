@@ -4,9 +4,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- Pre-alpha support for Bash as a new target language
+
+### Fixed
+- text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports width < 1
+
 ### Changed
 - Report CI environment variable in metrics for better environment
   determination
+
+## [0.70.0](https://github.com/returntocorp/semgrep/releases/tag/v0.70.0) - 10-19-2021
+
+### Added
+- Preliminary support for bash
 
 ### Fixed
 - Go: support ... in import list (#4067),
@@ -17,7 +28,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Config files with only a comment give bad error message (#3773)
 
 ### Changed
-- Resulution of rulesets use legacy registry instead of cdn registry
+- Resolution of rulesets use legacy registry instead of cdn registry
+- Benchmark suite is easier to modify
 
 ## [0.69.1](https://github.com/returntocorp/semgrep/releases/tag/v0.69.1) - 10-14-2021
 

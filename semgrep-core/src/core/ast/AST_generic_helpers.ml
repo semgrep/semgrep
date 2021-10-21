@@ -145,14 +145,15 @@ let name_of_dot_access e =
 (* TODO: you should not need to use that. This is mostly because
  * Constructor and PatConstructor currently takes a dotted_ident instead
  * of a name, and because module_name accepts only DottedName
- * but C# allows name.
+ * but C# and C++ allow names.
  *)
 let dotted_ident_of_name (n : name) : dotted_ident =
   match n with
   | Id (id, _) -> [ id ]
-  | IdQualified { name_last = ident, _topt; name_middle; _ } ->
+  | IdQualified { name_last = ident, _toptTODO; name_middle; _ } ->
       let before =
         match name_middle with
+        (* we skip the type parts in ds ... *)
         | Some (QDots ds) -> ds |> List.map fst
         | Some (QExpr _) ->
             logger#error "unexpected qualifier type";
