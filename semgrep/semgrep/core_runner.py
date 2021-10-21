@@ -1,5 +1,6 @@
 import collections
 import json
+import resource
 import subprocess
 import tempfile
 from datetime import datetime
@@ -37,6 +38,45 @@ from semgrep.util import sub_run
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+def setrlimits_preexec_fn() -> None:
+    """
+    Sets stack limit of current running process to the maximum possible
+    of the following as allowed by the OS:
+    - 5120000
+    - stack hard limit / 3
+    - stack hard limit / 4
+    - current existing soft limit
+
+    Note this is intended to run as a preexec_fn before semgrep-core in a subprocess
+    so all code here runs in a child fork before os switches to semgrep-core binary
+    """
+    # Get current soft and hard stack limits
+    old_s, h = resource.getrlimit(resource.RLIMIT_STACK)
+    logger.info(f"Existing stack limits: {old_s}, {h}")
+
+    # Have candidates in case os unable to set certain limit
+    potential_softlimits = [
+        int(
+            h / 3
+        ),  # Larger fractions cause "current limit exceeds maximum limit" for unknown reason
+        int(h / 4),
+        5120000,  # Magic number that seems to work for most cases
+        old_s,
+    ]
+
+    # Reverse sort so maximum possible soft limit is set
+    potential_softlimits.sort(reverse=True)
+    for s in potential_softlimits:
+        try:
+            logger.info(f"Trying to set soft limit to {s}")
+            resource.setrlimit(resource.RLIMIT_STACK, (s, h))
+            logger.info(f"Set stack limit to {s}, {h}")
+            return
+        except Exception as e:
+            logger.info(f"Failed to set stack limit to {s}, {h}")
+            logger.verbose(str(e))
 
 
 class CoreRunner:
@@ -288,7 +328,12 @@ class CoreRunner:
                             cmd += ["-debug"]
                             stderr = None
 
-                        core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=stderr)
+                        core_run = sub_run(
+                            cmd,
+                            stdout=subprocess.PIPE,
+                            stderr=stderr,
+                            preexec_fn=setrlimits_preexec_fn,
+                        )
                         output_json = self._extract_core_output(rule, core_run)
                         core_output = CoreOutput.parse(output_json, RuleId(rule.id))
 

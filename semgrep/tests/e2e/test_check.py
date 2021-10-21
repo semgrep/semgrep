@@ -345,6 +345,44 @@ def test_max_memory(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(stderr, "error.txt")
 
 
+def test_stack_size(run_semgrep_in_tmp, snapshot):
+    """
+    Verify that semgrep raises the soft stack limit if possible
+    when calling semgrep core
+    """
+
+    # long.yaml and equivalence were chosen since they happen to cause
+    # stack exhaustion
+    e2e_dir = Path(__file__).parent
+    targetpath = Path(e2e_dir / "targets").resolve() / "equivalence"
+    rulepath = Path(e2e_dir / "rules").resolve() / "long.yaml"
+
+    # If set hard and soft stack limit we should hit stack overflow
+    # If this test fails means we might have changed the output when
+    # semgrep-core hits stack exhaustion. Do not just delete this assertion
+    # it means the actual test below does not accurately verify that
+    # we are solving the stack exhaustion
+    output = subprocess.run(
+        f"ulimit -s 3000 && semgrep --config {rulepath} --verbose {targetpath}",
+        shell=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        encoding="utf-8",
+    )
+    print(output.stderr)
+    assert "semgrep-core exit code: -11" in output.stderr
+
+    # If only set soft limit, semgrep should raise it as necessary so we don't hit soft limit
+    output = subprocess.run(
+        f"ulimit -S -s 3000 && semgrep --config {rulepath} --verbose {targetpath}",
+        shell=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        encoding="utf-8",
+    )
+    assert "semgrep-core exit code: -11" not in output.stderr
+
+
 def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
