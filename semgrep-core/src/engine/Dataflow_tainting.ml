@@ -111,7 +111,9 @@ let update_meta_envs pm =
    indicating a variable is tainted, and tries to unify the metavariable
    environment in each sink match with all the tainted matches. If the envs
    unify, the resulting set will contain the sink pattern match with an updated
-   metavariable env. The resulting sets are all unioned together
+   metavariable env. The resulting sets are all unioned together.
+   This means that the same sink might be matched in multiple ways, i.e. with
+   different metavariable assignments. All of these will be reported.
 *)
 let update_tainted_sinks pm_list pm_set =
   pm_list
