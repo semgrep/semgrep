@@ -1558,9 +1558,9 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
         match (v1, v2, v3) with
         | _ ->
             {
-              name_id = v3;
-              name_qualifier = None (* TODO*);
-              name_typeargs = None;
+              name_last = (v3, None);
+              name_middle = None (* TODO*);
+              name_top = None;
               name_info = empty_id_info ();
             }
         (* TODO use qualifiers, with v1TODO above *)

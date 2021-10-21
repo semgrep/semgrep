@@ -257,7 +257,7 @@ let wrap_with_error_message lang path bool_res :
           details =
             spf "target file doesn't look like language %s"
               (Lang.to_string lang);
-          skipped_rule = None;
+          rule_id = None;
         }
 
 let inspect_file lang path =

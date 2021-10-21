@@ -373,7 +373,7 @@ and stmt x =
   | With (_v1, v2, v3) ->
       let e = expr v2 in
       let v3 = stmt v3 in
-      G.OtherStmtWithStmt (G.OSWS_With, Some e, v3) |> G.s
+      G.OtherStmtWithStmt (G.OSWS_With, [ G.E e ], v3) |> G.s
 
 and catch_block = function
   | BoundCatch (t, v1, v2) ->

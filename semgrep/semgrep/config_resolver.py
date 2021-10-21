@@ -33,6 +33,7 @@ from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.metric_manager import metric_manager
 from semgrep.rule import Rule
+from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
@@ -116,9 +117,6 @@ class ConfigPath:
                     )
                 )
             self._config_path = f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}"
-        elif is_pack_id(config_str) and SEMGREP_CDN_BASE_URL:
-            self._origin = ConfigType.CDN
-            self._config_path = config_str[2:]
         else:
             self._origin = ConfigType.LOCAL
             self._config_path = config_str
@@ -471,6 +469,11 @@ def parse_config_string(
     try:
         data = parse_yaml_preserve_spans(contents, filename)
         return {config_id: data}
+    except EmptyYamlException as se:
+        raise SemgrepError(
+            f"Empty configuration file {filename}",
+            code=UNPARSEABLE_YAML_EXIT_CODE,
+        )
     except YAMLError as se:
         raise SemgrepError(
             f"Invalid YAML file {config_id}:\n{indent(str(se))}",

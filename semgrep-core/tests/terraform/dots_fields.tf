@@ -8,8 +8,8 @@ resource "aws_iam_policy" "policy" {
    policy = jsonencode({
      Version = "2012-10-17"
      Statement = [
+       #ERROR: match
        {
-         #ERROR: match
          Action = "*"
          Effect = "Allow"
          Resource = "*"
@@ -27,8 +27,8 @@ resource "aws_iam_policy" "policy2" {
    policy = jsonencode({
      Version = "2012-10-17"
      Statement = [
+       #ERROR: match
        {
-         #ERROR: match
          Effect = "Allow"
          Resource = "*"
          Action = "*"

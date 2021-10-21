@@ -132,8 +132,12 @@ let default_id str =
   N
     (Id
        ( (str, fk),
-         { id_resolved = ref None; id_type = ref None; id_constness = ref None }
-       ))
+         {
+           id_resolved = ref None;
+           id_type = ref None;
+           id_constness = ref None;
+           id_hidden = false;
+         } ))
   |> G.e
 
 let count_to_id count =

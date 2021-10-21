@@ -78,9 +78,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
     (v1, v2, v3)
   and map_ident v = map_wrap map_of_string v
   and map_dotted_ident v = map_of_list map_ident v
+  and map_ident_and_targs_opt (id, topt) =
+    let id = map_ident id in
+    let topt = map_of_option map_type_arguments topt in
+    (id, topt)
   and map_qualifier = function
-    | QDots v -> QDots (map_dotted_ident v)
-    | QTop t -> QTop (map_tok t)
+    | QDots v -> QDots (map_of_list map_ident_and_targs_opt v)
     | QExpr (e, t) ->
         let e = map_expr e in
         let t = map_tok t in
@@ -112,35 +115,41 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | TypeName -> TypeName
   and map_name_info
       {
-        name_id = v1;
-        name_qualifier = v_name_qualifier;
-        name_typeargs = v_name_typeargs;
+        name_last = v1;
+        name_middle = v_name_qualifier;
+        name_top = v_top;
         name_info = v2;
       } =
-    let v1 = map_ident v1 in
+    let v1 = map_ident_and_targs_opt v1 in
     let v2 = map_id_info v2 in
-    let v_name_typeargs = map_of_option map_type_arguments v_name_typeargs in
+    let v_top = map_of_option map_tok v_top in
     let v_name_qualifier = map_of_option map_qualifier v_name_qualifier in
     {
-      name_id = v1;
+      name_last = v1;
       name_info = v2;
-      name_qualifier = v_name_qualifier;
-      name_typeargs = v_name_typeargs;
+      name_middle = v_name_qualifier;
+      name_top = v_top;
     }
   and map_id_info v =
     let k x =
       match x with
-      | { id_resolved = v_id_resolved; id_type = v_id_type; id_constness = v3 }
-        ->
+      | {
+       id_resolved = v_id_resolved;
+       id_type = v_id_type;
+       id_constness = v3;
+       id_hidden;
+      } ->
           let v3 = map_of_ref (map_of_option map_constness) v3 in
           let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
           let v_id_resolved =
             map_of_ref (map_of_option map_resolved_name) v_id_resolved
           in
+          let id_hidden = map_of_bool id_hidden in
           {
             id_resolved = v_id_resolved;
             id_type = v_id_type;
             id_constness = v3;
+            id_hidden;
           }
     in
     vin.kidinfo (k, all_functions) v
@@ -632,15 +641,14 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let v1 = map_stmt v1 in
             let v2 = map_stmt v2 in
             WithUsingResource (t, v1, v2)
-        | Assert (t, v1, v2, sc) ->
+        | Assert (t, args, sc) ->
             let t = map_tok t in
-            let v1 = map_expr v1 in
-            let v2 = map_of_option map_expr v2 in
+            let args = map_arguments args in
             let sc = map_tok sc in
-            Assert (t, v1, v2, sc)
+            Assert (t, args, sc)
         | OtherStmtWithStmt (v1, v2, v3) ->
             let v1 = map_other_stmt_with_stmt_operator v1
-            and v2 = map_of_option map_expr v2
+            and v2 = map_of_list map_any v2
             and v3 = map_stmt v3 in
             OtherStmtWithStmt (v1, v2, v3)
         | OtherStmt (v1, v2) ->
