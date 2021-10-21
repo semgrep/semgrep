@@ -926,14 +926,20 @@ and case_and_body =
   (* sgrep: *)
   | CaseEllipsis of (* ... *) tok
 
+(* less: we use expr_to_pattern for many languages to build a Case so
+ * maybe we should instead have a CaseExpr and CasePattern?
+ *)
 and case =
   | Case of tok * pattern
+  (* less: could unsugar as Case (PatUnderscore _) *)
   | Default of tok
   (* For Go, expr can contain some Assign bindings.
    * todo? could merge with regular Case? can 'case x := <-chan' be
    * transformed in a pattern?
    *)
   | CaseEqualExpr of tok * expr
+  (* TODO: CaseRange for C++ *)
+  | OtherCase of todo_kind * any list
 
 (* todo: merge with case at some point *)
 (* newscope: newvar: *)
@@ -1061,7 +1067,7 @@ and pattern =
   (* less: generalize to other container_operator? *)
   | PatList of pattern list bracket
   | PatKeyVal of pattern * pattern (* a kind of PatTuple *)
-  (* special case of PatId *)
+  (* special case of PatId, =~ PatAny *)
   | PatUnderscore of tok
   (* OCaml and Scala *)
   | PatDisj of pattern * pattern (* also abused for catch in Java *)
@@ -1703,12 +1709,13 @@ and any =
   | Tk of tok
   | TodoK of todo_kind
   | Ar of argument
-  (* todo: get rid of some? *)
+  | Pa of parameter
   | Modn of module_name
+  | Ce of catch_exn
+  | Cs of case
+  (* todo: get rid of some? *)
   | ModDk of module_definition_kind
   | En of entity
-  | Pa of parameter
-  | Ce of catch_exn
   | Dk of definition_kind
   | Di of dotted_ident
   | Lbli of label_ident

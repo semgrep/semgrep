@@ -1020,6 +1020,8 @@ and switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases =
             *)
             impossible (G.Tk tok)
         | G.Case (tok, _) ->
+            (ss, fixme_exp ToDo (G.Tk tok) switch_expr_orig :: es)
+        | G.OtherCase ((_todo_categ, tok), _any) ->
             (ss, fixme_exp ToDo (G.Tk tok) switch_expr_orig :: es))
       ([], []) cases
   in
@@ -1045,6 +1047,10 @@ and cases_to_exp env tok cases =
             impossible (G.Tk tok)
         | G.Case (tok, _) ->
             (* TODO: what eorig to use for the fixme_exp? *)
+            ( ss,
+              fixme_exp ToDo (G.Tk tok) (G.e (G.L (G.Unit (G.fake "case"))))
+              :: es )
+        | G.OtherCase ((_, tok), _) ->
             ( ss,
               fixme_exp ToDo (G.Tk tok) (G.e (G.L (G.Unit (G.fake "case"))))
               :: es ))
