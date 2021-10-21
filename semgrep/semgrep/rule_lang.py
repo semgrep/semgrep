@@ -121,9 +121,9 @@ class Span:
     # The path to the pattern in the yaml rule
     # and an adjusted start/end within just the pattern
     # Used to report playground parse errors in the simpler editor
-    config_path: Optional[Tuple[Any, ...]] = None
-    config_start: Optional[Position] = None
-    config_end: Optional[Position] = None
+    pattern_path: Optional[Tuple[Any, ...]] = None
+    pattern_start: Optional[Position] = None
+    pattern_end: Optional[Position] = None
 
     @classmethod
     def from_node(
@@ -161,9 +161,9 @@ class Span:
             end=end,
             file=filename,
             source_hash=src_hash,
-            config_path=tuple(path),
-            config_start=Position(0, 1),
-            config_end=Position(row_diff - 1, col_diff + 1),
+            pattern_path=tuple(path),
+            pattern_start=Position(0, 1),
+            pattern_end=Position(row_diff - 1, col_diff + 1),
         )
 
     def fix(self) -> "Span":

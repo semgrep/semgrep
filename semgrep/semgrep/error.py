@@ -80,9 +80,9 @@ class SemgrepError(Exception):
 
 @attr.s(auto_attribs=True, frozen=True)
 class LegacySpan:
-    config_start: CoreLocation
-    config_end: CoreLocation
-    config_path: Tuple[str]
+    pattern_start: CoreLocation
+    pattern_end: CoreLocation
+    pattern_path: Tuple[str]
 
 
 @attr.s(auto_attribs=True, frozen=True)
