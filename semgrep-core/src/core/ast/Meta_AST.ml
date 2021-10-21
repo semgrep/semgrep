@@ -811,6 +811,10 @@ and vof_case_and_body = function
       OCaml.VSum ("CaseEllipsis", [ v1 ])
 
 and vof_case = function
+  | OtherCase (v1, v2) ->
+      let v1 = vof_todo_kind v1 in
+      let v2 = OCaml.vof_list vof_any v2 in
+      OCaml.VSum ("OtherCase", [ v1; v2 ])
   | Case (t, v1) ->
       let t = vof_tok t in
       let v1 = vof_pattern v1 in
@@ -1382,6 +1386,9 @@ and vof_partial = function
       OCaml.VSum ("PartialSingleField", [ v1; v2; v3 ])
 
 and vof_any = function
+  | Cs v1 ->
+      let v1 = vof_case v1 in
+      OCaml.VSum ("Cs", [ v1 ])
   | Str v1 ->
       let v1 = vof_wrap OCaml.vof_string v1 in
       OCaml.VSum ("Str", [ v1 ])

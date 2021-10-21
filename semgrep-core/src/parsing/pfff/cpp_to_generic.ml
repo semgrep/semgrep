@@ -214,9 +214,10 @@ and map_typeC env x : G.type_ =
       let v1 = map_wrap env (map_primitive_type env) v1 in
       G.TyBuiltin v1 |> G.t
   | TSized (v1, v2) ->
-      let v1 = map_of_list (map_wrap env (map_sized_type env)) v1
+      let v1 = map_of_list (map_sized_type env) v1
       and v2 = map_of_option (map_type_ env) v2 in
-      todo env (v1, v2)
+      let allt = v1 @ Common.opt_to_list v2 in
+      G.OtherType (OT_Todo, allt |> List.map (fun t -> G.T t)) |> G.t
   | TPointer (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_type_ env v2
@@ -282,12 +283,16 @@ and map_primitive_type _env = function
   | TFloat -> "float"
   | TDouble -> "double"
 
-(* deprecated *)
-and map_sized_type _env = function
-  | TSigned -> TSigned
-  | TUnsigned -> TUnsigned
-  | TShort -> TShort
-  | TLong -> TLong
+and map_sized_type env (kind, t) : G.type_ =
+  let t = map_tok env t in
+  let s =
+    match kind with
+    | TSigned -> "signed"
+    | TUnsigned -> "unsigned"
+    | TShort -> "short"
+    | TLong -> "long"
+  in
+  G.TyBuiltin (s, t) |> G.t
 
 and map_type_qualifiers env v : G.attribute list =
   map_of_list (map_qualifier_wrap env) v
@@ -695,25 +700,12 @@ and map_stmt env x : G.stmt =
       and v3 = map_stmt env v3 in
       G.Label (v1, v3) |> G.s
   (* should be handled in map_cases *)
-  | Case (v1, v2, v3, v4) ->
-      let v1 = map_tok env v1
-      and v2 = map_expr env v2
-      and v3 = map_tok env v3
-      and v4 = map_case_body env v4 in
-      todo env (v1, v2, v3, v4)
-  | CaseRange (v1, v2, v3, v4, v5, v6) ->
-      let v1 = map_tok env v1
-      and v2 = map_expr env v2
-      and v3 = map_tok env v3
-      and v4 = map_expr env v4
-      and v5 = map_tok env v5
-      and v6 = map_case_body env v6 in
-      todo env (v1, v2, v3, v4, v5, v6)
-  | Default (v1, v2, v3) ->
-      let v1 = map_tok env v1
-      and v2 = map_tok env v2
-      and v3 = map_case_body env v3 in
-      todo env (v1, v2, v3)
+  | Case _
+  | CaseRange _
+  | Default _ ->
+      let cases, st = convert_case env x in
+      let anys = cases |> List.map (fun cs -> G.Cs cs) in
+      G.OtherStmtWithStmt (OSWS_Todo, anys, st) |> G.s
   | Try (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_compound env v2
@@ -726,6 +718,38 @@ and map_stmt env x : G.stmt =
       G.OtherStmtWithStmt (OSWS_Todo, [ G.TodoK v1 ], st) |> G.s
 
 and map_cases _env _st : G.case_and_body list = failwith "TODO"
+
+and map_case_body env v : G.case list * G.stmt =
+  (* TODO *)
+  let cases = failwith "TODO" in
+  let rest = map_of_list (map_stmt_or_decl env) v |> List.flatten in
+  (cases, G.stmt1 rest)
+
+and convert_case env st : G.case list * G.stmt =
+  match st with
+  | Case (v1, v2, v3, v4) ->
+      let v1 = map_tok env v1
+      and v2 = map_expr env v2
+      and _v3 = map_tok env v3
+      and other_cases, st = map_case_body env v4 in
+      let case1 = G.Case (v1, H.expr_to_pattern v2) in
+      (case1 :: other_cases, st)
+  | CaseRange (v1, v2, v3, v4, v5, v6) ->
+      let v1 = map_tok env v1
+      and v2 = map_expr env v2
+      and _v3 = map_tok env v3
+      and v4 = map_expr env v4
+      and _v5 = map_tok env v5
+      and other_cases, st = map_case_body env v6 in
+      let case1 = G.OtherCase (("CaseRange", v1), [ G.E v2; G.E v4 ]) in
+      (case1 :: other_cases, st)
+  | Default (v1, v2, v3) ->
+      let v1 = map_tok env v1
+      and _v2 = map_tok env v2
+      and other_cases, st = map_case_body env v3 in
+      let case1 = G.Default v1 in
+      (case1 :: other_cases, st)
+  | _ -> raise Impossible
 
 and map_expr_stmt env (v1, v2) =
   let v1 = map_of_option (map_expr env) v1 and v2 = map_sc env v2 in
@@ -795,8 +819,6 @@ and map_jump env = function
       (* less: could change G.Goto to take a label instead of label_ident? *)
       fun _sc ->
         G.OtherStmt (G.OS_Todo, [ G.TodoK ("GotoComputed", v1); G.E v3 ]) |> G.s
-
-and map_case_body env v = map_of_list (map_stmt_or_decl env) v
 
 and map_handler env (v1, v2, v3) : G.catch =
   let v1 = map_tok env v1
