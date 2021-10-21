@@ -67,11 +67,6 @@ end)
 
 let str_of_name ((s, _tok), sid) = spf "%s:%d" s sid
 
-(*
-let opt_to_set = function
-  | None -> PM.Set.empty
-  | Some x -> PM.Set.singleton x *)
-
 let set_opt_to_set = function
   | None -> PM.Set.empty
   | Some x -> x
@@ -105,31 +100,23 @@ let set_filter_map f pm_set =
       | None -> pm_set)
     pm_set PM.Set.empty
 
-(* TODO: Maybe better names? Was trying to make it look like boolean logic *)
 let ( <|> ) = PM.Set.union
 
-(* let ( <&> ) (o1 : PM.t option) (o2 : PM.Set.t) : PM.Set.t =
-  match o1 with
-  | None -> PM.Set.empty
-  | Some pm1 ->
-      set_filter_map
-        (fun (pm2 : PM.t) ->
-          Option.bind (unify_meta_envs pm1.env pm2.env) (fun env ->
-              Some { pm1 with env }))
-        o2 *)
-let unify_with_list pm =
+let update_meta_envs pm =
   set_filter_map (fun pm' ->
       Option.bind (unify_meta_envs pm.PM.env pm'.PM.env) (fun env ->
           Some { pm with env }))
 
-let ( <&> ) pm_list pm_set =
-  match
-    pm_list
-    |> List.map (fun pm -> unify_with_list pm pm_set)
-    |> List.find_opt (fun s -> not (PM.Set.is_empty s))
-  with
-  | None -> PM.Set.empty
-  | Some s -> s
+(* Takes a list of pattern matches from is_sink and a set of pattern matches
+   indicating a variable is tainted, and tries to unify the metavariable
+   environment in each sink match with all the tainted matches. If the envs
+   unify, the resulting set will contain the sink pattern match with an updated
+   metavariable env. The resulting sets are all unioned together
+*)
+let update_tainted_sinks pm_list pm_set =
+  pm_list
+  |> List.map (fun pm -> update_meta_envs pm pm_set)
+  |> List.fold_left PM.Set.union PM.Set.empty
 
 let varmap_update env x data f =
   match VarMap.find_opt x env with
@@ -148,30 +135,20 @@ let hashtbl_update env x data f =
 (* Test whether an expression is tainted, and if it is also a sink,
  * report the finding too (by side effect).
  *
- * When [in_a_sink] we do not report findings but wait for the finding
- * to be reported by the caller. E.g. if the pattern-sink is `sink(...)`
- * then `E` in `sink(E)` will also satisfy [config.is_sink], but we
- * want to report the finding on `sink(E)` rather than on `E`.
- *
- * TODO: Since we now remove duplicate submatches in Tainting_generic
- *   we should consider removing the `in_a_sink` trick and simplify this
- *   code.
  *)
 
 let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
     exp =
   let check = check_tainted_expr config fun_env env in
-  let sink_pm_opt = config.is_sink (G.E exp.eorig) in
+  let sink_pms = config.is_sink (G.E exp.eorig) in
   let check_base = function
     | Var var ->
-        let var_tok_pm_opt =
+        let var_tok_pms =
           let (_, tok), _ = var in
           if Parse_info.is_origintok tok then config.is_source (G.Tk tok)
           else []
         in
-        (* let env_tainted = list_opt_to_list (VarMap.find_opt (str_of_name var) env) in
-           if env_tainted = [] then print_endline "not env tainted"; *)
-        PM.Set.of_list var_tok_pm_opt
+        PM.Set.of_list var_tok_pms
         <|> set_opt_to_set (VarMap.find_opt (str_of_name var) env)
         <|> set_opt_to_set (Hashtbl.find_opt fun_env (str_of_name var))
     | VarSpecial _ -> PM.Set.empty
@@ -196,79 +173,32 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
     | Record fields -> set_concat_map (fun (_, e) -> check e) fields
     | Cast (_, e) -> check e
   in
-  let sanitized_pm_opt = config.is_sanitizer (G.E exp.eorig) in
-  match sanitized_pm_opt with
+  let sanitized_pms = config.is_sanitizer (G.E exp.eorig) in
+  match sanitized_pms with
   | _ :: _ -> PM.Set.empty
   | [] ->
       let tainted_pms =
         check_subexpr exp.e
         <|> PM.Set.of_list (config.is_source (G.E exp.eorig))
       in
-      let found = sink_pm_opt <&> tainted_pms in
+      let found = update_tainted_sinks sink_pms tainted_pms in
       if PM.Set.is_empty found then tainted_pms
       else (
         config.found_tainted_sink found env;
         tainted_pms)
 
-(* let rec check_tainted_expr ~in_a_sink config fun_env env exp =
-  let is_sink = config.is_sink (G.E exp.eorig) in
-  let check =
-    check_tainted_expr ~in_a_sink:(in_a_sink || is_sink) config fun_env env
-  in
-  let check_base = function
-    | Var var ->
-        let var_tok_is_tainted =
-          let (_, tok), _ = var in
-          Parse_info.is_origintok tok && config.is_source (G.Tk tok)
-        in
-        var_tok_is_tainted
-        || VarMap.mem (str_of_name var) env
-        || Hashtbl.mem fun_env (str_of_name var)
-    | VarSpecial _ -> false
-    | Mem e -> check e
-  in
-  let check_offset = function
-    | NoOffset
-    | Dot _ ->
-        false
-    | Index e -> check e
-  in
-  let check_subexpr = function
-    | Fetch { base = VarSpecial (This, _); offset = Dot fld; _ } ->
-        Hashtbl.mem fun_env (str_of_name fld)
-    | Fetch { base; offset; _ } -> check_base base || check_offset offset
-    | Literal _
-    | FixmeExp _ ->
-        false
-    | Composite (_, (_, es, _))
-    | Operator (_, es) ->
-        List.exists check es
-    | Record fields -> List.exists (fun (_, e) -> check e) fields
-    | Cast (_, e) -> check e
-  in
-  let is_sanitized = config.is_sanitizer (G.E exp.eorig) in
-  (not is_sanitized)
-  &&
-  let is_tainted =
-    (* Must always check sub-expressions because they may be sinks! *)
-    check_subexpr exp.e || config.is_source (G.E exp.eorig)
-  in
-  if is_tainted && is_sink && not in_a_sink then
-    config.found_tainted_sink (G.E exp.eorig) env;
-  is_tainted *)
-
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
 let check_tainted_instr config fun_env env instr : PM.Set.t =
-  let sink_pm_opt = config.is_sink (G.E instr.iorig) in
+  let sink_pms = config.is_sink (G.E instr.iorig) in
   let check_expr = check_tainted_expr config fun_env env in
   let tainted_args = function
     | Assign (_, e) -> check_expr e
     | AssignAnon _ -> PM.Set.empty (* TODO *)
     | Call (_, e, args) ->
-        let e_tainted_pm_opt = check_expr e in
-        let args_tainted_pm_opt = set_concat_map check_expr args in
-        e_tainted_pm_opt <|> args_tainted_pm_opt
+        let e_tainted_pms = check_expr e in
+        let args_tainted_pms = set_concat_map check_expr args in
+        e_tainted_pms <|> args_tainted_pms
     | CallSpecial (_, _, args) -> set_concat_map check_expr args
     | FixmeInstr _ -> PM.Set.empty
   in
@@ -280,64 +210,30 @@ let check_tainted_instr config fun_env env instr : PM.Set.t =
         tainted_args instr.i
         <|> PM.Set.of_list (config.is_source (G.E instr.iorig))
       in
-      let found = sink_pm_opt <&> tainted_pms in
+      let found = update_tainted_sinks sink_pms tainted_pms in
       if PM.Set.is_empty found then tainted_pms
       else (
         config.found_tainted_sink found env;
         tainted_pms)
 
-(* let check_tainted_instr config fun_env env instr =
-  let is_sink = config.is_sink (G.E instr.iorig) in
-  let check_expr = check_tainted_expr ~in_a_sink:is_sink config fun_env env in
-  let tainted_args = function
-    | Assign (_, e) -> check_expr e
-    | AssignAnon _ -> false (* TODO *)
-    | Call (_, e, args) ->
-        let e_tainted = check_expr e in
-        (* Must always check arguments because they may be sinks! *)
-        let args_tainted = List.exists check_expr args in
-        e_tainted || args_tainted
-    | CallSpecial (_, _, args) -> List.exists check_expr args
-    | FixmeInstr _ -> false
-  in
-  let is_sanitized = sanitized_instr config instr in
-  (not is_sanitized)
-  &&
-  let is_tainted =
-    (* Must always check arguments because they may be sinks! *)
-    tainted_args instr.i || config.is_source (G.E instr.iorig)
-  in
-  if is_tainted && is_sink then config.found_tainted_sink (G.E instr.iorig) env;
-  is_tainted *)
-
 (* Test whether a `return' is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
 let check_tainted_return config fun_env env tok e =
   let orig_return = G.s (G.Return (tok, Some e.eorig, tok)) in
-  let sink_pm_opt = config.is_sink (G.S orig_return) in
+  let sink_pms = config.is_sink (G.S orig_return) in
   let e_tainted_pms = check_tainted_expr config fun_env env e in
-  let found = sink_pm_opt <&> e_tainted_pms in
+  let found = update_tainted_sinks sink_pms e_tainted_pms in
   if PM.Set.is_empty found then e_tainted_pms
   else (
     config.found_tainted_sink found env;
     e_tainted_pms)
 
-(* let check_tainted_return config fun_env env tok e =
-  let orig_return = G.s (G.Return (tok, Some e.eorig, tok)) in
-  let is_sink = config.is_sink (G.S orig_return) in
-  let check_expr = check_tainted_expr ~in_a_sink:is_sink config fun_env env e in
-  if check_expr && is_sink then config.found_tainted_sink (G.S orig_return) env;
-  check_expr *)
-
 (*****************************************************************************)
 (* Transfer *)
 (*****************************************************************************)
-(* Not sure we can use the Gen/Kill framework here.
-*)
+
 let union = Dataflow.varmap_union PM.Set.union
 
-(* TODO: Ask about this *)
-(* let diff = Dataflow.varmap_diff (fun x _ -> x) (fun _ -> true) *)
 let (transfer :
       config ->
       fun_env ->
@@ -356,18 +252,13 @@ let (transfer :
   let out' =
     match node.F.n with
     | NInstr x -> (
-        (* Printf.printf "at node %i\n" ni; *)
         let tainted = check_tainted_instr config fun_env in' x in
         match (PM.Set.is_empty tainted, IL.lvar_of_instr_opt x) with
-        | true, Some var ->
-            (*Printf.printf "untainted!\n\n";*)
-            VarMap.remove (str_of_name var) in'
+        | true, Some var -> VarMap.remove (str_of_name var) in'
         | _, Some var ->
-            (*Printf.printf "tainted!\n\n";*)
             varmap_update in' (str_of_name var) tainted (PM.Set.union tainted)
         | _ -> in')
     | NReturn (tok, e) -> (
-        (* print_endline "return?"; *)
         let tainted = check_tainted_return config fun_env in' tok e in
         match opt_name with
         | Some var ->

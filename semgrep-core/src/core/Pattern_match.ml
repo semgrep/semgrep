@@ -130,7 +130,11 @@ module Set = Set.Make (struct
   type t = pm
 
   let compare pm1 pm2 =
-    compare_int_range
-      (int_range_of_range_loc pm1.range_loc)
-      (int_range_of_range_loc pm2.range_loc)
+    match
+      compare_int_range
+        (int_range_of_range_loc pm1.range_loc)
+        (int_range_of_range_loc pm2.range_loc)
+    with
+    | 0 -> compare pm1.env pm2.env
+    | c -> c
 end)
