@@ -6,9 +6,9 @@ type fun_env = (Dataflow.var, Pattern_match.Set.t) Hashtbl.t
   * Note that here [Dataflow.var] is a string of the form "<source name>:<sid>". *)
 
 type config = {
-  is_source : AST_generic.any -> Pattern_match.t option;
-  is_sink : AST_generic.any -> Pattern_match.t option;
-  is_sanitizer : AST_generic.any -> Pattern_match.t option;
+  is_source : AST_generic.any -> Pattern_match.t list;
+  is_sink : AST_generic.any -> Pattern_match.t list;
+  is_sanitizer : AST_generic.any -> Pattern_match.t list;
   found_tainted_sink :
     Pattern_match.Set.t -> Pattern_match.Set.t Dataflow.env -> unit;
 }

@@ -41,9 +41,9 @@ type mapping = PM.Set.t Dataflow.mapping
 type fun_env = (Dataflow.var, PM.Set.t) Hashtbl.t
 
 type config = {
-  is_source : G.any -> PM.t option;
-  is_sink : G.any -> PM.t option;
-  is_sanitizer : G.any -> PM.t option;
+  is_source : G.any -> PM.t list;
+  is_sink : G.any -> PM.t list;
+  is_sanitizer : G.any -> PM.t list;
   found_tainted_sink : PM.Set.t -> PM.Set.t Dataflow.env -> unit;
 }
 (** This can use semgrep patterns under the hood. Note that a source can be an
@@ -65,9 +65,10 @@ end)
 
 let str_of_name ((s, _tok), sid) = spf "%s:%d" s sid
 
+(*
 let opt_to_set = function
   | None -> PM.Set.empty
-  | Some x -> PM.Set.singleton x
+  | Some x -> PM.Set.singleton x *)
 
 let set_opt_to_set = function
   | None -> PM.Set.empty
@@ -105,7 +106,7 @@ let set_filter_map f pm_set =
 (* TODO: Maybe better names? Was trying to make it look like boolean logic *)
 let ( <|> ) = PM.Set.union
 
-let ( <&> ) (o1 : PM.t option) (o2 : PM.Set.t) : PM.Set.t =
+(* let ( <&> ) (o1 : PM.t option) (o2 : PM.Set.t) : PM.Set.t =
   match o1 with
   | None -> PM.Set.empty
   | Some pm1 ->
@@ -113,7 +114,20 @@ let ( <&> ) (o1 : PM.t option) (o2 : PM.Set.t) : PM.Set.t =
         (fun (pm2 : PM.t) ->
           Option.bind (unify_meta_envs pm1.env pm2.env) (fun env ->
               Some { pm1 with env }))
-        o2
+        o2 *)
+let unify_with_list pm =
+  set_filter_map (fun pm' ->
+      Option.bind (unify_meta_envs pm.PM.env pm'.PM.env) (fun env ->
+          Some { pm with env }))
+
+let ( <&> ) pm_list pm_set =
+  match
+    pm_list
+    |> List.map (fun pm -> unify_with_list pm pm_set)
+    |> List.find_opt (fun s -> not (PM.Set.is_empty s))
+  with
+  | None -> PM.Set.empty
+  | Some s -> s
 
 let varmap_update env x data f =
   match VarMap.find_opt x env with
@@ -151,11 +165,11 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
         let var_tok_pm_opt =
           let (_, tok), _ = var in
           if Parse_info.is_origintok tok then config.is_source (G.Tk tok)
-          else None
+          else []
         in
         (* let env_tainted = list_opt_to_list (VarMap.find_opt (str_of_name var) env) in
            if env_tainted = [] then print_endline "not env tainted"; *)
-        opt_to_set var_tok_pm_opt
+        PM.Set.of_list var_tok_pm_opt
         <|> set_opt_to_set (VarMap.find_opt (str_of_name var) env)
         <|> set_opt_to_set (Hashtbl.find_opt fun_env (str_of_name var))
     | VarSpecial _ -> PM.Set.empty
@@ -182,10 +196,11 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
   in
   let sanitized_pm_opt = config.is_sanitizer (G.E exp.eorig) in
   match sanitized_pm_opt with
-  | Some _ -> PM.Set.empty
-  | None ->
+  | _ :: _ -> PM.Set.empty
+  | [] ->
       let tainted_pms =
-        check_subexpr exp.e <|> opt_to_set (config.is_source (G.E exp.eorig))
+        check_subexpr exp.e
+        <|> PM.Set.of_list (config.is_source (G.E exp.eorig))
       in
       let found = sink_pm_opt <&> tainted_pms in
       if PM.Set.is_empty found then tainted_pms
@@ -257,10 +272,11 @@ let check_tainted_instr config fun_env env instr : PM.Set.t =
   in
   let sanitized_pm_opt = config.is_sanitizer (G.E instr.iorig) in
   match sanitized_pm_opt with
-  | Some _ -> PM.Set.empty
-  | None ->
+  | _ :: _ -> PM.Set.empty
+  | [] ->
       let tainted_pms =
-        tainted_args instr.i <|> opt_to_set (config.is_source (G.E instr.iorig))
+        tainted_args instr.i
+        <|> PM.Set.of_list (config.is_source (G.E instr.iorig))
       in
       let found = sink_pm_opt <&> tainted_pms in
       if PM.Set.is_empty found then tainted_pms

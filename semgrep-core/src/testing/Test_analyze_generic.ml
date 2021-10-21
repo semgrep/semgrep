@@ -144,9 +144,9 @@ let test_dfg_tainting file =
              pr2 "Tainting";
              let config =
                {
-                 Dataflow_tainting.is_source = (fun _ -> None);
-                 is_sink = (fun _ -> None);
-                 is_sanitizer = (fun _ -> None);
+                 Dataflow_tainting.is_source = (fun _ -> []);
+                 is_sink = (fun _ -> []);
+                 is_sanitizer = (fun _ -> []);
                  found_tainted_sink = (fun _ _ -> ());
                }
              in

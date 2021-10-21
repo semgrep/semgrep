@@ -95,11 +95,11 @@ let any_in_ranges any rwms =
       logger#debug
         "Cannot compute range, there are no real tokens in this AST: %s"
         (G.show_any any);
-      None
+      []
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
-      List.find_opt (fun rwm -> Range.( $<=$ ) r rwm.Range_with_metavars.r) rwms
-      |> Option.map (fun rwm -> rwm.Range_with_metavars.origin)
+      List.filter (fun rwm -> Range.( $<=$ ) r rwm.Range_with_metavars.r) rwms
+      |> List.map (fun rwm -> rwm.Range_with_metavars.origin)
 
 let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
