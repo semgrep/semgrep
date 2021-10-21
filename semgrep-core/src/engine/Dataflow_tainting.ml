@@ -28,6 +28,8 @@ module PM = Pattern_match
  * This is a very rudimentary tainting analysis. Just intraprocedural,
  * very coarse grained (taint whole array/object).
  * This is step1 for taint tracking support in semgrep.
+ * This was originally in semgrep-core/src/analyze, but it now depends on Pattern_match,
+ * so it was moved to semgrep-core/src/engine
  *)
 
 (*****************************************************************************)
