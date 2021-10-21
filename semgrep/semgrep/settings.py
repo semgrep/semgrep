@@ -11,6 +11,7 @@ If no settings have been configured on the system, DEFAULT_SETTINGS will be writ
 If the process does not have permission to the settings path, a PermissionError will be raised;
 callers should handle this gracefully.
 """
+import os
 from pathlib import Path
 from typing import Any
 from typing import cast
@@ -21,19 +22,21 @@ from ruamel.yaml import YAML
 
 from semgrep.constants import SETTINGS_FILE
 from semgrep.constants import USER_DATA_FOLDER
-
+from semgrep.verbose_logging import getLogger
 
 DEFAULT_SETTINGS: Dict[str, Any] = {}
 
 
 class Settings:
     def __init__(self) -> None:
+        self._logger = getLogger(__name__)
         self._yaml = YAML()
         self._yaml.default_flow_style = False
         self._path = Path("~").expanduser() / USER_DATA_FOLDER / SETTINGS_FILE
 
         # If file exists, read file. Otherwise use default
-        if self._path.exists():
+        # Must perform access check first in case we don't have permission to stat the path
+        if os.access(self._path, os.R_OK) and self._path.exists():
             with self._path.open("r") as fd:
                 yaml_file = self._yaml.load(fd)
             if not isinstance(yaml_file, Mapping):
@@ -51,10 +54,13 @@ class Settings:
         :param value: The settings object
         """
         self._value[key] = value
-        if not self._path.parent.exists():
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-        with self._path.open("w") as fd:
-            self._yaml.dump(self._value, fd)
+        try:
+            if not self._path.parent.exists():
+                self._path.parent.mkdir(parents=True, exist_ok=True)
+            with self._path.open("w") as fd:
+                self._yaml.dump(self._value, fd)
+        except PermissionError:
+            self._logger.verbose("Could not write settings file at %s", self._path)
 
     def get_setting(self, key: str, *, default: Any) -> Any:
         return self._value.get(key, default)

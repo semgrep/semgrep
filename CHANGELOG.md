@@ -22,6 +22,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   consistent with other use of ... (#4082), so `o. ... .foo()` will now
   also match just `o.foo()`.
 - Config files with only a comment give bad error message (#3773)
+- Does not crash if user does not have write permissions on home directory
 
 ### Changed
 - Resolution of rulesets use legacy registry instead of cdn registry
