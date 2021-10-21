@@ -756,6 +756,7 @@ and map_case_and_body = function
       `CaseEllipsis v1
 
 and map_case = function
+  | OtherCase _ -> failwith "TODO"
   | Case (t, v1) ->
       let t = map_tok t in
       let v1 = map_pattern v1 in
@@ -1172,6 +1173,7 @@ and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | Cs _ -> failwith "TODO"
   | Ce _ -> failwith "TODO"
   | Anys _ -> error x
   | E v1 ->

@@ -769,6 +769,9 @@ let (mk_visitor :
         let v1 = v_expr v1 in
         ()
   and v_case = function
+    | OtherCase (v1, v2) ->
+        v_todo_kind v1;
+        v_list v_any v2
     | Case (t, v1) ->
         let t = v_tok t in
         let v1 = v_pattern v1 in
@@ -1222,6 +1225,7 @@ let (mk_visitor :
     v_id_info v2
   and v_program v = v_stmts v
   and v_any = function
+    | Cs v1 -> v_case v1
     | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
     | Flds v1 -> v_fields v1
