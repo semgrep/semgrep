@@ -1400,12 +1400,12 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "<<" *) in
       let v3 = map_expression env v3 in
-      Binary (v1, (Arith Plus, v2), v3)
+      Binary (v1, (Arith DecLeft, v2), v3)
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* ">>" *) in
       let v3 = map_expression env v3 in
-      Binary (v1, (Arith Plus, v2), v3)
+      Binary (v1, (Arith DecRight, v2), v3)
 
 and map_bitfield_clause (env : env) ((v1, v2) : CST.bitfield_clause) =
   let v1 = token env v1 (* ":" *) in

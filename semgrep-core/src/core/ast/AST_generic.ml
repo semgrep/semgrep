@@ -286,24 +286,26 @@ and resolved_name_kind =
  *)
 type name = Id of ident * id_info | IdQualified of qualified_info
 
+(* A qualified (via type arguments or module/namespace/package) id.
+ * The type should be enough to represent Java/Rust/C++ generics.
+ * less: it is still not enough to represent OCaml functors applications.
+ *
+ * invariant: you can't have name_top = None, name_middle = QNone, and
+ * name_last = (id * None) at the same time. If that's the case, then we
+ * build an Id, not an Idqualified
+ *)
 and qualified_info = {
-  (* TODO just qualifier list (reversed?) *)
-  name_id : ident;
+  name_last : ident * type_arguments option;
+  name_middle : qualifier option;
+  (* ::, Ruby, C++, also '`' abuse for PolyVariant in OCaml *)
+  name_top : tok option;
   name_info : id_info;
-  name_qualifier : qualifier option;
-  name_typeargs : type_arguments option; (* Java/Rust *)
 }
 
-(* TODO: not enough in OCaml with functor and type args or C++ templates.
- * We will need to merge name_typeargs and name_qualifier and have a
- * qualifier list instead (with QId and QTemplateId like in ast_cpp.ml)
- *)
 and qualifier =
-  (* ::, Ruby, C++, also '`' abuse for PolyVariant in OCaml *)
-  | QTop of tok
-  (* Java, OCaml *)
-  | QDots of dotted_ident
-  (* Ruby *)
+  (* Java/C++/Rust *)
+  | QDots of (ident * type_arguments option) list
+  (* Ruby/Lua *)
   | QExpr of expr * tok
 
 (* This is used to represent field names, where sometimes the name
@@ -343,7 +345,27 @@ and id_info = {
    * depending where it is used.
    *)
   id_constness : constness option ref; [@equal fun _a _b -> true]
-      (* THINK: Drop option? *)
+  (* THINK: Drop option? *)
+  (* id_hidden=true must be set for any artificial identifier that never
+     appears in source code but is introduced in the AST after parsing.
+
+     Don't use this for syntax desugaring or transpilation because the
+     resulting function name might exist in some source code. Consider the
+     following normalization:
+
+       !foo -> foo.contents
+                   ^^^^^^^^
+                 should not be marked as hidden because it could appear
+                 in target source code.
+
+     However, an artificial identifier like "!sh_quoted_expand!" should
+     be marked as hidden in bash.
+
+     This allows not breaking the -fast/-filter_irrelevant_rules optimization
+     that skips a target file if some identifier in the pattern AST doesn't
+     exist in the source of the target.
+  *)
+  id_hidden : bool;
 }
 
 (*****************************************************************************)
@@ -365,7 +387,10 @@ and expr = {
 and expr_kind =
   (* basic (atomic) values *)
   | L of literal
-  (* composite values *)
+  (* composite values
+   * TODO? element list bracket, so can encode KeyVal, Designator,
+   * IndexArray for C++.
+   *)
   | Container of container_operator * expr list bracket
   | Comprehension of container_operator * comprehension bracket
   (* And-type (field.vinit should be a Some) *)
@@ -865,7 +890,10 @@ and stmt_kind =
       tok (* 'with' in Python, 'using' in C# *)
       * stmt (* resource acquisition *)
       * stmt (* newscope: block *)
-  | Assert of tok * expr * expr option (* message *) * sc
+  (* old: was 'expr * expr option' for Python/Java, but better to generalize.
+   * alt: could move in expr and have Assert be an IdSpecial
+   *)
+  | Assert of tok * arguments * sc
   (* TODO? move this out of stmt and have a stmt_or_def_or_dir in Block?
    * or an item list where item is a stmt_or_def_or_dir (as well as field)
    *)
@@ -873,8 +901,9 @@ and stmt_kind =
   | DirectiveStmt of directive
   (* sgrep: *)
   | DisjStmt of stmt * stmt
-  (* this is important to correctly compute a CFG *)
-  | OtherStmtWithStmt of other_stmt_with_stmt_operator * expr option * stmt
+  (* This is important to correctly compute a CFG. The any should not
+   * contain any stmt! *)
+  | OtherStmtWithStmt of other_stmt_with_stmt_operator * any list * stmt
   (* any here should not contain any statement! otherwise the CFG will be
    * incorrect and some analysis (e.g., liveness) will be incorrect.
    * TODO: other_stmt_operator wrap, so enforce at least one token instead
@@ -935,6 +964,7 @@ and label_ident =
   (* PHP, woohoo, dynamic break! bailout for CFG *)
   | LDynamic of expr
 
+(* todo? put also user-defined iterators here? like MacroIteration in C++ *)
 and for_header =
   (* todo? copy Go and have 'of simple option * expr * simple option'? *)
   | ForClassic of
@@ -970,6 +1000,10 @@ and other_stmt_with_stmt_operator =
   (* C# *)
   | OSWS_CheckedBlock
   | OSWS_UncheckedBlock
+  (* C/C++/cpp *)
+  | OSWS_Iterator
+  (* Other *)
+  | OSWS_Todo
 
 and other_stmt_operator =
   (* Python *)
@@ -985,7 +1019,7 @@ and other_stmt_operator =
   | OS_Async
   (* Java *)
   | OS_Sync
-  (* C *)
+  (* C/C++ *)
   | OS_Asm
   (* Go *)
   | OS_Go
@@ -1077,7 +1111,7 @@ and type_kind =
    *)
   | TyApply of type_ * type_arguments
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
-  (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin
+  (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++.
    * TODO: type bounds Scala? *)
   | TyAny of tok
   | TyPointer of tok * type_
@@ -1131,6 +1165,7 @@ and other_type_operator =
   (* Other *)
   | OT_Expr
   | OT_Arg (* Python: todo: should use expr_to_type() when can *)
+  (* TypeOf, etc. *)
   | OT_Todo
 
 (*****************************************************************************)
@@ -1270,7 +1305,8 @@ and definition_kind =
 
 (* template/generics/polymorphic-type *)
 and type_parameter = {
-  (* alt: we could reuse entity here.
+  (* it would be nice to reuse entity here, but then the types would be
+   * mutually recursive.
    * note: in Scala the ident can be a wildcard.
    *)
   tp_id : ident;
@@ -1286,16 +1322,16 @@ and type_parameter = {
   tp_constraints : type_parameter_constraint list;
 }
 
+(* TODO bracket *)
 and type_parameters = type_parameter list
 
-(* TODO bracket *)
+(* less: have also Invariant? *)
 and variance =
-  | Covariant (* '+' in Scala/Hack, 'out' in C#/Kotlin *)
+  (* '+' in Scala/Hack, 'out' in C#/Kotlin *)
+  | Covariant
+  (* '-' in Scala/Hack, 'in' in C#/Kotlin *)
   | Contravariant
 
-(* '-' in Scala/Hack, 'in' in C#/Kotlin *)
-
-(* less: Invariant? *)
 and type_parameter_constraint =
   (* C# *)
   | HasConstructor of tok
@@ -1512,6 +1548,7 @@ and class_kind =
  * can be defined in the class header via cparams and then this class
  * header can call its parent constructor using those cparams).
  * alt: keep just 'type_' and add constructor calls in cbody.
+ * TODO: also can have visibility modifier in C++ or virtual
  *)
 and class_parent = type_ * arguments option
 
@@ -1541,7 +1578,10 @@ and module_definition_kind =
 (* ------------------------------------------------------------------------- *)
 (* Macro definition *)
 (* ------------------------------------------------------------------------- *)
-(* Used by cpp in C/C++ *)
+(* Used by cpp in C/C++
+ * todo? differentiate MacroVar from MacroDef? some macro can take
+ * an empty list of parameters, but they are not MacroVar
+ *)
 and macro_definition = { macroparams : ident list; macrobody : any list }
 
 (*****************************************************************************)
@@ -1572,7 +1612,8 @@ and directive_kind =
   (* bad practice! hard to resolve name locally *)
   | ImportAll of tok * module_name * tok (* '.' in Go, '*' in Java/Python, '_' in Scala *)
   (* packages are different from modules in that multiple files can reuse
-   * the same package name; they are agglomerated in the same package
+   * the same package name; they are agglomerated in the same package.
+   * The list can be empty in C++.
    *)
   | Package of tok * dotted_ident (* a.k.a namespace *)
   (* This is used for languages such as C++/PHP/Scala with scoped namespaces.
@@ -1594,9 +1635,11 @@ and other_directive_operator =
   (* TODO: Declare, move OE_UseStrict here for JS? *)
   (* Ruby *)
   | OI_Alias
-  | OI_Undef
+  | OI_Undef (* also C/C++ *)
   (* Rust *)
   | OI_Extern
+  (* Other *)
+  | OI_Todo
 
 (*****************************************************************************)
 (* Toplevel *)
@@ -1759,14 +1802,20 @@ let sid_TODO = -1
 
 let empty_var = { vinit = None; vtype = None }
 
-let empty_id_info () =
-  { id_resolved = ref None; id_type = ref None; id_constness = ref None }
+let empty_id_info ?(hidden = false) () =
+  {
+    id_resolved = ref None;
+    id_type = ref None;
+    id_constness = ref None;
+    id_hidden = hidden;
+  }
 
-let basic_id_info resolved =
+let basic_id_info ?(hidden = false) resolved =
   {
     id_resolved = ref (Some resolved);
     id_type = ref None;
     id_constness = ref None;
+    id_hidden = hidden;
   }
 
 (* TODO: move AST_generic_helpers.name_of_id and ids here *)
@@ -1776,8 +1825,8 @@ let basic_id_info resolved =
 (* ------------------------------------------------------------------------- *)
 
 (* alt: could use @@deriving make *)
-let basic_entity ?(attrs = []) ?(tparams = []) id =
-  let idinfo = empty_id_info () in
+let basic_entity ?hidden ?(attrs = []) ?(tparams = []) id =
+  let idinfo = empty_id_info ?hidden () in
   { name = EN (Id (id, idinfo)); attrs; tparams }
 
 (* ------------------------------------------------------------------------- *)

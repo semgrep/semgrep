@@ -4,11 +4,36 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
-## Added
+### Added
 - Metavariable equality is enforced across sources/sanitizers/sinks in taint mode, and 
 these metavariables correctly appear in match messages
 
-## Fixed
+### Fixed
+- text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports width < 1
+
+## [0.70.0](https://github.com/returntocorp/semgrep/releases/tag/v0.70.0) - 10-19-2021
+
+### Added
+- Preliminary support for bash
+
+### Fixed
+- Go: support ... in import list (#4067),
+  for example `import (... "error" ...)`
+- Java: ... in method chain calls can now match also 0 elements, to be
+  consistent with other use of ... (#4082), so `o. ... .foo()` will now
+  also match just `o.foo()`.
+- Config files with only a comment give bad error message (#3773)
+
+### Changed
+- Resolution of rulesets use legacy registry instead of cdn registry
+- Benchmark suite is easier to modify
+
+## [0.69.1](https://github.com/returntocorp/semgrep/releases/tag/v0.69.1) - 10-14-2021
+
+### Fixed
+- The `--enable-metrics` flag is now always a flag, does not optionally
+  take an argument
+
 ## [0.69.0](https://github.com/returntocorp/semgrep/releases/tag/v0.69.0) - 10-13-2021
 
 ### Added
@@ -24,7 +49,6 @@ these metavariables correctly appear in match messages
 - C: fix some wrong typedef inference (#4054)
 - Ruby: put back equivalence on old syntax for keyword arguments (#3981)
 - OCaml: add body of functor in AST (#3821)
-- The `--enable-metrics` flag is now always a flag, does not optionally take an argument
 
 ### Changed
 - taint-mode: Introduce a new kind of _not conflicting_ sanitizer that must be

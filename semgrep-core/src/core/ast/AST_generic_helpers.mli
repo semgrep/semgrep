@@ -32,10 +32,7 @@ val funcbody_to_stmt : AST_generic.function_body -> AST_generic.stmt
 
 val name_of_id : AST_generic.ident -> AST_generic.name
 
-val name_of_ids :
-  ?name_typeargs:AST_generic.type_arguments option ->
-  AST_generic.dotted_ident ->
-  AST_generic.name
+val name_of_ids : AST_generic.dotted_ident -> AST_generic.name
 
 val name_of_ids_with_opt_typeargs :
   (AST_generic.ident * AST_generic.type_arguments option) list ->
@@ -61,6 +58,9 @@ val name_of_dot_access : AST_generic.expr -> AST_generic.name option
 val dotted_ident_of_name : AST_generic.name -> AST_generic.dotted_ident
 
 (* misc *)
+
+val parameter_to_catch_exn_opt :
+  AST_generic.parameter -> AST_generic.catch_exn option
 
 val opt_to_label_ident : AST_generic.ident option -> AST_generic.label_ident
 

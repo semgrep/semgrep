@@ -1,4 +1,4 @@
-# Items added to this file will be ignored by bento.
+# Items added to this file will be ignored by Semgrep.
 #
 # This file uses .gitignore syntax:
 #
@@ -37,3 +37,7 @@ pfff/
 semgrep/tests/e2e/targets/
 semgrep/tests/performance/targets/
 semgrep/tests/e2e/snapshots/
+
+# rules being tested for performance
+perf/rules/
+perf/r2c-rules/

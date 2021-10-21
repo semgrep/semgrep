@@ -40,43 +40,36 @@ let str_of_ident = fst
 let gensym_counter = ref 0
 
 (* see sid type in resolved_name *)
-(* see sid type in resolved_name *)
 let gensym () =
   incr gensym_counter;
   !gensym_counter
 
-(* TODO: refactor name_qualifier and correctly handle this *)
 let name_of_ids_with_opt_typeargs xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids_with_opt_typeargs: empty ids"
   | [ (x, None) ] -> Id (x, empty_id_info ())
-  | (x, _toptTODO) :: xs ->
-      let qualif =
-        if xs = [] then None
-        else
-          Some
-            (QDots
-               (xs |> List.rev |> List.map fst (* TODO use typeargs in xs!! *)))
-      in
+  | (x, topt) :: xs ->
+      let qualif = if xs = [] then None else Some (QDots (xs |> List.rev)) in
       IdQualified
         {
-          name_id = x;
-          name_qualifier = qualif;
-          name_typeargs = None (*TODO*);
+          name_last = (x, topt);
+          name_middle = qualif;
+          name_top = None;
           name_info = empty_id_info ();
         }
 
+(* internal *)
 let name_to_qualifier = function
-  | Id (id, _) -> [ id ]
-  | IdQualified { name_id = id; name_qualifier = qu; _ } ->
+  | Id (id, _idinfo) -> [ (id, None) ]
+  | IdQualified { name_last = id, topt; name_middle = qu; _ } ->
       let rest =
         match qu with
         | None -> []
         | Some (QDots xs) -> xs
-        (* TODO *)
-        | Some _ -> []
+        (* TODO, raise exn? *)
+        | Some (QExpr _) -> []
       in
-      rest @ [ id ]
+      rest @ [ (id, topt) ]
 
 (* used for Parse_csharp_tree_sitter.ml
  * less: could move there? *)
@@ -84,9 +77,9 @@ let add_id_opt_type_args_to_name name (id, topt) =
   let qdots = name_to_qualifier name in
   IdQualified
     {
-      name_id = id;
-      name_qualifier = Some (QDots qdots);
-      name_typeargs = topt;
+      name_last = (id, topt);
+      name_middle = Some (QDots qdots);
+      name_top = None;
       name_info = empty_id_info () (* TODO reuse from name?*);
     }
 
@@ -98,37 +91,40 @@ let add_type_args_to_name name type_args =
       (* Only IdQualified supports typeargs *)
       IdQualified
         {
-          name_id = ident;
-          name_qualifier = None;
-          name_typeargs = Some type_args;
+          name_last = (ident, Some type_args);
+          name_middle = None;
+          name_top = None;
           name_info = id_info;
         }
   | IdQualified qualified_info -> (
-      match qualified_info.name_typeargs with
-      | Some _x ->
+      match qualified_info.name_last with
+      | _id, Some _x ->
           IdQualified qualified_info
           (* TODO: Enable raise Impossible *)
           (* raise Impossible *)
           (* Never should have to overwrite type args, but also doesn't make sense to merge *)
-      | None ->
-          IdQualified { qualified_info with name_typeargs = Some type_args })
+      | id, None ->
+          IdQualified { qualified_info with name_last = (id, Some type_args) })
 
 let add_type_args_opt_to_name name topt =
   match topt with
   | None -> name
   | Some t -> add_type_args_to_name name t
 
-let name_of_ids ?(name_typeargs = None) xs =
+let name_of_ids xs =
   match List.rev xs with
   | [] -> failwith "name_of_ids: empty ids"
   | [ x ] -> Id (x, empty_id_info ())
   | x :: xs ->
-      let qualif = if xs = [] then None else Some (QDots (List.rev xs)) in
+      let qualif =
+        if xs = [] then None
+        else Some (QDots (xs |> List.rev |> List.map (fun id -> (id, None))))
+      in
       IdQualified
         {
-          name_id = x;
-          name_qualifier = qualif;
-          name_typeargs;
+          name_last = (x, None);
+          name_middle = qualif;
+          name_top = None;
           name_info = empty_id_info ();
         }
 
@@ -154,15 +150,16 @@ let name_of_dot_access e =
 let dotted_ident_of_name (n : name) : dotted_ident =
   match n with
   | Id (id, _) -> [ id ]
-  | IdQualified { name_id = ident; name_qualifier; _ } -> (
-      match name_qualifier with
-      | Some q -> (
-          match q with
-          | QDots ds -> ds @ [ ident ]
-          | _ ->
-              logger#error "unexpected qualifier type";
-              [ ident ])
-      | None -> [ ident ])
+  | IdQualified { name_last = ident, _topt; name_middle; _ } ->
+      let before =
+        match name_middle with
+        | Some (QDots ds) -> ds |> List.map fst
+        | Some (QExpr _) ->
+            logger#error "unexpected qualifier type";
+            []
+        | None -> []
+      in
+      before @ [ ident ]
 
 (* In Go a pattern can be a complex expressions. It is just
  * matched for equality with the thing it's matched against, so in that
@@ -292,6 +289,18 @@ let has_keyword_attr kwd attrs =
   |> List.exists (function
        | KeywordAttr (kwd2, _) -> kwd =*= kwd2
        | _ -> false)
+
+(* just used in cpp_to_generic.ml for now, could be moved there *)
+let parameter_to_catch_exn_opt p =
+  match p with
+  | ParamClassic p -> Some (CatchParam p)
+  | ParamEllipsis t -> Some (CatchPattern (PatEllipsis t))
+  | ParamPattern p -> Some (G.CatchPattern p)
+  (* TODO: valid in exn spec? *)
+  | ParamRest (_, _p)
+  | ParamHashSplat (_, _p) ->
+      None
+  | OtherParam _ -> None
 
 (*****************************************************************************)
 (* Abstract position and constness for comparison *)

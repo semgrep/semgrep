@@ -1588,7 +1588,7 @@ and statement (env : env) (x : CST.statement) =
         (* "unchecked" *)
       in
       let v2 = block env v2 in
-      OtherStmtWithStmt (v1, None, v2) |> G.s
+      OtherStmtWithStmt (v1, [], v2) |> G.s
   | `Cont_stmt (v1, v2) ->
       let v1 = token env v1 (* "continue" *) in
       let v2 = token env v2 (* ";" *) in
@@ -1782,7 +1782,7 @@ and statement (env : env) (x : CST.statement) =
   | `Unsafe_stmt (v1, v2) ->
       let _v1 = token env v1 (* "unsafe" *) in
       let v2 = block env v2 in
-      OtherStmtWithStmt (OSWS_UnsafeBlock, None, v2) |> G.s
+      OtherStmtWithStmt (OSWS_UnsafeBlock, [], v2) |> G.s
   | `Using_stmt (v1, v2, v3, v4, v5, v6) ->
       let _v1TODO = Common.map_opt (token env) v1 (* "await" *) in
       let v2 = token env v2 (* "using" *) in

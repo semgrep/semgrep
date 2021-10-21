@@ -83,6 +83,7 @@ let default_visitor =
           id_resolved = v_id_resolved;
           id_type = v_id_type;
           id_constness = _IGNORED;
+          id_hidden = _IGNORED2;
         } =
           x
         in
@@ -137,9 +138,11 @@ let (mk_visitor :
     let k x = v_wrap v_string x in
     vin.kident (k, all_functions) v
   and v_dotted_ident v = v_list v_ident v
+  and v_ident_and_targs (v1, v2) =
+    v_ident v1;
+    v_option v_type_arguments v2
   and v_qualifier = function
-    | QDots v -> v_dotted_ident v
-    | QTop t -> v_tok t
+    | QDots v -> v_list v_ident_and_targs v
     | QExpr (e, t) ->
         v_expr e;
         v_tok t
@@ -168,16 +171,11 @@ let (mk_visitor :
     | EnumConstant -> ()
     | TypeName -> ()
   and v_name_info
-      {
-        name_qualifier = v_name_qualifier;
-        name_typeargs = v_name_typeargs;
-        name_id = v1;
-        name_info = v2;
-      } =
-    let v1 = v_ident v1 in
+      { name_middle = v4; name_top = v3; name_last = v1; name_info = v2 } =
+    let v1 = v_ident_and_targs v1 in
     let v2 = v_id_info v2 in
-    let arg = v_option v_qualifier v_name_qualifier in
-    let arg = v_option v_type_arguments v_name_typeargs in
+    let arg = v_option v_qualifier v4 in
+    let arg = v_option v_tok v3 in
     ()
   and v_id_info x =
     let k x =
@@ -185,12 +183,14 @@ let (mk_visitor :
         id_resolved = v_id_resolved;
         id_type = v_id_type;
         id_constness = v_id_constness;
+        id_hidden = v_id_hidden;
       } =
         x
       in
       let arg = v_ref_do_visit (v_option v_resolved_name) v_id_resolved in
       let arg = v_ref_do_visit (v_option v_type_) v_id_type in
       let arg = v_ref_do_visit (v_option v_constness) v_id_constness in
+      let arg = v_hidden v_id_hidden in
       ()
     in
     vin.kid_info (k, all_functions) x
@@ -437,6 +437,7 @@ let (mk_visitor :
       | NotCst -> ()
     in
     vin.kconstness (k, all_functions) x
+  and v_hidden _is_hidden = ()
   and v_container_operator _x = ()
   and v_comprehension (v1, v2) =
     let v1 = v_expr v1 in
@@ -741,13 +742,13 @@ let (mk_visitor :
           let t = v_tok t in
           let v1 = v_stmt v1 and v2 = v_stmt v2 in
           ()
-      | Assert (t, v1, v2, sc) ->
+      | Assert (t, args, sc) ->
           let t = v_tok t in
-          let v1 = v_expr v1 and v2 = v_option v_expr v2 in
+          let _ = v_arguments args in
           v_tok sc
       | OtherStmtWithStmt (v1, v2, v3) ->
           let v1 = v_other_stmt_with_stmt_operator v1
-          and v2 = v_option v_expr v2
+          and v2 = v_list v_any v2
           and v3 = v_stmt v3 in
           ()
       | OtherStmt (v1, v2) ->

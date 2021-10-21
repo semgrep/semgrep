@@ -79,8 +79,7 @@ let map_ident (v : ident) : B.ident = map_wrap map_of_string v
 let map_dotted_ident v : B.dotted_ident = map_of_list map_ident v
 
 let rec _map_qualifier = function
-  | QDots v -> `QDots (map_dotted_ident v)
-  | QTop t -> `QTop (map_tok t)
+  | QDots _ -> failwith "TODO"
   | QExpr (e, t) ->
       let e = map_expr e in
       let t = map_tok t in
@@ -116,7 +115,12 @@ and map_resolved_name_kind = function
 
 and map_id_info x =
   match x with
-  | { G.id_resolved = v_id_resolved; id_type = v_id_type; id_constness = v3 } ->
+  | {
+   G.id_resolved = v_id_resolved;
+   id_type = v_id_type;
+   id_constness = v3;
+   id_hidden = _not_available_in_v1;
+  } ->
       let v3 = map_of_ref (map_of_option map_constness) v3 in
       let v_id_type = map_of_ref (map_of_option map_type_) v_id_type in
       let v_id_resolved =
@@ -711,17 +715,18 @@ and map_stmt x : B.stmt =
         let v1 = map_stmt v1 in
         let v2 = map_stmt v2 in
         `WithUsingResource (t, v1, v2)
-    | Assert (t, v1, v2, sc) ->
-        let t = map_tok t in
-        let v1 = map_expr v1 in
-        let v2 = map_of_option map_expr v2 in
-        let sc = map_tok sc in
-        `Assert (t, v1, v2, sc)
+    | Assert (t, args, sc) ->
+        let _t = map_tok t in
+        let _args = map_arguments args in
+        let _sc = map_tok sc in
+        failwith "TODO"
+        (* `Assert (t, v1, v2, sc) *)
     | OtherStmtWithStmt (v1, v2, v3) ->
-        let v1 = map_other_stmt_with_stmt_operator v1
-        and v2 = map_of_option map_expr v2
-        and v3 = map_stmt v3 in
-        `OtherStmtWithStmt (v1, v2, v3)
+        let _v1 = map_other_stmt_with_stmt_operator v1
+        and _v2 = map_of_list map_any v2
+        and _v3 = map_stmt v3 in
+        (*`OtherStmtWithStmt (v1, v2, v3)*)
+        failwith "TODO"
     | OtherStmt (v1, v2) ->
         let v1 = map_other_stmt_operator v1 and v2 = map_of_list map_any v2 in
         `OtherStmt (v1, v2)

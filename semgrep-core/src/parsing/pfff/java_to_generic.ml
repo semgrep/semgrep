@@ -123,10 +123,9 @@ and class_type v =
       G.TyN
         (G.IdQualified
            {
-             G.name_id = id;
-             name_typeargs = None;
-             (* could be v1TODO above *)
-             name_qualifier = Some (G.QDots (List.rev (List.map fst xs)));
+             G.name_last = (id, None);
+             name_top = None;
+             name_middle = Some (G.QDots (List.rev xs));
              name_info = G.empty_id_info ();
            })
   | (id, Some ts) :: xs ->
@@ -482,7 +481,9 @@ and stmt st =
   | DirectiveStmt v1 -> directive v1
   | Assert (t, v1, v2) ->
       let v1 = expr v1 and v2 = option expr v2 in
-      G.Assert (t, v1, v2, G.sc) |> G.s
+      let es = v1 :: Common.opt_to_list v2 in
+      let args = es |> List.map G.arg in
+      G.Assert (t, fb args, G.sc) |> G.s
 
 and tok_and_stmt (t, v) =
   let v = stmt v in
