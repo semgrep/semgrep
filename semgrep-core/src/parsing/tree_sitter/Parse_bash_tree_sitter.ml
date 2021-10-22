@@ -475,24 +475,22 @@ and compound_statement (env : env) ((v1, v2, v3) : CST.compound_statement) :
 
 and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
     expression list =
-  let v1 = prim_exp_or_special_char env v1 in
-  let v2 () =
+  let first_expr = prim_exp_or_special_char env v1 in
+  let exprs =
     List.map
       (fun (v1, v2) ->
-        let v1 = token env v1 (* concat *) in
-        let v2 = prim_exp_or_special_char env v2 in
-        todo env (v1, v2))
+        let _empty_tok = token env v1 in
+        prim_exp_or_special_char env v2)
       v2
   in
-  let v3 () =
+  let opt_last_expr =
     match v3 with
     | Some (v1, v2) ->
-        let v1 = token env v1 (* concat *) in
-        let v2 = token env v2 (* "$" *) in
-        todo env (v1, v2)
-    | None -> todo env ()
+        let _empty_tok = token env v1 in
+        [ Word (str env v2 (* "$" *)) ]
+    | None -> []
   in
-  []
+  (first_expr :: exprs) @ opt_last_expr
 
 and do_group (env : env) ((v1, v2, v3) : CST.do_group) : blist bracket =
   let do_ = token env v1 (* "do" *) in
