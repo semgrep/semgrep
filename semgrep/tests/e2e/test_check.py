@@ -370,7 +370,10 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
         encoding="utf-8",
     )
     print(output.stderr)
-    assert "semgrep-core exit code: -11" in output.stderr
+    assert (
+        "semgrep-core exit code: -11" in output.stderr
+        or "Stack overflow" in output.stderr
+    )
 
     # If only set soft limit, semgrep should raise it as necessary so we don't hit soft limit
     output = subprocess.run(
@@ -381,6 +384,7 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
         encoding="utf-8",
     )
     assert "semgrep-core exit code: -11" not in output.stderr
+    assert "Stack overflow" not in output.stderr
 
 
 def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
