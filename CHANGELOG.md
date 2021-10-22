@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Pre-alpha support for Bash as a new target language
+- Increase soft stack limit when running semgrep-core (#4120)
 
 ### Fixed
 - text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports width < 1
