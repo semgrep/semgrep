@@ -313,6 +313,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let v1 = map_other_expr_operator v1
             and v2 = map_of_list map_any v2 in
             OtherExpr (v1, v2)
+        | OtherExpr2 (v1, v2) ->
+            let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
+            OtherExpr2 (v1, v2)
       in
       (* TODO? reuse the e_id or create a new one? *)
       G.e ekind
@@ -938,6 +941,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_other_parameter_operator v1
         and v2 = map_of_list map_any v2 in
         OtherParam (v1, v2)
+    | OtherParam2 (v1, v2) ->
+        let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
+        OtherParam2 (v1, v2)
   and map_parameter_classic
       {
         pname = v_pname;
@@ -1065,10 +1071,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let t = map_tok t in
         let v1 = map_module_name v1 and v2 = map_tok v2 in
         ImportAll (t, v1, v2)
-    | OtherDirective (v1, v2) ->
-        let v1 = map_other_directive_operator v1
-        and v2 = map_of_list map_any v2 in
-        OtherDirective (v1, v2)
     | Pragma (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_of_list map_any v2 in
         Pragma (v1, v2)
@@ -1079,6 +1081,13 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | PackageEnd t ->
         let t = map_tok t in
         PackageEnd t
+    | OtherDirective (v1, v2) ->
+        let v1 = map_other_directive_operator v1
+        and v2 = map_of_list map_any v2 in
+        OtherDirective (v1, v2)
+    | OtherDirective2 (v1, v2) ->
+        let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
+        OtherDirective2 (v1, v2)
   and map_ident_and_id_info (v1, v2) =
     let v1 = map_ident v1 in
     let v2 = map_id_info v2 in

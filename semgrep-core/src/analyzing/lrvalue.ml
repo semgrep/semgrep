@@ -188,6 +188,7 @@ let rec visit_expr hook lhs expr =
       raise Impossible
   | Ellipsis _tok -> ()
   | OtherExpr (_other_xxx, anys) -> List.iter (anyhook hook Rhs) anys
+  | OtherExpr2 (_other_xxx, anys) -> List.iter (anyhook hook Rhs) anys
 
 (*****************************************************************************)
 (* Entry points *)

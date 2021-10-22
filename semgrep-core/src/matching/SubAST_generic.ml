@@ -143,7 +143,8 @@ let subexprs_of_expr e =
          |> List.map Common.opt_to_list
          |> List.flatten)
   | Yield (_, eopt, _) -> Common.opt_to_list eopt
-  | OtherExpr (_, anys) ->
+  | OtherExpr (_, anys)
+  | OtherExpr2 (_, anys) ->
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)

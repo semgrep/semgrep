@@ -119,6 +119,7 @@
  *  - all the other_xxx types should contain only simple constructors (enums)
  *    without any parameter. I rely on that to simplify the code
  *    of the generic mapper and matcher.
+ *    update: prefer todo_kind to those other_xxx types now.
  *    Same for keyword_attributes.
  *  - each expression or statement must have at least one token in it
  *    so that semgrep can track a location (e.g., 'Return of expr option'
@@ -182,7 +183,17 @@ type 'a bracket = tok * 'a * tok [@@deriving show, eq, hash]
  *)
 type sc = tok [@@deriving show, eq, hash]
 
-(* an AST element not yet handled *)
+(* an AST element not yet handled.
+ * history: I started by having some precise OtherXxx of other_xxx
+ * constructors and types to record what was not handled
+ * (e.g., OE_Delete, OE_Define, etc.), but it was quickly getting tedious
+ * each time to add new constructs. In fact, in the language-specific
+ * ASTs I started to use also some Todo constructs, so I switched to a
+ * more general todo_kind in the generic AST too. Anyway, we were
+ * not doing anything with the precise information. If something
+ * is important and require some semantic equivalence in semgrep, then
+ * we should support the construct directly, not via an other_xxx.
+ *)
 type todo_kind = string wrap [@@deriving show, eq, hash]
 
 (*****************************************************************************)
@@ -486,9 +497,61 @@ and expr_kind =
   | TypedMetavar of ident * tok (* : *) * type_
   (* for ellipsis in method chaining *)
   | DotAccessEllipsis of expr * tok (* '...' *)
-  (* TODO: other_expr_operator wrap, so enforce at least one token instead
+  (* e.g., ?? *)
+  | OtherExpr2 of todo_kind * any list
+  (* TODO: get rid of
+   * TODO: other_expr_operator wrap, so enforce at least one token instead
    * of relying that the any list contains at least one token *)
   | OtherExpr of other_expr_operator * any list
+
+(* TODO: reduce, or move in other_special or in OtherExpr2 *)
+and other_expr_operator =
+  (* Javascript *)
+  | OE_Exports
+  | OE_Module
+  | OE_Define
+  | OE_Arguments
+  | OE_NewTarget
+  | OE_Delete
+  | OE_YieldStar
+  (* note: some of them are transformed in ImportFrom in js_to_generic.ml *)
+  | OE_Require
+  | OE_UseStrict (* todo: lift up to program attribute/directive? *)
+  (* Python *)
+  | OE_Invert
+  | OE_Slices (* see also SliceAccess *)
+  | OE_CmpOps
+  | OE_Repr (* todo: move to special, special Dump *)
+  (* Java *)
+  | OE_NameOrClassType
+  | OE_ClassLiteral
+  | OE_NewQualifiedClass
+  | OE_Annot
+  (* C *)
+  | OE_GetRefLabel (* TODO DELETE? just LDynamic? *)
+  | OE_ArrayInitDesignator (* [x] = ... todo? use ArrayAccess in container?*)
+  (* PHP *)
+  | OE_Unpack
+  | OE_ArrayAppend (* $x[]. The AST for $x[] = 1 used to be
+                    * handled as an AssignOp with special Append, but we now
+                    * use OE_ArrayAppend for everything to simplify.
+                    *)
+  (* OCaml *)
+  | OE_RecordWith
+  | OE_RecordFieldName
+  (* Go *)
+  | OE_Send
+  | OE_Recv
+  (* Ruby *)
+  | OE_Subshell
+  (* Rust *)
+  | OE_MacroInvocation
+  (* C# *)
+  | OE_Checked
+  | OE_Unchecked
+  (* Other *)
+  | OE_StmtExpr (* OCaml/Ruby have just expressions, no statements *)
+  | OE_Todo
 
 and literal =
   | Bool of bool wrap
@@ -756,55 +819,6 @@ and argument =
   | ArgType of type_
   (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml *)
   | OtherArg of todo_kind * any list
-
-(* todo: reduce, or move in other_special? *)
-and other_expr_operator =
-  (* Javascript *)
-  | OE_Exports
-  | OE_Module
-  | OE_Define
-  | OE_Arguments
-  | OE_NewTarget
-  | OE_Delete
-  | OE_YieldStar
-  (* note: some of them are transformed in ImportFrom in js_to_generic.ml *)
-  | OE_Require
-  | OE_UseStrict (* todo: lift up to program attribute/directive? *)
-  (* Python *)
-  | OE_Invert
-  | OE_Slices (* see also SliceAccess *)
-  | OE_CmpOps
-  | OE_Repr (* todo: move to special, special Dump *)
-  (* Java *)
-  | OE_NameOrClassType
-  | OE_ClassLiteral
-  | OE_NewQualifiedClass
-  | OE_Annot
-  (* C *)
-  | OE_GetRefLabel (* TODO DELETE? just LDynamic? *)
-  | OE_ArrayInitDesignator (* [x] = ... todo? use ArrayAccess in container?*)
-  (* PHP *)
-  | OE_Unpack
-  | OE_ArrayAppend (* $x[]. The AST for $x[] = 1 used to be
-                    * handled as an AssignOp with special Append, but we now
-                    * use OE_ArrayAppend for everything to simplify.
-                    *)
-  (* OCaml *)
-  | OE_RecordWith
-  | OE_RecordFieldName
-  (* Go *)
-  | OE_Send
-  | OE_Recv
-  (* Ruby *)
-  | OE_Subshell
-  (* Rust *)
-  | OE_MacroInvocation
-  (* C# *)
-  | OE_Checked
-  | OE_Unchecked
-  (* Other *)
-  | OE_StmtExpr (* OCaml/Ruby have just expressions, no statements *)
-  | OE_Todo
 
 (*****************************************************************************)
 (* Statement *)
@@ -1393,7 +1407,23 @@ and parameter =
   (* sgrep: ... in parameters
    * note: foo(...x) of Js/Go is using the ParamRest, not this *)
   | ParamEllipsis of tok
+  (* e.g., ?? *)
+  | OtherParam2 of todo_kind * any list
+  (* TODO: get rid of at some point *)
   | OtherParam of other_parameter_operator * any list
+
+(* TODO: get rid of at some point *)
+and other_parameter_operator =
+  (* Python *)
+  (* single '*' or '/' to delimit regular parameters from special one *)
+  | OPO_SingleStarParam
+  | OPO_SlashParam
+  (* Go *)
+  | OPO_Receiver (* of parameter_classic, used to tag the "self" parameter*)
+  (* PHP/Ruby *)
+  | OPO_Ref (* of parameter_classic *)
+  (* Other *)
+  | OPO_Todo
 
 (* less: could be merged with variable_definition, or pattern
  * less: could factorize pname/pattrs/pinfo with entity
@@ -1407,18 +1437,6 @@ and parameter_classic = {
   (* naming *)
   pinfo : id_info; (* Always Param *)
 }
-
-and other_parameter_operator =
-  (* Python *)
-  (* single '*' or '/' to delimit regular parameters from special one *)
-  | OPO_SingleStarParam
-  | OPO_SlashParam
-  (* Go *)
-  | OPO_Receiver (* of parameter_classic, used to tag the "self" parameter*)
-  (* PHP/Ruby *)
-  | OPO_Ref (* of parameter_classic *)
-  (* Other *)
-  | OPO_Todo
 
 (* old: this used to be just an alias for 'stmt'; we were using
  * fake empty Block for FBDecl of fake ExprStmt for FBExpr.
@@ -1627,11 +1645,12 @@ and directive_kind =
    *)
   | PackageEnd of tok
   | Pragma of ident * any list
+  (* e.g., ?? *)
+  | OtherDirective2 of todo_kind * any list
+  (* TODO: get rid of at some point *)
   | OtherDirective of other_directive_operator * any list
 
-(* xxx as name *)
-and alias = ident * id_info
-
+(* TODO: get rid of at some point *)
 and other_directive_operator =
   (* Javascript *)
   | OI_Export
@@ -1645,6 +1664,9 @@ and other_directive_operator =
   | OI_Extern
   (* Other *)
   | OI_Todo
+
+(* xxx as name *)
+and alias = ident * id_info
 
 (*****************************************************************************)
 (* Toplevel *)

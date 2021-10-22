@@ -580,6 +580,7 @@ and expr_aux env ?(void = false) eorig =
   | G.DotAccessEllipsis _ ->
       sgrep_construct (G.E eorig)
   | G.OtherExpr (_, _) -> todo (G.E eorig)
+  | G.OtherExpr2 (_, _) -> todo (G.E eorig)
 
 and expr env ?void eorig =
   try expr_aux env ?void eorig
