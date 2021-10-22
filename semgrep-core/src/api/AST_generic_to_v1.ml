@@ -291,6 +291,7 @@ and map_expr x : B.expr =
   | OtherExpr (v1, v2) ->
       let v1 = map_other_expr_operator v1 and v2 = map_of_list map_any v2 in
       `OtherExpr (v1, v2)
+  | OtherExpr2 (_v1, _v2) -> failwith "TODO"
 
 and map_name_or_dynamic = function
   | EN v1 ->
@@ -1014,6 +1015,7 @@ and map_parameter = function
       let v1 = map_other_parameter_operator v1
       and v2 = map_of_list map_any v2 in
       `OtherParam (v1, v2)
+  | OtherParam2 (_v1, _v2) -> failwith "TODO"
 
 and map_parameter_classic
     {
@@ -1142,10 +1144,6 @@ and map_directive_kind = function
       let t = map_tok t in
       let v1 = map_module_name v1 and v2 = map_tok v2 in
       `ImportAll (t, v1, v2)
-  | OtherDirective (v1, v2) ->
-      let v1 = map_other_directive_operator v1
-      and v2 = map_of_list map_any v2 in
-      `OtherDirective (v1, v2)
   | Pragma (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_of_list map_any v2 in
       `Pragma (v1, v2)
@@ -1156,6 +1154,11 @@ and map_directive_kind = function
   | PackageEnd t ->
       let t = map_tok t in
       `PackageEnd t
+  | OtherDirective (v1, v2) ->
+      let v1 = map_other_directive_operator v1
+      and v2 = map_of_list map_any v2 in
+      `OtherDirective (v1, v2)
+  | OtherDirective2 (_v1, _v2) -> failwith "TODO"
 
 and map_ident_and_id_info (v1, v2) =
   let v1 = map_ident v1 in

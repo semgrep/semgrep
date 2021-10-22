@@ -282,6 +282,9 @@ and vof_expr e =
   | OtherExpr (v1, v2) ->
       let v1 = vof_other_expr_operator v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherExpr", [ v1; v2 ])
+  | OtherExpr2 (v1, v2) ->
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
+      OCaml.VSum ("OtherExpr", [ v1; v2 ])
 
 and vof_name_or_dynamic = function
   | EN v1 ->
@@ -1142,6 +1145,9 @@ and vof_parameter = function
       let v1 = vof_other_parameter_operator v1
       and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherParam", [ v1; v2 ])
+  | OtherParam2 (v1, v2) ->
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
+      OCaml.VSum ("OtherParam", [ v1; v2 ])
 
 and vof_parameter_classic
     {
@@ -1333,6 +1339,9 @@ and vof_directive_kind = function
   | OtherDirective (v1, v2) ->
       let v1 = vof_other_directive_operator v1
       and v2 = OCaml.vof_list vof_any v2 in
+      OCaml.VSum ("OtherDirective", [ v1; v2 ])
+  | OtherDirective2 (v1, v2) ->
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherDirective", [ v1; v2 ])
 
 and vof_alias (v1, v2) =
