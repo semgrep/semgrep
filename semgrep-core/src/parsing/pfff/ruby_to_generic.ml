@@ -169,7 +169,7 @@ and formal_param = function
   | Formal_id id -> G.ParamClassic (G.param_of_id id)
   | Formal_amp (t, id) ->
       let param = G.ParamClassic (G.param_of_id id) in
-      G.OtherParam (G.OPO_Ref, [ G.Tk t; G.Pa param ])
+      G.OtherParam (("Ref", t), [ G.Pa param ])
   | Formal_star (t, id) -> G.ParamRest (t, G.param_of_id id)
   | Formal_rest t ->
       let p =

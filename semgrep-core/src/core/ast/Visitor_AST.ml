@@ -1048,9 +1048,6 @@ let (mk_visitor :
           let v1 = v_tok v1 in
           ()
       | OtherParam (v1, v2) ->
-          let v1 = v_other_parameter_operator v1 and v2 = v_list v_any v2 in
-          ()
-      | OtherParam2 (v1, v2) ->
           let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in

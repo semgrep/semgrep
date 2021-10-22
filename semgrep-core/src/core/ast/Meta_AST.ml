@@ -1142,10 +1142,6 @@ and vof_parameter = function
       let v1 = vof_tok v1 in
       OCaml.VSum ("ParamEllipsis", [ v1 ])
   | OtherParam (v1, v2) ->
-      let v1 = vof_other_parameter_operator v1
-      and v2 = OCaml.vof_list vof_any v2 in
-      OCaml.VSum ("OtherParam", [ v1; v2 ])
-  | OtherParam2 (v1, v2) ->
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherParam", [ v1; v2 ])
 
@@ -1186,13 +1182,6 @@ and vof_function_body = function
       let v1 = vof_tok v1 in
       OCaml.VSum ("FBDecl", [ v1 ])
   | FBNothing -> OCaml.VSum ("FBNothing", [])
-
-and vof_other_parameter_operator = function
-  | OPO_Todo -> OCaml.VSum ("OPO_Todo", [])
-  | OPO_Ref -> OCaml.VSum ("OPO_Ref", [])
-  | OPO_Receiver -> OCaml.VSum ("OPO_Receiver", [])
-  | OPO_SingleStarParam -> OCaml.VSum ("OPO_SingleStarParam", [])
-  | OPO_SlashParam -> OCaml.VSum ("OPO_SlashParam", [])
 
 and vof_variable_definition { vinit = v_vinit; vtype = v_vtype } =
   let bnds = [] in

@@ -2168,7 +2168,8 @@ and map_parameter (env : env) ((v1, v2, v3, v4) : CST.parameter) : G.parameter =
   match v2 with
   | `Pat x ->
       let pattern = map_pattern env x in
-      G.OtherParam (G.OPO_Todo, [ G.P pattern; G.T ty ])
+      let pat = G.PatTyped (pattern, ty) in
+      G.ParamPattern pat
   | `Self tok ->
       let ident = ident env tok in
       (* "self" *)

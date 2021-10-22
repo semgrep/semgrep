@@ -1392,7 +1392,8 @@ and parameters = parameter list
 (* newvar: *)
 and parameter =
   | ParamClassic of parameter_classic
-  | ParamPattern of pattern (* in OCaml, but also now JS, and Python2 *)
+  (* in OCaml, but also now JS, Python2, Rust *)
+  | ParamPattern of pattern
   (* Both those ParamXxx used to be handled as a ParamClassic with special
    * VariadicXxx attribute in p_attr, but they are used in so many
    * languages that it's better to move then in a separate type.
@@ -1407,23 +1408,10 @@ and parameter =
   (* sgrep: ... in parameters
    * note: foo(...x) of Js/Go is using the ParamRest, not this *)
   | ParamEllipsis of tok
-  (* e.g., ?? *)
-  | OtherParam2 of todo_kind * any list
-  (* TODO: get rid of at some point *)
-  | OtherParam of other_parameter_operator * any list
-
-(* TODO: get rid of at some point *)
-and other_parameter_operator =
-  (* Python *)
-  (* single '*' or '/' to delimit regular parameters from special one *)
-  | OPO_SingleStarParam
-  | OPO_SlashParam
-  (* Go *)
-  | OPO_Receiver (* of parameter_classic, used to tag the "self" parameter*)
-  (* PHP/Ruby *)
-  | OPO_Ref (* of parameter_classic *)
-  (* Other *)
-  | OPO_Todo
+  (* e.g., ParamTodo in OCaml, Reciever param in Go, SingleStar and Slash
+   * in Python to delimit regular parameters from special one.
+   * TODO ParamRef of tok * parameter_classic in PHP/Ruby *)
+  | OtherParam of todo_kind * any list
 
 (* less: could be merged with variable_definition, or pattern
  * less: could factorize pname/pattrs/pinfo with entity
