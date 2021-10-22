@@ -301,7 +301,9 @@ let parameter_to_catch_exn_opt p =
   | ParamRest (_, _p)
   | ParamHashSplat (_, _p) ->
       None
-  | OtherParam _ -> None
+  | OtherParam _
+  | OtherParam2 _ ->
+      None
 
 (*****************************************************************************)
 (* Abstract position and constness for comparison *)

@@ -822,6 +822,8 @@ and m_expr a b =
   | G.DeRef (a0, a1), B.DeRef (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
       m_other_expr_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.OtherExpr2 (a1, a2), B.OtherExpr2 (b1, b2) ->
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.Container _, _
   | G.Comprehension _, _
   | G.Record _, _
@@ -846,6 +848,7 @@ and m_expr a b =
   | G.Ref _, _
   | G.DeRef _, _
   | G.OtherExpr _, _
+  | G.OtherExpr2 _, _
   | G.TypedMetavar _, _
   | G.DotAccessEllipsis _, _ ->
       fail ()
@@ -2337,12 +2340,15 @@ and m_parameter a b =
   | G.ParamPattern a1, B.ParamPattern b1 -> m_pattern a1 b1
   | G.OtherParam (a1, a2), B.OtherParam (b1, b2) ->
       m_other_parameter_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.OtherParam2 (a1, a2), B.OtherParam2 (b1, b2) ->
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ParamEllipsis a1, B.ParamEllipsis b1 -> m_tok a1 b1
   | G.ParamClassic _, _
   | G.ParamPattern _, _
   | G.ParamRest _, _
   | G.ParamHashSplat _, _
   | G.ParamEllipsis _, _
+  | G.OtherParam2 _, _
   | G.OtherParam _, _ ->
       fail ()
 
@@ -2687,6 +2693,7 @@ and m_directive a b =
   | G.Package _
   | G.PackageEnd _
   | G.Pragma _
+  | G.OtherDirective2 _
   | G.OtherDirective _ ->
       fail ()
 
@@ -2724,9 +2731,12 @@ and m_directive_basic a b =
       m_ident a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.OtherDirective (a1, a2), B.OtherDirective (b1, b2) ->
       m_other_directive_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.OtherDirective2 (a1, a2), B.OtherDirective2 (b1, b2) ->
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ImportFrom _, _
   | G.ImportAs _, _
   | G.OtherDirective _, _
+  | G.OtherDirective2 _, _
   | G.Pragma _, _
   | G.ImportAll _, _
   | G.Package _, _

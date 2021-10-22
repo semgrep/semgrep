@@ -377,6 +377,9 @@ let (mk_visitor :
       | OtherExpr (v1, v2) ->
           let v1 = v_other_expr_operator v1 and v2 = v_list v_any v2 in
           ()
+      | OtherExpr2 (v1, v2) ->
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
+          ()
     in
     vin.kexpr (k, all_functions) x
   and v_name_or_dynamic = function
@@ -1047,6 +1050,9 @@ let (mk_visitor :
       | OtherParam (v1, v2) ->
           let v1 = v_other_parameter_operator v1 and v2 = v_list v_any v2 in
           ()
+      | OtherParam2 (v1, v2) ->
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
+          ()
     in
     vin.kparam (k, all_functions) x
   and v_parameter_classic
@@ -1216,6 +1222,9 @@ let (mk_visitor :
           v_list v_any v2
       | OtherDirective (v1, v2) ->
           let v1 = v_other_directive_operator v1 and v2 = v_list v_any v2 in
+          ()
+      | OtherDirective2 (v1, v2) ->
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in
     vin.kdir (k, all_functions) x
