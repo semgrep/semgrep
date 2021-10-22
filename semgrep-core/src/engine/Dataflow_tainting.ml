@@ -37,11 +37,14 @@ module PM = Pattern_match
 (*****************************************************************************)
 
 type mapping = PM.Set.t Dataflow.mapping
-(** Map for each node/var whether a variable is "tainted" *)
+(** Map for each node/var of all the pattern matches that originated its taint. 
+    Anything not included in the map is not tainted.
+*)
 
 (* Tracks tainted functions. *)
 type fun_env = (Dataflow.var, PM.Set.t) Hashtbl.t
 
+(* is_source/sink/sanitizer returns a list of ways that some piece of code can be matched as a source/sink/sanitizer *)
 type config = {
   is_source : G.any -> PM.t list;
   is_sink : G.any -> PM.t list;
@@ -71,16 +74,20 @@ let set_opt_to_set = function
   | None -> PM.Set.empty
   | Some x -> x
 
-let ( <::> ) x = Option.map (fun xs -> x :: xs)
-
+(* Takes two metavariable environments, and
+   if they have a conflicting metavariable assignment, returns None,
+   otherwise returns the union of the environments. We use this to 
+   prevent reporting that a sink is tainted if the source of taint and
+   the sink have conflicting metavariable environments
+*)
 let unify_meta_envs env1 env2 =
   let xs =
     List.fold_left
       (fun xs (mvar, mval) ->
         match List.assoc_opt mvar env2 with
-        | None -> (mvar, mval) <::> xs
+        | None -> Option.map (fun xs -> (mvar, mval) :: xs) xs
         | Some mval' ->
-            if Metavariable.equal_mvalue mval mval' then (mvar, mval) <::> xs
+            if Metavariable.equal_mvalue mval mval' then Option.map (fun xs -> (mvar, mval) :: xs) xs
             else None)
       (Some []) env1
   in
@@ -102,20 +109,23 @@ let set_filter_map f pm_set =
 
 let ( <|> ) = PM.Set.union
 
+
+(* Takes a pattern match (should be from a sink) and a set of pattern matches (should be sources),
+   returns a set containing a copy of the sink match for each source match with a metavariable environment
+   that could unify with the sink's environment. The copies will have their environments updated with the
+   successful unification. 
+ *)
 let update_meta_envs pm =
   set_filter_map (fun pm' ->
       Option.bind (unify_meta_envs pm.PM.env pm'.PM.env) (fun env ->
           Some { pm with env }))
 
-(* Takes a list of pattern matches from is_sink and a set of pattern matches
-   indicating a variable is tainted, and tries to unify the metavariable
-   environment in each sink match with all the tainted matches. If the envs
-   unify, the resulting set will contain the sink pattern match with an updated
-   metavariable env. The resulting sets are all unioned together.
-   This means that the same sink might be matched in multiple ways, i.e. with
-   different metavariable assignments. All of these will be reported.
-*)
-let update_tainted_sinks pm_list pm_set =
+(* Takes a list of pattern matches for a sink and a set of pattern matches for a source
+   and finds all the unifiable metavariable environments between them. Returns a set
+   of all the possible sink pattern matches with their metavariable environments updated
+   to include the bindings from the source whose environment unified with it.
+ *)
+let make_tainted_sink_matches pm_list pm_set =
   pm_list
   |> List.map (fun pm -> update_meta_envs pm pm_set)
   |> List.fold_left PM.Set.union PM.Set.empty
@@ -183,7 +193,7 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
         check_subexpr exp.e
         <|> PM.Set.of_list (config.is_source (G.E exp.eorig))
       in
-      let found = update_tainted_sinks sink_pms tainted_pms in
+      let found = make_tainted_sink_matches sink_pms tainted_pms in
       if PM.Set.is_empty found then tainted_pms
       else (
         config.found_tainted_sink found env;
@@ -212,7 +222,7 @@ let check_tainted_instr config fun_env env instr : PM.Set.t =
         tainted_args instr.i
         <|> PM.Set.of_list (config.is_source (G.E instr.iorig))
       in
-      let found = update_tainted_sinks sink_pms tainted_pms in
+      let found = make_tainted_sink_matches sink_pms tainted_pms in
       if PM.Set.is_empty found then tainted_pms
       else (
         config.found_tainted_sink found env;
@@ -224,7 +234,7 @@ let check_tainted_return config fun_env env tok e =
   let orig_return = G.s (G.Return (tok, Some e.eorig, tok)) in
   let sink_pms = config.is_sink (G.S orig_return) in
   let e_tainted_pms = check_tainted_expr config fun_env env e in
-  let found = update_tainted_sinks sink_pms e_tainted_pms in
+  let found = make_tainted_sink_matches sink_pms e_tainted_pms in
   if PM.Set.is_empty found then e_tainted_pms
   else (
     config.found_tainted_sink found env;
