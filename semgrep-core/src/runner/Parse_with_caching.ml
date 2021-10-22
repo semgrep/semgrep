@@ -1,4 +1,5 @@
 open Common
+open Runner_common
 
 (*****************************************************************************)
 (* Purpose *)
@@ -111,7 +112,7 @@ let parse_generic use_parsing_cache version lang file =
            *  However this introduces some weird regressions in CI so we focus on
            *  just Timeout for now.
            *)
-        with Run_semgrep.Main_timeout _ as e -> Right e)
+        with Main_timeout _ as e -> Right e)
   in
   match v with
   | Left x -> x

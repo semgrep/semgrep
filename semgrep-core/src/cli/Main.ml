@@ -7,6 +7,7 @@
  *    May you share freely, never taking more than you give.
  *)
 open Common
+open Runner_common
 module Flag = Flag_semgrep
 module PI = Parse_info
 module E = Semgrep_error_code
@@ -72,8 +73,6 @@ let env_profile = "SEMGREP_CORE_PROFILE"
 
 let env_extra = "SEMGREP_CORE_EXTRA"
 
-let logger = Logging.get_logger [ __MODULE__ ]
-
 let log_config_file = ref "log_config.json"
 
 (* see also verbose/... flags in Flag_semgrep.ml *)
@@ -121,8 +120,6 @@ let equivalences_file = ref ""
 
 (* todo: infer from basename argv(0) ? *)
 let lang = ref "unset"
-
-type output_format = Text | Json
 
 let output_format = ref Text
 
@@ -398,7 +395,7 @@ let dump_rule file =
 
 let mk_config () =
   {
-    S.log_config_file = !log_config_file;
+    log_config_file = !log_config_file;
     test = !test;
     debug = !debug;
     profile = !profile;
@@ -416,10 +413,7 @@ let mk_config () =
     (* -config *)
     equivalences_file = !equivalences_file;
     lang = !lang;
-    output_format =
-      (match !output_format with
-      | Text -> S.Text
-      | Json -> S.Json);
+    output_format = !output_format;
     match_format = !match_format;
     mvars = !mvars;
     lsp = !lsp;

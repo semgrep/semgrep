@@ -1,4 +1,5 @@
 open Common
+open Runner_common
 module PI = Parse_info
 module E = Semgrep_error_code
 module MR = Mini_rule
@@ -16,46 +17,6 @@ module P = Parse_with_caching
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
-type output_format = Text | Json
-
-type config = {
-  (* Debugging/profiling/logging flags *)
-  log_config_file : string;
-  test : bool;
-  debug : bool;
-  profile : bool;
-  report_time : bool;
-  error_recovery : bool;
-  fail_fast : bool;
-  profile_start : float;
-  (* Main flags *)
-  pattern_string : string;
-  (* -e *)
-  pattern_file : string;
-  (* -f *)
-  rules_file : string;
-  (* -rules_file *)
-  config_file : string;
-  (* -config *)
-  equivalences_file : string;
-  lang : string;
-  output_format : output_format;
-  match_format : Matching_report.match_format;
-  mvars : Metavariable.mvar list;
-  lsp : bool;
-  (* Limits *)
-  timeout : float;
-  max_memory_mb : int;
-  max_match_per_file : int;
-  ncores : int;
-  (* Flags used by the semgrep-python wrapper *)
-  use_parsing_cache : string;
-  target_file : string;
-  action : string;
-  (* Other *)
-  version : string;
-}
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -185,26 +146,19 @@ let map_targets ncores f (targets : Common.filename list) =
 (* Timeout *)
 (*****************************************************************************)
 
-(*
-   Locally-raised exception containing the file name.
-   Note that the actual timeout function returns an option, so we could
-   use that if it's easier.
-*)
-exception Main_timeout of string
-
 let timeout_function file timeout f =
   let saved_busy_with_equal = !AST_utils.busy_with_equal in
   let timeout = if timeout <= 0. then None else Some timeout in
   match
-    Common.set_timeout_opt ~verbose:false ~name:"Main.timeout_function" timeout
-      f
+    Common.set_timeout_opt ~verbose:false ~name:"Run_semgrep.timeout_function"
+      timeout f
   with
   | Some res -> res
   | None ->
       (* Note that we could timeout while testing the equality of two ASTs and
        * `busy_with_equal` will then erroneously have a `<> Not_busy` value. *)
       AST_utils.busy_with_equal := saved_busy_with_equal;
-      logger#info "Main: timeout for file %s" file;
+      logger#info "Run_semgrep: timeout for file %s" file;
       raise (Main_timeout file)
 
 (* Certain patterns may be too general and match too many times on big files.
@@ -291,7 +245,7 @@ let filter_files_with_too_many_matches_and_transform_as_timeout
     |> List.split
   in
   (new_matches, new_errors, List.flatten new_skipped)
-  [@@profiling "Main.filter_too_many_matches"]
+  [@@profiling "Run_semgrep.filter_too_many_matches"]
 
 (*****************************************************************************)
 (* Error management *)
