@@ -1,3 +1,9 @@
+[33mMETRICS: Using configs from the Registry (like --config=p/ci) reports pseudonymous rule metrics to semgrep.dev.
+To disable Registry rule metrics, use "--metrics=off".
+Using configs only from local files (like --config=xyz.yml) does not enable metrics.
+
+More information: https://semgrep.dev/docs/metrics
+[0m
 [31m[31msemgrep error[0m: Invalid rule schema
   --> rules/syntax/missing-field.yaml:3
 [94m3  | [0m- id: flask-secure-set-cookie
