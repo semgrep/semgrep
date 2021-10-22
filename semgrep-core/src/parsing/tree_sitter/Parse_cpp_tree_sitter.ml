@@ -1424,17 +1424,24 @@ and map_call_expression (env : env) (x : CST.call_expression) : expr =
       let v2 = map_argument_list env v2 in
       ConstructedObject (t, Args v2)
 
+(* Note that case 1: case 2: foo(); is actually
+ * parsed as Case (1, []); Case (2, [foo()]).
+ * It's because in tree-sitter-c/grammar.js the rule for
+ * case_statement is:
+ *   ... repeat(choice(non_case_statement, declaration, type_definition))
+ * so only a non_case_statement can be inside the body of a Case.
+ *)
 and map_case_statement (env : env) ((v1, v2, v3) : CST.case_statement) : stmt =
   let v1 =
     match v1 with
     | `Case_exp (v1, v2) ->
         let v1 = token env v1 (* "case" *) in
         let v2 = map_expression env v2 in
-        fun t st -> Case (v1, v2, t, st)
+        fun t xs -> Case (v1, v2, t, xs)
     | `Defa tok ->
         let v1 = token env tok in
         (* "default" *)
-        fun t st -> Default (v1, t, st)
+        fun t xs -> Default (v1, t, xs)
   in
   let v2 = token env v2 (* ":" *) in
   let v3 =

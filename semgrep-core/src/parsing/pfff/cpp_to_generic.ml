@@ -78,7 +78,7 @@ let distribute_access (xs : (G.field, G.attribute) either list) : G.field list =
 
 (* crazy https://en.cppreference.com/w/cpp/language/template_parameters *)
 let parameter_to_type_parameter (_p : G.parameter) : G.type_parameter =
-  failwith "TODO"
+  failwith "TODO2"
 
 let def_or_dir_either_to_stmt = function
   | Left dir -> G.DirectiveStmt dir |> G.s
@@ -666,7 +666,7 @@ and map_stmt env x : G.stmt =
   | Switch (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_paren_skip env (map_condition_clause env) v2
-      and v3 = map_cases env v3 in
+      and v3 = map_cases env v1 v3 in
       G.Switch (v1, Some v2, v3) |> G.s
   | While (v1, v2, v3) ->
       let v1 = map_tok env v1
@@ -703,8 +703,10 @@ and map_stmt env x : G.stmt =
   | Case _
   | CaseRange _
   | Default _ ->
-      let cases, st = convert_case env x in
+      let cases, xs = convert_case env x in
       let anys = cases |> List.map (fun cs -> G.Cs cs) in
+      let sts = map_of_list (map_stmt_or_decl env) xs |> List.flatten in
+      let st = G.stmt1 sts in
       G.OtherStmtWithStmt (OSWS_Todo, anys, st) |> G.s
   | Try (v1, v2, v3) ->
       let v1 = map_tok env v1
@@ -717,38 +719,158 @@ and map_stmt env x : G.stmt =
       let st = G.Block (G.fake_bracket v2) |> G.s in
       G.OtherStmtWithStmt (OSWS_Todo, [ G.TodoK v1 ], st) |> G.s
 
-and map_cases _env _st : G.case_and_body list = failwith "TODO"
-
-and map_case_body env v : G.case list * G.stmt =
-  (* TODO *)
-  let cases = failwith "TODO" in
-  let rest = map_of_list (map_stmt_or_decl env) v |> List.flatten in
-  (cases, G.stmt1 rest)
-
-and convert_case env st : G.case list * G.stmt =
+(* similar to Ast_c_build.cases()
+ * TODO: CaseEllipsis?
+ *)
+and map_cases env tk st : G.case_and_body list =
   match st with
+  | Compound (_l, xs, _r) ->
+      (* note that parser_cpp.mly and tree-sitter-cpp currently parse
+       * differently 'case 1: i++; break'. In pfff the case accepts a
+       * single stmt after, in tree-sitter a list of stmt (which is better)
+       * so here for pfff we need to put back 'break' under the case.
+       *)
+      let rec aux xs =
+        match xs with
+        | [] -> []
+        | x :: xs -> (
+            match x with
+            (* in tree-sitter-cpp, some Case have no body because they
+             * are followed by another Case that will have them
+             *)
+            | X
+                (S
+                  (( Case (t, _, _, [])
+                   | CaseRange (t, _, _, _, _, [])
+                   | Default (t, _, []) ) as case1)) ->
+                let case_repack, rest =
+                  repack_case_with_following_cases env t case1 xs
+                in
+                aux (X (S case_repack) :: rest)
+            | X (S ((Case _ | CaseRange _ | Default _) as case1)) ->
+                (* in pfff some statements may be without a leading case,
+                 * so we need to repack them *)
+                let before_next_case, rest =
+                  xs
+                  |> Common.span (function
+                       | X (S (Case _ | CaseRange _ | Default _)) -> false
+                       | _ -> true)
+                in
+                let case_repack =
+                  repack_case_with_following_stmts env case1 before_next_case
+                in
+                let cases, xs = convert_case env case_repack in
+                let sts =
+                  map_of_list (map_stmt_or_decl env) xs |> List.flatten
+                in
+                let st = G.stmt1 sts in
+                G.CasesAndBody (cases, st) :: aux rest
+            | _ ->
+                (* non Case, weird, skip for now *)
+                let cases = [ G.OtherCase (("StmtNotCase", tk), []) ] in
+                let sts = map_sequencable env (map_stmt_or_decl env) x in
+                let st = G.stmt1 sts in
+                G.CasesAndBody (cases, st) :: aux xs)
+      in
+      aux xs
+  | _ ->
+      (* degenerated case *)
+      let cases = [ G.OtherCase (("NoBlockInSwitch", tk), []) ] in
+      let st = map_stmt env st in
+      [ G.CasesAndBody (cases, st) ]
+
+(* needed only for tree-sitter *)
+and repack_case_with_following_cases env tk (st_case_empty_body : stmt) xs =
+  match xs with
+  | [] -> error tk "empty case body, impossible"
+  | x :: xs -> (
+      let new_case_body_stmt, rest =
+        match x with
+        | X
+            (S
+              (( Case (t, _, _, [])
+               | CaseRange (t, _, _, _, _, [])
+               | Default (t, _, []) ) as case1)) ->
+            let case_repack, rest =
+              repack_case_with_following_cases env t case1 xs
+            in
+            (case_repack, rest)
+        | X
+            (S
+              (( Case (_, _, _, _)
+               | CaseRange (_, _, _, _, _, _)
+               | Default (_, _, _) ) as case1)) ->
+            (case1, xs)
+        | _ -> error tk "could not find a case"
+      in
+      match st_case_empty_body with
+      | Case (v1, v2, v3, []) ->
+          (Case (v1, v2, v3, [ S new_case_body_stmt ]), rest)
+      | CaseRange (v1, v2, v3, v4, v5, []) ->
+          (CaseRange (v1, v2, v3, v4, v5, [ S new_case_body_stmt ]), rest)
+      | Default (v1, v2, []) ->
+          (Default (v1, v2, [ S new_case_body_stmt ]), rest)
+      | _ -> raise Impossible)
+
+(* needed only for pfff *)
+and repack_case_with_following_stmts _env (st_case_only : stmt) sts : stmt =
+  let sts =
+    sts
+    |> Common.map_filter (function
+         | X x -> Some x
+         (* TODO? skipped directive code? *)
+         | _ -> None)
+  in
+  match st_case_only with
+  | Case (v1, v2, v3, v4) ->
+      let v4 = v4 @ sts in
+      Case (v1, v2, v3, v4)
+  | CaseRange (v1, v2, v3, v4, v5, v6) ->
+      let v6 = v6 @ sts in
+      CaseRange (v1, v2, v3, v4, v5, v6)
+  | Default (v1, v2, v3) ->
+      let v3 = v3 @ sts in
+      Default (v1, v2, v3)
+  | _ -> raise Impossible
+
+and map_case_body env tk case_body : G.case list * stmt_or_decl list =
+  match case_body with
+  | [] -> error tk "empty case body, impossible"
+  | x :: xs -> (
+      match x with
+      (* merge all the cases together *)
+      | S ((Case _ | CaseRange _ | Default _) as st1) ->
+          let cases, rest = convert_case env st1 in
+          (cases, rest @ xs)
+      | _ ->
+          let cases = [] in
+          let rest = x :: xs in
+          (cases, rest))
+
+and convert_case env st_case_only : G.case list * stmt_or_decl list =
+  match st_case_only with
   | Case (v1, v2, v3, v4) ->
       let v1 = map_tok env v1
       and v2 = map_expr env v2
       and _v3 = map_tok env v3
-      and other_cases, st = map_case_body env v4 in
+      and other_cases, sts = map_case_body env v1 v4 in
       let case1 = G.Case (v1, H.expr_to_pattern v2) in
-      (case1 :: other_cases, st)
+      (case1 :: other_cases, sts)
   | CaseRange (v1, v2, v3, v4, v5, v6) ->
       let v1 = map_tok env v1
       and v2 = map_expr env v2
       and _v3 = map_tok env v3
       and v4 = map_expr env v4
       and _v5 = map_tok env v5
-      and other_cases, st = map_case_body env v6 in
+      and other_cases, sts = map_case_body env v1 v6 in
       let case1 = G.OtherCase (("CaseRange", v1), [ G.E v2; G.E v4 ]) in
-      (case1 :: other_cases, st)
+      (case1 :: other_cases, sts)
   | Default (v1, v2, v3) ->
       let v1 = map_tok env v1
       and _v2 = map_tok env v2
-      and other_cases, st = map_case_body env v3 in
+      and other_cases, sts = map_case_body env v1 v3 in
       let case1 = G.Default v1 in
-      (case1 :: other_cases, st)
+      (case1 :: other_cases, sts)
   | _ -> raise Impossible
 
 and map_expr_stmt env (v1, v2) =
@@ -1447,7 +1569,7 @@ and map_cpp_directive env x : (G.directive, G.definition) either =
       Left dir
   | PragmaAndCo v1 ->
       let v1 = map_tok env v1 in
-      let dir = G.Pragma (("TODO", v1), []) |> G.d in
+      let dir = G.Pragma (("PragmaAndCo", v1), []) |> G.d in
       Left dir
 
 and map_define_kind env x : G.ident list =
