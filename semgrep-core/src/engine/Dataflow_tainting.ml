@@ -37,7 +37,7 @@ module PM = Pattern_match
 (*****************************************************************************)
 
 type mapping = PM.Set.t Dataflow.mapping
-(** Map for each node/var of all the pattern matches that originated its taint. 
+(** Map for each node/var of all the pattern matches that originated its taint.
     Anything not included in the map is not tainted.
 *)
 
@@ -76,7 +76,7 @@ let set_opt_to_set = function
 
 (* Takes two metavariable environments, and
    if they have a conflicting metavariable assignment, returns None,
-   otherwise returns the union of the environments. We use this to 
+   otherwise returns the union of the environments. We use this to
    prevent reporting that a sink is tainted if the source of taint and
    the sink have conflicting metavariable environments
 *)
@@ -87,7 +87,8 @@ let unify_meta_envs env1 env2 =
         match List.assoc_opt mvar env2 with
         | None -> Option.map (fun xs -> (mvar, mval) :: xs) xs
         | Some mval' ->
-            if Metavariable.equal_mvalue mval mval' then Option.map (fun xs -> (mvar, mval) :: xs) xs
+            if Metavariable.equal_mvalue mval mval' then
+              Option.map (fun xs -> (mvar, mval) :: xs) xs
             else None)
       (Some []) env1
   in
@@ -109,11 +110,10 @@ let set_filter_map f pm_set =
 
 let ( <|> ) = PM.Set.union
 
-
 (* Takes a pattern match (should be from a sink) and a set of pattern matches (should be sources),
    returns a set containing a copy of the sink match for each source match with a metavariable environment
    that could unify with the sink's environment. The copies will have their environments updated with the
-   successful unification. 
+   successful unification.
  *)
 let update_meta_envs pm =
   set_filter_map (fun pm' ->
