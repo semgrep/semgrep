@@ -278,7 +278,7 @@ let todo_pat _env tok = G.OtherPat (("Todo", tok), [])
 
 let todo_attr _env tok = G.OtherAttribute (("Todo", tok), [])
 
-let todo_type _env tok = G.OtherType (G.OT_Todo, [ G.Tk tok ]) |> G.t
+let todo_type _env tok = G.OtherType2 (("Todo", tok), []) |> G.t
 
 let _TODOparameter_modifier (env : env) (x : CST.parameter_modifier) =
   match x with

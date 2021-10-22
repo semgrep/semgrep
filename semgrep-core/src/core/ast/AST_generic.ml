@@ -755,7 +755,7 @@ and argument =
   (* type argument for New, instanceof/sizeof/typeof, C macros *)
   | ArgType of type_
   (* e.g., ArgMacro for C/Rust, ArgQuestion for OCaml *)
-  | ArgOther of todo_kind * any list
+  | OtherArg of todo_kind * any list
 
 (* todo: reduce, or move in other_special? *)
 and other_expr_operator =
@@ -938,7 +938,7 @@ and case =
    * transformed in a pattern?
    *)
   | CaseEqualExpr of tok * expr
-  (* TODO: CaseRange for C++ *)
+  (* e.g., CaseRange for C++ *)
   | OtherCase of todo_kind * any list
 
 (* todo: merge with case at some point *)
@@ -1144,7 +1144,17 @@ and type_kind =
   | TyInterfaceAnon of tok (* 'interface' *) * field list bracket
   (* sgrep-ext: *)
   | TyEllipsis of tok
+  (* e.g., Struct/Union/Enum names (convert in unique TyName?), TypeOf, TSized
+   * in C++
+   *)
+  | OtherType2 of todo_kind * any list
+  (* TODO: get rid at some point *)
   | OtherType of other_type_operator * any list
+
+(* TODO: get rid at some point *)
+and other_type_operator = OT_Expr | OT_Arg
+
+(* Python: todo: should use expr_to_type() when can *)
 
 (* <> in Java/C#/C++/Kotlin/Rust/..., [] in Scala and Go (for Map) *)
 and type_arguments = type_argument list bracket
@@ -1159,22 +1169,6 @@ and type_argument =
   | TAExpr of expr
   (* TODO? Rust Lifetime 'x, Kotlin use-site variance *)
   | OtherTypeArg of todo_kind * any list
-
-and other_type_operator =
-  (* C *)
-  (* todo? convert in unique names with TyName? *)
-  | OT_StructName
-  | OT_UnionName
-  | OT_EnumName
-  (* PHP *)
-  | OT_Variadic (* ???? *)
-  (* Rust *)
-  | OT_Lifetime
-  (* Other *)
-  | OT_Expr
-  | OT_Arg (* Python: todo: should use expr_to_type() when can *)
-  (* TypeOf, etc. *)
-  | OT_Todo
 
 (*****************************************************************************)
 (* Attribute *)
@@ -1309,6 +1303,7 @@ and definition_kind =
    * local.
    *)
   | UseOuterDecl of tok (* 'global' or 'nonlocal' in Python, 'use' in PHP *)
+  (* e.g., MacroDecl and MacroVar in C++ *)
   | OtherDef of todo_kind * any list
 
 (* template/generics/polymorphic-type *)
@@ -1343,7 +1338,7 @@ and variance =
 and type_parameter_constraint =
   (* C# *)
   | HasConstructor of tok
-  (* TODO? Lifetime Rust? *)
+  (* e.g., Lifetime in Rust, complex types in OCaml *)
   | OtherTypeParam of todo_kind * any list
 
 (* ------------------------------------------------------------------------- *)
@@ -1478,6 +1473,7 @@ and type_definition_kind =
   (* OCaml/Rust *)
   | AbstractType of tok (* usually a fake token *)
   | Exception of ident (* same name than entity *) * type_ list
+  (* e.g., TdTodo types in OCaml *)
   | OtherTypeKind of todo_kind * any list
 
 and or_type_element =
@@ -1580,7 +1576,7 @@ and module_definition_kind =
   | ModuleAlias of dotted_ident
   (* newscope: *)
   | ModuleStruct of dotted_ident option * item list
-  (* TODO: OCaml (functors and their applications) *)
+  (* e.g., OCaml functors *)
   | OtherModule of todo_kind * any list
 
 (* ------------------------------------------------------------------------- *)

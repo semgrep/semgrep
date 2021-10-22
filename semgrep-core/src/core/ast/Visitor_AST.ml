@@ -497,7 +497,7 @@ let (mk_visitor :
     | ArgKwd (v1, v2) ->
         let v1 = v_ident v1 and v2 = v_expr v2 in
         ()
-    | ArgOther (v1, v2) ->
+    | OtherArg (v1, v2) ->
         let v1 = v_other_argument_operator v1 and v2 = v_list v_any v2 in
         ()
   and v_other_argument_operator _x = ()
@@ -563,6 +563,9 @@ let (mk_visitor :
           ()
       | OtherType (v1, v2) ->
           let v1 = v_other_type_operator v1 and v2 = v_list v_any v2 in
+          ()
+      | OtherType2 (v1, v2) ->
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in
     vin.ktype_ (k, all_functions) x
