@@ -434,6 +434,9 @@ and stmt_group (env : env) (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
 
 and expression (env : env) (e : expression) : G.expr =
   match e with
+  | Word ("...", tok) when env = Pattern ->
+      (* occurs in unquoted concatenations e.g. ...$x or $x... *)
+      G.Ellipsis tok |> G.e
   | Word str -> G.L (G.String str) |> G.e
   | String (* "foo" *) (open_, frags, close) -> (
       match frags with
