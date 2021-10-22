@@ -875,8 +875,8 @@ and stmt_kind =
   | Switch of
       tok (* 'switch', also 'select' in Go, or 'case' in Bash *)
       * condition option
-      * case_and_body list
-  (* todo: merge with Switch.
+      * case_and_body list (* TODO brace *)
+  (* todo: merge Match with Switch?
    * In Scala and C# the match is infix (after the expr)
    *)
   | Match of tok * expr * action list
