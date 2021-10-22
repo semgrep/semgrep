@@ -1,4 +1,35 @@
 #!/usr/bin/env python3
+#
+# Generate cheatsheets displayed next to the live editor, for each language.
+#
+# Usage:
+#   cd semgrep
+#   pipenv run ../scripts/generate_cheatsheet.py --json --directory \
+#     ../semgrep-core/tests --output-file cheatsheet.json
+#
+# or just:
+#
+#   ./scripts/generate-cheatsheet
+#
+# CHEATSHEET_ENTRIES defines the entries shown on the cheatsheet for each
+# language, regardless of whether a pair (pattern, target) exists.
+# The web UI will show a message like "missing example" where appropriate.
+#
+# For each example, the full name is created as CATEGORY_ENTRY, e.g.
+# "dots_args" for the entry "args" in the category "dots".
+#
+# An example 'cat_ent' is valid for language 'lang' of extension '.ext'
+# if two files are found:
+# - cat_ent.sgrep
+# - cat_ent.ext
+# These files are searched for in those places:
+# 1. In the language's folder 'lang/'.
+# 2. In the 'POLYGLOT/' folder which is shared with other languages, as
+#    a fallback.
+#
+# The POLYGLOT/ folder is meant for patterns that are identical in many
+# languages so as to avoid unnecessary duplication.
+#
 import argparse
 import collections
 import glob
@@ -71,6 +102,10 @@ LANGUAGE_EXCEPTIONS = {
 
 EXCLUDE = ["TODO", "POLYGLOT", "e2e", "OTHER"]
 
+#
+# Entries shown on the cheatsheet for each language, regardless of whether
+# a pair (pattern, target) exists.
+#
 # TODO: add dots_for, implemented in JS and Go now
 CHEATSHEET_ENTRIES = {
     "concrete": ["syntax"],
@@ -186,7 +221,11 @@ def run_semgrep_on_example(
         config.flush()
         cmd = ["semgrep", "--strict", "--json", f"--config={config.name}", code_path]
         print(">>> " + " ".join(cmd))
-        output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use.dangerous-subprocess-use
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         if output.returncode == 0:
             print(output.stderr.decode("utf-8"))
             return json.loads(output.stdout.decode("utf-8"))
@@ -619,7 +658,7 @@ def main() -> None:
 
     if args.json:
         output = json.dumps(
-            cheatsheet, indent=4, separators=(",", ": "), sort_keys=True
+            cheatsheet, indent=2, separators=(",", ": "), sort_keys=True
         )
     elif args.html:
         output = cheatsheet_to_html(cheatsheet)

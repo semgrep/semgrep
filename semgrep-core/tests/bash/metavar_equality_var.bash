@@ -1,0 +1,3 @@
+# ERROR:
+out=''
+touch "$out"

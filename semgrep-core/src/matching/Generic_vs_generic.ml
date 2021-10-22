@@ -2090,9 +2090,13 @@ and m_case a b =
   | G.CaseEqualExpr (a0, a1), B.CaseEqualExpr (b0, b1) ->
       m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.Default a0, B.Default b0 -> m_tok a0 b0
+  | G.OtherCase (a0, a1), B.OtherCase (b0, b1) ->
+      let* () = m_todo_kind a0 b0 in
+      m_list m_any a1 b1
   | G.Case _, _
   | G.Default _, _
-  | G.CaseEqualExpr _, _ ->
+  | G.CaseEqualExpr _, _
+  | G.OtherCase _, _ ->
       fail ()
 
 and m_other_stmt_operator = m_other_xxx
@@ -2796,6 +2800,7 @@ and m_any a b =
   | G.Fld a1, B.Fld b1 -> m_field a1 b1
   | G.Pa a1, B.Pa b1 -> m_parameter a1 b1
   | G.Ce a1, B.Ce b1 -> m_catch_exn a1 b1
+  | G.Cs a1, B.Cs b1 -> m_case a1 b1
   | G.Ar a1, B.Ar b1 -> m_argument a1 b1
   | G.At a1, B.At b1 -> m_attribute a1 b1
   | G.Dk a1, B.Dk b1 -> m_definition_kind a1 b1
@@ -2815,6 +2820,7 @@ and m_any a b =
   | G.Dir _, _
   | G.Pa _, _
   | G.Ce _, _
+  | G.Cs _, _
   | G.Ar _, _
   | G.At _, _
   | G.Dk _, _

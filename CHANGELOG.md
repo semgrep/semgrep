@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Metavariable equality is enforced across sources/sanitizers/sinks in taint mode, and 
 these metavariables correctly appear in match messages
+- Pre-alpha support for Bash as a new target language
 
 ### Fixed
 - text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports width < 1
@@ -23,6 +24,7 @@ these metavariables correctly appear in match messages
   consistent with other use of ... (#4082), so `o. ... .foo()` will now
   also match just `o.foo()`.
 - Config files with only a comment give bad error message (#3773)
+- Does not crash if user does not have write permissions on home directory
 
 ### Changed
 - Resolution of rulesets use legacy registry instead of cdn registry
