@@ -363,7 +363,7 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
     # it means the actual test below does not accurately verify that
     # we are solving the stack exhaustion
     output = subprocess.run(
-        f"ulimit -s 3000 && semgrep --config {rulepath} --verbose {targetpath}",
+        f"ulimit -s 1000 && semgrep --config {rulepath} --verbose {targetpath}",
         shell=True,
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -374,7 +374,7 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
 
     # If only set soft limit, semgrep should raise it as necessary so we don't hit soft limit
     output = subprocess.run(
-        f"ulimit -S -s 3000 && semgrep --config {rulepath} --verbose {targetpath}",
+        f"ulimit -S -s 1000 && semgrep --config {rulepath} --verbose {targetpath}",
         shell=True,
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
