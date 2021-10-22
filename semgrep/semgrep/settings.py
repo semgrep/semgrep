@@ -20,6 +20,7 @@ from typing import Mapping
 
 from ruamel.yaml import YAML
 
+from semgrep.constants import SEMGREP_SETTINGS_FILE
 from semgrep.constants import SETTINGS_FILE
 from semgrep.constants import USER_DATA_FOLDER
 from semgrep.verbose_logging import getLogger
@@ -49,6 +50,12 @@ class Settings:
 
     @staticmethod
     def get_path_to_settings() -> Path:
+        """
+        Uses ~/.semgrep/settings.yaml unless SEMGREP_SETTINGS_FILE is set
+        """
+        if SEMGREP_SETTINGS_FILE:
+            return Path(SEMGREP_SETTINGS_FILE)
+
         return Path("~").expanduser() / USER_DATA_FOLDER / SETTINGS_FILE
 
     def add_setting(self, key: str, value: Any) -> None:

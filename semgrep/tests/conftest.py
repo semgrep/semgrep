@@ -3,9 +3,10 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+from typing import Dict
 from typing import List
-from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -14,7 +15,6 @@ from typing import Union
 import pytest
 
 from semgrep.constants import OutputFormat
-from semgrep.settings import Settings
 
 TESTS_PATH = Path(__file__).parent
 
@@ -74,9 +74,9 @@ def _run_semgrep(
     output_format: OutputFormat = OutputFormat.JSON,
     strict: bool = True,
     quiet: bool = False,
-    env: Optional[Mapping[str, str]] = None,
+    env: Optional[Dict[str, str]] = None,
     fail_on_nonzero: bool = True,
-    delete_setting_file: bool = False,
+    settings_file: Optional[str] = None,
 ) -> Tuple[str, str]:
     """Run the semgrep CLI.
 
@@ -85,17 +85,24 @@ def _run_semgrep(
     :param options: additional CLI flags to add
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
+    :param settings_file: what setting file for semgrep to use. If None, a random temp file is generated
+                          with default params ("has_shown_metrics_notification: true")
     """
-
-    if delete_setting_file and Settings.get_path_to_settings().exists():
-        Settings.get_path_to_settings().unlink()
 
     # If delete_setting_file is false and a settings file doesnt exist, put a default
     # as we are not testing said setting. Note that if Settings file exists we want to keep it
-    if not delete_setting_file and not Settings.get_path_to_settings().exists():
-        Settings.get_path_to_settings().write_text(
-            "has_shown_metrics_notification: true"
-        )
+    # Use a unique settings file so multithreaded pytest works well
+
+    if not env:
+        env = {}
+
+    if not settings_file:
+        unique_settings_file = tempfile.NamedTemporaryFile().name
+        Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
+
+        env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
+    else:
+        env["SEMGREP_SETTINGS_FILE"] = settings_file
 
     if options is None:
         options = []
@@ -131,7 +138,7 @@ def _run_semgrep(
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
         # LANG is necessary to work with Python 3.6
-        env={**(env or {}), "LANG": "en_US.UTF-8"},
+        env={**env, "LANG": "en_US.UTF-8"},
     )
 
     if fail_on_nonzero and output.returncode > 0:
