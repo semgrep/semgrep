@@ -1323,12 +1323,12 @@ and m_argument a b =
   | G.ArgType a1, B.ArgType b1 -> m_type_ a1 b1
   | G.ArgKwd (a1, a2), B.ArgKwd (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_expr a2 b2
-  | G.ArgOther (a1, a2), B.ArgOther (b1, b2) ->
+  | G.OtherArg (a1, a2), B.OtherArg (b1, b2) ->
       m_other_argument_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.Arg _, _
   | G.ArgKwd _, _
   | G.ArgType _, _
-  | G.ArgOther _, _ ->
+  | G.OtherArg _, _ ->
       fail ()
 
 and m_other_argument_operator = m_other_xxx
@@ -1579,6 +1579,8 @@ and m_type_ a b =
       m_tok a2 b2 >>= fun () -> m_type_ a3 b3
   | G.OtherType (a1, a2), B.OtherType (b1, b2) ->
       m_other_type_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.OtherType2 (a1, a2), B.OtherType2 (b1, b2) ->
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.TyBuiltin _, _
   | G.TyFun _, _
   | G.TyApply _, _
@@ -1595,7 +1597,8 @@ and m_type_ a b =
   | G.TyRecordAnon _, _
   | G.TyInterfaceAnon _, _
   | G.TyRef _, _
-  | G.OtherType _, _ ->
+  | G.OtherType _, _
+  | G.OtherType2 _, _ ->
       fail ()
 
 and m_type_arguments a b =

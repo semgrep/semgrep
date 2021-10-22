@@ -139,10 +139,10 @@ and type_kind = function
       G.TyFun (params, ret)
   | TStructName (v1, v2) ->
       let v1 = struct_kind v1 and v2 = name v2 in
-      G.OtherType (v1, [ G.I v2 ])
+      G.OtherType2 (v1, [ G.I v2 ])
   | TEnumName v1 ->
       let v1 = name v1 in
-      G.OtherType (G.OT_EnumName, [ G.I v1 ])
+      G.OtherType2 (("EnumName", unsafe_fake ""), [ G.I v1 ])
   | TTypeName v1 ->
       let v1 = name v1 in
       G.TyN (G.Id (v1, G.empty_id_info ()))
@@ -172,8 +172,8 @@ and parameter_classic { p_type; p_name } =
   }
 
 and struct_kind = function
-  | Struct -> G.OT_StructName
-  | Union -> G.OT_UnionName
+  | Struct -> ("StructName", unsafe_fake "")
+  | Union -> ("UnionName", unsafe_fake "")
 
 and expr e =
   (match e with

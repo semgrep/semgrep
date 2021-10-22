@@ -438,11 +438,9 @@ and hint_type_kind = function
       in
       G.TyFun (params, fret)
   | HintTypeConst (_, tok, _) ->
-      G.OtherType
-        ( G.OT_Todo,
-          [ G.TodoK ("HintTypeConst not supported, facebook-ext", tok) ] )
+      G.OtherType2 (("HintTypeConst not supported, facebook-ext", tok), [])
   | HintVariadic (tok, _) ->
-      G.OtherType (G.OT_Todo, [ G.TodoK ("HintVariadic not supported", tok) ])
+      G.OtherType2 (("HintVariadic not supported", tok), [])
 
 and class_name v = hint_type v
 

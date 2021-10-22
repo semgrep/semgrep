@@ -974,7 +974,8 @@ and map_bounded_type (env : env) (x : CST.bounded_type) : G.type_ =
       let lifetime = map_lifetime env v1 in
       let plus = token env v2 (* "+" *) in
       let type_ = map_type_ env v3 in
-      G.TyOr (G.OtherType (G.OT_Lifetime, [ G.I lifetime ]) |> G.t, plus, type_)
+      G.TyOr
+        (G.OtherType2 (("Lifetime", plus), [ G.I lifetime ]) |> G.t, plus, type_)
       |> G.t
   | `Type_PLUS_type (v1, v2, v3) ->
       let type_a = map_type_ env v1 in
@@ -985,7 +986,8 @@ and map_bounded_type (env : env) (x : CST.bounded_type) : G.type_ =
       let type_ = map_type_ env v1 in
       let plus = token env v2 (* "+" *) in
       let lifetime = map_lifetime env v3 in
-      G.TyOr (type_, plus, G.OtherType (G.OT_Lifetime, [ G.I lifetime ]) |> G.t)
+      G.TyOr
+        (type_, plus, G.OtherType2 (("Lifetime", plus), [ G.I lifetime ]) |> G.t)
       |> G.t
 
 and map_bracketed_type (env : env) ((v1, v2, v3) : CST.bracketed_type) =
@@ -1961,7 +1963,7 @@ and map_macro_invocation (env : env) ((v1, v2, v3) : CST.macro_invocation) :
     match anys with
     (* look like a regular function call, just use Arg then *)
     | [ G.E e ] -> [ G.Arg e ]
-    | xs -> [ G.ArgOther (("ArgMacro", G.fake ""), xs) ]
+    | xs -> [ G.OtherArg (("ArgMacro", G.fake ""), xs) ]
   in
   G.Call (G.N name |> G.e, (l, args, r)) |> G.e
 
@@ -2389,7 +2391,7 @@ and map_qualified_type (env : env) ((v1, v2, v3) : CST.qualified_type) : G.type_
   let lhs = map_type_ env v1 in
   let as_ = token env v2 (* "as" *) in
   let rhs = map_type_ env v3 in
-  G.OtherType (G.OT_Todo, [ G.T lhs; G.Tk as_; G.T rhs ]) |> G.t
+  G.OtherType2 (("As", as_), [ G.T lhs; G.T rhs ]) |> G.t
 
 and map_range_expression (env : env) (x : CST.range_expression) : G.expr =
   match x with

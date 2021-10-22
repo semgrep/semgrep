@@ -217,7 +217,9 @@ and map_typeC env x : G.type_ =
       let v1 = map_of_list (map_sized_type env) v1
       and v2 = map_of_option (map_type_ env) v2 in
       let allt = v1 @ Common.opt_to_list v2 in
-      G.OtherType (OT_Todo, allt |> List.map (fun t -> G.T t)) |> G.t
+      G.OtherType2
+        (("TSized", PI.unsafe_fake_info ""), allt |> List.map (fun t -> G.T t))
+      |> G.t
   | TPointer (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_type_ env v2
@@ -228,7 +230,7 @@ and map_typeC env x : G.type_ =
       G.TyRef (v1, v2) |> G.t
   | TRefRef (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_type_ env v2 in
-      G.OtherType (G.OT_Todo, [ G.TodoK ("&&", v1); G.T v2 ]) |> G.t
+      G.OtherType2 (("&&", v1), [ G.T v2 ]) |> G.t
   | TArray (v1, v2) ->
       let v1 = map_bracket env (map_of_option (map_a_const_expr env)) v1
       and v2 = map_type_ env v2 in
@@ -262,7 +264,7 @@ and map_typeC env x : G.type_ =
         map_paren env (map_either env (map_type_ env) (map_expr env)) v2
       in
       let any = any_of_either_type_expr v2 in
-      G.OtherType (G.OT_Todo, [ G.TodoK ("Typeof", v1); any ]) |> G.t
+      G.OtherType2 (("Typeof", v1), [ any ]) |> G.t
   | TAuto v1 ->
       let v1 = map_tok env v1 in
       G.TyAny v1 |> G.t
@@ -272,8 +274,7 @@ and map_typeC env x : G.type_ =
   | TypeTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_type_ env) v2 in
-      G.OtherType (G.OT_Todo, G.TodoK v1 :: (v2 |> List.map (fun t -> G.T t)))
-      |> G.t
+      G.OtherType2 (v1, v2 |> List.map (fun t -> G.T t)) |> G.t
 
 and map_primitive_type _env = function
   | TVoid -> "void"
@@ -491,7 +492,7 @@ and map_argument env x : G.argument =
       G.ArgType v1
   | ArgAction v1 ->
       let v1 = map_action_macro env v1 in
-      G.ArgOther (("ArgMacro", G.fake ""), v1)
+      G.OtherArg (("ArgMacro", G.fake ""), v1)
   | ArgInits v1 ->
       let l, xs, r = map_brace env (map_of_list (map_initialiser env)) v1 in
       G.Arg (G.Container (G.Dict, (l, xs, r)) |> G.e)

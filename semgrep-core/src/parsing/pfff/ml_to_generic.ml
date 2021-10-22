@@ -148,7 +148,7 @@ and type_kind = function
   | TyTodo (t, v1) ->
       let t = todo_category t in
       let v1 = list type_ v1 in
-      G.OtherType (G.OT_Todo, G.TodoK t :: List.map (fun x -> G.T x) v1)
+      G.OtherType2 (t, List.map (fun x -> G.T x) v1)
 
 and expr_body e : G.stmt = stmt e
 
@@ -423,7 +423,7 @@ and argument = function
       G.ArgKwd (v1, v2)
   | ArgQuestion (v1, v2) ->
       let v1 = ident v1 and v2 = expr v2 in
-      G.ArgOther (("ArgQuestion", snd v1), [ G.I v1; G.E v2 ])
+      G.OtherArg (("ArgQuestion", snd v1), [ G.I v1; G.E v2 ])
 
 and match_case (v1, (v3, _t, v2)) =
   let v1 = pattern v1 and v2 = expr v2 and v3 = option expr v3 in

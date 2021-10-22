@@ -134,7 +134,7 @@ let subexprs_of_expr e =
               | ArgKwd (_, e) ->
                   Some e
               | ArgType _
-              | ArgOther _ ->
+              | OtherArg _ ->
                   None))
   | SliceAccess (e1, e2) ->
       e1

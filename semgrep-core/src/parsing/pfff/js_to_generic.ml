@@ -455,9 +455,7 @@ and type_kind x =
   | TyName xs -> G.TyN (H.name_of_ids xs)
   | TyLiteral l ->
       let l = literal l in
-      G.OtherType
-        ( G.OT_Todo,
-          [ G.TodoK ("LitType", PI.unsafe_fake_info ""); G.E (G.L l |> G.e) ] )
+      G.OtherType2 (("LitType", PI.unsafe_fake_info ""), [ G.E (G.L l |> G.e) ])
   | TyQuestion (tok, t) ->
       let t = type_ t in
       G.TyQuestion (t, tok)
@@ -485,8 +483,7 @@ and type_kind x =
       let t1 = type_ t1 in
       let t2 = type_ t2 in
       G.TyAnd (t1, tk, t2)
-  | TypeTodo (categ, xs) ->
-      G.OtherType (G.OT_Todo, G.TodoK categ :: List.map any xs)
+  | TypeTodo (categ, xs) -> G.OtherType2 (categ, List.map any xs)
 
 and tuple_type_member x =
   match x with
