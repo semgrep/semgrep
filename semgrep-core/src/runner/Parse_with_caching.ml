@@ -27,7 +27,7 @@ let filemtime file = (Unix.stat file).Unix.st_mtime
  * We also try to be a bit more type-safe by using the version tag above.
  * TODO: merge in pfff/commons/Common.ml at some point
  *)
-let cache_computation file use_parsing_cache version_cur cache_file_of_file f =
+let cache_computation use_parsing_cache version_cur file cache_file_of_file f =
   if use_parsing_cache = "" then f ()
   else if not (Sys.file_exists file) then (
     pr2 ("WARNING: cache_computation: can't find file " ^ file);
