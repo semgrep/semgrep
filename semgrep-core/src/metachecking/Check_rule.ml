@@ -140,6 +140,12 @@ let check r =
       check_formula { r; errors = ref [] } r.languages f
   | Taint _ -> (* TODO *) []
 
+let semgrep_check metachecks rules =
+  Run_semgrep.semgrep_with_patterns_file Lang.Yaml metachecks rules;
+  []
+
+(* TODO *)
+
 (* We parse the parsing function fparser (Parser_rule.parse) to avoid
  * circular dependencies.
  * Similar to Test_parsing.test_parse_rules.
@@ -156,17 +162,26 @@ let check_files fparser xs =
     List.partition (fun file -> not (file =~ ".*\\.test\\.yaml")) fullxs
   in
   let _skipped_paths = more_skipped_paths @ skipped_paths in
-  if fullxs = [] then logger#error "no rules to check";
-  fullxs
-  |> List.iter (fun file ->
-         logger#info "processing %s" file;
-         try
-           let rs = fparser file in
-           rs
-           |> List.iter (fun file ->
-                  let errs = check file in
-                  errs |> List.iter (fun err -> pr2 (E.string_of_error err)))
-         with exn -> pr2 (E.string_of_error (E.exn_to_error file exn)))
+  match fullxs with
+  | [] ->
+      logger#error
+        "check_rules needs a metacheck file or directory and rules to run on"
+  | [ _ ] ->
+      logger#error
+        "missing either a metacheck file/directory or a rule to run on"
+  | metachecks :: rules ->
+      rules
+      |> List.iter (fun file ->
+             logger#info "processing %s" file;
+             try
+               let rs = fparser file in
+               rs
+               |> List.iter (fun file ->
+                      let semgrep_found_errs = semgrep_check metachecks rules in
+                      let ocaml_found_errs = check file in
+                      semgrep_found_errs @ ocaml_found_errs
+                      |> List.iter (fun err -> pr2 (E.string_of_error err)))
+             with exn -> pr2 (E.string_of_error (E.exn_to_error file exn)))
 
 let stat_files fparser xs =
   let fullxs, _skipped_paths =
