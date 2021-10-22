@@ -225,12 +225,17 @@ let special_variable_name (env : env) (x : CST.special_variable_name) :
 let heredoc_body_beginning (env : env) (tok : CST.heredoc_body_beginning) =
   token env tok
 
-let word (env : env) (tok : CST.word) = str env tok
+let word (env : env) (tok : CST.word) : expression =
+  match str env tok with
+  | "...", tok when env.extra = Pattern -> Expr_ellipsis tok
+  | x -> Word x
 
+(* Function identifier. These can contain some punctuation. '...' is a valid
+   function identifier. *)
 let extended_word (env : env) (x : CST.extended_word) =
   match x with
   | `Semg_meta tok -> Var_metavar (str env tok)
-  | `Word tok -> Simple_variable_name (word env tok)
+  | `Word tok -> Simple_variable_name (str env tok)
 
 let heredoc_start (env : env) (tok : CST.heredoc_start) = token env tok
 
@@ -399,8 +404,8 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
     List.map
       (fun x ->
         match x with
-        | `Choice_semg_ellips x -> literal env x
-        | `Choice_EQTILDE_choice_choice_semg_ellips (v1, v2) ->
+        | `Choice_conc x -> literal env x
+        | `Choice_EQTILDE_choice_choice_conc (v1, v2) ->
             (* Not sure why we have this here. Should be only within
                test commands [[ ... ]]. *)
             let eq =
@@ -410,7 +415,7 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
             in
             let right =
               match v2 with
-              | `Choice_semg_ellips x ->
+              | `Choice_conc x ->
                   let e = literal env x in
                   Literal (expression_loc e, e)
               | `Regex tok -> (* regex *) Regexp (str env tok)
@@ -430,7 +435,6 @@ and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
 
 and command_name (env : env) (x : CST.command_name) : expression =
   match x with
-  | `Semg_ellips tok -> Expr_ellipsis (token env tok)
   | `Conc x ->
       let el = concatenation env x in
       let loc = list_loc expression_loc el in
@@ -487,7 +491,7 @@ and concatenation (env : env) ((v1, v2, v3) : CST.concatenation) :
     match v3 with
     | Some (v1, v2) ->
         let _empty_tok = token env v1 in
-        [ Word (str env v2 (* "$" *)) ]
+        [ word env v2 (* "$" *) ]
     | None -> []
   in
   (first_expr :: exprs) @ opt_last_expr
@@ -524,93 +528,81 @@ and else_clause (env : env) ((v1, v2) : CST.else_clause) : else_ =
   let loc = (else_, snd (blist_loc body)) in
   (loc, else_, body)
 
-and expansion (env : env) (x : CST.expansion) : complex_expansion bracket =
-  match x with
-  | `DOLLARLCURL_semg_ellips_RCURL (v1, v2, v3) ->
-      (* hmm, maybe we shouldn't allow this construct. A metavariable
-         like ${$X} should suffice to match whatever is within ${}. *)
-      let open_ = token env v1 in
-      let dots = token env v2 in
-      let close = token env v3 in
-      let loc = (open_, close) in
-      ( open_,
-        Variable (loc, Var_metavar (fresh_metavariable_name (), dots)),
-        close )
-  | `DOLLARLCURL_opt_choice_HASH_opt_choice_var_name_EQ_opt_choice_semg_ellips_RCURL
-      (v1, v2, v3, v4) ->
-      let open_ = token env v1 (* "${" *) in
-      let _v2_TODO =
-        match v2 with
-        | Some x -> (
-            match x with
-            | `HASH tok -> Some (token env tok (* "#" *))
-            | `BANG tok -> Some (token env tok (* "!" *)))
-        | None -> None
-      in
-      (* TODO: need to handle all the cases other than just a variable
-         like ${foo} *)
-      let opt_variable =
-        match v3 with
-        | Some x -> (
-            match x with
-            | `Var_name_EQ_opt_choice_semg_ellips (v1, v2, v3) ->
-                (* TODO *)
-                let var_name = Simple_variable_name (str env v1) in
-                let _v2 = token env v2 (* "=" *) in
-                let _v3 =
-                  match v3 with
-                  | Some x -> Some (literal env x)
-                  | None -> None
-                in
-                Some var_name
-            | `Choice_subs_opt_SLASH_opt_regex_rep_choice_choice_semg_ellips
-                (v1, v2, v3) ->
-                let opt_variable =
-                  match v1 with
-                  | `Subs _x -> (* TODO: subscript env x *) None
-                  | `Choice_semg_meta x -> Some (simple_variable_name env x)
-                  | `Choice_STAR x -> Some (special_variable_name env x)
-                in
-                let _v2_TODO () =
-                  match v2 with
-                  | Some (v1, v2) ->
-                      let v1 = token env v1 (* / *) in
-                      let v2 =
-                        match v2 with
-                        | Some tok -> token env tok (* regex *)
-                        | None -> todo env ()
-                      in
-                      todo env (v1, v2)
-                  | None -> todo env ()
-                in
-                let _v3_TODO () =
-                  List.map
-                    (fun x ->
-                      match x with
-                      | `Choice_semg_ellips x -> literal env x
-                      | `COLON tok -> todo env tok (* ":" *)
-                      | `COLONQMARK tok -> todo env tok (* ":?" *)
-                      | `EQ tok -> todo env tok (* "=" *)
-                      | `COLONDASH tok -> todo env tok (* ":-" *)
-                      | `PERC tok -> todo env tok (* "%" *)
-                      | `DASH tok -> todo env tok (* "-" *)
-                      | `HASH tok -> (* "#" *) todo env tok)
-                    v3
-                in
-                opt_variable)
-        | None -> None
-      in
-      let close = token env v4 (* "}" *) in
-      let complex_expansion =
-        match opt_variable with
-        | Some var ->
-            let loc = variable_name_loc var in
-            Variable (loc, var)
-        | None ->
-            let loc = (open_, close) in
-            Complex_expansion_TODO loc
-      in
-      (open_, complex_expansion, close)
+and expansion (env : env) ((v1, v2, v3, v4) : CST.expansion) :
+    complex_expansion bracket =
+  let open_ = token env v1 (* "${" *) in
+  let _v2_TODO =
+    match v2 with
+    | Some x -> (
+        match x with
+        | `HASH tok -> Some (token env tok (* "#" *))
+        | `BANG tok -> Some (token env tok (* "!" *)))
+    | None -> None
+  in
+  (* TODO: need to handle all the cases other than just a variable
+     like ${foo} *)
+  let opt_variable =
+    match v3 with
+    | Some x -> (
+        match x with
+        | `Var_name_EQ_opt_choice_conc (v1, v2, v3) ->
+            (* TODO *)
+            let var_name = Simple_variable_name (str env v1) in
+            let _v2 = token env v2 (* "=" *) in
+            let _v3 =
+              match v3 with
+              | Some x -> Some (literal env x)
+              | None -> None
+            in
+            Some var_name
+        | `Choice_subs_opt_SLASH_opt_regex_rep_choice_choice_conc (v1, v2, v3)
+          ->
+            let opt_variable =
+              match v1 with
+              | `Subs _x -> (* TODO: subscript env x *) None
+              | `Choice_semg_meta x -> Some (simple_variable_name env x)
+              | `Choice_STAR x -> Some (special_variable_name env x)
+            in
+            let _v2_TODO () =
+              match v2 with
+              | Some (v1, v2) ->
+                  let v1 = token env v1 (* / *) in
+                  let v2 =
+                    match v2 with
+                    | Some tok -> token env tok (* regex *)
+                    | None -> todo env ()
+                  in
+                  todo env (v1, v2)
+              | None -> todo env ()
+            in
+            let _v3_TODO () =
+              List.map
+                (fun x ->
+                  match x with
+                  | `Choice_conc x -> literal env x
+                  | `COLON tok -> todo env tok (* ":" *)
+                  | `COLONQMARK tok -> todo env tok (* ":?" *)
+                  | `EQ tok -> todo env tok (* "=" *)
+                  | `COLONDASH tok -> todo env tok (* ":-" *)
+                  | `PERC tok -> todo env tok (* "%" *)
+                  | `DASH tok -> todo env tok (* "-" *)
+                  | `HASH tok -> (* "#" *) todo env tok)
+                v3
+            in
+            opt_variable)
+    | None -> None
+  in
+  let close = token env v4 (* "}" *) in
+  let complex_expansion =
+    match opt_variable with
+    | Some var ->
+        let loc = variable_name_loc var in
+        Variable (loc, var)
+    | None ->
+        let loc = (open_, close) in
+        Complex_expansion_TODO loc
+  in
+  (open_, complex_expansion, close)
 
 (* This covers
    - sh test commands: [ ... ]
@@ -621,7 +613,7 @@ and expansion (env : env) (x : CST.expansion) : complex_expansion bracket =
 *)
 and expression (env : env) (x : CST.expression) : test_expression =
   match x with
-  | `Choice_semg_ellips x ->
+  | `Choice_conc x ->
       let e = literal env x in
       T_expr (expression_loc e, e)
   | `Un_exp (v1, v2) -> (
@@ -753,7 +745,6 @@ and last_case_item (env : env) ((v1, v2, v3, v4, v5) : CST.last_case_item) =
 
 and literal (env : env) (x : CST.literal) : expression =
   match x with
-  | `Semg_ellips tok -> Expr_ellipsis (token env tok)
   | `Conc x -> (
       let el = concatenation env x in
       let loc = list_loc expression_loc el in
@@ -770,7 +761,7 @@ and literal (env : env) (x : CST.literal) : expression =
 
 and primary_expression (env : env) (x : CST.primary_expression) : expression =
   match x with
-  | `Word tok -> Word (str env tok (* word *))
+  | `Word tok -> word env tok (* word *)
   | `Str x -> String (string_ env x)
   | `Raw_str tok -> Raw_string (str env tok (* pattern "'[^']*'" *))
   | `Ansii_c_str tok ->
@@ -915,7 +906,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       v2
       |> List.iter (fun x ->
              match x with
-             | `Choice_semg_ellips x -> (
+             | `Choice_conc x -> (
                  match literal env x with
                  | Word (s, tok) as expr ->
                      (match s with
@@ -979,7 +970,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       v2
       |> List.iter (fun x ->
              match x with
-             | `Choice_semg_ellips x ->
+             | `Choice_conc x ->
                  let e = literal env x in
                  Common.push e unknowns;
                  last_tok := expression_loc e |> snd
@@ -1350,7 +1341,7 @@ and test_command (env : env) (v1 : CST.test_command) : command =
 and variable_assignment (env : env) (x : CST.variable_assignment) : assignment =
   let lhs, assign_op, rhs =
     match x with
-    | `Choice_semg_meta_eq_choice_choice_semg_ellips (v1, v2) ->
+    | `Choice_semg_meta_eq_choice_choice_conc (v1, v2) ->
         let mv_tok, assign_op =
           match v1 with
           | `Semg_meta_eq tok ->
@@ -1376,7 +1367,7 @@ and variable_assignment (env : env) (x : CST.variable_assignment) : assignment =
            $X=42 to a variable expansion and concatenation. *)
         let mv = (PI.str_of_info mv_tok, mv_tok) in
         (mv, assign_op, v2)
-    | `Choice_var_name_choice_EQ_choice_choice_semg_ellips (v1, v2, v3) ->
+    | `Choice_var_name_choice_EQ_choice_choice_conc (v1, v2, v3) ->
         let var =
           match v1 with
           | `Var_name tok -> str env tok (* variable_name *)
@@ -1396,9 +1387,9 @@ and variable_assignment (env : env) (x : CST.variable_assignment) : assignment =
   let loc = (snd lhs, snd (expression_loc rhs)) in
   { loc; lhs; assign_op; rhs }
 
-and right_hand_side (env : env) (x : CST.anon_choice_lit_748c1d0) : expression =
+and right_hand_side (env : env) (x : CST.anon_choice_lit_bbf16c7) : expression =
   match x with
-  | `Choice_semg_ellips x -> literal env x
+  | `Choice_conc x -> literal env x
   | `Array x -> array_ env x
   | `Empty_value tok ->
       let empty = token env tok in
