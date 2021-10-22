@@ -537,7 +537,7 @@ and parameter = function
       | G.PatTyped (G.PatId (id, _idinfo), ty) ->
           G.ParamClassic { (G.param_of_id id) with G.ptype = Some ty }
       | _ -> G.ParamPattern v)
-  | ParamTodo x -> G.OtherParam (G.OPO_Todo, [ G.TodoK x ])
+  | ParamTodo x -> G.OtherParam (x, [])
 
 and type_declaration x =
   match x with

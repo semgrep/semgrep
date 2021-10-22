@@ -425,9 +425,8 @@ and parameters xs =
            let topt = option type_ topt in
            G.ParamHashSplat (t, { (G.param_of_id n) with G.ptype = topt })
        | ParamEllipsis tok -> G.ParamEllipsis tok
-       | ParamSingleStar tok ->
-           G.OtherParam (G.OPO_SingleStarParam, [ G.Tk tok ])
-       | ParamSlash tok -> G.OtherParam (G.OPO_SlashParam, [ G.Tk tok ]))
+       | ParamSingleStar tok -> G.OtherParam (("SingleStar", tok), [])
+       | ParamSlash tok -> G.OtherParam (("SlashParam", tok), []))
 
 and type_ v =
   let v = expr v in

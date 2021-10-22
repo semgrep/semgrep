@@ -583,7 +583,7 @@ let top_func () =
         and v4 = stmt v4 in
         let ent = G.basic_entity v1 in
         let def = mk_func_def (G.Method, t) params ret (G.FBStmt v4) in
-        let receiver = G.OtherParam (G.OPO_Receiver, [ G.Pa v2 ]) in
+        let receiver = G.OtherParam (("Receiver", snd v1), [ G.Pa v2 ]) in
         G.DefStmt
           (ent, G.FuncDef { def with G.fparams = receiver :: def.G.fparams })
         |> G.s
