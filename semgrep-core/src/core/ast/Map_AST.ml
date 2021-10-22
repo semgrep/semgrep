@@ -438,10 +438,10 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | ArgKwd (v1, v2) ->
         let v1 = map_ident v1 and v2 = map_expr v2 in
         ArgKwd (v1, v2)
-    | ArgOther (v1, v2) ->
+    | OtherArg (v1, v2) ->
         let v1 = map_other_argument_operator v1
         and v2 = map_of_list map_any v2 in
-        ArgOther (v1, v2)
+        OtherArg (v1, v2)
   and map_other_argument_operator x = x
   and map_action (v1, v2) =
     let v1 = map_pattern v1 and v2 = map_expr v2 in
@@ -517,6 +517,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | OtherType (v1, v2) ->
         let v1 = map_other_type_operator v1 and v2 = map_of_list map_any v2 in
         OtherType (v1, v2)
+    | OtherType2 (v1, v2) ->
+        let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
+        OtherType2 (v1, v2)
   and map_type_arguments v = map_bracket (map_of_list map_type_argument) v
   and map_type_argument = function
     | TA v1 ->

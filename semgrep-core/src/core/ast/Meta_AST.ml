@@ -476,9 +476,9 @@ and vof_argument = function
   | ArgType v1 ->
       let v1 = vof_type_ v1 in
       OCaml.VSum ("ArgType", [ v1 ])
-  | ArgOther (v1, v2) ->
+  | OtherArg (v1, v2) ->
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
-      OCaml.VSum ("ArgOther", [ v1; v2 ])
+      OCaml.VSum ("OtherArg", [ v1; v2 ])
 
 and vof_action (v1, v2) =
   let v1 = vof_pattern v1 and v2 = vof_expr v2 in
@@ -594,6 +594,10 @@ and vof_type_kind = function
       let v1 = vof_other_type_operator v1 in
       let v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherType", [ v1; v2 ])
+  | OtherType2 (v1, v2) ->
+      let v1 = vof_todo_kind v1 in
+      let v2 = OCaml.vof_list vof_any v2 in
+      OCaml.VSum ("OtherType", [ v1; v2 ])
 
 and vof_type_arguments v = vof_bracket (OCaml.vof_list vof_type_argument) v
 
@@ -620,14 +624,8 @@ and vof_type_argument = function
       OCaml.VSum ("OtherTypeArg", [ v1; v2 ])
 
 and vof_other_type_operator = function
-  | OT_Todo -> OCaml.VSum ("OT_Todo", [])
   | OT_Expr -> OCaml.VSum ("OT_Expr", [])
   | OT_Arg -> OCaml.VSum ("OT_Arg", [])
-  | OT_StructName -> OCaml.VSum ("OT_StructName", [])
-  | OT_UnionName -> OCaml.VSum ("OT_UnionName", [])
-  | OT_EnumName -> OCaml.VSum ("OT_EnumName", [])
-  | OT_Variadic -> OCaml.VSum ("OT_Variadic", [])
-  | OT_Lifetime -> OCaml.VSum ("OT_Lifetime", [])
 
 and vof_keyword_attribute = function
   | SealedClass -> OCaml.VSum ("SealedClass", [])
