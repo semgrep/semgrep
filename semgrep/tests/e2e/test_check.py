@@ -1,5 +1,6 @@
 import json
 import subprocess
+import tempfile
 from pathlib import Path
 from subprocess import CalledProcessError
 
@@ -60,10 +61,37 @@ def test_basic_rule__absolute(run_semgrep_in_tmp, snapshot):
 
 
 def test_terminal_output(run_semgrep_in_tmp, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq.yaml", output_format=OutputFormat.TEXT)[0],
-        "output.txt",
+    # Have shared settings file to test second run doesnt show metric output
+    settings_file = tempfile.NamedTemporaryFile().name
+
+    text_output = run_semgrep_in_tmp(
+        "rules/eqeq.yaml", output_format=OutputFormat.TEXT, settings_file=settings_file
     )
+    snapshot.assert_match(text_output[0], "output.txt")
+    snapshot.assert_match(text_output[1], "error.txt")
+
+    # Metric message should not appear in second output
+    text_output = run_semgrep_in_tmp(
+        "rules/eqeq.yaml", output_format=OutputFormat.TEXT, settings_file=settings_file
+    )
+    snapshot.assert_match(text_output[0], "output_second.txt")
+    snapshot.assert_match(text_output[1], "error_second.txt")
+
+
+def test_terminal_output_quiet(run_semgrep_in_tmp, snapshot):
+    """
+    Quiet output should just have finding output
+    """
+    text_output = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        output_format=OutputFormat.TEXT,
+        quiet=True,
+        # Pass named temporary file to force metric notice behavior on first scan
+        # (but should not see anything cause of --quiet)
+        settings_file=tempfile.NamedTemporaryFile().name,
+    )
+    snapshot.assert_match(text_output[0], "output.txt")
+    snapshot.assert_match(text_output[1], "error.txt")
 
 
 def test_stdin_input(snapshot):
