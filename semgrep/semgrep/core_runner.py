@@ -53,30 +53,32 @@ def setrlimits_preexec_fn() -> None:
     so all code here runs in a child fork before os switches to semgrep-core binary
     """
     # Get current soft and hard stack limits
-    old_s, h = resource.getrlimit(resource.RLIMIT_STACK)
-    logger.info(f"Existing stack limits: {old_s}, {h}")
+    old_soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
+    logger.info(f"Existing stack limits: Soft: {old_soft_limit}, Hard: {hard_limit}")
 
     # Have candidates in case os unable to set certain limit
-    potential_softlimits = [
+    potential_soft_limits = [
         int(
-            h / 3
+            hard_limit / 3
         ),  # Larger fractions cause "current limit exceeds maximum limit" for unknown reason
-        int(h / 4),
+        int(hard_limit / 4),
         5120000,  # Magic number that seems to work for most cases
-        old_s,
+        old_soft_limit,
     ]
 
     # Reverse sort so maximum possible soft limit is set
-    potential_softlimits.sort(reverse=True)
-    for s in potential_softlimits:
+    potential_soft_limits.sort(reverse=True)
+    for soft_limit in potential_soft_limits:
         try:
-            logger.info(f"Trying to set soft limit to {s}")
-            resource.setrlimit(resource.RLIMIT_STACK, (s, h))
-            logger.info(f"Set stack limit to {s}, {h}")
+            logger.info(f"Trying to set soft limit to {soft_limit}")
+            resource.setrlimit(resource.RLIMIT_STACK, (soft_limit, hard_limit))
+            logger.info(f"Set stack limit to {soft_limit}, {hard_limit}")
             return
         except Exception as e:
-            logger.info(f"Failed to set stack limit to {s}, {h}")
+            logger.info(f"Failed to set stack limit to {soft_limit}, {hard_limit}")
             logger.verbose(str(e))
+
+    logger.info("Failed to change stack limits")
 
 
 class CoreRunner:

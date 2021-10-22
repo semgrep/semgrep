@@ -357,11 +357,10 @@ def test_stack_size(run_semgrep_in_tmp, snapshot):
     targetpath = Path(e2e_dir / "targets").resolve() / "equivalence"
     rulepath = Path(e2e_dir / "rules").resolve() / "long.yaml"
 
-    # If set hard and soft stack limit we should hit stack overflow
-    # If this test fails means we might have changed the output when
-    # semgrep-core hits stack exhaustion. Do not just delete this assertion
-    # it means the actual test below does not accurately verify that
-    # we are solving the stack exhaustion
+    # Set the hard as well as the soft stack limit. This should force a stack
+    # overflow. If this fails, the test is broken and needs to be fixed.
+    # Do not just delete this assertion. It means the actual test below does
+    # not accurately verify that we are solving the stack exhaustion
     output = subprocess.run(
         f"ulimit -s 1000 && semgrep --config {rulepath} --verbose {targetpath}",
         shell=True,
