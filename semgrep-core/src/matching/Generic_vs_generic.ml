@@ -2339,8 +2339,6 @@ and m_parameter a b =
       m_parameter_classic a2 b2
   | G.ParamPattern a1, B.ParamPattern b1 -> m_pattern a1 b1
   | G.OtherParam (a1, a2), B.OtherParam (b1, b2) ->
-      m_other_parameter_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.OtherParam2 (a1, a2), B.OtherParam2 (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ParamEllipsis a1, B.ParamEllipsis b1 -> m_tok a1 b1
   | G.ParamClassic _, _
@@ -2348,7 +2346,6 @@ and m_parameter a b =
   | G.ParamRest _, _
   | G.ParamHashSplat _, _
   | G.ParamEllipsis _, _
-  | G.OtherParam2 _, _
   | G.OtherParam _, _ ->
       fail ()
 
@@ -2374,8 +2371,6 @@ and m_parameter_classic a b =
       (m_option_none_can_match_some m_type_) a3 b3 >>= fun () ->
       m_list_in_any_order ~less_is_ok:true m_attribute a4 b4 >>= fun () ->
       m_id_info a5 b5
-
-and m_other_parameter_operator = m_other_xxx
 
 (* ------------------------------------------------------------------------- *)
 (* Variable definition *)

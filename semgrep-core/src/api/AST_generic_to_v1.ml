@@ -1012,10 +1012,8 @@ and map_parameter = function
       let v1 = map_tok v1 in
       `ParamEllipsis v1
   | OtherParam (v1, v2) ->
-      let v1 = map_other_parameter_operator v1
-      and v2 = map_of_list map_any v2 in
-      `OtherParam (v1, v2)
-  | OtherParam2 (_v1, _v2) -> failwith "TODO"
+      let _v1 = map_todo_kind v1 and _v2 = map_of_list map_any v2 in
+      failwith "TODO"
 
 and map_parameter_classic
     {
@@ -1037,8 +1035,6 @@ and map_parameter_classic
     pattrs = v_pattrs;
     pinfo = v_pinfo;
   }
-
-and map_other_parameter_operator _x = "TODO"
 
 and map_variable_definition { G.vinit = v_vinit; vtype = v_vtype } =
   let v_vtype = map_of_option map_type_ v_vtype in

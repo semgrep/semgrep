@@ -938,12 +938,8 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_tok v1 in
         ParamEllipsis v1
     | OtherParam (v1, v2) ->
-        let v1 = map_other_parameter_operator v1
-        and v2 = map_of_list map_any v2 in
-        OtherParam (v1, v2)
-    | OtherParam2 (v1, v2) ->
         let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
-        OtherParam2 (v1, v2)
+        OtherParam (v1, v2)
   and map_parameter_classic
       {
         pname = v_pname;
@@ -964,7 +960,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
       pattrs = v_pattrs;
       pinfo = v_pinfo;
     }
-  and map_other_parameter_operator x = x
   and map_function_body = function
     | FBStmt v1 ->
         let v1 = map_stmt v1 in

@@ -512,7 +512,8 @@ and parameter_classic { p_type; p_ref; p_name; p_default; p_attrs; p_variadic }
   in
   match (p_variadic, p_ref) with
   | None, None -> G.ParamClassic pclassic
-  | _, Some _tok -> G.OtherParam (G.OPO_Ref, [ G.Pa (G.ParamClassic pclassic) ])
+  | _, Some tok ->
+      G.OtherParam (("Ref", tok), [ G.Pa (G.ParamClassic pclassic) ])
   | Some tok, None -> G.ParamRest (tok, pclassic)
 
 and modifier v = wrap modifierbis v

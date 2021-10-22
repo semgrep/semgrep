@@ -238,14 +238,13 @@ and map_typeC env x : G.type_ =
   | TFunction v1 ->
       let ps, tret = map_functionType env v1 in
       G.TyFun (ps, tret) |> G.t
-  (* alt: use OT_EnumName *)
   | EnumName (v1, v2) ->
-      let _v1TODO = map_tok env v1 and v2 = map_a_ident_name env v2 in
-      G.TyN v2 |> G.t
-  (* alt: use OT_StructName and OT_UnionName which I use in c_to_generic.ml *)
+      let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
+      G.OtherType2 (("EnumName", v1), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
   | ClassName (v1, v2) ->
-      let _v1TODO = map_class_key env v1 and v2 = map_a_class_name env v2 in
-      G.TyN v2 |> G.t
+      let (_kind, t), _attrs = map_class_key env v1
+      and v2 = map_a_class_name env v2 in
+      G.OtherType2 ((PI.str_of_info t, t), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
   | TypeName v1 ->
       let v1 = map_a_ident_name env v1 in
       G.TyN v1 |> G.t
