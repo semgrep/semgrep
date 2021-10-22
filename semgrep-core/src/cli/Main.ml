@@ -192,79 +192,10 @@ let set_gc () =
   Gc.set { (Gc.get ()) with Gc.space_overhead = 300 };
   ()
 
-(*
-   If the target is a named pipe, copy it into a regular file and return
-   that. This allows multiple reads on the file.
-
-   This is intended to support one or a small number of targets created
-   manually on the command line with e.g. <(echo 'eval(x)') which the
-   shell replaces by a named pipe like '/dev/fd/63'.
-*)
-let replace_named_pipe_by_regular_file path =
-  match (Unix.stat path).st_kind with
-  | Unix.S_FIFO ->
-      let data = Common.read_file path in
-      let prefix = spf "semgrep-core-" in
-      let suffix = spf "-%s" (Filename.basename path) in
-      let tmp_path, oc =
-        Filename.open_temp_file
-          ~mode:[ Open_creat; Open_excl; Open_wronly; Open_binary ]
-          prefix suffix
-      in
-      let remove () = if Sys.file_exists tmp_path then Sys.remove tmp_path in
-      (* Try to remove temporary file when program exits. *)
-      at_exit remove;
-      Fun.protect
-        ~finally:(fun () -> close_out_noerr oc)
-        (fun () -> output_string oc data);
-      tmp_path
-  | _ -> path
-
-(* for -gen_layer, see Experiments.ml *)
-let _matching_tokens = ref []
-
-let print_match ?str mvars mvar_binding ii_of_any tokens_matched_code =
-  (* there are a few fake tokens in the generic ASTs now (e.g.,
-   * for DotAccess generated outside the grammar) *)
-  let toks = tokens_matched_code |> List.filter PI.is_origintok in
-  (if mvars = [] then
-   Matching_report.print_match ?str ~format:!match_format toks
-  else
-    (* similar to the code of Lib_matcher.print_match, maybe could
-     * factorize code a bit.
-     *)
-    let mini, _maxi = PI.min_max_ii_by_pos toks in
-    let file, line = (PI.file_of_info mini, PI.line_of_info mini) in
-
-    let strings_metavars =
-      mvars
-      |> List.map (fun x ->
-             match Common2.assoc_opt x mvar_binding with
-             | Some any ->
-                 any |> ii_of_any
-                 |> List.filter PI.is_origintok
-                 |> List.map PI.str_of_info
-                 |> Matching_report.join_with_space_if_needed
-             | None -> failwith (spf "the metavariable '%s' was not binded" x))
-    in
-    pr (spf "%s:%d: %s" file line (Common.join ":" strings_metavars));
-    ());
-  toks |> List.iter (fun x -> Common.push x _matching_tokens)
-
 let lang_of_string s =
   match Lang.lang_of_string_opt s with
   | Some x -> x
   | None -> failwith (Lang.unsupported_language_message s)
-
-(* when called from semgrep-python, error messages in semgrep-core or
- * certain profiling statistics may refer to rule id that are generated
- * by semgrep-python, making it hard to know what the problem is.
- * At least we can save this generated rule file to help debugging.
- *)
-let save_rules_file_in_tmp () =
-  let tmp = Filename.temp_file "semgrep_core_rule-" ".yaml" in
-  pr2 (spf "saving rules file for debugging in: %s" tmp);
-  Common.write_file ~file:tmp (Common.read_file !rules_file)
 
 (*****************************************************************************)
 (* Checker *)
@@ -404,13 +335,9 @@ let mk_config () =
     fail_fast = !fail_fast;
     profile_start = !profile_start;
     pattern_string = !pattern_string;
-    (* -e *)
     pattern_file = !pattern_file;
-    (* -f *)
     rules_file = !rules_file;
-    (* -rules_file *)
     config_file = !config_file;
-    (* -config *)
     equivalences_file = !equivalences_file;
     lang = !lang;
     output_format = !output_format;

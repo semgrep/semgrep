@@ -3,7 +3,6 @@
  (libraries
     str
     dyp
-    parmap
     ppx_deriving.runtime
     uucp uutf
 

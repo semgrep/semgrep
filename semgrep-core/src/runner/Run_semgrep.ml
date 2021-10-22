@@ -546,7 +546,7 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
       errors |> List.iter (fun err -> pr (E.string_of_error err))
 
 let semgrep_with_rules_file config files_or_dirs =
-  let rules_file = config.rules_file in
+  let rules_file = config.config_file in
   try
     logger#info "Parsing %s" rules_file;
     let timed_rules =

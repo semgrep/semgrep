@@ -27,8 +27,9 @@ let filemtime file = (Unix.stat file).Unix.st_mtime
  * We also try to be a bit more type-safe by using the version tag above.
  * TODO: merge in pfff/commons/Common.ml at some point
  *)
-let cache_computation file use_parsing_cache version_cur cache_file_of_file f =
-  if use_parsing_cache = "" then f ()
+let cache_computation ~parsing_cache_exists version_cur file cache_file_of_file
+    f =
+  if not parsing_cache_exists then f ()
   else if not (Sys.file_exists file) then (
     pr2 ("WARNING: cache_computation: can't find file " ^ file);
     pr2 "defaulting to calling the function";
@@ -62,8 +63,8 @@ let cache_computation file use_parsing_cache version_cur cache_file_of_file f =
              if Sys.file_exists file_cache then Sys.remove file_cache);
           res)
 
-let cache_file_of_file use_parsing_cache filename =
-  let dir = use_parsing_cache in
+let cache_file_of_file parsing_cache filename =
+  let dir = parsing_cache in
   if not (Sys.file_exists dir) then Unix.mkdir dir 0o700;
   (* hopefully there will be no collision *)
   let md5 = Digest.string filename in
@@ -77,12 +78,12 @@ let cache_file_of_file use_parsing_cache filename =
  * but the semgrep python wrapper calls semgrep-core separately for each
  * rule, so we need to cache parsed AST to avoid extra work.
  *)
-let parse_generic use_parsing_cache version lang file =
+let parse_generic parsing_cache version lang file =
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h then
     Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
 
   let v =
-    cache_computation use_parsing_cache version file
+    cache_computation ~parsing_cache_exists:(parsing_cache <> "") version file
       (fun file ->
         (* we may use different parsers for the same file (e.g., in Python3 or
          * Python2 mode), so put the lang as part of the cache "dependency".
@@ -92,7 +93,7 @@ let parse_generic use_parsing_cache version lang file =
         let full_filename =
           spf "%s__%s__%s" file (Lang.string_of_lang lang) version
         in
-        cache_file_of_file use_parsing_cache full_filename)
+        cache_file_of_file parsing_cache full_filename)
       (fun () ->
         try
           logger#info "parsing %s" file;
