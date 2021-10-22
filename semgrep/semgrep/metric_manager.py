@@ -1,4 +1,5 @@
 import hashlib
+import os
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -191,6 +192,7 @@ class _MetricManager:
                 "projectHash": self._project_hash,
                 "configNamesHash": self._configs_hash,
                 "rulesHash": self._rules_hash,
+                "ci": os.environ.get("CI"),
             },
             "performance": {
                 "fileStats": self._file_stats,
