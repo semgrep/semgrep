@@ -76,7 +76,7 @@ def _run_semgrep(
     quiet: bool = False,
     env: Optional[Mapping[str, str]] = None,
     fail_on_nonzero: bool = True,
-    delete_setting_file: bool = True,
+    delete_setting_file: bool = False,
 ) -> Tuple[str, str]:
     """Run the semgrep CLI.
 
@@ -86,9 +86,16 @@ def _run_semgrep(
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
     """
-    # remove the settings folder between every run
+
     if delete_setting_file and Settings.get_path_to_settings().exists():
         Settings.get_path_to_settings().unlink()
+
+    # If delete_setting_file is false and a settings file doesnt exist, put a default
+    # as we are not testing said setting. Note that if Settings file exists we want to keep it
+    if not delete_setting_file and not Settings.get_path_to_settings().exists():
+        Settings.get_path_to_settings().write_text(
+            "has_shown_metrics_notification: true"
+        )
 
     if options is None:
         options = []

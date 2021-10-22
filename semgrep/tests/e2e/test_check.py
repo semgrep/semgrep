@@ -60,7 +60,9 @@ def test_basic_rule__absolute(run_semgrep_in_tmp, snapshot):
 
 
 def test_terminal_output(run_semgrep_in_tmp, snapshot):
-    text_output = run_semgrep_in_tmp("rules/eqeq.yaml", output_format=OutputFormat.TEXT)
+    text_output = run_semgrep_in_tmp(
+        "rules/eqeq.yaml", output_format=OutputFormat.TEXT, delete_setting_file=True
+    )
     snapshot.assert_match(text_output[0], "output.txt")
     snapshot.assert_match(text_output[1], "error.txt")
 
@@ -74,7 +76,10 @@ def test_terminal_output(run_semgrep_in_tmp, snapshot):
 
 def test_terminal_output_quiet(run_semgrep_in_tmp, snapshot):
     text_output = run_semgrep_in_tmp(
-        "rules/eqeq.yaml", output_format=OutputFormat.TEXT, quiet=True
+        "rules/eqeq.yaml",
+        output_format=OutputFormat.TEXT,
+        quiet=True,
+        delete_setting_file=True,
     )
     snapshot.assert_match(text_output[0], "output.txt")
     snapshot.assert_match(text_output[1], "error.txt")
