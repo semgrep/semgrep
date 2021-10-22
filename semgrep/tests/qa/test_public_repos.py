@@ -52,12 +52,15 @@ def _assert_sentinel_results(
         sys.executable,
         "-m",
         "semgrep",
+        "--disable-version-check",
         "--pattern",
         SENTINEL_PATTERN,
         "--lang",
         language,
         "--json",
         repo_path,
+        "--metrics",
+        "off",
         "--optimizations",
         "none",  # Turn off optimizations since it skips parsing when it can and this test is testing parsing
     ]
@@ -212,9 +215,12 @@ def test_semgrep_on_repo(monkeypatch, tmp_path, repo_object):
         sys.executable,
         "-m",
         "semgrep",
+        "--disable-version-check",
         "--config=rules/regex-sentinel.yaml",
         "--strict",
         "--json",
+        "--metrics",
+        "off",
         "--optimizations",
         "none",  # Turn off optimizations since it skips parsing when it can and this test is testing parsing
         repo_path,
