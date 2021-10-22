@@ -192,9 +192,6 @@ let set_gc () =
   Gc.set { (Gc.get ()) with Gc.space_overhead = 300 };
   ()
 
-(* for -gen_layer, see Experiments.ml *)
-let _matching_tokens = ref []
-
 let lang_of_string s =
   match Lang.lang_of_string_opt s with
   | Some x -> x

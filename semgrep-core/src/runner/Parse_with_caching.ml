@@ -83,7 +83,7 @@ let parse_generic parsing_cache version lang file =
     Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
 
   let v =
-    cache_computation ~use_parsing_cache:(parsing_cache == "") version file
+    cache_computation ~parsing_cache_exists:(parsing_cache = "") version file
       (fun file ->
         (* we may use different parsers for the same file (e.g., in Python3 or
          * Python2 mode), so put the lang as part of the cache "dependency".
