@@ -82,8 +82,11 @@ let parse_generic parsing_cache version lang file =
   if lang = Lang.C && Sys.file_exists !Flag_parsing_cpp.macros_h then
     Parse_cpp.init_defs !Flag_parsing_cpp.macros_h;
 
+  if parsing_cache = "" then pr2 "Is empty" else pr2 "parsing cache exists";
   let v =
-    cache_computation ~parsing_cache_exists:(parsing_cache != "") version file
+    cache_computation
+      ~parsing_cache_exists:(not (parsing_cache = ""))
+      version file
       (fun file ->
         (* we may use different parsers for the same file (e.g., in Python3 or
          * Python2 mode), so put the lang as part of the cache "dependency".
