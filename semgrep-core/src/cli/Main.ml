@@ -422,7 +422,7 @@ let all_actions () =
       " <files or dirs> generate parsing statistics (use -json for JSON output)",
       Common.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_stats (lang_of_string !lang)
-            (!output_format = Json) xs) );
+            ~json:(!output_format = Json) ~verbose:true xs) );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Common.mk_action_n_arg (fun xs ->

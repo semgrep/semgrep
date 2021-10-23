@@ -392,8 +392,8 @@ let parse_projects ~verbose lang project_dirs =
       parse_project ~verbose lang name [ dir ])
     project_dirs
 
-let parsing_stats lang json project_dirs =
-  let stat_list = parse_projects ~verbose:(not json) lang project_dirs in
+let parsing_stats ?(json = false) ?(verbose = false) lang project_dirs =
+  let stat_list = parse_projects ~verbose lang project_dirs in
   if json then print_json lang stat_list
   else
     let flat_stat = List.map snd stat_list |> List.flatten in
