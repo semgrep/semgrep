@@ -240,8 +240,6 @@ let redirect_pipeline_stderr_to_stdout pip =
 let rec blist (env : env) (l : blist) : stmt_or_expr list =
   match l with
   | Seq (_loc, left, right) -> blist env left @ blist env right
-  | And (_loc, left, and_tok, right) -> [ transpile_and env left and_tok right ]
-  | Or (_loc, left, or_tok, right) -> [ transpile_or env left or_tok right ]
   | Pipelines (_loc, pl) -> List.map (fun x -> pipeline env x) pl
   | Empty _loc -> []
 
@@ -300,6 +298,18 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       | arguments ->
           let args = List.map (expression env) arguments in
           Expr (loc, call loc C.cmd args))
+  | And (loc, left, and_tok, right) ->
+      let open_, close = loc in
+      let left = command_with_redirects env left |> as_expr in
+      let right = command_with_redirects env right |> as_expr in
+      let op = G.IdSpecial (G.Op G.And, and_tok) |> G.e in
+      Expr (loc, G.Call (op, (open_, [ G.Arg left; G.Arg right ], close)) |> G.e)
+  | Or (loc, left, or_tok, right) ->
+      let open_, close = loc in
+      let left = command_with_redirects env left |> as_expr in
+      let right = command_with_redirects env right |> as_expr in
+      let op = G.IdSpecial (G.Op G.Or, or_tok) |> G.e in
+      Expr (loc, G.Call (op, (open_, [ G.Arg left; G.Arg right ], close)) |> G.e)
   | Subshell (loc, (open_, bl, close)) ->
       (* TODO: subshell *) stmt_group env loc (blist env bl)
   | Command_group (loc, (open_, bl, close)) -> stmt_group env loc (blist env bl)
@@ -499,51 +509,6 @@ and expansion (env : env) (x : expansion) : G.expr =
       | Complex_expansion_TODO loc -> todo_expr loc)
 
 and expand loc (var_expr : G.expr) : G.expr = call loc C.expand [ var_expr ]
-
-(*
-   'a && b' and 'a || b' looks like expressions but they're really
-   conditional statements. We make such translation rather than introducing
-   special statement constructs into the generic AST.
-
-      a && b
-
-     -->
-
-     if a; then
-       b
-     else
-       false
-     fi
-*)
-and transpile_and (env : env) (left : blist) tok_and (right : blist) :
-    stmt_or_expr =
-  let cond = blist env left |> block in
-  let body = blist env right |> block in
-  let loc = range (stmt_or_expr_loc cond) (stmt_or_expr_loc body) in
-  let fail = stmt_of_expr loc (G.L (G.Bool (false, snd loc)) |> G.e) in
-  Stmt (loc, G.s (G.If (tok_and, as_expr cond, as_stmt body, Some fail)))
-
-(*
-   This is similar to 'transpile_and', with a negated condition.
-
-     a || b
-
-   -->
-
-     if ! a; then
-       b
-     fi
-*)
-and transpile_or (env : env) (left : blist) tok_or (right : blist) :
-    stmt_or_expr =
-  let e = blist env left |> block in
-  let ((start, _) as cond_loc) = stmt_or_expr_loc e in
-  let not_ = G.IdSpecial (G.Op G.Not, tok_or) |> G.e in
-  let cond = G.Call (not_, bracket cond_loc [ G.Arg (as_expr e) ]) |> G.e in
-  let body = blist env right |> block in
-  let _, end_ = stmt_or_expr_loc body in
-  let loc = (start, end_) in
-  Stmt (loc, G.s (G.If (tok_or, cond, as_stmt body, None)))
 
 let program (env : env) x = blist (env : env) x |> List.map as_stmt
 

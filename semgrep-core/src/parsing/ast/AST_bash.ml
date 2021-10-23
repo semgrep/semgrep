@@ -142,6 +142,10 @@ type command_with_redirects = {
 *)
 and command =
   | Simple_command of simple_command
+  (* &&/|| combine two commands into one.
+     They don't form a list of pipelines like 'man bash' says. *)
+  | And of loc * command_with_redirects * tok (* && *) * command_with_redirects
+  | Or of loc * command_with_redirects * tok (* || *) * command_with_redirects
   (* What the manual refers to as "compound commands" *)
   | Subshell of loc * blist bracket
   | Command_group of loc * blist bracket
@@ -262,8 +266,6 @@ and pipeline =
 *)
 and blist =
   | Seq of loc * blist * blist
-  | And of loc * blist * tok (* && *) * blist
-  | Or of loc * blist * tok (* || *) * blist
   | Pipelines of loc * pipeline list
   | Empty of loc
 
@@ -514,6 +516,8 @@ let command_with_redirects_loc x = x.loc
 
 let command_loc = function
   | Simple_command x -> x.loc
+  | And (loc, _, _, _) -> loc
+  | Or (loc, _, _, _) -> loc
   | Subshell (loc, _) -> loc
   | Command_group (loc, _) -> loc
   | Sh_test (loc, _) -> loc
@@ -541,8 +545,6 @@ let pipeline_loc = function
 
 let blist_loc = function
   | Seq (loc, _, _) -> loc
-  | And (loc, _, _, _) -> loc
-  | Or (loc, _, _, _) -> loc
   | Pipelines (loc, _) -> loc
   | Empty loc -> loc
 

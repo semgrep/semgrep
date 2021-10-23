@@ -48,16 +48,11 @@ let map_last l f =
   | last :: other -> List.rev (f last :: other)
 
 (*
-   The 'statement' rule returns one of 3 possible levels of constructs:
-   - list = list of pipelines
-   - pipeline = one of
-      - list of commands
-      - pipeline && pipeline
-      - pipeline || pipeline
+   The 'statement' rule returns one of 2 possible levels of constructs:
+   - pipeline = list of commands
    - command
 *)
 type tmp_stmt =
-  | Tmp_blist of blist
   | Tmp_pipeline of pipeline
   | Tmp_command of (command_with_redirects * unary_control_operator wrap option)
 
@@ -68,8 +63,6 @@ let blist_of_pipeline (pip : pipeline) =
 let rec is_empty_blist (blist : blist) =
   match blist with
   | Seq (_loc, a, b) -> is_empty_blist a && is_empty_blist b
-  | And (_loc, a, and_tok, b) -> false
-  | Or (_loc, a, or_tok, b) -> false
   | Pipelines (_loc, []) -> true
   | Pipelines (_loc, _ :: _) -> false
   | Empty _loc -> true
@@ -90,8 +83,6 @@ let add_terminator_to_blist (blist : blist) (term : unary_control_operator wrap)
   let rec add_to blist : blist =
     match blist with
     | Seq (loc, a, b) -> if is_empty_blist b then add_to a else blist
-    | And (loc, a, and_tok, b) -> And (loc, a, and_tok, add_to b)
-    | Or (loc, a, or_tok, b) -> Or (loc, a, or_tok, add_to b)
     | Pipelines (loc, pipelines) ->
         let pipelines =
           replace_last pipelines (fun pip ->
@@ -815,7 +806,6 @@ and program (env : env) ~tok (opt : CST.program) : blist =
 *)
 and blist_statement (env : env) (x : CST.statement) : blist =
   match statement env x with
-  | Tmp_blist x -> x
   | Tmp_pipeline x -> Pipelines (pipeline_loc x, [ x ])
   | Tmp_command (cmd_redir, control_op) -> (
       let loc = command_with_redirects_loc cmd_redir in
@@ -833,7 +823,6 @@ and blist_statement (env : env) (x : CST.statement) : blist =
 *)
 and pipeline_statement (env : env) (x : CST.statement) : pipeline =
   match statement env x with
-  | Tmp_blist _ -> assert false
   | Tmp_pipeline x -> x
   | Tmp_command (cmd_redir, control_op) -> (
       let loc = command_with_redirects_loc cmd_redir in
@@ -852,7 +841,6 @@ and pipeline_statement (env : env) (x : CST.statement) : pipeline =
 and command_statement (env : env) (x : CST.statement) :
     command_with_redirects * unary_control_operator wrap option =
   match statement env x with
-  | Tmp_blist _ -> assert false
   | Tmp_pipeline _ -> assert false
   | Tmp_command x -> x
 
@@ -1151,23 +1139,15 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       Tmp_pipeline pipeline
   | `List (v1, v2, v3) ->
-      let left = blist_statement env v1 in
-
-      (*
-         && and || are left-associative, so we should have a pipeline
-         on the right, not a list. The following doesn't work, though,
-         when parsing just 'a || b'.
-
-      let pipeline = pipeline_statement env v3 in
-       *)
-      let right = blist_statement env v3 in
-      let loc = range (blist_loc left) (blist_loc right) in
-      let blist =
+      let left, _no_terminator = command_statement env v1 in
+      let right, opt_terminator = command_statement env v3 in
+      let loc = range left.loc right.loc in
+      let command =
         match v2 with
         | `AMPAMP tok -> And (loc, left, token env tok, right)
         | `BARBAR tok -> Or (loc, left, token env tok, right)
       in
-      Tmp_blist blist
+      Tmp_command ({ loc; command; redirects = [] }, opt_terminator)
   | `Subs x ->
       let sub = subshell env x in
       let loc = bracket_loc sub in
