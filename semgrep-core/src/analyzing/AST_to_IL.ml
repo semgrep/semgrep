@@ -893,7 +893,15 @@ let rec stmt_aux env st =
       in
       let ss1 = for_var_or_expr_list env xs in
       let st = stmt st_env st in
-      let ss2, cond = expr_with_pre_stmts env (List.nth e 0) (* TODO list *) in
+      let ss2, cond =
+        match e with
+        | first :: _TODO ->
+            (* TODO list *)
+            expr_with_pre_stmts env first
+        | [] ->
+            (* TODO: handle this gracefully *)
+            failwith "for-in: empty list of elements to iterate over (TODO)"
+      in
       ss1 @ ss2
       @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ ss2)) ]
       @ break_label_s
