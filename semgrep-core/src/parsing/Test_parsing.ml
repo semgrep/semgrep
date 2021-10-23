@@ -28,6 +28,10 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Helpers *)
 (*****************************************************************************)
 
+let print_exn file e =
+  let trace = Printexc.get_backtrace () in
+  pr2 (spf "%s: exn = %s\n%s" file (Common.exn_to_s e) trace)
+
 let dump_and_print_errors dumper (res : 'a Tree_sitter_run.Parsing_result.t) =
   (match res.program with
   | Some cst -> dumper cst
@@ -174,7 +178,7 @@ let test_parse_tree_sitter lang root_paths =
                           (Lang.string_of_lang lang)));
                  PI.correct_stat file
                with exn ->
-                 pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+                 print_exn file exn;
                  PI.bad_stat file
              in
              Common.push stat stat_list));
@@ -258,8 +262,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
              with
              | Timeout _ -> assert false
              | exn ->
-                 if verbose then
-                   pr2 (spf "%s: exn = %s" file (Common.exn_to_s exn));
+                 if verbose then print_exn file exn;
                  (* bugfix: bad_stat() could actually triggering some
                     Sys_error "Out of memory" when implemented naively,
                     and this exn in the exn handler was stopping the whole job.
