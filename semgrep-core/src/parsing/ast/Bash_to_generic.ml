@@ -322,8 +322,19 @@ and command (env : env) (cmd : command) : stmt_or_expr =
           match opt_in with
           | Some (_in, vals) -> List.map (fun x -> expression env x) vals
           | None ->
-              (* TODO/FIXME: transpile implicit "$@" or make this optional *)
-              []
+              (*
+                 Pretend there's a '"$@"', which is semantically correct
+                 and avoids bug that assumes at least one element.
+                 See <insert bug report URL>
+              *)
+              let fake_arg_array =
+                let tok = do_ in
+                let loc = (tok, tok) in
+                let var_name = Special_variable_name ("@", tok) in
+                let frag = Expansion (loc, Simple_expansion (loc, var_name)) in
+                String (tok, [ frag ], tok)
+              in
+              [ expression env fake_arg_array ]
         in
         match loop_var with
         | Simple_variable_name var
