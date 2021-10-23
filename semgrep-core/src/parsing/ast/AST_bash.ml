@@ -144,8 +144,8 @@ and command =
   | Simple_command of simple_command
   (* &&/|| combine two commands into one.
      They don't form a list of pipelines like 'man bash' says. *)
-  | And of loc * command_with_redirects * tok (* && *) * command_with_redirects
-  | Or of loc * command_with_redirects * tok (* || *) * command_with_redirects
+  | And of loc * pipeline * tok (* && *) * pipeline
+  | Or of loc * pipeline * tok (* || *) * pipeline
   (* What the manual refers to as "compound commands" *)
   | Subshell of loc * blist bracket
   | Command_group of loc * blist bracket

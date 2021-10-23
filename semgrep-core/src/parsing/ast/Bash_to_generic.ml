@@ -300,14 +300,14 @@ and command (env : env) (cmd : command) : stmt_or_expr =
           Expr (loc, call loc C.cmd args))
   | And (loc, left, and_tok, right) ->
       let open_, close = loc in
-      let left = command_with_redirects env left |> as_expr in
-      let right = command_with_redirects env right |> as_expr in
+      let left = pipeline env left |> as_expr in
+      let right = pipeline env right |> as_expr in
       let op = G.IdSpecial (G.Op G.And, and_tok) |> G.e in
       Expr (loc, G.Call (op, (open_, [ G.Arg left; G.Arg right ], close)) |> G.e)
   | Or (loc, left, or_tok, right) ->
       let open_, close = loc in
-      let left = command_with_redirects env left |> as_expr in
-      let right = command_with_redirects env right |> as_expr in
+      let left = pipeline env left |> as_expr in
+      let right = pipeline env right |> as_expr in
       let op = G.IdSpecial (G.Op G.Or, or_tok) |> G.e in
       Expr (loc, G.Call (op, (open_, [ G.Arg left; G.Arg right ], close)) |> G.e)
   | Subshell (loc, (open_, bl, close)) ->

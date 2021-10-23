@@ -841,13 +841,14 @@ and pipeline_statement (env : env) (x : CST.statement) : pipeline =
 and command_statement (env : env) (x : CST.statement) :
     command_with_redirects * unary_control_operator wrap option =
   match statement env x with
-  | Tmp_pipeline _ -> assert false
+  | Tmp_pipeline pip ->
+      (* shouldn't happen, it's a bug *)
+      raise (Parse_info.Parsing_error (pipeline_loc pip |> fst))
   | Tmp_command x -> x
 
 (*
    Do not call this function directly. Instead use one of the
    following depending on which construct is expected:
-   - blist_statement
    - pipeline_statement
    - command_statement
 *)
@@ -1139,15 +1140,15 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
       in
       Tmp_pipeline pipeline
   | `List (v1, v2, v3) ->
-      let left, _no_terminator = command_statement env v1 in
-      let right, opt_terminator = command_statement env v3 in
-      let loc = range left.loc right.loc in
+      let left = pipeline_statement env v1 in
+      let right = pipeline_statement env v3 in
+      let loc = range (pipeline_loc left) (pipeline_loc right) in
       let command =
         match v2 with
         | `AMPAMP tok -> And (loc, left, token env tok, right)
         | `BARBAR tok -> Or (loc, left, token env tok, right)
       in
-      Tmp_command ({ loc; command; redirects = [] }, opt_terminator)
+      Tmp_command ({ loc; command; redirects = [] }, None)
   | `Subs x ->
       let sub = subshell env x in
       let loc = bracket_loc sub in
