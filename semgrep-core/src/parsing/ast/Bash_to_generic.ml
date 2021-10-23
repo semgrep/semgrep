@@ -324,8 +324,8 @@ and command (env : env) (cmd : command) : stmt_or_expr =
           | None ->
               (*
                  Pretend there's a '"$@"', which is semantically correct
-                 and avoids bug that assumes at least one element.
-                 See <insert bug report URL>
+                 and avoids exception in IL_to_AST raised when the list
+                 is empty.
               *)
               let fake_arg_array =
                 let tok = do_ in
