@@ -665,3 +665,12 @@ let concat_blists (x : blist list) : blist =
           let loc = range start end_ in
           Seq (loc, blist, acc))
         last_blist blists
+
+let rec first_command_of_pipeline pip :
+    command_with_redirects * unary_control_operator wrap option =
+  match pip with
+  | Command (_loc, x) -> (x, None)
+  | Pipeline (_loc, pip, _bar, _cmd) -> first_command_of_pipeline pip
+  | Control_operator (_loc, pip, op) ->
+      let cmd, _ = first_command_of_pipeline pip in
+      (cmd, Some op)

@@ -843,7 +843,7 @@ and command_statement (env : env) (x : CST.statement) :
   match statement env x with
   | Tmp_pipeline pip ->
       (* shouldn't happen, it's a bug *)
-      raise (Parse_info.Parsing_error (pipeline_loc pip |> fst))
+      first_command_of_pipeline pip
   | Tmp_command x -> x
 
 (*
@@ -860,7 +860,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
          test case:
          echo a > /tmp/foo b
       *)
-      let cmd_redir_ctrl = command_statement env v1 in
+      let cmd_redir_ctrl = pipeline_statement env v1 in
       let _redirects_TODO () =
         List.map
           (fun x ->
@@ -870,7 +870,7 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
             | `Here_redi_7d3292d x -> herestring_redirect env x)
           v2
       in
-      Tmp_command cmd_redir_ctrl
+      Tmp_pipeline cmd_redir_ctrl
   | `Var_assign x ->
       let a = variable_assignment env x in
       let command = Assignment a in
