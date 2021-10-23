@@ -140,8 +140,11 @@ let check r =
       check_formula { r; errors = ref [] } r.languages f
   | Taint _ -> (* TODO *) []
 
-let semgrep_check metachecks rules =
-  Run_semgrep.semgrep_with_patterns_file Lang.Yaml metachecks rules;
+let semgrep_check config metachecks rules =
+  let config =
+    { config with Runner_common.lang = "yaml"; config_file = metachecks }
+  in
+  Run_semgrep.semgrep_with_rules_file config rules;
   []
 
 (* TODO *)
@@ -150,7 +153,7 @@ let semgrep_check metachecks rules =
  * circular dependencies.
  * Similar to Test_parsing.test_parse_rules.
  *)
-let check_files fparser xs =
+let check_files mk_config fparser xs =
   let fullxs, skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -177,7 +180,9 @@ let check_files fparser xs =
                let rs = fparser file in
                rs
                |> List.iter (fun file ->
-                      let semgrep_found_errs = semgrep_check metachecks rules in
+                      let semgrep_found_errs =
+                        semgrep_check (mk_config ()) metachecks rules
+                      in
                       let ocaml_found_errs = check file in
                       semgrep_found_errs @ ocaml_found_errs
                       |> List.iter (fun err -> pr2 (E.string_of_error err)))
