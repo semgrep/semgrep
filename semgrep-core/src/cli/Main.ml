@@ -716,10 +716,14 @@ let main () =
       | [] -> Common.usage usage_msg (options ()))
 
 (*****************************************************************************)
+
+let register_exception_printers () =
+  Parse_info.register_exception_printer ();
+  Pcre_settings.register_exception_printer ()
+
 let () =
   Common.main_boilerplate (fun () ->
-      (* semgrep-specific initializations. Move to a dedicated module? *)
-      Pcre_settings.register_exception_printer ();
+      register_exception_printers ();
       Common.finalize
         (fun () -> main ())
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))
