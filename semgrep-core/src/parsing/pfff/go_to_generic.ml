@@ -288,11 +288,11 @@ let top_func () =
         G.Lambda
           (mk_func_def (G.LambdaKind, G.fake "") params ret (G.FBStmt v2))
     | Receive (v1, v2) ->
-        let _v1 = tok v1 and v2 = expr v2 in
-        G.OtherExpr (G.OE_Recv, [ G.E v2 ])
+        let v1 = tok v1 and v2 = expr v2 in
+        G.OtherExpr (("Receive", v1), [ G.E v2 ])
     | Send (v1, v2, v3) ->
-        let v1 = expr v1 and _v2 = tok v2 and v3 = expr v3 in
-        G.OtherExpr (G.OE_Send, [ G.E v1; G.E v3 ])
+        let v1 = expr v1 and v2 = tok v2 and v3 = expr v3 in
+        G.OtherExpr (("Send", v2), [ G.E v1; G.E v3 ])
     | TypeSwitchExpr (v1, v2) ->
         let _v1 = expr v1 and v2 = tok v2 in
         error v2 "TypeSwitchExpr should be handled in Switch statement"
@@ -583,7 +583,7 @@ let top_func () =
         and v4 = stmt v4 in
         let ent = G.basic_entity v1 in
         let def = mk_func_def (G.Method, t) params ret (G.FBStmt v4) in
-        let receiver = G.OtherParam (G.OPO_Receiver, [ G.Pa v2 ]) in
+        let receiver = G.OtherParam (("Receiver", snd v1), [ G.Pa v2 ]) in
         G.DefStmt
           (ent, G.FuncDef { def with G.fparams = receiver :: def.G.fparams })
         |> G.s

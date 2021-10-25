@@ -820,8 +820,9 @@ and m_expr a b =
   | G.Seq a1, B.Seq b1 -> (m_list m_expr) a1 b1
   | G.Ref (a0, a1), B.Ref (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.DeRef (a0, a1), B.DeRef (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
+  | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
-      m_other_expr_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.Container _, _
   | G.Comprehension _, _
   | G.Record _, _
@@ -845,6 +846,7 @@ and m_expr a b =
   | G.Seq _, _
   | G.Ref _, _
   | G.DeRef _, _
+  | G.StmtExpr _, _
   | G.OtherExpr _, _
   | G.TypedMetavar _, _
   | G.DotAccessEllipsis _, _ ->
@@ -1078,8 +1080,6 @@ and m_container_ordered_elements a b =
       | { e = G.Ellipsis _; _ } -> true
       | _ -> false)
     false (* empty list can not match non-empty list *) a b
-
-and m_other_expr_operator = m_other_xxx
 
 and m_compatible_type typed_mvar t e =
   match (t.G.t, e.G.e) with
@@ -1323,12 +1323,12 @@ and m_argument a b =
   | G.ArgType a1, B.ArgType b1 -> m_type_ a1 b1
   | G.ArgKwd (a1, a2), B.ArgKwd (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_expr a2 b2
-  | G.ArgOther (a1, a2), B.ArgOther (b1, b2) ->
+  | G.OtherArg (a1, a2), B.OtherArg (b1, b2) ->
       m_other_argument_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.Arg _, _
   | G.ArgKwd _, _
   | G.ArgType _, _
-  | G.ArgOther _, _ ->
+  | G.OtherArg _, _ ->
       fail ()
 
 and m_other_argument_operator = m_other_xxx
@@ -1579,6 +1579,8 @@ and m_type_ a b =
       m_tok a2 b2 >>= fun () -> m_type_ a3 b3
   | G.OtherType (a1, a2), B.OtherType (b1, b2) ->
       m_other_type_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.OtherType2 (a1, a2), B.OtherType2 (b1, b2) ->
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.TyBuiltin _, _
   | G.TyFun _, _
   | G.TyApply _, _
@@ -1595,7 +1597,8 @@ and m_type_ a b =
   | G.TyRecordAnon _, _
   | G.TyInterfaceAnon _, _
   | G.TyRef _, _
-  | G.OtherType _, _ ->
+  | G.OtherType _, _
+  | G.OtherType2 _, _ ->
       fail ()
 
 and m_type_arguments a b =
@@ -2333,7 +2336,7 @@ and m_parameter a b =
       m_parameter_classic a2 b2
   | G.ParamPattern a1, B.ParamPattern b1 -> m_pattern a1 b1
   | G.OtherParam (a1, a2), B.OtherParam (b1, b2) ->
-      m_other_parameter_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ParamEllipsis a1, B.ParamEllipsis b1 -> m_tok a1 b1
   | G.ParamClassic _, _
   | G.ParamPattern _, _
@@ -2365,8 +2368,6 @@ and m_parameter_classic a b =
       (m_option_none_can_match_some m_type_) a3 b3 >>= fun () ->
       m_list_in_any_order ~less_is_ok:true m_attribute a4 b4 >>= fun () ->
       m_id_info a5 b5
-
-and m_other_parameter_operator = m_other_xxx
 
 (* ------------------------------------------------------------------------- *)
 (* Variable definition *)
@@ -2720,7 +2721,7 @@ and m_directive_basic a b =
   | G.Pragma (a1, a2), B.Pragma (b1, b2) ->
       m_ident a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.OtherDirective (a1, a2), B.OtherDirective (b1, b2) ->
-      m_other_directive_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ImportFrom _, _
   | G.ImportAs _, _
   | G.OtherDirective _, _
@@ -2729,8 +2730,6 @@ and m_directive_basic a b =
   | G.Package _, _
   | G.PackageEnd _, _ ->
       fail ()
-
-and m_other_directive_operator = m_other_xxx
 
 (*****************************************************************************)
 (* Toplevel *)

@@ -134,7 +134,7 @@ let subexprs_of_expr e =
               | ArgKwd (_, e) ->
                   Some e
               | ArgType _
-              | ArgOther _ ->
+              | OtherArg _ ->
                   None))
   | SliceAccess (e1, e2) ->
       e1
@@ -143,6 +143,7 @@ let subexprs_of_expr e =
          |> List.map Common.opt_to_list
          |> List.flatten)
   | Yield (_, eopt, _) -> Common.opt_to_list eopt
+  | StmtExpr st -> subexprs_of_stmt st
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys

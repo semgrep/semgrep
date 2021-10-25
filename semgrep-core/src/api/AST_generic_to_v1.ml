@@ -288,9 +288,8 @@ and map_expr x : B.expr =
   | DeepEllipsis v1 ->
       let v1 = map_bracket map_expr v1 in
       `DeepEllipsis v1
-  | OtherExpr (v1, v2) ->
-      let v1 = map_other_expr_operator v1 and v2 = map_of_list map_any v2 in
-      `OtherExpr (v1, v2)
+  | OtherExpr (_v1, _v2) -> failwith "TODO"
+  | StmtExpr _ -> failwith "TODO"
 
 and map_name_or_dynamic = function
   | EN v1 ->
@@ -469,7 +468,7 @@ and map_argument = function
   | ArgKwd (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_expr v2 in
       `ArgKwd (v1, v2)
-  | ArgOther (v1, v2) ->
+  | OtherArg (v1, v2) ->
       let v1 = map_other_argument_operator v1 and v2 = map_of_list map_any v2 in
       `ArgOther (v1, v2)
 
@@ -478,8 +477,6 @@ and map_other_argument_operator _x = "TODO"
 and map_action (v1, v2) =
   let v1 = map_pattern v1 and v2 = map_expr v2 in
   (v1, v2)
-
-and map_other_expr_operator _x = "TODO"
 
 and map_type_ { t; t_attrs } =
   let tk = map_type_kind t in
@@ -553,6 +550,7 @@ and map_type_kind = function
   | OtherType (v1, v2) ->
       let v1 = map_other_type_operator v1 and v2 = map_of_list map_any v2 in
       `OtherType (v1, v2)
+  | OtherType2 (_v1, _v2) -> failwith "TODO"
 
 (* new: brackets *)
 and map_type_arguments (_, v, _) = map_of_list map_type_argument v
@@ -1010,9 +1008,8 @@ and map_parameter = function
       let v1 = map_tok v1 in
       `ParamEllipsis v1
   | OtherParam (v1, v2) ->
-      let v1 = map_other_parameter_operator v1
-      and v2 = map_of_list map_any v2 in
-      `OtherParam (v1, v2)
+      let _v1 = map_todo_kind v1 and _v2 = map_of_list map_any v2 in
+      failwith "TODO"
 
 and map_parameter_classic
     {
@@ -1034,8 +1031,6 @@ and map_parameter_classic
     pattrs = v_pattrs;
     pinfo = v_pinfo;
   }
-
-and map_other_parameter_operator _x = "TODO"
 
 and map_variable_definition { G.vinit = v_vinit; vtype = v_vtype } =
   let v_vtype = map_of_option map_type_ v_vtype in
@@ -1141,10 +1136,6 @@ and map_directive_kind = function
       let t = map_tok t in
       let v1 = map_module_name v1 and v2 = map_tok v2 in
       `ImportAll (t, v1, v2)
-  | OtherDirective (v1, v2) ->
-      let v1 = map_other_directive_operator v1
-      and v2 = map_of_list map_any v2 in
-      `OtherDirective (v1, v2)
   | Pragma (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_of_list map_any v2 in
       `Pragma (v1, v2)
@@ -1155,6 +1146,7 @@ and map_directive_kind = function
   | PackageEnd t ->
       let t = map_tok t in
       `PackageEnd t
+  | OtherDirective (_v1, _v2) -> failwith "TODO"
 
 and map_ident_and_id_info (v1, v2) =
   let v1 = map_ident v1 in
@@ -1164,8 +1156,6 @@ and map_ident_and_id_info (v1, v2) =
 and map_alias (v1, v2) =
   let v1 = map_ident v1 and v2 = map_of_option map_ident_and_id_info v2 in
   (v1, v2)
-
-and map_other_directive_operator _x = "TODO"
 
 and map_item x = map_stmt x
 

@@ -216,7 +216,7 @@ and v_encaps = function
       let v1 = v_expr v1 in
       Right v1
 
-and todo_type msg any = G.OtherType (G.OT_Todo, G.TodoK (msg, fake msg) :: any)
+and todo_type msg anys = G.OtherType2 ((msg, fake msg), anys)
 
 and v_type_ x = v_type_kind x |> G.t
 
@@ -357,8 +357,7 @@ and v_pattern = function
       let v1 = v_pattern v1 and _v2 = v_tok v2 and v3 = v_pattern v3 in
       G.PatDisj (v1, v3)
 
-and todo_expr msg any =
-  G.OtherExpr (G.OE_Todo, G.TodoK (msg, fake msg) :: any) |> G.e
+and todo_expr msg any = G.OtherExpr ((msg, fake msg), any) |> G.e
 
 and v_expr e : G.expr =
   match e with

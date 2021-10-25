@@ -71,7 +71,7 @@ let cache_file_of_file parsing_cache filename =
   Filename.concat dir (spf "%s.ast_cache" (Digest.to_hex md5))
 
 (*****************************************************************************)
-(* Parsing (entry points) *)
+(* Entry point *)
 (*****************************************************************************)
 
 (* It should really be just a call to Parse_target.parse_and_resolve...
@@ -118,28 +118,4 @@ let parse_generic parsing_cache version lang file =
   match v with
   | Left x -> x
   | Right exn -> raise exn
-  [@@profiling]
-
-let parse_equivalences equivalences_file =
-  match equivalences_file with
-  | "" -> []
-  | file -> Parse_equivalences.parse file
-  [@@profiling]
-
-let parse_pattern lang_pattern str =
-  try
-    Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-        let res =
-          Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
-        in
-        res)
-  with exn ->
-    raise
-      (Rule.InvalidPattern
-         ( "no-id",
-           str,
-           Rule.L (lang_pattern, []),
-           Common.exn_to_s exn,
-           Parse_info.unsafe_fake_info "no loc",
-           [] ))
   [@@profiling]

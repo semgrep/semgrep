@@ -590,7 +590,7 @@ and expr env e =
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
   | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
-  | OtherExpr (op, anys) -> other env (op, anys)
+  | OtherExpr (categ, anys) -> other env (categ, anys)
   | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | _x -> todo (E e)
 

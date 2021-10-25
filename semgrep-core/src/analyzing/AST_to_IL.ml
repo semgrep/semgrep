@@ -579,6 +579,7 @@ and expr_aux env ?(void = false) eorig =
   | G.DeepEllipsis _
   | G.DotAccessEllipsis _ ->
       sgrep_construct (G.E eorig)
+  | G.StmtExpr _st -> todo (G.E eorig)
   | G.OtherExpr (_, _) -> todo (G.E eorig)
 
 and expr env ?void eorig =
@@ -648,7 +649,9 @@ and argument env arg =
   | G.ArgKwd (_, e) ->
       (* TODO: Handle the keyword/label somehow (when relevant). *)
       expr env e
-  | _ -> fixme_exp ToDo (G.Ar arg) (G.e (G.OtherExpr (G.OE_Todo, [ G.Ar arg ])))
+  | _ ->
+      fixme_exp ToDo (G.Ar arg)
+        (G.e (G.OtherExpr (("Arg", G.fake ""), [ G.Ar arg ])))
 
 and record env ((_tok, origfields, _) as record_def) =
   let eorig = G.Record record_def |> G.e in

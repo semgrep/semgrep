@@ -16,7 +16,6 @@ module R = Rule
 module J = JSON
 module RP = Report
 module S = Run_semgrep
-module P = Parse_with_caching
 
 (*****************************************************************************)
 (* Purpose *)
@@ -219,7 +218,7 @@ let validate_pattern () =
   let s = read_all chan in
   try
     let lang = lang_of_string !lang in
-    let _ = P.parse_pattern lang s in
+    let _ = S.parse_pattern lang s in
     exit 0
   with _exn -> exit 1
 
@@ -264,7 +263,7 @@ let dump_v_to_format (v : OCaml.v) =
 (* works with -lang *)
 let dump_pattern (file : Common.filename) =
   let s = Common.read_file file in
-  (* mostly copy-paste of parse_pattern above, but with better error report *)
+  (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = lang_of_string !lang in
   E.try_with_print_exn_and_reraise file (fun () ->
       let any = Parse_pattern.parse_pattern lang ~print_errors:true s in

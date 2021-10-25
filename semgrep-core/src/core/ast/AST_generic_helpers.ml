@@ -259,7 +259,7 @@ let argument_to_expr arg =
       let k = N n |> G.e in
       G.keyval k (fake "") e
   | ArgType _
-  | ArgOther _ ->
+  | OtherArg _ ->
       raise NotAnExpr
 
 (* used in controlflow_build and semgrep *)
@@ -350,7 +350,7 @@ let ac_matching_nf op args =
          | Arg e -> e
          | ArgKwd _
          | ArgType _
-         | ArgOther _ ->
+         | OtherArg _ ->
              raise_notrace Exit)
     |> List.map nf_one |> List.flatten
   and nf_one e =

@@ -266,7 +266,7 @@ and expr e : G.expr =
    *)
   | Array_get (v1, (t1, None, _)) ->
       let v1 = expr v1 in
-      G.OtherExpr (G.OE_ArrayAppend, [ G.Tk t1; G.E v1 ])
+      G.OtherExpr (("ArrayAppend", t1), [ G.E v1 ])
   | Obj_get (v1, t, Id [ v2 ]) ->
       let v1 = expr v1 and v2 = ident v2 in
       G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ())))
@@ -329,7 +329,7 @@ and expr e : G.expr =
       G.Ref (t, v1)
   | Unpack v1 ->
       let v1 = expr v1 in
-      G.OtherExpr (G.OE_Unpack, [ G.E v1 ])
+      G.OtherExpr (("Unpack", fake ""), [ G.E v1 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in
       G.Call (v1, v2)
@@ -438,11 +438,9 @@ and hint_type_kind = function
       in
       G.TyFun (params, fret)
   | HintTypeConst (_, tok, _) ->
-      G.OtherType
-        ( G.OT_Todo,
-          [ G.TodoK ("HintTypeConst not supported, facebook-ext", tok) ] )
+      G.OtherType2 (("HintTypeConst not supported, facebook-ext", tok), [])
   | HintVariadic (tok, _) ->
-      G.OtherType (G.OT_Todo, [ G.TodoK ("HintVariadic not supported", tok) ])
+      G.OtherType2 (("HintVariadic not supported", tok), [])
 
 and class_name v = hint_type v
 
@@ -514,7 +512,8 @@ and parameter_classic { p_type; p_ref; p_name; p_default; p_attrs; p_variadic }
   in
   match (p_variadic, p_ref) with
   | None, None -> G.ParamClassic pclassic
-  | _, Some _tok -> G.OtherParam (G.OPO_Ref, [ G.Pa (G.ParamClassic pclassic) ])
+  | _, Some tok ->
+      G.OtherParam (("Ref", tok), [ G.Pa (G.ParamClassic pclassic) ])
   | Some tok, None -> G.ParamRest (tok, pclassic)
 
 and modifier v = wrap modifierbis v

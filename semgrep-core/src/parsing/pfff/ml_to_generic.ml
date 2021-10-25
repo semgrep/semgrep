@@ -148,7 +148,7 @@ and type_kind = function
   | TyTodo (t, v1) ->
       let t = todo_category t in
       let v1 = list type_ v1 in
-      G.OtherType (G.OT_Todo, G.TodoK t :: List.map (fun x -> G.T x) v1)
+      G.OtherType2 (t, List.map (fun x -> G.T x) v1)
 
 and expr_body e : G.stmt = stmt e
 
@@ -324,19 +324,17 @@ and expr e =
                    let id = ident id in
                    G.basic_field id (Some v2) None
                | _ ->
-                   let v1 = dotted_ident_of_name v1 in
-                   let e =
-                     G.OtherExpr (G.OE_RecordFieldName, [ G.Di v1; G.E v2 ])
-                     |> G.e
-                   in
-                   let st = G.exprstmt e in
-                   G.FieldStmt st))
+                   let n = name v1 in
+                   let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+                   let def = G.VarDef { G.vinit = Some v2; vtype = None } in
+                   G.fld (ent, def)))
           v2
       in
       let obj = G.Record v2 in
       match v1 with
       | None -> obj
-      | Some e -> G.OtherExpr (G.OE_RecordWith, [ G.E e; G.E (obj |> G.e) ]))
+      | Some e -> G.OtherExpr (("With", G.fake ""), [ G.E e; G.E (obj |> G.e) ])
+      )
   | New (v1, v2) ->
       let v1 = tok v1 and v2 = name v2 in
       G.Call (G.IdSpecial (G.New, v1) |> G.e, fb [ G.Arg (G.N v2 |> G.e) ])
@@ -380,7 +378,7 @@ and expr e =
   | ExprTodo (t, xs) ->
       let t = todo_category t in
       let xs = list expr xs in
-      G.OtherExpr (G.OE_Todo, G.TodoK t :: List.map (fun x -> G.E x) xs)
+      G.OtherExpr (t, List.map (fun x -> G.E x) xs)
   | If _
   | Try _
   | For _
@@ -423,7 +421,7 @@ and argument = function
       G.ArgKwd (v1, v2)
   | ArgQuestion (v1, v2) ->
       let v1 = ident v1 and v2 = expr v2 in
-      G.ArgOther (("ArgQuestion", snd v1), [ G.I v1; G.E v2 ])
+      G.OtherArg (("ArgQuestion", snd v1), [ G.I v1; G.E v2 ])
 
 and match_case (v1, (v3, _t, v2)) =
   let v1 = pattern v1 and v2 = expr v2 and v3 = option expr v3 in
@@ -537,7 +535,7 @@ and parameter = function
       | G.PatTyped (G.PatId (id, _idinfo), ty) ->
           G.ParamClassic { (G.param_of_id id) with G.ptype = Some ty }
       | _ -> G.ParamPattern v)
-  | ParamTodo x -> G.OtherParam (G.OPO_Todo, [ G.TodoK x ])
+  | ParamTodo x -> G.OtherParam (x, [])
 
 and type_declaration x =
   match x with
@@ -696,7 +694,7 @@ and partial = function
       let e = expr e in
       let res =
         match e.G.e with
-        | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.PartialTry (t, s)
+        | G.StmtExpr s -> G.PartialTry (t, s)
         | _ -> G.PartialTry (t, G.exprstmt e)
       in
       G.Partial res
@@ -717,7 +715,7 @@ and any = function
   | E x -> (
       let x = expr x in
       match x.G.e with
-      | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.S s
+      | G.StmtExpr s -> G.S s
       | _ -> G.E x)
   | I x -> (
       match item x with

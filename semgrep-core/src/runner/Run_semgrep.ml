@@ -268,6 +268,34 @@ let exn_to_error file exn =
   | _ -> E.exn_to_error file exn
 
 (*****************************************************************************)
+(* Parsing (non-cached) *)
+(*****************************************************************************)
+
+let parse_equivalences equivalences_file =
+  match equivalences_file with
+  | "" -> []
+  | file -> Parse_equivalences.parse file
+  [@@profiling]
+
+let parse_pattern lang_pattern str =
+  try
+    Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
+        let res =
+          Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
+        in
+        res)
+  with exn ->
+    raise
+      (Rule.InvalidPattern
+         ( "no-id",
+           str,
+           Rule.L (lang_pattern, []),
+           Common.exn_to_s exn,
+           Parse_info.unsafe_fake_info "no loc",
+           [] ))
+  [@@profiling]
+
+(*****************************************************************************)
 (* Iteration helpers *)
 (*****************************************************************************)
 
@@ -374,7 +402,7 @@ let semgrep_with_patterns config (rules, rule_parse_time) files skipped =
                  ( Match_patterns.check
                      ~hook:(fun _ _ -> ())
                      Config_semgrep.default_config rules
-                     (P.parse_equivalences config.equivalences_file)
+                     (parse_equivalences config.equivalences_file)
                      (file, lang, ast),
                    errors ))
            in
@@ -510,7 +538,7 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
            in
            let res =
              Run_rules.check hook Config_semgrep.default_config rules
-               (P.parse_equivalences config.equivalences_file)
+               (parse_equivalences config.equivalences_file)
                file_and_more
            in
            RP.add_file file res)
@@ -602,11 +630,11 @@ let semgrep_with_one_pattern config roots =
         failwith "I need just one pattern; use -f OR -e (not both)"
     | file, _ when file <> "" ->
         let s = Common.read_file file in
-        (P.parse_pattern lang s, s)
+        (parse_pattern lang s, s)
     (* this is for Emma, who often confuses -e with -f :) *)
     | _, s when s =~ ".*\\.sgrep$" ->
         failwith "you probably want -f with a .sgrep file, not -e"
-    | _, s when s <> "" -> (P.parse_pattern lang s, s)
+    | _, s when s <> "" -> (parse_pattern lang s, s)
     | _ -> raise Impossible
   in
   let rule, rule_parse_time =
@@ -638,7 +666,7 @@ let semgrep_with_one_pattern config roots =
                        print_match config.match_format config.mvars env
                          Metavariable.ii_of_mval xs)
                      Config_semgrep.default_config rule
-                     (P.parse_equivalences config.equivalences_file)
+                     (parse_equivalences config.equivalences_file)
                      (file, lang, ast)
                    |> ignore)
              in

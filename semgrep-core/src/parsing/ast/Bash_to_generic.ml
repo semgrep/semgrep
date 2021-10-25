@@ -214,7 +214,8 @@ let todo_stmt (loc : loc) : G.stmt =
   G.s (G.OtherStmt (G.OS_Todo, todo_tokens loc))
 
 let todo_expr (loc : loc) : G.expr =
-  G.e (G.OtherExpr (G.OE_Todo, todo_tokens loc))
+  let t = fst loc in
+  G.e (G.OtherExpr (("BashTodo", t), todo_tokens loc))
 
 let todo_stmt2 (loc : loc) : stmt_or_expr = Stmt (loc, todo_stmt loc)
 
@@ -434,6 +435,9 @@ and stmt_group (env : env) (loc : loc) (l : stmt_or_expr list) : stmt_or_expr =
 
 and expression (env : env) (e : expression) : G.expr =
   match e with
+  | Word ("...", tok) when env = Pattern ->
+      (* occurs in unquoted concatenations e.g. ...$x or $x... *)
+      G.Ellipsis tok |> G.e
   | Word str -> G.L (G.String str) |> G.e
   | String (* "foo" *) (open_, frags, close) -> (
       match frags with

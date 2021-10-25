@@ -374,8 +374,11 @@ let (mk_visitor :
           let t = v_tok t in
           let v1 = v_expr v1 in
           ()
+      | StmtExpr v1 ->
+          let v1 = v_stmt v1 in
+          ()
       | OtherExpr (v1, v2) ->
-          let v1 = v_other_expr_operator v1 and v2 = v_list v_any v2 in
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in
     vin.kexpr (k, all_functions) x
@@ -497,7 +500,7 @@ let (mk_visitor :
     | ArgKwd (v1, v2) ->
         let v1 = v_ident v1 and v2 = v_expr v2 in
         ()
-    | ArgOther (v1, v2) ->
+    | OtherArg (v1, v2) ->
         let v1 = v_other_argument_operator v1 and v2 = v_list v_any v2 in
         ()
   and v_other_argument_operator _x = ()
@@ -564,6 +567,9 @@ let (mk_visitor :
       | OtherType (v1, v2) ->
           let v1 = v_other_type_operator v1 and v2 = v_list v_any v2 in
           ()
+      | OtherType2 (v1, v2) ->
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
+          ()
     in
     vin.ktype_ (k, all_functions) x
   and v_type_arguments v = v_bracket (v_list v_type_argument) v
@@ -584,7 +590,10 @@ let (mk_visitor :
     | OtherTypeArg (v1, v2) ->
         let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
         ()
-  and v_todo_kind x = v_ident x
+  (* bugfix: do not call v_ident here, otherwise code like
+   * Analyze_pattern might consider the string for -filter_irrelevant_rules
+   *)
+  and v_todo_kind (_str, tok) = v_tok tok
   and v_other_type_operator _ = ()
   and v_type_parameter
       {
@@ -1042,7 +1051,7 @@ let (mk_visitor :
           let v1 = v_tok v1 in
           ()
       | OtherParam (v1, v2) ->
-          let v1 = v_other_parameter_operator v1 and v2 = v_list v_any v2 in
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in
     vin.kparam (k, all_functions) x
@@ -1212,7 +1221,7 @@ let (mk_visitor :
           v_ident v1;
           v_list v_any v2
       | OtherDirective (v1, v2) ->
-          let v1 = v_other_directive_operator v1 and v2 = v_list v_any v2 in
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in
     vin.kdir (k, all_functions) x

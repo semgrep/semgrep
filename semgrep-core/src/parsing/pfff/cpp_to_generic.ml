@@ -78,7 +78,7 @@ let distribute_access (xs : (G.field, G.attribute) either list) : G.field list =
 
 (* crazy https://en.cppreference.com/w/cpp/language/template_parameters *)
 let parameter_to_type_parameter (_p : G.parameter) : G.type_parameter =
-  failwith "TODO"
+  failwith "TODO2"
 
 let def_or_dir_either_to_stmt = function
   | Left dir -> G.DirectiveStmt dir |> G.s
@@ -217,7 +217,9 @@ and map_typeC env x : G.type_ =
       let v1 = map_of_list (map_sized_type env) v1
       and v2 = map_of_option (map_type_ env) v2 in
       let allt = v1 @ Common.opt_to_list v2 in
-      G.OtherType (OT_Todo, allt |> List.map (fun t -> G.T t)) |> G.t
+      G.OtherType2
+        (("TSized", PI.unsafe_fake_info ""), allt |> List.map (fun t -> G.T t))
+      |> G.t
   | TPointer (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_type_ env v2
@@ -228,7 +230,7 @@ and map_typeC env x : G.type_ =
       G.TyRef (v1, v2) |> G.t
   | TRefRef (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_type_ env v2 in
-      G.OtherType (G.OT_Todo, [ G.TodoK ("&&", v1); G.T v2 ]) |> G.t
+      G.OtherType2 (("&&", v1), [ G.T v2 ]) |> G.t
   | TArray (v1, v2) ->
       let v1 = map_bracket env (map_of_option (map_a_const_expr env)) v1
       and v2 = map_type_ env v2 in
@@ -236,14 +238,13 @@ and map_typeC env x : G.type_ =
   | TFunction v1 ->
       let ps, tret = map_functionType env v1 in
       G.TyFun (ps, tret) |> G.t
-  (* alt: use OT_EnumName *)
   | EnumName (v1, v2) ->
-      let _v1TODO = map_tok env v1 and v2 = map_a_ident_name env v2 in
-      G.TyN v2 |> G.t
-  (* alt: use OT_StructName and OT_UnionName which I use in c_to_generic.ml *)
+      let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
+      G.OtherType2 (("EnumName", v1), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
   | ClassName (v1, v2) ->
-      let _v1TODO = map_class_key env v1 and v2 = map_a_class_name env v2 in
-      G.TyN v2 |> G.t
+      let (_kind, t), _attrs = map_class_key env v1
+      and v2 = map_a_class_name env v2 in
+      G.OtherType2 ((PI.str_of_info t, t), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
   | TypeName v1 ->
       let v1 = map_a_ident_name env v1 in
       G.TyN v1 |> G.t
@@ -262,7 +263,7 @@ and map_typeC env x : G.type_ =
         map_paren env (map_either env (map_type_ env) (map_expr env)) v2
       in
       let any = any_of_either_type_expr v2 in
-      G.OtherType (G.OT_Todo, [ G.TodoK ("Typeof", v1); any ]) |> G.t
+      G.OtherType2 (("Typeof", v1), [ any ]) |> G.t
   | TAuto v1 ->
       let v1 = map_tok env v1 in
       G.TyAny v1 |> G.t
@@ -272,8 +273,7 @@ and map_typeC env x : G.type_ =
   | TypeTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_type_ env) v2 in
-      G.OtherType (G.OT_Todo, G.TodoK v1 :: (v2 |> List.map (fun t -> G.T t)))
-      |> G.t
+      G.OtherType2 (v1, v2 |> List.map (fun t -> G.T t)) |> G.t
 
 and map_primitive_type _env = function
   | TVoid -> "void"
@@ -414,12 +414,12 @@ and map_expr env x : G.expr =
         map_paren env (map_either env (map_type_ env) (map_expr env)) v2
       in
       let any = any_of_either_type_expr either in
-      G.OtherExpr (G.OE_Todo, [ G.TodoK ("TypeId", v1); any ]) |> G.e
+      G.OtherExpr (("TypeId", v1), [ any ]) |> G.e
   | CplusplusCast (v1, v2, v3) ->
       let optodo, t = map_wrap env (map_cast_operator env) v1
       and langle, typ, _rangle = map_angle_keep env (map_type_ env) v2
       and _lpar, e, rpar = map_paren env (map_expr env) v3 in
-      let ecall = G.OtherExpr (G.OE_Todo, [ G.TodoK (optodo, t) ]) |> G.e in
+      let ecall = G.OtherExpr ((optodo, t), []) |> G.e in
       G.Call (ecall, (langle, [ G.ArgType typ; G.Arg e ], rpar)) |> G.e
   | New (v1, v2, v3, v4, v5) ->
       let _topqualifierTODO = map_of_option (map_tok env) v1
@@ -442,10 +442,10 @@ and map_expr env x : G.expr =
       and v4 = map_expr env v4 in
       let categ =
         match v3 with
-        | None -> G.TodoK ("Delete", v2)
-        | Some (_l, (), _r) -> G.TodoK ("Delete[]", v2)
+        | None -> ("Delete", v2)
+        | Some (_l, (), _r) -> ("Delete[]", v2)
       in
-      G.OtherExpr (G.OE_Todo, [ categ; G.E v4 ]) |> G.e
+      G.OtherExpr (categ, [ G.E v4 ]) |> G.e
   | Throw (v1, v2) ->
       let v1 = map_tok env v1
       and v2 = expr_option v1 (map_of_option (map_expr env) v2) in
@@ -456,7 +456,7 @@ and map_expr env x : G.expr =
       G.Lambda v1 |> G.e
   | ParamPackExpansion (v1, v2) ->
       let v1 = map_expr env v1 and v2 = map_tok env v2 in
-      G.OtherExpr (G.OE_Todo, [ G.TodoK ("Pack", v2); G.E v1 ]) |> G.e
+      G.OtherExpr (("Pack", v2), [ G.E v1 ]) |> G.e
   | ParenExpr v1 ->
       let _l, v1, _r = map_paren env (map_expr env) v1 in
       v1
@@ -472,8 +472,7 @@ and map_expr env x : G.expr =
   | ExprTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_expr env) v2 in
-      G.OtherExpr (G.OE_Todo, G.TodoK v1 :: (v2 |> List.map (fun e -> G.E e)))
-      |> G.e
+      G.OtherExpr (v1, v2 |> List.map (fun e -> G.E e)) |> G.e
 
 and map_ident_info _env { i_scope = _v_i_scope } = ()
 
@@ -491,7 +490,7 @@ and map_argument env x : G.argument =
       G.ArgType v1
   | ArgAction v1 ->
       let v1 = map_action_macro env v1 in
-      G.ArgOther (("ArgMacro", G.fake ""), v1)
+      G.OtherArg (("ArgMacro", G.fake ""), v1)
   | ArgInits v1 ->
       let l, xs, r = map_brace env (map_of_list (map_initialiser env)) v1 in
       G.Arg (G.Container (G.Dict, (l, xs, r)) |> G.e)
@@ -540,9 +539,7 @@ and map_unaryOp _env = function
   | GetRef -> Right (fun tok e -> G.Ref (tok, e) |> G.e)
   | DeRef -> Right (fun tok e -> G.DeRef (tok, e) |> G.e)
   | GetRefLabel ->
-      Right
-        (fun tok e ->
-          G.OtherExpr (G.OE_GetRefLabel, [ G.Tk tok; G.E e ]) |> G.e)
+      Right (fun tok e -> G.OtherExpr (("GetRefLabel", tok), [ G.E e ]) |> G.e)
 
 and map_assignOp env = function
   | SimpleAssign v1 ->
@@ -666,7 +663,7 @@ and map_stmt env x : G.stmt =
   | Switch (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_paren_skip env (map_condition_clause env) v2
-      and v3 = map_cases env v3 in
+      and v3 = map_cases env v1 v3 in
       G.Switch (v1, Some v2, v3) |> G.s
   | While (v1, v2, v3) ->
       let v1 = map_tok env v1
@@ -703,8 +700,10 @@ and map_stmt env x : G.stmt =
   | Case _
   | CaseRange _
   | Default _ ->
-      let cases, st = convert_case env x in
+      let cases, xs = convert_case env x in
       let anys = cases |> List.map (fun cs -> G.Cs cs) in
+      let sts = map_of_list (map_stmt_or_decl env) xs |> List.flatten in
+      let st = G.stmt1 sts in
       G.OtherStmtWithStmt (OSWS_Todo, anys, st) |> G.s
   | Try (v1, v2, v3) ->
       let v1 = map_tok env v1
@@ -717,38 +716,158 @@ and map_stmt env x : G.stmt =
       let st = G.Block (G.fake_bracket v2) |> G.s in
       G.OtherStmtWithStmt (OSWS_Todo, [ G.TodoK v1 ], st) |> G.s
 
-and map_cases _env _st : G.case_and_body list = failwith "TODO"
-
-and map_case_body env v : G.case list * G.stmt =
-  (* TODO *)
-  let cases = failwith "TODO" in
-  let rest = map_of_list (map_stmt_or_decl env) v |> List.flatten in
-  (cases, G.stmt1 rest)
-
-and convert_case env st : G.case list * G.stmt =
+(* similar to Ast_c_build.cases()
+ * TODO: CaseEllipsis?
+ *)
+and map_cases env tk st : G.case_and_body list =
   match st with
+  | Compound (_l, xs, _r) ->
+      (* note that parser_cpp.mly and tree-sitter-cpp currently parse
+       * differently 'case 1: i++; break'. In pfff the case accepts a
+       * single stmt after, in tree-sitter a list of stmt (which is better)
+       * so here for pfff we need to put back 'break' under the case.
+       *)
+      let rec aux xs =
+        match xs with
+        | [] -> []
+        | x :: xs -> (
+            match x with
+            (* in tree-sitter-cpp, some Case have no body because they
+             * are followed by another Case that will have them
+             *)
+            | X
+                (S
+                  (( Case (t, _, _, [])
+                   | CaseRange (t, _, _, _, _, [])
+                   | Default (t, _, []) ) as case1)) ->
+                let case_repack, rest =
+                  repack_case_with_following_cases env t case1 xs
+                in
+                aux (X (S case_repack) :: rest)
+            | X (S ((Case _ | CaseRange _ | Default _) as case1)) ->
+                (* in pfff some statements may be without a leading case,
+                 * so we need to repack them *)
+                let before_next_case, rest =
+                  xs
+                  |> Common.span (function
+                       | X (S (Case _ | CaseRange _ | Default _)) -> false
+                       | _ -> true)
+                in
+                let case_repack =
+                  repack_case_with_following_stmts env case1 before_next_case
+                in
+                let cases, xs = convert_case env case_repack in
+                let sts =
+                  map_of_list (map_stmt_or_decl env) xs |> List.flatten
+                in
+                let st = G.stmt1 sts in
+                G.CasesAndBody (cases, st) :: aux rest
+            | _ ->
+                (* non Case, weird, skip for now *)
+                let cases = [ G.OtherCase (("StmtNotCase", tk), []) ] in
+                let sts = map_sequencable env (map_stmt_or_decl env) x in
+                let st = G.stmt1 sts in
+                G.CasesAndBody (cases, st) :: aux xs)
+      in
+      aux xs
+  | _ ->
+      (* degenerated case *)
+      let cases = [ G.OtherCase (("NoBlockInSwitch", tk), []) ] in
+      let st = map_stmt env st in
+      [ G.CasesAndBody (cases, st) ]
+
+(* needed only for tree-sitter *)
+and repack_case_with_following_cases env tk (st_case_empty_body : stmt) xs =
+  match xs with
+  | [] -> error tk "empty case body, impossible"
+  | x :: xs -> (
+      let new_case_body_stmt, rest =
+        match x with
+        | X
+            (S
+              (( Case (t, _, _, [])
+               | CaseRange (t, _, _, _, _, [])
+               | Default (t, _, []) ) as case1)) ->
+            let case_repack, rest =
+              repack_case_with_following_cases env t case1 xs
+            in
+            (case_repack, rest)
+        | X
+            (S
+              (( Case (_, _, _, _)
+               | CaseRange (_, _, _, _, _, _)
+               | Default (_, _, _) ) as case1)) ->
+            (case1, xs)
+        | _ -> error tk "could not find a case"
+      in
+      match st_case_empty_body with
+      | Case (v1, v2, v3, []) ->
+          (Case (v1, v2, v3, [ S new_case_body_stmt ]), rest)
+      | CaseRange (v1, v2, v3, v4, v5, []) ->
+          (CaseRange (v1, v2, v3, v4, v5, [ S new_case_body_stmt ]), rest)
+      | Default (v1, v2, []) ->
+          (Default (v1, v2, [ S new_case_body_stmt ]), rest)
+      | _ -> raise Impossible)
+
+(* needed only for pfff *)
+and repack_case_with_following_stmts _env (st_case_only : stmt) sts : stmt =
+  let sts =
+    sts
+    |> Common.map_filter (function
+         | X x -> Some x
+         (* TODO? skipped directive code? *)
+         | _ -> None)
+  in
+  match st_case_only with
+  | Case (v1, v2, v3, v4) ->
+      let v4 = v4 @ sts in
+      Case (v1, v2, v3, v4)
+  | CaseRange (v1, v2, v3, v4, v5, v6) ->
+      let v6 = v6 @ sts in
+      CaseRange (v1, v2, v3, v4, v5, v6)
+  | Default (v1, v2, v3) ->
+      let v3 = v3 @ sts in
+      Default (v1, v2, v3)
+  | _ -> raise Impossible
+
+and map_case_body env tk case_body : G.case list * stmt_or_decl list =
+  match case_body with
+  | [] -> error tk "empty case body, impossible"
+  | x :: xs -> (
+      match x with
+      (* merge all the cases together *)
+      | S ((Case _ | CaseRange _ | Default _) as st1) ->
+          let cases, rest = convert_case env st1 in
+          (cases, rest @ xs)
+      | _ ->
+          let cases = [] in
+          let rest = x :: xs in
+          (cases, rest))
+
+and convert_case env st_case_only : G.case list * stmt_or_decl list =
+  match st_case_only with
   | Case (v1, v2, v3, v4) ->
       let v1 = map_tok env v1
       and v2 = map_expr env v2
       and _v3 = map_tok env v3
-      and other_cases, st = map_case_body env v4 in
+      and other_cases, sts = map_case_body env v1 v4 in
       let case1 = G.Case (v1, H.expr_to_pattern v2) in
-      (case1 :: other_cases, st)
+      (case1 :: other_cases, sts)
   | CaseRange (v1, v2, v3, v4, v5, v6) ->
       let v1 = map_tok env v1
       and v2 = map_expr env v2
       and _v3 = map_tok env v3
       and v4 = map_expr env v4
       and _v5 = map_tok env v5
-      and other_cases, st = map_case_body env v6 in
+      and other_cases, sts = map_case_body env v1 v6 in
       let case1 = G.OtherCase (("CaseRange", v1), [ G.E v2; G.E v4 ]) in
-      (case1 :: other_cases, st)
+      (case1 :: other_cases, sts)
   | Default (v1, v2, v3) ->
       let v1 = map_tok env v1
       and _v2 = map_tok env v2
-      and other_cases, st = map_case_body env v3 in
+      and other_cases, sts = map_case_body env v1 v3 in
       let case1 = G.Default v1 in
-      (case1 :: other_cases, st)
+      (case1 :: other_cases, sts)
   | _ -> raise Impossible
 
 and map_expr_stmt env (v1, v2) =
@@ -1438,16 +1557,17 @@ and map_cpp_directive env x : (G.directive, G.definition) either =
           let dir = G.ImportAll (v1, G.FileName file, v1) |> G.d in
           Left dir
       | Right e ->
-          let categ = G.TodoK ("IncludeDynamic", v1) in
-          let dir = G.OtherDirective (G.OI_Todo, [ categ; G.E e ]) |> G.d in
+          let dir =
+            G.OtherDirective (("IncludeDynamic", v1), [ G.E e ]) |> G.d
+          in
           Left dir)
   | Undef v1 ->
       let v1 = map_ident env v1 in
-      let dir = G.OtherDirective (OI_Undef, [ G.I v1 ]) |> G.d in
+      let dir = G.OtherDirective (("Undef", snd v1), [ G.I v1 ]) |> G.d in
       Left dir
   | PragmaAndCo v1 ->
       let v1 = map_tok env v1 in
-      let dir = G.Pragma (("TODO", v1), []) |> G.d in
+      let dir = G.Pragma (("PragmaAndCo", v1), []) |> G.d in
       Left dir
 
 and map_define_kind env x : G.ident list =

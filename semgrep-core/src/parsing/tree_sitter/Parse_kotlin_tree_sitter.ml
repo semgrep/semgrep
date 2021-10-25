@@ -1004,7 +1004,7 @@ and delegation_specifier (env : env) (x : CST.delegation_specifier) :
       in
       let v2 = token env v2 (* "by" *) in
       let v3 = expression env v3 in
-      ( OtherType (OT_Todo, [ TodoK ("ByDelagation", v2); G.T v1 ]) |> G.t,
+      ( OtherType2 (("ByDelagation", v2), [ G.T v1 ]) |> G.t,
         Some (fb [ G.Arg v3 ]) )
   | `User_type x ->
       let n = user_type env x in
@@ -1452,8 +1452,7 @@ and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
   fun e ->
     match op with
     | Left tdot -> DotAccess (e, tdot, fld) |> G.e
-    | Right otherop ->
-        OtherExpr (OE_Todo, [ TodoK otherop; NoD fld; E e ]) |> G.e
+    | Right otherop -> OtherExpr (otherop, [ NoD fld; E e ]) |> G.e
 
 and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
   let v1 =
