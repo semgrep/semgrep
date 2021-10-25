@@ -69,16 +69,14 @@ let name v = wrap string v
 
 let rec unaryOp (a, tok) =
   match a with
-  | GetRef -> fun e -> G.Ref (tok, e)
-  | DeRef -> fun e -> G.DeRef (tok, e)
-  | UnPlus ->
-      fun e -> G.Call (G.IdSpecial (G.Op G.Plus, tok) |> G.e, fb [ G.Arg e ])
-  | UnMinus ->
-      fun e -> G.Call (G.IdSpecial (G.Op G.Minus, tok) |> G.e, fb [ G.Arg e ])
-  | Tilde ->
-      fun e -> G.Call (G.IdSpecial (G.Op G.BitNot, tok) |> G.e, fb [ G.Arg e ])
-  | Not -> fun e -> G.Call (G.IdSpecial (G.Op G.Not, tok) |> G.e, fb [ G.Arg e ])
-  | GetRefLabel -> fun e -> G.OtherExpr (G.OE_GetRefLabel, [ G.E e ])
+  | GetRef -> fun e -> G.Ref (tok, e) |> G.e
+  | DeRef -> fun e -> G.DeRef (tok, e) |> G.e
+  | UnPlus -> fun e -> G.opcall (G.Plus, tok) [ e ]
+  | UnMinus -> fun e -> G.opcall (G.Minus, tok) [ e ]
+  | Tilde -> fun e -> G.opcall (G.BitNot, tok) [ e ]
+  | Not -> fun e -> G.opcall (G.Not, tok) [ e ]
+  | GetRefLabel ->
+      fun e -> G.OtherExpr2 (("GetRefLabel", unsafe_fake ""), [ G.E e ]) |> G.e
 
 and assignOp = function
   | SimpleAssign tok -> Left tok
@@ -176,76 +174,81 @@ and struct_kind = function
   | Union -> ("UnionName", unsafe_fake "")
 
 and expr e =
-  (match e with
+  match e with
   | Int v1 ->
       let v1 = wrap id v1 in
-      G.L (G.Int v1)
+      G.L (G.Int v1) |> G.e
   | Float v1 ->
       let v1 = wrap id v1 in
-      G.L (G.Float v1)
+      G.L (G.Float v1) |> G.e
   | Bool v1 ->
       let v1 = wrap id v1 in
-      G.L (G.Bool v1)
+      G.L (G.Bool v1) |> G.e
   | String v1 ->
       let v1 = wrap string v1 in
-      G.L (G.String v1)
+      G.L (G.String v1) |> G.e
   | Char v1 ->
       let v1 = wrap string v1 in
-      G.L (G.Char v1)
-  | Null v1 -> G.L (G.Null v1)
+      G.L (G.Char v1) |> G.e
+  | Null v1 -> G.L (G.Null v1) |> G.e
   | ConcatString xs ->
       G.Call
         ( G.IdSpecial (G.ConcatString G.SequenceConcat, unsafe_fake " ") |> G.e,
           fb (xs |> List.map (fun x -> G.Arg (G.L (G.String x) |> G.e))) )
+      |> G.e
   | Defined (t, id) ->
       let e = G.N (G.Id (id, G.empty_id_info ())) |> G.e in
-      G.Call (G.IdSpecial (G.Defined, t) |> G.e, fb [ G.Arg e ])
+      G.Call (G.IdSpecial (G.Defined, t) |> G.e, fb [ G.Arg e ]) |> G.e
   | Id v1 ->
       let v1 = name v1 in
-      G.N (G.Id (v1, G.empty_id_info ()))
+      G.N (G.Id (v1, G.empty_id_info ())) |> G.e
   | Ellipses v1 ->
       let v1 = info v1 in
-      G.Ellipsis v1
+      G.Ellipsis v1 |> G.e
   | DeepEllipsis v1 ->
       let v1 = bracket expr v1 in
-      G.DeepEllipsis v1
+      G.DeepEllipsis v1 |> G.e
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in
-      G.Call (v1, v2)
+      G.Call (v1, v2) |> G.e
   | Assign (v1, v2, v3) -> (
       let v1 = assignOp v1 and v2 = expr v2 and v3 = expr v3 in
       match v1 with
-      | Left tok -> G.Assign (v2, tok, v3)
-      | Right (op, tok) -> G.AssignOp (v2, (op, tok), v3))
+      | Left tok -> G.Assign (v2, tok, v3) |> G.e
+      | Right (op, tok) -> G.AssignOp (v2, (op, tok), v3) |> G.e)
   | ArrayAccess (v1, v2) ->
       let v1 = expr v1 and v2 = bracket expr v2 in
-      G.ArrayAccess (v1, v2)
+      G.ArrayAccess (v1, v2) |> G.e
   | RecordPtAccess (v1, t, v2) ->
       let v1 = expr v1 and t = info t and v2 = name v2 in
       G.DotAccess (G.DeRef (t, v1) |> G.e, t, G.EN (Id (v2, G.empty_id_info ())))
+      |> G.e
   | Cast (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
-      G.Cast (v1, unsafe_fake "(", v2)
+      G.Cast (v1, unsafe_fake "(", v2) |> G.e
   | Postfix (v1, (v2, v3)) ->
       let v1 = expr v1 and v2 = fixOp v2 in
       G.Call
         (G.IdSpecial (G.IncrDecr (v2, G.Postfix), v3) |> G.e, fb [ G.Arg v1 ])
+      |> G.e
   | Infix (v1, (v2, v3)) ->
       let v1 = expr v1 and v2 = fixOp v2 in
       G.Call
         (G.IdSpecial (G.IncrDecr (v2, G.Prefix), v3) |> G.e, fb [ G.Arg v1 ])
+      |> G.e
   | Unary (v1, v2) ->
       let v1 = expr v1 and v2 = unaryOp v2 in
       v2 v1
   | Binary (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = binaryOp v2 and v3 = expr v3 in
       G.Call (G.IdSpecial (G.Op v2, tok) |> G.e, fb [ G.Arg v1; G.Arg v3 ])
+      |> G.e
   | CondExpr (v1, v2, v3) ->
       let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
-      G.Conditional (v1, v2, v3)
+      G.Conditional (v1, v2, v3) |> G.e
   | Sequence (v1, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.Seq [ v1; v2 ]
+      G.Seq [ v1; v2 ] |> G.e
   | SizeOf (t, v1) ->
       let v1 = either expr type_ v1 in
       G.Call
@@ -253,6 +256,7 @@ and expr e =
           match v1 with
           | Left e -> fb [ G.Arg e ]
           | Right t -> fb [ G.ArgType t ] )
+      |> G.e
   | ArrayInit v1 ->
       let v1 =
         bracket
@@ -261,11 +265,12 @@ and expr e =
                match v1 with
                | None -> v2
                | Some e ->
-                   G.OtherExpr (G.OE_ArrayInitDesignator, [ G.E e; G.E v2 ])
+                   G.OtherExpr2
+                     (("ArrayInitDesignator", unsafe_fake ""), [ G.E e; G.E v2 ])
                    |> G.e))
           v1
       in
-      G.Container (G.Array, v1)
+      G.Container (G.Array, v1) |> G.e
   | RecordInit v1 ->
       let v1 =
         bracket
@@ -274,17 +279,17 @@ and expr e =
                G.basic_field v1 (Some v2) None))
           v1
       in
-      G.Record v1
+      G.Record v1 |> G.e
   | GccConstructor (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
       G.Call
         ( G.IdSpecial (G.New, unsafe_fake "new") |> G.e,
           fb (G.ArgType v1 :: ([ v2 ] |> List.map G.arg)) )
+      |> G.e
   | TypedMetavar (v1, v2) ->
       let v1 = name v1 in
       let v2 = type_ v2 in
-      G.TypedMetavar (v1, fake (snd v1) " ", v2))
-  |> G.e
+      G.TypedMetavar (v1, fake (snd v1) " ", v2) |> G.e
 
 and argument v =
   match v with

@@ -357,8 +357,7 @@ and v_pattern = function
       let v1 = v_pattern v1 and _v2 = v_tok v2 and v3 = v_pattern v3 in
       G.PatDisj (v1, v3)
 
-and todo_expr msg any =
-  G.OtherExpr (G.OE_Todo, G.TodoK (msg, fake msg) :: any) |> G.e
+and todo_expr msg any = G.OtherExpr2 ((msg, fake msg), any) |> G.e
 
 and v_expr e : G.expr =
   match e with

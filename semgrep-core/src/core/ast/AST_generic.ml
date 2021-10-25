@@ -28,6 +28,7 @@
  *  - Go
  *  - JSON, YAML, HCL
  *  - OCaml, Scala, Rust
+ *  - TODO Bash, SQL, Docker
  *
  * rational: In the end, programming languages have a lot in Common.
  * Even though some interesting analysis are probably better done on a
@@ -78,7 +79,7 @@
  * TODO? it may be time to rename this file CST_generic.ml
  *
  * todo:
- *  - add C++ (argh) and improve things for Kotlin/Scala/Rust
+ *  - improve things for Kotlin/Scala/Rust/C++/Java
  *  - see ast_fuzzy.ml todos for ideas to use AST_generic for sgrep?
  *
  * related work:
@@ -106,6 +107,7 @@
  *  - data-type a la carte like in github-semantic but IMHO too high-level
  *    with astronaut-style architecture (too abstract, too advanced features).
  *  - CURRENT SOLUTION: the OtherXxx strategy used in this file (simple)
+ *    update: actually switch to OtherXxx of todo_kind, even simpler
  *  - functorize and add some type hole (type tstmt; type texpr; ...),
  *    todo? not a bad idea if later we want to add type information on each
  *    expression nodes
@@ -404,6 +406,7 @@ and expr_kind =
   (* composite values
    * TODO? element list bracket, so can encode KeyVal, Designator,
    * IndexArray for C++.
+   * ArrayInitDesignator [x] = ... use ArrayAccess in container?
    *)
   | Container of container_operator * expr list bracket
   | Comprehension of container_operator * comprehension bracket
@@ -489,7 +492,7 @@ and expr_kind =
   | Seq of expr list (* at least 2 elements *)
   (* less: could be in Special, but pretty important so I've lifted them here*)
   | Ref of tok (* &, address of *) * expr
-  | DeRef of tok (* '*' in C, '!' or '<-' in OCaml, ^ in Reason *) * expr (*e: [[AST_generic.expr]] other cases *)
+  | DeRef of tok (* '*' in C, '!' or '<-' in OCaml, ^ in Reason *) * expr
   (* sgrep: ... in expressions, args, stmts, items, and fields
    * (and unfortunately also in types in Python) *)
   | Ellipsis of tok (* '...' *)
@@ -498,61 +501,23 @@ and expr_kind =
   | TypedMetavar of ident * tok (* : *) * type_
   (* for ellipsis in method chaining *)
   | DotAccessEllipsis of expr * tok (* '...' *)
-  (* e.g., ?? *)
+  (* e.g., TypeId in C++, MethodRef/ClassLiteral in Java, Send/Receive in Go,
+   * Checked/Unchecked in C#, Repr in Python, RecordWith in OCaml/C#,
+   * Subshell in Ruby, Delete/Unset in JS/Hack,
+   * Unpack, ArrayAppend in PHP (the AST for $x[] = 1 used to be
+   * handled as an AssignOp with special Append).
+   * Define/Arguments/NewTarget//YieldStar in JS
+   * Exports/Module/Require/UseStrict in JS,
+   * TODO? lift up to program attribute/directive UseStrict, Require in Import?
+   * TODO? of replace 'any list' by 'expr list'?
+   *)
   | OtherExpr2 of todo_kind * any list
-  (* TODO: get rid of
-   * TODO: other_expr_operator wrap, so enforce at least one token instead
-   * of relying that the any list contains at least one token *)
+  (* TODO: get rid of *)
   | OtherExpr of other_expr_operator * any list
 
-(* TODO: reduce, or move in other_special or in OtherExpr2 *)
-and other_expr_operator =
-  (* Javascript *)
-  | OE_Exports
-  | OE_Module
-  | OE_Define
-  | OE_Arguments
-  | OE_NewTarget
-  | OE_Delete
-  | OE_YieldStar
-  (* note: some of them are transformed in ImportFrom in js_to_generic.ml *)
-  | OE_Require
-  | OE_UseStrict (* todo: lift up to program attribute/directive? *)
-  (* Python *)
-  | OE_Invert
-  | OE_Slices (* see also SliceAccess *)
-  | OE_CmpOps
-  | OE_Repr (* todo: move to special, special Dump *)
-  (* Java *)
-  | OE_NameOrClassType
-  | OE_ClassLiteral
-  | OE_NewQualifiedClass
-  | OE_Annot
-  (* C *)
-  | OE_GetRefLabel (* TODO DELETE? just LDynamic? *)
-  | OE_ArrayInitDesignator (* [x] = ... todo? use ArrayAccess in container?*)
-  (* PHP *)
-  | OE_Unpack
-  | OE_ArrayAppend (* $x[]. The AST for $x[] = 1 used to be
-                    * handled as an AssignOp with special Append, but we now
-                    * use OE_ArrayAppend for everything to simplify.
-                    *)
-  (* OCaml *)
-  | OE_RecordWith
-  | OE_RecordFieldName
-  (* Go *)
-  | OE_Send
-  | OE_Recv
-  (* Ruby *)
-  | OE_Subshell
-  (* Rust *)
-  | OE_MacroInvocation
-  (* C# *)
-  | OE_Checked
-  | OE_Unchecked
-  (* Other *)
-  | OE_StmtExpr (* OCaml/Ruby have just expressions, no statements *)
-  | OE_Todo
+(* TODO: get rid of *)
+(* StmtExpr OCaml/Ruby have just expressions, no statements *)
+and other_expr_operator = OE_StmtExpr | OE_Arg
 
 and literal =
   | Bool of bool wrap
@@ -626,6 +591,7 @@ and special =
   (* special calls *)
   | Eval
   | Typeof (* for C? and Go in switch x.(type) *)
+  (* todo? make a SpecialType, also use for ClassLiteral *)
   | Instanceof
   | Sizeof (* takes a ArgType *)
   | Defined (* defined? in Ruby, other? *)
@@ -984,7 +950,7 @@ and label_ident =
   | LNone (* C/Python *)
   | LId of label (* Java/Go/Kotlin *)
   | LInt of int wrap (* PHP *)
-  (* PHP, woohoo, dynamic break! bailout for CFG *)
+  (* PHP, woohoo, dynamic break! bailout for CFG, also in C gccext: goto *)
   | LDynamic of expr
 
 (* todo? put also user-defined iterators here? like MacroIteration in C++ *)
@@ -1268,6 +1234,7 @@ and entity = {
    * class A::B::C, and even dynamically.
    * In C++ you can define a method with a class qualifier outside a class,
    * hence the use of name_or_dynamic below and not just ident.
+   * TODO? extend name_or_dynamic to allow Pattern, to avoid multi_vardef
    *)
   name : name_or_dynamic;
   attrs : attribute list;
