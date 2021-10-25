@@ -1445,10 +1445,10 @@ and map_expression_ending_with_block (env : env)
       let _equals = token env v5 (* "=" *) in
       let cond = map_expression env v6 in
       let body = map_block env v7 in
+      (* TODO: use complex cond *)
       let while_stmt = G.While (while_, cond, body) |> G.s in
-      let expr =
-        G.OtherExpr (G.OE_StmtExpr, [ G.P pattern; G.S while_stmt ]) |> G.e
-      in
+      let expr = G.stmt_to_expr while_stmt in
+      (* TODO: this is wrong, the LetPattern is with cond, not expr *)
       G.LetPattern (pattern, expr) |> G.e
   | `Loop_exp (v1, v2, v3) ->
       let _loop_labelTODO = Option.map map_loop_label_ v1 in
@@ -1853,7 +1853,8 @@ and map_if_let_expression (env : env)
   let body = map_block env v6 in
   let else_ = Option.map (fun x -> map_else_clause env x) v7 in
   let if_stmt = G.If (if_, cond, body, else_) |> G.s in
-  let expr = G.OtherExpr (G.OE_StmtExpr, [ G.P pattern; G.S if_stmt ]) |> G.e in
+  let expr = G.stmt_to_expr if_stmt in
+  (* TODO: use new complex condition type *)
   G.LetPattern (pattern, expr) |> G.e
 
 and map_impl_block (env : env) ((v1, v2, v3, v4) : CST.impl_block) : G.stmt =
@@ -2547,7 +2548,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
         {
           (* Patterns are difficult to convert to expressions, so wrap it *)
           G.name =
-            G.EDynamic (G.OtherExpr2 (("LetPat", let_), [ G.P pattern ]) |> G.e);
+            G.EDynamic (G.OtherExpr (("LetPat", let_), [ G.P pattern ]) |> G.e);
           G.attrs;
           G.tparams = [];
         }

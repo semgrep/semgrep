@@ -820,9 +820,8 @@ and m_expr a b =
   | G.Seq a1, B.Seq b1 -> (m_list m_expr) a1 b1
   | G.Ref (a0, a1), B.Ref (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
   | G.DeRef (a0, a1), B.DeRef (b0, b1) -> m_tok a0 b0 >>= fun () -> m_expr a1 b1
+  | G.StmtExpr a1, B.StmtExpr b1 -> m_stmt a1 b1
   | G.OtherExpr (a1, a2), B.OtherExpr (b1, b2) ->
-      m_other_expr_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.OtherExpr2 (a1, a2), B.OtherExpr2 (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.Container _, _
   | G.Comprehension _, _
@@ -847,8 +846,8 @@ and m_expr a b =
   | G.Seq _, _
   | G.Ref _, _
   | G.DeRef _, _
+  | G.StmtExpr _, _
   | G.OtherExpr _, _
-  | G.OtherExpr2 _, _
   | G.TypedMetavar _, _
   | G.DotAccessEllipsis _, _ ->
       fail ()
@@ -1081,8 +1080,6 @@ and m_container_ordered_elements a b =
       | { e = G.Ellipsis _; _ } -> true
       | _ -> false)
     false (* empty list can not match non-empty list *) a b
-
-and m_other_expr_operator = m_other_xxx
 
 and m_compatible_type typed_mvar t e =
   match (t.G.t, e.G.e) with

@@ -1322,7 +1322,7 @@ and embedded_brace_expression_ (env : env) (x : CST.embedded_brace_expression_)
       let v3 =
         match v3 with
         | Some x -> expression env x
-        | None -> G.OtherExpr2 (("ArrayAppend", v2), []) |> G.e
+        | None -> G.OtherExpr (("ArrayAppend", v2), []) |> G.e
       in
       let v4 = (* "]" *) token env v4 in
       G.ArrayAccess (v1, (v2, v3, v4)) |> G.e
@@ -1514,14 +1514,9 @@ and expression (env : env) (x : CST.expression) : G.expr =
           (* This is awaitable block, not just await keyword *)
           (* Q: How to handle this and concurrent? *)
           let _v1TODO = (* "async" *) token env v1 in
-          let v2 =
-            G.OtherExpr (OE_StmtExpr, [ G.S (compound_statement env v2) ])
-            |> G.e
-          in
+          let v2 = G.stmt_to_expr (compound_statement env v2) in
           (* TODO: This can't possibly be right *)
-          G.OtherExpr
-            (OE_StmtExpr, [ G.S (G.OtherStmt (OS_Async, [ G.E v2 ]) |> G.s) ])
-          |> G.e
+          G.stmt_to_expr (G.OtherStmt (OS_Async, [ G.E v2 ]) |> G.s)
       | `Yield_exp (v1, v2) ->
           let v1 = (* "yield" *) token env v1 in
           let v2 = anon_choice_exp_1701d0a env v2 in
@@ -1613,7 +1608,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
             | `Incl_once tok -> (* "include_once" *) str env tok
           in
           let v2 = expression env v2 in
-          G.OtherExpr2 (v1, [ G.E v2 ]) |> G.e
+          G.OtherExpr (v1, [ G.E v2 ]) |> G.e
       | `Requ_exp (v1, v2) ->
           (* Q: What makes this an expression and not a directive statement? *)
           let v1 =
@@ -1622,7 +1617,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
             | `Requ_once tok -> (* "require_once" *) str env tok
           in
           let v2 = expression env v2 in
-          G.OtherExpr2 (v1, [ G.E v2 ]) |> G.e
+          G.OtherExpr (v1, [ G.E v2 ]) |> G.e
       | `Anon_func_exp (v1, v2, v3, v4, v5, v6) ->
           (* TODO: Anon is not the same as Lambda. These are PHP style. *)
           let _v1TODO =
@@ -1972,7 +1967,7 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
       let v1 = (* "@" *) token env v1 in
       let v2 = expression env v2 in
       (* TODO: Is this good? *)
-      G.OtherExpr2 (("AtExpr", v1), [ G.E v2 ]) |> G.e
+      G.OtherExpr (("AtExpr", v1), [ G.E v2 ]) |> G.e
 
 and property_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.property_declaration) =
@@ -2143,7 +2138,7 @@ and statement (env : env) (x : CST.statement) =
       let _v4 = (* ")" *) token env v4 in
       let v5 = (* ";" *) token env v5 in
       (* Q: Better to just use Call? *)
-      G.ExprStmt (G.OtherExpr2 (("Unset", v1), v3) |> G.e, v5) |> G.s
+      G.ExprStmt (G.OtherExpr (("Unset", v1), v3) |> G.e, v5) |> G.s
   | `Use_stmt (v1, v2, v3) ->
       (* Q: What do comma seperated use statements mean? And how do they alias? *)
       let v1 = (* "use" *) token env v1 in
@@ -2740,7 +2735,7 @@ and variablish (env : env) (x : CST.variablish) : G.expr =
       let v3 =
         match v3 with
         | Some x -> G.ArrayAccess (v1, (v2, expression env x, v4))
-        | None -> G.OtherExpr2 (("ArrayAppend", v2), [])
+        | None -> G.OtherExpr (("ArrayAppend", v2), [])
       in
       v3 |> G.e
   | `Qual_id x -> G.N (qualified_identifier env x |> H2.name_of_ids) |> G.e

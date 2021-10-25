@@ -76,7 +76,7 @@ let rec unaryOp (a, tok) =
   | Tilde -> fun e -> G.opcall (G.BitNot, tok) [ e ]
   | Not -> fun e -> G.opcall (G.Not, tok) [ e ]
   | GetRefLabel ->
-      fun e -> G.OtherExpr2 (("GetRefLabel", unsafe_fake ""), [ G.E e ]) |> G.e
+      fun e -> G.OtherExpr (("GetRefLabel", unsafe_fake ""), [ G.E e ]) |> G.e
 
 and assignOp = function
   | SimpleAssign tok -> Left tok
@@ -265,7 +265,7 @@ and expr e =
                match v1 with
                | None -> v2
                | Some e ->
-                   G.OtherExpr2
+                   G.OtherExpr
                      (("ArrayInitDesignator", unsafe_fake ""), [ G.E e; G.E v2 ])
                    |> G.e))
           v1

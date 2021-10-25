@@ -243,7 +243,7 @@ and expr (x : expr) =
       G.Cast (v3, v2, v1)
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
-      G.OtherExpr2 (v1, v2 |> List.map (fun e -> G.E e))
+      G.OtherExpr (v1, v2 |> List.map (fun e -> G.E e))
   | L x -> G.L (literal x)
   | Id v1 ->
       let v1 = name v1 in
@@ -255,7 +255,7 @@ and expr (x : expr) =
       | SR_NeedArgs _ ->
           error (snd v1) "Impossible: should have been matched in Call first"
       | SR_Literal l -> G.L l
-      | SR_Other categ -> G.OtherExpr2 (categ, []))
+      | SR_Other categ -> G.OtherExpr (categ, []))
   | Assign (v1, tok, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       let tok = info tok in
@@ -301,7 +301,7 @@ and expr (x : expr) =
       | SR_Other categ ->
           (* ex: NewTarget *)
           G.Call
-            ( G.OtherExpr2 (categ, []) |> G.e,
+            ( G.OtherExpr (categ, []) |> G.e,
               bracket (List.map (fun e -> G.Arg e)) v2 ))
   | Apply (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list expr) v2 in

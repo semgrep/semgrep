@@ -374,10 +374,10 @@ let (mk_visitor :
           let t = v_tok t in
           let v1 = v_expr v1 in
           ()
-      | OtherExpr (v1, v2) ->
-          let v1 = v_other_expr_operator v1 and v2 = v_list v_any v2 in
+      | StmtExpr v1 ->
+          let v1 = v_stmt v1 in
           ()
-      | OtherExpr2 (v1, v2) ->
+      | OtherExpr (v1, v2) ->
           let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in

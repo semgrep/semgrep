@@ -501,6 +501,10 @@ and expr_kind =
   | TypedMetavar of ident * tok (* : *) * type_
   (* for ellipsis in method chaining *)
   | DotAccessEllipsis of expr * tok (* '...' *)
+  (* Dual of ExprStmt. See stmt_to_expr() below and its comment.
+   * OCaml/Ruby/Scala/... have just expressions, not separate statements.
+   *)
+  | StmtExpr of stmt
   (* e.g., TypeId in C++, MethodRef/ClassLiteral in Java, Send/Receive in Go,
    * Checked/Unchecked in C#, Repr in Python, RecordWith in OCaml/C#,
    * Subshell in Ruby, Delete/Unset in JS/Hack,
@@ -511,13 +515,7 @@ and expr_kind =
    * TODO? lift up to program attribute/directive UseStrict, Require in Import?
    * TODO? of replace 'any list' by 'expr list'?
    *)
-  | OtherExpr2 of todo_kind * any list
-  (* TODO: get rid of *)
-  | OtherExpr of other_expr_operator * any list
-
-(* TODO: get rid of *)
-(* StmtExpr OCaml/Ruby have just expressions, no statements *)
-and other_expr_operator = OE_StmtExpr | OE_Arg
+  | OtherExpr of todo_kind * any list
 
 and literal =
   | Bool of bool wrap
@@ -846,7 +844,7 @@ and stmt_kind =
    *)
   (* newscope: for vardef in expr in C++/Go/... *)
   | If of tok (* 'if' or 'elif' *) * condition * stmt * stmt option
-  | While of tok * expr * stmt
+  | While of tok * expr (* TODO: condition for Rust *) * stmt
   | Return of tok * expr option * sc
   | DoWhile of tok * stmt * expr
   (* newscope: *)
@@ -1889,7 +1887,7 @@ let emptystmt t = s (Block (t, [], t))
  * See also AST_generic_helpers with expr_to_pattern, expr_to_type,
  * pattern_to_expr, etc.
  *)
-let stmt_to_expr st = e (OtherExpr (OE_StmtExpr, [ S st ]))
+let stmt_to_expr st = e (StmtExpr st)
 
 let empty_body = fake_bracket []
 

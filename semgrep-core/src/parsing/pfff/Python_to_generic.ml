@@ -196,7 +196,7 @@ let rec expr (x : expr) =
        | l1, [ x ], l2 -> slice1 e (l1, x, l2)
        | l1, xs, _ ->
            let xs = list (slice e) xs in
-           G.OtherExpr2 (("Slices", l1), xs |> List.map (fun x -> G.E x)))
+           G.OtherExpr (("Slices", l1), xs |> List.map (fun x -> G.E x)))
       |> G.e
   | Attribute (v1, t, v2, v3) ->
       let v1 = expr v1
@@ -249,7 +249,7 @@ let rec expr (x : expr) =
                    G.E (G.IdSpecial (G.Op arith, tok) |> G.e))
           in
           let anys = anyops @ (v3 |> List.map (fun e -> G.E e)) in
-          G.OtherExpr2 (("CmpOps", unsafe_fake ""), anys) |> G.e)
+          G.OtherExpr (("CmpOps", unsafe_fake ""), anys) |> G.e)
   | Call (v1, v2) ->
       let v1 = expr v1 in
       let v2 = bracket (list argument) v2 in
@@ -275,7 +275,7 @@ let rec expr (x : expr) =
       G.Await (t, v1) |> G.e
   | Repr v1 ->
       let l, v1, _ = bracket expr v1 in
-      G.OtherExpr2 (("Repr", l), [ G.E v1 ]) |> G.e
+      G.OtherExpr (("Repr", l), [ G.E v1 ]) |> G.e
   | NamedExpr (v, t, e) -> G.Assign (expr v, t, expr e) |> G.e
 
 and argument = function

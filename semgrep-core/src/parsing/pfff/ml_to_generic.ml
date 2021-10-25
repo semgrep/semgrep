@@ -333,7 +333,7 @@ and expr e =
       let obj = G.Record v2 in
       match v1 with
       | None -> obj
-      | Some e -> G.OtherExpr2 (("With", G.fake ""), [ G.E e; G.E (obj |> G.e) ])
+      | Some e -> G.OtherExpr (("With", G.fake ""), [ G.E e; G.E (obj |> G.e) ])
       )
   | New (v1, v2) ->
       let v1 = tok v1 and v2 = name v2 in
@@ -378,7 +378,7 @@ and expr e =
   | ExprTodo (t, xs) ->
       let t = todo_category t in
       let xs = list expr xs in
-      G.OtherExpr2 (t, List.map (fun x -> G.E x) xs)
+      G.OtherExpr (t, List.map (fun x -> G.E x) xs)
   | If _
   | Try _
   | For _
@@ -694,7 +694,7 @@ and partial = function
       let e = expr e in
       let res =
         match e.G.e with
-        | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.PartialTry (t, s)
+        | G.StmtExpr s -> G.PartialTry (t, s)
         | _ -> G.PartialTry (t, G.exprstmt e)
       in
       G.Partial res
@@ -715,7 +715,7 @@ and any = function
   | E x -> (
       let x = expr x in
       match x.G.e with
-      | G.OtherExpr (G.OE_StmtExpr, [ G.S s ]) -> G.S s
+      | G.StmtExpr s -> G.S s
       | _ -> G.E x)
   | I x -> (
       match item x with
