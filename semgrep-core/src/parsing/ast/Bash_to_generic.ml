@@ -226,9 +226,7 @@ let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc)
 (*****************************************************************************)
 
 let negate_expr (neg_tok : tok) (cmd_loc : loc) (cmd : G.expr) : G.expr =
-  let func = G.IdSpecial (G.Op G.Not, neg_tok) |> G.e in
-  let args = [ G.Arg cmd ] in
-  G.Call (func, bracket cmd_loc args) |> G.e
+  G.opcall (G.Not, neg_tok) [ cmd ]
 
 (*
    Redirect stderr in the last command of the pipeline.
@@ -261,17 +259,15 @@ and pipeline (env : env) (x : pipeline) : stmt_or_expr =
             *)
             (redirect_pipeline_stderr_to_stdout pip, tok)
       in
-      let func = G.IdSpecial (G.Op G.Pipe, bar_tok) |> G.e in
       let left = pipeline env pip |> as_expr in
       let right = command_with_redirects env cmd_redir |> as_expr in
-      Expr (loc, G.Call (func, bracket loc [ G.Arg left; G.Arg right ]) |> G.e)
+      Expr (loc, G.opcall (G.Pipe, bar_tok) [ left; right ])
   | Control_operator (loc, pip, control_op) -> (
       match control_op with
       | Foreground, tok -> pipeline env pip
       | Background, amp_tok ->
-          let func = G.IdSpecial (G.Op G.Background, amp_tok) |> G.e in
           let arg = pipeline env pip |> as_expr in
-          Expr (loc, G.Call (func, bracket loc [ G.Arg arg ]) |> G.e))
+          Expr (loc, G.opcall (G.Background, amp_tok) [ arg ]))
 
 and command_with_redirects (env : env) (x : command_with_redirects) :
     stmt_or_expr =
@@ -299,17 +295,13 @@ and command (env : env) (cmd : command) : stmt_or_expr =
           let args = List.map (expression env) arguments in
           Expr (loc, call loc C.cmd args))
   | And (loc, left, and_tok, right) ->
-      let open_, close = loc in
       let left = pipeline env left |> as_expr in
       let right = pipeline env right |> as_expr in
-      let op = G.IdSpecial (G.Op G.And, and_tok) |> G.e in
-      Expr (loc, G.Call (op, (open_, [ G.Arg left; G.Arg right ], close)) |> G.e)
+      Expr (loc, G.opcall (G.And, and_tok) [ left; right ])
   | Or (loc, left, or_tok, right) ->
-      let open_, close = loc in
       let left = pipeline env left |> as_expr in
       let right = pipeline env right |> as_expr in
-      let op = G.IdSpecial (G.Op G.Or, or_tok) |> G.e in
-      Expr (loc, G.Call (op, (open_, [ G.Arg left; G.Arg right ], close)) |> G.e)
+      Expr (loc, G.opcall (G.Or, or_tok) [ left; right ])
   | Subshell (loc, (open_, bl, close)) ->
       (* TODO: subshell *) stmt_group env loc (blist env bl)
   | Command_group (loc, (open_, bl, close)) -> stmt_group env loc (blist env bl)
