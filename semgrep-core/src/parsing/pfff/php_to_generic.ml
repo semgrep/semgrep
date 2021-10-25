@@ -266,7 +266,7 @@ and expr e : G.expr =
    *)
   | Array_get (v1, (t1, None, _)) ->
       let v1 = expr v1 in
-      G.OtherExpr2 (("ArrayAppend", t1), [ G.E v1 ])
+      G.OtherExpr (("ArrayAppend", t1), [ G.E v1 ])
   | Obj_get (v1, t, Id [ v2 ]) ->
       let v1 = expr v1 and v2 = ident v2 in
       G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ())))
@@ -329,7 +329,7 @@ and expr e : G.expr =
       G.Ref (t, v1)
   | Unpack v1 ->
       let v1 = expr v1 in
-      G.OtherExpr2 (("Unpack", fake ""), [ G.E v1 ])
+      G.OtherExpr (("Unpack", fake ""), [ G.E v1 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in
       G.Call (v1, v2)

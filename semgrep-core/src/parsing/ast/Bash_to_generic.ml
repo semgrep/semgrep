@@ -215,7 +215,7 @@ let todo_stmt (loc : loc) : G.stmt =
 
 let todo_expr (loc : loc) : G.expr =
   let t = fst loc in
-  G.e (G.OtherExpr2 (("BashTodo", t), todo_tokens loc))
+  G.e (G.OtherExpr (("BashTodo", t), todo_tokens loc))
 
 let todo_stmt2 (loc : loc) : stmt_or_expr = Stmt (loc, todo_stmt loc)
 

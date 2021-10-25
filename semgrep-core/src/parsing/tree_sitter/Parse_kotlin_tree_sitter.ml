@@ -1452,7 +1452,7 @@ and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
   fun e ->
     match op with
     | Left tdot -> DotAccess (e, tdot, fld) |> G.e
-    | Right otherop -> OtherExpr2 (otherop, [ NoD fld; E e ]) |> G.e
+    | Right otherop -> OtherExpr (otherop, [ NoD fld; E e ]) |> G.e
 
 and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
   let v1 =

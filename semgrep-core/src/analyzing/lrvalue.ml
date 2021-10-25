@@ -187,8 +187,8 @@ let rec visit_expr hook lhs expr =
   | DotAccessEllipsis _ ->
       raise Impossible
   | Ellipsis _tok -> ()
+  | StmtExpr st -> anyhook hook Rhs (S st)
   | OtherExpr (_other_xxx, anys) -> List.iter (anyhook hook Rhs) anys
-  | OtherExpr2 (_other_xxx, anys) -> List.iter (anyhook hook Rhs) anys
 
 (*****************************************************************************)
 (* Entry points *)

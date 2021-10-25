@@ -288,10 +288,8 @@ and map_expr x : B.expr =
   | DeepEllipsis v1 ->
       let v1 = map_bracket map_expr v1 in
       `DeepEllipsis v1
-  | OtherExpr (v1, v2) ->
-      let v1 = map_other_expr_operator v1 and v2 = map_of_list map_any v2 in
-      `OtherExpr (v1, v2)
-  | OtherExpr2 (_v1, _v2) -> failwith "TODO"
+  | OtherExpr (_v1, _v2) -> failwith "TODO"
+  | StmtExpr _ -> failwith "TODO"
 
 and map_name_or_dynamic = function
   | EN v1 ->
@@ -479,8 +477,6 @@ and map_other_argument_operator _x = "TODO"
 and map_action (v1, v2) =
   let v1 = map_pattern v1 and v2 = map_expr v2 in
   (v1, v2)
-
-and map_other_expr_operator _x = "TODO"
 
 and map_type_ { t; t_attrs } =
   let tk = map_type_kind t in
