@@ -38,7 +38,9 @@ module PM = Pattern_match
 
 type mapping = PM.Set.t Dataflow.mapping
 (** Map for each node/var of all the pattern matches that originated its taint.
-    Anything not included in the map is not tainted.
+    Anything not included in the map is not tainted. Currently we only strictly need
+    the metavariable environment in these pattern matches, but we plan to make use of
+    the full pattern match information eventually.
 *)
 
 (* Tracks tainted functions. *)
