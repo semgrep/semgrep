@@ -70,30 +70,32 @@ let label v = wrap string v
 
 type special_result =
   | SR_Special of G.special wrap
-  | SR_Other of G.other_expr_operator wrap
+  | SR_Other of G.todo_kind
+  | SR_Other2 of G.other_expr_operator wrap
   | SR_Literal of G.literal
   | SR_NeedArgs of (G.expr list -> G.expr_kind)
 
 let special (x, tok) =
+  let other_expr s = SR_Other (s, tok) in
   match x with
-  | UseStrict -> SR_Other (G.OE_UseStrict, tok)
+  | UseStrict -> other_expr "UseStrict"
   | Null -> SR_Literal (G.Null tok)
   | Undefined -> SR_Literal (G.Undefined tok)
   | This -> SR_Special (G.This, tok)
   | Super -> SR_Special (G.Super, tok)
-  | Require -> SR_Other (G.OE_Require, tok) (* TODO: left up to include? *)
-  | Exports -> SR_Other (G.OE_Exports, tok)
-  | Module -> SR_Other (G.OE_Module, tok)
-  | Define -> SR_Other (G.OE_Define, tok)
-  | Arguments -> SR_Other (G.OE_Arguments, tok)
+  | Require -> SR_Other2 (G.OE_Require, tok)
+  | Exports -> other_expr "Exports"
+  | Module -> other_expr "Module"
+  | Define -> other_expr "Define"
+  | Arguments -> other_expr "Arguments"
   | New -> SR_Special (G.New, tok)
-  | NewTarget -> SR_Other (G.OE_NewTarget, tok)
+  | NewTarget -> other_expr "NewTarget"
   | Eval -> SR_Special (G.Eval, tok)
   | Seq -> SR_NeedArgs (fun args -> G.Seq args)
   | Typeof -> SR_Special (G.Typeof, tok)
   | Instanceof -> SR_Special (G.Instanceof, tok)
   | In -> SR_Special (G.Op G.In, tok)
-  | Delete -> SR_Other (G.OE_Delete, tok)
+  | Delete -> other_expr "Delete"
   (* a kind of cast operator:
    * See https://stackoverflow.com/questions/7452341/what-does-void-0-mean
    *)
@@ -113,7 +115,7 @@ let special (x, tok) =
           | [] -> G.Yield (tok, None, false)
           | [ e ] -> G.Yield (tok, Some e, false)
           | _ -> error tok "Impossible: Too many arguments to Yield")
-  | YieldStar -> SR_Other (G.OE_YieldStar, tok)
+  | YieldStar -> other_expr "YieldStar"
   | Await ->
       SR_NeedArgs
         (fun args ->
@@ -242,7 +244,7 @@ and expr (x : expr) =
       G.Cast (v3, v2, v1)
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
-      G.OtherExpr (G.OE_Todo, G.TodoK v1 :: (v2 |> List.map (fun e -> G.E e)))
+      G.OtherExpr2 (v1, v2 |> List.map (fun e -> G.E e))
   | L x -> G.L (literal x)
   | Id v1 ->
       let v1 = name v1 in
@@ -254,7 +256,8 @@ and expr (x : expr) =
       | SR_NeedArgs _ ->
           error (snd v1) "Impossible: should have been matched in Call first"
       | SR_Literal l -> G.L l
-      | SR_Other (x, tok) -> G.OtherExpr (x, [ G.Tk tok ]))
+      | SR_Other2 (x, tok) -> G.OtherExpr (x, [ G.Tk tok ])
+      | SR_Other categ -> G.OtherExpr2 (categ, []))
   | Assign (v1, tok, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       let tok = info tok in
@@ -296,12 +299,17 @@ and expr (x : expr) =
       | SR_Special v ->
           G.Call (G.IdSpecial v |> G.e, bracket (List.map (fun e -> G.Arg e)) v2)
       | SR_Literal _ -> error (snd v1) "Weird: literal in call position"
-      | SR_Other (x, tok) ->
+      | SR_NeedArgs f -> f (G.unbracket v2)
+      | SR_Other2 (x, tok) ->
           (* ex: NewTarget *)
           G.Call
             ( G.OtherExpr (x, [ G.Tk tok ]) |> G.e,
               bracket (List.map (fun e -> G.Arg e)) v2 )
-      | SR_NeedArgs f -> f (G.unbracket v2))
+      | SR_Other categ ->
+          (* ex: NewTarget *)
+          G.Call
+            ( G.OtherExpr2 (categ, []) |> G.e,
+              bracket (List.map (fun e -> G.Arg e)) v2 ))
   | Apply (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list expr) v2 in
       G.Call (v1, bracket (List.map (fun e -> G.Arg e)) v2)

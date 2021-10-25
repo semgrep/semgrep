@@ -214,7 +214,8 @@ let todo_stmt (loc : loc) : G.stmt =
   G.s (G.OtherStmt (G.OS_Todo, todo_tokens loc))
 
 let todo_expr (loc : loc) : G.expr =
-  G.e (G.OtherExpr (G.OE_Todo, todo_tokens loc))
+  let t = fst loc in
+  G.e (G.OtherExpr2 (("BashTodo", t), todo_tokens loc))
 
 let todo_stmt2 (loc : loc) : stmt_or_expr = Stmt (loc, todo_stmt loc)
 

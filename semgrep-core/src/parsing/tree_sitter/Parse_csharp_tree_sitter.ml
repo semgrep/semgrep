@@ -270,7 +270,7 @@ end
    to another type of tree.
 *)
 
-let todo_expr _env tok = G.OtherExpr (G.OE_Todo, [ G.Tk tok ]) |> G.e
+let todo_expr _env tok = G.OtherExpr2 (("CSharpTodo", tok), []) |> G.e
 
 let todo_stmt _env tok = G.OtherStmt (G.OS_Todo, [ G.Tk tok ]) |> G.s
 
@@ -1067,17 +1067,17 @@ and interpolated_string_content (env : env)
 and checked_expression (env : env) (x : CST.checked_expression) =
   match x with
   | `Chec_LPAR_exp_RPAR (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "checked" *) in
+      let v1 = token env v1 (* "checked" *) in
       let _v2 = token env v2 (* "(" *) in
       let v3 = expression env v3 in
       let _v4 = token env v4 (* ")" *) in
-      OtherExpr (OE_Checked, [ E v3 ])
+      OtherExpr2 (("Checked", v1), [ E v3 ])
   | `Unch_LPAR_exp_RPAR (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "unchecked" *) in
+      let v1 = token env v1 (* "unchecked" *) in
       let _v2 = token env v2 (* "(" *) in
       let v3 = expression env v3 in
       let _v4 = token env v4 (* ")" *) in
-      OtherExpr (OE_Unchecked, [ E v3 ])
+      OtherExpr2 (("Unchecked", v1), [ E v3 ])
 
 and expression (env : env) (x : CST.expression) : G.expr =
   (match x with
@@ -1438,7 +1438,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       Call (IdSpecial (Typeof, v1) |> G.e, (v2, [ ArgType v3 ], v4))
   | `With_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
-      let _v2 = token env v2 (* "with" *) in
+      let v2 = token env v2 (* "with" *) in
       let v3 = token env v3 (* "{" *) in
       let v4 =
         match v4 with
@@ -1451,7 +1451,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
        * - with-expressions may deserve first-class support in Generic AST
        * - record patterns perhaps should match with-expressions
        *)
-      G.OtherExpr (G.OE_RecordWith, [ G.E v1; G.E with_fields ])
+      G.OtherExpr2 (("RecordWith", v2), [ G.E v1; G.E with_fields ])
   | `Simple_name x ->
       let x = simple_name env x in
       N (H2.name_of_ids_with_opt_typeargs [ x ])
@@ -2468,10 +2468,10 @@ and using_directive (env : env) ((v1, v2, v3, v4) : CST.using_directive) =
 and global_attribute_list (env : env)
     ((v1, v2, v3, v4, v5) : CST.global_attribute_list) =
   let v1 = token env v1 (* "[" *) in
-  let _v2TODO =
+  let v2 =
     match v2 with
-    | `Asse tok -> token env tok (* "assembly" *)
-    | `Module tok -> token env tok
+    | `Asse tok -> str env tok (* "assembly" *)
+    | `Module tok -> str env tok
     (* "module" *)
   in
   let _v3 = token env v3 (* ":" *) in
@@ -2492,7 +2492,8 @@ and global_attribute_list (env : env)
   in
   let _v5 = token env v5 (* "]" *) in
   let anys = List.map (fun a -> At a) v4 in
-  ExprStmt (OtherExpr (OE_Annot, anys) |> G.e, v1) |> G.s
+  (* TODO: better as OtherStmt *)
+  ExprStmt (OtherExpr2 (v2, anys) |> G.e, v1) |> G.s
 
 and global_statement (env : env) (x : CST.global_statement) = statement env x
 
