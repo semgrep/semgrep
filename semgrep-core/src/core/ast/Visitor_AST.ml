@@ -1218,9 +1218,6 @@ let (mk_visitor :
           v_ident v1;
           v_list v_any v2
       | OtherDirective (v1, v2) ->
-          let v1 = v_other_directive_operator v1 and v2 = v_list v_any v2 in
-          ()
-      | OtherDirective2 (v1, v2) ->
           let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in
