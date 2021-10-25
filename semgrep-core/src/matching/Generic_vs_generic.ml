@@ -2688,7 +2688,6 @@ and m_directive a b =
   | G.Package _
   | G.PackageEnd _
   | G.Pragma _
-  | G.OtherDirective2 _
   | G.OtherDirective _ ->
       fail ()
 
@@ -2725,20 +2724,15 @@ and m_directive_basic a b =
   | G.Pragma (a1, a2), B.Pragma (b1, b2) ->
       m_ident a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.OtherDirective (a1, a2), B.OtherDirective (b1, b2) ->
-      m_other_directive_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.OtherDirective2 (a1, a2), B.OtherDirective2 (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ImportFrom _, _
   | G.ImportAs _, _
   | G.OtherDirective _, _
-  | G.OtherDirective2 _, _
   | G.Pragma _, _
   | G.ImportAll _, _
   | G.Package _, _
   | G.PackageEnd _, _ ->
       fail ()
-
-and m_other_directive_operator = m_other_xxx
 
 (*****************************************************************************)
 (* Toplevel *)

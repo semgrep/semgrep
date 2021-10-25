@@ -1560,12 +1560,13 @@ and map_cpp_directive env x : (G.directive, G.definition) either =
           let dir = G.ImportAll (v1, G.FileName file, v1) |> G.d in
           Left dir
       | Right e ->
-          let categ = G.TodoK ("IncludeDynamic", v1) in
-          let dir = G.OtherDirective (G.OI_Todo, [ categ; G.E e ]) |> G.d in
+          let dir =
+            G.OtherDirective (("IncludeDynamic", v1), [ G.E e ]) |> G.d
+          in
           Left dir)
   | Undef v1 ->
       let v1 = map_ident env v1 in
-      let dir = G.OtherDirective (OI_Undef, [ G.I v1 ]) |> G.d in
+      let dir = G.OtherDirective (("Undef", snd v1), [ G.I v1 ]) |> G.d in
       Left dir
   | PragmaAndCo v1 ->
       let v1 = map_tok env v1 in

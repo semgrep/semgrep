@@ -1326,24 +1326,12 @@ and vof_directive_kind = function
       let v1 = vof_ident v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("Pragma", [ v1; v2 ])
   | OtherDirective (v1, v2) ->
-      let v1 = vof_other_directive_operator v1
-      and v2 = OCaml.vof_list vof_any v2 in
-      OCaml.VSum ("OtherDirective", [ v1; v2 ])
-  | OtherDirective2 (v1, v2) ->
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherDirective", [ v1; v2 ])
 
 and vof_alias (v1, v2) =
   let v1 = vof_ident v1 and v2 = OCaml.vof_option vof_ident_and_id_info v2 in
   (v1, v2)
-
-and vof_other_directive_operator = function
-  | OI_ReExportNamespace -> OCaml.VSum ("OI_ReExportNamespace", [])
-  | OI_Export -> OCaml.VSum ("OI_Export", [])
-  | OI_Alias -> OCaml.VSum ("OI_Alias", [])
-  | OI_Undef -> OCaml.VSum ("OI_Undef", [])
-  | OI_Extern -> OCaml.VSum ("OI_Extern", [])
-  | OI_Todo -> OCaml.VSum ("OI_Todo", [])
 
 and vof_item x = vof_stmt x
 

@@ -211,6 +211,7 @@ type dotted_ident = ident list (* at least 1 element *)
 
 (* module_name can also be used for a package name or a namespace.
  * TODO? prefix with M and add MQualifiedName for C++?
+ * less: can even be dynamic in C with #include of expr
  *)
 type module_name =
   | DottedName of dotted_ident (* ex: Python *)
@@ -1199,7 +1200,7 @@ and attribute =
 and keyword_attribute =
   (* the classic C modifiers (except Auto) *)
   | Static
-  | Extern
+  | Extern (* less: of string? like extern "C" in C++ or Rust *)
   | Volatile
   (* the classic C++ modifiers for fields/methods *)
   | Public
@@ -1317,7 +1318,7 @@ and definition_kind =
    * local.
    *)
   | UseOuterDecl of tok (* 'global' or 'nonlocal' in Python, 'use' in PHP *)
-  (* e.g., MacroDecl and MacroVar in C++ *)
+  (* e.g., MacroDecl and MacroVar in C++, method alias in Ruby *)
   | OtherDef of todo_kind * any list
 
 (* template/generics/polymorphic-type *)
@@ -1633,25 +1634,11 @@ and directive_kind =
    *)
   | PackageEnd of tok
   | Pragma of ident * any list
-  (* e.g., ?? *)
-  | OtherDirective2 of todo_kind * any list
-  (* TODO: get rid of at some point *)
-  | OtherDirective of other_directive_operator * any list
-
-(* TODO: get rid of at some point *)
-and other_directive_operator =
-  (* Javascript *)
-  | OI_Export
-  | OI_ReExportNamespace
-  (* PHP *)
-  (* TODO: Declare, move OE_UseStrict here for JS? *)
-  (* Ruby *)
-  | OI_Alias
-  | OI_Undef (* also C/C++ *)
-  (* Rust *)
-  | OI_Extern
-  (* Other *)
-  | OI_Todo
+  (* e.g., Dynamic include in C, Extern "C" in C++/Rust, Undef in C++/Ruby,
+   * Export/Reexport in Javascript
+   * TODO: Declare, move OE_UseStrict here for JS?
+   *)
+  | OtherDirective of todo_kind * any list
 
 (* xxx as name *)
 and alias = ident * id_info

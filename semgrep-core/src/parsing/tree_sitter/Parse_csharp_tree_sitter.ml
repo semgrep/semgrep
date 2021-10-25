@@ -2431,11 +2431,11 @@ let rec declaration_list (env : env)
 and extern_alias_directive (env : env)
     ((v1, v2, v3, v4) : CST.extern_alias_directive) =
   let v1 = token env v1 (* "extern" *) in
-  let v2 = token env v2 (* "alias" *) in
+  let _v2 = token env v2 (* "alias" *) in
   let v3 = identifier env v3 (* identifier *) in
   let v4 = token env v4 (* ";" *) in
   let extern =
-    G.OtherDirective (G.OI_Extern, [ G.Tk v1; G.Tk v2; G.I v3; G.Tk v4 ]) |> G.d
+    G.OtherDirective (("ExternAlias", v1), [ G.I v3; G.Tk v4 ]) |> G.d
   in
   G.DirectiveStmt extern |> G.s
 
