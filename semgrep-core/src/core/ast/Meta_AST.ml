@@ -489,7 +489,6 @@ and vof_action (v1, v2) =
 
 and vof_other_expr_operator = function
   | OE_Arg -> OCaml.VSum ("OE_Arg", [])
-  | OE_Require -> OCaml.VSum ("OE_Require", [])
   | OE_StmtExpr -> OCaml.VSum ("OE_StmtExpr", [])
 
 and vof_type_ { t; t_attrs } =

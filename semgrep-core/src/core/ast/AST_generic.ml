@@ -517,7 +517,7 @@ and expr_kind =
 
 (* TODO: get rid of *)
 (* StmtExpr OCaml/Ruby have just expressions, no statements *)
-and other_expr_operator = OE_StmtExpr | OE_Arg | OE_Require
+and other_expr_operator = OE_StmtExpr | OE_Arg
 
 and literal =
   | Bool of bool wrap

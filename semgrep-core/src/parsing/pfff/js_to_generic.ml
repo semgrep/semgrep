@@ -71,7 +71,6 @@ let label v = wrap string v
 type special_result =
   | SR_Special of G.special wrap
   | SR_Other of G.todo_kind
-  | SR_Other2 of G.other_expr_operator wrap
   | SR_Literal of G.literal
   | SR_NeedArgs of (G.expr list -> G.expr_kind)
 
@@ -83,7 +82,7 @@ let special (x, tok) =
   | Undefined -> SR_Literal (G.Undefined tok)
   | This -> SR_Special (G.This, tok)
   | Super -> SR_Special (G.Super, tok)
-  | Require -> SR_Other2 (G.OE_Require, tok)
+  | Require -> other_expr "Require"
   | Exports -> other_expr "Exports"
   | Module -> other_expr "Module"
   | Define -> other_expr "Define"
@@ -256,7 +255,6 @@ and expr (x : expr) =
       | SR_NeedArgs _ ->
           error (snd v1) "Impossible: should have been matched in Call first"
       | SR_Literal l -> G.L l
-      | SR_Other2 (x, tok) -> G.OtherExpr (x, [ G.Tk tok ])
       | SR_Other categ -> G.OtherExpr2 (categ, []))
   | Assign (v1, tok, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
@@ -300,11 +298,6 @@ and expr (x : expr) =
           G.Call (G.IdSpecial v |> G.e, bracket (List.map (fun e -> G.Arg e)) v2)
       | SR_Literal _ -> error (snd v1) "Weird: literal in call position"
       | SR_NeedArgs f -> f (G.unbracket v2)
-      | SR_Other2 (x, tok) ->
-          (* ex: NewTarget *)
-          G.Call
-            ( G.OtherExpr (x, [ G.Tk tok ]) |> G.e,
-              bracket (List.map (fun e -> G.Arg e)) v2 )
       | SR_Other categ ->
           (* ex: NewTarget *)
           G.Call
