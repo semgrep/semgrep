@@ -413,8 +413,9 @@ and literal x =
           G.L (G.String (s, t))
       (* TODO: generate interpolation Special *)
       | Double xs -> string_contents_list xs
-      | Tick xs ->
-          G.OtherExpr (G.OE_Subshell, [ G.E (string_contents_list xs |> G.e) ]))
+      | Tick (l, xs, r) ->
+          G.OtherExpr2
+            (("Subshell", l), [ G.E (string_contents_list (l, xs, r) |> G.e) ]))
   | Regexp ((l, xs, r), opt) -> (
       match xs with
       | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))

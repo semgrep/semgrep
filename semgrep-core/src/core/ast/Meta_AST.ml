@@ -488,37 +488,8 @@ and vof_action (v1, v2) =
   OCaml.VTuple [ v1; v2 ]
 
 and vof_other_expr_operator = function
-  | OE_ArrayAppend -> OCaml.VSum ("OE_ArrayAppend", [])
-  | OE_Todo -> OCaml.VSum ("OE_Todo", [])
-  | OE_Annot -> OCaml.VSum ("OE_Annot", [])
-  | OE_Send -> OCaml.VSum ("OE_Send", [])
-  | OE_Recv -> OCaml.VSum ("OE_Recv", [])
+  | OE_Arg -> OCaml.VSum ("OE_Arg", [])
   | OE_StmtExpr -> OCaml.VSum ("OE_StmtExpr", [])
-  | OE_Exports -> OCaml.VSum ("OE_Exports", [])
-  | OE_Module -> OCaml.VSum ("OE_Module", [])
-  | OE_Define -> OCaml.VSum ("OE_Define", [])
-  | OE_Arguments -> OCaml.VSum ("OE_Arguments", [])
-  | OE_NewTarget -> OCaml.VSum ("OE_NewTarget", [])
-  | OE_Delete -> OCaml.VSum ("OE_Delete", [])
-  | OE_YieldStar -> OCaml.VSum ("OE_YieldStar", [])
-  | OE_Require -> OCaml.VSum ("OE_Require", [])
-  | OE_UseStrict -> OCaml.VSum ("OE_UseStrict", [])
-  | OE_Invert -> OCaml.VSum ("OE_Invert", [])
-  | OE_Slices -> OCaml.VSum ("OE_Slices", [])
-  | OE_CmpOps -> OCaml.VSum ("OE_CmpOps", [])
-  | OE_Repr -> OCaml.VSum ("OE_Repr", [])
-  | OE_NameOrClassType -> OCaml.VSum ("OE_NameOrClassType", [])
-  | OE_ClassLiteral -> OCaml.VSum ("OE_ClassLiteral", [])
-  | OE_NewQualifiedClass -> OCaml.VSum ("OE_NewQualifiedClass", [])
-  | OE_GetRefLabel -> OCaml.VSum ("OE_GetRefLabel", [])
-  | OE_ArrayInitDesignator -> OCaml.VSum ("OE_ArrayInitDesignator", [])
-  | OE_Unpack -> OCaml.VSum ("OE_Unpack", [])
-  | OE_RecordFieldName -> OCaml.VSum ("OE_RecordFieldName", [])
-  | OE_RecordWith -> OCaml.VSum ("OE_RecordWith", [])
-  | OE_MacroInvocation -> OCaml.VSum ("OE_MacroInvocation", [])
-  | OE_Checked -> OCaml.VSum ("OE_Checked", [])
-  | OE_Unchecked -> OCaml.VSum ("OE_Unchecked", [])
-  | OE_Subshell -> OCaml.VSum ("OE_Subshell", [])
 
 and vof_type_ { t; t_attrs } =
   let bnds = [] in

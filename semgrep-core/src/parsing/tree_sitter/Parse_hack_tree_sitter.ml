@@ -1322,7 +1322,7 @@ and embedded_brace_expression_ (env : env) (x : CST.embedded_brace_expression_)
       let v3 =
         match v3 with
         | Some x -> expression env x
-        | None -> G.OtherExpr (OE_ArrayAppend, []) |> G.e
+        | None -> G.OtherExpr2 (("ArrayAppend", v2), []) |> G.e
       in
       let v4 = (* "]" *) token env v4 in
       G.ArrayAccess (v1, (v2, v3, v4)) |> G.e
@@ -1613,7 +1613,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
             | `Incl_once tok -> (* "include_once" *) str env tok
           in
           let v2 = expression env v2 in
-          G.OtherExpr (G.OE_Require, [ G.TodoK v1; G.E v2 ]) |> G.e
+          G.OtherExpr2 (v1, [ G.E v2 ]) |> G.e
       | `Requ_exp (v1, v2) ->
           (* Q: What makes this an expression and not a directive statement? *)
           let v1 =
@@ -1622,7 +1622,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
             | `Requ_once tok -> (* "require_once" *) str env tok
           in
           let v2 = expression env v2 in
-          G.OtherExpr (G.OE_Require, [ G.TodoK v1; G.E v2 ]) |> G.e
+          G.OtherExpr2 (v1, [ G.E v2 ]) |> G.e
       | `Anon_func_exp (v1, v2, v3, v4, v5, v6) ->
           (* TODO: Anon is not the same as Lambda. These are PHP style. *)
           let _v1TODO =
@@ -1969,10 +1969,10 @@ and prefix_unary_expression (env : env) (x : CST.prefix_unary_expression) =
       G.Await (v1, v2) |> G.e
   | `AT_exp (v1, v2) ->
       (* Silences errors *)
-      let v1 = (* "@" *) str env v1 in
+      let v1 = (* "@" *) token env v1 in
       let v2 = expression env v2 in
       (* TODO: Is this good? *)
-      G.OtherExpr (OE_Todo, [ G.TodoK v1; G.E v2 ]) |> G.e
+      G.OtherExpr2 (("AtExpr", v1), [ G.E v2 ]) |> G.e
 
 and property_declaration (env : env)
     ((v1, v2, v3, v4, v5, v6) : CST.property_declaration) =
@@ -2123,7 +2123,7 @@ and statement (env : env) (x : CST.statement) =
       G.ExprStmt (G.Call (G.N iden |> G.e, G.fake_bracket exprs) |> G.e, v4)
       |> G.s
   | `Unset_stmt (v1, v2, v3, v4, v5) ->
-      let _v1TODO = (* "unset" *) token env v1 in
+      let v1 = (* "unset" *) token env v1 in
       let _v2 = (* "(" *) token env v2 in
       let v3 =
         match v3 with
@@ -2143,7 +2143,7 @@ and statement (env : env) (x : CST.statement) =
       let _v4 = (* ")" *) token env v4 in
       let v5 = (* ";" *) token env v5 in
       (* Q: Better to just use Call? *)
-      G.ExprStmt (G.OtherExpr (G.OE_Delete, v3) |> G.e, v5) |> G.s
+      G.ExprStmt (G.OtherExpr2 (("Unset", v1), v3) |> G.e, v5) |> G.s
   | `Use_stmt (v1, v2, v3) ->
       (* Q: What do comma seperated use statements mean? And how do they alias? *)
       let v1 = (* "use" *) token env v1 in
@@ -2740,7 +2740,7 @@ and variablish (env : env) (x : CST.variablish) : G.expr =
       let v3 =
         match v3 with
         | Some x -> G.ArrayAccess (v1, (v2, expression env x, v4))
-        | None -> G.OtherExpr (OE_ArrayAppend, [])
+        | None -> G.OtherExpr2 (("ArrayAppend", v2), [])
       in
       v3 |> G.e
   | `Qual_id x -> G.N (qualified_identifier env x |> H2.name_of_ids) |> G.e

@@ -590,7 +590,10 @@ let (mk_visitor :
     | OtherTypeArg (v1, v2) ->
         let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
         ()
-  and v_todo_kind x = v_ident x
+  (* bugfix: do not call v_ident here, otherwise code like
+   * Analyze_pattern might consider the string for -filter_irrelevant_rules
+   *)
+  and v_todo_kind (_str, tok) = v_tok tok
   and v_other_type_operator _ = ()
   and v_type_parameter
       {

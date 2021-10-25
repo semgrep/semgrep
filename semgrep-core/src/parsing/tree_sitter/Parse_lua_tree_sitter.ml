@@ -381,7 +381,7 @@ and map_else_ (env : env) ((v1, v2, v3) : CST.else_) : G.stmt =
  *   todo env (v1, v2, v3, v4, v5) *)
 and map_expression (env : env) (x : CST.expression) : G.expr =
   (match x with
-  | `Next tok -> G.OtherExpr (G.OE_Todo, [ G.TodoK ("next", token env tok) ])
+  | `Next tok -> G.OtherExpr2 (("next", token env tok), [])
   | `Spread tok -> G.Ellipsis (token env tok) (* "..." *)
   | `Prefix x ->
       let x = map_prefix env x in

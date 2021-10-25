@@ -2514,7 +2514,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
   match x with
   | `Exp_stmt x -> [ map_expression_statement env x ]
   | `Let_decl (v1, v2, v3, v4, v5, v6) ->
-      let _let_ = token env v1 (* "let" *) in
+      let let_ = token env v1 (* "let" *) in
       let mutability =
         Option.map
           (fun tok ->
@@ -2546,7 +2546,8 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let ent =
         {
           (* Patterns are difficult to convert to expressions, so wrap it *)
-          G.name = G.EDynamic (G.OtherExpr (G.OE_Todo, [ G.P pattern ]) |> G.e);
+          G.name =
+            G.EDynamic (G.OtherExpr2 (("LetPat", let_), [ G.P pattern ]) |> G.e);
           G.attrs;
           G.tparams = [];
         }

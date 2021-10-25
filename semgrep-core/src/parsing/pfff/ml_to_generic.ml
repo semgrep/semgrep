@@ -324,19 +324,17 @@ and expr e =
                    let id = ident id in
                    G.basic_field id (Some v2) None
                | _ ->
-                   let v1 = dotted_ident_of_name v1 in
-                   let e =
-                     G.OtherExpr (G.OE_RecordFieldName, [ G.Di v1; G.E v2 ])
-                     |> G.e
-                   in
-                   let st = G.exprstmt e in
-                   G.FieldStmt st))
+                   let n = name v1 in
+                   let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+                   let def = G.VarDef { G.vinit = Some v2; vtype = None } in
+                   G.fld (ent, def)))
           v2
       in
       let obj = G.Record v2 in
       match v1 with
       | None -> obj
-      | Some e -> G.OtherExpr (G.OE_RecordWith, [ G.E e; G.E (obj |> G.e) ]))
+      | Some e -> G.OtherExpr2 (("With", G.fake ""), [ G.E e; G.E (obj |> G.e) ])
+      )
   | New (v1, v2) ->
       let v1 = tok v1 and v2 = name v2 in
       G.Call (G.IdSpecial (G.New, v1) |> G.e, fb [ G.Arg (G.N v2 |> G.e) ])
@@ -380,7 +378,7 @@ and expr e =
   | ExprTodo (t, xs) ->
       let t = todo_category t in
       let xs = list expr xs in
-      G.OtherExpr (G.OE_Todo, G.TodoK t :: List.map (fun x -> G.E x) xs)
+      G.OtherExpr2 (t, List.map (fun x -> G.E x) xs)
   | If _
   | Try _
   | For _

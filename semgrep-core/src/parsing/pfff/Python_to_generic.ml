@@ -108,25 +108,25 @@ let expr_context = function
   | Param -> ()
 
 let rec expr (x : expr) =
-  (match x with
+  match x with
   | Bool v1 ->
       let v1 = wrap bool v1 in
-      G.L (G.Bool v1)
+      G.L (G.Bool v1) |> G.e
   | None_ x ->
       let x = info x in
-      G.L (G.Null x)
+      G.L (G.Null x) |> G.e
   | Ellipsis x ->
       let x = info x in
-      G.Ellipsis x
+      G.Ellipsis x |> G.e
   | DeepEllipsis x ->
       let x = bracket expr x in
-      G.DeepEllipsis x
+      G.DeepEllipsis x |> G.e
   | Num v1 ->
       let v1 = number v1 in
-      G.L v1
+      G.L v1 |> G.e
   | Str v1 ->
       let v1 = wrap string v1 in
-      G.L (G.String v1)
+      G.L (G.String v1) |> G.e
   | EncodedStr (v1, pre) ->
       let v1 = wrap string v1 in
       (* bugfix: do not reuse the same tok! otherwise in semgrep
@@ -138,6 +138,7 @@ let rec expr (x : expr) =
       G.Call
         ( G.IdSpecial (G.EncodedString pre, fake (snd v1) "") |> G.e,
           fb [ G.Arg (G.L (G.String v1) |> G.e) ] )
+      |> G.e
   | InterpolatedString xs ->
       G.Call
         ( G.IdSpecial (G.ConcatString G.FString, unsafe_fake "concat") |> G.e,
@@ -146,6 +147,7 @@ let rec expr (x : expr) =
             |> List.map (fun x ->
                    let x = expr x in
                    G.Arg x)) )
+      |> G.e
   | ConcatenatedString xs ->
       G.Call
         ( G.IdSpecial (G.ConcatString G.SequenceConcat, unsafe_fake "concat")
@@ -155,50 +157,53 @@ let rec expr (x : expr) =
             |> List.map (fun x ->
                    let x = expr x in
                    G.Arg x)) )
+      |> G.e
   | TypedExpr (v1, v2) ->
       let v1 = expr v1 in
       let v2 = type_ v2 in
-      G.Cast (v2, unsafe_fake ":", v1)
+      G.Cast (v2, unsafe_fake ":", v1) |> G.e
   | TypedMetavar (v1, v2, v3) ->
       let v1 = name v1 in
       let v3 = type_ v3 in
-      G.TypedMetavar (v1, v2, v3)
+      G.TypedMetavar (v1, v2, v3) |> G.e
   | ExprStar v1 ->
       let v1 = expr v1 in
       G.Call
         (G.IdSpecial (G.Spread, unsafe_fake "spread") |> G.e, fb [ G.arg v1 ])
+      |> G.e
   | Name (v1, v2, v3) ->
       let v1 = name v1
       and _v2TODO = expr_context v2
       and v3 = vref resolved_name v3 in
-      G.N (G.Id (v1, { (G.empty_id_info ()) with G.id_resolved = v3 }))
+      G.N (G.Id (v1, { (G.empty_id_info ()) with G.id_resolved = v3 })) |> G.e
   | Tuple (CompList v1, v2) ->
       let v1 = bracket (list expr) v1 and _v2TODO = expr_context v2 in
-      G.Container (G.Tuple, v1)
+      G.Container (G.Tuple, v1) |> G.e
   | Tuple (CompForIf (v1, v2), v3) ->
       let e1 = comprehension expr v1 v2 in
       let _v4TODO = expr_context v3 in
-      G.Comprehension (G.Tuple, fb e1)
+      G.Comprehension (G.Tuple, fb e1) |> G.e
   | List (CompList v1, v2) ->
       let v1 = bracket (list expr) v1 and _v2TODO = expr_context v2 in
-      G.Container (G.List, v1)
+      G.Container (G.List, v1) |> G.e
   | List (CompForIf (v1, v2), v3) ->
       let e1 = comprehension expr v1 v2 in
       let _v3TODO = expr_context v3 in
-      G.Comprehension (G.List, fb e1)
-  | Subscript (v1, v2, v3) -> (
-      let e = expr v1 and _v3TODO = expr_context v3 in
-      match v2 with
-      | l1, [ x ], l2 -> slice1 e (l1, x, l2)
-      | _, xs, _ ->
-          let xs = list (slice e) xs in
-          G.OtherExpr (G.OE_Slices, xs |> List.map (fun x -> G.E x)))
+      G.Comprehension (G.List, fb e1) |> G.e
+  | Subscript (v1, v2, v3) ->
+      (let e = expr v1 and _v3TODO = expr_context v3 in
+       match v2 with
+       | l1, [ x ], l2 -> slice1 e (l1, x, l2)
+       | l1, xs, _ ->
+           let xs = list (slice e) xs in
+           G.OtherExpr2 (("Slices", l1), xs |> List.map (fun x -> G.E x)))
+      |> G.e
   | Attribute (v1, t, v2, v3) ->
       let v1 = expr v1
       and t = info t
       and v2 = name v2
       and _v3TODO = expr_context v3 in
-      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ()))) |> G.e
   | DictOrSet (CompList (t1, v, t2)) ->
       let v' = list dictorset_elt v in
       let kind =
@@ -214,42 +219,41 @@ let rec expr (x : expr) =
         then G.Dict
         else G.Set
       in
-      G.Container (kind, (t1, v', t2))
+      G.Container (kind, (t1, v', t2)) |> G.e
   | DictOrSet (CompForIf (v1, v2)) ->
       let e1 = comprehension2 dictorset_elt v1 v2 in
-      G.Comprehension (G.Dict, fb e1)
+      G.Comprehension (G.Dict, fb e1) |> G.e
   | BoolOp ((v1, tok), v2) ->
       let v1 = boolop v1 and v2 = list expr v2 in
       G.Call (G.IdSpecial (G.Op v1, tok) |> G.e, fb (v2 |> List.map G.arg))
+      |> G.e
   | BinOp (v1, (v2, tok), v3) ->
       let v1 = expr v1 and v2 = operator v2 and v3 = expr v3 in
       G.Call
         (G.IdSpecial (G.Op v2, tok) |> G.e, fb ([ v1; v3 ] |> List.map G.arg))
-  | UnaryOp ((v1, tok), v2) -> (
-      let v1 = unaryop v1 and v2 = expr v2 in
-      match v1 with
-      | Left op ->
-          G.Call
-            (G.IdSpecial (G.Op op, tok) |> G.e, fb ([ v2 ] |> List.map G.arg))
-      | Right oe -> G.OtherExpr (oe, [ G.E v2 ]))
+      |> G.e
+  | UnaryOp ((v1, tok), v2) ->
+      let op = unaryop v1 and v2 = expr v2 in
+      G.opcall (op, tok) [ v2 ]
   | Compare (v1, v2, v3) -> (
       let v1 = expr v1 and v2 = list cmpop v2 and v3 = list expr v3 in
       match (v2, v3) with
       | [ (op, tok) ], [ e ] ->
           G.Call
             (G.IdSpecial (G.Op op, tok) |> G.e, fb ([ v1; e ] |> List.map G.arg))
+          |> G.e
       | _ ->
           let anyops =
             v2
             |> List.map (function arith, tok ->
                    G.E (G.IdSpecial (G.Op arith, tok) |> G.e))
           in
-          let any = anyops @ (v3 |> List.map (fun e -> G.E e)) in
-          G.OtherExpr (G.OE_CmpOps, any))
+          let anys = anyops @ (v3 |> List.map (fun e -> G.E e)) in
+          G.OtherExpr2 (("CmpOps", unsafe_fake ""), anys) |> G.e)
   | Call (v1, v2) ->
       let v1 = expr v1 in
       let v2 = bracket (list argument) v2 in
-      G.Call (v1, v2)
+      G.Call (v1, v2) |> G.e
   | Lambda (t0, v1, _t2, v2) ->
       let v1 = parameters v1 and v2 = expr v2 in
       G.Lambda
@@ -259,20 +263,20 @@ let rec expr (x : expr) =
           frettype = None;
           fkind = (G.LambdaKind, t0);
         }
+      |> G.e
   | IfExp (v1, v2, v3) ->
       let v1 = expr v1 and v2 = expr v2 and v3 = expr v3 in
-      G.Conditional (v1, v2, v3)
+      G.Conditional (v1, v2, v3) |> G.e
   | Yield (t, v1, v2) ->
       let v1 = option expr v1 and v2 = v2 in
-      G.Yield (t, v1, v2)
+      G.Yield (t, v1, v2) |> G.e
   | Await (t, v1) ->
       let v1 = expr v1 in
-      G.Await (t, v1)
+      G.Await (t, v1) |> G.e
   | Repr v1 ->
-      let _, v1, _ = bracket expr v1 in
-      G.OtherExpr (G.OE_Repr, [ G.E v1 ])
-  | NamedExpr (v, t, e) -> G.Assign (expr v, t, expr e))
-  |> G.e
+      let l, v1, _ = bracket expr v1 in
+      G.OtherExpr2 (("Repr", l), [ G.E v1 ]) |> G.e
+  | NamedExpr (v, t, e) -> G.Assign (expr v, t, expr e) |> G.e
 
 and argument = function
   | Arg e ->
@@ -350,10 +354,10 @@ and operator = function
   | MatMult -> G.MatMult
 
 and unaryop = function
-  | Invert -> Right G.OE_Invert
-  | Not -> Left G.Not
-  | UAdd -> Left G.Plus
-  | USub -> Left G.Minus
+  | Invert -> G.BitNot
+  | Not -> G.Not
+  | UAdd -> G.Plus
+  | USub -> G.Minus
 
 and cmpop (a, b) =
   match a with

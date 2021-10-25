@@ -414,12 +414,12 @@ and map_expr env x : G.expr =
         map_paren env (map_either env (map_type_ env) (map_expr env)) v2
       in
       let any = any_of_either_type_expr either in
-      G.OtherExpr (G.OE_Todo, [ G.TodoK ("TypeId", v1); any ]) |> G.e
+      G.OtherExpr2 (("TypeId", v1), [ any ]) |> G.e
   | CplusplusCast (v1, v2, v3) ->
       let optodo, t = map_wrap env (map_cast_operator env) v1
       and langle, typ, _rangle = map_angle_keep env (map_type_ env) v2
       and _lpar, e, rpar = map_paren env (map_expr env) v3 in
-      let ecall = G.OtherExpr (G.OE_Todo, [ G.TodoK (optodo, t) ]) |> G.e in
+      let ecall = G.OtherExpr2 ((optodo, t), []) |> G.e in
       G.Call (ecall, (langle, [ G.ArgType typ; G.Arg e ], rpar)) |> G.e
   | New (v1, v2, v3, v4, v5) ->
       let _topqualifierTODO = map_of_option (map_tok env) v1
@@ -442,10 +442,10 @@ and map_expr env x : G.expr =
       and v4 = map_expr env v4 in
       let categ =
         match v3 with
-        | None -> G.TodoK ("Delete", v2)
-        | Some (_l, (), _r) -> G.TodoK ("Delete[]", v2)
+        | None -> ("Delete", v2)
+        | Some (_l, (), _r) -> ("Delete[]", v2)
       in
-      G.OtherExpr (G.OE_Todo, [ categ; G.E v4 ]) |> G.e
+      G.OtherExpr2 (categ, [ G.E v4 ]) |> G.e
   | Throw (v1, v2) ->
       let v1 = map_tok env v1
       and v2 = expr_option v1 (map_of_option (map_expr env) v2) in
@@ -456,7 +456,7 @@ and map_expr env x : G.expr =
       G.Lambda v1 |> G.e
   | ParamPackExpansion (v1, v2) ->
       let v1 = map_expr env v1 and v2 = map_tok env v2 in
-      G.OtherExpr (G.OE_Todo, [ G.TodoK ("Pack", v2); G.E v1 ]) |> G.e
+      G.OtherExpr2 (("Pack", v2), [ G.E v1 ]) |> G.e
   | ParenExpr v1 ->
       let _l, v1, _r = map_paren env (map_expr env) v1 in
       v1
@@ -472,8 +472,7 @@ and map_expr env x : G.expr =
   | ExprTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_expr env) v2 in
-      G.OtherExpr (G.OE_Todo, G.TodoK v1 :: (v2 |> List.map (fun e -> G.E e)))
-      |> G.e
+      G.OtherExpr2 (v1, v2 |> List.map (fun e -> G.E e)) |> G.e
 
 and map_ident_info _env { i_scope = _v_i_scope } = ()
 
@@ -540,9 +539,7 @@ and map_unaryOp _env = function
   | GetRef -> Right (fun tok e -> G.Ref (tok, e) |> G.e)
   | DeRef -> Right (fun tok e -> G.DeRef (tok, e) |> G.e)
   | GetRefLabel ->
-      Right
-        (fun tok e ->
-          G.OtherExpr (G.OE_GetRefLabel, [ G.Tk tok; G.E e ]) |> G.e)
+      Right (fun tok e -> G.OtherExpr2 (("GetRefLabel", tok), [ G.E e ]) |> G.e)
 
 and map_assignOp env = function
   | SimpleAssign v1 ->
