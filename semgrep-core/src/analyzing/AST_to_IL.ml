@@ -887,23 +887,28 @@ let rec stmt_aux env st =
       @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ next @ ss2)) ]
       @ break_label_s
   | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
-  | G.For (tok, G.ForIn (xs, e), st) ->
+  | G.For (tok, G.ForIn (xs, e), stmts) ->
+      let orig_stmt = st in
       let cont_label_s, break_label_s, st_env =
         mk_break_continue_labels env tok
       in
       let ss1 = for_var_or_expr_list env xs in
-      let st = stmt st_env st in
+      let stmts = stmt st_env stmts in
       let ss2, cond =
         match e with
         | first :: _TODO ->
             (* TODO list *)
             expr_with_pre_stmts env first
         | [] ->
-            (* TODO: handle this gracefully *)
-            failwith "for-in: empty list of elements to iterate over (TODO)"
+            (* TODO: empty list of elements to iterate over
+               bash: for x do ... done *)
+            let fake_expr =
+              G.OtherExpr (("empty 'in'", tok), [ G.S st ]) |> G.e
+            in
+            ([], fixme_exp ToDo (G.S orig_stmt) fake_expr)
       in
       ss1 @ ss2
-      @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ ss2)) ]
+      @ [ mk_s (Loop (tok, cond, stmts @ cont_label_s @ ss2)) ]
       @ break_label_s
   (* TODO: repeat env work of controlflow_build.ml *)
   | G.Continue (tok, lbl_ident, _) -> (
