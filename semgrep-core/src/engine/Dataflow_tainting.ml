@@ -74,21 +74,22 @@ let set_opt_to_set = function
   | None -> PM.Set.empty
   | Some x -> x
 
-(* Takes two metavariable environments, and
-   if they have a conflicting metavariable assignment, returns None,
-   otherwise returns the union of the environments. We use this to
-   prevent reporting that a sink is tainted if the source of taint and
-   the sink have conflicting metavariable environments
-*)
+(* @param env1 Metavariable environment.
+   @param env2 Metavariable environment.
+   @returns Some (union [env1] [env2]) if [env1] and [env2] contain no conflicting metavariable assignments, otherwise None. *)
 let unify_meta_envs env1 env2 =
+  let ( let* ) = Option.bind in
   let xs =
     List.fold_left
       (fun xs (mvar, mval) ->
         match List.assoc_opt mvar env2 with
-        | None -> Option.map (fun xs -> (mvar, mval) :: xs) xs
+        | None ->
+            let* xs = xs in
+            Some ((mvar, mval) :: xs)
         | Some mval' ->
             if Metavariable.equal_mvalue mval mval' then
-              Option.map (fun xs -> (mvar, mval) :: xs) xs
+              let* xs = xs in
+              Some ((mvar, mval) :: xs)
             else None)
       (Some []) env1
   in
@@ -108,37 +109,26 @@ let set_filter_map f pm_set =
       | None -> pm_set)
     pm_set PM.Set.empty
 
-let ( <|> ) = PM.Set.union
+(* @param sink_pm Pattern match of a sink.
+   @param src_pms Set of pattern matches corresponding to sources.
+   @returns PM.Set.t containing a copy [sink_pm] with an updated metavariable environment for each PM in [src_pms] whose env unifies with [sink_pm]s. *)
+let update_meta_envs sink_pm src_pms =
+  let ( let* ) = Option.bind in
+  set_filter_map
+    (fun src_pm ->
+      let* env = unify_meta_envs sink_pm.PM.env src_pm.PM.env in
+      Some { sink_pm with env })
+    src_pms
 
-(* Takes a pattern match (should be from a sink) and a set of pattern matches (should be sources),
-   returns a set containing a copy of the sink match for each source match with a metavariable environment
-   that could unify with the sink's environment. The copies will have their environments updated with the
-   successful unification.
- *)
-let update_meta_envs pm =
-  set_filter_map (fun pm' ->
-      Option.bind (unify_meta_envs pm.PM.env pm'.PM.env) (fun env ->
-          Some { pm with env }))
-
-(* Takes a list of pattern matches for a sink and a set of pattern matches for a source
-   and finds all the unifiable metavariable environments between them. Returns a set
-   of all the possible sink pattern matches with their metavariable environments updated
+(* @param sink_pms List of sink pattern matches.
+   @param src_pms Set of source pattern matches.
+   @returns PM.Set.t of all the possible tainted sink pattern matches with their metavariable environments updated
    to include the bindings from the source whose environment unified with it.
  *)
-let make_tainted_sink_matches pm_list pm_set =
-  pm_list
-  |> List.map (fun pm -> update_meta_envs pm pm_set)
+let make_tainted_sink_matches sink_pms src_pms =
+  sink_pms
+  |> List.map (fun pm -> update_meta_envs pm src_pms)
   |> List.fold_left PM.Set.union PM.Set.empty
-
-let varmap_update env x data f =
-  match VarMap.find_opt x env with
-  | None -> VarMap.add x data env
-  | Some data' -> VarMap.add x (f data') env
-
-let hashtbl_update env x data f =
-  match Hashtbl.find_opt env x with
-  | None -> Hashtbl.add env x data
-  | Some data' -> Hashtbl.add env x (f data')
 
 (*****************************************************************************)
 (* Tainted *)
@@ -161,8 +151,9 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
           else []
         in
         PM.Set.of_list var_tok_pms
-        <|> set_opt_to_set (VarMap.find_opt (str_of_name var) env)
-        <|> set_opt_to_set (Hashtbl.find_opt fun_env (str_of_name var))
+        |> PM.Set.union (set_opt_to_set (VarMap.find_opt (str_of_name var) env))
+        |> PM.Set.union
+             (set_opt_to_set (Hashtbl.find_opt fun_env (str_of_name var)))
     | VarSpecial _ -> PM.Set.empty
     | Mem e -> check e
   in
@@ -175,7 +166,8 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
   let check_subexpr = function
     | Fetch { base = VarSpecial (This, _); offset = Dot fld; _ } ->
         set_opt_to_set (Hashtbl.find_opt fun_env (str_of_name fld))
-    | Fetch { base; offset; _ } -> check_base base <|> check_offset offset
+    | Fetch { base; offset; _ } ->
+        PM.Set.union (check_base base) (check_offset offset)
     | Literal _
     | FixmeExp _ ->
         PM.Set.empty
@@ -190,14 +182,12 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
   | _ :: _ -> PM.Set.empty
   | [] ->
       let tainted_pms =
-        check_subexpr exp.e
-        <|> PM.Set.of_list (config.is_source (G.E exp.eorig))
+        PM.Set.union (check_subexpr exp.e)
+          (PM.Set.of_list (config.is_source (G.E exp.eorig)))
       in
       let found = make_tainted_sink_matches sink_pms tainted_pms in
-      if PM.Set.is_empty found then tainted_pms
-      else (
-        config.found_tainted_sink found env;
-        tainted_pms)
+      if not (PM.Set.is_empty found) then config.found_tainted_sink found env;
+      tainted_pms
 
 (* Test whether an instruction is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
@@ -210,7 +200,7 @@ let check_tainted_instr config fun_env env instr : PM.Set.t =
     | Call (_, e, args) ->
         let e_tainted_pms = check_expr e in
         let args_tainted_pms = set_concat_map check_expr args in
-        e_tainted_pms <|> args_tainted_pms
+        PM.Set.union e_tainted_pms args_tainted_pms
     | CallSpecial (_, _, args) -> set_concat_map check_expr args
     | FixmeInstr _ -> PM.Set.empty
   in
@@ -219,14 +209,12 @@ let check_tainted_instr config fun_env env instr : PM.Set.t =
   | _ :: _ -> PM.Set.empty
   | [] ->
       let tainted_pms =
-        tainted_args instr.i
-        <|> PM.Set.of_list (config.is_source (G.E instr.iorig))
+        PM.Set.union (tainted_args instr.i)
+          (PM.Set.of_list (config.is_source (G.E instr.iorig)))
       in
       let found = make_tainted_sink_matches sink_pms tainted_pms in
-      if PM.Set.is_empty found then tainted_pms
-      else (
-        config.found_tainted_sink found env;
-        tainted_pms)
+      if not (PM.Set.is_empty found) then config.found_tainted_sink found env;
+      tainted_pms
 
 (* Test whether a `return' is tainted, and if it is also a sink,
  * report the finding too (by side effect). *)
@@ -235,10 +223,8 @@ let check_tainted_return config fun_env env tok e =
   let sink_pms = config.is_sink (G.S orig_return) in
   let e_tainted_pms = check_tainted_expr config fun_env env e in
   let found = make_tainted_sink_matches sink_pms e_tainted_pms in
-  if PM.Set.is_empty found then e_tainted_pms
-  else (
-    config.found_tainted_sink found env;
-    e_tainted_pms)
+  if not (PM.Set.is_empty found) then config.found_tainted_sink found env;
+  e_tainted_pms
 
 (*****************************************************************************)
 (* Transfer *)
@@ -267,17 +253,24 @@ let (transfer :
         let tainted = check_tainted_instr config fun_env in' x in
         match (PM.Set.is_empty tainted, IL.lvar_of_instr_opt x) with
         | true, Some var -> VarMap.remove (str_of_name var) in'
-        | _, Some var ->
-            varmap_update in' (str_of_name var) tainted (PM.Set.union tainted)
-        | _ -> in')
+        | false, Some var ->
+            VarMap.update (str_of_name var)
+              (function
+                | None -> Some tainted
+                | Some tainted' -> Some (PM.Set.union tainted tainted'))
+              in'
+        | _, None -> in')
     | NReturn (tok, e) -> (
         let tainted = check_tainted_return config fun_env in' tok e in
         match opt_name with
         | Some var ->
-            hashtbl_update fun_env (str_of_name var) tainted
-              (PM.Set.union tainted);
+            (let str = str_of_name var in
+             match Hashtbl.find_opt fun_env str with
+             | None -> Hashtbl.add fun_env str tainted
+             | Some tained' ->
+                 Hashtbl.replace fun_env str (PM.Set.union tainted tained'));
             in'
-        | _ -> in')
+        | None -> in')
     | _ -> in'
   in
   { D.in_env = in'; out_env = out' }

@@ -117,16 +117,13 @@ let no_submatches pms =
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
   [@@profiling]
 
-(* Silly, but we have to because type declarations are automatically recursive so [type t = t] doesn't work *)
-type pm = t
-
 module Set = Set.Make (struct
-  type t = pm
+  type nonrec t = t
 
   (* If the pattern matches are obviously different (have different ranges), this is enough to compare them.
      If their ranges are the same, compare their metavariable environments. This is not robust to reordering
      metavariable environments. [("$A",e1);("$B",e2)] is not equal to [("$B",e2);("$A",e1)]. This should be ok
-     but is potentially a source of unexpected behavior.
+     but is potentially a source of duplicate findings in taint mode, where these sets are used.
   *)
   let compare pm1 pm2 =
     match compare pm1.range_loc pm2.range_loc with
