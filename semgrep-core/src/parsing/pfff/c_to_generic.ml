@@ -298,7 +298,11 @@ let rec stmt st =
   (match st with
   | DefStmt x -> definition x
   | DirStmt x -> directive x
-  | CaseStmt x -> case_stmt x
+  | CaseStmt x ->
+      (* should not happen, should only appear in Switch *)
+      let case, st = case_and_body x in
+      let anys = [ case ] |> List.map (fun cs -> G.Cs cs) in
+      G.OtherStmtWithStmt (OSWS_Todo, anys, st)
   | ExprSt (v1, t) ->
       let v1 = expr v1 in
       G.ExprStmt (v1, t)
@@ -310,9 +314,11 @@ let rec stmt st =
       G.If (t, v1, v2, v3)
   | Switch (v0, v1, v2) ->
       let v0 = info v0 in
-      let v1 = expr v1
-      and v2 = list case v2 |> List.map (fun x -> G.CasesAndBody x) in
-      G.Switch (v0, Some v1, v2)
+      let v1 = expr v1 and v2 = list case_and_body v2 in
+      let cases =
+        v2 |> List.map (fun (case, body) -> G.CasesAndBody ([ case ], body))
+      in
+      G.Switch (v0, Some v1, cases)
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
       G.While (t, v1, v2)
@@ -352,23 +358,13 @@ and expr_or_vars v1 =
       [ G.ForInitExpr e ]
   | Left _varsTODO -> []
 
-(* todo: should use OtherStmtWithStmt really *)
-and case_stmt = function
-  | Case (t, e, st) ->
-      let e = expr e in
-      let st = list stmt st in
-      G.OtherStmt (G.OS_Todo, [ G.TodoK ("case", t); G.E e; G.Ss st ])
-  | Default (t, st) ->
-      let st = list stmt st in
-      G.OtherStmt (G.OS_Todo, [ G.TodoK ("default", t); G.Ss st ])
-
-and case = function
+and case_and_body = function
   | Case (t, v1, v2) ->
       let v1 = expr v1 and v2 = list stmt v2 in
-      ([ G.Case (t, H.expr_to_pattern v1) ], G.stmt1 v2)
+      (G.Case (t, H.expr_to_pattern v1), G.stmt1 v2)
   | Default (t, v1) ->
       let v1 = list stmt v1 in
-      ([ G.Default t ], G.stmt1 v1)
+      (G.Default t, G.stmt1 v1)
 
 and var_decl
     { v_name = xname; v_type = xtype; v_storage = xstorage; v_init = init } =
@@ -454,7 +450,7 @@ and define_body = function
 and directive = function
   | Include (t, v1) ->
       let v1 = wrap string v1 in
-      G.DirectiveStmt (G.ImportAs (t, G.FileName v1, None) |> G.d)
+      G.DirectiveStmt (G.ImportAll (t, G.FileName v1, fake t "") |> G.d)
   | Define (_t, v1, v2) ->
       let v1 = name v1 and v2 = define_body v2 in
       let ent = G.basic_entity v1 in

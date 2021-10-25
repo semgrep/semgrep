@@ -198,7 +198,9 @@ type ident = string wrap [@@deriving show, eq, hash]
 type dotted_ident = ident list (* at least 1 element *)
 [@@deriving show, eq, hash]
 
-(* module_name can also be used for a package name or a namespace *)
+(* module_name can also be used for a package name or a namespace.
+ * TODO? prefix with M and add MQualifiedName for C++?
+ *)
 type module_name =
   | DottedName of dotted_ident (* ex: Python *)
   (* in FileName the '/' is similar to the '.' in DottedName *)
@@ -924,14 +926,20 @@ and case_and_body =
   (* sgrep: *)
   | CaseEllipsis of (* ... *) tok
 
+(* less: we use expr_to_pattern for many languages to build a Case so
+ * maybe we should instead have a CaseExpr and CasePattern?
+ *)
 and case =
   | Case of tok * pattern
+  (* less: could unsugar as Case (PatUnderscore _) *)
   | Default of tok
   (* For Go, expr can contain some Assign bindings.
    * todo? could merge with regular Case? can 'case x := <-chan' be
    * transformed in a pattern?
    *)
   | CaseEqualExpr of tok * expr
+  (* TODO: CaseRange for C++ *)
+  | OtherCase of todo_kind * any list
 
 (* todo: merge with case at some point *)
 (* newscope: newvar: *)
@@ -1059,7 +1067,7 @@ and pattern =
   (* less: generalize to other container_operator? *)
   | PatList of pattern list bracket
   | PatKeyVal of pattern * pattern (* a kind of PatTuple *)
-  (* special case of PatId *)
+  (* special case of PatId, =~ PatAny *)
   | PatUnderscore of tok
   (* OCaml and Scala *)
   | PatDisj of pattern * pattern (* also abused for catch in Java *)
@@ -1604,16 +1612,17 @@ and directive = {
 and directive_kind =
   (* newvar: *)
   | ImportFrom of
-      tok (* 'import'/'from' for Python, 'include' for C *)
-      * module_name
-      * ident
-      * alias option (* as name alias *)
+      tok (* 'import'/'from' for Python *) * module_name * ident * alias option (* as name alias *)
   | ImportAs of tok * module_name * alias option (* as name *)
-  (* bad practice! hard to resolve name locally *)
-  | ImportAll of tok * module_name * tok (* '.' in Go, '*' in Java/Python, '_' in Scala *)
+  (* Bad practice! hard to resolve name locally.
+   * We use ImportAll for C/C++ #include and C++ 'using namespace'.
+   * The last tok is '.' in Go, '*' in Java/Python, '_' in Scala, and a fake
+   * token in C++ 'using namespace std;'.
+   *)
+  | ImportAll of tok * module_name * tok
   (* packages are different from modules in that multiple files can reuse
    * the same package name; they are agglomerated in the same package.
-   * The list can be empty in C++.
+   * The dotted_ident can be empty in C++.
    *)
   | Package of tok * dotted_ident (* a.k.a namespace *)
   (* This is used for languages such as C++/PHP/Scala with scoped namespaces.
@@ -1700,12 +1709,13 @@ and any =
   | Tk of tok
   | TodoK of todo_kind
   | Ar of argument
-  (* todo: get rid of some? *)
+  | Pa of parameter
   | Modn of module_name
+  | Ce of catch_exn
+  | Cs of case
+  (* todo: get rid of some? *)
   | ModDk of module_definition_kind
   | En of entity
-  | Pa of parameter
-  | Ce of catch_exn
   | Dk of definition_kind
   | Di of dotted_ident
   | Lbli of label_ident

@@ -8,7 +8,8 @@
    commons
    pfff-config
    pfff-h_program-lang
-   pfff-lang_GENERIC pfff-lang_GENERIC-analyze
+   pfff-lang_GENERIC
+   ;note: we should not depend on pfff-lang_GENERIC-analyze in core
 
    spacegrep
  )
