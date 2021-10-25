@@ -3204,7 +3204,7 @@ and map_item_kind (env : env) _outer_attrs _visibility (x : CST.item_kind) :
       let _semicolon = token env v3 (* ";" *) in
       List.map (fun x -> G.DirectiveStmt x |> G.s) use_clauses
   | `Extern_crate_decl (v1, v2, v3, v4, v5) ->
-      let _externTODO = token env v1 (* "extern" *) in
+      let extern = token env v1 (* "extern" *) in
       let _crate = token env v2 (* "crate" *) in
       let ident_ = ident env v3 in
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
@@ -3214,17 +3214,12 @@ and map_item_kind (env : env) _outer_attrs _visibility (x : CST.item_kind) :
             let _as_ = token env v1 (* "as" *) in
             let alias = ident env v2 in
             (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
-            alias)
+            (alias, G.empty_id_info ()))
           v4
       in
       let _semicolon = token env v5 (* ";" *) in
-      let any =
-        match alias with
-        | Some x -> [ G.I ident_; G.I x ]
-        | None -> [ G.I ident_ ]
-      in
-      let directive = G.OtherDirective (G.OI_Extern, any) |> G.d in
-      [ G.DirectiveStmt directive |> G.s ]
+      let dir = G.ImportAs (extern, G.DottedName [ ident_ ], alias) |> G.d in
+      [ G.DirectiveStmt dir |> G.s ]
   | `Static_item (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let static = token env v1 (* "static" *) in
       let _ref_ = Option.map (fun tok -> token env tok (* "ref" *)) v2 in

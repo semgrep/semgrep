@@ -685,7 +685,7 @@ and module_directive x =
   match x with
   | ReExportNamespace (v1, _v2, _opt_alias, _v3, v4) ->
       let v4 = filename v4 in
-      G.OtherDirective (G.OI_ReExportNamespace, [ G.Tk v1; G.Str v4 ])
+      G.OtherDirective (("ReExportNamespace", v1), [ G.Str v4 ])
   | Import (t, v1, v2, v3) ->
       let v1 = name v1 and v2 = option alias v2 and v3 = filename v3 in
       G.ImportFrom (t, G.FileName v3, v1, v2)
@@ -701,7 +701,7 @@ and module_directive x =
       G.ImportAs (t, G.FileName v1, None)
   | Export (t, v1) ->
       let v1 = name v1 in
-      G.OtherDirective (G.OI_Export, [ G.Tk t; G.I v1 ])
+      G.OtherDirective (("Export", t), [ G.I v1 ])
 
 and require_to_import_in_stmt_opt st =
   match st with

@@ -1150,11 +1150,7 @@ and map_directive_kind = function
   | PackageEnd t ->
       let t = map_tok t in
       `PackageEnd t
-  | OtherDirective (v1, v2) ->
-      let v1 = map_other_directive_operator v1
-      and v2 = map_of_list map_any v2 in
-      `OtherDirective (v1, v2)
-  | OtherDirective2 (_v1, _v2) -> failwith "TODO"
+  | OtherDirective (_v1, _v2) -> failwith "TODO"
 
 and map_ident_and_id_info (v1, v2) =
   let v1 = map_ident v1 in
@@ -1164,8 +1160,6 @@ and map_ident_and_id_info (v1, v2) =
 and map_alias (v1, v2) =
   let v1 = map_ident v1 and v2 = map_of_option map_ident_and_id_info v2 in
   (v1, v2)
-
-and map_other_directive_operator _x = "TODO"
 
 and map_item x = map_stmt x
 
