@@ -422,7 +422,7 @@ let all_actions () =
       " <files or dirs> generate parsing statistics (use -json for JSON output)",
       Common.mk_action_n_arg (fun xs ->
           Test_parsing.parsing_stats (lang_of_string !lang)
-            (!output_format = Json) xs) );
+            ~json:(!output_format = Json) ~verbose:true xs) );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Common.mk_action_n_arg (fun xs ->
@@ -716,10 +716,14 @@ let main () =
       | [] -> Common.usage usage_msg (options ()))
 
 (*****************************************************************************)
+
+let register_exception_printers () =
+  Parse_info.register_exception_printer ();
+  Pcre_settings.register_exception_printer ()
+
 let () =
   Common.main_boilerplate (fun () ->
-      (* semgrep-specific initializations. Move to a dedicated module? *)
-      Pcre_settings.register_exception_printer ();
+      register_exception_printers ();
       Common.finalize
         (fun () -> main ())
         (fun () -> !Hooks.exit |> List.iter (fun f -> f ())))
