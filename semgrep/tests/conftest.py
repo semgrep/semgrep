@@ -96,6 +96,9 @@ def _run_semgrep(
     if not env:
         env = {}
 
+    if "SEMGREP_USER_AGENT_APPEND" not in env:
+        env["SEMGREP_USER_AGENT_APPEND"] = "testing"
+
     if not settings_file:
         unique_settings_file = tempfile.NamedTemporaryFile().name
         Path(unique_settings_file).write_text("has_shown_metrics_notification: true")

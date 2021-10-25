@@ -21,13 +21,26 @@ def test_semgrep_rules_repo(run_semgrep_in_tmp):
         ["git", "clone", "--depth=1", "https://github.com/returntocorp/semgrep-rules"]
     )
 
-    _fail_subprocess_on_error([sys.executable, "-m", "semgrep", "--generate-config"])
+    _fail_subprocess_on_error(
+        [
+            sys.executable,
+            "-m",
+            "semgrep",
+            "--generate-config",
+            "--disable-version-check",
+            "--metrics",
+            "off",
+        ]
+    )
 
     _fail_subprocess_on_error(
         [
             sys.executable,
             "-m",
             "semgrep",
+            "--disable-version-check",
+            "--metrics",
+            "off",
             "--dangerously-allow-arbitrary-code-execution-from-rules",
             "--strict",
             "--test",
@@ -37,5 +50,15 @@ def test_semgrep_rules_repo(run_semgrep_in_tmp):
     )
 
     _fail_subprocess_on_error(
-        [sys.executable, "-m", "semgrep", "--validate", "--config", "semgrep-rules"]
+        [
+            sys.executable,
+            "-m",
+            "semgrep",
+            "--disable-version-check",
+            "--metrics",
+            "off",
+            "--validate",
+            "--config",
+            "semgrep-rules",
+        ]
     )
