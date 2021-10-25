@@ -1810,7 +1810,7 @@ let arg e = Arg e
 let special spec es =
   Call (IdSpecial spec |> e, fake_bracket (es |> List.map arg)) |> e
 
-let opcall (op, t) es = special (Op op, t) es
+let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
 (* TODO: have a separate InterpolatedConcat in expr with a cleaner type
  * instead of abusing special?
