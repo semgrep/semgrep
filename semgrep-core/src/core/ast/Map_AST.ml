@@ -309,13 +309,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | DeepEllipsis v1 ->
             let v1 = map_bracket map_expr v1 in
             DeepEllipsis v1
+        | StmtExpr v1 ->
+            let v1 = map_stmt v1 in
+            StmtExpr v1
         | OtherExpr (v1, v2) ->
-            let v1 = map_other_expr_operator v1
-            and v2 = map_of_list map_any v2 in
-            OtherExpr (v1, v2)
-        | OtherExpr2 (v1, v2) ->
             let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
-            OtherExpr2 (v1, v2)
+            OtherExpr (v1, v2)
       in
       (* TODO? reuse the e_id or create a new one? *)
       G.e ekind
@@ -449,7 +448,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_action (v1, v2) =
     let v1 = map_pattern v1 and v2 = map_expr v2 in
     (v1, v2)
-  and map_other_expr_operator x = x
   and map_type_ { t; t_attrs } =
     let t = map_type_kind t in
     let t_attrs = map_of_list map_attribute t_attrs in

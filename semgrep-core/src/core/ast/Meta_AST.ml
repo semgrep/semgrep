@@ -279,10 +279,10 @@ and vof_expr e =
   | TypedMetavar (v1, v2, v3) ->
       let v1 = vof_ident v1 and v2 = vof_tok v2 and v3 = vof_type_ v3 in
       OCaml.VSum ("TypedMetavar", [ v1; v2; v3 ])
+  | StmtExpr v1 ->
+      let v1 = vof_stmt v1 in
+      OCaml.VSum ("StmtExpr", [ v1 ])
   | OtherExpr (v1, v2) ->
-      let v1 = vof_other_expr_operator v1 and v2 = OCaml.vof_list vof_any v2 in
-      OCaml.VSum ("OtherExpr", [ v1; v2 ])
-  | OtherExpr2 (v1, v2) ->
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherExpr", [ v1; v2 ])
 
@@ -486,10 +486,6 @@ and vof_argument = function
 and vof_action (v1, v2) =
   let v1 = vof_pattern v1 and v2 = vof_expr v2 in
   OCaml.VTuple [ v1; v2 ]
-
-and vof_other_expr_operator = function
-  | OE_Arg -> OCaml.VSum ("OE_Arg", [])
-  | OE_StmtExpr -> OCaml.VSum ("OE_StmtExpr", [])
 
 and vof_type_ { t; t_attrs } =
   let bnds = [] in

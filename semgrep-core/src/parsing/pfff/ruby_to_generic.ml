@@ -414,7 +414,7 @@ and literal x =
       (* TODO: generate interpolation Special *)
       | Double xs -> string_contents_list xs
       | Tick (l, xs, r) ->
-          G.OtherExpr2
+          G.OtherExpr
             (("Subshell", l), [ G.E (string_contents_list (l, xs, r) |> G.e) ]))
   | Regexp ((l, xs, r), opt) -> (
       match xs with

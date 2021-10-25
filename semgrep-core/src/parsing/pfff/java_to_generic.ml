@@ -195,7 +195,7 @@ and element_value = function
       v1
   | AnnotNestedAnnot v1 ->
       let v1 = annotation v1 in
-      G.OtherExpr2 (("Annot", unsafe_fake ""), [ G.At v1 ]) |> G.e
+      G.OtherExpr (("Annot", unsafe_fake ""), [ G.At v1 ]) |> G.e
   | AnnotArrayInit (t1, v1, t2) ->
       let v1 = list element_value v1 in
       G.Container (G.List, (t1, v1, t2)) |> G.e
@@ -271,7 +271,7 @@ and expr e =
       G.L v1
   | ClassLiteral (v1, v2) ->
       let v1 = typ v1 in
-      G.OtherExpr2 (("ClassLiteral", v2), [ G.T v1 ])
+      G.OtherExpr (("ClassLiteral", v2), [ G.T v1 ])
   | NewClass (v0, v1, (lp, v2, rp), v3) -> (
       let v1 = typ v1
       and v2 = list argument v2
@@ -323,14 +323,14 @@ and expr e =
         @ (Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
           |> List.map (fun st -> G.S st))
       in
-      G.OtherExpr2 (("NewQualifiedClass", tok2), anys)
+      G.OtherExpr (("NewQualifiedClass", tok2), anys)
   | MethodRef (v1, v2, v3, v4) ->
       let v1 = expr_or_type v1 in
       let v2 = tok v2 in
       let _v3TODO = option type_arguments v3 in
       let v4 = ident v4 in
       (* TODO? use G.GetRef? *)
-      G.OtherExpr2 (("MethodRef", v2), [ v1; G.I v4 ])
+      G.OtherExpr (("MethodRef", v2), [ v1; G.I v4 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = arguments v2 in
       G.Call (v1, v2)
