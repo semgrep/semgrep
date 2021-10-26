@@ -327,6 +327,7 @@ and assign env lhs _tok rhs_exp eorig =
         add_instr env (fixme_instr kind any_generic eorig);
         fixme_exp kind any_generic lhs)
   | G.Container (((G.Tuple | G.Array) as ckind), (tok1, lhss, tok2)) ->
+      (* TODO: handle cases like [a, b, ...rest] = e *)
       (* E1, ..., En = RHS *)
       (* tmp = RHS*)
       let tmp = fresh_var env tok2 in
