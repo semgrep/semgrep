@@ -8,7 +8,7 @@ and node_kind =
   | TrueNode
   | FalseNode
   | Join
-  | IfHeader of expr
+  | IfHeader of condition
   | WhileHeader of expr
   | DoHeader
   | DoWhileTail of expr
@@ -16,7 +16,7 @@ and node_kind =
   (*TODO*)
   | ForeachHeader of pattern * expr
   | OtherStmtWithStmtHeader of other_stmt_with_stmt_operator * expr option
-  | SwitchHeader of expr option
+  | SwitchHeader of condition option
   | SwitchEnd
   | Case
   (* TODO of expr? *)

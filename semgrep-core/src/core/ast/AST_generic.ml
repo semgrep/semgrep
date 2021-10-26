@@ -890,9 +890,12 @@ and stmt_kind =
   | OtherStmt of other_stmt_operator * any list
 
 (* TODO: can also introduce var in some languages
- * TODO? factorize with for_var_or_expr
+ * less: factorize with for_var_or_expr
  *)
-and condition = expr
+and condition =
+  | Cond of expr
+  (* e.g., CondWithDecl, CondDecl in C++ *)
+  | OtherCond of todo_kind * any list
 
 (* newscope: *)
 (* less: could merge even more with pattern
@@ -1641,7 +1644,7 @@ and partial =
   (* partial defs. The fbody or cbody in definition will be empty. *)
   | PartialDef of definition
   (* partial stmts *)
-  | PartialIf of tok * expr (* todo? bracket *)
+  | PartialIf of tok * expr (* todo? bracket? TODO? switch to condition? *)
   | PartialTry of tok * stmt
   | PartialCatch of catch
   | PartialFinally of tok * stmt

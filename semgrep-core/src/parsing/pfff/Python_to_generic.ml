@@ -581,7 +581,7 @@ and stmt_aux x =
       [ G.OtherStmt (G.OS_Delete, v1 |> List.map (fun x -> G.E x)) |> G.s ]
   | If (t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = list_stmt1 v2 and v3 = option list_stmt1 v3 in
-      [ G.If (t, v1, v2, v3) |> G.s ]
+      [ G.If (t, Cond v1, v2, v3) |> G.s ]
   | While (t, v1, v2, v3) -> (
       (* TODO? missing list_stmt1 for v3? *)
       let v1 = expr v1

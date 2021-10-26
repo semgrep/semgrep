@@ -1704,7 +1704,7 @@ and statement (env : env) (x : CST.statement) =
             Some v2
         | None -> None
       in
-      G.If (v1, v3, v5, v6) |> G.s
+      G.If (v1, G.Cond v3, v5, v6) |> G.s
   | `Labe_stmt (v1, v2, v3) ->
       let v1 = identifier env v1 (* identifier *) in
       let _v2 = token env v2 (* ":" *) in
@@ -1764,7 +1764,7 @@ and statement (env : env) (x : CST.statement) =
         | `Tuple_exp v2 -> tuple_expression env v2
       in
       let v3 = switch_body env v3 in
-      G.Switch (v1, Some v2, v3) |> G.s
+      G.Switch (v1, Some (G.Cond v2), v3) |> G.s
   | `Throw_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "throw" *) in
       let v2 = Common.map_opt (expression env) v2 in

@@ -1645,7 +1645,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expr =
             (v1, Some v4)
       in
       let v6, v7 = v5 in
-      let if_stmt = If (v1, v3, v6, v7) |> G.s in
+      let if_stmt = If (v1, G.Cond v3, v6, v7) |> G.s in
       stmt_to_expr if_stmt
   | `When_exp (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "when" *) in
@@ -2121,7 +2121,8 @@ and when_subject (env : env) ((v1, v2, v3, v4) : CST.when_subject) : condition =
   in
   let v3 = expression env v3 in
   let _v4 = token env v4 (* ")" *) in
-  v3
+  (* TODO: use CondWithDecl *)
+  G.Cond v3
 
 let file_annotation (env : env) ((v1, v2, v3, v4) : CST.file_annotation) =
   let _v1 = token env v1 (* "@" *) in

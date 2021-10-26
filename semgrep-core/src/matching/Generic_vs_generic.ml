@@ -1933,7 +1933,7 @@ and m_stmt a b =
   | G.If (a0, a1, a2, a3), B.If (b0, b1, b2, b3) ->
       m_tok a0 b0 >>= fun () ->
       (* too many regressions doing m_expr_deep by default; Use DeepEllipsis *)
-      m_expr a1 b1 >>= fun () ->
+      m_condition a1 b1 >>= fun () ->
       m_block a2 b2 >>= fun () ->
       (* less-is-more: *)
       m_option_none_can_match_some m_block a3 b3
@@ -1950,7 +1950,7 @@ and m_stmt a b =
       m_for_header a1 b1 >>= fun () -> m_stmt a2 b2
   | G.Switch (at, a1, a2), B.Switch (bt, b1, b2) ->
       m_tok at bt >>= fun () ->
-      m_option m_expr a1 b1 >>= fun () -> m_case_clauses a2 b2
+      m_option m_condition a1 b1 >>= fun () -> m_case_clauses a2 b2
   | G.Match (a0, a1, a2), B.Match (b0, b1, b2) ->
       let* () = m_tok a0 b0 in
       m_expr a1 b1 >>= fun () -> m_match_cases a2 b2
@@ -2010,6 +2010,17 @@ and m_stmt a b =
   | G.OtherStmt _, _
   | G.OtherStmtWithStmt _, _
   | G.WithUsingResource _, _ ->
+      fail ()
+
+and m_condition a b =
+  match (a, b) with
+  | G.Cond a1, B.Cond b1 -> m_expr a1 b1
+  | G.OtherCond (a1, a2), B.OtherCond (b1, b2) ->
+      let* () = m_todo_kind a1 b1 in
+      let* () = m_list m_any a2 b2 in
+      return ()
+  | G.Cond _, _
+  | G.OtherCond _, _ ->
       fail ()
 
 and m_case_clauses a b =

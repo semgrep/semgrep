@@ -250,7 +250,7 @@ and if_stmt env level (tok, e, s, sopt) =
         (paren_cond, "else if", bracket_body)
     | Lang.Lua -> (paren_cond, "elseif", bracket_body)
   in
-  let e_str = format_cond tok (expr env e) in
+  let e_str = format_cond tok (condition env e) in
   let s_str = stmt env (level + 1) s in
   let if_stmt_prt = format_block e_str s_str in
   match sopt with
@@ -264,6 +264,11 @@ and if_stmt env level (tok, e, s, sopt) =
   | Some body ->
       F.sprintf "%s%s" if_stmt_prt
         (format_block (indent level ^ "else") (stmt env (level + 1) body))
+
+and condition env x =
+  match x with
+  | Cond e -> expr env e
+  | OtherCond _ -> raise Todo
 
 and while_stmt env level (tok, e, s) =
   let ocaml_while = F.sprintf "%s %s do\n%s\ndone" in
