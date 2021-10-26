@@ -1292,7 +1292,7 @@ and definition_kind =
 and type_parameter =
   | TP of type_parameter_classic
   (* e.g., Lifetime in Rust, complex types in OCaml, HasConstructor in C#,
-   * regular Param in C++
+   * regular Param in C++, AnonTypeParam/TPRest/TPNested in C++
    *)
   | OtherTypeParam of todo_kind * any list
 
@@ -1647,6 +1647,7 @@ and partial =
 
 (* mentioned in many OtherXxx so must be part of the mutually recursive type *)
 and any =
+  (* main patterns used for semgrep *)
   | E of expr
   | S of stmt
   | Ss of stmt list
@@ -1668,6 +1669,8 @@ and any =
   | TodoK of todo_kind
   | Ar of argument
   | Pa of parameter
+  | Tp of type_parameter
+  | Ta of type_argument
   | Modn of module_name
   | Ce of catch_exn
   | Cs of case
