@@ -221,7 +221,7 @@ and expr e =
       G.ArrayAccess (v1, v2) |> G.e
   | RecordPtAccess (v1, t, v2) ->
       let v1 = expr v1 and t = info t and v2 = name v2 in
-      G.DotAccess (G.DeRef (t, v1) |> G.e, t, G.EN (Id (v2, G.empty_id_info ())))
+      G.DotAccess (G.DeRef (t, v1) |> G.e, t, G.FN (Id (v2, G.empty_id_info ())))
       |> G.e
   | Cast (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in

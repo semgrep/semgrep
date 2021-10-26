@@ -236,7 +236,7 @@ and vof_expr e =
       let v1 = vof_pattern v1 and v2 = vof_expr v2 in
       OCaml.VSum ("LetPattern", [ v1; v2 ])
   | DotAccess (v1, t, v2) ->
-      let v1 = vof_expr v1 and t = vof_tok t and v2 = vof_name_or_dynamic v2 in
+      let v1 = vof_expr v1 and t = vof_tok t and v2 = vof_field_name v2 in
       OCaml.VSum ("DotAccess", [ v1; t; v2 ])
   | ArrayAccess (v1, v2) ->
       let v1 = vof_expr v1 and v2 = vof_bracket vof_expr v2 in
@@ -286,13 +286,27 @@ and vof_expr e =
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherExpr", [ v1; v2 ])
 
-and vof_name_or_dynamic = function
+and vof_field_name = function
+  | FN v1 ->
+      let v1 = vof_name v1 in
+      OCaml.VSum ("FN", [ v1 ])
+  | FDynamic v1 ->
+      let v1 = vof_expr v1 in
+      OCaml.VSum ("FDynamic", [ v1 ])
+
+and vof_entity_name = function
   | EN v1 ->
       let v1 = vof_name v1 in
       OCaml.VSum ("EN", [ v1 ])
   | EDynamic v1 ->
       let v1 = vof_expr v1 in
       OCaml.VSum ("EDynamic", [ v1 ])
+  | EPattern v1 ->
+      let v1 = vof_pattern v1 in
+      OCaml.VSum ("EPattern", [ v1 ])
+  | OtherEntity (v1, v2) ->
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
+      OCaml.VSum ("OtherEntity", [ v1; v2 ])
 
 and vof_literal = function
   | Unit v1 ->
@@ -933,7 +947,7 @@ and vof_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let arg = OCaml.vof_list vof_attribute v_attrs in
   let bnd = ("attrs", arg) in
   let bnds = bnd :: bnds in
-  let arg = vof_name_or_dynamic v_name in
+  let arg = vof_entity_name v_name in
   let bnd = ("name", arg) in
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
@@ -1411,6 +1425,3 @@ and vof_any = function
   | Lbli v1 ->
       let v1 = vof_label_ident v1 in
       OCaml.VSum ("Lbli", [ v1 ])
-  | NoD v1 ->
-      let v1 = vof_name_or_dynamic v1 in
-      OCaml.VSum ("NoD", [ v1 ])

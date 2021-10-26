@@ -284,8 +284,8 @@ and expr (x : expr) =
       let v2 = property_name v2 in
       let t = info t in
       match v2 with
-      | Left n -> G.DotAccess (v1, t, G.EN (G.Id (n, G.empty_id_info ())))
-      | Right e -> G.DotAccess (v1, t, G.EDynamic e))
+      | Left n -> G.DotAccess (v1, t, G.FN (G.Id (n, G.empty_id_info ())))
+      | Right e -> G.DotAccess (v1, t, G.FDynamic e))
   | Fun (v1, _v2TODO) ->
       let def, _more_attrs = fun_ v1 in
       (* todo? assert more_attrs = []? *)

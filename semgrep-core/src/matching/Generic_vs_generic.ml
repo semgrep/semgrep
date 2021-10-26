@@ -234,7 +234,7 @@ let make_dotted xs =
       List.fold_left
         (fun acc e ->
           let tok = Parse_info.fake_info (snd x) "." in
-          B.DotAccess (acc, tok, B.EN (B.Id (e, B.empty_id_info ()))) |> G.e)
+          B.DotAccess (acc, tok, B.FN (B.Id (e, B.empty_id_info ()))) |> G.e)
         base xs
 
 (* similar to m_list_prefix but binding $X to the whole list *)
@@ -755,10 +755,10 @@ and m_expr a b =
       B.DotAccess (b1, bt, b2) ) ->
       let* () = m_expr a1 b1 >||> m_expr a1_1 b1 in
       let* () = m_tok at bt in
-      m_name_or_dynamic a2 b2
+      m_field_name a2 b2
   | G.DotAccess (a1, at, a2), B.DotAccess (b1, bt, b2) ->
       m_expr a1 b1 >>= fun () ->
-      m_tok at bt >>= fun () -> m_name_or_dynamic a2 b2
+      m_tok at bt >>= fun () -> m_field_name a2 b2
   (* <a1> ... vs o.m1().m2().m3().
    * Remember than o.m1().m2().m3() is parsed as (((o.m1()).m2()).m3())
    *)
@@ -852,7 +852,7 @@ and m_expr a b =
   | G.DotAccessEllipsis _, _ ->
       fail ()
 
-and m_name_or_dynamic a b =
+and m_entity_name a b =
   match (a, b) with
   | G.EN a1, B.EN b1 -> m_name a1 b1
   | G.EN (G.Id ((str, tok), _idinfoa)), B.EDynamic b1
@@ -860,8 +860,25 @@ and m_name_or_dynamic a b =
       envf (str, tok) (MV.E b1)
   (* boilerplate *)
   | G.EDynamic a, B.EDynamic b -> m_expr a b
+  | G.EPattern a, B.EPattern b -> m_pattern a b
+  | G.OtherEntity (a1, a2), B.OtherEntity (b1, b2) ->
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.EN _, _
+  | G.EPattern _, _
+  | G.OtherEntity _, _
   | G.EDynamic _, _ ->
+      fail ()
+
+and m_field_name a b =
+  match (a, b) with
+  | G.FN a1, B.FN b1 -> m_name a1 b1
+  | G.FN (G.Id ((str, tok), _idinfoa)), B.FDynamic b1
+    when MV.is_metavar_name str ->
+      envf (str, tok) (MV.E b1)
+  (* boilerplate *)
+  | G.FDynamic a, B.FDynamic b -> m_expr a b
+  | G.FN _, _
+  | G.FDynamic _, _ ->
       fail ()
 
 and m_label_ident a b =
@@ -1121,7 +1138,7 @@ and m_compatible_type typed_mvar t e =
       | B.DotAccess
           ( { e = IdSpecial (This, _); _ },
             _,
-            EN (Id (idb, { B.id_type = tb; _ })) ) ) ) ->
+            FN (Id (idb, { B.id_type = tb; _ })) ) ) ) ->
       m_type_option_with_hook idb (Some t) !tb >>= fun () ->
       envf typed_mvar (MV.E e)
   | _ -> fail ()
@@ -1319,14 +1336,12 @@ and m_argument a b =
   | G.ArgKwd (a1, a2), B.ArgKwd (b1, b2) ->
       m_ident a1 b1 >>= fun () -> m_expr a2 b2
   | G.OtherArg (a1, a2), B.OtherArg (b1, b2) ->
-      m_other_argument_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.Arg _, _
   | G.ArgKwd _, _
   | G.ArgType _, _
   | G.OtherArg _, _ ->
       fail ()
-
-and m_other_argument_operator = m_other_xxx
 
 (*---------------------------------------------------------------------------*)
 (* Associative-commutative iso *)
@@ -2188,7 +2203,7 @@ and m_entity a b =
    *)
   | ( { G.name = a1; attrs = a2; tparams = a4 },
       { B.name = b1; attrs = b2; tparams = b4 } ) ->
-      m_name_or_dynamic a1 b1 >>= fun () ->
+      m_entity_name a1 b1 >>= fun () ->
       m_attributes a2 b2 >>= fun () -> (m_list m_type_parameter) a4 b4
 
 and m_definition_kind a b =
@@ -2776,7 +2791,6 @@ and m_any a b =
   | G.Pr a1, B.Pr b1 -> m_program a1 b1
   | G.I a1, B.I b1 -> m_ident a1 b1
   | G.Lbli a1, B.Lbli b1 -> m_label_ident a1 b1
-  | G.NoD a1, B.NoD b1 -> m_name_or_dynamic a1 b1
   | G.I _, _
   | G.Modn _, _
   | G.Di _, _
@@ -2801,7 +2815,6 @@ and m_any a b =
   | G.Flds _, _
   | G.Tk _, _
   | G.Lbli _, _
-  | G.NoD _, _
   | G.ModDk _, _
   | G.TodoK _, _
   | G.Partial _, _
