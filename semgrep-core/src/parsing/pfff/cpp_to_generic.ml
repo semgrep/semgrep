@@ -1404,21 +1404,27 @@ and map_template_parameter env x : G.type_parameter =
   | TP v1 ->
       let v1 = map_parameter env v1 in
       parameter_to_type_parameter v1
-  | TPClass (v1, v2, v3) ->
+  | TPClass (v1, v2, v3) -> (
       let v1 = map_tok env v1
       and v2 = map_of_option (map_ident env) v2
       and v3 = map_of_option (map_type_ env) v3 in
-      todo env (v1, v2, v3)
-  | TPVariadic (v1, v2, v3) ->
-      let v1 = map_tok env v1
+      match (v2, v3) with
+      | Some id, v3 -> G.tparam_of_id id ~tp_default:v3
+      | None, None -> G.OtherTypeParam (("AnonTypeParam", v1), [])
+      | None, Some t ->
+          G.OtherTypeParam (("AnonTypeParamWithType", v1), [ G.T t ]))
+  | TPVariadic (v1, v2, v3) -> (
+      let _v1 = map_tok env v1
       and v2 = map_tok env v2
       and v3 = map_of_option (map_ident env) v3 in
-      todo env (v1, v2, v3)
+      match v3 with
+      | None -> G.OtherTypeParam (("TPVariadic", v2), [])
+      | Some id -> G.OtherTypeParam (("TPVariadic", v2), [ G.I id ]))
   | TPNested (v1, v2, v3) ->
       let v1 = map_tok env v1
       and v2 = map_template_parameters env v2
       and v3 = map_template_parameter env v3 in
-      todo env (v1, v2, v3)
+      G.OtherTypeParam (("TPNested", v1), v3 :: v2 |> List.map (fun x -> G.Tp x))
 
 and map_template_parameters env v : G.type_parameter list =
   map_angle env (map_of_list (map_template_parameter env)) v
