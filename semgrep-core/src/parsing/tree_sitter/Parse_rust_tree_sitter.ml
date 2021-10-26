@@ -719,7 +719,7 @@ and map_anon_choice_param_2c23cdc (env : env) _outer_attrTODO
           pinfo = G.empty_id_info ();
         }
       in
-      G.ParamClassic param
+      G.Param param
   | `Vari_param tok -> G.ParamEllipsis (token env tok) (* "..." *)
   | `X__ tok ->
       (* ellided parameter *)
@@ -735,7 +735,7 @@ and map_anon_choice_param_2c23cdc (env : env) _outer_attrTODO
           G.pinfo = G.empty_id_info ();
         }
       in
-      G.ParamClassic param
+      G.Param param
 
 and map_closure_parameter (env : env) (x : CST.anon_choice_pat_4717dcc) :
     G.parameter =
@@ -1512,7 +1512,7 @@ and map_field_declaration (env : env) ((v1, v2, v3, v4) : CST.field_declaration)
       G.tparams = [];
     }
   in
-  G.FieldStmt (G.DefStmt (ent, G.FieldDefColon var_def) |> G.s)
+  G.fld (ent, G.FieldDefColon var_def)
 
 (* for struct definition *)
 and map_field_declaration_list (env : env)
@@ -2067,8 +2067,7 @@ and map_ordered_field (_env : env) _outer_attrsTODO
       G.tparams = [];
     }
   in
-  let stmt = G.DefStmt (ent, G.FieldDefColon var_def) |> G.s in
-  G.FieldStmt stmt
+  G.fld (ent, G.FieldDefColon var_def)
 
 (* for struct definition *)
 and map_ordered_field_declaration_list (env : env)
@@ -2184,7 +2183,7 @@ and map_parameter (env : env) ((v1, v2, v3, v4) : CST.parameter) : G.parameter =
           G.pinfo = G.empty_id_info ();
         }
       in
-      G.ParamClassic param
+      G.Param param
   | `Choice_defa x ->
       let ident = map_reserved_identifier env x in
       let param =
@@ -2196,7 +2195,7 @@ and map_parameter (env : env) ((v1, v2, v3, v4) : CST.parameter) : G.parameter =
           G.pinfo = G.empty_id_info ();
         }
       in
-      G.ParamClassic param
+      G.Param param
 
 and map_parameters (env : env) ((v1, v2, v3, v4) : CST.parameters) :
     G.parameter list =
@@ -2567,14 +2566,14 @@ and map_trait_block_item (env : env) ((v1, v2) : CST.trait_block_item) : G.field
     =
   let _outer_attrs = List.map (map_outer_attribute_item env) v1 in
   match v2 with
-  | `Const_item x -> G.FieldStmt (map_const_item env x)
+  | `Const_item x -> G.F (map_const_item env x)
   | `Func_sign_with_defa_item x ->
       let def = map_function_signature_with_default_item env x in
-      G.FieldStmt (G.DefStmt def |> G.s)
-  | `Asso_type x -> G.FieldStmt (map_associated_type env x)
+      G.fld def
+  | `Asso_type x -> G.F (map_associated_type env x)
   | `Macro_invo x ->
       let invo = map_macro_invocation env x in
-      G.FieldStmt (G.ExprStmt (invo, sc) |> G.s)
+      G.F (G.ExprStmt (invo, sc) |> G.s)
 
 and map_higher_ranked_trait_bound (env : env)
     ((v1, v2, v3) : CST.higher_ranked_trait_bound) :

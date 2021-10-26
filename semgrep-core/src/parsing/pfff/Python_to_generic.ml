@@ -412,11 +412,10 @@ and parameters xs =
            let n = name n in
            let topt = option type_ topt in
            let e = expr e in
-           G.ParamClassic
-             { (G.param_of_id n) with G.ptype = topt; pdefault = Some e }
+           G.Param { (G.param_of_id n) with G.ptype = topt; pdefault = Some e }
        | ParamPattern (PatternName n, topt) ->
            let n = name n and topt = option type_ topt in
-           G.ParamClassic { (G.param_of_id n) with G.ptype = topt }
+           G.Param { (G.param_of_id n) with G.ptype = topt }
        | ParamPattern (PatternTuple pat, _) ->
            let pat = list param_pattern pat in
            G.ParamPattern (G.PatTuple (G.fake_bracket pat))
@@ -508,8 +507,8 @@ and fieldstmt x =
   } ->
       let vdef = { G.vinit = Some e; vtype = None } in
       let ent = { G.name = G.EN name; attrs = []; tparams = [] } in
-      G.FieldStmt (G.DefStmt (ent, G.VarDef vdef) |> G.s)
-  | _ -> G.FieldStmt x
+      G.fld (ent, G.VarDef vdef)
+  | _ -> G.F x
 
 and stmt_aux x =
   match x with

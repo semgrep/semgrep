@@ -1221,7 +1221,7 @@ and map_parameter env x : G.parameter =
   match x with
   | P v1 ->
       let v1 = map_parameter_classic env v1 in
-      G.ParamClassic v1
+      G.Param v1
   | ParamVariadic (v1, v2, v3) ->
       let _v1TODO = map_of_option (map_tok env) v1
       and v2 = map_tok env v2
@@ -1388,15 +1388,15 @@ and map_class_member env x : (G.field, G.attribute) either list =
       [ Right (G.KeywordAttr v1) ]
   | Friend (v1, v2) ->
       let _v1TODO = map_tok env v1 and v2 = map_decl env v2 in
-      v2 |> List.map (fun st -> Left (G.FieldStmt st))
+      v2 |> List.map (fun st -> Left (G.F st))
   | QualifiedIdInClass (v1, v2) ->
       let v1 = map_name env v1 and v2 = map_sc env v2 in
       let e = G.N v1 |> G.e in
       let st = G.ExprStmt (e, v2) |> G.s in
-      [ Left (G.FieldStmt st) ]
+      [ Left (G.F st) ]
   | F v1 ->
       let v1 = map_decl env v1 in
-      v1 |> List.map (fun st -> Left (G.FieldStmt st))
+      v1 |> List.map (fun st -> Left (G.F st))
 
 and map_template_parameter env x : G.type_parameter =
   match x with
@@ -1655,7 +1655,7 @@ and map_sequencable :
 and map_sequencable_for_field :
       'a. env -> ('a -> (G.field, G.attribute) either list) -> 'a sequencable ->
       (G.field, G.attribute) either list =
-  let field x = Left (G.FieldStmt x) in
+  let field x = Left (G.F x) in
   fun env _of_a -> function
     | X v1 ->
         let v1 = _of_a v1 in

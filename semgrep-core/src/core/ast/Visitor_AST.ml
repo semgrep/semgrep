@@ -1037,7 +1037,7 @@ let (mk_visitor :
   and v_parameter x =
     let k x =
       match x with
-      | ParamClassic v1 ->
+      | Param v1 ->
           let v1 = v_parameter_classic v1 in
           ()
       | ParamRest (v1, v2)
@@ -1094,11 +1094,7 @@ let (mk_visitor :
   and v_field x =
     let k x =
       match x with
-      | FieldSpread (t, v1) ->
-          let t = v_tok t in
-          let v1 = v_expr v1 in
-          ()
-      | FieldStmt v1 ->
+      | F v1 ->
           (match v1.s with
           | DefStmt
               ( { name = EN (Id (id, _)); _ },

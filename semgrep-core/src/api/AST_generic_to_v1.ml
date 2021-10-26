@@ -986,7 +986,7 @@ and map_function_body x = map_stmt (H.funcbody_to_stmt x)
 and map_parameters v = map_of_list map_parameter v
 
 and map_parameter = function
-  | ParamClassic v1 ->
+  | Param v1 ->
       let v1 = map_parameter_classic v1 in
       `ParamClassic v1
   | ParamRest (v0, v1) ->
@@ -1034,11 +1034,7 @@ and map_variable_definition { G.vinit = v_vinit; vtype = v_vtype } =
   { B.vinit = v_vinit; vtype = v_vtype }
 
 and map_field = function
-  | FieldSpread (t, v1) ->
-      let t = map_tok t in
-      let v1 = map_expr v1 in
-      `FieldSpread (t, v1)
-  | FieldStmt v1 ->
+  | F v1 ->
       let v1 = map_stmt v1 in
       `FieldStmt v1
 

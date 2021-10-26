@@ -288,7 +288,7 @@ and expr e =
                 cimplements = [];
                 cmixins = [];
                 cparams = [];
-                cbody = decls |> bracket (List.map (fun x -> G.FieldStmt x));
+                cbody = decls |> bracket (List.map (fun x -> G.F x));
               }
             |> G.e
           in
@@ -570,7 +570,7 @@ and parameter_binding = function
   | ParamClassic v
   | ParamReceiver v ->
       let ent, t = var v in
-      G.ParamClassic (entity_to_param ent t)
+      G.Param (entity_to_param ent t)
   | ParamSpread (tk, v) ->
       let ent, t = var v in
       let p = entity_to_param ent t in
@@ -602,7 +602,7 @@ and enum_decl { en_name; en_mods; en_impls; en_body } =
   let v3 = list class_parent en_impls in
   let v4, v5 = en_body in
   let v4 = list enum_constant v4 |> List.map G.fld in
-  let v5 = decls v5 |> List.map (fun st -> G.FieldStmt st) in
+  let v5 = decls v5 |> List.map (fun st -> G.F st) in
   let ent = G.basic_entity v1 ~attrs:(G.attr EnumClass (snd v1) :: v2) in
   let cbody = fb (v4 @ v5) in
   let cdef =
@@ -626,7 +626,7 @@ and enum_constant (v1, v2, v3) =
   (ent, G.EnumEntryDef def)
 
 and class_body (l, xs, r) : G.field list G.bracket =
-  let xs = decls xs |> List.map (fun x -> G.FieldStmt x) in
+  let xs = decls xs |> List.map (fun x -> G.F x) in
   (l, xs, r)
 
 and class_decl

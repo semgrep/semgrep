@@ -1001,12 +1001,12 @@ and class_const_declaration (env : env)
     | None -> None
   in
   let _v6 = (* ";" *) token env v6 in
-  let v4 = G.FieldStmt (class_const_declarator env v4 attrs type_) in
+  let v4 = G.F (class_const_declarator env v4 attrs type_) in
   let v5 =
     List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
-        let v2 = G.FieldStmt (class_const_declarator env v2 attrs type_) in
+        let v2 = G.F (class_const_declarator env v2 attrs type_) in
         v2)
       v5
   in
@@ -1441,12 +1441,12 @@ and expression (env : env) (x : CST.expression) : G.expr =
           let v3 =
             match v3 with
             | Some (v1, v2, v3) ->
-                let v1 = G.FieldStmt (field_initializer env v1 |> G.s) in
+                let v1 = G.F (field_initializer env v1 |> G.s) in
                 let v2 =
                   List.map
                     (fun (v1, v2) ->
                       let _v1 = (* "," *) token env v1 in
-                      let v2 = G.FieldStmt (field_initializer env v2 |> G.s) in
+                      let v2 = G.F (field_initializer env v2 |> G.s) in
                       v2)
                     v2
                 in
@@ -1559,7 +1559,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
             match v3 with
             | `Single_param_params tok ->
                 (* variable *)
-                ([ G.ParamClassic (G.param_of_id (str env tok)) ], None)
+                ([ G.Param (G.param_of_id (str env tok)) ], None)
             | `Params_opt_COLON_choice_type_spec (v1, v2) ->
                 let v1 = parameters env v1 in
                 let v2 =
@@ -1768,27 +1768,25 @@ and member_declarations (env : env) ((v1, v2, v3) : CST.member_declarations) =
       (fun x ->
         match x with
         | `Class_const_decl x -> class_const_declaration env x
-        | `Meth_decl x -> [ G.FieldStmt (method_declaration env x |> G.s) ]
+        | `Meth_decl x -> [ G.F (method_declaration env x |> G.s) ]
         | `Prop_decl x -> property_declaration env x
-        | `Type_const_decl x -> [ G.FieldStmt (type_const_declaration env x) ]
+        | `Type_const_decl x -> [ G.F (type_const_declaration env x) ]
         (* TODO: Add Trait use support *)
         | `Trait_use_clause _xTODO ->
             [ (*  G.FieldStmt (trait_use_clause env x |> G.s) *) ]
         | `Requ_imples_clause x ->
-            [ G.FieldStmt (require_implements_clause env x |> G.s) ]
+            [ G.F (require_implements_clause env x |> G.s) ]
         | `Requ_extends_clause x ->
-            [ G.FieldStmt (require_extends_clause env x |> G.s) ]
+            [ G.F (require_extends_clause env x |> G.s) ]
         | `Xhp_attr_decl x -> xhp_attribute_declaration env x
         | `Xhp_chil_decl _xTODO ->
             (* TODO: Figure out what this even is *)
             [ (* G.FieldStmt (xhp_children_declaration env x |> G.s) *) ]
-        | `Xhp_cate_decl x ->
-            [ G.FieldStmt (xhp_category_declaration env x |> G.s) ]
+        | `Xhp_cate_decl x -> [ G.F (xhp_category_declaration env x |> G.s) ]
         | `Ellips tok ->
             let tok = token env tok in
             (* "..." *)
-            let expr = G.ExprStmt (G.Ellipsis tok |> G.e, fk tok) |> G.s in
-            [ G.FieldStmt expr ])
+            [ G.fieldEllipsis tok ])
       v2
   in
   let v3 = (* "}" *) token env v3 in
@@ -1859,7 +1857,7 @@ and parameter (env : env) (x : CST.parameter) : G.parameter =
       in
       match v5 with
       | Some tok -> (* "..." *) G.ParamRest (tok, param)
-      | None -> G.ParamClassic param)
+      | None -> G.Param param)
   | `Ellips tok -> (* "..." *) G.ParamEllipsis (token env tok)
 
 and parameters (env : env) ((v1, v2, v3) : CST.parameters) =
@@ -1983,12 +1981,12 @@ and property_declaration (env : env)
     | Some x -> Some (type_ env x)
     | None -> None
   in
-  let v4 = G.FieldStmt (property_declarator env v4 attrs type_) in
+  let v4 = G.F (property_declarator env v4 attrs type_) in
   let v5 =
     List.map
       (fun (v1, v2) ->
         let _v1 = (* "," *) token env v1 in
-        let v2 = G.FieldStmt (property_declarator env v2 attrs type_) in
+        let v2 = G.F (property_declarator env v2 attrs type_) in
         v2)
       v5
   in
@@ -2466,12 +2464,12 @@ and type_kind (env : env) (x : CST.type_) : G.type_kind =
       let v4 =
         match v4 with
         | Some (v1, v2, v3) ->
-            let v1 = G.FieldStmt (shape_field_specifier env v1 |> G.s) in
+            let v1 = G.F (shape_field_specifier env v1 |> G.s) in
             let v2 =
               List.map
                 (fun (v1, v2) ->
                   let _v1 = (* "," *) token env v1 in
-                  let v2 = G.FieldStmt (shape_field_specifier env v2 |> G.s) in
+                  let v2 = G.F (shape_field_specifier env v2 |> G.s) in
                   v2)
                 v2
             in
@@ -2497,7 +2495,7 @@ and type_kind (env : env) (x : CST.type_) : G.type_kind =
               | Some tok -> (* "inout" *) Some (token env tok)
               | None -> None
             in
-            let v2 = G.ParamClassic (G.param_of_type (type_ env v2)) in
+            let v2 = G.Param (G.param_of_type (type_ env v2)) in
             let _v3TODO =
               match v3 with
               | Some tok -> (* "..." *) Some (token env tok)
@@ -2516,7 +2514,7 @@ and type_kind (env : env) (x : CST.type_) : G.type_kind =
                   in
                   let v3 =
                     let param = G.param_of_type (type_ env v3) in
-                    G.ParamClassic { param with pattrs = v2 }
+                    G.Param { param with pattrs = v2 }
                   in
                   let _v4TODO =
                     match v4 with
@@ -2870,7 +2868,7 @@ and xhp_class_attribute (env : env) ((v1, v2, v3, v4) : CST.xhp_class_attribute)
   (* But then it had to be enum... So did TypeDef, but then went back... *)
   let ent = G.basic_entity v2 ~attrs:(attr_tok :: v4) in
   let def = (ent, G.VarDef { vinit = v3; vtype = Some v1 }) in
-  G.FieldStmt (G.DefStmt def |> G.s)
+  G.fld def
 
 and xhp_expression (env : env) (x : CST.xhp_expression) : G.xml =
   match x with

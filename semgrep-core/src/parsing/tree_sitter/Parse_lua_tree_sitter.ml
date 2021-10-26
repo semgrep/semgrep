@@ -124,9 +124,9 @@ let map_parameters (env : env) ((v1, v2, v3) : CST.parameters) : G.parameters =
         let v1 =
           match v1 with
           | `Self tok ->
-              G.ParamClassic (G.param_of_id (identifier env tok)) (* "self" *)
+              G.Param (G.param_of_id (identifier env tok)) (* "self" *)
           | `Spread tok -> G.ParamEllipsis (token env tok) (* "..." *)
-          | `Id tok -> G.ParamClassic (G.param_of_id (identifier env tok))
+          | `Id tok -> G.Param (G.param_of_id (identifier env tok))
           (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
         in
         let v2 =
@@ -134,7 +134,7 @@ let map_parameters (env : env) ((v1, v2, v3) : CST.parameters) : G.parameters =
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
               let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
-              Some (G.ParamClassic (G.param_of_id v2)))
+              Some (G.Param (G.param_of_id v2)))
             v2
         in
         let v3 =
