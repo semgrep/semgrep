@@ -572,7 +572,7 @@ and parameter x =
         }
       in
       match v3 with
-      | None -> G.ParamClassic pclassic
+      | None -> G.Param pclassic
       | Some tok -> G.ParamRest (tok, pclassic))
 
 and argument x = expr x
@@ -654,7 +654,7 @@ and property x =
   match x with
   | Field v1 ->
       let ent, def = field_classic v1 in
-      G.FieldStmt (G.DefStmt (ent, def) |> G.s)
+      G.fld (ent, def)
   | FieldColon v1 ->
       let ent, def = field_classic v1 in
       let def =
@@ -664,19 +664,22 @@ and property x =
         | G.VarDef x -> G.FieldDefColon x
         | _ -> def
       in
-      G.FieldStmt (G.DefStmt (ent, def) |> G.s)
+      G.fld (ent, def)
   | FieldSpread (t, v1) ->
       let v1 = expr v1 in
-      G.FieldSpread (t, v1)
-  | FieldEllipsis v1 -> G.FieldStmt (G.exprstmt (G.Ellipsis v1 |> G.e))
+      let spec = (G.Spread, t) in
+      let e = G.special spec [ v1 ] in
+      let st = G.exprstmt e in
+      G.F st
+  | FieldEllipsis v1 -> G.fieldEllipsis v1
   | FieldPatDefault (v1, _v2, v3) ->
       let v1 = pattern v1 in
       let v3 = expr v3 in
-      G.FieldStmt (G.exprstmt (G.LetPattern (v1, v3) |> G.e))
+      G.F (G.exprstmt (G.LetPattern (v1, v3) |> G.e))
   | FieldTodo (v1, v2) ->
       let v2 = stmt v2 in
       (* hmm, should use OtherStmtWithStmt ? *)
-      G.FieldStmt (G.OtherStmt (G.OS_Todo, [ G.TodoK v1; G.S v2 ]) |> G.s)
+      G.F (G.OtherStmt (G.OS_Todo, [ G.TodoK v1; G.S v2 ]) |> G.s)
 
 and alias v1 =
   let v1 = name v1 in

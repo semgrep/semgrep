@@ -138,7 +138,7 @@ and type_kind = function
       G.TyAny v1
   | TyFunction (v1, v2) ->
       let v1 = type_ v1 and v2 = type_ v2 in
-      G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v2)
+      G.TyFun ([ G.Param (G.param_of_type v1) ], v2)
   | TyApp (v1, v2) ->
       let v1 = list type_ v1 and v2 = name v2 in
       G.TyApply (G.TyN v2 |> G.t, fb (v1 |> List.map (fun t -> G.TA t)))
@@ -364,7 +364,7 @@ and expr e =
   | Function (t, xs) ->
       let xs = list match_case xs in
       let id = ("!_implicit_param!", t) in
-      let params = [ G.ParamClassic (G.param_of_id id) ] in
+      let params = [ G.Param (G.param_of_id id) ] in
       let body_stmt =
         G.Match (t, G.N (G.Id (id, G.empty_id_info ())) |> G.e, xs) |> G.s
       in
@@ -531,9 +531,9 @@ and parameter = function
       let v = pattern v in
       match v with
       | G.PatEllipsis t -> G.ParamEllipsis t
-      | G.PatId (id, _idinfo) -> G.ParamClassic (G.param_of_id id)
+      | G.PatId (id, _idinfo) -> G.Param (G.param_of_id id)
       | G.PatTyped (G.PatId (id, _idinfo), ty) ->
-          G.ParamClassic { (G.param_of_id id) with G.ptype = Some ty }
+          G.Param { (G.param_of_id id) with G.ptype = Some ty }
       | _ -> G.ParamPattern v)
   | ParamTodo x -> G.OtherParam (x, [])
 
@@ -583,10 +583,7 @@ and type_def_kind = function
                      | Some tok -> [ G.attr G.Mutable tok ]
                      | None -> [])
                in
-               G.FieldStmt
-                 (G.DefStmt
-                    (ent, G.FieldDefColon { G.vinit = None; vtype = Some v2 })
-                 |> G.s)))
+               G.fld (ent, G.FieldDefColon { G.vinit = None; vtype = Some v2 })))
           v1
       in
       G.AndType v1

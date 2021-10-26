@@ -293,7 +293,7 @@ let has_keyword_attr kwd attrs =
 (* just used in cpp_to_generic.ml for now, could be moved there *)
 let parameter_to_catch_exn_opt p =
   match p with
-  | ParamClassic p -> Some (CatchParam p)
+  | Param p -> Some (CatchParam p)
   | ParamEllipsis t -> Some (CatchPattern (PatEllipsis t))
   | ParamPattern p -> Some (G.CatchPattern p)
   (* TODO: valid in exn spec? *)

@@ -1356,7 +1356,7 @@ and parameters = parameter list
 
 (* newvar: *)
 and parameter =
-  | ParamClassic of parameter_classic
+  | Param of parameter_classic
   (* in OCaml, but also now JS, Python2, Rust *)
   | ParamPattern of pattern
   (* Both those ParamXxx used to be handled as a ParamClassic with special
@@ -1481,11 +1481,10 @@ and or_type_element =
  * the variable declaration and field definition have a different syntax.
  * Note: the FieldStmt(DefStmt(FuncDef(...))) can have empty body
  * for interface methods.
+ * old: there was a special FieldSpread before (just for JS and Go) but we
+ * now abuse ExprStmt(IdSpecial(Spread)) to represent it.
  *)
-and field =
-  | FieldStmt of stmt
-  (* DEBT? could abuse FieldStmt(ExprStmt(IdSpecial(Spread))) for that? *)
-  | FieldSpread of tok (* ... *) * expr
+and field = F of stmt
 
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
@@ -1901,13 +1900,13 @@ let stmt1 xs =
 (* ------------------------------------------------------------------------- *)
 
 (* this should be simpler at some point if we get rid of FieldStmt *)
-let fld (ent, def) = FieldStmt (s (DefStmt (ent, def)))
+let fld (ent, def) = F (s (DefStmt (ent, def)))
 
 let basic_field id vopt typeopt =
   let entity = basic_entity id in
   fld (entity, VarDef { vinit = vopt; vtype = typeopt })
 
-let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))
+let fieldEllipsis t = F (exprstmt (e (Ellipsis t)))
 
 (* ------------------------------------------------------------------------- *)
 (* Attributes *)
