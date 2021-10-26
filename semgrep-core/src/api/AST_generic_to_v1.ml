@@ -1155,6 +1155,9 @@ and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | Tp _
+  | Ta _ ->
+      failwith "TODO"
   | Cs _ -> failwith "TODO"
   | Ce _ -> failwith "TODO"
   | Anys _ -> error x

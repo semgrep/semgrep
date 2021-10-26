@@ -2769,6 +2769,8 @@ and m_any a b =
   | G.Ce a1, B.Ce b1 -> m_catch_exn a1 b1
   | G.Cs a1, B.Cs b1 -> m_case a1 b1
   | G.Ar a1, B.Ar b1 -> m_argument a1 b1
+  | G.Tp a1, B.Tp b1 -> m_type_parameter a1 b1
+  | G.Ta a1, B.Ta b1 -> m_type_argument a1 b1
   | G.At a1, B.At b1 -> m_attribute a1 b1
   | G.Dk a1, B.Dk b1 -> m_definition_kind a1 b1
   | G.Pr a1, B.Pr b1 -> m_program a1 b1
@@ -2789,6 +2791,8 @@ and m_any a b =
   | G.Ce _, _
   | G.Cs _, _
   | G.Ar _, _
+  | G.Tp _, _
+  | G.Ta _, _
   | G.At _, _
   | G.Dk _, _
   | G.Pr _, _

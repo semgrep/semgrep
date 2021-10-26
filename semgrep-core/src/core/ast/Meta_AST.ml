@@ -1321,6 +1321,12 @@ and vof_partial = function
       OCaml.VSum ("PartialSingleField", [ v1; v2; v3 ])
 
 and vof_any = function
+  | Tp v1 ->
+      let v1 = vof_type_parameter v1 in
+      OCaml.VSum ("Tp", [ v1 ])
+  | Ta v1 ->
+      let v1 = vof_type_argument v1 in
+      OCaml.VSum ("Ta", [ v1 ])
   | Cs v1 ->
       let v1 = vof_case v1 in
       OCaml.VSum ("Cs", [ v1 ])

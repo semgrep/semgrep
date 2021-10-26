@@ -1224,6 +1224,8 @@ let (mk_visitor :
     v_id_info v2
   and v_program v = v_stmts v
   and v_any = function
+    | Tp v1 -> v_type_parameter v1
+    | Ta v1 -> v_type_argument v1
     | Cs v1 -> v_case v1
     | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
