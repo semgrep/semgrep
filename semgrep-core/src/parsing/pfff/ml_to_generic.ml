@@ -148,7 +148,7 @@ and type_kind = function
   | TyTodo (t, v1) ->
       let t = todo_category t in
       let v1 = list type_ v1 in
-      G.OtherType2 (t, List.map (fun x -> G.T x) v1)
+      G.OtherType (t, List.map (fun x -> G.T x) v1)
 
 and expr_body e : G.stmt = stmt e
 

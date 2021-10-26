@@ -1084,17 +1084,12 @@ and m_container_ordered_elements a b =
 and m_compatible_type typed_mvar t e =
   match (t.G.t, e.G.e) with
   (* for Python literal checking *)
-  | ( G.OtherType
-        (G.OT_Expr, [ G.E { e = G.N (G.Id (("int", _tok), _idinfo)); _ } ]),
-      B.L (B.Int _) ) ->
+  | G.TyExpr { e = G.N (G.Id (("int", _tok), _idinfo)); _ }, B.L (B.Int _) ->
       envf typed_mvar (MV.E e)
-  | ( G.OtherType
-        (G.OT_Expr, [ G.E { e = G.N (G.Id (("float", _tok), _idinfo)); _ } ]),
-      B.L (B.Float _) ) ->
+  | G.TyExpr { e = G.N (G.Id (("float", _tok), _idinfo)); _ }, B.L (B.Float _)
+    ->
       envf typed_mvar (MV.E e)
-  | ( G.OtherType
-        (G.OT_Expr, [ G.E { e = G.N (G.Id (("str", _tok), _idinfo)); _ } ]),
-      B.L (B.String _) ) ->
+  | G.TyExpr { e = G.N (G.Id (("str", _tok), _idinfo)); _ }, B.L (B.String _) ->
       envf typed_mvar (MV.E e)
   (* for java literals *)
   | G.TyBuiltin ("int", _), B.L (B.Int _) -> envf typed_mvar (MV.E e)
@@ -1577,9 +1572,8 @@ and m_type_ a b =
   | G.TyAnd (a1, a2, a3), B.TyAnd (b1, b2, b3) ->
       m_type_ a1 b1 >>= fun () ->
       m_tok a2 b2 >>= fun () -> m_type_ a3 b3
+  | G.TyExpr a1, B.TyExpr b1 -> m_expr a1 b1
   | G.OtherType (a1, a2), B.OtherType (b1, b2) ->
-      m_other_type_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.OtherType2 (a1, a2), B.OtherType2 (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.TyBuiltin _, _
   | G.TyFun _, _
@@ -1597,8 +1591,8 @@ and m_type_ a b =
   | G.TyRecordAnon _, _
   | G.TyInterfaceAnon _, _
   | G.TyRef _, _
-  | G.OtherType _, _
-  | G.OtherType2 _, _ ->
+  | G.TyExpr _, _
+  | G.OtherType _, _ ->
       fail ()
 
 and m_type_arguments a b =
@@ -1625,8 +1619,6 @@ and m_todo_kind a b = m_ident a b
 and m_wildcard (a1, a2) (b1, b2) =
   let* () = m_wrap m_bool a1 b1 in
   m_type_ a2 b2
-
-and m_other_type_operator = m_other_xxx
 
 (*****************************************************************************)
 (* Attribute *)
@@ -2539,11 +2531,7 @@ and _m_list__m_type_ (xsa : G.type_ list) (xsb : G.type_ list) =
   m_list_with_dots m_type_
     (* dots: '...', this is very Python Specific I think *)
       (function
-      | {
-          t = G.OtherType (G.OT_Arg, [ G.Ar (G.Arg { e = G.Ellipsis _i; _ }) ]);
-          _;
-        } ->
-          true
+      | { t = G.TyExpr { G.e = G.Ellipsis _i; _ }; _ } -> true
       | _ -> false)
     (* less-is-ok: it's ok to not specify all the parents I think *)
     true (* empty list can not match non-empty list *) xsa xsb
@@ -2562,13 +2550,7 @@ and m_list__m_class_parent (xsa : G.class_parent list)
   m_list_with_dots m_class_parent
     (* dots: '...', this is very Python Specific I think *)
       (function
-      | ( {
-            G.t =
-              G.OtherType (G.OT_Arg, [ G.Ar (G.Arg { e = G.Ellipsis _i; _ }) ]);
-            _;
-          },
-          None ) ->
-          true
+      | { G.t = G.TyExpr { e = G.Ellipsis _i; _ }; _ }, None -> true
       | _ -> false)
     (* less-is-ok: it's ok to not specify all the parents I think *)
     true (* empty list can not match non-empty list *) xsa xsb

@@ -217,7 +217,7 @@ and map_typeC env x : G.type_ =
       let v1 = map_of_list (map_sized_type env) v1
       and v2 = map_of_option (map_type_ env) v2 in
       let allt = v1 @ Common.opt_to_list v2 in
-      G.OtherType2
+      G.OtherType
         (("TSized", PI.unsafe_fake_info ""), allt |> List.map (fun t -> G.T t))
       |> G.t
   | TPointer (v1, v2, v3) ->
@@ -230,7 +230,7 @@ and map_typeC env x : G.type_ =
       G.TyRef (v1, v2) |> G.t
   | TRefRef (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_type_ env v2 in
-      G.OtherType2 (("&&", v1), [ G.T v2 ]) |> G.t
+      G.OtherType (("&&", v1), [ G.T v2 ]) |> G.t
   | TArray (v1, v2) ->
       let v1 = map_bracket env (map_of_option (map_a_const_expr env)) v1
       and v2 = map_type_ env v2 in
@@ -240,11 +240,11 @@ and map_typeC env x : G.type_ =
       G.TyFun (ps, tret) |> G.t
   | EnumName (v1, v2) ->
       let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
-      G.OtherType2 (("EnumName", v1), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
+      G.OtherType (("EnumName", v1), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
   | ClassName (v1, v2) ->
       let (_kind, t), _attrs = map_class_key env v1
       and v2 = map_a_class_name env v2 in
-      G.OtherType2 ((PI.str_of_info t, t), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
+      G.OtherType ((PI.str_of_info t, t), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
   | TypeName v1 ->
       let v1 = map_a_ident_name env v1 in
       G.TyN v1 |> G.t
@@ -263,7 +263,7 @@ and map_typeC env x : G.type_ =
         map_paren env (map_either env (map_type_ env) (map_expr env)) v2
       in
       let any = any_of_either_type_expr v2 in
-      G.OtherType2 (("Typeof", v1), [ any ]) |> G.t
+      G.OtherType (("Typeof", v1), [ any ]) |> G.t
   | TAuto v1 ->
       let v1 = map_tok env v1 in
       G.TyAny v1 |> G.t
@@ -273,7 +273,7 @@ and map_typeC env x : G.type_ =
   | TypeTodo (v1, v2) ->
       let v1 = map_todo_category env v1
       and v2 = map_of_list (map_type_ env) v2 in
-      G.OtherType2 (v1, v2 |> List.map (fun t -> G.T t)) |> G.t
+      G.OtherType (v1, v2 |> List.map (fun t -> G.T t)) |> G.t
 
 and map_primitive_type _env = function
   | TVoid -> "void"

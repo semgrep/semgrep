@@ -560,11 +560,10 @@ and vof_type_kind = function
       let t = vof_tok t in
       let v1 = vof_type_ v1 in
       OCaml.VSum ("TyRest", [ v1; t ])
+  | TyExpr v1 ->
+      let v1 = vof_expr v1 in
+      OCaml.VSum ("TyExpr", [ v1 ])
   | OtherType (v1, v2) ->
-      let v1 = vof_other_type_operator v1 in
-      let v2 = OCaml.vof_list vof_any v2 in
-      OCaml.VSum ("OtherType", [ v1; v2 ])
-  | OtherType2 (v1, v2) ->
       let v1 = vof_todo_kind v1 in
       let v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherType", [ v1; v2 ])
@@ -592,10 +591,6 @@ and vof_type_argument = function
   | OtherTypeArg (v1, v2) ->
       let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherTypeArg", [ v1; v2 ])
-
-and vof_other_type_operator = function
-  | OT_Expr -> OCaml.VSum ("OT_Expr", [])
-  | OT_Arg -> OCaml.VSum ("OT_Arg", [])
 
 and vof_keyword_attribute = function
   | SealedClass -> OCaml.VSum ("SealedClass", [])

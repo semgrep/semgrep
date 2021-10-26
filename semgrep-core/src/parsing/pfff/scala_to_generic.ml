@@ -216,7 +216,7 @@ and v_encaps = function
       let v1 = v_expr v1 in
       Right v1
 
-and todo_type msg anys = G.OtherType2 ((msg, fake msg), anys)
+and todo_type msg anys = G.OtherType ((msg, fake msg), anys)
 
 and v_type_ x = v_type_kind x |> G.t
 
