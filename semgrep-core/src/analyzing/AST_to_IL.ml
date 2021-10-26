@@ -658,7 +658,7 @@ and record env ((_tok, origfields, _) as record_def) =
   let fields =
     origfields
     |> List.map (function
-         | G.FieldStmt
+         | G.F
              {
                s =
                  G.DefStmt
@@ -675,8 +675,7 @@ and record env ((_tok, origfields, _) as record_def) =
              in
              let field_def = expr env fdeforig in
              (id, field_def)
-         | G.FieldStmt _ -> todo (G.E eorig)
-         | G.FieldSpread _ -> todo (G.E eorig))
+         | G.F _ -> todo (G.E eorig))
   in
   mk_e (Record fields) eorig
 
@@ -736,8 +735,7 @@ let for_var_or_expr_list env xs =
 let parameters _env params =
   params
   |> List.filter_map (function
-       | G.ParamClassic { pname = Some i; pinfo; _ } ->
-           Some (var_of_id_info i pinfo)
+       | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))
 
 (*****************************************************************************)

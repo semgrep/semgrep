@@ -428,9 +428,7 @@ and hint_type_kind = function
       G.TyTuple (t1, v1, t2)
   | HintCallback (v1, v2) ->
       let v1 = list hint_type v1 and v2 = option hint_type v2 in
-      let params =
-        v1 |> List.map (fun x -> G.ParamClassic (G.param_of_type x))
-      in
+      let params = v1 |> List.map (fun x -> G.Param (G.param_of_type x)) in
       let fret =
         match v2 with
         | Some t -> t
@@ -511,9 +509,8 @@ and parameter_classic { p_type; p_ref; p_name; p_default; p_attrs; p_variadic }
     }
   in
   match (p_variadic, p_ref) with
-  | None, None -> G.ParamClassic pclassic
-  | _, Some tok ->
-      G.OtherParam (("Ref", tok), [ G.Pa (G.ParamClassic pclassic) ])
+  | None, None -> G.Param pclassic
+  | _, Some tok -> G.OtherParam (("Ref", tok), [ G.Pa (G.Param pclassic) ])
   | Some tok, None -> G.ParamRest (tok, pclassic)
 
 and modifier v = wrap modifierbis v
@@ -590,10 +587,7 @@ and class_def
       cimplements = implements;
       cmixins = uses;
       cparams = [];
-      cbody =
-        ( t1,
-          fields |> List.map (fun def -> G.FieldStmt (G.DefStmt def |> G.s)),
-          t2 );
+      cbody = (t1, fields |> List.map (fun def -> G.fld def), t2);
     }
   in
   (ent, def)

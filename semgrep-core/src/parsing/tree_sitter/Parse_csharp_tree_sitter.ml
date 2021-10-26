@@ -84,7 +84,7 @@ let param_from_lambda_params lambda_params =
   match lambda_params with
   | [] -> failwith "empty lambda_params"
   | [ id ] ->
-      ParamClassic
+      Param
         {
           pname = Some id;
           ptype = None;
@@ -111,7 +111,7 @@ let create_lambda lambda_params expr =
 (* create lambda (lambda_params, ident) -> (lambda_params..., ident) *)
 let create_join_result_lambda lambda_params ident =
   let p1 = param_from_lambda_params lambda_params in
-  let p2 = ParamClassic (param_of_id ident) in
+  let p2 = Param (param_of_id ident) in
   let fparams = [ p1; p2 ] in
   let ids =
     lambda_params @ [ ident ]
@@ -1281,7 +1281,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | `Id tok ->
             let id = identifier env tok in
             let p = param_of_id id in
-            [ ParamClassic p ]
+            [ Param p ]
         (* identifier *)
       in
       let v3 = token env v3 (* "=>" *) in
@@ -2099,7 +2099,7 @@ and anonymous_object_member_declarator (env : env)
       basic_field v1 (Some v2) None
   | `Exp x ->
       let expr = expression env x in
-      FieldStmt (exprstmt expr)
+      F (exprstmt expr)
 
 and function_body (env : env) (x : CST.function_body) : G.function_body =
   match x with
@@ -2134,7 +2134,7 @@ and explicit_parameter (env : env) (v1, _v2param_modifier_TODO, v3, v4, v5) =
   let v3 = Common.map_opt (type_constraint env) v3 in
   let v4 = identifier env v4 (* identifier *) in
   let v5 = Common.map_opt (equals_value_clause env) v5 in
-  ParamClassic
+  Param
     {
       pname = Some v4;
       ptype = v3;
@@ -2563,7 +2563,7 @@ and class_interface_struct (env : env) class_kind
   in
   let v7 = List.map (type_parameter_constraints_clause env) v7 in
   let open_bra, stmts, close_bra = declaration_list env v8 in
-  let fields = List.map (fun x -> G.FieldStmt x) stmts in
+  let fields = List.map (fun x -> G.F x) stmts in
   let tparams = type_parameters_with_constraints v5 v7 in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams } in
@@ -2721,7 +2721,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                        basic_entity (iname ^ "_" ^ fname, itok) ~attrs
                      in
                      let valparam =
-                       ParamClassic
+                       Param
                          {
                            pname = Some ("value", fake "value");
                            ptype = Some v4;
@@ -2795,7 +2795,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                        DefStmt (ent, funcdef) |> G.s
                    | "set" ->
                        let valparam =
-                         ParamClassic
+                         Param
                            {
                              pname = Some ("value", fake "value");
                              ptype = Some v3;
@@ -2928,7 +2928,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                         fparams =
                           (if has_params then
                            [
-                             ParamClassic
+                             Param
                                {
                                  pname = Some ("value", fake "value");
                                  ptype = Some v3;

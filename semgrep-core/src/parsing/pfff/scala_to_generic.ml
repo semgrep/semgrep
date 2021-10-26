@@ -54,7 +54,7 @@ let v_option = Common.map_opt
 
 let cases_to_lambda lb (cases : G.action list) : G.function_definition =
   let id = ("!hidden_scala_param!", lb) in
-  let param = G.ParamClassic (G.param_of_id id) in
+  let param = G.Param (G.param_of_id id) in
   let body = G.Match (lb, G.N (H.name_of_id id) |> G.e, cases) |> G.s in
   {
     fkind = (G.BlockCases, lb);
@@ -247,14 +247,13 @@ and v_type_kind = function
       G.TyApply (G.TyN (H.name_of_ids [ v2 ]) |> G.t, fb [ G.TA v1; G.TA v3 ])
   | TyFunction1 (v1, v2, v3) ->
       let v1 = v_type_ v1 and _v2 = v_tok v2 and v3 = v_type_ v3 in
-      G.TyFun ([ G.ParamClassic (G.param_of_type v1) ], v3)
+      G.TyFun ([ G.Param (G.param_of_type v1) ], v3)
   | TyFunction2 (v1, v2, v3) ->
       let v1 = v_bracket (v_list v_type_) v1
       and _v2 = v_tok v2
       and v3 = v_type_ v3 in
       let ts =
-        v1 |> G.unbracket
-        |> List.map (fun t -> G.ParamClassic (G.param_of_type t))
+        v1 |> G.unbracket |> List.map (fun t -> G.Param (G.param_of_type t))
       in
       G.TyFun (ts, v3)
   | TyTuple v1 ->
@@ -817,13 +816,13 @@ and v_binding v : G.parameter =
         { (G.param_of_id id) with pattrs = attrs; pdefault = default }
       in
       match v_p_type with
-      | None -> G.ParamClassic pclassic
+      | None -> G.Param pclassic
       | Some (PT v1) ->
           let v1 = v_type_ v1 in
-          G.ParamClassic { pclassic with ptype = Some v1 }
+          G.Param { pclassic with ptype = Some v1 }
       | Some (PTByNameApplication (v1, v2)) ->
           let v1 = v_tok v1 and v2 = v_type_ v2 in
-          G.ParamClassic
+          G.Param
             {
               pclassic with
               ptype = Some v2;
@@ -848,7 +847,7 @@ and v_template_definition
   let cbody =
     match body with
     | None -> G.empty_body
-    | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.FieldStmt st), rb)
+    | Some (lb, xs, rb) -> (lb, xs |> List.map (fun st -> G.F st), rb)
   in
   { G.ckind; cextends; cmixins; cimplements = []; cparams; cbody }
 

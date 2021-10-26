@@ -72,16 +72,16 @@ let ii_of_any = Lib_parsing_go.ii_of_any
 let return_type_of_results results =
   match results with
   | []
-  | [ G.ParamClassic { G.ptype = None; _ } ] ->
+  | [ G.Param { G.ptype = None; _ } ] ->
       None
-  | [ G.ParamClassic { G.ptype = Some t; _ } ] -> Some t
+  | [ G.Param { G.ptype = Some t; _ } ] -> Some t
   | xs ->
       Some
         (G.TyTuple
            (xs
            |> List.map (function
-                | G.ParamClassic { G.ptype = Some t; _ } -> t
-                | G.ParamClassic { G.ptype = None; _ } -> raise Impossible
+                | G.Param { G.ptype = Some t; _ } -> t
+                | G.Param { G.ptype = None; _ } -> raise Impossible
                 | _ -> raise Impossible)
            |> fb)
         |> G.t)
@@ -186,7 +186,7 @@ let top_func () =
           }
         in
         match arg3 with
-        | None -> G.ParamClassic pclassic
+        | None -> G.Param pclassic
         | Some tok -> G.ParamRest (tok, pclassic))
   and struct_field (v1, v2) =
     let v1 = struct_field_kind v1 and _v2TODO = option tag v2 in
@@ -198,7 +198,10 @@ let top_func () =
     | EmbeddedField (v1, v2) ->
         let _v1TODO = option tok v1 and v2 = qualified_ident v2 in
         let name = name_of_qualified_ident v2 in
-        G.FieldSpread (unsafe_fake "...", G.N name |> G.e)
+        let spec = (G.Spread, unsafe_fake "...") in
+        let e = G.special spec [ G.N name |> G.e ] in
+        let st = G.exprstmt e in
+        G.F st
     | FieldEllipsis t -> G.fieldEllipsis t
   and tag v = wrap string v
   and interface_field = function
@@ -206,18 +209,18 @@ let top_func () =
         let v1 = ident v1 in
         let params, ret = func_type v2 in
         let ent = G.basic_entity v1 in
-        G.FieldStmt
-          (G.s
-             (G.DefStmt
-                ( ent,
-                  G.FuncDef
-                    (mk_func_def
-                       (G.Method, G.fake "")
-                       params ret (G.FBDecl G.sc)) )))
+        let fdef =
+          G.FuncDef
+            (mk_func_def (G.Method, G.fake "") params ret (G.FBDecl G.sc))
+        in
+        G.fld (ent, fdef)
     | EmbeddedInterface v1 ->
         let v1 = qualified_ident v1 in
         let name = name_of_qualified_ident v1 in
-        G.FieldSpread (unsafe_fake "...", G.N name |> G.e)
+        let spec = (G.Spread, unsafe_fake "...") in
+        let e = G.special spec [ G.N name |> G.e ] in
+        let st = G.exprstmt e in
+        G.F st
     | FieldEllipsis2 t -> G.fieldEllipsis t
   and expr_or_type v = either expr type_ v
   and expr e =

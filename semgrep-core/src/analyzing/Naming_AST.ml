@@ -339,7 +339,7 @@ let resolved_name_kind env lang =
 let params_of_parameters env xs =
   xs
   |> Common.map_filter (function
-       | ParamClassic { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
+       | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = H.gensym () in
            let resolved = { entname = (Param, sid); enttype = typ } in
            set_resolved env id_info resolved;

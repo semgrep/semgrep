@@ -578,7 +578,7 @@ and map_body (env : env) (xs : CST.body) : field list =
           def |> G.fld
       | `Blk x ->
           let blk = map_block env x in
-          FieldStmt (G.exprstmt blk)
+          F (G.exprstmt blk)
       | `Semg_ellips tok ->
           let t = (* "..." *) token env tok in
           G.fieldEllipsis t)

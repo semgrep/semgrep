@@ -1086,9 +1086,9 @@ and vof_function_definition
 and vof_parameters v = OCaml.vof_list vof_parameter v
 
 and vof_parameter = function
-  | ParamClassic v1 ->
+  | Param v1 ->
       let v1 = vof_parameter_classic v1 in
-      OCaml.VSum ("ParamClassic", [ v1 ])
+      OCaml.VSum ("Param", [ v1 ])
   | ParamRest (v0, v1) ->
       let v0 = vof_tok v0 in
       let v1 = vof_parameter_classic v1 in
@@ -1156,13 +1156,9 @@ and vof_variable_definition { vinit = v_vinit; vtype = v_vtype } =
   OCaml.VDict bnds
 
 and vof_field = function
-  | FieldSpread (t, v1) ->
-      let t = vof_tok t in
-      let v1 = vof_expr v1 in
-      OCaml.VSum ("FieldSpread", [ t; v1 ])
-  | FieldStmt v1 ->
+  | F v1 ->
       let v1 = vof_stmt v1 in
-      OCaml.VSum ("FieldStmt", [ v1 ])
+      OCaml.VSum ("F", [ v1 ])
 
 and vof_type_definition { tbody = v_tbody } =
   let bnds = [] in

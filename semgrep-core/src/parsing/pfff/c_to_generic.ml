@@ -155,7 +155,7 @@ and function_type (v1, v2) =
 
 and parameter x =
   match x with
-  | ParamClassic x -> G.ParamClassic (parameter_classic x)
+  | ParamClassic x -> G.Param (parameter_classic x)
   | ParamDots t -> G.ParamEllipsis t
 
 and parameter_classic { p_type; p_name } =

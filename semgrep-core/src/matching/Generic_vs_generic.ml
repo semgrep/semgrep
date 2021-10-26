@@ -2319,7 +2319,7 @@ and m_parameters a b =
 and m_parameter a b =
   match (a, b) with
   (* boilerplate *)
-  | G.ParamClassic a1, B.ParamClassic b1 -> m_parameter_classic a1 b1
+  | G.Param a1, B.Param b1 -> m_parameter_classic a1 b1
   | G.ParamRest (a1, a2), B.ParamRest (b1, b2) ->
       let* () = m_tok a1 b1 in
       m_parameter_classic a2 b2
@@ -2330,7 +2330,7 @@ and m_parameter a b =
   | G.OtherParam (a1, a2), B.OtherParam (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.ParamEllipsis a1, B.ParamEllipsis b1 -> m_tok a1 b1
-  | G.ParamClassic _, _
+  | G.Param _, _
   | G.ParamPattern _, _
   | G.ParamRest _, _
   | G.ParamHashSplat _, _
@@ -2391,7 +2391,7 @@ and m_fields (xsa : G.field list) (xsb : G.field list) =
     (* TODO: Similar to has_ellipsis_and_filter_ellipsis, refactor? *)
     xsa
     |> Common.exclude (function
-         | G.FieldStmt { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ } ->
+         | G.F { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ } ->
              has_ellipsis := true;
              true
          | _ -> false)
@@ -2412,7 +2412,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
    * matched all the fields in the pattern.
    *)
   | [], _ :: _ -> if less_is_ok then return () else fail ()
-  | G.FieldStmt { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ } :: _, _ ->
+  | G.F { s = G.ExprStmt ({ e = G.Ellipsis _; _ }, _); _ } :: _, _ ->
       raise Impossible
   (* Note that we restrict the match-a-field-at-any-position only for
    * definitions, which allows us to optimize things a little bit
@@ -2425,7 +2425,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
    * not parsed as DefStmt but as Assign.
    * alt: keep them as Assign, but always do the all_elem_and_rest_of_list
    *)
-  | ( G.FieldStmt
+  | ( G.F
         {
           s = G.DefStmt (({ G.name = G.EN (G.Id ((s1, _), _)); _ }, _) as adef);
           _;
@@ -2437,7 +2437,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
         let before, there, after =
           xsb
           |> Common2.split_when (function
-               | G.FieldStmt
+               | G.F
                    {
                      s =
                        G.DefStmt ({ B.name = B.EN (B.Id ((s2, _tok), _)); _ }, _);
@@ -2448,7 +2448,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
                | _ -> false)
         in
         match there with
-        | G.FieldStmt { s = G.DefStmt bdef; _ } ->
+        | G.F { s = G.DefStmt bdef; _ } ->
             m_definition adef bdef >>= fun () ->
             m_list__m_field ~less_is_ok xsa (before @ after)
         | _ -> raise Impossible
@@ -2474,12 +2474,7 @@ and m_list__m_field ~less_is_ok (xsa : G.field list) (xsb : G.field list) =
 and m_field a b =
   match (a, b) with
   (* boilerplate *)
-  | G.FieldStmt a1, B.FieldStmt b1 -> m_stmt a1 b1
-  | G.FieldSpread (a0, a1), B.FieldSpread (b0, b1) ->
-      m_tok a0 b0 >>= fun () -> m_expr a1 b1
-  | G.FieldSpread _, _
-  | G.FieldStmt _, _ ->
-      fail ()
+  | G.F a1, B.F b1 -> m_stmt a1 b1
 
 (* ------------------------------------------------------------------------- *)
 (* Type definition *)
