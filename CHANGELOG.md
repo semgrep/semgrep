@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports width < 1
+- Correctly parse metavariables in JS template strings
 - Constant propagation: Tuple/Array destructuring assignments now correctly prevent constant propagation
 
 ### Changed
