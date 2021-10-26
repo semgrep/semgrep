@@ -892,7 +892,9 @@ and stmt_kind =
    *)
   | OtherStmt of other_stmt_operator * any list
 
-(* TODO: can also introduce var in some languages *)
+(* TODO: can also introduce var in some languages
+ * TODO? factorize with for_var_or_expr
+ *)
 and condition = expr
 
 (* newscope: *)

@@ -239,22 +239,22 @@ and map_typeC env x : G.type_ =
   | TFunction v1 ->
       let ps, tret = map_functionType env v1 in
       G.TyFun (ps, tret) |> G.t
-  | EnumName (v1, v2) ->
-      let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
-      G.OtherType (("EnumName", v1), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
-  | ClassName (v1, v2) ->
-      let (_kind, t), _attrs = map_class_key env v1
-      and v2 = map_a_class_name env v2 in
-      G.OtherType ((PI.str_of_info t, t), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
   | TypeName v1 ->
       let v1 = map_a_ident_name env v1 in
       G.TyN v1 |> G.t
   | TypenameKwd (v1, v2) ->
       let _v1 = map_tok env v1 and v2 = map_type_ env v2 in
       v2
+  | EnumName (v1, v2) ->
+      let v1 = map_tok env v1 and v2 = map_a_ident_name env v2 in
+      G.OtherType (("EnumName", v1), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
   | EnumDef v1 ->
       let nopt, tdef = map_enum_definition env v1 in
       todo env (nopt, tdef)
+  | ClassName (v1, v2) ->
+      let (_kind, t), _attrs = map_class_key env v1
+      and v2 = map_a_class_name env v2 in
+      G.OtherType ((PI.str_of_info t, t), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
   | ClassDef v1 ->
       let nopt, cdef = map_class_definition env v1 in
       todo env (nopt, cdef)
@@ -912,9 +912,16 @@ and map_a_expr_or_vars env v =
   | Right xs ->
       let xs = map_vars_decl env xs in
       xs
-      |> List.map (fun onedecl ->
-             let ent, vardef = todo env onedecl in
-             G.ForInitVar (ent, vardef))
+      |> List.map (fun (ent, def) ->
+             match def with
+             | G.VarDef vdef -> G.ForInitVar (ent, vdef)
+             | _ ->
+                 let e =
+                   G.OtherExpr
+                     (("ForInitNotVar", G.fake ""), [ G.Def (ent, def) ])
+                   |> G.e
+                 in
+                 G.ForInitExpr e)
 
 and map_a_label env v = map_wrap env map_of_string v
 
@@ -942,11 +949,9 @@ and map_jump env = function
 
 and map_handler env (v1, v2, v3) : G.catch =
   let v1 = map_tok env v1
-  and _, xs, _ =
-    map_paren env (map_of_list (map_exception_declaration v1 env)) v2
+  and _, x, _ = map_paren env (map_exception_declaration v1 env) v2
   and v3 = map_compound env v3 in
-  let pat : G.catch_exn = todo env xs in
-  (v1, pat, G.Block v3 |> G.s)
+  (v1, x, G.Block v3 |> G.s)
 
 and map_exception_declaration tok env x : G.catch_exn =
   match x with
@@ -1231,6 +1236,10 @@ and map_parameter env x : G.parameter =
   | ParamEllipsis v1 ->
       let v1 = map_tok env v1 in
       G.ParamEllipsis v1
+  | ParamTodo (v1, v2) ->
+      let v1 = map_todo_category env v1
+      and v2 = map_of_list (map_parameter env) v2 in
+      G.OtherParam (v1, v2 |> List.map (fun x -> G.Pa x))
 
 and map_parameter_classic env
     {
