@@ -192,7 +192,7 @@
             ],
             "fparams": [
               {
-                "ParamClassic": {
+                "Param": {
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
@@ -222,7 +222,7 @@
                 }
               },
               {
-                "ParamClassic": {
+                "Param": {
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
@@ -366,7 +366,7 @@
             ],
             "fparams": [
               {
-                "ParamClassic": {
+                "Param": {
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
@@ -396,7 +396,7 @@
                 }
               },
               {
-                "ParamClassic": {
+                "Param": {
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
