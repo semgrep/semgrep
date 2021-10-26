@@ -2669,9 +2669,8 @@ and type_parameter (env : env) ((v1, v2, v3, v4) : CST.type_parameter) :
         v2)
       v4
   in
-  let tp_constraints = [] in
   let tp_default = None in
-  { G.tp_id; tp_attrs; tp_bounds; tp_variance; tp_default; tp_constraints }
+  TP { G.tp_id; tp_attrs; tp_bounds; tp_variance; tp_default }
 
 and type_parameters (env : env) ((v1, v2, v3, v4, v5) : CST.type_parameters) =
   let _v1 = (* "<" *) token env v1 in
