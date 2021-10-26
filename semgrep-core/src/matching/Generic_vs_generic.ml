@@ -2224,22 +2224,16 @@ and m_enum_entry_definition a b =
       let* () = m_option (m_bracket m_fields) a2 b2 in
       return ()
 
-and m_type_parameter_constraint a b =
+and m_type_parameter a b =
   match (a, b) with
-  | G.HasConstructor a1, B.HasConstructor b1 -> m_tok a1 b1
+  | G.TP a1, B.TP b1 -> m_type_parameter_classic a1 b1
   | G.OtherTypeParam (a1, a2), B.OtherTypeParam (b1, b2) ->
-      m_other_type_parameter_operator a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.HasConstructor _, _
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
+  | G.TP _, _
   | G.OtherTypeParam _, _ ->
       fail ()
 
-and m_other_type_parameter_operator = m_other_xxx
-
-and m_type_parameter_constraints a b =
-  match (a, b) with
-  | a, b -> (m_list m_type_parameter_constraint) a b
-
-and m_type_parameter a b =
+and m_type_parameter_classic a b =
   match (a, b) with
   | ( {
         G.tp_id = a1;
@@ -2247,7 +2241,6 @@ and m_type_parameter a b =
         tp_bounds = a3;
         tp_default = a4;
         tp_variance = a5;
-        tp_constraints = a6;
       },
       {
         B.tp_id = b1;
@@ -2255,7 +2248,6 @@ and m_type_parameter a b =
         tp_bounds = b3;
         tp_default = b4;
         tp_variance = b5;
-        tp_constraints = b6;
       } ) ->
       let* () = m_ident a1 b1 in
       let* () = m_attributes a2 b2 in
@@ -2263,7 +2255,6 @@ and m_type_parameter a b =
       (m_option m_type_) a4 b4 >>= fun () ->
       (* less-is-more: *)
       let* () = m_option_none_can_match_some (m_wrap m_variance) a5 b5 in
-      let* () = m_type_parameter_constraints a6 b6 in
       return ()
 
 and m_variance a b =

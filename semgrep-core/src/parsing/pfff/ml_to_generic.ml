@@ -552,9 +552,7 @@ and type_parameter v =
   match v with
   | TyParam v -> G.tparam_of_id (ident v)
   (* TODO *)
-  | TyParamTodo (s, t) ->
-      let id = ("TyParamTodo", fake "TyParamTodo") in
-      G.tparam_of_id id ~tp_constraints:[ G.OtherTypeParam ((s, t), []) ]
+  | TyParamTodo (s, t) -> G.OtherTypeParam ((s, t), [])
 
 and type_def_kind = function
   | AbstractType -> G.AbstractType (fake "")

@@ -76,9 +76,11 @@ let distribute_access (xs : (G.field, G.attribute) either list) : G.field list =
   in
   aux None xs
 
-(* crazy https://en.cppreference.com/w/cpp/language/template_parameters *)
-let parameter_to_type_parameter (_p : G.parameter) : G.type_parameter =
-  failwith "TODO2"
+(* crazy https://en.cppreference.com/w/cpp/language/template_parameters
+ * TODO: try to convert to type_parameter_classic when can
+ *)
+let parameter_to_type_parameter (p : G.parameter) : G.type_parameter =
+  G.OtherTypeParam (("Param", G.fake ""), [ G.Pa p ])
 
 let def_or_dir_either_to_stmt = function
   | Left dir -> G.DirectiveStmt dir |> G.s
@@ -217,8 +219,7 @@ and map_typeC env x : G.type_ =
       let v1 = map_of_list (map_sized_type env) v1
       and v2 = map_of_option (map_type_ env) v2 in
       let allt = v1 @ Common.opt_to_list v2 in
-      G.OtherType
-        (("TSized", PI.unsafe_fake_info ""), allt |> List.map (fun t -> G.T t))
+      G.OtherType (("TSized", G.fake ""), allt |> List.map (fun t -> G.T t))
       |> G.t
   | TPointer (v1, v2, v3) ->
       let v1 = map_tok env v1

@@ -1058,7 +1058,10 @@ and pattern =
   (* sgrep: *)
   | PatEllipsis of tok
   | DisjPat of pattern * pattern
-  (* todo: Python should transform expr pattern via expr_to_pattern() *)
+  (* e.g., ???
+   * todo: Python should transform expr pattern via expr_to_pattern(),
+   * so maybe have a PatExpr like we have StmtExpr?
+   *)
   | OtherPat of todo_kind * any list
 
 (*****************************************************************************)
@@ -1145,7 +1148,7 @@ and type_argument =
       tok (* '?' *) * (bool wrap (* extends|super, true=super *) * type_) option
   (* C++/Rust (Rust restrict expr to literals and ConstBlock) *)
   | TAExpr of expr
-  (* TODO? Rust Lifetime 'x, Kotlin use-site variance *)
+  (* e.g., Rust Lifetime 'x, Kotlin use-site variance *)
   | OtherTypeArg of todo_kind * any list
 
 (*****************************************************************************)
@@ -1156,8 +1159,8 @@ and attribute =
   | KeywordAttr of keyword_attribute wrap
   (* a.k.a decorators, annotations *)
   | NamedAttr of tok (* '@' *) * name * arguments (* less: option *)
-  (* per-language specific keywords like 'transient', 'synchronized' *)
-  (* todo: Expr used for Python, but should transform in NamedAttr when can *)
+  (* e.g,, per-language specific keywords like 'transient', 'synchronized'
+   * todo: Expr used for Python, but should transform in NamedAttr when can *)
   | OtherAttribute of todo_kind * any list
 
 and keyword_attribute =
@@ -1286,7 +1289,14 @@ and definition_kind =
   | OtherDef of todo_kind * any list
 
 (* template/generics/polymorphic-type *)
-and type_parameter = {
+and type_parameter =
+  | TP of type_parameter_classic
+  (* e.g., Lifetime in Rust, complex types in OCaml, HasConstructor in C#,
+   * regular Param in C++
+   *)
+  | OtherTypeParam of todo_kind * any list
+
+and type_parameter_classic = {
   (* it would be nice to reuse entity here, but then the types would be
    * mutually recursive.
    * note: in Scala the ident can be a wildcard.
@@ -1294,14 +1304,12 @@ and type_parameter = {
   tp_id : ident;
   tp_attrs : attribute list;
   (* upper type bounds (must-be-a-subtype-of)
-     alt: we could just use 'type_' and TyAnd to represent intersection types *)
+   * alt: we could just use 'type_' and TyAnd for intersection types *)
   tp_bounds : type_ list;
   (* for Rust/C++. Similar to parameter_classic, but with type here. *)
   tp_default : type_ option;
   (* declaration-site variance (Kotlin/Hack/Scala) *)
   tp_variance : variance wrap option;
-  (* everything else that does not fit *)
-  tp_constraints : type_parameter_constraint list;
 }
 
 (* TODO bracket *)
@@ -1313,12 +1321,6 @@ and variance =
   | Covariant
   (* '-' in Scala/Hack, 'in' in C#/Kotlin *)
   | Contravariant
-
-and type_parameter_constraint =
-  (* C# *)
-  | HasConstructor of tok
-  (* e.g., Lifetime in Rust, complex types in OCaml *)
-  | OtherTypeParam of todo_kind * any list
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -1865,8 +1867,8 @@ let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
 (* Type parameters *)
 (* ------------------------------------------------------------------------- *)
 let tparam_of_id ?(tp_attrs = []) ?(tp_variance = None) ?(tp_bounds = [])
-    ?(tp_default = None) ?(tp_constraints = []) tp_id =
-  { tp_id; tp_attrs; tp_variance; tp_bounds; tp_default; tp_constraints }
+    ?(tp_default = None) tp_id =
+  TP { tp_id; tp_attrs; tp_variance; tp_bounds; tp_default }
 
 (* ------------------------------------------------------------------------- *)
 (* Statements *)

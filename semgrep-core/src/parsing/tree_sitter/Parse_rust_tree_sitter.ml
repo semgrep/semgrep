@@ -638,8 +638,7 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
   match x with
   | `Life x ->
       let id = map_lifetime env x in
-      G.tparam_of_id id
-        ~tp_constraints:[ G.OtherTypeParam (("LifeTime", snd id), []) ]
+      G.OtherTypeParam (("LifeTime", snd id), [ G.I id ])
   | `Meta tok ->
       let meta = ident env tok in
       (* pattern \$[a-zA-Z_]\w* *)
@@ -649,7 +648,7 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
       (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
       G.tparam_of_id ident
   | `Cons_type_param x -> map_constrained_type_parameter env x
-  | `Opt_type_param (v1, v2, v3) ->
+  | `Opt_type_param (v1, v2, v3) -> (
       let type_param =
         match v1 with
         | `Id tok ->
@@ -659,8 +658,10 @@ and map_type_parameter (env : env) (x : CST.anon_choice_life_859e88f) :
         | `Cons_type_param x -> map_constrained_type_parameter env x
       in
       let _equal = token env v2 (* "=" *) in
-      let tp_default = Some (map_type_ env v3) in
-      { type_param with G.tp_default }
+      let default = map_type_ env v3 in
+      match type_param with
+      | TP x -> TP { x with G.tp_default = Some default }
+      | OtherTypeParam (x, anys) -> OtherTypeParam (x, G.T default :: anys))
   | `Const_param (v1, v2, v3, v4) ->
       let const = token env v1 in
       (* "const" *)
