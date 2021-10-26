@@ -48,7 +48,9 @@ let ident (s, _) = s
 let ident_or_dynamic = function
   | EN (Id (x, _idinfo)) -> ident x
   | EN _
-  | EDynamic _ ->
+  | EDynamic _
+  | EPattern _
+  | OtherEntity _ ->
       raise Todo
 
 let opt f = function
@@ -727,9 +729,9 @@ and dot_access env (e, _tok, fi) =
 
 and field_ident env fi =
   match fi with
-  | EN (Id (id, _idinfo)) -> ident id
-  | EN (IdQualified qualified_info) -> id_qualified env qualified_info
-  | EDynamic e -> expr env e
+  | FN (Id (id, _idinfo)) -> ident id
+  | FN (IdQualified qualified_info) -> id_qualified env qualified_info
+  | FDynamic e -> expr env e
 
 and tyvar env (id, typ) =
   match env.lang with

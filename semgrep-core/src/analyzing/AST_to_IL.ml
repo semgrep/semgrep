@@ -189,6 +189,10 @@ let ident_of_entity_opt ent =
   | G.EN (G.IdQualified { name_last = i, _topt; name_info = pinfo; _ }) ->
       Some (i, pinfo)
   | G.EDynamic _ -> None
+  (* TODO *)
+  | G.EPattern _
+  | G.OtherEntity _ ->
+      None
 
 let name_of_entity ent =
   match ident_of_entity_opt ent with
@@ -207,16 +211,16 @@ let rec lval env eorig =
   | G.DotAccess (e1orig, tok, field) -> (
       let base, base_constness = nested_lval env tok e1orig in
       match field with
-      | G.EN (G.Id (id, idinfo)) ->
+      | G.FN (G.Id (id, idinfo)) ->
           {
             base;
             offset = Dot (var_of_id_info id idinfo);
             constness = idinfo.id_constness;
           }
-      | G.EN name ->
+      | G.FN name ->
           let attr = expr env (G.N name |> G.e) in
           { base; offset = Index attr; constness = base_constness }
-      | G.EDynamic e2orig ->
+      | G.FDynamic e2orig ->
           let attr = expr env e2orig in
           { base; offset = Index attr; constness = base_constness })
   | G.ArrayAccess (e1orig, (_, e2orig, _)) ->
@@ -411,7 +415,7 @@ and expr_aux env ?(void = false) eorig =
             G.DotAccess
               ( obj,
                 tok,
-                G.EN
+                G.FN
                   (G.Id
                     (("concat", _), { G.id_resolved = { contents = None }; _ }))
               );
@@ -688,6 +692,20 @@ let lval_of_ent env ent =
   | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
   | G.EN name -> lval env (G.N name |> G.e)
   | G.EDynamic eorig -> lval env eorig
+  | G.EPattern _ -> (
+      let any = G.En ent in
+      log_fixme ToDo any;
+      let toks = Visitor_AST.ii_of_any any in
+      match toks with
+      | [] -> raise Impossible
+      | x :: _ -> fresh_lval env x)
+  | G.OtherEntity _ -> (
+      let any = G.En ent in
+      log_fixme ToDo any;
+      let toks = Visitor_AST.ii_of_any any in
+      match toks with
+      | [] -> raise Impossible
+      | x :: _ -> fresh_lval env x)
 
 (* just to ensure the code after does not call expr directly *)
 let expr_orig = expr

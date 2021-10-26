@@ -203,7 +203,7 @@ let rec expr (x : expr) =
       and t = info t
       and v2 = name v2
       and _v3TODO = expr_context v3 in
-      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ()))) |> G.e
+      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ()))) |> G.e
   | DictOrSet (CompList (t1, v, t2)) ->
       let v' = list dictorset_elt v in
       let kind =

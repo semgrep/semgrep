@@ -762,7 +762,7 @@ and map_variable_declarator (env : env) (x : CST.variable_declarator) : G.expr =
       let dot = token env v2 (* "." *) in
       let ident = identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
       G.DotAccess
-        (G.N (G.Id (ident, G.empty_id_info ())) |> G.e, dot, G.EDynamic prefix)
+        (G.N (G.Id (ident, G.empty_id_info ())) |> G.e, dot, G.FDynamic prefix)
       |> G.e
 
 let map_program (env : env) ((v1, v2) : CST.program) : G.program =

@@ -1439,19 +1439,25 @@ and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
     match v2 with
     | `Simple_id x ->
         let id = simple_identifier env x in
-        EN (Id (id, empty_id_info ()))
+        FN (Id (id, empty_id_info ()))
     | `Paren_exp x ->
         let e = parenthesized_expression env x in
-        EDynamic e
+        FDynamic e
     | `Class tok ->
         let id = str env tok in
         (* "class" *)
-        EN (Id (id, empty_id_info ()))
+        FN (Id (id, empty_id_info ()))
   in
   fun e ->
     match op with
     | Left tdot -> DotAccess (e, tdot, fld) |> G.e
-    | Right otherop -> OtherExpr (otherop, [ NoD fld; E e ]) |> G.e
+    | Right otherop ->
+        let any_fld =
+          match fld with
+          | FN n -> E (N n |> G.e)
+          | FDynamic e -> E e
+        in
+        OtherExpr (otherop, [ any_fld; E e ]) |> G.e
 
 and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
   let v1 =

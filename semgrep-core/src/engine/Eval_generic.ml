@@ -173,7 +173,7 @@ let rec eval env code =
             G.DotAccess
               ( { e = G.N (G.Id (("re", _), _)); _ },
                 _,
-                EN (Id (("match", _), _)) );
+                FN (Id (("match", _), _)) );
           _;
         },
         (_, [ G.Arg e1; G.Arg { e = G.L (G.String (re, _)); _ } ], _) ) -> (

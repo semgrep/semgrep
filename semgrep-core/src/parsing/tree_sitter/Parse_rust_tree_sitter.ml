@@ -56,7 +56,7 @@ let deoptionalize l =
 (*****************************************************************************)
 
 type function_declaration_rs = {
-  name : G.name_or_dynamic;
+  name : G.entity_name;
   type_params : G.type_parameter list;
   params : G.parameter list;
   retval : G.type_ option;
@@ -1627,13 +1627,13 @@ and map_field_expression (env : env) ((v1, v2, v3) : CST.field_expression)
         (* pattern (r#)?[a-zA-Zα-ωΑ-Ωµ_][a-zA-Zα-ωΑ-Ωµ\d_]* *)
         let n = H2.name_of_id ident in
         let n = H2.add_type_args_opt_to_name n typeargs in
-        G.EN n
+        G.FN n
     | `Int_lit tok -> (
         let literal = G.L (G.Int (integer_literal env tok)) |> G.e in
         (* integer_literal *)
         match typeargs with
         | Some _tas -> raise Impossible
-        | None -> G.EDynamic literal)
+        | None -> G.FDynamic literal)
   in
   G.DotAccess (expr, dot, ident_or_dyn) |> G.e
 
@@ -1715,7 +1715,7 @@ and map_foreign_mod_block (env : env) ((v1, v2, v3, v4) : CST.foreign_mod_block)
 and map_function_declaration (env : env)
     ((v1, v2, v3, v4, v5) : CST.function_declaration) : function_declaration_rs
     =
-  let name : G.name_or_dynamic =
+  let name : G.entity_name =
     match v1 with
     | `Id tok ->
         let ident = ident env tok in

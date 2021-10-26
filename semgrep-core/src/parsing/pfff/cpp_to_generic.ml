@@ -367,20 +367,20 @@ and map_expr env x : G.expr =
       and either, tdot = map_wrap env (map_dotOp env) v2
       and v3 = map_name env v3 in
       match either with
-      | Dot -> G.DotAccess (v1, tdot, G.EN v3) |> G.e
+      | Dot -> G.DotAccess (v1, tdot, G.FN v3) |> G.e
       | Arrow ->
           let v1 = G.DeRef (tdot, v1) |> G.e in
-          G.DotAccess (v1, tdot, G.EN v3) |> G.e)
+          G.DotAccess (v1, tdot, G.FN v3) |> G.e)
   | DotStarAccess (v1, v2, v3) -> (
       let v1 = map_expr env v1
       and either, tdot = map_wrap env (map_dotOp env) v2
       and v3 = map_expr env v3 in
       let e = G.DeRef (tdot, v3) |> G.e in
       match either with
-      | Dot -> G.DotAccess (v1, tdot, G.EDynamic e) |> G.e
+      | Dot -> G.DotAccess (v1, tdot, G.FDynamic e) |> G.e
       | Arrow ->
           let v1 = G.DeRef (tdot, v1) |> G.e in
-          G.DotAccess (v1, tdot, G.EDynamic e) |> G.e)
+          G.DotAccess (v1, tdot, G.FDynamic e) |> G.e)
   | SizeOf (v1, v2) ->
       let v1 = map_tok env v1
       and v2 =
@@ -1024,10 +1024,10 @@ and map_decl env x : G.stmt list =
       |> List.map
            (map_def_in_stmt (fun (ent, def) -> ({ ent with tparams = v2 }, def)))
   | TemplateInstanciation (v1, v2, v3) ->
-      let v1 = map_tok env v1
+      let _v1TODO = map_tok env v1
       and ent, vardef = map_var_decl env v2
-      and v3 = map_sc env v3 in
-      todo env (v1, ent, vardef, v3)
+      and _v3 = map_sc env v3 in
+      [ G.DefStmt (ent, G.VarDef vardef) |> G.s ]
   | ExternDecl (v1, v2, v3) ->
       let v1 = map_tok env v1
       and _v2TODO = map_wrap env map_of_string v2
@@ -1068,7 +1068,8 @@ and map_decl env x : G.stmt list =
       [ G.OtherStmt (G.OS_Todo, [ G.TodoK v1 ]) |> G.s ]
 
 and map_vars_decl env (v1, v2) : G.definition list =
-  let v1 = map_of_list (map_onedecl env) v1 and _v2 = map_sc env v2 in
+  let v1 = map_of_list (map_onedecl env) v1 |> List.flatten
+  and _v2 = map_sc env v2 in
   v1
 
 and map_asmbody env (v1, v2) : G.any list =
@@ -1090,31 +1091,52 @@ and map_colon_option env = function
       let _v1 = map_of_list (map_tok env) v1 in
       []
 
-and map_onedecl env x : G.definition =
+and map_onedecl env x : G.definition list =
   match x with
   | EmptyDecl t ->
-      let t = map_type_ env t in
-      todo env t
+      (* should populate env defs *)
+      let _tTODO = map_type_ env t in
+      []
   | TypedefDecl (tk, ty, id) ->
       let _tk = map_tok env tk in
       let ty = map_type_ env ty in
       let id = map_ident env id in
       let ent = G.basic_entity id in
-      (ent, G.TypeDef { G.tbody = G.AliasType ty })
+      [ (ent, G.TypeDef { G.tbody = G.AliasType ty }) ]
   | V v1 ->
       let ent, vardef = map_var_decl env v1 in
-      (ent, G.VarDef vardef)
+      [ (ent, G.VarDef vardef) ]
   | StructuredBinding (v1, v2, v3) ->
       let v1 = map_type_ env v1 in
-      let v2 = map_bracket env (map_of_list (map_ident env)) v2 in
+      let l, xs, r = map_bracket env (map_of_list (map_ident env)) v2 in
       let v3 = map_init env v3 in
-      todo env (v1, v2, v3)
+      let pat =
+        G.PatTuple
+          (l, xs |> List.map (fun id -> G.PatId (id, G.empty_id_info ())), r)
+      in
+      (* TODO: the type is the type of all bindings or type of init? *)
+      let pat = G.PatTyped (pat, v1) in
+      let ent = { G.name = G.EPattern pat; attrs = []; tparams = [] } in
+      (* TODO? use v1 for vtype? *)
+      let def = G.VarDef { G.vinit = Some v3; vtype = None } in
+      [ (ent, def) ]
   | BitField (v1, v2, v3, v4) ->
       let v1 = map_of_option (map_ident env) v1
       and v2 = map_tok env v2
       and v3 = map_type_ env v3
       and v4 = map_a_const_expr env v4 in
-      todo env (v1, v2, v3, v4)
+      let def = G.OtherDef (("BitField", v2), [ G.T v3; G.E v4 ]) in
+      let ent =
+        match v1 with
+        | None ->
+            {
+              G.name = G.OtherEntity (("AnonBitField", v2), []);
+              attrs = [];
+              tparams = [];
+            }
+        | Some id -> G.basic_entity id
+      in
+      [ (ent, def) ]
 
 and map_var_decl env (ent, { v_init = v_v_init; v_type = v_v_type }) =
   let ent = map_entity env ent in
@@ -1748,7 +1770,7 @@ let map_any env x : G.any =
       G.E (G.N v1 |> G.e)
   | OneDecl v1 ->
       let v1 = map_onedecl env v1 in
-      G.Def v1
+      G.Ss (v1 |> List.map (fun def -> G.DefStmt def |> G.s))
   | Init v1 ->
       let v1 = map_initialiser env v1 in
       G.E v1
