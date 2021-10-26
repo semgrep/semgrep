@@ -975,7 +975,7 @@ and map_bounded_type (env : env) (x : CST.bounded_type) : G.type_ =
       let plus = token env v2 (* "+" *) in
       let type_ = map_type_ env v3 in
       G.TyOr
-        (G.OtherType2 (("Lifetime", plus), [ G.I lifetime ]) |> G.t, plus, type_)
+        (G.OtherType (("Lifetime", plus), [ G.I lifetime ]) |> G.t, plus, type_)
       |> G.t
   | `Type_PLUS_type (v1, v2, v3) ->
       let type_a = map_type_ env v1 in
@@ -987,7 +987,7 @@ and map_bounded_type (env : env) (x : CST.bounded_type) : G.type_ =
       let plus = token env v2 (* "+" *) in
       let lifetime = map_lifetime env v3 in
       G.TyOr
-        (type_, plus, G.OtherType2 (("Lifetime", plus), [ G.I lifetime ]) |> G.t)
+        (type_, plus, G.OtherType (("Lifetime", plus), [ G.I lifetime ]) |> G.t)
       |> G.t
 
 and map_bracketed_type (env : env) ((v1, v2, v3) : CST.bracketed_type) =
@@ -2393,7 +2393,7 @@ and map_qualified_type (env : env) ((v1, v2, v3) : CST.qualified_type) : G.type_
   let lhs = map_type_ env v1 in
   let as_ = token env v2 (* "as" *) in
   let rhs = map_type_ env v3 in
-  G.OtherType2 (("As", as_), [ G.T lhs; G.T rhs ]) |> G.t
+  G.OtherType (("As", as_), [ G.T lhs; G.T rhs ]) |> G.t
 
 and map_range_expression (env : env) (x : CST.range_expression) : G.expr =
   match x with
@@ -2641,9 +2641,9 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
   | `Meta tok ->
       let metavar = ident env tok in
       (* pattern \$[a-zA-Z_]\w* *)
-      G.OtherType
-        (G.OT_Expr, [ G.E (G.N (G.Id (metavar, G.empty_id_info ())) |> G.e) ])
-      |> G.t
+      let n = H2.name_of_id metavar in
+      (* TODO: why not TyN? *)
+      H2.expr_to_type (G.N n |> G.e)
   | `Poin_type x -> map_pointer_type env x
   | `Gene_type x ->
       let name = map_generic_type_name env x in
@@ -2677,7 +2677,7 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
       G.TyN (H2.name_of_id ident) |> G.t
   | `Macro_invo x ->
       let invo = map_macro_invocation env x in
-      G.OtherType (G.OT_Expr, [ G.E invo ]) |> G.t
+      H2.expr_to_type invo
   | `Empty_type tok ->
       let bang = token env tok in
       (* "!" *)

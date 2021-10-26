@@ -1071,7 +1071,7 @@ and type_ = {
 }
 
 and type_kind =
-  (* TODO: TyLiteral, for Scala *)
+  (* TODO: TyLiteral, for Scala/JS, or use TyExpr? *)
   (* todo? a type_builtin = TInt | TBool | ...? see Literal.
    * or just delete and use (TyN Id) instead?
    *)
@@ -1123,17 +1123,16 @@ and type_kind =
   | TyInterfaceAnon of tok (* 'interface' *) * field list bracket
   (* sgrep-ext: *)
   | TyEllipsis of tok
-  (* e.g., Struct/Union/Enum names (convert in unique TyName?), TypeOf, TSized
-   * in C++
+  (* For languages such as Python which abuse expr to represent types.
+   * At some point AST_generic_helpers.expr_to_type should be good enough
+   * to transpile every expr construct, but for now we have this.
    *)
-  | OtherType2 of todo_kind * any list
-  (* TODO: get rid at some point *)
-  | OtherType of other_type_operator * any list
-
-(* TODO: get rid at some point *)
-and other_type_operator = OT_Expr | OT_Arg
-
-(* Python: todo: should use expr_to_type() when can *)
+  | TyExpr of expr
+  (* e.g., Struct/Union/Enum names (convert in unique TyName?), TypeOf/TSized
+   * TRefRef in C++, EnumAnon in C++/Hack, TyTodo in OCaml, TyLit in Scala/JS,
+   * lots of stuff in C#, Lifetime in Rust, Delegation in Kotlin
+   *)
+  | OtherType of todo_kind * any list
 
 (* <> in Java/C#/C++/Kotlin/Rust/..., [] in Scala and Go (for Map) *)
 and type_arguments = type_argument list bracket

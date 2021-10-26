@@ -406,7 +406,7 @@ let keyword (env : env) (x : CST.keyword) =
 
 let xhp_enum_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.xhp_enum_type)
     ident =
-  let _v1 = (* "enum" *) str env v1 in
+  let v1 = (* "enum" *) token env v1 in
   let _v2 = (* "{" *) token env v2 in
   let v3 = G.OrEnum (xhp_enum_key env v3, None) in
   let v4 =
@@ -430,7 +430,7 @@ let xhp_enum_type (env : env) ((v1, v2, v3, v4, v5, v6) : CST.xhp_enum_type)
     G.DefStmt (G.basic_entity ident, TypeDef { tbody = OrType (v3 :: v4) })
     |> G.s
   in
-  G.OtherType (OT_Expr, [ G.S def ]) |> G.t
+  G.OtherType (("EnumAnon", v1), [ G.S def ]) |> G.t
 
 let scoped_identifier (env : env) ((v1, v2, v3) : CST.scoped_identifier) :
     G.dotted_ident =
@@ -2753,7 +2753,7 @@ and where_clause (env : env) ((v1, v2) : CST.where_clause) =
   (* TODO: I don't really know what this language feature is.... *)
   (* TODO: This is really wrong, because it also needs to be part of a FuncDef *)
   (* Q: Should this become a cmixins? *)
-  let _v1 = (* "where" *) token env v1 in
+  let twhere = (* "where" *) token env v1 in
   let v2 =
     List.map
       (fun (v1, v2) ->
@@ -2763,7 +2763,8 @@ and where_clause (env : env) ((v1, v2) : CST.where_clause) =
           | Some tok -> (* "," *) Some (token env tok)
           | None -> None
         in
-        G.OtherType (OT_Expr, [ G.T frst; G.TodoK snd; G.T thrd ]) |> G.t)
+        G.OtherType (("Where", twhere), [ G.T frst; G.TodoK snd; G.T thrd ])
+        |> G.t)
       v2
   in
   v2

@@ -198,11 +198,10 @@ let rec pattern_to_expr p =
 
 let expr_to_type e =
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
-  OtherType (OT_Expr, [ E e ]) |> G.t
+  TyExpr e |> G.t
 
 (* TODO: recognize foo(args)? like in Kotlin/Java *)
-let expr_to_class_parent e : class_parent =
-  (OtherType (OT_Expr, [ E e ]) |> G.t, None)
+let expr_to_class_parent e : class_parent = (expr_to_type e, None)
 
 (* See also exprstmt, and stmt_to_expr in AST_generic.ml *)
 
