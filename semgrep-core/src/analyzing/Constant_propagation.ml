@@ -169,6 +169,27 @@ let var_stats prog : var_stats =
               | AssignOp _ -> incr stat.rvalue
               | _ -> ());
               vout (E e2)
+          | Assign ({ e = Container ((Tuple | Array), (_, es, _)); _ }, _, e2)
+            ->
+              List.iter
+                (function
+                  | {
+                      e =
+                        N
+                          (Id
+                            ( id,
+                              {
+                                id_resolved = { contents = Some (_kind, sid) };
+                                _;
+                              } ));
+                      _;
+                    } ->
+                      let var = (H.str_of_ident id, sid) in
+                      let stat = get_stat_or_create var h in
+                      incr stat.lvalue
+                  | _ -> ())
+                es;
+              vout (E e2)
           | N (Id (id, { id_resolved = { contents = Some (_kind, sid) }; _ }))
             ->
               let var = (H.str_of_ident id, sid) in
