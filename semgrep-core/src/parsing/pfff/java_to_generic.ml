@@ -52,7 +52,9 @@ let fb = G.fake_bracket
 let id_of_entname = function
   | G.EN (Id (id, idinfo)) -> (id, idinfo)
   | G.EN _
-  | G.EDynamic _ ->
+  | G.EDynamic _
+  | EPattern _
+  | OtherEntity _ ->
       raise Impossible
 
 let entity_to_param { G.name; attrs; tparams = _unused } t =
@@ -195,7 +197,7 @@ and element_value = function
       v1
   | AnnotNestedAnnot v1 ->
       let v1 = annotation v1 in
-      G.OtherExpr (G.OE_Annot, [ G.At v1 ]) |> G.e
+      G.OtherExpr (("Annot", unsafe_fake ""), [ G.At v1 ]) |> G.e
   | AnnotArrayInit (t1, v1, t2) ->
       let v1 = list element_value v1 in
       G.Container (G.List, (t1, v1, t2)) |> G.e
@@ -271,7 +273,7 @@ and expr e =
       G.L v1
   | ClassLiteral (v1, v2) ->
       let v1 = typ v1 in
-      G.OtherExpr (G.OE_ClassLiteral, [ G.T v1; G.Tk v2 ])
+      G.OtherExpr (("ClassLiteral", v2), [ G.T v1 ])
   | NewClass (v0, v1, (lp, v2, rp), v3) -> (
       let v1 = typ v1
       and v2 = list argument v2
@@ -288,7 +290,7 @@ and expr e =
                 cimplements = [];
                 cmixins = [];
                 cparams = [];
-                cbody = decls |> bracket (List.map (fun x -> G.FieldStmt x));
+                cbody = decls |> bracket (List.map (fun x -> G.F x));
               }
             |> G.e
           in
@@ -312,30 +314,31 @@ and expr e =
           G.Call
             (G.IdSpecial (G.New, v0) |> G.e, fb (G.ArgType t :: G.Arg e :: v2)))
   (* x.new Y(...) {...} *)
-  | NewQualifiedClass (v0, _tok1, _tok2, v2, v3, v4) ->
+  | NewQualifiedClass (v0, _tok1, tok2, v2, v3, v4) ->
       let v0 = expr v0
       and v2 = typ v2
       and v3 = arguments v3
       and v4 = option (bracket decls) v4 in
-      let any =
+      let anys =
         [ G.E v0; G.T v2 ]
         @ (v3 |> G.unbracket |> List.map (fun arg -> G.Ar arg))
         @ (Common.opt_to_list v4 |> List.map G.unbracket |> List.flatten
           |> List.map (fun st -> G.S st))
       in
-      G.OtherExpr (G.OE_NewQualifiedClass, any)
+      G.OtherExpr (("NewQualifiedClass", tok2), anys)
   | MethodRef (v1, v2, v3, v4) ->
       let v1 = expr_or_type v1 in
       let v2 = tok v2 in
       let _v3TODO = option type_arguments v3 in
       let v4 = ident v4 in
-      G.OtherExpr (G.OE_Todo, [ v1; G.Tk v2; G.I v4 ])
+      (* TODO? use G.GetRef? *)
+      G.OtherExpr (("MethodRef", v2), [ v1; G.I v4 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = arguments v2 in
       G.Call (v1, v2)
   | Dot (v1, t, v2) ->
       let v1 = expr v1 and t = info t and v2 = ident v2 in
-      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
   | ArrayAccess (v1, v2) ->
       let v1 = expr v1 and v2 = bracket expr v2 in
       G.ArrayAccess (v1, v2)
@@ -569,7 +572,7 @@ and parameter_binding = function
   | ParamClassic v
   | ParamReceiver v ->
       let ent, t = var v in
-      G.ParamClassic (entity_to_param ent t)
+      G.Param (entity_to_param ent t)
   | ParamSpread (tk, v) ->
       let ent, t = var v in
       let p = entity_to_param ent t in
@@ -601,7 +604,7 @@ and enum_decl { en_name; en_mods; en_impls; en_body } =
   let v3 = list class_parent en_impls in
   let v4, v5 = en_body in
   let v4 = list enum_constant v4 |> List.map G.fld in
-  let v5 = decls v5 |> List.map (fun st -> G.FieldStmt st) in
+  let v5 = decls v5 |> List.map (fun st -> G.F st) in
   let ent = G.basic_entity v1 ~attrs:(G.attr EnumClass (snd v1) :: v2) in
   let cbody = fb (v4 @ v5) in
   let cdef =
@@ -625,7 +628,7 @@ and enum_constant (v1, v2, v3) =
   (ent, G.EnumEntryDef def)
 
 and class_body (l, xs, r) : G.field list G.bracket =
-  let xs = decls xs |> List.map (fun x -> G.FieldStmt x) in
+  let xs = decls xs |> List.map (fun x -> G.F x) in
   (l, xs, r)
 
 and class_decl

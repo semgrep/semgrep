@@ -112,7 +112,7 @@ main() {
       # See the long comment in Test_parsing.parsing_common about
       # mem_limit_mb.
       semgrep-core -lang "$lang" -parsing_stats -json $project_list
-    ) > stats.json
+    ) > stats.json 2> stats.log
   )
 
   if [[ "$with_upload" = true ]]; then

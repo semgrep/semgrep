@@ -117,7 +117,7 @@ let map_get_attr (env : env) ((v1, v2) : CST.get_attr) =
   let v2 = map_variable_expr env v2 in
   fun e ->
     let n = H2.name_of_id v2 in
-    G.DotAccess (e, v1, EN n) |> G.e
+    G.DotAccess (e, v1, FN n) |> G.e
 
 let map_literal_value (env : env) (x : CST.literal_value) : literal =
   match x with
@@ -467,7 +467,7 @@ and map_splat (env : env) (x : CST.splat) =
   | `Attr_splat (v1, v2) ->
       let v1 = (* ".*" *) token env v1 in
       let f1 e =
-        let access = EDynamic (IdSpecial (HashSplat, v1) |> G.e) in
+        let access = FDynamic (IdSpecial (HashSplat, v1) |> G.e) in
         DotAccess (e, v1, access) |> G.e
       in
       let v2 = List.map (map_anon_choice_get_attr_7bbf24f env) v2 in
@@ -578,7 +578,7 @@ and map_body (env : env) (xs : CST.body) : field list =
           def |> G.fld
       | `Blk x ->
           let blk = map_block env x in
-          FieldStmt (G.exprstmt blk)
+          F (G.exprstmt blk)
       | `Semg_ellips tok ->
           let t = (* "..." *) token env tok in
           G.fieldEllipsis t)

@@ -330,7 +330,7 @@ let (mk_visitor :
           let v1 = v_pattern v1 and v2 = v_expr v2 in
           ()
       | DotAccess (v1, t, v2) ->
-          let v1 = v_expr v1 and t = v_tok t and v2 = v_name_or_dynamic v2 in
+          let v1 = v_expr v1 and t = v_tok t and v2 = v_field_name v2 in
           ()
       | ArrayAccess (v1, v2) ->
           let v1 = v_expr v1 and v2 = v_bracket v_expr v2 in
@@ -374,14 +374,24 @@ let (mk_visitor :
           let t = v_tok t in
           let v1 = v_expr v1 in
           ()
+      | StmtExpr v1 ->
+          let v1 = v_stmt v1 in
+          ()
       | OtherExpr (v1, v2) ->
-          let v1 = v_other_expr_operator v1 and v2 = v_list v_any v2 in
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in
     vin.kexpr (k, all_functions) x
-  and v_name_or_dynamic = function
+  and v_field_name = function
+    | FN v1 -> v_name v1
+    | FDynamic e -> v_expr e
+  and v_entity_name = function
     | EN v1 -> v_name v1
     | EDynamic e -> v_expr e
+    | EPattern x -> v_pattern x
+    | OtherEntity (v1, v2) ->
+        let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
+        ()
   and v_literal = function
     | Unit v1 ->
         let v1 = v_tok v1 in
@@ -497,7 +507,7 @@ let (mk_visitor :
     | ArgKwd (v1, v2) ->
         let v1 = v_ident v1 and v2 = v_expr v2 in
         ()
-    | ArgOther (v1, v2) ->
+    | OtherArg (v1, v2) ->
         let v1 = v_other_argument_operator v1 and v2 = v_list v_any v2 in
         ()
   and v_other_argument_operator _x = ()
@@ -561,8 +571,11 @@ let (mk_visitor :
           let t = v_tok t in
           let v1 = v_type_ v1 in
           ()
+      | TyExpr v1 ->
+          let v1 = v_expr v1 in
+          ()
       | OtherType (v1, v2) ->
-          let v1 = v_other_type_operator v1 and v2 = v_list v_any v2 in
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in
     vin.ktype_ (k, all_functions) x
@@ -584,34 +597,31 @@ let (mk_visitor :
     | OtherTypeArg (v1, v2) ->
         let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
         ()
-  and v_todo_kind x = v_ident x
+  (* bugfix: do not call v_ident here, otherwise code like
+   * Analyze_pattern might consider the string for -filter_irrelevant_rules
+   *)
+  and v_todo_kind (_str, tok) = v_tok tok
   and v_other_type_operator _ = ()
-  and v_type_parameter
+  and v_type_parameter = function
+    | TP v1 -> v_type_parameter_classic v1
+    | OtherTypeParam (t, xs) ->
+        let t = v_todo_kind t in
+        let xs = v_list v_any xs in
+        ()
+  and v_type_parameter_classic
       {
         tp_id = v1;
         tp_attrs = v2;
         tp_bounds = v3;
         tp_default = v4;
         tp_variance = v5;
-        tp_constraints = v6;
       } =
     v_ident v1;
     v_list v_attribute v2;
     v_list v_type_ v3;
     v_option v_type_ v4;
     v_option (v_wrap v_variance) v5;
-    v_type_parameter_constraints v6;
     ()
-  and v_type_parameter_constraints v = v_list v_type_parameter_constraint v
-  and v_type_parameter_constraint = function
-    | HasConstructor t ->
-        let t = v_tok t in
-        ()
-    | OtherTypeParam (t, xs) ->
-        let t = v_other_type_parameter_operator t in
-        let xs = v_list v_any xs in
-        ()
-  and v_other_type_parameter_operator _ = ()
   and v_variance _ = ()
   and v_attribute x =
     let k x =
@@ -769,6 +779,9 @@ let (mk_visitor :
         let v1 = v_expr v1 in
         ()
   and v_case = function
+    | OtherCase (v1, v2) ->
+        v_todo_kind v1;
+        v_list v_any v2
     | Case (t, v1) ->
         let t = v_tok t in
         let v1 = v_pattern v1 in
@@ -958,7 +971,7 @@ let (mk_visitor :
   and v_entity x =
     let k x =
       let { name = x_name; attrs = v_attrs; tparams = v_tparams } = x in
-      let arg = v_name_or_dynamic x_name in
+      let arg = v_entity_name x_name in
       let arg = v_list v_attribute v_attrs in
       let arg = v_list v_type_parameter v_tparams in
       ()
@@ -1025,7 +1038,7 @@ let (mk_visitor :
   and v_parameter x =
     let k x =
       match x with
-      | ParamClassic v1 ->
+      | Param v1 ->
           let v1 = v_parameter_classic v1 in
           ()
       | ParamRest (v1, v2)
@@ -1039,7 +1052,7 @@ let (mk_visitor :
           let v1 = v_tok v1 in
           ()
       | OtherParam (v1, v2) ->
-          let v1 = v_other_parameter_operator v1 and v2 = v_list v_any v2 in
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in
     vin.kparam (k, all_functions) x
@@ -1082,11 +1095,7 @@ let (mk_visitor :
   and v_field x =
     let k x =
       match x with
-      | FieldSpread (t, v1) ->
-          let t = v_tok t in
-          let v1 = v_expr v1 in
-          ()
-      | FieldStmt v1 ->
+      | F v1 ->
           (match v1.s with
           | DefStmt
               ( { name = EN (Id (id, _)); _ },
@@ -1209,7 +1218,7 @@ let (mk_visitor :
           v_ident v1;
           v_list v_any v2
       | OtherDirective (v1, v2) ->
-          let v1 = v_other_directive_operator v1 and v2 = v_list v_any v2 in
+          let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
           ()
     in
     vin.kdir (k, all_functions) x
@@ -1222,6 +1231,9 @@ let (mk_visitor :
     v_id_info v2
   and v_program v = v_stmts v
   and v_any = function
+    | Tp v1 -> v_type_parameter v1
+    | Ta v1 -> v_type_argument v1
+    | Cs v1 -> v_case v1
     | Str v1 -> v_wrap v_string v1
     | Args v1 -> v_list v_argument v1
     | Flds v1 -> v_fields v1
@@ -1289,7 +1301,6 @@ let (mk_visitor :
         let v1 = v_tok v1 in
         ()
     | Lbli v1 -> v_label_ident v1
-    | NoD v1 -> v_name_or_dynamic v1
   and all_functions x = v_any x in
   all_functions
 

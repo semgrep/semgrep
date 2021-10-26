@@ -245,7 +245,7 @@ and map_expr x : B.expr =
       let v1 = map_pattern v1 and v2 = map_expr v2 in
       `LetPattern (v1, v2)
   | DotAccess (v1, t, v2) ->
-      let v1 = map_expr v1 and t = map_tok t and v2 = map_name_or_dynamic v2 in
+      let v1 = map_expr v1 and t = map_tok t and v2 = map_field_name v2 in
       `DotAccess (v1, t, v2)
   | ArrayAccess (v1, v2) ->
       let v1 = map_expr v1 and v2 = map_bracket map_expr v2 in
@@ -288,17 +288,27 @@ and map_expr x : B.expr =
   | DeepEllipsis v1 ->
       let v1 = map_bracket map_expr v1 in
       `DeepEllipsis v1
-  | OtherExpr (v1, v2) ->
-      let v1 = map_other_expr_operator v1 and v2 = map_of_list map_any v2 in
-      `OtherExpr (v1, v2)
+  | OtherExpr (_v1, _v2) -> failwith "TODO"
+  | StmtExpr _ -> failwith "TODO"
 
-and map_name_or_dynamic = function
+and map_field_name = function
+  | FN v1 ->
+      let v1 = map_name v1 in
+      `EN v1
+  | FDynamic v1 ->
+      let v1 = map_expr v1 in
+      `EDynamic v1
+
+and map_entity_name = function
   | EN v1 ->
       let v1 = map_name v1 in
       `EN v1
   | EDynamic v1 ->
       let v1 = map_expr v1 in
       `EDynamic v1
+  | EPattern _
+  | OtherEntity _ ->
+      failwith "TODO"
 
 and map_literal = function
   | Unit v1 ->
@@ -469,7 +479,7 @@ and map_argument = function
   | ArgKwd (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_expr v2 in
       `ArgKwd (v1, v2)
-  | ArgOther (v1, v2) ->
+  | OtherArg (v1, v2) ->
       let v1 = map_other_argument_operator v1 and v2 = map_of_list map_any v2 in
       `ArgOther (v1, v2)
 
@@ -478,8 +488,6 @@ and map_other_argument_operator _x = "TODO"
 and map_action (v1, v2) =
   let v1 = map_pattern v1 and v2 = map_expr v2 in
   (v1, v2)
-
-and map_other_expr_operator _x = "TODO"
 
 and map_type_ { t; t_attrs } =
   let tk = map_type_kind t in
@@ -550,9 +558,8 @@ and map_type_kind = function
       let v1 = map_type_ v1 in
       let t = map_tok t in
       `TyRest (t, v1)
-  | OtherType (v1, v2) ->
-      let v1 = map_other_type_operator v1 and v2 = map_of_list map_any v2 in
-      `OtherType (v1, v2)
+  | TyExpr _v1 -> failwith "TODO"
+  | OtherType (_v1, _v2) -> failwith "TODO"
 
 (* new: brackets *)
 and map_type_arguments (_, v, _) = map_of_list map_type_argument v
@@ -576,8 +583,6 @@ and map_type_argument = function
       `OtherTypeArg (v1, v2)
 
 and map_todo_kind _x = "TODO"
-
-and map_other_type_operator _x = "TODO"
 
 and map_attribute = function
   | KeywordAttr v1 -> (
@@ -756,6 +761,7 @@ and map_case_and_body = function
       `CaseEllipsis v1
 
 and map_case = function
+  | OtherCase _ -> failwith "TODO"
   | Case (t, v1) ->
       let t = map_tok t in
       let v1 = map_pattern v1 in
@@ -890,7 +896,7 @@ and map_definition (v1, v2) =
 and map_entity { G.name = v_name; attrs = v_attrs; tparams = v_tparams } =
   let v_tparams = map_of_list map_type_parameter v_tparams in
   let v_attrs = map_of_list map_attribute v_attrs in
-  let v_name = map_name_or_dynamic v_name in
+  let v_name = map_entity_name v_name in
   { B.name = v_name; attrs = v_attrs; tparams = v_tparams }
 
 and map_definition_kind = function
@@ -991,7 +997,7 @@ and map_function_body x = map_stmt (H.funcbody_to_stmt x)
 and map_parameters v = map_of_list map_parameter v
 
 and map_parameter = function
-  | ParamClassic v1 ->
+  | Param v1 ->
       let v1 = map_parameter_classic v1 in
       `ParamClassic v1
   | ParamRest (v0, v1) ->
@@ -1009,9 +1015,8 @@ and map_parameter = function
       let v1 = map_tok v1 in
       `ParamEllipsis v1
   | OtherParam (v1, v2) ->
-      let v1 = map_other_parameter_operator v1
-      and v2 = map_of_list map_any v2 in
-      `OtherParam (v1, v2)
+      let _v1 = map_todo_kind v1 and _v2 = map_of_list map_any v2 in
+      failwith "TODO"
 
 and map_parameter_classic
     {
@@ -1034,19 +1039,13 @@ and map_parameter_classic
     pinfo = v_pinfo;
   }
 
-and map_other_parameter_operator _x = "TODO"
-
 and map_variable_definition { G.vinit = v_vinit; vtype = v_vtype } =
   let v_vtype = map_of_option map_type_ v_vtype in
   let v_vinit = map_of_option map_expr v_vinit in
   { B.vinit = v_vinit; vtype = v_vtype }
 
 and map_field = function
-  | FieldSpread (t, v1) ->
-      let t = map_tok t in
-      let v1 = map_expr v1 in
-      `FieldSpread (t, v1)
-  | FieldStmt v1 ->
+  | F v1 ->
       let v1 = map_stmt v1 in
       `FieldStmt v1
 
@@ -1140,10 +1139,6 @@ and map_directive_kind = function
       let t = map_tok t in
       let v1 = map_module_name v1 and v2 = map_tok v2 in
       `ImportAll (t, v1, v2)
-  | OtherDirective (v1, v2) ->
-      let v1 = map_other_directive_operator v1
-      and v2 = map_of_list map_any v2 in
-      `OtherDirective (v1, v2)
   | Pragma (v1, v2) ->
       let v1 = map_ident v1 and v2 = map_of_list map_any v2 in
       `Pragma (v1, v2)
@@ -1154,6 +1149,7 @@ and map_directive_kind = function
   | PackageEnd t ->
       let t = map_tok t in
       `PackageEnd t
+  | OtherDirective (_v1, _v2) -> failwith "TODO"
 
 and map_ident_and_id_info (v1, v2) =
   let v1 = map_ident v1 in
@@ -1164,14 +1160,16 @@ and map_alias (v1, v2) =
   let v1 = map_ident v1 and v2 = map_of_option map_ident_and_id_info v2 in
   (v1, v2)
 
-and map_other_directive_operator _x = "TODO"
-
 and map_item x = map_stmt x
 
 and map_program v = map_of_list map_item v
 
 and map_any x : B.any =
   match x with
+  | Tp _
+  | Ta _ ->
+      failwith "TODO"
+  | Cs _ -> failwith "TODO"
   | Ce _ -> failwith "TODO"
   | Anys _ -> error x
   | E v1 ->
@@ -1247,9 +1245,6 @@ and map_any x : B.any =
       error x
   | Lbli v1 ->
       let _v1 = map_label_ident v1 in
-      error x
-  | NoD v1 ->
-      let _v1 = map_name_or_dynamic v1 in
       error x
 
 (*****************************************************************************)

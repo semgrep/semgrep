@@ -640,7 +640,7 @@ let rec filter_ranges env xs cond =
                  ( G.DotAccess
                      ( G.N (G.Id (("re", fk), fki)) |> G.e,
                        fk,
-                       EN (Id (("match", fk), fki)) )
+                       FN (Id (("match", fk), fki)) )
                    |> G.e,
                    ( fk,
                      [

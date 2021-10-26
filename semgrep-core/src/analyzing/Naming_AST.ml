@@ -339,7 +339,7 @@ let resolved_name_kind env lang =
 let params_of_parameters env xs =
   xs
   |> Common.map_filter (function
-       | ParamClassic { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
+       | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = H.gensym () in
            let resolved = { entname = (Param, sid); enttype = typ } in
            set_resolved env id_info resolved;
@@ -688,7 +688,7 @@ let resolve lang prog =
                     let s, tok = id in
                     error tok (spf "could not find '%s' in environment" s));
               recurse := false
-          | DotAccess ({ e = IdSpecial (This, _); _ }, _, EN (Id (id, id_info)))
+          | DotAccess ({ e = IdSpecial (This, _); _ }, _, FN (Id (id, id_info)))
             -> (
               match lookup_scope_opt id env with
               (* TODO: this is a v0 for doing naming and typing of fields.

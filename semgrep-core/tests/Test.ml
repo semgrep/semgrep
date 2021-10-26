@@ -5,6 +5,8 @@ module P = Pattern_match
 module R = Rule
 module MR = Mini_rule
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
@@ -13,7 +15,6 @@ module MR = Mini_rule
 (*****************************************************************************)
 (* Flags *)
 (*****************************************************************************)
-
 
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
@@ -416,7 +417,7 @@ let lang_regression_tests ~with_caching =
     regression_tests_for_lang files lang
   );
   pack_tests "semgrep HCL" (
-    let dir = Filename.concat tests_path "terraform" in
+    let dir = Filename.concat tests_path "hcl" in
     let files = Common2.glob (spf "%s/*.tf" dir) in
     let lang = Lang.HCL in
     regression_tests_for_lang files lang
@@ -427,6 +428,7 @@ let full_rule_regression_tests = [
   "full rule", (fun () ->
     let path = Filename.concat tests_path "OTHER/rules" in
     Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules (fun () ->
+    logger#info "running with -filter_irrelevant_rules";  
     Test_engine.test_rules ~unit_testing:true [path])
   )
 ]
