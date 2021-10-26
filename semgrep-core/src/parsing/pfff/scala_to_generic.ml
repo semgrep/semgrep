@@ -109,7 +109,7 @@ let v_simple_ref = function
       and v2 = v_tok v2
       and _v3TODO = v_option (v_bracket v_ident) v3
       and v4 = v_ident v4 in
-      let fld = G.EN (G.Id (v4, G.empty_id_info ())) in
+      let fld = G.FN (G.Id (v4, G.empty_id_info ())) in
       Right
         (G.DotAccess (G.IdSpecial (G.Super, v2) |> G.e, fake ".", fld) |> G.e)
 
@@ -380,7 +380,7 @@ and v_expr e : G.expr =
       ids
       |> List.fold_left
            (fun acc fld ->
-             G.DotAccess (acc, fake ".", G.EN (H.name_of_id fld)) |> G.e)
+             G.DotAccess (acc, fake ".", G.FN (H.name_of_id fld)) |> G.e)
            start
   | ExprUnderscore v1 ->
       let v1 = v_tok v1 in
@@ -394,7 +394,7 @@ and v_expr e : G.expr =
   | DotAccess (v1, v2, v3) ->
       let v1 = v_expr v1 and v2 = v_tok v2 and v3 = v_ident v3 in
       let name = H.name_of_id v3 in
-      G.DotAccess (v1, v2, G.EN name) |> G.e
+      G.DotAccess (v1, v2, G.FN name) |> G.e
   | Apply (v1, v2) ->
       let v1 = v_expr v1 and v2 = v_list v_arguments v2 in
       v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs) |> G.e) v1

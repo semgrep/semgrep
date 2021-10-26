@@ -233,7 +233,7 @@ let top_func () =
         G.N (G.Id (v1, G.empty_id_info ()))
     | Selector (v1, v2, v3) ->
         let v1 = expr v1 and v2 = tok v2 and v3 = ident v3 in
-        G.DotAccess (v1, v2, G.EN (Id (v3, G.empty_id_info ())))
+        G.DotAccess (v1, v2, G.FN (Id (v3, G.empty_id_info ())))
     | Index (v1, v2) ->
         let v1 = expr v1 and v2 = bracket index v2 in
         G.ArrayAccess (v1, v2)

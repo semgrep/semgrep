@@ -1336,7 +1336,7 @@ and embedded_brace_expression_ (env : env) (x : CST.embedded_brace_expression_)
          See dots_method_chaining.hack *)
       match v3.e with
       | G.Ellipsis dots -> G.DotAccessEllipsis (v1, dots) |> G.e
-      | _ -> G.DotAccess (v1, v2, G.EDynamic v3) |> G.e)
+      | _ -> G.DotAccess (v1, v2, G.FDynamic v3) |> G.e)
 
 and enumerator (env : env) ((v1, v2, v3, v4) : CST.enumerator) =
   let v1 = semgrep_extended_identifier env v1 in
@@ -2055,7 +2055,7 @@ and selection_expression (env : env) ((v1, v2, v3) : CST.selection_expression) =
   in
   match v3.e with
   | G.Ellipsis dots -> G.DotAccessEllipsis (v1, dots) |> G.e
-  | _ -> G.DotAccess (v1, v2, G.EDynamic v3) |> G.e
+  | _ -> G.DotAccess (v1, v2, G.FDynamic v3) |> G.e
 
 and statement (env : env) (x : CST.statement) =
   match x with

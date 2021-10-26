@@ -324,23 +324,6 @@ and qualifier =
   (* Ruby/Lua *)
   | QExpr of expr * tok
 
-(* This is used to represent field names, where sometimes the name
- * can be a dynamic expression, or more recently also to
- * represent entities like in Ruby where a class name can be dynamic.
- *)
-and name_or_dynamic =
-  (* In the case of a field, it may be hard to resolve the id_info inside name.
-   * For example, a method id can refer to many method definitions.
-   * But for certain things, like a private field, we can resolve it
-   * (right now we use an EnclosedVar for those fields).
-   *
-   * The IdQualified inside name is
-   * Useful for OCaml field access, but also for Ruby class entity name.
-   *)
-  | EN of name
-  (* for PHP/JS fields (even though JS use ArrayAccess for that), or Ruby *)
-  | EDynamic of expr
-
 (*****************************************************************************)
 (* Naming/typing *)
 (*****************************************************************************)
@@ -463,7 +446,7 @@ and expr_kind =
    * qualifier though.
    * TODO? have a dot_operator to differentiate ., .?, and :: in Kotlin?
    *)
-  | DotAccess of expr * tok (* ., ::, ->, # *) * name_or_dynamic
+  | DotAccess of expr * tok (* ., ::, ->, # *) * field_name
   (* in Js ArrayAccess is also abused to perform DotAccess (..., FDynamic) *)
   | ArrayAccess of expr * expr bracket
   (* could also use ArrayAccess with a Tuple rhs, or use a special *)
@@ -566,6 +549,20 @@ and for_or_if_comp =
   (* newvar: *)
   | CompFor of tok (*'for'*) * pattern * tok (* 'in' *) * expr
   | CompIf of tok (*'if'*) * expr
+
+and field_name =
+  (* In the case of a field, it may be hard to resolve the id_info inside name.
+   * For example, a method id can refer to many method definitions.
+   * But for certain things, like a private field, we can resolve it
+   * (right now we use an EnclosedVar for those fields).
+   *
+   * The IdQualified inside name is Useful for OCaml field access.
+   *)
+  | FN of name
+  (* for PHP/JS fields (even though JS use ArrayAccess for that), or Ruby
+   * or C++ ArrowStarAccess ->*
+   *)
+  | FDynamic of expr
 
 (* It's useful to keep track in the AST of all those special identifiers.
  * They need to be handled in a special way by certain analysis and just
@@ -1235,13 +1232,24 @@ and entity = {
   (* In Ruby you can define a class with a qualified name as in
    * class A::B::C, and even dynamically.
    * In C++ you can define a method with a class qualifier outside a class,
-   * hence the use of name_or_dynamic below and not just ident.
-   * TODO? extend name_or_dynamic to allow Pattern, to avoid multi_vardef
+   * hence the use of entity_name below and not just ident.
    *)
-  name : name_or_dynamic;
+  name : entity_name;
   attrs : attribute list;
   tparams : type_parameters;
 }
+
+(* TODO: extend to allow Pattern, to avoid the special multivardef hack.
+ * old: used to be merged with field_name in a unique name_or_dynamic
+ * but we want MultiEntity just here, hence the fork.
+ *)
+and entity_name =
+  | EN of name
+  | EDynamic of expr
+  (* TODO: replace LetPattern and multivardef hack with that *)
+  | EPattern of pattern
+  (* e.g., anon Bitfield in C++ *)
+  | OtherEntity of todo_kind * any list
 
 and definition_kind =
   (* newvar: can be used also for methods or nested functions.
@@ -1287,7 +1295,9 @@ and definition_kind =
    * local.
    *)
   | UseOuterDecl of tok (* 'global' or 'nonlocal' in Python, 'use' in PHP *)
-  (* e.g., MacroDecl and MacroVar in C++, method alias in Ruby *)
+  (* e.g., MacroDecl and MacroVar in C++, method alias in Ruby,
+   * BitField in C/C++
+   *)
   | OtherDef of todo_kind * any list
 
 (* template/generics/polymorphic-type *)
@@ -1682,7 +1692,6 @@ and any =
   | Dk of definition_kind
   | Di of dotted_ident
   | Lbli of label_ident
-  | NoD of name_or_dynamic
   (* Used only for Rust macro arguments for now *)
   | Anys of any list
 [@@deriving show { with_path = false }, eq, hash]
