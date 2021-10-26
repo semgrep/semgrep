@@ -215,7 +215,7 @@ let todo_stmt (loc : loc) : G.stmt =
 
 let todo_expr (loc : loc) : G.expr =
   let t = fst loc in
-  G.e (G.OtherExpr2 (("BashTodo", t), todo_tokens loc))
+  G.e (G.OtherExpr (("BashTodo", t), todo_tokens loc))
 
 let todo_stmt2 (loc : loc) : stmt_or_expr = Stmt (loc, todo_stmt loc)
 
@@ -226,9 +226,7 @@ let todo_expr2 (loc : loc) : stmt_or_expr = Expr (loc, todo_expr loc)
 (*****************************************************************************)
 
 let negate_expr (neg_tok : tok) (cmd_loc : loc) (cmd : G.expr) : G.expr =
-  let func = G.IdSpecial (G.Op G.Not, neg_tok) |> G.e in
-  let args = [ G.Arg cmd ] in
-  G.Call (func, bracket cmd_loc args) |> G.e
+  G.opcall (G.Not, neg_tok) [ cmd ]
 
 (*
    Redirect stderr in the last command of the pipeline.
@@ -240,8 +238,6 @@ let redirect_pipeline_stderr_to_stdout pip =
 let rec blist (env : env) (l : blist) : stmt_or_expr list =
   match l with
   | Seq (_loc, left, right) -> blist env left @ blist env right
-  | And (_loc, left, and_tok, right) -> [ transpile_and env left and_tok right ]
-  | Or (_loc, left, or_tok, right) -> [ transpile_or env left or_tok right ]
   | Pipelines (_loc, pl) -> List.map (fun x -> pipeline env x) pl
   | Empty _loc -> []
 
@@ -263,17 +259,15 @@ and pipeline (env : env) (x : pipeline) : stmt_or_expr =
             *)
             (redirect_pipeline_stderr_to_stdout pip, tok)
       in
-      let func = G.IdSpecial (G.Op G.Pipe, bar_tok) |> G.e in
       let left = pipeline env pip |> as_expr in
       let right = command_with_redirects env cmd_redir |> as_expr in
-      Expr (loc, G.Call (func, bracket loc [ G.Arg left; G.Arg right ]) |> G.e)
+      Expr (loc, G.opcall (G.Pipe, bar_tok) [ left; right ])
   | Control_operator (loc, pip, control_op) -> (
       match control_op with
       | Foreground, tok -> pipeline env pip
       | Background, amp_tok ->
-          let func = G.IdSpecial (G.Op G.Background, amp_tok) |> G.e in
           let arg = pipeline env pip |> as_expr in
-          Expr (loc, G.Call (func, bracket loc [ G.Arg arg ]) |> G.e))
+          Expr (loc, G.opcall (G.Background, amp_tok) [ arg ]))
 
 and command_with_redirects (env : env) (x : command_with_redirects) :
     stmt_or_expr =
@@ -300,6 +294,14 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       | arguments ->
           let args = List.map (expression env) arguments in
           Expr (loc, call loc C.cmd args))
+  | And (loc, left, and_tok, right) ->
+      let left = pipeline env left |> as_expr in
+      let right = pipeline env right |> as_expr in
+      Expr (loc, G.opcall (G.And, and_tok) [ left; right ])
+  | Or (loc, left, or_tok, right) ->
+      let left = pipeline env left |> as_expr in
+      let right = pipeline env right |> as_expr in
+      Expr (loc, G.opcall (G.Or, or_tok) [ left; right ])
   | Subshell (loc, (open_, bl, close)) ->
       (* TODO: subshell *) stmt_group env loc (blist env bl)
   | Command_group (loc, (open_, bl, close)) -> stmt_group env loc (blist env bl)
@@ -312,8 +314,19 @@ and command (env : env) (cmd : command) : stmt_or_expr =
           match opt_in with
           | Some (_in, vals) -> List.map (fun x -> expression env x) vals
           | None ->
-              (* TODO/FIXME: transpile implicit "$@" or make this optional *)
-              []
+              (*
+                 Pretend there's a '"$@"', which is semantically correct
+                 and avoids exception in IL_to_AST raised when the list
+                 is empty.
+              *)
+              let fake_arg_array =
+                let tok = do_ in
+                let loc = (tok, tok) in
+                let var_name = Special_variable_name ("@", tok) in
+                let frag = Expansion (loc, Simple_expansion (loc, var_name)) in
+                String (tok, [ frag ], tok)
+              in
+              [ expression env fake_arg_array ]
         in
         match loop_var with
         | Simple_variable_name var
@@ -499,51 +512,6 @@ and expansion (env : env) (x : expansion) : G.expr =
       | Complex_expansion_TODO loc -> todo_expr loc)
 
 and expand loc (var_expr : G.expr) : G.expr = call loc C.expand [ var_expr ]
-
-(*
-   'a && b' and 'a || b' looks like expressions but they're really
-   conditional statements. We make such translation rather than introducing
-   special statement constructs into the generic AST.
-
-      a && b
-
-     -->
-
-     if a; then
-       b
-     else
-       false
-     fi
-*)
-and transpile_and (env : env) (left : blist) tok_and (right : blist) :
-    stmt_or_expr =
-  let cond = blist env left |> block in
-  let body = blist env right |> block in
-  let loc = range (stmt_or_expr_loc cond) (stmt_or_expr_loc body) in
-  let fail = stmt_of_expr loc (G.L (G.Bool (false, snd loc)) |> G.e) in
-  Stmt (loc, G.s (G.If (tok_and, as_expr cond, as_stmt body, Some fail)))
-
-(*
-   This is similar to 'transpile_and', with a negated condition.
-
-     a || b
-
-   -->
-
-     if ! a; then
-       b
-     fi
-*)
-and transpile_or (env : env) (left : blist) tok_or (right : blist) :
-    stmt_or_expr =
-  let e = blist env left |> block in
-  let ((start, _) as cond_loc) = stmt_or_expr_loc e in
-  let not_ = G.IdSpecial (G.Op G.Not, tok_or) |> G.e in
-  let cond = G.Call (not_, bracket cond_loc [ G.Arg (as_expr e) ]) |> G.e in
-  let body = blist env right |> block in
-  let _, end_ = stmt_or_expr_loc body in
-  let loc = (start, end_) in
-  Stmt (loc, G.s (G.If (tok_or, cond, as_stmt body, None)))
 
 let program (env : env) x = blist (env : env) x |> List.map as_stmt
 

@@ -450,10 +450,10 @@ and anon_choice_param_b77c1d8 (env : env) (x : CST.anon_choice_param_b77c1d8) =
   | `Param x ->
       let v1, v2 = parameter env x in
       let param = G.param_of_id v1 ~ptype:(Some v2) in
-      ParamClassic param
+      Param param
   | `Type x ->
       let v1 = type_ env x in
-      ParamClassic (G.param_of_type v1)
+      Param (G.param_of_type v1)
 
 and assignment (env : env) (x : CST.assignment) : expr =
   match x with
@@ -748,7 +748,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
   | `Anon_init (v1, v2) ->
       let _v1 = token env v1 (* "init" *) in
       let v2 = block env v2 in
-      FieldStmt v2
+      F v2
   | `Seco_cons (v1, v2, v3, v4, v5) ->
       let v1 =
         match v1 with
@@ -809,8 +809,7 @@ and class_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_parameter)
         Some v2
     | None -> None
   in
-  ParamClassic
-    (G.param_of_id v3 ~pdefault:v6 ~ptype:(Some v5) ~pattrs:(v1 @ v2))
+  Param (G.param_of_id v3 ~pdefault:v6 ~ptype:(Some v5) ~pattrs:(v1 @ v2))
 
 and class_parameters (env : env) ((v1, v2, v3) : CST.class_parameters) :
     parameters =
@@ -1004,7 +1003,7 @@ and delegation_specifier (env : env) (x : CST.delegation_specifier) :
       in
       let v2 = token env v2 (* "by" *) in
       let v3 = expression env v3 in
-      ( OtherType2 (("ByDelagation", v2), [ G.T v1 ]) |> G.t,
+      ( OtherType (("ByDelagation", v2), [ G.T v1 ]) |> G.t,
         Some (fb [ G.Arg v3 ]) )
   | `User_type x ->
       let n = user_type env x in
@@ -1197,7 +1196,7 @@ and function_value_parameter (env : env)
     | None -> None
   in
   let param = G.param_of_id pname ~ptype:(Some ptype) ~pdefault ~pattrs in
-  ParamClassic param
+  Param param
 
 and function_value_parameters (env : env)
     ((v1, v2, v3) : CST.function_value_parameters) : G.parameter list =
@@ -1359,7 +1358,7 @@ and lambda_parameter (env : env) (x : CST.lambda_parameter) : G.parameter =
   match x with
   | `Var_decl x ->
       let id, ptype = variable_declaration env x in
-      G.ParamClassic (G.param_of_id id ~ptype)
+      G.Param (G.param_of_id id ~ptype)
 
 and lambda_parameter_for_loop (env : env) (x : CST.lambda_parameter) =
   match x with
@@ -1440,19 +1439,25 @@ and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
     match v2 with
     | `Simple_id x ->
         let id = simple_identifier env x in
-        EN (Id (id, empty_id_info ()))
+        FN (Id (id, empty_id_info ()))
     | `Paren_exp x ->
         let e = parenthesized_expression env x in
-        EDynamic e
+        FDynamic e
     | `Class tok ->
         let id = str env tok in
         (* "class" *)
-        EN (Id (id, empty_id_info ()))
+        FN (Id (id, empty_id_info ()))
   in
   fun e ->
     match op with
     | Left tdot -> DotAccess (e, tdot, fld) |> G.e
-    | Right otherop -> OtherExpr2 (otherop, [ NoD fld; E e ]) |> G.e
+    | Right otherop ->
+        let any_fld =
+          match fld with
+          | FN n -> E (N n |> G.e)
+          | FDynamic e -> E e
+        in
+        OtherExpr (otherop, [ any_fld; E e ]) |> G.e
 
 and nullable_type (env : env) ((v1, v2) : CST.nullable_type) =
   let v1 =

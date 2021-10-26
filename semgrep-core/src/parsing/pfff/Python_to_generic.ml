@@ -196,14 +196,14 @@ let rec expr (x : expr) =
        | l1, [ x ], l2 -> slice1 e (l1, x, l2)
        | l1, xs, _ ->
            let xs = list (slice e) xs in
-           G.OtherExpr2 (("Slices", l1), xs |> List.map (fun x -> G.E x)))
+           G.OtherExpr (("Slices", l1), xs |> List.map (fun x -> G.E x)))
       |> G.e
   | Attribute (v1, t, v2, v3) ->
       let v1 = expr v1
       and t = info t
       and v2 = name v2
       and _v3TODO = expr_context v3 in
-      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ()))) |> G.e
+      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ()))) |> G.e
   | DictOrSet (CompList (t1, v, t2)) ->
       let v' = list dictorset_elt v in
       let kind =
@@ -249,7 +249,7 @@ let rec expr (x : expr) =
                    G.E (G.IdSpecial (G.Op arith, tok) |> G.e))
           in
           let anys = anyops @ (v3 |> List.map (fun e -> G.E e)) in
-          G.OtherExpr2 (("CmpOps", unsafe_fake ""), anys) |> G.e)
+          G.OtherExpr (("CmpOps", unsafe_fake ""), anys) |> G.e)
   | Call (v1, v2) ->
       let v1 = expr v1 in
       let v2 = bracket (list argument) v2 in
@@ -275,7 +275,7 @@ let rec expr (x : expr) =
       G.Await (t, v1) |> G.e
   | Repr v1 ->
       let l, v1, _ = bracket expr v1 in
-      G.OtherExpr2 (("Repr", l), [ G.E v1 ]) |> G.e
+      G.OtherExpr (("Repr", l), [ G.E v1 ]) |> G.e
   | NamedExpr (v, t, e) -> G.Assign (expr v, t, expr e) |> G.e
 
 and argument = function
@@ -412,11 +412,10 @@ and parameters xs =
            let n = name n in
            let topt = option type_ topt in
            let e = expr e in
-           G.ParamClassic
-             { (G.param_of_id n) with G.ptype = topt; pdefault = Some e }
+           G.Param { (G.param_of_id n) with G.ptype = topt; pdefault = Some e }
        | ParamPattern (PatternName n, topt) ->
            let n = name n and topt = option type_ topt in
-           G.ParamClassic { (G.param_of_id n) with G.ptype = topt }
+           G.Param { (G.param_of_id n) with G.ptype = topt }
        | ParamPattern (PatternTuple pat, _) ->
            let pat = list param_pattern pat in
            G.ParamPattern (G.PatTuple (G.fake_bracket pat))
@@ -439,7 +438,13 @@ and type_ v =
 (* TODO: recognize idioms? *)
 and type_parent v : G.class_parent =
   let v = argument v in
-  (G.OtherType (G.OT_Arg, [ G.Ar v ]) |> G.t, None)
+  match v with
+  | G.Arg e -> H.expr_to_class_parent e
+  (* less: could raise an error *)
+  | G.ArgKwd (id, e) ->
+      (G.OtherType (("ArgKwdParent", snd id), [ G.I id; G.E e ]) |> G.t, None)
+  (* see argument code *)
+  | _ -> raise Impossible
 
 and list_stmt1 xs =
   match list stmt xs with
@@ -502,8 +507,8 @@ and fieldstmt x =
   } ->
       let vdef = { G.vinit = Some e; vtype = None } in
       let ent = { G.name = G.EN name; attrs = []; tparams = [] } in
-      G.FieldStmt (G.DefStmt (ent, G.VarDef vdef) |> G.s)
-  | _ -> G.FieldStmt x
+      G.fld (ent, G.VarDef vdef)
+  | _ -> G.F x
 
 and stmt_aux x =
   match x with

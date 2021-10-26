@@ -114,10 +114,7 @@ let subexprs_of_expr e =
   | Conditional (e1, e2, e3) -> [ e1; e2; e3 ]
   | Seq xs -> xs
   | Record (_, flds, _) ->
-      flds
-      |> Common2.map_flatten (function
-           | FieldStmt st -> subexprs_of_stmt st
-           | FieldSpread (_, e) -> [ e ])
+      flds |> Common2.map_flatten (function F st -> subexprs_of_stmt st)
   | Container (_, xs) -> unbracket xs
   | Comprehension (_, (_, (e, xs), _)) ->
       e
@@ -143,8 +140,8 @@ let subexprs_of_expr e =
          |> List.map Common.opt_to_list
          |> List.flatten)
   | Yield (_, eopt, _) -> Common.opt_to_list eopt
-  | OtherExpr (_, anys)
-  | OtherExpr2 (_, anys) ->
+  | StmtExpr st -> subexprs_of_stmt st
+  | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
@@ -216,10 +213,7 @@ let substmts_of_stmt st =
         (* this will add lots of substatements *)
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
-            def.cbody |> unbracket
-            |> Common.map_filter (function
-                 | FieldStmt st -> Some st
-                 | FieldSpread _ -> None))
+            def.cbody |> unbracket |> Common.map (function F st -> st))
   (* TODO *)
   | Match _ -> []
 

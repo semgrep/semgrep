@@ -108,8 +108,8 @@ let rec expr e =
       let e = expr e in
       let fld =
         match method_name m with
-        | Left id -> G.EN (G.Id (id, G.empty_id_info ()))
-        | Right e -> G.EDynamic e
+        | Left id -> G.FN (G.Id (id, G.empty_id_info ()))
+        | Right e -> G.FDynamic e
       in
       G.DotAccess (e, t, fld)
   | Splat (t, eopt) ->
@@ -166,9 +166,9 @@ and argument arg : G.argument =
       G.ArgKwd (id, arg)
 
 and formal_param = function
-  | Formal_id id -> G.ParamClassic (G.param_of_id id)
+  | Formal_id id -> G.Param (G.param_of_id id)
   | Formal_amp (t, id) ->
-      let param = G.ParamClassic (G.param_of_id id) in
+      let param = G.Param (G.param_of_id id) in
       G.OtherParam (("Ref", t), [ G.Pa param ])
   | Formal_star (t, id) -> G.ParamRest (t, G.param_of_id id)
   | Formal_rest t ->
@@ -199,7 +199,7 @@ and formal_param = function
   | Formal_default (id, _t, e) ->
       let e = expr e in
       let p = { (G.param_of_id id) with G.pdefault = Some e } in
-      G.ParamClassic p
+      G.Param p
   (* TODO? diff with Formal_default? *)
   | Formal_kwd (id, _t, eopt) ->
       let eopt = option expr eopt in
@@ -208,7 +208,7 @@ and formal_param = function
         | None -> G.param_of_id id
         | Some e -> { (G.param_of_id id) with G.pdefault = Some e }
       in
-      G.ParamClassic p
+      G.Param p
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
       let pat = G.PatTuple (G.fake_bracket xs) in
@@ -414,7 +414,7 @@ and literal x =
       (* TODO: generate interpolation Special *)
       | Double xs -> string_contents_list xs
       | Tick (l, xs, r) ->
-          G.OtherExpr2
+          G.OtherExpr
             (("Subshell", l), [ G.E (string_contents_list (l, xs, r) |> G.e) ]))
   | Regexp ((l, xs, r), opt) -> (
       match xs with
@@ -602,7 +602,7 @@ and definition def =
               cimplements = [];
               cmixins = [];
               cparams = [];
-              cbody = fb [ G.FieldStmt body ];
+              cbody = fb [ G.F body ];
             }
           in
           G.DefStmt (ent, G.ClassDef def) |> G.s

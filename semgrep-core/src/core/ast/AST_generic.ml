@@ -324,23 +324,6 @@ and qualifier =
   (* Ruby/Lua *)
   | QExpr of expr * tok
 
-(* This is used to represent field names, where sometimes the name
- * can be a dynamic expression, or more recently also to
- * represent entities like in Ruby where a class name can be dynamic.
- *)
-and name_or_dynamic =
-  (* In the case of a field, it may be hard to resolve the id_info inside name.
-   * For example, a method id can refer to many method definitions.
-   * But for certain things, like a private field, we can resolve it
-   * (right now we use an EnclosedVar for those fields).
-   *
-   * The IdQualified inside name is
-   * Useful for OCaml field access, but also for Ruby class entity name.
-   *)
-  | EN of name
-  (* for PHP/JS fields (even though JS use ArrayAccess for that), or Ruby *)
-  | EDynamic of expr
-
 (*****************************************************************************)
 (* Naming/typing *)
 (*****************************************************************************)
@@ -463,7 +446,7 @@ and expr_kind =
    * qualifier though.
    * TODO? have a dot_operator to differentiate ., .?, and :: in Kotlin?
    *)
-  | DotAccess of expr * tok (* ., ::, ->, # *) * name_or_dynamic
+  | DotAccess of expr * tok (* ., ::, ->, # *) * field_name
   (* in Js ArrayAccess is also abused to perform DotAccess (..., FDynamic) *)
   | ArrayAccess of expr * expr bracket
   (* could also use ArrayAccess with a Tuple rhs, or use a special *)
@@ -501,6 +484,10 @@ and expr_kind =
   | TypedMetavar of ident * tok (* : *) * type_
   (* for ellipsis in method chaining *)
   | DotAccessEllipsis of expr * tok (* '...' *)
+  (* Dual of ExprStmt. See stmt_to_expr() below and its comment.
+   * OCaml/Ruby/Scala/... have just expressions, not separate statements.
+   *)
+  | StmtExpr of stmt
   (* e.g., TypeId in C++, MethodRef/ClassLiteral in Java, Send/Receive in Go,
    * Checked/Unchecked in C#, Repr in Python, RecordWith in OCaml/C#,
    * Subshell in Ruby, Delete/Unset in JS/Hack,
@@ -511,13 +498,7 @@ and expr_kind =
    * TODO? lift up to program attribute/directive UseStrict, Require in Import?
    * TODO? of replace 'any list' by 'expr list'?
    *)
-  | OtherExpr2 of todo_kind * any list
-  (* TODO: get rid of *)
-  | OtherExpr of other_expr_operator * any list
-
-(* TODO: get rid of *)
-(* StmtExpr OCaml/Ruby have just expressions, no statements *)
-and other_expr_operator = OE_StmtExpr | OE_Arg
+  | OtherExpr of todo_kind * any list
 
 and literal =
   | Bool of bool wrap
@@ -568,6 +549,20 @@ and for_or_if_comp =
   (* newvar: *)
   | CompFor of tok (*'for'*) * pattern * tok (* 'in' *) * expr
   | CompIf of tok (*'if'*) * expr
+
+and field_name =
+  (* In the case of a field, it may be hard to resolve the id_info inside name.
+   * For example, a method id can refer to many method definitions.
+   * But for certain things, like a private field, we can resolve it
+   * (right now we use an EnclosedVar for those fields).
+   *
+   * The IdQualified inside name is Useful for OCaml field access.
+   *)
+  | FN of name
+  (* for PHP/JS fields (even though JS use ArrayAccess for that), or Ruby
+   * or C++ ArrowStarAccess ->*
+   *)
+  | FDynamic of expr
 
 (* It's useful to keep track in the AST of all those special identifiers.
  * They need to be handled in a special way by certain analysis and just
@@ -846,7 +841,7 @@ and stmt_kind =
    *)
   (* newscope: for vardef in expr in C++/Go/... *)
   | If of tok (* 'if' or 'elif' *) * condition * stmt * stmt option
-  | While of tok * expr * stmt
+  | While of tok * expr (* TODO: condition for Rust *) * stmt
   | Return of tok * expr option * sc
   | DoWhile of tok * stmt * expr
   (* newscope: *)
@@ -894,7 +889,9 @@ and stmt_kind =
    *)
   | OtherStmt of other_stmt_operator * any list
 
-(* TODO: can also introduce var in some languages *)
+(* TODO: can also introduce var in some languages
+ * TODO? factorize with for_var_or_expr
+ *)
 and condition = expr
 
 (* newscope: *)
@@ -1060,7 +1057,10 @@ and pattern =
   (* sgrep: *)
   | PatEllipsis of tok
   | DisjPat of pattern * pattern
-  (* todo: Python should transform expr pattern via expr_to_pattern() *)
+  (* e.g., ???
+   * todo: Python should transform expr pattern via expr_to_pattern(),
+   * so maybe have a PatExpr like we have StmtExpr?
+   *)
   | OtherPat of todo_kind * any list
 
 (*****************************************************************************)
@@ -1073,7 +1073,7 @@ and type_ = {
 }
 
 and type_kind =
-  (* TODO: TyLiteral, for Scala *)
+  (* TODO: TyLiteral, for Scala/JS, or use TyExpr? *)
   (* todo? a type_builtin = TInt | TBool | ...? see Literal.
    * or just delete and use (TyN Id) instead?
    *)
@@ -1125,17 +1125,16 @@ and type_kind =
   | TyInterfaceAnon of tok (* 'interface' *) * field list bracket
   (* sgrep-ext: *)
   | TyEllipsis of tok
-  (* e.g., Struct/Union/Enum names (convert in unique TyName?), TypeOf, TSized
-   * in C++
+  (* For languages such as Python which abuse expr to represent types.
+   * At some point AST_generic_helpers.expr_to_type should be good enough
+   * to transpile every expr construct, but for now we have this.
    *)
-  | OtherType2 of todo_kind * any list
-  (* TODO: get rid at some point *)
-  | OtherType of other_type_operator * any list
-
-(* TODO: get rid at some point *)
-and other_type_operator = OT_Expr | OT_Arg
-
-(* Python: todo: should use expr_to_type() when can *)
+  | TyExpr of expr
+  (* e.g., Struct/Union/Enum names (convert in unique TyName?), TypeOf/TSized
+   * TRefRef in C++, EnumAnon in C++/Hack, TyTodo in OCaml, TyLit in Scala/JS,
+   * lots of stuff in C#, Lifetime in Rust, Delegation in Kotlin
+   *)
+  | OtherType of todo_kind * any list
 
 (* <> in Java/C#/C++/Kotlin/Rust/..., [] in Scala and Go (for Map) *)
 and type_arguments = type_argument list bracket
@@ -1148,7 +1147,7 @@ and type_argument =
       tok (* '?' *) * (bool wrap (* extends|super, true=super *) * type_) option
   (* C++/Rust (Rust restrict expr to literals and ConstBlock) *)
   | TAExpr of expr
-  (* TODO? Rust Lifetime 'x, Kotlin use-site variance *)
+  (* e.g., Rust Lifetime 'x, Kotlin use-site variance *)
   | OtherTypeArg of todo_kind * any list
 
 (*****************************************************************************)
@@ -1159,8 +1158,8 @@ and attribute =
   | KeywordAttr of keyword_attribute wrap
   (* a.k.a decorators, annotations *)
   | NamedAttr of tok (* '@' *) * name * arguments (* less: option *)
-  (* per-language specific keywords like 'transient', 'synchronized' *)
-  (* todo: Expr used for Python, but should transform in NamedAttr when can *)
+  (* e.g,, per-language specific keywords like 'transient', 'synchronized'
+   * todo: Expr used for Python, but should transform in NamedAttr when can *)
   | OtherAttribute of todo_kind * any list
 
 and keyword_attribute =
@@ -1233,13 +1232,24 @@ and entity = {
   (* In Ruby you can define a class with a qualified name as in
    * class A::B::C, and even dynamically.
    * In C++ you can define a method with a class qualifier outside a class,
-   * hence the use of name_or_dynamic below and not just ident.
-   * TODO? extend name_or_dynamic to allow Pattern, to avoid multi_vardef
+   * hence the use of entity_name below and not just ident.
    *)
-  name : name_or_dynamic;
+  name : entity_name;
   attrs : attribute list;
   tparams : type_parameters;
 }
+
+(* TODO: extend to allow Pattern, to avoid the special multivardef hack.
+ * old: used to be merged with field_name in a unique name_or_dynamic
+ * but we want MultiEntity just here, hence the fork.
+ *)
+and entity_name =
+  | EN of name
+  | EDynamic of expr
+  (* TODO: replace LetPattern and multivardef hack with that *)
+  | EPattern of pattern
+  (* e.g., anon Bitfield in C++ *)
+  | OtherEntity of todo_kind * any list
 
 and definition_kind =
   (* newvar: can be used also for methods or nested functions.
@@ -1285,11 +1295,20 @@ and definition_kind =
    * local.
    *)
   | UseOuterDecl of tok (* 'global' or 'nonlocal' in Python, 'use' in PHP *)
-  (* e.g., MacroDecl and MacroVar in C++, method alias in Ruby *)
+  (* e.g., MacroDecl and MacroVar in C++, method alias in Ruby,
+   * BitField in C/C++
+   *)
   | OtherDef of todo_kind * any list
 
 (* template/generics/polymorphic-type *)
-and type_parameter = {
+and type_parameter =
+  | TP of type_parameter_classic
+  (* e.g., Lifetime in Rust, complex types in OCaml, HasConstructor in C#,
+   * regular Param in C++, AnonTypeParam/TPRest/TPNested in C++
+   *)
+  | OtherTypeParam of todo_kind * any list
+
+and type_parameter_classic = {
   (* it would be nice to reuse entity here, but then the types would be
    * mutually recursive.
    * note: in Scala the ident can be a wildcard.
@@ -1297,14 +1316,12 @@ and type_parameter = {
   tp_id : ident;
   tp_attrs : attribute list;
   (* upper type bounds (must-be-a-subtype-of)
-     alt: we could just use 'type_' and TyAnd to represent intersection types *)
+   * alt: we could just use 'type_' and TyAnd for intersection types *)
   tp_bounds : type_ list;
   (* for Rust/C++. Similar to parameter_classic, but with type here. *)
   tp_default : type_ option;
   (* declaration-site variance (Kotlin/Hack/Scala) *)
   tp_variance : variance wrap option;
-  (* everything else that does not fit *)
-  tp_constraints : type_parameter_constraint list;
 }
 
 (* TODO bracket *)
@@ -1316,12 +1333,6 @@ and variance =
   | Covariant
   (* '-' in Scala/Hack, 'in' in C#/Kotlin *)
   | Contravariant
-
-and type_parameter_constraint =
-  (* C# *)
-  | HasConstructor of tok
-  (* e.g., Lifetime in Rust, complex types in OCaml *)
-  | OtherTypeParam of todo_kind * any list
 
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
@@ -1359,7 +1370,7 @@ and parameters = parameter list
 
 (* newvar: *)
 and parameter =
-  | ParamClassic of parameter_classic
+  | Param of parameter_classic
   (* in OCaml, but also now JS, Python2, Rust *)
   | ParamPattern of pattern
   (* Both those ParamXxx used to be handled as a ParamClassic with special
@@ -1484,11 +1495,10 @@ and or_type_element =
  * the variable declaration and field definition have a different syntax.
  * Note: the FieldStmt(DefStmt(FuncDef(...))) can have empty body
  * for interface methods.
+ * old: there was a special FieldSpread before (just for JS and Go) but we
+ * now abuse ExprStmt(IdSpecial(Spread)) to represent it.
  *)
-and field =
-  | FieldStmt of stmt
-  (* DEBT? could abuse FieldStmt(ExprStmt(IdSpecial(Spread))) for that? *)
-  | FieldSpread of tok (* ... *) * expr
+and field = F of stmt
 
 (* ------------------------------------------------------------------------- *)
 (* Class definition *)
@@ -1649,6 +1659,7 @@ and partial =
 
 (* mentioned in many OtherXxx so must be part of the mutually recursive type *)
 and any =
+  (* main patterns used for semgrep *)
   | E of expr
   | S of stmt
   | Ss of stmt list
@@ -1670,6 +1681,8 @@ and any =
   | TodoK of todo_kind
   | Ar of argument
   | Pa of parameter
+  | Tp of type_parameter
+  | Ta of type_argument
   | Modn of module_name
   | Ce of catch_exn
   | Cs of case
@@ -1679,7 +1692,6 @@ and any =
   | Dk of definition_kind
   | Di of dotted_ident
   | Lbli of label_ident
-  | NoD of name_or_dynamic
   (* Used only for Rust macro arguments for now *)
   | Anys of any list
 [@@deriving show { with_path = false }, eq, hash]
@@ -1812,7 +1824,7 @@ let arg e = Arg e
 let special spec es =
   Call (IdSpecial spec |> e, fake_bracket (es |> List.map arg)) |> e
 
-let opcall (op, t) es = special (Op op, t) es
+let opcall (op, tok) exprs : expr = special (Op op, tok) exprs
 
 (* TODO: have a separate InterpolatedConcat in expr with a cleaner type
  * instead of abusing special?
@@ -1869,8 +1881,8 @@ let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
 (* Type parameters *)
 (* ------------------------------------------------------------------------- *)
 let tparam_of_id ?(tp_attrs = []) ?(tp_variance = None) ?(tp_bounds = [])
-    ?(tp_default = None) ?(tp_constraints = []) tp_id =
-  { tp_id; tp_attrs; tp_variance; tp_bounds; tp_default; tp_constraints }
+    ?(tp_default = None) tp_id =
+  TP { tp_id; tp_attrs; tp_variance; tp_bounds; tp_default }
 
 (* ------------------------------------------------------------------------- *)
 (* Statements *)
@@ -1889,7 +1901,7 @@ let emptystmt t = s (Block (t, [], t))
  * See also AST_generic_helpers with expr_to_pattern, expr_to_type,
  * pattern_to_expr, etc.
  *)
-let stmt_to_expr st = e (OtherExpr (OE_StmtExpr, [ S st ]))
+let stmt_to_expr st = e (StmtExpr st)
 
 let empty_body = fake_bracket []
 
@@ -1904,13 +1916,13 @@ let stmt1 xs =
 (* ------------------------------------------------------------------------- *)
 
 (* this should be simpler at some point if we get rid of FieldStmt *)
-let fld (ent, def) = FieldStmt (s (DefStmt (ent, def)))
+let fld (ent, def) = F (s (DefStmt (ent, def)))
 
 let basic_field id vopt typeopt =
   let entity = basic_entity id in
   fld (entity, VarDef { vinit = vopt; vtype = typeopt })
 
-let fieldEllipsis t = FieldStmt (exprstmt (e (Ellipsis t)))
+let fieldEllipsis t = F (exprstmt (e (Ellipsis t)))
 
 (* ------------------------------------------------------------------------- *)
 (* Attributes *)

@@ -263,9 +263,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
             let v1 = map_pattern v1 and v2 = map_expr v2 in
             LetPattern (v1, v2)
         | DotAccess (v1, t, v2) ->
-            let v1 = map_expr v1
-            and t = map_tok t
-            and v2 = map_name_or_dynamic v2 in
+            let v1 = map_expr v1 and t = map_tok t and v2 = map_field_name v2 in
             DotAccess (v1, t, v2)
         | ArrayAccess (v1, v2) ->
             let v1 = map_expr v1 and v2 = map_bracket map_expr v2 in
@@ -309,13 +307,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
         | DeepEllipsis v1 ->
             let v1 = map_bracket map_expr v1 in
             DeepEllipsis v1
+        | StmtExpr v1 ->
+            let v1 = map_stmt v1 in
+            StmtExpr v1
         | OtherExpr (v1, v2) ->
-            let v1 = map_other_expr_operator v1
-            and v2 = map_of_list map_any v2 in
-            OtherExpr (v1, v2)
-        | OtherExpr2 (v1, v2) ->
             let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
-            OtherExpr2 (v1, v2)
+            OtherExpr (v1, v2)
       in
       (* TODO? reuse the e_id or create a new one? *)
       G.e ekind
@@ -336,13 +333,26 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_tok v1 in
         let v2 = map_expr v2 in
         CompIf (v1, v2)
-  and map_name_or_dynamic = function
+  and map_field_name = function
+    | FN v1 ->
+        let v1 = map_name v1 in
+        FN v1
+    | FDynamic v1 ->
+        let v1 = map_expr v1 in
+        FDynamic v1
+  and map_entity_name = function
     | EN v1 ->
         let v1 = map_name v1 in
         EN v1
     | EDynamic v1 ->
         let v1 = map_expr v1 in
         EDynamic v1
+    | EPattern v1 ->
+        let v1 = map_pattern v1 in
+        EPattern v1
+    | OtherEntity (v1, v2) ->
+        let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
+        OtherEntity (v1, v2)
   and map_literal = function
     | Unit v1 ->
         let v1 = map_tok v1 in
@@ -449,7 +459,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_action (v1, v2) =
     let v1 = map_pattern v1 and v2 = map_expr v2 in
     (v1, v2)
-  and map_other_expr_operator x = x
   and map_type_ { t; t_attrs } =
     let t = map_type_kind t in
     let t_attrs = map_of_list map_attribute t_attrs in
@@ -517,12 +526,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_type_ v1 in
         let t = map_tok t in
         TyRest (t, v1)
+    | TyExpr v1 ->
+        let v1 = map_expr v1 in
+        TyExpr v1
     | OtherType (v1, v2) ->
-        let v1 = map_other_type_operator v1 and v2 = map_of_list map_any v2 in
-        OtherType (v1, v2)
-    | OtherType2 (v1, v2) ->
         let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
-        OtherType2 (v1, v2)
+        OtherType (v1, v2)
   and map_type_arguments v = map_bracket (map_of_list map_type_argument) v
   and map_type_argument = function
     | TA v1 ->
@@ -544,7 +553,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v2 = map_of_list map_any v2 in
         OtherTypeArg (v1, v2)
   and map_todo_kind x = x
-  and map_other_type_operator x = x
   and map_attribute = function
     | KeywordAttr v1 ->
         let v1 = map_wrap map_keyword_attribute v1 in
@@ -811,7 +819,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
   and map_entity { name = v_name; attrs = v_attrs; tparams = v_tparams } =
     let v_tparams = map_of_list map_type_parameter v_tparams in
     let v_attrs = map_of_list map_attribute v_attrs in
-    let v_name = map_name_or_dynamic v_name in
+    let v_name = map_entity_name v_name in
     { name = v_name; attrs = v_attrs; tparams = v_tparams }
   and map_enum_entry_definition { ee_args; ee_body } =
     let ee_args = map_of_option map_arguments ee_args in
@@ -873,43 +881,37 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_macrobody = map_of_list map_any v_macrobody in
     let v_macroparams = map_of_list map_ident v_macroparams in
     { macroparams = v_macroparams; macrobody = v_macrobody }
-  and map_type_parameter
+  and map_type_parameter = function
+    | TP v1 ->
+        let v1 = map_type_parameter_classic v1 in
+        TP v1
+    | OtherTypeParam (t, xs) ->
+        let t = map_todo_kind t in
+        let xs = map_of_list map_any xs in
+        OtherTypeParam (t, xs)
+  and map_type_parameter_classic
       {
         tp_id = v1;
         tp_attrs = v2;
         tp_bounds = v3;
         tp_default = v4;
         tp_variance = v5;
-        tp_constraints = v6;
       } =
     let v1 = map_ident v1 in
     let v2 = map_of_list map_attribute v2 in
     let v3 = map_of_list map_type_ v3 in
     let v4 = map_of_option map_type_ v4 in
     let v5 = map_of_option (map_wrap map_variance) v5 in
-    let v6 = map_type_parameter_constraints v6 in
     {
       tp_id = v1;
       tp_attrs = v2;
       tp_bounds = v3;
       tp_default = v4;
       tp_variance = v5;
-      tp_constraints = v6;
     }
   and map_variance = function
     | Covariant -> Covariant
     | Contravariant -> Contravariant
-  and map_type_parameter_constraints v =
-    map_of_list map_type_parameter_constraint v
-  and map_type_parameter_constraint = function
-    | HasConstructor t ->
-        let t = map_tok t in
-        HasConstructor t
-    | OtherTypeParam (t, xs) ->
-        let t = map_other_type_parameter_operator t in
-        let xs = map_of_list map_any xs in
-        OtherTypeParam (t, xs)
-  and map_other_type_parameter_operator x = x
   and map_function_kind x = x
   and map_function_definition
       { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody } =
@@ -920,9 +922,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     { fkind; fparams = v_fparams; frettype = v_frettype; fbody = v_fbody }
   and map_parameters v = map_of_list map_parameter v
   and map_parameter = function
-    | ParamClassic v1 ->
+    | Param v1 ->
         let v1 = map_parameter_classic v1 in
-        ParamClassic v1
+        Param v1
     | ParamRest (v0, v1) ->
         let v0 = map_tok v0 in
         let v1 = map_parameter_classic v1 in
@@ -976,13 +978,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_vinit = map_of_option map_expr v_vinit in
     { vinit = v_vinit; vtype = v_vtype }
   and map_field = function
-    | FieldSpread (t, v1) ->
-        let t = map_tok t in
-        let v1 = map_expr v1 in
-        FieldSpread (t, v1)
-    | FieldStmt v1 ->
+    | F v1 ->
         let v1 = map_stmt v1 in
-        FieldStmt v1
+        F v1
   and map_type_definition { tbody = v_tbody } =
     let v_tbody = map_type_definition_kind v_tbody in
     { tbody = v_tbody }
@@ -1120,6 +1118,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v3 = map_expr v3 in
         PartialSingleField (v1, v2, v3)
   and map_any = function
+    | Tp v1 ->
+        let v1 = map_type_parameter v1 in
+        Tp v1
+    | Ta v1 ->
+        let v1 = map_type_argument v1 in
+        Ta v1
     | Cs v1 ->
         let v1 = map_case v1 in
         Cs v1
@@ -1204,9 +1208,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
     | Lbli v1 ->
         let v1 = map_label_ident v1 in
         Lbli v1
-    | NoD v1 ->
-        let v1 = map_name_or_dynamic v1 in
-        NoD v1
   and all_functions =
     {
       vitem = map_item;

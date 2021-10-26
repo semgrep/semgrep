@@ -243,7 +243,7 @@ and expr (x : expr) =
       G.Cast (v3, v2, v1)
   | ExprTodo (v1, v2) ->
       let v2 = list expr v2 in
-      G.OtherExpr2 (v1, v2 |> List.map (fun e -> G.E e))
+      G.OtherExpr (v1, v2 |> List.map (fun e -> G.E e))
   | L x -> G.L (literal x)
   | Id v1 ->
       let v1 = name v1 in
@@ -255,7 +255,7 @@ and expr (x : expr) =
       | SR_NeedArgs _ ->
           error (snd v1) "Impossible: should have been matched in Call first"
       | SR_Literal l -> G.L l
-      | SR_Other categ -> G.OtherExpr2 (categ, []))
+      | SR_Other categ -> G.OtherExpr (categ, []))
   | Assign (v1, tok, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
       let tok = info tok in
@@ -284,8 +284,8 @@ and expr (x : expr) =
       let v2 = property_name v2 in
       let t = info t in
       match v2 with
-      | Left n -> G.DotAccess (v1, t, G.EN (G.Id (n, G.empty_id_info ())))
-      | Right e -> G.DotAccess (v1, t, G.EDynamic e))
+      | Left n -> G.DotAccess (v1, t, G.FN (G.Id (n, G.empty_id_info ())))
+      | Right e -> G.DotAccess (v1, t, G.FDynamic e))
   | Fun (v1, _v2TODO) ->
       let def, _more_attrs = fun_ v1 in
       (* todo? assert more_attrs = []? *)
@@ -301,7 +301,7 @@ and expr (x : expr) =
       | SR_Other categ ->
           (* ex: NewTarget *)
           G.Call
-            ( G.OtherExpr2 (categ, []) |> G.e,
+            ( G.OtherExpr (categ, []) |> G.e,
               bracket (List.map (fun e -> G.Arg e)) v2 ))
   | Apply (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list expr) v2 in
@@ -456,7 +456,7 @@ and type_kind x =
   | TyName xs -> G.TyN (H.name_of_ids xs)
   | TyLiteral l ->
       let l = literal l in
-      G.OtherType2 (("LitType", PI.unsafe_fake_info ""), [ G.E (G.L l |> G.e) ])
+      G.OtherType (("LitType", PI.unsafe_fake_info ""), [ G.E (G.L l |> G.e) ])
   | TyQuestion (tok, t) ->
       let t = type_ t in
       G.TyQuestion (t, tok)
@@ -484,7 +484,7 @@ and type_kind x =
       let t1 = type_ t1 in
       let t2 = type_ t2 in
       G.TyAnd (t1, tk, t2)
-  | TypeTodo (categ, xs) -> G.OtherType2 (categ, List.map any xs)
+  | TypeTodo (categ, xs) -> G.OtherType (categ, List.map any xs)
 
 and tuple_type_member x =
   match x with
@@ -572,7 +572,7 @@ and parameter x =
         }
       in
       match v3 with
-      | None -> G.ParamClassic pclassic
+      | None -> G.Param pclassic
       | Some tok -> G.ParamRest (tok, pclassic))
 
 and argument x = expr x
@@ -654,7 +654,7 @@ and property x =
   match x with
   | Field v1 ->
       let ent, def = field_classic v1 in
-      G.FieldStmt (G.DefStmt (ent, def) |> G.s)
+      G.fld (ent, def)
   | FieldColon v1 ->
       let ent, def = field_classic v1 in
       let def =
@@ -664,19 +664,22 @@ and property x =
         | G.VarDef x -> G.FieldDefColon x
         | _ -> def
       in
-      G.FieldStmt (G.DefStmt (ent, def) |> G.s)
+      G.fld (ent, def)
   | FieldSpread (t, v1) ->
       let v1 = expr v1 in
-      G.FieldSpread (t, v1)
-  | FieldEllipsis v1 -> G.FieldStmt (G.exprstmt (G.Ellipsis v1 |> G.e))
+      let spec = (G.Spread, t) in
+      let e = G.special spec [ v1 ] in
+      let st = G.exprstmt e in
+      G.F st
+  | FieldEllipsis v1 -> G.fieldEllipsis v1
   | FieldPatDefault (v1, _v2, v3) ->
       let v1 = pattern v1 in
       let v3 = expr v3 in
-      G.FieldStmt (G.exprstmt (G.LetPattern (v1, v3) |> G.e))
+      G.F (G.exprstmt (G.LetPattern (v1, v3) |> G.e))
   | FieldTodo (v1, v2) ->
       let v2 = stmt v2 in
       (* hmm, should use OtherStmtWithStmt ? *)
-      G.FieldStmt (G.OtherStmt (G.OS_Todo, [ G.TodoK v1; G.S v2 ]) |> G.s)
+      G.F (G.OtherStmt (G.OS_Todo, [ G.TodoK v1; G.S v2 ]) |> G.s)
 
 and alias v1 =
   let v1 = name v1 in

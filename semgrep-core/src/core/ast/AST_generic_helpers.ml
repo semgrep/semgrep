@@ -134,7 +134,7 @@ let name_of_dot_access e =
   let ( let* ) = Option.bind in
   let rec fetch_ids = function
     | G.N (G.Id (x, _)) -> Some [ x ]
-    | G.DotAccess (e1, _, G.EN (G.Id (x, _))) ->
+    | G.DotAccess (e1, _, G.FN (G.Id (x, _))) ->
         let* xs = fetch_ids e1.e in
         Some (xs @ [ x ])
     | ___else___ -> None
@@ -198,11 +198,10 @@ let rec pattern_to_expr p =
 
 let expr_to_type e =
   (* TODO: diconstruct e and generate the right type (TyBuiltin, ...) *)
-  OtherType (OT_Expr, [ E e ]) |> G.t
+  TyExpr e |> G.t
 
 (* TODO: recognize foo(args)? like in Kotlin/Java *)
-let expr_to_class_parent e : class_parent =
-  (OtherType (OT_Expr, [ E e ]) |> G.t, None)
+let expr_to_class_parent e : class_parent = (expr_to_type e, None)
 
 (* See also exprstmt, and stmt_to_expr in AST_generic.ml *)
 
@@ -240,16 +239,20 @@ let is_boolean_operator = function
     -> true
 *)
 
-let name_or_dynamic_to_expr name idinfo_opt =
-  (match (name, idinfo_opt) with
+(* this will be used for the lhs of an Assign. Maybe one day Assign
+ * will have a more precise type and we can be more precise too here.
+ *)
+let entity_name_to_expr name idinfo_opt =
+  match (name, idinfo_opt) with
   (* assert idinfo = _idinfo below? *)
-  | EN (Id (id, idinfo)), None -> N (Id (id, idinfo))
-  | EN (Id (id, _idinfo)), Some idinfo -> N (Id (id, idinfo))
-  | EN (IdQualified n), None -> N (IdQualified n)
+  | EN (Id (id, idinfo)), None -> N (Id (id, idinfo)) |> G.e
+  | EN (Id (id, _idinfo)), Some idinfo -> N (Id (id, idinfo)) |> G.e
+  | EN (IdQualified n), None -> N (IdQualified n) |> G.e
   | EN (IdQualified n), Some idinfo ->
-      N (IdQualified { n with name_info = idinfo })
-  | EDynamic e, _ -> e.e)
-  |> G.e
+      N (IdQualified { n with name_info = idinfo }) |> G.e
+  | EDynamic e, _ -> e
+  | EPattern pat, _ -> G.OtherExpr (("EPattern", fake ""), [ P pat ]) |> G.e
+  | OtherEntity (categ, xs), _ -> G.OtherExpr (categ, xs) |> G.e
 
 let argument_to_expr arg =
   match arg with
@@ -264,20 +267,20 @@ let argument_to_expr arg =
 
 (* used in controlflow_build and semgrep *)
 let vardef_to_assign (ent, def) =
-  let name = name_or_dynamic_to_expr ent.name None in
+  let name_or_expr = entity_name_to_expr ent.name None in
   let v =
     match def.vinit with
     | Some v -> v
     | None -> L (Null (Parse_info.unsafe_fake_info "null")) |> G.e
   in
-  Assign (name, Parse_info.unsafe_fake_info "=", v) |> G.e
+  Assign (name_or_expr, Parse_info.unsafe_fake_info "=", v) |> G.e
 
 (* used in controlflow_build *)
 let funcdef_to_lambda (ent, def) resolved =
   let idinfo = { (empty_id_info ()) with id_resolved = ref resolved } in
-  let name = name_or_dynamic_to_expr ent.name (Some idinfo) in
+  let name_or_expr = entity_name_to_expr ent.name (Some idinfo) in
   let v = Lambda def |> G.e in
-  Assign (name, Parse_info.unsafe_fake_info "=", v) |> G.e
+  Assign (name_or_expr, Parse_info.unsafe_fake_info "=", v) |> G.e
 
 let funcbody_to_stmt = function
   | FBStmt st -> st
@@ -294,7 +297,7 @@ let has_keyword_attr kwd attrs =
 (* just used in cpp_to_generic.ml for now, could be moved there *)
 let parameter_to_catch_exn_opt p =
   match p with
-  | ParamClassic p -> Some (CatchParam p)
+  | Param p -> Some (CatchParam p)
   | ParamEllipsis t -> Some (CatchPattern (PatEllipsis t))
   | ParamPattern p -> Some (G.CatchPattern p)
   (* TODO: valid in exn spec? *)

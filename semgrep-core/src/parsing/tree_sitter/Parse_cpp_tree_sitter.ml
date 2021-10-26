@@ -1472,8 +1472,12 @@ and map_catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) : handler =
   let v1 = token env v1 (* "catch" *) in
   let l, v2, r = map_parameter_list env v2 in
   let v3 = map_compound_statement env v3 in
-  let params = v2 |> List.map (fun p -> ExnDecl p) in
-  (v1, (l, params, r), v3)
+  let param =
+    match v2 with
+    | [ p ] -> p
+    | xs -> ParamTodo (("MultiParamExn", v1), xs)
+  in
+  (v1, (l, ExnDecl param, r), v3)
 
 and map_class_name (env : env) (x : CST.class_name) : a_class_name =
   match x with

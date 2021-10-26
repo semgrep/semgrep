@@ -76,7 +76,7 @@ let rec unaryOp (a, tok) =
   | Tilde -> fun e -> G.opcall (G.BitNot, tok) [ e ]
   | Not -> fun e -> G.opcall (G.Not, tok) [ e ]
   | GetRefLabel ->
-      fun e -> G.OtherExpr2 (("GetRefLabel", unsafe_fake ""), [ G.E e ]) |> G.e
+      fun e -> G.OtherExpr (("GetRefLabel", unsafe_fake ""), [ G.E e ]) |> G.e
 
 and assignOp = function
   | SimpleAssign tok -> Left tok
@@ -137,10 +137,10 @@ and type_kind = function
       G.TyFun (params, ret)
   | TStructName (v1, v2) ->
       let v1 = struct_kind v1 and v2 = name v2 in
-      G.OtherType2 (v1, [ G.I v2 ])
+      G.OtherType (v1, [ G.I v2 ])
   | TEnumName v1 ->
       let v1 = name v1 in
-      G.OtherType2 (("EnumName", unsafe_fake ""), [ G.I v1 ])
+      G.OtherType (("EnumName", unsafe_fake ""), [ G.I v1 ])
   | TTypeName v1 ->
       let v1 = name v1 in
       G.TyN (G.Id (v1, G.empty_id_info ()))
@@ -155,7 +155,7 @@ and function_type (v1, v2) =
 
 and parameter x =
   match x with
-  | ParamClassic x -> G.ParamClassic (parameter_classic x)
+  | ParamClassic x -> G.Param (parameter_classic x)
   | ParamDots t -> G.ParamEllipsis t
 
 and parameter_classic { p_type; p_name } =
@@ -221,7 +221,7 @@ and expr e =
       G.ArrayAccess (v1, v2) |> G.e
   | RecordPtAccess (v1, t, v2) ->
       let v1 = expr v1 and t = info t and v2 = name v2 in
-      G.DotAccess (G.DeRef (t, v1) |> G.e, t, G.EN (Id (v2, G.empty_id_info ())))
+      G.DotAccess (G.DeRef (t, v1) |> G.e, t, G.FN (Id (v2, G.empty_id_info ())))
       |> G.e
   | Cast (v1, v2) ->
       let v1 = type_ v1 and v2 = expr v2 in
@@ -265,7 +265,7 @@ and expr e =
                match v1 with
                | None -> v2
                | Some e ->
-                   G.OtherExpr2
+                   G.OtherExpr
                      (("ArrayInitDesignator", unsafe_fake ""), [ G.E e; G.E v2 ])
                    |> G.e))
           v1

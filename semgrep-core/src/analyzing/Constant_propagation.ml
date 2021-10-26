@@ -341,7 +341,7 @@ let propagate_basic lang prog =
               match find_id env id id_info with
               | Some literal -> id_info.id_constness := Some (Lit literal)
               | _ -> ())
-          | DotAccess ({ e = IdSpecial (This, _); _ }, _, EN (Id (id, id_info)))
+          | DotAccess ({ e = IdSpecial (This, _); _ }, _, FN (Id (id, id_info)))
             when not !(env.in_lvalue) -> (
               match find_id env id id_info with
               | Some literal -> id_info.id_constness := Some (Lit literal)

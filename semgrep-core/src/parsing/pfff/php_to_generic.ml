@@ -266,19 +266,19 @@ and expr e : G.expr =
    *)
   | Array_get (v1, (t1, None, _)) ->
       let v1 = expr v1 in
-      G.OtherExpr2 (("ArrayAppend", t1), [ G.E v1 ])
+      G.OtherExpr (("ArrayAppend", t1), [ G.E v1 ])
   | Obj_get (v1, t, Id [ v2 ]) ->
       let v1 = expr v1 and v2 = ident v2 in
-      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
   | Obj_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.DotAccess (v1, t, G.EDynamic v2)
+      G.DotAccess (v1, t, G.FDynamic v2)
   | Class_get (v1, t, Id [ v2 ]) ->
       let v1 = expr v1 and v2 = ident v2 in
-      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
   | Class_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.DotAccess (v1, t, G.EDynamic v2)
+      G.DotAccess (v1, t, G.FDynamic v2)
   | New (t, v1, v2) ->
       let v1 = expr v1 and v2 = list expr v2 in
       G.Call (G.IdSpecial (G.New, t) |> G.e, fb (v1 :: v2 |> List.map G.arg))
@@ -329,7 +329,7 @@ and expr e : G.expr =
       G.Ref (t, v1)
   | Unpack v1 ->
       let v1 = expr v1 in
-      G.OtherExpr2 (("Unpack", fake ""), [ G.E v1 ])
+      G.OtherExpr (("Unpack", fake ""), [ G.E v1 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in
       G.Call (v1, v2)
@@ -428,9 +428,7 @@ and hint_type_kind = function
       G.TyTuple (t1, v1, t2)
   | HintCallback (v1, v2) ->
       let v1 = list hint_type v1 and v2 = option hint_type v2 in
-      let params =
-        v1 |> List.map (fun x -> G.ParamClassic (G.param_of_type x))
-      in
+      let params = v1 |> List.map (fun x -> G.Param (G.param_of_type x)) in
       let fret =
         match v2 with
         | Some t -> t
@@ -438,9 +436,9 @@ and hint_type_kind = function
       in
       G.TyFun (params, fret)
   | HintTypeConst (_, tok, _) ->
-      G.OtherType2 (("HintTypeConst not supported, facebook-ext", tok), [])
+      G.OtherType (("HintTypeConst not supported, facebook-ext", tok), [])
   | HintVariadic (tok, _) ->
-      G.OtherType2 (("HintVariadic not supported", tok), [])
+      G.OtherType (("HintVariadic not supported", tok), [])
 
 and class_name v = hint_type v
 
@@ -511,9 +509,8 @@ and parameter_classic { p_type; p_ref; p_name; p_default; p_attrs; p_variadic }
     }
   in
   match (p_variadic, p_ref) with
-  | None, None -> G.ParamClassic pclassic
-  | _, Some tok ->
-      G.OtherParam (("Ref", tok), [ G.Pa (G.ParamClassic pclassic) ])
+  | None, None -> G.Param pclassic
+  | _, Some tok -> G.OtherParam (("Ref", tok), [ G.Pa (G.Param pclassic) ])
   | Some tok, None -> G.ParamRest (tok, pclassic)
 
 and modifier v = wrap modifierbis v
@@ -590,10 +587,7 @@ and class_def
       cimplements = implements;
       cmixins = uses;
       cparams = [];
-      cbody =
-        ( t1,
-          fields |> List.map (fun def -> G.FieldStmt (G.DefStmt def |> G.s)),
-          t2 );
+      cbody = (t1, fields |> List.map (fun def -> G.fld def), t2);
     }
   in
   (ent, def)
