@@ -164,40 +164,46 @@ let semgrep_check config metachecks rules =
  * circular dependencies.
  * Similar to Test_parsing.test_parse_rules.
  *)
-let check_files mk_config fparser xs =
-  let fullxs, skipped_paths =
+let run_checks mk_config fparser metachecks xs =
+  let yaml_xs, skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
-  let fullxs, more_skipped_paths =
-    List.partition (fun file -> not (file =~ ".*\\.test\\.yaml")) fullxs
+  let rules, more_skipped_paths =
+    List.partition (fun file -> not (file =~ ".*\\.test\\.yaml")) yaml_xs
   in
   let _skipped_paths = more_skipped_paths @ skipped_paths in
-  match fullxs with
+  match rules with
   | [] ->
       logger#error
-        "check_rules needs a metacheck file or directory and rules to run on"
+        "no valid yaml rules to run on (.test.yaml files are excluded)";
+      []
+  | _ ->
+      let semgrep_found_errs = semgrep_check (mk_config ()) metachecks rules in
+      let ocaml_found_errs =
+        rules
+        |> List.map (fun file ->
+               logger#info "processing %s" file;
+               try
+                 let rs = fparser file in
+                 rs |> List.map (fun file -> check file) |> List.flatten
+               with exn -> [ E.exn_to_error file exn ])
+        |> List.flatten
+      in
+      semgrep_found_errs @ ocaml_found_errs
+
+let check_files mk_config fparser input =
+  match input with
+  | []
   | [ _ ] ->
       logger#error
-        "missing either a metacheck file/directory or a rule to run on"
-  | metachecks :: rules ->
-      rules
-      |> List.iter (fun file ->
-             logger#info "processing %s" file;
-             try
-               let rs = fparser file in
-               rs
-               |> List.iter (fun file ->
-                      let semgrep_found_errs =
-                        semgrep_check (mk_config ()) metachecks rules
-                      in
-                      let ocaml_found_errs = check file in
-                      semgrep_found_errs @ ocaml_found_errs
-                      |> List.iter (fun err -> pr2 (E.string_of_error err)))
-             with exn -> pr2 (E.string_of_error (E.exn_to_error file exn)))
+        "check_rules needs a metacheck file or directory and rules to run on"
+  | metachecks :: xs ->
+      run_checks mk_config fparser metachecks xs
+      |> List.iter (fun err -> pr2 (E.string_of_error err))
 
 let stat_files fparser xs =
   let fullxs, _skipped_paths =
