@@ -1004,7 +1004,7 @@ and delegation_specifier (env : env) (x : CST.delegation_specifier) :
       in
       let v2 = token env v2 (* "by" *) in
       let v3 = expression env v3 in
-      ( OtherType2 (("ByDelagation", v2), [ G.T v1 ]) |> G.t,
+      ( OtherType (("ByDelagation", v2), [ G.T v1 ]) |> G.t,
         Some (fb [ G.Arg v3 ]) )
   | `User_type x ->
       let n = user_type env x in

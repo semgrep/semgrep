@@ -547,10 +547,8 @@ and map_type_kind = function
       let v1 = map_type_ v1 in
       let t = map_tok t in
       `TyRest (t, v1)
-  | OtherType (v1, v2) ->
-      let v1 = map_other_type_operator v1 and v2 = map_of_list map_any v2 in
-      `OtherType (v1, v2)
-  | OtherType2 (_v1, _v2) -> failwith "TODO"
+  | TyExpr _v1 -> failwith "TODO"
+  | OtherType (_v1, _v2) -> failwith "TODO"
 
 (* new: brackets *)
 and map_type_arguments (_, v, _) = map_of_list map_type_argument v
@@ -574,8 +572,6 @@ and map_type_argument = function
       `OtherTypeArg (v1, v2)
 
 and map_todo_kind _x = "TODO"
-
-and map_other_type_operator _x = "TODO"
 
 and map_attribute = function
   | KeywordAttr v1 -> (

@@ -515,12 +515,12 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v1 = map_type_ v1 in
         let t = map_tok t in
         TyRest (t, v1)
+    | TyExpr v1 ->
+        let v1 = map_expr v1 in
+        TyExpr v1
     | OtherType (v1, v2) ->
-        let v1 = map_other_type_operator v1 and v2 = map_of_list map_any v2 in
-        OtherType (v1, v2)
-    | OtherType2 (v1, v2) ->
         let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
-        OtherType2 (v1, v2)
+        OtherType (v1, v2)
   and map_type_arguments v = map_bracket (map_of_list map_type_argument) v
   and map_type_argument = function
     | TA v1 ->
@@ -542,7 +542,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v2 = map_of_list map_any v2 in
         OtherTypeArg (v1, v2)
   and map_todo_kind x = x
-  and map_other_type_operator x = x
   and map_attribute = function
     | KeywordAttr v1 ->
         let v1 = map_wrap map_keyword_attribute v1 in

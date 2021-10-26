@@ -439,7 +439,13 @@ and type_ v =
 (* TODO: recognize idioms? *)
 and type_parent v : G.class_parent =
   let v = argument v in
-  (G.OtherType (G.OT_Arg, [ G.Ar v ]) |> G.t, None)
+  match v with
+  | G.Arg e -> H.expr_to_class_parent e
+  (* less: could raise an error *)
+  | G.ArgKwd (id, e) ->
+      (G.OtherType (("ArgKwdParent", snd id), [ G.I id; G.E e ]) |> G.t, None)
+  (* see argument code *)
+  | _ -> raise Impossible
 
 and list_stmt1 xs =
   match list stmt xs with
