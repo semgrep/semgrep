@@ -201,6 +201,14 @@ let name_of_entity ent =
       Some name
   | _____else_____ -> None
 
+let composite_of_container : G.container_operator -> IL.composite_kind =
+  function
+  | Array -> CArray
+  | List -> CList
+  | Tuple -> CTuple
+  | Set -> CSet
+  | Dict -> CDict
+
 (*****************************************************************************)
 (* lvalue *)
 (*****************************************************************************)
@@ -322,7 +330,8 @@ and assign env lhs _tok rhs_exp eorig =
       with Fixme (kind, any_generic) ->
         add_instr env (fixme_instr kind any_generic eorig);
         fixme_exp kind any_generic lhs)
-  | G.Container (G.Tuple, (tok1, lhss, tok2)) ->
+  | G.Container (((G.Tuple | G.Array) as ckind), (tok1, lhss, tok2)) ->
+      (* TODO: handle cases like [a, b, ...rest] = e *)
       (* E1, ..., En = RHS *)
       (* tmp = RHS*)
       let tmp = fresh_var env tok2 in
@@ -340,7 +349,9 @@ and assign env lhs _tok rhs_exp eorig =
                assign env lhs_i tok1 { e = Fetch lval_i; eorig } eorig)
       in
       (* (E1, ..., En) *)
-      mk_e (Composite (CTuple, (tok1, tup_elems, tok2))) eorig
+      mk_e
+        (Composite (composite_of_container ckind, (tok1, tup_elems, tok2)))
+        eorig
   | _ ->
       add_instr env (fixme_instr ToDo (G.E eorig) eorig);
       fixme_exp ToDo (G.E eorig) lhs
