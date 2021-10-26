@@ -555,25 +555,10 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
   in
   let skipped = new_skipped @ res.skipped in
   let errors = new_errors @ res.errors in
-  let res =
-    { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling }
-  in
-  (* note: uncomment the following and use semgrep-core -stat_matches
-   * to debug too-many-matches issues.
-   * Common2.write_value matches "/tmp/debug_matches";
-   *)
-  match config.output_format with
-  | Json ->
-      let res = JSON_report.match_results_of_matches_and_errors files res in
-      let s = SJ.string_of_match_results res in
-      logger#info "size of returned JSON string: %d" (String.length s);
-      pr s
-  | Text ->
-      (* the match has already been printed above. We just print errors here *)
-      (* pr (spf "number of errors: %d" (List.length errs)); *)
-      errors |> List.iter (fun err -> pr (E.string_of_error err))
+  ( { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling },
+    files )
 
-let semgrep_with_rules_file config files_or_dirs =
+let run_semgrep_with_rules config files_or_dirs =
   let rules_file = config.config_file in
   try
     logger#info "Parsing %s" rules_file;
@@ -581,7 +566,7 @@ let semgrep_with_rules_file config files_or_dirs =
       Common.with_time (fun () -> Parse_rule.parse rules_file)
     in
     semgrep_with_rules config timed_rules files_or_dirs
-  with exn when config.output_format = Json ->
+  with exn ->
     logger#debug "exn before exit %s" (Common.exn_to_s exn);
     let res =
       {
@@ -591,10 +576,25 @@ let semgrep_with_rules_file config files_or_dirs =
         rule_profiling = None;
       }
     in
-    let json = JSON_report.match_results_of_matches_and_errors [] res in
-    let s = SJ.string_of_match_results json in
-    pr s;
-    exit 2
+    (res, [])
+
+let semgrep_with_rules_file config files_or_dirs =
+  let res, files = run_semgrep_with_rules config files_or_dirs in
+  (* note: uncomment the following and use semgrep-core -stat_matches
+   * to debug too-many-matches issues.
+   * Common2.write_value matches "/tmp/debug_matches";
+   *)
+  match config.output_format with
+  | Json ->
+      let res = JSON_report.match_results_of_matches_and_errors files res in
+      let s = SJ.string_of_match_results res in
+      logger#info "size of returned JSON string: %d" (String.length s);
+      pr s;
+      if files = [] then exit 2
+  | Text ->
+      (* the match has already been printed above. We just print errors here *)
+      (* pr (spf "number of errors: %d" (List.length errs)); *)
+      res.errors |> List.iter (fun err -> pr (E.string_of_error err))
 
 (*****************************************************************************)
 (* Semgrep -e/-f *)

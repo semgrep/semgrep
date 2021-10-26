@@ -18,6 +18,7 @@ open Rule
 module R = Rule
 module E = Semgrep_error_code
 module PI = Parse_info
+module P = Pattern_match
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -116,7 +117,6 @@ let check_formula env lang f =
         xs |> List.iter find_dupe
   in
   find_dupe f;
-
   (* call Check_pattern subchecker *)
   f
   |> visit_new_formula (fun { pat; pstr = _pat_str; pid = _ } ->
@@ -141,11 +141,22 @@ let check r =
   | Taint _ -> (* TODO *) []
 
 let semgrep_check config metachecks rules =
-  let config =
-    { config with Runner_common.lang = "yaml"; config_file = metachecks }
+  let match_to_semgrep_error m =
+    let loc, _ = m.P.range_loc in
+    let s = m.rule_id.message in
+    let check_id = m.rule_id.id in
+    E.mk_error ~rule_id:None loc s (E.SemgrepMatchFound check_id)
   in
-  Run_semgrep.semgrep_with_rules_file config rules;
-  []
+  let config =
+    {
+      config with
+      Runner_common.lang = "yaml";
+      config_file = metachecks;
+      output_format = Json;
+    }
+  in
+  let res, _ = Run_semgrep.run_semgrep_with_rules config rules in
+  res.matches |> List.map match_to_semgrep_error
 
 (* TODO *)
 
