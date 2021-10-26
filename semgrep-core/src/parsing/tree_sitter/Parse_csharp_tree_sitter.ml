@@ -39,22 +39,22 @@ let str = H.str
 (* less: we should check we consume all constraints *)
 let type_parameters_with_constraints tparams constraints : type_parameter list =
   tparams
-  |> List.map (fun tparam ->
-         let with_constraints =
-           constraints
-           |> List.find_opt (fun (id, _xs) -> fst id = fst tparam.tp_id)
-         in
-         match with_constraints with
-         | Some (_id, xs) ->
-             let more_constraints, more_bounds =
-               xs |> Common.partition_either (fun x -> x)
-             in
-             {
-               tparam with
-               tp_constraints = more_constraints @ tparam.tp_constraints;
-               tp_bounds = more_bounds @ tparam.tp_bounds;
-             }
-         | None -> tparam)
+  |> List.map (function
+       | OtherTypeParam (x, anys) ->
+           (* TODO: add constraints *)
+           OtherTypeParam (x, anys)
+       | TP tparam -> (
+           let with_constraints =
+             constraints
+             |> List.find_opt (fun (id, _xs) -> fst id = fst tparam.tp_id)
+           in
+           match with_constraints with
+           | Some (_id, xs) ->
+               let _more_constraintsTODO, more_bounds =
+                 xs |> Common.partition_either (fun x -> x)
+               in
+               TP { tparam with tp_bounds = more_bounds @ tparam.tp_bounds }
+           | None -> TP tparam))
 
 let var_def_stmt (decls : (entity * variable_definition) list)
     (attrs : attribute list) =
@@ -1530,7 +1530,7 @@ and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
   v2 :: v3
 
 and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) :
-    (G.type_parameter_constraint, type_) Common.either =
+    (G.todo_kind, type_) Common.either =
   match x with
   | `Class_opt_QMARK (tok, _)
   (* "class" *)
@@ -1546,7 +1546,7 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) :
       let v2 = token env v2 (* "(" *) in
       let v3 = token env v3 (* ")" *) in
       let tok = PI.combine_infos v1 [ v2; v3 ] in
-      Left (HasConstructor tok)
+      Left ("HasConstructor", tok)
   | `Type_cons x -> Right (type_constraint env x)
 
 and type_constraint (env : env) (x : CST.type_constraint) : type_ =

@@ -595,32 +595,26 @@ let (mk_visitor :
    *)
   and v_todo_kind (_str, tok) = v_tok tok
   and v_other_type_operator _ = ()
-  and v_type_parameter
+  and v_type_parameter = function
+    | TP v1 -> v_type_parameter_classic v1
+    | OtherTypeParam (t, xs) ->
+        let t = v_todo_kind t in
+        let xs = v_list v_any xs in
+        ()
+  and v_type_parameter_classic
       {
         tp_id = v1;
         tp_attrs = v2;
         tp_bounds = v3;
         tp_default = v4;
         tp_variance = v5;
-        tp_constraints = v6;
       } =
     v_ident v1;
     v_list v_attribute v2;
     v_list v_type_ v3;
     v_option v_type_ v4;
     v_option (v_wrap v_variance) v5;
-    v_type_parameter_constraints v6;
     ()
-  and v_type_parameter_constraints v = v_list v_type_parameter_constraint v
-  and v_type_parameter_constraint = function
-    | HasConstructor t ->
-        let t = v_tok t in
-        ()
-    | OtherTypeParam (t, xs) ->
-        let t = v_other_type_parameter_operator t in
-        let xs = v_list v_any xs in
-        ()
-  and v_other_type_parameter_operator _ = ()
   and v_variance _ = ()
   and v_attribute x =
     let k x =

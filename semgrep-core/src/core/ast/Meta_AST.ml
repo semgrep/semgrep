@@ -1014,19 +1014,23 @@ and vof_macro_definition
   let bnds = bnd :: bnds in
   OCaml.VDict bnds
 
-and vof_type_parameter
+and vof_type_parameter = function
+  | TP v1 ->
+      let v1 = vof_type_parameter_classic v1 in
+      OCaml.VSum ("TP", [ v1 ])
+  | OtherTypeParam (t, xs) ->
+      let t = vof_todo_kind t and xs = OCaml.vof_list vof_any xs in
+      OCaml.VSum ("OtherTypeParam", [ t; xs ])
+
+and vof_type_parameter_classic
     {
       tp_id = v1;
       tp_attrs = v2;
       tp_bounds = v3;
       tp_default = v4;
       tp_variance = v5;
-      tp_constraints = v6;
     } =
   let bnds = [] in
-  let arg = vof_type_parameter_constraints v6 in
-  let bnd = ("tp_constraints", arg) in
-  let bnds = bnd :: bnds in
   let arg = OCaml.vof_option (vof_wrap vof_variance) v5 in
   let bnd = ("tp_variance", arg) in
   let bnds = bnd :: bnds in
@@ -1047,17 +1051,6 @@ and vof_type_parameter
 and vof_variance = function
   | Covariant -> OCaml.VSum ("Covariant", [])
   | Contravariant -> OCaml.VSum ("Contravariant", [])
-
-and vof_type_parameter_constraints v =
-  OCaml.vof_list vof_type_parameter_constraint v
-
-and vof_type_parameter_constraint = function
-  | HasConstructor t ->
-      let t = vof_tok t in
-      OCaml.VSum ("HasConstructor", [ t ])
-  | OtherTypeParam (t, xs) ->
-      let t = vof_todo_kind t and xs = OCaml.vof_list vof_any xs in
-      OCaml.VSum ("OtherTypeParam", [ t; xs ])
 
 and vof_function_kind = function
   | Function -> OCaml.VSum ("Function", [])

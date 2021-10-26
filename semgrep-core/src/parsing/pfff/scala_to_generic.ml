@@ -689,17 +689,9 @@ and v_type_parameter
   let _argTODO = v_type_bounds v_tpbounds in
   let _argTODO = v_list v_type_ v_tpviewbounds in
   let _argTODO = v_list v_type_ v_tpcolons in
-  let tp_constraints = [] in
   let tp_bounds = [] in
   (* TODO *)
-  {
-    G.tp_id;
-    tp_variance;
-    tp_attrs;
-    tp_constraints;
-    tp_bounds;
-    tp_default = None;
-  }
+  TP { G.tp_id; tp_variance; tp_attrs; tp_bounds; tp_default = None }
 
 and v_variance = function
   | Covariant -> G.Covariant
