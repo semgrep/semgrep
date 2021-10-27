@@ -684,7 +684,7 @@ and vof_stmt st =
       OCaml.VSum ("If", [ t; v1; v2; v3 ])
   | While (t, v1, v2) ->
       let t = vof_tok t in
-      let v1 = vof_expr v1 and v2 = vof_stmt v2 in
+      let v1 = vof_condition v1 and v2 = vof_stmt v2 in
       OCaml.VSum ("While", [ t; v1; v2 ])
   | DoWhile (t, v1, v2) ->
       let t = vof_tok t in

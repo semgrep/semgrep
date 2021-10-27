@@ -839,9 +839,9 @@ and stmt_kind =
   (* EmptyStmt = Block [], or separate so can not be matched by $S? $
    * see also emptystmt() at the end of this file.
    *)
-  (* newscope: for vardef in expr in C++/Go/... *)
+  (* newscope: for vardef in condition in C++/Go/... *)
   | If of tok (* 'if' or 'elif' *) * condition * stmt * stmt option
-  | While of tok * expr (* TODO: condition for Rust *) * stmt
+  | While of tok * condition * stmt
   | Return of tok * expr option * sc
   | DoWhile of tok * stmt * expr
   (* newscope: *)

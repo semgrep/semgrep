@@ -1412,7 +1412,7 @@ and loop_statement (env : env) (x : CST.loop_statement) =
             G.emptystmt v1
         | `Cont_stru_body x -> control_structure_body env x
       in
-      While (v1, v3, v5) |> G.s
+      While (v1, G.Cond v3, v5) |> G.s
   | `Do_while_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "do" *) in
       let v2 =

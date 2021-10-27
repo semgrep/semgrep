@@ -124,7 +124,7 @@ let rec stmt_aux = function
       [ G.Switch (t, Some (G.Cond v1), v2) |> G.s ]
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      [ G.While (t, v1, v2) |> G.s ]
+      [ G.While (t, G.Cond v1, v2) |> G.s ]
   | Do (t, v1, v2) ->
       let v1 = stmt v1 and v2 = expr v2 in
       [ G.DoWhile (t, v1, v2) |> G.s ]

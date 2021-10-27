@@ -67,13 +67,13 @@ let mk_visitor vin =
         ()
     (* cond *)
     | F.IfHeader cond
+    | F.WhileHeader cond
     | F.SwitchHeader (Some cond) -> (
         match cond with
         | G.Cond e -> visitor (G.E e)
         (* TODO *)
         | G.OtherCond _ -> ())
     (* expr *)
-    | F.WhileHeader expr
     | F.DoWhileTail expr
     | F.Throw expr
     | F.Return (Some expr)
@@ -112,12 +112,12 @@ let exprs_of_node node =
       []
   (* cond *)
   | IfHeader cond
+  | WhileHeader cond
   | SwitchHeader (Some cond) -> (
       match cond with
       | Cond e -> [ e ]
       | OtherCond _ -> [])
   (* expr *)
-  | WhileHeader expr
   | DoWhileTail expr
   | Throw expr
   | Return (Some expr)

@@ -389,7 +389,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
   | While_loop (loc, while_, cond, do_, body, done_) ->
       let cond = stmt_group env loc (blist env cond) |> as_expr in
       let body = stmt_group env loc (blist env body) |> as_stmt in
-      Stmt (loc, G.While (while_, cond, body) |> G.s)
+      Stmt (loc, G.While (while_, G.Cond cond, body) |> G.s)
   | Until_loop (loc, until, cond, do_, body, done_) ->
       let cond_loc = blist_loc cond in
       let neg_cond =
@@ -397,7 +397,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
         |> negate_expr until cond_loc
       in
       let body = stmt_group env loc (blist env body) |> as_stmt in
-      Stmt (loc, G.While (until, neg_cond, body) |> G.s)
+      Stmt (loc, G.While (until, G.Cond neg_cond, body) |> G.s)
   | Coprocess (loc, opt_name, cmd) -> (* TODO: coproc *) command env cmd
   | Assignment ass -> assignment env ass
   | Declaration x ->

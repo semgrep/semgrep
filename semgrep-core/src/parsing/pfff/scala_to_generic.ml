@@ -523,7 +523,7 @@ and v_stmt = function
       let v1 = v_tok v1
       and v2 = v_bracket v_expr v2
       and v3 = v_expr_for_stmt v3 in
-      G.While (v1, G.unbracket v2, v3) |> G.s
+      G.While (v1, G.Cond (G.unbracket v2), v3) |> G.s
   | DoWhile (v1, v2, v3, v4) ->
       let v1 = v_tok v1
       and v2 = v_expr_for_stmt v2
