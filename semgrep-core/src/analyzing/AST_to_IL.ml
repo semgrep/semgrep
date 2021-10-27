@@ -856,7 +856,7 @@ let rec stmt_aux env st =
       let cont_label_s, break_label_s, st_env =
         mk_break_continue_labels env tok
       in
-      let ss, e' = expr_with_pre_stmts env e in
+      let ss, e' = cond_with_pre_stmts env e in
       let st = stmt st_env st in
       ss @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ] @ break_label_s
   | G.DoWhile (tok, st, e) ->

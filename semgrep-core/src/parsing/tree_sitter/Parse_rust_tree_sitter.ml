@@ -1436,17 +1436,17 @@ and map_expression_ending_with_block (env : env)
       let while_ = token env v2 (* "while" *) in
       let cond = map_expression env v3 in
       let body = map_block env v4 in
-      let while_stmt = G.While (while_, cond, body) |> G.s in
+      let while_stmt = G.While (while_, G.Cond cond, body) |> G.s in
       G.stmt_to_expr while_stmt
   | `While_let_exp (v1, v2, v3, v4, v5, v6, v7) ->
       let _loop_labelTODO = Option.map map_loop_label_ v1 in
       let while_ = token env v2 (* "while" *) in
-      let _let_ = token env v3 (* "let" *) in
+      let let_ = token env v3 (* "let" *) in
       let pattern = map_pattern env v4 in
       let _equals = token env v5 (* "=" *) in
       let cond = map_expression env v6 in
       let body = map_block env v7 in
-      (* TODO: use complex cond *)
+      let cond = G.OtherCond (("LetCond", let_), [ G.P pattern; G.E cond ]) in
       let while_stmt = G.While (while_, cond, body) |> G.s in
       let expr = G.stmt_to_expr while_stmt in
       (* TODO: this is wrong, the LetPattern is with cond, not expr *)
@@ -1457,7 +1457,7 @@ and map_expression_ending_with_block (env : env)
       let cond = G.L (G.Bool (true, G.fake "true")) |> G.e in
       (* dummy, acts as 'while true' *)
       let body = map_block env v3 in
-      let loop_stmt = G.While (loop, cond, body) |> G.s in
+      let loop_stmt = G.While (loop, G.Cond cond, body) |> G.s in
       G.stmt_to_expr loop_stmt
   | `For_exp (v1, v2, v3, v4, v5, v6) ->
       let _loop_labelTODO = Option.map map_loop_label_ v1 in

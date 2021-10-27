@@ -666,9 +666,9 @@ and map_stmt x : B.stmt =
         and v3 = map_of_option map_stmt v3 in
         `If (t, v1, v2, v3)
     | While (t, v1, v2) ->
-        let t = map_tok t in
-        let v1 = map_expr v1 and v2 = map_stmt v2 in
-        `While (t, v1, v2)
+        let _t = map_tok t in
+        let _v1 = map_condition v1 and _v2 = map_stmt v2 in
+        failwith "TODO"
     | DoWhile (t, v1, v2) ->
         let t = map_tok t in
         let v1 = map_stmt v1 and v2 = map_expr v2 in

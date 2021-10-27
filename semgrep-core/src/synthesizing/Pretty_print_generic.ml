@@ -307,7 +307,7 @@ and while_stmt env level (tok, e, s) =
     | Lang.Ruby -> ruby_while
     | Lang.OCaml -> ocaml_while
   in
-  while_format (token "while" tok) (expr env e) (stmt env (level + 1) s)
+  while_format (token "while" tok) (condition env e) (stmt env (level + 1) s)
 
 and do_while stmt env level (s, e) =
   let c_do_while = F.sprintf "do %s\nwhile(%s)" in

@@ -43,7 +43,6 @@ let subexprs_of_any_list xs =
 let subexprs_of_stmt_kind = function
   (* 1 *)
   | ExprStmt (e, _)
-  | While (_, e, _)
   | DoWhile (_, _, e)
   | Match (_, e, _)
   | DefStmt (_, VarDef { vinit = Some e; _ })
@@ -53,7 +52,9 @@ let subexprs_of_stmt_kind = function
   | Break (_, LDynamic e, _)
   | Throw (_, e, _) ->
       [ e ]
-  | If (_, cond, _, _) -> [ H.cond_to_expr cond ]
+  | While (_, cond, _)
+  | If (_, cond, _, _) ->
+      [ H.cond_to_expr cond ]
   (* opt *)
   | Switch (_, condopt, _) -> (
       match condopt with

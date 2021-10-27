@@ -326,7 +326,7 @@ let rec stmt st =
       G.Switch (v0, Some (G.Cond v1), cases)
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      G.While (t, v1, v2)
+      G.While (t, G.Cond v1, v2)
   | DoWhile (t, v1, v2) ->
       let v1 = stmt v1 and v2 = expr v2 in
       G.DoWhile (t, v1, v2)

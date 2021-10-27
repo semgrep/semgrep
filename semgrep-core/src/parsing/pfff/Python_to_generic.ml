@@ -588,13 +588,13 @@ and stmt_aux x =
       and v2 = list_stmt1 v2
       and v3 = list_stmt v3 in
       match v3 with
-      | [] -> [ G.While (t, v1, v2) |> G.s ]
+      | [] -> [ G.While (t, G.Cond v1, v2) |> G.s ]
       | _ ->
           [
             G.Block
               (fb
                  [
-                   G.While (t, v1, v2) |> G.s;
+                   G.While (t, G.Cond v1, v2) |> G.s;
                    G.OtherStmt
                      (G.OS_WhileOrElse, v3 |> List.map (fun x -> G.S x))
                    |> G.s;

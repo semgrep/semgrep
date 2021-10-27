@@ -1805,7 +1805,7 @@ and statement (env : env) (x : CST.statement) =
       let v3 = expression env v3 in
       let _v4 = token env v4 (* ")" *) in
       let v5 = statement env v5 in
-      While (v1, v3, v5) |> G.s
+      While (v1, G.Cond v3, v5) |> G.s
   | `Yield_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "yield" *) in
       let v2 =

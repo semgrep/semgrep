@@ -452,13 +452,13 @@ and stmt st =
   | While (t, _bool, e, st) ->
       let e = expr e in
       let st = list_stmt1 st in
-      G.While (t, e, st) |> G.s
+      G.While (t, G.Cond e, st) |> G.s
   | Until (t, _bool, e, st) ->
       let e = expr e in
       let special = G.IdSpecial (G.Op G.Not, t) |> G.e in
       let e = G.Call (special, fb [ G.Arg e ]) |> G.e in
       let st = list_stmt1 st in
-      G.While (t, e, st) |> G.s
+      G.While (t, G.Cond e, st) |> G.s
   | Unless (t, e, st, elseopt) ->
       let e = expr e in
       let st = list_stmt1 st in
