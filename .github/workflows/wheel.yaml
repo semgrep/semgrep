@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-python@v1
         with:
           # This is just the Python version to build the wheels
-          python-version: 3.7
+          python-version: 3.9
       - name: Print Platform
         run:  python3 -c "from distutils import util; print(util.get_platform())"
 
