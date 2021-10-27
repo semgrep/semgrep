@@ -663,7 +663,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let v1 = token env v1 (* "while" *) in
       let v2 = map_expression env v2 in
       let block = map_do_block env (v3, v4, v5, v6) in
-      [ G.While (v1, v2, block) |> G.s ]
+      [ G.While (v1, G.Cond v2, block) |> G.s ]
   | `Repeat_stmt (v1, v2, v3, v4, v5) ->
       let t = token env v1 in
       (* "repeat" *)

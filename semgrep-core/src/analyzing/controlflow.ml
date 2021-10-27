@@ -61,7 +61,7 @@ and node_kind =
   | FalseNode
   | Join
   | IfHeader of condition
-  | WhileHeader of expr
+  | WhileHeader of condition
   | DoHeader
   | DoWhileTail of expr
   | ForHeader

@@ -601,7 +601,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
             If (t, v1, v2, v3)
         | While (t, v1, v2) ->
             let t = map_tok t in
-            let v1 = map_expr v1 and v2 = map_stmt v2 in
+            let v1 = map_condition v1 and v2 = map_stmt v2 in
             While (t, v1, v2)
         | DoWhile (t, v1, v2) ->
             let t = map_tok t in

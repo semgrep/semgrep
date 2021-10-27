@@ -1939,7 +1939,7 @@ and m_stmt a b =
       m_option_none_can_match_some m_block a3 b3
   | G.While (a0, a1, a2), B.While (b0, b1, b2) ->
       m_tok a0 b0 >>= fun () ->
-      m_expr a1 b1 >>= fun () -> m_stmt a2 b2
+      m_condition a1 b1 >>= fun () -> m_stmt a2 b2
   | G.DefStmt a1, B.DefStmt b1 -> m_definition a1 b1
   | G.DirectiveStmt a1, B.DirectiveStmt b1 -> m_directive a1 b1
   | G.DoWhile (a0, a1, a2), B.DoWhile (b0, b1, b2) ->

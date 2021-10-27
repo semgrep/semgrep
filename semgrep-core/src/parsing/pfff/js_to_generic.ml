@@ -342,7 +342,7 @@ and stmt x =
       G.DoWhile (t, v1, v2) |> G.s
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      G.While (t, v1, v2) |> G.s
+      G.While (t, G.Cond v1, v2) |> G.s
   | For (t, v1, v2) ->
       let v1 = for_header v1 and v2 = stmt v2 in
       G.For (t, v1, v2) |> G.s

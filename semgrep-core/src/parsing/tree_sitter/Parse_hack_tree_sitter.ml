@@ -2243,7 +2243,7 @@ and statement (env : env) (x : CST.statement) =
       let v1 = (* "while" *) token env v1 in
       let v2 = parenthesized_expression env v2 in
       let v3 = statement env v3 in
-      G.While (v1, v2, v3) |> G.s
+      G.While (v1, G.Cond v2, v3) |> G.s
   | `Do_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* "do" *) token env v1 in
       let v2 = statement env v2 in

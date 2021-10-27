@@ -708,7 +708,7 @@ let (mk_visitor :
           ()
       | While (t, v1, v2) ->
           let t = v_tok t in
-          let v1 = v_expr v1 and v2 = v_stmt v2 in
+          let v1 = v_condition v1 and v2 = v_stmt v2 in
           ()
       | DoWhile (t, v1, v2) ->
           let t = v_tok t in
