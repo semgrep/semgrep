@@ -35,7 +35,9 @@ module G = AST_generic
 (* Helpers *)
 (*****************************************************************************)
 
-type env = unit
+type env = { mutable defs_toadd : G.definition list }
+
+let empty_env () = { defs_toadd = [] }
 
 let error = AST_generic.error
 
@@ -45,8 +47,6 @@ let map_either _env f g x =
   match x with
   | Left x -> Left (f x)
   | Right x -> Right (g x)
-
-let todo _env _x = failwith "TODO"
 
 (* alt: change AST_generic.ml instead to take more expr option? *)
 let expr_option t eopt =
@@ -250,14 +250,59 @@ and map_typeC env x : G.type_ =
       G.OtherType (("EnumName", v1), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
   | EnumDef v1 ->
       let nopt, tdef = map_enum_definition env v1 in
-      todo env (nopt, tdef)
+      let ent, othertype =
+        match nopt with
+        | None ->
+            let ent =
+              (* todo? gensym *)
+              {
+                G.name = OtherEntity (("AnonEnum", v1.enum_kind), []);
+                attrs = [];
+                tparams = [];
+              }
+            in
+            let t = G.OtherType (("AnonEnumName", v1.enum_kind), []) |> G.t in
+            (ent, t)
+        | Some n ->
+            let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+            let t =
+              G.OtherType (("EnunName", v1.enum_kind), [ G.T (G.TyN n |> G.t) ])
+              |> G.t
+            in
+            (ent, t)
+      in
+      env.defs_toadd <- (ent, G.TypeDef tdef) :: env.defs_toadd;
+      othertype
   | ClassName (v1, v2) ->
-      let (_kind, t), _attrs = map_class_key env v1
+      let (_kind, tk), _attrs = map_class_key env v1
       and v2 = map_a_class_name env v2 in
-      G.OtherType ((PI.str_of_info t, t), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
-  | ClassDef v1 ->
+      G.OtherType ((PI.str_of_info tk, tk), [ G.T (G.TyN v2 |> G.t) ]) |> G.t
+  | ClassDef ((_, vdef) as v1) ->
       let nopt, cdef = map_class_definition env v1 in
-      todo env (nopt, cdef)
+      let _kind, tk = vdef.c_kind in
+      let ent, othertype =
+        match nopt with
+        | None ->
+            let ent =
+              (* todo? gensym *)
+              {
+                G.name = OtherEntity (("AnonClass", tk), []);
+                attrs = [];
+                tparams = [];
+              }
+            in
+            let t = G.OtherType ((PI.str_of_info tk, tk), []) |> G.t in
+            (ent, t)
+        | Some n ->
+            let ent = { G.name = G.EN n; attrs = []; tparams = [] } in
+            let t =
+              G.OtherType ((PI.str_of_info tk, tk), [ G.T (G.TyN n |> G.t) ])
+              |> G.t
+            in
+            (ent, t)
+      in
+      env.defs_toadd <- (ent, G.ClassDef cdef) :: env.defs_toadd;
+      othertype
   | TypeOf (v1, v2) ->
       let v1 = map_tok env v1
       and _l, v2, _r =
@@ -992,7 +1037,9 @@ and map_decl env x : G.stmt list =
   match x with
   | DeclList v1 ->
       let v1 = map_vars_decl env v1 in
-      v1 |> List.map (fun def -> G.DefStmt def |> G.s)
+      let defs = env.defs_toadd in
+      env.defs_toadd <- [];
+      defs @ v1 |> List.map (fun def -> G.DefStmt def |> G.s)
   | UsingDecl v1 ->
       let v1 = map_using env v1 in
       [ v1 ]
@@ -1805,9 +1852,10 @@ let map_any env x : G.any =
 (* Entry point *)
 (*****************************************************************************)
 let any x =
-  let env = () in
+  let env = empty_env () in
   map_any env x
 
 let program cst =
-  let env = () in
+  let env = empty_env () in
+  (* less: could assert env.defs_to_add is empty *)
   map_program env cst
