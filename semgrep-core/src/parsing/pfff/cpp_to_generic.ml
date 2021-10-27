@@ -877,23 +877,24 @@ and map_expr_stmt env (v1, v2) =
   let v1 = map_of_option (map_expr env) v1 and v2 = map_sc env v2 in
   (v1, v2)
 
+(* TODO: should use better CondXxx once they are available in AST_generic *)
 and map_condition_clause env x : G.condition =
   match x with
   | CondClassic v1 ->
       let v1 = map_expr env v1 in
       Cond v1
   | CondDecl (v1, v2) ->
-      let _v1TODO = map_vars_decl env v1 and v2 = map_expr env v2 in
-      (* TODO: CondWithDecl *)
-      Cond v2
+      let defs = map_vars_decl env v1 and v2 = map_expr env v2 in
+      OtherCond
+        ( ("CondWithDecls", G.fake ""),
+          (defs |> List.map (fun def -> G.Def def)) @ [ G.E v2 ] )
   | CondStmt (v1, v2) ->
-      (* TODO: CondWithDecl *)
-      let _v1TODO = map_expr_stmt env v1 and v2 = map_expr env v2 in
-      Cond v2
+      let eopt, sc = map_expr_stmt env v1 and v2 = map_expr env v2 in
+      let st = G.ExprStmt (expr_option sc eopt, sc) |> G.s in
+      OtherCond (("CondWithStmt", G.fake ""), [ G.S st; G.E v2 ])
   | CondOneDecl v1 ->
-      (* TODO: CondDecl *)
-      let v1 = map_var_decl env v1 in
-      todo env v1
+      let ent, vdef = map_var_decl env v1 in
+      OtherCond (("CondDecl", G.fake ""), [ G.Def (ent, G.VarDef vdef) ])
 
 and map_for_header env = function
   | ForClassic (v1, v2, v3) ->

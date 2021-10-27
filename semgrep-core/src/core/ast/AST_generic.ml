@@ -970,6 +970,7 @@ and for_header =
 and for_var_or_expr =
   (* newvar: *)
   | ForInitVar of entity * variable_definition
+  (* less: should rename ForInitAssign really *)
   | ForInitExpr of expr
 
 and other_stmt_with_stmt_operator =
