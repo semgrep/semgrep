@@ -1,0 +1,48 @@
+name: wheel-build
+
+on:
+  pull_request:
+
+jobs:
+  build-wheels-osx10-15:
+    runs-on: macos-10.15
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          # This is just the Python version to build the wheels
+          python-version: 3.7
+      - name: Print Platform
+        run:  python3 -c "from distutils import util; print(util.get_platform())"
+
+  build-wheels-osx11:
+    runs-on: macos-11
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          # This is just the Python version to build the wheels
+          python-version: 3.7
+      - name: Print Platform
+        run:  python3 -c "from distutils import util; print(util.get_platform())"
+
+  build-wheels-manylinux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        run: |
+          rm /usr/bin/python
+          ln `which python3.7` /usr/bin/python
+      - name: Print Platform
+        run:  python3 -c "from distutils import util; print(util.get_platform())"
+
+  build-wheels-alpine:
+    runs-on: ubuntu-latest
+    container: python:3.9-alpine
+    steps:
+      - name: Setup Python
+        run: |
+          rm /usr/bin/python
+          ln `which python3.7` /usr/bin/python
+      - name: Print Platform
+        run:  python3 -c "from distutils import util; print(util.get_platform())"
