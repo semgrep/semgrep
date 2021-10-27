@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Correctly parse metavariables in JS template strings
 - Constant propagation: Tuple/Array destructuring assignments now correctly prevent constant propagation
 - Scala: parse underscore separators in number literals, and parse 'l'/'L' long suffix on number literals
+- Prevent bad settings files from crashing Semgrep (#4164)
 
 ### Changed
 - Report CI environment variable in metrics for better environment
@@ -30,7 +31,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   consistent with other use of ... (#4082), so `o. ... .foo()` will now
   also match just `o.foo()`.
 - Config files with only a comment give bad error message (#3773)
-- Prevent bad settings files from crashing Semgrep (#4164)
 - Does not crash if user does not have write permissions on home directory
 
 ### Changed
