@@ -43,7 +43,6 @@ let subexprs_of_any_list xs =
 let subexprs_of_stmt_kind = function
   (* 1 *)
   | ExprStmt (e, _)
-  | If (_, e, _, _)
   | While (_, e, _)
   | DoWhile (_, _, e)
   | Match (_, e, _)
@@ -54,10 +53,13 @@ let subexprs_of_stmt_kind = function
   | Break (_, LDynamic e, _)
   | Throw (_, e, _) ->
       [ e ]
+  | If (_, cond, _, _) -> [ H.cond_to_expr cond ]
   (* opt *)
-  | Switch (_, eopt, _)
-  | Return (_, eopt, _) ->
-      Common.opt_to_list eopt
+  | Switch (_, condopt, _) -> (
+      match condopt with
+      | None -> []
+      | Some cond -> [ H.cond_to_expr cond ])
+  | Return (_, eopt, _) -> Common.opt_to_list eopt
   (* n *)
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs

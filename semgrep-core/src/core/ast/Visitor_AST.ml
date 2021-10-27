@@ -508,10 +508,8 @@ let (mk_visitor :
         let v1 = v_ident v1 and v2 = v_expr v2 in
         ()
     | OtherArg (v1, v2) ->
-        let v1 = v_other_argument_operator v1 and v2 = v_list v_any v2 in
+        let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
         ()
-  and v_other_argument_operator _x = ()
-  and v_other_expr_operator _x = ()
   and v_type_ x =
     let k { t; t_attrs } =
       v_list v_attribute t_attrs;
@@ -697,10 +695,16 @@ let (mk_visitor :
       | Block v1 ->
           let v1 = v_bracket v_stmts v1 in
           ()
-      | If (t, v1, v2, v3) ->
+      | If (t, Cond v1, v2, v3) ->
           v_partial ~recurse:false (PartialIf (t, v1));
           let t = v_tok t in
           let v1 = v_expr v1 and v2 = v_stmt v2 and v3 = v_option v_stmt v3 in
+          ()
+      | If (t, v1, v2, v3) ->
+          let t = v_tok t in
+          let v1 = v_condition v1
+          and v2 = v_stmt v2
+          and v3 = v_option v_stmt v3 in
           ()
       | While (t, v1, v2) ->
           let t = v_tok t in
@@ -716,7 +720,8 @@ let (mk_visitor :
           ()
       | Switch (v0, v1, v2) ->
           let v0 = v_tok v0 in
-          let v1 = v_option v_expr v1 and v2 = v_list v_cases_and_body v2 in
+          let v1 = v_option v_condition v1
+          and v2 = v_list v_cases_and_body v2 in
           ()
       | Return (t, v1, sc) ->
           let t = v_tok t in
@@ -766,6 +771,11 @@ let (mk_visitor :
           ()
     in
     vin.kstmt (k, all_functions) x
+  and v_condition = function
+    | Cond e -> v_expr e
+    | OtherCond (v1, v2) ->
+        let v1 = v_todo_kind v1 and v2 = v_list v_any v2 in
+        ()
   and v_other_stmt_with_stmt_operator _ = ()
   and v_label_ident = function
     | LNone -> ()

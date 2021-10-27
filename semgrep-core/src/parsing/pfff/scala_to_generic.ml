@@ -518,7 +518,7 @@ and v_stmt = function
             v2)
           v4
       in
-      G.If (v1, G.unbracket v2, v3, v4) |> G.s
+      G.If (v1, G.Cond (G.unbracket v2), v3, v4) |> G.s
   | While (v1, v2, v3) ->
       let v1 = v_tok v1
       and v2 = v_bracket v_expr v2

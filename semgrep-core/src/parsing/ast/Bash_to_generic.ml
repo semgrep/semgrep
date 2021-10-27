@@ -362,7 +362,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
             G.CasesAndBody (patterns, blist env stmts |> block |> as_stmt))
           clauses
       in
-      Stmt (loc, G.Switch (case, Some subject, clauses) |> G.s)
+      Stmt (loc, G.Switch (case, Some (Cond subject), clauses) |> G.s)
   | If (loc, if_, cond, then_, body, elifs, else_, fi) ->
       let ifs = (loc, if_, cond, then_, body) :: elifs in
       let else_stmt =
@@ -374,9 +374,10 @@ and command (env : env) (cmd : command) : stmt_or_expr =
         List.fold_right
           (fun if_ (else_stmt : G.stmt option) ->
             let loc1, if_, cond, then_, body = if_ in
+            (* pad: TODO:  use more complex CondDecl when ready? *)
             let cond_expr = blist env cond |> block |> as_expr in
             let body_stmt = blist env body |> block |> as_stmt in
-            Some (G.s (G.If (if_, cond_expr, body_stmt, else_stmt))))
+            Some (G.s (G.If (if_, G.Cond cond_expr, body_stmt, else_stmt))))
           ifs else_stmt
       in
       let stmt =

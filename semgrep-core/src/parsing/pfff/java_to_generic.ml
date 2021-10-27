@@ -403,7 +403,7 @@ and expr e =
           v2
         |> List.map (fun x -> G.CasesAndBody x)
       in
-      let x = G.stmt_to_expr (G.Switch (v0, Some v1, v2) |> G.s) in
+      let x = G.stmt_to_expr (G.Switch (v0, Some (Cond v1), v2) |> G.s) in
       x.G.e)
   |> G.e
 
@@ -434,7 +434,7 @@ and stmt st =
       G.ExprStmt (v1, t) |> G.s
   | If (t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = stmt v2 and v3 = option stmt v3 in
-      G.If (t, v1, v2, v3) |> G.s
+      G.If (t, G.Cond v1, v2, v3) |> G.s
   | Switch (v0, v1, v2) ->
       let v0 = info v0 in
       let v1 = expr v1
@@ -446,7 +446,7 @@ and stmt st =
           v2
         |> List.map (fun x -> G.CasesAndBody x)
       in
-      G.Switch (v0, Some v1, v2) |> G.s
+      G.Switch (v0, Some (G.Cond v1), v2) |> G.s
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
       G.While (t, v1, v2) |> G.s

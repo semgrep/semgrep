@@ -95,6 +95,7 @@ let list_to_tuple_or_expr xs =
 let mk_func_def fkind params ret st =
   { G.fparams = params; frettype = ret; fbody = st; fkind }
 
+(* TODO: use CondDecl *)
 let wrap_init_in_block_maybe x v =
   match x with
   | None -> [ v ]
@@ -422,7 +423,8 @@ let top_func () =
         and v2 = expr v2
         and v3 = stmt v3
         and v4 = option stmt v4 in
-        wrap_init_in_block_maybe v1 (G.If (t, v2, v3, v4) |> G.s)
+        (* TODO: use OtherCond and CondDecl! *)
+        wrap_init_in_block_maybe v1 (G.If (t, G.Cond v2, v3, v4) |> G.s)
     | Switch (v0, v1, v2, v3) ->
         let v0 = tok v0 in
         let v1 = option simple v1
@@ -431,22 +433,25 @@ let top_func () =
           | None -> None
           | Some s ->
               Some
-                (match s with
-                | ExprStmt (TypeSwitchExpr (e, tok1)) ->
-                    let e = expr e in
-                    G.Call (G.IdSpecial (G.Typeof, tok1) |> G.e, fb [ G.Arg e ])
-                    |> G.e
-                | DShortVars (xs, tok1, [ TypeSwitchExpr (e, tok2) ]) ->
-                    let xs = list expr xs in
-                    let e = expr e in
-                    G.Assign
-                      ( list_to_tuple_or_expr xs,
-                        tok1,
-                        G.Call
-                          (G.IdSpecial (G.Typeof, tok2) |> G.e, fb [ G.Arg e ])
-                        |> G.e )
-                    |> G.e
-                | s -> simple s)
+                (G.Cond
+                   (match s with
+                   | ExprStmt (TypeSwitchExpr (e, tok1)) ->
+                       let e = expr e in
+                       G.Call
+                         (G.IdSpecial (G.Typeof, tok1) |> G.e, fb [ G.Arg e ])
+                       |> G.e
+                   | DShortVars (xs, tok1, [ TypeSwitchExpr (e, tok2) ]) ->
+                       let xs = list expr xs in
+                       let e = expr e in
+                       G.Assign
+                         ( list_to_tuple_or_expr xs,
+                           tok1,
+                           G.Call
+                             ( G.IdSpecial (G.Typeof, tok2) |> G.e,
+                               fb [ G.Arg e ] )
+                           |> G.e )
+                       |> G.e
+                   | s -> simple s))
         and v3 = list case_clause v3 in
         wrap_init_in_block_maybe v1 (G.Switch (v0, v2, v3) |> G.s)
     | Select (v1, v2) ->

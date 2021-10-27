@@ -117,11 +117,11 @@ let rec stmt_aux = function
       [ G.Block v1 |> G.s ]
   | If (t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = stmt v2 and v3 = stmt v3 in
-      [ G.If (t, v1, v2, Some (* TODO *) v3) |> G.s ]
+      [ G.If (t, G.Cond v1, v2, Some (* TODO *) v3) |> G.s ]
   | Switch (t, v1, v2) ->
       let v1 = expr v1
       and v2 = list case v2 |> List.map (fun x -> G.CasesAndBody x) in
-      [ G.Switch (t, Some v1, v2) |> G.s ]
+      [ G.Switch (t, Some (G.Cond v1), v2) |> G.s ]
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
       [ G.While (t, v1, v2) |> G.s ]

@@ -670,7 +670,9 @@ and map_stmt env x : G.stmt =
       let v1 = map_tok env v1
       and _, cond, _ = map_paren env (map_condition_clause env) v2
       and v3 = map_stmt env v3 in
-      G.While (v1, cond, v3) |> G.s
+      (* TODO: remove and switch While to use a condition too *)
+      let e = H.cond_to_expr cond in
+      G.While (v1, e, v3) |> G.s
   | DoWhile (v1, v2, v3, v4, v5) ->
       let v1 = map_tok env v1
       and v2 = map_stmt env v2
@@ -879,14 +881,17 @@ and map_condition_clause env x : G.condition =
   match x with
   | CondClassic v1 ->
       let v1 = map_expr env v1 in
-      v1
+      Cond v1
   | CondDecl (v1, v2) ->
       let _v1TODO = map_vars_decl env v1 and v2 = map_expr env v2 in
-      v2
+      (* TODO: CondWithDecl *)
+      Cond v2
   | CondStmt (v1, v2) ->
+      (* TODO: CondWithDecl *)
       let _v1TODO = map_expr_stmt env v1 and v2 = map_expr env v2 in
-      v2
+      Cond v2
   | CondOneDecl v1 ->
+      (* TODO: CondDecl *)
       let v1 = map_var_decl env v1 in
       todo env v1
 

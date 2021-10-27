@@ -1841,7 +1841,7 @@ and map_if_expression (env : env) ((v1, v2, v3, v4) : CST.if_expression) :
   let cond = map_expression env v2 in
   let body = map_block env v3 in
   let else_ = Option.map (fun x -> map_else_clause env x) v4 in
-  let if_stmt = G.If (if_, cond, body, else_) |> G.s in
+  let if_stmt = G.If (if_, G.Cond cond, body, else_) |> G.s in
   G.stmt_to_expr if_stmt
 
 and map_if_let_expression (env : env)
@@ -1853,9 +1853,9 @@ and map_if_let_expression (env : env)
   let cond = map_expression env v5 in
   let body = map_block env v6 in
   let else_ = Option.map (fun x -> map_else_clause env x) v7 in
-  let if_stmt = G.If (if_, cond, body, else_) |> G.s in
-  let expr = G.stmt_to_expr if_stmt in
   (* TODO: use new complex condition type *)
+  let if_stmt = G.If (if_, G.Cond cond, body, else_) |> G.s in
+  let expr = G.stmt_to_expr if_stmt in
   G.LetPattern (pattern, expr) |> G.e
 
 and map_impl_block (env : env) ((v1, v2, v3, v4) : CST.impl_block) : G.stmt =
