@@ -70,6 +70,9 @@ class SemgrepError(Exception):
         """
         return {"message": str(self)}
 
+    def semgrep_error_type(self) -> str:
+        return type(self).__name__
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SemgrepError":
         """
@@ -123,6 +126,9 @@ class SemgrepCoreError(SemgrepError):
         Return if this error is a match timeout
         """
         return self.error_type == "Timeout"
+
+    def semgrep_error_type(self) -> str:
+        return f"{type(self).__name__}: {self.error_type}"
 
     @property
     def _full_error_message(self) -> str:

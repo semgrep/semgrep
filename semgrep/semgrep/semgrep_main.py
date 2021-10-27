@@ -232,6 +232,8 @@ def main(
     num_findings = sum(len(v) for v in filtered_matches.matches.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
+    error_types = list(e.semgrep_error_type() for e in semgrep_errors)
+
     if metric_manager.is_enabled():
         metric_manager.set_project_hash(project_url)
         metric_manager.set_configs_hash(configs)
@@ -243,7 +245,7 @@ def main(
         metric_manager.set_run_time(profiler.calls["total_time"][0])
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
         metric_manager.set_total_bytes_scanned(total_bytes_scanned)
-        metric_manager.set_errors(list(type(e).__name__ for e in semgrep_errors))
+        metric_manager.set_errors(error_types)
         metric_manager.set_rules_with_findings(filtered_matches.matches)
         metric_manager.set_run_timings(
             profiling_data, list(all_targets), filtered_rules
