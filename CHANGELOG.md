@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Metavariable equality is enforced across sources/sanitizers/sinks in taint mode, and 
+these metavariables correctly appear in match messages
 - Pre-alpha support for Bash as a new target language
 - Increase soft stack limit when running semgrep-core (#4120)
 
