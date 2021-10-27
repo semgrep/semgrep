@@ -28,17 +28,29 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Checking the checker (metachecking).
  *
  * The goal of this module is to detect bugs, performance issues, or
- * to suggest the use of certain features in semgrep rules.
+ * to suggest the use of certain features in semgrep rules. This enables
+ * `semgrep --check-rules`, which users can run to verify their rules
  *
- * See also semgrep-rules/meta/ for semgrep meta rules expressed in
- * semgrep itself!
+ * Called via `semgrep-core -check_rules <metachecks> <files or dirs>`
  *
- * When to use semgrep/yaml (or spacegrep) to express meta rules and
- * when to use OCaml (this file)?
- * When you need to express meta rules on the yaml structure,
- * then semgrep/yaml is fine, but sometimes you need to express
- * meta-rules by inspecting the pattern content, in which case
- * you have to use OCaml (a bit like in templating languages).
+ * There are two kinds of checks:
+ * - OCaml checks implemented directly in this file
+ * - semgrep checks passed in via metachecks
+ *     (by default, semgrep will call this with the rules in the rulepack
+ *      https://semgrep.dev/p/semgrep-rule-lints)
+ *
+ * Both are necessary because semgrep checks are easier to write, especially
+ * for security experts, but not all checks can be expressed with semgrep.
+ * Whenever possible, add a check by contributing to p/semgrep-rule-lints
+ *
+ * We chose to have `-check_rules` run both kinds of checks to make the
+ * logic in semgrep simpler. This way, semgrep will receive a list of errors
+ * and only have to display them.
+ *
+ * Alternatives considered were having `-check_rules` only run the OCaml checks
+ * and have semgrep call `semgrep-core -config` on the checks
+ *
+ * TODO: make it possible to run `semgrep-core -check_rules` with no metachecks
  *
  * TODO rules:
  *  - detect if scope of metavariable-regexp is wrong and should be put
