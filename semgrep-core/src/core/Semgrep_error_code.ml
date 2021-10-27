@@ -132,7 +132,7 @@ let string_of_error_kind = function
   (* semgrep *)
   | SemgrepMatchFound check_id ->
       (* TODO: please make the error message obvious to the user *)
-      spf "Semgrep match found '%s'" check_id
+      spf "Semgrep match found by '%s'" check_id
   | MatchingError -> "Internal matching error"
   | TooManyMatches -> "Too many matches"
   (* other *)

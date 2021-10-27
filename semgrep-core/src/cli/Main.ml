@@ -432,8 +432,9 @@ let all_actions () =
       Common.mk_action_n_arg (fun xs ->
           Test_parsing.test_parse_tree_sitter (lang_of_string !lang) xs) );
     ( "-check_rules",
-      " <files or dirs>",
-      Common.mk_action_n_arg (Check_rule.check_files Parse_rule.parse) );
+      " <metachecks file> <files or dirs>",
+      Common.mk_action_n_arg (Check_rule.check_files mk_config Parse_rule.parse)
+    );
     ( "-stat_rules",
       " <files or dirs>",
       Common.mk_action_n_arg (Check_rule.stat_files Parse_rule.parse) );

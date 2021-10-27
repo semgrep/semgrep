@@ -538,8 +538,8 @@ let eval_regression_tests = [
  * from the metachecker checks, but simpler to consider all of that
  * as just errors.
  *)
-let metachecker_regression_tests =
-  pack_tests "metachecker regression testing" (
+let metachecker_checks_tests =
+  pack_tests "metachecker checks testing" (
     let dir = Filename.concat tests_path "OTHER/errors" in
     let files = Common2.glob (spf "%s/*.yaml" dir) in
     files |> List.map (fun file ->
@@ -558,6 +558,15 @@ let metachecker_regression_tests =
       )
     )
   )
+
+(* Test the entire `-test_check` path *)
+  let metachecker_regression_tests = [
+  "metachecker regresion testing", (fun () ->
+    let path = Filename.concat tests_path "OTHER/metachecks" in
+    Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules (fun () ->
+    Test_metachecking.test_rules ~unit_testing:true [path])
+  )
+]
 
 let test_irrelevant_rule rule_file target_file =
   let rules = Parse_rule.parse rule_file in
@@ -620,6 +629,7 @@ let tests = List.flatten [
   eval_regression_tests;
   full_rule_regression_tests;
   lang_tainting_tests;
+  metachecker_checks_tests;
   metachecker_regression_tests;
   filter_irrelevant_rules_tests;
 ]
