@@ -42,7 +42,7 @@ class Settings:
                 yaml_file = self._yaml.load(fd)
             if not isinstance(yaml_file, Mapping):
                 self._logger.warning(
-                    f"Bad settings format; please check or remove {self._path}"
+                    f"Bad settings format; {self._path} will be overriden. Contents:\n{yaml_file}"
                 )
                 self._value = DEFAULT_SETTINGS
             else:
