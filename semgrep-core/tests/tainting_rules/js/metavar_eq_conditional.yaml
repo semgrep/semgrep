@@ -6,7 +6,6 @@ rules:
     mode: taint
     pattern-sinks:
       - pattern: sink($X,...)
-      - pattern: sink(f($X),...)
     pattern-sources:
       - pattern: get($X)
     severity: WARNING
