@@ -142,6 +142,10 @@ type command_with_redirects = {
 *)
 and command =
   | Simple_command of simple_command
+  (* &&/|| combine two commands into one.
+     They don't form a list of pipelines like 'man bash' says. *)
+  | And of loc * pipeline * tok (* && *) * pipeline
+  | Or of loc * pipeline * tok (* || *) * pipeline
   (* What the manual refers to as "compound commands" *)
   | Subshell of loc * blist bracket
   | Command_group of loc * blist bracket
@@ -194,8 +198,8 @@ and command =
       loc * (* until *) tok * blist * (* do *) tok * blist * (* done *) tok
   (* Other commands *)
   | Coprocess of loc * string option * (* simple or compound *) command
-  | Assignment of loc * assignment
-  | Declaration of loc * declaration
+  | Assignment of assignment
+  | Declaration of declaration
   | Negated_command of loc * tok * command
   | Function_definition of loc * function_definition
 
@@ -262,8 +266,6 @@ and pipeline =
 *)
 and blist =
   | Seq of loc * blist * blist
-  | And of loc * blist * tok (* && *) * blist
-  | Or of loc * blist * tok (* || *) * blist
   | Pipelines of loc * pipeline list
   | Empty of loc
 
@@ -311,8 +313,27 @@ and elif = loc * (* elif *) tok * blist * (* then *) tok * blist
 
 and else_ = loc * (* else *) tok * blist
 
-(* TODO: add support for assigning to an array cell
-   TODO: add support for assigning an array literal *)
+(* Declarations and optionally some assignments. Covers things like
+
+     declare -i a=1 b=2
+     declare -a arr brr
+     export PATH
+     local foo=$1
+     unset x y z
+
+   Yes, 'unset' is treated as a declaration too.
+
+   TODO: add support for assigning to an array cell
+   TODO: add support for assigning an array literal
+*)
+and declaration = {
+  loc : loc;
+  declarations : variable_name list;
+  assignments : assignment list;
+  attributes : declaration_attribute wrap list;
+  unknowns : expression list;
+}
+
 and assignment = {
   loc : loc;
   lhs : string wrap;
@@ -320,10 +341,31 @@ and assignment = {
   rhs : expression;
 }
 
-and assign_rhs = expression
+(*
+   Some of these attributes are mutually compatible, some aren't, and it's
+   not obvious.
+   For example, -i (integer) is compatible with -a (array) and with -l
+   (lowercase)!
+*)
+and declaration_attribute =
+  | Array (* -a *)
+  | Associative_array (* -A *)
+  | Function (* '-f' (makes sense only with '-p') *)
+  | Function_short (* '-F' *)
+  | Global (* -g *)
+  | Integer (* -i *)
+  | Local (* 'local' *)
+  | Lowercase (* -l *)
+  | Nameref (* -n *)
+  | Print (* -p *)
+  | Readonly (* 'readonly' or '-r' *)
+  | Trace (* '-t' *)
+  | Uppercase (* -u *)
+  | Export (* 'export' or '-x' *)
+  | Unset (* 'unset' *)
+  | Unsetenv
 
-and declaration = todo
-
+(* 'unsetenv' *)
 and expression =
   | Word of (* unquoted string *) string wrap
   | Special_character of (* unquoted string *) string wrap
@@ -474,6 +516,8 @@ let command_with_redirects_loc x = x.loc
 
 let command_loc = function
   | Simple_command x -> x.loc
+  | And (loc, _, _, _) -> loc
+  | Or (loc, _, _, _) -> loc
   | Subshell (loc, _) -> loc
   | Command_group (loc, _) -> loc
   | Sh_test (loc, _) -> loc
@@ -487,8 +531,8 @@ let command_loc = function
   | While_loop (loc, _, _, _, _, _) -> loc
   | Until_loop (loc, _, _, _, _, _) -> loc
   | Coprocess (loc, _, _) -> loc
-  | Assignment (loc, _) -> loc
-  | Declaration (loc, _) -> loc
+  | Assignment x -> x.loc
+  | Declaration x -> x.loc
   | Negated_command (loc, _, _) -> loc
   | Function_definition (loc, _) -> loc
 
@@ -501,8 +545,6 @@ let pipeline_loc = function
 
 let blist_loc = function
   | Seq (loc, _, _) -> loc
-  | And (loc, _, _, _) -> loc
-  | Or (loc, _, _, _) -> loc
   | Pipelines (loc, _) -> loc
   | Empty loc -> loc
 
@@ -544,7 +586,7 @@ let assignment_loc (x : assignment) = x.loc
 
 let assignment_list_loc (x : assignment list) = list_loc assignment_loc x
 
-let declaration_loc (x : declaration) = todo_loc x
+let declaration_loc (x : declaration) = x.loc
 
 let expression_loc = function
   | Word x -> wrap_loc x
@@ -561,8 +603,6 @@ let expression_loc = function
   | Array (loc, _) -> loc
   | Process_substitution (loc, _) -> loc
 
-let assign_rhs_loc (x : assign_rhs) = expression_loc x
-
 let string_fragment_loc = function
   | String_content x -> wrap_loc x
   | Expansion (loc, _) -> loc
@@ -578,6 +618,8 @@ let variable_name_wrap = function
   | Special_variable_name x
   | Var_metavar x ->
       x
+
+let variable_name_tok x = variable_name_wrap x |> snd
 
 let variable_name_loc x = variable_name_wrap x |> wrap_loc
 
@@ -623,3 +665,12 @@ let concat_blists (x : blist list) : blist =
           let loc = range start end_ in
           Seq (loc, blist, acc))
         last_blist blists
+
+let rec first_command_of_pipeline pip :
+    command_with_redirects * unary_control_operator wrap option =
+  match pip with
+  | Command (_loc, x) -> (x, None)
+  | Pipeline (_loc, pip, _bar, _cmd) -> first_command_of_pipeline pip
+  | Control_operator (_loc, pip, op) ->
+      let cmd, _ = first_command_of_pipeline pip in
+      (cmd, Some op)

@@ -108,8 +108,8 @@ let rec expr e =
       let e = expr e in
       let fld =
         match method_name m with
-        | Left id -> G.EN (G.Id (id, G.empty_id_info ()))
-        | Right e -> G.EDynamic e
+        | Left id -> G.FN (G.Id (id, G.empty_id_info ()))
+        | Right e -> G.FDynamic e
       in
       G.DotAccess (e, t, fld)
   | Splat (t, eopt) ->
@@ -166,10 +166,10 @@ and argument arg : G.argument =
       G.ArgKwd (id, arg)
 
 and formal_param = function
-  | Formal_id id -> G.ParamClassic (G.param_of_id id)
+  | Formal_id id -> G.Param (G.param_of_id id)
   | Formal_amp (t, id) ->
-      let param = G.ParamClassic (G.param_of_id id) in
-      G.OtherParam (G.OPO_Ref, [ G.Tk t; G.Pa param ])
+      let param = G.Param (G.param_of_id id) in
+      G.OtherParam (("Ref", t), [ G.Pa param ])
   | Formal_star (t, id) -> G.ParamRest (t, G.param_of_id id)
   | Formal_rest t ->
       let p =
@@ -199,7 +199,7 @@ and formal_param = function
   | Formal_default (id, _t, e) ->
       let e = expr e in
       let p = { (G.param_of_id id) with G.pdefault = Some e } in
-      G.ParamClassic p
+      G.Param p
   (* TODO? diff with Formal_default? *)
   | Formal_kwd (id, _t, eopt) ->
       let eopt = option expr eopt in
@@ -208,7 +208,7 @@ and formal_param = function
         | None -> G.param_of_id id
         | Some e -> { (G.param_of_id id) with G.pdefault = Some e }
       in
-      G.ParamClassic p
+      G.Param p
   | Formal_tuple (_t1, xs, _t2) ->
       let xs = list formal_param_pattern xs in
       let pat = G.PatTuple (G.fake_bracket xs) in
@@ -413,8 +413,9 @@ and literal x =
           G.L (G.String (s, t))
       (* TODO: generate interpolation Special *)
       | Double xs -> string_contents_list xs
-      | Tick xs ->
-          G.OtherExpr (G.OE_Subshell, [ G.E (string_contents_list xs |> G.e) ]))
+      | Tick (l, xs, r) ->
+          G.OtherExpr
+            (("Subshell", l), [ G.E (string_contents_list (l, xs, r) |> G.e) ]))
   | Regexp ((l, xs, r), opt) -> (
       match xs with
       | [ StrChars (s, t) ] -> G.L (G.Regexp ((l, (s, t), r), opt))
@@ -447,17 +448,17 @@ and stmt st =
       let e = expr e in
       let st = list_stmt1 st in
       let elseopt = option_tok_stmts elseopt in
-      G.If (t, e, st, elseopt) |> G.s
+      G.If (t, G.Cond e, st, elseopt) |> G.s
   | While (t, _bool, e, st) ->
       let e = expr e in
       let st = list_stmt1 st in
-      G.While (t, e, st) |> G.s
+      G.While (t, G.Cond e, st) |> G.s
   | Until (t, _bool, e, st) ->
       let e = expr e in
       let special = G.IdSpecial (G.Op G.Not, t) |> G.e in
       let e = G.Call (special, fb [ G.Arg e ]) |> G.e in
       let st = list_stmt1 st in
-      G.While (t, e, st) |> G.s
+      G.While (t, G.Cond e, st) |> G.s
   | Unless (t, e, st, elseopt) ->
       let e = expr e in
       let st = list_stmt1 st in
@@ -469,7 +470,7 @@ and stmt st =
         | None -> G.Block (fb []) |> G.s
         | Some st -> st
       in
-      G.If (t, e, st1, Some st) |> G.s
+      G.If (t, G.Cond e, st1, Some st) |> G.s
   | For (t1, pat, t2, e, st) ->
       let pat = pattern pat in
       let e = expr e in
@@ -504,7 +505,13 @@ and stmt st =
             let st = list_stmt1 sts in
             [ ([ G.Default t ], st) ]
       in
-      G.Switch (t, eopt, whens @ default |> List.map (fun x -> G.CasesAndBody x))
+      let condopt =
+        match eopt with
+        | None -> None
+        | Some e -> Some (G.Cond e)
+      in
+      G.Switch
+        (t, condopt, whens @ default |> List.map (fun x -> G.CasesAndBody x))
       |> G.s
   | ExnBlock b -> body_exn b
 
@@ -601,7 +608,7 @@ and definition def =
               cimplements = [];
               cmixins = [];
               cparams = [];
-              cbody = fb [ G.FieldStmt body ];
+              cbody = fb [ G.F body ];
             }
           in
           G.DefStmt (ent, G.ClassDef def) |> G.s
@@ -629,15 +636,18 @@ and definition def =
       let st = G.Block (t1, st, t2) |> G.s in
       G.OtherStmtWithStmt (G.OSWS_END, [], st) |> G.s
   | Alias (t, mn1, mn2) ->
-      let mn1 = method_name_to_any mn1 in
-      let mn2 = method_name_to_any mn2 in
-      G.DirectiveStmt
-        (G.OtherDirective (G.OI_Alias, [ G.Tk t; mn1; mn2 ]) |> G.d)
-      |> G.s
+      let mn1 = method_name mn1 in
+      let name_or_dyn =
+        match mn1 with
+        | Left id -> G.EN (G.Id (id, G.empty_id_info ()))
+        | Right e -> G.EDynamic e
+      in
+      let ent = { G.name = name_or_dyn; attrs = []; tparams = [] } in
+      let def = G.OtherDef (("Alias", t), [ method_name_to_any mn2 ]) in
+      G.DefStmt (ent, def) |> G.s
   | Undef (t, mns) ->
       let mns = list method_name_to_any mns in
-      G.DirectiveStmt (G.OtherDirective (G.OI_Undef, G.Tk t :: mns) |> G.d)
-      |> G.s
+      G.DirectiveStmt (G.OtherDirective (("Undef", t), mns) |> G.d) |> G.s
 
 and body_exn x =
   match x with

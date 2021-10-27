@@ -60,6 +60,7 @@ Environmental data provide contextual data about Semgrep’s runtime environment
 
 * How long the command took to run
 * The version of Semgrep
+* Value of the CI environment variable, if set
 * Pseudoanonymized hash of the scanned project’s name
 * Pseudoanonymized hash of the rule definitions run
 * Pseduoanonymized hash of the config option
@@ -153,6 +154,7 @@ This is a sample blob of the aggregate metrics described above:
 {
     "environment": {
         "version": "0.51.0",
+        "ci": "true",
         "configNamesHash": "ede96c41b57de3e857090fb3c486e69ad8efae3267bac4ac5fbc19dde7161094",
         "projectHash": "c65437265631ab2566802d4d90797b27fbe0f608dceeb9451b979d1671c4bc1a",
         "rulesHash": "b03e452f389e5a86e56426c735afef13686b3e396499fc3c42561f36f6281c43",

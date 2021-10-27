@@ -189,6 +189,10 @@ let ident_of_entity_opt ent =
   | G.EN (G.IdQualified { name_last = i, _topt; name_info = pinfo; _ }) ->
       Some (i, pinfo)
   | G.EDynamic _ -> None
+  (* TODO *)
+  | G.EPattern _
+  | G.OtherEntity _ ->
+      None
 
 let name_of_entity ent =
   match ident_of_entity_opt ent with
@@ -196,6 +200,14 @@ let name_of_entity ent =
       let name = var_of_id_info i pinfo in
       Some name
   | _____else_____ -> None
+
+let composite_of_container : G.container_operator -> IL.composite_kind =
+  function
+  | Array -> CArray
+  | List -> CList
+  | Tuple -> CTuple
+  | Set -> CSet
+  | Dict -> CDict
 
 (*****************************************************************************)
 (* lvalue *)
@@ -207,16 +219,16 @@ let rec lval env eorig =
   | G.DotAccess (e1orig, tok, field) -> (
       let base, base_constness = nested_lval env tok e1orig in
       match field with
-      | G.EN (G.Id (id, idinfo)) ->
+      | G.FN (G.Id (id, idinfo)) ->
           {
             base;
             offset = Dot (var_of_id_info id idinfo);
             constness = idinfo.id_constness;
           }
-      | G.EN name ->
+      | G.FN name ->
           let attr = expr env (G.N name |> G.e) in
           { base; offset = Index attr; constness = base_constness }
-      | G.EDynamic e2orig ->
+      | G.FDynamic e2orig ->
           let attr = expr env e2orig in
           { base; offset = Index attr; constness = base_constness })
   | G.ArrayAccess (e1orig, (_, e2orig, _)) ->
@@ -318,7 +330,8 @@ and assign env lhs _tok rhs_exp eorig =
       with Fixme (kind, any_generic) ->
         add_instr env (fixme_instr kind any_generic eorig);
         fixme_exp kind any_generic lhs)
-  | G.Container (G.Tuple, (tok1, lhss, tok2)) ->
+  | G.Container (((G.Tuple | G.Array) as ckind), (tok1, lhss, tok2)) ->
+      (* TODO: handle cases like [a, b, ...rest] = e *)
       (* E1, ..., En = RHS *)
       (* tmp = RHS*)
       let tmp = fresh_var env tok2 in
@@ -336,7 +349,9 @@ and assign env lhs _tok rhs_exp eorig =
                assign env lhs_i tok1 { e = Fetch lval_i; eorig } eorig)
       in
       (* (E1, ..., En) *)
-      mk_e (Composite (CTuple, (tok1, tup_elems, tok2))) eorig
+      mk_e
+        (Composite (composite_of_container ckind, (tok1, tup_elems, tok2)))
+        eorig
   | _ ->
       add_instr env (fixme_instr ToDo (G.E eorig) eorig);
       fixme_exp ToDo (G.E eorig) lhs
@@ -411,7 +426,7 @@ and expr_aux env ?(void = false) eorig =
             G.DotAccess
               ( obj,
                 tok,
-                G.EN
+                G.FN
                   (G.Id
                     (("concat", _), { G.id_resolved = { contents = None }; _ }))
               );
@@ -579,6 +594,7 @@ and expr_aux env ?(void = false) eorig =
   | G.DeepEllipsis _
   | G.DotAccessEllipsis _ ->
       sgrep_construct (G.E eorig)
+  | G.StmtExpr _st -> todo (G.E eorig)
   | G.OtherExpr (_, _) -> todo (G.E eorig)
 
 and expr env ?void eorig =
@@ -648,14 +664,16 @@ and argument env arg =
   | G.ArgKwd (_, e) ->
       (* TODO: Handle the keyword/label somehow (when relevant). *)
       expr env e
-  | _ -> fixme_exp ToDo (G.Ar arg) (G.e (G.OtherExpr (G.OE_Todo, [ G.Ar arg ])))
+  | _ ->
+      fixme_exp ToDo (G.Ar arg)
+        (G.e (G.OtherExpr (("Arg", G.fake ""), [ G.Ar arg ])))
 
 and record env ((_tok, origfields, _) as record_def) =
   let eorig = G.Record record_def |> G.e in
   let fields =
     origfields
     |> List.map (function
-         | G.FieldStmt
+         | G.F
              {
                s =
                  G.DefStmt
@@ -672,8 +690,7 @@ and record env ((_tok, origfields, _) as record_def) =
              in
              let field_def = expr env fdeforig in
              (id, field_def)
-         | G.FieldStmt _ -> todo (G.E eorig)
-         | G.FieldSpread _ -> todo (G.E eorig))
+         | G.F _ -> todo (G.E eorig))
   in
   mk_e (Record fields) eorig
 
@@ -686,6 +703,20 @@ let lval_of_ent env ent =
   | G.EN (G.Id (id, idinfo)) -> lval_of_id_info env id idinfo
   | G.EN name -> lval env (G.N name |> G.e)
   | G.EDynamic eorig -> lval env eorig
+  | G.EPattern _ -> (
+      let any = G.En ent in
+      log_fixme ToDo any;
+      let toks = Visitor_AST.ii_of_any any in
+      match toks with
+      | [] -> raise Impossible
+      | x :: _ -> fresh_lval env x)
+  | G.OtherEntity _ -> (
+      let any = G.En ent in
+      log_fixme ToDo any;
+      let toks = Visitor_AST.ii_of_any any in
+      match toks with
+      | [] -> raise Impossible
+      | x :: _ -> fresh_lval env x)
 
 (* just to ensure the code after does not call expr directly *)
 let expr_orig = expr
@@ -698,6 +729,22 @@ let expr_with_pre_stmts env ?void e =
   let xs = List.rev !(env.stmts) in
   env.stmts := [];
   (xs, e)
+
+(* alt: could use H.cond_to_expr and reuse expr_with_pre_stmts *)
+let cond_with_pre_stmts env ?void cond =
+  match cond with
+  | G.Cond e ->
+      let e = expr_orig env ?void e in
+      let xs = List.rev !(env.stmts) in
+      env.stmts := [];
+      (xs, e)
+  | G.OtherCond (categ, xs) ->
+      let e = G.OtherExpr (categ, xs) |> G.e in
+      log_fixme ToDo (G.E e);
+      let e = expr_orig env ?void e in
+      let xs = List.rev !(env.stmts) in
+      env.stmts := [];
+      (xs, e)
 
 let args_with_pre_stmts env args =
   let args = arguments env args in
@@ -733,8 +780,7 @@ let for_var_or_expr_list env xs =
 let parameters _env params =
   params
   |> List.filter_map (function
-       | G.ParamClassic { pname = Some i; pinfo; _ } ->
-           Some (var_of_id_info i pinfo)
+       | G.Param { pname = Some i; pinfo; _ } -> Some (var_of_id_info i pinfo)
        | ___else___ -> None (* TODO *))
 
 (*****************************************************************************)
@@ -780,8 +826,8 @@ let rec stmt_aux env st =
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
   | G.Block xs -> xs |> G.unbracket |> List.map (stmt env) |> List.flatten
-  | G.If (tok, e, st1, st2) ->
-      let ss, e' = expr_with_pre_stmts env e in
+  | G.If (tok, cond, st1, st2) ->
+      let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in
       let st2 =
         List.map (stmt env) (st2 |> Common.opt_to_list) |> List.flatten
@@ -791,8 +837,11 @@ let rec stmt_aux env st =
       let ss, translate_cases =
         match switch_expr_opt with
         | Some switch_expr ->
-            let ss, switch_expr' = expr_with_pre_stmts env switch_expr in
-            (ss, switch_expr_and_cases_to_exp env tok switch_expr switch_expr')
+            let ss, switch_expr' = cond_with_pre_stmts env switch_expr in
+            ( ss,
+              switch_expr_and_cases_to_exp env tok
+                (H.cond_to_expr switch_expr)
+                switch_expr' )
         | None -> ([], cases_to_exp env tok)
       in
       let break_label, break_label_s, switch_env =
@@ -807,7 +856,7 @@ let rec stmt_aux env st =
       let cont_label_s, break_label_s, st_env =
         mk_break_continue_labels env tok
       in
-      let ss, e' = expr_with_pre_stmts env e in
+      let ss, e' = cond_with_pre_stmts env e in
       let st = stmt st_env st in
       ss @ [ mk_s (Loop (tok, e', st @ cont_label_s @ ss)) ] @ break_label_s
   | G.DoWhile (tok, st, e) ->
@@ -884,15 +933,28 @@ let rec stmt_aux env st =
       @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ next @ ss2)) ]
       @ break_label_s
   | G.For (_, G.ForEllipsis _, _) -> sgrep_construct (G.S st)
-  | G.For (tok, G.ForIn (xs, e), st) ->
+  | G.For (tok, G.ForIn (xs, e), stmts) ->
+      let orig_stmt = st in
       let cont_label_s, break_label_s, st_env =
         mk_break_continue_labels env tok
       in
       let ss1 = for_var_or_expr_list env xs in
-      let st = stmt st_env st in
-      let ss2, cond = expr_with_pre_stmts env (List.nth e 0) (* TODO list *) in
+      let stmts = stmt st_env stmts in
+      let ss2, cond =
+        match e with
+        | first :: _TODO ->
+            (* TODO list *)
+            expr_with_pre_stmts env first
+        | [] ->
+            (* TODO: empty list of elements to iterate over
+               bash: for x do ... done *)
+            let fake_expr =
+              G.OtherExpr (("empty 'in'", tok), [ G.S st ]) |> G.e
+            in
+            ([], fixme_exp ToDo (G.S orig_stmt) fake_expr)
+      in
       ss1 @ ss2
-      @ [ mk_s (Loop (tok, cond, st @ cont_label_s @ ss2)) ]
+      @ [ mk_s (Loop (tok, cond, stmts @ cont_label_s @ ss2)) ]
       @ break_label_s
   (* TODO: repeat env work of controlflow_build.ml *)
   | G.Continue (tok, lbl_ident, _) -> (
@@ -1020,6 +1082,8 @@ and switch_expr_and_cases_to_exp env tok switch_expr_orig switch_expr cases =
             *)
             impossible (G.Tk tok)
         | G.Case (tok, _) ->
+            (ss, fixme_exp ToDo (G.Tk tok) switch_expr_orig :: es)
+        | G.OtherCase ((_todo_categ, tok), _any) ->
             (ss, fixme_exp ToDo (G.Tk tok) switch_expr_orig :: es))
       ([], []) cases
   in
@@ -1045,6 +1109,10 @@ and cases_to_exp env tok cases =
             impossible (G.Tk tok)
         | G.Case (tok, _) ->
             (* TODO: what eorig to use for the fixme_exp? *)
+            ( ss,
+              fixme_exp ToDo (G.Tk tok) (G.e (G.L (G.Unit (G.fake "case"))))
+              :: es )
+        | G.OtherCase ((_, tok), _) ->
             ( ss,
               fixme_exp ToDo (G.Tk tok) (G.e (G.L (G.Unit (G.fake "case"))))
               :: es ))

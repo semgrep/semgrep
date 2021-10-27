@@ -72,16 +72,16 @@ let ii_of_any = Lib_parsing_go.ii_of_any
 let return_type_of_results results =
   match results with
   | []
-  | [ G.ParamClassic { G.ptype = None; _ } ] ->
+  | [ G.Param { G.ptype = None; _ } ] ->
       None
-  | [ G.ParamClassic { G.ptype = Some t; _ } ] -> Some t
+  | [ G.Param { G.ptype = Some t; _ } ] -> Some t
   | xs ->
       Some
         (G.TyTuple
            (xs
            |> List.map (function
-                | G.ParamClassic { G.ptype = Some t; _ } -> t
-                | G.ParamClassic { G.ptype = None; _ } -> raise Impossible
+                | G.Param { G.ptype = Some t; _ } -> t
+                | G.Param { G.ptype = None; _ } -> raise Impossible
                 | _ -> raise Impossible)
            |> fb)
         |> G.t)
@@ -95,6 +95,7 @@ let list_to_tuple_or_expr xs =
 let mk_func_def fkind params ret st =
   { G.fparams = params; frettype = ret; fbody = st; fkind }
 
+(* TODO: use CondDecl *)
 let wrap_init_in_block_maybe x v =
   match x with
   | None -> [ v ]
@@ -153,10 +154,10 @@ let top_func () =
         G.TyApply (G.TyN (mk_name "chan" t) |> G.t, fb [ G.TA v1; G.TA v2 ])
     | TStruct (t, v1) ->
         let v1 = bracket (list struct_field) v1 in
-        G.TyRecordAnon (t, v1)
+        G.TyRecordAnon ((G.Class, t), v1)
     | TInterface (t, v1) ->
         let v1 = bracket (list interface_field) v1 in
-        G.TyInterfaceAnon (t, v1)
+        G.TyRecordAnon ((G.Interface, t), v1)
   and chan_dir = function
     | TSend -> G.TyN (G.Id (unsafe_fake_id "send", G.empty_id_info ())) |> G.t
     | TRecv -> G.TyN (G.Id (unsafe_fake_id "recv", G.empty_id_info ())) |> G.t
@@ -186,7 +187,7 @@ let top_func () =
           }
         in
         match arg3 with
-        | None -> G.ParamClassic pclassic
+        | None -> G.Param pclassic
         | Some tok -> G.ParamRest (tok, pclassic))
   and struct_field (v1, v2) =
     let v1 = struct_field_kind v1 and _v2TODO = option tag v2 in
@@ -198,7 +199,10 @@ let top_func () =
     | EmbeddedField (v1, v2) ->
         let _v1TODO = option tok v1 and v2 = qualified_ident v2 in
         let name = name_of_qualified_ident v2 in
-        G.FieldSpread (unsafe_fake "...", G.N name |> G.e)
+        let spec = (G.Spread, unsafe_fake "...") in
+        let e = G.special spec [ G.N name |> G.e ] in
+        let st = G.exprstmt e in
+        G.F st
     | FieldEllipsis t -> G.fieldEllipsis t
   and tag v = wrap string v
   and interface_field = function
@@ -206,18 +210,18 @@ let top_func () =
         let v1 = ident v1 in
         let params, ret = func_type v2 in
         let ent = G.basic_entity v1 in
-        G.FieldStmt
-          (G.s
-             (G.DefStmt
-                ( ent,
-                  G.FuncDef
-                    (mk_func_def
-                       (G.Method, G.fake "")
-                       params ret (G.FBDecl G.sc)) )))
+        let fdef =
+          G.FuncDef
+            (mk_func_def (G.Method, G.fake "") params ret (G.FBDecl G.sc))
+        in
+        G.fld (ent, fdef)
     | EmbeddedInterface v1 ->
         let v1 = qualified_ident v1 in
         let name = name_of_qualified_ident v1 in
-        G.FieldSpread (unsafe_fake "...", G.N name |> G.e)
+        let spec = (G.Spread, unsafe_fake "...") in
+        let e = G.special spec [ G.N name |> G.e ] in
+        let st = G.exprstmt e in
+        G.F st
     | FieldEllipsis2 t -> G.fieldEllipsis t
   and expr_or_type v = either expr type_ v
   and expr e =
@@ -230,7 +234,7 @@ let top_func () =
         G.N (G.Id (v1, G.empty_id_info ()))
     | Selector (v1, v2, v3) ->
         let v1 = expr v1 and v2 = tok v2 and v3 = ident v3 in
-        G.DotAccess (v1, v2, G.EN (Id (v3, G.empty_id_info ())))
+        G.DotAccess (v1, v2, G.FN (Id (v3, G.empty_id_info ())))
     | Index (v1, v2) ->
         let v1 = expr v1 and v2 = bracket index v2 in
         G.ArrayAccess (v1, v2)
@@ -288,11 +292,11 @@ let top_func () =
         G.Lambda
           (mk_func_def (G.LambdaKind, G.fake "") params ret (G.FBStmt v2))
     | Receive (v1, v2) ->
-        let _v1 = tok v1 and v2 = expr v2 in
-        G.OtherExpr (G.OE_Recv, [ G.E v2 ])
+        let v1 = tok v1 and v2 = expr v2 in
+        G.OtherExpr (("Receive", v1), [ G.E v2 ])
     | Send (v1, v2, v3) ->
-        let v1 = expr v1 and _v2 = tok v2 and v3 = expr v3 in
-        G.OtherExpr (G.OE_Send, [ G.E v1; G.E v3 ])
+        let v1 = expr v1 and v2 = tok v2 and v3 = expr v3 in
+        G.OtherExpr (("Send", v2), [ G.E v1; G.E v3 ])
     | TypeSwitchExpr (v1, v2) ->
         let _v1 = expr v1 and v2 = tok v2 in
         error v2 "TypeSwitchExpr should be handled in Switch statement"
@@ -419,7 +423,8 @@ let top_func () =
         and v2 = expr v2
         and v3 = stmt v3
         and v4 = option stmt v4 in
-        wrap_init_in_block_maybe v1 (G.If (t, v2, v3, v4) |> G.s)
+        (* TODO: use OtherCond and CondDecl! *)
+        wrap_init_in_block_maybe v1 (G.If (t, G.Cond v2, v3, v4) |> G.s)
     | Switch (v0, v1, v2, v3) ->
         let v0 = tok v0 in
         let v1 = option simple v1
@@ -428,22 +433,25 @@ let top_func () =
           | None -> None
           | Some s ->
               Some
-                (match s with
-                | ExprStmt (TypeSwitchExpr (e, tok1)) ->
-                    let e = expr e in
-                    G.Call (G.IdSpecial (G.Typeof, tok1) |> G.e, fb [ G.Arg e ])
-                    |> G.e
-                | DShortVars (xs, tok1, [ TypeSwitchExpr (e, tok2) ]) ->
-                    let xs = list expr xs in
-                    let e = expr e in
-                    G.Assign
-                      ( list_to_tuple_or_expr xs,
-                        tok1,
-                        G.Call
-                          (G.IdSpecial (G.Typeof, tok2) |> G.e, fb [ G.Arg e ])
-                        |> G.e )
-                    |> G.e
-                | s -> simple s)
+                (G.Cond
+                   (match s with
+                   | ExprStmt (TypeSwitchExpr (e, tok1)) ->
+                       let e = expr e in
+                       G.Call
+                         (G.IdSpecial (G.Typeof, tok1) |> G.e, fb [ G.Arg e ])
+                       |> G.e
+                   | DShortVars (xs, tok1, [ TypeSwitchExpr (e, tok2) ]) ->
+                       let xs = list expr xs in
+                       let e = expr e in
+                       G.Assign
+                         ( list_to_tuple_or_expr xs,
+                           tok1,
+                           G.Call
+                             ( G.IdSpecial (G.Typeof, tok2) |> G.e,
+                               fb [ G.Arg e ] )
+                           |> G.e )
+                       |> G.e
+                   | s -> simple s))
         and v3 = list case_clause v3 in
         wrap_init_in_block_maybe v1 (G.Switch (v0, v2, v3) |> G.s)
     | Select (v1, v2) ->
@@ -583,7 +591,7 @@ let top_func () =
         and v4 = stmt v4 in
         let ent = G.basic_entity v1 in
         let def = mk_func_def (G.Method, t) params ret (G.FBStmt v4) in
-        let receiver = G.OtherParam (G.OPO_Receiver, [ G.Pa v2 ]) in
+        let receiver = G.OtherParam (("Receiver", snd v1), [ G.Pa v2 ]) in
         G.DefStmt
           (ent, G.FuncDef { def with G.fparams = receiver :: def.G.fparams })
         |> G.s

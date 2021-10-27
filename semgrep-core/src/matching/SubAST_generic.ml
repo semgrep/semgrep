@@ -43,8 +43,6 @@ let subexprs_of_any_list xs =
 let subexprs_of_stmt_kind = function
   (* 1 *)
   | ExprStmt (e, _)
-  | If (_, e, _, _)
-  | While (_, e, _)
   | DoWhile (_, _, e)
   | Match (_, e, _)
   | DefStmt (_, VarDef { vinit = Some e; _ })
@@ -54,10 +52,15 @@ let subexprs_of_stmt_kind = function
   | Break (_, LDynamic e, _)
   | Throw (_, e, _) ->
       [ e ]
+  | While (_, cond, _)
+  | If (_, cond, _, _) ->
+      [ H.cond_to_expr cond ]
   (* opt *)
-  | Switch (_, eopt, _)
-  | Return (_, eopt, _) ->
-      Common.opt_to_list eopt
+  | Switch (_, condopt, _) -> (
+      match condopt with
+      | None -> []
+      | Some cond -> [ H.cond_to_expr cond ])
+  | Return (_, eopt, _) -> Common.opt_to_list eopt
   (* n *)
   | For (_, ForClassic (xs, eopt1, eopt2), _) ->
       (xs
@@ -114,10 +117,7 @@ let subexprs_of_expr e =
   | Conditional (e1, e2, e3) -> [ e1; e2; e3 ]
   | Seq xs -> xs
   | Record (_, flds, _) ->
-      flds
-      |> Common2.map_flatten (function
-           | FieldStmt st -> subexprs_of_stmt st
-           | FieldSpread (_, e) -> [ e ])
+      flds |> Common2.map_flatten (function F st -> subexprs_of_stmt st)
   | Container (_, xs) -> unbracket xs
   | Comprehension (_, (_, (e, xs), _)) ->
       e
@@ -134,7 +134,7 @@ let subexprs_of_expr e =
               | ArgKwd (_, e) ->
                   Some e
               | ArgType _
-              | ArgOther _ ->
+              | OtherArg _ ->
                   None))
   | SliceAccess (e1, e2) ->
       e1
@@ -143,6 +143,7 @@ let subexprs_of_expr e =
          |> List.map Common.opt_to_list
          |> List.flatten)
   | Yield (_, eopt, _) -> Common.opt_to_list eopt
+  | StmtExpr st -> subexprs_of_stmt st
   | OtherExpr (_, anys) ->
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys
@@ -215,10 +216,7 @@ let substmts_of_stmt st =
         (* this will add lots of substatements *)
         | FuncDef def -> [ H.funcbody_to_stmt def.fbody ]
         | ClassDef def ->
-            def.cbody |> unbracket
-            |> Common.map_filter (function
-                 | FieldStmt st -> Some st
-                 | FieldSpread _ -> None))
+            def.cbody |> unbracket |> Common.map (function F st -> st))
   (* TODO *)
   | Match _ -> []
 

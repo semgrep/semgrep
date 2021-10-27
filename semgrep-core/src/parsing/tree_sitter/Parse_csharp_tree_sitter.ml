@@ -39,22 +39,22 @@ let str = H.str
 (* less: we should check we consume all constraints *)
 let type_parameters_with_constraints tparams constraints : type_parameter list =
   tparams
-  |> List.map (fun tparam ->
-         let with_constraints =
-           constraints
-           |> List.find_opt (fun (id, _xs) -> fst id = fst tparam.tp_id)
-         in
-         match with_constraints with
-         | Some (_id, xs) ->
-             let more_constraints, more_bounds =
-               xs |> Common.partition_either (fun x -> x)
-             in
-             {
-               tparam with
-               tp_constraints = more_constraints @ tparam.tp_constraints;
-               tp_bounds = more_bounds @ tparam.tp_bounds;
-             }
-         | None -> tparam)
+  |> List.map (function
+       | OtherTypeParam (x, anys) ->
+           (* TODO: add constraints *)
+           OtherTypeParam (x, anys)
+       | TP tparam -> (
+           let with_constraints =
+             constraints
+             |> List.find_opt (fun (id, _xs) -> fst id = fst tparam.tp_id)
+           in
+           match with_constraints with
+           | Some (_id, xs) ->
+               let _more_constraintsTODO, more_bounds =
+                 xs |> Common.partition_either (fun x -> x)
+               in
+               TP { tparam with tp_bounds = more_bounds @ tparam.tp_bounds }
+           | None -> TP tparam))
 
 let var_def_stmt (decls : (entity * variable_definition) list)
     (attrs : attribute list) =
@@ -84,7 +84,7 @@ let param_from_lambda_params lambda_params =
   match lambda_params with
   | [] -> failwith "empty lambda_params"
   | [ id ] ->
-      ParamClassic
+      Param
         {
           pname = Some id;
           ptype = None;
@@ -111,7 +111,7 @@ let create_lambda lambda_params expr =
 (* create lambda (lambda_params, ident) -> (lambda_params..., ident) *)
 let create_join_result_lambda lambda_params ident =
   let p1 = param_from_lambda_params lambda_params in
-  let p2 = ParamClassic (param_of_id ident) in
+  let p2 = Param (param_of_id ident) in
   let fparams = [ p1; p2 ] in
   let ids =
     lambda_params @ [ ident ]
@@ -135,7 +135,7 @@ let call_lambda base_expr funcname tok funcs =
   let args = funcs |> List.map (fun func -> Arg func) in
   let idinfo = empty_id_info () in
   let method_ =
-    DotAccess (base_expr, tok, EN (Id ((funcname, tok), idinfo))) |> G.e
+    DotAccess (base_expr, tok, FN (Id ((funcname, tok), idinfo))) |> G.e
   in
   Call (method_, fake_bracket args) |> G.e
 
@@ -270,7 +270,7 @@ end
    to another type of tree.
 *)
 
-let todo_expr _env tok = G.OtherExpr (G.OE_Todo, [ G.Tk tok ]) |> G.e
+let todo_expr _env tok = G.OtherExpr (("CSharpTodo", tok), []) |> G.e
 
 let todo_stmt _env tok = G.OtherStmt (G.OS_Todo, [ G.Tk tok ]) |> G.s
 
@@ -278,7 +278,7 @@ let todo_pat _env tok = G.OtherPat (("Todo", tok), [])
 
 let todo_attr _env tok = G.OtherAttribute (("Todo", tok), [])
 
-let todo_type _env tok = G.OtherType (G.OT_Todo, [ G.Tk tok ]) |> G.t
+let todo_type _env tok = G.OtherType (("Todo", tok), []) |> G.t
 
 let _TODOparameter_modifier (env : env) (x : CST.parameter_modifier) =
   match x with
@@ -1067,17 +1067,17 @@ and interpolated_string_content (env : env)
 and checked_expression (env : env) (x : CST.checked_expression) =
   match x with
   | `Chec_LPAR_exp_RPAR (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "checked" *) in
+      let v1 = token env v1 (* "checked" *) in
       let _v2 = token env v2 (* "(" *) in
       let v3 = expression env v3 in
       let _v4 = token env v4 (* ")" *) in
-      OtherExpr (OE_Checked, [ E v3 ])
+      OtherExpr (("Checked", v1), [ E v3 ])
   | `Unch_LPAR_exp_RPAR (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "unchecked" *) in
+      let v1 = token env v1 (* "unchecked" *) in
       let _v2 = token env v2 (* "(" *) in
       let v3 = expression env v3 in
       let _v4 = token env v4 (* ")" *) in
-      OtherExpr (OE_Unchecked, [ E v3 ])
+      OtherExpr (("Unchecked", v1), [ E v3 ])
 
 and expression (env : env) (x : CST.expression) : G.expr =
   (match x with
@@ -1198,7 +1198,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
             let x1 = token env x1 (* "." *) in
             let x2 = simple_name env x2 in
             let n = H2.name_of_ids_with_opt_typeargs [ x2 ] in
-            DotAccess (v1, x1, EN n) |> G.e
+            DotAccess (v1, x1, FN n) |> G.e
       in
       Conditional (is_null, fake_null, access)
   | `Cond_exp (v1, v2, v3, v4, v5) ->
@@ -1281,7 +1281,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
         | `Id tok ->
             let id = identifier env tok in
             let p = param_of_id id in
-            [ ParamClassic p ]
+            [ Param p ]
         (* identifier *)
       in
       let v3 = token env v3 (* "=>" *) in
@@ -1315,7 +1315,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       in
       let v3 = simple_name env v3 in
       let n = H2.name_of_ids_with_opt_typeargs [ v3 ] in
-      G.DotAccess (v1, v2, G.EN n)
+      G.DotAccess (v1, v2, G.FN n)
   | `Obj_crea_exp (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "new" *) in
       let v2 = type_constraint env v2 in
@@ -1438,7 +1438,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
       Call (IdSpecial (Typeof, v1) |> G.e, (v2, [ ArgType v3 ], v4))
   | `With_exp (v1, v2, v3, v4, v5) ->
       let v1 = expression env v1 in
-      let _v2 = token env v2 (* "with" *) in
+      let v2 = token env v2 (* "with" *) in
       let v3 = token env v3 (* "{" *) in
       let v4 =
         match v4 with
@@ -1451,7 +1451,7 @@ and expression (env : env) (x : CST.expression) : G.expr =
        * - with-expressions may deserve first-class support in Generic AST
        * - record patterns perhaps should match with-expressions
        *)
-      G.OtherExpr (G.OE_RecordWith, [ G.E v1; G.E with_fields ])
+      G.OtherExpr (("RecordWith", v2), [ G.E v1; G.E with_fields ])
   | `Simple_name x ->
       let x = simple_name env x in
       N (H2.name_of_ids_with_opt_typeargs [ x ])
@@ -1530,7 +1530,7 @@ and type_parameter_list (env : env) ((v1, v2, v3, v4) : CST.type_parameter_list)
   v2 :: v3
 
 and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) :
-    (G.type_parameter_constraint, type_) Common.either =
+    (G.todo_kind, type_) Common.either =
   match x with
   | `Class_opt_QMARK (tok, _)
   (* "class" *)
@@ -1546,7 +1546,7 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) :
       let v2 = token env v2 (* "(" *) in
       let v3 = token env v3 (* ")" *) in
       let tok = PI.combine_infos v1 [ v2; v3 ] in
-      Left (HasConstructor tok)
+      Left ("HasConstructor", tok)
   | `Type_cons x -> Right (type_constraint env x)
 
 and type_constraint (env : env) (x : CST.type_constraint) : type_ =
@@ -1704,7 +1704,7 @@ and statement (env : env) (x : CST.statement) =
             Some v2
         | None -> None
       in
-      G.If (v1, v3, v5, v6) |> G.s
+      G.If (v1, G.Cond v3, v5, v6) |> G.s
   | `Labe_stmt (v1, v2, v3) ->
       let v1 = identifier env v1 (* identifier *) in
       let _v2 = token env v2 (* ":" *) in
@@ -1764,7 +1764,7 @@ and statement (env : env) (x : CST.statement) =
         | `Tuple_exp v2 -> tuple_expression env v2
       in
       let v3 = switch_body env v3 in
-      G.Switch (v1, Some v2, v3) |> G.s
+      G.Switch (v1, Some (G.Cond v2), v3) |> G.s
   | `Throw_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "throw" *) in
       let v2 = Common.map_opt (expression env) v2 in
@@ -1805,7 +1805,7 @@ and statement (env : env) (x : CST.statement) =
       let v3 = expression env v3 in
       let _v4 = token env v4 (* ")" *) in
       let v5 = statement env v5 in
-      While (v1, v3, v5) |> G.s
+      While (v1, G.Cond v3, v5) |> G.s
   | `Yield_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "yield" *) in
       let v2 =
@@ -2099,7 +2099,7 @@ and anonymous_object_member_declarator (env : env)
       basic_field v1 (Some v2) None
   | `Exp x ->
       let expr = expression env x in
-      FieldStmt (exprstmt expr)
+      F (exprstmt expr)
 
 and function_body (env : env) (x : CST.function_body) : G.function_body =
   match x with
@@ -2134,7 +2134,7 @@ and explicit_parameter (env : env) (v1, _v2param_modifier_TODO, v3, v4, v5) =
   let v3 = Common.map_opt (type_constraint env) v3 in
   let v4 = identifier env v4 (* identifier *) in
   let v5 = Common.map_opt (equals_value_clause env) v5 in
-  ParamClassic
+  Param
     {
       pname = Some v4;
       ptype = v3;
@@ -2431,11 +2431,11 @@ let rec declaration_list (env : env)
 and extern_alias_directive (env : env)
     ((v1, v2, v3, v4) : CST.extern_alias_directive) =
   let v1 = token env v1 (* "extern" *) in
-  let v2 = token env v2 (* "alias" *) in
+  let _v2 = token env v2 (* "alias" *) in
   let v3 = identifier env v3 (* identifier *) in
   let v4 = token env v4 (* ";" *) in
   let extern =
-    G.OtherDirective (G.OI_Extern, [ G.Tk v1; G.Tk v2; G.I v3; G.Tk v4 ]) |> G.d
+    G.OtherDirective (("ExternAlias", v1), [ G.I v3; G.Tk v4 ]) |> G.d
   in
   G.DirectiveStmt extern |> G.s
 
@@ -2468,10 +2468,10 @@ and using_directive (env : env) ((v1, v2, v3, v4) : CST.using_directive) =
 and global_attribute_list (env : env)
     ((v1, v2, v3, v4, v5) : CST.global_attribute_list) =
   let v1 = token env v1 (* "[" *) in
-  let _v2TODO =
+  let v2 =
     match v2 with
-    | `Asse tok -> token env tok (* "assembly" *)
-    | `Module tok -> token env tok
+    | `Asse tok -> str env tok (* "assembly" *)
+    | `Module tok -> str env tok
     (* "module" *)
   in
   let _v3 = token env v3 (* ":" *) in
@@ -2492,7 +2492,8 @@ and global_attribute_list (env : env)
   in
   let _v5 = token env v5 (* "]" *) in
   let anys = List.map (fun a -> At a) v4 in
-  ExprStmt (OtherExpr (OE_Annot, anys) |> G.e, v1) |> G.s
+  (* TODO: better as OtherStmt *)
+  ExprStmt (OtherExpr (v2, anys) |> G.e, v1) |> G.s
 
 and global_statement (env : env) (x : CST.global_statement) = statement env x
 
@@ -2562,7 +2563,7 @@ and class_interface_struct (env : env) class_kind
   in
   let v7 = List.map (type_parameter_constraints_clause env) v7 in
   let open_bra, stmts, close_bra = declaration_list env v8 in
-  let fields = List.map (fun x -> G.FieldStmt x) stmts in
+  let fields = List.map (fun x -> G.F x) stmts in
   let tparams = type_parameters_with_constraints v5 v7 in
   let idinfo = empty_id_info () in
   let ent = { name = EN (Id (v4, idinfo)); attrs = v1 @ v2; tparams } in
@@ -2720,7 +2721,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                        basic_entity (iname ^ "_" ^ fname, itok) ~attrs
                      in
                      let valparam =
-                       ParamClassic
+                       Param
                          {
                            pname = Some ("value", fake "value");
                            ptype = Some v4;
@@ -2794,7 +2795,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                        DefStmt (ent, funcdef) |> G.s
                    | "set" ->
                        let valparam =
-                         ParamClassic
+                         Param
                            {
                              pname = Some ("value", fake "value");
                              ptype = Some v3;
@@ -2927,7 +2928,7 @@ and declaration (env : env) (x : CST.declaration) : stmt =
                         fparams =
                           (if has_params then
                            [
-                             ParamClassic
+                             Param
                                {
                                  pname = Some ("value", fake "value");
                                  ptype = Some v3;

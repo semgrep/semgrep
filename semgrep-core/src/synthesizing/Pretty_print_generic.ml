@@ -48,7 +48,9 @@ let ident (s, _) = s
 let ident_or_dynamic = function
   | EN (Id (x, _idinfo)) -> ident x
   | EN _
-  | EDynamic _ ->
+  | EDynamic _
+  | EPattern _
+  | OtherEntity _ ->
       raise Todo
 
 let opt f = function
@@ -248,7 +250,7 @@ and if_stmt env level (tok, e, s, sopt) =
         (paren_cond, "else if", bracket_body)
     | Lang.Lua -> (paren_cond, "elseif", bracket_body)
   in
-  let e_str = format_cond tok (expr env e) in
+  let e_str = format_cond tok (condition env e) in
   let s_str = stmt env (level + 1) s in
   let if_stmt_prt = format_block e_str s_str in
   match sopt with
@@ -262,6 +264,11 @@ and if_stmt env level (tok, e, s, sopt) =
   | Some body ->
       F.sprintf "%s%s" if_stmt_prt
         (format_block (indent level ^ "else") (stmt env (level + 1) body))
+
+and condition env x =
+  match x with
+  | Cond e -> expr env e
+  | OtherCond _ -> raise Todo
 
 and while_stmt env level (tok, e, s) =
   let ocaml_while = F.sprintf "%s %s do\n%s\ndone" in
@@ -300,7 +307,7 @@ and while_stmt env level (tok, e, s) =
     | Lang.Ruby -> ruby_while
     | Lang.OCaml -> ocaml_while
   in
-  while_format (token "while" tok) (expr env e) (stmt env (level + 1) s)
+  while_format (token "while" tok) (condition env e) (stmt env (level + 1) s)
 
 and do_while stmt env level (s, e) =
   let c_do_while = F.sprintf "do %s\nwhile(%s)" in
@@ -590,7 +597,7 @@ and expr env e =
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
   | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
-  | OtherExpr (op, anys) -> other env (op, anys)
+  | OtherExpr (categ, anys) -> other env (categ, anys)
   | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | _x -> todo (E e)
 
@@ -727,9 +734,9 @@ and dot_access env (e, _tok, fi) =
 
 and field_ident env fi =
   match fi with
-  | EN (Id (id, _idinfo)) -> ident id
-  | EN (IdQualified qualified_info) -> id_qualified env qualified_info
-  | EDynamic e -> expr env e
+  | FN (Id (id, _idinfo)) -> ident id
+  | FN (IdQualified qualified_info) -> id_qualified env qualified_info
+  | FDynamic e -> expr env e
 
 and tyvar env (id, typ) =
   match env.lang with
