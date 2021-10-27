@@ -30,9 +30,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Python
-        run: |
-          rm /usr/bin/python
-          ln `which python3.7` /usr/bin/python
+        uses: actions/setup-python@v1
+        with:
+          # This is just the Python version to build the wheels
+          python-version: 3.7
       - name: Print Platform
         run:  python3 -c "from distutils import util; print(util.get_platform())"
 
@@ -41,8 +42,9 @@ jobs:
     container: python:3.9-alpine
     steps:
       - name: Setup Python
-        run: |
-          rm /usr/bin/python
-          ln `which python3.7` /usr/bin/python
+        uses: actions/setup-python@v1
+        with:
+          # This is just the Python version to build the wheels
+          python-version: 3.7
       - name: Print Platform
         run:  python3 -c "from distutils import util; print(util.get_platform())"
