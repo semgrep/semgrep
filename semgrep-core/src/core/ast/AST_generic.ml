@@ -1118,15 +1118,18 @@ and type_kind =
   (* Anonymous record type, a.k.a shape in PHP/Hack. See also AndType.
    * Most record types are defined via a TypeDef and are then referenced
    * via a TyName. Here we have flexible record types (a.k.a. rows in OCaml).
-   * TODO: just generalize as TClass of name option * class_definition
+   *
+   * TODO? just generalize as TClass of name option * class_definition
    * for C++. Those are ugly because it would be cleaner to have
    * definitions only at the toplevel, but C/C++/Go allow those nested
    * class defs. We could lift them up at the top and introduce gensym'ed
    * classnames, but it's maybe better to stay close to the code.
+   *
+   * The Class(Struct) of class_kind are used for Hack and Go, and Interface
+   * only for Go.
    *)
-  | TyRecordAnon of tok (* 'struct/shape', fake in other *) * field list bracket
-  (* for Go *)
-  | TyInterfaceAnon of tok (* 'interface' *) * field list bracket
+  | TyRecordAnon of
+      class_kind wrap (* 'struct/shape', fake in other *) * field list bracket
   (* sgrep-ext: *)
   | TyEllipsis of tok
   (* For languages such as Python which abuse expr to represent types.
@@ -1530,7 +1533,7 @@ and class_definition = {
  * for EnumClass/AnnotationClass/etc. see keyword_attribute.
  *)
 and class_kind =
-  | Class
+  | Class (* or Struct *)
   | Interface
   | Trait
   (* Kotlin/Scala *)

@@ -1576,10 +1576,7 @@ and m_type_ a b =
   | G.TyRest (a1, a2), B.TyRest (b1, b2) ->
       m_tok a1 b1 >>= fun () -> m_type_ a2 b2
   | G.TyRecordAnon (a0, a1), B.TyRecordAnon (b0, b1) ->
-      let* () = m_tok a0 b0 in
-      m_bracket m_fields a1 b1
-  | G.TyInterfaceAnon (a0, a1), B.TyInterfaceAnon (b0, b1) ->
-      let* () = m_tok a0 b0 in
+      let* () = m_class_kind a0 b0 in
       m_bracket m_fields a1 b1
   | G.TyOr (a1, a2, a3), B.TyOr (b1, b2, b3) ->
       m_type_ a1 b1 >>= fun () ->
@@ -1604,7 +1601,6 @@ and m_type_ a b =
   | G.TyOr _, _
   | G.TyAnd _, _
   | G.TyRecordAnon _, _
-  | G.TyInterfaceAnon _, _
   | G.TyRef _, _
   | G.TyExpr _, _
   | G.OtherType _, _ ->
