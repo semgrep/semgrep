@@ -117,6 +117,11 @@ let no_submatches pms =
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
   [@@profiling]
 
+(* This special Set is used in the dataflow tainting code,
+   which manipulates sets of matches associated to each variables.
+   We only care about the metavariable environment carried by the pattern matches
+   at the moment.
+*)
 module Set = Set.Make (struct
   type nonrec t = t
 

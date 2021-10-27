@@ -76,21 +76,17 @@ let set_opt_to_set = function
   | None -> PM.Set.empty
   | Some x -> x
 
-(* @param env1 Metavariable environment.
-   @param env2 Metavariable environment.
-   @returns Some (union [env1] [env2]) if [env1] and [env2] contain no conflicting metavariable assignments, otherwise None. *)
+(* [unify_meta_envs env1 env1] returns [Some (union env1 env2)] if [env1] and [env2] contain no conflicting metavariable assignments, otherwise [None]. *)
 let unify_meta_envs env1 env2 =
   let ( let* ) = Option.bind in
   let xs =
     List.fold_left
       (fun xs (mvar, mval) ->
+        let* xs = xs in
         match List.assoc_opt mvar env2 with
-        | None ->
-            let* xs = xs in
-            Some ((mvar, mval) :: xs)
+        | None -> Some ((mvar, mval) :: xs)
         | Some mval' ->
             if Metavariable.equal_mvalue mval mval' then
-              let* xs = xs in
               Some ((mvar, mval) :: xs)
             else None)
       (Some []) env1
