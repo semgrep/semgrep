@@ -516,11 +516,7 @@ let (mk_visitor :
       match t with
       | TyEllipsis v1 -> v_tok v1
       | TyRecordAnon (v0, v1) ->
-          v_tok v0;
-          let v1 = v_bracket v_fields v1 in
-          ()
-      | TyInterfaceAnon (v0, v1) ->
-          v_tok v0;
+          v_class_kind v0;
           let v1 = v_bracket v_fields v1 in
           ()
       | TyOr (v1, v2, v3) ->

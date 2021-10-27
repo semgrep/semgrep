@@ -475,7 +475,7 @@ and type_kind x =
       in
       G.TyFun (params, rett)
   | TyRecordAnon (lt, (), rt) ->
-      G.TyRecordAnon (PI.fake_info lt "", (lt, [], rt))
+      G.TyRecordAnon ((G.Class, PI.fake_info lt ""), (lt, [], rt))
   | TyOr (t1, tk, t2) ->
       let t1 = type_ t1 in
       let t2 = type_ t2 in
