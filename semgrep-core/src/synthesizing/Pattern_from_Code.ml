@@ -307,7 +307,7 @@ and generalize_if s_in =
   let rec dots_in_cond s =
     match s.s with
     | If (tok, _, s, sopt) ->
-        If (tok, Ellipsis fk |> G.e, s, opt dots_in_cond sopt) |> G.s
+        If (tok, Cond (Ellipsis fk |> G.e), s, opt dots_in_cond sopt) |> G.s
     | Block (t1, [ ({ s = If _; _ } as x) ], t2) ->
         Block (t1, [ dots_in_cond x ], t2) |> G.s
     | _ -> s

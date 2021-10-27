@@ -164,7 +164,7 @@ and stmt e : G.stmt =
         | None -> None
         | Some x -> Some (stmt x)
       in
-      G.If (t, v1, v2, v3) |> G.s
+      G.If (t, G.Cond v1, v2, v3) |> G.s
   (* alt: could be a G.Seq expr *)
   | Sequence (l, v1, r) ->
       let v1 = list stmt v1 in

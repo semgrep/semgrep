@@ -205,6 +205,10 @@ let expr_to_class_parent e : class_parent = (expr_to_type e, None)
 
 (* See also exprstmt, and stmt_to_expr in AST_generic.ml *)
 
+let cond_to_expr = function
+  | Cond e -> e
+  | OtherCond (categ, xs) -> OtherExpr (categ, xs) |> G.e
+
 (* old: there was a stmt_to_item before *)
 (* old: there was a stmt_to_field before *)
 

@@ -644,7 +644,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
               G.Block (G.fake_bracket (map_statements_and_return env (v4, v5)))
               |> G.s
             in
-            Some (G.If (v1, v2, stmt_list, acc) |> G.s))
+            Some (G.If (v1, G.Cond v2, stmt_list, acc) |> G.s))
           None v6
       in
       let v7 =
@@ -655,8 +655,8 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let _v8 = token env v8 (* "end" *) in
       let ifstmt =
         match v7 with
-        | Some else_ -> G.If (v1, v2, stmt_list, Some else_)
-        | None -> G.If (v1, v2, stmt_list, elseifs)
+        | Some else_ -> G.If (v1, G.Cond v2, stmt_list, Some else_)
+        | None -> G.If (v1, G.Cond v2, stmt_list, elseifs)
       in
       [ ifstmt |> G.s ]
   | `While_stmt (v1, v2, v3, v4, v5, v6) ->

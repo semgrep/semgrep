@@ -2225,7 +2225,7 @@ and statement (env : env) (x : CST.statement) =
             in
             let v2 = parenthesized_expression env v2 in
             let v3 = statement env v3 in
-            G.If (v1, v2, v3, None) |> G.s)
+            G.If (v1, G.Cond v2, v3, None) |> G.s)
           v4
       in
       let v5 =
@@ -2237,7 +2237,8 @@ and statement (env : env) (x : CST.statement) =
         | None -> []
       in
       (* TODO: Figure out if this is even a proper representation *)
-      G.If (v1, v2, v3, Some (G.Block (G.fake_bracket (v4 @ v5)) |> G.s)) |> G.s
+      G.If (v1, G.Cond v2, v3, Some (G.Block (G.fake_bracket (v4 @ v5)) |> G.s))
+      |> G.s
   | `While_stmt (v1, v2, v3) ->
       let v1 = (* "while" *) token env v1 in
       let v2 = parenthesized_expression env v2 in
@@ -2281,7 +2282,7 @@ and statement (env : env) (x : CST.statement) =
       G.For (v1, header, v9) |> G.s
   | `Switch_stmt (v1, v2, v3, v4, v5) ->
       let v1 = (* "switch" *) token env v1 in
-      let v2 = Some (parenthesized_expression env v2) in
+      let v2 = Some (G.Cond (parenthesized_expression env v2)) in
       let _v3 = (* "{" *) token env v3 in
       let v4 =
         List.map

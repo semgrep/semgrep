@@ -595,7 +595,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
             Block v1
         | If (t, v1, v2, v3) ->
             let t = map_tok t in
-            let v1 = map_expr v1
+            let v1 = map_condition v1
             and v2 = map_stmt v2
             and v3 = map_of_option map_stmt v3 in
             If (t, v1, v2, v3)
@@ -613,7 +613,7 @@ let (mk_visitor : visitor_in -> visitor_out) =
             For (t, v1, v2)
         | Switch (v0, v1, v2) ->
             let v0 = map_tok v0 in
-            let v1 = map_of_option map_expr v1
+            let v1 = map_of_option map_condition v1
             and v2 = map_of_list map_case_and_body v2 in
             Switch (v0, v1, v2)
         | Return (t, v1, sc) ->
@@ -673,6 +673,13 @@ let (mk_visitor : visitor_in -> visitor_out) =
       { x with s = skind }
     in
     vin.kstmt (k, all_functions) x
+  and map_condition = function
+    | Cond e ->
+        let e = map_expr e in
+        Cond e
+    | OtherCond (v1, v2) ->
+        let v1 = map_todo_kind v1 and v2 = map_of_list map_any v2 in
+        OtherCond (v1, v2)
   and map_other_stmt_with_stmt_operator x = x
   and map_label_ident = function
     | LNone -> LNone

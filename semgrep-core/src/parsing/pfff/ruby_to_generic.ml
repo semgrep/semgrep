@@ -448,7 +448,7 @@ and stmt st =
       let e = expr e in
       let st = list_stmt1 st in
       let elseopt = option_tok_stmts elseopt in
-      G.If (t, e, st, elseopt) |> G.s
+      G.If (t, G.Cond e, st, elseopt) |> G.s
   | While (t, _bool, e, st) ->
       let e = expr e in
       let st = list_stmt1 st in
@@ -470,7 +470,7 @@ and stmt st =
         | None -> G.Block (fb []) |> G.s
         | Some st -> st
       in
-      G.If (t, e, st1, Some st) |> G.s
+      G.If (t, G.Cond e, st1, Some st) |> G.s
   | For (t1, pat, t2, e, st) ->
       let pat = pattern pat in
       let e = expr e in
@@ -505,7 +505,13 @@ and stmt st =
             let st = list_stmt1 sts in
             [ ([ G.Default t ], st) ]
       in
-      G.Switch (t, eopt, whens @ default |> List.map (fun x -> G.CasesAndBody x))
+      let condopt =
+        match eopt with
+        | None -> None
+        | Some e -> Some (G.Cond e)
+      in
+      G.Switch
+        (t, condopt, whens @ default |> List.map (fun x -> G.CasesAndBody x))
       |> G.s
   | ExnBlock b -> body_exn b
 

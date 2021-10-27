@@ -16,6 +16,9 @@ val expr_to_type : AST_generic.expr -> AST_generic.type_
 
 val expr_to_class_parent : AST_generic.expr -> AST_generic.class_parent
 
+(* should avoid; used mainly during expr->condition migration for If/While/..*)
+val cond_to_expr : AST_generic.condition -> AST_generic.expr
+
 (* stmt conversions *)
 
 val vardef_to_assign :

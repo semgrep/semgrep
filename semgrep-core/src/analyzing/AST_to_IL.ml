@@ -730,6 +730,22 @@ let expr_with_pre_stmts env ?void e =
   env.stmts := [];
   (xs, e)
 
+(* alt: could use H.cond_to_expr and reuse expr_with_pre_stmts *)
+let cond_with_pre_stmts env ?void cond =
+  match cond with
+  | G.Cond e ->
+      let e = expr_orig env ?void e in
+      let xs = List.rev !(env.stmts) in
+      env.stmts := [];
+      (xs, e)
+  | G.OtherCond (categ, xs) ->
+      let e = G.OtherExpr (categ, xs) |> G.e in
+      log_fixme ToDo (G.E e);
+      let e = expr_orig env ?void e in
+      let xs = List.rev !(env.stmts) in
+      env.stmts := [];
+      (xs, e)
+
 let args_with_pre_stmts env args =
   let args = arguments env args in
   let xs = List.rev !(env.stmts) in
@@ -810,8 +826,8 @@ let rec stmt_aux env st =
   | G.DefStmt def -> [ mk_s (MiscStmt (DefStmt def)) ]
   | G.DirectiveStmt dir -> [ mk_s (MiscStmt (DirectiveStmt dir)) ]
   | G.Block xs -> xs |> G.unbracket |> List.map (stmt env) |> List.flatten
-  | G.If (tok, e, st1, st2) ->
-      let ss, e' = expr_with_pre_stmts env e in
+  | G.If (tok, cond, st1, st2) ->
+      let ss, e' = cond_with_pre_stmts env cond in
       let st1 = stmt env st1 in
       let st2 =
         List.map (stmt env) (st2 |> Common.opt_to_list) |> List.flatten
@@ -821,8 +837,11 @@ let rec stmt_aux env st =
       let ss, translate_cases =
         match switch_expr_opt with
         | Some switch_expr ->
-            let ss, switch_expr' = expr_with_pre_stmts env switch_expr in
-            (ss, switch_expr_and_cases_to_exp env tok switch_expr switch_expr')
+            let ss, switch_expr' = cond_with_pre_stmts env switch_expr in
+            ( ss,
+              switch_expr_and_cases_to_exp env tok
+                (H.cond_to_expr switch_expr)
+                switch_expr' )
         | None -> ([], cases_to_exp env tok)
       in
       let break_label, break_label_s, switch_env =

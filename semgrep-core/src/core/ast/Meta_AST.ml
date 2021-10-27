@@ -678,7 +678,7 @@ and vof_stmt st =
       OCaml.VSum ("Block", [ v1 ])
   | If (t, v1, v2, v3) ->
       let t = vof_tok t in
-      let v1 = vof_expr v1
+      let v1 = vof_condition v1
       and v2 = vof_stmt v2
       and v3 = OCaml.vof_option vof_stmt v3 in
       OCaml.VSum ("If", [ t; v1; v2; v3 ])
@@ -696,7 +696,7 @@ and vof_stmt st =
       OCaml.VSum ("For", [ t; v1; v2 ])
   | Switch (v0, v1, v2) ->
       let v0 = vof_tok v0 in
-      let v1 = OCaml.vof_option vof_expr v1
+      let v1 = OCaml.vof_option vof_condition v1
       and v2 = OCaml.vof_list vof_case_and_body v2 in
       OCaml.VSum ("Switch", [ v0; v1; v2 ])
   | Return (t, v1, sc) ->
@@ -751,6 +751,14 @@ and vof_stmt st =
   | OtherStmt (v1, v2) ->
       let v1 = vof_other_stmt_operator v1 and v2 = OCaml.vof_list vof_any v2 in
       OCaml.VSum ("OtherStmt", [ v1; v2 ])
+
+and vof_condition = function
+  | Cond v1 ->
+      let v1 = vof_expr v1 in
+      OCaml.VSum ("Cond", [ v1 ])
+  | OtherCond (v1, v2) ->
+      let v1 = vof_todo_kind v1 and v2 = OCaml.vof_list vof_any v2 in
+      OCaml.VSum ("OtherCond", [ v1; v2 ])
 
 and vof_other_stmt_with_stmt_operator = function
   | OSWS_With -> OCaml.VSum ("OSWS_With", [])
