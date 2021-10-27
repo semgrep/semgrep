@@ -477,6 +477,8 @@ and expression (env : env) (e : expression) : G.expr =
   | Special_character str -> G.L (G.String str) |> G.e
   | Concatenation (loc, el) -> List.map (expression env) el |> call loc C.concat
   | Expr_ellipsis tok -> G.Ellipsis tok |> G.e
+  | Expr_deep_ellipsis (_loc, (open_, e, close)) ->
+      G.DeepEllipsis (open_, expression env e, close) |> G.e
   | Expr_metavar mv -> G.N (mk_name mv) |> G.e
   | Equality_test (loc, _, _) -> (* don't know what this is *) todo_expr loc
   | Empty_expression loc -> G.L (G.String ("", fst loc)) |> G.e

@@ -259,7 +259,9 @@ let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) :
   let dollar_tok = token env v1 (* "$" *) in
   let var_name =
     match v2 with
-    | `Choice_semg_meta x -> simple_variable_name env x
+    | `Orig_simple_var_name tok ->
+        (* pattern \w+ *)
+        Simple_variable_name (str env tok)
     | `Choice_STAR x -> special_variable_name env x
     | `BANG tok -> Special_variable_name (str env tok (* "!" *))
     | `HASH tok -> Special_variable_name (str env tok (* "#" *))
@@ -279,9 +281,9 @@ let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) :
   | Program -> Expansion (loc, Simple_expansion (loc, var_name))
 
 let rec prim_exp_or_special_char (env : env)
-    (x : CST.anon_choice_prim_exp_9700637) : expression =
+    (x : CST.anon_choice_prim_exp_65e2c2e) : expression =
   match x with
-  | `Choice_word x -> primary_expression env x
+  | `Choice_semg_deep_exp x -> primary_expression env x
   | `Spec_char tok -> Special_character (str env tok)
 
 and stmt_with_opt_heredoc (env : env)
@@ -430,7 +432,7 @@ and command_name (env : env) (x : CST.command_name) : expression =
       let el = concatenation env x in
       let loc = list_loc expression_loc el in
       Concatenation (loc, el)
-  | `Choice_word x -> primary_expression env x
+  | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs ->
       let el = List.map (fun tok -> Special_character (str env tok)) xs in
       let loc = list_loc expression_loc el in
@@ -742,7 +744,7 @@ and literal (env : env) (x : CST.literal) : expression =
       match el with
       | [ e ] -> e
       | _ -> Concatenation (loc, el))
-  | `Choice_word x -> primary_expression env x
+  | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs -> (
       let el = List.map (fun tok -> Special_character (str env tok)) xs in
       let loc = list_loc expression_loc el in
@@ -752,47 +754,55 @@ and literal (env : env) (x : CST.literal) : expression =
 
 and primary_expression (env : env) (x : CST.primary_expression) : expression =
   match x with
-  | `Word tok -> word env tok (* word *)
-  | `Str x -> String (string_ env x)
-  | `Raw_str tok -> Raw_string (str env tok (* pattern "'[^']*'" *))
-  | `Ansii_c_str tok ->
-      Ansii_c_string (str env tok (* pattern "\\$'([^']|\\\\')*'" *))
-  | `Expa x ->
-      let e = expansion env x in
-      let loc = bracket_loc e in
-      String_fragment (loc, Expansion (loc, Complex_expansion e))
-  | `Simple_expa x ->
-      let frag = simple_expansion env x in
-      let loc = string_fragment_loc frag in
-      String_fragment (loc, frag)
-  | `Str_expa (v1, v2) ->
-      let dollar = token env v1 (* "$" *) in
-      let e =
-        match v2 with
-        | `Str x ->
-            (* TODO: do something with the dollar sign *)
-            String (string_ env x)
-        | `Raw_str tok ->
-            (* TODO: how is it different from ANSI C strings?
-               e.g. $'hello\nbye' *)
-            (* pattern "'[^']*'" *)
-            Ansii_c_string (str env tok)
-      in
-      e
-  | `Cmd_subs x ->
-      let frag = Command_substitution (command_substitution env x) in
-      let loc = string_fragment_loc frag in
-      String_fragment (loc, frag)
-  | `Proc_subs (v1, v2, v3) ->
-      let open_ =
-        match v1 with
-        | `LTLPAR tok -> token env tok (* "<(" *)
-        | `GTLPAR tok -> (* ">(" *) token env tok
-      in
-      let body = statements env v2 in
-      let close = token env v3 (* ")" *) in
+  | `Semg_deep_exp (v1, v2, v3) ->
+      let open_ = (* "<..." *) token env v1 in
+      let e = literal env v2 in
+      let close = (* "...>" *) token env v3 in
       let loc = (open_, close) in
-      Process_substitution (loc, (open_, body, close))
+      Expr_deep_ellipsis (loc, (open_, e, close))
+  | `Choice_word x -> (
+      match x with
+      | `Word tok -> word env tok (* word *)
+      | `Str x -> String (string_ env x)
+      | `Raw_str tok -> Raw_string (str env tok (* pattern "'[^']*'" *))
+      | `Ansii_c_str tok ->
+          Ansii_c_string (str env tok (* pattern "\\$'([^']|\\\\')*'" *))
+      | `Expa x ->
+          let e = expansion env x in
+          let loc = bracket_loc e in
+          String_fragment (loc, Expansion (loc, Complex_expansion e))
+      | `Simple_expa x ->
+          let frag = simple_expansion env x in
+          let loc = string_fragment_loc frag in
+          String_fragment (loc, frag)
+      | `Str_expa (v1, v2) ->
+          let dollar = token env v1 (* "$" *) in
+          let e =
+            match v2 with
+            | `Str x ->
+                (* TODO: do something with the dollar sign *)
+                String (string_ env x)
+            | `Raw_str tok ->
+                (* TODO: how is it different from ANSI C strings?
+                   e.g. $'hello\nbye' *)
+                (* pattern "'[^']*'" *)
+                Ansii_c_string (str env tok)
+          in
+          e
+      | `Cmd_subs x ->
+          let frag = Command_substitution (command_substitution env x) in
+          let loc = string_fragment_loc frag in
+          String_fragment (loc, frag)
+      | `Proc_subs (v1, v2, v3) ->
+          let open_ =
+            match v1 with
+            | `LTLPAR tok -> token env tok (* "<(" *)
+            | `GTLPAR tok -> (* ">(" *) token env tok
+          in
+          let body = statements env v2 in
+          let close = token env v3 (* ")" *) in
+          let loc = (open_, close) in
+          Process_substitution (loc, (open_, body, close)))
 
 (* The token tok is needed to indicate the location of the list of statements
    in case it's empty. *)

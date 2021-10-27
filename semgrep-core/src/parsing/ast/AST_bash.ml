@@ -375,11 +375,12 @@ and expression =
   | Ansii_c_string of (* $'...' *) string wrap
   | Concatenation of loc * expression list
   | Expr_ellipsis of (* ... *) tok
+  | Expr_deep_ellipsis of (* <... x ...> *) loc * expression bracket
   | Expr_metavar of (* $X in pattern mode *) string wrap
   | Equality_test of loc * eq_op * right_eq_operand (* should it be here? *)
   | Empty_expression of loc
-  | Array of (* ( ... ) *) loc * expression list bracket
-  | Process_substitution of (* <( ... ) *) loc * blist bracket
+  | Array of (* ( a b ) *) loc * expression list bracket
+  | Process_substitution of (* <( echo 'x' ) *) loc * blist bracket
 
 (* Fragment of a double-quoted string *)
 and string_fragment =
@@ -597,6 +598,7 @@ let expression_loc = function
   | Special_character x -> wrap_loc x
   | Concatenation (loc, _) -> loc
   | Expr_ellipsis tok -> (tok, tok)
+  | Expr_deep_ellipsis (loc, _) -> loc
   | Expr_metavar x -> wrap_loc x
   | Equality_test (loc, _, _) -> loc
   | Empty_expression loc -> loc
