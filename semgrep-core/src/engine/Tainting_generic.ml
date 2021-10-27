@@ -87,7 +87,7 @@ module DataflowY = Dataflow.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
-let any_in_ranges any ranges =
+let any_in_ranges any rwms =
   (* This is potentially slow. We may need to store range position in
    * the AST at some point. *)
   match Visitor_AST.range_of_any_opt any with
@@ -95,17 +95,17 @@ let any_in_ranges any ranges =
       logger#debug
         "Cannot compute range, there are no real tokens in this AST: %s"
         (G.show_any any);
-      false
+      []
   | Some (tok1, tok2) ->
       let r = Range.range_of_token_locations tok1 tok2 in
-      List.exists (Range.( $<=$ ) r) ranges
+      List.filter (fun rwm -> Range.( $<=$ ) r rwm.Range_with_metavars.r) rwms
+      |> List.map (fun rwm -> rwm.Range_with_metavars.origin)
 
-let ranges_of_pformula config equivs file_and_more rule_id pformula =
+let range_w_metas_of_pformula config equivs file_and_more rule_id pformula =
   let formula = Rule.formula_of_pformula pformula in
   Match_rules.matches_of_formula config equivs rule_id file_and_more formula
     None
   |> snd
-  |> List.map (fun rwm -> rwm.Range_with_metavars.r)
 
 (*s: function [[Tainting_generic.config_of_rule]] *)
 
@@ -121,30 +121,46 @@ let taint_config_of_rule default_config equivs file ast_and_errors
       lazy_ast_and_errors;
     }
   in
-  let find_ranges pfs =
+  let find_range_w_metas pfs =
     (* TODO: Make an Or formula and run a single query. *)
     (* if perf is a problem, we could build an interval set here *)
     pfs
-    |> List.map (ranges_of_pformula config equivs file_and_more (fst rule.id))
-    |> List.concat
+    |> List.concat_map
+         (range_w_metas_of_pformula config equivs file_and_more (fst rule.id))
   in
-  let sources_ranges = find_ranges spec.sources
-  and sinks_ranges = find_ranges spec.sinks in
-  let not_conflicting_sanitizers, regular_sanitizers =
-    spec.sanitizers
-    |> List.partition_map (fun { R.not_conflicting; pformula } ->
-           if not_conflicting then Either.left pformula
-           else Either.right pformula)
+  let find_range_w_metas_santizers specs =
+    specs
+    |> List.concat_map (fun spec ->
+           List.map
+             (fun pf -> (spec.Rule.not_conflicting, pf))
+             (range_w_metas_of_pformula config equivs file_and_more
+                (fst rule.id) spec.pformula))
   in
+  let sources_ranges = find_range_w_metas spec.sources
+  and sinks_ranges = find_range_w_metas spec.sinks in
   let sanitizers_ranges =
-    (find_ranges not_conflicting_sanitizers
-    (* These sanitizers cannot conflict with a sink or a source. This allows to
-     * e.g. declare `$F(...)` as a sanitizer without sanitizing every other
-     * function call acting as a sink or a source. See [Rule.sanitizer_spec]. *)
-    |> List.filter (fun r ->
+    find_range_w_metas_santizers spec.sanitizers
+    (* A sanitizer cannot conflict with a sink or a source, otherwise it is
+     * filtered out. This allows to e.g. declare `$F(...)` as a sanitizer,
+     * to assume that any other function will handle tainted data safely.
+     * Without this, `$F(...)` will automatically sanitize any other function
+     * call acting as a sink or a source. *)
+    |> List.filter_map (fun (not_conflicting, rng) ->
            (* TODO: Warn user when we filter out a sanitizer? *)
-           not (List.mem r sinks_ranges || List.mem r sources_ranges)))
-    @ find_ranges regular_sanitizers
+           if not_conflicting then
+             if
+               not
+                 (List.exists
+                    (fun rng' ->
+                      rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
+                    sinks_ranges
+                 || List.exists
+                      (fun rng' ->
+                        rng'.Range_with_metavars.r = rng.Range_with_metavars.r)
+                      sources_ranges)
+             then Some rng
+             else None
+           else Some rng)
   in
   {
     Dataflow_tainting.is_source = (fun x -> any_in_ranges x sources_ranges);
@@ -167,28 +183,8 @@ let check hook default_config (taint_rules : (Rule.rule * Rule.taint_spec) list)
   let taint_configs =
     taint_rules
     |> List.map (fun (rule, taint_spec) ->
-           let rule_id =
-             {
-               Pattern_match.id = fst rule.Rule.id;
-               message = rule.Rule.message;
-               pattern_string = "TODO: no pattern_string";
-             }
-           in
-           let found_tainted_sink code _env =
-             match V.range_of_any_opt code with
-             | None ->
-                 (* TODO: Report a warning to the user? *)
-                 logger#error
-                   "Cannot report taint-mode match because we lack range info: \
-                    %s"
-                   (G.show_any code);
-                 ()
-             | Some range_loc ->
-                 let tokens = lazy (V.ii_of_any code) in
-                 (* todo: use env from sink matching func?  *)
-                 Common.push
-                   { PM.rule_id; file; range_loc; tokens; env = [] }
-                   matches
+           let found_tainted_sink pms _env =
+             PM.Set.iter (fun pm -> Common.push pm matches) pms
            in
            taint_config_of_rule default_config equivs file (ast, []) rule
              taint_spec found_tainted_sink)

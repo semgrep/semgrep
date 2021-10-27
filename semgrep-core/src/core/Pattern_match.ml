@@ -116,3 +116,22 @@ let no_submatches pms =
                  Hashtbl.replace tbl k (pm :: ys')));
   tbl |> Hashtbl.to_seq_values |> Seq.flat_map List.to_seq |> List.of_seq
   [@@profiling]
+
+(* This special Set is used in the dataflow tainting code,
+   which manipulates sets of matches associated to each variables.
+   We only care about the metavariable environment carried by the pattern matches
+   at the moment.
+*)
+module Set = Set.Make (struct
+  type nonrec t = t
+
+  (* If the pattern matches are obviously different (have different ranges), this is enough to compare them.
+     If their ranges are the same, compare their metavariable environments. This is not robust to reordering
+     metavariable environments. [("$A",e1);("$B",e2)] is not equal to [("$B",e2);("$A",e1)]. This should be ok
+     but is potentially a source of duplicate findings in taint mode, where these sets are used.
+  *)
+  let compare pm1 pm2 =
+    match compare pm1.range_loc pm2.range_loc with
+    | 0 -> compare pm1.env pm2.env
+    | c -> c
+end)

@@ -1,0 +1,11 @@
+rules:
+  - id: test-metavar-eq
+    languages:
+      - javascript
+    message: Matched on $X!
+    mode: taint
+    pattern-sinks:
+      - pattern: sink($X,...)
+    pattern-sources:
+      - pattern: get($X)
+    severity: WARNING
