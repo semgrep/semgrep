@@ -125,7 +125,7 @@ jobs:
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
-      - name: Test semgrep-core and spacegrep
+      - name: Test semgrep-core
         run: opam exec -- make -C semgrep-core test
 
   build-core-osx:
@@ -193,7 +193,6 @@ jobs:
         env:
           # Relative because build-wheels does a 'cd semgrep'
           SEMGREP_CORE_BIN: ../artifacts/semgrep-core
-          SPACEGREP_BIN: ../artifacts/spacegrep
         run: ./scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
@@ -226,7 +225,6 @@ jobs:
         env:
           # Relative because build-wheels does a 'cd semgrep'
           SEMGREP_CORE_BIN: ../ocaml-build-artifacts/bin/semgrep-core
-          SPACEGREP_BIN: ../ocaml-build-artifacts/bin/spacegrep
         run: ./scripts/build-wheels.sh
       - name: Upload artifacts
         uses: actions/upload-artifact@v1

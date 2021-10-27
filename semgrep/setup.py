@@ -16,8 +16,6 @@ BIN_DIR = "bin"
 PACKAGE_BIN_DIR = os.path.join(SOURCE_DIR, "semgrep", BIN_DIR)
 SEMGREP_CORE_BIN = "semgrep-core"
 SEMGREP_CORE_BIN_ENV = "SEMGREP_CORE_BIN"
-SPACEGREP_BIN = "spacegrep"
-SPACEGREP_BIN_ENV = "SPACEGREP_BIN"
 SEMGREP_SKIP_BIN = "SEMGREP_SKIP_BIN" in os.environ
 SEMGREP_FORCE_INSTALL = "SEMGREP_FORCE_INSTALL" in os.environ
 IS_WINDOWS = platform.system() == "Windows"
@@ -83,21 +81,9 @@ def find_executable(env_name, exec_name):
     )
 
 
-#
-# The default behavior is to copy the semgrep-core and spacegrep binaries
-# into some other folder known to the semgrep wrapper. If somebody knows why,
-# please explain why we do this.
-#
-# It makes testing of semgrep-core error-prone since recompiling
-# semgrep-core won't perform this copy. If we can't get rid of this, can
-# we use a symlink instead?
-#
-# The environment variable SEMGREP_SKIP_BIN bypasses this copy. What is it for?
-#
 if not SEMGREP_SKIP_BIN:
     binaries = [
         (SEMGREP_CORE_BIN_ENV, SEMGREP_CORE_BIN),
-        (SPACEGREP_BIN_ENV, SPACEGREP_BIN),
     ]
 
     for binary_env, binary_name in binaries:
