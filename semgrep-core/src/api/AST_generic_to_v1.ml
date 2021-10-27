@@ -499,13 +499,9 @@ and map_type_kind = function
       let v1 = map_tok v1 in
       `TyEllipsis v1
   | TyRecordAnon (v0, v1) ->
-      let v0 = map_tok v0 in
-      let v1 = map_bracket (map_of_list map_field) v1 in
-      `TyRecordAnon (v0, v1)
-  | TyInterfaceAnon (v0, v1) ->
-      let v0 = map_tok v0 in
-      let v1 = map_bracket (map_of_list map_field) v1 in
-      `TyInterfaceAnon (v0, v1)
+      let _v0 = map_wrap map_class_kind v0 in
+      let _v1 = map_bracket (map_of_list map_field) v1 in
+      failwith "TODO"
   | TyOr (v1, v2, v3) ->
       let v1 = map_type_ v1 in
       let v2 = map_tok v2 in

@@ -2483,7 +2483,7 @@ and type_kind (env : env) (x : CST.type_) : G.type_kind =
         | None -> []
       in
       let v5 = (* ")" *) token env v5 in
-      G.TyRecordAnon (v2, (v3, v4, v5))
+      G.TyRecordAnon ((G.Class, v2), (v3, v4, v5))
   | `Func_type_spec (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let _v1TODO = List.map (type_modifier env) v1 in
       let _v2 = (* "(" *) token env v2 in
