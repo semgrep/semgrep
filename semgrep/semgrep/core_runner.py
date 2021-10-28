@@ -414,17 +414,14 @@ class CoreRunner:
             profiling_data,
         )
 
-    def validate_configs(self, configs: Config) -> Sequence[SemgrepError]:
+    def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
         metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
             0
         ].get_rules(True)
-        rules = configs.get_rules(True)
 
         parsed_errors = []
 
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".yaml"
-        ) as rule_file, tempfile.NamedTemporaryFile("w", suffix=".yaml") as target_file:
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml") as rule_file:
 
             yaml = YAML()
             yaml.dump(
@@ -432,16 +429,15 @@ class CoreRunner:
             )
             rule_file.flush()
 
-            yaml = YAML()
-            yaml.dump({"rules": [rule._raw for rule in rules]}, target_file)
-            target_file.flush()
-
-            cmd = [SemgrepCore.path()] + [
-                "-check_rules",
-                rule_file.name,
-                target_file.name,
-                "-json",
-            ]
+            cmd = (
+                [SemgrepCore.path()]
+                + [
+                    "-json",
+                    "-check_rules",
+                    rule_file.name,
+                ]
+                + list(configs)
+            )
 
             stderr: Optional[int] = subprocess.PIPE
 
