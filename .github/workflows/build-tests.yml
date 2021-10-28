@@ -74,30 +74,3 @@ jobs:
         run: |
           chmod +x ./artifacts/semgrep-core
           ./artifacts/semgrep-core -help
-
-  release-ubuntu:
-    name: Check builds for ubuntu
-    needs: [build-core]
-    runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-16.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-      - name: Download artifacts
-        uses: actions/download-artifact@v1
-        with:
-          name: ocaml-build-artifacts
-      - name: Install artifacts
-        run: |
-          tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
-          mkdir -p semgrep-files
-          cp ocaml-build-artifacts/bin/* semgrep-files
-      - name: Run Ubuntu build script
-        run: ./scripts/ubuntu-release.sh
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: semgrep-ubuntu-16.04-${{ github.sha }}
-          path: artifacts.tar.gz

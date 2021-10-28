@@ -2,104 +2,103 @@
 name: release
 
 on:
-  push:
-    branches:
-      # Sequence of patterns matched against refs/tags
-      - '**-test-release'
-    tags:
-      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+  pull_request:
+  # push:
+  #   branches:
+  #     # Sequence of patterns matched against refs/tags
+  #     - '**-test-release'
+  #   tags:
+  #     - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
 jobs:
-  create_release:
-    name: Create the Github Release
-    runs-on: ubuntu-latest
-    needs: [upload-wheels, release-ubuntu-16-04]
-    steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: true
-          prerelease: false
+  # create_release:
+  #   name: Create the Github Release
+  #   runs-on: ubuntu-latest
+  #   needs: [upload-wheels, release-ubuntu-16-04]
+  #   steps:
+  #     - name: Create Release
+  #       id: create_release
+  #       uses: actions/create-release@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         tag_name: ${{ github.ref }}
+  #         release_name: Release ${{ github.ref }}
+  #         draft: true
+  #         prerelease: false
+  #     - uses: actions/download-artifact@v1
+  #       with:
+  #         name: semgrep-osx-${{ github.sha }}
+  #         path: semgrep-osx
+  #     - name: Compute checksum
+  #       run: cat ./semgrep-osx/artifacts.zip | sha256sum > ./semgrep-osx/artifacts.zip.sha256
+  #     - name: Get the version
+  #       id: get_version
+  #       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+  #     - name: Upload Release Asset
+  #       id: upload-release-asset-osx
+  #       uses: actions/upload-release-asset@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         upload_url: ${{ steps.create_release.outputs.upload_url }}
+  #         asset_path: ./semgrep-osx/artifacts.zip
+  #         asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip
+  #         asset_content_type: application/zip
+  #     - name: Upload Release Checksum
+  #       id: upload-checksum-asset-osx
+  #       uses: actions/upload-release-asset@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         upload_url: ${{ steps.create_release.outputs.upload_url }}
+  #         asset_path: ./semgrep-osx/artifacts.zip.sha256
+  #         asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
+  #         asset_content_type: application/zip
 
-          # OSX
-      - uses: actions/download-artifact@v1
-        with:
-          name: semgrep-osx-${{ github.sha }}
-          path: semgrep-osx
-      - name: Compute checksum
-        run: cat ./semgrep-osx/artifacts.zip | sha256sum > ./semgrep-osx/artifacts.zip.sha256
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-      - name: Upload Release Asset
-        id: upload-release-asset-osx
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./semgrep-osx/artifacts.zip
-          asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip
-          asset_content_type: application/zip
-      - name: Upload Release Checksum
-        id: upload-checksum-asset-osx
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./semgrep-osx/artifacts.zip.sha256
-          asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-osx.zip.sha256
-          asset_content_type: application/zip
+  #         ## UBUNTU
+  #     - uses: actions/download-artifact@v1
+  #       with:
+  #         name: semgrep-ubuntu-16.04-${{ github.sha }}
+  #         path: semgrep-ubuntu
+  #     - name: Compute checksum
+  #       run: cat ./semgrep-ubuntu/artifacts.tar.gz | sha256sum > ./semgrep-ubuntu/artifacts.tar.gz.sha256
+  #     - name: Upload Release Asset
+  #       id: upload-release-asset-ubuntu
+  #       uses: actions/upload-release-asset@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         upload_url: ${{ steps.create_release.outputs.upload_url }}
+  #         asset_path: ./semgrep-ubuntu/artifacts.tar.gz
+  #         asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz
+  #         asset_content_type: application/gzip
+  #     - name: Upload Release Checksum
+  #       id: upload-release-checksum-ubuntu
+  #       uses: actions/upload-release-asset@v1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         upload_url: ${{ steps.create_release.outputs.upload_url }}
+  #         asset_path: ./semgrep-ubuntu/artifacts.tar.gz.sha256
+  #         asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
+  #         asset_content_type: application/gzip
 
-          ## UBUNTU
-      - uses: actions/download-artifact@v1
-        with:
-          name: semgrep-ubuntu-16.04-${{ github.sha }}
-          path: semgrep-ubuntu
-      - name: Compute checksum
-        run: cat ./semgrep-ubuntu/artifacts.tar.gz | sha256sum > ./semgrep-ubuntu/artifacts.tar.gz.sha256
-      - name: Upload Release Asset
-        id: upload-release-asset-ubuntu
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./semgrep-ubuntu/artifacts.tar.gz
-          asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz
-          asset_content_type: application/gzip
-      - name: Upload Release Checksum
-        id: upload-release-checksum-ubuntu
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./semgrep-ubuntu/artifacts.tar.gz.sha256
-          asset_name: semgrep-${{ steps.get_version.outputs.VERSION }}-ubuntu-16.04.tgz.sha256
-          asset_content_type: application/gzip
-
-  release-docker:
-    name: Build and Push Semgrep Docker Container
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Get the version without leading v
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
-      - name: build-and-push
-        uses: docker/build-push-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: returntocorp/semgrep
-          tags: ${{ steps.get_version.outputs.VERSION }}, latest
+  # release-docker:
+  #   name: Build and Push Semgrep Docker Container
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Get the version without leading v
+  #       id: get_version
+  #       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+  #     - name: build-and-push
+  #       uses: docker/build-push-action@v1
+  #       with:
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_PASSWORD }}
+  #         repository: returntocorp/semgrep
+  #         tags: ${{ steps.get_version.outputs.VERSION }}, latest
 
   build-core:
     name: semgrep-core make test and semgrep make test/qa-test
@@ -146,7 +145,6 @@ jobs:
 
   release-ubuntu-16-04:
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-16.04
     needs: [build-core]
     steps:
       - name: Checkout
@@ -189,11 +187,20 @@ jobs:
         with:
           # This is just the Python version to build the wheels
           python-version: 3.7
-      - name: Build the wheels
+      - name: Install setuptools and wheel
+        run: pip install setuptools wheel
+      - name: Build macosx 10.15 wheel
+        working-directory: semgrep
         env:
-          # Relative because build-wheels does a 'cd semgrep'
           SEMGREP_CORE_BIN: ../artifacts/semgrep-core
-        run: ./scripts/build-wheels.sh
+        run: python setup.py bdist_wheel -p macosx-10-15-x86_64 --python-tag 'cp36.cp37.cp38.cp39.py36.py37.py38.py39'
+      - name: Build macosx 11.0 wheel
+        working-directory: semgrep
+        env:
+          SEMGREP_CORE_BIN: ../artifacts/semgrep-core
+        run: python setup.py bdist_wheel -p macosx-11-0-x86_64 --python-tag 'cp36.cp37.cp38.cp39.py36.py37.py38.py39'
+      - name: Zip wheels
+        run: zip -r dist.zip dist
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -202,7 +209,6 @@ jobs:
 
   build-wheels-manylinux:
     runs-on: ubuntu-latest
-    container: returntocorp/sgrep-build:ubuntu-16.04
     needs: [build-core]
     steps:
       - name: Checkout
@@ -221,11 +227,18 @@ jobs:
           ln `which python3.7` /usr/bin/python
       - name: Install zip & musl-tools
         run: apt-get update && apt install -y zip musl-tools
-      - name: Build the wheels
+      - name: Install setuptools and wheel
+        run: pip install setuptools wheel
+      - name: Build musllinux_1_2_x86_64 wheel
         env:
-          # Relative because build-wheels does a 'cd semgrep'
           SEMGREP_CORE_BIN: ../ocaml-build-artifacts/bin/semgrep-core
-        run: ./scripts/build-wheels.sh
+        working-directory: semgrep
+        run: python setup.py sdist bdist_wheel -p  musllinux_1_2_x86_64 --python-tag 'cp36.cp37.cp38.cp39.py36.py37.py38.py39'
+      - name: Build manylinux2014_x86_64 wheel
+        env:
+          SEMGREP_CORE_BIN: ../ocaml-build-artifacts/bin/semgrep-core
+        working-directory: semgrep
+        run: python setup.py bdist_wheel -p manylinux2014_x86_64 --python-tag 'cp36.cp37.cp38.cp39.py36.py37.py38.py39'
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -244,7 +257,7 @@ jobs:
       - name: unzip dist
         run: unzip ./manylinux-wheel/dist.zip
       - name: install package
-        run: /opt/python/cp36-cp36m/bin/pip install dist/*.whl
+        run: /opt/python/cp36-cp36m/bin/pip install dist/*manylinux*.whl
       - name: test package
         working-directory: /opt/python/cp36-cp36m/bin/
         run: ./semgrep --version
@@ -272,47 +285,48 @@ jobs:
       - name: Unzip
         run: unzip ./manylinux-wheel/dist.zip
       - name: Unzip OSX Wheel
-        # Don't unzip tar.gz because it already exists from ./manylinux-wheel/dist.zip.
-        run: unzip ./osx-wheel/dist.zip "*.whl"
-      - name: Publish to Pypi
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.pypi_upload_token }}
-          skip_existing: true
+        run: unzip ./osx-wheel/dist.zip
+      - name: ls
+        run: ls
+      # - name: Publish to Pypi
+      #   uses: pypa/gh-action-pypi-publish@master
+      #   with:
+      #     user: __token__
+      #     password: ${{ secrets.pypi_upload_token }}
+      #     skip_existing: true
 
-  sleep-before-homebrew:
-    name: Sleep 10 min before releasing to homebrew
-    # Need to wait for pypi to propagate ssince pipgrip relies on it being published on pypi
-    needs: [upload-wheels]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Sleep 10 min
-        run: sleep 10m
+  # sleep-before-homebrew:
+  #   name: Sleep 10 min before releasing to homebrew
+  #   # Need to wait for pypi to propagate since pipgrip relies on it being published on pypi
+  #   needs: [upload-wheels]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Sleep 10 min
+  #       run: sleep 10m
 
-  homebrew-core-pr:
-    name: Update on Homebrew-Core
-    needs: [sleep-before-homebrew]  # Needs to run after pypi released so brew can update pypi dependency hashes
-    runs-on: macos-10.15
-    steps:
-      - name: Setup Python
-        uses: actions/setup-python@v1
-        with:
-          # Needs to be < 3.10 see https://github.com/returntocorp/semgrep/issues/4213
-          python-version: 3.9
-      - name: Brew update
-        run: brew update
-      - name: Install brew pipgrip
-        run: brew install pipgrip
-      - name: Install pip pipgrip
-        run: pip install pipgrip
-      - name: Point homebrew pipgrip to pip pipgrip
-        # Homebrew brew calls brew pipgrip internally but brew pipgrip is pinned to python3.10
-        # this tricks it into using our 3.9 pipgrip
-        run: rm /usr/local/opt/pipgrip/bin/pipgrip && ln /Users/runner/hostedtoolcache/Python/3.9.8/x64/bin/pipgrip /usr/local/opt/pipgrip/bin/pipgrip
-      - uses: dawidd6/action-homebrew-bump-formula@v3
-        with:
-          token: ${{ secrets.HOMEBREW_PR_TOKEN }}
-          formula: semgrep
-          org: returntocorp
-          force: true
+  # homebrew-core-pr:
+  #   name: Update on Homebrew-Core
+  #   needs: [sleep-before-homebrew]  # Needs to run after pypi released so brew can update pypi dependency hashes
+  #   runs-on: macos-10.15
+  #   steps:
+  #     - name: Setup Python
+  #       uses: actions/setup-python@v1
+  #       with:
+  #         # Needs to be < 3.10 see https://github.com/returntocorp/semgrep/issues/4213
+  #         python-version: 3.9
+  #     - name: Brew update
+  #       run: brew update
+  #     - name: Install brew pipgrip
+  #       run: brew install pipgrip
+  #     - name: Install pip pipgrip
+  #       run: pip install pipgrip
+  #     - name: Point homebrew pipgrip to pip pipgrip
+  #       # Homebrew brew calls brew pipgrip internally but brew pipgrip is pinned to python3.10
+  #       # this tricks it into using our 3.9 pipgrip
+  #       run: rm /usr/local/opt/pipgrip/bin/pipgrip && ln /Users/runner/hostedtoolcache/Python/3.9.8/x64/bin/pipgrip /usr/local/opt/pipgrip/bin/pipgrip
+  #     - uses: dawidd6/action-homebrew-bump-formula@v3
+  #       with:
+  #         token: ${{ secrets.HOMEBREW_PR_TOKEN }}
+  #         formula: semgrep
+  #         org: returntocorp
+  #         force: true

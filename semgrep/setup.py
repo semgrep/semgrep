@@ -29,27 +29,28 @@ def is_python_before_3_7():
     return int(major) < 3 or int(minor) < 7
 
 
-if WHEEL_CMD in sys.argv:
-    try:
-        from wheel.bdist_wheel import bdist_wheel
-    except ImportError:
-        raise Exception(f"The 'wheel' package is required when running '{WHEEL_CMD}'")
+# if WHEEL_CMD in sys.argv:
+#     try:
+#         from wheel.bdist_wheel import bdist_wheel
+#     except ImportError:
+#         raise Exception(f"The 'wheel' package is required when running '{WHEEL_CMD}'")
 
-    class BdistWheel(bdist_wheel):
-        def finalize_options(self):
-            bdist_wheel.finalize_options(self)
-            self.root_is_pure = False  # We have platform specific binaries
+#     class BdistWheel(bdist_wheel):
+#         def finalize_options(self):
+#             bdist_wheel.finalize_options(self)
+#             self.root_is_pure = False  # We have platform specific binaries
 
-        def get_tag(self):
-            _, _, plat = bdist_wheel.get_tag(self)
-            python = "cp36.cp37.cp38.cp39.py36.py37.py38.py39"
-            abi = "none"
-            plat = "macosx_10_14_x86_64" if "macosx" in plat else "any"
-            return python, abi, plat
+#         def get_tag(self):
+#             a, b, plat = bdist_wheel.get_tag(self)
+#             print(a, b, plat)
+#             python = "cp36.cp37.cp38.cp39.py36.py37.py38.py39"
+#             abi = "none"
+#             # plat = "macosx_10_14_x86_64" if "macosx" in plat else "any"
+#             return python, abi, plat
 
-    cmdclass = {WHEEL_CMD: BdistWheel}
-else:
-    cmdclass = {}
+#     cmdclass = {WHEEL_CMD: BdistWheel}
+# else:
+#     cmdclass = {}
 
 if IS_WINDOWS and not SEMGREP_FORCE_INSTALL:
     raise Exception(
@@ -128,7 +129,7 @@ setuptools.setup(
     author="Return To Corporation",
     author_email="support@r2c.dev",
     description="Lightweight static analysis for many languages. Find bug variants with patterns that look like source code.",
-    cmdclass=cmdclass,
+    # cmdclass=cmdclass,
     install_requires=install_requires,
     long_description=long_description,
     long_description_content_type="text/markdown",
