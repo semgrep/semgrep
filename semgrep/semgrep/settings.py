@@ -41,10 +41,12 @@ class Settings:
             with self._path.open("r") as fd:
                 yaml_file = self._yaml.load(fd)
             if not isinstance(yaml_file, Mapping):
-                raise TypeError(
-                    f"Bad settings format; please check or remove {self._path}"
+                self._logger.warning(
+                    f"Bad settings format; {self._path} will be overriden. Contents:\n{yaml_file}"
                 )
-            self._value = cast(Dict[str, Any], yaml_file)
+                self._value = DEFAULT_SETTINGS
+            else:
+                self._value = cast(Dict[str, Any], yaml_file)
         else:
             self._value = DEFAULT_SETTINGS
 
