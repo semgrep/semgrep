@@ -222,11 +222,10 @@ jobs:
       - name: Install artifacts
         run: tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
       - name: Setup Python
-        run: |
-          sudo rm /usr/bin/python
-          sudo ln `which python3.7` /usr/bin/python
-      - name: Install zip & musl-tools
-        run: apt-get update && apt install -y zip musl-tools
+        uses: actions/setup-python@v1
+        with:
+          # This is just the Python version to build the wheels
+          python-version: 3.7
       - name: Install setuptools and wheel
         run: pip install setuptools wheel
       - name: Build musllinux_1_2_x86_64 wheel
