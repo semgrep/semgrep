@@ -259,6 +259,8 @@ jobs:
           path: manylinux-wheel
       - name: unzip dist
         run: unzip ./manylinux-wheel/dist.zip
+      - name: ls
+        run: ls dist
       - name: install package
         run: /opt/python/cp36-cp36m/bin/pip install dist/*manylinux*.whl
       - name: test package
