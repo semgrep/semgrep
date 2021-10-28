@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import multiprocessing
 import os
+from itertools import chain
 from typing import Any
 from typing import cast
 from typing import Optional
@@ -19,6 +20,7 @@ from semgrep.constants import DEFAULT_MAX_TARGET_SIZE
 from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
+from semgrep.core_runner import CoreRunner
 from semgrep.notifications import possibly_notify_user
 from semgrep.types import MetricsState
 from semgrep.util import abort
@@ -644,18 +646,36 @@ def cli(
                 target_sequence,
             )
         elif validate:
-            configs, config_errors = semgrep.config_resolver.get_config(
-                pattern, lang, config or [], project_url=get_project_url()
-            )
-            valid_str = "invalid" if config_errors else "valid"
-            rule_count = len(configs.get_rules(True))
-            logger.info(
-                f"Configuration is {valid_str} - found {len(configs.valid)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
-            )
-            if config_errors:
-                for err in config_errors:
-                    output_handler.handle_semgrep_error(err)
-                raise SemgrepError("Please fix the above errors and try again.")
+            if not (pattern or lang or config):
+                logger.error(
+                    f"Nothing to validate, use the --config or --pattern flag to specify a rule"
+                )
+            else:
+                configs, config_errors = semgrep.config_resolver.get_config(
+                    pattern, lang, config or [], project_url=get_project_url()
+                )
+                config_errors = list(
+                    chain(
+                        config_errors,
+                        CoreRunner(
+                            jobs=jobs,
+                            timeout=timeout,
+                            max_memory=max_memory,
+                            timeout_threshold=timeout_threshold,
+                            optimizations=optimizations,
+                        ).validate_configs(configs),
+                    )
+                )
+
+                valid_str = "invalid" if config_errors else "valid"
+                rule_count = len(configs.get_rules(True))
+                logger.info(
+                    f"Configuration is {valid_str} - found {len(configs.valid)} valid configuration(s), {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
+                )
+                if config_errors:
+                    OutputSettings.verbose_errors = True
+                    output_handler.handle_semgrep_errors(config_errors)
+                    raise SemgrepError("Please fix the above errors and try again.")
         elif generate_config:
             with open(DEFAULT_CONFIG_FILE, "w") as fd:
                 semgrep.config_resolver.generate_config(fd, lang, pattern)

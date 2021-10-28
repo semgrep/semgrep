@@ -10,11 +10,13 @@ from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Tuple
 
 from ruamel.yaml import YAML
 
+from semgrep.config_resolver import Config
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import CoreOutput
 from semgrep.core_output import RuleId
@@ -411,3 +413,49 @@ class CoreRunner:
             all_targets,
             profiling_data,
         )
+
+    def validate_configs(self, configs: Config) -> Sequence[SemgrepError]:
+        metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
+            0
+        ].get_rules(True)
+        rules = configs.get_rules(True)
+
+        parsed_errors = []
+
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".yaml"
+        ) as rule_file, tempfile.NamedTemporaryFile("w", suffix=".yaml") as target_file:
+
+            yaml = YAML()
+            yaml.dump(
+                {"rules": [metacheck._raw for metacheck in metachecks]}, rule_file
+            )
+            rule_file.flush()
+
+            yaml = YAML()
+            yaml.dump({"rules": [rule._raw for rule in rules]}, target_file)
+            target_file.flush()
+
+            cmd = [SemgrepCore.path()] + [
+                "-check_rules",
+                rule_file.name,
+                target_file.name,
+                "-json",
+            ]
+
+            stderr: Optional[int] = subprocess.PIPE
+
+            core_run = sub_run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=stderr,
+            )
+            # TODO make _extract_core_output not take a rule_id
+            output_json = self._extract_core_output(metachecks[0], core_run)
+            core_output = CoreOutput.parse(output_json, RuleId(metachecks[0].id))
+
+            parsed_errors += [
+                e.to_semgrep_error(RuleId(metachecks[0].id)) for e in core_output.errors
+            ]
+
+        return parsed_errors
