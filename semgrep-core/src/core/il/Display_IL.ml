@@ -24,7 +24,7 @@ let short_string_of_node_kind nkind =
   | FalseNode -> "<FALSE path>"
   | Join -> "<join>"
   | NCond _ -> "cond(...)"
-  | NGoto (_, n) -> "goto " ^ str_of_name n
+  | NGoto (_, l) -> "goto " ^ str_of_label l
   | NReturn _ -> "return ...;"
   | NThrow _ -> "throw ...;"
   | NOther Noop -> "<noop>"

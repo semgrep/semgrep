@@ -102,7 +102,8 @@ type ident = G.ident [@@deriving show]
  * can become control-flow sensitive? (e.g., DOOP)
  *
  *)
-type name = ident * G.sid [@@deriving show]
+type name = { ident : ident; sid : G.sid; id_info : G.id_info }
+[@@deriving show]
 
 (*****************************************************************************)
 (* Fixme constructs *)
@@ -122,13 +123,7 @@ type fixme_kind =
 (*****************************************************************************)
 
 (* An lvalue, represented as in CIL as a pair. *)
-type lval = {
-  base : base;
-  offset : offset;
-  constness : G.constness option ref;
-      (* THINK: Drop option? *)
-      (* todo: ltype: typ; *)
-}
+type lval = { base : base; offset : offset }
 
 and base =
   | Var of name
@@ -446,7 +441,9 @@ let lval_of_node_opt = function
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let str_of_name ((s, _tok), _sid) = s
+let str_of_name name = fst name.ident
+
+let str_of_label ((n, _), _) = n
 
 let find_node f cfg =
   cfg#nodes#tolist

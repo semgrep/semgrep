@@ -102,9 +102,9 @@ let fixme_stmt kind gany =
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let fresh_var _env tok =
+let fresh_var ?(var = "_tmp") _env tok =
   let i = H.gensym () in
-  (("_tmp", tok), i)
+  { ident = (var, tok); sid = i; id_info = G.empty_id_info () }
 
 let fresh_label _env tok =
   let i = H.gensym () in
@@ -112,7 +112,7 @@ let fresh_label _env tok =
 
 let fresh_lval env tok =
   let var = fresh_var env tok in
-  { base = Var var; offset = NoOffset; constness = ref None }
+  { base = Var var; offset = NoOffset }
 
 let var_of_id_info id id_info =
   let sid =
@@ -124,18 +124,18 @@ let var_of_id_info id id_info =
         log_warning (Some id_tok) msg;
         -1
   in
-  (id, sid)
+  { ident = id; sid; id_info }
 
 let lval_of_id_info _env id id_info =
   let var = var_of_id_info id id_info in
-  { base = Var var; offset = NoOffset; constness = id_info.id_constness }
+  { base = Var var; offset = NoOffset }
 
 (* TODO: use also qualifiers? *)
 let lval_of_id_qualified env
     { G.name_last = id, _typeargsTODO; name_info = id_info; _ } =
   lval_of_id_info env id id_info
 
-let lval_of_base base = { base; offset = NoOffset; constness = ref None }
+let lval_of_base base = { base; offset = NoOffset }
 
 (* TODO: should do first pass on body to get all labels and assign
  * a gensym to each.
@@ -217,25 +217,21 @@ let rec lval env eorig =
   | G.N n -> name env n
   | G.IdSpecial (G.This, tok) -> lval_of_base (VarSpecial (This, tok))
   | G.DotAccess (e1orig, tok, field) -> (
-      let base, base_constness = nested_lval env tok e1orig in
+      let e1 = nested_lval env tok e1orig in
       match field with
       | G.FN (G.Id (id, idinfo)) ->
-          {
-            base;
-            offset = Dot (var_of_id_info id idinfo);
-            constness = idinfo.id_constness;
-          }
+          { base = e1; offset = Dot (var_of_id_info id idinfo) }
       | G.FN name ->
           let attr = expr env (G.N name |> G.e) in
-          { base; offset = Index attr; constness = base_constness }
+          { base = e1; offset = Index attr }
       | G.FDynamic e2orig ->
           let attr = expr env e2orig in
-          { base; offset = Index attr; constness = base_constness })
+          { base = e1; offset = Index attr })
   | G.ArrayAccess (e1orig, (_, e2orig, _)) ->
       let tok = G.fake "[]" in
-      let base, constness = nested_lval env tok e1orig in
+      let e1 = nested_lval env tok e1orig in
       let e2 = expr env e2orig in
-      { base; offset = Index e2; constness }
+      { base = e1; offset = Index e2 }
   | G.DeRef (_, e1orig) ->
       let e1 = expr env e1orig in
       lval_of_base (Mem e1)
@@ -252,7 +248,7 @@ and name env = function
       let lval = lval_of_id_qualified env qualified_info in
       lval
 
-and nested_lval env tok eorig =
+and nested_lval env tok eorig : base =
   let lval =
     match expr env eorig with
     | { e = Fetch ({ offset = NoOffset; _ } as lval); _ } -> lval
@@ -262,7 +258,7 @@ and nested_lval env tok eorig =
         fresh
   in
   assert (lval.offset = NoOffset);
-  (lval.base, lval.constness)
+  lval.base
 
 (*****************************************************************************)
 (* Pattern *)
@@ -289,9 +285,7 @@ and pattern env pat eorig =
         |> List.mapi (fun i pat_i ->
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i = Index { e = index_i; eorig } in
-               let lval_i =
-                 { base = Var tmp; offset = offset_i; constness = ref None }
-               in
+               let lval_i = { base = Var tmp; offset = offset_i } in
                pattern_assign_statements env
                  (mk_e (Fetch lval_i) eorig)
                  eorig pat_i)
@@ -343,9 +337,7 @@ and assign env lhs _tok rhs_exp eorig =
         |> List.mapi (fun i lhs_i ->
                let index_i = Literal (G.Int (Some i, tok1)) in
                let offset_i = Index { e = index_i; eorig } in
-               let lval_i =
-                 { base = Var tmp; offset = offset_i; constness = ref None }
-               in
+               let lval_i = { base = Var tmp; offset = offset_i } in
                assign env lhs_i tok1 { e = Fetch lval_i; eorig } eorig)
       in
       (* (E1, ..., En) *)
@@ -376,14 +368,11 @@ and expr_aux env ?(void = false) eorig =
         | [] -> impossible (G.E eorig)
         | obj :: args' ->
             let obj_var, _obj_lval = mk_aux_var env tok obj in
-            let method_id = (Parse_info.str_of_info tok, tok) in
-            let method_name = (method_id, -1) in
+            let method_name =
+              fresh_var env tok ~var:(Parse_info.str_of_info tok)
+            in
             let method_lval =
-              {
-                base = Var obj_var;
-                offset = Dot method_name;
-                constness = ref None;
-              }
+              { base = Var obj_var; offset = Dot method_name }
             in
             let method_ = { e = Fetch method_lval; eorig } in
             add_call env tok eorig ~void (fun res -> Call (res, method_, args'))
@@ -1196,8 +1185,7 @@ and python_with_stmt env manager opt_pat body =
       (* type(mgr).__method___ *)
       {
         base = Var type_mgr_var;
-        offset = Dot ((method_name, G.sc), -1);
-        constness = ref None;
+        offset = Dot (fresh_var env G.sc ~var:method_name);
       }
     in
     let ss =
