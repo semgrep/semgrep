@@ -201,6 +201,7 @@ jobs:
         run: python setup.py bdist_wheel -p macosx-11-0-x86_64 --python-tag 'cp36.cp37.cp38.cp39.py36.py37.py38.py39'
       - name: Zip wheels
         run: zip -r dist.zip dist
+        working-directory: semgrep
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
@@ -238,6 +239,9 @@ jobs:
           SEMGREP_CORE_BIN: ../ocaml-build-artifacts/bin/semgrep-core
         working-directory: semgrep
         run: python setup.py bdist_wheel -p manylinux2014_x86_64 --python-tag 'cp36.cp37.cp38.cp39.py36.py37.py38.py39'
+      - name: Zip wheels
+        run: zip -r dist.zip dist
+        working-directory: semgrep
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
