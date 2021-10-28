@@ -27,7 +27,7 @@ jobs:
           submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
-      - name: Build semgrep-core and spacegrep
+      - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
@@ -73,9 +73,7 @@ jobs:
       - name: Test build artifacts
         run: |
           chmod +x ./artifacts/semgrep-core
-          chmod +x ./artifacts/spacegrep
           ./artifacts/semgrep-core -help
-          ./artifacts/spacegrep --help
 
   release-ubuntu:
     name: Check builds for ubuntu

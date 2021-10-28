@@ -29,14 +29,14 @@ jobs:
           submodules: true
       - name: Post-checkout fixes
         run: ./.github/post-checkout
-      - name: Build semgrep-core and spacegrep
+      - name: Build semgrep-core
         run: ./scripts/install-alpine-semgrep-core
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
           name: ocaml-build-artifacts
           path: ocaml-build-artifacts.tgz
-      - name: Test semgrep-core and spacegrep
+      - name: Test semgrep-core
         run: |
           eval $(opam env)
           cd semgrep-core
