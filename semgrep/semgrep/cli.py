@@ -654,18 +654,16 @@ def cli(
                 configs, config_errors = semgrep.config_resolver.get_config(
                     pattern, lang, config or [], project_url=get_project_url()
                 )
-                config_errors = list(
-                    chain(
-                        config_errors,
-                        CoreRunner(
-                            jobs=jobs,
-                            timeout=timeout,
-                            max_memory=max_memory,
-                            timeout_threshold=timeout_threshold,
-                            optimizations=optimizations,
-                        ).validate_configs(configs),
-                    )
-                )
+
+                metacheck_errors = CoreRunner(
+                    jobs=jobs,
+                    timeout=timeout,
+                    max_memory=max_memory,
+                    timeout_threshold=timeout_threshold,
+                    optimizations=optimizations,
+                ).validate_configs(configs)
+
+                config_errors = list(chain(config_errors, metacheck_errors))
 
                 valid_str = "invalid" if config_errors else "valid"
                 rule_count = len(configs.get_rules(True))
