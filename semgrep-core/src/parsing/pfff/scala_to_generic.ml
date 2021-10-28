@@ -262,6 +262,9 @@ and v_type_kind = function
   | TyRepeated (v1, v2) ->
       let v1 = v_type_ v1 and v2 = v_tok v2 in
       todo_type "TyRepeated" [ G.T v1; G.Tk v2 ]
+  | TyByName (v1, v2) ->
+      let v1 = v_tok v1 and v2 = v_type_ v2 in
+      todo_type "TyByName" [ G.Tk v1; G.T v2 ]
   | TyAnnotated (v1, v2) ->
       let v1 = v_type_ v1 and _v2TODO = v_list v_annotation v2 in
       v1.t
