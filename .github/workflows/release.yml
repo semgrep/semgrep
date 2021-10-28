@@ -223,7 +223,7 @@ jobs:
         run: tar xf ocaml-build-artifacts/ocaml-build-artifacts.tgz
       - name: Setup Python
         run: |
-          rm /usr/bin/python
+          sudo rm /usr/bin/python
           ln `which python3.7` /usr/bin/python
       - name: Install zip & musl-tools
         run: apt-get update && apt install -y zip musl-tools
