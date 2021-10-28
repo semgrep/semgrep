@@ -262,7 +262,7 @@ jobs:
       - name: ls
         run: ls dist
       - name: install package
-        run: /opt/python/cp36-cp36m/bin/pip install dist/*manylinux*.whl
+        run: sudo /opt/python/cp36-cp36m/bin/pip -H install dist/*manylinux*.whl
       - name: test package
         working-directory: /opt/python/cp36-cp36m/bin/
         run: ./semgrep --version
@@ -275,7 +275,7 @@ jobs:
 
   upload-wheels:
     runs-on: ubuntu-latest
-    needs: [test-wheels-manylinux, build-wheels-osx]
+    needs: [build-wheels-manylinux, build-wheels-osx]
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v1
