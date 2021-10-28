@@ -579,11 +579,10 @@ and expr_aux env ?(void = false) eorig =
                 ss_for_e3 @ [ mk_s (Instr (mk_i (Assign (lval, e3)) e3orig)) ]
               )));
       lvalexp
+  | G.Await (_, e) -> expr env e
   | G.Xml _ -> todo (G.E eorig)
   | G.Constructor (_, _) -> todo (G.E eorig)
-  | G.Yield (_, _, _)
-  | G.Await (_, _) ->
-      todo (G.E eorig)
+  | G.Yield (_, _, _) -> todo (G.E eorig)
   | G.Cast (typ, _, e) ->
       let e = expr env e in
       mk_e (Cast (typ, e)) eorig
