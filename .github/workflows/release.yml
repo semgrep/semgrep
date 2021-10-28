@@ -224,7 +224,7 @@ jobs:
       - name: Setup Python
         run: |
           sudo rm /usr/bin/python
-          ln `which python3.7` /usr/bin/python
+          sudo ln `which python3.7` /usr/bin/python
       - name: Install zip & musl-tools
         run: apt-get update && apt install -y zip musl-tools
       - name: Install setuptools and wheel
