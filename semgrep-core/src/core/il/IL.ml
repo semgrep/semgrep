@@ -95,7 +95,7 @@ type 'a bracket = tok * 'a * tok [@@deriving show]
 type ident = G.ident [@@deriving show]
 
 (* 'sid' below is the result of name resolution and variable disambiguation
- * using a gensym (see Naming_AST.ml). The pair is guaranteed to be
+ * using a gensym (see Naming_AST.ml). A name is guaranteed to be
  * global and unique (no need to handle variable shadowing, block scoping,
  * etc; this has been done already).
  * TODO: use it to also do SSA! so some control-flow insensitive analysis
