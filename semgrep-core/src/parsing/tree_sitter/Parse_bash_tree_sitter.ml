@@ -198,7 +198,8 @@ let test_operator (env : env) (tok : CST.test_operator) : string wrap =
 let simple_variable_name (env : env) (x : CST.simple_variable_name) :
     variable_name =
   match x with
-  | `Semg_meta tok -> (* pattern \$[A-Z_][A-Z_0-9]* *) Var_metavar (str env tok)
+  | `Semg_meta tok ->
+      (* pattern \$[A-Z_][A-Z_0-9]* *) Var_semgrep_metavar (str env tok)
   | `Pat_42e353e tok -> (* pattern \w+ *) Simple_variable_name (str env tok)
 
 let special_variable_name (env : env) (x : CST.special_variable_name) :
@@ -218,14 +219,14 @@ let heredoc_body_beginning (env : env) (tok : CST.heredoc_body_beginning) =
 
 let word (env : env) (tok : CST.word) : expression =
   match str env tok with
-  | "...", tok when env.extra = Pattern -> Expr_ellipsis tok
+  | "...", tok when env.extra = Pattern -> Expr_semgrep_ellipsis tok
   | x -> Word x
 
 (* Function identifier. These can contain some punctuation. '...' is a valid
    function identifier. *)
 let extended_word (env : env) (x : CST.extended_word) =
   match x with
-  | `Semg_meta tok -> Var_metavar (str env tok)
+  | `Semg_meta tok -> Var_semgrep_metavar (str env tok)
   | `Word tok -> Simple_variable_name (str env tok)
 
 let heredoc_start (env : env) (tok : CST.heredoc_start) = token env tok
@@ -276,7 +277,7 @@ let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) :
         when Metavariable.is_metavar_name ("$" ^ name_s) ->
           let mv_s = "$" ^ name_s in
           let mv_tok = PI.combine_infos dollar_tok [ name_tok ] in
-          Frag_metavar (mv_s, mv_tok)
+          Frag_semgrep_metavar (mv_s, mv_tok)
       | _ -> Expansion (loc, Simple_expansion (loc, var_name)))
   | Program -> Expansion (loc, Simple_expansion (loc, var_name))
 
@@ -812,7 +813,7 @@ and primary_expression (env : env) (x : CST.primary_expression) : expression =
       let e = literal env v2 in
       let close = (* "...>" *) token env v3 in
       let loc = (open_, close) in
-      Expr_deep_ellipsis (loc, (open_, e, close))
+      Expr_semgrep_deep_ellipsis (loc, (open_, e, close))
   | `Choice_word x -> (
       match x with
       | `Word tok -> word env tok (* word *)
