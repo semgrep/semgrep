@@ -400,9 +400,9 @@ and expression =
   | Raw_string of (* '...' *) string wrap
   | Ansii_c_string of (* $'...' *) string wrap
   | Concatenation of loc * expression list
-  | Expr_ellipsis of (* ... *) tok
-  | Expr_deep_ellipsis of (* <... x ...> *) loc * expression bracket
-  | Expr_metavar of (* $X in pattern mode *) string wrap
+  | Expr_semgrep_ellipsis of (* ... *) tok
+  | Expr_semgrep_deep_ellipsis of (* <... x ...> *) loc * expression bracket
+  | Expr_semgrep_metavar of (* $X in pattern mode *) string wrap
   | Equality_test of loc * eq_op * right_eq_operand (* should it be here? *)
   | Empty_expression of loc
   | Array of (* ( a b ) *) loc * expression list bracket
@@ -413,7 +413,7 @@ and string_fragment =
   | String_content of string wrap
   | Expansion of (* $X in program mode, ${X}, ${X ... } *) loc * expansion
   | Command_substitution of (* $(foo; bar) or `foo; bar` *) blist bracket
-  | Frag_metavar of (* $X in pattern mode *) string wrap
+  | Frag_semgrep_metavar of (* $X in pattern mode *) string wrap
 
 (* $foo or something like ${foo ...} *)
 and expansion =
@@ -423,7 +423,7 @@ and expansion =
 and variable_name =
   | Simple_variable_name of string wrap
   | Special_variable_name of string wrap
-  | Var_metavar of string wrap
+  | Var_semgrep_metavar of string wrap
 
 and complex_expansion =
   | Variable of loc * variable_name
@@ -625,9 +625,9 @@ let expression_loc = function
   | Ansii_c_string x -> wrap_loc x
   | Special_character x -> wrap_loc x
   | Concatenation (loc, _) -> loc
-  | Expr_ellipsis tok -> (tok, tok)
-  | Expr_deep_ellipsis (loc, _) -> loc
-  | Expr_metavar x -> wrap_loc x
+  | Expr_semgrep_ellipsis tok -> (tok, tok)
+  | Expr_semgrep_deep_ellipsis (loc, _) -> loc
+  | Expr_semgrep_metavar x -> wrap_loc x
   | Equality_test (loc, _, _) -> loc
   | Empty_expression loc -> loc
   | Array (loc, _) -> loc
@@ -637,7 +637,7 @@ let string_fragment_loc = function
   | String_content x -> wrap_loc x
   | Expansion (loc, _) -> loc
   | Command_substitution x -> bracket_loc x
-  | Frag_metavar x -> wrap_loc x
+  | Frag_semgrep_metavar x -> wrap_loc x
 
 let expansion_loc = function
   | Simple_expansion (loc, _) -> loc
@@ -646,7 +646,7 @@ let expansion_loc = function
 let variable_name_wrap = function
   | Simple_variable_name x
   | Special_variable_name x
-  | Var_metavar x ->
+  | Var_semgrep_metavar x ->
       x
 
 let variable_name_tok x = variable_name_wrap x |> snd

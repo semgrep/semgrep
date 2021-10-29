@@ -143,7 +143,7 @@ let get_var_name (var : variable_name) : string wrap =
   match var with
   | Simple_variable_name name
   | Special_variable_name name
-  | Var_metavar name ->
+  | Var_semgrep_metavar name ->
       name
 
 let mk_var_expr (var : variable_name) : G.expr =
@@ -289,7 +289,8 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       Common.map (assignment env) assignments |> block
   | Simple_command { loc; assignments = _; arguments } -> (
       match arguments with
-      | [ (Expr_ellipsis tok as e) ] -> Expr ((tok, tok), expression env e)
+      | [ (Expr_semgrep_ellipsis tok as e) ] ->
+          Expr ((tok, tok), expression env e)
       | arguments ->
           let args = List.map (expression env) arguments in
           Expr (loc, call loc C.cmd args))
@@ -330,7 +331,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
         match loop_var with
         | Simple_variable_name var
         | Special_variable_name var
-        | Var_metavar var ->
+        | Var_semgrep_metavar var ->
             let entity = G.basic_entity var in
             G.ForIn ([ ForInitVar (entity, G.empty_var) ], values)
       in
@@ -475,10 +476,10 @@ and expression (env : env) (e : expression) : G.expr =
   | Ansii_c_string str -> G.L (G.String str) |> G.e
   | Special_character str -> G.L (G.String str) |> G.e
   | Concatenation (loc, el) -> List.map (expression env) el |> call loc C.concat
-  | Expr_ellipsis tok -> G.Ellipsis tok |> G.e
-  | Expr_deep_ellipsis (_loc, (open_, e, close)) ->
+  | Expr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
+  | Expr_semgrep_deep_ellipsis (_loc, (open_, e, close)) ->
       G.DeepEllipsis (open_, expression env e, close) |> G.e
-  | Expr_metavar mv -> G.N (mk_name mv) |> G.e
+  | Expr_semgrep_metavar mv -> G.N (mk_name mv) |> G.e
   | Equality_test (loc, _, _) -> (* don't know what this is *) todo_expr loc
   | Empty_expression loc -> G.L (G.String ("", fst loc)) |> G.e
   | Array (loc, (open_, elts, close)) ->
@@ -499,7 +500,7 @@ and string_fragment (env : env) (frag : string_fragment) : G.expr =
       let loc = (open_, close) in
       let arg = blist env x |> block |> as_expr in
       call loc C.cmd_subst [ arg ]
-  | Frag_metavar mv -> G.N (mk_name mv) |> G.e
+  | Frag_semgrep_metavar mv -> G.N (mk_name mv) |> G.e
 
 (*
    '$' followed by a variable to transform and expand into a list.
