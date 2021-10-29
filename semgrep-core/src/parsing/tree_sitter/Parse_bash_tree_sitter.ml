@@ -307,8 +307,8 @@ and stmt_with_opt_heredoc (env : env)
         None
     | None -> None
   in
-  let _trailing_newline = terminator env v3 in
-  blist
+  let term = terminator env v3 in
+  add_terminator_to_blist blist term
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let open_ = token env v1 (* "(" *) in
