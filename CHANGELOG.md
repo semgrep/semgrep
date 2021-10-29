@@ -16,6 +16,7 @@ these metavariables correctly appear in match messages
 - Correctly parse metavariables in JS template strings
 - Constant propagation: Tuple/Array destructuring assignments now correctly prevent constant propagation
 - Scala: parse underscore separators in number literals, and parse 'l'/'L' long suffix on number literals
+- Scala: parse by name arguments in arbitary function types, like `(=> Int) => Int`
 - Prevent bad settings files from crashing Semgrep (#4164)
 
 ### Changed
