@@ -17,10 +17,13 @@ these metavariables correctly appear in match messages
 - Constant propagation: Tuple/Array destructuring assignments now correctly prevent constant propagation
 - Scala: parse underscore separators in number literals, and parse 'l'/'L' long suffix on number literals
 - Prevent bad settings files from crashing Semgrep (#4164)
+- Bash: various fixes and improvements
 
 ### Changed
 - Report CI environment variable in metrics for better environment
   determination
+- Bash: a simple expression pattern can now match any command argument rather
+  than having to match the whole command
 
 ## [0.70.0](https://github.com/returntocorp/semgrep/releases/tag/v0.70.0) - 10-19-2021
 
