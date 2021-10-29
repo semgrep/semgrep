@@ -12,3 +12,5 @@ echo ${HOME}
 "$CMD" arg
 
 $CMD arg
+
+"$a$b"
