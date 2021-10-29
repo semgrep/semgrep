@@ -3358,7 +3358,4 @@ let parse file =
     (fun () -> Tree_sitter_cpp.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try map_translation_unit env cst
-      with Failure "not implemented" as exn ->
-        H.debug_sexp_cst_after_error (CST.sexp_of_translation_unit cst);
-        raise exn)
+      map_translation_unit env cst)
