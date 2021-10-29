@@ -54,7 +54,7 @@ let map_last l f =
 *)
 type tmp_stmt =
   | Tmp_pipeline of pipeline
-  | Tmp_command of (command_with_redirects * unary_control_operator wrap option)
+  | Tmp_command of (cmd_redir * unary_control_operator wrap option)
 
 let blist_of_pipeline (pip : pipeline) =
   let loc = pipeline_loc pip in
@@ -178,9 +178,9 @@ let variable_name (env : env) (tok : CST.variable_name) : string wrap =
 
 let terminator (env : env) (x : CST.terminator) : unary_control_operator wrap =
   match x with
-  | `SEMI tok -> (Foreground, token env tok (* ";" *))
-  | `SEMISEMI tok -> (Foreground, token env tok (* ";;" *))
-  | `LF tok -> (Foreground, token env tok (* "\n" *))
+  | `SEMI tok -> (Foreground Fg_semi, token env tok (* ";" *))
+  | `SEMISEMI tok -> (Foreground Fg_semisemi, token env tok (* ";;" *))
+  | `LF tok -> (Foreground Fg_newline, token env tok (* "\n" *))
   | `AMP tok -> (Background, token env tok (* "&" *))
 
 let empty_value (_env : env) (_tok : CST.empty_value) : unit = ()
@@ -259,7 +259,9 @@ let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) :
   let dollar_tok = token env v1 (* "$" *) in
   let var_name =
     match v2 with
-    | `Choice_semg_meta x -> simple_variable_name env x
+    | `Orig_simple_var_name tok ->
+        (* pattern \w+ *)
+        Simple_variable_name (str env tok)
     | `Choice_STAR x -> special_variable_name env x
     | `BANG tok -> Special_variable_name (str env tok (* "!" *))
     | `HASH tok -> Special_variable_name (str env tok (* "#" *))
@@ -279,9 +281,9 @@ let simple_expansion (env : env) ((v1, v2) : CST.simple_expansion) :
   | Program -> Expansion (loc, Simple_expansion (loc, var_name))
 
 let rec prim_exp_or_special_char (env : env)
-    (x : CST.anon_choice_prim_exp_9700637) : expression =
+    (x : CST.anon_choice_prim_exp_65e2c2e) : expression =
   match x with
-  | `Choice_word x -> primary_expression env x
+  | `Choice_semg_deep_exp x -> primary_expression env x
   | `Spec_char tok -> Special_character (str env tok)
 
 and stmt_with_opt_heredoc (env : env)
@@ -305,8 +307,8 @@ and stmt_with_opt_heredoc (env : env)
         None
     | None -> None
   in
-  let _trailing_newline = terminator env v3 in
-  blist
+  let term = terminator env v3 in
+  add_terminator_to_blist blist term
 
 and array_ (env : env) ((v1, v2, v3) : CST.array_) =
   let open_ = token env v1 (* "(" *) in
@@ -381,7 +383,7 @@ and case_item (env : env) ((v1, v2, v3, v4, v5) : CST.case_item) : case_clause =
   let loc = (fst (expression_loc first_pattern), end_tok) in
   (loc, patterns, paren, case_body, Some terminator)
 
-and command (env : env) ((v1, v2, v3) : CST.command) : command_with_redirects =
+and command (env : env) ((v1, v2, v3) : CST.command) : cmd_redir =
   let assignments, redirects =
     partition_either
       (fun x ->
@@ -430,7 +432,7 @@ and command_name (env : env) (x : CST.command_name) : expression =
       let el = concatenation env x in
       let loc = list_loc expression_loc el in
       Concatenation (loc, el)
-  | `Choice_word x -> primary_expression env x
+  | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs ->
       let el = List.map (fun tok -> Special_character (str env tok)) xs in
       let loc = list_loc expression_loc el in
@@ -654,33 +656,86 @@ and expression (env : env) (x : CST.expression) : test_expression =
       let _v3 = token env v3 (* ")" *) in
       e
 
-and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : todo =
-  let src_fd =
+and file_redir_target (x : expression) : file_redir_target =
+  match x with
+  | Word ("", tok) -> (* following &> or >& *) Stdout_and_stderr tok
+  | Word ("-", tok) -> Close_fd tok
+  | Word (s, loc) as e -> (
+      match int_of_string_opt s with
+      | None -> File e
+      | Some fd -> File_descriptor (fd, loc))
+  | e -> File e
+
+and file_redirect (env : env) ((v1, v2, v3) : CST.file_redirect) : redirect =
+  let target_e = literal env v3 in
+  let target = target_e |> file_redir_target in
+  let left_tok = ref (expression_loc target_e |> fst) in
+  let update_min_tok tok = left_tok := min_tok !left_tok tok in
+  let opt_src_fd : write_redir_src option =
     match v1 with
-    | Some tok -> Some (token env tok (* file_descriptor *))
+    | Some tok -> (
+        let s, tok = str env tok in
+        update_min_tok tok;
+        match int_of_string_opt s with
+        | None -> (* bug *) None
+        | Some fd -> Some (File_descriptor (fd, tok)))
     | None -> None
   in
-  let op_tok =
+  (* This is for the operators like '>' *)
+  let src_fd1 tok : write_redir_src =
+    match opt_src_fd with
+    | None -> Stdout tok
+    | Some x -> x
+  in
+  (* This is for the operators like '&>' *)
+  let src_fd2 tok : write_redir_src =
+    match opt_src_fd with
+    | None -> Stdout_and_stderr tok
+    | Some x -> x
+  in
+  let file_redir =
+    let token2 env tok =
+      let tok = token env tok in
+      update_min_tok tok;
+      tok
+    in
     match v2 with
-    | `LT tok -> token env tok (* "<" *)
-    | `GT tok -> token env tok (* ">" *)
-    | `GTGT tok -> token env tok (* ">>" *)
-    | `AMPGT tok -> token env tok (* "&>" *)
-    | `AMPGTGT tok -> token env tok (* "&>>" *)
-    | `LTAMP tok -> token env tok (* "<&" *)
-    | `GTAMP tok -> token env tok (* ">&" *)
-    | `GTBAR tok -> (* ">|" *) token env tok
+    | `LT tok ->
+        let tok = token2 env tok (* "<" *) in
+        Read (tok, target)
+    | `GT tok ->
+        let tok = token2 env tok (* ">" *) in
+        Write (src_fd1 tok, (Write_truncate, tok), target)
+    | `GTGT tok ->
+        let tok = token2 env tok (* ">>" *) in
+        Write (src_fd1 tok, (Write_append, tok), target)
+    | `AMPGT tok ->
+        let tok = token2 env tok (* "&>" *) in
+        Write (src_fd2 tok, (Write_truncate, tok), target)
+    | `AMPGTGT tok ->
+        let tok = token2 env tok (* "&>>" *) in
+        Write (src_fd2 tok, (Write_append, tok), target)
+    | `LTAMP tok ->
+        let tok = token2 env tok (* "<&" *) in
+        Read (tok, target)
+    | `GTAMP tok -> (
+        let tok = token2 env tok (* ">&" *) in
+        (* ">&" alone is different than ">&1"! *)
+        match target with
+        | Stdout_and_stderr _ ->
+            (* '>&' *)
+            Write (src_fd2 tok, (Write_truncate, tok), target)
+        | _ ->
+            (* '>&2' etc. *)
+            Write (src_fd1 tok, (Write_truncate, tok), target))
+    | `GTBAR tok ->
+        let tok = token2 env tok (* ">|" *) in
+        Write (src_fd1 tok, (Write_force_truncate, tok), target)
   in
-  (* TODO: dst_fd is missing e.g. the '2' in '>&2' *)
-  let file = literal env v3 in
-  let start =
-    match src_fd with
-    | None -> op_tok
-    | Some tok -> tok
-  in
-  let _, end_ = expression_loc file in
+  let start = !left_tok in
+  let _, end_ = expression_loc target_e in
   let loc = (start, end_) in
-  TODO loc
+  File_redirect (loc, file_redir)
 
 and heredoc_body (env : env) (x : CST.heredoc_body) : todo =
   match x with
@@ -742,7 +797,7 @@ and literal (env : env) (x : CST.literal) : expression =
       match el with
       | [ e ] -> e
       | _ -> Concatenation (loc, el))
-  | `Choice_word x -> primary_expression env x
+  | `Choice_semg_deep_exp x -> primary_expression env x
   | `Rep1_spec_char xs -> (
       let el = List.map (fun tok -> Special_character (str env tok)) xs in
       let loc = list_loc expression_loc el in
@@ -752,47 +807,55 @@ and literal (env : env) (x : CST.literal) : expression =
 
 and primary_expression (env : env) (x : CST.primary_expression) : expression =
   match x with
-  | `Word tok -> word env tok (* word *)
-  | `Str x -> String (string_ env x)
-  | `Raw_str tok -> Raw_string (str env tok (* pattern "'[^']*'" *))
-  | `Ansii_c_str tok ->
-      Ansii_c_string (str env tok (* pattern "\\$'([^']|\\\\')*'" *))
-  | `Expa x ->
-      let e = expansion env x in
-      let loc = bracket_loc e in
-      String_fragment (loc, Expansion (loc, Complex_expansion e))
-  | `Simple_expa x ->
-      let frag = simple_expansion env x in
-      let loc = string_fragment_loc frag in
-      String_fragment (loc, frag)
-  | `Str_expa (v1, v2) ->
-      let dollar = token env v1 (* "$" *) in
-      let e =
-        match v2 with
-        | `Str x ->
-            (* TODO: do something with the dollar sign *)
-            String (string_ env x)
-        | `Raw_str tok ->
-            (* TODO: how is it different from ANSI C strings?
-               e.g. $'hello\nbye' *)
-            (* pattern "'[^']*'" *)
-            Ansii_c_string (str env tok)
-      in
-      e
-  | `Cmd_subs x ->
-      let frag = Command_substitution (command_substitution env x) in
-      let loc = string_fragment_loc frag in
-      String_fragment (loc, frag)
-  | `Proc_subs (v1, v2, v3) ->
-      let open_ =
-        match v1 with
-        | `LTLPAR tok -> token env tok (* "<(" *)
-        | `GTLPAR tok -> (* ">(" *) token env tok
-      in
-      let body = statements env v2 in
-      let close = token env v3 (* ")" *) in
+  | `Semg_deep_exp (v1, v2, v3) ->
+      let open_ = (* "<..." *) token env v1 in
+      let e = literal env v2 in
+      let close = (* "...>" *) token env v3 in
       let loc = (open_, close) in
-      Process_substitution (loc, (open_, body, close))
+      Expr_deep_ellipsis (loc, (open_, e, close))
+  | `Choice_word x -> (
+      match x with
+      | `Word tok -> word env tok (* word *)
+      | `Str x -> String (string_ env x)
+      | `Raw_str tok -> Raw_string (str env tok (* pattern "'[^']*'" *))
+      | `Ansii_c_str tok ->
+          Ansii_c_string (str env tok (* pattern "\\$'([^']|\\\\')*'" *))
+      | `Expa x ->
+          let e = expansion env x in
+          let loc = bracket_loc e in
+          String_fragment (loc, Expansion (loc, Complex_expansion e))
+      | `Simple_expa x ->
+          let frag = simple_expansion env x in
+          let loc = string_fragment_loc frag in
+          String_fragment (loc, frag)
+      | `Str_expa (v1, v2) ->
+          let dollar = token env v1 (* "$" *) in
+          let e =
+            match v2 with
+            | `Str x ->
+                (* TODO: do something with the dollar sign *)
+                String (string_ env x)
+            | `Raw_str tok ->
+                (* TODO: how is it different from ANSI C strings?
+                   e.g. $'hello\nbye' *)
+                (* pattern "'[^']*'" *)
+                Ansii_c_string (str env tok)
+          in
+          e
+      | `Cmd_subs x ->
+          let frag = Command_substitution (command_substitution env x) in
+          let loc = string_fragment_loc frag in
+          String_fragment (loc, frag)
+      | `Proc_subs (v1, v2, v3) ->
+          let open_ =
+            match v1 with
+            | `LTLPAR tok -> token env tok (* "<(" *)
+            | `GTLPAR tok -> (* ">(" *) token env tok
+          in
+          let body = statements env v2 in
+          let close = token env v3 (* ")" *) in
+          let loc = (open_, close) in
+          Process_substitution (loc, (open_, body, close)))
 
 (* The token tok is needed to indicate the location of the list of statements
    in case it's empty. *)
@@ -807,9 +870,9 @@ and program (env : env) ~tok (opt : CST.program) : blist =
 and blist_statement (env : env) (x : CST.statement) : blist =
   match statement env x with
   | Tmp_pipeline x -> Pipelines (pipeline_loc x, [ x ])
-  | Tmp_command (cmd_redir, control_op) -> (
-      let loc = command_with_redirects_loc cmd_redir in
-      let cmd = Command (loc, cmd_redir) in
+  | Tmp_command (cmd_r, control_op) -> (
+      let loc = cmd_redir_loc cmd_r in
+      let cmd = Command cmd_r in
       match control_op with
       | None -> Pipelines (loc, [ cmd ])
       | Some op ->
@@ -824,9 +887,9 @@ and blist_statement (env : env) (x : CST.statement) : blist =
 and pipeline_statement (env : env) (x : CST.statement) : pipeline =
   match statement env x with
   | Tmp_pipeline x -> x
-  | Tmp_command (cmd_redir, control_op) -> (
-      let loc = command_with_redirects_loc cmd_redir in
-      let cmd = Command (loc, cmd_redir) in
+  | Tmp_command (cmd_r, control_op) -> (
+      let loc = cmd_redir_loc cmd_r in
+      let cmd = Command cmd_r in
       match control_op with
       | None -> cmd
       | Some op ->
@@ -839,7 +902,7 @@ and pipeline_statement (env : env) (x : CST.statement) : pipeline =
    expected.
 *)
 and command_statement (env : env) (x : CST.statement) :
-    command_with_redirects * unary_control_operator wrap option =
+    cmd_redir * unary_control_operator wrap option =
   match statement env x with
   | Tmp_pipeline pip ->
       (* shouldn't happen, it's a bug *)
@@ -860,17 +923,22 @@ and statement (env : env) (x : CST.statement) : tmp_stmt =
          test case:
          echo a > /tmp/foo b
       *)
-      let cmd_redir_ctrl = pipeline_statement env v1 in
-      let _redirects_TODO () =
-        List.map
+      let pip = pipeline_statement env v1 in
+      let redirects =
+        List.filter_map
           (fun x ->
             match x with
-            | `File_redi x -> file_redirect env x
-            | `Here_redi_a9657de x -> heredoc_redirect env x
-            | `Here_redi_7d3292d x -> herestring_redirect env x)
+            | `File_redi x -> Some (file_redirect env x)
+            | `Here_redi_a9657de x ->
+                let _todo = heredoc_redirect env x in
+                None
+            | `Here_redi_7d3292d x ->
+                let _todo = herestring_redirect env x in
+                None)
           v2
       in
-      Tmp_pipeline cmd_redir_ctrl
+      let pip = add_redirects_to_last_command_of_pipeline pip redirects in
+      Tmp_pipeline pip
   | `Var_assign x ->
       let a = variable_assignment env x in
       let command = Assignment a in
