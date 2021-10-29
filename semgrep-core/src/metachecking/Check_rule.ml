@@ -157,6 +157,7 @@ let check r =
 let semgrep_check config metachecks rules =
   let match_to_semgrep_error m =
     let loc, _ = m.P.range_loc in
+    (* TODO use the end location in errors *)
     let s = m.rule_id.message in
     let check_id = m.rule_id.id in
     E.mk_error ~rule_id:None loc s (E.SemgrepMatchFound check_id)

@@ -673,7 +673,6 @@ def cli(
                     f"Configuration is {valid_str} - found {len(config_errors)} configuration error(s), and {rule_count} rule(s)."
                 )
                 if config_errors:
-                    OutputSettings.verbose_errors = True
                     output_handler.handle_semgrep_errors(config_errors)
                     raise SemgrepError("Please fix the above errors and try again.")
         elif generate_config:

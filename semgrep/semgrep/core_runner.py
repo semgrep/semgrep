@@ -21,6 +21,7 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import CoreOutput
 from semgrep.core_output import RuleId
 from semgrep.error import _UnknownLanguageError
+from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.error import with_color
@@ -30,6 +31,7 @@ from semgrep.profiling import Times
 from semgrep.progress_bar import debug_tqdm_write
 from semgrep.progress_bar import progress_bar
 from semgrep.rule import Rule
+from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import Language
@@ -81,6 +83,16 @@ def setrlimits_preexec_fn() -> None:
             logger.verbose(str(e))
 
     logger.info("Failed to change stack limits")
+
+
+def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
+    return list({uniq_error_id(e): e for e in errors}.values())
+
+
+def uniq_error_id(
+    error: SemgrepCoreError,
+) -> Tuple[int, Path, CoreLocation, CoreLocation, str]:
+    return (error.code, error.path, error.start, error.end, error.message)
 
 
 class CoreRunner:
@@ -454,4 +466,4 @@ class CoreRunner:
                 e.to_semgrep_error(RuleId(metachecks[0].id)) for e in core_output.errors
             ]
 
-        return parsed_errors
+        return dedup_errors(parsed_errors)

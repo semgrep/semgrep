@@ -152,7 +152,7 @@ class SemgrepCoreError(SemgrepError):
             else:
                 msg = f"Semgrep Core {self.level.name} - {self.error_type}: When running {self.rule_id} on {self.path}: {self.message}"
         else:
-            msg = f"Semgrep Core {self.level.name} - {self.error_type} in file {self.path}\n\t{self.message}"
+            msg = f"Semgrep Core {self.level.name} - {self.error_type} in file {self.path}:{self.start.line}\n\t{self.message}"
         return msg
 
     @property
