@@ -205,7 +205,11 @@ let run_checks config fparser metachecks xs =
                try
                  let rs = fparser file in
                  rs |> List.map (fun file -> check file) |> List.flatten
-               with exn -> [ E.exn_to_error file exn ])
+               with
+               (* TODO this error is special cased because YAML files that *)
+               (* aren't semgrep rules are getting scanned *)
+               | Rule.InvalidYaml _ -> []
+               | exn -> [ E.exn_to_error file exn ])
         |> List.flatten
       in
       semgrep_found_errs @ ocaml_found_errs
