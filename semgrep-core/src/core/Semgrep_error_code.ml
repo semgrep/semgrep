@@ -154,7 +154,7 @@ let string_of_error err =
 
 let severity_of_error typ =
   match typ with
-  | SemgrepMatchFound _title -> Warning
+  | SemgrepMatchFound _title -> Error
   | MatchingError -> Warning
   | TooManyMatches -> Warning
   | LexicalError -> Warning
