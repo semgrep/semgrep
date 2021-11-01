@@ -580,14 +580,10 @@ and expr_aux env ?(void = false) eorig =
               )));
       lvalexp
   | G.Await (tok, e) ->
-      let lval = fresh_lval env (G.fake "await") in
+      let lval = fresh_lval env tok in
       let lvalexp = mk_e (Fetch lval) eorig in
-      add_stmt env
-        (mk_s
-           (Instr
-              (mk_i
-                 (CallSpecial (Some lval, (Await, tok), [ expr env e ]))
-                 eorig)));
+      add_instr env
+        (mk_i (CallSpecial (Some lval, (Await, tok), [ expr env e ])) eorig);
       lvalexp
   | G.Xml _ -> todo (G.E eorig)
   | G.Constructor (_, _) -> todo (G.E eorig)

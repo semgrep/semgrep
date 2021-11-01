@@ -17,7 +17,7 @@ these metavariables correctly appear in match messages
 - Constant propagation: Tuple/Array destructuring assignments now correctly prevent constant propagation
 - Scala: parse underscore separators in number literals, and parse 'l'/'L' long suffix on number literals
 - Prevent bad settings files from crashing Semgrep (#4164)
-- Taint mode can now handle await
+- Dataflow: translate taint into the IL
 
 ### Changed
 - Report CI environment variable in metrics for better environment
