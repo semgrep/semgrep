@@ -19,6 +19,8 @@ module R = Rule
 module E = Semgrep_error_code
 module PI = Parse_info
 module P = Pattern_match
+module RP = Report
+module SJ = Semgrep_core_response_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -155,6 +157,7 @@ let check r =
 let semgrep_check config metachecks rules =
   let match_to_semgrep_error m =
     let loc, _ = m.P.range_loc in
+    (* TODO use the end location in errors *)
     let s = m.rule_id.message in
     let check_id = m.rule_id.id in
     E.mk_error ~rule_id:None loc s (E.SemgrepMatchFound check_id)
@@ -176,7 +179,7 @@ let semgrep_check config metachecks rules =
  * circular dependencies.
  * Similar to Test_parsing.test_parse_rules.
  *)
-let run_checks mk_config fparser metachecks xs =
+let run_checks config fparser metachecks xs =
   let yaml_xs, skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
@@ -194,7 +197,7 @@ let run_checks mk_config fparser metachecks xs =
         "no valid yaml rules to run on (.test.yaml files are excluded)";
       []
   | _ ->
-      let semgrep_found_errs = semgrep_check (mk_config ()) metachecks rules in
+      let semgrep_found_errs = semgrep_check config metachecks rules in
       let ocaml_found_errs =
         rules
         |> List.map (fun file ->
@@ -202,20 +205,34 @@ let run_checks mk_config fparser metachecks xs =
                try
                  let rs = fparser file in
                  rs |> List.map (fun file -> check file) |> List.flatten
-               with exn -> [ E.exn_to_error file exn ])
+               with
+               (* TODO this error is special cased because YAML files that *)
+               (* aren't semgrep rules are getting scanned *)
+               | Rule.InvalidYaml _ -> []
+               | exn -> [ E.exn_to_error file exn ])
         |> List.flatten
       in
       semgrep_found_errs @ ocaml_found_errs
 
 let check_files mk_config fparser input =
-  match input with
-  | []
-  | [ _ ] ->
-      logger#error
-        "check_rules needs a metacheck file or directory and rules to run on"
-  | metachecks :: xs ->
-      run_checks mk_config fparser metachecks xs
-      |> List.iter (fun err -> pr2 (E.string_of_error err))
+  let config = mk_config () in
+  let errors =
+    match input with
+    | []
+    | [ _ ] ->
+        logger#error
+          "check_rules needs a metacheck file or directory and rules to run on";
+        []
+    | metachecks :: xs -> run_checks config fparser metachecks xs
+  in
+  match config.output_format with
+  | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
+  | Json ->
+      let res =
+        { RP.matches = []; errors; skipped = []; rule_profiling = None }
+      in
+      let json = JSON_report.match_results_of_matches_and_errors [] res in
+      pr (SJ.string_of_match_results json)
 
 let stat_files fparser xs =
   let fullxs, _skipped_paths =

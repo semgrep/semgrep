@@ -44,7 +44,7 @@ let first_xlang_of_rules rs =
   | [] -> failwith "no rules"
   | { R.languages = x; _ } :: _ -> x
 
-let mk_config () =
+let config =
   {
     Runner_common.log_config_file = "";
     test = false;
@@ -137,7 +137,7 @@ let test_rules ?(unit_testing = false) xs =
          (* actual *)
          Flag_semgrep.with_opt_cache := false;
          let actual_errors =
-           try Check_rule.run_checks mk_config Parse_rule.parse file [ target ]
+           try Check_rule.run_checks config Parse_rule.parse file [ target ]
            with exn ->
              failwith (spf "exn on %s (exn = %s)" file (Common.exn_to_s exn))
          in

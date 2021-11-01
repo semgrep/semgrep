@@ -5,23 +5,36 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-- Metavariable equality is enforced across sources/sanitizers/sinks in taint mode, and 
-these metavariables correctly appear in match messages
+- Metavariable equality is enforced across sources/sanitizers/sinks in 
+  taint mode, and these metavariables correctly appear in match messages
 - Pre-alpha support for Bash as a new target language
+- Pre-alpha support for C++ as a new target language
 - Increase soft stack limit when running semgrep-core (#4120)
+- `semgrep --validate` runs metachecks on the rule
 
 ### Fixed
-- text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports width < 1
-- Metrics report the error type of semgrep core errors (Timeout, MaxMemory, etc.)
-- Correctly parse metavariables in JS template strings
-- Constant propagation: Tuple/Array destructuring assignments now correctly prevent constant propagation
-- Scala: parse underscore separators in number literals, and parse 'l'/'L' long suffix on number literals
+- text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports
+  width < 1
+- Metrics report the error type of semgrep core errors (Timeout, 
+  MaxMemory, etc.)
 - Prevent bad settings files from crashing Semgrep (#4164)
 - Dataflow: translate taint into the IL
+- Constant propagation: Tuple/Array destructuring assignments now correctly 
+  prevent constant propagation
+- JS: Correctly parse metavariables in template strings
+- Scala: parse underscore separators in number literals, and parse 
+  'l'/'L' long suffix on number literals
+- Scala: parse by name arguments in arbitary function types, 
+  like `(=> Int) => Int`
+- Bash: various fixes and improvements
+- Kotlin: support ellipsis in class body and parameters (#4141)
+- Go: support method interface pattern (#4172)
 
 ### Changed
 - Report CI environment variable in metrics for better environment
   determination
+- Bash: a simple expression pattern can now match any command argument rather
+  than having to match the whole command
 
 ## [0.70.0](https://github.com/returntocorp/semgrep/releases/tag/v0.70.0) - 10-19-2021
 

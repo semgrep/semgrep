@@ -143,7 +143,7 @@ let get_var_name (var : variable_name) : string wrap =
   match var with
   | Simple_variable_name name
   | Special_variable_name name
-  | Var_metavar name ->
+  | Var_semgrep_metavar name ->
       name
 
 let mk_var_expr (var : variable_name) : G.expr =
@@ -243,8 +243,8 @@ let rec blist (env : env) (l : blist) : stmt_or_expr list =
 
 and pipeline (env : env) (x : pipeline) : stmt_or_expr =
   match x with
-  | Command (loc, cmd_redir) -> command_with_redirects env cmd_redir
-  | Pipeline (loc, pip, pipe_op, cmd_redir) ->
+  | Command cmd_r -> cmd_redir env cmd_r
+  | Pipeline (loc, pip, pipe_op, cmd_r) ->
       let pip, bar_tok =
         match pipe_op with
         | Bar, tok -> (pip, tok)
@@ -260,17 +260,16 @@ and pipeline (env : env) (x : pipeline) : stmt_or_expr =
             (redirect_pipeline_stderr_to_stdout pip, tok)
       in
       let left = pipeline env pip |> as_expr in
-      let right = command_with_redirects env cmd_redir |> as_expr in
+      let right = cmd_redir env cmd_r |> as_expr in
       Expr (loc, G.opcall (G.Pipe, bar_tok) [ left; right ])
   | Control_operator (loc, pip, control_op) -> (
       match control_op with
-      | Foreground, tok -> pipeline env pip
+      | Foreground _, tok -> pipeline env pip
       | Background, amp_tok ->
           let arg = pipeline env pip |> as_expr in
           Expr (loc, G.opcall (G.Background, amp_tok) [ arg ]))
 
-and command_with_redirects (env : env) (x : command_with_redirects) :
-    stmt_or_expr =
+and cmd_redir (env : env) (x : cmd_redir) : stmt_or_expr =
   (* TODO: don't ignore redirects *)
   let { loc; command = cmd; redirects } = x in
   ignore redirects;
@@ -290,7 +289,8 @@ and command (env : env) (cmd : command) : stmt_or_expr =
       Common.map (assignment env) assignments |> block
   | Simple_command { loc; assignments = _; arguments } -> (
       match arguments with
-      | [ (Expr_ellipsis tok as e) ] -> Expr ((tok, tok), expression env e)
+      | [ (Expr_semgrep_ellipsis tok as e) ] ->
+          Expr ((tok, tok), expression env e)
       | arguments ->
           let args = List.map (expression env) arguments in
           Expr (loc, call loc C.cmd args))
@@ -331,7 +331,7 @@ and command (env : env) (cmd : command) : stmt_or_expr =
         match loop_var with
         | Simple_variable_name var
         | Special_variable_name var
-        | Var_metavar var ->
+        | Var_semgrep_metavar var ->
             let entity = G.basic_entity var in
             G.ForIn ([ ForInitVar (entity, G.empty_var) ], values)
       in
@@ -476,8 +476,10 @@ and expression (env : env) (e : expression) : G.expr =
   | Ansii_c_string str -> G.L (G.String str) |> G.e
   | Special_character str -> G.L (G.String str) |> G.e
   | Concatenation (loc, el) -> List.map (expression env) el |> call loc C.concat
-  | Expr_ellipsis tok -> G.Ellipsis tok |> G.e
-  | Expr_metavar mv -> G.N (mk_name mv) |> G.e
+  | Expr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
+  | Expr_semgrep_deep_ellipsis (_loc, (open_, e, close)) ->
+      G.DeepEllipsis (open_, expression env e, close) |> G.e
+  | Expr_semgrep_metavar mv -> G.N (mk_name mv) |> G.e
   | Equality_test (loc, _, _) -> (* don't know what this is *) todo_expr loc
   | Empty_expression loc -> G.L (G.String ("", fst loc)) |> G.e
   | Array (loc, (open_, elts, close)) ->
@@ -498,7 +500,7 @@ and string_fragment (env : env) (frag : string_fragment) : G.expr =
       let loc = (open_, close) in
       let arg = blist env x |> block |> as_expr in
       call loc C.cmd_subst [ arg ]
-  | Frag_metavar mv -> G.N (mk_name mv) |> G.e
+  | Frag_semgrep_metavar mv -> G.N (mk_name mv) |> G.e
 
 (*
    '$' followed by a variable to transform and expand into a list.
@@ -517,15 +519,23 @@ and expand loc (var_expr : G.expr) : G.expr = call loc C.expand [ var_expr ]
 let program (env : env) x = blist (env : env) x |> List.map as_stmt
 
 (*
-   Unwrap the tree as much as possible to maximize matches.
+   Unwrap the pattern tree as much as possible to maximize matches.
 
-   For example 'echo' is parsed as a list of statements but occurs
+   For example, 'echo' is parsed as a list of statements but occurs
    in the target program as a single stmt ('If' branch) or as an expr
    ('If' condition). Unwrapping into an expr allows the expr to match those
    cases.
 *)
-let any (env : env) x =
-  match program env x with
-  | [ { G.s = G.ExprStmt (e, _semicolon); _ } ] -> G.E e
-  | [ stmt ] -> G.S stmt
-  | stmts -> G.Ss stmts
+let pattern (env : env) (x : blist) : G.any =
+  match blist_as_expression x with
+  | Some e -> G.E (expression env e)
+  | None -> (
+      match program env x with
+      | [ { G.s = G.ExprStmt (e, _semicolon); _ } ] -> G.E e
+      | [ stmt ] -> G.S stmt
+      | stmts -> G.Ss stmts)
+
+let any (env : env) x : G.any =
+  match env with
+  | Program -> G.Ss (program env x)
+  | Pattern -> pattern env x

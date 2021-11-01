@@ -109,30 +109,56 @@ type binary_test_operator =
 
 type pipeline_bar = Bar | Bar_ampersand
 
-type unary_control_operator =
-  | Foreground (* ';' or '\n' or ';;' *)
-  | Background
+(*
+   Pipeline/command terminators that indicate that the command should
+   run in the foreground i.e. synchronously: ';' or '\n' or ';;'
+*)
+type fg_op = Fg_newline | Fg_semi | Fg_semisemi
 
-(* & *)
+type unary_control_operator = Foreground of fg_op | (* & *) Background
 
-type redirect = todo
+type write_kind =
+  | Write_truncate (* '>' *)
+  | Write_append (* '>>' *)
+  | Write_force_truncate
+
+(* '>|' *)
+
+type write_redir_src =
+  | Stdout of tok
+  | Stdout_and_stderr of tok
+  | File_descriptor of int wrap
+
+(* The destination for writes (">") or the source for reads ("<") *)
+type file_redir_target =
+  | File of expression
+  | File_descriptor of int wrap
+  | Stdout_and_stderr (*'&>' or '>&' *) of tok
+  | Close_fd (* '-' *) of tok
+
+and file_redirect =
+  | Read of tok * file_redir_target
+  | Write of write_redir_src * write_kind wrap * file_redir_target
+  | Read_write
+
+(* <> *)
+and redirect =
+  | File_redirect of loc * file_redirect
+  | Read_heredoc of todo
+  | Read_herestring of todo
 
 (*
    Redirections can occur anywhere within a simple command. We extract
    them into a list while preserving their order, which matters.
 *)
-type command_with_redirects = {
-  loc : loc;
-  command : command;
-  redirects : redirect list;
-}
+and cmd_redir = { loc : loc; command : command; redirects : redirect list }
 
 (*
    A command is anything that can be chained into a pipeline.
 
    These are all the different kinds of commands as presented in the
    Bash man page. IO redirections are hoisted up into the
-   'command_with_redirects' wrapper.
+   'cmd_redir' wrapper.
 
    The syntax doesn't allow for nested coprocesses, but we allow it in
    the AST because it's simpler this way.
@@ -248,8 +274,8 @@ and simple_command = {
      a | b && c | d
 *)
 and pipeline =
-  | Command of loc * command_with_redirects
-  | Pipeline of loc * pipeline * pipeline_bar wrap * command_with_redirects
+  | Command of cmd_redir
+  | Pipeline of loc * pipeline * pipeline_bar wrap * cmd_redir
   | Control_operator of loc * pipeline * unary_control_operator wrap
 
 (*
@@ -374,19 +400,20 @@ and expression =
   | Raw_string of (* '...' *) string wrap
   | Ansii_c_string of (* $'...' *) string wrap
   | Concatenation of loc * expression list
-  | Expr_ellipsis of (* ... *) tok
-  | Expr_metavar of (* $X in pattern mode *) string wrap
+  | Expr_semgrep_ellipsis of (* ... *) tok
+  | Expr_semgrep_deep_ellipsis of (* <... x ...> *) loc * expression bracket
+  | Expr_semgrep_metavar of (* $X in pattern mode *) string wrap
   | Equality_test of loc * eq_op * right_eq_operand (* should it be here? *)
   | Empty_expression of loc
-  | Array of (* ( ... ) *) loc * expression list bracket
-  | Process_substitution of (* <( ... ) *) loc * blist bracket
+  | Array of (* ( a b ) *) loc * expression list bracket
+  | Process_substitution of (* <( echo 'x' ) *) loc * blist bracket
 
 (* Fragment of a double-quoted string *)
 and string_fragment =
   | String_content of string wrap
   | Expansion of (* $X in program mode, ${X}, ${X ... } *) loc * expansion
   | Command_substitution of (* $(foo; bar) or `foo; bar` *) blist bracket
-  | Frag_metavar of (* $X in pattern mode *) string wrap
+  | Frag_semgrep_metavar of (* $X in pattern mode *) string wrap
 
 (* $foo or something like ${foo ...} *)
 and expansion =
@@ -396,7 +423,7 @@ and expansion =
 and variable_name =
   | Simple_variable_name of string wrap
   | Special_variable_name of string wrap
-  | Var_metavar of string wrap
+  | Var_semgrep_metavar of string wrap
 
 and complex_expansion =
   | Variable of loc * variable_name
@@ -466,21 +493,27 @@ let bracket (loc : loc) x : 'a bracket =
 
 let compare_loc (a, _) (b, _) = Parse_info.compare_pos a b
 
-let min_loc_tok a b =
-  let tok_a = left_loc_tok a in
-  let tok_b = left_loc_tok b in
+let min_tok tok_a tok_b =
   if Parse_info.is_fake tok_a then tok_b
   else if Parse_info.is_fake tok_b then tok_a
   else if Parse_info.compare_pos tok_a tok_b <= 0 then tok_a
   else tok_b
 
-let max_loc_tok a b =
-  let tok_a = right_loc_tok a in
-  let tok_b = right_loc_tok b in
+let min_loc_tok a b =
+  let tok_a = left_loc_tok a in
+  let tok_b = left_loc_tok b in
+  min_tok tok_a tok_b
+
+let max_tok tok_a tok_b =
   if Parse_info.is_fake tok_b then tok_a
   else if Parse_info.is_fake tok_a then tok_b
   else if Parse_info.compare_pos tok_a tok_b <= 0 then tok_b
   else tok_a
+
+let max_loc_tok a b =
+  let tok_a = right_loc_tok a in
+  let tok_b = right_loc_tok b in
+  max_tok tok_a tok_b
 
 (*
    Return the span of two ranges (locations) while trying to eliminate
@@ -510,10 +543,6 @@ let bracket_loc (start_tok, _, end_tok) : loc = (start_tok, end_tok)
 
 let todo_loc (TODO loc) = loc
 
-let redirect_loc x = todo_loc x
-
-let command_with_redirects_loc x = x.loc
-
 let command_loc = function
   | Simple_command x -> x.loc
   | And (loc, _, _, _) -> loc
@@ -539,7 +568,7 @@ let command_loc = function
 let simple_command_loc (x : simple_command) = x.loc
 
 let pipeline_loc = function
-  | Command (loc, _) -> loc
+  | Command x -> x.loc
   | Pipeline (loc, _, _, _) -> loc
   | Control_operator (loc, _, _) -> loc
 
@@ -596,8 +625,9 @@ let expression_loc = function
   | Ansii_c_string x -> wrap_loc x
   | Special_character x -> wrap_loc x
   | Concatenation (loc, _) -> loc
-  | Expr_ellipsis tok -> (tok, tok)
-  | Expr_metavar x -> wrap_loc x
+  | Expr_semgrep_ellipsis tok -> (tok, tok)
+  | Expr_semgrep_deep_ellipsis (loc, _) -> loc
+  | Expr_semgrep_metavar x -> wrap_loc x
   | Equality_test (loc, _, _) -> loc
   | Empty_expression loc -> loc
   | Array (loc, _) -> loc
@@ -607,7 +637,7 @@ let string_fragment_loc = function
   | String_content x -> wrap_loc x
   | Expansion (loc, _) -> loc
   | Command_substitution x -> bracket_loc x
-  | Frag_metavar x -> wrap_loc x
+  | Frag_semgrep_metavar x -> wrap_loc x
 
 let expansion_loc = function
   | Simple_expansion (loc, _) -> loc
@@ -616,7 +646,7 @@ let expansion_loc = function
 let variable_name_wrap = function
   | Simple_variable_name x
   | Special_variable_name x
-  | Var_metavar x ->
+  | Var_semgrep_metavar x ->
       x
 
 let variable_name_tok x = variable_name_wrap x |> snd
@@ -647,6 +677,28 @@ let test_expression_loc = function
   | T_todo loc ->
       loc
 
+let write_redir_src_loc (x : write_redir_src) =
+  match x with
+  | Stdout tok
+  | Stdout_and_stderr tok
+  | File_descriptor (_, tok) ->
+      (tok, tok)
+
+let file_redir_target_loc (x : file_redir_target) =
+  match x with
+  | File e -> expression_loc e
+  | File_descriptor w -> wrap_loc w
+  | Stdout_and_stderr tok -> (tok, tok)
+  | Close_fd tok -> (tok, tok)
+
+let redirect_loc (x : redirect) =
+  match x with
+  | File_redirect (loc, _) -> loc
+  | Read_heredoc x -> todo_loc x
+  | Read_herestring x -> todo_loc x
+
+let cmd_redir_loc x = x.loc
+
 (*****************************************************************************)
 (* Helpers for users of the module *)
 (*****************************************************************************)
@@ -666,11 +718,85 @@ let concat_blists (x : blist list) : blist =
           Seq (loc, blist, acc))
         last_blist blists
 
-let rec first_command_of_pipeline pip :
-    command_with_redirects * unary_control_operator wrap option =
+let add_redirects_to_command (cmd_r : cmd_redir) (redirects : redirect list) :
+    cmd_redir =
+  let all_locs = cmd_r.loc :: List.map redirect_loc redirects in
+  let loc = list_loc (fun loc -> loc) all_locs in
+  { cmd_r with loc; redirects = cmd_r.redirects @ redirects }
+
+let rec add_redirects_to_last_command_of_pipeline pip redirects : pipeline =
   match pip with
-  | Command (_loc, x) -> (x, None)
+  | Command cmd_r -> Command (add_redirects_to_command cmd_r redirects)
+  | Pipeline (loc, pip, bar, cmd_r) ->
+      let cmd_r = add_redirects_to_command cmd_r redirects in
+      let loc = range loc cmd_r.loc in
+      Pipeline (loc, pip, bar, cmd_r)
+  | Control_operator (loc, pip, op) ->
+      let pip = add_redirects_to_last_command_of_pipeline pip redirects in
+      let loc = range loc (pipeline_loc pip) in
+      Control_operator (loc, pip, op)
+
+let rec first_command_of_pipeline pip :
+    cmd_redir * unary_control_operator wrap option =
+  match pip with
+  | Command x -> (x, None)
   | Pipeline (_loc, pip, _bar, _cmd) -> first_command_of_pipeline pip
   | Control_operator (_loc, pip, op) ->
       let cmd, _ = first_command_of_pipeline pip in
       (cmd, Some op)
+
+(*
+   We use this only to analyze and simplify a pattern. This loses the location
+   information if the list is empty.
+*)
+let flatten_blist blist : pipeline list =
+  let rec flatten acc blist =
+    match blist with
+    | Seq (_loc, a, b) ->
+        let acc = flatten acc a in
+        flatten acc b
+    | Pipelines (_loc, pips) -> List.rev_append pips acc
+    | Empty _loc -> acc
+  in
+  flatten [] blist |> List.rev
+
+(*
+   Simple expressions returned by this function:
+
+     foo
+     $foo
+     ""
+
+   Not simple expressions:
+
+     foo bar
+     foo;
+     foo > bar
+     foo &
+     foo | bar
+*)
+let rec pipeline_as_expression pip : expression option =
+  match pip with
+  | Command cmd_r -> (
+      match (cmd_r.redirects, cmd_r.command) with
+      | [], Simple_command cmd -> (
+          match (cmd.assignments, cmd.arguments) with
+          | [], [ arg0 ] -> Some arg0
+          | _ -> None)
+      | _ -> None)
+  | Pipeline _ -> None
+  | Control_operator (_loc, pip, (op, _tok)) -> (
+      match op with
+      | Foreground Fg_newline -> pipeline_as_expression pip
+      | Foreground (Fg_semi | Fg_semisemi)
+      | Background ->
+          None)
+
+(*
+   This is necessary to that a pattern 'foo' is not translated into to a
+   function/command call.
+*)
+let blist_as_expression blist : expression option =
+  match flatten_blist blist with
+  | [ pip ] -> pipeline_as_expression pip
+  | _ -> None
