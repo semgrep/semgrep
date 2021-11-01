@@ -188,8 +188,15 @@ class CoreRunner:
         try:
             return cast(Dict[str, Any], json.loads(semgrep_output))
         except ValueError:
+            if returncode == -11:
+                # Killed by signal 11 (segmentation fault), this could be a
+                # stack overflow that was not intercepted by the OCaml runtime.
+                soft_limit, _hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
+                tip = f" This may be a stack overflow. Current stack limit is {soft_limit}, try increasing it via `ulimit -s {2*soft_limit}`."
+            else:
+                tip = ""
             self._fail(
-                "Semgrep encountered an internal error. This may be a stack overflow. Try increasing your stack size via `ulimit -s 50000`",
+                f"Semgrep encountered an internal error.{tip}",
                 rule,
                 core_run,
                 returncode,
