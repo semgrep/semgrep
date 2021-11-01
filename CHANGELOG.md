@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
+
 ### Added
 - Metavariable equality is enforced across sources/sanitizers/sinks in 
   taint mode, and these metavariables correctly appear in match messages
