@@ -20,6 +20,11 @@ open OCaml (* for the map_of_xxx *)
 module PI = Parse_info
 module G = AST_generic
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
+(* See Parse_cpp_tree_Sitter.recover_when_partial_error *)
+let recover_when_partial_error = ref true
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -39,7 +44,15 @@ type env = { mutable defs_toadd : G.definition list }
 
 let empty_env () = { defs_toadd = [] }
 
-let error = AST_generic.error
+let error t s = raise (Parse_info.Other_error (s, t))
+
+(* See Parse_cpp_tree_sitter.error_unless_partial error *)
+let error_unless_partial_error _env t s =
+  if not !recover_when_partial_error then error t s
+  else
+    logger#error "error_unless_partial_error: %s, at %s" s (PI.string_of_info t)
+
+let empty_stmt tk = Compound (tk, [], tk)
 
 let _id x = x
 
@@ -159,15 +172,15 @@ and map_ident_or_op (env : env) = function
   | IdIdent v1 ->
       let v1 = map_ident env v1 in
       (v1, None)
-  | IdTemplateId (v1, v2) ->
-      let v1 = map_ident env v1 and v2 = map_template_arguments env v2 in
+  | IdTemplated (v1, v2) ->
+      (* todo: assert _opt is None *)
+      let v1, _opt = map_ident_or_op env v1
+      and v2 = map_template_arguments env v2 in
       (v1, Some v2)
   | IdOperator (v1, v2) ->
       let t1 = map_tok env v1 in
       let _op, t2 = map_wrap env (map_operator env) v2 in
-      let id =
-        (PI.str_of_info t1 ^ " " ^ PI.str_of_info t2, PI.combine_infos t1 [ t2 ])
-      in
+      let id = (PI.str_of_info t2, PI.combine_infos t1 [ t2 ]) in
       (id, None)
   | IdDestructor (v1, v2) ->
       let t1 = map_tok env v1 and s, t2 = map_ident env v2 in
@@ -779,17 +792,24 @@ and map_cases env tk st : G.case_and_body list =
         | x :: xs -> (
             match x with
             (* in tree-sitter-cpp, some Case have no body because they
-             * are followed by another Case that will have them
+             * are followed by another Case that will have them.
+             * update: sometimes the body is also empty even without
+             * a following case. Not sure why, see could_not_find_case.cpp.
              *)
             | X
                 (S
                   (( Case (t, _, _, [])
                    | CaseRange (t, _, _, _, _, [])
-                   | Default (t, _, []) ) as case1)) ->
-                let case_repack, rest =
-                  repack_case_with_following_cases env t case1 xs
-                in
-                aux (X (S case_repack) :: rest)
+                   | Default (t, _, []) ) as case1)) -> (
+                let res = repack_case_with_following_cases env t case1 xs in
+                match res with
+                | Some (case_repack, rest) -> aux (X (S case_repack) :: rest)
+                | None ->
+                    (* weird, skip for now *)
+                    let cases = [ G.OtherCase (("StmtNotCase", tk), []) ] in
+                    let sts = map_sequencable env (map_stmt_or_decl env) x in
+                    let st = G.stmt1 sts in
+                    G.CasesAndBody (cases, st) :: aux xs)
             | X (S ((Case _ | CaseRange _ | Default _) as case1)) ->
                 (* in pfff some statements may be without a leading case,
                  * so we need to repack them *)
@@ -824,38 +844,45 @@ and map_cases env tk st : G.case_and_body list =
 
 (* needed only for tree-sitter *)
 and repack_case_with_following_cases env tk (st_case_empty_body : stmt) xs =
-  match xs with
-  | [] -> error tk "empty case body, impossible"
-  | x :: xs -> (
-      let new_case_body_stmt, rest =
-        match x with
-        | X
-            (S
-              (( Case (t, _, _, [])
-               | CaseRange (t, _, _, _, _, [])
-               | Default (t, _, []) ) as case1)) ->
-            let case_repack, rest =
-              repack_case_with_following_cases env t case1 xs
-            in
-            (case_repack, rest)
-        | X
-            (S
-              (( Case (_, _, _, _)
-               | CaseRange (_, _, _, _, _, _)
-               | Default (_, _, _) ) as case1)) ->
-            (case1, xs)
-        | _ -> error tk "could not find a case"
-      in
-      match st_case_empty_body with
-      | Case (v1, v2, v3, []) ->
-          (Case (v1, v2, v3, [ S new_case_body_stmt ]), rest)
-      | CaseRange (v1, v2, v3, v4, v5, []) ->
-          (CaseRange (v1, v2, v3, v4, v5, [ S new_case_body_stmt ]), rest)
-      | Default (v1, v2, []) ->
-          (Default (v1, v2, [ S new_case_body_stmt ]), rest)
-      | _ -> raise Impossible)
+  let repack_empty_case new_case_body_stmt =
+    match st_case_empty_body with
+    | Case (v1, v2, v3, []) -> Case (v1, v2, v3, [ S new_case_body_stmt ])
+    | CaseRange (v1, v2, v3, v4, v5, []) ->
+        CaseRange (v1, v2, v3, v4, v5, [ S new_case_body_stmt ])
+    | Default (v1, v2, []) -> Default (v1, v2, [ S new_case_body_stmt ])
+    | _ -> raise Impossible
+  in
 
-(* needed only for pfff *)
+  match xs with
+  | [] ->
+      (* tree-sitter may remove some tokens for error-recovery, leading
+       * to some empty cases
+       *)
+      error_unless_partial_error env tk "empty case body, weird";
+      Some (empty_stmt tk, [])
+  | x :: xs -> (
+      match x with
+      | X
+          (S
+            (( Case (t, _, _, [])
+             | CaseRange (t, _, _, _, _, [])
+             | Default (t, _, []) ) as case1)) -> (
+          (* recursive call, still got an empty case, need to go deeper *)
+          let res = repack_case_with_following_cases env t case1 xs in
+          match res with
+          | None -> None
+          | Some (case_repack, rest) ->
+              Some (repack_empty_case case_repack, rest))
+      | X
+          (S
+            (( Case (_, _, _, _)
+             | CaseRange (_, _, _, _, _, _)
+             | Default (_, _, _) ) as case1)) ->
+          Some (repack_empty_case case1, xs)
+      | _ ->
+          (* could not find a case, maybe caller knows better *)
+          None)
+
 and repack_case_with_following_stmts _env (st_case_only : stmt) sts : stmt =
   let sts =
     sts
@@ -878,7 +905,9 @@ and repack_case_with_following_stmts _env (st_case_only : stmt) sts : stmt =
 
 and map_case_body env tk case_body : G.case list * stmt_or_decl list =
   match case_body with
-  | [] -> error tk "empty case body, impossible"
+  | [] ->
+      error_unless_partial_error env tk "empty case body, impossible";
+      ([], [])
   | x :: xs -> (
       match x with
       (* merge all the cases together *)
