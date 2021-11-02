@@ -15,6 +15,8 @@ open Common
 module PI = Parse_info
 module G = AST_generic
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -154,7 +156,10 @@ let wrap_parser tree_sitter_parser ast_mapper =
   let res : 'a Tree_sitter_run.Parsing_result.t = tree_sitter_parser () in
   let program =
     match res.program with
-    | Some cst -> Some (ast_mapper cst)
+    | Some cst ->
+        if res.errors <> [] then
+          logger#error "Partial errors returned by Tree-sitter parser";
+        Some (ast_mapper cst)
     | None -> None
   in
   { res with program }

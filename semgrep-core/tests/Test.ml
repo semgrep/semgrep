@@ -278,6 +278,9 @@ let lang_parsing_tests =
       let lang = Lang.Vue in
       parsing_tests_for_lang files lang
     );
+    (* TODO: also do parsing tests where we expect some partials.
+     * See cpp/parsing_partial/
+     *)
     pack_tests "C++" (
       let dir = Filename.concat tests_path "cpp/parsing" in
       let files = Common2.glob (spf "%s/*.cpp" dir) in
