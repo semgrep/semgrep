@@ -70,7 +70,7 @@ end)
 (* Helpers *)
 (*****************************************************************************)
 
-let str_of_name ((s, _tok), sid) = spf "%s:%d" s sid
+let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 
 let set_opt_to_set = function
   | None -> PM.Set.empty
@@ -144,7 +144,7 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
   let check_base = function
     | Var var ->
         let var_tok_pms =
-          let (_, tok), _ = var in
+          let _, tok = var.ident in
           if Parse_info.is_origintok tok then config.is_source (G.Tk tok)
           else []
         in

@@ -29,6 +29,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Kotlin: support ellipsis in class body and parameters (#4141)
 - Go: support method interface pattern (#4172)
 
+### Fixed
+- text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports width < 1
+- Metrics report the error type of semgrep core errors (Timeout, MaxMemory, etc.)
+- Correctly parse metavariables in JS template strings
+- Constant propagation: Tuple/Array destructuring assignments now correctly prevent constant propagation
+- Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
+- Scala: parse underscore separators in number literals, and parse 'l'/'L' long suffix on number literals
+
 ### Changed
 - Report CI environment variable in metrics for better environment
   determination
