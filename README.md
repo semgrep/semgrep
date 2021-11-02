@@ -61,7 +61,7 @@ Semgrep is developed and commercially supported by [r2c, a software security com
 
 <h4 align="center">General availability</h4>
 <p align="center">
-Go · Java · JavaScript · JSX · JSON · Python · Ruby · TypeScript · TSX</br>
+C# · Go · Java · JavaScript · JSX · JSON · Python · Ruby · TypeScript · TSX</br>
 </p>
 <h4 align="center">Beta & experimental</h4>
 <p align="center">
