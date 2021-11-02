@@ -36,6 +36,7 @@ let debug_exn = ref false
 
 type parsing_result = {
   ast : AST_generic.program;
+  (* partial errors tree-sitter was able to recover from *)
   errors : Semgrep_error_code.error list;
   stat : Parse_info.parsing_stat;
 }
