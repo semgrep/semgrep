@@ -76,7 +76,7 @@ let rec eval x : constness option =
   | DotAccess
       ( { e = IdSpecial (This, _); _ },
         _,
-        EN (Id (_, { id_constness = { contents = Some x }; _ })) ) ->
+        FN (Id (_, { id_constness = { contents = Some x }; _ })) ) ->
       Some x
   | Call ({ e = IdSpecial ((Op (Plus | Concat) | ConcatString _), _); _ }, args)
     -> (

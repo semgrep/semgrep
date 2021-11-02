@@ -1,0 +1,10 @@
+rules:
+- id: test-template
+  patterns:
+  - pattern: |
+        $RETURNTYPE $METHOD(...) { ... }
+  - pattern-not-inside: |
+        $RETURNTYPE $METHOD(...) { ... }
+  message: Working!
+  severity: WARNING
+  languages: [java]

@@ -23,6 +23,7 @@ class YAML:
     representer: Any
 
     def __init__(self, typ: str = 'rt'):
+        self.default_flow_style: bool = ...
         ...
 
     def load(self, stream: Any) -> Any:

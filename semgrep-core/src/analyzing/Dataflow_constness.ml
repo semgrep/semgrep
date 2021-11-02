@@ -64,7 +64,7 @@ let string_of_constness = function
       | G.String (s, _) -> Printf.sprintf "lit(\"%s\")" s
       | ___else___ -> "lit(???)")
 
-let str_of_name ((s, _tok), sid) = spf "%s:%d" s sid
+let str_of_name name = spf "%s:%d" (fst name.ident) name.sid
 
 (*****************************************************************************)
 (* Constness *)
@@ -220,9 +220,9 @@ let rec eval (env : G.constness D.env) exp : G.constness =
 
 and eval_lval env lval =
   match lval with
-  | { base = Var x; offset = NoOffset; constness } -> (
+  | { base = Var x; offset = NoOffset } -> (
       let opt_c = D.VarMap.find_opt (str_of_name x) env in
-      match (!constness, opt_c) with
+      match (!(x.id_info.id_constness), opt_c) with
       | None, None -> G.NotCst
       | Some c, None
       | None, Some c ->
@@ -318,15 +318,15 @@ let transfer :
     | NTodo _ ->
         inp'
     | NInstr instr -> (
+        (* TODO: For now we only handle the simplest cases. *)
         match instr.i with
-        (* TODO: Handle base=Mem _ and base=VarSpecial _ cases. *)
-        | Assign ({ base = Var var; offset = NoOffset; constness = _ }, exp) ->
+        | Assign ({ base = Var var; offset = NoOffset }, exp) ->
+            (* var = exp *)
             let cexp = eval inp' exp in
             D.VarMap.add (str_of_name var) cexp inp'
         | CallSpecial
-            ( Some { base = Var var; offset = NoOffset; constness = _ },
-              (Concat, _),
-              args ) ->
+            (Some { base = Var var; offset = NoOffset }, (Concat, _), args) ->
+            (* var = concat(args) *)
             let cexp = eval_concat inp' args in
             D.VarMap.add (str_of_name var) cexp inp'
         | Call (None, { e = Fetch { base = Var var; offset = Dot _; _ }; _ }, _)
@@ -336,7 +336,8 @@ let transfer :
              * mutable. *)
             D.VarMap.add (str_of_name var) G.NotCst inp'
         | ___else___ -> (
-            (* assume non-constant *)
+            (* In any other case, assume non-constant.
+             * This covers e.g. `x.f = E`, `x[E1] = E2`, `*x = E`, etc. *)
             let lvar_opt = IL.lvar_of_instr_opt instr in
             match lvar_opt with
             | None -> inp'
@@ -371,12 +372,12 @@ let update_constness (flow : F.cfg) mapping =
          (* Update RHS constness according to the input env. *)
          rlvals_of_node node.n
          |> List.iter (function
-              | { base = Var var; constness; _ } -> (
+              | { base = Var var; _ } -> (
                   match
                     D.VarMap.find_opt (str_of_name var) ni_info.D.in_env
                   with
                   | None -> ()
-                  | Some c -> refine_constness_ref constness c)
+                  | Some c -> refine_constness_ref var.id_info.id_constness c)
               | ___else___ -> ())
          (* Should not update the LHS constness since in x = E, x is a "ref",
           * and it should not be substituted for the value it holds. *))

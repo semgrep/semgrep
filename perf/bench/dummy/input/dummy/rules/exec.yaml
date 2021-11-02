@@ -1,0 +1,7 @@
+rules:
+- id: exec
+  pattern: |
+    exec(...)
+  message: "call to exec()"
+  languages: [javascript]
+  severity: ERROR

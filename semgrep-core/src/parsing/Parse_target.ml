@@ -20,6 +20,9 @@ module E = Semgrep_error_code
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
+(* To get a better backtrace, to better debug parse errors *)
+let debug_exn = ref false
+
 (*****************************************************************************)
 (* Prelude *)
 (*****************************************************************************)
@@ -33,6 +36,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 type parsing_result = {
   ast : AST_generic.program;
+  (* partial errors tree-sitter was able to recover from *)
   errors : Semgrep_error_code.error list;
   stat : Parse_info.parsing_stat;
 }
@@ -88,7 +92,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
           | Timeout _ as e -> raise e
           | exn ->
               (* TODO: print where the exception was raised or reraise *)
-              logger#debug "exn (%s) with Pfff parser" (Common.exn_to_s exn);
+              logger#error "exn (%s) with Pfff parser" (Common.exn_to_s exn);
               Error exn)
   | TreeSitter f -> (
       logger#info "trying to parse with TreeSitter parser %s" file;
@@ -100,22 +104,24 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
         | Some ast, [] -> Ok (ast, stat)
         | None, ts_error :: _xs ->
             let exn = error_of_tree_sitter_error ts_error in
-            logger#info "non-recoverable error (%s) with TreeSitter parser"
+            logger#error "non-recoverable error (%s) with TreeSitter parser"
               (Common.exn_to_s exn);
             Error exn
         | Some ast, x :: _xs ->
             (* let's just return the first one for now; the following one
              * may be due to cascading effect of the first error *)
             let exn = error_of_tree_sitter_error x in
-            logger#info "partial error (%s) with TreeSitter parser"
+            logger#error "partial error (%s) with TreeSitter parser"
               (Common.exn_to_s exn);
             let err = E.exn_to_error file exn in
             Partial (ast, [ err ], stat)
       with
       | Timeout _ as e -> raise e
+      (* to get correct stack trace on parse error *)
+      | exn when !debug_exn -> raise exn
       | exn ->
           (* TODO: print where the exception was raised or reraise *)
-          logger#debug "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
+          logger#error "exn (%s) with TreeSitter parser" (Common.exn_to_s exn);
           Error exn)
 
 let rec (run_either :
@@ -279,7 +285,7 @@ let rec just_parse_with_lang lang file =
   | Lang.Cplusplus ->
       run file
         [
-          Pfff (throw_tokens Parse_cpp.parse);
+          (*Pfff (throw_tokens Parse_cpp.parse); *)
           TreeSitter Parse_cpp_tree_sitter.parse;
         ]
         Cpp_to_generic.program

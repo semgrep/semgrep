@@ -1,5 +1,6 @@
 import collections
 import json
+import resource
 import subprocess
 import tempfile
 from datetime import datetime
@@ -9,15 +10,18 @@ from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Tuple
 
 from ruamel.yaml import YAML
 
+from semgrep.config_resolver import Config
 from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 from semgrep.core_output import CoreOutput
 from semgrep.core_output import RuleId
 from semgrep.error import _UnknownLanguageError
+from semgrep.error import SemgrepCoreError
 from semgrep.error import SemgrepError
 from semgrep.error import UnknownLanguageError
 from semgrep.error import with_color
@@ -27,6 +31,7 @@ from semgrep.profiling import Times
 from semgrep.progress_bar import debug_tqdm_write
 from semgrep.progress_bar import progress_bar
 from semgrep.rule import Rule
+from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_core import SemgrepCore
 from semgrep.semgrep_types import Language
@@ -37,6 +42,57 @@ from semgrep.util import sub_run
 from semgrep.verbose_logging import getLogger
 
 logger = getLogger(__name__)
+
+
+def setrlimits_preexec_fn() -> None:
+    """
+    Sets stack limit of current running process to the maximum possible
+    of the following as allowed by the OS:
+    - 5120000
+    - stack hard limit / 3
+    - stack hard limit / 4
+    - current existing soft limit
+
+    Note this is intended to run as a preexec_fn before semgrep-core in a subprocess
+    so all code here runs in a child fork before os switches to semgrep-core binary
+    """
+    # Get current soft and hard stack limits
+    old_soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
+    logger.info(f"Existing stack limits: Soft: {old_soft_limit}, Hard: {hard_limit}")
+
+    # Have candidates in case os unable to set certain limit
+    potential_soft_limits = [
+        int(
+            hard_limit / 3
+        ),  # Larger fractions cause "current limit exceeds maximum limit" for unknown reason
+        int(hard_limit / 4),
+        5120000,  # Magic number that seems to work for most cases
+        old_soft_limit,
+    ]
+
+    # Reverse sort so maximum possible soft limit is set
+    potential_soft_limits.sort(reverse=True)
+    for soft_limit in potential_soft_limits:
+        try:
+            logger.info(f"Trying to set soft limit to {soft_limit}")
+            resource.setrlimit(resource.RLIMIT_STACK, (soft_limit, hard_limit))
+            logger.info(f"Set stack limit to {soft_limit}, {hard_limit}")
+            return
+        except Exception as e:
+            logger.info(f"Failed to set stack limit to {soft_limit}, {hard_limit}")
+            logger.verbose(str(e))
+
+    logger.info("Failed to change stack limits")
+
+
+def dedup_errors(errors: List[SemgrepCoreError]) -> List[SemgrepCoreError]:
+    return list({uniq_error_id(e): e for e in errors}.values())
+
+
+def uniq_error_id(
+    error: SemgrepCoreError,
+) -> Tuple[int, Path, CoreLocation, CoreLocation, str]:
+    return (error.code, error.path, error.start, error.end, error.message)
 
 
 class CoreRunner:
@@ -132,8 +188,15 @@ class CoreRunner:
         try:
             return cast(Dict[str, Any], json.loads(semgrep_output))
         except ValueError:
+            if returncode == -11:
+                # Killed by signal 11 (segmentation fault), this could be a
+                # stack overflow that was not intercepted by the OCaml runtime.
+                soft_limit, _hard_limit = resource.getrlimit(resource.RLIMIT_STACK)
+                tip = f" This may be a stack overflow. Current stack limit is {soft_limit}, try increasing it via `ulimit -s {2*soft_limit}`."
+            else:
+                tip = ""
             self._fail(
-                "Semgrep encountered an internal error. This may be a stack overflow. Try increasing your stack size via `ulimit -s 50000`",
+                f"Semgrep encountered an internal error.{tip}",
                 rule,
                 core_run,
                 returncode,
@@ -288,7 +351,12 @@ class CoreRunner:
                             cmd += ["-debug"]
                             stderr = None
 
-                        core_run = sub_run(cmd, stdout=subprocess.PIPE, stderr=stderr)
+                        core_run = sub_run(
+                            cmd,
+                            stdout=subprocess.PIPE,
+                            stderr=stderr,
+                            preexec_fn=setrlimits_preexec_fn,
+                        )
                         output_json = self._extract_core_output(rule, core_run)
                         core_output = CoreOutput.parse(output_json, RuleId(rule.id))
 
@@ -364,3 +432,45 @@ class CoreRunner:
             all_targets,
             profiling_data,
         )
+
+    def validate_configs(self, configs: Tuple[str, ...]) -> Sequence[SemgrepError]:
+        metachecks = Config.from_config_list(["p/semgrep-rule-lints"], None)[
+            0
+        ].get_rules(True)
+
+        parsed_errors = []
+
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml") as rule_file:
+
+            yaml = YAML()
+            yaml.dump(
+                {"rules": [metacheck._raw for metacheck in metachecks]}, rule_file
+            )
+            rule_file.flush()
+
+            cmd = (
+                [SemgrepCore.path()]
+                + [
+                    "-json",
+                    "-check_rules",
+                    rule_file.name,
+                ]
+                + list(configs)
+            )
+
+            stderr: Optional[int] = subprocess.PIPE
+
+            core_run = sub_run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=stderr,
+            )
+            # TODO make _extract_core_output not take a rule_id
+            output_json = self._extract_core_output(metachecks[0], core_run)
+            core_output = CoreOutput.parse(output_json, RuleId(metachecks[0].id))
+
+            parsed_errors += [
+                e.to_semgrep_error(RuleId(metachecks[0].id)) for e in core_output.errors
+            ]
+
+        return dedup_errors(parsed_errors)

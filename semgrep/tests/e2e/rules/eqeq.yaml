@@ -27,6 +27,8 @@ rules:
     message: "useless comparison operation `$X == $X` or `$X != $X`; possible bug?"
     languages: [python]
     severity: ERROR
+    metadata:
+        shortlink: https://sg.run/xyz1
   - id: python37-compatability-os-module
     patterns:
       - pattern-not-inside: |

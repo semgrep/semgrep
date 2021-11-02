@@ -4,13 +4,6 @@
 # and report the time it takes. Optionally upload the results to the semgrep
 # dashboard.
 #
-# With the --semgrep_core option, instead run semgrep-core on a series of
-# pairs (rules, repo) with options chosen to test semgrep-core performance.
-# Note that semgrep-core can currently be run for one language only, so
-# these benchmarks only include corpuses that are primarily one language.
-# This allows them to be compared to the semgrep runtimes. Can also upload
-# the results to the dashboard, and use a dummy set instead
-#
 import argparse
 import copy
 import json
@@ -29,7 +22,6 @@ from typing import Optional
 from typing import Tuple
 
 import requests
-import semgrep_core_benchmark
 from config import BenchmarkRunSetupData
 from config import SemgrepBenchmarkConfig
 from constants import BPS_ENDPOINT
@@ -40,14 +32,13 @@ from constants import RULE_CONFIG_CACHE_DIR
 from constants import STATS_URL
 from constants import STD
 from corpus import Corpus
+from corpus import CORPUS_LOCATION
 from corpus import DUMMY_CORPUSES
-from corpus import GITLAB_CORPUSES
 from corpus import INTERNAL_CORPUSES
 from corpus import LARGE_CORPUSES
 from corpus import MEDIUM_CORPUSES
 from corpus import SMALL_CORPUSES
 from repository_time_per_rule import RepositoryTimePerRule
-from variant import GITLAB_VARIANTS
 from variant import SEMGREP_VARIANTS
 from variant import SemgrepVariant
 from variant import STD_VARIANTS
@@ -215,6 +206,7 @@ def run_semgrep(
         "--json",
         "--timeout",
         "0",
+        "--disable-metrics",
         "--no-git-ignore",  # because files in bench/*/input/ are git-ignored
     ]
     if docker:
@@ -232,7 +224,6 @@ def run_semgrep(
             # so we override it here
             "--entrypoint",
             "semgrep",
-            "-t",
             docker,
             "--quiet",
             "--config",
@@ -286,7 +277,9 @@ def run_semgrep(
         stdout_decoded = res.stdout.decode("utf-8")
         semgrep_results = json.loads(stdout_decoded)
     except (ValueError, json.JSONDecodeError):
-        logger.error("Unable to decode the Semgrep result as JSON. Exiting.")
+        logger.error(
+            f"Unable to decode the Semgrep result as JSON. Exiting.\n******\n{res.stdout}"
+        )
         sys.exit(1)
 
     return t2 - t1, semgrep_results
@@ -337,6 +330,7 @@ def prepare_benchmark_run(
         for repository in setup_data.repositories:
             repo_name = repository.url.split("/")[-1]
             generate_prep_file(
+                setup_data.run_name,
                 repo_name,
                 rule_cache_dir.absolute(),
                 repository.url,
@@ -344,7 +338,7 @@ def prepare_benchmark_run(
             )
             corpuses.append(
                 Corpus(
-                    repo_name,
+                    setup_data.run_name,
                     rule_cache_dir.absolute(),
                     Path("input") / repo_name,
                 )
@@ -355,12 +349,13 @@ def prepare_benchmark_run(
 
 def generate_prep_file(
     name: str,
+    repo_name: str,
     rule_cache_dir: Path,
     url: str,
     commit_hash: str,
 ) -> None:
     # make dirs
-    benchdir = Path(name)
+    benchdir = Path(f"{CORPUS_LOCATION}/{name}")
     benchdir.mkdir(parents=True, exist_ok=True)
     prep_file = benchdir / "prep"
     # generate prep file
@@ -368,7 +363,7 @@ def generate_prep_file(
     prep_file.touch(0o755, exist_ok=True)
     prep_file.write_text(
         PREP_FILE_TEMPLATE.format(
-            name=name,
+            name=repo_name,
             rule_cache_dir=rule_cache_dir,
             url=url,
             commit_hash=commit_hash,
@@ -390,7 +385,6 @@ def run_benchmarks(
     small_only: bool,
     all: bool,
     internal: bool,
-    gitlab: bool,
     std_only: bool,
     config_file: Optional[Path],
     filter_corpus: str,
@@ -404,6 +398,11 @@ def run_benchmarks(
     summary_file_path: str,
     called_dir: str,
 ) -> None:
+    def get_corpuses(config_file: Path) -> List[Corpus]:
+        config_file_path = config_file.absolute()
+        return prepare_benchmark_run(
+            SemgrepBenchmarkConfig.parse_config(config_file_path), clean
+        )
 
     variants = SEMGREP_VARIANTS
     if std_only or output_time_per_rule_json:
@@ -422,28 +421,28 @@ def run_benchmarks(
         output_file=output_time_per_rule_json
     )
 
-    corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES
     if dummy:
         corpuses = DUMMY_CORPUSES
     elif internal:
         corpuses = INTERNAL_CORPUSES
-    elif gitlab:
-        corpuses = GITLAB_CORPUSES
-        variants = GITLAB_VARIANTS
     elif small_only:
-        corpuses = SMALL_CORPUSES
+        corpuses = get_corpuses(SMALL_CORPUSES)
     elif all:
-        corpuses = SMALL_CORPUSES + MEDIUM_CORPUSES + LARGE_CORPUSES
-    elif config_file:
-        corpuses = prepare_benchmark_run(
-            SemgrepBenchmarkConfig.parse_config(config_file.absolute()), clean
+        corpuses = (
+            get_corpuses(SMALL_CORPUSES)
+            + get_corpuses(MEDIUM_CORPUSES)
+            + get_corpuses(LARGE_CORPUSES)
         )
+    elif config_file:
+        corpuses = get_corpuses(config_file)
+    else:
+        corpuses = get_corpuses(SMALL_CORPUSES) + get_corpuses(MEDIUM_CORPUSES)
     if filter_corpus:
         corpuses = [x for x in corpuses if re.search(filter_corpus, x.name) != None]
 
     # Multithread here. Dedicate one core to each benchmark
     for corpus in corpuses:
-        with chdir(corpus.name):
+        with chdir(f"{CORPUS_LOCATION}/{corpus.name}"):
             try:
                 corpus.prep()
             except Exception as e:
@@ -556,11 +555,6 @@ def main() -> None:
         action="store_true",
     )
     parser.add_argument(
-        "--gitlab",
-        help="run gitlab benchmarks for development purposes",
-        action="store_true",
-    )
-    parser.add_argument(
         "--small-only",
         help="only run small benchmarks (20s per run or less)",
         action="store_true",
@@ -632,31 +626,27 @@ def main() -> None:
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     called_dir = os.getcwd()
 
-    with chdir(cur_dir + "/bench"):
-        if args.semgrep_core:
-            semgrep_core_benchmark.run_benchmarks(args.dummy, args.upload)
-        else:
-            config_file = (Path(called_dir) / args.config) if args.config else None
-            run_benchmarks(
-                docker=args.docker,
-                dummy=args.dummy,
-                small_only=args.small_only,
-                all=args.all,
-                internal=args.internal,
-                gitlab=args.gitlab,
-                std_only=args.std_only,
-                config_file=config_file,
-                filter_corpus=args.filter_corpus,
-                filter_variant=args.filter_variant,
-                hard_timeout=args.hard_timeout,
-                output_time_per_rule_json=args.output_time_per_rule_json,
-                plot_benchmarks=args.plot_benchmarks,
-                upload=args.upload,
-                include_time=not args.no_time,
-                clean=args.clean,
-                summary_file_path=args.save_to,
-                called_dir=called_dir,
-            )
+    with chdir(cur_dir):
+        config_file = (Path(called_dir) / args.config) if args.config else None
+        run_benchmarks(
+            docker=args.docker,
+            dummy=args.dummy,
+            small_only=args.small_only,
+            all=args.all,
+            internal=args.internal,
+            std_only=args.std_only,
+            config_file=config_file,
+            filter_corpus=args.filter_corpus,
+            filter_variant=args.filter_variant,
+            hard_timeout=args.hard_timeout,
+            output_time_per_rule_json=args.output_time_per_rule_json,
+            plot_benchmarks=args.plot_benchmarks,
+            upload=args.upload,
+            include_time=not args.no_time,
+            clean=args.clean,
+            summary_file_path=args.save_to,
+            called_dir=called_dir,
+        )
 
 
 if __name__ == "__main__":

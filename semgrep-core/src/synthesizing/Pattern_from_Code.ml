@@ -13,6 +13,7 @@
  *)
 open AST_generic
 module G = AST_generic
+module H = AST_generic_helpers
 
 (*****************************************************************************)
 (* Prelude *)
@@ -69,8 +70,12 @@ let default_id str =
   G.N
     (Id
        ( (str, fk),
-         { id_resolved = ref None; id_type = ref None; id_constness = ref None }
-       ))
+         {
+           id_resolved = ref None;
+           id_type = ref None;
+           id_constness = ref None;
+           id_hidden = false;
+         } ))
   |> G.e
 
 let default_tyvar str typ = TypedMetavar ((str, fk), fk, typ) |> G.e
@@ -303,7 +308,7 @@ and generalize_if s_in =
   let rec dots_in_cond s =
     match s.s with
     | If (tok, _, s, sopt) ->
-        If (tok, Ellipsis fk |> G.e, s, opt dots_in_cond sopt) |> G.s
+        If (tok, Cond (Ellipsis fk |> G.e), s, opt dots_in_cond sopt) |> G.s
     | Block (t1, [ ({ s = If _; _ } as x) ], t2) ->
         Block (t1, [ dots_in_cond x ], t2) |> G.s
     | _ -> s
@@ -313,20 +318,22 @@ and generalize_if s_in =
     ("dots in cond", S (dots_in_cond s_in));
   ]
 
-and generalize_while (tok, e, s) env =
+and generalize_while (tok, cond, s) env =
   let body_dots =
     match s.s with
     | Block (t1, _, t2) -> body_ellipsis t1 t2
     | _ -> fk_stmt
   in
   let dots_in_cond =
-    ("dots in condition", S (While (tok, Ellipsis fk |> G.e, s) |> G.s))
+    ("dots in condition", S (While (tok, G.Cond (Ellipsis fk |> G.e), s) |> G.s))
   in
-  let dots_in_body = ("dots in body", S (While (tok, e, body_dots) |> G.s)) in
+  let dots_in_body =
+    ("dots in body", S (While (tok, cond, body_dots) |> G.s))
+  in
   let expr_choices_in_cond =
-    add_expr e
+    add_expr (H.cond_to_expr cond)
       (fun (str, e') ->
-        ("condition " ^ str, S (While (tok, e', body_dots) |> G.s)))
+        ("condition " ^ str, S (While (tok, G.Cond e', body_dots) |> G.s)))
       env
   in
   dots_in_cond :: dots_in_body :: expr_choices_in_cond

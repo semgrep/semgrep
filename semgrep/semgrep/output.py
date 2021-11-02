@@ -4,6 +4,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from typing import Collection
 from typing import Dict
 from typing import FrozenSet
 from typing import Generator
@@ -18,6 +19,7 @@ from typing import Type
 
 from semgrep import config_resolver
 from semgrep.constants import OutputFormat
+from semgrep.constants import RuleSeverity
 from semgrep.error import FINDINGS_EXIT_CODE
 from semgrep.error import Level
 from semgrep.error import SemgrepCoreError
@@ -37,6 +39,7 @@ from semgrep.rule_match_map import RuleMatchMap
 from semgrep.stats import make_loc_stats
 from semgrep.stats import make_target_stats
 from semgrep.util import is_url
+from semgrep.util import terminal_wrap
 from semgrep.util import with_color
 from semgrep.verbose_logging import getLogger
 
@@ -51,6 +54,10 @@ FORMATTERS: Mapping[OutputFormat, Type[BaseFormatter]] = {
     OutputFormat.TEXT: TextFormatter,
     OutputFormat.VIM: VimFormatter,
 }
+
+DEFAULT_SHOWN_SEVERITIES: Collection[RuleSeverity] = frozenset(
+    {RuleSeverity.INFO, RuleSeverity.WARNING, RuleSeverity.ERROR}
+)
 
 
 def get_path_str(target: Path) -> str:
@@ -130,7 +137,7 @@ class OutputSettings(NamedTuple):
 
 
 @contextlib.contextmanager
-def managed_output(output_settings: OutputSettings) -> Generator:  # type: ignore
+def managed_output(output_settings: OutputSettings) -> Generator:
     """
     Context manager to capture uncaught exceptions &
     """
@@ -180,6 +187,7 @@ class OutputHandler:
         self.profiling_data: ProfilingData = (
             ProfilingData()
         )  # (rule, target) -> duration
+        self.severities: Collection[RuleSeverity] = DEFAULT_SHOWN_SEVERITIES
 
         self.final_error: Optional[Exception] = None
         formatter_type = FORMATTERS.get(self.settings.output_format)
@@ -220,7 +228,7 @@ class OutputHandler:
             print_threshold_hint = print_threshold_hint or (
                 num_errs > 5 and not self.settings.timeout_threshold
             )
-            logger.error(with_color("red", error_msg))
+            logger.error(with_color("red", terminal_wrap(error_msg)))
 
         if print_threshold_hint:
             logger.error(
@@ -241,17 +249,19 @@ class OutputHandler:
             if self.settings.output_format == OutputFormat.TEXT and (
                 error.level != Level.WARN or self.settings.verbose_errors
             ):
-                logger.error(str(error))
+                logger.error(with_color("red", str(error)))
 
     def handle_semgrep_core_output(
         self,
         rule_matches_by_rule: RuleMatchMap,
+        *,
         debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
         stats_line: str,
         all_targets: Set[Path],
         profiler: ProfileManager,
         filtered_rules: List[Rule],
         profiling_data: ProfilingData,  # (rule, target) -> duration
+        severities: Optional[Collection[RuleSeverity]],
     ) -> None:
         self.has_output = True
         self.rules = self.rules.union(rule_matches_by_rule.keys())
@@ -266,6 +276,8 @@ class OutputHandler:
         self.debug_steps_by_rule.update(debug_steps_by_rule)
         self.filtered_rules = filtered_rules
         self.profiling_data = profiling_data
+        if severities:
+            self.severities = severities
 
     def handle_unhandled_exception(self, ex: Exception) -> None:
         """
@@ -287,7 +299,9 @@ class OutputHandler:
                 if self.settings.strict:
                     raise ex
                 logger.info(
-                    f"{error_stats}; run with --verbose for details or run with --strict to exit non-zero if any file cannot be analyzed cleanly"
+                    terminal_wrap(
+                        f"{error_stats}; run with --verbose for details or run with --strict to exit non-zero if any file cannot be analyzed cleanly"
+                    )
                 )
         else:
             raise ex
@@ -394,5 +408,9 @@ class OutputHandler:
             extra["per_line_max_chars_limit"] = per_line_max_chars_limit
 
         return self.formatter.output(
-            self.rules, self.rule_matches, self.semgrep_structured_errors, extra
+            self.rules,
+            self.rule_matches,
+            self.semgrep_structured_errors,
+            extra,
+            self.severities,
         )

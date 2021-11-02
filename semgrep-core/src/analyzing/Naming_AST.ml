@@ -339,7 +339,7 @@ let resolved_name_kind env lang =
 let params_of_parameters env xs =
   xs
   |> Common.map_filter (function
-       | ParamClassic { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
+       | Param { pname = Some id; pinfo = id_info; ptype = typ; _ } ->
            let sid = H.gensym () in
            let resolved = { entname = (Param, sid); enttype = typ } in
            set_resolved env id_info resolved;
@@ -555,6 +555,15 @@ let resolve lang prog =
               add_ident_imported_scope alias resolved env.names
           | _ -> ());
           k x);
+      V.kcatch =
+        (fun (k, _vout) x ->
+          let _t, exn, _st = x in
+          (match exn with
+          | CatchParam { pname = Some id; pinfo = id_info; _ }
+            when is_resolvable_name_ctx env lang ->
+              declare_var env lang id id_info ~explicit:true None None
+          | _ -> ());
+          k x);
       V.kpattern =
         (fun (k, _vout) x ->
           match x with
@@ -564,10 +573,6 @@ let resolve lang prog =
                * Also inside a PatAs(PatId x,b), the 'x' is actually
                * the name of a class, not a newly introduced local.
                *)
-              declare_var env lang id id_info ~explicit:true None None;
-              k x
-          | PatVar (_e, Some (id, id_info)) when is_resolvable_name_ctx env lang
-            ->
               declare_var env lang id id_info ~explicit:true None None;
               k x
           | OtherPat _
@@ -598,10 +603,16 @@ let resolve lang prog =
                   (* name resolution *)
                   set_resolved env id_info resolved
               | _ -> ())
-          | IdQualified ((id, name_info), id_info) ->
-              (match name_info with
+          | IdQualified
+              {
+                name_last = id, None;
+                name_middle;
+                name_info = id_info;
+                name_top = None;
+              } ->
+              (match name_middle with
               (* this is quite specific to OCaml *)
-              | { name_qualifier = Some (QDots [ m ]); _ } -> (
+              | Some (QDots [ (m, None) ]) -> (
                   match lookup_scope_opt m env with
                   | Some { entname = ImportedModule (DottedName xs), _sidm; _ }
                     ->
@@ -613,7 +624,8 @@ let resolve lang prog =
                       set_resolved env id_info resolved
                   | _ -> ())
               | _ -> ());
-              k x);
+              k x
+          | IdQualified _ -> ());
       V.kexpr =
         (fun (k, vout) x ->
           let recurse = ref true in
@@ -676,7 +688,7 @@ let resolve lang prog =
                     let s, tok = id in
                     error tok (spf "could not find '%s' in environment" s));
               recurse := false
-          | DotAccess ({ e = IdSpecial (This, _); _ }, _, EN (Id (id, id_info)))
+          | DotAccess ({ e = IdSpecial (This, _); _ }, _, FN (Id (id, id_info)))
             -> (
               match lookup_scope_opt id env with
               (* TODO: this is a v0 for doing naming and typing of fields.

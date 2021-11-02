@@ -1,6 +1,6 @@
 import json
 from typing import Any
-from typing import FrozenSet
+from typing import Iterable
 from typing import Mapping
 from typing import Sequence
 
@@ -126,10 +126,10 @@ class SarifFormatter(BaseFormatter):
         # https://docs.oasis-open.org/sarif/sarif/v2.1.0/csprd01/sarif-v2.1.0-csprd01.html#_Toc10541099
         return True
 
-    def output(
+    def format(
         self,
-        rules: FrozenSet[Rule],
-        rule_matches: Sequence[RuleMatch],
+        rules: Iterable[Rule],
+        rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
         extra: Mapping[str, Any],
     ) -> str:

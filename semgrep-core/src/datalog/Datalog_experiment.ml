@@ -101,7 +101,7 @@ let todo any =
   pr2 s;
   failwith "Datalog_experiment: TODO: IL element not handled (see above)"
 
-let var_of_name _env ((s, _tok), sid) = spf "%s__%d" s sid
+let var_of_name _env name = spf "%s__%d" (fst name.ident) name.sid
 
 let heap_of_int _env (_, tok) = spf "int %s" (Parse_info.str_of_info tok)
 
@@ -114,7 +114,7 @@ let instr env x =
   match x.i with
   | Assign (lval, e) -> (
       match (lval, e.e) with
-      | { base = Var n; offset = NoOffset; constness = _ }, Literal (G.Int s) ->
+      | { base = Var n; offset = NoOffset }, Literal (G.Int s) ->
           let v = var_of_name env n in
           let h = heap_of_int env s in
           add env (D.PointTo (v, h))

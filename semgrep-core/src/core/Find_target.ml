@@ -84,7 +84,7 @@ let is_minified path =
             spf "file contains too little whitespace: %.3f%% (min = %.1f%%)"
               (100. *. stat.ws_freq)
               (100. *. min_whitespace_frequency);
-          skipped_rule = None;
+          rule_id = None;
         }
     else if stat.line_freq < min_line_frequency then
       Error
@@ -96,7 +96,7 @@ let is_minified path =
               "file contains too few lines for its size: %.4f%% (min = %.2f%%)"
               (100. *. stat.line_freq)
               (100. *. min_line_frequency);
-          skipped_rule = None;
+          rule_id = None;
         }
     else Ok path
   else Ok path
@@ -115,7 +115,7 @@ let exclude_files_in_skip_lists roots =
              Resp.path;
              reason = Excluded_by_config;
              details = "excluded by 'skip list' file";
-             skipped_rule = None;
+             rule_id = None;
            })
   in
   (paths, skipped)
@@ -141,7 +141,7 @@ let filter_by_size _lang paths =
                details =
                  spf "target file size exceeds %i bytes at %i bytes" max_bytes
                    size;
-               skipped_rule = None;
+               rule_id = None;
              }
          else Ok path)
 

@@ -18,6 +18,9 @@ open Rule
 module R = Rule
 module E = Semgrep_error_code
 module PI = Parse_info
+module P = Pattern_match
+module RP = Report
+module SJ = Semgrep_core_response_j
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -27,17 +30,29 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* Checking the checker (metachecking).
  *
  * The goal of this module is to detect bugs, performance issues, or
- * to suggest the use of certain features in semgrep rules.
+ * to suggest the use of certain features in semgrep rules. This enables
+ * `semgrep --check-rules`, which users can run to verify their rules
  *
- * See also semgrep-rules/meta/ for semgrep meta rules expressed in
- * semgrep itself!
+ * Called via `semgrep-core -check_rules <metachecks> <files or dirs>`
  *
- * When to use semgrep/yaml (or spacegrep) to express meta rules and
- * when to use OCaml (this file)?
- * When you need to express meta rules on the yaml structure,
- * then semgrep/yaml is fine, but sometimes you need to express
- * meta-rules by inspecting the pattern content, in which case
- * you have to use OCaml (a bit like in templating languages).
+ * There are two kinds of checks:
+ * - OCaml checks implemented directly in this file
+ * - semgrep checks passed in via metachecks
+ *     (by default, semgrep will call this with the rules in the rulepack
+ *      https://semgrep.dev/p/semgrep-rule-lints)
+ *
+ * Both are necessary because semgrep checks are easier to write, especially
+ * for security experts, but not all checks can be expressed with semgrep.
+ * Whenever possible, add a check by contributing to p/semgrep-rule-lints
+ *
+ * We chose to have `-check_rules` run both kinds of checks to make the
+ * logic in semgrep simpler. This way, semgrep will receive a list of errors
+ * and only have to display them.
+ *
+ * Alternatives considered were having `-check_rules` only run the OCaml checks
+ * and have semgrep call `semgrep-core -config` on the checks
+ *
+ * TODO: make it possible to run `semgrep-core -check_rules` with no metachecks
  *
  * TODO rules:
  *  - detect if scope of metavariable-regexp is wrong and should be put
@@ -81,11 +96,10 @@ let check_formula env lang f =
    *)
   let rec find_dupe f =
     match f with
-    | Leaf (P _) -> ()
-    | Leaf (MetavarCond _) -> ()
+    | P _ -> ()
     | Not (_, f) -> find_dupe f
     | Or (t, xs)
-    | And (t, xs) ->
+    | And (t, xs, _) ->
         let rec aux xs =
           match xs with
           | [] -> ()
@@ -117,7 +131,6 @@ let check_formula env lang f =
         xs |> List.iter find_dupe
   in
   find_dupe f;
-
   (* call Check_pattern subchecker *)
   f
   |> visit_new_formula (fun { pat; pstr = _pat_str; pid = _ } ->
@@ -141,33 +154,85 @@ let check r =
       check_formula { r; errors = ref [] } r.languages f
   | Taint _ -> (* TODO *) []
 
+let semgrep_check config metachecks rules =
+  let match_to_semgrep_error m =
+    let loc, _ = m.P.range_loc in
+    (* TODO use the end location in errors *)
+    let s = m.rule_id.message in
+    let check_id = m.rule_id.id in
+    E.mk_error ~rule_id:None loc s (E.SemgrepMatchFound check_id)
+  in
+  let config =
+    {
+      config with
+      Runner_common.lang = "yaml";
+      config_file = metachecks;
+      output_format = Json;
+    }
+  in
+  let res, _ = Run_semgrep.run_semgrep_with_rules config rules in
+  res.matches |> List.map match_to_semgrep_error
+
+(* TODO *)
+
 (* We parse the parsing function fparser (Parser_rule.parse) to avoid
  * circular dependencies.
  * Similar to Test_parsing.test_parse_rules.
  *)
-let check_files fparser xs =
-  let fullxs, skipped_paths =
+let run_checks config fparser metachecks xs =
+  let yaml_xs, skipped_paths =
     xs
     |> File_type.files_of_dirs_or_files (function
          | FT.Config (FT.Yaml (*FT.Json |*) | FT.Jsonnet) -> true
          | _ -> false)
     |> Skip_code.filter_files_if_skip_list ~root:xs
   in
-  let fullxs, more_skipped_paths =
-    List.partition (fun file -> not (file =~ ".*\\.test\\.yaml")) fullxs
+  let rules, more_skipped_paths =
+    List.partition (fun file -> not (file =~ ".*\\.test\\.yaml")) yaml_xs
   in
   let _skipped_paths = more_skipped_paths @ skipped_paths in
-  if fullxs = [] then logger#error "no rules to check";
-  fullxs
-  |> List.iter (fun file ->
-         logger#info "processing %s" file;
-         try
-           let rs = fparser file in
-           rs
-           |> List.iter (fun file ->
-                  let errs = check file in
-                  errs |> List.iter (fun err -> pr2 (E.string_of_error err)))
-         with exn -> pr2 (E.string_of_error (E.exn_to_error file exn)))
+  match rules with
+  | [] ->
+      logger#error
+        "no valid yaml rules to run on (.test.yaml files are excluded)";
+      []
+  | _ ->
+      let semgrep_found_errs = semgrep_check config metachecks rules in
+      let ocaml_found_errs =
+        rules
+        |> List.map (fun file ->
+               logger#info "processing %s" file;
+               try
+                 let rs = fparser file in
+                 rs |> List.map (fun file -> check file) |> List.flatten
+               with
+               (* TODO this error is special cased because YAML files that *)
+               (* aren't semgrep rules are getting scanned *)
+               | Rule.InvalidYaml _ -> []
+               | exn -> [ E.exn_to_error file exn ])
+        |> List.flatten
+      in
+      semgrep_found_errs @ ocaml_found_errs
+
+let check_files mk_config fparser input =
+  let config = mk_config () in
+  let errors =
+    match input with
+    | []
+    | [ _ ] ->
+        logger#error
+          "check_rules needs a metacheck file or directory and rules to run on";
+        []
+    | metachecks :: xs -> run_checks config fparser metachecks xs
+  in
+  match config.output_format with
+  | Text -> List.iter (fun err -> pr2 (E.string_of_error err)) errors
+  | Json ->
+      let res =
+        { RP.matches = []; errors; skipped = []; rule_profiling = None }
+      in
+      let json = JSON_report.match_results_of_matches_and_errors [] res in
+      pr (SJ.string_of_match_results json)
 
 let stat_files fparser xs =
   let fullxs, _skipped_paths =

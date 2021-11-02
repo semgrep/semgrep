@@ -16,8 +16,10 @@ open Common
 module PI = Parse_info
 module CST = Tree_sitter_cpp.CST
 module H = Parse_tree_sitter_helpers
-module H2 = Parser_cpp_mly_helper
+module HPfff = Parser_cpp_mly_helper
 open Ast_cpp
+
+let logger = Logging.get_logger [ __MODULE__ ]
 
 (*****************************************************************************)
 (* Prelude *)
@@ -29,6 +31,10 @@ open Ast_cpp
  * a future cpp_to_generic.ml
  *
  *)
+
+(* to avoid cascading error effects when code is partially parsed by
+ * tree-sitter *)
+let recover_when_partial_error = ref true
 
 (*****************************************************************************)
 (* Helpers *)
@@ -47,54 +53,66 @@ let str = H.str
 (* for declarators *)
 let id x = x
 
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
+let error t s = raise (Parse_info.Other_error (s, t))
+
+(* To use in situations where we should raise an error, unless
+ * tree-sitter partially parsed the file, in which case the AST may
+ * be weird because tree-sitter may have skipped or inserted some tokens.
+ *)
+let error_unless_partial_error _env t s =
+  (* TODO: we should add and check in env whether the file was partially
+   * parsed and contained some ERROR CST nodes around t instead of
+   * using a hardcoded boolean below.
+   *)
+  if not !recover_when_partial_error then error t s
+  else
+    logger#error "error_unless_partial_error: %s, at %s" s (PI.string_of_info t)
 
 (* see tree-sitter-cpp/grammar.js *)
-let parse_operator _env (s, t) : operator * tok list =
+let parse_operator _env (s, t) : operator wrap =
   let op =
     match s with
-    | "+" -> BinaryOp (Arith Plus)
-    | "-" -> BinaryOp (Arith Minus)
-    | "*" -> BinaryOp (Arith Mul)
-    | "/" -> BinaryOp (Arith Div)
-    | "%" -> BinaryOp (Arith Mod)
-    | "^" -> BinaryOp (Arith Xor)
-    | "&" -> BinaryOp (Arith And)
-    | "|" -> BinaryOp (Arith Or)
-    | "~" -> UnaryTildeOp
-    | "!" -> UnaryNotOp
-    | "=" -> AssignOp (SimpleAssign t)
-    | "<" -> BinaryOp (Logical Inf)
-    | ">" -> BinaryOp (Logical Sup)
-    | "+=" -> AssignOp (OpAssign (Plus, t))
-    | "-=" -> AssignOp (OpAssign (Minus, t))
-    | "*=" -> AssignOp (OpAssign (Mul, t))
-    | "/=" -> AssignOp (OpAssign (Div, t))
-    | "%=" -> AssignOp (OpAssign (Mod, t))
-    | "^=" -> AssignOp (OpAssign (Xor, t))
-    | "&=" -> AssignOp (OpAssign (And, t))
-    | "|=" -> AssignOp (OpAssign (Or, t))
-    | "<<" -> BinaryOp (Arith DecLeft)
-    | ">>" -> BinaryOp (Arith DecRight)
-    | ">>=" -> AssignOp (OpAssign (DecRight, t))
-    | "<<=" -> AssignOp (OpAssign (DecLeft, t))
-    | "==" -> BinaryOp (Logical Eq)
-    | "!=" -> BinaryOp (Logical NotEq)
-    | "<=" -> BinaryOp (Logical InfEq)
-    | ">=" -> BinaryOp (Logical SupEq)
-    | "&&" -> BinaryOp (Logical AndLog)
-    | "||" -> BinaryOp (Logical OrLog)
-    | "++" -> FixOp Inc
-    | "--" -> FixOp Dec
-    | "," -> CommaOp
-    | "->*" -> PtrOpOp PtrStarOp
-    | "->" -> PtrOpOp PtrOp
-    | "()" -> AccessOp ParenOp
-    | "[]" -> AccessOp ArrayOp
-    | _ -> raise (Parse_info.Other_error (spf "unrecognized operator: %s" s, t))
+    | "operator+" -> BinaryOp (Arith Plus)
+    | "operator-" -> BinaryOp (Arith Minus)
+    | "operator*" -> BinaryOp (Arith Mul)
+    | "operator/" -> BinaryOp (Arith Div)
+    | "operator%" -> BinaryOp (Arith Mod)
+    | "operator^" -> BinaryOp (Arith Xor)
+    | "operator&" -> BinaryOp (Arith And)
+    | "operator|" -> BinaryOp (Arith Or)
+    | "operator~" -> UnaryTildeOp
+    | "operator!" -> UnaryNotOp
+    | "operator=" -> AssignOp (SimpleAssign t)
+    | "operator<" -> BinaryOp (Logical Inf)
+    | "operator>" -> BinaryOp (Logical Sup)
+    | "operator+=" -> AssignOp (OpAssign (Plus, t))
+    | "operator-=" -> AssignOp (OpAssign (Minus, t))
+    | "operator*=" -> AssignOp (OpAssign (Mul, t))
+    | "operator/=" -> AssignOp (OpAssign (Div, t))
+    | "operator%=" -> AssignOp (OpAssign (Mod, t))
+    | "operator^=" -> AssignOp (OpAssign (Xor, t))
+    | "operator&=" -> AssignOp (OpAssign (And, t))
+    | "operator|=" -> AssignOp (OpAssign (Or, t))
+    | "operator<<" -> BinaryOp (Arith DecLeft)
+    | "operator>>" -> BinaryOp (Arith DecRight)
+    | "operator>>=" -> AssignOp (OpAssign (DecRight, t))
+    | "operator<<=" -> AssignOp (OpAssign (DecLeft, t))
+    | "operator==" -> BinaryOp (Logical Eq)
+    | "operator!=" -> BinaryOp (Logical NotEq)
+    | "operator<=" -> BinaryOp (Logical InfEq)
+    | "operator>=" -> BinaryOp (Logical SupEq)
+    | "operator&&" -> BinaryOp (Logical AndLog)
+    | "operator||" -> BinaryOp (Logical OrLog)
+    | "operator++" -> FixOp Inc
+    | "operator--" -> FixOp Dec
+    | "operator," -> CommaOp
+    | "operator->*" -> PtrOpOp PtrStarOp
+    | "operator->" -> PtrOpOp PtrOp
+    | "operator()" -> AccessOp ParenOp
+    | "operator[]" -> AccessOp ArrayOp
+    | _ -> error t (spf "unrecognized operator: %s" s)
   in
-  (op, [ t ])
+  (op, t)
 
 (* like Parse_c_tree_sitter.number_literal and H.parse_number_literal
  * but for ast_cpp.ml, not AST_generic.ml
@@ -104,45 +122,50 @@ let parse_number_literal (s, t) =
   | Some i -> Int (Some i, t)
   | None -> (
       match float_of_string_opt s with
-      | Some f -> Float ((Some f, t), CFloat)
+      | Some f -> Float (Some f, t)
       (* could be None because of a suffix in the string *)
       | None -> Int (None, t))
 
 (* see tree-sitter-c/grammar.js *)
-let parse_primitive_type env (s, t) =
+let parse_primitive_type _env (s, t) =
   match s with
   (* size_t, ssize_t, intptr_t, int8_t, int16_t, ... *)
   | _ -> (nQ, TypeName (name_of_id (s, t)))
 
 (* name builder helpers *)
 
-let id_of_dname_for_parameter dname =
+let id_of_dname_for_parameter env dname =
   match dname with
   | DN (None, [], IdIdent id) -> id
+  | DN (None, [], IdTemplated (IdIdent id, _args)) ->
+      logger#error "Weird IdTemplated in id_of_dname_for_parameter";
+      logger#error "Probably tree-sitter partial error: %s"
+        (Ast_cpp.show_declarator_name dname);
+      id
   | _ ->
-      raise
-        (Parse_info.Other_error
-           ("expecting an ident for parameter", ii_of_dname dname))
-
-let id_of_dname_for_typedef dname =
-  match dname with
-  | DN (None, [], IdIdent id) -> id
-  | _ ->
-      raise
-        (Parse_info.Other_error
-           ("expecting an ident for typedef", ii_of_dname dname))
+      logger#error "Weird dname for parameter: %s"
+        (Ast_cpp.show_declarator_name dname);
+      error_unless_partial_error env (ii_of_dname dname)
+        "expecting an ident for parameter";
+      let ii = ii_of_dname dname in
+      (PI.str_of_info ii, ii)
 
 let name_of_dname_for_function dn =
   match dn with
   | DN n -> n
   | DNStructuredBinding (l, _, _) ->
-      raise (Parse_info.Other_error ("single name expected for a function", l))
+      error l "single name expected for a function"
 
-let name_of_dname_for_var dn =
+let name_of_dname_for_var _env dn =
   match dn with
   | DN n -> n
-  | DNStructuredBinding (l, _, _) ->
-      raise (Parse_info.Other_error ("single name expected for simple var", l))
+  | DNStructuredBinding (l, (_id, _xs), _) ->
+      (* TODO: this can happen in ForRange; we should change
+       * the type of ForRange to accept possible StructuredBindings.
+       *)
+      error l "single name expected for simple var"
+
+(* name_of_id id *)
 
 let name_scoped nameopt tcolcol id_or_op : name =
   match nameopt with
@@ -151,14 +174,13 @@ let name_scoped nameopt tcolcol id_or_op : name =
       let lastxs =
         match id_or_op1 with
         | IdIdent id -> QClassname id
-        | IdTemplateId (id, args) -> QTemplateId (id, args)
+        | IdTemplated (IdIdent id, args) -> QTemplateId (id, args)
+        | IdTemplated _
         | IdOperator _
         | IdDestructor _
         | IdConverter _ ->
-            raise
-              (Parse_info.Other_error
-                 ( "invalid operator/destructor/converter qualifier",
-                   ii_of_name name ))
+            error (ii_of_name name)
+              "invalid operator/destructor/converter qualifier"
       in
       (tcolcol1, xs1 @ [ lastxs ], id_or_op)
 
@@ -166,8 +188,9 @@ let name_add_template_args name args =
   let top, qu, id_or_op = name in
   let id_or_op =
     match id_or_op with
-    | IdIdent id -> IdTemplateId (id, args)
-    | _ -> raise Impossible
+    | IdTemplated _ ->
+        error (ii_of_name name) "Impossible, already templated name"
+    | _ -> IdTemplated (id_or_op, args)
   in
   (top, qu, id_or_op)
 
@@ -175,6 +198,22 @@ let trailing_comma env v =
   match v with
   | Some tok -> token env tok (* "," *) |> ignore
   | None -> ()
+
+let make_onedecl ~v_name ~v_type ~v_init ~v_specs =
+  match (v_name, v_init) with
+  | DN n, _ -> V ({ name = n; specs = v_specs }, { v_type; v_init })
+  | DNStructuredBinding (l, (id, ids), r), Some ini ->
+      StructuredBinding (v_type, (l, id :: ids, r), ini)
+  | DNStructuredBinding (_, (id, _), _), None ->
+      (* see expecting_init.cpp for example of code badly parsed
+       * by tree-sitter which then leads to this error. Note that
+       * I don't use error_unless_partial_error because even without
+       * any error in the file, tree-sitter still wrongly parses some
+       * code as a StructuredBinding when it's not.
+       *)
+      logger#error "Weird DNStructuredBinding without an init at %s"
+        (PI.string_of_info (snd id));
+      V ({ name = name_of_id id; specs = v_specs }, { v_type; v_init })
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -311,13 +350,13 @@ let map_anon_choice_pat_25b90ba_4a37f8c (env : env)
 (* pattern #[ 	]*ifndef *)
 
 let map_char_literal (env : env) ((v1, v2, v3) : CST.char_literal) =
-  let iswchar, v1 =
+  let v1 =
     match v1 with
-    | `LSQUOT tok -> (IsWchar, token env tok) (* "L'" *)
-    | `USQUOT_d861d39 tok -> (IsWchar, token env tok) (* "u'" *)
-    | `USQUOT_2701bdc tok -> (IsWchar, token env tok) (* "U'" *)
-    | `U8SQUOT tok -> (IsChar, token env tok) (* "u8'" *)
-    | `SQUOT tok -> (IsChar, token env tok)
+    | `LSQUOT tok -> token env tok (* "L'" *)
+    | `USQUOT_d861d39 tok -> token env tok (* "u'" *)
+    | `USQUOT_2701bdc tok -> token env tok (* "U'" *)
+    | `U8SQUOT tok -> token env tok (* "u8'" *)
+    | `SQUOT tok -> token env tok
     (* "'" *)
   in
   let s, v2 =
@@ -328,7 +367,7 @@ let map_char_literal (env : env) ((v1, v2, v3) : CST.char_literal) =
   in
   let v3 = token env v3 (* "'" *) in
   let t = PI.combine_infos v1 [ v2; v3 ] in
-  Char ((s, t), iswchar)
+  Char (s, t)
 
 let map_preproc_call (env : env) ((v1, v2, v3) : CST.preproc_call) =
   let v1 = token env v1 (* pattern #[ \t]*[a-zA-Z]\w* *) in
@@ -351,13 +390,13 @@ let map_ms_pointer_modifier (env : env) (x : CST.ms_pointer_modifier) =
 
 let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
     string wrap =
-  let _isWchar, v1 =
+  let v1 =
     match v1 with
-    | `LDQUOT tok -> (IsWchar, token env tok) (* "L\"" *)
-    | `UDQUOT_c163aae tok -> (IsWchar, token env tok) (* "u\"" *)
-    | `UDQUOT_df3447d tok -> (IsWchar, token env tok) (* "U\"" *)
-    | `U8DQUOT tok -> (IsChar, token env tok) (* "u8\"" *)
-    | `DQUOT tok -> (IsChar, token env tok)
+    | `LDQUOT tok -> token env tok (* "L\"" *)
+    | `UDQUOT_c163aae tok -> token env tok (* "u\"" *)
+    | `UDQUOT_df3447d tok -> token env tok (* "U\"" *)
+    | `U8DQUOT tok -> token env tok (* "u8\"" *)
+    | `DQUOT tok -> token env tok
     (* "\"" *)
   in
   let v2 =
@@ -690,10 +729,8 @@ let map_anon_choice_stmt_id_efddc5b (env : env)
 let map_concatenated_string (env : env) ((v1, v2) : CST.concatenated_string) =
   let v1 = map_anon_choice_raw_str_lit_28125b5 env v1 in
   let v2 = List.map (map_anon_choice_raw_str_lit_28125b5 env) v2 in
-  (* TODO: grab it from v1? *)
-  let isWchar = IsChar in
   match v2 with
-  | [] -> String (v1, isWchar)
+  | [] -> String v1
   | _ -> MultiString (v1 :: v2)
 
 let map_preproc_include (env : env) ((v1, v2, v3) : CST.preproc_include) =
@@ -922,21 +959,13 @@ and map_anon_choice_decl_f8b0ff3 (env : env) (x : CST.anon_choice_decl_f8b0ff3)
   | `Decl x ->
       let x = map_declarator env x in
       fun attrs t specs ->
-        {
-          v_namei = Some (x.dn, None);
-          v_type = x.dt t;
-          v_storage = NoSto;
-          v_specs = List.map (fun x -> A x) attrs @ specs;
-        }
+        let v_specs = List.map (fun x -> A x) attrs @ specs in
+        make_onedecl ~v_name:x.dn ~v_type:(x.dt t) ~v_init:None ~v_specs
   | `Init_decl x ->
       let x, init = map_init_declarator env x in
       fun attrs t specs ->
-        {
-          v_namei = Some (x.dn, Some init);
-          v_type = x.dt t;
-          v_storage = NoSto;
-          v_specs = List.map (fun x -> A x) attrs @ specs;
-        }
+        let v_specs = List.map (fun x -> A x) attrs @ specs in
+        make_onedecl ~v_name:x.dn ~v_type:(x.dt t) ~v_init:(Some init) ~v_specs
 
 and map_anon_choice_exp_3078596 (env : env) (x : CST.anon_choice_exp_3078596) :
     initialiser =
@@ -1039,7 +1068,7 @@ and map_anon_choice_param_decl_d9083af (env : env)
       x
   | `DOTDOTDOT tok ->
       let x = token env tok in
-      ParamDots x
+      ParamEllipsis x
 
 (* "..." *)
 and map_anon_choice_prep_else_8b52b0f (env : env)
@@ -1293,7 +1322,7 @@ and map_attribute_specifier (env : env)
 
 and map_base_class_clause (env : env)
     ((v1, v2, v3, v4, v5) : CST.base_class_clause) : base_clause list =
-  let v1 = token env v1 (* ":" *) in
+  let _v1 = token env v1 (* ":" *) in
   let v2 =
     match v2 with
     | Some x -> Some (map_anon_choice_public_c9638d9 env x)
@@ -1412,12 +1441,12 @@ and map_binary_expression (env : env) (x : CST.binary_expression) : expr =
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* "<<" *) in
       let v3 = map_expression env v3 in
-      Binary (v1, (Arith Plus, v2), v3)
+      Binary (v1, (Arith DecLeft, v2), v3)
   | `Exp_GTGT_exp (v1, v2, v3) ->
       let v1 = map_expression env v1 in
       let v2 = token env v2 (* ">>" *) in
       let v3 = map_expression env v3 in
-      Binary (v1, (Arith Plus, v2), v3)
+      Binary (v1, (Arith DecRight, v2), v3)
 
 and map_bitfield_clause (env : env) ((v1, v2) : CST.bitfield_clause) =
   let v1 = token env v1 (* ":" *) in
@@ -1436,17 +1465,24 @@ and map_call_expression (env : env) (x : CST.call_expression) : expr =
       let v2 = map_argument_list env v2 in
       ConstructedObject (t, Args v2)
 
+(* Note that case 1: case 2: foo(); is actually
+ * parsed as Case (1, []); Case (2, [foo()]).
+ * It's because in tree-sitter-c/grammar.js the rule for
+ * case_statement is:
+ *   ... repeat(choice(non_case_statement, declaration, type_definition))
+ * so only a non_case_statement can be inside the body of a Case.
+ *)
 and map_case_statement (env : env) ((v1, v2, v3) : CST.case_statement) : stmt =
   let v1 =
     match v1 with
     | `Case_exp (v1, v2) ->
         let v1 = token env v1 (* "case" *) in
         let v2 = map_expression env v2 in
-        fun t st -> Case (v1, v2, t, st)
+        fun t xs -> Case (v1, v2, t, xs)
     | `Defa tok ->
         let v1 = token env tok in
         (* "default" *)
-        fun t st -> Default (v1, t, st)
+        fun t xs -> Default (v1, t, xs)
   in
   let v2 = token env v2 (* ":" *) in
   let v3 =
@@ -1477,8 +1513,12 @@ and map_catch_clause (env : env) ((v1, v2, v3) : CST.catch_clause) : handler =
   let v1 = token env v1 (* "catch" *) in
   let l, v2, r = map_parameter_list env v2 in
   let v3 = map_compound_statement env v3 in
-  let params = v2 |> List.map (fun p -> ExnDecl p) in
-  (v1, (l, params, r), v3)
+  let param =
+    match v2 with
+    | [ p ] -> p
+    | xs -> ParamTodo (("MultiParamExn", v1), xs)
+  in
+  (v1, (l, ExnDecl param, r), v3)
 
 and map_class_name (env : env) (x : CST.class_name) : a_class_name =
   match x with
@@ -1563,15 +1603,14 @@ and map_condition_declaration (env : env)
         EqInit (v1, InitExpr v2)
     | `Init_list x -> ObjInit (Inits (map_initializer_list env x))
   in
-  let one =
-    {
-      v_namei = Some (dn, Some v3);
-      v_type = dt t;
-      v_storage = NoSto;
-      v_specs = specs;
-    }
+  let var =
+    match dn with
+    | DN n -> ({ name = n; specs }, { v_init = Some v3; v_type = dt t })
+    | DNStructuredBinding _ ->
+        error (ii_of_dname dn)
+          "not expecting a structured_binding in a condition"
   in
-  CondOneDecl one
+  CondOneDecl var
 
 and map_conditional_expression (env : env)
     ((v1, v2, v3, v4, v5) : CST.conditional_expression) =
@@ -1592,8 +1631,8 @@ and map_constructor_or_destructor_declaration (env : env)
   let { dn; dt } = map_function_declarator env v2 in
   let v3 = token env v3 (* ";" *) in
   let n = name_of_dname_for_function dn in
-  let t = dt (nQ, TBase (Void (ii_of_name n))) in
-  let ent, def = H2.fixFunc ((n, t, NoSto), FBDecl v3) in
+  let t = dt (tvoid (ii_of_name n)) in
+  let ent, def = HPfff.fixFunc ((n, t, []), FBDecl v3) in
   ({ ent with specs = v1 @ ent.specs }, def)
 
 and map_constructor_or_destructor_definition (env : env)
@@ -1610,9 +1649,9 @@ and map_constructor_or_destructor_definition (env : env)
     | None -> []
   in
   let n = name_of_dname_for_function dn in
-  let t = dt (nQ, TBase (Void (ii_of_name n))) in
+  let t = dt (tvoid (ii_of_name n)) in
   let v4 = map_anon_choice_comp_stmt_be91723 env v4 in
-  let ent, def = H2.fixFunc ((n, t, NoSto), v4) in
+  let ent, def = HPfff.fixFunc ((n, t, []), v4) in
   ({ ent with specs = v1 @ ent.specs }, def)
 
 and map_constructor_specifiers (env : env) (xs : CST.constructor_specifiers) :
@@ -1702,7 +1741,7 @@ and map_declarator (env : env) (x : CST.declarator) : declarator =
       let x = map_destructor_name env x in
       let dn = DN (None, noQscope, x) in
       { dn; dt = id }
-  (* c++17: TODO complex pattern assign *)
+  (* c++17: complex pattern assign *)
   | `Stru_bind_decl (v1, v2, v3, v4) ->
       let v1 = token env v1 (* "[" *) in
       let v2 = str env v2 (* pattern [a-zA-Z_]\w* *) in
@@ -1715,13 +1754,13 @@ and map_declarator (env : env) (x : CST.declarator) : declarator =
           v3
       in
       let v4 = token env v4 (* "]" *) in
-      { dn = DNStructuredBinding (v1, v2 :: v3, v4); dt = id }
+      { dn = DNStructuredBinding (v1, (v2, v3), v4); dt = id }
 
 and map_empty_declaration (env : env) ((v1, v2) : CST.empty_declaration) : decl
     =
   let v1 = map_type_specifier env v1 in
   let v2 = token env v2 (* ";" *) in
-  let one = { v_namei = None; v_type = v1; v_storage = NoSto; v_specs = [] } in
+  let one = EmptyDecl v1 in
   DeclList ([ one ], v2)
 
 and map_enum_base_clause (env : env) ((v1, v2) : CST.enum_base_clause) =
@@ -1808,7 +1847,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
           C (parse_number_literal x)
       | `Str_lit x ->
           let x = map_string_literal env x in
-          C (String (x, IsChar))
+          C (String x)
       | `True tok ->
           let x = token env tok (* true *) in
           C (Bool (true, x))
@@ -1890,10 +1929,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
             let t = ft ft_ret in
             match t with
             | _, TFunction ft -> ft
-            | _ ->
-                raise
-                  (Parse_info.Other_error
-                     ("expecting a function type for a lambda", r)))
+            | _ -> error r "expecting a function type for a lambda")
         | None ->
             {
               ft_ret;
@@ -1903,9 +1939,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
               ft_throw = [];
             }
       in
-      let fdef =
-        { f_type; f_storage = NoSto; f_body = FBDef v3; f_specs = [] }
-      in
+      let fdef = { f_type; f_body = FBDef v3; f_specs = [] } in
       Lambda ((l, xs, r), fdef)
   | `Param_pack_expa (v1, v2) ->
       let v1 = map_expression env v1 in
@@ -1919,7 +1953,7 @@ and map_expression (env : env) (x : CST.expression) : expr =
       IdSpecial (This, x)
   | `Raw_str_lit tok ->
       let x = str env tok in
-      C (String (x, IsChar))
+      C (String x)
 
 (* raw_string_literal *)
 and map_expression_statement (env : env) ((v1, v2) : CST.expression_statement) :
@@ -1978,17 +2012,9 @@ and map_field_declaration (env : env)
   let xs =
     v4
     |> List.map (fun { dn; dt } ->
-           let one =
-             {
-               v_namei = Some (dn, v5);
-               v_type = dt t;
-               v_storage = NoSto;
-               v_specs = specs;
-             }
-           in
-           FieldDecl one)
+           make_onedecl ~v_name:dn ~v_init:v5 ~v_type:(dt t) ~v_specs:specs)
   in
-  FieldList (xs, v6)
+  F (DeclList (xs, v6))
 
 and map_field_declaration_list (env : env)
     ((v1, v2, v3) : CST.field_declaration_list) :
@@ -2023,7 +2049,7 @@ and map_field_declaration_list_item (env : env)
           x)
   | `Temp_decl x ->
       let x = map_template_declaration env x in
-      [ X (MemberDecl x) ]
+      [ X (F x) ]
   | `Inline_meth_defi (v1, v2, v3, v4, v5) ->
       let v1 = List.map (map_attribute env) v1 in
       let v2 =
@@ -2036,7 +2062,7 @@ and map_field_declaration_list_item (env : env)
       let v5 = map_anon_choice_comp_stmt_be91723 env v5 in
       let n = name_of_dname_for_function dn in
       let t = dt t in
-      let ent, def = H2.fixFunc ((n, t, NoSto), v5) in
+      let ent, def = HPfff.fixFunc ((n, t, []), v5) in
       let fdef =
         ( {
             ent with
@@ -2044,19 +2070,19 @@ and map_field_declaration_list_item (env : env)
           },
           def )
       in
-      [ X (MemberDecl (Func fdef)) ]
+      [ X (F (Func fdef)) ]
   | `Cons_or_dest_defi x ->
       let x = map_constructor_or_destructor_definition env x in
-      [ X (MemberDecl (Func x)) ]
+      [ X (F (Func x)) ]
   | `Cons_or_dest_decl x ->
       let x = map_constructor_or_destructor_declaration env x in
-      [ X (MemberDecl (Func x)) ]
+      [ X (F (Func x)) ]
   | `Op_cast_defi x ->
       let x = map_operator_cast_definition env x in
-      [ X (MemberDecl (Func x)) ]
+      [ X (F (Func x)) ]
   | `Op_cast_decl x ->
       let x = map_operator_cast_declaration env x in
-      [ X (MemberDecl (DeclList x)) ]
+      [ X (F (DeclList x)) ]
   | `Friend_decl (v1, v2) ->
       let v1 = token env v1 (* "friend" *) in
       let v2 =
@@ -2084,9 +2110,7 @@ and map_field_declaration_list_item (env : env)
               | None -> (nQ, TypeName v2)
               | Some class_key -> (nQ, ClassName (class_key, v2))
             in
-            let one =
-              { v_namei = None; v_type = t; v_storage = NoSto; v_specs = [] }
-            in
+            let one = EmptyDecl t in
             DeclList ([ one ], v3)
       in
       [ X (Friend (v1, v2)) ]
@@ -2096,16 +2120,16 @@ and map_field_declaration_list_item (env : env)
       [ X (Access (v1, v2)) ]
   | `Alias_decl x ->
       let x = map_alias_declaration env x in
-      [ X (MemberDecl (UsingDecl x)) ]
+      [ X (F (UsingDecl x)) ]
   | `Using_decl x ->
       let x = map_using_declaration env x in
-      [ X (MemberDecl (UsingDecl x)) ]
+      [ X (F (UsingDecl x)) ]
   | `Type_defi x ->
       let x = map_type_definition env x in
-      [ X (MemberDecl (DeclList x)) ]
+      [ X (F (DeclList x)) ]
   | `Static_assert_decl x ->
       let x = map_static_assert_declaration env x in
-      [ X (MemberDecl x) ]
+      [ X (F x) ]
 
 and map_field_declarator (env : env) (x : CST.field_declarator) : declarator =
   match x with
@@ -2231,8 +2255,8 @@ and map_function_definition (env : env)
   let v5 = map_compound_statement env v5 in
   let n = name_of_dname_for_function dn in
   let t = dt t in
-  let ent, def = H2.fixFunc ((n, t, NoSto), FBDef v5) in
-  ({ ent with specs = ent.specs @ List.map (fun x -> A x) v1 @ v2 }, def)
+  let ent, def = HPfff.fixFunc ((n, t, []), FBDef v5) in
+  ({ ent with specs = ent.specs @ specs @ List.map (fun x -> A x) v1 @ v2 }, def)
 
 and map_function_field_declarator (env : env)
     ((v1, v2, v3) : CST.function_field_declarator) =
@@ -2525,15 +2549,8 @@ and map_operator_cast_declaration (env : env)
         Some (EqInit (v1, InitExpr v2))
     | None -> None
   in
-  let t = (nQ, TBase (Void (ii_of_name name))) in
-  let one =
-    {
-      v_namei = Some (DN name, v3);
-      v_type = t;
-      v_storage = NoSto;
-      v_specs = v1;
-    }
-  in
+  let t = tvoid (ii_of_name name) in
+  let one = V ({ name; specs = v1 }, { v_init = v3; v_type = t }) in
   let v4 = token env v4 (* ";" *) in
   ([ one ], v4)
 
@@ -2547,30 +2564,23 @@ and map_operator_cast_definition (env : env)
   let n = map_operator_cast env v2 in
   let v3 = map_anon_choice_comp_stmt_be91723 env v3 in
 
-  let t = (nQ, TBase (Void (ii_of_name n))) in
-  let ent, def = H2.fixFunc ((n, t, NoSto), v3) in
+  let t = tvoid (ii_of_name n) in
+  let ent, def = HPfff.fixFunc ((n, t, []), v3) in
   ({ ent with specs = v1 @ ent.specs }, def)
 
 and map_optional_parameter_declaration (env : env)
     ((v1, v2, v3, v4) : CST.optional_parameter_declaration) : parameter_classic
     =
-  let t, specs = map_declaration_specifiers env v1 in
+  let t, p_specs = map_declaration_specifiers env v1 in
   let v3 = token env v3 (* "=" *) in
   let v4 = map_expression env v4 in
   let v2 =
     match v2 with
     | Some x ->
         let { dn; dt } = map_declarator env x in
-        let id = id_of_dname_for_parameter dn in
-        { (basic_param id (dt t) specs) with p_val = Some (v3, v4) }
-    | None ->
-        {
-          p_name = None;
-          p_type = t;
-          p_register = None;
-          p_specs = specs;
-          p_val = Some (v3, v4);
-        }
+        let id = id_of_dname_for_parameter env dn in
+        make_param (dt t) ~p_name:(Some id) ~p_specs ~p_val:(Some (v3, v4))
+    | None -> make_param t ~p_specs ~p_val:(Some (v3, v4))
   in
   v2
 
@@ -2590,32 +2600,19 @@ and map_parameter_declaration (env : env)
     ((v1, v2, v3) : CST.parameter_declaration) : parameter_classic =
   let v1 = List.map (map_attribute env) v1 in
   let t, specs = map_declaration_specifiers env v2 in
-  let specs = (v1 |> List.map (fun x -> A x)) @ specs in
+  let p_specs = (v1 |> List.map (fun x -> A x)) @ specs in
   let v3 =
     match v3 with
     | Some x -> (
         match x with
         | `Decl x ->
             let { dn; dt } = map_declarator env x in
-            let id = id_of_dname_for_parameter dn in
-            basic_param id (dt t) specs
+            let id = id_of_dname_for_parameter env dn in
+            make_param (dt t) ~p_name:(Some id) ~p_specs
         | `Abst_decl x ->
             let dt = map_abstract_declarator env x in
-            {
-              p_name = None;
-              p_type = dt t;
-              p_specs = specs;
-              p_register = None;
-              p_val = None;
-            })
-    | None ->
-        {
-          p_name = None;
-          p_type = t;
-          p_specs = specs;
-          p_register = None;
-          p_val = None;
-        }
+            make_param (dt t) ~p_specs)
+    | None -> make_param t ~p_specs
   in
   v3
 
@@ -2705,7 +2702,7 @@ and map_preproc_if (env : env) ((v1, v2, v3, v4, v5, v6) : CST.preproc_if) :
   (* TODO: IfIf *)
   let v1 = token env v1 (* pattern #[ 	]*if *) in
   let _v2TODO = map_preproc_expression env v2 in
-  let v3 = token env v3 (* "\n" *) in
+  let _v3 = token env v3 (* "\n" *) in
   let dir1 = Ifdef v1 in
   let v4 = map_translation_unit env v4 in
   let v5 =
@@ -2723,7 +2720,7 @@ and map_preproc_if_in_field_declaration_list (env : env)
   (* TODO: IfIf *)
   let v1 = token env v1 (* pattern #[ 	]*if *) in
   let _v2TODO = map_preproc_expression env v2 in
-  let v3 = token env v3 (* "\n" *) in
+  let _v3 = token env v3 (* "\n" *) in
   let dir1 = Ifdef v1 in
   let v4 = List.map (map_field_declaration_list_item env) v4 in
   let v5 =
@@ -2834,10 +2831,10 @@ and map_sizeof_expression (env : env) (x : CST.sizeof_expression) : expr =
       v2
   | `Sizeof_DOTDOTDOT_LPAR_id_RPAR (v1, v2, v3, v4, v5) ->
       let v1 = token env v1 (* "sizeof" *) in
-      let v2 = token env v2 (* "..." *) in
-      let v3 = token env v3 (* "(" *) in
-      let v4 = str env v4 (* pattern [a-zA-Z_]\w* *) in
-      let v5 = token env v5 (* ")" *) in
+      let _v2 = token env v2 (* "..." *) in
+      let _v3 = token env v3 (* "(" *) in
+      let _v4 = str env v4 (* pattern [a-zA-Z_]\w* *) in
+      let _v5 = token env v5 (* ")" *) in
       ExprTodo (("SizeofDots", v1), [])
 
 and map_statement (env : env) (x : CST.statement) : stmt =
@@ -2859,9 +2856,9 @@ and map_statement (env : env) (x : CST.statement) : stmt =
       let v6 = map_anon_choice_exp_3078596 env v6 in
       let v7 = token env v7 (* ")" *) in
       let v8 = map_statement env v8 in
-      let n = name_of_dname_for_var v4.dn in
+      let n = name_of_dname_for_var env v4.dn in
       let ent = { name = n; specs } in
-      let var = { v__type = v4.dt t } in
+      let var = { v_type = v4.dt t; v_init = None } in
       let for_header = ForRange ((ent, var), v5, v6) in
       For (v1, (v2, for_header, v7), v8)
   | `Try_stmt (v1, v2, v3) ->
@@ -2892,10 +2889,10 @@ and map_static_assert_declaration (env : env)
           match v2 with
           | `Str_lit x ->
               let x = map_string_literal env x in
-              String (x, IsChar)
+              String x
           | `Raw_str_lit tok ->
               let x = str env tok (* raw_string_literal *) in
-              String (x, IsChar)
+              String x
           | `Conc_str x ->
               let x = map_concatenated_string env x in
               x
@@ -2904,7 +2901,7 @@ and map_static_assert_declaration (env : env)
     | None -> []
   in
   let v5 = token env v5 (* ")" *) in
-  let v6 = token env v6 (* ";" *) in
+  let _v6 = token env v6 (* ";" *) in
   let args = (v2, Arg v3 :: v4, v5) in
   StaticAssert (v1, args)
 
@@ -3095,7 +3092,7 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
         | None -> None
       in
       let v3 = map_declaration_list env v3 in
-      [ X (D (NameSpace (v1, v2, v3))) ]
+      [ X (D (Namespace (v1, v2, v3))) ]
   | `Using_decl x ->
       let x = map_using_declaration env x in
       [ X (D (UsingDecl x)) ]
@@ -3115,14 +3112,19 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
         | Some x ->
             let t, specs = map_declaration_specifiers env x in
             (t, specs)
-        | None -> ((nQ, TBase (Void v1)), [])
+        | None -> (tvoid v1, [])
       in
       let { dn; dt } = map_declarator env v3 in
       let t = dt t in
-      let n = name_of_dname_for_var dn in
+      let n = name_of_dname_for_var env dn in
       let ent = { name = n; specs } in
       let v4 = token env v4 (* ";" *) in
-      [ X (D (TemplateInstanciation (v1, (ent, { v__type = t }), v4))) ]
+      [
+        X
+          (D
+             (TemplateInstanciation
+                (v1, (ent, { v_type = t; v_init = None }), v4)));
+      ]
   | `Cons_or_dest_defi x ->
       let x = map_constructor_or_destructor_definition env x in
       [ X (D (Func x)) ]
@@ -3135,7 +3137,7 @@ and map_top_level_item (env : env) (x : CST.top_level_item) : toplevel list =
 
 and map_trailing_return_type (env : env)
     ((v1, v2, v3, v4) : CST.trailing_return_type) : type_ =
-  let v1 = token env v1 (* "->" *) in
+  let _v1 = token env v1 (* "->" *) in
   let _v2TODO =
     match v2 with
     | Some x -> [ map_type_qualifier env x ]
@@ -3225,13 +3227,8 @@ and map_type_definition (env : env)
   let xs =
     v4 :: v5
     |> List.map (fun { dn; dt } ->
-           let id = id_of_dname_for_typedef dn in
-           {
-             v_namei = Some (DN (name_of_id id), None);
-             v_type = dt v3;
-             v_storage = StoTypedef v1;
-             v_specs = [];
-           })
+           let id = HPfff.id_of_dname_for_typedef dn in
+           TypedefDecl (v1, dt v3, id))
   in
   (xs, v6)
 
@@ -3373,34 +3370,18 @@ and map_using_declaration (env : env) ((v1, v2, v3, v4) : CST.using_declaration)
 
 and map_variadic_parameter_declaration (env : env)
     ((v1, v2) : CST.variadic_parameter_declaration) =
-  let t, specs = map_declaration_specifiers env v1 in
+  let t, p_specs = map_declaration_specifiers env v1 in
   let v2 =
     match v2 with
     | `Vari_decl x ->
-        let tdots, idopt = map_variadic_declarator env x in
-        let p =
-          {
-            p_name = idopt;
-            p_type = t;
-            p_specs = specs;
-            p_val = None;
-            p_register = None;
-          }
-        in
+        let tdots, p_name = map_variadic_declarator env x in
+        let p = make_param t ~p_name ~p_specs in
         ParamVariadic (None, tdots, p)
     | `Vari_ref_decl x ->
-        let ampersand, (tdots, idopt) =
+        let ampersand, (tdots, p_name) =
           map_variadic_reference_declarator env x
         in
-        let p =
-          {
-            p_name = idopt;
-            p_type = t;
-            p_specs = specs;
-            p_val = None;
-            p_register = None;
-          }
-        in
+        let p = make_param t ~p_name ~p_specs in
         ParamVariadic (Some ampersand, tdots, p)
   in
   v2
@@ -3413,7 +3394,4 @@ let parse file =
     (fun () -> Tree_sitter_cpp.Parse.file file)
     (fun cst ->
       let env = { H.file; conv = H.line_col_to_pos file; extra = () } in
-      try map_translation_unit env cst
-      with Failure "not implemented" as exn ->
-        H.debug_sexp_cst_after_error (CST.sexp_of_translation_unit cst);
-        raise exn)
+      map_translation_unit env cst)

@@ -13,7 +13,7 @@ type selector = {
 [@@deriving show]
 
 type sformula =
-  | Leaf of Rule.leaf
+  | Leaf of Rule.xpattern * Rule.inside option
   | And of sformula_and
   | Or of sformula list
   | Not of sformula

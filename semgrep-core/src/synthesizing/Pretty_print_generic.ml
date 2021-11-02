@@ -48,7 +48,9 @@ let ident (s, _) = s
 let ident_or_dynamic = function
   | EN (Id (x, _idinfo)) -> ident x
   | EN _
-  | EDynamic _ ->
+  | EDynamic _
+  | EPattern _
+  | OtherEntity _ ->
       raise Todo
 
 let opt f = function
@@ -248,7 +250,7 @@ and if_stmt env level (tok, e, s, sopt) =
         (paren_cond, "else if", bracket_body)
     | Lang.Lua -> (paren_cond, "elseif", bracket_body)
   in
-  let e_str = format_cond tok (expr env e) in
+  let e_str = format_cond tok (condition env e) in
   let s_str = stmt env (level + 1) s in
   let if_stmt_prt = format_block e_str s_str in
   match sopt with
@@ -262,6 +264,11 @@ and if_stmt env level (tok, e, s, sopt) =
   | Some body ->
       F.sprintf "%s%s" if_stmt_prt
         (format_block (indent level ^ "else") (stmt env (level + 1) body))
+
+and condition env x =
+  match x with
+  | Cond e -> expr env e
+  | OtherCond _ -> raise Todo
 
 and while_stmt env level (tok, e, s) =
   let ocaml_while = F.sprintf "%s %s do\n%s\ndone" in
@@ -300,7 +307,7 @@ and while_stmt env level (tok, e, s) =
     | Lang.Ruby -> ruby_while
     | Lang.OCaml -> ocaml_while
   in
-  while_format (token "while" tok) (expr env e) (stmt env (level + 1) s)
+  while_format (token "while" tok) (condition env e) (stmt env (level + 1) s)
 
 and do_while stmt env level (s, e) =
   let c_do_while = F.sprintf "do %s\nwhile(%s)" in
@@ -575,7 +582,7 @@ and continue env (tok, lbl) _sc =
 and expr env e =
   match e.e with
   | N (Id ((s, _), idinfo)) -> id env (s, idinfo)
-  | N (IdQualified (name, idinfo)) -> id_qualified env (name, idinfo)
+  | N (IdQualified qualified_info) -> id_qualified env qualified_info
   | IdSpecial (sp, tok) -> special env (sp, tok)
   | Call (e1, e2) -> call env (e1, e2)
   | L x -> literal env x
@@ -590,7 +597,7 @@ and expr env e =
   | DotAccess (e, tok, fi) -> dot_access env (e, tok, fi)
   | Ellipsis _ -> "..."
   | Conditional (e1, e2, e3) -> cond env (e1, e2, e3)
-  | OtherExpr (op, anys) -> other env (op, anys)
+  | OtherExpr (categ, anys) -> other env (categ, anys)
   | TypedMetavar (id, _, typ) -> tyvar env (id, typ)
   | _x -> todo (E e)
 
@@ -600,11 +607,16 @@ and id env (s, { id_resolved; _ }) =
   | Some (ImportedModule (DottedName ents), _) -> dotted_access env ents
   | _ -> s
 
-and id_qualified env ((id, { name_qualifier; _ }), _idinfo) =
-  match name_qualifier with
+(* TODO: look at name_top too *)
+and id_qualified env { name_last = id, _toptTODO; name_middle; name_top; _ } =
+  (match name_top with
+  | None -> ""
+  | Some _t -> "::")
+  ^
+  match name_middle with
   | Some (QDots dot_ids) ->
-      F.sprintf "%s.%s" (dotted_access env dot_ids) (ident id)
-  | Some (QTop _t) -> F.sprintf "::"
+      (* TODO: do not do fst, look also at type qualification *)
+      F.sprintf "%s.%s" (dotted_access env (List.map fst dot_ids)) (ident id)
   | Some (QExpr (e, _t)) -> expr env e ^ "::"
   | None -> ident id
 
@@ -722,10 +734,9 @@ and dot_access env (e, _tok, fi) =
 
 and field_ident env fi =
   match fi with
-  | EN (Id (id, _idinfo)) -> ident id
-  (* TODO: use name_info *)
-  | EN (IdQualified ((id, _name_infoTODO), _)) -> ident id
-  | EDynamic e -> expr env e
+  | FN (Id (id, _idinfo)) -> ident id
+  | FN (IdQualified qualified_info) -> id_qualified env qualified_info
+  | FDynamic e -> expr env e
 
 and tyvar env (id, typ) =
   match env.lang with

@@ -9,7 +9,7 @@ from semgrep import __VERSION__
 RULES_KEY = "rules"
 ID_KEY = "id"
 CLI_RULE_ID = "-"
-SEMGREP_URL = "https://semgrep.dev/"
+SEMGREP_URL = os.environ.get("SEMGREP_URL", "https://semgrep.dev/")
 PLEASE_FILE_ISSUE_TEXT = "An error occurred while invoking the semgrep engine; please help us fix this by creating an issue at https://github.com/returntocorp/semgrep"
 
 DEFAULT_SEMGREP_CONFIG_NAME = "semgrep"
@@ -18,10 +18,16 @@ DEFAULT_CONFIG_FOLDER = f".{DEFAULT_SEMGREP_CONFIG_NAME}"
 
 DEFAULT_TIMEOUT = 30  # seconds
 
+USER_DATA_FOLDER = ".semgrep"
+SETTINGS_FILE = "settings.yml"
+SEMGREP_SETTINGS_FILE = os.environ.get("SEMGREP_SETTINGS_FILE")
+
 SEMGREP_USER_AGENT = f"Semgrep/{__VERSION__}"
 SEMGREP_USER_AGENT_APPEND = os.environ.get("SEMGREP_USER_AGENT_APPEND")
 if SEMGREP_USER_AGENT_APPEND is not None:
     SEMGREP_USER_AGENT = f"{SEMGREP_USER_AGENT} {SEMGREP_USER_AGENT_APPEND}"
+
+SEMGREP_CDN_BASE_URL = os.environ.get("SEMGREP_CDN_BASE_URL", "https://cdn.semgrep.dev")
 
 YML_EXTENSIONS = {".yml", ".yaml"}
 YML_SUFFIXES = [[ext] for ext in YML_EXTENSIONS]
@@ -45,6 +51,7 @@ class RuleSeverity(Enum):
     INFO = "INFO"
     WARNING = "WARNING"
     ERROR = "ERROR"
+    INVENTORY = "INVENTORY"
 
     @classmethod
     def _missing_(cls: Type[Enum], value: object) -> Enum:

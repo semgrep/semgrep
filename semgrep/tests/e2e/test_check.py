@@ -1,5 +1,6 @@
 import json
 import subprocess
+import tempfile
 from pathlib import Path
 from subprocess import CalledProcessError
 
@@ -73,15 +74,55 @@ def test_basic_rule__absolute(run_semgrep_in_tmp, snapshot):
 
 
 def test_terminal_output(run_semgrep_in_tmp, snapshot):
-    snapshot.assert_match(
-        run_semgrep_in_tmp("rules/eqeq.yaml", output_format=OutputFormat.TEXT)[0],
-        "output.txt",
+    # Have shared settings file to test second run doesnt show metric output
+    settings_file = tempfile.NamedTemporaryFile().name
+
+    text_output = run_semgrep_in_tmp(
+        "rules/eqeq.yaml", output_format=OutputFormat.TEXT, settings_file=settings_file
     )
+    snapshot.assert_match(text_output[0], "output.txt")
+    snapshot.assert_match(text_output[1], "error.txt")
+
+    # Metric message should not appear in second output
+    text_output = run_semgrep_in_tmp(
+        "rules/eqeq.yaml", output_format=OutputFormat.TEXT, settings_file=settings_file
+    )
+    snapshot.assert_match(text_output[0], "output_second.txt")
+    snapshot.assert_match(text_output[1], "error_second.txt")
+
+
+def test_terminal_output_quiet(run_semgrep_in_tmp, snapshot):
+    """
+    Quiet output should just have finding output
+    """
+    text_output = run_semgrep_in_tmp(
+        "rules/eqeq.yaml",
+        output_format=OutputFormat.TEXT,
+        quiet=True,
+        # Pass named temporary file to force metric notice behavior on first scan
+        # (but should not see anything cause of --quiet)
+        settings_file=tempfile.NamedTemporaryFile().name,
+    )
+    snapshot.assert_match(text_output[0], "output.txt")
+    snapshot.assert_match(text_output[1], "error.txt")
 
 
 def test_stdin_input(snapshot):
     process = subprocess.Popen(
-        ["python3", "-m", "semgrep", "--json", "-e", "a", "--lang", "js", "-"],
+        [
+            "python3",
+            "-m",
+            "semgrep",
+            "--disable-version-check",
+            "--metrics",
+            "off",
+            "--json",
+            "-e",
+            "a",
+            "--lang",
+            "js",
+            "-",
+        ],
         encoding="utf-8",
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -92,7 +133,11 @@ def test_stdin_input(snapshot):
 
 def test_subshell_input(snapshot):
     stdout = subprocess.check_output(
-        ["bash", "-c", "python3 -m semgrep --json -e 'a' --lang js <(echo 'a')"],
+        [
+            "bash",
+            "-c",
+            "python3 -m semgrep --disable-version-check --metrics off --json -e 'a' --lang js <(echo 'a')",
+        ],
         encoding="utf-8",
     )
     snapshot.assert_match(_clean_output_json(stdout), "results.json")
@@ -103,7 +148,7 @@ def test_multi_subshell_input(snapshot):
         [
             "bash",
             "-c",
-            "python3 -m semgrep --json -e 'a' --lang js <(echo 'a') <(echo 'b + a')",
+            "python3 -m semgrep --disable-version-check --metrics off --json -e 'a' --lang js <(echo 'a') <(echo 'b + a')",
         ],
         encoding="utf-8",
     )
@@ -129,6 +174,13 @@ def test_registry_rule(run_semgrep_in_tmp, snapshot):
         run_semgrep_in_tmp("r2c")[0],
         "results.json",
     )
+
+
+def test_auto_config(run_semgrep_in_tmp):
+    # --config auto will change over time, so lets just make sure this doesn't error out
+    # TODO: Mock config response for more detailed testing
+    run_semgrep_in_tmp("auto")
+    assert True
 
 
 def test_hidden_rule__explicit(run_semgrep_in_tmp, snapshot):
@@ -351,6 +403,47 @@ def test_max_memory(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(stderr, "error.txt")
 
 
+def test_stack_size(run_semgrep_in_tmp, snapshot):
+    """
+    Verify that semgrep raises the soft stack limit if possible
+    when calling semgrep core
+    """
+
+    # long.yaml and equivalence were chosen since they happen to cause
+    # stack exhaustion
+    e2e_dir = Path(__file__).parent
+    targetpath = Path(e2e_dir / "targets").resolve() / "equivalence"
+    rulepath = Path(e2e_dir / "rules").resolve() / "long.yaml"
+
+    # Set the hard as well as the soft stack limit. This should force a stack
+    # overflow. If this fails, the test is broken and needs to be fixed.
+    # Do not just delete this assertion. It means the actual test below does
+    # not accurately verify that we are solving the stack exhaustion
+    output = subprocess.run(
+        f"ulimit -s 1000 && semgrep --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
+        shell=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        encoding="utf-8",
+    )
+    print(output.stderr)
+    assert (
+        "semgrep-core exit code: -11" in output.stderr
+        or "Stack overflow" in output.stderr
+    )
+
+    # If only set soft limit, semgrep should raise it as necessary so we don't hit soft limit
+    output = subprocess.run(
+        f"ulimit -S -s 1000 && semgrep --disable-version-check --metrics off --config {rulepath} --verbose {targetpath}",
+        shell=True,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        encoding="utf-8",
+    )
+    assert "semgrep-core exit code: -11" not in output.stderr
+    assert "Stack overflow" not in output.stderr
+
+
 def test_timeout_threshold(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(
@@ -483,5 +576,12 @@ def test_pattern_regex_empty_file(run_semgrep_in_tmp, snapshot):
             "rules/pattern-regex-empty-file.yaml",
             target_name="empty/totally_empty_file",
         )[0],
+        "results.json",
+    )
+
+
+def test_cdn_ruleset_resolution(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("p/ci")[0],
         "results.json",
     )

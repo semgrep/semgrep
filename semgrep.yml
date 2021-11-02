@@ -26,6 +26,8 @@ rules:
        - Matching_report.ml
        - Unit_*.ml
        - Test_*.ml
+       - runner/*.ml
+       - Check_*.ml
 
 # not ready yet
 #  - id: no-exit-in-semgrep

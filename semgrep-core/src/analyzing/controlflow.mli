@@ -8,15 +8,15 @@ and node_kind =
   | TrueNode
   | FalseNode
   | Join
-  | IfHeader of expr
-  | WhileHeader of expr
+  | IfHeader of condition
+  | WhileHeader of condition
   | DoHeader
   | DoWhileTail of expr
   | ForHeader
   (*TODO*)
   | ForeachHeader of pattern * expr
   | OtherStmtWithStmtHeader of other_stmt_with_stmt_operator * expr option
-  | SwitchHeader of expr option
+  | SwitchHeader of condition option
   | SwitchEnd
   | Case
   (* TODO of expr? *)
@@ -36,7 +36,7 @@ and simple_node =
   | ExprStmt of expr
   | DefStmt of definition
   | DirectiveStmt of directive
-  | Assert of tok * expr * expr option
+  | Assert of tok * arguments
   (* The 'any' below should not containt stmts, otherwise the CFG will
    * be incomplete. Use other_stmt_with_stmt_operator instead.
    *)

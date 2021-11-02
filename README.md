@@ -18,7 +18,7 @@
       <img src="https://img.shields.io/badge/docs-semgrep.dev-purple?style=flat-square" alt="Documentation" />
   </a>
   <a href="https://r2c.dev/slack">
-    <img src="https://img.shields.io/badge/slack-700%2B%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
+    <img src="https://img.shields.io/badge/slack-1K%2B%20members-green?style=flat-square" alt="Join Semgrep community Slack" />
   </a>
   <a href="https://github.com/returntocorp/semgrep/issues/new/choose">
     <img src="https://img.shields.io/badge/issues-welcome-green?style=flat-square" alt="Issues welcome!" />
@@ -61,7 +61,7 @@ Semgrep is developed and commercially supported by [r2c, a software security com
 
 <h4 align="center">General availability</h4>
 <p align="center">
-Go · Java · JavaScript · JSX · JSON · Python · Ruby · TypeScript · TSX</br>
+C# · Go · Java · JavaScript · JSX · JSON · Python · Ruby · TypeScript · TSX</br>
 </p>
 <h4 align="center">Beta & experimental</h4>
 <p align="center">
@@ -122,11 +122,13 @@ Browse the full Semgrep [documentation on the website](https://semgrep.dev/docs)
 
 ### Metrics
 
-Semgrep collects opt-in non-identifiable aggregate metrics for improving the user experience, guiding Semgrep feature development, and identifying regressions.
+Using remote configuration from the [Registry](https://semgrep.dev/r) (like `--config=p/ci`) reports pseudonymous rule metrics to semgrep.dev.
 
-The [PRIVACY.md](PRIVACY.md) file describes the principles that guide data-collection decisions, the breakdown of the data that are and are not collected when the metrics are enabled, and how to opt into Semgrep’s metrics.
+Using configs from local files (like `--config=xyz.yml`) does **not** enable metrics.
 
-> Semgrep CI never sends your source code anywhere.
+To disable Registry rule metrics, use `--metrics=off`. 
+
+[PRIVACY.md](PRIVACY.md) describes the principles that guide data-collection decisions and the breakdown of the data that are and are not collected when the metrics are enabled.
 
 ### More
 

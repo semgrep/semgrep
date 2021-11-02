@@ -31,11 +31,15 @@ from semgrep.constants import PLEASE_FILE_ISSUE_TEXT
 SourceFileHash = NewType("SourceFileHash", str)
 
 
+class EmptyYamlException(Exception):
+    pass
+
+
 class RuleSchema:
     _schema: Dict[str, Any] = {}
 
     @classmethod
-    def get(cls) -> Dict[str, Any]:  # type: ignore
+    def get(cls) -> Dict[str, Any]:
         """
         Returns the rule schema
 
@@ -285,7 +289,7 @@ class YamlTree(Generic[T]):
             )
 
     @classmethod
-    def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":  # type: ignore
+    def wrap(cls, value: YamlValue, span: Span) -> "YamlTree":
         """
         Wraps a value in a YamlTree and attaches the span everywhere.
         This exists so you can take generate a datastructure from user input, but track all the errors within that
@@ -414,6 +418,9 @@ def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTre
     yaml = YAML()
     yaml.Constructor = SpanPreservingRuamelConstructor
     data = yaml.load(StringIO(contents))
+
+    if not data:
+        raise EmptyYamlException()
 
     validate_yaml(data)
 

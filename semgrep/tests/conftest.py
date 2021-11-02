@@ -3,9 +3,10 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+from typing import Dict
 from typing import List
-from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -72,8 +73,10 @@ def _run_semgrep(
     options: Optional[List[Union[str, Path]]] = None,
     output_format: OutputFormat = OutputFormat.JSON,
     strict: bool = True,
-    env: Optional[Mapping[str, str]] = None,
+    quiet: bool = False,
+    env: Optional[Dict[str, str]] = None,
     fail_on_nonzero: bool = True,
+    settings_file: Optional[str] = None,
 ) -> Tuple[str, str]:
     """Run the semgrep CLI.
 
@@ -82,12 +85,36 @@ def _run_semgrep(
     :param options: additional CLI flags to add
     :param output_format: which format to use
     :param stderr: whether to merge stderr into the returned string
+    :param settings_file: what setting file for semgrep to use. If None, a random temp file is generated
+                          with default params ("has_shown_metrics_notification: true")
     """
+
+    # If delete_setting_file is false and a settings file doesnt exist, put a default
+    # as we are not testing said setting. Note that if Settings file exists we want to keep it
+    # Use a unique settings file so multithreaded pytest works well
+
+    if not env:
+        env = {}
+
+    if "SEMGREP_USER_AGENT_APPEND" not in env:
+        env["SEMGREP_USER_AGENT_APPEND"] = "testing"
+
+    if not settings_file:
+        unique_settings_file = tempfile.NamedTemporaryFile().name
+        Path(unique_settings_file).write_text("has_shown_metrics_notification: true")
+
+        env["SEMGREP_SETTINGS_FILE"] = unique_settings_file
+    else:
+        env["SEMGREP_SETTINGS_FILE"] = settings_file
+
     if options is None:
         options = []
 
     if strict:
         options.append("--strict")
+
+    if quiet:
+        options.append("--quiet")
 
     options.append("--disable-version-check")
 
@@ -114,7 +141,7 @@ def _run_semgrep(
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
         # LANG is necessary to work with Python 3.6
-        env={**(env or {}), "LANG": "en_US.UTF-8"},
+        env={**env, "LANG": "en_US.UTF-8"},
     )
 
     if fail_on_nonzero and output.returncode > 0:
@@ -149,7 +176,6 @@ def chdir(dirname=None):
 def run_semgrep_in_tmp(monkeypatch, tmp_path):
     (tmp_path / "targets").symlink_to(Path(TESTS_PATH / "e2e" / "targets").resolve())
     (tmp_path / "rules").symlink_to(Path(TESTS_PATH / "e2e" / "rules").resolve())
-
     monkeypatch.chdir(tmp_path)
 
     yield _run_semgrep

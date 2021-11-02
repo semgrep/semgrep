@@ -120,7 +120,7 @@ def _get_latest_version(version_cache_path: Path) -> Optional[JsonObject]:
     return latest_version
 
 
-def _show_banners(current_version: Version, latest_version_object: JsonObject) -> None:  # type: ignore
+def _show_banners(current_version: Version, latest_version_object: JsonObject) -> None:
     banners = latest_version_object.get("banners", [])
     for b in banners:
         try:

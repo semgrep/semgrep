@@ -25,6 +25,9 @@ global FORCE_COLOR
 FORCE_COLOR = False
 
 
+MAX_TEXT_WIDTH = 120
+
+
 def is_quiet() -> bool:
     """
     Returns true if logging level is quiet or quieter (higher)
@@ -109,6 +112,19 @@ def with_color(color: str, text: str, bold: bool = False) -> str:
     if not sys.stderr.isatty() and not FORCE_COLOR:
         return text
     return click.style(text, fg=color)
+
+
+def terminal_wrap(text: str) -> str:
+    from shutil import get_terminal_size
+    import textwrap
+
+    paras = text.split("\n")
+    terminal_size = get_terminal_size((MAX_TEXT_WIDTH, 1))[0]
+    if terminal_size <= 0:
+        terminal_size = MAX_TEXT_WIDTH
+    width = min(MAX_TEXT_WIDTH, terminal_size)
+    wrapped_paras = ["\n".join(textwrap.wrap(p, width)) for p in paras]
+    return "\n".join(wrapped_paras)
 
 
 def sub_run(cmd: List[str], **kwargs: Any) -> Any:

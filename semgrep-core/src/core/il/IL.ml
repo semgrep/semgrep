@@ -37,8 +37,8 @@ module G = AST_generic
  *
  *  - no For/Foreach/DoWhile/While, converted all to Loop,
  *  - no Foreach, converted to a Loop and 2 new special
- *  - TODO no Switch, converted to Ifs
- *  - TODO no Continue/Break, converted to goto
+ *  - no Switch, converted to Ifs
+ *  - no Continue/Break, converted to goto
  *  - less use of expr option (in Return/Assert/...), use Unit in those cases
  *
  *  - no Sgrep constructs
@@ -95,14 +95,15 @@ type 'a bracket = tok * 'a * tok [@@deriving show]
 type ident = G.ident [@@deriving show]
 
 (* 'sid' below is the result of name resolution and variable disambiguation
- * using a gensym (see Naming_AST.ml). The pair is guaranteed to be
+ * using a gensym (see Naming_AST.ml). A name is guaranteed to be
  * global and unique (no need to handle variable shadowing, block scoping,
  * etc; this has been done already).
  * TODO: use it to also do SSA! so some control-flow insensitive analysis
  * can become control-flow sensitive? (e.g., DOOP)
  *
  *)
-type name = ident * G.sid [@@deriving show]
+type name = { ident : ident; sid : G.sid; id_info : G.id_info }
+[@@deriving show]
 
 (*****************************************************************************)
 (* Fixme constructs *)
@@ -122,13 +123,7 @@ type fixme_kind =
 (*****************************************************************************)
 
 (* An lvalue, represented as in CIL as a pair. *)
-type lval = {
-  base : base;
-  offset : offset;
-  constness : G.constness option ref;
-      (* THINK: Drop option? *)
-      (* todo: ltype: typ; *)
-}
+type lval = { base : base; offset : offset }
 
 and base =
   | Var of name
@@ -446,7 +441,9 @@ let lval_of_node_opt = function
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-let str_of_name ((s, _tok), _sid) = s
+let str_of_name name = fst name.ident
+
+let str_of_label ((n, _), _) = n
 
 let find_node f cfg =
   cfg#nodes#tolist

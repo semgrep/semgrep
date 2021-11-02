@@ -39,6 +39,7 @@ class Language(Enum):
     HTML: str = "html"
     JSON: str = "json"
     HCL: str = "hcl"
+    BASH: str = "bash"
     REGEX: str = "regex"
     GENERIC: str = "generic"
 
@@ -67,6 +68,7 @@ class Language_util:
         Language.ML: [Language.ML.value, "ocaml"],
         Language.JSON: [Language.JSON.value, "JSON", "Json"],
         Language.HCL: [Language.HCL.value, "tf", "terraform", "HCL"],
+        Language.BASH: [Language.BASH.value, "sh"],
         Language.REGEX: [Language.REGEX.value, "none"],
         Language.GENERIC: [Language.GENERIC.value],
     }

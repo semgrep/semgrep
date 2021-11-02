@@ -91,9 +91,10 @@ let get_first_block ?(block_size = 4096) path =
       let len = min block_size (in_channel_length ic) in
       really_input_string ic len)
 
-let shebang_re = lazy (Pcre.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
+let shebang_re =
+  lazy (Pcre_settings.regexp "^#![ \t]*([^ \t]*)[ \t]*([^ \t].*)?$")
 
-let split_cmd_re = lazy (Pcre.regexp "[ \t]+")
+let split_cmd_re = lazy (Pcre_settings.regexp "[ \t]+")
 
 (*
    A shebang supports at most the name of the script and one argument:
@@ -157,7 +158,7 @@ let uses_shebang_command_name cmd_names =
 
 (* PCRE regexp using the default options *)
 let regexp pat =
-  let rex = Pcre.regexp pat in
+  let rex = Pcre_settings.regexp pat in
   let f path =
     let s = get_first_block path in
     Pcre.pmatch ~rex s
@@ -256,7 +257,7 @@ let wrap_with_error_message lang path bool_res :
           details =
             spf "target file doesn't look like language %s"
               (Lang.to_string lang);
-          skipped_rule = None;
+          rule_id = None;
         }
 
 let inspect_file lang path =

@@ -38,6 +38,7 @@ SCALA_EXTENSIONS = [FileExtension(".scala")]
 VUE_EXTENSIONS = [FileExtension(".vue")]
 HTML_EXTENSIONS = [FileExtension(".html"), FileExtension(".html")]
 HCL_EXTENSIONS = [FileExtension(".tf")]
+BASH_EXTENSIONS = [FileExtension(".bash"), FileExtension(".sh")]
 
 # This is used to determine the set of files with known extensions,
 # i.e. those for which we have a proper parser.
@@ -59,6 +60,7 @@ ALL_EXTENSIONS = (
     + VUE_EXTENSIONS
     + HTML_EXTENSIONS
     + HCL_EXTENSIONS
+    + BASH_EXTENSIONS
 )
 
 # This is used to select the files suitable for spacegrep, which is
@@ -94,6 +96,7 @@ _LANGS_TO_EXTS: Mapping[Language, Tuple[Sequence[FileExtension], Set[Shebang]]] 
     Language.VUE: (VUE_EXTENSIONS, NO_SHEBANGS),
     Language.HTML: (HTML_EXTENSIONS, NO_SHEBANGS),
     Language.HCL: (HCL_EXTENSIONS, NO_SHEBANGS),
+    Language.BASH: (BASH_EXTENSIONS, NO_SHEBANGS),
 }
 
 

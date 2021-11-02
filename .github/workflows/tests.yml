@@ -134,15 +134,13 @@ jobs:
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
           pipenv run pytest --ignore=tests/qa/test_public_repos.py -n auto -vv --tb=short --durations=0 tests/
-      - name: Generate test matrix data
-        run: |
-          cd semgrep
-          pipenv run ../scripts/generate_test_matrix.py --json --directory ../semgrep-core/tests/ --output-file test-matrix.json
+      - name: Generate cheatsheets for semgrep.dev
+        run: ./scripts/generate-cheatsheet
       - name: Upload artifacts
         uses: actions/upload-artifact@v1
         with:
-          name: test-matrix
-          path: semgrep/test-matrix.json
+          name: cheatsheet
+          path: cheatsheet.json
 
   public-repos-test:
     name: run semgrep on public repos
@@ -206,9 +204,9 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python }}
-      - name: Run 0.65.0 Timing Benchmark
+      - name: Run 0.70.0 Timing Benchmark
         run: |
-          pip3 install semgrep==0.65.0
+          pip3 install semgrep==0.70.0
           semgrep --version
           python3 -m semgrep --version
           export PATH=/github/home/.local/bin:$PATH

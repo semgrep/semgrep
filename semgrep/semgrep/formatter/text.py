@@ -2,7 +2,7 @@ import functools
 import itertools
 from pathlib import Path
 from typing import Any
-from typing import FrozenSet
+from typing import Iterable
 from typing import Iterator
 from typing import Mapping
 from typing import Optional
@@ -126,6 +126,13 @@ class TextFormatter(BaseFormatter):
                     yield BREAK_LINE
 
     @staticmethod
+    def _get_details_shortlink(rule_match: RuleMatch) -> Optional[str]:
+        source_url = rule_match._metadata.get("shortlink")
+        if not source_url:
+            return ""
+        return f' Details: {with_color("bright_blue", source_url)}'
+
+    @staticmethod
     def _build_text_timing_output(
         time_data: Mapping[str, Any],
         color_output: bool,
@@ -181,7 +188,7 @@ class TextFormatter(BaseFormatter):
 
     @staticmethod
     def _build_text_output(
-        rule_matches: Sequence[RuleMatch],
+        rule_matches: Iterable[RuleMatch],
         color_output: bool,
         per_finding_max_lines_limit: Optional[int],
         per_line_max_chars_limit: Optional[int],
@@ -207,13 +214,14 @@ class TextFormatter(BaseFormatter):
                 and check_id != CLI_RULE_ID
                 and (last_message is None or last_message != message)
             ):
+                shortlink = TextFormatter._get_details_shortlink(rule_match)
                 severity = rule_match.severity
                 severity_text = f"severity:{severity.value.lower()} "
                 if severity == RuleSeverity.WARNING:
                     severity_text = with_color("yellow", severity_text)
                 elif severity == RuleSeverity.ERROR:
                     severity_text = with_color("red", severity_text)
-                yield f"{severity_text}{with_color('yellow', f'rule:{check_id}: {message}')}"
+                yield f"{severity_text}{with_color('yellow', f'rule:{check_id}: {message}{shortlink}')}"
 
             last_file = current_file
             last_message = message
@@ -224,10 +232,10 @@ class TextFormatter(BaseFormatter):
             )
 
             if fix:
-                yield f"{with_color('blue', 'autofix:')} {fix}"
+                yield f"{with_color('bright_blue', 'autofix:')} {fix}"
             elif rule_match.fix_regex:
                 fix_regex = rule_match.fix_regex
-                yield f"{with_color('blue', 'autofix:')} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
+                yield f"{with_color('bright_blue', 'autofix:')} s/{fix_regex.get('regex')}/{fix_regex.get('replacement')}/{fix_regex.get('count', 'g')}"
 
             is_same_file = (
                 next_rule_match.path == rule_match.path if next_rule_match else False
@@ -240,10 +248,10 @@ class TextFormatter(BaseFormatter):
                 is_same_file,
             )
 
-    def output(
+    def format(
         self,
-        rules: FrozenSet[Rule],
-        rule_matches: Sequence[RuleMatch],
+        rules: Iterable[Rule],
+        rule_matches: Iterable[RuleMatch],
         semgrep_structured_errors: Sequence[SemgrepError],
         extra: Mapping[str, Any],
     ) -> str:

@@ -1004,7 +1004,7 @@ and catch_formal_parameter (env : env)
   let vtyp, vothertyps = catch_type env v2 in
   let v3 = variable_declarator_id env v3 in
   let vdef = canon_var v1 (Some vtyp) v3 in
-  (vdef, vothertyps)
+  CatchParam (vdef, vothertyps)
 
 and catch_type (env : env) ((v1, v2) : CST.catch_type) =
   let v1 = unannotated_type env v1 in

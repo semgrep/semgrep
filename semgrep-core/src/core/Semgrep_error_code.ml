@@ -130,7 +130,9 @@ let string_of_error_kind = function
   | PatternParseError -> "Pattern parse error"
   | InvalidYaml -> "Invalid YAML"
   (* semgrep *)
-  | SemgrepMatchFound check_id -> spf "sgrep-lint-<%s>" check_id
+  | SemgrepMatchFound check_id ->
+      (* TODO: please make the error message obvious to the user *)
+      spf "Semgrep match found by '%s'" check_id
   | MatchingError -> "Internal matching error"
   | TooManyMatches -> "Too many matches"
   (* other *)
@@ -152,7 +154,7 @@ let string_of_error err =
 
 let severity_of_error typ =
   match typ with
-  | SemgrepMatchFound _title -> Warning
+  | SemgrepMatchFound _title -> Error
   | MatchingError -> Warning
   | TooManyMatches -> Warning
   | LexicalError -> Warning

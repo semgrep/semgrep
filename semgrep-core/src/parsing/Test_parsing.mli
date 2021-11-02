@@ -9,7 +9,8 @@
  *   $ semgrep-core -lang ocaml -parsing_stats tests/ocaml/ -json
  *   {"total":111,"bad":0,"percent_correct":100.0}
  *)
-val parsing_stats : Lang.t -> bool (* json *) -> Common.path list -> unit
+val parsing_stats :
+  ?json:bool -> ?verbose:bool -> Lang.t -> Common.path list -> unit
 
 (* TODO: parsing regressions as in pfff (unfinished) *)
 val parsing_regressions : Lang.t -> Common.path list -> unit

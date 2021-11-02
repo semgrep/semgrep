@@ -5,6 +5,8 @@ module P = Pattern_match
 module R = Rule
 module MR = Mini_rule
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
@@ -13,7 +15,6 @@ module MR = Mini_rule
 (*****************************************************************************)
 (* Flags *)
 (*****************************************************************************)
-
 
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
@@ -38,6 +39,16 @@ let parsing_tests_for_lang files lang =
         Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
       if errs <> []
       then failwith (String.concat ";" (List.map E.string_of_error errs));
+    )
+  )
+
+let partial_parsing_tests_for_lang files lang =
+  files |> List.map (fun file ->
+    Filename.basename file, (fun () ->
+      let {Parse_target. errors = errs; _ }  = 
+        Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+      if errs = []
+      then failwith "it should parse partially the file (with some errors)"
     )
   )
 
@@ -198,6 +209,12 @@ let tainting_tests_for_lang files lang =
 let lang_parsing_tests =
   pack_suites "lang parsing testing" [
    (* languages with only a tree-sitter parser *)
+    pack_tests "Bash" (
+      let dir = Filename.concat (Filename.concat tests_path "bash") "parsing" in
+      let files = Common2.glob (spf "%s/*.bash" dir) in
+      let lang = Lang.Bash in
+      parsing_tests_for_lang files lang
+    );
     pack_tests "C#" (
       let dir = Filename.concat (Filename.concat tests_path "csharp") "parsing" in
       let files = Common2.glob (spf "%s/*.cs" dir) in
@@ -271,6 +288,21 @@ let lang_parsing_tests =
       let lang = Lang.Vue in
       parsing_tests_for_lang files lang
     );
+    (* TODO: also do parsing tests where we expect some partials.
+     * See cpp/parsing_partial/
+     *)
+    pack_tests "C++" (
+      let dir = Filename.concat tests_path "cpp/parsing" in
+      let files = Common2.glob (spf "%s/*.cpp" dir) in
+      let lang = Lang.Cplusplus in
+      parsing_tests_for_lang files lang
+    );
+    pack_tests "C++ partial parsing" (
+      let dir = Filename.concat tests_path "cpp/parsing_partial" in
+      let files = Common2.glob (spf "%s/*.cpp" dir) in
+      let lang = Lang.Cplusplus in
+      partial_parsing_tests_for_lang files lang
+    );
   ]
 
 let lang_regression_tests ~with_caching =
@@ -279,9 +311,15 @@ let lang_regression_tests ~with_caching =
   in
   let name_suffix =
     if with_caching then " with caching"
-    else " without caching"
+    else " no caching"
   in
-  pack_suites ("lang regression testing" ^ name_suffix) [
+  pack_suites ("lang testing" ^ name_suffix) [
+  pack_tests "semgrep Bash" (
+    let dir = Filename.concat tests_path "bash" in
+    let files = Common2.glob (spf "%s/*.bash" dir) in
+    let lang = Lang.Bash in
+    regression_tests_for_lang files lang
+  );
   pack_tests "semgrep Python" (
     let dir = Filename.concat tests_path "python" in
     let files = Common2.glob (spf "%s/*.py" dir) in
@@ -398,7 +436,7 @@ let lang_regression_tests ~with_caching =
     regression_tests_for_lang files lang
   );
   pack_tests "semgrep HCL" (
-    let dir = Filename.concat tests_path "terraform" in
+    let dir = Filename.concat tests_path "hcl" in
     let files = Common2.glob (spf "%s/*.tf" dir) in
     let lang = Lang.HCL in
     regression_tests_for_lang files lang
@@ -409,6 +447,7 @@ let full_rule_regression_tests = [
   "full rule", (fun () ->
     let path = Filename.concat tests_path "OTHER/rules" in
     Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules (fun () ->
+    logger#info "running with -filter_irrelevant_rules";  
     Test_engine.test_rules ~unit_testing:true [path])
   )
 ]
@@ -432,6 +471,12 @@ let lang_tainting_tests =
       let dir = Filename.concat taint_tests_path "python" in
       let files = Common2.glob (spf "%s/*.py" dir) in
       let lang = Lang.Python in
+      tainting_tests_for_lang files lang
+    );
+    pack_tests "tainting Java" (
+      let dir = Filename.concat taint_tests_path "java" in
+      let files = Common2.glob (spf "%s/*.java" dir) in
+      let lang = Lang.Java in
       tainting_tests_for_lang files lang
     );
     pack_tests "tainting Javascript" (
@@ -512,8 +557,8 @@ let eval_regression_tests = [
  * from the metachecker checks, but simpler to consider all of that
  * as just errors.
  *)
-let metachecker_regression_tests =
-  pack_tests "metachecker regression testing" (
+let metachecker_checks_tests =
+  pack_tests "metachecker checks testing" (
     let dir = Filename.concat tests_path "OTHER/errors" in
     let files = Common2.glob (spf "%s/*.yaml" dir) in
     files |> List.map (fun file ->
@@ -532,6 +577,15 @@ let metachecker_regression_tests =
       )
     )
   )
+
+(* Test the entire `-test_check` path *)
+  let metachecker_regression_tests = [
+  "metachecker regresion testing", (fun () ->
+    let path = Filename.concat tests_path "OTHER/metachecks" in
+    Common2.save_excursion_and_enable Flag_semgrep.filter_irrelevant_rules (fun () ->
+    Test_metachecking.test_rules ~unit_testing:true [path])
+  )
+]
 
 let test_irrelevant_rule rule_file target_file =
   let rules = Parse_rule.parse rule_file in
@@ -581,6 +635,7 @@ let tests = List.flatten [
   Unit_naming_generic.tests Parse_target.parse_program;
   Unit_guess_lang.tests;
   Unit_memory_limit.tests;
+  Unit_pcre_settings.tests;
 
   lang_parsing_tests;
   (* full testing for many languages *)
@@ -593,6 +648,7 @@ let tests = List.flatten [
   eval_regression_tests;
   full_rule_regression_tests;
   lang_tainting_tests;
+  metachecker_checks_tests;
   metachecker_regression_tests;
   filter_irrelevant_rules_tests;
 ]

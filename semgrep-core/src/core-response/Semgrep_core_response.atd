@@ -147,14 +147,14 @@ type target_time = {
 }
 
 (*
-   If the 'skipped_rule' field is missing, the target is assumed to have
+   If the 'rule_id' field is missing, the target is assumed to have
    been skipped for all the rules.
 *)
 type skipped_target = {
   path: string;
   reason: skip_reason;
   details: string;
-  ?skipped_rule: rule_id option;
+  ?rule_id: rule_id option;
 }
 
 (*

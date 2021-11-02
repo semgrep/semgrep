@@ -130,33 +130,6 @@ module DataflowY = Dataflow.Make (struct
   let short_string_of_node n = Display_IL.short_string_of_node_kind n.F2.n
 end)
 
-let test_dfg_tainting file =
-  let ast = Parse_target.parse_program file in
-  let lang = List.hd (Lang.langs_of_filename file) in
-  Naming_AST.resolve lang ast;
-  let fun_env = Hashtbl.create 8 in
-  ast
-  |> List.iter (fun item ->
-         match item.s with
-         | DefStmt (ent, FuncDef def) ->
-             let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
-             let flow = CFG_build.cfg_of_stmts xs in
-             pr2 "Tainting";
-             let config =
-               {
-                 Dataflow_tainting.is_source = (fun _ -> false);
-                 is_sink = (fun _ -> false);
-                 is_sanitizer = (fun _ -> false);
-                 found_tainted_sink = (fun _ _ -> ());
-               }
-             in
-             let opt_name = AST_to_IL.name_of_entity ent in
-             let mapping =
-               Dataflow_tainting.fixpoint config fun_env opt_name flow
-             in
-             DataflowY.display_mapping flow mapping (fun () -> "()")
-         | _ -> ())
-
 let test_dfg_constness file =
   let ast = Parse_target.parse_program file in
   let lang = List.hd (Lang.langs_of_filename file) in
@@ -191,6 +164,5 @@ let actions () =
       Common.mk_action_1_arg test_constant_propagation );
     ("-il_generic", " <file>", Common.mk_action_1_arg test_il_generic);
     ("-cfg_il", " <file>", Common.mk_action_1_arg test_cfg_il);
-    ("-dfg_tainting", " <file>", Common.mk_action_1_arg test_dfg_tainting);
     ("-dfg_constness", " <file>", Common.mk_action_1_arg test_dfg_constness);
   ]

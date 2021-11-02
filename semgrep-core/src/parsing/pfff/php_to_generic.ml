@@ -64,17 +64,9 @@ let var v = wrap string v
 
 let qualified_ident v = list ident v
 
-(* TODO: generate Left id or Right name *)
 let name_of_qualified_ident xs =
-  match List.rev (qualified_ident xs) with
-  | [] -> raise Impossible
-  | [ x ] -> (x, { G.name_qualifier = None; name_typeargs = None })
-  | x :: y :: xs ->
-      ( x,
-        {
-          G.name_qualifier = Some (G.QDots (List.rev (y :: xs)));
-          name_typeargs = None;
-        } )
+  let xs = qualified_ident xs in
+  H.name_of_ids xs
 
 let name v = qualified_ident v
 
@@ -125,14 +117,14 @@ let rec stmt_aux = function
       [ G.Block v1 |> G.s ]
   | If (t, v1, v2, v3) ->
       let v1 = expr v1 and v2 = stmt v2 and v3 = stmt v3 in
-      [ G.If (t, v1, v2, Some (* TODO *) v3) |> G.s ]
+      [ G.If (t, G.Cond v1, v2, Some (* TODO *) v3) |> G.s ]
   | Switch (t, v1, v2) ->
       let v1 = expr v1
       and v2 = list case v2 |> List.map (fun x -> G.CasesAndBody x) in
-      [ G.Switch (t, Some v1, v2) |> G.s ]
+      [ G.Switch (t, Some (G.Cond v1), v2) |> G.s ]
   | While (t, v1, v2) ->
       let v1 = expr v1 and v2 = stmt v2 in
-      [ G.While (t, v1, v2) |> G.s ]
+      [ G.While (t, G.Cond v1, v2) |> G.s ]
   | Do (t, v1, v2) ->
       let v1 = stmt v1 and v2 = expr v2 in
       [ G.DoWhile (t, v1, v2) |> G.s ]
@@ -160,7 +152,7 @@ let rec stmt_aux = function
   | Label (id, _, v1) ->
       let v1 = stmt v1 in
       [ G.Label (ident id, v1) |> G.s ]
-  | Goto (t, id) -> [ G.Goto (t, ident id) |> G.s ]
+  | Goto (t, id) -> [ G.Goto (t, ident id, G.sc) |> G.s ]
   | Throw (t, v1) ->
       let v1 = expr v1 in
       [ G.Throw (t, v1, G.sc) |> G.s ]
@@ -232,8 +224,8 @@ and case = function
 
 and catch (t, v1, v2, v3) =
   let v1 = hint_type v1 and v2 = var v2 and v3 = stmt v3 in
-  let pat = G.PatVar (v1, Some (v2, G.empty_id_info ())) in
-  (t, pat, v3)
+  let exn = G.CatchParam (G.param_of_type v1 ~pname:(Some v2)) in
+  (t, exn, v3)
 
 (* a list of finally??? php ... *)
 and finally (v : finally list) =
@@ -255,10 +247,9 @@ and expr e : G.expr =
   | String v1 ->
       let v1 = wrap string v1 in
       G.L (G.String v1)
-  | Id [ v1 ] -> G.N (G.Id (v1, G.empty_id_info ()))
   | Id v1 ->
       let v1 = name_of_qualified_ident v1 in
-      G.N (G.IdQualified (v1, G.empty_id_info ()))
+      G.N v1
   | IdSpecial v1 ->
       let v1 = wrap special v1 in
       G.IdSpecial v1
@@ -275,19 +266,19 @@ and expr e : G.expr =
    *)
   | Array_get (v1, (t1, None, _)) ->
       let v1 = expr v1 in
-      G.OtherExpr (G.OE_ArrayAppend, [ G.Tk t1; G.E v1 ])
+      G.OtherExpr (("ArrayAppend", t1), [ G.E v1 ])
   | Obj_get (v1, t, Id [ v2 ]) ->
       let v1 = expr v1 and v2 = ident v2 in
-      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
   | Obj_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.DotAccess (v1, t, G.EDynamic v2)
+      G.DotAccess (v1, t, G.FDynamic v2)
   | Class_get (v1, t, Id [ v2 ]) ->
       let v1 = expr v1 and v2 = ident v2 in
-      G.DotAccess (v1, t, G.EN (G.Id (v2, G.empty_id_info ())))
+      G.DotAccess (v1, t, G.FN (G.Id (v2, G.empty_id_info ())))
   | Class_get (v1, t, v2) ->
       let v1 = expr v1 and v2 = expr v2 in
-      G.DotAccess (v1, t, G.EDynamic v2)
+      G.DotAccess (v1, t, G.FDynamic v2)
   | New (t, v1, v2) ->
       let v1 = expr v1 and v2 = list expr v2 in
       G.Call (G.IdSpecial (G.New, t) |> G.e, fb (v1 :: v2 |> List.map G.arg))
@@ -338,7 +329,7 @@ and expr e : G.expr =
       G.Ref (t, v1)
   | Unpack v1 ->
       let v1 = expr v1 in
-      G.OtherExpr (G.OE_Unpack, [ G.E v1 ])
+      G.OtherExpr (("Unpack", fake ""), [ G.E v1 ])
   | Call (v1, v2) ->
       let v1 = expr v1 and v2 = bracket (list argument) v2 in
       G.Call (v1, v2)
@@ -427,7 +418,7 @@ and hint_type x = hint_type_kind x |> G.t
 and hint_type_kind = function
   | Hint v1 ->
       let v1 = name v1 in
-      G.TyN (G.IdQualified (name_of_qualified_ident v1, G.empty_id_info ()))
+      G.TyN (name_of_qualified_ident v1)
   | HintArray t -> G.TyBuiltin ("array", t)
   | HintQuestion (t, v1) ->
       let v1 = hint_type v1 in
@@ -437,9 +428,7 @@ and hint_type_kind = function
       G.TyTuple (t1, v1, t2)
   | HintCallback (v1, v2) ->
       let v1 = list hint_type v1 and v2 = option hint_type v2 in
-      let params =
-        v1 |> List.map (fun x -> G.ParamClassic (G.param_of_type x))
-      in
+      let params = v1 |> List.map (fun x -> G.Param (G.param_of_type x)) in
       let fret =
         match v2 with
         | Some t -> t
@@ -447,11 +436,9 @@ and hint_type_kind = function
       in
       G.TyFun (params, fret)
   | HintTypeConst (_, tok, _) ->
-      G.OtherType
-        ( G.OT_Todo,
-          [ G.TodoK ("HintTypeConst not supported, facebook-ext", tok) ] )
+      G.OtherType (("HintTypeConst not supported, facebook-ext", tok), [])
   | HintVariadic (tok, _) ->
-      G.OtherType (G.OT_Todo, [ G.TodoK ("HintVariadic not supported", tok) ])
+      G.OtherType (("HintVariadic not supported", tok), [])
 
 and class_name v = hint_type v
 
@@ -522,8 +509,8 @@ and parameter_classic { p_type; p_ref; p_name; p_default; p_attrs; p_variadic }
     }
   in
   match (p_variadic, p_ref) with
-  | None, None -> G.ParamClassic pclassic
-  | _, Some _tok -> G.OtherParam (G.OPO_Ref, [ G.Pa (G.ParamClassic pclassic) ])
+  | None, None -> G.Param pclassic
+  | _, Some tok -> G.OtherParam (("Ref", tok), [ G.Pa (G.Param pclassic) ])
   | Some tok, None -> G.ParamRest (tok, pclassic)
 
 and modifier v = wrap modifierbis v
@@ -600,10 +587,7 @@ and class_def
       cimplements = implements;
       cmixins = uses;
       cparams = [];
-      cbody =
-        ( t1,
-          fields |> List.map (fun def -> G.FieldStmt (G.DefStmt def |> G.s)),
-          t2 );
+      cbody = (t1, fields |> List.map (fun def -> G.fld def), t2);
     }
   in
   (ent, def)

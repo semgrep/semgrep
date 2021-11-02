@@ -640,7 +640,7 @@ let rec filter_ranges env xs cond =
                  ( G.DotAccess
                      ( G.N (G.Id (("re", fk), fki)) |> G.e,
                        fk,
-                       EN (Id (("match", fk), fki)) )
+                       FN (Id (("match", fk), fki)) )
                    |> G.e,
                    ( fk,
                      [
@@ -794,7 +794,7 @@ and nested_formula_has_matches env formula lazy_ast_and_errors lazy_content
 and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
  fun env opt_context e ->
   match e with
-  | S.Leaf (R.P (xpat, inside)) ->
+  | S.Leaf (xpat, inside) ->
       let id = xpat.R.pid in
       let match_results =
         try Hashtbl.find_all env.pattern_matches id with Not_found -> []
@@ -893,8 +893,6 @@ and (evaluate_formula : env -> RM.t option -> S.sformula -> RM.t list) =
           conds
           |> List.fold_left (fun acc cond -> filter_ranges env acc cond) res)
   | S.Not _ -> failwith "Invalid Not; you can only negate inside an And"
-  | S.Leaf (R.MetavarCond _) ->
-      failwith "Invalid MetavarCond; you can MetavarCond only inside an And"
 
 and run_selector_on_ranges env selector_opt ranges =
   match (selector_opt, ranges) with

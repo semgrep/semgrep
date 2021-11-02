@@ -16,6 +16,7 @@ module CST = Tree_sitter_lua.CST
 module H = Parse_tree_sitter_helpers
 module PI = Parse_info
 module G = AST_generic
+module H2 = AST_generic_helpers
 
 let logger = Logging.get_logger [ __MODULE__ ]
 
@@ -123,9 +124,9 @@ let map_parameters (env : env) ((v1, v2, v3) : CST.parameters) : G.parameters =
         let v1 =
           match v1 with
           | `Self tok ->
-              G.ParamClassic (G.param_of_id (identifier env tok)) (* "self" *)
+              G.Param (G.param_of_id (identifier env tok)) (* "self" *)
           | `Spread tok -> G.ParamEllipsis (token env tok) (* "..." *)
-          | `Id tok -> G.ParamClassic (G.param_of_id (identifier env tok))
+          | `Id tok -> G.Param (G.param_of_id (identifier env tok))
           (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
         in
         let v2 =
@@ -133,7 +134,7 @@ let map_parameters (env : env) ((v1, v2, v3) : CST.parameters) : G.parameters =
             (fun (v1, v2) ->
               let _v1 = token env v1 (* "," *) in
               let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
-              Some (G.ParamClassic (G.param_of_id v2)))
+              Some (G.Param (G.param_of_id v2)))
             v2
         in
         let v3 =
@@ -165,9 +166,8 @@ let map_local_variable_declarator (env : env)
     (fun x -> G.basic_entity x ~attrs:[ G.KeywordAttr (G.Static, local) ])
     (ident_first :: ident_rest)
 
-(* TODO: return a G.name *)
 let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field)
-    colon_and_ident : G.ident * G.name_info =
+    colon_and_ident : G.name =
   let v1 = identifier env v1 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
   let v2 =
     List.map
@@ -182,27 +182,17 @@ let map_function_name_field (env : env) ((v1, v2) : CST.function_name_field)
     | Some (colon, colon_ident) ->
         let _colon = token env colon (* ":" *) in
         let colon_ident = identifier env colon_ident in
-        List.flatten [ [ v1 ]; v2; [ colon_ident ] ]
+        (v1 :: v2) @ [ colon_ident ]
     | None -> v1 :: v2
   in
-  match List.rev list with
-  | [] -> raise Impossible (* list1 *)
-  | [ ident ] -> (ident, { G.name_qualifier = None; G.name_typeargs = None })
-  | ident :: xs ->
-      ( ident,
-        {
-          G.name_qualifier = Some (G.QDots (List.rev xs));
-          G.name_typeargs = None;
-        } )
+  H2.name_of_ids list
 
-(* TODO: return a G.name *)
-let map_function_name (env : env) ((v1, v2) : CST.function_name) :
-    G.ident * G.name_info =
+let map_function_name (env : env) ((v1, v2) : CST.function_name) : G.name =
   match v1 with
   | `Id tok ->
       let ident = identifier env tok in
       (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-      (ident, { G.name_qualifier = None; G.name_typeargs = None })
+      H2.name_of_id ident
   | `Func_name_field x -> map_function_name_field env x v2
 
 let rec map_expression_list (env : env)
@@ -391,7 +381,7 @@ and map_else_ (env : env) ((v1, v2, v3) : CST.else_) : G.stmt =
  *   todo env (v1, v2, v3, v4, v5) *)
 and map_expression (env : env) (x : CST.expression) : G.expr =
   (match x with
-  | `Next tok -> G.OtherExpr (G.OE_Todo, [ G.TodoK ("next", token env tok) ])
+  | `Next tok -> G.OtherExpr (("next", token env tok), [])
   | `Spread tok -> G.Ellipsis (token env tok) (* "..." *)
   | `Prefix x ->
       let x = map_prefix env x in
@@ -494,16 +484,16 @@ and map_function_call_expr (env : env) (x : CST.function_call_statement) :
       let colon = token env v2 (* ":" *) in
       let fn_name = identifier env v3 in
       (* pattern [a-zA-Z_][a-zA-Z0-9_]* *)
-      let name =
-        ( fn_name,
-          {
-            G.name_qualifier = Some (G.QExpr (prefix, colon));
-            G.name_typeargs = None;
-          } )
+      let qualified_info =
+        {
+          G.name_last = (fn_name, None);
+          G.name_middle = Some (G.QExpr (prefix, colon));
+          G.name_top = None;
+          G.name_info = G.empty_id_info ();
+        }
       in
       let args = map_arguments env v4 in
-      G.Call (G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e, args)
-      |> G.e
+      G.Call (G.N (G.IdQualified qualified_info) |> G.e, args) |> G.e
 
 and map_function_call_statement (env : env) (x : CST.function_call_statement) :
     G.stmt =
@@ -654,7 +644,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
               G.Block (G.fake_bracket (map_statements_and_return env (v4, v5)))
               |> G.s
             in
-            Some (G.If (v1, v2, stmt_list, acc) |> G.s))
+            Some (G.If (v1, G.Cond v2, stmt_list, acc) |> G.s))
           None v6
       in
       let v7 =
@@ -665,15 +655,15 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       let _v8 = token env v8 (* "end" *) in
       let ifstmt =
         match v7 with
-        | Some else_ -> G.If (v1, v2, stmt_list, Some else_)
-        | None -> G.If (v1, v2, stmt_list, elseifs)
+        | Some else_ -> G.If (v1, G.Cond v2, stmt_list, Some else_)
+        | None -> G.If (v1, G.Cond v2, stmt_list, elseifs)
       in
       [ ifstmt |> G.s ]
   | `While_stmt (v1, v2, v3, v4, v5, v6) ->
       let v1 = token env v1 (* "while" *) in
       let v2 = map_expression env v2 in
       let block = map_do_block env (v3, v4, v5, v6) in
-      [ G.While (v1, v2, block) |> G.s ]
+      [ G.While (v1, G.Cond v2, block) |> G.s ]
   | `Repeat_stmt (v1, v2, v3, v4, v5) ->
       let t = token env v1 in
       (* "repeat" *)
@@ -693,7 +683,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
   | `Goto_stmt (v1, v2) ->
       let v1 = token env v1 (* "goto" *) in
       let v2 = identifier env v2 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
-      [ G.Goto (v1, v2) |> G.s ]
+      [ G.Goto (v1, v2, G.sc) |> G.s ]
   | `Brk_stmt tok ->
       let v1 = token env tok (* "break" *) in
       [ G.Break (v1, LNone, G.sc) |> G.s ]
@@ -705,8 +695,7 @@ and map_statement (env : env) (x : CST.statement) : G.stmt list =
       [ G.Label (v2, G.Block (G.fake_bracket []) |> G.s) |> G.s ]
   | `Empty_stmt _tok -> [] (* ";" *)
   | `Func_stmt (v1, v2, v3) ->
-      let fn_name = map_function_name env v2 in
-      let name = G.IdQualified (fn_name, G.empty_id_info ()) in
+      let name = map_function_name env v2 in
       let v3 = map_function_body env v3 v1 in
       let ent = { G.name = G.EN name; G.attrs = []; G.tparams = [] } in
       [ G.DefStmt (ent, G.FuncDef v3) |> G.s ]
@@ -746,10 +735,15 @@ and map_variable_declarator_expr (env : env) (x : CST.variable_declarator) :
       let v2 = token env v2 (* "." *) in
       let v3 = identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
       let qual = G.QExpr (v1, v2) in
-      let name =
-        (v3, { G.name_qualifier = Some qual; G.name_typeargs = None })
+      let qualified_info =
+        {
+          G.name_last = (v3, None);
+          name_middle = Some qual;
+          name_top = None;
+          name_info = G.empty_id_info ();
+        }
       in
-      G.N (G.IdQualified (name, G.empty_id_info ())) |> G.e
+      G.N (G.IdQualified qualified_info) |> G.e
 
 and map_variable_declarator (env : env) (x : CST.variable_declarator) : G.expr =
   match x with
@@ -768,7 +762,7 @@ and map_variable_declarator (env : env) (x : CST.variable_declarator) : G.expr =
       let dot = token env v2 (* "." *) in
       let ident = identifier env v3 (* pattern [a-zA-Z_][a-zA-Z0-9_]* *) in
       G.DotAccess
-        (G.N (G.Id (ident, G.empty_id_info ())) |> G.e, dot, G.EDynamic prefix)
+        (G.N (G.Id (ident, G.empty_id_info ())) |> G.e, dot, G.FDynamic prefix)
       |> G.e
 
 let map_program (env : env) ((v1, v2) : CST.program) : G.program =
