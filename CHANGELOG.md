@@ -34,6 +34,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   determination
 - Bash: a simple expression pattern can now match any command argument rather
   than having to match the whole command
+- C# support is now GA
 
 ## [0.70.0](https://github.com/returntocorp/semgrep/releases/tag/v0.70.0) - 10-19-2021
 
