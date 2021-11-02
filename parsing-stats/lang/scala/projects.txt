@@ -22,7 +22,6 @@ https://github.com/linkerd/linkerd
 https://github.com/gatling/gatling
 https://github.com/fpinscala/fpinscala
 https://github.com/enso-org/enso
-https://github.com/lampepfl/dotty
 https://github.com/airbnb/aerosolve
 https://github.com/typelevel/cats
 https://github.com/scalaz/scalaz
