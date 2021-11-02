@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import json
 import logging
 import sys
 
@@ -26,6 +28,4 @@ if __name__ == "__main__":
     logger.info(f"Fetching '{args.config}'")
     config = Config.from_config_list([args.config], None)[0]
     rules = config.get_rules(True)
-    for rule in rules:
-        logger.debug(f"Hashing '{rule.id}'")
-        print(f"{rule.id},{rule.full_hash}")
+    print(json.dumps({r.id: r.full_hash for r in rules}))
