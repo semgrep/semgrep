@@ -229,7 +229,7 @@ class TargetManager:
                 tracked = _parse_output(tracked_output, curr_dir)
                 untracked_unignored = _parse_output(untracked_output, curr_dir)
                 deleted = _parse_output(deleted_output, curr_dir)
-                paths = tracked.union(untracked_unignored).union(deleted)
+                paths = tracked.union(untracked_unignored).difference(deleted)
                 results = _find_files_with_extension_or_shebang(
                     paths, extensions, shebangs
                 )
