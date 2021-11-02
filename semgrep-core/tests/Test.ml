@@ -42,6 +42,16 @@ let parsing_tests_for_lang files lang =
     )
   )
 
+let partial_parsing_tests_for_lang files lang =
+  files |> List.map (fun file ->
+    Filename.basename file, (fun () ->
+      let {Parse_target. errors = errs; _ }  = 
+        Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file in
+      if errs = []
+      then failwith "it should parse partially the file (with some errors)"
+    )
+  )
+
 let compare_actual_to_expected actual expected =
   match E.compare_actual_to_expected actual expected with
   | Ok () -> ()
@@ -286,6 +296,12 @@ let lang_parsing_tests =
       let files = Common2.glob (spf "%s/*.cpp" dir) in
       let lang = Lang.Cplusplus in
       parsing_tests_for_lang files lang
+    );
+    pack_tests "C++ partial parsing" (
+      let dir = Filename.concat tests_path "cpp/parsing_partial" in
+      let files = Common2.glob (spf "%s/*.cpp" dir) in
+      let lang = Lang.Cplusplus in
+      partial_parsing_tests_for_lang files lang
     );
   ]
 
