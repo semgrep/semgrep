@@ -27,6 +27,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   'l'/'L' long suffix on number literals
 - Scala: parse by name arguments in arbitary function types, 
   like `(=> Int) => Int`
+- Scala: parse `case class` within blocks
 - Bash: various fixes and improvements
 - Kotlin: support ellipsis in class body and parameters (#4141)
 - Go: support method interface pattern (#4172)
