@@ -47,6 +47,7 @@ let first_xlang_of_rules rs =
 let config =
   {
     Runner_common.log_config_file = "";
+    log_to_file = None;
     test = false;
     debug = false;
     profile = false;
