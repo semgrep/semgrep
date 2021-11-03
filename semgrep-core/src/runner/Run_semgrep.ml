@@ -481,7 +481,7 @@ let semgrep_with_patterns_file config roots =
     let json = JSON_report.match_results_of_matches_and_errors [] res in
     let s = SJ.string_of_match_results json in
     pr s;
-    exit 2
+    Runner_exit.exit_semgrep (Unknown_exception exn)
 
 (*****************************************************************************)
 (* Semgrep -config *)
@@ -592,7 +592,7 @@ let semgrep_with_rules_file config files_or_dirs =
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
       match exn with
-      | Some _ -> exit 2
+      | Some e -> Runner_exit.exit_semgrep (Unknown_exception e)
       | None -> ())
   | Text ->
       (* the match has already been printed above. We just print errors here *)

@@ -221,8 +221,10 @@ let validate_pattern () =
   try
     let lang = lang_of_string !lang in
     let _ = S.parse_pattern lang s in
-    exit 0
-  with _exn -> exit 1
+    Runner_exit.(exit_semgrep Success)
+  with exn ->
+    logger#info "invalid pattern: %s" (Printexc.to_string exn);
+    Runner_exit.(exit_semgrep False)
 
 (* See also Check_rule.check_files *)
 
@@ -285,7 +287,7 @@ let dump_ast ?(naming = false) lang file =
       pr s;
       if errors <> [] then (
         pr2 (spf "WARNING: fail to fully parse %s" file);
-        exit 1))
+        Runner_exit.(exit_semgrep False)))
 
 let dump_v1_json file =
   match Lang.langs_of_filename file with
@@ -613,7 +615,7 @@ let options () =
         Arg.Unit
           (fun () ->
             pr2 version;
-            exit 0),
+            Runner_exit.(exit_semgrep Success)),
         "  guess what" );
     ]
 

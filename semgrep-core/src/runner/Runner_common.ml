@@ -1,3 +1,7 @@
+(*
+   Type definitions, mostly.
+*)
+
 type output_format = Text | Json
 
 type config = {
