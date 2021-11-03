@@ -74,6 +74,8 @@ let env_extra = "SEMGREP_CORE_EXTRA"
 
 let log_config_file = ref "log_config.json"
 
+let log_to_file = ref None
+
 (* see also verbose/... flags in Flag_semgrep.ml *)
 (* to test things *)
 let test = ref false
@@ -326,6 +328,7 @@ let dump_rule file =
 let mk_config () =
   {
     log_config_file = !log_config_file;
+    log_to_file = !log_to_file;
     test = !test;
     debug = !debug;
     profile = !profile;
@@ -581,12 +584,7 @@ let options () =
       Arg.Set_string log_config_file,
       " <file> logging configuration file" );
     ( "-log_to_file",
-      Arg.String
-        (fun file ->
-          let open Easy_logging in
-          let h = Handlers.make (File (file, Debug)) in
-          logger#add_handler h;
-          logger#set_level Debug),
+      Arg.String (fun file -> log_to_file := Some file),
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
     ("-lsp", Arg.Set lsp, " connect to LSP lang server to get type information");
@@ -666,15 +664,9 @@ let main () =
   let args = Common.parse_options (options ()) usage_msg (Array.of_list argv) in
   let args = if !target_file = "" then args else Common.cat !target_file in
 
-  if Sys.file_exists !log_config_file then (
-    Logging.load_config_file !log_config_file;
-    logger#info "loaded %s" !log_config_file);
-  if !debug then (
-    let open Easy_logging in
-    let h = Handlers.make (CliErr Debug) in
-    logger#add_handler h;
-    logger#set_level Debug;
-    ());
+  let config = mk_config () in
+
+  Setup_logging.setup config;
 
   logger#info "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " ");
   logger#info "Version: %s" version;

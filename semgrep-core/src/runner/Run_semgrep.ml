@@ -565,9 +565,10 @@ let run_semgrep_with_rules config files_or_dirs =
     let timed_rules =
       Common.with_time (fun () -> Parse_rule.parse rules_file)
     in
-    semgrep_with_rules config timed_rules files_or_dirs
+    let res, files = semgrep_with_rules config timed_rules files_or_dirs in
+    (None, res, files)
   with exn ->
-    logger#debug "exn before exit %s" (Common.exn_to_s exn);
+    logger#info "Uncaught exception: %s" (Common.exn_to_s exn);
     let res =
       {
         RP.matches = [];
@@ -576,21 +577,23 @@ let run_semgrep_with_rules config files_or_dirs =
         rule_profiling = None;
       }
     in
-    (res, [])
+    (Some exn, res, [])
 
 let semgrep_with_rules_file config files_or_dirs =
-  let res, files = run_semgrep_with_rules config files_or_dirs in
+  let exn, res, files = run_semgrep_with_rules config files_or_dirs in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
    *)
   match config.output_format with
-  | Json ->
+  | Json -> (
       let res = JSON_report.match_results_of_matches_and_errors files res in
       let s = SJ.string_of_match_results res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
-      if files = [] then exit 2
+      match exn with
+      | Some _ -> exit 2
+      | None -> ())
   | Text ->
       (* the match has already been printed above. We just print errors here *)
       (* pr (spf "number of errors: %d" (List.length errs)); *)

@@ -3,6 +3,7 @@ type output_format = Text | Json
 type config = {
   (* Debugging/profiling/logging flags *)
   log_config_file : string;
+  log_to_file : string option;
   test : bool;
   debug : bool;
   profile : bool;

@@ -170,7 +170,9 @@ let semgrep_check config metachecks rules =
       output_format = Json;
     }
   in
-  let res, _ = Run_semgrep.run_semgrep_with_rules config rules in
+  let _success, res, _targets =
+    Run_semgrep.run_semgrep_with_rules config rules
+  in
   res.matches |> List.map match_to_semgrep_error
 
 (* TODO *)
