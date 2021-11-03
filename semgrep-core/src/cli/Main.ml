@@ -74,6 +74,8 @@ let env_extra = "SEMGREP_CORE_EXTRA"
 
 let log_config_file = ref "log_config.json"
 
+let log_to_file = ref None
+
 (* see also verbose/... flags in Flag_semgrep.ml *)
 (* to test things *)
 let test = ref false
@@ -219,8 +221,10 @@ let validate_pattern () =
   try
     let lang = lang_of_string !lang in
     let _ = S.parse_pattern lang s in
-    exit 0
-  with _exn -> exit 1
+    Runner_exit.(exit_semgrep Success)
+  with exn ->
+    logger#info "invalid pattern: %s" (Printexc.to_string exn);
+    Runner_exit.(exit_semgrep False)
 
 (* See also Check_rule.check_files *)
 
@@ -262,6 +266,7 @@ let dump_v_to_format (v : OCaml.v) =
 
 (* works with -lang *)
 let dump_pattern (file : Common.filename) =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   let s = Common.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = lang_of_string !lang in
@@ -272,6 +277,7 @@ let dump_pattern (file : Common.filename) =
       pr s)
 
 let dump_ast ?(naming = false) lang file =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_exit_fast file (fun () ->
       let { Parse_target.ast; errors; _ } =
         if naming then
@@ -283,9 +289,10 @@ let dump_ast ?(naming = false) lang file =
       pr s;
       if errors <> [] then (
         pr2 (spf "WARNING: fail to fully parse %s" file);
-        exit 1))
+        Runner_exit.(exit_semgrep False)))
 
 let dump_v1_json file =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   match Lang.langs_of_filename file with
   | lang :: _ ->
       E.try_with_print_exn_and_reraise file (fun () ->
@@ -312,10 +319,12 @@ let dump_ext_of_lang () =
        (String.concat "\n" lang_to_exts))
 
 let dump_equivalences file =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   let xs = Parse_equivalences.parse file in
   pr2_gen xs
 
 let dump_rule file =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   let rules = Parse_rule.parse file in
   rules |> List.iter (fun r -> pr (Rule.show r))
 
@@ -326,6 +335,7 @@ let dump_rule file =
 let mk_config () =
   {
     log_config_file = !log_config_file;
+    log_to_file = !log_to_file;
     test = !test;
     debug = !debug;
     profile = !profile;
@@ -386,15 +396,18 @@ let all_actions () =
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Common.mk_action_1_arg (fun file ->
+          let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_tree_sitter_cst (lang_of_string !lang) file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Common.mk_action_1_arg (fun file ->
+          let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file)
     );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Common.mk_action_1_arg (fun file ->
+          let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (lang_of_string !lang) file) );
     ("-dump_il", " <file>", Common.mk_action_1_arg Datalog_experiment.dump_il);
     ( "-diff_pfff_tree_sitter",
@@ -581,12 +594,7 @@ let options () =
       Arg.Set_string log_config_file,
       " <file> logging configuration file" );
     ( "-log_to_file",
-      Arg.String
-        (fun file ->
-          let open Easy_logging in
-          let h = Handlers.make (File (file, Debug)) in
-          logger#add_handler h;
-          logger#set_level Debug),
+      Arg.String (fun file -> log_to_file := Some file),
       " <file> log debugging info to file" );
     ("-test", Arg.Set test, " (internal) set test context");
     ("-lsp", Arg.Set lsp, " connect to LSP lang server to get type information");
@@ -615,7 +623,7 @@ let options () =
         Arg.Unit
           (fun () ->
             pr2 version;
-            exit 0),
+            Runner_exit.(exit_semgrep Success)),
         "  guess what" );
     ]
 
@@ -666,24 +674,21 @@ let main () =
   let args = Common.parse_options (options ()) usage_msg (Array.of_list argv) in
   let args = if !target_file = "" then args else Common.cat !target_file in
 
-  if Sys.file_exists !log_config_file then (
-    Logging.load_config_file !log_config_file;
-    logger#info "loaded %s" !log_config_file);
-  if !debug then (
-    let open Easy_logging in
-    let h = Handlers.make (CliErr Debug) in
-    logger#add_handler h;
-    logger#set_level Debug;
-    ());
+  let config = mk_config () in
+
+  Setup_logging.setup config;
 
   logger#info "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " ");
   logger#info "Version: %s" version;
-  if !profile then (
-    logger#info "Profile mode On";
-    logger#info "disabling -j when in profiling mode";
-    ncores := 1);
+  let config =
+    if config.profile then (
+      logger#info "Profile mode On";
+      logger#info "disabling -j when in profiling mode";
+      { config with ncores = 1 })
+    else config
+  in
 
-  if !lsp then LSP_client.init ();
+  if config.lsp then LSP_client.init ();
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->
@@ -691,29 +696,29 @@ let main () =
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)
       (* --------------------------------------------------------- *)
-      | xs when List.mem !action (Common.action_list (all_actions ())) ->
-          Common.do_action !action xs (all_actions ())
-      | _ when not (Common.null_string !action) ->
+      | xs when List.mem config.action (Common.action_list (all_actions ())) ->
+          Common.do_action config.action xs (all_actions ())
+      | _ when not (Common.null_string config.action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)
       | _ :: _ as roots -> (
-          if !Flag.gc_tuning && !max_memory_mb = 0 then set_gc ();
+          if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc ();
 
           match () with
-          | _ when !config_file <> "" ->
-              S.semgrep_with_rules_file (mk_config ()) roots
-          | _ when !rules_file <> "" ->
-              S.semgrep_with_patterns_file (mk_config ()) roots
-          | _ -> S.semgrep_with_one_pattern (mk_config ()) roots)
+          | _ when config.config_file <> "" ->
+              S.semgrep_with_rules_file config roots
+          | _ when config.rules_file <> "" ->
+              S.semgrep_with_patterns_file config roots
+          | _ -> S.semgrep_with_one_pattern config roots)
       (* --------------------------------------------------------- *)
       (* empty entry *)
       (* --------------------------------------------------------- *)
       (* TODO: should not need that, semgrep should not call us when there
        * are no files to process. *)
-      | [] when !target_file <> "" && !config_file <> "" ->
-          S.semgrep_with_rules_file (mk_config ()) []
+      | [] when config.target_file <> "" && config.config_file <> "" ->
+          S.semgrep_with_rules_file config []
       | [] -> Common.usage usage_msg (options ()))
 
 (*****************************************************************************)
