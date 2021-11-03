@@ -18,7 +18,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Metrics report the error type of semgrep core errors (Timeout, 
   MaxMemory, etc.)
 - Prevent bad settings files from crashing Semgrep (#4164)
-- Dataflow: translate taint into the IL
+- Dataflow: translate await into the IL
 - Constant propagation: Tuple/Array destructuring assignments now correctly 
   prevent constant propagation
 - JS: Correctly parse metavariables in template strings
