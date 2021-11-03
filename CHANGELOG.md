@@ -4,6 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+
+### Fixed
+- Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
+
+### Changed
+- C# support is now GA
+- cli: Only suggest increasing stack size when semgrep-core segfaults
+
 ## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
 
 ### Added
@@ -32,21 +41,11 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Kotlin: support ellipsis in class body and parameters (#4141)
 - Go: support method interface pattern (#4172)
 
-### Fixed
-- text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports width < 1
-- Metrics report the error type of semgrep core errors (Timeout, MaxMemory, etc.)
-- Correctly parse metavariables in JS template strings
-- Constant propagation: Tuple/Array destructuring assignments now correctly prevent constant propagation
-- Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
-- Scala: parse underscore separators in number literals, and parse 'l'/'L' long suffix on number literals
-
 ### Changed
 - Report CI environment variable in metrics for better environment
   determination
 - Bash: a simple expression pattern can now match any command argument rather
   than having to match the whole command
-- C# support is now GA
-- cli: Only suggest increasing stack size when semgrep-core segfaults
 
 ## [0.70.0](https://github.com/returntocorp/semgrep/releases/tag/v0.70.0) - 10-19-2021
 
