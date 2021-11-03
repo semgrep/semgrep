@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
+- Scala: parse `case object` within blocks
 
 ### Changed
 - C# support is now GA
