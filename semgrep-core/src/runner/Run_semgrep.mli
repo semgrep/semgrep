@@ -1,5 +1,12 @@
 open Runner_common
 
+(*
+   Copy named pipes created with <(echo 'foo') on the command line
+   into a regular file to avoid illegal seeks when reporting match results
+   or parsing errors.
+*)
+val replace_named_pipe_by_regular_file : Common.filename -> Common.filename
+
 val parse_pattern : Lang.t -> string -> AST_generic.any
 
 val semgrep_with_patterns_file : config -> string list -> unit

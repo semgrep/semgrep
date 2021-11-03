@@ -266,6 +266,7 @@ let dump_v_to_format (v : OCaml.v) =
 
 (* works with -lang *)
 let dump_pattern (file : Common.filename) =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   let s = Common.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
   let lang = lang_of_string !lang in
@@ -276,6 +277,7 @@ let dump_pattern (file : Common.filename) =
       pr s)
 
 let dump_ast ?(naming = false) lang file =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   E.try_with_print_exn_and_exit_fast file (fun () ->
       let { Parse_target.ast; errors; _ } =
         if naming then
@@ -290,6 +292,7 @@ let dump_ast ?(naming = false) lang file =
         Runner_exit.(exit_semgrep False)))
 
 let dump_v1_json file =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   match Lang.langs_of_filename file with
   | lang :: _ ->
       E.try_with_print_exn_and_reraise file (fun () ->
@@ -316,10 +319,12 @@ let dump_ext_of_lang () =
        (String.concat "\n" lang_to_exts))
 
 let dump_equivalences file =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   let xs = Parse_equivalences.parse file in
   pr2_gen xs
 
 let dump_rule file =
+  let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   let rules = Parse_rule.parse file in
   rules |> List.iter (fun r -> pr (Rule.show r))
 
@@ -391,15 +396,18 @@ let all_actions () =
     ( "-dump_tree_sitter_cst",
       " <file> dump the CST obtained from a tree-sitter parser",
       Common.mk_action_1_arg (fun file ->
+          let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_tree_sitter_cst (lang_of_string !lang) file) );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Common.mk_action_1_arg (fun file ->
+          let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file)
     );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Common.mk_action_1_arg (fun file ->
+          let file = Run_semgrep.replace_named_pipe_by_regular_file file in
           Test_parsing.dump_pfff_ast (lang_of_string !lang) file) );
     ("-dump_il", " <file>", Common.mk_action_1_arg Datalog_experiment.dump_il);
     ( "-diff_pfff_tree_sitter",
