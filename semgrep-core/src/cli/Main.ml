@@ -672,12 +672,15 @@ let main () =
 
   logger#info "Executed as: %s" (Sys.argv |> Array.to_list |> String.concat " ");
   logger#info "Version: %s" version;
-  if !profile then (
-    logger#info "Profile mode On";
-    logger#info "disabling -j when in profiling mode";
-    ncores := 1);
+  let config =
+    if config.profile then (
+      logger#info "Profile mode On";
+      logger#info "disabling -j when in profiling mode";
+      { config with ncores = 1 })
+    else config
+  in
 
-  if !lsp then LSP_client.init ();
+  if config.lsp then LSP_client.init ();
 
   (* must be done after Arg.parse, because Common.profile is set by it *)
   Common.profile_code "Main total" (fun () ->
@@ -685,29 +688,29 @@ let main () =
       (* --------------------------------------------------------- *)
       (* actions, useful to debug subpart *)
       (* --------------------------------------------------------- *)
-      | xs when List.mem !action (Common.action_list (all_actions ())) ->
-          Common.do_action !action xs (all_actions ())
-      | _ when not (Common.null_string !action) ->
+      | xs when List.mem config.action (Common.action_list (all_actions ())) ->
+          Common.do_action config.action xs (all_actions ())
+      | _ when not (Common.null_string config.action) ->
           failwith ("unrecognized action or wrong params: " ^ !action)
       (* --------------------------------------------------------- *)
       (* main entry *)
       (* --------------------------------------------------------- *)
       | _ :: _ as roots -> (
-          if !Flag.gc_tuning && !max_memory_mb = 0 then set_gc ();
+          if !Flag.gc_tuning && config.max_memory_mb = 0 then set_gc ();
 
           match () with
-          | _ when !config_file <> "" ->
-              S.semgrep_with_rules_file (mk_config ()) roots
-          | _ when !rules_file <> "" ->
-              S.semgrep_with_patterns_file (mk_config ()) roots
-          | _ -> S.semgrep_with_one_pattern (mk_config ()) roots)
+          | _ when config.config_file <> "" ->
+              S.semgrep_with_rules_file config roots
+          | _ when config.rules_file <> "" ->
+              S.semgrep_with_patterns_file config roots
+          | _ -> S.semgrep_with_one_pattern config roots)
       (* --------------------------------------------------------- *)
       (* empty entry *)
       (* --------------------------------------------------------- *)
       (* TODO: should not need that, semgrep should not call us when there
        * are no files to process. *)
-      | [] when !target_file <> "" && !config_file <> "" ->
-          S.semgrep_with_rules_file (mk_config ()) []
+      | [] when config.target_file <> "" && config.config_file <> "" ->
+          S.semgrep_with_rules_file config []
       | [] -> Common.usage usage_msg (options ()))
 
 (*****************************************************************************)
