@@ -160,8 +160,7 @@ class CoreRunner:
                         semgrep_output,
                         semgrep_error_output,
                     )
-                else:
-                    raise errors[0].to_semgrep_error(RuleId(rule.id))
+                raise errors[0].to_semgrep_error(RuleId(rule.id))
             else:
                 self._fail(
                     'non-zero exit status with missing "errors" field in json response',
