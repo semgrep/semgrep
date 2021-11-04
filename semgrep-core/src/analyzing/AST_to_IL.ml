@@ -1040,6 +1040,10 @@ let rec stmt_aux env st =
         | _ -> (None, manager_as_pat)
       in
       python_with_stmt env manager opt_pat body
+  (* Java: synchronized (E) S *)
+  | G.OtherStmt (G.OS_Sync, [ G.E objorig; G.S stmt1 ]) ->
+      let ss, _TODO_obj = expr_with_pre_stmts env objorig in
+      ss @ stmt env stmt1
   | G.Match (_, _, _) -> todo (G.S st)
   | G.OtherStmt _
   | G.OtherStmtWithStmt _ ->
