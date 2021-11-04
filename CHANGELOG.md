@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala: parse `case object` within blocks
 - Go: match correctly braces in composite literals for autofix (#4210)
 - Scala: parse typed patterns with variables that begin with an underscore: `case _x : Int => ...`
+- Scala: parse unicode identifiers
 
 ### Changed
 - C# support is now GA
