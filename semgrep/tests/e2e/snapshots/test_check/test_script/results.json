@@ -12,7 +12,9 @@
         "is_ignored": false,
         "lines": "4 == 4",
         "message": "useless comparison operation `4 == 4` or `4 != 4`; possible bug?",
-        "metadata": {},
+        "metadata": {
+          "shortlink": "https://sg.run/xyz1"
+        },
         "metavars": {
           "$X": {
             "abstract_content": "4",
