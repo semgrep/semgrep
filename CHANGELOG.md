@@ -5,6 +5,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Java: Add partial support for `synchronized` blocks in the dataflow IL (#4150)
+
+### Fixed
+- Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
+- Go: match correctly braces in composite literals for autofix (#4210)
+- Scala: parse typed patterns with variables that begin with an underscore: `case _x : Int => ...`
+
+### Changed
+- C# support is now GA
+- cli: Only suggest increasing stack size when semgrep-core segfaults
+
+## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
+
+### Added
 - Metavariable equality is enforced across sources/sanitizers/sinks in 
   taint mode, and these metavariables correctly appear in match messages
 - Pre-alpha support for Bash as a new target language
@@ -18,6 +32,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Metrics report the error type of semgrep core errors (Timeout, 
   MaxMemory, etc.)
 - Prevent bad settings files from crashing Semgrep (#4164)
+- Dataflow: translate await into the IL
 - Constant propagation: Tuple/Array destructuring assignments now correctly 
   prevent constant propagation
 - JS: Correctly parse metavariables in template strings
@@ -25,6 +40,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   'l'/'L' long suffix on number literals
 - Scala: parse by name arguments in arbitary function types, 
   like `(=> Int) => Int`
+- Scala: parse `case class` within blocks
 - Bash: various fixes and improvements
 - Kotlin: support ellipsis in class body and parameters (#4141)
 - Go: support method interface pattern (#4172)

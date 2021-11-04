@@ -1,6 +1,6 @@
 (* Yoann Padioleau
  *
- * Copyright (C) 2020 r2c
+ * Copyright (C) 2020-2021 r2c
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -22,7 +22,7 @@ module H = AST_generic_helpers
 (*****************************************************************************)
 (* Ast_go to AST_generic.
  *
- * See ast_generic.ml for more information.
+ * See AST_generic.ml for more information.
  *)
 
 (*****************************************************************************)
@@ -262,9 +262,9 @@ let top_func () =
             fb ([ v1; v3 ] |> List.map G.arg) )
     | CompositeLit (v1, v2) ->
         let v1 = type_ v1
-        and t1, v2, _t2 = bracket (list init_for_composite_lit) v2 in
+        and l, v2, r = bracket (list init_for_composite_lit) v2 in
         G.Call
-          (G.IdSpecial (G.New, fake t1 "new") |> G.e, fb (G.ArgType v1 :: v2))
+          (G.IdSpecial (G.New, fake l "new") |> G.e, (l, G.ArgType v1 :: v2, r))
     | Slice (v1, (t1, v2, t2)) ->
         let e = expr v1 in
         let v1, v2, v3 = v2 in
