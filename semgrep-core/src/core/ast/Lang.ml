@@ -115,6 +115,8 @@ let list_of_lang =
     ("kotlin", Kotlin);
     ("lua", Lua);
     ("bash", Bash);
+    ("sh", Bash);
+    (* sh is not bash, but we are treating them as the same language for now *)
     ("rs", Rust);
     ("rust", Rust);
     ("r", R);
