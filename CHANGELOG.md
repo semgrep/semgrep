@@ -9,8 +9,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
-- Scala: parse `case object` within blocks
 - Go: match correctly braces in composite literals for autofix (#4210)
+- Go: match correctly parens in cast for autofix (#3387)
+- Scala: parse `case object` within blocks
 - Scala: parse typed patterns with variables that begin with an underscore: `case _x : Int => ...`
 - Scala: parse unicode identifiers
 - semgrep-core accepts `sh` as an alias for bash
