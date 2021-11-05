@@ -5,9 +5,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- Java: Add partial support for `synchronized` blocks in the dataflow IL (#4150)
 
 ### Fixed
 - Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
+- Scala: parse `case object` within blocks
+- Go: match correctly braces in composite literals for autofix (#4210)
+- Scala: parse typed patterns with variables that begin with an underscore: `case _x : Int => ...`
+- semgrep-core accepts `sh` as an alias for bash
 
 ### Changed
 - C# support is now GA
@@ -29,6 +34,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Metrics report the error type of semgrep core errors (Timeout, 
   MaxMemory, etc.)
 - Prevent bad settings files from crashing Semgrep (#4164)
+- Dataflow: translate await into the IL
 - Constant propagation: Tuple/Array destructuring assignments now correctly 
   prevent constant propagation
 - JS: Correctly parse metavariables in template strings
