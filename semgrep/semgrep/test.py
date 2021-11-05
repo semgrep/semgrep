@@ -359,8 +359,6 @@ def generate_file_pairs(
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         results = pool.starmap(invoke_semgrep_fn, config_with_tests)
 
-    print("Emma: finished invoking Semgrep")
-
     config_with_errors, config_without_errors = partition(lambda r: r[1], results)
     config_with_errors_output = [
         {"filename": str(filename), "error": error, "output": output}
