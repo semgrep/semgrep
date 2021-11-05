@@ -106,13 +106,14 @@ let exn_to_error ?(rule_id = None) file exn =
   | UnixExit _ as exn -> raise exn
   (* general case, can't extract line information from it, default to line 1 *)
   | exn ->
+      let trace = Printexc.get_backtrace () in
       let loc = Parse_info.first_loc_of_file file in
       {
         rule_id;
         typ = FatalError;
         loc;
         msg = Common.exn_to_s exn;
-        details = Some (Printexc.get_backtrace ());
+        details = Some trace;
         yaml_path = None;
       }
 
