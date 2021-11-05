@@ -1,11 +1,16 @@
 from typing import Dict
 from typing import List
+from typing import Mapping
+from typing import Sequence
+from typing import Set
+from typing import Tuple
 
 from semgrep.error import _UnknownExtensionError
 from semgrep.error import _UnknownLanguageError
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import Language_util
+from semgrep.semgrep_types import Shebang
 
 
 # coupling: if you add a constant here, modify also ALL_EXTENSIONS below
@@ -63,32 +68,35 @@ ALL_EXTENSIONS = (
 # files.
 GENERIC_EXTENSIONS = [FileExtension("")]
 
-_LANGS_TO_EXTS: Dict[Language, List[FileExtension]] = {
-    Language.PYTHON: PYTHON_EXTENSIONS,
-    Language.PYTHON2: PYTHON_EXTENSIONS,
-    Language.PYTHON3: PYTHON_EXTENSIONS,
-    Language.JAVASCRIPT: JAVASCRIPT_EXTENSIONS,
-    Language.TYPESCRIPT: TYPESCRIPT_EXTENSIONS,
-    Language.JAVA: JAVA_EXTENSIONS,
-    Language.C: C_EXTENSIONS,
-    Language.GO: GO_EXTENSIONS,
-    Language.ML: ML_EXTENSIONS,
-    Language.RUBY: RUBY_EXTENSIONS,
-    Language.PHP: PHP_EXTENSIONS,
-    Language.HACK: HACK_EXTENSIONS,
-    Language.JSON: JSON_EXTENSIONS,
-    Language.LUA: LUA_EXTENSIONS,
-    Language.CSHARP: CSHARP_EXTENSIONS,
-    Language.RUST: RUST_EXTENSIONS,
-    Language.KOTLIN: KOTLIN_EXTENSIONS,
-    Language.YAML: YAML_EXTENSIONS,
-    Language.REGEX: GENERIC_EXTENSIONS,
-    Language.GENERIC: GENERIC_EXTENSIONS,
-    Language.SCALA: SCALA_EXTENSIONS,
-    Language.VUE: VUE_EXTENSIONS,
-    Language.HTML: HTML_EXTENSIONS,
-    Language.HCL: HCL_EXTENSIONS,
-    Language.BASH: BASH_EXTENSIONS,
+NO_SHEBANGS: Set[Shebang] = set()
+
+# cf. semgrep-core/src/core/Guess_lang.ml
+_LANGS_TO_EXTS: Mapping[Language, Tuple[Sequence[FileExtension], Set[Shebang]]] = {
+    Language.PYTHON: (PYTHON_EXTENSIONS, {"python", "python2", "python3"}),
+    Language.PYTHON2: (PYTHON_EXTENSIONS, {"python", "python2"}),
+    Language.PYTHON3: (PYTHON_EXTENSIONS, {"python", "python3"}),
+    Language.JAVASCRIPT: (JAVASCRIPT_EXTENSIONS, {"node", "js", "nodejs"}),
+    Language.TYPESCRIPT: (TYPESCRIPT_EXTENSIONS, {"ts-node"}),
+    Language.JAVA: (JAVA_EXTENSIONS, NO_SHEBANGS),
+    Language.C: (C_EXTENSIONS, NO_SHEBANGS),
+    Language.GO: (GO_EXTENSIONS, NO_SHEBANGS),
+    Language.ML: (ML_EXTENSIONS, NO_SHEBANGS),
+    Language.RUBY: (RUBY_EXTENSIONS, {"ruby"}),
+    Language.PHP: (PHP_EXTENSIONS, {"php"}),
+    Language.HACK: (HACK_EXTENSIONS, {"hhvm"}),
+    Language.JSON: (JSON_EXTENSIONS, NO_SHEBANGS),
+    Language.LUA: (LUA_EXTENSIONS, {"lua"}),
+    Language.CSHARP: (CSHARP_EXTENSIONS, NO_SHEBANGS),
+    Language.RUST: (RUST_EXTENSIONS, {"run-cargo-script"}),
+    Language.KOTLIN: (KOTLIN_EXTENSIONS, NO_SHEBANGS),
+    Language.YAML: (YAML_EXTENSIONS, NO_SHEBANGS),
+    Language.REGEX: (GENERIC_EXTENSIONS, NO_SHEBANGS),
+    Language.GENERIC: (GENERIC_EXTENSIONS, NO_SHEBANGS),
+    Language.SCALA: (SCALA_EXTENSIONS, {"scala"}),
+    Language.VUE: (VUE_EXTENSIONS, NO_SHEBANGS),
+    Language.HTML: (HTML_EXTENSIONS, NO_SHEBANGS),
+    Language.HCL: (HCL_EXTENSIONS, NO_SHEBANGS),
+    Language.BASH: (BASH_EXTENSIONS, NO_SHEBANGS),
 }
 
 
@@ -102,7 +110,7 @@ def all_supported_languages() -> List[str]:
 # create a dictionary for fast lookup and reverse lookup
 _EXTS_TO_LANG: Dict[FileExtension, Language] = {}
 for language in _LANGS_TO_EXTS.keys():
-    for extension in _LANGS_TO_EXTS[language]:
+    for extension in _LANGS_TO_EXTS[language][0]:
         # When there are multiple languages for an extension,
         # take the first one
         if not extension in _EXTS_TO_LANG:
@@ -116,7 +124,9 @@ def ext_to_lang(ext: FileExtension) -> Language:
     return langs
 
 
-def lang_to_exts(language: Language) -> List[FileExtension]:
+def lang_to_exts_and_shebangs(
+    language: Language,
+) -> Tuple[Sequence[FileExtension], Set[Shebang]]:
     """
     Convert language to expected file extensions
 
