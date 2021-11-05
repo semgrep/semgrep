@@ -127,7 +127,7 @@ jobs:
         run: |
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
-          pip3 install pipenv
+          pip3 install pipenv==2021.5.29
           pipenv install --dev
       - name: Test semgrep
         run: |
