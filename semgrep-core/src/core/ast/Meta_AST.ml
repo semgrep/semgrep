@@ -181,6 +181,9 @@ and vof_name = function
 and vof_expr e =
   (* TODO: also dump e_id? *)
   match e.e with
+  | ParenExpr v1 ->
+      let v1 = vof_bracket vof_expr v1 in
+      OCaml.VSum ("ParenExpr", [ v1 ])
   | DotAccessEllipsis (v1, v2) ->
       let v1 = vof_expr v1 in
       let v2 = vof_tok v2 in

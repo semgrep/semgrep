@@ -186,6 +186,7 @@ and map_name = function
 
 and map_expr x : B.expr =
   match x.e with
+  | ParenExpr (_, e, _) -> map_expr e
   | N v1 ->
       let v1 = map_name v1 in
       `N v1
