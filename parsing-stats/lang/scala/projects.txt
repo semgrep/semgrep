@@ -20,7 +20,6 @@ https://github.com/guardian/frontend
 https://github.com/apache/openwhisk
 https://github.com/linkerd/linkerd
 https://github.com/gatling/gatling
-https://github.com/fpinscala/fpinscala
 https://github.com/enso-org/enso
 https://github.com/airbnb/aerosolve
 https://github.com/typelevel/cats
