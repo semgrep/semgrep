@@ -88,8 +88,6 @@ class LegacySpan:
     config_path: Tuple[str]
 
 
-# Don't use frozen=True because it's violated and raises an exception
-# while we're trying to create a clean SemgrepCoreError exception.
 @attr.s(auto_attribs=True, frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
