@@ -90,7 +90,7 @@ class LegacySpan:
 
 # Don't use frozen=True because it's violated and raises an exception
 # while we're trying to create a clean SemgrepCoreError exception.
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, frozen=True)
 class SemgrepCoreError(SemgrepError):
     code: int
     level: Level

@@ -278,11 +278,14 @@ def generate_matches_line(check_results: Mapping[str, Any]) -> str:
 
 def invoke_semgrep_multi(
     config: Path, targets: List[Path], **kwargs: Any
-) -> Tuple[Path, Optional[Exception], Any]:
+) -> Tuple[Path, Optional[str], Any]:
     try:
         output = invoke_semgrep(config, targets, **kwargs)
     except Exception as error:
-        return (config, error, {})
+        # We must get the string of the error because the multiprocessing library
+        # will fail the marshal the error and hang
+        # See: https://bugs.python.org/issue39751
+        return (config, str(error), {})
     else:
         return (config, None, output)
 
@@ -356,9 +359,11 @@ def generate_file_pairs(
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         results = pool.starmap(invoke_semgrep_fn, config_with_tests)
 
+    print("Emma: finished invoking Semgrep")
+
     config_with_errors, config_without_errors = partition(lambda r: r[1], results)
     config_with_errors_output = [
-        {"filename": str(filename), "error": str(error), "output": output}
+        {"filename": str(filename), "error": error, "output": output}
         for filename, error, output in config_with_errors
     ]
 
