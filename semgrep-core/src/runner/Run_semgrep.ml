@@ -568,7 +568,8 @@ let run_semgrep_with_rules config files_or_dirs =
     let res, files = semgrep_with_rules config timed_rules files_or_dirs in
     (None, res, files)
   with exn ->
-    logger#info "Uncaught exception: %s" (Common.exn_to_s exn);
+    let trace = Printexc.get_backtrace () in
+    logger#info "Uncaught exception: %s\n%s" (Common.exn_to_s exn) trace;
     let res =
       {
         RP.matches = [];
