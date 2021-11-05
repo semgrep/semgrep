@@ -18,6 +18,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 - C# support is now GA
 - cli: Only suggest increasing stack size when semgrep-core segfaults
+- Semgrep now scans executable scripts whose shebang interpreter matches the
+  rule's language
 
 ## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
 
