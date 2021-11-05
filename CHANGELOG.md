@@ -9,12 +9,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
+- Scala: parse `case object` within blocks
 - Go: match correctly braces in composite literals for autofix (#4210)
 - Scala: parse typed patterns with variables that begin with an underscore: `case _x : Int => ...`
+- Scala: parse unicode identifiers
+- semgrep-core accepts `sh` as an alias for bash
 
 ### Changed
 - C# support is now GA
 - cli: Only suggest increasing stack size when semgrep-core segfaults
+- Semgrep now scans executable scripts whose shebang interpreter matches the
+  rule's language
 
 ## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
 
@@ -44,22 +49,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Bash: various fixes and improvements
 - Kotlin: support ellipsis in class body and parameters (#4141)
 - Go: support method interface pattern (#4172)
-- text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports width < 1
-- Metrics report the error type of semgrep core errors (Timeout, MaxMemory, etc.)
-- Correctly parse metavariables in JS template strings
-- Constant propagation: Tuple/Array destructuring assignments now correctly prevent constant propagation
-- Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
-- Scala: parse underscore separators in number literals, and parse 'l'/'L' long suffix on number literals
 
 ### Changed
 - Report CI environment variable in metrics for better environment
   determination
 - Bash: a simple expression pattern can now match any command argument rather
   than having to match the whole command
-- C# support is now GA
-- Semgrep now scans executable scripts whose shebang interpreter matches the
-  rule's language
-- cli: Only suggest increasing stack size when semgrep-core segfaults
 
 ## [0.70.0](https://github.com/returntocorp/semgrep/releases/tag/v0.70.0) - 10-19-2021
 
@@ -141,6 +136,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Sanitizers that match exactly a source or a sink are filtered out,
   making it possible to use `- pattern: $F(...)` for declaring that any other
   function is a sanitizer
+- taint-mode: Remove built-in source `source(...)` and built-in sanitizer
+  `sanitize(...)` used for convenience during early development, this was causing
+  some unexpected behavior in real code that e.g. had a function called `source`!
+- When enabled, metrics now send the hashes of rules that yielded findings;
+  these will be used to tailor rules on a per-project basis, and also will be
+  used to improve rules over time
+- Improved Kotlin parsing from 77% to 90% on our Kotlin corpus.
+- Resolution of rulesets (i.e. `p/ci`) use new rule cdn and do client-side hydration
+- Set pcre recursion limit so it will not vary with different installations of pcre
+- Better pcre error handling in semgrep-core
+
+### Fixed
+- taint-mode: Fixed bug where a tainted sink could go unreported when the sink is
+  a specific argument in a function call
+- PHP: allows more keywords as valid field names (#3954)
 
 ## [0.67.0](https://github.com/returntocorp/semgrep/releases/tag/v0.67.0) - 09-29-2021
 
