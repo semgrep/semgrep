@@ -170,7 +170,7 @@ jobs:
         run: |
           cd semgrep
           export PATH=/github/home/.local/bin:$PATH
-          pip3 install pipenv
+          pip3 install pipenv==2021.5.29
           pipenv install --dev
       - uses: actions/cache@v2
         with:
@@ -227,7 +227,7 @@ jobs:
       - name: Install semgrep
         run: |
           cd semgrep
-          pip3 install pipenv
+          pip3 install pipenv==2021.5.29
           pipenv install --dev
       - name: Test dummy benchmarks in docker from run-benchmarks
         # This uploads the results, which should happen elsewhere so we run it explicitly for now.
