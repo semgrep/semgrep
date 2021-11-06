@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala: parse typed patterns with variables that begin with an underscore: `case _x : Int => ...`
 - Scala: parse unicode identifiers
 - semgrep-core accepts `sh` as an alias for bash
+- Scala: parse nullary constructors with no arguments in more positions
 
 ### Changed
 - C# support is now GA
