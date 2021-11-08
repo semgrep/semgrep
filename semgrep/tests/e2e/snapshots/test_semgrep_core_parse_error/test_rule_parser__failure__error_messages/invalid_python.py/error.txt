@@ -3,7 +3,7 @@ Running 2 rules...
 rules:
 - rules.assert-eqeq-is-ok
 - rules.eqeq-is-bad
-skipped 'targets/bad/invalid_python.py' [all rules]: irrelevant_rule: target doesn't contain some elements required by the rule
+skipped 'targets/bad/invalid_python.py' [rule assert-eqeq-is-ok]: irrelevant_rule: target doesn't contain some elements required by rule 'assert-eqeq-is-ok'
 Semgrep Core WARN - Syntax error in file targets/bad/invalid_python.py:1
 	`
     ` was unexpected
