@@ -53,6 +53,19 @@ def test_noextension_filtering_optimizations(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_script(run_semgrep_in_tmp, snapshot):
+    """
+    Validates that Semgrep scans scripts with matching shebangs
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp(
+            "rules/eqeq-python.yaml",
+            target_name="script/",
+        )[0],
+        "results.json",
+    )
+
+
 def test_basic_rule__absolute(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp(Path.cwd() / "rules" / "eqeq.yaml")[0],

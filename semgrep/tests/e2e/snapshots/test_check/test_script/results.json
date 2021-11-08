@@ -1,0 +1,47 @@
+{
+  "errors": [],
+  "results": [
+    {
+      "check_id": "rules.eqeq-is-bad",
+      "end": {
+        "col": 7,
+        "line": 3,
+        "offset": 26
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "4 == 4",
+        "message": "useless comparison operation `4 == 4` or `4 != 4`; possible bug?",
+        "metadata": {
+          "shortlink": "https://sg.run/xyz1"
+        },
+        "metavars": {
+          "$X": {
+            "abstract_content": "4",
+            "end": {
+              "col": 2,
+              "line": 3,
+              "offset": 21
+            },
+            "start": {
+              "col": 1,
+              "line": 3,
+              "offset": 20
+            },
+            "unique_id": {
+              "md5sum": "<masked in tests>",
+              "type": "AST"
+            }
+          }
+        },
+        "severity": "ERROR"
+      },
+      "path": "targets/script/bad",
+      "start": {
+        "col": 1,
+        "line": 3,
+        "offset": 20
+      }
+    }
+  ]
+}
