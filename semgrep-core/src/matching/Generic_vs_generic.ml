@@ -723,6 +723,10 @@ and m_expr a b =
   | ( G.Call ({ e = G.IdSpecial (G.Op aop, toka); _ }, aargs),
       B.Call ({ e = B.IdSpecial (B.Op bop, tokb); _ }, bargs) ) ->
       m_call_op aop toka aargs bop tokb bargs
+  (* TODO? should probably do some equivalence like allowing extra
+   * paren in the pattern to still match code without parens
+   *)
+  | G.ParenExpr a1, B.ParenExpr b1 -> m_bracket m_expr a1 b1
   (* boilerplate *)
   | G.Call (a1, a2), B.Call (b1, b2) ->
       m_expr a1 b1 >>= fun () -> m_arguments a2 b2
@@ -832,6 +836,7 @@ and m_expr a b =
   | G.N _, _
   | G.IdSpecial _, _
   | G.Call _, _
+  | G.ParenExpr _, _
   | G.Xml _, _
   | G.Assign _, _
   | G.AssignOp _, _

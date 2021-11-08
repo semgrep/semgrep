@@ -207,6 +207,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let k x =
       let ekind =
         match x.e with
+        | ParenExpr v1 ->
+            let v1 = map_bracket map_expr v1 in
+            ParenExpr v1
         | N v1 ->
             let v1 = map_name v1 in
             N v1

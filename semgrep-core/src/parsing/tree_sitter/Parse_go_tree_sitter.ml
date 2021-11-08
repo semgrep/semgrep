@@ -602,15 +602,15 @@ and expression (env : env) (x : CST.expression) : expr =
       TypeAssert (v1, (v3, v4, v5))
   | `Type_conv_exp (v1, v2, v3, v4, v5) ->
       let v1 = type_ env v1 in
-      let _v2 = token env v2 (* "(" *) in
+      let v2 = token env v2 (* "(" *) in
       let v3 = expression env v3 in
       let _v4 =
         match v4 with
         | Some tok -> Some (token env tok (* "," *))
         | None -> None
       in
-      let _v5 = token env v5 (* ")" *) in
-      Cast (v1, v3)
+      let v5 = token env v5 (* ")" *) in
+      Cast (v1, (v2, v3, v5))
   | `Id tok -> mk_Id (identifier env tok) (* identifier *)
   | `Choice_new x -> mk_Id (anon_choice_new_0342769 env x)
   | `Comp_lit (v1, v2) ->
