@@ -82,6 +82,7 @@ let return_type_of_results results =
            |> List.map (function
                 | G.Param { G.ptype = Some t; _ } -> t
                 | G.Param { G.ptype = None; _ } -> raise Impossible
+                | G.ParamEllipsis t -> G.TyEllipsis t |> G.t
                 | _ -> raise Impossible)
            |> fb)
         |> G.t)
