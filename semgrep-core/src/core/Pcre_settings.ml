@@ -5,6 +5,12 @@
 open Printf
 
 (*
+   Flag required for the following to succeed:
+     Pcre.regexp ~flags:[`UTF8] "\\x{200E}"
+*)
+let extra_flag = `UTF8
+
+(*
    'limit' and 'limit_recursion' are set explicitly to make semgrep
    fail consistently across platforms (e.g. CI vs. local Mac).
    The default compile-time defaults are 10_000_000 for both
@@ -12,10 +18,12 @@ open Printf
    the installation of the pcre library. We protect ourselves
    from such custom installs.
 *)
-let regexp ?study ?iflags ?flags ?chtables pat =
+let regexp ?study ?iflags ?(flags = []) ?chtables pat =
+  (* pcre doesn't mind if a flag is duplicated so we just append extra flags *)
+  let flags = extra_flag :: flags in
   Pcre.regexp ?study ~limit:10_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT *)
     ~limit_recursion:10_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT_RECURSION *)
-    ?iflags ?flags ?chtables pat
+    ?iflags ~flags ?chtables pat
 
 let string_of_error (error : Pcre.error) =
   match error with
