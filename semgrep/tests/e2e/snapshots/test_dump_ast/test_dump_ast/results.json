@@ -15,7 +15,6 @@
                   "id_constness": {
                     "ref@": null
                   },
-                  "id_hidden": "false",
                   "id_resolved": {
                     "ref@": null
                   },
@@ -72,7 +71,6 @@
                                                 "id_constness": {
                                                   "ref@": null
                                                 },
-                                                "id_hidden": "false",
                                                 "id_resolved": {
                                                   "ref@": null
                                                 },
@@ -96,7 +94,6 @@
                                                 "id_constness": {
                                                   "ref@": null
                                                 },
-                                                "id_hidden": "false",
                                                 "id_resolved": {
                                                   "ref@": null
                                                 },
@@ -136,7 +133,6 @@
                                                 "id_constness": {
                                                   "ref@": null
                                                 },
-                                                "id_hidden": "false",
                                                 "id_resolved": {
                                                   "ref@": null
                                                 },
@@ -160,7 +156,6 @@
                                                 "id_constness": {
                                                   "ref@": null
                                                 },
-                                                "id_hidden": "false",
                                                 "id_resolved": {
                                                   "ref@": null
                                                 },
@@ -192,14 +187,13 @@
             ],
             "fparams": [
               {
-                "Param": {
+                "ParamClassic": {
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
                     "id_constness": {
                       "ref@": null
                     },
-                    "id_hidden": "false",
                     "id_resolved": {
                       "ref@": {
                         "some": [
@@ -222,14 +216,13 @@
                 }
               },
               {
-                "Param": {
+                "ParamClassic": {
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
                     "id_constness": {
                       "ref@": null
                     },
-                    "id_hidden": "false",
                     "id_resolved": {
                       "ref@": {
                         "some": [
@@ -272,7 +265,6 @@
                   "id_constness": {
                     "ref@": null
                   },
-                  "id_hidden": "false",
                   "id_resolved": {
                     "ref@": null
                   },
@@ -315,7 +307,6 @@
                                       "id_constness": {
                                         "ref@": null
                                       },
-                                      "id_hidden": "false",
                                       "id_resolved": {
                                         "ref@": null
                                       },
@@ -339,7 +330,6 @@
                                       "id_constness": {
                                         "ref@": null
                                       },
-                                      "id_hidden": "false",
                                       "id_resolved": {
                                         "ref@": null
                                       },
@@ -366,14 +356,13 @@
             ],
             "fparams": [
               {
-                "Param": {
+                "ParamClassic": {
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
                     "id_constness": {
                       "ref@": null
                     },
-                    "id_hidden": "false",
                     "id_resolved": {
                       "ref@": {
                         "some": [
@@ -396,14 +385,13 @@
                 }
               },
               {
-                "Param": {
+                "ParamClassic": {
                   "pattrs": [],
                   "pdefault": null,
                   "pinfo": {
                     "id_constness": {
                       "ref@": null
                     },
-                    "id_hidden": "false",
                     "id_resolved": {
                       "ref@": {
                         "some": [
@@ -446,7 +434,6 @@
                     "id_constness": {
                       "ref@": null
                     },
-                    "id_hidden": "false",
                     "id_resolved": {
                       "ref@": null
                     },
@@ -482,7 +469,6 @@
                                 "id_constness": {
                                   "ref@": null
                                 },
-                                "id_hidden": "false",
                                 "id_resolved": {
                                   "ref@": null
                                 },
@@ -506,7 +492,6 @@
                                 "id_constness": {
                                   "ref@": null
                                 },
-                                "id_hidden": "false",
                                 "id_resolved": {
                                   "ref@": null
                                 },
