@@ -8,19 +8,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Java: Add partial support for `synchronized` blocks in the dataflow IL (#4150)
 
 ### Fixed
-- Constant propagation: In a method call `x.f(y)`, if `x` is a constant then 
+- Constant propagation: In a method call `x.f(y)`, if `x` is a constant then
   it will be recognized as such
 - Go: match correctly braces in composite literals for autofix (#4210)
 - Go: match correctly parens in cast for autofix (#3387)
 - Go: support ellipsis in return type parameters (#2746)
 - Scala: parse `case object` within blocks
-- Scala: parse typed patterns with variables that begin with an underscore: 
+- Scala: parse typed patterns with variables that begin with an underscore:
   `case _x : Int => ...`
 - Scala: parse unicode identifiers
 - Scala: parse nullary constructors with no arguments in more positions
 - `metavariable-comparison`: if a metavariable binds to a code variable that
   is known to be constant, then we use that constant value in the comparison (#3727)
 - semgrep-core accepts `sh` as an alias for bash
+- Expand `~` when resolving config paths
 
 ### Changed
 - C# support is now GA
@@ -31,7 +32,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
 
 ### Added
-- Metavariable equality is enforced across sources/sanitizers/sinks in 
+- Metavariable equality is enforced across sources/sanitizers/sinks in
   taint mode, and these metavariables correctly appear in match messages
 - Pre-alpha support for Bash as a new target language
 - Pre-alpha support for C++ as a new target language
@@ -41,16 +42,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 - text_wrapping defaults to MAX_TEXT_WIDTH if get_terminal_size reports
   width < 1
-- Metrics report the error type of semgrep core errors (Timeout, 
+- Metrics report the error type of semgrep core errors (Timeout,
   MaxMemory, etc.)
 - Prevent bad settings files from crashing Semgrep (#4164)
 - Dataflow: translate await into the IL
-- Constant propagation: Tuple/Array destructuring assignments now correctly 
+- Constant propagation: Tuple/Array destructuring assignments now correctly
   prevent constant propagation
 - JS: Correctly parse metavariables in template strings
-- Scala: parse underscore separators in number literals, and parse 
+- Scala: parse underscore separators in number literals, and parse
   'l'/'L' long suffix on number literals
-- Scala: parse by name arguments in arbitary function types, 
+- Scala: parse by name arguments in arbitary function types,
   like `(=> Int) => Int`
 - Scala: parse `case class` within blocks
 - Bash: various fixes and improvements
@@ -197,7 +198,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   - `off` disables metrics collection entirely
   - Metrics collection may still alternatively be controlled with the `SEMGREP_SEND_METRICS`
     environment variable, with the same possible values as the `--metrics` option. If both
-    are set, `--metrics` overrides `SEMGREP_SEND_METRICS` 
+    are set, `--metrics` overrides `SEMGREP_SEND_METRICS`
   - See `PRIVACY.md` for more information
 - Constant propagation now assumes that void methods may update the callee (#3316)
 - Add rule message to emacs output (#3851)
