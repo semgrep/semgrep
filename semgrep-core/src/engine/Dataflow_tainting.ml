@@ -166,8 +166,9 @@ let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
         set_opt_to_set (Hashtbl.find_opt fun_env (str_of_name fld))
     | Fetch { base; offset; _ } ->
         PM.Set.union (check_base base) (check_offset offset)
+    | FixmeExp (_, _, Some e) -> check e
     | Literal _
-    | FixmeExp _ ->
+    | FixmeExp (_, _, None) ->
         PM.Set.empty
     | Composite (_, (_, es, _))
     | Operator (_, es) ->

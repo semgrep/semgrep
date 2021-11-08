@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - Java: Add partial support for `synchronized` blocks in the dataflow IL (#4150)
+- Dataflow: Add partial support for `yield`, `&`, and other expressions
 
 ### Fixed
 - Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
