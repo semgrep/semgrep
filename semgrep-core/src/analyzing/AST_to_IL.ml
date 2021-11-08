@@ -574,6 +574,7 @@ and expr_aux env ?(void = false) eorig =
       add_instr env
         (mk_i (CallSpecial (Some lval, (Await, tok), [ expr env e ])) eorig);
       lvalexp
+  | G.ParenExpr (_, e, _) -> expr env e
   | G.Xml _ -> todo (G.E eorig)
   | G.Constructor (_, _) -> todo (G.E eorig)
   | G.Yield (_, _, _) -> todo (G.E eorig)

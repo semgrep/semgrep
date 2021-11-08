@@ -148,6 +148,8 @@ let subexprs_of_expr e =
       (* in theory we should go deeper in any *)
       subexprs_of_any_list anys
   | Lambda def -> subexprs_of_stmt (H.funcbody_to_stmt def.fbody)
+  (* TODO? or call recursively on e? *)
+  | ParenExpr (_, e, _) -> [ e ]
   (* currently skipped over but could recurse *)
   | Constructor _
   | AnonClass _

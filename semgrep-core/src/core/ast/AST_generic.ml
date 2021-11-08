@@ -476,6 +476,13 @@ and expr_kind =
   (* less: could be in Special, but pretty important so I've lifted them here*)
   | Ref of tok (* &, address of *) * expr
   | DeRef of tok (* '*' in C, '!' or '<-' in OCaml, ^ in Reason *) * expr
+  (* In some rare cases, we need to keep the parenthesis around an expression
+   * otherwise in autofix semgrep could produce incorrect code. For example,
+   * in Go a cast int(3.0) requires the parenthesis.
+   * alt: change cast to take a expr bracket, but this is used only for Go.
+   * Note that this data structure is really becoming more a CST than an AST.
+   *)
+  | ParenExpr of expr bracket
   (* sgrep: ... in expressions, args, stmts, items, and fields
    * (and unfortunately also in types in Python) *)
   | Ellipsis of tok (* '...' *)
@@ -1130,6 +1137,9 @@ and type_kind =
    *)
   | TyRecordAnon of
       class_kind wrap (* 'struct/shape', fake in other *) * field list bracket
+  (* TODO? a TyParen, like ParenExpr? A few languages may need that
+   * for autofix to work correctly.
+   *)
   (* sgrep-ext: *)
   | TyEllipsis of tok
   (* For languages such as Python which abuse expr to represent types.

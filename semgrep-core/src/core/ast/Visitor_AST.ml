@@ -249,6 +249,7 @@ let (mk_visitor :
   and v_expr x =
     let k x =
       match x.e with
+      | ParenExpr v1 -> v_bracket v_expr v1
       | DotAccessEllipsis (v1, v2) ->
           v_expr v1;
           v_tok v2
