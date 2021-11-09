@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `case _x : Int => ...`
 - Scala: parse unicode identifiers
 - Scala: parse nullary constructors with no arguments in more positions
+- Scala: parse nested comments
 - `metavariable-comparison`: if a metavariable binds to a code variable that
   is known to be constant, then we use that constant value in the comparison (#3727)
 - semgrep-core accepts `sh` as an alias for bash
