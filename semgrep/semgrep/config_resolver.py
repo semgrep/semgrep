@@ -119,7 +119,7 @@ class ConfigPath:
             self._config_path = f"{SEMGREP_URL}{AUTO_CONFIG_LOCATION}"
         else:
             self._origin = ConfigType.LOCAL
-            self._config_path = config_str
+            self._config_path = str(Path(config_str).expanduser())
 
         if self.is_registry_url():
             metric_manager.set_using_server_true()
