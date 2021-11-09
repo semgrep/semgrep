@@ -9,6 +9,8 @@
 
    This takes care of setting PCRE_EXTRA_MATCH_LIMIT and
    PCRE_EXTRA_MATCH_LIMIT_RECURSION to the same value across platforms.
+
+   Any flags needed to make things work with UTF-8 are passed automatically.
 *)
 val regexp :
   ?study:bool ->

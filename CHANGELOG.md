@@ -3,9 +3,20 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+- CLI output no longer displays severity levels
 
 ### Added
 - Java: Add partial support for `synchronized` blocks in the dataflow IL (#4150)
+- Dataflow: Add partial support for `yield`, `&`, and other expressions
+- Field-definition-as-assignemnt equivalence that allows matching expression
+  patterns against field definitions. It is disabled by default but can be
+  enabled via rule `options:` with  `flddef_assign: true` (#4187)
+- Arrows (a.k.a short lambdas) patterns used to match also regular function
+  definitions. This can now be disabled via rule `options:` with
+  `arrow_is_function: false` (#4187)
+- Javascript variable patterns using the 'var' keyword used to also
+  match variable declarations using 'let' or 'const'. This can now be
+  disabled via rule `options:` with `let_is_var: false`
 
 ### Fixed
 - Constant propagation: In a method call `x.f(y)`, if `x` is a constant then 
@@ -17,8 +28,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala: parse typed patterns with variables that begin with an underscore: 
   `case _x : Int => ...`
 - Scala: parse unicode identifiers
+- semgrep-core accepts `sh` as an alias for bash
+- Scala: parse nullary constructors with no arguments in more
+positions
+- pattern-regex: Hexadecimal notation of Unicode code points is now
+  supported and assumes UTF-8 (#4240).
+- pattern-regex: Update documentation, specifying we use PCRE (#3974).
 - Scala: parse nullary constructors with no arguments in more positions
 - Scala: parse infix type operators with tuple arguments
+- Scala: parse nested comments
 - `metavariable-comparison`: if a metavariable binds to a code variable that
   is known to be constant, then we use that constant value in the comparison (#3727)
 - semgrep-core accepts `sh` as an alias for bash

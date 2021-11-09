@@ -447,8 +447,9 @@ let check2 ~hook range_filter config rules equivs (file, lang, ast) =
     in
     let visitor =
       let vardef_assign = config.Config.vardef_assign in
+      let flddef_assign = config.Config.flddef_assign in
       let attr_expr = config.Config.attr_expr in
-      V.mk_visitor ~vardef_assign ~attr_expr hooks
+      V.mk_visitor ~vardef_assign ~flddef_assign ~attr_expr hooks
     in
     (* later: opti: dont analyze certain ASTs if they do not contain
      * certain constants that interect with the pattern?

@@ -17,7 +17,6 @@ from semgrep.constants import CLI_RULE_ID
 from semgrep.constants import ELLIPSIS_STRING
 from semgrep.constants import MAX_CHARS_FLAG_NAME
 from semgrep.constants import MAX_LINES_FLAG_NAME
-from semgrep.constants import RuleSeverity
 from semgrep.error import SemgrepError
 from semgrep.formatter.base import BaseFormatter
 from semgrep.rule import Rule
@@ -215,13 +214,7 @@ class TextFormatter(BaseFormatter):
                 and (last_message is None or last_message != message)
             ):
                 shortlink = TextFormatter._get_details_shortlink(rule_match)
-                severity = rule_match.severity
-                severity_text = f"severity:{severity.value.lower()} "
-                if severity == RuleSeverity.WARNING:
-                    severity_text = with_color("yellow", severity_text)
-                elif severity == RuleSeverity.ERROR:
-                    severity_text = with_color("red", severity_text)
-                yield f"{severity_text}{with_color('yellow', f'rule:{check_id}: {message}{shortlink}')}"
+                yield f"{with_color('yellow', f'rule:{check_id}: {message}{shortlink}')}"
 
             last_file = current_file
             last_message = message
