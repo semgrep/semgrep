@@ -146,6 +146,9 @@ def score_output_json(
     todo_ok_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
+    todo_ruleid_lines: Dict[str, List[int]] = collections.defaultdict(
+        lambda: collections.defaultdict(list)
+    )
     score_by_checkid: Dict[str, List[int]] = collections.defaultdict(
         lambda: [0, 0, 0, 0]
     )
@@ -166,20 +169,23 @@ def score_output_json(
             num_todo += int(todo_rule_in_line) + int(todo_ok_in_line)
 
             try:
+                rule_ids = normalize_rule_ids(line)
                 if (not ignore_todo and todo_rule_in_line) or rule_in_line:
-                    rule_ids = normalize_rule_ids(line)
                     for rule_id in rule_ids:
                         ruleid_lines[test_file_resolved][rule_id].append(
                             effective_line_num
                         )
                 if (not ignore_todo and todo_rule_in_line) or ok_in_line:
-                    rule_ids = normalize_rule_ids(line)
                     for rule_id in rule_ids:
                         ok_lines[test_file_resolved][rule_id].append(effective_line_num)
                 if ignore_todo and todo_ok_in_line:
-                    rule_ids = normalize_rule_ids(line)
                     for rule_id in rule_ids:
                         todo_ok_lines[test_file_resolved][rule_id].append(
+                            effective_line_num
+                        )
+                if todo_rule_in_line:
+                    for rule_id in rule_ids:
+                        todo_ruleid_lines[test_file_resolved][rule_id].append(
                             effective_line_num
                         )
             except ValueError:  # comment looked like a test annotation but couldn't parse
@@ -223,6 +229,7 @@ def score_output_json(
             expected = set(ruleid_lines[file_path][check_id])
             oked = set(ok_lines[file_path][check_id])
             todo_oked = set(todo_ok_lines[file_path][check_id])
+            todo_ruleid = set(todo_ruleid_lines[file_path][check_id])
 
             reported_oked_lines = oked.intersection(all_reported)
             if reported_oked_lines:
@@ -231,7 +238,7 @@ def score_output_json(
                 )
                 false_positive_lines = True
 
-            reported = all_reported - todo_oked
+            reported = all_reported - todo_oked - todo_ruleid
 
             new_cm = compute_confusion_matrix(reported, expected, oked)
             matches_by_check_id[check_id][file_path] = {
