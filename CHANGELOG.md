@@ -35,6 +35,7 @@ positions
   supported and assumes UTF-8 (#4240).
 - pattern-regex: Update documentation, specifying we use PCRE (#3974).
 - Scala: parse nullary constructors with no arguments in more positions
+- Scala: parse infix type operators with tuple arguments
 - Scala: parse nested comments
 - `metavariable-comparison`: if a metavariable binds to a code variable that
   is known to be constant, then we use that constant value in the comparison (#3727)
