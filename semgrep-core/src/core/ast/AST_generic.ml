@@ -994,6 +994,8 @@ and other_stmt_with_stmt_operator =
   | OSWS_ConstBlock
   | OSWS_ForeignBlock
   | OSWS_ImplBlock
+  (* Java's synchronize / C#'s lock *)
+  | OSWS_Sync
   (* C# *)
   | OSWS_CheckedBlock
   | OSWS_UncheckedBlock
@@ -1014,8 +1016,6 @@ and other_stmt_operator =
   | OS_ThrowArgsLocation (* Python2: `raise expr, expr` and `raise expr, expr, exr` *)
   | OS_Pass
   | OS_Async
-  (* Java *)
-  | OS_Sync
   (* C/C++ *)
   | OS_Asm
   (* Go *)

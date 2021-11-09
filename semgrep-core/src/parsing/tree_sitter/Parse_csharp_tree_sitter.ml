@@ -1750,7 +1750,7 @@ and statement (env : env) (x : CST.statement) =
       let v3 = expression env v3 in
       let _v4 = token env v4 (* ")" *) in
       let v5 = statement env v5 in
-      OtherStmt (OS_Sync, [ E v3; S v5 ]) |> G.s
+      OtherStmtWithStmt (OSWS_Sync, [ E v3 ], v5) |> G.s
   | `Ret_stmt (v1, v2, v3) ->
       let v1 = token env v1 (* "return" *) in
       let v2 = Common.map_opt (expression env) v2 in
