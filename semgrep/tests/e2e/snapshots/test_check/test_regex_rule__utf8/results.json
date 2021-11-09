@@ -44,6 +44,28 @@
         "line": 5,
         "offset": 31
       }
+    },
+    {
+      "check_id": "rules.test-regex",
+      "end": {
+        "col": 9,
+        "line": 11,
+        "offset": 87
+      },
+      "extra": {
+        "is_ignored": false,
+        "lines": "<\u03b2\u03b3\u03b4> (Greek letters)",
+        "message": "check different ways to match UTF-8-encoded Unicode text",
+        "metadata": {},
+        "metavars": {},
+        "severity": "ERROR"
+      },
+      "path": "targets/basic/regex-utf8.txt",
+      "start": {
+        "col": 1,
+        "line": 11,
+        "offset": 79
+      }
     }
   ]
 }
