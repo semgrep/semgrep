@@ -1,0 +1,8 @@
+rules:
+  - id: test-regex
+    # U+1F680 is the rocket emoji 🚀
+    # α-ϖ is the lowercase Greek alphabet without diacritics
+    pattern-regex: "[\\x{1F680}😊]|<[α-ϖ]+>"
+    message: "check different ways to match UTF-8-encoded Unicode text"
+    languages: [regex]
+    severity: ERROR

@@ -145,6 +145,12 @@ def _run_semgrep(
     )
 
     if fail_on_nonzero and output.returncode > 0:
+        print("--- stdout from semgrep process ---")
+        print(output.stdout)
+        print("--- end semgrep stdout ---")
+        print("--- stderr from semgrep process ---")
+        print(output.stderr)
+        print("--- end semgrep stderr ---")
         raise subprocess.CalledProcessError(
             returncode=output.returncode,
             cmd=cmd,

@@ -215,6 +215,15 @@ def test_regex_rule__top(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(run_semgrep_in_tmp("rules/regex-top.yaml")[0], "results.json")
 
 
+def test_regex_rule__utf8(run_semgrep_in_tmp, snapshot):
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/regex-utf8.yaml", target_name="basic/regex-utf8.txt")[
+            0
+        ],
+        "results.json",
+    )
+
+
 def test_regex_rule__child(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/regex-child.yaml")[0], "results.json"

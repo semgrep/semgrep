@@ -18,6 +18,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Scala: parse typed patterns with variables that begin with an underscore: 
   `case _x : Int => ...`
 - Scala: parse unicode identifiers
+- semgrep-core accepts `sh` as an alias for bash
+- Scala: parse nullary constructors with no arguments in more
+positions
+- pattern-regex: Hexadecimal notation of Unicode code points is now
+  supported and assumes UTF-8 (#4240).
+- pattern-regex: Update documentation, specifying we use PCRE (#3974).
 - Scala: parse nullary constructors with no arguments in more positions
 - Scala: parse nested comments
 - `metavariable-comparison`: if a metavariable binds to a code variable that
