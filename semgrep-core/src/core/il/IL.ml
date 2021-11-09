@@ -182,7 +182,8 @@ and exp_kind =
   (* This could be put in call_special, but dumped IL are then less readable
    * (they are too many intermediate _tmp variables then) *)
   | Operator of G.operator wrap * exp list
-  | FixmeExp of fixme_kind * G.any
+  | FixmeExp of
+      fixme_kind * G.any (* origin *) * exp (* partial translation *) option
 
 and composite_kind =
   | CTuple
@@ -378,7 +379,8 @@ let rec lvals_of_exp e =
   | Operator (_, xs) ->
       lvals_of_exps xs
   | Record ys -> lvals_of_exps (ys |> List.map snd)
-  | FixmeExp _ -> []
+  | FixmeExp (_, _, Some e) -> lvals_of_exp e
+  | FixmeExp (_, _, None) -> []
 
 and lvals_in_lval lval =
   let base_lvals =

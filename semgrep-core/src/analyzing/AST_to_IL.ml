@@ -87,9 +87,9 @@ let log_fixme kind gany =
   | Impossible ->
       log_error opt_tok "Impossible happened during AST-to-IL translation"
 
-let fixme_exp kind gany eorig =
+let fixme_exp ?partial kind gany eorig =
   log_fixme kind (G.E eorig);
-  { e = FixmeExp (kind, gany); eorig }
+  { e = FixmeExp (kind, gany, partial); eorig }
 
 let fixme_instr kind gany eorig =
   log_fixme kind (G.E eorig);
@@ -126,6 +126,12 @@ let var_of_id_info id id_info =
   in
   { ident = id; sid; id_info }
 
+let var_of_name name =
+  match name with
+  | G.Id (id, id_info) -> var_of_id_info id id_info
+  | G.IdQualified { G.name_last = id, _typeargsTODO; name_info = id_info; _ } ->
+      var_of_id_info id id_info
+
 let lval_of_id_info _env id id_info =
   let var = var_of_id_info id id_info in
   { base = Var var; offset = NoOffset }
@@ -158,11 +164,11 @@ let add_instr env instr = Common.push (mk_s (Instr instr)) env.stmts
 
 (* Create an auxiliary variable for an expression---unless the expression
  * itself is already a variable! *)
-let mk_aux_var env tok exp =
+let mk_aux_var ?var env tok exp =
   match exp.e with
   | Fetch ({ base = Var var; offset = NoOffset; _ } as lval) -> (var, lval)
   | _ ->
-      let var = fresh_var env tok in
+      let var = fresh_var ?var env tok in
       let lval = lval_of_base (Var var) in
       add_instr env (mk_i (Assign (lval, exp)) exp.eorig);
       (var, lval)
@@ -568,20 +574,33 @@ and expr_aux env ?(void = false) eorig =
                 ss_for_e3 @ [ mk_s (Instr (mk_i (Assign (lval, e3)) e3orig)) ]
               )));
       lvalexp
-  | G.Await (tok, e) ->
-      let lval = fresh_lval env tok in
-      let lvalexp = mk_e (Fetch lval) eorig in
-      add_instr env
-        (mk_i (CallSpecial (Some lval, (Await, tok), [ expr env e ])) eorig);
-      lvalexp
+  | G.Await (tok, e1orig) ->
+      let e1 = expr env e1orig in
+      let tmp = fresh_lval env tok in
+      add_instr env (mk_i (CallSpecial (Some tmp, (Await, tok), [ e1 ])) eorig);
+      mk_e (Fetch tmp) eorig
+  | G.Yield (tok, e1orig_opt, _) ->
+      let yield_args =
+        match e1orig_opt with
+        | None -> []
+        | Some e1orig -> [ expr env e1orig ]
+      in
+      add_instr env (mk_i (CallSpecial (None, (Yield, tok), yield_args)) eorig);
+      mk_unit tok eorig
+  | G.Ref (tok, e1orig) ->
+      let e1 = expr env e1orig in
+      let tmp = fresh_lval env tok in
+      add_instr env (mk_i (CallSpecial (Some tmp, (Ref, tok), [ e1 ])) eorig);
+      mk_e (Fetch tmp) eorig
+  | G.Constructor (cname, (tok1, esorig, tok2)) ->
+      let cname = var_of_name cname in
+      let es = esorig |> List.map (fun eiorig -> expr env eiorig) in
+      mk_e (Composite (Constructor cname, (tok1, es, tok2))) eorig
   | G.ParenExpr (_, e, _) -> expr env e
   | G.Xml _ -> todo (G.E eorig)
-  | G.Constructor (_, _) -> todo (G.E eorig)
-  | G.Yield (_, _, _) -> todo (G.E eorig)
   | G.Cast (typ, _, e) ->
       let e = expr env e in
       mk_e (Cast (typ, e)) eorig
-  | G.Ref (_, _) -> todo (G.E eorig)
   | G.Ellipsis _
   | G.TypedMetavar (_, _, _)
   | G.DisjExpr (_, _)
@@ -589,7 +608,18 @@ and expr_aux env ?(void = false) eorig =
   | G.DotAccessEllipsis _ ->
       sgrep_construct (G.E eorig)
   | G.StmtExpr _st -> todo (G.E eorig)
-  | G.OtherExpr (_, _) -> todo (G.E eorig)
+  | G.OtherExpr ((str, tok), xs) ->
+      let es =
+        xs
+        |> List.map (fun x ->
+               match x with
+               | G.E e1orig -> expr env e1orig
+               | __else__ -> fixme_exp ToDo x eorig)
+      in
+      let other_expr = mk_e (Composite (CTuple, (tok, es, tok))) eorig in
+      let _, tmp = mk_aux_var ~var:str env tok other_expr in
+      let partial = mk_e (Fetch tmp) eorig in
+      fixme_exp ToDo (G.E eorig) eorig ~partial
 
 and expr env ?void eorig =
   try expr_aux env ?void eorig
