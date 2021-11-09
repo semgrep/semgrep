@@ -1641,8 +1641,9 @@ and m_wildcard (a1, a2) (b1, b2) =
 (*****************************************************************************)
 and m_keyword_attribute a b =
   match (a, b) with
+  | G.Var, B.Var -> return ()
   (* equivalent: quite JS-specific *)
-  | G.Var, (G.Var | G.Let | G.Const) ->
+  | G.Var, (B.Let | B.Const) ->
       if_config (fun x -> x.let_is_var) ~then_:(return ()) ~else_:(fail ())
   | _ -> m_other_xxx a b
 
