@@ -1641,8 +1641,10 @@ and m_wildcard (a1, a2) (b1, b2) =
 (*****************************************************************************)
 and m_keyword_attribute a b =
   match (a, b) with
+  | G.Var, B.Var -> return ()
   (* equivalent: quite JS-specific *)
-  | G.Var, (G.Var | G.Let | G.Const) -> return ()
+  | G.Var, (B.Let | B.Const) ->
+      if_config (fun x -> x.let_is_var) ~then_:(return ()) ~else_:(fail ())
   | _ -> m_other_xxx a b
 
 and m_attribute a b =
@@ -1919,7 +1921,13 @@ and m_stmt a b =
   (* ... will now allow a subset of stmts (less_is_ok = false here) *)
   | G.Block a1, B.Block b1 ->
       m_bracket (m_stmts_deep ~inside:false ~less_is_ok:false) a1 b1
-  (* equivalence: vardef ==> assign, and go deep *)
+  (* equivalence: vardef ==> assign, and go deep.
+   * coupling: with Visitor_AST.v_vardef_as_assign_expr which also deals with
+   * vardef-assign equivalence. But the code there is useful when the pattern
+   * is an expression and we want to visit also certain DefStmt as expressions.
+   * Here instead, the pattern is a statement, so we need to duplicate the
+   * logic.
+   *)
   | ( G.ExprStmt (a1, _),
       B.DefStmt (ent, B.VarDef ({ B.vinit = Some _; _ } as def)) ) ->
       if_config
@@ -1927,6 +1935,16 @@ and m_stmt a b =
         ~then_:
           (let b1 = H.vardef_to_assign (ent, def) in
            m_expr_deep a1 b1)
+        ~else_:(fail ())
+  (* coupling: with Visitor_AST.v_flddef_as_assign_expr *)
+  | ( G.ExprStmt (({ G.e = Assign _; _ } as a1), _sc),
+      B.DefStmt (ent, B.FuncDef fdef) ) ->
+      if_config
+        (fun x -> x.flddef_assign)
+        ~then_:
+          (let resolved = Some (G.Local, G.sid_TODO) in
+           let b1 = H.funcdef_to_lambda (ent, fdef) resolved in
+           m_expr a1 b1)
         ~else_:(fail ())
   (* equivalence: *)
   | G.ExprStmt (a1, _), B.Return (_, Some b1, _) -> m_expr_deep a1 b1
@@ -2295,9 +2313,11 @@ and m_variance a b =
 (* ------------------------------------------------------------------------- *)
 (* Function (or method) definition *)
 (* ------------------------------------------------------------------------- *)
-
-(* iso: we don't care if it's a Function or Arrow *)
-and m_function_kind _ _ = return ()
+and m_function_kind a b =
+  if a =*= b then return ()
+  else
+    (* iso: we don't care if it's a Function or Arrow *)
+    if_config (fun x -> x.arrow_is_function) ~then_:(return ()) ~else_:(fail ())
 
 and m_function_definition a b =
   Trace_matching.(if on then print_function_definition_pair a b);
