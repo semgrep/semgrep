@@ -3,6 +3,7 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+- CLI output no longer displays severity levels
 
 ### Added
 - Java: Add partial support for `synchronized` blocks in the dataflow IL (#4150)
