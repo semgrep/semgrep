@@ -287,13 +287,20 @@ let test_eval file =
 let bindings_to_env xs =
   xs
   |> Common.map_filter (fun (mvar, mval) ->
+         let try_bind_to_exp e =
+           try Some (mvar, eval (Hashtbl.create 0) e)
+           with NotHandled _e ->
+             logger#debug "can't eval %s value %s" mvar (MV.show_mvalue mval);
+             (* todo: if not a value, could default to AST of range *)
+             None
+         in
          match mval with
-         | MV.E e -> (
-             try Some (mvar, eval (Hashtbl.create 0) e)
-             with NotHandled _e ->
-               logger#debug "can't eval %s value %s" mvar (MV.show_mvalue mval);
-               (* todo: if not a value, could default to AST of range *)
-               None)
+         | MV.Id (_, Some { id_constness = { contents = Some (G.Lit lit) }; _ })
+           ->
+             (* Metavariable binds to a code variable: if the code variable is known
+              * to be constant, then we use its constant value. *)
+             try_bind_to_exp (G.e (G.L lit))
+         | MV.E e -> try_bind_to_exp e
          | x ->
              logger#debug "filtering mvar %s, not an expr %s" mvar
                (MV.show_mvalue x);

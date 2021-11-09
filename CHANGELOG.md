@@ -8,10 +8,14 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Java: Add partial support for `synchronized` blocks in the dataflow IL (#4150)
 
 ### Fixed
-- Constant propagation: In a method call `x.f(y)`, if `x` is a constant then it will be recognized as such
-- Scala: parse `case object` within blocks
+- Constant propagation: In a method call `x.f(y)`, if `x` is a constant then 
+  it will be recognized as such
 - Go: match correctly braces in composite literals for autofix (#4210)
-- Scala: parse typed patterns with variables that begin with an underscore: `case _x : Int => ...`
+- Go: match correctly parens in cast for autofix (#3387)
+- Go: support ellipsis in return type parameters (#2746)
+- Scala: parse `case object` within blocks
+- Scala: parse typed patterns with variables that begin with an underscore: 
+  `case _x : Int => ...`
 - Scala: parse unicode identifiers
 - semgrep-core accepts `sh` as an alias for bash
 - Scala: parse nullary constructors with no arguments in more
@@ -19,6 +23,10 @@ positions
 - pattern-regex: Hexadecimal notation of Unicode code points is now
   supported and assumes UTF-8 (#4240).
 - pattern-regex: Update documentation, specifying we use PCRE (#3974).
+- Scala: parse nullary constructors with no arguments in more positions
+- `metavariable-comparison`: if a metavariable binds to a code variable that
+  is known to be constant, then we use that constant value in the comparison (#3727)
+- semgrep-core accepts `sh` as an alias for bash
 
 ### Changed
 - C# support is now GA

@@ -1,0 +1,18 @@
+# Used as a rule that will time out
+rules:
+  - id: forcetimeout
+    pattern: |
+      ...
+      <... $A ...>
+      ...
+      <... $B ...>
+      ...
+      <... $C ...>
+      ...
+      <... $D ...>
+      ...
+    message: >-
+      This rule will time out
+    severity: ERROR
+    languages:
+      - python

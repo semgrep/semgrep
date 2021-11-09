@@ -8,6 +8,20 @@ def test_cli_test_basic(run_semgrep_in_tmp, snapshot):
         target_name="cli_test/basic/",
         output_format=OutputFormat.JSON,
     )
+
+    snapshot.assert_match(
+        results,
+        "results.json",
+    )
+
+
+def test_timeout(run_semgrep_in_tmp, snapshot):
+    results, _ = run_semgrep_in_tmp(
+        "rules/cli_test/error/",
+        options=["--test"],
+        target_name="cli_test/error/",
+        output_format=OutputFormat.JSON,
+    )
     snapshot.assert_match(
         results,
         "results.json",

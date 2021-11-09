@@ -82,6 +82,7 @@ let return_type_of_results results =
            |> List.map (function
                 | G.Param { G.ptype = Some t; _ } -> t
                 | G.Param { G.ptype = None; _ } -> raise Impossible
+                | G.ParamEllipsis t -> G.TyEllipsis t |> G.t
                 | _ -> raise Impossible)
            |> fb)
         |> G.t)
@@ -241,9 +242,14 @@ let top_func () =
     | Call v1 ->
         let e, args = call_expr v1 in
         G.Call (e, args)
-    | Cast (v1, v2) ->
-        let v1 = type_ v1 and v2 = expr v2 in
-        G.Cast (v1, unsafe_fake "(", v2)
+    | Cast (t, (l, e, r)) ->
+        let t = type_ t and e = expr e in
+        (* for semgrep and autofix to get the right range by including
+         * 'r' in the AST.
+         * alt: change G.Cast to take a bracket
+         *)
+        let e = G.ParenExpr (l, e, r) |> G.e in
+        G.Cast (t, l, e)
     | Deref (v1, v2) ->
         let v1 = tok v1 and v2 = expr v2 in
         G.DeRef (v1, v2)

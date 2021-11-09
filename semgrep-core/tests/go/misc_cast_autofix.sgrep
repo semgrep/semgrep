@@ -1,0 +1,8 @@
+// The fix was os.WriteFile($F, $D, $P) but
+// the range for $D was wrong because we were missing
+// the closing ')' in the cast, or the closing '}' in the CompositeLit.
+// This test does not really check that, but at least if you
+// use -dump_ast -full_token_info on the .go you should now see
+// that the closing paren or brace is in the generic AST
+
+ioutil.WriteFile($F, $D, $P)
