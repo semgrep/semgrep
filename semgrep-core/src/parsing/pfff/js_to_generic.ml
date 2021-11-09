@@ -643,9 +643,14 @@ and field_classic
   match v3 with
   | Some (Fun (def, None)) ->
       let def, more_attrs = fun_ def in
-      let _kind, tok = def.G.fkind in
+      let fkind, tok = def.G.fkind in
+      let fkind =
+        match fkind with
+        | G.Function -> G.Method
+        | x -> x
+      in
       ( { ent with G.attrs = ent.G.attrs @ more_attrs },
-        G.FuncDef { def with G.fkind = (G.Method, tok) } )
+        G.FuncDef { def with G.fkind = (fkind, tok) } )
   | _ ->
       let v3 = option expr v3 in
       (ent, G.VarDef { G.vinit = v3; vtype = vt })

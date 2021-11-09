@@ -1,0 +1,11 @@
+rules:
+  - id: test
+    languages:
+      - javascript
+    message: Match Found!
+    options:
+      flddef_assign: true
+      arrow_is_function: false
+    pattern: $F = (...) => { ... }
+    severity: WARNING
+

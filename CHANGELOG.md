@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Java: Add partial support for `synchronized` blocks in the dataflow IL (#4150)
 - Dataflow: Add partial support for `yield`, `&`, and other expressions
+- Field-definition-as-assignemnt equivalence that allows matching expression
+  patterns against field definitions. It disabled by default but can be
+  enabled via rule `options:` with  `flddef_assign: true` (#4187)
+- Arrows (a.k.a short lambdas) patterns used to match also regular function
+  definitions. This can now be disabled via rule `options:` with
+  `arrow_is_function: false` (#4187)
 
 ### Fixed
 - Constant propagation: In a method call `x.f(y)`, if `x` is a constant then 
