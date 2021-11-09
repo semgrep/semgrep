@@ -299,8 +299,13 @@ jobs:
     steps:
       - name: Brew update
         run: brew update
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          # Needs to be < 3.10 see https://github.com/returntocorp/semgrep/issues/4213
+          python-version: 3.9
       - name: Install pipgrip
-        run: brew install pipgrip
+        run: pip install pipgrip
       - uses: dawidd6/action-homebrew-bump-formula@v3
         with:
           token: ${{ secrets.HOMEBREW_PR_TOKEN }}
