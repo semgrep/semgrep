@@ -146,7 +146,7 @@ def score_output_json(
     todo_ok_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
-    todo_ruleid_lines: Dict[str, List[int]] = collections.defaultdict(
+    todo_ruleid_lines: Dict[str, Dict[str, List[int]]] = collections.defaultdict(
         lambda: collections.defaultdict(list)
     )
     score_by_checkid: Dict[str, List[int]] = collections.defaultdict(
