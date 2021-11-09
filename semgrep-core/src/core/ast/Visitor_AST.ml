@@ -96,8 +96,12 @@ let default_visitor =
 let v_id _ = ()
 
 let (mk_visitor :
-      ?vardef_assign:bool -> ?attr_expr:bool -> visitor_in -> visitor_out) =
- fun ?(vardef_assign = false) ?(attr_expr = false) vin ->
+      ?vardef_assign:bool ->
+      ?flddef_assign:bool ->
+      ?attr_expr:bool ->
+      visitor_in ->
+      visitor_out) =
+ fun ?(vardef_assign = false) ?(flddef_assign = false) ?(attr_expr = false) vin ->
   (* start of auto generation *)
   (* NOTE: we do a few subtle things at a few places now for semgrep
    * to trigger a few more artificial visits:
@@ -1099,6 +1103,20 @@ let (mk_visitor :
          *)
         v_expr (H.vardef_to_assign (ventity, vdef))
     | _ -> ()
+  and v_flddef_as_assign_expr ventity = function
+    (* No need to cover the VarDef({vinit = Some _; )} case here. It will
+     * be covered by v_vardef_as_assign_expr at some point when v_field
+     * below call v_stmt (which itself will call v_def).
+     *
+     * In certain languages like Javascript, some method definitions look
+     * really like assignements, so we would like an expression pattern like
+     * '$X = function() { ...}' to also match code like
+     * 'class Foo { x = function() { return; } }'.
+     *)
+    | FuncDef fdef when flddef_assign ->
+        let resolved = Some (Local, G.sid_TODO) in
+        v_expr (H.funcdef_to_lambda (ventity, fdef) resolved)
+    | _ -> ()
   and v_field x =
     let k x =
       match x with
@@ -1109,6 +1127,7 @@ let (mk_visitor :
                 FieldDefColon { vinit = Some e; _ } ) ->
               let t = PI.fake_info (snd id) ":" in
               v_partial ~recurse:false (PartialSingleField (id, t, e))
+          | DefStmt (ent, def) -> v_flddef_as_assign_expr ent def
           | _ -> ());
           let v1 = v_stmt v1 in
           ()
