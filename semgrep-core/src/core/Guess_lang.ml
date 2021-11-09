@@ -121,7 +121,10 @@ let split_cmd_re = lazy (Pcre_settings.regexp "[ \t]+")
 *)
 let parse_shebang_line s =
   let matched =
-    try Some (Pcre.exec ~rex:(Lazy.force shebang_re) s) with Not_found -> None
+    try Some (Pcre.exec ~rex:(Lazy.force shebang_re) s) with
+    | Not_found
+    | Pcre.Error BadUTF8 ->
+        None
   in
   match matched with
   | None -> None
