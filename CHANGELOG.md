@@ -56,6 +56,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Semgrep now scans executable scripts whose shebang interpreter matches the
   rule's language
 - CLI output no longer displays severity levels
+- Dataflow: Assume that any function/method call inside a `try-catch` could
+  be raising an exception (#4091)
 
 ## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
 

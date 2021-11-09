@@ -132,6 +132,17 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
   | Instr x ->
       let newi = state.g#add_node { F.n = F.NInstr x } in
       state.g |> add_arc_from_opt (previ, newi);
+      (match x.i with
+      | Call _ ->
+          (* If we are inside a try-catch, we consider the possibility of this call
+           * raising an exception, then we add a jump to catch-blocks. This could
+           * lead to some false positives when running taint rules (since it's a
+           * may-analysis), but they are probably rare. For constant propagation
+           * this should reduce false positives (since it's a must-analysis).
+           * Ideally we should have a preceeding analysis that infers which calls
+           * may (or may not) raise exceptions. *)
+          state.g |> add_arc_opt_to_opt (Some newi, state.try_catches_opt)
+      | __else__ -> ());
       CfgFirstLast (newi, Some newi)
   | If (tok, e, st1, st2) -> (
       (* previ -> newi --->  newfakethen -> ... -> finalthen --> lasti -> <rest>
@@ -189,8 +200,6 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
       let newi = state.g#add_node { F.n = F.NReturn (tok, e) } in
       state.g |> add_arc_from_opt (previ, newi);
       state.g |> add_arc (newi, state.exiti);
-      (* the next statement if there is one will not be linked to
-       * this new node *)
       CfgFirstLast (newi, None)
   | Try (try_st, catches, finally_st) ->
       (* previ ->
@@ -201,11 +210,6 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *                 |-----------|-> newfakefinally -> finally
        *
        *)
-      (* TODO: This is not a complete CFG for try-catch-finally because
-       * exceptions could be raised at any point. But if we assumed that
-       * exceptions can pop up anywhere then the CFG would be insane. If
-       * we want to be complete then we need a previous analysis to
-       * determine what expressions may raise exceptions. *)
       let newi = state.g#add_node { F.n = NOther Noop } in
       state.g |> add_arc_from_opt (previ, newi);
       let catchesi = state.g#add_node { F.n = NOther Noop } in
