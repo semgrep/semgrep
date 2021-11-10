@@ -5,9 +5,6 @@
    Derived from generated code 'dockerfile/lib/Boilerplate.ml'
 *)
 
-(* Disable warnings against unused variables *)
-[@@@warning "-26-27"]
-
 open! Common
 module AST = AST_dockerfile
 module CST = Tree_sitter_dockerfile.CST
@@ -24,7 +21,7 @@ type env = AST_bash.input_kind H.env
 
 let token = H.token
 
-let str = H.str
+let _str = H.str
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -32,177 +29,8 @@ let str = H.str
 
 (* This is to satisfy the type system. Make sure it never gets called
    on any input. *)
-let todo (env : env) _ =
+let todo (_env : env) _ =
   failwith "Parse_bash_tree_sitter: feature not implemented"
-
-let variable (env : env) (tok : CST.variable) = token env tok
-
-(* pattern [a-zA-Z][a-zA-Z0-9_]* *)
-
-let pat_5cf3c2c (env : env) (tok : CST.pat_5cf3c2c) = token env tok
-
-(* pattern [mM][aA][iI][nN][tT][aA][iI][nN][eE][rR] *)
-
-let imm_tok_pat_d2727a0 (env : env) (tok : CST.imm_tok_pat_d2727a0) =
-  token env tok
-
-(* pattern [a-zA-Z0-9:]+ *)
-
-let pat_9374c10 (env : env) (tok : CST.pat_9374c10) = token env tok
-
-(* pattern [sS][hH][eE][lL][lL] *)
-
-let pat_845d48b (env : env) (tok : CST.pat_845d48b) = token env tok
-
-(* pattern [a-zA-Z][a-zA-Z0-9_]*[a-zA-Z0-9] *)
-
-let pat_808c5a1 (env : env) (tok : CST.pat_808c5a1) = token env tok
-
-(* pattern [eE][nN][tT][rR][yY][pP][oO][iI][nN][tT] *)
-
-let comment (env : env) (tok : CST.comment) = token env tok
-
-(* pattern #.* *)
-
-let escape_sequence (env : env) (tok : CST.escape_sequence) = token env tok
-
-(* escape_sequence *)
-
-let imm_tok_pat_3d340f6 (env : env) (tok : CST.imm_tok_pat_3d340f6) =
-  token env tok
-
-(* pattern \s+ *)
-
-let pat_5eaae97 (env : env) (tok : CST.pat_5eaae97) = token env tok
-
-(* pattern [fF][rR][oO][mM] *)
-
-let non_newline_whitespace (env : env) (tok : CST.non_newline_whitespace) =
-  token env tok
-
-(* pattern [\t ]+ *)
-
-let pat_8713919 (env : env) (tok : CST.pat_8713919) = token env tok
-
-(* pattern [^\}]+ *)
-
-let imm_tok_pat_f43f746 (env : env) (tok : CST.imm_tok_pat_f43f746) =
-  token env tok
-
-(* pattern [a-z][-a-z]* *)
-
-let pat_79b8891 (env : env) (tok : CST.pat_79b8891) = token env tok
-
-(* pattern [aA][sS] *)
-
-let pat_aa82a08 (env : env) (tok : CST.pat_aa82a08) = token env tok
-
-(* pattern [oO][nN][bB][uU][iI][lL][dD] *)
-
-let pat_433746d (env : env) (tok : CST.pat_433746d) = token env tok
-
-(* pattern [lL][aA][bB][eE][lL] *)
-
-let pat_f05eb95 (env : env) (tok : CST.pat_f05eb95) = token env tok
-
-(* pattern \\[^\n] *)
-
-let pat_239fcac (env : env) (tok : CST.pat_239fcac) = token env tok
-
-(* pattern [cC][mM][dD] *)
-
-let pat_56bd329 (env : env) (tok : CST.pat_56bd329) = token env tok
-
-(* pattern [sS][tT][oO][pP][sS][iI][gG][nN][aA][lL] *)
-
-let semgrep_metavariable_name (env : env) (tok : CST.semgrep_metavariable_name)
-    =
-  token env tok
-
-(* pattern [A-Z_][A-Z_0-9]* *)
-
-let imm_tok_pat_589b0f8 (env : env) (tok : CST.imm_tok_pat_589b0f8) =
-  token env tok
-
-(* pattern "[^\"\\n\\\\\\$]+" *)
-
-let pat_4fd4a56 (env : env) (tok : CST.pat_4fd4a56) = token env tok
-
-(* pattern .* *)
-
-let pat_9a14b5c (env : env) (tok : CST.pat_9a14b5c) = token env tok
-
-(* pattern [-a-zA-Z0-9_]+ *)
-
-let pat_4128122 (env : env) (tok : CST.pat_4128122) = token env tok
-
-(* pattern [-a-zA-Z0-9\._]+ *)
-
-let pat_fd0037e (env : env) (tok : CST.pat_fd0037e) = token env tok
-
-(* pattern [hH][eE][aA][lL][tT][hH][cC][hH][eE][cC][kK] *)
-
-let pat_217c202 (env : env) (tok : CST.pat_217c202) = token env tok
-
-(* pattern \d+ *)
-
-let pat_ed84199 (env : env) (tok : CST.pat_ed84199) = token env tok
-
-(* pattern [aA][dD][dD] *)
-
-let pat_f2a2f8f (env : env) (tok : CST.pat_f2a2f8f) = token env tok
-
-(* pattern [rR][uU][nN] *)
-
-let pat_985c208 (env : env) (tok : CST.pat_985c208) = token env tok
-
-(* pattern [aA][rR][gG] *)
-
-let pat_660c06c (env : env) (tok : CST.pat_660c06c) = token env tok
-
-(* pattern [a-z][-a-z0-9_]* *)
-
-let pat_a6040bb (env : env) (tok : CST.pat_a6040bb) = token env tok
-
-(* pattern [wW][oO][rR][kK][dD][iI][rR] *)
-
-let pat_0c7fc22 (env : env) (tok : CST.pat_0c7fc22) = token env tok
-
-(* pattern [^\s\$]+ *)
-
-let imm_tok_pat_24a1611 (env : env) (tok : CST.imm_tok_pat_24a1611) =
-  token env tok
-
-(* pattern "[^\\s\\n\\\"\\\\\\$]+" *)
-
-let pat_1167a92 (env : env) (tok : CST.pat_1167a92) = token env tok
-
-(* pattern [^-\s\$] *)
-
-let pat_2b37705 (env : env) (tok : CST.pat_2b37705) = token env tok
-
-(* pattern [^@:\s\$]+ *)
-
-let pat_9818882 (env : env) (tok : CST.pat_9818882) = token env tok
-
-(* pattern [eE][xX][pP][oO][sS][eE] *)
-
-let pat_9c0a769 (env : env) (tok : CST.pat_9c0a769) = token env tok
-
-(* pattern [cC][oO][pP][yY] *)
-
-let pat_4b81dfc (env : env) (tok : CST.pat_4b81dfc) = token env tok
-
-(* pattern [^\\\[\n#\s][^\\\n]* *)
-
-let imm_tok_pat_bcfc287 (env : env) (tok : CST.imm_tok_pat_bcfc287) =
-  token env tok
-
-(* pattern [^@\s\$]+ *)
-
-let pat_1c663f5 (env : env) (tok : CST.pat_1c663f5) = token env tok
-
-(* pattern [vV][oO][lL][uU][mM][eE] *)
 
 let expansion (env : env) ((v1, v2) : CST.expansion) =
   let v1 = token env v1 (* "$" *) in
@@ -623,3 +451,22 @@ let source_file (env : env) (xs : CST.source_file) =
 (*****************************************************************************)
 (* Entry point *)
 (*****************************************************************************)
+
+let parse file =
+  let input_kind = AST_bash.Program in
+  H.wrap_parser
+    (fun () -> Tree_sitter_dockerfile.Parse.file file)
+    (fun cst ->
+      let env = { H.file; conv = H.line_col_to_pos file; extra = input_kind } in
+      let dockerfile_ast = source_file env cst in
+      Dockerfile_to_generic.(program Program dockerfile_ast))
+
+let parse_pattern str =
+  let input_kind = AST_bash.Pattern in
+  H.wrap_parser
+    (fun () -> Tree_sitter_dockerfile.Parse.string str)
+    (fun cst ->
+      let file = "<pattern>" in
+      let env = { H.file; conv = Hashtbl.create 0; extra = input_kind } in
+      let dockerfile_ast = source_file env cst in
+      Dockerfile_to_generic.(any input_kind dockerfile_ast))
