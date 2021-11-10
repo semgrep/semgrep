@@ -285,8 +285,8 @@ let rec just_parse_with_lang lang file =
   | Lang.Cplusplus ->
       run file
         [
-          (*Pfff (throw_tokens Parse_cpp.parse); *)
           TreeSitter Parse_cpp_tree_sitter.parse;
+          Pfff (throw_tokens Parse_cpp.parse);
         ]
         Cpp_to_generic.program
   | Lang.OCaml ->

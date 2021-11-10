@@ -1113,23 +1113,20 @@ and m_compatible_type typed_mvar t e =
       envf typed_mvar (MV.E e)
   | G.TyExpr { e = G.N (G.Id (("str", _tok), _idinfo)); _ }, B.L (B.String _) ->
       envf typed_mvar (MV.E e)
-  (* for java literals *)
-  | G.TyBuiltin ("int", _), B.L (B.Int _) -> envf typed_mvar (MV.E e)
-  | G.TyBuiltin ("float", _), B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | G.TyN (G.Id (("String", _), _)), B.L (B.String _) ->
-      envf typed_mvar (MV.E e)
   (* for C specific literals *)
-  | G.TyPointer (_, { t = TyBuiltin ("char", _); _ }), B.L (B.String _) ->
+  | G.TyPointer (_, { t = TyN (G.Id (("char", _), _)); _ }), B.L (B.String _) ->
       envf typed_mvar (MV.E e)
   | G.TyPointer (_, _), B.L (B.Null _) -> envf typed_mvar (MV.E e)
-  (* for go literals *)
+  (* for Java and Go literals *)
   | G.TyN (Id (("int", _), _)), B.L (B.Int _) -> envf typed_mvar (MV.E e)
   | G.TyN (Id (("float", _), _)), B.L (B.Float _) -> envf typed_mvar (MV.E e)
-  | G.TyN (Id (("string", _), _)), B.L (B.String _) -> envf typed_mvar (MV.E e)
+  | G.TyN (Id ((("string" | "String"), _), _)), B.L (B.String _) ->
+      envf typed_mvar (MV.E e)
   (* for C strings to match metavariable pointer types *)
-  | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), _id_info)); _ }),
+  | ( G.TyPointer (t1, { t = G.TyN (G.Id ((_, tok), id_info)); _ }),
       B.L (B.String _) ) ->
-      m_type_ t (G.TyPointer (t1, G.TyBuiltin ("char", tok) |> G.t) |> G.t)
+      m_type_ t
+        (G.TyPointer (t1, G.TyN (G.Id (("char", tok), id_info)) |> G.t) |> G.t)
       >>= fun () -> envf typed_mvar (MV.E e)
   (* for matching ids *)
   | _ta, B.N (B.Id (idb, ({ B.id_type = tb; _ } as id_infob))) ->
@@ -1560,7 +1557,6 @@ and m_type_ a b =
   (* dots: *)
   | G.TyEllipsis _, _ -> return ()
   (* boilerplate *)
-  | G.TyBuiltin a1, B.TyBuiltin b1 -> (m_wrap m_string) a1 b1
   | G.TyFun (a1, a2), B.TyFun (b1, b2) ->
       m_parameters a1 b1 >>= fun () -> m_type_ a2 b2
   | G.TyArray (a1, a2), B.TyArray (b1, b2) ->
@@ -1592,7 +1588,6 @@ and m_type_ a b =
   | G.TyExpr a1, B.TyExpr b1 -> m_expr a1 b1
   | G.OtherType (a1, a2), B.OtherType (b1, b2) ->
       m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
-  | G.TyBuiltin _, _
   | G.TyFun _, _
   | G.TyApply _, _
   | G.TyVar _, _

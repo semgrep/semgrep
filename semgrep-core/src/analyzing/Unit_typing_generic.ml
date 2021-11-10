@@ -75,7 +75,7 @@ let tests parse_program parse_pattern =
                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
                             -> (
                               match !id_type with
-                              | Some { t = G.TyBuiltin ("int", _); _ } -> ()
+                              | Some { t = G.TyN (Id (("int", _), _)); _ } -> ()
                               | _ ->
                                   Alcotest.fail
                                     "Variable 2 referenced did not have \
@@ -117,7 +117,8 @@ let tests parse_program parse_pattern =
                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
                             -> (
                               match !id_type with
-                              | Some { t = G.TyBuiltin ("int", _); _ } -> ()
+                              | Some { t = G.TyN (G.Id (("int", _), _)); _ } ->
+                                  ()
                               | _ ->
                                   Alcotest.fail
                                     "Variable 1 referenced did not have \
@@ -127,7 +128,9 @@ let tests parse_program parse_pattern =
                           | G.Arg { e = G.N (G.Id (_, { G.id_type; _ })); _ }
                             -> (
                               match !id_type with
-                              | Some { t = G.TyBuiltin ("boolean", _); _ } -> ()
+                              | Some { t = G.TyN (G.Id (("boolean", _), _)); _ }
+                                ->
+                                  ()
                               | _ ->
                                   Alcotest.fail
                                     "Variable 2 referenced did not have \
@@ -156,14 +159,14 @@ let tests parse_program parse_pattern =
                       match exp.G.e with
                       | G.N (G.Id (("age", _), { G.id_type; _ })) -> (
                           match !id_type with
-                          | Some { t = G.TyBuiltin ("int", _); _ } -> ()
+                          | Some { t = G.TyN (G.Id (("int", _), _)); _ } -> ()
                           | _ ->
                               Alcotest.fail
                                 "Variable referenced did not have expected \
                                  type int")
                       | G.N (G.Id (("default_age", _), { G.id_type; _ })) -> (
                           match !id_type with
-                          | Some { t = G.TyBuiltin ("int", _); _ } -> ()
+                          | Some { t = G.TyN (G.Id (("int", _), _)); _ } -> ()
                           | _ ->
                               Alcotest.fail
                                 "Variable referenced did not have expected \

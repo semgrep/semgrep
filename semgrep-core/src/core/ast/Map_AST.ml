@@ -484,9 +484,6 @@ let (mk_visitor : visitor_in -> visitor_out) =
         let v2 = map_tok v2 in
         let v3 = map_type_ v3 in
         TyAnd (v1, v2, v3)
-    | TyBuiltin v1 ->
-        let v1 = map_wrap map_of_string v1 in
-        TyBuiltin v1
     | TyFun (v1, v2) ->
         let v1 = map_of_list map_parameter v1 and v2 = map_type_ v2 in
         TyFun (v1, v2)

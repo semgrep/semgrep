@@ -320,7 +320,7 @@ let boolean_literal (env : env) (x : CST.boolean_literal) =
 (* "false" *)
 
 let predefined_type (env : env) (tok : CST.predefined_type) =
-  G.TyBuiltin (str env tok) |> G.t
+  G.ty_builtin (str env tok)
 
 let verbatim_string_literal (env : env) (tok : CST.verbatim_string_literal) =
   G.String (str env tok)
@@ -604,7 +604,7 @@ let literal (env : env) (x : CST.literal) : literal =
 let rec return_type (env : env) (x : CST.return_type) : type_ =
   match x with
   | `Type x -> type_constraint env x
-  | `Void_kw tok -> TyBuiltin (str env tok) |> G.t
+  | `Void_kw tok -> G.ty_builtin (str env tok)
 
 (* "void" *)
 and type_pattern (env : env) (x : CST.type_pattern) = type_ env x
@@ -1539,7 +1539,7 @@ and type_parameter_constraint (env : env) (x : CST.type_parameter_constraint) :
   | `Notn tok (* "notnull" *)
   | `Unma tok ->
       (* "unmanaged" *)
-      let t = TyBuiltin (str env tok) |> G.t in
+      let t = G.ty_builtin (str env tok) in
       Right t
   | `Cons_cons (v1, v2, v3) ->
       let v1 = token env v1 (* "new" *) in

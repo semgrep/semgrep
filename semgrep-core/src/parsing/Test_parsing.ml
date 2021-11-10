@@ -410,23 +410,20 @@ let diff_pfff_tree_sitter xs =
   pr2 "NOTE: consider using -full_token_info to get also diff on tokens";
   xs
   |> List.iter (fun file ->
-         match Lang.langs_of_filename file with
-         | [ _lang ] ->
-             let ast1 =
-               Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
-                   Parse_target.parse_program file)
-             in
-             let ast2 =
-               Common.save_excursion Flag_semgrep.tree_sitter_only true
-                 (fun () -> Parse_target.parse_program file)
-             in
-             let s1 = AST_generic.show_program ast1 in
-             let s2 = AST_generic.show_program ast2 in
-             Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
-                 Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
-                     let xs = Common2.unix_diff file1 file2 in
-                     xs |> List.iter pr2))
-         | _ -> failwith (spf "can't detect single language for %s" file))
+         let ast1 =
+           Common.save_excursion Flag_semgrep.pfff_only true (fun () ->
+               Parse_target.parse_program file)
+         in
+         let ast2 =
+           Common.save_excursion Flag_semgrep.tree_sitter_only true (fun () ->
+               Parse_target.parse_program file)
+         in
+         let s1 = AST_generic.show_program ast1 in
+         let s2 = AST_generic.show_program ast2 in
+         Common2.with_tmp_file ~str:s1 ~ext:"x" (fun file1 ->
+             Common2.with_tmp_file ~str:s2 ~ext:"x" (fun file2 ->
+                 let xs = Common2.unix_diff file1 file2 in
+                 xs |> List.iter pr2)))
 
 (*****************************************************************************)
 (* Rule parsing *)

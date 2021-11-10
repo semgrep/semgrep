@@ -251,7 +251,7 @@ let map_primitive_type_ident (env : env) (x : CST.anon_choice_u8_6dad923) :
 
 let map_primitive_type (env : env) (x : CST.anon_choice_u8_6dad923) : G.type_ =
   let s, tok = map_primitive_type_ident env x in
-  G.TyBuiltin (s, tok) |> G.t
+  G.ty_builtin (s, tok)
 
 let map_string_literal (env : env) ((v1, v2, v3) : CST.string_literal) :
     G.literal =
@@ -1818,7 +1818,7 @@ and map_function_type (env : env) ((v1, v2, v3, v4) : CST.function_type) :
         let _arrow = token env v1 (* "->" *) in
         let ty = map_type_ env v2 in
         ty
-    | None -> G.TyBuiltin (fake_id "()") |> G.t
+    | None -> G.ty_builtin (fake_id "()")
   in
   G.TyFun (params, ret_type) |> G.t
 
@@ -2656,7 +2656,7 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
       let lparen = str env v1 (* "(" *) in
       let rparen = str env v2 (* ")" *) in
       let str = List.map fst [ lparen; rparen ] |> String.concat "" in
-      G.TyBuiltin (str, PI.combine_infos (snd lparen) [ snd rparen ]) |> G.t
+      G.ty_builtin (str, PI.combine_infos (snd lparen) [ snd rparen ])
   | `Array_type (v1, v2, v3, v4) ->
       let lbracket = token env v1 (* "[" *) in
       let ty = map_type_ env v2 in
@@ -2681,7 +2681,7 @@ and map_type_ (env : env) (x : CST.type_) : G.type_ =
   | `Empty_type tok ->
       let bang = token env tok in
       (* "!" *)
-      G.TyBuiltin ("!", bang) |> G.t
+      G.ty_builtin ("!", bang)
   | `Dyna_type (v1, v2) ->
       let _dynTODO = token env v1 (* "dyn" *) in
       let ty = map_abstract_type_trait_name env v2 in

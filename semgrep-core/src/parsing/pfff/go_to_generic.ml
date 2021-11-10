@@ -142,7 +142,7 @@ let top_func () =
         let params, ret = func_type v1 in
         let ret =
           match ret with
-          | None -> G.TyBuiltin (unsafe_fake_id "void") |> G.t
+          | None -> G.ty_builtin (unsafe_fake_id "void")
           | Some t -> t
         in
         G.TyFun (params, ret)

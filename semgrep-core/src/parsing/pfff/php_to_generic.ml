@@ -90,15 +90,14 @@ let modifierbis = function
   | Async -> G.Async
 
 let ptype (x, t) =
-  (match x with
-  | BoolTy -> G.TyBuiltin ("bool", t)
-  | IntTy -> G.TyBuiltin ("int", t)
-  | DoubleTy -> G.TyBuiltin ("double", t)
-  | StringTy -> G.TyBuiltin ("string", t)
+  match x with
+  | BoolTy -> G.ty_builtin ("bool", t)
+  | IntTy -> G.ty_builtin ("int", t)
+  | DoubleTy -> G.ty_builtin ("double", t)
+  | StringTy -> G.ty_builtin ("string", t)
   (* TODO: TyArray of gen? *)
-  | ArrayTy -> G.TyBuiltin ("array", t)
-  | ObjectTy -> G.TyBuiltin ("object", t))
-  |> G.t
+  | ArrayTy -> G.ty_builtin ("array", t)
+  | ObjectTy -> G.ty_builtin ("object", t)
 
 let list_expr_to_opt xs =
   match xs with
@@ -413,32 +412,31 @@ and foreach_pattern v =
 
 and array_value v = expr v
 
-and hint_type x = hint_type_kind x |> G.t
-
-and hint_type_kind = function
+and hint_type = function
   | Hint v1 ->
       let v1 = name v1 in
-      G.TyN (name_of_qualified_ident v1)
-  | HintArray t -> G.TyBuiltin ("array", t)
+      G.TyN (name_of_qualified_ident v1) |> G.t
+  | HintArray t -> G.ty_builtin ("array", t)
   | HintQuestion (t, v1) ->
       let v1 = hint_type v1 in
-      G.TyQuestion (v1, t)
+      G.TyQuestion (v1, t) |> G.t
   | HintTuple (t1, v1, t2) ->
       let v1 = list hint_type v1 in
-      G.TyTuple (t1, v1, t2)
+      G.TyTuple (t1, v1, t2) |> G.t
   | HintCallback (v1, v2) ->
       let v1 = list hint_type v1 and v2 = option hint_type v2 in
       let params = v1 |> List.map (fun x -> G.Param (G.param_of_type x)) in
       let fret =
         match v2 with
         | Some t -> t
-        | None -> G.TyBuiltin ("void", fake "void") |> G.t
+        | None -> G.ty_builtin ("void", fake "void")
       in
-      G.TyFun (params, fret)
+      G.TyFun (params, fret) |> G.t
   | HintTypeConst (_, tok, _) ->
       G.OtherType (("HintTypeConst not supported, facebook-ext", tok), [])
+      |> G.t
   | HintVariadic (tok, _) ->
-      G.OtherType (("HintVariadic not supported", tok), [])
+      G.OtherType (("HintVariadic not supported", tok), []) |> G.t
 
 and class_name v = hint_type v
 
