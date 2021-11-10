@@ -532,9 +532,6 @@ and vof_type_kind = function
       let v2 = vof_tok v2 in
       let v3 = vof_type_ v3 in
       OCaml.VSum ("TyAnd", [ v1; v2; v3 ])
-  | TyBuiltin v1 ->
-      let v1 = vof_wrap OCaml.vof_string v1 in
-      OCaml.VSum ("TyBuiltin", [ v1 ])
   | TyFun (v1, v2) ->
       let v1 = OCaml.vof_list vof_parameter v1 and v2 = vof_type_ v2 in
       OCaml.VSum ("TyFun", [ v1; v2 ])

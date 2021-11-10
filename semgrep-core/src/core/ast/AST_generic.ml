@@ -1084,21 +1084,10 @@ and type_ = {
 }
 
 and type_kind =
-  (* TODO: TyLiteral, for Scala/JS, or use TyExpr? *)
-  (* todo? a type_builtin = TInt | TBool | ...? see Literal.
-   * or just delete and use (TyN Id) instead?
-   *)
-  | TyBuiltin of string wrap (* int, bool, etc. could be TApply with no args *)
-  (* old: was 'TyFun of type_ list * type*' , but languages such as C and
-   * Go allow also to name those parameters, and Go even allow ParamRest
-   * parameters so we need at least 'type_ * attributes', at which point
-   * it's simpler to just reuse parameter.
-   *)
-  | TyFun of parameter list * type_ (* return type *)
-  (* a special case of TApply, also a special case of TPointer *)
-  | TyArray of (* const_expr *) expr option bracket * type_
-  | TyTuple of type_ list bracket
   (* old: was originally TyApply (name, []), but better to differentiate.
+   * old: there used to be also a 'TyBuiltin of string wrap' but simpler to
+   * just use (TyN Id) instead.
+   * todo? a type_builtin = TInt | TBool | ... that mimics the literal type?
    * todo? may need also TySpecial because the name can actually be
    *  self/parent/static (e.g., in PHP)
    *)
@@ -1110,6 +1099,15 @@ and type_kind =
    * TODO: could merge with TyN when name has proper qualifiers?
    *)
   | TyApply of type_ * type_arguments
+  (* old: was 'TyFun of type_ list * type*' , but languages such as C and
+   * Go allow also to name those parameters, and Go even allow ParamRest
+   * parameters so we need at least 'type_ * attributes', at which point
+   * it's simpler to just reuse parameter.
+   *)
+  | TyFun of parameter list * type_ (* return type *)
+  (* a special case of TApply, also a special case of TPointer *)
+  | TyArray of (* const_expr *) expr option bracket * type_
+  | TyTuple of type_ list bracket
   | TyVar of ident (* type variable in polymorphic types (not a typedef) *)
   (* anonymous type, '_' in OCaml, 'dynamic' in Kotlin, 'auto' in C++.
    * TODO: type bounds Scala? *)
@@ -1145,6 +1143,7 @@ and type_kind =
   (* For languages such as Python which abuse expr to represent types.
    * At some point AST_generic_helpers.expr_to_type should be good enough
    * to transpile every expr construct, but for now we have this.
+   * todo? have a TyLiteral of literal for Scala/JS, or use TyExpr for that?
    *)
   | TyExpr of expr
   (* e.g., Struct/Union/Enum names (convert in unique TyName?), TypeOf/TSized
@@ -1893,6 +1892,11 @@ let param_of_type ?(pattrs = []) ?(pdefault = None) ?(pname = None) typ =
     pattrs;
     pinfo = basic_id_info (Param, sid_TODO);
   }
+
+(* ------------------------------------------------------------------------- *)
+(* Types *)
+(* ------------------------------------------------------------------------- *)
+let ty_builtin id = TyN (Id (id, empty_id_info ())) |> t
 
 (* ------------------------------------------------------------------------- *)
 (* Type parameters *)

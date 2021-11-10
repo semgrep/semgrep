@@ -227,7 +227,7 @@ and map_typeC env x : G.type_ =
   match x with
   | TPrimitive v1 ->
       let v1 = map_wrap env (map_primitive_type env) v1 in
-      G.TyBuiltin v1 |> G.t
+      G.ty_builtin v1
   | TSized (v1, v2) ->
       let v1 = map_of_list (map_sized_type env) v1
       and v2 = map_of_option (map_type_ env) v2 in
@@ -351,7 +351,7 @@ and map_sized_type env (kind, t) : G.type_ =
     | TShort -> "short"
     | TLong -> "long"
   in
-  G.TyBuiltin (s, t) |> G.t
+  G.ty_builtin (s, t)
 
 and map_type_qualifiers env v : G.attribute list =
   map_of_list (map_qualifier_wrap env) v

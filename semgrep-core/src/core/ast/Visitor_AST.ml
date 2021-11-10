@@ -532,9 +532,6 @@ let (mk_visitor :
           v_type_ v1;
           v_tok v2;
           v_type_ v3
-      | TyBuiltin v1 ->
-          let v1 = v_wrap v_string v1 in
-          ()
       | TyFun (v1, v2) ->
           let v1 = v_list v_parameter v1 and v2 = v_type_ v2 in
           ()

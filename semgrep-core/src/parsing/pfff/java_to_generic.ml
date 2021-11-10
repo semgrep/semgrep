@@ -87,20 +87,14 @@ let ident v = wrap string v
 
 let qualified_ident v = list ident v
 
-let rec typ x =
-  let x = typ_kind x in
-  x |> G.t
-
-and typ_kind = function
+let rec typ = function
   | TBasic v1 ->
       let v1 = wrap string v1 in
-      G.TyBuiltin v1
-  | TClass v1 ->
-      let v1 = class_type v1 in
-      v1
+      G.ty_builtin v1
+  | TClass v1 -> class_type v1
   | TArray (t1, v1, t2) ->
       let v1 = typ v1 in
-      G.TyArray ((t1, None, t2), v1)
+      G.TyArray ((t1, None, t2), v1) |> G.t
 
 and type_arguments v = bracket (list type_argument) v
 
@@ -119,8 +113,9 @@ and class_type v =
    *)
   match List.rev res with
   | [] -> raise Impossible (* list1 *)
-  | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ()))
-  | [ (id, Some ts) ] -> G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts)
+  | [ (id, None) ] -> G.TyN (G.Id (id, G.empty_id_info ())) |> G.t
+  | [ (id, Some ts) ] ->
+      G.TyApply (G.TyN (H.name_of_ids [ id ]) |> G.t, ts) |> G.t
   | (id, None) :: xs ->
       G.TyN
         (G.IdQualified
@@ -130,9 +125,11 @@ and class_type v =
              name_middle = Some (G.QDots (List.rev xs));
              name_info = G.empty_id_info ();
            })
+      |> G.t
   | (id, Some ts) :: xs ->
       G.TyApply
         (G.TyN (H.name_of_ids (List.rev (id :: List.map fst xs))) |> G.t, ts)
+      |> G.t
 
 and type_argument = function
   | TArgument v1 ->

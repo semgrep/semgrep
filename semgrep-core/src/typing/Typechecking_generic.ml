@@ -40,10 +40,6 @@ let compatible_type t e =
   | TyExpr { e = N (Id (("int", _tok), _idinfo)); _ }, L (Int _) -> true
   | TyExpr { e = N (Id (("float", _tok), _idinfo)); _ }, L (Float _) -> true
   | TyExpr { e = N (Id (("str", _tok), _idinfo)); _ }, L (String _) -> true
-  | TyBuiltin (t1, _), N (Id (_, { id_type; _ })) -> (
-      match !id_type with
-      | Some { t = TyBuiltin (t2, _); _ } -> t1 = t2
-      | _ -> false)
   | TyN (Id ((t1, _), _)), N (Id (_, { id_type; _ })) -> (
       match !id_type with
       | Some { t = TyN (Id ((t2, _), _)); _ } -> t1 = t2
