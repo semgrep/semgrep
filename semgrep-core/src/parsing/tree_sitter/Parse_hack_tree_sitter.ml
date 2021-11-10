@@ -1527,15 +1527,15 @@ and expression (env : env) (x : CST.expression) : G.expr =
           let v1 = (* "(" *) token env v1 in
           let v2 =
             match v2 with
-            | `Array tok -> (* "array" *) G.TyBuiltin (str env tok)
-            | `Int tok -> (* "int" *) G.TyBuiltin (str env tok)
-            | `Float tok -> (* "float" *) G.TyBuiltin (str env tok)
-            | `Str tok -> (* "string" *) G.TyBuiltin (str env tok)
-            | `Bool tok -> (* "bool" *) G.TyBuiltin (str env tok)
+            | `Array tok -> (* "array" *) G.ty_builtin (str env tok)
+            | `Int tok -> (* "int" *) G.ty_builtin (str env tok)
+            | `Float tok -> (* "float" *) G.ty_builtin (str env tok)
+            | `Str tok -> (* "string" *) G.ty_builtin (str env tok)
+            | `Bool tok -> (* "bool" *) G.ty_builtin (str env tok)
           in
           let _v3 = (* ")" *) token env v3 in
           let v4 = expression env v4 in
-          G.Cast (v2 |> G.t, v1, v4) |> G.e
+          G.Cast (v2, v1, v4) |> G.e
       | `Tern_exp (v1, v2, v3, v4, v5) ->
           let v1 = expression env v1 in
           let _v2 = (* "?" *) token env v2 in
@@ -2428,9 +2428,7 @@ and _trait_use_clause (env : env) ((v1, v2, v3, v4) : CST.trait_use_clause) =
   in
   todo env (v1, v2, v3, v4)
 
-and type_ env x = type_kind env x |> G.t
-
-and type_kind (env : env) (x : CST.type_) : G.type_kind =
+and type_ (env : env) (x : CST.type_) : G.type_ =
   match x with
   | `Type_spec (v1, v2, v3) ->
       let _v1TODO = List.map (type_modifier env) v1 in
@@ -2441,23 +2439,23 @@ and type_kind (env : env) (x : CST.type_) : G.type_kind =
       in
       let v2 =
         match v2 with
-        | `Choice_bool x -> G.TyBuiltin (primitive_type env x)
+        | `Choice_bool x -> G.ty_builtin (primitive_type env x)
         | `Qual_id x ->
             let xs = qualified_identifier env x in
             let n = H2.name_of_ids xs in
-            G.TyN (H2.add_type_args_opt_to_name n v3)
-        | `Choice_array x -> G.TyBuiltin (collection_type env x)
+            G.TyN (H2.add_type_args_opt_to_name n v3) |> G.t
+        | `Choice_array x -> G.ty_builtin (collection_type env x)
         | `Choice_xhp_id x ->
             let id = xhp_identifier_ env x in
             let n = H2.name_of_id id in
-            G.TyN (H2.add_type_args_opt_to_name n v3)
+            G.TyN (H2.add_type_args_opt_to_name n v3) |> G.t
       in
       v2
   | `Type_cst (v1, v2) ->
       (* TODO: What to do with modifier? *)
       let _v1TODO = List.map (type_modifier env) v1 in
       let v2 = type_constant_ env v2 in
-      G.TyN (H2.name_of_ids v2)
+      G.TyN (H2.name_of_ids v2) |> G.t
   | `Shape_type_spec (v1, v2, v3, v4, v5) ->
       let _v1TODO = List.map (type_modifier env) v1 in
       let v2 = (* "shape" *) token env v2 in
@@ -2483,7 +2481,7 @@ and type_kind (env : env) (x : CST.type_) : G.type_kind =
         | None -> []
       in
       let v5 = (* ")" *) token env v5 in
-      G.TyRecordAnon ((G.Class, v2), (v3, v4, v5))
+      G.TyRecordAnon ((G.Class, v2), (v3, v4, v5)) |> G.t
   | `Func_type_spec (v1, v2, v3, v4, v5, v6, v7, v8) ->
       let _v1TODO = List.map (type_modifier env) v1 in
       let _v2 = (* "(" *) token env v2 in
@@ -2537,7 +2535,7 @@ and type_kind (env : env) (x : CST.type_) : G.type_kind =
       let _v6 = (* ":" *) token env v6 in
       let v7 = type_ env v7 in
       let _v8 = (* ")" *) token env v8 in
-      G.TyFun (v4, v7)
+      G.TyFun (v4, v7) |> G.t
   | `Tuple_type_spec (v1, v2, v3, v4, v5, v6) ->
       let _v1TODO = List.map (type_modifier env) v1 in
       let v2 = (* "(" *) token env v2 in
@@ -2556,7 +2554,7 @@ and type_kind (env : env) (x : CST.type_) : G.type_kind =
         | None -> None
       in
       let v6 = (* ")" *) token env v6 in
-      G.TyTuple (v2, v3 :: v4, v6)
+      G.TyTuple (v2, v3 :: v4, v6) |> G.t
 
 and type_arguments (env : env) ((v1, v2, v3) : CST.type_arguments) :
     G.type_arguments option =

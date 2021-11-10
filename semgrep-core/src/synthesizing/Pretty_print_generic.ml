@@ -65,7 +65,6 @@ let token default tok =
 
 let print_type t =
   match t.t with
-  | TyBuiltin (s, _) -> s
   | TyN (Id (id, _)) -> ident id
   | _ -> todo (T t)
 
