@@ -5,5 +5,5 @@
 [94m  | [0m               [31m^^^^^^^^^^[0m
 [94m8 | [0m    severity: WARNING
 
-[31munsupported language: intercal. supported languages are: C#, HCL, JSON, Json, Kotlin, Rust, Yaml, bash, c, cs, csharp, generic, go, golang, hack, hacklang, hcl, html, java, javascript, js, json, kotlin, kt, lua, ml, none, ocaml, php, py, python, python2, python3, rb, regex, rs, ruby, rust, scala, sh, terraform, tf, ts, typescript, vue, yaml[0m
+[31munsupported language: intercal. supported languages are: C#, C++, HCL, JSON, Json, Kotlin, Rust, Yaml, bash, c, cpp, cs, csharp, generic, go, golang, hack, hacklang, hcl, html, java, javascript, js, json, kotlin, kt, lua, ml, none, ocaml, php, py, python, python2, python3, rb, regex, rs, ruby, rust, scala, sh, terraform, tf, ts, typescript, vue, yaml[0m
 [0m
