@@ -22,7 +22,9 @@ PYTHON_EXTENSIONS = [FileExtension(".py"), FileExtension(".pyi")]
 JAVASCRIPT_EXTENSIONS = [FileExtension(".js"), FileExtension(".jsx")]
 TYPESCRIPT_EXTENSIONS = [FileExtension(".ts"), FileExtension(".tsx")]
 JAVA_EXTENSIONS = [FileExtension(".java")]
+# TODO? what about header files? .h and .hh?
 C_EXTENSIONS = [FileExtension(".c")]
+CPP_EXTENSIONS = [FileExtension(".cpp"), FileExtension(".cc")]
 GO_EXTENSIONS = [FileExtension(".go")]
 RUBY_EXTENSIONS = [FileExtension(".rb")]
 PHP_EXTENSIONS = [FileExtension(".php")]
@@ -48,6 +50,7 @@ ALL_EXTENSIONS = (
     + TYPESCRIPT_EXTENSIONS
     + JAVA_EXTENSIONS
     + C_EXTENSIONS
+    + CPP_EXTENSIONS
     + GO_EXTENSIONS
     + RUBY_EXTENSIONS
     + HACK_EXTENSIONS
@@ -79,6 +82,7 @@ _LANGS_TO_EXTS: Mapping[Language, Tuple[Sequence[FileExtension], Set[Shebang]]] 
     Language.TYPESCRIPT: (TYPESCRIPT_EXTENSIONS, {"ts-node"}),
     Language.JAVA: (JAVA_EXTENSIONS, NO_SHEBANGS),
     Language.C: (C_EXTENSIONS, NO_SHEBANGS),
+    Language.CPP: (CPP_EXTENSIONS, NO_SHEBANGS),
     Language.GO: (GO_EXTENSIONS, NO_SHEBANGS),
     Language.ML: (ML_EXTENSIONS, NO_SHEBANGS),
     Language.RUBY: (RUBY_EXTENSIONS, {"ruby"}),

@@ -24,6 +24,7 @@ class Language(Enum):
     TYPESCRIPT: str = "typescript"
     JAVA: str = "java"
     C: str = "c"
+    CPP: str = "cpp"
     GO: str = "go"
     RUBY: str = "ruby"
     PHP: str = "php"
@@ -53,6 +54,7 @@ class Language_util:
         Language.TYPESCRIPT: [Language.TYPESCRIPT.value, "ts"],
         Language.JAVA: [Language.JAVA.value],
         Language.C: [Language.C.value],
+        Language.CPP: [Language.CPP.value, "C++"],
         Language.GO: [Language.GO.value, "golang"],
         Language.RUBY: [Language.RUBY.value, "rb"],
         Language.PHP: [Language.PHP.value],
