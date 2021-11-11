@@ -156,19 +156,17 @@ def main(
         logger.verbose(
             f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}".strip()
         )
-
+        if len(errors) > 0:
+            raise SemgrepError(
+                f"invalid configuration file found ({len(errors)} configs were invalid)",
+                code=MISSING_CONFIG_EXIT_CODE,
+            )
         if len(configs_obj.valid) == 0:
-            if len(errors) > 0:
-                raise SemgrepError(
-                    f"no valid configuration file found ({len(errors)} configs were invalid)",
-                    code=MISSING_CONFIG_EXIT_CODE,
-                )
-            else:
-                raise SemgrepError(
-                    """No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config
+            raise SemgrepError(
+                """No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config
 """,
-                    code=MISSING_CONFIG_EXIT_CODE,
-                )
+                code=MISSING_CONFIG_EXIT_CODE,
+            )
 
         notify_user_of_work(filtered_rules, include, exclude)
 

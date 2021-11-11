@@ -1,0 +1,21 @@
+{
+  "language": "scala",
+  "global": {
+    "name": "*",
+    "parsing_rate": 0.9890914976721997,
+    "line_count": 234771,
+    "error_line_count": 2561,
+    "file_count": 1248,
+    "error_file_count": 4
+  },
+  "projects": [
+    {
+      "name": "tmp/scala-js-scala-js",
+      "parsing_rate": 0.9890914976721997,
+      "line_count": 234771,
+      "error_line_count": 2561,
+      "file_count": 1248,
+      "error_file_count": 4
+    }
+  ]
+}

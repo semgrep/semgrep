@@ -47,6 +47,7 @@ positions
 - cli: Only suggest increasing stack size when semgrep-core segfaults
 - Semgrep now scans executable scripts whose shebang interpreter matches the
   rule's language
+- cli: if an invalid config is passed to semgrep, it will fail immediately, even if valid configs are also passed
 
 ## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
 
