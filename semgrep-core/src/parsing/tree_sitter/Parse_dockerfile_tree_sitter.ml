@@ -16,12 +16,27 @@ module H = Parse_tree_sitter_helpers
 (* Helpers *)
 (*****************************************************************************)
 
-(* The 'extra' field indicates if we're parsing a pattern or a program. *)
-type env = AST_bash.input_kind H.env
+(* The 'extra' field indicates:
+   - if we're parsing a pattern or a program;
+   - the current shell, which can change when encountering a SHELL directive.
+*)
+type env = (AST_bash.input_kind * shell_compatibility) H.env
 
 let token = H.token
 
-let _str = H.str
+let str = H.str
+
+let classify_shell ((_open, ar, _close) : string_array) :
+    shell_compatibility option =
+  match List.map fst ar with
+  | "/bin/bash" :: _
+  | "/bin/sh" :: _
+  | "/usr/bin/env" :: ("bash" | "sh") :: _ ->
+      Some Sh
+  | "cmd" :: _ -> Some Cmd
+  | "powershell" :: _ -> Some Powershell
+  | x :: _ -> Some (Other x)
+  | [] -> None
 
 (*****************************************************************************)
 (* Boilerplate converter *)
@@ -417,9 +432,21 @@ let rec instruction (env : env) (x : CST.instruction) =
       in
       todo env (v1, v2)
   | `Shell_inst (v1, v2) ->
-      let v1 = token env v1 (* pattern [sS][hH][eE][lL][lL] *) in
-      let v2 = string_array env v2 in
-      todo env (v1, v2)
+      let ((_, start_tok) as name) =
+        str env v1
+        (* pattern [sS][hH][eE][lL][lL] *)
+      in
+      let cmd = string_array env v2 in
+      let env =
+        match classify_shell cmd with
+        | None -> env
+        | Some shell_compat ->
+            let input_kind, _cur_shell = env.extra in
+            { env with extra = (input_kind, shell_compat) }
+      in
+      let _, end_tok = string_array_loc cmd in
+      let loc = (start_tok, end_tok) in
+      (env, Shell (loc, name, cmd))
   | `Main_inst (v1, v2) ->
       let v1 =
         token env v1
@@ -436,16 +463,23 @@ let rec instruction (env : env) (x : CST.instruction) =
       todo env (v1, v2)
 
 let source_file (env : env) (xs : CST.source_file) =
-  List.map
-    (fun (v1, v2) ->
-      let v1 =
-        match v1 with
-        | `Inst x -> instruction env x
-        | `Comm tok -> (* pattern #.* *) token env tok
-      in
-      let v2 = token env v2 (* "\n" *) in
-      todo env (v1, v2))
-    xs
+  let _env, instrs =
+    List.fold_left
+      (fun (env, instrs) (v1, v2) ->
+        let acc =
+          match v1 with
+          | `Inst x ->
+              let env, instr = instruction env x in
+              (env, instr :: instrs)
+          | `Comm tok ->
+              let _comment = (* pattern #.* *) token env tok in
+              (env, instrs)
+        in
+        let _newline = token env v2 (* "\n" *) in
+        acc)
+      (env, []) xs
+  in
+  List.rev instrs
 
 (*****************************************************************************)
 (* Entry point *)
@@ -456,7 +490,9 @@ let parse file =
   H.wrap_parser
     (fun () -> Tree_sitter_dockerfile.Parse.file file)
     (fun cst ->
-      let env = { H.file; conv = H.line_col_to_pos file; extra = input_kind } in
+      let env =
+        { H.file; conv = H.line_col_to_pos file; extra = (input_kind, Sh) }
+      in
       let dockerfile_ast = source_file env cst in
       Dockerfile_to_generic.(program Program dockerfile_ast))
 
@@ -466,6 +502,6 @@ let parse_pattern str =
     (fun () -> Tree_sitter_dockerfile.Parse.string str)
     (fun cst ->
       let file = "<pattern>" in
-      let env = { H.file; conv = Hashtbl.create 0; extra = input_kind } in
+      let env = { H.file; conv = Hashtbl.create 0; extra = (input_kind, Sh) } in
       let dockerfile_ast = source_file env cst in
       Dockerfile_to_generic.(any input_kind dockerfile_ast))
