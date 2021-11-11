@@ -4,6 +4,8 @@
 
 open Printf
 
+let logger = Logging.get_logger [ __MODULE__ ]
+
 (*
    Flag required for the following to succeed:
      Pcre.regexp ~flags:[`UTF8] "\\x{200E}"
@@ -25,6 +27,24 @@ let regexp ?study ?iflags ?(flags = []) ?chtables pat =
     ~limit_recursion:10_000_000 (* sets PCRE_EXTRA_MATCH_LIMIT_RECURSION *)
     ?iflags ~flags ?chtables pat
 
+let pmatch ?iflags ?flags ?rex ?pos ?callout subj =
+  try Ok (Pcre.pmatch ?iflags ?flags ?rex ?pos ?callout subj)
+  with Pcre.Error err -> Error err
+
+let exec ?iflags ?flags ?rex ?pos ?callout subj =
+  try Ok (Some (Pcre.exec ?iflags ?flags ?rex ?pos ?callout subj)) with
+  | Not_found -> Ok None
+  | Pcre.Error err -> Error err
+
+let exec_all ?iflags ?flags ?rex ?pos ?callout subj =
+  try Ok (Pcre.exec_all ?iflags ?flags ?rex ?pos ?callout subj) with
+  | Not_found -> Ok [||]
+  | Pcre.Error err -> Error err
+
+let split ?iflags ?flags ?rex ?pos ?max ?callout subj =
+  try Ok (Pcre.split ?iflags ?flags ?rex ?pos ?max ?callout subj)
+  with Pcre.Error err -> Error err
+
 let string_of_error (error : Pcre.error) =
   match error with
   | Partial -> "Partial"
@@ -36,6 +56,43 @@ let string_of_error (error : Pcre.error) =
   | RecursionLimit -> "RecursionLimit"
   | WorkspaceSize -> "WorkspaceSize"
   | InternalError msg -> sprintf "InternalError(%S)" msg
+
+let log_error subj err =
+  let string_fragment =
+    let len = String.length subj in
+    if len < 200 then subj
+    else sprintf "%s ... (%i bytes)" (String.sub subj 0 200) len
+  in
+  logger#error "PCRE error: %s on input %S" (string_of_error err)
+    string_fragment
+
+let pmatch_noerr ?iflags ?flags ?rex ?pos ?callout subj =
+  match pmatch ?iflags ?flags ?rex ?pos ?callout subj with
+  | Ok res -> res
+  | Error err ->
+      log_error subj err;
+      false
+
+let exec_noerr ?iflags ?flags ?rex ?pos ?callout subj =
+  match exec ?iflags ?flags ?rex ?pos ?callout subj with
+  | Ok res -> res
+  | Error err ->
+      log_error subj err;
+      None
+
+let exec_all_noerr ?iflags ?flags ?rex ?pos ?callout subj =
+  match exec_all ?iflags ?flags ?rex ?pos ?callout subj with
+  | Ok res -> res
+  | Error err ->
+      log_error subj err;
+      [||]
+
+let split_noerr ?iflags ?flags ?rex ?pos ?max ?callout ~on_error subj =
+  match split ?iflags ?flags ?rex ?pos ?max ?callout subj with
+  | Ok res -> res
+  | Error err ->
+      log_error subj err;
+      on_error
 
 let string_of_exn (e : exn) =
   match e with

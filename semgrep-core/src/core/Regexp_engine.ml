@@ -115,5 +115,5 @@ module Pcre_engine = struct
     let re = "\b" ^ Pcre.quote s ^ "\b" in
     (re, Pcre_settings.regexp re)
 
-  let run (_, re) str = Pcre.pmatch ~rex:re str
+  let run (_, re) str = Pcre_settings.pmatch_noerr ~rex:re str
 end
