@@ -363,6 +363,18 @@ let lang_regression_tests ~with_caching =
     let lang = Lang.C in
     regression_tests_for_lang files lang
   );
+  pack_tests "semgrep C++" (
+    let dir = Filename.concat tests_path "cpp" in
+    let files = Common2.glob (spf "%s/*.cpp" dir) in
+    let lang = Lang.Cplusplus in
+    regression_tests_for_lang files lang
+  );
+  pack_tests "semgrep C++ on C tests" (
+    let dir = Filename.concat tests_path "c" in
+    let files = Common2.glob (spf "%s/*.c" dir) in
+    let lang = Lang.Cplusplus in
+    regression_tests_for_lang files lang
+  );
   pack_tests "semgrep Go" (
     let dir = Filename.concat tests_path "go" in
     let files = Common2.glob (spf "%s/*.go" dir) in
