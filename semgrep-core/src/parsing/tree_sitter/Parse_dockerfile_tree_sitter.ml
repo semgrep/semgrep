@@ -441,8 +441,7 @@ let source_file (env : env) (xs : CST.source_file) =
       let v1 =
         match v1 with
         | `Inst x -> instruction env x
-        | `Comm tok -> token env tok
-        (* pattern #.* *)
+        | `Comm tok -> (* pattern #.* *) token env tok
       in
       let v2 = token env v2 (* "\n" *) in
       todo env (v1, v2))
