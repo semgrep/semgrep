@@ -36,7 +36,7 @@ let (lang_of_rules: Rule.t list -> Lang.t) = fun rs ->
   | None -> failwith "could not find a language"
 *)
 
-let (xlangs_of_rules : Rule.t list -> Rule.xlang list) =
+let (xlangs_of_rules : Rule.t list -> Xlang.t list) =
  fun rs -> rs |> List.map (fun r -> r.R.languages) |> List.sort_uniq compare
 
 let first_xlang_of_rules rs =
@@ -60,7 +60,7 @@ let config =
     rules_file = "";
     config_file = "";
     equivalences_file = "";
-    lang = "";
+    lang = None;
     output_format = Text;
     match_format = Matching_report.Normal;
     mvars = [];

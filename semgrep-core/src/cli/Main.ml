@@ -119,8 +119,8 @@ let config_file = ref ""
 
 let equivalences_file = ref ""
 
-(* todo: infer from basename argv(0) ? *)
-let lang = ref "unset"
+(* TODO: infer from basename argv(0) ? *)
+let lang = ref None
 
 let output_format = ref Text
 
@@ -219,7 +219,8 @@ let validate_pattern () =
   let chan = stdin in
   let s = read_all chan in
   try
-    let lang = lang_of_string !lang in
+    (* TODO: support generic and regex too. *)
+    let lang = Xlang.lang_of_opt_xlang !lang in
     let _ = S.parse_pattern lang s in
     Runner_exit.(exit_semgrep Success)
   with exn ->
@@ -269,7 +270,7 @@ let dump_pattern (file : Common.filename) =
   let file = Run_semgrep.replace_named_pipe_by_regular_file file in
   let s = Common.read_file file in
   (* mostly copy-paste of parse_pattern in runner, but with better error report *)
-  let lang = lang_of_string !lang in
+  let lang = Xlang.lang_of_opt_xlang !lang in
   E.try_with_print_exn_and_reraise file (fun () ->
       let any = Parse_pattern.parse_pattern lang ~print_errors:true s in
       let v = Meta_AST.vof_any any in
@@ -382,13 +383,13 @@ let all_actions () =
       " <file>",
       fun file ->
         Common.mk_action_1_arg
-          (dump_ast ~naming:false (lang_of_string !lang))
+          (dump_ast ~naming:false (Xlang.lang_of_opt_xlang !lang))
           file );
     ( "-dump_named_ast",
       " <file>",
       fun file ->
         Common.mk_action_1_arg
-          (dump_ast ~naming:true (lang_of_string !lang))
+          (dump_ast ~naming:true (Xlang.lang_of_opt_xlang !lang))
           file );
     ("-dump_v1_json", " <file>", Common.mk_action_1_arg dump_v1_json);
     ("-dump_equivalences", " <file>", Common.mk_action_1_arg dump_equivalences);
@@ -397,18 +398,20 @@ let all_actions () =
       " <file> dump the CST obtained from a tree-sitter parser",
       Common.mk_action_1_arg (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-          Test_parsing.dump_tree_sitter_cst (lang_of_string !lang) file) );
+          Test_parsing.dump_tree_sitter_cst (Xlang.lang_of_opt_xlang !lang) file)
+    );
     ( "-dump_tree_sitter_pattern_cst",
       " <file>",
       Common.mk_action_1_arg (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-          Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file)
-    );
+          Parse_pattern.dump_tree_sitter_pattern_cst
+            (Xlang.lang_of_opt_xlang !lang)
+            file) );
     ( "-dump_pfff_ast",
       " <file> dump the generic AST obtained from a pfff parser",
       Common.mk_action_1_arg (fun file ->
           let file = Run_semgrep.replace_named_pipe_by_regular_file file in
-          Test_parsing.dump_pfff_ast (lang_of_string !lang) file) );
+          Test_parsing.dump_pfff_ast (Xlang.lang_of_opt_xlang !lang) file) );
     ("-dump_il", " <file>", Common.mk_action_1_arg Datalog_experiment.dump_il);
     ( "-diff_pfff_tree_sitter",
       " <file>",
@@ -434,16 +437,19 @@ let all_actions () =
     ( "-parsing_stats",
       " <files or dirs> generate parsing statistics (use -json for JSON output)",
       Common.mk_action_n_arg (fun xs ->
-          Test_parsing.parsing_stats (lang_of_string !lang)
+          Test_parsing.parsing_stats
+            (Xlang.lang_of_opt_xlang !lang)
             ~json:(!output_format = Json) ~verbose:true xs) );
     ( "-parsing_regressions",
       " <files or dirs> look for parsing regressions",
       Common.mk_action_n_arg (fun xs ->
-          Test_parsing.parsing_regressions (lang_of_string !lang) xs) );
+          Test_parsing.parsing_regressions (Xlang.lang_of_opt_xlang !lang) xs)
+    );
     ( "-test_parse_tree_sitter",
       " <files or dirs> test tree-sitter parser on target files",
       Common.mk_action_n_arg (fun xs ->
-          Test_parsing.test_parse_tree_sitter (lang_of_string !lang) xs) );
+          Test_parsing.test_parse_tree_sitter (Xlang.lang_of_opt_xlang !lang) xs)
+    );
     ( "-check_rules",
       " <metachecks file> <files or dirs>",
       Common.mk_action_n_arg (Check_rule.check_files mk_config Parse_rule.parse)
@@ -482,9 +488,9 @@ let options () =
       Arg.Set_string config_file,
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-lang",
-      Arg.Set_string lang,
+      Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> choose language (valid choices:\n     %s)"
-        Lang.supported_langs );
+        Xlang.supported_xlangs );
     ( "-target_file",
       Arg.Set_string target_file,
       " <file> obtain list of targets to run patterns on" );

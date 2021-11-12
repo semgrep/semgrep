@@ -21,7 +21,7 @@ type config = {
   rules_file : string;
   config_file : string;
   equivalences_file : string;
-  lang : string;
+  lang : Xlang.t option;
   output_format : output_format;
   match_format : Matching_report.match_format;
   mvars : Metavariable.mvar list;

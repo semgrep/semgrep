@@ -82,7 +82,7 @@ let parse_json file =
        ("metavars", J.Object xs);
       ] ->
           let lang =
-            try Hashtbl.find Lang.lang_of_string_map lang
+            try Hashtbl.find Lang.lang_map lang
             with Not_found -> failwith (spf "unsupported language %s" lang)
           in
           (* less: could also use Parse_pattern *)

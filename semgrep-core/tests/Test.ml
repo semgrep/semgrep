@@ -161,7 +161,7 @@ let tainting_test lang rules_file file =
     rules
     |> List.filter (fun r ->
       match r.Rule.languages with
-      | Rule.L (x, xs) -> List.mem lang (x :: xs)
+      | Xlang.L (x, xs) -> List.mem lang (x :: xs)
       | _ -> false)
   in
   let search_rules, taint_rules = Rule.partition_rules rules in
