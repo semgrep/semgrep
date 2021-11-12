@@ -50,7 +50,7 @@ type env = {
   (* id of the current rule (needed by some exns) *)
   id : Rule.rule_id;
   (* languages of the current rule (needed by parse_pattern) *)
-  languages : R.xlang;
+  languages : Xlang.t;
   (* emma: save the path within the yaml file for each pattern
    * (this will allow us to later report errors in playground basic mode)
    *)
@@ -411,7 +411,7 @@ let parse_pattern ~id ~lang { Rule.pattern; t; path } =
   | exn ->
       raise
         (R.InvalidPattern
-           (id, pattern, Rule.L (lang, []), Common.exn_to_s exn, t, path))
+           (id, pattern, Xlang.L (lang, []), Common.exn_to_s exn, t, path))
 
 let parse_xpattern env e =
   let s, t =
@@ -431,21 +431,22 @@ let parse_xpattern env e =
        (* TODO put in *)
      in *)
   match env.languages with
-  | R.L (lang, _) ->
+  | L (lang, _) ->
       R.mk_xpat
         (Sem
            ( parse_pattern ~id:env.id ~lang { pattern = s; t; path = env.path },
              lang ))
         (s, t)
-  | R.LRegex -> failwith "you should not use real pattern with language = none"
-  | R.LGeneric -> (
+  | LRegex -> failwith "you should not use real pattern with language = none"
+  | LGeneric -> (
       let src = Spacegrep.Src_file.of_string s in
       match Spacegrep.Parse_pattern.of_src src with
       | Ok ast -> R.mk_xpat (Spacegrep ast) (s, t)
       | Error err ->
           (* TODO: adjust error pos instead of using [t] *)
           raise
-            (R.InvalidPattern (env.id, s, Rule.LGeneric, err.msg, t, env.path)))
+            (R.InvalidPattern (env.id, s, Xlang.LGeneric, err.msg, t, env.path))
+      )
 
 let find_formula_old env (rule_dict : dict) : key * G.expr =
   let find key_str = Hashtbl.find_opt rule_dict.h key_str in
@@ -615,7 +616,7 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
       let env', opt_xlang =
         match take_opt mv_pattern_dict env parse_string "language" with
         | Some s ->
-            let xlang = R.xlang_of_string ~id:(Some env.id) s in
+            let xlang = Xlang.of_string ~id:(Some env.id) s in
             let env' =
               {
                 id = env.id;
@@ -642,10 +643,10 @@ and parse_extra (env : env) (key : key) (value : G.expr) : Rule.extra =
   | "pattern-where-python" -> R.PatWherePython (parse_string env key value)
   | _ -> error_at_key env key ("wrong parse_extra field: " ^ fst key)
 
-let parse_languages ~id langs =
+let parse_languages ~id langs : Xlang.t =
   match langs with
-  | [ (("none" | "regex"), _t) ] -> R.LRegex
-  | [ ("generic", _t) ] -> R.LGeneric
+  | [ (("none" | "regex"), _t) ] -> LRegex
+  | [ ("generic", _t) ] -> LGeneric
   | xs -> (
       let languages =
         xs
@@ -661,7 +662,7 @@ let parse_languages ~id langs =
       | [] ->
           raise
             (R.InvalidRule (fst id, "we need at least one language", snd id))
-      | x :: xs -> R.L (x, xs))
+      | x :: xs -> L (x, xs))
 
 let parse_severity ~id (s, t) =
   match s with

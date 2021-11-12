@@ -85,7 +85,7 @@ let is_python = function
 (* Helpers *)
 (*****************************************************************************)
 
-let list_of_lang =
+let assoc =
   [
     ("py", Python);
     ("python", Python);
@@ -129,12 +129,11 @@ let list_of_lang =
     ("hcl", HCL);
   ]
 
-let lang_of_string_map = Common.hash_of_list list_of_lang
+let lang_map = Common.hash_of_list assoc
 
-let lang_of_string_opt x =
-  Hashtbl.find_opt lang_of_string_map (String.lowercase_ascii x)
+let lang_of_string_opt x = Hashtbl.find_opt lang_map (String.lowercase_ascii x)
 
-let keys = Common2.hkeys lang_of_string_map
+let keys = Common2.hkeys lang_map
 
 let supported_langs : string = String.concat ", " keys
 
