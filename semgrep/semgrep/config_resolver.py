@@ -1,6 +1,7 @@
 import json
 import os
 import time
+from collections import OrderedDict
 from enum import auto
 from enum import Enum
 from pathlib import Path
@@ -302,7 +303,7 @@ class Config:
             self._rename_rule_ids(configs)
 
         return list(
-            {rule.id: rule for rules in configs.values() for rule in rules}.values()
+            OrderedDict.fromkeys([rule for rules in configs.values() for rule in rules])
         )
 
     @staticmethod
