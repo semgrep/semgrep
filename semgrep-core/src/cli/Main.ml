@@ -731,7 +731,7 @@ let main () =
 
 let register_exception_printers () =
   Parse_info.register_exception_printer ();
-  Pcre_settings.register_exception_printer ()
+  SPcre.register_exception_printer ()
 
 let () =
   Common.main_boilerplate (fun () ->
