@@ -12,6 +12,26 @@ on:
       - '**.md'
 
 jobs:
+  homebrew-core-pr:
+    name: Update on Homebrew-Core
+    runs-on: macos-10.15
+    steps:
+      - name: Brew update
+        run: brew update
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          # Needs to be < 3.10 see https://github.com/returntocorp/semgrep/issues/4213
+          python-version: 3.9
+      - name: Install pipgrip
+        run: pip install pipgrip
+      - name: which python
+        run: which pipgrip
+      - name: Install brew pipgrip
+        run: brew install pipgrip
+      - name: which brew
+        run: which pipgrip
+
   build-core:
     name: Build and Test semgrep-core
     runs-on: ubuntu-latest
