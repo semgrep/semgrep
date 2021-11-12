@@ -89,12 +89,6 @@ let save_rules_file_in_tmp rules_file =
   pr2 (spf "saving rules file for debugging in: %s" tmp);
   Common.write_file ~file:tmp (Common.read_file rules_file)
 
-(* TODO duplicated in main *)
-let lang_of_string s =
-  match Lang.lang_of_string_opt s with
-  | Some x -> x
-  | None -> failwith (Lang.unsupported_language_message s)
-
 (*****************************************************************************)
 (* Parallelism *)
 (*****************************************************************************)
@@ -289,7 +283,7 @@ let parse_pattern lang_pattern str =
       (Rule.InvalidPattern
          ( "no-id",
            str,
-           Rule.L (lang_pattern, []),
+           Xlang.of_lang lang_pattern,
            Common.exn_to_s exn,
            Parse_info.unsafe_fake_info "no loc",
            [] ))
@@ -360,13 +354,13 @@ let iter_files_and_get_matches_and_exn_to_errors config f files =
          in
          RP.add_run_time run_time res)
 
-let xlang_files_of_dirs_or_files xlang files_or_dirs =
+let xlang_files_of_dirs_or_files (xlang : Xlang.t) files_or_dirs =
   let opt_lang =
     match xlang with
-    | R.LRegex
-    | R.LGeneric ->
+    | LRegex
+    | LGeneric ->
         None
-    | R.L (lang, _other_langs) ->
+    | L (lang, _other_langs) ->
         (* FIXME: we should include other_langs if there are any! *)
         Some lang
   in
@@ -386,7 +380,8 @@ let xlang_files_of_dirs_or_files xlang files_or_dirs =
  *)
 let semgrep_with_patterns config (rules, rule_parse_time) files skipped =
   logger#info "processing %d files" (List.length files);
-  let lang = lang_of_string config.lang in
+  (* TODO: support regex and generic just like other languages? *)
+  let lang = Xlang.lang_of_opt_xlang config.lang in
   let file_results =
     files
     |> iter_files_and_get_matches_and_exn_to_errors config (fun file ->
@@ -458,7 +453,8 @@ let semgrep_with_patterns config (rules, rule_parse_time) files skipped =
   pr s
 
 let semgrep_with_patterns_file config roots =
-  let lang = lang_of_string config.lang in
+  (* TODO: support generic and regex patterns too? *)
+  let lang = Xlang.lang_of_opt_xlang config.lang in
   let rules_file = config.rules_file in
   let targets, skipped = Find_target.files_of_dirs_or_files (Some lang) roots in
   try
@@ -495,7 +491,7 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
    *
    * For now python wrapper passes down all files that should be scanned
    *)
-  let xlang = R.xlang_of_string config.lang in
+  let xlang = Xlang.of_opt_xlang config.lang in
   let files, skipped = xlang_files_of_dirs_or_files xlang files_or_dirs in
   logger#info "processing %d files, skipping %d files" (List.length files)
     (List.length skipped);
@@ -507,9 +503,9 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
              rules
              |> List.filter (fun r ->
                     match (r.R.languages, xlang) with
-                    | R.L (x, xs), R.L (lang, _) -> List.mem lang (x :: xs)
-                    | R.LRegex, R.LRegex
-                    | R.LGeneric, R.LGeneric ->
+                    | L (x, xs), L (lang, _) -> List.mem lang (x :: xs)
+                    | LRegex, LRegex
+                    | LGeneric, LGeneric ->
                         true
                     | _ -> false)
            in
@@ -522,11 +518,11 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
            let lazy_ast_and_errors =
              lazy
                (match xlang with
-               | R.L (lang, _) ->
+               | L (lang, _) ->
                    P.parse_generic config.use_parsing_cache config.version lang
                      file
-               | R.LRegex
-               | R.LGeneric ->
+               | LRegex
+               | LGeneric ->
                    failwith "requesting generic AST for LRegex|LGeneric")
            in
            let file_and_more =
@@ -627,7 +623,8 @@ let semgrep_with_one_pattern config roots =
   (* old: let xs = List.map Common.fullpath xs in
    * better no fullpath here, not our responsability.
    *)
-  let lang = lang_of_string config.lang in
+  (* TODO: support generic and regex patterns as well? *)
+  let lang = Xlang.lang_of_opt_xlang config.lang in
   let pattern, pattern_string =
     match (config.pattern_file, config.pattern_string) with
     | "", "" -> failwith "I need a pattern; use -f or -e"

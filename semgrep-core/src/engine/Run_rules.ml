@@ -30,9 +30,9 @@ let check_taint hook default_config taint_rules equivs file_and_more =
       let { FM.file; xlang; lazy_ast_and_errors; _ } = file_and_more in
       let lang =
         match xlang with
-        | R.L (lang, _) -> lang
-        | R.LGeneric
-        | R.LRegex ->
+        | L (lang, _) -> lang
+        | LGeneric
+        | LRegex ->
             failwith "taint-mode and generic/regex matching are incompatible"
       in
       let (ast, errors), parse_time =

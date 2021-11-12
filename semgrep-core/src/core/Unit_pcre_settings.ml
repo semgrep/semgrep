@@ -4,16 +4,18 @@
 
 let test_match_limit_ok () =
   let rex = Pcre_settings.regexp "(a+)+$" in
-  try ignore (Pcre.pmatch ~rex "aaaaaaaaaaaaaaaaaaa!")
-  with Pcre.Error Pcre.MatchLimit ->
-    Alcotest.fail "should not have failed with error MatchLimit"
+  match Pcre_settings.pmatch ~rex "aaaaaaaaaaaaaaaaaaa!" with
+  | Ok _ -> ()
+  | Error Pcre.MatchLimit ->
+      Alcotest.fail "should not have failed with error MatchLimit"
+  | Error _ -> Alcotest.fail "unexpected error"
 
 let test_match_limit_fail () =
   let rex = Pcre_settings.regexp "(a+)+$" in
-  try
-    ignore (Pcre.pmatch ~rex "aaaaaaaaaaaaaaaaaaaaaaaaaa!");
-    Alcotest.fail "should have failed with error MatchLimit"
-  with Pcre.Error Pcre.MatchLimit -> ()
+  match Pcre_settings.pmatch ~rex "aaaaaaaaaaaaaaaaaaaaaaaaaa!" with
+  | Ok _ -> Alcotest.fail "should have failed with error MatchLimit"
+  | Error Pcre.MatchLimit -> ()
+  | Error _ -> Alcotest.fail "unexpected error"
 
 let test_register_exception_printer () =
   (* This is a little dirty since we can't undo it. *)
