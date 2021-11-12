@@ -25,6 +25,18 @@ def test_basic_rule__relative(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_deduplication(run_semgrep_in_tmp, snapshot):
+    """
+    Check that semgrep runs a rule only once even when different in the metadata
+    """
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/duplicate-rule.yaml", target_name="basic/stupid.py")[
+            0
+        ],
+        "results.json",
+    )
+
+
 def test_noextension_filtering(run_semgrep_in_tmp, snapshot):
     """
     Check that semgrep does not filter out files without extensions when
