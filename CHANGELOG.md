@@ -11,6 +11,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Catch PCRE errors
+- Apply generic filters excluding large files and binary files to
+  'generic' and 'regex' targets as it was already done for the other
+  languages.
 
 ## [0.72.0](https://github.com/returntocorp/semgrep/releases/tag/v0.72.0) - 11-10-2021
 - CLI output no longer displays severity levels
