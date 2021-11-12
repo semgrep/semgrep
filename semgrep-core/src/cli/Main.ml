@@ -488,7 +488,7 @@ let options () =
       Arg.Set_string config_file,
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
     ( "-lang",
-      Arg.String (fun s -> lang := Xlang.of_string_opt s),
+      Arg.String (fun s -> lang := Some (Xlang.of_string s)),
       spf " <str> choose language (valid choices:\n     %s)"
         Xlang.supported_xlangs );
     ( "-target_file",
