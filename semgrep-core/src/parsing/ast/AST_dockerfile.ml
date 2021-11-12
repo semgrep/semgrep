@@ -34,13 +34,7 @@ type shell_compatibility =
          in a SHELL directive *)
       string
 
-(* A simplified, non-recursive version of AST_bash.string_fragment *)
-type string_fragment =
-  | String_content of string wrap
-  | Expansion of (* $X in program mode, ${X}, ${X ... } *) loc * B.expansion
-
-(* Re-using the type used for double-quoted strings in bash *)
-type quoted_string = string_fragment list bracket
+type quoted_string = string wrap bracket
 
 type str = Unquoted of string wrap | Quoted of loc * quoted_string
 
@@ -57,7 +51,7 @@ type str = Unquoted of string wrap | Quoted of loc * quoted_string
 *)
 type argv_or_shell =
   | Argv of (* [ "cmd", "arg1", "arg2$X" ] *) quoted_string list bracket
-  | Sh_command of AST_bash.blist
+  | Sh_command of loc * AST_bash.blist
   | Other_shell_command of shell_compatibility * string wrap
 
 type param = tok (* -- *) * string wrap (* name *) * tok (* = *) * string wrap
@@ -65,18 +59,18 @@ type param = tok (* -- *) * string wrap (* name *) * tok (* = *) * string wrap
 (* value *)
 
 type image_spec = {
-  name : string_fragment;
-  tag : (tok (* : *) * string_fragment) option;
-  digest : (tok (* @ *) * string_fragment) option;
+  name : string wrap;
+  tag : (tok (* : *) * string wrap) option;
+  digest : (tok (* @ *) * string wrap) option;
 }
 
-type image_alias = string_fragment
+type image_alias = string wrap
 
 type label_pair = string wrap (* key *) * tok (* = *) * str (* value *)
 
 type protocol = TCP | UDP
 
-type path = string_fragment list
+type path = string wrap list
 
 type string_array = string wrap list bracket
 
@@ -105,12 +99,13 @@ type instruction =
   | User of
       loc
       * string wrap
-      * string_fragment (* user *)
-      * (tok (* : *) * string_fragment) (* group *) option
+      * string wrap
+      (* user *)
+      * (tok (* : *) * string wrap) (* group *) option
   | Workdir of loc * string wrap * path
   | Arg of loc * string wrap * string wrap
   | Onbuild of loc * string wrap * instruction
-  | Stopsignal of loc * string wrap * string_fragment
+  | Stopsignal of loc * string wrap * string wrap
   | Healthcheck of loc * string wrap * healthcheck
   | Shell (* changes the shell :-/ *) of loc * string wrap * string_array
   | Maintainer (* deprecated *) of loc * string wrap * string wrap
@@ -130,10 +125,6 @@ let wrap_loc (_, tok) = (tok, tok)
 let bracket_loc (open_, _, close) = (open_, close)
 
 let list_loc = B.list_loc
-
-let string_fragment_loc = function
-  | String_content x -> wrap_loc x
-  | Expansion (loc, _) -> loc
 
 (* Re-using the type used for double-quoted strings in bash *)
 let quoted_string_loc = bracket_loc
@@ -155,32 +146,32 @@ let str_loc = function
 *)
 let argv_or_shell_loc = function
   | Argv x -> bracket_loc x
-  | Sh_command x -> B.blist_loc x
+  | Sh_command (loc, _) -> loc
   | Other_shell_command (_, x) -> wrap_loc x
 
 let param_loc ((tok, _, _, value) : param) : loc = (tok, snd value)
 
 let image_spec_loc (x : image_spec) =
-  let start = string_fragment_loc x.name in
+  let start = wrap_loc x.name in
   let end_ = start in
   let end_ =
     match x.tag with
     | None -> end_
-    | Some (_, x) -> string_fragment_loc x
+    | Some (_, x) -> wrap_loc x
   in
   let end_ =
     match x.digest with
     | None -> end_
-    | Some (_, x) -> string_fragment_loc x
+    | Some (_, x) -> wrap_loc x
   in
   (start, end_)
 
-let image_alias_loc = string_fragment_loc
+let image_alias_loc = wrap_loc
 
 let label_pair_loc (((_, start), _, str) : label_pair) =
   (start, str_loc str |> snd)
 
-let path_loc (x : path) = list_loc string_fragment_loc x
+let path_loc (x : path) = list_loc wrap_loc x
 
 let string_array_loc = bracket_loc
 
