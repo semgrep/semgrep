@@ -453,7 +453,7 @@ let matches_of_spacegrep spacegreps file =
 (* Regexps *)
 (*-------------------------------------------------------------------*)
 let regexp_matcher big_str file (re_str, re) =
-  let subs = try Pcre.exec_all ~rex:re big_str with Not_found -> [||] in
+  let subs = Pcre_settings.exec_all_noerr ~rex:re big_str in
   subs |> Array.to_list
   |> List.map (fun sub ->
          let matched_str = Pcre.get_substring sub 0 in

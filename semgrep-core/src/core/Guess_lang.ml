@@ -120,12 +120,7 @@ let split_cmd_re = lazy (Pcre_settings.regexp "[ \t]+")
      "#!/usr/bin/env -S bash -e -u" -> ["/usr/bin/env"; "bash"; "-e"; "-u"]
 *)
 let parse_shebang_line s =
-  let matched =
-    try Some (Pcre.exec ~rex:(Lazy.force shebang_re) s) with
-    | Not_found
-    | Pcre.Error BadUTF8 ->
-        None
-  in
+  let matched = Pcre_settings.exec_noerr ~rex:(Lazy.force shebang_re) s in
   match matched with
   | None -> None
   | Some matched -> (
@@ -137,7 +132,8 @@ let parse_shebang_line s =
           match string_chop_prefix ~pref:"-S" arg1 with
           | Some packed_args ->
               let args =
-                Pcre.split ~rex:(Lazy.force split_cmd_re) packed_args
+                Pcre_settings.split_noerr ~rex:(Lazy.force split_cmd_re)
+                  ~on_error:[ packed_args ] packed_args
                 |> List.filter (fun fragment -> fragment <> "")
               in
               Some (arg0 :: args)
@@ -159,12 +155,15 @@ let uses_shebang_command_name cmd_names =
   in
   Test_path f
 
-(* PCRE regexp using the default options *)
+(*
+   PCRE regexp using the default options.
+   In case of an error, the result is false.
+ *)
 let regexp pat =
   let rex = Pcre_settings.regexp pat in
   let f path =
     let s = get_first_block path in
-    Pcre.pmatch ~rex s
+    Pcre_settings.pmatch_noerr ~rex s
   in
   Test_path f
 
