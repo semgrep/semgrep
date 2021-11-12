@@ -257,12 +257,10 @@ let multi_line_string_content (env : env) (x : CST.multi_line_string_content) =
 
 (* "\"" *)
 
-let uni_character_literal (env : env) ((v1, v2, v3) : CST.uni_character_literal)
-    =
-  let v1 = str env v1 (* "\\" *) in
-  let _v2 = str env v2 (* "u" *) in
-  let v3 = str env v3 (* pattern [0-9a-fA-F]{4} *) in
-  (fst v3, PI.combine_infos (snd v1) [ snd v3 ])
+let uni_character_literal (env : env) ((v1, v2) : CST.uni_character_literal) =
+  let v1 = token env v1 (* "\\u" *) in
+  let v2 = str env v2 (* pattern [0-9a-fA-F]{4} *) in
+  (fst v2, PI.combine_infos v1 [ snd v2 ])
 
 let type_projection_modifier (env : env) (x : CST.type_projection_modifier) =
   let x = variance_modifier env x in
@@ -400,10 +398,15 @@ let literal_constant (env : env) (x : CST.literal_constant) =
       let _str = PI.str_of_info v1 ^ fst v2 in
       Int (iopt, PI.combine_infos v1 [ snd v2 ])
 
+let semi (env : env) (x : CST.semi) =
+  match x with
+  | `Auto_semi tok -> (* automatic_semicolon *) token env tok
+  | `SEMI tok -> (* ";" *) token env tok
+
 let package_header (env : env) ((v1, v2, v3) : CST.package_header) : directive =
   let v1 = token env v1 (* "package" *) in
   let v2 = identifier env v2 in
-  let _v3 = token env v3 (* pattern [\r\n]+ *) in
+  let _v3 = semi env v3 (* pattern [\r\n]+ *) in
   Package (v1, v2) |> G.d
 
 let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
@@ -422,7 +425,7 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
             ImportAs (v1, DottedName v2, Some (id, empty_id_info ())))
     | None -> ImportAs (v1, DottedName v2, None)
   in
-  let _v4 = token env v4 (* pattern [\r\n]+ *) in
+  let _v4 = semi env v4 (* pattern [\r\n]+ *) in
   v3 |> G.d
 
 let rec _annotated_lambda (env : env) (v1 : CST.annotated_lambda) =
@@ -495,6 +498,18 @@ and postfix_unary_suffix (env : env) (x : CST.postfix_unary_suffix) =
   | `Navi_suffix x -> navigation_suffix env x
   | `Inde_suffix x -> indexing_suffix env x
 
+and range_test (env : env) ((v1, v2) : CST.range_test) =
+  let op, tok = in_operator env v1 in
+  let e2 = expression env v2 in
+  fun e1 -> G.opcall (op, tok) [ e1; e2 ]
+
+and type_test (env : env) ((v1, v2) : CST.type_test) =
+  let op, tok = is_operator env v1 in
+  let t2 = type_ env v2 in
+  fun e1 ->
+    G.Call (G.IdSpecial (G.Op op, tok) |> G.e, fb [ G.Arg e1; G.ArgType t2 ])
+    |> G.e
+
 and binary_expression (env : env) (x : CST.binary_expression) =
   match x with
   | `Mult_exp (v1, v2, v3) ->
@@ -523,15 +538,14 @@ and binary_expression (env : env) (x : CST.binary_expression) =
       let v2, tok = (Elvis, token env v2) (* "?:" *) in
       let v3 = expression env v3 in
       G.opcall (v2, tok) [ v1; v3 ]
-  | `Check_exp (v1, v2, v3) ->
+  | `Check_exp (v1, v2) ->
       let v1 = expression env v1 in
-      let v2, tok =
+      let v2 =
         match v2 with
-        | `In_op x -> in_operator env x
-        | `Is_op x -> is_operator env x
+        | `In_op_exp x -> range_test env x
+        | `Is_op_type x -> type_test env x
       in
-      let v3 = expression env v3 in
-      G.opcall (v2, tok) [ v1; v3 ]
+      v2 v1
   | `Comp_exp (v1, v2, v3) ->
       let v1 = expression env v1 in
       let v2, tok = comparison_operator env v2 in
@@ -802,7 +816,7 @@ and class_member_declarations (env : env) (xs : CST.class_member_declarations) :
   List.map
     (fun (v1, v2) ->
       let v1 = class_member_declaration env v1 in
-      let _v2 = token env v2 (* pattern [\r\n]+ *) in
+      let _v2 = semi env v2 (* pattern [\r\n]+ *) in
       v1)
     xs
 
@@ -1034,13 +1048,14 @@ and declaration (env : env) (x : CST.declaration) : definition =
       let vdef = { vinit = v7; vtype = typopt } in
       let ent = { name = entname; attrs = v2 :: v1; tparams = v3 } in
       (ent, VarDef vdef)
-  | `Type_alias (v1, v2, v3, v4) ->
-      let _v1 = token env v1 (* "typealias" *) in
-      let v2 = simple_identifier env v2 in
-      let _v3 = token env v3 (* "=" *) in
-      let v4 = type_ env v4 in
-      let ent = basic_entity v2 in
-      let tdef = { tbody = AliasType v4 } in
+  | `Type_alias (v0, v1, v2, v3, v4) ->
+      let attrs = modifiers_opt env v0 in
+      let _kwd = token env v1 (* "typealias" *) in
+      let id = simple_identifier env v2 in
+      let _eq = token env v3 (* "=" *) in
+      let t = type_ env v4 in
+      let ent = basic_entity ~attrs id in
+      let tdef = { tbody = AliasType t } in
       (ent, TypeDef tdef)
 
 and delegation_specifier (env : env) (x : CST.delegation_specifier) :
@@ -1518,6 +1533,11 @@ and modifiers (env : env) (xs : CST.modifiers) : attribute list =
        | `Modi x -> [ modifier env x ])
   |> List.flatten
 
+and modifiers_opt env x =
+  match x with
+  | None -> []
+  | Some x -> modifiers env x
+
 and navigation_suffix (env : env) ((v1, v2) : CST.navigation_suffix) =
   let op = member_access_operator env v1 in
   let fld =
@@ -1840,7 +1860,7 @@ and statements (env : env) ((v1, v2, v3) : CST.statements) =
   let v2 =
     List.map
       (fun (v1, v2) ->
-        let _v1 = token env v1 (* pattern [\r\n]+ *) in
+        let _v1 = semi env v1 (* pattern [\r\n]+ *) in
         let v2 = statement env v2 in
         v2)
       v2
@@ -1848,7 +1868,7 @@ and statements (env : env) ((v1, v2, v3) : CST.statements) =
   let () =
     match v3 with
     | Some tok ->
-        let _ = token env tok (* pattern [\r\n]+ *) in
+        let _ = semi env tok (* pattern [\r\n]+ *) in
         ()
     | None -> ()
   in
@@ -2151,14 +2171,17 @@ and variable_declaration (env : env) ((v1, v2) : CST.variable_declaration) =
 and when_condition (env : env) (x : CST.when_condition) : G.expr =
   match x with
   | `Exp v1 -> expression env v1
+  (* TODO: there is an implicit first argument that is the thing
+   * we call 'when' on
+   *)
   | `Range_test (v1, v2) ->
       let op, tok = in_operator env v1 in
       let v2 = expression env v2 in
       G.opcall (op, tok) [ v2 ]
   | `Type_test (v1, v2) ->
       let op, tok = is_operator env v1 in
-      let v2 = expression env v2 in
-      G.opcall (op, tok) [ v2 ]
+      let t = type_ env v2 in
+      G.Call (G.IdSpecial (G.Op op, tok) |> G.e, fb [ G.ArgType t ]) |> G.e
 
 and when_entry (env : env) ((v1, v2, v3, v4) : CST.when_entry) =
   let v1 =
@@ -2186,7 +2209,7 @@ and when_entry (env : env) ((v1, v2, v3, v4) : CST.when_entry) =
   let () =
     match v4 with
     | Some tok ->
-        let _ = token env tok (* pattern [\r\n]+ *) in
+        let _ = semi env tok (* pattern [\r\n]+ *) in
         ()
     | None -> ()
   in
@@ -2209,11 +2232,11 @@ and when_subject (env : env) ((v1, v2, v3, v4) : CST.when_subject) : condition =
   (* TODO: use CondWithDecl *)
   G.Cond v3
 
-let file_annotation (env : env) ((v1, v2, v3, v4) : CST.file_annotation) =
-  let _v1 = token env v1 (* "@" *) in
-  let _v2 = token env v2 (* "file" *) in
-  let _v3 = token env v3 (* ":" *) in
-  let _v4 =
+let file_annotation (env : env) ((v1, v2, v3, v4, v5) : CST.file_annotation) =
+  let _at = token env v1 (* "@" *) in
+  let _file = token env v2 (* "file" *) in
+  let _colon = token env v3 (* ":" *) in
+  let _annot =
     match v4 with
     | `LBRACK_rep1_unes_anno_RBRACK (v1, v2, v3) ->
         let _v1 = token env v1 (* "[" *) in
@@ -2224,25 +2247,19 @@ let file_annotation (env : env) ((v1, v2, v3, v4) : CST.file_annotation) =
         let v1 = unescaped_annotation env x in
         [ v1 ]
   in
+  let _semi = semi env v5 in
   ()
 
 let source_file (env : env) (x : CST.source_file) : any =
   match x with
-  | `Opt_sheb_line_opt_rep1_file_anno_semi_opt_pack_header_rep_import_header_rep_stmt_semi
+  | `Opt_sheb_line_rep_file_anno_opt_pack_header_rep_import_header_rep_stmt_semi
       (v1, v2, v3, v4, v5) ->
       let _v1 =
         match v1 with
         | Some x -> shebang_line env x
         | None -> ()
       in
-      let _v2 =
-        match v2 with
-        | Some (v1, v2) ->
-            let _v1 = List.map (file_annotation env) v1 in
-            let _v2 = token env v2 (* pattern [\r\n]+ *) in
-            ()
-        | None -> ()
-      in
+      let _v2 = List.map (file_annotation env) v2 in
       let v3 =
         match v3 with
         | Some x -> [ package_header env x ]
@@ -2253,7 +2270,7 @@ let source_file (env : env) (x : CST.source_file) : any =
         List.map
           (fun (v1, v2) ->
             let v1 = statement env v1 in
-            let _v2 = token env v2 (* pattern [\r\n]+ *) in
+            let _v2 = semi env v2 (* pattern [\r\n]+ *) in
             v1)
           v5
       in
