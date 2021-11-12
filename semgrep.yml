@@ -29,6 +29,23 @@ rules:
        - runner/*.ml
        - Check_*.ml
 
+  - id: not-using-our-pcre-wrappers
+    patterns:
+    - pattern-either:
+      - pattern: Pcre.regexp
+      - pattern: Pcre.pmatch
+      - pattern: Pcre.exec
+      - pattern: Pcre.exec_all
+      - pattern: Pcre.split
+    message: >-
+      You should use one of the equivalent functions in SPcre, which
+      automatically sets some flags and handles exceptions.
+    languages: [ocaml]
+    severity: ERROR
+    paths:
+      exclude:
+       - SPcre.ml
+
 # not ready yet
 #  - id: no-exit-in-semgrep
 #    pattern: |
