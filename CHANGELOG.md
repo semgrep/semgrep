@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Changed
 
 ### Fixed
+- Catch PCRE errors
 
 ## [0.72.0](https://github.com/returntocorp/semgrep/releases/tag/v0.72.0) - 11-10-2021
 - CLI output no longer displays severity levels

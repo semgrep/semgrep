@@ -188,7 +188,7 @@ let rec eval env code =
       | String s ->
           (* todo? factorize with Matching_generic.regexp_matcher_of_regexp_.. *)
           let regexp = Pcre_settings.regexp ~flags:[ `ANCHORED ] re in
-          let res = Pcre.pmatch ~rex:regexp s in
+          let res = Pcre_settings.pmatch_noerr ~rex:regexp s in
           let v = Bool res in
           logger#info "regexp %s on %s return %s" re s (show_value v);
           v

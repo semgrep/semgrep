@@ -21,6 +21,99 @@ val regexp :
   Pcre.regexp
 
 (*
+   Same as Pcre.pmatch but makes errors explicit.
+   Option '?pat' was removed so as to force the use of our modified 'regexp'
+   function. TODO: add it back for convenience.
+*)
+val pmatch :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  ?rex:Pcre.regexp ->
+  ?pos:int ->
+  ?callout:Pcre.callout ->
+  string ->
+  (bool, Pcre.error) result
+
+(* Return 'false' in case of a PCRE error. The error is logged. *)
+val pmatch_noerr :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  ?rex:Pcre.regexp ->
+  ?pos:int ->
+  ?callout:Pcre.callout ->
+  string ->
+  bool
+
+(*
+   See notes about 'pmatch'.
+   Additionally, exception 'Not_found' is converted to a 'None' value.
+*)
+val exec :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  ?rex:Pcre.regexp ->
+  ?pos:int ->
+  ?callout:Pcre.callout ->
+  string ->
+  (Pcre.substrings option, Pcre.error) result
+
+(* Return 'None' in case of a PCRE error. The error is logged. *)
+val exec_noerr :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  ?rex:Pcre.regexp ->
+  ?pos:int ->
+  ?callout:Pcre.callout ->
+  string ->
+  Pcre.substrings option
+
+(*
+   See notes about 'pmatch'.
+   Additionally, exception 'Not_found' is converted to the empty array.
+*)
+val exec_all :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  ?rex:Pcre.regexp ->
+  ?pos:int ->
+  ?callout:Pcre.callout ->
+  string ->
+  (Pcre.substrings array, Pcre.error) result
+
+(* Return '[| |]' in case of a PCRE error. The error is logged. *)
+val exec_all_noerr :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  ?rex:Pcre.regexp ->
+  ?pos:int ->
+  ?callout:Pcre.callout ->
+  string ->
+  Pcre.substrings array
+
+(* See notes about 'pmatch'. *)
+val split :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  ?rex:Pcre.regexp ->
+  ?pos:int ->
+  ?max:int ->
+  ?callout:Pcre.callout ->
+  string ->
+  (string list, Pcre.error) result
+
+(* Return 'on_error' in case of a PCRE error. The error is logged. *)
+val split_noerr :
+  ?iflags:Pcre.irflag ->
+  ?flags:Pcre.rflag list ->
+  ?rex:Pcre.regexp ->
+  ?pos:int ->
+  ?max:int ->
+  ?callout:Pcre.callout ->
+  on_error:string list ->
+  string ->
+  string list
+
+(*
    Register printers for the Pcre module/library so that exceptions show up
    nicely with 'Printexc.to_string' e.g. 'Pcre.Error(RecursionLimit)'
    instead of 'Pcre.Error(5)'.
