@@ -700,10 +700,12 @@ and operator =
    *)
   | Elvis (* ?: in Kotlin, can compare possible null value *)
   | Nullish (* ?? in Javascript *)
-  | In
-  (* in: checks that value belongs to a collection *)
+  | In (* in: checks that value belongs to a collection *)
   | NotIn (* !in *)
-  (* is: checks value has type *)
+  (* Is (and NotIs) checks whether a value has a certain type.
+   * The second argument in OpCall is always an ArgType!
+   * Can also be used as an unary operation in Kotlin in a 'when'
+   *)
   | Is
   | NotIs
   (* Shell & and | *)
