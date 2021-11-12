@@ -137,7 +137,7 @@ let var_stats prog : var_stats =
       V.kexpr =
         (fun (k, vout) x ->
           match x.e with
-          (* TODO: very incomplete, what if Assign (Tuple?) *)
+          (* TODO: very incomplete, what if Assign (Record?) *)
           | Assign
               ( {
                   e =
@@ -341,18 +341,19 @@ let propagate_basic lang prog =
               VarDef { vinit = Some { e = L literal; _ }; _ } )
           (* note that some languages such as Python do not have VarDef.
            * todo? should add those somewhere instead of in_lvalue detection?*)
-            ->
-              let stats =
-                try Hashtbl.find stats (H.str_of_ident id, sid)
-                with Not_found -> raise Impossible
-              in
-              if
-                H.has_keyword_attr Const attrs
-                || H.has_keyword_attr Final attrs
-                || !(stats.lvalue) = 1
-                   && (lang = Lang.Javascript || lang = Lang.Typescript)
-              then add_constant_env id (sid, literal) env;
-              k x
+            -> (
+              match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
+              | Some stats ->
+                  if
+                    H.has_keyword_attr Const attrs
+                    || H.has_keyword_attr Final attrs
+                    || !(stats.lvalue) = 1
+                       && (lang = Lang.Javascript || lang = Lang.Typescript)
+                  then add_constant_env id (sid, literal) env;
+                  k x
+              | None ->
+                  logger#debug "No stats for (%s,%d)" (H.str_of_ident id) sid;
+                  k x)
           | _ -> k x);
       (* the uses (and also defs for Python Assign) *)
       V.kexpr =
@@ -385,17 +386,19 @@ let propagate_basic lang prog =
                 rexp ) ->
               eval_expr env rexp
               |> do_option (fun literal ->
-                     let stats =
-                       try Hashtbl.find stats (H.str_of_ident id, sid)
-                       with Not_found -> raise Impossible
-                     in
-                     if
-                       !(stats.lvalue) = 1
-                       (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
-                       && (lang = Lang.Python || lang = Lang.Ruby
-                         || lang = Lang.PHP || Lang.is_js lang)
-                       && kind = Global
-                     then add_constant_env id (sid, literal) env);
+                     match Hashtbl.find_opt stats (H.str_of_ident id, sid) with
+                     | Some stats ->
+                         if
+                           !(stats.lvalue) = 1
+                           (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
+                           && (lang = Lang.Python || lang = Lang.Ruby
+                             || lang = Lang.PHP || Lang.is_js lang)
+                           && kind = Global
+                         then add_constant_env id (sid, literal) env
+                     | None ->
+                         logger#debug "No stats for (%s,%d)" (H.str_of_ident id)
+                           sid;
+                         ());
               v (E rexp)
           | Assign (e1, _, e2)
           | AssignOp (e1, _, e2) ->
