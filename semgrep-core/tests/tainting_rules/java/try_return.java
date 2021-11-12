@@ -1,4 +1,6 @@
 // https://github.com/returntocorp/semgrep/issues/4091
+// We want to test that the try-block is properly connected to the
+// catch-block despite the try-block execution ends in a `return`.
 public class Main {
     public void test1() {
         String str = "safe";
