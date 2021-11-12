@@ -453,6 +453,12 @@ let lang_regression_tests ~with_caching =
     let lang = Lang.HCL in
     regression_tests_for_lang files lang
   );
+  pack_tests "semgrep Kotlin" (
+    let dir = Filename.concat tests_path "kotlin" in
+    let files = Common2.glob (spf "%s/*.kt" dir) in
+    let lang = Lang.Kotlin in
+    regression_tests_for_lang files lang
+  );
  ]
 
 let full_rule_regression_tests = [
