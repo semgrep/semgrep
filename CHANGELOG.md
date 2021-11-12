@@ -5,6 +5,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+
+### Changed
+- Dataflow: Assume that any function/method call inside a `try-catch` could
+  be raising an exception (#4091)
+
+### Fixed
+
+## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
+
+### Added
 - experimental support for C++
 
 ### Changed
