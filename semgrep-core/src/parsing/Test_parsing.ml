@@ -127,7 +127,9 @@ let dump_tree_sitter_cst lang file =
 
 let test_parse_tree_sitter lang root_paths =
   let paths = List.map Common.fullpath root_paths in
-  let paths, _skipped_paths = Find_target.files_of_dirs_or_files lang paths in
+  let paths, _skipped_paths =
+    Find_target.files_of_dirs_or_files (Some lang) paths
+  in
   let stat_list = ref [] in
   paths
   |> Console.progress (fun k ->
@@ -238,7 +240,7 @@ let parsing_common ?(verbose = true) lang files_or_dirs =
     (* = absolute paths *)
     List.map Common.fullpath files_or_dirs
   in
-  let paths, skipped = Find_target.files_of_dirs_or_files lang paths in
+  let paths, skipped = Find_target.files_of_dirs_or_files (Some lang) paths in
   let stats =
     paths
     |> List.rev_map (fun file ->
@@ -431,7 +433,7 @@ let diff_pfff_tree_sitter xs =
 
 let test_parse_rules roots =
   let targets, _skipped_paths =
-    Find_target.files_of_dirs_or_files Lang.Yaml roots
+    Find_target.files_of_dirs_or_files (Some Lang.Yaml) roots
   in
   targets
   |> List.iter (fun file ->

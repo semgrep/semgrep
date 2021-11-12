@@ -361,15 +361,16 @@ let iter_files_and_get_matches_and_exn_to_errors config f files =
          RP.add_run_time run_time res)
 
 let xlang_files_of_dirs_or_files xlang files_or_dirs =
-  match xlang with
-  | R.LRegex
-  | R.LGeneric ->
-      (* TODO: assert is_file ? spacegrep filter files?
-       * Anyway right now the Semgrep python wrapper is
-       * calling -config with an explicit list of files.
-       *)
-      (files_or_dirs, [])
-  | R.L (lang, _) -> Find_target.files_of_dirs_or_files lang files_or_dirs
+  let opt_lang =
+    match xlang with
+    | R.LRegex
+    | R.LGeneric ->
+        None
+    | R.L (lang, _other_langs) ->
+        (* FIXME: we should include other_langs if there are any! *)
+        Some lang
+  in
+  Find_target.files_of_dirs_or_files opt_lang files_or_dirs
 
 (*****************************************************************************)
 (* Entry points *)
@@ -459,7 +460,7 @@ let semgrep_with_patterns config (rules, rule_parse_time) files skipped =
 let semgrep_with_patterns_file config roots =
   let lang = lang_of_string config.lang in
   let rules_file = config.rules_file in
-  let targets, skipped = Find_target.files_of_dirs_or_files lang roots in
+  let targets, skipped = Find_target.files_of_dirs_or_files (Some lang) roots in
   try
     logger#info "Parsing %s" rules_file;
     let timed_rules =
@@ -645,7 +646,7 @@ let semgrep_with_one_pattern config roots =
     Common.with_time (fun () -> [ rule_of_pattern lang pattern_string pattern ])
   in
 
-  let targets, skipped = Find_target.files_of_dirs_or_files lang roots in
+  let targets, skipped = Find_target.files_of_dirs_or_files (Some lang) roots in
   let targets = Common.map replace_named_pipe_by_regular_file targets in
   match config.output_format with
   | Json ->
