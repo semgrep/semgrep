@@ -48,9 +48,12 @@ val is_js : t -> bool
 
 val is_python : t -> bool
 
-val lang_of_string_map : (string, t) Hashtbl.t
+val lang_map : (string, t) Hashtbl.t
 
 val lang_of_string_opt : string -> t option
+
+(* Association from a valid name for a language to its unique internal ID. *)
+val assoc : (string * t) list
 
 (* list of languages *)
 val keys : string list

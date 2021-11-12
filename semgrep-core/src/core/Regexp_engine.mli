@@ -42,5 +42,7 @@ module Re_engine : sig
   (* nice! *)
   val alt : t -> t -> t
 
+  (* Warning: Returns false in case of an exception. This is not necessarily
+     always desired. *)
   val run : t -> string -> bool
 end

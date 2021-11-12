@@ -1,6 +1,6 @@
 //ERROR: match
 class Myclass: Boo {
-    public void foo() {
+    fun foo() {
         3
     }
 }

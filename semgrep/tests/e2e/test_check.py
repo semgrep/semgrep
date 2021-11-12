@@ -236,6 +236,14 @@ def test_regex_rule__utf8(run_semgrep_in_tmp, snapshot):
     )
 
 
+def test_regex_rule__utf8_on_image(run_semgrep_in_tmp, snapshot):
+    # https://github.com/returntocorp/semgrep/issues/4258
+    snapshot.assert_match(
+        run_semgrep_in_tmp("rules/regex-utf8.yaml", target_name="image/semgrep.png")[0],
+        "results.json",
+    )
+
+
 def test_regex_rule__child(run_semgrep_in_tmp, snapshot):
     snapshot.assert_match(
         run_semgrep_in_tmp("rules/regex-child.yaml")[0], "results.json"

@@ -46,46 +46,6 @@ type 'a loc = {
 [@@deriving show, eq]
 
 (*****************************************************************************)
-(* Extended languages *)
-(*****************************************************************************)
-
-(* eXtended language, stored in the languages: field in the rule.
- * less: merge with xpattern_kind? *)
-type xlang =
-  (* for "real" semgrep (the first language is used to parse the pattern) *)
-  | L of Lang.t * Lang.t list
-  (* for pattern-regex (referred as 'regex' or 'none' in languages:) *)
-  | LRegex
-  (* for spacegrep *)
-  | LGeneric
-[@@deriving show, eq]
-
-exception InternalInvalidLanguage of string (* rule id *) * string (* msg *)
-
-(* coupling: Parse_mini_rule.parse_languages *)
-let xlang_of_string ?id:(id_opt = None) s =
-  match s with
-  | "none"
-  | "regex" ->
-      LRegex
-  | "generic" -> LGeneric
-  | _ -> (
-      match Lang.lang_of_string_opt s with
-      | None -> (
-          match id_opt with
-          | None -> failwith (Lang.unsupported_language_message s)
-          | Some id ->
-              raise
-                (InternalInvalidLanguage
-                   (id, Common.spf "unsupported language: %s" s)))
-      | Some l -> L (l, []))
-
-let string_of_xlang = function
-  | L (l, _) -> Lang.string_of_lang l
-  | LRegex -> "regex"
-  | LGeneric -> "generic"
-
-(*****************************************************************************)
 (* Extended patterns *)
 (*****************************************************************************)
 
@@ -175,7 +135,7 @@ and metavar_cond =
    * the "regexpizer" optimizer (see Analyze_rule.ml).
    *)
   | CondRegexp of MV.mvar * regexp
-  | CondNestedFormula of MV.mvar * xlang option * formula
+  | CondNestedFormula of MV.mvar * Xlang.t option * formula
 [@@deriving show, eq]
 
 (*****************************************************************************)
@@ -203,7 +163,7 @@ type formula_old =
 (* extra conditions, usually on metavariable content *)
 and extra =
   | MetavarRegexp of MV.mvar * regexp
-  | MetavarPattern of MV.mvar * xlang option * formula
+  | MetavarPattern of MV.mvar * Xlang.t option * formula
   | MetavarComparison of metavariable_comparison
   (* arbitrary code! dangerous! *)
   | PatWherePython of string
@@ -263,7 +223,7 @@ type rule = {
   mode : mode;
   message : string;
   severity : severity;
-  languages : xlang;
+  languages : Xlang.t;
   (* OPTIONAL fields *)
   options : Config_semgrep.t option;
   (* deprecated? todo: parse them *)
@@ -299,7 +259,7 @@ exception InvalidLanguage of rule_id * string * Parse_info.t
  * start of the pattern *)
 exception
   InvalidPattern of
-    rule_id * string * xlang * string (* exn *) * Parse_info.t * string list
+    rule_id * string * Xlang.t * string (* exn *) * Parse_info.t * string list
 
 exception InvalidRegexp of rule_id * string * Parse_info.t
 

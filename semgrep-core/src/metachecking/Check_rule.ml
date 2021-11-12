@@ -85,7 +85,7 @@ let error env t s =
 
 let equal_formula x y = AST_utils.with_structural_equal R.equal_formula x y
 
-let check_formula env lang f =
+let check_formula env (lang : Xlang.t) f =
   (* check duplicated patterns, essentially:
    *  $K: $PAT
    *  ...
@@ -165,7 +165,7 @@ let semgrep_check config metachecks rules =
   let config =
     {
       config with
-      Runner_common.lang = "yaml";
+      Runner_common.lang = Some (Xlang.of_lang Yaml);
       config_file = metachecks;
       output_format = Json;
     }

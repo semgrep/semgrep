@@ -86,7 +86,7 @@ let exn_to_error ?(rule_id = None) file exn =
         loc = PI.unsafe_token_location_of_info pos;
         msg =
           (* TODO: make message helpful *)
-          spf "Invalid pattern for %s" (Rule.string_of_xlang xlang);
+          spf "Invalid pattern for %s" (Xlang.to_string xlang);
         details = None;
         yaml_path = Some yaml_path;
       }

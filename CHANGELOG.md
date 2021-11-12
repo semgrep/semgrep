@@ -5,15 +5,26 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+
+### Changed
+- Dataflow: Assume that any function/method call inside a `try-catch` could
+  be raising an exception (#4091)
+
+### Fixed
+
+## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
+
+### Added
 - experimental support for C++
 
 ### Changed
 
 ### Fixed
 - Performance: Deduplicate rules by rule-id so rules are not being run twice
+- Catch PCRE errors
+- Constant propagation: Avoid "Impossible" errors due to unhandled cases
 
 ## [0.72.0](https://github.com/returntocorp/semgrep/releases/tag/v0.72.0) - 11-10-2021
-- CLI output no longer displays severity levels
 
 ### Added
 - Java: Add partial support for `synchronized` blocks in the dataflow IL (#4150)
@@ -55,6 +66,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - cli: Only suggest increasing stack size when semgrep-core segfaults
 - Semgrep now scans executable scripts whose shebang interpreter matches the
   rule's language
+- CLI output no longer displays severity levels
 
 ## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
 
