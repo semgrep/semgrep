@@ -8,28 +8,37 @@ args = parser.parse_args()
 
 f = open(args.file)
 results = json.load(f)
+result_times = results
+
+rules = results["rules"]
+num_rules = len(rules)
+
+# Parse file
 
 summed_time = 0
 rule_parse_time = 0
 file_parse_time = 0
 run_time = 0
 
-rule_parse_times = results["time"]["rule_parse_info"]
+rule_parse_times = result_times["rule_parse_info"]
 for parse_time in rule_parse_times:
     summed_time += parse_time
     rule_parse_time += parse_time
 
-target_times = results["time"]["targets"]
+target_times = result_times["targets"]
 
 for target in target_times:
-    for time in target["run_times"]:
-        summed_time += time
-        run_time += time
-    for time in target["parse_times"]:
-        summed_time += time
-        file_parse_time += time
+    for i in range(num_rules):
+        r_time = target["run_times"][i]
+        p_time = target["parse_times"][i]
+
+        summed_time += r_time + p_time
+        run_time += r_time
+        file_parse_time += p_time
+        if r_time > 10:
+            print(target["path"], target["num_bytes"], rules[i], r_time, p_time)
 num_files = len(target_times)
-total_time = results["time"]["total_time"]
+total_time = result_times["total_time"]
 
 print(f"Files included { num_files } ")
 print(f"Summed rule parse time { rule_parse_time } ")
