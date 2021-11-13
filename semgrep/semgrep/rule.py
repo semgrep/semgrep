@@ -1,5 +1,6 @@
 import hashlib
 import json
+from copy import deepcopy
 from typing import Any
 from typing import cast
 from typing import Dict
@@ -182,3 +183,11 @@ class Rule:
         return hashlib.sha256(
             json.dumps(self._raw, sort_keys=True).encode()
         ).hexdigest()
+
+
+def obscure_informational_fields(rule: Rule) -> Rule:
+    rule2 = deepcopy(rule)
+    rule2._raw["message"] = ""
+    rule2._raw["metadata"] = {}
+    rule2._raw["severity"] = ""
+    return rule2

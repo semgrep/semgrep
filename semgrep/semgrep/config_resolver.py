@@ -32,6 +32,7 @@ from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.metric_manager import metric_manager
+from semgrep.rule import obscure_informational_fields
 from semgrep.rule import Rule
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_yaml_preserve_spans
@@ -304,7 +305,9 @@ class Config:
 
         return list(
             OrderedDict(
-                (rule.id, rule) for rules in configs.values() for rule in rules
+                (obscure_informational_fields(rule), rule)
+                for rules in configs.values()
+                for rule in rules
             ).values()
         )
 
