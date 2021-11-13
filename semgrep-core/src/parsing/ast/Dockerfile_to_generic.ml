@@ -43,8 +43,7 @@ let expr_of_stmt (st : G.stmt) : G.expr = G.stmt_to_expr st
 let expr_of_stmts loc (stmts : G.stmt list) : G.expr =
   G.Block (bracket loc stmts) |> G.s |> expr_of_stmt
 
-let quoted_string (_opening_quote, contents, _closing_quote) : G.expr =
-  G.L (G.String contents) |> G.e
+let quoted_string s : G.expr = G.L (G.String s) |> G.e
 
 (*
    Return the arguments to pass to the dockerfile command e.g. the arguments
@@ -84,6 +83,8 @@ let instruction env (x : instruction) : G.stmt =
     | Shell (_loc, name, _) -> call name loc []
     | Maintainer (_loc, name, _) -> call name loc []
     | Cross_build_xxx (_loc, name, _) -> call name loc []
+    | Instr_semgrep_ellipsis tok -> G.Ellipsis tok |> G.e
+    | Instr_TODO name -> call name loc []
   in
   stmt_of_expr loc expr
 

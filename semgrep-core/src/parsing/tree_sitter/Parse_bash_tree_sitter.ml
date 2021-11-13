@@ -1458,7 +1458,7 @@ let parse file =
       let env = { H.file; conv = H.line_col_to_pos file; extra = input_kind } in
       let tok = PI.fake_info_loc (PI.first_loc_of_file file) "" in
       let bash_ast = program env ~tok cst in
-      Bash_to_generic.(program Program bash_ast))
+      Bash_to_generic.(program input_kind bash_ast))
 
 let parse_pattern str =
   let input_kind = AST_bash.Pattern in

@@ -34,9 +34,9 @@ type shell_compatibility =
          in a SHELL directive *)
       string
 
-type quoted_string = string wrap bracket
+type quoted_string = string wrap
 
-type str = Unquoted of string wrap | Quoted of loc * quoted_string
+type str = Unquoted of string wrap | Quoted of string wrap
 
 (*
    The default shell depends on the platform on which docker runs (Unix or
@@ -113,12 +113,16 @@ type instruction =
       (* e.g. CROSS_BUILD_COPY;
          TODO: who uses this exactly? and where is it documented? *) of
       loc * string wrap * string wrap
+  | Instr_semgrep_ellipsis of tok
+  | Instr_TODO of string wrap
 
 type program = instruction list
 
 (***************************************************************************)
 (* Location extraction *)
 (***************************************************************************)
+
+let wrap_tok (_, tok) = tok
 
 let wrap_loc (_, tok) = (tok, tok)
 
@@ -131,7 +135,7 @@ let quoted_string_loc = bracket_loc
 
 let str_loc = function
   | Unquoted x -> wrap_loc x
-  | Quoted (loc, _) -> loc
+  | Quoted x -> wrap_loc x
 
 (*
    The default shell depends on the platform on which docker runs (Unix or
@@ -206,3 +210,5 @@ let instruction_loc = function
   | Shell (loc, _, _) -> loc
   | Maintainer (loc, _, _) -> loc
   | Cross_build_xxx (loc, _, _) -> loc
+  | Instr_semgrep_ellipsis tok -> (tok, tok)
+  | Instr_TODO x -> wrap_loc x

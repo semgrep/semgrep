@@ -255,6 +255,8 @@ let rec just_parse_with_lang lang file =
   | Lang.Lua -> run file [ TreeSitter Parse_lua_tree_sitter.parse ] (fun x -> x)
   | Lang.Bash ->
       run file [ TreeSitter Parse_bash_tree_sitter.parse ] (fun x -> x)
+  | Lang.Dockerfile ->
+      run file [ TreeSitter Parse_dockerfile_tree_sitter.parse ] (fun x -> x)
   | Lang.Rust ->
       run file [ TreeSitter Parse_rust_tree_sitter.parse ] (fun x -> x)
   | Lang.C ->

@@ -92,6 +92,7 @@ let print_bool env = function
       | Lang.Kotlin
       | Lang.Lua
       | Lang.Bash
+      | Lang.Dockerfile
       | Lang.Rust
       | Lang.Scala
       | Lang.Solidity
@@ -122,6 +123,7 @@ let print_bool env = function
       | Lang.Kotlin
       | Lang.Lua
       | Lang.Bash
+      | Lang.Dockerfile
       | Lang.Rust
       | Lang.Scala
       | Lang.Solidity
@@ -223,6 +225,7 @@ and if_stmt env level (tok, e, s, sopt) =
   let format_cond, elseif_str, format_block =
     match env.lang with
     | Lang.Bash
+    | Lang.Dockerfile
     | Lang.Ruby
     | Lang.Ocaml
     | Lang.Scala
@@ -282,6 +285,7 @@ and while_stmt env level (tok, e, s) =
     match env.lang with
     | Lang.Bash
     | Lang.Php
+    | Lang.Dockerfile
     | Lang.Hack
     | Lang.Lua
     | Lang.Yaml
@@ -318,6 +322,7 @@ and do_while stmt env level (s, e) =
     match env.lang with
     | Lang.Bash
     | Lang.Php
+    | Lang.Dockerfile
     | Lang.Hack
     | Lang.Lua
     | Lang.Yaml
@@ -354,6 +359,7 @@ and for_stmt env level (for_tok, hdr, s) =
     | Lang.Bash
     | Lang.Php
     | Lang.Html
+    | Lang.Dockerfile
     | Lang.Hack
     | Lang.Lua
     | Lang.Yaml
@@ -417,6 +423,7 @@ and def_stmt env (entity, def_kind) =
       match env.lang with
       | Lang.Bash
       | Lang.Php
+      | Lang.Dockerfile
       | Lang.Hack
       | Lang.Lua
       | Lang.Yaml
@@ -481,6 +488,7 @@ and return env (tok, eopt) _sc =
   match env.lang with
   | Lang.Bash
   | Lang.Php
+  | Lang.Dockerfile
   | Lang.Hack
   | Lang.Yaml
   | Lang.Scala
@@ -520,6 +528,7 @@ and break env (tok, lbl) _sc =
   match env.lang with
   | Lang.Bash
   | Lang.Php
+  | Lang.Dockerfile
   | Lang.Hack
   | Lang.Yaml
   | Lang.Scala
@@ -559,6 +568,7 @@ and continue env (tok, lbl) _sc =
   match env.lang with
   | Lang.Bash
   | Lang.Php
+  | Lang.Dockerfile
   | Lang.Hack
   | Lang.Yaml
   | Lang.Scala
@@ -668,6 +678,7 @@ and literal env l =
       match env.lang with
       | Lang.Bash
       | Lang.Php
+      | Lang.Dockerfile
       | Lang.Hack
       | Lang.Yaml
       | Lang.Scala

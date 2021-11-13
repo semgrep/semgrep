@@ -26,6 +26,7 @@ let lang_has_no_dollar_ids =
     | Php
     | Hack
     | Bash
+    | Dockerfile
     | Rust
     | Scala
     | Solidity ->
