@@ -161,7 +161,7 @@ let tainting_test lang rules_file file =
     rules
     |> List.filter (fun r ->
       match r.Rule.languages with
-      | Rule.L (x, xs) -> List.mem lang (x :: xs)
+      | Xlang.L (x, xs) -> List.mem lang (x :: xs)
       | _ -> false)
   in
   let search_rules, taint_rules = Rule.partition_rules rules in
@@ -363,6 +363,18 @@ let lang_regression_tests ~with_caching =
     let lang = Lang.C in
     regression_tests_for_lang files lang
   );
+  pack_tests "semgrep C++" (
+    let dir = Filename.concat tests_path "cpp" in
+    let files = Common2.glob (spf "%s/*.cpp" dir) in
+    let lang = Lang.Cplusplus in
+    regression_tests_for_lang files lang
+  );
+  pack_tests "semgrep C++ on C tests" (
+    let dir = Filename.concat tests_path "c" in
+    let files = Common2.glob (spf "%s/*.c" dir) in
+    let lang = Lang.Cplusplus in
+    regression_tests_for_lang files lang
+  );
   pack_tests "semgrep Go" (
     let dir = Filename.concat tests_path "go" in
     let files = Common2.glob (spf "%s/*.go" dir) in
@@ -439,6 +451,12 @@ let lang_regression_tests ~with_caching =
     let dir = Filename.concat tests_path "hcl" in
     let files = Common2.glob (spf "%s/*.tf" dir) in
     let lang = Lang.HCL in
+    regression_tests_for_lang files lang
+  );
+  pack_tests "semgrep Kotlin" (
+    let dir = Filename.concat tests_path "kotlin" in
+    let files = Common2.glob (spf "%s/*.kt" dir) in
+    let lang = Lang.Kotlin in
     regression_tests_for_lang files lang
   );
  ]

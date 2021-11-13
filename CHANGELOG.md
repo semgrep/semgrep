@@ -3,11 +3,32 @@
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
-- CLI output no longer displays severity levels
+
+### Added
+
+### Changed
+- Dataflow: Assume that any function/method call inside a `try-catch` could
+  be raising an exception (#4091)
+
+### Fixed
+
+## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
+
+### Added
+- experimental support for C++
+
+### Changed
+- cli: if an invalid config is passed to semgrep, it will fail immediately, even if valid configs are also passed
+
+### Fixed
+- Catch PCRE errors
+- Constant propagation: Avoid "Impossible" errors due to unhandled cases
+
+## [0.72.0](https://github.com/returntocorp/semgrep/releases/tag/v0.72.0) - 11-10-2021
 
 ### Added
 - Java: Add partial support for `synchronized` blocks in the dataflow IL (#4150)
-- Dataflow: Add partial support for `yield`, `&`, and other expressions
+- Dataflow: Add partial support for `await`, `yield`, `&`, and other expressions
 - Field-definition-as-assignemnt equivalence that allows matching expression
   patterns against field definitions. It is disabled by default but can be
   enabled via rule `options:` with  `flddef_assign: true` (#4187)
@@ -29,17 +50,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   `case _x : Int => ...`
 - Scala: parse unicode identifiers
 - semgrep-core accepts `sh` as an alias for bash
-- Scala: parse nullary constructors with no arguments in more
-positions
 - pattern-regex: Hexadecimal notation of Unicode code points is now
-  supported and assumes UTF-8 (#4240).
-- pattern-regex: Update documentation, specifying we use PCRE (#3974).
+  supported and assumes UTF-8 (#4240)
+- pattern-regex: Update documentation, specifying we use PCRE (#3974)
 - Scala: parse nullary constructors with no arguments in more positions
 - Scala: parse infix type operators with tuple arguments
 - Scala: parse nested comments
+- Scala: parse `case class` within blocks
 - `metavariable-comparison`: if a metavariable binds to a code variable that
   is known to be constant, then we use that constant value in the comparison (#3727)
-- semgrep-core accepts `sh` as an alias for bash
 - Expand `~` when resolving config paths
 
 ### Changed
@@ -47,7 +66,6 @@ positions
 - cli: Only suggest increasing stack size when semgrep-core segfaults
 - Semgrep now scans executable scripts whose shebang interpreter matches the
   rule's language
-- cli: if an invalid config is passed to semgrep, it will fail immediately, even if valid configs are also passed
 
 ## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
 
@@ -65,7 +83,6 @@ positions
 - Metrics report the error type of semgrep core errors (Timeout,
   MaxMemory, etc.)
 - Prevent bad settings files from crashing Semgrep (#4164)
-- Dataflow: translate await into the IL
 - Constant propagation: Tuple/Array destructuring assignments now correctly
   prevent constant propagation
 - JS: Correctly parse metavariables in template strings
@@ -73,7 +90,6 @@ positions
   'l'/'L' long suffix on number literals
 - Scala: parse by name arguments in arbitary function types,
   like `(=> Int) => Int`
-- Scala: parse `case class` within blocks
 - Bash: various fixes and improvements
 - Kotlin: support ellipsis in class body and parameters (#4141)
 - Go: support method interface pattern (#4172)
