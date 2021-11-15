@@ -1,5 +1,5 @@
 (library
-  (name semgrep_api)
+  (public_name semgrep_api)
   (libraries
      atdgen-runtime
      commons
