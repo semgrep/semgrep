@@ -1,5 +1,5 @@
 (library
- (name semgrep_matching)
+ (public_name semgrep_matching)
  (wrapped false)
  (libraries
    yaml ppx_deriving.runtime re

@@ -1,5 +1,5 @@
 (library
- (name semgrep_parsing_tree_sitter)
+ (public_name semgrep_parsing_tree_sitter)
  (wrapped false)
  (libraries
    yaml
