@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - experimental support for C++
 
 ### Changed
+- cli: if an invalid config is passed to semgrep, it will fail immediately, even if valid configs are also passed
 
 ### Fixed
 - Catch PCRE errors
@@ -67,7 +68,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - cli: Only suggest increasing stack size when semgrep-core segfaults
 - Semgrep now scans executable scripts whose shebang interpreter matches the
   rule's language
-- CLI output no longer displays severity levels
 
 ## [0.71.0](https://github.com/returntocorp/semgrep/releases/tag/v0.71.0) - 11-01-2021
 
