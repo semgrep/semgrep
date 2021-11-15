@@ -1,5 +1,5 @@
 (library
- (name semgrep_parsing_ast)
+ (public_name semgrep_parsing_ast)
  (wrapped false)
  (libraries
    commons
