@@ -185,9 +185,7 @@ class Rule:
         ).hexdigest()
 
 
-def obscure_informational_fields(rule: Rule) -> Rule:
+def rule_without_metadata(rule: Rule) -> Rule:
     rule2 = deepcopy(rule)
-    rule2._raw["message"] = ""
     rule2._raw["metadata"] = {}
-    rule2._raw["severity"] = ""
     return rule2

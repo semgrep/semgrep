@@ -32,8 +32,8 @@ from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import SemgrepError
 from semgrep.error import UNPARSEABLE_YAML_EXIT_CODE
 from semgrep.metric_manager import metric_manager
-from semgrep.rule import obscure_informational_fields
 from semgrep.rule import Rule
+from semgrep.rule import rule_without_metadata
 from semgrep.rule_lang import EmptyYamlException
 from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
@@ -303,9 +303,11 @@ class Config:
             # re-write the configs to have the hierarchical rule ids
             self._rename_rule_ids(configs)
 
+        # deduplicate rules, ignoring metadata, which is not displayed
+        # in the result
         return list(
             OrderedDict(
-                (obscure_informational_fields(rule), rule)
+                (rule_without_metadata(rule), rule)
                 for rules in configs.values()
                 for rule in rules
             ).values()
