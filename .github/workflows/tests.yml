@@ -16,8 +16,6 @@ jobs:
     name: Update on Homebrew-Core
     runs-on: macos-10.15
     steps:
-      - name: Brew update
-        run: brew update
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
@@ -27,6 +25,9 @@ jobs:
         run: pip install pipgrip
       - name: which python
         run: which pipgrip
+      - run: pip uninstall pipgrip
+      - name: Brew update
+        run: brew update
       - name: Install brew pipgrip
         run: brew install pipgrip
       - name: which brew
