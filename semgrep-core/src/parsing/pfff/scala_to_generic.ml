@@ -320,6 +320,9 @@ and v_pattern = function
       match v1 with
       | Left lit -> G.PatLiteral lit
       | Right e -> todo_pattern "PatLiteralExpr" [ G.E e ])
+  | PatName (Id id, [])
+    when AST_generic_.is_metavar_name (fst (v_varid_or_wildcard id)) ->
+      G.PatId (v_varid_or_wildcard id, G.empty_id_info ())
   | PatName v1 ->
       let ids = v_dotted_name_of_stable_id v1 in
       let name = H.name_of_ids ids in
