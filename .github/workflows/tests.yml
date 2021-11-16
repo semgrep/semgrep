@@ -32,6 +32,9 @@ jobs:
         run: brew install pipgrip
       - name: which brew
         run: which pipgrip
+      - name: brew --prefix pipgrip
+        run: brew --prefix pipgrip
+      - run: ls /usr/local/opt/pipgrip
 
   build-core:
     name: Build and Test semgrep-core
