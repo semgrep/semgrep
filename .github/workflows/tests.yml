@@ -25,6 +25,7 @@ jobs:
         run: pip install pipgrip
       - name: which python
         run: which pipgrip
+      - run: cat /Users/runner/hostedtoolcache/Python/3.9.8/x64/bin/pipgrip
       - run: pip uninstall -y pipgrip
       - name: Brew update
         run: brew update
@@ -35,6 +36,10 @@ jobs:
       - name: brew --prefix pipgrip
         run: brew --prefix pipgrip
       - run: ls /usr/local/opt/pipgrip
+      - run: pip install pipgrip
+      - run: rm /usr/local/opt/pipgrip/bin/pipgrip
+      - run: ln /Users/runner/hostedtoolcache/Python/3.9.8/x64/bin/pipgrip /usr/local/opt/pipgrip/bin/pipgrip
+      - run: pipgrip --help
 
   build-core:
     name: Build and Test semgrep-core
