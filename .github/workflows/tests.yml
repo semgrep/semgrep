@@ -25,7 +25,7 @@ jobs:
         run: pip install pipgrip
       - name: which python
         run: which pipgrip
-      - run: pip uninstall pipgrip
+      - run: pip uninstall -y pipgrip
       - name: Brew update
         run: brew update
       - name: Install brew pipgrip
