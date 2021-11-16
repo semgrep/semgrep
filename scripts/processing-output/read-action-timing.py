@@ -27,15 +27,8 @@ for rule in rules:
 for rule in sorted(rules, key=lambda rule: rule["run_time"]):
     print(rule_counts[rule["id"]], rule)
 
-    if (
-        rule["id"] == "typescript.react.security.react-markdown-insecure-html."
-        "react-markdown-insecure-html"
-    ):
-        print("***************************************")
-
-# print(rule_counts)
-# print(len(rules))
-# print(len(rule_counts))
+print(len(rules))
+print(len(rule_counts))
 
 total_time = results["total_time"]
 total_files = results["total_time"]
