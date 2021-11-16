@@ -297,15 +297,21 @@ jobs:
     needs: [sleep-before-homebrew]  # Needs to run after pypi released so brew can update pypi dependency hashes
     runs-on: macos-10.15
     steps:
-      - name: Brew update
-        run: brew update
       - name: Setup Python
         uses: actions/setup-python@v1
         with:
           # Needs to be < 3.10 see https://github.com/returntocorp/semgrep/issues/4213
           python-version: 3.9
-      - name: Install pipgrip
+      - name: Brew update
+        run: brew update
+      - name: Install brew pipgrip
+        run: brew install pipgrip
+      - name: Install pip pipgrip
         run: pip install pipgrip
+      - name: Point homebrew pipgrip to pip pipgrip
+        # Homebrew brew calls brew pipgrip internally but brew pipgrip is pinned to python3.10
+        # this tricks it into using our 3.9 pipgrip
+        run: rm /usr/local/opt/pipgrip/bin/pipgrip && ln /Users/runner/hostedtoolcache/Python/3.9.8/x64/bin/pipgrip /usr/local/opt/pipgrip/bin/pipgrip
       - uses: dawidd6/action-homebrew-bump-formula@v3
         with:
           token: ${{ secrets.HOMEBREW_PR_TOKEN }}
