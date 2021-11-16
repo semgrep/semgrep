@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   be raising an exception (#4091)
 
 ### Fixed
+- Performance: Deduplicate rules by rule-id + behavior so rules are not being run twice
 
 ## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
 
