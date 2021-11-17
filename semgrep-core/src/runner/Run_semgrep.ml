@@ -79,16 +79,6 @@ let print_match ?str match_format mvars mvar_binding ii_of_any
     ());
   toks |> List.iter (fun x -> Common.push x _matching_tokens)
 
-(* when called from semgrep-python, error messages in semgrep-core or
- * certain profiling statistics may refer to rule id that are generated
- * by semgrep-python, making it hard to know what the problem is.
- * At least we can save this generated rule file to help debugging.
- *)
-let save_rules_file_in_tmp rules_file =
-  let tmp = Filename.temp_file "semgrep_core_rule-" ".yaml" in
-  pr2 (spf "saving rules file for debugging in: %s" tmp);
-  Common.write_file ~file:tmp (Common.read_file rules_file)
-
 (*****************************************************************************)
 (* Parallelism *)
 (*****************************************************************************)
@@ -366,122 +356,12 @@ let xlang_files_of_dirs_or_files (xlang : Xlang.t) files_or_dirs =
   | L (lang, _) -> Find_target.files_of_dirs_or_files lang files_or_dirs
 
 (*****************************************************************************)
-(* Entry points *)
-(*****************************************************************************)
-
-(*****************************************************************************)
-(* Semgrep -rules_file *)
-(*****************************************************************************)
-(* This is the main function used by the semgrep python wrapper right now.
- * It takes a language, a set of mini rules (rules with a single pattern,
- * no formula) and a set of files or dirs and recursively process those
- * files or dirs.
- *)
-let semgrep_with_patterns config (rules, rule_parse_time) files skipped =
-  logger#info "processing %d files" (List.length files);
-  (* TODO: support regex and generic just like other languages? *)
-  let lang = Xlang.lang_of_opt_xlang config.lang in
-  let file_results =
-    files
-    |> iter_files_and_get_matches_and_exn_to_errors config (fun file ->
-           let (ast, errors), parse_time =
-             Common.with_time (fun () ->
-                 P.parse_generic config.use_parsing_cache config.version lang
-                   file)
-           in
-           let (matches, errors), match_time =
-             Common.with_time (fun () ->
-                 let rules =
-                   rules |> List.filter (fun r -> List.mem lang r.MR.languages)
-                 in
-                 ( Match_patterns.check
-                     ~hook:(fun _ _ -> ())
-                     Config_semgrep.default_config rules
-                     (parse_equivalences config.equivalences_file)
-                     (file, lang, ast),
-                   errors ))
-           in
-           {
-             RP.matches;
-             errors;
-             skipped = [];
-             profiling = { file; parse_time; match_time };
-           })
-  in
-  let res =
-    RP.make_rule_result file_results config.report_time rule_parse_time
-  in
-  let res = { res with skipped = skipped @ res.skipped } in
-  logger#info "found %d matches, %d errors, %d skipped targets"
-    (List.length res.RP.matches)
-    (List.length res.RP.errors)
-    (List.length res.RP.skipped);
-  let matches, new_errors, new_skipped =
-    filter_files_with_too_many_matches_and_transform_as_timeout
-      config.max_match_per_file res.RP.matches
-  in
-  let errors = new_errors @ res.RP.errors in
-  let skipped = new_skipped @ res.RP.skipped in
-  let res =
-    { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling }
-  in
-  (* note: uncomment the following and use semgrep-core -stat_matches
-   * to debug too-many-matches issues.
-   * Common2.write_value matches "/tmp/debug_matches";
-   *)
-  let res = JSON_report.match_results_of_matches_and_errors files res in
-  (* TODO need change type match_results.time to a choice
-     let res =
-       if !profile then (
-         let json = JSON_report.json_of_profile_info !profile_start in
-         (* so we don't get also the profile output of Common.main_boilerplate*)
-         Common.profile := Common.ProfNone;
-         flds @ [ ("profiling", json) ] )
-       else flds
-     in
-  *)
-  (*
-     Not pretty-printing the json output (Yojson.Safe.prettify)
-     because it kills performance, adding an extra 50% time on our
-     calculate_ci_perf.py benchmarks.
-     User should use an external tool like jq or ydump (latter comes with
-     yojson) for pretty-printing json.
-  *)
-  let s = SJ.string_of_match_results res in
-  logger#info "size of returned JSON string: %d" (String.length s);
-  pr s
-
-let semgrep_with_patterns_file config roots =
-  (* TODO: support generic and regex patterns too? *)
-  let lang = Xlang.lang_of_opt_xlang config.lang in
-  let rules_file = config.rules_file in
-  let targets, skipped = Find_target.files_of_dirs_or_files lang roots in
-  try
-    logger#info "Parsing %s" rules_file;
-    let timed_rules =
-      Common.with_time (fun () -> Parse_mini_rule.parse rules_file)
-    in
-    semgrep_with_patterns config timed_rules targets skipped;
-    if config.profile then save_rules_file_in_tmp rules_file
-  with exn ->
-    logger#debug "exn before exit %s" (Common.exn_to_s exn);
-    (* if !Flag.debug then save_rules_file_in_tmp (); *)
-    let res =
-      {
-        RP.matches = [];
-        errors = [ E.exn_to_error "" exn ];
-        skipped = [];
-        rule_profiling = None;
-      }
-    in
-    let json = JSON_report.match_results_of_matches_and_errors [] res in
-    let s = SJ.string_of_match_results json in
-    pr s;
-    Runner_exit.exit_semgrep (Unknown_exception exn)
-
-(*****************************************************************************)
 (* Semgrep -config *)
 (*****************************************************************************)
+(* This is the main function used by the semgrep python wrapper right now.
+ * It takes a language, a set of rules and a set of files or dirs and
+ * recursively process those files or dirs.
+ *)
 
 let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
   (* todo: at some point we should infer the lang from the rules and
@@ -549,6 +429,10 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
     filter_files_with_too_many_matches_and_transform_as_timeout
       config.max_match_per_file res.matches
   in
+  (* note: uncomment the following and use semgrep-core -stat_matches
+   * to debug too-many-matches issues.
+   * Common2.write_value matches "/tmp/debug_matches";
+   *)
   let skipped = new_skipped @ res.skipped in
   let errors = new_errors @ res.errors in
   ( { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling },
@@ -585,6 +469,13 @@ let semgrep_with_rules_file config files_or_dirs =
   match config.output_format with
   | Json -> (
       let res = JSON_report.match_results_of_matches_and_errors files res in
+      (*
+        Not pretty-printing the json output (Yojson.Safe.prettify)
+        because it kills performance, adding an extra 50% time on our
+        calculate_ci_perf.py benchmarks.
+        User should use an external tool like jq or ydump (latter comes with
+        yojson) for pretty-printing json.
+      *)
       let s = SJ.string_of_match_results res in
       logger#info "size of returned JSON string: %d" (String.length s);
       pr s;
@@ -638,16 +529,17 @@ let semgrep_with_one_pattern config roots =
     | _, s when s <> "" -> (parse_pattern lang s, s)
     | _ -> raise Impossible
   in
-  let rule, rule_parse_time =
+  let rule, _rule_parse_time =
     Common.with_time (fun () -> [ rule_of_pattern lang pattern_string pattern ])
   in
 
-  let targets, skipped = Find_target.files_of_dirs_or_files lang roots in
+  let targets, _skipped = Find_target.files_of_dirs_or_files lang roots in
   let targets = Common.map replace_named_pipe_by_regular_file targets in
   match config.output_format with
   | Json ->
       (* closer to -rules_file, but no incremental match output *)
-      semgrep_with_patterns config (rule, rule_parse_time) targets skipped
+      (*      semgrep_with_patterns config (rule, rule_parse_time) targets skipped *)
+      failwith "TODO: -e/-f and JSON"
   | Text ->
       (* simpler code path than in semgrep_with_rules *)
       targets

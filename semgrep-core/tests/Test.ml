@@ -511,53 +511,6 @@ let lang_tainting_tests =
     );
   ]
 
-(* mostly a copy paste of pfff/linter/unit_linter.ml *)
-let lint_regression_tests ~with_caching =
-  let name =
-    if with_caching then
-      "lint regression testing with caching"
-    else
-      "lint regression testing without caching"
-  in
-  [
-    name, (fun () ->
-      let p path = Filename.concat tests_path path in
-      let rule_file = Filename.concat data_path "basic.yml" in
-      let lang = Lang.Python in
-
-      let test_files = [
-        p "OTHER/mini_rules/stupid.py";
-      ] in
-
-      (* expected *)
-      let expected_error_lines = E.expected_error_lines_of_files test_files in
-
-      (* actual *)
-      E.g_errors := [];
-      let rules = Parse_mini_rule.parse rule_file in
-      let equivs = [] in
-
-      test_files |> List.iter (fun file ->
-        E.try_with_exn_to_error file (fun () ->
-          let { Parse_target. ast; _} = 
-            Parse_target.just_parse_with_lang lang file in
-          Common.save_excursion
-            Flag_semgrep.with_opt_cache with_caching (fun() ->
-              Match_patterns.check ~hook:(fun _ _ -> ())
-                Config_semgrep.default_config
-                rules equivs 
-                (file, lang, ast)
-              |> List.iter JSON_report.match_to_error;
-            )
-        ));
-
-      (* compare *)
-      let actual_errors = !E.g_errors in
-      actual_errors |> List.iter (fun e -> pr (E.string_of_error e));
-      compare_actual_to_expected actual_errors expected_error_lines
-    )
-  ]
-
 let eval_regression_tests = [
   "eval regression testing", (fun () ->
     let dir = Filename.concat tests_path "OTHER/eval" in
@@ -661,8 +614,6 @@ let tests = List.flatten [
   lang_regression_tests ~with_caching:true;
   (* TODO Unit_matcher.spatch_unittest ~xxx *)
   (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
-  lint_regression_tests ~with_caching:false;
-  lint_regression_tests ~with_caching:true;
   eval_regression_tests;
   full_rule_regression_tests;
   lang_tainting_tests;
