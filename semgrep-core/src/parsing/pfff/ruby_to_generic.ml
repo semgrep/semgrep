@@ -98,12 +98,20 @@ let rec expr e =
       let e2 = expr e2 in
       let e3 = expr e3 in
       G.Conditional (e1, e2, e3)
-  | Call (e, xs, bopt) ->
+  | Call (e, xs, bopt) -> (
       let e = expr e in
       let lb, xs, rb = bracket (list argument) xs in
-      (* TODO: maybe make an extra separate Call for the block? *)
-      let last = option expr bopt |> Common.opt_to_list in
-      G.Call (e, (lb, xs @ (last |> List.map G.arg), rb))
+      let e_call = G.Call (e, (lb, xs, rb)) in
+      match bopt with
+      | None -> e_call
+      | Some b ->
+          (* There is a block to pass to `e`. We add an extra `Call` so that
+           * `f(x) { |n| puts n }` is translated as `f(x)({ |n| puts n })`
+           * rather than as `f(x, { |n| puts n })`. This way the pattern
+           * `f(...)` will only match `f(x)` and not the entire block,
+           * and `f($X)` will match `f(x)`. *)
+          let barg = b |> expr |> G.arg in
+          G.Call (G.e e_call, (lb, [ barg ], rb)))
   | DotAccess (e, t, m) ->
       let e = expr e in
       let fld =
