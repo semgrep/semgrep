@@ -537,6 +537,9 @@ and v_stmt = function
       and v4 = v_bracket v_expr v4 in
       G.DoWhile (v1, v2, G.unbracket v4) |> G.s
   | For (v1, v2, v3) ->
+      (* See https://scala-lang.org/files/archive/spec/2.13/06-expressions.html#for-comprehensions-and-for-loops
+       * for an explanation of for loops in scala
+       *)
       let v1 = v_tok v1
       and v2 = v2 |> G.unbracket |> v_enumerators
       and v3 = v_for_body v3 in
