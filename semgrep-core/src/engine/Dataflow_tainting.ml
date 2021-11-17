@@ -16,8 +16,8 @@ open Common
 open IL
 module G = AST_generic
 module F = IL
-module D = Dataflow
-module VarMap = Dataflow.VarMap
+module D = Dataflow_core
+module VarMap = Dataflow_core.VarMap
 module PM = Pattern_match
 
 (*****************************************************************************)
@@ -36,7 +36,7 @@ module PM = Pattern_match
 (* Types *)
 (*****************************************************************************)
 
-type mapping = PM.Set.t Dataflow.mapping
+type mapping = PM.Set.t Dataflow_core.mapping
 (** Map for each node/var of all the pattern matches that originated its taint.
     Anything not included in the map is not tainted. Currently we only strictly need
     the metavariable environment in these pattern matches, but we plan to make use of
@@ -44,19 +44,19 @@ type mapping = PM.Set.t Dataflow.mapping
 *)
 
 (* Tracks tainted functions. *)
-type fun_env = (Dataflow.var, PM.Set.t) Hashtbl.t
+type fun_env = (Dataflow_core.var, PM.Set.t) Hashtbl.t
 
 (* is_source/sink/sanitizer returns a list of ways that some piece of code can be matched as a source/sink/sanitizer *)
 type config = {
   is_source : G.any -> PM.t list;
   is_sink : G.any -> PM.t list;
   is_sanitizer : G.any -> PM.t list;
-  found_tainted_sink : PM.Set.t -> PM.Set.t Dataflow.env -> unit;
+  found_tainted_sink : PM.Set.t -> PM.Set.t Dataflow_core.env -> unit;
 }
 (** This can use semgrep patterns under the hood. Note that a source can be an
   * instruction but also an expression. *)
 
-module DataflowX = Dataflow.Make (struct
+module DataflowX = Dataflow_core.Make (struct
   type node = F.node
 
   type edge = F.edge
@@ -229,14 +229,14 @@ let check_tainted_return config fun_env env tok e =
 (* Transfer *)
 (*****************************************************************************)
 
-let union = Dataflow.varmap_union PM.Set.union
+let union = Dataflow_core.varmap_union PM.Set.union
 
 let (transfer :
       config ->
       fun_env ->
       IL.name option ->
       flow:F.cfg ->
-      PM.Set.t Dataflow.transfn) =
+      PM.Set.t Dataflow_core.transfn) =
  fun config fun_env opt_name ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
@@ -281,7 +281,7 @@ let (transfer :
 let (fixpoint : config -> fun_env -> IL.name option -> F.cfg -> mapping) =
  fun config fun_env opt_name flow ->
   DataflowX.fixpoint ~eq:PM.Set.equal
-    ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
+    ~init:(DataflowX.new_node_array flow (Dataflow_core.empty_inout ()))
     ~trans:
       (transfer config fun_env opt_name ~flow)
       (* tainting is a forward analysis! *)
