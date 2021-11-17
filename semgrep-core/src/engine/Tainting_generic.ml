@@ -77,7 +77,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 
 module F2 = IL
 
-module DataflowY = Dataflow.Make (struct
+module DataflowY = Dataflow_core.Make (struct
   type node = F2.node
 
   type edge = F2.edge

@@ -41,7 +41,7 @@ let test_cfg_generic file =
 
 module F = Controlflow
 
-module DataflowX = Dataflow.Make (struct
+module DataflowX = Dataflow_core.Make (struct
   type node = F.node
 
   type edge = F.edge
@@ -60,7 +60,7 @@ let test_dfg_generic file =
              let flow = Controlflow_build.cfg_of_func def in
              pr2 "Reaching definitions";
              let mapping = Dataflow_reaching.fixpoint flow in
-             DataflowX.display_mapping flow mapping Dataflow.ns_to_str;
+             DataflowX.display_mapping flow mapping Dataflow_core.ns_to_str;
              pr2 "Liveness";
              let mapping = Dataflow_liveness.fixpoint flow in
              DataflowX.display_mapping flow mapping (fun () -> "()")
@@ -120,7 +120,7 @@ let test_cfg_il file =
 
 module F2 = IL
 
-module DataflowY = Dataflow.Make (struct
+module DataflowY = Dataflow_core.Make (struct
   type node = F2.node
 
   type edge = F2.edge
