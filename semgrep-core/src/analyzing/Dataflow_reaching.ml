@@ -70,7 +70,8 @@ let (defs : F.flow -> NodeiSet.t Dataflow_core.env) =
              let vars = lvals |> List.map (fun ((s, _tok), _idinfo) -> s) in
              vars
              |> List.fold_left
-                  (fun env var -> Dataflow_core.add_var_and_nodei_to_env var ni env)
+                  (fun env var ->
+                    Dataflow_core.add_var_and_nodei_to_env var ni env)
                   env)
            env)
     VarMap.empty
@@ -96,8 +97,10 @@ let (gens : F.flow -> VarSet.t array) =
       arr)
     flow arr
 
-let (kills : NodeiSet.t Dataflow_core.env -> F.flow -> NodeiSet.t Dataflow_core.env array)
-    =
+let (kills :
+      NodeiSet.t Dataflow_core.env ->
+      F.flow ->
+      NodeiSet.t Dataflow_core.env array) =
  fun defs flow ->
   let arr = DataflowX.new_node_array flow (Dataflow_core.empty_env ()) in
   V.fold_on_node_and_expr
@@ -141,7 +144,9 @@ let (transfer :
       VarMap.empty
   in
   let in_minus_kill = diff in' kill.(ni) in
-  let out' = Dataflow_core.add_vars_and_nodei_to_env gen.(ni) ni in_minus_kill in
+  let out' =
+    Dataflow_core.add_vars_and_nodei_to_env gen.(ni) ni in_minus_kill
+  in
   { D.in_env = in'; out_env = out' }
 
 (*****************************************************************************)
