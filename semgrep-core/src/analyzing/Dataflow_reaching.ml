@@ -14,11 +14,11 @@
  * license.txt for more details.
  *)
 module F = Controlflow
-module D = Dataflow
+module D = Dataflow_core
 module V = Controlflow_visitor
-module NodeiSet = Dataflow.NodeiSet
-module VarMap = Dataflow.VarMap
-module VarSet = Dataflow.VarSet
+module NodeiSet = Dataflow_core.NodeiSet
+module VarMap = Dataflow_core.VarMap
+module VarSet = Dataflow_core.VarSet
 
 (*****************************************************************************)
 (* Prelude *)
@@ -51,13 +51,13 @@ module VarSet = Dataflow.VarSet
  * then at the program point (node index) 7, then for $a the nodei set
  * is {3, 5}, but not '1'.
  *)
-type mapping = Dataflow.NodeiSet.t Dataflow.mapping
+type mapping = Dataflow_core.NodeiSet.t Dataflow_core.mapping
 
 (*****************************************************************************)
 (* Gen/Kill *)
 (*****************************************************************************)
 
-let (defs : F.flow -> NodeiSet.t Dataflow.env) =
+let (defs : F.flow -> NodeiSet.t Dataflow_core.env) =
  fun flow ->
   (* the long version, could use F.fold_on_expr *)
   flow.graph#nodes#fold
@@ -70,12 +70,12 @@ let (defs : F.flow -> NodeiSet.t Dataflow.env) =
              let vars = lvals |> List.map (fun ((s, _tok), _idinfo) -> s) in
              vars
              |> List.fold_left
-                  (fun env var -> Dataflow.add_var_and_nodei_to_env var ni env)
+                  (fun env var -> Dataflow_core.add_var_and_nodei_to_env var ni env)
                   env)
            env)
     VarMap.empty
 
-module DataflowX = Dataflow.Make (struct
+module DataflowX = Dataflow_core.Make (struct
   type node = F.node
 
   type edge = F.edge
@@ -96,10 +96,10 @@ let (gens : F.flow -> VarSet.t array) =
       arr)
     flow arr
 
-let (kills : NodeiSet.t Dataflow.env -> F.flow -> NodeiSet.t Dataflow.env array)
+let (kills : NodeiSet.t Dataflow_core.env -> F.flow -> NodeiSet.t Dataflow_core.env array)
     =
  fun defs flow ->
-  let arr = DataflowX.new_node_array flow (Dataflow.empty_env ()) in
+  let arr = DataflowX.new_node_array flow (Dataflow_core.empty_env ()) in
   V.fold_on_node_and_expr
     (fun (ni, _nd) e () ->
       let lvals = Lrvalue.lvalues_of_expr e in
@@ -115,9 +115,9 @@ let (kills : NodeiSet.t Dataflow.env -> F.flow -> NodeiSet.t Dataflow.env array)
 (* Transfer *)
 (*****************************************************************************)
 
-let union = Dataflow.union_env
+let union = Dataflow_core.union_env
 
-let diff = Dataflow.diff_env
+let diff = Dataflow_core.diff_env
 
 (*
  * This algorithm is taken from Modern Compiler Implementation in ML, Appel,
@@ -129,9 +129,9 @@ let diff = Dataflow.diff_env
  *)
 let (transfer :
       gen:VarSet.t array ->
-      kill:NodeiSet.t Dataflow.env array ->
+      kill:NodeiSet.t Dataflow_core.env array ->
       flow:F.flow ->
-      NodeiSet.t Dataflow.transfn) =
+      NodeiSet.t Dataflow_core.transfn) =
  fun ~gen ~kill ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
@@ -141,7 +141,7 @@ let (transfer :
       VarMap.empty
   in
   let in_minus_kill = diff in' kill.(ni) in
-  let out' = Dataflow.add_vars_and_nodei_to_env gen.(ni) ni in_minus_kill in
+  let out' = Dataflow_core.add_vars_and_nodei_to_env gen.(ni) ni in_minus_kill in
   { D.in_env = in'; out_env = out' }
 
 (*****************************************************************************)
@@ -154,6 +154,6 @@ let (fixpoint : F.flow -> mapping) =
   let kill = kills (defs flow) flow in
 
   DataflowX.fixpoint ~eq:NodeiSet.equal
-    ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
+    ~init:(DataflowX.new_node_array flow (Dataflow_core.empty_inout ()))
     ~trans:(transfer ~gen ~kill ~flow)
     ~forward:true ~flow

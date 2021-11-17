@@ -26,6 +26,10 @@ open Common
  * As you may want different kinds of information, the types below
  * are polymorphic. But each take as a key a variable name.
  *
+ * This file used to be called Dataflow.ml, but this conflicts with
+ * OCaml compiler-libs/dataflow.ml which is exposed when compiling
+ * with 4.12.0+domains (a.k.a. OCaml multicore preview).
+ *
  * todo:
  *  - could use a functor, so would not have all those 'a?
  *  - do we need other kind of information than variable environment?
