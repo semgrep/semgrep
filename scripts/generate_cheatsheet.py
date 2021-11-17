@@ -88,6 +88,7 @@ VERBOSE_SUBCATEGORY_NAME = {
     "func_def": "Function Definitions",
     "key_value": "Object or Dictionary Key Value Pairs",
     "typed_fieldaccess": "Typed Metavariable Field Access",
+    "method_chaining": "Method Chaining",
 }
 
 LANGUAGE_EXCEPTIONS = {
@@ -114,6 +115,7 @@ CHEATSHEET_ENTRIES = {
         "string",
         "stmts",
         "nested_stmts",
+        "method_chaining",
     ],
     "metavar": [
         "call",
