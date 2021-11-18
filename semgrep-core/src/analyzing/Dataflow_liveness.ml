@@ -14,9 +14,9 @@
  * license.txt for more details.
  *)
 module F = Controlflow
-module D = Dataflow
+module D = Dataflow_core
 module V = Controlflow_visitor
-module VarMap = Dataflow.VarMap
+module VarMap = Dataflow_core.VarMap
 
 (*****************************************************************************)
 (* Prelude *)
@@ -47,9 +47,9 @@ module VarMap = Dataflow.VarMap
  *
  * TODO?? what is live?
  *)
-type mapping = unit Dataflow.mapping
+type mapping = unit Dataflow_core.mapping
 
-module DataflowX = Dataflow.Make (struct
+module DataflowX = Dataflow_core.Make (struct
   type node = F.node
 
   type edge = F.edge
@@ -68,7 +68,7 @@ end)
  * it's convenient to still use a VarMap (Dataflow.env) so we can
  * reuse Dataflow.varmap_union and Dataflow.varmap_diff.
  *)
-let (gens : F.flow -> unit Dataflow.env array) =
+let (gens : F.flow -> unit Dataflow_core.env array) =
  fun flow ->
   let arr = DataflowX.new_node_array flow VarMap.empty in
   V.fold_on_node_and_expr
@@ -89,9 +89,9 @@ let (gens : F.flow -> unit Dataflow.env array) =
  * assignment, then the previous value of b is indeed not needed just before
  * this assignment.
  *)
-let (kills : F.flow -> unit Dataflow.env array) =
+let (kills : F.flow -> unit Dataflow_core.env array) =
  fun flow ->
-  let arr = DataflowX.new_node_array flow (Dataflow.empty_env ()) in
+  let arr = DataflowX.new_node_array flow (Dataflow_core.empty_env ()) in
   V.fold_on_node_and_expr
     (fun (ni, _nd) e () ->
       let lvals = Lrvalue.lvalues_of_expr e in
@@ -104,9 +104,9 @@ let (kills : F.flow -> unit Dataflow.env array) =
 (* Transfer *)
 (*****************************************************************************)
 
-let union = Dataflow.varmap_union (fun () () -> ())
+let union = Dataflow_core.varmap_union (fun () () -> ())
 
-let diff = Dataflow.varmap_diff (fun () () -> ()) (fun () -> true)
+let diff = Dataflow_core.varmap_diff (fun () () -> ()) (fun () -> true)
 
 (*
  * This algorithm is taken from Modern Compiler Implementation in ML, Appel,
@@ -117,10 +117,10 @@ let diff = Dataflow.varmap_diff (fun () () -> ()) (fun () -> true)
  *  - out[n] = U_{s in succ[n]} in[s]
  *)
 let (transfer :
-      gen:unit Dataflow.env array ->
-      kill:unit Dataflow.env array ->
+      gen:unit Dataflow_core.env array ->
+      kill:unit Dataflow_core.env array ->
       flow:F.flow ->
-      unit Dataflow.transfn) =
+      unit Dataflow_core.transfn) =
  fun ~gen ~kill ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
@@ -144,6 +144,6 @@ let (fixpoint : F.flow -> mapping) =
 
   DataflowX.fixpoint
     ~eq:(fun () () -> true)
-    ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
+    ~init:(DataflowX.new_node_array flow (Dataflow_core.empty_inout ()))
     ~trans:(transfer ~gen ~kill ~flow) (* liveness is a backward analysis! *)
     ~forward:false ~flow

@@ -220,14 +220,14 @@ def main(
 
     profiler.save("total_time", start_time)
 
-    filtered_matches = process_ignores(
+    filtered_matches_by_rule, nosem_errors, num_ignored_by_nosem = process_ignores(
         rule_matches_by_rule, output_handler, strict=strict, disable_nosem=disable_nosem
     )
 
     output_handler.handle_semgrep_errors(semgrep_errors)
-    output_handler.handle_semgrep_errors(filtered_matches.errors)
+    output_handler.handle_semgrep_errors(nosem_errors)
 
-    num_findings = sum(len(v) for v in filtered_matches.matches.values())
+    num_findings = sum(len(v) for v in filtered_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
 
     error_types = list(e.semgrep_error_type() for e in semgrep_errors)
@@ -239,18 +239,18 @@ def main(
         metric_manager.set_num_rules(len(filtered_rules))
         metric_manager.set_num_targets(len(all_targets))
         metric_manager.set_num_findings(num_findings)
-        metric_manager.set_num_ignored(filtered_matches.num_matches)
+        metric_manager.set_num_ignored(num_ignored_by_nosem)
         metric_manager.set_run_time(profiler.calls["total_time"][0])
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
         metric_manager.set_total_bytes_scanned(total_bytes_scanned)
         metric_manager.set_errors(error_types)
-        metric_manager.set_rules_with_findings(filtered_matches.matches)
+        metric_manager.set_rules_with_findings(filtered_matches_by_rule)
         metric_manager.set_run_timings(
             profiling_data, list(all_targets), filtered_rules
         )
 
     output_handler.handle_semgrep_core_output(
-        filtered_matches.matches,
+        filtered_matches_by_rule,
         debug_steps_by_rule=debug_steps_by_rule,
         stats_line=stats_line,
         all_targets=all_targets,
@@ -261,4 +261,4 @@ def main(
     )
 
     if autofix:
-        apply_fixes(filtered_matches.matches, dryrun)
+        apply_fixes(filtered_matches_by_rule, dryrun)

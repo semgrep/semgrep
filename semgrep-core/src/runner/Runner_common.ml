@@ -18,7 +18,6 @@ type config = {
   (* Main flags *)
   pattern_string : string;
   pattern_file : string;
-  rules_file : string;
   config_file : string;
   equivalences_file : string;
   lang : Xlang.t option;

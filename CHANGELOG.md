@@ -4,6 +4,17 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- PHP: support method patterns (#4262)
+- Python: support for method chaining patterns
+- Scala: translate infix operators to generic AST as method calls, so `$X.map($F)` matches `xs map f`
+
+### Changed
+
+### Fixed
+- Ruby blocks are now represented with an extra function call in Generic so that
+  both `f(...)` and `f($X)` correctly match `f(x)` in `f(x) { |n| puts n }` (#3880)
+
 ## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
 
 ### Added
@@ -15,7 +26,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 - Performance: Deduplicate rules by rule-id + behavior so rules are not being run twice
 - Scala: recognize metavariables in patterns
-- Scala: translate infix operators to generic AST as method calls, so `$X.map($F)` matches `xs map f`
+- Scala: translate for loops to the generic ast properly
 
 ## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
 

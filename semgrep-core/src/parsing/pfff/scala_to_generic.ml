@@ -541,11 +541,30 @@ and v_stmt = function
       and v4 = v_bracket v_expr v4 in
       G.DoWhile (v1, v2, G.unbracket v4) |> G.s
   | For (v1, v2, v3) ->
+      (* See https://scala-lang.org/files/archive/spec/2.13/06-expressions.html#for-comprehensions-and-for-loops
+       * for an explanation of for loops in scala
+       *)
       let v1 = v_tok v1
-      and _v2TODO = v_bracket v_enumerators v2
+      and v2 = v2 |> G.unbracket |> v_enumerators
       and v3 = v_for_body v3 in
-      let header = G.ForClassic ([], None, None) (* TODO *) in
-      G.For (v1, header, v3) |> G.s
+      List.fold_right
+        (fun gen stmt ->
+          match gen with
+          | `G (pat, tok, e, guards) ->
+              G.For
+                ( v1,
+                  G.ForEach (pat, tok, e),
+                  List.fold_right
+                    (fun (g_tok, g_e) stmt ->
+                      G.If (g_tok, G.Cond g_e, stmt, None) |> G.s)
+                    guards stmt )
+              |> G.s
+          | `GIf guards ->
+              List.fold_right
+                (fun (g_tok, g_e) stmt ->
+                  G.If (g_tok, G.Cond g_e, stmt, None) |> G.s)
+                guards stmt)
+        v2 v3
   | Return (v1, v2) ->
       let v1 = v_tok v1 and v2 = v_option v_expr v2 in
       G.Return (v1, v2, G.sc) |> G.s
@@ -567,12 +586,8 @@ and v_stmt = function
 and v_enumerators v = v_list v_enumerator v
 
 and v_enumerator = function
-  | G v1 ->
-      let _v1TODO = v_generator v1 in
-      ()
-  | GIf v1 ->
-      let _v1TODO = v_list v_guard v1 in
-      ()
+  | G v1 -> `G (v_generator v1)
+  | GIf v1 -> `GIf (v_list v_guard v1)
 
 and v_generator
     {
@@ -581,11 +596,11 @@ and v_generator
       genbody = v_genbody;
       genguards = v_genguards;
     } =
-  let _pat = v_pattern v_genpat in
-  let _t = v_tok v_gentok in
-  let _e = v_expr v_genbody in
-  let _guards = v_list v_guard v_genguards in
-  ()
+  let pat = v_pattern v_genpat in
+  let t = v_tok v_gentok in
+  let e = v_expr v_genbody in
+  let guards = v_list v_guard v_genguards in
+  (pat, t, e, guards)
 
 and v_for_body = function
   | Yield (v1, v2) ->
