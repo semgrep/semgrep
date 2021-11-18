@@ -5,7 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
-- support for method chaining patterns for Python, Golang, and Ruby (#4300)
+- support for method chaining patterns for Python, Golang, Ruby,
+  and C# (#4300), so all GA languages now have method chaining
 - Scala: translate infix operators to generic AST as method calls, so `$X.map($F)` matches `xs map f`
 - PHP: support method patterns (#4262)
 
