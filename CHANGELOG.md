@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ### Added
 - PHP: support method patterns (#4262)
+- Python: support for method chaining patterns
 
 ### Changed
 
