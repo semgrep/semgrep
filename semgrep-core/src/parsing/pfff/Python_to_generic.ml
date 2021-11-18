@@ -109,6 +109,9 @@ let expr_context = function
 
 let rec expr (x : expr) =
   match x with
+  | ObjAccessEllipsis (v1, v2) ->
+      let v1 = expr v1 in
+      G.DotAccessEllipsis (v1, v2) |> G.e
   | Bool v1 ->
       let v1 = wrap bool v1 in
       G.L (G.Bool v1) |> G.e
