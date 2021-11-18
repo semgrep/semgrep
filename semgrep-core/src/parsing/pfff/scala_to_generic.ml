@@ -405,8 +405,12 @@ and v_expr e : G.expr =
       let v1 = v_expr v1 and v2 = v_list v_arguments v2 in
       v2 |> List.fold_left (fun acc xs -> G.Call (acc, xs) |> G.e) v1
   | Infix (v1, v2, v3) ->
+      (* In scala [x f y] means [x.f(y)]  *)
       let v1 = v_expr v1 and v2 = v_ident v2 and v3 = v_expr v3 in
-      G.Call (G.N (H.name_of_id v2) |> G.e, fb [ G.Arg v1; G.Arg v3 ]) |> G.e
+      G.Call
+        ( G.DotAccess (v1, fake ".", G.FN (H.name_of_id v2)) |> G.e,
+          fb [ G.Arg v3 ] )
+      |> G.e
   | Prefix (v1, v2) ->
       let v1 = v_op v1 and v2 = v_expr v2 in
       G.Call (G.N (H.name_of_id v1) |> G.e, fb [ G.Arg v2 ]) |> G.e

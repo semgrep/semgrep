@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - PHP: support method patterns (#4262)
 - Python: support for method chaining patterns
+- Scala: translate infix operators to generic AST as method calls, so `$X.map($F)` matches `xs map f`
 
 ### Changed
 
