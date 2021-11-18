@@ -57,7 +57,6 @@ let config =
     profile_start = 0.0;
     pattern_string = "";
     pattern_file = "";
-    rules_file = "";
     config_file = "";
     equivalences_file = "";
     lang = None;

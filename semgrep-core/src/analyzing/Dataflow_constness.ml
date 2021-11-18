@@ -16,17 +16,17 @@ open Common
 open IL
 module G = AST_generic
 module F = IL
-module D = Dataflow
-module VarMap = Dataflow.VarMap
+module D = Dataflow_core
+module VarMap = Dataflow_core.VarMap
 
 (*****************************************************************************)
 (* Types *)
 (*****************************************************************************)
 
 (* map for each node/var whether a variable is constant *)
-type mapping = G.constness Dataflow.mapping
+type mapping = G.constness Dataflow_core.mapping
 
-module DataflowX = Dataflow.Make (struct
+module DataflowX = Dataflow_core.Make (struct
   type node = F.node
 
   type edge = F.edge
@@ -282,12 +282,12 @@ and eval_concat env args =
  * perhaps we could have a switch to control whether we want a may- or must-
  * analysis?
  *)
-let union_env = Dataflow.varmap_union union
+let union_env = Dataflow_core.varmap_union union
 
 let transfer :
-    enter_env:G.constness Dataflow.env ->
+    enter_env:G.constness Dataflow_core.env ->
     flow:F.cfg ->
-    G.constness Dataflow.transfn =
+    G.constness Dataflow_core.transfn =
  fun ~enter_env ~flow
      (* the transfer function to update the mapping at node index ni *)
        mapping ni ->
@@ -358,7 +358,7 @@ let (fixpoint : IL.name list -> F.cfg -> mapping) =
     |> D.VarMap.of_seq
   in
   DataflowX.fixpoint ~eq
-    ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
+    ~init:(DataflowX.new_node_array flow (Dataflow_core.empty_inout ()))
     ~trans:(transfer ~enter_env ~flow) (* constness is a forward analysis! *)
     ~forward:true ~flow
 
