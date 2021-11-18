@@ -11,6 +11,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - PHP: support method patterns (#4262)
 
 ### Changed
+- Constant propagation: Any kind of Python string (raw, byte, or unicode) is now
+  evaluated to a string literal and can be matched by `"..."` (#3881)
 
 ### Fixed
 - Ruby blocks are now represented with an extra function call in Generic so that
