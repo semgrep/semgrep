@@ -355,7 +355,7 @@ class YamlMap:
         return self._internal.keys()
 
 
-def parse_yaml_preserve_spans(contents: str, filename: Optional[str]) -> YamlTree:
+def parse_yaml_preserve_spans(contents: str, filename: Optional[str] = None) -> YamlTree:
     """
     parse yaml into a YamlTree object. The resulting spans are tracked in SourceTracker
     so they can be used later when constructing error messages or displaying context.

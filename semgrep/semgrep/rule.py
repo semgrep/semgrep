@@ -15,6 +15,7 @@ from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
+from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import Language
@@ -184,14 +185,15 @@ class Rule:
             if 'patterns-from' in patterns_item:
                 value = patterns_item['patterns-from']
                 if value.startswith('file://'):
-                    import json
-                    data = json.load(open(value.replace('file://', '')))
-                    to_replace[idx] = data.get('patterns', [])
+                    yaml_str = open(value.replace('file://', '')).read() # TODO move to func and use pathlib
+                    y = parse_yaml_preserve_spans(yaml_str)
+                    first_rule = y.unroll_dict()['rules'][0]
+                    to_replace[idx] = first_rule.get('patterns', [])
         # replace the old ones
         for idx, new_values_list in to_replace.items():
             before = patterns[:idx]
             item_to_replace = patterns[idx]
-            replacement = [{el.get('key'): el.get('value')} for el in new_values_list]
+            replacement = new_values_list
             after = patterns[idx+1:]
             new_patterns = before + replacement + after
             patterns = new_patterns
