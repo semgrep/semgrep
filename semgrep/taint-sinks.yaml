@@ -1,0 +1,12 @@
+rules:
+  - id: crypto-sinks
+    severity: INFO
+    message: >-
+      python taint sinks
+    languages: [python]
+    patterns:
+      - pattern-either:
+        - pattern: $FUNCTION(...)
+      - metavariable-regex:
+          metavariable: $FUNCTION
+          regex: (?i)(.*password.*)

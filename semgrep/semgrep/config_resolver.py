@@ -345,36 +345,62 @@ class Config:
         # TODO add support for `pattern`, `pattern-either` etc as top-level keys. This assumes `patterns`
         # TODO should we be mutating the internal structure of rules or generating a new one? Probably the latter
         # TODO make sure we update rule.yaml or generate a new one and replace the whole rule
+        # TODO handle circular patterns-from
 
-        for config_id, rules in valid_configs.items():
-            for rule in rules:
-                # find all the `patterns-from`
-                # TODO use YamlTree to find all recursively
-                patterns = rule.raw.get('patterns', [])
-                to_replace = {}
-                for idx, patterns_item in enumerate(patterns):
-                    if 'patterns-from' in patterns_item: # TODO handle `patterns-from` not in top level
-                        value = patterns_item['patterns-from']
-                        # now resolve them as config objects
-                        config, errors = Config.from_config_list([value]) # TODO validate no errors
-                        if errors:
-                            logger.warning(f"There were errors resolving patterns-from: {errors}")
-                        rules = config.get_rules(no_rewrite_rule_ids)
-                        if len(rules) != 1:
-                            logger.warning(f"There were {len(rules)} rules found in {value}. Just using the first one")
-                        first_rule = rules[0]
-                        to_replace[idx] = first_rule.raw.get('patterns', [])
+        def replace_patterns(patterns: Sequence[Dict[str, Any]]) -> Sequence[Dict[str, Any]]:
+            # TODO make copy of patterns and return new_patterns
+            to_replace = {}
+            for idx, item in enumerate(patterns):
+                if 'patterns-from' in item: # TODO handle `patterns-from` not in top level
+                    value = item['patterns-from']
+                    # now resolve them as config objects
+                    config, errors = Config.from_config_list([value]) # TODO validate no errors
+                    if errors:
+                        logger.warning(f"There were errors resolving patterns-from: {errors}")
+                    rules = config.get_rules(no_rewrite_rule_ids)
+                    if len(rules) < 1:
+                        logger.error(f"There were no rules found in {value}. Please check the value of `pattern-from` and try again.")
+                    if len(rules) > 1:
+                        logger.warning(f"There were {len(rules)} rules found in {value}. Just using the first one")
+                    first_rule = rules[0]
+                    to_replace[idx] = first_rule.raw.get('patterns', [])
 
-                # replace the old ones TODO use yaml tree?
-                for idx, new_values_list in to_replace.items():
-                    before = patterns[:idx]
-                    item_to_replace = patterns[idx]
-                    replacement = new_values_list
-                    after = patterns[idx+1:]
-                    new_patterns = before + replacement + after
-                    patterns = new_patterns
+            # replace the old ones TODO use yaml tree?
+            for idx, new_values_list in to_replace.items():
+                before = patterns[:idx]
+                item_to_replace = patterns[idx]
+                replacement = new_values_list
+                after = patterns[idx+1:]
+                patterns = before + replacement + after
+            return patterns
 
-                rule.raw['patterns'] = patterns
+        def replace_patterns_inside_key(key: Optional[str] = None) -> None:
+            for config_id, rules in valid_configs.items():
+                for rule in rules:
+                    # find all the `patterns-from`
+                    # TODO use YamlTree to find all recursively
+                    if key is not None:
+                        inside_wrapper_key = rule.raw.get(key, [])
+                        for item in inside_wrapper_key:
+                            if len(item) == 1 and 'patterns' in item:
+                                patterns = item['patterns']
+                                new_patterns = replace_patterns(patterns)
+                                item['patterns'] = new_patterns
+                            else:
+                                logger.warning("invalid state not supported yet for patterns-from")
+                    else:
+                        if 'patterns' in rule.raw:
+                            patterns = rule.raw['patterns']
+                            new_patterns = replace_patterns(patterns)
+                            rule.raw['patterns'] = new_patterns
+
+        # replace `patterns` key
+        replace_patterns_inside_key(None) # TOP LEVEL `patterns`
+        # now handle pattern-sources and pattern-sinks
+        replace_patterns_inside_key('pattern-sources')
+        replace_patterns_inside_key('pattern-sinks')
+        # TODO `pattern`, `pattern-either`,...
+                
 
     @staticmethod
     def _validate(

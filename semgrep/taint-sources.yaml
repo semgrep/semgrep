@@ -1,0 +1,13 @@
+rules:
+- id: crypto-sources
+  severity: INFO
+  message: >-
+    python crypto taint sources
+  languages: [python]
+  patterns:
+    - pattern-either:
+      - pattern: hashlib.md5
+      - pattern: hashlib.new(..., name="MD5", ...)
+      - pattern: Cryptodome.Hash.MD5
+      - pattern: Crypto.Hash.MD5
+      - pattern: cryptography.hazmat.primitives.hashes.MD5
