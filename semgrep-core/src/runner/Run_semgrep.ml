@@ -534,7 +534,9 @@ let semgrep_with_one_pattern config roots =
     Common.with_time (fun () -> [ rule_of_pattern lang pattern_string pattern ])
   in
 
-  let targets, _skipped = Find_target.files_of_dirs_or_files (Some lang) roots in
+  let targets, _skipped =
+    Find_target.files_of_dirs_or_files (Some lang) roots
+  in
   let targets = Common.map replace_named_pipe_by_regular_file targets in
   match config.output_format with
   | Json ->
