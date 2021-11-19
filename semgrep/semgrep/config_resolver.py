@@ -342,9 +342,40 @@ class Config:
 
     @staticmethod
     def _resolve_patterns_from(valid_configs: Mapping[str, Sequence[Rule]]) -> None:
+        # TODO add support for `pattern`, `pattern-either` etc as top-level keys. This assumes `patterns`
+        # TODO should we be mutating the internal structure of rules or generating a new one? Probably the latter
+        # TODO make sure we update rule.yaml or generate a new one and replace the whole rule
+
         for config_id, rules in valid_configs.items():
             for rule in rules:
-                rule.resolve_patterns_from()
+                # find all the `patterns-from`
+
+                # TODO use YamlTree to find all recursively
+                patterns = rule.raw.get('patterns', [])
+                to_replace = {}
+                for idx, patterns_item in enumerate(patterns):
+                    if 'patterns-from' in patterns_item: # TODO handle `patterns-from` not in top level
+                        value = patterns_item['patterns-from']
+                        # now resolve them as config objects
+                        config, errors = Config.from_config_list([value]) # TODO validate no errors
+                        if errors:
+                            logger.warning(f"There were errors resolving patterns-from: {errors}")
+                        rules = config.get_rules()
+                        if len(rules) !== 1:
+                            logger.warning(f"There were {len(rules)} rules found in {value}. Just using the first one")
+                        first_rule = rules[0]
+                        to_replace[idx] = first_rule.raw.get('patterns', [])
+
+                # replace the old ones TODO use yaml tree?
+                for idx, new_values_list in to_replace.items():
+                    before = patterns[:idx]
+                    item_to_replace = patterns[idx]
+                    replacement = new_values_list
+                    after = patterns[idx+1:]
+                    new_patterns = before + replacement + after
+                    patterns = new_patterns
+
+                rule.raw['patterns'] = patterns
 
     @staticmethod
     def _validate(

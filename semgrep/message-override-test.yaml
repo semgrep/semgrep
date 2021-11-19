@@ -1,0 +1,14 @@
+rules:
+- id: cookie-missing-secure-flag
+  metadata:
+    cwe: "CWE-614: Sensitive Cookie in HTTPS Session Without 'Secure' Attribute"
+    owasp: 'A3: Sensitive Data Exposure'
+    source-rule-url: https://find-sec-bugs.github.io/bugs.htm#INSECURE_COOKIE
+    category: security
+    technology:
+    - kt
+  message: This is a custom message that uses the patterns from the registry
+  severity: WARNING
+  languages: [kt]
+  patterns:
+  - patterns-from: r/kotlin.lang.security.cookie-missing-secure-flag
