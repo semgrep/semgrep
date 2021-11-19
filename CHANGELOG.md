@@ -36,25 +36,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
 
 ### Added
+- experimental support for C++
 
 ### Changed
 - Dataflow: Assume that any function/method call inside a `try-catch` could
   be raising an exception (#4091)
+- cli: if an invalid config is passed to semgrep, it will fail immediately, even 
+  if valid configs are also passed
 
 ### Fixed
-- Performance: Deduplicate rules by rule-id + behavior so rules are not being run twice
+- Performance: Deduplicate rules by rule-id + behavior so rules are not being run
+  twice
 - Scala: recognize metavariables in patterns
 - Scala: translate for loops to the generic ast properly
-
-## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
-
-### Added
-- experimental support for C++
-
-### Changed
-- cli: if an invalid config is passed to semgrep, it will fail immediately, even if valid configs are also passed
-
-### Fixed
 - Catch PCRE errors
 - Constant propagation: Avoid "Impossible" errors due to unhandled cases
 
