@@ -11,8 +11,6 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - PHP: support method patterns (#4262)
 
 ### Changed
-- Add `profiling_times` object in `--time --json` output for more fine grained visibility
-  into slow parts of semgrep
 - Constant propagation: Any kind of Python string (raw, byte, or unicode) is now
   evaluated to a string literal and can be matched by `"..."` (#3881)
 
