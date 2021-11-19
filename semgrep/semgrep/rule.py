@@ -175,6 +175,31 @@ class Rule:
     def rename_id(self, new_id: str) -> None:
         self._id = new_id
 
+    def resolve_patterns_from(self) -> None:
+        # find all the `patterns-from`
+        # TODO use YamlTree to find all recursively
+        patterns = self.raw.get('patterns', [])
+        to_replace = {}
+        for idx, patterns_item in enumerate(patterns):
+            if 'patterns-from' in patterns_item:
+                value = patterns_item['patterns-from']
+                if value.startswith('file://'):
+                    import json
+                    data = json.load(open(value.replace('file://', '')))
+                    to_replace[idx] = data.get('patterns', [])
+        # replace the old ones
+        for idx, new_values_list in to_replace.items():
+            before = patterns[:idx]
+            item_to_replace = patterns[idx]
+            replacement = [{el.get('key'): el.get('value')} for el in new_values_list]
+            after = patterns[idx+1:]
+            new_patterns = before + replacement + after
+            patterns = new_patterns
+
+        self._raw['patterns'] = patterns
+                        
+        # TODO should this be moved out of Rule?
+
     @property
     def full_hash(self) -> str:
         """

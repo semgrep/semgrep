@@ -302,6 +302,7 @@ class Config:
         if not no_rewrite_rule_ids:
             # re-write the configs to have the hierarchical rule ids
             self._rename_rule_ids(configs)
+        self._resolve_patterns_from(configs)
 
         # deduplicate rules, ignoring metadata, which is not displayed
         # in the result
@@ -338,6 +339,12 @@ class Config:
                 rule.rename_id(
                     f"{Config._convert_config_id_to_prefix(config_id)}{rule.id or MISSING_RULE_ID}"
                 )
+
+    @staticmethod
+    def _resolve_patterns_from(valid_configs: Mapping[str, Sequence[Rule]]) -> None:
+        for config_id, rules in valid_configs.items():
+            for rule in rules:
+                rule.resolve_patterns_from()
 
     @staticmethod
     def _validate(

@@ -16,6 +16,7 @@ definitions:
       - $ref: '#/definitions/pattern-regex'
       - $ref: '#/definitions/pattern-not-regex'
       - $ref: '#/definitions/pattern-where-python'
+      - $ref: '#/definitions/patterns-from'
       - $ref: '#/definitions/metavariable-regex'
       - $ref: '#/definitions/metavariable-pattern'
       - $ref: '#/definitions/metavariable-comparison'
@@ -298,6 +299,15 @@ definitions:
         type: string
     required:
       - pattern-where-python
+    additionalProperties: false
+  patterns-from:
+    type: object
+    properties:
+      patterns-from:
+        title: Return finding where Python expression returns true
+        type: string
+    required:
+      - patterns-from
     additionalProperties: false
   path-array:
     type: array
