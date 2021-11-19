@@ -41,7 +41,7 @@ jobs:
           name: benchmarks
           command: |
             cd perf
-            ./run-benchmarks --upload
+            ./run-benchmarks --upload || true
 
   # Run parsing stats and publish them to the semgrep dashboard.
   parsing-stats:

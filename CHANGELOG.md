@@ -5,11 +5,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## Unreleased
 
 ### Added
+- support for method chaining patterns for Python, Golang, Ruby,
+  and C# (#4300), so all GA languages now have method chaining
+- Scala: translate infix operators to generic AST as method calls, so `$X.map($F)` matches `xs map f`
 - PHP: support method patterns (#4262)
 
 ### Changed
 - Add `profiling_times` object in `--time --json` output for more fine grained visibility
   into slow parts of semgrep
+- Constant propagation: Any kind of Python string (raw, byte, or unicode) is now
+  evaluated to a string literal and can be matched by `"..."` (#3881)
 
 ### Fixed
 - Ruby blocks are now represented with an extra function call in Generic so that

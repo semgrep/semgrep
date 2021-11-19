@@ -332,7 +332,7 @@ let type_projection_modifiers (env : env) (xs : CST.type_projection_modifiers) =
 let simple_identifier (env : env) (x : CST.simple_identifier) : ident =
   match x with
   | `Choice_lexi_id (`Lexi_id x) -> lexical_identifier env x
-  | `Choice_lexi_id (`Expect x) -> str env x
+  | `Choice_lexi_id (`Expect x | `Inner x | `Data x | `Actual x) -> str env x
   | `Pat_831065d x -> str env x
 
 (* pattern \$[a-zA-Z_][a-zA-Z_0-9]* *)
@@ -428,8 +428,10 @@ let import_header (env : env) ((v1, v2, v3, v4) : CST.import_header) : directive
   let _v4 = semi env v4 (* pattern [\r\n]+ *) in
   v3 |> G.d
 
-let rec _annotated_lambda (env : env) (v1 : CST.annotated_lambda) =
-  lambda_literal env v1
+let rec _annotated_lambda (env : env) ((v1, v2, v3) : CST.annotated_lambda) =
+  let _v1TODO = List.map (annotation env) v1 in
+  let _v2TODO = v2 in
+  lambda_literal env v3
 
 and annotation (env : env) (x : CST.annotation) : attribute list =
   match x with
@@ -621,11 +623,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
   match x with
   | `Opt_modifs_choice_class_simple_id_opt_type_params_opt_prim_cons_opt_COLON_dele_specis_opt_type_consts_opt_class_body
       (v1, v2, v3, v4, v5, v6, v7, v8) ->
-      let v1 =
-        match v1 with
-        | Some x -> modifiers env x
-        | None -> []
-      in
+      let v1 = modifiers_opt env v1 in
       let v2 =
         match v2 with
         | `Class tok -> (Class, token env tok) (* "class" *)
@@ -675,11 +673,7 @@ and class_declaration (env : env) (x : CST.class_declaration) :
       (ent, cdef)
   | `Opt_modifs_enum_class_simple_id_opt_type_params_opt_prim_cons_opt_COLON_dele_specis_opt_type_consts_opt_enum_class_body
       (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      let v1 =
-        match v1 with
-        | Some x -> modifiers env x
-        | None -> []
-      in
+      let v1 = modifiers_opt env v1 in
       let v2 = token env v2 (* "enum" *) in
       let v3 = token env v3 (* "class" *) in
       let v4 = simple_identifier env v4 in
@@ -735,11 +729,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
           let d = declaration env x in
           d |> G.fld
       | `Comp_obj (v1, v2, v3, v4, v5, v6) ->
-          let v1 =
-            match v1 with
-            | Some x -> modifiers env x
-            | None -> []
-          in
+          let v1 = modifiers_opt env v1 in
           let v2 = token env v2 (* "companion" *) in
           let v3 = token env v3 (* "object" *) in
           let v4 =
@@ -777,11 +767,7 @@ and class_member_declaration (env : env) (x : CST.class_member_declaration) :
           let v2 = block env v2 in
           F v2
       | `Seco_cons (v1, v2, v3, v4, v5) ->
-          let v1 =
-            match v1 with
-            | Some x -> modifiers env x
-            | None -> []
-          in
+          let v1 = modifiers_opt env v1 in
           let v2 = str env v2 (* "constructor" *) in
           let v3 = function_value_parameters env v3 in
           let _v4TODO =
@@ -822,11 +808,7 @@ and class_member_declarations (env : env) (xs : CST.class_member_declarations) :
 
 and class_parameter (env : env) ((v1, v2, v3, v4, v5, v6) : CST.class_parameter)
     : G.parameter =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   (* 'val' or 'var' *)
   let v2 =
     match v2 with
@@ -918,15 +900,35 @@ and receiver_type (env : env) ((v1, v2) : CST.receiver_type) =
 
 and declaration (env : env) (x : CST.declaration) : definition =
   match x with
+  (* TODO: ugly, this was put here but really it should be attached
+   * to a Prop_decl. This was put at the declaration level because
+   * of grammar ambiguity related to ASI. See grammar.js for more info.
+   *)
+  | `Getter x ->
+      let mods, tget, _fun_optTODO = getter env x in
+      let ent =
+        {
+          name = OtherEntity (("Getter", tget), []);
+          attrs = mods;
+          tparams = [];
+        }
+      in
+      (ent, OtherDef (("Getter", tget), []))
+  | `Setter x ->
+      let mods, tset, _fun_optTODO = setter env x in
+      let ent =
+        {
+          name = OtherEntity (("Setter", tset), []);
+          attrs = mods;
+          tparams = [];
+        }
+      in
+      (ent, OtherDef (("Setter", tset), []))
   | `Class_decl x ->
       let ent, cdef = class_declaration env x in
       (ent, ClassDef cdef)
   | `Obj_decl (v1, v2, v3, v4, v5) ->
-      let v1 =
-        match v1 with
-        | Some x -> modifiers env x
-        | None -> []
-      in
+      let v1 = modifiers_opt env v1 in
       let v2 = token env v2 (* "object" *) in
       let v3 = simple_identifier env v3 in
       let v4 =
@@ -955,11 +957,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
       in
       (ent, ClassDef cdef)
   | `Func_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      let v1 =
-        match v1 with
-        | Some x -> modifiers env x
-        | None -> []
-      in
+      let v1 = modifiers_opt env v1 in
       let v2 = token env v2 (* "fun" *) in
       let v3 =
         match v3 with
@@ -995,11 +993,7 @@ and declaration (env : env) (x : CST.declaration) : definition =
       let def_kind = FuncDef func_def in
       (entity, def_kind)
   | `Prop_decl (v1, v2, v3, v4, v5, v6, v7, v8, v9) ->
-      let v1 =
-        match v1 with
-        | Some x -> modifiers env x
-        | None -> []
-      in
+      let v1 = modifiers_opt env v1 in
       let v2 = KeywordAttr (anon_choice_val_2833752 env v2) in
       let v3 =
         match v3 with
@@ -1134,11 +1128,7 @@ and enum_entries (env : env) ((v1, v2, v3) : CST.enum_entries) : field list =
   v1 :: v2
 
 and enum_entry (env : env) ((v1, v2, v3, v4) : CST.enum_entry) : field =
-  let v1 =
-    match v1 with
-    | Some x -> modifiers env x
-    | None -> []
-  in
+  let v1 = modifiers_opt env v1 in
   let v2 = simple_identifier env v2 in
   let v3 =
     match v3 with
@@ -1295,9 +1285,10 @@ and function_value_parameters (env : env)
   let _v3 = token env v3 (* ")" *) in
   v2
 
-and getter (env : env) ((v1, v2) : CST.getter) =
-  let v1 = token env v1 (* "get" *) in
-  let v2 =
+and getter (env : env) ((v0, v1, v2) : CST.getter) =
+  let mods = modifiers_opt env v0 in
+  let tget = token env v1 (* "get" *) in
+  let fun_opt =
     match v2 with
     | Some (v1, v2, v3, v4) ->
         let _v1 = token env v1 (* "(" *) in
@@ -1314,7 +1305,7 @@ and getter (env : env) ((v1, v2) : CST.getter) =
         Some (v3, v4)
     | None -> None
   in
-  Some (v1, v2)
+  (mods, tget, fun_opt)
 
 and indexing_suffix (env : env) ((v1, v2, v3, v4) : CST.indexing_suffix) =
   let v1 = token env v1 (* "[" *) in
@@ -1625,11 +1616,7 @@ and primary_constructor (env : env) ((v1, v2) : CST.primary_constructor) :
   let _v1TODO =
     match v1 with
     | Some (v1, v2) ->
-        let _v1 =
-          match v1 with
-          | Some x -> modifiers env x
-          | None -> []
-        in
+        let _v1TODO = modifiers_opt env v1 in
         let v2 = token env v2 (* "constructor" *) in
         Some v2
     | None -> None
@@ -1793,10 +1780,10 @@ and property_delegate (env : env) ((v1, v2) : CST.property_delegate) =
   let v2 = expression env v2 in
   Some v2
 
-(* TODO *)
-and setter (env : env) ((v1, v2) : CST.setter) =
-  let v1 = token env v1 (* "set" *) in
-  let v2 =
+and setter (env : env) ((v0, v1, v2) : CST.setter) =
+  let mods = modifiers_opt env v0 in
+  let tset = token env v1 (* "set" *) in
+  let fun_opt =
     match v2 with
     | Some (v1, v2, v3, v4, v5) ->
         let _v1 = token env v1 (* "(" *) in
@@ -1814,7 +1801,7 @@ and setter (env : env) ((v1, v2) : CST.setter) =
         Some (v2, v4, v5)
     | None -> None
   in
-  Some (v1, v2)
+  (mods, tset, fun_opt)
 
 and simple_user_type (env : env) ((v1, v2) : CST.simple_user_type) :
     ident * type_arguments option =

@@ -257,22 +257,6 @@ let ext_of_lang = function
   | Vue -> [ "vue" ]
   | HCL -> [ "tf" ]
 
-let find_source lang xs =
-  Common.files_of_dir_or_files_no_vcs_nofilter xs
-  |> List.filter (fun filename -> List.mem lang (langs_of_filename filename))
-  |> Common.sort
-
-(* this is used by sgrep, so it is probably better to keep the logic
- * simple and not perform any Skip_code filtering (bento already does that)
- *)
-let files_of_dirs_or_files lang xs =
-  (* old: let xs = List.map Common.fullpath xs in
-   * better to not transform in fullpath; does not interact
-   * well with -exclude-dir and anyway this should be done in the caller
-   * or not at all. Better just do one thing here.
-   *)
-  find_source lang xs
-
 let unsupported_language_message lang =
   if lang = "unset" then "no language specified; use -lang"
   else
