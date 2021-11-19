@@ -109,14 +109,19 @@ let test_cfg_il file =
   let lang = List.hd (Lang.langs_of_filename file) in
   Naming_AST.resolve lang ast;
 
-  ast
-  |> List.iter (fun item ->
-         match item.s with
-         | DefStmt (_ent, FuncDef def) ->
-             let xs = AST_to_IL.stmt lang (H.funcbody_to_stmt def.fbody) in
-             let cfg = CFG_build.cfg_of_stmts xs in
-             Display_IL.display_cfg cfg
-         | _ -> ())
+  let v =
+    V.mk_visitor
+      {
+        V.default_visitor with
+        V.kfunction_definition =
+          (fun (_k, _) def ->
+            let body = H.funcbody_to_stmt def.fbody in
+            let xs = AST_to_IL.stmt lang body in
+            let cfg = CFG_build.cfg_of_stmts xs in
+            Display_IL.display_cfg cfg);
+      }
+  in
+  v (Pr ast)
 
 module F2 = IL
 
