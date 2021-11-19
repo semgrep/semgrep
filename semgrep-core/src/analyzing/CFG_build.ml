@@ -261,14 +261,28 @@ and cfg_stmt_list state previ xs =
            | CfgLabel label -> (previ, label :: labels))
          (previ, [])
   in
-  match (lasti_opt, labels) with
-  | Some lasti, l :: ls ->
-      (* If we had labels at the end of our stmt list, we create a dummy node to assign them to,
-         and connect it to the last node we looked at
-      *)
+  match labels with
+  | l :: ls ->
+      (* If we have labels at the end of our list of stmt, we create a dummy
+       * node to assign them to.
+       *
+       *     lasti -> label: dummy
+       *
+       * This happens when there are labels at the end of a function's body:
+       *
+       *     void foo(x)
+       *     {
+       *       if (x > 0) goto label;
+       *       bar();
+       *       label:
+       *     }
+       *
+       * Such labels may be in the original sources, or they may be introduced
+       * by the AST-to-IL translation.
+       *)
       let dummyi = state.g#add_node { n = NOther (Noop "return") } in
       label_node state (l :: ls) dummyi;
-      add_arc (lasti, dummyi) state.g;
+      state.g |> add_arc_from_opt (lasti_opt, dummyi);
       Some dummyi
   | _ -> lasti_opt
 
