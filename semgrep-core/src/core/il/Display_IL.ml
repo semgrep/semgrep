@@ -27,7 +27,7 @@ let short_string_of_node_kind nkind =
   | NGoto (_, l) -> "goto " ^ str_of_label l
   | NReturn _ -> "return ...;"
   | NThrow _ -> "throw ...;"
-  | NOther Noop -> "<noop>"
+  | NOther (Noop str) -> Common.spf "<noop: %s>" str
   | NOther _ -> "<other>"
   | NInstr x -> (
       match x.i with
