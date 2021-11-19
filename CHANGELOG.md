@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.74.0](https://github.com/returntocorp/semgrep/releases/tag/v0.74.0) - 11-19-2021
+
 ### Added
 - support for method chaining patterns for Python, Golang, Ruby,
   and C# (#4300), so all GA languages now have method chaining
