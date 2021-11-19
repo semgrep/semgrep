@@ -170,7 +170,12 @@ type step0 = LPat of Rule.xpattern | LCond of Rule.metavar_cond
 
 type cnf_step0 = step0 cnf [@@deriving show]
 
-(* reference? https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html *)
+(* reference? https://www.cs.jhu.edu/~jason/tutorials/convert-to-CNF.html
+ * TODO the current code triggers some Stack_overflow on
+ * tests/OTHER/rules/tainted-filename.yaml. I've replaced some List.map
+ * by Common.map, but we still get some Stack_overflow because of the many
+ * calls to @.
+ *)
 let rec (cnf : Rule.formula -> cnf_step0) =
  fun f ->
   match f with
@@ -189,11 +194,11 @@ let rec (cnf : Rule.formula -> cnf_step0) =
    * )
    *)
   | R.And (_, xs, conds) ->
-      let ys = List.map cnf xs in
-      let zs = List.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
-      And (ys @ zs |> List.map (function And ors -> ors) |> List.flatten)
+      let ys = Common.map cnf xs in
+      let zs = Common.map (fun (_t, cond) -> And [ Or [ LCond cond ] ]) conds in
+      And (ys @ zs |> Common.map (function And ors -> ors) |> List.flatten)
   | R.Or (_, xs) ->
-      let ys = List.map cnf xs in
+      let ys = Common.map cnf xs in
       let rec aux ys =
         match ys with
         | [] -> And []
@@ -201,10 +206,10 @@ let rec (cnf : Rule.formula -> cnf_step0) =
         | [ And ps; And qs ] ->
             And
               (ps
-              |> List.map (fun pi ->
+              |> Common.map (fun pi ->
                      let ands =
                        qs
-                       |> List.map (fun qi ->
+                       |> Common.map (fun qi ->
                               let (Or pi_ors) = pi in
                               let (Or qi_ors) = qi in
                               let ors = pi_ors @ qi_ors in
@@ -367,7 +372,7 @@ let or_step2 (Or xs) =
        | _ -> ());
   let ys =
     xs
-    |> List.map (function
+    |> Common.map (function
          | StringsAndMvars (xs, _) -> Idents xs
          | Regexp re -> Regexp2 re
          | MvarRegexp (_mvar, re) -> Regexp2 re)
@@ -375,7 +380,7 @@ let or_step2 (Or xs) =
   Or ys
 
 let and_step2 (And xs) =
-  let ys = xs |> List.map or_step2 in
+  let ys = xs |> Common.map or_step2 in
   And ys
 
 (*****************************************************************************)
@@ -394,7 +399,7 @@ type cnf_final = AndFinal of final_step list
 [@@deriving show]
 
 let or_final (Or xs) =
-  let ys = xs |> List.map (function
+  let ys = xs |> Common.map (function
    | Idents [] -> raise Impossible
    (* take the first one *)
    | Idents (x::_) -> Re.matching_exact_string x
@@ -517,8 +522,14 @@ let regexp_prefilter_of_rule r =
   let id, t = r.R.id in
   let k = PI.file_of_info t ^ "." ^ id in
   Common.memoized hmemo k (fun () ->
-      match r.mode with
-      | R.Search pf ->
-          let f = R.formula_of_pformula pf in
-          regexp_prefilter_of_formula f
-      | R.Taint spec -> regexp_prefilter_of_taint_rule t spec)
+      try
+        match r.mode with
+        | R.Search pf ->
+            let f = R.formula_of_pformula pf in
+            regexp_prefilter_of_formula f
+        | R.Taint spec -> regexp_prefilter_of_taint_rule t spec
+      with
+      (* TODO: see tests/OTHER/rules/tainted-filename.yaml *)
+      | Stack_overflow ->
+        logger#error "Stack overflow on rule id %s" id;
+        None)
