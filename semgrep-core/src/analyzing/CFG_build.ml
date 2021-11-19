@@ -210,13 +210,13 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *                 |-----------|-> newfakefinally -> finally
        *
        *)
-      let newi = state.g#add_node { F.n = NOther Noop } in
+      let newi = state.g#add_node { F.n = NOther (Noop "try") } in
       state.g |> add_arc_from_opt (previ, newi);
-      let catchesi = state.g#add_node { F.n = NOther Noop } in
+      let catchesi = state.g#add_node { F.n = NOther (Noop "catch") } in
       let state' = { state with try_catches_opt = Some catchesi } in
       let finaltry = cfg_stmt_list state' (Some newi) try_st in
       state.g |> add_arc_from_opt (finaltry, catchesi);
-      let newfakefinally = state.g#add_node { F.n = NOther Noop } in
+      let newfakefinally = state.g#add_node { F.n = NOther (Noop "finally") } in
       state.g |> add_arc (catchesi, newfakefinally);
       catches
       |> List.iter (fun (_, catch_st) ->
@@ -261,14 +261,25 @@ and cfg_stmt_list state previ xs =
            | CfgLabel label -> (previ, label :: labels))
          (previ, [])
   in
-  match (lasti_opt, labels) with
-  | Some lasti, l :: ls ->
-      (* If we had labels at the end of our stmt list, we create a dummy node to assign them to,
-         and connect it to the last node we looked at
-      *)
-      let dummyi = state.g#add_node { n = NOther Noop } in
+  match labels with
+  | l :: ls ->
+      (* If we have labels at the end of our list of stmt, we create a dummy
+       * node to assign them to. This happens when there are labels at the end
+       * of a function's body, for example:
+       *
+       *     void foo(x)
+       *     {
+       *       if (x > 0) goto label;
+       *       bar();
+       *       label:
+       *     }
+       *
+       * Such labels may be in the original sources, or they may be introduced
+       * by the AST-to-IL translation.
+       *)
+      let dummyi = state.g#add_node { n = NOther (Noop "return") } in
       label_node state (l :: ls) dummyi;
-      add_arc (lasti, dummyi) state.g;
+      state.g |> add_arc_from_opt (lasti_opt, dummyi);
       Some dummyi
   | _ -> lasti_opt
 

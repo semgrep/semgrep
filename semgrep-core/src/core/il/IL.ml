@@ -276,7 +276,7 @@ and other_stmt =
   (* everything except VarDef (which is transformed in a Set instr) *)
   | DefStmt of G.definition
   | DirectiveStmt of G.directive
-  | Noop
+  | Noop of (* for debugging purposes *) string
 
 and label = ident * G.sid [@@deriving show { with_path = false }]
 
