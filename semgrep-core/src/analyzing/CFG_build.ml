@@ -264,11 +264,8 @@ and cfg_stmt_list state previ xs =
   match labels with
   | l :: ls ->
       (* If we have labels at the end of our list of stmt, we create a dummy
-       * node to assign them to.
-       *
-       *     lasti -> label: dummy
-       *
-       * This happens when there are labels at the end of a function's body:
+       * node to assign them to. This happens when there are labels at the end
+       * of a function's body, for example:
        *
        *     void foo(x)
        *     {
