@@ -210,13 +210,13 @@ let rec cfg_stmt : state -> F.nodei option -> stmt -> cfg_stmt_result =
        *                 |-----------|-> newfakefinally -> finally
        *
        *)
-      let newi = state.g#add_node { F.n = NOther Noop } in
+      let newi = state.g#add_node { F.n = NOther (Noop "try") } in
       state.g |> add_arc_from_opt (previ, newi);
-      let catchesi = state.g#add_node { F.n = NOther Noop } in
+      let catchesi = state.g#add_node { F.n = NOther (Noop "catch") } in
       let state' = { state with try_catches_opt = Some catchesi } in
       let finaltry = cfg_stmt_list state' (Some newi) try_st in
       state.g |> add_arc_from_opt (finaltry, catchesi);
-      let newfakefinally = state.g#add_node { F.n = NOther Noop } in
+      let newfakefinally = state.g#add_node { F.n = NOther (Noop "finally") } in
       state.g |> add_arc (catchesi, newfakefinally);
       catches
       |> List.iter (fun (_, catch_st) ->
@@ -266,7 +266,7 @@ and cfg_stmt_list state previ xs =
       (* If we had labels at the end of our stmt list, we create a dummy node to assign them to,
          and connect it to the last node we looked at
       *)
-      let dummyi = state.g#add_node { n = NOther Noop } in
+      let dummyi = state.g#add_node { n = NOther (Noop "return") } in
       label_node state (l :: ls) dummyi;
       add_arc (lasti, dummyi) state.g;
       Some dummyi
