@@ -106,9 +106,9 @@ let fresh_var ?(var = "_tmp") _env tok =
   let i = H.gensym () in
   { ident = (var, tok); sid = i; id_info = G.empty_id_info () }
 
-let fresh_label _env tok =
+let fresh_label ?(label = "_label") _env tok =
   let i = H.gensym () in
-  (("_label", tok), i)
+  ((label, tok), i)
 
 let fresh_lval env tok =
   let var = fresh_var env tok in
@@ -817,8 +817,8 @@ let no_switch_fallthrough : Lang.t -> bool = function
   | _ -> false
 
 let mk_break_continue_labels env tok =
-  let cont_label = fresh_label env tok in
-  let break_label = fresh_label env tok in
+  let cont_label = fresh_label ~label:"__loop_continue" env tok in
+  let break_label = fresh_label ~label:"__loop_break" env tok in
   let st_env =
     {
       env with
@@ -831,7 +831,7 @@ let mk_break_continue_labels env tok =
   (cont_label_s, break_label_s, st_env)
 
 let mk_switch_break_label env tok =
-  let break_label = fresh_label env tok in
+  let break_label = fresh_label ~label:"__switch_break" env tok in
   let switch_env =
     { env with break_labels = break_label :: env.break_labels }
   in
@@ -1155,13 +1155,13 @@ and cases_and_bodies_to_stmts env tok break_label translate_cases = function
   | [] -> ([ mk_s (Goto (tok, break_label)) ], [])
   | G.CaseEllipsis tok :: _ -> sgrep_construct (G.Tk tok)
   | [ G.CasesAndBody ([ G.Default dtok ], body) ] ->
-      let label = fresh_label env tok in
+      let label = fresh_label ~label:"__switch_default" env tok in
       ([ mk_s (Goto (dtok, label)) ], mk_s (Label label) :: stmt env body)
   | G.CasesAndBody (cases, body) :: xs ->
       let jumps, bodies =
         cases_and_bodies_to_stmts env tok break_label translate_cases xs
       in
-      let label = fresh_label env tok in
+      let label = fresh_label ~label:"__switch_case" env tok in
       let case_ss, case = translate_cases cases in
       let jump =
         mk_s (IL.If (tok, case, [ mk_s (Goto (tok, label)) ], jumps))
