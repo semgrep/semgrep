@@ -27,7 +27,7 @@ let logger = Logging.get_logger [ __MODULE__ ]
 let tests_path = "../../../tests"
 let data_path = "../../../data"
 
-(* coupling: https://semgrep.dev/docs/language-support/ 
+(* coupling: https://semgrep.dev/docs/language-support/
  * See also https://r2c.quip.com/FOAuA4ThzULc/How-to-promote-a-language-
 *)
 type maturity_level = GA | Beta | Experimental
@@ -566,6 +566,7 @@ let maturity_tests =
       )
      )
   in
+  (* coupling: https://semgrep.dev/docs/language-support/ *)
   pack_suites "Maturity level testing" [
     (* GA *)
     check_maturity Lang.Csharp "csharp" ".cs" GA;
