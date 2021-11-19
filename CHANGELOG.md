@@ -23,10 +23,12 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
   'generic' and 'regex' targets as it was already done for the other
   languages.
 - Fix some Stack_overflow when using -filter_irrelevant_rules (#4305)
-- Dataflow: Fix the construction of the CFG when the last statement of a `switch`
-  is another statement such as `throw`, that can exit the execution of the current
-  function. This led to e.g. constant propagation incorrectly flagging variables
-  as constants (#4265)
+- Dataflow: When a `switch` had no other statement following it, and the last
+  statement of the `switch`'s `default` case was a statement, such as `throw`,
+  that can exit the execution of the current function, this caused `break`
+  statements within the `switch` to not be resolved during the construction of
+  the CFG. This could led to e.g. constant propagation incorrectly flagging
+  variables as constants. (#4265)
 
 ## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
 
