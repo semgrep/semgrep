@@ -1,0 +1,24 @@
+rules:
+  - id: insecure-document-method
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $EL.innerHTML = $HTML;
+          - pattern: |
+              $EL.outerHTML = $HTML;
+          - pattern: document.write(...)
+      - patterns-from: ./safe-document-html-filters.yaml
+    message: User controlled data in methods like `innerHTML`, `outerHTML` or
+      `document.write` is an anti-pattern that can lead to XSS vulnerabilities
+    metadata:
+      cwe: "CWE-79: Improper Neutralization of Input During Web Page Generation
+        ('Cross-site Scripting')"
+      owasp: "A7: Cross-Site Scripting (XSS)"
+      category: security
+      technology:
+        - browser
+      license: Commons Clause License Condition v1.0[LGPL-2.1-only]
+    languages:
+      - javascript
+      - typescript
+    severity: WARNING

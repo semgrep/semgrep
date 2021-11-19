@@ -1,0 +1,14 @@
+rules:
+  - id: 'safe-document-html-filters'
+    patterns:
+      - pattern-not: $EL.innerHTML = "...";
+      - pattern-not: $EL.outerHTML = "...";
+      - pattern-not: document.write("...")
+    languages: ['javascript', 'typescript']
+    message: "test"
+    severity: INFO
+    metadata:
+      authors:
+        - Grayson
+        - Isaac
+        - Drew
