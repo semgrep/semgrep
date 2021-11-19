@@ -182,19 +182,20 @@ class Rule:
         patterns = self.raw.get('patterns', [])
         to_replace = {}
         for idx, patterns_item in enumerate(patterns):
-            if 'patterns-from' in patterns_item:
+            if 'patterns-from' in patterns_item: # TODO handle `patterns-from` not in top level
                 value = patterns_item['patterns-from']
-                if value.startswith('file://'):
-                    yaml_str = open(value.replace('file://', '')).read() # TODO move to func and use pathlib
-                    y = parse_yaml_preserve_spans(yaml_str)
-                    first_rule = y.unroll_dict()['rules'][0]
-                    to_replace[idx] = first_rule.get('patterns', [])
-        # replace the old ones
+                from semgrep.config_resolver import Config # TODO move config into own class to avoid circular import
+                config, errors = Config.from_config_list([value]) # TODO validate no errors
+                rules = config.get_rules()
+                first_rule = rules[0] # TODO validate exactly one rule or loop through all of them?
+                to_replace[idx] = first_rule.raw.get('patterns', [])
+
+        # replace the old ones TODO use yaml tree?
         for idx, new_values_list in to_replace.items():
             before = patterns[:idx]
             item_to_replace = patterns[idx]
             replacement = new_values_list
-            after = patterns[idx+1:]
+            after = patterns[idx+1:] # TODO validate no index out of range errors
             new_patterns = before + replacement + after
             patterns = new_patterns
 

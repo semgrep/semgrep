@@ -85,7 +85,7 @@ class ConfigPath:
     _project_url = None
     _extra_headers: Dict[str, str] = {}
 
-    def __init__(self, config_str: str, project_url: Optional[str]) -> None:
+    def __init__(self, config_str: str, project_url: Optional[str] = None) -> None:
         """
         Mutates MetricManager state!
         Takes a user's inputted config_str and transforms it into the appropriate
@@ -249,7 +249,7 @@ class Config:
 
     @classmethod
     def from_config_list(
-        cls, configs: Sequence[str], project_url: Optional[str]
+        cls, configs: Sequence[str], project_url: Optional[str] = None
     ) -> Tuple["Config", Sequence[SemgrepError]]:
         """
         Takes in list of files/directories and returns Config object as well as
@@ -291,7 +291,7 @@ class Config:
         errors.extend(parse_errors)
         return cls(valid), errors
 
-    def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
+    def get_rules(self, no_rewrite_rule_ids: bool = False) -> List[Rule]:
         """
         Return list of rules
 
