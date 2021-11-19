@@ -1,4 +1,4 @@
-type mapping = AST_generic.constness Dataflow.mapping
+type mapping = AST_generic.constness Dataflow_core.mapping
 
 val string_of_constness : AST_generic.constness -> string
 

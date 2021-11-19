@@ -61,9 +61,8 @@ val keys : string list
 (* list of languages comma separated *)
 val supported_langs : string
 
+(* See also Find_target.files_of_dirs_or_files *)
 val langs_of_filename : Common.filename -> t list
-
-val files_of_dirs_or_files : t -> Common.path list -> Common.filename list
 
 (*
    Produce a human-readable representation of the language e.g. "C#"

@@ -1,9 +1,9 @@
 opam-version: "2.0"
 name: "semgrep"
-version: "0.5.0"
+version: "0.73.0"
 synopsis: "Like grep but for code: fast and syntax-aware semantic code pattern for many languages"
 description: """
-grep is like grep but for searching patterns at the AST level.
+Semgrep is like grep but for searching patterns at the AST level.
 
 For more information see https://semsgrep.dev"""
 

@@ -88,6 +88,10 @@ def _build_time_target_json(
     return target_json
 
 
+# coupling: if you change the JSON schema below, you probably need to
+# also modify perf/run-benchmarks. Run locally
+#    $ ./run-benchmarks --dummy --upload
+# to double check everything still works
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
@@ -109,7 +113,7 @@ def _build_time_json(
     time_info["rule_parse_info"] = [
         profiling_data.get_rule_parse_time(rule) for rule in rules
     ]
-    time_info["total_time"] = profiler.calls["total_time"][0] if profiler else -1.0
+    time_info["profiling_times"] = profiler.dump_stats() if profiler else {}
     target_bytes = [Path(str(target)).resolve().stat().st_size for target in targets]
     time_info["targets"] = [
         _build_time_target_json(rules, target, num_bytes, profiling_data)

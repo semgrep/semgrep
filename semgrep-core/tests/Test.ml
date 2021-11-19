@@ -10,20 +10,127 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* Unit tests runner (and a few dumpers) *)
+(* Unit tests entry point.
+ *
+ * From semgrep-core you can do
+ *
+ *   $./test test foo
+ *
+ * to run all the tests containing foo in their description.
+ *)
 
 (*****************************************************************************)
-(* Flags *)
+(* Constants *)
 (*****************************************************************************)
 
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
 let data_path = "../../../data"
 
+(* coupling: https://semgrep.dev/docs/language-support/
+ * See also https://r2c.quip.com/FOAuA4ThzULc/How-to-promote-a-language-
+*)
+type maturity_level = GA | Beta | Experimental
+[@@deriving show { with_path = false }]
+
+(* coupling: 
+ * https://semgrep.dev/docs/language-support/#maturity-definitions 
+ * ../../scripts/generate-cheatsheet.py
+*)
+let experimental_features = [
+    "concrete_syntax";
+    "deep_exprstmt";
+    "dots_args";
+    "dots_nested_stmts";
+    "dots_stmts";
+    "dots_string";
+    "metavar_arg";
+    "metavar_call";
+    "metavar_equality_var"
+    (* TODO: add dots_params? *)
+]
+
+let beta_features = experimental_features @ [
+    "metavar_class_def";
+    "metavar_func_def";
+    "metavar_cond";
+    "metavar_equality_expr";
+    "metavar_equality_stmt";
+    "metavar_import";
+    "metavar_stmt";
+]
+
+let ga_features = beta_features @ [
+    "deep_expr_operator";
+    "dots_method_chaining";
+    "equivalence_constant_propagation";
+    "equivalence_eq";
+    "equivalence_naming_import";
+    "metavar_anno";
+    "metavar_key_value";
+    "metavar_typed";
+    "regexp_string";
+]
+
+let assoc_maturity_level = [
+    GA, ga_features;
+    Beta, beta_features;
+    Experimental, experimental_features
+]
+
+(* coupling: ../../scripts/generate_cheatsheet.py LANGUAGE_EXCEPTIONS
+ * Note that for some languages, e.g., JSON, certain tests do not
+ * apply (NA), hence the exceptions listed above.
+ * For others, we should really add the test and/or corresponding feature.
+*)
+let language_exceptions = [
+    (* GA languages *)
+
+    (* TODO: NA for Java? *)
+    Lang.Java, 
+    ["equivalence_naming_import"; "metavar_key_value"];
+    (* TODO: why not metavar_typed? regexp_string? NA for naming_import? *)
+    Lang.Csharp, 
+    ["equivalence_naming_import"; "metavar_typed"; "regexp_string"];
+    (* TODO: metavar_anno sounds like an NA, but the other?? *)
+    Lang.Go, 
+    ["metavar_class_def"; "metavar_import"; "metavar_anno"];
+    (* metavar_typed is NA (dynamic language) *)
+    Lang.Javascript, 
+    ["equivalence_naming_import"; "metavar_typed";];
+    Lang.Typescript, 
+    ["equivalence_naming_import"; "metavar_typed";"metavar_anno";"metavar_class_def"];
+    (* good boy, metavar_typed is working just for constants though *)
+    Lang.Python, [];
+    (* metavar_typed is NA (dynamic language), metavar_anno also NA? *)
+    Lang.Ruby, 
+    ["equivalence_naming_import"; "metavar_typed";"metavar_anno"];
+
+    (* Beta languages *)
+
+    (* TODO: to fix *)
+    Lang.Kotlin, 
+    ["dots_stmts"; "metavar_equality_var"];
+
+    (* Experimental languages *)
+
+    (* TODO: dots_nested_stmts to fix for C and C++ *)
+    Lang.C,
+    ["dots_nested_stmts"];
+    Lang.Cplusplus,
+    ["dots_nested_stmts"];
+    (* good boy *)
+    Lang.Lua, [];
+    (* dots_stmts is maybe NA, same with deep_exprstmt *)
+    Lang.OCaml, 
+    ["deep_exprstmt";"dots_stmts"];
+    (* good boy *)
+    Lang.PHP, [];
+]
+
 (*****************************************************************************)
 (* Helpers *)
 (*****************************************************************************)
-
 
 let any_gen_of_string str =
   Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
@@ -57,6 +164,19 @@ let compare_actual_to_expected actual expected =
   | Ok () -> ()
   | Error (_num_errors, msg) -> Alcotest.fail msg
 
+
+let sgrep_file_of_target file =
+  let (d,b,_e) = Common2.dbe_of_filename file in
+  let candidate1 = Common2.filename_of_dbe (d,b,"sgrep") in
+  if Sys.file_exists candidate1
+  then candidate1
+  else
+    let d = Filename.concat tests_path "POLYGLOT" in
+    let candidate2 = Common2.filename_of_dbe (d,b,"sgrep") in
+    if Sys.file_exists candidate2
+    then candidate2
+    else failwith (spf "could not find sgrep file for %s" file)
+
 (*
    For each input file with the language's extension, locate a pattern file
    with the '.sgrep' extension.
@@ -65,19 +185,8 @@ let compare_actual_to_expected actual expected =
 *)
 let regression_tests_for_lang ~with_caching files lang =
   files |> List.map (fun file ->
-    Filename.basename file, (fun () ->
-      let sgrep_file =
-        let (d,b,_e) = Common2.dbe_of_filename file in
-      let candidate1 = Common2.filename_of_dbe (d,b,"sgrep") in
-      if Sys.file_exists candidate1
-      then candidate1
-      else
-        let d = Filename.concat tests_path "POLYGLOT" in
-        let candidate2 = Common2.filename_of_dbe (d,b,"sgrep") in
-        if Sys.file_exists candidate2
-        then candidate2
-        else failwith (spf "could not find sgrep file for %s" file)
-    in
+    Filename.basename file, (fun () -> 
+    let sgrep_file = sgrep_file_of_target file in
     let ast = 
       try 
         let { Parse_target. ast; errors; _ } = 
@@ -207,96 +316,35 @@ let tainting_tests_for_lang files lang =
  * tree-sitter to parse; certain files do not parse with pfff but parses here
  *)
 let lang_parsing_tests =
+  (* TODO: infer dir and ext from lang using Lang helper functions *)
+  let pack_parsing_tests_for_lang lang dir ext =
+    let slang = Lang.show lang in
+    pack_tests slang (
+      let dir = Filename.concat (Filename.concat tests_path dir) "parsing" in
+      let files = Common2.glob (spf "%s/*%s" dir ext) in
+      parsing_tests_for_lang files lang
+      )
+  in
   pack_suites "lang parsing testing" [
    (* languages with only a tree-sitter parser *)
-    pack_tests "Bash" (
-      let dir = Filename.concat (Filename.concat tests_path "bash") "parsing" in
-      let files = Common2.glob (spf "%s/*.bash" dir) in
-      let lang = Lang.Bash in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "C#" (
-      let dir = Filename.concat (Filename.concat tests_path "csharp") "parsing" in
-      let files = Common2.glob (spf "%s/*.cs" dir) in
-      let lang = Lang.Csharp in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "Lua" (
-      let dir = Filename.concat (Filename.concat tests_path "lua") "parsing" in
-      let files = Common2.glob (spf "%s/*.lua" dir) in
-      let lang = Lang.Lua in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "Rust" (
-      let dir = Filename.concat (Filename.concat tests_path "rust") "parsing" in
-      let files = Common2.glob (spf "%s/*.rs" dir) in
-      let lang = Lang.Rust in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "Kotlin" (
-      let dir = Filename.concat (Filename.concat tests_path "kotlin") "parsing" in
-      let files = Common2.glob (spf "%s/*.kt" dir) in
-      let lang = Lang.Kotlin in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "Hack" (
-      let dir = Filename.concat (Filename.concat tests_path "hack") "parsing" in
-      let files = Common2.glob (spf "%s/*.hack" dir) in
-      let lang = Lang.Hack in
-      parsing_tests_for_lang files lang
-    );
+    pack_parsing_tests_for_lang Lang.Bash "bash" ".bash";
+    pack_parsing_tests_for_lang Lang.Csharp "csharp" ".cs";
+    pack_parsing_tests_for_lang Lang.Lua "lua" ".lua";
+    pack_parsing_tests_for_lang Lang.Rust "rust" ".rs";
+    pack_parsing_tests_for_lang Lang.Kotlin "kotlin" ".kt";
+    pack_parsing_tests_for_lang Lang.Hack "hack" ".hack";
     (* here we have both a Pfff and tree-sitter parser *)
-    pack_tests "Java" (
-      let dir= Filename.concat (Filename.concat tests_path "java") "parsing" in
-      let files = Common2.glob (spf "%s/*.java" dir) in
-      let lang = Lang.Java in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "Go" (
-      let dir= Filename.concat (Filename.concat tests_path "go") "parsing" in
-      let files = Common2.glob (spf "%s/*.go" dir) in
-      let lang = Lang.Go in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "Ruby" (
-      let dir = Filename.concat tests_path "ruby/parsing" in
-      let files = Common2.glob (spf "%s/*.rb" dir) in
-      let lang = Lang.Ruby in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "Javascript" (
-      let dir = Filename.concat tests_path "js/parsing" in
-      let files = Common2.glob (spf "%s/*.js" dir) in
-      let lang = Lang.Javascript in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "Scala" (
-      let dir = Filename.concat tests_path "scala/parsing" in
-      let files = Common2.glob (spf "%s/*.scala" dir) in
-      let lang = Lang.Scala in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "HTML" (
-      let dir = Filename.concat tests_path "html/parsing" in
-      let files = Common2.glob (spf "%s/*.html" dir) in
-      let lang = Lang.HTML in
-      parsing_tests_for_lang files lang
-    );
-    pack_tests "Vue" (
-      let dir = Filename.concat tests_path "vue/parsing" in
-      let files = Common2.glob (spf "%s/*.vue" dir) in
-      let lang = Lang.Vue in
-      parsing_tests_for_lang files lang
-    );
-    (* TODO: also do parsing tests where we expect some partials.
+    pack_parsing_tests_for_lang Lang.Java "java" ".java";
+    pack_parsing_tests_for_lang Lang.Go "go" ".go";
+    pack_parsing_tests_for_lang Lang.Ruby "ruby" ".rb";
+    pack_parsing_tests_for_lang Lang.Javascript "js" ".js";
+    pack_parsing_tests_for_lang Lang.Scala "scala" ".scala";
+    pack_parsing_tests_for_lang Lang.HTML "html" ".html";
+    pack_parsing_tests_for_lang Lang.Vue "vue" ".vue";
+    pack_parsing_tests_for_lang Lang.Cplusplus "cpp" ".cpp";
+    (* a few parsing tests where we expect some partials
      * See cpp/parsing_partial/
      *)
-    pack_tests "C++" (
-      let dir = Filename.concat tests_path "cpp/parsing" in
-      let files = Common2.glob (spf "%s/*.cpp" dir) in
-      let lang = Lang.Cplusplus in
-      parsing_tests_for_lang files lang
-    );
     pack_tests "C++ partial parsing" (
       let dir = Filename.concat tests_path "cpp/parsing_partial" in
       let files = Common2.glob (spf "%s/*.cpp" dir) in
@@ -306,6 +354,14 @@ let lang_parsing_tests =
   ]
 
 let lang_regression_tests ~with_caching =
+  (* TODO: infer dir and ext from lang using Lang helper functions *)
+  let pack_regression_tests_for_lang lang dir ext =
+    pack_tests (spf "semgrep %s" (Lang.show lang)) (
+    let dir = Filename.concat tests_path dir in
+    let files = Common2.glob (spf "%s/*%s" dir ext) in
+    regression_tests_for_lang ~with_caching files lang
+    )
+  in
   let regression_tests_for_lang files lang =
     regression_tests_for_lang ~with_caching files lang
   in
@@ -314,145 +370,41 @@ let lang_regression_tests ~with_caching =
     else " no caching"
   in
   pack_suites ("lang testing" ^ name_suffix) [
-  pack_tests "semgrep Bash" (
-    let dir = Filename.concat tests_path "bash" in
-    let files = Common2.glob (spf "%s/*.bash" dir) in
-    let lang = Lang.Bash in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Python" (
-    let dir = Filename.concat tests_path "python" in
-    let files = Common2.glob (spf "%s/*.py" dir) in
-    let lang = Lang.Python in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Javascript" (
-    let dir = Filename.concat tests_path "js" in
-    let files = Common2.glob (spf "%s/*.js" dir) in
-    let lang = Lang.Javascript in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Typescript" (
-    let dir = Filename.concat tests_path "ts" in
-    let files = Common2.glob (spf "%s/*.ts" dir) in
-    let lang = Lang.Typescript in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Typescript on Javascript (no JSX)" (
-    let dir = Filename.concat tests_path "js" in
-    let files = Common2.glob (spf "%s/*.js" dir) in
-    let files = Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files in
-    let lang = Lang.Typescript in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep JSON" (
-    let dir = Filename.concat tests_path "json" in
-    let files = Common2.glob (spf "%s/*.json" dir) in
-    let lang = Lang.JSON in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Java" (
-    let dir = Filename.concat tests_path "java" in
-    let files = Common2.glob (spf "%s/*.java" dir) in
-    let lang = Lang.Java in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep C" (
-    let dir = Filename.concat tests_path "c" in
-    let files = Common2.glob (spf "%s/*.c" dir) in
-    let lang = Lang.C in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep C++" (
-    let dir = Filename.concat tests_path "cpp" in
-    let files = Common2.glob (spf "%s/*.cpp" dir) in
-    let lang = Lang.Cplusplus in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep C++ on C tests" (
-    let dir = Filename.concat tests_path "c" in
-    let files = Common2.glob (spf "%s/*.c" dir) in
-    let lang = Lang.Cplusplus in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Go" (
-    let dir = Filename.concat tests_path "go" in
-    let files = Common2.glob (spf "%s/*.go" dir) in
-    let lang = Lang.Go in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep OCaml" (
-    let dir = Filename.concat tests_path "ocaml" in
-    let files = Common2.glob (spf "%s/*.ml" dir) in
-    let lang = Lang.OCaml in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Ruby" (
-    let dir = Filename.concat tests_path "ruby" in
-    let files = Common2.glob (spf "%s/*.rb" dir) in
-    let lang = Lang.Ruby in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep PHP" (
-    let dir = Filename.concat tests_path "php" in
-    let files = Common2.glob (spf "%s/*.php" dir) in
-    let lang = Lang.PHP in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Hack" (
-    let dir = Filename.concat tests_path "hack" in
-    let files = Common2.glob (spf "%s/*.hack" dir) in
-    let lang = Lang.Hack in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep C#" (
-    let dir = Filename.concat tests_path "csharp" in
-    let files = Common2.glob (spf "%s/*.cs" dir) in
-    let lang = Lang.Csharp in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Lua" (
-    let dir = Filename.concat tests_path "lua" in
-    let files = Common2.glob (spf "%s/*.lua" dir) in
-    let lang = Lang.Lua in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Rust" (
-    let dir = Filename.concat tests_path "rust" in
-    let files = Common2.glob (spf "%s/*.rs" dir) in
-    let lang = Lang.Rust in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Yaml" (
-    let dir = Filename.concat tests_path "yaml" in
-    let files = Common2.glob (spf "%s/*.yaml" dir) in
-    let lang = Lang.Yaml in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Scala" (
-    let dir = Filename.concat tests_path "scala" in
-    let files = Common2.glob (spf "%s/*.scala" dir) in
-    let lang = Lang.Scala in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep HTML" (
-    let dir = Filename.concat tests_path "html" in
-    let files = Common2.glob (spf "%s/*.html" dir) in
-    let lang = Lang.HTML in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep Vue" (
-    let dir = Filename.concat tests_path "vue" in
-    let files = Common2.glob (spf "%s/*.vue" dir) in
-    let lang = Lang.Vue in
-    regression_tests_for_lang files lang
-  );
-  pack_tests "semgrep HCL" (
-    let dir = Filename.concat tests_path "hcl" in
-    let files = Common2.glob (spf "%s/*.tf" dir) in
-    let lang = Lang.HCL in
-    regression_tests_for_lang files lang
-  );
+    pack_regression_tests_for_lang Lang.Bash "bash" ".bash";
+    pack_regression_tests_for_lang Lang.Python "python" ".py";
+    pack_regression_tests_for_lang Lang.Javascript "js" ".js";
+    pack_regression_tests_for_lang Lang.Typescript "ts" ".ts";
+    pack_tests "semgrep Typescript on Javascript (no JSX)" (
+      let dir = Filename.concat tests_path "js" in
+      let files = Common2.glob (spf "%s/*.js" dir) in
+      let files = Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files in
+      let lang = Lang.Typescript in
+      regression_tests_for_lang files lang
+    );
+    pack_regression_tests_for_lang Lang.JSON "json" ".json";
+    pack_regression_tests_for_lang Lang.Java "java" ".java";
+    pack_regression_tests_for_lang Lang.C "c" ".c";
+    pack_regression_tests_for_lang Lang.Cplusplus "cpp" ".cpp";
+    pack_tests "semgrep C++ on C tests" (
+      let dir = Filename.concat tests_path "c" in
+      let files = Common2.glob (spf "%s/*.c" dir) in
+      let lang = Lang.Cplusplus in
+      regression_tests_for_lang files lang
+    );
+    pack_regression_tests_for_lang Lang.Go "go" ".go";
+    pack_regression_tests_for_lang Lang.OCaml "ocaml" ".ml";
+    pack_regression_tests_for_lang Lang.Ruby "ruby" ".rb";
+    pack_regression_tests_for_lang Lang.PHP "php" ".php";
+    pack_regression_tests_for_lang Lang.Hack "hack" ".hack";
+    pack_regression_tests_for_lang Lang.Csharp "csharp" ".cs";
+    pack_regression_tests_for_lang Lang.Lua "lua" ".lua";
+    pack_regression_tests_for_lang Lang.Rust "rust" ".rs";
+    pack_regression_tests_for_lang Lang.Yaml "yaml" ".yaml";
+    pack_regression_tests_for_lang Lang.Scala "scala" ".scala";
+    pack_regression_tests_for_lang Lang.HTML "html" ".html";
+    pack_regression_tests_for_lang Lang.Vue "vue" ".vue";
+    pack_regression_tests_for_lang Lang.HCL "hcl" ".tf";
+    pack_regression_tests_for_lang Lang.Kotlin "kotlin" ".kt";
  ]
 
 let full_rule_regression_tests = [
@@ -503,53 +455,6 @@ let lang_tainting_tests =
       let lang = Lang.Typescript in
       tainting_tests_for_lang files lang
     );
-  ]
-
-(* mostly a copy paste of pfff/linter/unit_linter.ml *)
-let lint_regression_tests ~with_caching =
-  let name =
-    if with_caching then
-      "lint regression testing with caching"
-    else
-      "lint regression testing without caching"
-  in
-  [
-    name, (fun () ->
-      let p path = Filename.concat tests_path path in
-      let rule_file = Filename.concat data_path "basic.yml" in
-      let lang = Lang.Python in
-
-      let test_files = [
-        p "OTHER/mini_rules/stupid.py";
-      ] in
-
-      (* expected *)
-      let expected_error_lines = E.expected_error_lines_of_files test_files in
-
-      (* actual *)
-      E.g_errors := [];
-      let rules = Parse_mini_rule.parse rule_file in
-      let equivs = [] in
-
-      test_files |> List.iter (fun file ->
-        E.try_with_exn_to_error file (fun () ->
-          let { Parse_target. ast; _} = 
-            Parse_target.just_parse_with_lang lang file in
-          Common.save_excursion
-            Flag_semgrep.with_opt_cache with_caching (fun() ->
-              Match_patterns.check ~hook:(fun _ _ -> ())
-                Config_semgrep.default_config
-                rules equivs 
-                (file, lang, ast)
-              |> List.iter JSON_report.match_to_error;
-            )
-        ));
-
-      (* compare *)
-      let actual_errors = !E.g_errors in
-      actual_errors |> List.iter (fun e -> pr (E.string_of_error e));
-      compare_actual_to_expected actual_errors expected_error_lines
-    )
   ]
 
 let eval_regression_tests = [
@@ -633,7 +538,72 @@ let filter_irrelevant_rules_tests =
     )
   )
 
-(*                 *)
+let maturity_tests =
+  (* TODO: infer dir and ext from lang using Lang helper functions *)
+  let check_maturity lang dir ext maturity =
+    pack_tests (spf "Maturity %s for %s" 
+        (show_maturity_level maturity)
+        (Lang.show lang)) (
+      let dir = Filename.concat tests_path dir in
+      let features = 
+        assoc_maturity_level |> List.assoc maturity in
+      let exns = 
+        try
+          List.assoc lang language_exceptions 
+        with Not_found -> []
+      in
+      let features = Common2.minus_set features exns in
+      features |> List.map (fun base ->
+         base, (fun () ->
+           let path = Filename.concat dir (base ^ ext) in
+           (* if it's a does-not-apply (NA) case, consider adding it
+            * to language_exceptions above
+            *)
+           if not (Sys.file_exists path)
+           then failwith (spf "missing test file %s for maturity %s" 
+                  path (show_maturity_level maturity))
+         )
+      )
+     )
+  in
+  (* coupling: https://semgrep.dev/docs/language-support/ *)
+  pack_suites "Maturity level testing" [
+    (* GA *)
+    check_maturity Lang.Csharp "csharp" ".cs" GA;
+    check_maturity Lang.Go "go" ".go" GA;
+    check_maturity Lang.Java "java" ".java" GA;
+    check_maturity Lang.Javascript "js" ".js" GA;
+    (* JSON has too many NA, not worth it *)
+    check_maturity Lang.Python "python" ".py" GA;
+    check_maturity Lang.Ruby "ruby" ".rb" GA;
+    check_maturity Lang.Typescript "ts" ".ts" GA;
+
+    (* Beta *)
+    check_maturity Lang.Hack "hack" ".hack" Beta;
+    check_maturity Lang.Kotlin "kotlin" ".kt" Beta;
+    (* Terraform/HCL has too many NA, not worth it *)
+
+    (* Experimental *)
+    check_maturity Lang.Bash "bash" ".bash" Experimental;
+    check_maturity Lang.C "c" ".c" Experimental;
+    check_maturity Lang.Cplusplus "cpp" ".cpp" Experimental;
+    check_maturity Lang.Lua "lua" ".lua" Experimental;
+    check_maturity Lang.OCaml "ocaml" ".ml" Experimental;
+    check_maturity Lang.PHP "php" ".php" Experimental;
+    (* TODO we say we support R, but not really actually *)
+    (* TODO: too many exns, we need to write tests!
+     check_maturity Lang.Rust "rust" ".rust" Experimental;
+    *)
+    check_maturity Lang.Scala "scala" ".scala" Experimental;
+    (* YAML has too many NA, not worth it *)
+
+    (* Not even experimental *)
+    (* R, HTML, Vue *)
+  ]
+
+(*****************************************************************************)
+(* All tests *)
+(*****************************************************************************)
 
 let tests = List.flatten [
   (* just expression vs expression testing for one language (Python) *)
@@ -655,15 +625,18 @@ let tests = List.flatten [
   lang_regression_tests ~with_caching:true;
   (* TODO Unit_matcher.spatch_unittest ~xxx *)
   (* TODO Unit_matcher_php.unittest; (* sgrep, spatch, refactoring, unparsing *) *)
-  lint_regression_tests ~with_caching:false;
-  lint_regression_tests ~with_caching:true;
   eval_regression_tests;
   full_rule_regression_tests;
   lang_tainting_tests;
   metachecker_checks_tests;
   metachecker_regression_tests;
   filter_irrelevant_rules_tests;
+  maturity_tests;
 ]
+
+(*****************************************************************************)
+(* Entry point *)
+(*****************************************************************************)
 
 let main () =
   let alcotest_tests = Testutil.to_alcotest tests in

@@ -87,9 +87,7 @@ let profile = ref false
 (* report matching times per file *)
 let report_time = ref false
 
-(* try to continue processing files, even if one has a parse error with -e/f.
- * note that -rules_file does its own error recovery.
- *)
+(* try to continue processing files, even if one has a parse error with -e/f *)
 let error_recovery = ref false
 
 (* related: Flag_semgrep.debug_matching *)
@@ -110,9 +108,6 @@ let pattern_string = ref ""
 
 (* -f *)
 let pattern_file = ref ""
-
-(* -rules_file (mini rules) *)
-let rules_file = ref ""
 
 (* -config *)
 let config_file = ref ""
@@ -197,37 +192,6 @@ let lang_of_string s =
   match Lang.lang_of_string_opt s with
   | Some x -> x
   | None -> failwith (Lang.unsupported_language_message s)
-
-(*****************************************************************************)
-(* Checker *)
-(*****************************************************************************)
-(* We do not use the easier Stdlib.input_line here because this function
- * does remove newlines (and may do other clever things), but
- * newlines have a special meaning in some languages
- * (e.g., Python), so we use the lower-level Stdlib.input instead.
- *)
-let rec read_all chan =
-  let buf = Bytes.create 4096 in
-  let len = input chan buf 0 4096 in
-  if len = 0 then ""
-  else
-    let rest = read_all chan in
-    Bytes.sub_string buf 0 len ^ rest
-
-(* works with -lang *)
-let validate_pattern () =
-  let chan = stdin in
-  let s = read_all chan in
-  try
-    (* TODO: support generic and regex too. *)
-    let lang = Xlang.lang_of_opt_xlang !lang in
-    let _ = S.parse_pattern lang s in
-    Runner_exit.(exit_semgrep Success)
-  with exn ->
-    logger#info "invalid pattern: %s" (Printexc.to_string exn);
-    Runner_exit.(exit_semgrep False)
-
-(* See also Check_rule.check_files *)
 
 (*****************************************************************************)
 (* Dumpers *)
@@ -346,7 +310,6 @@ let mk_config () =
     profile_start = !profile_start;
     pattern_string = !pattern_string;
     pattern_file = !pattern_file;
-    rules_file = !rules_file;
     config_file = !config_file;
     equivalences_file = !equivalences_file;
     lang = !lang;
@@ -416,9 +379,6 @@ let all_actions () =
     ( "-diff_pfff_tree_sitter",
       " <file>",
       Common.mk_action_n_arg Test_parsing.diff_pfff_tree_sitter );
-    ( "--validate-pattern-stdin",
-      " check the syntax of a pattern ",
-      Common.mk_action_0_arg validate_pattern );
     ( "-expr_at_range",
       " <l:c-l:c> <file>",
       Common.mk_action_2_arg Test_synthesizing.expr_at_range );
@@ -481,9 +441,6 @@ let options () =
     ( "-f",
       Arg.Set_string pattern_file,
       " <file> use the file content as the pattern" );
-    ( "-rules_file",
-      Arg.Set_string rules_file,
-      " <file> obtain a list of patterns from YAML file (implies -json)" );
     ( "-config",
       Arg.Set_string config_file,
       " <file> obtain formula of patterns from YAML/JSON/Jsonnet file" );
@@ -657,7 +614,7 @@ let main () =
 
   let usage_msg =
     spf
-      "Usage: %s [options] -lang <str> [-e|-f|-rules_file|-config] <pattern> \
+      "Usage: %s [options] -lang <str> [-e|-f|-config] <pattern> \
        <files_or_dirs> \n\
        Options:"
       (Filename.basename Sys.argv.(0))
@@ -715,8 +672,6 @@ let main () =
           match () with
           | _ when config.config_file <> "" ->
               S.semgrep_with_rules_file config roots
-          | _ when config.rules_file <> "" ->
-              S.semgrep_with_patterns_file config roots
           | _ -> S.semgrep_with_one_pattern config roots)
       (* --------------------------------------------------------- *)
       (* empty entry *)
@@ -731,7 +686,7 @@ let main () =
 
 let register_exception_printers () =
   Parse_info.register_exception_printer ();
-  Pcre_settings.register_exception_printer ()
+  SPcre.register_exception_printer ()
 
 let () =
   Common.main_boilerplate (fun () ->

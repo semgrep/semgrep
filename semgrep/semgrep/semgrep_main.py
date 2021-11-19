@@ -125,10 +125,15 @@ def main(
         exclude = []
 
     project_url = get_project_url()
+
+    profiler = ProfileManager()
+
+    rule_start_time = time.time()
     configs_obj, errors = get_config(
         pattern, lang, configs, replacement=replacement, project_url=project_url
     )
     all_rules = configs_obj.get_rules(no_rewrite_rule_ids)
+    profiler.save("config_time", rule_start_time)
 
     if not severity:
         shown_severities = DEFAULT_SHOWN_SEVERITIES
@@ -156,19 +161,17 @@ def main(
         logger.verbose(
             f"running {len(filtered_rules)} rules from {len(configs_obj.valid)} config{plural} {config_id_if_single} {invalid_msg}".strip()
         )
-
+        if len(errors) > 0:
+            raise SemgrepError(
+                f"invalid configuration file found ({len(errors)} configs were invalid)",
+                code=MISSING_CONFIG_EXIT_CODE,
+            )
         if len(configs_obj.valid) == 0:
-            if len(errors) > 0:
-                raise SemgrepError(
-                    f"no valid configuration file found ({len(errors)} configs were invalid)",
-                    code=MISSING_CONFIG_EXIT_CODE,
-                )
-            else:
-                raise SemgrepError(
-                    """No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config
+            raise SemgrepError(
+                """No config given. Run with `--config auto` or see https://semgrep.dev/docs/running-rules/ for instructions on running with a specific config
 """,
-                    code=MISSING_CONFIG_EXIT_CODE,
-                )
+                code=MISSING_CONFIG_EXIT_CODE,
+            )
 
         notify_user_of_work(filtered_rules, include, exclude)
 
@@ -183,15 +186,13 @@ def main(
         skip_unknown_extensions=skip_unknown_extensions,
     )
 
-    profiler = ProfileManager()
-
     join_rules, rest_of_the_rules = partition(
         lambda rule: rule.mode == JOIN_MODE,
         filtered_rules,
     )
     filtered_rules = rest_of_the_rules
 
-    start_time = time.time()
+    core_start_time = time.time()
     # actually invoke semgrep
     (
         rule_matches_by_rule,
@@ -220,39 +221,41 @@ def main(
             rule_matches_by_rule.update(join_rule_matches_by_rule)
             output_handler.handle_semgrep_errors(join_rule_errors)
 
-    profiler.save("total_time", start_time)
+    profiler.save("core_time", core_start_time)
 
-    filtered_matches = process_ignores(
+    ignores_start_time = time.time()
+    filtered_matches_by_rule, nosem_errors, num_ignored_by_nosem = process_ignores(
         rule_matches_by_rule, output_handler, strict=strict, disable_nosem=disable_nosem
     )
+    profiler.save("ignores_time", ignores_start_time)
 
     output_handler.handle_semgrep_errors(semgrep_errors)
-    output_handler.handle_semgrep_errors(filtered_matches.errors)
+    output_handler.handle_semgrep_errors(nosem_errors)
 
-    num_findings = sum(len(v) for v in filtered_matches.matches.values())
+    num_findings = sum(len(v) for v in filtered_matches_by_rule.values())
     stats_line = f"ran {len(filtered_rules)} rules on {len(all_targets)} files: {num_findings} findings"
-
-    error_types = list(e.semgrep_error_type() for e in semgrep_errors)
-
+    profiler.save("total_time", rule_start_time)
     if metric_manager.is_enabled():
+        error_types = list(e.semgrep_error_type() for e in semgrep_errors)
+
         metric_manager.set_project_hash(project_url)
         metric_manager.set_configs_hash(configs)
         metric_manager.set_rules_hash(filtered_rules)
         metric_manager.set_num_rules(len(filtered_rules))
         metric_manager.set_num_targets(len(all_targets))
         metric_manager.set_num_findings(num_findings)
-        metric_manager.set_num_ignored(filtered_matches.num_matches)
-        metric_manager.set_run_time(profiler.calls["total_time"][0])
+        metric_manager.set_num_ignored(num_ignored_by_nosem)
+        metric_manager.set_profiling_times(profiler.dump_stats())
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
         metric_manager.set_total_bytes_scanned(total_bytes_scanned)
         metric_manager.set_errors(error_types)
-        metric_manager.set_rules_with_findings(filtered_matches.matches)
+        metric_manager.set_rules_with_findings(filtered_matches_by_rule)
         metric_manager.set_run_timings(
             profiling_data, list(all_targets), filtered_rules
         )
 
     output_handler.handle_semgrep_core_output(
-        filtered_matches.matches,
+        filtered_matches_by_rule,
         debug_steps_by_rule=debug_steps_by_rule,
         stats_line=stats_line,
         all_targets=all_targets,
@@ -263,4 +266,4 @@ def main(
     )
 
     if autofix:
-        apply_fixes(filtered_matches.matches, dryrun)
+        apply_fixes(filtered_matches_by_rule, dryrun)

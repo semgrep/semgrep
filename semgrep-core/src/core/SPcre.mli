@@ -1,5 +1,8 @@
 (*
-   Shared settings for using the Pcre module (pcre-ocaml library).
+   Wrappers for using the Pcre module safely with settings that make
+   sense for semgrep.
+
+   The "S" in "SPcre" stands for Semgrep.
 *)
 
 (*

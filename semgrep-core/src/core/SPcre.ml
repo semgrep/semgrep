@@ -106,7 +106,7 @@ let string_of_exn (e : exn) =
    You can test this with:
 
      $ dune utop
-     # Pcre_settings.register_exception_printer ();;
+     # SPcre.register_exception_printer ();;
      # Pcre.pmatch ~pat:"(a+)+$" "aaaaaaaaaaaaaaaaaaaaaaaaaa!"
          |> assert false
        with e -> Printexc.to_string e;;

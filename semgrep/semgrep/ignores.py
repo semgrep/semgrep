@@ -23,43 +23,35 @@ from semgrep.rule_match import RuleMatch
 from semgrep.rule_match_map import RuleMatchMap
 
 
-@attr.s(auto_attribs=True, frozen=True)
-class IgnoreResults:
-    """
-    Holds results of calculating ignores
-
-    :param num_matches: The number of ignored findings
-    :param matches: The findings to print to the caller
-    :param errors: Any errors detected in processing ignores
-    """
-
-    num_matches: int
-    matches: RuleMatchMap
-    errors: Sequence[SemgrepError]
-
-
 def process_ignores(
-    rule_matches: RuleMatchMap,
+    rule_matches_by_rule: RuleMatchMap,
     output_handler: OutputHandler,
     *,
     strict: bool,
     disable_nosem: bool,
-) -> IgnoreResults:
+) -> Tuple[RuleMatchMap, Sequence[SemgrepError], int]:
     """
     Converts a mapping of findings to a mapping of findings that
     will be shown to the caller.
 
-    :param rule_matches: The input findings (typically from a Semgrep call)
+    :param rule_matches_by_rule: The input findings (typically from a Semgrep call)
     :param output_handler: The output handler that will be used to print output;
                            this is used to determine if ignored findings should be
                            kept in the output
     :param strict: The value of the --strict flag (affects error return)
     :param disable_nosem: The value of the --disable-nosem flag
-    :return: An IgnoreResults object
+    :return:
+    - RuleMatchMap with nosem findings removed if disable_nosem is true
+    - list of semgrep errors when dealing with nosem:
+        i.e. a nosem without associated finding or nosem id not matching finding
+    - number of findings filtered out with nosem
     """
+    if disable_nosem:
+        return rule_matches_by_rule, [], 0
+
     filtered = {}
     nosem_errors: List[SemgrepError] = []
-    for rule, matches in rule_matches.items():
+    for rule, matches in rule_matches_by_rule.items():
         evolved_matches = []
         for match in matches:
             ignored, returned_errors = _rule_match_nosem(match, strict)
@@ -68,17 +60,17 @@ def process_ignores(
         filtered[rule] = evolved_matches
 
     num_findings_nosem = 0
-    if not disable_nosem:
-        if not output_handler.formatter.keep_ignores():
-            filtered = {
-                rule: [m for m in matches if not m._is_ignored]
-                for rule, matches in filtered.items()
-            }
-        num_findings_nosem = sum(
-            1 for rule, matches in filtered.items() for m in matches if m._is_ignored
-        )
 
-    return IgnoreResults(num_findings_nosem, filtered, nosem_errors)
+    if not output_handler.formatter.keep_ignores():
+        filtered = {
+            rule: [m for m in matches if not m._is_ignored]
+            for rule, matches in filtered.items()
+        }
+    num_findings_nosem = sum(
+        1 for rule, matches in filtered.items() for m in matches if m._is_ignored
+    )
+
+    return filtered, nosem_errors, num_findings_nosem
 
 
 def _rule_match_nosem(

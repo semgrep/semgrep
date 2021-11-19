@@ -1,0 +1,12 @@
+rules:
+  - id: test
+    languages:
+      - java
+    message: Test.
+    mode: taint
+    pattern-sinks:
+      - pattern: sink(...)
+    pattern-sources:
+      - pattern: source(...)
+    severity: WARNING
+
