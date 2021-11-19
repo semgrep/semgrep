@@ -245,7 +245,7 @@ def main(
         metric_manager.set_num_targets(len(all_targets))
         metric_manager.set_num_findings(num_findings)
         metric_manager.set_num_ignored(num_ignored_by_nosem)
-        metric_manager.set_run_time((profiler.dump_stats())
+        metric_manager.set_profiling_times(profiler.dump_stats())
         total_bytes_scanned = sum(t.stat().st_size for t in all_targets)
         metric_manager.set_total_bytes_scanned(total_bytes_scanned)
         metric_manager.set_errors(error_types)
