@@ -65,7 +65,7 @@ type t =
   | HTML
 
 [@@ocamlformat "disable"]
-[@@deriving show, eq]
+[@@deriving show { with_path = false }, eq]
 
 let is_js = function
   | Javascript

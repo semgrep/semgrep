@@ -10,7 +10,14 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (*****************************************************************************)
 (* Purpose *)
 (*****************************************************************************)
-(* Unit tests entry point *)
+(* Unit tests entry point.
+ *
+ * From semgrep-core you can do
+ *
+ *   $./test test foo
+ *
+ * to run all the tests containing foo in their description.
+ *)
 
 (*****************************************************************************)
 (* Constants *)
@@ -19,6 +26,107 @@ let logger = Logging.get_logger [ __MODULE__ ]
 (* ran from _build/default/tests/ hence the '..'s below *)
 let tests_path = "../../../tests"
 let data_path = "../../../data"
+
+(* coupling: https://semgrep.dev/docs/language-support/
+ * See also https://r2c.quip.com/FOAuA4ThzULc/How-to-promote-a-language-
+*)
+type maturity_level = GA | Beta | Experimental
+[@@deriving show { with_path = false }]
+
+(* coupling: 
+ * https://semgrep.dev/docs/language-support/#maturity-definitions 
+ * ../../scripts/generate-cheatsheet.py
+*)
+let experimental_features = [
+    "concrete_syntax";
+    "deep_exprstmt";
+    "dots_args";
+    "dots_nested_stmts";
+    "dots_stmts";
+    "dots_string";
+    "metavar_arg";
+    "metavar_call";
+    "metavar_equality_var"
+    (* TODO: add dots_params? *)
+]
+
+let beta_features = experimental_features @ [
+    "metavar_class_def";
+    "metavar_func_def";
+    "metavar_cond";
+    "metavar_equality_expr";
+    "metavar_equality_stmt";
+    "metavar_import";
+    "metavar_stmt";
+]
+
+let ga_features = beta_features @ [
+    "deep_expr_operator";
+    "dots_method_chaining";
+    "equivalence_constant_propagation";
+    "equivalence_eq";
+    "equivalence_naming_import";
+    "metavar_anno";
+    "metavar_key_value";
+    "metavar_typed";
+    "regexp_string";
+]
+
+let assoc_maturity_level = [
+    GA, ga_features;
+    Beta, beta_features;
+    Experimental, experimental_features
+]
+
+(* coupling: ../../scripts/generate_cheatsheet.py LANGUAGE_EXCEPTIONS
+ * Note that for some languages, e.g., JSON, certain tests do not
+ * apply (NA), hence the exceptions listed above.
+ * For others, we should really add the test and/or corresponding feature.
+*)
+let language_exceptions = [
+    (* GA languages *)
+
+    (* TODO: NA for Java? *)
+    Lang.Java, 
+    ["equivalence_naming_import"; "metavar_key_value"];
+    (* TODO: why not metavar_typed? regexp_string? NA for naming_import? *)
+    Lang.Csharp, 
+    ["equivalence_naming_import"; "metavar_typed"; "regexp_string"];
+    (* TODO: metavar_anno sounds like an NA, but the other?? *)
+    Lang.Go, 
+    ["metavar_class_def"; "metavar_import"; "metavar_anno"];
+    (* metavar_typed is NA (dynamic language) *)
+    Lang.Javascript, 
+    ["equivalence_naming_import"; "metavar_typed";];
+    Lang.Typescript, 
+    ["equivalence_naming_import"; "metavar_typed";"metavar_anno";"metavar_class_def"];
+    (* good boy, metavar_typed is working just for constants though *)
+    Lang.Python, [];
+    (* metavar_typed is NA (dynamic language), metavar_anno also NA? *)
+    Lang.Ruby, 
+    ["equivalence_naming_import"; "metavar_typed";"metavar_anno"];
+
+    (* Beta languages *)
+
+    (* TODO: to fix *)
+    Lang.Kotlin, 
+    ["dots_stmts"; "metavar_equality_var"];
+
+    (* Experimental languages *)
+
+    (* TODO: dots_nested_stmts to fix for C and C++ *)
+    Lang.C,
+    ["dots_nested_stmts"];
+    Lang.Cplusplus,
+    ["dots_nested_stmts"];
+    (* good boy *)
+    Lang.Lua, [];
+    (* dots_stmts is maybe NA, same with deep_exprstmt *)
+    Lang.OCaml, 
+    ["deep_exprstmt";"dots_stmts"];
+    (* good boy *)
+    Lang.PHP, [];
+]
 
 (*****************************************************************************)
 (* Helpers *)
@@ -430,7 +538,72 @@ let filter_irrelevant_rules_tests =
     )
   )
 
-(*                 *)
+let maturity_tests =
+  (* TODO: infer dir and ext from lang using Lang helper functions *)
+  let check_maturity lang dir ext maturity =
+    pack_tests (spf "Maturity %s for %s" 
+        (show_maturity_level maturity)
+        (Lang.show lang)) (
+      let dir = Filename.concat tests_path dir in
+      let features = 
+        assoc_maturity_level |> List.assoc maturity in
+      let exns = 
+        try
+          List.assoc lang language_exceptions 
+        with Not_found -> []
+      in
+      let features = Common2.minus_set features exns in
+      features |> List.map (fun base ->
+         base, (fun () ->
+           let path = Filename.concat dir (base ^ ext) in
+           (* if it's a does-not-apply (NA) case, consider adding it
+            * to language_exceptions above
+            *)
+           if not (Sys.file_exists path)
+           then failwith (spf "missing test file %s for maturity %s" 
+                  path (show_maturity_level maturity))
+         )
+      )
+     )
+  in
+  (* coupling: https://semgrep.dev/docs/language-support/ *)
+  pack_suites "Maturity level testing" [
+    (* GA *)
+    check_maturity Lang.Csharp "csharp" ".cs" GA;
+    check_maturity Lang.Go "go" ".go" GA;
+    check_maturity Lang.Java "java" ".java" GA;
+    check_maturity Lang.Javascript "js" ".js" GA;
+    (* JSON has too many NA, not worth it *)
+    check_maturity Lang.Python "python" ".py" GA;
+    check_maturity Lang.Ruby "ruby" ".rb" GA;
+    check_maturity Lang.Typescript "ts" ".ts" GA;
+
+    (* Beta *)
+    check_maturity Lang.Hack "hack" ".hack" Beta;
+    check_maturity Lang.Kotlin "kotlin" ".kt" Beta;
+    (* Terraform/HCL has too many NA, not worth it *)
+
+    (* Experimental *)
+    check_maturity Lang.Bash "bash" ".bash" Experimental;
+    check_maturity Lang.C "c" ".c" Experimental;
+    check_maturity Lang.Cplusplus "cpp" ".cpp" Experimental;
+    check_maturity Lang.Lua "lua" ".lua" Experimental;
+    check_maturity Lang.OCaml "ocaml" ".ml" Experimental;
+    check_maturity Lang.PHP "php" ".php" Experimental;
+    (* TODO we say we support R, but not really actually *)
+    (* TODO: too many exns, we need to write tests!
+     check_maturity Lang.Rust "rust" ".rust" Experimental;
+    *)
+    check_maturity Lang.Scala "scala" ".scala" Experimental;
+    (* YAML has too many NA, not worth it *)
+
+    (* Not even experimental *)
+    (* R, HTML, Vue *)
+  ]
+
+(*****************************************************************************)
+(* All tests *)
+(*****************************************************************************)
 
 let tests = List.flatten [
   (* just expression vs expression testing for one language (Python) *)
@@ -458,6 +631,7 @@ let tests = List.flatten [
   metachecker_checks_tests;
   metachecker_regression_tests;
   filter_irrelevant_rules_tests;
+  maturity_tests;
 ]
 
 (*****************************************************************************)
