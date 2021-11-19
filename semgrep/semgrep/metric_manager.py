@@ -44,7 +44,7 @@ class _MetricManager:
         self._num_targets: Optional[int] = None
         self._num_findings: Optional[int] = None
         self._num_ignored: Optional[int] = None
-        self._run_time: Optional[float] = None
+        self._profiling_times: Dict[str, float] = {}
         self._total_bytes_scanned: Optional[int] = None
         self._errors: List[str] = []
         self._file_stats: List[Dict[str, Any]] = []
