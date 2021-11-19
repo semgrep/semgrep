@@ -15,7 +15,6 @@ from semgrep.rule_lang import EmptySpan
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
-from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import JOIN_MODE
 from semgrep.semgrep_types import Language
@@ -175,33 +174,6 @@ class Rule:
 
     def rename_id(self, new_id: str) -> None:
         self._id = new_id
-
-    def resolve_patterns_from(self) -> None:
-        # find all the `patterns-from`
-        # TODO use YamlTree to find all recursively
-        patterns = self.raw.get('patterns', [])
-        to_replace = {}
-        for idx, patterns_item in enumerate(patterns):
-            if 'patterns-from' in patterns_item: # TODO handle `patterns-from` not in top level
-                value = patterns_item['patterns-from']
-                from semgrep.config_resolver import Config # TODO move config into own class to avoid circular import
-                config, errors = Config.from_config_list([value]) # TODO validate no errors
-                rules = config.get_rules()
-                first_rule = rules[0] # TODO validate exactly one rule or loop through all of them?
-                to_replace[idx] = first_rule.raw.get('patterns', [])
-
-        # replace the old ones TODO use yaml tree?
-        for idx, new_values_list in to_replace.items():
-            before = patterns[:idx]
-            item_to_replace = patterns[idx]
-            replacement = new_values_list
-            after = patterns[idx+1:] # TODO validate no index out of range errors
-            new_patterns = before + replacement + after
-            patterns = new_patterns
-
-        self._raw['patterns'] = patterns
-                        
-        # TODO should this be moved out of Rule?
 
     @property
     def full_hash(self) -> str:

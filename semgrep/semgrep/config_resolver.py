@@ -291,7 +291,7 @@ class Config:
         errors.extend(parse_errors)
         return cls(valid), errors
 
-    def get_rules(self, no_rewrite_rule_ids: bool = False) -> List[Rule]:
+    def get_rules(self, no_rewrite_rule_ids: bool) -> List[Rule]:
         """
         Return list of rules
 
@@ -302,7 +302,7 @@ class Config:
         if not no_rewrite_rule_ids:
             # re-write the configs to have the hierarchical rule ids
             self._rename_rule_ids(configs)
-        self._resolve_patterns_from(configs)
+        self._resolve_patterns_from(configs, no_rewrite_rule_ids)
 
         # deduplicate rules, ignoring metadata, which is not displayed
         # in the result
@@ -341,7 +341,7 @@ class Config:
                 )
 
     @staticmethod
-    def _resolve_patterns_from(valid_configs: Mapping[str, Sequence[Rule]]) -> None:
+    def _resolve_patterns_from(valid_configs: Mapping[str, Sequence[Rule]], no_rewrite_rule_ids: bool) -> None:
         # TODO add support for `pattern`, `pattern-either` etc as top-level keys. This assumes `patterns`
         # TODO should we be mutating the internal structure of rules or generating a new one? Probably the latter
         # TODO make sure we update rule.yaml or generate a new one and replace the whole rule
@@ -349,7 +349,6 @@ class Config:
         for config_id, rules in valid_configs.items():
             for rule in rules:
                 # find all the `patterns-from`
-
                 # TODO use YamlTree to find all recursively
                 patterns = rule.raw.get('patterns', [])
                 to_replace = {}
@@ -360,8 +359,8 @@ class Config:
                         config, errors = Config.from_config_list([value]) # TODO validate no errors
                         if errors:
                             logger.warning(f"There were errors resolving patterns-from: {errors}")
-                        rules = config.get_rules()
-                        if len(rules) !== 1:
+                        rules = config.get_rules(no_rewrite_rule_ids)
+                        if len(rules) != 1:
                             logger.warning(f"There were {len(rules)} rules found in {value}. Just using the first one")
                         first_rule = rules[0]
                         to_replace[idx] = first_rule.raw.get('patterns', [])
