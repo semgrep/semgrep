@@ -28,6 +28,3 @@ rules:
   pattern-sinks:
   - patterns:
     - patterns-from: ./taint-sinks.yaml
-    - metavariable-regex:
-          metavariable: $FUNCTION
-          regex: (?i)(.*password.*)
