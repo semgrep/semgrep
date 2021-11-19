@@ -88,6 +88,10 @@ def _build_time_target_json(
     return target_json
 
 
+# coupling: if you change the JSON schema below, you probably need to
+# also modify perf/run-benchmarks. Run locally
+#    $ ./run-benchmarks --dummy --upload
+# to double check everything still works
 def _build_time_json(
     rules: List[Rule],
     targets: Set[Path],
