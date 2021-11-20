@@ -4,20 +4,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.74.0](https://github.com/returntocorp/semgrep/releases/tag/v0.74.0) - 11-19-2021
+
 ### Added
-- support for method chaining patterns for Python, Golang, Ruby,
+- Support for method chaining patterns in Python, Golang, Ruby,
   and C# (#4300), so all GA languages now have method chaining
-- Scala: translate infix operators to generic AST as method calls, so `$X.map($F)` matches `xs map f`
+- Scala: translate infix operators to generic AST as method calls, 
+  so `$X.map($F)` matches `xs map f`
 - PHP: support method patterns (#4262)
 
 ### Changed
-- Add `profiling_times` object in `--time --json` output for more fine grained visibility
-  into slow parts of semgrep
-- Constant propagation: Any kind of Python string (raw, byte, or unicode) is now
-  evaluated to a string literal and can be matched by `"..."` (#3881)
+- Add `profiling_times` object in `--time --json` output for more fine
+  grained visibility into slow parts of semgrep
+- Constant propagation: Any kind of Python string (raw, byte, or unicode) is 
+  now evaluated to a string literal and can be matched by `"..."` (#3881)
 
 ### Fixed
-- Ruby blocks are now represented with an extra function call in Generic so that
+- Ruby: blocks are now represented with an extra function call in Generic so that
   both `f(...)` and `f($X)` correctly match `f(x)` in `f(x) { |n| puts n }` (#3880)
 - Apply generic filters excluding large files and binary files to
   'generic' and 'regex' targets as it was already done for the other
@@ -33,25 +36,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
 
 ### Added
+- experimental support for C++
 
 ### Changed
 - Dataflow: Assume that any function/method call inside a `try-catch` could
   be raising an exception (#4091)
+- cli: if an invalid config is passed to semgrep, it will fail immediately, even 
+  if valid configs are also passed
 
 ### Fixed
-- Performance: Deduplicate rules by rule-id + behavior so rules are not being run twice
+- Performance: Deduplicate rules by rule-id + behavior so rules are not being run
+  twice
 - Scala: recognize metavariables in patterns
 - Scala: translate for loops to the generic ast properly
-
-## [0.73.0](https://github.com/returntocorp/semgrep/releases/tag/v0.73.0) - 11-12-2021
-
-### Added
-- experimental support for C++
-
-### Changed
-- cli: if an invalid config is passed to semgrep, it will fail immediately, even if valid configs are also passed
-
-### Fixed
 - Catch PCRE errors
 - Constant propagation: Avoid "Impossible" errors due to unhandled cases
 
