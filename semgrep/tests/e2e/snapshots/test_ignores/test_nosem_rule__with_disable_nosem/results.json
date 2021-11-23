@@ -9,6 +9,7 @@
         "offset": 34
       },
       "extra": {
+        "is_ignored": true,
         "lines": "    test_nosem_func(); // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -30,6 +31,7 @@
         "offset": 84
       },
       "extra": {
+        "is_ignored": false,
         "lines": "    test_nosem_func();",
         "message": "test-nosem-message",
         "metadata": {},
@@ -51,6 +53,7 @@
         "offset": 46
       },
       "extra": {
+        "is_ignored": true,
         "lines": "\ttest_nosem_func() // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -72,6 +75,7 @@
         "offset": 92
       },
       "extra": {
+        "is_ignored": false,
         "lines": "\ttest_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -93,6 +97,7 @@
         "offset": 84
       },
       "extra": {
+        "is_ignored": true,
         "lines": "        test_nosem_func(); // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -114,6 +119,7 @@
         "offset": 138
       },
       "extra": {
+        "is_ignored": false,
         "lines": "        test_nosem_func();",
         "message": "test-nosem-message",
         "metadata": {},
@@ -135,6 +141,7 @@
         "offset": 17
       },
       "extra": {
+        "is_ignored": true,
         "lines": "test_nosem_func() // nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -156,6 +163,7 @@
         "offset": 44
       },
       "extra": {
+        "is_ignored": true,
         "lines": "test_nosem_func() // nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -177,6 +185,7 @@
         "offset": 89
       },
       "extra": {
+        "is_ignored": true,
         "lines": "test_nosem_func() // NOSEM: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -198,6 +207,7 @@
         "offset": 180
       },
       "extra": {
+        "is_ignored": false,
         "lines": "test_nosem_func(\n    invalid_line // nosem: rules.test-nosem\n)",
         "message": "test-nosem-message",
         "metadata": {},
@@ -219,6 +229,7 @@
         "offset": 199
       },
       "extra": {
+        "is_ignored": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
@@ -240,6 +251,7 @@
         "offset": 17
       },
       "extra": {
+        "is_ignored": true,
         "lines": "test_nosem_func()  # nosem: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -261,6 +273,7 @@
         "offset": 62
       },
       "extra": {
+        "is_ignored": true,
         "lines": "test_nosem_func()  # NOSEM: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -282,6 +295,7 @@
         "offset": 107
       },
       "extra": {
+        "is_ignored": true,
         "lines": "test_nosem_func()  # nosemgrep: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -303,6 +317,7 @@
         "offset": 156
       },
       "extra": {
+        "is_ignored": true,
         "lines": "test_nosem_func()  # NOSEMGREP",
         "message": "test-nosem-message",
         "metadata": {},
@@ -324,6 +339,7 @@
         "offset": 187
       },
       "extra": {
+        "is_ignored": true,
         "lines": "test_nosem_func()  # nOseMgREP: rules.test-nosem",
         "message": "test-nosem-message",
         "metadata": {},
@@ -345,6 +361,7 @@
         "offset": 236
       },
       "extra": {
+        "is_ignored": false,
         "lines": "test_nosem_func()",
         "message": "test-nosem-message",
         "metadata": {},
