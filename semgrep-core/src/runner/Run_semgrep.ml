@@ -262,12 +262,7 @@ let parse_equivalences equivalences_file =
   [@@profiling]
 
 let parse_pattern lang_pattern str =
-  try
-    Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-        let res =
-          Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
-        in
-        res)
+  try Parse_pattern.parse_pattern lang_pattern ~print_errors:false str
   with exn ->
     raise
       (Rule.InvalidPattern
