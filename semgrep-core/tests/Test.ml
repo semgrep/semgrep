@@ -133,10 +133,8 @@ let language_exceptions = [
 (*****************************************************************************)
 
 let any_gen_of_string str =
-  Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
   let any = Parse_python.any_of_string str in
   Python_to_generic.any any
-  )
 
 
 let parsing_tests_for_lang files lang =
@@ -200,7 +198,6 @@ let regression_tests_for_lang ~with_caching files lang =
                     (Common.exn_to_s exn))
     in
     let pattern = 
-      Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
         try 
           Parse_pattern.parse_pattern lang ~print_errors:true (Common.read_file sgrep_file)
         with exn ->
@@ -208,7 +205,6 @@ let regression_tests_for_lang ~with_caching files lang =
                       sgrep_file 
                       (Lang.string_of_lang lang)
                       (Common.exn_to_s exn))
-      )
     in
     E.g_errors := [];
 

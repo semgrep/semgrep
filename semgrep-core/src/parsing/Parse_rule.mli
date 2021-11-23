@@ -1,9 +1,5 @@
 (* may raise all the exns in Rule *)
 val parse : Common.filename -> Rule.rules
 
-(* internals used by other parsers (e.g., Parse_mini_rule.ml) *)
-
-val parse_severity : id:Rule.rule_id -> string Rule.wrap -> Rule.severity
-
-val parse_pattern :
-  id:Rule.rule_id -> lang:Lang.t -> string Rule.loc -> Pattern.t
+(* this can be used for parsing -e/-f extended patterns in Run_semgrep.ml *)
+val parse_xpattern : Xlang.t -> string Rule.wrap -> Rule.xpattern
