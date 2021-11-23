@@ -41,14 +41,13 @@ def process_ignores(
     :param strict: The value of the --strict flag (affects error return)
     :param disable_nosem: The value of the --disable-nosem flag
     :return:
-    - RuleMatchMap with nosem findings removed if disable_nosem is true
+    - RuleMatchMap: dict from rule to list of findings. Findings have is_ignored
+        set to true if there was matching nosem comment found for it.
+        Contains only findings without nosem if disable_nosem set to False
     - list of semgrep errors when dealing with nosem:
         i.e. a nosem without associated finding or nosem id not matching finding
     - number of findings filtered out with nosem
     """
-    if disable_nosem:
-        return rule_matches_by_rule, [], 0
-
     filtered = {}
     nosem_errors: List[SemgrepError] = []
     for rule, matches in rule_matches_by_rule.items():
@@ -59,13 +58,12 @@ def process_ignores(
             nosem_errors.extend(returned_errors)
         filtered[rule] = evolved_matches
 
-    num_findings_nosem = 0
-
-    if not output_handler.formatter.keep_ignores():
+    if not disable_nosem and not output_handler.formatter.keep_ignores():
         filtered = {
             rule: [m for m in matches if not m._is_ignored]
             for rule, matches in filtered.items()
         }
+
     num_findings_nosem = sum(
         1 for rule, matches in filtered.items() for m in matches if m._is_ignored
     )
