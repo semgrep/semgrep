@@ -2,7 +2,7 @@
    Type definitions, mostly.
 *)
 
-type output_format = Text | Json
+type output_format = Text | Json [@@deriving show]
 
 type config = {
   (* Debugging/profiling/logging flags *)
