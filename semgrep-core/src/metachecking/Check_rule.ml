@@ -171,7 +171,7 @@ let semgrep_check config metachecks rules =
     }
   in
   let _success, res, _targets =
-    Run_semgrep.run_semgrep_with_rules config rules
+    Run_semgrep.semgrep_with_raw_results_and_exn_handler config rules
   in
   res.matches |> List.map match_to_semgrep_error
 

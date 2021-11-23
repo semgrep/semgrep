@@ -12,5 +12,8 @@
     semgrep_datalog
     semgrep_engine
  )
- (preprocess (pps ppx_profiling))
+ (preprocess (pps
+      ppx_deriving.show
+      ppx_profiling
+   ))
 )

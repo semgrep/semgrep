@@ -671,7 +671,7 @@ let main () =
 
           match () with
           | _ when config.config_file <> "" ->
-              S.semgrep_with_rules_file config roots
+              S.semgrep_with_formatted_output config roots
           | _ -> S.semgrep_with_one_pattern config roots)
       (* --------------------------------------------------------- *)
       (* empty entry *)
@@ -679,7 +679,7 @@ let main () =
       (* TODO: should not need that, semgrep should not call us when there
        * are no files to process. *)
       | [] when config.target_file <> "" && config.config_file <> "" ->
-          S.semgrep_with_rules_file config []
+          S.semgrep_with_formatted_output config []
       | [] -> Common.usage usage_msg (options ()))
 
 (*****************************************************************************)

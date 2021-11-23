@@ -439,7 +439,7 @@ let semgrep_with_rules config (rules, rule_parse_time) files_or_dirs =
   ( { RP.matches; errors; skipped; rule_profiling = res.RP.rule_profiling },
     files )
 
-let run_semgrep_with_rules config files_or_dirs =
+let semgrep_with_raw_results_and_exn_handler config files_or_dirs =
   let rules_file = config.config_file in
   try
     logger#info "Parsing %s" rules_file;
@@ -461,8 +461,9 @@ let run_semgrep_with_rules config files_or_dirs =
     in
     (Some exn, res, [])
 
-let semgrep_with_rules_file config files_or_dirs =
-  let exn, res, files = run_semgrep_with_rules config files_or_dirs in
+let semgrep_with_formatted_output config files_or_dirs =
+  let exn, res, files = 
+    semgrep_with_raw_results_and_exn_handler config files_or_dirs in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
