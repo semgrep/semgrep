@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+## [0.75.0](https://github.com/returntocorp/semgrep/releases/tag/v0.75.0) - 11-23-2021
+
 ### Fixed
 - semgrep-ci relies on `--disable-nosem` still tagging findings with `is_ignored`
   correctly. Reverting optimization in 0.74.0 that left this field None when said
