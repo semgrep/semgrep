@@ -34,33 +34,36 @@ val replace_named_pipe_by_regular_file : Common.filename -> Common.filename
    Used outside Run_semgrep in Main.ml for -dump_pattern.
 *)
 
-val print_match:
-  ?str:string -> Matching_report.match_format ->
-  Metavariable.mvar list -> Metavariable.bindings ->
+val print_match :
+  ?str:string ->
+  Matching_report.match_format ->
+  Metavariable.mvar list ->
+  Metavariable.bindings ->
   (Metavariable.mvalue -> Parse_info.t list) ->
-  Parse_info.t list -> unit
+  Parse_info.t list ->
+  unit
 
-val exn_to_error: Common.filename -> exn -> Semgrep_error_code.error
+val exn_to_error : Common.filename -> exn -> Semgrep_error_code.error
 (**
   Small wrapper over Semgrep_error_code.exn_to_error to handle also
   semgrep-specific exns that have a position.
   See also JSON_report.json_of_exn for non-target related exn handling.
 *)
 
-val xlang_files_of_dirs_or_files:
-  Xlang.t -> Common.filename list ->
+val xlang_files_of_dirs_or_files :
+  Xlang.t ->
+  Common.filename list ->
   Common.filename list * Semgrep_core_response_j.skipped_target list
 (**
   Small wrapper over Find_target.files_of_dirs_or_files to handle
   also Xlang.t (LRegex and LGeneric)
  *)
 
-val filter_files_with_too_many_matches_and_transform_as_timeout:
+val filter_files_with_too_many_matches_and_transform_as_timeout :
   int ->
   Pattern_match.t list ->
-  Pattern_match.t list *
-  Semgrep_error_code.error list *
-  Semgrep_core_response_j.skipped_target list
+  Pattern_match.t list
+  * Semgrep_error_code.error list
+  * Semgrep_core_response_j.skipped_target list
 
-val timeout_function:
-  Common.filename -> float -> (unit -> 'a) -> 'a
+val timeout_function : Common.filename -> float -> (unit -> 'a) -> 'a

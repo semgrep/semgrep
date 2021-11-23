@@ -463,7 +463,8 @@ let semgrep_with_raw_results_and_exn_handler config files_or_dirs =
 
 let semgrep_with_formatted_output config files_or_dirs =
   let exn, res, files =
-    semgrep_with_raw_results_and_exn_handler config files_or_dirs in
+    semgrep_with_raw_results_and_exn_handler config files_or_dirs
+  in
   (* note: uncomment the following and use semgrep-core -stat_matches
    * to debug too-many-matches issues.
    * Common2.write_value matches "/tmp/debug_matches";
