@@ -112,10 +112,7 @@ let parse_pattern lang ?(print_errors = false) str =
         Ruby_to_generic.any any
     | Lang.PHP ->
         let any_cst = Parse_php.any_of_string str in
-        let any =
-          Common.save_excursion Flag_parsing.sgrep_mode true (fun () ->
-              Ast_php_build.any any_cst)
-        in
+        let any = Ast_php_build.any any_cst in
         Php_to_generic.any any
     | Lang.Hack ->
         let res = Parse_hack_tree_sitter.parse_pattern str in
