@@ -365,22 +365,21 @@ type step2 =
 type cnf_step2 = step2 cnf [@@deriving show]
 
 let or_step2 (Or xs) =
-  (* sanity check *)
-  xs
-  |> List.iter (function
-       | StringsAndMvars ([], _) -> raise GeneralPattern
-       | _ -> ());
   let ys =
     xs
-    |> Common.map (function
-         | StringsAndMvars (xs, _) -> Idents xs
-         | Regexp re -> Regexp2 re
-         | MvarRegexp (_mvar, re) -> Regexp2 re)
+    |> List.filter_map (function
+         | StringsAndMvars ([], _) -> None
+         | StringsAndMvars (xs, _) -> Some (Idents xs)
+         | Regexp re -> Some (Regexp2 re)
+         | MvarRegexp (_mvar, re) -> Some (Regexp2 re))
   in
-  Or ys
+  (* Remove or cases that are general patterns *)
+  if null ys then None else Some (Or ys)
 
 let and_step2 (And xs) =
-  let ys = xs |> Common.map or_step2 in
+  Common.pr2 (show_cnf_step1 (And xs));
+  let ys = xs |> List.filter_map or_step2 in
+  if null ys then raise GeneralPattern;
   And ys
 
 (*****************************************************************************)
