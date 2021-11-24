@@ -224,8 +224,11 @@ def main(
     profiler.save("core_time", core_start_time)
 
     ignores_start_time = time.time()
+    keep_ignored = disable_nosem or output_handler.formatter.keep_ignores()
     filtered_matches_by_rule, nosem_errors, num_ignored_by_nosem = process_ignores(
-        rule_matches_by_rule, output_handler, strict=strict, disable_nosem=disable_nosem
+        rule_matches_by_rule,
+        keep_ignored,
+        strict=strict,
     )
     profiler.save("ignores_time", ignores_start_time)
 
