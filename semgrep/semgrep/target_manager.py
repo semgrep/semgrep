@@ -20,11 +20,11 @@ from wcmatch import glob as wcglob
 from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
+from semgrep.semgrep_types import FileExtension
+from semgrep.semgrep_types import LANG
 from semgrep.semgrep_types import Language
+from semgrep.semgrep_types import LanguageDefinition
 from semgrep.semgrep_types import Shebang
-from semgrep.target_manager_extensions import ALL_EXTENSIONS
-from semgrep.target_manager_extensions import FileExtension
-from semgrep.target_manager_extensions import lang_to_exts_and_shebangs
 from semgrep.util import partition_set
 from semgrep.util import sub_check_output
 from semgrep.verbose_logging import getLogger
@@ -32,6 +32,14 @@ from semgrep.verbose_logging import getLogger
 logger = getLogger(__name__)
 
 MAX_CHARS_TO_READ_FOR_SHEBANG = 255
+
+
+ALL_EXTENSIONS: Collection[FileExtension] = {
+    ext
+    for definition in LANG.data_by_id.values()
+    for ext in definition.exts
+    if ext != FileExtension("")
+}
 
 
 @contextlib.contextmanager
@@ -143,7 +151,7 @@ class TargetManager:
                 )
             return files
 
-        def _executes_with_shebang(f: Path, shebangs: Set[Shebang]) -> bool:
+        def _executes_with_shebang(f: Path, shebangs: Collection[Shebang]) -> bool:
             """
             Returns if a path is executable and executes with one of a set of programs
             """
@@ -161,8 +169,7 @@ class TargetManager:
 
         def _find_files_with_extension_or_shebang(
             paths: Iterable[Path],
-            extensions: Iterable[FileExtension],
-            shebangs: Set[Shebang],
+            definition: LanguageDefinition,
         ) -> FrozenSet[Path]:
             """
             Finds all files in a collection of paths that either:
@@ -175,24 +182,26 @@ class TargetManager:
             before = time.time()
             for path in paths:
                 if path.is_dir():
-                    res.update(p for ext in extensions for p in path.rglob(f"*{ext}"))
+                    res.update(
+                        p for ext in definition.exts for p in path.rglob(f"*{ext}")
+                    )
                     res.update(
                         Path(root) / f
                         for root, _, files in os.walk(str(curr_dir))
                         for f in files
-                        if _executes_with_shebang(Path(root) / f, shebangs)
+                        if _executes_with_shebang(Path(root) / f, definition.shebangs)
                     )
                 else:
-                    if any(str(path).endswith(ext) for ext in extensions):
+                    if any(str(path).endswith(ext) for ext in definition.exts):
                         res.add(path)
-                    if _executes_with_shebang(path, shebangs):
+                    if _executes_with_shebang(path, definition.shebangs):
                         res.add(path)
             logger.debug(
                 f"Scanned file system for matching files in {time.time() - before} s"
             )
             return frozenset(res)
 
-        extensions, shebangs = lang_to_exts_and_shebangs(language)
+        definition = LANG.data_by_id[language]
 
         if respect_git_ignore:
             try:
@@ -230,22 +239,16 @@ class TargetManager:
                 untracked_unignored = _parse_output(untracked_output, curr_dir)
                 deleted = _parse_output(deleted_output, curr_dir)
                 paths = tracked.union(untracked_unignored).difference(deleted)
-                results = _find_files_with_extension_or_shebang(
-                    paths, extensions, shebangs
-                )
+                results = _find_files_with_extension_or_shebang(paths, definition)
 
             except (subprocess.CalledProcessError, FileNotFoundError):
                 logger.verbose(
                     f"Unable to ignore files ignored by git ({curr_dir} is not a git directory or git is not installed). Running on all files instead..."
                 )
                 # Not a git directory or git not installed. Fallback to using rglob
-                results = _find_files_with_extension_or_shebang(
-                    [curr_dir], extensions, shebangs
-                )
+                results = _find_files_with_extension_or_shebang([curr_dir], definition)
         else:
-            results = _find_files_with_extension_or_shebang(
-                [curr_dir], extensions, shebangs
-            )
+            results = _find_files_with_extension_or_shebang([curr_dir], definition)
 
         return TargetManager._filter_valid_files(results)
 
@@ -373,7 +376,7 @@ class TargetManager:
         explicit_files_with_lang_extension = frozenset(
             f
             for f in explicit_files
-            if (any(f.match(f"*{ext}") for ext in lang_to_exts_and_shebangs(lang)[0]))
+            if (any(f.match(f"*{ext}") for ext in LANG.data_by_id[lang].exts))
         )
         targets = targets.union(explicit_files_with_lang_extension)
 

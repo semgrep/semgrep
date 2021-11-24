@@ -1,11 +1,15 @@
-from enum import Enum
-from typing import Dict
-from typing import List
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Collection
+from typing import Mapping
 from typing import NewType
 from typing import Optional
+from typing import Sequence
 
 from semgrep.error import UnknownLanguageError
 from semgrep.rule_lang import Span
+from semgrep.types import JsonObject
 
 Mode = NewType("Mode", str)
 FileExtension = NewType("FileExtension", str)
@@ -14,97 +18,78 @@ Shebang = str
 JOIN_MODE = Mode("join")
 SEARCH_MODE = DEFAULT_MODE = Mode("search")
 
-# coupling: if you add a new language here, you probably need to modify
-# also target_manager_extensions.py
-class Language(Enum):
-    PYTHON: str = "python"
-    PYTHON2: str = "python2"
-    PYTHON3: str = "python3"
-    JAVASCRIPT: str = "javascript"
-    TYPESCRIPT: str = "typescript"
-    JAVA: str = "java"
-    C: str = "c"
-    CPP: str = "cpp"
-    GO: str = "go"
-    RUBY: str = "ruby"
-    PHP: str = "php"
-    HACK: str = "hack"
-    LUA: str = "lua"
-    CSHARP: str = "csharp"
-    RUST: str = "rust"
-    KOTLIN: str = "kt"
-    YAML: str = "yaml"
-    ML: str = "ml"
-    SCALA: str = "scala"
-    VUE: str = "vue"
-    HTML: str = "html"
-    JSON: str = "json"
-    HCL: str = "hcl"
-    BASH: str = "bash"
-    REGEX: str = "regex"
-    GENERIC: str = "generic"
+
+class Language(str):
+    pass
 
 
-class Language_util:
-    language_to_strs: Dict[Language, List[str]] = {
-        Language.PYTHON: [Language.PYTHON.value, "py"],
-        Language.PYTHON2: [Language.PYTHON2.value],
-        Language.PYTHON3: [Language.PYTHON3.value],
-        Language.JAVASCRIPT: [Language.JAVASCRIPT.value, "js"],
-        Language.TYPESCRIPT: [Language.TYPESCRIPT.value, "ts"],
-        Language.JAVA: [Language.JAVA.value],
-        Language.C: [Language.C.value],
-        Language.CPP: [Language.CPP.value, "C++"],
-        Language.GO: [Language.GO.value, "golang"],
-        Language.RUBY: [Language.RUBY.value, "rb"],
-        Language.PHP: [Language.PHP.value],
-        Language.HACK: [Language.HACK.value, "hacklang"],
-        Language.LUA: [Language.LUA.value],
-        Language.CSHARP: [Language.CSHARP.value, "cs", "C#"],
-        Language.RUST: [Language.RUST.value, "Rust", "rs"],
-        Language.KOTLIN: [Language.KOTLIN.value, "Kotlin", "kotlin"],
-        Language.YAML: [Language.YAML.value, "Yaml"],
-        Language.SCALA: [Language.SCALA.value],
-        Language.VUE: [Language.VUE.value],
-        Language.HTML: [Language.HTML.value],
-        Language.ML: [Language.ML.value, "ocaml"],
-        Language.JSON: [Language.JSON.value, "JSON", "Json"],
-        Language.HCL: [Language.HCL.value, "tf", "terraform", "HCL"],
-        Language.BASH: [Language.BASH.value, "sh"],
-        Language.REGEX: [Language.REGEX.value, "none"],
-        Language.GENERIC: [Language.GENERIC.value],
-    }
-
-    str_to_language = {}
-    for language in language_to_strs.keys():
-        for lang_str in language_to_strs[language]:
-            str_to_language[lang_str] = language
-
-    """ Convert an inputted string representing a language to a Language
-
-    Keyword arguments;
-    lang_str -- string representing a language (e.g. "C#")
-    span     -- span of language string in the original file (for error reporting),
-                None if resolve was called within semgrep
+@dataclass(frozen=True)
+class LanguageDefinition:
+    """
+    Mirrors schema of lang.json (see lang/README.md) for each language
     """
 
-    @classmethod
-    def resolve(cls, lang_str: str, span: Optional[Span] = None) -> Language:
-        if lang_str in cls.str_to_language:
-            return cls.str_to_language[lang_str]
-        else:
-            raise UnknownLanguageError(
-                short_msg=f"invalid language: {lang_str}",
-                long_msg=f"unsupported language: {lang_str}. supported languages are: {', '.join(cls.all_language_strs())}",
-                spans=[span.with_context(before=1, after=1)]
-                if span
-                else [],  # not called from a config file
-            )
+    id: Language
+    name: str
+    keys: Collection[str]
+    exts: Collection[FileExtension]
+    reverse_exts: Collection[str]
+    shebangs: Collection[Shebang]
 
     @classmethod
-    def all_language_strs(cls) -> List[str]:
-        # sort to standardize because this is used in outputting methods
-        return sorted(cls.str_to_language.keys())
+    def from_dict(cls, data: JsonObject) -> "LanguageDefinition":
+        return cls(
+            id=Language(data["id"]),
+            name=data["name"],
+            keys=data["keys"],
+            exts=data["exts"],
+            reverse_exts=data.get("reverse_exts", data["exts"]),
+            shebangs=data.get("shebangs", []),
+        )
+
+
+class Lang:
+    def __init__(self) -> None:
+        with (Path(__file__).parent / "lang.json").open() as fd:
+            data = json.load(fd)
+
+        self.data_by_id: Mapping[Language, LanguageDefinition] = {
+            Language(d["id"]): LanguageDefinition.from_dict(d) for d in data
+        }
+        # TODO: guarantee one-to-one using test case
+        self.lang_by_key: Mapping[str, Language] = {
+            key: lang
+            for lang, definition in self.data_by_id.items()
+            for key in definition.keys
+        }
+        # TODO: guarantee one-to-one using test case
+        self.lang_by_ext: Mapping[str, Language] = {
+            ext: lang
+            for lang, definition in self.data_by_id.items()
+            for ext in definition.reverse_exts
+        }
+        self.all_languages: Sequence[Language] = sorted(self.data_by_id)
+
+    def resolve(self, lang_str: str, span: Optional[Span] = None) -> Language:
+        """
+        Convert an inputted string representing a language to a Language
+
+        :param lang_str: string representing a language (e.g. "C#")
+        :param span: span of language string in the original file (for error reporting),
+                    None if resolve was called within semgrep
+        """
+        if lang_str in self.lang_by_key:
+            return self.lang_by_key[lang_str]
+        else:
+            spans = [span.with_context(before=1, after=1)] if span else []
+            raise UnknownLanguageError(
+                short_msg=f"invalid language: {lang_str}",
+                long_msg=f"unsupported language: {lang_str}. supported languages are: {', '.join(self.all_languages)}",
+                spans=spans,
+            )
+
+
+LANG = Lang()
 
 
 ALLOWED_GLOB_TYPES = ("include", "exclude")

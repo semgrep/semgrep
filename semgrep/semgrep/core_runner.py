@@ -34,9 +34,9 @@ from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_core import SemgrepCore
+from semgrep.semgrep_types import LANG
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
-from semgrep.target_manager_extensions import all_supported_languages
 from semgrep.util import is_debug
 from semgrep.util import sub_run
 from semgrep.verbose_logging import getLogger
@@ -267,7 +267,7 @@ class CoreRunner:
         except _UnknownLanguageError as ex:
             raise UnknownLanguageError(
                 short_msg=f"invalid language: {language}",
-                long_msg=f"unsupported language: {language}. supported languages are: {', '.join(all_supported_languages())}",
+                long_msg=f"unsupported language: {language}. supported languages are: {', '.join(LANG.all_languages)}",
                 spans=[rule.languages_span.with_context(before=1, after=1)],
             ) from ex
         return list(targets)
@@ -326,7 +326,7 @@ class CoreRunner:
 
                         cmd = [SemgrepCore.path()] + [
                             "-lang",
-                            language.value,
+                            str(language),
                             "-json",
                             "-config",
                             rule_file.name,

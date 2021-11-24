@@ -133,8 +133,10 @@ def _run_semgrep(
         options.append("--sarif")
 
     cmd = [sys.executable, "-m", "semgrep", *options, Path("targets") / target_name]
+    # join here so that one can easily copy-paste the command
+    str_cmd = " ".join(str(c) for c in cmd)
     print(f"current directory: {os.getcwd()}")
-    print(f"semgrep command: {cmd}")
+    print(f"semgrep command: {str_cmd}")
     output = subprocess.run(
         cmd,
         encoding="utf-8",
@@ -153,7 +155,7 @@ def _run_semgrep(
         print("--- end semgrep stderr ---")
         raise subprocess.CalledProcessError(
             returncode=output.returncode,
-            cmd=cmd,
+            cmd=str_cmd,
             output=output.stdout,
             stderr=output.stderr,
         )
