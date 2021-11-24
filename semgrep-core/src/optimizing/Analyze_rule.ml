@@ -366,7 +366,7 @@ type cnf_step2 = step2 cnf [@@deriving show]
 
 let or_step2 (Or xs) =
   let step1_to_step2 =
-    List.map (function
+    Common.map (function
       | StringsAndMvars ([], _) -> raise GeneralPattern
       | StringsAndMvars (xs, _) -> Idents xs
       | Regexp re -> Regexp2 re
@@ -378,7 +378,6 @@ let or_step2 (Or xs) =
   try Some (Or (step1_to_step2 xs)) with GeneralPattern -> None
 
 let and_step2 (And xs) =
-  Common.pr2 (show_cnf_step1 (And xs));
   let ys = xs |> List.filter_map or_step2 in
   if null ys then raise GeneralPattern;
   And ys
