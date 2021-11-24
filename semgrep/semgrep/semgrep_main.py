@@ -194,21 +194,13 @@ def main(
 
     core_start_time = time.time()
     # actually invoke semgrep
-    (
-        rule_matches_by_rule,
-        debug_steps_by_rule,
-        semgrep_errors,
-        all_targets,
-        profiling_data,
-    ) = CoreRunner(
+    (rule_matches_by_rule, semgrep_errors, all_targets, profiling_data,) = CoreRunner(
         jobs=jobs,
         timeout=timeout,
         max_memory=max_memory,
         timeout_threshold=timeout_threshold,
         optimizations=optimizations,
-    ).invoke_semgrep(
-        target_manager, profiler, filtered_rules
-    )
+    ).invoke_semgrep(target_manager, profiler, filtered_rules)
 
     if join_rules:
         import semgrep.join_rule as join_rule
@@ -256,7 +248,6 @@ def main(
 
     output_handler.handle_semgrep_core_output(
         filtered_matches_by_rule,
-        debug_steps_by_rule=debug_steps_by_rule,
         stats_line=stats_line,
         all_targets=all_targets,
         profiler=profiler,

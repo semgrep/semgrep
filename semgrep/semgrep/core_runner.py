@@ -279,7 +279,6 @@ class CoreRunner:
         profiler: ProfileManager,
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
-        Dict[Rule, List[Any]],
         List[SemgrepError],
         Set[Path],
         ProfilingData,
@@ -384,7 +383,7 @@ class CoreRunner:
             # end for language ...
         # end for rule ...
 
-        return outputs, {}, errors, all_targets, profiling_data
+        return outputs, errors, all_targets, profiling_data
 
     # end _run_rules_direct_to_semgrep_core
 
@@ -395,7 +394,6 @@ class CoreRunner:
         rules: List[Rule],
     ) -> Tuple[
         Dict[Rule, List[RuleMatch]],
-        Dict[Rule, List[Dict[str, Any]]],
         List[SemgrepError],
         Set[Path],
         ProfilingData,
@@ -407,7 +405,6 @@ class CoreRunner:
 
         (
             findings_by_rule,
-            debug_steps_by_rule,
             errors,
             all_targets,
             profiling_data,
@@ -427,7 +424,6 @@ class CoreRunner:
 
         return (
             findings_by_rule,
-            debug_steps_by_rule,
             errors,
             all_targets,
             profiling_data,
