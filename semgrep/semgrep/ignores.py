@@ -35,11 +35,8 @@ def process_ignores(
     will be shown to the caller.
 
     :param rule_matches_by_rule: The input findings (typically from a Semgrep call)
-    :param output_handler: The output handler that will be used to print output;
-                           this is used to determine if ignored findings should be
-                           kept in the output
+    :param keep_ignored: if true will keep nosem findings in returned object, otherwise removes them
     :param strict: The value of the --strict flag (affects error return)
-    :param disable_nosem: The value of the --disable-nosem flag
     :return:
     - RuleMatchMap: dict from rule to list of findings. Findings have is_ignored
         set to true if there was matching nosem comment found for it.
