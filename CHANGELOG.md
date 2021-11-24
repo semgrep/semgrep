@@ -4,6 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 ## Unreleased
 
+### Added
+- Improved filtering of rules based on file content
+
 ## [0.75.0](https://github.com/returntocorp/semgrep/releases/tag/v0.75.0) - 11-23-2021
 
 ### Fixed
