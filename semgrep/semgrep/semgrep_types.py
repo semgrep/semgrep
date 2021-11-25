@@ -56,7 +56,7 @@ class Lang:
             Language(d["id"]): LanguageDefinition.from_dict(d) for d in data
         }
         self.lang_by_key: Mapping[str, Language] = {
-            key: lang
+            key.lower(): lang
             for lang, definition in self.data_by_id.items()
             for key in definition.keys
         }
@@ -75,7 +75,7 @@ class Lang:
         :param span: span of language string in the original file (for error reporting),
                     None if resolve was called within semgrep
         """
-        if lang_str in self.lang_by_key:
+        if lang_str.lower() in self.lang_by_key:
             return self.lang_by_key[lang_str]
         else:
             spans = [span.with_context(before=1, after=1)] if span else []
