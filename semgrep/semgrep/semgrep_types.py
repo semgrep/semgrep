@@ -5,7 +5,6 @@ from typing import Collection
 from typing import Mapping
 from typing import NewType
 from typing import Optional
-from typing import Sequence
 
 from semgrep.error import UnknownLanguageError
 from semgrep.rule_lang import Span
@@ -66,7 +65,7 @@ class Lang:
             for lang, definition in self.data_by_id.items()
             for ext in definition.reverse_exts
         }
-        self.all_languages: Sequence[Language] = sorted(self.data_by_id)
+        self.all_language_keys: Collection[str] = sorted(self.lang_by_key.keys())
 
     def resolve(self, lang_str: str, span: Optional[Span] = None) -> Language:
         """
@@ -82,7 +81,7 @@ class Lang:
             spans = [span.with_context(before=1, after=1)] if span else []
             raise UnknownLanguageError(
                 short_msg=f"invalid language: {lang_str}",
-                long_msg=f"unsupported language: {lang_str}. supported languages are: {', '.join(self.all_languages)}",
+                long_msg=f"unsupported language: {lang_str}. supported languages are: {', '.join(self.all_language_keys)}",
                 spans=spans,
             )
 
