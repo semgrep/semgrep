@@ -1,10 +1,11 @@
 import json
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Collection
 from typing import Mapping
 from typing import NewType
 from typing import Optional
+
+import attr
 
 from semgrep.error import UnknownLanguageError
 from semgrep.rule_lang import Span
@@ -22,7 +23,7 @@ class Language(str):
     pass
 
 
-@dataclass(frozen=True)
+@attr.s(auto_attribs=True, frozen=True)
 class LanguageDefinition:
     """
     Mirrors schema of lang.json (see lang/README.md) for each language
