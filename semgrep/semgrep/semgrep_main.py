@@ -15,6 +15,7 @@ from semgrep.constants import DEFAULT_TIMEOUT
 from semgrep.constants import OutputFormat
 from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
+from semgrep.error import FilesNotFoundError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.ignores import process_ignores
@@ -176,15 +177,17 @@ def main(
         notify_user_of_work(filtered_rules, include, exclude)
 
     respect_git_ignore = not no_git_ignore
-    target_manager = TargetManager(
-        includes=include,
-        excludes=exclude,
-        max_target_bytes=max_target_bytes,
-        targets=target,
-        respect_git_ignore=respect_git_ignore,
-        output_handler=output_handler,
-        skip_unknown_extensions=skip_unknown_extensions,
-    )
+    try:
+        target_manager = TargetManager(
+            includes=include,
+            excludes=exclude,
+            max_target_bytes=max_target_bytes,
+            targets=target,
+            respect_git_ignore=respect_git_ignore,
+            skip_unknown_extensions=skip_unknown_extensions,
+        )
+    except FilesNotFoundError as e:
+        output_handler.handle_semgrep_error(e)
 
     join_rules, rest_of_the_rules = partition(
         lambda rule: rule.mode == JOIN_MODE,

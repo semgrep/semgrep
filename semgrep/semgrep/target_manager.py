@@ -19,7 +19,6 @@ from wcmatch import glob as wcglob
 
 from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
-from semgrep.output import OutputHandler
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
@@ -87,12 +86,25 @@ class TargetManager:
     includes: Sequence[str]
     excludes: Sequence[str]
     max_target_bytes: int
-    targets: Sequence[str]
+    targets: Sequence[str] = attr.ib()
     respect_git_ignore: bool
-    output_handler: OutputHandler
     skip_unknown_extensions: bool
 
     _filtered_targets: Dict[Language, FrozenSet[Path]] = attr.ib(factory=dict)
+
+    @targets.validator
+    def _check_exists(self, attribute: str, value: Sequence[str]) -> None:
+        """
+        Raise FilesNotFoundError if any element of targets is not a dir/regular file or
+        symlink to a dir/regular file:
+
+        i.e. does not exist, is a mount/socket etc.
+        """
+        targets = self.resolve_targets(self.targets)
+        files, _directories = partition_set(lambda p: not p.is_dir(), targets)
+        _explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
+        if nonexistent_files:
+            raise FilesNotFoundError(tuple(nonexistent_files))
 
     @staticmethod
     def resolve_targets(targets: Sequence[str]) -> FrozenSet[Path]:
@@ -356,16 +368,11 @@ class TargetManager:
         if lang in self._filtered_targets:
             return self._filtered_targets[lang]
 
+        # Non dir/non file should not exist cause of init time validation
+        # See _check_exists()
         targets = self.resolve_targets(self.targets)
-
         files, directories = partition_set(lambda p: not p.is_dir(), targets)
-
-        # Error on non-existent files
-        explicit_files, nonexistent_files = partition_set(lambda p: p.is_file(), files)
-        if nonexistent_files:
-            self.output_handler.handle_semgrep_error(
-                FilesNotFoundError(tuple(nonexistent_files))
-            )
+        explicit_files, _ = partition_set(lambda p: p.is_file(), files)
 
         targets = self.expand_targets(directories, lang, self.respect_git_ignore)
         targets = self.filter_includes(targets, self.includes)
