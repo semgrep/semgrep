@@ -50,7 +50,7 @@ class LanguageDefinition:
 
 class _LanguageData:
     def __init__(self) -> None:
-        with (Path(__file__).parent.parent / "lang" / "lang.json").open() as fd:
+        with (Path(__file__).parent / "lang" / "lang.json").open() as fd:
             data = json.load(fd)
 
         self.definition_by_id: Mapping[Language, LanguageDefinition] = {
