@@ -21,7 +21,7 @@ from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import FileExtension
-from semgrep.semgrep_types import LANG
+from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import LanguageDefinition
 from semgrep.semgrep_types import Shebang
@@ -36,7 +36,7 @@ MAX_CHARS_TO_READ_FOR_SHEBANG = 255
 
 ALL_EXTENSIONS: Collection[FileExtension] = {
     ext
-    for definition in LANG.data_by_id.values()
+    for definition in LANGUAGE.definition_by_id.values()
     for ext in definition.exts
     if ext != FileExtension("")
 }
@@ -201,7 +201,7 @@ class TargetManager:
             )
             return frozenset(res)
 
-        definition = LANG.data_by_id[language]
+        definition = LANGUAGE.definition_by_id[language]
 
         if respect_git_ignore:
             try:
@@ -376,7 +376,7 @@ class TargetManager:
         explicit_files_with_lang_extension = frozenset(
             f
             for f in explicit_files
-            if (any(f.match(f"*{ext}") for ext in LANG.data_by_id[lang].exts))
+            if (any(f.match(f"*{ext}") for ext in LANGUAGE.definition_by_id[lang].exts))
         )
         targets = targets.union(explicit_files_with_lang_extension)
 

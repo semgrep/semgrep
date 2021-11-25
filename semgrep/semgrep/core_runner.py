@@ -34,7 +34,7 @@ from semgrep.rule import Rule
 from semgrep.rule_match import CoreLocation
 from semgrep.rule_match import RuleMatch
 from semgrep.semgrep_core import SemgrepCore
-from semgrep.semgrep_types import LANG
+from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 from semgrep.util import is_debug
@@ -267,7 +267,7 @@ class CoreRunner:
         except _UnknownLanguageError as ex:
             raise UnknownLanguageError(
                 short_msg=f"invalid language: {language}",
-                long_msg=f"unsupported language: {language}. supported languages are: {', '.join(LANG.all_language_keys)}",
+                long_msg=f"unsupported language: {language}. supported languages are: {', '.join(LANGUAGE.all_language_keys)}",
                 spans=[rule.languages_span.with_context(before=1, after=1)],
             ) from ex
         return list(targets)

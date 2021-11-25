@@ -48,22 +48,22 @@ class LanguageDefinition:
         )
 
 
-class Lang:
+class _LanguageData:
     def __init__(self) -> None:
         with (Path(__file__).parent.parent / "lang" / "lang.json").open() as fd:
             data = json.load(fd)
 
-        self.data_by_id: Mapping[Language, LanguageDefinition] = {
+        self.definition_by_id: Mapping[Language, LanguageDefinition] = {
             Language(d["id"]): LanguageDefinition.from_dict(d) for d in data
         }
         self.lang_by_key: Mapping[str, Language] = {
             key.lower(): lang
-            for lang, definition in self.data_by_id.items()
+            for lang, definition in self.definition_by_id.items()
             for key in definition.keys
         }
         self.lang_by_ext: Mapping[str, Language] = {
             ext: lang
-            for lang, definition in self.data_by_id.items()
+            for lang, definition in self.definition_by_id.items()
             for ext in definition.reverse_exts
         }
         self.all_language_keys: Collection[str] = sorted(self.lang_by_key.keys())
@@ -88,7 +88,7 @@ class Lang:
             )
 
 
-LANG = Lang()
+LANGUAGE = _LanguageData()
 
 
 ALLOWED_GLOB_TYPES = ("include", "exclude")

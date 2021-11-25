@@ -18,7 +18,7 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import JOIN_MODE
-from semgrep.semgrep_types import LANG
+from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.semgrep_types import SEARCH_MODE
 
@@ -50,13 +50,16 @@ class Rule:
         self._includes = cast(Sequence[str], path_dict.get("include", []))
         self._excludes = cast(Sequence[str], path_dict.get("exclude", []))
         rule_languages: Set[Language] = {
-            LANG.resolve(l, self.languages_span) for l in self._raw.get("languages", [])
+            LANGUAGE.resolve(l, self.languages_span)
+            for l in self._raw.get("languages", [])
         }
 
         # add typescript to languages if the rule supports javascript.
         # TODO: Move this hack to lang.json
-        if any(language == LANG.resolve("javascript") for language in rule_languages):
-            rule_languages.add(LANG.resolve("typescript"))
+        if any(
+            language == LANGUAGE.resolve("javascript") for language in rule_languages
+        ):
+            rule_languages.add(LANGUAGE.resolve("typescript"))
             self._raw["languages"] = [str(l) for l in rule_languages]
 
         self._languages = sorted(rule_languages)
@@ -68,7 +71,7 @@ class Rule:
             self._mode = SEARCH_MODE
 
         # TODO: Move this hack to lang.json
-        if any(language == LANG.resolve("regex") for language in self._languages):
+        if any(language == LANGUAGE.resolve("regex") for language in self._languages):
             self._validate_none_language_rule()
 
     def _validate_none_language_rule(self) -> None:

@@ -6,7 +6,7 @@ from typing import Collection
 from semgrep.constants import OutputFormat
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
-from semgrep.semgrep_types import LANG
+from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
 from semgrep.target_manager import TargetManager
 
@@ -380,7 +380,7 @@ def test_delete_git(tmp_path, monkeypatch):
     subprocess.run(["git", "status"])
 
     assert cmp_path_sets(
-        TargetManager.expand_targets([Path(".")], LANG.resolve("python"), True),
+        TargetManager.expand_targets([Path(".")], LANGUAGE.resolve("python"), True),
         {bar},
     )
 
@@ -429,7 +429,7 @@ def test_expand_targets_git(tmp_path, monkeypatch):
     in_bar = {bar_a, bar_b}
     in_all = in_foo.union(in_bar)
 
-    python_language = LANG.resolve("python")
+    python_language = LANGUAGE.resolve("python")
 
     monkeypatch.chdir(tmp_path)
     assert cmp_path_sets(
