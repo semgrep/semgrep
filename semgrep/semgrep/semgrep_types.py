@@ -56,13 +56,11 @@ class Lang:
         self.data_by_id: Mapping[Language, LanguageDefinition] = {
             Language(d["id"]): LanguageDefinition.from_dict(d) for d in data
         }
-        # TODO: guarantee one-to-one using test case
         self.lang_by_key: Mapping[str, Language] = {
             key: lang
             for lang, definition in self.data_by_id.items()
             for key in definition.keys
         }
-        # TODO: guarantee one-to-one using test case
         self.lang_by_ext: Mapping[str, Language] = {
             ext: lang
             for lang, definition in self.data_by_id.items()
