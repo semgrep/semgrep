@@ -80,7 +80,7 @@ def set_flags(*, verbose: bool, debug: bool, quiet: bool, force_color: bool) -> 
 
 
 def partition(
-    pred: Callable[[T], bool], iterable: Iterable[T]
+    pred: Callable[[T], Any], iterable: Iterable[T]
 ) -> Tuple[List[T], List[T]]:
     """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
     i1, i2 = itertools.tee(iterable)
@@ -88,7 +88,7 @@ def partition(
 
 
 def partition_set(
-    pred: Callable[[T], bool], iterable: Iterable[T]
+    pred: Callable[[T], Any], iterable: Iterable[T]
 ) -> Tuple[Set[T], Set[T]]:
     """E.g. partition(is_odd, range(10)) -> 1 3 5 7 9  and  0 2 4 6 8"""
     i1, i2 = itertools.tee(iterable)
