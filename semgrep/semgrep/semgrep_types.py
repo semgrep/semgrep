@@ -75,13 +75,14 @@ class Lang:
         :param span: span of language string in the original file (for error reporting),
                     None if resolve was called within semgrep
         """
-        if lang_str.lower() in self.lang_by_key:
-            return self.lang_by_key[lang_str]
+        normalized = lang_str.lower()
+        if normalized in self.lang_by_key:
+            return self.lang_by_key[normalized]
         else:
             spans = [span.with_context(before=1, after=1)] if span else []
             raise UnknownLanguageError(
-                short_msg=f"invalid language: {lang_str}",
-                long_msg=f"unsupported language: {lang_str}. supported languages are: {', '.join(self.all_language_keys)}",
+                short_msg=f"invalid language: {normalized}",
+                long_msg=f"unsupported language: {normalized}. supported languages are: {', '.join(self.all_language_keys)}",
                 spans=spans,
             )
 
