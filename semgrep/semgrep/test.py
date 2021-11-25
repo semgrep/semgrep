@@ -169,21 +169,24 @@ def score_output_json(
             num_todo += int(todo_rule_in_line) + int(todo_ok_in_line)
 
             try:
-                rule_ids = normalize_rule_ids(line)
                 if (not ignore_todo and todo_rule_in_line) or rule_in_line:
+                    rule_ids = normalize_rule_ids(line)
                     for rule_id in rule_ids:
                         ruleid_lines[test_file_resolved][rule_id].append(
                             effective_line_num
                         )
                 if (not ignore_todo and todo_rule_in_line) or ok_in_line:
+                    rule_ids = normalize_rule_ids(line)
                     for rule_id in rule_ids:
                         ok_lines[test_file_resolved][rule_id].append(effective_line_num)
                 if ignore_todo and todo_ok_in_line:
+                    rule_ids = normalize_rule_ids(line)
                     for rule_id in rule_ids:
                         todo_ok_lines[test_file_resolved][rule_id].append(
                             effective_line_num
                         )
                 if todo_rule_in_line:
+                    rule_ids = normalize_rule_ids(line)
                     for rule_id in rule_ids:
                         todo_ruleid_lines[test_file_resolved][rule_id].append(
                             effective_line_num
