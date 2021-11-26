@@ -168,6 +168,9 @@ def score_output_json(
             todo_ok_in_line = line_has_todo_ok(line)
             num_todo += int(todo_rule_in_line) + int(todo_ok_in_line)
 
+            if not any([rule_in_line, ok_in_line, todo_rule_in_line, todo_ok_in_line]):
+                continue
+
             try:
                 rule_ids = normalize_rule_ids(line)
                 if (not ignore_todo and todo_rule_in_line) or rule_in_line:
