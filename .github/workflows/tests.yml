@@ -79,6 +79,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Download artifacts
         uses: actions/download-artifact@v1
         with:
