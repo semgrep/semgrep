@@ -61,6 +61,11 @@ val to_lowercase_alnum : t -> string
 *)
 val ext_of_lang : t -> string list
 
+(*
+   Return a list of programs that can run a script written in this language.
+*)
+val shebangs_of_lang : t -> string list
+
 (* unsupported_language_message [lang] takes the language as a string and
  * returns an error message.
  *
