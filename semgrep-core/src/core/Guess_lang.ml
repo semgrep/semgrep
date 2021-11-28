@@ -54,6 +54,9 @@ let has_extension extensions =
 
 let has_lang_extension lang = has_extension (Lang.ext_of_lang lang)
 
+let has_excluded_lang_extension lang =
+  has_extension (Lang.excluded_exts_of_lang lang)
+
 let has_an_extension =
   let f path = Filename.extension path <> "" in
   Test_path f
@@ -189,10 +192,13 @@ let is_executable_script cmd_names =
                       ^^^^
 *)
 let matches_lang lang =
+  let has_ext =
+    And (has_lang_extension lang, Not (has_excluded_lang_extension lang))
+  in
   match Lang.shebangs_of_lang lang with
-  | [] -> has_lang_extension lang
+  | [] -> has_ext
   (* Prefer extensions over shebangs *)
-  | cmd_names -> Or (has_lang_extension lang, is_executable_script cmd_names)
+  | cmd_names -> Or (has_ext, is_executable_script cmd_names)
 
 (****************************************************************************)
 (* Language-specific definitions *)
@@ -219,8 +225,6 @@ let inspect_file_p (lang : Lang.t) path =
     match lang with
     | Hack -> is_hack
     | Php -> And (matches_lang lang, Not is_hack)
-    | Js -> And (matches_lang lang, Not (has_extension [ ".min.js" ]))
-    | Ts -> And (matches_lang lang, Not (has_extension [ ".d.ts" ]))
     | Bash
     | C
     | Cpp
@@ -228,6 +232,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Go
     | Html
     | Java
+    | Js
     | Json
     | Kotlin
     | Lua
@@ -240,6 +245,7 @@ let inspect_file_p (lang : Lang.t) path =
     | Rust
     | Scala
     | Hcl
+    | Ts
     | Vue
     | Yaml ->
         matches_lang lang

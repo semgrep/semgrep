@@ -62,6 +62,17 @@ val to_lowercase_alnum : t -> string
 val ext_of_lang : t -> string list
 
 (*
+   Return a list of extensions that Semgrep will never scan.
+
+   This will be the case even if the extension contains on of ext_of_lang in
+   its tail.
+
+   E.g., if excluded_exts_of_lang is [".min.js"], and ext_of_lang is [".js"],
+   the file should not be scanned.
+*)
+val excluded_exts_of_lang : t -> string list
+
+(*
    Return a list of programs that can run a script written in this language.
 *)
 val shebangs_of_lang : t -> string list

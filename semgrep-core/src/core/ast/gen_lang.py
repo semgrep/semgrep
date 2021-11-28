@@ -29,6 +29,7 @@ class LanguageDefinition:
     name: str
     keys: Collection[str]
     exts: Collection[str]
+    excluded_exts: Collection[str]
     reverse_exts: Collection[str]
     shebangs: Collection[str]
     tags: Collection[str]
@@ -41,6 +42,7 @@ class LanguageDefinition:
             name=data["name"],
             keys=data["keys"],
             exts=data["exts"],
+            excluded_exts=data.get("excluded_exts", []),
             reverse_exts=data.get("reverse_exts", data["exts"]),
             shebangs=data.get("shebangs", []),
             tags=data.get("tags", []),
