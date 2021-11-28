@@ -52,6 +52,8 @@ jobs:
           submodules: true
       - name: Setup Python
         uses: actions/setup-python@v1
+      - name: Install pipenv
+        run: sudo python3 -m pip install pipenv
       - name: Run OSX build
         run: ./scripts/osx-release.sh
       - name: Upload artifacts
