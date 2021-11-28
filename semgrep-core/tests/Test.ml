@@ -96,9 +96,9 @@ let language_exceptions = [
     Lang.Go, 
     ["metavar_class_def"; "metavar_import"; "metavar_anno"];
     (* metavar_typed is NA (dynamic language) *)
-    Lang.Javascript, 
+    Lang.Js,
     ["equivalence_naming_import"; "metavar_typed";];
-    Lang.Typescript, 
+    Lang.Ts,
     ["equivalence_naming_import"; "metavar_typed";"metavar_anno";"metavar_class_def"];
     (* good boy, metavar_typed is working just for constants though *)
     Lang.Python, [];
@@ -117,15 +117,15 @@ let language_exceptions = [
     (* TODO: dots_nested_stmts to fix for C and C++ *)
     Lang.C,
     ["dots_nested_stmts"];
-    Lang.Cplusplus,
+    Lang.Cpp,
     ["dots_nested_stmts"];
     (* good boy *)
     Lang.Lua, [];
     (* dots_stmts is maybe NA, same with deep_exprstmt *)
-    Lang.OCaml, 
+    Lang.Ocaml,
     ["deep_exprstmt";"dots_stmts"];
     (* good boy *)
-    Lang.PHP, [];
+    Lang.Php, [];
 ]
 
 (*****************************************************************************)
@@ -333,18 +333,18 @@ let lang_parsing_tests =
     pack_parsing_tests_for_lang Lang.Java "java" ".java";
     pack_parsing_tests_for_lang Lang.Go "go" ".go";
     pack_parsing_tests_for_lang Lang.Ruby "ruby" ".rb";
-    pack_parsing_tests_for_lang Lang.Javascript "js" ".js";
+    pack_parsing_tests_for_lang Lang.Js "js" ".js";
     pack_parsing_tests_for_lang Lang.Scala "scala" ".scala";
-    pack_parsing_tests_for_lang Lang.HTML "html" ".html";
+    pack_parsing_tests_for_lang Lang.Html "html" ".html";
     pack_parsing_tests_for_lang Lang.Vue "vue" ".vue";
-    pack_parsing_tests_for_lang Lang.Cplusplus "cpp" ".cpp";
+    pack_parsing_tests_for_lang Lang.Cpp "cpp" ".cpp";
     (* a few parsing tests where we expect some partials
      * See cpp/parsing_partial/
      *)
     pack_tests "C++ partial parsing" (
       let dir = Filename.concat tests_path "cpp/parsing_partial" in
       let files = Common2.glob (spf "%s/*.cpp" dir) in
-      let lang = Lang.Cplusplus in
+      let lang = Lang.Cpp in
       partial_parsing_tests_for_lang files lang
     );
   ]
@@ -368,38 +368,38 @@ let lang_regression_tests ~with_caching =
   pack_suites ("lang testing" ^ name_suffix) [
     pack_regression_tests_for_lang Lang.Bash "bash" ".bash";
     pack_regression_tests_for_lang Lang.Python "python" ".py";
-    pack_regression_tests_for_lang Lang.Javascript "js" ".js";
-    pack_regression_tests_for_lang Lang.Typescript "ts" ".ts";
+    pack_regression_tests_for_lang Lang.Js "js" ".js";
+    pack_regression_tests_for_lang Lang.Ts "ts" ".ts";
     pack_tests "semgrep Typescript on Javascript (no JSX)" (
       let dir = Filename.concat tests_path "js" in
       let files = Common2.glob (spf "%s/*.js" dir) in
       let files = Common.exclude (fun s -> s =~ ".*xml" || s =~ ".*jsx") files in
-      let lang = Lang.Typescript in
+      let lang = Lang.Ts in
       regression_tests_for_lang files lang
     );
-    pack_regression_tests_for_lang Lang.JSON "json" ".json";
+    pack_regression_tests_for_lang Lang.Json "json" ".json";
     pack_regression_tests_for_lang Lang.Java "java" ".java";
     pack_regression_tests_for_lang Lang.C "c" ".c";
-    pack_regression_tests_for_lang Lang.Cplusplus "cpp" ".cpp";
+    pack_regression_tests_for_lang Lang.Cpp "cpp" ".cpp";
     pack_tests "semgrep C++ on C tests" (
       let dir = Filename.concat tests_path "c" in
       let files = Common2.glob (spf "%s/*.c" dir) in
-      let lang = Lang.Cplusplus in
+      let lang = Lang.Cpp in
       regression_tests_for_lang files lang
     );
     pack_regression_tests_for_lang Lang.Go "go" ".go";
-    pack_regression_tests_for_lang Lang.OCaml "ocaml" ".ml";
+    pack_regression_tests_for_lang Lang.Ocaml "ocaml" ".ml";
     pack_regression_tests_for_lang Lang.Ruby "ruby" ".rb";
-    pack_regression_tests_for_lang Lang.PHP "php" ".php";
+    pack_regression_tests_for_lang Lang.Php "php" ".php";
     pack_regression_tests_for_lang Lang.Hack "hack" ".hack";
     pack_regression_tests_for_lang Lang.Csharp "csharp" ".cs";
     pack_regression_tests_for_lang Lang.Lua "lua" ".lua";
     pack_regression_tests_for_lang Lang.Rust "rust" ".rs";
     pack_regression_tests_for_lang Lang.Yaml "yaml" ".yaml";
     pack_regression_tests_for_lang Lang.Scala "scala" ".scala";
-    pack_regression_tests_for_lang Lang.HTML "html" ".html";
+    pack_regression_tests_for_lang Lang.Html "html" ".html";
     pack_regression_tests_for_lang Lang.Vue "vue" ".vue";
-    pack_regression_tests_for_lang Lang.HCL "hcl" ".tf";
+    pack_regression_tests_for_lang Lang.Hcl "hcl" ".tf";
     pack_regression_tests_for_lang Lang.Kotlin "kotlin" ".kt";
  ]
 
@@ -424,7 +424,7 @@ let lang_tainting_tests =
     pack_tests "tainting PHP" (
       let dir = Filename.concat taint_tests_path "php" in
       let files = Common2.glob (spf "%s/*.php" dir) in
-      let lang = Lang.PHP in
+      let lang = Lang.Php in
       tainting_tests_for_lang files lang
     );
     pack_tests "tainting Python" (
@@ -442,13 +442,13 @@ let lang_tainting_tests =
     pack_tests "tainting Javascript" (
       let dir = Filename.concat taint_tests_path "js" in
       let files = Common2.glob (spf "%s/*.js" dir) in
-      let lang = Lang.Javascript in
+      let lang = Lang.Js in
       tainting_tests_for_lang files lang
     );
     pack_tests "tainting Typescript" (
       let dir = Filename.concat taint_tests_path "ts" in
       let files = Common2.glob (spf "%s/*.ts" dir) in
-      let lang = Lang.Typescript in
+      let lang = Lang.Ts in
       tainting_tests_for_lang files lang
     );
   ]
@@ -568,11 +568,11 @@ let maturity_tests =
     check_maturity Lang.Csharp "csharp" ".cs" GA;
     check_maturity Lang.Go "go" ".go" GA;
     check_maturity Lang.Java "java" ".java" GA;
-    check_maturity Lang.Javascript "js" ".js" GA;
+    check_maturity Lang.Js "js" ".js" GA;
     (* JSON has too many NA, not worth it *)
     check_maturity Lang.Python "python" ".py" GA;
     check_maturity Lang.Ruby "ruby" ".rb" GA;
-    check_maturity Lang.Typescript "ts" ".ts" GA;
+    check_maturity Lang.Ts "ts" ".ts" GA;
 
     (* Beta *)
     check_maturity Lang.Hack "hack" ".hack" Beta;
@@ -582,10 +582,10 @@ let maturity_tests =
     (* Experimental *)
     check_maturity Lang.Bash "bash" ".bash" Experimental;
     check_maturity Lang.C "c" ".c" Experimental;
-    check_maturity Lang.Cplusplus "cpp" ".cpp" Experimental;
+    check_maturity Lang.Cpp "cpp" ".cpp" Experimental;
     check_maturity Lang.Lua "lua" ".lua" Experimental;
-    check_maturity Lang.OCaml "ocaml" ".ml" Experimental;
-    check_maturity Lang.PHP "php" ".php" Experimental;
+    check_maturity Lang.Ocaml "ocaml" ".ml" Experimental;
+    check_maturity Lang.Php "php" ".php" Experimental;
     (* TODO we say we support R, but not really actually *)
     (* TODO: too many exns, we need to write tests!
      check_maturity Lang.Rust "rust" ".rust" Experimental;

@@ -78,24 +78,24 @@ let print_bool env = function
       | Lang.Java
       | Lang.Go
       | Lang.C
-      | Lang.Cplusplus
-      | Lang.Javascript
-      | Lang.JSON
+      | Lang.Cpp
+      | Lang.Js
+      | Lang.Json
       | Lang.Yaml
-      | Lang.OCaml
+      | Lang.Ocaml
       | Lang.Ruby
-      | Lang.Typescript
+      | Lang.Ts
       | Lang.Vue
       | Lang.Csharp
-      | Lang.PHP
+      | Lang.Php
       | Lang.Hack
       | Lang.Kotlin
       | Lang.Lua
       | Lang.Bash
       | Lang.Rust
       | Lang.Scala
-      | Lang.HTML
-      | Lang.HCL ->
+      | Lang.Html
+      | Lang.Hcl ->
           "true"
       | Lang.R -> "TRUE")
   | false -> (
@@ -107,24 +107,24 @@ let print_bool env = function
       | Lang.Java
       | Lang.Go
       | Lang.C
-      | Lang.Cplusplus
-      | Lang.JSON
+      | Lang.Cpp
+      | Lang.Json
       | Lang.Yaml
-      | Lang.Javascript
-      | Lang.OCaml
+      | Lang.Js
+      | Lang.Ocaml
       | Lang.Ruby
-      | Lang.Typescript
+      | Lang.Ts
       | Lang.Csharp
       | Lang.Vue
-      | Lang.PHP
+      | Lang.Php
       | Lang.Hack
       | Lang.Kotlin
       | Lang.Lua
       | Lang.Bash
       | Lang.Rust
       | Lang.Scala
-      | Lang.HTML
-      | Lang.HCL ->
+      | Lang.Html
+      | Lang.Hcl ->
           "false"
       | Lang.R -> "FALSE")
 
@@ -138,7 +138,7 @@ let arithop env (op, tok) =
   | Pow -> "**"
   | Eq -> (
       match env.lang with
-      | Lang.OCaml -> "="
+      | Lang.Ocaml -> "="
       | _ -> "==")
   | Lt -> "<"
   | LtE -> "<="
@@ -222,13 +222,13 @@ and if_stmt env level (tok, e, s, sopt) =
     match env.lang with
     | Lang.Bash
     | Lang.Ruby
-    | Lang.OCaml
+    | Lang.Ocaml
     | Lang.Scala
-    | Lang.PHP
+    | Lang.Php
     | Lang.Hack
     | Lang.Yaml
-    | Lang.HTML
-    | Lang.HCL ->
+    | Lang.Html
+    | Lang.Hcl ->
         raise Todo
     | Lang.Python
     | Lang.Python2
@@ -237,11 +237,11 @@ and if_stmt env level (tok, e, s, sopt) =
     | Lang.Java
     | Lang.Go
     | Lang.C
-    | Lang.Cplusplus
+    | Lang.Cpp
     | Lang.Csharp
-    | Lang.JSON
-    | Lang.Javascript
-    | Lang.Typescript
+    | Lang.Json
+    | Lang.Js
+    | Lang.Ts
     | Lang.Vue
     | Lang.Kotlin
     | Lang.Rust
@@ -278,13 +278,13 @@ and while_stmt env level (tok, e, s) =
   let while_format =
     match env.lang with
     | Lang.Bash
-    | Lang.PHP
+    | Lang.Php
     | Lang.Hack
     | Lang.Lua
     | Lang.Yaml
     | Lang.Scala
-    | Lang.HTML
-    | Lang.HCL ->
+    | Lang.Html
+    | Lang.Hcl ->
         raise Todo
     | Lang.Python
     | Lang.Python2
@@ -292,19 +292,19 @@ and while_stmt env level (tok, e, s) =
         python_while
     | Lang.Java
     | Lang.C
-    | Lang.Cplusplus
+    | Lang.Cpp
     | Lang.Csharp
     | Lang.Kotlin
-    | Lang.JSON
-    | Lang.Javascript
-    | Lang.Typescript
+    | Lang.Json
+    | Lang.Js
+    | Lang.Ts
     | Lang.Vue
     | Lang.Rust
     | Lang.R ->
         c_while
     | Lang.Go -> go_while
     | Lang.Ruby -> ruby_while
-    | Lang.OCaml -> ocaml_while
+    | Lang.Ocaml -> ocaml_while
   in
   while_format (token "while" tok) (condition env e) (stmt env (level + 1) s)
 
@@ -313,29 +313,29 @@ and do_while stmt env level (s, e) =
   let do_while_format =
     match env.lang with
     | Lang.Bash
-    | Lang.PHP
+    | Lang.Php
     | Lang.Hack
     | Lang.Lua
     | Lang.Yaml
     | Lang.Scala
-    | Lang.HTML
-    | Lang.HCL ->
+    | Lang.Html
+    | Lang.Hcl ->
         raise Todo
     | Lang.Java
     | Lang.C
-    | Lang.Cplusplus
+    | Lang.Cpp
     | Lang.Csharp
     | Lang.Kotlin
-    | Lang.Javascript
-    | Lang.Typescript
+    | Lang.Js
+    | Lang.Ts
     | Lang.Vue ->
         c_do_while
     | Lang.Python
     | Lang.Python2
     | Lang.Python3
     | Lang.Go
-    | Lang.JSON
-    | Lang.OCaml
+    | Lang.Json
+    | Lang.Ocaml
     | Lang.Rust
     | Lang.R ->
         failwith "impossible; no do while"
@@ -347,21 +347,21 @@ and for_stmt env level (for_tok, hdr, s) =
   let for_format =
     match env.lang with
     | Lang.Bash
-    | Lang.PHP
-    | Lang.HTML
+    | Lang.Php
+    | Lang.Html
     | Lang.Hack
     | Lang.Lua
     | Lang.Yaml
     | Lang.Scala
-    | Lang.HCL ->
+    | Lang.Hcl ->
         raise Todo
     | Lang.Java
     | Lang.C
-    | Lang.Cplusplus
+    | Lang.Cpp
     | Lang.Csharp
     | Lang.Kotlin
-    | Lang.Javascript
-    | Lang.Typescript
+    | Lang.Js
+    | Lang.Ts
     | Lang.Vue
     | Lang.Rust
     | Lang.R ->
@@ -372,8 +372,8 @@ and for_stmt env level (for_tok, hdr, s) =
     | Lang.Python3 ->
         F.sprintf "%s %s:\n%s"
     | Lang.Ruby -> F.sprintf "%s %s\ndo %s\nend"
-    | Lang.JSON
-    | Lang.OCaml ->
+    | Lang.Json
+    | Lang.Ocaml ->
         failwith "JSON/OCaml has for loops????"
   in
   let show_init = function
@@ -410,23 +410,23 @@ and def_stmt env (entity, def_kind) =
     let no_val, with_val =
       match env.lang with
       | Lang.Bash
-      | Lang.PHP
+      | Lang.Php
       | Lang.Hack
       | Lang.Lua
       | Lang.Yaml
       | Lang.Scala
-      | Lang.HTML
-      | Lang.HCL ->
+      | Lang.Html
+      | Lang.Hcl ->
           raise Todo
       | Lang.Java
       | Lang.C
-      | Lang.Cplusplus
+      | Lang.Cpp
       | Lang.Csharp
       | Lang.Kotlin ->
           ( (fun typ id _e -> F.sprintf "%s %s;" typ id),
             fun typ id e -> F.sprintf "%s %s = %s;" typ id e )
-      | Lang.Javascript
-      | Lang.Typescript
+      | Lang.Js
+      | Lang.Ts
       | Lang.Vue ->
           ( (fun _typ id _e -> F.sprintf "var %s;" id),
             fun _typ id e -> F.sprintf "var %s = %s;" id e )
@@ -447,8 +447,8 @@ and def_stmt env (entity, def_kind) =
       | Lang.R ->
           ( (fun _typ id _e -> F.sprintf "%s" id),
             fun _typ id e -> F.sprintf "%s <- %s" id e )
-      | Lang.JSON
-      | Lang.OCaml ->
+      | Lang.Json
+      | Lang.Ocaml ->
           failwith "I think JSON/OCaml have no variable definitions"
     in
     let typ, id =
@@ -473,16 +473,16 @@ and return env (tok, eopt) _sc =
   in
   match env.lang with
   | Lang.Bash
-  | Lang.PHP
+  | Lang.Php
   | Lang.Hack
   | Lang.Yaml
   | Lang.Scala
-  | Lang.HTML
-  | Lang.HCL ->
+  | Lang.Html
+  | Lang.Hcl ->
       raise Todo
   | Lang.Java
   | Lang.C
-  | Lang.Cplusplus
+  | Lang.Cpp
   | Lang.Csharp
   | Lang.Kotlin
   | Lang.Rust ->
@@ -492,10 +492,10 @@ and return env (tok, eopt) _sc =
   | Lang.Python3
   | Lang.Go
   | Lang.Ruby
-  | Lang.OCaml
-  | Lang.JSON
-  | Lang.Javascript
-  | Lang.Typescript
+  | Lang.Ocaml
+  | Lang.Json
+  | Lang.Js
+  | Lang.Ts
   | Lang.Vue
   | Lang.Lua ->
       F.sprintf "%s %s" (token "return" tok) to_return
@@ -511,16 +511,16 @@ and break env (tok, lbl) _sc =
   in
   match env.lang with
   | Lang.Bash
-  | Lang.PHP
+  | Lang.Php
   | Lang.Hack
   | Lang.Yaml
   | Lang.Scala
-  | Lang.HTML
-  | Lang.HCL ->
+  | Lang.Html
+  | Lang.Hcl ->
       raise Todo
   | Lang.Java
   | Lang.C
-  | Lang.Cplusplus
+  | Lang.Cpp
   | Lang.Csharp
   | Lang.Kotlin
   | Lang.Rust ->
@@ -530,10 +530,10 @@ and break env (tok, lbl) _sc =
   | Lang.Python3
   | Lang.Go
   | Lang.Ruby
-  | Lang.OCaml
-  | Lang.JSON
-  | Lang.Javascript
-  | Lang.Typescript
+  | Lang.Ocaml
+  | Lang.Json
+  | Lang.Js
+  | Lang.Ts
   | Lang.Vue
   | Lang.Lua
   | Lang.R ->
@@ -549,16 +549,16 @@ and continue env (tok, lbl) _sc =
   in
   match env.lang with
   | Lang.Bash
-  | Lang.PHP
+  | Lang.Php
   | Lang.Hack
   | Lang.Yaml
   | Lang.Scala
-  | Lang.HTML
-  | Lang.HCL ->
+  | Lang.Html
+  | Lang.Hcl ->
       raise Todo
   | Lang.Java
   | Lang.C
-  | Lang.Cplusplus
+  | Lang.Cpp
   | Lang.Csharp
   | Lang.Kotlin
   | Lang.Lua
@@ -569,10 +569,10 @@ and continue env (tok, lbl) _sc =
   | Lang.Python3
   | Lang.Go
   | Lang.Ruby
-  | Lang.OCaml
-  | Lang.JSON
-  | Lang.Javascript
-  | Lang.Typescript
+  | Lang.Ocaml
+  | Lang.Json
+  | Lang.Js
+  | Lang.Ts
   | Lang.Vue ->
       F.sprintf "%s%s" (token "continue" tok) lbl_str
   | Lang.R -> F.sprintf "%s%s" (token "next" tok) lbl_str
@@ -657,12 +657,12 @@ and literal env l =
   | String (s, _) -> (
       match env.lang with
       | Lang.Bash
-      | Lang.PHP
+      | Lang.Php
       | Lang.Hack
       | Lang.Yaml
       | Lang.Scala
-      | Lang.HTML
-      | Lang.HCL ->
+      | Lang.Html
+      | Lang.Hcl ->
           raise Todo
       | Lang.Python
       | Lang.Python2
@@ -671,15 +671,15 @@ and literal env l =
       | Lang.Java
       | Lang.Go
       | Lang.C
-      | Lang.Cplusplus
+      | Lang.Cpp
       | Lang.Csharp
       | Lang.Kotlin
-      | Lang.JSON
-      | Lang.Javascript
+      | Lang.Json
+      | Lang.Js
       | Lang.Vue
-      | Lang.OCaml
+      | Lang.Ocaml
       | Lang.Ruby
-      | Lang.Typescript
+      | Lang.Ts
       | Lang.Lua
       | Lang.Rust
       | Lang.R ->
@@ -749,7 +749,7 @@ and cond env (e1, e2, e3) =
   let s3 = expr env e3 in
   match env.lang with
   | Lang.Python -> F.sprintf "%s if %s else %s" s2 s1 s3
-  | Lang.OCaml -> F.sprintf "if %s then %s else %s" s1 s2 s3
+  | Lang.Ocaml -> F.sprintf "if %s then %s else %s" s1 s2 s3
   | Lang.Java -> F.sprintf "%s ? %s : %s" s1 s2 s3
   | _ -> todo (E (Conditional (e1, e2, e3) |> G.e))
 

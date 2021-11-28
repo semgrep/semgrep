@@ -216,21 +216,21 @@ let inspect_file_p (lang : Lang.t) path =
     match lang with
     | Bash -> is_script lang [ "bash"; "sh" ]
     | C -> has_lang_extension lang
-    | Cplusplus -> has_lang_extension lang
+    | Cpp -> has_lang_extension lang
     | Csharp -> has_lang_extension lang
     | Go -> has_lang_extension lang
-    | HTML -> has_lang_extension lang
+    | Html -> has_lang_extension lang
     | Hack -> is_hack
-    | JSON -> has_lang_extension lang
+    | Json -> has_lang_extension lang
     | Java -> has_lang_extension lang
-    | Javascript ->
+    | Js ->
         And
           ( Not (has_extension [ ".min.js" ]),
             is_script lang [ "node"; "nodejs"; "js" ] )
     | Kotlin -> has_lang_extension lang
     | Lua -> is_script lang [ "lua" ]
-    | OCaml -> is_script lang [ "ocaml"; "ocamlscript" ]
-    | PHP -> And (is_script lang [ "php" ], Not is_hack)
+    | Ocaml -> is_script lang [ "ocaml"; "ocamlscript" ]
+    | Php -> And (is_script lang [ "php" ], Not is_hack)
     | Python -> Or (is_python2, is_python3)
     | Python2 -> is_python2
     | Python3 -> is_python3
@@ -238,11 +238,10 @@ let inspect_file_p (lang : Lang.t) path =
     | Ruby -> is_script lang [ "ruby" ]
     | Rust -> is_script lang [ "run-cargo-script" ]
     | Scala -> is_script lang [ "scala" ]
-    | Typescript ->
-        And (Not (has_extension [ ".d.ts" ]), is_script lang [ "ts-node" ])
+    | Ts -> And (Not (has_extension [ ".d.ts" ]), is_script lang [ "ts-node" ])
     | Vue -> has_lang_extension lang
     | Yaml -> has_lang_extension lang
-    | HCL -> has_lang_extension lang
+    | Hcl -> has_lang_extension lang
   in
   eval test path
 
