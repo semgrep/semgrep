@@ -5,6 +5,3 @@ verify_ssl = true
 
 [packages]
 jinja2 = "*"
-
-[requires]
-python_version = "3.9"

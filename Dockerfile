@@ -20,7 +20,9 @@ FROM returntocorp/ocaml:alpine-2021-07-15 as build-semgrep-core
 
 USER root
 # for ocaml-pcre now used in semgrep-core
-RUN apk add --no-cache pcre-dev
+# TODO: update root image to include python 3.9
+RUN apk add --update --no-cache pcre-dev python3
+RUN pip install --no-cache-dir pipenv==2021.11.23
 
 USER user
 WORKDIR /home/user
