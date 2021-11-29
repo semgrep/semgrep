@@ -179,7 +179,6 @@ class OutputHandler:
         self.stdout = stdout
 
         self.rule_matches: List[RuleMatch] = []
-        self.debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]] = {}
         self.stats_line: Optional[str] = None
         self.all_targets: Set[Path] = set()
         self.profiler: Optional[ProfileManager] = None
@@ -259,7 +258,6 @@ class OutputHandler:
         self,
         rule_matches_by_rule: RuleMatchMap,
         *,
-        debug_steps_by_rule: Dict[Rule, List[Dict[str, Any]]],
         stats_line: str,
         all_targets: Set[Path],
         profiler: ProfileManager,
@@ -277,7 +275,6 @@ class OutputHandler:
         self.profiler = profiler
         self.all_targets = all_targets
         self.stats_line = stats_line
-        self.debug_steps_by_rule.update(debug_steps_by_rule)
         self.filtered_rules = filtered_rules
         self.profiling_data = profiling_data
         if severities:
@@ -389,10 +386,6 @@ class OutputHandler:
         per_line_max_chars_limit: Optional[int],
     ) -> str:
         extra: Dict[str, Any] = {}
-        if self.settings.debug:
-            extra["debug"] = [
-                {rule.id: steps for rule, steps in self.debug_steps_by_rule.items()}
-            ]
         if self.settings.json_stats:
             extra["stats"] = {
                 "targets": make_target_stats(self.all_targets),
