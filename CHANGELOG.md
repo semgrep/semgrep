@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - TS: parse correctly type definitions (#4330)
 
 ### Changed
+- semgrep-core: Log messages are now tagged with the process id
 
 ## [0.75.0](https://github.com/returntocorp/semgrep/releases/tag/v0.75.0) - 11-23-2021
 

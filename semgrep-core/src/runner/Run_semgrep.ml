@@ -124,7 +124,8 @@ let map_targets ncores f (targets : Common.filename list) =
      *)
     Parmap.disable_core_pinning ();
     assert (ncores > 0);
-    Parmap.parmap ~ncores ~chunksize:1 f (Parmap.L targets))
+    let init _ = Logging.add_PID_tag () in
+    Parmap.parmap ~init ~ncores ~chunksize:1 f (Parmap.L targets))
 
 (*****************************************************************************)
 (* Timeout *)
