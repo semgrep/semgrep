@@ -34,7 +34,7 @@ class Language(Enum):
     RUST: str = "rust"
     KOTLIN: str = "kt"
     YAML: str = "yaml"
-    ML: str = "ml"
+    ML: str = "ocaml"
     SCALA: str = "scala"
     VUE: str = "vue"
     HTML: str = "html"

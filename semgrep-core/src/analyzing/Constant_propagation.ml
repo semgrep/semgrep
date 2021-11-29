@@ -348,7 +348,7 @@ let propagate_basic lang prog =
                     H.has_keyword_attr Const attrs
                     || H.has_keyword_attr Final attrs
                     || !(stats.lvalue) = 1
-                       && (lang = Lang.Javascript || lang = Lang.Typescript)
+                       && (lang = Lang.Js || lang = Lang.Ts)
                   then add_constant_env id (sid, literal) env;
                   k x
               | None ->
@@ -392,7 +392,7 @@ let propagate_basic lang prog =
                            !(stats.lvalue) = 1
                            (* restrict to Python/Ruby/PHP/JS/TS Globals for now *)
                            && (lang = Lang.Python || lang = Lang.Ruby
-                             || lang = Lang.PHP || Lang.is_js lang)
+                             || lang = Lang.Php || Lang.is_js lang)
                            && kind = Global
                          then add_constant_env id (sid, literal) env
                      | None ->

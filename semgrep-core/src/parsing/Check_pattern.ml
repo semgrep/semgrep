@@ -8,22 +8,22 @@ let lang_has_no_dollar_ids =
     | Java
     | Go
     | C
-    | Cplusplus
-    | OCaml
-    | JSON
+    | Cpp
+    | Ocaml
+    | Json
     | Yaml
-    | HCL
+    | Hcl
     | Csharp
     | Kotlin
     | Lua
     | R
-    | HTML ->
+    | Html ->
         true
-    | Javascript
-    | Typescript
+    | Js
+    | Ts
     | Vue
     | Ruby
-    | PHP
+    | Php
     | Hack
     | Bash
     | Rust

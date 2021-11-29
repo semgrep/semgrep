@@ -65,7 +65,7 @@ type pattern_instr = env * any * replacement_info list
 
 type pattern_instrs = pattern_instr list
 
-let global_lang = ref Lang.OCaml
+let global_lang = ref Lang.Ocaml
 
 (*****************************************************************************)
 (* Print *)
