@@ -84,7 +84,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
   match parser with
   | Pfff f ->
       Common.save_excursion Flag_parsing.show_parsing_error false (fun () ->
-          logger#info "trying to parse with Pfff parser %s" file;
+          logger#trace "trying to parse with Pfff parser %s" file;
           try
             let res = f file in
             Ok res
@@ -95,7 +95,7 @@ let (run_parser : 'ast parser -> Common.filename -> 'ast internal_result) =
               logger#error "exn (%s) with Pfff parser" (Common.exn_to_s exn);
               Error exn)
   | TreeSitter f -> (
-      logger#info "trying to parse with TreeSitter parser %s" file;
+      logger#trace "trying to parse with TreeSitter parser %s" file;
       try
         let res = f file in
         let stat = stat_of_tree_sitter_stat file res.stat in

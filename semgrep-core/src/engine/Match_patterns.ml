@@ -194,7 +194,7 @@ let must_analyze_statement_bloom_opti_failed pattern_strs
  *   unless they fall in specific regions of the code.
  *   See also docs for {!check} in Match_pattern.mli. *)
 let check2 ~hook range_filter config rules equivs (file, lang, ast) =
-  logger#info "checking %s with %d mini rules" file (List.length rules);
+  logger#trace "checking %s with %d mini rules" file (List.length rules);
 
   let rules =
     (* simple opti using regexps; the bloom filter opti might supersede this *)

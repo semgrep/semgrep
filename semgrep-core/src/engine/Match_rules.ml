@@ -932,7 +932,7 @@ and matches_of_formula config equivs rule_id file_and_more formula opt_context :
       (file, xlang, lazy_ast_and_errors, lazy_content)
       xpatterns
   in
-  logger#info "found %d matches" (List.length res.matches);
+  logger#trace "found %d matches" (List.length res.matches);
   (* match results per minirule id which is the same than pattern_id in
    * the formula *)
   let pattern_matches_per_id = group_matches_per_pattern_id res.matches in
@@ -948,9 +948,9 @@ and matches_of_formula config equivs rule_id file_and_more formula opt_context :
       errors = ref [];
     }
   in
-  logger#info "evaluating the formula";
+  logger#trace "evaluating the formula";
   let final_ranges = evaluate_formula env opt_context formula in
-  logger#info "found %d final ranges" (List.length final_ranges);
+  logger#trace "found %d final ranges" (List.length final_ranges);
   let res' = { res with RP.errors = res.RP.errors @ !(env.errors) } in
   (res', final_ranges)
   [@@profiling]
@@ -986,8 +986,7 @@ let check_rule r hook default_config pformula equivs file_and_more =
 
 let check hook default_config rules equivs file_and_more =
   let { FM.file; lazy_ast_and_errors; _ } = file_and_more in
-  logger#info "checking %s with %d rules" file (List.length rules);
-  if rules = [] then logger#error "empty rules";
+  logger#trace "checking %s with %d rules" file (List.length rules);
   if !Common.profile = Common.ProfAll then (
     logger#info "forcing eval of ast outside of rules, for better profile";
     lazy_force lazy_ast_and_errors |> ignore);

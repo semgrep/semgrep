@@ -298,7 +298,7 @@ let iter_files_and_get_matches_and_exn_to_errors config f files =
                           * not testing -max_memory.
                           *)
                          if config.test then Gc.full_major ();
-                         logger#info "done with %s" file;
+                         logger#trace "done with %s" file;
                          v))
                with
                (* note that Semgrep_error_code.exn_to_error already handles Timeout

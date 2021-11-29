@@ -39,7 +39,7 @@ let cache_computation ~parsing_cache_exists version_cur file cache_file_of_file
         let file_cache = cache_file_of_file file in
         if Sys.file_exists file_cache && filemtime file_cache >= filemtime file
         then (
-          logger#info "using cache: %s" file_cache;
+          logger#trace "using cache: %s" file_cache;
           let version, file2, res = Common2.get_value file_cache in
           if version <> version_cur then
             failwith
@@ -96,7 +96,7 @@ let parse_generic parsing_cache version lang file =
         cache_file_of_file parsing_cache full_filename)
       (fun () ->
         try
-          logger#info "parsing %s" file;
+          logger#trace "parsing %s" file;
           (* finally calling the actual function *)
           let { Parse_target.ast; errors; _ } =
             Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
