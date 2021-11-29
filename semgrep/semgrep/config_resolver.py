@@ -39,7 +39,6 @@ from semgrep.rule_lang import parse_yaml_preserve_spans
 from semgrep.rule_lang import Span
 from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
-from semgrep.semgrep_types import Language
 from semgrep.types import JsonObject
 from semgrep.util import is_config_suffix
 from semgrep.util import is_url
@@ -66,7 +65,7 @@ DEFAULT_CONFIG = {
             "id": "eqeq-is-bad",
             "pattern": "$X == $X",
             "message": "$X == $X is a useless equality check",
-            "languages": [Language.PYTHON.value],
+            "languages": ["python"],
             "severity": RuleSeverity.ERROR.value,
         },
     ],
