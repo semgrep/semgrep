@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Fixed
 - Java: class patterns not using generics will match classes using generics
   (#4335), e.g., `class $X { ...}` will now match `class Foo<T> { }`
+- TS: parse correctly type definitions (#4330)
 
 ### Changed
 
