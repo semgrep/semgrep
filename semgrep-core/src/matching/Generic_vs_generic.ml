@@ -2253,6 +2253,8 @@ and m_definition_kind a b =
   | G.MacroDef a1, B.MacroDef b1 -> m_macro_definition a1 b1
   | G.Signature a1, B.Signature b1 -> m_type_ a1 b1
   | G.UseOuterDecl a1, B.UseOuterDecl b1 -> m_tok a1 b1
+  | G.OtherDef (a1, a2), B.OtherDef (b1, b2) ->
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.FuncDef _, _
   | G.VarDef _, _
   | G.ClassDef _, _
