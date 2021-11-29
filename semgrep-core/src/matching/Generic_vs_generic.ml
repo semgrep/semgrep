@@ -2229,7 +2229,16 @@ and m_entity a b =
   | ( { G.name = a1; attrs = a2; tparams = a4 },
       { B.name = b1; attrs = b2; tparams = b4 } ) ->
       m_entity_name a1 b1 >>= fun () ->
-      m_attributes a2 b2 >>= fun () -> (m_list m_type_parameter) a4 b4
+      m_attributes a2 b2 >>= fun () -> m_list__m_type_parameter a4 b4
+
+and m_list__m_type_parameter a b =
+  match a with
+  (* less-is-ok: it's ok to not have generics in the pattern.
+   * TODO? or should we impose that the entity name above is a metavariable?
+   * and then bind it to an IdQualifier with a type_argument?
+   *)
+  | [] -> return ()
+  | _ -> m_list m_type_parameter a b
 
 and m_definition_kind a b =
   match (a, b) with
