@@ -15,8 +15,8 @@ let get_resolved_type lang (vinit, vtype) =
       let string_str =
         match lang with
         | Go -> "str"
-        | Javascript
-        | Typescript ->
+        | Js
+        | Ts ->
             "string"
         | _ -> "string"
       in

@@ -71,4 +71,4 @@ let is_special_identifier ?lang str =
   (* parser_java.mly inserts some implicit this *)
   || (lang = Some Lang.Java && str = "this")
   || (* TODO: PHP converts some Eval in __builtin *)
-  (lang = Some Lang.PHP && str =~ "__builtin__*")
+  (lang = Some Lang.Php && str =~ "__builtin__*")
