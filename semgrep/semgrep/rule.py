@@ -7,6 +7,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Set
 from typing import Union
 
 from semgrep.constants import RuleSeverity
@@ -17,8 +18,8 @@ from semgrep.rule_lang import YamlMap
 from semgrep.rule_lang import YamlTree
 from semgrep.semgrep_types import ALLOWED_GLOB_TYPES
 from semgrep.semgrep_types import JOIN_MODE
+from semgrep.semgrep_types import LANGUAGE
 from semgrep.semgrep_types import Language
-from semgrep.semgrep_types import Language_util
 from semgrep.semgrep_types import SEARCH_MODE
 
 
@@ -48,17 +49,20 @@ class Rule:
             path_dict = paths_tree.unroll_dict()
         self._includes = cast(Sequence[str], path_dict.get("include", []))
         self._excludes = cast(Sequence[str], path_dict.get("exclude", []))
-        rule_languages = {
-            Language_util.resolve(l, self.languages_span)
+        rule_languages: Set[Language] = {
+            LANGUAGE.resolve(l, self.languages_span)
             for l in self._raw.get("languages", [])
         }
 
         # add typescript to languages if the rule supports javascript.
-        if any(language == Language.JAVASCRIPT for language in rule_languages):
-            rule_languages.add(Language.TYPESCRIPT)
-            self._raw["languages"] = [r.value for r in rule_languages]
+        # TODO: Move this hack to lang.json
+        if any(
+            language == LANGUAGE.resolve("javascript") for language in rule_languages
+        ):
+            rule_languages.add(LANGUAGE.resolve("typescript"))
+            self._raw["languages"] = [str(l) for l in rule_languages]
 
-        self._languages = sorted(rule_languages, key=lambda lang: lang.value)  # type: ignore
+        self._languages = sorted(rule_languages)
 
         # check taint/search mode
         if self._raw.get("mode") == JOIN_MODE:
@@ -66,7 +70,8 @@ class Rule:
         else:
             self._mode = SEARCH_MODE
 
-        if any(language == Language.REGEX for language in self._languages):
+        # TODO: Move this hack to lang.json
+        if any(language == LANGUAGE.resolve("regex") for language in self._languages):
             self._validate_none_language_rule()
 
     def _validate_none_language_rule(self) -> None:

@@ -67,6 +67,9 @@
 [submodule "semgrep-core/src/tree-sitter-lang/semgrep-hcl"]
 	path = semgrep-core/src/tree-sitter-lang/semgrep-hcl
 	url = https://github.com/returntocorp/semgrep-hcl
+[submodule "semgrep/lang"]
+	path = semgrep/semgrep/lang
+	url = https://github.com/returntocorp/semgrep-langs
 [submodule "semgrep-core/src/core/ast/lang"]
 	path = semgrep-core/src/core/ast/lang
 	url = https://github.com/returntocorp/semgrep-langs
