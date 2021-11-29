@@ -13,14 +13,11 @@ from semgrep.types import JsonObject
 
 Mode = NewType("Mode", str)
 FileExtension = NewType("FileExtension", str)
+Language = NewType("Language", str)
 Shebang = str
 
 JOIN_MODE = Mode("join")
 SEARCH_MODE = DEFAULT_MODE = Mode("search")
-
-
-class Language(str):
-    pass
 
 
 @attr.s(auto_attribs=True, frozen=True)
