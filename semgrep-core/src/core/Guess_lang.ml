@@ -54,6 +54,9 @@ let has_extension extensions =
 
 let has_lang_extension lang = has_extension (Lang.ext_of_lang lang)
 
+let has_excluded_lang_extension lang =
+  has_extension (Lang.excluded_exts_of_lang lang)
+
 let has_an_extension =
   let f path = Filename.extension path <> "" in
   Test_path f
@@ -172,6 +175,10 @@ let is_executable_script cmd_names =
       And (is_executable, uses_shebang_command_name cmd_names) )
 
 (*
+   Matches if either
+   - language has extension in Lang.ext_of_lang
+   - language is script with shebang in Lang.shebangs_of_lang
+
    General test for a script:
    - must have one of the approved extensions (e.g. "bash" or "sh")
    - or has no extension but has executable permission
@@ -184,8 +191,14 @@ let is_executable_script cmd_names =
        #!/usr/bin/env bash
                       ^^^^
 *)
-let is_script lang cmd_names =
-  Or (is_executable_script cmd_names, has_lang_extension lang)
+let matches_lang lang =
+  let has_ext =
+    And (has_lang_extension lang, Not (has_excluded_lang_extension lang))
+  in
+  match Lang.shebangs_of_lang lang with
+  | [] -> has_ext
+  (* Prefer extensions over shebangs *)
+  | cmd_names -> Or (has_ext, is_executable_script cmd_names)
 
 (****************************************************************************)
 (* Language-specific definitions *)
@@ -199,7 +212,7 @@ let is_script lang cmd_names =
 *)
 let is_hack =
   Or
-    ( is_script Lang.Hack [ "hhvm" ],
+    ( matches_lang Lang.Hack,
       And
         ( has_extension [ ".php" ],
           Or
@@ -207,43 +220,37 @@ let is_hack =
               (* optional '#!' line followed by '<?hh': *)
               regexp "^(?:#![^\\n]*\\n)?<\\?hh\\s" ) ) )
 
-let is_python2 = is_script Lang.Python2 [ "python"; "python2" ]
-
-let is_python3 = is_script Lang.Python3 [ "python"; "python3" ]
-
 let inspect_file_p (lang : Lang.t) path =
   let test =
     match lang with
-    | Bash -> is_script lang [ "bash"; "sh" ]
-    | C -> has_lang_extension lang
-    | Cplusplus -> has_lang_extension lang
-    | Csharp -> has_lang_extension lang
-    | Go -> has_lang_extension lang
-    | HTML -> has_lang_extension lang
     | Hack -> is_hack
-    | JSON -> has_lang_extension lang
-    | Java -> has_lang_extension lang
-    | Javascript ->
-        And
-          ( Not (has_extension [ ".min.js" ]),
-            is_script lang [ "node"; "nodejs"; "js" ] )
-    | Kotlin -> has_lang_extension lang
-    | Lua -> is_script lang [ "lua" ]
-    | OCaml -> is_script lang [ "ocaml"; "ocamlscript" ]
-    | PHP -> And (is_script lang [ "php" ], Not is_hack)
-    | Python -> Or (is_python2, is_python3)
-    | Python2 -> is_python2
-    | Python3 -> is_python3
-    | R -> is_script lang [ "Rscript" ]
-    | Ruby -> is_script lang [ "ruby" ]
-    | Rust -> is_script lang [ "run-cargo-script" ]
-    | Scala -> is_script lang [ "scala" ]
-    | Typescript ->
-        And (Not (has_extension [ ".d.ts" ]), is_script lang [ "ts-node" ])
-    | Vue -> has_lang_extension lang
-    | Yaml -> has_lang_extension lang
-    | HCL -> has_lang_extension lang
+    | Php -> And (matches_lang lang, Not is_hack)
+    | Bash
+    | C
+    | Cpp
+    | Csharp
+    | Go
+    | Html
+    | Java
+    | Js
+    | Json
+    | Kotlin
+    | Lua
+    | Ocaml
+    | Python2
+    | Python3
+    | Python
+    | R
+    | Ruby
+    | Rust
+    | Scala
+    | Hcl
+    | Ts
+    | Vue
+    | Yaml ->
+        matches_lang lang
   in
+
   eval test path
 
 let wrap_with_error_message lang path bool_res :

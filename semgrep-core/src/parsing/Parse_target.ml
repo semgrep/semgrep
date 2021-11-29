@@ -227,7 +227,7 @@ let rec just_parse_with_lang lang file =
           Pfff (throw_tokens Parse_go.parse);
         ]
         Go_to_generic.program
-  | Lang.Javascript ->
+  | Lang.Js ->
       (* we start directly with tree-sitter here, because
        * the pfff parser is slow on minified files due to its (slow) error
        * recovery strategy.
@@ -238,7 +238,7 @@ let rec just_parse_with_lang lang file =
           Pfff (throw_tokens Parse_js.parse);
         ]
         Js_to_generic.program
-  | Lang.Typescript ->
+  | Lang.Ts ->
       run file
         [ TreeSitter (Parse_typescript_tree_sitter.parse ?dialect:None) ]
         Js_to_generic.program
@@ -274,7 +274,7 @@ let rec just_parse_with_lang lang file =
          * switched to call Naming_AST.ml to correct def and use tagger
          *)
         Python_to_generic.program
-  | Lang.JSON ->
+  | Lang.Json ->
       run file
         [
           Pfff
@@ -282,14 +282,14 @@ let rec just_parse_with_lang lang file =
               (Parse_json.parse_program file, Parse_info.correct_stat file));
         ]
         Json_to_generic.program
-  | Lang.Cplusplus ->
+  | Lang.Cpp ->
       run file
         [
           TreeSitter Parse_cpp_tree_sitter.parse;
           Pfff (throw_tokens Parse_cpp.parse);
         ]
         Cpp_to_generic.program
-  | Lang.OCaml ->
+  | Lang.Ocaml ->
       run file
         [
           Pfff (throw_tokens Parse_ml.parse);
@@ -300,7 +300,7 @@ let rec just_parse_with_lang lang file =
       run file
         [ Pfff (throw_tokens Parse_scala.parse) ]
         Scala_to_generic.program
-  | Lang.PHP ->
+  | Lang.Php ->
       run file
         [
           Pfff
@@ -322,14 +322,12 @@ let rec just_parse_with_lang lang file =
         errors = [];
         stat = Parse_info.default_stat file;
       }
-  | Lang.HTML ->
+  | Lang.Html ->
       (* less: there is an html parser in pfff too we could use as backup *)
       run file [ TreeSitter Parse_html_tree_sitter.parse ] (fun x -> x)
   | Lang.Vue ->
       let parse_embedded_js file =
-        let { ast; errors; stat = _ } =
-          just_parse_with_lang Lang.Javascript file
-        in
+        let { ast; errors; stat = _ } = just_parse_with_lang Lang.Js file in
         (* TODO: pass the errors down to Parse_vue_tree_sitter.parse
          * and accumulate with other vue parse errors
          *)
@@ -339,7 +337,7 @@ let rec just_parse_with_lang lang file =
       run file
         [ TreeSitter (Parse_vue_tree_sitter.parse parse_embedded_js) ]
         (fun x -> x)
-  | Lang.HCL -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
+  | Lang.Hcl -> run file [ TreeSitter Parse_hcl_tree_sitter.parse ] (fun x -> x)
 
 (*****************************************************************************)
 (* Entry point *)

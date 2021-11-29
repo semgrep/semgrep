@@ -284,7 +284,7 @@ let lookup_scope_opt (s, _) env =
               (* just look current scope! no access to nested scopes or global *)
             then [ xs; !(scopes.imported) ]
             else [ xs ] @ xxs @ [ !(scopes.global); !(scopes.imported) ]
-        (* | Lang.PHP ->
+        (* | Lang.Php ->
              (* just look current scope! no access to nested scopes or global *)
              [xs;                            !(scopes.imported)]
         *)
@@ -314,8 +314,8 @@ let is_resolvable_name_ctx env lang =
       (* true for Java so that we can type class fields *)
       | Lang.Java
       (* true for JS/TS so that we can resolve class methods *)
-      | Lang.Javascript
-      | Lang.Typescript ->
+      | Lang.Js
+      | Lang.Ts ->
           true
       | _ -> false)
 
@@ -330,8 +330,8 @@ let resolved_name_kind env lang =
        *)
       | Lang.Java
       (* true for JS/TS to resolve class methods. *)
-      | Lang.Javascript
-      | Lang.Typescript ->
+      | Lang.Js
+      | Lang.Ts ->
           EnclosedVar
       | _ -> raise Impossible)
 
@@ -365,7 +365,7 @@ let declare_var env lang id id_info ~explicit vinit vtype =
   set_resolved env id_info resolved
 
 let assign_implicitly_declares lang =
-  lang = Lang.Python || lang = Lang.Ruby || lang = Lang.PHP || Lang.is_js lang
+  lang = Lang.Python || lang = Lang.Ruby || lang = Lang.Php || Lang.is_js lang
 
 (*****************************************************************************)
 (* Entry point *)
@@ -436,8 +436,8 @@ let resolve lang prog =
                *
                *     https://github.com/returntocorp/semgrep/issues/2787.
                *)
-              | Lang.Javascript
-              | Lang.Typescript ->
+              | Lang.Js
+              | Lang.Ts ->
                   let sid = H.gensym () in
                   let resolved =
                     untyped_ent (resolved_name_kind env lang, sid)

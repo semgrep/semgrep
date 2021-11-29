@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     container: returntocorp/ocaml:alpine
     steps:
+      - name: Install pipenv
+        run: sudo pip install pipenv
       - name: Pre-checkout fixes
         run: |
           sudo chmod -R 777 /github

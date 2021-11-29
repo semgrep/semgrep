@@ -89,11 +89,11 @@ let dump_tree_sitter_cst lang file =
   | Lang.Kotlin ->
       Tree_sitter_kotlin.Parse.file file
       |> dump_and_print_errors Tree_sitter_kotlin.CST.dump_tree
-  | Lang.Javascript ->
+  | Lang.Js ->
       (* JavaScript/JSX is a strict subset of TSX *)
       Tree_sitter_tsx.Parse.file file
       |> dump_and_print_errors Tree_sitter_tsx.CST.dump_tree
-  | Lang.Typescript ->
+  | Lang.Ts ->
       Tree_sitter_typescript.Parse.file file
       |> dump_and_print_errors Tree_sitter_typescript.CST.dump_tree
   | Lang.Lua ->
@@ -102,25 +102,25 @@ let dump_tree_sitter_cst lang file =
   | Lang.Rust ->
       Tree_sitter_rust.Parse.file file
       |> dump_and_print_errors Tree_sitter_rust.CST.dump_tree
-  | Lang.OCaml ->
+  | Lang.Ocaml ->
       Tree_sitter_ocaml.Parse.file file
       |> dump_and_print_errors Tree_sitter_ocaml.CST.dump_tree
   | Lang.C ->
       Tree_sitter_c.Parse.file file
       |> dump_and_print_errors Tree_sitter_c.CST.dump_tree
-  | Lang.Cplusplus ->
+  | Lang.Cpp ->
       Tree_sitter_cpp.Parse.file file
       |> dump_and_print_errors Tree_sitter_cpp.CST.dump_tree
-  | Lang.HTML ->
+  | Lang.Html ->
       Tree_sitter_html.Parse.file file
       |> dump_and_print_errors Tree_sitter_html.CST.dump_tree
   | Lang.Vue ->
       Tree_sitter_vue.Parse.file file
       |> dump_and_print_errors Tree_sitter_vue.CST.dump_tree
-  | Lang.PHP ->
+  | Lang.Php ->
       Tree_sitter_php.Parse.file file
       |> dump_and_print_errors Tree_sitter_php.CST.dump_tree
-  | Lang.HCL ->
+  | Lang.Hcl ->
       Tree_sitter_hcl.Parse.file file
       |> dump_and_print_errors Tree_sitter_hcl.CST.dump_tree
   | _ -> failwith "lang not supported by ocaml-tree-sitter"
@@ -152,27 +152,27 @@ let test_parse_tree_sitter lang root_paths =
                  | Lang.Kotlin ->
                      Tree_sitter_kotlin.Parse.file file
                      |> fail_on_error |> ignore
-                 | Lang.Javascript ->
+                 | Lang.Js ->
                      Tree_sitter_tsx.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Typescript ->
+                 | Lang.Ts ->
                      Tree_sitter_typescript.Parse.file file
                      |> fail_on_error |> ignore
                  | Lang.Rust ->
                      Tree_sitter_rust.Parse.file file |> fail_on_error |> ignore
-                 | Lang.OCaml ->
+                 | Lang.Ocaml ->
                      Tree_sitter_ocaml.Parse.file file
                      |> fail_on_error |> ignore
                  | Lang.C ->
                      Tree_sitter_c.Parse.file file |> fail_on_error |> ignore
-                 | Lang.Cplusplus ->
+                 | Lang.Cpp ->
                      Tree_sitter_cpp.Parse.file file |> fail_on_error |> ignore
-                 | Lang.HTML ->
+                 | Lang.Html ->
                      Tree_sitter_html.Parse.file file |> fail_on_error |> ignore
                  | Lang.Vue ->
                      Tree_sitter_vue.Parse.file file |> fail_on_error |> ignore
-                 | Lang.PHP ->
+                 | Lang.Php ->
                      Tree_sitter_php.Parse.file file |> fail_on_error |> ignore
-                 | Lang.HCL ->
+                 | Lang.Hcl ->
                      Tree_sitter_hcl.Parse.file file |> fail_on_error |> ignore
                  | _ ->
                      failwith

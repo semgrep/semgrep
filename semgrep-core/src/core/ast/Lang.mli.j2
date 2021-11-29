@@ -1,40 +1,6 @@
 type t =
-  | Python
-  (* Python will start with Python3 mode and fall back to Python2 in case
-   * of error. Python2 and Python3 are for specific version of Python
-   * (no fallback) *)
-  | Python2
-  | Python3
-  (* system *)
-  | C
-  | Cplusplus
-  | Rust
-  (* mainstream with Gc *)
-  | Javascript
-  | Typescript
-  | Vue
-  | Java
-  | Kotlin
-  | Csharp
-  | Go
-  (* functional *)
-  | OCaml
-  | Scala
-  (* scripting (Python is above) *)
-  | Ruby
-  | PHP
-  | Hack
-  | Lua
-  (* shells *)
-  | Bash
-  (* data science *)
-  | R
-  (* config files *)
-  | JSON
-  | Yaml
-  | HCL
-  (* doc files *)
-  | HTML
+{% for item in langs %}  | {{ item.id }}
+{% endfor %}
 
 (* from deriving eq *)
 val pp : Format.formatter -> t -> unit
@@ -94,6 +60,22 @@ val to_lowercase_alnum : t -> string
    for these languages.
 *)
 val ext_of_lang : t -> string list
+
+(*
+   Return a list of extensions that Semgrep will never scan.
+
+   This will be the case even if the extension contains on of ext_of_lang in
+   its tail.
+
+   E.g., if excluded_exts_of_lang is [".min.js"], and ext_of_lang is [".js"],
+   the file should not be scanned.
+*)
+val excluded_exts_of_lang : t -> string list
+
+(*
+   Return a list of programs that can run a script written in this language.
+*)
+val shebangs_of_lang : t -> string list
 
 (* unsupported_language_message [lang] takes the language as a string and
  * returns an error message.

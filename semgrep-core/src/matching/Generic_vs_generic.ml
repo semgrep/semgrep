@@ -2229,7 +2229,16 @@ and m_entity a b =
   | ( { G.name = a1; attrs = a2; tparams = a4 },
       { B.name = b1; attrs = b2; tparams = b4 } ) ->
       m_entity_name a1 b1 >>= fun () ->
-      m_attributes a2 b2 >>= fun () -> (m_list m_type_parameter) a4 b4
+      m_attributes a2 b2 >>= fun () -> m_list__m_type_parameter a4 b4
+
+and m_list__m_type_parameter a b =
+  match a with
+  (* less-is-ok: it's ok to not have generics in the pattern.
+   * TODO? or should we impose that the entity name above is a metavariable?
+   * and then bind it to an IdQualifier with a type_argument?
+   *)
+  | [] -> return ()
+  | _ -> m_list m_type_parameter a b
 
 and m_definition_kind a b =
   match (a, b) with
@@ -2244,6 +2253,8 @@ and m_definition_kind a b =
   | G.MacroDef a1, B.MacroDef b1 -> m_macro_definition a1 b1
   | G.Signature a1, B.Signature b1 -> m_type_ a1 b1
   | G.UseOuterDecl a1, B.UseOuterDecl b1 -> m_tok a1 b1
+  | G.OtherDef (a1, a2), B.OtherDef (b1, b2) ->
+      m_todo_kind a1 b1 >>= fun () -> (m_list m_any) a2 b2
   | G.FuncDef _, _
   | G.VarDef _, _
   | G.ClassDef _, _

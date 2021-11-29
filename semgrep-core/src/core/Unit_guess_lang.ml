@@ -12,24 +12,24 @@ type success = OK | XFAIL
 let name_tests : (string * Lang.t * string * success) list =
   [
     (* name, language, file name, expected result *)
-    ("js", Javascript, "foo.js", OK);
-    ("js relative path", Javascript, "./a/b.c/foo.js", OK);
-    ("js absolute path", Javascript, "/a/b.c/foo.js", OK);
-    ("js double extension", Javascript, "foo.bar.js", OK);
-    ("min js", Javascript, "foo.min.js", XFAIL);
-    ("not js", Javascript, "foo.bar", XFAIL);
-    ("jsx", Javascript, "foo.jsx", OK);
-    ("typescript", Typescript, "foo.ts", OK);
-    ("typescript .d.ts", Typescript, "foo.d.ts", XFAIL);
+    ("js", Js, "foo.js", OK);
+    ("js relative path", Js, "./a/b.c/foo.js", OK);
+    ("js absolute path", Js, "/a/b.c/foo.js", OK);
+    ("js double extension", Js, "foo.bar.js", OK);
+    ("min js", Js, "foo.min.js", XFAIL);
+    ("not js", Js, "foo.bar", XFAIL);
+    ("jsx", Js, "foo.jsx", OK);
+    ("typescript", Ts, "foo.ts", OK);
+    ("typescript .d.ts", Ts, "foo.d.ts", XFAIL);
     ("spaces", Ruby, " a b  c.rb", OK);
   ]
 
 let contents_tests : (string * Lang.t * string * string * exec * success) list =
   [
     (* name, language, file name, file contents, executable?, expected result *)
-    ("correct extension nonexec", Javascript, "foo1.js", "", Exec, OK);
-    ("correct extension exec", Javascript, "foo2.js", "", Exec, OK);
-    ("wrong extension exec", Javascript, "foo3.bar", "", Exec, XFAIL);
+    ("correct extension nonexec", Js, "foo1.js", "", Exec, OK);
+    ("correct extension exec", Js, "foo2.js", "", Exec, OK);
+    ("wrong extension exec", Js, "foo3.bar", "", Exec, XFAIL);
     ("bash non-executable", Bash, "hello1.bash", "", Nonexec, OK);
     ("bash exec", Bash, "hello2", "#!/anything/bash\n", Exec, OK);
     ("sh exec", Bash, "hello3", "#!/bin/sh\n# hello!", Exec, OK);
@@ -55,7 +55,7 @@ let contents_tests : (string * Lang.t * string * string * exec * success) list =
       "<?hh\n",
       Nonexec,
       OK );
-    ("php", PHP, "foo.php", "", Nonexec, OK);
+    ("php", Php, "foo.php", "", Nonexec, OK);
   ]
 
 let ( // ) = Filename.concat

@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 ### Added
 - Improved filtering of rules based on file content
 
+### Fixed
+- Java: class patterns not using generics will match classes using generics
+  (#4335), e.g., `class $X { ...}` will now match `class Foo<T> { }`
+- TS: parse correctly type definitions (#4330)
+
+### Changed
+
 ## [0.75.0](https://github.com/returntocorp/semgrep/releases/tag/v0.75.0) - 11-23-2021
 
 ### Fixed
