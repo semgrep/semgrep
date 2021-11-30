@@ -15,6 +15,7 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - taint-mode: Findings are now reported when the LHS of an access operator is
   a sink (e.g. as in `$SINK->method`), and the LHS operand is a tainted
   variable (#4320)
+- metavariable-comparison: do not throw a NotHandled exn anymore (#4328)
 
 ### Changed
 - semgrep-core: Log messages are now tagged with the process id
