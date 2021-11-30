@@ -292,18 +292,18 @@ let iter_files_and_get_matches_and_exn_to_errors config f files =
                          f file |> fun v ->
                          (* This is just to test -max_memory, to give a chance
                           * to Gc.create_alarm to run even if the program does
-                          * not even need to run the Gc. However, this has a slow
-                          * perf penality on small programs, which is why it's
-                          * better to keep guarded when you're
+                          * not even need to run the Gc. However, this has a
+                          * slow perf penality on small programs, which is why
+                          * it's better to keep guarded when you're
                           * not testing -max_memory.
                           *)
                          if config.test then Gc.full_major ();
                          logger#info "done with %s" file;
                          v))
                with
-               (* note that Semgrep_error_code.exn_to_error already handles Timeout
-                * and would generate a TimeoutError code for it, but we intercept
-                * Timeout here to give a better diagnostic.
+               (* note that Semgrep_error_code.exn_to_error already handles
+                * Timeout and would generate a TimeoutError code for it,
+                * but we intercept Timeout here to give a better diagnostic.
                 *)
                | (Main_timeout _ | Out_of_memory) as exn ->
                    (match !Match_patterns.last_matched_rule with
@@ -330,7 +330,7 @@ let iter_files_and_get_matches_and_exn_to_errors config f files =
                      skipped = [];
                      profiling = RP.empty_partial_profiling file;
                    }
-               | exn when not config.fail_fast ->
+               | exn when not !Flag_semgrep.fail_fast ->
                    {
                      RP.matches = [];
                      errors = [ exn_to_error file exn ];
@@ -444,7 +444,7 @@ let semgrep_with_raw_results_and_exn_handler config files_or_dirs =
     in
     let res, files = semgrep_with_rules config timed_rules files_or_dirs in
     (None, res, files)
-  with exn ->
+  with exn when not !Flag_semgrep.fail_fast ->
     let trace = Printexc.get_backtrace () in
     logger#info "Uncaught exception: %s\n%s" (Common.exn_to_s exn) trace;
     let res =

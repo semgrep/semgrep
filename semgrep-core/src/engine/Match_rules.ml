@@ -996,8 +996,11 @@ let check hook default_config rules equivs file_and_more =
   |> List.map (fun (r, pformula) ->
          let rule_id = fst r.R.id in
          Common.profile_code (spf "real_rule:%s" rule_id) (fun () ->
-             try check_rule r hook default_config pformula equivs file_and_more
-             with exn ->
+             try
+               check_rule r hook default_config pformula equivs file_and_more
+               (* TODO: why do we intercept errors here? We already do that in
+                * Run_semgrep.ml. *)
+             with exn when not !Flag_semgrep.fail_fast ->
                {
                  RP.matches = [];
                  errors = [ E.exn_to_error ~rule_id:(Some rule_id) file exn ];
