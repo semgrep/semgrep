@@ -11,6 +11,7 @@ from typing import FrozenSet
 from typing import Iterable
 from typing import Iterator
 from typing import List
+from typing import Optional
 from typing import Sequence
 from typing import Set
 
@@ -19,6 +20,7 @@ from wcmatch import glob as wcglob
 
 from semgrep.config_resolver import resolve_targets
 from semgrep.error import FilesNotFoundError
+from semgrep.ignores import FileIgnore
 from semgrep.output import OutputHandler
 from semgrep.semgrep_types import FileExtension
 from semgrep.semgrep_types import LANGUAGE
@@ -91,6 +93,7 @@ class TargetManager:
     respect_git_ignore: bool
     output_handler: OutputHandler
     skip_unknown_extensions: bool
+    file_ignore: Optional[FileIgnore]
 
     _filtered_targets: Dict[Language, FrozenSet[Path]] = attr.ib(factory=dict)
 
@@ -406,6 +409,9 @@ class TargetManager:
         filter is then applied.
         """
         targets = self.filtered_files(lang)
+        targets = (
+            self.file_ignore.filter_paths(targets) if self.file_ignore else targets
+        )
         targets = self.filter_includes(targets, includes)
         targets = self.filter_excludes(targets, excludes)
         targets = self.filter_by_size(targets, self.max_target_bytes)

@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from io import StringIO
 from pathlib import Path
@@ -17,8 +18,11 @@ from semgrep.constants import RuleSeverity
 from semgrep.core_runner import CoreRunner
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
-from semgrep.ignores import process_ignores
+from semgrep.ignores import FileIgnore
+from semgrep.ignores import IGNORE_FILE_NAME
+from semgrep.ignores import Parser
 from semgrep.metric_manager import metric_manager
+from semgrep.nosemgrep import process_ignores
 from semgrep.output import DEFAULT_SHOWN_SEVERITIES
 from semgrep.output import OutputHandler
 from semgrep.output import OutputSettings
@@ -176,6 +180,19 @@ def main(
         notify_user_of_work(filtered_rules, include, exclude)
 
     respect_git_ignore = not no_git_ignore
+
+    workdir = Path.cwd()
+    ignore_rules_file = f"{workdir}/{IGNORE_FILE_NAME}"
+    if os.path.exists(ignore_rules_file):
+        with open(ignore_rules_file) as f:
+            ignore_patterns = Parser(workdir).parse(f)
+            file_ignore: Optional[FileIgnore] = FileIgnore(
+                base_path=workdir,
+                patterns=ignore_patterns,
+            )
+    else:
+        file_ignore = None
+
     target_manager = TargetManager(
         includes=include,
         excludes=exclude,
@@ -184,6 +201,7 @@ def main(
         respect_git_ignore=respect_git_ignore,
         output_handler=output_handler,
         skip_unknown_extensions=skip_unknown_extensions,
+        file_ignore=file_ignore,
     )
 
     join_rules, rest_of_the_rules = partition(
