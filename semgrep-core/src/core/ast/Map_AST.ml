@@ -885,6 +885,9 @@ let (mk_visitor : visitor_in -> visitor_out) =
     let v_macroparams = map_of_list map_ident v_macroparams in
     { macroparams = v_macroparams; macrobody = v_macrobody }
   and map_type_parameter = function
+    | TParamEllipsis v1 ->
+        let v1 = map_tok v1 in
+        TParamEllipsis v1
     | TP v1 ->
         let v1 = map_type_parameter_classic v1 in
         TP v1

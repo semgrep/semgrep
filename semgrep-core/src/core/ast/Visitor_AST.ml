@@ -599,6 +599,7 @@ let (mk_visitor :
   and v_todo_kind (_str, tok) = v_tok tok
   and v_other_type_operator _ = ()
   and v_type_parameter = function
+    | TParamEllipsis v1 -> v_tok v1
     | TP v1 -> v_type_parameter_classic v1
     | OtherTypeParam (t, xs) ->
         let t = v_todo_kind t in
