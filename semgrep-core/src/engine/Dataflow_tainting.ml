@@ -132,26 +132,36 @@ let make_tainted_sink_matches sink_pms src_pms =
 (* Tainted *)
 (*****************************************************************************)
 
-(* Test whether an expression is tainted, and if it is also a sink,
- * report the finding too (by side effect).
- *
- *)
+let check_tainted_var config (fun_env : fun_env) (env : PM.Set.t VarMap.t) var =
+  let source_pms, sanitize_pms, sink_pms =
+    let _, tok = var.ident in
+    if Parse_info.is_origintok tok then
+      ( config.is_source (G.Tk tok),
+        config.is_sanitizer (G.Tk tok),
+        config.is_sink (G.Tk tok) )
+    else ([], [], [])
+  in
+  let tainted_pms =
+    PM.Set.of_list source_pms
+    |> PM.Set.union (set_opt_to_set (VarMap.find_opt (str_of_name var) env))
+    |> PM.Set.union
+         (set_opt_to_set (Hashtbl.find_opt fun_env (str_of_name var)))
+  in
+  match sanitize_pms with
+  | _ :: _ -> PM.Set.empty
+  | [] ->
+      let found = make_tainted_sink_matches sink_pms tainted_pms in
+      if not (PM.Set.is_empty found) then config.found_tainted_sink found env;
+      tainted_pms
 
+(* Test whether an expression is tainted, and if it is also a sink,
+ * report the finding too (by side effect). *)
 let rec check_tainted_expr config (fun_env : fun_env) (env : PM.Set.t VarMap.t)
     exp =
   let check = check_tainted_expr config fun_env env in
   let sink_pms = config.is_sink (G.E exp.eorig) in
   let check_base = function
-    | Var var ->
-        let var_tok_pms =
-          let _, tok = var.ident in
-          if Parse_info.is_origintok tok then config.is_source (G.Tk tok)
-          else []
-        in
-        PM.Set.of_list var_tok_pms
-        |> PM.Set.union (set_opt_to_set (VarMap.find_opt (str_of_name var) env))
-        |> PM.Set.union
-             (set_opt_to_set (Hashtbl.find_opt fun_env (str_of_name var)))
+    | Var var -> check_tainted_var config fun_env env var
     | VarSpecial _ -> PM.Set.empty
     | Mem e -> check e
   in

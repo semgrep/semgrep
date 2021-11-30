@@ -11,6 +11,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 - Java: class patterns not using generics will match classes using generics
   (#4335), e.g., `class $X { ...}` will now match `class Foo<T> { }`
 - TS: parse correctly type definitions (#4330)
+- taint-mode: Findings are now reported when the LHS of an access operator is
+  a sink (e.g. as in `$SINK->method`), and the LHS operand is a tainted
+  variable (#4320)
 
 ### Changed
 - semgrep-core: Log messages are now tagged with the process id
