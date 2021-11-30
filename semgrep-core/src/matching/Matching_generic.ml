@@ -481,7 +481,7 @@ let rec m_list_prefix f a b =
   | [], _ -> return ()
   | _ :: _, _ -> fail ()
 
-let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
+let rec m_list_with_dots ~less_is_ok f is_dots xsa xsb =
   match (xsa, xsb) with
   | [], [] -> return ()
   (* less-is-ok: empty list can sometimes match non-empty list *)
@@ -490,12 +490,12 @@ let rec m_list_with_dots f is_dots less_is_ok xsa xsb =
   | [ a ], [] when is_dots a -> return ()
   | a :: xsa, xb :: xsb when is_dots a ->
       (* can match nothing *)
-      m_list_with_dots f is_dots less_is_ok xsa (xb :: xsb)
+      m_list_with_dots f is_dots ~less_is_ok xsa (xb :: xsb)
       >||> (* can match more *)
-      m_list_with_dots f is_dots less_is_ok (a :: xsa) xsb
+      m_list_with_dots f is_dots ~less_is_ok (a :: xsa) xsb
   (* the general case *)
   | xa :: aas, xb :: bbs ->
-      f xa xb >>= fun () -> m_list_with_dots f is_dots less_is_ok aas bbs
+      f xa xb >>= fun () -> m_list_with_dots f is_dots ~less_is_ok aas bbs
   | [], _
   | _ :: _, _ ->
       fail ()
