@@ -13,7 +13,6 @@ type config = {
   profile : bool;
   report_time : bool;
   error_recovery : bool;
-  fail_fast : bool;
   profile_start : float;
   (* Main flags *)
   pattern_string : string;
