@@ -679,7 +679,7 @@ def test_ignore_git_dir(tmp_path, monkeypatch):
     )
     defaulthandler = OutputHandler(output_settings)
     assert frozenset() == TargetManager(
-        [], [], 0, [foo], True, defaulthandler, False
+        [], [], 0, [foo], True, defaulthandler, False, None
     ).get_files(language, [], [])
 
 
@@ -715,48 +715,48 @@ def test_explicit_path(tmp_path, monkeypatch):
     python_language = Language("python")
 
     assert foo_a in TargetManager(
-        [], [], 0, ["foo/a.py"], False, defaulthandler, False
+        [], [], 0, ["foo/a.py"], False, defaulthandler, False, None
     ).get_files(python_language, [], [])
     assert foo_a in TargetManager(
-        [], [], 0, ["foo/a.py"], False, defaulthandler, True
+        [], [], 0, ["foo/a.py"], False, defaulthandler, True, None
     ).get_files(python_language, [], [])
 
     # Should include explicitly passed python file even if is in excludes
     assert foo_a not in TargetManager(
-        [], ["foo/a.py"], 0, ["."], False, defaulthandler, False
+        [], ["foo/a.py"], 0, ["."], False, defaulthandler, False, None
     ).get_files(python_language, [], [])
     assert foo_a in TargetManager(
-        [], ["foo/a.py"], 0, [".", "foo/a.py"], False, defaulthandler, False
+        [], ["foo/a.py"], 0, [".", "foo/a.py"], False, defaulthandler, False, None
     ).get_files(python_language, [], [])
 
     # Should ignore expliclty passed .go file when requesting python
     assert (
-        TargetManager([], [], 0, ["foo/a.go"], False, defaulthandler, False).get_files(
-            python_language, [], []
-        )
+        TargetManager(
+            [], [], 0, ["foo/a.go"], False, defaulthandler, False, None
+        ).get_files(python_language, [], [])
         == frozenset()
     )
 
     # Should include explicitly passed file with unknown extension if skip_unknown_extensions=False
     assert cmp_path_sets(
-        TargetManager([], [], 0, ["foo/noext"], False, defaulthandler, False).get_files(
-            python_language, [], []
-        ),
+        TargetManager(
+            [], [], 0, ["foo/noext"], False, defaulthandler, False, None
+        ).get_files(python_language, [], []),
         {foo_noext},
     )
 
     # Should not include explicitly passed file with unknown extension if skip_unknown_extensions=True
     assert cmp_path_sets(
-        TargetManager([], [], 0, ["foo/noext"], False, defaulthandler, True).get_files(
-            python_language, [], []
-        ),
+        TargetManager(
+            [], [], 0, ["foo/noext"], False, defaulthandler, True, None
+        ).get_files(python_language, [], []),
         set(),
     )
 
     # Should include explicitly passed file with correct extension even if skip_unknown_extensions=True
     assert cmp_path_sets(
         TargetManager(
-            [], [], 0, ["foo/noext", "foo/a.py"], False, defaulthandler, True
+            [], [], 0, ["foo/noext", "foo/a.py"], False, defaulthandler, True, None
         ).get_files(python_language, [], []),
         {foo_a},
     )
@@ -764,7 +764,7 @@ def test_explicit_path(tmp_path, monkeypatch):
     # Should respect includes/excludes passed to get_files even if target explicitly passed
     assert cmp_path_sets(
         TargetManager(
-            [], [], 0, ["foo/a.py", "foo/b.py"], False, defaulthandler, False
+            [], [], 0, ["foo/a.py", "foo/b.py"], False, defaulthandler, False, None
         ).get_files(python_language, ["a.py"], []),
         {foo_a},
     )
