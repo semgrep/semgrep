@@ -215,6 +215,10 @@ jobs:
           pipenv install --dev
       - name: Test dummy benchmarks on latest
         run: |
+          cd semgrep
+          pipenv run semgrep --version
+          pipenv run python -m semgrep --version
+          pipenv run semgrep-core -version
           pipenv run python3 ../perf/run-benchmarks --dummy
 
   # Run each benchmark twice to decrease effect of natural variance
