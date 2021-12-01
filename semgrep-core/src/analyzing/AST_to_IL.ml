@@ -71,7 +71,7 @@ let locate opt_tok s =
   | Some loc -> spf "%s: %s" loc s
   | None -> s
 
-let log_warning opt_tok msg = logger#warning "%s" (locate opt_tok msg)
+let log_warning opt_tok msg = logger#trace "warning: %s" (locate opt_tok msg)
 
 let log_error opt_tok msg = logger#error "%s" (locate opt_tok msg)
 

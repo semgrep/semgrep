@@ -450,7 +450,7 @@ let eval_and p (And xs) =
   |> List.for_all (function Or xs ->
          if null xs then raise EmptyOr;
          xs |> List.exists (fun x -> p x) |> fun v ->
-         if not v then logger#info "this Or failed: %s" (Common.dump (Or xs));
+         if not v then logger#trace "this Or failed: %s" (Common.dump (Or xs));
          v)
 
 let run_cnf_step2 cnf big_str =
