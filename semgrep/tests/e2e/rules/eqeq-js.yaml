@@ -1,0 +1,7 @@
+rules:
+  - id: javascript-basic-eqeq-bad
+    patterns:
+      - pattern: $X == $X
+    message: "useless comparison"
+    languages: [js]
+    severity: ERROR
