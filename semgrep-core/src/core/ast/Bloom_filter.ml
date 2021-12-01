@@ -11,8 +11,8 @@ module Set = Set_
  * implementation of sets and strings are designed to reuse memory as much as
  * possible. Since every string in the set is already in the AST, and a child
  * node's set is a subset of its parent, there is a great deal of opportunity
- * for reusing. From experimental spotchecking, there does not seem to be a
- * significant difference between bloom and set filters in memory usage
+ * for reusing. From experimental spotchecking using top, set filters use less
+ * memory than bloom filters
  *
  * Using sets also ensures that we will never have a false positive, which from
  * comparing benchmarks on https://dashboard.semgrep.dev/metrics appears to make
