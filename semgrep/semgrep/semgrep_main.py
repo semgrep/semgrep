@@ -69,14 +69,14 @@ def get_file_ignore() -> Optional[FileIgnore]:
     workdir = Path.cwd()
     semgrepignore_path = Path(workdir / IGNORE_FILE_NAME)
     if semgrepignore_path.is_file():
-        logger.info("using path ignore rules from .semgrepignore")
+        logger.verbose("using path ignore rules from .semgrepignore")
         with open(semgrepignore_path) as f:
             file_ignore: Optional[FileIgnore] = FileIgnore(
                 base_path=workdir,
                 patterns=Parser(workdir).parse(f),
             )
     else:
-        logger.info("no .semgrepignore found")
+        logger.verbose("no .semgrepignore found")
         file_ignore = None
 
     return file_ignore
