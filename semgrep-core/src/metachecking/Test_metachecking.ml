@@ -53,7 +53,6 @@ let config =
     profile = false;
     report_time = false;
     error_recovery = false;
-    fail_fast = false;
     profile_start = 0.0;
     pattern_string = "";
     pattern_file = "";

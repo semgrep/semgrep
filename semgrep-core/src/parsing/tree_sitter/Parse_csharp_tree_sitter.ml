@@ -40,6 +40,9 @@ let str = H.str
 let type_parameters_with_constraints tparams constraints : type_parameter list =
   tparams
   |> List.map (function
+       (* we do not generate those semgrep constructs for now in
+        * semgrep-java, we parse Java patterns in the Java pfff parser *)
+       | TParamEllipsis _ -> raise Impossible
        | OtherTypeParam (x, anys) ->
            (* TODO: add constraints *)
            OtherTypeParam (x, anys)

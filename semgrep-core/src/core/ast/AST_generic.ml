@@ -1321,6 +1321,8 @@ and definition_kind =
 (* template/generics/polymorphic-type *)
 and type_parameter =
   | TP of type_parameter_classic
+  (* sgrep-ext: *)
+  | TParamEllipsis of tok
   (* e.g., Lifetime in Rust, complex types in OCaml, HasConstructor in C#,
    * regular Param in C++, AnonTypeParam/TPRest/TPNested in C++
    *)
